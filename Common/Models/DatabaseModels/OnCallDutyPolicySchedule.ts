@@ -690,6 +690,7 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
       "When does the roster handoff occur for this schedule for the current user?",
     example: "2024-01-15T18:00:00.000Z",
   })
+  @Index()
   @Column({
     type: ColumnType.Date,
     nullable: true,
@@ -744,6 +745,7 @@ export default class OnCallDutyPolicySchedule extends BaseModel {
       "When does the next event start for this schedule for the next user?",
     example: "2024-01-22T09:00:00.000Z",
   })
+  @Index()
   @Column({
     type: ColumnType.Date,
     nullable: true,

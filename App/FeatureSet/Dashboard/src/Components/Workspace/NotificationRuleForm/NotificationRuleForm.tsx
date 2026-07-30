@@ -25,7 +25,10 @@ import BaseNotificationRule from "Common/Types/Workspace/NotificationRules/BaseN
 import AlertNotificationRule from "Common/Types/Workspace/NotificationRules/NotificationRuleTypes/AlertNotificationRule";
 import ScheduledMaintenanceNotificationRule from "Common/Types/Workspace/NotificationRules/NotificationRuleTypes/ScheduledMaintenanceNotificationRule";
 import MonitorNotificationRule from "Common/Types/Workspace/NotificationRules/NotificationRuleTypes/MonitorNotificationRule";
-import { MicrosoftTeamsTeam } from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
+import {
+  MicrosoftTeamsChat,
+  MicrosoftTeamsTeam,
+} from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
 
 export interface ComponentProps {
   value?: undefined | IncidentNotificationRule;
@@ -42,6 +45,7 @@ export interface ComponentProps {
   workspaceType: WorkspaceType;
   teams: Array<Team>;
   microsoftTeamsTeams?: Array<MicrosoftTeamsTeam>;
+  microsoftTeamsChats?: Array<MicrosoftTeamsChat>;
   users: Array<User>;
   error?: string | undefined;
 }
@@ -163,6 +167,49 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
       },
     },
   ];
+
+  // Chats are a Microsoft Teams only destination.
+  if (props.workspaceType === WorkspaceType.MicrosoftTeams) {
+    const hasConnectedChats: boolean =
+      (props.microsoftTeamsChats || []).length > 0;
+
+    formFields = formFields.concat([
+      {
+        field: {
+          shouldPostToExistingChat: true,
+        },
+        title: `Post to Existing ${getWorkspaceTypeDisplayName(props.workspaceType)} Chat`,
+        description: `When above conditions are met, post to a group chat or one-on-one chat where the OneUptime app has been added.`,
+        fieldType: FormFieldSchemaType.Toggle,
+        required: false,
+      },
+      {
+        field: {
+          existingChatIds: true,
+        },
+        title: `Select ${getWorkspaceTypeDisplayName(props.workspaceType)} Chats to Post To`,
+        description: hasConnectedChats
+          ? `Only chats that the OneUptime app has been added to are listed here. To add more, open the chat in ${getWorkspaceTypeDisplayName(props.workspaceType)} and add the OneUptime app to it.`
+          : `No chats are connected yet. Open ${getWorkspaceTypeDisplayName(props.workspaceType)}, go to the chat you want to notify, and add the OneUptime app to it — the chat will then appear here.`,
+        fieldType: FormFieldSchemaType.MultiSelectDropdown,
+        required: true,
+        showIf: (formValue: FormValues<BaseNotificationRule>) => {
+          return Boolean(formValue.shouldPostToExistingChat);
+        },
+        dropdownOptions: (props.microsoftTeamsChats || []).map(
+          (chat: MicrosoftTeamsChat) => {
+            return {
+              label:
+                chat.chatType === "personal"
+                  ? `${chat.name} (1:1 chat)`
+                  : chat.name,
+              value: chat.id,
+            };
+          },
+        ),
+      },
+    ]);
+  }
 
   let archiveTitle: string = `Archive ${getWorkspaceTypeDisplayName(props.workspaceType)} Channel`;
   let archiveDescription: string = `When above conditions are met, archive the ${getWorkspaceTypeDisplayName(props.workspaceType)} channel.`;

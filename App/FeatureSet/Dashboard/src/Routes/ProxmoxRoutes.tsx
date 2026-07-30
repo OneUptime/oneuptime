@@ -22,6 +22,7 @@ import ProxmoxClusterStorage from "../Pages/Proxmox/View/Storage";
 import ProxmoxClusterStorageDetail from "../Pages/Proxmox/View/StorageDetail";
 import ProxmoxClusterInsights from "../Pages/Proxmox/View/Insights";
 import ProxmoxClusterMetrics from "../Pages/Proxmox/View/Metrics";
+import ProxmoxClusterRecommendations from "../Pages/Proxmox/View/Recommendations";
 import ProxmoxClusterLogs from "../Pages/Proxmox/View/Logs";
 import ProxmoxClusterIncidents from "../Pages/Proxmox/View/Incidents";
 import ProxmoxClusterAlerts from "../Pages/Proxmox/View/Alerts";
@@ -203,6 +204,21 @@ const ProxmoxRoutes: FunctionComponent<ComponentProps> = (
         />
 
         {/* Metrics */}
+        {/* Recommendations */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.PROXMOX_CLUSTER_VIEW_RECOMMENDATIONS,
+          )}
+          element={
+            <ProxmoxClusterRecommendations
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.PROXMOX_CLUSTER_VIEW_RECOMMENDATIONS] as Route
+              }
+            />
+          }
+        />
+
         <PageRoute
           path={RouteUtil.getLastPathForKey(
             PageMap.PROXMOX_CLUSTER_VIEW_METRICS,

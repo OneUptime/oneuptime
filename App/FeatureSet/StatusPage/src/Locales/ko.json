@@ -40,7 +40,9 @@
     "allClearDescription": "이 상태 페이지에 아직 리소스가 추가되지 않았습니다. 대시보드에서 리소스를 추가해주세요.",
     "allResourcesAre": "모든 리소스가 {{status}}입니다",
     "someResourcesAre": "일부 리소스가 {{status}}입니다",
-    "someResourcesAreUnder": "일부 리소스가 {{status}} 중입니다"
+    "someResourcesAreUnder": "일부 리소스가 {{status}} 중입니다",
+    "oneSubGroup": "그룹 1개",
+    "subGroupCount": "그룹 {{total}}개"
   },
   "eventItem": {
     "affectedResources": "영향을 받은 리소스",

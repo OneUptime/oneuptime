@@ -2,6 +2,7 @@ import SnmpMonitor from "../Monitors/MonitorTypes/SnmpMonitor";
 import MonitorStepSnmpMonitor from "Common/Types/Monitor/MonitorStepSnmpMonitor";
 import { SnmpVersionUtil } from "Common/Types/Monitor/SnmpMonitor/SnmpVersion";
 import SnmpV3Auth from "Common/Types/Monitor/SnmpMonitor/SnmpV3Auth";
+import ScanTargetUtil from "Common/Utils/NetworkDiscovery/ScanTargetUtil";
 import logger from "Common/Server/Utils/Logger";
 import ping from "ping";
 
@@ -19,6 +20,11 @@ export interface DiscoveredHost {
 }
 
 export interface SubnetScanConfig {
+  /*
+   * The address space to sweep, in either notation ScanTargetUtil accepts:
+   * CIDR ("192.168.1.0/24") or octet range ("10.16-22.0-255.51-66"). Named
+   * `cidr` to match the NetworkDeviceDiscoveryScan column it is read from.
+   */
   cidr: string;
   snmpVersion?: string | undefined;
   snmpCommunityString?: string | undefined;
@@ -44,8 +50,6 @@ export interface SubnetScanResult {
 
 // Sweeping the whole subnet at once would exhaust sockets; probe in waves.
 const CONCURRENCY: number = 32;
-// Guard against someone entering a /8 — an IPv4 sweep that size is abuse.
-const MAX_HOSTS: number = 4096;
 /*
  * ICMP pre-sweep timeout. The `ping` library takes seconds (it maps this to
  * the OS ping's reply-wait flag). Kept short: this is a reachability gate,
@@ -59,32 +63,27 @@ export default class SubnetScanner {
     config: SubnetScanConfig,
   ): Promise<SubnetScanResult> {
     /*
-     * Reject oversized subnets by prefix BEFORE expanding. expandCidr()
-     * materializes one string per host, so validating after expansion would
-     * let a /8 allocate ~16M strings (OOM) before the limit is ever checked.
+     * Validate syntax AND size BEFORE expanding. expandTarget() materializes
+     * one string per host, so validating after expansion would let a /8
+     * allocate ~16M strings (OOM) before the limit is ever checked.
+     *
+     * The server already rejects a bad target at write time using this same
+     * validator (NetworkDeviceDiscoveryScanService), so reaching this throw
+     * means the row predates that check or was written out of band. Either
+     * way the message ends up on the scan as its failure reason.
      */
-    const expectedHostCount: number = SubnetScanner.countHosts(config.cidr);
+    const validationError: string | null = ScanTargetUtil.getValidationError(
+      config.cidr,
+    );
 
-    if (expectedHostCount === 0) {
-      throw new Error("Invalid or empty CIDR: " + config.cidr);
+    if (validationError) {
+      throw new Error(validationError);
     }
 
-    if (expectedHostCount > MAX_HOSTS) {
-      throw new Error(
-        "CIDR " +
-          config.cidr +
-          " expands to " +
-          expectedHostCount +
-          " hosts, exceeding the " +
-          MAX_HOSTS +
-          "-host scan limit. Use a smaller subnet.",
-      );
-    }
-
-    const hosts: Array<string> = SubnetScanner.expandCidr(config.cidr);
+    const hosts: Array<string> = SubnetScanner.expandTarget(config.cidr);
 
     if (hosts.length === 0) {
-      throw new Error("Invalid or empty CIDR: " + config.cidr);
+      throw new Error("Scan target expands to no addresses: " + config.cidr);
     }
 
     const discoveredHosts: Array<DiscoveredHost> = [];
@@ -261,78 +260,23 @@ export default class SubnetScanner {
   }
 
   /*
-   * Returns how many usable host addresses a CIDR expands to, computed from
-   * the prefix alone (no allocation). Returns 0 for a malformed CIDR. Mirrors
-   * expandCidr's rule: /31 and /32 count every address, larger blocks exclude
-   * the network and broadcast addresses.
+   * How many addresses a scan target expands to, computed arithmetically with
+   * no allocation. Returns 0 for a malformed target. Accepts either notation:
+   * CIDR ("192.168.1.0/24"), where /31 and /32 count every address and larger
+   * blocks exclude the network and broadcast addresses; or an octet range
+   * ("10.16-22.0-255.51-66"), where every enumerated address counts.
    */
-  public static countHosts(cidr: string): number {
-    const match: RegExpMatchArray | null = cidr
-      .trim()
-      .match(/^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\/(\d{1,2})$/);
-
-    if (!match) {
-      return 0;
-    }
-
-    const prefix: number = parseInt(match[2]!, 10);
-    if (prefix < 0 || prefix > 32) {
-      return 0;
-    }
-
-    if (isNaN(SubnetScanner.ipToLong(match[1]!))) {
-      return 0;
-    }
-
-    const blockSize: number = Math.pow(2, 32 - prefix);
-    return blockSize <= 2 ? blockSize : blockSize - 2;
+  public static countHosts(target: string): number {
+    return ScanTargetUtil.countHosts(target);
   }
 
   /*
-   * Expands an IPv4 CIDR into its usable host addresses. For prefixes /31
-   * and shorter, the network and broadcast addresses are excluded.
+   * Expands a scan target into the addresses to probe, in ascending order.
+   * Empty for a malformed target. Callers must gate on countHosts() (or
+   * ScanTargetUtil.getValidationError()) first — see scan() above.
    */
-  public static expandCidr(cidr: string): Array<string> {
-    // IPv4-only by design: IPv6 subnets are too sparse to sweep; IPv6 discovery will be ND-based (roadmap), not a CIDR sweep.
-    const match: RegExpMatchArray | null = cidr
-      .trim()
-      .match(/^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\/(\d{1,2})$/);
-
-    if (!match) {
-      return [];
-    }
-
-    const baseIp: string = match[1]!;
-    const prefix: number = parseInt(match[2]!, 10);
-
-    if (prefix < 0 || prefix > 32) {
-      return [];
-    }
-
-    const baseLong: number = SubnetScanner.ipToLong(baseIp);
-    if (isNaN(baseLong)) {
-      return [];
-    }
-
-    const hostBits: number = 32 - prefix;
-    const blockSize: number = Math.pow(2, hostBits);
-    const networkLong: number = baseLong & (0xffffffff << hostBits);
-
-    const hosts: Array<string> = [];
-
-    if (blockSize <= 2) {
-      // /31 and /32: every address is usable.
-      for (let i: number = 0; i < blockSize; i++) {
-        hosts.push(SubnetScanner.longToIp(networkLong + i));
-      }
-      return hosts;
-    }
-
-    // Skip network (first) and broadcast (last).
-    for (let i: number = 1; i < blockSize - 1; i++) {
-      hosts.push(SubnetScanner.longToIp(networkLong + i));
-    }
-    return hosts;
+  public static expandTarget(target: string): Array<string> {
+    return ScanTargetUtil.expand(target);
   }
 
   private static ipToLong(ip: string): number {
@@ -349,17 +293,5 @@ export default class SubnetScanner {
       long = long * 256 + octet;
     }
     return long >>> 0;
-  }
-
-  private static longToIp(long: number): string {
-    return (
-      ((long >>> 24) & 0xff) +
-      "." +
-      ((long >>> 16) & 0xff) +
-      "." +
-      ((long >>> 8) & 0xff) +
-      "." +
-      (long & 0xff)
-    );
   }
 }

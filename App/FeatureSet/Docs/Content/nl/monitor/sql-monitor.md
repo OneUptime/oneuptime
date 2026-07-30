@@ -109,19 +109,19 @@ OneUptime lost het secret server-side op voordat de configuratie aan de probe wo
 
 Voeg criteria toe om te bepalen wanneer de monitor als online, verminderd of offline wordt beschouwd. De volgende controles zijn beschikbaar voor een SQL-query-monitor:
 
-- **SQL is online** — of de database bereikbaar was en de query is geslaagd.
-- **SQL-query aantal rijen** — het aantal geretourneerde rijen. Vergelijk met operatoren zoals groter dan, kleiner dan of gelijk aan.
-- **SQL-query scalaire waarde** — de eerste kolom van de eerste rij. Numeriek vergeleken wanneer beide zijden numeriek lijken, anders als tekenreeksen. Dit is de controle die u gebruikt voor query's in `COUNT(*)`-stijl.
-- **SQL-query uitvoeringstijd (in ms)** — hoe lang de query duurde. Nuttig om een trage database te betrappen.
-- **SQL-queryfout** — het queryfoutbericht. Waarschuw wanneer het (niet) leeg is, of overeenkomt met een specifieke tekenreeks.
-- **JavaScript-expressie** — evalueer een aangepaste JavaScript-expressie voor volledige controle. Zie [JavaScript-expressies](/docs/monitor/javascript-expression).
+- **SQL Is Online** — of de database bereikbaar was en de query is geslaagd.
+- **SQL Query Row Count** — het aantal geretourneerde rijen. Vergelijk met operatoren zoals groter dan, kleiner dan of gelijk aan.
+- **SQL Query Scalar Value** — de eerste kolom van de eerste rij. Numeriek vergeleken wanneer beide zijden numeriek lijken, anders als tekenreeksen. Dit is de controle die u gebruikt voor query's in `COUNT(*)`-stijl.
+- **SQL Query Execution Time (in ms)** — hoe lang de query duurde. Nuttig om een trage database te betrappen.
+- **SQL Query Error** — het queryfoutbericht. Waarschuw wanneer het (niet) leeg is, of overeenkomt met een specifieke tekenreeks.
+- **JavaScript Expression** — evalueer een aangepaste JavaScript-expressie voor volledige controle. Zie [JavaScript-expressies](/docs/monitor/javascript-expression).
 
 ### Voorbeeld: waarschuwen wanneer annuleringen pieken
 
 Met de bovenstaande query:
 
-- **Criteria: Verminderd** — `SQL-query scalaire waarde` is groter dan `10`.
-- **Criteria: Offline** — `SQL-query scalaire waarde` is groter dan `50`, of `SQL is online` is `false`.
+- **Criteria: Verminderd** — `SQL Query Scalar Value` is groter dan `10`.
+- **Criteria: Offline** — `SQL Query Scalar Value` is groter dan `50`, of `SQL Is Online` is `false`.
 
 Koppel een on-callbeleid aan de criteria zodat de juiste mensen worden opgeroepen.
 

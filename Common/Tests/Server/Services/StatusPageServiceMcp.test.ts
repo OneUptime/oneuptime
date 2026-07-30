@@ -18,7 +18,14 @@ import StatusPageDomainService from "../../../Server/Services/StatusPageDomainSe
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import StatusPageDomain from "../../../Models/DatabaseModels/StatusPageDomain";
 import ObjectID from "../../../Types/ObjectID";
-import { afterEach, describe, expect, test, jest } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  test,
+  jest,
+} from "@jest/globals";
 
 const VALID_UUID: string = "550e8400-e29b-41d4-a716-446655440000";
 const DOMAIN: string = "status.company.com";
@@ -48,6 +55,15 @@ function spyOnDomainFindOneBy(): jest.SpyInstance {
 }
 
 describe("StatusPageService MCP gate", () => {
+  beforeEach(() => {
+    /*
+     * resolveStatusPageIdOrNull caches successful domain resolutions on the
+     * singleton service, so a hit in one test would short-circuit the mocked
+     * domain query in the next.
+     */
+    StatusPageService.clearStatusPageDomainToIdCache();
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
   });

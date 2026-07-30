@@ -4,6 +4,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import Model from "../../Models/DatabaseModels/RunbookAgentJob";
 import RunbookAgentJobStatus from "../../Types/Runbook/RunbookAgentJobStatus";
 import RunbookStepType from "../../Types/Runbook/RunbookStepType";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../Types/Date";
 import { JSONObject } from "../../Types/JSON";
 import PostgresAppInstance from "../Infrastructure/PostgresDatabase";
@@ -25,6 +26,24 @@ const DEFAULT_LEASE_MS: number = 30_000;
 const DEFAULT_CLAIM_TIMEOUT_MS: number = 2 * 60_000;
 
 const POLL_INTERVAL_MS: number = 500;
+
+/*
+ * A job in one of these states will never change again, so its row is a
+ * durable record of what the step did. Everything else is still in flight and
+ * can be waited on.
+ */
+const TERMINAL_STATUSES: Array<RunbookAgentJobStatus> = [
+  RunbookAgentJobStatus.Succeeded,
+  RunbookAgentJobStatus.Failed,
+  RunbookAgentJobStatus.TimedOut,
+  RunbookAgentJobStatus.Cancelled,
+];
+
+export function isTerminalAgentJobStatus(
+  status: RunbookAgentJobStatus | undefined,
+): boolean {
+  return Boolean(status && TERMINAL_STATUSES.includes(status));
+}
 
 /*
  * TypeORM's dataSource.query returns `[rows, rowCount]` for UPDATE/DELETE
@@ -93,6 +112,47 @@ export class Service extends DatabaseService<Model> {
     row.claimDeadlineAt = claimDeadlineAt;
 
     return this.create({ data: row, props: { isRoot: true } });
+  }
+
+  /*
+   * The job this (execution, step) pair already produced, if any.
+   *
+   * A runbook execution runs inside a single BullMQ job, so a Worker restart
+   * mid-step means the execution is re-delivered and RunRunbook walks back to
+   * the same step — which is still persisted as Running. Without this lookup
+   * the step would be dispatched a second time and the agent would run the
+   * script again. The dispatcher calls this first: a terminal row is the
+   * step's result, a live row is something to re-attach to.
+   *
+   * A step is dispatched at most once per execution, so the newest row is the
+   * only one there can be; ordering is belt-and-braces against a torn write
+   * from a previous release.
+   */
+  @CaptureSpan()
+  public async findLatestJobForStep(data: {
+    runbookExecutionId: ObjectID;
+    stepId: string;
+  }): Promise<Model | null> {
+    const jobs: Array<Model> = await this.findBy({
+      query: {
+        runbookExecutionId: data.runbookExecutionId,
+        stepId: data.stepId,
+      },
+      select: {
+        _id: true,
+        status: true,
+        output: true,
+        exitCode: true,
+        errorMessage: true,
+        createdAt: true,
+      },
+      sort: { createdAt: SortOrder.Descending },
+      limit: 1,
+      skip: 0,
+      props: { isRoot: true },
+    });
+
+    return jobs[0] || null;
   }
 
   /*
@@ -279,15 +339,21 @@ export class Service extends DatabaseService<Model> {
    * POLL_INTERVAL_MS until the job reaches a terminal status, or until the
    * combined claim + execution window is exhausted (in which case we mark
    * the job TimedOut ourselves and return it).
+   *
+   * waitStartedAt anchors that window. It defaults to now — right for a job
+   * this Worker just enqueued — but a Worker re-attaching to a job left behind
+   * by a restart passes the job's createdAt, so the step keeps the single
+   * window its author configured instead of earning a fresh one per redelivery.
    */
   @CaptureSpan()
   public async pollUntilTerminal(data: {
     jobId: ObjectID;
     claimTimeoutInMs: number;
     executionTimeoutInMs: number;
+    waitStartedAt?: Date | undefined;
   }): Promise<Model> {
     const overallDeadline: Date = OneUptimeDate.addRemoveSeconds(
-      OneUptimeDate.getCurrentDate(),
+      data.waitStartedAt || OneUptimeDate.getCurrentDate(),
       Math.ceil(
         (data.claimTimeoutInMs + data.executionTimeoutInMs + 5_000) / 1000,
       ),
@@ -318,12 +384,7 @@ export class Service extends DatabaseService<Model> {
         );
       }
 
-      if (
-        job.status === RunbookAgentJobStatus.Succeeded ||
-        job.status === RunbookAgentJobStatus.Failed ||
-        job.status === RunbookAgentJobStatus.TimedOut ||
-        job.status === RunbookAgentJobStatus.Cancelled
-      ) {
+      if (isTerminalAgentJobStatus(job.status)) {
         return job;
       }
 

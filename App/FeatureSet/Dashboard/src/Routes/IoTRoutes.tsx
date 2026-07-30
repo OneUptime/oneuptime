@@ -18,6 +18,7 @@ import IoTFleetDevices from "../Pages/IoT/View/Devices";
 import IoTFleetDeviceRegistry from "../Pages/IoT/View/DeviceRegistry";
 import IoTFleetDeviceDetail from "../Pages/IoT/View/DeviceDetail";
 import IoTFleetMetrics from "../Pages/IoT/View/Metrics";
+import IoTFleetRecommendations from "../Pages/IoT/View/Recommendations";
 import IoTFleetLogs from "../Pages/IoT/View/Logs";
 import IoTFleetIncidents from "../Pages/IoT/View/Incidents";
 import IoTFleetAlerts from "../Pages/IoT/View/Alerts";
@@ -131,6 +132,21 @@ const IoTRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.IOT_FLEET_VIEW_DEVICE_DETAIL] as Route
+              }
+            />
+          }
+        />
+
+        {/* Recommendations */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.IOT_FLEET_VIEW_RECOMMENDATIONS,
+          )}
+          element={
+            <IoTFleetRecommendations
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.IOT_FLEET_VIEW_RECOMMENDATIONS] as Route
               }
             />
           }

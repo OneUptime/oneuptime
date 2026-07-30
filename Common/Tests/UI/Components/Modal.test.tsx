@@ -2,9 +2,13 @@ import { ButtonStyleType } from "../../../UI/Components/Button/Button";
 import ButtonType from "../../../UI/Components/Button/ButtonTypes";
 import Modal, { ModalWidth } from "../../../UI/Components/Modal/Modal";
 import { describe, expect, it, test } from "@jest/globals";
-import "@testing-library/jest-dom/extend-expect";
+/*
+ * The main entry, not "/extend-expect": the latter no longer ships type
+ * declarations, so every jest-dom matcher in this file fails to typecheck and
+ * the whole suite is skipped before a single assertion runs.
+ */
+import "@testing-library/jest-dom";
 import { fireEvent, render } from "@testing-library/react";
-import IconProp from "../../../Types/Icon/IconProp";
 import React from "react";
 import getJestMockFunction, { MockFunction } from "../../../Tests/MockType";
 
@@ -338,16 +342,50 @@ describe("Modal", () => {
     expect(submitButton).toBeDisabled();
   });
 
-  it("displays the icon when icon is set", () => {
+  /*
+   * The header carries the title, the description and the close button, and
+   * nothing else. A decorative icon beside the title said nothing the title did
+   * not already say, so there is no longer anywhere for one to be rendered.
+   */
+  it("renders no decorative icon in the header", () => {
     const onSubmitMock: MockFunction = getJestMockFunction();
 
-    const { getByTestId } = render(
-      <Modal title="Test Modal" onSubmit={onSubmitMock} icon={IconProp.SMS}>
+    const { queryByTestId, getByTestId } = render(
+      <Modal
+        title="Test Modal"
+        description="Test modal description"
+        onSubmit={onSubmitMock}
+        onClose={getJestMockFunction()}
+      >
         <div>Modal content</div>
       </Modal>,
     );
 
-    expect(getByTestId("icon")).toBeInTheDocument();
+    expect(queryByTestId("icon")).not.toBeInTheDocument();
+
+    // The rest of the header is untouched.
+    expect(getByTestId("modal-title")).toHaveTextContent("Test Modal");
+    expect(getByTestId("modal-description")).toHaveTextContent(
+      "Test modal description",
+    );
+    expect(getByTestId("close-button")).toBeInTheDocument();
+  });
+
+  it("keeps the title as the first thing inside the header", () => {
+    const { getByTestId } = render(
+      <Modal title="Test Modal" onSubmit={getJestMockFunction()}>
+        <div>Modal content</div>
+      </Modal>,
+    );
+
+    const title: HTMLElement = getByTestId("modal-title");
+    const header: HTMLElement = title.parentElement!.parentElement!;
+
+    /*
+     * With the icon gone the title block is the header's first child. Anything
+     * else in that slot would push the title out of line with the body.
+     */
+    expect(header.firstElementChild).toContainElement(title);
   });
 
   it("displays the submit button with the default style when submitButtonStyleType is not set", () => {

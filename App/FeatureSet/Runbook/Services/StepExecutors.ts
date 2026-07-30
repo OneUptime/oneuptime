@@ -7,8 +7,14 @@ import {
   RunbookStep,
 } from "Common/Types/Runbook/RunbookStep";
 import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
+import {
+  resolveAgentClaimTimeoutInMs,
+  resolveStepExecutionTimeoutInMs,
+} from "Common/Types/Runbook/RunbookStepTimeout";
 import ObjectID from "Common/Types/ObjectID";
-import RunbookAgentJobService from "Common/Server/Services/RunbookAgentJobService";
+import RunbookAgentJobService, {
+  isTerminalAgentJobStatus,
+} from "Common/Server/Services/RunbookAgentJobService";
 import RunbookAgentJobStatus from "Common/Types/Runbook/RunbookAgentJobStatus";
 import RunbookAgentJob from "Common/Models/DatabaseModels/RunbookAgentJob";
 import { RunbookStepExecutionState } from "Common/Types/Runbook/RunbookStepExecution";
@@ -36,9 +42,6 @@ export interface StepExecutionContext {
 }
 
 const MAX_OUTPUT_BYTES: number = 50_000;
-const DEFAULT_SCRIPT_TIMEOUT_MS: number = 30_000;
-const DEFAULT_HTTP_TIMEOUT_MS: number = 30_000;
-const DEFAULT_AGENT_CLAIM_TIMEOUT_MS: number = 2 * 60_000;
 
 export function truncate(s: string): string {
   if (Buffer.byteLength(s, "utf8") <= MAX_OUTPUT_BYTES) {
@@ -48,6 +51,25 @@ export function truncate(s: string): string {
     Buffer.from(s, "utf8").slice(0, MAX_OUTPUT_BYTES).toString("utf8") +
     "\n... [output truncated]"
   );
+}
+
+// Translate a finished agent job row into the step result the runner records.
+function toStepResult(job: RunbookAgentJob): StepRunResult {
+  const output: string = truncate(job.output || "");
+
+  if (job.status === RunbookAgentJobStatus.Succeeded) {
+    return { success: true, output };
+  }
+
+  return {
+    success: false,
+    output,
+    errorMessage:
+      job.errorMessage ||
+      (typeof job.exitCode === "number"
+        ? `Exit code ${job.exitCode}`
+        : `Step ended with status ${job.status ?? "unknown"}`),
+  };
 }
 
 /*
@@ -91,39 +113,64 @@ async function dispatchToAgent(args: {
   }
 
   try {
-    const job: RunbookAgentJob = await RunbookAgentJobService.enqueue({
-      projectId: args.ctx.projectId,
-      runbookExecutionId: args.ctx.runbookExecutionId,
-      stepId: args.step.id,
-      stepType: args.stepType,
-      targetAgentId,
-      script: args.script,
-      timeoutInMs: args.timeoutInMs,
-      claimTimeoutInMs: args.claimTimeoutInMs,
-    });
+    /*
+     * A runbook execution occupies one BullMQ job for its whole run, so a
+     * Worker restart mid-step gets the execution redelivered and walks us back
+     * to this same step. Enqueueing again would hand the agent a second copy
+     * of the script — a database restore run twice. The row this step already
+     * produced is the source of truth: adopt it if it finished, wait on it if
+     * it did not.
+     */
+    const existingJob: RunbookAgentJob | null =
+      await RunbookAgentJobService.findLatestJobForStep({
+        runbookExecutionId: args.ctx.runbookExecutionId,
+        stepId: args.step.id,
+      });
+
+    if (existingJob && isTerminalAgentJobStatus(existingJob.status)) {
+      logger.info(
+        `Runbook step ${args.step.id} already has a finished agent job (${existingJob.status}); adopting its result instead of re-running it.`,
+      );
+      return toStepResult(existingJob);
+    }
+
+    let jobId: ObjectID;
+    /*
+     * Anchors the claim + execution window. Re-attaching keeps the original
+     * job's clock so a step cannot buy itself another full window on each
+     * redelivery; a fresh dispatch starts its window now.
+     */
+    let waitStartedAt: Date | undefined = undefined;
+
+    if (existingJob) {
+      logger.info(
+        `Runbook step ${args.step.id} already has an in-flight agent job (${existingJob.status}); re-attaching to it rather than dispatching a second one.`,
+      );
+      jobId = new ObjectID(existingJob._id!);
+      waitStartedAt = existingJob.createdAt;
+    } else {
+      const job: RunbookAgentJob = await RunbookAgentJobService.enqueue({
+        projectId: args.ctx.projectId,
+        runbookExecutionId: args.ctx.runbookExecutionId,
+        stepId: args.step.id,
+        stepType: args.stepType,
+        targetAgentId,
+        script: args.script,
+        timeoutInMs: args.timeoutInMs,
+        claimTimeoutInMs: args.claimTimeoutInMs,
+      });
+      jobId = new ObjectID(job._id!);
+    }
 
     const terminal: RunbookAgentJob =
       await RunbookAgentJobService.pollUntilTerminal({
-        jobId: new ObjectID(job._id!),
+        jobId,
         claimTimeoutInMs: args.claimTimeoutInMs,
         executionTimeoutInMs: args.timeoutInMs,
+        waitStartedAt,
       });
 
-    const output: string = truncate(terminal.output || "");
-
-    if (terminal.status === RunbookAgentJobStatus.Succeeded) {
-      return { success: true, output };
-    }
-
-    return {
-      success: false,
-      output,
-      errorMessage:
-        terminal.errorMessage ||
-        (typeof terminal.exitCode === "number"
-          ? `Exit code ${terminal.exitCode}`
-          : `Step ended with status ${terminal.status ?? "unknown"}`),
-    };
+    return toStepResult(terminal);
   } catch (err) {
     logger.error(`${args.stepType} step dispatch failed`);
     logger.error(err);
@@ -145,8 +192,8 @@ export async function runJavaScriptStep(
     step,
     ctx,
     script: config.script || "",
-    timeoutInMs: config.timeoutInMs || DEFAULT_SCRIPT_TIMEOUT_MS,
-    claimTimeoutInMs: config.claimTimeoutInMs || DEFAULT_AGENT_CLAIM_TIMEOUT_MS,
+    timeoutInMs: resolveStepExecutionTimeoutInMs(config.timeoutInMs),
+    claimTimeoutInMs: resolveAgentClaimTimeoutInMs(config.claimTimeoutInMs),
     agentId: config.agentId || "",
     missingAgentError:
       "JavaScript step is missing a Runbook Agent. Pick an agent under Runbooks → Agents. JavaScript no longer runs on the OneUptime Worker.",
@@ -155,7 +202,7 @@ export async function runJavaScriptStep(
 
 export async function runHttpStep(step: RunbookStep): Promise<StepRunResult> {
   const config: HttpRequestStepConfig = step.config as HttpRequestStepConfig;
-  const timeout: number = config.timeoutInMs || DEFAULT_HTTP_TIMEOUT_MS;
+  const timeout: number = resolveStepExecutionTimeoutInMs(config.timeoutInMs);
 
   let headers: Record<string, string> = {};
   if (config.headersJson) {
@@ -232,8 +279,8 @@ export async function runBashStep(
     step,
     ctx,
     script: config.script || "",
-    timeoutInMs: config.timeoutInMs || DEFAULT_SCRIPT_TIMEOUT_MS,
-    claimTimeoutInMs: config.claimTimeoutInMs || DEFAULT_AGENT_CLAIM_TIMEOUT_MS,
+    timeoutInMs: resolveStepExecutionTimeoutInMs(config.timeoutInMs),
+    claimTimeoutInMs: resolveAgentClaimTimeoutInMs(config.claimTimeoutInMs),
     agentId: config.agentId || "",
     missingAgentError:
       "Bash step is missing a Runbook Agent. Pick an agent under Runbooks → Agents.",

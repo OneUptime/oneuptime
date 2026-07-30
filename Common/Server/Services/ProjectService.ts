@@ -52,6 +52,7 @@ import {
 } from "../../Types/BrandColors";
 import Color from "../../Types/Color";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
+import QueryDeepPartialEntity from "../../Types/Database/PartialEntity";
 import OneUptimeDate from "../../Types/Date";
 import EmailTemplateType from "../../Types/Email/EmailTemplateType";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -607,6 +608,99 @@ export class ProjectService extends DatabaseService<Model> {
     });
 
     await this.sendSubscriptionChangeWebhookSlackNotification(project.id!);
+  }
+
+  /*
+   * Pushes a project's trial end date out to a new date, in the payment
+   * provider first and then on the project row.
+   *
+   * The payment provider is the source of truth for what the customer is
+   * actually charged, so it is updated first: if Stripe rejects the change
+   * the project row keeps its old trial date rather than showing the customer
+   * a trial that is not really there.
+   */
+  @CaptureSpan()
+  public async extendTrial(params: {
+    projectId: ObjectID;
+    trialEndsAt: Date;
+    extendedByUserId?: ObjectID | undefined;
+  }): Promise<void> {
+    if (!IsBillingEnabled) {
+      throw new BadDataException("Billing is not enabled for this server");
+    }
+
+    const project: Model | null = await this.findOneById({
+      id: params.projectId,
+      select: {
+        _id: true,
+        trialEndsAt: true,
+        paymentProviderSubscriptionId: true,
+        paymentProviderMeteredSubscriptionId: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!project) {
+      throw new BadDataException("Project not found");
+    }
+
+    if (!project.paymentProviderSubscriptionId) {
+      throw new BadDataException("Payment Provider subscription not found");
+    }
+
+    if (!project.paymentProviderMeteredSubscriptionId) {
+      throw new BadDataException(
+        "Payment Provider metered subscription not found",
+      );
+    }
+
+    await BillingService.extendTrial({
+      subscriptionId: project.paymentProviderSubscriptionId,
+      meteredSubscriptionId: project.paymentProviderMeteredSubscriptionId,
+      trialEndsAt: params.trialEndsAt,
+    });
+
+    /*
+     * Pushing trial_end out puts the subscriptions back into `trialing`. Read
+     * the statuses back rather than assuming them, so the project row - which
+     * drives the customer's trial banner and the paywall - matches Stripe.
+     */
+    const subscriptionStatus: SubscriptionStatus =
+      await BillingService.getSubscriptionStatus(
+        project.paymentProviderSubscriptionId,
+      );
+
+    const meteredSubscriptionStatus: SubscriptionStatus =
+      await BillingService.getSubscriptionStatus(
+        project.paymentProviderMeteredSubscriptionId,
+      );
+
+    await this.updateOneById({
+      id: project.id!,
+      data: {
+        trialEndsAt: params.trialEndsAt,
+        paymentProviderSubscriptionStatus: subscriptionStatus,
+        paymentProviderMeteredSubscriptionStatus: meteredSubscriptionStatus,
+      },
+      props: {
+        isRoot: true,
+        ignoreHooks: true,
+      },
+    });
+
+    /*
+     * The audit trail for handing out free service. There is no generic
+     * admin-action table, so the acting master admin goes in the log line.
+     */
+    logger.info(
+      `Trial for project ${project.id?.toString()} extended from ${
+        project.trialEndsAt?.toISOString() || "none"
+      } to ${params.trialEndsAt.toISOString()} by master admin ${
+        params.extendedByUserId?.toString() || "unknown"
+      }`,
+    );
   }
 
   /*
@@ -2040,6 +2134,7 @@ export class ProjectService extends DatabaseService<Model> {
         paymentProviderMeteredSubscriptionId: true,
         paymentProviderSubscriptionSeats: true,
         paymentProviderPlanId: true,
+        trialEndsAt: true,
       },
     });
 
@@ -2081,6 +2176,21 @@ export class ProjectService extends DatabaseService<Model> {
       throw new BadDataException("Subscription plan not found");
     }
 
+    /*
+     * Reactivating goes through changePlan, which cancels both subscriptions
+     * and creates new ones - so a trial the project still has to run has to be
+     * carried onto the replacements explicitly. Otherwise a customer whose
+     * trial a master admin extended as a goodwill gesture loses the extension
+     * the moment their subscription is reactivated, and is billed right away.
+     *
+     * A trial that has already lapsed is not revived: reactivation is not the
+     * place to hand out free service.
+     */
+    const endTrialAt: Date | undefined =
+      project.trialEndsAt && OneUptimeDate.isInTheFuture(project.trialEndsAt)
+        ? project.trialEndsAt
+        : undefined;
+
     const result: {
       subscriptionId: string;
       meteredSubscriptionId: string;
@@ -2093,7 +2203,7 @@ export class ProjectService extends DatabaseService<Model> {
       newPlan: subscriptionPlan,
       quantity: project.paymentProviderSubscriptionSeats,
       isYearly: SubscriptionPlan.isYearlyPlan(project.paymentProviderPlanId),
-      endTrialAt: undefined,
+      endTrialAt: endTrialAt,
     });
 
     // refresh subscription status.
@@ -2109,14 +2219,28 @@ export class ProjectService extends DatabaseService<Model> {
 
     // now update project with new subscription id.
 
+    const updateData: QueryDeepPartialEntity<Model> = {
+      paymentProviderSubscriptionId: result.subscriptionId,
+      paymentProviderMeteredSubscriptionId: result.meteredSubscriptionId,
+      paymentProviderSubscriptionStatus: subscriptionState,
+      paymentProviderMeteredSubscriptionStatus: meteredSubscriptionState,
+    };
+
+    /*
+     * The payment provider is the source of truth for the trial the new
+     * subscriptions were created with, so its date wins over the one sent.
+     * The column is left alone when there is no trial to record, rather than
+     * stamping a project whose trial lapsed long ago with a fresh date.
+     */
+    const newTrialEndsAt: Date | undefined = result.trialEndsAt || endTrialAt;
+
+    if (newTrialEndsAt) {
+      updateData.trialEndsAt = newTrialEndsAt;
+    }
+
     await this.updateOneById({
       id: project.id!,
-      data: {
-        paymentProviderSubscriptionId: result.subscriptionId,
-        paymentProviderMeteredSubscriptionId: result.meteredSubscriptionId,
-        paymentProviderSubscriptionStatus: subscriptionState,
-        paymentProviderMeteredSubscriptionStatus: meteredSubscriptionState,
-      },
+      data: updateData,
       props: {
         isRoot: true,
       },

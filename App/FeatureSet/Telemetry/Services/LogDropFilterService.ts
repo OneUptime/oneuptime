@@ -10,6 +10,11 @@ import {
   CompiledFilter,
   evaluateCompiledFilter,
 } from "../Utils/LogFilterEvaluator";
+import { shouldDropBySampling } from "Common/Types/Telemetry/DropFilterSampling";
+import {
+  DropFilterSignal,
+  recordDroppedRecord,
+} from "../Utils/DropFilterDropRecorder";
 
 export interface LoadedLogDropFilter {
   filter: LogDropFilter;
@@ -19,6 +24,12 @@ export interface LoadedLogDropFilter {
    * See LogFilterEvaluator.compileFilter.
    */
   compiledFilter: CompiledFilter;
+  /*
+   * The project the filter was loaded for. Carried here so the drop
+   * recorder can attribute drops without depending on the shape of the
+   * log row being evaluated.
+   */
+  projectId: ObjectID;
 }
 
 interface CacheEntry {
@@ -71,7 +82,19 @@ export class LogDropFilterService {
       (filter: LogDropFilter) => {
         return {
           filter,
-          compiledFilter: compileFilter((filter.filterQuery as string) || ""),
+          /*
+           * `emptyQueryMatches: false` is load-bearing. A drop filter with a
+           * blank query used to compile to "match every record", which
+           * turned it into "discard 100% of this project's logs" —
+           * silently, and with no counter to notice it by. Save-time
+           * validation now rejects a blank query, but rows created before
+           * that must not keep shredding data, so the engine treats an
+           * empty query as matching nothing.
+           */
+          compiledFilter: compileFilter((filter.filterQuery as string) || "", {
+            emptyQueryMatches: false,
+          }),
+          projectId: projectId,
         };
       },
     );
@@ -84,26 +107,57 @@ export class LogDropFilterService {
     logRow: JSONObject,
     filters: Array<LoadedLogDropFilter>,
   ): boolean {
-    for (const { filter, compiledFilter } of filters) {
+    for (const { filter, compiledFilter, projectId } of filters) {
       if (!evaluateCompiledFilter(logRow, compiledFilter)) {
         continue;
       }
 
       // Filter matches this log
       if (filter.action === LogDropFilterAction.Drop) {
+        this.recordDrop(filter, projectId, LogDropFilterAction.Drop);
         return true;
       }
 
       if (filter.action === LogDropFilterAction.Sample) {
-        const samplePercentage: number = filter.samplePercentage || 50;
-        // Keep samplePercentage% of logs, drop the rest
-        if (Math.random() * 100 >= samplePercentage) {
+        /*
+         * An unset or out-of-range percentage resolves to "keep
+         * everything" rather than the old hardcoded 50. See
+         * DropFilterSampling for why 0 is treated as misconfigured.
+         */
+        if (shouldDropBySampling(filter.samplePercentage)) {
+          this.recordDrop(filter, projectId, LogDropFilterAction.Sample);
           return true; // drop this log
         }
       }
     }
 
     return false;
+  }
+
+  /*
+   * Every drop goes through here so no drop can ever again be invisible.
+   * Recording must never be able to fail an ingest batch — a dropped log is
+   * still a successful outcome for the request.
+   */
+  private static recordDrop(
+    filter: LogDropFilter,
+    projectId: ObjectID,
+    action: LogDropFilterAction,
+  ): void {
+    if (!filter.id) {
+      return;
+    }
+
+    try {
+      recordDroppedRecord({
+        projectId: projectId,
+        filterId: filter.id,
+        signal: DropFilterSignal.Logs,
+        action: action,
+      });
+    } catch {
+      // Observability must not break ingest.
+    }
   }
 }
 

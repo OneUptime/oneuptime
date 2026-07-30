@@ -12,8 +12,8 @@ Ce guide explique comment configurer l'authentification OAuth 2.0 pour Microsoft
 
 OAuth 2.0 offre un moyen plus sécurisé de s'authentifier auprès des serveurs de messagerie, en particulier pour les environnements d'entreprise ayant désactivé l'authentification de base. OneUptime prend en charge deux types d'octroi OAuth :
 
-- **Informations d'identification du client** — Utilisé par Microsoft 365 et la plupart des fournisseurs OAuth
-- **Jeton JWT Bearer** — Utilisé par les comptes de service Google Workspace
+- **Client Credentials** — Utilisé par Microsoft 365 et la plupart des fournisseurs OAuth
+- **JWT Bearer** — Utilisé par les comptes de service Google Workspace
 
 ### Champs requis pour OAuth
 
@@ -25,7 +25,7 @@ Lors de la configuration de SMTP avec l'authentification OAuth dans OneUptime, v
 | **Port**                      | Port SMTP (généralement 587 pour STARTTLS ou 465 pour TLS implicite)                                                       |
 | **Nom d'utilisateur**         | L'adresse e-mail d'envoi                                                                                                   |
 | **Type d'authentification**   | Sélectionnez « OAuth »                                                                                                     |
-| **Type de fournisseur OAuth** | Sélectionnez « Informations d'identification du client » pour Microsoft 365, ou « Jeton JWT Bearer » pour Google Workspace |
+| **Type de fournisseur OAuth** | Sélectionnez « Client Credentials » pour Microsoft 365, ou « JWT Bearer » pour Google Workspace                            |
 | **ID client**                 | ID Application/Client de votre fournisseur OAuth (pour Google : e-mail du compte de service)                               |
 | **Secret client**             | Secret client de votre fournisseur OAuth (pour Google : clé privée)                                                        |
 | **URL du jeton**              | URL du point de terminaison du jeton OAuth                                                                                 |
@@ -114,7 +114,7 @@ Dans OneUptime, créez ou modifiez une configuration SMTP avec ces paramètres :
 | Port                      | `587`                                                                                               |
 | Nom d'utilisateur         | L'adresse e-mail pour laquelle vous avez accordé des permissions (par ex., `sender@yourdomain.com`) |
 | Type d'authentification   | `OAuth`                                                                                             |
-| Type de fournisseur OAuth | `Informations d'identification du client`                                                           |
+| Type de fournisseur OAuth | `Client Credentials`                                                                                |
 | ID client                 | Votre ID d'application (client) de l'étape 1                                                        |
 | Secret client             | La valeur du secret de l'étape 2                                                                    |
 | URL du jeton              | `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token`                                   |
@@ -196,7 +196,7 @@ Dans OneUptime, créez ou modifiez une configuration SMTP avec ces paramètres :
 | Port                      | `587`                                                                                                                                      |
 | Nom d'utilisateur         | L'adresse e-mail Google Workspace d'envoi (par ex., `notifications@yourdomain.com`). Cet utilisateur sera usurpé par le compte de service. |
 | Type d'authentification   | `OAuth`                                                                                                                                    |
-| Type de fournisseur OAuth | `Jeton JWT Bearer`                                                                                                                         |
+| Type de fournisseur OAuth | `JWT Bearer`                                                                                                                               |
 | ID client                 | L'`client_email` de votre JSON de compte de service (par ex., `your-service@your-project.iam.gserviceaccount.com`)                         |
 | Secret client             | La `private_key` de votre JSON de compte de service (la clé entière incluant `-----BEGIN PRIVATE KEY-----` et `-----END PRIVATE KEY-----`) |
 | URL du jeton              | `https://oauth2.googleapis.com/token`                                                                                                      |
@@ -204,7 +204,7 @@ Dans OneUptime, créez ou modifiez une configuration SMTP avec ces paramètres :
 | E-mail d'envoi            | Identique au nom d'utilisateur                                                                                                             |
 | Sécurisé (TLS)            | Activé                                                                                                                                     |
 
-**Important :** Pour Google (Jeton JWT Bearer), l'ID client est l'**e-mail du compte de service** (`client_email`), PAS le `client_id` numérique. Le compte de service usurpera l'identité de l'utilisateur spécifié dans le champ Nom d'utilisateur pour envoyer des e-mails.
+**Important :** Pour Google (JWT Bearer), l'ID client est l'**e-mail du compte de service** (`client_email`), PAS le `client_id` numérique. Le compte de service usurpera l'identité de l'utilisateur spécifié dans le champ Nom d'utilisateur pour envoyer des e-mails.
 
 ---
 

@@ -22,6 +22,7 @@ import CephClusterDaemons from "../Pages/Ceph/View/Daemons";
 import CephClusterInsights from "../Pages/Ceph/View/Insights";
 import CephClusterClusterLog from "../Pages/Ceph/View/ClusterLog";
 import CephClusterMetrics from "../Pages/Ceph/View/Metrics";
+import CephClusterRecommendations from "../Pages/Ceph/View/Recommendations";
 import CephClusterLogs from "../Pages/Ceph/View/Logs";
 import CephClusterIncidents from "../Pages/Ceph/View/Incidents";
 import CephClusterAlerts from "../Pages/Ceph/View/Alerts";
@@ -183,6 +184,21 @@ const CephRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.CEPH_CLUSTER_VIEW_CLUSTER_LOG] as Route
+              }
+            />
+          }
+        />
+
+        {/* Recommendations */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.CEPH_CLUSTER_VIEW_RECOMMENDATIONS,
+          )}
+          element={
+            <CephClusterRecommendations
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.CEPH_CLUSTER_VIEW_RECOMMENDATIONS] as Route
               }
             />
           }

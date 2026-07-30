@@ -6,6 +6,7 @@ import { Shipper } from "../Shipper";
 import {
   KubernetesCostAllocationIngestRow,
   KubernetesCostIngestPayload,
+  ShipperStatus,
 } from "../Types";
 
 /*
@@ -101,6 +102,25 @@ test("ships rows chunked at SHIP_BATCH_SIZE with cluster, currency and token", a
     assert.strictEqual(request.payload.currency, "USD");
   }
 
+  /*
+   * Every chunk of one window carries the same shipment id and its own index,
+   * which is what lets the server accept the whole window instead of dropping
+   * everything after the first chunk.
+   */
+  const shipmentIds: Array<string | undefined> = recorded.map(
+    (request: RecordedRequest): string | undefined => {
+      return request.payload.shipmentId;
+    },
+  );
+  assert.strictEqual(new Set(shipmentIds).size, 1);
+  assert.ok(shipmentIds[0]);
+  assert.deepStrictEqual(
+    recorded.map((request: RecordedRequest): number | undefined => {
+      return request.payload.shipmentChunk;
+    }),
+    [0, 1, 2],
+  );
+
   // Chunks preserve row order end-to-end.
   const shippedNamespaces: Array<string> = recorded.flatMap(
     (request: RecordedRequest): Array<string> => {
@@ -119,7 +139,9 @@ test("ships rows chunked at SHIP_BATCH_SIZE with cluster, currency and token", a
     "ns-4",
   ]);
 
-  assert.strictEqual(shipper.healthy(), true);
+  const status: ShipperStatus = shipper.status();
+  assert.ok(status.lastShipOkAtMs > 0);
+  assert.strictEqual(status.lastShipError, null);
   assert.strictEqual(shipper.lastError(), null);
 });
 
@@ -158,4 +180,42 @@ test("a failing later chunk aborts the ship so the window is retried whole", asy
   await assert.rejects(shipper.ship(makeRows(6)), /HTTP 500/);
   // 1 success + 3 failed attempts; the third chunk is never sent.
   assert.strictEqual(recorded.length, 4);
+});
+
+/*
+ * status() reports what the shipper did, and nothing more. It used to also
+ * render a verdict — healthy() — which read "never shipped, never failed"
+ * as healthy, i.e. as healthy forever on an agent whose poller could not
+ * get it a single row. Health.ts owns that judgement now, because it is the
+ * only place that can see the poller too.
+ */
+
+test("a brand new shipper reports never-shipped rather than a verdict", (): void => {
+  const status: ShipperStatus = new Shipper().status();
+
+  assert.strictEqual(status.lastShipOkAtMs, 0);
+  assert.strictEqual(status.lastShipError, null);
+});
+
+test("status records the failure after retries are exhausted", async (): Promise<void> => {
+  statusScript = [500, 500, 500];
+  const shipper: Shipper = new Shipper();
+
+  await assert.rejects(shipper.ship(makeRows(1)), /HTTP 500/);
+
+  const status: ShipperStatus = shipper.status();
+  assert.strictEqual(status.lastShipOkAtMs, 0);
+  assert.match(status.lastShipError || "", /HTTP 500/);
+});
+
+test("a recovered ship clears the error and stamps the success", async (): Promise<void> => {
+  statusScript = [500]; // First attempt fails, the retry lands.
+  const shipper: Shipper = new Shipper();
+  const before: number = Date.now();
+
+  await shipper.ship(makeRows(1));
+
+  const status: ShipperStatus = shipper.status();
+  assert.ok(status.lastShipOkAtMs >= before);
+  assert.strictEqual(status.lastShipError, null);
 });

@@ -289,7 +289,7 @@ describe("InsightScanner — routing newly created insights", () => {
     jest.spyOn(AIInsightService, "findBy").mockResolvedValue([]);
     updateOneById = jest
       .spyOn(AIInsightService, "updateOneById")
-      .mockResolvedValue(undefined);
+      .mockResolvedValue(1);
     routeInsightFix = jest
       .spyOn(InsightFixRouting, "routeInsightFix")
       .mockResolvedValue({});
@@ -477,7 +477,7 @@ describe("InsightScanner — the self-heal sweep for insights stranded in Detect
       });
     updateOneById = jest
       .spyOn(AIInsightService, "updateOneById")
-      .mockResolvedValue(undefined);
+      .mockResolvedValue(1);
     routeInsightFix = jest
       .spyOn(InsightFixRouting, "routeInsightFix")
       .mockResolvedValue({});

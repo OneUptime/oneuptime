@@ -78,9 +78,19 @@ export interface ComponentProps<T extends GenericObject> {
   bulkSelectedItems?: Array<T> | undefined;
   onBulkSelectedItemAdded?: ((item: T) => void) | undefined;
   onBulkSelectedItemRemoved?: ((item: T) => void) | undefined;
-  onBulkSelectAllItems?: (() => void) | undefined;
+  /*
+   * Resolves to whether every matching row really got selected. The table
+   * only claims "all items selected" when it did - otherwise a failed
+   * select-all would hide the Select All button while leaving just the
+   * current page selected, with no way to retry.
+   */
+  onBulkSelectAllItems?: (() => Promise<boolean>) | undefined;
   onBulkSelectItemsOnCurrentPage?: (() => void) | undefined;
   onBulkClearAllItems?: (() => void) | undefined;
+  bulkSelectionError?: string | undefined;
+  isBulkSelectAllLoading?: boolean | undefined;
+  isBulkSelectionTruncated?: boolean | undefined;
+  bulkSelectionTotalCount?: number | undefined;
   matchBulkSelectedItemByField?: keyof T | undefined; // which field to use to match selected items. For exmaple this could be '_id'
   onBulkActionEnd?: (() => void) | undefined;
   onBulkActionStart?: (() => void) | undefined;
@@ -156,12 +166,37 @@ const Table: TableFunction = <T extends GenericObject>(
   useEffect(() => {
     if (props.bulkSelectedItems) {
       setBulkSelectedItems(props.bulkSelectedItems);
+
+      /*
+       * "All items selected" is a claim about a selection that exists, so it
+       * cannot outlive one. The parent drops the selection whenever the query
+       * changes underneath it (and after a bulk action completes), and this
+       * state is local to the table - without this, the next single row the
+       * user ticked would re-open the bulk bar with the "Select All" button
+       * still hidden, as though everything matching were already selected.
+       */
+      if (props.bulkSelectedItems.length === 0) {
+        setIsAllItemsSelected(false);
+      }
     }
   }, [props.bulkSelectedItems]);
 
+  /*
+   * Width of the loading / error / "no items" row, in cells. It has to match
+   * what TableHeader actually renders or those messages sit under part of the
+   * table instead of spanning it: the Actions column is already one of
+   * `props.columns`, and the drag-handle and bulk-select cells are extra
+   * leading columns that only exist when those features are on.
+   */
   let colspan: number = props.columns.length || 0;
-  if (props.actionButtons && props.actionButtons?.length > 0) {
+  if (props.enableDragAndDrop) {
     colspan++;
+  }
+  if (isBulkActionsEnabled) {
+    colspan++;
+  }
+  if (colspan === 0) {
+    colspan = 1;
   }
 
   const getTablebody: GetReactElementFunction = (): ReactElement => {
@@ -238,16 +273,20 @@ const Table: TableFunction = <T extends GenericObject>(
           if (props.matchBulkSelectedItemByField === undefined) {
             return;
           }
-          const index: number = bulkSelectedItems.findIndex((x: T) => {
-            return (
-              x[props.matchBulkSelectedItemByField!]?.toString() ===
-              item[props.matchBulkSelectedItemByField!]?.toString()
-            );
-          });
 
-          if (index > -1) {
-            bulkSelectedItems.splice(index, 1);
-          }
+          /*
+           * Rebuild rather than splice: this array is the parent's state
+           * array by reference (see the sync effect above), so mutating it
+           * in place edits React state behind React's back.
+           */
+          setBulkSelectedItems(
+            bulkSelectedItems.filter((x: T) => {
+              return (
+                x[props.matchBulkSelectedItemByField!]?.toString() !==
+                item[props.matchBulkSelectedItemByField!]?.toString()
+              );
+            }),
+          );
 
           props.onBulkSelectedItemRemoved?.(item);
         }}
@@ -301,14 +340,27 @@ const Table: TableFunction = <T extends GenericObject>(
             props.onBulkClearAllItems?.();
             setIsAllItemsSelected(false);
           }}
-          onSelectAllClick={() => {
-            props.onBulkSelectAllItems?.();
-            setIsAllItemsSelected(true);
+          onSelectAllClick={async () => {
+            const didSelectAllItems: boolean =
+              (await props.onBulkSelectAllItems?.()) ?? false;
+
+            /*
+             * Only on success. Otherwise the bulk bar would hide the Select
+             * All button and claim everything was selected while the
+             * selection is still just the current page.
+             */
+            if (didSelectAllItems) {
+              setIsAllItemsSelected(true);
+            }
           }}
           selectedItems={bulkSelectedItems}
           singularLabel={translatedSingularLabel}
           pluralLabel={translatedPluralLabel}
           isAllItemsSelected={isAllItemsSelected}
+          errorMessage={props.bulkSelectionError}
+          isSelectingAllItems={props.isBulkSelectAllLoading}
+          isSelectionTruncated={props.isBulkSelectionTruncated}
+          totalMatchingItemsCount={props.bulkSelectionTotalCount}
           onActionStart={props.onBulkActionStart}
           onActionEnd={() => {
             setIsAllItemsSelected(false);

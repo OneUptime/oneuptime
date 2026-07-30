@@ -24,6 +24,10 @@ import Model from "../../Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceOwnerTeam from "../../Models/DatabaseModels/ScheduledMaintenanceOwnerTeam";
 import ScheduledMaintenanceOwnerUser from "../../Models/DatabaseModels/ScheduledMaintenanceOwnerUser";
 import ScheduledMaintenanceState from "../../Models/DatabaseModels/ScheduledMaintenanceState";
+import MonitorStatusService from "./MonitorStatusService";
+import ProjectScopedReferenceValidator, {
+  resolveReferenceId,
+} from "../Utils/Database/ProjectScopedReferenceValidator";
 import ScheduledMaintenanceStateTimeline from "../../Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 import User from "../../Models/DatabaseModels/User";
 import Recurring from "../../Types/Events/Recurring";
@@ -599,10 +603,89 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
       }
     }
 
+    await this.validateProjectScopedReferences(updateBy);
+
     return {
       updateBy,
       carryForward: null,
     };
+  }
+
+  /*
+   * An update can repoint a scheduled maintenance event at another project's
+   * state or monitor status just as easily as a create can, and the result is
+   * the same: the referenced project can no longer be deleted. Only the
+   * columns actually being written are checked, so ordinary updates cost no
+   * extra queries.
+   */
+  private async validateProjectScopedReferences(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    const stateId: ObjectID | string | undefined =
+      resolveReferenceId(updateBy.data.currentScheduledMaintenanceStateId) ||
+      resolveReferenceId(updateBy.data.currentScheduledMaintenanceState);
+
+    const monitorStatusId: ObjectID | string | undefined =
+      resolveReferenceId(updateBy.data.changeMonitorStatusToId) ||
+      resolveReferenceId(updateBy.data.changeMonitorStatusTo);
+
+    if (!stateId && !monitorStatusId) {
+      return;
+    }
+
+    /*
+     * Root/API updates do not always carry a tenantId, so fall back to the
+     * project of each event the query actually matches.
+     */
+    const projectIds: Array<ObjectID> = updateBy.props.tenantId
+      ? [updateBy.props.tenantId]
+      : await this.getProjectIdsForUpdateQuery(updateBy);
+
+    for (const projectId of projectIds) {
+      await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
+        projectId: projectId,
+        subject: "scheduled maintenance event",
+        references: [
+          {
+            modelName: "Scheduled Maintenance State",
+            id: stateId,
+            service: ScheduledMaintenanceStateService,
+          },
+          {
+            modelName: "Monitor Status",
+            id: monitorStatusId,
+            service: MonitorStatusService,
+          },
+        ],
+      });
+    }
+  }
+
+  private async getProjectIdsForUpdateQuery(
+    updateBy: UpdateBy<Model>,
+  ): Promise<Array<ObjectID>> {
+    const scheduledMaintenanceEvents: Array<Model> = await this.findBy({
+      query: updateBy.query,
+      select: {
+        projectId: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const projectIds: Dictionary<ObjectID> = {};
+
+    for (const scheduledMaintenance of scheduledMaintenanceEvents) {
+      if (scheduledMaintenance.projectId) {
+        projectIds[scheduledMaintenance.projectId.toString()] =
+          scheduledMaintenance.projectId;
+      }
+    }
+
+    return Object.values(projectIds);
   }
 
   @CaptureSpan()
@@ -757,6 +840,26 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
 
     createBy.data.currentScheduledMaintenanceStateId =
       scheduledMaintenanceState.id;
+
+    /*
+     * changeMonitorStatusToId comes straight from the API caller or a
+     * template, and nothing checked it belongs to this project. Persisting
+     * another project's id leaves that project undeletable. Runs before the
+     * counter increment so a rejected create does not burn an event number.
+     */
+    await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
+      projectId: projectId,
+      subject: "scheduled maintenance event",
+      references: [
+        {
+          modelName: "Monitor Status",
+          id:
+            resolveReferenceId(createBy.data.changeMonitorStatusToId) ||
+            resolveReferenceId(createBy.data.changeMonitorStatusTo),
+          service: MonitorStatusService,
+        },
+      ],
+    });
 
     const scheduledMaintenanceCounterResult: {
       counter: number;

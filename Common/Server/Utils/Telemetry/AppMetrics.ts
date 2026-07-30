@@ -208,4 +208,35 @@ export default class AppMetrics {
 
     return this.ingestPayloadBytes;
   }
+
+  // -- Telemetry discarded by project drop filters -----------------------
+
+  private static ingestDroppedCounter: TelemetryCounter | null = null;
+
+  /*
+   * Records telemetry a project's own drop filters discarded at ingest.
+   *
+   * Before this existed, a drop filter deleted records with no trace
+   * anywhere — no log line, no metric, no counter — so "my logs are
+   * missing" tickets could not be distinguished from a broken pipeline
+   * without reading the customer's filter rows by hand.
+   *
+   * Attributes carry `oneuptime.project.id` and `oneuptime.drop_filter.id`
+   * on purpose: without them the counter says only "something dropped
+   * telemetry", which is exactly the unanswerable state this replaces.
+   * Cardinality stays bounded — projects times a handful of filters each,
+   * and only projects that configured a filter ever emit a point.
+   */
+  public static getIngestDroppedCounter(): TelemetryCounter {
+    if (!this.ingestDroppedCounter) {
+      this.ingestDroppedCounter = Telemetry.getCounter({
+        name: "oneuptime.telemetry.ingest.dropped.count",
+        description:
+          "Number of telemetry records discarded by a project's drop filters, partitioned by signal, action, project and filter.",
+        unit: "1",
+      });
+    }
+
+    return this.ingestDroppedCounter;
+  }
 }

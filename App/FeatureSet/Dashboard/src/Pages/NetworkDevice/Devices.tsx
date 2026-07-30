@@ -6,13 +6,14 @@ import Route from "Common/Types/API/Route";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import Probe from "Common/Models/DatabaseModels/Probe";
-import Label from "Common/Models/DatabaseModels/Label";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
+  useMemo,
+  useRef,
   useState,
 } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -31,14 +32,58 @@ import OneUptimeDate from "Common/Types/Date";
 import { Gray500, Green, Red500 } from "Common/Types/BrandColors";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import ProbeElement from "Common/UI/Components/Probe/Probe";
-import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
-import ProjectUtil from "Common/UI/Utils/Project";
+import Query from "Common/Types/BaseDatabase/Query";
+import Includes from "Common/Types/BaseDatabase/Includes";
+import Search from "Common/Types/BaseDatabase/Search";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import DeviceSummaryCards from "../../Components/NetworkDevice/DeviceSummaryCards";
+import FacetSnapshotNote from "../../Components/Network/FacetSnapshotNote";
 import DeviceStatusUtil, {
   DEVICE_FRESH_WINDOW_MINUTES,
   NetworkDeviceStatus,
 } from "../../Components/NetworkDevice/DeviceStatusUtil";
+import {
+  DEVICE_FACET_QUERY_FIELDS,
+  DEVICE_INTERFACES_FACET_KEY,
+  DEVICE_INTERFACES_FACET_OPTIONS,
+  DEVICE_LAST_SEEN_FACET_KEY,
+  DEVICE_LAST_SEEN_FACET_OPERATORS,
+  DEVICE_PROBE_FACET_KEY,
+  DEVICE_SITE_FACET_KEY,
+  DEVICE_STATUS_FACET_KEY,
+  DEVICE_STATUS_FACET_OPTIONS,
+  DeviceStatusCutoff,
+  NETWORK_DEVICES_TABLE_ID,
+  buildDeviceInterfacesFacetQuery,
+  buildDeviceLastSeenFacetQuery,
+  buildDeviceStatusFacetQuery,
+  isTimeBasedDeviceStatus,
+} from "../../Components/NetworkDevice/DeviceFacets";
+import { DeviceSummaryTile } from "../../Components/NetworkDevice/DeviceSummaryTiles";
+import { applyFacetTileSelection } from "../../Components/ResourceOwners/FacetTileSelection";
+import useResourceOwners, {
+  ResourceFacet,
+  buildEntityFacetQuery,
+} from "../../Components/ResourceOwners/useResourceOwners";
+import {
+  FilterChipDropdownOption,
+  FilterOperator,
+} from "../../Components/ResourceOwners/FilterChipDropdownTypes";
+import IconProp from "Common/Types/Icon/IconProp";
 import { getSnmpConfigFormFields } from "./SnmpConfigFormFields";
+
+/*
+ * Stable object identity, because ModelTable decides whether to refetch by
+ * comparing the query it was handed against the previous render's. The facet bar
+ * merges its chips into a copy of this.
+ */
+const BASE_DEVICE_QUERY: Query<NetworkDevice> = {
+  isArchived: false,
+};
+
+// How many rows an option picker asks for per search.
+const FACET_PICKER_PAGE_SIZE: number = 50;
 
 const NetworkDevices: FunctionComponent<
   PageComponentProps
@@ -46,6 +91,252 @@ const NetworkDevices: FunctionComponent<
   const [probes, setProbes] = useState<Array<Probe>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+
+  /*
+   * Holds the freshness cutoff behind the Status chip, re-snapshotting it only
+   * when the selection changes. See DeviceStatusCutoff for why it cannot simply
+   * be "now".
+   */
+  const statusCutoff: React.MutableRefObject<DeviceStatusCutoff> =
+    useRef<DeviceStatusCutoff>(new DeviceStatusCutoff());
+
+  /*
+   * The chips above the table. Rebuilt only when the probes land, so the array
+   * identity the facet bar memoises against stays stable across renders.
+   */
+  const deviceFacets: Array<ResourceFacet> = useMemo(() => {
+    return [
+      {
+        key: DEVICE_STATUS_FACET_KEY,
+        queryField: DEVICE_FACET_QUERY_FIELDS.status,
+        label: "Status",
+        icon: IconProp.Heartbeat,
+        isMultiSelect: false,
+        /*
+         * "is" only. The three values are ranges over one column, so "up or
+         * pending" is not expressible as a single field query, and the empty
+         * operators would write IsNull/NotNull over `lastSeenAt` — duplicating
+         * Pending under different wording.
+         */
+        supportedOperators: ["is"],
+        options: DEVICE_STATUS_FACET_OPTIONS,
+        /*
+         * Both chips write `lastSeenAt`, and the merged query has room for one
+         * constraint per column — so picking either clears the other rather
+         * than one quietly overwriting the other while both stay lit.
+         */
+        exclusiveWith: [DEVICE_LAST_SEEN_FACET_KEY],
+        toQueryValue: (
+          values: Array<string>,
+          operator: FilterOperator,
+        ): unknown => {
+          return buildDeviceStatusFacetQuery(
+            values,
+            operator,
+            statusCutoff.current.getCutoffFor(values[0] || ""),
+          );
+        },
+      },
+      {
+        key: DEVICE_LAST_SEEN_FACET_KEY,
+        queryField: DEVICE_FACET_QUERY_FIELDS.lastSeen,
+        label: "Last Seen",
+        icon: IconProp.Clock,
+        type: "dateRange",
+        /*
+         * The question the Status chip cannot express: an arbitrary date rather
+         * than the fixed 15-minute freshness window. "Not polled since last
+         * Tuesday" and "polled between the 1st and the 5th" live here.
+         */
+        supportedOperators: DEVICE_LAST_SEEN_FACET_OPERATORS,
+        exclusiveWith: [DEVICE_STATUS_FACET_KEY],
+        toQueryValue: (
+          values: Array<string>,
+          operator: FilterOperator,
+        ): unknown => {
+          return buildDeviceLastSeenFacetQuery(values, operator);
+        },
+      },
+      {
+        key: DEVICE_INTERFACES_FACET_KEY,
+        queryField: DEVICE_FACET_QUERY_FIELDS.interfaces,
+        label: "Interfaces",
+        icon: IconProp.ArrowUpDown,
+        isMultiSelect: false,
+        supportedOperators: ["is"],
+        options: DEVICE_INTERFACES_FACET_OPTIONS,
+        toQueryValue: (
+          values: Array<string>,
+          operator: FilterOperator,
+        ): unknown => {
+          return buildDeviceInterfacesFacetQuery(values, operator);
+        },
+      },
+      {
+        key: DEVICE_SITE_FACET_KEY,
+        queryField: DEVICE_FACET_QUERY_FIELDS.site,
+        label: "Site",
+        icon: IconProp.BuildingOffice,
+        isMultiSelect: true,
+        searchPlaceholder: "Search sites...",
+        supportedOperators: ["is", "is_not", "is_empty", "is_not_empty"],
+        loadOptions: async (
+          projectId: ObjectID,
+          searchTerm: string,
+        ): Promise<Array<FilterChipDropdownOption>> => {
+          const query: Query<NetworkSite> = {
+            projectId: projectId,
+          } as Query<NetworkSite>;
+
+          if (searchTerm.trim()) {
+            (query as unknown as Record<string, unknown>)["name"] = new Search(
+              searchTerm.trim(),
+            );
+          }
+
+          const result: ListResult<NetworkSite> =
+            await ModelAPI.getList<NetworkSite>({
+              modelType: NetworkSite,
+              query: query,
+              limit: FACET_PICKER_PAGE_SIZE,
+              skip: 0,
+              select: { _id: true, name: true },
+              sort: { name: SortOrder.Ascending },
+            });
+
+          return result.data.map((site: NetworkSite) => {
+            return {
+              value: site.id?.toString() || "",
+              label: site.name?.toString() || "",
+            };
+          });
+        },
+        resolveOptions: async (
+          projectId: ObjectID,
+          values: Array<string>,
+        ): Promise<Array<FilterChipDropdownOption>> => {
+          if (values.length === 0) {
+            return [];
+          }
+
+          const result: ListResult<NetworkSite> =
+            await ModelAPI.getList<NetworkSite>({
+              modelType: NetworkSite,
+              query: {
+                projectId: projectId,
+                _id: new Includes(values),
+              } as Query<NetworkSite>,
+              limit: values.length,
+              skip: 0,
+              select: { _id: true, name: true },
+              sort: {},
+            });
+
+          return result.data.map((site: NetworkSite) => {
+            return {
+              value: site.id?.toString() || "",
+              label: site.name?.toString() || "",
+            };
+          });
+        },
+        toQueryValue: (
+          values: Array<string>,
+          operator: FilterOperator,
+        ): unknown => {
+          return buildEntityFacetQuery(values, operator, true);
+        },
+      },
+      {
+        key: DEVICE_PROBE_FACET_KEY,
+        queryField: DEVICE_FACET_QUERY_FIELDS.probe,
+        label: "Probe",
+        icon: IconProp.Signal,
+        isMultiSelect: true,
+        searchPlaceholder: "Search probes...",
+        supportedOperators: ["is", "is_not", "is_empty", "is_not_empty"],
+        // Reuses the probes the create form already needed, so the chip is free.
+        options: probes.map((probe: Probe): FilterChipDropdownOption => {
+          return {
+            value: probe.id?.toString() || "",
+            label: probe.name?.toString() || "",
+          };
+        }),
+        toQueryValue: (
+          values: Array<string>,
+          operator: FilterOperator,
+        ): unknown => {
+          return buildEntityFacetQuery(values, operator, true);
+        },
+      },
+    ];
+  }, [probes]);
+
+  const {
+    filterBar,
+    mergeFiltersIntoQuery,
+    hasActiveFilters,
+    facetSelections,
+    facetOperators,
+    setFacetSelection,
+    clearAllFacets,
+    facetSaveState,
+    restoreFacetState,
+  } = useResourceOwners<NetworkDevice>({
+    /*
+     * Devices have owner users and teams, but this table shows no owner column —
+     * a chip filtering on something invisible in the rows would be unexplainable.
+     * Enabling it belongs with adding that column.
+     */
+    showOwnerFacet: false,
+    showLabelsFacet: true,
+    extraFacets: deviceFacets,
+    persistKey: NETWORK_DEVICES_TABLE_ID,
+  });
+
+  type OnSummaryTileClickFunction = (tile: DeviceSummaryTile) => void;
+
+  const onSummaryTileClick: OnSummaryTileClickFunction = (
+    tile: DeviceSummaryTile,
+  ): void => {
+    applyFacetTileSelection({
+      selection: tile.selection,
+      facetSelections: facetSelections,
+      facetOperators: facetOperators,
+      setFacetSelection: setFacetSelection,
+      clearAllFacets: clearAllFacets,
+    });
+  };
+
+  const selectedDeviceStatus: string | null =
+    facetSelections[DEVICE_STATUS_FACET_KEY]?.[0] || null;
+
+  /*
+   * Synced with the live selection on every render, including the `null` of a
+   * cleared chip. That is what makes picking the SAME value a second time take a
+   * fresh window: without seeing the clear, the snapshot would still be keyed on
+   * "down" and hand back the window from the first time round.
+   *
+   * The chip's own toQueryValue asks for the same selection later in this render,
+   * so it gets this very Date — stable across renders, which is what stops
+   * ModelTable refetching forever.
+   */
+  const statusWindowCutoff: Date =
+    statusCutoff.current.getCutoffFor(selectedDeviceStatus);
+
+  /*
+   * The note under the bar, derived from the cutoff the query actually uses rather
+   * than from "now" — the two naming different moments is exactly the confusion
+   * this note exists to prevent.
+   */
+  const statusSnapshotDetail: string | undefined = useMemo(() => {
+    if (!isTimeBasedDeviceStatus(selectedDeviceStatus)) {
+      return undefined;
+    }
+
+    return `Up and down are measured against a ${DEVICE_FRESH_WINDOW_MINUTES}-minute window: devices last polled before ${OneUptimeDate.getLocalHourAndMinuteFromDate(
+      statusWindowCutoff,
+    )} count as down. Pick the status again to refresh it.`;
+  }, [selectedDeviceStatus, statusWindowCutoff]);
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<NetworkDevice>({ modelType: NetworkDevice });
@@ -81,12 +372,44 @@ const NetworkDevices: FunctionComponent<
 
   return (
     <Fragment>
-      <DeviceSummaryCards />
+      <DeviceSummaryCards
+        facetSelections={facetSelections}
+        facetOperators={facetOperators}
+        onTileClick={onSummaryTileClick}
+      />
       <ModelTable<NetworkDevice>
         modelType={NetworkDevice}
-        id="network-devices-table"
-        userPreferencesKey="network-devices-table"
-        query={{ isArchived: false }}
+        id={NETWORK_DEVICES_TABLE_ID}
+        userPreferencesKey={NETWORK_DEVICES_TABLE_ID}
+        query={mergeFiltersIntoQuery(BASE_DEVICE_QUERY)}
+        currentFacetState={facetSaveState}
+        onFacetStateRestored={restoreFacetState}
+        topContent={
+          <Fragment>
+            {filterBar}
+            {statusSnapshotDetail ? (
+              <FacetSnapshotNote
+                testIdSuffix="network-devices"
+                detail={statusSnapshotDetail}
+              />
+            ) : (
+              <></>
+            )}
+          </Fragment>
+        }
+        /*
+         * "No network device" under a chip that matched nothing reads as an empty
+         * project. This says the fleet is there and the bar is what is hiding it.
+         *
+         * Only the chips — `hasActiveFilters` is the bar's own state, so a search
+         * term or a popup filter that matches nothing still falls through to the
+         * table's default copy.
+         */
+        noItemsMessage={
+          hasActiveFilters
+            ? "No network device matches the filters above."
+            : undefined
+        }
         isDeleteable={false}
         isEditable={false}
         isCreateable={true}
@@ -97,6 +420,15 @@ const NetworkDevices: FunctionComponent<
         name="Network Devices"
         isViewable={true}
         searchableFields={["name", "description"]}
+        /*
+         * Only what the chips cannot express — free text.
+         *
+         * Status, Last Seen, Interfaces, Site, Probe and Labels have all moved to
+         * the facet bar, and their fields have to be gone from here:
+         * BaseModelTable spreads this popup's query OVER the page's, so a popup
+         * filter on a chip's field would replace the chip's constraint silently,
+         * while the chip and the lit tile above carried on claiming it applied.
+         */
         filters={[
           {
             field: {
@@ -107,76 +439,17 @@ const NetworkDevices: FunctionComponent<
           },
           {
             field: {
-              vendor: true,
+              hostname: true,
             },
-            title: "Vendor",
+            title: "Hostname",
             type: FieldType.Text,
           },
           {
             field: {
-              probe: {
-                name: true,
-              },
+              vendor: true,
             },
-            title: "Probe",
-            type: FieldType.Entity,
-            filterEntityType: Probe,
-            fetchFilterDropdownOptions: async (): Promise<
-              Array<DropdownOption>
-            > => {
-              return probes.map((probe: Probe) => {
-                return {
-                  label: probe.name || "",
-                  value: probe._id?.toString() || "",
-                };
-              });
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
-          {
-            field: {
-              site: {
-                name: true,
-              },
-            },
-            title: "Site",
-            type: FieldType.Entity,
-            filterEntityType: NetworkSite,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
-          {
-            field: {
-              labels: {
-                name: true,
-                color: true,
-              },
-            },
-            title: "Labels",
-            type: FieldType.EntityArray,
-            filterEntityType: Label,
-            filterQuery: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            filterDropdownField: {
-              label: "name",
-              value: "_id",
-            },
-          },
-          {
-            field: {
-              lastSeenAt: true,
-            },
-            title: "Last Seen At",
-            type: FieldType.Date,
+            title: "Vendor",
+            type: FieldType.Text,
           },
         ]}
         cardProps={{

@@ -22,8 +22,10 @@ import {
   LIMIT_PER_PROJECT,
 } from "../../Types/Database/LimitMax";
 import PartialEntity from "../../Types/Database/PartialEntity";
+import BadDataException from "../../Types/Exception/BadDataException";
 import BadRequestException from "../../Types/Exception/BadRequestException";
-import { JSONObject } from "../../Types/JSON";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import { JSONObject, JSONValue } from "../../Types/JSON";
 import JSONFunctions from "../../Types/JSONFunctions";
 import ObjectID from "../../Types/ObjectID";
 import { UserPermission } from "../../Types/Permission";
@@ -397,20 +399,63 @@ export default class BaseAPI<
     const objectId: ObjectID = new ObjectID(idParam);
     const objectIdString: string = objectId.toString();
     const body: JSONObject = req.body;
+    const dataInBody: JSONValue | undefined = body["data"];
+
+    /*
+     * The update payload has to be wrapped as { "data": { ...columns... } }.
+     * A flat body has no "data" key, and deserializing that undefined handed
+     * back an empty object: the update then matched the row, wrote no columns
+     * at all, and still answered 200. Callers were told the write succeeded
+     * while their fields were dropped on the floor.
+     */
+    if (
+      !dataInBody ||
+      typeof dataInBody !== "object" ||
+      Array.isArray(dataInBody)
+    ) {
+      throw new BadDataException(
+        'Invalid request body. The update payload should be an object of the form { "data": { ...fields to update... } }.',
+      );
+    }
 
     const item: PartialEntity<TBaseModel> = JSONFunctions.deserialize(
-      body["data"] as JSONObject,
+      dataInBody as JSONObject,
     ) as PartialEntity<TBaseModel>;
 
     delete (item as any)["_id"];
     delete (item as any)["createdAt"];
     delete (item as any)["updatedAt"];
 
-    await this.service.updateOneById({
+    /*
+     * An update that carries no columns writes nothing. Saying 200 to that is
+     * the same lie in a different shape, so ask for at least one field.
+     */
+    if (Object.keys(item).length === 0) {
+      throw new BadDataException(
+        'No fields to update. Please include at least one field to update in the "data" object of the request body.',
+      );
+    }
+
+    const numberOfDocsAffected: number = await this.service.updateOneById({
       id: new ObjectID(objectIdString),
       data: item,
       props: await CommonAPI.getDatabaseCommonInteractionProps(req),
     });
+
+    /*
+     * The permission layer narrows the update query after we build it (tenant
+     * scope, access-control labels, owned scope), so it is possible to match
+     * no rows at all. Reporting 200 for that told the client the edit was
+     * saved when nothing was written - the change then "disappeared" on the
+     * next page load with no error anywhere.
+     */
+    if (numberOfDocsAffected === 0) {
+      throw new NotAuthorizedException(
+        `Unable to update this ${(
+          new this.entityType().singularName || "item"
+        ).toLowerCase()}. It either does not exist, has been deleted, or you do not have permission to update it.`,
+      );
+    }
 
     return Response.sendEmptySuccessResponse(req, res);
   }

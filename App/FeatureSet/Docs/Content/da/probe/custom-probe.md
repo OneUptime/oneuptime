@@ -208,6 +208,8 @@ Proben understøtter følgende miljøvariabler:
 - `PROBE_MONITOR_RETRY_LIMIT` – Antal genforsøg for mislykkede monitorer (standard: 3)
 - `PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS` – Timeout for syntetiske monitorscripts i millisekunder (standard: 60000)
 - `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` – Timeout for brugerdefinerede kodemonitorscripts i millisekunder (standard: 60000)
+- `PROBE_API_REQUEST_TIMEOUT_IN_MS` – Tidsfrist for hver anmodning, proben sender til OneUptime (standard: 45000)
+- `PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS` – Log en advarsel for anmodninger til OneUptime, der er langsommere end dette (standard: 10000)
 
 #### Proxykonfiguration
 
@@ -236,4 +238,29 @@ http://[username:password@]proxy.server.com:port
 
 ### Bekræftelse
 
-Hvis proben kører succesfuldt, bør den vise som `Forbundet` på dit OneUptime-dashboard. Hvis den ikke viser som forbundet, skal du kontrollere containerloggene. Hvis du stadig har problemer, bedes du oprette et issue på [GitHub](https://github.com/oneuptime/oneuptime) eller [kontakte support](https://oneuptime.com/support)
+Hvis proben kører succesfuldt, bør den vise som `Connected` på dit OneUptime-dashboard. Hvis den ikke viser som forbundet, skal du kontrollere containerloggene. Hvis du stadig har problemer, bedes du oprette et issue på [GitHub](https://github.com/oneuptime/oneuptime) eller [kontakte support](https://oneuptime.com/support)
+
+### Diagnosticering af en frakoblet probe
+
+En probe markeres som `Disconnected`, når dens anmodninger til OneUptime holder op med at lykkes. Probens log fortæller, hvor hver mislykket anmodning gik i stå, så du sjældent behøver at gætte.
+
+**1. Læs miljøblokken, der udskrives ved opstart.** Hver probe udskriver én JSON-blok ved opstart med den OneUptime-URL, den bruger, dens tidsfrist for anmodninger, dens proxyindstillinger, de DNS-resolvere, den har arvet, Node-/OS-versionen, og om TLS-verificering er deaktiveret. Vedlæg altid denne blok, når du rapporterer et problem.
+
+**2. Find fejlrapporten.** Hver mislykket anmodning til OneUptime logger en blok, der indeholder `stalledAt` og `whatThisMeans`. `stalledAt` er den fase, anmodningen aldrig kom forbi:
+
+| `stalledAt` | Hvad det betyder |
+| --- | --- |
+| `SocketAssignment` | Intet forlod maskinen. Socket-puljen var mættet, eller en konfigureret proxy fuldførte aldrig sin CONNECT-tunnel. |
+| `TcpConnect` | Maskinen sendte SYN og fik intet retur – en firewall eller en sikkerhedsenhed dropper pakker, eller værten kan ikke nås. |
+| `TlsHandshake` | TCP blev forbundet, men TLS blev aldrig fuldført. Som regel et TLS-inspicerende mellemled. |
+| `RequestSend` | Forbindelsen blev oprettet, men anmodningen blev aldrig skrevet helt færdig – modparten holdt op med at læse. |
+| `WaitingForServerResponse` | Anmodningen blev leveret, og serveren sendte intet retur. **Probens netværk fejler ikke** – kontrollér OneUptime-serveren, dens load balancer og dens reverse proxy. |
+| `ResponseBody` | Serveren begyndte at svare og gik i stå undervejs. |
+
+Den samme blok rapporterer også `deadlineOverrunInMs`. Hvis en tidsfrist på 45000 ms tog væsentligt længere end 45000 ms målt i reel tid, var selve probe-processen blokeret – kontrollér `probeProcess.eventLoopMaxDriftInMs` i blokken, før du undersøger netværket.
+
+**3. Læs selvtesten af forbindelsen.** Efter tre fejl i træk tester proben den samme server ét lag ad gangen – først DNS, så TCP, så TLS og til sidst en rigtig HTTP-tur-retur – og logger hvert trin med dets tidsforbrug. Det første trin, der fejler, er dit svar. Når der er konfigureret en proxy, tester proben hoppet til proxyen, fordi det er det eneste hop, den reelt foretager.
+
+**4. Hold øje med langsomme anmodninger, før de bliver til fejl.** Anmodninger, der lykkes, men tager længere tid end `PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS`, logges med deres forbrugte tid. En probe, der begynder at logge anmodninger på 20 sekunder, er på vej til at overskride tidsfristen på 45 sekunder.
+
+På OneUptime-serversiden logges en probe-anmodning, der besvares langsomt – eller som proben opgav, før der blev sendt et svar – også dér sammen med probens id. Tilsammen fortæller de to logposter dig, hvilken side af forbindelsen der er skyld i problemet.

@@ -30,6 +30,10 @@ import AppLink from "../../AppLink/AppLink";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
+import {
+  getDashboardDateTime,
+  getDashboardDateTimeLabel,
+} from "../Utils/DashboardDateTime";
 import DashboardModelQueryInterpolation, {
   AttributeToColumnMap,
 } from "Common/Utils/Dashboard/ModelQueryVariableInterpolation";
@@ -217,6 +221,12 @@ const DashboardHostListComponentElement: FunctionComponent<ComponentProps> = (
             },
             { label: "CPU / Mem", value: cpuMem },
             { label: "Last Seen", value: formatRelative(lastSeenAt) },
+            /*
+             * formatRelative buckets to whole days, so "2d ago" covers a
+             * 24-hour spread. The tooltip is itself a hover surface and has
+             * nowhere to hang a title, so the exact instant gets its own row.
+             */
+            { label: "At", value: getDashboardDateTimeLabel(lastSeenAt) },
           ],
         },
       };
@@ -289,7 +299,11 @@ const DashboardHostListComponentElement: FunctionComponent<ComponentProps> = (
         <td className="px-3 py-2 text-xs text-gray-600 tabular-nums truncate">
           {cpuMem}
         </td>
-        <td className="px-3 py-2 text-xs text-gray-500 tabular-nums truncate">
+        {/* The column has no room for the instant; hover gives it up. */}
+        <td
+          className="px-3 py-2 text-xs text-gray-500 tabular-nums truncate"
+          title={getDashboardDateTime(lastSeenAt).title}
+        >
           {formatRelative(lastSeenAt)}
         </td>
       </tr>

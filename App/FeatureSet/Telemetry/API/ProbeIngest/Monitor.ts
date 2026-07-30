@@ -31,6 +31,7 @@ import ProjectService from "Common/Server/Services/ProjectService";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import MonitorTest from "Common/Models/DatabaseModels/MonitorTest";
 import MonitorTestService from "Common/Server/Services/MonitorTestService";
+import MonitorSecret from "Common/Models/DatabaseModels/MonitorSecret";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -492,12 +493,52 @@ router.post(
 
       // check if the monitor needs secrets to be filled.
 
+      /*
+       * Batch: one MonitorSecret query for every claimed monitor that
+       * references {{monitorSecrets.*}} instead of one query per monitor.
+       * Monitors whose steps don't reference secrets keep the lazy per-call
+       * path (which won't query at all), so a conservative miss here can
+       * never drop a secret — it just falls back to the old per-monitor
+       * query.
+       */
+      const monitorIdsNeedingSecrets: Array<ObjectID> = monitors
+        .filter((monitor: Monitor) => {
+          return Boolean(
+            monitor.id &&
+              monitor.monitorSteps &&
+              MonitorUtil.monitorStepsReferenceSecrets(monitor.monitorSteps),
+          );
+        })
+        .map((monitor: Monitor) => {
+          return monitor.id!;
+        });
+
+      const secretsByMonitorId: Map<
+        string,
+        Array<MonitorSecret>
+      > = await MonitorUtil.loadMonitorSecretsForMonitors(
+        monitorIdsNeedingSecrets,
+      );
+
+      const monitorIdsNeedingSecretsSet: Set<string> = new Set(
+        monitorIdsNeedingSecrets.map((id: ObjectID) => {
+          return id.toString();
+        }),
+      );
+
       let monitorsWithSecretPopulated: Array<Monitor> = [];
       const monitorWithSecretsPopulatePromises: Array<Promise<Monitor>> = [];
 
       for (const monitor of monitors) {
+        const monitorKey: string | undefined = monitor.id?.toString();
+
         monitorWithSecretsPopulatePromises.push(
-          MonitorUtil.populateSecrets(monitor),
+          MonitorUtil.populateSecrets(
+            monitor,
+            monitorKey && monitorIdsNeedingSecretsSet.has(monitorKey)
+              ? secretsByMonitorId.get(monitorKey) || []
+              : undefined,
+          ),
         );
       }
 

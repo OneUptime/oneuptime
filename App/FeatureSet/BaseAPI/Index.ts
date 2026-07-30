@@ -1485,6 +1485,12 @@ import NetworkSiteTypeService, {
   Service as NetworkSiteTypeServiceType,
 } from "Common/Server/Services/NetworkSiteTypeService";
 
+// RecommendationDismissal
+import RecommendationDismissal from "Common/Models/DatabaseModels/RecommendationDismissal";
+import RecommendationDismissalService, {
+  Service as RecommendationDismissalServiceType,
+} from "Common/Server/Services/RecommendationDismissalService";
+
 // NetworkSiteStatusTimeline
 import NetworkSiteStatusTimeline from "Common/Models/DatabaseModels/NetworkSiteStatusTimeline";
 import NetworkSiteStatusTimelineService, {
@@ -4552,6 +4558,15 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<NetworkSiteType, NetworkSiteTypeServiceType>(
         NetworkSiteType,
         NetworkSiteTypeService,
+      ).getRouter(),
+    );
+
+    // recommendation dismissal
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<RecommendationDismissal, RecommendationDismissalServiceType>(
+        RecommendationDismissal,
+        RecommendationDismissalService,
       ).getRouter(),
     );
 

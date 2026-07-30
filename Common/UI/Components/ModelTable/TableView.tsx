@@ -40,6 +40,13 @@ export interface ComponentProps<T extends GenericObject> {
    * `TableView.facets`). Owner: the parent's filter hook.
    */
   currentFacetState?: JSONObject | undefined;
+  /**
+   * The viewer's current column layout ({ order, hidden }), persisted on
+   * `TableView.columns` so a saved view restores the columns it was saved
+   * with. `undefined` means "the table's default layout", which is stored as
+   * no value at all.
+   */
+  currentColumns?: JSONObject | undefined;
   tableView: TableView | null;
 }
 
@@ -90,6 +97,7 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
           query: true,
           name: true,
           facets: true,
+          columns: true,
         },
         sort: {
           name: SortOrder.Ascending,
@@ -223,6 +231,17 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
 
   const hasActiveFilters: boolean = hasQueryFilters || hasFacetState;
 
+  /*
+   * A customized column layout is worth saving on its own - "the columns I
+   * care about, in my order" is a view even when nothing is filtered.
+   */
+  const hasColumnLayout: boolean = Boolean(
+    props.currentColumns &&
+      Object.keys(props.currentColumns as JSONObject).length > 0,
+  );
+
+  const hasSavableState: boolean = hasActiveFilters || hasColumnLayout;
+
   const getMenuContents: GetReactElementArrayFunction =
     (): Array<ReactElement> => {
       if (isLoading) {
@@ -239,7 +258,7 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
         );
       }
 
-      if (hasActiveFilters) {
+      if (hasSavableState) {
         elements.push(
           <MoreMenuItem
             key={"save-new-view"}
@@ -359,6 +378,9 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
           if (props.currentFacetState) {
             tableView.facets = props.currentFacetState;
           }
+          if (props.currentColumns) {
+            tableView.columns = props.currentColumns;
+          }
           return Promise.resolve(tableView);
         }}
         onSuccess={async (tableView: TableView) => {
@@ -476,7 +498,7 @@ const TableViewElement: <T extends DatabaseBaseModel | AnalyticsBaseModel>(
   if (
     !isLoading &&
     allTableViews.length === 0 &&
-    !hasActiveFilters &&
+    !hasSavableState &&
     !currentlySelectedView
   ) {
     return <></>;

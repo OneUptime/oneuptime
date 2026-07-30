@@ -1389,6 +1389,7 @@ export default class ScheduledMaintenance extends BaseModel {
       "Status of notification sent to subscribers when event was scheduled",
     defaultValue: StatusPageSubscriberNotificationStatus.Pending,
   })
+  @Index()
   @Column({
     type: ColumnType.ShortText,
     default: StatusPageSubscriberNotificationStatus.Pending,

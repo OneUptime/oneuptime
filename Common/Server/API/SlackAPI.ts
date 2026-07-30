@@ -44,6 +44,9 @@ import UserMiddleware from "../Middleware/UserAuthorization";
 import CommonAPI from "./CommonAPI";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import Dictionary from "../../Types/Dictionary";
+import Exception from "../../Types/Exception/Exception";
+import { WorkspaceChannel } from "../Utils/Workspace/WorkspaceBase";
 import {
   PrivateNoteEmojis,
   PublicNoteEmojis,
@@ -747,6 +750,54 @@ export default class SlackAPI {
       },
     );
 
+    // List all Slack channels for the current project (live fetch, refreshes the cache).
+    router.get(
+      "/slack/channels",
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+
+          const projectAuth: WorkspaceProjectAuthToken | null =
+            await WorkspaceProjectAuthTokenService.getProjectAuth({
+              projectId: projectId,
+              workspaceType: WorkspaceType.Slack,
+            });
+
+          if (!projectAuth || !projectAuth.authToken) {
+            throw new BadRequestException(
+              "Slack is not connected for this project. Please connect Slack first.",
+            );
+          }
+
+          const channels: Dictionary<WorkspaceChannel> =
+            await SlackUtil.getAllWorkspaceChannels({
+              authToken: projectAuth.authToken,
+              projectId: projectId,
+            });
+
+          return Response.sendJsonObjectResponse(req, res, {
+            channels: Object.values(channels)
+              .sort((a: WorkspaceChannel, b: WorkspaceChannel) => {
+                return (a.name || "").localeCompare(b.name || "");
+              })
+              .map((channel: WorkspaceChannel) => {
+                return {
+                  id: channel.id,
+                  name: channel.name,
+                };
+              }),
+          });
+        } catch (err) {
+          return Response.sendErrorResponse(req, res, err as Exception);
+        }
+      },
+    );
+
     // Fetch and cache all Slack channels for current tenant's project
     router.get(
       "/slack/get-all-channels",
@@ -754,6 +805,17 @@ export default class SlackAPI {
       async (req: ExpressRequest, res: ExpressResponse) => {
         const props: DatabaseCommonInteractionProps =
           await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+        /*
+         * getUserMiddleware lets unauthenticated requests through as
+         * "public" — require an authenticated project member before
+         * disclosing channel names.
+         */
+        try {
+          CommonAPI.assertAuthenticatedProjectMember(props);
+        } catch (err) {
+          return Response.sendErrorResponse(req, res, err as Exception);
+        }
 
         if (!props.tenantId) {
           return Response.sendErrorResponse(

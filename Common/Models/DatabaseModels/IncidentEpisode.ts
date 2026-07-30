@@ -1657,6 +1657,7 @@ export default class IncidentEpisode extends BaseModel {
       "Status of notification sent to subscribers when this episode was created",
     defaultValue: StatusPageSubscriberNotificationStatus.Pending,
   })
+  @Index()
   @Column({
     type: ColumnType.ShortText,
     default: StatusPageSubscriberNotificationStatus.Pending,

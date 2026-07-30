@@ -8,7 +8,6 @@ import IncidentPublicNoteService from "../Services/IncidentPublicNoteService";
 import IncidentService from "../Services/IncidentService";
 import IncidentStateService from "../Services/IncidentStateService";
 import IncidentStateTimelineService from "../Services/IncidentStateTimelineService";
-import MonitorGroupResourceService from "../Services/MonitorGroupResourceService";
 import MonitorGroupService from "../Services/MonitorGroupService";
 import MonitorStatusService from "../Services/MonitorStatusService";
 import ScheduledMaintenancePublicNoteService from "../Services/ScheduledMaintenancePublicNoteService";
@@ -86,6 +85,7 @@ import StatusPageOIDC from "../../Models/DatabaseModels/StatusPageOidc";
 import StatusPageSubscriber from "../../Models/DatabaseModels/StatusPageSubscriber";
 import StatusPageEventType from "../../Types/StatusPage/StatusPageEventType";
 import StatusPageResourceUptimeUtil from "../../Utils/StatusPage/ResourceUptime";
+import StatusPageGroupTreeUtil from "../../Utils/StatusPage/GroupTree";
 import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
 import { Green } from "../../Types/BrandColors";
 import UptimeUtil, { UptimeWindow } from "../../Utils/Uptime/UptimeUtil";
@@ -120,44 +120,19 @@ type ResolveStatusPageIdOrThrowFunction = (
 const resolveStatusPageIdOrThrow: ResolveStatusPageIdOrThrowFunction = async (
   statusPageIdOrDomain: string,
 ): Promise<ObjectID> => {
-  if (!statusPageIdOrDomain) {
+  /*
+   * Delegates to the service resolver so every endpoint shares its
+   * custom-domain -> statusPageId cache (one Postgres lookup per domain per
+   * TTL instead of one per request).
+   */
+  const statusPageId: ObjectID | null =
+    await StatusPageService.resolveStatusPageIdOrNull(statusPageIdOrDomain);
+
+  if (!statusPageId) {
     throw new NotFoundException("Status Page not found");
   }
 
-  if (statusPageIdOrDomain.includes(".")) {
-    const statusPageDomain: StatusPageDomain | null =
-      await StatusPageDomainService.findOneBy({
-        query: {
-          fullDomain: statusPageIdOrDomain,
-          domain: {
-            isVerified: true,
-          } as any,
-        },
-        select: {
-          statusPageId: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-    if (!statusPageDomain || !statusPageDomain.statusPageId) {
-      throw new NotFoundException("Status Page not found");
-    }
-
-    return statusPageDomain.statusPageId;
-  }
-
-  try {
-    ObjectID.validateUUID(statusPageIdOrDomain);
-    return new ObjectID(statusPageIdOrDomain);
-  } catch (err) {
-    logger.error(
-      `Error converting statusPageIdOrDomain to ObjectID: ${statusPageIdOrDomain}`,
-    );
-    logger.error(err);
-    throw new NotFoundException("Status Page not found");
-  }
+  return statusPageId;
 };
 
 export default class StatusPageAPI extends BaseAPI<
@@ -176,52 +151,18 @@ export default class StatusPageAPI extends BaseAPI<
           "statusPageIdOrDomain"
         ] as string;
 
-        let statusPageId: ObjectID | null = null;
+        // Shares the service resolver's custom-domain -> statusPageId cache.
+        const statusPageId: ObjectID | null =
+          await StatusPageService.resolveStatusPageIdOrNull(
+            statusPageIdOrDomain,
+          );
 
-        if (statusPageIdOrDomain && statusPageIdOrDomain.includes(".")) {
-          // then this is a domain and not the status page id. We need to get the status page id from the domain.
-
-          const statusPageDomain: StatusPageDomain | null =
-            await StatusPageDomainService.findOneBy({
-              query: {
-                fullDomain: statusPageIdOrDomain,
-                domain: {
-                  isVerified: true,
-                } as any,
-              },
-              select: {
-                statusPageId: true,
-              },
-              props: {
-                isRoot: true,
-              },
-            });
-
-          if (!statusPageDomain || !statusPageDomain.statusPageId) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new NotFoundException("Status Page not found"),
-            );
-          }
-
-          statusPageId = statusPageDomain.statusPageId;
-        } else {
-          // then this is a status page id. We need to get the status page id from the id.
-          try {
-            statusPageId = new ObjectID(statusPageIdOrDomain);
-          } catch (err) {
-            logger.error(
-              `Error converting statusPageIdOrDomain to ObjectID: ${statusPageIdOrDomain}`,
-              getLogAttributesFromRequest(req as any),
-            );
-            logger.error(err, getLogAttributesFromRequest(req as any));
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new NotFoundException("Status Page not found"),
-            );
-          }
+        if (!statusPageId) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new NotFoundException("Status Page not found"),
+          );
         }
 
         const statusPage: StatusPage | null = await StatusPageService.findOneBy(
@@ -1285,6 +1226,7 @@ export default class StatusPageAPI extends BaseAPI<
 
           type StatusPageGroupUptime = {
             statusPageGroupId: ObjectID | null;
+            parentStatusPageGroupId: ObjectID | null;
             uptimePercent: number | null;
             statusPageResourceUptimes: Array<ResourceUptime>;
             statusPageGroupName: string | null;
@@ -1304,6 +1246,8 @@ export default class StatusPageAPI extends BaseAPI<
                   data && data.statusPageGroup
                     ? data.statusPageGroup?.id
                     : null,
+                parentStatusPageGroupId:
+                  data.statusPageGroup?.parentStatusPageGroupId || null,
                 uptimePercent: null,
                 statusPageResourceUptimes: [],
                 statusPageGroupName: data.statusPageGroup?.name || null,
@@ -1442,43 +1386,6 @@ export default class StatusPageAPI extends BaseAPI<
                 }
               }
 
-              if (group?.showUptimePercent) {
-                // calculate uptime percent for the group.
-                const avgUptimePercent: number =
-                  UptimeUtil.calculateAvgUptimePercentage({
-                    uptimePercentages: groupUptime.statusPageResourceUptimes
-                      .filter((resource: ResourceUptime) => {
-                        return resource.uptimePercent !== null;
-                      })
-                      .map((resource: ResourceUptime) => {
-                        return resource.uptimePercent || 0;
-                      }),
-                    precision:
-                      group.uptimePercentPrecision ||
-                      UptimePrecision.ONE_DECIMAL,
-                  });
-
-                groupUptime.uptimePercent = avgUptimePercent;
-              }
-
-              if (group?.showCurrentStatus) {
-                const currentStatuses: Array<MonitorStatus> =
-                  groupUptime.statusPageResourceUptimes
-                    .filter((resourceUptime: ResourceUptime) => {
-                      return resourceUptime.currentStatus !== null;
-                    })
-                    .map((resourceUptime: ResourceUptime) => {
-                      return resourceUptime.currentStatus!;
-                    });
-
-                const worstStatus: MonitorStatus | null =
-                  StatusPageResourceUptimeUtil.getWorstMonitorStatus({
-                    monitorStatuses: currentStatuses,
-                  });
-
-                groupUptime.currentStatus = worstStatus;
-              }
-
               return groupUptime;
             };
 
@@ -1488,6 +1395,75 @@ export default class StatusPageAPI extends BaseAPI<
             groupUptimes.push(
               getUptimeByStatusPageGroup({ statusPageGroup: group }),
             );
+          }
+
+          /*
+           * Groups nest, so a group's own uptime % / current status has to
+           * cover every resource in its subtree, not just the resources
+           * attached directly to it. statusPageResourceUptimes stays the
+           * group's own resources - the nesting is reported through
+           * parentStatusPageGroupId so callers can rebuild the tree.
+           */
+          const resourceUptimesByGroupId: Dictionary<Array<ResourceUptime>> =
+            {};
+
+          for (const groupUptime of groupUptimes) {
+            resourceUptimesByGroupId[
+              groupUptime.statusPageGroupId?.toString() || ""
+            ] = groupUptime.statusPageResourceUptimes;
+          }
+
+          for (const group of statusPageGroups) {
+            const groupUptime: StatusPageGroupUptime | undefined =
+              groupUptimes.find((item: StatusPageGroupUptime) => {
+                return (
+                  item.statusPageGroupId?.toString() === group.id?.toString()
+                );
+              });
+
+            if (!groupUptime) {
+              continue;
+            }
+
+            const resourceUptimesInSubtree: Array<ResourceUptime> =
+              StatusPageGroupTreeUtil.getGroupAndDescendants({
+                statusPageGroup: group,
+                statusPageGroups: statusPageGroups,
+              }).flatMap((groupInSubtree: StatusPageGroup) => {
+                return (
+                  resourceUptimesByGroupId[
+                    groupInSubtree.id?.toString() || ""
+                  ] || []
+                );
+              });
+
+            if (group.showUptimePercent) {
+              groupUptime.uptimePercent =
+                UptimeUtil.calculateAvgUptimePercentage({
+                  uptimePercentages: resourceUptimesInSubtree
+                    .filter((resource: ResourceUptime) => {
+                      return resource.uptimePercent !== null;
+                    })
+                    .map((resource: ResourceUptime) => {
+                      return resource.uptimePercent || 0;
+                    }),
+                  precision:
+                    group.uptimePercentPrecision || UptimePrecision.ONE_DECIMAL,
+                });
+            }
+
+            if (group.showCurrentStatus) {
+              groupUptime.currentStatus =
+                StatusPageResourceUptimeUtil.getWorstMonitorStatus({
+                  monitorStatuses: resourceUptimesInSubtree
+                    .filter((resourceUptime: ResourceUptime) => {
+                      return resourceUptime.currentStatus !== null;
+                    })
+                    .map((resourceUptime: ResourceUptime) => {
+                      return resourceUptime.currentStatus!;
+                    }),
+                });
+            }
           }
 
           return Response.sendJsonObjectResponse(req, res, {
@@ -1530,34 +1506,13 @@ export default class StatusPageAPI extends BaseAPI<
           req: req,
         });
 
-        // First fetch the status page to get the configured uptime history days
-        const statusPageForDays: StatusPage | null =
-          await StatusPageService.findOneBy({
-            query: {
-              _id: statusPageId.toString(),
-            },
-            select: {
-              showUptimeHistoryInDays: true,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-
-        let uptimeHistoryDays: number =
-          statusPageForDays?.showUptimeHistoryInDays || 90;
-
-        if (uptimeHistoryDays > 90) {
-          uptimeHistoryDays = 90;
-        }
-
-        if (uptimeHistoryDays < 1) {
-          uptimeHistoryDays = 1;
-        }
-
-        const startDate: Date = OneUptimeDate.getSomeDaysAgo(uptimeHistoryDays);
-        const endDate: Date = OneUptimeDate.getCurrentDate();
-
+        /*
+         * The timeline window comes from the status page's configured
+         * showUptimeHistoryInDays. getStatusPageResourcesAndTimelines
+         * fetches the status page row anyway, so let it compute the window
+         * (clamped to 1..90 days, ending now) instead of issuing a separate
+         * StatusPage query here just to read that one column.
+         */
         const {
           monitorStatuses,
           monitorGroupCurrentStatuses,
@@ -1567,10 +1522,10 @@ export default class StatusPageAPI extends BaseAPI<
           monitorStatusTimelines,
           statusPageGroups,
           monitorsInGroup,
-        } = await this.getStatusPageResourcesAndTimelines({
-          statusPageId: statusPageId,
           startDateForMonitorTimeline: startDate,
           endDateForMonitorTimeline: endDate,
+        } = await this.getStatusPageResourcesAndTimelines({
+          statusPageId: statusPageId,
         });
 
         // check if status page has active incident.
@@ -1727,10 +1682,54 @@ export default class StatusPageAPI extends BaseAPI<
         let episodePublicNotes: Array<IncidentEpisodePublicNote> = [];
         let episodeStateTimelines: Array<IncidentEpisodeStateTimeline> = [];
 
+        /*
+         * Cheap guard before the expensive part: the block below scans every
+         * incident ever attached to this page's monitors (a many-to-many
+         * join, up to LIMIT_PER_PROJECT rows) just to discover episode
+         * membership — on every overview view, even though most pages have
+         * zero active episodes most of the time. One indexed COUNT of the
+         * project's unresolved, visible episodes lets us skip all of it in
+         * the common case. Behavior-preserving: the final activeEpisodes
+         * query applies exactly these three constraints, so count == 0
+         * implies the block's outputs stay empty.
+         */
+        let unresolvedIncidentStateIds: Array<ObjectID> = [];
+        let hasActiveEpisodes: boolean = false;
+
         if (
           statusPage.showEpisodesOnStatusPage &&
           monitorsOnStatusPage.length > 0
         ) {
+          const unresolvedIncidentStates: Array<IncidentState> =
+            await IncidentStateService.getUnresolvedIncidentStates(
+              statusPage.projectId!,
+              { isRoot: true },
+            );
+
+          unresolvedIncidentStateIds = unresolvedIncidentStates.map(
+            (state: IncidentState) => {
+              return state.id!;
+            },
+          );
+
+          const activeEpisodeCount: PositiveNumber =
+            await IncidentEpisodeService.countBy({
+              query: {
+                projectId: statusPage.projectId!,
+                isVisibleOnStatusPage: true,
+                currentIncidentStateId: QueryHelper.any(
+                  unresolvedIncidentStateIds,
+                ),
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+          hasActiveEpisodes = activeEpisodeCount.toNumber() > 0;
+        }
+
+        if (hasActiveEpisodes) {
           // First, get incidents that have monitors on status page
           const incidentsForEpisodes: Array<Incident> =
             await IncidentService.findBy({
@@ -1784,17 +1783,7 @@ export default class StatusPageAPI extends BaseAPI<
 
           // Fetch active (unresolved) episodes
           if (episodeIdsFromMembers.size > 0) {
-            const unresolvedIncidentStates: Array<IncidentState> =
-              await IncidentStateService.getUnresolvedIncidentStates(
-                statusPage.projectId!,
-                { isRoot: true },
-              );
-
-            const unresolvedIncidentStateIds: Array<ObjectID> =
-              unresolvedIncidentStates.map((state: IncidentState) => {
-                return state.id!;
-              });
-
+            // unresolvedIncidentStateIds was fetched by the guard above.
             let selectEpisodes: Select<IncidentEpisode> = {
               createdAt: true,
               declaredAt: true,
@@ -3009,31 +2998,15 @@ export default class StatusPageAPI extends BaseAPI<
         return Boolean(id); // remove nulls
       });
 
+    // Batched: one query for all monitor groups instead of one per group.
+    const monitorIdsByGroupId: Dictionary<Array<ObjectID>> =
+      await MonitorGroupService.getMonitorIdsInMonitorGroups(monitorGroupIds);
+
     for (const monitorGroupId of monitorGroupIds) {
       // get monitors in the group.
 
-      const groupResources: Array<MonitorGroupResource> =
-        await MonitorGroupResourceService.findBy({
-          query: {
-            monitorGroupId: monitorGroupId,
-          },
-          select: {
-            monitorId: true,
-          },
-          props: {
-            isRoot: true,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-        });
-
-      const monitorsInGroupIds: Array<ObjectID> = groupResources
-        .map((resource: MonitorGroupResource) => {
-          return resource.monitorId!;
-        })
-        .filter((id: ObjectID) => {
-          return Boolean(id); // remove nulls
-        });
+      const monitorsInGroupIds: Array<ObjectID> =
+        monitorIdsByGroupId[monitorGroupId.toString()] || [];
 
       for (const monitorId of monitorsInGroupIds) {
         if (
@@ -3232,31 +3205,15 @@ export default class StatusPageAPI extends BaseAPI<
         return Boolean(id); // remove nulls
       });
 
+    // Batched: one query for all monitor groups instead of one per group.
+    const monitorIdsByGroupId: Dictionary<Array<ObjectID>> =
+      await MonitorGroupService.getMonitorIdsInMonitorGroups(monitorGroupIds);
+
     for (const monitorGroupId of monitorGroupIds) {
       // get monitors in the group.
 
-      const groupResources: Array<MonitorGroupResource> =
-        await MonitorGroupResourceService.findBy({
-          query: {
-            monitorGroupId: monitorGroupId,
-          },
-          select: {
-            monitorId: true,
-          },
-          props: {
-            isRoot: true,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-        });
-
-      const monitorsInGroupIds: Array<ObjectID> = groupResources
-        .map((resource: MonitorGroupResource) => {
-          return resource.monitorId!;
-        })
-        .filter((id: ObjectID) => {
-          return Boolean(id); // remove nulls
-        });
+      const monitorsInGroupIds: Array<ObjectID> =
+        monitorIdsByGroupId[monitorGroupId.toString()] || [];
 
       for (const monitorId of monitorsInGroupIds) {
         if (
@@ -4177,6 +4134,8 @@ export default class StatusPageAPI extends BaseAPI<
     const { monitorsOnStatusPage, monitorsInGroup } =
       await StatusPageService.getMonitorIdsOnStatusPage({
         statusPageId: statusPageId,
+        // reuse the resources fetched above instead of re-querying them
+        statusPageResources: statusPageResources,
       });
 
     const today: Date = OneUptimeDate.getCurrentDate();
@@ -4453,6 +4412,8 @@ export default class StatusPageAPI extends BaseAPI<
     const { monitorsOnStatusPage, monitorsInGroup } =
       await StatusPageService.getMonitorIdsOnStatusPage({
         statusPageId: statusPageId,
+        // reuse the resources fetched above instead of re-querying them
+        statusPageResources: statusPageResources,
       });
 
     const today: Date = OneUptimeDate.getCurrentDate();
@@ -4876,8 +4837,15 @@ export default class StatusPageAPI extends BaseAPI<
   @CaptureSpan()
   public async getStatusPageResourcesAndTimelines(data: {
     statusPageId: ObjectID;
-    startDateForMonitorTimeline: Date;
-    endDateForMonitorTimeline: Date;
+    /*
+     * When omitted, the timeline window is computed from the status page's
+     * own showUptimeHistoryInDays (clamped to 1..90 days, ending now) —
+     * the status page row is fetched below anyway, so callers that want the
+     * page-configured window (the overview endpoint) don't need their own
+     * StatusPage query just to read that column.
+     */
+    startDateForMonitorTimeline?: Date | undefined;
+    endDateForMonitorTimeline?: Date | undefined;
   }): Promise<{
     statusPageResources: StatusPageResource[];
     monitorStatuses: MonitorStatus[];
@@ -4887,6 +4855,8 @@ export default class StatusPageAPI extends BaseAPI<
     statusPage: StatusPage;
     monitorsOnStatusPage: ObjectID[];
     monitorsInGroup: Dictionary<ObjectID[]>;
+    startDateForMonitorTimeline: Date;
+    endDateForMonitorTimeline: Date;
   }> {
     const objectId: ObjectID = data.statusPageId;
 
@@ -4921,6 +4891,27 @@ export default class StatusPageAPI extends BaseAPI<
 
     if (!statusPage) {
       throw new BadDataException("Status Page not found");
+    }
+
+    let startDateForMonitorTimeline: Date | undefined =
+      data.startDateForMonitorTimeline;
+    let endDateForMonitorTimeline: Date | undefined =
+      data.endDateForMonitorTimeline;
+
+    if (!startDateForMonitorTimeline || !endDateForMonitorTimeline) {
+      let uptimeHistoryDays: number = statusPage.showUptimeHistoryInDays || 90;
+
+      if (uptimeHistoryDays > 90) {
+        uptimeHistoryDays = 90;
+      }
+
+      if (uptimeHistoryDays < 1) {
+        uptimeHistoryDays = 1;
+      }
+
+      startDateForMonitorTimeline =
+        OneUptimeDate.getSomeDaysAgo(uptimeHistoryDays);
+      endDateForMonitorTimeline = OneUptimeDate.getCurrentDate();
     }
 
     //get monitor statuses
@@ -4965,6 +4956,7 @@ export default class StatusPageAPI extends BaseAPI<
         columnAxisLabel: true,
         rowAxisValues: true,
         columnAxisValues: true,
+        parentStatusPageGroupId: true,
       },
       sort: {
         order: SortOrder.Ascending,
@@ -5049,35 +5041,43 @@ export default class StatusPageAPI extends BaseAPI<
         return Boolean(id); // remove nulls
       });
 
+    /*
+     * Batched: this loop used to issue 4 queries per monitor group per page
+     * view (3 inside MonitorGroupService.getCurrentStatus + one duplicate
+     * group-resource fetch), on the hottest public endpoint in the product.
+     * One shared fetch + the already-loaded `monitorStatuses` now serve every
+     * group.
+     */
+    const monitorGroupResourcesByGroupId: Dictionary<
+      Array<MonitorGroupResource>
+    > =
+      await MonitorGroupService.getMonitorGroupResourcesByGroupIds(
+        monitorGroupIds,
+      );
+
+    const monitorGroupStatuses: Dictionary<MonitorStatus> =
+      await MonitorGroupService.getCurrentStatusesForMonitorGroups({
+        monitorGroupIds: monitorGroupIds,
+        monitorStatuses: monitorStatuses,
+        monitorGroupResources: monitorGroupResourcesByGroupId,
+      });
+
     for (const monitorGroupId of monitorGroupIds) {
       // get current status of monitors in the group.
 
-      const currentStatus: MonitorStatus =
-        await MonitorGroupService.getCurrentStatus(monitorGroupId, {
-          isRoot: true,
-        });
+      const currentStatus: MonitorStatus | undefined =
+        monitorGroupStatuses[monitorGroupId.toString()];
 
-      monitorGroupCurrentStatuses[monitorGroupId.toString()] =
-        currentStatus.id!;
+      if (currentStatus) {
+        monitorGroupCurrentStatuses[monitorGroupId.toString()] =
+          currentStatus.id!;
+      }
 
       // get monitors in the group.
 
-      const groupResources: Array<MonitorGroupResource> =
-        await MonitorGroupResourceService.findBy({
-          query: {
-            monitorGroupId: monitorGroupId,
-          },
-          select: {
-            monitorId: true,
-          },
-          props: {
-            isRoot: true,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-        });
-
-      const monitorsInGroupIds: Array<ObjectID> = groupResources
+      const monitorsInGroupIds: Array<ObjectID> = (
+        monitorGroupResourcesByGroupId[monitorGroupId.toString()] || []
+      )
         .map((resource: MonitorGroupResource) => {
           return resource.monitorId!;
         })
@@ -5125,8 +5125,8 @@ export default class StatusPageAPI extends BaseAPI<
     const monitorStatusTimelines: Array<MonitorStatusTimeline> =
       await StatusPageService.getMonitorStatusTimelineForStatusPage({
         monitorIds: monitorsOnStatusPageForTimeline,
-        startDate: data.startDateForMonitorTimeline,
-        endDate: data.endDateForMonitorTimeline,
+        startDate: startDateForMonitorTimeline,
+        endDate: endDateForMonitorTimeline,
       });
 
     // return everything.
@@ -5140,6 +5140,8 @@ export default class StatusPageAPI extends BaseAPI<
       statusPage,
       monitorsOnStatusPage,
       monitorsInGroup,
+      startDateForMonitorTimeline,
+      endDateForMonitorTimeline,
     };
   }
 

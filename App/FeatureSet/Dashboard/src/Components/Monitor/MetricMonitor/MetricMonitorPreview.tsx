@@ -1,5 +1,8 @@
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
-import MonitorStepMetricMonitor from "Common/Types/Monitor/MonitorStepMetricMonitor";
+import MonitorStepMetricMonitor, {
+  MonitorStepMetricMonitorUtil,
+} from "Common/Types/Monitor/MonitorStepMetricMonitor";
+import MetricsViewConfig from "Common/Types/Metrics/MetricsViewConfig";
 import MetricView from "../../Metrics/MetricView";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import RollingTimeUtil from "Common/Types/RollingTime/RollingTimeUtil";
@@ -53,21 +56,29 @@ const MetricMonitorPreview: FunctionComponent<ComponentProps> = (
     setStartAndEndDate(RollingTimeUtil.convertToStartAndEndDate(rollingTime));
   }, [rollingTime]);
 
+  /*
+   * Monitor steps are persisted as unvalidated JSON, so metricViewConfig can be
+   * missing entirely on steps written by older builds. Resolve it through the
+   * util, which always hands back array-shaped query/formula configs — reading
+   * `metricViewConfig.queryConfigs` directly used to throw during render and
+   * blank the entire dashboard.
+   */
+  const metricViewConfig: MetricsViewConfig =
+    MonitorStepMetricMonitorUtil.getMetricViewConfig(
+      props.monitorStepMetricMonitor,
+    );
+
   const [metricViewData, setMetricViewData] = React.useState<MetricViewData>({
     startAndEndDate: startAndEndDate,
-    queryConfigs:
-      props.monitorStepMetricMonitor?.metricViewConfig.queryConfigs || [],
-    formulaConfigs:
-      props.monitorStepMetricMonitor?.metricViewConfig.formulaConfigs || [],
+    queryConfigs: metricViewConfig.queryConfigs,
+    formulaConfigs: metricViewConfig.formulaConfigs,
   });
 
   useEffect(() => {
     setMetricViewData({
       startAndEndDate: startAndEndDate,
-      queryConfigs:
-        props.monitorStepMetricMonitor?.metricViewConfig.queryConfigs || [],
-      formulaConfigs:
-        props.monitorStepMetricMonitor?.metricViewConfig.formulaConfigs || [],
+      queryConfigs: metricViewConfig.queryConfigs,
+      formulaConfigs: metricViewConfig.formulaConfigs,
     });
   }, [startAndEndDate]);
 

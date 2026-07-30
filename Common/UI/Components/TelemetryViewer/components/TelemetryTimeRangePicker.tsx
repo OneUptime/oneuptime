@@ -14,11 +14,19 @@ import InBetween from "../../../../Types/BaseDatabase/InBetween";
 import StartAndEndDate, {
   StartAndEndDateType,
 } from "../../Date/StartAndEndDate";
+import {
+  DropdownHorizontalAlignment,
+  getDropdownAlignmentClassName,
+  useDropdownHorizontalAlignment,
+} from "../../../Utils/DropdownAlignment";
 
 export interface TelemetryTimeRangePickerProps {
   value: RangeStartAndEndDateTime;
   onChange: (value: RangeStartAndEndDateTime) => void;
 }
+
+// Matches the Tailwind `w-72` on the dropdown below (18rem).
+export const TIME_RANGE_DROPDOWN_WIDTH_IN_PX: number = 288;
 
 const PRESET_OPTIONS: Array<{ range: TimeRange; label: string }> = [
   { range: TimeRange.PAST_FIVE_MINS, label: "Past 5 Minutes" },
@@ -66,6 +74,20 @@ const TelemetryTimeRangePicker: FunctionComponent<
   );
   const containerRef: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(
     null!,
+  );
+  const buttonRef: React.RefObject<HTMLButtonElement> =
+    useRef<HTMLButtonElement>(null!);
+  const dropdownRef: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(
+    null!,
+  );
+
+  const alignment: DropdownHorizontalAlignment = useDropdownHorizontalAlignment(
+    {
+      isOpen: isOpen,
+      anchorRef: buttonRef,
+      dropdownRef: dropdownRef,
+      dropdownWidthInPx: TIME_RANGE_DROPDOWN_WIDTH_IN_PX,
+    },
   );
 
   useEffect(() => {
@@ -117,7 +139,11 @@ const TelemetryTimeRangePicker: FunctionComponent<
   return (
     <div ref={containerRef} className="relative">
       <button
+        ref={buttonRef}
         type="button"
+        data-testid="telemetry-time-range-picker-button"
+        aria-haspopup="true"
+        aria-expanded={isOpen}
         className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium shadow-sm transition-colors ${
           isOpen
             ? "border-indigo-300 bg-indigo-50 text-indigo-700"
@@ -136,7 +162,14 @@ const TelemetryTimeRangePicker: FunctionComponent<
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full z-50 mt-1 w-72 rounded-lg border border-gray-200 bg-white shadow-lg">
+        <div
+          ref={dropdownRef}
+          data-testid="telemetry-time-range-picker-dropdown"
+          data-align={alignment}
+          className={`absolute ${getDropdownAlignmentClassName(
+            alignment,
+          )} top-full z-50 mt-1 w-72 max-w-[calc(100vw-1rem)] rounded-lg border border-gray-200 bg-white shadow-lg`}
+        >
           <div className="max-h-64 overflow-y-auto py-1">
             {PRESET_OPTIONS.map(
               (option: { range: TimeRange; label: string }) => {

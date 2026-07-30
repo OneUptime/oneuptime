@@ -230,12 +230,13 @@ const mockStatePersistence: () => {
     );
   const updateSpy: SpyInstance<any> = jest
     .spyOn(MarketingConversionService, "updateOneById")
-    .mockImplementation(async (args: any): Promise<void> => {
+    .mockImplementation(async (args: any): Promise<number> => {
       const existing: MarketingConversion =
         conversions.get(args.id.toString()) || new MarketingConversion();
       existing.id = args.id;
       existing.uploadState = args.data.uploadState;
       conversions.set(args.id.toString(), existing);
+      return 1;
     });
 
   return { findOneSpy, updateSpy };

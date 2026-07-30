@@ -1,6 +1,9 @@
 import ScheduledMaintenance from "../../Models/DatabaseModels/ScheduledMaintenance";
 import NotFoundException from "../../Types/Exception/NotFoundException";
 import BadDataException from "../../Types/Exception/BadDataException";
+import DatabaseCommonInteractionPropsUtil, {
+  PermissionType,
+} from "../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
 import ObjectID from "../../Types/ObjectID";
 import ScheduledMaintenanceService, {
   Service as ScheduledMaintenanceServiceType,
@@ -21,7 +24,7 @@ import ScheduledMaintenanceAIContextBuilder, {
   ScheduledMaintenanceContextData,
 } from "../Utils/AI/ScheduledMaintenanceAIContextBuilder";
 import JSONFunctions from "../../Types/JSONFunctions";
-import Permission from "../../Types/Permission";
+import Permission, { UserPermission } from "../../Types/Permission";
 
 export default class ScheduledMaintenanceAPI extends BaseAPI<
   ScheduledMaintenance,
@@ -68,23 +71,35 @@ export default class ScheduledMaintenanceAPI extends BaseAPI<
     const props: DatabaseCommonInteractionProps =
       await CommonAPI.getDatabaseCommonInteractionProps(req);
 
-    // Verify user has permission
-    const permissions: Array<Permission> | undefined = props
-      .userTenantAccessPermission?.["permissions"] as
-      | Array<Permission>
-      | undefined;
+    CommonAPI.assertTenantScoped(props);
 
-    const hasPermission: boolean = permissions
-      ? permissions.some((p: Permission) => {
-          return (
-            p === Permission.ProjectOwner ||
-            p === Permission.ProjectAdmin ||
-            p === Permission.EditProjectScheduledMaintenance ||
-            p === Permission.CreateScheduledMaintenanceInternalNote ||
-            p === Permission.CreateScheduledMaintenancePublicNote
-          );
-        })
-      : false;
+    /*
+     * Read through getUserPermissions(Allow) rather than off
+     * userTenantAccessPermission directly. That dictionary is keyed by project
+     * id and its entries hold GRANTS AND DENIALS together, discriminated only
+     * by isBlockPermission, so the previous
+     * `userTenantAccessPermission["permissions"]` read was always undefined
+     * and denied every caller who was not a master admin. Mapping the array
+     * raw would swing the other way and count a team's explicit block
+     * entry for one of these permissions as a grant of it.
+     */
+    const permissions: Array<Permission> =
+      DatabaseCommonInteractionPropsUtil.getUserPermissions(
+        props,
+        PermissionType.Allow,
+      ).map((userPermission: UserPermission) => {
+        return userPermission.permission;
+      });
+
+    const hasPermission: boolean = permissions.some((p: Permission) => {
+      return (
+        p === Permission.ProjectOwner ||
+        p === Permission.ProjectAdmin ||
+        p === Permission.EditProjectScheduledMaintenance ||
+        p === Permission.CreateScheduledMaintenanceInternalNote ||
+        p === Permission.CreateScheduledMaintenancePublicNote
+      );
+    });
 
     if (!hasPermission && !props.isMasterAdmin) {
       throw new BadDataException(

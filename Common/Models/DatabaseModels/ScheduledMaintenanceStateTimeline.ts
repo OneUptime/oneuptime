@@ -414,6 +414,7 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
     {
       eager: false,
       nullable: true,
+      onDelete: "CASCADE",
       orphanedRowAction: "nullify",
     },
   )
@@ -503,6 +504,7 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
     defaultValue: StatusPageSubscriberNotificationStatus.Pending,
     example: "Sent",
   })
+  @Index()
   @Column({
     type: ColumnType.ShortText,
     default: StatusPageSubscriberNotificationStatus.Pending,

@@ -11,6 +11,8 @@ import ObjectID from "Common/Types/ObjectID";
 import { BadgeType } from "Common/UI/Components/Badge/Badge";
 import SideMenu from "Common/UI/Components/SideMenu/SideMenu";
 import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
+import RecommendationsSideMenuItem from "../../../Components/Recommendations/RecommendationsSideMenuItem";
+import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
 import CountModelSideMenuItem from "Common/UI/Components/SideMenu/CountModelSideMenuItem";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -139,6 +141,19 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.LightBulb}
+        />
+        <RecommendationsSideMenuItem
+          link={{
+            title: "Recommendations",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.KUBERNETES_CLUSTER_VIEW_RECOMMENDATIONS
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          resourceType={MonitorRecommendationResourceType.Kubernetes}
+          resourceId={props.modelId}
         />
         <SideMenuItem
           link={{

@@ -19,6 +19,23 @@ export default interface Columns<
   field: SelectEntityField<TEntity>;
   selectedProperty?: string | undefined;
   title: string;
+  /*
+   * Stable identity for this column, used to persist the viewer's show/hide
+   * and ordering choices. Leave it unset and one is derived from the declared
+   * field (see ColumnPreference.getColumnIds) - set it only when the derived
+   * id would be unstable, e.g. a cell rendered entirely through `getElement`
+   * off a placeholder `field: { _id: true }` whose title is likely to change.
+   */
+  id?: string | undefined;
+  /*
+   * Keep this column out of the "Customize Columns" picker: it is always
+   * shown and can never be moved. Use it for the column that identifies the
+   * row (usually the name), so a table can never be customized into
+   * anonymity.
+   */
+  isNotCustomizable?: boolean | undefined;
+  // Start hidden. The viewer can still switch it on from the picker.
+  isHiddenByDefault?: boolean | undefined;
   contentClassName?: string | undefined;
   colSpan?: number | undefined;
   disableSort?: boolean;
@@ -29,6 +46,18 @@ export default interface Columns<
   alignItem?: AlignItem | undefined;
   noValueMessage?: string | undefined;
   hideOnMobile?: boolean | undefined; // Hide column on mobile devices
+  /*
+   * Exact text for this column's CSV cell (the text twin of getElement, and
+   * it receives the same item). Set it when the cell renders from something
+   * the row does not carry under this column's own `field` - data fetched
+   * alongside the table, or a phrase composed from several fields. Columns
+   * that render entirely through getElement off a placeholder
+   * `field: { _id: true }` are left out of the CSV unless they set this,
+   * because their only exportable value is a raw UUID.
+   */
+  getExportValue?: ((item: TEntity) => string) | undefined;
+  // Leave this column out of the CSV export entirely.
+  disableCsvExport?: boolean | undefined;
   getElement?:
     | ((item: TEntity, onBeforeFetchData?: TEntity | undefined) => ReactElement)
     | undefined;

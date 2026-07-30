@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
-import PositiveNumber from "Common/Types/PositiveNumber";
+import NotEqual from "Common/Types/BaseDatabase/NotEqual";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import { JSONObject } from "Common/Types/JSON";
 import { keyForKubernetesCluster } from "Common/Utils/Telemetry/EntityKey";
@@ -53,7 +53,7 @@ jest.mock("Common/Server/Services/KubernetesCostAllocationService", () => {
   return {
     __esModule: true,
     default: {
-      countBy: jest.fn(),
+      existsBy: jest.fn(),
     },
   };
 });
@@ -110,8 +110,8 @@ const findOrCreateMock: MockedFn =
   KubernetesClusterService.findOrCreateByClusterIdentifier as unknown as MockedFn;
 const updateLastSeenMock: MockedFn =
   KubernetesClusterService.updateLastSeen as unknown as MockedFn;
-const countByMock: MockedFn =
-  KubernetesCostAllocationService.countBy as unknown as MockedFn;
+const existsByMock: MockedFn =
+  KubernetesCostAllocationService.existsBy as unknown as MockedFn;
 const buildMetadataMock: MockedFn =
   OpenTelemetryIngestService.buildResourceMetadataForNonService as unknown as MockedFn;
 const submitMock: MockedFn = TelemetryFanInWriter.submit as unknown as MockedFn;
@@ -119,6 +119,8 @@ const submitMock: MockedFn = TelemetryFanInWriter.submit as unknown as MockedFn;
 const PROJECT_ID: ObjectID = ObjectID.generate();
 const CLUSTER_ID: ObjectID = ObjectID.generate();
 const RETENTION_DAYS: number = 15;
+/** The window makeAllocation() defaults to. */
+const WINDOW: string = "2026-07-24T10:00:00Z";
 
 function makeJobData(
   payload: Partial<KubernetesCostIngestPayload>,
@@ -159,6 +161,47 @@ function getSubmittedRows(callIndex: number = 0): Array<JSONObject> {
   return submitMock.mock.calls[callIndex]![1] as Array<JSONObject>;
 }
 
+/*
+ * The dedup path issues real ClickHouse existence queries, so the mock stands
+ * in for the table rather than for the answer: tests declare which rows are
+ * already stored and the query is evaluated against them. That keeps the
+ * NotEqual / equality query shapes under test instead of hard-coding a
+ * boolean per call and asserting on call counts.
+ */
+type StoredRow = {
+  windowStart: string;
+  shipmentId: string;
+  shipmentChunk: number;
+};
+
+let stored: Array<StoredRow> = [];
+
+function matchesStoredRow(row: StoredRow, query: JSONObject): boolean {
+  const queriedWindow: Date = query["windowStart"] as Date;
+  if (
+    OneUptimeDate.fromString(row.windowStart).getTime() !==
+    queriedWindow.getTime()
+  ) {
+    return false;
+  }
+
+  const shipmentId: unknown = query["shipmentId"];
+  if (shipmentId instanceof NotEqual) {
+    if (row.shipmentId === shipmentId.value) {
+      return false;
+    }
+  } else if (shipmentId !== undefined && row.shipmentId !== shipmentId) {
+    return false;
+  }
+
+  const shipmentChunk: unknown = query["shipmentChunk"];
+  if (shipmentChunk !== undefined && row.shipmentChunk !== shipmentChunk) {
+    return false;
+  }
+
+  return true;
+}
+
 describe("KubernetesCostIngestService.processFromQueue", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -168,7 +211,16 @@ describe("KubernetesCostIngestService.processFromQueue", () => {
       clusterIdentifier: "prod-cluster",
     } as never);
     updateLastSeenMock.mockResolvedValue(undefined as never);
-    countByMock.mockResolvedValue(new PositiveNumber(0) as never);
+    stored = [];
+    existsByMock.mockImplementation(((existsBy: {
+      query: JSONObject;
+    }): Promise<boolean> => {
+      return Promise.resolve(
+        stored.some((row: StoredRow): boolean => {
+          return matchesStoredRow(row, existsBy.query);
+        }),
+      );
+    }) as never);
     buildMetadataMock.mockResolvedValue({
       dataRententionInDays: RETENTION_DAYS,
     } as never);
@@ -391,26 +443,127 @@ describe("KubernetesCostIngestService.processFromQueue", () => {
     expect(submitMock).not.toHaveBeenCalled();
   });
 
-  test("skips windows that already have rows and keeps new windows", async () => {
-    const ingestedWindow: string = "2026-07-24T10:00:00Z";
-    const newWindow: string = "2026-07-24T11:00:00Z";
+  test("stamps the shipment identity on every row", async () => {
+    await KubernetesCostIngestService.processFromQueue(
+      makeJobData({
+        clusterName: "prod-cluster",
+        shipmentId: "abc123",
+        shipmentChunk: 2,
+        allocations: [makeAllocation()],
+      }),
+    );
 
-    countByMock.mockImplementation(((countBy: {
-      query: JSONObject;
-    }): Promise<PositiveNumber> => {
-      const queried: Date = countBy.query["windowStart"] as Date;
-      const isIngested: boolean =
-        queried.getTime() ===
-        OneUptimeDate.fromString(ingestedWindow).getTime();
-      return Promise.resolve(new PositiveNumber(isIngested ? 42 : 0));
-    }) as never);
+    const row: JSONObject = getSubmittedRows()[0]!;
+    expect(row["shipmentId"]).toBe("abc123");
+    expect(row["shipmentChunk"]).toBe(2);
+  });
+
+  test("defaults the shipment identity to empty for agents that send none", async () => {
+    await KubernetesCostIngestService.processFromQueue(
+      makeJobData({
+        clusterName: "prod-cluster",
+        allocations: [makeAllocation()],
+      }),
+    );
+
+    const row: JSONObject = getSubmittedRows()[0]!;
+    expect(row["shipmentId"]).toBe("");
+    expect(row["shipmentChunk"]).toBe(0);
+  });
+
+  /*
+   * The bug this contract exists for: a window wider than the agent's batch
+   * size arrives as several requests, each its own job. Before shipment ids,
+   * chunk 2 saw chunk 1's rows and dropped itself, so a cluster with more
+   * containers than SHIP_BATCH_SIZE stored only the first slice of each hour.
+   */
+  test("accepts a later chunk of the shipment already being ingested", async () => {
+    stored = [
+      { windowStart: WINDOW, shipmentId: "shipment-a", shipmentChunk: 0 },
+    ];
 
     await KubernetesCostIngestService.processFromQueue(
       makeJobData({
         clusterName: "prod-cluster",
+        shipmentId: "shipment-a",
+        shipmentChunk: 1,
+        allocations: [makeAllocation({ namespace: "chunk-1" })],
+      }),
+    );
+
+    const rows: Array<JSONObject> = getSubmittedRows();
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!["namespace"]).toBe("chunk-1");
+  });
+
+  /*
+   * Restart idempotency: the poller's checkpoint is in-memory, so it re-ships
+   * its lookback windows. Those hash to a different shipment only when the
+   * window's contents changed — either way, re-inserting would double-count.
+   */
+  test("drops a window a different shipment already ingested", async () => {
+    stored = [
+      { windowStart: WINDOW, shipmentId: "shipment-a", shipmentChunk: 0 },
+    ];
+
+    await KubernetesCostIngestService.processFromQueue(
+      makeJobData({
+        clusterName: "prod-cluster",
+        shipmentId: "shipment-b",
+        shipmentChunk: 0,
+        allocations: [makeAllocation()],
+      }),
+    );
+
+    expect(submitMock).not.toHaveBeenCalled();
+  });
+
+  // The agent re-sending a chunk that already landed must not duplicate it.
+  test("drops a chunk of the current shipment that already landed", async () => {
+    stored = [
+      { windowStart: WINDOW, shipmentId: "shipment-a", shipmentChunk: 3 },
+    ];
+
+    await KubernetesCostIngestService.processFromQueue(
+      makeJobData({
+        clusterName: "prod-cluster",
+        shipmentId: "shipment-a",
+        shipmentChunk: 3,
+        allocations: [makeAllocation()],
+      }),
+    );
+
+    expect(submitMock).not.toHaveBeenCalled();
+  });
+
+  test("falls back to the whole-window guard when the agent sends no shipment id", async () => {
+    stored = [{ windowStart: WINDOW, shipmentId: "", shipmentChunk: 0 }];
+
+    await KubernetesCostIngestService.processFromQueue(
+      makeJobData({
+        clusterName: "prod-cluster",
+        allocations: [makeAllocation()],
+      }),
+    );
+
+    expect(submitMock).not.toHaveBeenCalled();
+  });
+
+  test("skips only the already-ingested window and keeps the others", async () => {
+    const newWindow: string = "2026-07-24T11:00:00Z";
+
+    stored = [
+      { windowStart: WINDOW, shipmentId: "shipment-a", shipmentChunk: 0 },
+    ];
+
+    await KubernetesCostIngestService.processFromQueue(
+      makeJobData({
+        clusterName: "prod-cluster",
+        shipmentId: "shipment-b",
+        shipmentChunk: 0,
         allocations: [
-          makeAllocation({ windowStart: ingestedWindow, namespace: "old-a" }),
-          makeAllocation({ windowStart: ingestedWindow, namespace: "old-b" }),
+          makeAllocation({ windowStart: WINDOW, namespace: "old-a" }),
+          makeAllocation({ windowStart: WINDOW, namespace: "old-b" }),
           makeAllocation({
             windowStart: newWindow,
             windowEnd: "2026-07-24T12:00:00Z",
@@ -419,9 +572,6 @@ describe("KubernetesCostIngestService.processFromQueue", () => {
         ],
       }),
     );
-
-    // One existence check per DISTINCT window, not per row.
-    expect(countByMock).toHaveBeenCalledTimes(2);
 
     const rows: Array<JSONObject> = getSubmittedRows();
     expect(rows).toHaveLength(1);

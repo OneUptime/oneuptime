@@ -2,10 +2,8 @@ import RunbookAgentInstallInstructions from "../../Components/RunbookAgent/Insta
 import PageComponentProps from "../PageComponentProps";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
-import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import { IconType } from "Common/UI/Components/Icon/Icon";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -206,8 +204,6 @@ const RunbookAgentsPage: FunctionComponent<
       {showSetupAgent ? (
         <Modal
           title="Runbook Agent setup"
-          icon={IconProp.Terminal}
-          iconType={IconType.Info}
           modalWidth={ModalWidth.Medium}
           submitButtonText="Done"
           submitButtonStyleType={ButtonStyleType.PRIMARY}

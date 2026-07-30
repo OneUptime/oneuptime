@@ -174,7 +174,12 @@ const Input: FunctionComponent<ComponentProps> = (
                 props.type === InputType.DATETIME_LOCAL) &&
               value
             ) {
-              const date: Date = OneUptimeDate.fromString(value);
+              /*
+               * The input hands back a bare wall-clock with no offset. Resolve
+               * it in the user's configured timezone rather than letting the
+               * browser assume its own zone.
+               */
+              const date: Date = OneUptimeDate.fromDateTimeLocalString(value);
               const dateString: string = OneUptimeDate.toString(date);
               setValue(dateString);
               if (props.onChange) {

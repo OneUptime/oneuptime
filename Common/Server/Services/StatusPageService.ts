@@ -58,7 +58,7 @@ import StatusPageResourceService from "./StatusPageResourceService";
 import Dictionary from "../../Types/Dictionary";
 import { JSONObject } from "../../Types/JSON";
 import MonitorGroupResource from "../../Models/DatabaseModels/MonitorGroupResource";
-import MonitorGroupResourceService from "./MonitorGroupResourceService";
+import MonitorGroupService from "./MonitorGroupService";
 import QueryHelper from "../Types/Database/QueryHelper";
 import OneUptimeDate from "../../Types/Date";
 import IncidentService from "./IncidentService";
@@ -107,6 +107,22 @@ export class Service extends DatabaseService<StatusPage> {
     10_000,
   );
 
+  /*
+   * Caches verified custom-domain -> statusPageId resolution. Every public
+   * status-page API call served on a custom domain (overview, incidents,
+   * announcements, polling — several per page view) starts with this lookup,
+   * and the mapping only changes when a customer provisions or removes a
+   * domain (which takes minutes anyway), so a 60s staleness window is the
+   * same tradeoff `statusPageUrlCache` above already accepts. Only
+   * SUCCESSFUL resolutions are cached: misses re-query, so a freshly
+   * verified domain works immediately and attacker-controlled Host headers
+   * cannot fill the cache with negative entries.
+   */
+  private statusPageDomainToIdCache: InMemoryTTLCache<string> =
+    new InMemoryTTLCache(10_000);
+
+  private static readonly DOMAIN_TO_ID_CACHE_TTL_MS: number = 60 * 1000;
+
   public constructor() {
     super(StatusPage);
   }
@@ -117,6 +133,14 @@ export class Service extends DatabaseService<StatusPage> {
       return;
     }
     this.statusPageUrlCache.clear();
+  }
+
+  public clearStatusPageDomainToIdCache(fullDomain?: string): void {
+    if (fullDomain) {
+      this.statusPageDomainToIdCache.delete(fullDomain);
+      return;
+    }
+    this.statusPageDomainToIdCache.clear();
   }
 
   /*
@@ -135,6 +159,13 @@ export class Service extends DatabaseService<StatusPage> {
     }
 
     if (statusPageIdOrDomain.includes(".")) {
+      const cachedStatusPageId: string | undefined =
+        this.statusPageDomainToIdCache.get(statusPageIdOrDomain);
+
+      if (cachedStatusPageId) {
+        return new ObjectID(cachedStatusPageId);
+      }
+
       const statusPageDomain: StatusPageDomain | null =
         await StatusPageDomainService.findOneBy({
           query: {
@@ -154,6 +185,12 @@ export class Service extends DatabaseService<StatusPage> {
       if (!statusPageDomain || !statusPageDomain.statusPageId) {
         return null;
       }
+
+      this.statusPageDomainToIdCache.set(
+        statusPageIdOrDomain,
+        statusPageDomain.statusPageId.toString(),
+        Service.DOMAIN_TO_ID_CACHE_TTL_MS,
+      );
 
       return statusPageDomain.statusPageId;
     }
@@ -1378,12 +1415,22 @@ export class Service extends DatabaseService<StatusPage> {
   @CaptureSpan()
   public async getMonitorIdsOnStatusPage(data: {
     statusPageId: ObjectID;
+    /*
+     * Pass when the caller has already loaded the page's resources —
+     * several public endpoints fetch them right before calling this, and
+     * without this parameter the identical StatusPageResource query used to
+     * run twice per request.
+     */
+    statusPageResources?: Array<StatusPageResource> | undefined;
   }): Promise<{
     monitorsOnStatusPage: Array<ObjectID>;
     monitorsInGroup: Dictionary<Array<ObjectID>>;
   }> {
     const statusPageResources: Array<StatusPageResource> =
-      await this.getStatusPageResources(data);
+      data.statusPageResources ||
+      (await this.getStatusPageResources({
+        statusPageId: data.statusPageId,
+      }));
 
     const monitorGroupIds: Array<ObjectID> = statusPageResources
       .map((resource: StatusPageResource) => {
@@ -1404,33 +1451,15 @@ export class Service extends DatabaseService<StatusPage> {
         return Boolean(id); // remove nulls
       });
 
-    for (const monitorGroupId of monitorGroupIds) {
-      // get current status of monitors in the group.
+    // Batched: one query for all monitor groups instead of one per group.
+    const monitorIdsByGroupId: Dictionary<Array<ObjectID>> =
+      await MonitorGroupService.getMonitorIdsInMonitorGroups(monitorGroupIds);
 
+    for (const monitorGroupId of monitorGroupIds) {
       // get monitors in the group.
 
-      const groupResources: Array<MonitorGroupResource> =
-        await MonitorGroupResourceService.findBy({
-          query: {
-            monitorGroupId: monitorGroupId,
-          },
-          select: {
-            monitorId: true,
-          },
-          props: {
-            isRoot: true,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-        });
-
-      const monitorsInGroupIds: Array<ObjectID> = groupResources
-        .map((resource: MonitorGroupResource) => {
-          return resource.monitorId!;
-        })
-        .filter((id: ObjectID) => {
-          return Boolean(id); // remove nulls
-        });
+      const monitorsInGroupIds: Array<ObjectID> =
+        monitorIdsByGroupId[monitorGroupId.toString()] || [];
 
       for (const monitorId of monitorsInGroupIds) {
         if (
@@ -1511,25 +1540,26 @@ export class Service extends DatabaseService<StatusPage> {
   }): Promise<Dictionary<ObjectID>> {
     const monitorGroupCurrentStatuses: Dictionary<ObjectID> = {};
 
+    /*
+     * Batched: this used to issue one MonitorGroupResource query per status
+     * page resource (not even per distinct group) on every badge render and
+     * subscriber report. One query now serves all groups.
+     */
+    const resourcesByGroupId: Dictionary<Array<MonitorGroupResource>> =
+      await MonitorGroupService.getMonitorGroupResourcesByGroupIds(
+        data.statusPageResources
+          .map((resource: StatusPageResource) => {
+            return resource.monitorGroupId!;
+          })
+          .filter((id: ObjectID) => {
+            return Boolean(id); // remove nulls
+          }),
+      );
+
     for (const resource of data.statusPageResources) {
       if (resource.monitorGroupId) {
         const monitorGroupResources: Array<MonitorGroupResource> =
-          await MonitorGroupResourceService.findBy({
-            query: {
-              monitorGroupId: resource.monitorGroupId,
-            },
-            select: {
-              monitorId: true,
-              monitor: {
-                currentMonitorStatusId: true,
-              },
-            },
-            skip: 0,
-            limit: LIMIT_PER_PROJECT,
-            props: {
-              isRoot: true,
-            },
-          });
+          resourcesByGroupId[resource.monitorGroupId.toString()] || [];
 
         const statuses: Array<ObjectID> = monitorGroupResources
           .filter((item: MonitorGroupResource) => {

@@ -58,6 +58,24 @@ import TableColumn from "../Table/Types/Column";
 import FieldType from "../Types/FieldType";
 import ModelTableColumn from "./Column";
 import Columns from "./Columns";
+import ColumnCustomizationModal from "./ColumnCustomizationModal";
+import {
+  ColumnPreference,
+  CustomizableColumn,
+  applyColumnPreference,
+  buildColumnPreference,
+  fromJSON as columnPreferenceFromJSON,
+  getCustomizableColumns,
+  isEmptyColumnPreference,
+  sanitizeColumnPreference,
+  getColumnIds,
+  toJSON as columnPreferenceToJSON,
+} from "./ColumnPreference";
+import { CustomFieldsColumnKey } from "./CustomFieldColumns";
+import useCustomFieldColumns, {
+  CustomFieldColumnsResult,
+} from "./useCustomFieldColumns";
+import { getExportKeysFromColumn } from "./ExportFromColumns";
 import {
   getRelationSelectFromColumns,
   getSelectFromColumns,
@@ -114,6 +132,21 @@ export enum ShowAs {
   List,
   OrderedStatesList,
 }
+
+/*
+ * "Select All" loads the whole filtered result set - up to LIMIT_PER_PROJECT
+ * rows - with the same columns the table itself fetches. Asking for all of
+ * them in one request would mean a single wide, relation-joined query for up
+ * to 10,000 rows, which is exactly the kind of query the database statement
+ * timeout kills. It is paged instead: each request is comparable in cost to a
+ * large page load, so a big selection degrades in latency rather than failing.
+ *
+ * The page size trades those two costs off. Every list request also runs an
+ * unbounded count over the filtered set and pays a growing OFFSET, so smaller
+ * pages multiply that overhead; 1,000 keeps each query well inside the
+ * statement timeout while capping a maxed-out selection at ten round trips.
+ */
+export const BULK_SELECT_ALL_PAGE_SIZE: number = 1000;
 
 export interface SaveFilterProps {
   tableId: string;
@@ -307,6 +340,26 @@ export interface BaseTableProps<
    * outlive the page.
    */
   disableUrlState?: boolean | undefined;
+
+  /**
+   * Hide the "Columns" control and always render the declared column set.
+   *
+   * Column customization is on by default for every table that renders
+   * columns. Turn it off for tables whose layout is load-bearing — a
+   * two-column key/value table, or one the surrounding page reads positions
+   * out of.
+   */
+  disableColumnCustomization?: boolean | undefined;
+
+  /**
+   * The model holding this resource's custom field *definitions* — e.g.
+   * `MonitorCustomField` for a table of monitors. Set it and every custom
+   * field the project has defined becomes an optional column, off by default
+   * and listed in the column picker.
+   *
+   * Only meaningful for resources with a `customFields` column of their own.
+   */
+  customFieldsModelType?: { new (): BaseModel } | undefined;
 }
 
 export interface ComponentProps<
@@ -340,6 +393,28 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     [],
   );
 
+  /*
+   * "Select All" gets its own loading / error state instead of sharing
+   * `isLoading` and `error` with fetchItems. They ran concurrently before, so
+   * a page refresh landing mid-selection flipped the spinner off and cleared
+   * the other's error - which is how a failed select-all could leave the user
+   * with only the current page selected and nothing on screen to say so.
+   */
+  const [isBulkSelectAllLoading, setIsBulkSelectAllLoading] =
+    useState<boolean>(false);
+  const [bulkSelectionError, setBulkSelectionError] = useState<string>("");
+  const [bulkSelectionTotalCount, setBulkSelectionTotalCount] =
+    useState<number>(0);
+  const [isBulkSelectionTruncated, setIsBulkSelectionTruncated] =
+    useState<boolean>(false);
+
+  /*
+   * The paged select-all spans several round trips, so the user can clear the
+   * selection or start another one while it is still running. Every run takes
+   * a token and drops its results if a newer one has since started.
+   */
+  const bulkSelectAllToken: MutableRefObject<number> = React.useRef<number>(0);
+
   let showAs: ShowAs | undefined = props.showAs;
 
   if (!showAs) {
@@ -356,6 +431,115 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   const [tableColumns, setColumns] = useState<Array<TableColumn<TBaseModel>>>(
     [],
   );
+
+  /*
+   * ---------------------------------------------------------------------
+   * Viewer-customizable columns
+   * ---------------------------------------------------------------------
+   *
+   * The viewer's layout (which columns are on, and in what order) is a
+   * personal, presentational preference, so it lives in localStorage next to
+   * the page size rather than on the server: saved views are named, explicit,
+   * plan-gated and need write permission, none of which should stand between
+   * someone and hiding a column they don't care about. A saved view can still
+   * carry a layout of its own, and when one is active it wins.
+   *
+   * Custom fields are appended to the declared columns as additional,
+   * off-by-default columns; from here on they are ordinary columns.
+   */
+  const customFieldColumns: CustomFieldColumnsResult<TBaseModel> =
+    useCustomFieldColumns<TBaseModel>({
+      customFieldsModelType: props.customFieldsModelType,
+    });
+
+  const isColumnCustomizationEnabled: boolean = Boolean(
+    !props.disableColumnCustomization &&
+      props.userPreferencesKey &&
+      showAs !== ShowAs.OrderedStatesList,
+  );
+
+  const allColumns: Columns<TBaseModel> = useMemo(() => {
+    if (customFieldColumns.columns.length === 0) {
+      return props.columns || [];
+    }
+
+    return [...(props.columns || []), ...customFieldColumns.columns];
+  }, [props.columns, customFieldColumns.columns]);
+
+  type ReadStoredColumnPreferenceFunction = () => ColumnPreference | null;
+
+  const readStoredColumnPreference: ReadStoredColumnPreferenceFunction =
+    (): ColumnPreference | null => {
+      if (!props.userPreferencesKey) {
+        return null;
+      }
+
+      return columnPreferenceFromJSON(
+        UserPreferences.getUserPreferenceByTypeAsJSON({
+          key: props.userPreferencesKey,
+          userPreferenceType: UserPreferenceType.BaseModelTableColumns,
+        }),
+      );
+    };
+
+  const [columnPreference, setColumnPreference] =
+    useState<ColumnPreference | null>(readStoredColumnPreference);
+
+  const [showColumnCustomizationModal, setShowColumnCustomizationModal] =
+    useState<boolean>(false);
+
+  /*
+   * Ids are derived over the *whole* declared set, so a column dropping out
+   * for lack of permission can never renumber the ones that remain.
+   */
+  const allColumnIds: Array<string> = useMemo(() => {
+    return getColumnIds<TBaseModel>(allColumns);
+  }, [allColumns]);
+
+  const effectiveColumnPreference: ColumnPreference | null = useMemo(() => {
+    if (!isColumnCustomizationEnabled) {
+      return null;
+    }
+
+    /*
+     * A stored layout outlives the release that wrote it, so anything naming
+     * a column this table no longer has is dropped before it is applied.
+     */
+    return sanitizeColumnPreference({
+      preference: columnPreference,
+      knownColumnIds: allColumnIds,
+    });
+  }, [columnPreference, allColumnIds, isColumnCustomizationEnabled]);
+
+  type SaveColumnPreferenceFunction = (
+    preference: ColumnPreference | null,
+  ) => void;
+
+  const saveColumnPreference: SaveColumnPreferenceFunction = (
+    preference: ColumnPreference | null,
+  ): void => {
+    setColumnPreference(preference);
+
+    if (!props.userPreferencesKey) {
+      return;
+    }
+
+    const json: JSONObject | null = columnPreferenceToJSON(preference);
+
+    if (!json) {
+      UserPreferences.removeUserPreferenceByType({
+        key: props.userPreferencesKey,
+        userPreferenceType: UserPreferenceType.BaseModelTableColumns,
+      });
+      return;
+    }
+
+    UserPreferences.saveUserPreferenceByTypeAsJSON({
+      key: props.userPreferencesKey,
+      userPreferenceType: UserPreferenceType.BaseModelTableColumns,
+      value: json,
+    });
+  };
 
   const [classicTableFilters, setClassicTableFilters] = useState<
     Array<ClassicFilterType<TBaseModel>>
@@ -481,6 +665,66 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   const [error, setError] = useState<string>("");
   const [tableFilterError, setTableFilterError] = useState<string>("");
 
+  /*
+   * Auto-detect label support from the existing filters array. We look for
+   * the filter whose `filterEntityType` class name is "Label" and reuse its
+   * dropdown wiring (entity type, fetch query, label/value field names) so
+   * search inherits whatever scoping the filter popup already had.
+   *
+   * Computed before the search state below because the `labels` slice of a
+   * restored URL is only meaningful when this is non-null.
+   */
+  type LabelFilterConfig = {
+    fieldKey: string;
+    entityType: any;
+    fetchQuery: any;
+    labelField: string;
+  };
+
+  const labelFilterConfig: LabelFilterConfig | null = useMemo(() => {
+    const filter: Filter<TBaseModel> | undefined = props.filters.find(
+      (f: Filter<TBaseModel>) => {
+        return (
+          f.filterEntityType &&
+          (f.filterEntityType as any).name === "Label" &&
+          f.field &&
+          f.filterDropdownField
+        );
+      },
+    );
+    if (!filter || !filter.field || !filter.filterDropdownField) {
+      return null;
+    }
+    const fieldKey: string | undefined = Object.keys(filter.field)[0];
+    if (!fieldKey) {
+      return null;
+    }
+    return {
+      fieldKey,
+      entityType: filter.filterEntityType,
+      fetchQuery: filter.filterQuery || {},
+      labelField: filter.filterDropdownField.label,
+    };
+  }, [props.filters]);
+
+  /*
+   * The label chips are a feature of the in-search Label filter, so a table
+   * without one has to ignore the URL's `labels` slice entirely.
+   *
+   * Tables that have since moved Labels out to a facet chip (Monitors,
+   * Network Devices) still receive `labels` from older shared/bookmarked
+   * links. Seeding those ids anyway produced a chip the table could neither
+   * name (`availableLabels` is only fetched when there *is* a config) nor
+   * apply (`buildSearchQueryFragment` skips the constraint for the same
+   * reason): a force-expanded search box with a raw-UUID pill sitting above a
+   * completely unfiltered list, re-persisted on every write until the user
+   * clicked its ×. Dropping it here also means the next view write omits the
+   * key, so the URL heals itself.
+   */
+  const restoredLabelIds: Array<string> = labelFilterConfig
+    ? initialUrlState.view.labels || []
+    : [];
+
   const [searchText, setSearchText] = useState<string>(
     initialUrlState.view.search || "",
   );
@@ -489,9 +733,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   );
   const [isSearchFocused, setIsSearchFocused] = useState<boolean>(false);
   const [isSearchExpanded, setIsSearchExpanded] = useState<boolean>(
-    Boolean(
-      initialUrlState.view.search || (initialUrlState.view.labels || []).length,
-    ),
+    Boolean(initialUrlState.view.search || restoredLabelIds.length),
   );
   const searchInputRef: React.RefObject<HTMLInputElement> =
     React.useRef<HTMLInputElement>(null!);
@@ -513,7 +755,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   const [selectedLabels, setSelectedLabels] = useState<
     Array<SearchLabelOption>
   >(() => {
-    return (initialUrlState.view.labels || []).map((id: string) => {
+    return restoredLabelIds.map((id: string) => {
       return { id: id, name: id, color: "#94a3b8" };
     });
   });
@@ -609,43 +851,24 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   }, [debouncedSearchText, selectedLabelIdsKey]);
 
   /*
-   * Auto-detect label support from the existing filters array. We look for
-   * the filter whose `filterEntityType` class name is "Label" and reuse its
-   * dropdown wiring (entity type, fetch query, label/value field names) so
-   * search inherits whatever scoping the filter popup already had.
+   * `props.filters` is not frozen — a page can rebuild it after mount, and
+   * that is exactly how a Labels filter leaves the popup for the facet bar.
+   * Chips left over from a config that no longer exists are unnameable and
+   * unappliable, so drop them here too rather than only at mount.
    */
-  type LabelFilterConfig = {
-    fieldKey: string;
-    entityType: any;
-    fetchQuery: any;
-    labelField: string;
-  };
+  useEffect(() => {
+    if (labelFilterConfig) {
+      return;
+    }
 
-  const labelFilterConfig: LabelFilterConfig | null = useMemo(() => {
-    const filter: Filter<TBaseModel> | undefined = props.filters.find(
-      (f: Filter<TBaseModel>) => {
-        return (
-          f.filterEntityType &&
-          (f.filterEntityType as any).name === "Label" &&
-          f.field &&
-          f.filterDropdownField
-        );
-      },
-    );
-    if (!filter || !filter.field || !filter.filterDropdownField) {
-      return null;
-    }
-    const fieldKey: string | undefined = Object.keys(filter.field)[0];
-    if (!fieldKey) {
-      return null;
-    }
-    return {
-      fieldKey,
-      entityType: filter.filterEntityType,
-      fetchQuery: filter.filterQuery || {},
-      labelField: filter.filterDropdownField.label,
-    };
-  }, [props.filters]);
+    setSelectedLabels((existing: Array<SearchLabelOption>) => {
+      /*
+       * Same array when there is nothing to clear, so this costs an idle table
+       * no re-render.
+       */
+      return existing.length === 0 ? existing : [];
+    });
+  }, [labelFilterConfig]);
 
   // Fetch labels on first search expansion if this resource supports them.
   useEffect(() => {
@@ -865,8 +1088,11 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
   const getRelationSelect: GetRelationSelectFunction =
     (): Select<TBaseModel> => {
+      /*
+       * Deliberately the *unfiltered* column set. See getSelect() below.
+       */
       return getRelationSelectFromColumns<TBaseModel>({
-        columns: props.columns || [],
+        columns: allColumns,
         model: model,
       });
     };
@@ -912,7 +1138,30 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     const accessControl: Dictionary<ColumnAccessControl> =
       model.getColumnAccessControlForAllColumns();
 
-    for (const column of props.columns || []) {
+    /*
+     * The viewer's layout is applied to the *input* of this loop, never to
+     * the finished array: the Actions column is appended below and has to
+     * stay last, and it is generated rather than declared, so it is not the
+     * viewer's to move or switch off.
+     */
+    const columnsToRender: Columns<TBaseModel> =
+      applyColumnPreference<TBaseModel>({
+        columns: allColumns,
+        preference: effectiveColumnPreference,
+      });
+
+    const columnIdByColumn: Map<
+      ModelTableColumn<TBaseModel>,
+      string
+    > = new Map();
+
+    allColumns.forEach(
+      (column: ModelTableColumn<TBaseModel>, index: number) => {
+        columnIdByColumn.set(column, allColumnIds[index] as string);
+      },
+    );
+
+    for (const column of columnsToRender) {
       const hasPermission: boolean =
         hasPermissionToReadColumn(column) || User.isMasterAdmin();
       const key: keyof TBaseModel | null = getColumnKey(column);
@@ -945,8 +1194,21 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
         columns.push({
           ...column,
+          id: columnIdByColumn.get(column),
           disableSort: column.disableSort || shouldDisableSort(key),
           key: columnKey,
+          /*
+           * `key` is only the first declared field, so a cell composed from
+           * several of them would export just that one. Hand the exporter
+           * every field the column declares (and that we actually selected).
+           */
+          exportKeys: getExportKeysFromColumn<TBaseModel>({
+            column: column,
+            columnKey: columnKey ? String(columnKey) : null,
+            hasPermissionToReadField: (field: string): boolean => {
+              return hasPermissionToReadField(field as keyof TBaseModel);
+            },
+          }),
           tooltipText,
           getElement: column.getElement,
         });
@@ -1304,36 +1566,249 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       return fragment;
     };
 
-  const fetchAllBulkItems: PromiseVoidFunction = async (): Promise<void> => {
-    setError("");
-    setIsLoading(true);
+  type FetchAllBulkItemsFunction = () => Promise<boolean>;
 
-    try {
-      const listResult: ListResult<TBaseModel> = await props.callbacks.getList({
-        modelType: props.modelType as
-          | DatabaseBaseModelType
-          | AnalyticsBaseModelType,
-        query: {
-          ...props.query,
-          ...query,
-          ...buildSearchQueryFragment(),
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        select: {
-          _id: true,
-        },
-        sort: {},
-        requestOptions: props.fetchRequestOptions,
-      });
+  /*
+   * Selects every row matching the table's current query, filters and search -
+   * not just the rows on screen - and returns whether it succeeded.
+   *
+   * It fetches the SAME columns as fetchItems. It used to ask for
+   * `select: { _id: true }`, which picked the right rows but stripped every
+   * field off them, so "Export CSV" over a select-all wrote one blank line per
+   * row and any bulk action that reads a field (or renders an item's name) saw
+   * undefined. Routing the projection through getSelect() also keeps
+   * `selectMoreFields` and per-field read permissions in play, which a
+   * hand-rolled column list would silently drop.
+   */
+  const fetchAllBulkItems: FetchAllBulkItemsFunction =
+    async (): Promise<boolean> => {
+      const token: number = ++bulkSelectAllToken.current;
 
-      setBulkSelectedItems(listResult.data);
-    } catch (err) {
-      setError(API.getFriendlyMessage(err));
-    }
+      setBulkSelectionError("");
+      setIsBulkSelectionTruncated(false);
+      setIsBulkSelectAllLoading(true);
 
-    setIsLoading(false);
+      const itemsSelected: Array<TBaseModel> = [];
+
+      try {
+        /*
+         * An unsorted table is served in the API's default order, so the
+         * selection has to ask for that order explicitly - once any sort is
+         * sent, the server stops applying its default. Without this the rows
+         * came back in random UUID order, which both scrambled the exported
+         * CSV and, on a table past the selection ceiling, kept an arbitrary
+         * slice of history instead of the newest rows the user was looking at.
+         */
+        const defaultSortColumn: string =
+          (model as AnalyticsBaseModel).defaultSortColumn || "createdAt";
+
+        const bulkSort: Sort<TBaseModel> = (
+          sortBy
+            ? { [sortBy as string]: sortOrder }
+            : { [defaultSortColumn]: SortOrder.Descending }
+        ) as Sort<TBaseModel>;
+
+        /*
+         * skip/limit paging is only stable over a total order. The field that
+         * identifies a selected row (`_id` unless a table overrides it) is
+         * appended as a tiebreaker so rows sharing a sort value - 1,200 labels
+         * imported in one transaction all share a createdAt - cannot land on
+         * two pages while another row is never returned at all.
+         */
+        if (
+          (bulkSort as Dictionary<unknown>)[
+            matchBulkSelectedItemByField as string
+          ] === undefined
+        ) {
+          (bulkSort as Dictionary<SortOrder>)[
+            matchBulkSelectedItemByField as string
+          ] = SortOrder.Ascending;
+        }
+
+        /*
+         * getSelect() throws on a misconfigured column, so it is built inside
+         * the try: otherwise the button would be left spinning forever with an
+         * unhandled rejection instead of a message.
+         */
+        const bulkSelect: Select<TBaseModel> = {
+          ...getSelect(),
+          ...getRelationSelect(),
+        };
+
+        /*
+         * Every ordered column has to be selected for the database to order by
+         * it. `_id` always is; the default sort column usually is not, and a
+         * table matching its selection on some field other than `_id` would
+         * otherwise tick no row checkboxes at all.
+         */
+        for (const sortColumn of Object.keys(bulkSort)) {
+          if (
+            (bulkSelect as Dictionary<unknown>)[sortColumn] === undefined &&
+            model.hasColumn(sortColumn)
+          ) {
+            (bulkSelect as Dictionary<boolean>)[sortColumn] = true;
+          }
+        }
+
+        let totalCount: number = 0;
+        let hasMore: boolean = false;
+        let rowsFetched: number = 0;
+
+        /*
+         * Offset paging over a table that is still receiving writes can hand
+         * back a row that an earlier page already returned. Selecting it twice
+         * would duplicate it in the export and inflate the selected count.
+         */
+        const seenItemIds: Set<string> = new Set<string>();
+
+        while (itemsSelected.length < LIMIT_PER_PROJECT) {
+          const limit: number = Math.min(
+            BULK_SELECT_ALL_PAGE_SIZE,
+            LIMIT_PER_PROJECT - itemsSelected.length,
+          );
+
+          const listResult: ListResult<TBaseModel> =
+            await props.callbacks.getList({
+              modelType: props.modelType as
+                | DatabaseBaseModelType
+                | AnalyticsBaseModelType,
+              query: {
+                ...props.query,
+                ...query,
+                ...buildSearchQueryFragment(),
+              },
+              groupBy: {
+                ...props.groupBy,
+              },
+              limit: limit,
+              skip: rowsFetched,
+              select: bulkSelect,
+              sort: bulkSort,
+              requestOptions: props.fetchRequestOptions,
+            });
+
+          if (token !== bulkSelectAllToken.current) {
+            // A newer select-all, or a cleared selection, superseded this run.
+            return false;
+          }
+
+          totalCount = listResult.count || totalCount;
+          hasMore = Boolean(listResult.hasMore);
+          rowsFetched += listResult.data.length;
+
+          for (const item of listResult.data) {
+            const itemId: string =
+              item[matchBulkSelectedItemByField]?.toString() || "";
+
+            if (itemId) {
+              if (seenItemIds.has(itemId)) {
+                continue;
+              }
+
+              seenItemIds.add(itemId);
+            }
+
+            itemsSelected.push(item);
+          }
+
+          if (listResult.data.length < limit) {
+            // A short page is the last page.
+            hasMore = false;
+            break;
+          }
+
+          if (listResult.hasMore === false) {
+            break;
+          }
+
+          if (totalCount > 0 && rowsFetched >= totalCount) {
+            /*
+             * Everything matching has been read. Stopping here saves the
+             * empty round trip a result set that is an exact multiple of the
+             * page size would otherwise cost - and each of those requests
+             * runs a full count over the filtered set.
+             */
+            break;
+          }
+        }
+
+        setBulkSelectionTotalCount(Math.max(totalCount, itemsSelected.length));
+        setIsBulkSelectionTruncated(totalCount > rowsFetched || hasMore);
+        setBulkSelectedItems(itemsSelected);
+
+        return true;
+      } catch (err) {
+        if (token === bulkSelectAllToken.current) {
+          /*
+           * Leave the existing selection alone. A half-loaded selection that
+           * claims to be everything is worse than a failed one, and the user
+           * can retry because the Select All button stays on screen.
+           */
+          setBulkSelectionError(API.getFriendlyMessage(err));
+        }
+
+        return false;
+      } finally {
+        if (token === bulkSelectAllToken.current) {
+          setIsBulkSelectAllLoading(false);
+        }
+      }
+    };
+
+  type ClearBulkSelectionStateFunction = () => void;
+
+  const clearBulkSelectionState: ClearBulkSelectionStateFunction = (): void => {
+    // Supersede any select-all still in flight so it cannot repopulate this.
+    bulkSelectAllToken.current++;
+    setIsBulkSelectAllLoading(false);
+    setBulkSelectionError("");
+    setIsBulkSelectionTruncated(false);
+    setBulkSelectionTotalCount(0);
+    setBulkSelectedItems((existingItems: Array<TBaseModel>) => {
+      /*
+       * Keep the same array when there is nothing to clear, so calling this on
+       * every query change (below) costs an idle table no re-render.
+       */
+      return existingItems.length === 0 ? existingItems : [];
+    });
   };
+
+  /*
+   * Everything that decides *which rows match* - the caller's query, the
+   * column filters, the search term and the label chips. Serialised because
+   * callers routinely pass `query` as a fresh object literal on every render,
+   * and the label chips get their display names hydrated after mount without
+   * the set of ids ever changing.
+   *
+   * Sort and page are deliberately left out: they re-order or re-window the
+   * same matching set, so a selection made under them is still a selection of
+   * rows that match. Selecting rows across pages is a real workflow, and a
+   * truncated select-all keeps saying "selected N of M matching" after a
+   * re-sort, which stays true.
+   */
+  const effectiveQueryKey: string = JSON.stringify({
+    props: props.query || {},
+    filter: query,
+    search: debouncedSearchText.trim(),
+    labels: selectedLabelIdsKey,
+  });
+
+  /*
+   * A selection refers to the rows the *previous* query returned. Once the
+   * query changes, the table underneath the bulk bar is a different result
+   * set, so carrying the selection over leaves the bar claiming "6,000 Alerts
+   * Selected" above a filtered-down list of 12 - with the Select All button
+   * hidden, as though the selection matched what is on screen, and Delete
+   * still wired to all 6,000 rows the user can no longer see.
+   *
+   * Dropping it here also bumps `bulkSelectAllToken`, so a filter change that
+   * lands while a paged select-all is still running supersedes that run
+   * instead of letting it finish and repopulate the selection against the old
+   * query.
+   */
+  useEffect(() => {
+    clearBulkSelectionState();
+  }, [effectiveQueryKey]);
 
   const fetchItems: PromiseVoidFunction = async (): Promise<void> => {
     setError("");
@@ -1429,13 +1904,38 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   type GetSelectFunction = () => Select<TBaseModel>;
 
   const getSelect: GetSelectFunction = (): Select<TBaseModel> => {
+    /*
+     * Every declared column, including the ones the viewer has switched off.
+     *
+     * Hiding must not narrow the request. A column's `getElement` is arbitrary
+     * caller code that can read any field on the row — a "Status" cell that
+     * also reads `currentMonitorStatus`, say — so dropping a hidden column's
+     * fields from the select would silently blank a *different*, visible cell,
+     * and there is no way to detect that statically. The sort field is
+     * likewise independent of what is on screen. The cost is a few unused
+     * fields on the wire.
+     */
     const selectFields: Select<TBaseModel> = getSelectFromColumns<TBaseModel>({
-      columns: props.columns || [],
+      columns: allColumns,
       model: model,
       hasPermissionToReadField: (field: string): boolean => {
         return hasPermissionToReadField(field as keyof TBaseModel);
       },
     });
+
+    /*
+     * Custom field columns arrive asynchronously, but the table does not
+     * refetch when its column set changes — so the JSON column that backs
+     * every one of them is selected up front, off the synchronous prop, and
+     * the values are there the moment the definitions land.
+     */
+    if (
+      props.customFieldsModelType &&
+      model.hasColumn(CustomFieldsColumnKey) &&
+      hasPermissionToReadField(CustomFieldsColumnKey as keyof TBaseModel)
+    ) {
+      (selectFields as Dictionary<boolean>)[CustomFieldsColumnKey] = true;
+    }
 
     const selectMoreFields: Array<keyof TBaseModel> = props.selectMoreFields
       ? (Object.keys(props.selectMoreFields) as Array<keyof TBaseModel>)
@@ -1488,6 +1988,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           currentItemsOnPage={itemsOnPage}
           currentSortOrder={sortOrder}
           currentFacetState={props.currentFacetState}
+          currentColumns={
+            columnPreferenceToJSON(effectiveColumnPreference) || undefined
+          }
           onViewChange={async (tableView: TableView | null) => {
             setTableView(tableView);
 
@@ -1522,6 +2025,20 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                   (tableView.facets as JSONObject | undefined) || null,
                 );
               }
+
+              /*
+               * A saved view carries the columns it was saved with. Views
+               * created before this existed have none, which restores the
+               * table's default layout rather than leaving the previous
+               * view's columns in place.
+               */
+              if (isColumnCustomizationEnabled) {
+                saveColumnPreference(
+                  columnPreferenceFromJSON(
+                    (tableView.columns as JSONObject | undefined) || null,
+                  ),
+                );
+              }
             } else {
               setQuery({});
               /*
@@ -1539,6 +2056,13 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
               if (props.onFacetStateRestored) {
                 props.onFacetStateRestored(null);
               }
+
+              /*
+               * Columns are deliberately left alone here. Clearing a saved
+               * view means "stop filtering like that", not "throw away the
+               * column layout I built" - which the viewer may well have set
+               * up long before this view existed.
+               */
             }
           }}
         />
@@ -1669,6 +2193,23 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         },
         disabled: isFilterFetchLoading,
         icon: IconProp.Filter,
+      });
+    }
+
+    /*
+     * Only worth offering once there is a choice to make. A single-column
+     * table has nothing to hide and nothing to reorder.
+     */
+    if (isColumnCustomizationEnabled && allColumns.length > 1) {
+      headerbuttons.push({
+        title: "",
+        buttonStyle: ButtonStyleType.ICON,
+        buttonSize: ButtonSize.Small,
+        className: "",
+        onClick: () => {
+          setShowColumnCustomizationModal(true);
+        },
+        icon: IconProp.TableCells,
       });
     }
 
@@ -1844,6 +2385,14 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   useEffect(() => {
     serializeToTableColumns();
   }, [props.columns]);
+
+  /*
+   * The viewer changed their layout, or the project's custom field
+   * definitions finally arrived.
+   */
+  useEffect(() => {
+    serializeToTableColumns();
+  }, [effectiveColumnPreference, customFieldColumns.columns]);
 
   const setActionSchema: VoidFunction = () => {
     const permissions: Array<Permission> = PermissionUtil.getAllPermissions();
@@ -2236,15 +2785,18 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           };
         })()}
         onBulkActionEnd={async () => {
-          setBulkSelectedItems([]);
+          clearBulkSelectionState();
           await fetchItems();
         }}
         onBulkActionStart={() => {}}
         bulkSelectedItems={bulkSelectedItems}
         onBulkSelectedItemAdded={(item: TBaseModel) => {
+          // The user has moved on from the failed select-all.
+          setBulkSelectionError("");
           setBulkSelectedItems([...bulkSelectedItems, item]);
         }}
         onBulkSelectedItemRemoved={(item: TBaseModel) => {
+          setBulkSelectionError("");
           setBulkSelectedItems(
             bulkSelectedItems.filter((i: TBaseModel) => {
               return (
@@ -2278,11 +2830,15 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           setBulkSelectedItems(uniqueItems);
         }}
         onBulkClearAllItems={() => {
-          setBulkSelectedItems([]);
+          clearBulkSelectionState();
         }}
-        onBulkSelectAllItems={async () => {
-          await fetchAllBulkItems();
+        onBulkSelectAllItems={async (): Promise<boolean> => {
+          return await fetchAllBulkItems();
         }}
+        bulkSelectionError={bulkSelectionError}
+        isBulkSelectAllLoading={isBulkSelectAllLoading}
+        isBulkSelectionTruncated={isBulkSelectionTruncated}
+        bulkSelectionTotalCount={bulkSelectionTotalCount}
         matchBulkSelectedItemByField={matchBulkSelectedItemByField || "_id"}
         bulkItemToString={(item: TBaseModel) => {
           const label: string = props.singularName || item.singularName || "";
@@ -2746,36 +3302,46 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             />
             {/* Pills + input wrap row */}
             <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
-              {selectedLabels.map((label: SearchLabelOption) => {
-                return (
-                  <span
-                    key={label.id}
-                    className="inline-flex items-center gap-1 rounded-full bg-gray-50 py-0.5 pl-2 pr-1 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200 transition-all hover:bg-gray-100"
-                    title={`Label: ${label.name}`}
-                  >
+              {/*
+               * Gated on label support as well as on the chips themselves: a
+               * pill this table cannot name, apply or refill is never worth
+               * drawing, whatever left it in state.
+               */}
+              {hasLabelSupport &&
+                selectedLabels.map((label: SearchLabelOption) => {
+                  return (
                     <span
-                      className="h-2 w-2 flex-none rounded-full"
-                      style={{ backgroundColor: label.color }}
-                      aria-hidden="true"
-                    />
-                    <span className="max-w-[8rem] truncate">{label.name}</span>
-                    <button
-                      type="button"
-                      onMouseDown={(e: React.MouseEvent<HTMLButtonElement>) => {
-                        e.preventDefault();
-                      }}
-                      onClick={() => {
-                        removeLabel(label.id);
-                      }}
-                      title="Remove label"
-                      aria-label={`Remove ${label.name}`}
-                      className="ml-0.5 flex-none rounded-full p-0.5 text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-700"
+                      key={label.id}
+                      className="inline-flex items-center gap-1 rounded-full bg-gray-50 py-0.5 pl-2 pr-1 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200 transition-all hover:bg-gray-100"
+                      title={`Label: ${label.name}`}
                     >
-                      <Icon icon={IconProp.Close} className="h-3 w-3" />
-                    </button>
-                  </span>
-                );
-              })}
+                      <span
+                        className="h-2 w-2 flex-none rounded-full"
+                        style={{ backgroundColor: label.color }}
+                        aria-hidden="true"
+                      />
+                      <span className="max-w-[8rem] truncate">
+                        {label.name}
+                      </span>
+                      <button
+                        type="button"
+                        onMouseDown={(
+                          e: React.MouseEvent<HTMLButtonElement>,
+                        ) => {
+                          e.preventDefault();
+                        }}
+                        onClick={() => {
+                          removeLabel(label.id);
+                        }}
+                        title="Remove label"
+                        aria-label={`Remove ${label.name}`}
+                        className="ml-0.5 flex-none rounded-full p-0.5 text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-700"
+                      >
+                        <Icon icon={IconProp.Close} className="h-3 w-3" />
+                      </button>
+                    </span>
+                  );
+                })}
               <input
                 ref={searchInputRef}
                 type="text"
@@ -3105,6 +3671,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         return "Watch Demo";
       case IconProp.Search:
         return "Search";
+      case IconProp.TableCells:
+        return "Columns";
       default:
         return "Action";
     }
@@ -3311,6 +3879,133 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     return originalTitle;
   };
 
+  type IsPickableColumnFunction = (
+    column: ModelTableColumn<TBaseModel>,
+  ) => boolean;
+
+  /*
+   * A column the viewer cannot read is left out of the picker entirely.
+   * Listing it would advertise a field they have no access to, and switching
+   * it on would put that field in the select — which the API rejects for the
+   * whole request, blanking the table.
+   */
+  const isPickableColumn: IsPickableColumnFunction = (
+    column: ModelTableColumn<TBaseModel>,
+  ): boolean => {
+    if (column.isNotCustomizable) {
+      return false;
+    }
+
+    return hasPermissionToReadColumn(column) || User.isMasterAdmin();
+  };
+
+  type GetPickerEntriesFunction = (
+    preference: ColumnPreference | null,
+  ) => Array<CustomizableColumn<TBaseModel>>;
+
+  const getPickerEntries: GetPickerEntriesFunction = (
+    preference: ColumnPreference | null,
+  ): Array<CustomizableColumn<TBaseModel>> => {
+    return getCustomizableColumns<TBaseModel>({
+      columns: allColumns,
+      preference: preference,
+    }).filter((entry: CustomizableColumn<TBaseModel>) => {
+      return isPickableColumn(entry.column);
+    });
+  };
+
+  type GetColumnSortKeyFunction = (
+    column: ModelTableColumn<TBaseModel>,
+  ) => string | null;
+
+  // Mirrors how serializeToTableColumns derives the key the header sorts on.
+  const getColumnSortKey: GetColumnSortKeyFunction = (
+    column: ModelTableColumn<TBaseModel>,
+  ): string | null => {
+    const key: keyof TBaseModel | null = getColumnKey(column);
+
+    if (!key) {
+      return null;
+    }
+
+    return column.selectedProperty
+      ? `${String(key)}.${column.selectedProperty}`
+      : String(key);
+  };
+
+  type OnColumnCustomizationSaveFunction = (
+    entries: Array<CustomizableColumn<TBaseModel>>,
+  ) => void;
+
+  const onColumnCustomizationSave: OnColumnCustomizationSaveFunction = (
+    entries: Array<CustomizableColumn<TBaseModel>>,
+  ): void => {
+    const preference: ColumnPreference =
+      buildColumnPreference<TBaseModel>(entries);
+
+    /*
+     * If the layout the viewer just saved matches what the table ships with,
+     * store nothing. Otherwise every table anyone ever opened the picker on
+     * would be pinned to the column set of the release they opened it in, and
+     * columns added later would arrive already stale.
+     */
+    const defaultPreference: ColumnPreference =
+      buildColumnPreference<TBaseModel>(getPickerEntries(null));
+
+    const isBackToDefault: boolean =
+      JSON.stringify(preference) === JSON.stringify(defaultPreference);
+
+    /*
+     * Sorting by a column that is no longer on screen leaves the viewer with
+     * an ordering they can neither see nor undo — there is no header left to
+     * click. Fall back to the table's own default sort.
+     */
+    if (sortBy) {
+      const hiddenIds: Set<string> = new Set(preference.hidden);
+
+      const isSortedColumnHidden: boolean = entries.some(
+        (entry: CustomizableColumn<TBaseModel>) => {
+          return (
+            hiddenIds.has(entry.id) &&
+            getColumnSortKey(entry.column) === String(sortBy)
+          );
+        },
+      );
+
+      if (isSortedColumnHidden) {
+        setSortBy((props.sortBy as keyof TBaseModel | undefined) || null);
+        setSortOrder(props.sortOrder || SortOrder.Ascending);
+        setCurrentPageNumber(1);
+      }
+    }
+
+    saveColumnPreference(isBackToDefault ? null : preference);
+    setShowColumnCustomizationModal(false);
+  };
+
+  const getColumnCustomizationModal: () => ReactElement | null =
+    (): ReactElement | null => {
+      if (!showColumnCustomizationModal || !isColumnCustomizationEnabled) {
+        return null;
+      }
+
+      return (
+        <ColumnCustomizationModal<TBaseModel>
+          columns={getPickerEntries(effectiveColumnPreference)}
+          isDefaultLayout={isEmptyColumnPreference(effectiveColumnPreference)}
+          title={tx("Customize Columns")}
+          onSave={onColumnCustomizationSave}
+          onReset={() => {
+            saveColumnPreference(null);
+            setShowColumnCustomizationModal(false);
+          }}
+          onClose={() => {
+            setShowColumnCustomizationModal(false);
+          }}
+        />
+      );
+    };
+
   const getCardComponent: GetReactElementFunction = (): ReactElement => {
     const headerButtons: Array<CardButtonSchema | ReactElement> =
       getHeaderButtonsWithSearch();
@@ -3331,7 +4026,12 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 getCardTitle(props.cardProps.title || ""),
               )}
             >
-              {tableColumns.length === 0 && props.columns.length > 0 ? (
+              {/*
+               * A viewer's layout can never empty this out — applyColumnPreference
+               * refuses to return nothing — so zero columns still means exactly
+               * what it always did: every column was denied by permission.
+               */}
+              {tableColumns.length === 0 && allColumns.length > 0 ? (
                 <ErrorMessage
                   message={`You are not authorized to view this table. You need any one of these permissions: ${PermissionHelper.getPermissionTitles(
                     model.getReadPermissions(),
@@ -3529,6 +4229,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
           </div>
         </Modal>
       )}
+
+      {getColumnCustomizationModal()}
     </>
   );
 };

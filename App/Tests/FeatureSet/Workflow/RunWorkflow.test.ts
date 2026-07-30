@@ -64,8 +64,14 @@ interface WorkflowServiceForTest {
   findOneById: (query: unknown) => Promise<Workflow | null>;
 }
 
+/*
+ * The runner's per-run status stamps go through the hookless
+ * updateColumnsByIdWithoutHooks fast path (WorkflowLog has no
+ * workflow/audit/realtime hooks), so that is the method these tests spy on
+ * to capture the persisted log payloads.
+ */
 interface WorkflowLogServiceForTest {
-  updateOneById: (update: unknown) => Promise<void>;
+  updateColumnsByIdWithoutHooks: (update: unknown) => Promise<void>;
 }
 
 function argument(
@@ -152,7 +158,7 @@ function prepareSingleComponentRun(
     .mockResolvedValue(workflow());
 
   const updateLogSpy: RecordedSpy = jest
-    .spyOn(workflowLogServiceForTest, "updateOneById")
+    .spyOn(workflowLogServiceForTest, "updateColumnsByIdWithoutHooks")
     .mockResolvedValue(undefined) as unknown as RecordedSpy;
 
   const runStack: RunStack = {

@@ -208,6 +208,8 @@ kubectl apply -f oneuptime-probe.yaml
 - `PROBE_MONITOR_RETRY_LIMIT` - 失敗監控器的重試次數（預設值：3）
 - `PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS` - 合成監控器指令碼的逾時時間（以毫秒為單位，預設值：60000）
 - `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` - 自訂程式碼監控器指令碼的逾時時間（以毫秒為單位，預設值：60000）
+- `PROBE_API_REQUEST_TIMEOUT_IN_MS` - 探針傳送至 OneUptime 的每個請求的期限（預設值：45000）
+- `PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS` - 對傳送至 OneUptime 且慢於此時間的請求記錄警告（預設值：10000）
 
 #### Proxy 設定
 
@@ -237,3 +239,28 @@ http://[username:password@]proxy.server.com:port
 ### 驗證
 
 如果探針成功執行，它應該會在您的 OneUptime 儀表板上顯示為 `Connected`。如果它未顯示為已連線，您需要檢查容器的記錄。如果您仍然遇到問題，請在 [GitHub](https://github.com/oneuptime/oneuptime) 上建立 issue，或[聯絡支援](https://oneuptime.com/support)。
+
+### 診斷連線中斷的探針
+
+當探針傳送至 OneUptime 的請求不再成功時，它就會被標示為 `Disconnected`。探針的記錄會指出每個失敗的請求卡在哪個階段，因此您很少需要靠猜測。
+
+**1. 閱讀啟動時列印的環境資訊區塊。** 每個探針在啟動時都會列印一個 JSON 區塊，其中包含它所使用的 OneUptime URL、請求期限、proxy 設定、繼承而來的 DNS 解析器、Node/OS 版本，以及 TLS 驗證是否已停用。回報問題時，請一併附上此區塊。
+
+**2. 找出失敗報告。** 每個傳送至 OneUptime 的失敗請求都會記錄一個包含 `stalledAt` 與 `whatThisMeans` 的區塊。`stalledAt` 就是該請求始終未能通過的階段：
+
+| `stalledAt` | 代表的意義 |
+| --- | --- |
+| `SocketAssignment` | 沒有任何封包離開這台機器。可能是 socket 連線池已飽和，或是所設定的 proxy 從未完成其 CONNECT 通道。 |
+| `TcpConnect` | 機器送出了 SYN 卻沒有收到任何回應——防火牆或資安設備正在丟棄封包，或是該主機無法連線。 |
+| `TlsHandshake` | TCP 已連線，但 TLS 從未完成。通常是進行 TLS 檢測的中間設備所造成。 |
+| `RequestSend` | 已連線，但請求從未完整送出——對端停止讀取。 |
+| `WaitingForServerResponse` | 請求已送達，但伺服器沒有回傳任何內容。**探針端的網路沒有問題**——請檢查 OneUptime 伺服器、其負載平衡器與反向 proxy。 |
+| `ResponseBody` | 伺服器已開始回應，但中途停滯。 |
+
+同一個區塊也會回報 `deadlineOverrunInMs`。如果 45000 毫秒的期限實際耗用的時間遠超過 45000 毫秒的牆鐘時間，代表遭到阻塞的是探針處理程序本身——請先檢查該區塊中的 `probeProcess.eventLoopMaxDriftInMs`，再去調查網路問題。
+
+**3. 閱讀連線自我測試的結果。** 連續三次失敗之後，探針會針對同一台伺服器逐層進行測試——先是 DNS，接著是 TCP、TLS，最後是一次真實的 HTTP 來回請求——並記錄每個階段及其耗時。第一個失敗的階段就是您要的答案。當設定了 proxy 時，探針會測試連往 proxy 的那一段，因為那是它實際上唯一會建立的連線。
+
+**4. 在慢速請求演變成失敗之前先留意它們。** 成功但耗時超過 `PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS` 的請求，會連同其耗用時間一併記錄下來。當探針開始記錄長達 20 秒的請求時，就表示它正逐步逼近 45 秒的期限。
+
+在 OneUptime 伺服器端，回應緩慢的探針請求——或是探針在回應送出之前就已放棄的請求——同樣會在該端記錄下來，並附上探針的 id。將這兩邊的記錄放在一起看，就能判斷是連線的哪一端出了問題。

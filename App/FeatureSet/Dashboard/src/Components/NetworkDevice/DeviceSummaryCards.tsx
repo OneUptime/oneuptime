@@ -1,6 +1,11 @@
-import { DEVICE_FRESH_WINDOW_MINUTES } from "./DeviceStatusUtil";
+import { DEVICE_SUMMARY_TILES, DeviceSummaryTile } from "./DeviceSummaryTiles";
+import { getDeviceFreshCutoff } from "./DeviceFacets";
+import {
+  FacetOperatorMap,
+  FacetSelectionMap,
+  isFacetTileSelectionApplied,
+} from "../ResourceOwners/FacetTileSelection";
 import ObjectID from "Common/Types/ObjectID";
-import OneUptimeDate from "Common/Types/Date";
 import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
 import GreaterThanOrEqual from "Common/Types/BaseDatabase/GreaterThanOrEqual";
 import LessThan from "Common/Types/BaseDatabase/LessThan";
@@ -25,18 +30,24 @@ interface SummaryCounts {
   interfacesDown: number;
 }
 
-interface SummaryTile {
-  key: string;
-  label: string;
-  count: number;
-  // css class for the count when it needs attention (count > 0).
-  attentionClassName: string;
-  // css class for the count when everything is fine (count === 0).
-  allClearClassName: string;
-  caption: string;
+export interface ComponentProps {
+  /*
+   * The table's live facet selections and operators. A tile is "pressed" exactly
+   * when the bar is showing what it describes, so the strip and the chips can
+   * never disagree about which rows are on screen.
+   */
+  facetSelections: FacetSelectionMap;
+  facetOperators: FacetOperatorMap;
+  /*
+   * Fired with the tile the user activated. The page owns the chips, so it is the
+   * page that applies (or toggles off) the selection the tile carries.
+   */
+  onTileClick?: ((tile: DeviceSummaryTile) => void) | undefined;
 }
 
-const DeviceSummaryCards: FunctionComponent = (): ReactElement => {
+const DeviceSummaryCards: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
   const [counts, setCounts] = useState<SummaryCounts | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [hasError, setHasError] = useState<boolean>(false);
@@ -47,10 +58,12 @@ const DeviceSummaryCards: FunctionComponent = (): ReactElement => {
     try {
       const projectId: ObjectID = ProjectUtil.getCurrentProjectId()!;
 
-      // Same freshness window the topology API uses to decide up vs down.
-      const freshCutoff: Date = OneUptimeDate.getSomeMinutesAgo(
-        DEVICE_FRESH_WINDOW_MINUTES,
-      );
+      /*
+       * Same freshness window the topology API uses to decide up vs down, and the
+       * same one the Status chip builds its query from — so the rows a tile opens
+       * are the rows it counted.
+       */
+      const freshCutoff: Date = getDeviceFreshCutoff();
 
       const [
         devicesUp,
@@ -131,51 +144,45 @@ const DeviceSummaryCards: FunctionComponent = (): ReactElement => {
     return <></>;
   }
 
-  const tiles: Array<SummaryTile> = [
-    {
-      key: "devices-up",
-      label: "Devices Up",
-      count: counts?.devicesUp || 0,
-      attentionClassName: "text-emerald-600",
-      allClearClassName: "text-gray-900",
-      caption: `Polled within the last ${DEVICE_FRESH_WINDOW_MINUTES} minutes.`,
-    },
-    {
-      key: "devices-down",
-      label: "Devices Down / Stale",
-      count: counts?.devicesDown || 0,
-      attentionClassName: "text-red-600",
-      allClearClassName: "text-gray-900",
-      caption: `No successful poll in the last ${DEVICE_FRESH_WINDOW_MINUTES} minutes.`,
-    },
-    {
-      key: "devices-pending",
-      label: "Devices Pending",
-      count: counts?.devicesPending || 0,
-      attentionClassName: "text-gray-500",
-      allClearClassName: "text-gray-900",
-      caption: "Never polled successfully yet.",
-    },
-    {
-      key: "interfaces-down",
-      label: "Total Interfaces Down",
-      count: counts?.interfacesDown || 0,
-      attentionClassName: "text-red-600",
-      allClearClassName: "text-gray-900",
-      caption: "Across all devices in this project.",
-    },
-  ];
-
   return (
     <div
       data-testid="network-device-summary-cards"
       className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
     >
-      {tiles.map((tile: SummaryTile) => {
+      {DEVICE_SUMMARY_TILES.map((tile: DeviceSummaryTile) => {
+        const count: number = counts?.[tile.countField] || 0;
+        const isSelected: boolean = isFacetTileSelectionApplied(
+          tile.selection,
+          props.facetSelections,
+          props.facetOperators,
+        );
+
         return (
           <InfoCard
             key={tile.key}
             title={tile.label}
+            /*
+             * The tiles stay inert until the counts land: clicking a skeleton
+             * would filter the list to a number nobody has read yet.
+             */
+            onClick={
+              props.onTileClick && !isLoading
+                ? () => {
+                    props.onTileClick?.(tile);
+                  }
+                : undefined
+            }
+            isSelected={isSelected}
+            /*
+             * Says what the tile contributes, not that the list equals it: chips
+             * layer, so two tiles can be lit at once and the rows are then the
+             * intersection — a number neither tile shows.
+             */
+            ariaLabel={
+              isSelected
+                ? `${tile.label}: ${count}. Filtering the list below — activate to remove this filter.`
+                : `${tile.label}: ${count}. Activate to filter the list below by this.`
+            }
             value={
               isLoading ? (
                 <div className="mt-1 space-y-2">
@@ -187,12 +194,12 @@ const DeviceSummaryCards: FunctionComponent = (): ReactElement => {
                   <div
                     data-testid={`network-device-stat-${tile.key}`}
                     className={`text-3xl font-semibold ${
-                      tile.count > 0
+                      count > 0
                         ? tile.attentionClassName
                         : tile.allClearClassName
                     }`}
                   >
-                    {tile.count}
+                    {count}
                   </div>
                   <div className="mt-2 text-sm text-gray-500">
                     {tile.caption}

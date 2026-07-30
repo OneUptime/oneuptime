@@ -76,7 +76,7 @@ function mockPipeline(options?: {
     );
   deviceUpdateSpy = jest
     .spyOn(NetworkDeviceService, "updateOneById")
-    .mockResolvedValue(undefined);
+    .mockResolvedValue(1);
   monitorFindSpy = jest
     .spyOn(MonitorService, "findBy")
     .mockResolvedValue(options?.monitors || []);

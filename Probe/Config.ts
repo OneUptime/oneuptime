@@ -82,6 +82,37 @@ export const PROBE_MONITOR_RETRY_LIMIT: number =
     min: 0,
   });
 
+/*
+ * Hard deadline for every control-plane request the probe sends to the
+ * OneUptime server (alive heartbeat, monitor/discovery/network-device list
+ * fetches, result ingest, registration). Axios's default timeout is 0 —
+ * infinite — so without this a server that accepts the TCP connection but
+ * never responds wedges the request forever, and because these calls run
+ * from cron ticks with no overlap guard, a new hung request piles on every
+ * minute while the probe's lastAlive quietly goes stale and the dashboard
+ * flags a perfectly healthy probe as Disconnected. A bounded failure is
+ * loud (logged, and retried on the next tick); an unbounded hang is silent.
+ */
+export const PROBE_API_REQUEST_TIMEOUT_IN_MS: number =
+  NumberUtil.parseNumberWithDefault({
+    value: process.env["PROBE_API_REQUEST_TIMEOUT_IN_MS"],
+    defaultValue: 45000,
+    min: 1000,
+  });
+
+/*
+ * A control-plane request that is merely SLOW is the leading indicator of
+ * the one that eventually crosses the deadline above and gets this probe
+ * flagged Disconnected. Anything over this threshold is logged with its
+ * elapsed time so the trend is visible before the cliff.
+ */
+export const PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS: number =
+  NumberUtil.parseNumberWithDefault({
+    value: process.env["PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS"],
+    defaultValue: 10000,
+    min: 100,
+  });
+
 export const PORT: Port = new Port(
   NumberUtil.parseNumberWithDefault({
     value: process.env["PORT"],

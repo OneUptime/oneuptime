@@ -70,7 +70,7 @@ spec:
                 - ALL
           env:
             - name: PROMETHEUS_SERVER_ENDPOINT
-              value: "http://{{ include "kubernetes-agent.fullname" . }}-cost-prometheus.{{ .Release.Namespace }}.svc.cluster.local:9090"
+              value: {{ include "kubernetes-agent.costPrometheusUrl" . | quote }}
             - name: CLUSTER_ID
               value: {{ .Values.clusterName | quote }}
             - name: API_PORT
@@ -82,8 +82,6 @@ spec:
             - name: CLOUD_COST_ENABLED
               value: "false"
             {{- if .Values.cost.opencost.customPricing.enabled }}
-            - name: CONFIG_PATH
-              value: "/tmp/custom-config"
             - name: PRICING_CONFIGMAP_NAME
               value: {{ include "kubernetes-agent.fullname" . }}-opencost-pricing
             {{- end }}
@@ -104,18 +102,29 @@ spec:
               port: http
             initialDelaySeconds: 10
             periodSeconds: 10
-          {{- if .Values.cost.opencost.customPricing.enabled }}
+          # OpenCost's CONFIG_PATH (default /var/configs) must be WRITABLE,
+          # always — not just when customPricing is on. The container runs
+          # as non-root and /var in the image is root-owned 0755, so
+          # without this mount OpenCost cannot mkdir it and the AWS/GCP/
+          # Azure provider's DownloadPricingData() fails outright:
+          #
+          #   ERR Error downloading default pricing data:
+          #     Failed to prepare path: mkdir /var/configs: permission denied
+          #
+          # That is NOT cosmetic. The pod stays Running and /healthz stays
+          # green, and the node price metrics still publish off fallback
+          # pricing — but the Allocation API the cost poller reads never
+          # answers, so the poller stalls on its oldest window (it never
+          # advances a checkpoint past a failing window) and the Costs
+          # pages stay empty forever while everything looks healthy.
           volumeMounts:
-            - name: custom-configs
-              mountPath: /tmp/custom-config
-          {{- end }}
+            - name: configs
+              mountPath: /var/configs
           resources:
             {{- toYaml .Values.cost.opencost.resources | nindent 12 }}
-      {{- if .Values.cost.opencost.customPricing.enabled }}
       volumes:
-        - name: custom-configs
+        - name: configs
           emptyDir: {}
-      {{- end }}
 ---
 apiVersion: v1
 kind: Service

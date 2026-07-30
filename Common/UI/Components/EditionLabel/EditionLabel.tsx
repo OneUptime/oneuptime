@@ -1,5 +1,5 @@
 import Modal, { ModalWidth } from "../Modal/Modal";
-import Icon, { IconType } from "../Icon/Icon";
+import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
 import Input from "../Input/Input";
 import Button, { ButtonStyleType } from "../Button/Button";
@@ -759,30 +759,6 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
     globalConfig?.enterpriseLicenseKey,
   ]);
 
-  const modalIcon: IconProp = useMemo(() => {
-    if (!IS_ENTERPRISE_EDITION || isConfigLoading) {
-      return IconProp.Cube;
-    }
-
-    if (!licenseValid || isUserLimitBreached) {
-      return IconProp.Alert;
-    }
-
-    return IconProp.ShieldCheck;
-  }, [isConfigLoading, licenseValid, isUserLimitBreached]);
-
-  const modalIconType: IconType = useMemo(() => {
-    if (!IS_ENTERPRISE_EDITION || isConfigLoading) {
-      return IconType.Info;
-    }
-
-    if (!licenseValid || isUserLimitBreached) {
-      return IconType.Danger;
-    }
-
-    return IconType.Success;
-  }, [isConfigLoading, licenseValid, isUserLimitBreached]);
-
   const modalDescription: string = useMemo(() => {
     if (!IS_ENTERPRISE_EDITION) {
       return "You are running the free, open-source build of OneUptime.";
@@ -1326,8 +1302,6 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
         <Modal
           title={editionName}
           description={modalDescription}
-          icon={modalIcon}
-          iconType={modalIconType}
           rightElement={modalRightElement}
           submitButtonText={modalSubmitButtonText}
           closeButtonText="Close"

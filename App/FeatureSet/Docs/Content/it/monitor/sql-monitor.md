@@ -109,19 +109,19 @@ OneUptime risolve il segreto lato server prima che la configurazione venga conse
 
 Aggiungi criteri per decidere quando il monitor è considerato online, degradato od offline. I seguenti controlli sono disponibili per un Monitor Query SQL:
 
-- **SQL è online** — se il database era raggiungibile e la query è riuscita.
-- **Numero di righe della query SQL** — il numero di righe restituite. Confronta con operatori come maggiore di, minore di o uguale a.
-- **Valore scalare della query SQL** — la prima colonna della prima riga. Confrontato numericamente quando entrambi i lati sembrano numerici, altrimenti come stringhe. Questo è il controllo da usare per le query in stile `COUNT(*)`.
-- **Tempo di esecuzione della query SQL (in ms)** — la durata di esecuzione della query. Utile per individuare un database lento.
-- **Errore della query SQL** — il messaggio di errore della query. Genera avvisi quando è (o non è) vuoto, oppure quando corrisponde a una stringa specifica.
-- **Espressione JavaScript** — valuta un'espressione JavaScript personalizzata per il pieno controllo. Vedi [Espressioni JavaScript](/docs/monitor/javascript-expression).
+- **SQL Is Online** — se il database era raggiungibile e la query è riuscita.
+- **SQL Query Row Count** — il numero di righe restituite. Confronta con operatori come maggiore di, minore di o uguale a.
+- **SQL Query Scalar Value** — la prima colonna della prima riga. Confrontato numericamente quando entrambi i lati sembrano numerici, altrimenti come stringhe. Questo è il controllo da usare per le query in stile `COUNT(*)`.
+- **SQL Query Execution Time (in ms)** — la durata di esecuzione della query. Utile per individuare un database lento.
+- **SQL Query Error** — il messaggio di errore della query. Genera avvisi quando è (o non è) vuoto, oppure quando corrisponde a una stringa specifica.
+- **JavaScript Expression** — valuta un'espressione JavaScript personalizzata per il pieno controllo. Vedi [Espressioni JavaScript](/docs/monitor/javascript-expression).
 
 ### Esempio: genera un avviso quando le cancellazioni aumentano improvvisamente
 
 Usando la query sopra:
 
-- **Criterio: Degradato** — `Valore scalare della query SQL` è maggiore di `10`.
-- **Criterio: Offline** — `Valore scalare della query SQL` è maggiore di `50`, oppure `SQL è online` è `false`.
+- **Criterio: Degradato** — `SQL Query Scalar Value` è maggiore di `10`.
+- **Criterio: Offline** — `SQL Query Scalar Value` è maggiore di `50`, oppure `SQL Is Online` è `false`.
 
 Associa una politica di reperibilità ai criteri in modo che vengano contattate le persone giuste.
 

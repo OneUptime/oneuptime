@@ -26,10 +26,19 @@ export interface KubernetesCostAllocationIngestRow {
   cpuCoreHours?: number | undefined;
   cpuCoreRequestAverage?: number | undefined;
   cpuCoreUsageAverage?: number | undefined;
+  cpuCoreLimitAverage?: number | undefined;
   gpuHours?: number | undefined;
   ramByteHours?: number | undefined;
   ramBytesRequestAverage?: number | undefined;
   ramBytesUsageAverage?: number | undefined;
+  ramBytesLimitAverage?: number | undefined;
+  /*
+   * Peak working set over the window, from Prometheus rather than the cost
+   * engine. 0 when no Prometheus is configured or it had no data — the
+   * server cannot distinguish that from a genuine 0, so a right-sizing
+   * recommendation must require a positive value rather than trusting it.
+   */
+  ramBytesUsageMax?: number | undefined;
   pvByteHours?: number | undefined;
 
   cpuCost?: number | undefined;
@@ -50,7 +59,55 @@ export interface KubernetesCostAllocationIngestRow {
 export interface KubernetesCostIngestPayload {
   clusterName: string;
   currency?: string | undefined;
+  /*
+   * Shipment identity — see Common/Types/Kubernetes/KubernetesCostIngest.ts
+   * for the full rationale. shipmentId is a content hash over the window's
+   * row identities (stable across agent restarts); shipmentChunk is this
+   * request's index within the shipment. Together they let the server accept
+   * every chunk of one window while still dropping a window a previous
+   * shipment already delivered.
+   */
+  shipmentId?: string | undefined;
+  shipmentChunk?: number | undefined;
   allocations: Array<KubernetesCostAllocationIngestRow>;
+}
+
+/*
+ * Health snapshots. Poller and Shipper each report plain facts about what
+ * they have done; Health.ts is the single place that turns those facts into
+ * an ok/degraded verdict, so the judgement is testable without a clock, a
+ * socket or either collaborator.
+ */
+
+export interface PollerStatus {
+  /** When the poller was constructed (ms epoch). */
+  startedAtMs: number;
+  /**
+   * When a window last drained — shipped or legitimately empty (ms epoch).
+   * 0 means no window has ever completed.
+   */
+  lastWindowCompletedAtMs: number;
+  windowsCompleted: number;
+  /** Ticks that have thrown back-to-back; reset by any clean tick. */
+  consecutivePollFailures: number;
+  lastPollError: string | null;
+}
+
+export interface ShipperStatus {
+  /** Last successful POST to OneUptime (ms epoch); 0 means never. */
+  lastShipOkAtMs: number;
+  lastShipError: string | null;
+}
+
+export interface HealthReport {
+  healthy: boolean;
+  status: "ok" | "degraded";
+  /** Why it is degraded, in operator-readable prose. Empty when healthy. */
+  reasons: Array<string>;
+  lastPollError: string | null;
+  lastShipError: string | null;
+  windowsCompleted: number;
+  uptimeSeconds: number;
 }
 
 /** properties block of one engine allocation. */
@@ -77,14 +134,26 @@ export interface EngineAllocation {
   cpuCoreHours?: number;
   cpuCoreRequestAverage?: number;
   cpuCoreUsageAverage?: number;
+  cpuCoreLimitAverage?: number;
   cpuCost?: number;
   cpuCostAdjustment?: number;
   gpuHours?: number;
   gpuCost?: number;
   gpuCostAdjustment?: number;
+  /*
+   * Singular "Byte", deliberately. The engines' Go struct fields are
+   * RAMBytesRequestAverage / RAMBytesUsageAverage but their json tags are
+   * `ramByteRequestAverage` / `ramByteUsageAverage` — plural field name,
+   * singular wire name. Reading the field name instead of the tag yields
+   * undefined, which the server's sanitizeNumber turns into a silent 0, so
+   * the mismatch is invisible until someone charts memory requests. Stable
+   * across every OpenCost release from v1.108 to the bundled 1.121, and
+   * Kubecost shares the lineage.
+   */
   ramByteHours?: number;
-  ramBytesRequestAverage?: number;
-  ramBytesUsageAverage?: number;
+  ramByteRequestAverage?: number;
+  ramByteUsageAverage?: number;
+  ramByteLimitAverage?: number;
   ramCost?: number;
   ramCostAdjustment?: number;
   pvByteHours?: number;
@@ -109,4 +178,30 @@ export interface EngineAllocation {
 export interface EngineAllocationResponse {
   code?: number;
   data?: Array<Record<string, EngineAllocation> | null> | null;
+}
+
+/*
+ * Prometheus /api/v1/query response, instant-vector shape. Note the
+ * envelope carries its own status: Prometheus answers HTTP 200 with
+ * status:"error" for a rejected query, so the HTTP code alone is not a
+ * success check.
+ */
+
+export interface PrometheusSample {
+  metric?: {
+    namespace?: string;
+    pod?: string;
+    container?: string;
+  };
+  /** [unixSeconds, "<value>"] — the value is a STRING, always. */
+  value?: [number, string];
+}
+
+export interface PrometheusInstantQueryResponse {
+  status?: string;
+  error?: string;
+  data?: {
+    resultType?: string;
+    result?: Array<PrometheusSample>;
+  };
 }

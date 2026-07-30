@@ -593,6 +593,7 @@ export default class OnCallDutyPolicyExecutionLog extends BaseModel {
     canReadOnRelationQuery: false,
     example: "Executing",
   })
+  @Index()
   @Column({
     nullable: false,
     type: ColumnType.ShortText,

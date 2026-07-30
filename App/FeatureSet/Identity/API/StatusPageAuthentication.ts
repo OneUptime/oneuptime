@@ -1,3 +1,4 @@
+import CredentialGuard from "../Utils/CredentialGuard";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { StatusPageApiRoute } from "Common/ServiceRoute";
 import Hostname from "Common/Types/API/Hostname";
@@ -459,6 +460,12 @@ router.post(
         throw new BadDataException("Status Page ID is required.");
       }
 
+      /*
+       * The `data["email"]` check above reads the raw body; re-check the deserialized value so
+       * the guard covers what actually reaches the query.
+       */
+      CredentialGuard.assertPresent(user.email, "Email");
+
       const statusPage: StatusPage | null = await StatusPageService.findOneById(
         {
           id: user.statusPageId!,
@@ -612,6 +619,15 @@ router.post(
         data as JSONObject,
         StatusPagePrivateUser,
       ) as StatusPagePrivateUser;
+
+      /*
+       * The `|| ""` below already stops the token predicate from being dropped, but an absent
+       * password would silently reset the matched account's password to `undefined`.
+       */
+      CredentialGuard.assertAllPresent([
+        { value: user.resetPasswordToken, label: "Reset password token" },
+        { value: user.password, label: "Password" },
+      ]);
 
       await user.password?.hashValue(EncryptionSecret);
 
@@ -774,6 +790,17 @@ router.post(
       if (!user.statusPageId) {
         throw new BadDataException("Status Page ID not found");
       }
+
+      /*
+       * statusPageId alone is not a secret, and the guard above is the only one an empty
+       * credential pair used to hit. Without these, `email` and `password` arrive undefined,
+       * TypeORM drops both predicates, and the query below degrades to "newest private user of
+       * this status page" -- who is then handed a real session and access-token cookie.
+       */
+      CredentialGuard.assertAllPresent([
+        { value: user.email, label: "Email" },
+        { value: user.password, label: "Password" },
+      ]);
 
       const statusPage: StatusPage | null = await StatusPageService.findOneById(
         {

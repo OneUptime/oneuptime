@@ -5,7 +5,6 @@ import {
   PROBE_SNMP_TRAP_RECEIVER_PORT,
 } from "../Config";
 import ProbeAPIRequest from "../Utils/ProbeAPIRequest";
-import ProxyConfig from "../Utils/ProxyConfig";
 import URL from "Common/Types/API/URL";
 import HTTPMethod from "Common/Types/API/HTTPMethod";
 import { JSONObject } from "Common/Types/JSON";
@@ -210,10 +209,9 @@ export default class SnmpTrapReceiver {
         ...ProbeAPIRequest.getDefaultRequestBody(),
         snmpTrap: trap as unknown as JSONObject,
       },
-      options: {
-        ...ProxyConfig.getRequestProxyAgents(ingestUrl),
+      options: ProbeAPIRequest.getDefaultRequestOptions(ingestUrl, {
         timeout: FORWARD_REQUEST_TIMEOUT_MS,
-      },
+      }),
     });
   }
 

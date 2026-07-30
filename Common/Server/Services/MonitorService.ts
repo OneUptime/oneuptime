@@ -30,7 +30,7 @@ import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
-import { JSONObject } from "../../Types/JSON";
+import { JSONObject, JSONValue } from "../../Types/JSON";
 import MonitorType, {
   MonitorTypeHelper,
 } from "../../Types/Monitor/MonitorType";
@@ -60,6 +60,7 @@ import UserNotificationSettingService from "./UserNotificationSettingService";
 import NotificationSettingEventType from "../../Types/NotificationSetting/NotificationSettingEventType";
 import Query from "../Types/Database/Query";
 import DeleteBy from "../Types/Database/DeleteBy";
+import UpdateBy from "../Types/Database/UpdateBy";
 import StatusPageResourceService from "./StatusPageResourceService";
 import Label from "../../Models/DatabaseModels/Label";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -68,6 +69,10 @@ import NotificationRuleWorkspaceChannel from "../../Types/Workspace/Notification
 import WorkspaceNotificationRuleService, {
   MessageBlocksByWorkspaceType,
 } from "./WorkspaceNotificationRuleService";
+import MonitorStepsProjectValidator from "../Utils/Monitor/MonitorStepsProjectValidator";
+import ProjectScopedReferenceValidator, {
+  resolveReferenceId,
+} from "../Utils/Database/ProjectScopedReferenceValidator";
 import MonitorWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/Monitor";
 import MonitorFeedService from "./MonitorFeedService";
 import { MonitorFeedEventType } from "../../Models/DatabaseModels/MonitorFeed";
@@ -383,6 +388,89 @@ export class Service extends DatabaseService<Model> {
   }
 
   @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    /*
+     * currentMonitorStatusId is writable by any project member and its FK is
+     * ON DELETE NO ACTION, so an id from another project here leaves that
+     * project undeletable — the same shape monitorSteps had. The
+     * 1785240000000 migration repaired the rows that existed then; this stops
+     * new ones. It stays NO ACTION on purpose: deleting a status monitors are
+     * currently in should be blocked, not cascaded.
+     */
+    const currentMonitorStatusId: ObjectID | string | undefined =
+      resolveReferenceId(updateBy.data.currentMonitorStatusId) ||
+      resolveReferenceId(updateBy.data.currentMonitorStatus);
+
+    if (updateBy.data.monitorSteps || currentMonitorStatusId) {
+      /*
+       * Root/API updates do not always carry a tenantId, so fall back to the
+       * project of each monitor the query actually matches.
+       */
+      const projectIds: Array<ObjectID> = updateBy.props.tenantId
+        ? [updateBy.props.tenantId]
+        : await this.getProjectIdsForUpdateQuery(updateBy);
+
+      for (const projectId of projectIds) {
+        if (updateBy.data.monitorSteps) {
+          await MonitorStepsProjectValidator.validateMonitorStepsBelongToProject(
+            {
+              monitorSteps: updateBy.data.monitorSteps as
+                | MonitorSteps
+                | JSONObject,
+              projectId: projectId,
+            },
+          );
+        }
+
+        await ProjectScopedReferenceValidator.validateReferencesBelongToProject(
+          {
+            projectId: projectId,
+            subject: "monitor",
+            references: [
+              {
+                modelName: "Monitor Status",
+                id: currentMonitorStatusId,
+                service: MonitorStatusService,
+              },
+            ],
+          },
+        );
+      }
+    }
+
+    return { updateBy, carryForward: null };
+  }
+
+  private async getProjectIdsForUpdateQuery(
+    updateBy: UpdateBy<Model>,
+  ): Promise<Array<ObjectID>> {
+    const monitors: Array<Model> = await this.findBy({
+      query: updateBy.query,
+      select: {
+        projectId: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+        ignoreHooks: true,
+      },
+    });
+
+    const projectIds: Dictionary<ObjectID> = {};
+
+    for (const monitor of monitors) {
+      if (monitor.projectId) {
+        projectIds[monitor.projectId.toString()] = monitor.projectId;
+      }
+    }
+
+    return Object.values(projectIds);
+  }
+
+  @CaptureSpan()
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
     updatedItemIds: ObjectID[],
@@ -602,6 +690,11 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("ProjectId required to create monitor.");
     }
 
+    await MonitorStepsProjectValidator.validateMonitorStepsBelongToProject({
+      monitorSteps: createBy.data.monitorSteps,
+      projectId: createBy.props.tenantId,
+    });
+
     const monitorStatus: MonitorStatus | null =
       await MonitorStatusService.findOneBy({
         query: {
@@ -705,6 +798,34 @@ ${createdItem.description?.trim() || "No description provided."}
       feedInfoInMarkdown += `\n\n`;
     }
 
+    /*
+     * Probes are attached inline rather than on the detached chain below: the
+     * create form redirects straight to the monitor, and a monitor that shows
+     * no probes for a second or two reads as "the probe was never assigned".
+     * Failures are logged, never thrown - a probe problem must not fail the
+     * monitor create.
+     */
+    if (
+      createdItem.monitorType &&
+      MonitorTypeHelper.isProbableMonitor(createdItem.monitorType)
+    ) {
+      try {
+        await this.addProbesToMonitor({
+          projectId: createdItem.projectId,
+          monitorId: createdItem.id,
+          selectedProbeIds: this.getSelectedProbeIdsFromMiscDataProps(
+            onCreate.createBy.miscDataProps,
+          ),
+        });
+      } catch (error) {
+        logger.error("Add probes failed in MonitorService.onCreateSuccess", {
+          projectId: createdItem.projectId?.toString(),
+          monitorId: createdItem.id?.toString(),
+        } as LogAttributes);
+        logger.error(error as Error);
+      }
+    }
+
     // Execute operations sequentially with error handling (workspace first)
     Promise.resolve()
       .then(async () => {
@@ -742,30 +863,6 @@ ${createdItem.description?.trim() || "No description provided."}
         } catch (error) {
           logger.error(
             "Change monitor status failed in MonitorService.onCreateSuccess",
-            {
-              projectId: createdItem.projectId?.toString(),
-              monitorId: createdItem.id?.toString(),
-            } as LogAttributes,
-          );
-          logger.error(error as Error);
-          return Promise.resolve();
-        }
-      })
-      .then(async () => {
-        try {
-          if (
-            createdItem.monitorType &&
-            MonitorTypeHelper.isProbableMonitor(createdItem.monitorType)
-          ) {
-            return await this.addDefaultProbesToMonitor(
-              createdItem.projectId!,
-              createdItem.id!,
-            );
-          }
-          return Promise.resolve();
-        } catch (error) {
-          logger.error(
-            "Add default probes failed in MonitorService.onCreateSuccess",
             {
               projectId: createdItem.projectId?.toString(),
               monitorId: createdItem.id?.toString(),
@@ -1069,6 +1166,104 @@ ${createdItem.description?.trim() || "No description provided."}
     }
   }
 
+  /*
+   * The monitor create form sends the probes the user picked through
+   * miscDataProps (the same side channel the owner fields use). They arrive as
+   * plain strings because miscDataProps is not run through the model
+   * serializer, so normalise before anything else touches them.
+   */
+  public getSelectedProbeIdsFromMiscDataProps(
+    miscDataProps: JSONObject | undefined,
+  ): Array<ObjectID> | undefined {
+    const rawProbeIds: JSONValue | undefined = miscDataProps?.["probes"];
+
+    if (!Array.isArray(rawProbeIds)) {
+      // Nothing was sent (API clients, templates) - fall back to the defaults.
+      return undefined;
+    }
+
+    const probeIds: Array<ObjectID> = [];
+    const seen: Set<string> = new Set<string>();
+
+    for (const rawProbeId of rawProbeIds) {
+      if (!rawProbeId) {
+        continue;
+      }
+
+      const probeId: string =
+        rawProbeId instanceof ObjectID
+          ? rawProbeId.toString()
+          : String(rawProbeId);
+
+      if (!probeId || seen.has(probeId)) {
+        continue;
+      }
+
+      seen.add(probeId);
+      probeIds.push(new ObjectID(probeId));
+    }
+
+    return probeIds;
+  }
+
+  /*
+   * Attaches the probes the user explicitly selected at create time, or the
+   * project's auto-enable defaults when no selection was made. An explicit but
+   * empty selection means "no probes" and is honoured as such.
+   */
+  @CaptureSpan()
+  public async addProbesToMonitor(data: {
+    projectId: ObjectID | undefined;
+    monitorId: ObjectID | undefined | null;
+    selectedProbeIds: Array<ObjectID> | undefined;
+  }): Promise<void> {
+    if (!data.projectId) {
+      throw new BadDataException("projectId is required");
+    }
+
+    if (!data.monitorId) {
+      throw new BadDataException("monitorId is required");
+    }
+
+    if (data.selectedProbeIds === undefined) {
+      return await this.addDefaultProbesToMonitor(
+        data.projectId,
+        data.monitorId,
+      );
+    }
+
+    return await this.addSelectedProbesToMonitor(
+      data.projectId,
+      data.monitorId,
+      data.selectedProbeIds,
+    );
+  }
+
+  /*
+   * Only global probes and probes belonging to this project may be attached -
+   * the id list comes from the browser, so it cannot be trusted to stay inside
+   * the tenant. ProbeService.getProbesAttachableToProject owns that rule and
+   * MonitorProbeService enforces the same one on the CRUD path.
+   */
+  @CaptureSpan()
+  public async addSelectedProbesToMonitor(
+    projectId: ObjectID,
+    monitorId: ObjectID,
+    probeIds: Array<ObjectID>,
+  ): Promise<void> {
+    const probes: Array<Probe> =
+      await ProbeService.getProbesAttachableToProject({
+        probeIds: probeIds,
+        projectId: projectId,
+      });
+
+    await this.createMonitorProbes({
+      projectId: projectId,
+      monitorId: monitorId,
+      probes: probes,
+    });
+  }
+
   @CaptureSpan()
   public async addDefaultProbesToMonitor(
     projectId: ObjectID,
@@ -1124,20 +1319,31 @@ ${createdItem.description?.trim() || "No description provided."}
       },
     });
 
-    const totalProbes: Array<Probe> = [...globalProbes, ...projectProbes];
+    await this.createMonitorProbes({
+      projectId: projectId,
+      monitorId: monitorId,
+      probes: [...globalProbes, ...projectProbes],
+    });
+  }
 
-    if (totalProbes.length === 0) {
+  @CaptureSpan()
+  public async createMonitorProbes(data: {
+    projectId: ObjectID;
+    monitorId: ObjectID;
+    probes: Array<Probe>;
+  }): Promise<void> {
+    if (data.probes.length === 0) {
       return;
     }
 
     // Create all monitor probes in parallel for better performance
     const createPromises: Array<Promise<MonitorProbe>> = [];
 
-    for (const probe of totalProbes) {
+    for (const probe of data.probes) {
       const monitorProbe: MonitorProbe = new MonitorProbe();
-      monitorProbe.monitorId = monitorId;
+      monitorProbe.monitorId = data.monitorId;
       monitorProbe.probeId = probe.id!;
-      monitorProbe.projectId = projectId;
+      monitorProbe.projectId = data.projectId;
       monitorProbe.isEnabled = true;
 
       createPromises.push(

@@ -209,12 +209,20 @@ export default class RunWorkflow {
             (persisted["componentReturnValues"] as JSONObject) || {},
         };
 
-        // If the workflow was disabled while it was waiting, cancel the run.
+        /*
+         * If the workflow was disabled while it was waiting, cancel the run.
+         *
+         * All WorkflowLog status stamps in this file use the hookless
+         * fast-path: WorkflowLog has no workflow/audit/realtime decorators
+         * and no service update hooks, so the full update pipeline is pure
+         * overhead for these per-run bookkeeping writes (the dashboard log
+         * viewer polls; it does not rely on realtime events).
+         */
         if (!workflow.isEnabled) {
           this.log(
             "Workflow was disabled while it was waiting. Cancelling the run.",
           );
-          await WorkflowLogService.updateOneById({
+          await WorkflowLogService.updateColumnsByIdWithoutHooks({
             id: runProps.workflowLogId,
             data: {
               workflowStatus: WorkflowStatus.Error,
@@ -222,9 +230,6 @@ export default class RunWorkflow {
               completedAt: OneUptimeDate.getCurrentDate(),
               resumeData: null!,
               resumeAt: null!,
-            },
-            props: {
-              isRoot: true,
             },
           });
           return;
@@ -256,7 +261,7 @@ export default class RunWorkflow {
       }
 
       // update workflow log.
-      await WorkflowLogService.updateOneById({
+      await WorkflowLogService.updateColumnsByIdWithoutHooks({
         id: runProps.workflowLogId,
         data: {
           workflowStatus: WorkflowStatus.Running,
@@ -264,9 +269,6 @@ export default class RunWorkflow {
           ...(runProps.isResume
             ? {}
             : { startedAt: OneUptimeDate.getCurrentDate() }),
-        },
-        props: {
-          isRoot: true,
         },
       });
 
@@ -420,7 +422,7 @@ export default class RunWorkflow {
             stackItem.node.metadata.returnValues,
           ),
         );
-        this.log("Executing Port: " + result.executePort?.title || "<None>");
+        this.log("Executing Port: " + (result.executePort?.title || "<None>"));
 
         storageMap.local.components[stackItem.node.id] = {
           returnValues: result.returnValues,
@@ -473,7 +475,7 @@ export default class RunWorkflow {
       // collect logs and update status.
       this.cleanLogs(variables);
       // update workflow log.
-      await WorkflowLogService.updateOneById({
+      await WorkflowLogService.updateColumnsByIdWithoutHooks({
         id: runProps.workflowLogId,
         data: {
           workflowStatus: WorkflowStatus.Success,
@@ -482,9 +484,6 @@ export default class RunWorkflow {
           // Run finished — drop any leftover suspend state.
           resumeData: null!,
           resumeAt: null!,
-        },
-        props: {
-          isRoot: true,
         },
       });
     } catch (err: any) {
@@ -501,7 +500,7 @@ export default class RunWorkflow {
         this.log("Workflow Timed out.");
 
         // update workflow log.
-        await WorkflowLogService.updateOneById({
+        await WorkflowLogService.updateColumnsByIdWithoutHooks({
           id: runProps.workflowLogId,
           data: {
             workflowStatus: WorkflowStatus.Timeout,
@@ -510,13 +509,10 @@ export default class RunWorkflow {
             resumeData: null!,
             resumeAt: null!,
           },
-          props: {
-            isRoot: true,
-          },
         });
       } else {
         // update workflow log.
-        await WorkflowLogService.updateOneById({
+        await WorkflowLogService.updateColumnsByIdWithoutHooks({
           id: runProps.workflowLogId,
           data: {
             workflowStatus: WorkflowStatus.Error,
@@ -524,9 +520,6 @@ export default class RunWorkflow {
             completedAt: OneUptimeDate.getCurrentDate(),
             resumeData: null!,
             resumeAt: null!,
-          },
-          props: {
-            isRoot: true,
           },
         });
       }
@@ -576,7 +569,7 @@ export default class RunWorkflow {
       componentReturnValues: params.componentReturnValues,
     } as unknown as JSONObject;
 
-    await WorkflowLogService.updateOneById({
+    await WorkflowLogService.updateColumnsByIdWithoutHooks({
       id: workflowLogId,
       data: {
         workflowStatus: WorkflowStatus.Waiting,
@@ -588,9 +581,6 @@ export default class RunWorkflow {
          * value is a validated JSONObject built just above.
          */
         resumeData: resumeData as any,
-      },
-      props: {
-        isRoot: true,
       },
     });
 

@@ -28,6 +28,7 @@ import Search from "Common/Types/BaseDatabase/Search";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Incident from "Common/Models/DatabaseModels/Incident";
+import IncidentCustomField from "Common/Models/DatabaseModels/IncidentCustomField";
 import IncidentOwnerTeam from "Common/Models/DatabaseModels/IncidentOwnerTeam";
 import IncidentOwnerUser from "Common/Models/DatabaseModels/IncidentOwnerUser";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
@@ -480,6 +481,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
       <ModelTable<Incident>
         name="Incidents"
         userPreferencesKey="incidents-table"
+        customFieldsModelType={IncidentCustomField}
         bulkActions={{
           buttons: [
             getBulkChangeStateAction(),

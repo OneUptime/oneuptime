@@ -146,6 +146,15 @@ const NextReminderCountdown: FunctionComponent<ComponentProps> = (
               limit: LIMIT_PER_PROJECT,
               skip: 0,
               select: {
+                /*
+                 * A sorted column has to be selected. This query also selects
+                 * the severity and label relations, and a join plus a limit
+                 * sends it down TypeORM's paginated path, which orders the
+                 * outer query by a column the inner query only emits if it was
+                 * selected - so leaving order out fails the whole request and
+                 * blanks the page.
+                 */
+                order: true,
                 reminderIntervalInMinutes: true,
                 incidentSeverities: {
                   _id: true,
@@ -185,6 +194,8 @@ const NextReminderCountdown: FunctionComponent<ComponentProps> = (
               limit: LIMIT_PER_PROJECT,
               skip: 0,
               select: {
+                // Selected because we sort by it - see the incident query above.
+                order: true,
                 reminderIntervalInMinutes: true,
                 alertSeverities: {
                   _id: true,
@@ -224,6 +235,8 @@ const NextReminderCountdown: FunctionComponent<ComponentProps> = (
               limit: LIMIT_PER_PROJECT,
               skip: 0,
               select: {
+                // Selected because we sort by it - see the incident query above.
+                order: true,
                 reminderIntervalInMinutes: true,
                 labels: {
                   _id: true,

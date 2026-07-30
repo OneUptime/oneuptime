@@ -33,10 +33,12 @@ import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import SlackIntegrationDocumentation from "./SlackIntegrationDocumentation";
 import Link from "Common/UI/Components/Link/Link";
 import SlackChannelCacheModal from "./SlackChannelCacheModal";
+import SlackChannelsCard from "./SlackChannelsCard";
 
 export interface ComponentProps {
   onConnected: VoidFunction;
   onDisconnected: VoidFunction;
+  hideProjectCards?: boolean | undefined; // hide project-level cards (e.g. on User Settings)
 }
 
 const SlackIntegration: FunctionComponent<ComponentProps> = (
@@ -453,6 +455,13 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
           buttons={cardButtons}
         />
       </div>
+
+      {isProjectAccountConnected && !props.hideProjectCards && (
+        <div className="mt-6">
+          <SlackChannelsCard />
+        </div>
+      )}
+
       {showChannelsModal && projectAuthTokenId ? (
         <SlackChannelCacheModal
           projectAuthTokenId={projectAuthTokenId}

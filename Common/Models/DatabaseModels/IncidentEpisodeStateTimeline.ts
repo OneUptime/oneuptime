@@ -403,6 +403,7 @@ export default class IncidentEpisodeStateTimeline extends BaseModel {
     {
       eager: false,
       nullable: true,
+      onDelete: "CASCADE",
       orphanedRowAction: "nullify",
     },
   )
@@ -671,6 +672,7 @@ export default class IncidentEpisodeStateTimeline extends BaseModel {
       "Status of notification sent to subscribers about this state change",
     defaultValue: StatusPageSubscriberNotificationStatus.Pending,
   })
+  @Index()
   @Column({
     type: ColumnType.ShortText,
     default: StatusPageSubscriberNotificationStatus.Pending,

@@ -104,7 +104,13 @@ const NetworkSideMenu: FunctionComponent = (): ReactElement => {
       ],
     },
     {
-      title: "Discovery & Import",
+      /*
+       * Site CSV import is not a menu entry: it is a bulk action on the
+       * Sites table (the ⋯ menu on Network > Sites), where every other bulk
+       * import in the product lives, so it sits next to the rows it creates
+       * instead of in a section of its own.
+       */
+      title: "Discovery",
       items: [
         {
           link: {
@@ -114,15 +120,6 @@ const NetworkSideMenu: FunctionComponent = (): ReactElement => {
             ),
           },
           icon: IconProp.Search,
-        },
-        {
-          link: {
-            title: "Import Sites",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.NETWORK_SITE_IMPORT] as Route,
-            ),
-          },
-          icon: IconProp.Upload,
         },
       ],
     },

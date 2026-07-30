@@ -13,6 +13,7 @@ import MonitorStatusTimelne from "Common/Models/DatabaseModels/MonitorStatusTime
 import StatusPageHistoryChartBarColorRule from "Common/Models/DatabaseModels/StatusPageHistoryChartBarColorRule";
 import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
 import UptimeBarTooltipIncident from "Common/Types/Monitor/UptimeBarTooltipIncident";
+import StatusPageGroupNestingLayoutUtil from "Common/Utils/StatusPage/GroupNestingLayout";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { translateStatusName } from "../../Utils/StatusTranslation";
@@ -37,6 +38,13 @@ export interface ComponentProps {
   uptimeHistoryDays?: number | undefined;
   incidents?: Array<UptimeBarTooltipIncident> | undefined;
   onIncidentClick?: ((incidentId: string) => void) | undefined;
+  /*
+   * "90 days ago ... Today" under the bars. Every bar in a block is drawn over
+   * the same window, so the overview turns this off and draws the axis once for
+   * the whole block instead of once per resource per nesting level. Defaults to
+   * on for anything that renders a resource on its own.
+   */
+  showTimeAxisLabels?: boolean | undefined;
 }
 
 const MonitorOverview: FunctionComponent<ComponentProps> = (
@@ -119,7 +127,15 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
           style={{ marginBottom: "3px" }}
         >
           <div className="flex items-center mb-2 sm:mb-0">
-            <div className="text-base md:text-lg font-medium">
+            {/*
+             * Deliberately not larger than a group title: a resource is a leaf
+             * of the group hierarchy and must not out-weigh the group heading
+             * above it. The class lives in the layout util so that floor is
+             * checked against the string that actually renders here.
+             */}
+            <div
+              className={StatusPageGroupNestingLayoutUtil.getResourceTitleClassName()}
+            >
               {props.monitorName}
             </div>
             {props.tooltip && (
@@ -177,7 +193,7 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
       )}
 
       {/* Time labels: Visible on all screen sizes */}
-      {props.showHistoryChart && (
+      {props.showHistoryChart && props.showTimeAxisLabels !== false && (
         <div className="text-xs sm:text-sm text-gray-500 mt-1 justify-between flex">
           <div>
             {t("monitorOverview.daysAgo", {

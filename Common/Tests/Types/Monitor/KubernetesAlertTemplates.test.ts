@@ -7,17 +7,21 @@ import {
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorStepKubernetesMonitor from "../../../Types/Monitor/MonitorStepKubernetesMonitor";
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
+import { FilterType } from "../../../Types/Monitor/CriteriaFilter";
 import ObjectID from "../../../Types/ObjectID";
 
 /*
- * These tests lock in the subtle, easy-to-regress decisions in the per-node
- * ratio alert templates (request utilization + usage utilization):
+ * These tests lock in the subtle, easy-to-regress decisions in the
+ * per-series ratio alert templates (node request/usage utilization, plus
+ * the autoscaling and container-limit saturation templates):
  *
  *   1. Group-by uses the ClickHouse-stored `resource.`-prefixed attribute
  *      name (`resource.k8s.node.name`), not the bare `k8s.node.name`.
  *      OneUptime stamps OTel resource attributes with a `resource.` prefix
  *      at ingest, so the bare key would match nothing and collapse every
- *      node into one mislabeled series.
+ *      node into one mislabeled series. The key differs per template — the
+ *      HPA template groups per HPA and the pod-limit templates per pod —
+ *      so each case carries its own expected key.
  *
  *   2. The aggregation differs by numerator shape:
  *        - Request utilization sums MANY container series per node, and both
@@ -27,9 +31,17 @@ import ObjectID from "../../../Types/ObjectID";
  *          (kubeletstats) and denominator (k8s_cluster) come from different
  *          receivers, so `Avg` on both sides gives the correct per-minute
  *          ratio regardless of each receiver's scrape count.
+ *        - The saturation templates are all `Avg` — see the pod-memory
+ *          template's note in KubernetesAlertTemplates.ts for the
+ *          multi-container trade-off that choice accepts.
  *
  *   3. The criteria reference the FORMULA alias (the computed percentage),
  *      not a raw query alias.
+ *
+ *   4. The unhealthy and healthy criteria PARTITION the value range — no
+ *      gap (a value that matches neither leaves the monitor stuck in its
+ *      previous status) and no overlap (a value that matches both makes the
+ *      resulting status depend on evaluation order).
  */
 
 interface RatioTemplateCase {
@@ -41,6 +53,7 @@ interface RatioTemplateCase {
   resultAlias: string;
   aggregation: MetricsAggregationType;
   threshold: number;
+  groupBy: string;
 }
 
 const RATIO_TEMPLATES: Array<RatioTemplateCase> = [
@@ -54,6 +67,7 @@ const RATIO_TEMPLATES: Array<RatioTemplateCase> = [
     resultAlias: "node_cpu_request_utilization",
     aggregation: MetricsAggregationType.Sum,
     threshold: 90,
+    groupBy: "resource.k8s.node.name",
   },
   {
     id: "k8s-node-memory-request-utilization",
@@ -64,6 +78,7 @@ const RATIO_TEMPLATES: Array<RatioTemplateCase> = [
     resultAlias: "node_memory_request_utilization",
     aggregation: MetricsAggregationType.Sum,
     threshold: 90,
+    groupBy: "resource.k8s.node.name",
   },
   // Usage utilization — Avg/Avg (one series per node, cross-receiver).
   {
@@ -75,6 +90,7 @@ const RATIO_TEMPLATES: Array<RatioTemplateCase> = [
     resultAlias: "node_cpu_utilization",
     aggregation: MetricsAggregationType.Avg,
     threshold: 90,
+    groupBy: "resource.k8s.node.name",
   },
   {
     id: "k8s-high-memory",
@@ -85,6 +101,50 @@ const RATIO_TEMPLATES: Array<RatioTemplateCase> = [
     resultAlias: "node_memory_utilization",
     aggregation: MetricsAggregationType.Avg,
     threshold: 85,
+    groupBy: "resource.k8s.node.name",
+  },
+  /*
+   * Autoscaling / limit saturation — Avg/Avg, and NOT keyed on the node.
+   *
+   * The HPA ratio groups per HPA object; the two pod-limit ratios group
+   * per pod. Locking the group-by key here is the point of these cases:
+   * these were the first ratio templates in this file not keyed on
+   * `resource.k8s.node.name`, so a copy-paste of the node key would
+   * silently collapse every HPA (or every pod) into one mislabeled
+   * series that still renders and still alerts.
+   */
+  {
+    id: "k8s-hpa-at-max-replicas",
+    numerator: "k8s.hpa.current_replicas",
+    denominator: "k8s.hpa.max_replicas",
+    numAlias: "current_replicas",
+    denAlias: "max_replicas",
+    resultAlias: "hpa_replica_saturation",
+    aggregation: MetricsAggregationType.Avg,
+    threshold: 90,
+    groupBy: "resource.k8s.hpa.name",
+  },
+  {
+    id: "k8s-pod-memory-limit-saturation",
+    numerator: "k8s.pod.memory.usage",
+    denominator: "k8s.container.memory_limit",
+    numAlias: "used_mem",
+    denAlias: "limit_mem",
+    resultAlias: "pod_memory_limit_saturation",
+    aggregation: MetricsAggregationType.Avg,
+    threshold: 90,
+    groupBy: "resource.k8s.pod.name",
+  },
+  {
+    id: "k8s-pod-cpu-limit-saturation",
+    numerator: "k8s.pod.cpu.utilization",
+    denominator: "k8s.container.cpu_limit",
+    numAlias: "used_cpu",
+    denAlias: "limit_cpu",
+    resultAlias: "pod_cpu_limit_saturation",
+    aggregation: MetricsAggregationType.Avg,
+    threshold: 90,
+    groupBy: "resource.k8s.pod.name",
   },
 ];
 
@@ -108,8 +168,8 @@ function getKubernetesMonitor(step: MonitorStep): MonitorStepKubernetesMonitor {
   return kubernetesMonitor;
 }
 
-describe("KubernetesAlertTemplates - per-node ratio templates", () => {
-  test("all four ratio templates are registered", () => {
+describe("KubernetesAlertTemplates - per-series ratio templates", () => {
+  test("all ratio templates are registered", () => {
     const ids: Array<string> = getAllKubernetesAlertTemplates().map(
       (t: KubernetesAlertTemplate) => {
         return t.id;
@@ -121,7 +181,7 @@ describe("KubernetesAlertTemplates - per-node ratio templates", () => {
   });
 
   test.each(RATIO_TEMPLATES)(
-    "$id is a per-node ($aggregation/$aggregation) ratio keyed on resource.k8s.node.name",
+    "$id is a ($aggregation/$aggregation) ratio keyed on $groupBy",
     (tc: RatioTemplateCase) => {
       const template: KubernetesAlertTemplate | undefined =
         getKubernetesAlertTemplateById(tc.id);
@@ -162,15 +222,18 @@ describe("KubernetesAlertTemplates - per-node ratio templates", () => {
       );
 
       /*
-       * Decision (1): group by the resource-prefixed node attribute on BOTH
+       * Decision (1): group by the resource-prefixed attribute on BOTH
        * queries so the per-series fingerprints line up for the formula join.
        */
       expect(numerator.metricQueryData.groupByAttributeKeys).toEqual([
-        "resource.k8s.node.name",
+        tc.groupBy,
       ]);
       expect(denominator.metricQueryData.groupByAttributeKeys).toEqual([
-        "resource.k8s.node.name",
+        tc.groupBy,
       ]);
+
+      // The `resource.` prefix is load-bearing — a bare OTel key matches nothing.
+      expect(tc.groupBy.startsWith("resource.")).toBe(true);
 
       // Formula divides numerator by denominator and scales to a percentage.
       expect(formulaConfigs[0].metricFormulaData.metricFormula).toBe(
@@ -190,4 +253,109 @@ describe("KubernetesAlertTemplates - per-node ratio templates", () => {
       expect(offlineFilters[0].value).toBe(tc.threshold);
     },
   );
+
+  /*
+   * Decision (4): unhealthy and healthy must be exact complements at the
+   * same threshold. Both halves are hand-written per template, so the
+   * failure mode is a strict/non-strict slip — pairing `> 90` with
+   * `< 90` leaves exactly 90 matching neither criterion (the monitor
+   * silently holds its previous status), and pairing `>= 90` with
+   * `<= 90` makes 90 match both (status depends on evaluation order).
+   */
+  const COMPLEMENT_OF: Record<string, string> = {
+    [FilterType.GreaterThan]: FilterType.LessThanOrEqualTo,
+    [FilterType.GreaterThanOrEqualTo]: FilterType.LessThan,
+  };
+
+  test.each(RATIO_TEMPLATES)(
+    "$id unhealthy/healthy criteria partition the range at $threshold",
+    (tc: RatioTemplateCase) => {
+      const template: KubernetesAlertTemplate | undefined =
+        getKubernetesAlertTemplateById(tc.id);
+      const step: MonitorStep = template!.getMonitorStep(buildArgs());
+
+      const instances: Array<any> = step.data?.monitorCriteria.data
+        ?.monitorCriteriaInstanceArray as Array<any>;
+      const [offline, online] = instances;
+
+      const offlineFilter: any = offline.data.filters[0];
+      const onlineFilter: any = online.data.filters[0];
+
+      // Same metric, same threshold — only the comparison direction differs.
+      expect(onlineFilter.metricMonitorOptions.metricAlias).toBe(
+        tc.resultAlias,
+      );
+      expect(onlineFilter.value).toBe(tc.threshold);
+
+      expect(COMPLEMENT_OF[offlineFilter.filterType]).toBe(
+        onlineFilter.filterType,
+      );
+
+      // The unhealthy criterion is the one that opens incidents/alerts.
+      expect(offline.data.createIncidents).toBe(true);
+      expect(offline.data.createAlerts).toBe(true);
+      expect(online.data.createIncidents).toBe(false);
+      expect(online.data.createAlerts).toBe(false);
+    },
+  );
+});
+
+/*
+ * The three saturation templates exist to catch the CAUSE of the
+ * "under-resourced workload behind an autoscaler" failure — limits too
+ * low, HPA driven to its ceiling, cluster filled — rather than its
+ * downstream symptoms (node pressure, pending pods, NotReady), which the
+ * older node-side templates already cover. These assertions pin the
+ * properties that make them useful for that: they must be discoverable in
+ * the picker under a category, and severity must reflect that memory
+ * saturation ends in an OOMKill while CPU saturation only throttles.
+ */
+describe("KubernetesAlertTemplates - autoscaling & limit saturation", () => {
+  const SATURATION_TEMPLATES: Array<{
+    id: string;
+    category: string;
+    severity: string;
+  }> = [
+    {
+      id: "k8s-hpa-at-max-replicas",
+      category: "Workload",
+      severity: "Critical",
+    },
+    {
+      id: "k8s-pod-memory-limit-saturation",
+      category: "Workload",
+      // Crossing a memory limit is an immediate kill, not a slowdown.
+      severity: "Critical",
+    },
+    {
+      id: "k8s-pod-cpu-limit-saturation",
+      category: "Workload",
+      // CFS throttling degrades latency; it never kills the container.
+      severity: "Warning",
+    },
+  ];
+
+  test.each(SATURATION_TEMPLATES)(
+    "$id is registered as a $severity $category template",
+    (tc: { id: string; category: string; severity: string }) => {
+      const template: KubernetesAlertTemplate | undefined =
+        getKubernetesAlertTemplateById(tc.id);
+
+      expect(template).toBeDefined();
+      expect(template!.category).toBe(tc.category);
+      expect(template!.severity).toBe(tc.severity);
+      expect(template!.name.length).toBeGreaterThan(0);
+      expect(template!.description.length).toBeGreaterThan(0);
+    },
+  );
+
+  test("every template id is unique", () => {
+    const ids: Array<string> = getAllKubernetesAlertTemplates().map(
+      (t: KubernetesAlertTemplate) => {
+        return t.id;
+      },
+    );
+
+    expect(new Set(ids).size).toBe(ids.length);
+  });
 });

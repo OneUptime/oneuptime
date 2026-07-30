@@ -34,6 +34,12 @@ export function getIoTBreadcrumbs(path: string): Array<Link> | undefined {
       "Devices",
       "Device Detail",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.IOT_FLEET_VIEW_RECOMMENDATIONS, [
+      "Project",
+      "IoT",
+      "View Fleet",
+      "Recommendations",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.IOT_FLEET_VIEW_METRICS, [
       "Project",
       "IoT",

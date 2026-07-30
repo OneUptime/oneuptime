@@ -254,6 +254,7 @@ const IncidentPostmortem: FunctionComponent<
         data: {
           template: data.template,
         },
+        headers: ModelAPI.getCommonHeaders(),
       });
 
     if (response instanceof HTTPErrorResponse) {

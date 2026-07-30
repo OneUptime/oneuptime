@@ -28,6 +28,9 @@ import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import Typeof from "../../Types/Typeof";
 import { applyIncidentSelfPrivacyFilter } from "../Utils/Incident/IncidentPrivacyFilter";
+import ProjectScopedReferenceValidator, {
+  resolveReferenceId,
+} from "../Utils/Database/ProjectScopedReferenceValidator";
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import DockerHost from "../../Models/DatabaseModels/DockerHost";
@@ -442,6 +445,8 @@ export class Service extends DatabaseService<Model> {
       updateBy.data.isVisibleOnStatusPage = false;
     }
 
+    await this.validateProjectScopedReferences(updateBy);
+
     const carryForward: UpdateCarryForward = {};
 
     if (
@@ -550,6 +555,90 @@ export class Service extends DatabaseService<Model> {
       updateBy: updateBy,
       carryForward: carryForward,
     };
+  }
+
+  /*
+   * An update can repoint an incident at another project's state, severity or
+   * monitor status just as easily as a create can, and the result is the same:
+   * the referenced project can no longer be deleted. Only the columns actually
+   * being written are checked, so ordinary updates cost no extra queries.
+   */
+  private async validateProjectScopedReferences(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    const incidentStateId: ObjectID | string | undefined =
+      resolveReferenceId(updateBy.data.currentIncidentStateId) ||
+      resolveReferenceId(updateBy.data.currentIncidentState);
+
+    const incidentSeverityId: ObjectID | string | undefined =
+      resolveReferenceId(updateBy.data.incidentSeverityId) ||
+      resolveReferenceId(updateBy.data.incidentSeverity);
+
+    const changeMonitorStatusToId: ObjectID | string | undefined =
+      resolveReferenceId(updateBy.data.changeMonitorStatusToId) ||
+      resolveReferenceId(updateBy.data.changeMonitorStatusTo);
+
+    if (!incidentStateId && !incidentSeverityId && !changeMonitorStatusToId) {
+      return;
+    }
+
+    /*
+     * Root/API updates do not always carry a tenantId, so fall back to the
+     * project of each incident the query actually matches.
+     */
+    const projectIds: Array<ObjectID> = updateBy.props.tenantId
+      ? [updateBy.props.tenantId]
+      : await this.getProjectIdsForUpdateQuery(updateBy);
+
+    for (const projectId of projectIds) {
+      await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
+        projectId: projectId,
+        subject: "incident",
+        references: [
+          {
+            modelName: "Incident State",
+            id: incidentStateId,
+            service: IncidentStateService,
+          },
+          {
+            modelName: "Incident Severity",
+            id: incidentSeverityId,
+            service: IncidentSeverityService,
+          },
+          {
+            modelName: "Monitor Status",
+            id: changeMonitorStatusToId,
+            service: MonitorStatusService,
+          },
+        ],
+      });
+    }
+  }
+
+  private async getProjectIdsForUpdateQuery(
+    updateBy: UpdateBy<Model>,
+  ): Promise<Array<ObjectID>> {
+    const incidents: Array<Model> = await this.findBy({
+      query: updateBy.query,
+      select: {
+        projectId: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const projectIds: Dictionary<ObjectID> = {};
+
+    for (const incident of incidents) {
+      if (incident.projectId) {
+        projectIds[incident.projectId.toString()] = incident.projectId;
+      }
+    }
+
+    return Object.values(projectIds);
   }
 
   @CaptureSpan()
@@ -831,6 +920,40 @@ export class Service extends DatabaseService<Model> {
 
       initialIncidentStateId = incidentState.id;
     }
+
+    /*
+     * The severity and the monitor status to switch to can arrive from an API
+     * caller, an incident template or a monitor criteria, and none of those
+     * paths checked that the record belongs to this project. Persisting
+     * another project's id leaves that project undeletable, so reject it here.
+     * Runs before the counter increment so a rejected create does not burn an
+     * incident number.
+     */
+    await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
+      projectId: projectId,
+      subject: "incident",
+      references: [
+        {
+          modelName: "Incident State",
+          id: initialIncidentStateId,
+          service: IncidentStateService,
+        },
+        {
+          modelName: "Incident Severity",
+          id:
+            resolveReferenceId(createBy.data.incidentSeverityId) ||
+            resolveReferenceId(createBy.data.incidentSeverity),
+          service: IncidentSeverityService,
+        },
+        {
+          modelName: "Monitor Status",
+          id:
+            resolveReferenceId(createBy.data.changeMonitorStatusToId) ||
+            resolveReferenceId(createBy.data.changeMonitorStatusTo),
+          service: MonitorStatusService,
+        },
+      ],
+    });
 
     const incidentCounterResult: {
       counter: number;
