@@ -136,6 +136,13 @@ import "./Jobs/UserOnCallLog/ExecutePendingExecutions";
 import "./Jobs/UserOnCallLog/TimeoutStuckExecutions";
 import "./Jobs/Workflow/TimeoutJobs";
 
+/*
+ * Runbook executions live inside a single queue job, so a Worker that dies
+ * mid-run takes the execution's only keeper with it. This fails the ones that
+ * were never redelivered, so an execution can never hang in Running.
+ */
+import "./Jobs/Runbook/TimeoutStuckExecutions";
+
 // Probes
 import "./Jobs/Probe/SendOwnerAddedNotification";
 import "./Jobs/Probe/UpdateConnectionStatus";

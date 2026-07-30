@@ -114,6 +114,21 @@ export default class RunRunbook {
         return;
       }
 
+      /*
+       * Somebody else may have finished this execution while the previous step
+       * was in flight: a user cancelling it, or the stuck-execution sweep
+       * failing it after this Worker went quiet for too long. Neither can
+       * interrupt a step that is already running, but both mean nobody wants
+       * the rest of the runbook — and the array held here is now stale, so
+       * carrying on would write Cancelled steps back as Pending and keep
+       * dispatching scripts for a run the operator was told had stopped.
+       * Checked at the step boundary, which is the only place it is safe to
+       * stop.
+       */
+      if (await this.hasReachedTerminalState(execution._id!)) {
+        return;
+      }
+
       // Pending or Running — execute the step.
       stepExec.status = RunbookStepExecutionStatus.Running;
       stepExec.startedAt = new Date().toISOString();
@@ -246,6 +261,26 @@ export default class RunRunbook {
           errorMessage: `Unknown step type: ${String(step.type)}`,
         };
     }
+  }
+
+  private async hasReachedTerminalState(executionId: string): Promise<boolean> {
+    const current: RunbookExecution | null =
+      await RunbookExecutionService.findOneById({
+        id: new ObjectID(executionId),
+        select: { status: true },
+        props: { isRoot: true },
+      });
+
+    // A row that has vanished is as good as terminal — there is nothing to advance.
+    if (!current) {
+      return true;
+    }
+
+    return (
+      current.status === RunbookExecutionStatus.Completed ||
+      current.status === RunbookExecutionStatus.Failed ||
+      current.status === RunbookExecutionStatus.Cancelled
+    );
   }
 
   private async persistStepExecutions(

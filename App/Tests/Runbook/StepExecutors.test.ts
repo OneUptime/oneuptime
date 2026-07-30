@@ -215,6 +215,17 @@ describe("agent-dispatched steps (Bash / JavaScript)", () => {
     jest.spyOn(logger, "error").mockImplementation((): void => {
       return undefined;
     });
+    jest.spyOn(logger, "info").mockImplementation((): void => {
+      return undefined;
+    });
+    /*
+     * No job exists for the step yet — the ordinary first dispatch, and the
+     * baseline for every test in here. Redelivery, where a row already
+     * exists, has its own describe block below.
+     */
+    jest
+      .spyOn(RunbookAgentJobService, "findLatestJobForStep")
+      .mockResolvedValue(null);
   });
 
   afterEach(() => {
@@ -414,9 +425,187 @@ describe("agent-dispatched steps (Bash / JavaScript)", () => {
   });
 });
 
+/*
+ * An execution occupies one queue job for its whole run, so a Worker that dies
+ * mid-step gets the execution redelivered and walks back to the same step —
+ * which is still persisted as Running. Dispatching again would hand the agent
+ * a second copy of the script; for the database restore the docs suggest as a
+ * long-running step, that is the restore running twice.
+ */
+describe("redelivery after a Worker restart", () => {
+  beforeEach(() => {
+    jest.spyOn(logger, "error").mockImplementation((): void => {
+      return undefined;
+    });
+    jest.spyOn(logger, "info").mockImplementation((): void => {
+      return undefined;
+    });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test.each([
+    RunbookAgentJobStatus.Pending,
+    RunbookAgentJobStatus.Claimed,
+    RunbookAgentJobStatus.Running,
+  ])(
+    "an in-flight job (%s) is re-attached to instead of dispatched again",
+    async (status: RunbookAgentJobStatus) => {
+      jest
+        .spyOn(RunbookAgentJobService, "findLatestJobForStep")
+        .mockResolvedValue(
+          makeTerminalJob({ _id: "existing-job", status, output: undefined }),
+        );
+      const enqueueSpy: jest.SpyInstance = jest.spyOn(
+        RunbookAgentJobService,
+        "enqueue",
+      );
+      const pollSpy: jest.SpyInstance = jest
+        .spyOn(RunbookAgentJobService, "pollUntilTerminal")
+        .mockResolvedValue(
+          makeTerminalJob({ _id: "existing-job", output: "finished later" }),
+        );
+
+      const result: StepRunResult = await runBashStep(
+        makeBashStep(),
+        makeCtx(),
+      );
+
+      expect(enqueueSpy).not.toHaveBeenCalled();
+      expect(
+        (pollSpy.mock.calls[0]![0] as Record<string, unknown>)["jobId"],
+      ).toEqual(new ObjectID("existing-job"));
+      expect(result.success).toBe(true);
+      expect(result.output).toBe("finished later");
+    },
+  );
+
+  test("re-attaching keeps the original job's clock rather than starting a fresh window", async () => {
+    /*
+     * Otherwise every redelivery would buy the step another full claim +
+     * execution window, and a step configured for an hour could occupy a
+     * Worker slot for several.
+     */
+    const createdAt: Date = new Date("2026-07-30T10:00:00.000Z");
+    jest
+      .spyOn(RunbookAgentJobService, "findLatestJobForStep")
+      .mockResolvedValue(
+        makeTerminalJob({
+          _id: "existing-job",
+          status: RunbookAgentJobStatus.Running,
+          createdAt,
+        }),
+      );
+    const pollSpy: jest.SpyInstance = jest
+      .spyOn(RunbookAgentJobService, "pollUntilTerminal")
+      .mockResolvedValue(makeTerminalJob());
+
+    await runBashStep(makeBashStep(), makeCtx());
+
+    expect(
+      (pollSpy.mock.calls[0]![0] as Record<string, unknown>)["waitStartedAt"],
+    ).toBe(createdAt);
+  });
+
+  test.each([
+    RunbookAgentJobStatus.Succeeded,
+    RunbookAgentJobStatus.Failed,
+    RunbookAgentJobStatus.TimedOut,
+    RunbookAgentJobStatus.Cancelled,
+  ])(
+    "a job that already finished (%s) has its result adopted, not re-run",
+    async (status: RunbookAgentJobStatus) => {
+      jest
+        .spyOn(RunbookAgentJobService, "findLatestJobForStep")
+        .mockResolvedValue(
+          makeTerminalJob({
+            status,
+            output: "ran once",
+            errorMessage:
+              status === RunbookAgentJobStatus.Succeeded
+                ? undefined
+                : "it went wrong",
+          }),
+        );
+      const enqueueSpy: jest.SpyInstance = jest.spyOn(
+        RunbookAgentJobService,
+        "enqueue",
+      );
+      const pollSpy: jest.SpyInstance = jest.spyOn(
+        RunbookAgentJobService,
+        "pollUntilTerminal",
+      );
+
+      const result: StepRunResult = await runBashStep(
+        makeBashStep(),
+        makeCtx(),
+      );
+
+      expect(enqueueSpy).not.toHaveBeenCalled();
+      expect(pollSpy).not.toHaveBeenCalled();
+      expect(result.output).toBe("ran once");
+      expect(result.success).toBe(status === RunbookAgentJobStatus.Succeeded);
+    },
+  );
+
+  test("the lookup is scoped to this execution and this step", async () => {
+    const findSpy: jest.SpyInstance = jest
+      .spyOn(RunbookAgentJobService, "findLatestJobForStep")
+      .mockResolvedValue(null);
+    jest
+      .spyOn(RunbookAgentJobService, "enqueue")
+      .mockResolvedValue(makeTerminalJob());
+    jest
+      .spyOn(RunbookAgentJobService, "pollUntilTerminal")
+      .mockResolvedValue(makeTerminalJob());
+
+    await runBashStep(makeBashStep(), makeCtx());
+
+    const args: Record<string, unknown> = findSpy.mock.calls[0]![0] as Record<
+      string,
+      unknown
+    >;
+    expect((args["runbookExecutionId"] as ObjectID).toString()).toBe(
+      new ObjectID("exec1").toString(),
+    );
+    expect(args["stepId"]).toBe(makeBashStep().id);
+  });
+
+  test("JavaScript steps re-attach on the same terms as Bash", async () => {
+    jest
+      .spyOn(RunbookAgentJobService, "findLatestJobForStep")
+      .mockResolvedValue(
+        makeTerminalJob({
+          _id: "existing-js-job",
+          status: RunbookAgentJobStatus.Claimed,
+        }),
+      );
+    const enqueueSpy: jest.SpyInstance = jest.spyOn(
+      RunbookAgentJobService,
+      "enqueue",
+    );
+    jest
+      .spyOn(RunbookAgentJobService, "pollUntilTerminal")
+      .mockResolvedValue(makeTerminalJob({ output: "js done" }));
+
+    const result: StepRunResult = await runJavaScriptStep(
+      makeJsStep(),
+      makeCtx(),
+    );
+
+    expect(enqueueSpy).not.toHaveBeenCalled();
+    expect(result.output).toBe("js done");
+  });
+});
+
 describe("per-step timeouts", () => {
   beforeEach(() => {
     jest.spyOn(logger, "error").mockImplementation((): void => {
+      return undefined;
+    });
+    jest.spyOn(logger, "info").mockImplementation((): void => {
       return undefined;
     });
   });
@@ -429,6 +618,15 @@ describe("per-step timeouts", () => {
     enqueueSpy: jest.SpyInstance;
     pollSpy: jest.SpyInstance;
   } {
+    /*
+     * Part of the stub rather than a beforeEach: one test below restores all
+     * mocks between iterations, so the "no prior job for this step" default
+     * has to be re-established alongside enqueue and poll.
+     */
+    jest
+      .spyOn(RunbookAgentJobService, "findLatestJobForStep")
+      .mockResolvedValue(null);
+
     return {
       enqueueSpy: jest
         .spyOn(RunbookAgentJobService, "enqueue")
