@@ -46,6 +46,14 @@ const TRANSPILE_ONLY_ENV: RegExp = /ENV\s+TS_NODE_TRANSPILE_ONLY=1/;
 const CMD_PRECOMPILED_ENTRYPOINT: RegExp =
   /CMD\s*\[\s*"node"\s*,\s*"build\/dist\/Index\.js"\s*\]/;
 const TS_NODE_ANYWHERE: RegExp = /ts-node\/register/;
+/*
+ * The actual build step, anchored to a RUN instruction. A plain substring
+ * search would also match a comment that merely mentions `npm run compile`.
+ */
+const RUN_COMPILE_INSTRUCTION: RegExp = /^\s*RUN\s+npm\s+run\s+compile\s*$/m;
+// Captures the body of a tsconfig `"include": [ ... ]` array.
+const INCLUDE_ARRAY_BLOCK: RegExp = /"include"\s*:\s*\[([^\]]*)\]/;
+const QUOTED_STRING: RegExp = /"[^"]*"/g;
 
 const listServiceImages: () => Array<ServiceImage> =
   (): Array<ServiceImage> => {
@@ -141,26 +149,16 @@ describe("Container boot configuration", () => {
   });
 
   describe("images that boot through ts-node must not re-type-check at boot", () => {
-    /*
-     * Skipping the boot-time check is only safe when tsc already ran at build
-     * time. That is the precondition, so the rule is scoped to images that meet
-     * it -- see the "known gap" block below for the ones that do not.
-     */
     const tsNodeImages: Array<ServiceImage> = SERVICE_IMAGES.filter(
       bootsThroughTsNodeIncludingWrappers,
     );
-    const typeCheckedAtBuild: Array<ServiceImage> = tsNodeImages.filter(
-      (image: ServiceImage) => {
-        return image.productionStanza.includes("npm run compile");
-      },
-    );
 
     test("at least one such image exists", () => {
-      expect(typeCheckedAtBuild.length).toBeGreaterThan(0);
+      expect(tsNodeImages.length).toBeGreaterThan(0);
     });
 
     test.each(
-      typeCheckedAtBuild.map((i: ServiceImage) => {
+      tsNodeImages.map((i: ServiceImage) => {
         return i.service;
       }),
     )(
@@ -178,34 +176,25 @@ describe("Container boot configuration", () => {
     );
   });
 
-  describe("known gap: images that boot through ts-node without a build-time check", () => {
+  describe("no image disables the boot check without a build-time check", () => {
     /*
-     * RunbookAgent boots `npm start` through ts-node but its Dockerfile never
-     * runs `npm run compile`, so its types are verified NOWHERE except at
-     * container boot. It therefore pays the full type-check on every start AND
-     * cannot simply have that check disabled -- the fix is to add the build-time
-     * compile step first, which needs its own verification that the package
-     * actually compiles clean.
-     *
-     * It is not part of the OneUptime Helm chart, so it is not on the rolling
-     * update path this change targets. This test pins the gap so a NEW service
-     * cannot quietly join the category.
+     * The two halves must stay together. Disabling the boot-time type-check on a
+     * service whose image never runs `npm run compile` would leave its types
+     * verified NOWHERE -- not at build, not at boot, not in CI.
      */
-    const KNOWN_GAP_SERVICES: Array<string> = ["RunbookAgent"];
-
-    test("no service other than the known ones skips the build-time type check", () => {
+    test("every ts-node image type-checks at build time", () => {
       const gaps: Array<string> = SERVICE_IMAGES.filter(
         (image: ServiceImage) => {
           return (
             bootsThroughTsNodeIncludingWrappers(image) &&
-            !image.productionStanza.includes("npm run compile")
+            !RUN_COMPILE_INSTRUCTION.test(image.productionStanza)
           );
         },
       ).map((image: ServiceImage) => {
         return image.service;
       });
 
-      expect(gaps.sort()).toEqual([...KNOWN_GAP_SERVICES].sort());
+      expect(gaps).toEqual([]);
     });
   });
 
@@ -268,7 +257,7 @@ describe("Container boot configuration", () => {
       );
 
       expect(image).toBeDefined();
-      expect(image?.productionStanza).toContain("npm run compile");
+      expect(image?.productionStanza).toMatch(RUN_COMPILE_INSTRUCTION);
     });
   });
 
@@ -294,6 +283,76 @@ describe("Container boot configuration", () => {
         expect(fs.readFileSync(nodemonPath, "utf8")).toContain(
           "TS_NODE_TRANSPILE_ONLY",
         );
+      },
+    );
+  });
+
+  describe("build-time type checking actually has inputs to check", () => {
+    /*
+     * A tsconfig `include` entry beginning with "/" is an ABSOLUTE glob rooted
+     * at the filesystem, not at the tsconfig's directory. AIAgent, Probe and
+     * RunbookAgent all shipped `["/**\/*.ts"]`, which meant `npm run compile`
+     * matched whatever .ts files happened to lie within tsc's glob reach of `/`
+     * -- nothing at all on a developer machine (tsc exits 2 with TS18003), and
+     * an arbitrary set inside the container, where /usr/src/app sits shallow
+     * enough to match.
+     *
+     * That made the build-time type-check environment-dependent and, on the
+     * services above, effectively absent -- while the CI compile jobs stayed
+     * green. Since TS_NODE_TRANSPILE_ONLY hands ALL type verification to that
+     * build step, a broken `include` silently means no type checking anywhere.
+     */
+    const tsConfigPaths: Array<string> = fs
+      .readdirSync(REPO_ROOT, { withFileTypes: true })
+      .filter((entry: fs.Dirent) => {
+        return entry.isDirectory() && entry.name !== "node_modules";
+      })
+      .map((entry: fs.Dirent) => {
+        return path.join(entry.name, "tsconfig.json");
+      })
+      .filter((candidate: string) => {
+        return fs.existsSync(path.join(REPO_ROOT, candidate));
+      });
+
+    test("there are tsconfigs to check", () => {
+      expect(tsConfigPaths.length).toBeGreaterThan(0);
+    });
+
+    test.each(tsConfigPaths)(
+      "%s has no absolute include glob",
+      (tsConfigPath: string) => {
+        /*
+         * These tsconfigs are JSONC (comments and trailing commas), so they are
+         * not valid JSON. Extract the include array textually instead of
+         * hand-rolling a JSONC parser.
+         */
+        const raw: string = fs.readFileSync(
+          path.join(REPO_ROOT, tsConfigPath),
+          "utf8",
+        );
+        const includeBlock: RegExpMatchArray | null =
+          raw.match(INCLUDE_ARRAY_BLOCK);
+
+        if (includeBlock === null) {
+          // No `include` at all: tsc defaults to the tsconfig's own directory.
+          return;
+        }
+
+        const patterns: Array<string> = (
+          includeBlock[1]?.match(QUOTED_STRING) ?? []
+        ).map((quoted: string) => {
+          return quoted.slice(1, -1);
+        });
+
+        expect(patterns.length).toBeGreaterThan(0);
+
+        for (const pattern of patterns) {
+          expect({
+            tsConfigPath,
+            pattern,
+            absolute: pattern.startsWith("/"),
+          }).toEqual({ tsConfigPath, pattern, absolute: false });
+        }
       },
     );
   });
