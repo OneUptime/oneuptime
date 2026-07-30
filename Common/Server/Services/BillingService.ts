@@ -1496,6 +1496,23 @@ export class BillingService extends BaseService {
       return "price_1TGwTDANuQdJ93r7s0jKRxaT";
     }
 
+    /*
+     * SESSION REPLAY PRICE IDS ARE NOT YET CREATED IN STRIPE.
+     *
+     * Both ids below are placeholders. Create a metered price in each Stripe
+     * mode, then replace them. Until that happens this method throws for
+     * session replay, exactly as it does for any unknown product type - which
+     * is the intended behaviour: usage keeps accumulating in ClickHouse and
+     * in TelemetryUsageBilling, and only the report-to-Stripe step is
+     * unavailable. Reporting is guarded so one unpriced product cannot stop
+     * the other pillars from being reported.
+     */
+    if (productType === ProductType.SessionReplay) {
+      throw new BadDataException(
+        "Session replay Stripe price ids have not been created yet. Create a metered price in both Stripe test and live mode, then set them in BillingService.getMeteredPlanPriceId.",
+      );
+    }
+
     throw new BadDataException(
       "Plan with productType " + productType + " not found",
     );
