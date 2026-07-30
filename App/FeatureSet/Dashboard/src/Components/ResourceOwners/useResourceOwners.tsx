@@ -33,7 +33,10 @@ import FilterChipDropdown, {
 import { ResourceOwnerEntry } from "./OwnerEntry";
 import {
   FacetSelectionState,
+  normalizeFacetValues,
   parseFacetSelectionState,
+  resolveFacetOperator,
+  sanitizeFacetSelectionState,
 } from "./FacetSelectionState";
 
 const PICKER_PAGE_SIZE: number = 50;
@@ -310,6 +313,35 @@ export interface UseResourceOwnersResult<TResource extends BaseModel> {
   ) => Query<TResource>;
   hasActiveFilters: boolean;
   /**
+   * Live selections for the `extraFacets`, keyed by facet key. Read-only — use
+   * `setFacetSelection` to change one.
+   *
+   * Exposed so a page can react to its own chips: light up the summary tile
+   * whose rows the bar is currently showing, or label a filter whose meaning
+   * depends on when it was applied.
+   */
+  facetSelections: { [facetKey: string]: Array<string> };
+  /**
+   * Live per-facet operators, keyed by facet key. A facet with no entry is on
+   * "is" — read through `resolveFacetOperator` rather than assuming.
+   */
+  facetOperators: { [facetKey: string]: FilterOperator };
+  /**
+   * Set one facet's selection from outside the bar — a summary tile, a deep
+   * link, a "show me these rows" affordance elsewhere on the page.
+   *
+   * Passing an empty `values` with the default operator clears that facet.
+   * Other facets are left alone: chips layer, so drilling into a status does
+   * not throw away the site the user had already picked.
+   */
+  setFacetSelection: (
+    facetKey: string,
+    values: Array<string>,
+    operator?: FilterOperator,
+  ) => void;
+  /** Clear every chip — what the bar's own "Clear all" button does. */
+  clearAllFacets: () => void;
+  /**
    * Serializable snapshot of all facet selections (owner, labels, extras).
    * Pass to ModelTable's `currentFacetState` so saved views capture it.
    */
@@ -368,8 +400,9 @@ const useResourceOwners: <TResource extends BaseModel>(
    * option lists to load; the chips fill in their display names later.
    */
   const initialFacetState: FacetSelectionState = useMemo(() => {
-    return parseFacetSelectionState(
-      TableFilterUrlState.read(persistKey, "facets"),
+    return sanitizeFacetSelectionState(
+      parseFacetSelectionState(TableFilterUrlState.read(persistKey, "facets")),
+      extraFacets,
     );
   }, []);
 
@@ -1131,6 +1164,54 @@ const useResourceOwners: <TResource extends BaseModel>(
     ownerOperatorActive || labelOperatorActive || anyExtraFacetActive,
   );
 
+  const setFacetSelection: (
+    facetKey: string,
+    values: Array<string>,
+    operator?: FilterOperator,
+  ) => void = useCallback(
+    (
+      facetKey: string,
+      values: Array<string>,
+      operator?: FilterOperator,
+    ): void => {
+      if (!facetKey) {
+        return;
+      }
+
+      /*
+       * Selection and operator are set together, and always both: a caller that
+       * moved the values but left a stale "is empty" behind would produce a
+       * query that ignores the values it just chose, with a chip that claims
+       * otherwise.
+       */
+      const nextValues: Array<string> = normalizeFacetValues(values);
+      const nextOperator: FilterOperator = resolveFacetOperator(operator);
+
+      setFacetSelections((prev: { [k: string]: Array<string> }) => {
+        return { ...prev, [facetKey]: nextValues };
+      });
+      setFacetOperators((prev: { [k: string]: FilterOperator }) => {
+        return { ...prev, [facetKey]: nextOperator };
+      });
+
+      /*
+       * Resolver-based facets recompute from the effect keyed on the selections
+       * above, so nothing to do for them here.
+       */
+    },
+    [],
+  );
+
+  const clearAllFacets: () => void = useCallback((): void => {
+    setSelectedOwnerKeys([]);
+    setSelectedLabelIds([]);
+    setFacetSelections({});
+    setOwnerOperator("is");
+    setLabelOperator("is");
+    setFacetOperators({});
+    setFacetMatchingIds({});
+  }, []);
+
   /**
    * Server-side search for the Owner chip. Matches users by name or email
    * (via TeamMember) and teams by name, in parallel, dedups users, and returns
@@ -1606,15 +1687,7 @@ const useResourceOwners: <TResource extends BaseModel>(
         {hasActiveFilters && (
           <button
             type="button"
-            onClick={() => {
-              setSelectedOwnerKeys([]);
-              setSelectedLabelIds([]);
-              setFacetSelections({});
-              setOwnerOperator("is");
-              setLabelOperator("is");
-              setFacetOperators({});
-              setFacetMatchingIds({});
-            }}
+            onClick={clearAllFacets}
             className="ml-auto inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-200/60 hover:text-gray-800 focus:outline-none"
           >
             <Icon icon={IconProp.Close} className="h-3 w-3" />
@@ -1639,6 +1712,7 @@ const useResourceOwners: <TResource extends BaseModel>(
     ownerOperator,
     labelOperator,
     facetOperators,
+    clearAllFacets,
   ]);
 
   const facetSaveState: JSONObject = useMemo((): JSONObject => {
@@ -1662,7 +1736,11 @@ const useResourceOwners: <TResource extends BaseModel>(
   const restoreFacetState: (state: JSONObject | null) => void = (
     state: JSONObject | null,
   ): void => {
-    const parsed: FacetSelectionState = parseFacetSelectionState(state);
+    // Same clamp as the URL restore — a saved view is just as old and as editable.
+    const parsed: FacetSelectionState = sanitizeFacetSelectionState(
+      parseFacetSelectionState(state),
+      extraFacets,
+    );
 
     setSelectedOwnerKeys(parsed.selectedOwnerKeys);
     setSelectedLabelIds(parsed.selectedLabelIds);
@@ -1745,6 +1823,10 @@ const useResourceOwners: <TResource extends BaseModel>(
     filterBar,
     mergeFiltersIntoQuery,
     hasActiveFilters,
+    facetSelections,
+    facetOperators,
+    setFacetSelection,
+    clearAllFacets,
     facetSaveState,
     restoreFacetState,
   };

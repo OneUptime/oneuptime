@@ -121,6 +121,59 @@ export default class TableFilterUrlState {
     });
   }
 
+  /**
+   * Serialize one slice exactly the way {@link write} puts it on the URL.
+   * Returns null for an empty slice (`null`, or an object with no keys) and for
+   * anything that will not serialize, so callers can treat "nothing to write"
+   * and "could not write" the same way.
+   */
+  public static serializeState(
+    state: JSONObject | null | undefined,
+  ): string | null {
+    if (!state || Object.keys(state).length === 0) {
+      return null;
+    }
+
+    try {
+      return JSON.stringify(JSONFunctions.serialize(state));
+    } catch (err) {
+      Logger.warn(`TableFilterUrlState: could not serialize state: ${err}`);
+      return null;
+    }
+  }
+
+  /**
+   * Query params that land a table already in a given filter/facet/view state,
+   * for *linking* to it from elsewhere in the product — a count on one page
+   * whose rows only exist on another.
+   *
+   * Values are percent-encoded here because {@link Route.addQueryParams}
+   * concatenates them into the route verbatim, while {@link read} pulls them
+   * back out through `URLSearchParams`, which decodes. Serialized facet state
+   * is JSON, so leaving it raw would produce a URL the reader cannot parse.
+   *
+   * Empty slices are omitted rather than written as an empty param — the
+   * absence of the param is what "no state" already means to {@link read}.
+   */
+  public static getLinkQueryParams(
+    tableId: string,
+    states: Partial<Record<TableFilterUrlStateKind, JSONObject | null>>,
+  ): Dictionary<string> {
+    const params: Dictionary<string> = {};
+
+    for (const kind of Object.keys(states) as Array<TableFilterUrlStateKind>) {
+      const value: string | null = this.serializeState(states[kind]);
+
+      if (value === null) {
+        continue;
+      }
+
+      params[this.getParamName(tableId, kind)] = encodeURIComponent(value);
+    }
+
+    return params;
+  }
+
   /*
    * Read a previously-persisted snapshot from the URL. Returns null when absent,
    * empty, or unparseable (e.g. a hand-edited param) so callers fall back to
@@ -195,26 +248,12 @@ export default class TableFilterUrlState {
       const state: JSONObject | null | undefined = states[kind];
       const paramName: string = this.getParamName(tableId, kind);
 
-      let value: string | null = null;
-
-      try {
-        const hasState: boolean = Boolean(
-          state && Object.keys(state).length > 0,
-        );
-
-        value = hasState
-          ? JSON.stringify(JSONFunctions.serialize(state as JSONObject))
-          : null;
-      } catch (err) {
-        /*
-         * Serialization failure (shouldn't happen for filter data) — drop the
-         * param rather than break the table, and leave a breadcrumb.
-         */
-        Logger.warn(
-          `TableFilterUrlState: could not serialize "${paramName}": ${err}`,
-        );
-        value = null;
-      }
+      /*
+       * A serialization failure (shouldn't happen for filter data) drops the
+       * param rather than breaking the table; serializeState leaves the
+       * breadcrumb.
+       */
+      let value: string | null = this.serializeState(state);
 
       if (value === null) {
         projected.delete(paramName);
