@@ -155,10 +155,19 @@ jobs:
       - name: Dump container logs on failure
         if: failure()
         run: |
-          echo "===== docker compose ps ====="
-          docker compose ps || true
+          # Must mirror how `npm run dev` started the stack: the same compose
+          # file and the same exported config.env. A plain `docker compose
+          # logs` resolves docker-compose.yml instead, finds a different
+          # project, and prints nothing but "variable is not set" warnings.
+          set +e
+          export $(grep -v '^#' config.env | xargs) 2>/dev/null
+          COMPOSE="docker compose -f docker-compose.dev.yml"
+
+          echo "===== container status (including exited) ====="
+          $COMPOSE ps -a
+
           for service in app worker ingress postgres clickhouse redis; do
             echo ""
-            echo "===== ${service} (last 200 lines) ====="
-            docker compose logs --tail=200 "${service}" 2>&1 || true
+            echo "===== ${service} (last 300 lines) ====="
+            $COMPOSE logs --tail=300 --no-color "${service}" 2>&1
           done
