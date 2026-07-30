@@ -6,6 +6,7 @@ import {
   SQL,
   Statement,
 } from "Common/Server/Utils/AnalyticsDatabase/Statement";
+import { isSessionErased } from "Common/Server/Utils/SessionReplay/SessionReplayErasureTombstone";
 import logger from "Common/Server/Utils/Logger";
 import AnalyticsTableName from "Common/Types/AnalyticsDatabase/AnalyticsTableName";
 import TableColumnType from "Common/Types/AnalyticsDatabase/TableColumnType";
@@ -69,8 +70,6 @@ const JOB_NAME: string = "Rum:FinalizeSessions";
  *   replay:active:projects            SET  of projectId, SADD per chunk
  *   replay:active:<projectId>         ZSET member "<sessionId>:<tabId>",
  *                                     score = server receive unix ms
- *   replay:traces:<projectId>:<sid>   SET  of trace ids seen in the
- *                                     session's network events
  *
  * Only the per-project sorted set is written by the ingest path today.
  * The project SET is the index that lets this job avoid SCANning the
@@ -110,13 +109,6 @@ const PROJECT_INDEX_RECONCILE_INTERVAL_SECONDS: number = 10 * 60;
 const PROJECT_INDEX_SCAN_COUNT: number = 500;
 const MAX_PROJECT_INDEX_SCAN_ITERATIONS: number = 200;
 
-export function getSessionTraceIdsKey(
-  projectId: string,
-  sessionId: string,
-): string {
-  return `replay:traces:${projectId}:${sessionId}`;
-}
-
 /*
  * A session is considered done when no chunk has arrived for this long.
  *
@@ -132,9 +124,20 @@ export const SESSION_REPLAY_IDLE_FINALIZE_MS: number = 10 * 60 * 1000;
  * A member older than this can never produce a useful header: its chunks
  * have either already TTL-dropped or never arrived. CleanupStaleResources
  * reaps those; this job leaves them alone so the two jobs cannot fight.
+ *
+ * The margin over SESSION_REPLAY_MAX_SESSION_MS has to sit strictly INSIDE
+ * the ingest path's activity-key TTL (6h, refreshed on every accepted
+ * chunk). At the old +2h it was exactly equal to that TTL, so Redis
+ * dropped the whole per-project ZSET at or before the moment its oldest
+ * member crossed the cutoff and the reap could never actually fire — which
+ * also meant its "recordings were lost" warning could never be emitted.
+ * 30 minutes is comfortably longer than the 10 minute idle window the
+ * finalizer owns, so the two jobs still cannot fight over a member, and
+ * comfortably shorter than the 6h TTL, so the reap runs and its diagnostic
+ * is real.
  */
 export const SESSION_REPLAY_ACTIVITY_ABANDON_MS: number =
-  SESSION_REPLAY_MAX_SESSION_MS + 2 * 60 * 60 * 1000;
+  SESSION_REPLAY_MAX_SESSION_MS + 30 * 60 * 1000;
 
 /* Per-run work caps. Both exist to keep one run inside the job timeout. */
 export const MAX_SESSIONS_PER_PROJECT_PER_RUN: number = 2000;
@@ -944,42 +947,59 @@ async function readRows(statement: Statement): Promise<Array<JSONObject>> {
   return parsed.data || [];
 }
 
-async function readSessionTraceIds(data: {
-  projectId: string;
-  sessionId: string;
-}): Promise<Array<string>> {
-  const client: ClientType | null = Redis.getClient();
-
-  if (!client || !Redis.isConnected()) {
-    return [];
-  }
-
-  try {
-    return await client.smembers(
-      getSessionTraceIdsKey(data.projectId, data.sessionId),
-    );
-  } catch (error) {
-    /*
-     * Correlation ids are a convenience, not the recording. Losing them
-     * must never stop a session from being finalized.
-     */
-    logger.warn(
-      `${JOB_NAME}: could not read trace ids for session ${data.sessionId}: ${getErrorMessage(error)}`,
-    );
-    return [];
-  }
-}
+/*
+ * Outcome of one finalization attempt.
+ *
+ * "erased" is not a failure and not "nothing to do": the caller still
+ * drops the activity entries, but it must NOT be logged as a lost
+ * recording, and no header may be written.
+ */
+export type FinalizeSessionOutcome = "written" | "no-chunks" | "erased";
 
 /*
- * Finalize one session. Returns false only when the session has no stored
- * chunks at all — the caller treats that as "nothing to do" and drops the
- * activity entry rather than retrying forever.
+ * Finalize one session.
+ *
+ * Returns "no-chunks" when the session has no stored chunks at all — the
+ * caller treats that as "nothing to do" and drops the activity entry
+ * rather than retrying forever.
  */
 export async function finalizeSession(data: {
   projectId: ObjectID;
   sessionId: string;
   databaseName: string;
-}): Promise<boolean> {
+}): Promise<FinalizeSessionOutcome> {
+  /*
+   * The erasure tombstone is checked FIRST, before a single chunk row is
+   * read.
+   *
+   * The erasure job submits `ALTER ... DELETE` mutations and deliberately
+   * does not wait for them, and a ClickHouse mutation only ever rewrites
+   * the parts that existed when it was submitted. So between the erasure
+   * at T and the mutation finishing, the chunk rows are still visible from
+   * here. Without this check the finalizer reads them, derives a header
+   * and writes a brand new RumSessionV1 row at `version = Date.now()`
+   * carrying identifiedUserKey, entryUrl, exitUrl, routes and countryCode
+   * for the subject who asked to be erased — a row no mutation will ever
+   * see and nothing will ever delete again.
+   *
+   * isSessionErased fails CLOSED by THROWING when Redis cannot answer.
+   * That propagates to finalizeExpiredSessions' per-session catch, which
+   * counts a failure and leaves the activity entries in place, so the
+   * session is retried next run instead of either being resurrected or
+   * being silently dropped off the queue on a transient blip.
+   */
+  const erased: boolean = await isSessionErased({
+    projectId: data.projectId.toString(),
+    sessionId: data.sessionId,
+  });
+
+  if (erased) {
+    logger.info(
+      `${JOB_NAME}: session ${data.sessionId} in project ${data.projectId.toString()} is tombstoned as erased; refusing to write a header.`,
+    );
+    return "erased";
+  }
+
   const tabRows: Array<JSONObject> = await readRows(
     buildTabAggregateStatement({
       databaseName: data.databaseName,
@@ -989,7 +1009,7 @@ export async function finalizeSession(data: {
   );
 
   if (tabRows.length === 0) {
-    return false;
+    return "no-chunks";
   }
 
   const aggregate: SessionChunkAggregate = combineTabAggregates(
@@ -1027,23 +1047,45 @@ export async function finalizeSession(data: {
     );
   }
 
-  const traceIds: Array<string> = await readSessionTraceIds({
-    projectId: data.projectId.toString(),
-    sessionId: data.sessionId,
-  });
-
   const row: JSONObject = buildFinalizedSessionRow({
     projectId: data.projectId,
     sessionId: data.sessionId,
     aggregate: aggregate,
     header: header,
-    traceIds: traceIds,
+    /*
+     * No additional trace ids to merge in. The reverse-correlation set the
+     * design describes (traces observed in chunks 1..N) has no producer:
+     * the chunk table carries no traceIds column and nothing writes a
+     * per-session Redis set, so the only trace ids that exist are the ones
+     * the FIRST chunk's envelope put on the provisional header. This
+     * parameter is the seam for that producer when it lands; reading a
+     * Redis key nobody writes was a guaranteed-empty round trip per
+     * finalized session and has been removed.
+     */
+    traceIds: [],
     writtenAt: OneUptimeDate.getCurrentDate(),
   });
 
-  await RumSessionService.insertJsonRows([row]);
+  /*
+   * wait_for_async_insert is forced on for this one row.
+   *
+   * insertJsonRows defaults to wait_for_async_insert: 0, where the await
+   * resolves as soon as ClickHouse has accepted the row into its
+   * async-insert buffer — NOT when it is durable. The caller ZREMs the
+   * session's activity entries immediately after this resolves, so a
+   * buffer flush failure would silently lose the header while the session
+   * is already off the queue, leaving it provisional (zeroed aggregates)
+   * and unmetered forever. Finalization is one small row per session, not
+   * a hot ingest path, so paying for the durability ack is cheap and it is
+   * what makes the ZREM-only-on-success contract below actually true.
+   */
+  await RumSessionService.insertJsonRows([row], {
+    clickhouseSettings: {
+      wait_for_async_insert: 1,
+    },
+  });
 
-  return true;
+  return "written";
 }
 
 /*
@@ -1114,7 +1156,7 @@ export async function reconcileActiveProjectIndex(
  * than permanent data loss, and it also carries the whole job on its own
  * for as long as the ingest path does not maintain the index at all.
  */
-async function discoverActiveProjectIds(
+export async function discoverActiveProjectIds(
   client: ClientType,
 ): Promise<Array<string>> {
   const indexed: Array<string> = await client.smembers(
@@ -1122,27 +1164,33 @@ async function discoverActiveProjectIds(
   );
 
   /*
-   * An empty index is either "nothing is recording" or "the index was never
-   * populated", and those are indistinguishable from here — so an empty
-   * index always reconciles. Otherwise the hourly lock decides, and it is
-   * taken in Redis rather than in process memory so it holds across worker
-   * replicas and restarts.
+   * The lock is taken UNCONDITIONALLY, including when the index is empty.
+   *
+   * An empty index is the NORMAL state, not an anomaly: session replay is
+   * opt-in, so on the overwhelming majority of installs no project ever
+   * records and the index is permanently empty. Exempting the empty case
+   * from the rate limit therefore made every single 5-minute run perform a
+   * full SCAN of up to MAX_PROJECT_INDEX_SCAN_ITERATIONS x
+   * PROJECT_INDEX_SCAN_COUNT keys against a Redis that also holds the
+   * chunk staging keys and the entire BullMQ keyspace — the exact cost the
+   * rate limit exists to avoid.
+   *
+   * Losing the race just means this run finalizes nothing on an install
+   * that had nothing to finalize; the replica holding the lock does the
+   * reconcile, and the idle window is 10 minutes anyway.
+   *
+   * The lock is taken in Redis rather than in process memory so it holds
+   * across worker replicas and restarts.
    */
-  let shouldReconcile: boolean = indexed.length === 0;
+  const lockAcquired: "OK" | null = await client.set(
+    PROJECT_INDEX_RECONCILE_LOCK_KEY,
+    "1",
+    "EX",
+    PROJECT_INDEX_RECONCILE_INTERVAL_SECONDS,
+    "NX",
+  );
 
-  if (!shouldReconcile) {
-    const lockAcquired: "OK" | null = await client.set(
-      PROJECT_INDEX_RECONCILE_LOCK_KEY,
-      "1",
-      "EX",
-      PROJECT_INDEX_RECONCILE_INTERVAL_SECONDS,
-      "NX",
-    );
-
-    shouldReconcile = lockAcquired === "OK";
-  }
-
-  if (!shouldReconcile) {
+  if (lockAcquired !== "OK") {
     return indexed;
   }
 
@@ -1270,15 +1318,15 @@ export async function finalizeExpiredSessions(): Promise<void> {
       }
 
       try {
-        const wrote: boolean = await finalizeSession({
+        const outcome: FinalizeSessionOutcome = await finalizeSession({
           projectId: new ObjectID(projectId),
           sessionId: sessionId,
           databaseName: databaseName,
         });
 
-        if (wrote) {
+        if (outcome === "written") {
           finalizedCount++;
-        } else {
+        } else if (outcome === "no-chunks") {
           logger.warn(
             `${JOB_NAME}: session ${sessionId} in project ${projectId} has no stored chunks; dropping its activity entry.`,
           );

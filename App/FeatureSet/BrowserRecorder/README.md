@@ -92,8 +92,36 @@ with no remedy — they are third parties, and we cannot reach their end users.
 With it, rolling back is one field in the config response, and the kill switch
 stops **recording** rather than merely stopping ingest.
 
-`build/manifest.json` (written to `public/dist/`) carries the version and the
-SHA-384 integrity hashes the config endpoint should serve.
+`public/dist/manifest.json` carries the version, the gzip sizes and the
+SHA-384 integrity hashes. It is the **single source of truth** for which
+version is published: read it through `Manifest.ts` (`getRecorderVersion()`,
+`getRecorderIntegrity()`, `getPinnedRecorderPath()`), never from an
+independently-defaulted env var. Two answers to "which version is live" cannot
+be kept in step by hand, and the failure mode is silent — a loader told to
+fetch a version that was never published just 404s and the page records
+nothing.
+
+`src/Config.ts` validates `recorderVersion` against
+`/^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$/` before it will build an artifact
+URL, and refuses to build one at all otherwise. The same pattern is asserted in
+the build and in `Manifest.ts`; `Tests/RecorderManifest.test.ts` fails if the
+three ever drift.
+
+### The route the artifacts need
+
+Not mounted by this package — it has no server. Whatever mounts it must serve:
+
+| path                                              | file                    | headers                                                              |
+| ------------------------------------------------- | ----------------------- | -------------------------------------------------------------------- |
+| `/telemetry/session-replay/v1/recorder.js`        | `public/dist/loader.js` | `Cache-Control: public, max-age=300`                                 |
+| `/telemetry/session-replay/v<semver>/recorder.js` | `public/dist/recorder.js` (only when `<semver>` equals the manifest's version) | `Cache-Control: public, max-age=31536000, immutable` |
+
+Both need `Content-Type: application/javascript; charset=utf-8`,
+`Access-Control-Allow-Origin: *` (the artifact is loaded cross-origin with
+`crossorigin="anonymous"`, which SRI requires), and no cookies. The config
+endpoint must return the manifest's `recorder.js` integrity hash as
+`recorderIntegrity`, or the loader injects a script tag with no integrity
+attribute and the SRI pin is inert.
 
 ## Privacy model
 
@@ -128,6 +156,23 @@ SHA-384 integrity hashes the config endpoint should serve.
   viewer sees "this was not recorded" rather than an unexplained blank.
 - On a hard unload, up to one flush interval (15 s) of tail can be lost, plus
   anything over the 56 KB keepalive cap.
+- **No outgoing `traceparent` is injected.** `NetworkRecorder` only READS a
+  traceparent the host page already set — from a `fetch` init's headers or from
+  a patched `XMLHttpRequest.setRequestHeader`. For a customer who is not
+  already running OpenTelemetry browser instrumentation, `envelope.traceIds` is
+  therefore always empty and the span-to-replay correlation never populates:
+  the recording cannot be linked to the trace of the 5xx that triggered it.
+  Injecting a header is deliberately not done implicitly — adding a request
+  header turns a simple cross-origin request into a preflighted one, and a
+  customer's API that does not allow `traceparent` in
+  `Access-Control-Allow-Headers` would start failing because they installed a
+  RUM script. Closing this needs an explicit per-application origin allowlist,
+  not a default.
+- A session that reaches `MAX_SESSION_REPLAY_CHUNKS_PER_SESSION` (480) sends
+  one final, empty chunk carrying a `truncated` fidelity notice and then stops
+  recording. The notice is not yet a member of Common's
+  `SessionReplayFidelityNotice` enum, so the player renders it as an unknown
+  code rather than with dedicated copy.
 
 ## Implementation notes worth knowing
 
@@ -216,6 +261,7 @@ defend in an incident review.
 | `src/ConsoleRecorder.ts`     | `console.error` / `console.warn` only                                     |
 | `src/RouteRecorder.ts`       | SPA navigation and forced snapshots                                       |
 | `src/FrustrationDetector.ts` | rage / dead / error clicks                                                |
+| `Manifest.ts`                | **server-side**, not bundled: reads `public/dist/manifest.json` and is the one place the published version, SRI hash and route policy come from |
 
 ## Commands
 
@@ -227,6 +273,35 @@ npm run build       # production bundle -> public/dist
 npm run analyze     # bundle composition
 ```
 
-Current output: **recorder.js ~227 KB raw / ~69 KB gzip**, **loader.js ~4.7 KB
-raw / ~1.9 KB gzip**. Both budgets are enforced by the build itself, which
-fails rather than shipping a regression.
+## Bundle weight
+
+Measured: **recorder.js 231 KB raw / 71.4 KB gzip**, **loader.js 4.9 KB raw /
+1.9 KB gzip**. Both raw AND gzip budgets are enforced by the build, which fails
+rather than shipping a regression — gzip being the number a customer's browser
+actually pays.
+
+The design doc's ~52 KB gzip target is not reachable, and it is worth being
+precise about why rather than leaving it as an open action:
+
+| component                    | raw       | share  |
+| ---------------------------- | --------- | ------ |
+| `rrweb` `record` entry point | 177.4 KB  | 78.8%  |
+| this package's 15 modules    | 44.2 KB   | 19.6%  |
+| inlined Common Rum modules   | 3.5 KB    | 1.6%   |
+
+Bundled on its own, `import { record } from "rrweb"` is **182 KB raw / 57.8 KB
+gzip** — already above the 52 KB target before a single line of our own code.
+Everything unused is already gone: the `Replayer`, `xstate`, the `fflate`
+packer, `base64-arraybuffer`, the canvas-WebGL path and the plugin system are
+all tree-shaken out, verified by grepping the emitted bundle for their tokens
+(zero occurrences of `Replayer`, `xstate`, `fflate`, `CanvasManager`). What
+remains is rrweb's DOM serialiser, its mutation buffer and its stylesheet
+handling, none of which are optional for a DOM recorder.
+
+Our own ~13.6 KB gzip could be shaved, but not by the 19 KB the target is
+short. Closing the gap would mean forking rrweb or dropping DOM fidelity;
+neither is worth trading correctness for, so the budget is set at the measured
+figure plus headroom instead.
+
+`npm run analyze` prints the per-module breakdown and writes
+`public/dist/metafile.json`.

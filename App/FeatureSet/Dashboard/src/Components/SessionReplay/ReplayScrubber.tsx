@@ -160,6 +160,18 @@ const ReplayScrubber: FunctionComponent<ReplayScrubberProps> = (
     useRef<HTMLDivElement>(null);
   const isDraggingRef: React.MutableRefObject<boolean> = useRef<boolean>(false);
   const [hoverMs, setHoverMs] = useState<number | null>(null);
+  /*
+   * Where the held pointer currently is. Rendered as the playhead while a
+   * drag is in progress, and committed with a single onSeek on release.
+   *
+   * A drag must NOT seek continuously. Every onSeek bumps the player's seek
+   * token, and a target on the far side of a snapshot anchor - a few pixels
+   * on a 30-minute recording - makes ReplayStage destroy the Replayer, drop
+   * the decoded LRU and POST to /chunks. One drag across the timeline would
+   * be dozens of teardowns and dozens of authenticated fetches.
+   */
+  const [dragMs, setDragMs] = useState<number | null>(null);
+  const dragMsRef: React.MutableRefObject<number> = useRef<number>(0);
 
   const {
     durationMs,
@@ -198,16 +210,19 @@ const ReplayScrubber: FunctionComponent<ReplayScrubberProps> = (
   const handlePointerDown: (event: React.PointerEvent<HTMLDivElement>) => void =
     useCallback(
       (event: React.PointerEvent<HTMLDivElement>): void => {
+        const offsetMs: number = offsetForClientX(event.clientX);
+
         isDraggingRef.current = true;
+        dragMsRef.current = offsetMs;
+        setDragMs(offsetMs);
         /*
          * Capture the pointer so a drag that leaves the track still tracks -
          * without this, dragging past either end drops the gesture and the
          * playhead freezes mid-scrub.
          */
         event.currentTarget.setPointerCapture(event.pointerId);
-        onSeek(offsetForClientX(event.clientX));
       },
-      [offsetForClientX, onSeek],
+      [offsetForClientX],
     );
 
   const handlePointerMove: (event: React.PointerEvent<HTMLDivElement>) => void =
@@ -217,20 +232,37 @@ const ReplayScrubber: FunctionComponent<ReplayScrubberProps> = (
         setHoverMs(offsetMs);
 
         if (isDraggingRef.current) {
-          onSeek(offsetMs);
+          // Local preview only. The seek is committed on release.
+          dragMsRef.current = offsetMs;
+          setDragMs(offsetMs);
         }
       },
-      [offsetForClientX, onSeek],
+      [offsetForClientX],
     );
 
   const handlePointerUp: (event: React.PointerEvent<HTMLDivElement>) => void =
-    useCallback((event: React.PointerEvent<HTMLDivElement>): void => {
-      isDraggingRef.current = false;
+    useCallback(
+      (event: React.PointerEvent<HTMLDivElement>): void => {
+        const wasDragging: boolean = isDraggingRef.current;
+        isDraggingRef.current = false;
 
-      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-        event.currentTarget.releasePointerCapture(event.pointerId);
-      }
-    }, []);
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+          event.currentTarget.releasePointerCapture(event.pointerId);
+        }
+
+        setDragMs(null);
+
+        /*
+         * A plain click is a pointerdown followed immediately by a pointerup
+         * with no move, so this is also the path that makes clicking the
+         * track seek. Exactly one onSeek per gesture, either way.
+         */
+        if (wasDragging) {
+          onSeek(dragMsRef.current);
+        }
+      },
+      [onSeek],
+    );
 
   useEffect(() => {
     if (areShortcutsEnabled === false) {
@@ -256,6 +288,16 @@ const ReplayScrubber: FunctionComponent<ReplayScrubberProps> = (
           tag === "select" ||
           target.isContentEditable
         ) {
+          return;
+        }
+
+        /*
+         * Nor from anything Space is supposed to activate. Without this a
+         * keyboard-only user cannot press "Session details", a speed button,
+         * a tab or a marker: the focused control never gets its Space
+         * because this handler preventDefaults it into a play/pause toggle.
+         */
+        if (target.closest("button, a, [role='button'], [role='checkbox']")) {
           return;
         }
       }
@@ -305,7 +347,13 @@ const ReplayScrubber: FunctionComponent<ReplayScrubberProps> = (
     });
   }, [props.errorMarkers, currentTimeMs]);
 
-  const playheadPercent: number = toPercent(currentTimeMs, durationMs);
+  /*
+   * While a drag is in progress the playhead follows the pointer even though
+   * the player has not been told to seek yet, so the gesture still feels
+   * direct without costing a Replayer rebuild per pixel.
+   */
+  const playheadMs: number = dragMs ?? currentTimeMs;
+  const playheadPercent: number = toPercent(playheadMs, durationMs);
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-3">
@@ -392,8 +440,8 @@ const ReplayScrubber: FunctionComponent<ReplayScrubberProps> = (
           aria-label="Replay position"
           aria-valuemin={0}
           aria-valuemax={Math.round(durationMs)}
-          aria-valuenow={Math.round(currentTimeMs)}
-          aria-valuetext={formatOffset(currentTimeMs)}
+          aria-valuenow={Math.round(playheadMs)}
+          aria-valuetext={formatOffset(playheadMs)}
           className="relative h-6 flex-1 cursor-pointer touch-none rounded bg-gray-100"
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}

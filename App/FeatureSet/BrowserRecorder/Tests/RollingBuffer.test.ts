@@ -25,6 +25,61 @@ describe("RollingBuffer", (): void => {
   });
 
   /*
+   * rrweb emits a checkout as TWO isCheckout events: Meta (type 4) then
+   * FullSnapshot (type 2). Opening a segment on every isCheckout put the Meta
+   * alone in a segment of its own, where it could be evicted independently of
+   * the snapshot it belongs to - leaving a pre-roll whose first event is a
+   * FullSnapshot with no viewport or href in front of it.
+   */
+  it("keeps a checkout's Meta and FullSnapshot in one segment", (): void => {
+    const buffer: RollingBuffer = new RollingBuffer();
+
+    buffer.push(makeEvent({ isCheckout: true, type: 4, json: "meta-1" }));
+    buffer.push(makeEvent({ isCheckout: true, type: 2, json: "snap-1" }));
+    buffer.push(makeEvent({ json: "content-1" }));
+
+    buffer.push(makeEvent({ isCheckout: true, type: 4, json: "meta-2" }));
+    buffer.push(makeEvent({ isCheckout: true, type: 2, json: "snap-2" }));
+
+    expect(buffer.getSegmentCount()).toBe(2);
+  });
+
+  it("never evicts a Meta away from the snapshot it describes", (): void => {
+    /* Cap sized so exactly one of the two checkout segments survives. */
+    const buffer: RollingBuffer = new RollingBuffer(60000, 250);
+
+    for (const round of [1, 2]) {
+      buffer.push(
+        makeEvent({
+          isCheckout: true,
+          type: 4,
+          bytes: 50,
+          json: `meta-${round}`,
+        }),
+      );
+      buffer.push(
+        makeEvent({
+          isCheckout: true,
+          type: 2,
+          bytes: 50,
+          json: `snap-${round}`,
+        }),
+      );
+      buffer.push(makeEvent({ bytes: 100, json: `content-${round}` }));
+    }
+
+    const drained: Array<string> = buffer.drain().map((e: BufferedEvent) => {
+      return e.json;
+    });
+
+    /* Whatever survived begins with a Meta, then its snapshot. */
+    expect(drained[0]).toBe("meta-2");
+    expect(drained[1]).toBe("snap-2");
+    expect(drained).not.toContain("meta-1");
+    expect(drained).not.toContain("snap-1");
+  });
+
+  /*
    * The central property: eviction drops WHOLE segments, so whatever remains
    * still begins with a full snapshot and is therefore still replayable.
    */

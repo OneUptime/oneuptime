@@ -234,11 +234,40 @@ describe("SessionReplayScrubService.scrubEvents", () => {
     expect(JSON.stringify(events)).toContain("ada@example.com");
   });
 
-  test("the depth cap holds and reports an incomplete scrub", async () => {
-    /* 200 levels, well past the 64-level ceiling. */
+  /*
+   * The depth cap counts JSON nesting levels, and an rrweb serialized node
+   * costs TWO of them per DOM element (node -> childNodes array -> child
+   * node). A 60-level component tree is ordinary in Tailwind / MUI / Angular
+   * markup, and exceeding the cap sets isComplete = false, which makes the
+   * ingest service DROP the chunk - so a cap that a real page can reach means
+   * a customer loses 100% of their recordings the moment they add their first
+   * scrub rule (with zero rules the walk is skipped entirely).
+   */
+  test("a 60-level-deep DOM snapshot scrubs completely", async () => {
     let deepest: JSONObject = { textContent: "ada@example.com" };
 
-    for (let index: number = 0; index < 200; index++) {
+    for (let index: number = 0; index < 60; index++) {
+      deepest = { tagName: "div", childNodes: [deepest] };
+    }
+
+    const events: Array<JSONValue> = [
+      { type: 2, data: { node: deepest } } as unknown as JSONValue,
+    ];
+
+    const result: SessionReplayScrubResult =
+      await SessionReplayScrubService.scrubEvents(events, [EMAIL_REDACT]);
+
+    expect(result.truncatedAtDepth).toBe(false);
+    expect(result.isComplete).toBe(true);
+    /* And it actually did the scrubbing all the way down. */
+    expect(JSON.stringify(events)).not.toContain("ada@example.com");
+  });
+
+  test("the depth cap holds and reports an incomplete scrub", async () => {
+    /* 600 levels, past the 512-level ceiling. */
+    let deepest: JSONObject = { textContent: "ada@example.com" };
+
+    for (let index: number = 0; index < 600; index++) {
       deepest = { childNodes: [deepest] };
     }
 

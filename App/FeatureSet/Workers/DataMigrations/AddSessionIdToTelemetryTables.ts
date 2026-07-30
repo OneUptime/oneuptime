@@ -91,18 +91,40 @@ export default class AddSessionIdToTelemetryTables extends DataMigrationBase {
     );
 
     if (!column) {
-      // See the class comment: skip, never throw, or the chain halts.
-      logger.warn(
-        `AddSessionIdToTelemetryTables: ${model.tableName} does not declare ${columnKey}; skipping. Session replay correlation from this table will not work until the column is declared on the model.`,
+      /*
+       * See the class comment: skip, never throw, or the chain halts.
+       *
+       * This is logged at error level rather than warn because the skip is
+       * PERMANENT: the runner records the migration as executed as soon as
+       * migrate() returns, so it will never run again even once the column
+       * is declared. Session-replay erasure of correlated telemetry
+       * (ProcessSessionErasureRequests.eraseSessionRowsFromTable) is a
+       * no-op for this table until then, which is a compliance problem and
+       * not a cosmetic one. The regression test in
+       * App/Tests/Workers/SessionReplayErasure.test.ts pins all three
+       * models declaring the column so this branch cannot be reached by
+       * accident.
+       */
+      logger.error(
+        `AddSessionIdToTelemetryTables: ${model.tableName} does not declare ${columnKey}; skipping PERMANENTLY (the runner records this migration as executed regardless). Declare the column on the model and re-run this migration by hand.`,
       );
       return;
     }
 
     /*
      * Guard on the live schema first. addColumnInDatabase is already
-     * idempotent, but reading the type back also catches the case that
-     * actually hurts: a column of the WRONG type (a Nullable(String) left
-     * by an earlier hand-run) which would silently defeat the skip index.
+     * idempotent; reading the type back additionally catches a column left
+     * behind at a genuinely different LOGICAL type (a Number, say, from an
+     * unrelated hand-run) and reports it instead of layering an ADD COLUMN
+     * IF NOT EXISTS on top that would silently do nothing.
+     *
+     * What it cannot catch, and no caller should expect it to:
+     * AnalyticsDatabaseService.getColumnTypeInDatabase unwraps
+     * LowCardinality(...) and Nullable(...) before mapping, so a
+     * Nullable(String) column reports back as TableColumnType.Text and
+     * takes the "already present" branch below. Detecting that would need
+     * the RAW system.columns.type string, which the service does not
+     * expose.
      */
     try {
       const existingType: TableColumnType | null =

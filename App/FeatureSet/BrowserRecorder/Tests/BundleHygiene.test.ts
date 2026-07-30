@@ -28,7 +28,11 @@ interface ChildProcess {
   execFileSync: (
     file: string,
     args: Array<string>,
-    options: { cwd: string; env: Record<string, string | undefined> },
+    options: {
+      cwd: string;
+      env: Record<string, string | undefined>;
+      encoding?: string;
+    },
   ) => unknown;
 }
 
@@ -52,7 +56,10 @@ describe("bundle hygiene", (): void => {
   let manifest: {
     recorderVersion: string;
     rrwebVersion: string;
-    files: Record<string, { bytes: number; integrity: string }>;
+    files: Record<
+      string,
+      { bytes: number; gzipBytes: number; integrity: string }
+    >;
   };
 
   beforeAll((): void => {
@@ -80,6 +87,33 @@ describe("bundle hygiene", (): void => {
     expect(fs.existsSync(nodePath.join(DIST, "loader.js"))).toBe(true);
     expect(manifest.rrwebVersion).toBe("2.1.1");
     expect(manifest.files["recorder.js"]?.integrity).toMatch(/^sha384-/);
+  });
+
+  /*
+   * Gzip is what the customer's browser downloads, and it was previously
+   * unbudgeted: only the raw size was checked, and minified JavaScript
+   * compresses at wildly different ratios depending on what changed.
+   */
+  it("records the gzip size of both artifacts", (): void => {
+    const recorderGzip: number = manifest.files["recorder.js"]?.gzipBytes || 0;
+    const loaderGzip: number = manifest.files["loader.js"]?.gzipBytes || 0;
+
+    expect(recorderGzip).toBeGreaterThan(0);
+    expect(recorderGzip).toBeLessThanOrEqual(76 * 1024);
+    expect(loaderGzip).toBeGreaterThan(0);
+    expect(loaderGzip).toBeLessThanOrEqual(3 * 1024);
+  });
+
+  /*
+   * The version is what names the artifact's URL path, and src/Config.ts
+   * refuses to build that URL from anything that is not a plain semver. A
+   * build that stamps something else produces an artifact no loader will ever
+   * request.
+   */
+  it("stamps a version the loader will accept", (): void => {
+    expect(manifest.recorderVersion).toMatch(
+      /^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$/,
+    );
   });
 
   /*
@@ -146,6 +180,86 @@ describe("bundle hygiene", (): void => {
     expect(loaderBundle).toContain("globalPrivacyControl");
     expect(loaderBundle).toContain("integrity");
   });
+});
+
+/*
+ * The Common allow-list, exercised directly.
+ *
+ * The plugin used to hook only `^Common/` specifiers, which are what this
+ * package's own src/ writes. Files INSIDE Common reach each other with
+ * relative paths - Common/Utils/Rum/ChunkMath.ts imports
+ * "../../Types/Rum/SessionReplay" - and those resolved natively and
+ * unchecked, so a future "../../Types/Dictionary" added inside a Rum module
+ * would have been inlined silently into a bundle served to third-party
+ * origins. The FORBIDDEN_IN_BUNDLE grep is a backstop, not a substitute: a
+ * Common module with no express/typeorm/process.env token passes it.
+ *
+ * Driven through a child Node process because esbuild's own startup invariant
+ * check fails under jsdom, and requiring esbuild.config.js loads esbuild.
+ */
+describe("common allow-list resolver", (): void => {
+  interface ResolverCase {
+    name: string;
+    blocked: boolean;
+  }
+
+  let results: Record<string, boolean> = {};
+
+  beforeAll((): void => {
+    const script: string = [
+      `const config = require(${JSON.stringify(nodePath.join(PACKAGE_ROOT, "esbuild.config.js"))});`,
+      `const p = require("path");`,
+      `const rum = p.join(config.COMMON_ROOT, "Utils", "Rum");`,
+      `const typesRum = p.join(config.COMMON_ROOT, "Types", "Rum");`,
+      `const src = p.join(${JSON.stringify(PACKAGE_ROOT)}, "src");`,
+      `const cases = [`,
+      `  ["relative-escape-from-common", { path: "../../Types/Dictionary", resolveDir: rum, importer: p.join(rum, "ChunkMath.ts") }],`,
+      `  ["relative-deep-escape", { path: "../../Server/Utils/Express", resolveDir: rum, importer: p.join(rum, "ChunkMath.ts") }],`,
+      `  ["relative-allowed-cross-rum", { path: "../../Types/Rum/SessionReplay", resolveDir: rum, importer: p.join(rum, "ChunkMath.ts") }],`,
+      `  ["relative-allowed-sibling", { path: "./SessionReplayConsentMode", resolveDir: typesRum, importer: p.join(typesRum, "SessionReplay.ts") }],`,
+      `  ["package-from-common", { path: "typeorm", resolveDir: rum, importer: p.join(rum, "ChunkMath.ts") }],`,
+      `  ["package-from-src", { path: "rrweb", resolveDir: src, importer: p.join(src, "Recorder.ts") }],`,
+      `  ["relative-inside-src", { path: "./Chunker", resolveDir: src, importer: p.join(src, "Recorder.ts") }],`,
+      `];`,
+      `const out = {};`,
+      `for (const [name, args] of cases) { out[name] = Boolean(config.resolveCommonEscape(args)); }`,
+      `process.stdout.write(JSON.stringify(out));`,
+    ].join("\n");
+
+    const raw: unknown = childProcess.execFileSync(
+      process.execPath,
+      ["-e", script],
+      {
+        cwd: PACKAGE_ROOT,
+        env: { ...process.env },
+        encoding: "utf8",
+      },
+    );
+
+    results = JSON.parse(String(raw)) as Record<string, boolean>;
+  }, 60000);
+
+  const expected: Array<ResolverCase> = [
+    { name: "relative-escape-from-common", blocked: true },
+    { name: "relative-deep-escape", blocked: true },
+    { name: "relative-allowed-cross-rum", blocked: false },
+    { name: "relative-allowed-sibling", blocked: false },
+    { name: "package-from-common", blocked: true },
+    { name: "package-from-src", blocked: false },
+    { name: "relative-inside-src", blocked: false },
+  ];
+
+  /*
+   * it.each rather than a for loop: `results` is populated in beforeAll, so a
+   * closure declared inside a loop closes over a binding that is still empty
+   * at declaration time, which is exactly what no-loop-func warns about.
+   */
+  it.each(expected)(
+    "$name is resolved as expected",
+    (testCase: ResolverCase): void => {
+      expect(results[testCase.name]).toBe(testCase.blocked);
+    },
+  );
 });
 
 /* Marks this file as a module, so its ambient Node declarations stay local. */

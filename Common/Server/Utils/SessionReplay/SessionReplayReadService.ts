@@ -50,6 +50,10 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
  *  3. The manifest read must never name the `payload` column, so
  *     ClickHouse never touches (and never decompresses) the only column
  *     in the system that holds a recording of a real person's screen.
+ *     The byte-cap pre-check is the one exception, and it measures
+ *     `length(payload)` inside ClickHouse without ever shipping the
+ *     bytes: the cap has to bound the size of what is actually returned,
+ *     and the only honest measure of that is the stored column itself.
  *
  * NOTE on aliases: ClickHouse substitutes SELECT aliases into same-level
  * unqualified WHERE references, and an aggregate alias there is an
@@ -685,13 +689,22 @@ export default class SessionReplayReadService {
     statement.append(RETENTION_FILTER);
 
     /*
-     * Grouped by the full replace-key identity minus startTime. A single
-     * sessionId can in principle appear under two applications only if an
-     * identifier collided; taking the first row keeps the endpoint
-     * deterministic instead of merging two recordings.
+     * Grouped by the full replace-key identity minus startTime, so one
+     * group per (application, session).
+     *
+     * LIMIT 2, not LIMIT 1. sessionId is minted by the browser and is
+     * therefore fully caller-controlled, while the chunk table's replace
+     * key is (projectId, sessionId, tabId, chunkIndex) with
+     * rumApplicationId a plain column - two applications sharing a
+     * sessionId share a key space. Picking the newest group would let
+     * anyone who can write to application A resolve a sessionId belonging
+     * to application B onto their own application and pass the label
+     * check. An ambiguous sessionId is refused outright instead: it is
+     * either an attack or a collision, and neither has a correct
+     * recording to return.
      */
     statement.append(
-      " GROUP BY projectId, rumApplicationId, sessionId ORDER BY aggStartTime DESC LIMIT 1",
+      " GROUP BY projectId, rumApplicationId, sessionId ORDER BY aggStartTime DESC LIMIT 2",
     );
 
     statement.append(READ_QUERY_SETTINGS);
@@ -701,7 +714,15 @@ export default class SessionReplayReadService {
       data?: Array<JSONObject>;
     }>();
 
-    const row: JSONObject | undefined = (response.data || [])[0];
+    const rows: Array<JSONObject> = response.data || [];
+
+    if (rows.length > 1) {
+      throw new BadDataException(
+        "This session id resolves to more than one RUM application and cannot be played back.",
+      );
+    }
+
+    const row: JSONObject | undefined = rows[0];
 
     if (!row) {
       return null;
@@ -770,6 +791,15 @@ export default class SessionReplayReadService {
   public static async getManifest(data: {
     header: SessionReplaySessionHeader;
     projectId: ObjectID;
+    /*
+     * The application the caller was actually authorized against, always
+     * the one resolved from the session header server-side. Every chunk
+     * read is pinned to it: the chunk table's replace key does not
+     * include rumApplicationId, so (projectId, sessionId) alone is not a
+     * tenant-safe key once a sessionId can be reused across
+     * applications.
+     */
+    rumApplicationId: ObjectID;
     sessionId: string;
   }): Promise<SessionReplayManifest> {
     /*
@@ -794,6 +824,10 @@ export default class SessionReplayReadService {
         type: TableColumnType.ObjectID,
         value: data.projectId,
       }}
+        AND rumApplicationId = ${{
+          type: TableColumnType.ObjectID,
+          value: data.rumApplicationId,
+        }}
         AND sessionId = ${{
           type: TableColumnType.Text,
           value: data.sessionId,
@@ -897,18 +931,27 @@ export default class SessionReplayReadService {
   }
 
   /*
-   * Total stored bytes for a specific set of chunks, WITHOUT reading the
-   * payload column.
+   * Total STORED bytes for a specific set of chunks, without shipping the
+   * payload column to the application.
    *
-   * The byte cap has to be answerable before the expensive read, not
-   * after: refusing an 8 MB request only once ClickHouse has already
-   * decompressed 8 MB defeats the point of the cap. This costs one extra
-   * round trip against a granule the manifest read has almost certainly
-   * already warmed.
+   * `length(payload)`, deliberately NOT `payloadBytes`. Those are two
+   * different quantities: payloadBytes is the post-gzip WIRE size the
+   * recorder uploaded (the metering signal), while the payload column
+   * holds the DECOMPRESSED JSON and is what this endpoint actually
+   * returns. rrweb JSON gzips 10-20x, so a cap applied to payloadBytes
+   * bounds a number an order of magnitude smaller than the response and
+   * therefore bounds nothing useful.
+   *
+   * The cost is that ClickHouse has to decompress the column to measure
+   * it, which is exactly what naming `payload` was meant to avoid. It is
+   * still worth doing before the read rather than after: the bytes are
+   * measured inside ClickHouse and never cross the wire, and the marks
+   * the following read needs are warm by the time it runs.
    */
   @CaptureSpan()
-  public static async getChunkPayloadBytes(data: {
+  public static async getChunkStoredBytes(data: {
     projectId: ObjectID;
+    rumApplicationId: ObjectID;
     sessionId: string;
     tabId: string;
     chunkIndexes: Array<number>;
@@ -920,12 +963,16 @@ export default class SessionReplayReadService {
     const statement: Statement = SQL`
       SELECT
         chunkIndex,
-        toFloat64(payloadBytes) AS chunkPayloadBytes
+        toFloat64(length(payload)) AS chunkStoredBytes
       FROM ${AnalyticsTableName.RumSessionChunk}
       WHERE projectId = ${{
         type: TableColumnType.ObjectID,
         value: data.projectId,
       }}
+        AND rumApplicationId = ${{
+          type: TableColumnType.ObjectID,
+          value: data.rumApplicationId,
+        }}
         AND sessionId = ${{
           type: TableColumnType.Text,
           value: data.sessionId,
@@ -964,7 +1011,7 @@ export default class SessionReplayReadService {
 
     return (response.data || []).reduce(
       (total: number, row: JSONObject): number => {
-        return total + readNumber(row, "chunkPayloadBytes");
+        return total + readNumber(row, "chunkStoredBytes");
       },
       0,
     );
@@ -980,6 +1027,7 @@ export default class SessionReplayReadService {
   @CaptureSpan()
   public static async getChunks(data: {
     projectId: ObjectID;
+    rumApplicationId: ObjectID;
     sessionId: string;
     tabId: string;
     chunkIndexes: Array<number>;
@@ -995,7 +1043,7 @@ export default class SessionReplayReadService {
     }
 
     const totalBytes: number =
-      await SessionReplayReadService.getChunkPayloadBytes(data);
+      await SessionReplayReadService.getChunkStoredBytes(data);
 
     if (totalBytes > MAX_SESSION_REPLAY_READ_BYTES) {
       throw new BadDataException(
@@ -1012,6 +1060,10 @@ export default class SessionReplayReadService {
         type: TableColumnType.ObjectID,
         value: data.projectId,
       }}
+        AND rumApplicationId = ${{
+          type: TableColumnType.ObjectID,
+          value: data.rumApplicationId,
+        }}
         AND sessionId = ${{
           type: TableColumnType.Text,
           value: data.sessionId,
@@ -1046,14 +1098,36 @@ export default class SessionReplayReadService {
       data?: Array<JSONObject>;
     }>();
 
-    return (response.data || []).map(
-      (row: JSONObject): SessionReplayChunkPayload => {
-        return {
-          chunkIndex: readNumber(row, "chunkIndex"),
-          payload: readString(row, "payload"),
-        };
-      },
-    );
+    /*
+     * The cap is re-applied to the bytes actually being handed back, not
+     * only to what the pre-check believed. The pre-check reads a
+     * different snapshot of a ReplacingMergeTree than the read it guards,
+     * and any future change to how stored size is derived would otherwise
+     * silently unbound the response. Accumulated as the rows are mapped
+     * so an oversized read fails before the caller ever holds the whole
+     * set.
+     */
+    let totalReturnedBytes: number = 0;
+    const chunks: Array<SessionReplayChunkPayload> = [];
+
+    for (const row of response.data || []) {
+      const payload: string = readString(row, "payload");
+
+      totalReturnedBytes += Buffer.byteLength(payload, "utf8");
+
+      if (totalReturnedBytes > MAX_SESSION_REPLAY_READ_BYTES) {
+        throw new BadDataException(
+          `The requested chunks exceed the ${MAX_SESSION_REPLAY_READ_BYTES} byte limit for a single read. Request fewer chunks.`,
+        );
+      }
+
+      chunks.push({
+        chunkIndex: readNumber(row, "chunkIndex"),
+        payload: payload,
+      });
+    }
+
+    return chunks;
   }
 
   /*

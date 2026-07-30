@@ -68,12 +68,21 @@ async function resolveOtelBody(
 }
 
 /*
- * Per-pod concurrency gate for session replay.
+ * Per-pod cap on how many replay jobs may be DECODING AND SCRUBBING at once.
  *
- * The replay path deliberately reuses QueueName.Telemetry (a new queue name
- * would mean a new worker deployment plus a KEDA scaler), which means a
- * replay backlog could otherwise occupy all TELEMETRY_CONCURRENCY slots and
- * starve trace and log ingest behind recordings.
+ * What this does deliver: a bound on concurrent gunzip + rrweb-tree walking,
+ * and therefore on the worker's peak memory and CPU from replay. Decoded
+ * chunks are held resident until their insert is submitted, so without a cap
+ * TELEMETRY_CONCURRENCY simultaneous replay jobs is a multi-GB ceiling.
+ *
+ * What this does NOT deliver, despite the obvious reading: starvation
+ * protection for the other telemetry signals. The gate is applied INSIDE the
+ * BullMQ job handler, so a replay job parked here is still holding one of the
+ * worker's TELEMETRY_CONCURRENCY slots. With enough replay jobs at the head
+ * of the queue every slot is occupied and no trace or log job is fetched.
+ * Fixing that properly means a separate worker on a filtered job name, since
+ * worker concurrency is the only real enforcement point; it is not what this
+ * gate is.
  *
  * In-process rather than the distributed Redis Semaphore on purpose:
  * TELEMETRY_CONCURRENCY is itself a per-pod number, so a per-pod cap is the
@@ -341,9 +350,10 @@ if (DisableQueueWorkers) {
             case TelemetryType.SessionReplay:
               if (jobData.sessionReplayIngest) {
                 /*
-                 * Held behind the per-pod replay slot gate so a replay
-                 * backlog cannot consume every worker slot and starve the
-                 * other telemetry signals.
+                 * Held behind the per-pod replay slot gate, which bounds how
+                 * many chunks are being decoded and scrubbed at once and so
+                 * bounds the worker's peak memory. It does not free the
+                 * BullMQ slot while waiting - see withSessionReplaySlot.
                  */
                 await withSessionReplaySlot(async (): Promise<void> => {
                   await SessionReplayIngestService.processFromQueue(

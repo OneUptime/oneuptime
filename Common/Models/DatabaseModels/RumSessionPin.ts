@@ -224,9 +224,17 @@ export default class RumSessionPin extends BaseModel {
     read: READ_PERMISSIONS,
     update: [],
   })
+  /*
+   * computed, not just create: []. The service stamps this from the
+   * authenticated caller in onBeforeCreate, which runs BEFORE the
+   * create-column permission check - so without the computed flag
+   * ModelPermission sees a column the caller has no create grant on and
+   * rejects every pin.
+   */
   @TableColumn({
     type: TableColumnType.ObjectID,
     required: false,
+    computed: true,
     canReadOnRelationQuery: true,
     title: "Pinned by User ID",
     description: "ID of the user who pinned this recording.",
@@ -389,8 +397,14 @@ export default class RumSessionPin extends BaseModel {
   })
   public materializedAt?: Date = undefined;
 
+  /*
+   * create: [] rather than CREATE_PERMISSIONS. DatabaseService stamps this
+   * from props.userId after the permission check and only when there is a
+   * userId, so a create grant here would let an API-key caller attribute
+   * the pin to a colleague.
+   */
   @ColumnAccessControl({
-    create: CREATE_PERMISSIONS,
+    create: [],
     read: READ_PERMISSIONS,
     update: [],
   })

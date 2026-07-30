@@ -1,5 +1,11 @@
 import RunCron from "../../Utils/Cron";
+import { getActiveSessionsKey } from "./FinalizeSessions";
 import Redis, { ClientType } from "Common/Server/Infrastructure/Redis";
+import {
+  ERASURE_TOMBSTONE_TTL_SECONDS,
+  getErasedSessionsKey,
+  writeErasureTombstones,
+} from "Common/Server/Utils/SessionReplay/SessionReplayErasureTombstone";
 import RumSessionErasureRequest, {
   RumSessionErasureRequestStatus,
   RumSessionErasureRequestType,
@@ -22,6 +28,8 @@ import {
   SQL,
   Statement,
 } from "Common/Server/Utils/AnalyticsDatabase/Statement";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
+import Select from "Common/Server/Types/Database/Select";
 import logger from "Common/Server/Utils/Logger";
 import AnalyticsTableName from "Common/Types/AnalyticsDatabase/AnalyticsTableName";
 import TableColumnType from "Common/Types/AnalyticsDatabase/TableColumnType";
@@ -48,8 +56,19 @@ import { EVERY_DAY } from "Common/Utils/CronTime";
  *  - A tombstone is written BEFORE anything is deleted. Chunks live in
  *    Redis staging for hours and the queue retries, so without a
  *    tombstone an in-flight chunk that lands after the mutation would
- *    resurrect part of an erased recording. The ingest path checks the
- *    tombstone before every insert.
+ *    resurrect part of an erased recording.
+ *
+ *    Consumers of the tombstone today: Rum:FinalizeSessions refuses to
+ *    write a session header for a tombstoned session, and this job takes
+ *    the erased sessions off the finalizer's activity queue outright.
+ *    STILL MISSING: the chunk INGEST path
+ *    (App/FeatureSet/Telemetry/Services/SessionReplayIngestService) does
+ *    NOT yet SISMEMBER the tombstone before staging a chunk or before
+ *    inserting it from the queue, so a chunk staged before the erasure and
+ *    drained afterwards can still land in a new part the mutation will
+ *    never see. Use isSessionErased() from
+ *    Common/Server/Utils/SessionReplay/SessionReplayErasureTombstone there
+ *    and drop the chunk on a hit.
  *
  *  - Deletes route through the MIGRATION connection pool. The app pool's
  *    ClickHouse client enforces request_timeout as a socket-IDLE timer at
@@ -95,25 +114,62 @@ const PER_RUN_LIMIT_CLAUSE: string = ` LIMIT ${MAX_SESSION_IDS_PER_REQUEST_PER_R
 const MAX_REQUESTS_PER_RUN: number = 200;
 
 /*
- * Tombstone lifetime. Must comfortably outlast the chunk staging TTL plus
- * the queue's maximum retry window, or a delayed redelivery could
- * reinstate an erased session. Refreshed on every write.
+ * A request left InProgress for longer than this is presumed abandoned by
+ * a crashed or evicted worker and is re-processed. Every step of the work
+ * is idempotent (the tombstone SADD, the ALTER ... DELETE mutations and
+ * the activity-set purge all converge), so re-running costs nothing but a
+ * repeated mutation submission, whereas NOT re-running leaves the request
+ * stuck in a non-terminal state forever with the subject's data possibly
+ * only half deleted.
+ *
+ * Comfortably longer than the job's own 60 minute timeout, so a run that
+ * is merely slow is never treated as dead by the next run.
  */
-export const ERASURE_TOMBSTONE_TTL_SECONDS: number = 7 * 24 * 60 * 60;
+export const STALE_IN_PROGRESS_RECLAIM_MS: number = 2 * 60 * 60 * 1000;
+
+/*
+ * Activity-set members scanned per erased batch when purging the
+ * finalizer's work queue. Bounded so a pathological project cannot turn
+ * one erasure batch into an unbounded Redis walk.
+ */
+const MAX_ACTIVITY_PURGE_SCAN_ITERATIONS: number = 200;
+const ACTIVITY_PURGE_SCAN_COUNT: number = 500;
+
+/*
+ * Shared by the Pending query and the stale-InProgress reclaim query, so
+ * the two can never drift into selecting different columns and giving
+ * resolveTargetSessionIds a differently-shaped request.
+ */
+const ERASURE_REQUEST_SELECT: Select<RumSessionErasureRequest> = {
+  _id: true,
+  projectId: true,
+  rumApplicationId: true,
+  requestType: true,
+  targetValue: true,
+  startDate: true,
+  endDate: true,
+  requestedAt: true,
+  sessionsDeleted: true,
+  chunksDeleted: true,
+};
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
 /*
- * Redis tombstone key, mirrored by the session-replay ingest service —
- * which MUST SISMEMBER this set before staging or inserting a chunk. The
- * durable record of the erasure is the RumSessionErasureRequest row; this
- * set is the fast path the hot ingest loop can afford.
+ * The tombstone key helper and writer live in
+ * Common/Server/Utils/SessionReplay/SessionReplayErasureTombstone so the
+ * INGEST path can consult them: the ingest service runs in the API
+ * process, and importing this cron module there would register a cron in
+ * the wrong process. They are re-exported here because this job is where
+ * the tombstone is written and callers (and tests) look for them here.
  */
-export function getErasedSessionsKey(projectId: string): string {
-  return `replay:erased:${projectId}`;
-}
+export {
+  ERASURE_TOMBSTONE_TTL_SECONDS,
+  getErasedSessionsKey,
+  writeErasureTombstones,
+};
 
 /*
  * The @clickhouse/client types live in Common's node_modules and are not
@@ -147,6 +203,37 @@ async function readSessionIds(statement: Statement): Promise<Array<string>> {
 }
 
 /*
+ * The optional application scope of a request, as a SQL fragment.
+ *
+ * RumSessionErasureRequest.rumApplicationId documents itself as "the
+ * application this erasure request is scoped to, if any. Null for a
+ * project-wide request", and the UI presents it as a scope selector. A
+ * scoped request that ignored it would destroy every OTHER application's
+ * recordings in the project (and their correlated logs, spans and
+ * exception instances) — irreversible over-deletion driven by a field the
+ * requester used to NARROW the blast radius.
+ *
+ * Returns an empty statement for an unscoped request, so a project-wide
+ * erasure still matches everything.
+ */
+export function buildRumApplicationScopeClause(
+  request: RumSessionErasureRequest,
+): Statement {
+  const rumApplicationId: string = request.rumApplicationId
+    ? request.rumApplicationId.toString()
+    : "";
+
+  if (!rumApplicationId) {
+    return SQL``;
+  }
+
+  return SQL` AND rumApplicationId = ${{
+    type: TableColumnType.Text,
+    value: rumApplicationId,
+  }}`;
+}
+
+/*
  * Resolve the erasure subject to a concrete set of session ids.
  *
  * DISTINCT rather than argMax: ReplacingMergeTree keeps several versions
@@ -168,6 +255,7 @@ export async function resolveTargetSessionIds(data: {
   const requestType: RumSessionErasureRequestType | undefined =
     request.requestType;
   const targetValue: string = (request.targetValue || "").trim();
+  const applicationScope: Statement = buildRumApplicationScopeClause(request);
 
   if (requestType === RumSessionErasureRequestType.BySessionId) {
     /*
@@ -201,7 +289,9 @@ export async function resolveTargetSessionIds(data: {
         }} AND identifiedUserKey = ${{
           type: TableColumnType.Text,
           value: targetValue,
-        }}`.append(PER_RUN_LIMIT_CLAUSE),
+        }}`
+        .append(applicationScope)
+        .append(PER_RUN_LIMIT_CLAUSE),
     );
   }
 
@@ -253,7 +343,9 @@ export async function resolveTargetSessionIds(data: {
         }} AND startTime <= ${{
           type: TableColumnType.DateTime64,
           value: request.endDate,
-        }}`.append(PER_RUN_LIMIT_CLAUSE),
+        }}`
+        .append(applicationScope)
+        .append(PER_RUN_LIMIT_CLAUSE),
     );
   }
 
@@ -362,27 +454,88 @@ async function countChunksForSessions(data: {
 }
 
 /*
- * Write the tombstone before deleting anything, and treat a Redis failure
- * as fatal for the batch. Deleting first and tombstoning afterwards would
- * leave a window in which a staged chunk can be inserted back into a
- * recording the subject asked to have destroyed.
+ * Take the erased sessions off the finalizer's work queue.
+ *
+ * The finalizer derives a session header from the chunk rows and writes it
+ * with `version = Date.now()`, and ClickHouse mutations only rewrite the
+ * parts that existed when they were submitted. So a session that is still
+ * sitting in `replay:active:<projectId>` when the erasure is submitted gets
+ * a BRAND NEW header row written by the next finalizer run, carrying
+ * identifiedUserKey, entryUrl, routes and countryCode for the subject who
+ * asked to be erased — and nothing ever deletes that row again.
+ *
+ * The finalizer also checks the tombstone, so this is the second of two
+ * independent guards rather than the only one. It matters on its own
+ * because it stops the session being ENQUEUED at all, which is cheaper and
+ * survives a Redis restart differently to the tombstone check.
+ *
+ * Members are "<sessionId>:<tabId>", so the match is on the sessionId
+ * prefix rather than on the whole member: one session can have several
+ * tabs and every one of them has to go.
  */
-export async function writeErasureTombstones(data: {
+export async function purgeErasedSessionsFromActivitySet(data: {
   projectId: string;
   sessionIds: Array<string>;
-}): Promise<void> {
+}): Promise<number> {
   const client: ClientType | null = Redis.getClient();
 
   if (!client || !Redis.isConnected()) {
-    throw new Error(
-      "Redis is not connected; refusing to erase sessions without a tombstone the ingest path can check",
-    );
+    return 0;
   }
 
-  const key: string = getErasedSessionsKey(data.projectId);
+  if (data.sessionIds.length === 0) {
+    return 0;
+  }
 
-  await client.sadd(key, data.sessionIds);
-  await client.expire(key, ERASURE_TOMBSTONE_TTL_SECONDS);
+  const erased: Set<string> = new Set<string>(data.sessionIds);
+  const activeKey: string = getActiveSessionsKey(data.projectId);
+
+  let removed: number = 0;
+  let cursor: string = "0";
+  let iterations: number = 0;
+
+  do {
+    /*
+     * ZSCAN returns a flat [member, score, member, score, ...] array, so
+     * the stride is 2. Scanning once over the whole activity set is
+     * cheaper than one MATCH per erased session id: a batch carries up to
+     * MAX_SESSION_IDS_PER_MUTATION ids while the activity set only ever
+     * holds the sessions seen in the last few hours.
+     */
+    const [nextCursor, entries]: [string, Array<string>] = await client.zscan(
+      activeKey,
+      cursor,
+      "COUNT",
+      ACTIVITY_PURGE_SCAN_COUNT,
+    );
+
+    cursor = nextCursor;
+    iterations++;
+
+    const doomed: Array<string> = [];
+
+    for (let index: number = 0; index < entries.length; index += 2) {
+      const member: string | undefined = entries[index];
+
+      if (!member) {
+        continue;
+      }
+
+      const separatorIndex: number = member.indexOf(":");
+      const sessionId: string =
+        separatorIndex > 0 ? member.substring(0, separatorIndex) : member;
+
+      if (erased.has(sessionId)) {
+        doomed.push(member);
+      }
+    }
+
+    if (doomed.length > 0) {
+      removed += await client.zrem(activeKey, doomed);
+    }
+  } while (cursor !== "0" && iterations < MAX_ACTIVITY_PURGE_SCAN_ITERATIONS);
+
+  return removed;
 }
 
 export async function eraseSessionBatch(data: {
@@ -394,6 +547,24 @@ export async function eraseSessionBatch(data: {
     projectId: data.projectId.toString(),
     sessionIds: data.sessionIds,
   });
+
+  /*
+   * Immediately after the tombstone and before any DELETE: the finalizer
+   * runs every 5 minutes and must not be holding a queue entry that would
+   * write a fresh header for one of these sessions while the mutations
+   * are still draining.
+   */
+  const activityEntriesRemoved: number =
+    await purgeErasedSessionsFromActivitySet({
+      projectId: data.projectId.toString(),
+      sessionIds: data.sessionIds,
+    });
+
+  if (activityEntriesRemoved > 0) {
+    logger.info(
+      `${JOB_NAME}: removed ${activityEntriesRemoved} pending activity entr(ies) for erased sessions in project ${data.projectId.toString()}`,
+    );
+  }
 
   const chunksDeleted: number = await countChunksForSessions({
     databaseName: data.databaseName,
@@ -576,18 +747,7 @@ export async function processPendingErasureRequests(): Promise<void> {
       query: {
         status: RumSessionErasureRequestStatus.Pending,
       },
-      select: {
-        _id: true,
-        projectId: true,
-        rumApplicationId: true,
-        requestType: true,
-        targetValue: true,
-        startDate: true,
-        endDate: true,
-        requestedAt: true,
-        sessionsDeleted: true,
-        chunksDeleted: true,
-      },
+      select: ERASURE_REQUEST_SELECT,
       /* Oldest first, so a request cannot be starved by newer ones. */
       sort: {
         requestedAt: SortOrder.Ascending,
@@ -599,7 +759,51 @@ export async function processPendingErasureRequests(): Promise<void> {
       },
     });
 
-  if (pendingRequests.length === 0) {
+  /*
+   * Requests abandoned mid-flight. markInProgress is written before any
+   * work happens, so a worker crash, a pod eviction or the job's own 60
+   * minute timeout firing leaves a request InProgress with the tombstone
+   * written and possibly only the chunk table deleted. Nothing else in the
+   * system would ever look at it again, and the erasure SLA would be
+   * missed silently.
+   *
+   * `updatedAt` is the claim timestamp: markInProgress is an update, so it
+   * is stamped by the base service on every claim.
+   */
+  const staleRequests: Array<RumSessionErasureRequest> =
+    await RumSessionErasureRequestService.findBy({
+      query: {
+        status: RumSessionErasureRequestStatus.InProgress,
+        updatedAt: QueryHelper.lessThan(
+          new Date(
+            OneUptimeDate.getCurrentDate().getTime() -
+              STALE_IN_PROGRESS_RECLAIM_MS,
+          ),
+        ),
+      },
+      select: ERASURE_REQUEST_SELECT,
+      sort: {
+        requestedAt: SortOrder.Ascending,
+      },
+      limit: MAX_REQUESTS_PER_RUN,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+  if (staleRequests.length > 0) {
+    logger.warn(
+      `${JOB_NAME}: reclaiming ${staleRequests.length} erasure request(s) left InProgress by an interrupted run`,
+    );
+  }
+
+  const requestsToProcess: Array<RumSessionErasureRequest> = [
+    ...pendingRequests,
+    ...staleRequests,
+  ];
+
+  if (requestsToProcess.length === 0) {
     return;
   }
 
@@ -613,7 +817,7 @@ export async function processPendingErasureRequests(): Promise<void> {
     Array<RumSessionErasureRequest>
   > = new Map<string, Array<RumSessionErasureRequest>>();
 
-  for (const request of pendingRequests) {
+  for (const request of requestsToProcess) {
     const projectKey: string = request.projectId
       ? request.projectId.toString()
       : "";

@@ -119,6 +119,44 @@ describe("Config", (): void => {
       expect(Config.validateConfig({ enabled: true })).toBeNull();
     });
 
+    /*
+     * recorderVersion is interpolated straight into an artifact URL path, so
+     * "non-empty string" was not enough: a config value of "../../../admin"
+     * produced a <script src> pointing somewhere else entirely on the ingest
+     * origin. Only a semver the build could have stamped is accepted.
+     */
+    it("refuses a recorder version that is not a plain semver", (): void => {
+      const rejected: Array<string> = [
+        "../../../admin",
+        "1.0.0/../../evil",
+        "1.0.0?x=1",
+        "1.0.0#frag",
+        "v1.0.0",
+        "1.0",
+        "latest",
+        "1.0.0 ",
+        "1.0.0/recorder.js",
+        "//evil.example.com/x",
+      ];
+
+      for (const version of rejected) {
+        expect(
+          Config.validateConfig({ enabled: true, recorderVersion: version }),
+        ).toBeNull();
+        expect(Config.isValidRecorderVersion(version)).toBe(false);
+      }
+    });
+
+    it("accepts the semver shapes the build can actually stamp", (): void => {
+      for (const version of ["1.0.0", "11.7.3", "12.0.0-beta.1"]) {
+        expect(Config.isValidRecorderVersion(version)).toBe(true);
+        expect(
+          Config.validateConfig({ enabled: true, recorderVersion: version })
+            ?.recorderVersion,
+        ).toBe(version);
+      }
+    });
+
     it("refuses a non-object body", (): void => {
       expect(Config.validateConfig(null)).toBeNull();
       expect(Config.validateConfig("enabled")).toBeNull();
@@ -210,6 +248,18 @@ describe("Config", (): void => {
       expect(Config.getArtifactUrl(options, "11.7.3")).toBe(
         "https://oneuptime.com/telemetry/session-replay/v11.7.3/recorder.js",
       );
+    });
+
+    /*
+     * Defence in depth behind validateConfig: nothing may assemble a script
+     * URL from a version that is not a semver, whatever path it arrived by.
+     */
+    it("refuses to build an artifact url from a traversing version", (): void => {
+      expect(Config.getArtifactUrl(options, "../../../admin")).toBeNull();
+      expect(Config.getArtifactUrl(options, "")).toBeNull();
+      expect(
+        Config.getArtifactUrl(options, "1.0.0/../../../etc/passwd"),
+      ).toBeNull();
     });
 
     /*

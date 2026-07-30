@@ -608,6 +608,10 @@ const DocsNav: NavGroup[] = [
         title: "Real User Monitoring",
         url: "/docs/telemetry/real-user-monitoring",
       },
+      {
+        title: "Session Replay",
+        url: "/docs/telemetry/session-replay",
+      },
     ],
   },
   {

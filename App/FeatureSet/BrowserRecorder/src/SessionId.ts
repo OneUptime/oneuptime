@@ -79,6 +79,25 @@ export default class SessionId {
   }
 
   /*
+   * Would the CURRENT stored state rotate right now?
+   *
+   * Exposed separately from resolveSession so a live recorder can ask the
+   * question on its flush timer without also minting a new id as a side
+   * effect. Before this existed, the only callers of resolveSession were the
+   * constructor and the bfcache restore, so neither the 30 minute idle
+   * rollover nor the 4 hour duration cap could ever fire while the recorder
+   * was alive - a dashboard tab left open all day accumulated one sessionId
+   * and one unbounded chunk sequence, which is exactly what the cap exists to
+   * prevent.
+   */
+  public static shouldRotate(nowUnixMs: number): SessionRotationDecision {
+    return SessionIdentity.shouldRotateSession(
+      SessionId.readStoredSession(),
+      nowUnixMs,
+    );
+  }
+
+  /*
    * Resolve the session id, rotating when SessionIdentity says to.
    *
    * previousSessionId and rotationReason are returned (and later reported)

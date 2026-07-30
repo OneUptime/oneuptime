@@ -1,5 +1,9 @@
 import Models from "../../../Models/DatabaseModels/Index";
+import AnalyticsModels from "../../../Models/AnalyticsModels/Index";
+import AnalyticsBaseModel from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
+import AuditLog from "../../../Models/AnalyticsModels/AuditLog";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import Project from "../../../Models/DatabaseModels/Project";
 import RumApplication from "../../../Models/DatabaseModels/RumApplication";
 import RumSessionErasureRequest from "../../../Models/DatabaseModels/RumSessionErasureRequest";
@@ -190,9 +194,27 @@ describe("RumSessionReplayView (read audit)", () => {
      * audit lived there, no Free or Growth project - and no project that
      * never enabled audit logs - would have any record of who watched a
      * real end user's screen. A privacy control must not be a paid tier.
+     *
+     * So: the alternative really is Enterprise-gated, the replay audit is
+     * not an analytics model, and no column of it carries a billing gate
+     * that would silently reintroduce one.
      */
-    expect(model instanceof BaseModel).toBe(true);
+    expect(new AuditLog().tableBillingAccessControl?.read).toBe(
+      PlanType.Enterprise,
+    );
+
+    const analyticsTableNames: Array<string> = AnalyticsModels.map(
+      (analyticsModel: { new (): AnalyticsBaseModel }): string => {
+        return new analyticsModel().tableName || "";
+      },
+    );
+
+    expect(analyticsTableNames).not.toContain("RumSessionReplayView");
     expect(model.tableName).toBe("RumSessionReplayView");
+
+    for (const columnName of model.getTableColumns().columns) {
+      expect(model.getColumnBillingAccessControl(columnName)).toBeUndefined();
+    }
   });
 
   it("cannot be created, updated or deleted through the API", () => {
@@ -222,6 +244,29 @@ describe("RumSessionReplayView (read audit)", () => {
     expect(columns).toContain("userAgent");
     expect(columns).toContain("secondsWatched");
     expect(columns).toContain("accessReason");
+
+    /*
+     * The second half of the title, which is the half that matters. The
+     * recorded person is not a party to this row: it says who watched, not
+     * who was watched. A column carrying the end user's address, location
+     * or identity would turn the privacy control into a second copy of the
+     * data it exists to police.
+     */
+    const endUserLocationPattern: RegExp =
+      /enduser|geo|country|city|latitude|longitude/i;
+
+    const endUserColumn: string | undefined = columns.find(
+      (columnName: string): boolean => {
+        return endUserLocationPattern.test(columnName);
+      },
+    );
+
+    expect(endUserColumn).toBeUndefined();
+
+    /* ipAddress is documented as the viewer's, and nothing disagrees. */
+    expect(model.getTableColumnMetadata("ipAddress").description).toContain(
+      "viewer",
+    );
   });
 
   it("keeps the API key id as a bare column so revoking a key does not erase the audit", () => {

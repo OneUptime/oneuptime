@@ -30,8 +30,17 @@ import { JSONObject } from "Common/Types/JSON";
 import {
   SESSION_REPLAY_ENABLED_BY_DEFAULT,
   SESSION_REPLAY_INGEST_ENABLED,
-  SESSION_REPLAY_RECORDER_VERSION,
+  SESSION_REPLAY_TRUSTED_GEO_HEADER,
 } from "../Config";
+import {
+  ARTIFACT_CONTENT_TYPE,
+  LOADER_CACHE_CONTROL,
+  RECORDER_CACHE_CONTROL,
+  RECORDER_VERSION_PATTERN,
+  getArtifactFilePath,
+  getPinnedRecorderPath,
+  getRecorderVersion,
+} from "../../BrowserRecorder/Manifest";
 import SessionReplayRequestMiddleware from "../Middleware/SessionReplayRequestMiddleware";
 import SessionReplayIngestService, {
   SessionReplayGateDecision,
@@ -40,6 +49,7 @@ import SessionReplayIngestService, {
 import TelemetryQueueService from "../Services/Queue/TelemetryQueueService";
 import SessionReplayEnvelopeParser, {
   ParsedSessionReplayFrame,
+  SessionReplayEnvelopeError,
   SessionReplayParseResult,
 } from "../Utils/SessionReplayEnvelopeParser";
 
@@ -155,36 +165,46 @@ function readAppIdentifier(req: ExpressRequest): string {
 }
 
 /*
- * Country from a CDN-supplied header only.
+ * Country from a CDN-supplied header, and ONLY when the deployment declares
+ * that it is actually behind that CDN.
  *
  * There is no IP-geolocation database in this deployment, and adding one to
- * satisfy a nice-to-have column would be a poor trade. When the ingress
- * supplies a country (Cloudflare and most CDNs do) we keep the two letters;
- * otherwise the column stays empty. The client IP itself is never stored.
+ * satisfy a nice-to-have column would be a poor trade. But a request header
+ * is client-controlled unless something in front of the app overwrites it:
+ * nothing in Nginx/default.conf.template strips cf-ipcountry, so on an
+ * install that is not behind Cloudflare any client - including a plain curl
+ * with a scraped ingestion key - could stamp arbitrary countries onto
+ * RumSession.countryCode and poison every per-country analytic or compliance
+ * filter built on that column.
+ *
+ * So the header to honour is named explicitly by SESSION_REPLAY_TRUSTED_GEO_
+ * HEADER, and the default is to trust none and leave the column empty. That
+ * is the fail-closed direction: an empty country is a missing nice-to-have,
+ * a forged one is bad data that looks derived.
  */
 const TWO_LETTER_COUNTRY_CODE: RegExp = new RegExp("^[A-Z]{2}$");
 
 function readCountryCode(req: ExpressRequest): string {
-  const candidates: Array<string | undefined> = [
-    headerValueToString(req.headers["cf-ipcountry"]),
-    headerValueToString(req.headers["x-vercel-ip-country"]),
-    headerValueToString(req.headers["x-country-code"]),
-  ];
+  if (!SESSION_REPLAY_TRUSTED_GEO_HEADER) {
+    return "";
+  }
 
-  for (const candidate of candidates) {
-    const trimmed: string = (candidate || "").trim().toUpperCase();
+  const candidate: string | undefined = headerValueToString(
+    req.headers[SESSION_REPLAY_TRUSTED_GEO_HEADER],
+  );
 
-    /*
-     * Cloudflare sends "XX" for an unknown country and "T1" for Tor exits;
-     * neither is a country, so only real two-letter codes are kept.
-     */
-    if (
-      TWO_LETTER_COUNTRY_CODE.test(trimmed) &&
-      trimmed !== "XX" &&
-      trimmed !== "T1"
-    ) {
-      return trimmed;
-    }
+  const trimmed: string = (candidate || "").trim().toUpperCase();
+
+  /*
+   * Cloudflare sends "XX" for an unknown country and "T1" for Tor exits;
+   * neither is a country, so only real two-letter codes are kept.
+   */
+  if (
+    TWO_LETTER_COUNTRY_CODE.test(trimmed) &&
+    trimmed !== "XX" &&
+    trimmed !== "T1"
+  ) {
+    return trimmed;
   }
 
   return "";
@@ -282,6 +302,30 @@ router.post(
         SessionReplayEnvelopeParser.parse(body, appIdentifier);
 
       if (!parsed.isValid) {
+        /*
+         * Running past the per-session chunk cap is a NORMAL end-of-session
+         * condition for a long-lived tab, not a malformed frame. The parser
+         * rejects the index before the gate can ever see it, so the orderly
+         * 204 + directive "stop" stand-down the design specifies has to be
+         * mapped here; answering 400 would tell the recorder its frames are
+         * broken and give it nothing to act on.
+         */
+        if (parsed.error === SessionReplayEnvelopeError.ChunkIndexOutOfRange) {
+          sendChunkDirective(req, res, 204, {
+            outcome: SessionReplayGateOutcome.Stop,
+            /*
+             * configEpoch 0 because no policy was resolved for this request:
+             * the parse failed before the gate ran. The recorder treats 0 as
+             * "unknown", which is correct - it must not overwrite its cached
+             * epoch on the strength of a response that never read the policy.
+             */
+            directive: "stop",
+            configEpoch: 0,
+            reason: "session-chunk-cap",
+          });
+          return;
+        }
+
         Response.sendJsonObjectResponse(
           req,
           res,
@@ -439,9 +483,23 @@ router.get(
        * and that says "no" is strictly safer than handing it an error it
        * might treat as transient and retry past.
        */
+      /*
+       * The published artifact version comes from the build manifest, never
+       * from an env var. Those were two independent answers to one question
+       * and they were never equal: esbuild names the file after package.json's
+       * version (which SyncPackageVersions.js rewrites every release) while
+       * the env var defaulted to a constant. A loader told to fetch a version
+       * that was never published 404s and silently no-ops on the customer's
+       * page - a failure the server cannot see.
+       *
+       * null means nothing has been built, in which case replay reports
+       * itself disabled rather than advertising an artifact that is not there.
+       */
+      const publishedRecorderVersion: string | null = getRecorderVersion();
+
       const disabledResponse: SessionReplayConfigResponse = {
         enabled: false,
-        recorderVersion: SESSION_REPLAY_RECORDER_VERSION,
+        recorderVersion: publishedRecorderVersion || "",
         maskingMode: SessionReplayMaskingMode.MaskAllText,
         captureTrigger: SessionReplayCaptureTrigger.OnErrorOrFrustration,
         consentMode: SessionReplayConsentMode.RequireExplicit,
@@ -458,7 +516,8 @@ router.get(
 
       if (
         !SESSION_REPLAY_INGEST_ENABLED ||
-        !SESSION_REPLAY_ENABLED_BY_DEFAULT
+        !SESSION_REPLAY_ENABLED_BY_DEFAULT ||
+        !publishedRecorderVersion
       ) {
         Response.sendJsonObjectResponse(
           req,
@@ -503,7 +562,7 @@ router.get(
 
       const config: SessionReplayConfigResponse = {
         enabled: true,
-        recorderVersion: SESSION_REPLAY_RECORDER_VERSION,
+        recorderVersion: publishedRecorderVersion,
         maskingMode: policy.maskingMode,
         captureTrigger: policy.captureTrigger,
         consentMode: policy.consentMode,
@@ -636,6 +695,118 @@ router.get(
     } catch (err) {
       return next(err);
     }
+  },
+);
+
+/*
+ * Artifact delivery.
+ *
+ * Both routes are deliberately UNAUTHENTICATED: this is a public static
+ * script that a customer's page loads with a plain <script src> from an
+ * arbitrary origin, exactly like any CDN-hosted analytics snippet. It
+ * contains no secrets and no project data - the ingestion key lives in the
+ * customer's own markup, not in the bundle - and the recorder can do nothing
+ * at all until the authenticated /config call succeeds.
+ *
+ * They are mounted here, in the Telemetry featureset, and not at the root,
+ * because Frontend's DashboardFallbackRoutePrefixesToSkip contains
+ * "/telemetry" and FrontendRoutes.init() runs BEFORE TelemetryRoutes.init().
+ * A root-level /recorder.js would be swallowed by the Dashboard SPA fallback
+ * and served as HTML on self-hosted installs - a failure that looks like a
+ * broken recorder rather than a routing mistake.
+ */
+
+type ArtifactSender = (
+  res: ExpressResponse,
+  filePath: string,
+  cacheControl: string,
+) => void;
+
+const sendArtifact: ArtifactSender = (
+  res: ExpressResponse,
+  filePath: string,
+  cacheControl: string,
+): void => {
+  res.setHeader("Content-Type", ARTIFACT_CONTENT_TYPE);
+  res.setHeader("Cache-Control", cacheControl);
+
+  /*
+   * Any origin may load it, and it is served without credentials. The
+   * explicit header matters for a customer who adds crossorigin="anonymous"
+   * to get useful error reporting, or an SRI integrity attribute - both
+   * require CORS to be granted or the browser refuses the script outright.
+   */
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+
+  res.sendFile(filePath, (err: Error | undefined): void => {
+    if (!err) {
+      return;
+    }
+
+    logger.error("Error sending the session replay artifact:");
+    logger.error(err);
+
+    if (!res.headersSent) {
+      res.status(500).end();
+    }
+  });
+};
+
+/*
+ * The loader stub, at a FIXED v1 path with a short cache. This is the URL
+ * customers paste into their site and never change. Everything version-
+ * specific is resolved at runtime from the config response, which is what
+ * makes a bad recorder release rollback-able by changing one field instead
+ * of waiting out an immutable cache in browsers we cannot reach.
+ */
+router.get(
+  "/session-replay/v1/recorder.js",
+  (_req: ExpressRequest, res: ExpressResponse): void => {
+    const filePath: string | null = getArtifactFilePath("loader.js");
+
+    if (!filePath) {
+      /*
+       * Not built. 404 rather than a stub, so a misconfigured deployment is
+       * loud in the customer's console instead of silently never recording.
+       */
+      res.status(404).end();
+      return;
+    }
+
+    sendArtifact(res, filePath, LOADER_CACHE_CONTROL);
+  },
+);
+
+/*
+ * The pinned, immutable artifact. Served ONLY for an exact version match:
+ * serving today's bytes under yesterday's version number, cached for a year,
+ * is unrecoverable in browsers we do not control.
+ */
+router.get(
+  "/session-replay/v:version/recorder.js",
+  (req: ExpressRequest, res: ExpressResponse): void => {
+    const requestedVersion: string = String(req.params["version"] || "");
+
+    /*
+     * Validated against the version pattern before it reaches the manifest.
+     * getPinnedRecorderPath is name-based and never joins this segment onto a
+     * directory, but rejecting a malformed version here keeps the traversal
+     * argument local and obvious rather than resting on a callee's contract.
+     */
+    if (!RECORDER_VERSION_PATTERN.test(requestedVersion)) {
+      res.status(404).end();
+      return;
+    }
+
+    const filePath: string | null = getPinnedRecorderPath(requestedVersion);
+
+    if (!filePath) {
+      res.status(404).end();
+      return;
+    }
+
+    sendArtifact(res, filePath, RECORDER_CACHE_CONTROL);
   },
 );
 

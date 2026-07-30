@@ -1,4 +1,6 @@
 import { beforeAll, describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import nodePath from "path";
 
 /*
  * Session replay adds four pages, and reaching any of them takes six
@@ -40,6 +42,52 @@ let setNavigationLocation: (pathname: string) => void;
 
 /* Every session-replay page key, in the order a user meets them. */
 let sessionReplayPageKeys: Array<string>;
+
+/*
+ * Source text, read rather than imported.
+ *
+ * The registrations, the canvas flag and the rrweb import boundary are all
+ * invariants that no runtime value exposes: RumApplicationRoutes.tsx renders
+ * React Router elements, and the rrweb boundary is a property of the module
+ * graph. Asserting on the text is the only way to make deleting one of them
+ * fail a test rather than a code review.
+ *
+ * Comments are stripped first: these files quote the very patterns being
+ * banned - the player's header explains why a top-level `from "rrweb"` would
+ * be a disaster - so a naive text search matches the warning and fails on
+ * correct code.
+ */
+function stripComments(source: string): string {
+  return source
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/(^|[^:])\/\/[^\n]*/g, "$1");
+}
+
+const routeSource: string = fs.readFileSync(
+  nodePath.join(
+    __dirname,
+    "../../FeatureSet/Dashboard/src/Routes/RumApplicationRoutes.tsx",
+  ),
+  "utf8",
+);
+const replayStageSource: string = stripComments(
+  fs.readFileSync(
+    nodePath.join(
+      __dirname,
+      "../../FeatureSet/Dashboard/src/Components/SessionReplay/ReplayStage.tsx",
+    ),
+    "utf8",
+  ),
+);
+const sessionReplayPlayerSource: string = stripComments(
+  fs.readFileSync(
+    nodePath.join(
+      __dirname,
+      "../../FeatureSet/Dashboard/src/Components/SessionReplay/SessionReplayPlayer.tsx",
+    ),
+    "utf8",
+  ),
+);
 
 /*
  * Common/UI/Config reads `window` the moment it loads, and RouteMap pulls it
@@ -212,6 +260,90 @@ describe("Session replay page wiring", () => {
 
     expect(withDefault).toBe(RouteParams.SubModelID);
     expect(withTwo).toBe(`session-replay/${RouteParams.SubModelID}`);
+
+    /*
+     * ...and the CALL SITE actually passes 2. The arithmetic above is
+     * RouteUtil's, not this feature's; deleting the literal `2` from
+     * RumApplicationRoutes.tsx is the mistake this test exists to catch, and
+     * it cannot be caught without reading the registration itself.
+     */
+    expect(routeSource).toMatch(
+      /getLastPathForKey\(\s*PageMap\.RUM_APPLICATION_VIEW_SESSION_REPLAY_VIEW\s*,\s*2\s*,?\s*\)/,
+    );
+  });
+
+  test("each session replay page is registered exactly once as a PageRoute", () => {
+    /*
+     * A key registered twice means React Router silently never reaches the
+     * second registration; a key registered zero times means the page is
+     * unreachable while every other wiring still looks correct.
+     */
+    for (const key of [
+      "RUM_APPLICATION_VIEW_SESSION_REPLAY",
+      "RUM_APPLICATION_VIEW_SESSION_REPLAY_VIEW",
+      "RUM_APPLICATION_VIEW_SESSION_REPLAY_AUDIT",
+    ]) {
+      const occurrences: number = (
+        routeSource.match(
+          new RegExp(`getLastPathForKey\\(\\s*PageMap\\.${key}\\b`, "g"),
+        ) ?? []
+      ).length;
+
+      expect([key, occurrences]).toEqual([key, 1]);
+    }
+
+    // The settings page is project-level, so it registers by RumRoutePath.
+    expect(routeSource).toContain(
+      "RumRoutePath[PageMap.RUM_SETTINGS_SESSION_REPLAY]",
+    );
+  });
+
+  test("canvas replay stays disabled in the stage", () => {
+    /*
+     * rrweb implements canvas replay by dropping the strict sandbox for
+     * "allow-same-origin allow-scripts", which is script execution inside a
+     * document built from attacker-influenceable end-user HTML on the
+     * Dashboard's own origin. This is a security invariant, and a comment is
+     * not a mechanism.
+     */
+    expect(replayStageSource).toContain("UNSAFE_replayCanvas: false");
+    expect(replayStageSource).not.toMatch(/UNSAFE_replayCanvas:\s*true/);
+  });
+
+  test("rrweb is reachable only through the dynamic import in the player", () => {
+    /*
+     * Common/UI/esbuild-config.js hardcodes minify:false, so a single static
+     * `import ... from "rrweb"` moves ~450KB of Replayer into the shared
+     * chunk downloaded by every user who never opens a replay. The lazy
+     * boundary is the whole reason ReplayStage takes a replayerFactory
+     * instead of constructing one.
+     */
+    const componentsDirectory: string = nodePath.join(
+      __dirname,
+      "../../FeatureSet/Dashboard/src/Components/SessionReplay",
+    );
+
+    for (const fileName of fs.readdirSync(componentsDirectory)) {
+      if (!fileName.endsWith(".ts") && !fileName.endsWith(".tsx")) {
+        continue;
+      }
+
+      const source: string = stripComments(
+        fs.readFileSync(nodePath.join(componentsDirectory, fileName), "utf8"),
+      );
+
+      // A static import in any form: `from "rrweb"` or `require("rrweb")`.
+      const staticImport: RegExp = /from\s+["']rrweb["']/;
+      const staticRequire: RegExp = /require\(\s*["']rrweb["']\s*\)/;
+
+      expect([fileName, staticImport.test(source)]).toEqual([fileName, false]);
+      expect([fileName, staticRequire.test(source)]).toEqual([fileName, false]);
+    }
+
+    // And exactly one dynamic import, in the one file allowed to have it.
+    expect(sessionReplayPlayerSource).toMatch(
+      /await import\(\s*["']rrweb["']\s*\)/,
+    );
   });
 
   test("the audit route cannot be shadowed by a session id", () => {

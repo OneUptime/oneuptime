@@ -1563,3 +1563,113 @@ describe("isRetryableInsertError — TransientInsertError", () => {
     expect(isRetryableInsertError(err.causeError)).toBe(true);
   });
 });
+
+/*
+ * The batcher counts ROWS, not bytes, so one global maxBatchRows cannot be
+ * right for tables whose rows differ by orders of magnitude. A session replay
+ * chunk row carries the whole decompressed rrweb payload in one column, so at
+ * the global 100,000 default a single flush would attempt a multi-hundred-MB
+ * insert.
+ */
+describe("per-table maxBatchRows override", () => {
+  test("a table with an override flushes at the override, not the global", async () => {
+    const target: TestTarget = makeTarget({ tableName: "RumSessionChunkV1" });
+
+    // maxWaitMs is huge on purpose: a timer-triggered flush would prove nothing.
+    const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
+      makeOptions({
+        maxBatchRows: 100,
+        maxWaitMs: 60_000,
+        maxBatchRowsByTable: { RumSessionChunkV1: 3 },
+      }),
+    );
+
+    const result: FanInSubmitResult = await writer.submit(target, makeRows(3));
+
+    await result.flushed;
+
+    expect(target.insertJsonRows).toHaveBeenCalledTimes(1);
+    expect(rowSeqs(callRows(target, 0))).toEqual([0, 1, 2]);
+  });
+
+  test("a table without an override keeps the global maxBatchRows", async () => {
+    const target: TestTarget = makeTarget({ tableName: "SpanItem" });
+
+    const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
+      makeOptions({
+        maxBatchRows: 100,
+        maxWaitMs: 25,
+        maxBatchRowsByTable: { RumSessionChunkV1: 3 },
+      }),
+    );
+
+    const result: FanInSubmitResult = await writer.submit(target, makeRows(3));
+
+    // Not size-triggered at 3 rows; only the timer gets this one out.
+    expect(target.insertJsonRows).not.toHaveBeenCalled();
+
+    await result.flushed;
+
+    expect(target.insertJsonRows).toHaveBeenCalledTimes(1);
+  });
+
+  test("a non-positive override is ignored rather than honoured", async () => {
+    const target: TestTarget = makeTarget({ tableName: "RumSessionChunkV1" });
+
+    /*
+     * A zero would make the cut loop spin, so the override is only applied
+     * when it is a positive number.
+     */
+    const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
+      makeOptions({
+        maxBatchRows: 3,
+        maxWaitMs: 60_000,
+        maxBatchRowsByTable: { RumSessionChunkV1: 0 },
+      }),
+    );
+
+    const result: FanInSubmitResult = await writer.submit(target, makeRows(3));
+
+    await result.flushed;
+
+    expect(target.insertJsonRows).toHaveBeenCalledTimes(1);
+  });
+
+  test("the session replay override defaults to 2000 from the environment", () => {
+    const saved: string | undefined =
+      process.env["TELEMETRY_FANIN_MAX_BATCH_ROWS_SESSION_REPLAY"];
+
+    delete process.env["TELEMETRY_FANIN_MAX_BATCH_ROWS_SESSION_REPLAY"];
+
+    try {
+      const options: FanInWriterOptions = readFanInWriterOptionsFromEnv();
+
+      expect(options.maxBatchRowsByTable?.["RumSessionChunkV1"]).toBe(2000);
+    } finally {
+      if (saved === undefined) {
+        delete process.env["TELEMETRY_FANIN_MAX_BATCH_ROWS_SESSION_REPLAY"];
+      } else {
+        process.env["TELEMETRY_FANIN_MAX_BATCH_ROWS_SESSION_REPLAY"] = saved;
+      }
+    }
+  });
+
+  test("the session replay override is readable from the environment", () => {
+    const saved: string | undefined =
+      process.env["TELEMETRY_FANIN_MAX_BATCH_ROWS_SESSION_REPLAY"];
+
+    process.env["TELEMETRY_FANIN_MAX_BATCH_ROWS_SESSION_REPLAY"] = "500";
+
+    try {
+      const options: FanInWriterOptions = readFanInWriterOptionsFromEnv();
+
+      expect(options.maxBatchRowsByTable?.["RumSessionChunkV1"]).toBe(500);
+    } finally {
+      if (saved === undefined) {
+        delete process.env["TELEMETRY_FANIN_MAX_BATCH_ROWS_SESSION_REPLAY"];
+      } else {
+        process.env["TELEMETRY_FANIN_MAX_BATCH_ROWS_SESSION_REPLAY"] = saved;
+      }
+    }
+  });
+});

@@ -44,6 +44,16 @@ const SESSION_READ_PERMISSIONS: Array<Permission> = [
   Permission.ProjectAdmin,
   Permission.TelemetryAdmin,
   Permission.ReadRumSessionReplay,
+  /*
+   * Watching implies listing. The two are separate privileges so that a
+   * support engineer can triage "which sessions errored" WITHOUT being able
+   * to play anyone's screen back - but the containment only makes sense in
+   * one direction. Someone granted only the watch permission would otherwise
+   * be able to fetch payloads while being 401'd on the manifest that tells
+   * them which chunks exist, which is an incoherent grant rather than a
+   * safer one.
+   */
+  Permission.ReadRumSessionReplayPayload,
 ];
 
 const SESSION_CREATE_PERMISSIONS: Array<Permission> = [
@@ -83,40 +93,43 @@ const identityAccessControl: {
 };
 
 /* Homogeneous counters, all summed by the finalizer. */
-const COUNTER_COLUMNS: Array<{ key: string; title: string; description: string }> =
-  [
-    {
-      key: "errorCount",
-      title: "Error Count",
-      description: "Uncaught errors and unhandled rejections in this session",
-    },
-    {
-      key: "rageClickCount",
-      title: "Rage Click Count",
-      description: "Bursts of >=3 clicks within 1s in a 30px radius",
-    },
-    {
-      key: "deadClickCount",
-      title: "Dead Click Count",
-      description:
-        "Clicks on a non-interactive element that produced no DOM change, navigation or request",
-    },
-    {
-      key: "errorClickCount",
-      title: "Error Click Count",
-      description: "Clicks followed within 1s by an uncaught error",
-    },
-    {
-      key: "refreshRageCount",
-      title: "Refresh Rage Count",
-      description: "Bursts of >=3 reloads of the same path within 60s",
-    },
-    {
-      key: "pageCount",
-      title: "Page Count",
-      description: "Distinct route changes observed in this session",
-    },
-  ];
+const COUNTER_COLUMNS: Array<{
+  key: string;
+  title: string;
+  description: string;
+}> = [
+  {
+    key: "errorCount",
+    title: "Error Count",
+    description: "Uncaught errors and unhandled rejections in this session",
+  },
+  {
+    key: "rageClickCount",
+    title: "Rage Click Count",
+    description: "Bursts of >=3 clicks within 1s in a 30px radius",
+  },
+  {
+    key: "deadClickCount",
+    title: "Dead Click Count",
+    description:
+      "Clicks on a non-interactive element that produced no DOM change, navigation or request",
+  },
+  {
+    key: "errorClickCount",
+    title: "Error Click Count",
+    description: "Clicks followed within 1s by an uncaught error",
+  },
+  {
+    key: "refreshRageCount",
+    title: "Refresh Rage Count",
+    description: "Bursts of >=3 reloads of the same path within 60s",
+  },
+  {
+    key: "pageCount",
+    title: "Page Count",
+    description: "Distinct route changes observed in this session",
+  },
+];
 
 /* Low-cardinality device / policy descriptors, all Set-indexed. */
 const LOW_CARDINALITY_COLUMNS: Array<{

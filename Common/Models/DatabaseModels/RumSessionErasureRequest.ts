@@ -89,7 +89,13 @@ const CREATE_PERMISSIONS: Array<Permission> = [
   tableDescription:
     "Requests to permanently delete session replay recordings, by session, by end-user key, by date range or by application. Processed asynchronously; the row records what was deleted.",
 })
-/* The worker's queue query: pending requests, oldest first. */
+/*
+ * The worker's queue query: pending requests across ALL projects, oldest
+ * first. It does not filter on projectId, so a projectId-leading index
+ * cannot serve it - the leading column has to be status.
+ */
+@Index(["status", "requestedAt"])
+/* The per-project listing in the UI. */
 @Index(["projectId", "status", "requestedAt"])
 @Entity({
   name: "RumSessionErasureRequest",
@@ -288,9 +294,18 @@ export default class RumSessionErasureRequest extends BaseModel {
     read: READ_PERMISSIONS,
     update: [],
   })
+  /*
+   * computed, not just create: []. The service stamps this in
+   * onBeforeCreate, which runs BEFORE the create-column permission check,
+   * so without the computed flag ModelPermission sees a status the caller
+   * has no create grant on and rejects the whole request. computed is the
+   * flag ColumnPermission skips for exactly this "server writes it, the
+   * client never can" case.
+   */
   @TableColumn({
     isDefaultValueColumn: true,
     required: true,
+    computed: true,
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
     title: "Status",
@@ -337,9 +352,11 @@ export default class RumSessionErasureRequest extends BaseModel {
     read: READ_PERMISSIONS,
     update: [],
   })
+  /* Stamped from the authenticated caller in onBeforeCreate, never sent. */
   @TableColumn({
     type: TableColumnType.ObjectID,
     required: false,
+    computed: true,
     canReadOnRelationQuery: true,
     title: "Requested by User ID",
     description: "ID of the user who raised this erasure request.",
@@ -356,8 +373,15 @@ export default class RumSessionErasureRequest extends BaseModel {
     read: READ_PERMISSIONS,
     update: [],
   })
+  /*
+   * Server clock, stamped in onBeforeCreate. computed for the same reason
+   * as status: it is written before the permission check runs, and it is
+   * also the worker's queue ordering, so a client-supplied value could
+   * jump the queue.
+   */
   @TableColumn({
     required: true,
+    computed: true,
     type: TableColumnType.Date,
     canReadOnRelationQuery: true,
     title: "Requested At",
@@ -397,6 +421,7 @@ export default class RumSessionErasureRequest extends BaseModel {
   @TableColumn({
     isDefaultValueColumn: true,
     required: true,
+    computed: true,
     type: TableColumnType.Number,
     title: "Sessions Deleted",
     description: "How many session headers the erasure removed.",
@@ -418,6 +443,7 @@ export default class RumSessionErasureRequest extends BaseModel {
   @TableColumn({
     isDefaultValueColumn: true,
     required: true,
+    computed: true,
     type: TableColumnType.Number,
     title: "Chunks Deleted",
     description:
@@ -451,8 +477,15 @@ export default class RumSessionErasureRequest extends BaseModel {
   })
   public failureReason?: string = undefined;
 
+  /*
+   * create: [] rather than CREATE_PERMISSIONS. DatabaseService stamps this
+   * from props.userId AFTER the permission check, and only when there IS a
+   * userId - so an API-key caller with a create grant could otherwise post
+   * an arbitrary createdByUserId and pin an erasure request on a
+   * colleague. On an audited compliance primitive that is not acceptable.
+   */
   @ColumnAccessControl({
-    create: CREATE_PERMISSIONS,
+    create: [],
     read: READ_PERMISSIONS,
     update: [],
   })

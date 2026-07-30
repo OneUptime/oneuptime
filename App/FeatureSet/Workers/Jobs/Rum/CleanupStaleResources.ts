@@ -76,6 +76,28 @@ export async function pruneAbandonedSessionActivity(): Promise<number> {
 
     try {
       /*
+       * A project still in the index whose activity key is GONE is the one
+       * failure this job can see and nothing else can: the ingest path
+       * EXPIREs the key on every accepted chunk, so the key only vanishes
+       * when no chunk has arrived for the whole TTL. If the finalizer has
+       * been down for that long, Redis has just silently discarded the
+       * entire queue of unfinalized sessions and every one of them stays
+       * provisional forever. The drain paths remove a project from the
+       * index when its ZSET empties, so reaching here with a missing key
+       * means the key expired rather than drained.
+       */
+      const activeKeyExists: number = await client.exists(activeKey);
+
+      if (activeKeyExists === 0) {
+        logger.warn(
+          `${JOB_NAME}: the activity key for project ${projectId} expired while the project was still indexed. Any sessions it held were never finalized and are now unrecoverable; check whether Rum:FinalizeSessions has been failing.`,
+        );
+
+        await client.srem(SESSION_REPLAY_ACTIVE_PROJECTS_KEY, projectId);
+        continue;
+      }
+
+      /*
        * Read the range then remove it, rather than ZREMRANGEBYSCORE: the
        * removal has to be capped (a single project must not monopolise the
        * run) and the reaped count has to be reportable, because a

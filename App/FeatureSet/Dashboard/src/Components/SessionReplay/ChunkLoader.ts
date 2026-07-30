@@ -339,8 +339,12 @@ export default class ChunkLoader {
 
   /*
    * Fetch and decode one page starting at fromChunkIndex, skipping anything
-   * already resident. Returns every index now decoded for that page - which
-   * on a full cache hit means no request was made at all.
+   * already resident. Returns every index that is ACTUALLY decoded for that
+   * page, which on a full cache hit means no request was made at all.
+   *
+   * Returning what was asked for rather than what came back would make a
+   * partial response indistinguishable from a complete one, and the player
+   * would feed chunk N+1 into a Replayer that never received N.
    */
   public async loadPage(fromChunkIndex: number): Promise<Array<number>> {
     const planned: Array<number> = this.planPage(fromChunkIndex);
@@ -386,7 +390,9 @@ export default class ChunkLoader {
         this.admit(frame.chunkIndex, frame.events, frame.approximateBytes);
       }
 
-      return planned;
+      return planned.filter((chunkIndex: number): boolean => {
+        return this.decoded.has(chunkIndex);
+      });
     })();
 
     this.inFlight.set(fromChunkIndex, request);
@@ -477,7 +483,12 @@ export default class ChunkLoader {
    * Parse the concatenated chunk response: repeated
    * [u32 chunkIndex][u32 payloadLength][payloadLength bytes of UTF-8 JSON].
    *
-   * Big-endian, matching the server writer. Payloads are the DECOMPRESSED
+   * LITTLE-endian, matching the server writer: the /chunks route in
+   * Common/Server/API/TelemetryAPI.ts frames each payload with
+   * headerBuffer.writeUInt32LE(...). Reading these as big-endian turns a
+   * chunkIndex of 3 into 50331648 and a length of 4096 into 16, so every
+   * frame after the first is misaligned and the whole response decodes to
+   * nothing. Payloads are the DECOMPRESSED
    * rrweb event array as JSON text - the chunk table stores it that way
    * because base64-of-gzip inflates 33% and hands ZSTD incompressible input.
    *
@@ -494,8 +505,8 @@ export default class ChunkLoader {
     let offset: number = 0;
 
     while (offset + FRAME_HEADER_BYTES <= buffer.byteLength) {
-      const chunkIndex: number = view.getUint32(offset, false);
-      const length: number = view.getUint32(offset + 4, false);
+      const chunkIndex: number = view.getUint32(offset, true);
+      const length: number = view.getUint32(offset + 4, true);
       const payloadStart: number = offset + FRAME_HEADER_BYTES;
       const payloadEnd: number = payloadStart + length;
 

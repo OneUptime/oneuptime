@@ -57,12 +57,42 @@ jest.mock("Common/Server/Utils/Telemetry/AppMetrics", () => {
   };
 });
 
+/*
+ * SESSION_REPLAY_ENABLED_BY_DEFAULT ships false, and the gate now refuses
+ * outright when it is off (the config endpoint already did). Everything in
+ * this file exercises an instance that DOES offer replay; the off case has
+ * its own file, SessionReplayInstanceSwitch.test.ts.
+ */
+jest.mock("../../FeatureSet/Telemetry/Config", () => {
+  const actual: Record<string, unknown> = jest.requireActual(
+    "../../FeatureSet/Telemetry/Config",
+  ) as Record<string, unknown>;
+
+  return {
+    __esModule: true,
+    ...actual,
+    SESSION_REPLAY_INGEST_ENABLED: true,
+    SESSION_REPLAY_ENABLED_BY_DEFAULT: true,
+  };
+});
+
+/*
+ * A CONNECTED Redis, so the "register the session with the finalizer only
+ * after its rows landed" ordering is actually observable.
+ */
+const zaddMock: ReturnType<typeof jest.fn> = jest.fn();
+const expireMock: ReturnType<typeof jest.fn> = jest.fn();
+
 jest.mock("Common/Server/Infrastructure/Redis", () => {
   return {
     __esModule: true,
     default: {
-      getClient: jest.fn().mockReturnValue(null),
-      isConnected: jest.fn().mockReturnValue(false),
+      getClient: (): unknown => {
+        return { zadd: zaddMock, expire: expireMock };
+      },
+      isConnected: (): boolean => {
+        return true;
+      },
     },
   };
 });
@@ -99,11 +129,26 @@ jest.mock("Common/Server/Utils/Telemetry/TelemetryFanInWriter", () => {
     default: {
       submit: jest.fn(),
     },
+    /*
+     * The REAL pushObservedAck semantics, not a bare push. The ack-after-
+     * flush contract (a rejected flush fails the job so BullMQ re-processes
+     * it, wrapped in SessionReplayStorageFlushError) is load-bearing, and a
+     * mock that drops the wrapError callback would never exercise it.
+     */
     pushObservedAck: (
       pendingAcks: Array<Promise<void>>,
       flushed: Promise<void>,
+      wrapError: (err: Error) => Error,
     ): void => {
-      pendingAcks.push(flushed);
+      const ack: Promise<void> = flushed.catch((error: Error) => {
+        throw wrapError(error);
+      });
+
+      ack.catch((): void => {
+        /* Pre-observed; delivered for real at the job's await point. */
+      });
+
+      pendingAcks.push(ack);
     },
   };
 });
@@ -149,6 +194,28 @@ jest.mock("../../FeatureSet/Telemetry/Utils/SessionReplayRateLimiter", () => {
   };
 });
 
+/*
+ * The erasure tombstone is a real Redis round trip on the ingest hot path.
+ * Default it to "not erased" so the existing cases exercise the normal
+ * route, and let individual tests override it.
+ */
+jest.mock(
+  "Common/Server/Utils/SessionReplay/SessionReplayErasureTombstone",
+  () => {
+    class FakeErasureTombstoneUnavailableError extends Error {}
+
+    return {
+      __esModule: true,
+      isSessionErased: jest.fn(),
+      ErasureTombstoneUnavailableError: FakeErasureTombstoneUnavailableError,
+    };
+  },
+);
+
+import {
+  ErasureTombstoneUnavailableError,
+  isSessionErased,
+} from "Common/Server/Utils/SessionReplay/SessionReplayErasureTombstone";
 import SessionReplayGateCache, {
   SessionReplayGatePolicy,
 } from "Common/Server/Utils/SessionReplay/SessionReplayGateCache";
@@ -164,7 +231,7 @@ import SessionReplayIngestService, {
 } from "../../FeatureSet/Telemetry/Services/SessionReplayIngestService";
 import { SessionReplayIngestJobData } from "../../FeatureSet/Telemetry/Services/Queue/TelemetryQueueService";
 
-type MockedFn = jest.Mock;
+type MockedFn = ReturnType<typeof jest.fn>;
 
 const getPolicyMock: MockedFn =
   SessionReplayGateCache.getPolicy as unknown as MockedFn;
@@ -393,6 +460,13 @@ describe("SessionReplayIngestService.gateChunkRequest", () => {
     expect(decision.directive).toBe("stop");
   });
 
+  /*
+   * Defence in depth only. The route can no longer produce this input: the
+   * envelope parser rejects chunkIndex >= MAX_SESSION_REPLAY_CHUNKS_PER_SESSION
+   * first, and SessionReplayIngest maps that to the same 204 + directive
+   * "stop" (see SessionReplayIngestAPI.test.ts). This pins the gate's own
+   * branch so relaxing the parser later cannot silently remove the cap.
+   */
   test("stops at the per-session chunk cap", async () => {
     const decision: SessionReplayGateDecision =
       await SessionReplayIngestService.gateChunkRequest({
@@ -470,6 +544,69 @@ describe("SessionReplayIngestService.processFromQueue", () => {
       truncatedAtDepth: false,
     } as never);
     submitMock.mockResolvedValue({ flushed: Promise.resolve() } as never);
+    (isSessionErased as jest.Mock).mockResolvedValue(false as never);
+  });
+
+  describe("erasure tombstone", () => {
+    /*
+     * A chunk can be staged in Redis, or sitting in the queue, at the moment
+     * an erasure request completes. Without a check here the worker writes it
+     * afterwards and the erased session partially reappears - a failed
+     * right-to-erasure obligation that nothing else would ever notice.
+     */
+    test("drops a chunk whose session has been erased, and writes nothing", async () => {
+      (isSessionErased as jest.Mock).mockResolvedValue(true as never);
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([{ chunkIndex: 0 }])),
+      );
+
+      expect(getSubmittedRows("RumSessionChunkV1")).toHaveLength(0);
+      expect(getSubmittedRows("RumSessionV1")).toHaveLength(0);
+    });
+
+    test("checks the tombstone BEFORE decoding, so an erased session costs no gunzip", async () => {
+      (isSessionErased as jest.Mock).mockResolvedValue(true as never);
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([{ chunkIndex: 0 }])),
+      );
+
+      /*
+       * The scrub service sits downstream of the decode. If it was never
+       * called, neither was the decompression it follows.
+       */
+      expect(scrubEventsMock).not.toHaveBeenCalled();
+    });
+
+    test("propagates an unavailable tombstone so the job retries instead of writing", async () => {
+      /*
+       * Fail CLOSED. If we cannot prove a session was not erased, writing it
+       * is the unrecoverable direction; throwing costs only latency once
+       * Redis is back.
+       */
+      (isSessionErased as jest.Mock).mockRejectedValue(
+        new ErasureTombstoneUnavailableError("redis down") as never,
+      );
+
+      await expect(
+        SessionReplayIngestService.processFromQueue(
+          buildJobData(buildBody([{ chunkIndex: 0 }])),
+        ),
+      ).rejects.toThrow(ErasureTombstoneUnavailableError);
+
+      expect(getSubmittedRows("RumSessionChunkV1")).toHaveLength(0);
+    });
+
+    test("looks the tombstone up once per session, not once per frame", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([{ chunkIndex: 0 }, { chunkIndex: 1 }, { chunkIndex: 2 }]),
+        ),
+      );
+
+      expect(isSessionErased).toHaveBeenCalledTimes(1);
+    });
   });
 
   test("writes one chunk row and a provisional header for chunk 0", async () => {
@@ -822,5 +959,210 @@ describe("SessionReplayIngestService.processFromQueue", () => {
 
     expect(header["identifiedUserKey"]).toBe("");
     expect(header["identifiedUserLabel"]).toBe("");
+  });
+
+  /*
+   * URL scrubbing is applied in the browser, but the server may not ASSUME
+   * it happened: a stale bundle, a self-hosted recorder or a hand-crafted
+   * POST with a scraped ingestion key all put whatever URL they like on the
+   * wire, and entryUrl / exitUrl / routes sit in the wider metadata ACL and
+   * render in the session list.
+   */
+  describe("server-side URL scrubbing on the session header", () => {
+    test("a hand-crafted envelope carrying a reset-password token is scrubbed", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            {
+              chunkIndex: 0,
+              url: "https://shop.example.com/reset-password?token=s3cr3t-reset-token-value&email=victim@example.com",
+              meta: {
+                entryUrl:
+                  "https://shop.example.com/magic-link?token=another-s3cr3t",
+                browserName: "Chrome",
+                browserVersion: "141",
+                osName: "macOS",
+                deviceType: "desktop",
+                viewportWidth: 1440,
+                viewportHeight: 900,
+              },
+            },
+          ]),
+        ),
+      );
+
+      const header: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
+
+      const urlFields: string = JSON.stringify([
+        header["entryUrl"],
+        header["exitUrl"],
+        header["routes"],
+      ]);
+
+      expect(urlFields).not.toContain("token");
+      expect(urlFields).not.toContain("s3cr3t");
+      expect(urlFields).not.toContain("email");
+      expect(urlFields).not.toContain("victim@example.com");
+
+      /* Route structure survives - that is the whole point of scrubbing. */
+      expect(header["exitUrl"]).toBe("https://shop.example.com/reset-password");
+      expect(header["entryUrl"]).toBe("https://shop.example.com/magic-link");
+      /* routes is seeded from the exit url, which is this chunk's own url. */
+      expect(header["routes"]).toEqual([
+        "https://shop.example.com/reset-password",
+      ]);
+    });
+
+    test("identifier-shaped path segments are redacted, not just the query", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            {
+              chunkIndex: 0,
+              url: "https://shop.example.com/users/550e8400-e29b-41d4-a716-446655440000/orders",
+            },
+          ]),
+        ),
+      );
+
+      const header: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
+
+      expect(header["exitUrl"]).toBe(
+        "https://shop.example.com/users/[redacted]/orders",
+      );
+    });
+
+    test("entryUrl falls back to the chunk url, scrubbed, when meta carries none", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody([
+            {
+              chunkIndex: 0,
+              url: "https://shop.example.com/checkout?cart=abc",
+              meta: {
+                /* The parser always materialises entryUrl, empty when absent. */
+                entryUrl: "",
+                browserName: "Chrome",
+                browserVersion: "141",
+                osName: "macOS",
+                deviceType: "desktop",
+                viewportWidth: 1440,
+                viewportHeight: 900,
+              },
+            },
+          ]),
+        ),
+      );
+
+      const header: JSONObject = getSubmittedRows("RumSessionV1")[0]!;
+
+      expect(header["entryUrl"]).toBe("https://shop.example.com/checkout");
+      expect(header["exitUrl"]).toBe("https://shop.example.com/checkout");
+    });
+  });
+
+  /*
+   * The decompression budget is what actually bounds the worker. A per-frame
+   * cap alone multiplies by MAX_SESSION_REPLAY_CHUNKS_PER_REQUEST and again by
+   * SESSION_REPLAY_WORKER_CONCURRENCY, because every decoded frame stays
+   * resident until the submit at the end of the job - low gigabytes from one
+   * authenticated client posting highly compressible padding.
+   */
+  describe("decompression budget", () => {
+    test("a frame that inflates past the per-frame cap is dropped, not decoded", async () => {
+      /* 9 MiB of repetitive text: a tiny gzip, past the 8 MiB frame cap. */
+      const oversized: Array<unknown> = ["x".repeat(9 * 1024 * 1024)];
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([{ chunkIndex: 0 }], oversized)),
+      );
+
+      expect(submitMock).not.toHaveBeenCalled();
+    });
+
+    test("the budget is per JOB, so later frames of a fat request are dropped", async () => {
+      const fat: Array<unknown> = ["y".repeat(7 * 1024 * 1024)];
+
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(
+          buildBody(
+            [
+              { chunkIndex: 0 },
+              { chunkIndex: 1 },
+              { chunkIndex: 2 },
+              { chunkIndex: 3 },
+              { chunkIndex: 4 },
+            ],
+            fat,
+          ),
+        ),
+      );
+
+      /*
+       * A 32 MiB job allowance at ~7 MiB a frame admits four; the fifth
+       * inflate is capped at what is left and aborts. Under a per-frame-only
+       * bound all five would have been held in memory at once.
+       */
+      expect(getSubmittedRows("RumSessionChunkV1")).toHaveLength(4);
+    });
+  });
+
+  describe("ack-after-flush", () => {
+    /*
+     * The rejection is pre-observed here so Node does not report an
+     * unhandled rejection between this promise being created and
+     * pushObservedAck attaching its own handler several awaits later. It
+     * stays a genuine rejection for the code under test.
+     */
+    function rejectedFlush(): Promise<void> {
+      const flushed: Promise<void> = Promise.reject(
+        new Error("clickhouse refused the insert"),
+      );
+
+      flushed.catch((): void => {
+        /* Pre-observed only. */
+      });
+
+      return flushed;
+    }
+
+    test("a rejected flush fails the job so BullMQ re-processes it", async () => {
+      submitMock.mockResolvedValue({
+        flushed: rejectedFlush(),
+      } as never);
+
+      await expect(
+        SessionReplayIngestService.processFromQueue(
+          buildJobData(buildBody([{ chunkIndex: 0 }])),
+        ),
+      ).rejects.toThrow(/failed to flush rows to storage/);
+    });
+
+    test("the session is registered with the finalizer only after the acks land", async () => {
+      submitMock.mockResolvedValue({
+        flushed: rejectedFlush(),
+      } as never);
+
+      await expect(
+        SessionReplayIngestService.processFromQueue(
+          buildJobData(buildBody([{ chunkIndex: 0 }])),
+        ),
+      ).rejects.toThrow();
+
+      /*
+       * A ZADD here would leave the finalizer aggregating a session with no
+       * rows behind it.
+       */
+      expect(zaddMock).not.toHaveBeenCalled();
+    });
+
+    test("a successful flush does register the session", async () => {
+      await SessionReplayIngestService.processFromQueue(
+        buildJobData(buildBody([{ chunkIndex: 0 }])),
+      );
+
+      expect(zaddMock).toHaveBeenCalledTimes(1);
+      expect(expireMock).toHaveBeenCalledTimes(1);
+    });
   });
 });

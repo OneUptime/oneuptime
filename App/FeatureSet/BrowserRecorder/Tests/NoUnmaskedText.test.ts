@@ -327,11 +327,19 @@ describe("no unmasked page text reaches the wire", (): void => {
       },
     );
 
-    /* The unrelated attribute survives, so the mutation really was recorded. */
-    expect(keys).toContain("data-revealed");
-
-    /* The reveal itself does not. */
-    expect(keys).not.toContain("type");
+    /*
+     * Asserted as an exact set, not as "type is absent".
+     *
+     * rrweb 2.1.1 writes its OWN marker onto the live element when it sees a
+     * type mutation away from password (rrweb.js:11918), so the emitted
+     * mutations for a show-password toggle were
+     * [{"data-revealed":"true"},{"data-rr-is-password":"true"}]. Asserting
+     * only that "type" is absent passed while the marker disclosed exactly
+     * the same fact: which masked field is the password. An exact set makes
+     * any future rrweb-authored marker attribute fail here instead of
+     * slipping through.
+     */
+    expect(keys).toEqual(["data-revealed"]);
   });
 
   /*

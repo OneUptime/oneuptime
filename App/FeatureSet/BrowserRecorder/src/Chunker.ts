@@ -26,6 +26,106 @@ import { BufferedEvent } from "./RollingBuffer";
 const EVENT_TYPE_FULL_SNAPSHOT: number = 2;
 const EVENT_TYPE_META: number = 4;
 
+/*
+ * Disclosed on the last chunk of a session that hit the per-session chunk
+ * cap. Not (yet) a member of Common's SessionReplayFidelityNotice: adding one
+ * there is a shared-type change, and a recorder must be able to tell the
+ * truth about a session it truncated without waiting for it. The viewer
+ * renders unknown notices as-is, so this degrades to a visible, honest string
+ * rather than to silence.
+ */
+export const SESSION_REPLAY_TRUNCATED_NOTICE: string = "truncated";
+
+/*
+ * UTF-8 byte length, without allocating the encoded copy.
+ *
+ * Everything in this file used to count String.length, which is UTF-16 code
+ * UNITS. The wire, the 2 MiB request cap and the keepalive quota are all
+ * counted in UTF-8 BYTES, so a page in Japanese or one with emoji in its
+ * content produced nominal 256 KB chunks that were up to 3x that on the wire
+ * and were rejected with a 413 the recorder could only report as a dropped
+ * chunk.
+ */
+export function utf8ByteLength(value: string): number {
+  let bytes: number = 0;
+
+  for (let i: number = 0; i < value.length; i++) {
+    const code: number = value.charCodeAt(i);
+
+    if (code < 0x80) {
+      bytes += 1;
+    } else if (code < 0x800) {
+      bytes += 2;
+    } else if (code >= 0xd800 && code <= 0xdbff && i + 1 < value.length) {
+      const next: number = value.charCodeAt(i + 1);
+
+      if (next >= 0xdc00 && next <= 0xdfff) {
+        /* A well-formed surrogate pair is one 4-byte code point. */
+        bytes += 4;
+        i++;
+        continue;
+      }
+
+      /* A lone surrogate encodes as the 3-byte replacement character. */
+      bytes += 3;
+    } else {
+      bytes += 3;
+    }
+  }
+
+  return bytes;
+}
+
+/*
+ * Cut a string into pieces of at most maxBytes UTF-8 bytes each, never
+ * between the two halves of a surrogate pair.
+ *
+ * Slicing by code unit split emoji and other astral characters down the
+ * middle, and because each part is UTF-8 encoded INDEPENDENTLY before it goes
+ * on the wire, both halves of a broken pair became U+FFFD - so the server's
+ * reassembled snapshot was silently corrupted rather than failing loudly.
+ * Cutting on code-point boundaries keeps every part independently valid,
+ * which makes the reassembly correct whether the server concatenates the
+ * decoded strings or the raw bytes.
+ */
+export function splitByUtf8Bytes(
+  value: string,
+  maxBytes: number,
+): Array<string> {
+  if (value.length === 0) {
+    return [""];
+  }
+
+  const parts: Array<string> = [];
+  let start: number = 0;
+  let bytes: number = 0;
+  let index: number = 0;
+
+  while (index < value.length) {
+    const code: number = value.charCodeAt(index);
+    const isHighSurrogate: boolean =
+      code >= 0xd800 && code <= 0xdbff && index + 1 < value.length;
+    const next: number = isHighSurrogate ? value.charCodeAt(index + 1) : 0;
+    const isPair: boolean = isHighSurrogate && next >= 0xdc00 && next <= 0xdfff;
+
+    const width: number = isPair ? 2 : 1;
+    const cost: number = utf8ByteLength(value.slice(index, index + width));
+
+    if (bytes + cost > maxBytes && index > start) {
+      parts.push(value.slice(start, index));
+      start = index;
+      bytes = 0;
+    }
+
+    bytes += cost;
+    index += width;
+  }
+
+  parts.push(value.slice(start));
+
+  return parts;
+}
+
 export interface PendingChunk {
   /*
    * The chunk body before compression. Normally a complete JSON array of
@@ -79,8 +179,17 @@ export default class Chunker {
   private readonly sink: ChunkSink;
   private readonly maxPayloadBytes: number;
 
+  /*
+   * Called once, when the session chunk cap is first hit. The recorder uses
+   * it to stop rrweb: past this point the page is paying to record events
+   * that will never be sent and nobody will ever watch.
+   */
+  private readonly onTruncated: (() => void) | null;
+
   private open: OpenChunk | null = null;
   private closedChunkCount: number = 0;
+  private truncationEmitted: boolean = false;
+  private droppedEvents: number = 0;
 
   private signals: SessionReplaySignalCounts = Chunker.emptySignals();
   private readonly fidelityNotices: Set<string> = new Set<string>();
@@ -90,6 +199,7 @@ export default class Chunker {
     sessionStartUnixMs: number;
     sink: ChunkSink;
     maxPayloadBytes?: number;
+    onTruncated?: () => void;
   }) {
     this.sessionStartUnixMs = options.sessionStartUnixMs;
     this.sink = options.sink;
@@ -97,6 +207,8 @@ export default class Chunker {
       options.maxPayloadBytes === undefined
         ? SESSION_REPLAY_FLUSH_BYTES
         : options.maxPayloadBytes;
+    this.onTruncated =
+      options.onTruncated === undefined ? null : options.onTruncated;
   }
 
   public static emptySignals(): SessionReplaySignalCounts {
@@ -112,6 +224,8 @@ export default class Chunker {
 
   public add(event: BufferedEvent): void {
     if (this.hasReachedSessionChunkCap()) {
+      this.droppedEvents++;
+      this.emitTruncationChunk();
       return;
     }
 
@@ -185,14 +299,23 @@ export default class Chunker {
 
     this.open = null;
 
+    /*
+     * Checked BEFORE the empty-chunk branch. Both paths used to return
+     * silently at the cap: events were discarded, droppedEvents was not
+     * incremented, no notice was raised and no final chunk was ever sent, so
+     * the server sealed the session as idle-timeout and the viewer was shown
+     * a recording that simply stops with no disclosure.
+     */
+    if (this.hasReachedSessionChunkCap()) {
+      this.droppedEvents += open ? open.eventCount : 0;
+      this.emitTruncationChunk();
+      return;
+    }
+
     if (!open || open.eventCount === 0) {
       if (isFinal) {
         this.emitEmptyFinalChunk();
       }
-      return;
-    }
-
-    if (this.hasReachedSessionChunkCap()) {
       return;
     }
 
@@ -245,18 +368,18 @@ export default class Chunker {
    */
   private emitSplitEvent(event: BufferedEvent): void {
     const body: string = `[${event.json}]`;
-    const partCount: number = Math.ceil(body.length / this.maxPayloadBytes);
+    const slices: Array<string> = splitByUtf8Bytes(body, this.maxPayloadBytes);
+    const partCount: number = slices.length;
     const offsetMs: number = this.getOffset(event.timestampMs);
 
     for (let index: number = 0; index < partCount; index++) {
       if (this.hasReachedSessionChunkCap()) {
+        this.droppedEvents++;
+        this.emitTruncationChunk();
         return;
       }
 
-      const slice: string = body.slice(
-        index * this.maxPayloadBytes,
-        (index + 1) * this.maxPayloadBytes,
-      );
+      const slice: string = slices[index] as string;
 
       const isLastPart: boolean = index === partCount - 1;
 
@@ -264,7 +387,7 @@ export default class Chunker {
 
       this.sink({
         payload: slice,
-        rawBytes: slice.length,
+        rawBytes: utf8ByteLength(slice),
 
         /*
          * Only the last part reports the event, so summing eventCount over
@@ -283,6 +406,53 @@ export default class Chunker {
 
       this.resetPerChunkCounters();
     }
+  }
+
+  /*
+   * The one chunk a truncated session is still allowed to send.
+   *
+   * Emitted past the cap on purpose: it carries no page content (payload
+   * "[]"), and it is the only thing that turns a session that just stops into
+   * one the viewer is told was cut short. isFinal seals it as final-chunk
+   * rather than leaving the server to infer idle-timeout ten minutes later.
+   */
+  private emitTruncationChunk(): void {
+    if (this.truncationEmitted) {
+      return;
+    }
+
+    this.truncationEmitted = true;
+
+    this.fidelityNotices.add(SESSION_REPLAY_TRUNCATED_NOTICE);
+
+    const nowOffsetMs: number = this.getOffset(Date.now());
+
+    this.sink({
+      payload: "[]",
+      rawBytes: 0,
+      eventCount: 0,
+      chunkStartOffsetMs: nowOffsetMs,
+      chunkEndOffsetMs: nowOffsetMs,
+      hasFullSnapshot: false,
+      isFinal: true,
+      signals: this.signals,
+      fidelityNotices: Array.from(this.fidelityNotices),
+      traceIds: Array.from(this.traceIds),
+    });
+
+    this.resetPerChunkCounters();
+
+    if (this.onTruncated) {
+      this.onTruncated();
+    }
+  }
+
+  public hasEmittedTruncation(): boolean {
+    return this.truncationEmitted;
+  }
+
+  public getDroppedEventCount(): number {
+    return this.droppedEvents;
   }
 
   private resetPerChunkCounters(): void {

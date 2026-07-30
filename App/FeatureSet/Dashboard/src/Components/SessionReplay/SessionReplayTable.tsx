@@ -89,20 +89,37 @@ export interface SessionReplayListFilter {
   endTime: Date;
 }
 
+/*
+ * Keyset pagination cursor, echoed straight back to the endpoint. The list
+ * is a raw ClickHouse projection with no COUNT, so there is no total and no
+ * skip: the only way to page is to hand back the last row of the previous
+ * page.
+ */
+export interface SessionReplayListCursor {
+  startTimeUnixMs: number;
+  sessionId: string;
+}
+
 export interface SessionReplayListResult {
   sessions: Array<SessionReplaySummary>;
-  count: number;
   /*
-   * True when the endpoint hit its LIMIT_PER_PROJECT clamp, so `count` is a
-   * lower bound. Pagination degrades to prev/next rather than claiming a
-   * total it cannot prove.
+   * Null when this was the last page. There is no total count anywhere in
+   * this response - pagination is prev/next rather than a page count it
+   * cannot prove.
    */
-  hasMore: boolean;
+  nextCursor: SessionReplayListCursor | null;
 }
 
 const SESSION_REPLAY_LIST_ROUTE: string = "/telemetry/rum/session-replay/list";
 
 const DEFAULT_ITEMS_ON_PAGE: number = 20;
+
+/*
+ * Passing `hasMore` puts Pagination into has-more mode, where Next is driven
+ * by the cursor and totalItemsCount is never read. The endpoint runs no
+ * COUNT, so any number here would be invented; zero says so.
+ */
+const UNKNOWN_TOTAL_ITEMS_COUNT: number = 0;
 
 const DEFAULT_RANGE: RangeStartAndEndDateTime = {
   range: TimeRange.PAST_ONE_DAY,
@@ -184,13 +201,37 @@ export function parseSessionReplaySummary(
   };
 }
 
+/*
+ * Translates the three signal buttons into the endpoint's filter object.
+ *
+ * "frustration" has no server-side filter - the list query only knows
+ * hasError - so it is applied client-side over the returned page rather than
+ * silently returning every session under a label that promises otherwise.
+ */
+export function buildSessionReplayListFilters(signal: string): JSONObject {
+  if (signal === "errors") {
+    return { hasError: true };
+  }
+
+  return {};
+}
+
+export function hasFrustrationSignal(row: SessionReplaySummary): boolean {
+  return (
+    row.rageClickCount > 0 ||
+    row.deadClickCount > 0 ||
+    row.errorClickCount > 0 ||
+    row.refreshRageCount > 0
+  );
+}
+
 export async function fetchSessionReplayList(request: {
   rumApplicationId: ObjectID;
   signal: string;
   startTime: Date;
   endTime: Date;
   limit: number;
-  skip: number;
+  cursor?: SessionReplayListCursor | undefined;
 }): Promise<SessionReplayListResult> {
   const response: HTTPResponse<JSONObject> | HTTPErrorResponse = await API.post(
     {
@@ -199,11 +240,23 @@ export async function fetchSessionReplayList(request: {
       ),
       data: {
         rumApplicationId: request.rumApplicationId.toString(),
-        signal: request.signal,
         startTime: OneUptimeDate.toString(request.startTime),
         endTime: OneUptimeDate.toString(request.endTime),
+        filters: buildSessionReplayListFilters(request.signal),
         limit: request.limit,
-        skip: request.skip,
+        /*
+         * Spread into a plain object: the endpoint reads the two cursor
+         * fields off an untyped body, and a declared interface has no index
+         * signature to satisfy JSONObject.
+         */
+        ...(request.cursor
+          ? {
+              cursor: {
+                startTimeUnixMs: request.cursor.startTimeUnixMs,
+                sessionId: request.cursor.sessionId,
+              },
+            }
+          : {}),
       },
       headers: {
         ...ModelAPI.getCommonHeaders(),
@@ -216,13 +269,20 @@ export async function fetchSessionReplayList(request: {
   }
 
   const rows: JSONArray = (response.data["sessions"] as JSONArray) || [];
+  const rawCursor: JSONObject | null =
+    (response.data["nextCursor"] as JSONObject) || null;
 
   return {
     sessions: rows.map((row: JSONObject): SessionReplaySummary => {
       return parseSessionReplaySummary(row);
     }),
-    count: Number(response.data["count"] ?? rows.length) || 0,
-    hasMore: Boolean(response.data["hasMore"]),
+    nextCursor:
+      rawCursor && rawCursor["sessionId"]
+        ? {
+            startTimeUnixMs: Number(rawCursor["startTimeUnixMs"]) || 0,
+            sessionId: String(rawCursor["sessionId"]),
+          }
+        : null,
   };
 }
 
@@ -259,8 +319,18 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
   props: SessionReplayTableProps,
 ): ReactElement => {
   const [rows, setRows] = useState<Array<SessionReplaySummary>>([]);
-  const [totalCount, setTotalCount] = useState<number>(0);
   const [hasMore, setHasMore] = useState<boolean>(false);
+  /*
+   * cursorForPage[n] is the cursor that fetches page n+1, learned when page
+   * n came back. Keyset pagination has no skip, so a page is only reachable
+   * once its predecessor has been fetched - which is exactly what the
+   * Previous/Next controls do.
+   */
+  const cursorForPageRef: React.MutableRefObject<
+    Map<number, SessionReplayListCursor>
+  > = useRef<Map<number, SessionReplayListCursor>>(
+    new Map<number, SessionReplayListCursor>(),
+  );
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [signal, setSignal] = useState<string>("all");
@@ -276,6 +346,13 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
    */
   const loadGenerationRef: React.MutableRefObject<number> = useRef<number>(0);
 
+  /*
+   * Navigation.getLastParamAsObjectID returns a NEW ObjectID on every call and
+   * the page recomputes it every render, so keying the fetch on the object
+   * itself would refire the whole list on any unrelated parent re-render.
+   */
+  const rumApplicationIdString: string = props.rumApplicationId.toString();
+
   const load: (generation: number) => Promise<void> = useCallback(
     async (generation: number): Promise<void> => {
       try {
@@ -285,22 +362,46 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
         const range: InBetween<Date> =
           RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
 
+        if (pageNumber === 1) {
+          /*
+           * Back at the top, so every cursor learned under the previous
+           * filter, range or page size is stale.
+           */
+          cursorForPageRef.current.clear();
+        }
+
+        const cursor: SessionReplayListCursor | undefined =
+          cursorForPageRef.current.get(pageNumber - 1);
+
         const result: SessionReplayListResult = await fetchSessionReplayList({
-          rumApplicationId: props.rumApplicationId,
+          rumApplicationId: new ObjectID(rumApplicationIdString),
           signal: signal,
           startTime: range.startValue,
           endTime: range.endValue,
           limit: itemsOnPage,
-          skip: (pageNumber - 1) * itemsOnPage,
+          ...(cursor ? { cursor: cursor } : {}),
         });
 
         if (generation !== loadGenerationRef.current) {
           return;
         }
 
-        setRows(result.sessions);
-        setTotalCount(result.count);
-        setHasMore(result.hasMore);
+        if (result.nextCursor) {
+          cursorForPageRef.current.set(pageNumber, result.nextCursor);
+        }
+
+        /*
+         * Frustration has no server-side filter, so it is narrowed here.
+         * The page can therefore come back shorter than itemsOnPage; that is
+         * honest, and the alternative - refetching until the page is full -
+         * would multiply reads over a table this wide.
+         */
+        setRows(
+          signal === "frustration"
+            ? result.sessions.filter(hasFrustrationSignal)
+            : result.sessions,
+        );
+        setHasMore(result.nextCursor !== null);
       } catch (err) {
         if (generation === loadGenerationRef.current) {
           setError(API.getFriendlyMessage(err));
@@ -311,7 +412,7 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
         }
       }
     },
-    [props.rumApplicationId, signal, timeRange, pageNumber, itemsOnPage],
+    [rumApplicationIdString, signal, timeRange, pageNumber, itemsOnPage],
   );
 
   useEffect(() => {
@@ -333,12 +434,12 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
         return RouteUtil.populateRouteParams(
           RouteMap[PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_VIEW] as Route,
           {
-            modelId: props.rumApplicationId,
+            modelId: new ObjectID(rumApplicationIdString),
             subModelId: row.sessionId,
           },
         );
       },
-      [props.rumApplicationId],
+      [rumApplicationIdString],
     );
 
   const columns: Array<Column<SessionReplaySummary>> = useMemo(() => {
@@ -609,12 +710,22 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
           void load(loadGenerationRef.current);
         }}
         currentPageNumber={pageNumber}
-        totalItemsCount={totalCount}
+        totalItemsCount={UNKNOWN_TOTAL_ITEMS_COUNT}
         hasMore={hasMore}
         itemsOnPage={itemsOnPage}
         onNavigateToPage={(page: number, onPage: number): void => {
+          /*
+           * A different page size invalidates every cursor, so it restarts
+           * from the first page rather than paging with offsets that no
+           * longer line up.
+           */
+          if (onPage !== itemsOnPage) {
+            setItemsOnPage(onPage);
+            setPageNumber(1);
+            return;
+          }
+
           setPageNumber(page);
-          setItemsOnPage(onPage);
         }}
         sortOrder={SortOrder.Descending}
         sortBy={null}

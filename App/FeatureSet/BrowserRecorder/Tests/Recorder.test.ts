@@ -1,4 +1,7 @@
 import {
+  SESSION_REPLAY_FLUSH_INTERVAL_MS,
+  SESSION_REPLAY_IDLE_ROLLOVER_MS,
+  SESSION_REPLAY_MAX_SESSION_MS,
   SessionReplayChunkEnvelope,
   SessionReplayConfigResponse,
 } from "Common/Types/Rum/SessionReplay";
@@ -8,6 +11,8 @@ import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode"
 import SessionReplayTriggerReason from "Common/Types/Rum/SessionReplayTriggerReason";
 import { RecorderInitOptions } from "../src/Config";
 import Recorder from "../src/Recorder";
+import SessionId from "../src/SessionId";
+import Transport from "../src/Transport";
 
 /*
  * jsdom gives real localStorage, sessionStorage, history and a real DOM, so
@@ -523,6 +528,243 @@ describe("Recorder", (): void => {
       await Promise.resolve();
 
       expect(fetchMock.mock.calls.length).toBe(settled);
+    });
+  });
+
+  /*
+   * The 30 minute idle rollover and the 4 hour duration cap.
+   *
+   * Both decisions live in Common/Utils/Rum/SessionIdentity, but they were
+   * only ever consulted in the constructor and on a bfcache restore. The
+   * flush timer instead called SessionId.touch(Date.now()) every 15 s
+   * unconditionally, which bumped lastActivityUnixMs even for a completely
+   * idle tab - so the idle rollover could never fire while the recorder was
+   * alive and the duration cap was never checked at all. A dashboard tab left
+   * open all day accumulated one sessionId and one unbounded chunk sequence.
+   */
+  describe("session lifecycle", (): void => {
+    const SESSION_KEY: string = "oneuptime.replay.session";
+
+    interface StoredSession {
+      sessionId: string;
+      sessionStartUnixMs: number;
+      lastActivityUnixMs: number;
+    }
+
+    const readStored: () => StoredSession = (): StoredSession => {
+      return JSON.parse(
+        window.localStorage.getItem(SESSION_KEY) || "{}",
+      ) as StoredSession;
+    };
+
+    const writeStored: (state: StoredSession) => void = (
+      state: StoredSession,
+    ): void => {
+      window.localStorage.setItem(SESSION_KEY, JSON.stringify(state));
+    };
+
+    afterEach((): void => {
+      jest.useRealTimers();
+    });
+
+    /* THE regression: the recorder's own heartbeat is not user activity. */
+    it("does not treat its own flush heartbeat as activity", (): void => {
+      jest.useFakeTimers();
+
+      startRecorder();
+
+      const before: number = readStored().lastActivityUnixMs;
+
+      jest.advanceTimersByTime(SESSION_REPLAY_FLUSH_INTERVAL_MS * 6);
+
+      expect(readStored().lastActivityUnixMs).toBe(before);
+    });
+
+    it("writes activity through when the user actually interacts", (): void => {
+      jest.useFakeTimers();
+
+      startRecorder();
+
+      const before: number = readStored().lastActivityUnixMs;
+
+      jest.advanceTimersByTime(SESSION_REPLAY_FLUSH_INTERVAL_MS);
+
+      document.body.dispatchEvent(
+        new MouseEvent("click", { bubbles: true, clientX: 5, clientY: 5 }),
+      );
+
+      jest.advanceTimersByTime(SESSION_REPLAY_FLUSH_INTERVAL_MS);
+
+      expect(readStored().lastActivityUnixMs).toBeGreaterThan(before);
+    });
+
+    /*
+     * The non-terminal upload path is a promise chain, and fake timers do not
+     * advance microtasks. Drained explicitly rather than with a setTimeout,
+     * which fake timers would swallow.
+     */
+    const drainMicrotasks: () => Promise<void> = async (): Promise<void> => {
+      for (let i: number = 0; i < 20; i++) {
+        await Promise.resolve();
+      }
+    };
+
+    it("rolls the session over once the idle window has elapsed", async (): Promise<void> => {
+      jest.useFakeTimers();
+
+      const instance: Recorder = startRecorder({ samplePercentage: 100 });
+      const firstSessionId: string = instance.getSessionId();
+      const tabId: string = instance.getTabId();
+
+      /* The user walked away right after the page loaded. */
+      const idleSince: number = Date.now() - SESSION_REPLAY_IDLE_ROLLOVER_MS;
+
+      writeStored({
+        sessionId: firstSessionId,
+        sessionStartUnixMs: idleSince,
+        lastActivityUnixMs: idleSince,
+      });
+
+      fetchMock.mockClear();
+      jest.advanceTimersByTime(SESSION_REPLAY_FLUSH_INTERVAL_MS);
+      await drainMicrotasks();
+
+      const secondSessionId: string = instance.getSessionId();
+
+      expect(secondSessionId).not.toBe(firstSessionId);
+
+      /* Same tab. The tab id is what scopes the chunk counter. */
+      expect(instance.getTabId()).toBe(tabId);
+      expect(SessionId.readTabId()).toBe(tabId);
+
+      /*
+       * The new session starts its own chunk sequence at 0. Without the reset
+       * its first chunk would claim an index the finalizer then reports as
+       * preceded by missing chunks.
+       */
+      const newSessionPosts: Array<CapturedPost> = fetchMock.mock.calls
+        .map((call: Array<unknown>): CapturedPost => {
+          return readPost(call);
+        })
+        .filter((post: CapturedPost): boolean => {
+          return post.envelope.sessionId === secondSessionId;
+        });
+
+      expect(newSessionPosts.length).toBeGreaterThan(0);
+      expect(newSessionPosts[0]?.envelope.chunkIndex).toBe(0);
+
+      /*
+       * previousSessionId and rotationReason are computed by
+       * SessionId.resolveSession but the chunk envelope has no field for
+       * either, so they ride in the payload as a custom rrweb event. Without
+       * this, telling "the user went to lunch" from "the recorder lost its
+       * state" is impossible server-side.
+       */
+      const payloads: string = newSessionPosts
+        .map((post: CapturedPost): string => {
+          return post.payload;
+        })
+        .join("");
+
+      expect(payloads).toContain("oneuptime.session-rotated");
+      expect(payloads).toContain(firstSessionId);
+      expect(payloads).toContain("idle");
+    });
+
+    it("rolls the session over at the duration cap even while in use", (): void => {
+      jest.useFakeTimers();
+
+      const instance: Recorder = startRecorder({ samplePercentage: 100 });
+      const firstSessionId: string = instance.getSessionId();
+
+      /* Continuously active, but open past the ceiling. */
+      writeStored({
+        sessionId: firstSessionId,
+        sessionStartUnixMs: Date.now() - SESSION_REPLAY_MAX_SESSION_MS,
+        lastActivityUnixMs: Date.now(),
+      });
+
+      jest.advanceTimersByTime(SESSION_REPLAY_FLUSH_INTERVAL_MS);
+
+      expect(instance.getSessionId()).not.toBe(firstSessionId);
+    });
+
+    it("seals the outgoing session before opening the new one", (): void => {
+      jest.useFakeTimers();
+
+      const instance: Recorder = startRecorder({ samplePercentage: 100 });
+      const firstSessionId: string = instance.getSessionId();
+
+      fetchMock.mockClear();
+
+      const idleSince: number = Date.now() - SESSION_REPLAY_IDLE_ROLLOVER_MS;
+
+      writeStored({
+        sessionId: firstSessionId,
+        sessionStartUnixMs: idleSince,
+        lastActivityUnixMs: idleSince,
+      });
+
+      jest.advanceTimersByTime(SESSION_REPLAY_FLUSH_INTERVAL_MS);
+
+      const finals: Array<CapturedPost> = fetchMock.mock.calls
+        .map((call: Array<unknown>): CapturedPost => {
+          return readPost(call);
+        })
+        .filter((post: CapturedPost): boolean => {
+          return post.envelope.isFinal;
+        });
+
+      expect(finals.length).toBeGreaterThan(0);
+      expect(finals[0]?.envelope.sessionId).toBe(firstSessionId);
+    });
+
+    it("does not roll over a session that is inside both limits", (): void => {
+      jest.useFakeTimers();
+
+      const instance: Recorder = startRecorder({ samplePercentage: 100 });
+      const firstSessionId: string = instance.getSessionId();
+
+      jest.advanceTimersByTime(SESSION_REPLAY_FLUSH_INTERVAL_MS * 10);
+
+      expect(instance.getSessionId()).toBe(firstSessionId);
+    });
+  });
+
+  /*
+   * The transport's retry queue holds fully serialised chunks of end-user page
+   * content. Transport.disable() clears it, but neither revoke nor stop goes
+   * through disable(), so part of "the buffer" used to survive a revoke with
+   * nothing that would ever upload it.
+   */
+  describe("releasing held content", (): void => {
+    it("discards the transport queue on revokeConsent", (): void => {
+      const discard: jest.SpyInstance = jest.spyOn(
+        Transport.prototype,
+        "discardQueue",
+      );
+
+      const instance: Recorder = startRecorder({
+        consentMode: SessionReplayConsentMode.RequireExplicit,
+      });
+
+      instance.trigger(SessionReplayTriggerReason.Manual);
+      instance.revokeConsent();
+
+      expect(discard).toHaveBeenCalled();
+    });
+
+    it("discards the transport queue on stop", (): void => {
+      const discard: jest.SpyInstance = jest.spyOn(
+        Transport.prototype,
+        "discardQueue",
+      );
+
+      const instance: Recorder = startRecorder({ samplePercentage: 100 });
+
+      instance.stop();
+
+      expect(discard).toHaveBeenCalled();
     });
   });
 

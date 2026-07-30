@@ -189,6 +189,34 @@ describe("Masking", (): void => {
       expect(sanitised).toEqual({ class: "revealed" });
     });
 
+    /*
+     * rrweb writes data-rr-is-password onto the LIVE element when it sees a
+     * type mutation away from password (rrweb.js:11918), and its observer
+     * then reports that as a second attribute mutation on the same node.
+     * Suppressing "type" alone left the reveal fully observable through
+     * rrweb's own marker.
+     */
+    it("suppresses rrweb's own password marker, not just the type", (): void => {
+      const masking: Masking = maskAll();
+      const input: HTMLInputElement = document.createElement("input");
+
+      input.setAttribute("type", "password");
+      masking.markIfSensitive(input);
+
+      expect(
+        masking.sanitiseAttributeMutation(input, {
+          "data-rr-is-password": "true",
+        }),
+      ).toBeNull();
+
+      expect(
+        masking.sanitiseAttributeMutation(input, {
+          "data-rr-is-password": "true",
+          "data-revealed": "true",
+        }),
+      ).toEqual({ "data-revealed": "true" });
+    });
+
     it("returns null when nothing survives, so the entry can be dropped", (): void => {
       const masking: Masking = maskAll();
       const input: HTMLInputElement = document.createElement("input");

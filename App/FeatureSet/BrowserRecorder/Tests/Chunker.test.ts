@@ -1,20 +1,30 @@
-import Chunker, { PendingChunk } from "../src/Chunker";
+import Chunker, {
+  PendingChunk,
+  SESSION_REPLAY_TRUNCATED_NOTICE,
+  splitByUtf8Bytes,
+  utf8ByteLength,
+} from "../src/Chunker";
 import { BufferedEvent } from "../src/RollingBuffer";
 
 describe("Chunker", (): void => {
   const SESSION_START: number = 1_700_000_000_000;
 
   let chunks: Array<PendingChunk> = [];
+  let truncationCallbacks: number = 0;
 
   const makeChunker: (maxPayloadBytes?: number) => Chunker = (
     maxPayloadBytes?: number,
   ): Chunker => {
     chunks = [];
+    truncationCallbacks = 0;
 
     return new Chunker({
       sessionStartUnixMs: SESSION_START,
       sink: (chunk: PendingChunk): void => {
         chunks.push(chunk);
+      },
+      onTruncated: (): void => {
+        truncationCallbacks++;
       },
       ...(maxPayloadBytes === undefined
         ? {}
@@ -224,14 +234,190 @@ describe("Chunker", (): void => {
     });
   });
 
-  it("stops emitting once the per-session chunk cap is reached", (): void => {
-    const chunker: Chunker = makeChunker(10);
+  /*
+   * Hitting the cap used to be completely silent: add() and close() both
+   * returned early, so events were discarded with no droppedEvents increment,
+   * no fidelity notice and no final chunk. The server then sealed the session
+   * as idle-timeout ten minutes later and the viewer was shown a recording
+   * that simply stops.
+   */
+  describe("per-session chunk cap", (): void => {
+    const fillToCap: (chunker: Chunker) => void = (chunker: Chunker): void => {
+      for (let i: number = 0; i < 600; i++) {
+        chunker.add(event({ bytes: 10 }));
+      }
+    };
 
-    for (let i: number = 0; i < 600; i++) {
+    it("discloses the truncation instead of going silent", (): void => {
+      const chunker: Chunker = makeChunker(10);
+
+      fillToCap(chunker);
+
+      expect(chunker.hasReachedSessionChunkCap()).toBe(true);
+      expect(chunker.hasEmittedTruncation()).toBe(true);
+
+      const last: PendingChunk | undefined = chunks[chunks.length - 1];
+
+      expect(last?.isFinal).toBe(true);
+      expect(last?.payload).toBe("[]");
+      expect(last?.fidelityNotices).toContain(SESSION_REPLAY_TRUNCATED_NOTICE);
+    });
+
+    it("emits the disclosure exactly once and then tells the recorder to stop", (): void => {
+      const chunker: Chunker = makeChunker(10);
+
+      fillToCap(chunker);
+
+      const afterCap: number = chunks.length;
+
+      /* Everything past the cap, including a terminal flush, is a no-op. */
       chunker.add(event({ bytes: 10 }));
+      chunker.close(false);
+      chunker.close(true);
+
+      expect(chunks.length).toBe(afterCap);
+      expect(truncationCallbacks).toBe(1);
+    });
+
+    /*
+     * A recorder that silently drops events is indistinguishable from a quiet
+     * user, so it has to tell on itself.
+     */
+    it("counts the events it discarded past the cap", (): void => {
+      const chunker: Chunker = makeChunker(10);
+
+      fillToCap(chunker);
+
+      expect(chunker.getDroppedEventCount()).toBeGreaterThan(0);
+    });
+
+    it("sends the 480 real chunks plus one disclosure and no more", (): void => {
+      const chunker: Chunker = makeChunker(10);
+
+      fillToCap(chunker);
+
+      expect(chunks.length).toBe(481);
+      expect(chunker.getClosedChunkCount()).toBe(480);
+    });
+  });
+});
+
+/*
+ * Byte accounting and splitting.
+ *
+ * Everything here used to count String.length, which is UTF-16 code UNITS.
+ * The wire, the 2 MiB request cap and the keepalive quota are counted in
+ * UTF-8 BYTES, and - worse - slicing an oversized snapshot by code unit could
+ * cut a surrogate pair in half. Each part is UTF-8 encoded independently
+ * before it goes on the wire, so both halves of a broken pair became U+FFFD
+ * and the server's reassembled snapshot was silently corrupted.
+ */
+describe("utf8ByteLength", (): void => {
+  it("counts ASCII as one byte per character", (): void => {
+    expect(utf8ByteLength("")).toBe(0);
+    expect(utf8ByteLength('{"a":1}')).toBe(7);
+  });
+
+  it("agrees with TextEncoder on every width", (): void => {
+    const samples: Array<string> = [
+      "plain",
+      "café",
+      "naïve résumé",
+      "日本語のページ",
+      "emoji 👨‍👩‍👧‍👦 family",
+      "𝄞 clef",
+      '{"text":"税込 1,000円 🎉"}',
+    ];
+
+    for (const sample of samples) {
+      expect(utf8ByteLength(sample)).toBe(
+        new TextEncoder().encode(sample).length,
+      );
+    }
+  });
+
+  /* A lone surrogate is what a broken slice produces; it encodes as U+FFFD. */
+  it("counts a lone surrogate the way TextEncoder does", (): void => {
+    const lone: string = "\ud83d";
+
+    expect(utf8ByteLength(lone)).toBe(new TextEncoder().encode(lone).length);
+  });
+});
+
+describe("splitByUtf8Bytes", (): void => {
+  it("never cuts a surrogate pair in half", (): void => {
+    /* Ten ASCII, one emoji, ten ASCII - the exact shape that used to corrupt. */
+    const body: string = `${"x".repeat(10)}😀${"y".repeat(10)}`;
+
+    for (let limit: number = 4; limit <= 24; limit++) {
+      const parts: Array<string> = splitByUtf8Bytes(body, limit);
+
+      /* Round-tripping each part independently must reproduce the input. */
+      const decoder: TextDecoder = new TextDecoder();
+      const rejoined: string = parts
+        .map((part: string): string => {
+          return decoder.decode(new TextEncoder().encode(part));
+        })
+        .join("");
+
+      expect(rejoined).toBe(body);
+      expect(rejoined).not.toContain("�");
+    }
+  });
+
+  it("keeps every part inside the byte budget", (): void => {
+    const body: string = "日本語のページ".repeat(20);
+    const parts: Array<string> = splitByUtf8Bytes(body, 32);
+
+    for (const part of parts) {
+      expect(utf8ByteLength(part)).toBeLessThanOrEqual(32);
     }
 
-    expect(chunker.hasReachedSessionChunkCap()).toBe(true);
-    expect(chunks.length).toBeLessThanOrEqual(480);
+    expect(parts.join("")).toBe(body);
+  });
+
+  it("returns one part when the whole string fits", (): void => {
+    expect(splitByUtf8Bytes("short", 1000)).toEqual(["short"]);
+    expect(splitByUtf8Bytes("", 1000)).toEqual([""]);
+  });
+});
+
+describe("Chunker oversized non-ASCII snapshot", (): void => {
+  const SESSION_START: number = 1_700_000_000_000;
+
+  it("splits an emoji-bearing snapshot without corrupting it", (): void => {
+    const chunks: Array<PendingChunk> = [];
+
+    const chunker: Chunker = new Chunker({
+      sessionStartUnixMs: SESSION_START,
+      sink: (chunk: PendingChunk): void => {
+        chunks.push(chunk);
+      },
+      maxPayloadBytes: 40,
+    });
+
+    const big: string = `{"type":2,"data":"${"😀".repeat(60)}"}`;
+
+    chunker.add({
+      json: big,
+      bytes: utf8ByteLength(big),
+      timestampMs: SESSION_START + 10,
+      isCheckout: true,
+      type: 2,
+    });
+
+    expect(chunks.length).toBeGreaterThan(1);
+
+    const decoder: TextDecoder = new TextDecoder();
+    const rejoined: string = chunks
+      .map((chunk: PendingChunk): string => {
+        /* Exactly what the wire does to each part: encode it on its own. */
+        return decoder.decode(new TextEncoder().encode(chunk.payload));
+      })
+      .join("");
+
+    expect(rejoined).toBe(`[${big}]`);
+    expect(rejoined).not.toContain("�");
+    expect(JSON.parse(rejoined)).toHaveLength(1);
   });
 });

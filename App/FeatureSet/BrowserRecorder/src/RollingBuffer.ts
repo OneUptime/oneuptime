@@ -46,9 +46,26 @@ export interface BufferedEvent {
   type: number;
 }
 
+/* rrweb EventType values this module needs to recognise. */
+const EVENT_TYPE_FULL_SNAPSHOT: number = 2;
+const EVENT_TYPE_META: number = 4;
+
 interface BufferSegment {
   events: Array<BufferedEvent>;
   bytes: number;
+
+  /*
+   * Whether anything other than a Meta or FullSnapshot has landed in this
+   * segment yet.
+   *
+   * rrweb emits a checkout as TWO isCheckout events, Meta then FullSnapshot
+   * (rrweb.js:14428-14446 passes the flag to both). Starting a segment on
+   * every isCheckout therefore left the Meta alone in a segment of its own,
+   * where it could be evicted independently of the FullSnapshot it belongs
+   * to - leaving a pre-roll whose first event is a snapshot with no viewport
+   * or href in front of it. The Chunker already gets this right the same way.
+   */
+  sawContentEvent: boolean;
 }
 
 export default class RollingBuffer {
@@ -69,8 +86,16 @@ export default class RollingBuffer {
   }
 
   public push(event: BufferedEvent): void {
-    if (event.isCheckout || this.segments.length === 0) {
-      this.segments.push({ events: [], bytes: 0 });
+    const current: BufferSegment | undefined =
+      this.segments[this.segments.length - 1];
+
+    /*
+     * A checkout only opens a new segment once the current one holds
+     * something replayable. Without the sawContentEvent guard the checkout's
+     * own Meta and FullSnapshot land in two different segments.
+     */
+    if (!current || (event.isCheckout && current.sawContentEvent)) {
+      this.segments.push({ events: [], bytes: 0, sawContentEvent: false });
     }
 
     const segment: BufferSegment | undefined =
@@ -78,6 +103,13 @@ export default class RollingBuffer {
 
     if (!segment) {
       return;
+    }
+
+    if (
+      event.type !== EVENT_TYPE_META &&
+      event.type !== EVENT_TYPE_FULL_SNAPSHOT
+    ) {
+      segment.sawContentEvent = true;
     }
 
     segment.events.push(event);

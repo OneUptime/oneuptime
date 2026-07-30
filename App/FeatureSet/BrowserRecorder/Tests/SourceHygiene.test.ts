@@ -209,6 +209,66 @@ describe("source hygiene", (): void => {
     }
   });
 
+  /*
+   * The same rule, applied to the Common modules that get INLINED.
+   *
+   * The scan above reads src/ only, which was a blind spot: files inside
+   * Common reach each other with relative specifiers, so a
+   * "../../Types/Dictionary" added to a Rum module would have satisfied every
+   * source check here while pulling arbitrary Common code into a bundle
+   * served to third-party origins. The esbuild plugin hard-fails on this now;
+   * this catches it without a build.
+   */
+  it("keeps the inlined Common Rum modules inside Common/{Utils,Types}/Rum", (): void => {
+    const commonRoot: string = nodePath.join(
+      __dirname,
+      "..",
+      "..",
+      "..",
+      "..",
+      "Common",
+    );
+
+    const offenders: Array<string> = [];
+
+    for (const area of ["Utils", "Types"]) {
+      const directory: string = nodePath.join(commonRoot, area, "Rum");
+
+      for (const file of fs.readdirSync(directory)) {
+        if (!file.endsWith(".ts")) {
+          continue;
+        }
+
+        const contents: string = stripComments(
+          fs.readFileSync(nodePath.join(directory, file), "utf8"),
+        );
+
+        const matches: Array<string> =
+          contents.match(/from\s+["']([^"']+)["']/g) || [];
+
+        for (const match of matches) {
+          const specifier: string = match.replace(/^from\s+["']|["']$/g, "");
+
+          /*
+           * Resolved against the module's own directory, because "./X" and
+           * "../Rum/X" are both legal and both stay inside the allow-list
+           * while "../../Types/Dictionary" does not.
+           */
+          const resolved: string = nodePath.join(directory, specifier);
+          const isInsideRum: boolean =
+            resolved.startsWith(nodePath.join(commonRoot, "Utils", "Rum")) ||
+            resolved.startsWith(nodePath.join(commonRoot, "Types", "Rum"));
+
+          if (!isInsideRum) {
+            offenders.push(`${area}/Rum/${file}: ${specifier}`);
+          }
+        }
+      }
+    }
+
+    expect(offenders).toEqual([]);
+  });
+
   it("declares rrweb with an exact version, no range", (): void => {
     const packageJson: { dependencies: Record<string, string> } = require(
       nodePath.join(__dirname, "..", "package.json"),

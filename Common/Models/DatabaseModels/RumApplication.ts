@@ -724,8 +724,17 @@ export default class RumApplication extends BaseModel {
       Permission.EditRumApplication,
     ],
   })
+  /*
+   * NOT required, even though the column is NOT NULL with a '[]' default.
+   * DatabaseService.checkRequiredFields() runs on the in-memory model
+   * before the INSERT and cannot see a database-side default, so a
+   * required column with no isDefaultValueColumn would make every create
+   * of a RumApplication throw - including the RUM ingest auto-provisioning
+   * path, which supplies nothing but projectId/name/appIdentifier. An
+   * omitted list simply lands as the '[]' default.
+   */
   @TableColumn({
-    required: true,
+    required: false,
     type: TableColumnType.JSON,
     title: "Session Replay Mask Selectors",
     description:
@@ -768,8 +777,9 @@ export default class RumApplication extends BaseModel {
       Permission.EditRumApplication,
     ],
   })
+  /* Not required, for the same reason as the mask selectors above. */
   @TableColumn({
-    required: true,
+    required: false,
     type: TableColumnType.JSON,
     title: "Session Replay Block Selectors",
     description:
@@ -812,8 +822,13 @@ export default class RumApplication extends BaseModel {
       Permission.EditRumApplication,
     ],
   })
+  /*
+   * Not required, for the same reason as the selector lists above. Note
+   * that the omitted value is the SAFE one here: an empty allowlist means
+   * ingest is refused until somebody configures an origin.
+   */
   @TableColumn({
-    required: true,
+    required: false,
     type: TableColumnType.JSON,
     title: "Session Replay Allowed Origins",
     description:

@@ -40,6 +40,21 @@ export const CHUNK_PATH: string = "/session-replay/v1/chunk";
 export const ARTIFACT_PATH_PREFIX: string = "/telemetry/session-replay";
 
 /*
+ * recorderVersion is interpolated straight into an artifact URL path, so
+ * "non-empty string" is not a sufficient check: a config value of
+ * "../../../admin" would produce a request to an entirely different path on
+ * the ingest origin. Semver is also exactly what the build stamps (see
+ * esbuild.config.js, which asserts package.json's version against this same
+ * shape), so anything that does not match cannot correspond to a published
+ * artifact and the only safe response is to refuse to record.
+ *
+ * Kept in sync with RECORDER_VERSION_PATTERN in esbuild.config.js and
+ * Manifest.ts - there is a test asserting all three agree.
+ */
+export const RECORDER_VERSION_PATTERN: RegExp =
+  /^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$/;
+
+/*
  * A config fetch that hangs must not hang the recorder's startup forever.
  * Deliberately short: no recording is a better outcome than a pending
  * request held open on the customer's page.
@@ -196,10 +211,25 @@ export default class Config {
     return `${options.host}${CHUNK_PATH}`;
   }
 
+  public static isValidRecorderVersion(value: unknown): value is string {
+    return typeof value === "string" && RECORDER_VERSION_PATTERN.test(value);
+  }
+
+  /*
+   * Returns null rather than a best-effort URL when the version is not a
+   * semver the build could have produced. The caller then loads nothing,
+   * which is the same fail-closed outcome as a config fetch that failed:
+   * a <script src> assembled from an unvalidated config value is a request
+   * to an attacker-chosen path on the ingest origin.
+   */
   public static getArtifactUrl(
     options: RecorderInitOptions,
     recorderVersion: string,
-  ): string {
+  ): string | null {
+    if (!Config.isValidRecorderVersion(recorderVersion)) {
+      return null;
+    }
+
     return `${options.host}${ARTIFACT_PATH_PREFIX}/v${recorderVersion}/recorder.js`;
   }
 
@@ -279,7 +309,12 @@ export default class Config {
 
     const recorderVersion: unknown = raw["recorderVersion"];
 
-    if (typeof recorderVersion !== "string" || !recorderVersion) {
+    /*
+     * Rejected here rather than at the point of use, so no downstream caller
+     * ever holds a LoaderConfig carrying a version that cannot name a
+     * published artifact.
+     */
+    if (!Config.isValidRecorderVersion(recorderVersion)) {
       return null;
     }
 

@@ -101,7 +101,20 @@ function loadArtifact(
   options: RecorderInitOptions,
   config: LoaderConfig,
 ): void {
-  const url: string = Config.getArtifactUrl(options, config.recorderVersion);
+  const url: string | null = Config.getArtifactUrl(
+    options,
+    config.recorderVersion,
+  );
+
+  /*
+   * A version the build could never have stamped means there is no artifact
+   * to pin to. Loading nothing is the fail-closed outcome; guessing a URL
+   * would put a <script src> built from an unvalidated config value onto the
+   * customer's page.
+   */
+  if (!url) {
+    return;
+  }
 
   const existing: ArtifactApi | null = readArtifactApi();
 

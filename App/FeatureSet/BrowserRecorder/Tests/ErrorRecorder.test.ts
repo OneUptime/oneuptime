@@ -1,4 +1,5 @@
 import CommonMasking from "Common/Utils/Rum/Masking";
+import UrlScrubber from "Common/Utils/Rum/UrlScrubber";
 import ErrorRecorder, {
   ERROR_CUSTOM_EVENT_TAG,
   RecordedError,
@@ -19,6 +20,11 @@ describe("ErrorRecorder", (): void => {
       },
       maskMessage: (message: string): string => {
         return CommonMasking.maskText(message);
+      },
+
+      /* Exactly what Recorder.scrubUrl does, with the default empty allowlist. */
+      scrubUrl: (url: string): string => {
+        return UrlScrubber.scrub(url, []);
       },
       onError: (_atUnixMs: number, error: RecordedError): void => {
         errors.push(error);
@@ -81,6 +87,66 @@ describe("ErrorRecorder", (): void => {
 
     expect(errors[0]?.stack).toContain("at handler (app.js:1:1)");
     expect((errors[0]?.stack || "").length).toBeLessThanOrEqual(4000);
+  });
+
+  /*
+   * For an error thrown from an INLINE script the browser sets
+   * ErrorEvent.filename to the document's own URL, query string included. An
+   * uncaught error on /reset-password?token=... therefore used to post a live
+   * password-reset token in the clear.
+   */
+  it("scrubs the query string out of the error source", (): void => {
+    const event: ErrorEvent = new ErrorEvent("error", {
+      message: "boom",
+      filename:
+        "https://shop.example.com/reset-password?token=s3cr3t-reset-token",
+      lineno: 1,
+      colno: 1,
+    });
+
+    window.dispatchEvent(event);
+
+    expect(errors[0]?.source).toBe("https://shop.example.com/reset-password");
+    expect(JSON.stringify(errors)).not.toContain("s3cr3t-reset-token");
+    expect(JSON.stringify(customEvents)).not.toContain("s3cr3t-reset-token");
+  });
+
+  /* Stack frames carry the same document URL, and the same query string. */
+  it("scrubs URLs inside the stack while keeping the frames readable", (): void => {
+    const error: Error = new Error("boom");
+
+    error.stack = [
+      "Error: boom",
+      "    at submit (https://shop.example.com/verify?email=alice@example.com:12:5)",
+      "    at handler (https://shop.example.com/static/app.js:1:1)",
+    ].join("\n");
+
+    throwError("boom", error);
+
+    const stack: string = errors[0]?.stack || "";
+
+    expect(stack).not.toContain("alice@example.com");
+    expect(stack).toContain("at submit (");
+    expect(stack).toContain("https://shop.example.com/static/app.js");
+  });
+
+  /*
+   * The scrub regex is module-scope and global, so its lastIndex must be
+   * reset per call - otherwise the second error's stack is scrubbed from
+   * wherever the first one left off and leaks everything before that point.
+   */
+  it("scrubs the second error's stack as thoroughly as the first", (): void => {
+    for (let i: number = 0; i < 3; i++) {
+      const error: Error = new Error("boom");
+
+      error.stack = `Error: boom\n    at f (https://shop.example.com/p?token=leak-${i})`;
+
+      throwError("boom", error);
+    }
+
+    for (const recorded of errors) {
+      expect(recorded.stack || "").not.toContain("token=");
+    }
   });
 
   it("records an unhandled rejection", (): void => {

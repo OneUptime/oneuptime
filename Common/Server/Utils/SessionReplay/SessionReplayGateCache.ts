@@ -1,8 +1,10 @@
-import Redis, { ClientType } from "../../Infrastructure/Redis";
 import ProjectService from "../../Services/ProjectService";
 import RumApplicationService from "../../Services/RumApplicationService";
 import QueryHelper from "../../Types/Database/QueryHelper";
-import logger from "../Logger";
+import SessionReplayGateCacheStore, {
+  POLICY_CACHE_TTL_MS,
+  PolicyCacheEntry,
+} from "./SessionReplayGateCacheStore";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Project from "../../../Models/DatabaseModels/Project";
 import RumApplication from "../../../Models/DatabaseModels/RumApplication";
@@ -37,19 +39,12 @@ import SessionIdentity from "../../../Utils/Rum/SessionIdentity";
  * endpoint's 300s browser cache - roughly six minutes - to stop a live
  * recorder. With it the SERVER stops accepting within 5s and the directive
  * on the chunk response stops the recorder within one flush window.
+ *
+ * The cache state and its invalidation live in SessionReplayGateCacheStore,
+ * which RumApplicationService and ProjectService call from their update and
+ * delete hooks. This file imports both of those services, so the store has
+ * to be a separate leaf module or the invalidation would be a cycle.
  */
-
-const POLICY_CACHE_TTL_MS: number = 60 * 1000;
-const KILL_KEY_CACHE_TTL_MS: number = 5 * 1000;
-
-const KILL_KEY_PREFIX: string = "replay:gate:off:";
-
-/*
- * The kill key only has to outlive the policy cache it is racing. Anything
- * longer just keeps a project switched off after the policy cache has
- * already picked up the real setting.
- */
-const KILL_KEY_TTL_SECONDS: number = 120;
 
 /*
  * Policy columns read off RumApplication and Project.
@@ -136,19 +131,6 @@ export interface SessionReplayGatePolicy {
   configEpoch: number;
 }
 
-interface PolicyCacheEntry {
-  policy: SessionReplayGatePolicy | null;
-  loadedAt: number;
-}
-
-interface KillKeyCacheEntry {
-  isDisabled: boolean;
-  loadedAt: number;
-}
-
-const policyCache: Map<string, PolicyCacheEntry> = new Map();
-const killKeyCache: Map<string, KillKeyCacheEntry> = new Map();
-
 export default class SessionReplayGateCache {
   /*
    * Resolve the policy for one application.
@@ -173,7 +155,10 @@ export default class SessionReplayGateCache {
 
     const cacheKey: string = `${data.projectId.toString()}:${appIdentifier.toLowerCase()}`;
 
-    const cached: PolicyCacheEntry | undefined = policyCache.get(cacheKey);
+    const cached: PolicyCacheEntry<SessionReplayGatePolicy> | undefined =
+      SessionReplayGateCacheStore.getPolicyEntry<SessionReplayGatePolicy>(
+        cacheKey,
+      );
 
     if (cached && Date.now() - cached.loadedAt < POLICY_CACHE_TTL_MS) {
       /*
@@ -181,7 +166,10 @@ export default class SessionReplayGateCache {
        * point of it. A cached "enabled" policy is only honoured while the
        * project has not been switched off in the last few seconds.
        */
-      if (cached.policy && (await this.isProjectKilled(data.projectId))) {
+      if (
+        cached.policy &&
+        (await SessionReplayGateCacheStore.isProjectKilled(data.projectId))
+      ) {
         return null;
       }
 
@@ -193,9 +181,15 @@ export default class SessionReplayGateCache {
       appIdentifier: appIdentifier,
     });
 
-    policyCache.set(cacheKey, { policy: policy, loadedAt: Date.now() });
+    SessionReplayGateCacheStore.setPolicyEntry<SessionReplayGatePolicy>(
+      cacheKey,
+      policy,
+    );
 
-    if (policy && (await this.isProjectKilled(data.projectId))) {
+    if (
+      policy &&
+      (await SessionReplayGateCacheStore.isProjectKilled(data.projectId))
+    ) {
       return null;
     }
 
@@ -375,102 +369,20 @@ export default class SessionReplayGateCache {
   }
 
   /*
-   * Switch a project off immediately, ahead of the 60s policy cache.
-   *
-   * Called from the update path of the project / application settings so
-   * "I turned this off" is honoured by the server within 5s rather than
-   * within the cache TTL. Best-effort: a Redis outage only means the
-   * ordinary cache expiry applies.
+   * Invalidation. Delegated to the leaf store so the services that own the
+   * policy rows can call the same code without importing this resolver.
    */
   public static async markProjectDisabled(projectId: ObjectID): Promise<void> {
-    const client: ClientType | null = Redis.getClient();
+    return await SessionReplayGateCacheStore.markProjectDisabled(projectId);
+  }
 
-    if (!client || !Redis.isConnected()) {
-      return;
-    }
-
-    try {
-      await client.set(
-        `${KILL_KEY_PREFIX}${projectId.toString()}`,
-        "1",
-        "EX",
-        KILL_KEY_TTL_SECONDS,
-      );
-    } catch (err) {
-      logger.warn(
-        `SessionReplayGateCache: could not set the kill key for project ${projectId.toString()}`,
-      );
-      logger.warn(err);
-    }
-
-    killKeyCache.set(projectId.toString(), {
-      isDisabled: true,
-      loadedAt: Date.now(),
-    });
+  public static async clearProjectDisabled(projectId: ObjectID): Promise<void> {
+    return await SessionReplayGateCacheStore.clearProjectDisabled(projectId);
   }
 
   /* Drop cached policy for one project, or for everything. */
   public static clearCache(projectId?: ObjectID | undefined): void {
-    if (!projectId) {
-      policyCache.clear();
-      killKeyCache.clear();
-      return;
-    }
-
-    const prefix: string = `${projectId.toString()}:`;
-
-    for (const key of Array.from(policyCache.keys())) {
-      if (key.startsWith(prefix)) {
-        policyCache.delete(key);
-      }
-    }
-
-    killKeyCache.delete(projectId.toString());
-  }
-
-  private static async isProjectKilled(projectId: ObjectID): Promise<boolean> {
-    const cacheKey: string = projectId.toString();
-
-    const cached: KillKeyCacheEntry | undefined = killKeyCache.get(cacheKey);
-
-    if (cached && Date.now() - cached.loadedAt < KILL_KEY_CACHE_TTL_MS) {
-      return cached.isDisabled;
-    }
-
-    const client: ClientType | null = Redis.getClient();
-
-    if (!client || !Redis.isConnected()) {
-      /*
-       * Fail OPEN on this one check only, and only because it is a
-       * fast-path override on top of a policy that already had to say yes.
-       * Failing closed here would make a Redis blip stop replay ingest for
-       * every project that had correctly opted in.
-       */
-      killKeyCache.set(cacheKey, { isDisabled: false, loadedAt: Date.now() });
-      return false;
-    }
-
-    let isDisabled: boolean = false;
-
-    try {
-      const value: string | null = await client.get(
-        `${KILL_KEY_PREFIX}${cacheKey}`,
-      );
-      isDisabled = value !== null;
-    } catch (err) {
-      logger.warn(
-        `SessionReplayGateCache: could not read the kill key for project ${cacheKey}`,
-      );
-      logger.warn(err);
-      isDisabled = false;
-    }
-
-    killKeyCache.set(cacheKey, {
-      isDisabled: isDisabled,
-      loadedAt: Date.now(),
-    });
-
-    return isDisabled;
+    SessionReplayGateCacheStore.clearCache(projectId);
   }
 
   /*

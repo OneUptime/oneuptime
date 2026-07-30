@@ -72,8 +72,15 @@ function encodeFrames(
   let offset: number = 0;
 
   for (const frame of encoded) {
-    view.setUint32(offset, frame.chunkIndex, false);
-    view.setUint32(offset + 4, frame.bytes.length, false);
+    /*
+     * LITTLE-endian, byte for byte what the /chunks route emits with
+     * Buffer.writeUInt32LE. If this helper and the decoder ever agree on the
+     * wrong endianness together the tests pass and the product decodes an
+     * empty recording, so the constant to check against is the server, not
+     * this file: Common/Server/API/TelemetryAPI.ts.
+     */
+    view.setUint32(offset, frame.chunkIndex, true);
+    view.setUint32(offset + 4, frame.bytes.length, true);
     bytes.set(frame.bytes, offset + 8);
     offset += 8 + frame.bytes.length;
   }
@@ -204,6 +211,30 @@ describe("ChunkLoader frame decoding", () => {
     ]);
 
     expect(ChunkLoader.decodeFrames(buffer).length).toBe(0);
+  });
+
+  it("reads the frame header little-endian, the way the server writes it", () => {
+    /*
+     * Hand-built against Buffer.writeUInt32LE rather than against the helper
+     * above, so this fails if the decoder is flipped even when the helper is
+     * flipped with it. Reading these bytes big-endian yields chunkIndex
+     * 117440512 and a length of 33554432, which overruns and decodes nothing.
+     */
+    const payload: Uint8Array = new TextEncoder().encode("[]");
+    const buffer: ArrayBuffer = new ArrayBuffer(8 + payload.length);
+    const bytes: Uint8Array = new Uint8Array(buffer);
+
+    // chunkIndex = 7 as u32 LE.
+    bytes[0] = 7;
+    // length = 2 as u32 LE.
+    bytes[4] = payload.length;
+    bytes.set(payload, 8);
+
+    const frames: Array<{ chunkIndex: number }> =
+      ChunkLoader.decodeFrames(buffer);
+
+    expect(frames.length).toBe(1);
+    expect(frames[0]!.chunkIndex).toBe(7);
   });
 });
 
@@ -397,6 +428,63 @@ describe("ChunkLoader paging and caching", () => {
 
     // A zero-length page would deadlock the player on an oversized snapshot.
     expect(loader.planPage(0)).toEqual([0]);
+  });
+
+  it("reports only what actually decoded when the response is short", async () => {
+    /*
+     * The server can legitimately return fewer frames than were asked for: a
+     * TTL drop between manifest and read, the 8 MB clamp, a truncated body,
+     * or a corrupt frame decodeFrames skips. Reporting the PLANNED indexes
+     * would make a partial response indistinguishable from a complete one,
+     * and the player would then feed chunk N+1 into a Replayer that never
+     * received N.
+     */
+    const requests: Array<Array<number>> = [];
+    const shortFetcher: RecordingFetcher = {
+      requests: requests,
+      fetcher: (request: {
+        sessionId: string;
+        tabId: string;
+        chunkIndexes: Array<number>;
+      }): Promise<ArrayBuffer> => {
+        requests.push([...request.chunkIndexes]);
+
+        return Promise.resolve(
+          encodeFrames(
+            request.chunkIndexes
+              .filter((chunkIndex: number): boolean => {
+                return chunkIndex !== 2;
+              })
+              .map(
+                (
+                  chunkIndex: number,
+                ): {
+                  chunkIndex: number;
+                  body: string;
+                } => {
+                  return { chunkIndex: chunkIndex, body: bodyFor(chunkIndex) };
+                },
+              ),
+          ),
+        );
+      },
+    };
+
+    const loader: ChunkLoader = makeLoader(
+      [
+        makeEntry(0, { hasFullSnapshot: true }),
+        makeEntry(1),
+        makeEntry(2),
+        makeEntry(3),
+      ],
+      shortFetcher,
+    );
+
+    const loaded: Array<number> = await loader.loadPage(0);
+
+    expect(loaded).toEqual([0, 1, 3]);
+    expect(loader.isChunkDecoded(2)).toBe(false);
+    expect(await loader.ensureChunk(2)).toBeNull();
   });
 
   it("does not refetch chunks it already holds", async () => {

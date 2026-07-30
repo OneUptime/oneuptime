@@ -8,6 +8,36 @@ import { OnCreate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
+/* Postgres unique_violation. https://www.postgresql.org/docs/current/errcodes-appendix.html */
+const UNIQUE_VIOLATION: string = "23505";
+
+type IsUniqueViolationFunction = (error: unknown) => boolean;
+
+/*
+ * TypeORM wraps driver failures in QueryFailedError, which hoists the pg
+ * fields onto itself but also keeps the original under `driverError`.
+ * Check both rather than assuming which one carries the code.
+ */
+const isUniqueViolation: IsUniqueViolationFunction = (
+  error: unknown,
+): boolean => {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  if ((error as { code?: string | undefined }).code === UNIQUE_VIOLATION) {
+    return true;
+  }
+
+  const driverError: unknown = (error as { driverError?: unknown }).driverError;
+
+  return Boolean(
+    driverError &&
+      typeof driverError === "object" &&
+      (driverError as { code?: string | undefined }).code === UNIQUE_VIOLATION,
+  );
+};
+
 /*
  * Pins that keep a session recording past its retention window.
  *
@@ -46,11 +76,74 @@ export class Service extends DatabaseService<Model> {
      */
     delete createBy.data.materializedAt;
 
+    /*
+     * Assigned or removed, never left as the client sent it. pinnedByUserId
+     * is declared `computed` on the model, which is what lets this
+     * assignment survive the create-column permission check that runs after
+     * this hook; the delete is what stops an API-key caller (no
+     * props.userId) attributing the pin to a colleague.
+     */
     if (createBy.props.userId) {
       createBy.data.pinnedByUserId = createBy.props.userId;
+    } else {
+      delete createBy.data.pinnedByUserId;
     }
 
     return { createBy, carryForward: null };
+  }
+
+  /*
+   * Pinning is idempotent, which is the whole reason this override exists.
+   * Clicking Pin twice, or pinning the same recording from two incidents,
+   * hits the unique index on (projectId, rumApplicationId, sessionId) and
+   * would otherwise surface as a raw 500 carrying a Postgres constraint
+   * name: checkForUniqueValues only understands single-column `unique`
+   * metadata, not a composite @Index, so nothing else catches it.
+   *
+   * The pre-check handles the common case and the catch closes the race
+   * between two concurrent pins of the same session.
+   */
+  @CaptureSpan()
+  public override async create(createBy: CreateBy<Model>): Promise<Model> {
+    const projectId: ObjectID | undefined = createBy.data.projectId;
+    const rumApplicationId: ObjectID | undefined =
+      createBy.data.rumApplicationId;
+    const sessionId: string | undefined = createBy.data.sessionId;
+
+    if (!projectId || !rumApplicationId || !sessionId) {
+      /* Let onBeforeCreate produce the specific validation message. */
+      return await super.create(createBy);
+    }
+
+    const existingPin: Model | null = await this.getPinForSession({
+      projectId: projectId,
+      rumApplicationId: rumApplicationId,
+      sessionId: sessionId,
+    });
+
+    if (existingPin) {
+      return existingPin;
+    }
+
+    try {
+      return await super.create(createBy);
+    } catch (err) {
+      if (!isUniqueViolation(err)) {
+        throw err;
+      }
+
+      const racedPin: Model | null = await this.getPinForSession({
+        projectId: projectId,
+        rumApplicationId: rumApplicationId,
+        sessionId: sessionId,
+      });
+
+      if (racedPin) {
+        return racedPin;
+      }
+
+      throw err;
+    }
   }
 
   /* Null when the recording is not pinned. */

@@ -3,6 +3,7 @@ import RumSessionService from "Common/Server/Services/RumSessionService";
 import Redis, { ClientType } from "Common/Server/Infrastructure/Redis";
 import AppMetrics from "Common/Server/Utils/Telemetry/AppMetrics";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
+import { isSessionErased } from "Common/Server/Utils/SessionReplay/SessionReplayErasureTombstone";
 import SessionReplayGateCache, {
   SessionReplayGatePolicy,
 } from "Common/Server/Utils/SessionReplay/SessionReplayGateCache";
@@ -27,8 +28,11 @@ import {
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import SessionIdentity from "Common/Utils/Rum/SessionIdentity";
 import SessionSampling from "Common/Utils/Rum/SessionSampling";
+import UrlScrubber from "Common/Utils/Rum/UrlScrubber";
 import zlib from "zlib";
+import { promisify } from "util";
 import {
+  SESSION_REPLAY_ENABLED_BY_DEFAULT,
   SESSION_REPLAY_INGEST_ENABLED,
   SESSION_REPLAY_INLINE_STAGING_MAX_BYTES,
 } from "../Config";
@@ -80,12 +84,48 @@ const ACTIVE_SESSION_KEY_PREFIX: string = "replay:active:";
 const ACTIVE_SESSION_TTL_SECONDS: number = 6 * 60 * 60;
 
 /*
- * Decompressed-payload ceiling. gzip of JSON routinely reaches 10-20x, so a
- * 2MiB frame could inflate to tens of MB; a hostile one could inflate far
- * more. Enforced with the stream's own maxOutputLength so the guard fires
- * during inflation rather than after we have already allocated the memory.
+ * Decompressed-payload ceiling for ONE frame. gzip of JSON routinely reaches
+ * 10-20x, so a 2MiB frame could inflate to tens of MB; a hostile one could
+ * inflate far more. Enforced with the stream's own maxOutputLength so the
+ * guard fires during inflation rather than after we have already allocated
+ * the memory.
+ *
+ * 8 MiB is deliberately close to the recorder's actual behaviour (it flushes
+ * at a 256 KB pre-compression threshold) rather than to what a Buffer can
+ * hold, so a legitimate frame never comes near it.
  */
-const MAX_DECOMPRESSED_PAYLOAD_BYTES: number = 32 * 1024 * 1024;
+const MAX_DECOMPRESSED_FRAME_BYTES: number = 8 * 1024 * 1024;
+
+/*
+ * Decompressed-payload ceiling for the WHOLE job, which is the number that
+ * actually bounds the worker. A request may carry
+ * MAX_SESSION_REPLAY_CHUNKS_PER_REQUEST frames and processFromQueue holds
+ * every frame's decoded events (plus its serialized string) until the submit
+ * at the end, so a per-frame cap alone multiplies by the frame count and
+ * again by SESSION_REPLAY_WORKER_CONCURRENCY - low gigabytes from a single
+ * authenticated client sending highly compressible padding.
+ */
+const MAX_DECOMPRESSED_JOB_BYTES: number = 32 * 1024 * 1024;
+
+/*
+ * Async, not gunzipSync. A multi-MB synchronous inflate pins the worker's
+ * event loop, which defeats the EventLoop.yieldToEventLoop() care the
+ * scrubber takes immediately afterwards and can stall the liveness probe.
+ */
+const gunzipAsync: (
+  buffer: Uint8Array,
+  options: zlib.ZlibOptions,
+) => Promise<Buffer> = promisify(zlib.gunzip) as unknown as (
+  buffer: Uint8Array,
+  options: zlib.ZlibOptions,
+) => Promise<Buffer>;
+
+interface DecodedSessionReplayPayload {
+  events: Array<JSONValue>;
+
+  /* Charged against the per-job budget, so 0 for an uncompressed frame. */
+  decompressedBytes: number;
+}
 
 /* Why a chunk was refused at the gate, and what to tell the recorder. */
 export enum SessionReplayGateOutcome {
@@ -144,6 +184,23 @@ export default class SessionReplayIngestService {
         directive: "stop",
         configEpoch: 0,
         reason: "ingest-disabled",
+      };
+    }
+
+    /*
+     * The deployment-level switch. The config endpoint already answers
+     * "disabled" when this is off, so an operator who sets it to false
+     * believes replay is off instance-wide - and it has to actually be off,
+     * or a stale recorder that never re-fetched its config keeps uploading
+     * and we keep writing. This is the billing-independent protection for
+     * self-hosted installs, where plan gating enforces nothing.
+     */
+    if (!SESSION_REPLAY_ENABLED_BY_DEFAULT) {
+      return {
+        outcome: SessionReplayGateOutcome.Stop,
+        directive: "stop",
+        configEpoch: 0,
+        reason: "instance-not-offering-replay",
       };
     }
 
@@ -317,6 +374,23 @@ export default class SessionReplayIngestService {
     jobData: SessionReplayIngestJobData,
     bodyKey?: string | undefined,
   ): Promise<void> {
+    /*
+     * Mirror of the two deployment switches in the gate. A job enqueued
+     * before replay was switched off must not be written by a worker that
+     * came up after it: both flags are read from the environment at process
+     * start, so the worker's answer here is the one that reflects the
+     * operator's current intent.
+     */
+    if (!SESSION_REPLAY_INGEST_ENABLED) {
+      this.recordDrop("ingest-disabled");
+      return;
+    }
+
+    if (!SESSION_REPLAY_ENABLED_BY_DEFAULT) {
+      this.recordDrop("instance-not-offering-replay");
+      return;
+    }
+
     const projectId: ObjectID = new ObjectID(jobData.projectId);
 
     const body: Buffer | null = await this.resolveStagedBody(jobData, bodyKey);
@@ -392,6 +466,19 @@ export default class SessionReplayIngestService {
     const chunkRows: Array<JSONObject> = [];
     const headerRows: Array<JSONObject> = [];
 
+    /*
+     * Running job-wide decompression allowance, spent frame by frame. This
+     * is what bounds the worker: every decoded frame stays resident until
+     * the submit below, so the ceiling has to be per job, not per frame.
+     */
+    let decompressionBudgetRemaining: number = MAX_DECOMPRESSED_JOB_BYTES;
+
+    /*
+     * Erasure-tombstone answers for this job. One request commonly carries
+     * several frames of one session, and the lookup is a Redis round trip.
+     */
+    const erasedSessionCache: Map<string, boolean> = new Map<string, boolean>();
+
     for (const frame of parsed.frames) {
       const envelope: SessionReplayChunkEnvelope = frame.envelope;
 
@@ -407,14 +494,72 @@ export default class SessionReplayIngestService {
         continue;
       }
 
-      let events: Array<JSONValue> | null = null;
+      /*
+       * Erasure tombstone check, BEFORE any decode work.
+       *
+       * A chunk can be staged in Redis, or sitting in the queue, at the
+       * moment an erasure request completes. Without this check the worker
+       * happily writes it afterwards and the "erased" session partially
+       * reappears - which is not a cosmetic bug, it is a failed
+       * right-to-erasure obligation that nothing else in the system would
+       * ever notice or correct.
+       *
+       * Memoised per job because one request can carry several frames of the
+       * same session and this is a Redis round trip.
+       *
+       * Availability failures are deliberately fatal to the frame rather
+       * than ignored: if we cannot prove a session was NOT erased, writing
+       * it is the unrecoverable direction. Throwing (rather than dropping)
+       * lets the job retry once Redis is back, so a transient outage costs
+       * latency instead of the recording.
+       */
+      let sessionIsErased: boolean | undefined = erasedSessionCache.get(
+        envelope.sessionId,
+      );
+
+      if (sessionIsErased === undefined) {
+        /*
+         * Not wrapped in a try/catch on purpose. ErasureTombstoneUnavailable
+         * and any other failure both mean "we could not prove this session
+         * is safe to write", and both must propagate so the job retries.
+         */
+        sessionIsErased = await isSessionErased({
+          projectId: projectId.toString(),
+          sessionId: envelope.sessionId,
+        });
+
+        erasedSessionCache.set(envelope.sessionId, sessionIsErased);
+      }
+
+      if (sessionIsErased) {
+        this.recordDrop("session-erased");
+        logger.info(
+          `SessionReplayIngestService: dropped chunk ${envelope.chunkIndex} of session ${envelope.sessionId} - the session has been erased`,
+        );
+        continue;
+      }
+
+      if (decompressionBudgetRemaining <= 0) {
+        /*
+         * Earlier frames in this same request already spent the whole
+         * allowance. Drop the rest rather than growing the worker's peak
+         * footprint; the recorder learns nothing was written from the
+         * missing chunk indexes the finalizer reports.
+         */
+        this.recordDrop("job-decompression-budget-exhausted");
+        continue;
+      }
+
+      let decoded: DecodedSessionReplayPayload | null = null;
 
       try {
-        events = this.decodePayload(frame);
+        decoded = await this.decodePayload(frame, decompressionBudgetRemaining);
       } catch (err) {
         /*
          * A payload that will not gunzip or will not parse will never do
-         * so. Drop the frame and keep the rest of the request.
+         * so. Drop the frame and keep the rest of the request. A payload
+         * that blew the budget lands here too, via the inflate's own
+         * ERR_BUFFER_TOO_LARGE abort.
          */
         this.recordDrop("payload-undecodable");
         logger.warn(
@@ -424,10 +569,14 @@ export default class SessionReplayIngestService {
         continue;
       }
 
-      if (!events) {
+      if (!decoded) {
         this.recordDrop("payload-not-an-event-array");
         continue;
       }
+
+      decompressionBudgetRemaining -= decoded.decompressedBytes;
+
+      const events: Array<JSONValue> = decoded.events;
 
       const scrubResult: SessionReplayScrubResult =
         await SessionReplayScrubService.scrubEvents(events, compiledRules);
@@ -582,16 +731,25 @@ export default class SessionReplayIngestService {
   /*
    * gunzip (or pass through) and parse. Returns null when the payload is not
    * an event array, which is a data problem rather than an error.
+   *
+   * `budgetBytes` is what is left of the job-wide decompression allowance.
+   * It is folded into maxOutputLength so the inflate ABORTS at the budget
+   * rather than completing and being rejected after the memory was already
+   * allocated.
    */
-  private static decodePayload(
+  private static async decodePayload(
     frame: ParsedSessionReplayFrame,
-  ): Array<JSONValue> | null {
+    budgetBytes: number,
+  ): Promise<DecodedSessionReplayPayload | null> {
     let raw: Buffer = frame.payload;
+    let decompressedBytes: number = 0;
 
     if (frame.envelope.payloadEncoding === "gzip") {
-      raw = zlib.gunzipSync(new Uint8Array(frame.payload), {
-        maxOutputLength: MAX_DECOMPRESSED_PAYLOAD_BYTES,
+      raw = await gunzipAsync(new Uint8Array(frame.payload), {
+        maxOutputLength: Math.min(MAX_DECOMPRESSED_FRAME_BYTES, budgetBytes),
       });
+
+      decompressedBytes = raw.length;
     }
 
     const parsed: unknown = JSON.parse(raw.toString("utf-8"));
@@ -600,7 +758,10 @@ export default class SessionReplayIngestService {
       return null;
     }
 
-    return parsed as Array<JSONValue>;
+    return {
+      events: parsed as Array<JSONValue>,
+      decompressedBytes: decompressedBytes,
+    };
   }
 
   private static buildChunkRow(data: {
@@ -708,6 +869,28 @@ export default class SessionReplayIngestService {
       ? new Date(envelope.sessionStartUnixMs)
       : data.sessionStartDate;
 
+    /*
+     * RE-SCRUB SERVER SIDE. The recorder already scrubs these, but
+     * client-side scrubbing is not a control the server may assume held: a
+     * stale bundle, a self-hosted recorder, or a hand-crafted POST with a
+     * scraped ingestion key all put whatever URL they like on the wire, and
+     * the envelope parser only length-caps it. This is the one PII channel
+     * maskAllText does not cover, and entryUrl / exitUrl / routes sit in the
+     * WIDER session-metadata ACL and render in the session list - so an
+     * unscrubbed `/reset-password?token=...` leaks to more readers than an
+     * unscrubbed payload would.
+     *
+     * No allowlist is passed: per-application query-parameter allowlisting
+     * is not wired to the ingest path yet, and the safe default is to drop
+     * every parameter.
+     */
+    const exitUrl: string = UrlScrubber.scrub(envelope.url, []);
+
+    const entryUrl: string = UrlScrubber.scrub(
+      envelope.meta?.entryUrl || envelope.url,
+      [],
+    );
+
     return {
       _id: ObjectID.generateTimeOrdered().toString(),
       createdAt: OneUptimeDate.toClickhouseDateTime(
@@ -763,9 +946,9 @@ export default class SessionReplayIngestService {
       samplePercentageAtCapture: SessionSampling.clampPercentage(
         data.jobData.samplePercentageAtCapture,
       ),
-      entryUrl: envelope.meta?.entryUrl ?? envelope.url,
-      exitUrl: envelope.url,
-      routes: envelope.url ? [envelope.url] : [],
+      entryUrl: entryUrl,
+      exitUrl: exitUrl,
+      routes: exitUrl ? [exitUrl] : [],
       /*
        * Country only, derived from the forwarded address by the route.
        * The IP itself is never stored.

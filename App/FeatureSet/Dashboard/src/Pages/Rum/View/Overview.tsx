@@ -55,6 +55,13 @@ const DEFAULT_RANGE: RangeStartAndEndDateTime = {
   range: TimeRange.PAST_ONE_HOUR,
 };
 
+/*
+ * One page of session headers for the overview tile. Matches the endpoint's
+ * own default so the request is a single narrow-column granule read; the tile
+ * shows "50+" rather than pretending to a total the endpoint never computes.
+ */
+const SESSION_REPLAY_COUNT_PAGE_SIZE: number = 50;
+
 const RumApplicationOverview: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -67,6 +74,14 @@ const RumApplicationOverview: FunctionComponent<
   const [sessionReplayCount, setSessionReplayCount] = useState<number | null>(
     null,
   );
+  const [sessionReplayHasMore, setSessionReplayHasMore] =
+    useState<boolean>(false);
+  /*
+   * Kept apart from the count so a failed lookup renders as unknown rather
+   * than as zero recordings.
+   */
+  const [sessionReplayCountFailed, setSessionReplayCountFailed] =
+    useState<boolean>(false);
   const [metrics, setMetrics] = useState<SpanMetrics | null>(null);
   const [webVitals, setWebVitals] = useState<Array<WebVital>>([]);
   const [webVitalsLoading, setWebVitalsLoading] = useState<boolean>(true);
@@ -201,32 +216,36 @@ const RumApplicationOverview: FunctionComponent<
       });
 
     /*
-     * Recorded-session count for the tile. limit 1 because only the count is
-     * wanted; the endpoint dedupes ReplacingMergeTree versions itself, so a
-     * plain row count would over-report the newest sessions. Failure resolves
-     * to 0 rather than erroring the page - replay is off by default and a
-     * project that never enabled it must not see a broken overview.
+     * Recorded-session count for the tile.
+     *
+     * The list endpoint runs no COUNT - it is a keyset-paginated projection -
+     * so this counts one page and says "N+" when there is another. Failure is
+     * tracked separately from an empty result: collapsing a 403 from a
+     * missing ReadRumSessionReplay permission, or a 500, into a confident "0"
+     * would be indistinguishable from a project that genuinely has no
+     * recordings, which is a wrong number rather than an unknown one.
      */
     setSessionReplayCount(null);
+    setSessionReplayCountFailed(false);
     fetchSessionReplayList({
       rumApplicationId: modelId,
       signal: "all",
       startTime: start,
       endTime: end,
-      limit: 1,
-      skip: 0,
+      limit: SESSION_REPLAY_COUNT_PAGE_SIZE,
     })
       .then((result: SessionReplayListResult) => {
         if (ignore) {
           return;
         }
-        setSessionReplayCount(result.count);
+        setSessionReplayCount(result.sessions.length);
+        setSessionReplayHasMore(result.nextCursor !== null);
       })
       .catch(() => {
         if (ignore) {
           return;
         }
-        setSessionReplayCount(0);
+        setSessionReplayCountFailed(true);
       });
 
     return () => {
@@ -306,12 +325,17 @@ const RumApplicationOverview: FunctionComponent<
     },
     {
       title: "Sessions recorded",
-      value:
-        sessionReplayCount === null ? "—" : formatCompact(sessionReplayCount),
+      value: sessionReplayCountFailed
+        ? "—"
+        : sessionReplayCount === null
+          ? "—"
+          : `${formatCompact(sessionReplayCount)}${
+              sessionReplayHasMore ? "+" : ""
+            }`,
       icon: IconProp.Film,
       iconColor: "sky",
-      loading: sessionReplayCount === null,
-      sublabel: "selected range",
+      loading: sessionReplayCount === null && !sessionReplayCountFailed,
+      sublabel: sessionReplayCountFailed ? "could not load" : "selected range",
       to: populate(PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY),
     },
   ];

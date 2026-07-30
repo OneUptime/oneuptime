@@ -49,12 +49,22 @@ export interface CompiledScrubRule {
 }
 
 /*
- * Depth ceiling. A legitimate DOM snapshot nests deeply but nowhere near
- * this; anything past it is either pathological markup or an attempt to
- * blow the stack, and in both cases the honest response is to stop
- * descending rather than to recurse and crash the worker.
+ * Depth ceiling, counted in JSON nesting levels rather than DOM levels.
+ *
+ * That distinction is why this is 512 and not the 64 it started at: an rrweb
+ * serialized node costs TWO levels per DOM element (walkObject(node) ->
+ * childNodes array -> walkArray -> child object -> walkObject), so 64 was an
+ * effective ceiling of roughly 30 nested elements once the event / data /
+ * node preamble is paid for. Tailwind, MUI and Angular component trees
+ * routinely exceed that, and exceeding it sets isComplete = false, which
+ * makes the caller DROP the chunk - so the old value could silently discard
+ * 100% of a customer's recordings from the moment they added their first
+ * scrub rule (with zero rules the walk is skipped entirely).
+ *
+ * The real bound on work is MAX_NODES; this is only a stack guard, and the
+ * recursion is awaited so the JS stack is not the constraint.
  */
-const MAX_DEPTH: number = 64;
+const MAX_DEPTH: number = 512;
 
 /*
  * Node ceiling per chunk. A 256KB pre-compression chunk holds a few

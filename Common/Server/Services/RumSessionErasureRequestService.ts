@@ -78,6 +78,12 @@ export class Service extends DatabaseService<Model> {
       createBy.data.targetValue = createBy.data.rumApplicationId.toString();
     }
 
+    /*
+     * All five are overwritten unconditionally, never merged with what the
+     * client sent. Every one of them is declared `computed` on the model,
+     * which is what lets these assignments survive the create-column
+     * permission check that runs after this hook.
+     */
     createBy.data.status = RumSessionErasureRequestStatus.Pending;
     createBy.data.requestedAt = OneUptimeDate.getCurrentDate();
     createBy.data.sessionsDeleted = 0;
@@ -85,6 +91,14 @@ export class Service extends DatabaseService<Model> {
 
     if (createBy.props.userId) {
       createBy.data.requestedByUserId = createBy.props.userId;
+    } else {
+      /*
+       * No authenticated user (an API key, say). Deleting rather than
+       * leaving the field alone matters: a client-supplied value would
+       * otherwise persist and attribute the erasure to somebody who never
+       * asked for it.
+       */
+      delete createBy.data.requestedByUserId;
     }
 
     return { createBy, carryForward: null };
@@ -93,6 +107,11 @@ export class Service extends DatabaseService<Model> {
   /*
    * Outstanding requests for the erasure worker, oldest first so a
    * request cannot be starved by newer ones.
+   *
+   * sessionsDeleted / chunksDeleted are in the select list because a
+   * requeued request has to ACCUMULATE its counters across runs; omitting
+   * them is what made the worker stop using this helper and inline its own
+   * copy of the query.
    */
   @CaptureSpan()
   public async getPendingRequests(data: {
@@ -111,6 +130,8 @@ export class Service extends DatabaseService<Model> {
         startDate: true,
         endDate: true,
         requestedAt: true,
+        sessionsDeleted: true,
+        chunksDeleted: true,
       },
       sort: {
         requestedAt: SortOrder.Ascending,

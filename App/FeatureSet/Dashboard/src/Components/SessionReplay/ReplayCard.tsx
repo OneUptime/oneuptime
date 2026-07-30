@@ -70,10 +70,21 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
   const loadGenerationRef: React.MutableRefObject<number> = useRef<number>(0);
 
   const { rumApplicationId, sessionId, fingerprint } = props;
+  /*
+   * Navigation-derived ObjectIDs are new objects on every render, so the
+   * callback below keys on the string. Otherwise every parent re-render
+   * refires the lookup.
+   */
+  const rumApplicationIdString: string = rumApplicationId?.toString() ?? "";
 
   const load: (generation: number) => Promise<void> = useCallback(
     async (generation: number): Promise<void> => {
-      if (!rumApplicationId || (!sessionId && !fingerprint)) {
+      /*
+       * The endpoint keys on the exception fingerprint and rejects a request
+       * without one. A caller holding only a sessionId has nothing to ask,
+       * so the card stays quiet instead of firing a guaranteed 400.
+       */
+      if (!rumApplicationIdString || !fingerprint) {
         setIsLoading(false);
         return;
       }
@@ -88,9 +99,9 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
               FOR_EXCEPTION_ROUTE,
             ),
             data: {
-              rumApplicationId: rumApplicationId.toString(),
+              rumApplicationId: rumApplicationIdString,
               ...(sessionId ? { sessionId: sessionId } : {}),
-              ...(fingerprint ? { fingerprint: fingerprint } : {}),
+              fingerprint: fingerprint,
             },
             headers: {
               ...ModelAPI.getCommonHeaders(),
@@ -124,7 +135,7 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
         }
       }
     },
-    [rumApplicationId, sessionId, fingerprint],
+    [rumApplicationIdString, sessionId, fingerprint],
   );
 
   useEffect(() => {

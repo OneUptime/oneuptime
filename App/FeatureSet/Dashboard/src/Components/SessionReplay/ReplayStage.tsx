@@ -55,8 +55,6 @@ export interface ReplaySeekRequest {
 export interface ReplayStageProps {
   loader: ChunkLoader;
   replayerFactory: ReplayerFactory;
-  /* Server-clamped session start, so event timestamps map to session offsets. */
-  sessionStartUnixMs: number;
   isPlaying: boolean;
   speed: number;
   skipInactive: boolean;
@@ -72,11 +70,20 @@ export interface ReplayStageProps {
 /*
  * The Content-Security-Policy injected INSIDE the replay document.
  *
- * Belt and braces on top of sandbox="allow-same-origin": the recording is
- * arbitrary HTML authored by a customer's end users, and the parent document
- * is the OneUptime Dashboard with the operator's session cookie. Note there
- * is no 'unsafe-inline' for script and no host source anywhere - the replayed
- * page must not be able to fetch, phone home, or run.
+ * Scope, precisely: this meta tag is inserted on construction (into the blank
+ * document, which rrweb then discards) and again on every
+ * "fullsnapshot-rebuilded" event. rrweb emits that event AFTER rebuild() has
+ * built the whole DOM and after insertStyleRules, so any subresource the
+ * snapshot itself references - img src, link href, srcset, font URLs - has
+ * already been requested by the time these directives exist. What the tag
+ * genuinely covers is everything the document does AFTER a rebuild: the
+ * incremental mutations rrweb applies as playback advances.
+ *
+ * The real control is sandbox="allow-same-origin" with no allow-scripts,
+ * which rrweb sets and which UNSAFE_replayCanvas: false keeps in place. The
+ * outstanding hole - rebuild-time outbound requests to attacker-chosen hosts
+ * from the Dashboard origin - is closed by stripping remote resource URLs
+ * server-side, not here. See stillOpen in the review notes.
  */
 const REPLAY_DOCUMENT_CSP: string =
   "script-src 'none'; default-src 'none'; img-src data: blob:; " +
@@ -122,6 +129,20 @@ interface Segment {
   replayer: ReplayerLike;
 }
 
+/*
+ * A rebuild the tick loop still has to perform.
+ *
+ * `shouldReport` separates the two reasons we re-anchor: a genuine hole in
+ * the chunk sequence, which the viewer MUST be told about, and a re-anchor
+ * onto the very chunk that failed to decode, which is a retry and crossed
+ * nothing. Reporting the retry as "0s of missing recording" would train
+ * people to ignore the notice that matters.
+ */
+interface PendingJump {
+  gap: SessionReplayGap;
+  shouldReport: boolean;
+}
+
 const ReplayStage: FunctionComponent<ReplayStageProps> = (
   props: ReplayStageProps,
 ): ReactElement => {
@@ -134,10 +155,41 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
    * immediately: the viewer should watch out the footage that exists before
    * being told the next stretch is missing.
    */
-  const pendingGapRef: React.MutableRefObject<SessionReplayGap | null> =
-    useRef<SessionReplayGap | null>(null);
+  const pendingGapRef: React.MutableRefObject<PendingJump | null> =
+    useRef<PendingJump | null>(null);
   const isBuildingRef: React.MutableRefObject<boolean> = useRef<boolean>(false);
   const isExtendingRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+  /*
+   * Desired transport state, mirrored into refs.
+   *
+   * buildSegment is async and the effects that apply play/pause/speed bail
+   * out while it runs, so the state captured when the build STARTED is
+   * routinely stale by the time it finishes. Reading the refs at the end of
+   * a build is what stops a viewer who pressed Play during the first fetch
+   * from getting a "playing" button over a frozen stage.
+   */
+  const isPlayingRef: React.MutableRefObject<boolean> = useRef<boolean>(
+    props.isPlaying,
+  );
+  const speedRef: React.MutableRefObject<number> = useRef<number>(props.speed);
+  const skipInactiveRef: React.MutableRefObject<boolean> = useRef<boolean>(
+    props.skipInactive,
+  );
+  /*
+   * Set when rrweb emitted Finish while there was still footage to feed.
+   * rrweb ends the cast whenever it drains its buffer, which with chunk
+   * streaming happens any time a /chunks fetch loses the race with the
+   * feed-ahead window. That is a stall, not the end of the recording.
+   */
+  const stalledRef: React.MutableRefObject<boolean> = useRef<boolean>(false);
+  /*
+   * Set once feeding has failed in a way no further attempt can fix. The
+   * tick fires every 200ms and the fed range never advances after such a
+   * failure, so without this the viewer would be handed the same error four
+   * hundred times a minute.
+   */
+  const isFeedHaltedRef: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
   /*
    * Bumped by every rebuild and by unmount. An await that resumes against a
@@ -153,7 +205,6 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
   const {
     loader,
     replayerFactory,
-    sessionStartUnixMs,
     isPlaying,
     speed,
     skipInactive,
@@ -164,6 +215,33 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
     onLoadedChunkIndexesChange,
     onError,
   } = props;
+
+  /*
+   * Session offsets come from the manifest, never from event timestamps.
+   *
+   * An rrweb timestamp is a raw Date.now() from the end user's machine, and
+   * the manifest's chunkStartOffsetMs is what the recorder computed against
+   * its own session start. Subtracting the SERVER-CLAMPED start from a client
+   * timestamp mixes the two clocks, so on any skewed device the playhead
+   * would sit clockSkewMs away from the bands, markers and gaps the scrubber
+   * draws from that same manifest.
+   */
+  const getChunkStartOffsetMs: (chunkIndex: number) => number = useCallback(
+    (chunkIndex: number): number => {
+      return loader.getEntry(chunkIndex)?.chunkStartOffsetMs ?? 0;
+    },
+    [loader],
+  );
+
+  const getChunkEndOffsetMs: (
+    chunkIndex: number,
+    fallbackMs: number,
+  ) => number = useCallback(
+    (chunkIndex: number, fallbackMs: number): number => {
+      return loader.getEntry(chunkIndex)?.chunkEndOffsetMs ?? fallbackMs;
+    },
+    [loader],
+  );
 
   const destroySegment: () => void = useCallback((): void => {
     const segment: Segment | null = segmentRef.current;
@@ -236,27 +314,71 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
       const generation: number = generationRef.current;
       isBuildingRef.current = true;
       pendingGapRef.current = null;
+      isFeedHaltedRef.current = false;
 
       try {
         destroySegment();
 
-        const events: Array<SessionReplayRecordedEvent> | null =
+        const anchorEvents: Array<SessionReplayRecordedEvent> | null =
           await loader.ensureChunk(anchorChunkIndex);
 
         if (generation !== generationRef.current) {
           return;
         }
 
-        const first: SessionReplayRecordedEvent | undefined = events?.[0];
-
-        if (!events || events.length === 0 || !first) {
+        if (!anchorEvents || anchorEvents.length === 0) {
           onError(
             "This part of the recording could not be loaded. The chunk is present in the index but carried no events.",
           );
           return;
         }
 
-        const baseOffsetMs: number = first.timestamp - sessionStartUnixMs;
+        const events: Array<SessionReplayRecordedEvent> = [...anchorEvents];
+        let lastFedChunkIndex: number = anchorChunkIndex;
+
+        /*
+         * rrweb 2.1.1 throws "Replayer need at least 2 events." out of its
+         * constructor when liveMode is false and fewer than two events are
+         * handed in. A one-event anchor is not exotic: it is exactly what
+         * splitting an oversized FullSnapshot produces for the final part,
+         * and that final part is the one carrying hasFullSnapshot. Pull
+         * contiguous chunks forward until there are two, rather than letting
+         * a library string reach the viewer.
+         */
+        while (events.length < 2) {
+          const nextDecision: {
+            chunkIndex: number;
+            skippedGap: SessionReplayGap | null;
+          } | null = loader.getNextChunk(lastFedChunkIndex);
+
+          if (!nextDecision || nextDecision.skippedGap) {
+            // Nothing contiguous left to borrow from.
+            break;
+          }
+
+          const more: Array<SessionReplayRecordedEvent> | null =
+            await loader.ensureChunk(nextDecision.chunkIndex);
+
+          if (generation !== generationRef.current) {
+            return;
+          }
+
+          if (!more || more.length === 0) {
+            break;
+          }
+
+          events.push(...more);
+          lastFedChunkIndex = nextDecision.chunkIndex;
+        }
+
+        if (events.length < 2) {
+          onError(
+            "This recording is too short to play. The only footage that survived is a single frame, which the player cannot render.",
+          );
+          return;
+        }
+
+        const baseOffsetMs: number = getChunkStartOffsetMs(anchorChunkIndex);
 
         const replayer: ReplayerLike = replayerFactory(events, {
           root: container,
@@ -271,8 +393,8 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
           UNSAFE_replayCanvas: false,
           blockClass: "oneuptime-block",
           useVirtualDom: true,
-          speed: speed,
-          skipInactive: skipInactive,
+          speed: speedRef.current,
+          skipInactive: skipInactiveRef.current,
           showWarning: false,
           showDebug: false,
         });
@@ -293,29 +415,51 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
         });
 
         replayer.on("finish", (): void => {
+          const live: Segment | null = segmentRef.current;
+
+          /*
+           * Only a Finish with nothing left to feed is the end of the tab.
+           * Anything else is rrweb draining its buffer ahead of the next
+           * chunk; sending END there would stop playback permanently,
+           * because later addEvent calls append to a paused machine.
+           */
+          if (live && loader.getNextChunk(live.lastFedChunkIndex) !== null) {
+            stalledRef.current = true;
+            return;
+          }
+
+          stalledRef.current = false;
           onPlayingChange(false);
         });
 
         injectDocumentCsp(replayer);
 
-        const lastEvent: SessionReplayRecordedEvent | undefined =
-          events[events.length - 1];
-
         segmentRef.current = {
           anchorChunkIndex: anchorChunkIndex,
           baseOffsetMs: baseOffsetMs,
-          lastFedChunkIndex: anchorChunkIndex,
-          fedUntilOffsetMs: lastEvent
-            ? lastEvent.timestamp - sessionStartUnixMs
-            : baseOffsetMs,
+          lastFedChunkIndex: lastFedChunkIndex,
+          fedUntilOffsetMs: getChunkEndOffsetMs(
+            lastFedChunkIndex,
+            baseOffsetMs,
+          ),
           replayer: replayer,
         };
 
+        stalledRef.current = false;
         onLoadedChunkIndexesChange(loader.getDecodedChunkIndexes());
 
         const withinSegment: number = Math.max(0, seekOffsetMs - baseOffsetMs);
 
-        if (isPlaying) {
+        /*
+         * The refs, not the values captured when this build started - the
+         * viewer may have pressed Play or changed speed during the fetch.
+         */
+        replayer.setConfig({
+          speed: speedRef.current,
+          skipInactive: skipInactiveRef.current,
+        });
+
+        if (isPlayingRef.current) {
           replayer.play(withinSegment);
         } else {
           replayer.pause(withinSegment);
@@ -334,13 +478,16 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
         }
       }
     },
+    /*
+     * Transport state is read from refs above, so it is deliberately absent
+     * here: including it would rebuild the Replayer - blanking the stage and
+     * losing the playhead - every time the viewer changed speed.
+     */
     [
       loader,
       replayerFactory,
-      sessionStartUnixMs,
-      speed,
-      skipInactive,
-      isPlaying,
+      getChunkStartOffsetMs,
+      getChunkEndOffsetMs,
       destroySegment,
       injectDocumentCsp,
       onError,
@@ -358,7 +505,12 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
     useCallback(async (): Promise<void> => {
       const segment: Segment | null = segmentRef.current;
 
-      if (!segment || isExtendingRef.current || pendingGapRef.current) {
+      if (
+        !segment ||
+        isExtendingRef.current ||
+        pendingGapRef.current ||
+        isFeedHaltedRef.current
+      ) {
         return;
       }
 
@@ -373,7 +525,10 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
       }
 
       if (decision.skippedGap) {
-        pendingGapRef.current = decision.skippedGap;
+        pendingGapRef.current = {
+          gap: decision.skippedGap,
+          shouldReport: true,
+        };
         return;
       }
 
@@ -394,21 +549,76 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
           return;
         }
 
-        if (events) {
-          for (const event of events) {
-            live.replayer.addEvent(event);
+        if (!events || events.length === 0) {
+          /*
+           * The chunk is in the manifest but did not come back decodable: a
+           * TTL drop between manifest and read, a truncated response, the
+           * server's byte clamp, or a corrupt frame decodeFrames skipped.
+           *
+           * lastFedChunkIndex MUST NOT advance here. Advancing would feed
+           * chunk N+1 into a Replayer that never received N, and rrweb would
+           * resolve those mutations against stale node ids and render a
+           * plausible DOM the end user never saw. Re-anchor on the next full
+           * snapshot instead, through the same path a real hole takes.
+           */
+          const recoveryAnchor: number | undefined = loader
+            .getFullSnapshotChunkIndexes()
+            .find((index: number): boolean => {
+              return index >= decision.chunkIndex;
+            });
+
+          if (recoveryAnchor === undefined) {
+            isFeedHaltedRef.current = true;
+            onError(
+              "The next part of this recording could not be loaded, and there is no later snapshot to resume from.",
+            );
+            return;
           }
 
-          const lastEvent: SessionReplayRecordedEvent | undefined =
-            events[events.length - 1];
+          const from: number = live.lastFedChunkIndex;
+          const missingMs: number = Math.max(
+            0,
+            getChunkStartOffsetMs(recoveryAnchor) -
+              getChunkEndOffsetMs(from, getChunkStartOffsetMs(from)),
+          );
 
-          if (lastEvent) {
-            live.fedUntilOffsetMs = lastEvent.timestamp - sessionStartUnixMs;
-          }
+          pendingGapRef.current = {
+            gap: {
+              fromIndex: from,
+              toIndex: recoveryAnchor,
+              missingMs: missingMs,
+            },
+            /*
+             * Re-anchoring on the chunk that just failed is a retry of that
+             * chunk, not a jump over anything, so there is nothing to tell
+             * the viewer yet. If the retry fails too, buildSegment errors
+             * loudly.
+             */
+            shouldReport: recoveryAnchor > decision.chunkIndex,
+          };
+
+          return;
+        }
+
+        for (const event of events) {
+          live.replayer.addEvent(event);
         }
 
         live.lastFedChunkIndex = decision.chunkIndex;
+        live.fedUntilOffsetMs = getChunkEndOffsetMs(
+          decision.chunkIndex,
+          live.fedUntilOffsetMs,
+        );
         onLoadedChunkIndexesChange(loader.getDecodedChunkIndexes());
+
+        /*
+         * rrweb ended the cast while waiting for these events. Resume from
+         * where it stopped now that there is more to play.
+         */
+        if (stalledRef.current && isPlayingRef.current) {
+          stalledRef.current = false;
+          live.replayer.play(live.replayer.getCurrentTime());
+        }
 
         void loader.prefetchAfter(decision.chunkIndex);
       } catch (err) {
@@ -422,7 +632,13 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
       } finally {
         isExtendingRef.current = false;
       }
-    }, [loader, sessionStartUnixMs, onLoadedChunkIndexesChange, onError]);
+    }, [
+      loader,
+      getChunkStartOffsetMs,
+      getChunkEndOffsetMs,
+      onLoadedChunkIndexesChange,
+      onError,
+    ]);
 
   /* Initial mount: anchor on the first playable chunk. */
   useEffect(() => {
@@ -450,8 +666,15 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
      */
   }, [loader]);
 
-  /* Live playback controls are applied to the existing Replayer, not rebuilt. */
+  /*
+   * Live playback controls are applied to the existing Replayer, not rebuilt.
+   * The refs are written FIRST and unconditionally, so a control changed
+   * while a segment is still being built is still honoured when it lands.
+   */
   useEffect(() => {
+    speedRef.current = speed;
+    skipInactiveRef.current = skipInactive;
+
     const segment: Segment | null = segmentRef.current;
 
     if (!segment) {
@@ -462,6 +685,8 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
   }, [speed, skipInactive]);
 
   useEffect(() => {
+    isPlayingRef.current = isPlaying;
+
     const segment: Segment | null = segmentRef.current;
 
     if (!segment || isBuildingRef.current) {
@@ -469,6 +694,7 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
     }
 
     if (isPlaying) {
+      stalledRef.current = false;
       segment.replayer.play(segment.replayer.getCurrentTime());
     } else {
       segment.replayer.pause();
@@ -551,20 +777,24 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
         void extendFedRange();
       }
 
-      const gap: SessionReplayGap | null = pendingGapRef.current;
+      const pending: PendingJump | null = pendingGapRef.current;
 
       /*
        * Only jump once the viewer has actually watched out the footage we
        * have. Jumping the moment the gap is discovered would cut the last
        * 30 seconds of real footage off the end of the segment.
        */
-      if (gap && offsetMs >= segment.fedUntilOffsetMs - 100) {
+      if (pending && offsetMs >= segment.fedUntilOffsetMs - 100) {
         pendingGapRef.current = null;
-        onGapCrossed(gap);
-        loader.evictOutsideWindow(gap.toIndex, EVICTION_RADIUS_CHUNKS);
+
+        if (pending.shouldReport) {
+          onGapCrossed(pending.gap);
+        }
+
+        loader.evictOutsideWindow(pending.gap.toIndex, EVICTION_RADIUS_CHUNKS);
         void buildSegment(
-          gap.toIndex,
-          loader.getEntry(gap.toIndex)?.chunkStartOffsetMs ?? offsetMs,
+          pending.gap.toIndex,
+          loader.getEntry(pending.gap.toIndex)?.chunkStartOffsetMs ?? offsetMs,
         );
       }
     }, TICK_INTERVAL_MS);

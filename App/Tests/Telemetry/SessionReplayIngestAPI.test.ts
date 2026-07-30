@@ -7,6 +7,7 @@ import StatusCode from "Common/Types/API/StatusCode";
 import { JSONObject } from "Common/Types/JSON";
 import {
   MAX_SESSION_REPLAY_CHUNK_BYTES,
+  MAX_SESSION_REPLAY_CHUNKS_PER_SESSION,
   SESSION_REPLAY_APP_IDENTIFIER_HEADER,
   SESSION_REPLAY_WIRE_VERSION,
   SessionReplayChunkEnvelope,
@@ -201,7 +202,7 @@ import SessionReplayRequestMiddleware from "../../FeatureSet/Telemetry/Middlewar
 // Importing the router module registers the routes on the mocked router.
 import "../../FeatureSet/Telemetry/API/SessionReplayIngest";
 
-type MockedFn = jest.Mock;
+type MockedFn = ReturnType<typeof jest.fn>;
 
 const gateMock: MockedFn =
   SessionReplayIngestService.gateChunkRequest as unknown as MockedFn;
@@ -458,6 +459,29 @@ describe("POST /session-replay/v1/chunk", () => {
     expect(addJobMock).not.toHaveBeenCalled();
   });
 
+  /*
+   * Running past the per-session chunk cap is a normal end-of-session
+   * condition for a long-lived tab. The envelope parser rejects the index
+   * before the gate ever sees it, so without this mapping the recorder gets a
+   * hard 400 "malformed frame" with no directive and no way to stand down -
+   * and the gate's own session-chunk-cap branch is unreachable from the
+   * route, so it cannot supply the 204 either.
+   */
+  test("answers 204 with a stop directive at the per-session chunk cap", async () => {
+    const { res } = await invokeChunkRoute({
+      body: buildBody({ chunkIndex: MAX_SESSION_REPLAY_CHUNKS_PER_SESSION }),
+    });
+
+    expect(res.statusCode).toBe(204);
+    expect(res.ended).toBe(true);
+    expect(res.headers["x-oneuptime-replay-directive"]).toBe("stop");
+    /* Not a 400, and specifically not a bare parse error with no directive. */
+    expect(sendJsonMock).not.toHaveBeenCalled();
+    expect(addJobMock).not.toHaveBeenCalled();
+    /* The gate is never even reached - the parser rejected first. */
+    expect(gateMock).not.toHaveBeenCalled();
+  });
+
   test("answers 403 for an origin that is not on the allowlist", async () => {
     gateMock.mockResolvedValue({
       outcome: SessionReplayGateOutcome.OriginRefused,
@@ -552,6 +576,27 @@ describe("POST /session-replay/v1/chunk", () => {
     );
     expect(args["serverReceiveUnixMs"]).toBeGreaterThan(0);
   });
+
+  /*
+   * Geo headers are client-controlled unless the ingress overwrites them, and
+   * nothing in the Nginx config strips cf-ipcountry / x-vercel-ip-country.
+   * SESSION_REPLAY_TRUSTED_GEO_HEADER is unset in this test environment, so
+   * nothing may be believed.
+   */
+  test("a client-supplied country header is not believed by default", async () => {
+    await invokeChunkRoute({
+      body: buildBody(),
+      headers: {
+        "cf-ipcountry": "KP",
+        "x-vercel-ip-country": "KP",
+        "x-country-code": "KP",
+      },
+    });
+
+    const args: JSONObject = addJobMock.mock.calls[0]![0] as JSONObject;
+
+    expect(args["countryCode"]).toBe("");
+  });
 });
 
 describe("GET /session-replay/v1/config and /validate", () => {
@@ -572,6 +617,90 @@ describe("GET /session-replay/v1/config and /validate", () => {
     expect(registeredGetHandlers["/session-replay/v1/validate"]).not.toContain(
       authMiddleware,
     );
+  });
+});
+
+describe("recorder artifact delivery", () => {
+  /*
+   * Regression guard for a shipped-but-unreachable feature: the build
+   * produced public/dist/{recorder.js,loader.js} and the config endpoint
+   * advertised a version, but NOTHING in the repo served the files, so no
+   * browser could ever load the recorder. Nothing else in the test suite
+   * would have noticed - every unit test passed.
+   */
+  test("both artifact routes are registered", () => {
+    expect(
+      registeredGetHandlers["/session-replay/v1/recorder.js"],
+    ).toBeDefined();
+    expect(
+      registeredGetHandlers["/session-replay/v:version/recorder.js"],
+    ).toBeDefined();
+  });
+
+  test("artifact routes are public, because a customer page loads them with a plain script tag", () => {
+    /*
+     * These carry no secrets and no project data. Requiring the ingestion
+     * key here would mean putting it in a URL on a third-party page, which
+     * is strictly worse than serving a public static script.
+     */
+    expect(
+      registeredGetHandlers["/session-replay/v1/recorder.js"],
+    ).not.toContain(authMiddleware);
+    expect(
+      registeredGetHandlers["/session-replay/v:version/recorder.js"],
+    ).not.toContain(authMiddleware);
+  });
+
+  test("the loader route is declared WITHOUT the /telemetry prefix", () => {
+    /*
+     * The router is mounted at both "/" and "/telemetry", so declaring
+     * "/telemetry/session-replay/..." here would actually serve
+     * "/telemetry/telemetry/session-replay/...". The public URL customers
+     * paste is /telemetry/session-replay/v1/recorder.js, and it is the
+     * mount that supplies that prefix.
+     */
+    for (const path of Object.keys(registeredGetHandlers)) {
+      expect(path.startsWith("/telemetry/")).toBe(false);
+    }
+  });
+
+  test("a malformed version is 404ed rather than reaching the filesystem", async () => {
+    const handlers: Array<unknown> | undefined =
+      registeredGetHandlers["/session-replay/v:version/recorder.js"];
+
+    const handler: (
+      req: ExpressRequest,
+      res: ExpressResponse,
+    ) => void | Promise<void> = handlers![handlers!.length - 1] as (
+      req: ExpressRequest,
+      res: ExpressResponse,
+    ) => void | Promise<void>;
+
+    /*
+     * Traversal and junk both go down the same path: the version is matched
+     * against the semver pattern before the manifest is consulted, so the
+     * segment is never joined onto a directory.
+     */
+    for (const badVersion of [
+      "../../../../etc/passwd",
+      "1.0",
+      "latest",
+      "",
+      "1.0.0/../../secret",
+    ]) {
+      const res: FakeResponse = buildResponse();
+
+      await handler(
+        {
+          params: { version: badVersion },
+          headers: {},
+        } as unknown as ExpressRequest,
+        res as unknown as ExpressResponse,
+      );
+
+      expect(res.statusCode).toBe(404);
+      expect(res.ended).toBe(true);
+    }
   });
 });
 
@@ -734,9 +863,61 @@ describe("StartServer body-parser bypass covers session replay", () => {
     );
   });
 
-  test("CORS allows the ingest headers and caches the preflight", () => {
-    expect(startServerSource).toContain("x-oneuptime-token");
-    expect(startServerSource).toContain(SESSION_REPLAY_APP_IDENTIFIER_HEADER);
-    expect(startServerSource).toContain("Access-Control-Max-Age");
+  test("the app-identifier header is listed on Access-Control-Allow-Headers", () => {
+    /*
+     * A source assertion only because setDefaultHeaders writes this one on
+     * simple responses. The values that govern the PREFLIGHT (Max-Age) and
+     * cross-origin readability (Expose-Headers) are asserted for real, by
+     * driving the cors middleware, in
+     * Common/Tests/Server/Utils/CorsOptions.test.ts - @types/cors is not
+     * resolvable from App. This one is pinned to the header LINE rather than
+     * the whole file, so the explanatory comment above it cannot satisfy it
+     * on its own the way the previous version of this test could.
+     */
+    const allowHeadersLine: string =
+      startServerSource.split("\n").find((line: string): boolean => {
+        return line.includes("X-Requested-With, X-HTTP-Method-Override");
+      }) || "";
+
+    expect(allowHeadersLine).toContain("x-oneuptime-token");
+    expect(allowHeadersLine).toContain(SESSION_REPLAY_APP_IDENTIFIER_HEADER);
+  });
+});
+
+/*
+ * The replay router is mounted on TELEMETRY_PREFIXES, so
+ * /telemetry/session-replay/v1/chunk is as live as /session-replay/v1/chunk -
+ * that is the whole reason StartServer's bypass predicates use .includes.
+ * nginx sets no global client_max_body_size, so a location without one gets
+ * the 1M default and answers a bare 413 with no directive, giving the app no
+ * chance to reply.
+ */
+describe("Nginx body size covers every path the replay router is mounted on", () => {
+  const nginxSource: string = fs.readFileSync(
+    path.join(__dirname, "../../../Nginx/default.conf.template"),
+    "utf-8",
+  );
+
+  function locationBlock(name: string): string {
+    const marker: string = `location ${name} {`;
+    const start: number = nginxSource.indexOf(marker);
+
+    if (start === -1) {
+      return "";
+    }
+
+    const end: number = nginxSource.indexOf("\n    }", start);
+
+    return nginxSource.substring(start, end === -1 ? undefined : end);
+  }
+
+  test("the /session-replay location raises the body limit", () => {
+    expect(locationBlock("/session-replay")).toContain(
+      "client_max_body_size 4M;",
+    );
+  });
+
+  test("the /telemetry location raises it too", () => {
+    expect(locationBlock("/telemetry")).toContain("client_max_body_size 4M;");
   });
 });

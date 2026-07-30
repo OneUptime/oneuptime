@@ -25,6 +25,7 @@ import Permission, {
   UserPermission,
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
+import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
 import UserType from "../../../Types/UserType";
 import { MAX_SESSION_REPLAY_CHUNKS_PER_READ } from "../../../Types/Rum/SessionReplay";
 import {
@@ -252,6 +253,12 @@ function buildPrincipal(data: {
   userId: ObjectID;
   permissions: Array<Permission>;
   labelIds?: Array<ObjectID> | undefined;
+  /*
+   * TeamPermission.scope is a real, admin-settable column (All / Owned /
+   * Labels), and Owned is excluded from BOTH PermissionHelper filters -
+   * so a fixture that never sets it cannot see the fail-open it causes.
+   */
+  scope?: PermissionScope | undefined;
 }): {
   request: JSONObject;
   databaseProps: DatabaseCommonInteractionProps;
@@ -271,6 +278,7 @@ function buildPrincipal(data: {
         permission: permission,
         labelIds: data.labelIds || [],
         isBlockPermission: false,
+        ...(data.scope !== undefined && { scope: data.scope }),
       };
     },
   );
@@ -300,6 +308,32 @@ function buildPrincipal(data: {
     } as unknown as JSONObject,
     databaseProps: databaseProps,
   };
+}
+
+/*
+ * Adds an UNSCOPED ReadRumSessionReplay row on top of whatever the
+ * principal already holds. The list guard does not accept
+ * ReadRumSessionReplayPayload, so a payload-scoped reviewer needs this to
+ * get into /list at all - which is precisely the shape that makes the
+ * identity column's label scope worth checking separately.
+ */
+function grantUnscopedListPermission(
+  databaseProps: DatabaseCommonInteractionProps,
+  projectId: ObjectID,
+): void {
+  const tenantPermission: UserTenantAccessPermission | undefined =
+    databaseProps.userTenantAccessPermission?.[projectId.toString()];
+
+  if (!tenantPermission) {
+    throw new Error("Principal has no tenant permission to extend.");
+  }
+
+  tenantPermission.permissions.push({
+    _type: "UserPermission",
+    permission: Permission.ReadRumSessionReplay,
+    labelIds: [],
+    isBlockPermission: false,
+  });
 }
 
 /* Minimal stand-in for the ClickHouse client's ResultSet. */
@@ -379,6 +413,7 @@ describe("Session replay playback API", () => {
   let findBySpy: jest.SpyInstance;
   let recordViewSpy: jest.SpyInstance;
   let recordSecondsWatchedSpy: jest.SpyInstance;
+  let viewFindOneBySpy: jest.SpyInstance;
 
   beforeAll(() => {
     recordedRoutes.length = 0;
@@ -417,6 +452,9 @@ describe("Session replay playback API", () => {
     recordSecondsWatchedSpy = jest
       .spyOn(RumSessionReplayViewService, "recordSecondsWatched")
       .mockResolvedValue(undefined);
+    viewFindOneBySpy = jest
+      .spyOn(RumSessionReplayViewService, "findOneBy")
+      .mockResolvedValue(null);
   });
 
   afterEach(() => {
@@ -458,6 +496,23 @@ describe("Session replay playback API", () => {
     );
   }
 
+  /*
+   * A view row the CALLER owns. The handler queries with viewedByUserId in
+   * the predicate, so this stands in for "the lookup matched".
+   */
+  function mockOwnView(data: {
+    viewId: ObjectID;
+    rumApplicationId: ObjectID;
+  }): void {
+    const view: RumSessionReplayView = new RumSessionReplayView();
+    view.id = data.viewId;
+    view.projectId = projectId;
+    view.rumApplicationId = data.rumApplicationId;
+    view.viewedByUserId = userId;
+
+    viewFindOneBySpy.mockResolvedValue(view);
+  }
+
   function mockRecordedView(): ObjectID {
     const viewId: ObjectID = ObjectID.generate();
     const view: RumSessionReplayView = new RumSessionReplayView();
@@ -483,6 +538,246 @@ describe("Session replay playback API", () => {
           UserMiddleware.requireUserAuthentication,
         );
       }
+    });
+
+    /*
+     * handlers[2] is the permission guard itself, and swapping the payload
+     * guard for the list guard on /manifest or /chunks would leave the
+     * shape assertion above entirely green. The three payload routes must
+     * share ONE guard instance and the two list routes another, and the
+     * two must not be the same object.
+     */
+    test("the payload routes and the list routes carry different permission guards", () => {
+      const payloadGuard: RouterFunction | undefined =
+        findRoute(MANIFEST_ROUTE).handlers[2];
+      const listGuard: RouterFunction | undefined =
+        findRoute(LIST_ROUTE).handlers[2];
+
+      expect(payloadGuard).toBeDefined();
+      expect(listGuard).toBeDefined();
+      expect(payloadGuard).not.toBe(listGuard);
+
+      for (const uri of [MANIFEST_ROUTE, CHUNKS_ROUTE, HEARTBEAT_ROUTE]) {
+        expect(findRoute(uri).handlers[2]).toBe(payloadGuard);
+      }
+
+      expect(findRoute(FOR_EXCEPTION_ROUTE).handlers[2]).toBe(listGuard);
+    });
+  });
+
+  /*
+   * The chunk table's replace key is (projectId, sessionId, tabId,
+   * chunkIndex) - rumApplicationId is a plain column. sessionId is minted
+   * by the browser, so two applications can share one. Authorizing an
+   * application and then reading on (projectId, sessionId) alone is a
+   * cross-application disclosure.
+   */
+  describe("chunk reads are pinned to the authorized application", () => {
+    test("the manifest query filters on the application resolved from the header", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ReadRumSessionReplayPayload],
+      });
+
+      mockProps(principal.databaseProps);
+      mockSessionHeader(applicationAId);
+      mockApplication({ id: applicationAId, labelIds: [] });
+      mockRecordedView();
+
+      await callRoute({
+        uri: MANIFEST_ROUTE,
+        request: principal.request,
+        body: { sessionId: "session-1" },
+      });
+
+      const statement: Statement = chunkQuerySpy.mock.calls[0]![0] as Statement;
+
+      expect(statement.query).toContain("rumApplicationId = ");
+      expect(Object.values(statement.query_params)).toContain(
+        applicationAId.toString(),
+      );
+    });
+
+    test("both chunk queries filter on the application resolved from the header", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ReadRumSessionReplayPayload],
+      });
+
+      mockProps(principal.databaseProps);
+      mockSessionHeader(applicationAId);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      chunkQuerySpy
+        .mockResolvedValueOnce(
+          fakeResultSet([{ chunkIndex: 0, chunkStoredBytes: 3 }]) as never,
+        )
+        .mockResolvedValueOnce(
+          fakeResultSet([{ chunkIndex: 0, payload: "[1]" }]) as never,
+        );
+
+      await callRoute({
+        uri: CHUNKS_ROUTE,
+        request: principal.request,
+        body: {
+          sessionId: "session-1",
+          tabId: "tab-1",
+          chunkIndexes: [0],
+          /* A caller-supplied application id must change nothing. */
+          rumApplicationId: applicationBId.toString(),
+        },
+      });
+
+      expect(chunkQuerySpy).toHaveBeenCalledTimes(2);
+
+      for (const call of chunkQuerySpy.mock.calls) {
+        const statement: Statement = call[0] as Statement;
+        expect(statement.query).toContain("rumApplicationId = ");
+        expect(Object.values(statement.query_params)).toContain(
+          applicationAId.toString(),
+        );
+        expect(Object.values(statement.query_params)).not.toContain(
+          applicationBId.toString(),
+        );
+      }
+    });
+
+    test("a sessionId that exists under two applications is refused rather than resolved to the newest", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ReadRumSessionReplayPayload],
+        labelIds: [labelAId],
+      });
+
+      mockProps(principal.databaseProps);
+
+      /*
+       * Application A is the caller's own and sorts first (newest). Under
+       * the old LIMIT 1 the label check would pass on A and the chunk
+       * reads would then serve B's recording.
+       */
+      headerQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          buildHeaderRow({
+            sessionId: "session-1",
+            projectId: projectId,
+            rumApplicationId: applicationAId,
+          }),
+          buildHeaderRow({
+            sessionId: "session-1",
+            projectId: projectId,
+            rumApplicationId: applicationBId,
+          }),
+        ]) as never,
+      );
+      mockApplication({ id: applicationAId, labelIds: [labelAId] });
+      mockRecordedView();
+
+      const result: CallResult = await callRoute({
+        uri: MANIFEST_ROUTE,
+        request: principal.request,
+        body: { sessionId: "session-1" },
+      });
+
+      expect(result.thrownToNext).toBeInstanceOf(BadDataException);
+      expect(chunkQuerySpy).not.toHaveBeenCalled();
+      expect(recordViewSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  /*
+   * PermissionScope.Owned is excluded from getNonAccessControlPermissions
+   * AND from getAccessControlPermissions, because the ORM enforces it
+   * separately via OwnedScopePermission. This bespoke path has no such
+   * step, so an Owned grant must be refused, never treated as unscoped.
+   */
+  describe("PermissionScope.Owned fails closed", () => {
+    test("an Owned-scoped payload grant cannot read a recording", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ReadRumSessionReplayPayload],
+        scope: PermissionScope.Owned,
+      });
+
+      mockProps(principal.databaseProps);
+      mockSessionHeader(applicationAId);
+      mockApplication({ id: applicationAId, labelIds: [labelAId] });
+      mockRecordedView();
+
+      const result: CallResult = await callRoute({
+        uri: MANIFEST_ROUTE,
+        request: principal.request,
+        body: { sessionId: "session-1" },
+      });
+
+      expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      expect(recordViewSpy).not.toHaveBeenCalled();
+      expect(chunkQuerySpy).not.toHaveBeenCalled();
+    });
+
+    test("an Owned-scoped list grant cannot read the whole project's exceptions", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ReadRumSessionReplay],
+        scope: PermissionScope.Owned,
+      });
+
+      mockProps(principal.databaseProps);
+      mockApplication({ id: applicationAId, labelIds: [labelAId] });
+
+      const result: CallResult = await callRoute({
+        uri: FOR_EXCEPTION_ROUTE,
+        request: principal.request,
+        body: { fingerprint: "fp-1" },
+      });
+
+      expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      /* Above all: no unfiltered project-wide query was issued. */
+      expect(headerQuerySpy).not.toHaveBeenCalled();
+    });
+
+    test("an Owned-scoped grant cannot list an application's sessions", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ReadRumSessionReplay],
+        scope: PermissionScope.Owned,
+      });
+
+      mockProps(principal.databaseProps);
+      mockApplication({ id: applicationAId, labelIds: [labelAId] });
+
+      const result: CallResult = await callRoute({
+        uri: LIST_ROUTE,
+        request: principal.request,
+        body: { rumApplicationId: applicationAId.toString() },
+      });
+
+      expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      expect(headerQuerySpy).not.toHaveBeenCalled();
     });
   });
 
@@ -811,6 +1106,96 @@ describe("Session replay playback API", () => {
       expect(statement.query).not.toContain("identifiedUserLabel");
     });
 
+    /*
+     * The strictest column in the schema. A caller can hold
+     * ReadRumSessionReplay unscoped (so the list route admits them for
+     * every application) while their identity grant -
+     * ReadRumSessionReplayPayload - is scoped to one label. Checking only
+     * that the permission NAME is present hands them named end users for
+     * applications outside that label.
+     */
+    test("omits identifiedUserLabel when the identity grant is scoped to a different application", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ReadRumSessionReplayPayload],
+        labelIds: [labelAId],
+      });
+
+      grantUnscopedListPermission(principal.databaseProps, projectId);
+
+      mockProps(principal.databaseProps);
+      /* Application B is outside the identity grant's label. */
+      mockApplication({ id: applicationBId, labelIds: [labelBId] });
+
+      await callRoute({
+        uri: LIST_ROUTE,
+        request: principal.request,
+        body: { rumApplicationId: applicationBId.toString() },
+      });
+
+      const statement: Statement = headerQuerySpy.mock
+        .calls[0]![0] as Statement;
+
+      expect(statement.query).not.toContain("identifiedUserLabel");
+    });
+
+    test("selects identifiedUserLabel when the identity grant covers this application", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ReadRumSessionReplayPayload],
+        labelIds: [labelAId],
+      });
+
+      grantUnscopedListPermission(principal.databaseProps, projectId);
+
+      mockProps(principal.databaseProps);
+      mockApplication({ id: applicationAId, labelIds: [labelAId] });
+
+      await callRoute({
+        uri: LIST_ROUTE,
+        request: principal.request,
+        body: { rumApplicationId: applicationAId.toString() },
+      });
+
+      const statement: Statement = headerQuerySpy.mock
+        .calls[0]![0] as Statement;
+
+      expect(statement.query).toContain(
+        "argMax(identifiedUserLabel, version) AS aggIdentifiedUserLabel",
+      );
+    });
+
+    test("a malformed rumApplicationId is a bad request, not a database error", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ReadRumSessionReplay],
+      });
+
+      mockProps(principal.databaseProps);
+
+      const result: CallResult = await callRoute({
+        uri: LIST_ROUTE,
+        request: principal.request,
+        body: { rumApplicationId: "nope" },
+      });
+
+      expect(result.thrownToNext).toBeInstanceOf(BadDataException);
+      expect(findOneBySpy).not.toHaveBeenCalled();
+      expect(headerQuerySpy).not.toHaveBeenCalled();
+    });
+
     test("selects identifiedUserLabel for a ProjectAdmin", async () => {
       const principal: {
         request: JSONObject;
@@ -1008,15 +1393,10 @@ describe("Session replay playback API", () => {
       mockSessionHeader(applicationAId);
       mockApplication({ id: applicationAId, labelIds: [] });
 
-      /*
-       * The pre-check query answers from payloadBytes only; the payload
-       * column is never read, which is the point of doing the check
-       * first.
-       */
       chunkQuerySpy.mockResolvedValue(
         fakeResultSet([
-          { chunkIndex: 0, chunkPayloadBytes: 5 * 1024 * 1024 },
-          { chunkIndex: 1, chunkPayloadBytes: 5 * 1024 * 1024 },
+          { chunkIndex: 0, chunkStoredBytes: 5 * 1024 * 1024 },
+          { chunkIndex: 1, chunkStoredBytes: 5 * 1024 * 1024 },
         ]) as never,
       );
 
@@ -1031,9 +1411,91 @@ describe("Session replay playback API", () => {
       });
 
       expect(result.thrownToNext).toBeInstanceOf(BadDataException);
+      /* Refused on the pre-check: the payload read never ran. */
       expect(chunkQuerySpy).toHaveBeenCalledTimes(1);
-      const statement: Statement = chunkQuerySpy.mock.calls[0]![0] as Statement;
-      expect(statement.query).not.toMatch(/\bpayload\b(?!Bytes)/);
+    });
+
+    /*
+     * The cap has to bound the bytes this endpoint actually returns.
+     * `payloadBytes` is the POST-GZIP wire size the recorder uploaded,
+     * while the `payload` column holds the DECOMPRESSED JSON that is
+     * served. Measuring the former let 8 chunks that pass a 8 MiB check
+     * decompress into tens of megabytes of response.
+     */
+    test("the pre-check measures the stored (decompressed) size, not the compressed wire size", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = payloadPrincipal();
+
+      mockProps(principal.databaseProps);
+      mockSessionHeader(applicationAId);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      chunkQuerySpy
+        .mockResolvedValueOnce(
+          fakeResultSet([{ chunkIndex: 0, chunkStoredBytes: 4 }]) as never,
+        )
+        .mockResolvedValueOnce(
+          fakeResultSet([{ chunkIndex: 0, payload: "[1]" }]) as never,
+        );
+
+      await callRoute({
+        uri: CHUNKS_ROUTE,
+        request: principal.request,
+        body: {
+          sessionId: "session-1",
+          tabId: "tab-1",
+          chunkIndexes: [0],
+        },
+      });
+
+      const precheck: Statement = chunkQuerySpy.mock.calls[0]![0] as Statement;
+
+      expect(precheck.query).toContain("length(payload)");
+      expect(precheck.query).not.toContain("toFloat64(payloadBytes)");
+    });
+
+    test("refuses to serve more bytes than the cap even when the pre-check said the chunks were small", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = payloadPrincipal();
+
+      mockProps(principal.databaseProps);
+      mockSessionHeader(applicationAId);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      /* 10 MiB of real payload behind a pre-check that reported 8 bytes. */
+      const fatPayload: string = "a".repeat(5 * 1024 * 1024);
+
+      chunkQuerySpy
+        .mockResolvedValueOnce(
+          fakeResultSet([
+            { chunkIndex: 0, chunkStoredBytes: 4 },
+            { chunkIndex: 1, chunkStoredBytes: 4 },
+          ]) as never,
+        )
+        .mockResolvedValueOnce(
+          fakeResultSet([
+            { chunkIndex: 0, payload: fatPayload },
+            { chunkIndex: 1, payload: fatPayload },
+          ]) as never,
+        );
+
+      const result: CallResult = await callRoute({
+        uri: CHUNKS_ROUTE,
+        request: principal.request,
+        body: {
+          sessionId: "session-1",
+          tabId: "tab-1",
+          chunkIndexes: [0, 1],
+        },
+      });
+
+      expect(result.thrownToNext).toBeInstanceOf(BadDataException);
+      /* Nothing was served. */
+      expect(result.sentBuffer).toBeUndefined();
     });
 
     test("returns length-prefixed binary frames and de-duplicates by version", async () => {
@@ -1049,8 +1511,8 @@ describe("Session replay playback API", () => {
       chunkQuerySpy
         .mockResolvedValueOnce(
           fakeResultSet([
-            { chunkIndex: 0, chunkPayloadBytes: 4 },
-            { chunkIndex: 1, chunkPayloadBytes: 4 },
+            { chunkIndex: 0, chunkStoredBytes: 3 },
+            { chunkIndex: 1, chunkStoredBytes: 4 },
           ]) as never,
         )
         .mockResolvedValueOnce(
@@ -1126,8 +1588,10 @@ describe("Session replay playback API", () => {
       });
 
       mockProps(principal.databaseProps);
+      mockApplication({ id: applicationAId, labelIds: [] });
 
       const viewId: ObjectID = ObjectID.generate();
+      mockOwnView({ viewId: viewId, rumApplicationId: applicationAId });
 
       await callRoute({
         uri: HEARTBEAT_ROUTE,
@@ -1145,7 +1609,7 @@ describe("Session replay playback API", () => {
       expect((args["viewId"] as ObjectID).toString()).toBe(viewId.toString());
     });
 
-    test("a Viewer cannot advance somebody else's watch record", async () => {
+    test("a Viewer cannot reach the heartbeat route at all", async () => {
       const principal: {
         request: JSONObject;
         databaseProps: DatabaseCommonInteractionProps;
@@ -1164,6 +1628,108 @@ describe("Session replay playback API", () => {
       });
 
       expect(result.deniedWith).toBeInstanceOf(NotAuthorizedException);
+      expect(recordSecondsWatchedSpy).not.toHaveBeenCalled();
+    });
+
+    /*
+     * secondsWatched is a privacy control shown on the player, not a
+     * counter. A payload-permitted principal must not be able to inflate
+     * a colleague's audit row - the row is looked up as the caller's own,
+     * so somebody else's viewId matches nothing.
+     */
+    test("a viewId belonging to another user is refused and never written", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ReadRumSessionReplayPayload],
+      });
+
+      mockProps(principal.databaseProps);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      const someoneElsesViewId: ObjectID = ObjectID.generate();
+
+      /*
+       * The service is asked for a row owned by the caller; the row in
+       * the table belongs to somebody else, so nothing comes back.
+       */
+      viewFindOneBySpy.mockResolvedValue(null);
+
+      const result: CallResult = await callRoute({
+        uri: HEARTBEAT_ROUTE,
+        request: principal.request,
+        body: {
+          viewId: someoneElsesViewId.toString(),
+          secondsWatched: 600,
+        },
+      });
+
+      expect(result.deniedWith).toBeInstanceOf(NotAuthorizedException);
+      expect(recordSecondsWatchedSpy).not.toHaveBeenCalled();
+
+      /* The ownership predicate is the thing being pinned. */
+      const lookupArgs: JSONObject = viewFindOneBySpy.mock
+        .calls[0]![0] as JSONObject;
+      const query: JSONObject = lookupArgs["query"] as JSONObject;
+      expect((query["viewedByUserId"] as ObjectID).toString()).toBe(
+        userId.toString(),
+      );
+      expect((query["projectId"] as ObjectID).toString()).toBe(
+        projectId.toString(),
+      );
+    });
+
+    test("a caller outside the view's application label scope cannot advance it", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ReadRumSessionReplayPayload],
+        labelIds: [labelAId],
+      });
+
+      mockProps(principal.databaseProps);
+      /* The view points at application B, which carries a foreign label. */
+      mockApplication({ id: applicationBId, labelIds: [labelBId] });
+
+      const viewId: ObjectID = ObjectID.generate();
+      mockOwnView({ viewId: viewId, rumApplicationId: applicationBId });
+
+      const result: CallResult = await callRoute({
+        uri: HEARTBEAT_ROUTE,
+        request: principal.request,
+        body: { viewId: viewId.toString(), secondsWatched: 30 },
+      });
+
+      expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      expect(recordSecondsWatchedSpy).not.toHaveBeenCalled();
+    });
+
+    test("a malformed viewId is a bad request, not a database error", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ReadRumSessionReplayPayload],
+      });
+
+      mockProps(principal.databaseProps);
+
+      const result: CallResult = await callRoute({
+        uri: HEARTBEAT_ROUTE,
+        request: principal.request,
+        body: { viewId: "nope", secondsWatched: 30 },
+      });
+
+      expect(result.thrownToNext).toBeInstanceOf(BadDataException);
+      expect(viewFindOneBySpy).not.toHaveBeenCalled();
       expect(recordSecondsWatchedSpy).not.toHaveBeenCalled();
     });
   });

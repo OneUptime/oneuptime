@@ -609,6 +609,13 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_http_version 1.1;
         proxy_set_header Connection $connection_upgrade;
 
+        # The session replay router is mounted on BOTH "/" and "/telemetry",
+        # so /telemetry/session-replay/v1/chunk is equally live. Without this
+        # line nginx's 1M default applies on that path and a 1-2M chunk gets a
+        # bare nginx 413 with no directive and no chance for the app to answer.
+        # Kept identical to the /session-replay block.
+        client_max_body_size 4M;
+
         proxy_pass ${BACKEND_APP_TARGET};
     }
 

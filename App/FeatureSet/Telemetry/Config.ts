@@ -149,20 +149,42 @@ export const SESSION_REPLAY_INLINE_STAGING_MAX_BYTES: number = parseBatchSize(
 );
 
 /*
- * Replay's share of the shared telemetry worker's concurrency slots.
+ * How many replay chunks one pod may decode and scrub concurrently.
  *
- * The telemetry queue is deliberately reused (a new QueueName means a new
- * worker deployment plus a KEDA scaler), which means a replay backlog would
- * otherwise be able to occupy all TELEMETRY_CONCURRENCY slots and starve
- * trace and log ingest. This is a per-pod in-process gate rather than a
- * distributed Semaphore: TELEMETRY_CONCURRENCY is itself per-pod, so a
- * per-pod cap is the right unit, and it costs no Redis round trip on a path
- * whose whole budget is a few milliseconds per chunk.
+ * This bounds replay's peak CPU and memory on the shared telemetry worker:
+ * every decoded chunk stays resident until its insert is submitted, so
+ * without a cap the ceiling would be TELEMETRY_CONCURRENCY times the
+ * per-job decompression budget. It is NOT starvation protection - the gate
+ * is applied inside the job handler, so a waiting replay job still holds its
+ * BullMQ slot (see withSessionReplaySlot in ProcessTelemetry).
+ *
+ * Per-pod in-process rather than a distributed Semaphore: TELEMETRY_
+ * CONCURRENCY is itself per-pod, so a per-pod cap is the right unit, and it
+ * costs no Redis round trip on a path whose whole budget is a few
+ * milliseconds per chunk.
  */
 export const SESSION_REPLAY_WORKER_CONCURRENCY: number = parseBatchSize(
   "SESSION_REPLAY_WORKER_CONCURRENCY",
   20,
 );
+
+/*
+ * Name of the ONE request header whose country code the replay ingest path
+ * is allowed to believe, lowercased (e.g. "cf-ipcountry" behind Cloudflare,
+ * "x-vercel-ip-country" behind Vercel).
+ *
+ * Empty by default, which means no country is recorded at all. A request
+ * header is client-controlled unless the ingress overwrites it, and nothing
+ * in the Nginx config strips these, so honouring one on a deployment that is
+ * not actually behind that CDN lets any client stamp arbitrary countries onto
+ * session rows. Set it only when the named header is guaranteed to be
+ * rewritten by your edge.
+ */
+export const SESSION_REPLAY_TRUSTED_GEO_HEADER: string = (
+  process.env["SESSION_REPLAY_TRUSTED_GEO_HEADER"] || ""
+)
+  .trim()
+  .toLowerCase();
 
 /*
  * Pinned recorder artifact the loader stub is told to import. Changing this

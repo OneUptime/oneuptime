@@ -1,5 +1,7 @@
 import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/RumSessionReplayView";
+import ColumnLength from "../../Types/Database/ColumnLength";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
@@ -61,16 +63,24 @@ export class Service extends DatabaseService<Model> {
       item.viewedByApiKeyId = data.viewedByApiKeyId;
     }
 
+    /*
+     * All three come straight off an untrusted request: a header, or a
+     * free-text field in the body. Truncated rather than validated because
+     * failing the audit write would fail the playback it is auditing, and
+     * DatabaseService.checkMaxLengthOfFields throws on anything longer
+     * than the column. An oversized user agent must not be able to stop a
+     * read from being recorded.
+     */
     if (data.ipAddress) {
-      item.ipAddress = data.ipAddress;
+      item.ipAddress = data.ipAddress.substring(0, ColumnLength.ShortText);
     }
 
     if (data.userAgent) {
-      item.userAgent = data.userAgent;
+      item.userAgent = data.userAgent.substring(0, ColumnLength.LongText);
     }
 
     if (data.accessReason) {
-      item.accessReason = data.accessReason;
+      item.accessReason = data.accessReason.substring(0, ColumnLength.LongText);
     }
 
     if (data.linkedIncidentId) {
@@ -144,12 +154,20 @@ export class Service extends DatabaseService<Model> {
   @CaptureSpan()
   public async getViewsForSession(data: {
     projectId: ObjectID;
+    /*
+     * Required, not optional. A sessionId is only unique within an
+     * application, and the caller has been authorised against one
+     * application - listing every project-wide view of a colliding id
+     * would leak audit rows from an application they cannot see.
+     */
+    rumApplicationId: ObjectID;
     sessionId: string;
     limit: number;
   }): Promise<Array<Model>> {
     return await this.findBy({
       query: {
         projectId: data.projectId,
+        rumApplicationId: data.rumApplicationId,
         sessionId: data.sessionId,
       },
       select: {
@@ -169,7 +187,12 @@ export class Service extends DatabaseService<Model> {
         viewedAt: SortOrder.Descending,
       },
       skip: 0,
-      limit: data.limit,
+      /*
+       * Clamped rather than passed through: findBy rejects anything above
+       * LIMIT_PER_PROJECT with an exception, and a too-large page is not
+       * worth failing an audit listing over.
+       */
+      limit: Math.min(Math.max(data.limit, 1), LIMIT_PER_PROJECT),
       props: { isRoot: true },
     });
   }

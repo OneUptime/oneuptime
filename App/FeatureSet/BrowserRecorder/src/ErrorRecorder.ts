@@ -45,7 +45,27 @@ export interface ErrorRecorderOptions {
    * text node rather than being treated as developer-authored strings.
    */
   maskMessage: (message: string) => string;
+
+  /*
+   * URL scrubbing is the one PII channel maskAllText does not cover, and it
+   * reaches this module through two doors that are easy to miss.
+   *
+   * For an error thrown from an inline script the browser sets
+   * ErrorEvent.filename to the DOCUMENT's URL, query string included - so an
+   * uncaught error on /reset-password?token=... would otherwise post the live
+   * token. Stack frames carry the same URLs. Every other URL in this package
+   * (Meta href, route changes, network events, entryUrl) goes through
+   * UrlScrubber; these two now do as well.
+   */
+  scrubUrl: (url: string) => string;
 }
+
+/*
+ * Matches an absolute http(s) URL inside free-form text. Terminated on
+ * whitespace and on the closing parenthesis that both V8 and SpiderMonkey put
+ * around a stack frame's location.
+ */
+const URL_IN_TEXT: RegExp = /https?:\/\/[^\s)'"]+/g;
 
 export default class ErrorRecorder {
   private readonly options: ErrorRecorderOptions;
@@ -133,7 +153,7 @@ export default class ErrorRecorder {
     };
 
     if (error.source !== undefined) {
-      masked.source = error.source;
+      masked.source = this.options.scrubUrl(error.source);
     }
 
     if (error.lineNumber !== undefined) {
@@ -146,18 +166,35 @@ export default class ErrorRecorder {
 
     if (error.stack !== undefined) {
       /*
-       * The stack is NOT masked. It is frames and file paths, which is
+       * The stack's TEXT is not masked: it is frames and file paths, which is
        * exactly what makes it useful, and it is the one string in this
-       * payload that is authored by the customer's own build rather than by
-       * their end user.
+       * payload authored by the customer's own build rather than by their end
+       * user. Its URLs are scrubbed, though - a frame in an inline script is
+       * attributed to the document URL, query string and all.
+       *
+       * Scrubbed before truncation so the cut lands in already-safe text
+       * rather than in the middle of a query string.
        */
-      masked.stack = error.stack.slice(0, MAX_STACK_LENGTH);
+      masked.stack = this.scrubUrlsIn(error.stack).slice(0, MAX_STACK_LENGTH);
     }
 
     const atUnixMs: number = Date.now();
 
     this.options.emitCustomEvent(ERROR_CUSTOM_EVENT_TAG, masked);
     this.options.onError(atUnixMs, masked);
+  }
+
+  private scrubUrlsIn(text: string): string {
+    /*
+     * The global regex is reset before use: a module-scope /g regex carries
+     * lastIndex between calls, which would make the second error's stack
+     * scrub from wherever the first one stopped.
+     */
+    URL_IN_TEXT.lastIndex = 0;
+
+    return text.replace(URL_IN_TEXT, (url: string): string => {
+      return this.options.scrubUrl(url);
+    });
   }
 
   public getRecordedCount(): number {

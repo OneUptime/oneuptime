@@ -133,9 +133,20 @@ export default class Transport {
        * deadlocks when the readable side has not been drained yet, because
        * the writer's promise only settles once the transform has somewhere
        * to put the output.
+       *
+       * Both rejections ARE handled, though, even while nothing awaits them.
+       * A discarded rejection surfaces as `unhandledrejection` on the
+       * customer's page, where their own error tracker reports it as their
+       * bug - and where our own ErrorRecorder catches it and treats it as a
+       * reason to start uploading. The real failure is still observed by the
+       * arrayBuffer() read below, which falls back to identity.
        */
-      void writer.write(raw);
-      void writer.close();
+      writer.write(raw).catch((): void => {
+        /* Observed by the arrayBuffer() read below. */
+      });
+      writer.close().catch((): void => {
+        /* Observed by the arrayBuffer() read below. */
+      });
 
       const compressed: ArrayBuffer = await new Response(
         stream.readable,
@@ -419,6 +430,21 @@ export default class Transport {
     }
 
     this.retryQueue.push(chunk);
+  }
+
+  /*
+   * Drop everything queued for retry, without sending it.
+   *
+   * The retry queue holds up to MAX_SESSION_REPLAY_CHUNKS_PER_REQUEST fully
+   * serialised chunks of end-user page content. disable() already clears it,
+   * but revokeConsent() and stop() do not go through disable(), so without
+   * this the "revokeConsent() drops the buffer" contract held for the rolling
+   * buffer and not for the part of the buffer that had already been handed to
+   * the transport. Nothing will ever upload those chunks, so retaining them
+   * is pure liability.
+   */
+  public discardQueue(): void {
+    this.retryQueue = [];
   }
 
   private disable(reason: string): void {

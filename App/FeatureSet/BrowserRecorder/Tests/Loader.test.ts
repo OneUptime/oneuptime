@@ -238,6 +238,25 @@ describe("Loader", (): void => {
       expect(script?.async).toBe(true);
     });
 
+    /*
+     * The version names a path on the ingest origin. A server (or a
+     * man-in-the-middle with a compromised config response) that answers with
+     * a traversing version must not get a script tag pointing at whatever it
+     * chose - and must not get a request for an artifact that was never
+     * published either.
+     */
+    it("injects nothing when the advertised version is not a semver", async (): Promise<void> => {
+      for (const version of ["../../../admin", "latest", "1.0"]) {
+        document.head.innerHTML = "";
+        setConfigResponse({ ...CONFIG_BODY, recorderVersion: version });
+
+        await runLoader();
+
+        expect(injectedScript()).toBeNull();
+        expect(bootstrapCalls).toHaveLength(0);
+      }
+    });
+
     it("omits integrity when the server does not publish a hash", async (): Promise<void> => {
       const body: Record<string, unknown> = { ...CONFIG_BODY };
       delete body["recorderIntegrity"];

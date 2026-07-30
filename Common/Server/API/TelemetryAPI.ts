@@ -78,6 +78,13 @@ import DatabaseCommonInteractionPropsUtil, {
   PermissionType,
 } from "../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import PaymentRequiredException from "../../Types/Exception/PaymentRequiredException";
+import PermissionScope from "../../Types/Database/AccessControl/PermissionScope";
+import SubscriptionPlan, {
+  PlanType,
+} from "../../Types/Billing/SubscriptionPlan";
+import { IsBillingEnabled, getAllEnvVars } from "../EnvironmentConfig";
+import RumSession from "../../Models/AnalyticsModels/RumSession";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import { JSONObject } from "../../Types/JSON";
@@ -101,7 +108,10 @@ import SessionReplayReadService, {
   SessionReplayManifest,
   SessionReplaySessionHeader,
 } from "../Utils/SessionReplay/SessionReplayReadService";
-import { MAX_SESSION_REPLAY_CHUNKS_PER_READ } from "../../Types/Rum/SessionReplay";
+import {
+  MAX_SESSION_REPLAY_CHUNKS_PER_READ,
+  MAX_SESSION_REPLAY_READ_BYTES,
+} from "../../Types/Rum/SessionReplay";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -2829,11 +2839,11 @@ const SESSION_REPLAY_IDENTITY_PERMISSIONS: Array<Permission> = [
  * Label scope for a set of permissions, mirroring the private
  * AccessControlPermission.getAccessControlIdsByPermissions.
  *
- * An EMPTY result means "no label restriction" - either because the
- * caller holds one of the permissions unscoped, or because they hold none
- * of them with labels (in which case the route guard has already rejected
- * them). A non-empty result is the set of labels at least one of which
- * the RUM application must carry.
+ * Returned as a discriminated result rather than as an array whose
+ * emptiness has to be interpreted. An empty array previously meant BOTH
+ * "unrestricted" and "we could not work out a restriction", and every
+ * caller read it as the former - which is a fail-OPEN default for the one
+ * kind of answer that must fail closed.
  *
  * Reimplemented here rather than routed through RumApplicationService
  * with the caller's props on purpose: RumApplication's own read ACL
@@ -2841,17 +2851,26 @@ const SESSION_REPLAY_IDENTITY_PERMISSIONS: Array<Permission> = [
  * narrowly-scoped session-replay reviewer necessarily holds, so going
  * through it would deny legitimate callers.
  */
+type SessionReplayScope =
+  | { isUnrestricted: true }
+  /*
+   * At least one label the RUM application must carry. An EMPTY array
+   * here means the caller reaches nothing at all, which is a real and
+   * different answer from "unrestricted".
+   */
+  | { isUnrestricted: false; labelIds: Array<ObjectID> };
+
 type SessionReplayLabelScopeFunction = (
   databaseProps: DatabaseCommonInteractionProps,
   permissions: Array<Permission>,
-) => Array<ObjectID>;
+) => SessionReplayScope;
 
 const getSessionReplayLabelScope: SessionReplayLabelScopeFunction = (
   databaseProps: DatabaseCommonInteractionProps,
   permissions: Array<Permission>,
-): Array<ObjectID> => {
+): SessionReplayScope => {
   if (databaseProps.isRoot || databaseProps.isMasterAdmin) {
-    return [];
+    return { isUnrestricted: true };
   }
 
   const userPermissions: Array<UserPermission> =
@@ -2866,7 +2885,7 @@ const getSessionReplayLabelScope: SessionReplayLabelScopeFunction = (
   if (
     PermissionHelper.doesPermissionsIntersect(permissions, unscopedPermissions)
   ) {
-    return [];
+    return { isUnrestricted: true };
   }
 
   const scopedPermissions: Array<UserPermission> =
@@ -2885,7 +2904,43 @@ const getSessionReplayLabelScope: SessionReplayLabelScopeFunction = (
     }
   }
 
-  return labelIds;
+  if (labelIds.length > 0) {
+    return { isUnrestricted: false, labelIds: labelIds };
+  }
+
+  /*
+   * Neither an unscoped grant nor a label-scoped one, yet the route guard
+   * let the caller in - so the grant they hold carries a scope this
+   * bespoke path does not implement. PermissionScope.Owned is the real
+   * case: both PermissionHelper filters exclude Owned rows on purpose
+   * because the ORM enforces them through
+   * OwnedScopePermission.addOwnedScopeToQuery, and there is no such step
+   * here. Refusing is the only safe answer; returning "no labels" would
+   * hand an administrator's deliberately narrowed reviewer the whole
+   * project.
+   */
+  const hasOwnedScopedGrant: boolean = userPermissions.some(
+    (userPermission: UserPermission): boolean => {
+      return (
+        userPermission.scope === PermissionScope.Owned &&
+        permissions.includes(userPermission.permission)
+      );
+    },
+  );
+
+  if (hasOwnedScopedGrant) {
+    throw new NotAuthorizedException(
+      "Owned-scoped session replay permissions are not supported. Ask an administrator to scope this permission to labels instead.",
+    );
+  }
+
+  /*
+   * No applicable grant at all. This is reachable even behind the route
+   * guard, because the guard matches on permission NAME across every
+   * tenant permission row while getUserPermissions drops block rows. It
+   * means the caller reaches no application, not every application.
+   */
+  return { isUnrestricted: false, labelIds: [] };
 };
 
 /*
@@ -2895,32 +2950,44 @@ const getSessionReplayLabelScope: SessionReplayLabelScopeFunction = (
  */
 const MAX_RUM_APPLICATIONS_SCANNED: number = 1000;
 
-/* Does the caller hold any of these permissions on the current tenant? */
-type DoesCallerHavePermissionFunction = (
+/*
+ * Plan gate for the replay reads.
+ *
+ * Both replay models declare tableBillingAccessControl.read =
+ * PlanType.Growth, and that declaration is enforced by ModelPermission -
+ * which is never invoked on this path, because neither model has a
+ * crudApiPath. Exactly the same trap as the permission ACLs above, so it
+ * gets the same treatment: the declaration is read off the model and
+ * applied here rather than being left decorative.
+ */
+type AssertSessionReplayPlanFunction = (
   databaseProps: DatabaseCommonInteractionProps,
-  permissions: Array<Permission>,
-) => boolean;
+) => void;
 
-const doesCallerHavePermission: DoesCallerHavePermissionFunction = (
+const assertSessionReplayPlan: AssertSessionReplayPlanFunction = (
   databaseProps: DatabaseCommonInteractionProps,
-  permissions: Array<Permission>,
-): boolean => {
-  if (databaseProps.isRoot || databaseProps.isMasterAdmin) {
-    return true;
+): void => {
+  if (!IsBillingEnabled || !databaseProps.currentPlan) {
+    return;
   }
 
-  const userPermissions: Array<Permission> =
-    DatabaseCommonInteractionPropsUtil.getUserPermissions(
-      databaseProps,
-      PermissionType.Allow,
-    ).map((userPermission: UserPermission): Permission => {
-      return userPermission.permission;
-    });
+  const requiredPlan: PlanType | null = new RumSession().getReadBillingPlan();
 
-  return PermissionHelper.doesPermissionsIntersect(
-    permissions,
-    userPermissions,
-  );
+  if (!requiredPlan) {
+    return;
+  }
+
+  if (
+    !SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
+      requiredPlan,
+      databaseProps.currentPlan,
+      getAllEnvVars(),
+    )
+  ) {
+    throw new PaymentRequiredException(
+      `Please upgrade your plan to ${requiredPlan} to access session replay.`,
+    );
+  }
 };
 
 /* Label ids carried by a RUM application, read as root. */
@@ -2958,12 +3025,39 @@ const getRumApplicationLabelIds: GetRumApplicationLabelIdsFunction = (
  * `WHERE projectId = <tenantId>`, so the id cannot come from another
  * project.
  */
+type IsApplicationInSessionReplayScopeFunction = (data: {
+  scope: SessionReplayScope;
+  application: RumApplication;
+}) => boolean;
+
+const isApplicationInSessionReplayScope: IsApplicationInSessionReplayScopeFunction =
+  (data: {
+    scope: SessionReplayScope;
+    application: RumApplication;
+  }): boolean => {
+    if (data.scope.isUnrestricted) {
+      return true;
+    }
+
+    const applicationLabelIds: Array<string> = getRumApplicationLabelIds(
+      data.application,
+    );
+
+    return data.scope.labelIds.some((labelId: ObjectID): boolean => {
+      return applicationLabelIds.includes(labelId.toString());
+    });
+  };
+
+/*
+ * Returns the application so callers that need its labels for a second,
+ * narrower decision (the identity column) do not have to load it twice.
+ */
 type AssertSessionReplayApplicationAccessFunction = (data: {
   projectId: ObjectID;
   rumApplicationId: ObjectID;
   databaseProps: DatabaseCommonInteractionProps;
   permissions: Array<Permission>;
-}) => Promise<void>;
+}) => Promise<RumApplication>;
 
 const assertSessionReplayApplicationAccess: AssertSessionReplayApplicationAccessFunction =
   async (data: {
@@ -2971,8 +3065,8 @@ const assertSessionReplayApplicationAccess: AssertSessionReplayApplicationAccess
     rumApplicationId: ObjectID;
     databaseProps: DatabaseCommonInteractionProps;
     permissions: Array<Permission>;
-  }): Promise<void> => {
-    const labelIds: Array<ObjectID> = getSessionReplayLabelScope(
+  }): Promise<RumApplication> => {
+    const scope: SessionReplayScope = getSessionReplayLabelScope(
       data.databaseProps,
       data.permissions,
     );
@@ -3005,23 +3099,61 @@ const assertSessionReplayApplicationAccess: AssertSessionReplayApplicationAccess
       );
     }
 
-    if (labelIds.length === 0) {
-      return;
-    }
-
-    const applicationLabelIds: Array<string> =
-      getRumApplicationLabelIds(application);
-
-    const isInScope: boolean = labelIds.some((labelId: ObjectID): boolean => {
-      return applicationLabelIds.includes(labelId.toString());
-    });
-
-    if (!isInScope) {
+    if (
+      !isApplicationInSessionReplayScope({
+        scope: scope,
+        application: application,
+      })
+    ) {
       throw new NotAuthorizedException(
         "You do not have access to session replays for this application.",
       );
     }
+
+    return application;
   };
+
+/*
+ * May the caller see the RAW end-user identifier for THIS application?
+ *
+ * Holding the identity permission somewhere in the project is not enough.
+ * identifiedUserLabel carries the narrowest ACL in the schema, and a
+ * caller can legitimately hold ReadRumSessionReplay unscoped (so the list
+ * route admits them for every application) while their
+ * ReadRumSessionReplayPayload grant is scoped to a single label. Checking
+ * only the permission name would hand them named end users for every
+ * application in the project.
+ */
+type CanReadIdentifiedUserLabelFunction = (data: {
+  databaseProps: DatabaseCommonInteractionProps;
+  application: RumApplication;
+}) => boolean;
+
+const canReadIdentifiedUserLabel: CanReadIdentifiedUserLabelFunction = (data: {
+  databaseProps: DatabaseCommonInteractionProps;
+  application: RumApplication;
+}): boolean => {
+  let scope: SessionReplayScope;
+
+  try {
+    scope = getSessionReplayLabelScope(
+      data.databaseProps,
+      SESSION_REPLAY_IDENTITY_PERMISSIONS,
+    );
+  } catch {
+    /*
+     * getSessionReplayLabelScope refuses a scope it cannot enforce. For
+     * an optional column the right answer is to omit the column, not to
+     * fail the whole listing the caller is otherwise entitled to.
+     */
+    return false;
+  }
+
+  return isApplicationInSessionReplayScope({
+    scope: scope,
+    application: data.application,
+  });
+};
 
 /*
  * The set of applications a label-scoped caller may reach, for the
@@ -3029,25 +3161,43 @@ const assertSessionReplayApplicationAccess: AssertSessionReplayApplicationAccess
  * resolve. null means unrestricted; an empty array means the caller can
  * reach none, which must return no rows rather than everything.
  */
+interface AccessibleRumApplications {
+  /* null means unrestricted; see getSessionsForException. */
+  applicationIds: Array<ObjectID> | null;
+  /*
+   * True when the project holds more RUM applications than one scan can
+   * cover, so the accessible set may be short. Surfaced rather than
+   * swallowed: a quietly incomplete answer to "which sessions saw this
+   * exception" is the same failure mode as timeout_overflow_mode =
+   * 'break', which this whole read path refuses elsewhere.
+   */
+  isTruncated: boolean;
+}
+
 type ResolveAccessibleRumApplicationIdsFunction = (data: {
   projectId: ObjectID;
   databaseProps: DatabaseCommonInteractionProps;
   permissions: Array<Permission>;
-}) => Promise<Array<ObjectID> | null>;
+}) => Promise<AccessibleRumApplications>;
 
 const resolveAccessibleRumApplicationIds: ResolveAccessibleRumApplicationIdsFunction =
   async (data: {
     projectId: ObjectID;
     databaseProps: DatabaseCommonInteractionProps;
     permissions: Array<Permission>;
-  }): Promise<Array<ObjectID> | null> => {
-    const labelIds: Array<ObjectID> = getSessionReplayLabelScope(
+  }): Promise<AccessibleRumApplications> => {
+    const scope: SessionReplayScope = getSessionReplayLabelScope(
       data.databaseProps,
       data.permissions,
     );
 
-    if (labelIds.length === 0) {
-      return null;
+    if (scope.isUnrestricted) {
+      return { applicationIds: null, isTruncated: false };
+    }
+
+    if (scope.labelIds.length === 0) {
+      /* Reaches no application at all - not "reaches everything". */
+      return { applicationIds: [], isTruncated: false };
     }
 
     const applications: Array<RumApplication> =
@@ -3061,29 +3211,43 @@ const resolveAccessibleRumApplicationIds: ResolveAccessibleRumApplicationIdsFunc
             _id: true,
           },
         },
+        /*
+         * A deterministic sort so the page that is scanned is at least
+         * stable between calls, and one row past the ceiling so hitting
+         * it is detectable rather than indistinguishable from a project
+         * that happens to have exactly that many applications.
+         */
+        sort: {
+          createdAt: SortOrder.Ascending,
+        },
         skip: 0,
-        limit: MAX_RUM_APPLICATIONS_SCANNED,
+        limit: MAX_RUM_APPLICATIONS_SCANNED + 1,
         props: {
           isRoot: true,
         },
       });
 
+    const isTruncated: boolean =
+      applications.length > MAX_RUM_APPLICATIONS_SCANNED;
+
     const accessibleIds: Array<ObjectID> = [];
 
-    for (const application of applications) {
-      const applicationLabelIds: Array<string> =
-        getRumApplicationLabelIds(application);
-
-      const isInScope: boolean = labelIds.some((labelId: ObjectID): boolean => {
-        return applicationLabelIds.includes(labelId.toString());
-      });
-
-      if (isInScope && application.id) {
+    for (const application of applications.slice(
+      0,
+      MAX_RUM_APPLICATIONS_SCANNED,
+    )) {
+      if (
+        isApplicationInSessionReplayScope({
+          scope: scope,
+          application: application,
+        }) &&
+        application.id
+      ) {
         accessibleIds.push(application.id);
       }
     }
 
-    return accessibleIds;
+    return { applicationIds: accessibleIds, isTruncated: isTruncated };
   };
 
 /*
@@ -3130,6 +3294,12 @@ const resolveAuthorizedSession: ResolveAuthorizedSessionFunction =
  * but an object or a number would silently stringify to something like
  * "[object Object]" and match nothing, turning a client bug into a
  * confusing empty result instead of an error.
+ *
+ * The shape is checked as well as the type. ObjectID's constructor
+ * validates nothing, so an arbitrary string reaches Postgres as a uuid
+ * literal and ClickHouse as a String bound against a UUID column - both
+ * of which raise a driver error and surface as a 500. A malformed id is a
+ * bad request, not a server fault.
  */
 type ReadObjectIdFromBodyFunction = (body: JSONObject, key: string) => ObjectID;
 
@@ -3141,6 +3311,10 @@ const readObjectIdFromBody: ReadObjectIdFromBodyFunction = (
 
   if (typeof value !== "string" || value.length === 0) {
     throw new BadDataException(`${key} is required`);
+  }
+
+  if (!ObjectID.isValidUUID(value)) {
+    throw new BadDataException(`${key} is not a valid id`);
   }
 
   return new ObjectID(value);
@@ -3206,6 +3380,8 @@ router.post(
         );
       }
 
+      assertSessionReplayPlan(databaseProps);
+
       const projectId: ObjectID = databaseProps.tenantId;
       const body: JSONObject = req.body as JSONObject;
 
@@ -3220,12 +3396,13 @@ router.post(
        * for something already authorized: a caller outside the label
        * scope is refused, and the query is tenant-pinned regardless.
        */
-      await assertSessionReplayApplicationAccess({
-        projectId: projectId,
-        rumApplicationId: rumApplicationId,
-        databaseProps: databaseProps,
-        permissions: SESSION_REPLAY_LIST_PERMISSIONS,
-      });
+      const application: RumApplication =
+        await assertSessionReplayApplicationAccess({
+          projectId: projectId,
+          rumApplicationId: rumApplicationId,
+          databaseProps: databaseProps,
+          permissions: SESSION_REPLAY_LIST_PERMISSIONS,
+        });
 
       const startTime: Date = body["startTime"]
         ? OneUptimeDate.fromString(body["startTime"] as string)
@@ -3287,12 +3464,14 @@ router.post(
       /*
        * The narrower identity ACL is enforced by simply not naming the
        * column in the SELECT. There is no ModelPermission on this path to
-       * strip it after the fact.
+       * strip it after the fact. Decided against the application already
+       * loaded by the access check, so a caller whose identity grant is
+       * label-scoped elsewhere does not get named end users here.
        */
-      const includeIdentifiedUserLabel: boolean = doesCallerHavePermission(
-        databaseProps,
-        SESSION_REPLAY_IDENTITY_PERMISSIONS,
-      );
+      const includeIdentifiedUserLabel: boolean = canReadIdentifiedUserLabel({
+        databaseProps: databaseProps,
+        application: application,
+      });
 
       const result: SessionReplayListResult =
         await SessionReplayReadService.listSessions({
@@ -3341,6 +3520,8 @@ router.post(
         );
       }
 
+      assertSessionReplayPlan(databaseProps);
+
       const projectId: ObjectID = databaseProps.tenantId;
       const body: JSONObject = req.body as JSONObject;
       const sessionId: string = readSessionIdFromBody(body);
@@ -3354,6 +3535,17 @@ router.post(
       );
 
       /*
+       * The authorized application, resolved server-side from the header.
+       * Every chunk-table read below is pinned to it: that table's replace
+       * key is (projectId, sessionId, tabId, chunkIndex) with
+       * rumApplicationId a plain column, so (projectId, sessionId) alone
+       * is not enough to keep two applications' recordings apart.
+       */
+      const authorizedApplicationId: ObjectID = new ObjectID(
+        header.rumApplicationId,
+      );
+
+      /*
        * The audit row is written BEFORE the manifest is built, not after.
        * A read that fails halfway through still happened, and an audit
        * that only records successful reads is an audit an attacker can
@@ -3362,7 +3554,7 @@ router.post(
       const view: RumSessionReplayView =
         await RumSessionReplayViewService.recordView({
           projectId: projectId,
-          rumApplicationId: new ObjectID(header.rumApplicationId),
+          rumApplicationId: authorizedApplicationId,
           sessionId: sessionId,
           viewedByUserId: databaseProps.userId,
           ipAddress: getClientIp(req),
@@ -3389,6 +3581,7 @@ router.post(
         await SessionReplayReadService.getManifest({
           header: header,
           projectId: projectId,
+          rumApplicationId: authorizedApplicationId,
           sessionId: sessionId,
         });
 
@@ -3429,6 +3622,8 @@ router.post(
           new BadDataException("Invalid Project ID"),
         );
       }
+
+      assertSessionReplayPlan(databaseProps);
 
       const projectId: ObjectID = databaseProps.tenantId;
       const body: JSONObject = req.body as JSONObject;
@@ -3488,15 +3683,19 @@ router.post(
         );
       }
 
-      await resolveAuthorizedSession({
-        projectId: projectId,
-        sessionId: sessionId,
-        databaseProps: databaseProps,
-      });
+      const header: SessionReplaySessionHeader = await resolveAuthorizedSession(
+        {
+          projectId: projectId,
+          sessionId: sessionId,
+          databaseProps: databaseProps,
+        },
+      );
 
       const chunks: Array<SessionReplayChunkPayload> =
         await SessionReplayReadService.getChunks({
           projectId: projectId,
+          /* Always the application the caller was authorized against. */
+          rumApplicationId: new ObjectID(header.rumApplicationId),
           sessionId: sessionId,
           tabId: tabId,
           chunkIndexes: chunkIndexes,
@@ -3513,8 +3712,30 @@ router.post(
        */
       const frames: Array<Buffer> = [];
 
+      /*
+       * The byte cap is re-checked here against the bytes actually being
+       * framed, not only against what the pre-check in the read service
+       * believed. This is the last place the size of the response is
+       * knowable, so it is the one place a cap on the response can be
+       * absolute regardless of how stored size was estimated upstream.
+       */
+      let responseBytes: number = 0;
+
       for (const chunk of chunks) {
         const payloadBuffer: Buffer = Buffer.from(chunk.payload, "utf8");
+
+        responseBytes += payloadBuffer.length + 8;
+
+        if (responseBytes > MAX_SESSION_REPLAY_READ_BYTES) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadDataException(
+              `The requested chunks exceed the ${MAX_SESSION_REPLAY_READ_BYTES} byte limit for a single read. Request fewer chunks.`,
+            ),
+          );
+        }
+
         const headerBuffer: Buffer = Buffer.alloc(8);
         headerBuffer.writeUInt32LE(chunk.chunkIndex, 0);
         headerBuffer.writeUInt32LE(payloadBuffer.length, 4);
@@ -3559,6 +3780,8 @@ router.post(
         );
       }
 
+      assertSessionReplayPlan(databaseProps);
+
       const projectId: ObjectID = databaseProps.tenantId;
       const body: JSONObject = req.body as JSONObject;
 
@@ -3588,9 +3811,62 @@ router.post(
         Math.floor(Math.max(0, secondsWatched) / 15) * 15;
 
       /*
-       * Scoped by projectId inside the service, so a viewId from another
-       * tenant simply matches nothing.
+       * secondsWatched is a privacy control, not telemetry: it is shown on
+       * the player as "who watched how much of this recording". Scoping
+       * the write to the tenant alone would let any principal holding the
+       * payload permission inflate somebody else's audit row for a session
+       * they may not even read, which forges the very record the design
+       * relies on.
+       *
+       * The row is therefore looked up as the CALLER'S own view row - a
+       * viewId belonging to anyone else matches nothing and is refused
+       * indistinguishably from one that does not exist - and the
+       * application it points at is authorized exactly as a payload read
+       * would be.
        */
+      if (!databaseProps.userId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new NotAuthorizedException(
+            "You do not have access to this session replay view.",
+          ),
+        );
+      }
+
+      const view: RumSessionReplayView | null =
+        await RumSessionReplayViewService.findOneBy({
+          query: {
+            _id: viewId.toString(),
+            projectId: projectId,
+            viewedByUserId: databaseProps.userId,
+          },
+          select: {
+            _id: true,
+            rumApplicationId: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      if (!view || !view.rumApplicationId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new NotAuthorizedException(
+            "You do not have access to this session replay view.",
+          ),
+        );
+      }
+
+      await assertSessionReplayApplicationAccess({
+        projectId: projectId,
+        rumApplicationId: view.rumApplicationId,
+        databaseProps: databaseProps,
+        permissions: SESSION_REPLAY_PAYLOAD_PERMISSIONS,
+      });
+
       await RumSessionReplayViewService.recordSecondsWatched({
         viewId: viewId,
         projectId: projectId,
@@ -3628,6 +3904,8 @@ router.post(
         );
       }
 
+      assertSessionReplayPlan(databaseProps);
+
       const projectId: ObjectID = databaseProps.tenantId;
       const body: JSONObject = req.body as JSONObject;
 
@@ -3646,7 +3924,7 @@ router.post(
        * single application to authorize against. Restrict the query to
        * the applications the caller's labels reach instead.
        */
-      const accessibleRumApplicationIds: Array<ObjectID> | null =
+      const accessibleApplications: AccessibleRumApplications =
         await resolveAccessibleRumApplicationIds({
           projectId: projectId,
           databaseProps: databaseProps,
@@ -3665,7 +3943,7 @@ router.post(
         await SessionReplayReadService.getSessionsForException({
           projectId: projectId,
           exceptionFingerprint: fingerprint,
-          accessibleRumApplicationIds: accessibleRumApplicationIds,
+          accessibleRumApplicationIds: accessibleApplications.applicationIds,
           ...(startTime !== undefined && { startTime }),
           ...(endTime !== undefined && { endTime }),
           limit:
@@ -3676,6 +3954,11 @@ router.post(
 
       return Response.sendJsonObjectResponse(req, res, {
         sessions: sessions as unknown as JSONObject,
+        /*
+         * Told, not hidden: the accessible-application scan has a ceiling,
+         * and a caller who hits it is looking at a possibly short answer.
+         */
+        isApplicationScopeTruncated: accessibleApplications.isTruncated,
       });
     } catch (err: unknown) {
       next(err);

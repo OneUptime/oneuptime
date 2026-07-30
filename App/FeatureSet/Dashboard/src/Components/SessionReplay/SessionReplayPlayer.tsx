@@ -65,9 +65,14 @@ const HEARTBEAT_ROUTE: string = "/telemetry/rum/session-replay/heartbeat";
 const HEARTBEAT_INTERVAL_MS: number = 15 * 1000;
 
 /*
- * Per-chunk manifest row. Extends the shared entry with the per-chunk signal
- * counters the chunk table carries, which is what lets the scrubber draw
- * frustration and error lanes without decompressing a single payload.
+ * Per-chunk manifest row.
+ *
+ * The signal counters are read defensively rather than required: the chunk
+ * table carries them, but the manifest endpoint's SELECT
+ * (Common/Server/Utils/SessionReplay/SessionReplayReadService.getManifest)
+ * does not project them today, so they arrive as 0 and the frustration,
+ * error and route lanes stay empty. Parsing them here means the lanes light
+ * up the moment the projection is widened, with no client change.
  */
 export interface SessionReplayManifestChunk
   extends SessionReplayChunkManifestEntry {
@@ -82,26 +87,30 @@ export interface SessionReplayManifestChunk
 export interface SessionReplayManifestTab {
   tabId: string;
   chunks: Array<SessionReplayManifestChunk>;
+  gaps: Array<SessionReplayGap>;
 }
 
 export interface SessionReplayManifest {
+  /*
+   * The audit row the manifest read just created. Every heartbeat advances
+   * THIS row; the endpoint takes a viewId and nothing else identifies it.
+   */
+  viewId: string;
   sessionId: string;
-  /* Server-clamped session start, in unix millis. */
-  startTimeUnixMs: number;
   durationMs: number;
   isFinalized: boolean;
   sealedReason: string;
+  /* True when the chunk index itself was cut short server-side. */
+  isChunkIndexTruncated: boolean;
   tabs: Array<SessionReplayManifestTab>;
   gaps: Array<SessionReplayGap>;
   fidelityNotices: Array<string>;
   missingAssets: Array<string>;
   details: ReplaySessionDetails;
   /*
-   * Optional exact-timestamp markers. The endpoint fills these from the
-   * correlated telemetry when it can; the chunk-derived fallback below is
-   * only accurate to one flush interval, so exact markers are preferred
-   * whenever they exist. Network status codes have no per-chunk counter at
-   * all, so that lane is empty unless the endpoint supplies it.
+   * Exact-timestamp network markers. Not produced by the endpoint today, so
+   * this lane is empty; kept because the alternative - deriving 4xx/5xx
+   * positions from something else - would be a guess drawn as evidence.
    */
   networkMarkers: Array<ReplayMarker>;
 }
@@ -151,38 +160,71 @@ function parseManifestChunk(row: JSONObject): SessionReplayManifestChunk {
   };
 }
 
-function parseManifest(data: JSONObject): SessionReplayManifest {
-  const tabRows: JSONArray = (data["tabs"] as JSONArray) || [];
-  const gapRows: JSONArray = (data["gaps"] as JSONArray) || [];
-  const networkRows: JSONArray = (data["networkMarkers"] as JSONArray) || [];
-  const details: JSONObject = (data["details"] as JSONObject) || {};
+function readBoolean(row: JSONObject, key: string): boolean {
+  const value: unknown = row[key];
 
+  // ClickHouse UInt8 booleans arrive as 0/1, sometimes as the strings "0"/"1".
+  return value === true || value === 1 || value === "1";
+}
+
+function parseGap(row: JSONObject): SessionReplayGap {
   return {
-    sessionId: readString(data, "sessionId"),
-    startTimeUnixMs: readNumber(data, "startTimeUnixMs"),
-    durationMs: readNumber(data, "durationMs"),
-    isFinalized:
-      data["isFinalized"] === true ||
-      data["isFinalized"] === 1 ||
-      data["isFinalized"] === "1",
-    sealedReason: readString(data, "sealedReason"),
-    tabs: tabRows.map((row: JSONObject): SessionReplayManifestTab => {
+    fromIndex: readNumber(row, "fromIndex"),
+    toIndex: readNumber(row, "toIndex"),
+    missingMs: readNumber(row, "missingMs"),
+  };
+}
+
+/*
+ * Maps the /manifest response onto what the player needs.
+ *
+ * The endpoint answers { viewId, header, tabs, isChunkIndexTruncated }: the
+ * session-level facts live under `header`, and gaps are per TAB rather than
+ * per session because chunkIndex is minted per tab. This function is the one
+ * place that knows that shape.
+ */
+function parseManifest(data: JSONObject): SessionReplayManifest {
+  const header: JSONObject = (data["header"] as JSONObject) || {};
+  const tabRows: JSONArray = (data["tabs"] as JSONArray) || [];
+  const networkRows: JSONArray = (data["networkMarkers"] as JSONArray) || [];
+
+  const tabs: Array<SessionReplayManifestTab> = tabRows.map(
+    (row: JSONObject): SessionReplayManifestTab => {
       const chunkRows: JSONArray = (row["chunks"] as JSONArray) || [];
+      const tabGapRows: JSONArray = (row["gaps"] as JSONArray) || [];
 
       return {
         tabId: readString(row, "tabId"),
         chunks: chunkRows.map(parseManifestChunk),
+        gaps: tabGapRows.map(parseGap),
       };
-    }),
-    gaps: gapRows.map((row: JSONObject): SessionReplayGap => {
-      return {
-        fromIndex: readNumber(row, "fromIndex"),
-        toIndex: readNumber(row, "toIndex"),
-        missingMs: readNumber(row, "missingMs"),
-      };
-    }),
-    fidelityNotices: readStringArray(data, "fidelityNotices"),
-    missingAssets: readStringArray(data, "missingAssets"),
+    },
+  );
+
+  return {
+    viewId: readString(data, "viewId"),
+    sessionId: readString(header, "sessionId"),
+    durationMs: readNumber(header, "durationMs"),
+    isFinalized: readBoolean(header, "isFinalized"),
+    sealedReason: readString(header, "sealedReason"),
+    isChunkIndexTruncated: readBoolean(data, "isChunkIndexTruncated"),
+    tabs: tabs,
+    /*
+     * Every tab's holes, so the notice count and the correlation panel
+     * describe the whole recording rather than whichever tab is on screen.
+     */
+    gaps: tabs.flatMap(
+      (tab: SessionReplayManifestTab): Array<SessionReplayGap> => {
+        return tab.gaps;
+      },
+    ),
+    fidelityNotices: readStringArray(header, "fidelityNotices"),
+    /*
+     * Not part of the manifest response. Left empty rather than inferred:
+     * claiming an asset was captured when nothing says so is worse than
+     * saying nothing.
+     */
+    missingAssets: [],
     networkMarkers: networkRows.map((row: JSONObject): ReplayMarker => {
       return {
         atMs: readNumber(row, "atMs"),
@@ -190,27 +232,32 @@ function parseManifest(data: JSONObject): SessionReplayManifest {
       };
     }),
     details: {
-      entryUrl: readString(details, "entryUrl"),
-      exitUrl: readString(details, "exitUrl"),
-      browserName: readString(details, "browserName"),
-      browserVersion: readString(details, "browserVersion"),
-      osName: readString(details, "osName"),
-      deviceType: readString(details, "deviceType"),
-      countryCode: readString(details, "countryCode"),
-      identifiedUserLabel: readString(details, "identifiedUserLabel"),
-      maskingMode: readString(details, "maskingMode"),
-      consentState: readString(details, "consentState"),
-      triggerReason: readString(details, "triggerReason"),
-      recorderVersion: readString(details, "recorderVersion"),
-      rrwebVersion: readString(details, "rrwebVersion"),
-      viewportWidth: readNumber(details, "viewportWidth"),
-      viewportHeight: readNumber(details, "viewportHeight"),
-      clockSkewMs: readNumber(details, "clockSkewMs"),
-      payloadBytes: readNumber(details, "payloadBytes"),
-      startTime: readString(details, "startTime"),
-      endTime: readString(details, "endTime"),
-      traceIds: readStringArray(details, "traceIds"),
-      exceptionFingerprints: readStringArray(details, "exceptionFingerprints"),
+      entryUrl: readString(header, "entryUrl"),
+      exitUrl: readString(header, "exitUrl"),
+      browserName: readString(header, "browserName"),
+      browserVersion: readString(header, "browserVersion"),
+      osName: readString(header, "osName"),
+      deviceType: readString(header, "deviceType"),
+      countryCode: readString(header, "countryCode"),
+      /*
+       * The header projection has no identity column - the raw end-user
+       * identifier has a narrower ACL and is only served by /list, to
+       * callers holding it. Blank here means pseudonymous to the panel.
+       */
+      identifiedUserLabel: "",
+      maskingMode: readString(header, "maskingMode"),
+      consentState: readString(header, "consentState"),
+      triggerReason: readString(header, "triggerReason"),
+      recorderVersion: readString(header, "recorderVersion"),
+      rrwebVersion: readString(header, "rrwebVersion"),
+      viewportWidth: readNumber(header, "viewportWidth"),
+      viewportHeight: readNumber(header, "viewportHeight"),
+      clockSkewMs: readNumber(header, "clockSkewMs"),
+      payloadBytes: readNumber(header, "payloadBytes"),
+      startTime: readString(header, "startTime"),
+      endTime: readString(header, "endTime"),
+      traceIds: readStringArray(header, "traceIds"),
+      exceptionFingerprints: readStringArray(header, "exceptionFingerprints"),
     },
   };
 }
@@ -247,6 +294,16 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
   const [isPanelOpen, setIsPanelOpen] = useState<boolean>(false);
   const [panelTabId, setPanelTabId] = useState<string>("session");
 
+  /*
+   * Navigation.getLastParamAsObjectID mints a NEW ObjectID on every call, and
+   * the page component recomputes it every render, so props.rumApplicationId
+   * is a different object identity each time even though the id never
+   * changes. Keying anything on the object itself - fetchChunks, the loader
+   * memo - would dispose the ChunkLoader and restart playback from the top on
+   * any unrelated parent re-render. Everything below keys on the string.
+   */
+  const rumApplicationIdString: string = props.rumApplicationId.toString();
+
   const loadGenerationRef: React.MutableRefObject<number> = useRef<number>(0);
   const seekTokenRef: React.MutableRefObject<number> = useRef<number>(0);
   /* Highest offset actually reached, which is what secondsWatched means. */
@@ -270,7 +327,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
               MANIFEST_ROUTE,
             ),
             data: {
-              rumApplicationId: props.rumApplicationId.toString(),
+              rumApplicationId: rumApplicationIdString,
               sessionId: props.sessionId,
             },
             headers: {
@@ -312,7 +369,19 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
         ) => ReplayerLike;
 
         setManifest(parsed);
-        setActiveTabId(parsed.tabs[0]?.tabId || "");
+        /*
+         * The first tab that actually has footage, not simply the first tab.
+         * A duplicated tab mints a tabId before anything is flushed, and one
+         * tab's chunks can expire before another's, so tabs[0] is routinely
+         * empty on a session that plays perfectly well.
+         */
+        setActiveTabId(
+          parsed.tabs.find((tab: SessionReplayManifestTab): boolean => {
+            return tab.chunks.length > 0;
+          })?.tabId ??
+            parsed.tabs[0]?.tabId ??
+            "",
+        );
         /*
          * Wrapped in a thunk: useState treats a bare function argument as a
          * lazy initialiser and would call the factory instead of storing it.
@@ -335,7 +404,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
         }
       }
     },
-    [props.rumApplicationId, props.sessionId],
+    [rumApplicationIdString, props.sessionId],
   );
 
   useEffect(() => {
@@ -394,7 +463,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
           headers: headers,
           credentials: "same-origin",
           body: JSON.stringify({
-            rumApplicationId: props.rumApplicationId.toString(),
+            rumApplicationId: rumApplicationIdString,
             sessionId: request.sessionId,
             tabId: request.tabId,
             chunkIndexes: request.chunkIndexes,
@@ -410,7 +479,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
 
       return await response.arrayBuffer();
     },
-    [props.rumApplicationId],
+    [rumApplicationIdString],
   );
 
   const loader: ChunkLoader | null = useMemo(() => {
@@ -430,6 +499,10 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
       entries: activeTab.chunks,
       fetcher: fetchChunks,
     });
+    /*
+     * activeTab is a memo over manifest+activeTabId, both of which only
+     * change when there is genuinely a different tab to play.
+     */
   }, [activeTab, props.sessionId, fetchChunks]);
 
   useEffect(() => {
@@ -491,8 +564,15 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
    * never interrupt playback, and the audit row already exists from the
    * manifest call - this only refines how long it was watched for.
    */
+  const viewId: string = manifest?.viewId ?? "";
+
   useEffect(() => {
-    if (!manifest) {
+    /*
+     * The endpoint identifies the audit row by viewId and nothing else, so
+     * without one from the manifest response there is no row to advance and
+     * the request would only be a guaranteed 400.
+     */
+    if (!viewId) {
       return;
     }
 
@@ -506,8 +586,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
       void API.post({
         url: URL.fromString(APP_API_URL.toString()).addRoute(HEARTBEAT_ROUTE),
         data: {
-          rumApplicationId: props.rumApplicationId.toString(),
-          sessionId: props.sessionId,
+          viewId: viewId,
           secondsWatched: secondsWatched,
         },
         headers: {
@@ -521,7 +600,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     return () => {
       clearInterval(timer);
     };
-  }, [manifest, props.rumApplicationId, props.sessionId]);
+  }, [viewId]);
 
   const durationMs: number = loader?.getDurationMs() ?? 0;
 
@@ -676,6 +755,44 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     return <ErrorMessage message="This session could not be found." />;
   }
 
+  /*
+   * Built before the "no recording" early return, not inside the happy path.
+   * A session whose FIRST tab has no chunks is otherwise a dead end: the
+   * viewer is told the whole recording is gone with no control to reach the
+   * tab that does have footage.
+   */
+  const tabSwitcher: ReactElement | null =
+    manifest.tabs.length > 1 ? (
+      <div className="inline-flex gap-1">
+        {manifest.tabs.map((tab: SessionReplayManifestTab): ReactElement => {
+          const isActive: boolean = tab.tabId === activeTabId;
+
+          return (
+            <button
+              key={tab.tabId}
+              type="button"
+              className={`rounded-md px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${
+                isActive
+                  ? "bg-indigo-100 text-indigo-800 ring-indigo-200"
+                  : "bg-white text-gray-600 ring-gray-200 hover:bg-gray-50"
+              }`}
+              title={
+                tab.chunks.length === 0
+                  ? "No recording available for this tab"
+                  : `${tab.chunks.length} chunks`
+              }
+              onClick={(): void => {
+                setActiveTabId(tab.tabId);
+              }}
+            >
+              Tab {tab.tabId.slice(0, 6)}
+              {tab.chunks.length === 0 ? " (empty)" : ""}
+            </button>
+          );
+        })}
+      </div>
+    ) : null;
+
   if (!loader || !replayerFactory || !activeTab) {
     /*
      * The header row survives longer than the chunks under the metadata-only
@@ -683,7 +800,22 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
      * rather than a generic error.
      */
     return (
-      <ErrorMessage message="The recording for this session is no longer available. Session metadata is retained for longer than the recording itself, so the counts and signals on the session list remain accurate." />
+      <Fragment>
+        {tabSwitcher && (
+          <div className="mb-4 flex flex-wrap items-center gap-3">
+            {tabSwitcher}
+          </div>
+        )}
+        <ErrorMessage
+          message={
+            activeTab &&
+            activeTab.chunks.length === 0 &&
+            manifest.tabs.length > 1
+              ? "No recording was stored for this tab. Try another tab of this session."
+              : "The recording for this session is no longer available. Session metadata is retained for longer than the recording itself, so the counts and signals on the session list remain accurate."
+          }
+        />
+      </Fragment>
     );
   }
 
@@ -692,6 +824,12 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
   if (!manifest.isFinalized) {
     notices.push(
       "This session is still being recorded or has not been finalized yet. Counts and duration may change.",
+    );
+  }
+
+  if (manifest.isChunkIndexTruncated) {
+    notices.push(
+      "This session has more chunks than the index can return, so the timeline below stops short of the full recording.",
     );
   }
 
@@ -710,32 +848,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
   return (
     <Fragment>
       <div className="mb-4 flex flex-wrap items-center gap-3">
-        {manifest.tabs.length > 1 && (
-          <div className="inline-flex gap-1">
-            {manifest.tabs.map(
-              (tab: SessionReplayManifestTab): ReactElement => {
-                const isActive: boolean = tab.tabId === activeTab.tabId;
-
-                return (
-                  <button
-                    key={tab.tabId}
-                    type="button"
-                    className={`rounded-md px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${
-                      isActive
-                        ? "bg-indigo-100 text-indigo-800 ring-indigo-200"
-                        : "bg-white text-gray-600 ring-gray-200 hover:bg-gray-50"
-                    }`}
-                    onClick={(): void => {
-                      setActiveTabId(tab.tabId);
-                    }}
-                  >
-                    Tab {tab.tabId.slice(0, 6)}
-                  </button>
-                );
-              },
-            )}
-          </div>
-        )}
+        {tabSwitcher}
 
         <div className="text-xs text-gray-500">
           {manifest.details.startTime
@@ -797,7 +910,6 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
       <ReplayStage
         loader={loader}
         replayerFactory={replayerFactory}
-        sessionStartUnixMs={manifest.startTimeUnixMs}
         isPlaying={isPlaying}
         speed={speed}
         skipInactive={skipInactive}

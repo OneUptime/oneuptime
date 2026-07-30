@@ -32,11 +32,21 @@ import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode"
  * sensitive node. "type" is the show-password toggle. "value" is dropped
  * because a page that mirrors a value into the attribute would otherwise
  * leak it despite rrweb masking the input event.
+ *
+ * "data-rr-is-password" is rrweb's own marker, not the page's: on a `type`
+ * mutation away from password, rrweb 2.1.1 writes that attribute onto the
+ * LIVE element (node_modules/rrweb/dist/rrweb.js:11918), which its mutation
+ * observer then reports as a second attribute mutation on the same node in
+ * the same batch. Suppressing only "type" therefore left the reveal
+ * observable through the marker - a viewer who sees data-rr-is-password
+ * appear next to a masked value knows exactly which field is the password,
+ * which is the fact rule 2 above exists to hide.
  */
 const SUPPRESSED_STICKY_ATTRIBUTES: Array<string> = [
   "type",
   "value",
   "placeholder",
+  "data-rr-is-password",
 ];
 
 /*

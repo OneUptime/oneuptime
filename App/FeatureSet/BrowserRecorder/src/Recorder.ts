@@ -13,9 +13,13 @@ import {
 import SessionReplayCaptureTrigger from "Common/Types/Rum/SessionReplayCaptureTrigger";
 import SessionReplayTriggerReason from "Common/Types/Rum/SessionReplayTriggerReason";
 import CommonMasking from "Common/Utils/Rum/Masking";
+import {
+  SessionRotationDecision,
+  SessionRotationReason,
+} from "Common/Utils/Rum/SessionIdentity";
 import SessionSampling from "Common/Utils/Rum/SessionSampling";
 import UrlScrubber from "Common/Utils/Rum/UrlScrubber";
-import Chunker, { PendingChunk } from "./Chunker";
+import Chunker, { PendingChunk, utf8ByteLength } from "./Chunker";
 import Config, {
   RECORDER_VERSION,
   RRWEB_VERSION,
@@ -60,6 +64,21 @@ const SOURCE_MUTATION: number = 0;
 const SOURCE_INPUT: number = 5;
 
 export const BFCACHE_CUSTOM_EVENT_TAG: string = "oneuptime.bfcache-restore";
+
+/*
+ * Emitted as the first thing in a rolled-over session, carrying the id it
+ * replaced and why.
+ *
+ * SessionId.resolveSession has always computed previousSessionId and
+ * rotationReason, but the chunk envelope has no field for either, so the one
+ * diagnostic they exist for - telling "the user went to lunch" from "the
+ * recorder lost its state" across two adjacent sessions - was unreachable
+ * server-side. A custom rrweb event puts it in the payload, which needs no
+ * wire-version bump; the envelope fields remain the better home once Common's
+ * shared type can be changed.
+ */
+export const SESSION_ROTATED_CUSTOM_EVENT_TAG: string =
+  "oneuptime.session-rotated";
 
 /*
  * Re-scanning the document for sensitive fields is a full querySelectorAll,
@@ -126,8 +145,14 @@ export default class Recorder {
   private readonly consent: Consent;
   private readonly buffer: RollingBuffer;
   private readonly transport: Transport;
-  private readonly identity: SessionIdentityState;
-  private readonly chunker: Chunker;
+
+  /*
+   * Mutable: both are replaced wholesale when the session rolls over. A
+   * rotated session is a different recording with its own start time and its
+   * own chunk sequence, so it needs a fresh Chunker rather than a reset one.
+   */
+  private identity: SessionIdentityState;
+  private chunker: Chunker;
 
   private readonly errorRecorder: ErrorRecorder;
   private readonly networkRecorder: NetworkRecorder;
@@ -157,6 +182,19 @@ export default class Recorder {
   private droppedEvents: number = 0;
   private userRef: string | null = null;
 
+  /*
+   * Last time the END USER did something, and the last value written through
+   * to storage.
+   *
+   * The flush timer used to call SessionId.touch(Date.now()) every 15 s
+   * unconditionally, which bumped lastActivityUnixMs even for a completely
+   * idle tab - so the idle rollover could never fire while the recorder was
+   * alive. Activity is now sourced from rrweb's own interaction events and
+   * only written through when it actually advanced.
+   */
+  private lastUserActivityUnixMs: number = 0;
+  private lastTouchedUnixMs: number = 0;
+
   public constructor(options: RecorderRuntimeOptions) {
     this.initOptions = options.initOptions;
     this.config = options.config;
@@ -185,12 +223,7 @@ export default class Recorder {
 
     this.identity = SessionId.resolveSession(Date.now(), tabId);
 
-    this.chunker = new Chunker({
-      sessionStartUnixMs: this.identity.sessionStartUnixMs,
-      sink: (chunk: PendingChunk): void => {
-        this.onChunkClosed(chunk);
-      },
-    });
+    this.chunker = this.createChunker();
 
     this.transport = new Transport({
       url: Config.getChunkUrl(this.initOptions),
@@ -209,6 +242,9 @@ export default class Recorder {
       },
       maskMessage: (message: string): string => {
         return this.masking.maskConsoleArgument(message);
+      },
+      scrubUrl: (url: string): string => {
+        return this.scrubUrl(url);
       },
       onError: (atUnixMs: number, _error: RecordedError): void => {
         this.chunker.countSignal("errorCount");
@@ -331,6 +367,30 @@ export default class Recorder {
     };
   }
 
+  /*
+   * A Chunker is bound to one session's start time, so rotation builds a new
+   * one rather than resetting the old one. The sink and the truncation
+   * callback are re-created with it; both only ever touch `this`, so they
+   * stay correct across rotations.
+   */
+  private createChunker(): Chunker {
+    return new Chunker({
+      sessionStartUnixMs: this.identity.sessionStartUnixMs,
+      sink: (chunk: PendingChunk): void => {
+        this.onChunkClosed(chunk);
+      },
+      onTruncated: (): void => {
+        /*
+         * The session hit the per-session chunk cap and has just sent its
+         * disclosure chunk. Keeping rrweb running past this point costs the
+         * customer's page CPU and memory to produce events that will never be
+         * uploaded and nobody will ever watch.
+         */
+        this.stop();
+      },
+    });
+  }
+
   private readonly visibilityListener: () => void;
   private readonly pageHideListener: (event: PageTransitionEvent) => void;
   private readonly pageShowListener: (event: PageTransitionEvent) => void;
@@ -362,6 +422,14 @@ export default class Recorder {
     }
 
     this.started = true;
+
+    /*
+     * A page load is itself activity. Without this seed a tab that loads and
+     * is then never touched would be judged idle from epoch 0 and roll over
+     * on its very first flush tick.
+     */
+    this.lastUserActivityUnixMs = Date.now();
+    this.lastTouchedUnixMs = this.lastUserActivityUnixMs;
 
     /*
      * Marked BEFORE rrweb takes its first snapshot: a field must already be
@@ -554,7 +622,14 @@ export default class Recorder {
 
     const buffered: BufferedEvent = {
       json: json,
-      bytes: json.length,
+
+      /*
+       * UTF-8 bytes, not UTF-16 code units. Every downstream limit - the
+       * chunk flush threshold, the 2 MiB request cap, the keepalive quota -
+       * is counted in bytes, so a non-ASCII page's nominal 256 KB chunk used
+       * to be up to 3x that on the wire.
+       */
+      bytes: utf8ByteLength(json),
       timestampMs:
         typeof sanitised.timestamp === "number"
           ? sanitised.timestamp
@@ -713,7 +788,17 @@ export default class Recorder {
       return;
     }
 
+    /*
+     * Every incremental source EXCEPT mutation is the end user doing
+     * something: moving the mouse, clicking, scrolling, typing, touching,
+     * using a media control. Mutation is excluded deliberately - a page with
+     * a carousel or a polling widget mutates forever with nobody at the
+     * keyboard, and counting that as activity is what would re-create the
+     * "idle rollover never fires" bug in a subtler form.
+     */
     if (event.data["source"] !== SOURCE_MUTATION) {
+      this.lastUserActivityUnixMs =
+        typeof event.timestamp === "number" ? event.timestamp : Date.now();
       return;
     }
 
@@ -785,13 +870,135 @@ export default class Recorder {
   }
 
   private onFlushTimer(): void {
-    SessionId.touch(Date.now());
+    const now: number = Date.now();
+
+    this.writeThroughActivity();
+
+    if (this.maybeRotateSession(now)) {
+      /*
+       * Rotation already sealed the outgoing session with a final chunk and
+       * opened a new one. Closing again here would emit an empty chunk into
+       * a session that is one event old.
+       */
+      return;
+    }
 
     if (!this.uploading) {
       return;
     }
 
     this.chunker.close(false);
+  }
+
+  /*
+   * Persist real user activity, and only real user activity.
+   *
+   * Writing on every tick regardless (which is what SessionId.touch(now())
+   * did) made lastActivityUnixMs a heartbeat rather than an activity
+   * timestamp, so SessionIdentity could never see an idle gap. Skipping the
+   * write when nothing advanced also keeps an idle tab from doing a
+   * localStorage write every 15 seconds.
+   */
+  private writeThroughActivity(): void {
+    if (this.lastUserActivityUnixMs <= this.lastTouchedUnixMs) {
+      return;
+    }
+
+    SessionId.touch(this.lastUserActivityUnixMs);
+    this.lastTouchedUnixMs = this.lastUserActivityUnixMs;
+  }
+
+  /*
+   * Enforce the idle rollover and the duration cap on a LIVE recorder.
+   *
+   * Both decisions live in Common/Utils/Rum/SessionIdentity, but until now
+   * they were only ever consulted at construction and on a bfcache restore,
+   * so neither could fire in a tab that simply stayed open. Returns true when
+   * the session was rotated.
+   */
+  private maybeRotateSession(nowUnixMs: number): boolean {
+    if (this.stopped || !this.started) {
+      return false;
+    }
+
+    const decision: SessionRotationDecision = SessionId.shouldRotate(nowUnixMs);
+
+    if (!decision.shouldRotate) {
+      return false;
+    }
+
+    this.rotateSession(nowUnixMs, decision.reason);
+
+    return true;
+  }
+
+  private rotateSession(
+    nowUnixMs: number,
+    reason: SessionRotationReason | undefined,
+  ): void {
+    const previousSessionId: string = this.identity.sessionId;
+
+    /*
+     * Seal the outgoing session first, while the old chunker still knows its
+     * own start offset. close(true) emits a final chunk even with nothing
+     * buffered, which is what tells the server this session ended rather than
+     * leaving it to expire as idle-timeout ten minutes later.
+     */
+    if (this.uploading) {
+      this.isTerminalFlush = true;
+
+      try {
+        this.chunker.close(true);
+      } finally {
+        this.isTerminalFlush = false;
+      }
+    }
+
+    /*
+     * Nothing buffered under the old id may be attributed to the new one, and
+     * nothing already queued in the transport belongs to the new session
+     * either - but the queue is left alone deliberately, because those chunks
+     * carry the OLD session id in their envelopes and are still valid.
+     */
+    this.buffer.clear();
+
+    this.uploading = false;
+    this.triggerReason = null;
+    this.hasSentFinalChunk = false;
+    this.droppedEvents = 0;
+
+    this.identity = SessionId.resolveSession(nowUnixMs, this.identity.tabId);
+    this.chunker = this.createChunker();
+
+    this.lastUserActivityUnixMs = nowUnixMs;
+    this.lastTouchedUnixMs = nowUnixMs;
+
+    this.emitCustomEvent(SESSION_ROTATED_CUSTOM_EVENT_TAG, {
+      previousSessionId: previousSessionId,
+      rotationReason: reason || SessionRotationReason.New,
+      rotatedAtUnixMs: nowUnixMs,
+    });
+
+    /*
+     * Sampling is a pure function of the session id, so a new id is a new
+     * draw. Re-evaluated rather than inherited: carrying the old verdict
+     * would make the recorder and the ingest gate disagree about the new
+     * session, which is silent data loss.
+     */
+    if (
+      SessionSampling.isSampled(
+        this.identity.sessionId,
+        this.config.samplePercentage,
+      )
+    ) {
+      this.trigger(SessionReplayTriggerReason.Sampled);
+    }
+
+    /*
+     * rrweb's node ids still describe the old stream. A fresh checkout gives
+     * the new session a snapshot of its own to replay from.
+     */
+    this.takeFullSnapshot();
   }
 
   /*
@@ -905,7 +1112,10 @@ export default class Recorder {
       url: this.routeRecorder.getCurrentUrl(),
       signals: chunk.signals,
       fidelityNotices: chunk.fidelityNotices,
-      droppedEvents: this.droppedEvents + this.buffer.getDroppedEventCount(),
+      droppedEvents:
+        this.droppedEvents +
+        this.buffer.getDroppedEventCount() +
+        this.chunker.getDroppedEventCount(),
       flushFailures: this.transport.getFlushFailureCount(),
     };
 
@@ -1135,8 +1345,15 @@ export default class Recorder {
      * Everything held locally goes, including the session identity: a user
      * who withdraws consent must not be re-linked to the same session id if
      * they come back.
+     *
+     * The transport's retry queue counts as "held locally". It can hold up to
+     * MAX_SESSION_REPLAY_CHUNKS_PER_REQUEST fully serialised chunks of page
+     * content, and revoke does not go through Transport.disable(), so without
+     * this the contract "revokeConsent() drops the buffer" held for the ring
+     * buffer and not for the part that had already been handed on.
      */
     this.buffer.clear();
+    this.transport.discardQueue();
     SessionId.clearAll();
     this.stop();
   }
@@ -1205,7 +1422,12 @@ export default class Recorder {
     );
     this.documentRef.removeEventListener("focusin", this.focusInListener, true);
 
+    /*
+     * Nothing will send these once the recorder is stopped, so holding either
+     * one is retained end-user content with no purpose. See revokeConsent.
+     */
     this.buffer.clear();
+    this.transport.discardQueue();
   }
 
   private scrubUrl(url: string): string {

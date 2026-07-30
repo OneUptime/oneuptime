@@ -8,6 +8,10 @@ import {
 } from "../EnvironmentConfig";
 import LocalCache from "../Infrastructure/LocalCache";
 import HttpMetricsMiddleware from "../Middleware/HttpMetricsMiddleware";
+import CorsOptions, {
+  CORS_EXPOSED_HEADERS,
+  CORS_PREFLIGHT_MAX_AGE_SECONDS,
+} from "./CorsOptions";
 import "./Environment";
 import Express, {
   ExpressApplication,
@@ -113,17 +117,19 @@ const setDefaultHeaders: RequestHandler = (
   );
 
   /*
-   * Without this the browser applies its own default preflight cache (5
-   * seconds in Chrome), which would preflight very nearly every replay
-   * chunk flush — doubling the request count on the highest-volume browser
-   * endpoint we have. 24 hours is the maximum Chrome honours.
+   * Repeated on the simple (non-preflight) response as well. The value that
+   * actually governs preflight caching is the one configured on the cors
+   * middleware below - this handler never runs for an OPTIONS request,
+   * because cors answers preflights itself and calls res.end().
    */
-  res.header("Access-Control-Max-Age", "86400");
+  res.header("Access-Control-Max-Age", String(CORS_PREFLIGHT_MAX_AGE_SECONDS));
+
+  res.header("Access-Control-Expose-Headers", CORS_EXPOSED_HEADERS.join(", "));
 
   next();
 };
 
-app.use(cors());
+app.use(cors(CorsOptions));
 app.use(HttpMetricsMiddleware);
 app.use(setDefaultHeaders);
 

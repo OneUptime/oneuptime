@@ -126,6 +126,73 @@ describe("Transport", (): void => {
         globalRecord["CompressionStream"] = original;
       }
     });
+
+    /*
+     * The write and close promises are not awaited (awaiting write() before
+     * close() deadlocks until the readable side is drained), but they must
+     * still be HANDLED. A discarded rejection surfaces as `unhandledrejection`
+     * on the customer's page, where their own error tracker reports it as
+     * their bug - and where the recorder's own ErrorRecorder catches it and
+     * treats it as a reason to start uploading.
+     */
+    it("never leaks an unhandled rejection when the stream errors", async (): Promise<void> => {
+      const globalRecord: Record<string, unknown> =
+        globalThis as unknown as Record<string, unknown>;
+      const original: unknown = globalRecord["CompressionStream"];
+
+      const rejections: Array<unknown> = [];
+      const onRejection: (event: Event) => void = (event: Event): void => {
+        rejections.push(event);
+      };
+
+      window.addEventListener("unhandledrejection", onRejection);
+
+      /*
+       * A writer whose write() and close() both reject, which is what a
+       * CompressionStream in an errored state does.
+       */
+      globalRecord["CompressionStream"] = function BrokenCompressionStream(): {
+        writable: { getWriter: () => unknown };
+        readable: unknown;
+      } {
+        return {
+          writable: {
+            getWriter: (): unknown => {
+              return {
+                write: async (): Promise<void> => {
+                  throw new Error("stream errored");
+                },
+                close: async (): Promise<void> => {
+                  throw new Error("stream errored");
+                },
+              };
+            },
+          },
+          readable: null,
+        };
+      };
+
+      const result: CompressionResult = await Transport.compress("hello");
+
+      /* The real failure is still observed, and falls back to identity. */
+      expect(result.encoding).toBe("identity");
+      expect(new TextDecoder().decode(result.bytes)).toBe("hello");
+
+      /* Let any unhandled rejection reach the loop before asserting. */
+      await new Promise<void>((resolve: () => void): void => {
+        setTimeout(resolve, 0);
+      });
+
+      expect(rejections).toEqual([]);
+
+      window.removeEventListener("unhandledrejection", onRejection);
+
+      if (original === undefined) {
+        delete globalRecord["CompressionStream"];
+      } else {
+        globalRecord["CompressionStream"] = original;
+      }
+    });
   });
 
   describe("buildBody", (): void => {
@@ -293,6 +360,42 @@ describe("Transport", (): void => {
 
       expect(transport.getFlushFailureCount()).toBe(1);
       expect(transport.getQueueDepth()).toBe(1);
+    });
+
+    /*
+     * The retry queue holds up to MAX_SESSION_REPLAY_CHUNKS_PER_REQUEST fully
+     * serialised chunks of end-user page content. disable() clears it, but
+     * revokeConsent() and stop() do not go through disable(), so the "revoke
+     * drops the buffer" contract used to hold for the ring buffer and not for
+     * the part already handed to the transport.
+     */
+    it("drops queued chunks on discardQueue", async (): Promise<void> => {
+      (globalThis as unknown as Record<string, unknown>)["fetch"] = jest
+        .fn()
+        .mockRejectedValue(new Error("offline"));
+
+      const transport: Transport = makeTransport();
+
+      await transport.send(envelope, '[{"secret":"page content"}]');
+
+      expect(transport.getQueueDepth()).toBe(1);
+
+      transport.discardQueue();
+
+      expect(transport.getQueueDepth()).toBe(0);
+
+      /* And nothing resurrects it: the next send posts only its own chunk. */
+      const fetchMock: jest.Mock = jest.fn().mockResolvedValue(respond(202));
+      (globalThis as unknown as Record<string, unknown>)["fetch"] = fetchMock;
+
+      await transport.send(envelope, "[{}]");
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(
+        new TextDecoder().decode(
+          fetchMock.mock.calls[0]?.[1]?.body as Uint8Array,
+        ),
+      ).not.toContain("page content");
     });
 
     it("resets the failure count after a success", async (): Promise<void> => {

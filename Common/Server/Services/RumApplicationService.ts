@@ -7,9 +7,10 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import OneUptimeDate from "../../Types/Date";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import GlobalCache from "../Infrastructure/GlobalCache";
+import SessionReplayGateCacheStore from "../Utils/SessionReplay/SessionReplayGateCacheStore";
 import logger, { LogAttributes } from "../Utils/Logger";
 import crypto from "crypto";
-import { OnCreate } from "../Types/Database/Hooks";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import RumApplicationLabelRuleEngineService from "./RumApplicationLabelRuleEngineService";
 import RumApplicationOwnerRuleEngineService from "./RumApplicationOwnerRuleEngineService";
 
@@ -52,6 +53,144 @@ export class Service extends DatabaseService<Model> {
         });
     }
     return createdItem;
+  }
+
+  /*
+   * Session replay policy invalidation.
+   *
+   * The ingest gate caches the resolved policy for POLICY_CACHE_TTL_MS per
+   * pod, and the config endpoint is cached in the browser for 300s on top of
+   * that. Without these hooks, switching replay off for an application would
+   * keep being accepted for up to ~6 minutes across the fleet - so the kill
+   * key exists precisely to be written here.
+   *
+   * The kill key is per PROJECT, which is coarser than the per-application
+   * change that triggered it: disabling one application in a multi-app
+   * project briefly refuses the project's other applications too. That is
+   * accepted deliberately. The window is KILL_KEY_CACHE_TTL_MS plus the
+   * policy TTL, the failure mode is "a few recordings not taken", and the
+   * alternative - keying on projectId:appIdentifier - would leave the
+   * project-level `isSessionReplayAllowed` switch with no fast path at all.
+   */
+  @CaptureSpan()
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<Model>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<Model>> {
+    await this.invalidateSessionReplayPolicy({
+      updateData: onUpdate.updateBy.data as Record<string, unknown>,
+      itemIds: updatedItemIds,
+      tenantId: onUpdate.updateBy.props.tenantId,
+    });
+
+    return onUpdate;
+  }
+
+  @CaptureSpan()
+  protected override async onDeleteSuccess(
+    onDelete: OnDelete<Model>,
+    itemIdsBeforeDelete: Array<ObjectID>,
+  ): Promise<OnDelete<Model>> {
+    /*
+     * A deleted application can never be re-enabled, so this always takes
+     * the "turn it off now" path rather than only clearing the cache.
+     */
+    await this.invalidateSessionReplayPolicy({
+      updateData: { isSessionReplayEnabled: false },
+      itemIds: itemIdsBeforeDelete,
+      tenantId: onDelete.deleteBy.props.tenantId,
+    });
+
+    return onDelete;
+  }
+
+  private async invalidateSessionReplayPolicy(data: {
+    updateData: Record<string, unknown>;
+    itemIds: Array<ObjectID>;
+    tenantId: ObjectID | undefined;
+  }): Promise<void> {
+    /*
+     * Only replay-relevant edits invalidate. A lastSeenAt heartbeat or a
+     * label change must not write a kill key, and updateLastSeen bypasses
+     * hooks entirely for the same reason.
+     */
+    const touchesReplayPolicy: boolean = Object.keys(data.updateData).some(
+      (key: string): boolean => {
+        return (
+          key.startsWith("sessionReplay") || key === "isSessionReplayEnabled"
+        );
+      },
+    );
+
+    if (!touchesReplayPolicy) {
+      return;
+    }
+
+    const projectIds: Array<ObjectID> = await this.resolveProjectIds(data);
+
+    const isTurningOff: boolean =
+      data.updateData["isSessionReplayEnabled"] === false;
+
+    for (const projectId of projectIds) {
+      try {
+        SessionReplayGateCacheStore.clearCache(projectId);
+
+        if (isTurningOff) {
+          await SessionReplayGateCacheStore.markProjectDisabled(projectId);
+        } else {
+          /*
+           * Any other replay edit (including turning it back ON) must also
+           * drop a kill key left over from an earlier disable, or the
+           * project stays refused for the remainder of the key's TTL.
+           */
+          await SessionReplayGateCacheStore.clearProjectDisabled(projectId);
+        }
+      } catch (err) {
+        /*
+         * Best effort. The ordinary cache expiry still applies, so a Redis
+         * outage degrades the response time of a settings change rather
+         * than failing the settings change itself.
+         */
+        logger.warn(
+          `RumApplicationService: could not invalidate the session replay gate cache for project ${projectId.toString()}`,
+        );
+        logger.warn(err);
+      }
+    }
+  }
+
+  private async resolveProjectIds(data: {
+    itemIds: Array<ObjectID>;
+    tenantId: ObjectID | undefined;
+  }): Promise<Array<ObjectID>> {
+    if (data.tenantId) {
+      return [data.tenantId];
+    }
+
+    /*
+     * A root-props update carries no tenantId, so the project has to be read
+     * back off the rows that were touched.
+     */
+    const projectIds: Map<string, ObjectID> = new Map();
+
+    for (const id of data.itemIds) {
+      const app: Model | null = await this.findOneById({
+        id: id,
+        select: {
+          _id: true,
+          projectId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (app?.projectId) {
+        projectIds.set(app.projectId.toString(), app.projectId);
+      }
+    }
+
+    return Array.from(projectIds.values());
   }
 
   @CaptureSpan()
