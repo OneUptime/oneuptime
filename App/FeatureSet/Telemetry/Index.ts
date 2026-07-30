@@ -4,6 +4,7 @@ import MetricsAPI from "./API/Metrics";
 import SyslogAPI from "./API/Syslog";
 import FluentAPI from "./API/Fluent";
 import PyroscopeAPI from "./API/Pyroscope";
+import SessionReplayIngestAPI from "./API/SessionReplayIngest";
 import TelemetryWriterAPI from "./API/TelemetryWriter";
 // ProbeIngest routes
 import ProbeIngestRegisterAPI from "./API/ProbeIngest/Register";
@@ -74,6 +75,15 @@ const TelemetryFeatureSet: FeatureSet = {
       app.use(TELEMETRY_PREFIXES, SyslogAPI);
       app.use(TELEMETRY_PREFIXES, FluentAPI);
       app.use(TELEMETRY_PREFIXES, PyroscopeAPI);
+      /*
+       * Session replay ingest. Mounted on both prefixes like the rest, which
+       * is why StartServer's body-parser bypass predicates must match with
+       * `.includes("/session-replay/v1/")` rather than `.startsWith` — the
+       * /telemetry-prefixed path would otherwise be swallowed by the global
+       * gzip fast-path, which has no size limit and would defeat this
+       * router's byte cap.
+       */
+      app.use(TELEMETRY_PREFIXES, SessionReplayIngestAPI);
 
       /*
        * Internal cluster-key-protected insert endpoint for the

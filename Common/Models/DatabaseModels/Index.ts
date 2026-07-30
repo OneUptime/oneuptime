@@ -64,6 +64,9 @@ import RumApplicationOwnerRule from "./RumApplicationOwnerRule";
 import ServerlessFunctionInstance from "./ServerlessFunctionInstance";
 import CloudResourceInstance from "./CloudResourceInstance";
 import RumApplicationClient from "./RumApplicationClient";
+import RumSessionReplayView from "./RumSessionReplayView";
+import RumSessionErasureRequest from "./RumSessionErasureRequest";
+import RumSessionPin from "./RumSessionPin";
 // API Keys
 import ApiKey from "./ApiKey";
 import ApiKeyPermission from "./ApiKeyPermission";
@@ -850,6 +853,9 @@ const AllModelTypes: Array<{
   ServerlessFunctionInstance,
   CloudResourceInstance,
   RumApplicationClient,
+  RumSessionReplayView,
+  RumSessionErasureRequest,
+  RumSessionPin,
   MarketingConversion,
 ];
 

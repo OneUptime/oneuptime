@@ -199,6 +199,19 @@ import "./Jobs/TelemetryEntity/PruneStaleEntities";
 import "./Jobs/TelemetryEntity/ComputeServiceDependencies";
 
 /*
+ * Session replay. FinalizeSessions is not optional bookkeeping: both replay
+ * tables are ReplacingMergeTree (last-write-wins, no accumulation), so the
+ * ingest path writes only chunk-invariant identity and EVERY session
+ * aggregate is derived by this job. Without it every session stays
+ * provisional with zeroed counters and nothing is metered.
+ */
+import "./Jobs/Rum/FinalizeSessions";
+// RUM application disconnect sweeper + abandoned replay activity prune.
+import "./Jobs/Rum/CleanupStaleResources";
+// GDPR / CCPA erasure of recordings and their correlated telemetry.
+import "./Jobs/Rum/ProcessSessionErasureRequests";
+
+/*
  * NOTE: there is deliberately no in-app V2 -> V3 historical telemetry
  * copy. The V3 cut is forward-only (decision 2026-06-11): V3 tables start
  * fresh, history ages in over the retention window, and operators who

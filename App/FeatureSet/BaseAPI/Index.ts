@@ -609,6 +609,15 @@ import CloudResourceInstanceService, {
 import RumApplicationClientService, {
   Service as RumApplicationClientServiceType,
 } from "Common/Server/Services/RumApplicationClientService";
+import RumSessionReplayViewService, {
+  Service as RumSessionReplayViewServiceType,
+} from "Common/Server/Services/RumSessionReplayViewService";
+import RumSessionErasureRequestService, {
+  Service as RumSessionErasureRequestServiceType,
+} from "Common/Server/Services/RumSessionErasureRequestService";
+import RumSessionPinService, {
+  Service as RumSessionPinServiceType,
+} from "Common/Server/Services/RumSessionPinService";
 import DockerHostService, {
   Service as DockerHostServiceType,
 } from "Common/Server/Services/DockerHostService";
@@ -1123,6 +1132,9 @@ import RumApplicationOwnerRule from "Common/Models/DatabaseModels/RumApplication
 import ServerlessFunctionInstance from "Common/Models/DatabaseModels/ServerlessFunctionInstance";
 import CloudResourceInstance from "Common/Models/DatabaseModels/CloudResourceInstance";
 import RumApplicationClient from "Common/Models/DatabaseModels/RumApplicationClient";
+import RumSessionReplayView from "Common/Models/DatabaseModels/RumSessionReplayView";
+import RumSessionErasureRequest from "Common/Models/DatabaseModels/RumSessionErasureRequest";
+import RumSessionPin from "Common/Models/DatabaseModels/RumSessionPin";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import DockerHostOwnerTeam from "Common/Models/DatabaseModels/DockerHostOwnerTeam";
 import DockerHostOwnerUser from "Common/Models/DatabaseModels/DockerHostOwnerUser";
@@ -3653,6 +3665,35 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<RumApplicationClient, RumApplicationClientServiceType>(
         RumApplicationClient,
         RumApplicationClientService,
+      ).getRouter(),
+    );
+
+    /*
+     * Session replay control tables. The recordings themselves are never
+     * reachable through generic CRUD - they live in ClickHouse behind a
+     * bespoke endpoint that enforces the separate "watch" permission.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<RumSessionReplayView, RumSessionReplayViewServiceType>(
+        RumSessionReplayView,
+        RumSessionReplayViewService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        RumSessionErasureRequest,
+        RumSessionErasureRequestServiceType
+      >(RumSessionErasureRequest, RumSessionErasureRequestService).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<RumSessionPin, RumSessionPinServiceType>(
+        RumSessionPin,
+        RumSessionPinService,
       ).getRouter(),
     );
 

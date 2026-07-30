@@ -478,6 +478,7 @@ import { RepairCrossProjectIncidentReferences1785320000000 } from "./17853200000
 import { AddParentGroupToStatusPageGroup1785329453269 } from "./1785329453269-AddParentGroupToStatusPageGroup";
 import { AddRecommendationDismissalTable1785397674289 } from "./1785397674289-AddRecommendationDismissalTable";
 import { AddDroppedCountersToDropFilters1785405581596 } from "./1785405581596-AddDroppedCountersToDropFilters";
+import { AddSessionReplay1785417351021 } from "./1785417351021-AddSessionReplay";
 
 export default [
   InitialMigration,
@@ -960,4 +961,5 @@ export default [
   AddParentGroupToStatusPageGroup1785329453269,
   AddRecommendationDismissalTable1785397674289,
   AddDroppedCountersToDropFilters1785405581596,
+  AddSessionReplay1785417351021,
 ];

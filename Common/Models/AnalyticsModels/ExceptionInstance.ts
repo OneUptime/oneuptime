@@ -410,6 +410,64 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
       },
     });
 
+    /*
+     * Session replay correlation key, and the reason the whole feature
+     * exists: "watch exactly what the user saw when this error fired".
+     * Holds the RumSession `sessionId` this exception fired in, or ''
+     * when there was no browser session in context.
+     *
+     * Non-Nullable String with a '' type default, exactly like the scalar
+     * entity-key columns below: rows written before this column existed
+     * read '' and there is deliberately no backfill. Nullable is not an
+     * option because StatementGenerator has to assumeNotNull-wrap Nullable
+     * columns for skip indexes, and a column added by reconciliation can
+     * never join the sort key anyway, so the bloom filter is the only
+     * pruning this predicate will ever get.
+     *
+     * This is NOT part of the fingerprint. The fingerprint is the
+     * (projectId, primaryEntityId, fingerprint) unique-index conflict
+     * target on TelemetryException, so mixing a per-session value into it
+     * would re-fingerprint every existing exception group and orphan its
+     * resolved / archived / occuranceCount triage state.
+     */
+    const sessionIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "sessionId",
+      codec: { codec: "ZSTD", level: 1 },
+      title: "Session ID",
+      description:
+        "Session replay session ID this exception fired in; '' when there was no browser session in context.",
+      required: true,
+      defaultValue: "",
+      type: TableColumnType.Text,
+      skipIndex: {
+        name: "idx_session_id",
+        type: SkipIndexType.BloomFilter,
+        params: [0.01],
+        granularity: 1,
+      },
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
+          Permission.ReadTelemetryException,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.CreateTelemetryException,
+        ],
+        update: [],
+      },
+    });
+
     const fingerprintColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "fingerprint",
       title: "Fingerprint",
@@ -801,6 +859,7 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
         escapedColumn,
         traceIdColumn,
         spanIdColumn,
+        sessionIdColumn,
         fingerprintColumn,
         spanNameColumn,
         releaseColumn,
@@ -888,6 +947,14 @@ export default class ExceptionInstance extends AnalyticsBaseModel {
 
   public set spanId(v: string | undefined) {
     this.setColumnValue("spanId", v);
+  }
+
+  public get sessionId(): string | undefined {
+    return this.getColumnValue("sessionId") as string | undefined;
+  }
+
+  public set sessionId(v: string | undefined) {
+    this.setColumnValue("sessionId", v);
   }
 
   public get exceptionType(): string | undefined {

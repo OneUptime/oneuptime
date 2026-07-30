@@ -99,6 +99,7 @@ import AddShipmentColumnsToKubernetesCostAllocation from "./AddShipmentColumnsTo
 import AddRightSizingColumnsToKubernetesCostAllocation from "./AddRightSizingColumnsToKubernetesCostAllocation";
 import MoveNetworkDeviceMonitorCollectionToDevices from "./MoveNetworkDeviceMonitorCollectionToDevices";
 import BackfillNetworkSiteTypes from "./BackfillNetworkSiteTypes";
+import AddSessionIdToTelemetryTables from "./AddSessionIdToTelemetryTables";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -314,6 +315,14 @@ const DataMigrations: Array<DataMigrationBase> = [
    * columns that exist.
    */
   new AddRightSizingColumnsToKubernetesCostAllocation(),
+  /*
+   * Adds the sessionId correlation column to Log / Span / ExceptionInstance
+   * so a session replay can be joined to the telemetry it produced.
+   * Metadata-only, no backfill: historical rows read "" by design. Skips a
+   * table whose model does not declare the column rather than throwing,
+   * because a throw here halts every migration after it.
+   */
+  new AddSessionIdToTelemetryTables(),
 ];
 
 export default DataMigrations;

@@ -1371,6 +1371,24 @@ enum Permission {
   EditRumApplication = "EditRumApplication",
   ReadRumApplication = "ReadRumApplication",
 
+  /*
+   * Session replay is deliberately NOT covered by ReadRumApplication.
+   *
+   * RumApplication's read ACL includes Permission.Viewer, the project-wide
+   * read-only role — so reusing it would let every read-only member watch
+   * recordings of real end users' screens. Listing sessions and *watching*
+   * one are also split, so a support engineer can triage "which sessions
+   * errored" without playing anyone's screen back.
+   */
+  CreateRumSessionReplay = "CreateRumSessionReplay",
+  ReadRumSessionReplay = "ReadRumSessionReplay",
+  DeleteRumSessionReplay = "DeleteRumSessionReplay",
+  ReadRumSessionReplayPayload = "ReadRumSessionReplayPayload",
+  ReadRumSessionReplayAudit = "ReadRumSessionReplayAudit",
+
+  CreateRumSessionErasureRequest = "CreateRumSessionErasureRequest",
+  ReadRumSessionErasureRequest = "ReadRumSessionErasureRequest",
+
   CreateRumApplicationOwnerTeam = "CreateRumApplicationOwnerTeam",
   DeleteRumApplicationOwnerTeam = "DeleteRumApplicationOwnerTeam",
   EditRumApplicationOwnerTeam = "EditRumApplicationOwnerTeam",
@@ -8429,6 +8447,77 @@ export class PermissionHelper {
         title: "Read RUM Application",
         description:
           "This permission can read RUM Application of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateRumSessionReplay,
+        title: "Create Session Replay",
+        description:
+          "This permission can ingest session replay recordings for this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadRumSessionReplay,
+        title: "List Session Replays",
+        description:
+          "This permission can list session replay recordings and their metadata for this project. It does NOT grant the ability to watch a recording.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadRumSessionReplayPayload,
+        title: "Watch Session Replays",
+        description:
+          "This permission can play back session replay recordings, viewing what a real end user saw on screen. Grant sparingly and separately from listing.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteRumSessionReplay,
+        title: "Delete Session Replays",
+        description:
+          "This permission can delete session replay recordings of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadRumSessionReplayAudit,
+        title: "Read Session Replay Audit",
+        description:
+          "This permission can read the audit trail of who watched which session replay recording.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.CreateRumSessionErasureRequest,
+        title: "Create Session Replay Erasure Request",
+        description:
+          "This permission can request erasure of session replay recordings, for example to satisfy a right-to-erasure request from an end user.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadRumSessionErasureRequest,
+        title: "Read Session Replay Erasure Requests",
+        description:
+          "This permission can read session replay erasure requests and their completion status.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
         isRolePermission: false,

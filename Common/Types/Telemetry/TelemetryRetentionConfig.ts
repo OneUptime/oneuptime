@@ -29,9 +29,26 @@ export default interface TelemetryRetentionConfig {
   profiles?: {
     default?: number | null;
   };
+  /*
+   * Session replay does NOT go through resolveTelemetryRetentionInDays
+   * below. That function puts service.retainTelemetryDataForDays above the
+   * project pillar default, so an application configured for 90-day trace
+   * retention would silently inherit 90-day replay retention, and an
+   * unconfigured one would get 15 days rather than replay's 7. Replay is
+   * resolved by Common/Server/Utils/SessionReplay/SessionReplayRetention.ts,
+   * which reads only this pillar and then clamps to the allowed set.
+   */
+  sessionReplay?: {
+    default?: number | null;
+  };
 }
 
-export type TelemetryPillar = "logs" | "traces" | "metrics" | "profiles";
+export type TelemetryPillar =
+  | "logs"
+  | "traces"
+  | "metrics"
+  | "profiles"
+  | "sessionReplay";
 
 export const HARDCODED_DEFAULT_TELEMETRY_RETENTION_IN_DAYS: number = 15;
 

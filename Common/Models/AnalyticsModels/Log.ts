@@ -482,6 +482,57 @@ export default class Log extends AnalyticsBaseModel {
       },
     });
 
+    /*
+     * Session replay correlation key. Holds the RumSession `sessionId`
+     * that produced this log, or '' when the log came from a backend with
+     * no browser session in context.
+     *
+     * Non-Nullable String with a '' type default, exactly like the scalar
+     * entity-key columns above: rows written before this column existed
+     * read '' and there is deliberately no backfill. Nullable is not an
+     * option because StatementGenerator has to assumeNotNull-wrap Nullable
+     * columns for skip indexes, and a column added by reconciliation can
+     * never join the sort key anyway, so the bloom filter is the only
+     * pruning this predicate will ever get.
+     */
+    const sessionIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "sessionId",
+      codec: { codec: "ZSTD", level: 1 },
+      title: "Session ID",
+      description:
+        "Session replay session ID that produced this log; '' when the log has no browser session in context.",
+      required: true,
+      defaultValue: "",
+      type: TableColumnType.Text,
+      skipIndex: {
+        name: "idx_session_id",
+        type: SkipIndexType.BloomFilter,
+        params: [0.01],
+        granularity: 1,
+      },
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
+          Permission.ReadTelemetryServiceLog,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.CreateTelemetryServiceLog,
+        ],
+        update: [],
+      },
+    });
+
     const bodyColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "body",
       title: "Log Body",
@@ -683,6 +734,7 @@ export default class Log extends AnalyticsBaseModel {
         ...scalarEntityKeyColumns,
         traceIdColumn,
         spanIdColumn,
+        sessionIdColumn,
         bodyColumn,
         observedTimeUnixNanoColumn,
         droppedAttributesCountColumn,
@@ -818,6 +870,14 @@ export default class Log extends AnalyticsBaseModel {
 
   public set spanId(v: string | undefined) {
     this.setColumnValue("spanId", v);
+  }
+
+  public get sessionId(): string | undefined {
+    return this.getColumnValue("sessionId") as string | undefined;
+  }
+
+  public set sessionId(v: string | undefined) {
+    this.setColumnValue("sessionId", v);
   }
 
   public get observedTimeUnixNano(): number | undefined {

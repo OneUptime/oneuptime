@@ -2562,6 +2562,52 @@ export default class Project extends TenantModel {
   })
   public enableAuditLogs?: boolean = undefined;
 
+  /*
+   * Organisation-wide hard off switch for session replay, checked by both
+   * the recorder config endpoint and the ingest gate. Follows the shape of
+   * enableAuditLogs above, with one deliberate difference: no
+   * ColumnBillingAccessControl. Being able to switch off recording of your
+   * end users' screens must not depend on a plan tier, so update is not
+   * gated behind Enterprise the way audit logs are.
+   *
+   * Off by default. Every per-application toggle is ANDed with this, so a
+   * project that never opts in cannot have a recorder enabled by an
+   * application-level mistake.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProject,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.Boolean,
+    isDefaultValueColumn: true,
+    defaultValue: false,
+    title: "Allow Session Replay",
+    description:
+      "When enabled, RUM applications in this project may record session replays if they are individually enabled too. Off by default for the whole project.",
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    unique: false,
+    default: false,
+  })
+  public isSessionReplayAllowed?: boolean = undefined;
+
   @ColumnAccessControl({
     create: [Permission.User],
     read: [
