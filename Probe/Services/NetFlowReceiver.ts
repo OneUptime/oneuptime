@@ -13,7 +13,6 @@ import NetFlowV9Parser, {
   ParsedNetFlowV9Datagram,
 } from "../Utils/NetFlow/NetFlowV9Parser";
 import ProbeAPIRequest from "../Utils/ProbeAPIRequest";
-import ProxyConfig from "../Utils/ProxyConfig";
 import URL from "Common/Types/API/URL";
 import HTTPMethod from "Common/Types/API/HTTPMethod";
 import { JSONObject } from "Common/Types/JSON";
@@ -342,10 +341,9 @@ export default class NetFlowReceiver {
               ...ProbeAPIRequest.getDefaultRequestBody(),
               flowRecords: batch as unknown as Array<JSONObject>,
             },
-            options: {
-              ...ProxyConfig.getRequestProxyAgents(ingestUrl),
+            options: ProbeAPIRequest.getDefaultRequestOptions(ingestUrl, {
               timeout: FLUSH_REQUEST_TIMEOUT_MS,
-            },
+            }),
           });
         } catch (err) {
           /*

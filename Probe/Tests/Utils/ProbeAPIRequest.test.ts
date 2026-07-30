@@ -49,9 +49,41 @@ describe("getDefaultRequestOptions", () => {
      * exact shape: an accidental httpAgent/httpsAgent key here would apply
      * to every control-plane request the probe makes.
      */
-    expect(options).toEqual({ timeout: 45000 });
+    expect(Object.keys(options).sort()).toEqual([
+      "onRequestComplete",
+      "timeout",
+    ]);
     expect("httpAgent" in options).toBe(false);
     expect("httpsAgent" in options).toBe(false);
+  });
+
+  test("a caller's own deadline wins over the 45s default", () => {
+    /*
+     * The syslog / NetFlow / SNMP-trap forwarders flush on a much shorter
+     * deadline than the control-plane default, and they still have to get
+     * the diagnostics observer.
+     */
+    const options: RequestOptions = ProbeAPIRequest.getDefaultRequestOptions(
+      aliveUrl,
+      { timeout: 30000 },
+    );
+
+    expect(options.timeout).toBe(30000);
+    expect(typeof options.onRequestComplete).toBe("function");
+  });
+
+  test("every request carries the diagnostics observer", () => {
+    /*
+     * This hook is the only reason a failed control-plane request can say
+     * WHERE it stalled. It is attached here, once, rather than at each of
+     * the probe's call sites — so losing it here silently reverts every
+     * route to the bare "timeout of 45000ms exceeded" that told support
+     * nothing.
+     */
+    const options: RequestOptions =
+      ProbeAPIRequest.getDefaultRequestOptions(aliveUrl);
+
+    expect(typeof options.onRequestComplete).toBe("function");
   });
 });
 
