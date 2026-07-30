@@ -7,6 +7,7 @@ import AnalyticsBaseModel from "../../../Models/AnalyticsModels/AnalyticsBaseMod
 import AnalyticsTableColumn from "../../../Types/AnalyticsDatabase/TableColumn";
 import AnalyticsTableEngine from "../../../Types/AnalyticsDatabase/AnalyticsTableEngine";
 import AnalyticsTableName from "../../../Types/AnalyticsDatabase/AnalyticsTableName";
+import TableColumnType from "../../../Types/AnalyticsDatabase/TableColumnType";
 import Permission from "../../../Types/Permission";
 import RumSession from "../../../Models/AnalyticsModels/RumSession";
 import RumSessionChunk from "../../../Models/AnalyticsModels/RumSessionChunk";
@@ -363,6 +364,57 @@ describe("Session replay ClickHouse schema", () => {
       expect(sql).toContain("index_granularity = 128");
       expect(sql).toContain("toYYYYMMDD(retentionDate)");
       expect(sql).toContain("ttl_only_drop_parts = 1");
+    });
+  });
+
+  describe("codec compatibility (repo-wide)", () => {
+    /*
+     * ClickHouse's T64 codec only applies to integers up to 64 bits. Pairing
+     * it with a 128-bit column makes CREATE TABLE throw, which fails
+     * createTables() during boot and takes the whole App down - not just
+     * session replay.
+     *
+     * This escaped every other check: it type-checks, it lints, and every
+     * unit test passes, because none of them execute the DDL. It surfaced as
+     * an App that never returned HTTP 200 in the end-to-end job.
+     *
+     * Asserted across ALL registered models rather than just this feature's,
+     * since the trap is not specific to session replay.
+     */
+    const WIDER_THAN_64_BITS: Array<TableColumnType> = [
+      TableColumnType.LongNumber,
+      TableColumnType.BigNumber,
+      TableColumnType.ArrayBigNumber,
+    ];
+
+    it("never pairs the T64 codec with a column wider than 64 bits", () => {
+      const offenders: Array<string> = [];
+
+      for (const modelType of AnalyticsModels) {
+        const model: AnalyticsBaseModel = new modelType();
+
+        for (const column of model.tableColumns) {
+          if (!WIDER_THAN_64_BITS.includes(column.type)) {
+            continue;
+          }
+
+          const codecs: Array<{ codec: string }> = Array.isArray(column.codec)
+            ? (column.codec as Array<{ codec: string }>)
+            : column.codec
+              ? [column.codec as { codec: string }]
+              : [];
+
+          if (
+            codecs.some((codec: { codec: string }): boolean => {
+              return codec.codec === "T64";
+            })
+          ) {
+            offenders.push(`${model.tableName}.${column.key} (${column.type})`);
+          }
+        }
+      }
+
+      expect(offenders).toEqual([]);
     });
   });
 

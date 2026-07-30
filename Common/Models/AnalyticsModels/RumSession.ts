@@ -422,13 +422,28 @@ export default class RumSession extends AnalyticsBaseModel {
         description: string;
         type: TableColumnType;
       }): AnalyticsTableColumn => {
+        /*
+         * T64 only applies to integers up to 64 bits. LongNumber compiles to
+         * ClickHouse Int128, and pairing the two makes CREATE TABLE throw -
+         * which fails createTables() at boot and takes the whole App down, not
+         * just session replay. Nothing in the type system or the unit tests
+         * catches it, because neither executes the DDL.
+         *
+         * This mirrors the rest of the repo: no existing model pairs
+         * LongNumber with T64, and Span's LongNumber columns use plain ZSTD.
+         */
+        const isWiderThan64Bits: boolean =
+          def.type === TableColumnType.LongNumber;
+
         return new AnalyticsTableColumn({
           key: def.key,
           title: def.title,
           description: def.description,
           required: true,
           type: def.type,
-          codec: [{ codec: "T64" }, { codec: "ZSTD", level: 1 }],
+          codec: isWiderThan64Bits
+            ? { codec: "ZSTD", level: 1 }
+            : [{ codec: "T64" }, { codec: "ZSTD", level: 1 }],
           accessControl: sessionAccessControl,
         });
       },
