@@ -477,6 +477,7 @@ import { AddColumnsToTableView1785241000000 } from "./1785241000000-AddColumnsTo
 import { RepairCrossProjectIncidentReferences1785320000000 } from "./1785320000000-RepairCrossProjectIncidentReferences";
 import { AddParentGroupToStatusPageGroup1785329453269 } from "./1785329453269-AddParentGroupToStatusPageGroup";
 import { AddRecommendationDismissalTable1785397674289 } from "./1785397674289-AddRecommendationDismissalTable";
+import { AddDroppedCountersToDropFilters1785405581596 } from "./1785405581596-AddDroppedCountersToDropFilters";
 
 export default [
   InitialMigration,
@@ -958,4 +959,5 @@ export default [
   RepairCrossProjectIncidentReferences1785320000000,
   AddParentGroupToStatusPageGroup1785329453269,
   AddRecommendationDismissalTable1785397674289,
+  AddDroppedCountersToDropFilters1785405581596,
 ];
