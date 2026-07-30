@@ -7,7 +7,9 @@ import MonitorRecommendationUtil, {
 import {
   MonitorRecommendation,
   MonitorRecommendationArgs,
+  MonitorRecommendationNotificationSettings,
   MonitorRecommendationResourceType,
+  MonitorRecommendationSeverity,
 } from "../../../../Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import MonitorStep from "../../../../Types/Monitor/MonitorStep";
 import MonitorSteps from "../../../../Types/Monitor/MonitorSteps";
@@ -256,6 +258,7 @@ describe("MonitorRecommendationUtil", () => {
           MonitorRecommendationUtil.applyNotificationSettingsToMonitorStep({
             monitorStep: recommendation.getMonitorStep(buildArgs()),
             notificationSettings: { onCallPolicyIds: [policyA, policyB] },
+            severity: recommendation.severity,
           });
 
         const incidents: Array<CriteriaIncident> =
@@ -287,6 +290,7 @@ describe("MonitorRecommendationUtil", () => {
         MonitorRecommendationUtil.applyNotificationSettingsToMonitorStep({
           monitorStep: ONE_PER_RESOURCE_TYPE[0]!.getMonitorStep(buildArgs()),
           notificationSettings: { onCallPolicyIds: settingsArray },
+          severity: ONE_PER_RESOURCE_TYPE[0]!.severity,
         });
 
       const incidents: Array<CriteriaIncident> =
@@ -316,6 +320,7 @@ describe("MonitorRecommendationUtil", () => {
             ownerTeamIds: [teamId],
             ownerUserIds: [userId],
           },
+          severity: ONE_PER_RESOURCE_TYPE[0]!.severity,
         });
 
       for (const incident of getAllCriteriaIncidents(monitorStep)) {
@@ -331,25 +336,81 @@ describe("MonitorRecommendationUtil", () => {
       }
     });
 
-    it("overrides the template's severity when one is chosen", () => {
-      const incidentSeverityId: ObjectID = ObjectID.generate();
-      const alertSeverityId: ObjectID = ObjectID.generate();
+    it("writes the severity mapped from the RECOMMENDATION's own severity", () => {
+      /*
+       * The mapping is per recommendation severity, not one id for the whole
+       * batch. A Critical and a Warning recommendation created in the same
+       * batch must come out with different severities, which is the entire
+       * reason the map exists — before it, both took
+       * `args.defaultIncidentSeverityId` and every recommendation paged
+       * identically.
+       */
+      const criticalIncidentSeverityId: ObjectID = ObjectID.generate();
+      const warningIncidentSeverityId: ObjectID = ObjectID.generate();
+      const criticalAlertSeverityId: ObjectID = ObjectID.generate();
+      const warningAlertSeverityId: ObjectID = ObjectID.generate();
 
+      const notificationSettings: MonitorRecommendationNotificationSettings = {
+        incidentSeverityIdBySeverity: {
+          Critical: criticalIncidentSeverityId,
+          Warning: warningIncidentSeverityId,
+        },
+        alertSeverityIdBySeverity: {
+          Critical: criticalAlertSeverityId,
+          Warning: warningAlertSeverityId,
+        },
+      };
+
+      for (const severity of [
+        "Critical",
+        "Warning",
+      ] as Array<MonitorRecommendationSeverity>) {
+        const monitorStep: MonitorStep =
+          MonitorRecommendationUtil.applyNotificationSettingsToMonitorStep({
+            monitorStep: ONE_PER_RESOURCE_TYPE[0]!.getMonitorStep(buildArgs()),
+            notificationSettings: notificationSettings,
+            severity: severity,
+          });
+
+        const expectedIncidentSeverityId: ObjectID =
+          severity === "Critical"
+            ? criticalIncidentSeverityId
+            : warningIncidentSeverityId;
+        const expectedAlertSeverityId: ObjectID =
+          severity === "Critical"
+            ? criticalAlertSeverityId
+            : warningAlertSeverityId;
+
+        for (const incident of getAllCriteriaIncidents(monitorStep)) {
+          expect(incident.incidentSeverityId).toEqual(
+            expectedIncidentSeverityId,
+          );
+        }
+
+        for (const alert of getAllCriteriaAlerts(monitorStep)) {
+          expect(alert.alertSeverityId).toEqual(expectedAlertSeverityId);
+        }
+      }
+    });
+
+    it("leaves the template's severity alone when the map has no entry for that severity", () => {
+      /*
+       * A partial map must not blank the severity out. A criteria instance
+       * with a populated incident and no severity id fails
+       * MonitorCriteriaInstance.getValidationError, so the whole create would
+       * fail at submit with a message about a field the user never saw.
+       */
       const monitorStep: MonitorStep =
         MonitorRecommendationUtil.applyNotificationSettingsToMonitorStep({
           monitorStep: ONE_PER_RESOURCE_TYPE[0]!.getMonitorStep(buildArgs()),
           notificationSettings: {
-            incidentSeverityId: incidentSeverityId,
-            alertSeverityId: alertSeverityId,
+            incidentSeverityIdBySeverity: { Critical: ObjectID.generate() },
           },
+          severity: "Warning",
         });
 
       for (const incident of getAllCriteriaIncidents(monitorStep)) {
-        expect(incident.incidentSeverityId).toEqual(incidentSeverityId);
-      }
-
-      for (const alert of getAllCriteriaAlerts(monitorStep)) {
-        expect(alert.alertSeverityId).toEqual(alertSeverityId);
+        expect(incident.incidentSeverityId).toEqual(INCIDENT_SEVERITY_ID);
       }
     });
 
@@ -358,6 +419,7 @@ describe("MonitorRecommendationUtil", () => {
         MonitorRecommendationUtil.applyNotificationSettingsToMonitorStep({
           monitorStep: ONE_PER_RESOURCE_TYPE[0]!.getMonitorStep(buildArgs()),
           notificationSettings: { onCallPolicyIds: [ObjectID.generate()] },
+          severity: ONE_PER_RESOURCE_TYPE[0]!.severity,
         });
 
       for (const incident of getAllCriteriaIncidents(monitorStep)) {
@@ -383,6 +445,7 @@ describe("MonitorRecommendationUtil", () => {
           MonitorRecommendationUtil.applyNotificationSettingsToMonitorStep({
             monitorStep: ONE_PER_RESOURCE_TYPE[0]!.getMonitorStep(buildArgs()),
             notificationSettings: notificationSettings,
+            severity: ONE_PER_RESOURCE_TYPE[0]!.severity,
           });
 
         for (const incident of getAllCriteriaIncidents(monitorStep)) {
@@ -399,6 +462,7 @@ describe("MonitorRecommendationUtil", () => {
         MonitorRecommendationUtil.applyNotificationSettingsToMonitorStep({
           monitorStep: emptyStep,
           notificationSettings: { onCallPolicyIds: [ObjectID.generate()] },
+          severity: "Critical",
         });
       }).not.toThrow();
     });
@@ -566,14 +630,22 @@ describe("MonitorRecommendationUtil", () => {
     it("sorts metric names so query order is not part of the identity", () => {
       const fingerprint: MonitorRecommendationFingerprint = {
         resourceIdentifier: "x",
+        configKind: "kubernetesMonitor",
         metricNames: ["b", "a"],
         formulas: [],
+        metricAliases: [],
+        queryAttributes: [],
+        criteriaFilters: [],
       };
 
       const sorted: MonitorRecommendationFingerprint = {
         resourceIdentifier: "x",
+        configKind: "kubernetesMonitor",
         metricNames: ["a", "b"],
         formulas: [],
+        metricAliases: [],
+        queryAttributes: [],
+        criteriaFilters: [],
       };
 
       expect(
@@ -710,6 +782,7 @@ describe("MonitorRecommendationUtil", () => {
             onCallPolicyIds: [ObjectID.generate()],
             labelIds: [ObjectID.generate()],
           },
+          severity: created.severity,
         });
 
       const covered: Set<string> =

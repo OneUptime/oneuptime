@@ -1199,6 +1199,11 @@ enum Permission {
   EditNetworkSiteType = "EditNetworkSiteType",
   ReadNetworkSiteType = "ReadNetworkSiteType",
 
+  CreateRecommendationDismissal = "CreateRecommendationDismissal",
+  DeleteRecommendationDismissal = "DeleteRecommendationDismissal",
+  EditRecommendationDismissal = "EditRecommendationDismissal",
+  ReadRecommendationDismissal = "ReadRecommendationDismissal",
+
   CreateNetworkEndpoint = "CreateNetworkEndpoint",
   DeleteNetworkEndpoint = "DeleteNetworkEndpoint",
   EditNetworkEndpoint = "EditNetworkEndpoint",
@@ -7699,6 +7704,46 @@ export class PermissionHelper {
         title: "Read Network Site Type",
         description:
           "This permission can read Network Site Type of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.CreateRecommendationDismissal,
+        title: "Create Recommendation Dismissal",
+        description:
+          "This permission can dismiss recommendations in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.DeleteRecommendationDismissal,
+        title: "Delete Recommendation Dismissal",
+        description:
+          "This permission can restore dismissed recommendations of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.EditRecommendationDismissal,
+        title: "Edit Recommendation Dismissal",
+        description:
+          "This permission can edit dismissed recommendations of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Monitor,
+      },
+      {
+        permission: Permission.ReadRecommendationDismissal,
+        title: "Read Recommendation Dismissal",
+        description:
+          "This permission can read dismissed recommendations of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
         isRolePermission: false,
