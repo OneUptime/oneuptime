@@ -241,7 +241,7 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
              * person's screen should know which mode produced it before they
              * click, not after.
              */}
-            <div className="mt-1 text-[11px] text-gray-400">
+            <div className="mt-1 text-[11px] text-gray-500">
               Recorded with {primary.maskingMode || "unknown"} masking.
               {sessions.length > 1
                 ? ` ${sessions.length - 1} more session${

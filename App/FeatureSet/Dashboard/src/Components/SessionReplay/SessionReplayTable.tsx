@@ -577,7 +577,7 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
           }
 
           if (badges.length === 0) {
-            return <span className="text-xs text-gray-400">Clean</span>;
+            return <span className="text-xs text-gray-500">Clean</span>;
           }
 
           return <div className="flex flex-wrap gap-1">{badges}</div>;

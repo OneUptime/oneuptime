@@ -109,8 +109,13 @@ function toPercent(valueMs: number, durationMs: number): number {
   return Math.min(100, Math.max(0, (valueMs / durationMs) * 100));
 }
 
+/*
+ * gray-500 rather than gray-400: gray-400 on white is about 2.9:1, which
+ * fails WCAG AA for text. These labels are the only thing naming each lane,
+ * so they have to be readable rather than decorative.
+ */
 const LANE_LABEL_CLASS: string =
-  "w-24 shrink-0 text-[10px] font-medium uppercase tracking-wide text-gray-400";
+  "w-24 shrink-0 text-[11px] font-medium uppercase tracking-wide text-gray-500";
 
 interface MarkerLaneProps {
   label: string;
@@ -126,9 +131,16 @@ const MarkerLane: FunctionComponent<MarkerLaneProps> = (
   return (
     <div className="flex items-center gap-2">
       <div className={LANE_LABEL_CLASS}>{props.label}</div>
-      <div className="relative h-4 flex-1 rounded bg-gray-50">
+      <div className="relative h-5 flex-1 rounded bg-gray-50 ring-1 ring-inset ring-gray-100">
         {props.markers.map(
           (marker: ReplayMarker, index: number): ReactElement => {
+            /*
+             * The button is the HIT AREA and is deliberately wider than the
+             * mark it draws. A 4px-wide target is close to unclickable, and
+             * these are the primary way anyone navigates to the interesting
+             * moment in a recording. The visible bar stays thin so a cluster
+             * of markers is still legible as separate events.
+             */
             return (
               <button
                 key={`${marker.atMs}-${index}`}
@@ -137,14 +149,18 @@ const MarkerLane: FunctionComponent<MarkerLaneProps> = (
                 aria-label={`${props.label} at ${formatOffset(marker.atMs)}: ${
                   marker.label
                 }`}
-                className={`absolute top-0.5 h-3 w-1 -translate-x-1/2 rounded-sm ${props.colorClassName}`}
+                className="group absolute inset-y-0 flex w-3.5 -translate-x-1/2 items-center justify-center rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                 style={{
                   left: `${toPercent(marker.atMs, props.durationMs)}%`,
                 }}
                 onClick={(): void => {
                   props.onSeek(marker.atMs);
                 }}
-              />
+              >
+                <span
+                  className={`h-3 w-1 rounded-sm transition-all group-hover:h-4 group-hover:w-1.5 ${props.colorClassName}`}
+                />
+              </button>
             );
           },
         )}
@@ -376,18 +392,30 @@ const ReplayScrubber: FunctionComponent<ReplayScrubberProps> = (
           {formatOffset(currentTimeMs)} / {formatOffset(durationMs)}
         </div>
 
-        <div className="inline-flex gap-1">
-          {REPLAY_SPEEDS.map((speed: number): ReactElement => {
+        {/*
+         * One segmented control rather than four separate ring-1 buttons.
+         * These are mutually exclusive values of a single setting, and four
+         * outlined pills read as four unrelated actions.
+         */}
+        <div
+          role="group"
+          aria-label="Playback speed"
+          className="inline-flex overflow-hidden rounded-md ring-1 ring-inset ring-gray-300"
+        >
+          {REPLAY_SPEEDS.map((speed: number, index: number): ReactElement => {
             const isActive: boolean = props.speed === speed;
 
             return (
               <button
                 key={speed}
                 type="button"
-                className={`rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset transition-colors ${
+                aria-pressed={isActive}
+                className={`px-2.5 py-1 text-xs font-medium tabular-nums transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 ${
+                  index > 0 ? "border-l border-gray-300" : ""
+                } ${
                   isActive
-                    ? "bg-indigo-100 text-indigo-800 ring-indigo-200"
-                    : "bg-white text-gray-600 ring-gray-200 hover:bg-gray-50"
+                    ? "bg-indigo-600 text-white"
+                    : "bg-white text-gray-700 hover:bg-gray-50"
                 }`}
                 onClick={(): void => {
                   props.onSpeedChange(speed);
@@ -425,8 +453,10 @@ const ReplayScrubber: FunctionComponent<ReplayScrubberProps> = (
           Next error
         </button>
 
-        <div className="ml-auto text-[10px] text-gray-400">
-          Space play/pause · ←→ ±10s · , . ±1s
+        <div className="ml-auto text-[11px] text-gray-500">
+          <kbd className="font-sans font-medium">Space</kbd> play/pause ·{" "}
+          <kbd className="font-sans font-medium">←→</kbd> ±10s ·{" "}
+          <kbd className="font-sans font-medium">, .</kbd> ±1s
         </div>
       </div>
 
@@ -465,18 +495,30 @@ const ReplayScrubber: FunctionComponent<ReplayScrubberProps> = (
              * do not have it.
              */
             if (band.state === ReplayBandState.Missing) {
+              const missingLabel: string = formatMissing(
+                band.missingMs ?? band.endMs - band.startMs,
+              );
+
+              /*
+               * The inline label is dropped on narrow gaps rather than being
+               * clipped to a meaningless fragment ("18s missing" rendered as
+               * "18"). The hatch pattern still marks the gap and the title
+               * still gives the exact duration on hover.
+               */
+              const isWideEnoughForLabel: boolean = width >= 9;
+
               return (
                 <div
                   key={`band-${index}`}
                   className="absolute inset-y-0 flex items-center justify-center overflow-hidden rounded-sm border border-dashed border-amber-400 bg-amber-50"
                   style={{ left: `${left}%`, width: `${width}%` }}
-                  title={`Recording gap: ${formatMissing(
-                    band.missingMs ?? band.endMs - band.startMs,
-                  )}`}
+                  title={`Recording gap: ${missingLabel}`}
                 >
-                  <span className="whitespace-nowrap px-1 text-[9px] font-medium text-amber-700">
-                    {formatMissing(band.missingMs ?? band.endMs - band.startMs)}
-                  </span>
+                  {isWideEnoughForLabel && (
+                    <span className="whitespace-nowrap px-1 text-[11px] font-medium text-amber-800">
+                      {missingLabel}
+                    </span>
+                  )}
                 </div>
               );
             }
@@ -539,11 +581,33 @@ const ReplayScrubber: FunctionComponent<ReplayScrubberProps> = (
         />
       </div>
 
-      {hoverMs !== null && (
-        <div className="mt-1 text-[10px] text-gray-400">
-          Seek to {formatOffset(hoverMs)}
-        </div>
-      )}
+      {/*
+       * A legend, and the hover readout, share one always-present row.
+       *
+       * The row is rendered unconditionally: showing the hover hint only while
+       * hovering shifted every lane above it by a line the moment the pointer
+       * entered the track, which made the thing you were aiming at move.
+       */}
+      <div className="mt-2 flex h-4 items-center gap-3 text-[11px] text-gray-500">
+        <span className="inline-flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-sm bg-indigo-400" />
+          Loaded
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-sm bg-gray-300" />
+          Not yet loaded
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-sm border border-dashed border-amber-400 bg-amber-50" />
+          Gap
+        </span>
+
+        {hoverMs !== null && (
+          <span className="ml-auto font-mono tabular-nums text-gray-600">
+            Seek to {formatOffset(hoverMs)}
+          </span>
+        )}
+      </div>
     </div>
   );
 };

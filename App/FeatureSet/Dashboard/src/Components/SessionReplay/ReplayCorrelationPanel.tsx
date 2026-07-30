@@ -156,7 +156,7 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
         Traces in this session ({d.traceIds.length})
       </div>
       {d.traceIds.length === 0 && (
-        <div className="text-xs text-gray-400">
+        <div className="text-xs text-gray-500">
           No traces were correlated. Correlation needs session.id on the span,
           which the recorder sets on its own network instrumentation and which
           an independently configured OpenTelemetry SDK must be wired to add.
@@ -186,7 +186,7 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
         Exception groups ({d.exceptionFingerprints.length})
       </div>
       {d.exceptionFingerprints.length === 0 && (
-        <div className="text-xs text-gray-400">
+        <div className="text-xs text-gray-500">
           No exception groups were correlated to this session.
         </div>
       )}
@@ -207,7 +207,7 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
        * The arrays above are capped at 50 by the finalizer. Saying so beats
        * letting someone conclude a session touched exactly 50 traces.
        */}
-      <div className="mt-3 text-[10px] text-gray-400">
+      <div className="mt-3 text-[11px] text-gray-500">
         Correlated ids are capped at 50 per session.
       </div>
     </div>
@@ -219,7 +219,7 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
         Recording gaps ({props.gaps.length})
       </div>
       {props.gaps.length === 0 && (
-        <div className="text-xs text-gray-400">
+        <div className="text-xs text-gray-500">
           No chunks are missing from this recording.
         </div>
       )}
@@ -240,7 +240,7 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
         Not captured ({props.fidelityNotices.length})
       </div>
       {props.fidelityNotices.length === 0 && (
-        <div className="text-xs text-gray-400">
+        <div className="text-xs text-gray-500">
           The recorder reported no capture limitations for this session.
         </div>
       )}

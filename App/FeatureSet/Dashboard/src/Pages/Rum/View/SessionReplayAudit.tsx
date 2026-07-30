@@ -104,7 +104,7 @@ const RumApplicationSessionReplayAudit: FunctionComponent<
                 );
               }
 
-              return <span className="text-sm text-gray-400">Unknown</span>;
+              return <span className="text-sm text-gray-500">Unknown</span>;
             },
           },
           {
@@ -113,7 +113,7 @@ const RumApplicationSessionReplayAudit: FunctionComponent<
             type: FieldType.Element,
             getElement: (item: RumSessionReplayView): ReactElement => {
               if (!item.sessionId) {
-                return <span className="text-sm text-gray-400">—</span>;
+                return <span className="text-sm text-gray-500">—</span>;
               }
 
               return (
