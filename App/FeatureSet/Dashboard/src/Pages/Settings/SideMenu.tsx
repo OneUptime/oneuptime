@@ -199,7 +199,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
       ],
     },
     {
-      title: "Authentication Security",
+      title: "Security",
       items: [
         {
           link: {
@@ -272,7 +272,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
 
   // Conditionally add Billing section
   if (BILLING_ENABLED) {
-    // Insert Billing section before Authentication Security (second to last)
+    // Insert Billing section before Security (second to last)
     sections.splice(-2, 0, {
       title: "Billing and Invoices",
       items: [
