@@ -665,6 +665,66 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   const [error, setError] = useState<string>("");
   const [tableFilterError, setTableFilterError] = useState<string>("");
 
+  /*
+   * Auto-detect label support from the existing filters array. We look for
+   * the filter whose `filterEntityType` class name is "Label" and reuse its
+   * dropdown wiring (entity type, fetch query, label/value field names) so
+   * search inherits whatever scoping the filter popup already had.
+   *
+   * Computed before the search state below because the `labels` slice of a
+   * restored URL is only meaningful when this is non-null.
+   */
+  type LabelFilterConfig = {
+    fieldKey: string;
+    entityType: any;
+    fetchQuery: any;
+    labelField: string;
+  };
+
+  const labelFilterConfig: LabelFilterConfig | null = useMemo(() => {
+    const filter: Filter<TBaseModel> | undefined = props.filters.find(
+      (f: Filter<TBaseModel>) => {
+        return (
+          f.filterEntityType &&
+          (f.filterEntityType as any).name === "Label" &&
+          f.field &&
+          f.filterDropdownField
+        );
+      },
+    );
+    if (!filter || !filter.field || !filter.filterDropdownField) {
+      return null;
+    }
+    const fieldKey: string | undefined = Object.keys(filter.field)[0];
+    if (!fieldKey) {
+      return null;
+    }
+    return {
+      fieldKey,
+      entityType: filter.filterEntityType,
+      fetchQuery: filter.filterQuery || {},
+      labelField: filter.filterDropdownField.label,
+    };
+  }, [props.filters]);
+
+  /*
+   * The label chips are a feature of the in-search Label filter, so a table
+   * without one has to ignore the URL's `labels` slice entirely.
+   *
+   * Tables that have since moved Labels out to a facet chip (Monitors,
+   * Network Devices) still receive `labels` from older shared/bookmarked
+   * links. Seeding those ids anyway produced a chip the table could neither
+   * name (`availableLabels` is only fetched when there *is* a config) nor
+   * apply (`buildSearchQueryFragment` skips the constraint for the same
+   * reason): a force-expanded search box with a raw-UUID pill sitting above a
+   * completely unfiltered list, re-persisted on every write until the user
+   * clicked its ×. Dropping it here also means the next view write omits the
+   * key, so the URL heals itself.
+   */
+  const restoredLabelIds: Array<string> = labelFilterConfig
+    ? initialUrlState.view.labels || []
+    : [];
+
   const [searchText, setSearchText] = useState<string>(
     initialUrlState.view.search || "",
   );
@@ -673,9 +733,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   );
   const [isSearchFocused, setIsSearchFocused] = useState<boolean>(false);
   const [isSearchExpanded, setIsSearchExpanded] = useState<boolean>(
-    Boolean(
-      initialUrlState.view.search || (initialUrlState.view.labels || []).length,
-    ),
+    Boolean(initialUrlState.view.search || restoredLabelIds.length),
   );
   const searchInputRef: React.RefObject<HTMLInputElement> =
     React.useRef<HTMLInputElement>(null!);
@@ -697,7 +755,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   const [selectedLabels, setSelectedLabels] = useState<
     Array<SearchLabelOption>
   >(() => {
-    return (initialUrlState.view.labels || []).map((id: string) => {
+    return restoredLabelIds.map((id: string) => {
       return { id: id, name: id, color: "#94a3b8" };
     });
   });
@@ -793,43 +851,24 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   }, [debouncedSearchText, selectedLabelIdsKey]);
 
   /*
-   * Auto-detect label support from the existing filters array. We look for
-   * the filter whose `filterEntityType` class name is "Label" and reuse its
-   * dropdown wiring (entity type, fetch query, label/value field names) so
-   * search inherits whatever scoping the filter popup already had.
+   * `props.filters` is not frozen — a page can rebuild it after mount, and
+   * that is exactly how a Labels filter leaves the popup for the facet bar.
+   * Chips left over from a config that no longer exists are unnameable and
+   * unappliable, so drop them here too rather than only at mount.
    */
-  type LabelFilterConfig = {
-    fieldKey: string;
-    entityType: any;
-    fetchQuery: any;
-    labelField: string;
-  };
+  useEffect(() => {
+    if (labelFilterConfig) {
+      return;
+    }
 
-  const labelFilterConfig: LabelFilterConfig | null = useMemo(() => {
-    const filter: Filter<TBaseModel> | undefined = props.filters.find(
-      (f: Filter<TBaseModel>) => {
-        return (
-          f.filterEntityType &&
-          (f.filterEntityType as any).name === "Label" &&
-          f.field &&
-          f.filterDropdownField
-        );
-      },
-    );
-    if (!filter || !filter.field || !filter.filterDropdownField) {
-      return null;
-    }
-    const fieldKey: string | undefined = Object.keys(filter.field)[0];
-    if (!fieldKey) {
-      return null;
-    }
-    return {
-      fieldKey,
-      entityType: filter.filterEntityType,
-      fetchQuery: filter.filterQuery || {},
-      labelField: filter.filterDropdownField.label,
-    };
-  }, [props.filters]);
+    setSelectedLabels((existing: Array<SearchLabelOption>) => {
+      /*
+       * Same array when there is nothing to clear, so this costs an idle table
+       * no re-render.
+       */
+      return existing.length === 0 ? existing : [];
+    });
+  }, [labelFilterConfig]);
 
   // Fetch labels on first search expansion if this resource supports them.
   useEffect(() => {
@@ -3263,36 +3302,46 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             />
             {/* Pills + input wrap row */}
             <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
-              {selectedLabels.map((label: SearchLabelOption) => {
-                return (
-                  <span
-                    key={label.id}
-                    className="inline-flex items-center gap-1 rounded-full bg-gray-50 py-0.5 pl-2 pr-1 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200 transition-all hover:bg-gray-100"
-                    title={`Label: ${label.name}`}
-                  >
+              {/*
+               * Gated on label support as well as on the chips themselves: a
+               * pill this table cannot name, apply or refill is never worth
+               * drawing, whatever left it in state.
+               */}
+              {hasLabelSupport &&
+                selectedLabels.map((label: SearchLabelOption) => {
+                  return (
                     <span
-                      className="h-2 w-2 flex-none rounded-full"
-                      style={{ backgroundColor: label.color }}
-                      aria-hidden="true"
-                    />
-                    <span className="max-w-[8rem] truncate">{label.name}</span>
-                    <button
-                      type="button"
-                      onMouseDown={(e: React.MouseEvent<HTMLButtonElement>) => {
-                        e.preventDefault();
-                      }}
-                      onClick={() => {
-                        removeLabel(label.id);
-                      }}
-                      title="Remove label"
-                      aria-label={`Remove ${label.name}`}
-                      className="ml-0.5 flex-none rounded-full p-0.5 text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-700"
+                      key={label.id}
+                      className="inline-flex items-center gap-1 rounded-full bg-gray-50 py-0.5 pl-2 pr-1 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200 transition-all hover:bg-gray-100"
+                      title={`Label: ${label.name}`}
                     >
-                      <Icon icon={IconProp.Close} className="h-3 w-3" />
-                    </button>
-                  </span>
-                );
-              })}
+                      <span
+                        className="h-2 w-2 flex-none rounded-full"
+                        style={{ backgroundColor: label.color }}
+                        aria-hidden="true"
+                      />
+                      <span className="max-w-[8rem] truncate">
+                        {label.name}
+                      </span>
+                      <button
+                        type="button"
+                        onMouseDown={(
+                          e: React.MouseEvent<HTMLButtonElement>,
+                        ) => {
+                          e.preventDefault();
+                        }}
+                        onClick={() => {
+                          removeLabel(label.id);
+                        }}
+                        title="Remove label"
+                        aria-label={`Remove ${label.name}`}
+                        className="ml-0.5 flex-none rounded-full p-0.5 text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-700"
+                      >
+                        <Icon icon={IconProp.Close} className="h-3 w-3" />
+                      </button>
+                    </span>
+                  );
+                })}
               <input
                 ref={searchInputRef}
                 type="text"
