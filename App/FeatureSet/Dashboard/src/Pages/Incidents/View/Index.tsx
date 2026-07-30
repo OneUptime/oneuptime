@@ -42,6 +42,7 @@ import TraceTable from "../../../Components/Traces/TraceTable";
 import { TelemetryQuery } from "Common/Types/Telemetry/TelemetryQuery";
 import MetricView from "../../../Components/Metrics/MetricView";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
+import MetricSeriesScope from "Common/Utils/Metrics/MetricSeriesScope";
 import IconProp from "Common/Types/Icon/IconProp";
 import HeaderAlert, {
   HeaderAlertType,
@@ -88,6 +89,11 @@ const IncidentView: FunctionComponent<
   const [telemetryQuery, setTelemetryQuery] = useState<TelemetryQuery | null>(
     null,
   );
+  /*
+   * "host.name = prod-01" when a grouped metric monitor opened this
+   * incident for one series. Empty for whole-monitor incidents.
+   */
+  const [seriesSummary, setSeriesSummary] = useState<string>("");
   const [isPrivate, setIsPrivate] = useState<boolean>(false);
   const [eventNumber, setEventNumber] = useState<string | undefined>(undefined);
   const [incidentTitle, setIncidentTitle] = useState<string | undefined>(
@@ -143,6 +149,7 @@ const IncidentView: FunctionComponent<
         modelType: Incident,
         select: {
           telemetryQuery: true,
+          seriesLabels: true,
           isPrivate: true,
           title: true,
           incidentNumber: true,
@@ -160,6 +167,39 @@ const IncidentView: FunctionComponent<
         telemetryQuery = JSONFunctions.deserialize(
           incident?.telemetryQuery as any,
         ) as any;
+      }
+
+      /*
+       * The stored telemetryQuery is the monitor's whole-evaluation view:
+       * a grouped metric monitor that breached on five hosts stamps the
+       * SAME query configs onto all five incidents. Narrow it to this
+       * incident's own series so the chart shows the host it is about
+       * instead of every host the monitor watches.
+       */
+      if (telemetryQuery?.metricViewData) {
+        /*
+         * Describe the narrowing that was actually applied, not the raw
+         * labels: a label the queries never grouped by narrows nothing, and
+         * announcing it would have the card vouch for a chart that still
+         * shows every series.
+         */
+        setSeriesSummary(
+          MetricSeriesScope.getAppliedSeriesLabelSummary({
+            queryConfigs: telemetryQuery.metricViewData.queryConfigs,
+            seriesLabels: incident?.seriesLabels as JSONObject | undefined,
+          }),
+        );
+
+        telemetryQuery = {
+          ...telemetryQuery,
+          metricViewData:
+            MetricSeriesScope.scopeMetricViewDataToSeries({
+              metricViewData: telemetryQuery.metricViewData,
+              seriesLabels: incident?.seriesLabels as JSONObject | undefined,
+            }) || null,
+        };
+      } else {
+        setSeriesSummary("");
       }
 
       setIsPrivate(incident?.isPrivate === true);
@@ -381,7 +421,11 @@ const IncidentView: FunctionComponent<
             telemetryQuery.metricViewData && (
               <Card
                 title={"Metrics"}
-                description={"Metrics related to this incident."}
+                description={
+                  seriesSummary
+                    ? `Metrics related to this incident, scoped to the affected series (${seriesSummary}).`
+                    : "Metrics related to this incident."
+                }
                 rightElement={
                   telemetryQuery.metricViewData.startAndEndDate ? (
                     <HeaderAlert

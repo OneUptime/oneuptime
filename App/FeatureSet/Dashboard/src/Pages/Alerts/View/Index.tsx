@@ -53,6 +53,7 @@ import AlertEpisodeElement from "../../../Components/AlertEpisode/AlertEpisode";
 import { TelemetryQuery } from "Common/Types/Telemetry/TelemetryQuery";
 import MetricView from "../../../Components/Metrics/MetricView";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
+import MetricSeriesScope from "Common/Utils/Metrics/MetricSeriesScope";
 import HeaderAlert, {
   HeaderAlertType,
 } from "Common/UI/Components/HeaderAlert/HeaderAlert";
@@ -79,6 +80,12 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  /*
+   * "host.name = prod-01" when a grouped metric monitor opened this alert
+   * for one series. Empty for whole-monitor alerts.
+   */
+  const [seriesSummary, setSeriesSummary] = useState<string>("");
 
   const [telemetryQuery, setTelemetryQuery] = useState<TelemetryQuery | null>(
     null,
@@ -137,6 +144,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         modelType: Alert,
         select: {
           telemetryQuery: true,
+          seriesLabels: true,
           isPrivate: true,
           title: true,
           alertNumber: true,
@@ -154,6 +162,39 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         telemetryQuery = JSONFunctions.deserialize(
           alert?.telemetryQuery as any,
         ) as any;
+      }
+
+      /*
+       * The stored telemetryQuery is the monitor's whole-evaluation view:
+       * a grouped metric monitor that breached on five hosts stamps the
+       * SAME query configs onto all five alerts. Narrow it to this alert's
+       * own series so the chart shows the host it is about instead of
+       * every host the monitor watches.
+       */
+      if (telemetryQuery?.metricViewData) {
+        /*
+         * Describe the narrowing that was actually applied, not the raw
+         * labels: a label the queries never grouped by narrows nothing, and
+         * announcing it would have the card vouch for a chart that still
+         * shows every series.
+         */
+        setSeriesSummary(
+          MetricSeriesScope.getAppliedSeriesLabelSummary({
+            queryConfigs: telemetryQuery.metricViewData.queryConfigs,
+            seriesLabels: alert?.seriesLabels as JSONObject | undefined,
+          }),
+        );
+
+        telemetryQuery = {
+          ...telemetryQuery,
+          metricViewData:
+            MetricSeriesScope.scopeMetricViewDataToSeries({
+              metricViewData: telemetryQuery.metricViewData,
+              seriesLabels: alert?.seriesLabels as JSONObject | undefined,
+            }) || null,
+        };
+      } else {
+        setSeriesSummary("");
       }
 
       if (alert?.alertSeverity) {
@@ -360,7 +401,11 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             telemetryQuery.metricViewData && (
               <Card
                 title={"Metrics"}
-                description={"Metrics for this alert."}
+                description={
+                  seriesSummary
+                    ? `Metrics for this alert, scoped to the affected series (${seriesSummary}).`
+                    : "Metrics for this alert."
+                }
                 rightElement={
                   telemetryQuery.metricViewData.startAndEndDate ? (
                     <HeaderAlert
