@@ -182,28 +182,17 @@ describe("Session replay ClickHouse schema", () => {
       expect(columnKeys(model)).toContain("clockSkewMs");
     });
 
-    it("has a projection covering every column the session list filters on", () => {
+    it("declares NO projections, because ClickHouse refuses them on this engine", () => {
       /*
-       * A projection missing browserName / deviceType / countryCode cannot
-       * serve those filters, which is how a projection ends up costing a
-       * second physical copy and then never being used.
+       * "Projections are not supported for ReplacingMergeTree with
+       * deduplicate_merge_projection_mode = throw" - raised by CREATE TABLE,
+       * so it fails createTables() at boot and takes the whole App down.
+       *
+       * Nothing is really lost: the projection this table used to declare
+       * ordered by (projectId, rumApplicationId, startTime), which is already
+       * the prefix of the sort key.
        */
-      const projection: string | undefined = model.projections[0]?.query;
-
-      expect(model.projections).toHaveLength(1);
-
-      for (const required of [
-        "hasError",
-        "browserName",
-        "osName",
-        "deviceType",
-        "countryCode",
-        "triggerReason",
-        "durationMs",
-        "payloadBytes",
-      ]) {
-        expect(projection).toContain(required);
-      }
+      expect(model.projections).toEqual([]);
     });
 
     it("generates a CREATE TABLE containing the load-bearing clauses", () => {
@@ -386,6 +375,33 @@ describe("Session replay ClickHouse schema", () => {
       TableColumnType.BigNumber,
       TableColumnType.ArrayBigNumber,
     ];
+
+    it("never declares a projection on a ReplacingMergeTree", () => {
+      /*
+       * ClickHouse raises SUPPORT_IS_DISABLED at CREATE TABLE:
+       * "Projections are not supported for ReplacingMergeTree with
+       * deduplicate_merge_projection_mode = throw".
+       *
+       * Boot calls createTables() for every registered analytics service, so
+       * one offending model does not degrade its own feature - it stops the
+       * entire App from starting. That is exactly how this surfaced: a stack
+       * that built cleanly and then 502'd forever.
+       */
+      const offenders: Array<string> = [];
+
+      for (const modelType of AnalyticsModels) {
+        const model: AnalyticsBaseModel = new modelType();
+
+        if (
+          model.tableEngine === AnalyticsTableEngine.ReplacingMergeTree &&
+          model.projections.length > 0
+        ) {
+          offenders.push(model.tableName);
+        }
+      }
+
+      expect(offenders).toEqual([]);
+    });
 
     it("never pairs the T64 codec with a column wider than 64 bits", () => {
       const offenders: Array<string> = [];

@@ -914,18 +914,23 @@ export default class RumSession extends AnalyticsBaseModel {
       ttlExpression: "retentionDate DELETE",
       defaultSortColumn: "startTime",
       /*
-       * Covers every column the session list filters or sorts on. A
-       * projection missing browserName / deviceType / countryCode cannot
-       * serve those filters, which is the usual way a projection ends up
-       * paying for itself and then not being used.
+       * NO projections, and this is not negotiable on a ReplacingMergeTree.
+       *
+       * ClickHouse refuses outright: "Projections are not supported for
+       * ReplacingMergeTree with deduplicate_merge_projection_mode = throw"
+       * (SUPPORT_IS_DISABLED). That error comes from CREATE TABLE, so it
+       * fails createTables() at boot and takes the entire App down - not just
+       * session replay.
+       *
+       * The other two ReplacingMergeTree models here, SloHistory and
+       * MutableMetric, both declare projections: [] for the same reason.
+       *
+       * Little is lost. The projection would have ordered by
+       * (projectId, rumApplicationId, startTime), which is already the prefix
+       * of this table's sort key, so the app-scoped session list is served by
+       * the primary index anyway.
        */
-      projections: [
-        {
-          name: "proj_session_recent",
-          query:
-            "SELECT projectId, rumApplicationId, startTime, sessionId, version, isFinalized, hasError, durationMs, errorCount, rageClickCount, deadClickCount, browserName, osName, deviceType, countryCode, identifiedUserKey, triggerReason, payloadBytes ORDER BY (projectId, rumApplicationId, startTime)",
-        },
-      ],
+      projections: [],
     });
   }
 
