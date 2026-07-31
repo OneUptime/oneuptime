@@ -1,14 +1,40 @@
 #!/bin/bash
 
 # Script to install the OneUptime Terraform Provider locally
+#
+# Usage: ./install-terraform-provider-locally.sh [--version X.Y.Z]
+# The version can also be set via the PROVIDER_VERSION environment variable.
+# If not specified, the version is derived from the generated provider itself
+# so the install path always matches what the provider binary reports.
 
 set -e
 
-npm run generate-terraform-provider
-
 PROVIDER_NAME="oneuptime"
-PROVIDER_VERSION="1.0.0"
-PROVIDER_DIR="$HOME/.terraform.d/plugins/registry.terraform.io/oneuptime/$PROVIDER_NAME/$PROVIDER_VERSION"
+# Must match providerVersion in Scripts/TerraformProvider/GenerateProvider.ts
+# (the version the generated provider reports for local builds).
+DEFAULT_PROVIDER_VERSION="1.0.0"
+PROVIDER_VERSION="${PROVIDER_VERSION:-}"
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -v|--version)
+            PROVIDER_VERSION="$2"
+            shift 2
+            ;;
+        --force)
+            # Accepted for compatibility with the npm script invocation; the
+            # provider is always regenerated below, so force is implied.
+            shift
+            ;;
+        *)
+            echo "❌ Unknown option: $1"
+            echo "Usage: $0 [--version X.Y.Z]"
+            exit 1
+            ;;
+    esac
+done
+
+npm run generate-terraform-provider
 
 echo "🚀 Installing OneUptime Terraform Provider locally..."
 
@@ -21,6 +47,17 @@ if [ ! -d "$(pwd)" ]; then
     echo "Please run 'npm run generate-terraform-provider' first"
     exit 1
 fi
+
+# Derive the version from the generated provider when not explicitly set, so
+# the plugin path stays consistent with what the provider actually reports.
+if [ -z "$PROVIDER_VERSION" ] && [ -f "version.go" ]; then
+    PROVIDER_VERSION=$(grep -oE 'Version = "[^"]+"' version.go | head -1 | cut -d'"' -f2)
+fi
+PROVIDER_VERSION="${PROVIDER_VERSION:-$DEFAULT_PROVIDER_VERSION}"
+
+PROVIDER_DIR="$HOME/.terraform.d/plugins/registry.terraform.io/oneuptime/$PROVIDER_NAME/$PROVIDER_VERSION"
+
+echo "🏷️  Provider version: $PROVIDER_VERSION"
 
 # Create plugin directory for different architectures
 echo "📁 Creating plugin directories..."
