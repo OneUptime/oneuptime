@@ -65,6 +65,12 @@ export default class OneUptimeDate {
     }).openapi({
       type: "object",
       description: "A date time object.",
+      /*
+       * Machine-readable marker so spec consumers (e.g. the Terraform provider
+       * generator) can treat this wrapper as an RFC3339 timestamp instead of an
+       * opaque object.
+       */
+      "x-oneuptime-type": ObjectType.DateTime,
       example: {
         _type: ObjectType.DateTime,
         value: "2023-10-01T12:00:00Z",

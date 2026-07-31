@@ -1,208 +1,120 @@
-# Terraformプロバイダー クイックスタートガイド
+# Quick Start
 
-このガイドでは、OneUptime Terraformプロバイダーを数分で使い始める方法を説明します。
+This guide takes you from nothing to managed OneUptime resources in about 10 minutes: create an API key, configure the provider, and apply a label, an HTTP monitor, and a status page.
 
-## 前提条件
+## Prerequisites
 
-- Terraform >= 1.0 がインストール済み
-- OneUptimeアカウント（クラウドまたはセルフホスト）
-- OneUptime APIキー
+- [Terraform](https://developer.hashicorp.com/terraform/install) 1.5 or later
+- A OneUptime account with a project ([oneuptime.com](https://oneuptime.com) or your self-hosted instance)
 
-## ステップ1：APIキーの作成
+## Step 1: Create a project API key
 
-### OneUptime Cloudの場合
+The provider authenticates with a **project-scoped API key**. In the OneUptime dashboard:
 
-1. [OneUptime Cloud](https://oneuptime.com) にアクセスしてログイン
-2. **設定** → **APIキー** に移動
-3. **APIキーの作成** をクリック
-4. 「Terraform Provider」と名前を付ける
-5. 必要な権限を選択
-6. 生成されたAPIキーをコピー
+1. Select your project.
+2. Go to **Project Settings** > **API Keys**.
+3. Click **Create API Key**.
+4. Give it a name (for example `terraform`) and an expiry.
+5. Grant permissions. Terraform needs **Create**, **Read**, **Update (Edit)**, and **Delete** on every resource type you plan to manage — for this guide: Label, Monitor, and Status Page.
+6. Copy the generated key.
 
-### セルフホストOneUptimeの場合
+> **Warning:** Do not use a user key or a self-hosted master API key. Master keys are not scoped to a project, and API calls made with them fail with `ProjectId required` errors. Only project API keys work with the Terraform provider.
 
-1. OneUptimeインスタンスにアクセス
-2. **設定** → **APIキー** に移動
-3. **APIキーの作成** をクリック
-4. 「Terraform Provider」と名前を付ける
-5. 必要な権限を選択
-6. 生成されたAPIキーをコピー
+Export the key as an environment variable so it never lands in your Terraform files:
 
-## ステップ2：Terraform設定の作成
+```bash
+export ONEUPTIME_API_KEY="your-project-api-key"
+```
 
-新しいディレクトリと `main.tf` ファイルを作成します：
+## Step 2: Configure the provider
+
+Create a working directory with a `main.tf`:
 
 ```hcl
 terraform {
   required_providers {
     oneuptime = {
       source  = "oneuptime/oneuptime"
-      # Cloudのお客様の場合
-      version = "~> 7.0"
-
-      # セルフホストのお客様の場合 — 正確なバージョンに固定
-      # version = "= 7.0.123"  # OneUptimeのバージョンに置き換えてください
+      version = "~> 11.0"
     }
   }
-  required_version = ">= 1.0"
 }
 
 provider "oneuptime" {
-  # Cloudのお客様の場合
-  oneuptime_url = "https://oneuptime.com"
-
-  # セルフホストのお客様の場合 — インスタンスURLを使用
-  # oneuptime_url = "https://oneuptime.yourcompany.com"
-
-  api_key = var.oneuptime_api_key
-}
-
-variable "oneuptime_api_key" {
-  description = "OneUptime APIキー"
-  type        = string
-  sensitive   = true
-}
-
-# 注意：プロジェクトはOneUptime ダッシュボードで手動作成する必要があります
-# 既存のプロジェクトIDをここに使用してください
-variable "project_id" {
-  description = "OneUptimeプロジェクトID"
-  type        = string
-}
-
-# シンプルなウェブサイトモニターを作成
-resource "oneuptime_monitor" "website" {
-  name        = "ウェブサイトモニター"
-  description = "ウェブサイトの稼働時間監視"
-  data        = jsonencode({
-    url = "https://example.com"
-    interval = "5m"
-    timeout = "30s"
-  })
-}
-
-# モニターIDを出力
-output "monitor_id" {
-  value = oneuptime_monitor.website.id
+  # api_key is read from the ONEUPTIME_API_KEY environment variable.
+  # oneuptime_url defaults to https://oneuptime.com — set it only if self-hosted:
+  # oneuptime_url = "https://oneuptime.example.com"
 }
 ```
 
-## ステップ3：変数ファイルの作成
+Self-hosted users: set `oneuptime_url` to your instance URL and check the version guidance in [Self-Hosted Setup](/docs/terraform/self-hosted) before pinning a provider version.
 
-`terraform.tfvars` を作成します：
+## Step 3: Define your first resources
+
+Append the following to `main.tf`. It creates a label, a website monitor for your homepage, and a private status page:
 
 ```hcl
-# terraform.tfvars
-oneuptime_api_key = "your-api-key-here"
-project_id        = "your-project-id-here"  # OneUptime ダッシュボードから取得
+resource "oneuptime_label" "critical" {
+  name        = "critical"
+  description = "Resources that page on-call when down"
+  color       = "#FF5733"
+}
+
+resource "oneuptime_monitor" "homepage" {
+  name         = "Homepage"
+  description  = "Checks that the homepage responds"
+  monitor_type = "Website"
+  labels       = [oneuptime_label.critical.id]
+}
+
+resource "oneuptime_status_page" "internal" {
+  name                     = "Internal Status"
+  description              = "Status page for internal services"
+  page_title               = "Service Status"
+  page_description         = "Live status of our services"
+  is_public_status_page    = false
+  enable_email_subscribers = false
+  enable_sms_subscribers   = false
+}
+
+output "monitor_id" {
+  value = oneuptime_monitor.homepage.id
+}
 ```
 
-**重要**：APIキーを秘密にするために `terraform.tfvars` を `.gitignore` に追加してください！
+A `Website` monitor created without explicit `monitor_steps` gets sensible server-side defaults. To control the URL, request type, and up/down criteria yourself, pass `monitor_steps` as JSON — that is covered in [Monitor Steps](/docs/terraform/monitor-steps).
 
-## ステップ4：初期化と適用
+## Step 4: Init, plan, apply
 
 ```bash
-# Terraformを初期化
 terraform init
-
-# デプロイを計画
 terraform plan
-
-# 設定を適用
 terraform apply
 ```
 
-## ステップ5：リソースの確認
+Review the plan (3 resources to add) and confirm with `yes`. Apply completes in a few seconds and prints the monitor ID.
 
-1. OneUptime ダッシュボードを確認
-2. 既存のプロジェクトに移動
-3. 「ウェブサイトモニター」が作成されて実行されていることを確認
+## Step 5: Verify in the dashboard
 
-## 次のステップ
+In the OneUptime dashboard:
 
-1. **より多くのリソースを探索する**：利用可能なすべてのリソースの[完全なドキュメント](./README.md)を確認
-2. **アラートの設定**：アラートポリシーと通知チャンネルを追加
-3. **ステータスページの作成**：サービスの公開ステータスページを設定
-4. **チームによる整理**：チームを作成して権限を割り当てる
+- **Monitors** — the `Homepage` monitor is listed with the `critical` label.
+- **Status Pages** — `Internal Status` appears.
+- **Project Settings > Labels** — the `critical` label exists with the color you set.
 
-## バージョン別の例
+Run `terraform plan` again: it reports `No changes.` Server-computed fields (slugs, current status, default monitoring steps) do not cause drift.
 
-### Cloudのお客様（最新バージョン）
+## Step 6: Clean up
 
-```hcl
-terraform {
-  required_providers {
-    oneuptime = {
-      source  = "oneuptime/oneuptime"
-      version = "~> 7.0"  # 常に最新の互換7.xバージョンを取得
-    }
-  }
-}
-
-provider "oneuptime" {
-  oneuptime_url = "https://oneuptime.com"
-  api_key       = var.oneuptime_api_key
-}
-```
-
-### セルフホストのお客様（バージョン固定）
-
-```hcl
-terraform {
-  required_providers {
-    oneuptime = {
-      source  = "oneuptime/oneuptime"
-      version = "= 7.0.123"  # OneUptimeのバージョンと完全一致させる必要あり
-    }
-  }
-}
-
-provider "oneuptime" {
-  oneuptime_url = "https://oneuptime.mycompany.com"  # セルフホストURL
-  api_key       = var.oneuptime_api_key
-}
-```
-
-## クイックスタートのトラブルシューティング
-
-### 問題：プロバイダーが見つからない
-
-```
-Error: Failed to query available provider packages
-```
-
-**解決策**：`terraform init` を実行してプロバイダーをダウンロードする
-
-### 問題：認証が失敗する
-
-```
-Error: Invalid API key
-```
-
-**解決策**：
-
-1. OneUptime ダッシュボードでAPIキーを確認する
-2. APIキーに十分な権限があるか確認する
-3. インスタンスの `oneuptime_url` が正しいか確認する
-
-### 問題：バージョンの不一致（セルフホスト）
-
-```
-Error: API version incompatible
-```
-
-**解決策**：
-
-1. ダッシュボードでOneUptimeのバージョンを確認する
-2. プロバイダーのバージョンを完全一致に更新する
-3. `terraform init -upgrade` を実行する
-
-## クリーンアップ
-
-このクイックスタートで作成したすべてのリソースを削除するには：
+If this was a test drive, remove everything the configuration created:
 
 ```bash
 terraform destroy
 ```
 
-これにより、クイックスタート中に作成されたモニターとプロジェクトが削除されます。
+## Next steps
+
+- [Complete Guide](/docs/terraform/complete-guide) — authentication options, project layout, dependencies, data sources, remote state
+- [Examples](/docs/terraform/examples) — configurations for every major resource type
+- [Monitor Steps](/docs/terraform/monitor-steps) — take control of what your monitors check
+- [Importing Resources](/docs/terraform/importing-resources) — adopt resources you already created in the dashboard

@@ -30,7 +30,7 @@ NAMESPACE=oneuptime
 NAME=${this.config.providerName}
 BINARY=terraform-provider-\${NAME}
 VERSION=${this.config.providerVersion}
-OS_ARCH=darwin_amd64
+OS_ARCH=$(shell go env GOOS)_$(shell go env GOARCH)
 
 default: install
 
@@ -69,8 +69,7 @@ install: build
 	mv \${BINARY} ~/.terraform.d/plugins/\${HOSTNAME}/\${NAMESPACE}/\${NAME}/\${VERSION}/\${OS_ARCH}
 
 test:
-	go test -i $(go list ./... | grep -v examples)
-	go test $(go list ./... | grep -v examples) -v $(TESTARGS) -timeout 120m
+	go test ./... -v $(TESTARGS) -timeout 120m
 
 testacc:
 	TF_ACC=1 go test $(go list ./... | grep -v examples) -v $(TESTARGS) -timeout 120m
@@ -125,7 +124,7 @@ builds:
     flags:
       - -trimpath
     ldflags:
-      - -s -w
+      - -s -w -X main.version={{ .Version }}
 
 archives:
   - formats:
@@ -209,7 +208,8 @@ echo "Building provider..."
 go build -o terraform-provider-${this.config.providerName}
 
 # Create plugin directory
-PLUGIN_DIR="$HOME/.terraform.d/plugins/registry.terraform.io/oneuptime/${this.config.providerName}/${this.config.providerVersion}/darwin_amd64"
+OS_ARCH="$(go env GOOS)_$(go env GOARCH)"
+PLUGIN_DIR="$HOME/.terraform.d/plugins/registry.terraform.io/oneuptime/${this.config.providerName}/${this.config.providerVersion}/$OS_ARCH"
 mkdir -p "$PLUGIN_DIR"
 
 # Copy binary
@@ -222,8 +222,8 @@ echo ""
 echo "terraform {"
 echo "  required_providers {"
 echo "    ${this.config.providerName} = {"
-echo "      source = "oneuptime/${this.config.providerName}""
-echo "      version = "${this.config.providerVersion}""
+echo "      source = \\"oneuptime/${this.config.providerName}\\""
+echo "      version = \\"${this.config.providerVersion}\\""
 echo "    }"
 echo "  }"
 echo "}"

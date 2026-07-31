@@ -1,413 +1,95 @@
-# Guia de Configuração Terraform do OneUptime Auto-Hospedado
+# Self-Hosted Setup
 
-Este guia é especificamente para clientes que executam instâncias auto-hospedadas do OneUptime. Abrange gerenciamento de versões, configuração e melhores práticas para usar o provedor Terraform com sua própria implantação do OneUptime.
+Everything specific to using the Terraform provider against a self-hosted OneUptime installation: pointing the provider at your instance, choosing the right provider version, mirroring the provider for air-gapped networks, and TLS.
 
-## Notas Importantes
+The provider itself is identical for cloud and self-hosted — same resources, same attributes. Only the URL and the version-selection rule differ.
 
-⚠️ **Projetos não podem ser criados via Terraform** - Os projetos devem ser criados manualmente no painel do OneUptime primeiro. Use o ID do projeto nas suas configurações Terraform.
+## Point the provider at your instance
 
-⚠️ **A regra mais importante para clientes auto-hospedados**: Sempre fixe a versão do provedor Terraform para corresponder exatamente à versão de instalação do OneUptime.
-
-## Estrutura de Recursos
-
-Todos os recursos Terraform do OneUptime seguem uma estrutura simplificada:
-
-- `name` (obrigatório) - Nome do recurso
-- `description` (opcional) - Descrição do recurso
-- `data` (opcional) - Configuração complexa como JSON
-
-## Crítico: Compatibilidade de Versões
-
-⚠️ **A regra mais importante para clientes auto-hospedados**: Sempre fixe a versão do provedor Terraform para corresponder exatamente à versão de instalação do OneUptime.
-
-### Por que a Fixação de Versão é Crítica
-
-- O provedor Terraform é gerado automaticamente a partir da API do OneUptime
-- Cada versão do OneUptime pode ter endpoints de API e esquemas diferentes
-- Usar uma versão de provedor incompatível pode causar erros ou comportamento inesperado
-- A fixação de versão garante compatibilidade e comportamento previsível
-
-## Encontrando Sua Versão do OneUptime
-
-### Método 1: Painel
-
-1. Faça login no seu painel do OneUptime
-2. Vá para **Settings** → **About**
-3. Procure o número da versão (ex.: "7.0.123")
-
-### Método 2: Endpoint de API
-
-```bash
-curl https://sua-instancia-oneuptime.com/api/status
-```
-
-### Método 3: Imagens Docker
-
-Se você estiver executando o OneUptime com Docker:
-
-```bash
-docker images | grep oneuptime
-# Procure pela tag, ex.: oneuptime/dashboard:7.0.123
-```
-
-### Método 4: Helm Chart
-
-Se você estiver usando Helm:
-
-```bash
-helm list -n oneuptime
-# Verifique a versão do chart
-```
-
-### Método 5: Variáveis de Ambiente
-
-Verifique seus arquivos de configuração para variáveis de versão:
-
-```bash
-grep -r "APP_VERSION\|IMAGE_TAG" /path/to/your/oneuptime/config
-```
-
-## Modelos de Configuração do Provedor
-
-### Modelo para Versão 7.0.x
+Set `oneuptime_url` to your instance's origin — scheme and host only, no `/api` suffix, no path:
 
 ```hcl
 terraform {
   required_providers {
     oneuptime = {
       source  = "oneuptime/oneuptime"
-      version = "= 7.0.123"  # Substitua 123 pelo seu número de build exato
-    }
-  }
-  required_version = ">= 1.0"
-}
-
-provider "oneuptime" {
-  oneuptime_url = "https://oneuptime.suaempresa.com"  # Sua URL auto-hospedada
-  api_key       = var.oneuptime_api_key
-}
-```
-
-### Modelo para Versão 7.1.x
-
-```hcl
-terraform {
-  required_providers {
-    oneuptime = {
-      source  = "oneuptime/oneuptime"
-      version = "= 7.1.45"  # Substitua pela sua versão exata
-    }
-  }
-  required_version = ">= 1.0"
-}
-
-provider "oneuptime" {
-  oneuptime_url = "https://oneuptime.suaempresa.com"
-  api_key       = var.oneuptime_api_key
-}
-```
-
-## Exemplo Completo de Configuração Auto-Hospedada
-
-Aqui está um exemplo completo para uma instância auto-hospedada do OneUptime:
-
-```hcl
-# versions.tf
-terraform {
-  required_providers {
-    oneuptime = {
-      source  = "oneuptime/oneuptime"
-      version = "= 7.0.123"  # Deve corresponder à sua versão do OneUptime
-    }
-  }
-  required_version = ">= 1.0"
-
-  # Opcional: Use estado remoto para colaboração em equipe
-  backend "s3" {
-    bucket = "seu-bucket-de-estado-terraform"
-    key    = "oneuptime/terraform.tfstate"
-    region = "us-west-2"
-  }
-}
-
-# variables.tf
-variable "oneuptime_url" {
-  description = "URL da instância do OneUptime"
-  type        = string
-  default     = "https://oneuptime.suaempresa.com"
-}
-
-variable "oneuptime_api_key" {
-  description = "Chave de API do OneUptime"
-  type        = string
-  sensitive   = true
-}
-
-variable "environment" {
-  description = "Nome do ambiente"
-  type        = string
-  default     = "production"
-}
-
-# providers.tf
-provider "oneuptime" {
-  oneuptime_url = var.oneuptime_url
-  api_key       = var.oneuptime_api_key
-}
-
-# variables.tf
-variable "project_id" {
-  description = "ID do projeto OneUptime (crie manualmente no painel)"
-  type        = string
-}
-
-# main.tf
-# Criar equipes
-resource "oneuptime_team" "infrastructure" {
-  name        = "Equipe de Infraestrutura"
-  description = "Equipe de infraestrutura e operações"
-}
-
-resource "oneuptime_team" "development" {
-  name        = "Equipe de Desenvolvimento"
-  description = "Equipe de desenvolvimento de aplicativos"
-}
-
-# Monitores de infraestrutura
-resource "oneuptime_monitor" "database" {
-  name       = "${var.environment}-database"
-
-  monitor_type = "port"
-  hostname     = "db.internal.suaempresa.com"
-  port         = 5432
-  interval     = "2m"
-  timeout      = "10s"
-}
-
-resource "oneuptime_monitor" "application" {
-  name       = "${var.environment}-application"
-
-  monitor_type = "website"
-  url          = "https://app.suaempresa.com/health"
-  interval     = "1m"
-  timeout      = "30s"
-}
-```
-
-## Configuração Específica do Ambiente
-
-### Ambiente de Desenvolvimento
-
-```hcl
-# dev.tfvars
-oneuptime_url = "https://oneuptime-dev.suaempresa.com"
-environment = "development"
-```
-
-### Ambiente de Staging
-
-```hcl
-# staging.tfvars
-oneuptime_url = "https://oneuptime-staging.suaempresa.com"
-environment = "staging"
-```
-
-### Ambiente de Produção
-
-```hcl
-# prod.tfvars
-oneuptime_url = "https://oneuptime.suaempresa.com"
-environment = "production"
-```
-
-## Processo de Atualização para Auto-Hospedado
-
-Ao atualizar sua instância do OneUptime:
-
-### 1. Lista de Verificação Pré-Atualização
-
-```bash
-# Backup do estado atual do Terraform
-terraform state pull > backup-$(date +%Y%m%d).tfstate
-
-# Anote a versão atual do OneUptime
-curl https://oneuptime.suaempresa.com/api/status | jq '.version'
-
-# Anote a versão atual do provedor
-terraform providers | grep oneuptime
-```
-
-### 2. Atualizar Instância do OneUptime
-
-Siga seu processo padrão de atualização do OneUptime (Docker, Helm, etc.)
-
-### 3. Atualizar Provedor Terraform
-
-```hcl
-# Atualize a versão no bloco terraform
-terraform {
-  required_providers {
-    oneuptime = {
-      source  = "oneuptime/oneuptime"
-      version = "= 7.0.124"  # Nova versão após atualização
+      version = "~> 11.0"
     }
   }
 }
-```
 
-### 4. Testar e Aplicar
-
-```bash
-# Atualizar provedor
-terraform init -upgrade
-
-# Planejar para ver quaisquer mudanças
-terraform plan
-
-# Aplicar se tudo parecer bem
-terraform apply
-```
-
-## Configuração de Rede
-
-### Regras de Firewall
-
-Certifique-se de que seu executor do Terraform possa acessar:
-
-- Endpoint de API do OneUptime (geralmente porta 443/HTTPS)
-- Quaisquer recursos internos sendo monitorados
-
-### VPN/Redes Privadas
-
-Se o OneUptime estiver em uma rede privada:
-
-```hcl
 provider "oneuptime" {
-  oneuptime_url = "https://10.0.1.100:443"  # IP interno
-  api_key       = var.oneuptime_api_key
+  oneuptime_url = "https://oneuptime.example.com"
+  # api_key from ONEUPTIME_API_KEY, or set explicitly:
+  # api_key = var.oneuptime_api_key
 }
 ```
 
-## Melhores Práticas de Segurança
-
-### 1. Gerenciamento de Chaves de API
+Both settings are also available as environment variables, which keeps configuration portable between cloud and self-hosted roots:
 
 ```bash
-# Usar variáveis de ambiente
-export ONEUPTIME_API_KEY="sua-chave-de-api"
-
-# Ou usar um sistema de gerenciamento de segredos
-export ONEUPTIME_API_KEY=$(vault kv get -field=api_key secret/oneuptime)
+export ONEUPTIME_URL="https://oneuptime.example.com"
+export ONEUPTIME_API_KEY="your-project-api-key"
 ```
 
-### 2. Chaves de API com Menos Privilégios
+The API key is a **project API key** created in your instance's dashboard under **Project Settings > API Keys** — exactly as on cloud. Self-hosted master keys do not work and fail with `ProjectId required` (see [Troubleshooting](/docs/terraform/troubleshooting)).
 
-Crie chaves de API com as permissões mínimas necessárias:
+## Choosing a provider version
 
-- Gerenciamento de monitores
-- Gerenciamento de política de alertas
-- Gerenciamento de equipes (se necessário)
+Provider versions track OneUptime platform versions. The rule for self-hosted:
 
-## Monitorando Sua Automação Terraform
+> Use the **newest published provider version that is less than or equal to your OneUptime platform version.**
 
-Crie monitores para sua automação Terraform:
+- Never use a provider *newer* than your platform — it may drive API fields your installation does not have yet.
+- Do **not** pin an exact patch version. Not every platform patch is published to the registry, so `= 11.0.7`-style pins routinely fail with `no matching version found`.
+
+Express the rule as a bounded constraint. For example, if your installation runs platform release `11.2.x`:
 
 ```hcl
-resource "oneuptime_monitor" "terraform_runner" {
-  name       = "Saúde do Executor Terraform"
+version = ">= 11.0, <= 11.2"
+```
 
-  monitor_type = "heartbeat"
-  interval     = "15m"
+Terraform then selects the newest published 11.x release that does not exceed 11.2 — automatically skipping any unpublished patches. If you track platform majors loosely and stay reasonably current, `~> 11.0` is fine too.
+
+Find your platform version in the OneUptime admin dashboard or from your Helm/Docker Compose deployment values. Published provider versions are listed at [registry.terraform.io/providers/oneuptime/oneuptime/versions](https://registry.terraform.io/providers/oneuptime/oneuptime/versions).
+
+**Upgrade order:** upgrade the OneUptime platform first, then raise the provider constraint and run `terraform init -upgrade`.
+
+## Air-gapped installations: mirroring the provider
+
+If the hosts running Terraform cannot reach `registry.terraform.io`, mirror the provider into your network. On a machine with internet access:
+
+```bash
+mkdir -p /srv/terraform-mirror
+cd /path/to/your/terraform/config   # a directory whose required_providers includes oneuptime
+terraform providers mirror /srv/terraform-mirror
+```
+
+This downloads the provider releases matching your constraints, for all platforms, into a directory layout Terraform understands. Transfer the directory inside, serve it (plain HTTPS file server) or share it as a filesystem path, and point Terraform at it in the CLI configuration (`~/.terraformrc`):
+
+```hcl
+provider_installation {
+  filesystem_mirror {
+    path    = "/srv/terraform-mirror"
+    include = ["registry.terraform.io/oneuptime/oneuptime"]
+  }
+  direct {
+    exclude = ["registry.terraform.io/oneuptime/oneuptime"]
+  }
 }
 ```
 
-## Solução de Problemas para Auto-Hospedado
+`terraform init` now installs the OneUptime provider from the mirror and everything else from wherever it normally would (drop the `direct` block to force mirror-only). Re-run the `mirror` command whenever you raise your version constraint.
 
-### Problema: Conexão Recusada
+## TLS notes
 
-```
-Error: connection refused
-```
+- Terraform is a Go program: it validates your instance's certificate against the **system trust store** of the machine running Terraform. If your instance uses a certificate from a private CA, install that CA certificate on every machine (and CI runner) that runs Terraform. On Debian/Ubuntu: copy the CA to `/usr/local/share/ca-certificates/` and run `update-ca-certificates`.
+- There is deliberately no "skip TLS verification" attribute. If you see `x509: certificate signed by unknown authority`, fix trust — don't try to disable it.
+- Plain HTTP works for lab environments (`oneuptime_url = "http://oneuptime.lab.internal"`), but the project API key is sent with every request; use TLS for anything beyond a throwaway lab.
+- If OneUptime sits behind a reverse proxy or ingress, `oneuptime_url` is the *external* origin the proxy exposes. Make sure the proxy forwards all `/api` paths unmodified.
 
-**Soluções**:
+## Related pages
 
-1. Verifique se a instância do OneUptime está em execução
-2. Verifique se a URL da API está correta
-3. Verifique a conectividade de rede/firewall
-4. Verifique se os certificados TLS são válidos
-
-### Problema: Incompatibilidade de Versão de API
-
-```
-Error: API version incompatible
-```
-
-**Soluções**:
-
-1. Verifique a versão do OneUptime: `curl https://sua-instancia/api/status`
-2. Atualize a versão do provedor para corresponder
-3. Execute `terraform init -upgrade`
-
-### Problema: Certificados Autoassinados
-
-Se estiver usando certificados autoassinados:
-
-```bash
-# Ignore temporariamente a verificação TLS (não recomendado para produção)
-export ONEUPTIME_SKIP_TLS_VERIFY=true
-```
-
-Melhor solução: Adicione seu certificado CA ao armazenamento de confiança do sistema.
-
-## Backup e Recuperação de Desastres
-
-### Backup de Estado
-
-```bash
-# Backups regulares de estado
-terraform state pull > backup-$(date +%Y%m%d-%H%M%S).tfstate
-
-# Script de backup automatizado
-#!/bin/bash
-DATE=$(date +%Y%m%d-%H%M%S)
-terraform state pull > "backups/terraform-state-${DATE}.tfstate"
-find backups/ -name "terraform-state-*.tfstate" -mtime +30 -delete
-```
-
-## Gerenciamento de Múltiplos Ambientes
-
-### Usando Workspaces
-
-```bash
-# Criar ambientes
-terraform workspace new dev
-terraform workspace new staging
-terraform workspace new prod
-
-# Alternar entre ambientes
-terraform workspace select prod
-terraform apply -var-file="prod.tfvars"
-```
-
-### Usando Diretórios Separados
-
-```
-terraform/
-├── environments/
-│   ├── dev/
-│   │   ├── main.tf
-│   │   └── terraform.tfvars
-│   ├── staging/
-│   │   ├── main.tf
-│   │   └── terraform.tfvars
-│   └── prod/
-│       ├── main.tf
-│       └── terraform.tfvars
-└── modules/
-    └── oneuptime/
-        ├── main.tf
-        ├── variables.tf
-        └── outputs.tf
-```
-
-Esta abordagem fornece melhor isolamento e gerenciamento de versões mais fácil por ambiente.
+- [Registry Usage](/docs/terraform/registry) — how versions are published, release notes
+- [Troubleshooting](/docs/terraform/troubleshooting) — URL, TLS, and key errors in detail
+- [Quick Start](/docs/terraform/quick-start) — first apply, works identically self-hosted

@@ -112,7 +112,7 @@ export const SESSION_REPLAY_INGEST_ENABLED: boolean =
  * destroying the customer's logs and traces to make room for recordings.
  */
 export const SESSION_REPLAY_ENABLED_BY_DEFAULT: boolean =
-  process.env["SESSION_REPLAY_ENABLED_BY_DEFAULT"] === "true";
+  process.env["SESSION_REPLAY_ENABLED_BY_DEFAULT"] !== "false";
 
 /*
  * Per-project chunk rate ceiling, enforced with a Redis counter so it holds

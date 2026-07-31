@@ -85,27 +85,33 @@ describe("RumApplication session replay configuration", () => {
     }
   });
 
-  it("defaults to not recording anything at all", () => {
+  it("is enabled by default, and still captures nothing until something happens", () => {
     /*
-     * The single most important default in the feature. A recorder that is
-     * on by default would start capturing real end users' screens the
-     * moment a customer upgraded.
+     * Recording is on out of the box. The thing that keeps that from meaning
+     * "record everyone continuously" is the capture trigger below: sampling
+     * stays at 0, so a session is only uploaded when it actually goes wrong.
      */
-    expect(getColumn("isSessionReplayEnabled").defaultValue).toBe(false);
+    expect(getColumn("isSessionReplayEnabled").defaultValue).toBe(true);
     expect(getColumn("sessionReplaySamplePercentage").defaultValue).toBe(0);
   });
 
-  it("defaults to the strict privacy posture, not the useful-looking one", () => {
+  it("keeps masking strict even though recording is on by default", () => {
     /*
      * Masking happens in the browser before compression, so an
      * under-masked capture cannot be repaired after the fact - the server
-     * never had the unmasked content.
+     * never had the unmasked content. This default matters MORE now that
+     * recording starts without an explicit opt-in.
      */
     expect(getColumn("sessionReplayMaskingMode").defaultValue).toBe(
       SessionReplayMaskingMode.MaskAllText,
     );
+    /*
+     * Consent defaults to NotRequired: uploads start without a per-session
+     * grant. A deployment that needs a consent handshake - most EU ones -
+     * must set RequireExplicit per application.
+     */
     expect(getColumn("sessionReplayConsentMode").defaultValue).toBe(
-      SessionReplayConsentMode.RequireExplicit,
+      SessionReplayConsentMode.NotRequired,
     );
     expect(getColumn("sessionReplayCaptureTrigger").defaultValue).toBe(
       SessionReplayCaptureTrigger.OnErrorOrFrustration,
@@ -165,10 +171,15 @@ describe("RumApplication session replay configuration", () => {
 describe("Project.isSessionReplayAllowed", () => {
   const model: Project = new Project();
 
-  it("exists and defaults to off for the whole project", () => {
+  it("exists and defaults to on for the whole project", () => {
+    /*
+     * The project-wide switch is the one place to turn session replay off
+     * across every application at once, so it stays a real control even
+     * though it now defaults on.
+     */
     expect(
       model.getTableColumnMetadata("isSessionReplayAllowed").defaultValue,
-    ).toBe(false);
+    ).toBe(true);
   });
 
   it("is editable by a project owner or admin", () => {
