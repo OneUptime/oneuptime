@@ -2,6 +2,7 @@ import {
   TerraformProviderConfig,
   OpenAPISpec,
   TerraformDataSource,
+  TerraformAttribute,
 } from "./Types";
 import { FileGenerator } from "./FileGenerator";
 import { StringUtils } from "./StringUtils";
@@ -51,7 +52,6 @@ export class DataSourceGenerator {
     );
     const dataSourceVarName: string = StringUtils.toCamelCase(dataSource.name);
 
-    // Check if we need the attr import (for list/map/set types)
     const needsAttrImport: boolean = Object.values(dataSource.schema).some(
       (attr: any) => {
         return (
@@ -59,25 +59,33 @@ export class DataSourceGenerator {
         );
       },
     );
-
-    // Check if we need the math/big import (for number types)
+    const needsSortImport: boolean = Object.values(dataSource.schema).some(
+      (attr: any) => {
+        return attr.type === "set";
+      },
+    );
     const needsMathBigImport: boolean = Object.values(dataSource.schema).some(
       (attr: any) => {
         return attr.type === "number";
       },
     );
 
-    const attrImport: string = needsAttrImport
-      ? '\n    "github.com/hashicorp/terraform-plugin-framework/attr"'
-      : "";
-
-    const mathBigImport: string = needsMathBigImport ? '\n    "math/big"' : "";
+    const conditionalImports: string = [
+      // http.StatusNotFound is only referenced by the get-item branch.
+      dataSource.operations.read ? '\n    "net/http"' : "",
+      needsMathBigImport ? '\n    "math/big"' : "",
+      needsAttrImport
+        ? '\n    "github.com/hashicorp/terraform-plugin-framework/attr"'
+        : "",
+      needsSortImport ? '\n    "sort"' : "",
+    ].join("");
 
     return `package provider
 
 import (
     "context"
-    "fmt"${mathBigImport}${attrImport}
+    "encoding/json"
+    "fmt"${conditionalImports}
 
     "github.com/hashicorp/terraform-plugin-framework/datasource"
     "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -108,7 +116,7 @@ func (d *${dataSourceTypeName}DataSource) Metadata(ctx context.Context, req data
 
 func (d *${dataSourceTypeName}DataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
     resp.Schema = schema.Schema{
-        MarkdownDescription: "${dataSource.name} data source",
+        MarkdownDescription: "${GoCodeGenerator.escapeString(dataSource.description || "")} Look up an existing ${dataSource.name} by \`id\` or by \`name\`.",
 
         Attributes: map[string]schema.Attribute{
 ${this.generateSchemaAttributes(dataSource)}
@@ -145,8 +153,7 @@ func (d *${dataSourceTypeName}DataSource) Read(ctx context.Context, req datasour
     if resp.Diagnostics.HasError() {
         return
     }
-
-    ${this.generateReadMethod(dataSource, dataSourceVarName)}
+${this.generateReadMethod(dataSource, dataSourceVarName)}
 
     // Write logs using the tflog package
     tflog.Trace(ctx, "read a data source")
@@ -216,6 +223,10 @@ func (d *${dataSourceTypeName}DataSource) Read(ctx context.Context, req datasour
 
     if (attr.required) {
       options.push("Required: true");
+    } else if (attr.optional && attr.computed) {
+      // Lookup keys (id, name): user-settable, server-populated afterwards.
+      options.push("Optional: true");
+      options.push("Computed: true");
     } else if (attr.computed) {
       options.push("Computed: true");
     } else {
@@ -236,219 +247,158 @@ func (d *${dataSourceTypeName}DataSource) Read(ctx context.Context, req datasour
             }`;
   }
 
+  /*
+   * The read flow:
+   *   - exactly one of id/name must be set, enforced with a clear error
+   *   - id  -> POST {crud}/{id}/get-item with a full select
+   *   - name -> POST {crud}/get-list with query {name}, limit 2; exactly one
+   *     match required — zero or multiple matches are errors, never silently
+   *     empty state or an arbitrary first item
+   */
   private generateReadMethod(
     dataSource: TerraformDataSource,
     dataSourceVarName: string,
   ): string {
-    let readCode: string = "";
+    const readOperation: any = dataSource.operations.read;
+    const listOperation: any = dataSource.operations.list;
 
-    if (dataSource.operations.read) {
-      const operation: any = dataSource.operations.read;
-      const path: string = this.extractPathFromOperation(operation);
+    const selectParam: string = this.generateSelectParameter(dataSource);
 
-      // Replace path parameters with data values
-      let finalPath: string;
-
-      // Check if path has parameters
-      if (path.includes("{")) {
-        // Split the path into parts and handle parameters
-        const parts: string[] = [];
-        const segments: string[] = path.split("/");
-
-        for (const segment of segments) {
-          if (!segment) {
-            continue; // Skip empty segments
-          }
-
-          if (segment.startsWith("{") && segment.endsWith("}")) {
-            const paramName: string = segment.slice(1, -1);
-            const fieldName: string = StringUtils.toPascalCase(paramName);
-            parts.push(`data.${fieldName}.ValueString()`);
-          } else {
-            parts.push(`"${segment}"`);
-          }
+    const readById: string = readOperation
+      ? `
+        readPath := ${this.buildGetItemPathExpression(readOperation.path)}
+        httpResp, err := d.client.PostWithSelect(ctx, readPath, selectParam)
+        if err != nil {
+            resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read ${dataSource.name}, got error: %s", err))
+            return
         }
-
-        finalPath = parts.join(' + "/" + ');
-
-        // Ensure it starts and ends with proper quotes
-        if (!finalPath.startsWith('"')) {
-          finalPath = '"/" + ' + finalPath;
+        if httpResp.StatusCode == http.StatusNotFound {
+            resp.Diagnostics.AddError("Not Found", fmt.Sprintf("No ${dataSource.name} found with id %q.", data.Id.ValueString()))
+            return
+        }
+        var itemResponse map[string]interface{}
+        if err := d.client.ParseResponse(httpResp, &itemResponse); err != nil {
+            resp.Diagnostics.AddError("OneUptime API Error", fmt.Sprintf("Unable to read ${dataSource.name}: %s", err))
+            return
+        }
+        if wrapper, ok := itemResponse["data"].(map[string]interface{}); ok {
+            item = wrapper
         } else {
-          finalPath = '"/" + ' + finalPath;
+            item = itemResponse
+        }`
+      : `
+        resp.Diagnostics.AddError("Lookup Not Supported", "${dataSource.name} cannot be looked up by id: the API exposes no get endpoint. Use the name filter instead.")
+        return`;
+
+    const readByName: string = listOperation
+      ? `
+        listBody := map[string]interface{}{
+            "query": map[string]interface{}{
+                "name": data.Name.ValueString(),
+            },
+            "select": selectParam,
+            // limit 2 is enough to detect ambiguity without paging.
+            "limit": 2,
         }
-      } else {
-        // No parameters, just quote the path
-        finalPath = `"${path}"`;
+        httpResp, err := d.client.Post(ctx, "${listOperation.path}", listBody)
+        if err != nil {
+            resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to list ${dataSource.name}, got error: %s", err))
+            return
+        }
+        var listResponse map[string]interface{}
+        if err := d.client.ParseResponse(httpResp, &listResponse); err != nil {
+            resp.Diagnostics.AddError("OneUptime API Error", fmt.Sprintf("Unable to list ${dataSource.name}: %s", err))
+            return
+        }
+        items, _ := listResponse["data"].([]interface{})
+        if len(items) == 0 {
+            resp.Diagnostics.AddError("Not Found", fmt.Sprintf("No ${dataSource.name} found with name %q.", data.Name.ValueString()))
+            return
+        }
+        if len(items) > 1 {
+            resp.Diagnostics.AddError("Ambiguous Match", fmt.Sprintf("More than one ${dataSource.name} matches name %q. Use the id attribute to disambiguate.", data.Name.ValueString()))
+            return
+        }
+        first, ok := items[0].(map[string]interface{})
+        if !ok {
+            resp.Diagnostics.AddError("OneUptime API Error", "Unexpected list response shape for ${dataSource.name}.")
+            return
+        }
+        item = first`
+      : `
+        resp.Diagnostics.AddError("Lookup Not Supported", "${dataSource.name} cannot be looked up by name: the API exposes no list endpoint. Use the id filter instead.")
+        return`;
+
+    return `
+    hasId := !data.Id.IsNull() && data.Id.ValueString() != ""
+    hasName := !data.Name.IsNull() && data.Name.ValueString() != ""
+    if hasId == hasName {
+        resp.Diagnostics.AddError(
+            "Invalid Lookup",
+            "Exactly one of \`id\` or \`name\` must be set to look up a ${dataSource.name}.",
+        )
+        return
+    }
+
+    selectParam := map[string]interface{}{
+${selectParam}
+    }
+
+    var item map[string]interface{}
+    if hasId {${readById}
+    } else {${readByName}
+    }
+
+    // Update the model with response data
+${this.generateResponseMapping(dataSource, dataSourceVarName)}`;
+  }
+
+  /*
+   * Builds the get-item path expression with the {id} placeholder replaced by
+   * the configured id.
+   */
+  private buildGetItemPathExpression(path: string): string {
+    const withParams: string = path.replace(
+      /{([^}]+)}/g,
+      `" + data.Id.ValueString() + "`,
+    );
+    let expression: string = `"${withParams}"`;
+    if (expression.endsWith(' + ""')) {
+      expression = expression.substring(0, expression.length - 5);
+    }
+    return expression;
+  }
+
+  private generateSelectParameter(dataSource: TerraformDataSource): string {
+    const selectFields: string[] = [];
+
+    for (const [name, attr] of Object.entries(dataSource.schema)) {
+      if (name === "id") {
+        continue;
       }
-
-      // Determine if this is a POST or GET operation
-      const method: string = operation.method?.toUpperCase() || "GET";
-      const httpMethod: string = method === "POST" ? "Post" : "Get";
-
-      if (method === "POST") {
-        // For POST operations, we need to send a request body with select fields
-        readCode = `
-    // Build API path
-    apiPath := ${finalPath}
-    
-    // Prepare request body with select fields (if needed)
-    requestBody := map[string]interface{}{
-        "select": map[string]interface{}{}, // Add specific fields to select if needed
-    }
-    
-    // Make API call
-    httpResp, err := d.client.${httpMethod}(apiPath, requestBody)
-    if err != nil {
-        resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read ${dataSource.name}, got error: %s", err))
-        return
+      const apiFieldName: string = attr.apiFieldName || name;
+      selectFields.push(`        "${apiFieldName}": true,`);
     }
 
-    var ${dataSourceVarName}Response map[string]interface{}
-    err = d.client.ParseResponse(httpResp, &${dataSourceVarName}Response)
-    if err != nil {
-        resp.Diagnostics.AddError("Parse Error", fmt.Sprintf("Unable to parse ${dataSource.name} response, got error: %s", err))
-        return
-    }
+    selectFields.push(`        "_id": true,`);
 
-    // Extract data from response
-    if dataMap, ok := ${dataSourceVarName}Response["data"].(map[string]interface{}); ok {
-        ${dataSourceVarName}Response = dataMap
-    }
-
-    // Update the model with response data
-${this.generateResponseMapping(dataSource, dataSourceVarName + "Response")}`;
-      } else {
-        // For GET operations, use the original logic
-        readCode = `
-    // Build API path
-    apiPath := ${finalPath}
-    
-    // Make API call
-    httpResp, err := d.client.${httpMethod}(apiPath)
-    if err != nil {
-        resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read ${dataSource.name}, got error: %s", err))
-        return
-    }
-
-    var ${dataSourceVarName}Response map[string]interface{}
-    err = d.client.ParseResponse(httpResp, &${dataSourceVarName}Response)
-    if err != nil {
-        resp.Diagnostics.AddError("Parse Error", fmt.Sprintf("Unable to parse ${dataSource.name} response, got error: %s", err))
-        return
-    }
-
-    // Update the model with response data
-${this.generateResponseMapping(dataSource, dataSourceVarName + "Response")}`;
-      }
-    } else if (dataSource.operations.list) {
-      const operation: any = dataSource.operations.list;
-      const path: string = this.extractPathFromOperation(operation);
-      const method: string = operation.method?.toUpperCase() || "GET";
-      const httpMethod: string = method === "POST" ? "Post" : "Get";
-
-      if (method === "POST") {
-        // For POST list operations, send appropriate request body
-        readCode = `
-    // Build request body with query parameters
-    requestBody := map[string]interface{}{
-        "query": map[string]interface{}{},
-        "select": map[string]interface{}{},
-    }
-    
-    // Add filters based on data source inputs
-    queryFilters := map[string]interface{}{}
-    if !data.Id.IsNull() {
-        queryFilters["_id"] = data.Id.ValueString()
-    }
-    if !data.Name.IsNull() {
-        queryFilters["name"] = data.Name.ValueString()
-    }
-    if len(queryFilters) > 0 {
-        requestBody["query"] = queryFilters
-    }
-    
-    // Make API call
-    httpResp, err := d.client.${httpMethod}("${path}", requestBody)
-    if err != nil {
-        resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read ${dataSource.name}, got error: %s", err))
-        return
-    }
-
-    var ${dataSourceVarName}Response map[string]interface{}
-    err = d.client.ParseResponse(httpResp, &${dataSourceVarName}Response)
-    if err != nil {
-        resp.Diagnostics.AddError("Parse Error", fmt.Sprintf("Unable to parse ${dataSource.name} response, got error: %s", err))
-        return
-    }
-
-    // For list operations, take the first matching item
-    if items, ok := ${dataSourceVarName}Response["data"].([]interface{}); ok && len(items) > 0 {
-        if firstItem, ok := items[0].(map[string]interface{}); ok {
-            ${dataSourceVarName}Response = firstItem
-        }
-    }
-
-    // Update the model with response data
-${this.generateResponseMapping(dataSource, dataSourceVarName + "Response")}`;
-      } else {
-        // For GET list operations, use query parameters
-        readCode = `
-    // Build query parameters
-    queryParams := ""
-    if !data.Id.IsNull() {
-        queryParams += "?id=" + data.Id.ValueString()
-    }
-    if !data.Name.IsNull() {
-        if queryParams == "" {
-            queryParams += "?name=" + data.Name.ValueString()
-        } else {
-            queryParams += "&name=" + data.Name.ValueString()
-        }
-    }
-    
-    // Make API call
-    httpResp, err := d.client.${httpMethod}("${path}" + queryParams)
-    if err != nil {
-        resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read ${dataSource.name}, got error: %s", err))
-        return
-    }
-
-    var ${dataSourceVarName}Response map[string]interface{}
-    err = d.client.ParseResponse(httpResp, &${dataSourceVarName}Response)
-    if err != nil {
-        resp.Diagnostics.AddError("Parse Error", fmt.Sprintf("Unable to parse ${dataSource.name} response, got error: %s", err))
-        return
-    }
-
-    // For list operations, take the first matching item
-    if items, ok := ${dataSourceVarName}Response["data"].([]interface{}); ok && len(items) > 0 {
-        if firstItem, ok := items[0].(map[string]interface{}); ok {
-            ${dataSourceVarName}Response = firstItem
-        }
-    }
-
-    // Update the model with response data
-${this.generateResponseMapping(dataSource, dataSourceVarName + "Response")}`;
-      }
-    }
-
-    return readCode;
+    return selectFields.join("\n");
   }
 
   private generateResponseMapping(
     dataSource: TerraformDataSource,
-    responseVar: string,
+    _responseVar: string,
   ): string {
     const mappings: string[] = [];
 
     for (const [name, attr] of Object.entries(dataSource.schema)) {
       const sanitizedName: string = this.sanitizeAttributeName(name);
       const fieldName: string = StringUtils.toPascalCase(sanitizedName);
+      const apiFieldName: string = attr.apiFieldName || name;
       const setter: string = this.generateResponseSetter(
-        attr.type,
+        attr,
         `data.${fieldName}`,
-        `${responseVar}["${name}"]`,
+        `item["${apiFieldName}"]`,
       );
       mappings.push(`    ${setter}`);
     }
@@ -457,48 +407,98 @@ ${this.generateResponseMapping(dataSource, dataSourceVarName + "Response")}`;
   }
 
   private generateResponseSetter(
-    terraformType: string,
+    attr: TerraformAttribute,
     fieldName: string,
     responseValue: string,
   ): string {
-    switch (terraformType) {
+    switch (attr.type) {
+      case "monitor_steps":
       case "string":
-        return `if val, ok := ${responseValue}.(string); ok {
+        /*
+         * Strings may arrive raw or wrapped ({_id}, {_type, value}). Unwrap
+         * to a plain string; marshal unrecognized objects to JSON.
+         */
+        return `if obj, ok := ${responseValue}.(map[string]interface{}); ok {
+        if val, ok := obj["_id"].(string); ok && val != "" {
+            ${fieldName} = types.StringValue(val)
+        } else if val, ok := obj["value"].(string); ok {
+            ${fieldName} = types.StringValue(val)
+        } else if val, ok := obj["value"].(float64); ok {
+            ${fieldName} = types.StringValue(fmt.Sprintf("%v", val))
+        } else if jsonBytes, err := json.Marshal(obj); err == nil {
+            ${fieldName} = types.StringValue(string(jsonBytes))
+        } else {
+            ${fieldName} = types.StringNull()
+        }
+    } else if val, ok := ${responseValue}.(string); ok {
         ${fieldName} = types.StringValue(val)
+    } else {
+        ${fieldName} = types.StringNull()
     }`;
       case "number":
         return `if val, ok := ${responseValue}.(float64); ok {
         ${fieldName} = types.NumberValue(big.NewFloat(val))
+    } else if obj, ok := ${responseValue}.(map[string]interface{}); ok {
+        if val, ok := obj["value"].(float64); ok {
+            ${fieldName} = types.NumberValue(big.NewFloat(val))
+        } else {
+            ${fieldName} = types.NumberNull()
+        }
+    } else {
+        ${fieldName} = types.NumberNull()
     }`;
       case "bool":
         return `if val, ok := ${responseValue}.(bool); ok {
         ${fieldName} = types.BoolValue(val)
+    } else {
+        ${fieldName} = types.BoolNull()
     }`;
       case "list":
         return `if val, ok := ${responseValue}.([]interface{}); ok {
-        elements := make([]attr.Value, len(val))
-        for i, item := range val {
-            if strItem, ok := item.(string); ok {
-                elements[i] = types.StringValue(strItem)
+        var listItems []attr.Value
+        for _, item := range val {
+            if itemMap, ok := item.(map[string]interface{}); ok {
+                if id, ok := itemMap["_id"].(string); ok {
+                    listItems = append(listItems, types.StringValue(id))
+                } else if id, ok := itemMap["id"].(string); ok {
+                    listItems = append(listItems, types.StringValue(id))
+                } else if jsonBytes, err := json.Marshal(itemMap); err == nil {
+                    listItems = append(listItems, types.StringValue(string(jsonBytes)))
+                }
+            } else if str, ok := item.(string); ok {
+                listItems = append(listItems, types.StringValue(str))
             } else {
-                elements[i] = types.StringValue("")
+                listItems = append(listItems, types.StringValue(fmt.Sprintf("%v", item)))
             }
         }
-        listValue, _ := types.ListValue(types.StringType, elements)
-        ${fieldName} = listValue
+        ${fieldName} = types.ListValueMust(types.StringType, listItems)
+    } else {
+        ${fieldName} = types.ListNull(types.StringType)
     }`;
       case "set":
         return `if val, ok := ${responseValue}.([]interface{}); ok {
-        elements := make([]attr.Value, len(val))
-        for i, item := range val {
-            if strItem, ok := item.(string); ok {
-                elements[i] = types.StringValue(strItem)
+        var setItems []attr.Value
+        for _, item := range val {
+            if itemMap, ok := item.(map[string]interface{}); ok {
+                if id, ok := itemMap["_id"].(string); ok {
+                    setItems = append(setItems, types.StringValue(id))
+                } else if id, ok := itemMap["id"].(string); ok {
+                    setItems = append(setItems, types.StringValue(id))
+                } else if jsonBytes, err := json.Marshal(itemMap); err == nil {
+                    setItems = append(setItems, types.StringValue(string(jsonBytes)))
+                }
+            } else if str, ok := item.(string); ok {
+                setItems = append(setItems, types.StringValue(str))
             } else {
-                elements[i] = types.StringValue("")
+                setItems = append(setItems, types.StringValue(fmt.Sprintf("%v", item)))
             }
         }
-        setValue, _ := types.SetValue(types.StringType, elements)
-        ${fieldName} = setValue
+        sort.Slice(setItems, func(i, j int) bool {
+            return setItems[i].(types.String).ValueString() < setItems[j].(types.String).ValueString()
+        })
+        ${fieldName} = types.SetValueMust(types.StringType, setItems)
+    } else {
+        ${fieldName} = types.SetNull(types.StringType)
     }`;
       case "map":
         return `if val, ok := ${responseValue}.(map[string]interface{}); ok {
@@ -507,25 +507,27 @@ ${this.generateResponseMapping(dataSource, dataSourceVarName + "Response")}`;
             if strItem, ok := item.(string); ok {
                 elements[key] = types.StringValue(strItem)
             } else {
-                elements[key] = types.StringValue("")
+                elements[key] = types.StringValue(fmt.Sprintf("%v", item))
             }
         }
         mapValue, _ := types.MapValue(types.StringType, elements)
         ${fieldName} = mapValue
+    } else {
+        ${fieldName} = types.MapNull(types.StringType)
     }`;
       default:
         return `if val, ok := ${responseValue}.(string); ok {
         ${fieldName} = types.StringValue(val)
+    } else {
+        ${fieldName} = types.StringNull()
     }`;
     }
   }
 
-  private extractPathFromOperation(operation: any): string {
-    return operation.path || "";
-  }
-
   private mapTerraformTypeToGo(terraformType: string): string {
     switch (terraformType) {
+      // Data sources expose monitor steps as their raw JSON (read-only).
+      case "monitor_steps":
       case "string":
         return "types.String";
       case "number":
@@ -545,6 +547,7 @@ ${this.generateResponseMapping(dataSource, dataSourceVarName + "Response")}`;
 
   private mapTerraformTypeToSchemaType(terraformType: string): string {
     switch (terraformType) {
+      case "monitor_steps":
       case "string":
         return "String";
       case "number":
@@ -575,10 +578,6 @@ ${this.generateResponseMapping(dataSource, dataSourceVarName + "Response")}`;
       })
       .join("\n");
 
-    /*
-     * This would update the provider.go file to include the data sources
-     * For now, we'll create a separate file with the data source list
-     */
     const dataSourceListContent: string = `package provider
 
 import (

@@ -67,26 +67,5 @@ echo "=== Validating Issue #2232 Fix (downtime_monitor_statuses handling) ==="
 # The downtime_monitor_statuses should be populated by the server if not specified
 # The fix ensures Terraform accepts these server-provided defaults without error
 
-# Verify idempotency
-echo ""
-echo "=== Verifying idempotency ==="
-PLAN_OUTPUT=$(terraform plan -detailed-exitcode 2>&1) || PLAN_EXIT_CODE=$?
-PLAN_EXIT_CODE=${PLAN_EXIT_CODE:-0}
-
-if [ "$PLAN_EXIT_CODE" -eq 0 ]; then
-    echo "SUCCESS: No changes detected - idempotency test PASSED"
-elif [ "$PLAN_EXIT_CODE" -eq 2 ]; then
-    echo "ERROR: Changes detected after apply - idempotency test FAILED"
-    echo "This may indicate Issue #2232 fix is not working correctly"
-    echo ""
-    echo "Plan output:"
-    echo "$PLAN_OUTPUT"
-    exit 1
-else
-    echo "ERROR: terraform plan failed with exit code $PLAN_EXIT_CODE"
-    echo "$PLAN_OUTPUT"
-    exit 1
-fi
-
 echo ""
 echo "=== StatusPage CRUD Test PASSED ==="

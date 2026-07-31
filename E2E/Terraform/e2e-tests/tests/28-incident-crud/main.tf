@@ -45,27 +45,27 @@ resource "oneuptime_incident_state" "test_state" {
 
 # Test Case 1: Basic Incident
 resource "oneuptime_incident" "basic" {
-  title                       = "TF Basic Incident ${random_id.suffix.hex}"
-  description                 = "Basic incident created by Terraform E2E tests"
-  current_incident_state_id   = oneuptime_incident_state.test_state.id
-  incident_severity_id        = oneuptime_incident_severity.test_severity.id
+  title                     = "TF Basic Incident ${random_id.suffix.hex}"
+  description               = "Basic incident created by Terraform E2E tests"
+  current_incident_state_id = oneuptime_incident_state.test_state.id
+  incident_severity_id      = oneuptime_incident_severity.test_severity.id
 }
 
 # Test Case 2: Incident with root cause
 resource "oneuptime_incident" "with_root_cause" {
-  title                       = "TF Incident With Root Cause ${random_id.suffix.hex}"
-  description                 = "Incident with detailed root cause analysis"
-  current_incident_state_id   = oneuptime_incident_state.test_state.id
-  incident_severity_id        = oneuptime_incident_severity.test_severity.id
-  root_cause                  = "Database connection pool exhausted due to high traffic"
+  title                     = "TF Incident With Root Cause ${random_id.suffix.hex}"
+  description               = "Incident with detailed root cause analysis"
+  current_incident_state_id = oneuptime_incident_state.test_state.id
+  incident_severity_id      = oneuptime_incident_severity.test_severity.id
+  root_cause                = "Database connection pool exhausted due to high traffic"
 }
 
 # Test Case 3: Incident with visibility settings
 resource "oneuptime_incident" "visibility_settings" {
-  title                               = "TF Visibility Incident ${random_id.suffix.hex}"
-  description                         = "Incident with custom visibility"
-  current_incident_state_id           = oneuptime_incident_state.test_state.id
-  incident_severity_id                = oneuptime_incident_severity.test_severity.id
+  title                                                          = "TF Visibility Incident ${random_id.suffix.hex}"
+  description                                                    = "Incident with custom visibility"
+  current_incident_state_id                                      = oneuptime_incident_state.test_state.id
+  incident_severity_id                                           = oneuptime_incident_severity.test_severity.id
   is_visible_on_status_page                                      = true
   should_status_page_subscribers_be_notified_on_incident_created = false
 }
@@ -78,11 +78,11 @@ resource "oneuptime_label" "incident_label" {
 }
 
 resource "oneuptime_incident" "with_labels" {
-  title                       = "TF Labeled Incident ${random_id.suffix.hex}"
-  description                 = "Incident with labels attached"
-  current_incident_state_id   = oneuptime_incident_state.test_state.id
-  incident_severity_id        = oneuptime_incident_severity.test_severity.id
-  labels                      = [oneuptime_label.incident_label.id]
+  title                     = "TF Labeled Incident ${random_id.suffix.hex}"
+  description               = "Incident with labels attached"
+  current_incident_state_id = oneuptime_incident_state.test_state.id
+  incident_severity_id      = oneuptime_incident_severity.test_severity.id
+  labels                    = [oneuptime_label.incident_label.id]
 }
 
 # Outputs

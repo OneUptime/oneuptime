@@ -21,6 +21,8 @@ import Name from "../../Types/Name";
 import IP from "../../Types/IP/IP";
 import Port from "../../Types/Port";
 import MonitorSteps from "../../Types/Monitor/MonitorSteps";
+import MonitorType from "../../Types/Monitor/MonitorType";
+import WorkflowStatus from "../../Types/Workflow/WorkflowStatus";
 import OneUptimeDate from "../../Types/Date";
 
 export type ModelSchemaType = ZodSchema;
@@ -137,9 +139,15 @@ export class ModelSchema extends BaseSchema {
       } else if (column.type === TableColumnType.Email) {
         zodType = Email.getSchema();
       } else if (column.type === TableColumnType.HashedString) {
-        zodType = z
-          .string()
-          .openapi({ type: "string", example: "hashed_string_value" });
+        /*
+         * format: password marks the field as a secret for spec consumers
+         * (the Terraform provider generator emits Sensitive: true for it).
+         */
+        zodType = z.string().openapi({
+          type: "string",
+          format: "password",
+          example: "hashed_string_value",
+        });
       } else if (column.type === TableColumnType.Slug) {
         zodType = z
           .string()
@@ -289,11 +297,13 @@ export class ModelSchema extends BaseSchema {
       } else if (column.type === TableColumnType.MonitorType) {
         zodType = z.string().openapi({
           type: "string",
+          enum: Object.values(MonitorType),
           example: "Manual",
         });
       } else if (column.type === TableColumnType.WorkflowStatus) {
         zodType = z.string().openapi({
           type: "string",
+          enum: Object.values(WorkflowStatus),
           example: "In Progress",
         });
       } else if (column.type === TableColumnType.Boolean) {
@@ -1279,8 +1289,13 @@ export class ModelSchema extends BaseSchema {
     } else if (column.type === TableColumnType.Email) {
       zodType = Email.getSchema();
     } else if (column.type === TableColumnType.HashedString) {
+      /*
+       * format: password marks the field as a secret for spec consumers
+       * (the Terraform provider generator emits Sensitive: true for it).
+       */
       zodType = applyOpenApi(z.string(), {
         type: "string",
+        format: "password",
         example: "hashed_string_value",
       });
     } else if (column.type === TableColumnType.Slug) {
@@ -1424,11 +1439,13 @@ export class ModelSchema extends BaseSchema {
     } else if (column.type === TableColumnType.MonitorType) {
       zodType = applyOpenApi(z.string(), {
         type: "string",
+        enum: Object.values(MonitorType),
         example: "HTTP",
       });
     } else if (column.type === TableColumnType.WorkflowStatus) {
       zodType = applyOpenApi(z.string(), {
         type: "string",
+        enum: Object.values(WorkflowStatus),
         example: "In Progress",
       });
     } else if (column.type === TableColumnType.Boolean) {

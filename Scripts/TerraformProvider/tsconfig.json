@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "es2021",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "strict": false,
+    "types": ["jest", "node"],
+    "baseUrl": ".",
+    "paths": {
+      "Common/*": ["../../Common/*"]
+    }
+  },
+  "include": ["Core/**/*.ts", "Tests/**/*.ts", "GenerateProvider.ts"]
+}

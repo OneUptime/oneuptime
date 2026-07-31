@@ -3,6 +3,13 @@
 # OneUptime Terraform Provider Publisher
 # This script publishes the generated Terraform provider to the Terraform Registry
 # Note: Provider generation and Go module setup is handled by the TypeScript generator
+#
+# Release-integrity ordering: ALL GoReleaser assets are built and signed FIRST
+# (locally, against a local tag). Only after a fully successful build+sign does
+# the script push the commit, push the tag, create the GitHub release, and
+# upload the pre-built assets. A build or signing failure therefore can never
+# leave a public tag with zero assets (which the Terraform Registry would
+# otherwise try to ingest as a broken version).
 
 set -e  # Exit on any error
 
@@ -27,8 +34,23 @@ VERSION=""
 TEST_RELEASE=false
 SKIP_TESTS=false
 FORCE=false
+DRY_RUN=false
 RELEASE_ALREADY_EXISTS=false
-TAG_ALREADY_EXISTS=false
+HEAL_MODE=false
+NOTHING_TO_PUBLISH=false
+# Push URL with embedded credentials. Held in memory only for the push
+# commands — never written to git config or a credentials file on disk.
+PUSH_URL=""
+
+# Files in the provider repo that are owned by the repo itself (the generator
+# does not emit them) and must survive the deletion-aware sync. .git is never
+# touched by `git rm`, so it needs no entry here.
+REPO_OWNED_PATHSPECS=(
+    ':(exclude).github'
+    ':(exclude)CHANGELOG*'
+    ':(exclude)LICENSE*'
+    ':(exclude).gitignore'
+)
 
 # Function to print colored output
 print_status() {
@@ -59,8 +81,9 @@ Usage: $0 [OPTIONS]
 Options:
     -v, --version VERSION                    Specify the version to publish (e.g., 1.0.0)
     -t, --test-release                      Run in test release mode (creates draft release)
-    -s, --skip-tests                        Skip running tests
+    -s, --skip-tests                        Skip running go vet / go test (emergencies only)
     -f, --force                            Force regeneration even if files exist
+    -d, --dry-run                          Build and sign all release assets but skip git push, tag push, release creation, and uploads
     --gpg-private-key KEY                   GPG private key for signing releases
     --github-token TOKEN                    GitHub token for authentication and operations
     --github-repo-deploy-key KEY            GitHub repository deploy key
@@ -69,7 +92,7 @@ Options:
 Examples:
     $0 -v 1.0.0 --github-token \${{ secrets.SIMLARSEN_GITHUB_PAT }} --gpg-private-key \${{ secrets.GPG_PRIVATE_KEY }}
     $0 -v 1.1.0 --test-release --github-token \${{ secrets.SIMLARSEN_GITHUB_PAT }}
-    $0 -v 1.0.1 --skip-tests --github-token \${{ secrets.SIMLARSEN_GITHUB_PAT }}
+    $0 -v 1.0.1-test --test-release --dry-run
 
 Note: The GITHUB_TOKEN should have the following permissions:
     - repo (for creating releases in the terraform-provider-oneuptime repository)
@@ -98,6 +121,10 @@ parse_args() {
                 ;;
             -f|--force)
                 FORCE=true
+                shift
+                ;;
+            -d|--dry-run)
+                DRY_RUN=true
                 shift
                 ;;
             --gpg-private-key)
@@ -141,8 +168,12 @@ validate_prerequisites() {
         exit 1
     fi
 
-    # Check required tools
-    local tools=("node" "npm" "go" "git" "curl" "jq")
+    # goreleaser is required even in dry-run mode (asset build is the point of
+    # a dry run); gh is only needed when we actually create the release.
+    local tools=("node" "npm" "go" "git" "goreleaser")
+    if [[ "$DRY_RUN" == false ]]; then
+        tools+=("gh")
+    fi
     for tool in "${tools[@]}"; do
         if ! command -v "$tool" &> /dev/null; then
             print_error "$tool is not installed or not in PATH"
@@ -171,33 +202,24 @@ validate_prerequisites() {
         exit 1
     fi
 
-    # Check environment variables for non-test-release mode
-    if [[ "$TEST_RELEASE" == false ]]; then
+    if [[ "$DRY_RUN" == true ]]; then
+        print_status "Dry run: skipping GitHub token and repository access checks"
+    else
         if [[ -z "$GITHUB_TOKEN" ]]; then
             print_error "GitHub token is required for publishing."
             print_error "Use --github-token option to provide the token."
             exit 1
         fi
-        
+
         # Validate access to the target repository
         print_status "Validating access to target repository: $GITHUB_ORG/$PROVIDER_REPO"
-        if command -v gh &> /dev/null; then
-            if ! gh repo view "$GITHUB_ORG/$PROVIDER_REPO" &> /dev/null; then
-                print_error "Cannot access repository $GITHUB_ORG/$PROVIDER_REPO"
-                print_error "Please ensure the GitHub token has access to this repository"
-                exit 1
-            fi
-        else
-            # Fallback to API check if gh CLI is not available
-            local repo_check_url="https://api.github.com/repos/$GITHUB_ORG/$PROVIDER_REPO"
-            if ! curl -s -H "Authorization: token $GITHUB_TOKEN" "$repo_check_url" | jq -e '.id' > /dev/null; then
-                print_error "Cannot access repository $GITHUB_ORG/$PROVIDER_REPO"
-                print_error "Please ensure the GitHub token has access to this repository"
-                exit 1
-            fi
+        if ! GH_TOKEN="$GITHUB_TOKEN" gh repo view "$GITHUB_ORG/$PROVIDER_REPO" &> /dev/null; then
+            print_error "Cannot access repository $GITHUB_ORG/$PROVIDER_REPO"
+            print_error "Please ensure the GitHub token has access to this repository"
+            exit 1
         fi
         print_success "Repository access validated"
-        
+
         if [[ -z "$GPG_PRIVATE_KEY" ]]; then
             print_warning "GPG private key not provided. Required for signing releases."
             print_warning "Use --gpg-private-key option to provide the key."
@@ -205,31 +227,6 @@ validate_prerequisites() {
     fi
 
     print_success "Prerequisites validated"
-}
-
-# Function to install dependencies
-install_dependencies() {
-    print_step "Installing dependencies..."
-
-    cd "$PROJECT_ROOT"
-    
-    # Install root dependencies
-    print_status "Installing root dependencies..."
-    npm install
-
-    # Install Common dependencies
-    if [[ -d "Common" ]]; then
-        print_status "Installing Common dependencies..."
-        cd Common && npm install && cd ..
-    fi
-
-    # Install Scripts dependencies
-    if [[ -d "Scripts" ]]; then
-        print_status "Installing Scripts dependencies..."
-        cd Scripts && npm install && cd ..
-    fi
-
-    print_success "Dependencies installed"
 }
 
 # Function to generate terraform provider
@@ -265,53 +262,57 @@ generate_provider() {
     print_success "Terraform provider generated and validated successfully"
 }
 
-# Function to push code to terraform-provider-oneuptime repository
-push_to_repository() {
-    print_step "Pushing generated code to terraform-provider-oneuptime repository..."
+# Function to sync generated code into the terraform-provider-oneuptime
+# repository checkout: authenticate, fetch remote state, perform a
+# deletion-aware sync, and create the local commit + tag. Nothing is pushed
+# here — pushing happens only after release assets are fully built and signed.
+sync_provider_repository() {
+    print_step "Syncing generated code into terraform-provider-oneuptime repository checkout..."
 
     cd "$PROVIDER_FRAMEWORK_DIR"
 
     # Check for authentication method
+    local remote_url="https://github.com/$GITHUB_ORG/$PROVIDER_REPO.git"
     if [[ -n "$TERRAFORM_PROVIDER_GITHUB_REPO_DEPLOY_KEY" ]]; then
         print_status "Using deploy key for GitHub authentication"
-        
+
         # Set up SSH key for git operations
         local ssh_key_file="$HOME/.ssh/terraform_provider_deploy_key"
-        
+
         # Ensure SSH directory exists
         mkdir -p "$HOME/.ssh"
-        
+
         echo "$TERRAFORM_PROVIDER_GITHUB_REPO_DEPLOY_KEY" > "$ssh_key_file"
         chmod 600 "$ssh_key_file"
-        
+
         # Configure git to use the deploy key
         export GIT_SSH_COMMAND="ssh -i $ssh_key_file -o StrictHostKeyChecking=no"
-        
+
+        remote_url="git@github.com:$GITHUB_ORG/$PROVIDER_REPO.git"
+        PUSH_URL="$remote_url"
+
         # For GitHub API operations, we still need a token
-        if [[ -z "$GITHUB_TOKEN" ]]; then
+        if [[ "$DRY_RUN" == false && -z "$GITHUB_TOKEN" ]]; then
             print_error "GitHub token is required for GitHub API operations (release creation)"
             print_error "Deploy key is used for git operations, but API operations require a token"
             print_error "Use --github-token option to provide the token."
             exit 1
         fi
+        if [[ -n "$GITHUB_TOKEN" ]]; then
+            export GH_TOKEN="$GITHUB_TOKEN"
+        fi
     elif [[ -n "$GITHUB_TOKEN" ]]; then
         print_status "Using GitHub token for authentication"
-        # Set up authentication for git and GitHub API
         export GH_TOKEN="$GITHUB_TOKEN"
-        git config --global credential.helper store
-        echo "https://$GITHUB_TOKEN@github.com" | git credential approve
+        # The token is embedded in the in-memory push URL only; the on-disk
+        # remote stays tokenless and nothing is written to a credential store.
+        PUSH_URL="https://x-access-token:${GITHUB_TOKEN}@github.com/$GITHUB_ORG/$PROVIDER_REPO.git"
+    elif [[ "$DRY_RUN" == true ]]; then
+        print_status "Dry run: no GitHub authentication configured (none needed)"
     else
         print_error "Either deploy key or GitHub token is required for GitHub authentication"
         print_error "Use --github-repo-deploy-key or --github-token option to provide authentication"
         exit 1
-    fi
-
-    # Set up remote repository URL
-    local remote_url=""
-    if [[ -n "$TERRAFORM_PROVIDER_GITHUB_REPO_DEPLOY_KEY" ]]; then
-        remote_url="git@github.com:$GITHUB_ORG/$PROVIDER_REPO.git"
-    else
-        remote_url="https://github.com/$GITHUB_ORG/$PROVIDER_REPO.git"
     fi
 
     # Save generated files to a temporary location.
@@ -354,17 +355,60 @@ push_to_repository() {
     # Use --depth=1 so we don't pull down the full history (which currently
     # carries large committed binaries from older runs and made the fetch take
     # ~9 minutes). We only need the tip to compute the diff for the new commit.
-    print_status "Fetching remote repository..."
-    local remote_exists=false
-    if git fetch --depth=1 origin master 2>/dev/null; then
-        remote_exists=true
-        print_status "Remote repository exists, resetting to origin/master..."
-        git reset --hard origin/master
+    if [[ "$DRY_RUN" == true ]]; then
+        # A dry run must not depend on (or touch) the real provider repo: it
+        # exercises the full commit/tag/build pipeline against a fresh local
+        # repository instead.
+        print_status "Dry run: skipping remote fetch; using a fresh local repository"
     else
-        print_status "Remote repository is empty or doesn't exist yet"
-        # Clean the working directory for fresh start
-        git rm -rf . 2>/dev/null || true
+        print_status "Fetching remote repository..."
+        if git fetch --depth=1 origin master 2>/dev/null; then
+            print_status "Remote repository exists, resetting to origin/master..."
+            git reset --hard origin/master
+        else
+            print_status "Remote repository is empty or doesn't exist yet"
+        fi
     fi
+
+    # If the tag already exists on the remote, a previous run already published
+    # this version's code. Unless --force is given we do NOT rebuild from the
+    # freshly generated (potentially different) tree — we heal the release by
+    # rebuilding assets from the exact commit the remote tag points to.
+    if [[ "$DRY_RUN" == false ]] && git ls-remote --tags origin | grep -q "refs/tags/v$VERSION$"; then
+        if [[ "$FORCE" == true ]]; then
+            print_warning "Tag v$VERSION exists on remote, force mode enabled - will overwrite"
+        else
+            print_warning "Tag v$VERSION already exists on remote repository"
+            print_status "Healing mode: release assets will be rebuilt from the exact commit the remote tag points to."
+            print_status "Use --force flag to overwrite the code/tag if needed"
+            HEAL_MODE=true
+
+            rm -rf "$temp_dir"
+
+            # Fetch the remote tag object and check out exactly the commit it
+            # points to, discarding the freshly generated tree. GoReleaser
+            # derives the version from the tag at HEAD.
+            git tag -d "v$VERSION" 2>/dev/null || true
+            if ! git fetch --depth=1 origin "refs/tags/v${VERSION}:refs/tags/v${VERSION}"; then
+                print_error "Failed to fetch remote tag v$VERSION"
+                exit 1
+            fi
+            git reset --hard "refs/tags/v$VERSION^{commit}"
+            # Remove untracked leftovers from generation so GoReleaser's dirty
+            # check sees a pristine tree for the tagged commit.
+            git clean -fdx
+            print_success "Checked out tagged commit $(git rev-parse HEAD) for v$VERSION"
+            return
+        fi
+    fi
+
+    # Deletion-aware sync: drop every tracked file before copying the fresh
+    # generator output in, so resources/docs the generator no longer emits are
+    # actually deleted from the provider repo instead of accumulating forever.
+    # Repo-owned files (.github/, CHANGELOG*, LICENSE*, .gitignore) are
+    # excluded and survive; .git is never touched by git rm.
+    print_status "Removing tracked files before sync (deletion-aware)..."
+    git rm -rf -q -- . "${REPO_OWNED_PATHSPECS[@]}" 2>/dev/null || true
 
     # Copy generated files back (overwriting remote content)
     print_status "Restoring generated files..."
@@ -373,11 +417,10 @@ push_to_repository() {
     rm -rf "$temp_dir"
 
     # Ensure build artifact directories are not committed to the provider repo.
-    # GoReleaser's second invocation (for archives/signatures) runs with --clean
-    # and will wipe dist/. If dist/ (or builds/) were tracked, that --clean would
-    # leave the working tree dirty and GoReleaser would abort with
-    # "git is in a dirty state". Guarantee a .gitignore exists and untrack any
-    # previously-committed build output.
+    # GoReleaser runs with --clean and will wipe dist/. If dist/ (or builds/)
+    # were tracked, that --clean would leave the working tree dirty and
+    # GoReleaser would abort with "git is in a dirty state". Guarantee a
+    # .gitignore exists and untrack any previously-committed build output.
     print_status "Ensuring .gitignore excludes build artifacts..."
     local gitignore_entries=(
         "dist/"
@@ -413,17 +456,13 @@ push_to_repository() {
     print_status "Staging generated files..."
     git add -A
 
-    # Check if there are any changes to commit
-    if git diff --staged --quiet; then
-        print_warning "No changes detected in generated files compared to remote"
-        print_warning "This should not happen as VERSION file should always have a new timestamp"
-
-        # Check if the VERSION file exists and show its content for debugging
-        if [[ -f "VERSION" ]]; then
-            print_status "VERSION file content:"
-            cat VERSION
-        fi
-
+    # No-change skip: the VERSION file historically carries a forced timestamp
+    # that changes on every generation, so exclude it from change detection.
+    # If nothing else changed there is nothing worth publishing — no commit,
+    # no tag, no release.
+    if [[ -z "$(git status --porcelain -- . ':(exclude)VERSION')" ]]; then
+        print_success "No provider changes detected compared to remote (ignoring VERSION). Skipping publish entirely for v$VERSION."
+        NOTHING_TO_PUBLISH=true
         return
     fi
 
@@ -442,41 +481,149 @@ Changes include:
     git commit -m "$commit_message"
     print_success "Created commit for v$VERSION"
 
-    # Create and push tag
-    print_status "Creating tag v$VERSION..."
-    # Delete existing tag if it exists
+    # Create the local tag. It is only pushed after assets build successfully.
+    print_status "Creating local tag v$VERSION..."
     if git tag -l | grep -q "^v$VERSION$"; then
         print_warning "Tag v$VERSION already exists locally, removing..."
         git tag -d "v$VERSION"
     fi
-    
-    # Check if tag exists on remote
-    if git ls-remote --tags origin | grep -q "refs/tags/v$VERSION$"; then
-        if [[ "$FORCE" == true ]]; then
-            print_warning "Tag v$VERSION exists on remote, force mode enabled - will overwrite"
-        else
-            print_warning "Tag v$VERSION already exists on remote repository"
-            print_warning "Code and tag are already published; will NOT re-push them."
-            print_status "Continuing so release assets can be (re)built and uploaded to heal the release."
-            print_status "Use --force flag to overwrite the code/tag if needed"
-            TAG_ALREADY_EXISTS=true
-            # Do NOT exit here. A previous run may have pushed the tag but failed
-            # before GoReleaser produced the archives (leaving a release with no
-            # assets). We still want create_github_release() to build and upload
-            # the assets. GoReleaser derives the version from the git tag at HEAD,
-            # so make sure a local tag exists even though we won't push it.
-            if ! git tag -l | grep -q "^v$VERSION$"; then
-                git tag -a "v$VERSION" -m "Release v$VERSION"
-            fi
-            return
-        fi
+    git tag -a "v$VERSION" -m "Release v$VERSION"
+    print_success "Created local commit and tag for v$VERSION (nothing pushed yet)"
+}
+
+# Function to run go vet and go test against the synced provider tree. Runs
+# before anything is built or pushed so a broken provider never reaches the
+# public repo or the registry.
+run_provider_tests() {
+    if [[ "$SKIP_TESTS" == true ]]; then
+        print_warning "Skipping go vet / go test (--skip-tests). Use only for emergencies."
+        return
     fi
 
-    git tag -a "v$VERSION" -m "Release v$VERSION"
+    print_step "Running go vet and go test on the provider tree..."
 
-    # Push to remote repository
+    cd "$PROVIDER_FRAMEWORK_DIR"
+
+    print_status "Running go vet ./..."
+    if ! go vet ./...; then
+        print_error "go vet failed. Aborting before anything is pushed or released."
+        exit 1
+    fi
+
+    print_status "Running go test ./..."
+    if ! go test ./...; then
+        print_error "go test failed. Aborting before anything is pushed or released."
+        exit 1
+    fi
+
+    print_success "go vet and go test passed"
+}
+
+# Function to build and sign ALL release assets locally with GoReleaser.
+# This runs BEFORE any push/tag/release, so a failed build cannot leave a
+# public tag (or a release) without assets.
+build_release_assets() {
+    print_step "Building and signing release assets with GoReleaser..."
+
+    cd "$PROVIDER_FRAMEWORK_DIR"
+
+    if [[ ! -f "$PROVIDER_FRAMEWORK_DIR/.goreleaser.yml" ]]; then
+        print_error ".goreleaser.yml not found in $PROVIDER_FRAMEWORK_DIR"
+        print_error "The provider generator must emit it; assets cannot be built without it."
+        exit 1
+    fi
+
+    # Get GPG fingerprint for signing
+    local gpg_fingerprint=$(gpg --list-secret-keys --keyid-format=long | grep -E "^sec" | head -1 | sed 's/.*\/\([A-F0-9]*\).*/\1/')
+
+    if [[ -z "$gpg_fingerprint" ]]; then
+        print_error "No GPG secret key found for GoReleaser signing."
+        exit 1
+    fi
+
+    export GPG_FINGERPRINT="$gpg_fingerprint"
+    export GITHUB_TOKEN="${GITHUB_TOKEN:-}"
+
+    print_status "Using GPG key: $gpg_fingerprint"
+    print_status "Running GoReleaser to create archives, checksums, and signatures..."
+
+    # GoReleaser builds archives + checksums + signs in one parallelized step
+    # We use --skip=publish because the release is created and assets are
+    # uploaded separately, only after this build fully succeeds.
+    #
+    # --parallelism 1 forces GoReleaser to cross-compile one target at a time.
+    # The generated provider is a single ~600K-line `package provider`, so each
+    # Go compilation is memory-heavy. GoReleaser defaults parallelism to the CPU
+    # count (4 on GitHub's ubuntu-latest), which compiles 4 targets at once and
+    # exhausts the runner's 16GB RAM -> the host kills the runner mid-build
+    # ("The runner has received a shutdown signal" / exit 143). Serializing the
+    # builds keeps peak memory to a single compile and prevents the OOM.
+    goreleaser release \
+        --clean \
+        --parallelism 1 \
+        --skip=publish \
+        --config .goreleaser.yml
+
+    print_success "GoReleaser completed: archives, checksums, and signatures created"
+
+    local dist_dir="$PROVIDER_FRAMEWORK_DIR/dist"
+
+    if [[ ! -d "$dist_dir" ]]; then
+        print_error "GoReleaser dist directory not found"
+        exit 1
+    fi
+
+    # GoReleaser lists the Terraform Registry manifest in SHA256SUMS (via
+    # checksum.extra_files in .goreleaser.yml) but does NOT copy it into dist/.
+    # Place it in dist/ under the exact name that appears in SHA256SUMS so it is
+    # uploaded and its hash matches the checksum entry. The Terraform Registry
+    # needs this manifest to negotiate the plugin protocol version - without it,
+    # `terraform init` fails even when every archive/checksum/signature is present.
+    if [[ -f "terraform-registry-manifest.json" ]]; then
+        cp "terraform-registry-manifest.json" \
+            "$dist_dir/terraform-provider-${PROVIDER_NAME}_${VERSION}_manifest.json"
+        print_status "Staged registry manifest as terraform-provider-${PROVIDER_NAME}_${VERSION}_manifest.json"
+    else
+        print_error "terraform-registry-manifest.json not found in $PROVIDER_FRAMEWORK_DIR"
+        print_error "The provider generator must emit it; otherwise the release is missing the Registry manifest."
+        exit 1
+    fi
+
+    # Verify the assets exist NOW, before anything is pushed or released.
+    local files_built=0
+    for file in "$dist_dir"/*.zip "$dist_dir"/*SHA256SUMS* "$dist_dir"/*.sig "$dist_dir"/*_manifest.json; do
+        if [[ -f "$file" ]]; then
+            files_built=$((files_built + 1))
+        fi
+    done
+
+    if [[ "$files_built" -eq 0 ]]; then
+        print_error "GoReleaser produced no release assets (dist/ had no zip/SHA256SUMS/sig/manifest files)"
+        exit 1
+    fi
+
+    print_success "Built and signed $files_built release assets (not uploaded yet)"
+}
+
+# Function to push the local commit and tag. Only called after all release
+# assets were built and signed successfully.
+push_repository_changes() {
+    if [[ "$DRY_RUN" == true ]]; then
+        print_warning "DRY RUN: skipping git push of commit and tag"
+        return
+    fi
+
+    if [[ "$HEAL_MODE" == true ]]; then
+        print_status "Healing mode: code and tag already exist on remote - nothing to push"
+        return
+    fi
+
+    print_step "Pushing commit and tag to terraform-provider-oneuptime repository..."
+
+    cd "$PROVIDER_FRAMEWORK_DIR"
+
     print_status "Pushing changes to remote repository..."
-    if ! git push origin master; then
+    if ! git push "$PUSH_URL" master; then
         print_error "Failed to push to remote repository"
         print_error "This might be due to conflicts or permission issues"
         exit 1
@@ -485,68 +632,45 @@ Changes include:
     print_status "Pushing tag v$VERSION..."
     if [[ "$FORCE" == true ]] && git ls-remote --tags origin | grep -q "refs/tags/v$VERSION$"; then
         # Force push the tag if it exists and force mode is enabled
-        if ! git push -f origin "v$VERSION"; then
+        if ! git push -f "$PUSH_URL" "v$VERSION"; then
             print_error "Failed to force push tag v$VERSION"
             exit 1
         fi
         print_warning "Force pushed tag v$VERSION"
     else
-        if ! git push origin "v$VERSION"; then
+        if ! git push "$PUSH_URL" "v$VERSION"; then
             print_error "Failed to push tag v$VERSION"
             exit 1
         fi
     fi
 
-    print_success "Code pushed to terraform-provider-oneuptime repository"
+    print_success "Code and tag pushed to terraform-provider-oneuptime repository"
 }
 
-# Function to create GitHub release
+# Function to create GitHub release (gh CLI)
 create_github_release() {
+    if [[ "$DRY_RUN" == true ]]; then
+        print_warning "DRY RUN: skipping GitHub release creation"
+        return
+    fi
+
     print_step "Creating GitHub release..."
 
     cd "$PROVIDER_FRAMEWORK_DIR"
-
-    # Authentication is already set up in push_to_repository function
 
     if [[ "$TEST_RELEASE" == true ]]; then
         print_warning "TEST RELEASE: Creating draft release v$VERSION (will not be published)"
     fi
 
-    # Check if GitHub CLI is available, if not use API directly
-    local use_gh_cli=true
-    if ! command -v gh &> /dev/null; then
-        print_warning "GitHub CLI (gh) is not installed. Using direct API calls."
-        use_gh_cli=false
-    fi
-
-    # Skip release creation if the release already exists
-    local release_exists=false
-    if [[ "$use_gh_cli" == true ]]; then
-        if gh release view "v$VERSION" --repo "$GITHUB_ORG/$PROVIDER_REPO" >/dev/null 2>&1; then
-            release_exists=true
-        fi
-    else
-        local existing_release_response=$(curl -s \
-            -H "Authorization: token $GITHUB_TOKEN" \
-            -H "Accept: application/vnd.github.v3+json" \
-            "https://api.github.com/repos/$GITHUB_ORG/$PROVIDER_REPO/releases/tags/v$VERSION")
-        if echo "$existing_release_response" | jq -e '.id' >/dev/null 2>&1; then
-            release_exists=true
-        fi
-    fi
-
-    if [[ "$release_exists" == true ]]; then
+    # Skip release creation if the release already exists. A previous run may
+    # have created it but failed before uploading assets — the upload step
+    # that follows heals it either way (uploads use --clobber).
+    if gh release view "v$VERSION" --repo "$GITHUB_ORG/$PROVIDER_REPO" >/dev/null 2>&1; then
         print_warning "GitHub release v$VERSION already exists. Skipping release creation."
-        print_status "Will still (re)build and upload assets so the release ends up complete."
+        print_status "Will still upload the freshly built assets so the release ends up complete."
         RELEASE_ALREADY_EXISTS=true
+        return
     fi
-
-    # Only create the GitHub release when it does not already exist. Either way we
-    # fall through to the GoReleaser asset build + upload below, so a release that
-    # a previous run created but never finished populating (e.g. the build OOMed
-    # before producing archives) gets healed when the job is re-run. The upload
-    # step uses --clobber, so re-uploading existing assets is safe and idempotent.
-    if [[ "$release_exists" == false ]]; then
 
     # Create release notes
     local release_notes_file="release-notes-v$VERSION.md"
@@ -590,102 +714,87 @@ For detailed documentation and examples, visit: https://registry.terraform.io/pr
 **Full Changelog**: https://github.com/$GITHUB_ORG/$PROVIDER_REPO/compare/v$(echo $VERSION | awk -F. '{print $1"."$2"."($3-1)}')...v$VERSION
 EOF
 
-    # Create the release
+    # Create the release. The tag was already pushed, so the release attaches
+    # to the exact tagged commit.
+    local gh_args=()
     if [[ "$TEST_RELEASE" == true ]]; then
         print_status "Creating draft release v$VERSION for test release..."
+        gh_args+=(--draft)
     else
         print_status "Creating GitHub release v$VERSION..."
     fi
-    
-    if [[ "$use_gh_cli" == true ]]; then
-        # Use GitHub CLI if available - specify the target repository
+
+    if gh release create "v$VERSION" \
+        --repo "$GITHUB_ORG/$PROVIDER_REPO" \
+        --title "v$VERSION" \
+        --notes-file "$release_notes_file" \
+        "${gh_args[@]}"; then
         if [[ "$TEST_RELEASE" == true ]]; then
-            # For test release, create a draft release without specifying the tag upfront
-            # This prevents the auto-generation of untagged releases
-            if gh release create "v$VERSION" \
-                --repo "$GITHUB_ORG/$PROVIDER_REPO" \
-                --title "v$VERSION" \
-                --notes-file "$release_notes_file" \
-                --draft \
-                --target master; then
-                print_success "Draft release created successfully for test release"
-                print_status "Note: This is a draft release. You can review it at: https://github.com/$GITHUB_ORG/$PROVIDER_REPO/releases/tag/v$VERSION"
-            else
-                print_error "Failed to create GitHub release"
-                exit 1
-            fi
+            print_success "Draft release created successfully for test release"
+            print_status "Note: This is a draft release. You can review it at: https://github.com/$GITHUB_ORG/$PROVIDER_REPO/releases/tag/v$VERSION"
         else
-            # For actual release, create without draft flag
-            if gh release create "v$VERSION" \
-                --repo "$GITHUB_ORG/$PROVIDER_REPO" \
-                --title "v$VERSION" \
-                --notes-file "$release_notes_file" \
-                --target master; then
-                print_success "GitHub release created successfully"
-            else
-                print_error "Failed to create GitHub release"
-                exit 1
-            fi
+            print_success "GitHub release created successfully"
         fi
     else
-        # Use direct API call if GitHub CLI is not available
-        local api_url="https://api.github.com/repos/$GITHUB_ORG/$PROVIDER_REPO/releases"
-        local release_body=$(cat "$release_notes_file" | jq -Rs .)
-        
-        local is_draft="false"
-        if [[ "$TEST_RELEASE" == true ]]; then
-            is_draft="true"
-        fi
-        
-        local response=$(curl -s -X POST "$api_url" \
-            -H "Authorization: token $GITHUB_TOKEN" \
-            -H "Accept: application/vnd.github.v3+json" \
-            -d "{
-                \"tag_name\": \"v$VERSION\",
-                \"name\": \"v$VERSION\",
-                \"body\": $release_body,
-                \"draft\": $is_draft,
-                \"target_commitish\": \"master\"
-            }")
-        
-        if echo "$response" | jq -e '.id' > /dev/null; then
-            if [[ "$TEST_RELEASE" == true ]]; then
-                print_success "Draft release created successfully for test release via API"
-                print_status "Note: This is a draft release. You can review it at: https://github.com/$GITHUB_ORG/$PROVIDER_REPO/releases/tag/v$VERSION"
-            else
-                print_success "GitHub release created successfully via API"
-            fi
-        else
-            print_error "Failed to create GitHub release via API"
-            echo "Response: $response"
-            exit 1
-        fi
+        print_error "Failed to create GitHub release"
+        exit 1
     fi
 
     # Clean up
     rm -f "$release_notes_file"
-
-    fi  # end: create release only when it did not already exist
-
-    # Use GoReleaser to build archives, checksums, and sign if available
-    # Otherwise fall back to manual process. This runs whether or not the release
-    # already existed, so missing assets are always (re)built and uploaded.
-    if command -v goreleaser &> /dev/null && [[ -f "$PROVIDER_FRAMEWORK_DIR/.goreleaser.yml" ]]; then
-        goreleaser_release_assets
-    else
-        # Fallback: Use existing builds from generation process and generate SHASUMS
-        generate_shasums
-        upload_release_assets
-    fi
 }
 
+# Function to upload the pre-built GoReleaser assets to the GitHub release
+upload_release_assets() {
+    if [[ "$DRY_RUN" == true ]]; then
+        print_warning "DRY RUN: skipping release asset upload"
+        return
+    fi
+
+    print_step "Uploading release assets..."
+
+    cd "$PROVIDER_FRAMEWORK_DIR"
+
+    local dist_dir="dist"
+
+    if [[ ! -d "$dist_dir" ]]; then
+        print_error "GoReleaser dist directory not found - assets were never built"
+        exit 1
+    fi
+
+    local files_uploaded=0
+    # Glob *_manifest.json (not *.json) so GoReleaser's internal artifacts.json /
+    # metadata.json are not uploaded as release assets.
+    for file in "$dist_dir"/*.zip "$dist_dir"/*SHA256SUMS* "$dist_dir"/*.sig "$dist_dir"/*_manifest.json; do
+        if [[ -f "$file" ]]; then
+            local filename=$(basename "$file")
+            print_status "Uploading $filename..."
+            if ! gh release upload "v$VERSION" "$file" --repo "$GITHUB_ORG/$PROVIDER_REPO" --clobber; then
+                print_error "Failed to upload $filename"
+                exit 1
+            fi
+            print_status "✓ Uploaded $filename"
+            files_uploaded=$((files_uploaded + 1))
+        fi
+    done
+
+    # Fail loudly if nothing was uploaded. Otherwise a run that produced no
+    # matching artifacts would let the job exit 0 with an empty release - the exact
+    # "green but no assets" failure mode this script is meant to prevent.
+    if [[ "$files_uploaded" -eq 0 ]]; then
+        print_error "No release assets found to upload (dist/ had no zip/SHA256SUMS/sig/manifest files)"
+        exit 1
+    fi
+
+    print_success "Uploaded $files_uploaded release assets"
+}
 
 # Function to publish to terraform registry
 publish_to_registry() {
     print_step "Publishing to Terraform Registry..."
 
-    if [[ "$RELEASE_ALREADY_EXISTS" == true ]]; then
-        print_status "Release already existed. Skipping Terraform Registry publish step."
+    if [[ "$DRY_RUN" == true ]]; then
+        print_warning "DRY RUN: Skipping Terraform Registry publishing"
         return
     fi
 
@@ -703,361 +812,22 @@ publish_to_registry() {
     print_status "Terraform Registry will automatically detect the new release"
     print_status "Monitor the release at: https://github.com/$GITHUB_ORG/$PROVIDER_REPO/releases"
     print_status "Provider will be available at: https://registry.terraform.io/providers/oneuptime/oneuptime/$VERSION"
-
-
-}
-
-
-# Function to use GoReleaser for building archives, checksums, signing, and uploading
-goreleaser_release_assets() {
-    print_step "Using GoReleaser to build archives, checksums, and sign..."
-
-    cd "$PROVIDER_FRAMEWORK_DIR"
-
-    # Get GPG fingerprint for signing
-    local gpg_fingerprint=$(gpg --list-secret-keys --keyid-format=long | grep -E "^sec" | head -1 | sed 's/.*\/\([A-F0-9]*\).*/\1/')
-
-    if [[ -z "$gpg_fingerprint" ]]; then
-        print_error "No GPG secret key found for GoReleaser signing."
-        exit 1
-    fi
-
-    export GPG_FINGERPRINT="$gpg_fingerprint"
-    export GITHUB_TOKEN="$GITHUB_TOKEN"
-
-    print_status "Using GPG key: $gpg_fingerprint"
-    print_status "Running GoReleaser to create archives, checksums, and signatures..."
-
-    # GoReleaser builds archives + checksums + signs in one parallelized step
-    # We use --skip=publish since we already created the release and upload separately
-    #
-    # --parallelism 1 forces GoReleaser to cross-compile one target at a time.
-    # The generated provider is a single ~600K-line `package provider`, so each
-    # Go compilation is memory-heavy. GoReleaser defaults parallelism to the CPU
-    # count (4 on GitHub's ubuntu-latest), which compiles 4 targets at once and
-    # exhausts the runner's 16GB RAM -> the host kills the runner mid-build
-    # ("The runner has received a shutdown signal" / exit 143). Serializing the
-    # builds keeps peak memory to a single compile and prevents the OOM.
-    goreleaser release \
-        --clean \
-        --parallelism 1 \
-        --skip=publish \
-        --config .goreleaser.yml
-
-    print_success "GoReleaser completed: archives, checksums, and signatures created"
-
-    # Upload all GoReleaser dist artifacts to the GitHub release
-    print_status "Uploading GoReleaser artifacts to GitHub release..."
-    local dist_dir="dist"
-
-    if [[ ! -d "$dist_dir" ]]; then
-        print_error "GoReleaser dist directory not found"
-        exit 1
-    fi
-
-    # GoReleaser lists the Terraform Registry manifest in SHA256SUMS (via
-    # checksum.extra_files in .goreleaser.yml) but does NOT copy it into dist/.
-    # Place it in dist/ under the exact name that appears in SHA256SUMS so it is
-    # uploaded and its hash matches the checksum entry. The Terraform Registry
-    # needs this manifest to negotiate the plugin protocol version - without it,
-    # `terraform init` fails even when every archive/checksum/signature is present.
-    if [[ -f "terraform-registry-manifest.json" ]]; then
-        cp "terraform-registry-manifest.json" \
-            "$dist_dir/terraform-provider-${PROVIDER_NAME}_${VERSION}_manifest.json"
-        print_status "Staged registry manifest as terraform-provider-${PROVIDER_NAME}_${VERSION}_manifest.json"
-    else
-        print_error "terraform-registry-manifest.json not found in $PROVIDER_FRAMEWORK_DIR"
-        print_error "The provider generator must emit it; otherwise the release is missing the Registry manifest."
-        exit 1
-    fi
-
-    local files_uploaded=0
-    # Glob *_manifest.json (not *.json) so GoReleaser's internal artifacts.json /
-    # metadata.json are not uploaded as release assets.
-    for file in "$dist_dir"/*.zip "$dist_dir"/*SHA256SUMS* "$dist_dir"/*.sig "$dist_dir"/*_manifest.json; do
-        if [[ -f "$file" ]]; then
-            local filename=$(basename "$file")
-            print_status "Uploading $filename..."
-            if command -v gh &> /dev/null; then
-                gh release upload "v$VERSION" "$file" --repo "$GITHUB_ORG/$PROVIDER_REPO" --clobber
-            else
-                local release_id=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
-                    "https://api.github.com/repos/$GITHUB_ORG/$PROVIDER_REPO/releases/tags/v$VERSION" | \
-                    jq -r '.id')
-                local upload_url="https://uploads.github.com/repos/$GITHUB_ORG/$PROVIDER_REPO/releases/$release_id/assets?name=$filename"
-                curl -s -X POST \
-                    -H "Authorization: token $GITHUB_TOKEN" \
-                    -H "Content-Type: application/octet-stream" \
-                    --data-binary "@$file" \
-                    "$upload_url" > /dev/null
-            fi
-            print_status "✓ Uploaded $filename"
-            files_uploaded=$((files_uploaded + 1))
-        fi
-    done
-
-    # Fail loudly if nothing was uploaded. Otherwise a GoReleaser run that produced
-    # no matching artifacts would let the job exit 0 with an empty release - the exact
-    # "green but no assets" failure mode this script is meant to prevent.
-    if [[ "$files_uploaded" -eq 0 ]]; then
-        print_error "GoReleaser produced no release assets to upload (dist/ had no zip/SHA256SUMS/sig/manifest files)"
-        exit 1
-    fi
-
-    print_success "Uploaded $files_uploaded release assets via GoReleaser"
-}
-
-# Function to generate SHASUMS and signature files
-generate_shasums() {
-    print_step "Generating SHASUMS and signature files..."
-
-    cd "$PROVIDER_FRAMEWORK_DIR/builds"
-
-    # Check if we have binary files to work with
-    if ! ls terraform-provider-oneuptime_* 1> /dev/null 2>&1; then
-        print_error "No terraform provider binaries found in builds directory"
-        print_error "Expected files like: terraform-provider-oneuptime_darwin_amd64"
-        exit 1
-    fi
-
-    # Create zip archives for each binary following Terraform's naming convention
-    print_status "Creating zip archives from binaries..."
-    for binary in terraform-provider-oneuptime_*; do
-        if [[ -f "$binary" ]]; then
-            # Extract OS and architecture from filename
-            # e.g., terraform-provider-oneuptime_darwin_amd64 -> darwin_amd64
-            local os_arch=$(echo "$binary" | sed 's/terraform-provider-oneuptime_//')
-            
-            # Handle Windows executable extension
-            if [[ "$binary" == *.exe ]]; then
-                os_arch=$(echo "$os_arch" | sed 's/\.exe$//')
-            fi
-            
-            # Create zip file with Terraform's expected naming convention
-            local zip_name="terraform-provider-${PROVIDER_NAME}_${VERSION}_${os_arch}.zip"
-            
-            print_status "Creating $zip_name from $binary..."
-            if command -v zip &> /dev/null; then
-                zip -q "$zip_name" "$binary"
-            else
-                print_error "zip command not found. Please install zip utility."
-                exit 1
-            fi
-            
-            # Verify zip was created
-            if [[ ! -f "$zip_name" ]]; then
-                print_error "Failed to create $zip_name"
-                exit 1
-            fi
-            
-            print_status "✓ Created $zip_name"
-        fi
-    done
-
-    # Also include the manifest file if it exists
-    if [[ -f "../terraform-registry-manifest.json" ]]; then
-        print_status "Adding terraform-registry-manifest.json to archives..."
-        local manifest_archive="terraform-provider-${PROVIDER_NAME}_${VERSION}_manifest.json"
-        cp "../terraform-registry-manifest.json" "$manifest_archive"
-        print_status "✓ Created $manifest_archive"
-    fi
-
-    # Generate SHA256 sums for all zip files and manifest
-    local shasums_file="terraform-provider-${PROVIDER_NAME}_${VERSION}_SHA256SUMS"
-    
-    print_status "Generating SHA256SUMS..."
-    
-    # Check if we have any zip files
-    if ! ls *.zip 1> /dev/null 2>&1; then
-        print_error "No zip files found after creation"
-        exit 1
-    fi
-    
-    # Generate checksums for zip files and manifest
-    if command -v shasum &> /dev/null; then
-        shasum -a 256 *.zip > "$shasums_file"
-        if [[ -f "terraform-provider-${PROVIDER_NAME}_${VERSION}_manifest.json" ]]; then
-            shasum -a 256 "terraform-provider-${PROVIDER_NAME}_${VERSION}_manifest.json" >> "$shasums_file"
-        fi
-    elif command -v sha256sum &> /dev/null; then
-        sha256sum *.zip > "$shasums_file"
-        if [[ -f "terraform-provider-${PROVIDER_NAME}_${VERSION}_manifest.json" ]]; then
-            sha256sum "terraform-provider-${PROVIDER_NAME}_${VERSION}_manifest.json" >> "$shasums_file"
-        fi
-    else
-        print_error "Neither shasum nor sha256sum command found"
-        exit 1
-    fi
-
-    print_status "Generated $shasums_file with $(wc -l < "$shasums_file") entries"
-
-    # Sign the checksums file with GPG
-    print_status "Signing $shasums_file with GPG..."
-    
-    # List available GPG keys for debugging
-    print_status "Available GPG secret keys:"
-    gpg --list-secret-keys --keyid-format=long
-    
-    # Get the first available secret key ID
-    local key_id=$(gpg --list-secret-keys --keyid-format=long | grep -E "^sec" | head -1 | sed 's/.*\/\([A-F0-9]*\).*/\1/')
-    
-    if [[ -z "$key_id" ]]; then
-        print_error "No GPG secret key found. Please ensure GPG key is imported."
-        exit 1
-    fi
-    
-    print_status "Using GPG key: $key_id"
-    
-    # Create binary (non-ASCII armored) detached signature
-    gpg --batch --yes --local-user "$key_id" --output "${shasums_file}.sig" --detach-sig "$shasums_file"
-    if [[ $? -ne 0 ]]; then
-        print_error "Failed to sign $shasums_file"
-        exit 1 
-    fi
-    print_success "Signed $shasums_file successfully"
-    
-
-    # Show summary of created files
-    print_status "Created release assets:"
-    for file in *.zip *SHA256SUMS* *.sig *.json; do
-        if [[ -f "$file" ]]; then
-            local size=$(ls -lh "$file" | awk '{print $5}')
-            print_status "  - $file ($size)"
-        fi
-    done
-
-    cd "$PROVIDER_FRAMEWORK_DIR"
-    print_success "SHASUMS generation completed"
-}
-
-# Function to upload release assets
-upload_release_assets() {
-    print_step "Uploading release assets..."
-
-    cd "$PROVIDER_FRAMEWORK_DIR"
-
-    local builds_dir="builds"
-    
-    if [[ ! -d "$builds_dir" ]]; then
-        print_error "Builds directory not found. Provider generation should have created builds directory with multi-platform binaries."
-        print_error "Expected directory: $PROVIDER_FRAMEWORK_DIR/builds"
-        print_error "Please ensure 'npm run generate-terraform-provider' completed successfully and created the builds directory."
-        print_error "If the issue persists, try running 'make release' manually in the provider directory."
-        exit 1
-    fi
-
-    # Check if GitHub CLI is available
-    if command -v gh &> /dev/null; then
-        print_status "Uploading assets using GitHub CLI..."
-        
-        # Debug: List all files in builds directory
-        print_status "Files available in builds directory:"
-        ls -la "$builds_dir"/
-        
-        # Upload all zip files, SHASUMS files, signature files, and manifest files
-        local files_found=false
-        for file in "$builds_dir"/*.zip "$builds_dir"/*SHA256SUMS* "$builds_dir"/*.sig "$builds_dir"/*.json; do
-            if [[ -f "$file" ]]; then
-                files_found=true
-                local filename=$(basename "$file")
-                print_status "Uploading $filename..."
-                if gh release upload "v$VERSION" "$file" --repo "$GITHUB_ORG/$PROVIDER_REPO" --clobber; then
-                    print_status "✓ Uploaded $filename"
-                else
-                    print_error "Failed to upload $filename"
-                    exit 1
-                fi
-            fi
-        done
-        
-        if [[ "$files_found" == false ]]; then
-            print_warning "No files found matching upload patterns in $builds_dir"
-            print_status "Looking for: *.zip, *SHA256SUMS*, *.sig, *.json"
-        fi
-    else
-        print_warning "GitHub CLI not available, using curl for asset upload..."
-        
-        # Get release ID
-        local release_id=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
-            "https://api.github.com/repos/$GITHUB_ORG/$PROVIDER_REPO/releases/tags/v$VERSION" | \
-            jq -r '.id')
-        
-        if [[ "$release_id" == "null" || -z "$release_id" ]]; then
-            print_error "Could not find release ID for v$VERSION"
-            exit 1
-        fi
-        
-        # Upload each file
-        local files_found=false
-        for file in "$builds_dir"/*.zip "$builds_dir"/*SHA256SUMS* "$builds_dir"/*.sig "$builds_dir"/*.json; do
-            if [[ -f "$file" ]]; then
-                files_found=true
-                local filename=$(basename "$file")
-                
-                # Check if asset already exists and delete it
-                print_status "Checking if $filename already exists..."
-                local existing_asset_id=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
-                    "https://api.github.com/repos/$GITHUB_ORG/$PROVIDER_REPO/releases/$release_id/assets" | \
-                    jq -r ".[] | select(.name == \"$filename\") | .id")
-                
-                if [[ -n "$existing_asset_id" && "$existing_asset_id" != "null" ]]; then
-                    print_status "Asset $filename already exists (ID: $existing_asset_id), deleting..."
-                    local delete_response=$(curl -s -X DELETE \
-                        -H "Authorization: token $GITHUB_TOKEN" \
-                        "https://api.github.com/repos/$GITHUB_ORG/$PROVIDER_REPO/releases/assets/$existing_asset_id")
-                    print_status "✓ Deleted existing $filename"
-                fi
-                
-                local upload_url="https://uploads.github.com/repos/$GITHUB_ORG/$PROVIDER_REPO/releases/$release_id/assets?name=$filename"
-                
-                print_status "Uploading $filename..."
-                local response=$(curl -s -X POST \
-                    -H "Authorization: token $GITHUB_TOKEN" \
-                    -H "Content-Type: application/octet-stream" \
-                    --data-binary "@$file" \
-                    "$upload_url")
-                
-                if echo "$response" | jq -e '.id' > /dev/null; then
-                    print_status "✓ Uploaded $filename"
-                else
-                    print_error "Failed to upload $filename"
-                    echo "Response: $response"
-                    exit 1
-                fi
-            fi
-        done
-        
-        if [[ "$files_found" == false ]]; then
-            print_warning "No files found matching upload patterns in $builds_dir"
-            print_status "Looking for: *.zip, *SHA256SUMS*, *.sig, *.json"
-            print_status "Files available in builds directory:"
-            ls -la "$builds_dir"/
-        fi
-    fi
-
-    print_success "All release assets uploaded successfully"
 }
 
 # Function to cleanup
 cleanup() {
     print_step "Cleaning up temporary files..."
-    
+
     cd "$PROVIDER_FRAMEWORK_DIR" 2>/dev/null || cd "$PROJECT_ROOT"
-    
-    # Remove temporary SHASUMS files if they exist
-    if [[ -d "builds" ]]; then
-        # Only remove SHASUMS files, signature files, and generated zip files, keep the original binaries
-        rm -f builds/*SHA256SUMS* builds/*.sig builds/*.zip builds/*manifest.json
-    fi
-    
+
     # Remove any temporary files
     rm -f release-notes-*.md
-    
+
     # Clean up SSH key if it was created
     if [[ -n "$TERRAFORM_PROVIDER_GITHUB_REPO_DEPLOY_KEY" && -f "$HOME/.ssh/terraform_provider_deploy_key" ]]; then
         rm -f "$HOME/.ssh/terraform_provider_deploy_key"
     fi
-    
+
     print_success "Cleanup completed"
 }
 
@@ -1072,31 +842,51 @@ show_summary() {
     echo "Terraform Registry: https://registry.terraform.io/providers/oneuptime/oneuptime"
     echo ""
 
-    if [[ "$RELEASE_ALREADY_EXISTS" == true ]]; then
-        print_warning "GitHub release v$VERSION already existed. Skipped release creation, but (re)built and uploaded assets."
+    local tests_line="✓ Ran go vet and go test on the provider tree"
+    if [[ "$SKIP_TESTS" == true ]]; then
+        tests_line="• Tests skipped (--skip-tests)"
+    fi
+
+    if [[ "$NOTHING_TO_PUBLISH" == true ]]; then
+        print_success "No provider changes detected - nothing was published."
         echo "✓ Generated Terraform provider"
-        echo "✓ Ran tests (if not skipped)"
-        if [[ "$TAG_ALREADY_EXISTS" == true ]]; then
-            echo "• Code/tag already published — not re-pushed"
-        else
-            echo "✓ Pushed code to terraform-provider-oneuptime repository"
-        fi
-        echo "• Release creation skipped (release already existed)"
-        echo "✓ (Re)built and uploaded release assets (archives, checksums, signatures)"
-        echo ""
-        print_status "Assets were healed on this run. To recreate the release from scratch, delete it first or rerun with --force."
+        echo "• No changes vs remote (ignoring VERSION) - skipped commit, tag, release, and registry publish"
         return
     fi
-    
+
+    if [[ "$DRY_RUN" == true ]]; then
+        print_warning "This was a DRY RUN. Assets were built and signed, but nothing was pushed or released:"
+        echo "✓ Generated Terraform provider"
+        echo "✓ Synced provider tree and created local commit + tag"
+        echo "$tests_line"
+        echo "✓ Built and signed all release assets with GoReleaser (dist/)"
+        echo "✗ Skipped git push, tag push, GitHub release creation, asset upload, and registry publish"
+        return
+    fi
+
+    if [[ "$HEAL_MODE" == true ]]; then
+        print_warning "Tag v$VERSION already existed on the remote. Healed the release from the tagged commit:"
+        echo "✓ Rebuilt release assets from the exact commit tag v$VERSION points to"
+        echo "$tests_line"
+        if [[ "$RELEASE_ALREADY_EXISTS" == true ]]; then
+            echo "• Release creation skipped (release already existed)"
+        else
+            echo "✓ Created GitHub release v$VERSION"
+        fi
+        echo "✓ Uploaded release assets (archives, checksums, signatures, manifest)"
+        echo ""
+        print_status "To republish from freshly generated code instead, rerun with --force."
+        return
+    fi
+
     if [[ "$TEST_RELEASE" == true ]]; then
         print_warning "This was a TEST RELEASE with the following actions taken:"
         echo "✓ Generated Terraform provider"
-        echo "✓ Ran tests (if not skipped)"
-        echo "✓ Pushed code to terraform-provider-oneuptime repository"
+        echo "$tests_line"
+        echo "✓ Built and signed all release assets with GoReleaser (before pushing anything)"
+        echo "✓ Pushed code and tag to terraform-provider-oneuptime repository"
         echo "✓ Created draft GitHub release v$VERSION"
-        echo "✓ Generated multi-platform zip archives from binaries (linux, darwin, windows, freebsd)"
-        echo "✓ Generated SHA256SUMS and signature files"
-        echo "✓ Uploaded release assets"
+        echo "✓ Uploaded release assets (archives, checksums, signatures, manifest)"
         echo "✗ Skipped Terraform Registry publishing"
         echo ""
         print_status "Next steps for a real release:"
@@ -1109,12 +899,15 @@ show_summary() {
         echo ""
         print_status "Actions completed:"
         echo "✓ Generated Terraform provider"
-        echo "✓ Ran tests (if not skipped)"
-        echo "✓ Pushed code to terraform-provider-oneuptime repository"
-        echo "✓ Created GitHub release v$VERSION"
-        echo "✓ Generated multi-platform zip archives from binaries (linux, darwin, windows, freebsd)"
-        echo "✓ Generated SHA256SUMS and signature files"
-        echo "✓ Uploaded release assets"
+        echo "$tests_line"
+        echo "✓ Built and signed all release assets with GoReleaser (before pushing anything)"
+        echo "✓ Pushed code and tag to terraform-provider-oneuptime repository"
+        if [[ "$RELEASE_ALREADY_EXISTS" == true ]]; then
+            echo "• Release creation skipped (release already existed); assets re-uploaded"
+        else
+            echo "✓ Created GitHub release v$VERSION"
+        fi
+        echo "✓ Uploaded release assets (archives, checksums, signatures, manifest)"
         echo "✓ Terraform Registry notified"
         echo ""
         print_status "Next steps:"
@@ -1139,8 +932,21 @@ main() {
 
     validate_prerequisites
     generate_provider
-    push_to_repository
+    sync_provider_repository
+
+    if [[ "$NOTHING_TO_PUBLISH" == true ]]; then
+        cleanup
+        show_summary
+        exit 0
+    fi
+
+    run_provider_tests
+    # Build and sign everything BEFORE any push/tag/release so a failure in
+    # the build cannot leave a public tag (or release) without assets.
+    build_release_assets
+    push_repository_changes
     create_github_release
+    upload_release_assets
     publish_to_registry
     cleanup
     show_summary

@@ -1,7 +1,11 @@
 import SessionReplayCaptureTrigger from "Common/Types/Rum/SessionReplayCaptureTrigger";
 import SessionReplayConsentMode from "Common/Types/Rum/SessionReplayConsentMode";
 import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode";
-import Config, { LoaderConfig, RecorderInitOptions } from "../src/Config";
+import Config, {
+  LoaderConfig,
+  RecorderInitOptions,
+  getChunkUrl,
+} from "../src/Config";
 
 describe("Config", (): void => {
   const validBody: Record<string, unknown> = {
@@ -76,6 +80,52 @@ describe("Config", (): void => {
      */
     it("returns null when a required field is missing", (): void => {
       document.head.innerHTML = '<script data-oneuptime-token="t"></script>';
+
+      expect(Config.readInitOptions()).toBeNull();
+    });
+
+    /*
+     * The documented install snippet is only token + app-identifier + src. It
+     * has to work exactly as written: requiring an undocumented
+     * data-oneuptime-host made the recorder silently do nothing for anyone
+     * following the docs, which is how this was found - by running the demo
+     * page against a real server and getting no recording and no error.
+     */
+    it("defaults the host to the origin the script was served from", (): void => {
+      document.head.innerHTML =
+        '<script src="https://replay.example.com/telemetry/session-replay/v1/recorder.js" data-oneuptime-token="t" data-oneuptime-app-identifier="a"></script>';
+
+      const options: RecorderInitOptions | null = Config.readInitOptions();
+
+      expect(options).not.toBeNull();
+      expect(options?.host).toBe("https://replay.example.com");
+    });
+
+    it("lets an explicit host win, for customers proxying the script", (): void => {
+      document.head.innerHTML =
+        '<script src="https://cdn.example.com/recorder.js" data-oneuptime-host="https://oneuptime.example.com" data-oneuptime-token="t" data-oneuptime-app-identifier="a"></script>';
+
+      expect(Config.readInitOptions()?.host).toBe(
+        "https://oneuptime.example.com",
+      );
+    });
+
+    it("resolves a relative src against the page origin", (): void => {
+      document.head.innerHTML =
+        '<script src="/proxy/recorder.js" data-oneuptime-token="t" data-oneuptime-app-identifier="a"></script>';
+
+      const options: RecorderInitOptions | null = Config.readInitOptions();
+
+      expect(options?.host).toBe(window.location.origin);
+    });
+
+    it("still returns null for an inline tag with no src and no host", (): void => {
+      /*
+       * Nothing to derive a host from, so recording must not start - the
+       * fallback must never invent a destination for screen content.
+       */
+      document.head.innerHTML =
+        '<script data-oneuptime-token="t" data-oneuptime-app-identifier="a"></script>';
 
       expect(Config.readInitOptions()).toBeNull();
     });
@@ -241,15 +291,36 @@ describe("Config", (): void => {
     };
 
     it("builds the config, chunk and artifact urls", (): void => {
+      /*
+       * All three carry the /telemetry prefix. The bare paths resolve on the
+       * server (the router is mounted at "/" too) but NOT in a browser against
+       * a real deployment: nginx's catch-all sends /session-replay/... to the
+       * Home app, which 404s, while the CORS preflight still succeeds. The
+       * recorder then stops with no error. Verified against a live server.
+       */
       expect(Config.getConfigUrl(options)).toBe(
-        "https://oneuptime.com/session-replay/v1/config",
+        "https://oneuptime.com/telemetry/session-replay/v1/config",
       );
-      expect(Config.getChunkUrl(options)).toBe(
-        "https://oneuptime.com/session-replay/v1/chunk",
+      expect(getChunkUrl(options)).toBe(
+        "https://oneuptime.com/telemetry/session-replay/v1/chunk",
       );
       expect(Config.getArtifactUrl(options, "11.7.3")).toBe(
         "https://oneuptime.com/telemetry/session-replay/v11.7.3/recorder.js",
       );
+    });
+
+    it("prefixes every server path with /telemetry", (): void => {
+      /*
+       * A guard rather than three separate assertions: any new endpoint added
+       * here must carry the prefix, or it will 404 in production only.
+       */
+      for (const url of [
+        Config.getConfigUrl(options),
+        getChunkUrl(options),
+        Config.getArtifactUrl(options, "11.7.3"),
+      ]) {
+        expect(url).toContain("/telemetry/session-replay");
+      }
     });
 
     /*

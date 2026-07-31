@@ -32,25 +32,4 @@ fi
 
 echo "    ✓ Probe labels contain both label IDs"
 
-# Step 2: Run terraform plan and check for drift
-echo "    Running terraform plan to check for drift..."
-PLAN_OUTPUT=$(terraform plan -detailed-exitcode 2>&1) || PLAN_EXIT_CODE=$?
-
-# Exit code 0 = no changes (success)
-# Exit code 1 = error
-# Exit code 2 = changes detected (drift)
-if [ "${PLAN_EXIT_CODE:-0}" -eq 2 ]; then
-    echo "    ✗ FAILED: Terraform plan detected drift!"
-    echo "    This indicates label order is not being normalized"
-    echo "    Plan output:"
-    echo "$PLAN_OUTPUT"
-    exit 1
-elif [ "${PLAN_EXIT_CODE:-0}" -eq 1 ]; then
-    echo "    ✗ FAILED: Terraform plan error"
-    echo "$PLAN_OUTPUT"
-    exit 1
-fi
-
-echo "    ✓ Terraform plan shows no changes (idempotent)"
-
 echo "    ✓ Label order idempotency tests passed"

@@ -24,6 +24,7 @@ import Config, {
   RECORDER_VERSION,
   RRWEB_VERSION,
   RecorderInitOptions,
+  getChunkUrl,
 } from "./Config";
 import Consent from "./Consent";
 import ConsoleRecorder, { RecordedConsoleEntry } from "./ConsoleRecorder";
@@ -241,7 +242,7 @@ export default class Recorder {
     this.chunker = this.createChunker();
 
     this.transport = new Transport({
-      url: Config.getChunkUrl(this.initOptions),
+      url: getChunkUrl(this.initOptions),
       headers: Config.getIngestHeaders(this.initOptions),
       onDirective: (directive: SessionReplayDirective): void => {
         this.onDirective(directive);

@@ -33,8 +33,33 @@ export const RRWEB_VERSION: string = "2.1.1";
 
 export const AUTH_TOKEN_HEADER: string = "x-oneuptime-token";
 
-export const CONFIG_PATH: string = "/session-replay/v1/config";
-export const CHUNK_PATH: string = "/session-replay/v1/chunk";
+/*
+ * Every path is /telemetry-prefixed, and that prefix is load-bearing.
+ *
+ * The router is mounted at both "/" and "/telemetry", so the bare paths look
+ * equivalent from the server's point of view - but they are not equivalent
+ * from the browser's. On a real deployment nginx has a catch-all `location /`
+ * that proxies to the Home app, and Frontend's DashboardFallbackRoutePrefixes-
+ * ToSkip only exempts /telemetry. A request to /session-replay/v1/config
+ * therefore reaches the Home app and comes back 404, while the CORS preflight
+ * still succeeds - so the recorder saw a well-formed rejection and stopped,
+ * with no error anywhere.
+ *
+ * The artifact path already had the prefix; these two did not, which meant the
+ * recorder could never start against any deployment behind that nginx config.
+ */
+export const CONFIG_PATH: string = "/telemetry/session-replay/v1/config";
+export const CHUNK_PATH: string = "/telemetry/session-replay/v1/chunk";
+
+/*
+ * A standalone function rather than a Config static on purpose: class
+ * methods are never tree-shaken, and only the ARTIFACT posts chunks. As
+ * a static this rode along in the loader stub (which lives on a hard
+ * byte budget) as dead weight - together with the CHUNK_PATH string.
+ */
+export function getChunkUrl(options: RecorderInitOptions): string {
+  return `${options.host}${CHUNK_PATH}`;
+}
 
 /* Where the pinned, immutable artifact lives. */
 export const ARTIFACT_PATH_PREFIX: string = "/telemetry/session-replay";
@@ -153,8 +178,24 @@ export default class Config {
       return null;
     }
 
+    /*
+     * The host defaults to wherever this script was served from.
+     *
+     * By definition that IS the OneUptime host - the browser just fetched
+     * the recorder from it - so requiring the customer to repeat it in a
+     * data-oneuptime-host attribute is redundant and, worse, silent when
+     * omitted: normaliseOptions rejects the whole config and the recorder
+     * does nothing at all, with no console output to explain why. The
+     * documented install snippet does not include the attribute, so anyone
+     * following the docs verbatim hit exactly that.
+     *
+     * An explicit data-oneuptime-host still wins, for deployments that proxy
+     * the script through their own domain.
+     */
+    const explicitHost: string | null = tag.getAttribute("data-oneuptime-host");
+
     const dataset: Record<string, unknown> = {
-      host: tag.getAttribute("data-oneuptime-host"),
+      host: explicitHost || Config.readHostFromScriptSrc(tag),
       token: tag.getAttribute("data-oneuptime-token"),
       appIdentifier: tag.getAttribute("data-oneuptime-app-identifier"),
       userRef: tag.getAttribute("data-oneuptime-user-ref"),
@@ -163,6 +204,29 @@ export default class Config {
     };
 
     return Config.normaliseOptions(dataset);
+  }
+
+  /*
+   * Origin of the script tag's own src, or null when it cannot be derived
+   * (an inline tag, or a src that will not parse).
+   */
+  private static readHostFromScriptSrc(tag: Element): string | null {
+    const src: string | null = tag.getAttribute("src");
+
+    if (!src) {
+      return null;
+    }
+
+    try {
+      /*
+       * Resolved against the page so a relative src - which is what a
+       * customer proxying the script through their own domain would use -
+       * still yields an absolute origin.
+       */
+      return new URL(src, window.location.href).origin;
+    } catch {
+      return null;
+    }
   }
 
   private static normaliseOptions(
@@ -205,10 +269,6 @@ export default class Config {
 
   public static getConfigUrl(options: RecorderInitOptions): string {
     return `${options.host}${CONFIG_PATH}`;
-  }
-
-  public static getChunkUrl(options: RecorderInitOptions): string {
-    return `${options.host}${CHUNK_PATH}`;
   }
 
   public static isValidRecorderVersion(value: unknown): value is string {

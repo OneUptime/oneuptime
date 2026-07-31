@@ -2339,6 +2339,35 @@ export default class Incident extends BaseModel {
     update: [],
   })
   @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    isDefaultValueColumn: false,
+    computed: true,
+    title: "Monitor Summary",
+    description:
+      "The monitor summary captured at the moment this incident was created - the same card the monitor page shows, frozen so it survives the monitor log being aged out.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public monitorSummary?: JSONObject = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadProjectIncident,
+    ],
+    update: [],
+  })
+  @TableColumn({
     manyToOneRelationColumn: "createdByProbeId",
     type: TableColumnType.Entity,
     modelType: Probe,

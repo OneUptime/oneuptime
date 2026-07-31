@@ -147,12 +147,24 @@ const DocsNav: NavGroup[] = [
         url: "/docs/terraform/complete-guide",
       },
       {
-        title: "Self-Hosted Setup",
-        url: "/docs/terraform/self-hosted",
+        title: "Monitor Steps",
+        url: "/docs/terraform/monitor-steps",
       },
       {
         title: "Examples",
         url: "/docs/terraform/examples",
+      },
+      {
+        title: "Importing Resources",
+        url: "/docs/terraform/importing-resources",
+      },
+      {
+        title: "Troubleshooting",
+        url: "/docs/terraform/troubleshooting",
+      },
+      {
+        title: "Self-Hosted Setup",
+        url: "/docs/terraform/self-hosted",
       },
       {
         title: "Registry Usage",

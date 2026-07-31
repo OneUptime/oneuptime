@@ -1,0 +1,23 @@
+{
+  "name": "@oneuptime/terraform-provider-generator",
+  "version": "11.7.4",
+  "description": "Generates the OneUptime Terraform provider from the OpenAPI specification",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/OneUptime/oneuptime"
+  },
+  "scripts": {
+    "test": "jest --runInBand",
+    "compile": "tsc --noEmit"
+  },
+  "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.10.2",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.4.6",
+    "typescript": "^5.9.3"
+  }
+}
