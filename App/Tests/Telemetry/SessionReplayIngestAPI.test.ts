@@ -156,6 +156,16 @@ jest.mock("Common/Server/Services/TelemetryIngestionKeyService", () => {
   };
 });
 
+jest.mock("Common/Server/Services/RumApplicationService", () => {
+  return {
+    __esModule: true,
+    default: {
+      markSessionReplayChunkReceived: jest.fn(),
+      markSessionReplayBudgetExceeded: jest.fn(),
+    },
+  };
+});
+
 jest.mock(
   "../../FeatureSet/Telemetry/Services/SessionReplayIngestService",
   () => {
@@ -194,6 +204,7 @@ jest.mock(
 );
 
 import Response from "Common/Server/Utils/Response";
+import RumApplicationService from "Common/Server/Services/RumApplicationService";
 import SessionReplayIngestService, {
   SessionReplayGateOutcome,
 } from "../../FeatureSet/Telemetry/Services/SessionReplayIngestService";
@@ -210,8 +221,13 @@ const addJobMock: MockedFn =
   TelemetryQueueService.addSessionReplayIngestJob as unknown as MockedFn;
 const sendJsonMock: MockedFn =
   Response.sendJsonObjectResponse as unknown as MockedFn;
+const markChunkReceivedMock: MockedFn =
+  RumApplicationService.markSessionReplayChunkReceived as unknown as MockedFn;
+const markBudgetExceededMock: MockedFn =
+  RumApplicationService.markSessionReplayBudgetExceeded as unknown as MockedFn;
 
 const PROJECT_ID: ObjectID = ObjectID.generate();
+const RUM_APPLICATION_ID: ObjectID = ObjectID.generate();
 const APP_IDENTIFIER: string = "checkout-web";
 
 const CHUNK_ROUTE: string = "/session-replay/v1/chunk";
@@ -221,6 +237,8 @@ interface FakeResponse {
   headers: Record<string, string>;
   ended: boolean;
   body: unknown;
+  /* Express guarantees res.locals; the route stashes the gate reason on it. */
+  locals: Record<string, unknown>;
   setHeader: (name: string, value: string) => void;
   status: (code: number) => FakeResponse;
   end: () => void;
@@ -235,6 +253,7 @@ function buildResponse(): FakeResponse {
     headers: {},
     ended: false,
     body: undefined,
+    locals: {},
     headersSent: false,
     setHeader: (name: string, value: string): void => {
       res.headers[name] = value;
@@ -383,12 +402,14 @@ describe("POST /session-replay/v1/chunk", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     addJobMock.mockResolvedValue(undefined as never);
+    markChunkReceivedMock.mockResolvedValue(undefined as never);
+    markBudgetExceededMock.mockResolvedValue(undefined as never);
     gateMock.mockResolvedValue({
       outcome: SessionReplayGateOutcome.Accepted,
       directive: "continue",
       configEpoch: 99,
       reason: "accepted",
-      policy: { samplePercentage: 100 },
+      policy: { samplePercentage: 100, rumApplicationId: RUM_APPLICATION_ID },
     } as never);
   });
 
@@ -439,6 +460,7 @@ describe("POST /session-replay/v1/chunk", () => {
 
     expect(payload["directive"]).toBe("throttle");
     expect(payload["retryAfterSeconds"]).toBeDefined();
+    expect(payload["reason"]).toBe("staging-failed");
   });
 
   test("answers 204 with a stop directive when the gate says stop", async () => {
@@ -456,7 +478,42 @@ describe("POST /session-replay/v1/chunk", () => {
     /* 204 carries no body, so the directive rides in a header. */
     expect(res.headers["x-oneuptime-replay-directive"]).toBe("stop");
     expect(res.headers["x-oneuptime-replay-config-epoch"]).toBe("7");
+    /*
+     * The WHY rides alongside the directive. Without it, "stop" is
+     * indistinguishable silence: a customer cannot tell a disabled app from
+     * an exhausted budget from an unsampled session.
+     */
+    expect(res.headers["x-oneuptime-replay-reason"]).toBe("not-enabled");
     expect(addJobMock).not.toHaveBeenCalled();
+  });
+
+  test("records recording health on an accepted chunk, after the enqueue", async () => {
+    const { res } = await invokeChunkRoute({ body: buildBody() });
+
+    expect(getStatus(res)).toBe(202);
+    expect(markChunkReceivedMock).toHaveBeenCalledTimes(1);
+    expect(markChunkReceivedMock).toHaveBeenCalledWith(RUM_APPLICATION_ID);
+    expect(markBudgetExceededMock).not.toHaveBeenCalled();
+  });
+
+  test("records budget exhaustion on the application so the Dashboard can explain the silence", async () => {
+    gateMock.mockResolvedValue({
+      outcome: SessionReplayGateOutcome.Stop,
+      directive: "stop",
+      configEpoch: 7,
+      reason: "app-monthly-budget-exhausted",
+      policy: { samplePercentage: 100, rumApplicationId: RUM_APPLICATION_ID },
+    } as never);
+
+    const { res } = await invokeChunkRoute({ body: buildBody() });
+
+    expect(res.statusCode).toBe(204);
+    expect(res.headers["x-oneuptime-replay-reason"]).toBe(
+      "app-monthly-budget-exhausted",
+    );
+    expect(markBudgetExceededMock).toHaveBeenCalledWith(RUM_APPLICATION_ID);
+    /* A refused chunk is not a received recording. */
+    expect(markChunkReceivedMock).not.toHaveBeenCalled();
   });
 
   /*
@@ -493,6 +550,10 @@ describe("POST /session-replay/v1/chunk", () => {
     const { res } = await invokeChunkRoute({ body: buildBody() });
 
     expect(getStatus(res)).toBe(403);
+    /* The WHY rides on every bodied refusal, not only the 204 header. */
+    const forbiddenPayload: JSONObject = sendJsonMock.mock
+      .calls[0]![2] as unknown as JSONObject;
+    expect(forbiddenPayload["reason"]).toBe("origin-not-allowed");
     expect(addJobMock).not.toHaveBeenCalled();
   });
 
@@ -509,6 +570,9 @@ describe("POST /session-replay/v1/chunk", () => {
 
     expect(getStatus(res)).toBe(429);
     expect(res.headers["Retry-After"]).toBe("23");
+    const throttledPayload: JSONObject = sendJsonMock.mock
+      .calls[0]![2] as unknown as JSONObject;
+    expect(throttledPayload["reason"]).toBe("rate-limited");
     expect(addJobMock).not.toHaveBeenCalled();
   });
 

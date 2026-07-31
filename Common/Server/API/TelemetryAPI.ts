@@ -87,7 +87,7 @@ import { IsBillingEnabled, getAllEnvVars } from "../EnvironmentConfig";
 import RumSession from "../../Models/AnalyticsModels/RumSession";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
-import { JSONObject } from "../../Types/JSON";
+import { JSONArray, JSONObject } from "../../Types/JSON";
 import ResourceFacetResolver, {
   ResolvedFacetValue,
   ResourceFacetSpec,
@@ -95,6 +95,9 @@ import ResourceFacetResolver, {
 import Label from "../../Models/DatabaseModels/Label";
 import RumApplication from "../../Models/DatabaseModels/RumApplication";
 import RumApplicationService from "../Services/RumApplicationService";
+import Project from "../../Models/DatabaseModels/Project";
+import ProjectService from "../Services/ProjectService";
+import SessionReplayUsage from "../Utils/SessionReplay/SessionReplayUsage";
 import RumSessionReplayView from "../../Models/DatabaseModels/RumSessionReplayView";
 import RumSessionReplayViewService from "../Services/RumSessionReplayViewService";
 import SessionReplayReadService, {
@@ -109,6 +112,7 @@ import SessionReplayReadService, {
   SessionReplaySessionHeader,
 } from "../Utils/SessionReplay/SessionReplayReadService";
 import {
+  DEFAULT_SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY,
   MAX_SESSION_REPLAY_CHUNKS_PER_READ,
   MAX_SESSION_REPLAY_READ_BYTES,
 } from "../../Types/Rum/SessionReplay";
@@ -3959,6 +3963,172 @@ router.post(
          * and a caller who hits it is looking at a possibly short answer.
          */
         isApplicationScopeTruncated: accessibleApplications.isTruncated,
+      });
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+// --- Session Replay Ingest Status Endpoint ---
+
+/*
+ * Recording health for one application: is replay switched on at every
+ * level, when did the last chunk actually land, and how much of the byte
+ * budgets is spent. This is what lets the Dashboard answer "why are there
+ * no recordings?" and "am I about to hit my budget?" as states rather than
+ * leaving the customer to infer them from silence — the ingest gate's
+ * refusals are deliberately quiet toward end users' browsers, so this
+ * endpoint is the loud side of that trade.
+ *
+ * Reads settings metadata and Redis counters only; never touches recording
+ * payloads, so list-level access is the right bar.
+ *
+ * The application row is loaded with root props even though its columns
+ * carry their own read ACLs. That is deliberate and bounded: every column
+ * returned here (appIdentifier, the replay policy fields, the two health
+ * timestamps) is readable by a plain project Viewer under its declared
+ * ACL — the least-privileged read tier there is — while this route demands
+ * the STRICTER session-replay list permission and pins tenancy and label
+ * scope first. Nothing is disclosed that the caller's project peers cannot
+ * already read through the generic CRUD API. If a column with a narrower
+ * ACL (e.g. anything identity-adjacent) is ever added to this SELECT, it
+ * must get an explicit permission check, not a wider isRoot ride-along.
+ */
+router.post(
+  "/telemetry/rum/session-replay/ingest-status",
+  ...requireSessionReplayListAccess,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      assertSessionReplayPlan(databaseProps);
+
+      const projectId: ObjectID = databaseProps.tenantId;
+      const body: JSONObject = req.body as JSONObject;
+
+      const rumApplicationId: ObjectID = readObjectIdFromBody(
+        body,
+        "rumApplicationId",
+      );
+
+      await assertSessionReplayApplicationAccess({
+        projectId: projectId,
+        rumApplicationId: rumApplicationId,
+        databaseProps: databaseProps,
+        permissions: SESSION_REPLAY_LIST_PERMISSIONS,
+      });
+
+      const application: RumApplication | null =
+        await RumApplicationService.findOneBy({
+          query: {
+            _id: rumApplicationId.toString(),
+            projectId: projectId,
+          },
+          select: {
+            _id: true,
+            appIdentifier: true,
+            isSessionReplayEnabled: true,
+            sessionReplayAllowedOrigins: true,
+            sessionReplaySamplePercentage: true,
+            sessionReplayCaptureTrigger: true,
+            sessionReplayMonthlyBudgetInGB: true,
+            sessionReplayLastChunkReceivedAt: true,
+            sessionReplayBudgetExceededAt: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      if (!application) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("RUM application not found."),
+        );
+      }
+
+      const project: Project | null = await ProjectService.findOneBy({
+        query: {
+          _id: projectId.toString(),
+        },
+        select: {
+          isSessionReplayAllowed: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      const [projectBytesUsedToday, applicationBytesUsedThisMonth]: [
+        number | null,
+        number | null,
+      ] = await Promise.all([
+        SessionReplayUsage.getProjectBytesUsedToday(projectId),
+        SessionReplayUsage.getApplicationBytesUsedThisMonth({
+          projectId: projectId,
+          rumApplicationId: rumApplicationId,
+        }),
+      ]);
+
+      /*
+       * Same env var, same default, as the value the ingest gate enforces
+       * (App Telemetry Config). The default is a shared constant so the
+       * number shown here cannot drift from the number enforced there.
+       */
+      const dailyCapEnv: number = parseInt(
+        process.env["SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY"] || "",
+        10,
+      );
+
+      const dailyByteLimit: number =
+        !isNaN(dailyCapEnv) && dailyCapEnv > 0
+          ? dailyCapEnv
+          : DEFAULT_SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY;
+
+      const applicationView: JSONObject = application as unknown as JSONObject;
+
+      return Response.sendJsonObjectResponse(req, res, {
+        isProjectAllowed: Boolean(
+          (project as unknown as JSONObject | null)?.["isSessionReplayAllowed"],
+        ),
+        isApplicationEnabled: Boolean(
+          applicationView["isSessionReplayEnabled"],
+        ),
+        appIdentifier: String(applicationView["appIdentifier"] || ""),
+        allowedOrigins: (applicationView["sessionReplayAllowedOrigins"] ||
+          []) as JSONArray,
+        samplePercentage: Number(
+          applicationView["sessionReplaySamplePercentage"] || 0,
+        ),
+        captureTrigger: String(
+          applicationView["sessionReplayCaptureTrigger"] || "",
+        ),
+        lastChunkReceivedAt:
+          (applicationView["sessionReplayLastChunkReceivedAt"] as string) ||
+          null,
+        budgetExceededAt:
+          (applicationView["sessionReplayBudgetExceededAt"] as string) || null,
+        /* null = counter unreachable; render as unknown, never as zero. */
+        projectBytesUsedToday: projectBytesUsedToday,
+        dailyByteLimit: dailyByteLimit,
+        applicationBytesUsedThisMonth: applicationBytesUsedThisMonth,
+        monthlyBudgetInGB:
+          (applicationView["sessionReplayMonthlyBudgetInGB"] as number) ?? null,
       });
     } catch (err: unknown) {
       next(err);

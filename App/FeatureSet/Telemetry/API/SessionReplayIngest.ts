@@ -15,6 +15,7 @@ import SessionReplayGateCache, {
   SessionReplayGatePolicy,
 } from "Common/Server/Utils/SessionReplay/SessionReplayGateCache";
 import TelemetryIngestionKeyService from "Common/Server/Services/TelemetryIngestionKeyService";
+import RumApplicationService from "Common/Server/Services/RumApplicationService";
 import logger from "Common/Server/Utils/Logger";
 import StatusCode from "Common/Types/API/StatusCode";
 import ObjectID from "Common/Types/ObjectID";
@@ -146,6 +147,20 @@ const replayIngestMetricsMiddleware: ReplayMetricsMiddleware = (
       outcome,
     };
 
+    /*
+     * The gate's reason ("budget-exhausted", "not-sampled", ...) is a small
+     * closed vocabulary, so it is safe as a metric label - and it is the
+     * difference between an alertable "replay refused: budget" series and
+     * an undifferentiated refusal count nobody can act on.
+     */
+    const gateReason: unknown = res.locals
+      ? res.locals["replayGateReason"]
+      : undefined;
+
+    if (typeof gateReason === "string" && gateReason.length > 0) {
+      attributes["reason"] = gateReason;
+    }
+
     AppMetrics.getIngestCounter().add(1, attributes);
     AppMetrics.getIngestDuration().record(Number(elapsedNs) / 1e6, attributes);
   };
@@ -219,7 +234,17 @@ function sendChunkDirective(
   const payload: SessionReplayChunkResponse = {
     directive: decision.directive,
     configEpoch: decision.configEpoch,
+    reason: decision.reason,
   };
+
+  /*
+   * Stashed for the metrics middleware, which fires on response finish and
+   * has no other way to see WHY a request was refused. Without the label an
+   * operator cannot tell budget exhaustion from sampling on a dashboard.
+   */
+  if (res.locals) {
+    res.locals["replayGateReason"] = decision.reason;
+  }
 
   if (decision.retryAfterSeconds !== undefined) {
     payload.retryAfterSeconds = decision.retryAfterSeconds;
@@ -236,6 +261,11 @@ function sendChunkDirective(
       "x-oneuptime-replay-config-epoch",
       String(decision.configEpoch),
     );
+
+    if (decision.reason) {
+      res.setHeader("x-oneuptime-replay-reason", decision.reason);
+    }
+
     res.status(204).end();
     return;
   }
@@ -370,6 +400,24 @@ router.post(
           payloadBytes: body.length,
         });
 
+      /*
+       * Budget exhaustion is recorded on the application row (throttled,
+       * fire-and-forget) so the Dashboard can show WHY recordings stopped.
+       * Without this the customer's only signal is silence.
+       */
+      if (
+        decision.policy?.rumApplicationId &&
+        (decision.reason === "budget-exhausted" ||
+          decision.reason === "app-monthly-budget-exhausted")
+      ) {
+        RumApplicationService.markSessionReplayBudgetExceeded(
+          decision.policy.rumApplicationId,
+        ).catch((err: unknown) => {
+          logger.warn("Could not record replay budget exhaustion:");
+          logger.warn(err);
+        });
+      }
+
       switch (decision.outcome) {
         case SessionReplayGateOutcome.Stop:
           sendChunkDirective(req, res, 204, decision);
@@ -426,6 +474,20 @@ router.post(
           reason: "staging-failed",
         });
         return;
+      }
+
+      /*
+       * Recording health, written after the enqueue so "last chunk
+       * received" means "accepted", not merely "arrived". Throttled and
+       * fire-and-forget - it must never delay or fail the response.
+       */
+      if (decision.policy?.rumApplicationId) {
+        RumApplicationService.markSessionReplayChunkReceived(
+          decision.policy.rumApplicationId,
+        ).catch((err: unknown) => {
+          logger.warn("Could not record replay chunk receipt:");
+          logger.warn(err);
+        });
       }
 
       sendChunkDirective(req, res, 202, decision);

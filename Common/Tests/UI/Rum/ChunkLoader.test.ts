@@ -29,6 +29,12 @@ function makeEntry(
     eventCount: 10,
     hasFullSnapshot: options?.hasFullSnapshot ?? false,
     payloadBytes: options?.payloadBytes ?? 4096,
+    errorCount: 0,
+    rageClickCount: 0,
+    deadClickCount: 0,
+    errorClickCount: 0,
+    refreshRageCount: 0,
+    routeCount: 0,
   };
 }
 

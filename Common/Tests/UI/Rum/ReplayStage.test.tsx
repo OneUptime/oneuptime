@@ -63,6 +63,12 @@ function makeEntry(
     eventCount: 2,
     hasFullSnapshot: options?.hasFullSnapshot ?? false,
     payloadBytes: 4096,
+    errorCount: 0,
+    rageClickCount: 0,
+    deadClickCount: 0,
+    errorClickCount: 0,
+    refreshRageCount: 0,
+    routeCount: 0,
   };
 }
 

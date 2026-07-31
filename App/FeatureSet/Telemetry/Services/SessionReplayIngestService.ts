@@ -351,6 +351,50 @@ export default class SessionReplayIngestService {
       };
     }
 
+    /*
+     * The customer's own monthly ceiling on this application, distinct from
+     * the operator's instance-wide daily cap above. It is the one budget a
+     * customer can configure, so it must actually be enforced - a budget
+     * field that is stored and displayed but never consulted is worse than
+     * no field, because it promises a protection that does not exist.
+     */
+    if (policy.monthlyBudgetInGB !== null && policy.monthlyBudgetInGB > 0) {
+      const monthlyDecision: SessionReplayLimitDecision =
+        await SessionReplayRateLimiter.consumeApplicationMonthlyBudget({
+          projectId: data.projectId,
+          rumApplicationId: policy.rumApplicationId,
+          bytes: data.payloadBytes,
+          budgetBytes: Math.floor(
+            policy.monthlyBudgetInGB * 1024 * 1024 * 1024,
+          ),
+        });
+
+      if (
+        monthlyDecision.outcome === SessionReplayLimitOutcome.BudgetExhausted
+      ) {
+        return {
+          outcome: SessionReplayGateOutcome.Stop,
+          directive: "stop",
+          configEpoch: policy.configEpoch,
+          reason: "app-monthly-budget-exhausted",
+          policy,
+        };
+      }
+
+      if (
+        monthlyDecision.outcome === SessionReplayLimitOutcome.CounterUnavailable
+      ) {
+        return {
+          outcome: SessionReplayGateOutcome.StorageUnavailable,
+          directive: "throttle",
+          configEpoch: policy.configEpoch,
+          retryAfterSeconds: 30,
+          reason: "budget-counter-unavailable",
+          policy,
+        };
+      }
+    }
+
     return {
       outcome: SessionReplayGateOutcome.Accepted,
       directive: "continue",

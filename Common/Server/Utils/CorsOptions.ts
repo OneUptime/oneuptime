@@ -26,6 +26,7 @@ import type { CorsOptions as ExpressCorsOptions } from "cors";
 export const CORS_EXPOSED_HEADERS: Array<string> = [
   "x-oneuptime-replay-directive",
   "x-oneuptime-replay-config-epoch",
+  "x-oneuptime-replay-reason",
   "Retry-After",
 ];
 

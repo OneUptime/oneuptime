@@ -1,5 +1,7 @@
 import CommonAPI from "../../../Server/API/CommonAPI";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
+import ProjectService from "../../../Server/Services/ProjectService";
+import Project from "../../../Models/DatabaseModels/Project";
 import RumApplicationService from "../../../Server/Services/RumApplicationService";
 import RumSessionReplayViewService from "../../../Server/Services/RumSessionReplayViewService";
 import RumSessionService from "../../../Server/Services/RumSessionService";
@@ -119,6 +121,8 @@ const CHUNKS_ROUTE: string = "/telemetry/rum/session-replay/chunks";
 const HEARTBEAT_ROUTE: string = "/telemetry/rum/session-replay/heartbeat";
 const FOR_EXCEPTION_ROUTE: string =
   "/telemetry/rum/session-replay/for-exception";
+const INGEST_STATUS_ROUTE: string =
+  "/telemetry/rum/session-replay/ingest-status";
 
 function findRoute(uri: string): RecordedRoute {
   const route: RecordedRoute | undefined = recordedRoutes.find(
@@ -522,13 +526,14 @@ describe("Session replay playback API", () => {
   }
 
   describe("guard shape", () => {
-    test("all five routes are registered and every one carries the three-middleware guard", () => {
+    test("all six routes are registered and every one carries the three-middleware guard", () => {
       for (const uri of [
         LIST_ROUTE,
         MANIFEST_ROUTE,
         CHUNKS_ROUTE,
         HEARTBEAT_ROUTE,
         FOR_EXCEPTION_ROUTE,
+        INGEST_STATUS_ROUTE,
       ]) {
         const route: RecordedRoute = findRoute(uri);
 
@@ -1250,6 +1255,12 @@ describe("Session replay playback API", () => {
             eventCount: 100,
             hasFullSnapshot: true,
             chunkPayloadBytes: 1024,
+            errorCount: 2,
+            rageClickCount: 1,
+            deadClickCount: 4,
+            errorClickCount: 6,
+            refreshRageCount: 5,
+            routeCount: 3,
           },
           {
             tabId: "tab-1",
@@ -1259,6 +1270,12 @@ describe("Session replay playback API", () => {
             eventCount: 100,
             hasFullSnapshot: false,
             chunkPayloadBytes: 1024,
+            errorCount: 0,
+            rageClickCount: 0,
+            deadClickCount: 0,
+            errorClickCount: 0,
+            refreshRageCount: 0,
+            routeCount: 0,
           },
         ]) as never,
       );
@@ -1274,6 +1291,23 @@ describe("Session replay playback API", () => {
       expect(statement.query).not.toContain("payload,");
       expect(statement.query).not.toMatch(/\bpayload\b(?!Bytes)/);
       expect(statement.query).toContain("LIMIT 1 BY tabId, chunkIndex");
+
+      /*
+       * The signal counters must be projected: the player's error,
+       * frustration and route timeline lanes and the "next error" jump are
+       * fed exclusively by these per-chunk columns. Dropping one from the
+       * SELECT silently blanks a lane — it parses as 0 client-side.
+       */
+      for (const counterColumn of [
+        "errorCount",
+        "rageClickCount",
+        "deadClickCount",
+        "errorClickCount",
+        "refreshRageCount",
+        "routeCount",
+      ]) {
+        expect(statement.query).toContain(counterColumn);
+      }
 
       expect(recordViewSpy).toHaveBeenCalledTimes(1);
       const auditArgs: JSONObject = recordViewSpy.mock
@@ -1297,6 +1331,23 @@ describe("Session replay playback API", () => {
       expect(tabs).toHaveLength(1);
       expect(tabs[0]!["chunkIndexes"]).toEqual([0, 3]);
       expect(tabs[0]!["fullSnapshotChunkIndexes"]).toEqual([0]);
+
+      /*
+       * Every counter gets a DISTINCT nonzero value, asserted individually:
+       * the client parses missing keys to 0, so a counter dropped from the
+       * SELECT (or two counters cross-wired in the row mapping) fails
+       * loudly here instead of silently blanking a timeline lane.
+       */
+      const manifestChunks: Array<JSONObject> = tabs[0]![
+        "chunks"
+      ] as unknown as Array<JSONObject>;
+      expect(manifestChunks[0]!["errorCount"]).toBe(2);
+      expect(manifestChunks[0]!["rageClickCount"]).toBe(1);
+      expect(manifestChunks[0]!["deadClickCount"]).toBe(4);
+      expect(manifestChunks[0]!["errorClickCount"]).toBe(6);
+      expect(manifestChunks[0]!["refreshRageCount"]).toBe(5);
+      expect(manifestChunks[0]!["routeCount"]).toBe(3);
+      expect(manifestChunks[1]!["errorCount"]).toBe(0);
 
       /*
        * The hole between chunk 0 and chunk 3 must be reported. Playback
@@ -1812,6 +1863,195 @@ describe("Session replay playback API", () => {
 
       expect(statement.query).not.toContain("rumApplicationId IN (");
       expect(findBySpy).not.toHaveBeenCalled();
+    });
+
+    test("projects the frustration counters and masking mode the replay card renders", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ProjectOwner],
+      });
+
+      mockProps(principal.databaseProps);
+
+      headerQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          {
+            sessionId: "session-9",
+            applicationId: applicationAId.toString(),
+            aggStartTime: "2026-07-30 10:00:00.000",
+            aggEndTime: "2026-07-30 10:01:00.000",
+            aggDurationMs: 60000,
+            aggHasError: 1,
+            aggErrorCount: 2,
+            aggRageClickCount: 3,
+            aggDeadClickCount: 4,
+            aggErrorClickCount: 6,
+            aggRefreshRageCount: 5,
+            aggMaskingMode: "MaskAllText",
+            aggTriggerReason: "error",
+            aggEntryUrl: "https://shop.example.com/checkout",
+            aggBrowserName: "Chrome",
+            aggOsName: "macOS",
+            aggDeviceType: "desktop",
+            aggIsFinalized: 1,
+          },
+        ]) as never,
+      );
+
+      const result: CallResult = await callRoute({
+        uri: FOR_EXCEPTION_ROUTE,
+        request: principal.request,
+        body: { fingerprint: "fp-1" },
+      });
+
+      /*
+       * The card's signals line ("3 rage clicks before the error") and its
+       * up-front masking disclosure are fed exclusively by these aliases.
+       * The client parses a missing key to 0/"", so dropping one from the
+       * SELECT silently degrades the card — it must fail here instead.
+       */
+      const statement: Statement = headerQuerySpy.mock
+        .calls[0]![0] as Statement;
+
+      for (const alias of [
+        "aggRageClickCount",
+        "aggDeadClickCount",
+        "aggErrorClickCount",
+        "aggRefreshRageCount",
+        "aggMaskingMode",
+      ]) {
+        expect(statement.query).toContain(alias);
+      }
+
+      const sessions: Array<JSONObject> = result.jsonBody?.[
+        "sessions"
+      ] as unknown as Array<JSONObject>;
+
+      expect(sessions).toHaveLength(1);
+      expect(sessions[0]!["rumApplicationId"]).toBe(applicationAId.toString());
+      expect(sessions[0]!["rageClickCount"]).toBe(3);
+      expect(sessions[0]!["deadClickCount"]).toBe(4);
+      expect(sessions[0]!["errorClickCount"]).toBe(6);
+      expect(sessions[0]!["refreshRageCount"]).toBe(5);
+      expect(sessions[0]!["maskingMode"]).toBe("MaskAllText");
+    });
+  });
+
+  describe("ingest-status", () => {
+    function mockConfiguredApplication(): void {
+      const application: RumApplication = new RumApplication();
+      application.id = applicationAId;
+      application.projectId = projectId;
+      application.labels = [];
+      application.appIdentifier = "checkout-web";
+      application.isSessionReplayEnabled = true;
+      application.sessionReplayAllowedOrigins = ["https://shop.example.com"];
+      application.sessionReplaySamplePercentage = 25;
+      application.sessionReplayMonthlyBudgetInGB = 2;
+
+      findOneBySpy.mockResolvedValue(application);
+      findBySpy.mockResolvedValue([application]);
+    }
+
+    function mockProject(isAllowed: boolean): void {
+      const project: Project = new Project();
+      project.id = projectId;
+      project.isSessionReplayAllowed = isAllowed;
+
+      jest.spyOn(ProjectService, "findOneBy").mockResolvedValue(project);
+    }
+
+    test("a label-scoped caller whose labels do not reach the application is refused before any disclosure", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ReadRumSessionReplay],
+        labelIds: [labelBId],
+      });
+
+      mockProps(principal.databaseProps);
+      mockApplication({ id: applicationAId, labelIds: [labelAId] });
+      mockProject(true);
+
+      const result: CallResult = await callRoute({
+        uri: INGEST_STATUS_ROUTE,
+        request: principal.request,
+        body: { rumApplicationId: applicationAId.toString() },
+      });
+
+      expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      expect(result.jsonBody).toBeUndefined();
+    });
+
+    test("an application outside this tenant is refused identically to a missing one", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ProjectOwner],
+      });
+
+      mockProps(principal.databaseProps);
+      findOneBySpy.mockResolvedValue(null);
+      mockProject(true);
+
+      const result: CallResult = await callRoute({
+        uri: INGEST_STATUS_ROUTE,
+        request: principal.request,
+        body: { rumApplicationId: applicationAId.toString() },
+      });
+
+      expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      expect(result.jsonBody).toBeUndefined();
+    });
+
+    test("returns the switches, health timestamps and budget figures the panel renders", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ProjectOwner],
+      });
+
+      mockProps(principal.databaseProps);
+      mockConfiguredApplication();
+      mockProject(true);
+
+      const result: CallResult = await callRoute({
+        uri: INGEST_STATUS_ROUTE,
+        request: principal.request,
+        body: { rumApplicationId: applicationAId.toString() },
+      });
+
+      const body: JSONObject = result.jsonBody as JSONObject;
+
+      expect(body["isProjectAllowed"]).toBe(true);
+      expect(body["isApplicationEnabled"]).toBe(true);
+      expect(body["appIdentifier"]).toBe("checkout-web");
+      expect(body["allowedOrigins"]).toEqual(["https://shop.example.com"]);
+      expect(body["samplePercentage"]).toBe(25);
+      expect(body["monthlyBudgetInGB"]).toBe(2);
+      expect(body["lastChunkReceivedAt"]).toBeNull();
+      expect(body["budgetExceededAt"]).toBeNull();
+      /*
+       * Jest runs without Redis, so the usage readers answer null —
+       * "unknown", which the panel must render as unknown, never as 0.
+       * The daily limit is config, not a counter, so it is always known.
+       */
+      expect(body["projectBytesUsedToday"]).toBeNull();
+      expect(body["applicationBytesUsedThisMonth"]).toBeNull();
+      expect(body["dailyByteLimit"]).toBeGreaterThan(0);
     });
   });
 });
