@@ -68,6 +68,33 @@ describe("schema reference", () => {
   });
 });
 
+describe("curation", () => {
+  test("resource pages carry a registry subcategory", () => {
+    expect(monitorDoc).toContain('subcategory: "Monitors"');
+    expect(fileDoc).toContain('subcategory: "Organization"');
+  });
+
+  test("the provider index has a start-here section", () => {
+    const indexDoc: string = fs.readFileSync(
+      path.join(outputDir, "docs/index.md"),
+      "utf-8",
+    );
+    expect(indexDoc).toContain("## Start Here");
+    expect(indexDoc).toContain("oneuptime_monitor");
+    expect(indexDoc).toContain("./resources/monitor");
+  });
+
+  test("resource pages open with the model's real description", () => {
+    expect(monitorDoc).toContain("checks the health and availability");
+  });
+
+  test("typed monitor steps render as nested blocks, not jsonencode", () => {
+    expect(monitorDoc).toContain("monitor_destination");
+    expect(monitorDoc).toContain("Block List");
+    expect(monitorDoc).not.toContain('monitor_steps = "example-');
+  });
+});
+
 describe("import docs", () => {
   test("importable resources document the import command", () => {
     expect(monitorDoc).toContain(

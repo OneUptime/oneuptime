@@ -69,6 +69,11 @@ export class OpenAPIParser {
         operations: operations,
         schema: {},
       };
+      const resourceDescription: string | undefined =
+        this.getTagDescriptions().get(resourceName);
+      if (resourceDescription) {
+        resource.description = resourceDescription;
+      }
 
       resource.operationSchemas = this.generateOperationSpecificSchemas(
         operations,
@@ -131,6 +136,11 @@ export class OpenAPIParser {
         operations: dataSourceOperations,
         schema: {},
       };
+      const dataSourceDescription: string | undefined =
+        this.getTagDescriptions().get(resourceName);
+      if (dataSourceDescription) {
+        dataSource.description = dataSourceDescription;
+      }
 
       dataSource.schema = this.generateDataSourceSchema(dataSource.operations);
       dataSources.push(dataSource);
@@ -198,6 +208,33 @@ export class OpenAPIParser {
     return resourceMap;
   }
 
+  /*
+   * Tag descriptions carry the model's tableDescription — the best available
+   * human summary for a resource ("Monitors track the health of ...").
+   */
+  private getTagDescriptions(): Map<string, string> {
+    const map: Map<string, string> = new Map<string, string>();
+    for (const tag of this.spec?.tags || []) {
+      if (tag.name && tag.description) {
+        map.set(StringUtils.toSnakeCase(tag.name), tag.description);
+      }
+    }
+    return map;
+  }
+
+  /*
+   * Column descriptions in the spec end with an appended
+   * "Permissions - Create: [...], Read: [...], Update: [...]" clause. That is
+   * API-reference material, not Terraform documentation — strip it so schema
+   * descriptions read like prose.
+   */
+  private cleanDescription(description: string): string {
+    return description
+      .replace(/\.?\s*Permissions - Create: \[[\s\S]*$/, ".")
+      .replace(/\s+$/, "")
+      .replace(/^\.$/, "");
+  }
+
   private extractResourceName(operation: OpenAPIOperation): string | null {
     if (operation.tags && operation.tags.length > 0 && operation.tags[0]) {
       return StringUtils.toSnakeCase(operation.tags[0]);
@@ -218,22 +255,22 @@ export class OpenAPIParser {
   ): OperationType | null {
     const operationId: string = operation.operationId || "";
 
-    if ((/^create/i).test(operationId)) {
+    if (/^create/i.test(operationId)) {
       return "create";
     }
-    if ((/^get/i).test(operationId)) {
+    if (/^get/i.test(operationId)) {
       return "read";
     }
-    if ((/^update/i).test(operationId)) {
+    if (/^update/i.test(operationId)) {
       return "update";
     }
-    if ((/^delete/i).test(operationId)) {
+    if (/^delete/i.test(operationId)) {
       return "delete";
     }
-    if ((/^list/i).test(operationId)) {
+    if (/^list/i.test(operationId)) {
       return "list";
     }
-    if ((/^count/i).test(operationId)) {
+    if (/^count/i.test(operationId)) {
       // Count endpoints are not CRUD operations.
       return null;
     }
@@ -566,7 +603,7 @@ export class OpenAPIParser {
       return null;
     }
 
-    const description: string = prop.description || "";
+    const description: string = this.cleanDescription(prop.description || "");
     const example: any = prop.example;
     const defaultValue: any = prop.default;
     const ordered: boolean = Boolean(prop["x-ordered"]);
@@ -583,6 +620,17 @@ export class OpenAPIParser {
       default: defaultValue,
       ...(format ? { format } : {}),
     };
+
+    /*
+     * MonitorSteps wrappers become a typed nested attribute backed by the
+     * hand-written monitorsteps.go module instead of a JSON string.
+     */
+    if (prop["x-oneuptime-type"] === "MonitorSteps") {
+      return {
+        attribute: { ...base, type: "monitor_steps", isMonitorSteps: true },
+        requiredInCreate: required,
+      };
+    }
 
     // RFC3339 timestamps: the spec marks the DateTime wrapper explicitly.
     if (this.isDateTimeSchema(prop)) {

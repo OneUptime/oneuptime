@@ -10,6 +10,7 @@ import { OpenAPIParser } from "./OpenAPIParser";
 import { GoCodeGenerator } from "./GoCodeGenerator";
 import { ObjectType } from "Common/Types/JSON";
 import path from "path";
+import fs from "fs";
 
 /*
  * StaticFiles holds Go source we copy verbatim into the generated provider
@@ -44,6 +45,23 @@ export class ResourceGenerator {
     await this.copyStaticFile("jsonsubset_test.go", "internal/provider");
     await this.copyStaticFile("rfc3339.go", "internal/provider");
     await this.copyStaticFile("rfc3339_test.go", "internal/provider");
+    await this.copyStaticFile("jsonenvelope.go", "internal/provider");
+    await this.copyStaticFile("jsonenvelope_test.go", "internal/provider");
+    await this.copyStaticFileIfExists("monitorsteps.go", "internal/provider");
+    await this.copyStaticFileIfExists(
+      "monitorsteps_test.go",
+      "internal/provider",
+    );
+    await this.copyStaticFile(
+      "provider_schema_smoke_test.go",
+      "internal/provider",
+    );
+
+    /*
+     * Package-level ObjectType registry shared by every resource and the
+     * envelope validator (was duplicated as a per-resource map).
+     */
+    await this.generateObjectTypesFile();
 
     // Generate each resource
     for (const resource of resources) {
@@ -67,6 +85,18 @@ export class ResourceGenerator {
     const sourcePath: string = path.join(STATIC_FILES_DIR, fileName);
     const content: string = this.fileGenerator.readTemplateFile(sourcePath);
     await this.fileGenerator.writeFileInDir(targetDir, fileName, content);
+  }
+
+  private async copyStaticFileIfExists(
+    fileName: string,
+    targetDir: string,
+  ): Promise<boolean> {
+    const sourcePath: string = path.join(STATIC_FILES_DIR, fileName);
+    if (!fs.existsSync(sourcePath)) {
+      return false;
+    }
+    await this.copyStaticFile(fileName, targetDir);
+    return true;
   }
 
   private async generateResource(resource: TerraformResource): Promise<void> {
@@ -351,21 +381,42 @@ export class ResourceGenerator {
       }
     }
 
-    // Enum-constrained string attributes get a OneOf validator.
-    const hasEnumValidators: boolean = Object.values(resource.schema).some(
-      (attr: any) => {
+    /*
+     * Enum strings get OneOf validators; writable complex-JSON fields get
+     * the plan-time envelope validator. Both need the validator package.
+     */
+    const isProjectIdName: (name: string) => boolean = (
+      name: string,
+    ): boolean => {
+      return name === "project_id" || name === "projectId";
+    };
+    const hasEnumValidators: boolean = Object.entries(resource.schema).some(
+      ([name, attr]: [string, any]) => {
         return (
           attr.type === "string" &&
           Array.isArray(attr.enumValues) &&
           attr.enumValues.length > 0 &&
-          !(attr.computed && !attr.optional)
+          !(attr.computed && !attr.optional) &&
+          !isProjectIdName(name)
         );
       },
     );
-    if (hasEnumValidators) {
+    const hasEnvelopeValidators: boolean = Object.entries(resource.schema).some(
+      ([name, attr]: [string, any]) => {
+        return (
+          attr.type === "string" &&
+          attr.isComplexObject &&
+          !(attr.computed && !attr.optional) &&
+          !isProjectIdName(name)
+        );
+      },
+    );
+    if (hasEnumValidators || hasEnvelopeValidators) {
       imports.push(
         "github.com/hashicorp/terraform-plugin-framework/schema/validator",
       );
+    }
+    if (hasEnumValidators) {
       imports.push(
         "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator",
       );
@@ -420,7 +471,7 @@ func (r *${resourceTypeName}Resource) Metadata(ctx context.Context, req resource
 
 func (r *${resourceTypeName}Resource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
     resp.Schema = schema.Schema{
-        MarkdownDescription: "${resource.name} resource",
+        MarkdownDescription: "${GoCodeGenerator.escapeString(resource.description || `Manages a ${resource.name.replace(/_/g, " ")} in OneUptime.`)}",
 
         Attributes: map[string]schema.Attribute{
 ${this.generateSchemaAttributes(resource)}
@@ -583,16 +634,32 @@ func (r *${resourceTypeName}Resource) bigFloatToFloat64(bf *big.Float) interface
     return f
 }
 
-// Helper method to check if a type string is a valid OneUptime ObjectType
-// Only these types should be marshalled/unmarshalled as typed wrapper objects
-// This list is dynamically generated from Common/Types/JSON.ts ObjectType enum
+// Helper method to check if a type string is a valid OneUptime ObjectType.
+// The registry itself lives in objecttypes.go, shared across the package.
 func (r *${resourceTypeName}Resource) isValidOneUptimeObjectType(typeStr string) bool {
-    validTypes := map[string]bool{
-${this.generateValidObjectTypesMap()}
-    }
-    return validTypes[typeStr]
+    return validOneUptimeObjectTypes[typeStr]
 }
 `;
+  }
+
+  /*
+   * Emits the package-level ObjectType registry, generated from
+   * Common/Types/JSON.ts so it stays in sync with the API's wrapper types.
+   */
+  private async generateObjectTypesFile(): Promise<void> {
+    const content: string = `package provider
+
+// validOneUptimeObjectTypes lists every {_type: ...} wrapper the OneUptime
+// API emits. Generated from Common/Types/JSON.ts ObjectType.
+var validOneUptimeObjectTypes = map[string]bool{
+${this.generateValidObjectTypesMap()}
+}
+`;
+    await this.fileGenerator.writeFileInDir(
+      "internal/provider",
+      "objecttypes.go",
+      content,
+    );
   }
 
   private generateModelFields(resource: TerraformResource): string {
@@ -607,7 +674,9 @@ ${this.generateValidObjectTypesMap()}
        * a custom type whose semantic-equality compares instants (rfc3339.go).
        */
       let goType: string = this.mapTerraformTypeToGo(attr.type);
-      if (attr.type === "string" && attr.isDateTime) {
+      if (attr.type === "monitor_steps") {
+        goType = "types.List";
+      } else if (attr.type === "string" && attr.isDateTime) {
         goType = "RFC3339Value";
       } else if (attr.type === "string" && attr.isComplexObject) {
         goType = "JSONSubsetValue";
@@ -658,6 +727,17 @@ ${this.generateValidObjectTypesMap()}
     attr: any,
     resource?: TerraformResource,
   ): string {
+    /*
+     * MonitorSteps fields use the hand-written typed nested attribute
+     * (monitorsteps.go) instead of a generated JSON-string attribute.
+     */
+    if (attr.isMonitorSteps) {
+      return `MonitorStepsSchemaAttribute("${GoCodeGenerator.escapeString(
+        attr.description ||
+          "Monitoring steps: destinations, request settings, and alerting criteria.",
+      )}")`;
+    }
+
     const attrType: string = this.mapTerraformTypeToSchemaType(attr.type);
     const options: string[] = [];
 
@@ -862,8 +942,10 @@ ${this.generateValidObjectTypesMap()}
     }
 
     /*
-     * Enum-constrained writable strings get a OneOf validator so config
-     * errors surface at plan time instead of as API 400s.
+     * Plan-time validators: OneOf for enum strings; the JSON-envelope
+     * validator for writable complex-JSON fields, so malformed JSON, bogus
+     * {_type} values, and unparseable DateTime values fail at plan time
+     * instead of as API 400/500s at apply time.
      */
     let validators: string = "";
     if (
@@ -881,6 +963,16 @@ ${this.generateValidObjectTypesMap()}
       validators = `,
                 Validators: []validator.String{
                     stringvalidator.OneOf(${values}),
+                }`;
+    } else if (
+      attr.type === "string" &&
+      attr.isComplexObject &&
+      !isComputedOnly &&
+      !isProjectIdField
+    ) {
+      validators = `,
+                Validators: []validator.String{
+                    JSONEnvelopeValidator(),
                 }`;
     }
 
@@ -1433,7 +1525,18 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
         attr,
       );
 
-      if (attr.type === "string" && attr.isComplexObject) {
+      if (attr.isMonitorSteps) {
+        assignments.push(
+          `    if !data.${fieldName}.IsNull() && !data.${fieldName}.IsUnknown() {
+        ${StringUtils.toCamelCase(fieldName)}Value, ${StringUtils.toCamelCase(fieldName)}Diags := MonitorStepsToAPI(ctx, data.${fieldName})
+        resp.Diagnostics.Append(${StringUtils.toCamelCase(fieldName)}Diags...)
+        if resp.Diagnostics.HasError() {
+            return
+        }
+        requestDataMap["${apiFieldName}"] = ${StringUtils.toCamelCase(fieldName)}Value
+    }`,
+        );
+      } else if (attr.type === "string" && attr.isComplexObject) {
         // parseJSONField already returns nil for null/unknown/empty.
         assignments.push(
           `    if parsed${fieldName} := r.parseJSONField(data.${fieldName}); parsed${fieldName} != nil {
@@ -1558,6 +1661,15 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
       terraformAttr.type,
       `data.${fieldName}`,
     );
+
+    if (terraformAttr.isMonitorSteps) {
+      return `${StringUtils.toCamelCase(fieldName)}Value, ${StringUtils.toCamelCase(fieldName)}Diags := MonitorStepsToAPI(ctx, data.${fieldName})
+        resp.Diagnostics.Append(${StringUtils.toCamelCase(fieldName)}Diags...)
+        if resp.Diagnostics.HasError() {
+            return
+        }
+        requestDataMap["${apiFieldName}"] = ${StringUtils.toCamelCase(fieldName)}Value`;
+    }
 
     /*
      * Scalar arrays are sent as plain values; only entity-reference arrays
@@ -1722,6 +1834,16 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
     const isScalarCollection: boolean = attr.elementKind === "scalar";
 
     switch (terraformType) {
+      case "monitor_steps":
+        /*
+         * Typed nested monitor steps: conversion (and dropping of
+         * server-injected extras like ids) lives in monitorsteps.go.
+         */
+        return `{
+        mappedSteps, stepsDiags := MonitorStepsFromAPI(ctx, ${responseValue})
+        resp.Diagnostics.Append(stepsDiags...)
+        ${fieldName} = mappedSteps
+    }`;
       case "string":
         // Handle binary format fields (like base64 file content) specially
         if (format === "binary") {

@@ -223,6 +223,11 @@ export default class MonitorSteps extends DatabaseProperty {
     }).openapi({
       type: "object",
       description: "MonitorSteps object",
+      /*
+       * Machine-readable marker so spec consumers (e.g. the Terraform
+       * provider generator) can emit a typed nested schema for this field.
+       */
+      "x-oneuptime-type": ObjectType.MonitorSteps,
       example: {
         _type: ObjectType.MonitorSteps,
         value: {

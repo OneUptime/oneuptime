@@ -143,12 +143,31 @@ describe("resource schema derivation", () => {
   });
 
   test("complex objects are JSON-string attributes", () => {
-    expect(schema["monitor_steps"]?.type).toBe("string");
-    expect(schema["monitor_steps"]?.isComplexObject).toBe(true);
+    expect(schema["server_meta"]?.type).toBe("string");
+    expect(schema["server_meta"]?.isComplexObject).toBe(true);
+  });
+
+  test("MonitorSteps wrappers become the typed nested attribute", () => {
+    expect(schema["monitor_steps"]?.type).toBe("monitor_steps");
+    expect(schema["monitor_steps"]?.isMonitorSteps).toBe(true);
+    expect(schema["monitor_steps"]?.isComplexObject).toBeFalsy();
+  });
+
+  test("the Permissions clause is stripped from descriptions", () => {
+    expect(schema["name"]?.description).toBe("Name of the monitor.");
+    expect(schema["name"]?.description).not.toContain("Permissions");
   });
 
   test("id is always computed", () => {
     expect(schema["id"]?.computed).toBe(true);
+  });
+});
+
+describe("resource descriptions", () => {
+  test("the spec tag description becomes the resource description", () => {
+    expect(getMonitor().description).toContain(
+      "checks the health and availability",
+    );
   });
 });
 
