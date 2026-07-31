@@ -318,10 +318,29 @@ export default class SessionReplayGateCache {
     policy: SessionReplayGatePolicy,
     origin: string | undefined,
   ): boolean {
+    /*
+     * An empty allowlist means "any origin", not "no origin".
+     *
+     * Be aware of what this gives up. TelemetryIngestionKey has no expiry, no
+     * scope and no origin binding, and the install instructions put it in
+     * plain sight in the customer's browser JavaScript. The allowlist was the
+     * only control preventing anyone who scraped that key from writing
+     * recordings into the victim's project, so with it empty a project is
+     * open to forged sessions until someone fills it in.
+     *
+     * Populate sessionReplayAllowedOrigins per application in production. The
+     * rate limit and the per-project byte budget still bound the damage, but
+     * they bound volume, not authenticity.
+     */
     if (policy.allowedOrigins.length === 0) {
-      return false;
+      return true;
     }
 
+    /*
+     * A configured allowlist is still enforced strictly: once the customer has
+     * named their origins, a request without an Origin header is refused
+     * rather than waved through.
+     */
     if (!origin) {
       return false;
     }

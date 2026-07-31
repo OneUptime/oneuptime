@@ -479,6 +479,7 @@ import { AddParentGroupToStatusPageGroup1785329453269 } from "./1785329453269-Ad
 import { AddRecommendationDismissalTable1785397674289 } from "./1785397674289-AddRecommendationDismissalTable";
 import { AddDroppedCountersToDropFilters1785405581596 } from "./1785405581596-AddDroppedCountersToDropFilters";
 import { AddSessionReplay1785417351021 } from "./1785417351021-AddSessionReplay";
+import { EnableSessionReplayByDefault1785491583874 } from "./1785491583874-EnableSessionReplayByDefault";
 
 export default [
   InitialMigration,
@@ -962,4 +963,5 @@ export default [
   AddRecommendationDismissalTable1785397674289,
   AddDroppedCountersToDropFilters1785405581596,
   AddSessionReplay1785417351021,
+  EnableSessionReplayByDefault1785491583874,
 ];

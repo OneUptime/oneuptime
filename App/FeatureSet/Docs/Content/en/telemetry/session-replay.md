@@ -10,7 +10,7 @@ That default matters. It means a recording almost always exists for the sessions
 
 - A RUM application — create one from _Reliability → RUM → Applications_.
 - A **Telemetry Ingestion Token** — _Project Settings → Telemetry Ingestion Keys_.
-- Session Replay switched on for that application in _RUM → your app → Settings → Session Replay_. It is **off by default**.
+- Session Replay is **on by default**. You can switch it off per application, or for the whole project, in _RUM → Settings → Session Replay_.
 
 ## Install
 
@@ -36,16 +36,24 @@ The script at `/v1/recorder.js` is a small loader. It fetches your application's
 
 | Control | Default | What it does |
 | --- | --- | --- |
-| Session Replay enabled | **off** | Per-application switch. Nothing is recorded until you turn it on. |
+| Session Replay enabled | **on** | Per-application switch. Turn it off to stop recording for one application. |
 | Masking mode | **Mask all text** | Every text node and input value becomes a placeholder. Playback shows layout and interaction, not readable content. |
-| Consent mode | **Require explicit** | The recorder buffers but uploads nothing until you call `grantConsent()`. |
+| Consent mode | **Not required** | Uploads start immediately. Set *Require explicit* if you need a per-session consent handshake, which most EU deployments will. |
 | Capture trigger | **On error or frustration** | Upload only when something goes wrong. |
 | Sample percentage | **0%** | Additional random sampling on top of the trigger. |
-| Allowed origins | **empty (refused)** | You must list the domains allowed to send recordings. |
+| Allowed origins | **empty (any origin)** | List your domains to restrict who may send recordings. See the warning below. |
 | Capture user identity | **off** | When off, users are pseudonymous. |
 | Capture country | **off** | Country only, never an IP address. |
 | Record canvas | **off** | Canvas and WebGL are not recorded. |
 | Retention | **7 days** | Shorter than other telemetry, on purpose. |
+
+### Set your allowed origins in production
+
+Session replay works out of the box with an empty origin allowlist, which accepts recordings from **any** origin. That is convenient for getting started and wrong for production.
+
+Your ingestion token lives in plain sight in your page's JavaScript — that is unavoidable for a browser recorder — and the token has no expiry and no origin binding of its own. The allowlist is the only thing that stops someone who copies it from writing forged recordings into your project. The rate limit and daily byte budget bound how *much* they could write; they say nothing about whether it is genuine.
+
+List your domains under _RUM → Settings → Session Replay_ before you point real traffic at it. Once you do, an exact-origin match is required and a request presenting no `Origin` header is refused.
 
 Always masked regardless of mode, and not configurable:
 

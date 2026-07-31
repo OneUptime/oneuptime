@@ -2595,16 +2595,16 @@ export default class Project extends TenantModel {
     required: true,
     type: TableColumnType.Boolean,
     isDefaultValueColumn: true,
-    defaultValue: false,
+    defaultValue: true,
     title: "Allow Session Replay",
     description:
-      "When enabled, RUM applications in this project may record session replays if they are individually enabled too. Off by default for the whole project.",
+      "When enabled, RUM applications in this project may record session replays if they are individually enabled too. On by default; switch it off here to stop session replay across the entire project in one place.",
   })
   @Column({
     type: ColumnType.Boolean,
     nullable: false,
     unique: false,
-    default: false,
+    default: true,
   })
   public isSessionReplayAllowed?: boolean = undefined;
 

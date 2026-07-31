@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Session Replay Demo — OneUptime</title>
+    <style>
+      :root { color-scheme: light; }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        color: #111827;
+        background: #f9fafb;
+      }
+      main { max-width: 720px; margin: 0 auto; padding: 40px 24px 80px; }
+      h1 { font-size: 22px; margin: 0 0 4px; }
+      .sub { color: #6b7280; margin: 0 0 28px; }
+      section {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 16px;
+      }
+      h2 { font-size: 14px; text-transform: uppercase; letter-spacing: .04em; color: #6b7280; margin: 0 0 12px; }
+      label { display: block; font-size: 13px; font-weight: 500; margin: 12px 0 4px; }
+      input {
+        width: 100%; padding: 8px 10px; font: inherit;
+        border: 1px solid #d1d5db; border-radius: 8px; background: #fff;
+      }
+      button {
+        font: inherit; font-weight: 500; padding: 9px 14px;
+        border-radius: 8px; border: 1px solid transparent; cursor: pointer;
+      }
+      .primary { background: #4f46e5; color: #fff; }
+      .primary:hover { background: #4338ca; }
+      .danger { background: #fff; color: #b91c1c; border-color: #fecaca; }
+      .danger:hover { background: #fef2f2; }
+      .ghost { background: #fff; color: #374151; border-color: #d1d5db; }
+      .ghost:hover { background: #f9fafb; }
+      .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+      .hint { font-size: 12.5px; color: #6b7280; margin-top: 10px; }
+      #status {
+        font: 12.5px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
+        background: #111827; color: #d1d5db; border-radius: 10px;
+        padding: 14px; margin-top: 16px; white-space: pre-wrap;
+        max-height: 220px; overflow: auto;
+      }
+      .ok { color: #34d399; }
+      .bad { color: #f87171; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Session Replay Demo</h1>
+      <p class="sub">A deliberately ordinary page, used to prove the recorder captures, uploads and plays back.</p>
+
+      <section>
+        <h2>Sensitive fields — these must never reach the server</h2>
+        <p class="hint">
+          Type real-looking values here. Masking happens in the browser before anything is
+          uploaded, so if any of this appears in the stored payload, that is a defect.
+        </p>
+
+        <label for="email">Email</label>
+        <input id="email" type="email" autocomplete="email" placeholder="jane@example.com" />
+
+        <label for="password">Password</label>
+        <input id="password" type="password" autocomplete="current-password" placeholder="hunter2" />
+
+        <label for="card">Card number</label>
+        <!-- type=text on purpose: this is why autocomplete is the signal, not input type. -->
+        <input id="card" type="text" autocomplete="cc-number" placeholder="4111 1111 1111 1111" />
+
+        <label for="note">Free text</label>
+        <input id="note" type="text" placeholder="anything you like" />
+      </section>
+
+      <section>
+        <h2>Trigger a recording</h2>
+        <p class="hint">
+          The default capture trigger is <strong>on error or frustration</strong>: the recorder
+          holds a rolling in-memory buffer and uploads nothing until something actually goes
+          wrong. Use a button below to make that happen.
+        </p>
+        <div class="row">
+          <button class="danger" id="throw">Throw an uncaught error</button>
+          <button class="danger" id="reject">Unhandled promise rejection</button>
+          <button class="ghost" id="rage">Rage click me (3x fast)</button>
+          <button class="ghost" id="dead">Dead click (does nothing)</button>
+          <button class="primary" id="manual">Capture manually</button>
+        </div>
+        <div id="status">waiting for the recorder…</div>
+      </section>
+    </main>
+
+    <script>
+      // Config comes from the query string so the same file works against any
+      // deployment: ?host=...&token=...&app=...
+      var params = new URLSearchParams(location.search);
+      var HOST = params.get("host") || "https://oneuptimedev.genosyn.com";
+      var TOKEN = params.get("token") || "";
+      var APP = params.get("app") || "session-replay-demo";
+
+      var statusEl = document.getElementById("status");
+      function log(msg, cls) {
+        var line = document.createElement("div");
+        if (cls) { line.className = cls; }
+        line.textContent = new Date().toLocaleTimeString() + "  " + msg;
+        statusEl.appendChild(line);
+        statusEl.scrollTop = statusEl.scrollHeight;
+      }
+
+      if (!TOKEN) {
+        log("No ?token= supplied — the recorder will not authenticate.", "bad");
+      }
+
+      // Surface what the recorder is doing, so a silent failure is visible.
+      var origFetch = window.fetch;
+      window.fetch = function (input, init) {
+        var url = typeof input === "string" ? input : (input && input.url) || "";
+        if (url.indexOf("session-replay") !== -1) {
+          var kind = url.indexOf("/chunk") !== -1 ? "chunk upload" : "recorder call";
+          return origFetch.apply(this, arguments).then(function (res) {
+            log(kind + " -> HTTP " + res.status, res.ok || res.status === 202 || res.status === 204 ? "ok" : "bad");
+            return res;
+          }).catch(function (err) {
+            log(kind + " FAILED: " + err.message, "bad");
+            throw err;
+          });
+        }
+        return origFetch.apply(this, arguments);
+      };
+
+      document.getElementById("throw").addEventListener("click", function () {
+        log("throwing an uncaught error…");
+        setTimeout(function () { throw new Error("Session replay demo: deliberate uncaught error"); }, 0);
+      });
+
+      document.getElementById("reject").addEventListener("click", function () {
+        log("rejecting a promise with no handler…");
+        Promise.reject(new Error("Session replay demo: deliberate unhandled rejection"));
+      });
+
+      document.getElementById("rage").addEventListener("click", function () {
+        log("click registered (3 within a second in one spot = rage click)");
+      });
+
+      document.getElementById("manual").addEventListener("click", function () {
+        if (window.OneUptimeReplay && window.OneUptimeReplay.captureSession) {
+          window.OneUptimeReplay.captureSession();
+          log("captureSession() called", "ok");
+        } else {
+          log("OneUptimeReplay.captureSession is not available yet", "bad");
+        }
+      });
+
+      // Poll for the recorder so the page reports whether it actually loaded.
+      var tries = 0;
+      var poll = setInterval(function () {
+        tries++;
+        if (window.OneUptimeReplay) {
+          clearInterval(poll);
+          log("recorder loaded", "ok");
+          if (window.OneUptimeReplay.getSessionId) {
+            log("session id: " + window.OneUptimeReplay.getSessionId());
+          }
+        } else if (tries > 20) {
+          clearInterval(poll);
+          log("recorder did not load after 10s — check the token, the CSP and the console.", "bad");
+        }
+      }, 500);
+
+      // Inject the recorder tag with whatever config the query string gave us.
+      var s = document.createElement("script");
+      s.src = HOST + "/telemetry/session-replay/v1/recorder.js";
+      s.async = true;
+      s.setAttribute("data-oneuptime-token", TOKEN);
+      s.setAttribute("data-oneuptime-app-identifier", APP);
+      s.onerror = function () { log("failed to LOAD the recorder script from " + HOST, "bad"); };
+      document.head.appendChild(s);
+    </script>
+  </body>
+</html>
