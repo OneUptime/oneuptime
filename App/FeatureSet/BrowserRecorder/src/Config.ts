@@ -51,6 +51,16 @@ export const AUTH_TOKEN_HEADER: string = "x-oneuptime-token";
 export const CONFIG_PATH: string = "/telemetry/session-replay/v1/config";
 export const CHUNK_PATH: string = "/telemetry/session-replay/v1/chunk";
 
+/*
+ * A standalone function rather than a Config static on purpose: class
+ * methods are never tree-shaken, and only the ARTIFACT posts chunks. As
+ * a static this rode along in the loader stub (which lives on a hard
+ * byte budget) as dead weight - together with the CHUNK_PATH string.
+ */
+export function getChunkUrl(options: RecorderInitOptions): string {
+  return `${options.host}${CHUNK_PATH}`;
+}
+
 /* Where the pinned, immutable artifact lives. */
 export const ARTIFACT_PATH_PREFIX: string = "/telemetry/session-replay";
 
@@ -259,10 +269,6 @@ export default class Config {
 
   public static getConfigUrl(options: RecorderInitOptions): string {
     return `${options.host}${CONFIG_PATH}`;
-  }
-
-  public static getChunkUrl(options: RecorderInitOptions): string {
-    return `${options.host}${CHUNK_PATH}`;
   }
 
   public static isValidRecorderVersion(value: unknown): value is string {

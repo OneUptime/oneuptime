@@ -1,7 +1,11 @@
 import SessionReplayCaptureTrigger from "Common/Types/Rum/SessionReplayCaptureTrigger";
 import SessionReplayConsentMode from "Common/Types/Rum/SessionReplayConsentMode";
 import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode";
-import Config, { LoaderConfig, RecorderInitOptions } from "../src/Config";
+import Config, {
+  LoaderConfig,
+  RecorderInitOptions,
+  getChunkUrl,
+} from "../src/Config";
 
 describe("Config", (): void => {
   const validBody: Record<string, unknown> = {
@@ -297,7 +301,7 @@ describe("Config", (): void => {
       expect(Config.getConfigUrl(options)).toBe(
         "https://oneuptime.com/telemetry/session-replay/v1/config",
       );
-      expect(Config.getChunkUrl(options)).toBe(
+      expect(getChunkUrl(options)).toBe(
         "https://oneuptime.com/telemetry/session-replay/v1/chunk",
       );
       expect(Config.getArtifactUrl(options, "11.7.3")).toBe(
@@ -312,7 +316,7 @@ describe("Config", (): void => {
        */
       for (const url of [
         Config.getConfigUrl(options),
-        Config.getChunkUrl(options),
+        getChunkUrl(options),
         Config.getArtifactUrl(options, "11.7.3"),
       ]) {
         expect(url).toContain("/telemetry/session-replay");

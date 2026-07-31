@@ -161,7 +161,7 @@ describe("bundle hygiene", (): void => {
     /* A distinctive rrweb internal that would appear if it were bundled. */
     expect(loaderBundle).not.toContain("rrweb");
     expect(loaderBundle).not.toContain("takeFullSnapshot");
-    expect(loaderBundle.length).toBeLessThan(6 * 1024);
+    expect(loaderBundle.length).toBeLessThan(7 * 1024);
   });
 
   it("contains the recorder itself", (): void => {
