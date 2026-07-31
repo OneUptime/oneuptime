@@ -21,9 +21,11 @@ import StatusCode from "Common/Types/API/StatusCode";
 import ObjectID from "Common/Types/ObjectID";
 import {
   SESSION_REPLAY_APP_IDENTIFIER_HEADER,
+  SESSION_REPLAY_USER_REF_HEADER,
   SessionReplayChunkResponse,
   SessionReplayConfigResponse,
 } from "Common/Types/Rum/SessionReplay";
+import SessionReplayTargeting from "Common/Server/Utils/SessionReplay/SessionReplayTargeting";
 import SessionReplayCaptureTrigger from "Common/Types/Rum/SessionReplayCaptureTrigger";
 import SessionReplayConsentMode from "Common/Types/Rum/SessionReplayConsentMode";
 import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode";
@@ -177,6 +179,46 @@ function readAppIdentifier(req: ExpressRequest): string {
       req.headers[SESSION_REPLAY_APP_IDENTIFIER_HEADER],
     )?.trim() || ""
   );
+}
+
+/*
+ * Did a dashboard user ask for this end user's next session?
+ *
+ * The recorder URI-component-encodes the reference (a raw non-ASCII header
+ * value would make its fetch() throw), so decode here; a value that does
+ * not decode is matched as sent, since an older or third-party client may
+ * not encode at all. Every failure path answers false: targeting is a
+ * convenience, and it must never break a config response.
+ */
+async function resolveIsTargeted(
+  req: ExpressRequest,
+  projectId: ObjectID,
+  appIdentifier: string,
+): Promise<boolean> {
+  const rawHeader: string =
+    headerValueToString(req.headers[SESSION_REPLAY_USER_REF_HEADER]) || "";
+
+  if (!rawHeader) {
+    return false;
+  }
+
+  let userRef: string = rawHeader;
+
+  try {
+    userRef = decodeURIComponent(rawHeader);
+  } catch {
+    /* Malformed percent-encoding; match the literal value instead. */
+  }
+
+  if (!SessionReplayTargeting.isUsableUserRef(userRef)) {
+    return false;
+  }
+
+  return SessionReplayTargeting.consumeTarget({
+    projectId: projectId,
+    appIdentifier: appIdentifier,
+    userRef: userRef,
+  });
 }
 
 /*
@@ -570,6 +612,11 @@ router.get(
         blockSelectors: [],
         urlAllowlist: [],
         ignoreErrorPatterns: [],
+        tracePropagationOrigins: [],
+        lcpBudgetMs: 0,
+        longTaskBudgetMs: 0,
+        slowRequestBudgetMs: 0,
+        isTargeted: false,
         recordCanvas: false,
         captureUserIdentity: false,
         respectDoNotTrack: true,
@@ -645,6 +692,17 @@ router.get(
          * dashboard edit on its next config refresh.
          */
         ignoreErrorPatterns: policy.ignoreErrorPatterns,
+        /*
+         * Correlation and performance knobs ship to the recorder verbatim;
+         * the artifact normalises them defensively (see the recorder's
+         * ExtendedConfig). Empty origins mean the injection code never
+         * runs, which is the safe default the column migration sets.
+         */
+        tracePropagationOrigins: policy.tracePropagationOrigins,
+        lcpBudgetMs: policy.lcpBudgetMs,
+        longTaskBudgetMs: policy.longTaskBudgetMs,
+        slowRequestBudgetMs: policy.slowRequestBudgetMs,
+        isTargeted: await resolveIsTargeted(req, projectId, appIdentifier),
         recordCanvas: policy.recordCanvas,
         captureUserIdentity: policy.captureUserIdentity,
         respectDoNotTrack: true,
@@ -652,7 +710,17 @@ router.get(
         directive: "continue",
       };
 
-      res.setHeader("Cache-Control", "private, max-age=300");
+      /*
+       * A targeted answer is one-shot by construction (the Redis take is
+       * atomic), so it must never be served from any cache - a cached
+       * isTargeted:true would re-arm capture on every reload for 5
+       * minutes, turning "the next session" into "every session".
+       */
+      if (config.isTargeted) {
+        res.setHeader("Cache-Control", "no-store");
+      } else {
+        res.setHeader("Cache-Control", "private, max-age=300");
+      }
 
       Response.sendJsonObjectResponse(
         req,

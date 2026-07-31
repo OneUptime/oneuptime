@@ -1,5 +1,6 @@
 import {
   SESSION_REPLAY_APP_IDENTIFIER_HEADER,
+  SESSION_REPLAY_USER_REF_HEADER,
   SessionReplayConfigResponse,
 } from "Common/Types/Rum/SessionReplay";
 import SessionReplayCaptureTrigger from "Common/Types/Rum/SessionReplayCaptureTrigger";
@@ -73,6 +74,16 @@ export const CONFIG_FETCH_TIMEOUT_MS: number = 5000;
  */
 export interface LoaderConfig extends SessionReplayConfigResponse {
   recorderIntegrity?: string;
+
+  /*
+   * The config body exactly as received, UNVALIDATED. The loader stub
+   * lives under a hard byte budget, so fields only the full artifact acts
+   * on (trace propagation, performance budgets, targeted capture) are not
+   * validated here field-by-field; the artifact normalises them from this
+   * passthrough (see ExtendedConfig.ts) and treats a missing or hostile
+   * value as "feature off". Nothing in the LOADER may read through this.
+   */
+  raw?: Record<string, unknown>;
 }
 
 export interface RecorderInitOptions {
@@ -259,10 +270,24 @@ export default class Config {
       controller.abort();
     }, CONFIG_FETCH_TIMEOUT_MS);
 
+    const headers: Record<string, string> = Config.getIngestHeaders(options);
+
+    /*
+     * Config fetch only, never on chunks: the server answers the
+     * "record this user's next session" question exactly once, here.
+     * Encoded because fetch() THROWS on a non-ISO-8859-1 header value —
+     * an emoji in a customer's user id must not disable recording.
+     */
+    if (options.userRef) {
+      headers[SESSION_REPLAY_USER_REF_HEADER] = encodeURIComponent(
+        options.userRef,
+      );
+    }
+
     try {
       const response: Response = await fetch(Config.getConfigUrl(options), {
         method: "GET",
-        headers: Config.getIngestHeaders(options),
+        headers: headers,
         signal: controller.signal,
 
         /*
@@ -367,6 +392,9 @@ export default class Config {
     if (typeof integrity === "string" && integrity) {
       config.recorderIntegrity = integrity;
     }
+
+    /* Artifact-only fields ride through unvalidated; see LoaderConfig.raw. */
+    config.raw = raw;
 
     return config;
   }

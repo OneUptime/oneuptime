@@ -30,6 +30,15 @@ export interface RecordedRequest {
   durationMs: number;
   responseBytes: number;
   isError: boolean;
+
+  /*
+   * Trace id this request carried — read from a traceparent the host
+   * page's own instrumentation set, or minted here when injection is on
+   * for the request's origin. In the payload (not only the envelope's
+   * traceIds rollup) so the DevTools panel can link one request row to
+   * one backend trace.
+   */
+  traceId?: string;
 }
 
 export interface NetworkRecorderOptions {
@@ -52,6 +61,16 @@ export interface NetworkRecorderOptions {
    * creates another flush - a feedback loop that never converges.
    */
   isSelfRequest: (url: string) => boolean;
+
+  /*
+   * Origins whose requests get a GENERATED traceparent header when the
+   * host page did not set one itself. Empty (the default) means never
+   * inject — adding a header turns a simple cross-origin request into a
+   * preflighted one, so each entry is the customer's explicit statement
+   * that the API behind that origin allows traceparent in its CORS
+   * policy. Entries that do not parse as URLs are dropped.
+   */
+  tracePropagationOrigins?: Array<string>;
 }
 
 type FetchFunction = (
@@ -66,8 +85,25 @@ interface XhrState {
   traceId: string | null;
 }
 
+export interface GeneratedTraceParent {
+  /* The 32-hex trace id alone, as stored on the session envelope. */
+  traceId: string;
+
+  /* The full "00-<traceId>-<parentId>-01" header value. */
+  header: string;
+}
+
 export default class NetworkRecorder {
   private readonly options: NetworkRecorderOptions;
+
+  /*
+   * Allowlist entries normalised to lowercase origins ("https://host:port")
+   * once, at construction. An entry like "https://api.example.com/v2" is
+   * reduced to its origin; one that does not parse at all is dropped, so a
+   * typo in the dashboard disables injection for that entry rather than
+   * producing a comparison that can never match anything.
+   */
+  private readonly injectOrigins: Array<string>;
 
   private recordedCount: number = 0;
   private started: boolean = false;
@@ -92,6 +128,9 @@ export default class NetworkRecorder {
 
   public constructor(options: NetworkRecorderOptions) {
     this.options = options;
+    this.injectOrigins = NetworkRecorder.normaliseOrigins(
+      options.tracePropagationOrigins || [],
+    );
   }
 
   public start(windowRef: Window = window): void {
@@ -164,10 +203,40 @@ export default class NetworkRecorder {
       const method: string = NetworkRecorder.readMethod(input, init);
       const startedAtMs: number = Date.now();
 
-      const traceId: string | null = NetworkRecorder.readTraceIdFromInit(init);
+      let traceId: string | null = NetworkRecorder.readTraceIdFromInit(init);
+      let effectiveInit: RequestInit | undefined = init;
+
+      /*
+       * Injection happens ONLY when all of these hold: the page did not
+       * set its own traceparent (the host's tracing always wins), the
+       * input is a string or URL (a Request object carries its own header
+       * state, and rebuilding one to merge a header risks dropping a
+       * one-shot body — so Request inputs are skipped, a documented
+       * limit), it is not our own chunk POST, and the resolved origin is
+       * explicitly allowlisted.
+       */
+      if (
+        traceId === null &&
+        (typeof input === "string" || input instanceof URL) &&
+        !this.options.isSelfRequest(url) &&
+        this.shouldInjectFor(url, windowRef)
+      ) {
+        const generated: GeneratedTraceParent | null =
+          NetworkRecorder.generateTraceParent();
+
+        if (generated) {
+          effectiveInit = NetworkRecorder.withTraceParent(
+            init,
+            generated.header,
+          );
+          traceId = generated.traceId;
+        }
+      }
 
       const promise: Promise<Response> =
-        init === undefined ? original(input) : original(input, init);
+        effectiveInit === undefined
+          ? original(input)
+          : original(input, effectiveInit);
 
       if (this.options.isSelfRequest(url)) {
         return promise;
@@ -243,6 +312,45 @@ export default class NetworkRecorder {
       return this.options.isSelfRequest(url);
     };
 
+    /*
+     * Called from patchedSend, i.e. with the XHR in OPENED state — the
+     * only state in which setRequestHeader is legal. The original
+     * setRequestHeader is used directly so the patched one does not
+     * re-parse our own header, and the whole thing is try/caught because
+     * a page that calls send() in a strange state should get its own
+     * exception from send(), never one from us.
+     */
+    const maybeInjectTraceParent: (
+      xhr: XMLHttpRequest,
+      state: XhrState,
+    ) => void = (xhr: XMLHttpRequest, state: XhrState): void => {
+      if (
+        state.traceId !== null ||
+        !this.originalXhrSetRequestHeader ||
+        isSelfRequest(state.url) ||
+        !this.shouldInjectFor(state.url, windowRef)
+      ) {
+        return;
+      }
+
+      const generated: GeneratedTraceParent | null =
+        NetworkRecorder.generateTraceParent();
+
+      if (!generated) {
+        return;
+      }
+
+      try {
+        this.originalXhrSetRequestHeader.apply(xhr, [
+          "traceparent",
+          generated.header,
+        ]);
+        state.traceId = generated.traceId;
+      } catch {
+        /* Header not set; the request proceeds un-annotated. */
+      }
+    };
+
     const recordRequest: (
       method: string,
       url: string,
@@ -313,6 +421,8 @@ export default class NetworkRecorder {
       const state: XhrState | undefined = xhrState.get(this);
 
       if (state && !isSelfRequest(state.url)) {
+        maybeInjectTraceParent(this, state);
+
         state.startedAtMs = Date.now();
 
         this.addEventListener("loadend", (): void => {
@@ -358,12 +468,154 @@ export default class NetworkRecorder {
       isError: status === 0 || status >= 500,
     };
 
+    /* Only present when there is one — absent beats null on the wire. */
+    if (traceId) {
+      request.traceId = traceId;
+    }
+
     this.options.emitCustomEvent(NETWORK_CUSTOM_EVENT_TAG, request);
     this.options.onRequestComplete(atUnixMs, request, traceId);
   }
 
   public getRecordedCount(): number {
     return this.recordedCount;
+  }
+
+  /*
+   * Does this request's ORIGIN appear in the allowlist? Relative URLs
+   * resolve against the page's own location first — a fetch("/api/x") on
+   * an allowlisted page origin is precisely the first-party case the
+   * feature exists for. Anything unparseable answers no: when we cannot
+   * say where a header would go, we do not add one.
+   */
+  private shouldInjectFor(url: string, windowRef: Window): boolean {
+    if (this.injectOrigins.length === 0) {
+      return false;
+    }
+
+    try {
+      const resolved: URL = new URL(url, windowRef.location.href);
+
+      /* Origins only make sense for http(s); blob:, data:, ws: never match. */
+      if (resolved.protocol !== "https:" && resolved.protocol !== "http:") {
+        return false;
+      }
+
+      return this.injectOrigins.indexOf(resolved.origin.toLowerCase()) >= 0;
+    } catch {
+      return false;
+    }
+  }
+
+  private static normaliseOrigins(entries: Array<string>): Array<string> {
+    const origins: Array<string> = [];
+
+    for (const entry of entries) {
+      if (typeof entry !== "string" || !entry) {
+        continue;
+      }
+
+      try {
+        const origin: string = new URL(entry).origin.toLowerCase();
+
+        /* URL.origin is the literal string "null" for opaque origins. */
+        if (origin && origin !== "null" && origins.indexOf(origin) < 0) {
+          origins.push(origin);
+        }
+      } catch {
+        /* Not a URL; dropped rather than string-matched loosely. */
+      }
+    }
+
+    return origins;
+  }
+
+  /*
+   * Mint a W3C traceparent. crypto.getRandomValues is the only randomness
+   * source used - if it is unavailable, we inject nothing rather than
+   * generating guessable ids. The sampled flag is 01 so the backend's
+   * tracing actually keeps the trace this recording will point at, and
+   * both ids are re-rolled from the pool if a segment lands all-zero,
+   * which the spec forbids.
+   */
+  public static generateTraceParent(): GeneratedTraceParent | null {
+    const cryptoObj: Crypto | undefined = (
+      globalThis as unknown as Record<string, unknown>
+    )["crypto"] as Crypto | undefined;
+
+    if (!cryptoObj || typeof cryptoObj.getRandomValues !== "function") {
+      return null;
+    }
+
+    const bytes: Uint8Array = new Uint8Array(24);
+
+    try {
+      cryptoObj.getRandomValues(bytes);
+    } catch {
+      return null;
+    }
+
+    /* trace-id = bytes 0..15, parent-id = bytes 16..23; neither may be 0. */
+    if (
+      bytes.slice(0, 16).every((b: number): boolean => {
+        return b === 0;
+      })
+    ) {
+      bytes[0] = 1;
+    }
+
+    if (
+      bytes.slice(16).every((b: number): boolean => {
+        return b === 0;
+      })
+    ) {
+      bytes[16] = 1;
+    }
+
+    let hex: string = "";
+
+    for (const byte of bytes) {
+      hex += byte.toString(16).padStart(2, "0");
+    }
+
+    const traceId: string = hex.slice(0, 32);
+    const parentId: string = hex.slice(32);
+
+    return {
+      traceId: traceId,
+      header: `00-${traceId}-${parentId}-01`,
+    };
+  }
+
+  /*
+   * Return a COPY of the init with traceparent merged into whichever of
+   * the three HeadersInit shapes it uses. Only ever called when no
+   * traceparent exists, so "add" semantics are safe for all three. The
+   * caller's own init object is never mutated.
+   */
+  private static withTraceParent(
+    init: RequestInit | undefined,
+    headerValue: string,
+  ): RequestInit {
+    const next: RequestInit = init ? { ...init } : {};
+    const headers: HeadersInit | undefined = init ? init.headers : undefined;
+
+    if (typeof Headers !== "undefined" && headers instanceof Headers) {
+      const merged: Headers = new Headers(headers);
+      merged.set("traceparent", headerValue);
+      next.headers = merged;
+    } else if (Array.isArray(headers)) {
+      next.headers = [...headers, ["traceparent", headerValue]];
+    } else if (headers && typeof headers === "object") {
+      next.headers = {
+        ...(headers as Record<string, string>),
+        traceparent: headerValue,
+      };
+    } else {
+      next.headers = { traceparent: headerValue };
+    }
+
+    return next;
   }
 
   /*

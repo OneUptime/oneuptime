@@ -480,6 +480,7 @@ import { AddRecommendationDismissalTable1785397674289 } from "./1785397674289-Ad
 import { AddDroppedCountersToDropFilters1785405581596 } from "./1785405581596-AddDroppedCountersToDropFilters";
 import { AddSessionReplay1785417351021 } from "./1785417351021-AddSessionReplay";
 import { AddSessionReplayReliabilityColumns1785516996695 } from "./1785516996695-AddSessionReplayReliabilityColumns";
+import { AddSessionReplayCorrelationColumns1785533806494 } from "./1785533806494-AddSessionReplayCorrelationColumns";
 
 export default [
   InitialMigration,
@@ -964,4 +965,5 @@ export default [
   AddDroppedCountersToDropFilters1785405581596,
   AddSessionReplay1785417351021,
   AddSessionReplayReliabilityColumns1785516996695,
+  AddSessionReplayCorrelationColumns1785533806494,
 ];

@@ -464,6 +464,8 @@ export default class SessionReplayEnvelopeParser {
         return SessionReplayTriggerReason.Frustration;
       case SessionReplayTriggerReason.Manual:
         return SessionReplayTriggerReason.Manual;
+      case SessionReplayTriggerReason.Performance:
+        return SessionReplayTriggerReason.Performance;
       default:
         return SessionReplayTriggerReason.Sampled;
     }

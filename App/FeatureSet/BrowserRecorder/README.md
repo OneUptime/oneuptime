@@ -156,18 +156,19 @@ attribute and the SRI pin is inert.
   viewer sees "this was not recorded" rather than an unexplained blank.
 - On a hard unload, up to one flush interval (15 s) of tail can be lost, plus
   anything over the 56 KB keepalive cap.
-- **No outgoing `traceparent` is injected.** `NetworkRecorder` only READS a
-  traceparent the host page already set — from a `fetch` init's headers or from
-  a patched `XMLHttpRequest.setRequestHeader`. For a customer who is not
-  already running OpenTelemetry browser instrumentation, `envelope.traceIds` is
-  therefore always empty and the span-to-replay correlation never populates:
-  the recording cannot be linked to the trace of the 5xx that triggered it.
-  Injecting a header is deliberately not done implicitly — adding a request
-  header turns a simple cross-origin request into a preflighted one, and a
-  customer's API that does not allow `traceparent` in
-  `Access-Control-Allow-Headers` would start failing because they installed a
-  RUM script. Closing this needs an explicit per-application origin allowlist,
-  not a default.
+- **`traceparent` injection is opt-in per origin, and skips `Request`
+  objects.** By default `NetworkRecorder` only READS a traceparent the host
+  page already set. When the application's **trace propagation origins**
+  allowlist names an origin, the recorder also GENERATES a W3C traceparent for
+  `fetch` and `XMLHttpRequest` requests to that origin, so `envelope.traceIds`
+  populates without any OpenTelemetry browser SDK on the page. The default is
+  still never-inject — adding a request header turns a simple cross-origin
+  request into a preflighted one, so each allowlisted origin is the customer's
+  explicit statement that its API allows `traceparent` in
+  `Access-Control-Allow-Headers`. Two deliberate gaps: a request whose `fetch`
+  input is a `Request` OBJECT is never injected (rebuilding one to merge a
+  header risks consuming its one-shot body), and a page-supplied traceparent
+  always wins.
 - A session that reaches `MAX_SESSION_REPLAY_CHUNKS_PER_SESSION` (480) sends
   one final, empty chunk carrying a `truncated` fidelity notice and then stops
   recording. The notice is not yet a member of Common's

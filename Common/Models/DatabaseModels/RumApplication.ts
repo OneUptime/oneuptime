@@ -867,6 +867,183 @@ export default class RumApplication extends BaseModel {
       Permission.EditRumApplication,
     ],
   })
+  /* Not required, for the same reason as the mask selectors above. */
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Session Replay Trace Propagation Origins",
+    description:
+      "Origins the recorder may inject a W3C traceparent header into, linking recordings to the backend traces of their requests without any OpenTelemetry browser setup. Empty means never inject: adding a header makes cross-origin requests preflighted, so each listed origin is an explicit statement that its API allows the traceparent header.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: false,
+    default: () => {
+      return "'[]'";
+    },
+  })
+  public sessionReplayTracePropagationOrigins?: Array<string> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateRumApplication,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadRumApplication,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditRumApplication,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.Number,
+    title: "Session Replay LCP Budget (ms)",
+    description:
+      "Largest Contentful Paint budget in milliseconds. A session whose LCP exceeds it uploads with the Performance trigger. 0 disables the trigger.",
+    defaultValue: 0,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    default: 0,
+  })
+  public sessionReplayLcpBudgetMs?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateRumApplication,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadRumApplication,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditRumApplication,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.Number,
+    title: "Session Replay Long Task Budget (ms)",
+    description:
+      "Main-thread long-task budget in milliseconds. A single task blocking longer than this uploads the session with the Performance trigger. 0 disables the trigger.",
+    defaultValue: 0,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    default: 0,
+  })
+  public sessionReplayLongTaskBudgetMs?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateRumApplication,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadRumApplication,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditRumApplication,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.Number,
+    title: "Session Replay Slow Request Budget (ms)",
+    description:
+      "Request duration budget in milliseconds. An instrumented request slower than this uploads the session with the Performance trigger. 0 disables the trigger.",
+    defaultValue: 0,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    default: 0,
+  })
+  public sessionReplaySlowRequestBudgetMs?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateRumApplication,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadRumApplication,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditRumApplication,
+    ],
+  })
   /*
    * Not required, for the same reason as the selector lists above. Note
    * that the omitted value is the SAFE one here: an empty allowlist means

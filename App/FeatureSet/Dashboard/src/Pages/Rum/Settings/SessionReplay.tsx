@@ -22,6 +22,7 @@ import {
 } from "Common/Types/Rum/SessionReplay";
 import Navigation from "Common/UI/Utils/Navigation";
 import InstallationTestPanel from "../../../Components/SessionReplay/InstallationTestPanel";
+import TargetedCapturePanel from "../../../Components/SessionReplay/TargetedCapturePanel";
 
 /*
  * Privacy controls for session replay.
@@ -201,6 +202,7 @@ const RumSessionReplaySettings: FunctionComponent<
         formSteps={[
           { title: "Recording", id: "recording" },
           { title: "Privacy", id: "privacy" },
+          { title: "Performance & Tracing", id: "performance" },
           { title: "Limits", id: "limits" },
         ]}
         formFields={[
@@ -330,6 +332,50 @@ const RumSessionReplaySettings: FunctionComponent<
           },
 
           {
+            field: { sessionReplayLcpBudgetMs: true },
+            title: "Largest Contentful Paint budget (ms)",
+            stepId: "performance",
+            fieldType: FormFieldSchemaType.Number,
+            required: false,
+            placeholder: "0",
+            description:
+              "Fire the performance capture trigger when the page's LCP exceeds this many milliseconds. 0 (default) turns this trigger off. A common starting point is 4000 — the boundary of a poor LCP.",
+            validation: { minValue: 0 },
+          },
+          {
+            field: { sessionReplayLongTaskBudgetMs: true },
+            title: "Long task budget (ms)",
+            stepId: "performance",
+            fieldType: FormFieldSchemaType.Number,
+            required: false,
+            placeholder: "0",
+            description:
+              "Fire the performance capture trigger when a single main-thread task blocks for at least this many milliseconds. 0 (default) turns this trigger off. Browsers only report tasks over 50ms; values of 200+ avoid recording ordinary jank.",
+            validation: { minValue: 0 },
+          },
+          {
+            field: { sessionReplaySlowRequestBudgetMs: true },
+            title: "Slow request budget (ms)",
+            stepId: "performance",
+            fieldType: FormFieldSchemaType.Number,
+            required: false,
+            placeholder: "0",
+            description:
+              "Fire the performance capture trigger when a fetch or XHR SUCCEEDS but takes at least this many milliseconds. 0 (default) turns this trigger off. Failed requests already trigger via the error path.",
+            validation: { minValue: 0 },
+          },
+          {
+            field: { sessionReplayTracePropagationOrigins: true },
+            title: "Trace propagation origins",
+            stepId: "performance",
+            fieldType: FormFieldSchemaType.JSON,
+            required: false,
+            placeholder: '["https://api.example.com"]',
+            description:
+              "JSON array of origins whose fetch/XHR requests get a generated W3C traceparent header, linking recordings to backend traces without any browser tracing SDK. CAUTION: adding a header makes cross-origin requests preflighted — list an origin only if its API allows traceparent in Access-Control-Allow-Headers. Empty (default) never injects. Requests that already carry a traceparent are left untouched.",
+          },
+
+          {
             field: { sessionReplayRetentionInDays: true },
             title: "Retention",
             stepId: "limits",
@@ -359,6 +405,13 @@ const RumSessionReplaySettings: FunctionComponent<
        * Placed after the policy tables because its failing checks refer the
        * user back up to them.
        */}
+      {/*
+       * Support workflow: arm a one-shot "record this user's next
+       * session" target. Placed before the diagnostic panel because it is
+       * an action, not a health readout.
+       */}
+      <TargetedCapturePanel />
+
       <InstallationTestPanel />
     </Fragment>
   );

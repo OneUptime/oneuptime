@@ -97,6 +97,7 @@ import RumApplication from "../../Models/DatabaseModels/RumApplication";
 import RumApplicationService from "../Services/RumApplicationService";
 import Project from "../../Models/DatabaseModels/Project";
 import ProjectService from "../Services/ProjectService";
+import SessionReplayTargeting from "../Utils/SessionReplay/SessionReplayTargeting";
 import SessionReplayUsage from "../Utils/SessionReplay/SessionReplayUsage";
 import RumSessionReplayView from "../../Models/DatabaseModels/RumSessionReplayView";
 import RumSessionReplayViewService from "../Services/RumSessionReplayViewService";
@@ -4132,6 +4133,162 @@ router.post(
         applicationBytesUsedThisMonth: applicationBytesUsedThisMonth,
         monthlyBudgetInGB:
           (applicationView["sessionReplayMonthlyBudgetInGB"] as number) ?? null,
+      });
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+/*
+ * "Record the next session for this user."
+ *
+ * One route, three actions, because all three are the same tiny
+ * conversation with one Redis key: set arms a 24h one-shot target for a
+ * named end-user reference, clear disarms it, status reads it. The
+ * response is always the resulting { isPending }.
+ *
+ * The guard requires EDIT on the application, not the session-replay READ
+ * permission: arming this causes a recording of a named person to be
+ * made, which is a capture-policy write - the same class of action as
+ * flipping the enable flag - and a reviewer who may only WATCH recordings
+ * must not be able to order new ones.
+ */
+const requireSessionReplayTargetAccess: Array<RequestHandler> = [
+  UserMiddleware.getUserMiddleware,
+  UserMiddleware.requireUserAuthentication,
+  UserMiddleware.requirePermission({
+    permissions: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.TelemetryAdmin,
+      Permission.EditRumApplication,
+    ],
+  }),
+];
+
+router.post(
+  "/telemetry/rum/session-replay/target",
+  ...requireSessionReplayTargetAccess,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      assertSessionReplayPlan(databaseProps);
+
+      const projectId: ObjectID = databaseProps.tenantId;
+      const body: JSONObject = req.body as JSONObject;
+
+      const rumApplicationId: ObjectID = readObjectIdFromBody(
+        body,
+        "rumApplicationId",
+      );
+
+      const action: unknown = body["action"];
+
+      if (action !== "set" && action !== "clear" && action !== "status") {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException(
+            'action must be one of "set", "clear" or "status".',
+          ),
+        );
+      }
+
+      const userRef: unknown = body["userRef"];
+
+      if (!SessionReplayTargeting.isUsableUserRef(userRef)) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException(
+            "userRef must be a non-empty string of at most 512 characters.",
+          ),
+        );
+      }
+
+      await assertSessionReplayApplicationAccess({
+        projectId: projectId,
+        rumApplicationId: rumApplicationId,
+        databaseProps: databaseProps,
+        permissions: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.TelemetryAdmin,
+          Permission.EditRumApplication,
+        ],
+      });
+
+      /*
+       * The Redis key is scoped by the application's ingest identifier -
+       * the name the recorder introduces itself with - not by the row id
+       * the dashboard holds, so resolve one from the other here.
+       */
+      const application: RumApplication | null =
+        await RumApplicationService.findOneBy({
+          query: {
+            _id: rumApplicationId.toString(),
+            projectId: projectId,
+          },
+          select: {
+            _id: true,
+            appIdentifier: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+      const appIdentifier: string = String(
+        (application as unknown as JSONObject | null)?.["appIdentifier"] || "",
+      );
+
+      if (!application || !appIdentifier) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("RUM application not found."),
+        );
+      }
+
+      const target: {
+        projectId: ObjectID;
+        appIdentifier: string;
+        userRef: string;
+      } = {
+        projectId: projectId,
+        appIdentifier: appIdentifier,
+        userRef: userRef,
+      };
+
+      let isPending: boolean = false;
+
+      if (action === "set") {
+        await SessionReplayTargeting.setTarget(target);
+        isPending = true;
+      } else if (action === "clear") {
+        await SessionReplayTargeting.clearTarget(target);
+        isPending = false;
+      } else {
+        isPending = await SessionReplayTargeting.isTargetPending(target);
+      }
+
+      return Response.sendJsonObjectResponse(req, res, {
+        isPending: isPending,
       });
     } catch (err: unknown) {
       next(err);

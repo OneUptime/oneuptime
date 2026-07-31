@@ -278,6 +278,10 @@ function buildPolicy(
     retentionInDays: 7,
     monthlyBudgetInGB: null,
     ignoreErrorPatterns: [],
+    tracePropagationOrigins: [],
+    lcpBudgetMs: 0,
+    longTaskBudgetMs: 0,
+    slowRequestBudgetMs: 0,
     configEpoch: 1234,
     ...overrides,
   };
@@ -706,6 +710,45 @@ describe("SessionReplayIngestService.processFromQueue", () => {
     /* Per-chunk counters come off the envelope, never from the payload. */
     expect(chunk["errorCount"]).toBe(2);
     expect(chunk["routeCount"]).toBe(3);
+  });
+
+  /*
+   * Wave 4's new trigger label must survive the parser's closed-set
+   * normalisation, and anything outside the set must still fall back to
+   * "sampled" rather than storing attacker-chosen strings.
+   */
+  test("the performance trigger reason round-trips; unknown reasons normalise to sampled", async () => {
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(
+        buildBody([
+          {
+            chunkIndex: 0,
+            triggerReason: SessionReplayTriggerReason.Performance,
+          },
+        ]),
+      ),
+    );
+
+    expect(getSubmittedRows("RumSessionV1")[0]?.["triggerReason"]).toBe(
+      "performance",
+    );
+
+    submitMock.mockClear();
+
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(
+        buildBody([
+          {
+            chunkIndex: 0,
+            triggerReason: "totally-made-up" as SessionReplayTriggerReason,
+          },
+        ]),
+      ),
+    );
+
+    expect(getSubmittedRows("RumSessionV1")[0]?.["triggerReason"]).toBe(
+      "sampled",
+    );
   });
 
   test("no header row is written for a non-zero chunk index", async () => {
