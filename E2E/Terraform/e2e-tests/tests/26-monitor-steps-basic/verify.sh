@@ -40,24 +40,4 @@ if [ -z "$DISABLED_ID" ]; then
 fi
 
 echo ""
-echo "=== Verifying idempotency (critical for monitor_steps) ==="
-PLAN_OUTPUT=$(terraform plan -detailed-exitcode 2>&1) || PLAN_EXIT_CODE=$?
-PLAN_EXIT_CODE=${PLAN_EXIT_CODE:-0}
-
-if [ "$PLAN_EXIT_CODE" -eq 0 ]; then
-    echo "SUCCESS: No changes detected - monitor_steps idempotency test PASSED"
-elif [ "$PLAN_EXIT_CODE" -eq 2 ]; then
-    echo "ERROR: Changes detected after apply - monitor_steps causing drift"
-    echo "This indicates server defaults in monitor_steps are not being handled correctly"
-    echo ""
-    echo "Plan output:"
-    echo "$PLAN_OUTPUT"
-    exit 1
-else
-    echo "ERROR: terraform plan failed with exit code $PLAN_EXIT_CODE"
-    echo "$PLAN_OUTPUT"
-    exit 1
-fi
-
-echo ""
 echo "=== Monitor Steps Basic Test PASSED ==="

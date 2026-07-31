@@ -1,3 +1,8 @@
+# Update-phase config: the runner copies this over main.tf after the initial
+# apply + drift gate. Changed vs main.tf:
+# - basic: title and description updated
+# - visibility: is_visible_on_status_page toggled off
+# - window: ends_at pushed out one hour (exercises semantic date updates)
 terraform {
   required_providers {
     oneuptime = {
@@ -20,25 +25,16 @@ resource "random_id" "suffix" {
   byte_length = 4
 }
 
-# Test: Scheduled Maintenance CRUD Operations
-#
-# This test validates:
-# 1. Creating scheduled maintenance events
-# 2. Different configurations
-# 3. Server defaults handling
-# 4. Idempotency
-
 locals {
-  # Fixed future timestamps: the provider must round-trip these without drift
-  # (its semantic date equality has to treat server-normalized forms as equal).
+  # Same fixed start as main.tf; the end of the window moves out one hour.
   starts_at = "2030-06-01T10:00:00.000Z"
-  ends_at   = "2030-06-01T11:00:00.000Z"
+  ends_at   = "2030-06-01T12:00:00.000Z"
 }
 
 # Test Case 1: Basic Scheduled Maintenance
 resource "oneuptime_scheduled_maintenance_event" "basic" {
-  title       = "TF Basic Maintenance ${random_id.suffix.hex}"
-  description = "Basic scheduled maintenance for testing"
+  title       = "TF Basic Maintenance Updated ${random_id.suffix.hex}"
+  description = "Basic scheduled maintenance updated by the E2E suite"
   starts_at   = local.starts_at
   ends_at     = local.ends_at
 }
@@ -49,7 +45,7 @@ resource "oneuptime_scheduled_maintenance_event" "visibility" {
   description                                                = "Maintenance with visibility settings"
   starts_at                                                  = local.starts_at
   ends_at                                                    = local.ends_at
-  is_visible_on_status_page                                  = true
+  is_visible_on_status_page                                  = false
   should_status_page_subscribers_be_notified_on_event_created = false
 }
 

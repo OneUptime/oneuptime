@@ -95,21 +95,4 @@ if [ $ERRORS -gt 0 ]; then
 fi
 
 echo ""
-echo "=== Verifying idempotency ==="
-PLAN_OUTPUT=$(terraform plan -detailed-exitcode 2>&1) || PLAN_EXIT_CODE=$?
-PLAN_EXIT_CODE=${PLAN_EXIT_CODE:-0}
-
-if [ "$PLAN_EXIT_CODE" -eq 0 ]; then
-    echo "SUCCESS: No changes detected - idempotency test PASSED"
-elif [ "$PLAN_EXIT_CODE" -eq 2 ]; then
-    echo "WARNING: Changes detected after apply (may be expected for computed fields)"
-    echo "Plan output:"
-    echo "$PLAN_OUTPUT"
-    # Don't fail on idempotency for this test since monitor_steps is complex
-else
-    echo "ERROR: terraform plan failed"
-    exit 1
-fi
-
-echo ""
 echo "=== Monitor Types with Steps Test PASSED ==="

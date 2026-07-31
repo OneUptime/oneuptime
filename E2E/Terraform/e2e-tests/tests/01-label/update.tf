@@ -1,3 +1,5 @@
+# Update-phase config: the runner copies this over main.tf after the initial
+# apply + drift gate. Changed vs main.tf: name, description, color.
 terraform {
   required_providers {
     oneuptime = {
@@ -13,9 +15,9 @@ provider "oneuptime" {
 }
 
 resource "oneuptime_label" "test" {
-  name        = "terraform-e2e-label"
-  description = "Label created by Terraform E2E tests"
-  color       = "#FF5733"
+  name        = "terraform-e2e-label-updated"
+  description = "Label updated by Terraform E2E tests"
+  color       = "#33C1FF"
 }
 
 output "label_id" {

@@ -1,3 +1,5 @@
+# Update-phase config: the runner copies this over main.tf after the initial
+# apply + drift gate. Changed vs main.tf: description, color, priority.
 terraform {
   required_providers {
     oneuptime = {
@@ -14,9 +16,9 @@ provider "oneuptime" {
 
 resource "oneuptime_monitor_status" "test" {
   name               = "terraform-e2e-status"
-  description        = "Monitor status created by Terraform E2E tests"
-  color              = "#00FF00"
-  priority           = 99
+  description        = "Monitor status updated by Terraform E2E tests"
+  color              = "#00AA88"
+  priority           = 98
   is_operational_state = true
 }
 
