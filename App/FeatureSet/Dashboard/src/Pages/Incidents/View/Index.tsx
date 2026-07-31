@@ -52,6 +52,7 @@ import IncidentFeedElement from "../../../Components/Incident/IncidentFeed";
 import InvestigationPanel from "../../../Components/AI/InvestigationPanel";
 import EntityRunbooks from "../../../Components/Runbook/EntityRunbooks";
 import IncidentAffectedResources from "./AffectedResources";
+import MonitorSummarySnapshotCard from "../../../Components/Monitor/MonitorSummarySnapshotCard";
 import IncidentMemberRoleAssignment from "../../../Components/Incident/IncidentMemberRoleAssignment";
 import EventStatTile from "../../../Components/EventView/EventStatTile";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -469,6 +470,8 @@ const IncidentView: FunctionComponent<
                 }
               />
             )}
+
+          <MonitorSummarySnapshotCard incidentId={modelId} />
 
           <IncidentAffectedResources incidentId={modelId} />
 
