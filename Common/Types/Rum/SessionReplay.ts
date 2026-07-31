@@ -48,6 +48,16 @@ export const MAX_SESSION_REPLAY_CHUNKS_PER_READ: number = 8;
 export const MAX_SESSION_REPLAY_READ_BYTES: number = 8 * 1024 * 1024;
 
 /*
+ * Default for the instance-wide per-project daily byte budget. The live
+ * value is the SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY env var; this
+ * default is shared between the ingest gate (App Telemetry Config) and the
+ * Dashboard-facing ingest-status endpoint so the number the gate enforces
+ * and the number the customer is shown cannot drift.
+ */
+export const DEFAULT_SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY: number =
+  1024 * 1024 * 1024;
+
+/*
  * Recorder flush triggers. A chunk closes on whichever comes first.
  * SESSION_REPLAY_CHECKOUT_INTERVAL_MS is also the worst-case seek
  * granularity, since seeking rewinds to the nearest full snapshot.
@@ -315,6 +325,14 @@ export interface SessionReplayChunkResponse {
   directive: SessionReplayDirective;
   configEpoch: number;
   retryAfterSeconds?: number;
+  /*
+   * WHY the directive says what it says ("budget-exhausted",
+   * "not-sampled", "rate-limited", ...). A recorder told to stop without a
+   * reason leaves the customer diagnosing silence; the reason string is a
+   * closed vocabulary, carries no user data, and lets the recorder log
+   * something a support ticket can quote.
+   */
+  reason?: string;
 }
 
 /*
@@ -329,6 +347,18 @@ export interface SessionReplayChunkManifestEntry {
   eventCount: number;
   hasFullSnapshot: boolean;
   payloadBytes: number;
+
+  /*
+   * Per-chunk signal counters. These feed the player's error, frustration
+   * and route timeline lanes and the "next error" jump — a lane drawn from
+   * counters the chunk row already carries, never inferred from payloads.
+   */
+  errorCount: number;
+  rageClickCount: number;
+  deadClickCount: number;
+  errorClickCount: number;
+  refreshRageCount: number;
+  routeCount: number;
 }
 
 /* A hole in the chunk sequence. Never crossed silently during playback. */

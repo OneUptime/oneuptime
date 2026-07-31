@@ -96,6 +96,12 @@ describe("CORS preflight and exposed headers", () => {
      */
     expect(exposed).toContain("x-oneuptime-replay-directive");
     expect(exposed).toContain("x-oneuptime-replay-config-epoch");
+    /*
+     * The WHY behind a stand-down. The 204 stop path has no body, so the
+     * reason exists only as this header — unexposed, it is unreadable by
+     * every cross-origin page and the reason channel is dead on arrival.
+     */
+    expect(exposed).toContain("x-oneuptime-replay-reason");
     expect(exposed).toContain("retry-after");
   });
 

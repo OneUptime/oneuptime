@@ -183,6 +183,7 @@ jest.mock("../../FeatureSet/Telemetry/Utils/SessionReplayRateLimiter", () => {
     default: {
       consumeChunkAllowance: jest.fn(),
       consumeByteBudget: jest.fn(),
+      consumeApplicationMonthlyBudget: jest.fn(),
       getBytesUsedToday: jest.fn(),
     },
     SessionReplayLimitOutcome: {
@@ -248,6 +249,8 @@ const consumeChunkAllowanceMock: MockedFn =
   SessionReplayRateLimiter.consumeChunkAllowance as unknown as MockedFn;
 const consumeByteBudgetMock: MockedFn =
   SessionReplayRateLimiter.consumeByteBudget as unknown as MockedFn;
+const consumeApplicationMonthlyBudgetMock: MockedFn =
+  SessionReplayRateLimiter.consumeApplicationMonthlyBudget as unknown as MockedFn;
 
 const PROJECT_ID: ObjectID = ObjectID.generate();
 const RUM_APPLICATION_ID: ObjectID = ObjectID.generate();
@@ -397,6 +400,9 @@ describe("SessionReplayIngestService.gateChunkRequest", () => {
     consumeByteBudgetMock.mockResolvedValue({
       outcome: SessionReplayLimitOutcome.Allowed,
     } as never);
+    consumeApplicationMonthlyBudgetMock.mockResolvedValue({
+      outcome: SessionReplayLimitOutcome.Allowed,
+    } as never);
   });
 
   const baseGateInput: {
@@ -528,6 +534,74 @@ describe("SessionReplayIngestService.gateChunkRequest", () => {
       await SessionReplayIngestService.gateChunkRequest(baseGateInput);
 
     expect(decision.outcome).toBe(SessionReplayGateOutcome.StorageUnavailable);
+  });
+
+  /*
+   * The application's customer-configured monthly budget, distinct from the
+   * operator's instance-wide daily cap. A budget field that is stored and
+   * displayed but never consulted promises a protection that does not
+   * exist, so these pin that it is actually enforced.
+   */
+  test("does not consult the monthly budget when none is configured", async () => {
+    const decision: SessionReplayGateDecision =
+      await SessionReplayIngestService.gateChunkRequest(baseGateInput);
+
+    expect(decision.outcome).toBe(SessionReplayGateOutcome.Accepted);
+    expect(consumeApplicationMonthlyBudgetMock).not.toHaveBeenCalled();
+  });
+
+  test("charges the monthly budget with the configured ceiling in bytes", async () => {
+    getPolicyMock.mockResolvedValue(
+      buildPolicy({ monthlyBudgetInGB: 2 }) as never,
+    );
+
+    const decision: SessionReplayGateDecision =
+      await SessionReplayIngestService.gateChunkRequest(baseGateInput);
+
+    expect(decision.outcome).toBe(SessionReplayGateOutcome.Accepted);
+    expect(consumeApplicationMonthlyBudgetMock).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      rumApplicationId: RUM_APPLICATION_ID,
+      bytes: baseGateInput.payloadBytes,
+      budgetBytes: 2 * 1024 * 1024 * 1024,
+    });
+  });
+
+  test("an exhausted monthly budget stops the recorder with its own reason", async () => {
+    getPolicyMock.mockResolvedValue(
+      buildPolicy({ monthlyBudgetInGB: 1 }) as never,
+    );
+    consumeApplicationMonthlyBudgetMock.mockResolvedValue({
+      outcome: SessionReplayLimitOutcome.BudgetExhausted,
+    } as never);
+
+    const decision: SessionReplayGateDecision =
+      await SessionReplayIngestService.gateChunkRequest(baseGateInput);
+
+    expect(decision.outcome).toBe(SessionReplayGateOutcome.Stop);
+    expect(decision.directive).toBe("stop");
+    /*
+     * A distinct reason from the instance-wide "budget-exhausted": the
+     * customer's remediation differs (raise your own budget vs contact the
+     * operator), so the two must be tellable apart in the response and on
+     * the refusal metric.
+     */
+    expect(decision.reason).toBe("app-monthly-budget-exhausted");
+  });
+
+  test("an unreachable monthly budget counter fails closed as retryable", async () => {
+    getPolicyMock.mockResolvedValue(
+      buildPolicy({ monthlyBudgetInGB: 1 }) as never,
+    );
+    consumeApplicationMonthlyBudgetMock.mockResolvedValue({
+      outcome: SessionReplayLimitOutcome.CounterUnavailable,
+    } as never);
+
+    const decision: SessionReplayGateDecision =
+      await SessionReplayIngestService.gateChunkRequest(baseGateInput);
+
+    expect(decision.outcome).toBe(SessionReplayGateOutcome.StorageUnavailable);
+    expect(decision.reason).toBe("budget-counter-unavailable");
   });
 });
 

@@ -34,6 +34,7 @@ import OneUptimeDate from "Common/Types/Date";
 import User from "Common/UI/Utils/User";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import OccouranceTable from "./OccuranceTable";
+import ReplayCard from "../SessionReplay/ReplayCard";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -1137,6 +1138,22 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
           {...(latestInstance?.parsedFrames
             ? { parsedFrames: latestInstance.parsedFrames }
             : {})}
+        />
+      )}
+
+      {/** Watch what the user saw - session replay recorded around this exception */}
+      {telemetryException.fingerprint && (
+        <ReplayCard
+          fingerprint={telemetryException.fingerprint}
+          {...(latestInstance?.time
+            ? { errorTimeUnixMs: new Date(latestInstance.time).getTime() }
+            : telemetryException.lastSeenAt
+              ? {
+                  errorTimeUnixMs: new Date(
+                    telemetryException.lastSeenAt,
+                  ).getTime(),
+                }
+              : {})}
         />
       )}
 

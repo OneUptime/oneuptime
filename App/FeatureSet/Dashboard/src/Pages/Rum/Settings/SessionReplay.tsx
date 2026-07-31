@@ -21,6 +21,7 @@ import {
   SESSION_REPLAY_ALLOWED_RETENTION_DAYS,
 } from "Common/Types/Rum/SessionReplay";
 import Navigation from "Common/UI/Utils/Navigation";
+import InstallationTestPanel from "../../../Components/SessionReplay/InstallationTestPanel";
 
 /*
  * Privacy controls for session replay.
@@ -342,6 +343,13 @@ const RumSessionReplaySettings: FunctionComponent<
         ]}
         viewPageRoute={Navigation.getCurrentRoute()}
       />
+
+      {/*
+       * The diagnostic both the README and the customer docs point at.
+       * Placed after the policy tables because its failing checks refer the
+       * user back up to them.
+       */}
+      <InstallationTestPanel />
     </Fragment>
   );
 };

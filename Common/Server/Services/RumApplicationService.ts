@@ -20,6 +20,14 @@ const LAST_SEEN_THROTTLE_SECONDS: number = 60;
 const LABELS_APPLIED_CACHE_NAMESPACE: string = "rum-application-labels-applied";
 const LABELS_APPLIED_CACHE_TTL_SECONDS: number = 60;
 
+const REPLAY_CHUNK_RECEIVED_CACHE_NAMESPACE: string =
+  "rum-application-replay-chunk-received";
+const REPLAY_CHUNK_RECEIVED_THROTTLE_SECONDS: number = 60;
+
+const REPLAY_BUDGET_EXCEEDED_CACHE_NAMESPACE: string =
+  "rum-application-replay-budget-exceeded";
+const REPLAY_BUDGET_EXCEEDED_THROTTLE_SECONDS: number = 300;
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
@@ -333,6 +341,98 @@ export class Service extends DatabaseService<Model> {
       id: rumApplicationId,
       data: data,
     });
+  }
+
+  /*
+   * Session replay ingest health markers.
+   *
+   * Both write columns whose names start with "sessionReplay", which the
+   * onUpdateSuccess hook treats as a policy edit (cache clear + kill-key
+   * churn) - so they MUST go through the hook-free single-statement path,
+   * exactly like updateLastSeen. They also skip the updatedAt refresh:
+   * configEpoch is derived from updatedAt, and a passive health timestamp
+   * broadcasting "configuration changed" to every live recorder once a
+   * minute would be self-inflicted config-fetch load.
+   *
+   * Throttled through GlobalCache so 20k chunks/min becomes at most one
+   * Postgres write per application per window across the whole fleet.
+   * Failures are swallowed after a warn: this bookkeeping must never make
+   * an ingest request fail.
+   */
+  @CaptureSpan()
+  public async markSessionReplayChunkReceived(
+    rumApplicationId: ObjectID,
+  ): Promise<void> {
+    await this.writeReplayHealthColumn({
+      rumApplicationId: rumApplicationId,
+      cacheNamespace: REPLAY_CHUNK_RECEIVED_CACHE_NAMESPACE,
+      throttleSeconds: REPLAY_CHUNK_RECEIVED_THROTTLE_SECONDS,
+      column: "sessionReplayLastChunkReceivedAt",
+    });
+  }
+
+  @CaptureSpan()
+  public async markSessionReplayBudgetExceeded(
+    rumApplicationId: ObjectID,
+  ): Promise<void> {
+    await this.writeReplayHealthColumn({
+      rumApplicationId: rumApplicationId,
+      cacheNamespace: REPLAY_BUDGET_EXCEEDED_CACHE_NAMESPACE,
+      throttleSeconds: REPLAY_BUDGET_EXCEEDED_THROTTLE_SECONDS,
+      column: "sessionReplayBudgetExceededAt",
+    });
+  }
+
+  private async writeReplayHealthColumn(data: {
+    rumApplicationId: ObjectID;
+    cacheNamespace: string;
+    throttleSeconds: number;
+    column:
+      | "sessionReplayLastChunkReceivedAt"
+      | "sessionReplayBudgetExceededAt";
+  }): Promise<void> {
+    const cacheKey: string = data.rumApplicationId.toString();
+
+    try {
+      const cached: string | null = await GlobalCache.getString(
+        data.cacheNamespace,
+        cacheKey,
+      );
+
+      if (cached) {
+        return; // written recently, across all pods
+      }
+    } catch {
+      /*
+       * Cache unavailable - fail open and write anyway, same stance as
+       * updateLastSeen: a stale health column is worse than an occasional
+       * extra single-row UPDATE.
+       */
+    }
+
+    try {
+      await GlobalCache.setString(data.cacheNamespace, cacheKey, "1", {
+        expiresInSeconds: data.throttleSeconds,
+      });
+    } catch {
+      // Best-effort throttle write; proceed with the DB update regardless.
+    }
+
+    try {
+      await this.updateColumnsByIdWithoutHooks({
+        id: data.rumApplicationId,
+        data: {
+          [data.column]: OneUptimeDate.getCurrentDate(),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any,
+        skipUpdateDateColumn: true,
+      });
+    } catch (err) {
+      logger.warn(
+        `RumApplicationService: could not write ${data.column} for application ${cacheKey}`,
+      );
+      logger.warn(err);
+    }
   }
 
   @CaptureSpan()

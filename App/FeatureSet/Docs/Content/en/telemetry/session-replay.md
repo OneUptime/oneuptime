@@ -118,9 +118,9 @@ const sessionId = window.OneUptimeReplay.getSessionId();
 // Add { "session.id": sessionId } to your span attributes or resource.
 ```
 
-If you are not using OpenTelemetry, you still get correlation for free: the recorder wraps `fetch` and `XMLHttpRequest`, injects a `traceparent` header, and stamps the session id on outgoing requests.
+If you are not using OpenTelemetry, trace correlation is limited: the recorder observes a `traceparent` header your page's own instrumentation already set on `fetch` or `XMLHttpRequest` requests, but it deliberately does **not** inject one itself — adding a header turns a simple cross-origin request into a preflighted one, and an API that does not allow `traceparent` would start failing because you installed a recorder. Without existing OpenTelemetry browser instrumentation, recordings still capture every request's method, URL, status and timing; they just cannot be linked to the backend trace of a failing request.
 
-Once correlated, an exception in the dashboard shows a **Watch what the user saw** card, and the player's network lane links each failing request to its backend span.
+Exceptions are correlated automatically: an exception in the dashboard shows a **Watch what the user saw** card when a recording exists for a session that hit that error, and the player's correlation panel lists the trace ids observed during the session.
 
 ## What is not recorded
 
@@ -139,7 +139,7 @@ These are surfaced on the player rather than silently blank, so you always know 
 
 Recordings are kept for **7 days** by default; 1, 14, 30 and 90 days are also available per application. Session metadata (error counts, frustration signals, device) can be kept longer than the recording itself, so trends survive after the video is gone.
 
-To satisfy a deletion request, use _Settings → Session Replay → Erasure Requests_. You can erase by session, by identified user, by date range, or for an entire application. Erasure removes the recording **and** the correlated logs, spans and exceptions for those sessions, and any recording still in flight when the request completes is dropped rather than written.
+To satisfy a deletion request, file an erasure request through the OneUptime API (the `/rum-session-erasure-request` resource; a dashboard surface for this is planned). You can erase by session, by identified user, by date range, or for an entire application. Erasure removes the recording **and** the correlated logs, spans and exceptions for those sessions, and any recording still in flight when the request completes is dropped rather than written.
 
 ## Who can watch a recording
 

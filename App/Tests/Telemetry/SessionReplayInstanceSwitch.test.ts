@@ -151,6 +151,7 @@ jest.mock("../../FeatureSet/Telemetry/Utils/SessionReplayRateLimiter", () => {
     default: {
       consumeChunkAllowance: jest.fn(),
       consumeByteBudget: jest.fn(),
+      consumeApplicationMonthlyBudget: jest.fn(),
       getBytesUsedToday: jest.fn(),
     },
     SessionReplayLimitOutcome: {

@@ -67,22 +67,13 @@ const HEARTBEAT_INTERVAL_MS: number = 15 * 1000;
 /*
  * Per-chunk manifest row.
  *
- * The signal counters are read defensively rather than required: the chunk
- * table carries them, but the manifest endpoint's SELECT
+ * The signal counters are projected by the manifest endpoint's SELECT
  * (Common/Server/Utils/SessionReplay/SessionReplayReadService.getManifest)
- * does not project them today, so they arrive as 0 and the frustration,
- * error and route lanes stay empty. Parsing them here means the lanes light
- * up the moment the projection is widened, with no client change.
+ * and feed the frustration, error and route lanes plus the "next error"
+ * jump. They are still read defensively (missing -> 0) so a manifest from
+ * an older server renders as an empty lane rather than a parse failure.
  */
-export interface SessionReplayManifestChunk
-  extends SessionReplayChunkManifestEntry {
-  errorCount: number;
-  rageClickCount: number;
-  deadClickCount: number;
-  errorClickCount: number;
-  refreshRageCount: number;
-  routeCount: number;
-}
+export type SessionReplayManifestChunk = SessionReplayChunkManifestEntry;
 
 export interface SessionReplayManifestTab {
   tabId: string;

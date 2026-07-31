@@ -2173,6 +2173,14 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   public async updateColumnsByIdWithoutHooks(input: {
     id: ObjectID;
     data: PartialEntity<TBaseModel>;
+    /*
+     * Leave `updatedAt` untouched. For passive bookkeeping writes (liveness
+     * timestamps, ingest health markers) where consumers key change
+     * detection off updatedAt - e.g. the session replay configEpoch - a
+     * refreshed updateDate would broadcast "configuration changed" on every
+     * heartbeat.
+     */
+    skipUpdateDateColumn?: boolean;
   }): Promise<void> {
     if (!input.id) {
       throw new BadDataException("id is required");
@@ -2222,7 +2230,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
 
     // The raw path has no entity machinery to touch updateDate — do it here.
-    if (metadata.updateDateColumn) {
+    if (metadata.updateDateColumn && !input.skipUpdateDateColumn) {
       setClauses.push(
         `"${metadata.updateDateColumn.databaseName}" = CURRENT_TIMESTAMP`,
       );
