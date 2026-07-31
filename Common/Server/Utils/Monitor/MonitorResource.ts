@@ -41,6 +41,8 @@ import ExceptionMonitorResponse from "../../../Types/Monitor/ExceptionMonitor/Ex
 import { TelemetryQuery } from "../../../Types/Telemetry/TelemetryQuery";
 import MonitorIncident from "./MonitorIncident";
 import MonitorAlert from "./MonitorAlert";
+import MonitorSummaryCapture from "./MonitorSummaryCapture";
+import MonitorSummarySnapshot from "../../../Types/Monitor/MonitorSummarySnapshot";
 import IncomingRequestIncidentGrouping from "./IncomingRequestIncidentGrouping";
 import MonitorMaintenanceSuppression from "./MonitorMaintenanceSuppression";
 import MonitorStatusTimelineUtil from "./MonitorStatusTimeline";
@@ -900,6 +902,21 @@ export default class MonitorResourceUtil {
             matchesPerSeries: response.perSeriesMatches,
           });
 
+        /*
+         * Freeze the Monitor Summary as it stands right now, before any
+         * incident or alert is created from it. Both creators store the
+         * same capture, so the incident page can show what the monitor
+         * saw long after MonitorLog's TTL (one day by default) has
+         * dropped the underlying log.
+         */
+        const monitorSummary: MonitorSummarySnapshot | null =
+          await MonitorSummaryCapture.capture({
+            monitor: monitor,
+            dataToProcess: dataToProcess,
+            evaluationSummary: evaluationSummary,
+            probeName: probeName,
+          });
+
         await MonitorIncident.criteriaMetCreateIncidentsAndUpdateMonitorStatus({
           monitor: monitor,
           rootCause: response.rootCause,
@@ -907,6 +924,7 @@ export default class MonitorResourceUtil {
           autoResolveCriteriaInstanceIdIncidentIdsDictionary,
           criteriaInstance: matchedCriteriaInstance,
           evaluationSummary: evaluationSummary,
+          monitorSummary: monitorSummary,
           props: {
             telemetryQuery: telemetryQuery,
           },
@@ -930,6 +948,7 @@ export default class MonitorResourceUtil {
           autoResolveCriteriaInstanceIdAlertIdsDictionary,
           criteriaInstance: criteriaInstanceAlertMap[response.criteriaMetId!]!,
           evaluationSummary: evaluationSummary,
+          monitorSummary: monitorSummary,
           props: {
             telemetryQuery: telemetryQuery,
           },
