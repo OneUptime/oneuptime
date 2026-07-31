@@ -1,208 +1,120 @@
-# Terraform Provider Quick Start Guide
+# Quick Start
 
-This guide will help you get started with the OneUptime Terraform Provider in just a few minutes.
+This guide takes you from nothing to managed OneUptime resources in about 10 minutes: create an API key, configure the provider, and apply a label, an HTTP monitor, and a status page.
 
 ## Prerequisites
 
-- Terraform >= 1.0 installed
-- OneUptime account (Cloud or Self-Hosted)
-- OneUptime API key
+- [Terraform](https://developer.hashicorp.com/terraform/install) 1.5 or later
+- A OneUptime account with a project ([oneuptime.com](https://oneuptime.com) or your self-hosted instance)
 
-## Step 1: Create API Key
+## Step 1: Create a project API key
 
-### For OneUptime Cloud
+The provider authenticates with a **project-scoped API key**. In the OneUptime dashboard:
 
-1. Go to [OneUptime Cloud](https://oneuptime.com) and log in
-2. Navigate to **Settings** → **API Keys**
-3. Click **Create API Key**
-4. Name it "Terraform Provider"
-5. Select required permissions
-6. Copy the generated API key
+1. Select your project.
+2. Go to **Project Settings** > **API Keys**.
+3. Click **Create API Key**.
+4. Give it a name (for example `terraform`) and an expiry.
+5. Grant permissions. Terraform needs **Create**, **Read**, **Update (Edit)**, and **Delete** on every resource type you plan to manage — for this guide: Label, Monitor, and Status Page.
+6. Copy the generated key.
 
-### For Self-Hosted OneUptime
+> **Warning:** Do not use a user key or a self-hosted master API key. Master keys are not scoped to a project, and API calls made with them fail with `ProjectId required` errors. Only project API keys work with the Terraform provider.
 
-1. Access your OneUptime instance
-2. Navigate to **Settings** → **API Keys**
-3. Click **Create API Key**
-4. Name it "Terraform Provider"
-5. Select required permissions
-6. Copy the generated API key
+Export the key as an environment variable so it never lands in your Terraform files:
 
-## Step 2: Create Terraform Configuration
+```bash
+export ONEUPTIME_API_KEY="your-project-api-key"
+```
 
-Create a new directory and `main.tf` file:
+## Step 2: Configure the provider
+
+Create a working directory with a `main.tf`:
 
 ```hcl
 terraform {
   required_providers {
     oneuptime = {
       source  = "oneuptime/oneuptime"
-      # For Cloud customers
-      version = "~> 7.0"
-
-      # For Self-Hosted customers - pin to your exact version
-      # version = "= 7.0.123"  # Replace with your OneUptime version
+      version = "~> 11.0"
     }
   }
-  required_version = ">= 1.0"
 }
 
 provider "oneuptime" {
-  # For Cloud customers
-  oneuptime_url = "https://oneuptime.com"
-
-  # For Self-Hosted customers - use your instance URL
-  # oneuptime_url = "https://oneuptime.yourcompany.com"
-
-  api_key = var.oneuptime_api_key
-}
-
-variable "oneuptime_api_key" {
-  description = "OneUptime API Key"
-  type        = string
-  sensitive   = true
-}
-
-# Note: Projects must be created manually in the OneUptime dashboard
-# Use your existing project ID here
-variable "project_id" {
-  description = "OneUptime project ID"
-  type        = string
-}
-
-# Create a simple website monitor
-resource "oneuptime_monitor" "website" {
-  name        = "Website Monitor"
-  description = "Monitor for website uptime"
-  data        = jsonencode({
-    url = "https://example.com"
-    interval = "5m"
-    timeout = "30s"
-  })
-}
-
-# Output the monitor ID
-output "monitor_id" {
-  value = oneuptime_monitor.website.id
+  # api_key is read from the ONEUPTIME_API_KEY environment variable.
+  # oneuptime_url defaults to https://oneuptime.com — set it only if self-hosted:
+  # oneuptime_url = "https://oneuptime.example.com"
 }
 ```
 
-## Step 3: Create Variables File
+Self-hosted users: set `oneuptime_url` to your instance URL and check the version guidance in [Self-Hosted Setup](/docs/terraform/self-hosted) before pinning a provider version.
 
-Create `terraform.tfvars`:
+## Step 3: Define your first resources
+
+Append the following to `main.tf`. It creates a label, a website monitor for your homepage, and a private status page:
 
 ```hcl
-# terraform.tfvars
-oneuptime_api_key = "your-api-key-here"
-project_id        = "your-project-id-here"  # Get this from OneUptime dashboard
+resource "oneuptime_label" "critical" {
+  name        = "critical"
+  description = "Resources that page on-call when down"
+  color       = "#FF5733"
+}
+
+resource "oneuptime_monitor" "homepage" {
+  name         = "Homepage"
+  description  = "Checks that the homepage responds"
+  monitor_type = "Website"
+  labels       = [oneuptime_label.critical.id]
+}
+
+resource "oneuptime_status_page" "internal" {
+  name                     = "Internal Status"
+  description              = "Status page for internal services"
+  page_title               = "Service Status"
+  page_description         = "Live status of our services"
+  is_public_status_page    = false
+  enable_email_subscribers = false
+  enable_sms_subscribers   = false
+}
+
+output "monitor_id" {
+  value = oneuptime_monitor.homepage.id
+}
 ```
 
-**Important**: Add `terraform.tfvars` to your `.gitignore` to keep API keys secret!
+A `Website` monitor created without explicit `monitor_steps` gets sensible server-side defaults. To control the URL, request type, and up/down criteria yourself, pass `monitor_steps` as JSON — that is covered in [Monitor Steps](/docs/terraform/monitor-steps).
 
-## Step 4: Initialize and Apply
+## Step 4: Init, plan, apply
 
 ```bash
-# Initialize Terraform
 terraform init
-
-# Plan the deployment
 terraform plan
-
-# Apply the configuration
 terraform apply
 ```
 
-## Step 5: Verify Resources
+Review the plan (3 resources to add) and confirm with `yes`. Apply completes in a few seconds and prints the monitor ID.
 
-1. Check your OneUptime dashboard
-2. Go to your existing project
-3. Verify the "Website Monitor" is created and running
+## Step 5: Verify in the dashboard
 
-## Next Steps
+In the OneUptime dashboard:
 
-1. **Explore More Resources**: Check the [full documentation](./README.md) for all available resources
-2. **Set Up Alerting**: Add alert policies and notification channels
-3. **Create Status Pages**: Set up public status pages for your services
-4. **Organize with Teams**: Create teams and assign permissions
+- **Monitors** — the `Homepage` monitor is listed with the `critical` label.
+- **Status Pages** — `Internal Status` appears.
+- **Project Settings > Labels** — the `critical` label exists with the color you set.
 
-## Version-Specific Examples
+Run `terraform plan` again: it reports `No changes.` Server-computed fields (slugs, current status, default monitoring steps) do not cause drift.
 
-### Cloud Customers (Latest Version)
+## Step 6: Clean up
 
-```hcl
-terraform {
-  required_providers {
-    oneuptime = {
-      source  = "oneuptime/oneuptime"
-      version = "~> 7.0"  # Always gets latest compatible 7.x version
-    }
-  }
-}
-
-provider "oneuptime" {
-  oneuptime_url = "https://oneuptime.com"
-  api_key       = var.oneuptime_api_key
-}
-```
-
-### Self-Hosted Customers (Version Pinned)
-
-```hcl
-terraform {
-  required_providers {
-    oneuptime = {
-      source  = "oneuptime/oneuptime"
-      version = "= 7.0.123"  # Must match your OneUptime version exactly
-    }
-  }
-}
-
-provider "oneuptime" {
-  oneuptime_url = "https://oneuptime.mycompany.com"  # Your self-hosted URL
-  api_key       = var.oneuptime_api_key
-}
-```
-
-## Troubleshooting Quick Start
-
-### Issue: Provider not found
-
-```
-Error: Failed to query available provider packages
-```
-
-**Solution**: Run `terraform init` to download the provider
-
-### Issue: Authentication failed
-
-```
-Error: Invalid API key
-```
-
-**Solution**:
-
-1. Verify your API key in OneUptime dashboard
-2. Check the API key has sufficient permissions
-3. Ensure `oneuptime_url` is correct for your instance
-
-### Issue: Version mismatch (Self-Hosted)
-
-```
-Error: API version incompatible
-```
-
-**Solution**:
-
-1. Check your OneUptime version in the dashboard
-2. Update the provider version to match exactly
-3. Run `terraform init -upgrade`
-
-## Clean Up
-
-To remove all resources created in this quick start:
+If this was a test drive, remove everything the configuration created:
 
 ```bash
 terraform destroy
 ```
 
-This will delete the monitor and project created during the quick start.
+## Next steps
+
+- [Complete Guide](/docs/terraform/complete-guide) — authentication options, project layout, dependencies, data sources, remote state
+- [Examples](/docs/terraform/examples) — configurations for every major resource type
+- [Monitor Steps](/docs/terraform/monitor-steps) — take control of what your monitors check
+- [Importing Resources](/docs/terraform/importing-resources) — adopt resources you already created in the dashboard

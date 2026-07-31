@@ -1,96 +1,86 @@
-# Documentación del proveedor Terraform
+# Terraform Provider
 
-El Proveedor Terraform de OneUptime permite la gestión de Infraestructura como Código (IaC) de tus recursos de monitoreo, alerta y observabilidad en OneUptime.
+The OneUptime Terraform provider manages OneUptime resources — monitors, status pages, teams, labels, on-call policies, incidents, probes, and more — as declarative infrastructure-as-code. It works against both OneUptime Cloud and self-hosted OneUptime installations.
 
-## Secciones de la documentación
+The provider is published on the Terraform Registry: [registry.terraform.io/providers/oneuptime/oneuptime](https://registry.terraform.io/providers/oneuptime/oneuptime).
 
-### [Primeros pasos](./quick-start.md)
-
-Guía de configuración rápida para comenzar a usar el Proveedor Terraform de OneUptime en minutos.
-
-### [Guía completa del proveedor](./README.md)
-
-Documentación completa que cubre instalación, configuración, recursos y buenas prácticas.
-
-### [Configuración auto-alojada](./self-hosted.md)
-
-**Crítico para clientes auto-alojados**: Fijación de versiones, compatibilidad y estrategias de implementación.
-
-### [Ejemplos](./examples.md)
-
-Ejemplos del mundo real y patrones para configuraciones comunes de Terraform en OneUptime.
-
-## Accesos directos
-
-### Para clientes de OneUptime Cloud
+## Minimal configuration
 
 ```hcl
 terraform {
   required_providers {
     oneuptime = {
       source  = "oneuptime/oneuptime"
-      version = "~> 7.0"
+      version = "~> 11.0"
     }
   }
 }
 
 provider "oneuptime" {
-  oneuptime_url = "https://oneuptime.com"
-  api_key       = var.oneuptime_api_key
+  # oneuptime_url defaults to https://oneuptime.com.
+  # Self-hosted users: set this to your own instance URL.
+  api_key = var.oneuptime_api_key
 }
 ```
 
-### Para clientes auto-alojados
+The API key must be a **project API key** created in **Project Settings > API Keys** in the OneUptime dashboard. See the [Quick Start](/docs/terraform/quick-start) for the full walkthrough.
 
-```hcl
-terraform {
-  required_providers {
-    oneuptime = {
-      source  = "oneuptime/oneuptime"
-      version = "= 7.0.123"  # Debe coincidir con tu versión de OneUptime
-    }
-  }
-}
+## Documentation
 
-provider "oneuptime" {
-  oneuptime_url = "https://oneuptime.yourcompany.com"
-  api_key       = var.oneuptime_api_key
-}
-```
+| Page | What it covers |
+|------|----------------|
+| [Quick Start](/docs/terraform/quick-start) | Create an API key and apply your first resources in about 10 minutes |
+| [Complete Guide](/docs/terraform/complete-guide) | Authentication, project structure, dependencies, data sources, state |
+| [Monitor Steps](/docs/terraform/monitor-steps) | Deep dive into the `monitor_steps` JSON structure and criteria filters |
+| [Examples](/docs/terraform/examples) | Copy-pasteable configurations for every major resource type |
+| [Importing Resources](/docs/terraform/importing-resources) | Bring existing OneUptime resources under Terraform management |
+| [Troubleshooting](/docs/terraform/troubleshooting) | Symptom-to-fix reference for the most common errors |
+| [Self-Hosted Setup](/docs/terraform/self-hosted) | Instance URLs, version selection, air-gapped mirroring, TLS |
+| [Registry Usage](/docs/terraform/registry) | How provider versions are published and how to choose one |
 
-## Importante para usuarios auto-alojados
+## What the provider manages
 
-**La compatibilidad de versiones es crítica**: Siempre fija la versión del proveedor Terraform para que coincida exactamente con la versión de tu instalación de OneUptime. Las versiones que no coincidan pueden causar problemas de compatibilidad de API.
+Resources follow the naming pattern `oneuptime_<snake_case_resource>`. The most commonly used resources:
 
-## Recursos externos
+| Resource | Purpose |
+|----------|---------|
+| `oneuptime_monitor` | Website, API, ping, port, IP, SSL certificate, server, incoming request, and manual monitors |
+| `oneuptime_monitor_status` | Monitor status definitions (Operational, Degraded, Offline, ...) |
+| `oneuptime_monitor_group` | Group monitors for aggregate status |
+| `oneuptime_status_page` | Public and private status pages |
+| `oneuptime_status_page_domain` | Custom domains for status pages |
+| `oneuptime_domain` | Project-level verified domains |
+| `oneuptime_label` | Labels for organizing and filtering resources |
+| `oneuptime_team` | Teams |
+| `oneuptime_team_member` | Team membership |
+| `oneuptime_on_call_policy` | On-call duty policies |
+| `oneuptime_escalation_rule` | Escalation rules attached to on-call policies |
+| `oneuptime_incident` / `oneuptime_incident_severity` / `oneuptime_incident_state` | Incidents and their taxonomy |
+| `oneuptime_alert` / `oneuptime_alert_severity` / `oneuptime_alert_state` | Alerts and their taxonomy |
+| `oneuptime_scheduled_maintenance_event` | Scheduled maintenance windows |
+| `oneuptime_probe` | Custom monitoring probes |
 
-- **Registro de Terraform**: [Proveedor de OneUptime](https://registry.terraform.io/providers/oneuptime/oneuptime)
-- **Repositorio de GitHub**: [Código fuente de OneUptime](https://github.com/OneUptime/oneuptime)
-- **Soporte de la comunidad**: [Comunidad de OneUptime](https://community.oneuptime.com)
+Every resource also has a matching **data source** with the same name (for example `data "oneuptime_label"`), which looks up an existing resource by `id` or by `name`.
 
-## Recursos disponibles
+The full, generated per-resource schema reference lives on the [Terraform Registry documentation tab](https://registry.terraform.io/providers/oneuptime/oneuptime/latest/docs).
 
-El proveedor admite una gestión completa de recursos de OneUptime:
+## How the provider models complex configuration
 
-- **Proyectos y equipos**: Organiza tu estructura de monitoreo
-- **Monitores**: Monitores de sitios web, API, puertos, latidos y personalizados
-- **Gestión de incidentes**: Políticas de alertas, horarios de guardia, escaladas
-- **Páginas de estado**: Páginas de estado públicas y privadas con marca personalizada
-- **Catálogo de servicios**: Definiciones de servicios y mapeo de dependencias
-- **Flujos de trabajo**: Respuesta automatizada y flujos de trabajo de remediación
+OneUptime resource schemas map the OneUptime API directly:
 
-## Soporte
+- **Scalar attributes** are plain Terraform strings, numbers, and booleans (`name`, `description`, `monitor_type`, `is_public_status_page`, ...).
+- **Entity references** are ID strings (`incident_severity_id`, `monitor_id`). Arrays of references, such as `labels`, are unordered sets of ID strings — reordering them produces no diff.
+- **Complex nested configuration** — most notably a monitor's `monitor_steps` — is passed as a JSON string, normally written with `jsonencode()`. There are no nested HCL blocks. See [Monitor Steps](/docs/terraform/monitor-steps).
+- **Date/time attributes** are RFC3339 strings (for example `2026-08-01T02:00:00Z`). The provider treats semantically equal timestamps as equal, so server-side normalization does not cause drift.
 
-Para problemas, preguntas o contribuciones:
+## Versioning
 
-1. **Problemas de documentación**: Crea un problema en el [repositorio de OneUptime](https://github.com/OneUptime/oneuptime/issues)
-2. **Errores del proveedor**: Reporta en el repositorio principal de OneUptime
-3. **Solicitudes de función**: Discute en la comunidad de OneUptime
-4. **Preguntas generales**: Usa los foros de la comunidad
+Provider versions track OneUptime platform versions.
 
-## Próximos pasos
+- **OneUptime Cloud**: use `version = "~> 11.0"`.
+- **Self-hosted**: use the newest published provider version that is **less than or equal to** your OneUptime platform version. Do not pin an exact patch version — not every platform patch release is published to the registry. See [Self-Hosted Setup](/docs/terraform/self-hosted).
 
-1. **Nuevos usuarios**: Comienza con la [Guía de inicio rápido](./quick-start.md)
-2. **Auto-alojados**: Revisa la [Configuración auto-alojada](./self-hosted.md)
-3. **Usuarios avanzados**: Explora los [Ejemplos](./examples.md) para configuraciones complejas
-4. **Referencia completa**: Consulta la [Guía completa](./README.md) para todas las características
+## Support
+
+- Bugs and feature requests: [github.com/OneUptime/oneuptime/issues](https://github.com/OneUptime/oneuptime/issues)
+- The provider source is generated from the OneUptime OpenAPI specification in the [main OneUptime repository](https://github.com/OneUptime/oneuptime); the published provider repository is read-only.
