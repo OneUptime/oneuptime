@@ -391,6 +391,57 @@ export default class Span extends AnalyticsBaseModel {
       },
     });
 
+    /*
+     * Session replay correlation key. Holds the RumSession `sessionId`
+     * that produced this span, or '' when the span came from a backend
+     * with no browser session in context.
+     *
+     * Non-Nullable String with a '' type default, exactly like the scalar
+     * entity-key columns below: spans written before this column existed
+     * read '' and there is deliberately no backfill. Nullable is not an
+     * option because StatementGenerator has to assumeNotNull-wrap Nullable
+     * columns for skip indexes, and a column added by reconciliation can
+     * never join the sort key anyway, so the bloom filter is the only
+     * pruning this predicate will ever get.
+     */
+    const sessionIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "sessionId",
+      title: "Session ID",
+      description:
+        "Session replay session ID that produced this span; '' when the span has no browser session in context.",
+      required: true,
+      defaultValue: "",
+      type: TableColumnType.Text,
+      codec: { codec: "ZSTD", level: 1 },
+      skipIndex: {
+        name: "idx_session_id",
+        type: SkipIndexType.BloomFilter,
+        params: [0.01],
+        granularity: 1,
+      },
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
+          Permission.ReadTelemetryServiceTraces,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.CreateTelemetryServiceTraces,
+        ],
+        update: [],
+      },
+    });
+
     const parentSpanIdColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "parentSpanId",
       title: "Parent Span ID",
@@ -1148,6 +1199,7 @@ export default class Span extends AnalyticsBaseModel {
         endTimeUnixNanoColumn,
         traceIdColumn,
         spanIdColumn,
+        sessionIdColumn,
         parentSpanIdColumn,
         traceStateColumn,
         attributesColumn,
@@ -1301,6 +1353,14 @@ export default class Span extends AnalyticsBaseModel {
 
   public set spanId(v: string | undefined) {
     this.setColumnValue("spanId", v);
+  }
+
+  public get sessionId(): string | undefined {
+    return this.getColumnValue("sessionId") as string | undefined;
+  }
+
+  public set sessionId(v: string | undefined) {
+    this.setColumnValue("sessionId", v);
   }
 
   public get parentSpanId(): string | undefined {

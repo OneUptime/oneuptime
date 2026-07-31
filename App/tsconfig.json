@@ -117,6 +117,11 @@
     "FeatureSet/Dashboard",
     "FeatureSet/AdminDashboard",
     "FeatureSet/StatusPage",
-    "FeatureSet/PublicDashboard"
+    "FeatureSet/PublicDashboard",
+    // Has its own tsconfig, its own dependencies (rrweb) and its own
+    // compile-browser-recorder CI job. App's tsc must not reach into it:
+    // rrweb is installed only in that package, so compiling it from here
+    // fails wherever the recorder's own npm install has not run.
+    "FeatureSet/BrowserRecorder"
   ]
 }

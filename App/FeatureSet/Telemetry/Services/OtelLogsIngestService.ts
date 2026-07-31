@@ -936,6 +936,13 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                     attributeKeys: attributeKeys,
                     traceId: traceId,
                     spanId: spanId,
+                    /*
+                     * '' when this log carries no browser session. Read
+                     * from the merged attribute object so a resource-level
+                     * session.id counts (see getSessionIdFromAttributes).
+                     */
+                    sessionId:
+                      this.getSessionIdFromAttributes(attributesObject),
                     body: body,
                     observedTimeUnixNano:
                       Math.trunc(observedTimeUnixNano).toString(),
@@ -1288,14 +1295,63 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
   }
 
   /*
+   * Session replay correlation. `session.id` reaches us in one of two
+   * shapes and we must accept both:
+   *
+   *   - as a log attribute, under the bare key "session.id";
+   *   - as a RESOURCE attribute, which TelemetryUtil.getAttributes
+   *     prefixes with "resource.", so it arrives as
+   *     "resource.session.id".
+   *
+   * Reading only the bare key would look correct in a unit test and fail
+   * in production, because a browser SDK sets session.id ONCE on the
+   * resource rather than on every record.
+   *
+   * Duplicated verbatim in OtelTracesIngestService: the two ingest
+   * services share no base for row building, and a Common helper would
+   * put an ingest-only concern in the shared telemetry utils.
+   */
+  private static readonly sessionIdAttributeKeys: ReadonlyArray<string> = [
+    "session.id",
+    "resource.session.id",
+  ];
+
+  private static getSessionIdFromAttributes(
+    attributes: Record<string, unknown> | undefined,
+  ): string {
+    if (!attributes) {
+      return "";
+    }
+
+    for (const key of this.sessionIdAttributeKeys) {
+      const value: unknown = attributes[key];
+
+      if (typeof value === "string" && value !== "") {
+        return value;
+      }
+
+      /*
+       * A numeric or boolean session id is nonsense but harmless to
+       * coerce; an array or object is not a usable join key, so it falls
+       * through to the next candidate key and ultimately to "".
+       */
+      if (typeof value === "number" || typeof value === "boolean") {
+        return String(value);
+      }
+    }
+
+    return "";
+  }
+
+  /*
    * Build the ClickHouse ExceptionInstance row and the Postgres
    * TelemetryException upsert payload for an exception detected in a single log
    * record, and push them onto the batch buffers. Mirrors
    * OtelTracesIngestService.buildExceptionRow / its pendingExceptionUpserts
    * push, with log-appropriate values: no span backing (spanStatusCode Unset,
    * spanName ""), escaped left null unless the log carried exception.escaped,
-   * the log's own traceId/spanId preserved when correlated, and the log
-   * retention policy (pillar "logs") reused from the caller.
+   * the log's own traceId/spanId/sessionId preserved when correlated, and the
+   * log retention policy (pillar "logs") reused from the caller.
    */
   private static collectExceptionFromLog(data: {
     logRow: JSONObject;
@@ -1315,6 +1371,15 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
       (data.logRow["attributes"] as JSONObject) || {};
     const traceId: string = (data.logRow["traceId"] as string) || "";
     const spanId: string = (data.logRow["spanId"] as string) || "";
+    /*
+     * Taken off the POST-scrub, post-pipeline logRow rather than
+     * recomputed from the attributes, so the exception row and the log
+     * row can never disagree about which session this was. It has to be
+     * carried explicitly because exceptionAttributes below is a hardcoded
+     * two-key map that deliberately discards the log's attribute bag,
+     * which is where session.id would otherwise live.
+     */
+    const sessionId: string = (data.logRow["sessionId"] as string) || "";
 
     const extracted: ExtractedLogException | null =
       LogExceptionExtractor.extractFromLogRecord({
@@ -1366,6 +1431,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
       escaped: extracted.escaped === null ? null : Boolean(extracted.escaped),
       traceId: traceId,
       spanId: spanId,
+      sessionId: sessionId,
       fingerprint: fingerprint,
       spanName: "",
       release: release,

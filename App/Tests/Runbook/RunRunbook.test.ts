@@ -427,6 +427,81 @@ describe("RunRunbook state machine", () => {
     );
   });
 
+  test("a run that turns terminal mid-flight stops at the next step boundary", async () => {
+    /*
+     * Nothing can interrupt a step that is already running, so a cancel — or
+     * the stuck-execution sweep failing this run after the Worker went quiet —
+     * lands while step one is in flight. The step array held in memory is
+     * stale by then: carrying on would write the Cancelled steps back as
+     * Pending and keep dispatching scripts for a run the operator was told
+     * had stopped.
+     */
+    runBashStepMock.mockResolvedValue({ success: true, output: "first" });
+
+    const first: RunbookStepExecutionState = pending(
+      makeStep(RunbookStepType.Bash),
+    );
+    const second: RunbookStepExecutionState = pending(
+      makeStep(RunbookStepType.Bash),
+    );
+    const execution: RunbookExecution = makeExecution([first, second], {
+      status: RunbookExecutionStatus.Running,
+      startedAt: new Date(),
+    });
+
+    jest
+      .spyOn(RunbookExecutionService, "findOneById")
+      .mockResolvedValueOnce(execution)
+      .mockResolvedValueOnce(execution)
+      .mockResolvedValueOnce({
+        status: RunbookExecutionStatus.Cancelled,
+      } as unknown as RunbookExecution);
+    const updateSpy: jest.SpyInstance = jest
+      .spyOn(RunbookExecutionService, "updateOneById")
+      .mockResolvedValue(undefined as never);
+
+    await new RunRunbook().runExecution({
+      runbookExecutionId: new ObjectID("exec1"),
+    });
+
+    expect(runBashStepMock).toHaveBeenCalledTimes(1);
+    expect(second.status).toBe(RunbookStepExecutionStatus.Pending);
+    expect(lastStatusUpdate(updateSpy).status).not.toBe(
+      RunbookExecutionStatus.Completed,
+    );
+  });
+
+  test("an execution that vanishes mid-run stops rather than writing to a deleted row", async () => {
+    runBashStepMock.mockResolvedValue({ success: true, output: "first" });
+
+    const first: RunbookStepExecutionState = pending(
+      makeStep(RunbookStepType.Bash),
+    );
+    const second: RunbookStepExecutionState = pending(
+      makeStep(RunbookStepType.Bash),
+    );
+    const execution: RunbookExecution = makeExecution([first, second], {
+      status: RunbookExecutionStatus.Running,
+      startedAt: new Date(),
+    });
+
+    jest
+      .spyOn(RunbookExecutionService, "findOneById")
+      .mockResolvedValueOnce(execution)
+      .mockResolvedValueOnce(execution)
+      .mockResolvedValueOnce(null);
+    jest
+      .spyOn(RunbookExecutionService, "updateOneById")
+      .mockResolvedValue(undefined as never);
+
+    await new RunRunbook().runExecution({
+      runbookExecutionId: new ObjectID("exec1"),
+    });
+
+    expect(runBashStepMock).toHaveBeenCalledTimes(1);
+    expect(second.status).toBe(RunbookStepExecutionStatus.Pending);
+  });
+
   test("skipped steps count as done", async () => {
     const skipped: RunbookStepExecutionState = {
       step: makeStep(RunbookStepType.Manual),

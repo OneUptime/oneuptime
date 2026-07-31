@@ -136,6 +136,13 @@ import "./Jobs/UserOnCallLog/ExecutePendingExecutions";
 import "./Jobs/UserOnCallLog/TimeoutStuckExecutions";
 import "./Jobs/Workflow/TimeoutJobs";
 
+/*
+ * Runbook executions live inside a single queue job, so a Worker that dies
+ * mid-run takes the execution's only keeper with it. This fails the ones that
+ * were never redelivered, so an execution can never hang in Running.
+ */
+import "./Jobs/Runbook/TimeoutStuckExecutions";
+
 // Probes
 import "./Jobs/Probe/SendOwnerAddedNotification";
 import "./Jobs/Probe/UpdateConnectionStatus";
@@ -190,6 +197,19 @@ import "./Jobs/IoT/CleanupStaleResources";
 // Telemetry entity registry: TTL prune + span-derived service map edges.
 import "./Jobs/TelemetryEntity/PruneStaleEntities";
 import "./Jobs/TelemetryEntity/ComputeServiceDependencies";
+
+/*
+ * Session replay. FinalizeSessions is not optional bookkeeping: both replay
+ * tables are ReplacingMergeTree (last-write-wins, no accumulation), so the
+ * ingest path writes only chunk-invariant identity and EVERY session
+ * aggregate is derived by this job. Without it every session stays
+ * provisional with zeroed counters and nothing is metered.
+ */
+import "./Jobs/Rum/FinalizeSessions";
+// RUM application disconnect sweeper + abandoned replay activity prune.
+import "./Jobs/Rum/CleanupStaleResources";
+// GDPR / CCPA erasure of recordings and their correlated telemetry.
+import "./Jobs/Rum/ProcessSessionErasureRequests";
 
 /*
  * NOTE: there is deliberately no in-app V2 -> V3 historical telemetry

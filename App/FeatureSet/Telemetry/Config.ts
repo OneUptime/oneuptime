@@ -88,6 +88,115 @@ export const INCOMING_REQUEST_INGEST_COALESCE_ENABLED: boolean =
 export const TELEMETRY_LOCK_DURATION_MS: number = 10 * 60 * 1000;
 
 /*
+ * Instance-level kill switch for session replay ingest. On by default,
+ * following the `!== "false"` idiom used by the other hot-path switches
+ * above, so ops can stop accepting recordings without a deploy and without
+ * touching per-project settings. This is distinct from
+ * SESSION_REPLAY_ENABLED_BY_DEFAULT, which controls whether a *recorder* is
+ * told to record at all.
+ */
+export const SESSION_REPLAY_INGEST_ENABLED: boolean =
+  process.env["SESSION_REPLAY_INGEST_ENABLED"] !== "false";
+
+/*
+ * Whether a newly-configured deployment offers session replay at all.
+ *
+ * Defaults to FALSE, and stays false on self-hosted installs, because plan
+ * gating is a no-op when BILLING_ENABLED=false: `tableBillingAccessControl`
+ * is only consulted when billing is on. Without this switch nothing would
+ * stop a self-hosted install from running 100% sampling at 90-day retention
+ * on a single ClickHouse node - and because replay is the fattest table,
+ * the capacity pruner would then start dropping partitions, potentially
+ * destroying the customer's logs and traces to make room for recordings.
+ */
+export const SESSION_REPLAY_ENABLED_BY_DEFAULT: boolean =
+  process.env["SESSION_REPLAY_ENABLED_BY_DEFAULT"] === "true";
+
+/*
+ * Per-project chunk rate ceiling, enforced with a Redis counter so it holds
+ * across every app pod rather than per process. 20k chunks/min is roughly
+ * 1,400 concurrently-recording tabs at the 15s flush cadence - far above
+ * any legitimate single project, and low enough to blunt a scraped-key
+ * flood. Exceeding it answers 429 with Retry-After.
+ */
+export const SESSION_REPLAY_MAX_CHUNKS_PER_PROJECT_PER_MINUTE: number =
+  parseBatchSize("SESSION_REPLAY_MAX_CHUNKS_PER_PROJECT_PER_MINUTE", 20000);
+
+/*
+ * Per-project daily byte budget. This is the control that protects a
+ * self-hosted cluster's disk regardless of billing, so it is enforced in
+ * the gate rather than reported after the fact. Exceeding it answers 204
+ * with directive "stop", which makes live recorders stand down instead of
+ * retrying.
+ */
+export const SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY: number =
+  parseBatchSize(
+    "SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY",
+    1024 * 1024 * 1024,
+  );
+
+/*
+ * Chunks at or under this size ride inline in the BullMQ job as base64
+ * instead of being staged in Redis. A typical chunk is ~7KB, so this keeps
+ * ~99% of chunks out of the staging store entirely and bounds its
+ * worst-case footprint to tens of MB. 64KiB is chosen so that even at the
+ * 33% base64 inflation a job stays small relative to BullMQ's own
+ * JSON-serialized job state.
+ */
+export const SESSION_REPLAY_INLINE_STAGING_MAX_BYTES: number = parseBatchSize(
+  "SESSION_REPLAY_INLINE_STAGING_MAX_BYTES",
+  64 * 1024,
+);
+
+/*
+ * How many replay chunks one pod may decode and scrub concurrently.
+ *
+ * This bounds replay's peak CPU and memory on the shared telemetry worker:
+ * every decoded chunk stays resident until its insert is submitted, so
+ * without a cap the ceiling would be TELEMETRY_CONCURRENCY times the
+ * per-job decompression budget. It is NOT starvation protection - the gate
+ * is applied inside the job handler, so a waiting replay job still holds its
+ * BullMQ slot (see withSessionReplaySlot in ProcessTelemetry).
+ *
+ * Per-pod in-process rather than a distributed Semaphore: TELEMETRY_
+ * CONCURRENCY is itself per-pod, so a per-pod cap is the right unit, and it
+ * costs no Redis round trip on a path whose whole budget is a few
+ * milliseconds per chunk.
+ */
+export const SESSION_REPLAY_WORKER_CONCURRENCY: number = parseBatchSize(
+  "SESSION_REPLAY_WORKER_CONCURRENCY",
+  20,
+);
+
+/*
+ * Name of the ONE request header whose country code the replay ingest path
+ * is allowed to believe, lowercased (e.g. "cf-ipcountry" behind Cloudflare,
+ * "x-vercel-ip-country" behind Vercel).
+ *
+ * Empty by default, which means no country is recorded at all. A request
+ * header is client-controlled unless the ingress overwrites it, and nothing
+ * in the Nginx config strips these, so honouring one on a deployment that is
+ * not actually behind that CDN lets any client stamp arbitrary countries onto
+ * session rows. Set it only when the named header is guaranteed to be
+ * rewritten by your edge.
+ */
+export const SESSION_REPLAY_TRUSTED_GEO_HEADER: string = (
+  process.env["SESSION_REPLAY_TRUSTED_GEO_HEADER"] || ""
+)
+  .trim()
+  .toLowerCase();
+
+/*
+ * Pinned recorder artifact the loader stub is told to import. Changing this
+ * one value is the staged-rollout and instant-rollback mechanism for the
+ * browser recorder - which matters because a masking regression would
+ * otherwise be live in customer browsers for the full cache TTL with no
+ * remedy.
+ */
+export const SESSION_REPLAY_RECORDER_VERSION: string =
+  process.env["SESSION_REPLAY_RECORDER_VERSION"] || "1.0.0";
+
+/*
  * MQTT ingestion for IoT devices. On by default (like the gRPC OTLP
  * listener); set MQTT_INGEST_ENABLED=false to skip starting both the
  * TCP listener and the WebSocket endpoint without a code change.

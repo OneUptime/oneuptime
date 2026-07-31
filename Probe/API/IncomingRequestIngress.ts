@@ -3,8 +3,8 @@ import {
   PROBE_INGRESS_FORWARD_RETRY_LIMIT,
   PROBE_INGRESS_FORWARD_TIMEOUT_MS,
 } from "../Config";
+import ProbeAPIRequest from "../Utils/ProbeAPIRequest";
 import ProbeUtil from "../Utils/Probe";
-import ProxyConfig from "../Utils/ProxyConfig";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -89,10 +89,9 @@ async function forwardWithRetry(
           url: forwardUrl,
           data,
           headers,
-          options: {
+          options: ProbeAPIRequest.getDefaultRequestOptions(forwardUrl, {
             timeout: PROBE_INGRESS_FORWARD_TIMEOUT_MS,
-            ...ProxyConfig.getRequestProxyAgents(forwardUrl),
-          },
+          }),
         });
 
       if (result instanceof HTTPErrorResponse) {

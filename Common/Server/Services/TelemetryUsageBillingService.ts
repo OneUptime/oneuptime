@@ -19,6 +19,7 @@ import LogService from "./LogService";
 import MetricService from "./MetricService";
 import ExceptionInstanceService from "./ExceptionInstanceService";
 import ProfileService from "./ProfileService";
+import RumSessionService from "./RumSessionService";
 import ProfileSampleService from "./ProfileSampleService";
 import DiskSize from "../../Types/DiskSize";
 import logger from "../Utils/Logger";
@@ -44,6 +45,7 @@ import {
   AverageMetricRowSizeInBytes,
   AverageExceptionRowSizeInBytes,
   AverageProfileRowSizeInBytes,
+  AverageSessionReplaySessionSizeInBytes,
   AverageProfileSampleRowSizeInBytes,
   IsBillingEnabled,
 } from "../EnvironmentConfig";
@@ -103,9 +105,16 @@ export class Service extends DatabaseService<Model> {
     const averageProfileSampleRowSizeInBytes: number =
       this.getAverageProfileSampleRowSize();
 
+    /*
+     * Session replay is exempt from the average-row-size precondition. The
+     * other pillars fall back to an average when byteSize(*) returns 0, but
+     * replay sums an exact payloadBytes recorded at ingest, so a zero average
+     * is not a reason to skip the day.
+     */
     if (
       data.productType !== ProductType.Traces &&
       data.productType !== ProductType.Profiles &&
+      data.productType !== ProductType.SessionReplay &&
       averageRowSizeInBytes <= 0
     ) {
       return;
@@ -221,6 +230,20 @@ export class Service extends DatabaseService<Model> {
           await MetricService.groupTelemetryUsageByService({
             projectId: data.projectId,
             timestampColumnName: "time",
+            startDate: startOfDay,
+            endDate: endOfDay,
+          }),
+          averageRowSizeInBytes,
+        );
+      } else if (data.productType === ProductType.SessionReplay) {
+        /*
+         * One table only, and a bespoke aggregation - see
+         * RumSessionService.groupSessionReplayUsageByEntity for why metering
+         * must not touch the chunk table or use byteSize(*).
+         */
+        addUsage(
+          await RumSessionService.groupSessionReplayUsageByEntity({
+            projectId: data.projectId,
             startDate: startOfDay,
             endDate: endOfDay,
           }),
@@ -527,7 +550,8 @@ export class Service extends DatabaseService<Model> {
       data.productType !== ProductType.Traces &&
       data.productType !== ProductType.Metrics &&
       data.productType !== ProductType.Logs &&
-      data.productType !== ProductType.Profiles
+      data.productType !== ProductType.Profiles &&
+      data.productType !== ProductType.SessionReplay
     ) {
       throw new BadDataException(
         "This product type is not a telemetry product type.",
@@ -633,7 +657,8 @@ export class Service extends DatabaseService<Model> {
       productType !== ProductType.Traces &&
       productType !== ProductType.Logs &&
       productType !== ProductType.Metrics &&
-      productType !== ProductType.Profiles
+      productType !== ProductType.Profiles &&
+      productType !== ProductType.SessionReplay
     ) {
       return fallbackSize;
     }
@@ -644,6 +669,12 @@ export class Service extends DatabaseService<Model> {
         [ProductType.Logs]: AverageLogRowSizeInBytes,
         [ProductType.Metrics]: AverageMetricRowSizeInBytes,
         [ProductType.Profiles]: AverageProfileRowSizeInBytes,
+        /*
+         * Dead code by design: replay sums an exact payloadBytes, so this
+         * fallback is only reachable if a session somehow recorded zero bytes.
+         * Present so the narrowed lookup above stays exhaustive.
+         */
+        [ProductType.SessionReplay]: AverageSessionReplaySessionSizeInBytes,
       }[productType] ?? fallbackSize;
 
     if (!Number.isFinite(value) || value <= 0) {

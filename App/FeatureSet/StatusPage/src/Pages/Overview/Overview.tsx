@@ -26,7 +26,6 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
-import Accordion from "Common/UI/Components/Accordion/Accordion";
 import Alert, { AlertSize } from "Common/UI/Components/Alerts/Alert";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -63,7 +62,13 @@ import { translateStatusName } from "../../Utils/StatusTranslation";
 import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
 import StatusPageGroupViewMode from "Common/Types/StatusPage/StatusPageGroupViewMode";
 import StatusPageResourceUptimeUtil from "Common/Utils/StatusPage/ResourceUptime";
-import StatusPageGroupTreeUtil from "Common/Utils/StatusPage/GroupTree";
+import StatusPageGroupTreeUtil, {
+  StatusPageGroupTreeNode,
+} from "Common/Utils/StatusPage/GroupTree";
+import StatusPageGroupNestingLayoutUtil, {
+  StatusPageGroupRollupKind,
+} from "Common/Utils/StatusPage/GroupNestingLayout";
+import ResourceGroupSection from "Common/UI/Components/StatusPage/ResourceGroupSection";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import UptimeBarTooltipIncident from "Common/Types/Monitor/UptimeBarTooltipIncident";
 import Color from "Common/Types/Color";
@@ -429,82 +434,122 @@ const Overview: FunctionComponent<PageComponentProps> = (
     StatusPageUtil.isPrivateStatusPage(),
   ]);
 
-  type GetCurrentGroupStatusElementFunction = (data: {
+  /*
+   * A group's rolled up status or uptime. Which of the two (or neither) is
+   * StatusPageGroupNestingLayoutUtil.getRollupKind's decision; this only reads
+   * the numbers it needs and formats the label.
+   */
+  interface GroupRollup {
+    label: string;
+    color: string;
+  }
+
+  type GetGroupRollupFunction = (data: {
     group: StatusPageGroup;
-  }) => ReactElement;
+  }) => GroupRollup | null;
 
-  const getCurrentGroupStatusElement: GetCurrentGroupStatusElementFunction =
-    (data: { group: StatusPageGroup }): ReactElement => {
-      const currentStatus: MonitorStatus =
-        StatusPageResourceUptimeUtil.getCurrentStatusPageGroupStatus({
-          statusPageGroup: data.group,
-          monitorStatusTimelines: monitorStatusTimelines,
-          statusPageResources: statusPageResources,
-          monitorStatuses: monitorStatuses,
-          monitorGroupCurrentStatuses: monitorGroupCurrentStatuses,
-          allStatusPageGroups: resourceGroups,
-        });
+  const getGroupRollup: GetGroupRollupFunction = (data: {
+    group: StatusPageGroup;
+  }): GroupRollup | null => {
+    const currentStatus: MonitorStatus =
+      StatusPageResourceUptimeUtil.getCurrentStatusPageGroupStatus({
+        statusPageGroup: data.group,
+        monitorStatusTimelines: monitorStatusTimelines,
+        statusPageResources: statusPageResources,
+        monitorStatuses: monitorStatuses,
+        monitorGroupCurrentStatuses: monitorGroupCurrentStatuses,
+        allStatusPageGroups: resourceGroups,
+      });
 
-      if (
-        !(statusPage?.downtimeMonitorStatuses || []).find(
-          (downtimeStatus: MonitorStatus) => {
-            return (
-              currentStatus?.id?.toString() === downtimeStatus?.id?.toString()
-            );
-          },
-        ) &&
-        data.group.showUptimePercent
-      ) {
-        const uptimePercent: number | null =
-          StatusPageResourceUptimeUtil.calculateAvgUptimePercentOfStatusPageGroup(
-            {
-              statusPageGroup: data.group,
-              monitorStatusTimelines: monitorStatusTimelines,
-              precision:
-                data.group.uptimePercentPrecision ||
-                UptimePrecision.ONE_DECIMAL,
-              downtimeMonitorStatuses:
-                statusPage?.downtimeMonitorStatuses || [],
-              statusPageResources: statusPageResources,
-              monitorsInGroup: monitorsInGroup,
-              uptimeWindow: { startDate: startDate, endDate: endDate },
-              allStatusPageGroups: resourceGroups,
-            },
+    const color: string = currentStatus?.color?.toString() || Green.toString();
+
+    const isCurrentlyDown: boolean = Boolean(
+      (statusPage?.downtimeMonitorStatuses || []).find(
+        (downtimeStatus: MonitorStatus) => {
+          return (
+            currentStatus?.id?.toString() === downtimeStatus?.id?.toString()
           );
+        },
+      ),
+    );
 
-        if (uptimePercent === null) {
-          return <></>;
-        }
+    const uptimePercent: number | null = data.group.showUptimePercent
+      ? StatusPageResourceUptimeUtil.calculateAvgUptimePercentOfStatusPageGroup(
+          {
+            statusPageGroup: data.group,
+            monitorStatusTimelines: monitorStatusTimelines,
+            precision:
+              data.group.uptimePercentPrecision || UptimePrecision.ONE_DECIMAL,
+            downtimeMonitorStatuses: statusPage?.downtimeMonitorStatuses || [],
+            statusPageResources: statusPageResources,
+            monitorsInGroup: monitorsInGroup,
+            uptimeWindow: { startDate: startDate, endDate: endDate },
+            allStatusPageGroups: resourceGroups,
+          },
+        )
+      : null;
 
-        return (
-          <div
-            className="font-medium"
-            style={{
-              color: currentStatus?.color?.toString() || Green.toString(),
-            }}
-          >
-            {uptimePercent}
-            {t("overview.uptimeSuffix")}
-          </div>
-        );
-      }
+    const kind: StatusPageGroupRollupKind =
+      StatusPageGroupNestingLayoutUtil.getRollupKind({
+        showUptimePercent: Boolean(data.group.showUptimePercent),
+        showCurrentStatus: Boolean(data.group.showCurrentStatus),
+        isCurrentlyDown: isCurrentlyDown,
+        uptimePercent: uptimePercent,
+      });
 
-      if (data.group.showCurrentStatus) {
-        return (
-          <div
-            className=""
-            style={{
-              color: currentStatus?.color?.toString() || Green.toString(),
-            }}
-          >
-            {translateStatusName(currentStatus?.name) ||
-              t("overview.operational")}
-          </div>
-        );
-      }
+    if (kind === StatusPageGroupRollupKind.UptimePercent) {
+      return {
+        label: `${uptimePercent}${t("overview.uptimeSuffix")}`,
+        color: color,
+      };
+    }
 
-      return <></>;
-    };
+    if (kind === StatusPageGroupRollupKind.CurrentStatus) {
+      return {
+        label:
+          translateStatusName(currentStatus?.name) || t("overview.operational"),
+        color: color,
+      };
+    }
+
+    return null;
+  };
+
+  /*
+   * Every bar in one resource list is drawn over the same window and sits in the
+   * same column, so the axis is drawn once under the list instead of once under
+   * every resource. Sub groups draw their own, next to their own bars.
+   */
+  type GetUptimeTimeAxisFunction = (data: {
+    statusPageGroup: StatusPageGroup | null;
+  }) => ReactElement | null;
+
+  const getUptimeTimeAxis: GetUptimeTimeAxisFunction = (data: {
+    statusPageGroup: StatusPageGroup | null;
+  }): ReactElement | null => {
+    if (
+      !StatusPageGroupNestingLayoutUtil.shouldRenderTimeAxis({
+        statusPageGroup: data.statusPageGroup,
+        statusPageResources: statusPageResources,
+      })
+    ) {
+      return null;
+    }
+
+    return (
+      <div
+        className={StatusPageGroupNestingLayoutUtil.getTimeAxisClassName()}
+        data-testid="uptime-time-axis"
+      >
+        <div>
+          {t("monitorOverview.daysAgo", {
+            days: uptimeHistoryDays,
+          })}
+        </div>
+        <div>{t("monitorOverview.today")}</div>
+      </div>
+    );
+  };
 
   if (isLoading) {
     return <PageLoader isVisible={true} />;
@@ -538,6 +583,17 @@ const Overview: FunctionComponent<PageComponentProps> = (
           continue;
         }
 
+        /*
+         * Keyed on the resource rather than on a fresh random number, so a
+         * resource is not torn down and remounted on every render - that used
+         * to throw away an open incident day modal. A resource with no id of
+         * its own falls back to its position, and the two branches below are
+         * namespaced apart because nothing stops one resource from carrying
+         * both a monitor and a monitor group.
+         */
+        const resourceKey: string =
+          resource._id?.toString() || `position-${elements.length}`;
+
         // if it's a monitor
 
         if (resource.monitor) {
@@ -567,8 +623,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
           elements.push(
             <MonitorOverview
-              key={Math.random()}
-              className="mb-3 sm:mb-5"
+              key={`monitor-${resourceKey}`}
+              showTimeAxisLabels={false}
               monitorName={resource.displayName || resource.monitor?.name || ""}
               statusPageHistoryChartBarColorRules={
                 statusPageHistoryChartBarColorRules
@@ -648,8 +704,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
           elements.push(
             <MonitorOverview
-              key={Math.random()}
-              className="mb-3 sm:mb-5"
+              key={`monitor-group-${resourceKey}`}
+              showTimeAxisLabels={false}
               monitorName={resource.displayName || resource.monitor?.name || ""}
               showUptimePercent={Boolean(resource.showUptimePercent)}
               uptimePrecision={
@@ -1101,29 +1157,26 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
   /*
    * Groups can be nested (Corporate Unit -> Region -> Market -> Site), so a
-   * group renders its own resources first and then each of its sub groups
-   * below them. Every level is an accordion carrying its own rolled up status
-   * / uptime, and nesting is drawn with a left rail rather than by piling
-   * background tints on top of each other - that stays readable however deep
-   * the hierarchy goes.
+   * group renders its own resources first and then each of its sub groups below
+   * them. Only the top level is a card: everything under it hangs off a tree
+   * rail, because a card inside a card inside a card runs out of horizontal
+   * room and wraps four borders around one uptime bar. See
+   * StatusPageGroupNestingLayoutUtil for the layout itself.
    */
   type RenderResourceGroupFunction = (data: {
-    group: StatusPageGroup;
-    depth: number;
+    node: StatusPageGroupTreeNode;
   }) => ReactElement;
 
   const renderResourceGroup: RenderResourceGroupFunction = (data: {
-    group: StatusPageGroup;
-    depth: number;
+    node: StatusPageGroupTreeNode;
   }): ReactElement => {
-    const group: StatusPageGroup = data.group;
-    const isRootLevel: boolean = data.depth === 0;
+    const group: StatusPageGroup = data.node.group;
 
-    const childGroups: Array<StatusPageGroup> =
-      StatusPageGroupTreeUtil.getChildGroups({
-        statusPageGroupId: group._id?.toString() || null,
-        statusPageGroups: resourceGroups,
-      });
+    const childGroups: Array<StatusPageGroup> = data.node.children.map(
+      (child: StatusPageGroupTreeNode) => {
+        return child.group;
+      },
+    );
 
     const directResources: Array<StatusPageResource> =
       StatusPageResourceUptimeUtil.getResourcesInStatusPageGroup({
@@ -1133,110 +1186,67 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
     const isGrid: boolean = group.viewMode === StatusPageGroupViewMode.Grid;
 
-    /*
-     * A group that exists only to hold sub groups has no resources of its own,
-     * and telling the visitor it is empty would be wrong - the sub groups
-     * below it are its content.
-     */
     const showOwnResources: boolean =
-      directResources.length > 0 || childGroups.length === 0;
+      StatusPageGroupNestingLayoutUtil.shouldRenderOwnResources({
+        ownResourceCount: directResources.length,
+        subGroupCount: childGroups.length,
+      });
 
     /*
-     * The rolled up status / uptime lives inside the title rather than in the
-     * accordion's rightElement, which is hidden while the accordion is open.
-     * The whole point of the hierarchy is that every level always shows what it
-     * rolls up, and keeping it in one place means it does not jump around when
-     * a level is expanded.
+     * `total` rather than `count`: i18next treats a `count` variable as a plural
+     * selector and would look for keys that do not exist here.
      */
-    const title: ReactElement = (
-      <div className="flex items-center justify-between gap-3 w-full">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="truncate">{group.name || ""}</span>
-          {childGroups.length > 0 && (
-            <span className="flex-shrink-0 inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[10.5px] font-medium text-gray-500 tabular-nums">
-              {/*
-               * `total` rather than `count`: i18next treats a `count` variable
-               * as a plural selector and would look for keys that do not exist
-               * here.
-               */}
-              {childGroups.length === 1
-                ? t("overview.oneSubGroup", { defaultValue: "1 group" })
-                : t("overview.subGroupCount", {
-                    total: childGroups.length,
-                    defaultValue: "{{total}} groups",
-                  })}
-            </span>
-          )}
-        </div>
-        <div className="flex-shrink-0 text-sm font-normal">
-          {getCurrentGroupStatusElement({ group: group })}
-        </div>
-      </div>
-    );
+    let subGroupCountLabel: string | undefined = undefined;
 
-    const body: ReactElement = (
-      <>
-        {showOwnResources ? (
-          isGrid ? (
-            getGridForGroup(group)
-          ) : (
-            <>{getMonitorOverviewListInGroup(group)}</>
-          )
-        ) : (
-          <></>
-        )}
-        {childGroups.length > 0 ? (
-          <div className="space-y-2.5">
-            {childGroups.map((childGroup: StatusPageGroup) => {
-              return renderResourceGroup({
-                group: childGroup,
-                depth: data.depth + 1,
-              });
-            })}
-          </div>
-        ) : (
-          <></>
-        )}
-      </>
-    );
-
-    const accordion: ReactElement = (
-      <Accordion
-        isInitiallyExpanded={group.isExpandedByDefault}
-        isLastElement={true}
-        title={title}
-        titleClassName={
-          isRootLevel
-            ? "text-base font-semibold tracking-tight"
-            : "text-sm font-semibold tracking-tight text-gray-800"
-        }
-      >
-        {body}
-      </Accordion>
-    );
-
-    if (isRootLevel) {
-      return (
-        <div
-          key={group._id?.toString() || ""}
-          className="bg-white pl-3 pr-3 sm:pl-5 sm:pr-5 rounded-xl shadow"
-          data-testid="status-page-group"
-        >
-          {accordion}
-        </div>
-      );
+    if (childGroups.length === 1) {
+      subGroupCountLabel = t("overview.oneSubGroup", {
+        defaultValue: "1 group",
+      });
+    } else if (childGroups.length > 1) {
+      subGroupCountLabel = t("overview.subGroupCount", {
+        total: childGroups.length,
+        defaultValue: "{{total}} groups",
+      });
     }
 
+    const rollup: GroupRollup | null = getGroupRollup({ group: group });
+
     return (
-      <div
+      <ResourceGroupSection
         key={group._id?.toString() || ""}
-        className="border-l-2 border-gray-100 pl-2 sm:pl-3"
-        data-testid="status-page-nested-group"
-      >
-        <div className="rounded-lg border border-gray-200 bg-white pl-3 pr-3 sm:pl-5 sm:pr-5">
-          {accordion}
-        </div>
-      </div>
+        depth={data.node.depth}
+        name={group.name || ""}
+        description={group.description || undefined}
+        subGroupCount={childGroups.length}
+        subGroupCountLabel={subGroupCountLabel}
+        hasOwnResources={showOwnResources}
+        rollupLabel={rollup?.label}
+        rollupColor={rollup?.color}
+        isInitiallyExpanded={group.isExpandedByDefault}
+        resourcesElement={
+          showOwnResources ? (
+            isGrid ? (
+              getGridForGroup(group)
+            ) : (
+              <div
+                className={StatusPageGroupNestingLayoutUtil.getResourceListClassName()}
+              >
+                {getMonitorOverviewListInGroup(group)}
+                {getUptimeTimeAxis({ statusPageGroup: group })}
+              </div>
+            )
+          ) : undefined
+        }
+        subGroupsElement={
+          data.node.children.length > 0 ? (
+            <>
+              {data.node.children.map((childNode: StatusPageGroupTreeNode) => {
+                return renderResourceGroup({ node: childNode });
+              })}
+            </>
+          ) : undefined
+        }
+      />
     );
   };
 
@@ -1470,26 +1480,33 @@ const Overview: FunctionComponent<PageComponentProps> = (
               {statusPageResources.filter((resources: StatusPageResource) => {
                 return !resources.statusPageGroupId;
               }).length > 0 ? (
-                <div className="bg-white pl-3 pr-3 sm:pl-5 sm:pr-5 rounded-xl shadow">
-                  <Accordion
-                    key={Math.random()}
-                    title={undefined}
-                    isLastElement={true}
+                <div
+                  className={StatusPageGroupNestingLayoutUtil.getUngroupedResourcesCardClassName()}
+                  data-testid="status-page-ungrouped-resources"
+                >
+                  <div
+                    className={StatusPageGroupNestingLayoutUtil.getResourceListClassName()}
                   >
                     {getMonitorOverviewListInGroup(null)}
-                  </Accordion>
+                    {getUptimeTimeAxis({ statusPageGroup: null })}
+                  </div>
                 </div>
               ) : (
                 <></>
               )}
+              {/*
+               * buildTree rather than getRootGroups: a parent pointer written
+               * straight to the database can put a group in a cycle, and a
+               * cycle has no root, so walking down from the roots would drop
+               * those groups off the page entirely. buildTree promotes them to
+               * the top level instead - a group nobody can see is worse than a
+               * group in the wrong place.
+               */}
               {resourceGroups.length > 0 &&
-                StatusPageGroupTreeUtil.getRootGroups({
+                StatusPageGroupTreeUtil.buildTree({
                   statusPageGroups: resourceGroups,
-                }).map((resourceGroup: StatusPageGroup) => {
-                  return renderResourceGroup({
-                    group: resourceGroup,
-                    depth: 0,
-                  });
+                }).map((node: StatusPageGroupTreeNode) => {
+                  return renderResourceGroup({ node: node });
                 })}
             </div>
           )}

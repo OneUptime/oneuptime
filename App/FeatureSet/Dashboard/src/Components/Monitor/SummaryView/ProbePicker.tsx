@@ -7,7 +7,7 @@ import Probe from "Common/Models/DatabaseModels/Probe";
 import MonitorSummaryProbeUtil, {
   AttachedProbe,
 } from "Common/Utils/Monitor/MonitorSummaryProbeUtil";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useId } from "react";
 
 export interface ComponentProps {
   onProbeSelected?: (probe: Probe) => void;
@@ -24,6 +24,15 @@ export interface ComponentProps {
 const ProbePicker: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  /*
+   * A react-select control cannot be reached with htmlFor - the element that
+   * carries role="combobox" is the search input react-select renders itself -
+   * so the label points at it through aria-labelledby, exactly as FormField
+   * does for every Dropdown it renders. Without this the picker has no
+   * accessible name at all.
+   */
+  const fieldLabelId: string = useId();
+
   const disabledProbeIdSet: Set<string> = new Set(props.disabledProbeIds || []);
 
   const dropdownOptions: Array<DropdownOption> =
@@ -51,11 +60,13 @@ const ProbePicker: FunctionComponent<ComponentProps> = (
          */}
         <FieldLabelElement
           title="Showing results from:"
+          id={fieldLabelId}
           hideOptionalLabel={true}
         />
       </div>
       <div>
         <Dropdown
+          ariaLabelledby={fieldLabelId}
           value={dropdownOptions.find((option: DropdownOption) => {
             return option.value === props.selectedProbe?._id?.toString();
           })}

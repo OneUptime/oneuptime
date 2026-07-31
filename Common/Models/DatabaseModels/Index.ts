@@ -64,6 +64,9 @@ import RumApplicationOwnerRule from "./RumApplicationOwnerRule";
 import ServerlessFunctionInstance from "./ServerlessFunctionInstance";
 import CloudResourceInstance from "./CloudResourceInstance";
 import RumApplicationClient from "./RumApplicationClient";
+import RumSessionReplayView from "./RumSessionReplayView";
+import RumSessionErasureRequest from "./RumSessionErasureRequest";
+import RumSessionPin from "./RumSessionPin";
 // API Keys
 import ApiKey from "./ApiKey";
 import ApiKeyPermission from "./ApiKeyPermission";
@@ -204,6 +207,9 @@ import EnterpriseLicenseInstance from "./EnterpriseLicenseInstance";
 import OpenSourceDeployment from "./OpenSourceDeployment";
 import Reseller from "./Reseller";
 import ResellerPlan from "./ResellerPlan";
+
+import RecommendationDismissal from "./RecommendationDismissal";
+
 // ScheduledMaintenances
 import ScheduledMaintenance from "./ScheduledMaintenance";
 import ScheduledMaintenanceCustomField from "./ScheduledMaintenanceCustomField";
@@ -684,6 +690,8 @@ const AllModelTypes: Array<{
   Reseller,
   ResellerPlan,
 
+  RecommendationDismissal,
+
   PromoCode,
   EnterpriseLicense,
   EnterpriseLicenseInstance,
@@ -845,6 +853,9 @@ const AllModelTypes: Array<{
   ServerlessFunctionInstance,
   CloudResourceInstance,
   RumApplicationClient,
+  RumSessionReplayView,
+  RumSessionErasureRequest,
+  RumSessionPin,
   MarketingConversion,
 ];
 

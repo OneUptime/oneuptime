@@ -90,6 +90,13 @@ WORKDIR /usr/src/app/FeatureSet/PublicDashboard
 COPY ./App/FeatureSet/PublicDashboard/package*.json /usr/src/app/FeatureSet/PublicDashboard/
 RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
 
+# The session-replay browser recorder. Its own tiny dependency set (rrweb,
+# pinned exactly) rather than Common's, because this bundle is served to
+# third-party origins and must not carry any server dependency.
+WORKDIR /usr/src/app/FeatureSet/BrowserRecorder
+COPY ./App/FeatureSet/BrowserRecorder/package*.json /usr/src/app/FeatureSet/BrowserRecorder/
+RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
+
 # Remove the build toolchain (python3/make/g++) now that all native npm modules
 # have been compiled. This keeps build-time CVEs out of the runtime image.
 RUN apk del .gyp
@@ -124,6 +131,7 @@ COPY --chown=1000:1000 ./App/FeatureSet/Dashboard /usr/src/app/FeatureSet/Dashbo
 COPY --chown=1000:1000 ./App/FeatureSet/AdminDashboard /usr/src/app/FeatureSet/AdminDashboard
 COPY --chown=1000:1000 ./App/FeatureSet/StatusPage /usr/src/app/FeatureSet/StatusPage
 COPY --chown=1000:1000 ./App/FeatureSet/PublicDashboard /usr/src/app/FeatureSet/PublicDashboard
+COPY --chown=1000:1000 ./App/FeatureSet/BrowserRecorder /usr/src/app/FeatureSet/BrowserRecorder
 # Bundle frontend source
 RUN npm run build-frontends:prod
 # Bundle app source
@@ -134,6 +142,13 @@ RUN npm run compile
 ARG IS_ENTERPRISE_EDITION=false
 ENV IS_ENTERPRISE_EDITION=${IS_ENTERPRISE_EDITION}
 USER node
+# The full TypeScript type-check already ran at build time (`npm run compile`
+# above). Without this, ts-node/register redoes that entire check on every
+# container start before the HTTP listener binds — minutes of boot on every pod,
+# which is what turns a rolling update into a capacity hole and makes recovery
+# from a node failure just as slow. transpile-only strips types without
+# re-checking them; type errors are caught at build and in CI, not at boot.
+ENV TS_NODE_TRANSPILE_ONLY=1
 #Run the app
 CMD [ "npm", "start" ]
 {{ end }}

@@ -16,8 +16,9 @@ Il n'y a plus de drapeau d'environnement `RUNBOOK_BASH_ENABLED`. Que les étapes
 ## Plafonds de sortie et timeouts
 
 - Sortie par étape : **50&nbsp;KB**. Toute sortie plus longue est tronquée avec un marqueur.
-- Execution timeout par défaut par étape : **30 secondes** pour JavaScript, Bash et HTTP. Configurable par étape.
-- **Claim timeout** par étape pour les étapes Bash et JavaScript : **2 minutes** — combien de temps le Worker attend que l'agent sélectionné récupère le job avant de le faire échouer.
+- Execution timeout par défaut par étape : **30 secondes** pour JavaScript, Bash et HTTP. Définissez-le par étape sur la page **Étapes** du runbook — laissez le champ vide pour conserver la valeur par défaut.
+- **Claim timeout** par étape pour les étapes Bash et JavaScript : **2 minutes** — combien de temps le Worker attend que l'agent sélectionné récupère le job avant de le faire échouer. Se définit également par étape.
+- Les deux timeouts acceptent de **1 seconde à 1 heure**. Toute valeur en dehors de cette plage est ramenée dans ces bornes quand l'étape s'exécute : une configuration mal saisie ne peut donc ni désactiver le timeout ni immobiliser indéfiniment un slot du Worker.
 
 ## Permissions
 

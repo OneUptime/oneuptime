@@ -36,7 +36,25 @@
     // "rootDir": "./" /* Specify the root folder within your source files. */,
     "moduleResolution": "node" /* Specify how TypeScript looks up a file from a given module specifier. */,
     // "baseUrl": "./",                                  /* Specify the base directory to resolve non-relative module names. */
-    // "paths": {},                                      /* Specify a set of entries that re-map imports to additional lookup locations. */
+    /*
+     * Declares, for the type checker, what Common's jest moduleNameMapper
+     * already does at runtime: "Common/x" means this directory's "x".
+     *
+     * Needed because a few Common tests import App/FeatureSet/Dashboard
+     * sources, and those files use the repo-wide "Common/*" alias. Without
+     * this, TS could only resolve that alias through an App or Dashboard
+     * node_modules/Common symlink - which exists on a full local install but
+     * NOT in the Common Test CI job, which installs Common alone. The result
+     * was a suite that passed locally and failed in CI.
+     *
+     * Deliberately `paths` WITHOUT `baseUrl` (supported since TS 4.4, and
+     * paths here are relative to this file). Setting baseUrl would change how
+     * every bare specifier in Common resolves, which is a much larger blast
+     * radius than this needs.
+     */
+    "paths": {
+      "Common/*": ["./*"]
+    },
     // "rootDirs": [],                                   /* Allow multiple folders to be treated as one when resolving modules. */
     "typeRoots": [
       "./node_modules/@types"

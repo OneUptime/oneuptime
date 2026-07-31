@@ -702,6 +702,19 @@ export const AverageProfileRowSizeInBytes: number = parsePositiveNumberFromEnv(
   1024,
 );
 
+/*
+ * Fallback only, and effectively dead code: session-replay usage is metered
+ * from the exact payloadBytes stamped on each session header, never from an
+ * average. Kept so the metered-product lookup stays exhaustive. Sized as a
+ * plausible error-triggered session (~48 KB) rather than a row, since replay
+ * meters per session.
+ */
+export const AverageSessionReplaySessionSizeInBytes: number =
+  parsePositiveNumberFromEnv(
+    "AVERAGE_SESSION_REPLAY_SESSION_SIZE_IN_BYTES",
+    49152,
+  );
+
 export const AverageProfileSampleRowSizeInBytes: number =
   parsePositiveNumberFromEnv("AVERAGE_PROFILE_SAMPLE_ROW_SIZE_IN_BYTES", 512);
 

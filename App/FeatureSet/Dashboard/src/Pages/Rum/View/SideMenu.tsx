@@ -81,9 +81,41 @@ const RumApplicationViewSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Globe}
         />
+        {/*
+         * Navigation.isOnThisPage bails when the segment count differs, so
+         * this item does not highlight while the player page is open - the
+         * same pre-existing behaviour as Host > Processes > ProcessView.
+         */}
+        <SideMenuItem
+          link={{
+            title: "Session Replay",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Film}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Advanced">
+        {/*
+         * Deliberately under Advanced rather than beside the player: this
+         * is the record of which operators watched a real end user's
+         * screen, and it is a governance surface, not a debugging one.
+         */}
+        <SideMenuItem
+          link={{
+            title: "Replay Access Log",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_AUDIT
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Eye}
+        />
         <SideMenuItem
           link={{
             title: "Delete Application",

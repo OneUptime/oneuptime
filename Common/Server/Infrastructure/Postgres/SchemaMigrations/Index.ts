@@ -476,6 +476,9 @@ import { RepairCrossProjectMonitorStatusReferences1785240000000 } from "./178524
 import { AddColumnsToTableView1785241000000 } from "./1785241000000-AddColumnsToTableView";
 import { RepairCrossProjectIncidentReferences1785320000000 } from "./1785320000000-RepairCrossProjectIncidentReferences";
 import { AddParentGroupToStatusPageGroup1785329453269 } from "./1785329453269-AddParentGroupToStatusPageGroup";
+import { AddRecommendationDismissalTable1785397674289 } from "./1785397674289-AddRecommendationDismissalTable";
+import { AddDroppedCountersToDropFilters1785405581596 } from "./1785405581596-AddDroppedCountersToDropFilters";
+import { AddSessionReplay1785417351021 } from "./1785417351021-AddSessionReplay";
 
 export default [
   InitialMigration,
@@ -956,4 +959,7 @@ export default [
   AddColumnsToTableView1785241000000,
   RepairCrossProjectIncidentReferences1785320000000,
   AddParentGroupToStatusPageGroup1785329453269,
+  AddRecommendationDismissalTable1785397674289,
+  AddDroppedCountersToDropFilters1785405581596,
+  AddSessionReplay1785417351021,
 ];

@@ -1,10 +1,15 @@
 import {
+  FacetSelectionConstraint,
   FacetSelectionState,
   getEmptyFacetSelectionState,
   isFacetSelectionActive,
   isFilterOperator,
+  normalizeFacetValues,
   parseFacetSelectionState,
+  resolveFacetOperator,
+  sanitizeFacetSelectionState,
 } from "../../FeatureSet/Dashboard/src/Components/ResourceOwners/FacetSelectionState";
+import { FilterOperator } from "../../FeatureSet/Dashboard/src/Components/ResourceOwners/FilterChipDropdownTypes";
 import { JSONObject } from "Common/Types/JSON";
 import { describe, expect, test } from "@jest/globals";
 
@@ -262,5 +267,336 @@ describe("isFacetSelectionActive", () => {
         facetSelections: { monitorStatus: [] },
       }),
     ).toBe(false);
+  });
+});
+
+/*
+ * Everything that moves a chip from outside the bar — a summary tile, a deep
+ * link, a "show me these" affordance elsewhere in the product — goes through
+ * these two before the value reaches state. The bar spreads a selection straight
+ * into an `Includes(...)`, so a duplicate becomes a redundant OR term and a blank
+ * string becomes a constraint no row can satisfy: the chip lights up over an
+ * empty table with nothing on screen to explain it.
+ */
+describe("normalizeFacetValues", () => {
+  test("leaves a clean list alone", () => {
+    expect(normalizeFacetValues(["online", "offline"])).toEqual([
+      "online",
+      "offline",
+    ]);
+  });
+
+  test("drops duplicates and keeps the first occurrence's position", () => {
+    expect(normalizeFacetValues(["b", "a", "b", "c", "a"])).toEqual([
+      "b",
+      "a",
+      "c",
+    ]);
+  });
+
+  test("drops empty strings", () => {
+    expect(normalizeFacetValues(["", "online", ""])).toEqual(["online"]);
+  });
+
+  /*
+   * A caller building a selection out of a query result can easily hand over a
+   * null id for a row that has none, and TypeScript does not see it because the
+   * result is typed loosely on the way in.
+   */
+  test("drops values that are not strings at all", () => {
+    expect(
+      normalizeFacetValues([
+        "online",
+        5,
+        null,
+        undefined,
+        {},
+        [],
+        true,
+      ] as unknown as Array<string>),
+    ).toEqual(["online"]);
+  });
+
+  test("returns an empty list for nothing", () => {
+    expect(normalizeFacetValues(null)).toEqual([]);
+    expect(normalizeFacetValues(undefined)).toEqual([]);
+    expect(normalizeFacetValues([])).toEqual([]);
+  });
+
+  test("returns an empty list for something that is not a list", () => {
+    expect(normalizeFacetValues("online" as unknown as Array<string>)).toEqual(
+      [],
+    );
+    expect(normalizeFacetValues(5 as unknown as Array<string>)).toEqual([]);
+    expect(
+      normalizeFacetValues({ 0: "online" } as unknown as Array<string>),
+    ).toEqual([]);
+  });
+
+  /*
+   * The caller is usually holding the array this came from — a tile's constant
+   * definition, or the state the bar is about to compare against. Editing it in
+   * place would rewrite that definition for every later click.
+   */
+  test("does not mutate or alias its input", () => {
+    const input: Array<string> = ["b", "", "b", "a"];
+    const normalized: Array<string> = normalizeFacetValues(input);
+
+    expect(input).toEqual(["b", "", "b", "a"]);
+    expect(normalized).not.toBe(input);
+
+    normalized.push("c");
+
+    expect(input).toEqual(["b", "", "b", "a"]);
+  });
+});
+
+/*
+ * "is" is what the whole bar assumes for a facet with no operator entry — it is
+ * what FilterChipDropdown renders and what the query builders are handed when
+ * nobody touched the operator menu. So an unrecognised value has to land there
+ * rather than reach the query builder, where it would match no branch and
+ * silently drop the constraint the chip claims to apply.
+ */
+describe("resolveFacetOperator", () => {
+  test("keeps every operator the bar supports", () => {
+    const operators: Array<FilterOperator> = [
+      "is",
+      "is_not",
+      "is_empty",
+      "is_not_empty",
+    ];
+
+    for (const operator of operators) {
+      expect(resolveFacetOperator(operator)).toBe(operator);
+    }
+  });
+
+  test("an absent operator is 'is'", () => {
+    expect(resolveFacetOperator(null)).toBe("is");
+    expect(resolveFacetOperator(undefined)).toBe("is");
+  });
+
+  test("anything unrecognised is 'is'", () => {
+    const junk: Array<unknown> = [
+      "",
+      "IS",
+      " is",
+      "is ",
+      "contains",
+      "isnt",
+      "is_empty_",
+      "__proto__",
+      "constructor",
+      0,
+      {},
+      [],
+      true,
+    ];
+
+    for (const value of junk) {
+      expect(resolveFacetOperator(value as unknown as FilterOperator)).toBe(
+        "is",
+      );
+    }
+  });
+
+  test("never returns something the operator guard would reject", () => {
+    for (const value of ["is_not", "nonsense", null, undefined]) {
+      expect(
+        isFilterOperator(
+          resolveFacetOperator(value as unknown as FilterOperator),
+        ),
+      ).toBe(true);
+    }
+  });
+});
+
+/*
+ * A restored selection can hold things its chip cannot express: the URL param is
+ * hand-editable, and a saved view may have been written by a build whose chips
+ * offered more operators or allowed multi-select.
+ *
+ * Left alone, both produce a chip that claims a filter the table is not applying.
+ * The device Status chip is the sharp case — it offers only "is", so it renders no
+ * operator switcher at all, and a stray "is_not" would leave the user staring at
+ * "Status is not Down" above the entire unfiltered fleet with nothing to click but
+ * the clear button.
+ */
+describe("sanitizeFacetSelectionState", () => {
+  const STATUS: FacetSelectionConstraint = {
+    key: "deviceStatus",
+    isMultiSelect: false,
+    supportedOperators: ["is"],
+  };
+  const SITE: FacetSelectionConstraint = {
+    key: "deviceSite",
+    isMultiSelect: true,
+    supportedOperators: ["is", "is_not", "is_empty", "is_not_empty"],
+  };
+
+  function stateWith(
+    facetSelections: { [key: string]: Array<string> },
+    facetOperators: { [key: string]: FilterOperator },
+  ): FacetSelectionState {
+    return {
+      ...getEmptyFacetSelectionState(),
+      facetSelections: facetSelections,
+      facetOperators: facetOperators,
+    };
+  }
+
+  test("an operator the facet never offered falls back to one it does", () => {
+    const sanitized: FacetSelectionState = sanitizeFacetSelectionState(
+      stateWith({ deviceStatus: ["down"] }, { deviceStatus: "is_not" }),
+      [STATUS, SITE],
+    );
+
+    expect(sanitized.facetOperators["deviceStatus"]).toBe("is");
+    // The values survive — the user asked for Down, just not for "not Down".
+    expect(sanitized.facetSelections["deviceStatus"]).toEqual(["down"]);
+  });
+
+  test("every unsupported operator is clamped, not just is_not", () => {
+    for (const operator of [
+      "is_not",
+      "is_empty",
+      "is_not_empty",
+    ] as Array<FilterOperator>) {
+      expect(
+        sanitizeFacetSelectionState(stateWith({}, { deviceStatus: operator }), [
+          STATUS,
+        ]).facetOperators["deviceStatus"],
+      ).toBe("is");
+    }
+  });
+
+  test("an operator the facet does offer is left alone", () => {
+    const sanitized: FacetSelectionState = sanitizeFacetSelectionState(
+      stateWith({ deviceSite: ["a"] }, { deviceSite: "is_not" }),
+      [STATUS, SITE],
+    );
+
+    expect(sanitized.facetOperators["deviceSite"]).toBe("is_not");
+    expect(sanitized.facetSelections["deviceSite"]).toEqual(["a"]);
+  });
+
+  /*
+   * The chip shows only the first value of a single-select facet, so honouring a
+   * longer list would filter by something the chip is not showing — and the device
+   * Status builder refuses a multi-value selection outright, which would drop the
+   * constraint entirely while the chip still claimed it.
+   */
+  test("a single-select facet keeps only its first value", () => {
+    const sanitized: FacetSelectionState = sanitizeFacetSelectionState(
+      stateWith({ deviceStatus: ["down", "up", "pending"] }, {}),
+      [STATUS],
+    );
+
+    expect(sanitized.facetSelections["deviceStatus"]).toEqual(["down"]);
+  });
+
+  test("a multi-select facet keeps all of its values", () => {
+    const sanitized: FacetSelectionState = sanitizeFacetSelectionState(
+      stateWith({ deviceSite: ["a", "b", "c"] }, {}),
+      [SITE],
+    );
+
+    expect(sanitized.facetSelections["deviceSite"]).toEqual(["a", "b", "c"]);
+  });
+
+  test("a facet with no supportedOperators list accepts all four", () => {
+    const anyOperator: FacetSelectionConstraint = { key: "loose" };
+
+    for (const operator of [
+      "is",
+      "is_not",
+      "is_empty",
+      "is_not_empty",
+    ] as Array<FilterOperator>) {
+      expect(
+        sanitizeFacetSelectionState(stateWith({}, { loose: operator }), [
+          anyOperator,
+        ]).facetOperators["loose"],
+      ).toBe(operator);
+    }
+  });
+
+  // A facet this build no longer defines is left as it is, to be ignored downstream.
+  test("keys with no matching facet are untouched", () => {
+    const sanitized: FacetSelectionState = sanitizeFacetSelectionState(
+      stateWith({ retired: ["x", "y"] }, { retired: "is_not_empty" }),
+      [STATUS, SITE],
+    );
+
+    expect(sanitized.facetSelections["retired"]).toEqual(["x", "y"]);
+    expect(sanitized.facetOperators["retired"]).toBe("is_not_empty");
+  });
+
+  test("the owner and label selections are passed straight through", () => {
+    const state: FacetSelectionState = {
+      ...getEmptyFacetSelectionState(),
+      selectedOwnerKeys: ["user:1"],
+      selectedLabelIds: ["label-1"],
+      ownerOperator: "is_not",
+      labelOperator: "is_empty",
+    };
+
+    const sanitized: FacetSelectionState = sanitizeFacetSelectionState(state, [
+      STATUS,
+    ]);
+
+    expect(sanitized.selectedOwnerKeys).toEqual(["user:1"]);
+    expect(sanitized.selectedLabelIds).toEqual(["label-1"]);
+    expect(sanitized.ownerOperator).toBe("is_not");
+    expect(sanitized.labelOperator).toBe("is_empty");
+  });
+
+  test("a table with no extra facets gets its state back unchanged", () => {
+    const state: FacetSelectionState = stateWith(
+      { anything: ["a", "b"] },
+      { anything: "is_not" },
+    );
+
+    expect(sanitizeFacetSelectionState(state, [])).toBe(state);
+  });
+
+  // The caller's state is React state elsewhere; clamping must not reach into it.
+  test("does not mutate the state it was given", () => {
+    const state: FacetSelectionState = stateWith(
+      { deviceStatus: ["down", "up"] },
+      { deviceStatus: "is_not" },
+    );
+
+    sanitizeFacetSelectionState(state, [STATUS]);
+
+    expect(state.facetSelections["deviceStatus"]).toEqual(["down", "up"]);
+    expect(state.facetOperators["deviceStatus"]).toBe("is_not");
+  });
+
+  /*
+   * The whole point: after clamping, the state is one every chip can render and
+   * every query builder can honour.
+   */
+  test("leaves nothing a chip could not display", () => {
+    const sanitized: FacetSelectionState = sanitizeFacetSelectionState(
+      stateWith(
+        { deviceStatus: ["down", "up"], deviceSite: ["a", "b"] },
+        { deviceStatus: "is_empty", deviceSite: "is_empty" },
+      ),
+      [STATUS, SITE],
+    );
+
+    for (const facet of [STATUS, SITE]) {
+      const operator: FilterOperator | undefined =
+        sanitized.facetOperators[facet.key];
+      expect(facet.supportedOperators).toContain(operator);
+
+      if (!facet.isMultiSelect) {
+        expect(
+          (sanitized.facetSelections[facet.key] || []).length,
+        ).toBeLessThanOrEqual(1);
+      }
+    }
   });
 });

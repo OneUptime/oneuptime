@@ -121,6 +121,11 @@ import ProjectService from "./ProjectService";
 import ProjectUserProfileService from "./ProjectUserProfileService";
 import ProfileService from "./ProfileService";
 import ProfileSampleService from "./ProfileSampleService";
+import RumSessionService from "./RumSessionService";
+import RumSessionChunkService from "./RumSessionChunkService";
+import RumSessionReplayViewService from "./RumSessionReplayViewService";
+import RumSessionErasureRequestService from "./RumSessionErasureRequestService";
+import RumSessionPinService from "./RumSessionPinService";
 // Project SMTP Config.
 import ProjectSmtpConfigService from "./ProjectSmtpConfigService";
 import ProjectSsoService from "./ProjectSsoService";
@@ -134,6 +139,7 @@ import EnterpriseLicenseService from "./EnterpriseLicenseService";
 import EnterpriseLicenseInstanceService from "./EnterpriseLicenseInstanceService";
 import MarketingConversionService from "./MarketingConversionService";
 import OpenSourceDeploymentService from "./OpenSourceDeploymentService";
+import RecommendationDismissalService from "./RecommendationDismissalService";
 import ResellerPlanService from "./ResellerPlanService";
 import ResellerService from "./ResellerService";
 import ScheduledMaintenanceCustomFieldService from "./ScheduledMaintenanceCustomFieldService";
@@ -286,6 +292,7 @@ const services: Array<BaseService> = [
 
   ResellerService,
   ResellerPlanService,
+  RecommendationDismissalService,
   // Import all services in current folder here.
   AccessTokenService,
   ApiKeyPermissionService,
@@ -544,6 +551,11 @@ const services: Array<BaseService> = [
 
   ProjectSCIMLogService,
   StatusPageSCIMLogService,
+
+  // Session replay control tables (the recordings themselves are in ClickHouse).
+  RumSessionReplayViewService,
+  RumSessionErasureRequestService,
+  RumSessionPinService,
 ];
 
 export const AnalyticsServices: Array<
@@ -571,6 +583,13 @@ export const AnalyticsServices: Array<
   NetworkFlowService,
   ProfileService,
   ProfileSampleService,
+  /*
+   * Session replay. THIS is the array boot-time createTables() iterates —
+   * omitting it here means the tables are silently never created, however
+   * correctly the models are registered elsewhere.
+   */
+  RumSessionService,
+  RumSessionChunkService,
   AuditLogService,
 ];
 

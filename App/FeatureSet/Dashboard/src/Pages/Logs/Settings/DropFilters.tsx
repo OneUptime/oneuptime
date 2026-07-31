@@ -14,6 +14,10 @@ import LogDropFilterAction from "Common/Types/Log/LogDropFilterAction";
 import ProjectUtil from "Common/UI/Utils/Project";
 import FilterQueryBuilderField from "../../../Components/FilterQueryBuilder/FilterQueryBuilderField";
 import LogFilterConfig from "../../../Components/FilterQueryBuilder/LogFilterConfig";
+import {
+  MAX_SAMPLE_PERCENTAGE,
+  MIN_SAMPLE_PERCENTAGE,
+} from "Common/Types/Telemetry/DropFilterSampling";
 import React, { FunctionComponent, ReactElement } from "react";
 
 const documentationMarkdown: string = `
@@ -231,9 +235,19 @@ const LogDropFilters: FunctionComponent<
           title: "Sample Percentage",
           stepId: "action",
           description:
-            "Only applies when Action is Sample. Percentage of matching logs to keep (e.g. 10 = keep 10%, discard 90%).",
+            "Required when Action is Sample. Percentage of matching logs to keep, between 1 and 99 (e.g. 10 = keep 10%, discard 90%).",
           fieldType: FormFieldSchemaType.Number,
-          required: false,
+          /*
+           * Required, but only while the Sample action is selected — the
+           * form skips validation for fields hidden by showIf. Leaving this
+           * optional let a sample filter be saved with no percentage, which
+           * the engine used to read as "throw away half".
+           */
+          required: true,
+          validation: {
+            minValue: MIN_SAMPLE_PERCENTAGE,
+            maxValue: MAX_SAMPLE_PERCENTAGE,
+          },
           placeholder: "e.g. 10",
           showIf: (values: FormValues<LogDropFilter>): boolean => {
             return values.action === LogDropFilterAction.Sample;
@@ -315,6 +329,43 @@ const LogDropFilters: FunctionComponent<
             }
             return <Pill color={Red} text="Disabled" />;
           },
+        },
+        /*
+         * A drop filter used to discard logs leaving no trace at all, so
+         * "are my logs missing because of this filter?" was unanswerable
+         * without reading the database. These two columns answer it.
+         */
+        {
+          field: {
+            droppedCount: true,
+          },
+          title: "Dropped",
+          type: FieldType.Number,
+          getElement: (item: LogDropFilter): ReactElement => {
+            const dropped: number = item.droppedCount || 0;
+
+            if (dropped === 0) {
+              return (
+                <span className="text-sm text-gray-400">
+                  Nothing dropped yet
+                </span>
+              );
+            }
+
+            return (
+              <span className="text-sm text-gray-900">
+                {dropped.toLocaleString()}
+              </span>
+            );
+          },
+        },
+        {
+          field: {
+            lastDroppedAt: true,
+          },
+          title: "Last Dropped",
+          type: FieldType.DateTime,
+          noValueMessage: "Never",
         },
       ]}
     />

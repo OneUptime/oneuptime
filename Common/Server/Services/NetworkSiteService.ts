@@ -34,11 +34,21 @@ import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import Text from "../../Types/Text";
 import { Raw } from "typeorm";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import MaterializedPathUtil from "../../Utils/NetworkSite/MaterializedPathUtil";
 import SiteStatusRollupUtil, {
   DeviceHealthState,
   RollupStatusOption,
 } from "../../Utils/NetworkSite/SiteStatusRollupUtil";
+
+/*
+ * Both spellings of "this site's parent" in a write payload: the dashboard's
+ * site form posts the `parentSite` relation while server-side callers write
+ * the `parentSiteId` column. Watching only the column let a re-parent done
+ * from the UI skip cycle detection, the same-project guard and the subtree
+ * path rebase entirely. See RelationIdUtil.
+ */
+const PARENT_SITE_KEYS: Array<string> = ["parentSiteId", "parentSite"];
 
 /*
  * Carried from onBeforeUpdate to onUpdateSuccess when an update touches
@@ -152,9 +162,18 @@ export class Service extends DatabaseService<Model> {
   ): Promise<OnCreate<Model>> {
     let parentPath: string | null = null;
 
-    if (createBy.data.parentSiteId) {
+    /*
+     * Both spellings: the dashboard's site form posts the `parentSite`
+     * relation, not the `parentSiteId` column. See RelationIdUtil.
+     */
+    const parentSiteId: ObjectID | null = RelationIdUtil.read(
+      createBy.data as unknown as Record<string, unknown>,
+      PARENT_SITE_KEYS,
+    );
+
+    if (parentSiteId) {
       const parent: Model | null = await this.findOneById({
-        id: createBy.data.parentSiteId,
+        id: parentSiteId,
         select: {
           _id: true,
           projectId: true,
@@ -178,9 +197,7 @@ export class Service extends DatabaseService<Model> {
         );
       }
 
-      parentPath = await this.getMaterializedPathForSite(
-        createBy.data.parentSiteId,
-      );
+      parentPath = await this.getMaterializedPathForSite(parentSiteId);
     }
 
     return {
@@ -228,14 +245,14 @@ export class Service extends DatabaseService<Model> {
   ): Promise<OnUpdate<Model>> {
     const dataKeys: Array<string> = Object.keys(updateBy.data || {});
 
-    if (!dataKeys.includes("parentSiteId")) {
+    if (!RelationIdUtil.isWritten(dataKeys, PARENT_SITE_KEYS)) {
       return { updateBy, carryForward: null };
     }
 
-    const newParentIdValue: unknown = (updateBy.data as any)["parentSiteId"];
-    const newParentId: ObjectID | null = newParentIdValue
-      ? new ObjectID(newParentIdValue.toString())
-      : null;
+    const newParentId: ObjectID | null = RelationIdUtil.read(
+      updateBy.data as unknown as Record<string, unknown>,
+      PARENT_SITE_KEYS,
+    );
 
     const previousItems: Array<Model> = await this.findBy({
       query: this.scopeQueryToCallerTenant(updateBy.query, updateBy.props),

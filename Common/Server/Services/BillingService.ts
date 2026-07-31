@@ -261,12 +261,23 @@ export class BillingService extends BaseService {
     meteredSubscriptionId: string;
     trialEndsAt: Date | null;
   }> {
+    /*
+     * Only plans with a Stripe price can become subscription items. Plans
+     * without one yet (e.g. session replay) would make getPriceId throw and
+     * abort project creation, so we skip them here - their usage still stages
+     * into TelemetryUsageBilling and is pushed once the price ids exist.
+     */
+    const priceableMeteredPlans: Array<ServerMeteredPlan> =
+      data.serverMeteredPlans.filter((plan: ServerMeteredPlan) => {
+        return plan.hasPriceId();
+      });
+
     const meteredPlanSubscriptionParams: Stripe.SubscriptionCreateParams = {
       customer: data.customerId,
 
       proration_behavior: "always_invoice",
 
-      items: data.serverMeteredPlans.map((item: ServerMeteredPlan) => {
+      items: priceableMeteredPlans.map((item: ServerMeteredPlan) => {
         return {
           price: item.getPriceId(),
         };
@@ -454,6 +465,16 @@ export class BillingService extends BaseService {
   ): Promise<void> {
     if (!this.isBillingEnabled()) {
       throw new BadDataException(Errors.BillingService.BILLING_NOT_ENABLED);
+    }
+
+    /*
+     * Plans without a Stripe price yet (e.g. session replay) cannot be pushed
+     * to a subscription - getPriceId would throw. Usage has already been staged
+     * into TelemetryUsageBilling by the caller, so skipping here loses nothing;
+     * the push happens once the price ids are created.
+     */
+    if (!serverMeteredPlan.hasPriceId()) {
+      return;
     }
 
     // get subscription.
@@ -1496,9 +1517,45 @@ export class BillingService extends BaseService {
       return "price_1TGwTDANuQdJ93r7s0jKRxaT";
     }
 
+    /*
+     * SESSION REPLAY PRICE IDS ARE NOT YET CREATED IN STRIPE.
+     *
+     * Both ids below are placeholders. Create a metered price in each Stripe
+     * mode, then replace them. Until that happens this method throws for
+     * session replay, exactly as it does for any unknown product type - which
+     * is the intended behaviour: usage keeps accumulating in ClickHouse and
+     * in TelemetryUsageBilling, and only the report-to-Stripe step is
+     * unavailable. Reporting is guarded so one unpriced product cannot stop
+     * the other pillars from being reported.
+     */
+    if (productType === ProductType.SessionReplay) {
+      throw new BadDataException(
+        "Session replay Stripe price ids have not been created yet. Create a metered price in both Stripe test and live mode, then set them in BillingService.getMeteredPlanPriceId.",
+      );
+    }
+
     throw new BadDataException(
       "Plan with productType " + productType + " not found",
     );
+  }
+
+  /*
+   * Whether a Stripe metered price exists for this product type yet.
+   *
+   * getMeteredPlanPriceId throws for product types whose Stripe prices have
+   * not been created (currently session replay) and for unknown types. Callers
+   * that build Stripe subscription items must skip those plans instead of
+   * letting the throw abort the whole operation - a metered plan without a
+   * price still stages usage into TelemetryUsageBilling, only the push to
+   * Stripe waits on the price ids. This is the single, side-effect-free way to
+   * ask, so we keep getMeteredPlanPriceId as the single source of truth.
+   */
+  public hasMeteredPlanPriceId(productType: ProductType): boolean {
+    try {
+      return Boolean(this.getMeteredPlanPriceId(productType));
+    } catch {
+      return false;
+    }
   }
 
   @CaptureSpan()

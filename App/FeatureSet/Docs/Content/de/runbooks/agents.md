@@ -84,9 +84,16 @@ Zwei Timeouts gelten für jeden Bash- oder JavaScript-Schritt:
 | Timeout                 | Standard    | Was es steuert                                                                                                                                                                                                                                          |
 | ----------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Claim-Timeout**       | 2 Minuten   | Wie lange der Worker darauf wartet, dass der ausgewählte Agent den Job beansprucht. Greift der Agent nicht rechtzeitig zu, schlägt der Schritt mit `TimedOut` fehl, und das Runbook macht weiter (oder stoppt, abhängig von **Bei Fehler fortfahren**). |
-| **Ausführungs-Timeout** | 30 Sekunden | Wie lange der Agent das Skript laufen lässt, bevor er es beendet. Pro Schritt konfigurierbar. (Bash bekommt `SIGKILL`; das JavaScript-Isolate wird abgerissen.)                                                                                         |
+| **Ausführungs-Timeout** | 30 Sekunden | Wie lange der Agent das Skript laufen lässt, bevor er es beendet. (Bash bekommt `SIGKILL`; das JavaScript-Isolate wird abgerissen.)                                                                                                                     |
+
+Beide sind pro Schritt konfigurierbar. Öffnen Sie **Runbooks &rsaquo; Ihr Runbook &rsaquo; Steps**, klappen Sie einen Bash- oder JavaScript-Schritt auf und setzen Sie unter dem Skript **Ausführungs-Timeout** und **Claim-Timeout** (in Sekunden). Lassen Sie ein Feld leer, um den Standard zu verwenden. Jedes Feld akzeptiert Werte von 1 Sekunde bis 1 Stunde; Werte außerhalb dieses Bereichs werden beim Ausführen des Schritts auf diesen Bereich begrenzt.
 
 Das Gesamt-Wartefenster des Workers beträgt `Claim-Timeout + Ausführungs-Timeout + ein paar Sekunden`. Wählen Sie Werte, die zum Schritt passen.
+
+Zwei Dinge sollten Sie bedenken, wenn Sie den Claim-Timeout verringern:
+
+- Der Agent fragt in einem Poll-Zyklus nach neuen Jobs (`RUNBOOK_AGENT_POLL_INTERVAL_MS`, standardmäßig 5 Sekunden). Ein Claim-Timeout, der kürzer als ein Poll-Zyklus ist, kann ablaufen, bevor ein völlig gesunder Agent den Job überhaupt gesehen hat, und der Schritt schlägt dann mit derselben „kein Agent hat den Job beansprucht"-Meldung fehl, die Sie auch von einem Offline-Agent bekämen.
+- Ein Agent führt standardmäßig einen Job zur Zeit aus (`RUNBOOK_AGENT_CONCURRENCY`). Während ein langer Schritt ihn belegt, warten andere Schritte, die auf denselben Agent ausgerichtet sind, ihre eigenen Claim-Timeouts ab. Wenn Sie einen Ausführungs-Timeout auf mehrere Minuten erhöhen, erhöhen Sie den Claim-Timeout der Schritte, die sich diesen Agent teilen, entsprechend — oder geben Sie ihnen einen anderen Agent.
 
 ### Lease und Heartbeat
 

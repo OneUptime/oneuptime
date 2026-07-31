@@ -16,8 +16,9 @@ There is no `RUNBOOK_BASH_ENABLED` environment flag any more. Whether Bash or Ja
 ## Output caps and timeouts
 
 - Per-step output: **50&nbsp;KB**. Larger output is truncated with a marker.
-- Per-step execution timeout default: **30 seconds** for JavaScript, Bash, and HTTP. Configurable per step.
-- Per-step **claim timeout** for Bash and JavaScript steps: **2 minutes** — how long the Worker waits for the selected agent to pick up the job before failing it.
+- Per-step execution timeout default: **30 seconds** for JavaScript, Bash, and HTTP. Set it per step on the runbook's **Steps** page — leave the field blank to keep the default.
+- Per-step **claim timeout** for Bash and JavaScript steps: **2 minutes** — how long the Worker waits for the selected agent to pick up the job before failing it. Also set per step.
+- Both timeouts accept **1 second to 1 hour**. A value outside that range is clamped when the step runs, so a mistyped config can neither disable the timeout nor pin a Worker slot open indefinitely.
 
 ## Permissions
 

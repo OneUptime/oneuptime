@@ -398,6 +398,95 @@ export default class TraceDropFilter extends BaseModel {
   })
   public sortOrder?: number = undefined;
 
+  /*
+   * Ingest-owned counters. A drop filter used to discard spans with no
+   * record anywhere — no log line, no metric, no counter — so neither the
+   * customer nor support could tell a filter from a broken pipeline. These
+   * two columns are the customer-visible half of that fix (the operator
+   * half is the `oneuptime.telemetry.ingest.dropped.count` metric).
+   *
+   * Written only by the ingest path, via a throttled atomic UPDATE that
+   * batches many dropped records into one statement — never once per span.
+   * See App/FeatureSet/Telemetry/Utils/DropFilterDropRecorder.ts.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
+      Permission.ReadProjectTraceDropFilter,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    title: "Dropped Count",
+    required: false,
+    type: TableColumnType.BigPositiveNumber,
+    canReadOnRelationQuery: true,
+    description:
+      "Total number of spans this filter has discarded since it was created.",
+    defaultValue: 0,
+  })
+  @Column({
+    type: ColumnType.BigPositiveNumber,
+    nullable: false,
+    default: 0,
+    transformer: {
+      to: (value: number | null | undefined): string | null => {
+        if (value === null || value === undefined) {
+          return null;
+        }
+        return Math.trunc(value).toString();
+      },
+      /*
+       * Postgres bigint comes back from the driver as a string. The UI
+       * renders this as a number, so normalize here rather than making
+       * every reader remember.
+       */
+      from: (value: string | null | undefined): number | null => {
+        if (value === null || value === undefined) {
+          return null;
+        }
+        const parsed: number = parseInt(value, 10);
+        return isNaN(parsed) ? null : parsed;
+      },
+    },
+  })
+  public droppedCount?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.TelemetryAdmin,
+      Permission.TelemetryMember,
+      Permission.TelemetryViewer,
+      Permission.ReadProjectTraceDropFilter,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    title: "Last Dropped At",
+    required: false,
+    type: TableColumnType.Date,
+    canReadOnRelationQuery: true,
+    description:
+      "When this filter most recently discarded a span. Null means it has never matched anything.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public lastDroppedAt?: Date = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [

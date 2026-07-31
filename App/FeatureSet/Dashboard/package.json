@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/dashboard",
-  "version": "11.7.3",
+  "version": "11.7.4",
   "private": false,
   "repository": {
     "type": "git",
@@ -49,6 +49,7 @@
     "react-router-dom": "^6.30.2",
     "reactflow": "^11.11.2",
     "recharts": "^3.0.0",
+    "rrweb": "2.1.1",
     "stripe": "^11.0.0",
     "use-async-effect": "^2.2.6"
   },

@@ -83,6 +83,13 @@ const DashboardFallbackRoutePrefixesToSkip: Array<string> = [
   "/identity",
   "/notification",
   "/telemetry",
+  /*
+   * Session replay ingest is mounted on both "/telemetry" and "/", and
+   * FrontendRoutes.init() runs BEFORE TelemetryRoutes.init(), so without
+   * this entry a root-level /session-replay/v1/chunk would be answered with
+   * the Dashboard SPA's HTML instead of reaching the ingest router.
+   */
+  "/session-replay",
   "/incoming-request-ingest",
   "/otlp",
   "/opentelemetry.proto.collector",

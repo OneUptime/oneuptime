@@ -111,6 +111,16 @@ export type FanInInsertTransport = (
 export interface FanInWriterOptions {
   /** Target rows per ClickHouse insert. Buffers flush as soon as they reach this. */
   maxBatchRows: number;
+  /**
+   * Per-table override of maxBatchRows, keyed on the ClickHouse table name.
+   *
+   * The batcher counts ROWS, not bytes, so one global number cannot be right
+   * for tables whose rows differ by three orders of magnitude. A session
+   * replay chunk row carries the whole decompressed rrweb payload in a single
+   * column (100 KB+ is ordinary), so the 100,000 default would attempt a
+   * multi-hundred-MB insert.
+   */
+  maxBatchRowsByTable?: Record<string, number> | undefined;
   /** Max time rows sit buffered before a flush is forced, ms. */
   maxWaitMs: number;
   /** Per-pod cap on concurrent ClickHouse inserts across all tables. */
@@ -275,6 +285,18 @@ const readPositiveInt: EnvIntReader = (
 export function readFanInWriterOptionsFromEnv(): FanInWriterOptions {
   return {
     maxBatchRows: readPositiveInt("TELEMETRY_FANIN_MAX_BATCH_ROWS", 100_000),
+    /*
+     * Session replay is the one signal whose row size makes the global row
+     * count dangerous. At the ingest gate's own permitted rate a 5s maxWaitMs
+     * window buffers well over a thousand 100 KB+ rows, so the default here
+     * is deliberately two orders of magnitude below the global one.
+     */
+    maxBatchRowsByTable: {
+      RumSessionChunkV1: readPositiveInt(
+        "TELEMETRY_FANIN_MAX_BATCH_ROWS_SESSION_REPLAY",
+        2000,
+      ),
+    },
     maxWaitMs: readPositiveInt("TELEMETRY_FANIN_MAX_WAIT_MS", 5000),
     maxConcurrentInserts: readPositiveInt(
       "TELEMETRY_FANIN_MAX_CONCURRENT_INSERTS",
@@ -438,7 +460,7 @@ export class TelemetryFanInWriter {
       buffer.rowCount += rows.length;
       this.pendingRows += rows.length;
 
-      if (buffer.rowCount >= this.options.maxBatchRows) {
+      if (buffer.rowCount >= this.getMaxBatchRows(tableName)) {
         this.cutAndDispatch(tableName, false);
       } else if (!buffer.timer) {
         buffer.timer = setTimeout(() => {
@@ -557,31 +579,43 @@ export class TelemetryFanInWriter {
    * (a single oversized submission forms its own batch), so an insert failure
    * maps 1:1 onto the submissions it contained.
    */
+  /*
+   * Batch size for one table: its override if it has one, the global
+   * maxBatchRows otherwise. A non-positive override is ignored rather than
+   * honoured, because a zero would make cutAndDispatch spin.
+   */
+  private getMaxBatchRows(tableName: string): number {
+    const override: number | undefined =
+      this.options.maxBatchRowsByTable?.[tableName];
+
+    if (typeof override === "number" && override > 0) {
+      return override;
+    }
+
+    return this.options.maxBatchRows;
+  }
+
   private cutAndDispatch(tableName: string, drain: boolean): void {
     const buffer: TableBuffer | undefined = this.buffers.get(tableName);
     if (!buffer) {
       return;
     }
 
-    while (
-      buffer.rowCount >= this.options.maxBatchRows ||
-      (drain && buffer.rowCount > 0)
-    ) {
+    const maxBatchRows: number = this.getMaxBatchRows(tableName);
+
+    while (buffer.rowCount >= maxBatchRows || (drain && buffer.rowCount > 0)) {
       const batch: Array<PendingSubmission> = [];
       let batchRows: number = 0;
 
       while (buffer.submissions.length > 0) {
         const next: PendingSubmission = buffer.submissions[0]!;
-        if (
-          batch.length > 0 &&
-          batchRows + next.rows.length > this.options.maxBatchRows
-        ) {
+        if (batch.length > 0 && batchRows + next.rows.length > maxBatchRows) {
           break;
         }
         buffer.submissions.shift();
         batch.push(next);
         batchRows += next.rows.length;
-        if (batchRows >= this.options.maxBatchRows) {
+        if (batchRows >= maxBatchRows) {
           break;
         }
       }

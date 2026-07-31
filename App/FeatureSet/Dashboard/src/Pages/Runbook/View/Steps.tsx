@@ -38,6 +38,11 @@ import {
   RunbookStep,
 } from "Common/Types/Runbook/RunbookStep";
 import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
+import StepTimeoutInput from "Common/UI/Components/Runbook/StepTimeoutInput";
+import {
+  AGENT_CLAIM_TIMEOUT_BOUNDS,
+  STEP_EXECUTION_TIMEOUT_BOUNDS,
+} from "Common/Types/Runbook/RunbookStepTimeout";
 import UUID from "Common/Utils/UUID";
 import { useAsyncEffect } from "use-async-effect";
 import React, {
@@ -665,6 +670,52 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
     );
   };
 
+  /*
+   * Bash and JavaScript are dispatched to an agent, so they carry two
+   * timeouts: how long the Worker waits for an agent to pick the job up, and
+   * how long the agent lets the script run once it has.
+   */
+  const renderAgentTimeouts: (args: {
+    idx: number;
+    config: BashStepConfig | JavaScriptStepConfig;
+    executionDescription: ReactElement;
+  }) => ReactElement = (args: {
+    idx: number;
+    config: BashStepConfig | JavaScriptStepConfig;
+    executionDescription: ReactElement;
+  }): ReactElement => {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <StepTimeoutInput
+          label="Execution timeout"
+          value={args.config.timeoutInMs}
+          bounds={STEP_EXECUTION_TIMEOUT_BOUNDS}
+          description={args.executionDescription}
+          onChange={(timeoutInMs: number | undefined) => {
+            updateConfig(args.idx, { timeoutInMs });
+          }}
+        />
+        <StepTimeoutInput
+          label="Claim timeout"
+          value={args.config.claimTimeoutInMs}
+          bounds={AGENT_CLAIM_TIMEOUT_BOUNDS}
+          description={
+            <>
+              How long the Worker waits for the selected agent to pick this job
+              up before failing the step as timed out. Leave room for at least
+              one of the agent&rsquo;s poll cycles (5 seconds by default) and
+              for any step already running on it &mdash; an agent runs one job
+              at a time.
+            </>
+          }
+          onChange={(claimTimeoutInMs: number | undefined) => {
+            updateConfig(args.idx, { claimTimeoutInMs });
+          }}
+        />
+      </div>
+    );
+  };
+
   const addMenu: ReactElement = (
     <Button
       title="Add Step"
@@ -954,9 +1005,8 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                                 <code>isolated-vm</code> on the
                                                 agent. Use{" "}
                                                 <code>return value</code> to
-                                                capture output. Default timeout
-                                                30s. No filesystem, network, or
-                                                process access.
+                                                capture output. No filesystem,
+                                                network, or process access.
                                               </p>
                                               <div className="mt-2">
                                                 {renderScriptExamples({
@@ -969,6 +1019,18 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                                 })}
                                               </div>
                                             </div>
+                                            {renderAgentTimeouts({
+                                              idx,
+                                              config:
+                                                step.config as JavaScriptStepConfig,
+                                              executionDescription: (
+                                                <>
+                                                  How long the agent lets the
+                                                  script run before tearing the
+                                                  isolate down.
+                                                </>
+                                              ),
+                                            })}
                                           </div>
                                         )}
 
@@ -1072,6 +1134,31 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                                 />
                                               </div>
                                             </div>
+                                            <StepTimeoutInput
+                                              label="Request timeout"
+                                              value={
+                                                (
+                                                  step.config as HttpRequestStepConfig
+                                                ).timeoutInMs
+                                              }
+                                              bounds={
+                                                STEP_EXECUTION_TIMEOUT_BOUNDS
+                                              }
+                                              description={
+                                                <>
+                                                  How long to wait for the
+                                                  endpoint to respond before
+                                                  failing the step.
+                                                </>
+                                              }
+                                              onChange={(
+                                                timeoutInMs: number | undefined,
+                                              ) => {
+                                                updateConfig(idx, {
+                                                  timeoutInMs,
+                                                });
+                                              }}
+                                            />
                                           </div>
                                         )}
 
@@ -1133,6 +1220,18 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                                 })}
                                               </div>
                                             </div>
+                                            {renderAgentTimeouts({
+                                              idx,
+                                              config:
+                                                step.config as BashStepConfig,
+                                              executionDescription: (
+                                                <>
+                                                  How long the agent lets the
+                                                  script run before killing it
+                                                  with <code>SIGKILL</code>.
+                                                </>
+                                              ),
+                                            })}
                                           </div>
                                         )}
 

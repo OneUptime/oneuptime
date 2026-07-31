@@ -161,7 +161,7 @@ Microsoft Entra ID is de cloudgebaseerde identiteits- en toegangsbeheerservice v
 | `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname`    | `user.givenname`                        |
 | `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname`      | `user.surname`                          |
 
-3. Stel de **Name identifier-indeling** in op `E-mailadres`
+3. Stel de **Name identifier-indeling** in op `Email address`
 4. Klik op **Opslaan**
 
 ### Stap 5: Gebruikers en groepen toewijzen

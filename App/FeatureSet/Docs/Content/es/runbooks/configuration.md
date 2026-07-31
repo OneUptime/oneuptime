@@ -16,8 +16,9 @@ Ya no existe la variable de entorno `RUNBOOK_BASH_ENABLED`. Que los pasos Bash o
 ## Límites de salida y timeouts
 
 - Salida por paso: **50&nbsp;KB**. La salida más grande se trunca con un marcador.
-- Timeout de ejecución por paso por defecto: **30 segundos** para JavaScript, Bash y HTTP. Configurable por paso.
-- **Claim timeout** por paso para Bash y JavaScript: **2 minutos** — cuánto espera el Worker a que el agente seleccionado recoja el job antes de fallarlo.
+- Timeout de ejecución por paso por defecto: **30 segundos** para JavaScript, Bash y HTTP. Defínelo por paso en la página **Pasos** del runbook — deja el campo en blanco para mantener el valor por defecto.
+- **Claim timeout** por paso para Bash y JavaScript: **2 minutos** — cuánto espera el Worker a que el agente seleccionado recoja el job antes de fallarlo. También se define por paso.
+- Ambos timeouts aceptan de **1 segundo a 1 hora**. Un valor fuera de ese rango se ajusta a los límites cuando el paso se ejecuta, de modo que una configuración mal escrita no puede ni desactivar el timeout ni mantener ocupado un slot del Worker indefinidamente.
 
 ## Permisos
 

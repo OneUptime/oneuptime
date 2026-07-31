@@ -208,6 +208,8 @@ Il probe supporta le seguenti variabili d'ambiente:
 - `PROBE_MONITOR_RETRY_LIMIT` - Numero di tentativi per monitor falliti (predefinito: 3)
 - `PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS` - Timeout per gli script dei monitor sintetici in millisecondi (predefinito: 60000)
 - `PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS` - Timeout per gli script dei monitor codice personalizzato in millisecondi (predefinito: 60000)
+- `PROBE_API_REQUEST_TIMEOUT_IN_MS` - Tempo limite per ogni richiesta che il probe invia a OneUptime (predefinito: 45000)
+- `PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS` - Registra un avviso per le richieste a OneUptime più lente di questo valore (predefinito: 10000)
 
 #### Configurazione Proxy
 
@@ -236,4 +238,29 @@ http://[username:password@]proxy.server.com:port
 
 ### Verifica
 
-Se il probe è in esecuzione correttamente, dovrebbe mostrare `Connesso` nel dashboard di OneUptime. Se non appare come connesso, controllare i log del container. Se si hanno ancora problemi, creare un issue su [GitHub](https://github.com/oneuptime/oneuptime) o [contattare il supporto](https://oneuptime.com/support).
+Se il probe è in esecuzione correttamente, dovrebbe mostrare `Connected` nel dashboard di OneUptime. Se non appare come connesso, controllare i log del container. Se si hanno ancora problemi, creare un issue su [GitHub](https://github.com/oneuptime/oneuptime) o [contattare il supporto](https://oneuptime.com/support).
+
+### Diagnosi di un Probe Disconnesso
+
+Un probe viene contrassegnato come `Disconnected` quando le sue richieste a OneUptime smettono di andare a buon fine. Il log del probe indica dove si è bloccata ogni richiesta fallita, quindi raramente è necessario tirare a indovinare.
+
+**1. Leggere il blocco di ambiente stampato all'avvio.** Ogni probe stampa all'avvio un unico blocco JSON con l'URL di OneUptime in uso, il tempo limite delle richieste, le impostazioni proxy, i resolver DNS ereditati, la versione di Node/OS e se la verifica TLS è stata disabilitata. Includere sempre questo blocco quando si segnala un problema.
+
+**2. Individuare il report di errore.** Ogni richiesta a OneUptime fallita registra nel log un blocco contenente `stalledAt` e `whatThisMeans`. `stalledAt` è la fase che la richiesta non è mai riuscita a superare:
+
+| `stalledAt` | Significato |
+| --- | --- |
+| `SocketAssignment` | Nulla ha lasciato la macchina. Il pool di socket era saturo, oppure un proxy configurato non ha mai completato il suo tunnel CONNECT. |
+| `TcpConnect` | La macchina ha inviato il SYN e non ha ricevuto nulla in risposta — un firewall o un'appliance di sicurezza sta scartando i pacchetti, oppure l'host è irraggiungibile. |
+| `TlsHandshake` | TCP si è connesso, ma TLS non è mai stato completato. Di solito si tratta di un middlebox che ispeziona il traffico TLS. |
+| `RequestSend` | Connessione stabilita, ma la richiesta non è mai stata scritta per intero — l'altra estremità ha smesso di leggere. |
+| `WaitingForServerResponse` | La richiesta è stata consegnata e il server non ha inviato alcuna risposta. **La rete del probe è a posto** — controllare il server OneUptime, il suo load balancer e il suo reverse proxy. |
+| `ResponseBody` | Il server ha iniziato a rispondere e si è bloccato a metà. |
+
+Lo stesso blocco riporta anche `deadlineOverrunInMs`. Se un tempo limite di 45000 ms ha impiegato molto più di 45000 ms di tempo reale, è stato il processo del probe stesso a bloccarsi: controllare `probeProcess.eventLoopMaxDriftInMs` nel blocco prima di indagare sulla rete.
+
+**3. Leggere l'auto-test di connettività.** Dopo tre errori consecutivi il probe verifica lo stesso server un livello alla volta — prima DNS, poi TCP, poi TLS, infine un vero round trip HTTP — e registra ogni fase con i relativi tempi. La prima fase che fallisce è la risposta che si cerca. Quando è configurato un proxy, il probe verifica l'hop verso il proxy, perché è l'unico hop che effettua realmente.
+
+**4. Tenere d'occhio le richieste lente prima che diventino errori.** Le richieste che vanno a buon fine ma impiegano più di `PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS` vengono registrate nel log con il tempo trascorso. Un probe che inizia a registrare richieste da 20 secondi è ormai prossimo a superare il tempo limite di 45 secondi.
+
+Anche sul lato server di OneUptime viene registrata nel log una richiesta del probe a cui si risponde lentamente — o che il probe ha abbandonato prima che venisse inviata una risposta — insieme all'id del probe. Questi due log, letti insieme, indicano quale lato della connessione è all'origine del problema.
