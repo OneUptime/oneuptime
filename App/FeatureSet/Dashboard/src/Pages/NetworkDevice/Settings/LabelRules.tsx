@@ -21,7 +21,7 @@ Network Device Label Rules attach labels to a network device automatically when 
 A rule matches a network device only when **all** specified criteria pass. Empty criteria are skipped.
 
 - **Network Device Labels** (prerequisite) — any-of
-- **Name / Description Pattern** — case-insensitive regex
+- **Name / Description Pattern** — case-insensitive regex, or a \`*\` wildcard pattern like \`*0664*\` (the same syntax Network Site assignment rules use). Whichever you write, the pattern has to match for the rule to fire.
 
 ### Action
 
@@ -138,10 +138,10 @@ const NetworkDeviceLabelRulesPage: FunctionComponent<
           stepId: "match-criteria",
           sectionTitle: "Match by Pattern",
           sectionDescription:
-            "Case-insensitive regex matched against the network device name and description.",
+            "Case-insensitive regex — or a '*' wildcard pattern such as *0664* — matched against the network device name and description.",
           fieldType: FormFieldSchemaType.Text,
           required: false,
-          placeholder: "core-switch-.*",
+          placeholder: "core-switch-.* or *0664*",
         },
         {
           field: { networkDeviceDescriptionPattern: true },

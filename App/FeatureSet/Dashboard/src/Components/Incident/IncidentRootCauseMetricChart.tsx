@@ -13,6 +13,8 @@ import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
+import MetricSeriesScope from "Common/Utils/Metrics/MetricSeriesScope";
+import { JSONObject } from "Common/Types/JSON";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import OneUptimeDate from "Common/Types/Date";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -44,12 +46,19 @@ const IncidentRootCauseMetricChart: FunctionComponent<ComponentProps> = (
   const [incidentDeclaredAt, setIncidentDeclaredAt] = useState<Date | null>(
     null,
   );
+  /*
+   * "host.name = prod-01" when this incident belongs to one series of a
+   * grouped metric monitor — surfaced in the card subtitle so it is
+   * obvious the chart is scoped rather than missing data.
+   */
+  const [seriesSummary, setSeriesSummary] = useState<string>("");
 
   useEffect(() => {
     const load: () => Promise<void> = async (): Promise<void> => {
       try {
         setLoading(true);
         setError("");
+        setSeriesSummary("");
 
         const incident: Incident | null = await ModelAPI.getItem({
           modelType: Incident,
@@ -57,6 +66,7 @@ const IncidentRootCauseMetricChart: FunctionComponent<ComponentProps> = (
           select: {
             createdAt: true,
             createdCriteriaId: true,
+            seriesLabels: true,
             monitors: {
               _id: true,
               monitorType: true,
@@ -108,6 +118,38 @@ const IncidentRootCauseMetricChart: FunctionComponent<ComponentProps> = (
           setLoading(false);
           return;
         }
+
+        /*
+         * A grouped metric monitor (group by host.name, pod, ...) evaluates
+         * one series per group and opens one incident per BREACHING group,
+         * but every one of those incidents stores the same monitor-wide
+         * query configs. Replaying them as-is charts every group, so the
+         * one series this incident is about is buried — or missing outright
+         * once the Top-N cap kicks in. The incident records its own series
+         * in `seriesLabels`, so push that back onto the query as an
+         * attribute filter.
+         */
+        const seriesLabels: JSONObject | undefined = incident.seriesLabels as
+          | JSONObject
+          | undefined;
+
+        /*
+         * Describe the narrowing that was actually applied, not the raw
+         * labels: a label the queries never grouped by narrows nothing, and
+         * announcing it would have the card vouch for a chart that still
+         * shows every series.
+         */
+        setSeriesSummary(
+          MetricSeriesScope.getAppliedSeriesLabelSummary({
+            queryConfigs: queryConfigs,
+            seriesLabels: seriesLabels,
+          }),
+        );
+
+        queryConfigs = MetricSeriesScope.scopeQueryConfigsToSeries({
+          queryConfigs: queryConfigs,
+          seriesLabels: seriesLabels,
+        });
 
         /*
          * Center the chart on the incident's creation time: 30 minutes
@@ -172,7 +214,15 @@ const IncidentRootCauseMetricChart: FunctionComponent<ComponentProps> = (
   return (
     <Card
       title="Metric at Incident Time"
-      description="Metric data from around when this incident was declared."
+      /*
+       * Say so when the chart is narrowed to one series of a grouped
+       * monitor, otherwise "where are my other hosts?" reads as a bug.
+       */
+      description={
+        seriesSummary
+          ? `Metric data from around when this incident was declared, scoped to the affected series (${seriesSummary}).`
+          : "Metric data from around when this incident was declared."
+      }
     >
       <MetricView
         data={metricViewData}

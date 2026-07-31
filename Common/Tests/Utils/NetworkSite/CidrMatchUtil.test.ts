@@ -304,6 +304,75 @@ describe("CidrMatchUtil.ruleMatches", () => {
     ).toBe(false);
   });
 
+  /*
+   * A device imported from a discovery scan carries the responding IP in
+   * `hostname` and its SNMP identity in `name`; `sysName` stays empty until
+   * the first walk. Matching only hostname/sysName meant the pattern a user
+   * wrote against what the device list SHOWS could never match
+   * (OneUptime/oneuptime#2940).
+   */
+  it("matches a hostname-pattern rule against the device name", () => {
+    expect(
+      CidrMatchUtil.ruleMatches(
+        { hostnamePattern: "*0664*" },
+        { ip: "10.242.170.222", hostname: "10.242.170.222" },
+      ),
+    ).toBe(false);
+
+    expect(
+      CidrMatchUtil.ruleMatches(
+        { hostnamePattern: "*0664*" },
+        {
+          ip: "10.242.170.222",
+          hostname: "10.242.170.222",
+          name: "UN0664LANSWI03",
+        },
+      ),
+    ).toBe(true);
+  });
+
+  it("matches on any one of hostname, sysName or name", () => {
+    expect(
+      CidrMatchUtil.ruleMatches(
+        { hostnamePattern: "unit-*" },
+        { hostname: "unit-1", name: "Core Switch", sysName: "sw1" },
+      ),
+    ).toBe(true);
+    expect(
+      CidrMatchUtil.ruleMatches(
+        { hostnamePattern: "unit-*" },
+        { hostname: "10.0.0.5", name: "Core Switch", sysName: "unit-1-core" },
+      ),
+    ).toBe(true);
+    expect(
+      CidrMatchUtil.ruleMatches(
+        { hostnamePattern: "unit-*" },
+        { hostname: "10.0.0.5", name: "unit-1-core", sysName: "sw1" },
+      ),
+    ).toBe(true);
+    expect(
+      CidrMatchUtil.ruleMatches(
+        { hostnamePattern: "unit-*" },
+        { hostname: "10.0.0.5", name: "Core Switch", sysName: "sw1" },
+      ),
+    ).toBe(false);
+  });
+
+  it("still requires the CIDR to match when a name matches the pattern", () => {
+    expect(
+      CidrMatchUtil.ruleMatches(
+        { subnetCidr: "10.0.0.0/8", hostnamePattern: "*0664*" },
+        { ip: "192.168.1.4", name: "UN0664LANSWI03" },
+      ),
+    ).toBe(false);
+    expect(
+      CidrMatchUtil.ruleMatches(
+        { subnetCidr: "10.0.0.0/8", hostnamePattern: "*0664*" },
+        { ip: "10.242.170.222", name: "UN0664LANSWI03" },
+      ),
+    ).toBe(true);
+  });
+
   it("requires BOTH criteria to match when both are set", () => {
     const rule: AssignmentRuleCandidate = {
       subnetCidr: "10.0.0.0/8",

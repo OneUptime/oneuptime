@@ -1,4 +1,6 @@
 name: Compile
+permissions:
+  contents: read
 
 # Supersede in-flight runs for the same branch/PR: only the newest commit needs CI.
 concurrency:

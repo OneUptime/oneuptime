@@ -7,6 +7,9 @@ on:
       - 'hotfix-*'   # excludes hotfix branches
       - 'release'
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
