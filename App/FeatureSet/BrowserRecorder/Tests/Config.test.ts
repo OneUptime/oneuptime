@@ -1,7 +1,11 @@
 import SessionReplayCaptureTrigger from "Common/Types/Rum/SessionReplayCaptureTrigger";
 import SessionReplayConsentMode from "Common/Types/Rum/SessionReplayConsentMode";
 import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode";
-import Config, { LoaderConfig, RecorderInitOptions } from "../src/Config";
+import Config, {
+  LoaderConfig,
+  RecorderInitOptions,
+  getChunkUrl,
+} from "../src/Config";
 
 describe("Config", (): void => {
   const validBody: Record<string, unknown> = {
@@ -253,7 +257,7 @@ describe("Config", (): void => {
       expect(Config.getConfigUrl(options)).toBe(
         "https://oneuptime.com/session-replay/v1/config",
       );
-      expect(Config.getChunkUrl(options)).toBe(
+      expect(getChunkUrl(options)).toBe(
         "https://oneuptime.com/session-replay/v1/chunk",
       );
       expect(Config.getArtifactUrl(options, "11.7.3")).toBe(
@@ -315,7 +319,7 @@ describe("Config", (): void => {
       /* No page userRef means no user-ref header at all. */
       expect(
         (fetchMock.mock.calls[0]?.[1]?.headers as Record<string, string>)[
-          "x-oneuptime-replay-user-ref"
+          "x-oneuptime-user-ref"
         ],
       ).toBeUndefined();
     });
@@ -347,7 +351,7 @@ describe("Config", (): void => {
       const headers: Record<string, string> = fetchMock.mock.calls[0]?.[1]
         ?.headers as Record<string, string>;
 
-      expect(headers["x-oneuptime-replay-user-ref"]).toBe(
+      expect(headers["x-oneuptime-user-ref"]).toBe(
         encodeURIComponent("jane+prod@例え.jp"),
       );
 
@@ -356,6 +360,68 @@ describe("Config", (): void => {
         "x-oneuptime-token": "t",
         "x-oneuptime-app-identifier": "a",
       });
+    });
+
+    /*
+     * A LONE surrogate — a page that truncated a string through an emoji
+     * — makes encodeURIComponent itself throw. That must skip targeting,
+     * not reject fetchConfig: this function's contract is "resolves to
+     * null on any failure", and an unhandled URIError here would surface
+     * as an unhandled rejection on the customer's page.
+     */
+    it("a lone-surrogate userRef skips the header instead of throwing", async (): Promise<void> => {
+      const fetchMock: jest.Mock = jest.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async (): Promise<unknown> => {
+          return validBody;
+        },
+      });
+
+      (globalThis as unknown as Record<string, unknown>)["fetch"] = fetchMock;
+
+      const config: LoaderConfig | null = await Config.fetchConfig({
+        ...options,
+        userRef: "user-\ud800-truncated",
+      });
+
+      /* The fetch still happened and recording still configures... */
+      expect(config).not.toBeNull();
+
+      /* ...just without the targeting header. */
+      expect(
+        (fetchMock.mock.calls[0]?.[1]?.headers as Record<string, string>)[
+          "x-oneuptime-user-ref"
+        ],
+      ).toBeUndefined();
+    });
+
+    /*
+     * The server caps refs at 512 chars, and an unbounded page value can
+     * push the request past HTTP header-size limits — killing the config
+     * fetch and with it ALL recording. The loader slices before encoding.
+     */
+    it("truncates an oversized userRef to the server's 512-char cap", async (): Promise<void> => {
+      const fetchMock: jest.Mock = jest.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async (): Promise<unknown> => {
+          return validBody;
+        },
+      });
+
+      (globalThis as unknown as Record<string, unknown>)["fetch"] = fetchMock;
+
+      await Config.fetchConfig({
+        ...options,
+        userRef: "u".repeat(5000),
+      });
+
+      const sent: string = (
+        fetchMock.mock.calls[0]?.[1]?.headers as Record<string, string>
+      )["x-oneuptime-user-ref"] as string;
+
+      expect(sent).toBe("u".repeat(512));
     });
 
     it("a non-ASCII userRef cannot make the config fetch throw", async (): Promise<void> => {

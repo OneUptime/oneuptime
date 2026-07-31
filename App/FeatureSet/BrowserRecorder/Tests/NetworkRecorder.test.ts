@@ -480,9 +480,149 @@ describe("NetworkRecorder traceparent injection", (): void => {
 
         expect(sentTraceParent(mock)).toBe(pageHeader);
 
+        /*
+         * The recorded trace id must be the PAGE's, not a freshly minted
+         * one — this is what actually fails if any shape's detection
+         * breaks and injection adds a second header behind the first.
+         */
+        expect(requests[0]?.traceId).toBe("c".repeat(32));
+
+        /* And exactly one traceparent goes on the wire. */
+        const init: RequestInit | undefined = mock.mock.calls[0]?.[1];
+
+        if (Array.isArray(init?.headers)) {
+          expect(
+            (init?.headers as Array<Array<string>>).filter(
+              (pair: Array<string>): boolean => {
+                return (pair[0] || "").toLowerCase() === "traceparent";
+              },
+            ),
+          ).toHaveLength(1);
+        }
+
         recorder.stop(window);
         recorder = null;
       }
+    });
+
+    /*
+     * Presence beats parseability: a future-version or vendor-lenient
+     * traceparent the page's own backend accepts must be neither
+     * overwritten (record/Headers shapes) nor doubled (array shape).
+     */
+    it("stands down for a page-set traceparent it cannot parse", async (): Promise<void> => {
+      const futureVersionHeader: string = `01-${"a".repeat(32)}-${"b".repeat(
+        16,
+      )}-01-extrafield`;
+
+      const mock: FetchMock = installFetchMock();
+
+      recorder = makeRecorder(["https://api.allowed.com"]);
+      recorder.start(window);
+
+      await window.fetch("https://api.allowed.com/x", {
+        headers: { traceparent: futureVersionHeader },
+      });
+
+      /* The page's header goes out exactly as set; no id is reported. */
+      expect(sentTraceParent(mock)).toBe(futureVersionHeader);
+      expect(requests[0]?.traceId).toBeNull();
+    });
+
+    /*
+     * HeadersInit's sequence branch accepts ANY iterable of pairs. A Map
+     * spread into a plain object loses every entry, so the merge must go
+     * through the Headers constructor — dropping the page's Authorization
+     * header here would break their API calls, which is worse than any
+     * missing correlation.
+     */
+    it("merges Map headers without dropping the page's own entries", async (): Promise<void> => {
+      const mock: FetchMock = installFetchMock();
+
+      recorder = makeRecorder(["https://api.allowed.com"]);
+      recorder.start(window);
+
+      await window.fetch("https://api.allowed.com/x", {
+        headers: new Map([
+          ["authorization", "Bearer page-token"],
+        ]) as unknown as HeadersInit,
+      });
+
+      const sent: RequestInit | undefined = mock.mock.calls[0]?.[1];
+      const merged: Headers = sent?.headers as Headers;
+
+      expect(merged instanceof Headers).toBe(true);
+      expect(merged.get("authorization")).toBe("Bearer page-token");
+      expect(merged.get("traceparent")).toMatch(TRACEPARENT_SHAPE);
+    });
+
+    it("stands down for a traceparent set inside a Map", async (): Promise<void> => {
+      const pageHeader: string = `00-${"d".repeat(32)}-${"e".repeat(16)}-01`;
+      const mock: FetchMock = installFetchMock();
+
+      recorder = makeRecorder(["https://api.allowed.com"]);
+      recorder.start(window);
+
+      await window.fetch("https://api.allowed.com/x", {
+        headers: new Map([
+          ["traceparent", pageHeader],
+        ]) as unknown as HeadersInit,
+      });
+
+      /* No merge happened: the page's own Map rides through untouched. */
+      expect(mock.mock.calls[0]?.[1]?.headers instanceof Map).toBe(true);
+      expect(requests[0]?.traceId).toBe("d".repeat(32));
+    });
+
+    /*
+     * fetch and XHR resolve relative URLs against the DOCUMENT BASE URL,
+     * which <base href> can point at another origin. Matching against
+     * location.href instead would inject into a request that really goes
+     * to a never-allowlisted origin — the exact preflight breakage the
+     * allowlist exists to prevent.
+     */
+    it("resolves relative URLs against a cross-origin <base href>, not the page origin", async (): Promise<void> => {
+      const base: HTMLBaseElement = document.createElement("base");
+
+      base.href = "https://cdn.other.example/";
+      document.head.appendChild(base);
+
+      try {
+        const mock: FetchMock = installFetchMock();
+
+        /* The PAGE origin is allowlisted; the BASE origin is not. */
+        recorder = makeRecorder(["https://shop.example.com"]);
+        recorder.start(window);
+
+        await window.fetch("/api/cart");
+
+        expect(mock.mock.calls[0]?.[1]).toBeUndefined();
+
+        recorder.stop(window);
+
+        /* Allowlisting the BASE origin is what enables injection. */
+        const mock2: FetchMock = installFetchMock();
+
+        recorder = makeRecorder(["https://cdn.other.example"]);
+        recorder.start(window);
+
+        await window.fetch("/api/cart");
+
+        expect(sentTraceParent(mock2)).toMatch(TRACEPARENT_SHAPE);
+      } finally {
+        base.remove();
+      }
+    });
+
+    it("does not throw synchronously for fetch(null), matching native fetch", async (): Promise<void> => {
+      installFetchMock();
+
+      recorder = makeRecorder(["https://api.allowed.com"]);
+      recorder.start(window);
+
+      await expect(
+        window.fetch(null as unknown as RequestInfo),
+      ).resolves.toBeDefined();
     });
 
     it("skips Request-object inputs rather than rebuilding them", async (): Promise<void> => {
@@ -665,6 +805,46 @@ describe("NetworkRecorder traceparent injection", (): void => {
 
       expect(setHeaderSpy).toHaveBeenCalledTimes(1);
       expect(setHeaderSpy.mock.calls[0]?.[0]).toBe("traceparent");
+    });
+
+    /*
+     * XHR objects are legally reusable, and pooling/polling code reuses
+     * them. Each request must record exactly once, against its own
+     * method/url/timing — a stale listener from request 1 must not fire
+     * for request 2's response.
+     */
+    it("records a reused XHR exactly once per request, with the right attribution", (): void => {
+      recorder = makeRecorder([]);
+      recorder.start(window);
+
+      const xhr: XMLHttpRequest = new XMLHttpRequest();
+
+      xhr.open("GET", "https://one.example.com/first");
+      xhr.send();
+      xhr.dispatchEvent(new Event("loadend"));
+
+      xhr.open("GET", "https://two.example.com/second");
+      xhr.send();
+      xhr.dispatchEvent(new Event("loadend"));
+
+      expect(requests).toHaveLength(2);
+      expect(requests[0]?.request.url).toContain("one.example.com");
+      expect(requests[1]?.request.url).toContain("two.example.com");
+    });
+
+    it("stands down for an unparseable page-set traceparent instead of adding a second one", (): void => {
+      recorder = makeRecorder(["https://api.allowed.com"]);
+      recorder.start(window);
+
+      const xhr: XMLHttpRequest = new XMLHttpRequest();
+
+      xhr.open("GET", "https://api.allowed.com/data");
+      xhr.setRequestHeader("traceparent", "not-a-w3c-header");
+      xhr.send();
+
+      /* Only the page's own call reached the platform. */
+      expect(setHeaderSpy).toHaveBeenCalledTimes(1);
+      expect(setHeaderSpy.mock.calls[0]?.[1]).toBe("not-a-w3c-header");
     });
 
     it("proceeds un-annotated when setRequestHeader throws", (): void => {

@@ -10,6 +10,7 @@ import SessionReplayConsentMode from "Common/Types/Rum/SessionReplayConsentMode"
 import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode";
 import SessionReplayTriggerReason from "Common/Types/Rum/SessionReplayTriggerReason";
 import { RecorderInitOptions } from "../src/Config";
+import { PERFORMANCE_CUSTOM_EVENT_TAG } from "../src/PerformanceRecorder";
 import Recorder from "../src/Recorder";
 import SessionId from "../src/SessionId";
 import Transport from "../src/Transport";
@@ -391,6 +392,29 @@ describe("Recorder", (): void => {
       expect(instance.getTriggerReason()).toBe(
         SessionReplayTriggerReason.Error,
       );
+
+      /*
+       * The trigger-reason check alone is a weak oracle (first reason
+       * wins, and Error always fires first). What must ALSO hold is that
+       * the failing request produced no performance custom event - one
+       * request must never count as two kinds of bad.
+       */
+      await flushUploads();
+
+      const uploadedPayloads: string = fetchMock.mock.calls
+        .filter((call: Array<unknown>): boolean => {
+          return (
+            ((call[1] || {}) as Record<string, unknown>)["body"] instanceof
+            Uint8Array
+          );
+        })
+        .map((call: Array<unknown>): string => {
+          return readPost(call).payload;
+        })
+        .join("\n");
+
+      expect(uploadedPayloads.length).toBeGreaterThan(0);
+      expect(uploadedPayloads).not.toContain(PERFORMANCE_CUSTOM_EVENT_TAG);
     });
 
     it("an over-budget LCP fires the performance trigger end to end", (): void => {

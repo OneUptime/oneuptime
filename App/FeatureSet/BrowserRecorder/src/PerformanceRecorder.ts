@@ -68,6 +68,9 @@ export default class PerformanceRecorder {
   private lcpObserver: ObserverLike | null = null;
   private longTaskObserver: ObserverLike | null = null;
 
+  /* Remembered from start() so resetForNewSession can re-arm observers. */
+  private windowRef: Window | null = null;
+
   public constructor(options: PerformanceRecorderOptions) {
     this.options = options;
   }
@@ -78,6 +81,7 @@ export default class PerformanceRecorder {
     }
 
     this.started = true;
+    this.windowRef = windowRef;
 
     const Observer: ObserverConstructor | null =
       PerformanceRecorder.getObserverConstructor(windowRef);
@@ -139,6 +143,44 @@ export default class PerformanceRecorder {
         /* Already dead. */
       }
       this.longTaskObserver = null;
+    }
+  }
+
+  /*
+   * Called on session rotation: the rotated session cleared its trigger
+   * and must be able to earn its own Performance trigger, so the emit
+   * cap resets and a longtask observer disconnected AT the cap is
+   * re-armed. LCP stays latched — it is one number per page LOAD, and a
+   * mid-life rotation does not produce a new contentful paint.
+   */
+  public resetForNewSession(): void {
+    this.emittedCount = 0;
+
+    if (
+      !this.started ||
+      this.longTaskObserver !== null ||
+      this.options.longTaskBudgetMs <= 0 ||
+      !this.windowRef
+    ) {
+      return;
+    }
+
+    const Observer: ObserverConstructor | null =
+      PerformanceRecorder.getObserverConstructor(this.windowRef);
+
+    if (
+      Observer &&
+      PerformanceRecorder.getSupportedEntryTypes(Observer).indexOf(
+        "longtask",
+      ) >= 0
+    ) {
+      this.longTaskObserver = PerformanceRecorder.tryObserve(
+        Observer,
+        "longtask",
+        (entries: Array<PerformanceEntry>): void => {
+          this.onLongTaskEntries(entries);
+        },
+      );
     }
   }
 
@@ -222,7 +264,14 @@ export default class PerformanceRecorder {
   }
 
   private report(atUnixMs: number, issue: PerformanceIssue): void {
-    if (this.emittedCount >= MAX_PERFORMANCE_EVENTS) {
+    /*
+     * The cap exists to bound the longtask/slow-request STREAMS. LCP is
+     * exempt: hasReportedLcp already guarantees it fires at most once
+     * per page load, and a jank-looping page that burned the cap before
+     * its LCP settled would otherwise silently lose the page's single
+     * most useful performance number.
+     */
+    if (issue.kind !== "lcp" && this.emittedCount >= MAX_PERFORMANCE_EVENTS) {
       /*
        * Cap reached: stop the unbounded source too, not just the emit.
        * The trigger has long since fired by this point.

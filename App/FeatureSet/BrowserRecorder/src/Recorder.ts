@@ -24,6 +24,7 @@ import Config, {
   RECORDER_VERSION,
   RRWEB_VERSION,
   RecorderInitOptions,
+  getChunkUrl,
 } from "./Config";
 import Consent from "./Consent";
 import ConsoleRecorder, { RecordedConsoleEntry } from "./ConsoleRecorder";
@@ -252,7 +253,7 @@ export default class Recorder {
     this.chunker = this.createChunker();
 
     this.transport = new Transport({
-      url: Config.getChunkUrl(this.initOptions),
+      url: getChunkUrl(this.initOptions),
       headers: Config.getIngestHeaders(this.initOptions),
       onDirective: (directive: SessionReplayDirective): void => {
         this.onDirective(directive);
@@ -1098,6 +1099,16 @@ export default class Recorder {
 
     this.lastUserActivityUnixMs = nowUnixMs;
     this.lastTouchedUnixMs = nowUnixMs;
+
+    /*
+     * The rotated session must be able to earn its own Performance
+     * trigger: reset the emit cap and re-arm a longtask observer that
+     * disconnected when the OLD session's stream hit the cap. Without
+     * this, a jank-looping SPA that burned the cap in session 1 has
+     * performance triggers permanently dead for every later session on
+     * the same page load.
+     */
+    this.performanceRecorder.resetForNewSession();
 
     this.emitCustomEvent(SESSION_ROTATED_CUSTOM_EVENT_TAG, {
       previousSessionId: previousSessionId,

@@ -711,12 +711,29 @@ router.get(
       };
 
       /*
-       * A targeted answer is one-shot by construction (the Redis take is
-       * atomic), so it must never be served from any cache - a cached
-       * isTargeted:true would re-arm capture on every reload for 5
-       * minutes, turning "the next session" into "every session".
+       * Cache semantics carry the whole targeting handshake:
+       *
+       *  - Any response to a request that IDENTIFIED a user is no-store,
+       *    not just the targeted ones. The primary flow is "support agent
+       *    arms the target, asks the user to reload" - if that user's
+       *    browser can serve a cached isTargeted:false for up to 300s,
+       *    "record the NEXT session" silently becomes "record no session
+       *    for five minutes".
+       *  - The inverse is as bad: a cached isTargeted:true would re-arm
+       *    capture on every reload, turning "next" into "every".
+       *  - Vary tells any shared/HTTP cache that an anonymous response
+       *    must never be reused for an identified fetch.
+       *
+       * Anonymous fetches (no user ref on the page - the overwhelming
+       * majority) keep the 5-minute private cache.
        */
-      if (config.isTargeted) {
+      res.setHeader("Vary", SESSION_REPLAY_USER_REF_HEADER);
+
+      const hasUserRef: boolean = Boolean(
+        headerValueToString(req.headers[SESSION_REPLAY_USER_REF_HEADER]),
+      );
+
+      if (config.isTargeted || hasUserRef) {
         res.setHeader("Cache-Control", "no-store");
       } else {
         res.setHeader("Cache-Control", "private, max-age=300");

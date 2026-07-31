@@ -277,6 +277,90 @@ describe("PerformanceRecorder", (): void => {
       expect(handles[0]?.isDisconnected).toBe(true);
       expect(recorder.getEmittedCount()).toBe(MAX_PERFORMANCE_EVENTS);
     });
+
+    /*
+     * The cap bounds the longtask STREAM; LCP is one number per page
+     * load, latched by hasReportedLcp, and a jank-looping page that
+     * burned the cap before its LCP settled must not lose the page's
+     * single most useful performance number.
+     */
+    it("still reports the one LCP after the cap is burned", (): void => {
+      const handles: Array<FakeObserverHandle> = installFakeObserver(window, [
+        "largest-contentful-paint",
+        "longtask",
+      ]);
+
+      recorder = makeRecorder({ lcp: 1000, longTask: 100 });
+      recorder.start(window);
+
+      const longTaskHandle: FakeObserverHandle | undefined = handles.find(
+        (handle: FakeObserverHandle): boolean => {
+          return handle.entryType === "longtask";
+        },
+      );
+      const lcpHandle: FakeObserverHandle | undefined = handles.find(
+        (handle: FakeObserverHandle): boolean => {
+          return handle.entryType === "largest-contentful-paint";
+        },
+      );
+
+      for (let i: number = 0; i < MAX_PERFORMANCE_EVENTS; i++) {
+        longTaskHandle?.emit([{ duration: 500 }]);
+      }
+
+      expect(issues).toHaveLength(MAX_PERFORMANCE_EVENTS);
+
+      lcpHandle?.emit([{ startTime: 4200 }]);
+
+      expect(issues).toHaveLength(MAX_PERFORMANCE_EVENTS + 1);
+      expect(issues[issues.length - 1]?.kind).toBe("lcp");
+    });
+  });
+
+  describe("resetForNewSession", (): void => {
+    it("resets the cap and re-arms a longtask observer disconnected at the cap", (): void => {
+      const handles: Array<FakeObserverHandle> = installFakeObserver(window, [
+        "longtask",
+      ]);
+
+      recorder = makeRecorder({ longTask: 100 });
+      recorder.start(window);
+
+      for (let i: number = 0; i < MAX_PERFORMANCE_EVENTS + 5; i++) {
+        handles[0]?.emit([{ duration: 500 }]);
+      }
+
+      expect(handles[0]?.isDisconnected).toBe(true);
+
+      recorder.resetForNewSession();
+
+      /* A NEW observer was armed (the fake registers each construction). */
+      expect(handles).toHaveLength(2);
+      expect(handles[1]?.entryType).toBe("longtask");
+      expect(recorder.getEmittedCount()).toBe(0);
+
+      handles[1]?.emit([{ duration: 300 }]);
+
+      expect(issues).toHaveLength(MAX_PERFORMANCE_EVENTS + 1);
+      expect(issues[issues.length - 1]?.durationMs).toBe(300);
+    });
+
+    it("does nothing after stop, and does not double-arm a live observer", (): void => {
+      const handles: Array<FakeObserverHandle> = installFakeObserver(window, [
+        "longtask",
+      ]);
+
+      recorder = makeRecorder({ longTask: 100 });
+      recorder.start(window);
+
+      /* Observer still connected: reset must not stack a second one. */
+      recorder.resetForNewSession();
+      expect(handles).toHaveLength(1);
+
+      recorder.stop();
+      recorder.resetForNewSession();
+      expect(handles).toHaveLength(1);
+    });
   });
 
   it("disconnects every observer on stop and never reports after", (): void => {

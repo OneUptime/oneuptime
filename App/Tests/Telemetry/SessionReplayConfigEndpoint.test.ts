@@ -359,8 +359,11 @@ describe("GET /session-replay/v1/config (wave 4 fields)", () => {
     expect(body["slowRequestBudgetMs"]).toBe(5000);
     expect(body["isTargeted"]).toBe(false);
 
-    /* Untargeted responses stay browser-cacheable. */
+    /* Anonymous (no user ref) responses stay browser-cacheable. */
     expect(res.headers["Cache-Control"]).toBe("private, max-age=300");
+
+    /* And Vary keeps a shared cache from reusing them for identified fetches. */
+    expect(res.headers["Vary"]).toBe(SESSION_REPLAY_USER_REF_HEADER);
 
     /* No user-ref header arrived, so Redis was never consulted. */
     expect(consumeTargetMock).not.toHaveBeenCalled();
@@ -373,8 +376,14 @@ describe("GET /session-replay/v1/config (wave 4 fields)", () => {
   test("the disabled response carries the new fields with feature-off values", async () => {
     getPolicyMock.mockResolvedValue(null as never);
 
+    /*
+     * The user-ref header IS sent here, deliberately: without it the
+     * consumeTarget assertion below is vacuous (the endpoint could never
+     * reach Redis), and a refactor that consumes the one-shot target
+     * while the application is disabled would slip through.
+     */
     const body: JSONObject = await callConfigRoute(
-      buildRequest(),
+      buildRequest({ [SESSION_REPLAY_USER_REF_HEADER]: "user-42" }),
       buildResponse(),
     );
 
@@ -421,7 +430,7 @@ describe("GET /session-replay/v1/config (wave 4 fields)", () => {
     });
   });
 
-  test("a userRef with no pending target stays untargeted and cacheable", async () => {
+  test("an identified fetch is uncacheable even when untargeted", async () => {
     getPolicyMock.mockResolvedValue(buildPolicy() as never);
     consumeTargetMock.mockResolvedValue(false as never);
 
@@ -432,7 +441,13 @@ describe("GET /session-replay/v1/config (wave 4 fields)", () => {
     );
 
     expect(body["isTargeted"]).toBe(false);
-    expect(res.headers["Cache-Control"]).toBe("private, max-age=300");
+
+    /*
+     * no-store even though nothing matched: the support flow is "arm the
+     * target, ask the user to reload", and a cached isTargeted:false
+     * would swallow that reload for up to max-age seconds.
+     */
+    expect(res.headers["Cache-Control"]).toBe("no-store");
     expect(consumeTargetMock).toHaveBeenCalledTimes(1);
   });
 

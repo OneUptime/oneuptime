@@ -37,6 +37,16 @@ export const AUTH_TOKEN_HEADER: string = "x-oneuptime-token";
 export const CONFIG_PATH: string = "/session-replay/v1/config";
 export const CHUNK_PATH: string = "/session-replay/v1/chunk";
 
+/*
+ * A standalone function rather than a Config static on purpose: class
+ * methods are never tree-shaken, and only the ARTIFACT posts chunks. As
+ * a static this rode along in the loader stub (which lives on a hard
+ * byte budget) as dead weight.
+ */
+export function getChunkUrl(options: RecorderInitOptions): string {
+  return `${options.host}${CHUNK_PATH}`;
+}
+
 /* Where the pinned, immutable artifact lives. */
 export const ARTIFACT_PATH_PREFIX: string = "/telemetry/session-replay";
 
@@ -218,10 +228,6 @@ export default class Config {
     return `${options.host}${CONFIG_PATH}`;
   }
 
-  public static getChunkUrl(options: RecorderInitOptions): string {
-    return `${options.host}${CHUNK_PATH}`;
-  }
-
   public static isValidRecorderVersion(value: unknown): value is string {
     return typeof value === "string" && RECORDER_VERSION_PATTERN.test(value);
   }
@@ -279,9 +285,22 @@ export default class Config {
      * an emoji in a customer's user id must not disable recording.
      */
     if (options.userRef) {
-      headers[SESSION_REPLAY_USER_REF_HEADER] = encodeURIComponent(
-        options.userRef,
-      );
+      try {
+        /*
+         * Sliced to 512 = SESSION_REPLAY_MAX_USER_REF_LENGTH (a literal:
+         * importing the constant costs loader bytes we do not have). A
+         * longer ref can never match a target, and an unbounded one can
+         * blow the HTTP header-size limit and kill the whole fetch.
+         * encodeURIComponent throws on a lone surrogate — a page that
+         * truncated a string through an emoji, or this very slice — and
+         * that must skip targeting, never break recording.
+         */
+        headers[SESSION_REPLAY_USER_REF_HEADER] = encodeURIComponent(
+          options.userRef.slice(0, 512),
+        );
+      } catch {
+        /* Un-encodable ref: recording proceeds untargeted. */
+      }
     }
 
     try {
@@ -387,14 +406,14 @@ export default class Config {
           : raw["directive"] === "throttle"
             ? "throttle"
             : "continue",
+
+      /* Artifact-only fields ride through unvalidated; see LoaderConfig.raw. */
+      raw: raw,
     };
 
     if (typeof integrity === "string" && integrity) {
       config.recorderIntegrity = integrity;
     }
-
-    /* Artifact-only fields ride through unvalidated; see LoaderConfig.raw. */
-    config.raw = raw;
 
     return config;
   }

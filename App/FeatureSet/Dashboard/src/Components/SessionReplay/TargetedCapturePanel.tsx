@@ -3,6 +3,7 @@ import React, {
   ReactElement,
   useCallback,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import API from "Common/UI/Utils/API/API";
@@ -17,6 +18,7 @@ import Dropdown, {
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Input from "Common/UI/Components/Input/Input";
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -54,7 +56,17 @@ const TargetedCapturePanel: FunctionComponent = (): ReactElement => {
   const [userRef, setUserRef] = useState<string>("");
   const [isPending, setIsPending] = useState<boolean | null>(null);
   const [isBusy, setIsBusy] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+
+  /*
+   * Same idiom as InstallationTestPanel: the reference input and the
+   * application dropdown stay editable while an action is in flight, and
+   * both reset isPending so the readout never describes a stale
+   * reference. A response from BEFORE such an edit must not land - it
+   * would print "Target armed" under a reference it was not armed for.
+   */
+  const actionGenerationRef: React.MutableRefObject<number> = useRef<number>(0);
 
   const loadApplications: () => Promise<void> =
     useCallback(async (): Promise<void> => {
@@ -83,9 +95,13 @@ const TargetedCapturePanel: FunctionComponent = (): ReactElement => {
     }, []);
 
   useEffect(() => {
-    loadApplications().catch((err: unknown) => {
-      setError(API.getFriendlyMessage(err as HTTPErrorResponse));
-    });
+    loadApplications()
+      .catch((err: unknown) => {
+        setError(API.getFriendlyMessage(err as HTTPErrorResponse));
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
   }, [loadApplications]);
 
   const runAction: (action: TargetAction) => Promise<void> = useCallback(
@@ -93,6 +109,9 @@ const TargetedCapturePanel: FunctionComponent = (): ReactElement => {
       if (!selectedApplicationId || !userRef.trim()) {
         return;
       }
+
+      actionGenerationRef.current += 1;
+      const generation: number = actionGenerationRef.current;
 
       try {
         setIsBusy(true);
@@ -111,14 +130,20 @@ const TargetedCapturePanel: FunctionComponent = (): ReactElement => {
             },
           });
 
+        if (generation !== actionGenerationRef.current) {
+          return;
+        }
+
         if (response instanceof HTTPErrorResponse) {
           throw response;
         }
 
         setIsPending(response.data["isPending"] === true);
       } catch (err) {
-        setIsPending(null);
-        setError(API.getFriendlyMessage(err as HTTPErrorResponse));
+        if (generation === actionGenerationRef.current) {
+          setIsPending(null);
+          setError(API.getFriendlyMessage(err as HTTPErrorResponse));
+        }
       } finally {
         setIsBusy(false);
       }
@@ -155,13 +180,15 @@ const TargetedCapturePanel: FunctionComponent = (): ReactElement => {
       </div>
 
       <div className="px-5 py-4">
-        {applications.length === 0 && !error && (
+        {isLoading && <ComponentLoader />}
+
+        {!isLoading && applications.length === 0 && !error && (
           <div className="text-sm text-gray-500">
             No RUM applications yet. Create one first, then target a user here.
           </div>
         )}
 
-        {applications.length > 0 && (
+        {!isLoading && applications.length > 0 && (
           <div className="flex flex-col gap-3 md:flex-row md:items-end">
             {dropdownOptions.length > 1 && (
               <div className="w-full md:w-56">
@@ -177,6 +204,7 @@ const TargetedCapturePanel: FunctionComponent = (): ReactElement => {
                     value: DropdownValue | Array<DropdownValue> | null,
                   ) => {
                     if (typeof value === "string") {
+                      actionGenerationRef.current += 1;
                       setSelectedApplicationId(value);
                       setIsPending(null);
                     }
@@ -193,6 +221,7 @@ const TargetedCapturePanel: FunctionComponent = (): ReactElement => {
                 value={userRef}
                 placeholder="user-1234 or jane@example.com"
                 onChange={(value: string) => {
+                  actionGenerationRef.current += 1;
                   setUserRef(
                     value.slice(0, SESSION_REPLAY_MAX_USER_REF_LENGTH),
                   );

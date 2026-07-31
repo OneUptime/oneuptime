@@ -110,8 +110,7 @@ export const SESSION_REPLAY_APP_IDENTIFIER_HEADER: string =
  * "is there a pending record-next-session target for this user?". A header
  * rather than a query parameter so it can never land in access logs.
  */
-export const SESSION_REPLAY_USER_REF_HEADER: string =
-  "x-oneuptime-replay-user-ref";
+export const SESSION_REPLAY_USER_REF_HEADER: string = "x-oneuptime-user-ref";
 
 /*
  * How long a "record the next session for this user" target waits for

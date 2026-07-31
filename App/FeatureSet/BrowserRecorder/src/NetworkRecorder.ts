@@ -83,6 +83,21 @@ interface XhrState {
   url: string;
   startedAtMs: number;
   traceId: string | null;
+
+  /*
+   * The page called setRequestHeader("traceparent", ...) itself — with
+   * ANY value, parseable or not. Injection must then stand down: adding
+   * a second traceparent puts two headers on the wire, and neither the
+   * page's backend nor ours could parse the combined value.
+   */
+  hasPageTraceParent: boolean;
+
+  /*
+   * A loadend listener for THIS state is registered. XHR objects are
+   * legally reusable and send() can be called in error states; without
+   * this latch every send() would stack another listener.
+   */
+  armed: boolean;
 }
 
 export interface GeneratedTraceParent {
@@ -208,27 +223,36 @@ export default class NetworkRecorder {
 
       /*
        * Injection happens ONLY when all of these hold: the page did not
-       * set its own traceparent (the host's tracing always wins), the
-       * input is a string or URL (a Request object carries its own header
-       * state, and rebuilding one to merge a header risks dropping a
-       * one-shot body — so Request inputs are skipped, a documented
-       * limit), it is not our own chunk POST, and the resolved origin is
-       * explicitly allowlisted.
+       * set a traceparent of its own — checked by header PRESENCE, not
+       * parse success, because a future-version or vendor-lenient value
+       * the page's backend accepts must never be clobbered or duplicated
+       * by ours — the input is a string or URL (a Request object carries
+       * its own header state, and rebuilding one to merge a header risks
+       * dropping a one-shot body, so Request inputs are skipped, a
+       * documented limit), it is not our own chunk POST, and the resolved
+       * origin is explicitly allowlisted.
        */
       if (
         traceId === null &&
         (typeof input === "string" || input instanceof URL) &&
+        !NetworkRecorder.hasTraceParentHeader(init) &&
         !this.options.isSelfRequest(url) &&
         this.shouldInjectFor(url, windowRef)
       ) {
         const generated: GeneratedTraceParent | null =
           NetworkRecorder.generateTraceParent();
 
-        if (generated) {
-          effectiveInit = NetworkRecorder.withTraceParent(
-            init,
-            generated.header,
-          );
+        /*
+         * withTraceParent declines (null) when it cannot merge the
+         * header shape safely; in that case the request goes out exactly
+         * as the page built it, un-annotated.
+         */
+        const merged: RequestInit | null = generated
+          ? NetworkRecorder.withTraceParent(init, generated.header)
+          : null;
+
+        if (generated && merged) {
+          effectiveInit = merged;
           traceId = generated.traceId;
         }
       }
@@ -326,6 +350,7 @@ export default class NetworkRecorder {
     ) => void = (xhr: XMLHttpRequest, state: XhrState): void => {
       if (
         state.traceId !== null ||
+        state.hasPageTraceParent ||
         !this.originalXhrSetRequestHeader ||
         isSelfRequest(state.url) ||
         !this.shouldInjectFor(state.url, windowRef)
@@ -380,6 +405,8 @@ export default class NetworkRecorder {
         url: String(url),
         startedAtMs: Date.now(),
         traceId: null,
+        hasPageTraceParent: false,
+        armed: false,
       });
 
       (originalOpen as (...args: Array<unknown>) => void).apply(this, [
@@ -403,6 +430,13 @@ export default class NetworkRecorder {
           const state: XhrState | undefined = xhrState.get(this);
 
           if (state) {
+            /*
+             * Presence is recorded unconditionally; the parsed id only
+             * when the value is well-formed. An unparseable page value
+             * still suppresses injection (see XhrState.hasPageTraceParent)
+             * — it just cannot be reported as a correlation id.
+             */
+            state.hasPageTraceParent = true;
             state.traceId = NetworkRecorder.parseTraceParent(value);
           }
         }
@@ -423,18 +457,36 @@ export default class NetworkRecorder {
       if (state && !isSelfRequest(state.url)) {
         maybeInjectTraceParent(this, state);
 
-        state.startedAtMs = Date.now();
+        if (!state.armed) {
+          state.armed = true;
+          state.startedAtMs = Date.now();
 
-        this.addEventListener("loadend", (): void => {
-          recordRequest(
-            state.method,
-            state.url,
-            this.status,
-            Date.now() - state.startedAtMs,
-            NetworkRecorder.readXhrResponseSize(this),
-            state.traceId,
+          this.addEventListener(
+            "loadend",
+            (): void => {
+              /*
+               * A re-open()ed XHR replaces its state object; a stale
+               * listener from an earlier send must not record its old
+               * method/url/traceId against the new request's response
+               * (and its startedAtMs would span both requests, feeding
+               * a fictitious duration to the slow-request trigger).
+               */
+              if (xhrState.get(this) !== state) {
+                return;
+              }
+
+              recordRequest(
+                state.method,
+                state.url,
+                this.status,
+                Date.now() - state.startedAtMs,
+                NetworkRecorder.readXhrResponseSize(this),
+                state.traceId,
+              );
+            },
+            { once: true },
           );
-        });
+        }
       }
 
       (originalSend as (...args: Array<unknown>) => void).apply(this, args);
@@ -483,10 +535,14 @@ export default class NetworkRecorder {
 
   /*
    * Does this request's ORIGIN appear in the allowlist? Relative URLs
-   * resolve against the page's own location first — a fetch("/api/x") on
-   * an allowlisted page origin is precisely the first-party case the
-   * feature exists for. Anything unparseable answers no: when we cannot
-   * say where a header would go, we do not add one.
+   * resolve against the DOCUMENT BASE URL — the same base fetch and XHR
+   * themselves use, which a <base href> tag can point at a different
+   * origin than the page's own. Resolving against location.href instead
+   * would let a fetch("/api/x") on such a page match the page's
+   * allowlisted origin while the real request goes somewhere that was
+   * never allowlisted — injecting exactly the preflight-breaking header
+   * the allowlist exists to prevent. Anything unparseable answers no:
+   * when we cannot say where a header would go, we do not add one.
    */
   private shouldInjectFor(url: string, windowRef: Window): boolean {
     if (this.injectOrigins.length === 0) {
@@ -494,7 +550,11 @@ export default class NetworkRecorder {
     }
 
     try {
-      const resolved: URL = new URL(url, windowRef.location.href);
+      const resolved: URL = new URL(
+        url,
+        (windowRef.document && windowRef.document.baseURI) ||
+          windowRef.location.href,
+      );
 
       /* Origins only make sense for http(s); blob:, data:, ws: never match. */
       if (resolved.protocol !== "https:" && resolved.protocol !== "http:") {
@@ -588,15 +648,24 @@ export default class NetworkRecorder {
   }
 
   /*
-   * Return a COPY of the init with traceparent merged into whichever of
-   * the three HeadersInit shapes it uses. Only ever called when no
-   * traceparent exists, so "add" semantics are safe for all three. The
-   * caller's own init object is never mutated.
+   * Return a COPY of the init with traceparent merged into whichever
+   * HeadersInit shape it uses, or NULL when the shape cannot be merged
+   * safely — the caller then sends the request exactly as the page built
+   * it, un-annotated. Only ever called when no traceparent is present,
+   * so "add" semantics are safe. The caller's own init is never mutated.
+   *
+   * The tricky shape is the fourth one: HeadersInit's sequence branch
+   * accepts ANY iterable of pairs — a Map, a Headers from another realm
+   * (which fails the same-realm instanceof), a generator. Spreading one
+   * of those into a plain object copies its own enumerable properties,
+   * which is the EMPTY SET — every header the page set would be silently
+   * stripped from the request. Iterables are therefore merged through the
+   * Headers constructor, which consumes them exactly as fetch would.
    */
   private static withTraceParent(
     init: RequestInit | undefined,
     headerValue: string,
-  ): RequestInit {
+  ): RequestInit | null {
     const next: RequestInit = init ? { ...init } : {};
     const headers: HeadersInit | undefined = init ? init.headers : undefined;
 
@@ -606,6 +675,19 @@ export default class NetworkRecorder {
       next.headers = merged;
     } else if (Array.isArray(headers)) {
       next.headers = [...headers, ["traceparent", headerValue]];
+    } else if (NetworkRecorder.isPairIterable(headers)) {
+      if (typeof Headers === "undefined") {
+        return null;
+      }
+
+      try {
+        const merged: Headers = new Headers(headers as HeadersInit);
+        merged.set("traceparent", headerValue);
+        next.headers = merged;
+      } catch {
+        /* An iterable Headers rejects — decline rather than guess. */
+        return null;
+      }
     } else if (headers && typeof headers === "object") {
       next.headers = {
         ...(headers as Record<string, string>),
@@ -616,6 +698,73 @@ export default class NetworkRecorder {
     }
 
     return next;
+  }
+
+  /*
+   * The HeadersInit sequence branch: any non-array iterable of pairs.
+   * Arrays are excluded because they have their own cheaper merge path.
+   */
+  private static isPairIterable(headers: HeadersInit | undefined): boolean {
+    return Boolean(
+      headers &&
+        typeof headers === "object" &&
+        !Array.isArray(headers) &&
+        typeof (headers as unknown as Record<symbol, unknown>)[
+          Symbol.iterator
+        ] === "function",
+    );
+  }
+
+  /*
+   * Is a traceparent header PRESENT in the init, by name, regardless of
+   * whether its value parses? Injection gates on this rather than on
+   * readTraceIdFromInit's parse, because a page-set value we cannot parse
+   * (a future spec version, a vendor-lenient format) must still suppress
+   * injection — overwriting it destroys the page's own trace link, and
+   * appending ours produces a combined header nobody can parse.
+   */
+  private static hasTraceParentHeader(init?: RequestInit): boolean {
+    if (!init || !init.headers) {
+      return false;
+    }
+
+    const headers: HeadersInit = init.headers;
+
+    if (typeof Headers !== "undefined" && headers instanceof Headers) {
+      return headers.get("traceparent") !== null;
+    }
+
+    if (Array.isArray(headers) || NetworkRecorder.isPairIterable(headers)) {
+      try {
+        for (const pair of headers as Iterable<[unknown, unknown]>) {
+          const name: unknown = Array.isArray(pair)
+            ? pair[0]
+            : (pair as unknown as Array<unknown>)[0];
+
+          if (
+            typeof name === "string" &&
+            name.toLowerCase() === "traceparent"
+          ) {
+            return true;
+          }
+        }
+      } catch {
+        /* An iterable that throws mid-iteration: treat as present (skip). */
+        return true;
+      }
+
+      return false;
+    }
+
+    if (typeof headers === "object") {
+      for (const key of Object.keys(headers as Record<string, string>)) {
+        if (key.toLowerCase() === "traceparent") {
+          return true;
+        }
+      }
+    }
+
+    return false;
   }
 
   /*
@@ -675,18 +824,22 @@ export default class NetworkRecorder {
       return value === null ? null : NetworkRecorder.parseTraceParent(value);
     }
 
-    if (Array.isArray(headers)) {
-      for (const pair of headers) {
-        const name: string | undefined = pair[0];
-        const value: string | undefined = pair[1];
+    if (Array.isArray(headers) || NetworkRecorder.isPairIterable(headers)) {
+      try {
+        for (const pair of headers as Iterable<[unknown, unknown]>) {
+          const name: unknown = pair ? pair[0] : undefined;
+          const value: unknown = pair ? pair[1] : undefined;
 
-        if (
-          name !== undefined &&
-          value !== undefined &&
-          name.toLowerCase() === "traceparent"
-        ) {
-          return NetworkRecorder.parseTraceParent(value);
+          if (
+            typeof name === "string" &&
+            typeof value === "string" &&
+            name.toLowerCase() === "traceparent"
+          ) {
+            return NetworkRecorder.parseTraceParent(value);
+          }
         }
+      } catch {
+        return null;
       }
 
       return null;
@@ -713,6 +866,15 @@ export default class NetworkRecorder {
 
     if (input instanceof URL) {
       return input.href;
+    }
+
+    /*
+     * Mirror native fetch's USVString coercion: fetch(null) requests the
+     * URL "null" and returns a promise. The wrapper must not turn that
+     * into a synchronous TypeError from a property read on null.
+     */
+    if (input === null || typeof input !== "object") {
+      return String(input);
     }
 
     const record: Record<string, unknown> = input as unknown as Record<
