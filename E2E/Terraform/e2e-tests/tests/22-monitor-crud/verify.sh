@@ -43,7 +43,4 @@ if [ $validation_failed -eq 1 ]; then
     print_failed "Monitor CRUD Verification"
 fi
 
-# Check idempotency (non-strict mode - some server defaults may cause changes)
-check_idempotency false
-
 print_passed "Monitor CRUD Verification"

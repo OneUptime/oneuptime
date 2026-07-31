@@ -49,10 +49,10 @@ resource "oneuptime_probe" "versioned" {
 
 # Test Case 3: Probe with Auto-Enable Setting
 resource "oneuptime_probe" "auto_enable" {
-  key                                    = "tf-e2e-probe-auto-${random_id.suffix.hex}"
-  name                                   = "TF E2E Auto-Enable Probe ${random_id.suffix.hex}"
-  description                            = "Probe with auto-enable on new monitors"
-  probe_version                          = "1.5.0"
+  key                                      = "tf-e2e-probe-auto-${random_id.suffix.hex}"
+  name                                     = "TF E2E Auto-Enable Probe ${random_id.suffix.hex}"
+  description                              = "Probe with auto-enable on new monitors"
+  probe_version                            = "1.5.0"
   should_auto_enable_probe_on_new_monitors = true
 }
 

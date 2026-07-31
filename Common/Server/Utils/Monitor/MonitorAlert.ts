@@ -39,6 +39,8 @@ import MonitorTemplateUtil from "./MonitorTemplateUtil";
 import { JSONObject } from "../../../Types/JSON";
 import OneUptimeDate from "../../../Types/Date";
 import MonitorEvaluationSummary from "../../../Types/Monitor/MonitorEvaluationSummary";
+import MonitorSummarySnapshot from "../../../Types/Monitor/MonitorSummarySnapshot";
+import MonitorSummarySnapshotUtil from "../../../Utils/Monitor/MonitorSummarySnapshotUtil";
 import { PerSeriesCriteriaMatch } from "../../../Types/Probe/ProbeApiIngestResponse";
 
 export default class MonitorAlert {
@@ -220,6 +222,13 @@ export default class MonitorAlert {
     rootCause: string;
     autoResolveCriteriaInstanceIdAlertIdsDictionary: Dictionary<Array<string>>;
     evaluationSummary?: MonitorEvaluationSummary | undefined;
+    /**
+     * The Monitor Summary as it stood at this evaluation, captured by
+     * MonitorSummaryCapture before this call. Stored on every alert
+     * created below so the alert page can render the same card the
+     * monitor page shows, long after the monitor log has aged out.
+     */
+    monitorSummary?: MonitorSummarySnapshot | null | undefined;
     props: {
       telemetryQuery?: TelemetryQuery | undefined;
     };
@@ -481,6 +490,17 @@ export default class MonitorAlert {
         alert.createdStateLog = JSON.parse(
           JSON.stringify(input.dataToProcess, null, 2),
         );
+
+        /*
+         * Same capture on every alert this evaluation opens - they all
+         * came from the one check.
+         */
+        const serializedMonitorSummary: JSONObject | null =
+          MonitorSummarySnapshotUtil.serialize(input.monitorSummary);
+
+        if (serializedMonitorSummary) {
+          alert.monitorSummary = serializedMonitorSummary;
+        }
 
         if (input.criteriaInstance.data?.id) {
           alert.createdCriteriaId = input.criteriaInstance.data.id.toString();

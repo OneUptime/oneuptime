@@ -11,6 +11,8 @@ e2e-tests/
 │   ├── setup-test-account.sh # Creates test user, project, and API key
 │   ├── run-tests.sh          # Builds provider and runs all test cases
 │   ├── lib.sh                # Shared library with common test utilities
+│   ├── coverage-report.sh    # Resource-type coverage report + ratchet gate
+│   ├── coverage-baseline.txt # Minimum number of tested resource types
 │   └── cleanup.sh            # Cleans up test artifacts and state files
 └── tests/
     ├── 01-label/             # Label resource tests
@@ -58,14 +60,21 @@ If you already have OneUptime running locally:
 
 ## Test Flow
 
-Each test case in `tests/` follows this pattern:
+The runner (`run-tests.sh`) drives every test through the same phases:
 
-1. `terraform init` - Initialize the Terraform configuration
-2. `terraform plan` - Create an execution plan
-3. `terraform apply` - Create the resources
-4. `verify.sh` - Run API validation to verify resources were created correctly
-5. `terraform destroy` - Clean up created resources
-6. Verify deletion via API
+1. **Init** - Plant the pre-downloaded providers (the oneuptime provider uses a dev_override)
+2. **Plan + Apply** - Create the resources
+3. **verify.sh** - API-side validation of created resources
+4. **Drift gate** - `terraform plan -detailed-exitcode` must exit 0. Every test inherits this; verify.sh scripts must NOT re-implement (or weaken) plan checks.
+5. **Update phase** (only if the test dir contains `update.tf`) - The runner copies `update.tf` over `main.tf` (other `.tf` files are kept), re-applies, runs `verify-update.sh` if present, then requires a clean plan again. `update.tf` is a full config that redefines the same resources with 2-3 mutable fields changed; the runner stashes it before the initial apply so Terraform never sees both files at once.
+6. **Import round-trip** - For every `oneuptime_*` address in state: `terraform state rm`, then `terraform import` by id, then a final clean plan. Resources listed in the test's optional `skip-import.txt` (one address per line, e.g. resources whose API has no read endpoint) are skipped.
+7. **Destroy**
+8. **Deletion verification** - Each `*_id` output is checked via the API. Only an empty 2xx body or a 404 counts as deleted; a body still carrying `_id` or any other status (400/auth errors/5xx/timeout) fails the test.
+
+### Fixture rules
+
+- Use **static names** — the suite runs against a fresh test account per run, so collisions are not a concern. Never use `timestamp()`/`formatdate()` in resource arguments; they make every subsequent plan dirty by construction.
+- Do not use `lifecycle { ignore_changes = [...] }` to mask drift. Server-normalized date fields should use fixed future RFC3339 timestamps so regressions in the provider's semantic date equality are caught.
 
 ## Shared Library (lib.sh)
 
@@ -82,7 +91,6 @@ The `scripts/lib.sh` file provides common utility functions for verify.sh script
 | `api_get_resource "/api/endpoint" "$id" '{"select": true}'` | Make an API call to get a resource                                                                 |
 | `verify_resource_exists "/api/endpoint" "$id"`              | Verify a resource exists in the API                                                                |
 | `validate_field "$response" "field" "$expected"`            | Validate a field from API response (handles wrapper unwrapping)                                    |
-| `check_idempotency [strict]`                                | Run idempotency check (terraform plan should show no changes)                                      |
 | `print_header "Test Name"`                                  | Print test header                                                                                  |
 | `print_passed "Test Name"`                                  | Print test passed message                                                                          |
 | `print_failed "Test Name"`                                  | Print test failed message and exit                                                                 |
@@ -119,11 +127,43 @@ if [ $validation_failed -eq 1 ]; then
     print_failed "My Resource Verification"
 fi
 
-# Check idempotency
-check_idempotency true  # strict mode - fails on any changes
-
 print_passed "My Resource Verification"
 ```
+
+Note: verify.sh scripts are for API-side assertions only. Drift/idempotency
+is enforced centrally by the runner's plan gate — do not run `terraform plan`
+from verify.sh.
+
+## Resource Coverage Gate
+
+`scripts/coverage-report.sh` compares the resource types the generated
+provider ships (the `docs/resources/*.md` pages under
+`Terraform/terraform-provider-oneuptime`, or a tree passed via
+`--provider-dir`) against the resource types exercised by the fixtures
+(every `resource "oneuptime_*"` block in `tests/*/main.tf` and
+`tests/*/update.tf`). It prints the counts, the percentage, and the sorted
+list of untested types.
+
+```bash
+# Report only (always exits 0):
+./scripts/coverage-report.sh
+
+# Gate mode (exits 1 if fewer than N resource types are tested):
+./scripts/coverage-report.sh --min-count "$(cat scripts/coverage-baseline.txt)"
+```
+
+`scripts/coverage-baseline.txt` holds the current floor for the number of
+tested resource types. `run-tests.sh` runs the gate at the end of every
+successful suite run (locally and in CI), and the CI workflow runs it again
+as a dedicated step so the result is visible in the GitHub Actions UI.
+Coverage can therefore only ratchet up — a change that silently drops a
+resource type from the suite fails the build.
+
+**When adding tests for new resource types:** run
+`./scripts/coverage-report.sh`, take the "Tested resource types" count, and
+raise `scripts/coverage-baseline.txt` to that number in the same PR.
+Lowering the baseline is only acceptable when a resource type is genuinely
+removed from the provider, and should be called out in the PR description.
 
 ## Environment Variables
 
@@ -142,8 +182,18 @@ Tests run automatically via GitHub Actions on:
 - Pull requests
 - Pushes to `main`, `master`, or `develop` branches
 - Manual workflow dispatch
+- `workflow_call` from other workflows (the release pipeline uses this workflow as a gate)
+
+The workflow pins Terraform to 1.9.8, runs `go vet` / `go test` on the
+generated provider, and runs the test suite exactly once (only the flaky
+services bring-up step is retried).
 
 See `.github/workflows/terraform-provider-e2e.yml` for the workflow configuration.
+
+## Local Development Notes
+
+- `run-tests.sh` writes a dev_overrides config to `~/.terraformrc`. A pre-existing file is backed up to `~/.terraformrc.oneuptime-e2e-backup` and restored on exit (and by `cleanup.sh`).
+- Session cookies are written to a temp file, never into the repo.
 
 ## Adding New Tests
 
@@ -151,7 +201,9 @@ See `.github/workflows/terraform-provider-e2e.yml` for the workflow configuratio
 2. Add `main.tf` with the Terraform configuration
 3. Add `variables.tf` with required variables
 4. Add `verify.sh` for API validation (source the shared library)
-5. Test directories are auto-discovered by `run-tests.sh`
+5. Optionally add `update.tf` (full config with 2-3 mutable fields changed) and `verify-update.sh` for update coverage
+6. Optionally add `skip-import.txt` listing resource addresses that cannot be imported
+7. Test directories are auto-discovered by `run-tests.sh`
 
 ### Test Naming Convention
 

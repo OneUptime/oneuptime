@@ -1,530 +1,95 @@
-# Konfigurasjonsguide for selvhostet OneUptime Terraform
+# Self-Hosted Setup
 
-Denne guiden er spesifikt for kunder som kjører selvhostede OneUptime-instanser. Den dekker versjonshåndtering, konfigurasjon og beste praksis for bruk av Terraform-leverandøren med ditt eget OneUptime-oppsett.
+Everything specific to using the Terraform provider against a self-hosted OneUptime installation: pointing the provider at your instance, choosing the right provider version, mirroring the provider for air-gapped networks, and TLS.
 
-## Viktige merknader
+The provider itself is identical for cloud and self-hosted — same resources, same attributes. Only the URL and the version-selection rule differ.
 
-**Prosjekter kan ikke opprettes via Terraform** – Prosjekter må opprettes manuelt i OneUptime-dashbordet først. Bruk prosjekt-ID-en i Terraform-konfigurasjonene dine.
+## Point the provider at your instance
 
-**Den viktigste regelen for selvhostede kunder**: Fest alltid Terraform-leverandørversjonen til å samsvare nøyaktig med OneUptime-installasjonsversjonen.
-
-## Ressursstruktur
-
-Alle OneUptime Terraform-ressurser følger en forenklet struktur:
-
-- `name` (påkrevd) – Ressursnavn
-- `description` (valgfritt) – Ressursbeskrivelse
-- `data` (valgfritt) – Kompleks konfigurasjon som JSON
-
-## Kritisk: Versjonskompatibilitet
-
-**Den viktigste regelen for selvhostede kunder**: Fest alltid Terraform-leverandørversjonen til å samsvare nøyaktig med OneUptime-installasjonsversjonen.
-
-### Hvorfor versjonsfesting er kritisk
-
-- Terraform-leverandøren genereres automatisk fra OneUptime API
-- Hver OneUptime-versjon kan ha ulike API-endepunkter og skjemaer
-- Bruk av en feilaktig leverandørversjon kan forårsake feil eller uventet atferd
-- Versjonsfesting sikrer kompatibilitet og forutsigbar atferd
-
-## Finne din OneUptime-versjon
-
-### Metode 1: Dashbord
-
-1. Logg inn på OneUptime-dashbordet ditt
-2. Gå til **Settings** → **About**
-3. Se etter versjonsnummeret (f.eks. "7.0.123")
-
-### Metode 2: API-endepunkt
-
-```bash
-curl https://your-oneuptime-instance.com/api/status
-```
-
-### Metode 3: Docker-bilder
-
-Hvis du kjører OneUptime med Docker:
-
-```bash
-docker images | grep oneuptime
-# Se etter taggen, f.eks. oneuptime/dashboard:7.0.123
-```
-
-### Metode 4: Helm-kart
-
-Hvis du bruker Helm:
-
-```bash
-helm list -n oneuptime
-# Sjekk kartet-versjonen
-```
-
-### Metode 5: Miljøvariabler
-
-Sjekk konfigurasjonsfiler for versjonsvariabler:
-
-```bash
-grep -r "APP_VERSION\|IMAGE_TAG" /path/to/your/oneuptime/config
-```
-
-## Maler for leverandørkonfigurasjon
-
-### Mal for versjon 7.0.x
+Set `oneuptime_url` to your instance's origin — scheme and host only, no `/api` suffix, no path:
 
 ```hcl
 terraform {
   required_providers {
     oneuptime = {
       source  = "oneuptime/oneuptime"
-      version = "= 7.0.123"  # Erstatt 123 med ditt eksakte byggnummer
-    }
-  }
-  required_version = ">= 1.0"
-}
-
-provider "oneuptime" {
-  oneuptime_url = "https://oneuptime.yourcompany.com"  # Din selvhostede URL
-  api_key       = var.oneuptime_api_key
-}
-```
-
-### Mal for versjon 7.1.x
-
-```hcl
-terraform {
-  required_providers {
-    oneuptime = {
-      source  = "oneuptime/oneuptime"
-      version = "= 7.1.45"  # Erstatt med din eksakte versjon
-    }
-  }
-  required_version = ">= 1.0"
-}
-
-provider "oneuptime" {
-  oneuptime_url = "https://oneuptime.yourcompany.com"
-  api_key       = var.oneuptime_api_key
-}
-```
-
-## Fullstendig selvhostet konfigurasjonseksempel
-
-Her er et fullstendig eksempel for en selvhostet OneUptime-instans:
-
-```hcl
-# versions.tf
-terraform {
-  required_providers {
-    oneuptime = {
-      source  = "oneuptime/oneuptime"
-      version = "= 7.0.123"  # Må samsvare med din OneUptime-versjon
-    }
-  }
-  required_version = ">= 1.0"
-
-  # Valgfritt: Bruk ekstern tilstand for teamsamarbeid
-  backend "s3" {
-    bucket = "your-terraform-state-bucket"
-    key    = "oneuptime/terraform.tfstate"
-    region = "us-west-2"
-  }
-}
-
-# variables.tf
-variable "oneuptime_url" {
-  description = "OneUptime-instans-URL"
-  type        = string
-  default     = "https://oneuptime.yourcompany.com"
-}
-
-variable "oneuptime_api_key" {
-  description = "OneUptime API-nøkkel"
-  type        = string
-  sensitive   = true
-}
-
-variable "environment" {
-  description = "Miljønavn"
-  type        = string
-  default     = "production"
-}
-
-# providers.tf
-provider "oneuptime" {
-  oneuptime_url = var.oneuptime_url
-  api_key       = var.oneuptime_api_key
-}
-
-# variables.tf
-variable "project_id" {
-  description = "OneUptime prosjekt-ID (opprett manuelt i dashbordet)"
-  type        = string
-}
-
-# main.tf
-# Opprett team
-resource "oneuptime_team" "infrastructure" {
-  name        = "Infrastrukturteam"
-  description = "Infrastruktur- og driftsteam"
-}
-
-resource "oneuptime_team" "development" {
-  name        = "Utviklingsteam"
-  description = "Applikasjonsutviklingsteam"
-  project_id = oneuptime_project.main.id
-}
-
-# Infrastrukturmonitorer
-resource "oneuptime_monitor" "database" {
-  name       = "${var.environment}-database"
-  project_id = oneuptime_project.main.id
-
-  monitor_type = "port"
-  hostname     = "db.internal.yourcompany.com"
-  port         = 5432
-  interval     = "2m"
-  timeout      = "10s"
-
-  tags = {
-    team        = "infrastructure"
-    service     = "database"
-    environment = var.environment
-    criticality = "critical"
-  }
-}
-
-resource "oneuptime_monitor" "application" {
-  name       = "${var.environment}-application"
-  project_id = oneuptime_project.main.id
-
-  monitor_type = "website"
-  url          = "https://app.yourcompany.com/health"
-  interval     = "1m"
-  timeout      = "30s"
-
-  expected_status_codes = [200]
-
-  tags = {
-    team        = "development"
-    service     = "application"
-    environment = var.environment
-    criticality = "high"
-  }
-}
-
-# Vakttpolicyer
-resource "oneuptime_on_call_policy" "infrastructure_oncall" {
-  name       = "Infrastruktur vakt"
-  project_id = oneuptime_project.main.id
-  team_id    = oneuptime_team.infrastructure.id
-
-  schedules {
-    name     = "24x7 Infrastruktur"
-    timezone = "Europe/Oslo"
-
-    layers {
-      name          = "Primær"
-      users         = ["infra1@yourcompany.com", "infra2@yourcompany.com"]
-      rotation_type = "weekly"
-      start_time    = "00:00"
-      end_time      = "23:59"
-      days          = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+      version = "~> 11.0"
     }
   }
 }
 
-# Varselspolicyer
-resource "oneuptime_alert_policy" "critical_infrastructure" {
-  name       = "Kritiske infrastrukturvarsler"
-  project_id = oneuptime_project.main.id
-
-  conditions {
-    monitor_id = oneuptime_monitor.database.id
-    threshold  = "down"
-  }
-
-  actions {
-    type = "email"
-    recipients = ["infrastructure@yourcompany.com"]
-  }
-
-  actions {
-    type             = "oncall_escalation"
-    oncall_policy_id = oneuptime_on_call_policy.infrastructure_oncall.id
-  }
-}
-
-# Intern statusside
-resource "oneuptime_status_page" "internal" {
-  name       = "Interne tjenesterstatus"
-  project_id = oneuptime_project.main.id
-
-  domain = "status.internal.yourcompany.com"
-
-  components {
-    name       = "Database"
-    monitor_id = oneuptime_monitor.database.id
-  }
-
-  components {
-    name       = "Applikasjon"
-    monitor_id = oneuptime_monitor.application.id
-  }
-}
-
-# outputs.tf
-output "project_id" {
-  description = "Prosjekt-ID"
-  value       = oneuptime_project.main.id
-}
-
-output "status_page_url" {
-  description = "Statusside-URL"
-  value       = "https://${oneuptime_status_page.internal.domain}"
-}
-```
-
-## Miljøspesifikk konfigurasjon
-
-### Utviklingsmiljø
-
-```hcl
-# dev.tfvars
-oneuptime_url = "https://oneuptime-dev.yourcompany.com"
-environment = "development"
-```
-
-### Testmiljø
-
-```hcl
-# staging.tfvars
-oneuptime_url = "https://oneuptime-staging.yourcompany.com"
-environment = "staging"
-```
-
-### Produksjonsmiljø
-
-```hcl
-# prod.tfvars
-oneuptime_url = "https://oneuptime.yourcompany.com"
-environment = "production"
-```
-
-## Oppgraderingsprosess for selvhostet
-
-Når du oppgraderer OneUptime-instansen:
-
-### 1. Sjekkliste før oppgradering
-
-```bash
-# Sikkerhetskopier gjeldende Terraform-tilstand
-terraform state pull > backup-$(date +%Y%m%d).tfstate
-
-# Noter gjeldende OneUptime-versjon
-curl https://oneuptime.yourcompany.com/api/status | jq '.version'
-
-# Noter gjeldende leverandørversjon
-terraform providers | grep oneuptime
-```
-
-### 2. Oppgrader OneUptime-instansen
-
-Følg den standard OneUptime-oppgraderingsprosessen (Docker, Helm, osv.)
-
-### 3. Oppdater Terraform-leverandøren
-
-```hcl
-# Oppdater versjon i terraform-blokken
-terraform {
-  required_providers {
-    oneuptime = {
-      source  = "oneuptime/oneuptime"
-      version = "= 7.0.124"  # Ny versjon etter oppgradering
-    }
-  }
-}
-```
-
-### 4. Test og bruk
-
-```bash
-# Oppdater leverandøren
-terraform init -upgrade
-
-# Planlegg for å se eventuelle endringer
-terraform plan
-
-# Bruk hvis alt ser bra ut
-terraform apply
-```
-
-## Nettverkskonfigurasjon
-
-### Brannmurregler
-
-Sørg for at Terraform-kjøreren kan få tilgang til:
-
-- OneUptime API-endepunkt (vanligvis port 443/HTTPS)
-- Eventuelle interne ressurser som overvåkes
-
-### VPN/private nettverk
-
-Hvis OneUptime er på et privat nettverk:
-
-```hcl
 provider "oneuptime" {
-  oneuptime_url = "https://10.0.1.100:443"  # Intern IP
-  api_key       = var.oneuptime_api_key
+  oneuptime_url = "https://oneuptime.example.com"
+  # api_key from ONEUPTIME_API_KEY, or set explicitly:
+  # api_key = var.oneuptime_api_key
 }
 ```
 
-## Beste sikkerhetspraksis
-
-### 1. API-nøkkelhåndtering
+Both settings are also available as environment variables, which keeps configuration portable between cloud and self-hosted roots:
 
 ```bash
-# Bruk miljøvariabler
-export ONEUPTIME_API_KEY="your-api-key"
-
-# Eller bruk et hemmelighetsstyringssystem
-export ONEUPTIME_API_KEY=$(vault kv get -field=api_key secret/oneuptime)
+export ONEUPTIME_URL="https://oneuptime.example.com"
+export ONEUPTIME_API_KEY="your-project-api-key"
 ```
 
-### 2. API-nøkler med minste privilegium
+The API key is a **project API key** created in your instance's dashboard under **Project Settings > API Keys** — exactly as on cloud. Self-hosted master keys do not work and fail with `ProjectId required` (see [Troubleshooting](/docs/terraform/troubleshooting)).
 
-Opprett API-nøkler med minimale nødvendige tillatelser:
+## Choosing a provider version
 
-- Monitoradministrasjon
-- Varselspolicyadministrasjon
-- Teamadministrasjon (om nødvendig)
+Provider versions track OneUptime platform versions. The rule for self-hosted:
 
-### 3. Nettverkssikkerhet
+> Use the **newest published provider version that is less than or equal to your OneUptime platform version.**
+
+- Never use a provider *newer* than your platform — it may drive API fields your installation does not have yet.
+- Do **not** pin an exact patch version. Not every platform patch is published to the registry, so `= 11.0.7`-style pins routinely fail with `no matching version found`.
+
+Express the rule as a bounded constraint. For example, if your installation runs platform release `11.2.x`:
 
 ```hcl
-# Eksempel med TLS-verifisering
-provider "oneuptime" {
-  oneuptime_url = "https://oneuptime.yourcompany.com"
-  api_key       = var.oneuptime_api_key
-
-  # Ytterligere sikkerhetsalternativer hvis støttet
-  verify_ssl = true
-  timeout    = "30s"
-}
+version = ">= 11.0, <= 11.2"
 ```
 
-## Overvåking av Terraform-automatiseringen
+Terraform then selects the newest published 11.x release that does not exceed 11.2 — automatically skipping any unpublished patches. If you track platform majors loosely and stay reasonably current, `~> 11.0` is fine too.
 
-Opprett monitorer for Terraform-automatiseringen:
+Find your platform version in the OneUptime admin dashboard or from your Helm/Docker Compose deployment values. Published provider versions are listed at [registry.terraform.io/providers/oneuptime/oneuptime/versions](https://registry.terraform.io/providers/oneuptime/oneuptime/versions).
+
+**Upgrade order:** upgrade the OneUptime platform first, then raise the provider constraint and run `terraform init -upgrade`.
+
+## Air-gapped installations: mirroring the provider
+
+If the hosts running Terraform cannot reach `registry.terraform.io`, mirror the provider into your network. On a machine with internet access:
+
+```bash
+mkdir -p /srv/terraform-mirror
+cd /path/to/your/terraform/config   # a directory whose required_providers includes oneuptime
+terraform providers mirror /srv/terraform-mirror
+```
+
+This downloads the provider releases matching your constraints, for all platforms, into a directory layout Terraform understands. Transfer the directory inside, serve it (plain HTTPS file server) or share it as a filesystem path, and point Terraform at it in the CLI configuration (`~/.terraformrc`):
 
 ```hcl
-resource "oneuptime_monitor" "terraform_runner" {
-  name       = "Terraform Runner-helse"
-  project_id = oneuptime_project.main.id
-
-  monitor_type = "heartbeat"
-  interval     = "15m"
-
-  tags = {
-    automation = "terraform"
-    criticality = "medium"
+provider_installation {
+  filesystem_mirror {
+    path    = "/srv/terraform-mirror"
+    include = ["registry.terraform.io/oneuptime/oneuptime"]
+  }
+  direct {
+    exclude = ["registry.terraform.io/oneuptime/oneuptime"]
   }
 }
 ```
 
-## Feilsøking av selvhostede problemer
+`terraform init` now installs the OneUptime provider from the mirror and everything else from wherever it normally would (drop the `direct` block to force mirror-only). Re-run the `mirror` command whenever you raise your version constraint.
 
-### Problem: Tilkobling avslått
+## TLS notes
 
-```
-Error: connection refused
-```
+- Terraform is a Go program: it validates your instance's certificate against the **system trust store** of the machine running Terraform. If your instance uses a certificate from a private CA, install that CA certificate on every machine (and CI runner) that runs Terraform. On Debian/Ubuntu: copy the CA to `/usr/local/share/ca-certificates/` and run `update-ca-certificates`.
+- There is deliberately no "skip TLS verification" attribute. If you see `x509: certificate signed by unknown authority`, fix trust — don't try to disable it.
+- Plain HTTP works for lab environments (`oneuptime_url = "http://oneuptime.lab.internal"`), but the project API key is sent with every request; use TLS for anything beyond a throwaway lab.
+- If OneUptime sits behind a reverse proxy or ingress, `oneuptime_url` is the *external* origin the proxy exposes. Make sure the proxy forwards all `/api` paths unmodified.
 
-**Løsninger**:
+## Related pages
 
-1. Sjekk at OneUptime-instansen kjører
-2. Verifiser at API-URL-en er korrekt
-3. Sjekk brannmur/nettverkstilkobling
-4. Verifiser at TLS-sertifikater er gyldige
-
-### Problem: API-versjonskonflikt
-
-```
-Error: API version incompatible
-```
-
-**Løsninger**:
-
-1. Sjekk OneUptime-versjon: `curl https://your-instance/api/status`
-2. Oppdater leverandørversjon til å samsvare
-3. Kjør `terraform init -upgrade`
-
-### Problem: Selvsignerte sertifikater
-
-Hvis du bruker selvsignerte sertifikater:
-
-```bash
-# Hopp midlertidig over TLS-verifisering (ikke anbefalt for produksjon)
-export ONEUPTIME_SKIP_TLS_VERIFY=true
-```
-
-Bedre løsning: Legg til CA-sertifikatet i systemets tillitslager.
-
-## Sikkerhetskopiering og katastrofegjenoppretting
-
-### Tilstandssikkerhetskopiering
-
-```bash
-# Regelmessige tilstandssikkerhetskopier
-terraform state pull > backup-$(date +%Y%m%d-%H%M%S).tfstate
-
-# Automatisert sikkerhetskopieringsskript
-#!/bin/bash
-DATE=$(date +%Y%m%d-%H%M%S)
-terraform state pull > "backups/terraform-state-${DATE}.tfstate"
-find backups/ -name "terraform-state-*.tfstate" -mtime +30 -delete
-```
-
-### Konfigurasjonssikkerhetskopiering
-
-```bash
-# Sikkerhetskopier Terraform-konfigurasjon
-tar -czf terraform-config-$(date +%Y%m%d).tar.gz *.tf *.tfvars
-```
-
-## Multi-miljøhåndtering
-
-### Bruke arbeidsområder
-
-```bash
-# Opprett miljøer
-terraform workspace new dev
-terraform workspace new staging
-terraform workspace new prod
-
-# Bytt mellom miljøer
-terraform workspace select prod
-terraform apply -var-file="prod.tfvars"
-```
-
-### Bruke separate kataloger
-
-```
-terraform/
-├── environments/
-│   ├── dev/
-│   │   ├── main.tf
-│   │   └── terraform.tfvars
-│   ├── staging/
-│   │   ├── main.tf
-│   │   └── terraform.tfvars
-│   └── prod/
-│       ├── main.tf
-│       └── terraform.tfvars
-└── modules/
-    └── oneuptime/
-        ├── main.tf
-        ├── variables.tf
-        └── outputs.tf
-```
-
-Denne tilnærmingen gir bedre isolasjon og enklere versjonshåndtering per miljø.
+- [Registry Usage](/docs/terraform/registry) — how versions are published, release notes
+- [Troubleshooting](/docs/terraform/troubleshooting) — URL, TLS, and key errors in detail
+- [Quick Start](/docs/terraform/quick-start) — first apply, works identically self-hosted

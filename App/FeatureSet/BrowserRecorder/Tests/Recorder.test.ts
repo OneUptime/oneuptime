@@ -599,7 +599,9 @@ describe("Recorder", (): void => {
         fetchMock.mock.calls[0] as Array<unknown>,
       );
 
-      expect(post.url).toBe("https://oneuptime.com/session-replay/v1/chunk");
+      expect(post.url).toBe(
+        "https://oneuptime.com/telemetry/session-replay/v1/chunk",
+      );
       expect(post.envelope.v).toBe(1);
       expect(post.envelope.appIdentifier).toBe("app-1");
       expect(post.envelope.sessionId).toBe(instance.getSessionId());

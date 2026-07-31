@@ -641,13 +641,13 @@ export default class RumApplication extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Enable Session Replay",
     description:
-      "When enabled, the browser recorder may record and upload session replays for this application. Off by default; Project.isSessionReplayAllowed must also be on.",
-    defaultValue: false,
+      "When enabled, the browser recorder may record and upload session replays for this application. On by default; Project.isSessionReplayAllowed must also be on. Turn it off here to stop recording for one application without affecting the rest of the project.",
+    defaultValue: true,
   })
   @Column({
     type: ColumnType.Boolean,
     nullable: false,
-    default: false,
+    default: true,
   })
   public isSessionReplayEnabled?: boolean = undefined;
 
@@ -1099,14 +1099,14 @@ export default class RumApplication extends BaseModel {
     type: TableColumnType.ShortText,
     title: "Session Replay Consent Mode",
     description:
-      "RequireExplicit (default) buffers in memory but uploads nothing until the host page calls grantConsent(). NotRequired asserts a lawful basis that does not need a per-session grant and uploads immediately.",
-    defaultValue: SessionReplayConsentMode.RequireExplicit,
+      "NotRequired (default) uploads immediately, asserting a lawful basis that does not need a per-session grant. RequireExplicit buffers in memory and uploads nothing until the host page calls grantConsent(); set it if you need a per-session consent handshake, which most EU deployments will.",
+    defaultValue: SessionReplayConsentMode.NotRequired,
   })
   @Column({
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
     nullable: false,
-    default: SessionReplayConsentMode.RequireExplicit,
+    default: SessionReplayConsentMode.NotRequired,
   })
   public sessionReplayConsentMode?: SessionReplayConsentMode = undefined;
 

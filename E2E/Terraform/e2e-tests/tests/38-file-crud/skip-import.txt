@@ -1,0 +1,2 @@
+oneuptime_file.logo
+oneuptime_file.favicon

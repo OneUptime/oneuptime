@@ -11,6 +11,10 @@ TEST_EMAIL="terraform-test-${TIMESTAMP}@test.oneuptime.com"
 TEST_PASSWORD="TestPassword123!"
 TEST_NAME="Terraform E2E Test User"
 
+# Session cookies are written to a temp file, never into the repo checkout.
+COOKIE_JAR=$(mktemp -t oneuptime-e2e-cookies.XXXXXX)
+trap 'rm -f "$COOKIE_JAR"' EXIT
+
 echo "=== Setting up test account ==="
 echo "Email: $TEST_EMAIL"
 
@@ -34,7 +38,7 @@ echo "User registered successfully"
 echo "Step 2: Logging in..."
 LOGIN_RESPONSE=$(curl -sf -X POST "${ONEUPTIME_URL}/api/identity/login" \
     -H "Content-Type: application/json" \
-    -c "$TEST_DIR/cookies.txt" \
+    -c "$COOKIE_JAR" \
     -d "{
         \"data\": {
             \"email\": {\"_type\": \"Email\", \"value\": \"$TEST_EMAIL\"},
@@ -42,26 +46,32 @@ LOGIN_RESPONSE=$(curl -sf -X POST "${ONEUPTIME_URL}/api/identity/login" \
         }
     }")
 
-COOKIES="-b $TEST_DIR/cookies.txt"
+COOKIES="-b $COOKIE_JAR"
 echo "Login successful"
 
-# Step 3: Get or create project
+# Step 3: Get or create project. Signup provisions a default project
+# asynchronously, so poll for it instead of racing it with a fixed sleep.
 echo "Step 3: Fetching project..."
-sleep 3  # Wait for automatic project creation
+PROJECT_ID=""
+for _attempt in $(seq 1 30); do
+    PROJECT_RESPONSE=$(curl -s -X POST "${ONEUPTIME_URL}/api/project/get-list" \
+        -H "Content-Type: application/json" \
+        $COOKIES \
+        -d "{
+            \"query\": {},
+            \"select\": {\"_id\": true, \"name\": true},
+            \"limit\": 1
+        }" || true)
 
-PROJECT_RESPONSE=$(curl -sf -X POST "${ONEUPTIME_URL}/api/project/get-list" \
-    -H "Content-Type: application/json" \
-    $COOKIES \
-    -d "{
-        \"query\": {},
-        \"select\": {\"_id\": true, \"name\": true},
-        \"limit\": 1
-    }")
-
-PROJECT_ID=$(echo "$PROJECT_RESPONSE" | jq -r '.data[0]._id // empty')
+    PROJECT_ID=$(echo "$PROJECT_RESPONSE" | jq -r '.data[0]._id // empty' 2>/dev/null || true)
+    if [ -n "$PROJECT_ID" ]; then
+        break
+    fi
+    sleep 2
+done
 
 if [ -z "$PROJECT_ID" ]; then
-    echo "Creating new project..."
+    echo "No auto-provisioned project after polling — creating one..."
     PROJECT_CREATE=$(curl -sf -X POST "${ONEUPTIME_URL}/api/project" \
         -H "Content-Type: application/json" \
         $COOKIES \
@@ -71,6 +81,11 @@ if [ -z "$PROJECT_ID" ]; then
             }
         }")
     PROJECT_ID=$(echo "$PROJECT_CREATE" | jq -r '.data._id // ._id')
+fi
+
+if [ -z "$PROJECT_ID" ] || [ "$PROJECT_ID" = "null" ]; then
+    echo "ERROR: Could not obtain a project id"
+    exit 1
 fi
 
 echo "Project ID: $PROJECT_ID"
@@ -124,15 +139,14 @@ cat > "$TEST_DIR/test-env.sh" << EOF
 export ONEUPTIME_URL="$ONEUPTIME_URL"
 export ONEUPTIME_API_KEY="$API_KEY"
 export TF_VAR_api_key="$API_KEY"
+export TF_VAR_project_id="$PROJECT_ID"
 export TF_VAR_oneuptime_url="$ONEUPTIME_URL"
 EOF
 
 chmod +x "$TEST_DIR/test-env.sh"
 
-# Cleanup cookies
-rm -f "$TEST_DIR/cookies.txt"
-
 echo ""
 echo "=== Setup Complete ==="
 echo "ONEUPTIME_URL: $ONEUPTIME_URL"
+echo "PROJECT_ID: $PROJECT_ID"
 echo "API_KEY: $API_KEY"

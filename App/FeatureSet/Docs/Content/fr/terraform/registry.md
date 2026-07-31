@@ -1,155 +1,60 @@
-# Guide d'installation et d'utilisation du fournisseur Terraform
+# Registry Usage
 
-## Installation depuis le registre Terraform
+The OneUptime provider is distributed through the public Terraform Registry at [registry.terraform.io/providers/oneuptime/oneuptime](https://registry.terraform.io/providers/oneuptime/oneuptime). This page explains what is published there and how versioning works.
 
-Le fournisseur Terraform OneUptime est disponible sur le [Registre Terraform](https://registry.terraform.io/providers/oneuptime/oneuptime) officiel.
+## What's on the registry
 
-### Pour les utilisateurs OneUptime Cloud
+- **The provider binary** for all common platforms (Linux, macOS, Windows; amd64 and arm64). `terraform init` downloads and verifies it automatically — there is nothing to install by hand.
+- **Generated reference documentation** for every resource and data source — the complete attribute list per type, on the registry page's *Documentation* tab. Use it alongside these guides: this documentation explains workflows; the registry docs are the per-attribute reference.
+- **The version history**, one entry per published release.
 
-```hcl
-terraform {
-  required_providers {
-    oneuptime = {
-      source  = "oneuptime/oneuptime"
-      version = "~> 7.0"  # Utiliser la dernière version compatible
-    }
-  }
-  required_version = ">= 1.0"
-}
-
-provider "oneuptime" {
-  oneuptime_url = "https://oneuptime.com"
-  api_key       = var.oneuptime_api_key
-}
-```
-
-### Pour les utilisateurs OneUptime auto-hébergés
-
-⚠️ **Critique** : Les clients auto-hébergés doivent épingler la version du fournisseur pour qu'elle corresponde exactement à leur installation OneUptime.
+Declare the provider like any registry provider:
 
 ```hcl
 terraform {
   required_providers {
     oneuptime = {
       source  = "oneuptime/oneuptime"
-      version = "= 7.0.123"  # Remplacez par votre version exacte OneUptime
+      version = "~> 11.0"
     }
   }
-  required_version = ">= 1.0"
-}
-
-provider "oneuptime" {
-  oneuptime_url = "https://oneuptime.votreentreprise.com"  # Votre URL auto-hébergée
-  api_key       = var.oneuptime_api_key
 }
 ```
 
-## Pourquoi l'épinglage de version pour l'auto-hébergé ?
+`terraform init` records the exact selected version and its checksums in `.terraform.lock.hcl` — commit that file, it is what makes CI runs reproducible.
 
-Le fournisseur Terraform OneUptime est généré automatiquement à partir de la spécification API OneUptime. Chaque version OneUptime peut avoir :
+## How versioning works
 
-- Des points d'accès API différents
-- Des schémas de ressources mis à jour
-- Des fonctionnalités nouvelles ou supprimées
-- Des règles de validation modifiées
+Provider versions **track OneUptime platform versions**: provider 11.x is generated from and tested against OneUptime 11.x. This has two practical consequences:
 
-L'utilisation d'une version de fournisseur qui ne correspond pas à votre installation OneUptime peut entraîner :
+1. **Cloud users** always run the latest platform, so the newest provider is always correct:
 
-- Des erreurs de compatibilité API
-- Des échecs de création/mise à jour de ressources
-- Un comportement inattendu
-- Une dérive d'état des ressources
+```hcl
+version = "~> 11.0"
+```
 
-## Trouver votre version OneUptime
+2. **Self-hosted users** should use the newest published provider version that is **less than or equal to** their OneUptime platform version. A newer provider may reference API fields your older platform does not have.
 
-### Méthode 1 : Tableau de bord
+**Version gaps are normal.** The provider is regenerated and published per meaningful change, not for every platform patch release — so do not pin exact patch versions (`= 11.0.7` may simply not exist on the registry, and `terraform init` will fail with `no matching version found`). Pessimistic constraints (`~> 11.0`) always resolve to a real published version. More on the self-hosted selection rule in [Self-Hosted Setup](/docs/terraform/self-hosted).
 
-1. Connectez-vous à votre tableau de bord OneUptime
-2. Allez dans **Paramètres** → **À propos**
-3. Notez le numéro de version (ex. : « 7.0.123 »)
+## Checking versions and release notes
 
-### Méthode 2 : API
+- Registry version list: [registry.terraform.io/providers/oneuptime/oneuptime/versions](https://registry.terraform.io/providers/oneuptime/oneuptime/versions)
+- Release notes: [github.com/OneUptime/terraform-provider-oneuptime/releases](https://github.com/OneUptime/terraform-provider-oneuptime/releases)
+- Platform releases (which drive provider versions): [github.com/OneUptime/oneuptime/releases](https://github.com/OneUptime/oneuptime/releases)
+
+To move to a newer version within your constraint:
 
 ```bash
-curl https://votre-instance-oneuptime.com/api/version | jq '.version'
+terraform init -upgrade
 ```
 
-### Méthode 3 : Docker
+This re-resolves the constraint, updates `.terraform.lock.hcl`, and prints the selected version. Follow with `terraform plan` to confirm nothing unexpected changed.
 
-```bash
-docker images | grep oneuptime
-# Recherchez le tag, ex. : oneuptime/dashboard:7.0.123
-```
+## Where the code lives
 
-## Informations sur le registre du fournisseur
+The provider is **generated from the OneUptime OpenAPI specification** in the main [OneUptime repository](https://github.com/OneUptime/oneuptime). The published provider repository is read-only build output. File issues — including documentation issues — against the main repository: [github.com/OneUptime/oneuptime/issues](https://github.com/OneUptime/oneuptime/issues).
 
-- **URL du registre** : https://registry.terraform.io/providers/oneuptime/oneuptime
-- **Dépôt source** : https://github.com/OneUptime/terraform-provider-oneuptime
-- **Documentation** : https://registry.terraform.io/providers/oneuptime/oneuptime/latest/docs
-- **Versions** : https://github.com/OneUptime/terraform-provider-oneuptime/releases
+## Air-gapped environments
 
-## Matrice de compatibilité des versions
-
-| Version OneUptime | Version du fournisseur | Configuration Terraform |
-| ----------------- | ---------------------- | ----------------------- |
-| 7.0.x             | 7.0.x                  | `version = "~> 7.0.0"`  |
-| 7.1.x             | 7.1.x                  | `version = "~> 7.1.0"`  |
-| Cloud (dernière)  | Dernier fournisseur    | `version = "~> 7.0"`    |
-
-## Exemple de démarrage rapide
-
-```hcl
-# Configurer le fournisseur
-terraform {
-  required_providers {
-    oneuptime = {
-      source  = "oneuptime/oneuptime"
-      version = "~> 7.0"  # À ajuster pour l'auto-hébergé
-    }
-  }
-}
-
-provider "oneuptime" {
-  oneuptime_url = "https://oneuptime.com"  # À ajuster pour l'auto-hébergé
-  api_key       = var.oneuptime_api_key
-}
-
-# Créer un projet
-resource "oneuptime_project" "example" {
-  name        = "Exemple Terraform"
-  description = "Créé avec Terraform"
-}
-
-# Créer un moniteur de site Web
-resource "oneuptime_monitor" "website" {
-  name       = "Moniteur de site Web"
-  project_id = oneuptime_project.example.id
-
-  monitor_type = "website"
-  url          = "https://example.com"
-  interval     = "5m"
-
-  tags = {
-    managed_by = "terraform"
-  }
-}
-```
-
-## Étapes d'installation
-
-1. **Créez votre configuration Terraform** avec le bloc fournisseur
-2. **Initialisez Terraform** : `terraform init`
-3. **Définissez votre clé API** : Créez `terraform.tfvars` avec votre clé API
-4. **Planifiez votre déploiement** : `terraform plan`
-5. **Appliquez votre configuration** : `terraform apply`
-
-## Obtenir de l'aide
-
-- **Documentation complète** : Consultez la [documentation Terraform complète](./README.md)
-- **Guide auto-hébergé** : Consultez le [guide de configuration auto-hébergée](./self-hosted.md)
-- **Exemples** : Parcourez les [exemples de configuration](./examples.md)
-- **Démarrage rapide** : Suivez le [guide de démarrage rapide](./quick-start.md)
-
-## Mises à jour du registre
-
-Le fournisseur est automatiquement publié dans le registre Terraform lorsque de nouvelles versions OneUptime sont publiées. Les clients cloud peuvent utiliser la gestion sémantique des versions (`~> 7.0`) pour obtenir automatiquement des mises à jour compatibles, tandis que les clients auto-hébergés doivent épingler à des versions exactes.
+If your Terraform hosts cannot reach the public registry, mirror the provider internally with `terraform providers mirror` — walkthrough in [Self-Hosted Setup](/docs/terraform/self-hosted).

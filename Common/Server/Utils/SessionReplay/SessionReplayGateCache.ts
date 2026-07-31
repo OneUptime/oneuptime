@@ -242,7 +242,7 @@ export default class SessionReplayGateCache {
     const isProjectAllowed: boolean =
       projectView["isSessionReplayAllowed"] === true;
 
-    const app: RumApplication | null = await RumApplicationService.findOneBy({
+    let app: RumApplication | null = await RumApplicationService.findOneBy({
       query: {
         projectId: data.projectId,
         appIdentifier: QueryHelper.findWithSameText(data.appIdentifier),
@@ -255,6 +255,45 @@ export default class SessionReplayGateCache {
         isRoot: true,
       },
     });
+
+    /*
+     * Create the application on first sight, the same way OTel RUM telemetry
+     * does via findOrCreateByAppIdentifier.
+     *
+     * Without this, session replay cannot bootstrap itself at all: there is no
+     * "create application" button in the Dashboard - RUM applications appear
+     * only once telemetry arrives - so a customer who pastes the recorder
+     * snippet and nothing else would get enabled:false forever, with the
+     * recorder silently declining to record and no way to fix it from the UI.
+     *
+     * Only reached behind an authenticated, project-scoped ingestion key, and
+     * only for a project that already allows session replay, so this creates
+     * exactly the row the customer's own traffic implies.
+     */
+    if (!app) {
+      if (!isProjectAllowed) {
+        return null;
+      }
+
+      await RumApplicationService.findOrCreateByAppIdentifier({
+        projectId: data.projectId,
+        appIdentifier: data.appIdentifier,
+      });
+
+      app = await RumApplicationService.findOneBy({
+        query: {
+          projectId: data.projectId,
+          appIdentifier: QueryHelper.findWithSameText(data.appIdentifier),
+        },
+        select: this.buildSelect(
+          new RumApplication(),
+          RUM_APPLICATION_POLICY_COLUMNS,
+        ),
+        props: {
+          isRoot: true,
+        },
+      });
+    }
 
     if (!app || !app.id) {
       return null;
@@ -355,10 +394,29 @@ export default class SessionReplayGateCache {
     policy: SessionReplayGatePolicy,
     origin: string | undefined,
   ): boolean {
+    /*
+     * An empty allowlist means "any origin", not "no origin".
+     *
+     * Be aware of what this gives up. TelemetryIngestionKey has no expiry, no
+     * scope and no origin binding, and the install instructions put it in
+     * plain sight in the customer's browser JavaScript. The allowlist was the
+     * only control preventing anyone who scraped that key from writing
+     * recordings into the victim's project, so with it empty a project is
+     * open to forged sessions until someone fills it in.
+     *
+     * Populate sessionReplayAllowedOrigins per application in production. The
+     * rate limit and the per-project byte budget still bound the damage, but
+     * they bound volume, not authenticity.
+     */
     if (policy.allowedOrigins.length === 0) {
-      return false;
+      return true;
     }
 
+    /*
+     * A configured allowlist is still enforced strictly: once the customer has
+     * named their origins, a request without an Origin header is refused
+     * rather than waved through.
+     */
     if (!origin) {
       return false;
     }
@@ -436,13 +494,19 @@ export default class SessionReplayGateCache {
   ): SelectOptions<TModel> {
     const declared: Set<string> = new Set<string>(Object.keys(instance));
 
+    /*
+     * Only _id is universal. projectId and updatedAt are guarded like every
+     * other column because this helper is used for BOTH Project and
+     * RumApplication, and Project has no projectId of its own - selecting it
+     * there asks the ORM for a column that does not exist, which yields no
+     * row rather than an error, so the policy silently resolved to null and
+     * session replay reported itself disabled with nothing in the logs.
+     */
     const select: Record<string, boolean> = {
       _id: true,
-      projectId: true,
-      updatedAt: true,
     };
 
-    for (const column of optionalColumns) {
+    for (const column of ["projectId", "updatedAt", ...optionalColumns]) {
       if (declared.has(column)) {
         select[column] = true;
       }

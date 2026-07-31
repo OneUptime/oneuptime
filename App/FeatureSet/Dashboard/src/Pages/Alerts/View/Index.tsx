@@ -64,6 +64,7 @@ import InvestigationPanel from "../../../Components/AI/InvestigationPanel";
 import EventStatTile from "../../../Components/EventView/EventStatTile";
 import EntityRunbooks from "../../../Components/Runbook/EntityRunbooks";
 import AlertAffectedResources from "./AffectedResources";
+import MonitorSummarySnapshotCard from "../../../Components/Monitor/MonitorSummarySnapshotCard";
 import ExceptionInstanceTable from "../../../Components/Exceptions/ExceptionInstanceTable";
 import Query from "Common/Types/BaseDatabase/Query";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
@@ -449,6 +450,8 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 }
               />
             )}
+
+          <MonitorSummarySnapshotCard alertId={modelId} />
 
           <AlertAffectedResources alertId={modelId} />
 
