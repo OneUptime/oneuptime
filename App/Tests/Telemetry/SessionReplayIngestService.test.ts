@@ -277,6 +277,7 @@ function buildPolicy(
     captureGeo: true,
     retentionInDays: 7,
     monthlyBudgetInGB: null,
+    ignoreErrorPatterns: [],
     configEpoch: 1234,
     ...overrides,
   };

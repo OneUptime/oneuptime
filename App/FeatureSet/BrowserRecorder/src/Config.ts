@@ -345,6 +345,11 @@ export default class Config {
       maskSelectors: Config.readStringArray(raw["maskSelectors"]),
       blockSelectors: Config.readStringArray(raw["blockSelectors"]),
       urlAllowlist: Config.readStringArray(raw["urlAllowlist"]),
+      /*
+       * Absent on an older server is an empty list: every error stays
+       * trigger-worthy, which is the pre-feature behaviour.
+       */
+      ignoreErrorPatterns: Config.readStringArray(raw["ignoreErrorPatterns"]),
       recordCanvas: raw["recordCanvas"] === true,
       captureUserIdentity: raw["captureUserIdentity"] === true,
 

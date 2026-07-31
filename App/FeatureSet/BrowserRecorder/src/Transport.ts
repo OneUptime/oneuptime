@@ -54,6 +54,22 @@ interface QueuedChunk {
 }
 
 /*
+ * How one POST resolved, from the DRAIN loop's point of view:
+ *
+ *   accepted        the chunk landed; keep going.
+ *   chunk-rejected  THIS chunk was refused (413/422/400) but the transport
+ *                   is healthy; drop it, keep draining.
+ *   halt            the transport itself cannot take more right now
+ *                   (network failure, 5xx, 429, breaker) — stop draining
+ *                   and preserve whatever has not been posted yet.
+ *
+ * A boolean cannot carry the middle case, and the middle case is what
+ * makes the difference between "one oversized chunk" and "every chunk
+ * behind it silently gone".
+ */
+type PostOutcome = "accepted" | "chunk-rejected" | "halt";
+
+/*
  * Uint8Array<ArrayBuffer>, not the default Uint8Array<ArrayBufferLike>. The
  * DOM's BodyInit only accepts views over a real ArrayBuffer, so the wider
  * default (which admits SharedArrayBuffer) cannot be used as a fetch body.
@@ -204,19 +220,59 @@ export default class Transport {
     const queued: Array<QueuedChunk> = this.retryQueue;
     this.retryQueue = [];
 
-    for (const chunk of queued) {
-      const retried: boolean = await this.post(chunk, false);
+    for (let index: number = 0; index < queued.length; index++) {
+      const outcome: PostOutcome = await this.post(queued[index]!, false);
 
-      if (!retried) {
+      /*
+       * A rejected CHUNK (413/422/400) is not a rejected TRANSPORT: that
+       * one chunk is dropped and counted, and the drain continues — the
+       * next chunk may be perfectly acceptable.
+       */
+      if (outcome === "chunk-rejected") {
+        continue;
+      }
+
+      if (outcome === "halt") {
         /*
-         * Stop draining on the first failure. Continuing would keep firing
-         * requests at an endpoint that has just told us it cannot take them.
+         * Stop draining on a transport-level failure. The chunk that
+         * failed was already re-enqueued (retryable, 429) or dropped
+         * (breaker tripped), but the chunks BEHIND it in the drained
+         * array were neither posted nor back in the queue — losing them
+         * silently was exactly the bug. Restore them in index order, or
+         * count them when the breaker just cleared the queue for good.
          */
+        const remainder: Array<QueuedChunk> = queued.slice(index + 1);
+
+        if (this.disabled) {
+          this.droppedChunks += remainder.length;
+        } else {
+          for (const chunk of remainder) {
+            this.enqueueForRetry(chunk);
+          }
+        }
+
         break;
       }
     }
 
-    return await this.post({ envelope: envelope, payload: payload }, false);
+    if (this.disabled) {
+      this.droppedChunks++;
+      return false;
+    }
+
+    /*
+     * A 429 received mid-drain throttles the CURRENT chunk too. Posting it
+     * anyway would violate the throttle one request after receiving it.
+     */
+    if (this.isThrottled()) {
+      this.enqueueForRetry({ envelope: envelope, payload: payload });
+      return false;
+    }
+
+    return (
+      (await this.post({ envelope: envelope, payload: payload }, false)) ===
+      "accepted"
+    );
   }
 
   /*
@@ -280,7 +336,10 @@ export default class Transport {
     }
   }
 
-  private async post(chunk: QueuedChunk, isRetry: boolean): Promise<boolean> {
+  private async post(
+    chunk: QueuedChunk,
+    isRetry: boolean,
+  ): Promise<PostOutcome> {
     const compressed: CompressionResult = await Transport.compress(
       chunk.payload,
     );
@@ -307,7 +366,7 @@ export default class Transport {
     } catch {
       /* Network-level failure: retryable, and it counts against the breaker. */
       this.recordRetryableFailure(chunk, isRetry);
-      return false;
+      return "halt";
     }
 
     return await this.handleResponse(response, chunk, isRetry);
@@ -317,13 +376,13 @@ export default class Transport {
     response: Response,
     chunk: QueuedChunk,
     isRetry: boolean,
-  ): Promise<boolean> {
+  ): Promise<PostOutcome> {
     const status: number = response.status;
 
     if (status >= 200 && status < 300) {
       this.consecutiveFailures = 0;
       await this.applyDirective(response);
-      return true;
+      return "accepted";
     }
 
     /*
@@ -333,7 +392,7 @@ export default class Transport {
      */
     if (status === 401 || status === 403 || status === 404) {
       this.disable(`http-${status}`);
-      return false;
+      return "halt";
     }
 
     /*
@@ -343,7 +402,7 @@ export default class Transport {
      */
     if (status === 413 || status === 422 || status === 400) {
       this.droppedChunks++;
-      return false;
+      return "chunk-rejected";
     }
 
     if (status === 429) {
@@ -356,12 +415,12 @@ export default class Transport {
        * A healthy server asking us to slow down is not a failure. Counting
        * it would self-disable exactly the recorders on the busiest sites.
        */
-      return false;
+      return "halt";
     }
 
     this.recordRetryableFailure(chunk, isRetry);
 
-    return false;
+    return "halt";
   }
 
   private async applyDirective(response: Response): Promise<void> {

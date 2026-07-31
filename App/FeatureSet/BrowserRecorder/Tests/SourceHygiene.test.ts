@@ -73,6 +73,7 @@ describe("source hygiene", (): void => {
       "Config.ts",
       "Consent.ts",
       "ConsoleRecorder.ts",
+      "EarlyErrors.ts",
       "ErrorRecorder.ts",
       "FrustrationDetector.ts",
       "Index.ts",
@@ -162,13 +163,20 @@ describe("source hygiene", (): void => {
    * recording would still pay to download the recorder.
    */
   it("keeps rrweb and the Recorder out of the loader stub", (): void => {
-    const loader: string =
-      sources.find((source: { name: string }): boolean => {
-        return source.name === "Loader.ts";
-      })?.contents || "";
+    /*
+     * Both stub modules: the loader itself and the pre-load error buffer
+     * it bundles. An import added to either lands in the size-budgeted
+     * stub every customer page downloads.
+     */
+    for (const stubModule of ["Loader.ts", "EarlyErrors.ts"]) {
+      const contents: string =
+        sources.find((source: { name: string }): boolean => {
+          return source.name === stubModule;
+        })?.contents || "";
 
-    expect(loader).not.toContain("rrweb");
-    expect(loader).not.toContain('from "./Recorder"');
+      expect(contents).not.toContain("rrweb");
+      expect(contents).not.toContain('from "./Recorder"');
+    }
   });
 
   /*

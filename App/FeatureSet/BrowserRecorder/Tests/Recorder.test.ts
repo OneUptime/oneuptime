@@ -37,6 +37,7 @@ const baseConfig: () => SessionReplayConfigResponse =
       maskSelectors: [],
       blockSelectors: [],
       urlAllowlist: [],
+      ignoreErrorPatterns: [],
       recordCanvas: false,
       captureUserIdentity: false,
       respectDoNotTrack: true,
@@ -195,6 +196,97 @@ describe("Recorder", (): void => {
         readPost(fetchMock.mock.calls[0] as Array<unknown>).envelope
           .hasFullSnapshot,
       ).toBe(true);
+    });
+
+    /*
+     * The 15x storage/privacy bet: one chronically-throwing third-party
+     * tag must not convert error-triggered capture into always-on upload.
+     */
+    it("does not upload over stackless cross-origin 'Script error.' noise", (): void => {
+      const instance: Recorder = startRecorder();
+
+      window.dispatchEvent(
+        new ErrorEvent("error", { message: "Script error." }),
+      );
+
+      expect(instance.isUploading()).toBe(false);
+      expect(instance.getTriggerReason()).toBeNull();
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it("does not upload over a pattern-ignored error, but a genuine one still triggers", (): void => {
+      const instance: Recorder = startRecorder({
+        ignoreErrorPatterns: ["third-party-tag\\.js"],
+      });
+
+      window.dispatchEvent(
+        new ErrorEvent("error", {
+          message: "boom",
+          filename: "https://cdn.example.net/third-party-tag.js",
+        }),
+      );
+
+      expect(instance.isUploading()).toBe(false);
+
+      window.dispatchEvent(
+        new ErrorEvent("error", {
+          message: "genuine failure",
+          filename: "https://shop.example.com/app.js",
+        }),
+      );
+
+      expect(instance.isUploading()).toBe(true);
+      expect(instance.getTriggerReason()).toBe(
+        SessionReplayTriggerReason.Error,
+      );
+    });
+
+    /*
+     * A startup crash caught by the loader stub's pre-load buffer must
+     * trigger capture once the recorder starts — that window used to be
+     * a void.
+     */
+    it("a replayed early error triggers the upload at start", (): void => {
+      const instance: Recorder = new Recorder({
+        initOptions: INIT_OPTIONS,
+        config: baseConfig(),
+        earlyErrors: [
+          {
+            kind: "error",
+            message: "boom during startup",
+            source: "https://shop.example.com/app.js",
+            atUnixMs: Date.now() - 3000,
+          },
+        ],
+      });
+
+      instance.start();
+      recorder = instance;
+
+      expect(instance.isUploading()).toBe(true);
+      expect(instance.getTriggerReason()).toBe(
+        SessionReplayTriggerReason.Error,
+      );
+    });
+
+    it("a replayed early 'Script error.' stays noise, exactly like a live one", (): void => {
+      const instance: Recorder = new Recorder({
+        initOptions: INIT_OPTIONS,
+        config: baseConfig(),
+        earlyErrors: [
+          {
+            kind: "error",
+            message: "Script error.",
+            atUnixMs: Date.now() - 3000,
+          },
+        ],
+      });
+
+      instance.start();
+      recorder = instance;
+
+      expect(instance.isUploading()).toBe(false);
+      expect(instance.getTriggerReason()).toBeNull();
     });
 
     it("uploads on an explicit captureSession call", (): void => {

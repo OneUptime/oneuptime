@@ -60,6 +60,7 @@ function maskAllTextConfig(): SessionReplayConfigResponse {
     maskSelectors: [],
     blockSelectors: [],
     urlAllowlist: [],
+    ignoreErrorPatterns: [],
     recordCanvas: false,
     captureUserIdentity: false,
     respectDoNotTrack: true,

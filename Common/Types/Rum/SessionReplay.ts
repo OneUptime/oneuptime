@@ -152,6 +152,12 @@ export enum SessionReplayFidelityNotice {
   SnapshotTooLarge = "snapshot-too-large",
   BufferOverflow = "buffer-overflow",
   BfcacheRestore = "bfcache-restore",
+  /*
+   * One or more configured ignoreErrorPatterns could not be applied
+   * (invalid regex, or over the count/length caps), so error triggering
+   * may be noisier than the application's settings intend.
+   */
+  IgnorePatternsDiscarded = "ignore-patterns-discarded",
 }
 
 /* Why a session stopped accumulating chunks. */
@@ -161,6 +167,13 @@ export enum SessionReplaySealedReason {
   DurationCap = "duration-cap",
   Budget = "budget",
   Truncated = "truncated",
+  /*
+   * Sealed by the never-finalized sweep for a session whose chunks never
+   * landed or expired before finalization could run: the header survives
+   * as an honest "a recording existed but was lost" record instead of
+   * sitting provisional (and re-swept) forever.
+   */
+  RecordingLost = "recording-lost",
 }
 
 /*
@@ -308,6 +321,16 @@ export interface SessionReplayConfigResponse {
 
   recordCanvas: boolean;
   captureUserIdentity: boolean;
+
+  /*
+   * Regex strings matched (case-insensitively) against an uncaught
+   * error's message and source URL. A matching error is still RECORDED in
+   * the session, but it no longer fires the error capture trigger — the
+   * dashboard-side remedy for a chronically-throwing third-party tag that
+   * would otherwise convert error-triggered capture into always-on
+   * upload, without waiting on a recorder release.
+   */
+  ignoreErrorPatterns: Array<string>;
 
   respectDoNotTrack: boolean;
 

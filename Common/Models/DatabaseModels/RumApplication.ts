@@ -822,6 +822,51 @@ export default class RumApplication extends BaseModel {
       Permission.EditRumApplication,
     ],
   })
+  /* Not required, for the same reason as the mask selectors above. */
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Session Replay Ignored Error Patterns",
+    description:
+      "Regex patterns matched against an uncaught error's message and source URL. Matching errors are still recorded in the session but no longer trigger an upload — the remedy for a chronically-throwing third-party tag that would otherwise convert error-triggered capture into always-on recording.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: false,
+    default: () => {
+      return "'[]'";
+    },
+  })
+  public sessionReplayIgnoreErrorPatterns?: Array<string> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateRumApplication,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadRumApplication,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditRumApplication,
+    ],
+  })
   /*
    * Not required, for the same reason as the selector lists above. Note
    * that the omitted value is the SAFE one here: an empty allowlist means
