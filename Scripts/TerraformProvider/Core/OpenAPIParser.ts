@@ -255,22 +255,34 @@ export class OpenAPIParser {
   ): OperationType | null {
     const operationId: string = operation.operationId || "";
 
-    if (/^create/i.test(operationId)) {
+    /*
+     * Hoisted regex constants rather than bare literals in the condition:
+     * the repo's wrap-regex lint rule and prettier disagree about
+     * parenthesised regex literals, and named constants satisfy both.
+     */
+    const createPrefix: RegExp = new RegExp("^create", "i");
+    const getPrefix: RegExp = new RegExp("^get", "i");
+    const updatePrefix: RegExp = new RegExp("^update", "i");
+    const deletePrefix: RegExp = new RegExp("^delete", "i");
+    const listPrefix: RegExp = new RegExp("^list", "i");
+    const countPrefix: RegExp = new RegExp("^count", "i");
+
+    if (createPrefix.test(operationId)) {
       return "create";
     }
-    if (/^get/i.test(operationId)) {
+    if (getPrefix.test(operationId)) {
       return "read";
     }
-    if (/^update/i.test(operationId)) {
+    if (updatePrefix.test(operationId)) {
       return "update";
     }
-    if (/^delete/i.test(operationId)) {
+    if (deletePrefix.test(operationId)) {
       return "delete";
     }
-    if (/^list/i.test(operationId)) {
+    if (listPrefix.test(operationId)) {
       return "list";
     }
-    if (/^count/i.test(operationId)) {
+    if (countPrefix.test(operationId)) {
       // Count endpoints are not CRUD operations.
       return null;
     }
