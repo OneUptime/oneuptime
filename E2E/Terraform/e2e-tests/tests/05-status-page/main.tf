@@ -13,11 +13,11 @@ provider "oneuptime" {
 }
 
 resource "oneuptime_status_page" "test" {
-  name                    = "terraform-e2e-statuspage"
-  description             = "Status page created by Terraform E2E tests"
-  page_title              = "Terraform Test Status"
-  page_description        = "This is a test status page"
-  is_public_status_page   = false
+  name                     = "terraform-e2e-statuspage"
+  description              = "Status page created by Terraform E2E tests"
+  page_title               = "Terraform Test Status"
+  page_description         = "This is a test status page"
+  is_public_status_page    = false
   enable_email_subscribers = false
   enable_sms_subscribers   = false
 }

@@ -16,6 +16,8 @@ SSL_ID=$(terraform output -raw ssl_monitor_id 2>/dev/null || echo "")
 SSL_TYPE=$(terraform output -raw ssl_monitor_type 2>/dev/null || echo "")
 IP_ID=$(terraform output -raw ip_monitor_id 2>/dev/null || echo "")
 IP_TYPE=$(terraform output -raw ip_monitor_type 2>/dev/null || echo "")
+WEBSITE_DESTINATION=$(terraform output -raw website_monitor_destination 2>/dev/null || echo "")
+PORT_MONITOR_PORT=$(terraform output -raw port_monitor_port 2>/dev/null || echo "")
 
 echo ""
 echo "Website Monitor: ID=$WEBSITE_ID, Type=$WEBSITE_TYPE"
@@ -24,6 +26,8 @@ echo "Ping Monitor: ID=$PING_ID, Type=$PING_TYPE"
 echo "Port Monitor: ID=$PORT_ID, Type=$PORT_TYPE"
 echo "SSL Monitor: ID=$SSL_ID, Type=$SSL_TYPE"
 echo "IP Monitor: ID=$IP_ID, Type=$IP_TYPE"
+echo "Website Destination (typed): $WEBSITE_DESTINATION"
+echo "Port Monitor Port (typed): $PORT_MONITOR_PORT"
 
 # Verify all monitors created
 ERRORS=0
@@ -85,6 +89,17 @@ fi
 
 if [ "$IP_TYPE" != "IP" ]; then
     echo "ERROR: IP monitor type mismatch. Expected 'IP', got '$IP_TYPE'"
+    ERRORS=$((ERRORS + 1))
+fi
+
+# Typed nested attribute access: monitor_steps[0].monitor_destination / .port
+if [ "$WEBSITE_DESTINATION" != "https://example.com" ]; then
+    echo "ERROR: Website monitor_steps[0].monitor_destination mismatch. Expected 'https://example.com', got '$WEBSITE_DESTINATION'"
+    ERRORS=$((ERRORS + 1))
+fi
+
+if [ "$PORT_MONITOR_PORT" != "443" ]; then
+    echo "ERROR: Port monitor_steps[0].port mismatch. Expected '443', got '$PORT_MONITOR_PORT'"
     ERRORS=$((ERRORS + 1))
 fi
 

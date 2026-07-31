@@ -506,5 +506,15 @@ if [ ${#FAILED[@]} -gt 0 ]; then
     exit 1
 fi
 
+# Coverage gate: the number of resource types exercised by the fixtures may
+# only ratchet up. scripts/coverage-baseline.txt holds the current floor —
+# bump it when adding fixtures for new resource types.
+echo ""
+if ! "$SCRIPT_DIR/coverage-report.sh" \
+    --provider-dir "$PROVIDER_DIR" \
+    --min-count "$(cat "$SCRIPT_DIR/coverage-baseline.txt")"; then
+    exit 1
+fi
+
 echo ""
 echo "All tests passed!"

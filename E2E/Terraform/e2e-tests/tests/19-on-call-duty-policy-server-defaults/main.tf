@@ -24,7 +24,7 @@ provider "oneuptime" {
 
 # Create on-call policy with minimal fields
 resource "oneuptime_on_call_policy" "test_server_defaults" {
-  name       = "On-Call Policy Server Defaults Test"
+  name = "On-Call Policy Server Defaults Test"
 
   # IMPORTANT: We intentionally DO NOT specify these Optional+Computed fields:
   # - description (string)
