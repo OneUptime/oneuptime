@@ -62,16 +62,6 @@ export function getChunkUrl(options: RecorderInitOptions): string {
   return `${options.host}${CHUNK_PATH}`;
 }
 
-/*
- * A standalone function rather than a Config static on purpose: class
- * methods are never tree-shaken, and only the ARTIFACT posts chunks. As
- * a static this rode along in the loader stub (which lives on a hard
- * byte budget) as dead weight.
- */
-export function getChunkUrl(options: RecorderInitOptions): string {
-  return `${options.host}${CHUNK_PATH}`;
-}
-
 /* Where the pinned, immutable artifact lives. */
 export const ARTIFACT_PATH_PREFIX: string = "/telemetry/session-replay";
 
