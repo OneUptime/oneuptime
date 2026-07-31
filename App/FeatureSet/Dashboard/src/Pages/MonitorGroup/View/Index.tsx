@@ -2,7 +2,7 @@ import LabelsElement from "Common/UI/Components/Label/Labels";
 import PageComponentProps from "../../PageComponentProps";
 import URL from "Common/Types/API/URL";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { Green } from "Common/Types/BrandColors";
+import { Gray500, Green } from "Common/Types/BrandColors";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
@@ -301,7 +301,7 @@ const MonitorGroupView: FunctionComponent<
           startDate={OneUptimeDate.getSomeDaysAgo(90)}
           endDate={OneUptimeDate.getCurrentDate()}
           isLoading={isLoading}
-          defaultBarColor={Green}
+          defaultBarColor={Gray500}
           downtimeMonitorStatuses={downTimeMonitorStatues}
         />
       </Card>

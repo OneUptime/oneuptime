@@ -755,7 +755,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           startDate={OneUptimeDate.getSomeDaysAgo(90)}
           endDate={OneUptimeDate.getCurrentDate()}
           isLoading={isLoading}
-          defaultBarColor={Green}
+          defaultBarColor={Gray500}
           downtimeMonitorStatuses={downTimeMonitorStatues}
           incidents={timelineIncidents}
           onIncidentClick={(incidentId: string) => {

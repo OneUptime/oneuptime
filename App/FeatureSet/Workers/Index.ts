@@ -25,6 +25,7 @@ import "./Jobs/SloOwners/SendOwnerAddedNotification";
 
 // Monitor Jobs.
 import "./Jobs/Monitor/KeepCurrentStateConsistent";
+import "./Jobs/Monitor/ReconcileActiveMonitoringTimeline";
 
 // Alert Owners
 import "./Jobs/AlertOwners/SendCreatedResourceNotification";

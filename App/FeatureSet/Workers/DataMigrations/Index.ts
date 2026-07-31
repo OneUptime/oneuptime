@@ -100,6 +100,7 @@ import AddRightSizingColumnsToKubernetesCostAllocation from "./AddRightSizingCol
 import MoveNetworkDeviceMonitorCollectionToDevices from "./MoveNetworkDeviceMonitorCollectionToDevices";
 import BackfillNetworkSiteTypes from "./BackfillNetworkSiteTypes";
 import AddSessionIdToTelemetryTables from "./AddSessionIdToTelemetryTables";
+import CloseOpenMonitorStatusTimelinesForDisabledMonitors from "./CloseOpenMonitorStatusTimelinesForDisabledMonitors";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -323,6 +324,13 @@ const DataMigrations: Array<DataMigrationBase> = [
    * because a throw here halts every migration after it.
    */
   new AddSessionIdToTelemetryTables(),
+  /*
+   * Directly disabled monitors used to retain an open Operational/Offline
+   * status row indefinitely. Close the latest row at deploy time so existing
+   * disabled monitors stop accruing fabricated status history; runtime hooks
+   * record exact pause/resume boundaries from this point onward.
+   */
+  new CloseOpenMonitorStatusTimelinesForDisabledMonitors(),
 ];
 
 export default DataMigrations;

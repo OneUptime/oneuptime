@@ -14,6 +14,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import MonitorStatusTimeline from "../../Models/DatabaseModels/MonitorStatusTimeline";
+import Monitor from "../../Models/DatabaseModels/Monitor";
 import MonitorFeedService from "./MonitorFeedService";
 import { MonitorFeedEventType } from "../../Models/DatabaseModels/MonitorFeed";
 import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
@@ -37,6 +38,13 @@ export const MONITOR_STATUS_SAME_AS_PREVIOUS_ERROR_MESSAGE: string =
  */
 export const MONITOR_STATUS_TIMELINE_LOCK_ERROR_MESSAGE: string =
   "Could not acquire the monitor status timeline lock for this monitor.";
+
+export interface ActiveMonitoringTimelineReconciliationResult {
+  didPause: boolean;
+  didResume: boolean;
+  monitorWasFound: boolean;
+  stateMatchedExpectation: boolean;
+}
 
 export class Service extends DatabaseService<MonitorStatusTimeline> {
   public constructor() {
@@ -73,33 +81,26 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
       monitorId: createBy.data.monitorId?.toString(),
     } as LogAttributes;
 
-    let mutex: SemaphoreMutex | null = null;
-
-    try {
-      mutex = await Semaphore.lock({
-        key: createBy.data.monitorId.toString(),
-        namespace: "MonitorStatusTimeline.create",
-      });
-    } catch (e) {
-      /*
-       * Fail closed. This used to fall through and INSERT UNLOCKED, which let two
-       * concurrent writers resolve the same predecessor row, both pass the
-       * same-as-previous check, and both INSERT a status row milliseconds apart.
-       * Only the later row is ever closed (the next writer resolves its
-       * predecessor with ORDER BY startsAt DESC LIMIT 1), so the earlier row is
-       * orphaned with endsAt = NULL permanently and is read back as unbounded
-       * downtime. Refusing the write is strictly safer: the monitor keeps its
-       * current status and the next probe result for the same monitor
-       * re-evaluates the same criteria and recreates the status change.
-       */
-      logger.error(e, logAttributes);
-      throw new ServerException(MONITOR_STATUS_TIMELINE_LOCK_ERROR_MESSAGE);
-    }
+    const mutex: SemaphoreMutex = await this.acquireMonitorTimelineMutex(
+      createBy.data.monitorId,
+      logAttributes,
+    );
 
     let createdItem: MonitorStatusTimeline;
 
     try {
       createdItem = await super.create(createBy);
+
+      /*
+       * A probe or detached initial-status write can already be in flight when
+       * active monitoring is disabled. Because it waits on this same mutex, it
+       * can otherwise run immediately after the disable boundary and reopen an
+       * unbounded green interval. Keep the status change (and the monitor's
+       * current status) but collapse its timeline row to zero duration when the
+       * live monitor flag is disabled. Zero-duration rows are intentionally
+       * ignored by the uptime graph.
+       */
+      await this.closeCreatedTimelineIfMonitorIsDisabled(createdItem);
     } finally {
       await this.releaseMutex(mutex, logAttributes);
     }
@@ -117,6 +118,488 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
     await this.createStatusChangeFeedItem(createdItem, createBy);
 
     return createdItem;
+  }
+
+  /**
+   * Make the latest timeline interval agree with the monitor's live direct
+   * active-monitoring flag. This is the transition primitive used by monitor
+   * updates and the one-time repair migration.
+   *
+   * The monitor row itself is intentionally read inside the timeline mutex.
+   * An expected-state mismatch represents two ordered commits: the caller's
+   * observed transition at reconciledAt, followed by the opposite live state at
+   * Monitor.updatedAt. Reconstruct both boundaries under this one mutex. This
+   * matters during rolling deploys because the opposite write may come from an
+   * old pod with no timeline hook. We also re-read after every write so a state
+   * change during the critical section is reconciled before releasing the lock.
+   */
+  @CaptureSpan()
+  public async reconcileActiveMonitoring(data: {
+    monitorId: ObjectID;
+    reconciledAt: Date;
+    expectedDisableActiveMonitoring?: boolean | undefined;
+  }): Promise<ActiveMonitoringTimelineReconciliationResult> {
+    const logAttributes: LogAttributes = {
+      monitorId: data.monitorId.toString(),
+    } as LogAttributes;
+    const mutex: SemaphoreMutex = await this.acquireMonitorTimelineMutex(
+      data.monitorId,
+      logAttributes,
+    );
+    const result: ActiveMonitoringTimelineReconciliationResult = {
+      didPause: false,
+      didResume: false,
+      monitorWasFound: false,
+      stateMatchedExpectation: true,
+    };
+
+    try {
+      let boundaryAt: Date = data.reconciledAt;
+
+      for (let attempt: number = 0; attempt < 3; attempt++) {
+        const monitor: Monitor | null = await MonitorService.findOneBy({
+          query: {
+            _id: data.monitorId.toString(),
+          },
+          select: {
+            _id: true,
+            projectId: true,
+            currentMonitorStatusId: true,
+            disableActiveMonitoring: true,
+            updatedAt: true,
+          },
+          props: {
+            isRoot: true,
+            ignoreHooks: true,
+          },
+        });
+
+        if (!monitor) {
+          return result;
+        }
+
+        result.monitorWasFound = true;
+        const isDisabled: boolean = monitor.disableActiveMonitoring === true;
+        const expectationMismatched: boolean = Boolean(
+          attempt === 0 &&
+            typeof data.expectedDisableActiveMonitoring === "boolean" &&
+            data.expectedDisableActiveMonitoring !== isDisabled,
+        );
+
+        if (expectationMismatched) {
+          result.stateMatchedExpectation = false;
+
+          if (data.expectedDisableActiveMonitoring === true) {
+            result.didPause =
+              (await this.pauseActiveMonitoringWhileLocked({
+                monitorId: data.monitorId,
+                pausedAt: data.reconciledAt,
+              })) || result.didPause;
+          } else if (monitor.projectId && monitor.currentMonitorStatusId) {
+            result.didResume = Boolean(
+              (await this.resumeActiveMonitoringWhileLocked({
+                monitorId: data.monitorId,
+                projectId: monitor.projectId,
+                monitorStatusId: monitor.currentMonitorStatusId,
+                resumedAt: data.reconciledAt,
+              })) || result.didResume,
+            );
+          }
+
+          const liveStateUpdatedAt: Date =
+            monitor.updatedAt || OneUptimeDate.getCurrentDate();
+          boundaryAt =
+            liveStateUpdatedAt.getTime() >= data.reconciledAt.getTime()
+              ? liveStateUpdatedAt
+              : data.reconciledAt;
+        } else if (attempt === 0 && monitor.updatedAt) {
+          /*
+           * For bulk writes, each monitor commits at a different time. Its
+           * persisted timestamp is a more accurate boundary than the single
+           * request timestamp captured before the first row was saved.
+           */
+          boundaryAt = monitor.updatedAt;
+        }
+
+        if (isDisabled) {
+          result.didPause =
+            (await this.pauseActiveMonitoringWhileLocked({
+              monitorId: data.monitorId,
+              pausedAt: boundaryAt,
+            })) || result.didPause;
+        } else if (monitor.projectId && monitor.currentMonitorStatusId) {
+          result.didResume = Boolean(
+            (await this.resumeActiveMonitoringWhileLocked({
+              monitorId: data.monitorId,
+              projectId: monitor.projectId,
+              monitorStatusId: monitor.currentMonitorStatusId,
+              resumedAt: boundaryAt,
+            })) || result.didResume,
+          );
+        }
+
+        const monitorAfterWrite: Monitor | null =
+          await MonitorService.findOneBy({
+            query: {
+              _id: data.monitorId.toString(),
+            },
+            select: {
+              _id: true,
+              disableActiveMonitoring: true,
+              updatedAt: true,
+            },
+            props: {
+              isRoot: true,
+              ignoreHooks: true,
+            },
+          });
+
+        if (
+          !monitorAfterWrite ||
+          (monitorAfterWrite.disableActiveMonitoring === true) === isDisabled
+        ) {
+          return result;
+        }
+
+        const latestStateUpdatedAt: Date =
+          monitorAfterWrite.updatedAt || OneUptimeDate.getCurrentDate();
+        boundaryAt =
+          latestStateUpdatedAt.getTime() >= boundaryAt.getTime()
+            ? latestStateUpdatedAt
+            : boundaryAt;
+      }
+
+      logger.warn(
+        `MonitorStatusTimeline: monitor ${data.monitorId.toString()} changed active-monitoring state repeatedly during reconciliation; its newest update hook will reconcile the final state.`,
+        logAttributes,
+      );
+      return result;
+    } finally {
+      await this.releaseMutex(mutex, logAttributes);
+    }
+  }
+
+  /**
+   * End the monitor's current status interval when direct active monitoring is
+   * disabled. The monitor keeps its currentMonitorStatusId; the closed interval
+   * creates an intentional no-data gap until active monitoring resumes.
+   */
+  @CaptureSpan()
+  public async pauseActiveMonitoring(data: {
+    monitorId: ObjectID;
+    pausedAt: Date;
+  }): Promise<boolean> {
+    const logAttributes: LogAttributes = {
+      monitorId: data.monitorId.toString(),
+    } as LogAttributes;
+    const mutex: SemaphoreMutex = await this.acquireMonitorTimelineMutex(
+      data.monitorId,
+      logAttributes,
+    );
+
+    try {
+      return await this.pauseActiveMonitoringWhileLocked(data);
+    } finally {
+      await this.releaseMutex(mutex, logAttributes);
+    }
+  }
+
+  /**
+   * Start a fresh interval at the monitor's current status when direct active
+   * monitoring is re-enabled. This deliberately bypasses the ordinary status
+   * transition hooks: resuming the same status after a gap is not a status
+   * change and must not notify owners or write a misleading feed item.
+   */
+  @CaptureSpan()
+  public async resumeActiveMonitoring(data: {
+    monitorId: ObjectID;
+    projectId: ObjectID;
+    monitorStatusId: ObjectID;
+    resumedAt: Date;
+  }): Promise<MonitorStatusTimeline | null> {
+    const logAttributes: LogAttributes = {
+      projectId: data.projectId.toString(),
+      monitorId: data.monitorId.toString(),
+    } as LogAttributes;
+    const mutex: SemaphoreMutex = await this.acquireMonitorTimelineMutex(
+      data.monitorId,
+      logAttributes,
+    );
+
+    try {
+      return await this.resumeActiveMonitoringWhileLocked(data);
+    } finally {
+      await this.releaseMutex(mutex, logAttributes);
+    }
+  }
+
+  private async pauseActiveMonitoringWhileLocked(data: {
+    monitorId: ObjectID;
+    pausedAt: Date;
+  }): Promise<boolean> {
+    /*
+     * First repair the interval that covered the actual disable boundary. A
+     * late status create can run after the monitor flag commits but before this
+     * hook acquires the mutex: that create closes the formerly-open predecessor
+     * at its own later startsAt and then zero-closes itself. Looking only for an
+     * open row would find nothing and leave the time from disabledAt to that
+     * later startsAt painted green. This covering-interval query lets us shorten
+     * the predecessor back to the real boundary even when it is already closed.
+     */
+    const timelineAtBoundary: MonitorStatusTimeline | null =
+      await this.findOneBy({
+        query: {
+          monitorId: data.monitorId,
+          startsAt: QueryHelper.lessThanEqualTo(data.pausedAt),
+          endsAt: QueryHelper.greaterThanEqualToOrNull(data.pausedAt),
+        },
+        select: {
+          _id: true,
+          startsAt: true,
+          endsAt: true,
+        },
+        sort: {
+          startsAt: SortOrder.Descending,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const timelineStrictlyCoversBoundary: boolean = Boolean(
+      timelineAtBoundary &&
+        (!timelineAtBoundary.endsAt ||
+          timelineAtBoundary.endsAt.getTime() > data.pausedAt.getTime()),
+    );
+
+    let didPause: boolean = false;
+
+    if (
+      timelineAtBoundary?.id &&
+      timelineAtBoundary.startsAt &&
+      timelineStrictlyCoversBoundary
+    ) {
+      const updatedCount: number = await this.updateOneBy({
+        query: {
+          _id: timelineAtBoundary.id.toString(),
+          startsAt: QueryHelper.lessThanEqualTo(data.pausedAt),
+          endsAt: QueryHelper.greaterThanEqualToOrNull(data.pausedAt),
+        },
+        data: {
+          endsAt: data.pausedAt,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      didPause = updatedCount > 0;
+    }
+
+    /*
+     * Always look for a remaining open row, even after shortening the interval
+     * that covered the boundary. A late status write can have closed that
+     * predecessor and inserted a newer open row after pausedAt. Returning after
+     * the first repair would leave the newer row accruing fabricated uptime on
+     * a disabled monitor. Its startsAt can be ahead of pausedAt, so collapse it
+     * at its own start instead of producing a negative interval.
+     */
+    const latestOpenTimeline: MonitorStatusTimeline | null =
+      await this.findOneBy({
+        query: {
+          monitorId: data.monitorId,
+          endsAt: QueryHelper.isNull(),
+          startsAt: QueryHelper.greaterThanEqualTo(data.pausedAt),
+        },
+        select: {
+          _id: true,
+          startsAt: true,
+          endsAt: true,
+        },
+        sort: {
+          startsAt: SortOrder.Descending,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (
+      !latestOpenTimeline?.id ||
+      latestOpenTimeline.endsAt ||
+      !latestOpenTimeline.startsAt ||
+      latestOpenTimeline.startsAt.getTime() < data.pausedAt.getTime()
+    ) {
+      return didPause;
+    }
+
+    /*
+     * Probe/app clocks can be slightly ahead of the monitor-update clock, and
+     * an in-flight status write may have started after the captured transition
+     * timestamp. Leaving that row open recreates the bug indefinitely. Close at
+     * max(pausedAt, startsAt); the skew/late-write case becomes a harmless
+     * zero-duration row instead of an inverted interval.
+     */
+    const effectivePausedAt: Date =
+      data.pausedAt.getTime() >= latestOpenTimeline.startsAt.getTime()
+        ? data.pausedAt
+        : latestOpenTimeline.startsAt;
+    const updatedCount: number = await this.updateOneBy({
+      query: {
+        _id: latestOpenTimeline.id.toString(),
+        endsAt: QueryHelper.isNull(),
+        startsAt: QueryHelper.lessThanEqualTo(effectivePausedAt),
+      },
+      data: {
+        endsAt: effectivePausedAt,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return updatedCount > 0 || didPause;
+  }
+
+  private async resumeActiveMonitoringWhileLocked(data: {
+    monitorId: ObjectID;
+    projectId: ObjectID;
+    monitorStatusId: ObjectID;
+    resumedAt: Date;
+  }): Promise<MonitorStatusTimeline | null> {
+    const latestTimeline: MonitorStatusTimeline | null = await this.findOneBy({
+      query: {
+        monitorId: data.monitorId,
+        projectId: data.projectId,
+      },
+      select: {
+        _id: true,
+        startsAt: true,
+        endsAt: true,
+      },
+      sort: {
+        startsAt: SortOrder.Descending,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (latestTimeline && !latestTimeline.endsAt) {
+      return null;
+    }
+
+    let effectiveResumedAt: Date = data.resumedAt;
+
+    if (
+      latestTimeline?.startsAt &&
+      latestTimeline.startsAt.getTime() > effectiveResumedAt.getTime()
+    ) {
+      effectiveResumedAt = latestTimeline.startsAt;
+    }
+
+    if (
+      latestTimeline?.endsAt &&
+      latestTimeline.endsAt.getTime() > effectiveResumedAt.getTime()
+    ) {
+      effectiveResumedAt = latestTimeline.endsAt;
+    }
+
+    /*
+     * A late status write while disabled is collapsed to startsAt === endsAt.
+     * If enablement has the same timestamp, start one millisecond later so the
+     * new open row is unambiguously the latest row; equal startsAt values have
+     * no guaranteed database sort order.
+     */
+    if (
+      latestTimeline?.startsAt &&
+      effectiveResumedAt.getTime() === latestTimeline.startsAt.getTime()
+    ) {
+      effectiveResumedAt = new Date(effectiveResumedAt.getTime() + 1);
+    }
+
+    const timeline: MonitorStatusTimeline = new MonitorStatusTimeline();
+    timeline.monitorId = data.monitorId;
+    timeline.projectId = data.projectId;
+    timeline.monitorStatusId = data.monitorStatusId;
+    timeline.startsAt = effectiveResumedAt;
+    timeline.isOwnerNotified = true;
+
+    return await super.create({
+      data: timeline,
+      props: {
+        isRoot: true,
+        ignoreHooks: true,
+      },
+    });
+  }
+
+  private async closeCreatedTimelineIfMonitorIsDisabled(
+    createdItem: MonitorStatusTimeline,
+  ): Promise<void> {
+    if (
+      !createdItem.id ||
+      !createdItem.monitorId ||
+      !createdItem.startsAt ||
+      createdItem.endsAt
+    ) {
+      return;
+    }
+
+    const monitor: Monitor | null = await MonitorService.findOneBy({
+      query: {
+        _id: createdItem.monitorId.toString(),
+      },
+      select: {
+        _id: true,
+        disableActiveMonitoring: true,
+      },
+      props: {
+        isRoot: true,
+        ignoreHooks: true,
+      },
+    });
+
+    if (monitor?.disableActiveMonitoring !== true) {
+      return;
+    }
+
+    const updatedCount: number = await this.updateOneBy({
+      query: {
+        _id: createdItem.id.toString(),
+        endsAt: QueryHelper.isNull(),
+      },
+      data: {
+        endsAt: createdItem.startsAt,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (updatedCount > 0) {
+      createdItem.endsAt = createdItem.startsAt;
+    }
+  }
+
+  private async acquireMonitorTimelineMutex(
+    monitorId: ObjectID,
+    logAttributes: LogAttributes,
+  ): Promise<SemaphoreMutex> {
+    try {
+      return await Semaphore.lock({
+        key: monitorId.toString(),
+        namespace: "MonitorStatusTimeline.create",
+      });
+    } catch (error) {
+      /*
+       * Fail closed. Performing a status create, pause, or resume without the
+       * shared per-monitor lock can leave overlapping open rows and turn an
+       * intentional no-data gap into fabricated uptime or downtime.
+       */
+      logger.error(error, logAttributes);
+      throw new ServerException(MONITOR_STATUS_TIMELINE_LOCK_ERROR_MESSAGE);
+    }
   }
 
   @CaptureSpan()
