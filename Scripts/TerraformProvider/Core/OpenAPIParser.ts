@@ -8,8 +8,27 @@ import {
 } from "./Types";
 import { StringUtils } from "./StringUtils";
 
+type OperationType = "create" | "read" | "update" | "delete" | "list";
+
+/*
+ * A property parsed from an OpenAPI schema, before it is merged into a
+ * Terraform attribute. Tracks which operation schemas it appeared in so
+ * Required/Optional/Computed can be derived from the spec instead of guessed.
+ */
+interface ParsedProperty {
+  attribute: TerraformAttribute;
+  requiredInCreate: boolean;
+}
+
 export class OpenAPIParser {
   public spec: OpenAPISpec | null = null;
+
+  /*
+   * Resources that were discovered but skipped, with the reason. Surfaced by
+   * GenerateProvider so CI can fail loudly instead of silently shipping an
+   * incomplete provider.
+   */
+  public warnings: string[] = [];
 
   public async parseOpenAPISpec(filePath: string): Promise<OpenAPISpec> {
     try {
@@ -33,77 +52,48 @@ export class OpenAPIParser {
     }
 
     const resources: TerraformResource[] = [];
-    const resourceMap: Map<string, Partial<TerraformResource>> = new Map<
-      string,
-      Partial<TerraformResource>
-    >();
 
-    // Group operations by resource
-    for (const [path, pathItem] of Object.entries(this.spec.paths)) {
-      for (const [method, operation] of Object.entries(pathItem)) {
-        if (
-          !operation.operationId ||
-          !operation.tags ||
-          operation.tags.length === 0
-        ) {
-          continue;
-        }
-
-        const resourceName: string | null = this.extractResourceName(
-          path,
-          operation,
-        );
-        if (!resourceName) {
-          continue;
-        }
-
-        if (!resourceMap.has(resourceName)) {
-          resourceMap.set(resourceName, {
-            name: resourceName,
-            goTypeName: StringUtils.toPascalCase(resourceName),
-            operations: {},
-            schema: {},
-          });
-        }
-
-        const resource: Partial<TerraformResource> =
-          resourceMap.get(resourceName)!;
-        const operationType:
-          | "create"
-          | "read"
-          | "update"
-          | "delete"
-          | "list"
-          | null = this.getOperationType(method, path, operation);
-
-        if (operationType && resource.operations) {
-          // Add method and path to operation for later use
-          const enhancedOperation: OpenAPIOperation & {
-            method: string;
-            path: string;
-          } = {
-            ...operation,
-            method: method,
-            path: path,
-          };
-          resource.operations[operationType] = enhancedOperation;
-        }
+    for (const [resourceName, operations] of this.groupOperationsByResource()) {
+      /*
+       * A Terraform resource must be creatable. Models that only expose
+       * list/count/read endpoints (log tables, insight tables, ...) are not
+       * manageable infrastructure — they surface as data sources instead.
+       */
+      if (!operations.create) {
+        continue;
       }
-    }
 
-    // Convert to array and generate schemas
-    for (const resource of resourceMap.values()) {
-      if (resource.name && resource.goTypeName && resource.operations) {
-        resource.schema = this.generateResourceSchema(
-          resource.operations,
-          resource.name,
+      const resource: TerraformResource = {
+        name: resourceName,
+        goTypeName: StringUtils.toPascalCase(resourceName),
+        operations: operations,
+        schema: {},
+      };
+
+      resource.operationSchemas = this.generateOperationSpecificSchemas(
+        operations,
+        resourceName,
+      );
+      resource.schema = this.generateResourceSchema(resource.operationSchemas);
+
+      const writableFields: string[] = Object.entries(
+        resource.operationSchemas.create || {},
+      )
+        .filter(([name, attr]: [string, TerraformAttribute]) => {
+          return name !== "id" && !attr.computed;
+        })
+        .map(([name]: [string, TerraformAttribute]) => {
+          return name;
+        });
+
+      if (writableFields.length === 0) {
+        this.warnings.push(
+          `Skipped resource "${resourceName}": its create schema has no writable fields (all columns are computed or permission-filtered).`,
         );
-        resource.operationSchemas = this.generateOperationSpecificSchemas(
-          resource.operations,
-          resource.name,
-        );
-        resources.push(resource as TerraformResource);
+        continue;
       }
+
+      resources.push(resource);
     }
 
     return resources;
@@ -115,328 +105,313 @@ export class OpenAPIParser {
     }
 
     const dataSources: TerraformDataSource[] = [];
-    const dataSourceMap: Map<string, Partial<TerraformDataSource>> = new Map<
+
+    for (const [resourceName, operations] of this.groupOperationsByResource()) {
+      // A data source needs a way to read: a get-item and/or a list endpoint.
+      if (!operations.read && !operations.list) {
+        continue;
+      }
+
+      /*
+       * Data sources intentionally share the resource's type name
+       * (data "oneuptime_monitor" ...) — resource and data source namespaces
+       * are separate in Terraform, and this matches every mainstream provider.
+       */
+      const dataSourceOperations: TerraformDataSource["operations"] = {};
+      if (operations.read) {
+        dataSourceOperations.read = operations.read;
+      }
+      if (operations.list) {
+        dataSourceOperations.list = operations.list;
+      }
+
+      const dataSource: TerraformDataSource = {
+        name: resourceName,
+        goTypeName: StringUtils.toPascalCase(resourceName),
+        operations: dataSourceOperations,
+        schema: {},
+      };
+
+      dataSource.schema = this.generateDataSourceSchema(dataSource.operations);
+      dataSources.push(dataSource);
+    }
+
+    return dataSources;
+  }
+
+  /*
+   * Groups every operation in the spec by resource (tag), classified by
+   * operationId prefix. Count operations are dropped — POST /count is not a
+   * CRUD operation and misclassifying it as "create" was the source of
+   * resources that stored null ids.
+   */
+  private groupOperationsByResource(): Map<
+    string,
+    TerraformResource["operations"]
+  > {
+    const resourceMap: Map<string, TerraformResource["operations"]> = new Map<
       string,
-      Partial<TerraformDataSource>
+      TerraformResource["operations"]
     >();
 
-    // Look for GET and POST operations that can be used as data sources
-    for (const [path, pathItem] of Object.entries(this.spec.paths)) {
+    for (const [path, pathItem] of Object.entries(this.spec!.paths)) {
       for (const [method, operation] of Object.entries(pathItem)) {
         if (
           !operation.operationId ||
           !operation.tags ||
           operation.tags.length === 0
         ) {
+          this.warnings.push(
+            `Skipped operation ${method.toUpperCase()} ${path}: missing operationId or tags.`,
+          );
           continue;
         }
 
-        // Check if this is a read operation (GET or POST with read-like operation)
-        const isReadOperation: boolean = this.isReadOperation(
-          method,
-          path,
-          operation,
-        );
-        if (!isReadOperation) {
-          continue;
-        }
-
-        const resourceName: string | null = this.extractResourceName(
-          path,
-          operation,
-        );
+        const resourceName: string | null = this.extractResourceName(operation);
         if (!resourceName) {
           continue;
         }
 
-        const dataSourceName: string = `${resourceName}_data`;
-
-        if (!dataSourceMap.has(dataSourceName)) {
-          dataSourceMap.set(dataSourceName, {
-            name: dataSourceName,
-            goTypeName: StringUtils.toPascalCase(dataSourceName),
-            operations: {},
-            schema: {},
-          });
-        }
-
-        const dataSource: Partial<TerraformDataSource> =
-          dataSourceMap.get(dataSourceName)!;
-        const isListOperation: boolean = this.isListOperation(path, operation);
-
-        if (dataSource.operations) {
-          // Add method and path to operation for later use
-          const enhancedOperation: OpenAPIOperation & {
-            method: string;
-            path: string;
-          } = {
-            ...operation,
-            method: method,
-            path: path,
-          };
-
-          if (isListOperation) {
-            dataSource.operations.list = enhancedOperation;
-          } else {
-            dataSource.operations.read = enhancedOperation;
-          }
-        }
-      }
-    }
-
-    // Convert to array and generate schemas
-    for (const dataSource of dataSourceMap.values()) {
-      if (dataSource.name && dataSource.goTypeName && dataSource.operations) {
-        dataSource.schema = this.generateDataSourceSchema(
-          dataSource.operations,
+        const operationType: OperationType | null = this.getOperationType(
+          method,
+          path,
+          operation,
         );
-        dataSources.push(dataSource as TerraformDataSource);
+        if (!operationType) {
+          continue;
+        }
+
+        if (!resourceMap.has(resourceName)) {
+          resourceMap.set(resourceName, {});
+        }
+
+        const operations: TerraformResource["operations"] =
+          resourceMap.get(resourceName)!;
+        operations[operationType] = {
+          ...operation,
+          method: method,
+          path: path,
+        };
       }
     }
 
-    return dataSources;
+    return resourceMap;
   }
 
-  private extractResourceName(
-    path: string,
-    operation: OpenAPIOperation,
-  ): string | null {
-    // Try to extract from tags first
+  private extractResourceName(operation: OpenAPIOperation): string | null {
     if (operation.tags && operation.tags.length > 0 && operation.tags[0]) {
       return StringUtils.toSnakeCase(operation.tags[0]);
     }
-
-    // Fallback to path analysis
-    const pathSegments: string[] = path.split("/").filter((segment: string) => {
-      return segment && !segment.startsWith("{");
-    });
-    if (pathSegments.length > 0) {
-      const lastSegment: string | undefined =
-        pathSegments[pathSegments.length - 1];
-      if (lastSegment) {
-        return StringUtils.toSnakeCase(lastSegment);
-      }
-    }
-
     return null;
   }
 
+  /*
+   * The spec generator (Common/Server/Utils/OpenAPI.ts) emits deterministic
+   * operationIds: create<Table>, get<Table>, update<Table>, delete<Table>,
+   * list<Table>, count<Table>. Classify by prefix — never by substring
+   * heuristics, which misfiled POST /count as the create operation.
+   */
   private getOperationType(
     method: string,
     path: string,
     operation: OpenAPIOperation,
-  ): "create" | "read" | "update" | "delete" | "list" | null {
+  ): OperationType | null {
+    const operationId: string = operation.operationId || "";
+
+    if ((/^create/i).test(operationId)) {
+      return "create";
+    }
+    if ((/^get/i).test(operationId)) {
+      return "read";
+    }
+    if ((/^update/i).test(operationId)) {
+      return "update";
+    }
+    if ((/^delete/i).test(operationId)) {
+      return "delete";
+    }
+    if ((/^list/i).test(operationId)) {
+      return "list";
+    }
+    if ((/^count/i).test(operationId)) {
+      // Count endpoints are not CRUD operations.
+      return null;
+    }
+
+    // Fallback for operations with non-conforming ids: classify by method.
     const lowerMethod: string = method.toLowerCase();
     const hasIdParam: boolean = path.includes("{id}");
-
     switch (lowerMethod) {
-      case "post":
-        // Check if this is a read operation based on operation ID or path
-        if (this.isReadOperation(method, path, operation)) {
-          return this.isListOperation(path, operation) ? "list" : "read";
-        }
-
-        if (hasIdParam) {
-          // POST to /{resource}/{id} is usually a read operation in OneUptime API
-          return "read";
-        }
-        // POST to /{resource} is create
-        return "create";
-
       case "get":
-        return this.isListOperation(path, operation) ? "list" : "read";
+        return hasIdParam ? "read" : "list";
       case "put":
       case "patch":
         return "update";
       case "delete":
         return "delete";
+      case "post":
+        /*
+         * POST on an item path is a read in the OneUptime API; a bare
+         * collection POST is a create. /count and /get-list are handled by
+         * the prefixes above for conforming specs; guard anyway.
+         */
+        if (path.endsWith("/count")) {
+          return null;
+        }
+        if (path.endsWith("/get-list")) {
+          return "list";
+        }
+        if (hasIdParam) {
+          return "read";
+        }
+        return "create";
       default:
         return null;
     }
   }
 
-  private isListOperation(path: string, operation: OpenAPIOperation): boolean {
-    // Check if path ends with collection (not individual resource)
-    const hasIdParam: boolean =
-      path.includes("{id}") || (path.includes("{") && path.endsWith("}"));
-
-    // Check for explicit list patterns in the path
-    const pathSegments: string[] = path.toLowerCase().split("/");
-    const hasListPathPattern: boolean = pathSegments.some((segment: string) => {
-      return (
-        segment.includes("get-list") ||
-        segment.includes("list") ||
-        segment === "count"
-      );
-    });
-
-    // Check operation ID for list patterns
-    const operationId: string = operation.operationId?.toLowerCase() || "";
-    const hasListOperationId: boolean = operationId.includes("list");
-
-    return !hasIdParam || hasListPathPattern || hasListOperationId;
-  }
-
-  private generateResourceSchema(
-    operations: any,
-    resourceName?: string,
-  ): Record<string, TerraformAttribute> {
+  /*
+   * Merges the per-operation schemas into the resource schema. The spec is
+   * the source of truth:
+   *   - fields in the create/update request schemas are writable
+   *   - `required` on the create schema is the only source of Required
+   *   - fields only in response schemas are Computed
+   *   - optional writable fields that the server also returns are
+   *     Optional+Computed (the server may fill defaults)
+   *   - fields writable at create but absent from the update schema are
+   *     immutable -> RequiresReplace
+   */
+  private generateResourceSchema(operationSchemas: {
+    create?: Record<string, TerraformAttribute>;
+    update?: Record<string, TerraformAttribute>;
+    read?: Record<string, TerraformAttribute>;
+  }): Record<string, TerraformAttribute> {
     const schema: Record<string, TerraformAttribute> = {};
 
-    // Always add id field for resources
     schema["id"] = {
       type: "string",
       description: "Unique identifier for the resource",
       computed: true,
     };
 
-    /*
-     * First pass: Extract schema from create/update operations (input fields)
-     * These define the required fields for the resource
-     */
-    if (operations.create) {
-      this.addSchemaFromOperation(
-        schema,
-        operations.create,
-        false,
-        `${resourceName}-create`,
-      );
-    }
-    if (operations.update) {
-      this.addSchemaFromOperation(
-        schema,
-        operations.update,
-        false,
-        `${resourceName}-update`,
-      );
-    }
+    const createSchema: Record<string, TerraformAttribute> =
+      operationSchemas.create || {};
+    const updateSchema: Record<string, TerraformAttribute> =
+      operationSchemas.update || {};
+    const readSchema: Record<string, TerraformAttribute> =
+      operationSchemas.read || {};
+    const hasUpdateOperation: boolean = Boolean(operationSchemas.update);
 
-    // Store which fields are in create/update operations before adding read fields
-    const createUpdateFields: Set<string> = new Set<string>();
-    const requiredFields: Set<string> = new Set<string>();
-    for (const [fieldName, attr] of Object.entries(schema)) {
-      createUpdateFields.add(fieldName);
-      if ((attr as any).required) {
-        requiredFields.add(fieldName);
+    const allFieldNames: Set<string> = new Set<string>([
+      ...Object.keys(createSchema),
+      ...Object.keys(updateSchema),
+      ...Object.keys(readSchema),
+    ]);
+
+    for (const name of allFieldNames) {
+      if (name === "id") {
+        continue;
       }
-    }
 
-    // Second pass: Extract schema from read operations (ensure all output fields are included)
-    if (operations.read) {
-      this.addSchemaFromOperation(
-        schema,
-        operations.read,
-        true,
-        `${resourceName}-read`,
+      const inCreate: boolean = Object.prototype.hasOwnProperty.call(
+        createSchema,
+        name,
       );
-    }
-
-    /*
-     * Also treat create/update RESPONSE schemas as computed outputs. Some
-     * models (e.g. File) expose no read operation, so server-populated
-     * fields (like image_access_token) only ever appear in the create
-     * response. Without this pass those fields stay Optional-only and a
-     * server-assigned value becomes a "Provider produced inconsistent
-     * result after apply" error. For resources that do have read
-     * operations this is a no-op: their response fields were already
-     * marked computed by the read pass above.
-     */
-    if (operations.create) {
-      this.addSchemaFromOperation(
-        schema,
-        operations.create,
-        true,
-        `${resourceName}-create-response`,
+      const inUpdate: boolean = Object.prototype.hasOwnProperty.call(
+        updateSchema,
+        name,
       );
-    }
-    if (operations.update) {
-      this.addSchemaFromOperation(
-        schema,
-        operations.update,
-        true,
-        `${resourceName}-update-response`,
+      const inRead: boolean = Object.prototype.hasOwnProperty.call(
+        readSchema,
+        name,
       );
-    }
 
-    /*
-     * Third pass: Identify fields that should be both optional and computed
-     * These are fields that:
-     * 1. Appear in both create/update AND read operations, but
-     * 2. Are not required in create/update operations
-     * This indicates server-managed fields that can be optionally set by users
-     */
-    for (const [fieldName, attr] of Object.entries(schema)) {
-      const isInCreateUpdate: boolean = createUpdateFields.has(fieldName);
-      const isRequired: boolean = requiredFields.has(fieldName);
-      const isComputed: boolean = Boolean(attr.computed);
+      // Prefer the writable definition for type metadata; fall back to read.
+      const source: TerraformAttribute = (
+        inCreate
+          ? createSchema[name]
+          : inUpdate
+            ? updateSchema[name]
+            : readSchema[name]
+      ) as TerraformAttribute;
 
-      if (isInCreateUpdate && !isRequired && isComputed) {
-        /*
-         * Field is optional in create/update but computed in read
-         * This means it should be both optional and computed
-         */
-        schema[fieldName] = {
-          ...attr,
+      if (!inCreate && !inUpdate) {
+        // Server-managed: only ever appears in responses.
+        schema[name] = {
+          ...source,
           required: false,
+          optional: false,
           computed: true,
-          optional: true, // Mark as explicitly optional and computed
         };
-      } else if (isRequired) {
-        // Restore required status for fields that were required in create operations
-        schema[fieldName] = {
-          ...attr,
-          required: true,
-          computed: false,
-        };
+        continue;
       }
+
+      const required: boolean = Boolean(
+        inCreate && createSchema[name]?.required,
+      );
+
+      schema[name] = {
+        ...source,
+        required: required,
+        /*
+         * Optional writable fields are also Computed when the server returns
+         * them: the server may fill defaults, and Optional+Computed (plus
+         * UseStateForUnknown) is how the framework models that without
+         * "inconsistent result after apply".
+         */
+        optional: !required,
+        computed: !required && inRead,
+        forceNew: inCreate && hasUpdateOperation && !inUpdate,
+      };
     }
 
     return schema;
   }
 
   private generateOperationSpecificSchemas(
-    operations: any,
+    operations: TerraformResource["operations"],
     resourceName: string,
   ): {
     create?: Record<string, TerraformAttribute>;
     update?: Record<string, TerraformAttribute>;
     read?: Record<string, TerraformAttribute>;
   } {
-    const operationSchemas: any = {};
+    const operationSchemas: {
+      create?: Record<string, TerraformAttribute>;
+      update?: Record<string, TerraformAttribute>;
+      read?: Record<string, TerraformAttribute>;
+    } = {};
 
-    // Generate schema for create operation
     if (operations.create) {
-      const createSchema: Record<string, TerraformAttribute> = {};
-      this.addSchemaFromOperation(
-        createSchema,
+      operationSchemas.create = this.extractRequestSchema(
         operations.create,
-        false,
-        `${resourceName}-create-only`,
+        `${resourceName}-create`,
       );
-      operationSchemas.create = createSchema;
     }
-
-    // Generate schema for update operation
     if (operations.update) {
-      const updateSchema: Record<string, TerraformAttribute> = {};
-      this.addSchemaFromOperation(
-        updateSchema,
+      operationSchemas.update = this.extractRequestSchema(
         operations.update,
-        false,
-        `${resourceName}-update-only`,
+        `${resourceName}-update`,
       );
-      operationSchemas.update = updateSchema;
     }
 
-    // Generate schema for read operation
-    if (operations.read) {
-      const readSchema: Record<string, TerraformAttribute> = {};
-      this.addSchemaFromOperation(
-        readSchema,
-        operations.read,
-        true,
-        `${resourceName}-read-only`,
-      );
+    /*
+     * The read schema is the union of every response the API can return for
+     * this model: the get-item response, plus the create/update responses
+     * (some models, e.g. File, have no read endpoint — server-populated
+     * fields only ever appear in the create response).
+     */
+    const readSchema: Record<string, TerraformAttribute> = {};
+    for (const operation of [
+      operations.read,
+      operations.create,
+      operations.update,
+    ]) {
+      if (operation) {
+        this.addResponseProperties(readSchema, operation);
+      }
+    }
+    if (Object.keys(readSchema).length > 0) {
       operationSchemas.read = readSchema;
     }
 
@@ -444,282 +419,268 @@ export class OpenAPIParser {
   }
 
   private generateDataSourceSchema(
-    operations: any,
+    operations: TerraformDataSource["operations"],
   ): Record<string, TerraformAttribute> {
     const schema: Record<string, TerraformAttribute> = {};
 
-    // Add filter fields for data sources
+    const outputFields: Record<string, TerraformAttribute> = {};
+    for (const operation of [operations.read, operations.list]) {
+      if (operation) {
+        this.addResponseProperties(outputFields, operation);
+      }
+    }
+
+    /*
+     * id and name are the lookup keys (exactly one must be set); everything
+     * else is read-only output.
+     */
     schema["id"] = {
       type: "string",
-      description: "Identifier to filter by",
+      description:
+        "Look up by unique identifier. Exactly one of `id` or `name` must be set.",
       required: false,
+      optional: true,
+      computed: true,
+      apiFieldName: "_id",
     };
-
     schema["name"] = {
       type: "string",
-      description: "Name to filter by",
+      description:
+        "Look up by name. Exactly one of `id` or `name` must be set. Fails if the name does not match exactly one item.",
       required: false,
+      optional: true,
+      computed: true,
+      apiFieldName: "name",
     };
 
-    // Extract schema from read operations
-    if (operations.read) {
-      this.addSchemaFromOperation(
-        schema,
-        operations.read,
-        true,
-        "datasource-read",
-      );
-    }
-    if (operations.list) {
-      this.addSchemaFromOperation(
-        schema,
-        operations.list,
-        true,
-        "datasource-list",
-      );
+    for (const [name, attr] of Object.entries(outputFields)) {
+      if (name === "id" || name === "name") {
+        continue;
+      }
+      schema[name] = {
+        ...attr,
+        required: false,
+        optional: false,
+        computed: true,
+      };
     }
 
     return schema;
   }
 
-  private addSchemaFromOperation(
+  /*
+   * Extracts the writable fields of a create/update operation from its
+   * request body ({data: <Schema>}).
+   */
+  private extractRequestSchema(
+    operation: OpenAPIOperation,
+    context: string,
+  ): Record<string, TerraformAttribute> {
+    const schema: Record<string, TerraformAttribute> = {};
+
+    const content: any = (operation.requestBody as any)?.content?.[
+      "application/json"
+    ];
+    const dataSchema: any = content?.schema?.properties?.["data"];
+    if (dataSchema) {
+      this.addPropertiesFromSchema(schema, dataSchema, false, context);
+    }
+
+    return schema;
+  }
+
+  private addResponseProperties(
     schema: Record<string, TerraformAttribute>,
     operation: OpenAPIOperation,
-    computed: boolean,
-    context?: string,
   ): void {
-    // Add parameters as schema fields
-    if (operation.parameters) {
-      for (const param of operation.parameters) {
-        if (param.in === "path" || param.name === "id") {
-          continue;
-        }
+    const responses: any = operation.responses;
+    if (!responses) {
+      return;
+    }
+    const successResponse: any = responses["200"] || responses["201"];
+    const dataSchema: any =
+      successResponse?.content?.["application/json"]?.schema?.properties?.[
+        "data"
+      ];
+    if (dataSchema) {
+      this.addPropertiesFromSchema(schema, dataSchema, true, "response");
+    }
+  }
 
-        const ordered: boolean = Boolean((param.schema as any)?.["x-ordered"]);
-        schema[StringUtils.toSnakeCase(param.name)] = {
-          type: this.mapOpenAPITypeToTerraformWithName(
-            param.schema?.type || "string",
-            ordered,
-          ),
-          description: param.description || "",
-          required: computed ? false : param.required || false,
-          computed: computed,
-          apiFieldName: param.name, // Preserve original OpenAPI parameter name
+  private addPropertiesFromSchema(
+    schema: Record<string, TerraformAttribute>,
+    openApiSchema: any,
+    computed: boolean,
+    context: string,
+  ): void {
+    const resolved: any = this.resolveSchema(openApiSchema);
+    if (!resolved || !resolved.properties) {
+      return;
+    }
+
+    for (const [propName, propSchema] of Object.entries(resolved.properties)) {
+      const terraformName: string = StringUtils.toSnakeCase(propName);
+      if (terraformName === "id" || terraformName === "_id") {
+        continue;
+      }
+
+      if (schema[terraformName]) {
+        // First definition wins; later passes only fill a missing description.
+        const existing: TerraformAttribute = schema[terraformName]!;
+        if (!existing.description) {
+          const prop: any = this.resolveSchema(propSchema);
+          if (prop?.description) {
+            existing.description = prop.description;
+          }
+        }
+        continue;
+      }
+
+      const attribute: ParsedProperty | null = this.parseProperty(
+        propName,
+        propSchema,
+        resolved.required || [],
+        computed,
+      );
+      if (attribute) {
+        schema[terraformName] = attribute.attribute;
+      }
+    }
+
+    void context;
+  }
+
+  /*
+   * Converts one OpenAPI property into a Terraform attribute, preserving the
+   * semantic signals the spec now carries: DateTime wrappers, enum values,
+   * password format, array element shape, ordered-ness.
+   */
+  private parseProperty(
+    propName: string,
+    propSchema: any,
+    requiredList: string[],
+    computed: boolean,
+  ): ParsedProperty | null {
+    const prop: any = this.resolveSchema(propSchema);
+    if (!prop) {
+      return null;
+    }
+
+    const description: string = prop.description || "";
+    const example: any = prop.example;
+    const defaultValue: any = prop.default;
+    const ordered: boolean = Boolean(prop["x-ordered"]);
+    const format: string | undefined = prop.format;
+    const required: boolean = requiredList.includes(propName);
+
+    const base: TerraformAttribute = {
+      type: "string",
+      description: description,
+      required: !computed && required,
+      computed: computed,
+      apiFieldName: propName,
+      example: example,
+      default: defaultValue,
+      ...(format ? { format } : {}),
+    };
+
+    // RFC3339 timestamps: the spec marks the DateTime wrapper explicitly.
+    if (this.isDateTimeSchema(prop)) {
+      return {
+        attribute: { ...base, type: "string", isDateTime: true },
+        requiredInCreate: required,
+      };
+    }
+
+    const propType: string = prop.type || "string";
+
+    switch (propType) {
+      case "integer":
+      case "number":
+        return {
+          attribute: { ...base, type: "number" },
+          requiredInCreate: required,
+        };
+      case "boolean":
+        return {
+          attribute: { ...base, type: "bool" },
+          requiredInCreate: required,
+        };
+      case "array": {
+        const items: any = this.resolveSchema(prop.items) || {};
+        const isEntityArray: boolean =
+          items.type === "object" &&
+          Boolean(items.properties?.["_id"] || items.properties?.["id"]);
+        return {
+          attribute: {
+            ...base,
+            type: ordered ? "list" : "set",
+            elementKind: isEntityArray ? "entity" : "scalar",
+            elementType: isEntityArray ? "string" : items.type || "string",
+          },
+          requiredInCreate: required,
         };
       }
-    }
-
-    // Add request body schema fields - look inside the data wrapper
-    if (operation.requestBody && !computed) {
-      const content: any = operation.requestBody.content?.["application/json"];
-      if (content?.schema?.properties?.["data"]) {
-        const dataSchema: any = content.schema.properties["data"];
-        this.addSchemaFromOpenAPISchema(
-          schema,
-          dataSchema,
-          computed,
-          `${context}-requestBody`,
-        );
-      }
-    }
-
-    // Add response schema fields for read operations - look inside the data wrapper
-    if (computed && operation.responses) {
-      const successResponse: any =
-        operation.responses["200"] || operation.responses["201"];
-      if (
-        successResponse?.content?.["application/json"]?.schema?.properties?.[
-          "data"
-        ]
-      ) {
-        const dataSchema: any =
-          successResponse.content["application/json"].schema.properties["data"];
-        this.addSchemaFromOpenAPISchema(
-          schema,
-          dataSchema,
-          true,
-          `${context}-response`,
-        );
+      case "object":
+        // Complex nested objects are JSON strings with subset semantic equality.
+        return {
+          attribute: { ...base, type: "string", isComplexObject: true },
+          requiredInCreate: required,
+        };
+      default: {
+        const attribute: TerraformAttribute = { ...base, type: "string" };
+        if (Array.isArray(prop.enum) && prop.enum.length > 0) {
+          attribute.enumValues = prop.enum.map((value: any) => {
+            return String(value);
+          });
+        }
+        if (format === "password") {
+          attribute.sensitive = true;
+        }
+        return { attribute, requiredInCreate: required };
       }
     }
   }
 
-  private addSchemaFromOpenAPISchema(
-    schema: Record<string, TerraformAttribute>,
-    openApiSchema: any,
-    computed: boolean,
-    context?: string,
-  ): void {
-    // Handle $ref schemas
-    if (openApiSchema.$ref) {
-      const resolvedSchema: any = this.resolveSchemaRef(openApiSchema.$ref);
-      if (resolvedSchema) {
-        this.addSchemaFromOpenAPISchema(
-          schema,
-          resolvedSchema,
-          computed,
-          `${context}-ref`,
-        );
-      }
-      return;
+  private isDateTimeSchema(prop: any): boolean {
+    if (!prop) {
+      return false;
     }
-
-    // Check if this schema has properties defined
-    const hasProperties: boolean =
-      openApiSchema.properties &&
-      Object.keys(openApiSchema.properties).length > 0;
-
-    // If no properties are defined (empty CRUD schema), try to fallback to main model schema
-    if (!hasProperties && openApiSchema.description) {
-      const description: string = openApiSchema.description.toLowerCase();
-      if (description.includes("schema for") && description.includes("model")) {
-        // Extract model name from description like "Create schema for Label model. Create"
-        const modelNameMatch: RegExpMatchArray | null = description.match(
-          /schema for (\w+) model/,
-        );
-        if (modelNameMatch && modelNameMatch[1]) {
-          const modelName: string = modelNameMatch[1]; // Keep original case from the description
-          const mainModelSchema: any = this.resolveSchemaRef(
-            `#/components/schemas/${modelName}`,
-          );
-          if (mainModelSchema && mainModelSchema.properties) {
-            this.addSchemaFromOpenAPISchema(
-              schema,
-              mainModelSchema,
-              computed,
-              `${context}-fallback-${modelName}`,
-            );
-            return;
-          }
-        }
+    if (prop["x-oneuptime-type"] === "DateTime") {
+      return true;
+    }
+    if (prop.format === "date-time") {
+      return true;
+    }
+    // Structural fallback: {_type: "DateTime", value: string} wrapper.
+    const typeProp: any = prop.properties?.["_type"];
+    if (typeProp) {
+      const literalValues: any[] = Array.isArray(typeProp.enum)
+        ? typeProp.enum
+        : [];
+      if (
+        literalValues.includes("DateTime") ||
+        typeProp.example === "DateTime"
+      ) {
+        return true;
       }
     }
+    return false;
+  }
 
-    if (openApiSchema.properties) {
-      for (const [propName, propSchema] of Object.entries(
-        openApiSchema.properties,
-      )) {
-        const terraformName: string = StringUtils.toSnakeCase(propName);
-        if (terraformName === "id" || terraformName === "_id") {
-          // Skip ID fields as they're handled separately
-          continue;
-        }
-
-        const prop: any = propSchema as any;
-        let propType: string = prop.type || "string";
-        let propFormat: string | undefined = prop.format; // Capture the format field
-        let description: string = prop.description || "";
-        let example: any = prop.example;
-        let defaultValue: any = prop.default;
-        let ordered: boolean = Boolean(prop?.["x-ordered"]);
-
-        // Handle nested $ref
-        if (prop.$ref) {
-          const resolvedProp: any = this.resolveSchemaRef(prop.$ref);
-          if (resolvedProp) {
-            propType = resolvedProp.type || "string";
-            propFormat = resolvedProp.format || propFormat; // Also capture format from resolved refs
-            description = resolvedProp.description || description;
-            example = resolvedProp.example || example;
-            defaultValue = resolvedProp.default || defaultValue;
-            ordered = Boolean(resolvedProp?.["x-ordered"]) || ordered;
-          }
-        }
-
-        // Skip computed fields for create/update operations
-        const isComputedField: boolean = [
-          "createdAt",
-          "updatedAt",
-          "deletedAt",
-          "version",
-          "slug",
-          "createdByUserId",
-          "deletedByUserId",
-        ].includes(propName);
-        if (!computed && isComputedField) {
-          continue;
-        }
-
-        // If field already exists and we're adding computed fields, check if it should be both optional and computed
-        if (computed && schema[terraformName]) {
-          // Update description if it's better in the read schema
-          const existingField: any = schema[terraformName];
-          if (existingField && description && !existingField.description) {
-            existingField.description = description;
-          }
-
-          /*
-           * If the field exists from create/update and now appears in read,
-           * it should be marked as both optional and computed (server-managed field).
-           * Fields that are already computed-only (added by an earlier computed
-           * pass, e.g. the read response) must stay computed-only: marking them
-           * optional would put them in create/update request bodies, which the
-           * API rejects (e.g. deletedByUserId).
-           */
-          if (
-            existingField &&
-            !existingField.required &&
-            !existingField.computed
-          ) {
-            schema[terraformName] = {
-              ...existingField,
-              computed: true,
-              optional: true, // Mark as explicitly optional and computed
-            };
-          }
-          continue;
-        }
-
-        // If field already exists and we're adding input fields, merge the properties
-        if (
-          !computed &&
-          schema[terraformName] &&
-          schema[terraformName]?.computed
-        ) {
-          // Update the existing computed field to also be an input field
-          const existingField: any = schema[terraformName];
-          if (existingField) {
-            schema[terraformName] = {
-              ...existingField,
-              required: openApiSchema.required?.includes(propName) || false,
-              computed: false, // This field can be both input and output
-              apiFieldName: propName, // Preserve original OpenAPI property name
-            };
-          }
-          continue;
-        }
-
-        // Determine if this field should be required
-        let fieldRequired: boolean = false;
-        if (computed) {
-          fieldRequired = false; // Computed fields are never required
-        } else {
-          // Check if it's explicitly required in the current schema
-          const explicitlyRequired: boolean =
-            openApiSchema.required?.includes(propName) || false;
-
-          // If the field already exists and was previously marked as required, preserve that
-          const existingField: TerraformAttribute | undefined =
-            schema[terraformName];
-          const previouslyRequired: boolean = existingField?.required || false;
-
-          // Field is required if it's explicitly required OR was previously required
-          fieldRequired = explicitlyRequired || previouslyRequired;
-        }
-
-        schema[terraformName] = {
-          type: this.mapOpenAPITypeToTerraformWithName(propType, ordered),
-          description: description,
-          required: fieldRequired,
-          computed: computed || isComputedField,
-          apiFieldName: propName, // Preserve original OpenAPI property name
-          example: example, // Extract example from OpenAPI schema
-          default: defaultValue, // Extract default value from OpenAPI schema
-          isComplexObject: propType === "object", // Flag to indicate this string field is actually a complex object
-          ...(propFormat && { format: propFormat }), // Only include format if it exists
-        };
-      }
+  /*
+   * Resolves $ref schemas (one level deep is enough for the generated spec;
+   * nested refs are resolved recursively as they are encountered).
+   */
+  private resolveSchema(schema: any): any {
+    if (!schema) {
+      return null;
     }
+    if (schema.$ref) {
+      const resolved: any = this.resolveSchemaRef(schema.$ref);
+      return resolved || null;
+    }
+    return schema;
   }
 
   private resolveSchemaRef(ref: string): any {
@@ -729,87 +690,5 @@ export class OpenAPIParser {
 
     const schemaName: string = ref.replace("#/components/schemas/", "");
     return this.spec.components?.schemas?.[schemaName] || null;
-  }
-
-  private mapOpenAPITypeToTerraform(openApiType: string): string {
-    switch (openApiType) {
-      case "integer":
-      case "number":
-        return "number";
-      case "boolean":
-        return "bool";
-      case "array":
-        return "list";
-      case "object":
-        /*
-         * For now, treat complex objects as JSON strings to handle nested structures
-         * This allows users to pass complex nested objects that will be serialized to JSON
-         */
-        return "string";
-      default:
-        return "string";
-    }
-  }
-
-  private mapOpenAPITypeToTerraformWithName(
-    openApiType: string,
-    ordered?: boolean,
-  ): string {
-    if (openApiType === "array" && !ordered) {
-      return "set";
-    }
-
-    return this.mapOpenAPITypeToTerraform(openApiType);
-  }
-
-  private isReadOperation(
-    method: string,
-    path: string,
-    operation: OpenAPIOperation,
-  ): boolean {
-    const lowerMethod: string = method.toLowerCase();
-
-    // Traditional GET operations are always read operations
-    if (lowerMethod === "get") {
-      return true;
-    }
-
-    // Check for POST operations that are actually read operations
-    if (lowerMethod === "post") {
-      const operationId: string = operation.operationId?.toLowerCase() || "";
-
-      // Check operation ID patterns for read operations
-      const readPatterns: string[] = [
-        "get",
-        "list",
-        "find",
-        "search",
-        "retrieve",
-        "fetch",
-      ];
-
-      const isReadOperationId: boolean = readPatterns.some(
-        (pattern: string) => {
-          return operationId.includes(pattern);
-        },
-      );
-
-      // Check path patterns for read operations
-      const pathSegments: string[] = path.toLowerCase().split("/");
-      const hasReadPathPattern: boolean = pathSegments.some(
-        (segment: string) => {
-          return (
-            segment.includes("get-") ||
-            segment.includes("list") ||
-            segment.includes("search") ||
-            segment.includes("find")
-          );
-        },
-      );
-
-      return isReadOperationId || hasReadPathPattern;
-    }
-
-    return false;
   }
 }

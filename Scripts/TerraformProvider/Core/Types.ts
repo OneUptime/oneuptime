@@ -115,6 +115,14 @@ export interface TerraformAttribute {
   example?: any; // Example value from OpenAPI spec
   isComplexObject?: boolean; // Flag to indicate this string field is actually a complex object
   format?: string; // OpenAPI format information (e.g., "binary", "date-time", etc.)
+  isDateTime?: boolean; // RFC3339 timestamp (spec DateTime wrapper) — uses semantic instant equality
+  enumValues?: string[]; // Allowed values from the spec's enum — emitted as a OneOf validator
+  /*
+   * For list/set attributes: how elements are shaped on the wire.
+   * "entity" = array of entity references ({_id: "..."}), "scalar" = plain values.
+   */
+  elementKind?: "entity" | "scalar";
+  elementType?: string; // OpenAPI type of scalar elements ("string" | "number" | ...)
 }
 
 export interface GoType {

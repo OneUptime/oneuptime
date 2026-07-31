@@ -1,0 +1,18 @@
+{
+  "preset": "ts-jest",
+  "testEnvironment": "node",
+  "testMatch": ["**/Tests/**/?(*.)+(spec|test).ts"],
+  "testTimeout": 30000,
+  "moduleNameMapper": {
+    "^Common/(.*)$": "<rootDir>/../../Common/$1"
+  },
+  "transformIgnorePatterns": ["node_modules/(?!(@oneuptime)/)"],
+  "transform": {
+    "^.+\\.ts$": [
+      "ts-jest",
+      {
+        "tsconfig": "<rootDir>/tsconfig.json"
+      }
+    ]
+  }
+}

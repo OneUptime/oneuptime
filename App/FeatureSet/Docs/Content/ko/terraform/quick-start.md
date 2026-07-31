@@ -1,208 +1,120 @@
-# Terraform 공급자 빠른 시작 가이드
+# Quick Start
 
-이 가이드는 몇 분 안에 OneUptime Terraform 공급자를 시작하는 데 도움을 드립니다.
+This guide takes you from nothing to managed OneUptime resources in about 10 minutes: create an API key, configure the provider, and apply a label, an HTTP monitor, and a status page.
 
-## 전제 조건
+## Prerequisites
 
-- Terraform >= 1.0 설치됨
-- OneUptime 계정 (클라우드 또는 자체 호스팅)
-- OneUptime API 키
+- [Terraform](https://developer.hashicorp.com/terraform/install) 1.5 or later
+- A OneUptime account with a project ([oneuptime.com](https://oneuptime.com) or your self-hosted instance)
 
-## 1단계: API 키 생성
+## Step 1: Create a project API key
 
-### OneUptime 클라우드의 경우
+The provider authenticates with a **project-scoped API key**. In the OneUptime dashboard:
 
-1. [OneUptime 클라우드](https://oneuptime.com)로 이동하여 로그인합니다
-2. **설정** → **API 키**로 이동합니다
-3. **API 키 생성**을 클릭합니다
-4. 이름을 "Terraform 공급자"로 지정합니다
-5. 필요한 권한을 선택합니다
-6. 생성된 API 키를 복사합니다
+1. Select your project.
+2. Go to **Project Settings** > **API Keys**.
+3. Click **Create API Key**.
+4. Give it a name (for example `terraform`) and an expiry.
+5. Grant permissions. Terraform needs **Create**, **Read**, **Update (Edit)**, and **Delete** on every resource type you plan to manage — for this guide: Label, Monitor, and Status Page.
+6. Copy the generated key.
 
-### 자체 호스팅 OneUptime의 경우
+> **Warning:** Do not use a user key or a self-hosted master API key. Master keys are not scoped to a project, and API calls made with them fail with `ProjectId required` errors. Only project API keys work with the Terraform provider.
 
-1. OneUptime 인스턴스에 액세스합니다
-2. **설정** → **API 키**로 이동합니다
-3. **API 키 생성**을 클릭합니다
-4. 이름을 "Terraform 공급자"로 지정합니다
-5. 필요한 권한을 선택합니다
-6. 생성된 API 키를 복사합니다
+Export the key as an environment variable so it never lands in your Terraform files:
 
-## 2단계: Terraform 구성 생성
+```bash
+export ONEUPTIME_API_KEY="your-project-api-key"
+```
 
-새 디렉토리와 `main.tf` 파일을 생성합니다:
+## Step 2: Configure the provider
+
+Create a working directory with a `main.tf`:
 
 ```hcl
 terraform {
   required_providers {
     oneuptime = {
       source  = "oneuptime/oneuptime"
-      # 클라우드 고객의 경우
-      version = "~> 7.0"
-
-      # 자체 호스팅 고객의 경우 - 정확한 버전으로 고정
-      # version = "= 7.0.123"  # OneUptime 버전으로 교체
+      version = "~> 11.0"
     }
   }
-  required_version = ">= 1.0"
 }
 
 provider "oneuptime" {
-  # 클라우드 고객의 경우
-  oneuptime_url = "https://oneuptime.com"
-
-  # 자체 호스팅 고객의 경우 - 인스턴스 URL 사용
-  # oneuptime_url = "https://oneuptime.yourcompany.com"
-
-  api_key = var.oneuptime_api_key
-}
-
-variable "oneuptime_api_key" {
-  description = "OneUptime API 키"
-  type        = string
-  sensitive   = true
-}
-
-# 참고: 프로젝트는 OneUptime 대시보드에서 수동으로 생성해야 합니다
-# 여기서 기존 프로젝트 ID를 사용합니다
-variable "project_id" {
-  description = "OneUptime 프로젝트 ID"
-  type        = string
-}
-
-# 간단한 웹사이트 모니터 생성
-resource "oneuptime_monitor" "website" {
-  name        = "웹사이트 모니터"
-  description = "웹사이트 업타임을 위한 모니터"
-  data        = jsonencode({
-    url = "https://example.com"
-    interval = "5m"
-    timeout = "30s"
-  })
-}
-
-# 모니터 ID 출력
-output "monitor_id" {
-  value = oneuptime_monitor.website.id
+  # api_key is read from the ONEUPTIME_API_KEY environment variable.
+  # oneuptime_url defaults to https://oneuptime.com — set it only if self-hosted:
+  # oneuptime_url = "https://oneuptime.example.com"
 }
 ```
 
-## 3단계: 변수 파일 생성
+Self-hosted users: set `oneuptime_url` to your instance URL and check the version guidance in [Self-Hosted Setup](/docs/terraform/self-hosted) before pinning a provider version.
 
-`terraform.tfvars`를 생성합니다:
+## Step 3: Define your first resources
+
+Append the following to `main.tf`. It creates a label, a website monitor for your homepage, and a private status page:
 
 ```hcl
-# terraform.tfvars
-oneuptime_api_key = "your-api-key-here"
-project_id        = "your-project-id-here"  # OneUptime 대시보드에서 가져옵니다
+resource "oneuptime_label" "critical" {
+  name        = "critical"
+  description = "Resources that page on-call when down"
+  color       = "#FF5733"
+}
+
+resource "oneuptime_monitor" "homepage" {
+  name         = "Homepage"
+  description  = "Checks that the homepage responds"
+  monitor_type = "Website"
+  labels       = [oneuptime_label.critical.id]
+}
+
+resource "oneuptime_status_page" "internal" {
+  name                     = "Internal Status"
+  description              = "Status page for internal services"
+  page_title               = "Service Status"
+  page_description         = "Live status of our services"
+  is_public_status_page    = false
+  enable_email_subscribers = false
+  enable_sms_subscribers   = false
+}
+
+output "monitor_id" {
+  value = oneuptime_monitor.homepage.id
+}
 ```
 
-**중요**: API 키를 비밀로 유지하려면 `terraform.tfvars`를 `.gitignore`에 추가합니다!
+A `Website` monitor created without explicit `monitor_steps` gets sensible server-side defaults. To control the URL, request type, and up/down criteria yourself, pass `monitor_steps` as JSON — that is covered in [Monitor Steps](/docs/terraform/monitor-steps).
 
-## 4단계: 초기화 및 적용
+## Step 4: Init, plan, apply
 
 ```bash
-# Terraform 초기화
 terraform init
-
-# 배포 계획
 terraform plan
-
-# 구성 적용
 terraform apply
 ```
 
-## 5단계: 리소스 확인
+Review the plan (3 resources to add) and confirm with `yes`. Apply completes in a few seconds and prints the monitor ID.
 
-1. OneUptime 대시보드를 확인합니다
-2. 기존 프로젝트로 이동합니다
-3. "웹사이트 모니터"가 생성되어 실행 중인지 확인합니다
+## Step 5: Verify in the dashboard
 
-## 다음 단계
+In the OneUptime dashboard:
 
-1. **더 많은 리소스 탐색**: 사용 가능한 모든 리소스에 대한 [전체 문서](./README.md)를 확인합니다
-2. **알림 설정**: 알림 정책 및 알림 채널 추가
-3. **상태 페이지 생성**: 서비스를 위한 공개 상태 페이지 설정
-4. **팀으로 구성**: 팀 생성 및 권한 할당
+- **Monitors** — the `Homepage` monitor is listed with the `critical` label.
+- **Status Pages** — `Internal Status` appears.
+- **Project Settings > Labels** — the `critical` label exists with the color you set.
 
-## 버전별 예시
+Run `terraform plan` again: it reports `No changes.` Server-computed fields (slugs, current status, default monitoring steps) do not cause drift.
 
-### 클라우드 고객 (최신 버전)
+## Step 6: Clean up
 
-```hcl
-terraform {
-  required_providers {
-    oneuptime = {
-      source  = "oneuptime/oneuptime"
-      version = "~> 7.0"  # 항상 최신 호환 7.x 버전 가져오기
-    }
-  }
-}
-
-provider "oneuptime" {
-  oneuptime_url = "https://oneuptime.com"
-  api_key       = var.oneuptime_api_key
-}
-```
-
-### 자체 호스팅 고객 (버전 고정)
-
-```hcl
-terraform {
-  required_providers {
-    oneuptime = {
-      source  = "oneuptime/oneuptime"
-      version = "= 7.0.123"  # OneUptime 버전과 정확히 일치해야 함
-    }
-  }
-}
-
-provider "oneuptime" {
-  oneuptime_url = "https://oneuptime.mycompany.com"  # 자체 호스팅 URL
-  api_key       = var.oneuptime_api_key
-}
-```
-
-## 빠른 시작 문제 해결
-
-### 문제: 공급자를 찾을 수 없음
-
-```
-오류: 사용 가능한 공급자 패키지 쿼리 실패
-```
-
-**해결책**: 공급자를 다운로드하려면 `terraform init`을 실행합니다
-
-### 문제: 인증 실패
-
-```
-오류: 잘못된 API 키
-```
-
-**해결책**:
-
-1. OneUptime 대시보드에서 API 키를 확인합니다
-2. API 키에 충분한 권한이 있는지 확인합니다
-3. `oneuptime_url`이 인스턴스에 대해 올바른지 확인합니다
-
-### 문제: 버전 불일치 (자체 호스팅)
-
-```
-오류: API 버전 비호환
-```
-
-**해결책**:
-
-1. 대시보드에서 OneUptime 버전을 확인합니다
-2. 정확히 일치하도록 공급자 버전을 업데이트합니다
-3. `terraform init -upgrade`를 실행합니다
-
-## 정리
-
-이 빠른 시작에서 생성된 모든 리소스를 제거하려면:
+If this was a test drive, remove everything the configuration created:
 
 ```bash
 terraform destroy
 ```
 
-이렇게 하면 빠른 시작 중에 생성된 모니터와 프로젝트가 삭제됩니다.
+## Next steps
+
+- [Complete Guide](/docs/terraform/complete-guide) — authentication options, project layout, dependencies, data sources, remote state
+- [Examples](/docs/terraform/examples) — configurations for every major resource type
+- [Monitor Steps](/docs/terraform/monitor-steps) — take control of what your monitors check
+- [Importing Resources](/docs/terraform/importing-resources) — adopt resources you already created in the dashboard

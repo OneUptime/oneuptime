@@ -1,208 +1,120 @@
-# Terraform Provider 快速入門指南
+# Quick Start
 
-本指南將協助您在短短幾分鐘內開始使用 OneUptime Terraform Provider。
+This guide takes you from nothing to managed OneUptime resources in about 10 minutes: create an API key, configure the provider, and apply a label, an HTTP monitor, and a status page.
 
-## 先決條件
+## Prerequisites
 
-- 已安裝 Terraform >= 1.0
-- OneUptime 帳號（雲端或自架）
-- OneUptime API 金鑰
+- [Terraform](https://developer.hashicorp.com/terraform/install) 1.5 or later
+- A OneUptime account with a project ([oneuptime.com](https://oneuptime.com) or your self-hosted instance)
 
-## 步驟 1：建立 API 金鑰
+## Step 1: Create a project API key
 
-### 適用於 OneUptime 雲端
+The provider authenticates with a **project-scoped API key**. In the OneUptime dashboard:
 
-1. 前往 [OneUptime Cloud](https://oneuptime.com) 並登入
-2. 導覽至 **Settings** → **API Keys**
-3. 點選 **Create API Key**
-4. 將其命名為「Terraform Provider」
-5. 選取所需的權限
-6. 複製產生的 API 金鑰
+1. Select your project.
+2. Go to **Project Settings** > **API Keys**.
+3. Click **Create API Key**.
+4. Give it a name (for example `terraform`) and an expiry.
+5. Grant permissions. Terraform needs **Create**, **Read**, **Update (Edit)**, and **Delete** on every resource type you plan to manage — for this guide: Label, Monitor, and Status Page.
+6. Copy the generated key.
 
-### 適用於自架 OneUptime
+> **Warning:** Do not use a user key or a self-hosted master API key. Master keys are not scoped to a project, and API calls made with them fail with `ProjectId required` errors. Only project API keys work with the Terraform provider.
 
-1. 存取您的 OneUptime 執行個體
-2. 導覽至 **Settings** → **API Keys**
-3. 點選 **Create API Key**
-4. 將其命名為「Terraform Provider」
-5. 選取所需的權限
-6. 複製產生的 API 金鑰
+Export the key as an environment variable so it never lands in your Terraform files:
 
-## 步驟 2：建立 Terraform 設定
+```bash
+export ONEUPTIME_API_KEY="your-project-api-key"
+```
 
-建立一個新目錄與 `main.tf` 檔案：
+## Step 2: Configure the provider
+
+Create a working directory with a `main.tf`:
 
 ```hcl
 terraform {
   required_providers {
     oneuptime = {
       source  = "oneuptime/oneuptime"
-      # For Cloud customers
-      version = "~> 7.0"
-
-      # For Self-Hosted customers - pin to your exact version
-      # version = "= 7.0.123"  # Replace with your OneUptime version
+      version = "~> 11.0"
     }
   }
-  required_version = ">= 1.0"
 }
 
 provider "oneuptime" {
-  # For Cloud customers
-  oneuptime_url = "https://oneuptime.com"
-
-  # For Self-Hosted customers - use your instance URL
-  # oneuptime_url = "https://oneuptime.yourcompany.com"
-
-  api_key = var.oneuptime_api_key
-}
-
-variable "oneuptime_api_key" {
-  description = "OneUptime API Key"
-  type        = string
-  sensitive   = true
-}
-
-# Note: Projects must be created manually in the OneUptime dashboard
-# Use your existing project ID here
-variable "project_id" {
-  description = "OneUptime project ID"
-  type        = string
-}
-
-# Create a simple website monitor
-resource "oneuptime_monitor" "website" {
-  name        = "Website Monitor"
-  description = "Monitor for website uptime"
-  data        = jsonencode({
-    url = "https://example.com"
-    interval = "5m"
-    timeout = "30s"
-  })
-}
-
-# Output the monitor ID
-output "monitor_id" {
-  value = oneuptime_monitor.website.id
+  # api_key is read from the ONEUPTIME_API_KEY environment variable.
+  # oneuptime_url defaults to https://oneuptime.com — set it only if self-hosted:
+  # oneuptime_url = "https://oneuptime.example.com"
 }
 ```
 
-## 步驟 3：建立變數檔案
+Self-hosted users: set `oneuptime_url` to your instance URL and check the version guidance in [Self-Hosted Setup](/docs/terraform/self-hosted) before pinning a provider version.
 
-建立 `terraform.tfvars`：
+## Step 3: Define your first resources
+
+Append the following to `main.tf`. It creates a label, a website monitor for your homepage, and a private status page:
 
 ```hcl
-# terraform.tfvars
-oneuptime_api_key = "your-api-key-here"
-project_id        = "your-project-id-here"  # Get this from OneUptime dashboard
+resource "oneuptime_label" "critical" {
+  name        = "critical"
+  description = "Resources that page on-call when down"
+  color       = "#FF5733"
+}
+
+resource "oneuptime_monitor" "homepage" {
+  name         = "Homepage"
+  description  = "Checks that the homepage responds"
+  monitor_type = "Website"
+  labels       = [oneuptime_label.critical.id]
+}
+
+resource "oneuptime_status_page" "internal" {
+  name                     = "Internal Status"
+  description              = "Status page for internal services"
+  page_title               = "Service Status"
+  page_description         = "Live status of our services"
+  is_public_status_page    = false
+  enable_email_subscribers = false
+  enable_sms_subscribers   = false
+}
+
+output "monitor_id" {
+  value = oneuptime_monitor.homepage.id
+}
 ```
 
-**重要**：將 `terraform.tfvars` 加入您的 `.gitignore`，以保持 API 金鑰的機密性！
+A `Website` monitor created without explicit `monitor_steps` gets sensible server-side defaults. To control the URL, request type, and up/down criteria yourself, pass `monitor_steps` as JSON — that is covered in [Monitor Steps](/docs/terraform/monitor-steps).
 
-## 步驟 4：初始化並套用
+## Step 4: Init, plan, apply
 
 ```bash
-# Initialize Terraform
 terraform init
-
-# Plan the deployment
 terraform plan
-
-# Apply the configuration
 terraform apply
 ```
 
-## 步驟 5：驗證資源
+Review the plan (3 resources to add) and confirm with `yes`. Apply completes in a few seconds and prints the monitor ID.
 
-1. 檢查您的 OneUptime 儀表板
-2. 前往您現有的專案
-3. 確認「Website Monitor」已建立並正在執行
+## Step 5: Verify in the dashboard
 
-## 後續步驟
+In the OneUptime dashboard:
 
-1. **探索更多資源**：查看[完整文件](./README.md)以了解所有可用的資源
-2. **設定警報**：新增警報原則與通知管道
-3. **建立狀態頁面**：為您的服務設定公開狀態頁面
-4. **以團隊組織**：建立團隊並指派權限
+- **Monitors** — the `Homepage` monitor is listed with the `critical` label.
+- **Status Pages** — `Internal Status` appears.
+- **Project Settings > Labels** — the `critical` label exists with the color you set.
 
-## 特定版本範例
+Run `terraform plan` again: it reports `No changes.` Server-computed fields (slugs, current status, default monitoring steps) do not cause drift.
 
-### 雲端客戶（最新版本）
+## Step 6: Clean up
 
-```hcl
-terraform {
-  required_providers {
-    oneuptime = {
-      source  = "oneuptime/oneuptime"
-      version = "~> 7.0"  # Always gets latest compatible 7.x version
-    }
-  }
-}
-
-provider "oneuptime" {
-  oneuptime_url = "https://oneuptime.com"
-  api_key       = var.oneuptime_api_key
-}
-```
-
-### 自架客戶（版本鎖定）
-
-```hcl
-terraform {
-  required_providers {
-    oneuptime = {
-      source  = "oneuptime/oneuptime"
-      version = "= 7.0.123"  # Must match your OneUptime version exactly
-    }
-  }
-}
-
-provider "oneuptime" {
-  oneuptime_url = "https://oneuptime.mycompany.com"  # Your self-hosted URL
-  api_key       = var.oneuptime_api_key
-}
-```
-
-## 快速入門疑難排解
-
-### 問題：找不到 Provider
-
-```
-Error: Failed to query available provider packages
-```
-
-**解決方案**：執行 `terraform init` 以下載 provider
-
-### 問題：驗證失敗
-
-```
-Error: Invalid API key
-```
-
-**解決方案**：
-
-1. 在 OneUptime 儀表板中驗證您的 API 金鑰
-2. 檢查 API 金鑰是否具有足夠的權限
-3. 確認 `oneuptime_url` 對於您的執行個體是正確的
-
-### 問題：版本不符（自架）
-
-```
-Error: API version incompatible
-```
-
-**解決方案**：
-
-1. 在儀表板中檢查您的 OneUptime 版本
-2. 將 provider 版本更新為完全相符
-3. 執行 `terraform init -upgrade`
-
-## 清理
-
-若要移除在此快速入門中建立的所有資源：
+If this was a test drive, remove everything the configuration created:
 
 ```bash
 terraform destroy
 ```
 
-這將會刪除在快速入門期間建立的監視器與專案。
+## Next steps
+
+- [Complete Guide](/docs/terraform/complete-guide) — authentication options, project layout, dependencies, data sources, remote state
+- [Examples](/docs/terraform/examples) — configurations for every major resource type
+- [Monitor Steps](/docs/terraform/monitor-steps) — take control of what your monitors check
+- [Importing Resources](/docs/terraform/importing-resources) — adopt resources you already created in the dashboard

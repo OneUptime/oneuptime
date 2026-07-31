@@ -1,161 +1,120 @@
-# Terraform Provider Quick Start Guide
+# Quick Start
 
-यह guide आपको कुछ ही मिनटों में OneUptime Terraform Provider के साथ शुरू करने में मदद करेगी।
+This guide takes you from nothing to managed OneUptime resources in about 10 minutes: create an API key, configure the provider, and apply a label, an HTTP monitor, and a status page.
 
-## पूर्व आवश्यकताएं
+## Prerequisites
 
-- Terraform >= 1.0 installed
-- OneUptime account (Cloud या Self-Hosted)
-- OneUptime API key
+- [Terraform](https://developer.hashicorp.com/terraform/install) 1.5 or later
+- A OneUptime account with a project ([oneuptime.com](https://oneuptime.com) or your self-hosted instance)
 
-## चरण 1: API Key बनाएं
+## Step 1: Create a project API key
 
-### OneUptime Cloud के लिए
+The provider authenticates with a **project-scoped API key**. In the OneUptime dashboard:
 
-1. [OneUptime Cloud](https://oneuptime.com) पर जाएं और log in करें
-2. **Settings** → **API Keys** पर जाएं
-3. **Create API Key** पर क्लिक करें
-4. इसे "Terraform Provider" नाम दें
-5. आवश्यक permissions चुनें
-6. generated API key copy करें
+1. Select your project.
+2. Go to **Project Settings** > **API Keys**.
+3. Click **Create API Key**.
+4. Give it a name (for example `terraform`) and an expiry.
+5. Grant permissions. Terraform needs **Create**, **Read**, **Update (Edit)**, and **Delete** on every resource type you plan to manage — for this guide: Label, Monitor, and Status Page.
+6. Copy the generated key.
 
-### Self-Hosted OneUptime के लिए
+> **Warning:** Do not use a user key or a self-hosted master API key. Master keys are not scoped to a project, and API calls made with them fail with `ProjectId required` errors. Only project API keys work with the Terraform provider.
 
-1. अपने OneUptime instance access करें
-2. **Settings** → **API Keys** पर जाएं
-3. **Create API Key** पर क्लिक करें
-4. इसे "Terraform Provider" नाम दें
-5. आवश्यक permissions चुनें
-6. generated API key copy करें
+Export the key as an environment variable so it never lands in your Terraform files:
 
-## चरण 2: Terraform Configuration बनाएं
+```bash
+export ONEUPTIME_API_KEY="your-project-api-key"
+```
 
-एक नई directory और `main.tf` फ़ाइल बनाएं:
+## Step 2: Configure the provider
+
+Create a working directory with a `main.tf`:
 
 ```hcl
 terraform {
   required_providers {
     oneuptime = {
       source  = "oneuptime/oneuptime"
-      # Cloud customers के लिए
-      version = "~> 7.0"
-
-      # Self-Hosted customers के लिए - अपने exact version पर pin करें
-      # version = "= 7.0.123"  # अपने OneUptime version से बदलें
+      version = "~> 11.0"
     }
   }
-  required_version = ">= 1.0"
 }
 
 provider "oneuptime" {
-  # Cloud customers के लिए
-  oneuptime_url = "https://oneuptime.com"
-
-  # Self-Hosted customers के लिए - अपना instance URL उपयोग करें
-  # oneuptime_url = "https://oneuptime.yourcompany.com"
-
-  api_key = var.oneuptime_api_key
-}
-
-variable "oneuptime_api_key" {
-  description = "OneUptime API Key"
-  type        = string
-  sensitive   = true
-}
-
-# नोट: Projects OneUptime dashboard में manually बनाने होंगे
-# अपना existing project ID यहाँ उपयोग करें
-variable "project_id" {
-  description = "OneUptime project ID"
-  type        = string
-}
-
-# एक simple website monitor बनाएं
-resource "oneuptime_monitor" "website" {
-  name        = "Website Monitor"
-  description = "website uptime के लिए Monitor"
-  data        = jsonencode({
-    url = "https://example.com"
-    interval = "5m"
-    timeout = "30s"
-  })
-}
-
-# monitor ID output करें
-output "monitor_id" {
-  value = oneuptime_monitor.website.id
+  # api_key is read from the ONEUPTIME_API_KEY environment variable.
+  # oneuptime_url defaults to https://oneuptime.com — set it only if self-hosted:
+  # oneuptime_url = "https://oneuptime.example.com"
 }
 ```
 
-## चरण 3: Variables फ़ाइल बनाएं
+Self-hosted users: set `oneuptime_url` to your instance URL and check the version guidance in [Self-Hosted Setup](/docs/terraform/self-hosted) before pinning a provider version.
 
-`terraform.tfvars` बनाएं:
+## Step 3: Define your first resources
+
+Append the following to `main.tf`. It creates a label, a website monitor for your homepage, and a private status page:
 
 ```hcl
-# terraform.tfvars
-oneuptime_api_key = "your-api-key-here"
-project_id        = "your-project-id-here"  # OneUptime dashboard से प्राप्त करें
+resource "oneuptime_label" "critical" {
+  name        = "critical"
+  description = "Resources that page on-call when down"
+  color       = "#FF5733"
+}
+
+resource "oneuptime_monitor" "homepage" {
+  name         = "Homepage"
+  description  = "Checks that the homepage responds"
+  monitor_type = "Website"
+  labels       = [oneuptime_label.critical.id]
+}
+
+resource "oneuptime_status_page" "internal" {
+  name                     = "Internal Status"
+  description              = "Status page for internal services"
+  page_title               = "Service Status"
+  page_description         = "Live status of our services"
+  is_public_status_page    = false
+  enable_email_subscribers = false
+  enable_sms_subscribers   = false
+}
+
+output "monitor_id" {
+  value = oneuptime_monitor.homepage.id
+}
 ```
 
-**महत्वपूर्ण**: API keys secret रखने के लिए `terraform.tfvars` को अपनी `.gitignore` में जोड़ें!
+A `Website` monitor created without explicit `monitor_steps` gets sensible server-side defaults. To control the URL, request type, and up/down criteria yourself, pass `monitor_steps` as JSON — that is covered in [Monitor Steps](/docs/terraform/monitor-steps).
 
-## चरण 4: Initialize और Apply करें
+## Step 4: Init, plan, apply
 
 ```bash
-# Terraform initialize करें
 terraform init
-
-# deployment plan करें
 terraform plan
-
-# configuration apply करें
 terraform apply
 ```
 
-## चरण 5: Resources Verify करें
+Review the plan (3 resources to add) and confirm with `yes`. Apply completes in a few seconds and prints the monitor ID.
 
-1. अपना OneUptime dashboard जांचें
-2. अपने existing project पर जाएं
-3. सत्यापित करें कि "Website Monitor" बनाया गया है और चल रहा है
+## Step 5: Verify in the dashboard
 
-## Troubleshooting Quick Start
+In the OneUptime dashboard:
 
-### समस्या: Provider नहीं मिला
+- **Monitors** — the `Homepage` monitor is listed with the `critical` label.
+- **Status Pages** — `Internal Status` appears.
+- **Project Settings > Labels** — the `critical` label exists with the color you set.
 
-```
-Error: Failed to query available provider packages
-```
+Run `terraform plan` again: it reports `No changes.` Server-computed fields (slugs, current status, default monitoring steps) do not cause drift.
 
-**Solution**: Provider download करने के लिए `terraform init` चलाएं
+## Step 6: Clean up
 
-### समस्या: Authentication failed
-
-```
-Error: Invalid API key
-```
-
-**Solution**:
-
-1. OneUptime dashboard में अपनी API key verify करें
-2. जांचें कि API key में पर्याप्त permissions हैं
-3. सुनिश्चित करें कि `oneuptime_url` आपके instance के लिए correct है
-
-### समस्या: Version mismatch (Self-Hosted)
-
-```
-Error: API version incompatible
-```
-
-**Solution**:
-
-1. dashboard में अपना OneUptime version जांचें
-2. provider version को exactly match करने के लिए update करें
-3. `terraform init -upgrade` चलाएं
-
-## Clean Up
-
-इस quick start में बनाए सभी resources हटाने के लिए:
+If this was a test drive, remove everything the configuration created:
 
 ```bash
 terraform destroy
 ```
+
+## Next steps
+
+- [Complete Guide](/docs/terraform/complete-guide) — authentication options, project layout, dependencies, data sources, remote state
+- [Examples](/docs/terraform/examples) — configurations for every major resource type
+- [Monitor Steps](/docs/terraform/monitor-steps) — take control of what your monitors check
+- [Importing Resources](/docs/terraform/importing-resources) — adopt resources you already created in the dashboard

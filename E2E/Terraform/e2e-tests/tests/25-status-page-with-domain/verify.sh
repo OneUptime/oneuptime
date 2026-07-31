@@ -104,27 +104,5 @@ if [ -z "$MAIN_SLUG" ]; then
     echo "WARNING: Server-generated slug is empty"
 fi
 
-# Verify idempotency (most critical test)
-echo ""
-echo "=== Verifying idempotency ==="
-PLAN_OUTPUT=$(terraform plan -detailed-exitcode 2>&1) || PLAN_EXIT_CODE=$?
-PLAN_EXIT_CODE=${PLAN_EXIT_CODE:-0}
-
-if [ "$PLAN_EXIT_CODE" -eq 0 ]; then
-    echo "SUCCESS: No changes detected - idempotency test PASSED"
-    echo "Both Issue #2236 and Issue #2232 fixes are working correctly"
-elif [ "$PLAN_EXIT_CODE" -eq 2 ]; then
-    echo "ERROR: Changes detected after apply - idempotency test FAILED"
-    echo "This indicates Issue #2236 or Issue #2232 fixes may not be working correctly"
-    echo ""
-    echo "Plan output:"
-    echo "$PLAN_OUTPUT"
-    exit 1
-else
-    echo "ERROR: terraform plan failed with exit code $PLAN_EXIT_CODE"
-    echo "$PLAN_OUTPUT"
-    exit 1
-fi
-
 echo ""
 echo "=== StatusPage with Domain Integration Test PASSED ==="

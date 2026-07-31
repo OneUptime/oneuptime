@@ -13,7 +13,7 @@ provider "oneuptime" {
 }
 
 resource "oneuptime_incident_state" "test" {
-  name        = "terraform-e2e-state-${formatdate("YYYYMMDDhhmmss", timestamp())}"
+  name        = "terraform-e2e-state"
   description = "Incident state created by Terraform E2E tests"
   color       = "#0000FF"
   order       = 99

@@ -1214,9 +1214,15 @@ jobs:
 
   # ─── Non-Docker jobs (downstream dependencies updated) ───────────────
 
+  # Gate: the provider must pass the full Terraform e2e suite before anything
+  # is published to the public provider repo / Terraform Registry.
+  terraform-provider-e2e:
+    uses: ./.github/workflows/terraform-provider-e2e.yml
+    secrets: inherit
+
   publish-terraform-provider:
     runs-on: ubuntu-latest
-    needs: [generate-build-number, read-version]
+    needs: [generate-build-number, read-version, terraform-provider-e2e]
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
       GITHUB_TOKEN: ${{ secrets.SIMLARSEN_GITHUB_PAT }}
@@ -1263,14 +1269,37 @@ jobs:
           if [ -d "Common" ]; then cd Common && npm install && cd ..; fi
           if [ -d "Scripts" ]; then cd Scripts && npm install && cd ..; fi
 
-      - name:  Import GPG key
+      # Defense in depth: generate and check the provider here too, so a broken
+      # generation fails this job before the publish script pushes anything.
+      - name: Generate Terraform provider
+        run: npm run generate-terraform-provider
+
+      - name: Vet generated provider
+        working-directory: ./Terraform/terraform-provider-oneuptime
+        run: go vet ./...
+
+      - name: Test generated provider
+        working-directory: ./Terraform/terraform-provider-oneuptime
+        run: go test ./...
+
+      - name: Import GPG key
         run: |
-          echo '${{ secrets.GPG_PRIVATE_KEY }}' > private.key
-          gpg --import private.key || true
-          rm private.key
-          echo "GPG key imported successfully"
-          gpg --export-secret-keys >~/.gnupg/secring.gpg
-          echo "GPG key exported successfully"
+          set -euo pipefail
+          # Fail fast: a bad or missing key must stop the job here, not
+          # mid-publish inside GoReleaser after the release is half-created.
+          printf '%s' "$GPG_PRIVATE_KEY" > private.key
+          if ! gpg --batch --import private.key; then
+            rm -f private.key
+            echo "::error::Failed to import GPG private key (GPG_PRIVATE_KEY secret). Aborting before any publish step."
+            exit 1
+          fi
+          rm -f private.key
+          if ! gpg --list-secret-keys --keyid-format=long | grep -q '^sec'; then
+            echo "::error::GPG import produced no secret key; release assets cannot be signed."
+            exit 1
+          fi
+          gpg --export-secret-keys > ~/.gnupg/secring.gpg
+          echo "GPG key imported and verified"
 
       - name: Generate and publish Terraform provider
         run: npm run publish-terraform-provider -- --version "${{ steps.version.outputs.version }}" --github-token "${{ secrets.SIMLARSEN_GITHUB_PAT }}" --github-repo-deploy-key "${{ secrets.TERRAFORM_PROVIDER_GITHUB_REPO_DEPLOY_KEY }}"

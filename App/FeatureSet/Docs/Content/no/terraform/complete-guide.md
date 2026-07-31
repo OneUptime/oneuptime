@@ -1,600 +1,217 @@
-# OneUptime Terraform-leverandør
+# Complete Guide
 
-OneUptime Terraform-leverandøren lar deg administrere OneUptime-ressurser ved hjelp av Infrastructure as Code (IaC). Denne leverandøren gjør det mulig å konfigurere overvåking, hendelseshåndtering, statussider og andre OneUptime-funksjoner gjennom Terraform.
+This guide covers everything beyond the first apply: authentication patterns, how to structure a OneUptime Terraform project, resource dependencies, data sources, state management, and upgrades.
 
-## Innholdsfortegnelse
+If you have never used the provider, start with the [Quick Start](/docs/terraform/quick-start).
 
-- [Installasjon](#installasjon)
-- [Leverandørkonfigurasjon](#leverandørkonfigurasjon)
-- [Hurtigstart](#hurtigstart)
-- [Versjonskompatibilitet](#versjonskompatibilitet)
-- [Tilgjengelige ressurser](#tilgjengelige-ressurser)
-- [Eksempler](#eksempler)
-- [Beste praksis](#beste-praksis)
-- [Migrasjonsguide](#migrasjonsguide)
+## Provider configuration
 
-## Installasjon
+The provider block accepts two attributes:
 
-### Fra Terraform Registry (anbefalt)
+| Attribute | Required | Environment variable | Default |
+|-----------|----------|----------------------|---------|
+| `api_key` | No (falls back to env var) | `ONEUPTIME_API_KEY` | — |
+| `oneuptime_url` | No | `ONEUPTIME_URL` | `https://oneuptime.com` |
 
-OneUptime Terraform-leverandøren er tilgjengelig på [Terraform Registry](https://registry.terraform.io/providers/oneuptime/oneuptime).
+If no API key is available from either the provider block or the environment, the provider fails at configure time with an explicit error — before any plan or apply work happens.
 
-```hcl
-terraform {
-  required_providers {
-    oneuptime = {
-      source  = "oneuptime/oneuptime"
-      version = "~> 7.0"  # Bruk siste 7.x-versjon
-    }
-  }
-  required_version = ">= 1.0"
-}
-```
+The key must be a **project API key** (Project Settings > API Keys), with Create/Read/Update/Delete permission on the resource types your configuration manages. Master keys and user keys do not work — see [Troubleshooting](/docs/terraform/troubleshooting).
 
-### Versjonsfesting for selvhostede installasjoner
+### Option 1: Environment variables (recommended)
 
-**Viktig for selvhostede kunder**: Fest alltid Terraform-leverandørversjonen til å samsvare med OneUptime-installasjonsversjonen for å sikre API-kompatibilitet.
-
-```hcl
-terraform {
-  required_providers {
-    oneuptime = {
-      source  = "oneuptime/oneuptime"
-      version = "= 7.0.123"  # Fest til eksakt versjon som samsvarer med OneUptime-installasjonen
-    }
-  }
-  required_version = ">= 1.0"
-}
-```
-
-#### Finne din OneUptime-versjon
-
-Du kan finne din OneUptime-versjon på flere måter:
-
-1. **Dashbord**: Gå til Settings → About i OneUptime-dashbordet
-2. **API**: Kall `GET /api/status`-endepunktet
-3. **Docker**: Sjekk bildets tag du bruker
-4. **Helm**: Sjekk Helm-kartversjonen
+Keep credentials out of your configuration entirely:
 
 ```bash
-# Eksempel: Hvis du kjører OneUptime 7.0.123
-terraform {
-  required_providers {
-    oneuptime = {
-      source  = "oneuptime/oneuptime"
-      version = "= 7.0.123"
-    }
-  }
-}
+export ONEUPTIME_API_KEY="your-project-api-key"
+# Only needed for self-hosted instances:
+export ONEUPTIME_URL="https://oneuptime.example.com"
 ```
-
-## Leverandørkonfigurasjon
-
-### Grunnleggende konfigurasjon
 
 ```hcl
-provider "oneuptime" {
-  oneuptime_url = "https://your-oneuptime-instance.com"  # Eller https://oneuptime.com for sky
-  api_key       = var.oneuptime_api_key
-}
+provider "oneuptime" {}
 ```
 
-### Miljøvariabler
-
-Du kan konfigurere leverandøren ved hjelp av miljøvariabler:
-
-```bash
-export ONEUPTIME_URL="https://your-oneuptime-instance.com"
-export ONEUPTIME_API_KEY="your-api-key-here"
-```
-
-Bruk deretter leverandøren uten eksplisitt konfigurasjon:
+### Option 2: Variables with a tfvars file
 
 ```hcl
-provider "oneuptime" {
-  # Konfigurasjon vil bli lest fra miljøvariabler
-}
-```
-
-### Konfigurasjonsalternativer
-
-| Argument        | Miljøvariabel       | Beskrivelse          | Påkrevd |
-| --------------- | ------------------- | -------------------- | ------- |
-| `oneuptime_url` | `ONEUPTIME_URL`     | OneUptime-URL        | Ja      |
-| `api_key`       | `ONEUPTIME_API_KEY` | OneUptime API-nøkkel | Ja      |
-
-## Hurtigstart
-
-### 1. Opprett API-nøkkel
-
-Opprett først en API-nøkkel i OneUptime-dashbordet:
-
-1. Gå til **Settings** → **API Keys**
-2. Klikk **Create API Key**
-3. Gi den et beskrivende navn (f.eks. "Terraform-automatisering")
-4. Velg passende tillatelser
-5. Kopier den genererte API-nøkkelen
-
-### 2. Grunnleggende Terraform-konfigurasjon
-
-Opprett en `main.tf`-fil:
-
-```hcl
-terraform {
-  required_providers {
-    oneuptime = {
-      source  = "oneuptime/oneuptime"
-      version = "~> 7.0"
-    }
-  }
-}
-
-provider "oneuptime" {
-  oneuptime_url = "https://oneuptime.com"  # Bruk instans-URL-en din
-  api_key       = var.oneuptime_api_key
-}
-
-# Merk: Prosjekter må opprettes manuelt i OneUptime-dashbordet
-variable "project_id" {
-  description = "OneUptime prosjekt-ID"
-  type        = string
-}
-
-# Opprett en monitor
-resource "oneuptime_monitor" "website" {
-  name        = "Nettstedmonitor"
-  description = "Monitor for nettstedoppetid"
-  data        = jsonencode({
-    url = "https://example.com"
-    interval = "5m"
-    timeout = "30s"
-  })
-}
-
-# Opprett et team
-resource "oneuptime_team" "platform" {
-  name        = "Plattformteam"
-  description = "Plattformingeniørteam"
-}
-    value = "alerts@example.com"
-  }
-}
-```
-
-### 3. Initialiser og bruk
-
-```bash
-# Initialiser Terraform
-terraform init
-
-# Planlegg endringene
-terraform plan
-
-# Bruk konfigurasjonen
-terraform apply
-```
-
-## Versjonskompatibilitet
-
-### Sky-kunder
-
-For OneUptime Cloud-kunder, bruk den siste leverandørversjonen:
-
-```hcl
-terraform {
-  required_providers {
-    oneuptime = {
-      source  = "oneuptime/oneuptime"
-      version = "~> 7.0"  # Bruk alltid siste kompatible versjon
-    }
-  }
-}
-```
-
-### Selvhostede kunder
-
-**Kritisk**: Selvhostede kunder må feste leverandørversjonen til å samsvare med OneUptime-installasjonen:
-
-| OneUptime-versjon | Leverandørversjon | Konfigurasjon          |
-| ----------------- | ----------------- | ---------------------- |
-| 7.0.x             | 7.0.x             | `version = "~> 7.0.0"` |
-| 7.1.x             | 7.1.x             | `version = "~> 7.1.0"` |
-| 7.2.x             | 7.2.x             | `version = "~> 7.2.0"` |
-
-Eksempel for OneUptime 7.0.123:
-
-```hcl
-terraform {
-  required_providers {
-    oneuptime = {
-      source  = "oneuptime/oneuptime"
-      version = "= 7.0.123"  # Eksakt versjonssamsvaring
-    }
-  }
-}
-```
-
-## Tilgjengelige ressurser
-
-OneUptime Terraform-leverandøren støtter følgende ressurser:
-
-### Kjernressurser
-
-- `oneuptime_team` – Administrer team
-
-### Overvåking
-
-- `oneuptime_monitor` – Opprett og administrer monitorer
-- `oneuptime_probe` – Administrer overvåkingsprober
-
-### Vakthåndtering
-
-- `oneuptime_on_call_duty_policy` – Sett opp vaktplaner
-
-### Statussider
-
-- `oneuptime_status_page` – Opprett statussider
-
-### Tjenestekatalog
-
-- `oneuptime_service_catalog` – Administrer tjenestekatalogoppføringer
-
-### Tjenestekatalog
-
-- `oneuptime_service` – Definer tjenester
-- `oneuptime_service_dependency` – Kart tjenesteavhengigheter
-
-### Datakilder
-
-Merk: Datakilder er for øyeblikket ikke tilgjengelige i leverandøren, da ingen datakilder er definert i leverandørskjemaet.
-
-## Eksempler
-
-### Fullstendig overvåkingsoppsett
-
-```hcl
-# Variabler
 variable "oneuptime_api_key" {
-  description = "OneUptime API-nøkkel"
+  description = "OneUptime project API key"
   type        = string
   sensitive   = true
 }
 
-variable "project_id" {
-  description = "OneUptime prosjekt-ID (opprett prosjekt manuelt i dashbordet)"
-  type        = string
-}
-
-variable "oneuptime_url" {
-  description = "OneUptime-URL"
-  type        = string
-  default     = "https://oneuptime.com"
-}
-
-# Leverandørkonfigurasjon
-terraform {
-  required_providers {
-    oneuptime = {
-      source  = "oneuptime/oneuptime"
-      version = "~> 7.0"
-    }
-  }
-}
-
 provider "oneuptime" {
-  oneuptime_url = var.oneuptime_url
-  api_key       = var.oneuptime_api_key
-}
-
-# Team
-resource "oneuptime_team" "platform" {
-  name        = "Plattformteam"
-  description = "Plattformingeniørteam"
-}
-
-# Monitorer
-resource "oneuptime_monitor" "api" {
-  name        = "API-helsesjekk"
-  description = "Monitor for API-helseendepunkt"
-  data        = jsonencode({
-    url = "https://api.mycompany.com/health"
-    method = "GET"
-    interval = "1m"
-    timeout = "30s"
-  })
-  }
-}
-
-resource "oneuptime_monitor" "database" {
-  name       = "Databasetilkobling"
-  project_id = oneuptime_project.production.id
-
-  monitor_type = "port"
-  hostname     = "db.mycompany.com"
-  port         = 5432
-  interval     = "2m"
-
-  tags = {
-    service     = "database"
-    environment = "production"
-    criticality = "critical"
-  }
-}
-
-# Vakttpolicy
-resource "oneuptime_on_call_policy" "platform_oncall" {
-  name       = "Plattform vakt"
-  project_id = oneuptime_project.production.id
-  team_id    = oneuptime_team.platform.id
-
-  schedules {
-    name      = "Arbeidstid"
-    timezone  = "Europe/Oslo"
-
-    layers {
-      name = "Primær"
-      users = ["user1@mycompany.com", "user2@mycompany.com"]
-      rotation_type = "weekly"
-      start_time = "09:00"
-      end_time = "17:00"
-      days = ["monday", "tuesday", "wednesday", "thursday", "friday"]
-    }
-  }
-}
-
-# Varselspolicy
-resource "oneuptime_alert_policy" "critical_alerts" {
-  name       = "Kritiske systemvarsler"
-  project_id = oneuptime_project.production.id
-
-  conditions {
-    monitor_id = oneuptime_monitor.api.id
-    threshold  = "down"
-  }
-
-  conditions {
-    monitor_id = oneuptime_monitor.database.id
-    threshold  = "down"
-  }
-
-  actions {
-    type = "webhook"
-    url  = "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
-  }
-
-  actions {
-    type           = "oncall_escalation"
-    oncall_policy_id = oneuptime_on_call_policy.platform_oncall.id
-  }
-}
-
-# Statusside
-resource "oneuptime_status_page" "public" {
-  name       = "MinBedrift Status"
-  project_id = oneuptime_project.production.id
-
-  domain = "status.mycompany.com"
-
-  components {
-    name       = "API"
-    monitor_id = oneuptime_monitor.api.id
-  }
-
-  components {
-    name       = "Database"
-    monitor_id = oneuptime_monitor.database.id
-  }
+  api_key = var.oneuptime_api_key
 }
 ```
 
-### Selvhostet konfigurasjonseksempel
+Put the value in `terraform.tfvars` (and add that file to `.gitignore`):
 
 ```hcl
-# For selvhostet OneUptime-instans versjon 7.0.123
-terraform {
-  required_providers {
-    oneuptime = {
-      source  = "oneuptime/oneuptime"
-      version = "= 7.0.123"  # Må samsvare nøyaktig med din OneUptime-versjon
-    }
-  }
-  required_version = ">= 1.0"
-}
-
-provider "oneuptime" {
-  oneuptime_url = "https://oneuptime.mycompany.com"  # Din selvhostede URL
-  api_key       = var.oneuptime_api_key
-}
-
-# Resten av konfigurasjonen...
+oneuptime_api_key = "your-project-api-key"
 ```
 
-## Beste praksis
+### Option 3: CI/CD secrets
 
-### 1. Versjonshåndtering
+In CI, inject the key as a masked environment variable. GitHub Actions example:
 
-**For Sky-kunder:**
+```yaml
+env:
+  ONEUPTIME_API_KEY: ${{ secrets.ONEUPTIME_API_KEY }}
+steps:
+  - uses: hashicorp/setup-terraform@v3
+  - run: terraform init
+  - run: terraform plan -input=false
+  - run: terraform apply -auto-approve -input=false
+```
 
-- Bruk semantisk versjonering med `~>` for å få kompatible oppdateringer
-- Se gjennom endringsloggen før store versjonsoppgraderinger
+The same pattern works in GitLab CI (masked variables), CircleCI (contexts), and Terraform Cloud (environment variables on the workspace).
 
-**For selvhostede kunder:**
+## Project structure
 
-- Fest alltid til eksakt versjon som samsvarer med installasjonen
-- Oppdater leverandørversjon når du oppgraderer OneUptime
-- Test i ikke-produksjonsmiljø først
+A layout that works well for OneUptime configurations:
 
-### 2. Tilstandshåndtering
+```
+oneuptime/
+├── main.tf          # terraform {} and provider {} blocks
+├── variables.tf     # input variables
+├── outputs.tf       # exported IDs
+├── labels.tf        # labels, teams — shared building blocks
+├── monitors.tf      # monitors and monitor statuses
+├── status-pages.tf  # status pages and domains
+├── on-call.tf       # on-call policies and escalation rules
+└── environments/
+    ├── production.tfvars
+    └── staging.tfvars
+```
+
+Two conventions that pay off:
+
+- **One Terraform root per OneUptime project.** API keys are project-scoped, so a root module maps naturally to one project. For multiple projects, use separate root modules (or provider aliases with one key each).
+- **Define shared building blocks (labels, teams, monitor statuses) once** in their own file and reference them by resource address everywhere else.
+
+## Resource dependencies
+
+Terraform infers dependencies from references. A typical graph — labels and teams feeding monitors, which feed a status page:
+
+```hcl
+resource "oneuptime_label" "payments" {
+  name        = "payments"
+  description = "Payment infrastructure"
+  color       = "#2ecc71"
+}
+
+resource "oneuptime_team" "payments_oncall" {
+  name        = "Payments On-Call"
+  description = "Owns payment service availability"
+}
+
+resource "oneuptime_monitor" "checkout_api" {
+  name         = "Checkout API"
+  description  = "Availability of the checkout API"
+  monitor_type = "API"
+  labels       = [oneuptime_label.payments.id]
+}
+
+resource "oneuptime_status_page" "payments" {
+  name                     = "Payments Status"
+  description              = "Customer-facing payments status"
+  page_title               = "Payments Status"
+  page_description         = "Live status of payment processing"
+  is_public_status_page    = true
+  enable_email_subscribers = true
+  enable_sms_subscribers   = false
+  labels                   = [oneuptime_label.payments.id]
+}
+```
+
+Because `oneuptime_monitor.checkout_api` references `oneuptime_label.payments.id`, Terraform creates the label first and destroys it last. Explicit `depends_on` is rarely needed — only add it when there is a real ordering requirement without an attribute reference.
+
+Attributes like `labels` are **unordered sets of ID strings**: changing the order of entries produces no diff.
+
+## Data sources
+
+Every resource has a matching data source with the same name. Use data sources to reference resources that are *not* managed by this configuration — created in the dashboard, or owned by another Terraform root.
+
+Look up by `name`:
+
+```hcl
+data "oneuptime_label" "critical" {
+  name = "critical"
+}
+
+resource "oneuptime_monitor" "db" {
+  name         = "Database Health"
+  description  = "Managed here, but reuses a dashboard-created label"
+  monitor_type = "Manual"
+  labels       = [data.oneuptime_label.critical.id]
+}
+```
+
+Or look up by `id`:
+
+```hcl
+data "oneuptime_status_page" "main" {
+  id = "5f8a1b2c3d4e5f6a7b8c9d0e"
+}
+```
+
+Lookup rules:
+
+- Provide `id` **or** `name`.
+- If nothing matches, the data source returns an error (fix the name, or create the resource).
+- If more than one resource matches a `name`, the data source also errors — names used for lookups must be unique. Look up by `id` instead.
+
+> **Note:** If you want to *manage* an existing resource rather than just reference it, import it instead — see [Importing Resources](/docs/terraform/importing-resources).
+
+## State management
+
+Terraform state for OneUptime configurations contains resource IDs and attribute values — including anything sensitive you set. Treat it accordingly:
+
+- **Use a remote backend** for anything beyond a personal experiment, so state is shared, locked, and not sitting in a laptop directory. Any [standard backend](https://developer.hashicorp.com/terraform/language/backend) works — S3 + DynamoDB, Terraform Cloud, azurerm, GCS:
 
 ```hcl
 terraform {
   backend "s3" {
-    bucket = "my-terraform-state"
-    key    = "oneuptime/terraform.tfstate"
-    region = "us-west-2"
+    bucket         = "my-terraform-state"
+    key            = "oneuptime/production.tfstate"
+    region         = "us-east-1"
+    dynamodb_table = "terraform-locks"
+    encrypt        = true
   }
 }
 ```
 
-### 3. Miljøseparasjon
+- **Never edit state by hand.** Use `terraform state mv` / `terraform state rm` if you need surgery.
+- **Never commit `terraform.tfstate` or `*.tfvars` with secrets** to version control.
 
-Bruk arbeidsområder eller separate tilstandsfiler for ulike miljøer:
+## Timestamps and drift
 
-```bash
-# Bruke arbeidsområder
-terraform workspace new production
-terraform workspace new staging
+Date/time attributes (for example `starts_at` / `ends_at` on `oneuptime_scheduled_maintenance_event`, or computed `created_at` fields) are RFC3339 strings. The provider compares timestamps semantically: `2026-08-01T02:00:00Z` and the server-normalized form of the same instant are treated as equal, so timestamp normalization does not produce spurious diffs.
 
-# Bruke separate kataloger
-mkdir -p environments/{staging,production}
-```
-
-### 4. Variabelhåndtering
+When you generate timestamps with functions like `timestamp()` or `timeadd()`, the *generated value* changes on every run — that is a Terraform behavior, not a provider one. Either use static values or ignore changes after creation:
 
 ```hcl
-# variables.tf
-variable "environment" {
-  description = "Miljønavn"
-  type        = string
-}
-
-variable "monitors" {
-  description = "Liste over monitorer som skal opprettes"
-  type = list(object({
-    name = string
-    url  = string
-    type = string
-  }))
-}
-
-# terraform.tfvars
-environment = "production"
-monitors = [
-  {
-    name = "Nettsted"
-    url  = "https://example.com"
-    type = "website"
-  },
-  {
-    name = "API"
-    url  = "https://api.example.com/health"
-    type = "api"
-  }
-]
-```
-
-### 5. Ressursnavngiving
-
-Bruk konsistente navngivingskonvensjoner:
-
-```hcl
-resource "oneuptime_monitor" "website_production" {
-  name = "${var.environment}-website-monitor"
-  # ...
-}
-
-resource "oneuptime_alert_policy" "critical_production" {
-  name = "${var.environment}-critical-alerts"
-  # ...
+resource "oneuptime_scheduled_maintenance_event" "db_upgrade" {
+  title       = "Database upgrade"
+  description = "Planned PostgreSQL upgrade"
+  starts_at   = "2026-08-01T02:00:00Z"
+  ends_at     = "2026-08-01T04:00:00Z"
 }
 ```
 
-## Migrasjonsguide
+## Upgrading the provider
 
-### Fra manuell konfigurasjon
+1. Read the release notes on the [registry page](https://registry.terraform.io/providers/oneuptime/oneuptime) or [GitHub releases](https://github.com/OneUptime/terraform-provider-oneuptime/releases).
+2. Raise the version constraint (for example `~> 11.0` already allows all 11.x releases; moving to a new major requires editing the constraint).
+3. Run `terraform init -upgrade` to fetch the new version.
+4. Run `terraform plan` and confirm the plan is empty (or contains only changes you expect) before applying.
 
-1. **Revisjon av eksisterende ressurser** i OneUptime-dashbordet
-2. **Opprett Terraform-konfigurasjon** for eksisterende ressurser
-3. **Importer eksisterende ressurser** til Terraform-tilstand
-4. **Valider konfigurasjon** samsvarer med gjeldende tilstand
-5. **Bruk endringer** trinnvis
+Self-hosted installations must keep the provider version at or below the platform version — upgrade OneUptime first, then the provider. See [Self-Hosted Setup](/docs/terraform/self-hosted).
 
-Eksempelimport:
+## Further reading
 
-```bash
-# Importer eksisterende monitor
-terraform import oneuptime_monitor.website monitor-id-here
-
-# Importer eksisterende prosjekt
-terraform import oneuptime_project.main project-id-here
-```
-
-### Versjonsoppgraderinger
-
-Når du oppgraderer OneUptime (selvhostet):
-
-1. **Sikkerhetskopier gjeldende tilstand**
-2. **Sjekk leverandørkompatibilitet**
-3. **Oppdater leverandørversjon** i konfigurasjon
-4. **Test i testmiljø**
-5. **Bruk i produksjon**
-
-```bash
-# Sikkerhetskopier tilstand
-terraform state pull > backup.tfstate
-
-# Oppdater leverandørversjon
-# Rediger terraform-blokken i konfigurasjonen
-
-# Planlegg og bruk
-terraform init -upgrade
-terraform plan
-terraform apply
-```
-
-## Støtte og ressurser
-
-- **Dokumentasjon**: [OneUptime-dokumenter](https://docs.oneuptime.com)
-- **Terraform Registry**: [OneUptime-leverandør](https://registry.terraform.io/providers/oneuptime/oneuptime)
-- **GitHub-saker**: [OneUptime GitHub](https://github.com/OneUptime/oneuptime/issues)
-- **Community**: [OneUptime Community](https://community.oneuptime.com)
-
-## Feilsøking
-
-### Vanlige problemer
-
-1. **Versjonskonflikt (selvhostet)**
-
-   ```
-   Error: API version incompatible
-   ```
-
-   **Løsning**: Sørg for at leverandørversjon samsvarer med OneUptime-installasjonen
-
-2. **Autentiseringsproblemer**
-
-   ```
-   Error: Invalid API key
-   ```
-
-   **Løsning**: Verifiser API-nøkkel og tillatelser
-
-3. **Ressurs ikke funnet**
-   ```
-   Error: Resource not found
-   ```
-   **Løsning**: Sjekk ressurs-ID-er og sørg for at ressursen eksisterer
-
-### Feilsøkingsmodus
-
-Aktiver detaljert logging:
-
-```bash
-export TF_LOG=DEBUG
-terraform apply
-```
-
-### Versjonssjekk
-
-Verifiser oppsettet ditt:
-
-```bash
-# Sjekk Terraform-versjon
-terraform version
-
-# Sjekk leverandørversjon
-terraform providers
-
-# Valider konfigurasjon
-terraform validate
-```
+- [Examples](/docs/terraform/examples) — real configurations for each resource type
+- [Monitor Steps](/docs/terraform/monitor-steps) — the `monitor_steps` JSON schema in depth
+- [Importing Resources](/docs/terraform/importing-resources) — adopting existing resources
+- [Troubleshooting](/docs/terraform/troubleshooting) — common errors and fixes

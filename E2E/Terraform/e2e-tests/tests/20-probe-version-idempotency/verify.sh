@@ -7,8 +7,8 @@
 #
 # Test approach:
 # 1. Check the probe_version in Terraform state (should be "1.0.0")
-# 2. Run terraform plan to check for drift (should show no changes)
-# 3. Verify via API that the data is consistent
+# 2. Verify via API that the data is consistent
+# (Drift detection is handled by the runner's plan gate in run-tests.sh.)
 
 set -e
 
@@ -29,28 +29,7 @@ if [[ "$EXPECTED_VERSION" == *"_type"* ]] || [[ "$EXPECTED_VERSION" == *'"value"
 fi
 echo "    ✓ probe_version in state is clean: $EXPECTED_VERSION"
 
-# Step 2: Run terraform plan and check for drift
-# This is the critical test - if READ doesn't unwrap properly, plan will show drift
-echo "    Running terraform plan to check for drift..."
-PLAN_OUTPUT=$(terraform plan -detailed-exitcode 2>&1) || PLAN_EXIT_CODE=$?
-
-# Exit code 0 = no changes (success)
-# Exit code 1 = error
-# Exit code 2 = changes detected (drift)
-if [ "${PLAN_EXIT_CODE:-0}" -eq 2 ]; then
-    echo "    ✗ FAILED: Terraform plan detected drift!"
-    echo "    This indicates the READ operation is not properly unwrapping the probe_version"
-    echo "    Plan output:"
-    echo "$PLAN_OUTPUT"
-    exit 1
-elif [ "${PLAN_EXIT_CODE:-0}" -eq 1 ]; then
-    echo "    ✗ FAILED: Terraform plan error"
-    echo "$PLAN_OUTPUT"
-    exit 1
-fi
-echo "    ✓ Terraform plan shows no changes (idempotent)"
-
-# Step 3: Verify via API that probe_version matches
+# Step 2: Verify via API that probe_version matches
 echo "    Verifying probe_version via API..."
 RESPONSE=$(curl -s -X POST "${ONEUPTIME_URL}/api/probe/${RESOURCE_ID}/get-item" \
     -H "Content-Type: application/json" \
