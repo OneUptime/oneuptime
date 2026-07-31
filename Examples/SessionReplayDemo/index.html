@@ -116,6 +116,28 @@
         log("No ?token= supplied — the recorder will not authenticate.", "bad");
       }
 
+      // Do Not Track is honoured BEFORE the recorder makes any request, so an
+      // enabled DNT looks identical to "session replay is switched off" unless
+      // the page says so. Chrome and Firefox both expose a setting for it, and
+      // it is easy to forget it is on.
+      var dntOn =
+        navigator.doNotTrack === "1" ||
+        window.doNotTrack === "1" ||
+        navigator.msDoNotTrack === "1" ||
+        navigator.globalPrivacyControl === true;
+
+      var RESPECT_DNT = params.get("respectdnt") !== "false";
+
+      if (dntOn && RESPECT_DNT) {
+        log(
+          "Do Not Track is ON in this browser, so the recorder will not record " +
+            "and will make no requests. Add &respectdnt=false to override for testing.",
+          "bad"
+        );
+      } else if (dntOn) {
+        log("Do Not Track is on, but this page passed respectdnt=false to override it.");
+      }
+
       // Surface what the recorder is doing, so a silent failure is visible.
       var origFetch = window.fetch;
       window.fetch = function (input, init) {
@@ -178,6 +200,9 @@
       s.async = true;
       s.setAttribute("data-oneuptime-token", TOKEN);
       s.setAttribute("data-oneuptime-app-identifier", APP);
+      if (!RESPECT_DNT) {
+        s.setAttribute("data-oneuptime-respect-do-not-track", "false");
+      }
       s.onerror = function () { log("failed to LOAD the recorder script from " + HOST, "bad"); };
       document.head.appendChild(s);
     </script>

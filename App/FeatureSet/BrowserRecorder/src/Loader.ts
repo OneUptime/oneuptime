@@ -38,6 +38,21 @@ export async function load(): Promise<void> {
   const options: RecorderInitOptions | null = Config.readInitOptions();
 
   if (!options) {
+    /*
+     * Say something. A misconfigured snippet used to produce total silence -
+     * no recording, no request, no console output - which is indistinguishable
+     * from "session replay is off for this app" and sends people looking in
+     * the wrong place entirely.
+     *
+     * This is the ONLY thing the recorder logs. It is a setup error on the
+     * customer's own page, it happens once, and the alternative is the
+     * silence that made this bug expensive to find.
+     */
+    // eslint-disable-next-line no-console
+    console.warn(
+      "OneUptime Session Replay: not starting. The script tag needs data-oneuptime-token and data-oneuptime-app-identifier, and a host it can derive from its own src (or an explicit data-oneuptime-host).",
+    );
+
     return;
   }
 

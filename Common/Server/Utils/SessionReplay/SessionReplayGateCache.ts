@@ -220,7 +220,7 @@ export default class SessionReplayGateCache {
     const isProjectAllowed: boolean =
       projectView["isSessionReplayAllowed"] === true;
 
-    const app: RumApplication | null = await RumApplicationService.findOneBy({
+    let app: RumApplication | null = await RumApplicationService.findOneBy({
       query: {
         projectId: data.projectId,
         appIdentifier: QueryHelper.findWithSameText(data.appIdentifier),
@@ -233,6 +233,45 @@ export default class SessionReplayGateCache {
         isRoot: true,
       },
     });
+
+    /*
+     * Create the application on first sight, the same way OTel RUM telemetry
+     * does via findOrCreateByAppIdentifier.
+     *
+     * Without this, session replay cannot bootstrap itself at all: there is no
+     * "create application" button in the Dashboard - RUM applications appear
+     * only once telemetry arrives - so a customer who pastes the recorder
+     * snippet and nothing else would get enabled:false forever, with the
+     * recorder silently declining to record and no way to fix it from the UI.
+     *
+     * Only reached behind an authenticated, project-scoped ingestion key, and
+     * only for a project that already allows session replay, so this creates
+     * exactly the row the customer's own traffic implies.
+     */
+    if (!app) {
+      if (!isProjectAllowed) {
+        return null;
+      }
+
+      await RumApplicationService.findOrCreateByAppIdentifier({
+        projectId: data.projectId,
+        appIdentifier: data.appIdentifier,
+      });
+
+      app = await RumApplicationService.findOneBy({
+        query: {
+          projectId: data.projectId,
+          appIdentifier: QueryHelper.findWithSameText(data.appIdentifier),
+        },
+        select: this.buildSelect(
+          new RumApplication(),
+          RUM_APPLICATION_POLICY_COLUMNS,
+        ),
+        props: {
+          isRoot: true,
+        },
+      });
+    }
 
     if (!app || !app.id) {
       return null;
@@ -418,13 +457,19 @@ export default class SessionReplayGateCache {
   ): SelectOptions<TModel> {
     const declared: Set<string> = new Set<string>(Object.keys(instance));
 
+    /*
+     * Only _id is universal. projectId and updatedAt are guarded like every
+     * other column because this helper is used for BOTH Project and
+     * RumApplication, and Project has no projectId of its own - selecting it
+     * there asks the ORM for a column that does not exist, which yields no
+     * row rather than an error, so the policy silently resolved to null and
+     * session replay reported itself disabled with nothing in the logs.
+     */
     const select: Record<string, boolean> = {
       _id: true,
-      projectId: true,
-      updatedAt: true,
     };
 
-    for (const column of optionalColumns) {
+    for (const column of ["projectId", "updatedAt", ...optionalColumns]) {
       if (declared.has(column)) {
         select[column] = true;
       }
