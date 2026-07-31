@@ -212,6 +212,6 @@ Self-hosted installations must keep the provider version at or below the platfor
 ## Further reading
 
 - [Examples](/docs/terraform/examples) — real configurations for each resource type
-- [Monitor Steps](/docs/terraform/monitor-steps) — the `monitor_steps` JSON schema in depth
+- [Monitor Steps](/docs/terraform/monitor-steps) — the `monitor_steps` nested attributes in depth
 - [Importing Resources](/docs/terraform/importing-resources) — adopting existing resources
 - [Troubleshooting](/docs/terraform/troubleshooting) — common errors and fixes

@@ -11,6 +11,8 @@ e2e-tests/
 │   ├── setup-test-account.sh # Creates test user, project, and API key
 │   ├── run-tests.sh          # Builds provider and runs all test cases
 │   ├── lib.sh                # Shared library with common test utilities
+│   ├── coverage-report.sh    # Resource-type coverage report + ratchet gate
+│   ├── coverage-baseline.txt # Minimum number of tested resource types
 │   └── cleanup.sh            # Cleans up test artifacts and state files
 └── tests/
     ├── 01-label/             # Label resource tests
@@ -131,6 +133,37 @@ print_passed "My Resource Verification"
 Note: verify.sh scripts are for API-side assertions only. Drift/idempotency
 is enforced centrally by the runner's plan gate — do not run `terraform plan`
 from verify.sh.
+
+## Resource Coverage Gate
+
+`scripts/coverage-report.sh` compares the resource types the generated
+provider ships (the `docs/resources/*.md` pages under
+`Terraform/terraform-provider-oneuptime`, or a tree passed via
+`--provider-dir`) against the resource types exercised by the fixtures
+(every `resource "oneuptime_*"` block in `tests/*/main.tf` and
+`tests/*/update.tf`). It prints the counts, the percentage, and the sorted
+list of untested types.
+
+```bash
+# Report only (always exits 0):
+./scripts/coverage-report.sh
+
+# Gate mode (exits 1 if fewer than N resource types are tested):
+./scripts/coverage-report.sh --min-count "$(cat scripts/coverage-baseline.txt)"
+```
+
+`scripts/coverage-baseline.txt` holds the current floor for the number of
+tested resource types. `run-tests.sh` runs the gate at the end of every
+successful suite run (locally and in CI), and the CI workflow runs it again
+as a dedicated step so the result is visible in the GitHub Actions UI.
+Coverage can therefore only ratchet up — a change that silently drops a
+resource type from the suite fails the build.
+
+**When adding tests for new resource types:** run
+`./scripts/coverage-report.sh`, take the "Tested resource types" count, and
+raise `scripts/coverage-baseline.txt` to that number in the same PR.
+Lowering the baseline is only acceptable when a resource type is genuinely
+removed from the provider, and should be called out in the PR description.
 
 ## Environment Variables
 

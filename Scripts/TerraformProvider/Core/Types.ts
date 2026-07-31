@@ -77,6 +77,7 @@ export interface OpenAPISpec {
 export interface TerraformResource {
   name: string;
   goTypeName: string;
+  description?: string; // Human description from the spec's tag (model tableDescription)
   operations: {
     create?: OpenAPIOperation;
     read?: OpenAPIOperation;
@@ -95,6 +96,7 @@ export interface TerraformResource {
 export interface TerraformDataSource {
   name: string;
   goTypeName: string;
+  description?: string; // Human description from the spec's tag (model tableDescription)
   operations: {
     read?: OpenAPIOperation;
     list?: OpenAPIOperation;
@@ -116,6 +118,7 @@ export interface TerraformAttribute {
   isComplexObject?: boolean; // Flag to indicate this string field is actually a complex object
   format?: string; // OpenAPI format information (e.g., "binary", "date-time", etc.)
   isDateTime?: boolean; // RFC3339 timestamp (spec DateTime wrapper) — uses semantic instant equality
+  isMonitorSteps?: boolean; // MonitorSteps wrapper — emitted as a typed nested attribute (monitorsteps.go)
   enumValues?: string[]; // Allowed values from the spec's enum — emitted as a OneOf validator
   /*
    * For list/set attributes: how elements are shaped on the wire.

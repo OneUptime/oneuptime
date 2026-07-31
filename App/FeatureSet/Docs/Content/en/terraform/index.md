@@ -31,7 +31,7 @@ The API key must be a **project API key** created in **Project Settings > API Ke
 |------|----------------|
 | [Quick Start](/docs/terraform/quick-start) | Create an API key and apply your first resources in about 10 minutes |
 | [Complete Guide](/docs/terraform/complete-guide) | Authentication, project structure, dependencies, data sources, state |
-| [Monitor Steps](/docs/terraform/monitor-steps) | Deep dive into the `monitor_steps` JSON structure and criteria filters |
+| [Monitor Steps](/docs/terraform/monitor-steps) | Deep dive into the `monitor_steps` nested attributes and criteria filters |
 | [Examples](/docs/terraform/examples) | Copy-pasteable configurations for every major resource type |
 | [Importing Resources](/docs/terraform/importing-resources) | Bring existing OneUptime resources under Terraform management |
 | [Troubleshooting](/docs/terraform/troubleshooting) | Symptom-to-fix reference for the most common errors |
@@ -70,7 +70,7 @@ OneUptime resource schemas map the OneUptime API directly:
 
 - **Scalar attributes** are plain Terraform strings, numbers, and booleans (`name`, `description`, `monitor_type`, `is_public_status_page`, ...).
 - **Entity references** are ID strings (`incident_severity_id`, `monitor_id`). Arrays of references, such as `labels`, are unordered sets of ID strings — reordering them produces no diff.
-- **Complex nested configuration** — most notably a monitor's `monitor_steps` — is passed as a JSON string, normally written with `jsonencode()`. There are no nested HCL blocks. See [Monitor Steps](/docs/terraform/monitor-steps).
+- **Complex nested configuration** — most notably a monitor's `monitor_steps` — uses typed nested attributes written directly in HCL, with per-monitor-type raw-JSON escape hatches for deep telemetry query configs. See [Monitor Steps](/docs/terraform/monitor-steps).
 - **Date/time attributes** are RFC3339 strings (for example `2026-08-01T02:00:00Z`). The provider treats semantically equal timestamps as equal, so server-side normalization does not cause drift.
 
 ## Versioning

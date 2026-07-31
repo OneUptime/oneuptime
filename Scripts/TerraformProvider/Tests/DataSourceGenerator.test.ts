@@ -68,6 +68,12 @@ describe("lookup semantics", () => {
   });
 });
 
+describe("monitor steps on data sources", () => {
+  test("monitor_steps is exposed as its raw JSON string (read-only)", () => {
+    expect(monitorGo).toContain("MonitorSteps types.String");
+  });
+});
+
 describe("response mapping", () => {
   test("mapping keys use the API's camelCase field names", () => {
     /*

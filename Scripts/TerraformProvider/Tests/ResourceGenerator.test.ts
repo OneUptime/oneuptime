@@ -137,7 +137,12 @@ describe("schema attributes", () => {
   });
 
   test("complex JSON fields keep the subset-equality type", () => {
-    expect(monitorGo).toContain("MonitorSteps JSONSubsetValue");
+    expect(monitorGo).toContain("ServerMeta JSONSubsetValue");
+  });
+
+  test("resource descriptions come from the spec's tag description", () => {
+    expect(monitorGo).toContain("checks the health and availability");
+    expect(monitorGo).not.toContain('MarkdownDescription: "monitor resource"');
   });
 });
 
@@ -201,6 +206,73 @@ describe("import", () => {
   test("read-less resources error on import instead of faking state", () => {
     expect(fileGo).not.toContain("ImportStatePassthroughID");
     expect(fileGo).toContain("Import Not Supported");
+  });
+});
+
+describe("typed monitor steps", () => {
+  test("the model field is a typed list, not a JSON string", () => {
+    expect(monitorGo).toContain("MonitorSteps types.List");
+    expect(monitorGo).not.toContain("MonitorSteps JSONSubsetValue");
+  });
+
+  test("the schema uses the hand-written nested attribute", () => {
+    expect(monitorGo).toContain(
+      '"monitor_steps": MonitorStepsSchemaAttribute(',
+    );
+  });
+
+  test("create converts through MonitorStepsToAPI with a null guard", () => {
+    const createBody: string = monitorGo.substring(
+      monitorGo.indexOf("func (r *MonitorResource) Create"),
+      monitorGo.indexOf("func (r *MonitorResource) Read"),
+    );
+    expect(createBody).toContain(
+      "if !data.MonitorSteps.IsNull() && !data.MonitorSteps.IsUnknown()",
+    );
+    expect(createBody).toContain("MonitorStepsToAPI(ctx, data.MonitorSteps)");
+  });
+
+  test("responses convert through MonitorStepsFromAPI", () => {
+    const readBody: string = monitorGo.substring(
+      monitorGo.indexOf("func (r *MonitorResource) Read"),
+      monitorGo.indexOf("func (r *MonitorResource) Update"),
+    );
+    expect(readBody).toContain(
+      'MonitorStepsFromAPI(ctx, dataMap["monitorSteps"])',
+    );
+  });
+
+  test("updates convert through MonitorStepsToAPI on change", () => {
+    const updateBody: string = monitorGo.substring(
+      monitorGo.indexOf("func (r *MonitorResource) Update"),
+      monitorGo.indexOf("func (r *MonitorResource) Delete"),
+    );
+    expect(updateBody).toContain("MonitorStepsToAPI(ctx, data.MonitorSteps)");
+  });
+});
+
+describe("envelope validation", () => {
+  test("writable complex-JSON fields get the plan-time validator", () => {
+    const schemaBody: string = monitorGo.substring(
+      monitorGo.indexOf("func (r *MonitorResource) Schema"),
+      monitorGo.indexOf("func (r *MonitorResource) Configure"),
+    );
+    const serverMetaAttr: string = schemaBody.substring(
+      schemaBody.indexOf('"server_meta"'),
+      schemaBody.indexOf('"server_meta"') + 600,
+    );
+    expect(serverMetaAttr).toContain("JSONEnvelopeValidator()");
+  });
+
+  test("the shared ObjectType registry is emitted once at package level", () => {
+    const objectTypesGo: string = fs.readFileSync(
+      path.join(outputDir, "internal/provider/objecttypes.go"),
+      "utf-8",
+    );
+    expect(objectTypesGo).toContain("var validOneUptimeObjectTypes");
+    expect(objectTypesGo).toContain('"DateTime": true');
+    // Resources delegate to the registry instead of duplicating the map.
+    expect(monitorGo).toContain("return validOneUptimeObjectTypes[typeStr]");
   });
 });
 

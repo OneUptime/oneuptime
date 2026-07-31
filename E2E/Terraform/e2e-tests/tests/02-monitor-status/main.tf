@@ -13,10 +13,10 @@ provider "oneuptime" {
 }
 
 resource "oneuptime_monitor_status" "test" {
-  name               = "terraform-e2e-status"
-  description        = "Monitor status created by Terraform E2E tests"
-  color              = "#00FF00"
-  priority           = 99
+  name                 = "terraform-e2e-status"
+  description          = "Monitor status created by Terraform E2E tests"
+  color                = "#00FF00"
+  priority             = 99
   is_operational_state = true
 }
 

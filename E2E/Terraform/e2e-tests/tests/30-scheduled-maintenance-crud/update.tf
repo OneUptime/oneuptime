@@ -41,11 +41,11 @@ resource "oneuptime_scheduled_maintenance_event" "basic" {
 
 # Test Case 2: Scheduled Maintenance with visibility
 resource "oneuptime_scheduled_maintenance_event" "visibility" {
-  title                                                      = "TF Visibility Maintenance ${random_id.suffix.hex}"
-  description                                                = "Maintenance with visibility settings"
-  starts_at                                                  = local.starts_at
-  ends_at                                                    = local.ends_at
-  is_visible_on_status_page                                  = false
+  title                                                       = "TF Visibility Maintenance ${random_id.suffix.hex}"
+  description                                                 = "Maintenance with visibility settings"
+  starts_at                                                   = local.starts_at
+  ends_at                                                     = local.ends_at
+  is_visible_on_status_page                                   = false
   should_status_page_subscribers_be_notified_on_event_created = false
 }
 

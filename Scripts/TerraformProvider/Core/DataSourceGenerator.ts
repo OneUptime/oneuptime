@@ -116,7 +116,7 @@ func (d *${dataSourceTypeName}DataSource) Metadata(ctx context.Context, req data
 
 func (d *${dataSourceTypeName}DataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
     resp.Schema = schema.Schema{
-        MarkdownDescription: "${dataSource.name} data source. Look up an existing ${dataSource.name} by \`id\` or by \`name\`.",
+        MarkdownDescription: "${GoCodeGenerator.escapeString(dataSource.description || "")} Look up an existing ${dataSource.name} by \`id\` or by \`name\`.",
 
         Attributes: map[string]schema.Attribute{
 ${this.generateSchemaAttributes(dataSource)}
@@ -412,6 +412,7 @@ ${this.generateResponseMapping(dataSource, dataSourceVarName)}`;
     responseValue: string,
   ): string {
     switch (attr.type) {
+      case "monitor_steps":
       case "string":
         /*
          * Strings may arrive raw or wrapped ({_id}, {_type, value}). Unwrap
@@ -525,6 +526,8 @@ ${this.generateResponseMapping(dataSource, dataSourceVarName)}`;
 
   private mapTerraformTypeToGo(terraformType: string): string {
     switch (terraformType) {
+      // Data sources expose monitor steps as their raw JSON (read-only).
+      case "monitor_steps":
       case "string":
         return "types.String";
       case "number":
@@ -544,6 +547,7 @@ ${this.generateResponseMapping(dataSource, dataSourceVarName)}`;
 
   private mapTerraformTypeToSchemaType(terraformType: string): string {
     switch (terraformType) {
+      case "monitor_steps":
       case "string":
         return "String";
       case "number":

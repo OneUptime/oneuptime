@@ -16,8 +16,8 @@ Fast lookup for the errors people actually hit with the OneUptime Terraform prov
 | Data source error: no match / more than one match | Name lookup found zero or multiple resources | Fix the name, or look up by `id` |
 | `x509: certificate signed by unknown authority` (self-hosted) | Instance serves a TLS certificate Terraform's host does not trust | Install the CA on the machine running Terraform |
 | Connection refused / 404s on every API call (self-hosted) | Wrong `oneuptime_url` (path suffix, wrong port, http vs https) | Set `oneuptime_url` to the bare instance origin, e.g. `https://oneuptime.example.com` |
-| Monitor JSON from the dashboard rejected | Dashboard-exported JSON pasted as Terraform configuration | Rebuild as HCL with `jsonencode()` — see below |
-| Every apply rewrites `monitor_steps` | Random/time-based ids inside the steps JSON | Use fixed literal `id` values |
+| Monitor JSON from the dashboard rejected | Dashboard-exported JSON pasted as Terraform configuration | Rebuild as HCL — see below |
+| `monitor_steps` rejects an empty list, map, or string | `[]`, `{}`, or `""` passed as a placeholder | Omit the attribute entirely — absent means unset |
 
 ## "Provider produced inconsistent result after apply"
 
@@ -70,7 +70,7 @@ The dashboard can show or export resources as JSON. That JSON is an **API payloa
 What to do instead:
 
 - Rebuild the resource as HCL, using the [Examples](/docs/terraform/examples) as templates.
-- For a monitor's steps specifically: the exported `monitorSteps` object *is* the right shape for the `monitor_steps` attribute — translate it into an HCL object inside `jsonencode()` (see [Monitor Steps](/docs/terraform/monitor-steps)), keeping the camelCase keys and `{_type, value}` envelopes.
+- For a monitor's steps specifically: translate the exported `monitorSteps` object into the typed `monitor_steps` nested attributes (see [Monitor Steps](/docs/terraform/monitor-steps)) — drop the `{_type, value}` envelopes, convert camelCase keys to snake_case, and delete all `id` fields.
 - To adopt the existing resource rather than recreate it, use [import](/docs/terraform/importing-resources) and let `terraform plan -generate-config-out` draft the HCL.
 
 ## Still stuck?

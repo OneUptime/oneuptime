@@ -34,7 +34,11 @@ const monitorCreateSchema: any = {
   description: "Create schema for Monitor model. Create",
   required: ["name", "monitorType"],
   properties: {
-    name: { type: "string", description: "Name of the monitor" },
+    name: {
+      type: "string",
+      description:
+        "Name of the monitor. Permissions - Create: [Project Owner, Create Monitor], Read: [Project Member], Update: [Edit Monitor]",
+    },
     description: { type: "string", description: "Description" },
     monitorType: {
       type: "string",
@@ -62,7 +66,12 @@ const monitorCreateSchema: any = {
     },
     monitorSteps: {
       type: "object",
+      "x-oneuptime-type": "MonitorSteps",
       description: "Monitor steps configuration",
+    },
+    serverMeta: {
+      type: "object",
+      description: "Arbitrary nested metadata",
     },
     secretToken: {
       type: "string",
@@ -92,7 +101,12 @@ const monitorUpdateSchema: any = {
     disableMonitoringDatetime: dateTimeWrapper,
     labels: monitorCreateSchema.properties.labels,
     tags: monitorCreateSchema.properties.tags,
-    monitorSteps: { type: "object", description: "Monitor steps" },
+    monitorSteps: {
+      type: "object",
+      "x-oneuptime-type": "MonitorSteps",
+      description: "Monitor steps",
+    },
+    serverMeta: { type: "object", description: "Arbitrary nested metadata" },
   },
 };
 
@@ -111,7 +125,8 @@ const monitorModelSchema: any = {
     disableMonitoringDatetime: dateTimeWrapper,
     labels: monitorCreateSchema.properties.labels,
     tags: monitorCreateSchema.properties.tags,
-    monitorSteps: { type: "object" },
+    monitorSteps: { type: "object", "x-oneuptime-type": "MonitorSteps" },
+    serverMeta: { type: "object" },
     immutableRegion: { type: "string" },
     projectId: { type: "string" },
     serverToken: {
@@ -212,6 +227,14 @@ export function buildFixtureSpec(): OpenAPISpec {
       description: "Test fixture spec",
     },
     servers: [{ url: "https://oneuptime.com/api" }],
+    tags: [
+      {
+        name: "Monitor",
+        description:
+          "A Monitor continuously checks the health and availability of a service.",
+      },
+      { name: "EmailLog", description: "Logs of outbound email." },
+    ],
     paths: {
       "/monitor": {
         post: {

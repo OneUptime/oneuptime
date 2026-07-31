@@ -185,6 +185,17 @@ jobs:
       - name: Run Terraform E2E tests
         run: ./E2E/Terraform/e2e-tests/scripts/run-tests.sh
 
+      # Coverage ratchet: the suite must exercise at least as many provider
+      # resource types as the checked-in baseline. run-tests.sh already
+      # enforces this at the end of a successful run; this dedicated step
+      # keeps the gate visible in the CI UI and protects against the wiring
+      # inside run-tests.sh being removed. It is purely static (greps fixture
+      # files against the generated docs), so re-running it here is free.
+      - name: Terraform resource coverage gate
+        run: |
+          ./E2E/Terraform/e2e-tests/scripts/coverage-report.sh \
+            --min-count "$(cat E2E/Terraform/e2e-tests/scripts/coverage-baseline.txt)"
+
       # Without this, a failure here says only "App still not returning HTTP
       # 200" after five minutes of 502s, with no indication of why. Boot
       # failures in this job are usually a schema or migration error that the
