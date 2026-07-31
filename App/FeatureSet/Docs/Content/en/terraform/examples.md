@@ -35,7 +35,7 @@ resource "oneuptime_label" "production" {
 
 ### HTTP monitor with explicit checks
 
-A `Website` monitor with full control over what is checked and when it is considered up or down. The `monitor_steps` JSON is explained line by line in [Monitor Steps](/docs/terraform/monitor-steps).
+A `Website` monitor with full control over what is checked and when it is considered up or down. The `monitor_steps` nested attributes are explained line by line in [Monitor Steps](/docs/terraform/monitor-steps).
 
 ```hcl
 resource "oneuptime_monitor_status" "operational" {
@@ -59,87 +59,51 @@ resource "oneuptime_monitor" "website" {
   description  = "Homepage availability and status code check"
   monitor_type = "Website"
 
-  monitor_steps = jsonencode({
-    _type = "MonitorSteps"
-    value = {
-      monitorStepsInstanceArray = [
-        {
-          _type = "MonitorStep"
-          value = {
-            id = "step-website-1"
-            monitorDestination = {
-              _type = "URL"
-              value = "https://example.com"
-            }
-            requestType = "GET"
-            monitorCriteria = {
-              _type = "MonitorCriteria"
-              value = {
-                monitorCriteriaInstanceArray = [
-                  {
-                    _type = "MonitorCriteriaInstance"
-                    value = {
-                      id                  = "criteria-online"
-                      name                = "Online"
-                      description         = "Website responds with 200"
-                      filterCondition     = "All"
-                      changeMonitorStatus = true
-                      createIncidents     = false
-                      createAlerts        = false
-                      monitorStatusId     = oneuptime_monitor_status.operational.id
-                      filters = [
-                        {
-                          _type = "CriteriaFilter"
-                          value = {
-                            checkOn    = "Is Online"
-                            filterType = "True"
-                          }
-                        },
-                        {
-                          _type = "CriteriaFilter"
-                          value = {
-                            checkOn    = "Response Status Code"
-                            filterType = "Equal To"
-                            value      = "200"
-                          }
-                        }
-                      ]
-                      incidents = []
-                      alerts    = []
-                    }
-                  },
-                  {
-                    _type = "MonitorCriteriaInstance"
-                    value = {
-                      id                  = "criteria-offline"
-                      name                = "Offline"
-                      description         = "Website is unreachable"
-                      filterCondition     = "Any"
-                      changeMonitorStatus = true
-                      createIncidents     = false
-                      createAlerts        = false
-                      monitorStatusId     = oneuptime_monitor_status.offline.id
-                      filters = [
-                        {
-                          _type = "CriteriaFilter"
-                          value = {
-                            checkOn    = "Is Online"
-                            filterType = "False"
-                          }
-                        }
-                      ]
-                      incidents = []
-                      alerts    = []
-                    }
-                  }
-                ]
-              }
-            }
+  monitor_steps = [{
+    monitor_destination      = "https://example.com"
+    monitor_destination_type = "URL"
+    request_type             = "GET"
+
+    criteria = [
+      {
+        name                  = "Online"
+        description           = "Website responds with 200"
+        filter_condition      = "All"
+        change_monitor_status = true
+        create_incidents      = false
+        create_alerts         = false
+        monitor_status_id     = oneuptime_monitor_status.operational.id
+
+        filters = [
+          {
+            check_on    = "Is Online"
+            filter_type = "True"
+          },
+          {
+            check_on    = "Response Status Code"
+            filter_type = "Equal To"
+            value       = "200"
           }
-        }
-      ]
-    }
-  })
+        ]
+      },
+      {
+        name                  = "Offline"
+        description           = "Website is unreachable"
+        filter_condition      = "Any"
+        change_monitor_status = true
+        create_incidents      = false
+        create_alerts         = false
+        monitor_status_id     = oneuptime_monitor_status.offline.id
+
+        filters = [
+          {
+            check_on    = "Is Online"
+            filter_type = "False"
+          }
+        ]
+      }
+    ]
+  }]
 }
 ```
 
@@ -155,55 +119,29 @@ resource "oneuptime_monitor" "ping" {
   description  = "ICMP reachability of the gateway host"
   monitor_type = "Ping"
 
-  monitor_steps = jsonencode({
-    _type = "MonitorSteps"
-    value = {
-      monitorStepsInstanceArray = [
-        {
-          _type = "MonitorStep"
-          value = {
-            id = "step-ping-1"
-            monitorDestination = {
-              _type = "Hostname"
-              value = "gateway.example.com"
-            }
-            requestType = "GET"
-            monitorCriteria = {
-              _type = "MonitorCriteria"
-              value = {
-                monitorCriteriaInstanceArray = [
-                  {
-                    _type = "MonitorCriteriaInstance"
-                    value = {
-                      id                  = "criteria-ping-online"
-                      name                = "Reachable"
-                      description         = "Host responds to ping"
-                      filterCondition     = "All"
-                      changeMonitorStatus = true
-                      createIncidents     = false
-                      createAlerts        = false
-                      monitorStatusId     = oneuptime_monitor_status.operational.id
-                      filters = [
-                        {
-                          _type = "CriteriaFilter"
-                          value = {
-                            checkOn    = "Is Online"
-                            filterType = "True"
-                          }
-                        }
-                      ]
-                      incidents = []
-                      alerts    = []
-                    }
-                  }
-                ]
-              }
-            }
+  monitor_steps = [{
+    monitor_destination      = "gateway.example.com"
+    monitor_destination_type = "Hostname"
+
+    criteria = [
+      {
+        name                  = "Reachable"
+        description           = "Host responds to ping"
+        filter_condition      = "All"
+        change_monitor_status = true
+        create_incidents      = false
+        create_alerts         = false
+        monitor_status_id     = oneuptime_monitor_status.operational.id
+
+        filters = [
+          {
+            check_on    = "Is Online"
+            filter_type = "True"
           }
-        }
-      ]
-    }
-  })
+        ]
+      }
+    ]
+  }]
 }
 ```
 

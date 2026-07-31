@@ -82,7 +82,7 @@ output "monitor_id" {
 }
 ```
 
-A `Website` monitor created without explicit `monitor_steps` gets sensible server-side defaults. To control the URL, request type, and up/down criteria yourself, pass `monitor_steps` as JSON — that is covered in [Monitor Steps](/docs/terraform/monitor-steps).
+A `Website` monitor created without explicit `monitor_steps` gets sensible server-side defaults. To control the URL, request type, and up/down criteria yourself, set the `monitor_steps` nested attributes — they are covered in [Monitor Steps](/docs/terraform/monitor-steps).
 
 ## Step 4: Init, plan, apply
 
