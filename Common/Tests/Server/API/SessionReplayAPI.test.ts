@@ -1227,6 +1227,42 @@ describe("Session replay playback API", () => {
         "argMax(identifiedUserLabel, version) AS aggIdentifiedUserLabel",
       );
     });
+
+    test("the frustration filter is applied SERVER-side, over the argMax aliases", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ProjectAdmin],
+      });
+
+      mockProps(principal.databaseProps);
+      mockApplication({ id: applicationAId, labelIds: [] });
+
+      await callRoute({
+        uri: LIST_ROUTE,
+        request: principal.request,
+        body: {
+          rumApplicationId: applicationAId.toString(),
+          filters: { hasFrustration: true },
+        },
+      });
+
+      const statement: Statement = headerQuerySpy.mock
+        .calls[0]![0] as Statement;
+
+      /*
+       * The old client-side version filtered only the fetched page, so a
+       * project whose frustrated sessions sat on page 2 showed an empty
+       * list under a label that promised otherwise. The aliases matter
+       * too: raw columns would sum across ReplacingMergeTree versions.
+       */
+      expect(statement.query).toContain(
+        "(aggRageClickCount + aggDeadClickCount + aggErrorClickCount + aggRefreshRageCount) > 0",
+      );
+    });
   });
 
   describe("manifest", () => {

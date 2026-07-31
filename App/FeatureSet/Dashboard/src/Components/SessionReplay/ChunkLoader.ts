@@ -44,6 +44,60 @@ export type SessionReplayChunkFetcher = (request: {
   chunkIndexes: Array<number>;
 }) => Promise<ArrayBuffer>;
 
+/*
+ * A timeline event lifted out of the rrweb stream's type-5 custom events.
+ *
+ * The recorder embeds console entries, network requests, route changes and
+ * errors as custom events with exact timestamps — data the player already
+ * downloads and decodes. Extracting them here (once, on admit) is what
+ * feeds the DevTools panel and the scrubber's exact network markers;
+ * without it the data is shipped to the browser and discarded.
+ */
+export type ReplayTimelineEventKind = "console" | "network" | "route" | "error";
+
+export interface ReplayTimelineEvent {
+  kind: ReplayTimelineEventKind;
+  chunkIndex: number;
+  /* Position on the player timeline, derived from the event's timestamp. */
+  offsetMs: number;
+
+  /* console + error */
+  level?: string;
+  message?: string;
+
+  /* network */
+  method?: string;
+  url?: string;
+  status?: number;
+  durationMs?: number;
+  responseBytes?: number;
+
+  /* route */
+  from?: string;
+  to?: string;
+
+  /* error */
+  source?: string;
+}
+
+const TIMELINE_EVENT_TAGS: Record<string, ReplayTimelineEventKind> = {
+  "oneuptime.console": "console",
+  "oneuptime.network": "network",
+  "oneuptime.route": "route",
+  "oneuptime.error": "error",
+};
+
+/* rrweb's Custom event type. */
+const RRWEB_CUSTOM_EVENT_TYPE: number = 5;
+
+/*
+ * Per-session cap on extracted events. A page that logs in a loop can put
+ * thousands of console entries in one session; the panel is a debugging
+ * aid, not an archive, and the extraction map is deliberately NOT part of
+ * the LRU so it must stay small.
+ */
+export const MAX_TIMELINE_EVENTS: number = 2000;
+
 /* One chunk held in the decoded LRU. */
 export interface DecodedChunk {
   chunkIndex: number;
@@ -108,6 +162,17 @@ export default class ChunkLoader {
   private readonly decoded: Map<number, DecodedChunk>;
   private decodedBytes: number;
 
+  /*
+   * Timeline events extracted from each chunk's type-5 custom events.
+   * Deliberately OUTSIDE the LRU: the extracted rows are a few hundred
+   * bytes per chunk, and evicting them with the payloads would blank the
+   * DevTools panel and the network lane for footage the viewer already
+   * watched. Capped by MAX_TIMELINE_EVENTS instead.
+   */
+  private readonly timelineEvents: Map<number, Array<ReplayTimelineEvent>>;
+  private timelineEventCount: number;
+  private timelineEventsTruncated: boolean;
+
   /* De-duplicates concurrent requests for the same page. */
   private readonly inFlight: Map<number, Promise<Array<number>>>;
 
@@ -154,6 +219,9 @@ export default class ChunkLoader {
     this.decodedBytes = 0;
     this.inFlight = new Map<number, Promise<Array<number>>>();
     this.generation = 0;
+    this.timelineEvents = new Map<number, Array<ReplayTimelineEvent>>();
+    this.timelineEventCount = 0;
+    this.timelineEventsTruncated = false;
   }
 
   public getEntries(): Array<SessionReplayChunkManifestEntry> {
@@ -477,6 +545,9 @@ export default class ChunkLoader {
     this.decoded.clear();
     this.inFlight.clear();
     this.decodedBytes = 0;
+    this.timelineEvents.clear();
+    this.timelineEventCount = 0;
+    this.timelineEventsTruncated = false;
   }
 
   /*
@@ -544,11 +615,179 @@ export default class ChunkLoader {
     return frames;
   }
 
+  /*
+   * Every extracted event across every chunk seen so far, in timeline
+   * order. Grows as playback fetches pages — the panel labels itself
+   * accordingly rather than implying full-session coverage up front.
+   */
+  public getTimelineEvents(): Array<ReplayTimelineEvent> {
+    const all: Array<ReplayTimelineEvent> = [];
+
+    for (const events of this.timelineEvents.values()) {
+      all.push(...events);
+    }
+
+    return all.sort(
+      (a: ReplayTimelineEvent, b: ReplayTimelineEvent): number => {
+        return a.offsetMs - b.offsetMs;
+      },
+    );
+  }
+
+  public areTimelineEventsTruncated(): boolean {
+    return this.timelineEventsTruncated;
+  }
+
+  /*
+   * Lift the recorder's type-5 custom events out of one chunk's stream.
+   *
+   * Pure and defensive: payload fields are read one by one because the
+   * events cross a wire and a version boundary — an unrecognised shape
+   * costs that one event, never the chunk.
+   */
+  public static extractTimelineEvents(
+    entry: SessionReplayChunkManifestEntry,
+    events: Array<SessionReplayRecordedEvent>,
+  ): Array<ReplayTimelineEvent> {
+    const extracted: Array<ReplayTimelineEvent> = [];
+
+    /*
+     * Event timestamps are RAW client clocks. The first event's timestamp
+     * anchors the chunk, so within-chunk deltas map onto the timeline
+     * offset the manifest assigns the chunk — exact to the recorder's own
+     * clock, clamped so a skewed event cannot escape its chunk's window.
+     */
+    const firstTimestamp: number = events[0]?.timestamp ?? 0;
+
+    for (const event of events) {
+      if (event.type !== RRWEB_CUSTOM_EVENT_TYPE) {
+        continue;
+      }
+
+      const data: Record<string, unknown> | null =
+        event.data && typeof event.data === "object"
+          ? (event.data as Record<string, unknown>)
+          : null;
+
+      if (!data) {
+        continue;
+      }
+
+      const kind: ReplayTimelineEventKind | undefined =
+        TIMELINE_EVENT_TAGS[String(data["tag"])];
+
+      if (!kind) {
+        continue;
+      }
+
+      const payload: Record<string, unknown> =
+        data["payload"] && typeof data["payload"] === "object"
+          ? (data["payload"] as Record<string, unknown>)
+          : {};
+
+      const offsetMs: number = Math.min(
+        entry.chunkEndOffsetMs,
+        Math.max(
+          entry.chunkStartOffsetMs,
+          entry.chunkStartOffsetMs +
+            (typeof event.timestamp === "number"
+              ? event.timestamp - firstTimestamp
+              : 0),
+        ),
+      );
+
+      const row: ReplayTimelineEvent = {
+        kind: kind,
+        chunkIndex: entry.chunkIndex,
+        offsetMs: offsetMs,
+      };
+
+      const readString: (key: string) => string | undefined = (
+        key: string,
+      ): string | undefined => {
+        const value: unknown = payload[key];
+        return typeof value === "string" && value ? value : undefined;
+      };
+
+      const readNumber: (key: string) => number | undefined = (
+        key: string,
+      ): number | undefined => {
+        const value: unknown = payload[key];
+        return typeof value === "number" && Number.isFinite(value)
+          ? value
+          : undefined;
+      };
+
+      if (kind === "console") {
+        row.level = readString("level") ?? "log";
+        row.message = readString("message") ?? "";
+      } else if (kind === "network") {
+        row.method = readString("method") ?? "GET";
+        row.url = readString("url") ?? "";
+        row.status = readNumber("status") ?? 0;
+        row.durationMs = readNumber("durationMs") ?? 0;
+        row.responseBytes = readNumber("responseBytes") ?? 0;
+      } else if (kind === "route") {
+        row.from = readString("from") ?? "";
+        row.to = readString("to") ?? "";
+      } else {
+        row.message = readString("message") ?? "";
+        row.source = readString("source") ?? "";
+      }
+
+      extracted.push(row);
+    }
+
+    return extracted;
+  }
+
+  private extractAndStoreTimelineEvents(
+    chunkIndex: number,
+    events: Array<SessionReplayRecordedEvent>,
+  ): void {
+    /*
+     * A re-fetched chunk (evicted then needed again) re-runs extraction
+     * with identical input; keeping the first result makes re-admission
+     * free and the cap arithmetic stable.
+     */
+    if (this.timelineEvents.has(chunkIndex)) {
+      return;
+    }
+
+    const entry: SessionReplayChunkManifestEntry | undefined =
+      this.entryByIndex.get(chunkIndex);
+
+    if (!entry) {
+      return;
+    }
+
+    let extracted: Array<ReplayTimelineEvent> =
+      ChunkLoader.extractTimelineEvents(entry, events);
+
+    const remaining: number = MAX_TIMELINE_EVENTS - this.timelineEventCount;
+
+    if (extracted.length > remaining) {
+      extracted = extracted.slice(0, Math.max(0, remaining));
+      this.timelineEventsTruncated = true;
+    }
+
+    if (extracted.length === 0) {
+      /* Remembered as empty, so the re-check above still short-circuits. */
+      this.timelineEvents.set(chunkIndex, []);
+      return;
+    }
+
+    this.timelineEventCount += extracted.length;
+    this.timelineEvents.set(chunkIndex, extracted);
+  }
+
   private admit(
     chunkIndex: number,
     events: Array<SessionReplayRecordedEvent>,
     approximateBytes: number,
   ): void {
+    this.extractAndStoreTimelineEvents(chunkIndex, events);
+
     if (this.decoded.has(chunkIndex)) {
       this.evict(chunkIndex);
     }

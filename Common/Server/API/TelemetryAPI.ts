@@ -3422,6 +3422,9 @@ router.post(
         ...(typeof rawFilters["hasError"] === "boolean" && {
           hasError: rawFilters["hasError"],
         }),
+        ...(typeof rawFilters["hasFrustration"] === "boolean" && {
+          hasFrustration: rawFilters["hasFrustration"],
+        }),
         ...(typeof rawFilters["isFinalized"] === "boolean" && {
           isFinalized: rawFilters["isFinalized"],
         }),

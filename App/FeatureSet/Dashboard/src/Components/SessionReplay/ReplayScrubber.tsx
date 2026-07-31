@@ -47,7 +47,12 @@ export interface ReplayMarker {
   label: string;
 }
 
-export const REPLAY_SPEEDS: Array<number> = [1, 2, 4, 8];
+/*
+ * Sub-1x speeds exist for the moments engineers actually scrub for: a
+ * flash of wrong UI, a race visible for three frames. 0.5x/0.25x is how
+ * you see it; 8x is how you find it.
+ */
+export const REPLAY_SPEEDS: Array<number> = [0.25, 0.5, 1, 2, 4, 8];
 
 export interface ReplayScrubberProps {
   durationMs: number;
