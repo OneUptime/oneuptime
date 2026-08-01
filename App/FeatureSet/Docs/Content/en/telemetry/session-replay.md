@@ -118,9 +118,33 @@ const sessionId = window.OneUptimeReplay.getSessionId();
 // Add { "session.id": sessionId } to your span attributes or resource.
 ```
 
-If you are not using OpenTelemetry, trace correlation is limited: the recorder observes a `traceparent` header your page's own instrumentation already set on `fetch` or `XMLHttpRequest` requests, but it deliberately does **not** inject one itself — adding a header turns a simple cross-origin request into a preflighted one, and an API that does not allow `traceparent` would start failing because you installed a recorder. Without existing OpenTelemetry browser instrumentation, recordings still capture every request's method, URL, status and timing; they just cannot be linked to the backend trace of a failing request.
+If you are not using OpenTelemetry, you have two options. By default the recorder only observes a `traceparent` header your page's own instrumentation already set on `fetch` or `XMLHttpRequest` requests — it does **not** inject one, because adding a header turns a simple cross-origin request into a preflighted one, and an API that does not allow `traceparent` would start failing because you installed a recorder.
+
+If you want recordings linked to backend traces **without** a browser tracing SDK, add your API's origin to **Trace propagation origins** in the application's session replay settings (Performance & Tracing step). The recorder then generates a W3C `traceparent` header for requests to exactly those origins, and the recording links to the backend trace of the request that failed. Only list an origin whose API allows `traceparent` in `Access-Control-Allow-Headers` — that is the whole reason it is an explicit allowlist. Requests that already carry a `traceparent`, and `fetch` calls made with a `Request` object rather than a URL, are left untouched.
 
 Exceptions are correlated automatically: an exception in the dashboard shows a **Watch what the user saw** card when a recording exists for a session that hit that error, and the player's correlation panel lists the trace ids observed during the session.
+
+## Performance capture triggers
+
+By default a recording uploads when something *breaks* — an error, a frustration signal, or a sampled session. Three optional budgets extend that to sessions that were merely *slow*, in the application's session replay settings (Performance & Tracing step):
+
+| Budget | Fires when | Suggested starting point |
+| --- | --- | --- |
+| Largest Contentful Paint (ms) | The page's LCP exceeds the budget | 4000 — the boundary of a "poor" LCP |
+| Long task (ms) | A single main-thread task blocks for at least the budget | 200+ — browsers only report tasks over 50 ms |
+| Slow request (ms) | A `fetch`/XHR **succeeds** but takes at least the budget | Your API's timeout expectations |
+
+Each budget is off at `0` (the default). Sessions captured this way appear with the trigger reason **performance**, and the events that fired the trigger are visible in the player's DevTools panel. Failed requests are not double-counted here — a 5xx or a network failure already triggers via the error path.
+
+## Recording a specific user's next session
+
+When a named customer reports a problem you cannot reproduce, you can arm a one-shot target instead of waiting for an error: in **Settings → Session Replay → Record a specific user's next session**, enter the same end-user reference your page supplies and click **Record next session**. That user's next visit records from its first event, labelled with trigger reason **manual**.
+
+Honest limits, so "armed" is not misread as "guaranteed":
+
+- Your page must supply the reference **at load time** — the `data-oneuptime-user-ref` attribute or the init global. A reference set later via `identify()` is too late for that page load.
+- Consent still applies. A targeted session in `RequireExplicit` mode uploads nothing until your page grants consent.
+- The target expires after 24 hours, is consumed by the first matching page load, and only a keyed hash of the reference is stored server-side.
 
 ## What is not recorded
 

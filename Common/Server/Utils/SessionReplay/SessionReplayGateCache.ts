@@ -73,6 +73,10 @@ const RUM_APPLICATION_POLICY_COLUMNS: ReadonlyArray<string> = [
   "sessionReplayRetentionInDays",
   "sessionReplayMonthlyBudgetInGB",
   "sessionReplayIgnoreErrorPatterns",
+  "sessionReplayTracePropagationOrigins",
+  "sessionReplayLcpBudgetMs",
+  "sessionReplayLongTaskBudgetMs",
+  "sessionReplaySlowRequestBudgetMs",
 ];
 
 const PROJECT_POLICY_COLUMNS: ReadonlyArray<string> = [
@@ -130,6 +134,17 @@ export interface SessionReplayGatePolicy {
    * trigger. Served to the recorder verbatim; compiled and capped there.
    */
   ignoreErrorPatterns: Array<string>;
+
+  /*
+   * Origins the recorder may inject a W3C traceparent header into.
+   * Empty = never inject; the empty default is the CORS safety mechanism.
+   */
+  tracePropagationOrigins: Array<string>;
+
+  /* Performance capture budgets in milliseconds; 0 disables each. */
+  lcpBudgetMs: number;
+  longTaskBudgetMs: number;
+  slowRequestBudgetMs: number;
 
   /*
    * Advances whenever the application row is updated, so a recorder can
@@ -349,6 +364,18 @@ export default class SessionReplayGateCache {
       ),
       ignoreErrorPatterns: this.readStringArray(
         appView["sessionReplayIgnoreErrorPatterns"],
+      ),
+      tracePropagationOrigins: this.readStringArray(
+        appView["sessionReplayTracePropagationOrigins"],
+      ),
+      lcpBudgetMs: this.readNumber(appView["sessionReplayLcpBudgetMs"], 0),
+      longTaskBudgetMs: this.readNumber(
+        appView["sessionReplayLongTaskBudgetMs"],
+        0,
+      ),
+      slowRequestBudgetMs: this.readNumber(
+        appView["sessionReplaySlowRequestBudgetMs"],
+        0,
       ),
       configEpoch: this.getConfigEpoch(app),
     };

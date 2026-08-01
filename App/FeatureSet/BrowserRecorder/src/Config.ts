@@ -1,5 +1,6 @@
 import {
   SESSION_REPLAY_APP_IDENTIFIER_HEADER,
+  SESSION_REPLAY_USER_REF_HEADER,
   SessionReplayConfigResponse,
 } from "Common/Types/Rum/SessionReplay";
 import SessionReplayCaptureTrigger from "Common/Types/Rum/SessionReplayCaptureTrigger";
@@ -98,6 +99,16 @@ export const CONFIG_FETCH_TIMEOUT_MS: number = 5000;
  */
 export interface LoaderConfig extends SessionReplayConfigResponse {
   recorderIntegrity?: string;
+
+  /*
+   * The config body exactly as received, UNVALIDATED. The loader stub
+   * lives under a hard byte budget, so fields only the full artifact acts
+   * on (trace propagation, performance budgets, targeted capture) are not
+   * validated here field-by-field; the artifact normalises them from this
+   * passthrough (see ExtendedConfig.ts) and treats a missing or hostile
+   * value as "feature off". Nothing in the LOADER may read through this.
+   */
+  raw?: Record<string, unknown>;
 }
 
 export interface RecorderInitOptions {
@@ -319,10 +330,37 @@ export default class Config {
       controller.abort();
     }, CONFIG_FETCH_TIMEOUT_MS);
 
+    const headers: Record<string, string> = Config.getIngestHeaders(options);
+
+    /*
+     * Config fetch only, never on chunks: the server answers the
+     * "record this user's next session" question exactly once, here.
+     * Encoded because fetch() THROWS on a non-ISO-8859-1 header value —
+     * an emoji in a customer's user id must not disable recording.
+     */
+    if (options.userRef) {
+      try {
+        /*
+         * Sliced to 512 = SESSION_REPLAY_MAX_USER_REF_LENGTH (a literal:
+         * importing the constant costs loader bytes we do not have). A
+         * longer ref can never match a target, and an unbounded one can
+         * blow the HTTP header-size limit and kill the whole fetch.
+         * encodeURIComponent throws on a lone surrogate — a page that
+         * truncated a string through an emoji, or this very slice — and
+         * that must skip targeting, never break recording.
+         */
+        headers[SESSION_REPLAY_USER_REF_HEADER] = encodeURIComponent(
+          options.userRef.slice(0, 512),
+        );
+      } catch {
+        /* Un-encodable ref: recording proceeds untargeted. */
+      }
+    }
+
     try {
       const response: Response = await fetch(Config.getConfigUrl(options), {
         method: "GET",
-        headers: Config.getIngestHeaders(options),
+        headers: headers,
         signal: controller.signal,
 
         /*
@@ -422,6 +460,9 @@ export default class Config {
           : raw["directive"] === "throttle"
             ? "throttle"
             : "continue",
+
+      /* Artifact-only fields ride through unvalidated; see LoaderConfig.raw. */
+      raw: raw,
     };
 
     if (typeof integrity === "string" && integrity) {

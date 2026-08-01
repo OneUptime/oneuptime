@@ -19,6 +19,13 @@ enum SessionReplayTriggerReason {
 
   /* The host page called OneUptimeReplay.captureSession() explicitly. */
   Manual = "manual",
+
+  /*
+   * A performance budget was blown: LCP, a main-thread long task, or an
+   * instrumented request over the application's configured budget. Slow
+   * sessions get recordings the same way broken ones do.
+   */
+  Performance = "performance",
 }
 
 export default SessionReplayTriggerReason;

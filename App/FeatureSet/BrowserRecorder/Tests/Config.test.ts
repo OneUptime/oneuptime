@@ -154,7 +154,16 @@ describe("Config", (): void => {
         configEpoch: 42,
         directive: "throttle",
         recorderIntegrity: "sha384-abc",
+
+        /*
+         * The unvalidated body rides along for the ARTIFACT to normalise
+         * the fields the loader does not spend bytes validating. Same
+         * object, not a copy - the loader must not pay for a clone.
+         */
+        raw: validBody,
       });
+
+      expect(config?.raw).toBe(validBody);
     });
 
     it("refuses a body that does not say enabled", (): void => {
@@ -373,6 +382,152 @@ describe("Config", (): void => {
 
       expect(config?.recorderVersion).toBe("11.7.3");
       expect(fetchMock).toHaveBeenCalledTimes(1);
+
+      /* No page userRef means no user-ref header at all. */
+      expect(
+        (fetchMock.mock.calls[0]?.[1]?.headers as Record<string, string>)[
+          "x-oneuptime-user-ref"
+        ],
+      ).toBeUndefined();
+    });
+
+    /*
+     * The targeted-capture handshake: the reference rides the CONFIG fetch
+     * as a header, URI-component-encoded because fetch() THROWS on a
+     * non-ISO-8859-1 header value - an emoji in a customer's user id must
+     * not disable recording wholesale.
+     */
+    it("sends the userRef percent-encoded on the config fetch only", async (): Promise<void> => {
+      const fetchMock: jest.Mock = jest.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async (): Promise<unknown> => {
+          return validBody;
+        },
+      });
+
+      (globalThis as unknown as Record<string, unknown>)["fetch"] = fetchMock;
+
+      const config: LoaderConfig | null = await Config.fetchConfig({
+        ...options,
+        userRef: "jane+prod@例え.jp",
+      });
+
+      expect(config).not.toBeNull();
+
+      const headers: Record<string, string> = fetchMock.mock.calls[0]?.[1]
+        ?.headers as Record<string, string>;
+
+      expect(headers["x-oneuptime-user-ref"]).toBe(
+        encodeURIComponent("jane+prod@例え.jp"),
+      );
+
+      /* And the chunk-POST header set is untouched by the feature. */
+      expect(Config.getIngestHeaders({ ...options, userRef: "jane" })).toEqual({
+        "x-oneuptime-token": "t",
+        "x-oneuptime-app-identifier": "a",
+      });
+    });
+
+    /*
+     * A LONE surrogate — a page that truncated a string through an emoji
+     * — makes encodeURIComponent itself throw. That must skip targeting,
+     * not reject fetchConfig: this function's contract is "resolves to
+     * null on any failure", and an unhandled URIError here would surface
+     * as an unhandled rejection on the customer's page.
+     */
+    it("a lone-surrogate userRef skips the header instead of throwing", async (): Promise<void> => {
+      const fetchMock: jest.Mock = jest.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async (): Promise<unknown> => {
+          return validBody;
+        },
+      });
+
+      (globalThis as unknown as Record<string, unknown>)["fetch"] = fetchMock;
+
+      const config: LoaderConfig | null = await Config.fetchConfig({
+        ...options,
+        userRef: "user-\ud800-truncated",
+      });
+
+      /* The fetch still happened and recording still configures... */
+      expect(config).not.toBeNull();
+
+      /* ...just without the targeting header. */
+      expect(
+        (fetchMock.mock.calls[0]?.[1]?.headers as Record<string, string>)[
+          "x-oneuptime-user-ref"
+        ],
+      ).toBeUndefined();
+    });
+
+    /*
+     * The server caps refs at 512 chars, and an unbounded page value can
+     * push the request past HTTP header-size limits — killing the config
+     * fetch and with it ALL recording. The loader slices before encoding.
+     */
+    it("truncates an oversized userRef to the server's 512-char cap", async (): Promise<void> => {
+      const fetchMock: jest.Mock = jest.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async (): Promise<unknown> => {
+          return validBody;
+        },
+      });
+
+      (globalThis as unknown as Record<string, unknown>)["fetch"] = fetchMock;
+
+      await Config.fetchConfig({
+        ...options,
+        userRef: "u".repeat(5000),
+      });
+
+      const sent: string = (
+        fetchMock.mock.calls[0]?.[1]?.headers as Record<string, string>
+      )["x-oneuptime-user-ref"] as string;
+
+      expect(sent).toBe("u".repeat(512));
+    });
+
+    it("a non-ASCII userRef cannot make the config fetch throw", async (): Promise<void> => {
+      /*
+       * Real fetch rejects invalid header values synchronously; emulate
+       * that so the encoding regression would be caught here.
+       */
+      const fetchMock: jest.Mock = jest.fn(
+        (_url: string, init?: RequestInit): Promise<unknown> => {
+          const headers: Record<string, string> = (init?.headers ||
+            {}) as Record<string, string>;
+
+          for (const value of Object.values(headers)) {
+            for (let i: number = 0; i < value.length; i++) {
+              /* Outside ISO-8859-1: real fetch throws a TypeError. */
+              if (value.charCodeAt(i) > 0xff) {
+                throw new TypeError("Invalid header value");
+              }
+            }
+          }
+
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: async (): Promise<unknown> => {
+              return validBody;
+            },
+          });
+        },
+      );
+
+      (globalThis as unknown as Record<string, unknown>)["fetch"] = fetchMock;
+
+      const config: LoaderConfig | null = await Config.fetchConfig({
+        ...options,
+        userRef: "😀-user-42",
+      });
+
+      expect(config).not.toBeNull();
     });
 
     it("fails closed on a non-2xx response", async (): Promise<void> => {
