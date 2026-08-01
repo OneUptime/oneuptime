@@ -41,7 +41,7 @@ validate_field "$SCHEDULE_RESPONSE" "name" "$SCHEDULE_NAME" || validation_failed
 validate_field "$LAYER_RESPONSE" "name" "$LAYER_NAME" || validation_failed=1
 
 # The layer must belong to the schedule created in this fixture
-API_SCHEDULE_ID=$(echo "$LAYER_RESPONSE" | jq -r '.onCallDutyPolicyScheduleId // empty')
+API_SCHEDULE_ID=$(echo "$LAYER_RESPONSE" | jq -r '(.onCallDutyPolicyScheduleId | if type == "object" then .value else . end) // empty')
 assert_equals "$SCHEDULE_ID" "$API_SCHEDULE_ID" "onCallDutyPolicyScheduleId" || validation_failed=1
 
 if [ $validation_failed -eq 1 ]; then

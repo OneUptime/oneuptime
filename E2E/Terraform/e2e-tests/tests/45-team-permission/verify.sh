@@ -30,7 +30,7 @@ validation_failed=0
 
 validate_field "$RESPONSE" "permission" "ReadProjectMonitor" || validation_failed=1
 
-API_TEAM_ID=$(echo "$RESPONSE" | jq -r '.teamId // empty')
+API_TEAM_ID=$(echo "$RESPONSE" | jq -r '(.teamId | if type == "object" then .value else . end) // empty')
 assert_equals "$TEAM_ID" "$API_TEAM_ID" "teamId" || validation_failed=1
 
 if [ $validation_failed -eq 1 ]; then

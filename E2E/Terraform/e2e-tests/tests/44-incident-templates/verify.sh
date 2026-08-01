@@ -42,7 +42,7 @@ validate_field "$NOTE_RESPONSE" "templateName" "terraform-e2e-note-template" || 
 validate_field "$NOTE_RESPONSE" "note" "This incident is being investigated." || validation_failed=1
 
 # The template must reference the severity created in this fixture
-API_SEVERITY_ID=$(echo "$TEMPLATE_RESPONSE" | jq -r '.incidentSeverityId // empty')
+API_SEVERITY_ID=$(echo "$TEMPLATE_RESPONSE" | jq -r '(.incidentSeverityId | if type == "object" then .value else . end) // empty')
 assert_equals "$SEVERITY_ID" "$API_SEVERITY_ID" "incidentSeverityId" || validation_failed=1
 
 if [ $validation_failed -eq 1 ]; then

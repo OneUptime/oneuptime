@@ -39,7 +39,7 @@ validate_field "$KEY_RESPONSE" "name" "$KEY_NAME" || validation_failed=1
 validate_field "$KEY_RESPONSE" "description" "API key created by Terraform E2E tests" || validation_failed=1
 validate_field "$PERMISSION_RESPONSE" "permission" "ReadProjectMonitor" || validation_failed=1
 
-API_KEY_REF=$(echo "$PERMISSION_RESPONSE" | jq -r '.apiKeyId // empty')
+API_KEY_REF=$(echo "$PERMISSION_RESPONSE" | jq -r '(.apiKeyId | if type == "object" then .value else . end) // empty')
 assert_equals "$KEY_ID" "$API_KEY_REF" "apiKeyId" || validation_failed=1
 
 if [ $validation_failed -eq 1 ]; then

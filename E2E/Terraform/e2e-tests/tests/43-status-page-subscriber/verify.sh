@@ -31,7 +31,7 @@ validation_failed=0
 validate_field "$RESPONSE" "subscriberEmail" "terraform-e2e-subscriber@test.oneuptime.com" || validation_failed=1
 validate_field "$RESPONSE" "internalNote" "Subscriber created by Terraform E2E tests" || validation_failed=1
 
-API_PAGE_ID=$(echo "$RESPONSE" | jq -r '.statusPageId // empty')
+API_PAGE_ID=$(echo "$RESPONSE" | jq -r '(.statusPageId | if type == "object" then .value else . end) // empty')
 assert_equals "$PAGE_ID" "$API_PAGE_ID" "statusPageId" || validation_failed=1
 
 if [ $validation_failed -eq 1 ]; then

@@ -42,8 +42,8 @@ validate_field "$GROUP_RESPONSE" "name" "$GROUP_NAME" || validation_failed=1
 validate_field "$RESOURCE_RESPONSE" "displayName" "$DISPLAY_NAME" || validation_failed=1
 
 # The resource must be wired to the monitor and group from this fixture
-API_MONITOR_ID=$(echo "$RESOURCE_RESPONSE" | jq -r '.monitorId // empty')
-API_GROUP_ID=$(echo "$RESOURCE_RESPONSE" | jq -r '.statusPageGroupId // empty')
+API_MONITOR_ID=$(echo "$RESOURCE_RESPONSE" | jq -r '(.monitorId | if type == "object" then .value else . end) // empty')
+API_GROUP_ID=$(echo "$RESOURCE_RESPONSE" | jq -r '(.statusPageGroupId | if type == "object" then .value else . end) // empty')
 assert_equals "$MONITOR_ID" "$API_MONITOR_ID" "monitorId" || validation_failed=1
 assert_equals "$GROUP_ID" "$API_GROUP_ID" "statusPageGroupId" || validation_failed=1
 

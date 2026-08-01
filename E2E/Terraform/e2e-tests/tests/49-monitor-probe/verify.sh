@@ -31,8 +31,8 @@ validation_failed=0
 
 validate_field "$RESPONSE" "isEnabled" "true" || validation_failed=1
 
-API_PROBE_ID=$(echo "$RESPONSE" | jq -r '.probeId // empty')
-API_MONITOR_ID=$(echo "$RESPONSE" | jq -r '.monitorId // empty')
+API_PROBE_ID=$(echo "$RESPONSE" | jq -r '(.probeId | if type == "object" then .value else . end) // empty')
+API_MONITOR_ID=$(echo "$RESPONSE" | jq -r '(.monitorId | if type == "object" then .value else . end) // empty')
 assert_equals "$PROBE_ID" "$API_PROBE_ID" "probeId" || validation_failed=1
 assert_equals "$MONITOR_ID" "$API_MONITOR_ID" "monitorId" || validation_failed=1
 
