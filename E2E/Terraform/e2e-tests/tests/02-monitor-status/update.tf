@@ -1,5 +1,8 @@
 # Update-phase config: the runner copies this over main.tf after the initial
-# apply + drift gate. Changed vs main.tf: description, color, priority.
+# apply + drift gate. Changed vs main.tf: description, color.
+# NOTE: priority is intentionally NOT changed here. The API rejects updating a
+# monitor status priority ("Monitor Status priority should not be updated") —
+# it must stay equal to main.tf's value or the update apply fails with a 400.
 terraform {
   required_providers {
     oneuptime = {
@@ -18,7 +21,7 @@ resource "oneuptime_monitor_status" "test" {
   name                 = "terraform-e2e-status"
   description          = "Monitor status updated by Terraform E2E tests"
   color                = "#00AA88"
-  priority             = 98
+  priority             = 99
   is_operational_state = true
 }
 

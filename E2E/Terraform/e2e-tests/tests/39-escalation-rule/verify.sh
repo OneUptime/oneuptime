@@ -35,7 +35,7 @@ validate_field "$RESPONSE" "description" "Escalation rule created by Terraform E
 validate_field "$RESPONSE" "escalateAfterInMinutes" "5" || validation_failed=1
 
 # The rule must be attached to the policy created in this fixture
-API_POLICY_ID=$(echo "$RESPONSE" | jq -r '.onCallDutyPolicyId // empty')
+API_POLICY_ID=$(echo "$RESPONSE" | jq -r '(.onCallDutyPolicyId | if type == "object" then .value else . end) // empty')
 assert_equals "$POLICY_ID" "$API_POLICY_ID" "onCallDutyPolicyId" || validation_failed=1
 
 if [ $validation_failed -eq 1 ]; then
