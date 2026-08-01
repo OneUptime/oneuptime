@@ -167,7 +167,17 @@ describe("Loader", (): void => {
     expect(bootstrapCalls).toHaveLength(1);
   });
 
-  it("still honours the signal when only the server insists", async (): Promise<void> => {
+  /*
+   * The page's explicit opt-out wins over the server default.
+   *
+   * The server always sends respectDoNotTrack: true as its default, so the
+   * old "server insisting wins" rule made the documented
+   * data-oneuptime-respect-do-not-track="false" attribute impossible to use -
+   * a customer whose lawful basis does not depend on DNT could never record,
+   * with no error to explain it. The customer owns the lawful basis for their
+   * own site, so their explicit declaration is theirs to make.
+   */
+  it("records when the page explicitly opts out, even though the server default insists", async (): Promise<void> => {
     setNavigatorSignal(true);
 
     (window as unknown as Record<string, unknown>)[
@@ -184,6 +194,25 @@ describe("Loader", (): void => {
     await runLoader();
 
     expect(fetchMock).toHaveBeenCalled();
+    expect(bootstrapCalls).toHaveLength(1);
+  });
+
+  /* Doing nothing still honours the signal - the default must stay private. */
+  it("does not record when the page says nothing and a signal is present", async (): Promise<void> => {
+    setNavigatorSignal(true);
+
+    (window as unknown as Record<string, unknown>)[
+      "__ONEUPTIME_SESSION_REPLAY__"
+    ] = {
+      host: "https://oneuptime.com",
+      token: "tok",
+      appIdentifier: "app-1",
+    };
+
+    setConfigResponse({ ...CONFIG_BODY, respectDoNotTrack: true });
+
+    await runLoader();
+
     expect(bootstrapCalls).toHaveLength(0);
   });
 

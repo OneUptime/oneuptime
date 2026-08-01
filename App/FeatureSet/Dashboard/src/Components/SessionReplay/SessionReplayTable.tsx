@@ -130,10 +130,16 @@ const DEFAULT_ITEMS_ON_PAGE: number = 20;
 
 /*
  * Passing `hasMore` puts Pagination into has-more mode, where Next is driven
- * by the cursor and totalItemsCount is never read. The endpoint runs no
- * COUNT, so any number here would be invented; zero says so.
+ * by the cursor rather than by a total. The endpoint runs no COUNT, so a real
+ * total does not exist here.
+ *
+ * It does NOT mean the number is unread: has-more mode still reads it to close
+ * the range it prints, as `firstOnPage + max(total - alreadySeen, 0)`. Passing
+ * zero rendered "Showing 1 to 0 sessions." over a list with rows in it. The
+ * count of rows actually on this page is the honest input - it makes the
+ * printed range describe the page, which is all has-more mode can claim, and
+ * the trailing "+" already says more may follow.
  */
-const UNKNOWN_TOTAL_ITEMS_COUNT: number = 0;
 
 const DEFAULT_RANGE: RangeStartAndEndDateTime = {
   range: TimeRange.PAST_ONE_DAY,
@@ -960,7 +966,7 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
           void load(loadGenerationRef.current);
         }}
         currentPageNumber={pageNumber}
-        totalItemsCount={UNKNOWN_TOTAL_ITEMS_COUNT}
+        totalItemsCount={itemsOnPage * (pageNumber - 1) + rows.length}
         hasMore={hasMore}
         itemsOnPage={itemsOnPage}
         onNavigateToPage={(page: number, onPage: number): void => {

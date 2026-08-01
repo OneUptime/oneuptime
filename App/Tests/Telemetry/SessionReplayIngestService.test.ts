@@ -501,6 +501,80 @@ describe("SessionReplayIngestService.gateChunkRequest", () => {
     expect(decision.reason).toBe("not-sampled");
   });
 
+  /*
+   * The shipped default configuration, which used to record nothing at all.
+   *
+   * Defaults are captureTrigger OnErrorOrFrustration with samplePercentage 0,
+   * so isSampled() was false for every session and every chunk came back 204.
+   * Sampling is meant to be ADDITIONAL to the trigger: a frame uploaded
+   * because something actually went wrong has already earned its place, and
+   * re-deciding it by dice roll discards exactly the sessions the feature
+   * exists to keep.
+   */
+  for (const reason of [
+    SessionReplayTriggerReason.Error,
+    SessionReplayTriggerReason.Frustration,
+    SessionReplayTriggerReason.Manual,
+  ]) {
+    test(`accepts a "${reason}"-triggered chunk at samplePercentage 0`, async () => {
+      getPolicyMock.mockResolvedValue(
+        buildPolicy({ samplePercentage: 0 }) as never,
+      );
+
+      const decision: SessionReplayGateDecision =
+        await SessionReplayIngestService.gateChunkRequest({
+          ...baseGateInput,
+          triggerReasons: [reason],
+        });
+
+      expect(decision.outcome).toBe(SessionReplayGateOutcome.Accepted);
+      expect(decision.directive).toBe("continue");
+    });
+  }
+
+  /*
+   * "sampled" is the one reason that must still face the check: it is the
+   * recorder saying it uploaded on the dice roll alone, so re-rolling it
+   * server-side is what catches a stale recorder still uploading after the
+   * rate was turned down.
+   */
+  test('re-rolls a "sampled"-triggered chunk and stops it when out of sample', async () => {
+    getPolicyMock.mockResolvedValue(
+      buildPolicy({ samplePercentage: 0 }) as never,
+    );
+
+    const decision: SessionReplayGateDecision =
+      await SessionReplayIngestService.gateChunkRequest({
+        ...baseGateInput,
+        triggerReasons: [SessionReplayTriggerReason.Sampled],
+      });
+
+    expect(decision.outcome).toBe(SessionReplayGateOutcome.Stop);
+    expect(decision.reason).toBe("not-sampled");
+  });
+
+  /*
+   * A catch-up post can carry both. One real trigger in the batch is enough:
+   * splitting the batch to refuse only the sampled frames would cost a second
+   * round trip to save writing frames we already have in hand.
+   */
+  test("a mixed batch is accepted when any frame fired a real trigger", async () => {
+    getPolicyMock.mockResolvedValue(
+      buildPolicy({ samplePercentage: 0 }) as never,
+    );
+
+    const decision: SessionReplayGateDecision =
+      await SessionReplayIngestService.gateChunkRequest({
+        ...baseGateInput,
+        triggerReasons: [
+          SessionReplayTriggerReason.Sampled,
+          SessionReplayTriggerReason.Error,
+        ],
+      });
+
+    expect(decision.outcome).toBe(SessionReplayGateOutcome.Accepted);
+  });
+
   test("rate limiting is retryable and carries Retry-After", async () => {
     consumeChunkAllowanceMock.mockResolvedValue({
       outcome: SessionReplayLimitOutcome.RateLimited,
@@ -909,7 +983,15 @@ describe("SessionReplayIngestService.processFromQueue", () => {
     const chunk: JSONObject = getSubmittedRows("RumSessionChunkV1")[0]!;
 
     expect(chunk["payload"]).toBe(JSON.stringify(events));
-    expect(chunk["payloadEncoding"]).toBe("gzip");
+
+    /*
+     * "identity", even though the frame arrived gzipped: the column describes
+     * the bytes in the column, and those were gunzipped, scrubbed and
+     * re-serialised on the way in. It used to be copied straight off the
+     * envelope, so almost every stored row claimed an encoding it did not
+     * have.
+     */
+    expect(chunk["payloadEncoding"]).toBe("identity");
 
     const wireBytes: number = zlib.gzipSync(
       new Uint8Array(Buffer.from(JSON.stringify(events))),

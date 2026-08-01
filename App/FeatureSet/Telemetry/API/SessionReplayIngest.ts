@@ -42,6 +42,7 @@ import {
   RECORDER_VERSION_PATTERN,
   getArtifactFilePath,
   getPinnedRecorderPath,
+  getRecorderIntegrity,
   getRecorderVersion,
 } from "../../BrowserRecorder/Manifest";
 import SessionReplayRequestMiddleware from "../Middleware/SessionReplayRequestMiddleware";
@@ -431,12 +432,23 @@ router.post(
         0,
       );
 
+      /*
+       * Carried into the gate so a frame uploaded because something actually
+       * went wrong is not then re-judged by the sample percentage.
+       */
+      const triggerReasons: Array<string> = parsed.frames.map(
+        (frame: ParsedSessionReplayFrame): string => {
+          return frame.envelope.triggerReason;
+        },
+      );
+
       const decision: SessionReplayGateDecision =
         await SessionReplayIngestService.gateChunkRequest({
           projectId: projectId,
           appIdentifier: appIdentifier,
           origin: headerValueToString(req.headers["origin"]),
           sessionIds: sessionIds,
+          triggerReasons: triggerReasons,
           maxChunkIndex: maxChunkIndex,
           chunkCount: parsed.frames.length,
           payloadBytes: body.length,
@@ -705,10 +717,31 @@ router.get(
         isTargeted: await resolveIsTargeted(req, projectId, appIdentifier),
         recordCanvas: policy.recordCanvas,
         captureUserIdentity: policy.captureUserIdentity,
+        /*
+         * The deployment's default answer on DNT, not the final word. A page
+         * that explicitly sets data-oneuptime-respect-do-not-track="false" on
+         * its own script tag overrides it, because the customer owns the
+         * lawful basis for their own site. Omitting the attribute leaves this
+         * in force, so doing nothing still honours the signal.
+         */
         respectDoNotTrack: true,
         configEpoch: policy.configEpoch,
         directive: "continue",
       };
+
+      /*
+       * SRI for the pinned artifact. Without it the loader injects the script
+       * with no integrity attribute, which throws away the whole point of
+       * publishing an immutable, hash-pinned build. Optional on the wire: a
+       * server that cannot produce one yields a script tag without integrity
+       * rather than no recording at all.
+       */
+      const recorderIntegrity: string | null = getRecorderIntegrity();
+
+      if (recorderIntegrity) {
+        (config as unknown as Record<string, unknown>)["recorderIntegrity"] =
+          recorderIntegrity;
+      }
 
       /*
        * Cache semantics carry the whole targeting handshake:

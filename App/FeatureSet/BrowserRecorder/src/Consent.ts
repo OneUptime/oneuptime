@@ -64,10 +64,26 @@ export default class Consent {
     policyRespectsDoNotTrack: boolean,
     navigatorRef: Navigator = navigator,
   ): boolean {
-    const mustHonour: boolean =
-      pageRespectsDoNotTrack || policyRespectsDoNotTrack;
+    /*
+     * The PAGE decides, and the server's value is the default it starts from.
+     *
+     * This used to be "either side insisting wins", which sounds safer but
+     * made data-oneuptime-respect-do-not-track="false" dead config: the server
+     * always sends true, so the attribute could never take effect and a
+     * customer with a lawful basis that does not depend on DNT had no way to
+     * record at all. Silent, undocumented, and impossible to debug from the
+     * page - which is exactly how it was found.
+     *
+     * The customer owns the lawful basis for their own site, so an explicit
+     * opt-out on their own script tag is theirs to make. Omitting the
+     * attribute leaves pageRespectsDoNotTrack true, so the default for
+     * everyone who does nothing is still to honour the signal.
+     */
+    if (!pageRespectsDoNotTrack) {
+      return true;
+    }
 
-    if (!mustHonour) {
+    if (!policyRespectsDoNotTrack) {
       return true;
     }
 
