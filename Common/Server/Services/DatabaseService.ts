@@ -1950,6 +1950,36 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           })
         : [];
 
+      /*
+       * save() has upsert semantics: if the located row is hard-deleted by a
+       * concurrent request between the _findBy above and the write below,
+       * save() INSERTs a resurrected "zombie" row carrying only the update's
+       * columns. Zombies with enough NOT NULL columns persist and then hold
+       * foreign keys forever (e.g. a probe status-update racing a monitor
+       * delete resurrected the Monitor and permanently blocked deleting the
+       * MonitorStatus it referenced). Scalar-only updates therefore go
+       * through repository.update(), which never inserts and simply affects
+       * zero rows when the target is gone. Updates that touch relation
+       * columns still need save() for junction-table handling — those paths
+       * are API-driven and pass through the not-found guard above, so the
+       * race window does not practically apply to them.
+       */
+      const relationColumnNames: Set<string> = new Set<string>(
+        this.getModel()
+          .getTableColumns()
+          .columns.filter((column: string) => {
+            const metadata: TableColumnMetadata | undefined = this.getModel()
+              .getTableColumnMetadata(column);
+            return (
+              metadata?.type === TableColumnType.Entity ||
+              metadata?.type === TableColumnType.EntityArray
+            );
+          }),
+      );
+      const hasRelationUpdates: boolean = dataKeys.some((key: string) => {
+        return relationColumnNames.has(key);
+      });
+
       for (const item of items) {
         /*
          * _id must be set AFTER the spread: update data can carry an
@@ -1971,7 +2001,22 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           projectId: updateBy.props.tenantId?.toString(),
         } as LogAttributes);
 
-        await this.getRepository().save(updatedItem);
+        if (hasRelationUpdates) {
+          await this.getRepository().save(updatedItem);
+        } else {
+          const { _id, ...updateData } = updatedItem;
+          await this.getRepository().update({ _id: _id } as any, {
+            ...updateData,
+            /*
+             * save() bumps the @VersionColumn automatically; update() does
+             * not, so emulate it to keep the audit counter behaviour
+             * identical.
+             */
+            version: () => {
+              return '"version" + 1';
+            },
+          } as any);
+        }
 
         // hit workflow.
         if (
