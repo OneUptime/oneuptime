@@ -675,7 +675,7 @@ ${this.generateValidObjectTypesMap()}
        */
       let goType: string = this.mapTerraformTypeToGo(attr.type);
       if (attr.type === "monitor_steps") {
-        goType = "types.List";
+        goType = "MonitorStepsValue";
       } else if (attr.type === "string" && attr.isDateTime) {
         goType = "RFC3339Value";
       } else if (attr.type === "string" && attr.isComplexObject) {
@@ -923,6 +923,7 @@ ${this.generateValidObjectTypesMap()}
       );
     }
     const isComputedOnly: boolean = Boolean(attr.computed && !attr.optional);
+
     if (
       attr.forceNew &&
       name !== "id" &&
@@ -1528,7 +1529,7 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
       if (attr.isMonitorSteps) {
         assignments.push(
           `    if !data.${fieldName}.IsNull() && !data.${fieldName}.IsUnknown() {
-        ${StringUtils.toCamelCase(fieldName)}Value, ${StringUtils.toCamelCase(fieldName)}Diags := MonitorStepsToAPI(ctx, data.${fieldName})
+        ${StringUtils.toCamelCase(fieldName)}Value, ${StringUtils.toCamelCase(fieldName)}Diags := MonitorStepsToAPI(ctx, data.${fieldName}.ListValue)
         resp.Diagnostics.Append(${StringUtils.toCamelCase(fieldName)}Diags...)
         if resp.Diagnostics.HasError() {
             return
@@ -1663,7 +1664,7 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
     );
 
     if (terraformAttr.isMonitorSteps) {
-      return `${StringUtils.toCamelCase(fieldName)}Value, ${StringUtils.toCamelCase(fieldName)}Diags := MonitorStepsToAPI(ctx, data.${fieldName})
+      return `${StringUtils.toCamelCase(fieldName)}Value, ${StringUtils.toCamelCase(fieldName)}Diags := MonitorStepsToAPI(ctx, data.${fieldName}.ListValue)
         resp.Diagnostics.Append(${StringUtils.toCamelCase(fieldName)}Diags...)
         if resp.Diagnostics.HasError() {
             return
@@ -1842,7 +1843,7 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
         return `{
         mappedSteps, stepsDiags := MonitorStepsFromAPI(ctx, ${responseValue})
         resp.Diagnostics.Append(stepsDiags...)
-        ${fieldName} = mappedSteps
+        ${fieldName} = MonitorStepsValue{ListValue: mappedSteps}
     }`;
       case "string":
         // Handle binary format fields (like base64 file content) specially

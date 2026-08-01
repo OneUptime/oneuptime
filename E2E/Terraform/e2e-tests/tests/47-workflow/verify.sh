@@ -30,18 +30,22 @@ fi
 
 WORKFLOW_RESPONSE=$(api_get_resource "/api/workflow" "$WORKFLOW_ID" \
     '{"_id": true, "name": true, "description": true, "isEnabled": true}')
+# NOTE: content is deliberately NOT selected — workflow variables can hold
+# secrets, so the content column has no read permissions and selecting it
+# rejects the whole request. The provider treats it as write-only for the
+# same reason.
 VARIABLE_RESPONSE=$(api_get_resource "/api/workflow-variable" "$VARIABLE_ID" \
-    '{"_id": true, "name": true, "content": true, "workflowId": true}')
+    '{"_id": true, "name": true, "workflowId": true}')
 
 validation_failed=0
 
 validate_field "$WORKFLOW_RESPONSE" "name" "$WORKFLOW_NAME" || validation_failed=1
 validate_field "$WORKFLOW_RESPONSE" "isEnabled" "false" || validation_failed=1
 validate_field "$VARIABLE_RESPONSE" "name" "terraform-e2e-variable" || validation_failed=1
-validate_field "$VARIABLE_RESPONSE" "content" "initial-value" || validation_failed=1
 
 # The variable must belong to the workflow created in this fixture
-API_WORKFLOW_ID=$(echo "$VARIABLE_RESPONSE" | jq -r '.workflowId // empty')
+# workflowId comes back as an ObjectID wrapper ({_type, value}); unwrap it.
+API_WORKFLOW_ID=$(echo "$VARIABLE_RESPONSE" | jq -r '(.workflowId.value // .workflowId) // empty')
 assert_equals "$WORKFLOW_ID" "$API_WORKFLOW_ID" "workflowId" || validation_failed=1
 
 if [ $validation_failed -eq 1 ]; then

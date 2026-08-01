@@ -210,8 +210,8 @@ describe("import", () => {
 });
 
 describe("typed monitor steps", () => {
-  test("the model field is a typed list, not a JSON string", () => {
-    expect(monitorGo).toContain("MonitorSteps types.List");
+  test("the model field is the semantic-equality list type", () => {
+    expect(monitorGo).toContain("MonitorSteps MonitorStepsValue");
     expect(monitorGo).not.toContain("MonitorSteps JSONSubsetValue");
   });
 
@@ -229,7 +229,9 @@ describe("typed monitor steps", () => {
     expect(createBody).toContain(
       "if !data.MonitorSteps.IsNull() && !data.MonitorSteps.IsUnknown()",
     );
-    expect(createBody).toContain("MonitorStepsToAPI(ctx, data.MonitorSteps)");
+    expect(createBody).toContain(
+      "MonitorStepsToAPI(ctx, data.MonitorSteps.ListValue)",
+    );
   });
 
   test("responses convert through MonitorStepsFromAPI", () => {
@@ -247,7 +249,9 @@ describe("typed monitor steps", () => {
       monitorGo.indexOf("func (r *MonitorResource) Update"),
       monitorGo.indexOf("func (r *MonitorResource) Delete"),
     );
-    expect(updateBody).toContain("MonitorStepsToAPI(ctx, data.MonitorSteps)");
+    expect(updateBody).toContain(
+      "MonitorStepsToAPI(ctx, data.MonitorSteps.ListValue)",
+    );
   });
 });
 

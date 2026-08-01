@@ -15,13 +15,15 @@ VARIABLE_ID=$(get_output workflow_variable_id)
 WORKFLOW_RESPONSE=$(api_get_resource "/api/workflow" "$WORKFLOW_ID" \
     '{"_id": true, "name": true, "description": true}')
 VARIABLE_RESPONSE=$(api_get_resource "/api/workflow-variable" "$VARIABLE_ID" \
-    '{"_id": true, "content": true}')
+    '{"_id": true, "name": true}')
 
 validation_failed=0
 
 validate_field "$WORKFLOW_RESPONSE" "name" "terraform-e2e-workflow-updated" || validation_failed=1
 validate_field "$WORKFLOW_RESPONSE" "description" "Workflow updated by Terraform E2E tests" || validation_failed=1
-validate_field "$VARIABLE_RESPONSE" "content" "updated-value" || validation_failed=1
+# content is write-only (no read permissions — it can hold secrets); the
+# update is instead proven by the runner's post-update drift gate.
+validate_field "$VARIABLE_RESPONSE" "name" "terraform-e2e-variable" || validation_failed=1
 
 if [ $validation_failed -eq 1 ]; then
     print_failed "Workflow Update Verification"

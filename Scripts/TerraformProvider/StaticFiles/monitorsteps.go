@@ -50,6 +50,9 @@ import (
 	"fmt"
 	"sort"
 
+	"net/url"
+	"strings"
+
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
@@ -63,6 +66,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
 
 // ---------------------------------------------------------------------------
@@ -356,12 +360,182 @@ func monitorStepsStepAttrTypes() map[string]attr.Type {
 // attribute — a list of step objects. Generated code uses it for typed null
 // initialization.
 func MonitorStepsListType() attr.Type {
-	return types.ListType{ElemType: types.ObjectType{AttrTypes: monitorStepsStepAttrTypes()}}
+	return NewMonitorStepsType()
 }
 
 // MonitorStepsNull returns a typed null monitor_steps list.
 func MonitorStepsNull() types.List {
 	return types.ListNull(types.ObjectType{AttrTypes: monitorStepsStepAttrTypes()})
+}
+
+/*
+ * MonitorStepsType / MonitorStepsValue: a custom list type whose semantic
+ * equality treats the planned (sparse, user-authored) form as equal to the
+ * server's default-filled echo. Comparison happens through the wire
+ * envelope — unset optionals are omitted there — with URL destinations
+ * normalized the way the server normalizes them.
+ */
+type MonitorStepsType struct {
+	basetypes.ListType
+}
+
+// NewMonitorStepsType returns the custom type carrying the full step
+// element type.
+func NewMonitorStepsType() MonitorStepsType {
+	return MonitorStepsType{
+		ListType: basetypes.ListType{
+			ElemType: types.ObjectType{AttrTypes: monitorStepsStepAttrTypes()},
+		},
+	}
+}
+
+var _ basetypes.ListTypable = MonitorStepsType{}
+
+func (t MonitorStepsType) Equal(o attr.Type) bool {
+	other, ok := o.(MonitorStepsType)
+	if !ok {
+		return false
+	}
+	return t.ListType.Equal(other.ListType)
+}
+
+func (t MonitorStepsType) String() string {
+	return "MonitorStepsType"
+}
+
+func (t MonitorStepsType) ValueType(_ context.Context) attr.Value {
+	return MonitorStepsValue{}
+}
+
+func (t MonitorStepsType) ValueFromList(_ context.Context, in basetypes.ListValue) (basetypes.ListValuable, diag.Diagnostics) {
+	return MonitorStepsValue{ListValue: in}, nil
+}
+
+func (t MonitorStepsType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
+	val, err := t.ListType.ValueFromTerraform(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	lv, ok := val.(basetypes.ListValue)
+	if !ok {
+		return nil, fmt.Errorf("unexpected base value type: %T", val)
+	}
+	return MonitorStepsValue{ListValue: lv}, nil
+}
+
+// MonitorStepsValue embeds the standard ListValue so the usual accessors
+// (IsNull, IsUnknown, Elements) keep working at generated call sites.
+type MonitorStepsValue struct {
+	basetypes.ListValue
+}
+
+var _ basetypes.ListValuableWithSemanticEquals = MonitorStepsValue{}
+
+func (v MonitorStepsValue) Type(_ context.Context) attr.Type {
+	return NewMonitorStepsType()
+}
+
+func (v MonitorStepsValue) Equal(o attr.Value) bool {
+	other, ok := o.(MonitorStepsValue)
+	if !ok {
+		return false
+	}
+	return v.ListValue.Equal(other.ListValue)
+}
+
+/*
+ * ListSemanticEquals: the framework calls this with the receiver being the
+ * newer value (apply result or refreshed read) and the argument the prior
+ * value (planned config or prior state). The prior form may be a sparse
+ * subset of the newer, server-default-filled form; the newer side may never
+ * disagree with the prior on a key both carry.
+ */
+func (v MonitorStepsValue) ListSemanticEquals(ctx context.Context, otherValuable basetypes.ListValuable) (bool, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	other, ok := otherValuable.(MonitorStepsValue)
+	if !ok {
+		return false, diags
+	}
+	if v.IsNull() || v.IsUnknown() || other.IsNull() || other.IsUnknown() {
+		return v.ListValue.Equal(other.ListValue), diags
+	}
+	if v.ListValue.Equal(other.ListValue) {
+		return true, diags
+	}
+
+	mine, mineDiags := MonitorStepsToAPI(ctx, v.ListValue)
+	theirs, theirsDiags := MonitorStepsToAPI(ctx, other.ListValue)
+	if mineDiags.HasError() || theirsDiags.HasError() {
+		return false, diags
+	}
+
+	minePlain, mineErr := toPlainJSON(mine)
+	theirsPlain, theirsErr := toPlainJSON(theirs)
+	if mineErr != nil || theirsErr != nil {
+		return false, diags
+	}
+
+	// The server normalizes URL destinations (e.g. appends a trailing slash
+	// to bare origins); normalize both sides before structural comparison.
+	minePlain = normalizeURLWrapperLeaves(minePlain)
+	theirsPlain = normalizeURLWrapperLeaves(theirsPlain)
+
+	return jsonIsSubset(theirsPlain, minePlain), diags
+}
+
+// toPlainJSON round-trips a value through encoding/json so numeric types
+// normalize (int64 vs float64) before structural comparison.
+func toPlainJSON(value interface{}) (interface{}, error) {
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return nil, err
+	}
+	var plain interface{}
+	if err := json.Unmarshal(raw, &plain); err != nil {
+		return nil, err
+	}
+	return plain, nil
+}
+
+// NewMonitorStepsValueNull returns a typed null value of the custom type.
+func NewMonitorStepsValueNull() MonitorStepsValue {
+	return MonitorStepsValue{ListValue: MonitorStepsNull()}
+}
+
+// normalizeURLWrapperLeaves trims the trailing slash from bare-origin URL
+// wrapper values ({_type: "URL", value: "https://x.com/"}), matching the
+// server's normalization so it never reads as a value change.
+func normalizeURLWrapperLeaves(value interface{}) interface{} {
+	switch typed := value.(type) {
+	case map[string]interface{}:
+		if typeName, ok := typed["_type"].(string); ok && typeName == "URL" {
+			if raw, ok := typed["value"].(string); ok {
+				typed["value"] = normalizeBareOriginURL(raw)
+			}
+		}
+		for key, child := range typed {
+			typed[key] = normalizeURLWrapperLeaves(child)
+		}
+		return typed
+	case []interface{}:
+		for i, child := range typed {
+			typed[i] = normalizeURLWrapperLeaves(child)
+		}
+		return typed
+	default:
+		return value
+	}
+}
+
+func normalizeBareOriginURL(value string) string {
+	parsed, err := url.Parse(value)
+	if err != nil {
+		return value
+	}
+	if parsed.Path == "/" && parsed.RawQuery == "" && parsed.Fragment == "" {
+		return strings.TrimSuffix(value, "/")
+	}
+	return value
 }
 
 // ---------------------------------------------------------------------------
@@ -756,6 +930,7 @@ func monitorStepsStepSchema() schema.NestedAttributeObject {
 func MonitorStepsSchemaAttribute(description string) schema.ListNestedAttribute {
 	return schema.ListNestedAttribute{
 		MarkdownDescription: description,
+		CustomType:          NewMonitorStepsType(),
 		Optional:            true,
 		/*
 		 * Computed because the server generates default steps when a monitor

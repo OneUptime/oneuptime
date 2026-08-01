@@ -1,3 +1,4 @@
+import logger from "../Utils/Logger";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
@@ -143,17 +144,30 @@ export class Service extends DatabaseService<IncidentState> {
         newOrder = incidentState.order! - 1;
       }
 
-      await this.updateOneBy({
-        query: {
-          _id: incidentState._id!,
-        },
-        data: {
-          order: newOrder,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+      /*
+       * Concurrent deletes (e.g. Terraform destroying several items in
+       * parallel) can soft-delete a row between the findBy above and
+       * this update; save() would then INSERT with a null projectId and
+       * fail the whole delete with a 500. A row that vanished
+       * mid-rearrange needs no repositioning - skip it.
+       */
+      try {
+        await this.updateOneBy({
+          query: {
+            _id: incidentState._id!,
+          },
+          data: {
+            order: newOrder,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+      } catch (err) {
+        logger.warn(
+          `rearrange: skipping row (likely deleted concurrently): ${err}`,
+        );
+      }
     }
   }
 

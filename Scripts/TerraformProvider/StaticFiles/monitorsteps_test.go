@@ -284,8 +284,13 @@ func TestMonitorStepsNullIsTypedNull(t *testing.T) {
 	if !null.IsNull() {
 		t.Fatal("MonitorStepsNull must be null")
 	}
-	if !null.Type(context.Background()).Equal(MonitorStepsListType()) {
-		t.Fatalf("MonitorStepsNull type %s != MonitorStepsListType %s", null.Type(context.Background()), MonitorStepsListType())
+	// The custom-typed null used by generated code carries MonitorStepsType.
+	customNull := NewMonitorStepsValueNull()
+	if !customNull.IsNull() {
+		t.Fatal("NewMonitorStepsValueNull must be null")
+	}
+	if !customNull.Type(context.Background()).Equal(MonitorStepsListType()) {
+		t.Fatalf("custom null type %s != MonitorStepsListType %s", customNull.Type(context.Background()), MonitorStepsListType())
 	}
 }
 
@@ -1107,5 +1112,233 @@ func TestMonitorStepsFilterTypeValidatorAcceptsAllValues(t *testing.T) {
 	}
 	if len(monitorStepsFilterTypeValues) != 22 {
 		t.Fatalf("FilterType enum has %d values, want 22", len(monitorStepsFilterTypeValues))
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Semantic equality (MonitorStepsValue)
+// ---------------------------------------------------------------------------
+
+func TestMonitorStepsSemanticEquals_SparseConfigVsServerEcho(t *testing.T) {
+	// A minimal user config: destination + one criteria with one filter.
+	sparse := monitorStepsMinimalUserList(t)
+
+	// The server echo of the same steps with defaults filled in: request
+	// type, criteria booleans, injected telemetry sub-configs.
+	fullAPI := map[string]interface{}{
+		"_type": "MonitorSteps",
+		"value": map[string]interface{}{
+			"monitorStepsInstanceArray": []interface{}{
+				map[string]interface{}{
+					"_type": "MonitorStep",
+					"id":    "server-generated-id",
+					"value": map[string]interface{}{
+						"monitorDestination": map[string]interface{}{
+							"_type": "IP",
+							"value": "8.8.8.8",
+						},
+						"requestType": "GET",
+						"logMonitor":  map[string]interface{}{"attributes": []interface{}{}},
+						"monitorCriteria": map[string]interface{}{
+							"_type": "MonitorCriteria",
+							"value": map[string]interface{}{
+								"monitorCriteriaInstanceArray": []interface{}{
+									map[string]interface{}{
+										"_type": "MonitorCriteriaInstance",
+										"id":    "criteria-id",
+										"value": map[string]interface{}{
+											"name":            "Online",
+											"filterCondition": "All",
+											"createIncidents": false,
+											"createAlerts":    false,
+											"isEnabled":       true,
+											"filters": []interface{}{
+												map[string]interface{}{
+													"checkOn":    "Is Online",
+													"filterType": "True",
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	echoed, diags := MonitorStepsFromAPI(context.Background(), fullAPI)
+	if diags.HasError() {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+
+	sparseValue := MonitorStepsValue{ListValue: sparse}
+	echoedValue := MonitorStepsValue{ListValue: echoed}
+
+	// Apply-result direction: result.SemanticEquals(planned).
+	equal, diags := echoedValue.ListSemanticEquals(context.Background(), sparseValue)
+	if diags.HasError() {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+	if !equal {
+		t.Fatal("server echo with defaults must semantically equal the sparse config")
+	}
+
+	// The reverse direction (sparse receiver vs full prior) is NOT equal —
+	// that orientation never occurs in framework flows, and treating it as
+	// equal would mask failed removals.
+	equal, _ = sparseValue.ListSemanticEquals(context.Background(), echoedValue)
+	if equal {
+		t.Fatal("sparse receiver must not absorb a fuller prior value")
+	}
+}
+
+func TestMonitorStepsSemanticEquals_RealDifferencesStillDetected(t *testing.T) {
+	a := MonitorStepsValue{ListValue: monitorStepsMinimalUserList(t)}
+
+	changedAPI := map[string]interface{}{
+		"_type": "MonitorSteps",
+		"value": map[string]interface{}{
+			"monitorStepsInstanceArray": []interface{}{
+				map[string]interface{}{
+					"_type": "MonitorStep",
+					"value": map[string]interface{}{
+						"monitorDestination": map[string]interface{}{
+							"_type": "IP",
+							"value": "9.9.9.9",
+						},
+						"monitorCriteria": map[string]interface{}{
+							"_type": "MonitorCriteria",
+							"value": map[string]interface{}{
+								"monitorCriteriaInstanceArray": []interface{}{
+									map[string]interface{}{
+										"_type": "MonitorCriteriaInstance",
+										"value": map[string]interface{}{
+											"name":            "Online",
+											"filterCondition": "All",
+											"filters": []interface{}{
+												map[string]interface{}{"checkOn": "Is Online", "filterType": "True"},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	changed, diags := MonitorStepsFromAPI(context.Background(), changedAPI)
+	if diags.HasError() {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+	b := MonitorStepsValue{ListValue: changed}
+
+	equal, _ := a.ListSemanticEquals(context.Background(), b)
+	if equal {
+		t.Fatal("different destinations must not compare equal")
+	}
+}
+
+func TestMonitorStepsSemanticEquals_NullAndUnknown(t *testing.T) {
+	value := MonitorStepsValue{ListValue: monitorStepsMinimalUserList(t)}
+	null := NewMonitorStepsValueNull()
+
+	equal, _ := null.ListSemanticEquals(context.Background(), value)
+	if equal {
+		t.Fatal("null must not equal a concrete value")
+	}
+	equal, _ = null.ListSemanticEquals(context.Background(), NewMonitorStepsValueNull())
+	if !equal {
+		t.Fatal("null must equal null")
+	}
+}
+
+func TestMonitorStepsSemanticEquals_URLSlashNormalization(t *testing.T) {
+	// The server appends a trailing slash to bare-origin URL destinations;
+	// this must not read as a value change (E2E tests 26/35 regression).
+	filterObj := monitorStepsTestObj(t, monitorStepsFilterAttrTypes(), map[string]attr.Value{
+		"check_on":    types.StringValue("Is Online"),
+		"filter_type": types.StringValue("True"),
+	})
+	criteriaObj := monitorStepsTestObj(t, monitorStepsCriteriaAttrTypes(), map[string]attr.Value{
+		"name":             types.StringValue("Check if online"),
+		"filter_condition": types.StringValue("All"),
+		"filters":          monitorStepsTestObjList(t, monitorStepsFilterAttrTypes(), filterObj),
+	})
+	stepObj := monitorStepsTestObj(t, monitorStepsStepAttrTypes(), map[string]attr.Value{
+		"monitor_destination":      types.StringValue("https://example.com"),
+		"monitor_destination_type": types.StringValue("URL"),
+		"request_type":             types.StringValue("GET"),
+		"criteria":                 monitorStepsTestObjList(t, monitorStepsCriteriaAttrTypes(), criteriaObj),
+	})
+	planned := MonitorStepsValue{ListValue: monitorStepsTestList(t, stepObj)}
+
+	serverValue := map[string]interface{}{
+		"_type": "MonitorSteps",
+		"value": map[string]interface{}{
+			"monitorStepsInstanceArray": []interface{}{
+				map[string]interface{}{
+					"_type": "MonitorStep",
+					"id":    "abc",
+					"value": map[string]interface{}{
+						"monitorDestination": map[string]interface{}{
+							"_type": "URL",
+							"value": "https://example.com/",
+						},
+						"requestType": "GET",
+						"monitorCriteria": map[string]interface{}{
+							"_type": "MonitorCriteria",
+							"value": map[string]interface{}{
+								"monitorCriteriaInstanceArray": []interface{}{
+									map[string]interface{}{
+										"_type": "MonitorCriteriaInstance",
+										"id":    "def",
+										"value": map[string]interface{}{
+											"name":            "Check if online",
+											"filterCondition": "All",
+											"isEnabled":       true,
+											"createIncidents": false,
+											"createAlerts":    false,
+											"filters": []interface{}{
+												map[string]interface{}{
+													"checkOn":    "Is Online",
+													"filterType": "True",
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	echoedList, diags := MonitorStepsFromAPI(context.Background(), serverValue)
+	monitorStepsTestFatalOnDiagError(t, "FromAPI", diags)
+	echoed := MonitorStepsValue{ListValue: echoedList}
+
+	equal, diags := echoed.ListSemanticEquals(context.Background(), planned)
+	monitorStepsTestFatalOnDiagError(t, "ListSemanticEquals", diags)
+	if !equal {
+		t.Fatal("slash-normalized URL plus server defaults must be semantically equal")
+	}
+
+	// A genuinely different URL must still be unequal.
+	otherStep := monitorStepsTestObj(t, monitorStepsStepAttrTypes(), map[string]attr.Value{
+		"monitor_destination":      types.StringValue("https://other.example.com"),
+		"monitor_destination_type": types.StringValue("URL"),
+		"request_type":             types.StringValue("GET"),
+		"criteria":                 monitorStepsTestObjList(t, monitorStepsCriteriaAttrTypes(), criteriaObj),
+	})
+	other := MonitorStepsValue{ListValue: monitorStepsTestList(t, otherStep)}
+	equal, _ = echoed.ListSemanticEquals(context.Background(), other)
+	if equal {
+		t.Fatal("different URLs must stay unequal")
 	}
 }

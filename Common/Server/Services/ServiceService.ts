@@ -34,8 +34,14 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
-    // select a random color.
-    createBy.data.serviceColor = ArrayUtil.selectItemByRandom(BrightColors);
+    /*
+     * Select a random color when the caller did not provide one. API
+     * clients (e.g. Terraform) may set an explicit color; overwriting it
+     * made the field impossible to manage declaratively.
+     */
+    if (!createBy.data.serviceColor) {
+      createBy.data.serviceColor = ArrayUtil.selectItemByRandom(BrightColors);
+    }
 
     return {
       carryForward: null,
