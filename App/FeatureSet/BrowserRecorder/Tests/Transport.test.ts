@@ -429,6 +429,153 @@ describe("Transport", (): void => {
     });
   });
 
+  describe("retry-queue drain", (): void => {
+    const envelopeAt: (index: number) => SessionReplayChunkEnvelope = (
+      index: number,
+    ): SessionReplayChunkEnvelope => {
+      return { ...envelope, chunkIndex: index };
+    };
+
+    /*
+     * Loads the retry queue without counting breaker failures: a 429
+     * enqueues the refused chunk and throttles, and every send during the
+     * throttle enqueues without touching the network.
+     */
+    const loadQueue: (
+      transport: Transport,
+      count: number,
+      nowRef: { nowMs: number },
+    ) => Promise<void> = async (
+      transport: Transport,
+      count: number,
+      nowRef: { nowMs: number },
+    ): Promise<void> => {
+      (globalThis as unknown as Record<string, unknown>)["fetch"] = jest
+        .fn()
+        .mockResolvedValue(respond(429, "", { "retry-after": "60" }));
+
+      await transport.send(envelopeAt(0), "[{}]");
+
+      for (let index: number = 1; index < count; index++) {
+        await transport.send(envelopeAt(index), "[{}]");
+      }
+
+      expect(transport.getQueueDepth()).toBe(count);
+
+      /* Step past the throttle window for the drain under test. */
+      nowRef.nowMs += 61_000;
+    };
+
+    const withMockedNow: () => { nowMs: number } = (): { nowMs: number } => {
+      const nowRef: { nowMs: number } = { nowMs: 1_700_000_000_000 };
+
+      jest.spyOn(Date, "now").mockImplementation((): number => {
+        return nowRef.nowMs;
+      });
+
+      return nowRef;
+    };
+
+    it("a retryable failure mid-drain preserves every unposted chunk behind it", async (): Promise<void> => {
+      const nowRef: { nowMs: number } = withMockedNow();
+      const transport: Transport = makeTransport();
+
+      await loadQueue(transport, 3, nowRef);
+
+      /* Drain chunk 0 fails retryably; chunks 1 and 2 must NOT vanish. */
+      const fetchMock: jest.Mock = jest
+        .fn()
+        .mockResolvedValueOnce(respond(503))
+        .mockResolvedValue(respond(202));
+      (globalThis as unknown as Record<string, unknown>)["fetch"] = fetchMock;
+
+      const sent: boolean = await transport.send(envelopeAt(3), "[{}]");
+
+      /* Only chunk 0 (halt) and the current chunk 3 hit the network. */
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(sent).toBe(true);
+
+      /* Chunks 0, 1 and 2 are all back in the queue, none dropped. */
+      expect(transport.getQueueDepth()).toBe(3);
+      expect(transport.getDroppedChunkCount()).toBe(0);
+      expect(transport.isDisabled()).toBe(false);
+    });
+
+    it("a rejected CHUNK mid-drain is dropped alone and the drain continues", async (): Promise<void> => {
+      const nowRef: { nowMs: number } = withMockedNow();
+      const transport: Transport = makeTransport();
+
+      await loadQueue(transport, 3, nowRef);
+
+      /* Chunk 0 is refused as oversized; 1, 2 and the current 3 are fine. */
+      const fetchMock: jest.Mock = jest
+        .fn()
+        .mockResolvedValueOnce(respond(413))
+        .mockResolvedValue(respond(202));
+      (globalThis as unknown as Record<string, unknown>)["fetch"] = fetchMock;
+
+      const sent: boolean = await transport.send(envelopeAt(3), "[{}]");
+
+      expect(fetchMock).toHaveBeenCalledTimes(4);
+      expect(sent).toBe(true);
+      expect(transport.getQueueDepth()).toBe(0);
+      expect(transport.getDroppedChunkCount()).toBe(1);
+      /* A bad chunk is not a bad transport: the breaker is untouched. */
+      expect(transport.getFlushFailureCount()).toBe(0);
+    });
+
+    it("a 429 received mid-drain throttles the CURRENT chunk too", async (): Promise<void> => {
+      const nowRef: { nowMs: number } = withMockedNow();
+      const transport: Transport = makeTransport();
+
+      await loadQueue(transport, 1, nowRef);
+
+      const fetchMock: jest.Mock = jest
+        .fn()
+        .mockResolvedValue(respond(429, "", { "retry-after": "60" }));
+      (globalThis as unknown as Record<string, unknown>)["fetch"] = fetchMock;
+
+      const sent: boolean = await transport.send(envelopeAt(1), "[{}]");
+
+      /*
+       * Exactly ONE request: the drained chunk that got the 429. Posting
+       * the current chunk anyway would violate the throttle one request
+       * after receiving it.
+       */
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(sent).toBe(false);
+      expect(transport.isThrottled()).toBe(true);
+      /* Both the drained chunk and the current one are queued for later. */
+      expect(transport.getQueueDepth()).toBe(2);
+      expect(transport.getDroppedChunkCount()).toBe(0);
+    });
+
+    it("a terminal disable mid-drain counts the unposted remainder as dropped", async (): Promise<void> => {
+      const nowRef: { nowMs: number } = withMockedNow();
+      const transport: Transport = makeTransport();
+
+      await loadQueue(transport, 2, nowRef);
+
+      /* Auth breaks while chunks 0 and 1 are queued: 401 disables at once. */
+      const fetchMock: jest.Mock = jest.fn().mockResolvedValue(respond(401));
+      (globalThis as unknown as Record<string, unknown>)["fetch"] = fetchMock;
+
+      const sent: boolean = await transport.send(envelopeAt(2), "[{}]");
+
+      expect(sent).toBe(false);
+      expect(transport.isDisabled()).toBe(true);
+      expect(transport.getDisabledReason()).toBe("http-401");
+      /*
+       * Only chunk 0 hit the network. Chunk 1 (never posted) and the
+       * current chunk 2 are ACCOUNTED for as dropped — not silently
+       * vanished the way the old drain lost them.
+       */
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(transport.getQueueDepth()).toBe(0);
+      expect(transport.getDroppedChunkCount()).toBe(2);
+    });
+  });
+
   describe("parseRetryAfter", (): void => {
     it("reads a seconds value and caps it", (): void => {
       expect(

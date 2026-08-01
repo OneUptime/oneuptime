@@ -481,6 +481,7 @@ import { AddDroppedCountersToDropFilters1785405581596 } from "./1785405581596-Ad
 import { AddSessionReplay1785417351021 } from "./1785417351021-AddSessionReplay";
 import { EnableSessionReplayByDefault1785491583874 } from "./1785491583874-EnableSessionReplayByDefault";
 import { AddMonitorSummaryToIncidentAndAlert1785496223183 } from "./1785496223183-AddMonitorSummaryToIncidentAndAlert";
+import { AddSessionReplayReliabilityColumns1785516996695 } from "./1785516996695-AddSessionReplayReliabilityColumns";
 
 export default [
   InitialMigration,
@@ -966,4 +967,5 @@ export default [
   AddSessionReplay1785417351021,
   EnableSessionReplayByDefault1785491583874,
   AddMonitorSummaryToIncidentAndAlert1785496223183,
+  AddSessionReplayReliabilityColumns1785516996695,
 ];

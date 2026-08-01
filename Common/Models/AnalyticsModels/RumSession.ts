@@ -761,6 +761,16 @@ export default class RumSession extends AnalyticsBaseModel {
       accessControl: sessionAccessControl,
     });
 
+    const isPinnedCopyColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "isPinnedCopy",
+      title: "Is Pinned Copy",
+      description:
+        "Written by the pin materializer: a re-insert of this session's header with a far-future retentionDate, so a pinned recording survives ordinary retention. Shares the session's replace key, so it supersedes the original at merge; erasure by sessionId still catches it.",
+      required: true,
+      type: TableColumnType.Boolean,
+      accessControl: sessionAccessControl,
+    });
+
     const attributesColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "attributes",
       title: "Attributes",
@@ -895,6 +905,7 @@ export default class RumSession extends AnalyticsBaseModel {
         fullSnapshotChunkIndexesColumn,
         ...schemaVersionColumns,
         isLegalHoldColumn,
+        isPinnedCopyColumn,
         attributesColumn,
         attributeKeysColumn,
         entityKeysColumn,
@@ -1346,6 +1357,14 @@ export default class RumSession extends AnalyticsBaseModel {
 
   public set isLegalHold(v: boolean | undefined) {
     this.setColumnValue("isLegalHold", v);
+  }
+
+  public get isPinnedCopy(): boolean | undefined {
+    return this.getColumnValue("isPinnedCopy") as boolean | undefined;
+  }
+
+  public set isPinnedCopy(v: boolean | undefined) {
+    this.setColumnValue("isPinnedCopy", v);
   }
 
   public get attributes(): JSONObject | undefined {

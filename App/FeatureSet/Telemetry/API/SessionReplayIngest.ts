@@ -569,6 +569,7 @@ router.get(
         maskSelectors: [],
         blockSelectors: [],
         urlAllowlist: [],
+        ignoreErrorPatterns: [],
         recordCanvas: false,
         captureUserIdentity: false,
         respectDoNotTrack: true,
@@ -637,6 +638,13 @@ router.get(
          * here means the default cannot leak a reset token or a magic link.
          */
         urlAllowlist: [],
+        /*
+         * Trigger noise control, not a privacy control, so it ships to the
+         * recorder verbatim: patterns are matched against error messages
+         * and source URLs in the browser, and a live recorder picks up a
+         * dashboard edit on its next config refresh.
+         */
+        ignoreErrorPatterns: policy.ignoreErrorPatterns,
         recordCanvas: policy.recordCanvas,
         captureUserIdentity: policy.captureUserIdentity,
         respectDoNotTrack: true,

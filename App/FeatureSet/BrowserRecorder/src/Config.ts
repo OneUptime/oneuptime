@@ -51,6 +51,16 @@ export const AUTH_TOKEN_HEADER: string = "x-oneuptime-token";
 export const CONFIG_PATH: string = "/telemetry/session-replay/v1/config";
 export const CHUNK_PATH: string = "/telemetry/session-replay/v1/chunk";
 
+/*
+ * A standalone function rather than a Config static on purpose: class
+ * methods are never tree-shaken, and only the ARTIFACT posts chunks. As
+ * a static this rode along in the loader stub (which lives on a hard
+ * byte budget) as dead weight - together with the CHUNK_PATH string.
+ */
+export function getChunkUrl(options: RecorderInitOptions): string {
+  return `${options.host}${CHUNK_PATH}`;
+}
+
 /* Where the pinned, immutable artifact lives. */
 export const ARTIFACT_PATH_PREFIX: string = "/telemetry/session-replay";
 
@@ -261,10 +271,6 @@ export default class Config {
     return `${options.host}${CONFIG_PATH}`;
   }
 
-  public static getChunkUrl(options: RecorderInitOptions): string {
-    return `${options.host}${CHUNK_PATH}`;
-  }
-
   public static isValidRecorderVersion(value: unknown): value is string {
     return typeof value === "string" && RECORDER_VERSION_PATTERN.test(value);
   }
@@ -399,6 +405,11 @@ export default class Config {
       maskSelectors: Config.readStringArray(raw["maskSelectors"]),
       blockSelectors: Config.readStringArray(raw["blockSelectors"]),
       urlAllowlist: Config.readStringArray(raw["urlAllowlist"]),
+      /*
+       * Absent on an older server is an empty list: every error stays
+       * trigger-worthy, which is the pre-feature behaviour.
+       */
+      ignoreErrorPatterns: Config.readStringArray(raw["ignoreErrorPatterns"]),
       recordCanvas: raw["recordCanvas"] === true,
       captureUserIdentity: raw["captureUserIdentity"] === true,
 

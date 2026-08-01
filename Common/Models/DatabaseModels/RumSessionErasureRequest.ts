@@ -445,6 +445,29 @@ export default class RumSessionErasureRequest extends BaseModel {
     required: true,
     computed: true,
     type: TableColumnType.Number,
+    title: "Attempts",
+    description:
+      "How many processing runs have failed for this request. An erasure is retried until this reaches the retry cap; only then is it marked Failed and the project owners are notified — a right-to-erasure obligation must not die silently on one transient error.",
+    defaultValue: 0,
+  })
+  @Column({
+    nullable: false,
+    type: ColumnType.Number,
+    unique: false,
+    default: 0,
+  })
+  public attempts?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    computed: true,
+    type: TableColumnType.Number,
     title: "Chunks Deleted",
     description:
       "How many recording chunks the erasure removed. Reported separately from sessions because a mismatch is how a partial erasure is spotted.",

@@ -208,6 +208,14 @@ import "./Jobs/TelemetryEntity/ComputeServiceDependencies";
 import "./Jobs/Rum/FinalizeSessions";
 // RUM application disconnect sweeper + abandoned replay activity prune.
 import "./Jobs/Rum/CleanupStaleResources";
+
+/*
+ * The pin materializer is what makes "Pin this recording" true: until it
+ * copies the session under a far-future retentionDate and stamps
+ * materializedAt, a pin protects nothing and ClickHouse TTL deletes the
+ * recording on schedule.
+ */
+import "./Jobs/Rum/MaterializePinnedSessions";
 // GDPR / CCPA erasure of recordings and their correlated telemetry.
 import "./Jobs/Rum/ProcessSessionErasureRequests";
 

@@ -1,5 +1,10 @@
 import Config, { LoaderConfig, RecorderInitOptions } from "./Config";
 import Consent from "./Consent";
+import {
+  EarlyErrorBuffer,
+  EarlyErrorRecord,
+  installEarlyErrorBuffer,
+} from "./EarlyErrors";
 
 /*
  * The loader stub. This - not the recorder - is what a customer pastes into
@@ -31,7 +36,11 @@ const LOADER_FLAG_GLOBAL: string = "__ONEUPTIME_SESSION_REPLAY_LOADER__";
 const ARTIFACT_GLOBAL: string = "OneUptimeReplay";
 
 interface ArtifactApi {
-  bootstrap: (initOptions: RecorderInitOptions, config: LoaderConfig) => void;
+  bootstrap: (
+    initOptions: RecorderInitOptions,
+    config: LoaderConfig,
+    earlyErrors?: Array<EarlyErrorRecord>,
+  ) => void;
 }
 
 export async function load(): Promise<void> {
@@ -68,9 +77,21 @@ export async function load(): Promise<void> {
     return;
   }
 
+  /*
+   * From here to the artifact's first listener is the config round trip
+   * (up to 5s) plus the artifact download — the exact window in which a
+   * startup crash, the most valuable failure class an error-triggered
+   * recorder has, used to fire into a void. The buffer sits AFTER the
+   * synchronous privacy gates (a DNT user gets no listeners at all) and
+   * is discarded on every fail-closed exit below; nothing in it leaves
+   * the page except through the artifact's masking path.
+   */
+  const earlyErrors: EarlyErrorBuffer = installEarlyErrorBuffer();
+
   const config: LoaderConfig | null = await Config.fetchConfig(options);
 
   if (!config) {
+    earlyErrors.discard();
     return;
   }
 
@@ -86,10 +107,12 @@ export async function load(): Promise<void> {
       navigator,
     )
   ) {
+    earlyErrors.discard();
     return;
   }
 
   if (config.directive === "stop") {
+    earlyErrors.discard();
     return;
   }
 
@@ -100,7 +123,7 @@ export async function load(): Promise<void> {
 
   globalRecord[LOADER_FLAG_GLOBAL] = true;
 
-  loadArtifact(options, config);
+  loadArtifact(options, config, earlyErrors);
 }
 
 /*
@@ -115,6 +138,7 @@ export async function load(): Promise<void> {
 function loadArtifact(
   options: RecorderInitOptions,
   config: LoaderConfig,
+  earlyErrors: EarlyErrorBuffer,
 ): void {
   const url: string | null = Config.getArtifactUrl(
     options,
@@ -128,13 +152,14 @@ function loadArtifact(
    * customer's page.
    */
   if (!url) {
+    earlyErrors.discard();
     return;
   }
 
   const existing: ArtifactApi | null = readArtifactApi();
 
   if (existing) {
-    existing.bootstrap(options, config);
+    existing.bootstrap(options, config, earlyErrors.drain());
     return;
   }
 
@@ -157,7 +182,14 @@ function loadArtifact(
     const api: ArtifactApi | null = readArtifactApi();
 
     if (api) {
-      api.bootstrap(options, config);
+      /*
+       * drain() also uninstalls the stub's listeners: from the next line
+       * on, the artifact's own ErrorRecorder is the listener of record,
+       * and double-recording every error would follow from keeping both.
+       */
+      api.bootstrap(options, config, earlyErrors.drain());
+    } else {
+      earlyErrors.discard();
     }
   };
 
@@ -167,8 +199,9 @@ function loadArtifact(
      * which fails silently from the page's point of view. There is nothing
      * useful to do from here - the Dashboard's "test your installation" panel
      * is the diagnostic, because server telemetry cannot see a script that
-     * never loaded.
+     * never loaded. The buffer is released: no artifact will ever replay it.
      */
+    earlyErrors.discard();
   };
 
   const parent: Node =

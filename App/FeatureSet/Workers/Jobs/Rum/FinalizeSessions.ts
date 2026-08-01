@@ -22,7 +22,7 @@ import {
   SessionReplaySealedReason,
 } from "Common/Types/Rum/SessionReplay";
 import ChunkMath from "Common/Utils/Rum/ChunkMath";
-import { EVERY_FIVE_MINUTE } from "Common/Utils/CronTime";
+import { EVERY_FIVE_MINUTE, EVERY_HOUR } from "Common/Utils/CronTime";
 
 /*
  * ------------------------------------------------------------------
@@ -272,6 +272,7 @@ export interface ProvisionalSessionHeader {
   schemaVersion: number;
   wireVersion: number;
   isLegalHold: boolean;
+  isPinnedCopy: boolean;
   attributes: JSONObject;
   attributeKeys: Array<string>;
   entityKeys: Array<string>;
@@ -487,6 +488,7 @@ export function buildProvisionalHeaderStatement(data: {
       schemaVersion AS schemaVersion,
       wireVersion AS wireVersion,
       isLegalHold AS isLegalHold,
+      isPinnedCopy AS isPinnedCopy,
       attributes AS attributes,
       attributeKeys AS attributeKeys,
       entityKeys AS entityKeys
@@ -575,6 +577,7 @@ export function parseProvisionalHeaderRow(
     schemaVersion: toNumberValue(row["schemaVersion"]),
     wireVersion: toNumberValue(row["wireVersion"]),
     isLegalHold: toBooleanValue(row["isLegalHold"]),
+    isPinnedCopy: toBooleanValue(row["isPinnedCopy"]),
     attributes:
       row["attributes"] && typeof row["attributes"] === "object"
         ? (row["attributes"] as JSONObject)
@@ -777,6 +780,12 @@ export function buildFinalizedSessionRow(data: {
   header: ProvisionalSessionHeader | null;
   traceIds: Array<string>;
   writtenAt: Date;
+  /*
+   * Used only by the never-finalized sweep, whose chunkless sessions have
+   * no aggregate to resolve a reason FROM: the honest answer is
+   * "recording-lost", which no combination of zeroed aggregates produces.
+   */
+  sealedReasonOverride?: SessionReplaySealedReason;
 }): JSONObject {
   const aggregate: SessionChunkAggregate = data.aggregate;
   const header: ProvisionalSessionHeader | null = data.header;
@@ -806,11 +815,13 @@ export function buildFinalizedSessionRow(data: {
   );
   const durationMs: number = endTimeUnixMs - startTimeUnixMs;
 
-  const sealedReason: SessionReplaySealedReason = resolveSealedReason({
-    aggregate: aggregate,
-    durationMs: durationMs,
-    existingSealedReason: header ? header.sealedReason : "",
-  });
+  const sealedReason: SessionReplaySealedReason =
+    data.sealedReasonOverride ??
+    resolveSealedReason({
+      aggregate: aggregate,
+      durationMs: durationMs,
+      existingSealedReason: header ? header.sealedReason : "",
+    });
 
   const retentionDateText: string =
     header && header.retentionDateText
@@ -909,6 +920,13 @@ export function buildFinalizedSessionRow(data: {
         : SESSION_REPLAY_WIRE_VERSION,
 
     isLegalHold: header ? header.isLegalHold : false,
+    /*
+     * Always false from the finalizer: a pinned COPY is written only by
+     * the materializer, and a re-finalization of a pinned session writes
+     * an ordinary-retention header that the materializer's far-future
+     * copy supersedes on version.
+     */
+    isPinnedCopy: false,
     attributes: header ? header.attributes : {},
     attributeKeys: header ? header.attributeKeys : [],
     entityKeys: header ? header.entityKeys : [],
@@ -1353,6 +1371,292 @@ export async function finalizeExpiredSessions(): Promise<void> {
     );
   }
 }
+
+/*
+ * ------------------------------------------------------------------
+ * The never-finalized sweep.
+ *
+ * The 5-minute finalizer above discovers work EXCLUSIVELY through Redis
+ * sorted sets — and this deployment runs Redis with persistence off. A
+ * Redis restart or eviction therefore used to orphan every in-flight
+ * session permanently: the header stayed provisional forever (zeroed
+ * aggregates, invisible duration), and because metering reads only
+ * finalized headers, the session was never billed either. Nothing could
+ * ever recover it, and CleanupStaleResources' own log line said so.
+ *
+ * This sweep is the ClickHouse-side safety net: an hourly scan of the
+ * header table itself for provisional sessions old enough that no chunk
+ * can still arrive, each re-finalized through the exact same idempotent
+ * finalizeSession path. Redis loss becomes bounded finalization delay.
+ *
+ * A provisional header whose chunks never landed (or TTL-dropped before
+ * the sweep reached it) cannot be finalized from chunks and would be
+ * re-selected every hour forever; it is sealed instead with
+ * sealedReason "recording-lost" — an honest terminal record that a
+ * recording existed and was lost.
+ * ------------------------------------------------------------------
+ */
+
+const SWEEP_JOB_NAME: string = "Rum:SweepNeverFinalizedSessions";
+
+/*
+ * A provisional header older than the abandon window can no longer
+ * receive chunks (the recorder's hard session cap plus margin), so
+ * finalizing it cannot publish an under-count the way finalizing an
+ * ACTIVE session early would.
+ */
+export const SWEEP_MIN_SESSION_AGE_MS: number =
+  SESSION_REPLAY_ACTIVITY_ABANDON_MS;
+
+/*
+ * How far back one sweep looks. Bounded so the hourly GROUP BY prunes to
+ * a fixed number of partitions instead of walking the whole table; wide
+ * enough (35 days) that even a Redis loss discovered late is still
+ * recovered for every retention tier except the 90-day one's tail — and
+ * those sessions are found too, for as long as they remain in the window.
+ */
+export const SWEEP_LOOKBACK_MS: number = 35 * 24 * 60 * 60 * 1000;
+
+/*
+ * Per-run cap. The sweep is a safety net that converges over successive
+ * hourly runs after a mass loss, not a bulk migrator that must finish in
+ * one pass.
+ */
+export const MAX_SWEEP_SESSIONS_PER_RUN: number = 500;
+
+const SWEEP_RUN_BUDGET_MS: number = 4 * 60 * 1000;
+
+export interface NeverFinalizedSessionRef {
+  projectId: string;
+  rumApplicationId: string;
+  sessionId: string;
+}
+
+/*
+ * Provisional sessions old enough to sweep.
+ *
+ * The isFinalized test MUST be argMax over version, in HAVING: until a
+ * background merge collapses the ReplacingMergeTree versions, a finalized
+ * session still has its old provisional row visible, and a bare
+ * `WHERE isFinalized = 0` would re-finalize every recently-finalized
+ * session in the window on every run.
+ */
+export function buildNeverFinalizedStatement(data: {
+  databaseName: string;
+  nowUnixMs: number;
+  limit: number;
+}): Statement {
+  const cutoff: Date = new Date(data.nowUnixMs - SWEEP_MIN_SESSION_AGE_MS);
+  const floor: Date = new Date(data.nowUnixMs - SWEEP_LOOKBACK_MS);
+
+  return SQL`
+    SELECT
+      toString(projectId) AS projectId,
+      toString(rumApplicationId) AS rumApplicationId,
+      sessionId AS sessionId
+    FROM ${data.databaseName}.${AnalyticsTableName.RumSession}
+    WHERE startTime >= ${{
+      type: TableColumnType.DateTime64,
+      value: floor,
+    }}
+      AND startTime < ${{
+        type: TableColumnType.DateTime64,
+        value: cutoff,
+      }}
+      AND retentionDate >= now()
+    GROUP BY projectId, rumApplicationId, sessionId
+    HAVING argMax(toUInt8(isFinalized), version) = 0
+    ORDER BY max(startTime) DESC
+    LIMIT ${{
+      type: TableColumnType.Number,
+      value: data.limit,
+    }}`;
+}
+
+/*
+ * Seal a provisional header whose chunks are gone, so it stops being
+ * re-swept every hour and the list can render "recording lost" instead of
+ * a session that looks like it is still recording.
+ */
+async function sealLostSession(data: {
+  databaseName: string;
+  projectId: ObjectID;
+  rumApplicationId: string;
+  sessionId: string;
+}): Promise<boolean> {
+  const headerRows: Array<JSONObject> = await readRows(
+    buildProvisionalHeaderStatement({
+      databaseName: data.databaseName,
+      projectId: data.projectId,
+      rumApplicationId: data.rumApplicationId,
+      sessionId: data.sessionId,
+    }),
+  );
+
+  const headerRow: JSONObject | undefined = headerRows[0];
+
+  if (!headerRow) {
+    return false;
+  }
+
+  const header: ProvisionalSessionHeader = parseProvisionalHeaderRow(headerRow);
+
+  /*
+   * A zeroed aggregate carrying the header's own identity: the sealed row
+   * must share the exact ReplacingMergeTree replace key (projectId,
+   * rumApplicationId, startTime, sessionId) or it would sit BESIDE the
+   * provisional row instead of replacing it.
+   */
+  const emptyAggregate: SessionChunkAggregate = {
+    tabCount: 0,
+    chunkCount: 0,
+    maxChunkIndex: 0,
+    missingChunkCount: 0,
+    fullSnapshotChunkIndexes: [],
+    eventCount: 0,
+    payloadBytes: 0,
+    errorCount: 0,
+    rageClickCount: 0,
+    deadClickCount: 0,
+    errorClickCount: 0,
+    refreshRageCount: 0,
+    pageCount: 0,
+    hasFinalChunk: false,
+    sessionStartUnixMs: header.startTimeUnixMs,
+    lastChunkEndUnixMs: header.startTimeUnixMs,
+    schemaVersion: header.schemaVersion,
+    recorderKind: header.recorderKind,
+    rumApplicationId: header.rumApplicationId,
+    primaryEntityId: header.primaryEntityId,
+    primaryEntityType: header.primaryEntityType,
+    retentionDate: header.retentionDateText,
+  };
+
+  const row: JSONObject = buildFinalizedSessionRow({
+    projectId: data.projectId,
+    sessionId: data.sessionId,
+    aggregate: emptyAggregate,
+    header: header,
+    traceIds: [],
+    writtenAt: OneUptimeDate.getCurrentDate(),
+    sealedReasonOverride: SessionReplaySealedReason.RecordingLost,
+  });
+
+  await RumSessionService.insertJsonRows([row], {
+    clickhouseSettings: {
+      wait_for_async_insert: 1,
+    },
+  });
+
+  return true;
+}
+
+export async function sweepNeverFinalizedSessions(): Promise<{
+  scanned: number;
+  finalized: number;
+  sealedLost: number;
+  failed: number;
+}> {
+  const databaseName: string = getDatabaseName();
+  const runStartedAt: number = Date.now();
+
+  const rows: Array<JSONObject> = await readRows(
+    buildNeverFinalizedStatement({
+      databaseName: databaseName,
+      nowUnixMs: runStartedAt,
+      limit: MAX_SWEEP_SESSIONS_PER_RUN,
+    }),
+  );
+
+  let finalized: number = 0;
+  let sealedLost: number = 0;
+  let failed: number = 0;
+
+  for (const row of rows) {
+    if (Date.now() - runStartedAt > SWEEP_RUN_BUDGET_MS) {
+      logger.warn(
+        `${SWEEP_JOB_NAME}: run budget exhausted after ${finalized + sealedLost} session(s); the rest are picked up next hour.`,
+      );
+      break;
+    }
+
+    const ref: NeverFinalizedSessionRef = {
+      projectId: toTextValue(row["projectId"]),
+      rumApplicationId: toTextValue(row["rumApplicationId"]),
+      sessionId: toTextValue(row["sessionId"]),
+    };
+
+    if (!ref.projectId || !ref.sessionId) {
+      continue;
+    }
+
+    try {
+      /*
+       * The same idempotent, tombstone-checked path the 5-minute job
+       * uses. If the session was finalized by that job between our scan
+       * and now, this simply recomputes the same numbers and writes a
+       * newer identical header — safe by construction.
+       */
+      const outcome: FinalizeSessionOutcome = await finalizeSession({
+        projectId: new ObjectID(ref.projectId),
+        sessionId: ref.sessionId,
+        databaseName: databaseName,
+      });
+
+      if (outcome === "written") {
+        finalized++;
+      } else if (outcome === "no-chunks") {
+        const sealed: boolean = await sealLostSession({
+          databaseName: databaseName,
+          projectId: new ObjectID(ref.projectId),
+          rumApplicationId: ref.rumApplicationId,
+          sessionId: ref.sessionId,
+        });
+
+        if (sealed) {
+          sealedLost++;
+          logger.warn(
+            `${SWEEP_JOB_NAME}: session ${ref.sessionId} in project ${ref.projectId} had a provisional header but no stored chunks; sealed as recording-lost.`,
+          );
+        }
+      }
+    } catch (error) {
+      failed++;
+      logger.error(
+        `${SWEEP_JOB_NAME}: failed to recover session ${ref.sessionId} in project ${ref.projectId}: ${getErrorMessage(error)}`,
+      );
+    }
+  }
+
+  if (rows.length > 0) {
+    logger.info(
+      `${SWEEP_JOB_NAME}: scanned ${rows.length} provisional session(s); finalized ${finalized}, sealed ${sealedLost} as lost, ${failed} failure(s).`,
+    );
+  }
+
+  return {
+    scanned: rows.length,
+    finalized: finalized,
+    sealedLost: sealedLost,
+    failed: failed,
+  };
+}
+
+RunCron(
+  SWEEP_JOB_NAME,
+  {
+    schedule: EVERY_HOUR,
+    runOnStartup: false,
+    timeoutInMS: OneUptimeDate.convertMinutesToMilliseconds(5),
+  },
+  async (): Promise<void> => {
+    try {
+      await sweepNeverFinalizedSessions();
+    } catch (error) {
+      logger.error(`${SWEEP_JOB_NAME}: ${getErrorMessage(error)}`);
+    }
+  },
+);
 
 RunCron(
   JOB_NAME,

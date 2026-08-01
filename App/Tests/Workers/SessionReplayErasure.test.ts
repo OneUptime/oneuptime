@@ -2,8 +2,11 @@ import ObjectID from "Common/Types/ObjectID";
 import { JSONObject } from "Common/Types/JSON";
 import { Statement } from "Common/Server/Utils/AnalyticsDatabase/Statement";
 import RumSessionErasureRequest, {
+  RumSessionErasureRequestStatus,
   RumSessionErasureRequestType,
 } from "Common/Models/DatabaseModels/RumSessionErasureRequest";
+import RumSessionErasureRequestService from "Common/Server/Services/RumSessionErasureRequestService";
+import ProjectService from "Common/Server/Services/ProjectService";
 import Log from "Common/Models/AnalyticsModels/Log";
 import Span from "Common/Models/AnalyticsModels/Span";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
@@ -215,7 +218,9 @@ import {
   buildSessionDeleteStatement,
   chunkSessionIds,
   getErasedSessionsKey,
+  MAX_ERASURE_ATTEMPTS,
   MAX_SESSION_IDS_PER_MUTATION,
+  processErasureRequest,
   purgeErasedSessionsFromActivitySet,
   resolveTargetSessionIds,
   writeErasureTombstones,
@@ -927,5 +932,125 @@ describe("AddSessionIdToTelemetryTables is not a no-op", () => {
 
   test("ExceptionInstance declares the sessionId correlation column", () => {
     expect(new ExceptionInstance().getTableColumn("sessionId")).toBeTruthy();
+  });
+});
+
+/*
+ * Retry-or-fail. A right-to-erasure obligation used to die terminally on
+ * the FIRST transient error — markFailed rows were never re-examined, so
+ * one Redis blip mid-erasure left it half-done (tombstone written, chunk
+ * table deleted, logs and spans intact) with a log line as the only
+ * witness.
+ */
+describe("Rum:ProcessSessionErasureRequests retry-or-fail", () => {
+  const buildRequest: (attempts: number) => RumSessionErasureRequest = (
+    attempts: number,
+  ): RumSessionErasureRequest => {
+    const request: RumSessionErasureRequest = new RumSessionErasureRequest();
+
+    request.id = new ObjectID("6600000000000000000000d4");
+    request.projectId = projectId;
+    request.requestType = RumSessionErasureRequestType.BySessionId;
+    request.targetValue = sessionId;
+    request.attempts = attempts;
+
+    return request;
+  };
+
+  type SpiedFn = ReturnType<typeof jest.fn>;
+
+  interface RetryHarness {
+    markInProgress: SpiedFn;
+    updateOneById: SpiedFn;
+    markFailed: SpiedFn;
+    sendEmail: SpiedFn;
+  }
+
+  const installHarness: () => RetryHarness = (): RetryHarness => {
+    return {
+      markInProgress: jest
+        .spyOn(RumSessionErasureRequestService, "markInProgress")
+        .mockResolvedValue(undefined as never) as unknown as SpiedFn,
+      updateOneById: jest
+        .spyOn(RumSessionErasureRequestService, "updateOneById")
+        .mockResolvedValue(undefined as never) as unknown as SpiedFn,
+      markFailed: jest
+        .spyOn(RumSessionErasureRequestService, "markFailed")
+        .mockResolvedValue(undefined as never) as unknown as SpiedFn,
+      sendEmail: jest
+        .spyOn(ProjectService, "sendEmailToProjectOwners")
+        .mockResolvedValue(undefined as never) as unknown as SpiedFn,
+    };
+  };
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+    mockRedis.connected = true;
+  });
+
+  test("a transient failure requeues to Pending with the attempt counted, not terminal Failed", async () => {
+    const harness: RetryHarness = installHarness();
+
+    /*
+     * Redis down makes the tombstone write fail CLOSED — the exact
+     * transient-blip class that must not kill the request.
+     */
+    mockRedis.connected = false;
+
+    await processErasureRequest({
+      databaseName: databaseName,
+      request: buildRequest(0),
+    });
+
+    expect(harness.updateOneById).toHaveBeenCalledTimes(1);
+
+    const update: { data: Record<string, unknown> } = harness.updateOneById.mock
+      .calls[0]![0] as never;
+
+    expect(update.data["status"]).toBe(RumSessionErasureRequestStatus.Pending);
+    expect(update.data["attempts"]).toBe(1);
+
+    expect(harness.markFailed).not.toHaveBeenCalled();
+    expect(harness.sendEmail).not.toHaveBeenCalled();
+  });
+
+  test("the final attempt marks Failed and notifies the project owners", async () => {
+    const harness: RetryHarness = installHarness();
+
+    mockRedis.connected = false;
+
+    await processErasureRequest({
+      databaseName: databaseName,
+      request: buildRequest(MAX_ERASURE_ATTEMPTS - 1),
+    });
+
+    expect(harness.markFailed).toHaveBeenCalledTimes(1);
+
+    /* The terminal attempt is recorded before the failure is announced. */
+    const update: { data: Record<string, unknown> } = harness.updateOneById.mock
+      .calls[0]![0] as never;
+    expect(update.data["attempts"]).toBe(MAX_ERASURE_ATTEMPTS);
+    expect(update.data["status"]).toBeUndefined();
+
+    expect(harness.sendEmail).toHaveBeenCalledTimes(1);
+    expect((harness.sendEmail.mock.calls[0]![0] as ObjectID).toString()).toBe(
+      projectId.toString(),
+    );
+  });
+
+  test("a mail failure does not throw back into the job", async () => {
+    const harness: RetryHarness = installHarness();
+
+    harness.sendEmail.mockRejectedValue(new Error("smtp down") as never);
+    mockRedis.connected = false;
+
+    await expect(
+      processErasureRequest({
+        databaseName: databaseName,
+        request: buildRequest(MAX_ERASURE_ATTEMPTS - 1),
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(harness.markFailed).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,4 +1,5 @@
 import ObjectID from "Common/Types/ObjectID";
+import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
 import {
   MAX_SESSION_REPLAY_CHUNKS_PER_SESSION,
@@ -23,14 +24,18 @@ jest.mock("../../FeatureSet/Workers/Utils/Cron", () => {
 
 import {
   buildFinalizedSessionRow,
+  buildNeverFinalizedStatement,
   buildProvisionalHeaderStatement,
   buildTabAggregateStatement,
   combineTabAggregates,
+  MAX_SWEEP_SESSIONS_PER_RUN,
   parseActiveSessionMember,
   parseTabAggregateRow,
   ProvisionalSessionHeader,
   resolveSealedReason,
   SessionChunkAggregate,
+  SWEEP_LOOKBACK_MS,
+  SWEEP_MIN_SESSION_AGE_MS,
   TabChunkAggregate,
 } from "../../FeatureSet/Workers/Jobs/Rum/FinalizeSessions";
 import { Statement } from "Common/Server/Utils/AnalyticsDatabase/Statement";
@@ -297,6 +302,7 @@ function makeProvisionalHeader(
     schemaVersion: SESSION_REPLAY_SCHEMA_VERSION,
     wireVersion: SESSION_REPLAY_WIRE_VERSION,
     isLegalHold: false,
+    isPinnedCopy: false,
     attributes: { plan: "growth" },
     attributeKeys: ["plan"],
     entityKeys: ["rum:shop"],
@@ -720,5 +726,127 @@ describe("Rum:FinalizeSessions row parsing", () => {
     expect(parsed.payloadBytes).toBe(3000);
     expect(parsed.hasFinalChunk).toBe(true);
     expect(parsed.sessionStartUnixMs).toBe(sessionStartUnixMs);
+  });
+});
+
+/*
+ * The never-finalized sweep. Finalization discovery lives in a Redis that
+ * runs with persistence off, so a Redis restart used to orphan every
+ * in-flight session permanently — provisional forever, and unmetered,
+ * because billing reads only finalized headers. The sweep is the
+ * ClickHouse-side safety net that turns that loss into bounded delay.
+ */
+describe("Rum:SweepNeverFinalizedSessions statement", () => {
+  const nowUnixMs: number = new Date("2026-07-30T12:00:00.000Z").getTime();
+
+  function buildStatement(): Statement {
+    return buildNeverFinalizedStatement({
+      databaseName: databaseName,
+      nowUnixMs: nowUnixMs,
+      limit: MAX_SWEEP_SESSIONS_PER_RUN,
+    });
+  }
+
+  test("dedupes with argMax over version, never a bare isFinalized filter", () => {
+    const statement: Statement = buildStatement();
+
+    /*
+     * Until a background merge collapses the ReplacingMergeTree versions,
+     * a finalized session still has its old provisional row visible. A
+     * bare WHERE isFinalized = 0 would re-finalize every recently
+     * finalized session in the window on every single run.
+     */
+    expect(statement.query).toContain(
+      "HAVING argMax(toUInt8(isFinalized), version) = 0",
+    );
+    expect(statement.query).toContain(
+      "GROUP BY projectId, rumApplicationId, sessionId",
+    );
+    expect(statement.query).not.toMatch(/WHERE[^G]*isFinalized/);
+  });
+
+  test("bounds the scan to sessions old enough that no chunk can still arrive", () => {
+    const statement: Statement = buildStatement();
+
+    const bound: Array<unknown> = Object.values(statement.query_params);
+
+    /* DateTime64 params are bound as ClickHouse datetime strings. */
+    const cutoff: string = OneUptimeDate.toClickhouseDateTime64(
+      new Date(nowUnixMs - SWEEP_MIN_SESSION_AGE_MS),
+    );
+    const floor: string = OneUptimeDate.toClickhouseDateTime64(
+      new Date(nowUnixMs - SWEEP_LOOKBACK_MS),
+    );
+
+    expect(bound).toContain(cutoff);
+    expect(bound).toContain(floor);
+
+    /* Expired sessions are the TTL's problem, not the sweep's. */
+    expect(statement.query).toContain("retentionDate >= now()");
+    expect(bound).toContain(MAX_SWEEP_SESSIONS_PER_RUN);
+  });
+
+  test("the sweep age floor clears the recorder's hard session cap", () => {
+    /*
+     * Finalizing an ACTIVE session early publishes an under-count. The
+     * cutoff must exceed the longest a session can legally keep receiving
+     * chunks (the 4h cap) by a margin.
+     */
+    expect(SWEEP_MIN_SESSION_AGE_MS).toBeGreaterThan(
+      SESSION_REPLAY_MAX_SESSION_MS,
+    );
+  });
+});
+
+describe("recording-lost seal", () => {
+  test("the sealedReason override wins over anything the aggregate resolves", () => {
+    const header: ProvisionalSessionHeader = makeProvisionalHeader();
+
+    const emptyAggregate: SessionChunkAggregate = {
+      tabCount: 0,
+      chunkCount: 0,
+      maxChunkIndex: 0,
+      missingChunkCount: 0,
+      fullSnapshotChunkIndexes: [],
+      eventCount: 0,
+      payloadBytes: 0,
+      errorCount: 0,
+      rageClickCount: 0,
+      deadClickCount: 0,
+      errorClickCount: 0,
+      refreshRageCount: 0,
+      pageCount: 0,
+      hasFinalChunk: false,
+      sessionStartUnixMs: header.startTimeUnixMs,
+      lastChunkEndUnixMs: header.startTimeUnixMs,
+      schemaVersion: header.schemaVersion,
+      recorderKind: header.recorderKind,
+      rumApplicationId: header.rumApplicationId,
+      primaryEntityId: header.primaryEntityId,
+      primaryEntityType: header.primaryEntityType,
+      retentionDate: header.retentionDateText,
+    };
+
+    const row: JSONObject = buildFinalizedSessionRow({
+      projectId: projectId,
+      sessionId: sessionId,
+      aggregate: emptyAggregate,
+      header: header,
+      traceIds: [],
+      writtenAt: new Date("2026-07-30T12:00:00.000Z"),
+      sealedReasonOverride: SessionReplaySealedReason.RecordingLost,
+    });
+
+    expect(row["sealedReason"]).toBe(SessionReplaySealedReason.RecordingLost);
+    expect(row["isFinalized"]).toBe(true);
+    expect(row["chunkCount"]).toBe(0);
+
+    /*
+     * The sealed row must share the provisional row's exact replace key,
+     * or it sits BESIDE it instead of replacing it — startTime is carried
+     * byte for byte.
+     */
+    expect(row["startTime"]).toBe(header.startTimeText);
+    expect(row["rumApplicationId"]).toBe(header.rumApplicationId);
   });
 });

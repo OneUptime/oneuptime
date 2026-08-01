@@ -246,6 +246,16 @@ const RumSessionReplaySettings: FunctionComponent<
             description:
               "JSON array of origins allowed to post recordings. This is an allowlist: while it is empty every chunk is refused at ingest. It is one of the few real anti-abuse controls, since a browser can always regenerate ids until sampling passes.",
           },
+          {
+            field: { sessionReplayIgnoreErrorPatterns: true },
+            title: "Ignored error patterns",
+            stepId: "recording",
+            fieldType: FormFieldSchemaType.JSON,
+            required: false,
+            placeholder: '["ResizeObserver loop", "third-party-tag\\\\.js"]',
+            description:
+              'JSON array of regex patterns matched against an uncaught error\'s message and source URL. Matching errors are still recorded in the session but no longer trigger an upload — use this to quiet a chronically-throwing third-party script without turning error capture off. Stackless cross-origin "Script error." noise is ignored automatically.',
+          },
 
           {
             field: { sessionReplayMaskingMode: true },

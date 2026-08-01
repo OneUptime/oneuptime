@@ -24,10 +24,15 @@ import Config, {
   RECORDER_VERSION,
   RRWEB_VERSION,
   RecorderInitOptions,
+  getChunkUrl,
 } from "./Config";
 import Consent from "./Consent";
 import ConsoleRecorder, { RecordedConsoleEntry } from "./ConsoleRecorder";
-import ErrorRecorder, { RecordedError } from "./ErrorRecorder";
+import { EarlyErrorRecord } from "./EarlyErrors";
+import ErrorRecorder, {
+  CompiledIgnorePatterns,
+  RecordedError,
+} from "./ErrorRecorder";
 import FrustrationDetector, { FrustrationSignal } from "./FrustrationDetector";
 import Masking, { MaskInputOptionsShape } from "./Masking";
 import NetworkRecorder, { RecordedRequest } from "./NetworkRecorder";
@@ -130,6 +135,13 @@ export interface RecorderRuntimeOptions {
   initOptions: RecorderInitOptions;
   config: SessionReplayConfigResponse;
 
+  /*
+   * Errors the loader stub's pre-load buffer caught before this module
+   * existed. Replayed through the ErrorRecorder's masking path at start,
+   * so a startup crash still triggers capture.
+   */
+  earlyErrors?: Array<EarlyErrorRecord>;
+
   /* Overridable for tests; production always uses the real globals. */
   windowRef?: Window;
   documentRef?: Document;
@@ -195,7 +207,11 @@ export default class Recorder {
   private lastUserActivityUnixMs: number = 0;
   private lastTouchedUnixMs: number = 0;
 
+  /* Drained into the ErrorRecorder once, at the end of start(). */
+  private earlyErrors: Array<EarlyErrorRecord>;
+
   public constructor(options: RecorderRuntimeOptions) {
+    this.earlyErrors = options.earlyErrors || [];
     this.initOptions = options.initOptions;
     this.config = options.config;
     this.windowRef = options.windowRef || window;
@@ -226,7 +242,7 @@ export default class Recorder {
     this.chunker = this.createChunker();
 
     this.transport = new Transport({
-      url: Config.getChunkUrl(this.initOptions),
+      url: getChunkUrl(this.initOptions),
       headers: Config.getIngestHeaders(this.initOptions),
       onDirective: (directive: SessionReplayDirective): void => {
         this.onDirective(directive);
@@ -235,6 +251,17 @@ export default class Recorder {
         this.onPermanentFailure(reason);
       },
     });
+
+    const compiledIgnorePatterns: CompiledIgnorePatterns =
+      ErrorRecorder.compileIgnorePatterns(
+        this.config.ignoreErrorPatterns || [],
+      );
+
+    if (compiledIgnorePatterns.discardedCount > 0) {
+      this.chunker.addFidelityNotice(
+        SessionReplayFidelityNotice.IgnorePatternsDiscarded,
+      );
+    }
 
     this.errorRecorder = new ErrorRecorder({
       emitCustomEvent: (tag: string, payload: unknown): void => {
@@ -246,10 +273,27 @@ export default class Recorder {
       scrubUrl: (url: string): string => {
         return this.scrubUrl(url);
       },
-      onError: (atUnixMs: number, _error: RecordedError): void => {
+      ignorePatterns: compiledIgnorePatterns.patterns,
+      onError: (
+        atUnixMs: number,
+        _error: RecordedError,
+        isTriggerWorthy: boolean,
+      ): void => {
         this.chunker.countSignal("errorCount");
-        this.frustrationDetector.notifyError(atUnixMs);
-        this.trigger(SessionReplayTriggerReason.Error);
+
+        /*
+         * Recorded but not necessarily uploaded-over: stackless
+         * cross-origin "Script error." noise and pattern-ignored errors
+         * must not convert error-triggered capture into always-on upload.
+         * That includes the FRUSTRATION door — notifyError feeds the
+         * error-click detector, whose signal triggers an upload too, so an
+         * ignored error thrown from a third-party tag's click handler
+         * would otherwise re-open the exact hole the suppression closes.
+         */
+        if (isTriggerWorthy) {
+          this.frustrationDetector.notifyError(atUnixMs);
+          this.trigger(SessionReplayTriggerReason.Error);
+        }
       },
     });
 
@@ -490,6 +534,39 @@ export default class Recorder {
 
     if (SessionId.isRefreshRage(refreshRageCount)) {
       this.frustrationDetector.reportRefreshRage(refreshRageCount, Date.now());
+    }
+
+    this.replayEarlyErrors();
+  }
+
+  /*
+   * Replay whatever the loader stub's pre-load buffer caught, through the
+   * SAME masking, scrubbing, counting and trigger path a live error takes
+   * — which is the entire reason the stub buffers raw records instead of
+   * acting on them: the stub has no masking code and must never decide
+   * what leaves the page. Runs at the very end of start(), so a trigger
+   * fired by a replayed startup crash finds a fully armed recorder with
+   * rrweb's first snapshot already in the buffer.
+   */
+  private replayEarlyErrors(): void {
+    const records: Array<EarlyErrorRecord> = this.earlyErrors;
+    this.earlyErrors = [];
+
+    for (const record of records) {
+      const error: RecordedError = {
+        kind: record.kind,
+        message: record.message,
+        ...(record.source !== undefined ? { source: record.source } : {}),
+        ...(record.lineNumber !== undefined
+          ? { lineNumber: record.lineNumber }
+          : {}),
+        ...(record.columnNumber !== undefined
+          ? { columnNumber: record.columnNumber }
+          : {}),
+        ...(record.stack !== undefined ? { stack: record.stack } : {}),
+      };
+
+      this.errorRecorder.record(error, record.atUnixMs);
     }
   }
 

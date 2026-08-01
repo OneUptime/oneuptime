@@ -72,6 +72,7 @@ const RUM_APPLICATION_POLICY_COLUMNS: ReadonlyArray<string> = [
   "sessionReplayRecordCanvas",
   "sessionReplayRetentionInDays",
   "sessionReplayMonthlyBudgetInGB",
+  "sessionReplayIgnoreErrorPatterns",
 ];
 
 const PROJECT_POLICY_COLUMNS: ReadonlyArray<string> = [
@@ -123,6 +124,12 @@ export interface SessionReplayGatePolicy {
   retentionInDays: number;
 
   monthlyBudgetInGB: number | null;
+
+  /*
+   * Error message/source regexes whose matches never fire the capture
+   * trigger. Served to the recorder verbatim; compiled and capped there.
+   */
+  ignoreErrorPatterns: Array<string>;
 
   /*
    * Advances whenever the application row is updated, so a recorder can
@@ -339,6 +346,9 @@ export default class SessionReplayGateCache {
       ),
       monthlyBudgetInGB: this.readNullableNumber(
         appView["sessionReplayMonthlyBudgetInGB"],
+      ),
+      ignoreErrorPatterns: this.readStringArray(
+        appView["sessionReplayIgnoreErrorPatterns"],
       ),
       configEpoch: this.getConfigEpoch(app),
     };
