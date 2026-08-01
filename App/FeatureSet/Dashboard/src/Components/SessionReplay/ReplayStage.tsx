@@ -65,6 +65,12 @@ export interface ReplayStageProps {
   onGapCrossed: (gap: SessionReplayGap) => void;
   onLoadedChunkIndexesChange: (chunkIndexes: Array<number>) => void;
   onError: (message: string) => void;
+  /*
+   * True while a segment is being fetched and rebuilt (initial load, seek,
+   * gap jump). Lets the player show "buffering" instead of a stage that
+   * looks frozen for the length of a chunk fetch.
+   */
+  onBufferingChange?: ((isBuffering: boolean) => void) | undefined;
 }
 
 /*
@@ -214,6 +220,7 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
     onGapCrossed,
     onLoadedChunkIndexesChange,
     onError,
+    onBufferingChange,
   } = props;
 
   /*
@@ -315,6 +322,7 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
       isBuildingRef.current = true;
       pendingGapRef.current = null;
       isFeedHaltedRef.current = false;
+      onBufferingChange?.(true);
 
       try {
         destroySegment();
@@ -475,6 +483,7 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
       } finally {
         if (generation === generationRef.current) {
           isBuildingRef.current = false;
+          onBufferingChange?.(false);
         }
       }
     },
@@ -493,6 +502,7 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
       onError,
       onPlayingChange,
       onLoadedChunkIndexesChange,
+      onBufferingChange,
     ],
   );
 
@@ -808,24 +818,60 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
    * Scale the recorded viewport down to fit the stage. rrweb renders at the
    * end user's real pixel dimensions, which are routinely wider than the
    * Dashboard's content column.
+   *
+   * Recomputed on CONTAINER resizes too, not only when the recorded size
+   * changes: entering theater mode, collapsing the sidebar or resizing the
+   * window all change the available width, and a stale scale either crops
+   * the recording or leaves it postage-stamped in a wide stage.
    */
   useEffect(() => {
     const container: HTMLDivElement | null = containerRef.current;
-    const segment: Segment | null = segmentRef.current;
 
-    if (!container || !segment || !recordedSize) {
+    if (!container) {
       return;
     }
 
-    const available: number = container.clientWidth;
+    const applyScale: () => void = (): void => {
+      const segment: Segment | null = segmentRef.current;
 
-    if (available <= 0) {
-      return;
+      if (!segment || !recordedSize) {
+        return;
+      }
+
+      const available: number = container.clientWidth;
+
+      if (available <= 0) {
+        return;
+      }
+
+      const scale: number = Math.min(1, available / recordedSize.width);
+      segment.replayer.wrapper.style.transform = `scale(${scale})`;
+      container.style.height = `${Math.round(recordedSize.height * scale)}px`;
+    };
+
+    applyScale();
+
+    /*
+     * ResizeObserver where the platform has it (everywhere the Dashboard
+     * supports); the window listener is the jsdom-and-belt fallback and
+     * also catches zoom-driven reflows some engines do not surface as a
+     * container resize.
+     */
+    let observer: ResizeObserver | null = null;
+
+    if (typeof ResizeObserver !== "undefined") {
+      observer = new ResizeObserver((): void => {
+        applyScale();
+      });
+      observer.observe(container);
     }
 
-    const scale: number = Math.min(1, available / recordedSize.width);
-    segment.replayer.wrapper.style.transform = `scale(${scale})`;
-    container.style.height = `${Math.round(recordedSize.height * scale)}px`;
+    window.addEventListener("resize", applyScale);
+
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", applyScale);
+    };
   }, [recordedSize]);
 
   return (

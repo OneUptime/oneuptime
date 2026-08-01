@@ -101,6 +101,13 @@ export interface SessionReplayListCursor {
 
 export interface SessionReplayListFilters {
   hasError?: boolean | undefined;
+  /*
+   * Any frustration signal (rage/dead/error clicks, refresh rage).
+   * Server-side, so "frustration" filters the whole table — the old
+   * client-side version filtered only the fetched page, silently showing
+   * an empty list for a project whose frustrated sessions sat on page 2.
+   */
+  hasFrustration?: boolean | undefined;
   isFinalized?: boolean | undefined;
   triggerReasons?: Array<string> | undefined;
   browserNames?: Array<string> | undefined;
@@ -1331,6 +1338,16 @@ export default class SessionReplayReadService {
           type: TableColumnType.Boolean,
           value: filters.hasError,
         }}`,
+      );
+    }
+
+    if (filters.hasFrustration === true) {
+      /*
+       * Over the argMax aliases, like every HAVING predicate here — the
+       * raw columns would sum across ReplacingMergeTree versions.
+       */
+      statement.append(
+        " AND (aggRageClickCount + aggDeadClickCount + aggErrorClickCount + aggRefreshRageCount) > 0",
       );
     }
 

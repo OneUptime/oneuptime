@@ -7,6 +7,10 @@ import Route from "Common/Types/API/Route";
 import AppLink from "../AppLink/AppLink";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import {
+  FidelityNoticeCopy,
+  getFidelityNoticeCopy,
+} from "./FidelityNoticeCopy";
 
 /*
  * Everything the player knows about a session that is not the picture:
@@ -244,11 +248,14 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
           The recorder reported no capture limitations for this session.
         </div>
       )}
-      <div className="space-y-1">
+      <div className="space-y-2">
         {props.fidelityNotices.map((notice: string): ReactElement => {
+          const copy: FidelityNoticeCopy = getFidelityNoticeCopy(notice);
+
           return (
-            <div key={notice} className="text-xs text-gray-700">
-              {notice}
+            <div key={notice} className="text-xs">
+              <div className="font-medium text-gray-800">{copy.title}</div>
+              <div className="text-gray-500">{copy.description}</div>
             </div>
           );
         })}
