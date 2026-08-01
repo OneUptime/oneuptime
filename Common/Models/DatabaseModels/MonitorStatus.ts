@@ -555,7 +555,7 @@ export default class MonitorStatus extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Order",
     description:
-      "Order / Priority of this status. For example: Operational has priority 1, Degraded has 2, Offline has 3. Lower priority would mean bad state of the resource. ",
+      "Order / Priority of this status. Behaves like an insertion slot: creating a status with priority P shifts every existing status with priority >= P up by one, and priority cannot be changed after creation (delete and recreate instead). When managing statuses declaratively, use high, gapped values (e.g. 101, 102, 103) created in ascending order so existing statuses are never shifted.",
   })
   @Column({
     type: ColumnType.Number,

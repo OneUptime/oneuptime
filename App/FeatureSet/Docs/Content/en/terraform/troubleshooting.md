@@ -8,6 +8,7 @@ Fast lookup for the errors people actually hit with the OneUptime Terraform prov
 |---------|-------------|-----|
 | `Provider produced inconsistent result after apply` | Old provider version that mishandled server-computed fields | Upgrade the provider (`terraform init -upgrade` within `~> 11.0`); report if it persists |
 | `ProjectId required` on every operation | Master or user API key instead of a project API key | Create a key under **Project Settings > API Keys** and use that |
+| Status/state `priority` or `order` drifts after apply | Priorities are insertion slots: creating one shifts every existing entry at that value or above, and they cannot be edited after create | Use high, gapped values (e.g. `101`, `102`, `103`) created in ascending order with `depends_on` chains |
 | `402` / payment-required errors | Plan limit reached (monitors, status pages, ...) on your OneUptime plan | Upgrade the plan or reduce resource count |
 | `403` / permission denied on one resource type | Project API key missing Create/Read/Update/Delete permission for that type | Edit the key's permissions in Project Settings > API Keys |
 | `401` / authentication failed | Key revoked, expired, or wrong `ONEUPTIME_API_KEY` value | Generate a fresh project API key |

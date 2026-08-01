@@ -34,12 +34,19 @@ resource "random_id" "suffix" {
 # {_type, value} envelopes and no hand-written step/criteria ids —
 # the server generates ids.
 
-# Create monitor statuses for criteria
+# Create monitor statuses for criteria.
+#
+# Priority semantics on the server are INSERT slots: creating a status with
+# priority P shifts every existing status with priority >= P up by one, and
+# priority cannot be updated after create. Dense low priorities therefore
+# collide with the project's default statuses and race under Terraform's
+# parallel creates. High, gapped priorities created in ascending order
+# (chained with depends_on) never shift anything and are deterministic.
 resource "oneuptime_monitor_status" "operational" {
   name                 = "TF Operational ${random_id.suffix.hex}"
   description          = "Monitor is operational"
   color                = "#2ecc71"
-  priority             = 1
+  priority             = 101
   is_operational_state = true
 }
 
@@ -47,16 +54,20 @@ resource "oneuptime_monitor_status" "degraded" {
   name                 = "TF Degraded ${random_id.suffix.hex}"
   description          = "Monitor is degraded"
   color                = "#f39c12"
-  priority             = 2
+  priority             = 102
   is_operational_state = false
+
+  depends_on = [oneuptime_monitor_status.operational]
 }
 
 resource "oneuptime_monitor_status" "offline" {
   name                 = "TF Offline ${random_id.suffix.hex}"
   description          = "Monitor is offline"
   color                = "#e74c3c"
-  priority             = 3
+  priority             = 103
   is_operational_state = false
+
+  depends_on = [oneuptime_monitor_status.degraded]
 }
 
 # =============================================================================
