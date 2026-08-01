@@ -869,7 +869,13 @@ jobs:
           set -euo pipefail
           if [ -n "$GPG_PRIVATE_KEY" ]; then
             printf '%s' "$GPG_PRIVATE_KEY" > private.key
-            gpg --batch --import private.key
+            # `gpg --import` can exit non-zero on a non-fatal warning (e.g. an
+            # "invalid armor header" on stray whitespace/comment lines in the
+            # secret) even when the actual key material imports successfully, so
+            # don't let its exit status abort the step under `set -e`. The
+            # `gpg --list-secret-keys` check below is the real gate: it fails the
+            # step only when no usable secret key ended up in the keyring.
+            gpg --batch --import private.key || true
             rm -f private.key
           else
             # No signing secret available: generate a throwaway key so the

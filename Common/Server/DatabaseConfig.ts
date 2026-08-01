@@ -12,7 +12,10 @@ import ObjectID from "../Types/ObjectID";
 
 export default class DatabaseConfig {
   @CaptureSpan()
-  public static async getFromGlobalConfig(key: string): Promise<JSONValue> {
+  public static async getFromGlobalConfig(
+    key: string,
+    defaultValueIfNotFound?: JSONValue,
+  ): Promise<JSONValue> {
     const globalConfig: GlobalConfig | null =
       await GlobalConfigService.findOneBy({
         query: {
@@ -27,6 +30,17 @@ export default class DatabaseConfig {
       });
 
     if (!globalConfig) {
+      /*
+       * The GlobalConfig row is seeded on first boot. Callers that pass a
+       * default (e.g. the feature-flag gates below) must not 500 when a
+       * request lands before seeding completes — a real race during fresh
+       * deploys and E2E bring-up. Callers that omit a default still get the
+       * strict behaviour.
+       */
+      if (defaultValueIfNotFound !== undefined) {
+        return defaultValueIfNotFound;
+      }
+
       throw new BadDataException("Global Config not found");
     }
 
@@ -76,15 +90,26 @@ export default class DatabaseConfig {
 
   @CaptureSpan()
   public static async shouldDisableSignup(): Promise<boolean> {
+    /*
+     * Default to "not disabled" (signup enabled) when GlobalConfig is absent,
+     * matching the model default. Otherwise a signup that races GlobalConfig
+     * seeding would 500 instead of proceeding.
+     */
     return (await DatabaseConfig.getFromGlobalConfig(
       "disableSignup",
+      false,
     )) as boolean;
   }
 
   @CaptureSpan()
   public static async shouldDisableUserProjectCreation(): Promise<boolean> {
+    /*
+     * Default to "not disabled" (project creation allowed) when GlobalConfig
+     * is absent, matching the model default.
+     */
     return (await DatabaseConfig.getFromGlobalConfig(
       "disableUserProjectCreation",
+      false,
     )) as boolean;
   }
 }
