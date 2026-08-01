@@ -179,6 +179,7 @@ import (
     "io"
     "net/http"
     "net/url"
+    "regexp"
     "strings"
     "time"
 )
@@ -329,8 +330,55 @@ func (c *Client) Delete(ctx context.Context, path string) (*http.Response, error
     return c.DoRequest(ctx, "DELETE", path, nil)
 }
 
-// PostWithSelect performs a POST request with select parameter to fetch full object
+// rejectedSelectColumn matches the server's column-permission error, e.g.
+// "You do not have permissions to select on - serviceLanguage."
+var rejectedSelectColumn = regexp.MustCompile(\`select on - ([A-Za-z0-9_]+)\`)
+
+// PostWithSelect performs a POST request with a select parameter. When the
+// server rejects a column in the select (permission-gated columns, or
+// columns this server version does not know about yet), that column is
+// dropped and the request retried — a version- or permission-skewed column
+// must not fail the entire read.
 func (c *Client) PostWithSelect(ctx context.Context, path string, selectParam interface{}) (*http.Response, error) {
+    selectMap, _ := selectParam.(map[string]interface{})
+
+    // One attempt per droppable column, bounded to keep worst cases sane.
+    maxAttempts := 8
+    for attempt := 0; attempt < maxAttempts; attempt++ {
+        requestBody := map[string]interface{}{
+            "select": selectParam,
+        }
+        resp, err := c.DoRequest(ctx, "POST", path, requestBody)
+        if err != nil {
+            return nil, err
+        }
+        if selectMap == nil ||
+            (resp.StatusCode != http.StatusBadRequest && resp.StatusCode != http.StatusUnprocessableEntity) {
+            return resp, nil
+        }
+
+        body, readErr := io.ReadAll(resp.Body)
+        resp.Body.Close()
+        if readErr != nil {
+            return nil, fmt.Errorf("failed to read response body: %w", readErr)
+        }
+
+        match := rejectedSelectColumn.FindSubmatch(body)
+        rebuilt := func() *http.Response {
+            resp.Body = io.NopCloser(bytes.NewReader(body))
+            return resp
+        }
+        if match == nil {
+            // Not a select-column rejection: surface the original error.
+            return rebuilt(), nil
+        }
+        column := string(match[1])
+        if _, present := selectMap[column]; !present {
+            return rebuilt(), nil
+        }
+        delete(selectMap, column)
+    }
+
     requestBody := map[string]interface{}{
         "select": selectParam,
     }

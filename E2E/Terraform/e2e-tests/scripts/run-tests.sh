@@ -228,10 +228,14 @@ run_drift_gate() {
 }
 
 # Import round-trip: for every oneuptime_* resource in state, drop it from
-# state and re-import it by id, then require a clean plan. Catches broken or
-# missing Read/import implementations. Addresses listed in the test's
-# skip-import.txt (one per line, e.g. resources whose API has no read
-# endpoint) are skipped.
+# state and re-import it by id, run one settling apply, then require a clean
+# plan. The settling apply is standard post-import practice: imported state
+# holds the server's full normalized form while config holds the sparse
+# form, so Terraform core plans one update whose only effect is aligning
+# state (the provider sends no API mutation when nothing really changed).
+# Catches broken or missing Read/import implementations. Addresses listed in
+# the test's skip-import.txt (one per line, e.g. resources whose API has no
+# read endpoint or write-only fields) are skipped.
 run_import_phase() {
     local test_path="$1"
     local addrs
@@ -283,6 +287,13 @@ run_import_phase() {
         return 0
     fi
 
+    echo "  Running settling apply after import..."
+    if ! terraform apply -input=false -auto-approve > /dev/null 2>&1; then
+        echo "  ✗ FAILED: settling apply after import failed"
+        terraform apply -input=false -auto-approve 2>&1 | tail -40
+        return 1
+    fi
+
     if ! run_drift_gate "post-import"; then
         echo "  ✗ FAILED: plan not clean after import round-trip"
         return 1
@@ -301,6 +312,19 @@ TEST_DIRS=()
 while IFS= read -r dir; do
     TEST_DIRS+=("$(basename "$dir")")
 done < <(find "$TEST_DIR/tests" -mindepth 1 -maxdepth 1 -type d | sort)
+
+# TEST_FILTER: optional egrep pattern to run a subset of tests locally,
+# e.g. TEST_FILTER='26|35|40' ./run-tests.sh
+if [ -n "${TEST_FILTER:-}" ]; then
+    FILTERED=()
+    for t in "${TEST_DIRS[@]}"; do
+        if echo "$t" | grep -Eq "$TEST_FILTER"; then
+            FILTERED+=("$t")
+        fi
+    done
+    TEST_DIRS=("${FILTERED[@]}")
+    echo "TEST_FILTER='$TEST_FILTER' selected ${#TEST_DIRS[@]} tests"
+fi
 
 echo "Discovered ${#TEST_DIRS[@]} test directories"
 

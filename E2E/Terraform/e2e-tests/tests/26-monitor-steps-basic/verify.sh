@@ -67,6 +67,8 @@ if [ -n "$ONEUPTIME_URL" ] && [ -n "$TF_VAR_api_key" ] && [ -n "$TF_VAR_project_
     fi
 
     API_DESTINATION=$(echo "$RESPONSE" | jq -r '.monitorSteps.value.monitorStepsInstanceArray[0].value.monitorDestination.value // empty')
+    # The server normalizes bare-origin URLs with a trailing slash.
+    API_DESTINATION="${API_DESTINATION%/}"
     if [ "$API_DESTINATION" != "https://example.com" ]; then
         echo "ERROR: API monitorDestination mismatch. Expected 'https://example.com', got '$API_DESTINATION'"
         exit 1

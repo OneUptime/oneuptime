@@ -8,5 +8,5 @@ test-env.sh
 tests/**/.terraform/
 tests/**/.terraform.lock.hcl
 tests/**/terraform.tfstate
-tests/**/terraform.tfstate.backup
+tests/**/terraform.tfstate.*
 tests/**/tfplan
