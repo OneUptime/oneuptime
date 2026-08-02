@@ -71,6 +71,41 @@ describe("create request body", () => {
     expect(createBody).not.toContain('requestDataMap["projectId"]');
   });
 
+  test("state is written BEFORE the read-back so a failed read cannot strand the resource", () => {
+    /*
+     * The server has already committed the row by the time the read-back
+     * runs. Returning without setting state would leave Terraform unaware of
+     * a real resource — it is never refreshed, never destroyed, and (for
+     * monitors) keeps holding foreign keys that block deleting whatever it
+     * references. This is the mirror of the guard Delete already has.
+     */
+    const createBody: string = monitorGo.substring(
+      monitorGo.indexOf("func (r *MonitorResource) Create"),
+      monitorGo.indexOf("func (r *MonitorResource) Read"),
+    );
+    const firstStateSet: number = createBody.indexOf(
+      "resp.State.Set(ctx, &data)",
+    );
+    const readBack: number = createBody.indexOf("PostWithSelect");
+    expect(firstStateSet).toBeGreaterThan(-1);
+    expect(readBack).toBeGreaterThan(-1);
+    expect(firstStateSet).toBeLessThan(readBack);
+  });
+
+  test("a failed read-back warns instead of erroring, so state is kept", () => {
+    const createBody: string = monitorGo.substring(
+      monitorGo.indexOf("func (r *MonitorResource) Create"),
+      monitorGo.indexOf("func (r *MonitorResource) Read"),
+    );
+    const afterReadBack: string = createBody.substring(
+      createBody.indexOf("PostWithSelect"),
+    );
+    expect(afterReadBack).toContain("Read After Create Failed");
+    expect(afterReadBack).toContain("AddWarning");
+    // No hard error may follow the create — that would discard the resource.
+    expect(afterReadBack).not.toContain("AddError");
+  });
+
   test("create re-reads through get-item so state is authoritative", () => {
     const createBody: string = monitorGo.substring(
       monitorGo.indexOf("func (r *MonitorResource) Create"),
