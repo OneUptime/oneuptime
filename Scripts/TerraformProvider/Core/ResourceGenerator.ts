@@ -1075,6 +1075,19 @@ ${this.generateResponseMapping(resource, resourceVarName + "Response", true)}`;
     }
     data.Id = types.StringValue(createdId)
 
+    /*
+     * The server has committed the row. Persist what we know to state BEFORE
+     * the read-back: if the read-back fails and we return without setting
+     * state, Terraform never learns the resource exists and the created
+     * ${resource.name} is orphaned server-side — never refreshed, never
+     * destroyed. Delete already refuses to drop state on failure for the
+     * same reason; Create must not either.
+     */
+    resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+    if resp.Diagnostics.HasError() {
+        return
+    }
+
     // Re-read the resource so state reflects server-normalized values.
     selectParam := map[string]interface{}{
 ${this.generateSelectParameter(resource)}
@@ -1082,14 +1095,19 @@ ${this.generateSelectParameter(resource)}
 
     readResp, err := r.client.PostWithSelect(ctx, ${readPath}, selectParam)
     if err != nil {
-        resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read ${resource.name} after create, got error: %s", err))
+        /*
+         * State already owns the id, so the resource is tracked and the next
+         * refresh reconciles the remaining attributes. Warn rather than
+         * error: erroring here would strand a real resource.
+         */
+        resp.Diagnostics.AddWarning("Read After Create Failed", fmt.Sprintf("Created ${resource.name} but could not read it back; state is incomplete until the next refresh: %s", err))
         return
     }
 
     var readResponse map[string]interface{}
     err = r.client.ParseResponse(readResp, &readResponse)
     if err != nil {
-        resp.Diagnostics.AddError("OneUptime API Error", fmt.Sprintf("Unable to read ${resource.name} after create: %s", err))
+        resp.Diagnostics.AddWarning("Read After Create Failed", fmt.Sprintf("Created ${resource.name} but could not parse the read-back response; state is incomplete until the next refresh: %s", err))
         return
     }
 

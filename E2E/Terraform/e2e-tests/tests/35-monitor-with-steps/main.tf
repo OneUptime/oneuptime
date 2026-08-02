@@ -77,6 +77,12 @@ resource "oneuptime_monitor" "website" {
   name         = "TF Website Monitor ${random_id.suffix.hex}"
   description  = "Website monitor with URL destination and response criteria"
   monitor_type = "Website"
+  # Probes must not evaluate these monitors: an active probe writes
+  # currentMonitorStatusId back onto the monitor while the destroy is
+  # deleting it, racing the status deletes this fixture performs next.
+  # The monitor_steps contract under test is exercised by create /
+  # read / import round-trip, not by live probing.
+  disable_active_monitoring = true
 
   monitor_steps = [{
     monitor_destination      = "https://example.com"
@@ -134,6 +140,12 @@ resource "oneuptime_monitor" "api" {
   name         = "TF API Monitor ${random_id.suffix.hex}"
   description  = "API monitor with POST request, headers, and body"
   monitor_type = "API"
+  # Probes must not evaluate these monitors: an active probe writes
+  # currentMonitorStatusId back onto the monitor while the destroy is
+  # deleting it, racing the status deletes this fixture performs next.
+  # The monitor_steps contract under test is exercised by create /
+  # read / import round-trip, not by live probing.
+  disable_active_monitoring = true
 
   monitor_steps = [{
     monitor_destination      = "https://httpbin.org/post"
@@ -183,6 +195,12 @@ resource "oneuptime_monitor" "ping" {
   name         = "TF Ping Monitor ${random_id.suffix.hex}"
   description  = "Ping monitor with hostname destination"
   monitor_type = "Ping"
+  # Probes must not evaluate these monitors: an active probe writes
+  # currentMonitorStatusId back onto the monitor while the destroy is
+  # deleting it, racing the status deletes this fixture performs next.
+  # The monitor_steps contract under test is exercised by create /
+  # read / import round-trip, not by live probing.
+  disable_active_monitoring = true
 
   monitor_steps = [{
     monitor_destination      = "google.com"
@@ -235,6 +253,12 @@ resource "oneuptime_monitor" "port" {
   name         = "TF Port Monitor ${random_id.suffix.hex}"
   description  = "Port monitor checking HTTPS port"
   monitor_type = "Port"
+  # Probes must not evaluate these monitors: an active probe writes
+  # currentMonitorStatusId back onto the monitor while the destroy is
+  # deleting it, racing the status deletes this fixture performs next.
+  # The monitor_steps contract under test is exercised by create /
+  # read / import round-trip, not by live probing.
+  disable_active_monitoring = true
 
   monitor_steps = [{
     monitor_destination      = "google.com"
@@ -272,6 +296,12 @@ resource "oneuptime_monitor" "ssl" {
   name         = "TF SSL Certificate Monitor ${random_id.suffix.hex}"
   description  = "SSL certificate monitor checking certificate validity"
   monitor_type = "SSL Certificate"
+  # Probes must not evaluate these monitors: an active probe writes
+  # currentMonitorStatusId back onto the monitor while the destroy is
+  # deleting it, racing the status deletes this fixture performs next.
+  # The monitor_steps contract under test is exercised by create /
+  # read / import round-trip, not by live probing.
+  disable_active_monitoring = true
 
   monitor_steps = [{
     monitor_destination      = "https://google.com"
@@ -325,6 +355,12 @@ resource "oneuptime_monitor" "ip" {
   name         = "TF IP Monitor ${random_id.suffix.hex}"
   description  = "IP monitor checking connectivity"
   monitor_type = "IP"
+  # Probes must not evaluate these monitors: an active probe writes
+  # currentMonitorStatusId back onto the monitor while the destroy is
+  # deleting it, racing the status deletes this fixture performs next.
+  # The monitor_steps contract under test is exercised by create /
+  # read / import round-trip, not by live probing.
+  disable_active_monitoring = true
 
   monitor_steps = [{
     monitor_destination      = "8.8.8.8"
