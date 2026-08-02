@@ -168,12 +168,12 @@ describe("DatabaseService._updateBy — updateOneById with a model instance no l
       .mockResolvedValue([foundItem] as never);
 
     // eslint-disable-next-line @typescript-eslint/typedef
-    const saveMock = jest.fn((item: unknown) => {
-      return Promise.resolve(item);
+    const updateMock = jest.fn((_where: unknown, _data: unknown) => {
+      return Promise.resolve({ affected: 1 });
     });
     jest
       .spyOn(NetworkDeviceDiscoveryScanService, "getRepository")
-      .mockReturnValue({ save: saveMock } as never);
+      .mockReturnValue({ update: updateMock } as never);
 
     // Permission layer is not under test here and needs no DB.
     jest
@@ -220,13 +220,20 @@ describe("DatabaseService._updateBy — updateOneById with a model instance no l
     );
     expect(selectedColumns).not.toContain("isPermissionIf");
 
-    // The persisted payload is the plain data plus the located row's _id.
-    expect(saveMock).toHaveBeenCalledTimes(1);
-    const savedItem: JSONObject = saveMock.mock.calls[0]![0] as JSONObject;
-    expect(Object.keys(savedItem).sort()).toEqual(
-      ["_id", "startedAt", "status"].sort(),
+    /*
+     * Scalar-only updates go through repository.update(): the located row's
+     * _id becomes the WHERE clause and the sanitized columns the SET payload.
+     * _id must stay out of the SET, and the version bump is emulated there
+     * because update() (unlike save()) does not touch @VersionColumn.
+     */
+    expect(updateMock).toHaveBeenCalledTimes(1);
+    const whereClause: JSONObject = updateMock.mock.calls[0]![0] as JSONObject;
+    const setPayload: JSONObject = updateMock.mock.calls[0]![1] as JSONObject;
+    expect(whereClause["_id"]).toBe(scanId.toString());
+    expect(Object.keys(setPayload).sort()).toEqual(
+      ["startedAt", "status", "version"].sort(),
     );
-    expect(savedItem["status"]).toBe("In Progress");
-    expect(savedItem["_id"]).toBe(scanId.toString());
+    expect(setPayload["status"]).toBe("In Progress");
+    expect(setPayload["_id"]).toBeUndefined();
   });
 });

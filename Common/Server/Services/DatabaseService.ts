@@ -1968,8 +1968,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         this.getModel()
           .getTableColumns()
           .columns.filter((column: string) => {
-            const metadata: TableColumnMetadata | undefined = this.getModel()
-              .getTableColumnMetadata(column);
+            const metadata: TableColumnMetadata | undefined =
+              this.getModel().getTableColumnMetadata(column);
             return (
               metadata?.type === TableColumnType.Entity ||
               metadata?.type === TableColumnType.EntityArray
@@ -2005,17 +2005,20 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           await this.getRepository().save(updatedItem);
         } else {
           const { _id, ...updateData } = updatedItem;
-          await this.getRepository().update({ _id: _id } as any, {
-            ...updateData,
-            /*
-             * save() bumps the @VersionColumn automatically; update() does
-             * not, so emulate it to keep the audit counter behaviour
-             * identical.
-             */
-            version: () => {
-              return '"version" + 1';
-            },
-          } as any);
+          await this.getRepository().update(
+            { _id: _id } as any,
+            {
+              ...updateData,
+              /*
+               * save() bumps the @VersionColumn automatically; update() does
+               * not, so emulate it to keep the audit counter behaviour
+               * identical.
+               */
+              version: () => {
+                return '"version" + 1';
+              },
+            } as any,
+          );
         }
 
         // hit workflow.

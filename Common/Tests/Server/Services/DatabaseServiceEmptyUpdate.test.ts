@@ -45,6 +45,7 @@ describe("DatabaseService._updateBy when the update carries no columns", () => {
   let service: DatabaseService<Probe>;
   let findBySpy: jest.SpyInstance;
   let saveMock: MockFunction;
+  let updateMock: MockFunction;
 
   beforeEach(() => {
     jest.restoreAllMocks();
@@ -54,12 +55,15 @@ describe("DatabaseService._updateBy when the update carries no columns", () => {
 
     /*
      * Only the two surfaces that need a live Postgres are stubbed - the
-     * internal find (`_findBy`) and the repository behind `save()`. Mocking
+     * internal find (`_findBy`) and the repository behind the write. Mocking
      * the TypeORM repository itself is impractical here because `_findBy`
      * builds real query metadata against a DataSource that does not exist in
      * a unit test; stubbing `_findBy` keeps the mock at the exact boundary the
      * fix is about (was the find run at all?) while leaving every line of
      * _updateBy under test - sanitizing, the hooks and the return arithmetic.
+     * Both write surfaces are stubbed (`save()` for relation updates,
+     * `update()` for scalar-only ones) so a stray write of either kind is
+     * caught rather than throwing "not a function".
      *
      * The stub deliberately returns a MATCHING row, because that is what a
      * real database does here: the row exists and the query finds it, there is
@@ -75,8 +79,13 @@ describe("DatabaseService._updateBy when the update carries no columns", () => {
     saveMock.mockImplementation((item: unknown) => {
       return Promise.resolve(item);
     });
+    updateMock = getJestMockFunction();
+    updateMock.mockImplementation(() => {
+      return Promise.resolve({ affected: 1 });
+    });
     getJestSpyOn(service, "getRepository").mockReturnValue({
       save: saveMock,
+      update: updateMock,
     });
 
     // The permission layer is not what these tests are about, and needs a DB.
@@ -157,6 +166,7 @@ describe("DatabaseService._updateBy when the update carries no columns", () => {
     });
 
     expect(saveMock).not.toHaveBeenCalled();
+    expect(updateMock).not.toHaveBeenCalled();
     expect(numberOfDocsAffected).toBe(0);
   });
 
@@ -188,6 +198,7 @@ describe("DatabaseService._updateBy when the update does carry columns", () => {
   let service: DatabaseService<Probe>;
   let findBySpy: jest.SpyInstance;
   let saveMock: MockFunction;
+  let updateMock: MockFunction;
 
   beforeEach(() => {
     jest.restoreAllMocks();
@@ -204,8 +215,13 @@ describe("DatabaseService._updateBy when the update does carry columns", () => {
     saveMock.mockImplementation((item: unknown) => {
       return Promise.resolve(item);
     });
+    updateMock = getJestMockFunction();
+    updateMock.mockImplementation(() => {
+      return Promise.resolve({ affected: 1 });
+    });
     getJestSpyOn(service, "getRepository").mockReturnValue({
       save: saveMock,
+      update: updateMock,
     });
 
     getJestSpyOn(
@@ -250,7 +266,13 @@ describe("DatabaseService._updateBy when the update does carry columns", () => {
       props: { isRoot: true },
     });
 
-    expect(saveMock).toHaveBeenCalledTimes(2);
+    /*
+     * `name` is a scalar column, so the write goes through update() (which
+     * never inserts) rather than save() — one update() per row the find
+     * returned, and save() is left untouched.
+     */
+    expect(updateMock).toHaveBeenCalledTimes(2);
+    expect(saveMock).not.toHaveBeenCalled();
   });
 
   it("still calls onUpdateSuccess with the ids of the rows it updated", async () => {
