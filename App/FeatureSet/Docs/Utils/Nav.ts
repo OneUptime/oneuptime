@@ -400,6 +400,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/runbooks/agents",
       },
       {
+        title: "Runbook Credentials",
+        url: "/docs/runbooks/credentials",
+      },
+      {
         title: "Runbook Configuration & Safety",
         url: "/docs/runbooks/configuration",
       },

@@ -23,6 +23,8 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
+import RunbookCredential from "Common/Models/DatabaseModels/RunbookCredential";
+import RunbookCredentialType from "Common/Types/Runbook/RunbookCredentialType";
 import RunbookAgent, {
   RunbookAgentConnectionStatus,
 } from "Common/Models/DatabaseModels/RunbookAgent";
@@ -35,7 +37,11 @@ import {
   HttpRequestMethod,
   HttpRequestStepConfig,
   JavaScriptStepConfig,
+  KubernetesAction,
+  KubernetesStepConfig,
+  KubernetesWorkloadKind,
   RunbookStep,
+  SSHStepConfig,
 } from "Common/Types/Runbook/RunbookStep";
 import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
 import StepTimeoutInput from "Common/UI/Components/Runbook/StepTimeoutInput";
@@ -64,6 +70,12 @@ interface AgentOption {
   id: string;
   name: string;
   connected: boolean;
+}
+
+interface CredentialOption {
+  id: string;
+  name: string;
+  credentialType: RunbookCredentialType;
 }
 
 const HTTP_METHODS: HttpRequestMethod[] = [
@@ -144,6 +156,31 @@ const STEP_TYPE_META: Record<RunbookStepType, StepTypeMeta> = {
     numberBg: "bg-slate-700",
     borderL: "border-l-slate-500",
   },
+  [RunbookStepType.SSH]: {
+    type: RunbookStepType.SSH,
+    label: "SSH command",
+    shortLabel: "SSH",
+    description:
+      "Run a command on a remote host, using a stored SSH credential.",
+    icon: IconProp.Terminal,
+    bg: "bg-emerald-50",
+    ring: "ring-emerald-100",
+    iconColor: "text-emerald-600",
+    numberBg: "bg-emerald-600",
+    borderL: "border-l-emerald-500",
+  },
+  [RunbookStepType.Kubernetes]: {
+    type: RunbookStepType.Kubernetes,
+    label: "Kubernetes action",
+    shortLabel: "Kubernetes",
+    description: "Restart or scale a workload in a cluster.",
+    icon: IconProp.Cube,
+    bg: "bg-blue-50",
+    ring: "ring-blue-100",
+    iconColor: "text-blue-600",
+    numberBg: "bg-blue-600",
+    borderL: "border-l-blue-500",
+  },
   [RunbookStepType.AI]: {
     type: RunbookStepType.AI,
     label: "AI step",
@@ -164,6 +201,8 @@ const ALL_STEP_TYPES: RunbookStepType[] = [
   RunbookStepType.JavaScript,
   RunbookStepType.HttpRequest,
   RunbookStepType.Bash,
+  RunbookStepType.SSH,
+  RunbookStepType.Kubernetes,
   RunbookStepType.AI,
 ];
 
@@ -310,13 +349,28 @@ function newStep(type: RunbookStepType, order: number): RunbookStep {
                 script: BASH_EXAMPLES[0]!.code,
                 agentId: "",
               } as BashStepConfig)
-            : type === RunbookStepType.AI
+            : type === RunbookStepType.SSH
               ? ({
-                  prompt: AI_PROMPT_EXAMPLES[0]!.code,
-                  includePreviousStepContext: true,
-                  includeTriggerContext: true,
-                } as AIStepConfig)
-              : {},
+                  credentialId: "",
+                  command: "",
+                  agentId: "",
+                } as SSHStepConfig)
+              : type === RunbookStepType.Kubernetes
+                ? ({
+                    credentialId: "",
+                    action: KubernetesAction.RestartWorkload,
+                    workloadKind: KubernetesWorkloadKind.Deployment,
+                    namespace: "default",
+                    workloadName: "",
+                    agentId: "",
+                  } as KubernetesStepConfig)
+                : type === RunbookStepType.AI
+                  ? ({
+                      prompt: AI_PROMPT_EXAMPLES[0]!.code,
+                      includePreviousStepContext: true,
+                      includeTriggerContext: true,
+                    } as AIStepConfig)
+                  : {},
   };
   if (isAutomatedStep(type)) {
     base.continueOnFailure = false;
@@ -338,6 +392,21 @@ function summarizeStep(step: RunbookStep): string {
   if (step.type === RunbookStepType.Bash) {
     return "Bash script on agent";
   }
+  if (step.type === RunbookStepType.SSH) {
+    const cfg: SSHStepConfig = step.config as SSHStepConfig;
+    const command: string = (cfg.command || "").split("\n")[0] || "";
+    return command
+      ? `SSH: ${command.slice(0, 80)}${command.length > 80 ? "…" : ""}`
+      : "SSH command";
+  }
+  if (step.type === RunbookStepType.Kubernetes) {
+    const cfg: KubernetesStepConfig = step.config as KubernetesStepConfig;
+    const verb: string =
+      cfg.action === KubernetesAction.ScaleWorkload
+        ? `Scale to ${cfg.replicas ?? "?"}`
+        : "Restart";
+    return `${verb}: ${cfg.namespace || "?"}/${cfg.workloadName || "?"}`;
+  }
   if (step.type === RunbookStepType.AI) {
     const cfg: AIStepConfig = step.config as AIStepConfig;
     const firstLine: string = (cfg.prompt || "").split("\n")[0] || "";
@@ -357,13 +426,14 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [success, setSuccess] = useState<boolean>(false);
   const [hasUnsaved, setHasUnsaved] = useState<boolean>(false);
   const [agents, setAgents] = useState<AgentOption[]>([]);
+  const [credentials, setCredentials] = useState<CredentialOption[]>([]);
   const [collapsedState, setCollapsedState] = useState<Record<string, boolean>>(
     {},
   );
 
   useAsyncEffect(async () => {
     try {
-      const [runbook, agentList] = await Promise.all([
+      const [runbook, agentList, credentialList] = await Promise.all([
         ModelAPI.getItem<Runbook>({
           modelType: Runbook,
           id: modelId,
@@ -384,7 +454,33 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
           limit: LIMIT_MAX,
           skip: 0,
         }),
+        ModelAPI.getList<RunbookCredential>({
+          modelType: RunbookCredential,
+          query: {
+            projectId: ProjectUtil.getCurrentProjectId()!,
+          },
+          select: {
+            _id: true,
+            name: true,
+            credentialType: true,
+          },
+          sort: { name: SortOrder.Ascending },
+          limit: LIMIT_MAX,
+          skip: 0,
+        }),
       ]);
+
+      setCredentials(
+        credentialList.data.map((c: RunbookCredential): CredentialOption => {
+          return {
+            id: c._id?.toString() || "",
+            name: c.name || "Unnamed credential",
+            credentialType:
+              (c.credentialType as RunbookCredentialType) ||
+              RunbookCredentialType.SSH,
+          };
+        }),
+      );
 
       const loaded: RunbookStep[] =
         (runbook?.steps as unknown as RunbookStep[]) || [];
@@ -652,6 +748,86 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
             options={options}
             value={selectedOption}
             placeholder="— Select an agent —"
+            onChange={(
+              value: DropdownValue | Array<DropdownValue> | null,
+            ): void => {
+              const id: string =
+                value === null || value === undefined
+                  ? ""
+                  : Array.isArray(value)
+                    ? String(value[0] ?? "")
+                    : String(value);
+              args.onChange(id);
+            }}
+          />
+        )}
+        <p className="text-xs text-gray-500 mt-1.5">{args.helperText}</p>
+      </div>
+    );
+  };
+
+  /*
+   * SSH and Kubernetes steps name a credential rather than embedding one.
+   * Only credentials of the right type are offered — an SSH step pointed at a
+   * Kubernetes credential fails at execution time, in front of an incident.
+   */
+  const renderCredentialPicker: (args: {
+    currentCredentialId: string;
+    credentialType: RunbookCredentialType;
+    onChange: (id: string) => void;
+    helperText: ReactElement;
+  }) => ReactElement = (args: {
+    currentCredentialId: string;
+    credentialType: RunbookCredentialType;
+    onChange: (id: string) => void;
+    helperText: ReactElement;
+  }): ReactElement => {
+    const usable: Array<CredentialOption> = credentials.filter(
+      (c: CredentialOption) => {
+        return c.credentialType === args.credentialType;
+      },
+    );
+
+    const options: Array<DropdownOption> = usable.map(
+      (c: CredentialOption): DropdownOption => {
+        return { value: c.id, label: c.name };
+      },
+    );
+
+    const selectedOption: DropdownOption | undefined =
+      options.find((o: DropdownOption) => {
+        return o.value === args.currentCredentialId;
+      }) ||
+      (args.currentCredentialId
+        ? {
+            value: args.currentCredentialId,
+            label: `Unknown credential (${args.currentCredentialId})`,
+          }
+        : undefined);
+
+    return (
+      <div>
+        <label className="block text-xs font-medium text-gray-700 mb-1.5">
+          Credential
+        </label>
+        {usable.length === 0 ? (
+          <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            No {args.credentialType} credentials in this project yet. Create one
+            under <strong>Runbooks &rsaquo; Credentials</strong>, assign it to
+            the Runner that will use it, then come back and pick it here.
+          </div>
+        ) : (
+          <Dropdown
+            options={
+              selectedOption &&
+              !options.find((o: DropdownOption) => {
+                return o.value === selectedOption.value;
+              })
+                ? [selectedOption, ...options]
+                : options
+            }
+            value={selectedOption}
+            placeholder="— Select a credential —"
             onChange={(
               value: DropdownValue | Array<DropdownValue> | null,
             ): void => {
@@ -1229,6 +1405,306 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                                   How long the agent lets the
                                                   script run before killing it
                                                   with <code>SIGKILL</code>.
+                                                </>
+                                              ),
+                                            })}
+                                          </div>
+                                        )}
+
+                                        {step.type === RunbookStepType.SSH && (
+                                          <div className="flex flex-col gap-3">
+                                            {renderAgentPicker({
+                                              currentAgentId:
+                                                (step.config as SSHStepConfig)
+                                                  .agentId || "",
+                                              onChange: (id: string) => {
+                                                updateConfig(idx, {
+                                                  agentId: id,
+                                                });
+                                              },
+                                              helperText: (
+                                                <>
+                                                  This Runner opens the SSH
+                                                  connection, so it must be able
+                                                  to reach the host.
+                                                </>
+                                              ),
+                                            })}
+                                            {renderCredentialPicker({
+                                              currentCredentialId:
+                                                (step.config as SSHStepConfig)
+                                                  .credentialId || "",
+                                              credentialType:
+                                                RunbookCredentialType.SSH,
+                                              onChange: (id: string) => {
+                                                updateConfig(idx, {
+                                                  credentialId: id,
+                                                });
+                                              },
+                                              helperText: (
+                                                <>
+                                                  The host, user and key. It
+                                                  must be assigned to the Runner
+                                                  above, or the step fails.
+                                                </>
+                                              ),
+                                            })}
+                                            <div>
+                                              <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                                                Command
+                                              </label>
+                                              <div className="rounded-lg border border-gray-200 overflow-hidden bg-white">
+                                                <CodeEditor
+                                                  type={CodeType.Text}
+                                                  value={
+                                                    (
+                                                      step.config as SSHStepConfig
+                                                    ).command || ""
+                                                  }
+                                                  onChange={(v: string) => {
+                                                    return updateConfig(idx, {
+                                                      command: v,
+                                                    });
+                                                  }}
+                                                />
+                                              </div>
+                                              <p className="text-xs text-gray-500 mt-1.5">
+                                                Runs on the remote host as the
+                                                credential&rsquo;s user. Output
+                                                is capped at 50&nbsp;KB and a
+                                                non-zero exit code fails the
+                                                step.
+                                              </p>
+                                            </div>
+                                            {renderAgentTimeouts({
+                                              idx,
+                                              config:
+                                                step.config as SSHStepConfig,
+                                              executionDescription: (
+                                                <>
+                                                  Covers connecting,
+                                                  authenticating and running the
+                                                  command together.
+                                                </>
+                                              ),
+                                            })}
+                                          </div>
+                                        )}
+
+                                        {step.type ===
+                                          RunbookStepType.Kubernetes && (
+                                          <div className="flex flex-col gap-3">
+                                            {renderAgentPicker({
+                                              currentAgentId:
+                                                (
+                                                  step.config as KubernetesStepConfig
+                                                ).agentId || "",
+                                              onChange: (id: string) => {
+                                                updateConfig(idx, {
+                                                  agentId: id,
+                                                });
+                                              },
+                                              helperText: (
+                                                <>
+                                                  This Runner calls the cluster
+                                                  API server, so it must be able
+                                                  to reach it.
+                                                </>
+                                              ),
+                                            })}
+                                            {renderCredentialPicker({
+                                              currentCredentialId:
+                                                (
+                                                  step.config as KubernetesStepConfig
+                                                ).credentialId || "",
+                                              credentialType:
+                                                RunbookCredentialType.Kubernetes,
+                                              onChange: (id: string) => {
+                                                updateConfig(idx, {
+                                                  credentialId: id,
+                                                });
+                                              },
+                                              helperText: (
+                                                <>
+                                                  The API server and service
+                                                  account token. Bind that
+                                                  account to a role allowing
+                                                  only what your runbooks need.
+                                                </>
+                                              ),
+                                            })}
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                              <div>
+                                                <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                                                  Action
+                                                </label>
+                                                <Dropdown
+                                                  options={[
+                                                    {
+                                                      value:
+                                                        KubernetesAction.RestartWorkload,
+                                                      label: "Restart workload",
+                                                    },
+                                                    {
+                                                      value:
+                                                        KubernetesAction.ScaleWorkload,
+                                                      label: "Scale workload",
+                                                    },
+                                                  ]}
+                                                  value={{
+                                                    value:
+                                                      (
+                                                        step.config as KubernetesStepConfig
+                                                      ).action ||
+                                                      KubernetesAction.RestartWorkload,
+                                                    label:
+                                                      (
+                                                        step.config as KubernetesStepConfig
+                                                      ).action ===
+                                                      KubernetesAction.ScaleWorkload
+                                                        ? "Scale workload"
+                                                        : "Restart workload",
+                                                  }}
+                                                  onChange={(
+                                                    value:
+                                                      | DropdownValue
+                                                      | Array<DropdownValue>
+                                                      | null,
+                                                  ): void => {
+                                                    updateConfig(idx, {
+                                                      action: String(
+                                                        value,
+                                                      ) as KubernetesAction,
+                                                    });
+                                                  }}
+                                                />
+                                              </div>
+                                              <div>
+                                                <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                                                  Workload kind
+                                                </label>
+                                                <Dropdown
+                                                  options={[
+                                                    {
+                                                      value:
+                                                        KubernetesWorkloadKind.Deployment,
+                                                      label: "Deployment",
+                                                    },
+                                                    {
+                                                      value:
+                                                        KubernetesWorkloadKind.StatefulSet,
+                                                      label: "StatefulSet",
+                                                    },
+                                                    {
+                                                      value:
+                                                        KubernetesWorkloadKind.DaemonSet,
+                                                      label: "DaemonSet",
+                                                    },
+                                                  ]}
+                                                  value={{
+                                                    value:
+                                                      (
+                                                        step.config as KubernetesStepConfig
+                                                      ).workloadKind ||
+                                                      KubernetesWorkloadKind.Deployment,
+                                                    label:
+                                                      (
+                                                        step.config as KubernetesStepConfig
+                                                      ).workloadKind ||
+                                                      KubernetesWorkloadKind.Deployment,
+                                                  }}
+                                                  onChange={(
+                                                    value:
+                                                      | DropdownValue
+                                                      | Array<DropdownValue>
+                                                      | null,
+                                                  ): void => {
+                                                    updateConfig(idx, {
+                                                      workloadKind: String(
+                                                        value,
+                                                      ) as KubernetesWorkloadKind,
+                                                    });
+                                                  }}
+                                                />
+                                              </div>
+                                              <div>
+                                                <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                                                  Namespace
+                                                </label>
+                                                <Input
+                                                  value={
+                                                    (
+                                                      step.config as KubernetesStepConfig
+                                                    ).namespace || ""
+                                                  }
+                                                  placeholder="default"
+                                                  onChange={(v: string) => {
+                                                    return updateConfig(idx, {
+                                                      namespace: v,
+                                                    });
+                                                  }}
+                                                />
+                                              </div>
+                                              <div>
+                                                <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                                                  Workload name
+                                                </label>
+                                                <Input
+                                                  value={
+                                                    (
+                                                      step.config as KubernetesStepConfig
+                                                    ).workloadName || ""
+                                                  }
+                                                  placeholder="checkout-api"
+                                                  onChange={(v: string) => {
+                                                    return updateConfig(idx, {
+                                                      workloadName: v,
+                                                    });
+                                                  }}
+                                                />
+                                              </div>
+                                            </div>
+                                            {(
+                                              step.config as KubernetesStepConfig
+                                            ).action ===
+                                              KubernetesAction.ScaleWorkload && (
+                                              <div>
+                                                <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                                                  Replicas
+                                                </label>
+                                                <Input
+                                                  value={String(
+                                                    (
+                                                      step.config as KubernetesStepConfig
+                                                    ).replicas ?? "",
+                                                  )}
+                                                  placeholder="3"
+                                                  onChange={(v: string) => {
+                                                    const parsed: number =
+                                                      parseInt(v, 10);
+                                                    return updateConfig(idx, {
+                                                      replicas: isNaN(parsed)
+                                                        ? undefined
+                                                        : Math.max(0, parsed),
+                                                    });
+                                                  }}
+                                                />
+                                                <p className="text-xs text-gray-500 mt-1.5">
+                                                  Zero is allowed — draining a
+                                                  workload is a remediation.
+                                                  DaemonSets cannot be scaled.
+                                                </p>
+                                              </div>
+                                            )}
+                                            {renderAgentTimeouts({
+                                              idx,
+                                              config:
+                                                step.config as KubernetesStepConfig,
+                                              executionDescription: (
+                                                <>
+                                                  How long the Runner waits for
+                                                  the API server to accept the
+                                                  change.
                                                 </>
                                               ),
                                             })}

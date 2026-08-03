@@ -287,12 +287,19 @@ export default class RunbookAgent extends BaseModel {
       Permission.RunbookMember,
       Permission.CreateRunbookAgent,
     ],
+    /*
+     * This key IS the Runner's whole identity: presenting it to
+     * /runner-ingest/claim-next-job returns claimed work with every runbook
+     * secret and credential already substituted in. So reading it is
+     * equivalent to reading every secret assigned to that Runner, and it is
+     * held to the same bar as administering the Runner itself — Member and
+     * Viewer used to be able to read it, which made "Viewer" a path to the
+     * project's SSH keys and kubeconfigs.
+     */
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.RunbookAdmin,
-      Permission.RunbookMember,
-      Permission.RunbookViewer,
     ],
     update: [
       Permission.ProjectOwner,
@@ -307,7 +314,7 @@ export default class RunbookAgent extends BaseModel {
     type: TableColumnType.ShortText,
     title: "Agent Key",
     description:
-      "Secret key the agent presents on every request. Never share this key. Reset it to revoke the agent.",
+      "Secret key the agent presents on every request. Anyone who can read this key can claim work as this Runner and receive its secrets in plaintext. Never share it; reset it to revoke the agent.",
   })
   @Column({
     type: ColumnType.ShortText,

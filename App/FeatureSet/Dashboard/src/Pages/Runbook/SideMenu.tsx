@@ -56,6 +56,15 @@ const RunbookSideMenu: () => ReactElement = (): ReactElement => {
         },
         {
           link: {
+            title: "Credentials",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.RUNBOOKS_CREDENTIALS] as Route,
+            ),
+          },
+          icon: IconProp.Key,
+        },
+        {
+          link: {
             title: "Owner Rules",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.RUNBOOKS_SETTINGS_OWNER_RULES] as Route,

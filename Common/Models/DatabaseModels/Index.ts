@@ -290,6 +290,7 @@ import RunbookAgent from "./RunbookAgent";
 import RunbookAgentJob from "./RunbookAgentJob";
 import RunbookAgentOwnerTeam from "./RunbookAgentOwnerTeam";
 import RunbookAgentOwnerUser from "./RunbookAgentOwnerUser";
+import RunbookCredential from "./RunbookCredential";
 import RunbookSecret from "./RunbookSecret";
 import RunbookExecution from "./RunbookExecution";
 import RunbookOwnerTeam from "./RunbookOwnerTeam";
@@ -635,6 +636,7 @@ const AllModelTypes: Array<{
   RunbookAgentJob,
   RunbookAgentOwnerTeam,
   RunbookAgentOwnerUser,
+  RunbookCredential,
   RunbookSecret,
 
   ProjectSSO,

@@ -4,7 +4,7 @@ import RunnerIdentity from "../Utils/RunnerIdentity";
 import { JSONObject } from "Common/Types/JSON";
 import logger from "Common/Server/Utils/Logger";
 
-export type ClaimedJobStepType = "Bash" | "JavaScript";
+export type ClaimedJobStepType = "Bash" | "JavaScript" | "SSH" | "Kubernetes";
 
 export interface ClaimedJob {
   jobId: string;
@@ -14,6 +14,13 @@ export interface ClaimedJob {
   script: string;
   timeoutInMs: number;
   leaseExpiresAt?: string | undefined;
+  /*
+   * Structured instructions for step types that are not a script, and the
+   * credential the server resolved for this Runner. Present together or not
+   * at all.
+   */
+  payload?: JSONObject | undefined;
+  credential?: JSONObject | undefined;
 }
 
 const http: AxiosInstance = axios.create({

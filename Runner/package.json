@@ -1,7 +1,7 @@
 {
   "name": "@oneuptime/runner",
   "version": "11.7.4",
-  "description": "OneUptime Runner \u2014 one self-hosted agent that executes runbook steps in your own infrastructure and, when enabled, opens AI code-fix pull requests in your repositories.",
+  "description": "OneUptime Runner — one self-hosted agent that executes runbook steps in your own infrastructure and, when enabled, opens AI code-fix pull requests in your repositories.",
   "repository": {
     "type": "git",
     "url": "https://github.com/OneUptime/oneuptime"
@@ -21,12 +21,14 @@
   "dependencies": {
     "axios": "^1.13.1",
     "Common": "file:../Common",
-    "ts-node": "^10.9.1",
-    "ejs": "^3.1.10"
+    "ejs": "^3.1.10",
+    "ssh2": "^1.17.0",
+    "ts-node": "^10.9.1"
   },
   "devDependencies": {
     "@types/jest": "^27.5.2",
     "@types/node": "^26.1.1",
+    "@types/ssh2": "^1.15.5",
     "jest": "^28.1.0",
     "nodemon": "^3.1.14",
     "ts-jest": "^28.0.2",

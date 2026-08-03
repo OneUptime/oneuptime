@@ -90,6 +90,7 @@ import MonitorOwnerTeamService from "./MonitorOwnerTeamService";
 import MonitorOwnerUserService from "./MonitorOwnerUserService";
 import MonitorProbeService from "./MonitorProbeService";
 import MonitorSecretService from "./MonitorSecretService";
+import RunbookCredentialService from "./RunbookCredentialService";
 import RunbookSecretService from "./RunbookSecretService";
 import AIInsightService from "./AIInsightService";
 
@@ -377,6 +378,7 @@ const services: Array<BaseService> = [
   MonitorStatusService,
   MonitorStatusTimelineService,
   MonitorSecretService,
+  RunbookCredentialService,
   RunbookSecretService,
   AIInsightService,
   MonitorFeedService,

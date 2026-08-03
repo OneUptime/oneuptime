@@ -1,6 +1,7 @@
 import RunbookAgentAuthorization from "../Middleware/RunbookAgentAuthorization";
 import { RunbookAgentExpressRequest } from "../Types/Request";
 import RunbookSecretsUtil from "../Utils/Secrets";
+import RunbookCredentialsUtil from "../Utils/Credentials";
 import RunbookAgentService from "Common/Server/Services/RunbookAgentService";
 import RunbookAgentJobService from "Common/Server/Services/RunbookAgentJobService";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -158,6 +159,41 @@ export default class RunbookAgentIngressAPI {
         });
       }
 
+      /*
+       * Steps that act on other systems carry structured instructions plus a
+       * credential reference. The credential is resolved HERE, scoped to this
+       * Runner and this project, so its secret material exists on the wire
+       * only in the response to the Runner that was targeted — never on the
+       * job row, and never readable through the CRUD API.
+       */
+      let credential: JSONObject | null = null;
+      const payload: JSONObject = (job.payload as JSONObject) || {};
+      const credentialId: unknown = payload["credentialId"];
+
+      if (typeof credentialId === "string" && credentialId) {
+        credential = await RunbookCredentialsUtil.resolveForJob({
+          credentialId,
+          agentId: agent.id,
+          projectId: agent.projectId,
+        });
+
+        if (!credential) {
+          /*
+           * Fail the job rather than handing over a step it cannot run: a
+           * Runner that silently no-ops looks identical to one that worked.
+           */
+          await RunbookAgentJobService.submitResult({
+            jobId: job.id!,
+            agentId: agent.id,
+            success: false,
+            errorMessage:
+              "The credential this step references is not available to this Runner. Check that it exists and that this Runner is assigned to it.",
+          });
+
+          return Response.sendJsonObjectResponse(req, res, { job: null });
+        }
+      }
+
       return Response.sendJsonObjectResponse(req, res, {
         job: {
           jobId: job.id?.toString(),
@@ -167,6 +203,8 @@ export default class RunbookAgentIngressAPI {
           script: scriptToSend,
           timeoutInMs: job.timeoutInMs,
           leaseExpiresAt: job.leaseExpiresAt?.toISOString(),
+          ...(job.payload ? { payload: job.payload } : {}),
+          ...(credential ? { credential } : {}),
         },
       });
     } catch (err) {

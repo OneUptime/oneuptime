@@ -1,9 +1,12 @@
 import { spawn } from "child_process";
 import { JOB_HEARTBEAT_INTERVAL_MS, MAX_OUTPUT_BYTES } from "../Config";
 import AgentClient, { ClaimedJob } from "./RunbookAgentClient";
+import SSHExecutor from "./SSHExecutor";
+import KubernetesExecutor from "./KubernetesExecutor";
 import logger from "Common/Server/Utils/Logger";
 import VMUtil from "Common/Server/Utils/VM/VMAPI";
 import ReturnResult from "Common/Types/IsolatedVM/ReturnResult";
+import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
 
 interface ExecResult {
   success: boolean;
@@ -139,18 +142,55 @@ async function runJavaScriptLocally(data: {
 }
 
 async function runJob(job: ClaimedJob): Promise<ExecResult> {
-  if (job.stepType === "JavaScript") {
+  if (job.stepType === RunbookStepType.JavaScript) {
     return runJavaScriptLocally({
       script: job.script,
       timeoutInMs: job.timeoutInMs,
     });
   }
-  if (job.stepType === "Bash") {
+  if (job.stepType === RunbookStepType.Bash) {
     return runBashLocally({
       script: job.script,
       timeoutInMs: job.timeoutInMs,
     });
   }
+
+  /*
+   * SSH and Kubernetes steps act on OTHER systems, so they arrive as
+   * structured instructions plus the credential the server resolved for this
+   * Runner — never as a script. A missing credential means the server
+   * declined to hand one over, which is a refusal, not something to retry
+   * against the target.
+   */
+  if (
+    job.stepType === RunbookStepType.SSH ||
+    job.stepType === RunbookStepType.Kubernetes
+  ) {
+    if (!job.payload || !job.credential) {
+      return {
+        success: false,
+        output: "",
+        errorMessage: `${job.stepType} step arrived without its ${
+          job.payload ? "credential" : "instructions"
+        }.`,
+      };
+    }
+
+    if (job.stepType === RunbookStepType.SSH) {
+      return SSHExecutor.execute({
+        payload: job.payload,
+        credential: job.credential,
+        timeoutInMs: job.timeoutInMs,
+      });
+    }
+
+    return KubernetesExecutor.execute({
+      payload: job.payload,
+      credential: job.credential,
+      timeoutInMs: job.timeoutInMs,
+    });
+  }
+
   return {
     success: false,
     output: "",

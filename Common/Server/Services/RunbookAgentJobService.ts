@@ -3,7 +3,9 @@ import ObjectID from "../../Types/ObjectID";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Model from "../../Models/DatabaseModels/RunbookAgentJob";
 import RunbookAgentJobStatus from "../../Types/Runbook/RunbookAgentJobStatus";
-import RunbookStepType from "../../Types/Runbook/RunbookStepType";
+import RunbookStepType, {
+  isRunnerExecutedStepType,
+} from "../../Types/Runbook/RunbookStepType";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../Types/Date";
 import { JSONObject } from "../../Types/JSON";
@@ -79,6 +81,7 @@ export class Service extends DatabaseService<Model> {
     script: string;
     timeoutInMs: number;
     claimTimeoutInMs?: number | undefined;
+    payload?: JSONObject | undefined;
   }): Promise<Model> {
     if (!data.targetAgentId) {
       throw new BadDataException(
@@ -86,10 +89,7 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
-    if (
-      data.stepType !== RunbookStepType.Bash &&
-      data.stepType !== RunbookStepType.JavaScript
-    ) {
+    if (!isRunnerExecutedStepType(data.stepType)) {
       throw new BadDataException(
         `RunbookAgent does not execute step type "${data.stepType}".`,
       );
@@ -107,6 +107,9 @@ export class Service extends DatabaseService<Model> {
     row.stepType = data.stepType;
     row.targetAgentId = data.targetAgentId;
     row.script = data.script;
+    if (data.payload) {
+      row.payload = data.payload;
+    }
     row.timeoutInMs = data.timeoutInMs;
     row.status = RunbookAgentJobStatus.Pending;
     row.claimDeadlineAt = claimDeadlineAt;

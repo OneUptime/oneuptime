@@ -4,8 +4,12 @@ import {
   BashStepConfig,
   HttpRequestStepConfig,
   JavaScriptStepConfig,
+  KubernetesAction,
+  KubernetesStepConfig,
   RunbookStep,
+  SSHStepConfig,
 } from "Common/Types/Runbook/RunbookStep";
+import { JSONObject } from "Common/Types/JSON";
 import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
 import {
   resolveAgentClaimTimeoutInMs,
@@ -78,7 +82,7 @@ function toStepResult(job: RunbookAgentJob): StepRunResult {
  * stepType differs — the agent uses it to pick the right local executor.
  */
 async function dispatchToAgent(args: {
-  stepType: RunbookStepType.Bash | RunbookStepType.JavaScript;
+  stepType: RunbookStepType;
   step: RunbookStep;
   ctx: StepExecutionContext;
   script: string;
@@ -86,6 +90,11 @@ async function dispatchToAgent(args: {
   claimTimeoutInMs: number;
   agentId: string;
   missingAgentError: string;
+  /*
+   * Structured instructions for step types that are not a script. Never
+   * secret material — the credential is resolved at claim time.
+   */
+  payload?: JSONObject | undefined;
 }): Promise<StepRunResult> {
   const agentIdRaw: string = args.agentId.trim();
 
@@ -97,7 +106,12 @@ async function dispatchToAgent(args: {
     };
   }
 
-  if (!args.script) {
+  /*
+   * A script step with nothing to run is a no-op, not a failure. Steps that
+   * carry a payload instead of a script are exempt: an empty script is their
+   * normal shape.
+   */
+  if (!args.script && !args.payload) {
     return { success: true, output: "" };
   }
 
@@ -158,6 +172,7 @@ async function dispatchToAgent(args: {
         script: args.script,
         timeoutInMs: args.timeoutInMs,
         claimTimeoutInMs: args.claimTimeoutInMs,
+        ...(args.payload ? { payload: args.payload } : {}),
       });
       jobId = new ObjectID(job._id!);
     }
@@ -284,5 +299,104 @@ export async function runBashStep(
     agentId: config.agentId || "",
     missingAgentError:
       "Bash step is missing a Runbook Agent. Pick an agent under Runbooks → Agents.",
+  });
+}
+
+export async function runSshStep(
+  step: RunbookStep,
+  ctx: StepExecutionContext,
+): Promise<StepRunResult> {
+  const config: SSHStepConfig = step.config as SSHStepConfig;
+
+  if (!config.credentialId) {
+    return {
+      success: false,
+      output: "",
+      errorMessage:
+        "SSH step is missing a credential. Pick one under Runbooks → Credentials.",
+    };
+  }
+
+  if (!config.command) {
+    return {
+      success: false,
+      output: "",
+      errorMessage: "SSH step has no command to run.",
+    };
+  }
+
+  return dispatchToAgent({
+    stepType: RunbookStepType.SSH,
+    step,
+    ctx,
+    script: "",
+    payload: {
+      credentialId: config.credentialId,
+      command: config.command,
+    },
+    timeoutInMs: resolveStepExecutionTimeoutInMs(config.timeoutInMs),
+    claimTimeoutInMs: resolveAgentClaimTimeoutInMs(config.claimTimeoutInMs),
+    agentId: config.agentId || "",
+    missingAgentError:
+      "SSH step is missing a Runner. Pick one under Runbooks → Runners.",
+  });
+}
+
+export async function runKubernetesStep(
+  step: RunbookStep,
+  ctx: StepExecutionContext,
+): Promise<StepRunResult> {
+  const config: KubernetesStepConfig = step.config as KubernetesStepConfig;
+
+  if (!config.credentialId) {
+    return {
+      success: false,
+      output: "",
+      errorMessage:
+        "Kubernetes step is missing a credential. Pick one under Runbooks → Credentials.",
+    };
+  }
+
+  if (!config.namespace || !config.workloadName) {
+    return {
+      success: false,
+      output: "",
+      errorMessage: "Kubernetes step needs a namespace and a workload name.",
+    };
+  }
+
+  /*
+   * Scaling to an unspecified replica count is not a safe default in either
+   * direction, so it is an error rather than a guess. Zero is legitimate.
+   */
+  if (
+    config.action === KubernetesAction.ScaleWorkload &&
+    (config.replicas === undefined || config.replicas === null)
+  ) {
+    return {
+      success: false,
+      output: "",
+      errorMessage: "Scale step needs a replica count.",
+    };
+  }
+
+  return dispatchToAgent({
+    stepType: RunbookStepType.Kubernetes,
+    step,
+    ctx,
+    script: "",
+    payload: {
+      credentialId: config.credentialId,
+      action: config.action,
+      workloadKind: config.workloadKind,
+      namespace: config.namespace,
+      workloadName: config.workloadName,
+      ...(config.replicas === undefined ? {} : { replicas: config.replicas }),
+    },
+    timeoutInMs: resolveStepExecutionTimeoutInMs(config.timeoutInMs),
+    claimTimeoutInMs: resolveAgentClaimTimeoutInMs(config.claimTimeoutInMs),
+    agentId: config.agentId || "",
+    missingAgentError:
+      "Kubernetes step is missing a Runner. Pick one under Runbooks → Runners.",
   });
 }

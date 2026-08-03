@@ -15,6 +15,7 @@ import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
+import { JSONObject } from "../../Types/JSON";
 import RunbookAgentJobStatus from "../../Types/Runbook/RunbookAgentJobStatus";
 import RunbookStepType from "../../Types/Runbook/RunbookStepType";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
@@ -367,13 +368,47 @@ export default class RunbookAgentJob extends BaseModel {
     type: TableColumnType.VeryLongText,
     required: true,
     title: "Script",
-    description: "The bash script the agent must execute.",
+    description:
+      "The script the Runner must execute. Empty for step types that carry structured instructions in the payload instead.",
   })
   @Column({
     type: ColumnType.VeryLongText,
     nullable: false,
   })
   public script?: string = undefined;
+
+  /*
+   * Structured instructions for step types that are not a script — which
+   * host to reach, which workload to restart. Never holds secret material:
+   * the credential is resolved server-side at claim time and travels in the
+   * claim response, so a job row can be read by anyone who can read an
+   * execution without exposing a private key.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.RunbookViewer,
+      Permission.ReadRunbookExecution,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    title: "Payload",
+    description:
+      "Structured instructions for non-script step types. Contains no secrets.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public payload?: JSONObject = undefined;
 
   @ColumnAccessControl({
     create: [],
