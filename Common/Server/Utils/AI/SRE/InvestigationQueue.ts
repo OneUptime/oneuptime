@@ -479,21 +479,30 @@ export default class AIInvestigationQueue {
     }
 
     /*
-     * The preventive lane's sub-cap: insight triage may never occupy the
-     * slot(s) reserved for incident/alert RCA (see
-     * INSIGHT_TRIAGE_RESERVED_SLOTS). Floored at 1 so a project running at
-     * the minimum cap of 1 still triages its insights (slower, one at a
+     * The background lane's sub-cap: insight triage AND remediation plans
+     * may never occupy the slot(s) reserved for incident/alert RCA (see
+     * INSIGHT_TRIAGE_RESERVED_SLOTS) — the RCA is what a paged human is
+     * waiting for, and both background kinds are storm-shaped. The two
+     * kinds share ONE combined sub-cap, so together they always leave the
+     * reserved slot reachable. Floored at 1 so a project running at the
+     * minimum cap of 1 still drains its background work (slower, one at a
      * time) instead of deadlocking the lane entirely — the interactive lane
      * keeps its priority through the global cap check above, which a single
-     * running triage run cannot outlast for long (triage is read-only and
-     * short).
+     * running background run cannot outlast for long (both kinds are
+     * read-only and short).
      */
-    if (run.triggeredByAiInsightId) {
-      const triageCap: number = Math.max(
+    const isBackgroundLane: boolean =
+      Boolean(run.triggeredByAiInsightId) ||
+      run.runType === AIRunType.RemediationPlan;
+
+    if (isBackgroundLane) {
+      const backgroundCap: number = Math.max(
         1,
         concurrencyCap - INSIGHT_TRIAGE_RESERVED_SLOTS,
       );
 
+      // Triage runs are Investigations with an insight subject; plan runs
+      // are their own runType — the two counts never overlap.
       const runningTriageCount: number = (
         await AIRunService.countBy({
           query: {
@@ -506,9 +515,23 @@ export default class AIInvestigationQueue {
         })
       ).toNumber();
 
-      if (runningTriageCount >= triageCap) {
+      const runningPlanCount: number = (
+        await AIRunService.countBy({
+          query: {
+            projectId: run.projectId,
+            runType: AIRunType.RemediationPlan,
+            status: AIRunStatus.Running,
+          },
+          props: { isRoot: true },
+        })
+      ).toNumber();
+
+      const runningBackgroundCount: number =
+        runningTriageCount + runningPlanCount;
+
+      if (runningBackgroundCount >= backgroundCap) {
         logger.debug(
-          `AI: leaving insight triage run ${run.id.toString()} queued — ${runningTriageCount} triage runs already running (triage lane cap: ${triageCap} of ${concurrencyCap}).`,
+          `AI: leaving background run ${run.id.toString()} queued — ${runningBackgroundCount} background runs (triage + remediation plans) already running (background lane cap: ${backgroundCap} of ${concurrencyCap}).`,
         );
         return false;
       }

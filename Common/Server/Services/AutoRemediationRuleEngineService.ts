@@ -27,6 +27,7 @@ import MonitorService from "./MonitorService";
 import ProjectService from "./ProjectService";
 import RunbookRuleEngineService from "./RunbookRuleEngineService";
 import AIInvestigationQueue from "../Utils/AI/SRE/InvestigationQueue";
+import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 
@@ -259,35 +260,15 @@ class AutoRemediationRuleEngineServiceClass {
         continue;
       }
 
-      let executionMode: AutoRemediationExecutionMode =
-        rule.executionMode === AutoRemediationExecutionMode.FullAuto
-          ? AutoRemediationExecutionMode.FullAuto
-          : AutoRemediationExecutionMode.Suggest;
-
-      let downgradedByCircuitBreaker: boolean = false;
-
-      if (executionMode === AutoRemediationExecutionMode.FullAuto) {
-        const recentAutoExecutions: number = (
-          await AutoRemediationSuggestionService.countBy({
-            query: {
-              autoRemediationRuleId: rule.id!,
-              status: AutoRemediationSuggestionStatus.AutoExecuted,
-              createdAt: QueryHelper.greaterThan(
-                OneUptimeDate.getSomeHoursAgo(1),
-              ),
-            },
-            props: { isRoot: true },
-          })
-        ).toNumber();
-
-        if (recentAutoExecutions >= MAX_AUTO_EXECUTIONS_PER_RULE_PER_HOUR) {
-          executionMode = AutoRemediationExecutionMode.Suggest;
-          downgradedByCircuitBreaker = true;
-          logger.warn(
-            `AutoRemediationRuleEngine: circuit breaker tripped for rule ${rule.id?.toString()} (${recentAutoExecutions} auto-executions in the last hour); downgrading to Suggest.`,
-            { projectId: data.projectId.toString() } as LogAttributes,
-          );
-        }
+      if (rule.executionMode === AutoRemediationExecutionMode.FullAuto) {
+        remainingBudget -= await this.applyFullAutoRule({
+          projectId: data.projectId,
+          rule,
+          runbooks,
+          linkage,
+          budget: remainingBudget,
+        });
+        continue;
       }
 
       for (const runbook of runbooks) {
@@ -298,25 +279,124 @@ class AutoRemediationRuleEngineServiceClass {
           continue;
         }
 
-        if (executionMode === AutoRemediationExecutionMode.FullAuto) {
-          await this.autoExecuteRunbook({
-            projectId: data.projectId,
-            rule,
-            runbook,
-            linkage,
-          });
-        } else {
-          await this.suggestRunbook({
-            projectId: data.projectId,
-            rule,
-            runbook,
-            linkage,
-            downgradedByCircuitBreaker,
-          });
-        }
+        await this.suggestRunbook({
+          projectId: data.projectId,
+          rule,
+          runbook,
+          linkage,
+          downgradedByCircuitBreaker: false,
+        });
         remainingBudget -= 1;
       }
     }
+  }
+
+  /*
+   * FullAuto with the hourly circuit breaker. The whole
+   * count-decide-execute-record section is serialized per rule through a
+   * distributed mutex: concurrent incident creations (flap storm, multiple
+   * App pods) would otherwise all read a stale count and blow past the cap
+   * together. The AutoExecuted suggestion rows are written inside the lock,
+   * so the next holder's count sees them. If the lock cannot be acquired
+   * (e.g. Redis unavailable) the engine degrades to the unserialized check
+   * rather than dropping remediation entirely — the breaker is
+   * defense-in-depth, not a correctness invariant.
+   *
+   * Returns how many suggestions were consumed from the per-subject budget.
+   */
+  private async applyFullAutoRule(data: {
+    projectId: ObjectID;
+    rule: AutoRemediationRule;
+    runbooks: Array<Runbook>;
+    linkage: SubjectLinkage;
+    budget: number;
+  }): Promise<number> {
+    let mutex: SemaphoreMutex | null = null;
+    try {
+      mutex = await Semaphore.lock({
+        key: `auto-remediation-rule-${data.rule.id?.toString()}`,
+        namespace: "AutoRemediationRuleEngine",
+        lockTimeout: 60 * 1000,
+        acquireTimeout: 20 * 1000,
+      });
+    } catch (error) {
+      logger.warn(
+        `AutoRemediationRuleEngine: could not acquire circuit-breaker lock for rule ${data.rule.id?.toString()} — continuing without cross-pod serialization: ${error}`,
+        { projectId: data.projectId.toString() } as LogAttributes,
+      );
+    }
+
+    let consumed: number = 0;
+
+    try {
+      /*
+       * Count inside the lock, and keep counting in-memory as this
+       * invocation executes — a rule with several attached runbooks must
+       * not execute all of them off one stale pre-loop count.
+       */
+      let executedInWindow: number = (
+        await AutoRemediationSuggestionService.countBy({
+          query: {
+            autoRemediationRuleId: data.rule.id!,
+            status: AutoRemediationSuggestionStatus.AutoExecuted,
+            createdAt: QueryHelper.greaterThan(
+              OneUptimeDate.getSomeHoursAgo(1),
+            ),
+          },
+          props: { isRoot: true },
+        })
+      ).toNumber();
+
+      for (const runbook of data.runbooks) {
+        if (consumed >= data.budget) {
+          break;
+        }
+        if (!runbook.id) {
+          continue;
+        }
+
+        if (executedInWindow >= MAX_AUTO_EXECUTIONS_PER_RULE_PER_HOUR) {
+          logger.warn(
+            `AutoRemediationRuleEngine: circuit breaker tripped for rule ${data.rule.id?.toString()} (${executedInWindow} auto-executions in the last hour); downgrading to Suggest.`,
+            { projectId: data.projectId.toString() } as LogAttributes,
+          );
+          await this.suggestRunbook({
+            projectId: data.projectId,
+            rule: data.rule,
+            runbook,
+            linkage: data.linkage,
+            downgradedByCircuitBreaker: true,
+          });
+        } else {
+          await this.autoExecuteRunbook({
+            projectId: data.projectId,
+            rule: data.rule,
+            runbook,
+            linkage: data.linkage,
+          });
+          /*
+           * Counted even when the start failed (no row written): within
+           * this invocation the fail direction of a breaker is to close
+           * early, never to keep firing.
+           */
+          executedInWindow += 1;
+        }
+        consumed += 1;
+      }
+    } finally {
+      if (mutex) {
+        try {
+          await Semaphore.release(mutex);
+        } catch (error) {
+          logger.error(
+            `AutoRemediationRuleEngine: failed to release circuit-breaker lock: ${error}`,
+            { projectId: data.projectId.toString() } as LogAttributes,
+          );
+        }
+      }
+    }
+
+    return consumed;
   }
 
   /*

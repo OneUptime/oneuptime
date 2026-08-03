@@ -632,19 +632,6 @@ export class Service extends DatabaseService<Model> {
         }
       })
       .then(async () => {
-        try {
-          await AutoRemediationRuleEngineService.applyRulesToAlert(createdItem);
-        } catch (error) {
-          logger.error(
-            `Apply auto-remediation rules failed in AlertService.onCreateSuccess: ${error}`,
-            {
-              projectId: createdItem.projectId?.toString(),
-              alertId: createdItem.id?.toString(),
-            } as LogAttributes,
-          );
-        }
-      })
-      .then(async () => {
         if (
           createdItem.onCallDutyPolicies?.length &&
           createdItem.onCallDutyPolicies?.length > 0
@@ -715,6 +702,25 @@ export class Service extends DatabaseService<Model> {
         } catch (error) {
           logger.error(
             `AI alert investigation failed in AlertService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              alertId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
+      .then(async () => {
+        /*
+         * Auto-remediation runs LAST: on-call paging must never wait on the
+         * engine's feed/workspace posts, and enqueueing the RCA
+         * investigation first lets its inline claim win an AI concurrency
+         * slot before any remediation-plan runs compete for the rest.
+         */
+        try {
+          await AutoRemediationRuleEngineService.applyRulesToAlert(createdItem);
+        } catch (error) {
+          logger.error(
+            `Apply auto-remediation rules failed in AlertService.onCreateSuccess: ${error}`,
             {
               projectId: createdItem.projectId?.toString(),
               alertId: createdItem.id?.toString(),

@@ -10,6 +10,7 @@ import AutoRemediationSuggestionService from "../../../../Server/Services/AutoRe
 import IncidentFeedService from "../../../../Server/Services/IncidentFeedService";
 import IncidentService from "../../../../Server/Services/IncidentService";
 import RunbookService from "../../../../Server/Services/RunbookService";
+import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import AutoRemediationRule from "../../../../Models/DatabaseModels/AutoRemediationRule";
 import AutoRemediationSuggestion from "../../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import Incident from "../../../../Models/DatabaseModels/Incident";
@@ -339,6 +340,45 @@ describe("RemediationPlanRunner.executePlan", () => {
     );
   });
 
+  it("settles NoneApplicable when the rule was deleted — never widens to the whole project", async () => {
+    jest
+      .spyOn(AutoRemediationSuggestionService, "findOneById")
+      .mockResolvedValue(fakeSuggestion());
+    jest
+      .spyOn(AutoRemediationRuleService, "findOneById")
+      .mockResolvedValue(null);
+    const findRunbooks: jest.SpyInstance = jest
+      .spyOn(RunbookService, "findBy")
+      .mockResolvedValue([fakeRunbook(RUNBOOK_A_ID, "Restart pods")]);
+    jest
+      .spyOn(IncidentFeedService, "createIncidentFeedItem")
+      .mockResolvedValue(undefined as never);
+    const settle: jest.SpyInstance = jest
+      .spyOn(AutoRemediationSuggestionService, "attemptStatusTransition")
+      .mockResolvedValue(1 as never);
+    const executeRun: jest.SpyInstance = jest
+      .spyOn(AIInvestigationEngine, "executeRun")
+      .mockResolvedValue(undefined as never);
+
+    await RemediationPlanRunner.executePlan({
+      aiRunId: RUN_ID,
+      projectId: PROJECT_ID,
+      suggestionId: SUGGESTION_ID,
+      attemptCount: 1,
+    });
+
+    expect(executeRun).not.toHaveBeenCalled();
+    expect(findRunbooks).not.toHaveBeenCalled();
+    expect(settle).toHaveBeenCalledWith(
+      expect.objectContaining({
+        fromStatus: AutoRemediationSuggestionStatus.Planning,
+        set: expect.objectContaining({
+          status: AutoRemediationSuggestionStatus.NoneApplicable,
+        }),
+      }),
+    );
+  });
+
   it("settles NoneApplicable without an LLM call when no candidates exist", async () => {
     jest
       .spyOn(AutoRemediationSuggestionService, "findOneById")
@@ -410,6 +450,128 @@ describe("RemediationPlanRunner.executePlan", () => {
       suggestionId: SUGGESTION_ID,
       attemptCount: 1,
     });
+
+    expect(feed).not.toHaveBeenCalled();
+  });
+});
+
+describe("RemediationPlanRunner.settleStrandedPlanningSuggestions", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function mockPlanningList(
+    overrides: Partial<Record<string, unknown>> = {},
+  ): void {
+    jest
+      .spyOn(AutoRemediationSuggestionService, "findBy")
+      .mockResolvedValue([fakeSuggestion({ aiRunId: RUN_ID, ...overrides })]);
+  }
+
+  function mockRun(overrides: Partial<Record<string, unknown>>): void {
+    jest.spyOn(AIRunService, "findOneById").mockResolvedValue({
+      id: RUN_ID,
+      _id: RUN_ID.toString(),
+      ...overrides,
+    } as unknown as AIRun);
+  }
+
+  it("settles a suggestion whose plan run was TTL-cancelled", async () => {
+    mockPlanningList();
+    mockRun({ status: AIRunStatus.Cancelled });
+    jest
+      .spyOn(IncidentFeedService, "createIncidentFeedItem")
+      .mockResolvedValue(undefined as never);
+    const settle: jest.SpyInstance = jest
+      .spyOn(AutoRemediationSuggestionService, "attemptStatusTransition")
+      .mockResolvedValue(1 as never);
+
+    await RemediationPlanRunner.settleStrandedPlanningSuggestions();
+
+    expect(settle).toHaveBeenCalledWith(
+      expect.objectContaining({
+        suggestionId: SUGGESTION_ID,
+        fromStatus: AutoRemediationSuggestionStatus.Planning,
+        set: expect.objectContaining({
+          status: AutoRemediationSuggestionStatus.NoneApplicable,
+        }),
+      }),
+    );
+  });
+
+  it("leaves a suggestion alone while its plan run is still Running", async () => {
+    mockPlanningList();
+    mockRun({ status: AIRunStatus.Running });
+    const settle: jest.SpyInstance = jest
+      .spyOn(AutoRemediationSuggestionService, "attemptStatusTransition")
+      .mockResolvedValue(1 as never);
+
+    await RemediationPlanRunner.settleStrandedPlanningSuggestions();
+
+    expect(settle).not.toHaveBeenCalled();
+  });
+
+  it("gives a Completed run a settle grace window before concluding it stranded", async () => {
+    mockPlanningList();
+    mockRun({
+      status: AIRunStatus.Completed,
+      completedAt: new Date(),
+    });
+    const settle: jest.SpyInstance = jest
+      .spyOn(AutoRemediationSuggestionService, "attemptStatusTransition")
+      .mockResolvedValue(1 as never);
+
+    await RemediationPlanRunner.settleStrandedPlanningSuggestions();
+
+    expect(settle).not.toHaveBeenCalled();
+  });
+
+  it("settles a suggestion whose Completed run never recorded a proposal (grace elapsed)", async () => {
+    mockPlanningList();
+    mockRun({
+      status: AIRunStatus.Completed,
+      completedAt: new Date(Date.now() - 10 * 60 * 1000),
+    });
+    jest
+      .spyOn(IncidentFeedService, "createIncidentFeedItem")
+      .mockResolvedValue(undefined as never);
+    const settle: jest.SpyInstance = jest
+      .spyOn(AutoRemediationSuggestionService, "attemptStatusTransition")
+      .mockResolvedValue(1 as never);
+
+    await RemediationPlanRunner.settleStrandedPlanningSuggestions();
+
+    expect(settle).toHaveBeenCalledTimes(1);
+  });
+
+  it("settles a suggestion that never got a plan run linked (grace elapsed)", async () => {
+    mockPlanningList({
+      aiRunId: undefined,
+      createdAt: new Date(Date.now() - 30 * 60 * 1000),
+    });
+    jest
+      .spyOn(IncidentFeedService, "createIncidentFeedItem")
+      .mockResolvedValue(undefined as never);
+    const settle: jest.SpyInstance = jest
+      .spyOn(AutoRemediationSuggestionService, "attemptStatusTransition")
+      .mockResolvedValue(1 as never);
+
+    await RemediationPlanRunner.settleStrandedPlanningSuggestions();
+
+    expect(settle).toHaveBeenCalledTimes(1);
+  });
+
+  it("posts no feed item when the settle CAS loses to a concurrent actor", async () => {
+    mockPlanningList();
+    mockRun({ status: AIRunStatus.Error });
+    jest
+      .spyOn(AutoRemediationSuggestionService, "attemptStatusTransition")
+      .mockResolvedValue(0 as never);
+    const feed: jest.SpyInstance = jest
+      .spyOn(IncidentFeedService, "createIncidentFeedItem")
+      .mockResolvedValue(undefined as never);
+
+    await RemediationPlanRunner.settleStrandedPlanningSuggestions();
 
     expect(feed).not.toHaveBeenCalled();
   });

@@ -37,7 +37,6 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.ProjectMember,
-    Permission.Viewer,
   ],
   delete: [],
   update: [],
@@ -61,7 +60,6 @@ export default class AutoRemediationSuggestion extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.Viewer,
     ],
     update: [],
   })
@@ -92,7 +90,6 @@ export default class AutoRemediationSuggestion extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.Viewer,
     ],
     update: [],
   })
@@ -117,7 +114,6 @@ export default class AutoRemediationSuggestion extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.Viewer,
     ],
     update: [],
   })
@@ -148,7 +144,6 @@ export default class AutoRemediationSuggestion extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.Viewer,
     ],
     update: [],
   })
@@ -173,7 +168,6 @@ export default class AutoRemediationSuggestion extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.Viewer,
     ],
     update: [],
   })
@@ -197,7 +191,6 @@ export default class AutoRemediationSuggestion extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.Viewer,
     ],
     update: [],
   })
@@ -228,7 +221,6 @@ export default class AutoRemediationSuggestion extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.Viewer,
     ],
     update: [],
   })
@@ -253,7 +245,6 @@ export default class AutoRemediationSuggestion extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.Viewer,
     ],
     update: [],
   })
@@ -284,7 +275,6 @@ export default class AutoRemediationSuggestion extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.Viewer,
     ],
     update: [],
   })
@@ -309,7 +299,6 @@ export default class AutoRemediationSuggestion extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.Viewer,
     ],
     update: [],
   })
@@ -340,7 +329,6 @@ export default class AutoRemediationSuggestion extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.Viewer,
     ],
     update: [],
   })
@@ -365,7 +353,6 @@ export default class AutoRemediationSuggestion extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.Viewer,
     ],
     update: [],
   })
@@ -389,7 +376,6 @@ export default class AutoRemediationSuggestion extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.Viewer,
     ],
     update: [],
   })
@@ -414,7 +400,6 @@ export default class AutoRemediationSuggestion extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.Viewer,
     ],
     update: [],
   })
@@ -438,7 +423,6 @@ export default class AutoRemediationSuggestion extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.Viewer,
     ],
     update: [],
   })
@@ -461,7 +445,6 @@ export default class AutoRemediationSuggestion extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.Viewer,
     ],
     update: [],
   })
@@ -486,7 +469,6 @@ export default class AutoRemediationSuggestion extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.Viewer,
     ],
     update: [],
   })
@@ -512,7 +494,6 @@ export default class AutoRemediationSuggestion extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.Viewer,
     ],
     update: [],
   })
@@ -543,7 +524,6 @@ export default class AutoRemediationSuggestion extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.Viewer,
     ],
     update: [],
   })
@@ -566,7 +546,6 @@ export default class AutoRemediationSuggestion extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.Viewer,
     ],
     update: [],
   })
@@ -588,7 +567,6 @@ export default class AutoRemediationSuggestion extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.Viewer,
     ],
     update: [],
   })
@@ -619,7 +597,6 @@ export default class AutoRemediationSuggestion extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.Viewer,
     ],
     update: [],
   })
@@ -642,7 +619,6 @@ export default class AutoRemediationSuggestion extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.ProjectMember,
-      Permission.Viewer,
     ],
     update: [],
   })

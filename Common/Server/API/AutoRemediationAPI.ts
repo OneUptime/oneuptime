@@ -13,6 +13,10 @@ import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import AutoRemediationSuggestionStatus from "../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
+import Permission, {
+  UserPermission,
+  UserTenantAccessPermission,
+} from "../../Types/Permission";
 import { Indigo500 } from "../../Types/BrandColors";
 import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
@@ -81,6 +85,42 @@ async function findAccessibleSuggestion(
   }
 
   return suggestion.id;
+}
+
+/*
+ * Approving starts a runbook execution, so reading the suggestion is not
+ * authority enough — the caller must hold a permission from
+ * RunbookExecution's own create ACL. Without this, the read-check-as-gate
+ * idiom would let anyone who can see the suggestion run infrastructure
+ * scripts.
+ */
+const RUNBOOK_EXECUTE_PERMISSIONS: Array<Permission> = [
+  Permission.ProjectOwner,
+  Permission.ProjectAdmin,
+  Permission.ProjectMember,
+  Permission.CreateRunbookExecution,
+  Permission.RunbookAdmin,
+  Permission.RunbookMember,
+];
+
+function assertCanExecuteRunbooks(
+  props: DatabaseCommonInteractionProps,
+  projectId: ObjectID,
+): void {
+  const tenantPermission: UserTenantAccessPermission | undefined =
+    props.userTenantAccessPermission?.[projectId.toString()];
+
+  const hasPermission: boolean = Boolean(
+    tenantPermission?.permissions?.some((p: UserPermission): boolean => {
+      return RUNBOOK_EXECUTE_PERMISSIONS.includes(p.permission);
+    }),
+  );
+
+  if (!hasPermission) {
+    throw new NotAuthorizedException(
+      "You do not have permission to start runbook executions in this project.",
+    );
+  }
 }
 
 async function loadSuggestionAsRoot(
@@ -173,6 +213,8 @@ router.post(
         throw new BadDataException("This suggestion has no runbook to start.");
       }
 
+      assertCanExecuteRunbooks(props, suggestion.projectId);
+
       /*
        * Claim the approval FIRST (CAS Suggested -> Approved), then start
        * the runbook. Two concurrent approvals race on this transition and
@@ -209,13 +251,26 @@ router.post(
         runbookLinkage.alertId = suggestion.alertId;
       }
 
-      const execution: RunbookExecution | null =
-        await RunbookRuleEngineService.startRunbookFor({
+      /*
+       * A throw here (transient DB error inside startRunbookFor) must roll
+       * the claim back exactly like the null return — otherwise the
+       * suggestion is stranded in Approved, a terminal state, with no
+       * execution and no way to retry.
+       */
+      let execution: RunbookExecution | null = null;
+      try {
+        execution = await RunbookRuleEngineService.startRunbookFor({
           projectId: suggestion.projectId,
           runbookId: suggestion.runbookId,
           linkage: runbookLinkage,
           triggeredByUserId: props.userId!,
         });
+      } catch (error) {
+        logger.error(
+          `AutoRemediationAPI: startRunbookFor threw during approve: ${error}`,
+        );
+        execution = null;
+      }
 
       if (!execution) {
         // Roll the claim back so the suggestion stays actionable.
@@ -227,17 +282,27 @@ router.post(
           },
         });
         throw new BadDataException(
-          "The proposed runbook could not be started — it may have been disabled or deleted, or it has no steps.",
+          "The proposed runbook could not be started — it may have been disabled or deleted, or it has no steps. Please try again.",
         );
       }
 
-      await AutoRemediationSuggestionService.updateOneById({
-        id: suggestion.id!,
-        data: {
-          runbookExecutionId: execution.id!,
-        },
-        props: { isRoot: true },
-      });
+      /*
+       * The runbook IS running at this point — a failure to persist the
+       * execution link must not 500 the request (best-effort, logged).
+       */
+      try {
+        await AutoRemediationSuggestionService.updateOneById({
+          id: suggestion.id!,
+          data: {
+            runbookExecutionId: execution.id!,
+          },
+          props: { isRoot: true },
+        });
+      } catch (error) {
+        logger.error(
+          `AutoRemediationAPI: failed to persist runbookExecutionId after approve: ${error}`,
+        );
+      }
 
       await postFeedItem({
         suggestion,
