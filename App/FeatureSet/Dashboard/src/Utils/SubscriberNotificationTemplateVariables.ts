@@ -146,7 +146,11 @@ ${commonVariablesRows}`;
 | \`{{report.totalDowntimeInHoursAndMinutes}}\` | Total downtime in the period |
 | \`{{report.totalIncidents}}\` | Total number of incidents in the period |
 | \`{{report.totalResources}}\` | Number of resources on the status page |
-| \`{{report.resources}}\` | Array of per-resource breakdown rows (loop over this) |
+| \`{{report.resources}}\` | Array of per-resource breakdown rows, flat (loop over this) |
+| \`{{report.hasGroups}}\` | \`true\` when the status page organises its resources into groups |
+| \`{{report.rows}}\` | The group hierarchy flattened into render order — group rows and resource rows interleaved (loop over this) |
+| \`{{report.groups}}\` | The group hierarchy as a nested tree (top level groups) |
+| \`{{report.ungroupedResources}}\` | Resources that are not in any group |
 
 **Per-resource fields** (available inside \`{{#each report.resources}}\`):
 
@@ -156,13 +160,34 @@ ${commonVariablesRows}`;
 | \`{{this.uptimePercentAsString}}\` | Uptime for the resource (e.g. "99.9%") |
 | \`{{this.downtimeInHoursAndMinutes}}\` | Downtime for the resource |
 | \`{{this.totalIncidentCount}}\` | Number of incidents for the resource |
+| \`{{this.groupName}}\` | Group the resource sits in (empty when ungrouped) |
+| \`{{this.groupPath}}\` | Full group path, e.g. "Region 001 / Market 001 / Unit 0660" |
+
+**Row fields** (available inside \`{{#each report.rows}}\`) — use these to reproduce the status page's nested group hierarchy without recursion:
+
+| Variable | Description |
+|----------|-------------|
+| \`{{this.isGroup}}\` | \`true\` for a group header row, \`false\` for a resource row |
+| \`{{this.name}}\` | Group name or resource name |
+| \`{{this.depth}}\` | Nesting level — 0 for a top level group |
+| \`{{this.indentInPixels}}\` | Indent to render the row with (16px per level) |
+| \`{{this.uptimePercentAsString}}\` | Uptime — rolled up over the whole subtree on a group row |
+| \`{{this.downtimeInHoursAndMinutes}}\` | Downtime for the row |
+| \`{{this.totalIncidentCount}}\` | Incidents for the row |
+| \`{{this.totalResources}}\` | Resources a group rolls up (0 on a resource row) |
+
+**Group fields** (available inside \`{{#each report.groups}}\`): \`{{this.groupName}}\`, \`{{this.groupPath}}\`, \`{{this.depth}}\`, \`{{this.uptimePercentAsString}}\`, \`{{this.downtimeInHoursAndMinutes}}\`, \`{{this.totalIncidentCount}}\`, \`{{this.totalResources}}\`, \`{{this.resources}}\` (the group's own resources) and \`{{this.subGroups}}\` (groups nested under it).
 
 **Example — loop and conditional:**
 
 \`\`\`handlebars
 {{#if report.totalResources}}
-  {{#each report.resources}}
-    {{this.resourceName}}: {{this.uptimePercentAsString}} uptime
+  {{#each report.rows}}
+    {{#if this.isGroup}}
+[group] {{this.name}}: {{this.uptimePercentAsString}} uptime
+    {{else}}
+{{this.name}}: {{this.uptimePercentAsString}} uptime
+    {{/if}}
   {{/each}}
 {{else}}
   No resources to report this period.
