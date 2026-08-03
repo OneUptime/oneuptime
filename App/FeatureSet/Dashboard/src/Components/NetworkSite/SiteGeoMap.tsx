@@ -27,16 +27,19 @@ import {
 } from "./Geo/GeoViewport";
 import {
   BuildPinsResult,
+  CONTAINER_SIDE_FACTOR,
   ClusterColorKey,
   MapMarker,
   LABEL_FONT_SIZE,
   LABEL_GAP,
   LabelPlacement,
+  PlacedMapMarker,
   buildMapMarkers,
   buildPins,
   GENERIC_SITE_TYPE_LABEL,
   clusterCellSize,
   describeMapCoverage,
+  layoutMapMarkers,
   mapPinFingerprint,
   pluralizeSiteType,
   resolveMarkerLabels,
@@ -476,14 +479,38 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
   }, [props.sites, props.mode, cellSize]);
 
   /*
+   * Where each marker is DRAWN — which is not always where it is. Markers
+   * that would cover each other are pushed apart until they do not, and the
+   * ones that moved keep a line back to their real position (drawn below).
+   * Everything from here on works off the placed positions: the labels, the
+   * hover tooltip, the site picker and the focus ring all have to point at
+   * the marker the reader can actually see.
+   *
+   * Keyed on the zoom, like the labels: zooming genuinely separates markers
+   * so the displacement melts away as you go in, while panning must not
+   * re-lay-out anything — markers keep their relative distances as the frame
+   * moves, and a map that reshuffled under a drag would be unusable.
+   */
+  const placedMarkers: Array<PlacedMapMarker> = useMemo(() => {
+    return layoutMapMarkers(markers, zoom);
+  }, [markers, zoom]);
+
+  /*
    * Which names fit without landing on each other. Keyed on the zoom rather
    * than on the whole viewport: markers keep their relative distances as the
    * frame moves, so panning must not re-decide which names are shown — that
    * would make labels flicker in and out under the pointer.
    */
   const labelPlacements: Map<string, LabelPlacement> = useMemo(() => {
-    return resolveMarkerLabels(markers, zoom);
-  }, [markers, zoom]);
+    return resolveMarkerLabels(placedMarkers, zoom);
+  }, [placedMarkers, zoom]);
+
+  // Whether the legend has to explain the leader lines this frame.
+  const hasNudgedMarkers: boolean = placedMarkers.some(
+    (marker: PlacedMapMarker): boolean => {
+      return marker.needsLeaderLine;
+    },
+  );
 
   /*
    * Zoom changes which sites share a marker, so an open picker's list can go
@@ -909,14 +936,80 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
             </g>
 
             {/*
+             * Leader lines, under the markers they belong to.
+             *
+             * A marker that had to be moved off its real position keeps a
+             * thread back to it, ending in a dot on the exact spot. Without
+             * this the map would be quietly wrong — a store drawn twenty
+             * pixels from where it is, with nothing saying so. With it, the
+             * displacement is legible: the marker is the thing you click,
+             * the dot is the place it is.
+             *
+             * Drawn in the marker's own colour so a nudged outage still
+             * reads red at a glance, over a white under-stroke so the thread
+             * survives a coastline or a dark landmass — the same trick the
+             * name labels use.
+             */}
+            <g style={{ pointerEvents: "none" }}>
+              {placedMarkers
+                .filter((marker: PlacedMapMarker): boolean => {
+                  return marker.needsLeaderLine;
+                })
+                .map((marker: PlacedMapMarker): ReactElement => {
+                  const color: string = CLUSTER_COLORS[marker.colorKey];
+                  return (
+                    <g key={`leader-${marker.key}`} aria-hidden="true">
+                      <line
+                        x1={marker.anchorX}
+                        y1={marker.anchorY}
+                        x2={marker.x}
+                        y2={marker.y}
+                        stroke="var(--ou-surface-primary, #ffffff)"
+                        strokeWidth={3.5 / zoom}
+                        strokeOpacity={0.9}
+                        strokeLinecap="round"
+                      />
+                      <line
+                        x1={marker.anchorX}
+                        y1={marker.anchorY}
+                        x2={marker.x}
+                        y2={marker.y}
+                        stroke={color}
+                        strokeWidth={1.25 / zoom}
+                        strokeOpacity={0.9}
+                        strokeLinecap="round"
+                      />
+                      {/* The exact spot: a white pip so the dot reads on
+                       * land, and the marker's colour inside it. */}
+                      <circle
+                        cx={marker.anchorX}
+                        cy={marker.anchorY}
+                        r={2.25 / zoom}
+                        fill="var(--ou-surface-primary, #ffffff)"
+                      />
+                      <circle
+                        cx={marker.anchorX}
+                        cy={marker.anchorY}
+                        r={1.25 / zoom}
+                        fill={color}
+                      />
+                    </g>
+                  );
+                })}
+            </g>
+
+            {/*
              * The markers. A CONTAINER — a region, a market, "Corp" — is
              * drawn as a rounded square, the same shape as the cards it
              * opens into; a single site stays a round pin. The difference is
              * a shape, not a hue, so "this is a level you can go into"
              * survives both a color-blind reader and a grayscale print.
+             *
+             * Positions come from the collision layout above, so no marker
+             * is ever hidden under another one — see layoutMapMarkers.
              */}
             <g>
-              {markers.map((marker: MapMarker): ReactElement => {
+              {placedMarkers.map((marker: PlacedMapMarker): ReactElement => {
                 const color: string = CLUSTER_COLORS[marker.colorKey];
                 /*
                  * Sized on screen, then converted for this zoom: the marker
@@ -943,9 +1036,11 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
                 /*
                  * A square of side 2r covers a good deal more ink than a
                  * circle of radius r, so containers are drawn slightly
-                 * tighter to keep the two shapes reading at one weight.
+                 * tighter to keep the two shapes reading at one weight. The
+                 * factor is shared with the label and collision geometry,
+                 * which both have to know the same square.
                  */
-                const side: number = radius * 1.78;
+                const side: number = radius * CONTAINER_SIDE_FACTOR;
                 const haloSide: number = side + ((hasCount ? 4 : 3) * 2) / zoom;
 
                 return (
@@ -1329,6 +1424,39 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
               Single site
             </li>
           </ul>
+        ) : (
+          <></>
+        )}
+
+        {/*
+         * What the threads mean. Shown only while the map is drawing some:
+         * a key for something that is not on screen is clutter, and on most
+         * levels nothing has to move at all.
+         */}
+        {hasNudgedMarkers ? (
+          <span
+            data-testid="site-geo-map-nudged-key"
+            className="flex items-center gap-1.5 text-xs text-gray-600"
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 12"
+              className="h-3 w-6 flex-shrink-0"
+            >
+              <line
+                x1="3"
+                y1="9"
+                x2="16"
+                y2="4"
+                stroke={CLUSTER_COLORS["none"]}
+                strokeWidth="1.4"
+                strokeLinecap="round"
+              />
+              <circle cx="3" cy="9" r="1.8" fill={CLUSTER_COLORS["none"]} />
+              <circle cx="18" cy="4" r="4" fill={CLUSTER_COLORS["none"]} />
+            </svg>
+            Nudged apart — the line ends at the real spot
+          </span>
         ) : (
           <></>
         )}

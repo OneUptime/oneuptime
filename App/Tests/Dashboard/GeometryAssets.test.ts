@@ -9,6 +9,7 @@ import {
   projectRobinson,
 } from "../../FeatureSet/Dashboard/src/Components/NetworkSite/Geo/GeoProjection";
 import {
+  FIT_MAX_ZOOM,
   MAX_ZOOM,
   WORLD_VIEWPORT,
 } from "../../FeatureSet/Dashboard/src/Components/NetworkSite/Geo/GeoViewport";
@@ -430,22 +431,40 @@ describe("asset budget", () => {
 });
 
 /*
- * The detail tier's simplification tolerance and the map's MAX_ZOOM are
- * chosen against each other (see Scripts/Geo/README.md). If somebody raises
- * MAX_ZOOM without regenerating finer geometry, the simplification starts
- * showing as visible corners on coastlines — so pin the relationship.
+ * The detail tier's simplification tolerance and the map's zoom limits are
+ * chosen against each other (see Scripts/Geo/README.md), and the two limits
+ * make different promises.
+ *
+ * FIT_MAX_ZOOM is the deepest frame the MAP ever picks for a reader — every
+ * opening view, and every "Fit to sites". At that scale one tolerance is
+ * about one screen pixel: outlines nobody asked to magnify are exact.
+ *
+ * MAX_ZOOM is how far a reader may then push it by hand, and it is deeper on
+ * purpose: sites in one metro area do not come apart at FIT_MAX_ZOOM (see
+ * MarkerLayout.test.ts), so the map has to keep going for zoom to be worth
+ * doing. Coastlines soften there. That is the trade, and it is BOUNDED —
+ * raising MAX_ZOOM past this means regenerating finer geometry, not quietly
+ * letting the outlines polygonize.
  */
-describe("detail resolution supports the deepest zoom", () => {
+describe("detail resolution supports the zooms the map offers", () => {
   const DETAIL_TOLERANCE_VIEWBOX_UNITS: number = 0.04;
+  // A map rendered at a typical dashboard width.
+  const RENDERED_WIDTH_PX: number = 1000;
 
-  test("one tolerance is about one screen pixel at MAX_ZOOM", () => {
-    // A map rendered at a typical dashboard width.
-    const renderedWidthPx: number = 1000;
-    const pixelsPerUnit: number =
-      renderedWidthPx / (WORLD_VIEWPORT.width / MAX_ZOOM);
-    expect(DETAIL_TOLERANCE_VIEWBOX_UNITS * pixelsPerUnit).toBeLessThanOrEqual(
-      1.5,
+  function toleranceInPixelsAt(zoom: number): number {
+    return (
+      DETAIL_TOLERANCE_VIEWBOX_UNITS *
+      (RENDERED_WIDTH_PX / (WORLD_VIEWPORT.width / zoom))
     );
+  }
+
+  test("one tolerance is about one screen pixel at the deepest frame the map picks", () => {
+    expect(toleranceInPixelsAt(FIT_MAX_ZOOM)).toBeLessThanOrEqual(1.5);
+  });
+
+  test("zooming in by hand goes deeper, and softens the outlines only so far", () => {
+    expect(MAX_ZOOM).toBeGreaterThan(FIT_MAX_ZOOM);
+    expect(toleranceInPixelsAt(MAX_ZOOM)).toBeLessThanOrEqual(3);
   });
 
   test("detail coordinates are quantized finer than the tolerance", () => {

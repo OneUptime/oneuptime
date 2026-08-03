@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import {
   DETAIL_GEOMETRY_MIN_ZOOM,
+  FIT_MAX_ZOOM,
   MAX_ZOOM,
   MIN_ZOOM,
   MapViewport,
@@ -315,6 +316,42 @@ describe("fitViewportToPoints", () => {
     expectDrawable(fitted);
     expect(zoomOfViewport(fitted)).toBeLessThanOrEqual(MAX_ZOOM);
     expect(containsPoint(fitted, point(480, 250))).toBe(true);
+  });
+
+  /*
+   * How deep a reader MAY zoom and how deep the map opens are different
+   * questions. Tying them together meant that raising the manual limit —
+   * so that sites in one metro area can actually be told apart, see
+   * MarkerLayout.test.ts — would silently drop every one-town estate onto a
+   * street corner with no town around it the moment the page loaded.
+   */
+  test("the opening frame never goes deeper than FIT_MAX_ZOOM", () => {
+    expect(FIT_MAX_ZOOM).toBeLessThanOrEqual(MAX_ZOOM);
+
+    const single: MapViewport = fitViewportToPoints([CITIES["nairobi"]!]);
+    expect(zoomOfViewport(single)).toBeLessThanOrEqual(FIT_MAX_ZOOM + 1e-9);
+
+    // Several sites in one town: the same degenerate case with more rows.
+    const oneTown: MapViewport = fitViewportToPoints([
+      city(51.51, -0.13),
+      city(51.512, -0.128),
+      city(51.509, -0.131),
+    ]);
+    expect(zoomOfViewport(oneTown)).toBeLessThanOrEqual(FIT_MAX_ZOOM + 1e-9);
+    expectDrawable(oneTown);
+  });
+
+  test("a reader can still zoom in deeper than the map ever frames itself", () => {
+    expect(MAX_ZOOM).toBeGreaterThan(FIT_MAX_ZOOM);
+
+    const fitted: MapViewport = fitViewportToPoints([CITIES["london"]!]);
+    let deeper: MapViewport = fitted;
+    for (let step: number = 0; step < 10; step++) {
+      deeper = zoomViewport(deeper, 2);
+    }
+    expect(zoomOfViewport(deeper)).toBeCloseTo(MAX_ZOOM, 9);
+    expect(zoomOfViewport(deeper)).toBeGreaterThan(zoomOfViewport(fitted));
+    expectDrawable(deeper);
   });
 
   test("a tall network is framed by its height, not squashed", () => {
