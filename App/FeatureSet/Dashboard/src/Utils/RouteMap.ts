@@ -625,6 +625,8 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENTS_SETTINGS_PRIVACY_RULES]: "settings/privacy-rules",
   [PageMap.INCIDENTS_SETTINGS_LABEL_RULES]: "settings/label-rules",
   [PageMap.INCIDENTS_SETTINGS_RUNBOOK_RULES]: "settings/runbook-rules",
+  [PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES]:
+    "settings/auto-remediation-rules",
   [PageMap.INCIDENTS_SETTINGS_SLA_RULES]: "settings/sla-rules",
   [PageMap.INCIDENTS_SETTINGS_REMINDER_RULES]: "settings/reminder-rules",
   [PageMap.INCIDENTS_SETTINGS_ROLES]: "settings/roles",
@@ -686,6 +688,8 @@ export const AlertsRoutePath: Dictionary<string> = {
   [PageMap.ALERTS_SETTINGS_PRIVACY_RULES]: "settings/privacy-rules",
   [PageMap.ALERTS_SETTINGS_LABEL_RULES]: "settings/label-rules",
   [PageMap.ALERTS_SETTINGS_RUNBOOK_RULES]: "settings/runbook-rules",
+  [PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES]:
+    "settings/auto-remediation-rules",
   [PageMap.ALERTS_SETTINGS_REMINDER_RULES]: "settings/reminder-rules",
   [PageMap.ALERTS_SETTINGS_MORE]: "settings/more",
   [PageMap.ALERTS_SETTINGS_AI]: "settings/ai",
@@ -1288,6 +1292,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES]
+    }`,
+  ),
+
   [PageMap.ALERTS_SETTINGS_REMINDER_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/alerts/${
       AlertsRoutePath[PageMap.ALERTS_SETTINGS_REMINDER_RULES]
@@ -1770,6 +1780,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.INCIDENTS_SETTINGS_RUNBOOK_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_RUNBOOK_RULES]
+    }`,
+  ),
+
+  [PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES]
     }`,
   ),
 

@@ -69,10 +69,14 @@ RunCron(
     for (const run of staleRuns) {
       try {
         /*
-         * Investigations are durable-queue runs: requeue while attempts
-         * remain so a pod restart costs a retry, not the investigation.
+         * Investigations and remediation plans are durable-queue runs:
+         * requeue while attempts remain so a pod restart costs a retry, not
+         * the run. Both are read-only, so re-running from the top is safe.
          */
-        if (run.runType === AIRunType.Investigation) {
+        if (
+          run.runType === AIRunType.Investigation ||
+          run.runType === AIRunType.RemediationPlan
+        ) {
           const outcome: "requeued" | "stale" =
             await AIInvestigationQueue.requeueOrMarkStale({
               id: run.id!,
@@ -80,7 +84,7 @@ RunCron(
             });
 
           logger.info(
-            `Stale investigation run ${run.id?.toString()}: ${outcome}.`,
+            `Stale ${run.runType === AIRunType.RemediationPlan ? "remediation plan" : "investigation"} run ${run.id?.toString()}: ${outcome}.`,
             { service: "workers" },
           );
           continue;
