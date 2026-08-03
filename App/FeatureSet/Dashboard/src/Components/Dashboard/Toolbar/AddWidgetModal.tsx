@@ -59,6 +59,13 @@ const WIDGET_CATALOG: ReadonlyArray<CatalogCategory> = [
         icon: IconProp.Text,
         description: "Free-form Markdown text for headers and notes.",
       },
+      {
+        type: DashboardComponentType.Clock,
+        label: "Clock",
+        icon: IconProp.Clock,
+        description:
+          "Current time in any timezone — digital or analog. Add one per office so you can see who is awake.",
+      },
     ],
   },
   {
