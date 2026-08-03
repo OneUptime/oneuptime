@@ -9,6 +9,7 @@ import ProjectService from "../../../Server/Services/ProjectService";
 import ServiceService from "../../../Server/Services/ServiceService";
 import CodeRepositoryService from "../../../Server/Services/CodeRepositoryService";
 import AIAgentService from "../../../Server/Services/AIAgentService";
+import RunbookAgentService from "../../../Server/Services/RunbookAgentService";
 import { RepoResolution } from "../../../Server/Utils/CodeRepository/StackTraceRepoResolver";
 import TelemetryException from "../../../Models/DatabaseModels/TelemetryException";
 import TelemetryService from "../../../Models/DatabaseModels/Service";
@@ -104,13 +105,33 @@ function mockReadiness(data: ReadinessMocks): void {
     );
   }
 
+  const agent: AIAgent | null =
+    data.agent === undefined
+      ? fakeAgent({ connectionStatus: AIAgentConnectionStatus.Connected })
+      : data.agent;
+
+  /*
+   * getAgentCheck asks two questions: is anything ONLINE for this project,
+   * and — only when nothing is — is there a registered-but-silent agent to
+   * name in the failure. Liveness runs through the real isAgentAlive so a
+   * stale heartbeat behaves here exactly as it does in production.
+   */
   jest
-    .spyOn(AIAgentService, "getAIAgentForProject")
+    .spyOn(AIAgentService, "getConnectedAIAgentForProject")
     .mockResolvedValue(
-      data.agent === undefined
-        ? fakeAgent({ connectionStatus: AIAgentConnectionStatus.Connected })
-        : data.agent,
+      agent && AIAgentService.isAgentAlive(agent) ? agent : null,
     );
+
+  jest.spyOn(AIAgentService, "getAIAgentForProject").mockResolvedValue(agent);
+
+  /*
+   * A project can also be served by a customer-installed Runner with the
+   * code-fix capability. This suite is about the AIAgent side, so there is
+   * none — without the stub the fallback would reach a real database.
+   */
+  jest
+    .spyOn(RunbookAgentService, "getOnlineCodeFixRunnerForProject")
+    .mockResolvedValue(null);
 }
 
 function getCheck(readiness: AIFixReadiness, id: string): AIFixReadinessCheck {
