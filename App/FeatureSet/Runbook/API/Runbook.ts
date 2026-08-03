@@ -83,7 +83,7 @@ export default class RunbookAPI {
       const props: DatabaseCommonInteractionProps =
         await CommonAPI.getDatabaseCommonInteractionProps(req);
       const projectId: ObjectID =
-        CommonAPI.assertAuthenticatedProjectMember(props);
+        CommonAPI.assertAuthenticatedProjectPrincipal(props);
       assertCanExecuteRunbooks(props, projectId);
 
       const runbook: Runbook | null = await RunbookService.findOneById({
@@ -137,7 +137,11 @@ export default class RunbookAPI {
       execution.runbookNameSnapshot = runbook.name || "Runbook";
       execution.status = RunbookExecutionStatus.Scheduled;
       execution.stepExecutions = stepExecutions as unknown as JSONArray;
-      execution.triggeredByUserId = props.userId!;
+
+      // Absent for an API key — there is no user behind the request.
+      if (props.userId) {
+        execution.triggeredByUserId = props.userId;
+      }
 
       const linkageBody: Record<string, unknown> = (req.body || {}) as Record<
         string,
@@ -245,7 +249,7 @@ export default class RunbookAPI {
       const props: DatabaseCommonInteractionProps =
         await CommonAPI.getDatabaseCommonInteractionProps(req);
       const projectId: ObjectID =
-        CommonAPI.assertAuthenticatedProjectMember(props);
+        CommonAPI.assertAuthenticatedProjectPrincipal(props);
       assertCanAdvanceRunbookExecutions(props, projectId);
 
       const updated: RunbookStepExecutionState | null = await updateStepStatus({
@@ -254,7 +258,7 @@ export default class RunbookAPI {
         projectId,
         newStatus: RunbookStepExecutionStatus.Completed,
         notes: typeof req.body?.notes === "string" ? req.body.notes : undefined,
-        userId: props.userId!.toString(),
+        userId: props.userId ? props.userId.toString() : undefined,
       });
 
       if (!updated) {
@@ -293,7 +297,7 @@ export default class RunbookAPI {
       const props: DatabaseCommonInteractionProps =
         await CommonAPI.getDatabaseCommonInteractionProps(req);
       const projectId: ObjectID =
-        CommonAPI.assertAuthenticatedProjectMember(props);
+        CommonAPI.assertAuthenticatedProjectPrincipal(props);
       assertCanAdvanceRunbookExecutions(props, projectId);
 
       const updated: RunbookStepExecutionState | null = await updateStepStatus({
@@ -303,7 +307,7 @@ export default class RunbookAPI {
         newStatus: RunbookStepExecutionStatus.Skipped,
         notes:
           typeof req.body?.reason === "string" ? req.body.reason : undefined,
-        userId: props.userId!.toString(),
+        userId: props.userId ? props.userId.toString() : undefined,
       });
 
       if (!updated) {
@@ -339,7 +343,7 @@ export default class RunbookAPI {
       const props: DatabaseCommonInteractionProps =
         await CommonAPI.getDatabaseCommonInteractionProps(req);
       const projectId: ObjectID =
-        CommonAPI.assertAuthenticatedProjectMember(props);
+        CommonAPI.assertAuthenticatedProjectPrincipal(props);
       assertCanAdvanceRunbookExecutions(props, projectId);
 
       const execution: RunbookExecution | null =
