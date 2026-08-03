@@ -84,6 +84,7 @@ const humanize: (value: unknown) => string = (value: unknown): string => {
     .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
     .replace(/[_-]+/g, " ")
     .replace(/click\s+house/gi, "ClickHouse")
+    .replace(/\bpostgres\b/gi, "PostgreSQL")
     .replace(/^./, (character: string): string => {
       return character.toUpperCase();
     });
@@ -184,7 +185,7 @@ const InstanceHealthLogs: FunctionComponent = (): ReactElement => {
   return (
     <Card
       title="OneUptime Health log"
-      description="Capacity notifications and automatic ClickHouse pruning work performed by this instance."
+      description="Datastore health notifications for ClickHouse, PostgreSQL and Redis, plus automatic ClickHouse pruning work performed by this instance."
       buttons={[
         {
           title: "Refresh",
