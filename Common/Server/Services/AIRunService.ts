@@ -104,6 +104,15 @@ export class Service extends DatabaseService<Model> {
   @CaptureSpan()
   public async claimNextQueuedCodeFixRun(data: {
     aiAgentId: ObjectID;
+    /*
+     * The claiming agent's project, when it is project-scoped. A Runner a
+     * customer installs carries a project-scoped credential and must only
+     * ever see that project's work — without this filter it would claim the
+     * oldest queued run across every tenant. Left undefined only for the
+     * in-cluster Runner (cluster-key registered, no projectId), which
+     * serves all projects by design.
+     */
+    projectId?: ObjectID | undefined;
   }): Promise<Model | null> {
     const maxClaimAttempts: number = 5;
 
@@ -112,6 +121,7 @@ export class Service extends DatabaseService<Model> {
         query: {
           runType: AIRunType.CodeFix,
           status: AIRunStatus.Queued,
+          ...(data.projectId ? { projectId: data.projectId } : {}),
         },
         sort: {
           createdAt: SortOrder.Ascending,

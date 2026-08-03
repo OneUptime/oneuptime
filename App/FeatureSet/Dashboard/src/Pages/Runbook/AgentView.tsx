@@ -42,9 +42,9 @@ const RunbookAgentView: FunctionComponent<PageComponentProps> = (
   return (
     <Fragment>
       <CardModelDetail<RunbookAgent>
-        name="Runbook Agent Details"
+        name="Runner Details"
         cardProps={{
-          title: "Runbook Agent Details",
+          title: "Runner Details",
           description: "Here are more details for this runbook agent.",
         }}
         isEditable={true}
@@ -91,7 +91,7 @@ const RunbookAgentView: FunctionComponent<PageComponentProps> = (
           fields: [
             {
               field: { _id: true },
-              title: "Runbook Agent ID",
+              title: "Runner ID",
               fieldType: FieldType.ObjectID,
             },
             {
@@ -126,9 +126,9 @@ const RunbookAgentView: FunctionComponent<PageComponentProps> = (
       />
 
       <CardModelDetail<RunbookAgent>
-        name="Runbook Agent Status"
+        name="Runner Status"
         cardProps={{
-          title: "Runbook Agent Status",
+          title: "Runner Status",
           description:
             "Here is more details on the connection status for this runbook agent.",
         }}
@@ -196,7 +196,7 @@ const RunbookAgentView: FunctionComponent<PageComponentProps> = (
         modelType={RunbookAgentOwnerTeam}
         id="table-runbook-agent-owner-team"
         userPreferencesKey="runbook-agent-owner-team-table"
-        name="Runbook Agent > Owner Team"
+        name="Runner > Owner Team"
         saveFilterProps={{
           tableId: "runbook-agent-owner-team-table",
         }}
@@ -287,7 +287,7 @@ const RunbookAgentView: FunctionComponent<PageComponentProps> = (
         modelType={RunbookAgentOwnerUser}
         id="table-runbook-agent-owner-user"
         userPreferencesKey="runbook-agent-owner-user-table"
-        name="Runbook Agent > Owner User"
+        name="Runner > Owner User"
         saveFilterProps={{
           tableId: "runbook-agent-owner-user-table",
         }}
@@ -384,7 +384,7 @@ const RunbookAgentView: FunctionComponent<PageComponentProps> = (
           Navigation.reload();
         }}
         fieldName={"key"}
-        title={"Reset Runbook Agent Key"}
+        title={"Reset Runner Key"}
         description={
           <p className="mt-2">
             Resetting the secret key will generate a new key. The secret is used

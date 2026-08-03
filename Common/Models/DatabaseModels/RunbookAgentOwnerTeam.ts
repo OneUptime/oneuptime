@@ -66,8 +66,8 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @CrudApiEndpoint(new Route("/runbook-agent-owner-team"))
 @TableMetadata({
   tableName: "RunbookAgentOwnerTeam",
-  singularName: "Runbook Agent Team Owner",
-  pluralName: "Runbook Agent Team Owners",
+  singularName: "Runner Team Owner",
+  pluralName: "Runner Team Owners",
   icon: IconProp.Terminal,
   tableDescription: "Add teams as owners to your runbook agents.",
 })
@@ -178,9 +178,8 @@ export default class RunbookAgentOwnerTeam extends BaseModel {
     manyToOneRelationColumn: "runbookAgentId",
     type: TableColumnType.Entity,
     modelType: RunbookAgent,
-    title: "Runbook Agent",
-    description:
-      "Relation to Runbook Agent Resource in which this object belongs",
+    title: "Runner",
+    description: "Relation to Runner Resource in which this object belongs",
   })
   @ManyToOne(
     () => {
@@ -221,9 +220,8 @@ export default class RunbookAgentOwnerTeam extends BaseModel {
     type: TableColumnType.ObjectID,
     required: true,
     canReadOnRelationQuery: true,
-    title: "Runbook Agent ID",
-    description:
-      "ID of your OneUptime Runbook Agent in which this object belongs",
+    title: "Runner ID",
+    description: "ID of your OneUptime Runner in which this object belongs",
   })
   @Column({
     type: ColumnType.ObjectID,

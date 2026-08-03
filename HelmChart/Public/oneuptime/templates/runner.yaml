@@ -1,0 +1,140 @@
+{{- if and .Values.runner.enabled (not .Values.deployment.disableDeployments) }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ printf "%s-%s" $.Release.Name "runner" }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: {{ printf "%s-%s" $.Release.Name "runner" }}
+    app.kubernetes.io/part-of: oneuptime
+    app.kubernetes.io/managed-by: Helm
+    appname: oneuptime
+    {{- if $.Values.deployment.includeTimestampLabel }}
+    date: "{{ now | unixEpoch }}"
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ printf "%s-%s" $.Release.Name "runner" }}
+  {{- if and (ne $.Values.runner.replicaCount nil) $.Values.runner.disableAutoscaler }}
+  replicas: {{ $.Values.runner.replicaCount }}
+  {{- else }}
+  {{- if or (not (eq (include "oneuptime.autoscalingEnabled" (dict "Values" $.Values "Override" $.Values.runner.autoscaling)) "true")) ($.Values.runner.disableAutoscaler) }}
+  replicas: {{ $.Values.deployment.replicaCount }}
+  {{- end }}
+  {{- end }}
+  strategy: {{- toYaml $.Values.deployment.updateStrategy | nindent 4 }}
+  template:
+    metadata:
+      labels:
+        app: {{ printf "%s-%s" $.Release.Name "runner" }}
+        {{- if $.Values.deployment.includeTimestampLabel }}
+        date: "{{ now | unixEpoch }}"
+        {{- end }}
+        appname: oneuptime
+    spec:
+      {{- if $.Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml $.Values.imagePullSecrets | nindent 8 }}
+      {{- end }}
+      {{- if $.Values.runner.podSecurityContext }}
+      securityContext:
+        {{- toYaml $.Values.runner.podSecurityContext | nindent 8 }}
+      {{- else if $.Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml $.Values.podSecurityContext | nindent 8 }}
+      {{- end }}
+      {{- if $.Values.runner.hostAliases }}
+      hostAliases:
+        {{- toYaml $.Values.runner.hostAliases | nindent 8 }}
+      {{- else if $.Values.hostAliases }}
+      hostAliases:
+        {{- toYaml $.Values.hostAliases | nindent 8 }}
+      {{- end }}
+      {{- if $.Values.affinity }}
+      affinity: {{- $.Values.affinity | toYaml | nindent 8 }}
+      {{- end }}
+      {{- if $.Values.tolerations }}
+      tolerations: {{- $.Values.tolerations | toYaml | nindent 8 }}
+      {{- end }}
+      {{- if $.Values.runner.nodeSelector }}
+      nodeSelector:
+        {{- toYaml $.Values.runner.nodeSelector | nindent 8 }}
+      {{- else if $.Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml $.Values.nodeSelector | nindent 8 }}
+      {{- end }}
+      containers:
+        - image: {{ include "oneuptime.image" (dict "Values" $.Values "ServiceName" "runner") }}
+          name: {{ printf "%s-%s" $.Release.Name "runner" }}
+          {{- if $.Values.runner.containerSecurityContext }}
+          securityContext:
+            {{- toYaml $.Values.runner.containerSecurityContext | nindent 12 }}
+          {{- else if $.Values.containerSecurityContext }}
+          securityContext:
+            {{- toYaml $.Values.containerSecurityContext | nindent 12 }}
+          {{- end }}
+          imagePullPolicy: {{ $.Values.image.pullPolicy }}
+          env:
+            - name: BILLING_ENABLED
+              value: {{ $.Values.billing.enabled | squote }}
+            - name: LOG_LEVEL
+              value: {{ $.Values.logLevel }}
+            - name: PORT
+              value: {{ $.Values.runner.ports.http | squote }}
+            - name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+              value: {{ $.Values.openTelemetryExporter.headers }}
+            - name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
+              value: {{ $.Values.openTelemetryExporter.endpoint }}
+            - name: ONEUPTIME_URL
+              value: http://{{ $.Release.Name }}-app.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}:{{ $.Values.app.ports.http }}
+            - name: ONEUPTIME_RUNNER_KEY
+              {{- if $.Values.runner.key }}
+              value: {{ $.Values.runner.key }}
+              {{- else }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ printf "%s-%s" $.Release.Name "secrets" }}
+                  key: runner-key
+              {{- end }}
+            {{- if $.Values.runner.disableTelemetryCollection }}
+            - name: DISABLE_TELEMETRY
+              value: {{ $.Values.runner.disableTelemetryCollection | quote }}
+            {{- end }}
+            {{- if $.Values.runner.enableProfiling }}
+            - name: ENABLE_PROFILING
+              value: {{ $.Values.runner.enableProfiling | quote }}
+            {{- end }}
+            {{- include "oneuptime.env.runtime" (dict "Values" $.Values "Release" $.Release) | nindent 12 }}
+          ports:
+            - containerPort: {{ $.Values.runner.ports.http }}
+              protocol: TCP
+              name: http
+          {{- if $.Values.runner.resources }}
+          resources:
+            {{- toYaml $.Values.runner.resources | nindent 12 }}
+          {{- end }}
+      restartPolicy: {{ $.Values.image.restartPolicy }}
+---
+
+{{- if and (not $.Values.runner.disableAutoscaler) (not (and $.Values.keda.enabled $.Values.runner.keda.enabled)) }}
+# OneUptime Runner autoscaler (only when KEDA is not enabled, as KEDA manages its own HPA)
+{{- $runnerAutoScalerArgs := dict "ServiceName" "runner" "Release" $.Release "Values" $.Values "Override" $.Values.runner.autoscaling -}}
+{{- include "oneuptime.autoscaler" $runnerAutoScalerArgs }}
+{{- end }}
+
+{{- end }}
+
+---
+
+# OneUptime Runner Service
+{{- $runnerPort := $.Values.runner.ports.http }}
+{{- $runnerPorts := dict "port" $runnerPort -}}
+{{- $runnerServiceArgs := dict "ServiceName" "runner" "Ports" $runnerPorts "Release" $.Release "Values" $.Values -}}
+{{- include "oneuptime.service" $runnerServiceArgs }}
+---
+
+{{- if and $.Values.runner.enabled (not $.Values.deployment.disableDeployments) }}
+# OneUptime Runner PodDisruptionBudget
+{{- include "oneuptime.pdb" (dict "ServiceName" "runner" "Override" $.Values.runner.podDisruptionBudget "Release" $.Release "Values" $.Values) }}
+{{- end }}

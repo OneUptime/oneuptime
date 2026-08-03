@@ -44,13 +44,17 @@ export enum RunbookAgentConnectionStatus {
 @Entity({
   name: "RunbookAgent",
 })
+/*
+ * The table name stays RunbookAgent (renaming it would churn every FK and
+ * index for a cosmetic gain); the product name is OneUptime Runner.
+ */
 @TableMetadata({
   tableName: "RunbookAgent",
-  singularName: "Runbook Agent",
-  pluralName: "Runbook Agents",
+  singularName: "Runner",
+  pluralName: "Runners",
   icon: IconProp.Terminal,
   tableDescription:
-    "A self-hosted agent that executes Bash and JavaScript runbook steps in your own infrastructure and reports results back to OneUptime. Each step picks the agent that should run it.",
+    "A self-hosted OneUptime Runner: it executes runbook steps in your own infrastructure and, when the capability is enabled, works in your code repository to open AI fix pull requests. Runbook steps pick the Runner that should execute them.",
 })
 @TableAccessControl({
   create: [
@@ -409,6 +413,97 @@ export default class RunbookAgent extends BaseModel {
     unique: false,
   })
   public connectionStatus?: RunbookAgentConnectionStatus = undefined;
+
+  /*
+   * Capabilities this Runner is allowed to serve. They mirror the
+   * ONEUPTIME_RUNNER_ENABLE_* toggles the container runs with: the
+   * container decides what it polls for, and these columns tell the
+   * dashboard what to expect (and let an operator revoke a capability
+   * centrally without touching the host).
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.CreateRunbookAgent,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.RunbookViewer,
+      Permission.ReadRunbookAgent,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.RunbookAdmin,
+      Permission.EditRunbookAgent,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Runs Runbooks",
+    description:
+      "Whether this Runner executes runbook steps. On by default — this is why most Runners are installed.",
+    defaultValue: true,
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: true,
+  })
+  public canRunRunbooks?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.CreateRunbookAgent,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.RunbookViewer,
+      Permission.ReadRunbookAgent,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.RunbookAdmin,
+      Permission.EditRunbookAgent,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Runs AI Code Fixes",
+    description:
+      "Whether this Runner works in your code repository to open AI fix pull requests. Off by default; it requires a connected code repository.",
+    defaultValue: false,
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public canRunCodeFixTasks?: boolean = undefined;
 
   @ColumnAccessControl({
     create: [],

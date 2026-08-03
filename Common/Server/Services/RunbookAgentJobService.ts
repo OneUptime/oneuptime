@@ -82,7 +82,7 @@ export class Service extends DatabaseService<Model> {
   }): Promise<Model> {
     if (!data.targetAgentId) {
       throw new BadDataException(
-        "targetAgentId is required to dispatch a step to a Runbook Agent.",
+        "targetAgentId is required to dispatch a step to a Runner.",
       );
     }
 

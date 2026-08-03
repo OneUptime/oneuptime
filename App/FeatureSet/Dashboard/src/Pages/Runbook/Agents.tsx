@@ -38,7 +38,7 @@ const RunbookAgentsPage: FunctionComponent<
         saveFilterProps={{
           tableId: "runbook-agents-table",
         }}
-        name="Runbook Agents"
+        name="Runners"
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}
@@ -48,7 +48,7 @@ const RunbookAgentsPage: FunctionComponent<
         isViewable={true}
         showRefreshButton={true}
         cardProps={{
-          title: "Runbook Agents",
+          title: "Runners",
           description:
             "Self-hosted agents that execute Bash and JavaScript runbook steps in your own infrastructure. Each step picks the agent that should run it.",
         }}
@@ -203,7 +203,7 @@ const RunbookAgentsPage: FunctionComponent<
 
       {showSetupAgent ? (
         <Modal
-          title="Runbook Agent setup"
+          title="Runner setup"
           modalWidth={ModalWidth.Medium}
           submitButtonText="Done"
           submitButtonStyleType={ButtonStyleType.PRIMARY}

@@ -265,7 +265,7 @@ export default class RunbookSecret extends BaseModel {
     required: false,
     type: TableColumnType.EntityArray,
     modelType: RunbookAgent,
-    title: "Runbook Agents",
+    title: "Runners",
     description: "List of runbook agents that can access this secret",
     example: '["5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e"]',
   })
