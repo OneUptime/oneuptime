@@ -2632,6 +2632,8 @@
   "Forwarded Bytes": "Videresendte bytes",
   "Forwarded Packets": "Videresendte pakker",
   "Free-form Markdown text for headers and notes.": "Fri Markdown-tekst til overskrifter og noter.",
+  "Clock": "Ur",
+  "Current time in any timezone — digital or analog. Add one per office so you can see who is awake.": "Aktuel tid i en hvilken som helst tidszone — digital eller analog. Tilføj et ur pr. kontor, så du kan se, hvem der er vågen.",
   "Frequency": "Frekvens",
   "Friendly description for this config so you remember what this is about.": "Brugervenlig beskrivelse af denne konfiguration, så du husker, hvad den handler om.",
   "Friendly description for this Kubernetes cluster.": "Brugervenlig beskrivelse af denne Kubernetes-klynge.",

@@ -2632,6 +2632,8 @@
   "Forwarded Bytes": "Doorgestuurde bytes",
   "Forwarded Packets": "Doorgestuurde pakketten",
   "Free-form Markdown text for headers and notes.": "Markdown-tekst in vrije vorm voor kopteksten en notities.",
+  "Clock": "Klok",
+  "Current time in any timezone — digital or analog. Add one per office so you can see who is awake.": "Huidige tijd in elke tijdzone — digitaal of analoog. Voeg er één per kantoor toe zodat je kunt zien wie wakker is.",
   "Frequency": "Frequentie",
   "Friendly description for this config so you remember what this is about.": "Vriendelijke beschrijving voor deze configuratie zodat u weet waar dit over gaat.",
   "Friendly description for this Kubernetes cluster.": "Vriendelijke beschrijving voor dit Kubernetes-cluster.",

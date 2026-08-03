@@ -2632,6 +2632,8 @@
   "Forwarded Bytes": "已轉送位元組",
   "Forwarded Packets": "已轉送封包",
   "Free-form Markdown text for headers and notes.": "用於標頭和備註的自由格式 Markdown 文字。",
+  "Clock": "時鐘",
+  "Current time in any timezone — digital or analog. Add one per office so you can see who is awake.": "任何時區的目前時間 — 數位或指針式。為每個辦公室新增一個，即可看出誰醒著。",
   "Frequency": "頻率",
   "Friendly description for this config so you remember what this is about.": "此設定的易記描述,以便您記得這是關於什麼的。",
   "Friendly description for this Kubernetes cluster.": "此 Kubernetes 叢集的易記描述。",

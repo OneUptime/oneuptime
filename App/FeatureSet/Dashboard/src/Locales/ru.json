@@ -2632,6 +2632,8 @@
   "Forwarded Bytes": "Переслано байтов",
   "Forwarded Packets": "Переслано пакетов",
   "Free-form Markdown text for headers and notes.": "Текст в свободной форме на Markdown для заголовков и заметок.",
+  "Clock": "Часы",
+  "Current time in any timezone — digital or analog. Add one per office so you can see who is awake.": "Текущее время в любом часовом поясе — цифровые или аналоговые. Добавьте отдельные часы для каждого офиса, чтобы видеть, кто уже проснулся.",
   "Frequency": "Частота",
   "Friendly description for this config so you remember what this is about.": "Понятное описание этой конфигурации, чтобы вы помнили, о чём она.",
   "Friendly description for this Kubernetes cluster.": "Понятное описание для этого кластера Kubernetes.",
