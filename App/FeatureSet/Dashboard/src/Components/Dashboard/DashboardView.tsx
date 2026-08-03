@@ -56,6 +56,7 @@ import DashboardDockerSwarmNodeListComponentUtil from "Common/Utils/Dashboard/Co
 import DashboardDockerSwarmServiceListComponentUtil from "Common/Utils/Dashboard/Components/DashboardDockerSwarmServiceListComponent";
 import DashboardCephOsdListComponentUtil from "Common/Utils/Dashboard/Components/DashboardCephOsdListComponent";
 import DashboardCephPoolListComponentUtil from "Common/Utils/Dashboard/Components/DashboardCephPoolListComponent";
+import DashboardHtmlComponentUtil from "Common/Utils/Dashboard/Components/DashboardHtmlComponent";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import Dashboard from "Common/Models/DatabaseModels/Dashboard";
@@ -717,6 +718,10 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
           if (componentType === DashboardComponentType.CephPoolList) {
             newComponent =
               DashboardCephPoolListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.Html) {
+            newComponent = DashboardHtmlComponentUtil.getDefaultComponent();
           }
 
           if (!newComponent) {

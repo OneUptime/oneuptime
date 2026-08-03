@@ -38,6 +38,7 @@ enum DashboardComponentType {
   DockerSwarmServiceList = `DockerSwarmServiceList`,
   CephOsdList = `CephOsdList`,
   CephPoolList = `CephPoolList`,
+  Html = `Html`,
 }
 
 export default DashboardComponentType;

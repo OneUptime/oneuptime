@@ -56,6 +56,49 @@ Ett statiskt block med Markdown.
 
 Använd den när: du vill ha en sektionsrubrik, ett stycke sammanhang, en lista med länkar till runbooks eller en tillfällig banner under en incident.
 
+## HTML
+
+Din egen HTML, CSS och JavaScript, renderad som en widget.
+
+**Inställningar**: HTML-bodyn, en valfri stilmall, ett valfritt skript och tre behörighetsreglage.
+
+Använd den när: du behöver något som ingen inbyggd widget täcker — en inbäddad badge från tredje part, en tabell hämtad från ett internt API, en egen teckenförklaring, en uppsättning stilsatta länkar in i dina egna verktyg.
+
+### Vad den kan och inte kan göra
+
+Widgeten renderas i en sandlådeisolerad ram på ett eget isolerat ursprung (origin). Inne i den ramen kan din kod göra i stort sett vad som helst: bygga DOM, köra timers, hämta från vilken URL som helst, rita på en canvas.
+
+Vad den inte kan göra är att nå OneUptime-sidan runt omkring. Den har ingen åtkomst till instrumentpanelens DOM, cookies, lokal lagring eller API-session, och den kan inte navigera bort webbläsarfliken. Det gäller oavsett om instrumentpanelen är privat eller delas offentligt.
+
+Två konsekvenser värda att känna till innan du klistrar in något:
+
+- En `fetch` från widgeten är en cross-origin-förfrågan från ett opakt ursprung, så servern du anropar måste tillåta den med CORS. Att anropa OneUptimes API härifrån stöds inte.
+- Widgeten börjar transparent. Sätt en bakgrund på `body` i din CSS om du vill att den ska fylla kortet.
+
+### Använda instrumentpanelsvariabler
+
+Skriv `{{variableName}}` var som helst i HTML, CSS eller JavaScript så ersätts det med variabelns aktuella värde innan widgeten renderas. Att välja ett nytt värde renderar om widgeten. En platshållare som namnger en variabel som inte finns lämnas som den är.
+
+Skript får samma värden, plus instrumentpanelens tidsintervall, på `window.ONEUPTIME`:
+
+```javascript
+window.ONEUPTIME.variables.environment; // aktuellt värde, eller "" om det inte är satt
+window.ONEUPTIME.startDate; // ISO 8601-sträng, början på instrumentpanelens tidsintervall
+window.ONEUPTIME.endDate; // ISO 8601-sträng, slutet på det
+```
+
+Widgeten laddas om varje gång instrumentpanelen uppdateras, så en widget som hämtar sina egna data håller jämna steg med uppdateringsintervallet.
+
+### Behörigheter
+
+**Run JavaScript** (kör JavaScript, på som standard) kör ditt skript. Stäng av den för att bara rendera markup och stilar — skriptet utelämnas då helt från widgeten snarare än att bara blockeras.
+
+**Open links in a new tab** (öppna länkar i en ny flik, på som standard) låter länkar och `window.open` öppna en webbläsarflik. Länkar öppnas alltid i en ny flik; widgeten kan aldrig navigera instrumentpanelen själv.
+
+**Allow forms to submit** (tillåt formulär att skickas, av som standard) låter ett `<form>` inuti widgeten skickas.
+
+Alla som kan redigera instrumentpanelen bestämmer vad den här widgeten kör, och alla som visar instrumentpanelen kör den — på en offentlig instrumentpanel inkluderar det anonyma besökare. Behandla redigeringsåtkomst till en instrumentpanel som bär på en HTML-widget på samma sätt som du skulle behandla åtkomst till vilken annan kod du levererar som helst.
+
 ## Loggar och traces
 
 ### Log Stream
@@ -143,6 +186,7 @@ Några snabba regler:
 - **Vad händer i systemet just nu?** Log Stream, Trace List, Incident List.
 - **Tillståndet för en specifik grupp av resurser?** Den matchande listwidgeten.
 - **En rubrik, ett stycke eller en länk?** Text.
+- **Något som inget av ovanstående täcker?** HTML — men bara efter att du kontrollerat att en inbyggd widget verkligen inte klarar det.
 
 De flesta instrumentpaneler blandar några — ett diagram högst upp, ett värde eller två bredvid, en text-avgränsare och en lista eller två nedanför.
 

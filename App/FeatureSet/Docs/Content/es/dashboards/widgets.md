@@ -56,6 +56,49 @@ Un bloque estático de Markdown.
 
 Úsalo cuando: quieres un encabezado de sección, un párrafo de contexto, una lista de enlaces a runbooks o una banderola temporal durante un incidente.
 
+## HTML
+
+Tu propio HTML, CSS y JavaScript, renderizado como un widget.
+
+**Configuración**: el cuerpo HTML, una hoja de estilos opcional, un script opcional y tres interruptores de permisos.
+
+Úsalo cuando: necesitas algo que ningún widget integrado cubre: una insignia de terceros incrustada, una tabla extraída de una API interna, una leyenda personalizada, un conjunto de enlaces con estilo hacia tus propias herramientas.
+
+### Qué puede y qué no puede hacer
+
+El widget se renderiza en un marco con sandbox, en su propio origen aislado. Dentro de ese marco tu código puede hacer prácticamente cualquier cosa: construir el DOM, ejecutar temporizadores, hacer fetch a cualquier URL, dibujar en un canvas.
+
+Lo que no puede hacer es alcanzar la página de OneUptime que lo rodea. No tiene acceso al DOM del panel, ni a las cookies, ni al almacenamiento local, ni a la sesión de la API, y no puede sacar la pestaña del navegador a otra página. Esto se cumple tanto si el panel es privado como si se comparte públicamente.
+
+Dos consecuencias que conviene conocer antes de pegar algo dentro:
+
+- Un `fetch` desde el widget es una solicitud de origen cruzado desde un origen opaco, así que el servidor al que llamas tiene que permitirla con CORS. No se admite llamar a la API de OneUptime desde aquí.
+- El widget empieza siendo transparente. Establece un fondo en `body` en tu CSS si quieres que rellene la tarjeta.
+
+### Usar variables del panel
+
+Escribe `{{variableName}}` en cualquier lugar del HTML, CSS o JavaScript y se reemplaza por el valor actual de esa variable antes de que el widget se renderice. Elegir un valor nuevo vuelve a renderizar el widget. Un marcador de posición que nombra una variable que no existe se deja tal cual.
+
+Los scripts reciben los mismos valores, más el rango de tiempo del panel, en `window.ONEUPTIME`:
+
+```javascript
+window.ONEUPTIME.variables.environment; // valor actual, o "" si no está definido
+window.ONEUPTIME.startDate; // cadena ISO 8601, inicio del rango de tiempo del panel
+window.ONEUPTIME.endDate; // cadena ISO 8601, fin del mismo
+```
+
+El widget se recarga cada vez que el panel se actualiza, así que un widget que obtiene sus propios datos sigue el ritmo del intervalo de actualización.
+
+### Permisos
+
+**Run JavaScript** (ejecutar JavaScript; activado de forma predeterminada) ejecuta tu script. Desactívalo para renderizar solo el marcado y los estilos: en ese caso el script se omite por completo del widget en lugar de solo bloquearse.
+
+**Open links in a new tab** (abrir enlaces en una pestaña nueva; activado de forma predeterminada) permite que los enlaces y `window.open` abran una pestaña del navegador. Los enlaces siempre se abren en una pestaña nueva; el widget nunca puede navegar el panel en sí.
+
+**Allow forms to submit** (permitir el envío de formularios; desactivado de forma predeterminada) permite que un `<form>` dentro del widget se envíe.
+
+Cualquiera que pueda editar el panel decide qué ejecuta este widget, y todo el que ve el panel lo ejecuta: en un panel público, eso incluye a visitantes anónimos. Trata el acceso de edición a un panel que lleva un widget HTML igual que tratarías el acceso a cualquier otro código que publicas.
+
 ## Logs y trazas
 
 ### Flujo de Logs
@@ -143,6 +186,7 @@ Algunas reglas rápidas:
 - **¿Qué está pasando en el sistema ahora mismo?** Flujo de Logs, Lista de Trazas, Lista de Incidentes.
 - **¿El estado de un grupo específico de recursos?** El widget de lista correspondiente.
 - **¿Un encabezado, un párrafo o un enlace?** Texto.
+- **¿Algo que no cubre nada de lo anterior?** HTML — pero solo después de comprobar que un widget integrado realmente no puede hacerlo.
 
 La mayoría de los paneles mezclan varios: un gráfico en la parte superior, uno o dos valores al lado, un divisor de texto y una o dos listas debajo.
 

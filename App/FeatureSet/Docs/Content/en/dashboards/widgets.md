@@ -56,6 +56,49 @@ A static block of Markdown.
 
 Use it when: you want a section heading, a paragraph of context, a list of links to runbooks, or a temporary banner during an incident.
 
+## HTML
+
+Your own HTML, CSS, and JavaScript, rendered as a widget.
+
+**Settings**: the HTML body, an optional stylesheet, an optional script, and three permission toggles.
+
+Use it when: you need something no built-in widget covers — an embedded third-party badge, a table pulled from an internal API, a custom legend, a set of styled links into your own tools.
+
+### What it can and cannot do
+
+The widget renders in a sandboxed frame on its own isolated origin. Inside that frame your code can do more or less anything: build DOM, run timers, fetch from any URL, draw on a canvas.
+
+What it cannot do is reach the OneUptime page around it. It has no access to the dashboard's DOM, cookies, local storage, or API session, and it cannot navigate the browser tab away. That holds whether the dashboard is private or shared publicly.
+
+Two consequences worth knowing before you paste something in:
+
+- A `fetch` from the widget is a cross-origin request from an opaque origin, so the server you call has to allow it with CORS. Calling the OneUptime API from here is not supported.
+- The widget starts transparent. Set a background on `body` in your CSS if you want it to fill the card.
+
+### Using dashboard variables
+
+Write `{{variableName}}` anywhere in the HTML, CSS, or JavaScript and it is replaced with that variable's current value before the widget renders. Picking a new value re-renders the widget. A placeholder naming a variable that does not exist is left as-is.
+
+Scripts get the same values, plus the dashboard's time range, on `window.ONEUPTIME`:
+
+```javascript
+window.ONEUPTIME.variables.environment; // current value, or "" if unset
+window.ONEUPTIME.startDate; // ISO 8601 string, start of the dashboard's time range
+window.ONEUPTIME.endDate; // ISO 8601 string, end of it
+```
+
+The widget reloads whenever the dashboard refreshes, so a widget that fetches its own data keeps up with the refresh interval.
+
+### Permissions
+
+**Run JavaScript** (on by default) runs your script. Turn it off to render markup and styles only — the script is then left out of the widget entirely rather than merely blocked.
+
+**Open links in a new tab** (on by default) lets links and `window.open` open a browser tab. Links always open in a new tab; the widget can never navigate the dashboard itself.
+
+**Allow forms to submit** (off by default) lets a `<form>` inside the widget submit.
+
+Anyone who can edit the dashboard decides what this widget runs, and everyone who views the dashboard runs it — on a public dashboard, that includes anonymous visitors. Treat edit access to a dashboard carrying an HTML widget the way you would treat access to any other code you ship.
+
 ## Logs and traces
 
 ### Log Chart
@@ -162,6 +205,7 @@ A few quick rules:
 - **What's happening in the system right now?** Log Stream, Trace List, Incident List.
 - **The state of a specific group of resources?** The matching list widget.
 - **A heading, a paragraph, or a link?** Text.
+- **Something none of the above covers?** HTML — but only after checking that a built-in widget really can't do it.
 
 Most dashboards mix a few — a chart at the top, a value or two beside it, a text divider, and a list or two below.
 

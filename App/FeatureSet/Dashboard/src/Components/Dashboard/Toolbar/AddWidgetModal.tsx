@@ -59,6 +59,13 @@ const WIDGET_CATALOG: ReadonlyArray<CatalogCategory> = [
         icon: IconProp.Text,
         description: "Free-form Markdown text for headers and notes.",
       },
+      {
+        type: DashboardComponentType.Html,
+        label: "HTML",
+        icon: IconProp.Code,
+        description:
+          "Your own HTML, CSS, and JavaScript, rendered in a sandbox.",
+      },
     ],
   },
   {
