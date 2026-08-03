@@ -220,6 +220,13 @@ export interface ComponentProps {
   links: Array<SiteLinkView>;
   childrenTruncated: boolean;
   descendantCountsTruncated: boolean;
+  /*
+   * What the page's search box narrowed `sites` down to, if anything. The
+   * graph filters nothing itself — it is handed the survivors — but an empty
+   * result has to read as "nothing matches" rather than as "this site has no
+   * children", which is a different and much more alarming statement.
+   */
+  searchText?: string | undefined;
   onSiteClick: (siteId: string) => void;
 }
 
@@ -432,23 +439,37 @@ const SiteContainerGraph: FunctionComponent<ComponentProps> = (
   }, [hasNodes]);
 
   if (props.sites.length === 0) {
+    const searchText: string = (props.searchText || "").trim();
     return (
       /*
        * EmptyState ships 13rem of vertical padding for a full-page
        * placeholder; inside this page's card that reads as a hole.
        */
       <div className="-my-28">
-        <EmptyState
-          id="site-container-empty"
-          icon={IconProp.SquareStack}
-          title="No child sites here yet"
-          description={
-            <span className="mx-auto block max-w-md">
-              Sites added under this one (and network devices assigned to them)
-              will appear here as a map.
-            </span>
-          }
-        />
+        {searchText ? (
+          <EmptyState
+            id="site-container-no-search-match"
+            icon={IconProp.Search}
+            title="No child sites match your search"
+            description={
+              <span className="mx-auto block max-w-md">
+                {`Nothing under this site matches “${searchText}”. Clear the search to see all of its children again.`}
+              </span>
+            }
+          />
+        ) : (
+          <EmptyState
+            id="site-container-empty"
+            icon={IconProp.SquareStack}
+            title="No child sites here yet"
+            description={
+              <span className="mx-auto block max-w-md">
+                Sites added under this one (and network devices assigned to
+                them) will appear here as a map.
+              </span>
+            }
+          />
+        )}
       </div>
     );
   }
