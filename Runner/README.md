@@ -13,9 +13,9 @@ It serves two kinds of work, each independently switchable:
 | Runs Runbooks | on | Claims Bash and JavaScript runbook steps and executes them here, so the systems being operated on never need to be reachable from OneUptime. |
 | Runs AI Code Fixes | off | Claims AI code-fix runs, works in your connected code repositories and opens **draft** pull requests. Never writes to the default or protected branches. |
 
-Capabilities are set **in the dashboard**, on the Runner itself — the container
-picks them up when it starts, and turning one off stops the Runner taking that
-work right away. Nothing needs to be redeployed to revoke a capability.
+Capabilities are set **in the dashboard**, on the Runner itself. The Runner
+adopts a change on its next heartbeat — within a minute by default — so turning
+one on or off takes effect without restarting or redeploying the container.
 
 ## Install
 
@@ -31,7 +31,8 @@ docker run --name oneuptime-runner --restart unless-stopped \
 ```
 
 To let this Runner open AI fix pull requests as well, turn on **Runs AI Code
-Fixes** on the Runner in the dashboard and restart the container.
+Fixes** on the Runner in the dashboard. It starts claiming that work on its next
+heartbeat.
 
 ## Configuration
 

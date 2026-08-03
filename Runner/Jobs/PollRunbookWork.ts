@@ -1,6 +1,7 @@
 import { MAX_CONCURRENT_JOBS, POLL_INTERVAL_MS } from "../Config";
 import AgentClient, { ClaimedJob } from "../Services/RunbookAgentClient";
 import Executor from "../Services/RunbookExecutor";
+import RunnerCapabilities from "../Utils/RunnerCapabilities";
 import logger from "Common/Server/Utils/Logger";
 
 export default function startPolling(): void {
@@ -27,6 +28,17 @@ export default function startPolling(): void {
 
   const tick: () => Promise<void> = async (): Promise<void> => {
     if (state.stopped) {
+      return;
+    }
+
+    /*
+     * Read on every tick, not once at boot: the dashboard is the control
+     * plane for capabilities and the heartbeat adopts changes as they happen,
+     * so revoking runbook execution stops this loop claiming within a
+     * heartbeat — and granting it starts claiming without a restart. Claims
+     * already in flight are left to finish and report.
+     */
+    if (!RunnerCapabilities.resolve().canRunRunbooks) {
       return;
     }
 

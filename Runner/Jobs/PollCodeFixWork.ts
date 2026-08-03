@@ -1,5 +1,6 @@
 import { ONEUPTIME_BASE_URL } from "../Config";
 import RunnerAPIRequest from "../Utils/RunnerAPIRequest";
+import RunnerCapabilities from "../Utils/RunnerCapabilities";
 import AIAgentTaskLog from "../Utils/CodeFixTaskLog";
 import TaskLogger from "../Utils/TaskLogger";
 import BackendAPI from "../Utils/BackendAPI";
@@ -172,6 +173,19 @@ const startTaskProcessingLoop: () => Promise<void> =
     /* Continuous loop to process tasks */
     while (true) {
       try {
+        /*
+         * Read on every pass, not once at boot: the dashboard is the control
+         * plane for capabilities and the heartbeat adopts changes as they
+         * happen. Revoking code fixes stops this loop claiming within a
+         * heartbeat — which also keeps it from hammering an endpoint that
+         * would now reject it — and granting them starts claiming without a
+         * restart.
+         */
+        if (!RunnerCapabilities.resolve().canRunCodeFixTasks) {
+          await Sleep.sleep(SLEEP_WHEN_NO_TASKS_MS);
+          continue;
+        }
+
         /* Fetch one scheduled task */
         const getPendingTaskResult: HTTPResponse<JSONObject> = await API.post({
           url: getPendingTaskUrl,
