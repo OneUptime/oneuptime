@@ -30,9 +30,26 @@ export default class SSOUtil {
   private static readonly XMLDSIG_NAMESPACE: string =
     "http://www.w3.org/2000/09/xmldsig#";
 
+  private static readonly SAML_PROTOCOL_NAMESPACE: string =
+    "urn:oasis:names:tc:SAML:2.0:protocol";
+
   private static readonly SAML_ASSERTION_NAMESPACES: Array<string> = [
     "urn:oasis:names:tc:SAML:2.0:assertion",
     "urn:oasis:names:tc:SAML:1.0:assertion",
+  ];
+
+  /*
+   * The only top-level <StatusCode> value that means "the user authenticated".
+   * SAML 2.0 Core, section 3.2.2.2.
+   */
+  private static readonly SAML_STATUS_SUCCESS: string =
+    "urn:oasis:names:tc:SAML:2.0:status:Success";
+
+  // xml-crypto resolves same-document references against these attribute names.
+  private static readonly ID_ATTRIBUTE_LOCAL_NAMES: Array<string> = [
+    "ID",
+    "Id",
+    "id",
   ];
 
   // Microsoft display name claim - the only "full name" claim we read today.
@@ -66,23 +83,56 @@ export default class SSOUtil {
    * SAME assertion that the signature actually covers.
    *
    * This is the single, safe entry point that every SAML login flow must use.
-   * It defends against XML Signature Wrapping (XSW): the historic implementation
-   * validated whichever <Signature> element appeared first and then extracted the
-   * identity from an independently parsed tree, so an attacker could hide a
-   * genuinely signed assertion (e.g. inside <Extensions>) while presenting a
-   * forged assertion for consumption. See GitHub issue #2949.
+   * It defends against XML Signature Wrapping (XSW) - the family of attacks
+   * where a genuinely signed element and the element we actually read are not
+   * the same element.
    *
-   * The checks below make that impossible:
-   *   1. The document must be well-formed XML with no DOCTYPE / entity
-   *      declarations (blocks XXE and entity-expansion / parser-differential
-   *      tricks).
-   *   2. The document must contain EXACTLY ONE <Assertion> element anywhere in
-   *      the tree (blocks decoy / wrapped assertions - every XSW variant needs a
-   *      second assertion to hide behind).
-   *   3. A <Signature> must validate against the configured certificate AND its
-   *      reference must resolve to that one assertion (or an ancestor that
-   *      contains it). This binds "what was signed" to "what we read".
-   *   4. The identity-bearing nodes must not contain XML comments (blocks the
+   * Two reported bypasses shaped this code:
+   *
+   *   - GitHub issue #2949: the original implementation validated whichever
+   *     <Signature> appeared first and then extracted the identity from an
+   *     independently parsed tree, so a genuinely signed assertion could be
+   *     hidden (e.g. inside <Extensions>) while a forged sibling assertion was
+   *     consumed.
+   *
+   *   - GitHub issue #2981: counting assertions is not sufficient. The
+   *     enveloped-signature transform removes the whole <Signature> subtree
+   *     from the digest, so ANY element parked inside a <Signature> is
+   *     unauthenticated even though the signature validates. An attacker who
+   *     replays a genuinely signed *error* Response (which legitimately carries
+   *     no assertion) can park a forged assertion inside a <Signature> and it
+   *     becomes the document's one and only assertion. xml-crypto makes this
+   *     easier still: its enveloped-signature transform strips every
+   *     <Signature> whose <SignatureValue> text matches the one being verified,
+   *     so a decoy <Signature> that merely repeats the genuine
+   *     <SignatureValue> is removed from the digest too.
+   *
+   * The defence is to stop reasoning about "is this signed?" in isolation and
+   * instead pin the document to the shape SAML actually defines, so that the
+   * element we read cannot be anywhere except inside the signed payload:
+   *
+   *   1. Well-formed XML with no DOCTYPE / entity declarations (blocks XXE,
+   *      entity expansion and parser-differential tricks).
+   *   2. The root MUST be <samlp:Response> (SAML 2.0 protocol namespace).
+   *   3. No encrypted elements - we cannot decrypt them, and silently reading
+   *      around them would mean reading unauthenticated data.
+   *   4. EXACTLY ONE <Assertion> in the whole document, and it MUST be a direct
+   *      child of the root <Response>. Per SAML 2.0 Core (ResponseType) that is
+   *      the only place an assertion may legitimately appear, and it makes
+   *      every "hide the real one / smuggle a fake one" placement impossible.
+   *   5. Every <ds:Signature> MUST be a direct child of the root <Response> or
+   *      of the Assertion (SAML 2.0 Core: StatusResponseType and AssertionType
+   *      each allow at most one), no two signatures may share a parent, no two
+   *      may share a <SignatureValue>, and no signature may carry a payload
+   *      (<ds:Object> or SAML content) inside it.
+   *   6. A <Signature> must validate against the configured certificate AND at
+   *      least one of its verified references must resolve to exactly one
+   *      element which is the Assertion itself or the root <Response>.
+   *   7. The <Status> must be a top-level Success. SAML 2.0 Profiles 4.1.4.2:
+   *      an identity provider returning an error "MUST NOT include any
+   *      assertions in the <Response> message", so an assertion delivered
+   *      alongside an error status is by definition not one the IdP issued.
+   *   8. The identity-bearing nodes must not contain XML comments (blocks the
    *      SAML comment-truncation class of attacks).
    *
    * Throws BadRequestException on any anomaly.
@@ -91,25 +141,10 @@ export default class SSOUtil {
     samlResponse: string,
     certificate: string,
   ): VerifiedSamlResponse {
-    if (!certificate) {
-      throw new BadRequestException("Public Certificate not found");
-    }
-
-    const dom: XmlDocument = SSOUtil.parseXmlStrict(samlResponse);
-    const assertion: XmlElement = SSOUtil.getSingleAssertion(dom);
-
-    if (
-      !SSOUtil.verifyAssertionSignature(
-        samlResponse,
-        certificate,
-        dom,
-        assertion,
-      )
-    ) {
-      throw new BadRequestException(
-        "Signature is not valid or Public Certificate configured with this SSO provider is not valid",
-      );
-    }
+    const assertion: XmlElement = SSOUtil.verifyAndGetAssertion(
+      samlResponse,
+      certificate,
+    );
 
     return {
       issuerUrl: SSOUtil.getIssuerFromAssertion(assertion),
@@ -128,23 +163,52 @@ export default class SSOUtil {
     certificate: string,
   ): boolean {
     try {
-      if (!certificate) {
-        return false;
-      }
-
-      const dom: XmlDocument = SSOUtil.parseXmlStrict(samlResponse);
-      const assertion: XmlElement = SSOUtil.getSingleAssertion(dom);
-
-      return SSOUtil.verifyAssertionSignature(
-        samlResponse,
-        certificate,
-        dom,
-        assertion,
-      );
+      SSOUtil.verifyAndGetAssertion(samlResponse, certificate);
+      return true;
     } catch (err) {
       logger.error(err);
       return false;
     }
+  }
+
+  /*
+   * The single verification pipeline. Returns the one assertion that the
+   * signature provably covers, or throws.
+   */
+  private static verifyAndGetAssertion(
+    samlResponse: string,
+    certificate: string,
+  ): XmlElement {
+    if (!certificate) {
+      throw new BadRequestException("Public Certificate not found");
+    }
+
+    const dom: XmlDocument = SSOUtil.parseXmlStrict(samlResponse);
+    const response: XmlElement = SSOUtil.getResponseElement(dom);
+
+    SSOUtil.assertNoEncryptedElements(dom);
+
+    const assertion: XmlElement = SSOUtil.getSingleAssertion(dom, response);
+
+    SSOUtil.assertSignaturesAreWellPlaced(dom, response, assertion);
+
+    if (
+      !SSOUtil.verifyAssertionSignature(
+        samlResponse,
+        certificate,
+        dom,
+        response,
+        assertion,
+      )
+    ) {
+      throw new BadRequestException(
+        "Signature is not valid or Public Certificate configured with this SSO provider is not valid",
+      );
+    }
+
+    SSOUtil.assertStatusIsSuccess(dom, response);
+
+    return assertion;
   }
 
   /*
@@ -191,12 +255,65 @@ export default class SSOUtil {
   }
 
   /*
-   * Return the single Assertion element in the document, or throw. Counting
-   * assertions across the WHOLE document (any namespace, including a wrapped or
-   * nested one) is what defeats signature-wrapping: the attack fundamentally
-   * needs a second assertion to hide the genuine signature behind.
+   * The document element must be a SAML 2.0 protocol <Response>. Anchoring on
+   * the root - rather than searching the tree for something Response-shaped -
+   * is what lets every later check talk about "direct child of the Response".
    */
-  private static getSingleAssertion(dom: XmlDocument): XmlElement {
+  private static getResponseElement(dom: XmlDocument): XmlElement {
+    const root: XmlElement | null = dom.documentElement;
+
+    if (
+      !root ||
+      root.localName !== "Response" ||
+      root.namespaceURI !== SSOUtil.SAML_PROTOCOL_NAMESPACE
+    ) {
+      throw new BadRequestException(
+        "SAML Response must be a samlp:Response element in the urn:oasis:names:tc:SAML:2.0:protocol namespace",
+      );
+    }
+
+    return root;
+  }
+
+  /*
+   * We do not support encrypted assertions / identifiers / attributes. If one
+   * is present we must fail loudly: quietly reading whatever plaintext sits
+   * next to it would mean reading data the IdP never intended us to consume.
+   */
+  private static assertNoEncryptedElements(dom: XmlDocument): void {
+    const encryptedLocalNames: Array<string> = [
+      "EncryptedAssertion",
+      "EncryptedID",
+      "EncryptedAttribute",
+    ];
+
+    for (const localName of encryptedLocalNames) {
+      const found: Array<XmlElement> = SSOUtil.toElementArray(
+        dom.getElementsByTagNameNS("*", localName),
+      );
+
+      if (found.length > 0) {
+        throw new BadRequestException(
+          "Encrypted SAML Responses are not supported. Please configure this SSO provider to send an unencrypted, signed assertion.",
+        );
+      }
+    }
+  }
+
+  /*
+   * Return the single Assertion element in the document, or throw.
+   *
+   * Counting assertions across the WHOLE document (any namespace, including a
+   * wrapped or nested one) removes the decoy every XSW variant needs. Requiring
+   * that the assertion is a DIRECT CHILD of the root <Response> - the only
+   * position SAML 2.0 Core's ResponseType allows - removes every hiding place,
+   * including the <ds:Object> of a <Signature>, whose whole subtree is stripped
+   * out of the digest by the enveloped-signature transform (issue #2981).
+   */
+  private static getSingleAssertion(
+    dom: XmlDocument,
+    response: XmlElement,
+  ): XmlElement {
     const assertions: Array<XmlElement> = SSOUtil.toElementArray(
       dom.getElementsByTagNameNS("*", "Assertion"),
     );
@@ -219,14 +336,140 @@ export default class SSOUtil {
       throw new BadRequestException("SAML Assertion has an invalid namespace");
     }
 
+    if (assertion.parentNode !== response) {
+      throw new BadRequestException(
+        "SAML Assertion must be a direct child of the SAML Response",
+      );
+    }
+
     return assertion;
+  }
+
+  /*
+   * Constrain where signatures may live and what they may carry.
+   *
+   * SAML 2.0 Core allows at most one <ds:Signature>, as a direct child, on
+   * StatusResponseType (the <Response>) and on AssertionType (the
+   * <Assertion>). Anything else is either an attack or a document we have no
+   * business trusting. Two extra rules close the specific tricks from #2981:
+   *
+   *   - No two signatures may repeat the same <SignatureValue>. xml-crypto's
+   *     enveloped-signature transform deletes EVERY signature whose
+   *     <SignatureValue> matches the one under verification, so a decoy that
+   *     copies the genuine value is silently removed from the digest.
+   *
+   *   - A <Signature> may not carry a payload. Its subtree is excluded from
+   *     the digest of the reference that envelopes it, so a <ds:Object> (or any
+   *     smuggled SAML element) inside it is unauthenticated by construction.
+   */
+  private static assertSignaturesAreWellPlaced(
+    dom: XmlDocument,
+    response: XmlElement,
+    assertion: XmlElement,
+  ): void {
+    const signatures: Array<XmlElement> = SSOUtil.toElementArray(
+      dom.getElementsByTagNameNS(SSOUtil.XMLDSIG_NAMESPACE, "Signature"),
+    );
+
+    let responseSignatureSeen: boolean = false;
+    let assertionSignatureSeen: boolean = false;
+    const signatureValuesSeen: Set<string> = new Set<string>();
+
+    for (const signature of signatures) {
+      const parent: XmlNode | null = signature.parentNode;
+
+      if (parent === response) {
+        if (responseSignatureSeen) {
+          throw new BadRequestException(
+            "SAML Response must not contain more than one Signature",
+          );
+        }
+        responseSignatureSeen = true;
+      } else if (parent === assertion) {
+        if (assertionSignatureSeen) {
+          throw new BadRequestException(
+            "SAML Assertion must not contain more than one Signature",
+          );
+        }
+        assertionSignatureSeen = true;
+      } else {
+        throw new BadRequestException(
+          "An XML Signature in a SAML Response must be a direct child of the Response or of the Assertion",
+        );
+      }
+
+      SSOUtil.assertSignatureCarriesNoPayload(signature);
+
+      const signatureValue: string = SSOUtil.getSignatureValueText(signature);
+
+      if (signatureValuesSeen.has(signatureValue)) {
+        throw new BadRequestException(
+          "SAML Response must not contain two Signatures with the same SignatureValue",
+        );
+      }
+
+      signatureValuesSeen.add(signatureValue);
+    }
+  }
+
+  /*
+   * Nothing that we (or anyone) would read may live inside a <Signature>: the
+   * enveloped-signature transform removes the entire <Signature> subtree before
+   * the digest is computed, so its contents are never authenticated.
+   */
+  private static assertSignatureCarriesNoPayload(signature: XmlElement): void {
+    const descendants: Array<XmlElement> = SSOUtil.toElementArray(
+      signature.getElementsByTagName("*"),
+    );
+
+    for (const element of descendants) {
+      const namespaceUri: string = element.namespaceURI || "";
+
+      if (
+        namespaceUri === SSOUtil.XMLDSIG_NAMESPACE &&
+        element.localName === "Object"
+      ) {
+        throw new BadRequestException(
+          "XML Signature Object elements are not allowed in a SAML Response",
+        );
+      }
+
+      if (
+        namespaceUri === SSOUtil.SAML_PROTOCOL_NAMESPACE ||
+        SSOUtil.SAML_ASSERTION_NAMESPACES.includes(namespaceUri) ||
+        element.localName === "Assertion"
+      ) {
+        throw new BadRequestException(
+          "SAML elements are not allowed inside an XML Signature",
+        );
+      }
+    }
+  }
+
+  private static getSignatureValueText(signature: XmlElement): string {
+    const signatureValues: Array<XmlElement> = SSOUtil.toElementArray(
+      signature.getElementsByTagNameNS(
+        SSOUtil.XMLDSIG_NAMESPACE,
+        "SignatureValue",
+      ),
+    );
+
+    if (signatureValues.length === 0) {
+      return "";
+    }
+
+    return SSOUtil.getTrimmedText(signatureValues[0]!);
   }
 
   /*
    * Verify that some <Signature> in the document:
    *   - validates cryptographically against the configured certificate, and
-   *   - covers the given assertion (its reference resolves to the assertion or
-   *     an ancestor element that contains it).
+   *   - has a verified reference that resolves to exactly one element, and that
+   *     element is the Assertion itself or the root <Response>.
+   *
+   * The references are read back AFTER checkSignature() because xml-crypto
+   * rebuilds them from the canonicalized <SignedInfo> it just verified - the
+   * ones parsed by loadSignature() are still unauthenticated at that point.
    *
    * Only if BOTH hold do we consider the assertion authentic.
    */
@@ -234,6 +477,7 @@ export default class SSOUtil {
     samlResponse: string,
     certificate: string,
     dom: XmlDocument,
+    response: XmlElement,
     assertion: XmlElement,
   ): boolean {
     const signatures: Array<XmlElement> = SSOUtil.toElementArray(
@@ -259,9 +503,14 @@ export default class SSOUtil {
 
         sig.loadSignature(signature.toString());
 
+        // Cryptographically validate digests + signature value.
+        if (!sig.checkSignature(samlResponse)) {
+          continue;
+        }
+
         /*
-         * Before trusting this signature, confirm it actually covers the
-         * assertion we are going to read from. A signature over some unrelated
+         * The signature is genuine. Now confirm it actually covers the
+         * assertion we are going to read from - a signature over some unrelated
          * element must never authenticate a forged assertion.
          */
         const references: Array<{ uri?: string | undefined }> =
@@ -271,18 +520,14 @@ export default class SSOUtil {
           (reference: { uri?: string | undefined }): boolean => {
             return SSOUtil.referenceCoversAssertion(
               dom,
+              response,
               assertion,
               reference.uri,
             );
           },
         );
 
-        if (!coversAssertion) {
-          continue;
-        }
-
-        // Cryptographically validate digests + signature value.
-        if (sig.checkSignature(samlResponse)) {
+        if (coversAssertion) {
           return true;
         }
       } catch (err) {
@@ -296,11 +541,16 @@ export default class SSOUtil {
 
   /*
    * Does a signed Reference (identified by its URI) cover the assertion?
-   * A URI of "" signs the whole document. Otherwise it points at an element by
-   * ID; that element must be the assertion itself or an ancestor of it.
+   *
+   * A URI of "" signs the whole document, whose root is the <Response> that the
+   * assertion is a direct child of. Otherwise it points at an element by ID and
+   * that element must be the Assertion itself or the root <Response>; those are
+   * the only two elements SAML lets a signature apply to, and both contain the
+   * assertion in the digested payload.
    */
   private static referenceCoversAssertion(
     dom: XmlDocument,
+    response: XmlElement,
     assertion: XmlElement,
     uri: string | undefined,
   ): boolean {
@@ -318,10 +568,17 @@ export default class SSOUtil {
       return false;
     }
 
-    return SSOUtil.isAncestorOrSelf(targets[0]!, assertion);
+    const target: XmlElement = targets[0]!;
+
+    return target === assertion || target === response;
   }
 
-  // Find every element carrying an ID / Id / id attribute equal to `id`.
+  /*
+   * Find every element carrying an ID / Id / id attribute equal to `id`.
+   * Matching on the attribute's LOCAL name mirrors how xml-crypto resolves
+   * same-document references, so we can never disagree with it about which
+   * element a reference points at.
+   */
   private static resolveElementsById(
     dom: XmlDocument,
     id: string,
@@ -333,10 +590,30 @@ export default class SSOUtil {
     const matches: Array<XmlElement> = [];
 
     for (const element of all) {
-      for (const attributeName of ["ID", "Id", "id"]) {
+      const attributes: XmlElement["attributes"] | null = element.attributes;
+
+      if (!attributes) {
+        continue;
+      }
+
+      for (let index: number = 0; index < attributes.length; index++) {
+        const attribute: { localName?: string; name?: string; value?: string } =
+          attributes[index] as unknown as {
+            localName?: string;
+            name?: string;
+            value?: string;
+          };
+
+        if (!attribute) {
+          continue;
+        }
+
+        const attributeLocalName: string =
+          attribute.localName || attribute.name || "";
+
         if (
-          element.getAttribute &&
-          element.getAttribute(attributeName) === id
+          SSOUtil.ID_ATTRIBUTE_LOCAL_NAMES.includes(attributeLocalName) &&
+          attribute.value === id
         ) {
           matches.push(element);
           break;
@@ -347,20 +624,72 @@ export default class SSOUtil {
     return matches;
   }
 
-  private static isAncestorOrSelf(
-    ancestor: XmlNode,
-    node: XmlNode | null,
-  ): boolean {
-    let current: XmlNode | null = node;
+  /*
+   * SAML 2.0 Profiles 4.1.4.2: an identity provider that wants to return an
+   * error "MUST NOT include any assertions in the <Response> message". So a
+   * non-Success status can never legitimately accompany an assertion, and a
+   * replayed error Response can never be turned into a login.
+   */
+  private static assertStatusIsSuccess(
+    dom: XmlDocument,
+    response: XmlElement,
+  ): void {
+    const statuses: Array<XmlElement> = SSOUtil.toElementArray(
+      dom.getElementsByTagNameNS(SSOUtil.SAML_PROTOCOL_NAMESPACE, "Status"),
+    );
 
-    while (current) {
-      if (current === ancestor) {
-        return true;
-      }
-      current = current.parentNode;
+    if (statuses.length !== 1) {
+      throw new BadRequestException(
+        "Expected exactly one Status element in SAML Response",
+      );
     }
 
-    return false;
+    const status: XmlElement = statuses[0]!;
+
+    if (status.parentNode !== response) {
+      throw new BadRequestException(
+        "SAML Status must be a direct child of the SAML Response",
+      );
+    }
+
+    const statusCodes: Array<XmlElement> = SSOUtil.getDirectChildrenByLocalName(
+      status,
+      "StatusCode",
+    ).filter((element: XmlElement): boolean => {
+      return element.namespaceURI === SSOUtil.SAML_PROTOCOL_NAMESPACE;
+    });
+
+    if (statusCodes.length !== 1) {
+      throw new BadRequestException(
+        "Expected exactly one StatusCode element in SAML Status",
+      );
+    }
+
+    const statusCode: string = statusCodes[0]!.getAttribute("Value") || "";
+
+    if (statusCode !== SSOUtil.SAML_STATUS_SUCCESS) {
+      throw new BadRequestException(
+        `SAML Response was not successful${SSOUtil.describeStatusCode(
+          statusCode,
+        )}`,
+      );
+    }
+  }
+
+  /*
+   * The status code is attacker-controllable (we have verified a signature, but
+   * not that the signer intended this document). Only echo it back when it
+   * looks like a SAML status URI so it cannot be used to inject junk into
+   * error pages or logs.
+   */
+  private static describeStatusCode(statusCode: string): string {
+    const safeStatusCode: RegExp = /^[A-Za-z0-9:._/-]{1,200}$/;
+
+    if (!statusCode || !safeStatusCode.test(statusCode)) {
+      return "";
+    }
+
+    return `. Status: ${statusCode}`;
   }
 
   private static getIssuerFromAssertion(assertion: XmlElement): string {
@@ -459,6 +788,15 @@ export default class SSOUtil {
     parent: XmlElement,
     localName: string,
   ): XmlElement | null {
+    return SSOUtil.getDirectChildrenByLocalName(parent, localName)[0] || null;
+  }
+
+  private static getDirectChildrenByLocalName(
+    parent: XmlElement,
+    localName: string,
+  ): Array<XmlElement> {
+    const children: Array<XmlElement> = [];
+
     for (
       let child: XmlNode | null = parent.firstChild;
       child;
@@ -468,11 +806,11 @@ export default class SSOUtil {
         child.nodeType === 1 &&
         (child as XmlElement).localName === localName
       ) {
-        return child as XmlElement;
+        children.push(child as XmlElement);
       }
     }
 
-    return null;
+    return children;
   }
 
   private static getTrimmedText(element: XmlElement): string {
