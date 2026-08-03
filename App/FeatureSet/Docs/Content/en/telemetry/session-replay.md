@@ -8,9 +8,9 @@ That default matters. It means a recording almost always exists for the sessions
 
 ## Prerequisites
 
-- A RUM application — create one from _Reliability → RUM → Applications_.
+- A RUM application — create one from _Resources → Real User Monitoring_, or let one be auto-discovered from your telemetry. See [Real User Monitoring](/docs/rum/index).
 - A **Telemetry Ingestion Token** — _Project Settings → Telemetry Ingestion Keys_.
-- Session Replay is **on by default**. You can switch it off per application, or for the whole project, in _RUM → Settings → Session Replay_.
+- Session Replay is **on by default**. You can switch it off per application, or for the whole project, in _Session Replay Settings_ (the gear button on any application's **Session Replay** tab).
 
 ## Install
 
@@ -53,7 +53,7 @@ Session replay works out of the box with an empty origin allowlist, which accept
 
 Your ingestion token lives in plain sight in your page's JavaScript — that is unavoidable for a browser recorder — and the token has no expiry and no origin binding of its own. The allowlist is the only thing that stops someone who copies it from writing forged recordings into your project. The rate limit and daily byte budget bound how *much* they could write; they say nothing about whether it is genuine.
 
-List your domains under _RUM → Settings → Session Replay_ before you point real traffic at it. Once you do, an exact-origin match is required and a request presenting no `Origin` header is refused.
+List your domains under _Session Replay Settings_ before you point real traffic at it. Once you do, an exact-origin match is required and a request presenting no `Origin` header is refused.
 
 Always masked regardless of mode, and not configurable:
 
@@ -80,7 +80,7 @@ Masked values are **not length-preserving**. A masked field is a fixed-width pla
 <div class="oneuptime-ignore">...</div>
 ```
 
-You can also add CSS selectors under _Settings → Session Replay_ without changing your markup.
+You can also add CSS selectors under _Session Replay Settings_ without changing your markup.
 
 ### Consent
 
@@ -107,7 +107,7 @@ If you self-host OneUptime, use your own host instead.
 
 One more CSP-adjacent detail: for playback to render your styles, your stylesheets must be readable by the recorder. A cross-origin stylesheet without `crossorigin="anonymous"` cannot be read, and the session will play back unstyled with a notice explaining why.
 
-Use the **Test your installation** panel in _Settings → Session Replay_ to confirm the token, the origin allowlist and the CSP all line up.
+Use the **Test your installation** panel in _Session Replay Settings_ to confirm the token, the origin allowlist and the CSP all line up.
 
 ## Correlating with your other telemetry
 
@@ -138,7 +138,7 @@ Each budget is off at `0` (the default). Sessions captured this way appear with 
 
 ## Recording a specific user's next session
 
-When a named customer reports a problem you cannot reproduce, you can arm a one-shot target instead of waiting for an error: in **Settings → Session Replay → Record a specific user's next session**, enter the same end-user reference your page supplies and click **Record next session**. That user's next visit records from its first event, labelled with trigger reason **manual**.
+When a named customer reports a problem you cannot reproduce, you can arm a one-shot target instead of waiting for an error: in _Session Replay Settings_ → **Record a specific user's next session**, enter the same end-user reference your page supplies and click **Record next session**. That user's next visit records from its first event, labelled with trigger reason **manual**.
 
 Honest limits, so "armed" is not misread as "guaranteed":
 
