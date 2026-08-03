@@ -212,16 +212,78 @@ describe("UserSmsAPI", () => {
       expect(response).toHaveBeenCalledWith(mockRequest, mockResponse, error);
     });
 
+    it("should handle Item not found", async () => {
+      const error: BadDataException = new BadDataException("Item not found");
+      mockRequest.body = {
+        itemId: "item1",
+      };
+      mockRequest.userAuthorization = {
+        userId: new ObjectID("user123"),
+      } as JSONWebTokenData;
+
+      UserSmsService.findOneById = jest.fn().mockResolvedValue(null);
+      UserSmsService.resendVerificationCode = jest.fn().mockResolvedValue(null);
+
+      await mockRouter
+        .match("post", "/user-sms/resend-verification-code")
+        .handlerFunction(mockRequest, mockResponse, nextFunction);
+
+      const response: jest.SpyInstance = jest.spyOn(
+        Response,
+        "sendErrorResponse",
+      );
+      expect(response).toHaveBeenCalledWith(mockRequest, mockResponse, error);
+      expect(UserSmsService.resendVerificationCode).not.toHaveBeenCalled();
+    });
+
+    /*
+     * CVE-2026-30959 regression: the resend route must not send a verification
+     * code for an item that belongs to a different user.
+     */
+    it("should reject an itemId that belongs to another user", async () => {
+      const error: BadDataException = new BadDataException("Invalid user ID");
+      mockRequest.body = {
+        itemId: "item1",
+      };
+      mockRequest.userAuthorization = {
+        userId: new ObjectID("user123"),
+      } as JSONWebTokenData;
+
+      const item: UserSMS = {
+        _id: "123",
+        userId: new ObjectID("user321"),
+      } as UserSMS;
+
+      UserSmsService.findOneById = jest.fn().mockResolvedValue(item);
+      UserSmsService.resendVerificationCode = jest.fn().mockResolvedValue(null);
+
+      await mockRouter
+        .match("post", "/user-sms/resend-verification-code")
+        .handlerFunction(mockRequest, mockResponse, nextFunction);
+
+      const response: jest.SpyInstance = jest.spyOn(
+        Response,
+        "sendErrorResponse",
+      );
+      expect(response).toHaveBeenCalledWith(mockRequest, mockResponse, error);
+      expect(UserSmsService.resendVerificationCode).not.toHaveBeenCalled();
+    });
+
     it("should handle valid response resend", async () => {
       mockRequest.body = {
         itemId: "item1",
-        code: "123456",
       };
 
       mockRequest.userAuthorization = {
         userId: new ObjectID("user123"),
       } as JSONWebTokenData;
 
+      const item: UserSMS = {
+        _id: "123",
+        userId: new ObjectID("user123"),
+      } as UserSMS;
+
+      UserSmsService.findOneById = jest.fn().mockResolvedValue(item);
       UserSmsService.resendVerificationCode = jest
         .fn()
         .mockImplementation(() => {
@@ -229,8 +291,12 @@ describe("UserSmsAPI", () => {
         });
 
       await mockRouter
-        .match("post", "/user-sms/verify")
+        .match("post", "/user-sms/resend-verification-code")
         .handlerFunction(mockRequest, mockResponse, nextFunction);
+
+      expect(UserSmsService.resendVerificationCode).toHaveBeenCalledWith(
+        "item1",
+      );
 
       const response: jest.SpyInstance = jest.spyOn(
         Response,

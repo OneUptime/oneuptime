@@ -19,6 +19,8 @@ import HostProcesses from "../Pages/Host/View/Processes";
 import HostProcessView from "../Pages/Host/View/ProcessView";
 import HostServices from "../Pages/Host/View/Services";
 import HostServiceView from "../Pages/Host/View/ServiceView";
+import HostSystemdUnits from "../Pages/Host/View/SystemdUnits";
+import HostSystemdUnitView from "../Pages/Host/View/SystemdUnitView";
 import HostLogs from "../Pages/Host/View/Logs";
 import HostTraces from "../Pages/Host/View/Traces";
 import HostProfiles from "../Pages/Host/View/Profiles";
@@ -151,6 +153,29 @@ const HostRoutes: FunctionComponent<ComponentProps> = (
             <HostServiceView
               {...props}
               pageRoute={RouteMap[PageMap.HOST_VIEW_SERVICE_VIEW] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.HOST_VIEW_SYSTEMD_UNITS)}
+          element={
+            <HostSystemdUnits
+              {...props}
+              pageRoute={RouteMap[PageMap.HOST_VIEW_SYSTEMD_UNITS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.HOST_VIEW_SYSTEMD_UNIT_VIEW,
+            2,
+          )}
+          element={
+            <HostSystemdUnitView
+              {...props}
+              pageRoute={RouteMap[PageMap.HOST_VIEW_SYSTEMD_UNIT_VIEW] as Route}
             />
           }
         />

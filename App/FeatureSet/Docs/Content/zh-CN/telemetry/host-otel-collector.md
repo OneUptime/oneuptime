@@ -7,6 +7,7 @@
 - 适用于所有操作系统的**主机指标**（CPU、内存、磁盘、文件系统、网络、负载、进程）
 - 通过 [`filelogreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/filelogreceiver) 采集 `/var/log/**` 下的**基于文件的日志**（Linux、macOS）
 - 通过 [`journaldreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/journaldreceiver) 采集 **systemd journal**（Linux）
+- 通过 [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver) 采集 **systemd 单元状态**（为主机的 **Systemd Units** 标签页提供数据）—— 从 **v0.142.0** 起已打包进上游的 `otelcol-contrib` 构建中，从 **v0.143.0** 起才真正可用（见下文“Linux 服务（systemd 单元）”）
 - 通过 [`logstransformprocessor`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/logstransformprocessor) 包装对 `log stream` 输出的 tail 来采集 **Apple Unified Log**（macOS）
 - 通过 [`windowseventlogreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowseventlogreceiver) 采集 **Windows 事件日志**
 - 通过 [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver) 采集 **Windows 服务状态**（为主机的 **Services** 标签页提供数据）—— 从 **v0.155.0** 起已打包进上游的 `otelcol-contrib` 构建中（见下文“Windows 服务（指标）”）
@@ -16,7 +17,7 @@
 ## 前提条件
 
 - 一个 **OneUptime 遥测接入令牌（Telemetry Ingestion Token）**——从 _Project Settings → Telemetry Ingestion Keys_ 创建一个，并复制 `x-oneuptime-token` 值。
-- **OpenTelemetry Collector Contrib** 发行版（`otelcol-contrib`）。默认的 `otelcol` 构建**不**包含诸如 `windowseventlogreceiver`、`journaldreceiver` 或 `hostmetrics` 附加项之类的接收器——请务必使用 `contrib` 发行版。为 Windows **Services** 标签页提供数据的 alpha 阶段 `windowsservicereceiver` 从 **v0.155.0** 起已打包进 `otelcol-contrib` 中，因此请安装较新的发布版；见下文“Windows 服务（指标）”。
+- **OpenTelemetry Collector Contrib** 发行版（`otelcol-contrib`）。默认的 `otelcol` 构建**不**包含诸如 `windowseventlogreceiver`、`journaldreceiver` 或 `hostmetrics` 附加项之类的接收器——请务必使用 `contrib` 发行版。为 Windows **Services** 标签页提供数据的 alpha 阶段 `windowsservicereceiver` 从 **v0.155.0** 起、为 Linux **Systemd Units** 标签页提供数据的 alpha 阶段 `systemdreceiver` 从 **v0.143.0** 起已打包进 `otelcol-contrib` 中，因此请安装较新的发布版；见下文“Windows 服务（指标）”和“Linux 服务（systemd 单元）”。
 - 主机上的 root / 管理员权限，用于将 collector 安装为服务，并（在适用的情况下）读取需要特权的日志源。
 
 ## 第 1 步——安装 OpenTelemetry Collector
@@ -201,6 +202,45 @@ receivers:
 
 collector 二进制文件必须能够执行 `journalctl`（Debian / RPM 软件包已将其作为依赖项包含在内）。
 
+### Linux 服务（systemd 单元、指标）
+
+主机的 **Systemd Units** 标签页由 [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver)（配置类型 `systemd`）提供数据，它以指标形式报告 systemd 单元的活动状态——即 Windows 上 **Services** 标签页在 Linux 上的对应物。
+
+**该接收器最早随上游的 `otelcol-contrib` 二进制文件在 v0.142.0 中提供，但真正值得运行的第一个发布版是 v0.143.0**——在更早的发布版上，添加 `systemd` 会在启动时失败并报 `'receivers' unknown type: "systemd"`；而仅在 v0.142.0 上，它的 CPU 指标名为 `systemd.unit.cpu.time`，并且会为每一个单元查找 cgroup 统计信息，从而为每个非 `.service` 单元记录一条抓取错误。v0.143.0 将该指标改名为 `systemd.service.cpu.time`，并把这项查找限制在服务上。请安装一个较新的发布版（第 1 步），然后在你的 `config.yaml` 中启用它，并将它加入指标流水线：
+
+```yaml
+receivers:
+  systemd:
+    collection_interval: 30s
+    # The service manager to read: "system" (default) or "user".
+    scope: system
+    # Which units to scrape, as systemctl unit patterns. The default is
+    # every service; widen it to include timers, sockets or mounts, or
+    # narrow it to cut volume on hosts with hundreds of units:
+    units: ["*.service"]
+    # units: [nginx.service, postgresql.service, "*.timer"]
+    metrics:
+      # Per-service CPU time is on by default and doubles this receiver's
+      # datapoint count. The Systemd Units tab does not use it, so turn it
+      # off unless you chart it. On v0.142.0 the key is
+      # systemd.unit.cpu.time — naming a metric the running build does not
+      # have stops the collector at startup.
+      systemd.service.cpu.time:
+        enabled: false
+
+service:
+  pipelines:
+    metrics:
+      receivers: [hostmetrics, systemd]
+      processors: [resourcedetection, batch]
+```
+
+该接收器将 `systemd.unit.state` 以**状态集**（state set）的形式发出：每次抓取时，每个单元都会为每一种可能的状态（`active`、`reloading`、`inactive`、`failed`、`activating`、`deactivating`、`maintenance`、`refreshing`）产生一个数据点，该单元实际所处的状态取值为 `1`，其余取值为 `0`。单元名称通过资源属性 `systemd.unit.name` 传递，状态则通过数据点属性 `systemd.unit.active_state` 传递。由于单元名称是一个*资源*属性，**`resourcedetection` 必须保留在指标流水线中**——正是它为每个单元的资源打上 `host.name`，没有它，这些样本就永远不会关联到某台主机，标签页也会一直是空的。
+
+collector 通过**系统 D-Bus** 读取单元状态，用的是与 `systemctl list-units` 相同的只读调用。systemd 允许非特权地执行这些调用，因此软件包附带的服务——它以 `otelcol-contrib` 用户而非 root 身份运行——无需额外权限即可抓取单元。它真正需要的是一条可达的总线：运行在容器内的 collector 除非你把主机的 `/run/dbus/system_bus_socket` 绑定挂载进去，否则根本没有这个套接字，这正是该接收器面向原生安装的原因。该接收器处于 **alpha** 阶段，且**仅支持 Linux**——它无法在 macOS 或 Windows 上构建。
+
+> **在单元数量众多的主机上要留意数据量。** 状态集在每次抓取时为每个单元发出 8 个数据点，而默认开启的 `systemd.service.cpu.time` 还会再加 2 个（`user` 和 `system`），因此请按 10 个来估算。一台以 30s 追踪 300 个单元的主机，仅这一个接收器每分钟就约有 6k 个数据点；若按上文所示禁用 CPU 指标，则约为 4.8k 个。在整个机群中启用它之前，请将 `units:` 缩小到你确实会为其告警的服务，或者提高 `collection_interval`。
+
 ### Apple Unified Log（macOS）
 
 macOS 已弃用 `/var/log/system.log`，转而使用 Apple Unified Log，可通过 `log show` / `log stream` 查询。接入它最简单的方式是借助一个小型包装脚本，通过 `filelog` 接收器流式传输 `log` 的输出。创建 `/usr/local/otelcol-contrib/log-stream.sh`：
@@ -321,10 +361,21 @@ receivers:
     directory: /var/log/journal
     priority: info
 
+  # Powers the Systemd Units tab (otelcol-contrib v0.143.0+).
+  systemd:
+    collection_interval: 30s
+    units: ["*.service"]
+
 processors:
   batch:
     send_batch_size: 512
     timeout: 5s
+  # Stamps host.name / host.id / os.type — this is how OneUptime attaches
+  # telemetry to a host. Without it the host tabs stay empty.
+  resourcedetection:
+    detectors: [system, env]
+    system:
+      hostname_sources: [os]
   resource:
     attributes:
       - key: service.name
@@ -340,12 +391,12 @@ exporters:
 service:
   pipelines:
     metrics:
-      receivers: [hostmetrics]
-      processors: [resource, batch]
+      receivers: [hostmetrics, systemd]
+      processors: [resourcedetection, resource, batch]
       exporters: [otlphttp]
     logs:
       receivers: [filelog/syslog, journald]
-      processors: [resource, batch]
+      processors: [resourcedetection, resource, batch]
       exporters: [otlphttp]
 ```
 
@@ -377,6 +428,12 @@ processors:
   batch:
     send_batch_size: 512
     timeout: 5s
+  # Stamps host.name / host.id / os.type — this is how OneUptime attaches
+  # telemetry to a host. Without it the host tabs stay empty.
+  resourcedetection:
+    detectors: [system, env]
+    system:
+      hostname_sources: [os]
   resource:
     attributes:
       - key: service.name
@@ -393,11 +450,11 @@ service:
   pipelines:
     metrics:
       receivers: [hostmetrics]
-      processors: [resource, batch]
+      processors: [resourcedetection, resource, batch]
       exporters: [otlphttp]
     logs:
       receivers: [filelog/system]
-      processors: [resource, batch]
+      processors: [resourcedetection, resource, batch]
       exporters: [otlphttp]
 ```
 
@@ -440,6 +497,12 @@ processors:
   batch:
     send_batch_size: 512
     timeout: 5s
+  # Stamps host.name / host.id / os.type — this is how OneUptime attaches
+  # telemetry to a host. Without it the host tabs stay empty.
+  resourcedetection:
+    detectors: [system, env]
+    system:
+      hostname_sources: [os]
   resource:
     attributes:
       - key: service.name
@@ -456,14 +519,14 @@ service:
   pipelines:
     metrics:
       receivers: [hostmetrics, windows_service]
-      processors: [resource, batch]
+      processors: [resourcedetection, resource, batch]
       exporters: [otlphttp]
     logs:
       receivers:
         - windowseventlog/system
         - windowseventlog/application
         - windowseventlog/security
-      processors: [resource, batch]
+      processors: [resourcedetection, resource, batch]
       exporters: [otlphttp]
 ```
 
@@ -483,6 +546,8 @@ sudo systemctl status otelcol-contrib
 ```bash
 sudo journalctl -u otelcol-contrib -f
 ```
+
+软件包附带的单元会以非特权的 `otelcol-contrib` 用户身份运行 collector。这对 `systemd` 接收器来说已经足够——它只会发起 systemd 早已允许任何用户执行的那些只读 D-Bus 调用，也就是 `systemctl list-units` 所用的同一批调用。
 
 ### macOS（launchd）
 
@@ -540,6 +605,7 @@ sc.exe query "otelcol-contrib"
 2. 在 OneUptime 仪表板中，打开 **Telemetry → Services** 并选择你配置的 `service.name`。
 3. 打开 **Metrics**——主机指标（CPU、内存、文件系统等）应在一分钟内出现。
 4. 打开 **Logs**——你的文件日志 / journald 条目 / Windows 事件日志应正在流式传入。有用的可搜索属性包括 `log.file.name`、`systemd.unit`、`winlog.channel`、`winlog.event_id` 和 `winlog.provider.name`。
+5. 如果你启用了 `systemd`（Linux）或 `windows_service`（Windows）接收器，请打开 **Infrastructure → Hosts**，选择该主机，并查看 **Systemd Units** / **Services** 标签页——每一个被抓取的单元都应带着其当前状态列出。
 
 ## 减少采集的数据量
 
@@ -554,6 +620,7 @@ sc.exe query "otelcol-contrib"
 | **日志**     | 每个文件 / journald 单元 / 通道的每一行 | 缩小接收器范围；`query:` 过滤器；针对严重性的 `filter` 处理器 |
 | **主机指标** | 抓取频率 × 时间序列数量                 | `collection_interval`；丢弃 `process` 抓取器；抓取器选择      |
 | **指标基数** | 每进程指标（每个进程一组时间序列）      | 省略或限定 `process` 抓取器                                   |
+| **systemd 单元** | 每次抓取每个单元 10 个数据点（状态集 + CPU）   | 缩小 `units:` 范围；禁用 CPU 指标；提高 `collection_interval` |
 
 ### 杠杆 1——只 tail 你需要的日志源
 
@@ -610,7 +677,24 @@ receivers:
       #     match_type: strict
 ```
 
-### 杠杆 4——用 `filter` 处理器丢弃低价值记录
+### 杠杆 4——缩小 systemd 单元集合
+
+`systemd` 接收器在每次抓取时会**为每个单元的每一种状态**各发出一个数据点——每个单元八个——再加上默认开启的 `systemd.service.cpu.time` 带来的另外两个，因此它的数据量取决于 `units:` 匹配到多少个单元。默认的 `["*.service"]` 会拾取主机上的每一个服务，包括那几十个状态永远不会变化的一次性（one-shot）单元。请只列出你确实会为其告警的单元，并在不绘制图表的情况下关闭 CPU 指标：
+
+```yaml
+receivers:
+  systemd:
+    collection_interval: 60s
+    units: [nginx.service, postgresql.service, ssh.service]
+    metrics:
+      # On otelcol-contrib v0.142.0 this key is systemd.unit.cpu.time.
+      systemd.service.cpu.time:
+        enabled: false
+```
+
+这两项加在一起，可以把一台有 300 个单元的主机从每分钟约 6k 个数据点降到远低于 100 个。从列表中移除的单元，会在几分钟后、当它们最后的样本从滚动窗口中过期消失时，不再出现在 **Systemd Units** 标签页上。
+
+### 杠杆 5——用 `filter` 处理器丢弃低价值记录
 
 当你想要某个接收器但不想要它的全部输出时，添加一个 [`filter`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/filterprocessor) 处理器——它会评估一个 [OTTL](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/pkg/ottl/README.md) 条件，并在导出任何内容之前**丢弃任何匹配的记录**。
 
@@ -736,6 +820,12 @@ processors:
   batch:
     send_batch_size: 512
     timeout: 5s
+  # Stamps host.name / host.id / os.type — this is how OneUptime attaches
+  # telemetry to a host. Without it the host tabs stay empty.
+  resourcedetection:
+    detectors: [system, env]
+    system:
+      hostname_sources: [os]
   resource:
     attributes:
       - key: service.name
@@ -752,7 +842,7 @@ service:
   pipelines:
     metrics:
       receivers: [hostmetrics]
-      processors: [resource, batch]
+      processors: [resourcedetection, resource, batch]
       exporters: [otlphttp]
 ```
 
@@ -792,6 +882,9 @@ OpenTelemetry Collector 遵循标准的 `HTTPS_PROXY` / `HTTP_PROXY` / `NO_PROXY
 - **导出器返回 HTTP 401**——接入令牌无效或已被吊销。从 _Project Settings → Telemetry Ingestion Keys_ 生成一个新令牌。
 - **`Security` Windows 事件日志返回拒绝访问（access denied）**——该服务未以足够的权限运行。在 `LocalSystem` 身份下重新创建它（`sc.exe create` 的默认设置），或为服务账户授予 _Manage auditing and security log_ 用户权限。
 - **`journald` 接收器无法启动**——确保 `journalctl` 在 collector 的 `PATH` 中，并且 `/var/log/journal` 存在（如不存在，请运行 `sudo systemd-tmpfiles --create --prefix /var/log/journal`）。
+- **`systemd` 接收器报告 D-Bus 连接错误**——collector 无法访问系统总线。请确认 `/run/dbus/system_bus_socket` 存在，且 collector 所用的用户能够打开它；以该用户身份运行 `systemctl list-units` 是最快的检查方式。并不需要 root。运行在容器内的 collector 除非你把主机的套接字绑定挂载进去，否则根本看不到总线，因此这个接收器更适合原生安装。
+- **`systemd` 接收器为每个单元记录一条抓取错误，或者 collector 因为一个未知指标而拒绝启动**——两者都是版本不匹配。v0.142.0 会为每一个单元查找 cgroup 统计信息（每次抓取为每个非 `.service` 单元产生一条错误），并把它的 CPU 指标称为 `systemd.unit.cpu.time`；v0.143.0 及以后把这项查找限制在服务上，并将该指标改名为 `systemd.service.cpu.time`。请升级到 v0.143.0+，并确保任何 `metrics:` 覆盖项写的都是你所运行的构建中确实存在的键名。
+- **接收器明明在运行，Systemd Units 标签页却是空的**——请检查 `resourcedetection` 是否位于同一条指标流水线中。该接收器只会为每个单元的资源附加 `systemd.unit.name`，因此没有 `resourcedetection` 就不会有 `host.name`，这些样本也就永远不会关联到某台主机。
 - **流量 / 成本过高**——参见[减少采集的数据量](#减少采集的数据量)：缩小接收器范围（特定的 Windows 通道、特定的 systemd 单元、特定的日志文件），提高指标的 `collection_interval`，丢弃每进程抓取器，或添加一个 `filter` 处理器以在导出前丢弃低严重性记录。
 
 ## 后续步骤

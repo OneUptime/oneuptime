@@ -60,6 +60,13 @@ const WIDGET_CATALOG: ReadonlyArray<CatalogCategory> = [
         description: "Free-form Markdown text for headers and notes.",
       },
       {
+        type: DashboardComponentType.Clock,
+        label: "Clock",
+        icon: IconProp.Clock,
+        description:
+          "Current time in any timezone — digital or analog. Add one per office so you can see who is awake.",
+      },
+      {
         type: DashboardComponentType.Html,
         label: "HTML",
         icon: IconProp.Code,

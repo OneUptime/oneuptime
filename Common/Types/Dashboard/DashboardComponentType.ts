@@ -2,6 +2,7 @@ enum DashboardComponentType {
   Chart = `Chart`,
   Value = `Value`,
   Text = `Text`,
+  Clock = `Clock`,
   Table = `Table`,
   Gauge = `Gauge`,
   LogStream = `LogStream`,

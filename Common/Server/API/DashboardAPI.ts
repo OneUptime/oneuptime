@@ -66,20 +66,35 @@ import CephResourceService from "../Services/CephResourceService";
 import DockerSwarmResourceService from "../Services/DockerSwarmResourceService";
 import SpanService from "../Services/SpanService";
 import LogService from "../Services/LogService";
+import DashboardComponentType from "../../Types/Dashboard/DashboardComponentType";
+import Includes from "../../Types/BaseDatabase/Includes";
 
 /*
- * Registry of the non-metric widgets a public dashboard may render. The
- * `select` is the FIXED set of columns the corresponding widget displays —
- * the public list endpoint ignores any client-supplied select and uses this,
- * so an anonymous viewer can only ever read these columns (and only for the
- * dashboard's own project). Adding a widget to a public dashboard is the
- * owner's explicit opt-in to exposing these columns.
+ * Registry of the non-metric widgets a public dashboard may render.
+ *
+ * Nothing on this endpoint is taken from the client except a narrow set of
+ * filter values:
+ *
+ * - `select` is the FIXED set of columns the corresponding widget displays,
+ *   so an anonymous viewer can only ever read these columns.
+ * - `widgets` lists the dashboard widgets that render this resource, mapped
+ *   to the `kind` each one shows (null when the model is not partitioned by
+ *   kind). The dashboard must actually contain one of these widgets before
+ *   the endpoint will serve the resource at all, and the query is pinned to
+ *   the kinds those widgets render. Adding a widget to a public dashboard is
+ *   therefore the owner's explicit — and only — opt-in to exposing this data.
+ * - `allowedQueryKeys` is the set of columns the widget legitimately filters
+ *   on. Every other key in the client-supplied query is dropped, so a public
+ *   viewer cannot turn the endpoint into a generic query API over columns the
+ *   widget never exposes.
  */
 interface PublicDashboardResourceConfig {
   modelType: { new (): BaseModel | AnalyticsDataModel };
   service: {
     findBy: (findBy: any) => Promise<Array<BaseModel | AnalyticsDataModel>>;
   };
+  widgets: Partial<Record<DashboardComponentType, string | null>>;
+  allowedQueryKeys: Array<string>;
   select: JSONObject;
 }
 
@@ -92,6 +107,16 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
   incident: {
     modelType: Incident,
     service: IncidentService,
+    widgets: {
+      [DashboardComponentType.IncidentList]: null,
+    },
+    allowedQueryKeys: [
+      "currentIncidentState",
+      "currentIncidentStateId",
+      "incidentSeverityId",
+      "monitors",
+      "labels",
+    ],
     select: {
       _id: true,
       title: true,
@@ -103,6 +128,16 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
   alert: {
     modelType: Alert,
     service: AlertService,
+    widgets: {
+      [DashboardComponentType.AlertList]: null,
+    },
+    allowedQueryKeys: [
+      "currentAlertState",
+      "currentAlertStateId",
+      "alertSeverityId",
+      "monitorId",
+      "labels",
+    ],
     select: {
       _id: true,
       title: true,
@@ -114,6 +149,15 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
   monitor: {
     modelType: Monitor,
     service: MonitorService,
+    widgets: {
+      [DashboardComponentType.MonitorList]: null,
+    },
+    allowedQueryKeys: [
+      "currentMonitorStatus",
+      "currentMonitorStatusId",
+      "monitorType",
+      "labels",
+    ],
     select: {
       _id: true,
       name: true,
@@ -124,6 +168,15 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
   host: {
     modelType: Host,
     service: HostService,
+    widgets: {
+      [DashboardComponentType.HostList]: null,
+    },
+    allowedQueryKeys: [
+      "name",
+      "hostIdentifier",
+      "otelCollectorStatus",
+      "osType",
+    ],
     select: {
       _id: true,
       name: true,
@@ -139,6 +192,23 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
   "kubernetes-resource": {
     modelType: KubernetesResource,
     service: KubernetesResourceService,
+    widgets: {
+      [DashboardComponentType.KubernetesPodList]: "Pod",
+      [DashboardComponentType.KubernetesNodeList]: "Node",
+      [DashboardComponentType.KubernetesNamespaceList]: "Namespace",
+      [DashboardComponentType.KubernetesDeploymentList]: "Deployment",
+      [DashboardComponentType.KubernetesStatefulSetList]: "StatefulSet",
+      [DashboardComponentType.KubernetesDaemonSetList]: "DaemonSet",
+      [DashboardComponentType.KubernetesJobList]: "Job",
+      [DashboardComponentType.KubernetesCronJobList]: "CronJob",
+    },
+    allowedQueryKeys: [
+      "kubernetesClusterId",
+      "namespaceKey",
+      "name",
+      "phase",
+      "isReady",
+    ],
     select: {
       _id: true,
       name: true,
@@ -163,6 +233,10 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
   "docker-host": {
     modelType: DockerHost,
     service: DockerHostService,
+    widgets: {
+      [DashboardComponentType.DockerHostList]: null,
+    },
+    allowedQueryKeys: ["name", "otelCollectorStatus"],
     select: {
       _id: true,
       name: true,
@@ -177,6 +251,10 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
   "docker-container": {
     modelType: DockerResource,
     service: DockerResourceService,
+    widgets: {
+      [DashboardComponentType.DockerContainerList]: "Container",
+    },
+    allowedQueryKeys: ["dockerHostId", "name", "imageName"],
     select: {
       _id: true,
       name: true,
@@ -191,6 +269,10 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
   "docker-image": {
     modelType: DockerResource,
     service: DockerResourceService,
+    widgets: {
+      [DashboardComponentType.DockerImageList]: "Image",
+    },
+    allowedQueryKeys: ["dockerHostId", "name"],
     select: {
       _id: true,
       name: true,
@@ -202,6 +284,10 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
   "docker-network": {
     modelType: DockerResource,
     service: DockerResourceService,
+    widgets: {
+      [DashboardComponentType.DockerNetworkList]: "Network",
+    },
+    allowedQueryKeys: ["dockerHostId"],
     select: {
       _id: true,
       name: true,
@@ -213,6 +299,10 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
   "docker-volume": {
     modelType: DockerResource,
     service: DockerResourceService,
+    widgets: {
+      [DashboardComponentType.DockerVolumeList]: "Volume",
+    },
+    allowedQueryKeys: ["dockerHostId"],
     select: {
       _id: true,
       name: true,
@@ -224,6 +314,10 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
   "podman-host": {
     modelType: PodmanHost,
     service: PodmanHostService,
+    widgets: {
+      [DashboardComponentType.PodmanHostList]: null,
+    },
+    allowedQueryKeys: ["name", "otelCollectorStatus"],
     select: {
       _id: true,
       name: true,
@@ -238,6 +332,10 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
   "podman-container": {
     modelType: PodmanResource,
     service: PodmanResourceService,
+    widgets: {
+      [DashboardComponentType.PodmanContainerList]: "Container",
+    },
+    allowedQueryKeys: ["podmanHostId", "name", "imageName"],
     select: {
       _id: true,
       name: true,
@@ -252,6 +350,10 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
   "podman-image": {
     modelType: PodmanResource,
     service: PodmanResourceService,
+    widgets: {
+      [DashboardComponentType.PodmanImageList]: "Image",
+    },
+    allowedQueryKeys: ["podmanHostId", "name"],
     select: {
       _id: true,
       name: true,
@@ -263,6 +365,10 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
   "podman-network": {
     modelType: PodmanResource,
     service: PodmanResourceService,
+    widgets: {
+      [DashboardComponentType.PodmanNetworkList]: "Network",
+    },
+    allowedQueryKeys: ["podmanHostId"],
     select: {
       _id: true,
       name: true,
@@ -274,6 +380,10 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
   "podman-volume": {
     modelType: PodmanResource,
     service: PodmanResourceService,
+    widgets: {
+      [DashboardComponentType.PodmanVolumeList]: "Volume",
+    },
+    allowedQueryKeys: ["podmanHostId"],
     select: {
       _id: true,
       name: true,
@@ -285,6 +395,11 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
   "proxmox-resource": {
     modelType: ProxmoxResource,
     service: ProxmoxResourceService,
+    widgets: {
+      [DashboardComponentType.ProxmoxNodeList]: "Node",
+      [DashboardComponentType.ProxmoxGuestList]: "Guest",
+    },
+    allowedQueryKeys: ["proxmoxClusterId", "guestType", "isUp", "name"],
     select: {
       _id: true,
       name: true,
@@ -305,6 +420,11 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
   "ceph-resource": {
     modelType: CephResource,
     service: CephResourceService,
+    widgets: {
+      [DashboardComponentType.CephOsdList]: "Osd",
+      [DashboardComponentType.CephPoolList]: "Pool",
+    },
+    allowedQueryKeys: ["cephClusterId", "isUp", "isIn", "externalId"],
     select: {
       _id: true,
       name: true,
@@ -327,6 +447,16 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
   "docker-swarm-resource": {
     modelType: DockerSwarmResource,
     service: DockerSwarmResourceService,
+    widgets: {
+      [DashboardComponentType.DockerSwarmNodeList]: "Node",
+      [DashboardComponentType.DockerSwarmServiceList]: "Service",
+    },
+    allowedQueryKeys: [
+      "dockerSwarmClusterId",
+      "role",
+      "serviceMode",
+      "isReady",
+    ],
     select: {
       _id: true,
       name: true,
@@ -349,6 +479,10 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
   span: {
     modelType: Span,
     service: SpanService,
+    widgets: {
+      [DashboardComponentType.TraceList]: null,
+    },
+    allowedQueryKeys: ["startTime", "statusCode"],
     select: {
       startTime: true,
       name: true,
@@ -363,6 +497,10 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
   log: {
     modelType: Log,
     service: LogService,
+    widgets: {
+      [DashboardComponentType.LogStream]: null,
+    },
+    allowedQueryKeys: ["time", "severityText", "body", "attributes"],
     select: {
       time: true,
       severityText: true,
@@ -1342,9 +1480,127 @@ export default class DashboardAPI extends BaseAPI<
   }
 
   /*
+   * Walk a stored dashboard view config and collect every widget type it
+   * renders. Used to build an allowlist for the public resource-list
+   * endpoint so an anonymous viewer can only read the resources this
+   * dashboard was actually built to show — a dashboard with a monitor list
+   * on it must not double as a project-wide log or incident reader.
+   */
+  private static collectDashboardComponentTypes(
+    dashboardViewConfig: unknown,
+  ): Set<string> {
+    const componentTypes: Set<string> = new Set<string>();
+
+    const walk: (node: unknown) => void = (node: unknown): void => {
+      if (!node || typeof node !== "object") {
+        return;
+      }
+
+      if (Array.isArray(node)) {
+        for (const item of node) {
+          walk(item);
+        }
+        return;
+      }
+
+      const obj: Record<string, unknown> = node as Record<string, unknown>;
+
+      const componentType: unknown = obj["componentType"];
+      if (typeof componentType === "string" && componentType.length > 0) {
+        componentTypes.add(componentType);
+      }
+
+      for (const key of Object.keys(obj)) {
+        walk(obj[key]);
+      }
+    };
+
+    walk(dashboardViewConfig);
+
+    return componentTypes;
+  }
+
+  /*
+   * Reduce a client-supplied query to the filter keys the widget is allowed
+   * to narrow by. Anything else the client sends — a foreign projectId, a
+   * filter on a column the widget never renders, an operator on a secret
+   * column used as a blind oracle — is dropped rather than merged.
+   */
+  private static sanitizePublicResourceQuery(data: {
+    query: unknown;
+    allowedQueryKeys: Array<string>;
+  }): JSONObject {
+    const { query, allowedQueryKeys } = data;
+
+    const sanitized: Record<string, unknown> = {};
+
+    if (!query || typeof query !== "object" || Array.isArray(query)) {
+      return sanitized as JSONObject;
+    }
+
+    const queryObject: Record<string, unknown> = query as Record<
+      string,
+      unknown
+    >;
+
+    for (const key of allowedQueryKeys) {
+      if (
+        Object.prototype.hasOwnProperty.call(queryObject, key) &&
+        queryObject[key] !== undefined
+      ) {
+        sanitized[key] = queryObject[key];
+      }
+    }
+
+    return sanitized as JSONObject;
+  }
+
+  /*
+   * Reduce a client-supplied sort to the columns the widget already renders
+   * (the registry's fixed select). Sorting by a column the viewer cannot see
+   * would otherwise order rows by a hidden value and leak it.
+   */
+  private static sanitizePublicResourceSort(data: {
+    sort: unknown;
+    select: JSONObject;
+  }): JSONObject {
+    const { sort, select } = data;
+
+    const sanitized: JSONObject = {};
+
+    if (!sort || typeof sort !== "object" || Array.isArray(sort)) {
+      return sanitized;
+    }
+
+    const sortObject: Record<string, unknown> = sort as Record<string, unknown>;
+
+    for (const key of Object.keys(sortObject)) {
+      // Only scalar columns of the fixed select are sortable.
+      if (select[key] !== true) {
+        continue;
+      }
+
+      const order: unknown = sortObject[key];
+
+      if (
+        typeof order === "string" &&
+        order.toUpperCase() === SortOrder.Descending
+      ) {
+        sanitized[key] = SortOrder.Descending;
+      } else {
+        sanitized[key] = SortOrder.Ascending;
+      }
+    }
+
+    return sanitized;
+  }
+
+  /*
    * Shared handler for the public resource-list endpoint. Loads the
-   * dashboard, enforces read access, pins the query to the dashboard's
-   * project, and lists the resource using the registry's FIXED select.
+   * dashboard, enforces read access, checks the resource is one this
+   * dashboard's widgets actually render, pins the query to the dashboard's
+   * project and to those widgets' kinds, and lists the resource using the
+   * registry's FIXED select.
    */
   private static async servePublicResourceList(data: {
     req: ExpressRequest;
@@ -1374,6 +1630,7 @@ export default class DashboardAPI extends BaseAPI<
       select: {
         _id: true,
         projectId: true,
+        dashboardViewConfig: true,
       },
       props: {
         isRoot: true,
@@ -1384,12 +1641,41 @@ export default class DashboardAPI extends BaseAPI<
       throw new NotFoundException("Dashboard not found");
     }
 
-    const query: JSONObject =
+    /*
+     * Security: the dashboard must actually contain a widget that renders
+     * this resource. Without this check, knowing any public dashboard ID
+     * would be enough to read every resource type in its project — the
+     * dashboard's own widgets are the owner's opt-in, so they are the
+     * allowlist.
+     */
+    const dashboardComponentTypes: Set<string> =
+      DashboardAPI.collectDashboardComponentTypes(
+        dashboard.dashboardViewConfig,
+      );
+
+    const presentWidgets: Array<string> = Object.keys(config.widgets).filter(
+      (componentType: string) => {
+        return dashboardComponentTypes.has(componentType);
+      },
+    );
+
+    if (presentWidgets.length === 0) {
+      throw new BadDataException(
+        "This resource is not part of this dashboard.",
+      );
+    }
+
+    const clientQuery: JSONObject =
       req.body && req.body["query"]
         ? (JSONFunctions.deserialize(
             req.body["query"] as JSONObject,
           ) as JSONObject)
         : {};
+
+    const query: JSONObject = DashboardAPI.sanitizePublicResourceQuery({
+      query: clientQuery,
+      allowedQueryKeys: config.allowedQueryKeys,
+    });
 
     /*
      * Security: pin to the dashboard's project; never trust a client-supplied
@@ -1397,12 +1683,51 @@ export default class DashboardAPI extends BaseAPI<
      */
     (query as Record<string, unknown>)["projectId"] = dashboard.projectId;
 
-    const sort: JSONObject =
-      req.body && req.body["sort"]
-        ? (JSONFunctions.deserialize(
-            req.body["sort"] as JSONObject,
-          ) as JSONObject)
-        : {};
+    /*
+     * Models that pack several resource kinds into one table (Kubernetes,
+     * Docker, Podman, Proxmox, Ceph, Swarm) are constrained to the kinds the
+     * dashboard's widgets render, so a "volumes" widget cannot be used to
+     * list containers. A widget may pick one of those kinds; anything else is
+     * rejected, and a request that names no kind gets all of them.
+     */
+    const allowedKinds: Array<string> = presentWidgets
+      .map((componentType: string) => {
+        return config.widgets[componentType as DashboardComponentType];
+      })
+      .filter((kind: string | null | undefined): kind is string => {
+        return Boolean(kind);
+      });
+
+    if (allowedKinds.length > 0) {
+      const requestedKind: unknown = (clientQuery as Record<string, unknown>)[
+        "kind"
+      ];
+
+      if (requestedKind !== undefined && requestedKind !== null) {
+        if (
+          typeof requestedKind !== "string" ||
+          !allowedKinds.includes(requestedKind)
+        ) {
+          throw new BadDataException(
+            "This resource is not part of this dashboard.",
+          );
+        }
+
+        (query as Record<string, unknown>)["kind"] = requestedKind;
+      } else if (allowedKinds.length === 1) {
+        (query as Record<string, unknown>)["kind"] = allowedKinds[0];
+      } else {
+        (query as Record<string, unknown>)["kind"] = new Includes(allowedKinds);
+      }
+    }
+
+    const sort: JSONObject = DashboardAPI.sanitizePublicResourceSort({
+      sort:
+        req.body && req.body["sort"]
+          ? JSONFunctions.deserialize(req.body["sort"] as JSONObject)
+          : {},
+      select: config.select,
+    });
 
     const requestedLimit: number = req.query["limit"]
       ? parseInt(req.query["limit"] as string, 10)

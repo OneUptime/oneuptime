@@ -6,6 +6,7 @@ import DashboardAlertListComponentUtil from "./DashboardAlertListComponent";
 import DashboardCephOsdListComponentUtil from "./DashboardCephOsdListComponent";
 import DashboardCephPoolListComponentUtil from "./DashboardCephPoolListComponent";
 import DashboardChartComponentUtil from "./DashboardChartComponent";
+import DashboardClockComponentUtil from "./DashboardClockComponent";
 import DashboardDockerContainerListComponentUtil from "./DashboardDockerContainerListComponent";
 import DashboardDockerHostListComponentUtil from "./DashboardDockerHostListComponent";
 import DashboardDockerImageListComponentUtil from "./DashboardDockerImageListComponent";
@@ -55,6 +56,12 @@ export default class DashboardComponentsUtil {
 
     if (dashboardComponentType === DashboardComponentType.Text) {
       return DashboardTextComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.Clock) {
+      return DashboardClockComponentUtil.getComponentConfigArguments() as Array<
         ComponentArgument<DashboardBaseComponent>
       >;
     }

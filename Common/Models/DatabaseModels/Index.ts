@@ -296,6 +296,9 @@ import RunbookOwnerTeam from "./RunbookOwnerTeam";
 import RunbookOwnerUser from "./RunbookOwnerUser";
 import RunbookRule from "./RunbookRule";
 
+import AutoRemediationRule from "./AutoRemediationRule";
+import AutoRemediationSuggestion from "./AutoRemediationSuggestion";
+
 import UserTotpAuth from "./UserTotpAuth";
 import UserWebAuthn from "./UserWebAuthn";
 
@@ -626,6 +629,8 @@ const AllModelTypes: Array<{
   RunbookOwnerTeam,
   RunbookOwnerUser,
   RunbookRule,
+  AutoRemediationRule,
+  AutoRemediationSuggestion,
   RunbookAgent,
   RunbookAgentJob,
   RunbookAgentOwnerTeam,

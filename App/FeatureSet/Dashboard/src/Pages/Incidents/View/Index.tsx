@@ -51,6 +51,7 @@ import ColorSwatch from "Common/Types/ColorSwatch";
 import IncidentFeedElement from "../../../Components/Incident/IncidentFeed";
 import InvestigationPanel from "../../../Components/AI/InvestigationPanel";
 import EntityRunbooks from "../../../Components/Runbook/EntityRunbooks";
+import RemediationSuggestionCard from "../../../Components/AutoRemediation/RemediationSuggestionCard";
 import IncidentAffectedResources from "./AffectedResources";
 import MonitorSummarySnapshotCard from "../../../Components/Monitor/MonitorSummarySnapshotCard";
 import IncidentMemberRoleAssignment from "../../../Components/Incident/IncidentMemberRoleAssignment";
@@ -476,6 +477,8 @@ const IncidentView: FunctionComponent<
           <IncidentAffectedResources incidentId={modelId} />
 
           <EntityRunbooks incidentId={modelId} hideIfEmpty={true} />
+
+          <RemediationSuggestionCard incidentId={modelId} hideIfEmpty={true} />
 
           <InvestigationPanel subjectType="incident" subjectId={modelId} />
 

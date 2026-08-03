@@ -7,6 +7,7 @@ Du kan köra **OpenTelemetry Collector** som en tjänst direkt på dina Linux-, 
 - **Värdmetriker** (CPU, minne, disk, filsystem, nätverk, belastning, processer) på alla operativsystem
 - **Filbaserade loggar** under `/var/log/**` (Linux, macOS) via [`filelogreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/filelogreceiver)
 - **systemd journal** (Linux) via [`journaldreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/journaldreceiver)
+- **systemd-enhetstillstånd** (driver fliken **Systemd Units** på värden) via [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver) — medföljer det uppströms `otelcol-contrib`-bygget från och med **v0.142.0**, användbar från och med **v0.143.0** (se "Linux Services (systemd-enheter)" nedan)
 - **Apple Unified Log** (macOS) via [`logstransformprocessor`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/logstransformprocessor) som omsluter en tailad `log stream`-utdata
 - **Windows Event Logs** via [`windowseventlogreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowseventlogreceiver)
 - **Windows-tjänststatus** (driver fliken **Services** på värden) via [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver) — medföljer det uppströms `otelcol-contrib`-bygget från och med **v0.155.0** (se "Windows Services (metriker)" nedan)
@@ -16,7 +17,7 @@ Du kan köra **OpenTelemetry Collector** som en tjänst direkt på dina Linux-, 
 ## Förutsättningar
 
 - En **OneUptime Telemetry Ingestion Token** — skapa en från _Project Settings → Telemetry Ingestion Keys_ och kopiera värdet för `x-oneuptime-token`.
-- Distributionen **OpenTelemetry Collector Contrib** (`otelcol-contrib`). Standardbygget `otelcol` inkluderar **inte** mottagare som `windowseventlogreceiver`, `journaldreceiver` eller `hostmetrics`-extrafunktioner — se till att använda `contrib`-distributionen. Alpha-mottagaren `windowsservicereceiver` som driver fliken **Services** i Windows medföljer `otelcol-contrib` från och med **v0.155.0**, så installera en aktuell version; se "Windows Services (metriker)" nedan.
+- Distributionen **OpenTelemetry Collector Contrib** (`otelcol-contrib`). Standardbygget `otelcol` inkluderar **inte** mottagare som `windowseventlogreceiver`, `journaldreceiver` eller `hostmetrics`-extrafunktioner — se till att använda `contrib`-distributionen. Alpha-mottagaren `windowsservicereceiver` som driver fliken **Services** i Windows medföljer `otelcol-contrib` från och med **v0.155.0**, och alpha-mottagaren `systemdreceiver` som driver fliken **Systemd Units** i Linux från och med **v0.143.0**, så installera en aktuell version; se "Windows Services (metriker)" och "Linux Services (systemd-enheter)" nedan.
 - Root / Administrator på värden för att installera collectorn som en tjänst och (där det är tillämpligt) läsa privilegierade loggkällor.
 
 ## Steg 1 — Installera OpenTelemetry Collector
@@ -201,6 +202,45 @@ receivers:
 
 Collector-binären måste kunna köra `journalctl` (Debian- / RPM-paketen inkluderar det redan som ett beroende).
 
+### Linux Services (systemd-enheter, metriker)
+
+Fliken **Systemd Units** på värden drivs av [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver) (konfigurationstyp `systemd`), som rapporterar det aktiva tillståndet för systemd-enheter som metriker — Linux-motsvarigheten till fliken **Services** i Windows.
+
+**Mottagaren kom först i den uppströms `otelcol-contrib`-binären i v0.142.0, och v0.143.0 är den första versionen som är värd att köra** — på allt äldre misslyckas tillägget av `systemd` vid start med `'receivers' unknown type: "systemd"`, och enbart v0.142.0 kallar sin CPU-metrik `systemd.unit.cpu.time` och letar efter cgroup-statistik på varje enhet, vilket loggar ett skrapfel för varje enhet som inte är en `.service`. v0.143.0 döpte om den metriken till `systemd.service.cpu.time` och begränsade uppslagningen till tjänster. Installera en aktuell version (Steg 1), aktivera den sedan i din `config.yaml` och lägg till den i metrikpipelinen:
+
+```yaml
+receivers:
+  systemd:
+    collection_interval: 30s
+    # The service manager to read: "system" (default) or "user".
+    scope: system
+    # Which units to scrape, as systemctl unit patterns. The default is
+    # every service; widen it to include timers, sockets or mounts, or
+    # narrow it to cut volume on hosts with hundreds of units:
+    units: ["*.service"]
+    # units: [nginx.service, postgresql.service, "*.timer"]
+    metrics:
+      # Per-service CPU time is on by default and doubles this receiver's
+      # datapoint count. The Systemd Units tab does not use it, so turn it
+      # off unless you chart it. On v0.142.0 the key is
+      # systemd.unit.cpu.time — naming a metric the running build does not
+      # have stops the collector at startup.
+      systemd.service.cpu.time:
+        enabled: false
+
+service:
+  pipelines:
+    metrics:
+      receivers: [hostmetrics, systemd]
+      processors: [resourcedetection, batch]
+```
+
+Mottagaren avger `systemd.unit.state` som en **tillståndsuppsättning**: vid varje skrapning får varje enhet en datapunkt per möjligt tillstånd (`active`, `reloading`, `inactive`, `failed`, `activating`, `deactivating`, `maintenance`, `refreshing`), med värdet `1` för det tillstånd enheten faktiskt befinner sig i och `0` för de övriga. Enhetsnamnet färdas som resursattributet `systemd.unit.name` och tillståndet som datapunktsattributet `systemd.unit.active_state`. Eftersom enhetsnamnet är ett _resurs_-attribut måste **`resourcedetection` finnas kvar i metrikpipelinen** — det är den som stämplar `host.name` på varje enhets resurs, och utan den kopplas mätvärdena aldrig till en värd och fliken förblir tom.
+
+Collectorn läser enhetstillstånd över **systemets D-Bus**, med samma skrivskyddade anrop som `systemctl list-units` gör. systemd tillåter dem oprivilegierat, så den paketerade tjänsten — som körs som användaren `otelcol-contrib`, inte root — kan skrapa enheter utan extra behörigheter. Vad den däremot behöver är en nåbar buss: en collector som körs i en container har ingen `/run/dbus/system_bus_socket` om du inte bind-monterar värdens, vilket är anledningen till att den här mottagaren är till för inbyggda installationer. Mottagaren är **alpha** och **endast för Linux** — den byggs inte på macOS eller Windows.
+
+> **Håll koll på volymen på värdar med många tjänster.** Tillståndsuppsättningen avger åtta datapunkter per enhet och skrapning, och `systemd.service.cpu.time`, som är på som standard, lägger till två till (`user` och `system`) — räkna alltså med tio. En värd som följer 300 enheter var 30:e sekund ger ~6k datapunkter i minuten enbart från den här mottagaren, eller ~4,8k med CPU-metriken avstängd som ovan. Begränsa `units:` till de tjänster du faktiskt larmar på, eller höj `collection_interval`, innan du aktiverar den i hela flottan.
+
 ### Apple Unified Log (macOS)
 
 macOS har fasat ut `/var/log/system.log` till förmån för Apple Unified Log, som frågas med `log show` / `log stream`. Det enklaste sättet att mata in den är att strömma `log`-utdata via `filelog`-mottagaren med en liten wrapper. Skapa `/usr/local/otelcol-contrib/log-stream.sh`:
@@ -321,10 +361,21 @@ receivers:
     directory: /var/log/journal
     priority: info
 
+  # Powers the Systemd Units tab (otelcol-contrib v0.143.0+).
+  systemd:
+    collection_interval: 30s
+    units: ["*.service"]
+
 processors:
   batch:
     send_batch_size: 512
     timeout: 5s
+  # Stamps host.name / host.id / os.type — this is how OneUptime attaches
+  # telemetry to a host. Without it the host tabs stay empty.
+  resourcedetection:
+    detectors: [system, env]
+    system:
+      hostname_sources: [os]
   resource:
     attributes:
       - key: service.name
@@ -340,12 +391,12 @@ exporters:
 service:
   pipelines:
     metrics:
-      receivers: [hostmetrics]
-      processors: [resource, batch]
+      receivers: [hostmetrics, systemd]
+      processors: [resourcedetection, resource, batch]
       exporters: [otlphttp]
     logs:
       receivers: [filelog/syslog, journald]
-      processors: [resource, batch]
+      processors: [resourcedetection, resource, batch]
       exporters: [otlphttp]
 ```
 
@@ -377,6 +428,12 @@ processors:
   batch:
     send_batch_size: 512
     timeout: 5s
+  # Stamps host.name / host.id / os.type — this is how OneUptime attaches
+  # telemetry to a host. Without it the host tabs stay empty.
+  resourcedetection:
+    detectors: [system, env]
+    system:
+      hostname_sources: [os]
   resource:
     attributes:
       - key: service.name
@@ -393,11 +450,11 @@ service:
   pipelines:
     metrics:
       receivers: [hostmetrics]
-      processors: [resource, batch]
+      processors: [resourcedetection, resource, batch]
       exporters: [otlphttp]
     logs:
       receivers: [filelog/system]
-      processors: [resource, batch]
+      processors: [resourcedetection, resource, batch]
       exporters: [otlphttp]
 ```
 
@@ -440,6 +497,12 @@ processors:
   batch:
     send_batch_size: 512
     timeout: 5s
+  # Stamps host.name / host.id / os.type — this is how OneUptime attaches
+  # telemetry to a host. Without it the host tabs stay empty.
+  resourcedetection:
+    detectors: [system, env]
+    system:
+      hostname_sources: [os]
   resource:
     attributes:
       - key: service.name
@@ -456,14 +519,14 @@ service:
   pipelines:
     metrics:
       receivers: [hostmetrics, windows_service]
-      processors: [resource, batch]
+      processors: [resourcedetection, resource, batch]
       exporters: [otlphttp]
     logs:
       receivers:
         - windowseventlog/system
         - windowseventlog/application
         - windowseventlog/security
-      processors: [resource, batch]
+      processors: [resourcedetection, resource, batch]
       exporters: [otlphttp]
 ```
 
@@ -483,6 +546,8 @@ För att följa collectorns egna loggar:
 ```bash
 sudo journalctl -u otelcol-contrib -f
 ```
+
+Den paketerade enheten kör collectorn som den oprivilegierade användaren `otelcol-contrib`. Det räcker för `systemd`-mottagaren — den gör bara de skrivskyddade D-Bus-anrop som systemd redan tillåter alla användare, samma som `systemctl list-units` använder.
 
 ### macOS (launchd)
 
@@ -540,6 +605,7 @@ Tjänsten körs under `LocalSystem` som standard, vilket har de behörigheter so
 2. I OneUptime-instrumentpanelen, öppna **Telemetry → Services** och välj den `service.name` du konfigurerade.
 3. Öppna **Metrics** — värdmetriker (CPU, minne, filsystem osv.) bör visas inom en minut.
 4. Öppna **Logs** — dina filloggar / journald-poster / Windows Event Logs bör strömma in. Användbara sökbara attribut inkluderar `log.file.name`, `systemd.unit`, `winlog.channel`, `winlog.event_id` och `winlog.provider.name`.
+5. Om du aktiverade mottagaren `systemd` (Linux) eller `windows_service` (Windows), öppna **Infrastructure → Hosts**, välj värden och kontrollera fliken **Systemd Units** / **Services** — varje skrapad enhet bör listas med sitt aktuella tillstånd.
 
 ## Minska volymen av insamlad data
 
@@ -554,6 +620,7 @@ Principen är densamma som för själva konfigurationen: **lägg bara till de mo
 | **Loggar**             | Varje rad från varje fil / journald-enhet / kanal      | Begränsa mottagare; `query:`-filter; en `filter`-processor på allvarlighetsgrad |
 | **Värdmetriker**       | Skrapfrekvens × antal serier                           | `collection_interval`; ta bort `process`-skraparen; val av skrapare             |
 | **Metrikkardinalitet** | Metriker per process (en serieuppsättning per process) | Utelämna eller begränsa `process`-skraparen                                     |
+| **systemd-enheter**    | 10 datapunkter per enhet och skrapning (tillståndsuppsättning + CPU) | Begränsa `units:`; stäng av CPU-metriken; höj `collection_interval` |
 
 ### Reglage 1 — Taila bara de loggkällor du behöver
 
@@ -610,7 +677,24 @@ receivers:
       #     match_type: strict
 ```
 
-### Reglage 4 — Släpp poster med lågt värde med en `filter`-processor
+### Reglage 4 — Begränsa uppsättningen systemd-enheter
+
+`systemd`-mottagaren avger en datapunkt **per tillstånd och enhet** vid varje skrapning — åtta per enhet — plus två till för `systemd.service.cpu.time` som är på som standard, så dess volym bestäms av hur många enheter `units:` matchar. Standardvärdet `["*.service"]` plockar upp varje tjänst på värden, inklusive de dussintals engångsenheter som aldrig byter tillstånd. Lista de enheter du faktiskt larmar på, och stäng av CPU-metriken om du inte visar den i diagram:
+
+```yaml
+receivers:
+  systemd:
+    collection_interval: 60s
+    units: [nginx.service, postgresql.service, ssh.service]
+    metrics:
+      # On otelcol-contrib v0.142.0 this key is systemd.unit.cpu.time.
+      systemd.service.cpu.time:
+        enabled: false
+```
+
+Tillsammans tar de en värd med 300 enheter från ~6k datapunkter i minuten till en bra bit under 100. Enheter som tas bort från listan slutar visas på fliken **Systemd Units** några minuter senare, när deras sista mätvärden åldras ut ur dess rullande fönster.
+
+### Reglage 5 — Släpp poster med lågt värde med en `filter`-processor
 
 När du vill ha mottagaren men inte all dess utdata, lägg till en [`filter`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/filterprocessor)-processor — den utvärderar ett [OTTL](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/pkg/ottl/README.md)-villkor och **släpper varje post som matchar**, innan något exporteras.
 
@@ -736,6 +820,12 @@ processors:
   batch:
     send_batch_size: 512
     timeout: 5s
+  # Stamps host.name / host.id / os.type — this is how OneUptime attaches
+  # telemetry to a host. Without it the host tabs stay empty.
+  resourcedetection:
+    detectors: [system, env]
+    system:
+      hostname_sources: [os]
   resource:
     attributes:
       - key: service.name
@@ -752,7 +842,7 @@ service:
   pipelines:
     metrics:
       receivers: [hostmetrics]
-      processors: [resource, batch]
+      processors: [resourcedetection, resource, batch]
       exporters: [otlphttp]
 ```
 
@@ -792,6 +882,9 @@ OpenTelemetry Collector respekterar standardmiljövariablerna `HTTPS_PROXY` / `H
 - **HTTP 401 från exportören** — inmatningstoken är ogiltig eller återkallad. Generera en ny från _Project Settings → Telemetry Ingestion Keys_.
 - **Windows Event Log `Security` returnerar access denied** — tjänsten körs inte med tillräckliga behörigheter. Återskapa den under `LocalSystem` (standard med `sc.exe create`) eller ge tjänstkontot användarrättigheten _Manage auditing and security log_.
 - **`journald`-mottagaren misslyckas med att starta** — se till att `journalctl` finns i collectorns `PATH` och att `/var/log/journal` existerar (kör `sudo systemd-tmpfiles --create --prefix /var/log/journal` om inte).
+- **`systemd`-mottagaren rapporterar ett D-Bus-anslutningsfel** — collectorn kan inte nå systembussen. Bekräfta att `/run/dbus/system_bus_socket` finns och att collectorns användare kan öppna den; att köra `systemctl list-units` som den användaren är den snabbaste kontrollen. Root krävs inte. En collector som körs inuti en container ser ingen buss alls om du inte bind-monterar värdens socket, så föredra en inbyggd installation för den här mottagaren.
+- **`systemd`-mottagaren loggar ett skrapfel per enhet, eller collectorn vägrar starta på grund av en okänd metrik** — båda beror på versionsskillnader. v0.142.0 letar efter cgroup-statistik på varje enhet (ett fel per enhet som inte är en `.service`, per skrapning) och kallar sin CPU-metrik `systemd.unit.cpu.time`; v0.143.0 och senare begränsar den uppslagningen till tjänster och döpte om metriken till `systemd.service.cpu.time`. Uppgradera till v0.143.0+ och se till att en eventuell `metrics:`-överskrivning namnger nyckeln som ditt bygge faktiskt har.
+- **Fliken Systemd Units är tom trots att mottagaren körs** — kontrollera att `resourcedetection` finns i samma metrikpipeline. Mottagaren bifogar bara `systemd.unit.name` till varje enhets resurs, så utan `resourcedetection` finns inget `host.name` och mätvärdena kopplas aldrig till en värd.
 - **Hög volym / kostnad** — se [Minska volymen av insamlad data](#minska-volymen-av-insamlad-data): begränsa mottagarna (specifika Windows-kanaler, specifika systemd-enheter, specifika loggfiler), höj metrikernas `collection_interval`, ta bort skraparen per process eller lägg till en `filter`-processor för att släppa poster med låg allvarlighetsgrad före export.
 
 ## Nästa steg

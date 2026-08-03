@@ -200,6 +200,15 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         },
         {
           link: {
+            title: "Auto Remediation",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES] as Route,
+            ),
+          },
+          icon: IconProp.Bolt,
+        },
+        {
+          link: {
             title: "Privacy Rules",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.ALERTS_SETTINGS_PRIVACY_RULES] as Route,
