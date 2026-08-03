@@ -1,9 +1,14 @@
 import Column from "./Column";
 import Columns from "./Columns";
 import FieldType from "../Types/FieldType";
+import DropdownValueBadge from "../Dropdown/DropdownValueBadge";
 import AnalyticsBaseModel from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import CustomFieldType from "../../../Types/CustomField/CustomFieldType";
+import {
+  CustomFieldDropdownOption,
+  parseCustomFieldDropdownOptions,
+} from "../../../Types/CustomField/CustomFieldDropdownOption";
 import { JSONObject } from "../../../Types/JSON";
 import React, { ReactElement } from "react";
 
@@ -51,27 +56,17 @@ export const CustomFieldsColumnKey: string = "customFields";
 
 export type ParseDropdownOptionsFunction = (
   value: string | undefined | null,
-) => Array<string>;
+) => Array<CustomFieldDropdownOption>;
 
 /*
- * Dropdown options are stored as one option per line, the same format the
- * settings page writes.
+ * Kept as an exported wrapper for callers and tests that historically used
+ * this module's parser. The shared parser understands both legacy newline
+ * values and the colored JSON representation.
  */
 export const parseDropdownOptions: ParseDropdownOptionsFunction = (
   value: string | undefined | null,
-): Array<string> => {
-  if (typeof value !== "string" || !value) {
-    return [];
-  }
-
-  return value
-    .split("\n")
-    .map((line: string) => {
-      return line.trim();
-    })
-    .filter((line: string) => {
-      return line.length > 0;
-    });
+): Array<CustomFieldDropdownOption> => {
+  return parseCustomFieldDropdownOptions(value);
 };
 
 export type GetCustomFieldDefinitionsFunction = (
@@ -151,26 +146,19 @@ export const getCustomFieldValue: GetCustomFieldValueFunction = (
   return (customFields as JSONObject)[name];
 };
 
-type BadgeFunction = (data: { label: string; key: string }) => ReactElement;
+type BadgeFunction = (data: {
+  label: string;
+  key: string;
+  color?: string | undefined;
+}) => ReactElement;
 
 const badge: BadgeFunction = (data: {
   label: string;
   key: string;
+  color?: string | undefined;
 }): ReactElement => {
   return (
-    <span
-      key={data.key}
-      className="inline-flex items-center gap-x-1.5 px-2 py-1 rounded-md bg-indigo-50 text-indigo-700 text-xs font-medium ring-1 ring-inset ring-indigo-700/10"
-    >
-      <svg
-        className="h-1.5 w-1.5 fill-indigo-500"
-        viewBox="0 0 6 6"
-        aria-hidden="true"
-      >
-        <circle cx={3} cy={3} r={3} />
-      </svg>
-      {data.label}
-    </span>
+    <DropdownValueBadge key={data.key} label={data.label} color={data.color} />
   );
 };
 
@@ -235,17 +223,38 @@ export const renderCustomFieldValue: RenderCustomFieldValueFunction = (data: {
       return empty;
     }
 
+    const configuredOptions: Array<CustomFieldDropdownOption> =
+      parseDropdownOptions(definition.dropdownOptions);
+
     return (
       <div className="flex flex-wrap gap-1.5">
         {labels.map((label: string, index: number) => {
-          return badge({ label, key: `${label}-${index}` });
+          const option: CustomFieldDropdownOption | undefined =
+            configuredOptions.find(
+              (configuredOption: CustomFieldDropdownOption) => {
+                return configuredOption.value === label;
+              },
+            );
+
+          return badge({
+            label,
+            key: `${label}-${index}`,
+            color: option?.color,
+          });
         })}
       </div>
     );
   }
 
   if (definition.customFieldType === CustomFieldType.Dropdown) {
-    return badge({ label: String(value), key: String(value) });
+    const label: string = String(value);
+    const option: CustomFieldDropdownOption | undefined = parseDropdownOptions(
+      definition.dropdownOptions,
+    ).find((configuredOption: CustomFieldDropdownOption) => {
+      return configuredOption.value === label;
+    });
+
+    return badge({ label, key: label, color: option?.color });
   }
 
   if (Array.isArray(value)) {

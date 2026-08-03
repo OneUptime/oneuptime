@@ -45,6 +45,13 @@ const dropdownDefinition: CustomFieldDefinition = {
   dropdownOptions: "Low\nHigh",
 };
 
+const coloredDropdownDefinition: CustomFieldDefinition = {
+  name: "Severity",
+  customFieldType: CustomFieldType.Dropdown,
+  dropdownOptions:
+    '[{"value":"Low","color":"#22c55e"},{"value":"High","color":"#ef4444"}]',
+};
+
 const multiSelectDefinition: CustomFieldDefinition = {
   name: "Teams",
   customFieldType: CustomFieldType.MultiSelectDropdown,
@@ -90,6 +97,16 @@ const getPlaceholder: GetPlaceholderFunction = (
   container: HTMLElement,
 ): Element | null => {
   return container.querySelector("span.text-gray-400");
+};
+
+const requireElement: (
+  element: HTMLElement | null | undefined,
+) => HTMLElement = (element: HTMLElement | null | undefined): HTMLElement => {
+  if (!element) {
+    throw new Error("Expected custom field value badge to be rendered");
+  }
+
+  return element;
 };
 
 type ColumnAtFunction = (
@@ -164,19 +181,25 @@ describe("CustomFieldColumns.parseDropdownOptions", () => {
      * inside an option label.
      */
     expect(parseDropdownOptions("Low\nMedium\nHigh")).toEqual([
-      "Low",
-      "Medium",
-      "High",
+      { value: "Low" },
+      { value: "Medium" },
+      { value: "High" },
     ]);
   });
 
   test("trims each option", () => {
-    expect(parseDropdownOptions("  Low  \n\tHigh\t")).toEqual(["Low", "High"]);
+    expect(parseDropdownOptions("  Low  \n\tHigh\t")).toEqual([
+      { value: "Low" },
+      { value: "High" },
+    ]);
   });
 
   test("drops blank and whitespace-only lines", () => {
     // A trailing newline in the textarea must not become an empty option.
-    expect(parseDropdownOptions("Low\n\n   \nHigh\n")).toEqual(["Low", "High"]);
+    expect(parseDropdownOptions("Low\n\n   \nHigh\n")).toEqual([
+      { value: "Low" },
+      { value: "High" },
+    ]);
   });
 
   test("returns an empty list for a blob that is only whitespace", () => {
@@ -184,7 +207,18 @@ describe("CustomFieldColumns.parseDropdownOptions", () => {
   });
 
   test("returns the single option when the blob has no newline at all", () => {
-    expect(parseDropdownOptions("Low")).toEqual(["Low"]);
+    expect(parseDropdownOptions("Low")).toEqual([{ value: "Low" }]);
+  });
+
+  test("parses colors from the structured representation", () => {
+    expect(
+      parseDropdownOptions(
+        '[{"value":"Low","color":"#22c55e"},{"value":"High","color":"#ef4444"}]',
+      ),
+    ).toEqual([
+      { value: "Low", color: "#22c55e" },
+      { value: "High", color: "#ef4444" },
+    ]);
   });
 
   test("returns an empty list for empty, null, undefined and non-string input", () => {
@@ -874,6 +908,64 @@ describe("CustomFieldColumns.renderCustomFieldValue", () => {
     expect(getBadgeLabels(container)).toEqual(["High"]);
   });
 
+  test("renders a dropdown value with its configured color", () => {
+    const container: HTMLElement = renderValue({
+      value: "High",
+      definition: coloredDropdownDefinition,
+    });
+    const badgeElement: HTMLElement | null = container.querySelector(
+      '[data-dropdown-value-badge="true"]',
+    );
+
+    expect(badgeElement).not.toBeNull();
+    expect(requireElement(badgeElement).textContent).toContain("High");
+    expect(requireElement(badgeElement).style.backgroundColor).toEqual(
+      "rgb(239, 68, 68)",
+    );
+    expect(requireElement(badgeElement).style.borderColor).toEqual("#ef4444");
+    expect(
+      requireElement(badgeElement).getAttribute("data-dropdown-value-color"),
+    ).toEqual("#ef4444");
+    expect(requireElement(badgeElement).style.color).toEqual(
+      "rgb(249, 250, 251)",
+    );
+  });
+
+  test("uses dark text on a light dropdown color", () => {
+    const container: HTMLElement = renderValue({
+      value: "Low",
+      definition: {
+        ...coloredDropdownDefinition,
+        dropdownOptions: '[{"value":"Low","color":"#fef08a"}]',
+      },
+    });
+
+    expect(
+      requireElement(
+        container.querySelector<HTMLElement>(
+          '[data-dropdown-value-badge="true"]',
+        ),
+      ).style.color,
+    ).toEqual("rgb(17, 24, 39)");
+  });
+
+  test("falls back to the uncolored badge for a saved value no longer in the options", () => {
+    const container: HTMLElement = renderValue({
+      value: "Critical",
+      definition: coloredDropdownDefinition,
+    });
+    const badgeElement: HTMLElement | null = container.querySelector(
+      '[data-dropdown-value-badge="true"]',
+    );
+
+    expect(
+      requireElement(badgeElement).classList.contains("bg-indigo-50"),
+    ).toBe(true);
+    expect(
+      requireElement(badgeElement).getAttribute("data-dropdown-value-color"),
+    ).toBeNull();
+  });
+
   test("renders one badge per multi-select value", () => {
     /*
      * One badge each rather than a single comma-joined badge: the table reads
@@ -885,6 +977,33 @@ describe("CustomFieldColumns.renderCustomFieldValue", () => {
     });
 
     expect(getBadgeLabels(container)).toEqual(["Infra", "Apps"]);
+  });
+
+  test("applies each configured color to the matching multi-select value", () => {
+    const container: HTMLElement = renderValue({
+      value: ["Infra", "Apps", "Legacy"],
+      definition: {
+        ...multiSelectDefinition,
+        dropdownOptions:
+          '[{"value":"Infra","color":"#0ea5e9"},{"value":"Apps","color":"#a855f7"}]',
+      },
+    });
+    const badges: Array<HTMLElement> = Array.from(
+      container.querySelectorAll<HTMLElement>(
+        '[data-dropdown-value-badge="true"]',
+      ),
+    );
+
+    expect(badges).toHaveLength(3);
+    expect(requireElement(badges[0]).style.backgroundColor).toEqual(
+      "rgb(14, 165, 233)",
+    );
+    expect(requireElement(badges[1]).style.backgroundColor).toEqual(
+      "rgb(168, 85, 247)",
+    );
+    expect(requireElement(badges[2]).classList.contains("bg-indigo-50")).toBe(
+      true,
+    );
   });
 
   test("renders a bare string on a multi-select field as one badge", () => {

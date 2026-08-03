@@ -276,7 +276,7 @@ export default class ScheduledMaintenanceCustomField extends BaseModel {
     type: TableColumnType.LongText,
     title: "Dropdown Options",
     description:
-      "Options for the dropdown field, one per line. Only used when Custom Field Type is Dropdown.",
+      "Options and optional colors for dropdown fields. Plain one-per-line values remain supported.",
     example: "Option 1\nOption 2\nOption 3",
   })
   @Column({
