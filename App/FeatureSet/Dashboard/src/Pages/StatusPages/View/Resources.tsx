@@ -1,12 +1,15 @@
 import MonitorElement from "../../../Components/Monitor/Monitor";
 import MonitorGroupElement from "../../../Components/MonitorGroup/MonitorGroupElement";
+import BulkAddStatusPageMonitorsModal from "../../../Components/StatusPage/BulkAddStatusPageMonitorsModal";
 import GridResourceEditor from "../../../Components/StatusPage/GridResourceEditor";
 import PageComponentProps from "../../PageComponentProps";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
+import Permission from "Common/Types/Permission";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
@@ -21,6 +24,8 @@ import API from "Common/UI/Utils/API/API";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
+import PermissionUtil from "Common/UI/Utils/Permission";
+import User from "Common/UI/Utils/User";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorGroup from "Common/Models/DatabaseModels/MonitorGroup";
 import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
@@ -40,6 +45,11 @@ import StatusPageGroupViewMode from "Common/Types/StatusPage/StatusPageGroupView
 import Link from "Common/UI/Components/Link/Link";
 import ProjectUtil from "Common/UI/Utils/Project";
 import MarkdownUtil from "Common/UI/Utils/Markdown";
+import IconProp from "Common/Types/Icon/IconProp";
+
+interface BulkAddTarget {
+  statusPageGroupId: ObjectID | null;
+}
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -51,6 +61,18 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
   const [error, setError] = useState<string>("");
 
   const [addMonitorGroup, setAddMonitorGroup] = useState<boolean>(false);
+  const [bulkAddTarget, setBulkAddTarget] = useState<BulkAddTarget | null>(
+    null,
+  );
+  const [bulkAddRefreshCounter, setBulkAddRefreshCounter] = useState<number>(0);
+
+  const permissions: Array<Permission> | null =
+    PermissionUtil.getAllPermissions();
+  const canCreateStatusPageResource: boolean = Boolean(
+    User.isMasterAdmin() ||
+      (permissions &&
+        new StatusPageResource().hasCreatePermissions(permissions)),
+  );
 
   const fetchGroups: PromiseVoidFunction = async (): Promise<void> => {
     setError("");
@@ -447,6 +469,18 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 : ""
           }Status Page Resources`,
           description: "Resources that will be shown on the page",
+          buttons: canCreateStatusPageResource
+            ? [
+                {
+                  title: "Add Multiple Monitors",
+                  buttonStyle: ButtonStyleType.OUTLINE,
+                  icon: IconProp.Add,
+                  onClick: () => {
+                    setBulkAddTarget({ statusPageGroupId });
+                  },
+                },
+              ]
+            : [],
         }}
         noItemsMessage={
           "No status page resources created for this status page."
@@ -463,6 +497,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         ]}
         formFields={formFields}
         showRefreshButton={true}
+        refreshToggle={`bulk-add-${bulkAddRefreshCounter}`}
         viewPageRoute={Navigation.getCurrentRoute()}
         selectMoreFields={{
           monitorGroup: {
@@ -496,6 +531,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                   statusPageId={modelId}
                   projectId={new ObjectID(props.currentProject!._id!)}
                   currentProject={props.currentProject!}
+                  canCreateStatusPageResource={canCreateStatusPageResource}
                   baseFormFields={formFields}
                   formSteps={[
                     { title: "Monitor Details", id: "monitor-details" },
@@ -509,6 +545,22 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         ) : (
           <></>
         )}
+
+        {bulkAddTarget ? (
+          <BulkAddStatusPageMonitorsModal
+            projectId={new ObjectID(props.currentProject!._id!)}
+            statusPageId={modelId}
+            statusPageGroupId={bulkAddTarget.statusPageGroupId || undefined}
+            onClose={() => {
+              setBulkAddTarget(null);
+            }}
+            onComplete={() => {
+              setBulkAddRefreshCounter((counter: number) => {
+                return counter + 1;
+              });
+            }}
+          />
+        ) : null}
       </>
     </Fragment>
   );
