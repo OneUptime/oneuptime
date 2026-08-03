@@ -65,6 +65,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 import GlobalEvents from "Common/UI/Utils/GlobalEvents";
 import { REFRESH_SIDEBAR_COUNT_EVENT } from "Common/UI/Components/SideMenu/CountModelSideMenuItem";
+import LiveDuration from "../EventView/LiveDuration";
 
 export interface ComponentProps {
   query?: Query<ScheduledMaintenance> | undefined;
@@ -722,6 +723,25 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
             title: "Starts At",
             type: FieldType.DateTime,
             hideOnMobile: true,
+          },
+          {
+            field: {
+              startsAt: true,
+              endsAt: true,
+            },
+            title: "Duration",
+            type: FieldType.Element,
+            disableSort: true,
+            disableCsvExport: true,
+            getElement: (item: ScheduledMaintenance): ReactElement => {
+              if (!item.startsAt || !item.endsAt) {
+                return <>-</>;
+              }
+
+              return (
+                <LiveDuration startDate={item.startsAt} endDate={item.endsAt} />
+              );
+            },
           },
           {
             field: {

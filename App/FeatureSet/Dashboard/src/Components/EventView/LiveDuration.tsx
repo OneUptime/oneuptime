@@ -5,6 +5,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import { getEventDurationText } from "../../Utils/EventDuration";
 
 export interface ComponentProps {
   startDate: Date;
@@ -32,14 +33,7 @@ const LiveDuration: FunctionComponent<ComponentProps> = (
 
   const endDate: Date = props.endDate || now;
 
-  const minutes: number = Math.abs(
-    OneUptimeDate.getDifferenceInMinutes(endDate, props.startDate),
-  );
-
-  const text: string =
-    minutes < 1
-      ? "less than a minute"
-      : OneUptimeDate.convertMinutesToDaysHoursAndMinutes(minutes);
+  const text: string = getEventDurationText(props.startDate, endDate);
 
   return <span>{text}</span>;
 };

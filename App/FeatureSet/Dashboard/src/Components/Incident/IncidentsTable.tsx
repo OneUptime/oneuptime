@@ -65,6 +65,8 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
 import GlobalEvents from "Common/UI/Utils/GlobalEvents";
 import { REFRESH_SIDEBAR_COUNT_EVENT } from "Common/UI/Components/SideMenu/CountModelSideMenuItem";
+import LiveDuration from "../EventView/LiveDuration";
+import useEventTimelineEndDates from "../EventView/useEventTimelineEndDates";
 
 export interface ComponentProps {
   query?: Query<Incident> | undefined;
@@ -90,6 +92,27 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
     useState<boolean>(false);
   const [bulkActionProps, setBulkActionProps] =
     useState<BulkActionOnClickProps<Incident> | null>(null);
+  const [visibleIncidents, setVisibleIncidents] = useState<Array<Incident>>([]);
+
+  const resolvedIncidentIds: Array<string> = visibleIncidents
+    .filter((incident: Incident) => {
+      return Boolean(incident.currentIncidentState?.isResolvedState);
+    })
+    .map((incident: Incident) => {
+      return incident.id?.toString() || "";
+    })
+    .filter((incidentId: string) => {
+      return Boolean(incidentId);
+    });
+
+  const {
+    endDateByEventId: resolvedAtByIncidentId,
+    isLoading: isLoadingIncidentDurations,
+  } = useEventTimelineEndDates<IncidentStateTimeline>({
+    eventIds: resolvedIncidentIds,
+    eventIdField: "incidentId",
+    timelineModelType: IncidentStateTimeline,
+  });
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<Incident>({ modelType: Incident });
@@ -501,6 +524,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery(props.query)}
         onFetchSuccess={(data: Array<Incident>) => {
+          setVisibleIncidents(data);
           onResourcesFetched(data);
         }}
         isEditable={false}
@@ -650,6 +674,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
               currentIncidentState: {
                 name: true,
                 color: true,
+                isResolvedState: true,
               },
             },
             title: "State",
@@ -756,6 +781,38 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             title: "Declared",
             type: FieldType.DateTime,
             hideOnMobile: true,
+          },
+          {
+            field: {
+              declaredAt: true,
+            },
+            title: "Duration",
+            type: FieldType.Element,
+            disableSort: true,
+            disableCsvExport: true,
+            getElement: (item: Incident): ReactElement => {
+              const incidentId: string = item.id?.toString() || "";
+              const isResolved: boolean = Boolean(
+                item.currentIncidentState?.isResolvedState,
+              );
+              const resolvedAt: Date | undefined = incidentId
+                ? resolvedAtByIncidentId[incidentId]
+                : undefined;
+
+              if (
+                !item.declaredAt ||
+                (isResolved && (isLoadingIncidentDurations || !resolvedAt))
+              ) {
+                return <>-</>;
+              }
+
+              return (
+                <LiveDuration
+                  startDate={item.declaredAt}
+                  endDate={isResolved ? resolvedAt : undefined}
+                />
+              );
+            },
           },
           {
             field: {
