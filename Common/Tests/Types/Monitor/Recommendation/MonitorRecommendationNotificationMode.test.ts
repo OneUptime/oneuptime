@@ -44,12 +44,13 @@ const OFFLINE_STATUS_ID: ObjectID = ObjectID.generate();
 const DEFAULT_STATUS_ID: ObjectID = ObjectID.generate();
 const INCIDENT_SEVERITY_ID: ObjectID = ObjectID.generate();
 const ALERT_SEVERITY_ID: ObjectID = ObjectID.generate();
+const RESOURCE_IDENTIFIER: string = ObjectID.generate().toString();
 
 function buildArgs(
   overrides?: Partial<MonitorRecommendationArgs>,
 ): MonitorRecommendationArgs {
   return {
-    resourceIdentifier: "prod-cluster-01",
+    resourceIdentifier: RESOURCE_IDENTIFIER,
     onlineMonitorStatusId: ONLINE_STATUS_ID,
     offlineMonitorStatusId: OFFLINE_STATUS_ID,
     defaultIncidentSeverityId: INCIDENT_SEVERITY_ID,
@@ -148,7 +149,7 @@ describe("MonitorRecommendationNotificationMode", () => {
     it("has recommendations to test at all", () => {
       // Guards every for-loop in this file against a vacuous pass.
       expect(ALL_RECOMMENDATIONS.length).toBeGreaterThan(0);
-      expect(ONE_PER_RESOURCE_TYPE.length).toBe(8);
+      expect(ONE_PER_RESOURCE_TYPE.length).toBe(9);
     });
 
     it("ships every unhealthy criteria with createIncidents AND createAlerts true, and both arrays populated", () => {

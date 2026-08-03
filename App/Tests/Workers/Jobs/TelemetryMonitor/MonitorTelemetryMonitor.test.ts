@@ -4,10 +4,17 @@ import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import Search from "Common/Types/BaseDatabase/Search";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
+import Includes from "Common/Types/BaseDatabase/Includes";
 import LogMonitorResponse from "Common/Types/Monitor/LogMonitor/LogMonitorResponse";
 import TraceMonitorResponse from "Common/Types/Monitor/TraceMonitor/TraceMonitorResponse";
 import ExceptionMonitorResponse from "Common/Types/Monitor/ExceptionMonitor/ExceptionMonitorResponse";
 import { describe, expect, test, beforeEach } from "@jest/globals";
+import {
+  RumAlertTemplate,
+  getRumAlertTemplateById,
+} from "Common/Types/Monitor/RumAlertTemplates";
+import RollingTime from "Common/Types/RollingTime/RollingTime";
+import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
 
 /*
  * Covers the worker-side half of the "log monitors do not work" fix. A
@@ -51,11 +58,19 @@ jest.mock("Common/Server/Services/TelemetryExceptionService", () => {
     default: { getResolvedOrArchivedFingerprints: jest.fn() },
   };
 });
+jest.mock("Common/Server/Services/MetricService", () => {
+  return { __esModule: true, default: { aggregateBy: jest.fn() } };
+});
+jest.mock("Common/Server/Services/MetricTypeService", () => {
+  return { __esModule: true, default: { findBy: jest.fn() } };
+});
 
 import LogService from "Common/Server/Services/LogService";
 import SpanService from "Common/Server/Services/SpanService";
 import ExceptionInstanceService from "Common/Server/Services/ExceptionInstanceService";
 import TelemetryExceptionService from "Common/Server/Services/TelemetryExceptionService";
+import MetricService from "Common/Server/Services/MetricService";
+import MetricTypeService from "Common/Server/Services/MetricTypeService";
 import {
   monitorLogs,
   monitorTrace,
@@ -69,6 +84,10 @@ const exceptionCountBy: jest.Mock =
   ExceptionInstanceService.countBy as unknown as jest.Mock;
 const resolvedFingerprints: jest.Mock =
   TelemetryExceptionService.getResolvedOrArchivedFingerprints as unknown as jest.Mock;
+const metricAggregateBy: jest.Mock =
+  MetricService.aggregateBy as unknown as jest.Mock;
+const metricTypeFindBy: jest.Mock =
+  MetricTypeService.findBy as unknown as jest.Mock;
 
 const monitorId: ObjectID = ObjectID.generate();
 const projectId: ObjectID = ObjectID.generate();
@@ -78,6 +97,8 @@ beforeEach(() => {
   spanCountBy.mockReset().mockResolvedValue(new PositiveNumber(0));
   exceptionCountBy.mockReset().mockResolvedValue(new PositiveNumber(0));
   resolvedFingerprints.mockReset().mockResolvedValue([]);
+  metricAggregateBy.mockReset().mockResolvedValue({ data: [] });
+  metricTypeFindBy.mockReset().mockResolvedValue([]);
 });
 
 describe("monitorLogs", () => {
@@ -167,5 +188,77 @@ describe("monitorMetric", () => {
         projectId,
       }),
     ).rejects.toThrow("Metric config is missing");
+  });
+
+  test("scopes a recommendation-created RUM metric query to its application id", async () => {
+    const rumApplicationId: ObjectID = ObjectID.generate();
+    const template: RumAlertTemplate | undefined =
+      getRumAlertTemplateById("rum-poor-lcp");
+
+    expect(template).toBeDefined();
+
+    const step: MonitorStep = template!.getMonitorStep({
+      rumApplicationId: rumApplicationId.toString(),
+      onlineMonitorStatusId: ObjectID.generate(),
+      offlineMonitorStatusId: ObjectID.generate(),
+      defaultIncidentSeverityId: ObjectID.generate(),
+      defaultAlertSeverityId: ObjectID.generate(),
+      monitorName: "Storefront",
+    });
+
+    await monitorMetric({ monitorStep: step, monitorId, projectId });
+
+    expect(metricAggregateBy).toHaveBeenCalledTimes(1);
+
+    const query: Record<string, unknown> = metricAggregateBy.mock.calls[0]![0]
+      .query as Record<string, unknown>;
+    const primaryEntityId: Includes = query["primaryEntityId"] as Includes;
+
+    expect(primaryEntityId).toBeInstanceOf(Includes);
+    expect(
+      (primaryEntityId.values as Array<string | ObjectID | number>).map(
+        (id: string | ObjectID | number) => {
+          return id.toString();
+        },
+      ),
+    ).toEqual([rumApplicationId.toString()]);
+    expect(query["projectId"]).toBe(projectId);
+    expect(query["name"]).toBe("web_vital.lcp");
+  });
+
+  test("keeps legacy generic metric monitors project-wide when no scope is configured", async () => {
+    const step: MonitorStep = new MonitorStep();
+    step.setMetricMonitor({
+      rollingTime: RollingTime.Past5Minutes,
+      metricViewConfig: {
+        queryConfigs: [
+          {
+            metricAliasData: {
+              metricVariable: "latency",
+              title: "Latency",
+              description: "Latency",
+              legend: "Latency",
+              legendUnit: "ms",
+            },
+            metricQueryData: {
+              filterData: {
+                metricName: "custom.latency",
+                attributes: {},
+                aggegationType: MetricsAggregationType.Avg,
+                aggregateBy: {},
+              },
+            },
+          },
+        ],
+        formulaConfigs: [],
+      },
+    });
+
+    await monitorMetric({ monitorStep: step, monitorId, projectId });
+
+    const query: Record<string, unknown> = metricAggregateBy.mock.calls[0]![0]
+      .query as Record<string, unknown>;
+
+    expect(query["primaryEntityId"]).toBeUndefined();
   });
 });

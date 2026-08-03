@@ -42,6 +42,10 @@ import {
   ProxmoxAlertTemplate,
   getAllProxmoxAlertTemplates,
 } from "../ProxmoxAlertTemplates";
+import {
+  RumAlertTemplate,
+  getAllRumAlertTemplates,
+} from "../RumAlertTemplates";
 
 /*
  * A resource type's entry in the registry.
@@ -53,14 +57,20 @@ import {
  */
 export interface MonitorRecommendationResourceTypeDefinition {
   resourceType: MonitorRecommendationResourceType;
-  monitorType: MonitorType;
+  /*
+   * Infrastructure recommendations all use their resource's dedicated
+   * MonitorType. RUM recommendations intentionally span Metrics, Traces and
+   * Exceptions, so coverage queries must consider every type in this list.
+   */
+  monitorTypes: Array<MonitorType>;
   // Human label, singular, e.g. "Kubernetes Cluster".
   resourceLabel: string;
   // The field name in the owning module's own args interface.
   identifierFieldName:
     | "clusterIdentifier"
     | "hostIdentifier"
-    | "fleetIdentifier";
+    | "fleetIdentifier"
+    | "rumApplicationId";
   icon: IconProp;
   getRecommendations: () => Array<MonitorRecommendation>;
 }
@@ -277,11 +287,31 @@ function getIoTRecommendations(): Array<MonitorRecommendation> {
   });
 }
 
+function getRumRecommendations(): Array<MonitorRecommendation> {
+  return getAllRumAlertTemplates().map((template: RumAlertTemplate) => {
+    return normalize({
+      resourceType: MonitorRecommendationResourceType.RumApplication,
+      monitorType: template.monitorType,
+      template: template,
+      getMonitorStep: (args: MonitorRecommendationArgs) => {
+        return template.getMonitorStep({
+          rumApplicationId: args.resourceIdentifier,
+          onlineMonitorStatusId: args.onlineMonitorStatusId,
+          offlineMonitorStatusId: args.offlineMonitorStatusId,
+          defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+          defaultAlertSeverityId: args.defaultAlertSeverityId,
+          monitorName: args.monitorName,
+        });
+      },
+    });
+  });
+}
+
 const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefinition> =
   [
     {
       resourceType: MonitorRecommendationResourceType.Kubernetes,
-      monitorType: MonitorType.Kubernetes,
+      monitorTypes: [MonitorType.Kubernetes],
       resourceLabel: "Kubernetes Cluster",
       identifierFieldName: "clusterIdentifier",
       icon: IconProp.Kubernetes,
@@ -289,7 +319,7 @@ const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefiniti
     },
     {
       resourceType: MonitorRecommendationResourceType.Host,
-      monitorType: MonitorType.Host,
+      monitorTypes: [MonitorType.Host],
       resourceLabel: "Host",
       identifierFieldName: "hostIdentifier",
       icon: IconProp.Server,
@@ -297,7 +327,7 @@ const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefiniti
     },
     {
       resourceType: MonitorRecommendationResourceType.Docker,
-      monitorType: MonitorType.Docker,
+      monitorTypes: [MonitorType.Docker],
       resourceLabel: "Docker Host",
       identifierFieldName: "hostIdentifier",
       icon: IconProp.Docker,
@@ -305,7 +335,7 @@ const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefiniti
     },
     {
       resourceType: MonitorRecommendationResourceType.DockerSwarm,
-      monitorType: MonitorType.DockerSwarm,
+      monitorTypes: [MonitorType.DockerSwarm],
       resourceLabel: "Docker Swarm Cluster",
       identifierFieldName: "clusterIdentifier",
       icon: IconProp.DockerSwarm,
@@ -313,7 +343,7 @@ const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefiniti
     },
     {
       resourceType: MonitorRecommendationResourceType.Podman,
-      monitorType: MonitorType.Podman,
+      monitorTypes: [MonitorType.Podman],
       resourceLabel: "Podman Host",
       identifierFieldName: "hostIdentifier",
       icon: IconProp.Podman,
@@ -321,7 +351,7 @@ const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefiniti
     },
     {
       resourceType: MonitorRecommendationResourceType.Proxmox,
-      monitorType: MonitorType.Proxmox,
+      monitorTypes: [MonitorType.Proxmox],
       resourceLabel: "Proxmox Cluster",
       identifierFieldName: "clusterIdentifier",
       icon: IconProp.Server,
@@ -329,7 +359,7 @@ const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefiniti
     },
     {
       resourceType: MonitorRecommendationResourceType.Ceph,
-      monitorType: MonitorType.Ceph,
+      monitorTypes: [MonitorType.Ceph],
       resourceLabel: "Ceph Cluster",
       identifierFieldName: "clusterIdentifier",
       icon: IconProp.Database,
@@ -337,11 +367,23 @@ const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefiniti
     },
     {
       resourceType: MonitorRecommendationResourceType.IoTDevice,
-      monitorType: MonitorType.IoTDevice,
+      monitorTypes: [MonitorType.IoTDevice],
       resourceLabel: "IoT Fleet",
       identifierFieldName: "fleetIdentifier",
       icon: IconProp.CPUChip,
       getRecommendations: getIoTRecommendations,
+    },
+    {
+      resourceType: MonitorRecommendationResourceType.RumApplication,
+      monitorTypes: [
+        MonitorType.Metrics,
+        MonitorType.Traces,
+        MonitorType.Exceptions,
+      ],
+      resourceLabel: "RUM Application",
+      identifierFieldName: "rumApplicationId",
+      icon: IconProp.Globe,
+      getRecommendations: getRumRecommendations,
     },
   ];
 

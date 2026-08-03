@@ -13,6 +13,7 @@ import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBa
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import RecommendationDismissal from "Common/Models/DatabaseModels/RecommendationDismissal";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
+import MonitorType from "Common/Types/Monitor/MonitorType";
 import RecommendationType from "Common/Types/Recommendation/RecommendationType";
 import MonitorRecommendationCatalog, {
   MonitorRecommendationResourceTypeDefinition,
@@ -99,18 +100,22 @@ const RecommendationsSideMenuItem: FunctionComponent<ComponentProps> = (
         return;
       }
 
-      const [monitorList, dismissals]: [
-        ListResult<Monitor>,
+      const [monitorLists, dismissals]: [
+        Array<ListResult<Monitor>>,
         Array<RecommendationDismissal>,
       ] = await Promise.all([
-        ModelAPI.getList<Monitor>({
-          modelType: Monitor,
-          query: { monitorType: definition.monitorType },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          select: { name: true, monitorSteps: true },
-          sort: { name: SortOrder.Ascending },
-        }),
+        Promise.all(
+          definition.monitorTypes.map(async (monitorType: MonitorType) => {
+            return await ModelAPI.getList<Monitor>({
+              modelType: Monitor,
+              query: { monitorType: monitorType },
+              limit: LIMIT_PER_PROJECT,
+              skip: 0,
+              select: { name: true, monitorSteps: true },
+              sort: { name: SortOrder.Ascending },
+            });
+          }),
+        ),
         RecommendationDismissalUtil.getDismissals({
           resourceType: props.resourceType,
           resourceId: props.resourceId,
@@ -136,13 +141,19 @@ const RecommendationsSideMenuItem: FunctionComponent<ComponentProps> = (
        */
       const fingerprintOnlyPlaceholderId: ObjectID = ObjectID.getZeroObjectID();
 
+      const monitors: Array<Monitor> = monitorLists.flatMap(
+        (monitorList: ListResult<Monitor>) => {
+          return monitorList.data;
+        },
+      );
+
       const viewModels: Array<RecommendationViewModel> =
         RecommendationFilterUtil.buildViewModels({
           recommendations: recommendations,
           coveredMonitorIds:
             MonitorRecommendationUtil.getCoveredRecommendationMonitorIds({
               recommendations: recommendations,
-              existingMonitors: monitorList.data
+              existingMonitors: monitors
                 .filter((monitor: Monitor) => {
                   return Boolean(monitor.id);
                 })
