@@ -71,6 +71,8 @@ import Query from "Common/Types/BaseDatabase/Query";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import Span from "Common/Models/AnalyticsModels/Span";
 import Log from "Common/Models/AnalyticsModels/Log";
+import LiveDuration from "../../../Components/EventView/LiveDuration";
+import { getEventEndDateForCurrentState } from "../../../Utils/EventDuration";
 
 const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
@@ -99,6 +101,9 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [isPrivate, setIsPrivate] = useState<boolean>(false);
   const [eventNumber, setEventNumber] = useState<string | undefined>(undefined);
   const [alertTitle, setAlertTitle] = useState<string | undefined>(undefined);
+  const [alertStartedAt, setAlertStartedAt] = useState<Date | undefined>(
+    undefined,
+  );
 
   const fetchData: PromiseVoidFunction = async (): Promise<void> => {
     try {
@@ -149,6 +154,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           seriesLabels: true,
           isPrivate: true,
           title: true,
+          createdAt: true,
           alertNumber: true,
           alertNumberWithPrefix: true,
           alertSeverity: {
@@ -211,6 +217,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
       setIsPrivate(alert?.isPrivate || false);
 
       setAlertTitle(alert?.title || undefined);
+      setAlertStartedAt(alert?.createdAt || undefined);
 
       setEventNumber(
         alert?.alertNumberWithPrefix ||
@@ -297,7 +304,8 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   type getTimeFunction = () => string;
 
   const getTimeToAcknowledge: getTimeFunction = (): string => {
-    const alertStartTime: Date = alertStateTimeline[0]?.startsAt || new Date();
+    const alertStartTime: Date =
+      alertStartedAt || alertStateTimeline[0]?.startsAt || new Date();
 
     const acknowledgeTime: Date | undefined = getLastTimelineDateForState(
       getAcknowledgeState()?._id?.toString(),
@@ -326,7 +334,8 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   };
 
   const getTimeToResolve: getTimeFunction = (): string => {
-    const alertStartTime: Date = alertStateTimeline[0]?.startsAt || new Date();
+    const alertStartTime: Date =
+      alertStartedAt || alertStateTimeline[0]?.startsAt || new Date();
 
     const resolveTime: Date | undefined = getFirstTimelineDateForState(
       getResolvedState()?._id?.toString(),
@@ -343,6 +352,18 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
     );
   };
 
+  const durationStartDate: Date | undefined =
+    alertStartedAt || alertStateTimeline[0]?.startsAt;
+  const durationEndDate: Date | undefined = getEventEndDateForCurrentState(
+    alertStateTimeline.map((timeline: AlertStateTimeline) => {
+      return {
+        stateId: timeline.alertStateId?.toString(),
+        startsAt: timeline.startsAt,
+      };
+    }),
+    getResolvedState()?._id?.toString(),
+  );
+
   return (
     <Fragment>
       <div className="mb-5">
@@ -350,6 +371,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           alertId={modelId}
           eventNumber={eventNumber}
           title={alertTitle}
+          eventStartsAt={durationStartDate}
           severity={severity}
           isPrivate={isPrivate}
           onActionComplete={async () => {
@@ -360,7 +382,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
       <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-3">
         <div className="min-w-0 xl:col-span-2">
-          <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
             <EventStatTile
               label={`${getAcknowledgeState()?.name || "Acknowledged"} in`}
               icon={IconProp.Check}
@@ -370,6 +392,20 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               label={`${getResolvedState()?.name || "Resolved"} in`}
               icon={IconProp.CheckCircle}
               value={getTimeToResolve()}
+            />
+            <EventStatTile
+              label="Duration"
+              icon={IconProp.Clock}
+              value={
+                durationStartDate ? (
+                  <LiveDuration
+                    startDate={durationStartDate}
+                    endDate={durationEndDate}
+                  />
+                ) : (
+                  "-"
+                )
+              }
             />
           </div>
 

@@ -74,6 +74,8 @@ import Query from "Common/Types/BaseDatabase/Query";
 import Span from "Common/Models/AnalyticsModels/Span";
 import Log from "Common/Models/AnalyticsModels/Log";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
+import LiveDuration from "../../../Components/EventView/LiveDuration";
+import { getEventEndDateForCurrentState } from "../../../Utils/EventDuration";
 
 const IncidentView: FunctionComponent<
   PageComponentProps
@@ -99,6 +101,9 @@ const IncidentView: FunctionComponent<
   const [isPrivate, setIsPrivate] = useState<boolean>(false);
   const [eventNumber, setEventNumber] = useState<string | undefined>(undefined);
   const [incidentTitle, setIncidentTitle] = useState<string | undefined>(
+    undefined,
+  );
+  const [incidentStartedAt, setIncidentStartedAt] = useState<Date | undefined>(
     undefined,
   );
   const [severity, setSeverity] = useState<
@@ -154,6 +159,7 @@ const IncidentView: FunctionComponent<
           seriesLabels: true,
           isPrivate: true,
           title: true,
+          declaredAt: true,
           incidentNumber: true,
           incidentNumberWithPrefix: true,
           incidentSeverity: {
@@ -207,6 +213,7 @@ const IncidentView: FunctionComponent<
       setIsPrivate(incident?.isPrivate === true);
 
       setIncidentTitle(incident?.title || undefined);
+      setIncidentStartedAt(incident?.declaredAt || undefined);
 
       setEventNumber(
         incident?.incidentNumberWithPrefix ||
@@ -299,7 +306,7 @@ const IncidentView: FunctionComponent<
 
   const getTimeToAcknowledge: getTimeFunction = (): string => {
     const incidentStartTime: Date =
-      incidentStateTimeline[0]?.startsAt || new Date();
+      incidentStartedAt || incidentStateTimeline[0]?.startsAt || new Date();
 
     // last matching acknowledge entry (search a copy in reverse; do not mutate state).
     const acknowledgeTime: Date | undefined = [...incidentStateTimeline]
@@ -341,7 +348,7 @@ const IncidentView: FunctionComponent<
 
   const getTimeToResolve: getTimeFunction = (): string => {
     const incidentStartTime: Date =
-      incidentStateTimeline[0]?.startsAt || new Date();
+      incidentStartedAt || incidentStateTimeline[0]?.startsAt || new Date();
 
     const resolveTime: Date | undefined = incidentStateTimeline.find(
       (timeline: IncidentStateTimeline) => {
@@ -363,6 +370,18 @@ const IncidentView: FunctionComponent<
     );
   };
 
+  const durationStartDate: Date | undefined =
+    incidentStartedAt || incidentStateTimeline[0]?.startsAt;
+  const durationEndDate: Date | undefined = getEventEndDateForCurrentState(
+    incidentStateTimeline.map((timeline: IncidentStateTimeline) => {
+      return {
+        stateId: timeline.incidentStateId?.toString(),
+        startsAt: timeline.startsAt,
+      };
+    }),
+    getResolvedState()?._id?.toString(),
+  );
+
   return (
     <Fragment>
       <div className="mb-5">
@@ -370,6 +389,7 @@ const IncidentView: FunctionComponent<
           incidentId={modelId}
           eventNumber={eventNumber}
           title={incidentTitle}
+          eventStartsAt={durationStartDate}
           severity={severity}
           isPrivate={isPrivate}
           onActionComplete={async () => {
@@ -380,7 +400,7 @@ const IncidentView: FunctionComponent<
 
       <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-3">
         <div className="min-w-0 xl:col-span-2">
-          <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
             <EventStatTile
               label={`${getAcknowledgeState()?.name || "Acknowledged"} in`}
               icon={IconProp.Check}
@@ -390,6 +410,20 @@ const IncidentView: FunctionComponent<
               label={`${getResolvedState()?.name || "Resolved"} in`}
               icon={IconProp.CheckCircle}
               value={getTimeToResolve()}
+            />
+            <EventStatTile
+              label="Duration"
+              icon={IconProp.Clock}
+              value={
+                durationStartDate ? (
+                  <LiveDuration
+                    startDate={durationStartDate}
+                    endDate={durationEndDate}
+                  />
+                ) : (
+                  "-"
+                )
+              }
             />
           </div>
 
