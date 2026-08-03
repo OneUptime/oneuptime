@@ -97,7 +97,7 @@ const ColorPicker: FunctionComponent<ComponentProps> = (
             icon={IconProp.Close}
             className="text-gray-400 h-5 w-5 cursor-pointer hover:text-gray-600"
             onClick={() => {
-              setColor("#FFFFFF");
+              setColor("");
               if (props.onChange) {
                 props.onChange(null);
               }

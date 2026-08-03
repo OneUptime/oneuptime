@@ -1,12 +1,24 @@
 import PageComponentProps from "../PageComponentProps";
 import CustomFieldType from "Common/Types/CustomField/CustomFieldType";
+import DropdownOptionsInput from "Common/UI/Components/CustomFields/DropdownOptionsInput";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import TeamMemberCustomField from "Common/Models/DatabaseModels/TeamMemberCustomField";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import ProjectUtil from "Common/UI/Utils/Project";
+
+const isDropdownType: (value: unknown) => boolean = (
+  value: unknown,
+): boolean => {
+  return (
+    value === CustomFieldType.Dropdown ||
+    value === CustomFieldType.MultiSelectDropdown
+  );
+};
 
 const TeamMemberCustomFields: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
@@ -74,6 +86,42 @@ const TeamMemberCustomFields: FunctionComponent<PageComponentProps> = (
                 };
               },
             ),
+          },
+          {
+            field: {
+              dropdownOptions: true,
+            },
+            title: "Dropdown Options",
+            description:
+              "Add the options that should appear in the dropdown and optionally choose a color for each value.",
+            fieldType: FormFieldSchemaType.CustomComponent,
+            required: (item: FormValues<TeamMemberCustomField>) => {
+              return isDropdownType(item.customFieldType);
+            },
+            showIf: (item: FormValues<TeamMemberCustomField>) => {
+              return isDropdownType(item.customFieldType);
+            },
+            getCustomElement: (
+              _values: FormValues<TeamMemberCustomField>,
+              customElementProps: CustomElementProps,
+            ) => {
+              return (
+                <DropdownOptionsInput
+                  initialValue={
+                    typeof customElementProps.initialValue === "string"
+                      ? customElementProps.initialValue
+                      : ""
+                  }
+                  error={customElementProps.error}
+                  onChange={(value: string) => {
+                    customElementProps.onChange?.(value);
+                  }}
+                  onBlur={() => {
+                    customElementProps.onBlur?.();
+                  }}
+                />
+              );
+            },
           },
         ]}
         showRefreshButton={true}

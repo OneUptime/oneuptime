@@ -6,6 +6,7 @@ import ColorViewer from "../ColorViewer/ColorViewer";
 import CopyableButton from "../CopyableButton/CopyableButton";
 import DictionaryOfStringsViewer from "../Dictionary/DictionaryOfStingsViewer";
 import { DropdownOption, DropdownOptionGroup } from "../Dropdown/Dropdown";
+import DropdownValueBadge from "../Dropdown/DropdownValueBadge";
 import HiddenText from "../HiddenText/HiddenText";
 import MarkdownViewer from "../Markdown.tsx/LazyMarkdownViewer";
 import ObjectIDView from "../ObjectID/ObjectIDView";
@@ -113,16 +114,10 @@ const Detail: DetailFunction = <T extends GenericObject>(
     }
 
     return (
-      <span className="inline-flex items-center gap-x-1.5 px-2 py-1 rounded-md bg-indigo-50 text-indigo-700 text-xs font-medium ring-1 ring-inset ring-indigo-700/10">
-        <svg
-          className="h-1.5 w-1.5 fill-indigo-500"
-          viewBox="0 0 6 6"
-          aria-hidden="true"
-        >
-          <circle cx={3} cy={3} r={3} />
-        </svg>
-        {selectedOption.label as string}
-      </span>
+      <DropdownValueBadge
+        label={selectedOption.label as string}
+        color={selectedOption.color}
+      />
     );
   };
 
@@ -171,19 +166,11 @@ const Detail: DetailFunction = <T extends GenericObject>(
               ? (matched.label as string)
               : String(value);
             return (
-              <span
+              <DropdownValueBadge
                 key={`${String(value)}-${index}`}
-                className="inline-flex items-center gap-x-1.5 px-2 py-1 rounded-md bg-indigo-50 text-indigo-700 text-xs font-medium ring-1 ring-inset ring-indigo-700/10"
-              >
-                <svg
-                  className="h-1.5 w-1.5 fill-indigo-500"
-                  viewBox="0 0 6 6"
-                  aria-hidden="true"
-                >
-                  <circle cx={3} cy={3} r={3} />
-                </svg>
-                {label}
-              </span>
+                label={label}
+                color={matched?.color}
+              />
             );
           },
         )}
