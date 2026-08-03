@@ -7,6 +7,7 @@
 - **Метрики хоста** (CPU, память, диск, файловая система, сеть, нагрузка, процессы) в любой ОС
 - **Логи на основе файлов** в `/var/log/**` (Linux, macOS) через [`filelogreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/filelogreceiver)
 - **журнал systemd** (Linux) через [`journaldreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/journaldreceiver)
+- **Состояние юнитов systemd** (питает вкладку **Systemd Units** хоста) через [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver) — входит в сборку `otelcol-contrib` из апстрима начиная с **v0.142.0** и пригоден к работе начиная с **v0.143.0** (см. «Службы Linux (юниты systemd)» ниже)
 - **Apple Unified Log** (macOS) через [`logstransformprocessor`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/logstransformprocessor), оборачивающий считываемый вывод `log stream`
 - **Журналы событий Windows** через [`windowseventlogreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowseventlogreceiver)
 - **Статус служб Windows** (питает вкладку **Services** хоста) через [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver) — входит в сборку `otelcol-contrib` из апстрима начиная с **v0.155.0** (см. «Службы Windows (метрики)» ниже)
@@ -16,7 +17,7 @@
 ## Предварительные требования
 
 - **OneUptime Telemetry Ingestion Token** — создайте его в _Project Settings → Telemetry Ingestion Keys_ и скопируйте значение `x-oneuptime-token`.
-- Дистрибутив **OpenTelemetry Collector Contrib** (`otelcol-contrib`). Сборка `otelcol` по умолчанию **не** включает приёмники вроде `windowseventlogreceiver`, `journaldreceiver` или дополнения `hostmetrics` — обязательно используйте дистрибутив `contrib`. Alpha-приёмник `windowsservicereceiver`, который питает вкладку **Services** в Windows, входит в `otelcol-contrib` начиная с **v0.155.0**, поэтому установите актуальный релиз; см. «Службы Windows (метрики)» ниже.
+- Дистрибутив **OpenTelemetry Collector Contrib** (`otelcol-contrib`). Сборка `otelcol` по умолчанию **не** включает приёмники вроде `windowseventlogreceiver`, `journaldreceiver` или дополнения `hostmetrics` — обязательно используйте дистрибутив `contrib`. Alpha-приёмник `windowsservicereceiver`, который питает вкладку **Services** в Windows, входит в `otelcol-contrib` начиная с **v0.155.0**, а alpha-приёмник `systemdreceiver`, который питает вкладку **Systemd Units** в Linux, — начиная с **v0.143.0**, поэтому установите актуальный релиз; см. «Службы Windows (метрики)» и «Службы Linux (юниты systemd)» ниже.
 - Права root / Администратора на хосте, чтобы установить коллектор как службу и (где применимо) читать привилегированные источники логов.
 
 ## Шаг 1 — Установите OpenTelemetry Collector
@@ -201,6 +202,45 @@ receivers:
 
 Бинарный файл коллектора должен иметь возможность выполнять `journalctl` (пакеты Debian / RPM уже включают его как зависимость).
 
+### Службы Linux (юниты systemd, метрики)
+
+Вкладка **Systemd Units** хоста питается приёмником [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver) (тип конфигурации `systemd`), который сообщает об активном состоянии юнитов systemd в виде метрик — это аналог вкладки **Services** в Windows для Linux.
+
+**Приёмник впервые появился в бинарном файле `otelcol-contrib` из апстрима в v0.142.0, но первый релиз, который имеет смысл запускать, — это v0.143.0** — на всём, что старше, добавление `systemd` приводит к ошибке при запуске `'receivers' unknown type: "systemd"`, а в одной только v0.142.0 метрика CPU называется `systemd.unit.cpu.time`, и статистика cgroup запрашивается для каждого юнита, из-за чего в лог попадает ошибка сбора по каждому юниту, не являющемуся `.service`. В v0.143.0 эта метрика переименована в `systemd.service.cpu.time`, а запрос ограничен службами. Установите актуальный релиз (Шаг 1), затем включите приёмник в вашем `config.yaml` и добавьте в конвейер метрик:
+
+```yaml
+receivers:
+  systemd:
+    collection_interval: 30s
+    # The service manager to read: "system" (default) or "user".
+    scope: system
+    # Which units to scrape, as systemctl unit patterns. The default is
+    # every service; widen it to include timers, sockets or mounts, or
+    # narrow it to cut volume on hosts with hundreds of units:
+    units: ["*.service"]
+    # units: [nginx.service, postgresql.service, "*.timer"]
+    metrics:
+      # Per-service CPU time is on by default and doubles this receiver's
+      # datapoint count. The Systemd Units tab does not use it, so turn it
+      # off unless you chart it. On v0.142.0 the key is
+      # systemd.unit.cpu.time — naming a metric the running build does not
+      # have stops the collector at startup.
+      systemd.service.cpu.time:
+        enabled: false
+
+service:
+  pipelines:
+    metrics:
+      receivers: [hostmetrics, systemd]
+      processors: [resourcedetection, batch]
+```
+
+Приёмник выдаёт `systemd.unit.state` как **набор состояний** (state set): при каждом сборе каждый юнит получает по одной точке данных на каждое возможное состояние (`active`, `reloading`, `inactive`, `failed`, `activating`, `deactivating`, `maintenance`, `refreshing`) со значением `1` для того состояния, в котором юнит действительно находится, и `0` для остальных. Имя юнита передаётся как атрибут ресурса `systemd.unit.name`, а состояние — как атрибут точки данных `systemd.unit.active_state`. Поскольку имя юнита является атрибутом _ресурса_, **`resourcedetection` должен оставаться в конвейере метрик** — именно он проставляет `host.name` на ресурс каждого юнита, и без него точки данных так и не привяжутся к хосту, а вкладка останется пустой.
+
+Коллектор читает состояние юнитов по **системной шине D-Bus**, используя те же самые вызовы только на чтение, что делает `systemctl list-units`. systemd разрешает их без привилегий, поэтому служба из пакета — а она работает от пользователя `otelcol-contrib`, а не от root — собирает данные о юнитах без дополнительных прав. Что ей действительно нужно, так это доступная шина: у коллектора, работающего в контейнере, нет `/run/dbus/system_bus_socket`, если вы не смонтируете сокет хоста через bind mount, — именно поэтому этот приёмник предназначен для нативных установок. Приёмник находится в стадии **alpha** и работает **только в Linux** — он не собирается под macOS или Windows.
+
+> **Следите за объёмом на хостах с большим количеством юнитов.** Набор состояний выдаёт восемь точек данных на юнит за сбор, а включённая по умолчанию `systemd.service.cpu.time` добавляет ещё две (`user` и `system`), так что закладывайте десять. Хост, отслеживающий 300 юнитов с интервалом 30s, даёт около 6 тыс. точек данных в минуту только от этого приёмника — или около 4,8 тыс., если отключить метрику CPU, как показано выше. Сузьте `units:` до служб, по которым вы действительно оповещаете, или увеличьте `collection_interval`, прежде чем включать его на весь парк машин.
+
 ### Apple Unified Log (macOS)
 
 macOS объявила `/var/log/system.log` устаревшим в пользу Apple Unified Log, который запрашивается через `log show` / `log stream`. Самый простой способ его принять — стримить вывод `log` через приёмник `filelog` с небольшой обёрткой. Создайте `/usr/local/otelcol-contrib/log-stream.sh`:
@@ -321,10 +361,21 @@ receivers:
     directory: /var/log/journal
     priority: info
 
+  # Powers the Systemd Units tab (otelcol-contrib v0.143.0+).
+  systemd:
+    collection_interval: 30s
+    units: ["*.service"]
+
 processors:
   batch:
     send_batch_size: 512
     timeout: 5s
+  # Stamps host.name / host.id / os.type — this is how OneUptime attaches
+  # telemetry to a host. Without it the host tabs stay empty.
+  resourcedetection:
+    detectors: [system, env]
+    system:
+      hostname_sources: [os]
   resource:
     attributes:
       - key: service.name
@@ -340,12 +391,12 @@ exporters:
 service:
   pipelines:
     metrics:
-      receivers: [hostmetrics]
-      processors: [resource, batch]
+      receivers: [hostmetrics, systemd]
+      processors: [resourcedetection, resource, batch]
       exporters: [otlphttp]
     logs:
       receivers: [filelog/syslog, journald]
-      processors: [resource, batch]
+      processors: [resourcedetection, resource, batch]
       exporters: [otlphttp]
 ```
 
@@ -377,6 +428,12 @@ processors:
   batch:
     send_batch_size: 512
     timeout: 5s
+  # Stamps host.name / host.id / os.type — this is how OneUptime attaches
+  # telemetry to a host. Without it the host tabs stay empty.
+  resourcedetection:
+    detectors: [system, env]
+    system:
+      hostname_sources: [os]
   resource:
     attributes:
       - key: service.name
@@ -393,11 +450,11 @@ service:
   pipelines:
     metrics:
       receivers: [hostmetrics]
-      processors: [resource, batch]
+      processors: [resourcedetection, resource, batch]
       exporters: [otlphttp]
     logs:
       receivers: [filelog/system]
-      processors: [resource, batch]
+      processors: [resourcedetection, resource, batch]
       exporters: [otlphttp]
 ```
 
@@ -440,6 +497,12 @@ processors:
   batch:
     send_batch_size: 512
     timeout: 5s
+  # Stamps host.name / host.id / os.type — this is how OneUptime attaches
+  # telemetry to a host. Without it the host tabs stay empty.
+  resourcedetection:
+    detectors: [system, env]
+    system:
+      hostname_sources: [os]
   resource:
     attributes:
       - key: service.name
@@ -456,14 +519,14 @@ service:
   pipelines:
     metrics:
       receivers: [hostmetrics, windows_service]
-      processors: [resource, batch]
+      processors: [resourcedetection, resource, batch]
       exporters: [otlphttp]
     logs:
       receivers:
         - windowseventlog/system
         - windowseventlog/application
         - windowseventlog/security
-      processors: [resource, batch]
+      processors: [resourcedetection, resource, batch]
       exporters: [otlphttp]
 ```
 
@@ -483,6 +546,8 @@ sudo systemctl status otelcol-contrib
 ```bash
 sudo journalctl -u otelcol-contrib -f
 ```
+
+Юнит из пакета запускает коллектор от непривилегированного пользователя `otelcol-contrib`. Приёмнику `systemd` этого достаточно — он делает только те вызовы D-Bus на чтение, которые systemd и так разрешает любому пользователю, те же самые, что использует `systemctl list-units`.
 
 ### macOS (launchd)
 
@@ -540,6 +605,7 @@ sc.exe query "otelcol-contrib"
 2. В панели управления OneUptime откройте **Telemetry → Services** и выберите настроенный вами `service.name`.
 3. Откройте **Metrics** — метрики хоста (CPU, память, файловая система и т. д.) должны появиться в течение минуты.
 4. Откройте **Logs** — ваши файловые логи / записи journald / журналы событий Windows должны поступать в потоке. Полезные для поиска атрибуты включают `log.file.name`, `systemd.unit`, `winlog.channel`, `winlog.event_id` и `winlog.provider.name`.
+5. Если вы включили приёмник `systemd` (Linux) или `windows_service` (Windows), откройте **Infrastructure → Hosts**, выберите хост и проверьте вкладку **Systemd Units** / **Services** — каждый собранный юнит должен быть в списке со своим текущим состоянием.
 
 ## Уменьшение объёма собираемых данных
 
@@ -554,6 +620,7 @@ sc.exe query "otelcol-contrib"
 | **Логи**                  | Каждая строка из каждого файла / юнита journald / канала | Сузьте приёмники; фильтры `query:`; процессор `filter` по важности |
 | **Метрики хоста**         | Частота сбора × количество рядов                         | `collection_interval`; уберите scraper `process`; выбор scraper'ов |
 | **Кардинальность метрик** | Метрики по процессам (один набор рядов на процесс)       | Уберите или ограничьте scraper `process`                           |
+| **Юниты systemd**         | 10 точек данных на юнит за сбор (набор состояний + CPU)  | Сузьте `units:`; отключите метрику CPU; увеличьте `collection_interval` |
 
 ### Рычаг 1 — Считывайте только нужные источники логов
 
@@ -610,7 +677,24 @@ receivers:
       #     match_type: strict
 ```
 
-### Рычаг 4 — Отбрасывайте малоценные записи процессором `filter`
+### Рычаг 4 — Сузьте набор юнитов systemd
+
+Приёмник `systemd` выдаёт по одной точке данных **на каждое состояние каждого юнита** при каждом сборе — восемь на юнит — плюс ещё две для включённой по умолчанию `systemd.service.cpu.time`, поэтому его объём определяется тем, сколько юнитов попадает под `units:`. Значение по умолчанию `["*.service"]` подхватывает каждую службу на хосте, включая десятки одноразовых (one-shot) юнитов, которые никогда не меняют состояние. Перечислите те юниты, по которым вы действительно оповещаете, и отключите метрику CPU, если не строите по ней графики:
+
+```yaml
+receivers:
+  systemd:
+    collection_interval: 60s
+    units: [nginx.service, postgresql.service, ssh.service]
+    metrics:
+      # On otelcol-contrib v0.142.0 this key is systemd.unit.cpu.time.
+      systemd.service.cpu.time:
+        enabled: false
+```
+
+Вместе это уводит хост с 300 юнитами с ~6 тыс. точек данных в минуту до заметно меньше 100. Юниты, убранные из списка, перестают появляться на вкладке **Systemd Units** через несколько минут — после того как их последние точки данных выйдут из её скользящего окна.
+
+### Рычаг 5 — Отбрасывайте малоценные записи процессором `filter`
 
 Когда вам нужен приёмник, но не весь его вывод, добавьте процессор [`filter`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/filterprocessor) — он вычисляет условие [OTTL](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/pkg/ottl/README.md) и **отбрасывает любую запись, которая ему соответствует**, до того как что-либо будет экспортировано.
 
@@ -736,6 +820,12 @@ processors:
   batch:
     send_batch_size: 512
     timeout: 5s
+  # Stamps host.name / host.id / os.type — this is how OneUptime attaches
+  # telemetry to a host. Without it the host tabs stay empty.
+  resourcedetection:
+    detectors: [system, env]
+    system:
+      hostname_sources: [os]
   resource:
     attributes:
       - key: service.name
@@ -752,7 +842,7 @@ service:
   pipelines:
     metrics:
       receivers: [hostmetrics]
-      processors: [resource, batch]
+      processors: [resourcedetection, resource, batch]
       exporters: [otlphttp]
 ```
 
@@ -792,6 +882,9 @@ OpenTelemetry Collector учитывает стандартные перемен
 - **HTTP 401 от экспортёра** — токен приёма данных недействителен или отозван. Сгенерируйте новый в _Project Settings → Telemetry Ingestion Keys_.
 - **Журнал событий Windows `Security` возвращает «access denied»** — служба работает с недостаточными привилегиями. Пересоздайте её под `LocalSystem` (по умолчанию при `sc.exe create`) или предоставьте учётной записи службы право пользователя _Manage auditing and security log_.
 - **Приёмник `journald` не запускается** — убедитесь, что `journalctl` находится в `PATH` коллектора и что `/var/log/journal` существует (выполните `sudo systemd-tmpfiles --create --prefix /var/log/journal`, если нет).
+- **Приёмник `systemd` сообщает об ошибке подключения к D-Bus** — коллектор не может достучаться до системной шины. Убедитесь, что `/run/dbus/system_bus_socket` существует и что пользователь коллектора может его открыть; быстрее всего это проверить, выполнив `systemctl list-units` от этого пользователя. Root не требуется. Коллектор, работающий внутри контейнера, вообще не видит шины, если вы не смонтируете сокет хоста через bind mount, — поэтому для этого приёмника предпочтительна нативная установка.
+- **Приёмник `systemd` пишет по ошибке сбора на каждый юнит, либо коллектор отказывается стартовать из-за неизвестной метрики** — и то и другое означает расхождение версий. v0.142.0 запрашивает статистику cgroup для каждого юнита (по одной ошибке на каждый юнит, не являющийся `.service`, за сбор) и называет свою метрику CPU `systemd.unit.cpu.time`; v0.143.0 и новее ограничивают этот запрос службами и переименовали метрику в `systemd.service.cpu.time`. Обновитесь до v0.143.0+ и убедитесь, что любое переопределение в `metrics:` называет тот ключ, который действительно есть в вашей сборке.
+- **Вкладка Systemd Units пуста, хотя приёмник работает** — проверьте, что `resourcedetection` находится в том же конвейере метрик. Приёмник прикрепляет к ресурсу каждого юнита только `systemd.unit.name`, поэтому без `resourcedetection` нет `host.name`, и точки данных так и не привязываются к хосту.
 - **Большой объём / стоимость** — см. [Уменьшение объёма собираемых данных](#уменьшение-объёма-собираемых-данных): сузьте приёмники (конкретные каналы Windows, конкретные юниты systemd, конкретные файлы логов), увеличьте `collection_interval` метрик, уберите scraper по каждому процессу или добавьте процессор `filter`, чтобы отбрасывать записи низкой важности перед экспортом.
 
 ## Дальнейшие шаги

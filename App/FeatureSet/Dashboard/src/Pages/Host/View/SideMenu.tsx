@@ -52,10 +52,14 @@ const HostViewSideMenu: FunctionComponent<ComponentProps> = (
   ] = useState<Array<ScheduledMaintenanceState>>([]);
 
   /*
-   * The Services tab is fed by the Windows-only `windowsservicereceiver`,
-   * so it's only shown for hosts that report os.type = windows.
+   * The Services tab is fed by the Windows-only `windowsservicereceiver`
+   * and the Systemd Units tab by the Linux-only `systemd` receiver, so each
+   * is shown only for hosts reporting the matching os.type. Both flags come
+   * from one fetch — a second round-trip would only widen the gap before
+   * the item pops in.
    */
   const [isWindowsHost, setIsWindowsHost] = useState<boolean>(false);
+  const [isLinuxHost, setIsLinuxHost] = useState<boolean>(false);
 
   const fetchHostOsType: PromiseVoidFunction = async (): Promise<void> => {
     try {
@@ -66,11 +70,17 @@ const HostViewSideMenu: FunctionComponent<ComponentProps> = (
           osType: true,
         },
       });
-      // OTel sets os.type to a lowercase value ("windows", "linux", "darwin").
+      /*
+       * OTel sets os.type to a lowercase value ("windows", "linux",
+       * "darwin"), but ingest never normalizes it, so lowercase here
+       * before matching. "darwin" is correctly excluded from the systemd
+       * gate — macOS runs launchd.
+       */
       const osType: string = (item?.osType || "").toLowerCase();
       setIsWindowsHost(osType.includes("windows"));
+      setIsLinuxHost(osType.includes("linux"));
     } catch {
-      // ignore — the Windows-only Services item simply won't show
+      // ignore — the OS-specific service items simply won't show
     }
   };
 
@@ -191,6 +201,20 @@ const HostViewSideMenu: FunctionComponent<ComponentProps> = (
               title: "Services",
               to: RouteUtil.populateRouteParams(
                 RouteMap[PageMap.HOST_VIEW_SERVICES] as Route,
+                { modelId: props.modelId },
+              ),
+            }}
+            icon={IconProp.Cog6Tooth}
+          />
+        ) : (
+          <></>
+        )}
+        {isLinuxHost ? (
+          <SideMenuItem
+            link={{
+              title: "Systemd Units",
+              to: RouteUtil.populateRouteParams(
+                RouteMap[PageMap.HOST_VIEW_SYSTEMD_UNITS] as Route,
                 { modelId: props.modelId },
               ),
             }}
