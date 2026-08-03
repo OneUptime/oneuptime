@@ -119,17 +119,6 @@ const PodmanHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
     return <ErrorMessage message={error} />;
   }
 
-  if (hostCount === 0) {
-    return (
-      <Fragment>
-        <PodmanDocumentationCard
-          title="Getting Started with Podman Monitoring"
-          description="No Podman hosts connected yet. Install the agent using the guide below and your host will appear here automatically."
-        />
-      </Fragment>
-    );
-  }
-
   return (
     <Fragment>
       <ModelTable<PodmanHost>
@@ -142,6 +131,12 @@ const PodmanHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
         query={mergeFiltersIntoQuery({ isArchived: false })}
         onFetchSuccess={(data: Array<PodmanHost>) => {
           onResourcesFetched(data);
+        }}
+        onCreateSuccess={(item: PodmanHost): Promise<PodmanHost> => {
+          setHostCount((currentCount: number | null): number => {
+            return (currentCount || 0) + 1;
+          });
+          return Promise.resolve(item);
         }}
         isDeleteable={false}
         isEditable={false}
@@ -320,6 +315,12 @@ const PodmanHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
           );
         }}
       />
+      {hostCount === 0 && (
+        <PodmanDocumentationCard
+          title="Getting Started with Podman Monitoring"
+          description="No Podman hosts connected yet. Install the agent using the guide below and your host will appear here automatically."
+        />
+      )}
       {labelBulkActionModals}
       {ownerBulkActionModals}
     </Fragment>

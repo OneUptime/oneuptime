@@ -56,18 +56,6 @@ const ServerlessFunctions: FunctionComponent<
     return <PageLoader isVisible={true} />;
   }
 
-  if (count === 0) {
-    return (
-      <Fragment>
-        <ResourceDocumentationCard
-          title="Getting Started with Serverless Functions"
-          description="No serverless functions connected yet. Instrument a function with OpenTelemetry using the guide below — it appears here automatically once the first telemetry arrives."
-          buildMarkdown={getServerlessDocMarkdown}
-        />
-      </Fragment>
-    );
-  }
-
   return (
     <Fragment>
       <ModelTable<ServerlessFunction>
@@ -76,6 +64,14 @@ const ServerlessFunctions: FunctionComponent<
         userPreferencesKey="serverless-functions-table"
         query={{
           isArchived: false,
+        }}
+        onCreateSuccess={(
+          item: ServerlessFunction,
+        ): Promise<ServerlessFunction> => {
+          setCount((currentCount: number | null): number => {
+            return (currentCount || 0) + 1;
+          });
+          return Promise.resolve(item);
         }}
         isDeleteable={false}
         isEditable={false}
@@ -288,6 +284,13 @@ const ServerlessFunctions: FunctionComponent<
           );
         }}
       />
+      {count === 0 && (
+        <ResourceDocumentationCard
+          title="Getting Started with Serverless Functions"
+          description="No serverless functions connected yet. Instrument a function with OpenTelemetry using the guide below — it appears here automatically once the first telemetry arrives."
+          buildMarkdown={getServerlessDocMarkdown}
+        />
+      )}
     </Fragment>
   );
 };

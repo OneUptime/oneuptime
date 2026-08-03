@@ -121,18 +121,6 @@ const KubernetesClusters: FunctionComponent<
     return <ErrorMessage message={error} />;
   }
 
-  if (clusterCount === 0) {
-    return (
-      <Fragment>
-        <KubernetesDocumentationCard
-          clusterName="my-cluster"
-          title="Getting Started with Kubernetes Monitoring"
-          description="No Kubernetes clusters connected yet. Install the agent using the guide below and your cluster will appear here automatically."
-        />
-      </Fragment>
-    );
-  }
-
   return (
     <Fragment>
       <ModelTable<KubernetesCluster>
@@ -145,6 +133,14 @@ const KubernetesClusters: FunctionComponent<
         query={mergeFiltersIntoQuery({ isArchived: false })}
         onFetchSuccess={(data: Array<KubernetesCluster>) => {
           onResourcesFetched(data);
+        }}
+        onCreateSuccess={(
+          item: KubernetesCluster,
+        ): Promise<KubernetesCluster> => {
+          setClusterCount((currentCount: number | null): number => {
+            return (currentCount || 0) + 1;
+          });
+          return Promise.resolve(item);
         }}
         isDeleteable={false}
         isEditable={false}
@@ -323,6 +319,13 @@ const KubernetesClusters: FunctionComponent<
           );
         }}
       />
+      {clusterCount === 0 && (
+        <KubernetesDocumentationCard
+          clusterName="my-cluster"
+          title="Getting Started with Kubernetes Monitoring"
+          description="No Kubernetes clusters connected yet. Install the agent using the guide below and your cluster will appear here automatically."
+        />
+      )}
       {labelBulkActionModals}
       {ownerBulkActionModals}
     </Fragment>

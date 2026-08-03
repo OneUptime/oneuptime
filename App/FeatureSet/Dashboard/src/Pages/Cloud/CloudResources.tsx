@@ -56,18 +56,6 @@ const CloudResources: FunctionComponent<
     return <PageLoader isVisible={true} />;
   }
 
-  if (count === 0) {
-    return (
-      <Fragment>
-        <ResourceDocumentationCard
-          title="Getting Started with Cloud Environments"
-          description="No cloud environments connected yet. Point your OpenTelemetry Collector at OneUptime with a cloud resource detector using the guide below — managed compute appears here automatically once the first telemetry arrives."
-          buildMarkdown={getCloudDocMarkdown}
-        />
-      </Fragment>
-    );
-  }
-
   return (
     <Fragment>
       <ModelTable<CloudResource>
@@ -77,9 +65,15 @@ const CloudResources: FunctionComponent<
         query={{
           isArchived: false,
         }}
+        onCreateSuccess={(item: CloudResource): Promise<CloudResource> => {
+          setCount((currentCount: number | null): number => {
+            return (currentCount || 0) + 1;
+          });
+          return Promise.resolve(item);
+        }}
         isDeleteable={false}
         isEditable={false}
-        isCreateable={false}
+        isCreateable={true}
         isViewable={true}
         bulkActions={{
           buttons: [...archiveBulkActions],
@@ -293,6 +287,13 @@ const CloudResources: FunctionComponent<
           );
         }}
       />
+      {count === 0 && (
+        <ResourceDocumentationCard
+          title="Getting Started with Cloud Environments"
+          description="No cloud environments connected yet. Point your OpenTelemetry Collector at OneUptime with a cloud resource detector using the guide below — managed compute appears here automatically once the first telemetry arrives."
+          buildMarkdown={getCloudDocMarkdown}
+        />
+      )}
     </Fragment>
   );
 };
