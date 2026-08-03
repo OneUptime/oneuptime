@@ -20,6 +20,7 @@ import DashboardBaseComponent from "Common/Types/Dashboard/DashboardComponents/D
 import DashboardChartComponentUtil from "Common/Utils/Dashboard/Components/DashboardChartComponent";
 import DashboardValueComponentUtil from "Common/Utils/Dashboard/Components/DashboardValueComponent";
 import DashboardTextComponentUtil from "Common/Utils/Dashboard/Components/DashboardTextComponent";
+import DashboardClockComponentUtil from "Common/Utils/Dashboard/Components/DashboardClockComponent";
 import DashboardTableComponentUtil from "Common/Utils/Dashboard/Components/DashboardTableComponent";
 import DashboardGaugeComponentUtil from "Common/Utils/Dashboard/Components/DashboardGaugeComponent";
 import DashboardLogStreamComponentUtil from "Common/Utils/Dashboard/Components/DashboardLogStreamComponent";
@@ -534,6 +535,10 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
 
           if (componentType === DashboardComponentType.Text) {
             newComponent = DashboardTextComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.Clock) {
+            newComponent = DashboardClockComponentUtil.getDefaultComponent();
           }
 
           if (componentType === DashboardComponentType.Table) {

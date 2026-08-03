@@ -17,6 +17,7 @@ export enum PermissionGroup {
   Telemetry = "Telemetry",
   Workflow = "Workflow",
   Runbook = "Runbook",
+  AutoRemediation = "Auto Remediation",
   Team = "Team",
   Billing = "Billing",
   ServiceCatalog = "Service Catalog",
@@ -796,6 +797,11 @@ enum Permission {
   DeleteRunbookRule = "DeleteRunbookRule",
   EditRunbookRule = "EditRunbookRule",
   ReadRunbookRule = "ReadRunbookRule",
+
+  CreateAutoRemediationRule = "CreateAutoRemediationRule",
+  DeleteAutoRemediationRule = "DeleteAutoRemediationRule",
+  EditAutoRemediationRule = "EditAutoRemediationRule",
+  ReadAutoRemediationRule = "ReadAutoRemediationRule",
 
   CreateRunbookOwnerTeam = "CreateRunbookOwnerTeam",
   DeleteRunbookOwnerTeam = "DeleteRunbookOwnerTeam",
@@ -4139,6 +4145,47 @@ export class PermissionHelper {
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.Runbook,
+      },
+
+      {
+        permission: Permission.CreateAutoRemediationRule,
+        title: "Create Auto Remediation Rule",
+        description:
+          "This permission can create Auto Remediation Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.AutoRemediation,
+      },
+      {
+        permission: Permission.DeleteAutoRemediationRule,
+        title: "Delete Auto Remediation Rule",
+        description:
+          "This permission can delete Auto Remediation Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.AutoRemediation,
+      },
+      {
+        permission: Permission.EditAutoRemediationRule,
+        title: "Edit Auto Remediation Rule",
+        description:
+          "This permission can edit Auto Remediation Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.AutoRemediation,
+      },
+      {
+        permission: Permission.ReadAutoRemediationRule,
+        title: "Read Auto Remediation Rule",
+        description:
+          "This permission can read Auto Remediation Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.AutoRemediation,
       },
 
       {

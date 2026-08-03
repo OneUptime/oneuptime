@@ -114,6 +114,15 @@ export const RUNBOOK_AI_STEP_FEATURE: string = "Runbook AI Step";
 export const AI_INSIGHT_TRIAGE_FEATURE: string = "AI Insight Triage";
 
 /*
+ * The LlmLog feature name for auto-remediation planning: the read-only
+ * RemediationPlan AIRun that picks the most applicable runbook for a matched
+ * AI auto-remediation rule. Rules fire on incident/alert creation, so these
+ * calls are storm-shaped — one flapping monitor can queue many plans.
+ */
+export const AI_REMEDIATION_PLANNING_FEATURE: string =
+  "AI Remediation Planning";
+
+/*
  * The pre-rename values of the six labels that carried the "Sentinel" codename.
  * These are NOT written by anything any more — they exist only so the daily
  * budget keeps counting rows that ALREADY carry them:
@@ -188,6 +197,12 @@ export const AUTONOMOUS_AI_FEATURES: Array<string> = [
    * budget must cover these runs too.
    */
   AI_INSIGHT_TRIAGE_FEATURE,
+  /*
+   * Auto-remediation planning (RemediationPlanRunner). One read-only,
+   * constrained call per AI-rule match, fired by incident/alert creation
+   * with no human in the loop — storm-shaped by construction.
+   */
+  AI_REMEDIATION_PLANNING_FEATURE,
   /*
    * Pre-rename labels. Keeps the budget honest for rows already persisted
    * under the old names — read the LEGACY_AUTONOMOUS_AI_FEATURES comment

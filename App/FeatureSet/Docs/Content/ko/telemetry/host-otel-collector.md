@@ -7,6 +7,7 @@
 - 모든 OS에서의 **호스트 메트릭** (CPU, 메모리, 디스크, 파일 시스템, 네트워크, 로드, 프로세스)
 - [`filelogreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/filelogreceiver)를 통한 `/var/log/**` 아래의 **파일 기반 로그** (Linux, macOS)
 - [`journaldreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/journaldreceiver)를 통한 **systemd journal** (Linux)
+- [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver)를 통한 **systemd 유닛 상태** (호스트 **Systemd Units** 탭을 구동) — **v0.142.0**부터 업스트림 `otelcol-contrib` 빌드에 번들로 포함되며, **v0.143.0**부터 실제로 쓸 만합니다 (아래의 "Linux Services (systemd 유닛)" 참조)
 - 테일링된 `log stream` 출력을 래핑하는 [`logstransformprocessor`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/logstransformprocessor)를 통한 **Apple Unified Log** (macOS)
 - [`windowseventlogreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowseventlogreceiver)를 통한 **Windows Event Logs**
 - [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver)를 통한 **Windows 서비스 상태** (호스트 **Services** 탭을 구동) — **v0.155.0**부터 업스트림 `otelcol-contrib` 빌드에 번들로 포함됩니다 (아래의 "Windows Services (메트릭)" 참조)
@@ -16,7 +17,7 @@
 ## 사전 요구 사항
 
 - **OneUptime Telemetry Ingestion Token** — *Project Settings → Telemetry Ingestion Keys*에서 생성하고 `x-oneuptime-token` 값을 복사합니다.
-- **OpenTelemetry Collector Contrib** 배포판(`otelcol-contrib`). 기본 `otelcol` 빌드에는 `windowseventlogreceiver`, `journaldreceiver` 또는 `hostmetrics` 추가 기능과 같은 receiver가 **포함되어 있지 않습니다** — 반드시 `contrib` 배포판을 사용하세요. Windows **Services** 탭을 구동하는 alpha `windowsservicereceiver`는 **v0.155.0**부터 `otelcol-contrib`에 번들로 포함되어 있으므로, 최신 릴리스를 설치하세요. 아래의 "Windows Services (메트릭)"를 참조하세요.
+- **OpenTelemetry Collector Contrib** 배포판(`otelcol-contrib`). 기본 `otelcol` 빌드에는 `windowseventlogreceiver`, `journaldreceiver` 또는 `hostmetrics` 추가 기능과 같은 receiver가 **포함되어 있지 않습니다** — 반드시 `contrib` 배포판을 사용하세요. Windows **Services** 탭을 구동하는 alpha `windowsservicereceiver`는 **v0.155.0**부터, Linux **Systemd Units** 탭을 구동하는 alpha `systemdreceiver`는 **v0.143.0**부터 `otelcol-contrib`에 번들로 포함되어 있으므로, 최신 릴리스를 설치하세요. 아래의 "Windows Services (메트릭)"와 "Linux Services (systemd 유닛)"를 참조하세요.
 - Collector를 서비스로 설치하고 (해당되는 경우) 권한이 필요한 로그 소스를 읽으려면 호스트에 대한 Root / Administrator 권한이 필요합니다.
 
 ## 1단계 — OpenTelemetry Collector 설치
@@ -201,6 +202,45 @@ receivers:
 
 Collector 바이너리는 `journalctl`을 실행할 수 있어야 합니다(Debian / RPM 패키지는 이미 이를 종속성으로 포함합니다).
 
+### Linux Services (systemd 유닛, 메트릭)
+
+호스트 **Systemd Units** 탭은 [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver)(구성 유형 `systemd`)에 의해 구동되며, 이는 systemd 유닛의 활성 상태를 메트릭으로 보고합니다 — Windows의 **Services** 탭에 해당하는 Linux 버전입니다.
+
+**이 receiver는 업스트림 `otelcol-contrib` 바이너리에 v0.142.0에서 처음 포함되었지만, 실제로 운영할 만한 첫 릴리스는 v0.143.0입니다** — 그보다 이전 릴리스에서는 `systemd`를 추가하면 `'receivers' unknown type: "systemd"` 오류와 함께 시작에 실패하며, v0.142.0만 유독 CPU 메트릭 이름이 `systemd.unit.cpu.time`이고 모든 유닛에 대해 cgroup 통계를 찾기 때문에 `.service`가 아닌 유닛마다 스크레이프 오류를 기록합니다. v0.143.0에서 이 메트릭은 `systemd.service.cpu.time`으로 이름이 바뀌었고 해당 조회는 서비스로만 제한되었습니다. 최신 릴리스를 설치한 다음(1단계), `config.yaml`에서 이를 활성화하고 메트릭 파이프라인에 추가하세요:
+
+```yaml
+receivers:
+  systemd:
+    collection_interval: 30s
+    # The service manager to read: "system" (default) or "user".
+    scope: system
+    # Which units to scrape, as systemctl unit patterns. The default is
+    # every service; widen it to include timers, sockets or mounts, or
+    # narrow it to cut volume on hosts with hundreds of units:
+    units: ["*.service"]
+    # units: [nginx.service, postgresql.service, "*.timer"]
+    metrics:
+      # Per-service CPU time is on by default and doubles this receiver's
+      # datapoint count. The Systemd Units tab does not use it, so turn it
+      # off unless you chart it. On v0.142.0 the key is
+      # systemd.unit.cpu.time — naming a metric the running build does not
+      # have stops the collector at startup.
+      systemd.service.cpu.time:
+        enabled: false
+
+service:
+  pipelines:
+    metrics:
+      receivers: [hostmetrics, systemd]
+      processors: [resourcedetection, batch]
+```
+
+이 receiver는 `systemd.unit.state`를 **상태 집합**(state set)으로 내보냅니다: 스크레이프할 때마다 각 유닛은 가능한 상태(`active`, `reloading`, `inactive`, `failed`, `activating`, `deactivating`, `maintenance`, `refreshing`)마다 하나씩 데이터 포인트를 얻으며, 유닛이 실제로 있는 상태에는 `1`, 나머지에는 `0`이 들어갑니다. 유닛 이름은 리소스 속성 `systemd.unit.name`으로, 상태는 데이터 포인트 속성 `systemd.unit.active_state`로 전달됩니다. 유닛 이름이 _리소스_ 속성이기 때문에, **`resourcedetection`은 메트릭 파이프라인에 반드시 남아 있어야 합니다** — 각 유닛의 리소스에 `host.name`을 찍어주는 것이 바로 이것이며, 이것이 없으면 샘플이 호스트에 연결되지 않아 탭이 비어 있는 상태로 유지됩니다.
+
+Collector는 **시스템 D-Bus**를 통해 유닛 상태를 읽으며, 이때 `systemctl list-units`가 수행하는 것과 동일한 읽기 전용 호출만 사용합니다. systemd는 이러한 호출을 권한 없이도 허용하므로, 패키지에 포함된 서비스는 — root가 아니라 `otelcol-contrib` 사용자로 실행됩니다 — 추가 권한 없이 유닛을 스크레이프할 수 있습니다. 정작 필요한 것은 도달 가능한 버스입니다: 컨테이너 내부에서 실행되는 Collector는 호스트의 소켓을 바인드 마운트하지 않는 한 `/run/dbus/system_bus_socket`이 존재하지 않으며, 그래서 이 receiver는 네이티브 설치를 위한 것입니다. 이 receiver는 **alpha** 단계이며 **Linux 전용**입니다 — macOS나 Windows에서는 빌드되지 않습니다.
+
+> **유닛이 많은 호스트에서는 볼륨에 주의하세요.** 상태 집합은 스크레이프할 때마다 유닛당 8개의 데이터 포인트를 내보내고, 기본으로 켜져 있는 `systemd.service.cpu.time`이 여기에 2개(`user`와 `system`)를 더하므로 10개로 잡으세요. 300개의 유닛을 30s로 추적하는 호스트는 이 receiver만으로도 분당 약 6k 데이터 포인트가 되며, 위와 같이 CPU 메트릭을 비활성화하면 약 4.8k가 됩니다. 플릿 전체에 활성화하기 전에 `units:`를 실제로 알림을 설정한 서비스로 좁히거나 `collection_interval`을 높이세요.
+
 ### Apple Unified Log (macOS)
 
 macOS는 `/var/log/system.log`를 폐기하고 Apple Unified Log를 사용하며, 이는 `log show` / `log stream`으로 쿼리됩니다. 이를 수집하는 가장 간단한 방법은 작은 래퍼를 사용하여 `filelog` receiver를 통해 `log` 출력을 스트리밍하는 것입니다. `/usr/local/otelcol-contrib/log-stream.sh`를 생성하세요:
@@ -321,10 +361,21 @@ receivers:
     directory: /var/log/journal
     priority: info
 
+  # Powers the Systemd Units tab (otelcol-contrib v0.143.0+).
+  systemd:
+    collection_interval: 30s
+    units: ["*.service"]
+
 processors:
   batch:
     send_batch_size: 512
     timeout: 5s
+  # Stamps host.name / host.id / os.type — this is how OneUptime attaches
+  # telemetry to a host. Without it the host tabs stay empty.
+  resourcedetection:
+    detectors: [system, env]
+    system:
+      hostname_sources: [os]
   resource:
     attributes:
       - key: service.name
@@ -340,12 +391,12 @@ exporters:
 service:
   pipelines:
     metrics:
-      receivers: [hostmetrics]
-      processors: [resource, batch]
+      receivers: [hostmetrics, systemd]
+      processors: [resourcedetection, resource, batch]
       exporters: [otlphttp]
     logs:
       receivers: [filelog/syslog, journald]
-      processors: [resource, batch]
+      processors: [resourcedetection, resource, batch]
       exporters: [otlphttp]
 ```
 
@@ -377,6 +428,12 @@ processors:
   batch:
     send_batch_size: 512
     timeout: 5s
+  # Stamps host.name / host.id / os.type — this is how OneUptime attaches
+  # telemetry to a host. Without it the host tabs stay empty.
+  resourcedetection:
+    detectors: [system, env]
+    system:
+      hostname_sources: [os]
   resource:
     attributes:
       - key: service.name
@@ -393,11 +450,11 @@ service:
   pipelines:
     metrics:
       receivers: [hostmetrics]
-      processors: [resource, batch]
+      processors: [resourcedetection, resource, batch]
       exporters: [otlphttp]
     logs:
       receivers: [filelog/system]
-      processors: [resource, batch]
+      processors: [resourcedetection, resource, batch]
       exporters: [otlphttp]
 ```
 
@@ -440,6 +497,12 @@ processors:
   batch:
     send_batch_size: 512
     timeout: 5s
+  # Stamps host.name / host.id / os.type — this is how OneUptime attaches
+  # telemetry to a host. Without it the host tabs stay empty.
+  resourcedetection:
+    detectors: [system, env]
+    system:
+      hostname_sources: [os]
   resource:
     attributes:
       - key: service.name
@@ -456,14 +519,14 @@ service:
   pipelines:
     metrics:
       receivers: [hostmetrics, windows_service]
-      processors: [resource, batch]
+      processors: [resourcedetection, resource, batch]
       exporters: [otlphttp]
     logs:
       receivers:
         - windowseventlog/system
         - windowseventlog/application
         - windowseventlog/security
-      processors: [resource, batch]
+      processors: [resourcedetection, resource, batch]
       exporters: [otlphttp]
 ```
 
@@ -483,6 +546,8 @@ Collector 자체 로그를 따라가려면:
 ```bash
 sudo journalctl -u otelcol-contrib -f
 ```
+
+패키지에 포함된 유닛은 Collector를 권한 없는 `otelcol-contrib` 사용자로 실행합니다. `systemd` receiver에는 그것으로 충분합니다 — 이 receiver는 systemd가 이미 모든 사용자에게 허용하는 읽기 전용 D-Bus 호출, 즉 `systemctl list-units`가 사용하는 것과 동일한 호출만 수행하기 때문입니다.
 
 ### macOS (launchd)
 
@@ -540,6 +605,7 @@ sc.exe query "otelcol-contrib"
 2. OneUptime 대시보드에서 **Telemetry → Services**를 열고 구성한 `service.name`을 선택하세요.
 3. **Metrics**를 여세요 — 호스트 메트릭(CPU, 메모리, 파일 시스템 등)이 1분 이내에 나타나야 합니다.
 4. **Logs**를 여세요 — 파일 로그 / journald 항목 / Windows Event Logs가 스트리밍되어 들어와야 합니다. 유용한 검색 가능 속성으로는 `log.file.name`, `systemd.unit`, `winlog.channel`, `winlog.event_id`, `winlog.provider.name`이 있습니다.
+5. `systemd`(Linux) 또는 `windows_service`(Windows) receiver를 활성화했다면, **Infrastructure → Hosts**를 열고 호스트를 선택한 다음 **Systemd Units** / **Services** 탭을 확인하세요 — 스크레이프된 모든 유닛이 현재 상태와 함께 나열되어야 합니다.
 
 ## 수집되는 데이터 양 줄이기
 
@@ -554,6 +620,7 @@ Collector 구성을 직접 소유하므로, 호스트에서 무엇이 나가는�
 | **로그**              | 모든 파일 / journald 유닛 / 채널의 모든 줄       | receiver 좁히기; `query:` 필터; 심각도에 대한 `filter` 프로세서 |
 | **호스트 메트릭**     | 스크레이프 빈도 × 시리즈 수                      | `collection_interval`; `process` scraper 삭제; scraper 선택     |
 | **메트릭 카디널리티** | 프로세스별 메트릭(프로세스당 하나의 시리즈 세트) | `process` scraper 생략 또는 범위 지정                           |
+| **systemd 유닛**      | 스크레이프당 유닛당 10개 데이터 포인트(상태 집합 + CPU) | `units:` 좁히기; CPU 메트릭 비활성화; `collection_interval` 높이기 |
 
 ### 레버 1 — 필요한 로그 소스만 테일링하기
 
@@ -610,7 +677,24 @@ receivers:
       #     match_type: strict
 ```
 
-### 레버 4 — `filter` 프로세서로 낮은 가치의 레코드 삭제하기
+### 레버 4 — systemd 유닛 집합 좁히기
+
+`systemd` receiver는 스크레이프할 때마다 **유닛당 상태마다** 하나의 데이터 포인트를 내보내고 — 유닛당 여덟 개 — 여기에 기본으로 켜져 있는 `systemd.service.cpu.time`이 2개를 더하므로, 그 볼륨은 `units:`가 일치시키는 유닛 수로 결정됩니다. 기본값 `["*.service"]`는 상태가 전혀 바뀌지 않는 수십 개의 일회성 유닛을 포함하여 호스트의 모든 서비스를 가져옵니다. 실제로 알림을 설정한 유닛만 나열하고, 차트로 보지 않는다면 CPU 메트릭을 끄세요:
+
+```yaml
+receivers:
+  systemd:
+    collection_interval: 60s
+    units: [nginx.service, postgresql.service, ssh.service]
+    metrics:
+      # On otelcol-contrib v0.142.0 this key is systemd.unit.cpu.time.
+      systemd.service.cpu.time:
+        enabled: false
+```
+
+이 둘을 합치면 300개 유닛 호스트는 분당 약 6k 데이터 포인트에서 100개를 훨씬 밑도는 수준으로 줄어듭니다. 목록에서 제외된 유닛은 마지막 샘플이 롤링 윈도우에서 만료되면 몇 분 후 **Systemd Units** 탭에 더 이상 나타나지 않습니다.
+
+### 레버 5 — `filter` 프로세서로 낮은 가치의 레코드 삭제하기
 
 receiver는 원하지만 그 출력 전부는 원하지 않을 때, [`filter`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/filterprocessor) 프로세서를 추가하세요 — 이는 [OTTL](https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/pkg/ottl/README.md) 조건을 평가하여, 무엇이든 내보내지기 전에 **일치하는 모든 레코드를 삭제합니다**.
 
@@ -736,6 +820,12 @@ processors:
   batch:
     send_batch_size: 512
     timeout: 5s
+  # Stamps host.name / host.id / os.type — this is how OneUptime attaches
+  # telemetry to a host. Without it the host tabs stay empty.
+  resourcedetection:
+    detectors: [system, env]
+    system:
+      hostname_sources: [os]
   resource:
     attributes:
       - key: service.name
@@ -752,7 +842,7 @@ service:
   pipelines:
     metrics:
       receivers: [hostmetrics]
-      processors: [resource, batch]
+      processors: [resourcedetection, resource, batch]
       exporters: [otlphttp]
 ```
 
@@ -792,6 +882,9 @@ OpenTelemetry Collector는 표준 `HTTPS_PROXY` / `HTTP_PROXY` / `NO_PROXY` 환�
 - **exporter에서 HTTP 401** — ingestion token이 유효하지 않거나 취소되었습니다. *Project Settings → Telemetry Ingestion Keys*에서 새로 생성하세요.
 - **`Security` Windows Event Log가 access denied를 반환함** — 서비스가 충분한 권한으로 실행되고 있지 않습니다. `LocalSystem`(`sc.exe create`의 기본값)으로 다시 생성하거나 서비스 계정에 _Manage auditing and security log_ 사용자 권한을 부여하세요.
 - **`journald` receiver가 시작에 실패함** — `journalctl`이 Collector의 `PATH`에 있고 `/var/log/journal`이 존재하는지 확인하세요(존재하지 않으면 `sudo systemd-tmpfiles --create --prefix /var/log/journal`을 실행).
+- **`systemd` receiver가 D-Bus 연결 오류를 보고함** — Collector가 시스템 버스에 도달할 수 없습니다. `/run/dbus/system_bus_socket`이 존재하는지, 그리고 Collector의 사용자가 그것을 열 수 있는지 확인하세요. 해당 사용자로 `systemctl list-units`를 실행해 보는 것이 가장 빠른 확인 방법입니다. root는 필요하지 않습니다. 컨테이너 내부에서 실행되는 Collector는 호스트의 소켓을 바인드 마운트하지 않는 한 버스를 전혀 볼 수 없으므로, 이 receiver에는 네이티브 설치를 권장합니다.
+- **`systemd` receiver가 유닛마다 스크레이프 오류를 기록하거나, 알 수 없는 메트릭 때문에 Collector가 시작을 거부함** — 둘 다 버전 불일치입니다. v0.142.0은 모든 유닛에 대해 cgroup 통계를 찾고(스크레이프마다 `.service`가 아닌 유닛당 오류 하나) CPU 메트릭을 `systemd.unit.cpu.time`이라고 부릅니다. v0.143.0 이상은 그 조회를 서비스로만 제한하고 메트릭 이름을 `systemd.service.cpu.time`으로 바꿨습니다. v0.143.0 이상으로 업그레이드하고, `metrics:` 재정의가 실제로 실행 중인 빌드에 있는 키를 지정하는지 확인하세요.
+- **receiver가 실행 중인데도 Systemd Units 탭이 비어 있음** — 동일한 메트릭 파이프라인에 `resourcedetection`이 있는지 확인하세요. receiver는 각 유닛의 리소스에 `systemd.unit.name`만 붙이므로, `resourcedetection`이 없으면 `host.name`이 없어 샘플이 호스트에 연결되지 않습니다.
 - **대용량 / 비용** — [수집되는 데이터 양 줄이기](#수집되는-데이터-양-줄이기)를 참조하세요: receiver를 좁히거나(특정 Windows 채널, systemd 유닛, 로그 파일), 메트릭 `collection_interval`을 높이거나, 프로세스별 scraper를 삭제하거나, 내보내기 전에 낮은 심각도 레코드를 삭제하도록 `filter` 프로세서를 추가하세요.
 
 ## 다음 단계

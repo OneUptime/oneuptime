@@ -9,6 +9,7 @@ import ProjectService from "../../../../../Server/Services/ProjectService";
 import Project from "../../../../../Models/DatabaseModels/Project";
 import AIRun from "../../../../../Models/DatabaseModels/AIRun";
 import AIRunStatus from "../../../../../Types/AI/AIRunStatus";
+import AIRunType from "../../../../../Types/AI/AIRunType";
 import ObjectID from "../../../../../Types/ObjectID";
 import PositiveNumber from "../../../../../Types/PositiveNumber";
 import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
@@ -179,6 +180,8 @@ describe("AIInvestigationQueue — lane priority (triage never starves RCA)", ()
   function mockRunningCounts(counts: {
     total: number;
     triage: number;
+    // Running RemediationPlan runs — the other background-lane kind.
+    plans?: number;
   }): jest.SpyInstance {
     return jest
       .spyOn(AIRunService, "countBy")
@@ -192,9 +195,18 @@ describe("AIInvestigationQueue — lane priority (triage never starves RCA)", ()
         const isTriageLaneQuery: boolean =
           query["triggeredByAiInsightId"] !== undefined;
 
-        return Promise.resolve(
-          new PositiveNumber(isTriageLaneQuery ? counts.triage : counts.total),
-        );
+        const isPlanLaneQuery: boolean =
+          query["runType"] === AIRunType.RemediationPlan;
+
+        if (isTriageLaneQuery) {
+          return Promise.resolve(new PositiveNumber(counts.triage));
+        }
+
+        if (isPlanLaneQuery) {
+          return Promise.resolve(new PositiveNumber(counts.plans || 0));
+        }
+
+        return Promise.resolve(new PositiveNumber(counts.total));
       });
   }
 
@@ -259,6 +271,27 @@ describe("AIInvestigationQueue — lane priority (triage never starves RCA)", ()
     // Left Queued for the poller/TTL — never claimed, never executed.
     expect(claim).not.toHaveBeenCalled();
     expect(executeTriage).not.toHaveBeenCalled();
+  });
+
+  test("remediation plans share the background sub-cap: triage + plans together at cap - reserved leave a plan run Queued", async () => {
+    mockCap(3);
+    // 1 triage + 1 plan running = cap(3) - RESERVED(1): background lane full.
+    mockRunningCounts({ total: 2, triage: 1, plans: 1 });
+    const claim: jest.SpyInstance = jest.spyOn(
+      AIRunService,
+      "attemptStatusTransition",
+    );
+
+    await AIInvestigationQueue.processRun({
+      id: ObjectID.generate(),
+      projectId,
+      attemptCount: 0,
+      runType: AIRunType.RemediationPlan,
+      triggeredByAutoRemediationSuggestionId: ObjectID.generate(),
+    });
+
+    // Left Queued — the reserved RCA slot stays reachable.
+    expect(claim).not.toHaveBeenCalled();
   });
 
   test("triage still runs while under the lane sub-cap — the sub-cap throttles, it does not disable", async () => {

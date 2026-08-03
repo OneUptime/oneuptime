@@ -467,6 +467,37 @@ export default class AIRun extends BaseModel {
   })
   public triggeredByAiInsightId?: ObjectID = undefined;
 
+  /*
+   * Set on RemediationPlan runs: the AutoRemediationSuggestion this planning
+   * run is picking a runbook for. The suggestion carries the reverse link
+   * (aiRunId) for the dashboard.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Triggered By Auto Remediation Suggestion ID",
+    description:
+      "The auto-remediation suggestion this planning run picks a runbook for.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public triggeredByAutoRemediationSuggestionId?: ObjectID = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [

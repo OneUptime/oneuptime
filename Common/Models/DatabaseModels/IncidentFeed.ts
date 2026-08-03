@@ -45,6 +45,7 @@ export enum IncidentFeedEventType {
   OwnerRuleExecuted = "OwnerRuleExecuted",
   PrivacyRuleExecuted = "PrivacyRuleExecuted",
   OnCallRuleExecuted = "OnCallRuleExecuted",
+  AutoRemediation = "AutoRemediation",
 }
 
 @EnableDocumentation()

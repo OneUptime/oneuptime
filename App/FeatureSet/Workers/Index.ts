@@ -155,6 +155,9 @@ import "./Jobs/AIAgent/SyncPullRequestStates";
 import "./Jobs/AIChat/TimeoutStuckRuns";
 import "./Jobs/AIChat/ProcessQueuedInvestigations";
 
+// Auto-remediation — settle Planning suggestions whose plan run died.
+import "./Jobs/AutoRemediation/SettleStrandedSuggestions";
+
 // AI Insights — preventive telemetry scan (deterministic, no LLM).
 import "./Jobs/AIInsight/ScanForInsights";
 
