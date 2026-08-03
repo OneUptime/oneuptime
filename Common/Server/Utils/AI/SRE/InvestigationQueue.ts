@@ -99,9 +99,11 @@ export interface QueuedRunRef {
   id: ObjectID;
   projectId: ObjectID;
   attemptCount: number;
+  runType?: AIRunType | undefined;
   triggeredByIncidentId?: ObjectID | undefined;
   triggeredByAlertId?: ObjectID | undefined;
   triggeredByAiInsightId?: ObjectID | undefined;
+  triggeredByAutoRemediationSuggestionId?: ObjectID | undefined;
 }
 
 export default class AIInvestigationQueue {
@@ -122,6 +124,13 @@ export default class AIInvestigationQueue {
     subjectAlertId?: ObjectID | undefined;
     subjectMonitorId?: ObjectID | undefined;
     subjectAIInsightId?: ObjectID | undefined;
+    /*
+     * When set, the run is a RemediationPlan (not an Investigation): a
+     * read-only planning run that picks a runbook for this suggestion.
+     * dispatch() routes on runType FIRST, so the incident/alert subject ids
+     * above may still be set for dashboard linkage.
+     */
+    subjectAutoRemediationSuggestionId?: ObjectID | undefined;
   }): Promise<ObjectID | null> {
     const { projectId } = data;
 
@@ -147,9 +156,13 @@ export default class AIInvestigationQueue {
       return null;
     }
 
+    const runType: AIRunType = data.subjectAutoRemediationSuggestionId
+      ? AIRunType.RemediationPlan
+      : AIRunType.Investigation;
+
     const run: AIRun = new AIRun();
     run.projectId = projectId;
-    run.runType = AIRunType.Investigation;
+    run.runType = runType;
     run.status = AIRunStatus.Queued;
 
     if (data.subjectIncidentId) {
@@ -163,6 +176,10 @@ export default class AIInvestigationQueue {
     }
     if (data.subjectAIInsightId) {
       run.triggeredByAiInsightId = data.subjectAIInsightId;
+    }
+    if (data.subjectAutoRemediationSuggestionId) {
+      run.triggeredByAutoRemediationSuggestionId =
+        data.subjectAutoRemediationSuggestionId;
     }
 
     let createdRun: AIRun;
@@ -181,9 +198,12 @@ export default class AIInvestigationQueue {
       id: createdRun.id!,
       projectId,
       attemptCount: 0,
+      runType,
       triggeredByIncidentId: data.subjectIncidentId,
       triggeredByAlertId: data.subjectAlertId,
       triggeredByAiInsightId: data.subjectAIInsightId,
+      triggeredByAutoRemediationSuggestionId:
+        data.subjectAutoRemediationSuggestionId,
     }).catch((error: Error) => {
       logger.error(
         `AI: inline processing of queued run ${createdRun.id?.toString()} failed: ${error}`,
@@ -236,7 +256,10 @@ export default class AIInvestigationQueue {
 
     const expiredRuns: Array<AIRun> = await AIRunService.findBy({
       query: {
-        runType: AIRunType.Investigation,
+        runType: QueryHelper.any([
+          AIRunType.Investigation,
+          AIRunType.RemediationPlan,
+        ]),
         status: AIRunStatus.Queued,
         createdAt: QueryHelper.lessThan(expiryThreshold),
       },
@@ -260,16 +283,21 @@ export default class AIInvestigationQueue {
 
     const queuedRuns: Array<AIRun> = await AIRunService.findBy({
       query: {
-        runType: AIRunType.Investigation,
+        runType: QueryHelper.any([
+          AIRunType.Investigation,
+          AIRunType.RemediationPlan,
+        ]),
         status: AIRunStatus.Queued,
       },
       select: {
         _id: true,
         projectId: true,
         attemptCount: true,
+        runType: true,
         triggeredByIncidentId: true,
         triggeredByAlertId: true,
         triggeredByAiInsightId: true,
+        triggeredByAutoRemediationSuggestionId: true,
       },
       sort: { createdAt: SortOrder.Ascending },
       limit: POLLER_BATCH_SIZE,
@@ -282,9 +310,12 @@ export default class AIInvestigationQueue {
         id: queued.id!,
         projectId: queued.projectId!,
         attemptCount: queued.attemptCount || 0,
+        runType: queued.runType,
         triggeredByIncidentId: queued.triggeredByIncidentId,
         triggeredByAlertId: queued.triggeredByAlertId,
         triggeredByAiInsightId: queued.triggeredByAiInsightId,
+        triggeredByAutoRemediationSuggestionId:
+          queued.triggeredByAutoRemediationSuggestionId,
       };
 
       try {
@@ -421,11 +452,19 @@ export default class AIInvestigationQueue {
       ),
     );
 
+    /*
+     * Investigations and remediation plans share the same per-project cap —
+     * both are read-only, short, and storm-shaped on incident/alert
+     * creation, so one pool keeps the cost model simple.
+     */
     const runningCount: number = (
       await AIRunService.countBy({
         query: {
           projectId: run.projectId,
-          runType: AIRunType.Investigation,
+          runType: QueryHelper.any([
+            AIRunType.Investigation,
+            AIRunType.RemediationPlan,
+          ]),
           status: AIRunStatus.Running,
         },
         props: { isRoot: true },
@@ -440,21 +479,30 @@ export default class AIInvestigationQueue {
     }
 
     /*
-     * The preventive lane's sub-cap: insight triage may never occupy the
-     * slot(s) reserved for incident/alert RCA (see
-     * INSIGHT_TRIAGE_RESERVED_SLOTS). Floored at 1 so a project running at
-     * the minimum cap of 1 still triages its insights (slower, one at a
+     * The background lane's sub-cap: insight triage AND remediation plans
+     * may never occupy the slot(s) reserved for incident/alert RCA (see
+     * INSIGHT_TRIAGE_RESERVED_SLOTS) — the RCA is what a paged human is
+     * waiting for, and both background kinds are storm-shaped. The two
+     * kinds share ONE combined sub-cap, so together they always leave the
+     * reserved slot reachable. Floored at 1 so a project running at the
+     * minimum cap of 1 still drains its background work (slower, one at a
      * time) instead of deadlocking the lane entirely — the interactive lane
      * keeps its priority through the global cap check above, which a single
-     * running triage run cannot outlast for long (triage is read-only and
-     * short).
+     * running background run cannot outlast for long (both kinds are
+     * read-only and short).
      */
-    if (run.triggeredByAiInsightId) {
-      const triageCap: number = Math.max(
+    const isBackgroundLane: boolean =
+      Boolean(run.triggeredByAiInsightId) ||
+      run.runType === AIRunType.RemediationPlan;
+
+    if (isBackgroundLane) {
+      const backgroundCap: number = Math.max(
         1,
         concurrencyCap - INSIGHT_TRIAGE_RESERVED_SLOTS,
       );
 
+      // Triage runs are Investigations with an insight subject; plan runs
+      // are their own runType — the two counts never overlap.
       const runningTriageCount: number = (
         await AIRunService.countBy({
           query: {
@@ -467,9 +515,23 @@ export default class AIInvestigationQueue {
         })
       ).toNumber();
 
-      if (runningTriageCount >= triageCap) {
+      const runningPlanCount: number = (
+        await AIRunService.countBy({
+          query: {
+            projectId: run.projectId,
+            runType: AIRunType.RemediationPlan,
+            status: AIRunStatus.Running,
+          },
+          props: { isRoot: true },
+        })
+      ).toNumber();
+
+      const runningBackgroundCount: number =
+        runningTriageCount + runningPlanCount;
+
+      if (runningBackgroundCount >= backgroundCap) {
         logger.debug(
-          `AI: leaving insight triage run ${run.id.toString()} queued — ${runningTriageCount} triage runs already running (triage lane cap: ${triageCap} of ${concurrencyCap}).`,
+          `AI: leaving background run ${run.id.toString()} queued — ${runningBackgroundCount} background runs (triage + remediation plans) already running (background lane cap: ${backgroundCap} of ${concurrencyCap}).`,
         );
         return false;
       }
@@ -521,6 +583,40 @@ export default class AIInvestigationQueue {
     run: QueuedRunRef,
     attempt: number,
   ): Promise<void> {
+    /*
+     * RemediationPlan runs also carry triggeredByIncidentId/AlertId (for
+     * dashboard linkage), so the runType discriminator MUST come before the
+     * subject-column routing below — otherwise a plan run would be executed
+     * as an RCA investigation.
+     */
+    if (run.runType === AIRunType.RemediationPlan) {
+      if (!run.triggeredByAutoRemediationSuggestionId) {
+        await AIRunService.attemptStatusTransition({
+          aiRunId: run.id,
+          fromStatus: AIRunStatus.Running,
+          set: {
+            status: AIRunStatus.Error,
+            completedAt: OneUptimeDate.getCurrentDate(),
+            errorMessage:
+              "Queued remediation plan has no suggestion to plan for.",
+          },
+        });
+        return;
+      }
+
+      const remediationPlanRunner: typeof import("../Remediation/RemediationPlanRunner").default =
+        // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+        require("../Remediation/RemediationPlanRunner").default;
+
+      await remediationPlanRunner.executePlan({
+        aiRunId: run.id,
+        projectId: run.projectId,
+        suggestionId: run.triggeredByAutoRemediationSuggestionId,
+        attemptCount: attempt,
+      });
+      return;
+    }
+
     if (run.triggeredByIncidentId) {
       /*
        * Lazy require: the runners import this queue to enqueue, so a

@@ -483,6 +483,7 @@ import { EnableSessionReplayByDefault1785491583874 } from "./1785491583874-Enabl
 import { AddMonitorSummaryToIncidentAndAlert1785496223183 } from "./1785496223183-AddMonitorSummaryToIncidentAndAlert";
 import { AddSessionReplayReliabilityColumns1785516996695 } from "./1785516996695-AddSessionReplayReliabilityColumns";
 import { AddSessionReplayCorrelationColumns1785533806494 } from "./1785533806494-AddSessionReplayCorrelationColumns";
+import { AddAutoRemediation1785763818197 } from "./1785763818197-AddAutoRemediation";
 
 export default [
   InitialMigration,
@@ -970,4 +971,5 @@ export default [
   AddMonitorSummaryToIncidentAndAlert1785496223183,
   AddSessionReplayReliabilityColumns1785516996695,
   AddSessionReplayCorrelationColumns1785533806494,
+  AddAutoRemediation1785763818197,
 ];

@@ -153,3 +153,61 @@ export function applyAlertRelatedRecordPrivacyFilter<T>(
   );
   return query;
 }
+
+/*
+ * Null-tolerant variant of the related-record filter for child tables whose
+ * alert link is OPTIONAL (e.g. AutoRemediationSuggestion). See the incident
+ * twin for why: `NULL IN (subquery)` is NULL, so the strict clause would
+ * hide every incident-linked row.
+ */
+export function getOptionalAlertRelatedRecordPrivacyRaw(
+  props: DatabaseCommonInteractionProps,
+): FindWhereProperty<any> | undefined {
+  if (shouldBypassAlertPrivacy(props)) {
+    return undefined;
+  }
+
+  if (!props.userId) {
+    return Raw((alias: string): string => {
+      return `(${alias} IS NULL OR ${alias} IN (SELECT a."_id" FROM "Alert" a WHERE a."deletedAt" IS NULL AND (a."isPrivate" IS NULL OR a."isPrivate" = FALSE)))`;
+    });
+  }
+
+  const uidRid: string = "uidRelOpt_" + Text.generateRandomText(10);
+
+  return Raw(
+    (alias: string): string => {
+      return (
+        `(${alias} IS NULL OR ${alias} IN (SELECT a."_id" FROM "Alert" a WHERE a."deletedAt" IS NULL AND (` +
+        `a."isPrivate" IS NULL OR a."isPrivate" = FALSE OR ` +
+        `a."_id" IN (SELECT aou."alertId" FROM "AlertOwnerUser" aou WHERE aou."userId" = :${uidRid} AND aou."deletedAt" IS NULL) OR ` +
+        `a."_id" IN (SELECT aot."alertId" FROM "AlertOwnerTeam" aot INNER JOIN "TeamMember" tm ON tm."teamId" = aot."teamId" WHERE tm."userId" = :${uidRid} AND tm."deletedAt" IS NULL AND aot."deletedAt" IS NULL))))`
+      );
+    },
+    {
+      [uidRid]: props.userId.toString(),
+    },
+  );
+}
+
+export function applyOptionalAlertRelatedRecordPrivacyFilter<T>(
+  query: T,
+  props: DatabaseCommonInteractionProps,
+): T {
+  const rawClause: FindWhereProperty<any> | undefined =
+    getOptionalAlertRelatedRecordPrivacyRaw(props);
+
+  if (!rawClause) {
+    return query;
+  }
+
+  if (!query) {
+    return { alertId: rawClause } as unknown as T;
+  }
+
+  (query as any).alertId = combineWithPrivacyClause(
+    (query as any).alertId,
+    rawClause,
+  );
+  return query;
+}

@@ -12,6 +12,7 @@ import AIChatAPI from "Common/Server/API/AIChatAPI";
 import AIReadinessAPI from "Common/Server/API/AIReadinessAPI";
 import AIInvestigationAPI from "Common/Server/API/AIInvestigationAPI";
 import AIInsightAPI from "Common/Server/API/AIInsightAPI";
+import AutoRemediationAPI from "Common/Server/API/AutoRemediationAPI";
 import AIConversation from "Common/Models/DatabaseModels/AIConversation";
 import AIConversationService, {
   Service as AIConversationServiceType,
@@ -947,6 +948,12 @@ import RunbookOwnerUserService, {
 import RunbookRuleService, {
   Service as RunbookRuleServiceType,
 } from "Common/Server/Services/RunbookRuleService";
+import AutoRemediationRuleService, {
+  Service as AutoRemediationRuleServiceType,
+} from "Common/Server/Services/AutoRemediationRuleService";
+import AutoRemediationSuggestionService, {
+  Service as AutoRemediationSuggestionServiceType,
+} from "Common/Server/Services/AutoRemediationSuggestionService";
 import RunbookAgentService, {
   Service as RunbookAgentServiceType,
 } from "Common/Server/Services/RunbookAgentService";
@@ -1237,6 +1244,8 @@ import RunbookExecution from "Common/Models/DatabaseModels/RunbookExecution";
 import RunbookOwnerTeam from "Common/Models/DatabaseModels/RunbookOwnerTeam";
 import RunbookOwnerUser from "Common/Models/DatabaseModels/RunbookOwnerUser";
 import RunbookRule from "Common/Models/DatabaseModels/RunbookRule";
+import AutoRemediationRule from "Common/Models/DatabaseModels/AutoRemediationRule";
+import AutoRemediationSuggestion from "Common/Models/DatabaseModels/AutoRemediationSuggestion";
 import RunbookAgent from "Common/Models/DatabaseModels/RunbookAgent";
 import RunbookAgentJob from "Common/Models/DatabaseModels/RunbookAgentJob";
 import RunbookAgentOwnerTeam from "Common/Models/DatabaseModels/RunbookAgentOwnerTeam";
@@ -3129,6 +3138,32 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<RunbookRule, RunbookRuleServiceType>(
         RunbookRule,
         RunbookRuleService,
+      ).getRouter(),
+    );
+
+    /*
+     * Auto-remediation — approve/dismiss action routes. Mounted before the
+     * generic AutoRemediationSuggestion CRUD router so these action routes
+     * win the match.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, AutoRemediationAPI);
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<AutoRemediationRule, AutoRemediationRuleServiceType>(
+        AutoRemediationRule,
+        AutoRemediationRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        AutoRemediationSuggestion,
+        AutoRemediationSuggestionServiceType
+      >(
+        AutoRemediationSuggestion,
+        AutoRemediationSuggestionService,
       ).getRouter(),
     );
 

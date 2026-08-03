@@ -63,6 +63,7 @@ import AlertFeedElement from "../../../Components/Alert/AlertFeed";
 import InvestigationPanel from "../../../Components/AI/InvestigationPanel";
 import EventStatTile from "../../../Components/EventView/EventStatTile";
 import EntityRunbooks from "../../../Components/Runbook/EntityRunbooks";
+import RemediationSuggestionCard from "../../../Components/AutoRemediation/RemediationSuggestionCard";
 import AlertAffectedResources from "./AffectedResources";
 import MonitorSummarySnapshotCard from "../../../Components/Monitor/MonitorSummarySnapshotCard";
 import ExceptionInstanceTable from "../../../Components/Exceptions/ExceptionInstanceTable";
@@ -456,6 +457,8 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           <AlertAffectedResources alertId={modelId} />
 
           <EntityRunbooks alertId={modelId} hideIfEmpty={true} />
+
+          <RemediationSuggestionCard alertId={modelId} hideIfEmpty={true} />
 
           <InvestigationPanel subjectType="alert" subjectId={modelId} />
 
