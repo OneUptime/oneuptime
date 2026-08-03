@@ -61,9 +61,21 @@ cd App && npx jest Tests/Dashboard/GeometryAssets Tests/Dashboard/GeoProjection
 | Overview | countries-110m | 1 | 0.05 px | 0.5 px² | ~84 KB |
 | Detail | countries-50m | 2 | 0.04 px | 0.05 px² | ~511 KB |
 
-The detail tier's 0.04 px tolerance is chosen against the map's `MAX_ZOOM`:
-at the deepest zoom the UI allows, 0.04 viewBox units is about one screen
-pixel. Moving either number means revisiting the other.
+The detail tier's 0.04 px tolerance is chosen against the map's zoom limits,
+which make two different promises (`Geo/GeoViewport.ts`):
+
+- `FIT_MAX_ZOOM` is the deepest frame the map ever picks for a reader — every
+  opening view and every "Fit to sites". At that scale 0.04 viewBox units is
+  about one screen pixel, so outlines nobody asked to magnify are exact.
+- `MAX_ZOOM` is how far a reader may then push it by hand, and it is
+  deliberately deeper: sites in one metro area only come apart well past
+  `FIT_MAX_ZOOM`, and separating them is what zoom is for on this map.
+  Coastlines soften there — about 2.7 px of simplification at the very
+  bottom.
+
+Raising `MAX_ZOOM` further means regenerating with a finer tolerance rather
+than letting the outlines polygonize;
+`App/Tests/Dashboard/GeometryAssets.test.ts` pins both ends of that trade.
 
 ## Invariants and edge cases
 

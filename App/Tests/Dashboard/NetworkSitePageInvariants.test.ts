@@ -877,6 +877,80 @@ describe("SiteGeoMap", () => {
     );
     expect(source).toContain("event.preventDefault();");
   });
+
+  /*
+   * Markers used to be drawn straight at their projected positions, with
+   * paint order as the only defence against two of them landing on the same
+   * spot — which is no defence at all once they land on exactly the same
+   * spot. The map now lays them out first (Geo/MarkerLayout.ts, pinned by
+   * MarkerLayout.test.ts) and every marker is drawn from that result.
+   *
+   * A single `markers.map` left behind here would put one marker back under
+   * another with nothing on screen saying so, so these pin the wiring rather
+   * than the geometry.
+   */
+  test("markers are drawn from the collision layout, not from raw positions", () => {
+    expect(source).toContain(
+      squash(
+        "const placedMarkers: Array<PlacedMapMarker> = useMemo(() => { return layoutMapMarkers(markers, zoom); }, [markers, zoom]);",
+      ),
+    );
+    expect(source).toContain(
+      squash("{placedMarkers.map((marker: PlacedMapMarker): ReactElement =>"),
+    );
+    // Nothing draws off the un-laid-out list any more.
+    expect(source).not.toContain(squash("{markers.map((marker: MapMarker)"));
+  });
+
+  /*
+   * The names have to follow the marker a reader can SEE. Resolving them
+   * against the projected positions would drop labels for a collision that
+   * the layout has already resolved, and print the survivors in the wrong
+   * place.
+   */
+  test("labels are placed against the drawn positions", () => {
+    expect(source).toContain(
+      squash("return resolveMarkerLabels(placedMarkers, zoom); }, "),
+    );
+  });
+
+  /*
+   * A marker moved off its coordinates without saying so is a map that
+   * lies. The line back to the anchor is the whole reason the displacement
+   * is allowed at all.
+   */
+  test("a displaced marker keeps a leader line to where it really is", () => {
+    const leaders: string = source
+      .split('<g style={{ pointerEvents: "none" }}>')[1]!
+      .split("</g>")[0]!;
+    expect(leaders).toContain("return marker.needsLeaderLine;");
+    expect(leaders).toContain("x1={marker.anchorX}");
+    expect(leaders).toContain("y1={marker.anchorY}");
+    expect(leaders).toContain("x2={marker.x}");
+    expect(leaders).toContain("y2={marker.y}");
+  });
+
+  test("the leader lines are explained, and only when there are some", () => {
+    expect(source).toContain(
+      squash("const hasNudgedMarkers: boolean = placedMarkers.some("),
+    );
+    expect(source).toContain(squash("{hasNudgedMarkers ? ("));
+    expect(source).toContain('data-testid="site-geo-map-nudged-key"');
+  });
+
+  /*
+   * The square, the box a label has to clear and the circle the layout keeps
+   * clear around a container are three views of ONE shape. A second literal
+   * here is how they drift apart.
+   */
+  test("the container square is drawn from the shared factor", () => {
+    expect(source).toContain(
+      "const side: number = radius * CONTAINER_SIDE_FACTOR;",
+    );
+    expect(
+      readCode("Components", "NetworkSite", "SiteGeoMap.tsx"),
+    ).not.toContain("* 1.78");
+  });
 });
 
 /*
