@@ -4,7 +4,10 @@ import ObjectID from "Common/Types/ObjectID";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 import CommonAPI from "Common/Server/API/CommonAPI";
-import { assertCanExecuteRunbooks } from "Common/Server/Utils/Runbook/RunbookExecutePermission";
+import {
+  assertCanAdvanceRunbookExecutions,
+  assertCanExecuteRunbooks,
+} from "Common/Server/Utils/Runbook/RunbookExecutePermission";
 import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
 import Express, {
   ExpressRequest,
@@ -237,13 +240,13 @@ export default class RunbookAPI {
 
       /*
        * Completing a gated step resumes execution of the remaining steps, so
-       * it needs the same authority as starting a runbook.
+       * it needs authority over the execution, not merely over the runbook.
        */
       const props: DatabaseCommonInteractionProps =
         await CommonAPI.getDatabaseCommonInteractionProps(req);
       const projectId: ObjectID =
         CommonAPI.assertAuthenticatedProjectMember(props);
-      assertCanExecuteRunbooks(props, projectId);
+      assertCanAdvanceRunbookExecutions(props, projectId);
 
       const updated: RunbookStepExecutionState | null = await updateStepStatus({
         executionId,
@@ -284,14 +287,14 @@ export default class RunbookAPI {
       }
 
       /*
-       * Skipping a step advances the execution past it, so it needs the same
-       * authority as starting a runbook.
+       * Skipping a step advances the execution past it, so it needs authority
+       * over the execution, not merely over the runbook.
        */
       const props: DatabaseCommonInteractionProps =
         await CommonAPI.getDatabaseCommonInteractionProps(req);
       const projectId: ObjectID =
         CommonAPI.assertAuthenticatedProjectMember(props);
-      assertCanExecuteRunbooks(props, projectId);
+      assertCanAdvanceRunbookExecutions(props, projectId);
 
       const updated: RunbookStepExecutionState | null = await updateStepStatus({
         executionId,
@@ -330,14 +333,14 @@ export default class RunbookAPI {
       }
 
       /*
-       * Cancelling stops in-flight infrastructure work — same authority as
-       * starting it, and never available to an unauthenticated caller.
+       * Cancelling stops in-flight infrastructure work, and is never
+       * available to an unauthenticated caller.
        */
       const props: DatabaseCommonInteractionProps =
         await CommonAPI.getDatabaseCommonInteractionProps(req);
       const projectId: ObjectID =
         CommonAPI.assertAuthenticatedProjectMember(props);
-      assertCanExecuteRunbooks(props, projectId);
+      assertCanAdvanceRunbookExecutions(props, projectId);
 
       const execution: RunbookExecution | null =
         await RunbookExecutionService.findOneById({

@@ -4,7 +4,10 @@ import CommonAPI from "Common/Server/API/CommonAPI";
 import RunbookService from "Common/Server/Services/RunbookService";
 import RunbookExecutionService from "Common/Server/Services/RunbookExecutionService";
 import RunbookAgentJobService from "Common/Server/Services/RunbookAgentJobService";
-import { RUNBOOK_EXECUTE_PERMISSIONS } from "Common/Server/Utils/Runbook/RunbookExecutePermission";
+import {
+  RUNBOOK_ADVANCE_PERMISSIONS,
+  RUNBOOK_EXECUTE_PERMISSIONS,
+} from "Common/Server/Utils/Runbook/RunbookExecutePermission";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
 import RunbookExecution from "Common/Models/DatabaseModels/RunbookExecution";
 import RunbookExecutionStatus from "Common/Types/Runbook/RunbookExecutionStatus";
@@ -569,9 +572,11 @@ describe("Runbook execution routes require an authorized member of the runbook's
     });
 
     /*
-     * Pin the shared allow-list itself: every route gates on this one
-     * constant, so a change here changes who can run scripts on customer
-     * infrastructure.
+     * Pin the shared allow-lists themselves: every route gates on these
+     * constants, so a change here changes who can run scripts on customer
+     * infrastructure. Starting mirrors RunbookExecution's create ACL;
+     * advancing an existing execution additionally honours its update ACL,
+     * which is where EditRunbookExecution lives.
      */
     test("RUNBOOK_EXECUTE_PERMISSIONS is exactly the six intended permissions", () => {
       expect([...RUNBOOK_EXECUTE_PERMISSIONS].sort()).toEqual(
@@ -584,6 +589,49 @@ describe("Runbook execution routes require an authorized member of the runbook's
           Permission.RunbookMember,
         ].sort(),
       );
+    });
+
+    test("RUNBOOK_ADVANCE_PERMISSIONS adds EditRunbookExecution and nothing else", () => {
+      expect([...RUNBOOK_ADVANCE_PERMISSIONS].sort()).toEqual(
+        [
+          ...RUNBOOK_EXECUTE_PERMISSIONS,
+          Permission.EditRunbookExecution,
+        ].sort(),
+      );
+    });
+
+    /*
+     * EditRunbookExecution is documented (runbooks/agents.md,
+     * runbooks/configuration.md) as the permission that lets someone tick an
+     * execution off, and it is RunbookExecution's update ACL. It must not
+     * open a NEW execution, though — that is the create ACL's job.
+     */
+    test.each([COMPLETE_ROUTE, SKIP_ROUTE, CANCEL_ROUTE])(
+      "EditRunbookExecution alone can advance an existing execution via %s",
+      async (uri: string) => {
+        memberProps([Permission.EditRunbookExecution]);
+        mockExecutionInProject({ projectId: callerProjectId });
+
+        const result: RouteCallResult = await callRoute({
+          uri,
+          params: uri === CANCEL_ROUTE ? cancelParams() : stepParams(),
+        });
+
+        expect(result.thrownToNext).toBeUndefined();
+      },
+    );
+
+    test("EditRunbookExecution alone cannot START a run", async () => {
+      memberProps([Permission.EditRunbookExecution]);
+      mockRunbookInProject(callerProjectId);
+
+      const result: RouteCallResult = await callRoute({
+        uri: RUN_ROUTE,
+        params: runParams(),
+      });
+
+      expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      expect(startExecutionMock).not.toHaveBeenCalled();
     });
 
     test.each(RUNBOOK_EXECUTE_PERMISSIONS)(
