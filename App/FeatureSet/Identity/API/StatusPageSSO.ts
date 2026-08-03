@@ -224,7 +224,7 @@ router.post(
          * Verify the signature AND extract the identity from the SAME
          * cryptographically verified assertion. This single call defends against
          * XML Signature Wrapping - see SSOUtil.getSamlResponseFromXML and
-         * GitHub issue #2949.
+         * GitHub issues #2949 and #2981.
          */
         const verifiedSaml: VerifiedSamlResponse =
           SSOUtil.getSamlResponseFromXML(
