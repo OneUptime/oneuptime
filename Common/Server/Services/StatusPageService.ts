@@ -75,23 +75,27 @@ import {
   MASTER_PASSWORD_COOKIE_IDENTIFIER,
   MASTER_PASSWORD_REQUIRED_MESSAGE,
 } from "../../Types/StatusPage/MasterPassword";
+import StatusPageGroup from "../../Models/DatabaseModels/StatusPageGroup";
+import StatusPageGroupService from "./StatusPageGroupService";
+import StatusPageGroupTreeUtil from "../../Utils/StatusPage/GroupTree";
+import StatusPageReportTreeUtil, {
+  StatusPageReportResourceEntry,
+  StatusPageReportStructure,
+} from "../../Utils/StatusPage/Report";
+import {
+  StatusPageReport,
+  StatusPageReportGroup,
+  StatusPageReportGroupMetrics,
+  StatusPageReportItem,
+  StatusPageReportRow,
+} from "../../Types/StatusPage/StatusPageReport";
 
-export interface StatusPageReportItem {
-  resourceName: string;
-  totalIncidentCount: number;
-  uptimePercent: number;
-  uptimePercentAsString: string;
-  downtimeInHoursAndMinutes: string;
-}
-
-export interface StatusPageReport {
-  reportDates: string; // start date and end date in string. e.g. "01 July 2021 - 14 July 2021"
-  totalResources: number;
-  totalIncidents: number;
-  averageUptimePercent: string;
-  totalDowntimeInHoursAndMinutes: string;
-  resources: Array<StatusPageReportItem>;
-}
+export {
+  StatusPageReport,
+  StatusPageReportGroup,
+  StatusPageReportItem,
+  StatusPageReportRow,
+};
 
 export class Service extends DatabaseService<StatusPage> {
   /*
@@ -1262,6 +1266,10 @@ export class Service extends DatabaseService<StatusPage> {
         averageUptimePercent: "0%",
         totalDowntimeInHoursAndMinutes: "0",
         resources: [],
+        groups: [],
+        ungroupedResources: [],
+        rows: [],
+        hasGroups: false,
       };
     }
 
@@ -1284,7 +1292,13 @@ export class Service extends DatabaseService<StatusPage> {
         endDate: endDate,
       });
 
-    const reportItems: Array<StatusPageReportItem> = [];
+    const entries: Array<StatusPageReportResourceEntry> = [];
+
+    /*
+     * Kept alongside `entries` so a group can roll up the monitors of every
+     * resource beneath it without expanding monitor groups a second time.
+     */
+    const monitorIdsByResourceIndex: Array<Array<ObjectID>> = [];
 
     for (const resource of statusPageResources) {
       // for each of these resource, calculate uptime percent.
@@ -1324,27 +1338,30 @@ export class Service extends DatabaseService<StatusPage> {
         reportWindow,
       );
 
-      const reportItem: StatusPageReportItem = {
-        resourceName: resource.displayName || "",
-        totalIncidentCount: await this.getIncidentCountByMonitorIds({
-          monitorIds: monitorIdsForThisResource,
-          historyDays: data.historyDays,
-        }),
-        uptimePercent: uptimePercent,
-        uptimePercentAsString: `${uptimePercent}%`,
-        downtimeInHoursAndMinutes:
-          OneUptimeDate.convertMinutesToDaysHoursAndMinutes(
-            Math.ceil(downtime.totalDowntimeInSeconds / 60),
-          ),
-      };
+      entries.push({
+        statusPageResource: resource,
+        reportItem: {
+          resourceName: resource.displayName || "",
+          totalIncidentCount: await this.getIncidentCountByMonitorIds({
+            monitorIds: monitorIdsForThisResource,
+            historyDays: data.historyDays,
+          }),
+          uptimePercent: uptimePercent,
+          uptimePercentAsString: `${uptimePercent}%`,
+          downtimeInHoursAndMinutes:
+            OneUptimeDate.convertMinutesToDaysHoursAndMinutes(
+              Math.ceil(downtime.totalDowntimeInSeconds / 60),
+            ),
+        },
+      });
 
-      reportItems.push(reportItem);
+      monitorIdsByResourceIndex.push(monitorIdsForThisResource);
     }
 
     const avgUptimePercent: number =
-      reportItems.reduce((acc: number, item: StatusPageReportItem) => {
-        return acc + item.uptimePercent;
-      }, 0) / reportItems.length;
+      entries.reduce((acc: number, entry: StatusPageReportResourceEntry) => {
+        return acc + entry.reportItem.uptimePercent;
+      }, 0) / entries.length;
 
     const avgUptimePercentString: string = avgUptimePercent.toFixed(2) + "%";
 
@@ -1357,17 +1374,204 @@ export class Service extends DatabaseService<StatusPage> {
       reportWindow,
     );
 
+    /*
+     * The status page arranges its resources into a tree of groups and shows a
+     * rolled up number at every level. Recipients of this email usually have no
+     * login, so the report has to carry that hierarchy too - see
+     * StatusPageReportTreeUtil.
+     */
+    const statusPageGroups: Array<StatusPageGroup> =
+      await this.getStatusPageGroups({
+        statusPageId: data.statusPageId,
+      });
+
+    const groupMetricsByGroupId: Dictionary<StatusPageReportGroupMetrics> =
+      await this.getReportGroupMetrics({
+        statusPageGroups: statusPageGroups,
+        entries: entries,
+        monitorIdsByResourceIndex: monitorIdsByResourceIndex,
+        timeline: timeline,
+        downtimeMonitorStatuses: statusPage.downtimeMonitorStatuses || [],
+        reportWindow: reportWindow,
+        historyDays: data.historyDays,
+      });
+
+    const structure: StatusPageReportStructure = StatusPageReportTreeUtil.build(
+      {
+        entries: entries,
+        statusPageGroups: statusPageGroups,
+        groupMetricsByGroupId: groupMetricsByGroupId,
+      },
+    );
+
     return {
       reportDates: startAndEndDate,
       totalResources: statusPageResources.length,
       totalIncidents: incidentCount,
       averageUptimePercent: avgUptimePercentString,
-      resources: reportItems,
+      resources: structure.resources,
+      groups: structure.groups,
+      ungroupedResources: structure.resourcesWithoutGroup,
+      rows: structure.rows,
+      hasGroups: structure.groups.length > 0,
       totalDowntimeInHoursAndMinutes:
         OneUptimeDate.convertMinutesToDaysHoursAndMinutes(
           Math.ceil(totalDowntimeInSeconds.totalDowntimeInSeconds / 60),
         ),
     };
+  }
+
+  /*
+   * Uptime, downtime and incidents for each group, measured over the group and
+   * every group nested under it - the same set of resources the live status page
+   * rolls a group's number over.
+   */
+  @CaptureSpan()
+  public async getReportGroupMetrics(data: {
+    statusPageGroups: Array<StatusPageGroup>;
+    entries: Array<StatusPageReportResourceEntry>;
+    monitorIdsByResourceIndex: Array<Array<ObjectID>>;
+    timeline: Array<MonitorStatusTimeline>;
+    downtimeMonitorStatuses: Array<MonitorStatus>;
+    reportWindow: UptimeWindow;
+    historyDays: number;
+  }): Promise<Dictionary<StatusPageReportGroupMetrics>> {
+    const groupMetricsByGroupId: Dictionary<StatusPageReportGroupMetrics> = {};
+    const incidentCountByMonitorSet: Dictionary<number> = {};
+
+    for (const group of data.statusPageGroups) {
+      const groupId: string | undefined = group._id?.toString();
+
+      if (!groupId) {
+        continue;
+      }
+
+      const groupIdsInSubtree: Set<string> = new Set<string>(
+        StatusPageGroupTreeUtil.getGroupAndDescendants({
+          statusPageGroup: group,
+          statusPageGroups: data.statusPageGroups,
+        }).map((groupInSubtree: StatusPageGroup) => {
+          return groupInSubtree._id?.toString() || "";
+        }),
+      );
+
+      const uptimePercentsInSubtree: Array<number> = [];
+      const monitorIdsInSubtree: Dictionary<ObjectID> = {};
+
+      data.entries.forEach(
+        (entry: StatusPageReportResourceEntry, index: number) => {
+          const resourceGroupId: string | undefined =
+            entry.statusPageResource.statusPageGroupId?.toString();
+
+          if (!resourceGroupId || !groupIdsInSubtree.has(resourceGroupId)) {
+            return;
+          }
+
+          uptimePercentsInSubtree.push(entry.reportItem.uptimePercent);
+
+          for (const monitorId of data.monitorIdsByResourceIndex[index] || []) {
+            // de-duplicated: the same monitor can back more than one resource.
+            monitorIdsInSubtree[monitorId.toString()] = monitorId;
+          }
+        },
+      );
+
+      const monitorIds: Array<ObjectID> = Object.values(monitorIdsInSubtree);
+
+      const timelineForThisGroup: Array<MonitorStatusTimeline> =
+        data.timeline.filter((item: MonitorStatusTimeline) => {
+          return Boolean(
+            item.monitorId && monitorIdsInSubtree[item.monitorId.toString()],
+          );
+        });
+
+      const downtime: {
+        totalDowntimeInSeconds: number;
+        totalSecondsInTimePeriod: number;
+      } = UptimeUtil.getTotalDowntimeInSeconds(
+        timelineForThisGroup,
+        data.downtimeMonitorStatuses,
+        data.reportWindow,
+      );
+
+      /*
+       * Averaging the resources' percentages (rather than recomputing from the
+       * merged timeline) is what the live page does, so a group in the email
+       * shows the number a reader can compare against the page.
+       */
+      const uptimePercent: number =
+        uptimePercentsInSubtree.length > 0
+          ? UptimeUtil.calculateAvgUptimePercentage({
+              uptimePercentages: uptimePercentsInSubtree,
+              precision:
+                group.uptimePercentPrecision || UptimePrecision.TWO_DECIMAL,
+            })
+          : 0;
+
+      /*
+       * A chain like Corporate -> Region -> Market -> Unit rolls up the exact
+       * same monitors at every level, so the incident count is cached by the
+       * monitor set rather than issuing one identical query per level.
+       */
+      const monitorSetKey: string = monitorIds
+        .map((monitorId: ObjectID) => {
+          return monitorId.toString();
+        })
+        .sort()
+        .join(",");
+
+      let totalIncidentCount: number | undefined =
+        incidentCountByMonitorSet[monitorSetKey];
+
+      if (totalIncidentCount === undefined) {
+        totalIncidentCount =
+          monitorIds.length > 0
+            ? await this.getIncidentCountByMonitorIds({
+                monitorIds: monitorIds,
+                historyDays: data.historyDays,
+              })
+            : 0;
+
+        incidentCountByMonitorSet[monitorSetKey] = totalIncidentCount;
+      }
+
+      groupMetricsByGroupId[groupId] = {
+        uptimePercent: uptimePercent,
+        uptimePercentAsString: `${uptimePercent}%`,
+        downtimeInHoursAndMinutes:
+          OneUptimeDate.convertMinutesToDaysHoursAndMinutes(
+            Math.ceil(downtime.totalDowntimeInSeconds / 60),
+          ),
+        totalIncidentCount: totalIncidentCount,
+      };
+    }
+
+    return groupMetricsByGroupId;
+  }
+
+  @CaptureSpan()
+  public async getStatusPageGroups(data: {
+    statusPageId: ObjectID;
+  }): Promise<Array<StatusPageGroup>> {
+    return await StatusPageGroupService.findBy({
+      query: {
+        statusPageId: data.statusPageId,
+      },
+      select: {
+        name: true,
+        order: true,
+        parentStatusPageGroupId: true,
+        uptimePercentPrecision: true,
+      },
+      sort: {
+        order: SortOrder.Ascending,
+      },
+      skip: 0,
+      limit: LIMIT_PER_PROJECT,
+      props: {
+        isRoot: true,
+      },
+    });
   }
 
   @CaptureSpan()

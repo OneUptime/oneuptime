@@ -71,9 +71,19 @@
 </table>
 <!-- /Supporting Stats Strip -->
 
+{{#if report.hasGroups}}
+{{> TitleBlock title="Breakdown by group"}}
+{{else}}
 {{> TitleBlock title="Per-resource breakdown"}}
+{{/if}}
 
-<!-- Per-resource Table -->
+<!--
+  Breakdown table. `report.rows` is the status page's group hierarchy already
+  flattened into render order - ungrouped resources first, then each group
+  followed by its own resources and then its sub groups - so this renders any
+  depth of nesting without recursion, which email clients handle poorly.
+  Group rows carry the uptime rolled up over everything beneath them.
+-->
 <table class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="600" style="min-width: 600px;">
   <tbody>
     <tr>
@@ -82,20 +92,33 @@
         <table border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:separate;border-spacing:0;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;">
           <thead>
             <tr>
-              <th align="left" bgcolor="#1a1a2e" style="background-color:#1a1a2e;color:#ffffff;padding:12px 14px;font-size:11px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;text-align:left;">Resource</th>
+              <th align="left" bgcolor="#1a1a2e" style="background-color:#1a1a2e;color:#ffffff;padding:12px 14px;font-size:11px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;text-align:left;">{{#if report.hasGroups}}Group / Resource{{else}}Resource{{/if}}</th>
               <th align="right" bgcolor="#1a1a2e" style="background-color:#1a1a2e;color:#ffffff;padding:12px 14px;font-size:11px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;text-align:right;">Uptime</th>
               <th align="right" bgcolor="#1a1a2e" style="background-color:#1a1a2e;color:#ffffff;padding:12px 14px;font-size:11px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;text-align:right;">Downtime</th>
               <th align="right" bgcolor="#1a1a2e" style="background-color:#1a1a2e;color:#ffffff;padding:12px 14px;font-size:11px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;text-align:right;">Incidents</th>
             </tr>
           </thead>
           <tbody>
-            {{#each report.resources}}
-            <tr bgcolor="{{#if @odd}}#f0f3f9{{else}}#ffffff{{/if}}" style="background-color:{{#if @odd}}#f0f3f9{{else}}#ffffff{{/if}};">
-              <td align="left" style="padding:12px 14px;border-top:1px solid #e5e8f0;font-size:14px;color:#374151;font-weight:500;">{{this.resourceName}}</td>
+            {{#each report.rows}}
+            {{#if this.isGroup}}
+            <tr bgcolor="#e8ecf5" style="background-color:#e8ecf5;">
+              <td align="left" style="padding:12px 14px;border-top:1px solid #d6dcea;font-size:14px;color:#1a1a2e;font-weight:700;">
+                <div style="margin-left:{{this.indentInPixels}}px;">{{this.name}}<span style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.4px;"> &middot; {{this.totalResources}} resources</span></div>
+              </td>
+              <td align="right" style="padding:12px 14px;border-top:1px solid #d6dcea;font-size:14px;color:#1a1a2e;font-weight:700;text-align:right;">{{this.uptimePercentAsString}}</td>
+              <td align="right" style="padding:12px 14px;border-top:1px solid #d6dcea;font-size:14px;color:#1a1a2e;font-weight:600;text-align:right;">{{this.downtimeInHoursAndMinutes}}</td>
+              <td align="right" style="padding:12px 14px;border-top:1px solid #d6dcea;font-size:14px;color:#1a1a2e;font-weight:700;text-align:right;">{{this.totalIncidentCount}}</td>
+            </tr>
+            {{else}}
+            <tr bgcolor="#ffffff" style="background-color:#ffffff;">
+              <td align="left" style="padding:12px 14px;border-top:1px solid #e5e8f0;font-size:14px;color:#374151;font-weight:500;">
+                <div style="margin-left:{{this.indentInPixels}}px;">{{this.name}}</div>
+              </td>
               <td align="right" style="padding:12px 14px;border-top:1px solid #e5e8f0;font-size:14px;color:#1e293b;font-weight:600;text-align:right;">{{this.uptimePercentAsString}}</td>
               <td align="right" style="padding:12px 14px;border-top:1px solid #e5e8f0;font-size:14px;color:#374151;text-align:right;">{{this.downtimeInHoursAndMinutes}}</td>
               <td align="right" style="padding:12px 14px;border-top:1px solid #e5e8f0;font-size:14px;color:#1e293b;font-weight:600;text-align:right;">{{this.totalIncidentCount}}</td>
             </tr>
+            {{/if}}
             {{/each}}
           </tbody>
         </table>
@@ -107,7 +130,7 @@
     </tr>
   </tbody>
 </table>
-<!-- /Per-resource Table -->
+<!-- /Breakdown Table -->
 {{/ifCond}}
 
 {{#ifCond hasResources "false"}}

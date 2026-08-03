@@ -277,7 +277,26 @@ export class Service extends DatabaseService<Model> {
           {
             name: "report.resources",
             description:
-              "Array of per-resource rows (resourceName, uptimePercentAsString, downtimeInHoursAndMinutes, totalIncidentCount) to loop over with {{#each}}",
+              "Array of per-resource rows (resourceName, uptimePercentAsString, downtimeInHoursAndMinutes, totalIncidentCount, groupName, groupPath) to loop over with {{#each}}",
+          },
+          {
+            name: "report.hasGroups",
+            description:
+              "true when the status page organises its resources into groups",
+          },
+          {
+            name: "report.rows",
+            description:
+              "The status page's group hierarchy flattened into render order (isGroup, name, depth, indentInPixels, uptimePercentAsString, downtimeInHoursAndMinutes, totalIncidentCount, totalResources) to loop over with {{#each}}",
+          },
+          {
+            name: "report.groups",
+            description:
+              "The group hierarchy as a nested tree (groupName, groupPath, depth, uptimePercentAsString, downtimeInHoursAndMinutes, totalIncidentCount, totalResources, resources, subGroups)",
+          },
+          {
+            name: "report.ungroupedResources",
+            description: "Per-resource rows for resources that are in no group",
           },
         ];
 
