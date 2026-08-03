@@ -1,4 +1,5 @@
 import AutoRemediationSuggestionStatus from "../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
+import AutoRemediationVerificationStatus from "../../Types/AutoRemediation/AutoRemediationVerificationStatus";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import CountBy from "../Types/Database/CountBy";
@@ -29,6 +30,15 @@ export interface SuggestionTransitionSet {
   approvedAt?: Date | undefined;
   dismissedByUserId?: string | undefined;
   dismissedAt?: Date | undefined;
+  verificationStatus?: AutoRemediationVerificationStatus | undefined;
+  verificationDeadlineAt?: Date | undefined;
+}
+
+// What the outcome verifier may set when a verification concludes.
+export interface VerificationTransitionSet {
+  verificationStatus: AutoRemediationVerificationStatus;
+  verificationCompletedAt?: Date | undefined;
+  verificationNote?: string | undefined;
 }
 
 export class Service extends DatabaseService<Model> {
@@ -123,6 +133,33 @@ export class Service extends DatabaseService<Model> {
       .set(data.set as QueryDeepPartialEntity<Model>)
       .where('"_id" = :id', { id: data.suggestionId.toString() })
       .andWhere('"status" = :fromStatus', { fromStatus: data.fromStatus })
+      .andWhere('"deletedAt" IS NULL');
+
+    const result: UpdateResult = await queryBuilder.execute();
+
+    return result.affected || 0;
+  }
+
+  /*
+   * The verification twin of attemptStatusTransition: one conditional
+   * UPDATE guarded on the expected current verificationStatus, so
+   * concurrent verifier sweeps (multiple Workers replicas) settle each
+   * verification exactly once.
+   */
+  @CaptureSpan()
+  public async attemptVerificationTransition(data: {
+    suggestionId: ObjectID;
+    fromVerificationStatus: AutoRemediationVerificationStatus;
+    set: VerificationTransitionSet;
+  }): Promise<number> {
+    const queryBuilder: UpdateQueryBuilder<Model> = this.getRepository()
+      .createQueryBuilder()
+      .update(Model)
+      .set(data.set as QueryDeepPartialEntity<Model>)
+      .where('"_id" = :id', { id: data.suggestionId.toString() })
+      .andWhere('"verificationStatus" = :fromVerificationStatus', {
+        fromVerificationStatus: data.fromVerificationStatus,
+      })
       .andWhere('"deletedAt" IS NULL');
 
     const result: UpdateResult = await queryBuilder.execute();

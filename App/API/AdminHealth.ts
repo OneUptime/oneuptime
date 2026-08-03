@@ -37,6 +37,10 @@ import {
 } from "Common/Server/Utils/AnalyticsDatabase/ClickhouseCapacity";
 import InstanceHealthLogService from "Common/Server/Services/InstanceHealthLogService";
 import InstanceHealthLog from "Common/Models/DatabaseModels/InstanceHealthLog";
+import {
+  getRedisInfoSnapshot,
+  RedisInfoSnapshot,
+} from "Common/Server/Utils/InstanceHealth/RedisHealth";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 
 const router: ExpressRouter = Express.getRouter();
@@ -322,40 +326,51 @@ async function getClickhouseStats(): Promise<JSONObject> {
   return result;
 }
 
-// Read a single integer field out of the Redis INFO memory section.
-function parseRedisInfoValue(info: string, key: string): number | null {
-  const line: string | undefined = info
-    .split(/\r?\n/)
-    .find((current: string): boolean => {
-      return current.startsWith(`${key}:`);
-    });
-
-  if (!line) {
-    return null;
-  }
-
-  return toNumberOrNull(line.split(":")[1]);
-}
-
+/*
+ * Reads the same INFO fields the Redis health notifications watch, so the page
+ * an operator lands on from a notification shows the signal that fired it.
+ * getRedisInfoSnapshot is deliberately the read-only variant — the worker's
+ * delta-bearing snapshot advances a stored counter baseline, and calling that
+ * from a page refresh would consume the very eviction delta the notification
+ * needs.
+ */
 async function getRedisStats(): Promise<JSONObject> {
   const result: JSONObject = {
     connected: false,
     usedMemoryInBytes: null,
     maxMemoryInBytes: null,
+    maxMemoryPolicy: null,
+    connectedClients: null,
+    maxClients: null,
+    blockedClients: null,
+    evictedKeys: null,
+    rejectedConnections: null,
+    rdbLastBgsaveStatus: null,
+    aofEnabled: null,
+    aofLastWriteStatus: null,
+    aofLastBgrewriteStatus: null,
   };
 
   try {
-    const client: ReturnType<typeof Redis.getClient> = Redis.getClient();
+    const snapshot: RedisInfoSnapshot | null = await getRedisInfoSnapshot();
 
-    if (!client || !Redis.isConnected()) {
+    if (!snapshot) {
       return result;
     }
 
-    const info: string = await client.info("memory");
-
     result["connected"] = true;
-    result["usedMemoryInBytes"] = parseRedisInfoValue(info, "used_memory");
-    result["maxMemoryInBytes"] = parseRedisInfoValue(info, "maxmemory");
+    result["usedMemoryInBytes"] = snapshot.usedMemoryInBytes;
+    result["maxMemoryInBytes"] = snapshot.maxMemoryInBytes;
+    result["maxMemoryPolicy"] = snapshot.maxMemoryPolicy;
+    result["connectedClients"] = snapshot.connectedClients;
+    result["maxClients"] = snapshot.maxClients;
+    result["blockedClients"] = snapshot.blockedClients;
+    result["evictedKeys"] = snapshot.evictedKeys;
+    result["rejectedConnections"] = snapshot.rejectedConnections;
+    result["rdbLastBgsaveStatus"] = snapshot.rdbLastBgsaveStatus;
+    result["aofEnabled"] = snapshot.isAofEnabled;
+    result["aofLastWriteStatus"] = snapshot.aofLastWriteStatus;
+    result["aofLastBgrewriteStatus"] = snapshot.aofLastBgrewriteStatus;
   } catch (err) {
     logger.error("AdminHealth: failed to read Redis stats");
     logger.error(err);

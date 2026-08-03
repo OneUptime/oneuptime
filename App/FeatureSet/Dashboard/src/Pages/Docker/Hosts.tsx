@@ -119,17 +119,6 @@ const DockerHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
     return <ErrorMessage message={error} />;
   }
 
-  if (hostCount === 0) {
-    return (
-      <Fragment>
-        <DockerDocumentationCard
-          title="Getting Started with Docker Monitoring"
-          description="No Docker hosts connected yet. Install the agent using the guide below and your host will appear here automatically."
-        />
-      </Fragment>
-    );
-  }
-
   return (
     <Fragment>
       <ModelTable<DockerHost>
@@ -142,6 +131,12 @@ const DockerHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
         query={mergeFiltersIntoQuery({ isArchived: false })}
         onFetchSuccess={(data: Array<DockerHost>) => {
           onResourcesFetched(data);
+        }}
+        onCreateSuccess={(item: DockerHost): Promise<DockerHost> => {
+          setHostCount((currentCount: number | null): number => {
+            return (currentCount || 0) + 1;
+          });
+          return Promise.resolve(item);
         }}
         isDeleteable={false}
         isEditable={false}
@@ -320,6 +315,12 @@ const DockerHosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
           );
         }}
       />
+      {hostCount === 0 && (
+        <DockerDocumentationCard
+          title="Getting Started with Docker Monitoring"
+          description="No Docker hosts connected yet. Install the agent using the guide below and your host will appear here automatically."
+        />
+      )}
       {labelBulkActionModals}
       {ownerBulkActionModals}
     </Fragment>

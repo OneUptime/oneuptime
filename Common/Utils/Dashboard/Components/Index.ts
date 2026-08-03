@@ -14,6 +14,7 @@ import DashboardDockerNetworkListComponentUtil from "./DashboardDockerNetworkLis
 import DashboardDockerVolumeListComponentUtil from "./DashboardDockerVolumeListComponent";
 import DashboardGaugeComponentUtil from "./DashboardGaugeComponent";
 import DashboardHostListComponentUtil from "./DashboardHostListComponent";
+import DashboardHtmlComponentUtil from "./DashboardHtmlComponent";
 import DashboardIncidentListComponentUtil from "./DashboardIncidentListComponent";
 import DashboardKubernetesCronJobListComponentUtil from "./DashboardKubernetesCronJobListComponent";
 import DashboardKubernetesDaemonSetListComponentUtil from "./DashboardKubernetesDaemonSetListComponent";
@@ -296,6 +297,12 @@ export default class DashboardComponentsUtil {
 
     if (dashboardComponentType === DashboardComponentType.CephPoolList) {
       return DashboardCephPoolListComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.Html) {
+      return DashboardHtmlComponentUtil.getComponentConfigArguments() as Array<
         ComponentArgument<DashboardBaseComponent>
       >;
     }

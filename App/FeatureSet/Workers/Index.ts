@@ -157,6 +157,8 @@ import "./Jobs/AIChat/ProcessQueuedInvestigations";
 
 // Auto-remediation — settle Planning suggestions whose plan run died.
 import "./Jobs/AutoRemediation/SettleStrandedSuggestions";
+// Auto-remediation — verify started remediations actually restored service.
+import "./Jobs/AutoRemediation/VerifyRemediations";
 
 // AI Insights — preventive telemetry scan (deterministic, no LLM).
 import "./Jobs/AIInsight/ScanForInsights";
@@ -166,6 +168,8 @@ import "./Jobs/TelemetryMonitor/ScheduleTelemetryMonitorEvaluations";
 
 // Instance health and capacity management.
 import "./Jobs/InstanceHealth/EvaluateClickhouseCapacity";
+import "./Jobs/InstanceHealth/EvaluatePostgresHealth";
+import "./Jobs/InstanceHealth/EvaluateRedisHealth";
 
 // Derived / recording-rule metrics.
 import "./Jobs/Metrics/ComputeRecordingRules";

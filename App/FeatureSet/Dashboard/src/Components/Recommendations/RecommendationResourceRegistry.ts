@@ -7,6 +7,7 @@ import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
+import RumApplication from "Common/Models/DatabaseModels/RumApplication";
 import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 
 /*
@@ -16,7 +17,7 @@ import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommen
  * resource type. It cannot know which Postgres model that resource type is,
  * or which of that model's columns carries the identifier the telemetry is
  * tagged with — those are dashboard concerns. Before this file, that knowledge
- * was copy-pasted into eight nearly identical `View/Recommendations.tsx` pages
+ * was copy-pasted into nearly identical `View/Recommendations.tsx` pages
  * (fetch the model, read one field, pass three props), and there was no way
  * for anything else — like a side-menu count badge — to ask the same question
  * without a ninth copy.
@@ -54,6 +55,8 @@ export interface RecommendationResourceDefinition {
  *   Proxmox     name               model has no identifier column
  *   Ceph        name               model has no identifier column
  *   IoTDevice   name               IoTFleet has no identifier column
+ *   RUM         _id                Metric/Span/Exception.primaryEntityId is
+ *                                  the RumApplication row id
  *
  * The four `name` rows mean renaming one of those resources orphans its
  * existing monitors from the diff — they will show as available again. That is
@@ -108,6 +111,12 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
     resourceType: MonitorRecommendationResourceType.IoTDevice,
     modelType: IoTFleet,
     identifierFieldName: "name",
+    displayNameFieldName: "name",
+  },
+  {
+    resourceType: MonitorRecommendationResourceType.RumApplication,
+    modelType: RumApplication,
+    identifierFieldName: "_id",
     displayNameFieldName: "name",
   },
 ];

@@ -13,6 +13,14 @@ import { Column, Entity, Index } from "typeorm";
 export enum InstanceHealthLogEventType {
   ClickHouseCapacityNotification = "ClickHouseCapacityNotification",
   ClickHouseDataPruning = "ClickHouseDataPruning",
+  RedisMemoryNotification = "RedisMemoryNotification",
+  RedisConnectionSaturationNotification = "RedisConnectionSaturationNotification",
+  RedisKeyEvictionNotification = "RedisKeyEvictionNotification",
+  RedisPersistenceFailureNotification = "RedisPersistenceFailureNotification",
+  PostgresStorageNotification = "PostgresStorageNotification",
+  PostgresConnectionSaturationNotification = "PostgresConnectionSaturationNotification",
+  PostgresWraparoundNotification = "PostgresWraparoundNotification",
+  PostgresReplicationSlotNotification = "PostgresReplicationSlotNotification",
 }
 
 export enum InstanceHealthLogStatus {

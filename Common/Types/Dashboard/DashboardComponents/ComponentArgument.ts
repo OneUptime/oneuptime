@@ -18,6 +18,10 @@ export enum ComponentInputType {
   MultiSelectDropdown = "MultiSelectDropdown",
   EntityDropdown = "EntityDropdown",
   EntityMultiSelectDropdown = "EntityMultiSelectDropdown",
+  // Monaco code editors, one per language.
+  Html = "Html",
+  Css = "Css",
+  JavaScript = "JavaScript",
 }
 
 export enum EntityFilterModelType {

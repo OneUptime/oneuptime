@@ -88,6 +88,8 @@ enum EmailTemplateType {
   Invoice = "Invoice.hbs",
 
   ClickhouseCapacityWarning = "ClickhouseCapacityWarning.hbs",
+  RedisHealthWarning = "RedisHealthWarning.hbs",
+  PostgresHealthWarning = "PostgresHealthWarning.hbs",
 
   EnterpriseLicenseUserLimitBreach = "EnterpriseLicenseUserLimitBreach.hbs",
   EnterpriseLicenseExpiryReminder = "EnterpriseLicenseExpiryReminder.hbs",

@@ -65,6 +65,8 @@ import ObjectID from "Common/Types/ObjectID";
 import AlertStateTimeline from "Common/Models/DatabaseModels/AlertStateTimeline";
 import GlobalEvents from "Common/UI/Utils/GlobalEvents";
 import { REFRESH_SIDEBAR_COUNT_EVENT } from "Common/UI/Components/SideMenu/CountModelSideMenuItem";
+import LiveDuration from "../EventView/LiveDuration";
+import useEventTimelineEndDates from "../EventView/useEventTimelineEndDates";
 
 export interface ComponentProps {
   query?: Query<Alert> | undefined;
@@ -87,6 +89,27 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
     useState<boolean>(false);
   const [bulkActionProps, setBulkActionProps] =
     useState<BulkActionOnClickProps<Alert> | null>(null);
+  const [visibleAlerts, setVisibleAlerts] = useState<Array<Alert>>([]);
+
+  const resolvedAlertIds: Array<string> = visibleAlerts
+    .filter((alert: Alert) => {
+      return Boolean(alert.currentAlertState?.isResolvedState);
+    })
+    .map((alert: Alert) => {
+      return alert.id?.toString() || "";
+    })
+    .filter((alertId: string) => {
+      return Boolean(alertId);
+    });
+
+  const {
+    endDateByEventId: resolvedAtByAlertId,
+    isLoading: isLoadingAlertDurations,
+  } = useEventTimelineEndDates<AlertStateTimeline>({
+    eventIds: resolvedAlertIds,
+    eventIdField: "alertId",
+    timelineModelType: AlertStateTimeline,
+  });
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<Alert>({ modelType: Alert });
@@ -532,6 +555,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery(props.query)}
         onFetchSuccess={(data: Array<Alert>) => {
+          setVisibleAlerts(data);
           onResourcesFetched(data);
         }}
         isEditable={false}
@@ -678,6 +702,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
               currentAlertState: {
                 name: true,
                 color: true,
+                isResolvedState: true,
               },
             },
             title: "State",
@@ -790,6 +815,38 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
             title: "Created",
             type: FieldType.DateTime,
             hideOnMobile: true,
+          },
+          {
+            field: {
+              createdAt: true,
+            },
+            title: "Duration",
+            type: FieldType.Element,
+            disableSort: true,
+            disableCsvExport: true,
+            getElement: (item: Alert): ReactElement => {
+              const alertId: string = item.id?.toString() || "";
+              const isResolved: boolean = Boolean(
+                item.currentAlertState?.isResolvedState,
+              );
+              const resolvedAt: Date | undefined = alertId
+                ? resolvedAtByAlertId[alertId]
+                : undefined;
+
+              if (
+                !item.createdAt ||
+                (isResolved && (isLoadingAlertDurations || !resolvedAt))
+              ) {
+                return <>-</>;
+              }
+
+              return (
+                <LiveDuration
+                  startDate={item.createdAt}
+                  endDate={isResolved ? resolvedAt : undefined}
+                />
+              );
+            },
           },
           {
             field: {

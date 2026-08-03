@@ -484,7 +484,9 @@ import { AddMonitorSummaryToIncidentAndAlert1785496223183 } from "./178549622318
 import { AddSessionReplayReliabilityColumns1785516996695 } from "./1785516996695-AddSessionReplayReliabilityColumns";
 import { AddSessionReplayCorrelationColumns1785533806494 } from "./1785533806494-AddSessionReplayCorrelationColumns";
 import { AddRunnerCapabilities1785776960660 } from "./1785776960660-AddRunnerCapabilities";
+import { AddRedisAndPostgresHealthNotificationColumns1785749674203 } from "./1785749674203-AddRedisAndPostgresHealthNotificationColumns";
 import { AddAutoRemediation1785763818197 } from "./1785763818197-AddAutoRemediation";
+import { AddRemediationVerification1785768089408 } from "./1785768089408-AddRemediationVerification";
 
 export default [
   InitialMigration,
@@ -972,6 +974,8 @@ export default [
   AddMonitorSummaryToIncidentAndAlert1785496223183,
   AddSessionReplayReliabilityColumns1785516996695,
   AddSessionReplayCorrelationColumns1785533806494,
+  AddRedisAndPostgresHealthNotificationColumns1785749674203,
   AddAutoRemediation1785763818197,
   AddRunnerCapabilities1785776960660,
+  AddRemediationVerification1785768089408,
 ];

@@ -34,6 +34,7 @@ import Team from "Common/Models/DatabaseModels/Team";
 import Label from "Common/Models/DatabaseModels/Label";
 
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
+import MonitorType from "Common/Types/Monitor/MonitorType";
 import RecommendationType from "Common/Types/Recommendation/RecommendationType";
 import MonitorRecommendationCatalog, {
   MonitorRecommendationResourceTypeDefinition,
@@ -355,23 +356,34 @@ const MonitorRecommendations: FunctionComponent<ComponentProps> = (
     }
 
     /*
-     * Only monitors of this resource's own monitor type can possibly cover a
-     * recommendation, so the query is narrowed server-side rather than
-     * fetching every monitor in the project.
+     * Only the monitor types used by this resource's catalog can cover a
+     * recommendation. Most resources have one; RUM deliberately spans metric,
+     * trace and exception monitors. Keep the queries narrow without assuming
+     * a resource maps to exactly one evaluator.
      */
-    const monitorList: ListResult<Monitor> = await ModelAPI.getList({
-      modelType: Monitor,
-      query: { monitorType: definition.monitorType },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      select: { name: true, monitorSteps: true },
-      sort: { name: SortOrder.Ascending },
-    });
+    const monitorLists: Array<ListResult<Monitor>> = await Promise.all(
+      definition.monitorTypes.map(async (monitorType: MonitorType) => {
+        return await ModelAPI.getList({
+          modelType: Monitor,
+          query: { monitorType: monitorType },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: { name: true, monitorSteps: true },
+          sort: { name: SortOrder.Ascending },
+        });
+      }),
+    );
+
+    const monitors: Array<Monitor> = monitorLists.flatMap(
+      (monitorList: ListResult<Monitor>) => {
+        return monitorList.data;
+      },
+    );
 
     setCoveredMonitorIds(
       MonitorRecommendationUtil.getCoveredRecommendationMonitorIds({
         recommendations: recommendations,
-        existingMonitors: monitorList.data
+        existingMonitors: monitors
           .filter((monitor: Monitor) => {
             return Boolean(monitor.id);
           })

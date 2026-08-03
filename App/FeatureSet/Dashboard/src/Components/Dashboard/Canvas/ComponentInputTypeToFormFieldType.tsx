@@ -97,6 +97,28 @@ export default class ComponentInputTypeToFormFieldType {
       };
     }
 
+    /*
+     * FormField renders all three of these with the Monaco CodeEditor,
+     * picking the language off the schema type.
+     */
+    if (componentInputType === ComponentInputType.Html) {
+      return {
+        fieldType: FormFieldSchemaType.HTML,
+      };
+    }
+
+    if (componentInputType === ComponentInputType.Css) {
+      return {
+        fieldType: FormFieldSchemaType.CSS,
+      };
+    }
+
+    if (componentInputType === ComponentInputType.JavaScript) {
+      return {
+        fieldType: FormFieldSchemaType.JavaScript,
+      };
+    }
+
     return {
       fieldType: FormFieldSchemaType.Text,
       dropdownOptions: [],

@@ -56,6 +56,7 @@ const EXPECTED_IDENTIFIER_FIELD: Record<
   [MonitorRecommendationResourceType.Proxmox]: "name",
   [MonitorRecommendationResourceType.Ceph]: "name",
   [MonitorRecommendationResourceType.IoTDevice]: "name",
+  [MonitorRecommendationResourceType.RumApplication]: "_id",
 };
 
 function getDefinitionOrFail(

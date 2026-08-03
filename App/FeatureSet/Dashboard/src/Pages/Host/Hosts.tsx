@@ -289,17 +289,6 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
     return <ErrorMessage message={error} />;
   }
 
-  if (hostCount === 0) {
-    return (
-      <Fragment>
-        <HostDocumentationCard
-          title="Getting Started with Host Monitoring"
-          description="No hosts connected yet. Wire up an OpenTelemetry Collector with the hostmetrics receiver using the guide below — your host will appear here automatically once the first metric batch arrives."
-        />
-      </Fragment>
-    );
-  }
-
   return (
     <Fragment>
       <ModelTable<Host>
@@ -315,6 +304,12 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
         query={mergeFiltersIntoQuery({ isArchived: false })}
         onFetchSuccess={(data: Array<Host>) => {
           onResourcesFetched(data);
+        }}
+        onCreateSuccess={(item: Host): Promise<Host> => {
+          setHostCount((currentCount: number | null): number => {
+            return (currentCount || 0) + 1;
+          });
+          return Promise.resolve(item);
         }}
         isDeleteable={false}
         isEditable={false}
@@ -613,6 +608,12 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
           );
         }}
       />
+      {hostCount === 0 && (
+        <HostDocumentationCard
+          title="Getting Started with Host Monitoring"
+          description="No hosts connected yet. Wire up an OpenTelemetry Collector with the hostmetrics receiver using the guide below — your host will appear here automatically once the first metric batch arrives."
+        />
+      )}
       {labelBulkActionModals}
       {ownerBulkActionModals}
     </Fragment>

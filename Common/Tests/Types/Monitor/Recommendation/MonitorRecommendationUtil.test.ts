@@ -46,7 +46,7 @@ const DEFAULT_STATUS_ID: ObjectID = ObjectID.generate();
 const INCIDENT_SEVERITY_ID: ObjectID = ObjectID.generate();
 const ALERT_SEVERITY_ID: ObjectID = ObjectID.generate();
 
-const RESOURCE_IDENTIFIER: string = "prod-cluster-01";
+const RESOURCE_IDENTIFIER: string = ObjectID.generate().toString();
 
 function buildArgs(
   overrides?: Partial<MonitorRecommendationArgs>,
@@ -181,7 +181,7 @@ describe("MonitorRecommendationUtil", () => {
       }
     });
 
-    it("references at least one metric or formula per recommendation", () => {
+    it("references at least one metric, formula or telemetry query input per recommendation", () => {
       for (const recommendation of ALL_RECOMMENDATIONS) {
         const fingerprint: MonitorRecommendationFingerprint | undefined =
           MonitorRecommendationUtil.getFingerprintFromMonitorStep(
@@ -190,7 +190,8 @@ describe("MonitorRecommendationUtil", () => {
 
         expect(
           (fingerprint?.metricNames.length || 0) +
-            (fingerprint?.formulas.length || 0),
+            (fingerprint?.formulas.length || 0) +
+            (fingerprint?.configValues.length || 0),
         ).toBeGreaterThan(0);
       }
     });
@@ -636,6 +637,7 @@ describe("MonitorRecommendationUtil", () => {
         metricAliases: [],
         queryAttributes: [],
         criteriaFilters: [],
+        configValues: [],
       };
 
       const sorted: MonitorRecommendationFingerprint = {
@@ -646,6 +648,7 @@ describe("MonitorRecommendationUtil", () => {
         metricAliases: [],
         queryAttributes: [],
         criteriaFilters: [],
+        configValues: [],
       };
 
       expect(

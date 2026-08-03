@@ -9,6 +9,7 @@ import { Route as PageRoute, Routes } from "react-router-dom";
 
 import RumApplications from "../Pages/Rum/RumApplications";
 import RumApplicationOverview from "../Pages/Rum/View/Overview";
+import RumApplicationRecommendations from "../Pages/Rum/View/Recommendations";
 import RumApplicationMetrics from "../Pages/Rum/View/Metrics";
 import RumApplicationLogs from "../Pages/Rum/View/Logs";
 import RumApplicationTraces from "../Pages/Rum/View/Traces";
@@ -86,6 +87,20 @@ const RumApplicationRoutes: FunctionComponent<ComponentProps> = (
             <RumApplicationOverview
               {...props}
               pageRoute={RouteMap[PageMap.RUM_APPLICATION_VIEW] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.RUM_APPLICATION_VIEW_RECOMMENDATIONS,
+          )}
+          element={
+            <RumApplicationRecommendations
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.RUM_APPLICATION_VIEW_RECOMMENDATIONS] as Route
+              }
             />
           }
         />
