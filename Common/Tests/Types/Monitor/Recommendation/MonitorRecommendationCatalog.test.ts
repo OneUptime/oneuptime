@@ -16,6 +16,7 @@ import { getAllIoTAlertTemplates } from "../../../../Types/Monitor/IotAlertTempl
 import { getAllKubernetesAlertTemplates } from "../../../../Types/Monitor/KubernetesAlertTemplates";
 import { getAllPodmanAlertTemplates } from "../../../../Types/Monitor/PodmanAlertTemplates";
 import { getAllProxmoxAlertTemplates } from "../../../../Types/Monitor/ProxmoxAlertTemplates";
+import { getAllRumAlertTemplates } from "../../../../Types/Monitor/RumAlertTemplates";
 
 /*
  * The catalog is the seam between eight independently-maintained alert-template
@@ -41,62 +42,73 @@ import { getAllProxmoxAlertTemplates } from "../../../../Types/Monitor/ProxmoxAl
 
 interface ModuleExpectation {
   resourceType: MonitorRecommendationResourceType;
-  monitorType: MonitorType;
+  monitorTypes: Array<MonitorType>;
   templateCount: number;
   identifierFieldName:
     | "clusterIdentifier"
     | "hostIdentifier"
-    | "fleetIdentifier";
+    | "fleetIdentifier"
+    | "rumApplicationId";
 }
 
 const MODULE_EXPECTATIONS: Array<ModuleExpectation> = [
   {
     resourceType: MonitorRecommendationResourceType.Kubernetes,
-    monitorType: MonitorType.Kubernetes,
+    monitorTypes: [MonitorType.Kubernetes],
     templateCount: getAllKubernetesAlertTemplates().length,
     identifierFieldName: "clusterIdentifier",
   },
   {
     resourceType: MonitorRecommendationResourceType.Host,
-    monitorType: MonitorType.Host,
+    monitorTypes: [MonitorType.Host],
     templateCount: getAllHostAlertTemplates().length,
     identifierFieldName: "hostIdentifier",
   },
   {
     resourceType: MonitorRecommendationResourceType.Docker,
-    monitorType: MonitorType.Docker,
+    monitorTypes: [MonitorType.Docker],
     templateCount: getAllDockerAlertTemplates().length,
     identifierFieldName: "hostIdentifier",
   },
   {
     resourceType: MonitorRecommendationResourceType.DockerSwarm,
-    monitorType: MonitorType.DockerSwarm,
+    monitorTypes: [MonitorType.DockerSwarm],
     templateCount: getAllDockerSwarmAlertTemplates().length,
     identifierFieldName: "clusterIdentifier",
   },
   {
     resourceType: MonitorRecommendationResourceType.Podman,
-    monitorType: MonitorType.Podman,
+    monitorTypes: [MonitorType.Podman],
     templateCount: getAllPodmanAlertTemplates().length,
     identifierFieldName: "hostIdentifier",
   },
   {
     resourceType: MonitorRecommendationResourceType.Proxmox,
-    monitorType: MonitorType.Proxmox,
+    monitorTypes: [MonitorType.Proxmox],
     templateCount: getAllProxmoxAlertTemplates().length,
     identifierFieldName: "clusterIdentifier",
   },
   {
     resourceType: MonitorRecommendationResourceType.Ceph,
-    monitorType: MonitorType.Ceph,
+    monitorTypes: [MonitorType.Ceph],
     templateCount: getAllCephAlertTemplates().length,
     identifierFieldName: "clusterIdentifier",
   },
   {
     resourceType: MonitorRecommendationResourceType.IoTDevice,
-    monitorType: MonitorType.IoTDevice,
+    monitorTypes: [MonitorType.IoTDevice],
     templateCount: getAllIoTAlertTemplates().length,
     identifierFieldName: "fleetIdentifier",
+  },
+  {
+    resourceType: MonitorRecommendationResourceType.RumApplication,
+    monitorTypes: [
+      MonitorType.Metrics,
+      MonitorType.Traces,
+      MonitorType.Exceptions,
+    ],
+    templateCount: getAllRumAlertTemplates().length,
+    identifierFieldName: "rumApplicationId",
   },
 ];
 
@@ -244,7 +256,7 @@ describe("MonitorRecommendationCatalog", () => {
   });
 
   describe("resource type definitions", () => {
-    it("maps each resource type to the correct MonitorType", () => {
+    it("maps each resource type to all MonitorTypes its recommendations use", () => {
       for (const expectation of MODULE_EXPECTATIONS) {
         const definition:
           | MonitorRecommendationResourceTypeDefinition
@@ -252,7 +264,7 @@ describe("MonitorRecommendationCatalog", () => {
           expectation.resourceType,
         );
 
-        expect(definition?.monitorType).toBe(expectation.monitorType);
+        expect(definition?.monitorTypes).toEqual(expectation.monitorTypes);
       }
     });
 
@@ -278,12 +290,28 @@ describe("MonitorRecommendationCatalog", () => {
       }
     });
 
-    it("stamps every recommendation with its definition's monitorType and resourceType", () => {
+    it("stamps every recommendation with one of its definition's monitorTypes and its resourceType", () => {
       for (const definition of MonitorRecommendationCatalog.getResourceTypeDefinitions()) {
         for (const recommendation of definition.getRecommendations()) {
-          expect(recommendation.monitorType).toBe(definition.monitorType);
+          expect(definition.monitorTypes).toContain(recommendation.monitorType);
           expect(recommendation.resourceType).toBe(definition.resourceType);
         }
+      }
+    });
+
+    it("declares no unused MonitorTypes on a resource definition", () => {
+      for (const definition of MonitorRecommendationCatalog.getResourceTypeDefinitions()) {
+        const usedTypes: Array<MonitorType> = Array.from(
+          new Set(
+            definition
+              .getRecommendations()
+              .map((recommendation: MonitorRecommendation) => {
+                return recommendation.monitorType;
+              }),
+          ),
+        );
+
+        expect([...definition.monitorTypes].sort()).toEqual(usedTypes.sort());
       }
     });
 

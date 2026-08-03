@@ -4,9 +4,9 @@ import MonitorStep from "../MonitorStep";
 import MonitorType from "../MonitorType";
 
 /*
- * The infrastructure resource types that ship a curated alert-template
- * library. There is exactly one member per `<X>AlertTemplates.ts` module in
- * `Common/Types/Monitor` — adding a ninth template module means adding a
+ * The resource types that ship a curated alert-template library. There is
+ * exactly one member per `<X>AlertTemplates.ts` module in
+ * `Common/Types/Monitor` — adding another template module means adding a
  * member here and an adapter in `MonitorRecommendationCatalog.ts`, and the
  * catalog's own tests fail until both exist.
  *
@@ -23,6 +23,7 @@ export enum MonitorRecommendationResourceType {
   Proxmox = "Proxmox",
   Ceph = "Ceph",
   IoTDevice = "IoTDevice",
+  RumApplication = "RumApplication",
 }
 
 /*
@@ -34,12 +35,13 @@ export enum MonitorRecommendationResourceType {
 export type MonitorRecommendationSeverity = "Critical" | "Warning";
 
 /*
- * The eight `<X>AlertTemplateArgs` interfaces are field-for-field identical
+ * The `<X>AlertTemplateArgs` interfaces are field-for-field identical
  * except for the name of the resource-identifier field:
  *
  *   clusterIdentifier -> Kubernetes, DockerSwarm, Proxmox, Ceph
  *   hostIdentifier    -> Host, Docker, Podman
  *   fleetIdentifier   -> IoTDevice
+ *   rumApplicationId  -> RUM application
  *
  * The registry normalizes that single difference into `resourceIdentifier`
  * and each catalog adapter renames it back on the way into the module's own
@@ -56,7 +58,7 @@ export interface MonitorRecommendationArgs {
 }
 
 /*
- * A single recommendable monitor, normalized across all eight template
+ * A single recommendable monitor, normalized across all template
  * modules.
  *
  * `templateId` is the id the owning module uses (e.g. `k8s-hpa-at-max-replicas`)
