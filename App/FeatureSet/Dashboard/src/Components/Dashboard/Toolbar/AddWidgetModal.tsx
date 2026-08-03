@@ -66,6 +66,13 @@ const WIDGET_CATALOG: ReadonlyArray<CatalogCategory> = [
         description:
           "Current time in any timezone — digital or analog. Add one per office so you can see who is awake.",
       },
+      {
+        type: DashboardComponentType.Html,
+        label: "HTML",
+        icon: IconProp.Code,
+        description:
+          "Your own HTML, CSS, and JavaScript, rendered in a sandbox.",
+      },
     ],
   },
   {

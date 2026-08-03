@@ -45,6 +45,7 @@ import DashboardDockerSwarmNodeListComponentType from "Common/Types/Dashboard/Da
 import DashboardDockerSwarmServiceListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardDockerSwarmServiceListComponent";
 import DashboardCephOsdListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardCephOsdListComponent";
 import DashboardCephPoolListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardCephPoolListComponent";
+import DashboardHtmlComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardHtmlComponent";
 import DashboardBaseComponent from "Common/Types/Dashboard/DashboardComponents/DashboardBaseComponent";
 import DashboardChartComponent from "./DashboardChartComponent";
 import DashboardValueComponent from "./DashboardValueComponent";
@@ -86,6 +87,7 @@ import DashboardDockerSwarmNodeListComponent from "./DashboardDockerSwarmNodeLis
 import DashboardDockerSwarmServiceListComponent from "./DashboardDockerSwarmServiceListComponent";
 import DashboardCephOsdListComponent from "./DashboardCephOsdListComponent";
 import DashboardCephPoolListComponent from "./DashboardCephPoolListComponent";
+import DashboardHtmlComponent from "./DashboardHtmlComponent";
 import DefaultDashboardSize, {
   GetDashboardComponentHeightInDashboardUnits,
   GetDashboardComponentWidthInDashboardUnits,
@@ -984,6 +986,14 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
             isEditMode={props.isEditMode}
             isSelected={props.isSelected}
             component={component as DashboardCephPoolListComponentType}
+          />
+        )}
+        {component.componentType === DashboardComponentType.Html && (
+          <DashboardHtmlComponent
+            {...props}
+            isEditMode={props.isEditMode}
+            isSelected={props.isSelected}
+            component={component as DashboardHtmlComponentType}
           />
         )}
       </div>

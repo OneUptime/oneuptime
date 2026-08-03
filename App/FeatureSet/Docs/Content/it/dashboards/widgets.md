@@ -56,6 +56,49 @@ Un blocco statico di Markdown.
 
 Usalo quando: vuoi un'intestazione di sezione, un paragrafo di contesto, un elenco di link ai runbook o un banner temporaneo durante un incidente.
 
+## HTML
+
+Il tuo HTML, CSS e JavaScript, renderizzati come widget.
+
+**Impostazioni**: il corpo HTML, un foglio di stile opzionale, uno script opzionale e tre interruttori di permesso.
+
+Usalo quando: ti serve qualcosa che nessun widget integrato copre — un badge di terze parti incorporato, una tabella estratta da un'API interna, una legenda personalizzata, un insieme di link con stile verso i tuoi strumenti.
+
+### Cosa puo e cosa non puo fare
+
+Il widget viene renderizzato in un frame in sandbox su una propria origine isolata. Dentro quel frame il tuo codice puo fare piu o meno qualsiasi cosa: costruire il DOM, eseguire timer, fare fetch da qualsiasi URL, disegnare su un canvas.
+
+Cio che non puo fare e raggiungere la pagina OneUptime attorno a lui. Non ha accesso al DOM della dashboard, ai cookie, al local storage o alla sessione API, e non puo far navigare altrove la scheda del browser. Questo vale sia che la dashboard sia privata sia che sia condivisa pubblicamente.
+
+Due conseguenze da conoscere prima di incollarci dentro qualcosa:
+
+- Un `fetch` dal widget e una richiesta cross-origin da un'origine opaca, quindi il server che chiami deve consentirla con CORS. Chiamare l'API di OneUptime da qui non e supportato.
+- Il widget parte trasparente. Imposta uno sfondo su `body` nel tuo CSS se vuoi che riempia il riquadro.
+
+### Usare le variabili della dashboard
+
+Scrivi `{{variableName}}` in qualsiasi punto dell'HTML, del CSS o del JavaScript e viene sostituito con il valore corrente di quella variabile prima che il widget venga renderizzato. Scegliere un nuovo valore ri-renderizza il widget. Un segnaposto che nomina una variabile inesistente viene lasciato invariato.
+
+Gli script ricevono gli stessi valori, piu l'intervallo temporale della dashboard, su `window.ONEUPTIME`:
+
+```javascript
+window.ONEUPTIME.variables.environment; // valore corrente, o "" se non impostato
+window.ONEUPTIME.startDate; // stringa ISO 8601, inizio dell'intervallo temporale della dashboard
+window.ONEUPTIME.endDate; // stringa ISO 8601, fine dello stesso intervallo
+```
+
+Il widget viene ricaricato ogni volta che la dashboard si aggiorna, cosi un widget che recupera i propri dati resta al passo con l'intervallo di refresh.
+
+### Permessi
+
+**Run JavaScript** (esegui JavaScript, attivo per impostazione predefinita) esegue il tuo script. Disattivalo per renderizzare solo markup e stili — lo script viene allora escluso del tutto dal widget invece di essere semplicemente bloccato.
+
+**Open links in a new tab** (apri i link in una nuova scheda, attivo per impostazione predefinita) permette a link e `window.open` di aprire una scheda del browser. I link si aprono sempre in una nuova scheda; il widget non puo mai far navigare altrove la dashboard stessa.
+
+**Allow forms to submit** (consenti l'invio dei form, disattivo per impostazione predefinita) permette a un `<form>` dentro il widget di inviare i dati.
+
+Chiunque possa modificare la dashboard decide cosa esegue questo widget, e chiunque visualizzi la dashboard lo esegue — su una dashboard pubblica, questo include i visitatori anonimi. Tratta l'accesso in modifica a una dashboard che contiene un widget HTML come tratteresti l'accesso a qualsiasi altro codice che rilasci.
+
 ## Log e trace
 
 ### Log Stream
@@ -143,6 +186,7 @@ Alcune regole rapide:
 - **Cosa sta succedendo nel sistema in questo momento?** Log Stream, Trace List, Incident List.
 - **Lo stato di uno specifico gruppo di risorse?** Il widget di elenco corrispondente.
 - **Un'intestazione, un paragrafo o un link?** Text.
+- **Qualcosa che nessuno dei precedenti copre?** HTML — ma solo dopo aver verificato che un widget integrato davvero non sia in grado di farlo.
 
 La maggior parte delle dashboard mescola alcuni di essi — un grafico in alto, uno o due valori a fianco, un divisore di testo e uno o due elenchi sotto.
 

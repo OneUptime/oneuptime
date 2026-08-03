@@ -56,6 +56,49 @@ Een statisch blok Markdown.
 
 Gebruik dit wanneer: je een sectiekop wilt, een alinea context, een lijst met links naar runbooks of een tijdelijke banner tijdens een incident.
 
+## HTML
+
+Je eigen HTML, CSS en JavaScript, gerenderd als widget.
+
+**Settings**: de HTML-body, een optionele stylesheet, een optioneel script en drie permissie-schakelaars.
+
+Gebruik dit wanneer: je iets nodig hebt wat geen enkele ingebouwde widget dekt — een ingesloten badge van een derde partij, een tabel opgehaald uit een interne API, een eigen legenda, een set gestylede links naar je eigen tools.
+
+### Wat het wel en niet kan
+
+De widget wordt gerenderd in een sandboxed frame op zijn eigen geïsoleerde origin. Binnen dat frame kan je code zo'n beetje alles: DOM opbouwen, timers draaien, van elke URL fetchen, op een canvas tekenen.
+
+Wat het niet kan, is bij de OneUptime-pagina eromheen komen. Het heeft geen toegang tot de DOM, cookies, local storage of API-sessie van het dashboard, en het kan de browsertab niet wegnavigeren. Dat geldt of het dashboard nu privé is of publiek gedeeld.
+
+Twee gevolgen die het waard zijn om te weten voordat je er iets in plakt:
+
+- Een `fetch` vanuit de widget is een cross-origin request vanaf een opaque origin, dus de server die je aanroept moet dat met CORS toestaan. De OneUptime-API vanaf hier aanroepen wordt niet ondersteund.
+- De widget begint transparant. Zet een achtergrond op `body` in je CSS als je wilt dat hij de kaart vult.
+
+### Dashboardvariabelen gebruiken
+
+Schrijf `{{variableName}}` ergens in de HTML, CSS of JavaScript en het wordt vervangen door de huidige waarde van die variabele voordat de widget rendert. Een nieuwe waarde kiezen rendert de widget opnieuw. Een placeholder die een variabele noemt die niet bestaat, blijft staan zoals hij is.
+
+Scripts krijgen dezelfde waarden, plus het tijdsbereik van het dashboard, op `window.ONEUPTIME`:
+
+```javascript
+window.ONEUPTIME.variables.environment; // huidige waarde, of "" als niet ingesteld
+window.ONEUPTIME.startDate; // ISO 8601-string, begin van het tijdsbereik van het dashboard
+window.ONEUPTIME.endDate; // ISO 8601-string, einde ervan
+```
+
+De widget laadt opnieuw telkens wanneer het dashboard ververst, dus een widget die zijn eigen data ophaalt blijft het refresh-interval bij.
+
+### Permissies
+
+**Run JavaScript** (JavaScript draaien; standaard aan) draait je script. Zet het uit om alleen markup en styles te renderen — het script wordt dan volledig uit de widget weggelaten in plaats van alleen geblokkeerd.
+
+**Open links in a new tab** (links in een nieuw tabblad openen; standaard aan) laat links en `window.open` een browsertabblad openen. Links openen altijd in een nieuw tabblad; de widget kan het dashboard zelf nooit wegnavigeren.
+
+**Allow forms to submit** (formulieren laten versturen; standaard uit) laat een `<form>` binnen de widget versturen.
+
+Iedereen die het dashboard kan bewerken bepaalt wat deze widget draait, en iedereen die het dashboard bekijkt draait het — op een publiek dashboard zijn dat ook anonieme bezoekers. Behandel bewerkrechten op een dashboard met een HTML-widget zoals je toegang tot elke andere code die je uitlevert zou behandelen.
+
 ## Logs en traces
 
 ### Log Stream
@@ -143,6 +186,7 @@ Een paar vuistregels:
 - **Wat gebeurt er nu in het systeem?** Log Stream, Trace List, Incident List.
 - **De state van een specifieke groep resources?** De bijbehorende lijst-widget.
 - **Een kop, alinea of link?** Text.
+- **Iets wat geen van bovenstaande dekt?** HTML — maar pas nadat je hebt gecontroleerd dat een ingebouwde widget het echt niet kan.
 
 De meeste dashboards mengen er een paar — een chart bovenaan, een value of twee ernaast, een tekstscheiding en een lijst of twee eronder.
 
