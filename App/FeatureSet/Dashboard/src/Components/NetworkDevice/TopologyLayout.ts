@@ -3,106 +3,61 @@ import {
   NetworkTopologyNode,
 } from "Common/Types/Monitor/SnmpMonitor/NetworkTopology";
 import { isEndpointNode, isFdbEdge } from "./EndpointNodeUtil";
+import {
+  LAYOUT_MARGIN,
+  computeForceTopologyModel,
+} from "./ForceTopologyLayout";
+import { TopologyPoint, clamp } from "./TopologyGraphUtil";
+import {
+  TopologyComponentBox,
+  TopologyGroupBox,
+  TopologyLayoutModel,
+} from "./TopologyModel";
+import {
+  ENDPOINT_LABEL_MAX_CHARS,
+  ENDPOINT_LABEL_MAX_LINES,
+  wrapNodeLabel,
+} from "./TopologyFootprint";
 
 /*
- * Pure, react-free force-directed layout for the network topology graph.
+ * Pure, react-free layouts for the network topology graph.
  *
  * Kept out of the graph component so it can be imported (and unit-tested) in
  * a plain Node/TypeScript environment — the App project does not have
  * `react` on its resolution path, so importing this logic from the .tsx
  * component would drag `react` into the App compile/test context and fail
  * to resolve.
- */
-
-// A single 2D coordinate.
-export interface TopologyPoint {
-  x: number;
-  y: number;
-}
-
-const LAYOUT_MARGIN: number = 48;
-const DEFAULT_ITERATIONS: number = 300;
-
-/*
- * Fruchterman-Reingold's ideal edge length is C * sqrt(area / nodeCount).
- * With C = 1 that length is a large fraction of the frame itself for the
- * node counts a real network map has (a handful to a few dozen), so the
- * all-pairs repulsion drives every node past the frame and the clamp below
- * parks it on the margin — a ring of nodes around an empty middle. C well
- * under 1 keeps the equilibrium inside the frame; the fit pass afterwards
- * scales whatever shape it settles into back up to fill the frame.
- */
-const IDEAL_EDGE_LENGTH_SCALE: number = 0.15;
-
-/*
- * Pull toward the centre, as a fraction of a node's distance from it. Keeps
- * disconnected components (a device with no LLDP/CDP neighbors) from
- * drifting off on repulsion alone.
- */
-const CENTERING_STRENGTH: number = 0.03;
-
-interface MutablePoint {
-  x: number;
-  y: number;
-}
-
-/**
- * Deterministic 32-bit FNV-1a hash of a string. Used to seed node
- * positions so the same topology always lays out identically (no
- * Math.random, which is banned and non-deterministic).
- */
-const hashString: (value: string) => number = (value: string): number => {
-  let hash: number = 2166136261 >>> 0; // FNV offset basis.
-  for (let i: number = 0; i < value.length; i++) {
-    hash ^= value.charCodeAt(i);
-    hash = Math.imul(hash, 16777619) >>> 0; // FNV prime.
-  }
-  return hash >>> 0;
-};
-
-/**
- * Deterministic pseudo-random unit value in [0, 1) derived from an
- * integer seed via an xorshift step.
- */
-const seededUnit: (seed: number) => number = (seed: number): number => {
-  let x: number = seed >>> 0;
-  if (x === 0) {
-    x = 0x9e3779b9; // Avoid the fixed point at zero.
-  }
-  x ^= x << 13;
-  x >>>= 0;
-  x ^= x >> 17;
-  x ^= x << 5;
-  x >>>= 0;
-  return (x >>> 0) / 4294967296;
-};
-
-export const clamp: (value: number, min: number, max: number) => number = (
-  value: number,
-  min: number,
-  max: number,
-): number => {
-  if (!Number.isFinite(value)) {
-    return (min + max) / 2;
-  }
-  if (value < min) {
-    return min;
-  }
-  if (value > max) {
-    return max;
-  }
-  return value;
-};
-
-/**
- * Compute a deterministic force-directed layout for a network topology.
  *
- * Pure and side-effect free: given the same inputs it always returns the
- * same coordinates. Initial positions are seeded from a hash of each node
- * id, then refined with a fixed number of Fruchterman-Reingold style
- * iterations (all-pairs repulsion + per-edge spring attraction + a gentle
- * pull toward centre). Every returned coordinate is finite and clamped
- * within [margin, width - margin] x [margin, height - margin].
+ * This module owns the TIERED layout and re-exports the rest. The
+ * force-directed layout moved to ForceTopologyLayout when it was rebuilt
+ * around connected components and real node footprints; the radial layout
+ * lives in RadialTopologyLayout. Everything is still reachable from here
+ * so existing import sites keep working.
+ */
+
+export type {
+  TopologyPoint,
+  TopologyComponentBox,
+  TopologyGroupBox,
+  TopologyLayoutModel,
+};
+export {
+  clamp,
+  wrapNodeLabel,
+  ENDPOINT_LABEL_MAX_CHARS,
+  ENDPOINT_LABEL_MAX_LINES,
+};
+
+/** Clearance kept between the layout's content and the frame edge. */
+export const TOPOLOGY_LAYOUT_MARGIN: number = LAYOUT_MARGIN;
+
+/**
+ * Positions-only view of the force-directed layout.
+ *
+ * Retained as the historical entry point. New callers should prefer
+ * {@link computeForceTopologyModel}, which also reports the component
+ * boxes and the content extent the viewport needs in order to fit the
+ * graph.
  */
 export const computeTopologyLayout: (
   nodes: Array<NetworkTopologyNode>,
@@ -115,175 +70,16 @@ export const computeTopologyLayout: (
   edges: Array<NetworkTopologyEdge>,
   width: number,
   height: number,
-  iterations: number = DEFAULT_ITERATIONS,
+  iterations?: number,
 ): Map<string, TopologyPoint> => {
-  const result: Map<string, TopologyPoint> = new Map();
-
-  if (!nodes || nodes.length === 0) {
-    return result;
-  }
-
-  const margin: number = LAYOUT_MARGIN;
-  const minX: number = margin;
-  const maxX: number = Math.max(margin + 1, width - margin);
-  const minY: number = margin;
-  const maxY: number = Math.max(margin + 1, height - margin);
-  const centerX: number = (minX + maxX) / 2;
-  const centerY: number = (minY + maxY) / 2;
-
-  const positions: Map<string, MutablePoint> = new Map();
-
-  /*
-   * Seed deterministic initial positions from a hash of each node id.
-   * The node index nudges the hash so two ids that collide (or a single
-   * node) still get distinct, spread-out starting points.
-   */
-  nodes.forEach((node: NetworkTopologyNode, index: number): void => {
-    const baseHash: number =
-      hashString(node.id) ^ Math.imul(index + 1, 0x85ebca6b);
-    const ux: number = seededUnit(baseHash >>> 0);
-    const uy: number = seededUnit((baseHash ^ 0x9e3779b9) >>> 0);
-    positions.set(node.id, {
-      x: minX + ux * (maxX - minX),
-      y: minY + uy * (maxY - minY),
-    });
-  });
-
-  const nodeCount: number = nodes.length;
-  const area: number = Math.max(1, (maxX - minX) * (maxY - minY));
-  // Ideal edge length (Fruchterman-Reingold constant k).
-  const k: number = IDEAL_EDGE_LENGTH_SCALE * Math.sqrt(area / nodeCount);
-  const epsilon: number = 0.01;
-
-  // Only consider edges whose endpoints both exist as nodes.
-  const validEdges: Array<NetworkTopologyEdge> = edges
-    ? edges.filter((edge: NetworkTopologyEdge): boolean => {
-        return positions.has(edge.fromNodeId) && positions.has(edge.toNodeId);
-      })
-    : [];
-
-  let temperature: number = (maxX - minX) * 0.1;
-  const cooling: number = temperature / (iterations + 1);
-
-  const nodeIds: Array<string> = nodes.map((n: NetworkTopologyNode) => {
-    return n.id;
-  });
-
-  for (let iter: number = 0; iter < iterations; iter++) {
-    const disp: Map<string, MutablePoint> = new Map();
-    for (const id of nodeIds) {
-      disp.set(id, { x: 0, y: 0 });
-    }
-
-    // Repulsion between every pair of nodes.
-    for (let i: number = 0; i < nodeIds.length; i++) {
-      const idI: string = nodeIds[i]!;
-      const pI: MutablePoint = positions.get(idI)!;
-      const dI: MutablePoint = disp.get(idI)!;
-      for (let j: number = i + 1; j < nodeIds.length; j++) {
-        const idJ: string = nodeIds[j]!;
-        const pJ: MutablePoint = positions.get(idJ)!;
-        let dx: number = pI.x - pJ.x;
-        let dy: number = pI.y - pJ.y;
-        let dist: number = Math.sqrt(dx * dx + dy * dy);
-        if (dist < epsilon) {
-          // Deterministically separate coincident nodes.
-          dx = (seededUnit(hashString(idI + idJ)) - 0.5) * epsilon;
-          dy = (seededUnit(hashString(idJ + idI)) - 0.5) * epsilon;
-          dist = epsilon;
-        }
-        const force: number = (k * k) / dist;
-        const fx: number = (dx / dist) * force;
-        const fy: number = (dy / dist) * force;
-        dI.x += fx;
-        dI.y += fy;
-        const dJ: MutablePoint = disp.get(idJ)!;
-        dJ.x -= fx;
-        dJ.y -= fy;
-      }
-    }
-
-    // Attraction along edges (springs).
-    for (const edge of validEdges) {
-      const pA: MutablePoint = positions.get(edge.fromNodeId)!;
-      const pB: MutablePoint = positions.get(edge.toNodeId)!;
-      const dx: number = pA.x - pB.x;
-      const dy: number = pA.y - pB.y;
-      const dist: number = Math.max(epsilon, Math.sqrt(dx * dx + dy * dy));
-      const force: number = (dist * dist) / k;
-      const fx: number = (dx / dist) * force;
-      const fy: number = (dy / dist) * force;
-      const dA: MutablePoint = disp.get(edge.fromNodeId)!;
-      const dB: MutablePoint = disp.get(edge.toNodeId)!;
-      dA.x -= fx;
-      dA.y -= fy;
-      dB.x += fx;
-      dB.y += fy;
-    }
-
-    // Gentle centering so disconnected components do not drift away.
-    for (const id of nodeIds) {
-      const p: MutablePoint = positions.get(id)!;
-      const d: MutablePoint = disp.get(id)!;
-      d.x += (centerX - p.x) * CENTERING_STRENGTH;
-      d.y += (centerY - p.y) * CENTERING_STRENGTH;
-    }
-
-    // Apply displacement, capped by the current temperature, then clamp.
-    for (const id of nodeIds) {
-      const p: MutablePoint = positions.get(id)!;
-      const d: MutablePoint = disp.get(id)!;
-      const len: number = Math.max(epsilon, Math.sqrt(d.x * d.x + d.y * d.y));
-      const limited: number = Math.min(len, temperature);
-      p.x = clamp(p.x + (d.x / len) * limited, minX, maxX);
-      p.y = clamp(p.y + (d.y / len) * limited, minY, maxY);
-    }
-
-    temperature = Math.max(0, temperature - cooling);
-  }
-
-  /*
-   * Fit the settled shape to the frame: translate and uniformly scale its
-   * bounding box to fill [minX, maxX] x [minY, maxY]. The simulation above
-   * settles well inside the frame (by design — see IDEAL_EDGE_LENGTH_SCALE),
-   * which would otherwise leave a small graph huddled in the middle of a
-   * mostly empty canvas. Scaling is uniform on both axes so the layout is
-   * never stretched out of shape, and a degenerate span (one node, or every
-   * node on one line) falls back to centring rather than dividing by zero.
-   */
-  let boundsMinX: number = Infinity;
-  let boundsMaxX: number = -Infinity;
-  let boundsMinY: number = Infinity;
-  let boundsMaxY: number = -Infinity;
-
-  for (const id of nodeIds) {
-    const p: MutablePoint = positions.get(id)!;
-    boundsMinX = Math.min(boundsMinX, p.x);
-    boundsMaxX = Math.max(boundsMaxX, p.x);
-    boundsMinY = Math.min(boundsMinY, p.y);
-    boundsMaxY = Math.max(boundsMaxY, p.y);
-  }
-
-  const spanX: number = boundsMaxX - boundsMinX;
-  const spanY: number = boundsMaxY - boundsMinY;
-  const scaleX: number = spanX > epsilon ? (maxX - minX) / spanX : 1;
-  const scaleY: number = spanY > epsilon ? (maxY - minY) / spanY : 1;
-  const scale: number = Math.min(scaleX, scaleY);
-
-  const offsetX: number =
-    (minX + maxX) / 2 - ((boundsMinX + boundsMaxX) / 2) * scale;
-  const offsetY: number =
-    (minY + maxY) / 2 - ((boundsMinY + boundsMaxY) / 2) * scale;
-
-  for (const id of nodeIds) {
-    const p: MutablePoint = positions.get(id)!;
-    result.set(id, {
-      x: clamp(p.x * scale + offsetX, minX, maxX),
-      y: clamp(p.y * scale + offsetY, minY, maxY),
-    });
-  }
-
-  return result;
+  return computeForceTopologyModel(
+    nodes,
+    edges,
+    width,
+    height,
+    undefined,
+    iterations,
+  ).positions;
 };
 
 /*
@@ -398,21 +194,6 @@ const compareNodesForTier: (
   }
   return 0;
 };
-
-/**
- * The block of endpoints hanging off one tier-1 node, in layout
- * coordinates. The graph component paints these behind the nodes so a
- * switch and "its" devices read as one unit.
- */
-export interface TopologyGroupBox {
-  /** Tier-1 node the endpoints attach to; null for the unattached group. */
-  anchorNodeId: string | null;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  endpointCount: number;
-}
 
 /** Positions plus the endpoint-group boxes that explain them. */
 export interface TieredTopologyModel {
@@ -854,6 +635,9 @@ export const computeTieredTopologyModel: (
         column.centerX + column.halfWidth,
       );
       groups.push({
+        nodeIds: column.endpoints.map((node: NetworkTopologyNode): string => {
+          return node.id;
+        }),
         anchorNodeId: column.anchor ? column.anchor.id : null,
         x: boxLeft,
         y: endpointsTop - TIERED_GROUP_BOX_TOP_PAD,
@@ -889,78 +673,65 @@ export const computeTieredTopologyLayout: (
   return computeTieredTopologyModel(nodes, edges, width).positions;
 };
 
-/*
- * Label wrapping. Endpoint names ("Menu Board 2", "Receipt Printer") are
- * long relative to the tight endpoint spacing, so they wrap onto a second
- * line at a word boundary and only truncate when even that cannot fit.
- * Pure and character-count based — no DOM text measurement, so it stays
- * usable from the react-free unit tests.
+/**
+ * The tiered layout in the shape every other layout returns.
+ *
+ * The tiered layout grows downward without bound — a site with two
+ * thousand endpoints is genuinely a very tall picture — so its content
+ * extent is derived from where the nodes and group boxes actually ended
+ * up, and the viewport zooms to fit it. The old component instead grew
+ * the SVG viewBox to a hard-coded cap and rendered whatever fell inside,
+ * which is why a large tiered graph appeared at a third of its size
+ * between two wide empty bars.
  */
-export const ENDPOINT_LABEL_MAX_CHARS: number = 11;
-export const ENDPOINT_LABEL_MAX_LINES: number = 2;
+export const computeTieredTopologyLayoutModel: (
+  nodes: Array<NetworkTopologyNode>,
+  edges: Array<NetworkTopologyEdge>,
+  width: number,
+  height: number,
+  pinned?: ReadonlyMap<string, TopologyPoint> | undefined,
+) => TopologyLayoutModel = (
+  nodes: Array<NetworkTopologyNode>,
+  edges: Array<NetworkTopologyEdge>,
+  width: number,
+  height: number,
+  pinned?: ReadonlyMap<string, TopologyPoint> | undefined,
+): TopologyLayoutModel => {
+  const model: TieredTopologyModel = computeTieredTopologyModel(
+    nodes,
+    edges,
+    width,
+  );
+  const positions: Map<string, TopologyPoint> = model.positions;
 
-export const wrapNodeLabel: (
-  label: string,
-  maxChars?: number,
-  maxLines?: number,
-) => Array<string> = (
-  label: string,
-  maxChars: number = ENDPOINT_LABEL_MAX_CHARS,
-  maxLines: number = ENDPOINT_LABEL_MAX_LINES,
-): Array<string> => {
-  const text: string = (label || "").trim();
-  if (!text) {
-    return [];
-  }
-  const limit: number = Math.max(1, Math.floor(maxChars));
-  const lineLimit: number = Math.max(1, Math.floor(maxLines));
-
-  /*
-   * Split into chunks that each fit on a line: words normally, and a hard
-   * split for a single word longer than the limit (long hostnames).
-   */
-  const chunks: Array<string> = [];
-  for (const word of text.split(/\s+/)) {
-    if (word.length <= limit) {
-      chunks.push(word);
-      continue;
-    }
-    for (let i: number = 0; i < word.length; i += limit) {
-      chunks.push(word.slice(i, i + limit));
+  if (pinned && pinned.size > 0) {
+    for (const [nodeId, point] of pinned) {
+      if (
+        positions.has(nodeId) &&
+        Number.isFinite(point.x) &&
+        Number.isFinite(point.y)
+      ) {
+        positions.set(nodeId, { x: point.x, y: point.y });
+      }
     }
   }
 
-  const lines: Array<string> = [];
-  let current: string = "";
-  let consumed: number = 0;
-  for (const chunk of chunks) {
-    const candidate: string = current ? `${current} ${chunk}` : chunk;
-    if (candidate.length <= limit) {
-      current = candidate;
-      consumed++;
-      continue;
-    }
-    // Starting a new line would need one more than the allowance.
-    if (lines.length + 2 > lineLimit) {
-      break;
-    }
-    lines.push(current);
-    current = chunk;
-    consumed++;
+  let maxX: number = width;
+  let maxY: number = 0;
+  for (const point of positions.values()) {
+    maxX = Math.max(maxX, point.x);
+    maxY = Math.max(maxY, point.y);
   }
-  if (current) {
-    lines.push(current);
+  for (const group of model.groups) {
+    maxX = Math.max(maxX, group.x + group.width);
+    maxY = Math.max(maxY, group.y + group.height);
   }
 
-  // Anything that did not fit is folded into an ellipsis on the last line.
-  const lastIndex: number = lines.length - 1;
-  if (lastIndex >= 0 && consumed < chunks.length) {
-    const lastLine: string = lines[lastIndex]!;
-    const trimmed: string =
-      lastLine.length + 1 > limit
-        ? lastLine.slice(0, Math.max(1, limit - 1))
-        : lastLine;
-    lines[lastIndex] = `${trimmed.replace(/\s+$/, "")}…`;
-  }
-  return lines;
+  return {
+    positions: positions,
+    componentBoxes: [],
+    groups: model.groups,
+    contentWidth: Math.max(width, maxX + TOPOLOGY_LAYOUT_MARGIN),
+    contentHeight: Math.max(height, maxY + TOPOLOGY_LAYOUT_MARGIN),
+  };
 };

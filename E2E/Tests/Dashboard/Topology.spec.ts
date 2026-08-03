@@ -84,5 +84,48 @@ test.describe("Topology page", () => {
       page.getByText("Set up network device monitoring"),
     ).toBeVisible();
     expect(page.url()).toContain("tab=Network");
+
+    /*
+     * The network map's layout switcher lives in the card header, so it
+     * is present even with nothing to draw. A fresh project has no SNMP
+     * devices — the topology is derived server-side from LLDP/CDP
+     * neighbour tables — so the empty state is all E2E can reach here.
+     * The drag, viewport and layout behaviour is covered by the unit
+     * suites in App/Tests/Dashboard, which can exercise it exactly.
+     */
+    await expect(
+      page.getByTestId("network-topology-layout-mode-force"),
+    ).toBeVisible();
+    await expect(
+      page.getByTestId("network-topology-layout-mode-tiered"),
+    ).toBeVisible();
+    await expect(
+      page.getByTestId("network-topology-layout-mode-radial"),
+    ).toBeVisible();
+
+    // Force is the default, and it says so to assistive technology.
+    await expect(
+      page.getByTestId("network-topology-layout-mode-force"),
+    ).toHaveAttribute("aria-pressed", "true");
+    await expect(
+      page.getByTestId("network-topology-layout-mode-tiered"),
+    ).toHaveAttribute("aria-pressed", "false");
+
+    // Switching modes moves the pressed state, and only one is ever pressed.
+    await page.getByTestId("network-topology-layout-mode-radial").click();
+    await expect(
+      page.getByTestId("network-topology-layout-mode-radial"),
+    ).toHaveAttribute("aria-pressed", "true");
+    await expect(
+      page.getByTestId("network-topology-layout-mode-force"),
+    ).toHaveAttribute("aria-pressed", "false");
+    await expect(
+      page.getByTestId("network-topology-layout-mode-tiered"),
+    ).toHaveAttribute("aria-pressed", "false");
+
+    // The empty state survives a layout change rather than blanking.
+    await expect(
+      page.getByText("No network topology discovered yet", { exact: false }),
+    ).toBeVisible();
   });
 });
