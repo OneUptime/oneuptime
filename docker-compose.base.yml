@@ -350,16 +350,20 @@ services:
       options:
         max-size: "1000m"
 
-  ai-agent:
+  runner:
     restart: always
     network_mode: host
     environment:
       <<: *common-runtime-variables
-      AI_AGENT_KEY: ${AI_AGENT_KEY}
-      ONEUPTIME_URL: ${AI_AGENT_ONEUPTIME_URL}
-      DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_AI_AGENT}
-      ENABLE_PROFILING: ${ENABLE_PROFILING_FOR_AI_AGENT}
-      PORT: ${AI_AGENT_PORT}
+      ONEUPTIME_RUNNER_KEY: ${ONEUPTIME_RUNNER_KEY}
+      ONEUPTIME_URL: ${ONEUPTIME_RUNNER_ONEUPTIME_URL}
+      # The in-cluster Runner serves code fixes for every project; customer
+      # installs run their own Runner with a project-scoped credential.
+      ONEUPTIME_RUNNER_ENABLE_CODE_FIXES: "true"
+      ONEUPTIME_RUNNER_ENABLE_RUNBOOKS: "false"
+      DISABLE_TELEMETRY: ${DISABLE_TELEMETRY_FOR_RUNNER}
+      ENABLE_PROFILING: ${ENABLE_PROFILING_FOR_RUNNER}
+      PORT: ${ONEUPTIME_RUNNER_PORT}
     logging:
       driver: "json-file"
       options:

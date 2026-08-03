@@ -62,9 +62,16 @@ export default class AIAgentTaskAPI {
             );
           }
 
+          /*
+           * Scope the claim to the agent's project when it has one. A
+           * project-scoped Runner (what customers install) must never
+           * claim another tenant's code-fix run; the in-cluster Runner has
+           * no projectId and keeps serving every project.
+           */
           const run: AIRun | null =
             await AIRunService.claimNextQueuedCodeFixRun({
               aiAgentId: aiAgent.id,
+              projectId: aiAgent.projectId,
             });
 
           if (!run) {
@@ -125,10 +132,15 @@ export default class AIAgentTaskAPI {
           }
 
           /* Count queued code-fix runs */
+          /*
+           * Same tenancy scoping as the claim: a project-scoped Runner
+           * autoscales on its OWN queue depth, never on other tenants'.
+           */
           const count: PositiveNumber = await AIRunService.countBy({
             query: {
               runType: AIRunType.CodeFix,
               status: AIRunStatus.Queued,
+              ...(aiAgent.projectId ? { projectId: aiAgent.projectId } : {}),
             },
             props: {
               isRoot: true,
@@ -350,6 +362,7 @@ export default class AIAgentTaskAPI {
       },
       select: {
         _id: true,
+        projectId: true,
       },
       props: {
         isRoot: true,

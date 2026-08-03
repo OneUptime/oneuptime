@@ -813,7 +813,7 @@ redis:
 
 
 # Global HorizontalPodAutoscaler defaults applied to every stateless service
-# (app, worker, nginx, home, ai-agent, probes, test-server) that is not managed
+# (app, worker, nginx, home, runner, probes, test-server) that is not managed
 # by KEDA. Each service can override any of these keys via its own
 # `<service>.autoscaling:` block (e.g. `nginx.autoscaling.maxReplicas`); keys not
 # set there inherit the values below. Note: a service that pins `replicaCount`
@@ -827,7 +827,7 @@ autoscaling:
   targetMemoryUtilizationPercentage: 80
 
 # Pod Disruption Budgets for the stateless OneUptime deployments (app, worker,
-# nginx, home, ai-agent, probes, pgbouncer). A PDB caps how many pods the
+# nginx, home, runner, probes, pgbouncer). A PDB caps how many pods the
 # cluster may take down at once during *voluntary* disruptions — node drains,
 # rolling node-pool upgrades, and cluster-autoscaler scale-down — so an upgrade
 # can't evict every replica of a service simultaneously. It has no effect on
@@ -1426,7 +1426,7 @@ app:
   #   targetMemoryUtilizationPercentage: 80
   # Per-service Pod Disruption Budget override. Any key omitted here falls back
   # to the global podDisruptionBudget block above. Every stateless service
-  # (worker, nginx, home, aiAgent, probes.<key>, pgbouncer) accepts the same
+  # (worker, nginx, home, runner, probes.<key>, pgbouncer) accepts the same
   # block. Uncomment to customise just this service, e.g. keep at least one
   # replica available instead of the global maxUnavailable:
   # podDisruptionBudget:
@@ -1657,11 +1657,13 @@ telemetryWriter:
 
 # AI Agent Configuration
 # Runs the OneUptime AI Agent within your Kubernetes cluster.
-# Note: This is enabled by default so AI fix tasks work out of the box. The
-# agent registers itself automatically (no credentials needed) and idles
-# cheaply when no LLM provider is configured — tasks fail early with guidance
-# until one is set up. Set enabled to false to not run the agent.
-aiAgent:
+# The in-cluster OneUptime Runner. It serves the AI code-fix capability for
+# every project in this deployment; it registers itself automatically (no
+# credentials needed) and idles cheaply when no LLM provider is configured.
+# Customers who want runbook steps executed inside their OWN network install
+# their own project-scoped Runner instead — see Runner/README.md.
+# Set enabled to false to not run it.
+runner:
   enabled: true
   replicaCount: 1
   disableTelemetryCollection: false
@@ -1676,10 +1678,10 @@ aiAgent:
   #   maxReplicas: 10
   #   targetCPUUtilizationPercentage: 80
   #   targetMemoryUtilizationPercentage: 80
-  # AI Agent ID from OneUptime dashboard (optional — by default the agent
-  # auto-registers itself using the key below)
+  # Runner ID from the OneUptime dashboard (optional — by default the
+  # in-cluster Runner auto-registers itself using the key below)
   id:
-  # AI Agent Key (optional — auto-generated and stored in the release
+  # Runner Key (optional — auto-generated and stored in the release
   # secrets when not provided)
   key:
   ports:

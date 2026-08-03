@@ -639,11 +639,11 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
     return (
       <div>
         <label className="block text-xs font-medium text-gray-700 mb-1.5">
-          Runbook Agent
+          Runner
         </label>
         {agents.length === 0 ? (
           <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-            No Runbook Agents in this project yet. Create one under{" "}
+            No Runners in this project yet. Create one under{" "}
             <strong>Runbooks &rsaquo; Agents</strong>, then come back to pick it
             here.
           </div>
@@ -973,11 +973,11 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                               helperText: (
                                                 <>
                                                   JavaScript runs sandboxed on
-                                                  the selected Runbook Agent in
-                                                  your own infrastructure. The
-                                                  step waits until this agent
-                                                  claims the job, or fails after
-                                                  the claim timeout.
+                                                  the selected Runner in your
+                                                  own infrastructure. The step
+                                                  waits until this agent claims
+                                                  the job, or fails after the
+                                                  claim timeout.
                                                 </>
                                               ),
                                             })}
@@ -1176,7 +1176,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                               helperText: (
                                                 <>
                                                   Bash runs on the selected
-                                                  Runbook Agent in your own
+                                                  Runner in your own
                                                   infrastructure. The step waits
                                                   until this agent claims the
                                                   job, or fails after the claim

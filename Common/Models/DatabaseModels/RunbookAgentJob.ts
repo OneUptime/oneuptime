@@ -26,11 +26,11 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 })
 @TableMetadata({
   tableName: "RunbookAgentJob",
-  singularName: "Runbook Agent Job",
-  pluralName: "Runbook Agent Jobs",
+  singularName: "Runner Job",
+  pluralName: "Runner Jobs",
   icon: IconProp.Logs,
   tableDescription:
-    "One row per Bash or JavaScript step dispatched to a specific Runbook Agent. Tracks claim, execution, and result. Managed by the Worker and the agents; not user-writable.",
+    "One row per Bash or JavaScript step dispatched to a specific Runner. Tracks claim, execution, and result. Managed by the Worker and the agents; not user-writable.",
 })
 @TableAccessControl({
   create: [],

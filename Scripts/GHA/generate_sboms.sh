@@ -85,7 +85,7 @@ fi
 # adding it here is caught in CI rather than silently shipping an SBOM set that
 # is missing an image.
 IMAGES=(
-	ai-agent
+	runner
 	app
 	docker-agent
 	e2e
@@ -95,7 +95,6 @@ IMAGES=(
 	nginx
 	podman-agent
 	probe
-	runbook-agent
 	test
 	test-server
 )

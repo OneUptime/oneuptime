@@ -681,7 +681,7 @@ check_storage() {
 
 check_logs() {
   section "Application logs (last ${LOG_LOOKBACK_LINES} lines)"
-  local components="app worker probe ai-agent home"
+  local components="app worker probe runner home"
   for comp in $components; do
     local pod
     pod=$(first_ready_pod "app=${RELEASE}-${comp}")
