@@ -108,8 +108,10 @@ class AutoRemediationRuleEngineServiceClass {
     incident?: Incident | undefined;
     alert?: Alert | undefined;
   }): Promise<void> {
-    // Project-level kill switch. === false so a missing column (older rows,
-    // self-hosted defaults) counts as enabled — same semantics as enableAi.
+    /*
+     * Project-level kill switch. === false so a missing column (older rows,
+     * self-hosted defaults) counts as enabled — same semantics as enableAi.
+     */
     const project: Project | null = await ProjectService.findOneById({
       id: data.projectId,
       select: {
@@ -454,8 +456,10 @@ class AutoRemediationRuleEngineServiceClass {
     });
 
     if (!aiRunId) {
-      // Budget exhausted or run creation failed — do not leave the
-      // suggestion stuck in Planning forever.
+      /*
+       * Budget exhausted or run creation failed — do not leave the
+       * suggestion stuck in Planning forever.
+       */
       await AutoRemediationSuggestionService.updateOneById({
         id: created.id!,
         data: {

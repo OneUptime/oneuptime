@@ -141,8 +141,10 @@ export default class RemediationPlanRunner {
         return;
       }
 
-      // Tenancy re-check: the subject id on the run row must match the run's
-      // project (belongsToProject pattern).
+      /*
+       * Tenancy re-check: the subject id on the run row must match the run's
+       * project (belongsToProject pattern).
+       */
       if (suggestion.projectId?.toString() !== projectId.toString()) {
         await this.finalizeRunAsError(
           aiRunId,
@@ -175,8 +177,10 @@ export default class RemediationPlanRunner {
         });
 
       if (loadedCandidates === null) {
-        // The rule was deleted while the plan was queued — do not silently
-        // widen the pick to every runbook in the project.
+        /*
+         * The rule was deleted while the plan was queued — do not silently
+         * widen the pick to every runbook in the project.
+         */
         await this.settleSuggestion({
           suggestion,
           runbook: null,

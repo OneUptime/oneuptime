@@ -501,8 +501,10 @@ export default class AIInvestigationQueue {
         concurrencyCap - INSIGHT_TRIAGE_RESERVED_SLOTS,
       );
 
-      // Triage runs are Investigations with an insight subject; plan runs
-      // are their own runType — the two counts never overlap.
+      /*
+       * Triage runs are Investigations with an insight subject; plan runs
+       * are their own runType — the two counts never overlap.
+       */
       const runningTriageCount: number = (
         await AIRunService.countBy({
           query: {

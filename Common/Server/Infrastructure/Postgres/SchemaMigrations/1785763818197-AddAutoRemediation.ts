@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
 export class AddAutoRemediation1785763818197 implements MigrationInterface {
-  name = "AddAutoRemediation1785763818197";
+  public name = "AddAutoRemediation1785763818197";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
