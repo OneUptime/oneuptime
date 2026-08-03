@@ -1,4 +1,10 @@
 import { computeTopologyLayout } from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/TopologyLayout";
+import { computeForceTopologyModel } from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/ForceTopologyLayout";
+import { TopologyLayoutModel } from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/TopologyModel";
+import {
+  TopologyNodeFootprint,
+  footprintForNode,
+} from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/TopologyFootprint";
 import {
   NetworkTopologyEdge,
   NetworkTopologyNode,
@@ -143,16 +149,54 @@ describe("force topology layout framing", () => {
     ).toBeGreaterThan(0.95);
   });
 
-  test("a single node is centred, not parked in a corner", () => {
+  /*
+   * The layout centres the PAINTED extent — glyph plus the label
+   * underneath it — rather than the node's centre point. A label hangs
+   * below a node and nothing hangs above it, so centring the centre point
+   * leaves the thing a reader actually sees sitting high in the frame by
+   * half a label height. The node centre therefore lands slightly above
+   * the middle, and that is the correct answer, not a rounding error.
+   */
+  test("a single node's painted extent is centred, not parked in a corner", () => {
+    const nodes: Array<NetworkTopologyNode> = makeNodes(1);
     const layout: Map<string, { x: number; y: number }> = computeTopologyLayout(
-      makeNodes(1),
+      nodes,
       [],
       WIDTH,
       HEIGHT,
     );
 
     const point: { x: number; y: number } = layout.get("device-0")!;
+    const footprint: TopologyNodeFootprint = footprintForNode(nodes[0]!);
+
     expect(point.x).toBeCloseTo(WIDTH / 2, 0);
-    expect(point.y).toBeCloseTo(HEIGHT / 2, 0);
+    const inkTop: number = point.y - footprint.halfHeight;
+    const inkBottom: number = point.y + footprint.labelBottom;
+    expect((inkTop + inkBottom) / 2).toBeCloseTo(HEIGHT / 2, 0);
+    // ...and the node itself is above centre by exactly that asymmetry.
+    expect(point.y).toBeLessThan(HEIGHT / 2);
+  });
+
+  test("no node's painted extent escapes the reported content box", () => {
+    const nodes: Array<NetworkTopologyNode> = makeNodes(16);
+    const model: TopologyLayoutModel = computeForceTopologyModel(
+      nodes,
+      makeChainEdges(16),
+      WIDTH,
+      HEIGHT,
+    );
+
+    for (const node of nodes) {
+      const point: { x: number; y: number } = model.positions.get(node.id)!;
+      const footprint: TopologyNodeFootprint = footprintForNode(node);
+      expect(point.x - footprint.inkHalfWidth).toBeGreaterThanOrEqual(-0.001);
+      expect(point.x + footprint.inkHalfWidth).toBeLessThanOrEqual(
+        model.contentWidth + 0.001,
+      );
+      expect(point.y - footprint.halfHeight).toBeGreaterThanOrEqual(-0.001);
+      expect(point.y + footprint.labelBottom).toBeLessThanOrEqual(
+        model.contentHeight + 0.001,
+      );
+    }
   });
 });
