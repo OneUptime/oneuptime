@@ -166,6 +166,8 @@ import "./Jobs/TelemetryMonitor/ScheduleTelemetryMonitorEvaluations";
 
 // Instance health and capacity management.
 import "./Jobs/InstanceHealth/EvaluateClickhouseCapacity";
+import "./Jobs/InstanceHealth/EvaluatePostgresHealth";
+import "./Jobs/InstanceHealth/EvaluateRedisHealth";
 
 // Derived / recording-rule metrics.
 import "./Jobs/Metrics/ComputeRecordingRules";

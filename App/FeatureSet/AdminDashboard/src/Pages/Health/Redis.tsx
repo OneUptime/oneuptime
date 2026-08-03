@@ -2,6 +2,7 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap from "../../Utils/RouteMap";
 import HealthPage from "./HealthPage";
 import RedisHealth from "./RedisHealth";
+import RedisHealthSettings from "./RedisHealthSettings";
 import Route from "Common/Types/API/Route";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -15,6 +16,7 @@ const HealthRedis: FunctionComponent = (): ReactElement => {
       enterpriseFeatureDescription="Connectivity and memory capacity for the Redis backing this instance."
     >
       <RedisHealth />
+      <RedisHealthSettings />
     </HealthPage>
   );
 };
