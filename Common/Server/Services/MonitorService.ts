@@ -695,6 +695,26 @@ export class Service extends DatabaseService<Model> {
       projectId: createBy.props.tenantId,
     });
 
+    /*
+     * A new monitor starts in the project's operational status. A project can
+     * hold MORE than one operational state (a user - or an E2E fixture - can
+     * add another `isOperationalState: true` status), so this lookup MUST be
+     * deterministic. Without an explicit sort, findOneBy falls back to
+     * `createdAt DESC` and hands back whichever operational status was created
+     * most recently - so a monitor created right after a caller adds a custom
+     * operational status silently adopts THAT status as its currentMonitorStatusId
+     * instead of the project's default. When the custom status is later deleted
+     * while the monitor still points at it, the currentMonitorStatusId foreign
+     * key (ON DELETE NO ACTION) blocks the delete forever - the intermittent
+     * "Monitor records still reference it" failure in the Terraform E2E suite,
+     * where the monitors quietly latched onto the fixture's freshly-created
+     * "TF Operational" instead of the seeded default.
+     *
+     * Order by priority ascending (the seeded default operational status is
+     * priority 0 - the primary/highest-precedence operational state) and break
+     * ties by the oldest row, so the choice is stable and always resolves to the
+     * project's canonical operational status.
+     */
     const monitorStatus: MonitorStatus | null =
       await MonitorStatusService.findOneBy({
         query: {
@@ -703,6 +723,10 @@ export class Service extends DatabaseService<Model> {
         },
         select: {
           _id: true,
+        },
+        sort: {
+          priority: SortOrder.Ascending,
+          createdAt: SortOrder.Ascending,
         },
         props: {
           isRoot: true,
