@@ -6,6 +6,7 @@ import React, {
   useState,
 } from "react";
 import DashboardTextComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardTextComponent";
+import DashboardClockComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardClockComponent";
 import DashboardChartComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardChartComponent";
 import DashboardValueComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardValueComponent";
 import DashboardTableComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardTableComponent";
@@ -48,6 +49,7 @@ import DashboardBaseComponent from "Common/Types/Dashboard/DashboardComponents/D
 import DashboardChartComponent from "./DashboardChartComponent";
 import DashboardValueComponent from "./DashboardValueComponent";
 import DashboardTextComponent from "./DashboardTextComponent";
+import DashboardClockComponent from "./DashboardClockComponent";
 import DashboardTableComponent from "./DashboardTableComponent";
 import DashboardGaugeComponent from "./DashboardGaugeComponent";
 import DashboardSloComponent from "./DashboardSloComponent";
@@ -643,6 +645,14 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
             isEditMode={props.isEditMode}
             isSelected={props.isSelected}
             component={component as DashboardTextComponentType}
+          />
+        )}
+        {component.componentType === DashboardComponentType.Clock && (
+          <DashboardClockComponent
+            {...props}
+            isEditMode={props.isEditMode}
+            isSelected={props.isSelected}
+            component={component as DashboardClockComponentType}
           />
         )}
         {component.componentType === DashboardComponentType.Chart && (
