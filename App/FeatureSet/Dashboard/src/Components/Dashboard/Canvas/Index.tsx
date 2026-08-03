@@ -45,6 +45,27 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
     props.currentTotalDashboardWidthInPx,
   );
 
+  /**
+   * Width the canvas loses before its columns are laid out: the grid's own
+   * `padding: "8px"` below (16), plus the wrapper DashboardView puts around it
+   * — `mx-3` (24), `px-1` (8) and a 1px border (2).
+   * `currentTotalDashboardWidthInPx` is that wrapper's offsetWidth, not the
+   * grid's content width.
+   */
+  const canvasHorizontalInsetInPx: number = 50;
+
+  /*
+   * `gridAutoRows` below is an absolute px value, so a row really is unitSize
+   * tall and the height reported to each widget is exact. The columns are
+   * `1fr` INSIDE the inset above, though, so a real column is narrower than
+   * unitSize. Report the real one, or every widget that sizes itself by width
+   * lays out against horizontal space it does not have — 4.2px per unit, 12.5px
+   * on a default 3-wide widget.
+   */
+  const columnSize: number = GetDashboardUnitWidthInPx(
+    props.currentTotalDashboardWidthInPx - canvasHorizontalInsetInPx,
+  );
+
   const renderComponents: GetReactElementFunction = (): ReactElement => {
     const canvasHeight: number =
       props.dashboardViewConfig.heightInDashboardUnits ||
@@ -208,7 +229,7 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
     const h: number = component?.heightInDashboardUnits || 0;
 
     // Compute pixel dimensions for child component rendering (charts, etc.)
-    const widthOfComponentInPx: number = unitSize * w + gap * (w - 1);
+    const widthOfComponentInPx: number = columnSize * w + gap * (w - 1);
 
     const heightOfComponentInPx: number = unitSize * h + gap * (h - 1);
 

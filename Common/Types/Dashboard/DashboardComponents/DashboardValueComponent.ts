@@ -26,5 +26,13 @@ export default interface DashboardValueComponent extends BaseComponent {
     warningThreshold?: number | undefined;
     criticalThreshold?: number | undefined;
     trendDirection?: DashboardValueTrendDirection | undefined;
+    /*
+     * Drop the unit suffix entirely. The widget already abbreviates units
+     * ("Celsius" reads as "°C") and drops them on its own when even the
+     * compact form would shrink the digits below a readable size, so this is
+     * only needed when the title already says what the unit is. Undefined
+     * means "decide automatically".
+     */
+    hideUnit?: boolean | undefined;
   };
 }
