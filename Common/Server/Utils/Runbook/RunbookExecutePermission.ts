@@ -36,7 +36,8 @@ export function assertCanExecuteRunbooks(
   const hasPermission: boolean = Boolean(
     tenantPermission?.permissions?.some((p: UserPermission): boolean => {
       return (
-        !p.isBlockPermission && RUNBOOK_EXECUTE_PERMISSIONS.includes(p.permission)
+        !p.isBlockPermission &&
+        RUNBOOK_EXECUTE_PERMISSIONS.includes(p.permission)
       );
     }),
   );

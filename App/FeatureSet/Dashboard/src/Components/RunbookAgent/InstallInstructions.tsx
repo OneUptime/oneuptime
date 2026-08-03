@@ -58,11 +58,11 @@ const RunnerInstallInstructions: FunctionComponent<ComponentProps> = (
         />
         <span>
           What this Runner may do is set here, not in the container: it picks up
-          its capabilities when it starts. Turn on "Runs AI Code Fixes" and it
-          will clone the code repositories connected to this project and open
-          draft pull requests — it never writes to your default or protected
-          branches. Turn a capability off and it stops taking that work
-          immediately.
+          its capabilities when it starts. Turn on &quot;Runs AI Code
+          Fixes&quot; and it will clone the code repositories connected to this
+          project and open draft pull requests — it never writes to your default
+          or protected branches. Turn a capability off and it stops taking that
+          work immediately.
         </span>
       </div>
 

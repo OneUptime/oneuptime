@@ -1542,5 +1542,4 @@ export default class AIAgentDataAPI {
       };
     });
   }
-
 }

@@ -59,13 +59,13 @@ function loadCapabilities(
     process.env[key] = value;
   }
 
-  /* eslint-disable @typescript-eslint/no-require-imports */
+  /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
   return (
     require("../../Utils/RunnerCapabilities") as {
       default: typeof RunnerCapabilitiesType;
     }
   ).default;
-  /* eslint-enable @typescript-eslint/no-require-imports */
+  /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
 }
 
 const BOTH_GRANTED: RunnerCapabilitySet = {

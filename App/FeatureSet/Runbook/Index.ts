@@ -12,8 +12,10 @@ import Express, { ExpressApplication } from "Common/Server/Utils/Express";
 import logger from "Common/Server/Utils/Logger";
 
 const APP_NAME: string = "runbook";
-// The Runner's work mount. Renamed from runbook-agent-ingest when the
-// Runbook Agent and AI Agent merged into the OneUptime Runner.
+/*
+ * The Runner's work mount. Renamed from runbook-agent-ingest when the
+ * Runbook Agent and AI Agent merged into the OneUptime Runner.
+ */
 const AGENT_INGRESS_PATH: string = "runner-ingest";
 
 const RunbookFeatureSet: FeatureSet = {

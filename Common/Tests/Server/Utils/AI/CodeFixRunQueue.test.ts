@@ -153,9 +153,11 @@ describe("CodeFixRunQueue.failOrphanedQueuedRuns", () => {
   test("spares runs in a project whose only agent is a code-fix Runner", async () => {
     const projectId: ObjectID = ObjectID.generate();
 
-    jest.spyOn(AIRunService, "findBy").mockResolvedValue([
-      { id: ObjectID.generate(), projectId },
-    ] as unknown as Array<AIRun>);
+    jest
+      .spyOn(AIRunService, "findBy")
+      .mockResolvedValue([
+        { id: ObjectID.generate(), projectId },
+      ] as unknown as Array<AIRun>);
 
     jest
       .spyOn(AIAgentService, "getConnectedAIAgentForProject")

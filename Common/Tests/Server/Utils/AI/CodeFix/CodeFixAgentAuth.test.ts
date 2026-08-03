@@ -217,9 +217,9 @@ describe("CodeFixAgentAuth.deniesAccessToProject", () => {
         ObjectID.generate(),
       ),
     ).toBe(false);
-    expect(CodeFixAgentAuth.deniesAccessToProject(globalIdentity, undefined)).toBe(
-      false,
-    );
+    expect(
+      CodeFixAgentAuth.deniesAccessToProject(globalIdentity, undefined),
+    ).toBe(false);
   });
 
   test("a project-scoped identity denies a different projectId", () => {

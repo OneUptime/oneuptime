@@ -201,8 +201,10 @@ router.post(
             status: AutoRemediationSuggestionStatus.Approved,
             approvedByUserId: props.userId!.toString(),
             approvedAt: OneUptimeDate.getCurrentDate(),
-            // The runbook starts next — the outcome verifier watches for
-            // monitor recovery until this deadline.
+            /*
+             * The runbook starts next — the outcome verifier watches for
+             * monitor recovery until this deadline.
+             */
             verificationStatus: AutoRemediationVerificationStatus.Pending,
             verificationDeadlineAt: OneUptimeDate.addRemoveMinutes(
               OneUptimeDate.getCurrentDate(),

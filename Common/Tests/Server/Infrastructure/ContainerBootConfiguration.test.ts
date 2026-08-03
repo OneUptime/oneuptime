@@ -264,9 +264,9 @@ describe("Container boot configuration", () => {
   describe("the dev loop keeps its existing transpile-only behaviour", () => {
     const nodemonServices: Array<string> = [
       "App",
-      "AIAgent",
       "Home",
       "Probe",
+      "Runner",
       "TestServer",
     ];
 

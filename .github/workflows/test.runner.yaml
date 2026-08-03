@@ -1,4 +1,4 @@
-name: AIAgent Test
+name: Runner Test
 
 # Supersede in-flight runs for the same branch/PR: only the newest commit needs CI.
 concurrency:
@@ -25,4 +25,4 @@ jobs:
         with:
           node-version: 26
       - run: cd Common && npm install
-      - run: cd AIAgent && npm install && npm run test
+      - run: cd Runner && npm install && npm run test

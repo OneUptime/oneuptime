@@ -307,13 +307,12 @@ describe("Runbook execution routes require an authorized member of the runbook's
       .mockResolvedValue(null);
     executionCreateSpy = jest
       .spyOn(RunbookExecutionService, "create")
-      .mockImplementation(
-        (async (args: { data: RunbookExecution }): Promise<RunbookExecution> => {
-          (args.data as unknown as { _id: string })._id =
-            executionId.toString();
-          return args.data;
-        }) as unknown as typeof RunbookExecutionService.create,
-      );
+      .mockImplementation((async (args: {
+        data: RunbookExecution;
+      }): Promise<RunbookExecution> => {
+        (args.data as unknown as { _id: string })._id = executionId.toString();
+        return args.data;
+      }) as unknown as typeof RunbookExecutionService.create);
     executionUpdateSpy = jest
       .spyOn(RunbookExecutionService, "updateOneById")
       .mockResolvedValue(undefined as never);

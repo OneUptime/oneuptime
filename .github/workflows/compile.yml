@@ -299,7 +299,7 @@ jobs:
           max_attempts: 3
           command: cd MobileApp && npm install && npm run compile
 
-  compile-ai-agent:
+  compile-runner:
     runs-on: ubuntu-latest
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
@@ -309,12 +309,12 @@ jobs:
         with:
           node-version: 26
       - run: cd Common && npm install
-      - name: Compile AIAgent
+      - name: Compile Runner
         uses: nick-fields/retry@v3
         with:
           timeout_minutes: 30
           max_attempts: 3
-          command: cd AIAgent && npm install && npm run compile && npm run dep-check
+          command: cd Runner && npm install && npm run compile && npm run dep-check
 
   compile-cli:
     runs-on: ubuntu-latest

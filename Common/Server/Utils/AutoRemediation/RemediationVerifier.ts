@@ -110,18 +110,15 @@ export default class RemediationVerifier {
         }
 
         const transitioned: number =
-          await AutoRemediationSuggestionService.attemptVerificationTransition(
-            {
-              suggestionId: suggestion.id!,
-              fromVerificationStatus:
-                AutoRemediationVerificationStatus.Pending,
-              set: {
-                verificationStatus: outcome.status,
-                verificationCompletedAt: OneUptimeDate.getCurrentDate(),
-                verificationNote: outcome.note,
-              },
+          await AutoRemediationSuggestionService.attemptVerificationTransition({
+            suggestionId: suggestion.id!,
+            fromVerificationStatus: AutoRemediationVerificationStatus.Pending,
+            set: {
+              verificationStatus: outcome.status,
+              verificationCompletedAt: OneUptimeDate.getCurrentDate(),
+              verificationNote: outcome.note,
             },
-          );
+          });
 
         if (transitioned === 0) {
           continue; // Another sweep settled it first.
@@ -478,9 +475,7 @@ export default class RemediationVerifier {
         });
       }
     } catch (error) {
-      logger.error(
-        `RemediationVerifier: failed to create feed item: ${error}`,
-      );
+      logger.error(`RemediationVerifier: failed to create feed item: ${error}`);
     }
   }
 }
