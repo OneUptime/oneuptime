@@ -103,6 +103,33 @@ if [ "$PORT_MONITOR_PORT" != "443" ]; then
     ERRORS=$((ERRORS + 1))
 fi
 
+# Regression guard for the "Monitor records still reference it" destroy failure.
+#
+# A new monitor's currentMonitorStatusId is seeded from the project's
+# operational status. This fixture creates its OWN operational status
+# ("TF Operational"), which it deletes on destroy. If a monitor adopts that
+# fixture status instead of the project's seeded default, its
+# currentMonitorStatusId foreign key (ON DELETE NO ACTION) blocks deleting the
+# status forever. Assert here — while the resources still exist — that no
+# monitor latched onto the fixture's operational status, so the regression is
+# caught loudly at verify time rather than as an opaque FK error during destroy.
+OPERATIONAL_ID=$(terraform output -raw operational_status_id 2>/dev/null || echo "")
+if [ -n "$OPERATIONAL_ID" ]; then
+    for pair in "Website:$WEBSITE_ID" "API:$API_ID" "Ping:$PING_ID" "Port:$PORT_ID" "SSL:$SSL_ID" "IP:$IP_ID"; do
+        m_name="${pair%%:*}"
+        m_id="${pair#*:}"
+        [ -z "$m_id" ] && continue
+        m_response=$(api_get_resource "/api/monitor" "$m_id" '{"currentMonitorStatusId": true}')
+        m_status=$(echo "$m_response" | jq -r '.currentMonitorStatusId | if type=="object" then (.value // ._id) else . end // empty')
+        if [ "$m_status" = "$OPERATIONAL_ID" ]; then
+            echo "ERROR: $m_name monitor adopted the fixture's custom operational status ($OPERATIONAL_ID) as its currentMonitorStatusId; it must default to the project's seeded operational status (regression: undeterministic operational-status selection)."
+            ERRORS=$((ERRORS + 1))
+        else
+            echo "    ✓ $m_name monitor did not latch onto the fixture operational status"
+        fi
+    done
+fi
+
 if [ $ERRORS -gt 0 ]; then
     echo ""
     echo "FAILED: $ERRORS errors found"
