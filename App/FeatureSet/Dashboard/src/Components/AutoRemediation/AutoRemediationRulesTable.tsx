@@ -287,6 +287,26 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
           required: true,
           defaultValue: AutoRemediationExecutionMode.Suggest,
         },
+        {
+          field: { verificationWindowMinutes: true },
+          title: "Verification Window (Minutes)",
+          stepId: "remediation",
+          sectionTitle: "Verify the Outcome",
+          sectionDescription:
+            "A remediation is verified when the monitors return to an operational state within this window after the runbook starts. Verification never delays or suppresses on-call escalation.",
+          fieldType: FormFieldSchemaType.Number,
+          required: false,
+          placeholder: "15",
+        },
+        {
+          field: { autoResolveOnVerifiedRecovery: true },
+          title: "Auto-Resolve on Verified Recovery",
+          stepId: "remediation",
+          description:
+            "When verification confirms the monitors recovered, automatically resolve the incident/alert. Off by default.",
+          fieldType: FormFieldSchemaType.Toggle,
+          required: false,
+        },
       ]}
       showRefreshButton={true}
     />

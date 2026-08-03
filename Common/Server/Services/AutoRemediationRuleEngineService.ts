@@ -13,6 +13,7 @@ import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import AutoRemediationExecutionMode from "../../Types/AutoRemediation/AutoRemediationExecutionMode";
 import AutoRemediationSuggestionStatus from "../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
+import AutoRemediationVerificationStatus from "../../Types/AutoRemediation/AutoRemediationVerificationStatus";
 import AutoRemediationTriggerEntity from "../../Types/AutoRemediation/AutoRemediationTriggerEntity";
 import { Indigo500 } from "../../Types/BrandColors";
 import OneUptimeDate from "../../Types/Date";
@@ -45,6 +46,14 @@ export const MAX_SUGGESTIONS_PER_SUBJECT: number = 3;
  *   being started in a tight flap loop.
  */
 export const MAX_AUTO_EXECUTIONS_PER_RULE_PER_HOUR: number = 3;
+
+/*
+ * How long the subject's monitors get to recover after a remediation
+ * runbook starts, when the rule does not set its own window. The verifier
+ * fails the remediation past this deadline — escalation continues as
+ * normal either way.
+ */
+export const DEFAULT_VERIFICATION_WINDOW_MINUTES: number = 15;
 
 type SubjectLinkage = {
   incidentId?: ObjectID | undefined;
@@ -127,6 +136,8 @@ class AutoRemediationRuleEngineServiceClass {
           name: true,
           executionMode: true,
           aiSelectsRunbook: true,
+          verificationWindowMinutes: true,
+          autoResolveOnVerifiedRecovery: true,
           titlePattern: true,
           descriptionPattern: true,
           monitors: { _id: true },
@@ -417,6 +428,11 @@ class AutoRemediationRuleEngineServiceClass {
     suggestion.ruleNameSnapshot = data.rule.name || "Auto Remediation Rule";
     suggestion.status = AutoRemediationSuggestionStatus.Planning;
     suggestion.executionMode = AutoRemediationExecutionMode.Suggest;
+    suggestion.verificationWindowMinutes =
+      data.rule.verificationWindowMinutes ||
+      DEFAULT_VERIFICATION_WINDOW_MINUTES;
+    suggestion.autoResolveOnRecovery =
+      data.rule.autoResolveOnVerifiedRecovery === true;
     if (data.linkage.incidentId) {
       suggestion.incidentId = data.linkage.incidentId;
     }
@@ -485,6 +501,11 @@ class AutoRemediationRuleEngineServiceClass {
     suggestion.runbookNameSnapshot = data.runbook.name || "Runbook";
     suggestion.status = AutoRemediationSuggestionStatus.Suggested;
     suggestion.executionMode = AutoRemediationExecutionMode.Suggest;
+    suggestion.verificationWindowMinutes =
+      data.rule.verificationWindowMinutes ||
+      DEFAULT_VERIFICATION_WINDOW_MINUTES;
+    suggestion.autoResolveOnRecovery =
+      data.rule.autoResolveOnVerifiedRecovery === true;
     suggestion.rationaleMarkdown = data.downgradedByCircuitBreaker
       ? "Proposed by a FullAuto rule that was downgraded to suggest-only by the hourly circuit breaker (too many recent auto-executions). Approve to start the runbook."
       : "Proposed by a matching auto-remediation rule. Approve to start the runbook.";
@@ -558,6 +579,18 @@ class AutoRemediationRuleEngineServiceClass {
     suggestion.status = AutoRemediationSuggestionStatus.AutoExecuted;
     suggestion.executionMode = AutoRemediationExecutionMode.FullAuto;
     suggestion.runbookExecutionId = execution.id!;
+    suggestion.verificationWindowMinutes =
+      data.rule.verificationWindowMinutes ||
+      DEFAULT_VERIFICATION_WINDOW_MINUTES;
+    suggestion.autoResolveOnRecovery =
+      data.rule.autoResolveOnVerifiedRecovery === true;
+    // The runbook is already running — verification starts now.
+    suggestion.verificationStatus = AutoRemediationVerificationStatus.Pending;
+    suggestion.verificationDeadlineAt = OneUptimeDate.addRemoveMinutes(
+      OneUptimeDate.getCurrentDate(),
+      data.rule.verificationWindowMinutes ||
+        DEFAULT_VERIFICATION_WINDOW_MINUTES,
+    );
     suggestion.rationaleMarkdown =
       "Automatically executed by a FullAuto auto-remediation rule.";
     if (data.linkage.incidentId) {

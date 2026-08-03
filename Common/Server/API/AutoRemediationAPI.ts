@@ -13,6 +13,8 @@ import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import AutoRemediationSuggestionStatus from "../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
+import AutoRemediationVerificationStatus from "../../Types/AutoRemediation/AutoRemediationVerificationStatus";
+import { DEFAULT_VERIFICATION_WINDOW_MINUTES } from "../Services/AutoRemediationRuleEngineService";
 import Permission, {
   UserPermission,
   UserTenantAccessPermission,
@@ -138,6 +140,7 @@ async function loadSuggestionAsRoot(
         runbookId: true,
         runbookNameSnapshot: true,
         ruleNameSnapshot: true,
+        verificationWindowMinutes: true,
       },
       props: { isRoot: true },
     });
@@ -229,6 +232,14 @@ router.post(
             status: AutoRemediationSuggestionStatus.Approved,
             approvedByUserId: props.userId!.toString(),
             approvedAt: OneUptimeDate.getCurrentDate(),
+            // The runbook starts next — the outcome verifier watches for
+            // monitor recovery until this deadline.
+            verificationStatus: AutoRemediationVerificationStatus.Pending,
+            verificationDeadlineAt: OneUptimeDate.addRemoveMinutes(
+              OneUptimeDate.getCurrentDate(),
+              suggestion.verificationWindowMinutes ||
+                DEFAULT_VERIFICATION_WINDOW_MINUTES,
+            ),
           },
         });
 

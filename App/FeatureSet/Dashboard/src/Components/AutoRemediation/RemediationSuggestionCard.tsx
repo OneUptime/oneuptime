@@ -6,6 +6,7 @@ import ObjectID from "Common/Types/ObjectID";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import AutoRemediationSuggestion from "Common/Models/DatabaseModels/AutoRemediationSuggestion";
 import AutoRemediationSuggestionStatus from "Common/Types/AutoRemediation/AutoRemediationSuggestionStatus";
+import AutoRemediationVerificationStatus from "Common/Types/AutoRemediation/AutoRemediationVerificationStatus";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
@@ -94,6 +95,56 @@ function StatusPill({
   );
 }
 
+interface VerificationVisual {
+  label: string;
+  badge: string;
+  dot: string;
+}
+
+const VERIFICATION_VISUAL: Record<
+  AutoRemediationVerificationStatus,
+  VerificationVisual
+> = {
+  [AutoRemediationVerificationStatus.Pending]: {
+    label: "Verifying recovery\u2026",
+    badge: "bg-blue-50 text-blue-700 ring-blue-200",
+    dot: "bg-blue-500",
+  },
+  [AutoRemediationVerificationStatus.Verified]: {
+    label: "Verified fixed",
+    badge: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+    dot: "bg-emerald-500",
+  },
+  [AutoRemediationVerificationStatus.Failed]: {
+    label: "Verification failed",
+    badge: "bg-rose-50 text-rose-700 ring-rose-200",
+    dot: "bg-rose-500",
+  },
+  [AutoRemediationVerificationStatus.Skipped]: {
+    label: "Verification skipped",
+    badge: "bg-gray-100 text-gray-700 ring-gray-200",
+    dot: "bg-gray-400",
+  },
+};
+
+function VerificationPill({
+  status,
+}: {
+  status: AutoRemediationVerificationStatus;
+}): ReactElement {
+  const v: VerificationVisual =
+    VERIFICATION_VISUAL[status] ||
+    VERIFICATION_VISUAL[AutoRemediationVerificationStatus.Pending]!;
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${v.badge}`}
+    >
+      <span className={`inline-block w-1.5 h-1.5 rounded-full ${v.dot}`}></span>
+      {v.label}
+    </span>
+  );
+}
+
 const POLL_INTERVAL_MS: number = 15 * 1000;
 
 const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
@@ -142,6 +193,8 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
             rationaleMarkdown: true,
             runbookId: true,
             runbookExecutionId: true,
+            verificationStatus: true,
+            verificationNote: true,
             createdAt: true,
           },
           sort: {
@@ -166,7 +219,10 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
   // Poll while an AI plan is still in flight so the pick lands live.
   const hasPlanning: boolean = suggestions.some(
     (s: AutoRemediationSuggestion) => {
-      return s.status === AutoRemediationSuggestionStatus.Planning;
+      return (
+        s.status === AutoRemediationSuggestionStatus.Planning ||
+        s.verificationStatus === AutoRemediationVerificationStatus.Pending
+      );
     },
   );
 
@@ -277,8 +333,27 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
                       Rule: {suggestion.ruleNameSnapshot || "Unknown"}
                     </span>
                   </div>
-                  <StatusPill status={status} />
+                  <div className="flex items-center gap-2">
+                    <StatusPill status={status} />
+                    {suggestion.verificationStatus ? (
+                      <VerificationPill
+                        status={
+                          suggestion.verificationStatus as AutoRemediationVerificationStatus
+                        }
+                      />
+                    ) : (
+                      <></>
+                    )}
+                  </div>
                 </div>
+
+                {suggestion.verificationNote ? (
+                  <div className="mt-2 text-xs text-gray-500">
+                    {suggestion.verificationNote}
+                  </div>
+                ) : (
+                  <></>
+                )}
 
                 {suggestion.rationaleMarkdown ? (
                   <div className="mt-3">

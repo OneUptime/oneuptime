@@ -8,6 +8,7 @@ import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import AutoRemediationExecutionMode from "../../Types/AutoRemediation/AutoRemediationExecutionMode";
 import AutoRemediationSuggestionStatus from "../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
+import AutoRemediationVerificationStatus from "../../Types/AutoRemediation/AutoRemediationVerificationStatus";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
 import ColumnLength from "../../Types/Database/ColumnLength";
@@ -633,6 +634,142 @@ export default class AutoRemediationSuggestion extends BaseModel {
     nullable: true,
   })
   public dismissedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Verification Status",
+    description:
+      "Outcome verification after execution: Pending, Verified, Failed or Skipped. Empty until a runbook is started.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public verificationStatus?: AutoRemediationVerificationStatus = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    title: "Verification Deadline At",
+    description:
+      "When the verification window closes — the monitors must be operational by this time.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public verificationDeadlineAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    title: "Verification Completed At",
+    description: "When verification reached a terminal outcome.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public verificationCompletedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    title: "Verification Note",
+    description: "Why verification ended the way it did.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+  })
+  public verificationNote?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Verification Window (Minutes)",
+    description:
+      "Snapshot of the rule's verification window when this suggestion was created.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public verificationWindowMinutes?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Auto-Resolve on Recovery",
+    description:
+      "Snapshot of the rule's auto-resolve-on-verified-recovery setting when this suggestion was created.",
+    defaultValue: false,
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public autoResolveOnRecovery?: boolean = undefined;
 
   @ColumnAccessControl({
     create: [],
