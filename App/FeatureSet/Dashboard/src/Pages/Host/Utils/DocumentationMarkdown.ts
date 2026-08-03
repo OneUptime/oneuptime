@@ -178,6 +178,53 @@ The host above shows up tagged \`team:payments\`, \`env:production\`, and \`regi
 `;
 }
 
+/*
+ * Shared Step 3 for the three native Linux installs. Deliberately not
+ * offered for the Docker or Kubernetes methods: the `systemd` receiver
+ * talks to the host's D-Bus socket, which a containerised collector cannot
+ * reach.
+ */
+export function getLinuxSystemdStepMarkdown(): string {
+  return `
+## Step 3 — Enable the Systemd Units tab
+
+\`otelcol-contrib\` has bundled the \`systemd\` receiver since **v0.142.0**; run **v0.143.0 or newer**, which is where its CPU metric settled on its current name and stopped probing non-service units. Turn it on by adding it to your \`config.yaml\` and the metrics pipeline, then restart the service:
+
+\`\`\`yaml
+receivers:
+  systemd:
+    collection_interval: 30s
+    # Which units to scrape, as systemctl unit patterns. The default is
+    # every service; narrow it to cut volume on hosts with many units:
+    units: ["*.service"]
+    # units: [nginx.service, postgresql.service, "*.timer"]
+    metrics:
+      # Per-service CPU time is on by default and doubles this receiver's
+      # datapoint count; the Systemd Units tab does not use it. On
+      # v0.142.0 this key is systemd.unit.cpu.time instead — naming a
+      # metric your build does not have stops the collector at startup.
+      systemd.service.cpu.time:
+        enabled: false
+
+service:
+  pipelines:
+    metrics:
+      # Add systemd alongside the hostmetrics receiver from Step 1. Keep
+      # resourcedetection — it is what stamps host.name onto each unit.
+      receivers: [hostmetrics, systemd]
+      processors: [resourcedetection, batch]
+\`\`\`
+
+\`\`\`bash
+sudo systemctl restart otelcol-contrib
+\`\`\`
+
+The receiver is **Linux-only** and **alpha**. It reads unit state over the system D-Bus using the same read-only calls as \`systemctl list-units\`, which systemd allows unprivileged — the packaged service runs as the \`otelcol-contrib\` user and needs no extra rights. A containerised collector cannot reach the host's bus, so use a native install. Once metrics arrive, the host **Systemd Units** tab populates with every scraped unit and its current state (\`active\`, \`failed\`, \`inactive\`, ...).
+
+Each unit costs eight datapoints per scrape for the state set, plus two more if you leave the CPU metric on, so on a host with hundreds of units narrow \`units:\` or raise \`collection_interval\` rather than scraping everything.
+`;
+}
+
 export function getHostMethodMarkdown(
   data: {
     oneuptimeUrl: string;
@@ -239,8 +286,8 @@ Logs: \`sudo journalctl -u otelcol-contrib -f\`.
 
 All releases are listed at <https://github.com/open-telemetry/opentelemetry-collector-releases/releases> if you need to pin a specific version.
 
-> **Note for native installs:** Unlike Docker, the package install reads \`/proc\` and \`/sys\` directly — no \`HOST_PROC\` env vars or \`/hostfs\` mount required. The systemd unit shipped with the package runs as root, so the \`process\` scraper can see processes owned by other users.
-`;
+> **Note for native installs:** Unlike Docker, the package install reads \`/proc\` and \`/sys\` directly — no \`HOST_PROC\` env vars or \`/hostfs\` mount required. The systemd unit shipped with the package runs as the unprivileged \`otelcol-contrib\` user; if you want the \`process\` scraper to see processes owned by other users, grant it \`CAP_SYS_PTRACE\` or run it as root.
+${getLinuxSystemdStepMarkdown()}`;
 
     case "linux-rpm":
       return `
@@ -264,8 +311,8 @@ sudo systemctl status otelcol-contrib
 
 Logs: \`sudo journalctl -u otelcol-contrib -f\`.
 
-> **Note for native installs:** No \`HOST_PROC\` env vars or \`/hostfs\` bind mount needed — the collector reads \`/proc\` and \`/sys\` directly. The packaged systemd unit runs as root, so the \`process\` scraper sees every user's processes.
-`;
+> **Note for native installs:** No \`HOST_PROC\` env vars or \`/hostfs\` bind mount needed — the collector reads \`/proc\` and \`/sys\` directly. The packaged systemd unit runs as the unprivileged \`otelcol-contrib\` user; grant it \`CAP_SYS_PTRACE\` (or run it as root) if you need the \`process\` scraper to see every user's processes.
+${getLinuxSystemdStepMarkdown()}`;
 
     case "linux-tarball":
       return `
@@ -313,7 +360,7 @@ sudo systemctl status otelcol-contrib
 \`\`\`
 
 > **Note for native installs:** No \`HOST_PROC\` env vars or \`/hostfs\` mount — the collector reads kernel state directly. Run as root (or grant \`CAP_SYS_PTRACE\`) so the \`process\` scraper can see processes owned by other users.
-`;
+${getLinuxSystemdStepMarkdown()}`;
 
     case "macos":
       return `
@@ -454,6 +501,7 @@ export function getHostFooterMarkdown(): string {
 - Open the **Hosts** list in OneUptime — your host appears automatically once the first metric batch lands (usually within 30 seconds).
 - The **Metrics** tab visualizes \`system.*\` time-series.
 - The **Processes** tab lists processes ordered by CPU once the \`process\` scraper is enabled.
+- The **Systemd Units** tab lists unit state on Linux hosts once the \`systemd\` receiver is enabled, and the **Services** tab does the same on Windows with \`windows_service\`.
 - The **Logs** tab streams any logs whose resource attributes include \`host.name\`.
 `;
 }

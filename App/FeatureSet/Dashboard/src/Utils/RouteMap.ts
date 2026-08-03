@@ -326,6 +326,8 @@ export const HostRoutePath: Dictionary<string> = {
   [PageMap.HOST_VIEW_PROCESS_VIEW]: `${RouteParams.ModelID}/processes/${RouteParams.SubModelID}`,
   [PageMap.HOST_VIEW_SERVICES]: `${RouteParams.ModelID}/services`,
   [PageMap.HOST_VIEW_SERVICE_VIEW]: `${RouteParams.ModelID}/services/${RouteParams.SubModelID}`,
+  [PageMap.HOST_VIEW_SYSTEMD_UNITS]: `${RouteParams.ModelID}/systemd`,
+  [PageMap.HOST_VIEW_SYSTEMD_UNIT_VIEW]: `${RouteParams.ModelID}/systemd/${RouteParams.SubModelID}`,
   [PageMap.HOST_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
   [PageMap.HOST_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
   [PageMap.HOST_VIEW_PROFILES]: `${RouteParams.ModelID}/profiles`,
@@ -3614,6 +3616,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.HOST_VIEW_SERVICE_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/host/${
       HostRoutePath[PageMap.HOST_VIEW_SERVICE_VIEW]
+    }`,
+  ),
+
+  [PageMap.HOST_VIEW_SYSTEMD_UNITS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/host/${
+      HostRoutePath[PageMap.HOST_VIEW_SYSTEMD_UNITS]
+    }`,
+  ),
+
+  [PageMap.HOST_VIEW_SYSTEMD_UNIT_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/host/${
+      HostRoutePath[PageMap.HOST_VIEW_SYSTEMD_UNIT_VIEW]
     }`,
   ),
 
