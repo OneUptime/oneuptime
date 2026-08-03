@@ -2630,6 +2630,8 @@
   "Forwarded Bytes": "अग्रेषित बाइट्स",
   "Forwarded Packets": "अग्रेषित पैकेट",
   "Free-form Markdown text for headers and notes.": "हेडर और नोट्स के लिए स्वतंत्र-रूप Markdown टेक्स्ट।",
+  "Clock": "घड़ी",
+  "Current time in any timezone — digital or analog. Add one per office so you can see who is awake.": "किसी भी टाइमज़ोन में मौजूदा समय — डिजिटल या एनालॉग। हर ऑफ़िस के लिए एक जोड़ें ताकि आप देख सकें कि कौन जाग रहा है।",
   "Frequency": "आवृत्ति",
   "Friendly description for this config so you remember what this is about.": "इस कॉन्फ़िग के लिए सुगम विवरण ताकि आप याद रख सकें कि यह किस बारे में है।",
   "Friendly description for this Kubernetes cluster.": "इस Kubernetes क्लस्टर के लिए सुगम विवरण।",

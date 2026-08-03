@@ -2630,6 +2630,8 @@
   "Forwarded Bytes": "Byte inoltrati",
   "Forwarded Packets": "Pacchetti inoltrati",
   "Free-form Markdown text for headers and notes.": "Testo Markdown a forma libera per intestazioni e note.",
+  "Clock": "Orologio",
+  "Current time in any timezone — digital or analog. Add one per office so you can see who is awake.": "Ora corrente in qualsiasi fuso orario — digitale o analogico. Aggiungine uno per ufficio per vedere chi è sveglio.",
   "Frequency": "Frequenza",
   "Friendly description for this config so you remember what this is about.": "Descrizione descrittiva per questa configurazione, così da ricordare di cosa si tratta.",
   "Friendly description for this Kubernetes cluster.": "Descrizione descrittiva per questo cluster Kubernetes.",

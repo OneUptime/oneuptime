@@ -2630,6 +2630,8 @@
   "Forwarded Bytes": "転送されたバイト数",
   "Forwarded Packets": "転送されたパケット",
   "Free-form Markdown text for headers and notes.": "ヘッダーとメモ用の自由形式のMarkdownテキスト。",
+  "Clock": "時計",
+  "Current time in any timezone — digital or analog. Add one per office so you can see who is awake.": "任意のタイムゾーンの現在時刻 — デジタルまたはアナログ。オフィスごとに 1 つ追加すると、誰が起きているかがわかります。",
   "Frequency": "頻度",
   "Friendly description for this config so you remember what this is about.": "この設定が何に関するものか思い出せるよう、わかりやすい説明。",
   "Friendly description for this Kubernetes cluster.": "このKubernetesクラスターのわかりやすい説明。",

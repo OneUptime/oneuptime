@@ -2630,6 +2630,8 @@
   "Forwarded Bytes": "전달된 바이트",
   "Forwarded Packets": "전달된 패킷",
   "Free-form Markdown text for headers and notes.": "헤더 및 메모를 위한 자유 형식 Markdown 텍스트입니다.",
+  "Clock": "시계",
+  "Current time in any timezone — digital or analog. Add one per office so you can see who is awake.": "모든 시간대의 현재 시각입니다 — 디지털 또는 아날로그. 사무실마다 하나씩 추가하면 누가 깨어 있는지 확인할 수 있습니다.",
   "Frequency": "빈도",
   "Friendly description for this config so you remember what this is about.": "이 구성이 무엇에 관한 것인지 기억할 수 있도록 알기 쉬운 설명입니다.",
   "Friendly description for this Kubernetes cluster.": "이 Kubernetes 클러스터에 대한 알기 쉬운 설명입니다.",

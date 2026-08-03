@@ -2630,6 +2630,8 @@
   "Forwarded Bytes": "Vidarebefordrade byte",
   "Forwarded Packets": "Vidarebefordrade paket",
   "Free-form Markdown text for headers and notes.": "Fritextformaterad Markdown-text för rubriker och anteckningar.",
+  "Clock": "Klocka",
+  "Current time in any timezone — digital or analog. Add one per office so you can see who is awake.": "Aktuell tid i valfri tidszon — digital eller analog. Lägg till en per kontor så att du kan se vem som är vaken.",
   "Frequency": "Frekvens",
   "Friendly description for this config so you remember what this is about.": "Beskrivande text för denna konfiguration så att du kommer ihåg vad den handlar om.",
   "Friendly description for this Kubernetes cluster.": "Beskrivande text för detta Kubernetes-kluster.",
