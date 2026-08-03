@@ -110,7 +110,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       logger.error(
         IS_CLUSTER_SCOPED
           ? "No capability is enabled — this cluster-scoped Runner has nothing to do. Set ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=true, or install a project-scoped Runner to execute runbooks."
-          : "No capability is enabled — this Runner has nothing to do. Enable 'Runs Runbooks' or 'Runs AI Code Fixes' on this Runner in your OneUptime dashboard, then restart it.",
+          : "No capability is enabled — this Runner has nothing to do. Enable 'Runs Runbooks' or 'Runs AI Code Fixes' on this Runner in your OneUptime dashboard — it is picked up on the next heartbeat, no restart needed.",
         { serviceName: APP_NAME } as LogAttributes,
       );
     }
@@ -142,14 +142,33 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       startHeartbeat();
     }
 
-    if (capabilities.canRunRunbooks) {
+    /*
+     * Both loops start whenever they are possible AT ALL for this scope, and
+     * each one checks the live capability on every tick. That is what lets a
+     * dashboard toggle take effect within a heartbeat: there is no loop to
+     * start or stop, only a flag to read. A loop whose capability is off does
+     * not contact the server.
+     */
+    if (!IS_CLUSTER_SCOPED) {
       startRunbookPolling();
+    }
+
+    if (capabilities.canRunRunbooks) {
       logger.info("Runbook capability enabled — polling for runbook steps.", {
         serviceName: APP_NAME,
       } as LogAttributes);
     }
 
-    if (capabilities.canRunCodeFixTasks) {
+    /*
+     * Cluster scope has no dashboard row and so no live capability channel —
+     * its env decision at boot is final. Project scope always starts the loop
+     * and lets it self-gate.
+     */
+    const startCodeFixLoop: boolean = IS_CLUSTER_SCOPED
+      ? capabilities.canRunCodeFixTasks
+      : true;
+
+    if (startCodeFixLoop) {
       if (IS_CLUSTER_SCOPED) {
         startCodeFixAlive();
       }
@@ -165,12 +184,14 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       registry.register(new FixFromIncidentTaskHandler());
       registry.register(new FixPerformanceTaskHandler());
 
-      logger.info(
-        `Code-fix capability enabled — ${registry.getHandlerCount()} task handler(s) registered: ${registry
-          .getRegisteredTaskTypes()
-          .join(", ")}`,
-        { serviceName: APP_NAME } as LogAttributes,
-      );
+      if (capabilities.canRunCodeFixTasks) {
+        logger.info(
+          `Code-fix capability enabled — ${registry.getHandlerCount()} task handler(s) registered: ${registry
+            .getRegisteredTaskTypes()
+            .join(", ")}`,
+          { serviceName: APP_NAME } as LogAttributes,
+        );
+      }
 
       // Runs in the background for the life of the process.
       startCodeFixPolling().catch((err: Error) => {

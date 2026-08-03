@@ -37,11 +37,23 @@ function authBody(extra: JSONObject = {}): JSONObject {
   };
 }
 
+export interface HeartbeatResult {
+  ok: boolean;
+  /*
+   * What the project currently grants this Runner. Absent when the server
+   * predates capability reporting, in which case the caller keeps whatever it
+   * resolved at boot.
+   */
+  capabilities?:
+    | { canRunRunbooks: boolean; canRunCodeFixTasks: boolean }
+    | undefined;
+}
+
 export default class AgentClient {
   public static async heartbeat(data: {
     agentVersion?: string | undefined;
     hostInfo?: JSONObject | undefined;
-  }): Promise<boolean> {
+  }): Promise<HeartbeatResult> {
     const res: AxiosResponse = await http.post(
       "/heartbeat",
       authBody({
@@ -50,12 +62,26 @@ export default class AgentClient {
       }),
     );
     if (res.status >= 200 && res.status < 300) {
-      return true;
+      const payload: JSONObject | undefined = (res.data as JSONObject)?.[
+        "capabilities"
+      ] as JSONObject | undefined;
+
+      return {
+        ok: true,
+        ...(payload
+          ? {
+              capabilities: {
+                canRunRunbooks: payload["canRunRunbooks"] !== false,
+                canRunCodeFixTasks: payload["canRunCodeFixTasks"] === true,
+              },
+            }
+          : {}),
+      };
     }
     logger.error(
       `Heartbeat rejected (${res.status}): ${JSON.stringify(res.data)}`,
     );
-    return false;
+    return { ok: false };
   }
 
   public static async claimNextJob(): Promise<ClaimedJob | null> {

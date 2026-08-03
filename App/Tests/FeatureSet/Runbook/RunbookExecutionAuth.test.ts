@@ -266,6 +266,31 @@ function buildUserProps(data: {
   };
 }
 
+/*
+ * Shaped like what getDatabaseCommonInteractionProps returns for a project API
+ * key. There is no userId — ProjectMiddleware resolves the project from the
+ * KEY (overwriting any caller-supplied `tenantid` header) and attaches the
+ * permissions granted to that key.
+ */
+function buildApiKeyProps(data: {
+  projectId: ObjectID;
+  permissions: Array<Permission>;
+}): DatabaseCommonInteractionProps {
+  const permissionMap: Dictionary<UserTenantAccessPermission> = {};
+
+  permissionMap[data.projectId.toString()] = buildTenantPermission({
+    projectId: data.projectId,
+    permissions: data.permissions,
+  });
+
+  return {
+    tenantId: data.projectId,
+    userId: undefined,
+    userType: UserType.API,
+    userTenantAccessPermission: permissionMap,
+  };
+}
+
 describe("Runbook execution routes require an authorized member of the runbook's own project", () => {
   let callerProjectId: ObjectID;
   let otherProjectId: ObjectID;
@@ -675,6 +700,137 @@ describe("Runbook execution routes require an authorized member of the runbook's
           isMasterAdmin: true,
         }),
       );
+      mockRunbookInProject(callerProjectId);
+
+      const result: RouteCallResult = await callRoute({
+        uri: RUN_ROUTE,
+        params: runParams(),
+      });
+
+      expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      expect(startExecutionMock).not.toHaveBeenCalled();
+    });
+  });
+
+  /*
+   * Project API keys are a first-class way to drive OneUptime — triggering a
+   * runbook from CI or another automation is a supported use, so the gate
+   * admits a key and then holds it to the SAME permission list a human is
+   * held to. The key carries no userId, which is exactly why requiring one
+   * locked automation out.
+   */
+  describe("project API keys", () => {
+    function apiKeyProps(permissions: Array<Permission>): void {
+      mockProps(
+        buildApiKeyProps({
+          projectId: callerProjectId,
+          permissions,
+        }),
+      );
+    }
+
+    test.each(RUNBOOK_EXECUTE_PERMISSIONS)(
+      "an API key holding %s can start a run",
+      async (permission: Permission) => {
+        apiKeyProps([permission]);
+        mockRunbookInProject(callerProjectId);
+
+        const result: RouteCallResult = await callRoute({
+          uri: RUN_ROUTE,
+          params: runParams(),
+        });
+
+        expect(result.thrownToNext).toBeUndefined();
+        expect(startExecutionMock).toHaveBeenCalledTimes(1);
+      },
+    );
+
+    test("an API key without a runbook-execute permission is rejected", async () => {
+      apiKeyProps([Permission.Viewer]);
+      mockRunbookInProject(callerProjectId);
+
+      const result: RouteCallResult = await callRoute({
+        uri: RUN_ROUTE,
+        params: runParams(),
+      });
+
+      expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      expect(startExecutionMock).not.toHaveBeenCalled();
+    });
+
+    test("an API key can advance an execution it is permitted to", async () => {
+      apiKeyProps([Permission.EditRunbookExecution]);
+      mockExecutionInProject({ projectId: callerProjectId });
+
+      const result: RouteCallResult = await callRoute({
+        uri: COMPLETE_ROUTE,
+        params: stepParams(),
+      });
+
+      expect(result.thrownToNext).toBeUndefined();
+    });
+
+    /*
+     * No user is behind the request, so the execution records no triggering
+     * user rather than inventing one — the column is nullable for exactly
+     * this case.
+     */
+    test("a run started by an API key records no triggeredByUserId", async () => {
+      apiKeyProps([Permission.CreateRunbookExecution]);
+      mockRunbookInProject(callerProjectId);
+
+      await callRoute({ uri: RUN_ROUTE, params: runParams() });
+
+      const created: RunbookExecution = executionCreateSpy.mock.calls[0]![0]
+        .data as RunbookExecution;
+
+      expect(created.triggeredByUserId).toBeUndefined();
+      expect(created.projectId?.toString()).toBe(callerProjectId.toString());
+    });
+
+    /*
+     * The key's own project is the one ProjectMiddleware put on the request,
+     * so a runbook belonging to someone else is still out of reach.
+     */
+    test("an API key cannot start another project's runbook", async () => {
+      apiKeyProps([Permission.ProjectAdmin]);
+      mockRunbookInProject(otherProjectId);
+
+      const result: RouteCallResult = await callRoute({
+        uri: RUN_ROUTE,
+        params: runParams(),
+      });
+
+      expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      expect(startExecutionMock).not.toHaveBeenCalled();
+    });
+
+    /*
+     * A key whose permission row for one of the six is a BLOCK is a denial,
+     * not a grant — the same inversion guarded for human callers.
+     */
+    test("a blocked permission on an API key is not read as a grant", async () => {
+      const permissionMap: Dictionary<UserTenantAccessPermission> = {};
+
+      permissionMap[callerProjectId.toString()] = {
+        _type: "UserTenantAccessPermission",
+        projectId: callerProjectId,
+        permissions: [
+          {
+            _type: "UserPermission",
+            permission: Permission.CreateRunbookExecution,
+            labelIds: [],
+            isBlockPermission: true,
+          },
+        ],
+      } as UserTenantAccessPermission;
+
+      mockProps({
+        tenantId: callerProjectId,
+        userId: undefined,
+        userType: UserType.API,
+        userTenantAccessPermission: permissionMap,
+      });
       mockRunbookInProject(callerProjectId);
 
       const result: RouteCallResult = await callRoute({

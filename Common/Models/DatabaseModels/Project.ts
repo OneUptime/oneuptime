@@ -1,6 +1,7 @@
 import MetricDownsamplingRetentionDays from "../../Types/Metrics/MetricDownsamplingRetentionDays";
 import TelemetryRetentionConfig from "../../Types/Telemetry/TelemetryRetentionConfig";
 import AlertSeverity from "./AlertSeverity";
+import IncidentSeverity from "./IncidentSeverity";
 import Reseller from "./Reseller";
 import ResellerPlan from "./ResellerPlan";
 import User from "./User";
@@ -1802,6 +1803,95 @@ export default class Project extends TenantModel {
     type: ColumnType.Number,
   })
   public alertInvestigationDedupeWindowMinutes?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "incidentInvestigationMinimumSeverityId",
+    type: TableColumnType.Entity,
+    modelType: IncidentSeverity,
+    title: "Incident Investigation Minimum Severity",
+    description:
+      "Only incidents at or above this severity are investigated automatically by AI. Unset means every incident is investigated — unlike alerts, which default to the top two tiers, because an incident already cleared a human-authored threshold to exist.",
+  })
+  @ManyToOne(
+    () => {
+      return IncidentSeverity;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "incidentInvestigationMinimumSeverityId" })
+  public incidentInvestigationMinimumSeverity?: IncidentSeverity = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ObjectID,
+    title: "Incident Investigation Minimum Severity ID",
+    description:
+      "ID of the minimum incident severity that is investigated automatically by AI.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public incidentInvestigationMinimumSeverityId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Incident Re-investigation Cooldown (Minutes)",
+    description:
+      "Incidents affecting a monitor that AI investigated within this many minutes are not re-investigated — the first analysis stands. Unset means the default of 30 minutes; 0 disables the cooldown.",
+    example: 30,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public incidentInvestigationDedupeWindowMinutes?: number = undefined;
 
   @ColumnAccessControl({
     create: [],
