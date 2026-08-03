@@ -66,6 +66,24 @@ const RunbookAgentView: FunctionComponent<PageComponentProps> = (
               "Runs inside the production EU cluster. Can reach internal services.",
           },
           {
+            field: { canRunRunbooks: true },
+            title: "Runs Runbooks",
+            description:
+              "Let this Runner execute runbook Bash and JavaScript steps on the host it runs on. On by default — this is why most Runners are installed.",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            defaultValue: true,
+          },
+          {
+            field: { canRunCodeFixTasks: true },
+            title: "Runs AI Code Fixes",
+            description:
+              "Let this Runner work in the code repositories connected to this project and open draft pull requests. Off by default; it needs a connected repository. The Runner picks this up when it restarts.",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            defaultValue: false,
+          },
+          {
             field: { labels: true },
             title: "Labels",
             description:
@@ -106,6 +124,16 @@ const RunbookAgentView: FunctionComponent<PageComponentProps> = (
               field: { key: true },
               title: "Agent Key",
               fieldType: FieldType.HiddenText,
+            },
+            {
+              field: { canRunRunbooks: true },
+              title: "Runs Runbooks",
+              fieldType: FieldType.Boolean,
+            },
+            {
+              field: { canRunCodeFixTasks: true },
+              title: "Runs AI Code Fixes",
+              fieldType: FieldType.Boolean,
             },
             {
               field: {

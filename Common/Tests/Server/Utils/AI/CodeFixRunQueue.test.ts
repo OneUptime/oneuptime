@@ -1,11 +1,12 @@
 import CodeFixRunQueue from "../../../../Server/Utils/AI/CodeFix/CodeFixRunQueue";
 import AIRunService from "../../../../Server/Services/AIRunService";
 import AIAgentService from "../../../../Server/Services/AIAgentService";
+import RunbookAgentService from "../../../../Server/Services/RunbookAgentService";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import AIAgent from "../../../../Models/DatabaseModels/AIAgent";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import ObjectID from "../../../../Types/ObjectID";
-import { describe, expect, test, afterEach } from "@jest/globals";
+import { beforeEach, describe, expect, test, afterEach } from "@jest/globals";
 
 /*
  * Sweeper decisions for CodeFix AIRuns:
@@ -53,6 +54,18 @@ describe("CodeFixRunQueue.markStaleRunAsError", () => {
 });
 
 describe("CodeFixRunQueue.failOrphanedQueuedRuns", () => {
+  /*
+   * A project can be served by an AIAgent or by a customer-installed Runner
+   * with the code-fix capability. These tests exercise the AIAgent side, so
+   * the Runner lookup is stubbed to "none" — without it the fallback would
+   * reach a real database.
+   */
+  beforeEach(() => {
+    jest
+      .spyOn(RunbookAgentService, "getOnlineCodeFixRunnerForProject")
+      .mockResolvedValue(null);
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
   });
@@ -130,5 +143,36 @@ describe("CodeFixRunQueue.failOrphanedQueuedRuns", () => {
     await CodeFixRunQueue.failOrphanedQueuedRuns();
 
     expect(aliveLookup).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * A project served only by a customer-installed Runner used to have its
+   * queued runs failed out from under a Runner that was polling all along,
+   * because only the AIAgent table counted as "an agent".
+   */
+  test("spares runs in a project whose only agent is a code-fix Runner", async () => {
+    const projectId: ObjectID = ObjectID.generate();
+
+    jest.spyOn(AIRunService, "findBy").mockResolvedValue([
+      { id: ObjectID.generate(), projectId },
+    ] as unknown as Array<AIRun>);
+
+    jest
+      .spyOn(AIAgentService, "getConnectedAIAgentForProject")
+      .mockResolvedValue(null);
+    jest
+      .spyOn(RunbookAgentService, "getOnlineCodeFixRunnerForProject")
+      .mockResolvedValue({
+        id: ObjectID.generate(),
+        name: "Prod Runner",
+      } as unknown as never);
+
+    const transition: jest.SpyInstance = jest
+      .spyOn(AIRunService, "attemptStatusTransition")
+      .mockResolvedValue(1);
+
+    await CodeFixRunQueue.failOrphanedQueuedRuns();
+
+    expect(transition).not.toHaveBeenCalled();
   });
 });

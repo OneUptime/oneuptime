@@ -80,7 +80,20 @@ export default class RunbookAgentIngressAPI {
         ...(hostInfoValue ? { hostInfo: hostInfoValue } : {}),
       });
 
-      return Response.sendJsonObjectResponse(req, res, { status: "ok" });
+      /*
+       * Hand the Runner back the capabilities this project granted it. The
+       * dashboard is the control plane: toggling a capability off here stops
+       * the Runner starting that loop on its next boot, and the claim path
+       * rejects it in the meantime — so an operator never has to touch the
+       * container to revoke one.
+       */
+      return Response.sendJsonObjectResponse(req, res, {
+        status: "ok",
+        capabilities: {
+          canRunRunbooks: agent.canRunRunbooks !== false,
+          canRunCodeFixTasks: agent.canRunCodeFixTasks === true,
+        },
+      });
     } catch (err) {
       next(err);
     }
@@ -95,6 +108,23 @@ export default class RunbookAgentIngressAPI {
       const agent: RunbookAgent | undefined = req.runbookAgent;
       if (!agent || !agent.id || !agent.projectId) {
         throw new BadDataException("Agent not found on request");
+      }
+
+      /*
+       * The dashboard's runbook capability toggle, enforced here so revoking
+       * it actually stops the Runner from taking work — the container's own
+       * env var is the Runner's opinion, this row is the project's. Claiming
+       * is the only gate: heartbeats and in-flight job reporting stay open so
+       * a revoke mid-run still lands its result instead of stranding the step.
+       *
+       * Answered as "no work for you" rather than an error: a Runner started
+       * before the capability was revoked polls every few seconds, and a
+       * rejection would turn that into an error-level log flood on both
+       * sides. It picks the revocation up from the heartbeat on its next
+       * restart; until then it simply never receives a job.
+       */
+      if (agent.canRunRunbooks === false) {
+        return Response.sendJsonObjectResponse(req, res, { job: null });
       }
 
       /*

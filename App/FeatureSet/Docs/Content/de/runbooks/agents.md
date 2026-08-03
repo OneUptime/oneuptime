@@ -49,18 +49,18 @@ Führen Sie den Docker-Befehl auf einem beliebigen Host in Ihrer Umgebung aus, d
 - das tun kann, was Ihre Bash-/JavaScript-Schritte tun sollen (z. B. SSH zu anderen Hosts, `kubectl`, mit einer Datenbank sprechen).
 
 ```bash
-docker run --name oneuptime-runbook-agent --restart unless-stopped \
-  -e RUNBOOK_AGENT_ID=<agent-id> \
-  -e RUNBOOK_AGENT_KEY=<agent-key> \
+docker run --name oneuptime-runner --restart unless-stopped \
+  -e ONEUPTIME_RUNNER_ID=<agent-id> \
+  -e ONEUPTIME_RUNNER_KEY=<agent-key> \
   -e ONEUPTIME_URL=https://oneuptime.yourdomain.com \
-  -d oneuptime/runbook-agent:release
+  -d oneuptime/runner:release
 ```
 
 ### 4. Verifizieren, dass der Agent verbunden ist
 
 Gehen Sie zurück zu **Runbooks → Settings → Agents**. Innerhalb von ~60 Sekunden sollte die Zeile des Agents auf `Connected` umschalten und einen frischen **Last seen**-Zeitstempel zeigen. Wenn er auf `Disconnected` bleibt:
 
-- Prüfen Sie die Container-Logs (`docker logs oneuptime-runbook-agent`) auf Auth-Fehler oder Netzwerkprobleme.
+- Prüfen Sie die Container-Logs (`docker logs oneuptime-runner`) auf Auth-Fehler oder Netzwerkprobleme.
 - Verifizieren Sie, dass der Host Ihre OneUptime-URL mit `curl` erreicht.
 - Verifizieren Sie, dass ID und Schlüssel ohne Whitespace kopiert wurden.
 
@@ -92,8 +92,8 @@ Das Gesamt-Wartefenster des Workers beträgt `Claim-Timeout + Ausführungs-Timeo
 
 Zwei Dinge sollten Sie bedenken, wenn Sie den Claim-Timeout verringern:
 
-- Der Agent fragt in einem Poll-Zyklus nach neuen Jobs (`RUNBOOK_AGENT_POLL_INTERVAL_MS`, standardmäßig 5 Sekunden). Ein Claim-Timeout, der kürzer als ein Poll-Zyklus ist, kann ablaufen, bevor ein völlig gesunder Agent den Job überhaupt gesehen hat, und der Schritt schlägt dann mit derselben „kein Agent hat den Job beansprucht"-Meldung fehl, die Sie auch von einem Offline-Agent bekämen.
-- Ein Agent führt standardmäßig einen Job zur Zeit aus (`RUNBOOK_AGENT_CONCURRENCY`). Während ein langer Schritt ihn belegt, warten andere Schritte, die auf denselben Agent ausgerichtet sind, ihre eigenen Claim-Timeouts ab. Wenn Sie einen Ausführungs-Timeout auf mehrere Minuten erhöhen, erhöhen Sie den Claim-Timeout der Schritte, die sich diesen Agent teilen, entsprechend — oder geben Sie ihnen einen anderen Agent.
+- Der Agent fragt in einem Poll-Zyklus nach neuen Jobs (`ONEUPTIME_RUNNER_POLL_INTERVAL_MS`, standardmäßig 5 Sekunden). Ein Claim-Timeout, der kürzer als ein Poll-Zyklus ist, kann ablaufen, bevor ein völlig gesunder Agent den Job überhaupt gesehen hat, und der Schritt schlägt dann mit derselben „kein Agent hat den Job beansprucht"-Meldung fehl, die Sie auch von einem Offline-Agent bekämen.
+- Ein Agent führt standardmäßig einen Job zur Zeit aus (`ONEUPTIME_RUNNER_CONCURRENCY`). Während ein langer Schritt ihn belegt, warten andere Schritte, die auf denselben Agent ausgerichtet sind, ihre eigenen Claim-Timeouts ab. Wenn Sie einen Ausführungs-Timeout auf mehrere Minuten erhöhen, erhöhen Sie den Claim-Timeout der Schritte, die sich diesen Agent teilen, entsprechend — oder geben Sie ihnen einen anderen Agent.
 
 ### Lease und Heartbeat
 
@@ -115,7 +115,7 @@ Wenn Sie eine Runbook-Ausführung abbrechen (über die Ausführungsansicht oder 
 
 ### Parallelität
 
-Jeder Agent führt standardmäßig einen Job zur Zeit aus. Um mehr zuzulassen, setzen Sie `RUNBOOK_AGENT_CONCURRENCY` auf dem Agent-Container — denken Sie aber daran, dass der Agent den Host mit allem teilt, was sonst dort läuft.
+Jeder Agent führt standardmäßig einen Job zur Zeit aus. Um mehr zuzulassen, setzen Sie `ONEUPTIME_RUNNER_CONCURRENCY` auf dem Agent-Container — denken Sie aber daran, dass der Agent den Host mit allem teilt, was sonst dort läuft.
 
 ## Umgebungsvariablen
 
@@ -124,12 +124,12 @@ Der Agent liest diese beim Start ein:
 | Variable                                  | Erforderlich | Standard | Hinweise                                                                     |
 | ----------------------------------------- | ------------ | -------- | ---------------------------------------------------------------------------- |
 | `ONEUPTIME_URL`                           | ja           | —        | Basis-URL Ihrer OneUptime-Instanz, z. B. `https://oneuptime.yourdomain.com`. |
-| `RUNBOOK_AGENT_ID`                        | ja           | —        | Die UUID, die im Setup-Modal des Agents angezeigt wird.                      |
-| `RUNBOOK_AGENT_KEY`                       | ja           | —        | Das Secret, das im Setup-Modal des Agents angezeigt wird.                    |
-| `RUNBOOK_AGENT_POLL_INTERVAL_MS`          | nein         | `5000`   | Wie oft der Agent nach neuen Jobs fragt.                                     |
-| `RUNBOOK_AGENT_HEARTBEAT_INTERVAL_MS`     | nein         | `60000`  | Wie oft der Agent seine Lebenszeichen meldet.                                |
-| `RUNBOOK_AGENT_JOB_HEARTBEAT_INTERVAL_MS` | nein         | `10000`  | Wie oft der Agent den Lease eines laufenden Jobs erneuert.                   |
-| `RUNBOOK_AGENT_CONCURRENCY`               | nein         | `1`      | Maximale gleichzeitige Jobs auf diesem Agent.                                |
+| `ONEUPTIME_RUNNER_ID`                        | ja           | —        | Die UUID, die im Setup-Modal des Agents angezeigt wird.                      |
+| `ONEUPTIME_RUNNER_KEY`                       | ja           | —        | Das Secret, das im Setup-Modal des Agents angezeigt wird.                    |
+| `ONEUPTIME_RUNNER_POLL_INTERVAL_MS`          | nein         | `5000`   | Wie oft der Agent nach neuen Jobs fragt.                                     |
+| `ONEUPTIME_RUNNER_HEARTBEAT_INTERVAL_MS`     | nein         | `60000`  | Wie oft der Agent seine Lebenszeichen meldet.                                |
+| `ONEUPTIME_RUNNER_JOB_HEARTBEAT_INTERVAL_MS` | nein         | `10000`  | Wie oft der Agent den Lease eines laufenden Jobs erneuert.                   |
+| `ONEUPTIME_RUNNER_CONCURRENCY`               | nein         | `1`      | Maximale gleichzeitige Jobs auf diesem Agent.                                |
 
 ## Einen Agent-Schlüssel rotieren
 
@@ -146,7 +146,7 @@ Berechtigungen, um ein Runbook _auszulösen_ (und damit Bash- und JavaScript-Sch
 
 ## Agent-seitiges API
 
-Für die Neugierigen — der Agent verwendet diese Endpoints, gemountet unter `/runbook-agent-ingest`. Sie werden über die ID + den Schlüssel des Agents im JSON-Body (oder die Header `x-agent-id` / `x-agent-key`) authentifiziert.
+Für die Neugierigen — der Agent verwendet diese Endpoints, gemountet unter `/runner-ingest`. Sie werden über die ID + den Schlüssel des Agents im JSON-Body (oder die Header `x-agent-id` / `x-agent-key`) authentifiziert.
 
 | Endpoint                     | Zweck                                                                                                                                    |
 | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |

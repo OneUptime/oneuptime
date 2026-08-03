@@ -55,6 +55,7 @@ const RunbookAgentsPage: FunctionComponent<
         selectMoreFields={{
           _id: true,
           key: true,
+          canRunCodeFixTasks: true,
         }}
         noItemsMessage={
           "No runbook agents yet. Create one, then run the Docker command on a host inside your infrastructure."
@@ -76,6 +77,24 @@ const RunbookAgentsPage: FunctionComponent<
             required: false,
             placeholder:
               "Runs inside the production EU cluster. Can reach internal services.",
+          },
+          {
+            field: { canRunRunbooks: true },
+            title: "Runs Runbooks",
+            description:
+              "Let this Runner execute runbook Bash and JavaScript steps on the host it runs on. On by default — this is why most Runners are installed.",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            defaultValue: true,
+          },
+          {
+            field: { canRunCodeFixTasks: true },
+            title: "Runs AI Code Fixes",
+            description:
+              "Let this Runner work in the code repositories connected to this project and open draft pull requests. Off by default; it needs a connected repository. The Runner picks this up when it restarts.",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            defaultValue: false,
           },
           {
             field: { labels: true },
@@ -183,6 +202,28 @@ const RunbookAgentsPage: FunctionComponent<
                 return <span className="text-gray-500">Never</span>;
               }
               return <span>{OneUptimeDate.fromNow(item.lastAlive)}</span>;
+            },
+          },
+          {
+            field: { canRunRunbooks: true },
+            title: "Capabilities",
+            type: FieldType.Element,
+            getElement: (item: RunbookAgent): ReactElement => {
+              const capabilities: Array<string> = [];
+
+              if (item.canRunRunbooks !== false) {
+                capabilities.push("Runbooks");
+              }
+
+              if (item.canRunCodeFixTasks === true) {
+                capabilities.push("AI code fixes");
+              }
+
+              if (capabilities.length === 0) {
+                return <span className="text-gray-500">None</span>;
+              }
+
+              return <span>{capabilities.join(", ")}</span>;
             },
           },
           {

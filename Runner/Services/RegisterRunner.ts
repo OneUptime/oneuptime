@@ -1,10 +1,13 @@
 import {
   ONEUPTIME_BASE_URL,
   RUNNER_ID,
+  RUNNER_INGEST_URL,
   RUNNER_KEY,
   RUNNER_NAME,
   RUNNER_DESCRIPTION,
+  RUNNER_VERSION,
 } from "../Config";
+import RunnerCapabilities from "../Utils/RunnerCapabilities";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
 import { JSONObject } from "Common/Types/JSON";
@@ -121,10 +124,16 @@ export default class Register {
       LocalCache.setString("RUNNER", "RUNNER_ID", aiAgentId);
     } else {
       /*
-       * Non-clustered mode: validate the AI agent by sending an alive
-       * request. A missing RUNNER_ID is thrown (NOT process.exit) so the
-       * retry-forever loop keeps the container alive and logging the
-       * misconfiguration — a crash loop hides the message.
+       * Project-scoped mode: the id and key were issued by the dashboard
+       * (Runbooks > Runners), so they identify a RunbookAgent row. Validate
+       * them against the Runner work mount, which is the endpoint that
+       * authenticates against that table — the AIAgent alive endpoint would
+       * reject them, since no AIAgent row is ever created for a
+       * dashboard-issued Runner.
+       *
+       * A missing RUNNER_ID is thrown (NOT process.exit) so the retry-forever
+       * loop keeps the container alive and logging the misconfiguration — a
+       * crash loop hides the message.
        */
       if (!RUNNER_ID) {
         throw new Error(
@@ -132,24 +141,25 @@ export default class Register {
         );
       }
 
-      const aliveUrl: URL = URL.fromString(
-        ONEUPTIME_BASE_URL.toString(),
-      ).addRoute("/api/ai-agent/alive");
+      const heartbeatUrl: URL = URL.fromString(
+        RUNNER_INGEST_URL.toString(),
+      ).addRoute("/heartbeat");
 
       logger.debug("Registering Runner...", {
-        aiAgentId: RUNNER_ID?.toString(),
+        runnerId: RUNNER_ID?.toString(),
         runnerName: RUNNER_NAME,
       } as LogAttributes);
-      logger.debug("Sending request to: " + aliveUrl.toString(), {
-        aiAgentId: RUNNER_ID?.toString(),
+      logger.debug("Sending request to: " + heartbeatUrl.toString(), {
+        runnerId: RUNNER_ID?.toString(),
         runnerName: RUNNER_NAME,
       } as LogAttributes);
 
       const result: HTTPResponse<JSONObject> = await API.post({
-        url: aliveUrl,
+        url: heartbeatUrl,
         data: {
-          aiAgentKey: RUNNER_KEY.toString(),
-          aiAgentId: RUNNER_ID.toString(),
+          agentId: RUNNER_ID.toString(),
+          agentKey: RUNNER_KEY.toString(),
+          agentVersion: RUNNER_VERSION,
         },
       });
 
@@ -159,12 +169,66 @@ export default class Register {
           "RUNNER_ID",
           RUNNER_ID.toString() as string,
         );
+
+        /*
+         * The dashboard's capability toggles for this Runner. Absent when the
+         * server predates them — RunnerCapabilities then keeps the historical
+         * env-var behaviour.
+         */
+        const capabilities: JSONObject | undefined = result.data[
+          "capabilities"
+        ] as JSONObject | undefined;
+
+        if (capabilities) {
+          RunnerCapabilities.setGrantedByServer({
+            canRunRunbooks: capabilities["canRunRunbooks"] !== false,
+            canRunCodeFixTasks: capabilities["canRunCodeFixTasks"] === true,
+          });
+        }
+
         logger.debug("Runner registered successfully", {
-          aiAgentId: RUNNER_ID?.toString(),
+          runnerId: RUNNER_ID?.toString(),
           runnerName: RUNNER_NAME,
         } as LogAttributes);
       } else {
-        throw new Error("Failed to register Runner: " + result.statusCode);
+        /*
+         * The credentials may predate the Runner merge — an AI Agent's id and
+         * key, which live in a different table and validate on a different
+         * endpoint. Fall back to it so an upgraded container with old
+         * credentials still comes up; it keeps the code-fix capability, which
+         * is all an AI Agent ever had.
+         */
+        const aliveUrl: URL = URL.fromString(
+          ONEUPTIME_BASE_URL.toString(),
+        ).addRoute("/api/ai-agent/alive");
+
+        const legacyResult: HTTPResponse<JSONObject> = await API.post({
+          url: aliveUrl,
+          data: {
+            aiAgentId: RUNNER_ID.toString(),
+            aiAgentKey: RUNNER_KEY.toString(),
+          },
+        });
+
+        if (!legacyResult.isSuccess()) {
+          throw new Error("Failed to register Runner: " + result.statusCode);
+        }
+
+        LocalCache.setString(
+          "RUNNER",
+          "RUNNER_ID",
+          RUNNER_ID.toString() as string,
+        );
+
+        RunnerCapabilities.setGrantedByServer({
+          canRunRunbooks: false,
+          canRunCodeFixTasks: true,
+        });
+
+        logger.warn(
+          "Registered with legacy AI Agent credentials. Create a Runner under Runbooks > Runners and switch to its id and key — runbook execution needs one.",
+          { runnerName: RUNNER_NAME } as LogAttributes,
+        );
       }
     }
 

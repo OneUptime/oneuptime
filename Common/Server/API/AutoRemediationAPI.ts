@@ -15,10 +15,15 @@ import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException
 import AutoRemediationSuggestionStatus from "../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
 import AutoRemediationVerificationStatus from "../../Types/AutoRemediation/AutoRemediationVerificationStatus";
 import { DEFAULT_VERIFICATION_WINDOW_MINUTES } from "../Services/AutoRemediationRuleEngineService";
-import Permission, {
-  UserPermission,
-  UserTenantAccessPermission,
-} from "../../Types/Permission";
+/*
+ * Approving starts a runbook execution, so reading the suggestion is not
+ * authority enough — the caller must hold a permission from
+ * RunbookExecution's own create ACL. Without this, the read-check-as-gate
+ * idiom would let anyone who can see the suggestion run infrastructure
+ * scripts. Shared with the runbook routes so the two surfaces can never
+ * disagree about who may start an execution.
+ */
+import { assertCanExecuteRunbooks } from "../Utils/Runbook/RunbookExecutePermission";
 import { Indigo500 } from "../../Types/BrandColors";
 import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
@@ -87,42 +92,6 @@ async function findAccessibleSuggestion(
   }
 
   return suggestion.id;
-}
-
-/*
- * Approving starts a runbook execution, so reading the suggestion is not
- * authority enough — the caller must hold a permission from
- * RunbookExecution's own create ACL. Without this, the read-check-as-gate
- * idiom would let anyone who can see the suggestion run infrastructure
- * scripts.
- */
-const RUNBOOK_EXECUTE_PERMISSIONS: Array<Permission> = [
-  Permission.ProjectOwner,
-  Permission.ProjectAdmin,
-  Permission.ProjectMember,
-  Permission.CreateRunbookExecution,
-  Permission.RunbookAdmin,
-  Permission.RunbookMember,
-];
-
-function assertCanExecuteRunbooks(
-  props: DatabaseCommonInteractionProps,
-  projectId: ObjectID,
-): void {
-  const tenantPermission: UserTenantAccessPermission | undefined =
-    props.userTenantAccessPermission?.[projectId.toString()];
-
-  const hasPermission: boolean = Boolean(
-    tenantPermission?.permissions?.some((p: UserPermission): boolean => {
-      return RUNBOOK_EXECUTE_PERMISSIONS.includes(p.permission);
-    }),
-  );
-
-  if (!hasPermission) {
-    throw new NotAuthorizedException(
-      "You do not have permission to start runbook executions in this project.",
-    );
-  }
 }
 
 async function loadSuggestionAsRoot(

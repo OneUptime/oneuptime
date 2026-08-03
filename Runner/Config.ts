@@ -71,18 +71,43 @@ export const RUNNER_DESCRIPTION: string | null =
 export const RUNNER_VERSION: string = process.env["APP_VERSION"] || "1.0.0";
 
 /*
- * Capabilities. Runbook execution is on unless explicitly disabled; code-fix
- * execution is opt-in because it needs a connected code repository and
- * writes pull requests.
+ * Capabilities.
+ *
+ * For a project-scoped Runner the dashboard is the control plane — the
+ * capabilities come back from registration — and these env vars are a local
+ * override that can only ever turn a capability OFF. Left unset they say
+ * nothing, which is why they are tri-state rather than boolean.
+ *
+ * A cluster-scoped Runner has no dashboard row, so for it these are the whole
+ * answer: runbooks off (it can never be targeted by a step), code fixes
+ * opt-in because they clone repositories and open pull requests.
  */
-export const ENABLE_RUNBOOKS: boolean =
-  (process.env["ONEUPTIME_RUNNER_ENABLE_RUNBOOKS"] || "true").toLowerCase() !==
-  "false";
+const FALSE_SPELLINGS: Array<string> = ["false", "0", "no", "off"];
 
-export const ENABLE_CODE_FIXES: boolean =
-  (
-    process.env["ONEUPTIME_RUNNER_ENABLE_CODE_FIXES"] || "false"
-  ).toLowerCase() === "true";
+function parseCapabilityOverride(value: string | undefined): boolean | null {
+  if (value === undefined || value === "") {
+    return null;
+  }
+
+  return !FALSE_SPELLINGS.includes(value.trim().toLowerCase());
+}
+
+export const ENABLE_RUNBOOKS_OVERRIDE: boolean | null = parseCapabilityOverride(
+  process.env["ONEUPTIME_RUNNER_ENABLE_RUNBOOKS"],
+);
+
+export const ENABLE_CODE_FIXES_OVERRIDE: boolean | null =
+  parseCapabilityOverride(process.env["ONEUPTIME_RUNNER_ENABLE_CODE_FIXES"]);
+
+/*
+ * What a cluster-scoped Runner runs, where no dashboard row exists to consult.
+ * Code fixes are the only work it can do — runbook steps target a Runner a
+ * human picked in a project — so they are ON unless explicitly turned off.
+ * Defaulting them off would leave the in-cluster Runner with no capability at
+ * all, which is a boot failure, not a safe default.
+ */
+export const CLUSTER_ENABLE_CODE_FIXES: boolean =
+  ENABLE_CODE_FIXES_OVERRIDE !== false;
 
 /*
  * The runbook work mount on the OneUptime app:

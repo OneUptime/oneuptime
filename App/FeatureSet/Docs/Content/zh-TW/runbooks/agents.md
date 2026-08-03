@@ -49,18 +49,18 @@ Runbook 代理程式將這一點反轉過來。Bash 與 JavaScript 步驟不會�
 - 能執行您希望 Bash/JavaScript 步驟所執行的事情（例如 SSH 連到其他主機、`kubectl`、與資料庫溝通）。
 
 ```bash
-docker run --name oneuptime-runbook-agent --restart unless-stopped \
-  -e RUNBOOK_AGENT_ID=<agent-id> \
-  -e RUNBOOK_AGENT_KEY=<agent-key> \
+docker run --name oneuptime-runner --restart unless-stopped \
+  -e ONEUPTIME_RUNNER_ID=<agent-id> \
+  -e ONEUPTIME_RUNNER_KEY=<agent-key> \
   -e ONEUPTIME_URL=https://oneuptime.yourdomain.com \
-  -d oneuptime/runbook-agent:release
+  -d oneuptime/runner:release
 ```
 
 ### 4. 確認代理程式已連線
 
 回到 **Runbooks → Settings → Agents**。約在 60 秒內，該代理程式所在列應會切換為 `Connected`，並顯示一個最新的 **Last seen** 時間戳記。如果它仍維持在 `Disconnected`：
 
-- 檢查容器記錄（`docker logs oneuptime-runbook-agent`），看看是否有驗證錯誤或網路失敗。
+- 檢查容器記錄（`docker logs oneuptime-runner`），看看是否有驗證錯誤或網路失敗。
 - 以 `curl` 確認該主機能連到您的 OneUptime URL。
 - 確認 ID 與金鑰在複製時沒有夾帶空白字元。
 
@@ -92,8 +92,8 @@ Worker 的整體等待時間區間為 `claim timeout + execution timeout + a few
 
 當您調低 claim timeout 時，有兩件事要留意：
 
-- 代理程式是依輪詢週期來索取作業（`RUNBOOK_AGENT_POLL_INTERVAL_MS`，預設為 5 秒）。比一個輪詢週期還短的 claim timeout，可能在一個完全正常的代理程式甚至還沒看到該作業之前就已經到期，該步驟接著便會以與離線代理程式相同的那則「no agent claimed the job」訊息失敗。
-- 代理程式預設一次只執行一筆作業（`RUNBOOK_AGENT_CONCURRENCY`）。當某個耗時較久的步驟佔用著它時，其他指向同一個代理程式的步驟就只能等著自己的 claim timeout 耗盡。如果您將某個 execution timeout 調高到數分鐘，請將共用該代理程式的那些步驟的 claim timeout 一併調高到相符的程度，或是為它們指定另一個代理程式。
+- 代理程式是依輪詢週期來索取作業（`ONEUPTIME_RUNNER_POLL_INTERVAL_MS`，預設為 5 秒）。比一個輪詢週期還短的 claim timeout，可能在一個完全正常的代理程式甚至還沒看到該作業之前就已經到期，該步驟接著便會以與離線代理程式相同的那則「no agent claimed the job」訊息失敗。
+- 代理程式預設一次只執行一筆作業（`ONEUPTIME_RUNNER_CONCURRENCY`）。當某個耗時較久的步驟佔用著它時，其他指向同一個代理程式的步驟就只能等著自己的 claim timeout 耗盡。如果您將某個 execution timeout 調高到數分鐘，請將共用該代理程式的那些步驟的 claim timeout 一併調高到相符的程度，或是為它們指定另一個代理程式。
 
 ### 租約與心跳
 
@@ -115,7 +115,7 @@ Worker 的整體等待時間區間為 `claim timeout + execution timeout + a few
 
 ### 並行
 
-每個代理程式預設一次執行一筆作業。若要允許更多筆，請在代理程式容器上設定 `RUNBOOK_AGENT_CONCURRENCY`，但請記得該代理程式是與該主機上的其他任何東西共用這台主機的。
+每個代理程式預設一次執行一筆作業。若要允許更多筆，請在代理程式容器上設定 `ONEUPTIME_RUNNER_CONCURRENCY`，但請記得該代理程式是與該主機上的其他任何東西共用這台主機的。
 
 ## 環境變數
 
@@ -124,12 +124,12 @@ Worker 的整體等待時間區間為 `claim timeout + execution timeout + a few
 | 變數                                      | 是否必填 | 預設值  | 說明                                                                       |
 | ----------------------------------------- | -------- | ------- | -------------------------------------------------------------------------- |
 | `ONEUPTIME_URL`                           | 是       | —       | 您 OneUptime 執行個體的基底 URL，例如 `https://oneuptime.yourdomain.com`。 |
-| `RUNBOOK_AGENT_ID`                        | 是       | —       | 代理程式設定對話框中所顯示的 UUID。                                        |
-| `RUNBOOK_AGENT_KEY`                       | 是       | —       | 代理程式設定對話框中所顯示的祕密金鑰。                                     |
-| `RUNBOOK_AGENT_POLL_INTERVAL_MS`          | 否       | `5000`  | 代理程式輪詢新作業的頻率。                                                 |
-| `RUNBOOK_AGENT_HEARTBEAT_INTERVAL_MS`     | 否       | `60000` | 代理程式回報存活狀態的頻率。                                               |
-| `RUNBOOK_AGENT_JOB_HEARTBEAT_INTERVAL_MS` | 否       | `10000` | 代理程式續訂執行中作業租約的頻率。                                         |
-| `RUNBOOK_AGENT_CONCURRENCY`               | 否       | `1`     | 此代理程式上同時執行的作業數上限。                                         |
+| `ONEUPTIME_RUNNER_ID`                        | 是       | —       | 代理程式設定對話框中所顯示的 UUID。                                        |
+| `ONEUPTIME_RUNNER_KEY`                       | 是       | —       | 代理程式設定對話框中所顯示的祕密金鑰。                                     |
+| `ONEUPTIME_RUNNER_POLL_INTERVAL_MS`          | 否       | `5000`  | 代理程式輪詢新作業的頻率。                                                 |
+| `ONEUPTIME_RUNNER_HEARTBEAT_INTERVAL_MS`     | 否       | `60000` | 代理程式回報存活狀態的頻率。                                               |
+| `ONEUPTIME_RUNNER_JOB_HEARTBEAT_INTERVAL_MS` | 否       | `10000` | 代理程式續訂執行中作業租約的頻率。                                         |
+| `ONEUPTIME_RUNNER_CONCURRENCY`               | 否       | `1`     | 此代理程式上同時執行的作業數上限。                                         |
 
 ## 輪替代理程式金鑰
 
@@ -146,7 +146,7 @@ _觸發_ runbook（並因而導致 Bash 與 JavaScript 步驟被派發）的權�
 
 ## 代理程式端 API
 
-供有興趣者參考 — 代理程式使用這些端點，掛載在 `/runbook-agent-ingest` 之下。它們透過 JSON 主體中的代理程式 ID + 金鑰（或 `x-agent-id` / `x-agent-key` 標頭）進行驗證。
+供有興趣者參考 — 代理程式使用這些端點，掛載在 `/runner-ingest` 之下。它們透過 JSON 主體中的代理程式 ID + 金鑰（或 `x-agent-id` / `x-agent-key` 標頭）進行驗證。
 
 | 端點                         | 用途                                                                                                          |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------- |

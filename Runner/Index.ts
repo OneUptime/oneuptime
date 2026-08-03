@@ -1,6 +1,5 @@
 import {
-  ENABLE_CODE_FIXES,
-  ENABLE_RUNBOOKS,
+  ENABLE_CODE_FIXES_OVERRIDE,
   IS_CLUSTER_SCOPED,
   ONEUPTIME_BASE_URL,
   POLL_INTERVAL_MS,
@@ -13,6 +12,9 @@ import startCodeFixPolling from "./Jobs/PollCodeFixWork";
 import startCodeFixAlive from "./Jobs/CodeFixAlive";
 import Register from "./Services/RegisterRunner";
 import RunnerIdentity from "./Utils/RunnerIdentity";
+import RunnerCapabilities, {
+  RunnerCapabilitySet,
+} from "./Utils/RunnerCapabilities";
 import MetricsAPI from "./API/Metrics";
 import {
   getTaskHandlerRegistry,
@@ -56,19 +58,9 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     logger.info(
       `OneUptime Runner ${RUNNER_VERSION} starting | server=${ONEUPTIME_BASE_URL.toString()} | scope=${
         IS_CLUSTER_SCOPED ? "cluster" : "project"
-      } | runbooks=${ENABLE_RUNBOOKS ? "on" : "off"} | codeFixes=${
-        ENABLE_CODE_FIXES ? "on" : "off"
       } | poll=${POLL_INTERVAL_MS}ms`,
       { serviceName: APP_NAME } as LogAttributes,
     );
-
-    if (!ENABLE_RUNBOOKS && !ENABLE_CODE_FIXES) {
-      logger.error(
-        "Both capabilities are disabled — this Runner would do nothing. Enable ONEUPTIME_RUNNER_ENABLE_RUNBOOKS or ONEUPTIME_RUNNER_ENABLE_CODE_FIXES.",
-        { serviceName: APP_NAME } as LogAttributes,
-      );
-      process.exit(1);
-    }
 
     await App.init({
       appName: APP_NAME,
@@ -94,22 +86,73 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
      */
     await Register.registerRunner();
 
-    logger.debug(
-      `Runner registered | runnerId=${RunnerIdentity.getRunnerId().toString()}`,
+    /*
+     * Registration is what tells a project-scoped Runner which capabilities
+     * its project granted it, so this can only be resolved afterwards.
+     */
+    const capabilities: RunnerCapabilitySet = RunnerCapabilities.resolve();
+
+    logger.info(
+      `Runner registered | runnerId=${RunnerIdentity.getRunnerId().toString()} | runbooks=${
+        capabilities.canRunRunbooks ? "on" : "off"
+      } | codeFixes=${capabilities.canRunCodeFixTasks ? "on" : "off"}`,
       { serviceName: APP_NAME } as LogAttributes,
     );
 
-    startHeartbeat();
+    /*
+     * No capability is a misconfiguration, not a crash: the container stays
+     * up and keeps heartbeating so the dashboard still shows the Runner
+     * connected and an operator can grant it a capability there. Exiting
+     * would restart-loop it into looking permanently offline, which is the
+     * opposite of the signal they need.
+     */
+    if (!capabilities.canRunRunbooks && !capabilities.canRunCodeFixTasks) {
+      logger.error(
+        IS_CLUSTER_SCOPED
+          ? "No capability is enabled — this cluster-scoped Runner has nothing to do. Set ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=true, or install a project-scoped Runner to execute runbooks."
+          : "No capability is enabled — this Runner has nothing to do. Enable 'Runs Runbooks' or 'Runs AI Code Fixes' on this Runner in your OneUptime dashboard, then restart it.",
+        { serviceName: APP_NAME } as LogAttributes,
+      );
+    }
 
-    if (ENABLE_RUNBOOKS) {
+    /*
+     * A local override that contradicts what the project granted is worth
+     * saying out loud: the server counts this Runner as able to take code-fix
+     * work, so runs will be queued for it and nothing here will claim them.
+     */
+    if (
+      !IS_CLUSTER_SCOPED &&
+      ENABLE_CODE_FIXES_OVERRIDE === false &&
+      RunnerCapabilities.wasGrantedCodeFixesByServer()
+    ) {
+      logger.warn(
+        "This project granted this Runner the AI code-fix capability, but ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=false on this host refuses it. Code-fix runs will sit queued. Remove the override, or turn 'Runs AI Code Fixes' off in the dashboard.",
+        { serviceName: APP_NAME } as LogAttributes,
+      );
+    }
+
+    /*
+     * The heartbeat keeps the dashboard's Runner row Connected, and that row's
+     * lastAlive is also how the server knows a project has an agent able to
+     * take code-fix work. It authenticates against that row, so it only
+     * applies to a project-scoped Runner; the cluster-scoped one reports its
+     * liveness on the code-fix identity instead (startCodeFixAlive below).
+     */
+    if (!IS_CLUSTER_SCOPED) {
+      startHeartbeat();
+    }
+
+    if (capabilities.canRunRunbooks) {
       startRunbookPolling();
       logger.info("Runbook capability enabled — polling for runbook steps.", {
         serviceName: APP_NAME,
       } as LogAttributes);
     }
 
-    if (ENABLE_CODE_FIXES) {
-      startCodeFixAlive();
+    if (capabilities.canRunCodeFixTasks) {
+      if (IS_CLUSTER_SCOPED) {
+        startCodeFixAlive();
+      }
 
       const registry: ReturnType<typeof getTaskHandlerRegistry> =
         getTaskHandlerRegistry();

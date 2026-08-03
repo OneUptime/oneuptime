@@ -49,18 +49,18 @@ Runbook エージェントはこれを逆転させます。Bash と JavaScript �
 - Bash/JavaScript ステップで行いたいこと (他のホストへの SSH、`kubectl`、データベースとの通信など) ができる。
 
 ```bash
-docker run --name oneuptime-runbook-agent --restart unless-stopped \
-  -e RUNBOOK_AGENT_ID=<agent-id> \
-  -e RUNBOOK_AGENT_KEY=<agent-key> \
+docker run --name oneuptime-runner --restart unless-stopped \
+  -e ONEUPTIME_RUNNER_ID=<agent-id> \
+  -e ONEUPTIME_RUNNER_KEY=<agent-key> \
   -e ONEUPTIME_URL=https://oneuptime.yourdomain.com \
-  -d oneuptime/runbook-agent:release
+  -d oneuptime/runner:release
 ```
 
 ### 4. エージェントが接続されているか確認する
 
 **Runbooks → 設定 → エージェント** に戻ります。約 60 秒以内に、エージェントの行が `Connected` に切り替わり、**最終確認時刻** が更新されているはずです。`Disconnected` のままなら:
 
-- コンテナログ (`docker logs oneuptime-runbook-agent`) を確認して認証エラーやネットワーク障害を探す。
+- コンテナログ (`docker logs oneuptime-runner`) を確認して認証エラーやネットワーク障害を探す。
 - ホストから `curl` で OneUptime URL に到達できるか確認。
 - ID とキーが空白なしでコピーされているか確認。
 
@@ -92,8 +92,8 @@ Runbook が動いてそのステップに達すると、ワーカーはそのエ
 
 取得タイムアウトを短くするときに覚えておきたいことが 2 つあります:
 
-- エージェントはポーリング間隔 (`RUNBOOK_AGENT_POLL_INTERVAL_MS`、デフォルト 5 秒) ごとに仕事がないか問い合わせます。ポーリング 1 回分より短い取得タイムアウトは、正常に動いているエージェントがジョブに気づく前に切れてしまうことがあり、その場合ステップはオフラインのエージェントのときと同じ「ジョブを取得したエージェントがいません」というメッセージで失敗します。
-- エージェントはデフォルトで一度に 1 ジョブだけ動かします (`RUNBOOK_AGENT_CONCURRENCY`)。時間のかかるステップがエージェントを占有している間、同じエージェントに向けられた他のステップは自分の取得タイムアウトを消費しながら待つことになります。実行タイムアウトを数分に上げるなら、そのエージェントを共有するステップの取得タイムアウトも合わせて上げてください — あるいは別のエージェントを割り当ててください。
+- エージェントはポーリング間隔 (`ONEUPTIME_RUNNER_POLL_INTERVAL_MS`、デフォルト 5 秒) ごとに仕事がないか問い合わせます。ポーリング 1 回分より短い取得タイムアウトは、正常に動いているエージェントがジョブに気づく前に切れてしまうことがあり、その場合ステップはオフラインのエージェントのときと同じ「ジョブを取得したエージェントがいません」というメッセージで失敗します。
+- エージェントはデフォルトで一度に 1 ジョブだけ動かします (`ONEUPTIME_RUNNER_CONCURRENCY`)。時間のかかるステップがエージェントを占有している間、同じエージェントに向けられた他のステップは自分の取得タイムアウトを消費しながら待つことになります。実行タイムアウトを数分に上げるなら、そのエージェントを共有するステップの取得タイムアウトも合わせて上げてください — あるいは別のエージェントを割り当ててください。
 
 ### リースとハートビート
 
@@ -115,7 +115,7 @@ Runbook 実行をキャンセル (実行ビューまたは API から) すると
 
 ### 並列実行
 
-各エージェントはデフォルトで一度に 1 ジョブだけ動かします。もっと許可するには、エージェントコンテナで `RUNBOOK_AGENT_CONCURRENCY` を設定します — ただしエージェントはそのホスト上にあるものとリソースを共有することを忘れずに。
+各エージェントはデフォルトで一度に 1 ジョブだけ動かします。もっと許可するには、エージェントコンテナで `ONEUPTIME_RUNNER_CONCURRENCY` を設定します — ただしエージェントはそのホスト上にあるものとリソースを共有することを忘れずに。
 
 ## 環境変数
 
@@ -124,12 +124,12 @@ Runbook 実行をキャンセル (実行ビューまたは API から) すると
 | 変数                                      | 必須   | デフォルト | 注意                                                                         |
 | ----------------------------------------- | ------ | ---------- | ---------------------------------------------------------------------------- |
 | `ONEUPTIME_URL`                           | はい   | —          | OneUptime インスタンスのベース URL、例: `https://oneuptime.yourdomain.com`。 |
-| `RUNBOOK_AGENT_ID`                        | はい   | —          | エージェントのセットアップモーダルに表示される UUID。                        |
-| `RUNBOOK_AGENT_KEY`                       | はい   | —          | エージェントのセットアップモーダルに表示されるシークレット。                 |
-| `RUNBOOK_AGENT_POLL_INTERVAL_MS`          | いいえ | `5000`     | 新規ジョブのポーリング間隔。                                                 |
-| `RUNBOOK_AGENT_HEARTBEAT_INTERVAL_MS`     | いいえ | `60000`    | エージェントが生存報告する間隔。                                             |
-| `RUNBOOK_AGENT_JOB_HEARTBEAT_INTERVAL_MS` | いいえ | `10000`    | 動いているジョブのリース更新間隔。                                           |
-| `RUNBOOK_AGENT_CONCURRENCY`               | いいえ | `1`        | このエージェントでの同時ジョブ数の上限。                                     |
+| `ONEUPTIME_RUNNER_ID`                        | はい   | —          | エージェントのセットアップモーダルに表示される UUID。                        |
+| `ONEUPTIME_RUNNER_KEY`                       | はい   | —          | エージェントのセットアップモーダルに表示されるシークレット。                 |
+| `ONEUPTIME_RUNNER_POLL_INTERVAL_MS`          | いいえ | `5000`     | 新規ジョブのポーリング間隔。                                                 |
+| `ONEUPTIME_RUNNER_HEARTBEAT_INTERVAL_MS`     | いいえ | `60000`    | エージェントが生存報告する間隔。                                             |
+| `ONEUPTIME_RUNNER_JOB_HEARTBEAT_INTERVAL_MS` | いいえ | `10000`    | 動いているジョブのリース更新間隔。                                           |
+| `ONEUPTIME_RUNNER_CONCURRENCY`               | いいえ | `1`        | このエージェントでの同時ジョブ数の上限。                                     |
 
 ## エージェントのキーをローテーションする
 
@@ -146,7 +146,7 @@ Runbook を*起動する* (したがって Bash と JavaScript ステップを�
 
 ## エージェント向け API
 
-気になる方へ — エージェントは次のエンドポイントを使用します。すべて `/runbook-agent-ingest` の下にマウントされ、JSON ボディ内のエージェント ID + キー (または `x-agent-id` / `x-agent-key` ヘッダー) で認証されます。
+気になる方へ — エージェントは次のエンドポイントを使用します。すべて `/runner-ingest` の下にマウントされ、JSON ボディ内のエージェント ID + キー (または `x-agent-id` / `x-agent-key` ヘッダー) で認証されます。
 
 | エンドポイント               | 用途                                                                                                                       |
 | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------- |

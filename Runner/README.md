@@ -8,10 +8,14 @@ inbound connections and never exposes a port to OneUptime.
 
 It serves two kinds of work, each independently switchable:
 
-| Capability | Env var | Default | What it does |
-| --- | --- | --- | --- |
-| Runbooks | `ONEUPTIME_RUNNER_ENABLE_RUNBOOKS` | `true` | Claims Bash and JavaScript runbook steps and executes them here, so the systems being operated on never need to be reachable from OneUptime. |
-| AI code fixes | `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES` | `false` | Claims AI code-fix runs, works in your connected code repositories and opens **draft** pull requests. Never writes to the default or protected branches. |
+| Capability | Default | What it does |
+| --- | --- | --- |
+| Runs Runbooks | on | Claims Bash and JavaScript runbook steps and executes them here, so the systems being operated on never need to be reachable from OneUptime. |
+| Runs AI Code Fixes | off | Claims AI code-fix runs, works in your connected code repositories and opens **draft** pull requests. Never writes to the default or protected branches. |
+
+Capabilities are set **in the dashboard**, on the Runner itself — the container
+picks them up when it starts, and turning one off stops the Runner taking that
+work right away. Nothing needs to be redeployed to revoke a capability.
 
 ## Install
 
@@ -26,8 +30,8 @@ docker run --name oneuptime-runner --restart unless-stopped \
   -d oneuptime/runner:release
 ```
 
-To let this Runner open AI fix pull requests as well, add
-`-e ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=true`.
+To let this Runner open AI fix pull requests as well, turn on **Runs AI Code
+Fixes** on the Runner in the dashboard and restart the container.
 
 ## Configuration
 
@@ -37,8 +41,8 @@ To let this Runner open AI fix pull requests as well, add
 | `ONEUPTIME_RUNNER_ID` | — | Required for project-scoped Runners (the normal case). |
 | `ONEUPTIME_RUNNER_KEY` | — | Required. Shown once at creation; rotate by resetting it in the dashboard. |
 | `ONEUPTIME_RUNNER_NAME` | — | Optional friendly name. |
-| `ONEUPTIME_RUNNER_ENABLE_RUNBOOKS` | `true` | Set `false` to make this a code-fix-only Runner. |
-| `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES` | `false` | Set `true` to enable the code-fix capability. |
+| `ONEUPTIME_RUNNER_ENABLE_RUNBOOKS` | unset | Local override. Only `false` has an effect: it refuses runbook work on this host even when the dashboard grants it. |
+| `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES` | unset | Local override, same rule. Required (`true`) only for the in-cluster Runner, which has no dashboard row. |
 | `ONEUPTIME_RUNNER_CONCURRENCY` | `1` | Max runbook jobs executed at once. |
 | `ONEUPTIME_RUNNER_POLL_INTERVAL_MS` | `5000` | How often it asks for work. |
 | `ONEUPTIME_RUNNER_HEARTBEAT_INTERVAL_MS` | `60000` | Liveness reporting cadence. |

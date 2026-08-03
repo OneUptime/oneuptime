@@ -8,7 +8,6 @@ import React, { FunctionComponent, ReactElement } from "react";
 export interface ComponentProps {
   agentId: ObjectID;
   agentKey: string;
-  canRunCodeFixTasks?: boolean | undefined;
 }
 
 const RunnerInstallInstructions: FunctionComponent<ComponentProps> = (
@@ -16,15 +15,11 @@ const RunnerInstallInstructions: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const host: string = `${HTTP_PROTOCOL}${HOST}`;
 
-  const codeFixLine: string = props.canRunCodeFixTasks
-    ? `  -e ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=true \\\n`
-    : "";
-
   const dockerCommand: string = `docker run --name oneuptime-runner --restart unless-stopped \\
   -e ONEUPTIME_RUNNER_ID=${props.agentId.toString()} \\
   -e ONEUPTIME_RUNNER_KEY=${props.agentKey} \\
   -e ONEUPTIME_URL=${host} \\
-${codeFixLine}  -d oneuptime/runner:release`;
+  -d oneuptime/runner:release`;
 
   return (
     <div className="space-y-5">
@@ -56,21 +51,20 @@ ${codeFixLine}  -d oneuptime/runner:release`;
         <CodeBlock language="bash" code={dockerCommand} />
       </div>
 
-      {props.canRunCodeFixTasks ? (
-        <div className="flex gap-2 text-xs leading-relaxed text-gray-500">
-          <Icon
-            icon={IconProp.Code}
-            className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-400"
-          />
-          <span>
-            AI code fixes are enabled on this Runner. It will clone the code
-            repositories connected to this project and open draft pull requests
-            — it never writes to your default or protected branches.
-          </span>
-        </div>
-      ) : (
-        <></>
-      )}
+      <div className="flex gap-2 text-xs leading-relaxed text-gray-500">
+        <Icon
+          icon={IconProp.Code}
+          className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-400"
+        />
+        <span>
+          What this Runner may do is set here, not in the container: it picks up
+          its capabilities when it starts. Turn on "Runs AI Code Fixes" and it
+          will clone the code repositories connected to this project and open
+          draft pull requests — it never writes to your default or protected
+          branches. Turn a capability off and it stops taking that work
+          immediately.
+        </span>
+      </div>
 
       <div className="flex gap-2 text-xs leading-relaxed text-gray-500">
         <Icon

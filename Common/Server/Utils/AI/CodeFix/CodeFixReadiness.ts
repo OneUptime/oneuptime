@@ -3,6 +3,9 @@ import AIService, { AutonomousBudgetStatus } from "../../../Services/AIService";
 import LlmProviderService from "../../../Services/LlmProviderService";
 import ProjectService from "../../../Services/ProjectService";
 import SubjectCodeFixRun from "../SRE/SubjectCodeFixRun";
+import CodeFixAgentAvailability, {
+  OnlineCodeFixAgent,
+} from "./CodeFixAgentAvailability";
 import AIAgent from "../../../../Models/DatabaseModels/AIAgent";
 import LlmProvider from "../../../../Models/DatabaseModels/LlmProvider";
 import Project from "../../../../Models/DatabaseModels/Project";
@@ -165,22 +168,26 @@ export default class CodeFixReadiness {
   public static async getAgentCheck(params: {
     projectId: ObjectID;
   }): Promise<AIFixReadinessCheck> {
-    const anyAgent: AIAgent | null = await AIAgentService.getAIAgentForProject(
-      params.projectId,
-    );
+    const onlineAgent: OnlineCodeFixAgent | null =
+      await CodeFixAgentAvailability.getOnlineAgentForProject(params.projectId);
 
-    const isAlive: boolean = anyAgent
-      ? AIAgentService.isAgentAlive(anyAgent)
-      : false;
-
-    if (isAlive) {
+    if (onlineAgent) {
       return {
         id: "agentAvailable",
         ok: true,
-        title: `AI agent online: ${anyAgent?.name || "agent"}`,
+        title: `AI agent online: ${onlineAgent.name}`,
         detail: "Connected and polling for tasks.",
       };
     }
+
+    /*
+     * Nothing is online. Name a registered-but-silent agent when there is
+     * one, so the operator is told to check that container rather than to
+     * install another.
+     */
+    const anyAgent: AIAgent | null = await AIAgentService.getAIAgentForProject(
+      params.projectId,
+    );
 
     return {
       id: "agentAvailable",
@@ -188,7 +195,7 @@ export default class CodeFixReadiness {
       title: "AI agent online",
       detail: anyAgent
         ? `The AI agent "${anyAgent.name || "agent"}" has not reported in — check that its container is running.`
-        : "No AI agent is available for this project. Self-hosted: create an agent under Settings > AI > AI Agents and run its container. Cloud: the shared fleet appears here automatically once enabled.",
+        : "No agent is available for this project. Install a OneUptime Runner with code fixes enabled (Runbooks > Runners), or create an agent under Settings > AI > AI Agents and run its container. Cloud: the shared fleet appears here automatically once enabled.",
     };
   }
 

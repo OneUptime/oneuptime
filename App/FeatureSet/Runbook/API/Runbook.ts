@@ -2,13 +2,15 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import NotFoundException from "Common/Types/Exception/NotFoundException";
 import ObjectID from "Common/Types/ObjectID";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
+import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
+import CommonAPI from "Common/Server/API/CommonAPI";
+import { assertCanExecuteRunbooks } from "Common/Server/Utils/Runbook/RunbookExecutePermission";
 import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
 import Express, {
   ExpressRequest,
   ExpressResponse,
   ExpressRouter,
   NextFunction,
-  OneUptimeRequest,
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
 import RunbookService from "Common/Server/Services/RunbookService";
@@ -56,45 +58,30 @@ export default class RunbookAPI {
     );
   }
 
-  /*
-   * Throws unless the referenced event exists AND belongs to the caller's
-   * project. Looks the row up with isRoot deliberately: a tenant-scoped read
-   * would report "not found" for a cross-tenant ID, which is the same answer
-   * we want, but we also want to reject rather than silently drop the link.
-   */
-  private async assertBelongsToProject(data: {
-    entityName: string;
-    projectId: ObjectID;
-    findProjectId: () => Promise<ObjectID | undefined>;
-  }): Promise<void> {
-    const entityProjectId: ObjectID | undefined = await data.findProjectId();
-
-    if (
-      !entityProjectId ||
-      entityProjectId.toString() !== data.projectId.toString()
-    ) {
-      throw new BadDataException(
-        `${data.entityName} does not belong to this project`,
-      );
-    }
-  }
-
   public async runRunbook(
     req: ExpressRequest,
     res: ExpressResponse,
     next: NextFunction,
   ): Promise<void> {
     try {
-      const oneUptimeReq: OneUptimeRequest = req as OneUptimeRequest;
       const runbookId: string | undefined = req.params["runbookId"];
 
       if (!runbookId) {
         throw new BadDataException("runbookId not found in URL");
       }
 
-      if (!oneUptimeReq.tenantId) {
-        throw new BadDataException("Project not found in request");
-      }
+      /*
+       * Starting a runbook runs the project's own scripts on its
+       * infrastructure, so the caller must be an authenticated member of the
+       * project holding a runbook-execute permission. getUserMiddleware alone
+       * is not a gate: it lets an unauthenticated request through as "public"
+       * and takes the project from a caller-supplied header.
+       */
+      const props: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+      const projectId: ObjectID =
+        CommonAPI.assertAuthenticatedProjectMember(props);
+      assertCanExecuteRunbooks(props, projectId);
 
       const runbook: Runbook | null = await RunbookService.findOneById({
         id: new ObjectID(runbookId),
@@ -112,9 +99,10 @@ export default class RunbookAPI {
         throw new NotFoundException("Runbook not found");
       }
 
-      if (runbook.projectId?.toString() !== oneUptimeReq.tenantId.toString()) {
-        throw new BadDataException("Runbook does not belong to this project");
-      }
+      CommonAPI.assertResourceBelongsToProject({
+        resourceProjectId: runbook.projectId,
+        projectId,
+      });
 
       if (runbook.isEnabled === false) {
         throw new BadDataException("Runbook is disabled");
@@ -139,21 +127,14 @@ export default class RunbookAPI {
           };
         });
 
-      const userIdRaw: unknown = oneUptimeReq.userAuthorization?.["userId"];
-      const triggeredByUserId: ObjectID | undefined =
-        typeof userIdRaw === "string" && userIdRaw.length > 0
-          ? new ObjectID(userIdRaw)
-          : undefined;
-
       const execution: RunbookExecution = new RunbookExecution();
-      execution.projectId = runbook.projectId;
+      // Asserted equal to runbook.projectId above.
+      execution.projectId = projectId;
       execution.runbookId = new ObjectID(runbook._id!);
       execution.runbookNameSnapshot = runbook.name || "Runbook";
       execution.status = RunbookExecutionStatus.Scheduled;
       execution.stepExecutions = stepExecutions as unknown as JSONArray;
-      if (triggeredByUserId) {
-        execution.triggeredByUserId = triggeredByUserId;
-      }
+      execution.triggeredByUserId = props.userId!;
 
       const linkageBody: Record<string, unknown> = (req.body || {}) as Record<
         string,
@@ -171,9 +152,9 @@ export default class RunbookAPI {
        */
       if (typeof incidentIdRaw === "string" && incidentIdRaw.length > 0) {
         const incidentId: ObjectID = new ObjectID(incidentIdRaw);
-        await this.assertBelongsToProject({
+        await assertBelongsToProject({
           entityName: "Incident",
-          projectId: oneUptimeReq.tenantId,
+          projectId,
           findProjectId: async (): Promise<ObjectID | undefined> => {
             return (
               await IncidentService.findOneById({
@@ -188,9 +169,9 @@ export default class RunbookAPI {
       }
       if (typeof alertIdRaw === "string" && alertIdRaw.length > 0) {
         const alertId: ObjectID = new ObjectID(alertIdRaw);
-        await this.assertBelongsToProject({
+        await assertBelongsToProject({
           entityName: "Alert",
-          projectId: oneUptimeReq.tenantId,
+          projectId,
           findProjectId: async (): Promise<ObjectID | undefined> => {
             return (
               await AlertService.findOneById({
@@ -205,9 +186,9 @@ export default class RunbookAPI {
       }
       if (typeof smIdRaw === "string" && smIdRaw.length > 0) {
         const scheduledMaintenanceId: ObjectID = new ObjectID(smIdRaw);
-        await this.assertBelongsToProject({
+        await assertBelongsToProject({
           entityName: "Scheduled Maintenance",
-          projectId: oneUptimeReq.tenantId,
+          projectId,
           findProjectId: async (): Promise<ObjectID | undefined> => {
             return (
               await ScheduledMaintenanceService.findOneById({
@@ -245,7 +226,6 @@ export default class RunbookAPI {
     next: NextFunction,
   ): Promise<void> {
     try {
-      const oneUptimeReq: OneUptimeRequest = req as OneUptimeRequest;
       const executionId: string | undefined = req.params["executionId"];
       const stepId: string | undefined = req.params["stepId"];
 
@@ -255,16 +235,23 @@ export default class RunbookAPI {
         );
       }
 
+      /*
+       * Completing a gated step resumes execution of the remaining steps, so
+       * it needs the same authority as starting a runbook.
+       */
+      const props: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+      const projectId: ObjectID =
+        CommonAPI.assertAuthenticatedProjectMember(props);
+      assertCanExecuteRunbooks(props, projectId);
+
       const updated: RunbookStepExecutionState | null = await updateStepStatus({
         executionId,
         stepId,
-        tenantId: oneUptimeReq.tenantId,
+        projectId,
         newStatus: RunbookStepExecutionStatus.Completed,
         notes: typeof req.body?.notes === "string" ? req.body.notes : undefined,
-        userId:
-          typeof oneUptimeReq.userAuthorization?.["userId"] === "string"
-            ? (oneUptimeReq.userAuthorization["userId"] as string)
-            : undefined,
+        userId: props.userId!.toString(),
       });
 
       if (!updated) {
@@ -287,7 +274,6 @@ export default class RunbookAPI {
     next: NextFunction,
   ): Promise<void> {
     try {
-      const oneUptimeReq: OneUptimeRequest = req as OneUptimeRequest;
       const executionId: string | undefined = req.params["executionId"];
       const stepId: string | undefined = req.params["stepId"];
 
@@ -297,17 +283,24 @@ export default class RunbookAPI {
         );
       }
 
+      /*
+       * Skipping a step advances the execution past it, so it needs the same
+       * authority as starting a runbook.
+       */
+      const props: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+      const projectId: ObjectID =
+        CommonAPI.assertAuthenticatedProjectMember(props);
+      assertCanExecuteRunbooks(props, projectId);
+
       const updated: RunbookStepExecutionState | null = await updateStepStatus({
         executionId,
         stepId,
-        tenantId: oneUptimeReq.tenantId,
+        projectId,
         newStatus: RunbookStepExecutionStatus.Skipped,
         notes:
           typeof req.body?.reason === "string" ? req.body.reason : undefined,
-        userId:
-          typeof oneUptimeReq.userAuthorization?.["userId"] === "string"
-            ? (oneUptimeReq.userAuthorization["userId"] as string)
-            : undefined,
+        userId: props.userId!.toString(),
       });
 
       if (!updated) {
@@ -330,12 +323,21 @@ export default class RunbookAPI {
     next: NextFunction,
   ): Promise<void> {
     try {
-      const oneUptimeReq: OneUptimeRequest = req as OneUptimeRequest;
       const executionId: string | undefined = req.params["executionId"];
 
       if (!executionId) {
         throw new BadDataException("executionId is required in URL");
       }
+
+      /*
+       * Cancelling stops in-flight infrastructure work — same authority as
+       * starting it, and never available to an unauthenticated caller.
+       */
+      const props: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+      const projectId: ObjectID =
+        CommonAPI.assertAuthenticatedProjectMember(props);
+      assertCanExecuteRunbooks(props, projectId);
 
       const execution: RunbookExecution | null =
         await RunbookExecutionService.findOneById({
@@ -353,14 +355,10 @@ export default class RunbookAPI {
         throw new NotFoundException("Runbook execution not found");
       }
 
-      if (
-        oneUptimeReq.tenantId &&
-        execution.projectId?.toString() !== oneUptimeReq.tenantId.toString()
-      ) {
-        throw new BadDataException(
-          "Runbook execution does not belong to this project",
-        );
-      }
+      CommonAPI.assertResourceBelongsToProject({
+        resourceProjectId: execution.projectId,
+        projectId,
+      });
 
       if (
         execution.status === RunbookExecutionStatus.Completed ||
@@ -411,10 +409,36 @@ export default class RunbookAPI {
   }
 }
 
+/*
+ * Throws unless the referenced event exists AND belongs to the caller's
+ * project. Looks the row up with isRoot deliberately: a tenant-scoped read
+ * would report "not found" for a cross-tenant ID, which is the same answer
+ * we want, but we also want to reject rather than silently drop the link.
+ *
+ * Module scope, not a method: the route handlers are registered unbound, so
+ * `this` is undefined by the time Express calls them.
+ */
+async function assertBelongsToProject(data: {
+  entityName: string;
+  projectId: ObjectID;
+  findProjectId: () => Promise<ObjectID | undefined>;
+}): Promise<void> {
+  const entityProjectId: ObjectID | undefined = await data.findProjectId();
+
+  if (
+    !entityProjectId ||
+    entityProjectId.toString() !== data.projectId.toString()
+  ) {
+    throw new BadDataException(
+      `${data.entityName} does not belong to this project`,
+    );
+  }
+}
+
 async function updateStepStatus(args: {
   executionId: string;
   stepId: string;
-  tenantId: ObjectID | undefined;
+  projectId: ObjectID;
   newStatus: RunbookStepExecutionStatus;
   notes?: string | undefined;
   userId?: string | undefined;
@@ -435,14 +459,10 @@ async function updateStepStatus(args: {
     return null;
   }
 
-  if (
-    args.tenantId &&
-    execution.projectId?.toString() !== args.tenantId.toString()
-  ) {
-    throw new BadDataException(
-      "Runbook execution does not belong to this project",
-    );
-  }
+  CommonAPI.assertResourceBelongsToProject({
+    resourceProjectId: execution.projectId,
+    projectId: args.projectId,
+  });
 
   if (
     execution.status === RunbookExecutionStatus.Completed ||

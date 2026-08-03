@@ -49,18 +49,18 @@ Run the Docker command on any host in your environment that can:
 - do the things you want your Bash/JavaScript steps to do (e.g. SSH to other hosts, `kubectl`, talk to a database).
 
 ```bash
-docker run --name oneuptime-runbook-agent --restart unless-stopped \
-  -e RUNBOOK_AGENT_ID=<agent-id> \
-  -e RUNBOOK_AGENT_KEY=<agent-key> \
+docker run --name oneuptime-runner --restart unless-stopped \
+  -e ONEUPTIME_RUNNER_ID=<agent-id> \
+  -e ONEUPTIME_RUNNER_KEY=<agent-key> \
   -e ONEUPTIME_URL=https://oneuptime.yourdomain.com \
-  -d oneuptime/runbook-agent:release
+  -d oneuptime/runner:release
 ```
 
 ### 4. Verify the agent is connected
 
 Go back to **Runbooks → Settings → Agents**. Within ~60 seconds the agent's row should switch to `Connected` with a fresh **Last seen** timestamp. If it stays `Disconnected`:
 
-- Check the container logs (`docker logs oneuptime-runbook-agent`) for auth errors or network failures.
+- Check the container logs (`docker logs oneuptime-runner`) for auth errors or network failures.
 - Verify the host can reach your OneUptime URL with `curl`.
 - Verify the ID and key were copied without whitespace.
 
@@ -92,8 +92,8 @@ The Worker's overall wait window is `claim timeout + execution timeout + a few s
 
 Two things to keep in mind when you lower the claim timeout:
 
-- The agent asks for work on a poll cycle (`RUNBOOK_AGENT_POLL_INTERVAL_MS`, 5 seconds by default). A claim timeout shorter than one poll cycle can expire before a perfectly healthy agent has even seen the job, and the step then fails with the same "no agent claimed the job" message you would get from an offline agent.
-- An agent runs one job at a time by default (`RUNBOOK_AGENT_CONCURRENCY`). While a long step occupies it, other steps pointed at the same agent are waiting out their own claim timeouts. If you raise an execution timeout to minutes, raise the claim timeout on the steps that share that agent to match — or give them a different agent.
+- The agent asks for work on a poll cycle (`ONEUPTIME_RUNNER_POLL_INTERVAL_MS`, 5 seconds by default). A claim timeout shorter than one poll cycle can expire before a perfectly healthy agent has even seen the job, and the step then fails with the same "no agent claimed the job" message you would get from an offline agent.
+- An agent runs one job at a time by default (`ONEUPTIME_RUNNER_CONCURRENCY`). While a long step occupies it, other steps pointed at the same agent are waiting out their own claim timeouts. If you raise an execution timeout to minutes, raise the claim timeout on the steps that share that agent to match — or give them a different agent.
 
 ### Lease and heartbeat
 
@@ -124,7 +124,7 @@ Cancelling a runbook execution (from the execution view or the API) immediately 
 
 ### Concurrency
 
-Each agent runs one job at a time by default. To allow more, set `RUNBOOK_AGENT_CONCURRENCY` on the agent container — but remember the agent shares the host with whatever else lives there.
+Each agent runs one job at a time by default. To allow more, set `ONEUPTIME_RUNNER_CONCURRENCY` on the agent container — but remember the agent shares the host with whatever else lives there.
 
 ## Environment variables
 
@@ -133,12 +133,12 @@ The agent reads these on startup:
 | Variable                                  | Required | Default | Notes                                                                         |
 | ----------------------------------------- | -------- | ------- | ----------------------------------------------------------------------------- |
 | `ONEUPTIME_URL`                           | yes      | —       | Base URL of your OneUptime instance, e.g. `https://oneuptime.yourdomain.com`. |
-| `RUNBOOK_AGENT_ID`                        | yes      | —       | The UUID shown in the agent's setup modal.                                    |
-| `RUNBOOK_AGENT_KEY`                       | yes      | —       | The secret shown in the agent's setup modal.                                  |
-| `RUNBOOK_AGENT_POLL_INTERVAL_MS`          | no       | `5000`  | How often the agent polls for new jobs.                                       |
-| `RUNBOOK_AGENT_HEARTBEAT_INTERVAL_MS`     | no       | `60000` | How often the agent reports liveness.                                         |
-| `RUNBOOK_AGENT_JOB_HEARTBEAT_INTERVAL_MS` | no       | `10000` | How often the agent renews a running job's lease.                             |
-| `RUNBOOK_AGENT_CONCURRENCY`               | no       | `1`     | Maximum simultaneous jobs on this agent.                                      |
+| `ONEUPTIME_RUNNER_ID`                        | yes      | —       | The UUID shown in the agent's setup modal.                                    |
+| `ONEUPTIME_RUNNER_KEY`                       | yes      | —       | The secret shown in the agent's setup modal.                                  |
+| `ONEUPTIME_RUNNER_POLL_INTERVAL_MS`          | no       | `5000`  | How often the agent polls for new jobs.                                       |
+| `ONEUPTIME_RUNNER_HEARTBEAT_INTERVAL_MS`     | no       | `60000` | How often the agent reports liveness.                                         |
+| `ONEUPTIME_RUNNER_JOB_HEARTBEAT_INTERVAL_MS` | no       | `10000` | How often the agent renews a running job's lease.                             |
+| `ONEUPTIME_RUNNER_CONCURRENCY`               | no       | `1`     | Maximum simultaneous jobs on this agent.                                      |
 
 ## Rotating an agent key
 
@@ -155,7 +155,7 @@ Permissions to _trigger_ a runbook (and therefore cause Bash and JavaScript step
 
 ## Agent-facing API
 
-For the curious — the agent uses these endpoints, mounted under `/runbook-agent-ingest`. They are authenticated by the agent's ID + key in the JSON body (or `x-agent-id` / `x-agent-key` headers).
+For the curious — the agent uses these endpoints, mounted under `/runner-ingest`. They are authenticated by the agent's ID + key in the JSON body (or `x-agent-id` / `x-agent-key` headers).
 
 | Endpoint                     | Purpose                                                                                                                     |
 | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------- |

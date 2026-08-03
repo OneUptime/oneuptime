@@ -1,6 +1,8 @@
-import AIAgentService from "../Services/AIAgentService";
 import AIRunService from "../Services/AIRunService";
 import AIRunEventService from "../Services/AIRunEventService";
+import CodeFixAgentAuth, {
+  CodeFixAgentIdentity,
+} from "../Utils/AI/CodeFix/CodeFixAgentAuth";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -8,7 +10,6 @@ import Express, {
   NextFunction,
 } from "../Utils/Express";
 import Response from "../Utils/Response";
-import AIAgent from "../../Models/DatabaseModels/AIAgent";
 import AIRun from "../../Models/DatabaseModels/AIRun";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
@@ -51,8 +52,9 @@ export default class AIAgentTaskAPI {
         try {
           const data: JSONObject = req.body;
 
-          /* Validate AI Agent credentials */
-          const aiAgent: AIAgent | null = await this.validateAIAgent(data);
+          /* Validate agent credentials (AIAgent fleet or a Runner) */
+          const aiAgent: CodeFixAgentIdentity | null =
+            await CodeFixAgentAuth.resolveAgentIdentity(data);
 
           if (!aiAgent || !aiAgent.id) {
             return Response.sendErrorResponse(
@@ -120,8 +122,9 @@ export default class AIAgentTaskAPI {
         try {
           const data: JSONObject = req.body;
 
-          /* Validate AI Agent credentials */
-          const aiAgent: AIAgent | null = await this.validateAIAgent(data);
+          /* Validate agent credentials (AIAgent fleet or a Runner) */
+          const aiAgent: CodeFixAgentIdentity | null =
+            await CodeFixAgentAuth.resolveAgentIdentity(data);
 
           if (!aiAgent) {
             return Response.sendErrorResponse(
@@ -170,8 +173,9 @@ export default class AIAgentTaskAPI {
         try {
           const data: JSONObject = req.body;
 
-          /* Validate AI Agent credentials */
-          const aiAgent: AIAgent | null = await this.validateAIAgent(data);
+          /* Validate agent credentials (AIAgent fleet or a Runner) */
+          const aiAgent: CodeFixAgentIdentity | null =
+            await CodeFixAgentAuth.resolveAgentIdentity(data);
 
           if (!aiAgent) {
             return Response.sendErrorResponse(
@@ -235,7 +239,18 @@ export default class AIAgentTaskAPI {
             },
           });
 
-          if (!existingRun) {
+          /*
+           * A project-scoped identity may only report on its own project's
+           * runs. Denial answers exactly like a missing run so a probing key
+           * cannot tell "other tenant's run" from "no such run".
+           */
+          if (
+            !existingRun ||
+            CodeFixAgentAuth.deniesAccessToProject(
+              aiAgent,
+              existingRun.projectId,
+            )
+          ) {
             return Response.sendErrorResponse(
               req,
               res,
@@ -341,34 +356,5 @@ export default class AIAgentTaskAPI {
 
   public getRouter(): ExpressRouter {
     return this.router;
-  }
-
-  /*
-   * Validate AI Agent credentials from request body
-   * Returns AIAgent if valid, null otherwise
-   */
-  private async validateAIAgent(data: JSONObject): Promise<AIAgent | null> {
-    if (!data["aiAgentId"] || !data["aiAgentKey"]) {
-      return null;
-    }
-
-    const aiAgentId: ObjectID = new ObjectID(data["aiAgentId"] as string);
-    const aiAgentKey: string = data["aiAgentKey"] as string;
-
-    const aiAgent: AIAgent | null = await AIAgentService.findOneBy({
-      query: {
-        _id: aiAgentId.toString(),
-        key: aiAgentKey,
-      },
-      select: {
-        _id: true,
-        projectId: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    return aiAgent;
   }
 }

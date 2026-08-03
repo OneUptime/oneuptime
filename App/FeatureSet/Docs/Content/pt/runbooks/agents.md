@@ -49,18 +49,18 @@ Execute o comando Docker em qualquer host do seu ambiente que possa:
 - fazer o que você quer que seus passos Bash/JavaScript façam (ex.: SSH para outros hosts, `kubectl`, conversar com um banco de dados).
 
 ```bash
-docker run --name oneuptime-runbook-agent --restart unless-stopped \
-  -e RUNBOOK_AGENT_ID=<agent-id> \
-  -e RUNBOOK_AGENT_KEY=<agent-key> \
+docker run --name oneuptime-runner --restart unless-stopped \
+  -e ONEUPTIME_RUNNER_ID=<agent-id> \
+  -e ONEUPTIME_RUNNER_KEY=<agent-key> \
   -e ONEUPTIME_URL=https://oneuptime.yourdomain.com \
-  -d oneuptime/runbook-agent:release
+  -d oneuptime/runner:release
 ```
 
 ### 4. Verifique se o agente está conectado
 
 Volte para **Runbooks → Configurações → Agentes**. Em cerca de 60 segundos a linha do agente deve mudar para `Connected` com um timestamp **Last seen** recente. Se permanecer `Disconnected`:
 
-- Verifique os logs do contêiner (`docker logs oneuptime-runbook-agent`) procurando erros de autenticação ou de rede.
+- Verifique os logs do contêiner (`docker logs oneuptime-runner`) procurando erros de autenticação ou de rede.
 - Confirme que o host alcança sua URL OneUptime com `curl`.
 - Confirme que o ID e a chave foram copiados sem espaços em branco.
 
@@ -92,8 +92,8 @@ A janela total de espera do Worker é `claim timeout + execution timeout + algun
 
 Duas coisas para ter em mente quando você reduz o claim timeout:
 
-- O agente pede trabalho em ciclos de polling (`RUNBOOK_AGENT_POLL_INTERVAL_MS`, 5 segundos por padrão). Um claim timeout menor que um ciclo de polling pode expirar antes que um agente perfeitamente saudável tenha sequer visto o job, e então o passo falha com a mesma mensagem "nenhum agente reivindicou o job" que você veria com um agente offline.
-- Um agente roda um job de cada vez por padrão (`RUNBOOK_AGENT_CONCURRENCY`). Enquanto um passo longo o ocupa, outros passos apontados para o mesmo agente ficam esperando seus próprios claim timeouts. Se você aumentar um execution timeout para minutos, aumente também o claim timeout dos passos que compartilham esse agente — ou aponte-os para um agente diferente.
+- O agente pede trabalho em ciclos de polling (`ONEUPTIME_RUNNER_POLL_INTERVAL_MS`, 5 segundos por padrão). Um claim timeout menor que um ciclo de polling pode expirar antes que um agente perfeitamente saudável tenha sequer visto o job, e então o passo falha com a mesma mensagem "nenhum agente reivindicou o job" que você veria com um agente offline.
+- Um agente roda um job de cada vez por padrão (`ONEUPTIME_RUNNER_CONCURRENCY`). Enquanto um passo longo o ocupa, outros passos apontados para o mesmo agente ficam esperando seus próprios claim timeouts. Se você aumentar um execution timeout para minutos, aumente também o claim timeout dos passos que compartilham esse agente — ou aponte-os para um agente diferente.
 
 ### Lease e heartbeat
 
@@ -115,7 +115,7 @@ Cancelar uma execução de runbook (pela visão de execução ou pela API) marca
 
 ### Concorrência
 
-Cada agente roda um job de cada vez por padrão. Para permitir mais, defina `RUNBOOK_AGENT_CONCURRENCY` no contêiner do agente — mas lembre que o agente divide o host com o que mais estiver lá.
+Cada agente roda um job de cada vez por padrão. Para permitir mais, defina `ONEUPTIME_RUNNER_CONCURRENCY` no contêiner do agente — mas lembre que o agente divide o host com o que mais estiver lá.
 
 ## Variáveis de ambiente
 
@@ -124,12 +124,12 @@ O agente lê estas na inicialização:
 | Variável                                  | Obrigatória | Padrão  | Notas                                                                         |
 | ----------------------------------------- | ----------- | ------- | ----------------------------------------------------------------------------- |
 | `ONEUPTIME_URL`                           | sim         | —       | URL base da sua instância OneUptime, ex.: `https://oneuptime.yourdomain.com`. |
-| `RUNBOOK_AGENT_ID`                        | sim         | —       | O UUID mostrado no modal de configuração do agente.                           |
-| `RUNBOOK_AGENT_KEY`                       | sim         | —       | O segredo mostrado no modal de configuração do agente.                        |
-| `RUNBOOK_AGENT_POLL_INTERVAL_MS`          | não         | `5000`  | Com que frequência o agente faz polling por jobs novos.                       |
-| `RUNBOOK_AGENT_HEARTBEAT_INTERVAL_MS`     | não         | `60000` | Com que frequência o agente reporta que está vivo.                            |
-| `RUNBOOK_AGENT_JOB_HEARTBEAT_INTERVAL_MS` | não         | `10000` | Com que frequência o agente renova o lease de um job em execução.             |
-| `RUNBOOK_AGENT_CONCURRENCY`               | não         | `1`     | Máximo de jobs simultâneos neste agente.                                      |
+| `ONEUPTIME_RUNNER_ID`                        | sim         | —       | O UUID mostrado no modal de configuração do agente.                           |
+| `ONEUPTIME_RUNNER_KEY`                       | sim         | —       | O segredo mostrado no modal de configuração do agente.                        |
+| `ONEUPTIME_RUNNER_POLL_INTERVAL_MS`          | não         | `5000`  | Com que frequência o agente faz polling por jobs novos.                       |
+| `ONEUPTIME_RUNNER_HEARTBEAT_INTERVAL_MS`     | não         | `60000` | Com que frequência o agente reporta que está vivo.                            |
+| `ONEUPTIME_RUNNER_JOB_HEARTBEAT_INTERVAL_MS` | não         | `10000` | Com que frequência o agente renova o lease de um job em execução.             |
+| `ONEUPTIME_RUNNER_CONCURRENCY`               | não         | `1`     | Máximo de jobs simultâneos neste agente.                                      |
 
 ## Rotacionar a chave de um agente
 
@@ -146,7 +146,7 @@ Permissões para _disparar_ um runbook (e portanto fazer com que passos Bash e J
 
 ## API exposta ao agente
 
-Para os curiosos — o agente usa estes endpoints, montados sob `/runbook-agent-ingest`. São autenticados pelo ID + chave do agente no corpo JSON (ou cabeçalhos `x-agent-id` / `x-agent-key`).
+Para os curiosos — o agente usa estes endpoints, montados sob `/runner-ingest`. São autenticados pelo ID + chave do agente no corpo JSON (ou cabeçalhos `x-agent-id` / `x-agent-key`).
 
 | Endpoint                     | Propósito                                                                                                                                |
 | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
