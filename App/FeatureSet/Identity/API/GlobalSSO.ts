@@ -1,5 +1,5 @@
 import AuthenticationEmail from "../Utils/AuthenticationEmail";
-import SSOUtil from "../Utils/SSO";
+import SSOUtil, { VerifiedSamlResponse } from "../Utils/SSO";
 import { DashboardRoute } from "Common/ServiceRoute";
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
@@ -11,7 +11,6 @@ import Email from "Common/Types/Email";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import Exception from "Common/Types/Exception/Exception";
 import ServerException from "Common/Types/Exception/ServerException";
-import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import SsoProviderType from "Common/Types/SSO/SsoProviderType";
@@ -45,7 +44,6 @@ import GlobalSSO from "Common/Models/DatabaseModels/GlobalSso";
 import GlobalSSOProject from "Common/Models/DatabaseModels/GlobalSsoProject";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import User from "Common/Models/DatabaseModels/User";
-import xml2js from "xml2js";
 import Name from "Common/Types/Name";
 
 const router: ExpressRouter = Express.getRouter();
@@ -241,8 +239,6 @@ const loginUserWithGlobalSso: LoginUserWithGlobalSsoFunction = async (
       "base64",
     ).toString();
 
-    const response: JSONObject = await xml2js.parseStringPromise(samlResponse);
-
     const globalSso: GlobalSSO | null = await GlobalSSOService.findOneBy({
       query: {
         _id: globalSsoId.toString(),
@@ -286,23 +282,20 @@ const loginUserWithGlobalSso: LoginUserWithGlobalSsoFunction = async (
     let fullName: Name | null = null;
 
     try {
-      SSOUtil.isPayloadValid(response);
+      /*
+       * Verify the signature AND extract the identity from the SAME
+       * cryptographically verified assertion. This single call defends against
+       * XML Signature Wrapping - see SSOUtil.getSamlResponseFromXML and
+       * GitHub issue #2949.
+       */
+      const verifiedSaml: VerifiedSamlResponse = SSOUtil.getSamlResponseFromXML(
+        samlResponse,
+        globalSso.publicCertificate,
+      );
 
-      if (
-        !SSOUtil.isSignatureValid(samlResponse, globalSso.publicCertificate)
-      ) {
-        return Response.sendErrorResponse(
-          req,
-          res,
-          new BadRequestException(
-            "Signature is not valid or Public Certificate configured with this SSO provider is not valid",
-          ),
-        );
-      }
-
-      issuerUrl = SSOUtil.getIssuer(response);
-      email = SSOUtil.getEmail(response);
-      fullName = SSOUtil.getUserFullName(response);
+      issuerUrl = verifiedSaml.issuerUrl;
+      email = verifiedSaml.email;
+      fullName = verifiedSaml.name;
     } catch (err: unknown) {
       if (err instanceof Exception) {
         return Response.sendErrorResponse(req, res, err);
