@@ -289,6 +289,13 @@ export interface ComponentProps {
    * never invents vocabulary the customer has not used.
    */
   childTypeLabel: string;
+  /*
+   * What the page's search box is narrowing `sites` to, if anything. The map
+   * does no filtering of its own — it is handed the survivors — but it has to
+   * know a filter is on, or an empty result reads as "you have no sites"
+   * rather than as "nothing matches what you typed".
+   */
+  searchText?: string | undefined;
   onSiteClick: (siteId: string) => void;
 }
 
@@ -758,6 +765,29 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
   if (markers.length === 0) {
     const hasSites: boolean = props.sites.length > 0;
     const unplacedCount: number = props.unplacedSites.length;
+    const searchText: string = (props.searchText || "").trim();
+    /*
+     * A search that matched nothing is not the same emptiness as a project
+     * with no coordinates on it, and telling somebody to go add latitudes
+     * when the real answer is "that name is not here" sends them off to fix
+     * something that is not broken.
+     */
+    if (searchText && !hasSites) {
+      return (
+        <div className="w-full rounded-lg border border-gray-200 bg-white shadow-sm">
+          <EmptyState
+            id="site-geo-map-no-search-match"
+            icon={IconProp.Search}
+            title="No sites here match your search"
+            description={
+              <span className="mx-auto block max-w-md">
+                {`Nothing at this level matches “${searchText}”. The results under the search box look through your whole network, not just this level.`}
+              </span>
+            }
+          />
+        </div>
+      );
+    }
     return (
       <div className="w-full rounded-lg border border-gray-200 bg-white shadow-sm">
         <EmptyState

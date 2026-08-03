@@ -3,6 +3,7 @@ import NetworkSiteHierarchyUtil, {
   BreadcrumbEntry,
   ChildAggregate,
   DEFAULT_UPTIME_WINDOW_DAYS,
+  MAX_SEARCH_TEXT_LENGTH,
   MAX_UPTIME_WINDOW_DAYS,
   MIN_UPTIME_WINDOW_DAYS,
   SiteLinkRow,
@@ -577,5 +578,102 @@ describe("filterLinksBetweenChildren", () => {
         new Set<string>(),
       ),
     ).toEqual([]);
+  });
+});
+
+/*
+ * The two helpers behind /network-site/search.
+ *
+ * The endpoint exists because the map is a drill-down: a store four levels
+ * under a region cannot be found by filtering the level in view, since it is
+ * not on that level. So the search reaches across the whole project — and
+ * every hit has to print the path to it, which is what collectAncestorIds
+ * makes affordable (one extra query for the whole result set, not a path walk
+ * per hit).
+ */
+describe("normalizeSearchText", () => {
+  test("trims, and keeps the reader's own casing for the ILIKE to fold", () => {
+    expect(NetworkSiteHierarchyUtil.normalizeSearchText("  Kansas City ")).toBe(
+      "Kansas City",
+    );
+  });
+
+  /*
+   * The load-bearing case. An empty box must not be the query that matches
+   * every site in the project, so it normalizes to "" and the endpoint
+   * answers with no results rather than with everything.
+   */
+  test("blank and non-string inputs read as NO search", () => {
+    expect(NetworkSiteHierarchyUtil.normalizeSearchText("")).toBe("");
+    expect(NetworkSiteHierarchyUtil.normalizeSearchText("    ")).toBe("");
+    expect(NetworkSiteHierarchyUtil.normalizeSearchText("\t\n")).toBe("");
+    expect(NetworkSiteHierarchyUtil.normalizeSearchText(undefined)).toBe("");
+    expect(NetworkSiteHierarchyUtil.normalizeSearchText(null)).toBe("");
+    expect(NetworkSiteHierarchyUtil.normalizeSearchText(42)).toBe("");
+    expect(NetworkSiteHierarchyUtil.normalizeSearchText({})).toBe("");
+    expect(NetworkSiteHierarchyUtil.normalizeSearchText(["kansas"])).toBe("");
+  });
+
+  test("caps the length, after trimming", () => {
+    const long: string = `   ${"a".repeat(MAX_SEARCH_TEXT_LENGTH + 50)}   `;
+    expect(NetworkSiteHierarchyUtil.normalizeSearchText(long)).toHaveLength(
+      MAX_SEARCH_TEXT_LENGTH,
+    );
+  });
+});
+
+describe("collectAncestorIds", () => {
+  test("collects every ancestor referenced, deduplicated", () => {
+    expect(
+      NetworkSiteHierarchyUtil.collectAncestorIds(
+        [
+          { id: "u1", materializedPath: "/east/acme/chicago/" },
+          { id: "u2", materializedPath: "/east/acme/chicago/" },
+          { id: "u3", materializedPath: "/west/pdx/" },
+        ],
+        new Set<string>(),
+      ).sort(),
+    ).toEqual(["acme", "chicago", "east", "pdx", "west"]);
+  });
+
+  /*
+   * Rows the caller already holds are excluded — their names came back with
+   * the search itself, so re-fetching them would be a second query for data
+   * already in hand.
+   */
+  test("skips ids the caller already has rows for", () => {
+    expect(
+      NetworkSiteHierarchyUtil.collectAncestorIds(
+        [{ id: "u1", materializedPath: "/east/acme/" }],
+        new Set<string>(["east"]),
+      ),
+    ).toEqual(["acme"]);
+  });
+
+  // A root site has no ancestors, and a pathless row must not throw.
+  test("root and pathless rows contribute nothing", () => {
+    expect(
+      NetworkSiteHierarchyUtil.collectAncestorIds(
+        [
+          { id: "r1", materializedPath: "/" },
+          { id: "r2", materializedPath: "" },
+          { id: "r3" },
+        ],
+        new Set<string>(),
+      ),
+    ).toEqual([]);
+  });
+
+  /*
+   * Some writers append a site's own id to its materialized path. Fetching a
+   * site as its own ancestor would print it twice in its own path.
+   */
+  test("a row's own id is never collected as its ancestor", () => {
+    expect(
+      NetworkSiteHierarchyUtil.collectAncestorIds(
+        [{ id: "u1", materializedPath: "/east/acme/u1/" }],
+        new Set<string>(),
+      ).sort(),
+    ).toEqual(["acme", "east"]);
   });
 });

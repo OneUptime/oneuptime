@@ -540,6 +540,7 @@ describe("Network Map sidebar entry escapes a drilled view", () => {
 
     expect(drillStateModule.readDrillStateFromUrl()).toEqual({
       siteId: null,
+      searchText: "",
     });
   });
 
@@ -549,7 +550,27 @@ describe("Network Map sidebar entry escapes a drilled view", () => {
 
     expect(drillStateModule.readDrillStateFromUrl()).toEqual({
       siteId: DRILLED_SITE_ID,
+      searchText: "",
     });
+  });
+
+  /*
+   * The search box's text rides in the URL alongside the drill position, so a
+   * narrowed map is a link somebody can send. An absent parameter has to read
+   * as "" — no filter — and never as a filter that matches nothing, which
+   * would open a map with everything hidden.
+   */
+  test("a shared link carries the search text, and its absence is no filter", () => {
+    standAt(`?site=${DRILLED_SITE_ID}&siteSearch=kansas%20city`);
+
+    expect(drillStateModule.readDrillStateFromUrl()).toEqual({
+      siteId: DRILLED_SITE_ID,
+      searchText: "kansas city",
+    });
+
+    standAt(`?site=${DRILLED_SITE_ID}`);
+
+    expect(drillStateModule.readDrillStateFromUrl().searchText).toBe("");
   });
 
   /*
@@ -562,15 +583,123 @@ describe("Network Map sidebar entry escapes a drilled view", () => {
 
     expect(drillStateModule.readDrillStateFromUrl()).toEqual({
       siteId: DRILLED_SITE_ID,
+      searchText: "",
     });
   });
 
+  /*
+   * An exact whitelist, not a "does not contain mapRegion" check: the point is
+   * that a geography key cannot come back under ANY name, so every field the
+   * drill state carries has to be named here deliberately.
+   */
   test("the drill state no longer carries any geography", () => {
     standAt(DRILLED_SEARCH);
 
     expect(Object.keys(drillStateModule.readDrillStateFromUrl())).toEqual([
       "siteId",
+      "searchText",
     ]);
+  });
+});
+
+/*
+ * The Network Map's search box narrows the level in view AND finds sites
+ * anywhere in the hierarchy. The wiring below is the whole of the first half,
+ * and every assertion here corresponds to a way of getting it subtly wrong
+ * that produces a page which still renders and still looks plausible.
+ */
+describe("the Network Map search narrows the whole level at once", () => {
+  const PAGE: string = readCode("Pages", "NetworkSite", "NetworkMap.tsx");
+
+  /*
+   * The map, the cards/graph and the WAN links must be fed from the SAME
+   * predicate. Filtering the cards but not the markers is the exact defect
+   * the grouped-marker rewrite existed to end — two halves of one page
+   * describing two different networks — reintroduced through a search box.
+   */
+  test("markers, sites, unplaced sites and links all go through the filter", () => {
+    expect(PAGE).toContain(
+      squash("const pinnedSites: Array<MapSiteView> = filterSitesBySearch("),
+    );
+    expect(PAGE).toContain(
+      squash("const levelSites: Array<SiteChildView> = filterSitesBySearch("),
+    );
+    expect(PAGE).toContain(
+      squash(
+        "const unplacedSites: Array<MapUnplacedSiteView> = filterSitesBySearch(",
+      ),
+    );
+    expect(PAGE).toContain(
+      squash("const levelLinks: Array<SiteLinkView> = filterLinksBySearch("),
+    );
+    // The link filter has to see the SURVIVING sites, not the raw list.
+    expect(PAGE).toContain(squash("siteIdSet(levelSites),"));
+  });
+
+  /*
+   * The type label names what the children of this level ARE. Deriving it
+   * from the filtered list makes searching for one region rewrite the map's
+   * legend, its mode switch and its coverage count as you type — a level of
+   * Regions becomes a level of "sites" the moment two types both match.
+   */
+  test("the child type label is derived from the unfiltered level", () => {
+    expect(PAGE).toContain(squash("childTypeLabelFor(allLevelSites)"));
+    expect(PAGE).not.toContain(squash("childTypeLabelFor(levelSites)"));
+  });
+
+  /*
+   * "No network sites yet" is a claim about the PROJECT. Deciding it on the
+   * filtered lists tells a customer with a thousand stores that they have
+   * never created one, and offers them a "create your first network site"
+   * button, because they typed a name that does not match anything.
+   */
+  test("the empty state is decided on the unfiltered lists", () => {
+    expect(PAGE).toContain(
+      squash("if (allLevelSites.length === 0 && allPinnedSites.length === 0)"),
+    );
+  });
+
+  /*
+   * Both levels that draw a map get the box — the root and the container. The
+   * unit level deliberately does not: its device topology carries its own
+   * search over devices, and a second box above it would be two search fields
+   * on one screen searching different things.
+   */
+  test("the box renders at the root and at a container level, not on a unit", () => {
+    expect(PAGE).toContain(squash("const searchBox: ReactElement = ("));
+    expect(PAGE.split("{searchBox}").length - 1).toBeGreaterThanOrEqual(2);
+    // The unit branch returns before searchBox is ever built.
+    expect(PAGE.indexOf("<NetworkTopologyLiveView")).toBeLessThan(
+      PAGE.indexOf("const searchBox: ReactElement = ("),
+    );
+  });
+
+  /*
+   * Both empty states have to know a filter is on. Without it, a search that
+   * matches nothing at this level reads as "you have no sites here" and sends
+   * the reader off to add coordinates to fix something that is not broken.
+   */
+  test("the map and the graph are told what the search text is", () => {
+    expect(PAGE).toContain(squash("searchText={searchText}"));
+    expect(readCode("Components", "NetworkSite", "SiteGeoMap.tsx")).toContain(
+      "site-geo-map-no-search-match",
+    );
+    expect(
+      readCode("Components", "NetworkSite", "SiteContainerGraph.tsx"),
+    ).toContain("site-container-no-search-match");
+  });
+
+  /*
+   * Drilling ends the search. Text that narrowed THIS level would hide most
+   * of the next one, and the reader would arrive at a level that looks empty
+   * for a reason sitting in a box they have stopped looking at.
+   */
+  test("drilling clears the search, in state and in the URL", () => {
+    const body: string = PAGE.split(
+      "const changeSite: (siteId: string | null) => void = (",
+    )[1]!.split("};")[0]!;
+    expect(body).toContain(squash('setSearchTextState("");'));
+    expect(body).toContain(squash("[NETWORK_MAP_SEARCH_PARAM]: null,"));
   });
 });
 
