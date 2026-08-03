@@ -72,6 +72,14 @@ interface AgentOption {
   connected: boolean;
 }
 
+/*
+ * The timeout fields shared by every step that is dispatched to a Runner.
+ */
+interface RunnerExecutedStepTimeouts {
+  timeoutInMs?: number | undefined;
+  claimTimeoutInMs?: number | undefined;
+}
+
 interface CredentialOption {
   id: string;
   name: string;
@@ -853,11 +861,17 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
    */
   const renderAgentTimeouts: (args: {
     idx: number;
-    config: BashStepConfig | JavaScriptStepConfig;
+    /*
+     * Every Runner-executed step carries the same pair of timeouts, so this
+     * asks for exactly those two fields rather than naming each config type —
+     * a union would have to be widened for each new step type, and the helper
+     * never reads anything else.
+     */
+    config: RunnerExecutedStepTimeouts;
     executionDescription: ReactElement;
   }) => ReactElement = (args: {
     idx: number;
-    config: BashStepConfig | JavaScriptStepConfig;
+    config: RunnerExecutedStepTimeouts;
     executionDescription: ReactElement;
   }): ReactElement => {
     return (

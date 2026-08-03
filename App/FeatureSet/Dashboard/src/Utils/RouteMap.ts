@@ -5221,7 +5221,7 @@ const RouteMap: Dictionary<Route> = {
       RunbookRoutePath[PageMap.RUNBOOKS_SECRETS]
     }`,
   ),
-[PageMap.RUNBOOKS_CREDENTIALS]: new Route(
+  [PageMap.RUNBOOKS_CREDENTIALS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/runbooks/${
       RunbookRoutePath[PageMap.RUNBOOKS_CREDENTIALS]
     }`,
