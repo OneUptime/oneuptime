@@ -160,17 +160,6 @@ const DockerSwarmClusters: FunctionComponent<
     return <ErrorMessage message={error} />;
   }
 
-  if (clusterCount === 0) {
-    return (
-      <Fragment>
-        <DockerSwarmDocumentationCard
-          title="Getting Started with Docker Swarm Monitoring"
-          description="No Docker Swarm clusters connected yet. Install the agent using the guide below and your cluster will appear here automatically."
-        />
-      </Fragment>
-    );
-  }
-
   return (
     <Fragment>
       <ModelTable<DockerSwarmCluster>
@@ -183,6 +172,14 @@ const DockerSwarmClusters: FunctionComponent<
         query={mergeFiltersIntoQuery({ isArchived: false })}
         onFetchSuccess={(data: Array<DockerSwarmCluster>) => {
           onResourcesFetched(data);
+        }}
+        onCreateSuccess={(
+          item: DockerSwarmCluster,
+        ): Promise<DockerSwarmCluster> => {
+          setClusterCount((currentCount: number | null): number => {
+            return (currentCount || 0) + 1;
+          });
+          return Promise.resolve(item);
         }}
         isDeleteable={false}
         isEditable={false}
@@ -419,6 +416,12 @@ const DockerSwarmClusters: FunctionComponent<
           );
         }}
       />
+      {clusterCount === 0 && (
+        <DockerSwarmDocumentationCard
+          title="Getting Started with Docker Swarm Monitoring"
+          description="No Docker Swarm clusters connected yet. Install the agent using the guide below and your cluster will appear here automatically."
+        />
+      )}
       {labelBulkActionModals}
       {ownerBulkActionModals}
     </Fragment>
