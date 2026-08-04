@@ -472,6 +472,135 @@ export default class CodeRepository extends BaseModel {
   })
   @TableColumn({
     required: false,
+    type: TableColumnType.LongText,
+    title: "Setup Command",
+    description:
+      "Command the AI fix Runner executes at the repository root to install dependencies before verifying an AI-authored fix (e.g. 'npm ci'). Runs on your Runner, in the cloned workspace, before the build and test commands. Leave empty to skip.",
+    example: "npm ci",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+  })
+  public setupCommand?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateCodeRepository,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadCodeRepository,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditCodeRepository,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    title: "Build Command",
+    description:
+      "Command the AI fix Runner executes at the repository root to verify an AI-authored fix compiles/builds (e.g. 'npm run build'). A failure is fed back to the code agent for bounded repair attempts before the pull request opens. Leave empty to skip the build check.",
+    example: "npm run build",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+  })
+  public buildCommand?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateCodeRepository,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadCodeRepository,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditCodeRepository,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    title: "Test Command",
+    description:
+      "Command the AI fix Runner executes at the repository root to run the test suite against an AI-authored fix (e.g. 'npm test'). A failure is fed back to the code agent for bounded repair attempts before the pull request opens. Leave empty to skip the test check.",
+    example: "npm test",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+  })
+  public testCommand?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateCodeRepository,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadCodeRepository,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditCodeRepository,
+    ],
+  })
+  @TableColumn({
+    required: false,
     type: TableColumnType.Number,
     title: "Max Open Fix Pull Requests",
     description:

@@ -40,6 +40,9 @@ const repository: CodeRepositoryInfo = {
   organizationName: "acme",
   repositoryName: "checkout",
   mainBranchName: "main",
+  setupCommand: null,
+  buildCommand: null,
+  testCommand: null,
   servicePathInRepository: null,
   gitHubAppInstallationId: "installation-id",
 };

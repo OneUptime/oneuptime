@@ -129,6 +129,33 @@ export default class RepositoryManager {
     await this.runGitCommand(repoPath, ["add", "-A"]);
   }
 
+  /*
+   * Stage an explicit set of paths. Used by the fix pipelines instead of
+   * addAllChanges once the repository's own build/test commands have run in
+   * the workspace: `git add -A` would sweep whatever those commands emitted
+   * (build output, caches, lockfile churn) into the pull request as part of
+   * the "fix", and the target repository's .gitignore is not ours to rely
+   * on. Paths are passed after `--` so a filename can never be read as a
+   * flag.
+   */
+  public async addPaths(repoPath: string, paths: Array<string>): Promise<void> {
+    const uniquePaths: Array<string> = Array.from(
+      new Set(
+        paths.filter((path: string) => {
+          return path.trim().length > 0;
+        }),
+      ),
+    );
+
+    if (uniquePaths.length === 0) {
+      return;
+    }
+
+    await this.log(`Staging ${uniquePaths.length} path(s)...`);
+
+    await this.runGitCommand(repoPath, ["add", "--", ...uniquePaths]);
+  }
+
   // Check if there are any changes to commit
   public async hasChanges(repoPath: string): Promise<boolean> {
     try {

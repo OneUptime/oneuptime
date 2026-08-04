@@ -45,6 +45,9 @@ interface CodeRepositoryResponse {
   organizationName: string;
   repositoryName: string;
   mainBranchName: string;
+  setupCommand?: string | null;
+  buildCommand?: string | null;
+  testCommand?: string | null;
   servicePathInRepository: string | null;
   gitHubAppInstallationId: string | null;
 }
@@ -118,6 +121,14 @@ export interface CodeRepositoryInfo {
   organizationName: string;
   repositoryName: string;
   mainBranchName: string;
+  /*
+   * Operator-configured verification commands (run at the repository root
+   * by the build/test verification loop before a fix PR opens). Null when
+   * not configured — verification is skipped.
+   */
+  setupCommand: string | null;
+  buildCommand: string | null;
+  testCommand: string | null;
   servicePathInRepository: string | null;
   gitHubAppInstallationId: string | null;
 }
@@ -164,6 +175,9 @@ export interface RecordPullRequestOptions {
   description?: string;
   headRefName?: string;
   baseRefName?: string;
+  // Outcome of the pre-PR build/test verification loop (Passed/Failed/Skipped).
+  runnerVerificationStatus?: string;
+  runnerVerificationSummary?: string;
 }
 
 export interface RecordPullRequestResult {
@@ -309,6 +323,9 @@ export default class BackendAPI {
         organizationName: repo.organizationName,
         repositoryName: repo.repositoryName,
         mainBranchName: repo.mainBranchName,
+        setupCommand: repo.setupCommand || null,
+        buildCommand: repo.buildCommand || null,
+        testCommand: repo.testCommand || null,
         servicePathInRepository: repo.servicePathInRepository,
         gitHubAppInstallationId: repo.gitHubAppInstallationId,
       };
@@ -365,6 +382,9 @@ export default class BackendAPI {
             organizationName: repo.organizationName,
             repositoryName: repo.repositoryName,
             mainBranchName: repo.mainBranchName,
+            setupCommand: repo.setupCommand || null,
+            buildCommand: repo.buildCommand || null,
+            testCommand: repo.testCommand || null,
             servicePathInRepository: repo.servicePathInRepository,
             gitHubAppInstallationId: repo.gitHubAppInstallationId,
           };
@@ -438,6 +458,8 @@ export default class BackendAPI {
         description: options.description,
         headRefName: options.headRefName,
         baseRefName: options.baseRefName,
+        runnerVerificationStatus: options.runnerVerificationStatus,
+        runnerVerificationSummary: options.runnerVerificationSummary,
       },
     });
 

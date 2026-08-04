@@ -36,13 +36,24 @@ enum AIRunStatus {
 export default AIRunStatus;
 
 export class AIRunStatusHelper {
+  /*
+   * The single source of truth for "this run is over". Database guards that
+   * look for a still-live run spell the same set as
+   * QueryHelper.notIn(terminalStatuses()) — hand-copied lists drift, and a
+   * missing status here silently turns a finished run into a permanent
+   * dedupe block.
+   */
+  public static terminalStatuses(): Array<AIRunStatus> {
+    return [
+      AIRunStatus.Completed,
+      AIRunStatus.NoFixFound,
+      AIRunStatus.Error,
+      AIRunStatus.Cancelled,
+      AIRunStatus.Stale,
+    ];
+  }
+
   public static isTerminalStatus(status: AIRunStatus): boolean {
-    return (
-      status === AIRunStatus.Completed ||
-      status === AIRunStatus.NoFixFound ||
-      status === AIRunStatus.Error ||
-      status === AIRunStatus.Cancelled ||
-      status === AIRunStatus.Stale
-    );
+    return AIRunStatusHelper.terminalStatuses().includes(status);
   }
 }

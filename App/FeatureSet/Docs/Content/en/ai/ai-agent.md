@@ -11,11 +11,24 @@ Every pull request is reviewed and merged by a human. The Runner never merges it
 3. The Runner fetches the exception details — exception type, error message, and stack trace.
 4. It clones the linked repository into an ephemeral workspace and creates a branch (named `oneuptime-fix-exception-` followed by the first characters of the run id).
 5. A code agent, powered by your project's LLM provider, analyzes the codebase and writes the fix. The LLM calls are executed by the OneUptime server — the Runner container never holds your provider's API key — and every call is metered and logged in the AI logs.
-6. The Runner commits, pushes the branch, opens a pull request, and deletes the workspace.
+6. If the repository has verification commands configured, the Runner builds and tests the fix before anything is committed, feeding any failure back to the code agent for repair (see **Verification before the pull request** below).
+7. The Runner commits, pushes the branch, opens a pull request, and deletes the workspace.
 
 The exception page shows the task's live status. The task's detail page (under **AI** > **Tasks**) keeps the full run log — including a line for every file the Runner read or wrote and every command it ran — and links to every pull request the task opened.
 
 Each fix run is capped by server-enforced loop budgets: at most **40 LLM calls** and **100,000 output tokens** per run. A run that hits its budget finishes with a summary of the work done so far instead of looping forever. Fix runs also count against the project's daily autonomous AI token budget, if one is set.
+
+## Verification before the pull request
+
+A code repository can carry up to three verification commands — **Setup Command**, **Build Command**, and **Test Command** (for example `npm ci`, `npm run build`, `npm test`) — on its **Settings** page under **Code Repositories**. When any are configured, every fix run verifies its changes before the pull request opens:
+
+1. After the code agent finishes, the configured commands run in order (setup → build → test) at the repository root, on the Runner, inside the cloned workspace. Each command gets up to 15 minutes and runs with `CI=true` so nothing waits on an interactive prompt; the first failure stops the pass.
+2. On a failure, the tail of the failing command's output is handed back to the same code agent as a repair task — with instructions to fix its own changes, not to weaken or skip tests — and the commands run again. At most **2** repair attempts are made; repair passes share the run's LLM budget, and their edits land in the same commit as the fix.
+3. The outcome — **Passed**, **Failed**, or **Skipped** (no commands configured) — is stated in a **Verification** section of the pull request body and recorded on the task's pull request record.
+
+A fix that still fails verification is not thrown away: the pull request opens anyway, as a draft, with a clearly-marked **Verification failed** section in its body carrying the failing command and the tail of its output — the work is preserved, and the human reviewer decides. A repository with no commands configured is reported as **Skipped**, honestly, rather than implying a green build.
+
+The commands are operator-authored repository configuration executed on your own Runner — the same trust model as runbook Bash steps. The AI never writes or modifies them.
 
 ## Prerequisites
 
@@ -78,6 +91,14 @@ The Runner shows as connected on the **Settings** > **Runners** page within a mi
 - **The Runner crashes mid-run**: a run whose heartbeat goes stale for more than about ten minutes is failed with an error. It is never requeued automatically — the Runner may already have pushed a partial fix branch — but you can retry the fix from the exception page.
 - **No Runner is online**: a queued task that waits more than 30 minutes while no Runner with the **Runs AI Code Fixes** capability is connected is failed automatically, with guidance to check the Runner — it will not show "in progress" forever. (If a Runner is online but busy, queued tasks simply wait their turn.)
 
+## Automatic code fixes from investigations
+
+When an [AI investigation](/docs/ai/ai-sre) posts a root cause analysis on an incident or alert, the investigation panel offers **Open Fix PR from this analysis** — a fix task whose entire context is the posted analysis. Projects that want this to happen without the click can opt in with **Enable Automatic Code Fixes**, **off by default**, under **Incidents > Settings > AI** or **Alerts > Settings > AI** (one project-wide setting shared by both).
+
+When enabled, an investigation that ends with a **confident, evidenced** root cause analysis automatically queues the same fix task the button creates. The gate is the server-verified confidence signal, never the analysis prose: an investigation that gathered no server-verified evidence, or whose confidence classification failed, does not auto-open a pull request — the automatic trigger always fails toward doing nothing.
+
+Everything else matches the manual button: the pull request opens as a draft generated from the posted analysis, needs a GitHub-App-connected repository and a Runner with **Runs AI Code Fixes** enabled, counts against the project's daily fix task budget (the **Daily AI Fix Task Limit** setting; default 25 per UTC day) and each repository's open-PR cap, and every trigger first checks for a fix task that is already queued or running for the same incident or alert — so an automatic trigger and a human click normally collapse into one task rather than two pull requests. (The check is a read before the write, not a lock, so two triggers that fire at the very same moment can still both get through.) The run is system-authored (no user attribution), and nothing merges automatically.
+
 ## Privacy
 
 The repository clone lives in an ephemeral workspace inside the Runner container and is deleted when the run finishes, whether it succeeded or failed. The Runner container never holds your LLM provider's API key — LLM calls are executed by the OneUptime server on the Runner's behalf. OneUptime does not retain your repository and does not train on your code; the task's run log keeps a short preview of each step's output (a few hundred characters) so you can audit what the Runner did, and those previews can include code snippets. Run a self-hosted Runner with your own LLM provider (including local Ollama) and your code never leaves your infrastructure.
@@ -88,4 +109,3 @@ Planned, but **not available today**:
 
 - **GitLab support** — repository connections are currently GitHub App only.
 - **Richer telemetry context** — feeding related traces, logs, and metrics around the exception into the fix, beyond the stack trace.
-- **Verification loop** — building the project and running its tests against the fix before the pull request is opened.

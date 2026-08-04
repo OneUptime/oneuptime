@@ -475,6 +475,14 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("currentAlertStateId is required");
     }
 
+    /*
+     * Whether an AI investigation run was enqueued for this alert — set by
+     * the investigation step below and read by the auto-remediation step
+     * after it: an enqueued investigation DEFERS remediation until the run
+     * settles (RCA-first ordering, see RemediationHandoff).
+     */
+    let aiInvestigationEnqueued: boolean = false;
+
     // Execute operations sequentially with error handling
     Promise.resolve()
       .then(async () => {
@@ -694,10 +702,11 @@ export class Service extends DatabaseService<Model> {
          */
         try {
           if (createdItem.projectId && createdItem.id) {
-            await AIAlertInvestigationRunner.investigateNewAlert({
-              alertId: createdItem.id,
-              projectId: createdItem.projectId,
-            });
+            aiInvestigationEnqueued =
+              await AIAlertInvestigationRunner.investigateNewAlert({
+                alertId: createdItem.id,
+                projectId: createdItem.projectId,
+              });
           }
         } catch (error) {
           logger.error(
@@ -711,13 +720,21 @@ export class Service extends DatabaseService<Model> {
       })
       .then(async () => {
         /*
-         * Auto-remediation runs LAST: on-call paging must never wait on the
-         * engine's feed/workspace posts, and enqueueing the RCA
-         * investigation first lets its inline claim win an AI concurrency
-         * slot before any remediation-plan runs compete for the rest.
+         * Auto-remediation runs LAST — and only when NO AI investigation
+         * was enqueued above. RCA-first ordering: when an investigation is
+         * in flight, remediation is deferred until that run settles
+         * (RemediationHandoff releases it on any terminal outcome), so the
+         * remediation planner always has the posted root cause analysis as
+         * input instead of racing it. Without an investigation (opt-out,
+         * gates, budget) remediation fires here immediately — it must
+         * never silently depend on the AI lane being enabled.
          */
         try {
-          await AutoRemediationRuleEngineService.applyRulesToAlert(createdItem);
+          if (!aiInvestigationEnqueued) {
+            await AutoRemediationRuleEngineService.applyRulesToAlert(
+              createdItem,
+            );
+          }
         } catch (error) {
           logger.error(
             `Apply auto-remediation rules failed in AlertService.onCreateSuccess: ${error}`,

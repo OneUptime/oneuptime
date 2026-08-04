@@ -178,6 +178,126 @@ const Detail: DetailFunction = <T extends GenericObject>(
     );
   };
 
+  /*
+   * Relation columns arrive as whole model instances. React throws (and takes
+   * the entire page down with it) when handed one as a child, so every object
+   * that reaches the renderer is reduced to a label with these keys, in order.
+   */
+  const entityLabelKeys: Array<string> = [
+    "name",
+    "title",
+    "label",
+    "email",
+    "slug",
+    "value",
+  ];
+
+  type GetEntityLabelFunction = (entity: unknown) => string;
+
+  const getEntityLabel: GetEntityLabelFunction = (entity: unknown): string => {
+    if (entity === null || entity === undefined) {
+      return "";
+    }
+
+    if (entity instanceof DatabaseProperty) {
+      return entity.toString();
+    }
+
+    if (typeof entity !== "object") {
+      return String(entity);
+    }
+
+    for (const key of entityLabelKeys) {
+      const value: unknown = (entity as Dictionary<unknown>)[key];
+
+      if (value === null || value === undefined || value === "") {
+        continue;
+      }
+
+      if (value instanceof DatabaseProperty) {
+        return value.toString();
+      }
+
+      if (typeof value !== "object") {
+        return String(value);
+      }
+    }
+
+    return "";
+  };
+
+  type GetEntityColorFunction = (entity: unknown) => Color | string | undefined;
+
+  const getEntityColor: GetEntityColorFunction = (
+    entity: unknown,
+  ): Color | string | undefined => {
+    if (!entity || typeof entity !== "object") {
+      return undefined;
+    }
+
+    const color: unknown = (entity as Dictionary<unknown>)["color"];
+
+    if (color instanceof Color || typeof color === "string") {
+      return color;
+    }
+
+    return undefined;
+  };
+
+  type GetEntityViewerFunction = (entity: unknown) => ReactElement | string;
+
+  const getEntityViewer: GetEntityViewerFunction = (
+    entity: unknown,
+  ): ReactElement | string => {
+    const label: string = getEntityLabel(entity);
+
+    if (!label) {
+      // Fall through to the placeholder the field already declares.
+      return "";
+    }
+
+    return <DropdownValueBadge label={label} color={getEntityColor(entity)} />;
+  };
+
+  type GetEntityArrayViewerFunction = (
+    entities: Array<unknown>,
+  ) => ReactElement | string;
+
+  const getEntityArrayViewer: GetEntityArrayViewerFunction = (
+    entities: Array<unknown>,
+  ): ReactElement | string => {
+    const labelled: Array<{ label: string; entity: unknown }> = entities
+      .map((entity: unknown) => {
+        return { label: getEntityLabel(entity), entity: entity };
+      })
+      .filter((item: { label: string; entity: unknown }) => {
+        return Boolean(item.label);
+      });
+
+    if (labelled.length === 0) {
+      return "";
+    }
+
+    return (
+      <div className="flex flex-wrap gap-1.5">
+        {labelled.map(
+          (
+            item: { label: string; entity: unknown },
+            index: number,
+          ): ReactElement => {
+            return (
+              <DropdownValueBadge
+                key={`${item.label}-${index}`}
+                label={item.label}
+                color={getEntityColor(item.entity)}
+              />
+            );
+          },
+        )}
+      </div>
+    );
+  };
+
   type GetDictionaryOfStringsViewerFunction = (
     data: Dictionary<string>,
   ) => ReactElement;
@@ -486,6 +606,16 @@ const Detail: DetailFunction = <T extends GenericObject>(
       );
     }
 
+    if (data && field.fieldType === FieldType.Entity) {
+      data = getEntityViewer(data);
+    }
+
+    if (data && field.fieldType === FieldType.EntityArray) {
+      data = getEntityArrayViewer(
+        Array.isArray(data) ? (data as Array<unknown>) : [data],
+      );
+    }
+
     if (data && field.fieldType === FieldType.HiddenText) {
       data = (
         <HiddenText
@@ -606,6 +736,31 @@ const Detail: DetailFunction = <T extends GenericObject>(
 
     if (data instanceof DatabaseProperty) {
       data = data.toString();
+    }
+
+    /*
+     * Last resort. Anything still an object here is something no field type
+     * claimed - usually a relation column declared without FieldType.Entity.
+     * Rendering it would throw "Objects are not valid as a React child" and
+     * blank the whole page, so label it instead and log the misconfiguration.
+     */
+    if (data && typeof data === "object" && !React.isValidElement(data)) {
+      Logger.error(
+        "Detail: no field type renders the value of '" +
+          fieldKeyStr +
+          "'. Set fieldType (FieldType.Entity for relations) or getElement on the field.",
+      );
+
+      data = Array.isArray(data)
+        ? (data as Array<unknown>)
+            .map((entity: unknown) => {
+              return getEntityLabel(entity);
+            })
+            .filter((label: string) => {
+              return Boolean(label);
+            })
+            .join(", ")
+        : getEntityLabel(data);
     }
 
     // Determine style-based classes

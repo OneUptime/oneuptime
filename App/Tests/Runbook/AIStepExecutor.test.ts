@@ -9,6 +9,7 @@ import AIService, {
   RUNBOOK_AI_STEP_FEATURE,
 } from "Common/Server/Services/AIService";
 import UserService from "Common/Server/Services/UserService";
+import LlmProviderService from "Common/Server/Services/LlmProviderService";
 import IncidentAIContextBuilder, {
   IncidentContextData,
 } from "Common/Server/Utils/AI/IncidentAIContextBuilder";
@@ -34,6 +35,8 @@ import {
 
 const PROJECT_ID: ObjectID = new ObjectID("proj1");
 const OTHER_PROJECT_ID: ObjectID = new ObjectID("proj2");
+// A real uuid — the provider id reaches a uuid column, so shape matters.
+const PINNED_PROVIDER_ID: ObjectID = ObjectID.generate();
 
 function makeAiStep(config: Partial<AIStepConfig> = {}): RunbookStep {
   return {
@@ -127,6 +130,7 @@ describe("readAiConfig", () => {
         includePreviousStepContext: true,
         includeTriggerContext: true,
         maxTokens: 512,
+        llmProviderId: PINNED_PROVIDER_ID.toString(),
       }),
     );
     expect(config).toEqual({
@@ -134,7 +138,46 @@ describe("readAiConfig", () => {
       includePreviousStepContext: true,
       includeTriggerContext: true,
       maxTokens: 512,
+      llmProviderId: PINNED_PROVIDER_ID.toString(),
     });
+  });
+
+  test("no provider pin means undefined, not an empty id", () => {
+    // The overwhelmingly common case: every AI step written before this field.
+    expect(readAiConfig(makeAiStep()).llmProviderId).toBeUndefined();
+  });
+
+  test("trims a padded provider id", () => {
+    const config: ReturnType<typeof readAiConfig> = readAiConfig(
+      makeAiStep({
+        llmProviderId: `  ${PINNED_PROVIDER_ID.toString()}  `,
+      }),
+    );
+    expect(config.llmProviderId).toBe(PINNED_PROVIDER_ID.toString());
+  });
+
+  test("an empty or whitespace-only provider id reads as no pin", () => {
+    /*
+     * The form writes "" when the user picks "Project default" back. That has
+     * to mean the default provider — never a lookup for a provider named "",
+     * which would fail the step for a config the UI considers unpinned.
+     */
+    expect(readAiConfig(makeAiStep({ llmProviderId: "" })).llmProviderId).toBe(
+      undefined,
+    );
+    expect(
+      readAiConfig(makeAiStep({ llmProviderId: "   " })).llmProviderId,
+    ).toBe(undefined);
+  });
+
+  test("a non-string provider id reads as no pin rather than throwing", () => {
+    const step: RunbookStep = makeAiStep();
+    (step as { config: unknown }).config = {
+      prompt: "ok",
+      llmProviderId: { id: "nope" },
+    };
+
+    expect(readAiConfig(step).llmProviderId).toBeUndefined();
   });
 
   test("survives a null config — the steps JSON is client-supplied and unvalidated", () => {
@@ -822,5 +865,259 @@ describe("runAiStep", () => {
     expect(result.success).toBe(true);
     expect(result.output.length).toBeLessThan(60_000);
     expect(result.output).toContain("[output truncated]");
+  });
+});
+
+/*
+ * The optional per-step provider pin. Two properties matter and neither is
+ * visible from the happy path: an unpinned step must keep behaving exactly as
+ * it did before the field existed, and a pinned id must be re-validated
+ * against the project on every run — Runbook.steps is an unvalidated JSON
+ * column, so the id is caller-supplied no matter what the form offers.
+ */
+describe("runAiStep — LLM provider pinning", () => {
+  beforeEach(() => {
+    jest.spyOn(logger, "error").mockImplementation((): void => {
+      return undefined;
+    });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function mockExecute(): jest.SpyInstance {
+    return jest
+      .spyOn(AIService, "executeWithLogging")
+      .mockResolvedValue({ content: "ok", llmLog: {} as never } as never);
+  }
+
+  function mockProviderUsable(isUsable: boolean): jest.SpyInstance {
+    return jest
+      .spyOn(LlmProviderService, "isProviderUsableByProject")
+      .mockResolvedValue(isUsable);
+  }
+
+  test("an unpinned step sends no provider id — the project default resolves it", async () => {
+    const executeSpy: jest.SpyInstance = mockExecute();
+    const usableSpy: jest.SpyInstance = mockProviderUsable(true);
+
+    const result: StepRunResult = await runAiStep(makeAiStep(), makeCtx());
+
+    expect(result.success).toBe(true);
+    const request: AILogRequest = executeSpy.mock.calls[0]![0] as AILogRequest;
+    expect(request.llmProviderId).toBeUndefined();
+    /*
+     * And it must not even ask: an unpinned step is every pre-existing AI
+     * step, and none of them should pay for a provider lookup.
+     */
+    expect(usableSpy).not.toHaveBeenCalled();
+  });
+
+  test("a pinned, usable provider is passed through to AIService", async () => {
+    const executeSpy: jest.SpyInstance = mockExecute();
+    mockProviderUsable(true);
+
+    const result: StepRunResult = await runAiStep(
+      makeAiStep({ llmProviderId: PINNED_PROVIDER_ID.toString() }),
+      makeCtx(),
+    );
+
+    expect(result.success).toBe(true);
+    const request: AILogRequest = executeSpy.mock.calls[0]![0] as AILogRequest;
+    expect(request.llmProviderId?.toString()).toBe(
+      PINNED_PROVIDER_ID.toString(),
+    );
+  });
+
+  test("the pin is validated against the step's own project", async () => {
+    mockExecute();
+    const usableSpy: jest.SpyInstance = mockProviderUsable(true);
+
+    await runAiStep(
+      makeAiStep({ llmProviderId: PINNED_PROVIDER_ID.toString() }),
+      makeCtx({ projectId: OTHER_PROJECT_ID }),
+    );
+
+    expect(usableSpy).toHaveBeenCalledTimes(1);
+    const args: { projectId: ObjectID; llmProviderId: ObjectID } = usableSpy
+      .mock.calls[0]![0] as { projectId: ObjectID; llmProviderId: ObjectID };
+    expect(args.projectId.toString()).toBe(OTHER_PROJECT_ID.toString());
+    expect(args.llmProviderId.toString()).toBe(PINNED_PROVIDER_ID.toString());
+  });
+
+  test("a provider the project cannot use fails the step — it never falls back", async () => {
+    const executeSpy: jest.SpyInstance = mockExecute();
+    mockProviderUsable(false);
+
+    const result: StepRunResult = await runAiStep(
+      makeAiStep({ llmProviderId: PINNED_PROVIDER_ID.toString() }),
+      makeCtx(),
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.errorMessage).toContain(
+      "no longer available to this project",
+    );
+    /*
+     * The important half of the assertion: silently running the step on the
+     * project default would produce a plausible answer from a model the
+     * responder did not choose, on an execution nobody is watching.
+     */
+    expect(executeSpy).not.toHaveBeenCalled();
+  });
+
+  test("a cross-tenant pin cannot reach another project's provider", async () => {
+    /*
+     * The attack this closes: steps are stored as unvalidated JSON, so a
+     * runbook in project A can be written with project B's provider id — and
+     * a provider carries an apiKey. Resolution must reject it on the server,
+     * which is what returning false here stands for.
+     */
+    const executeSpy: jest.SpyInstance = mockExecute();
+    const usableSpy: jest.SpyInstance = mockProviderUsable(false);
+
+    const result: StepRunResult = await runAiStep(
+      makeAiStep({ llmProviderId: PINNED_PROVIDER_ID.toString() }),
+      makeCtx({ projectId: PROJECT_ID }),
+    );
+
+    expect(usableSpy).toHaveBeenCalledTimes(1);
+    expect(result.success).toBe(false);
+    expect(executeSpy).not.toHaveBeenCalled();
+  });
+
+  test("validation happens before any context is built", async () => {
+    /*
+     * Context building issues several queries and can embed a whole incident
+     * dossier. A step that cannot run must not pay for that — and must not
+     * pull an incident into memory on the way to failing.
+     */
+    mockExecute();
+    mockProviderUsable(false);
+    const incidentSpy: jest.SpyInstance = jest
+      .spyOn(IncidentAIContextBuilder, "buildIncidentContext")
+      .mockResolvedValue(makeIncidentContextData());
+
+    const result: StepRunResult = await runAiStep(
+      makeAiStep({
+        llmProviderId: PINNED_PROVIDER_ID.toString(),
+        includeTriggerContext: true,
+      }),
+      makeCtx({ incidentId: new ObjectID("inc1") }),
+    );
+
+    expect(result.success).toBe(false);
+    expect(incidentSpy).not.toHaveBeenCalled();
+  });
+
+  test("a missing prompt beats a bad provider — the prompt is checked first", async () => {
+    const usableSpy: jest.SpyInstance = mockProviderUsable(false);
+
+    const result: StepRunResult = await runAiStep(
+      makeAiStep({
+        prompt: "  ",
+        llmProviderId: PINNED_PROVIDER_ID.toString(),
+      }),
+      makeCtx(),
+    );
+
+    expect(result.errorMessage).toContain("no prompt configured");
+    expect(usableSpy).not.toHaveBeenCalled();
+  });
+
+  test("an empty pin is treated as unpinned, not as a lookup", async () => {
+    const executeSpy: jest.SpyInstance = mockExecute();
+    const usableSpy: jest.SpyInstance = mockProviderUsable(false);
+
+    const result: StepRunResult = await runAiStep(
+      makeAiStep({ llmProviderId: "   " }),
+      makeCtx(),
+    );
+
+    expect(result.success).toBe(true);
+    expect(usableSpy).not.toHaveBeenCalled();
+    const request: AILogRequest = executeSpy.mock.calls[0]![0] as AILogRequest;
+    expect(request.llmProviderId).toBeUndefined();
+  });
+
+  test("a malformed pin fails the step, not with a raw driver error", async () => {
+    /*
+     * llmProviderId lands in a uuid column. A garbage string must come back
+     * as "not usable" (the service shape-checks it) and surface as the
+     * friendly message, never as a Postgres cast error on an incident page.
+     */
+    const executeSpy: jest.SpyInstance = mockExecute();
+    mockProviderUsable(false);
+
+    const result: StepRunResult = await runAiStep(
+      makeAiStep({ llmProviderId: "not-a-uuid" }),
+      makeCtx(),
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.errorMessage).toContain(
+      "no longer available to this project",
+    );
+    expect(result.errorMessage).not.toContain("invalid input syntax");
+    expect(executeSpy).not.toHaveBeenCalled();
+  });
+
+  test("a provider lookup that throws fails the step cleanly", async () => {
+    mockExecute();
+    jest
+      .spyOn(LlmProviderService, "isProviderUsableByProject")
+      .mockRejectedValue(new Error("connection terminated unexpectedly"));
+
+    const result: StepRunResult = await runAiStep(
+      makeAiStep({ llmProviderId: PINNED_PROVIDER_ID.toString() }),
+      makeCtx(),
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.errorMessage).toContain("connection terminated");
+  });
+
+  test("pinning changes nothing else about the request", async () => {
+    /*
+     * The pin is additive. Metering, the fixed temperature and the G8
+     * preview suppression must all survive it — a regression here would be
+     * invisible until an audit of LlmLog.
+     */
+    const executeSpy: jest.SpyInstance = mockExecute();
+    mockProviderUsable(true);
+
+    await runAiStep(
+      makeAiStep({ llmProviderId: PINNED_PROVIDER_ID.toString() }),
+      makeCtx(),
+    );
+
+    const request: AILogRequest = executeSpy.mock.calls[0]![0] as AILogRequest;
+    expect(request.feature).toBe(RUNBOOK_AI_STEP_FEATURE);
+    expect(request.temperature).toBe(0.2);
+    expect(request.maxTokens).toBe(4096);
+    expect(request.storeContentPreviews).toBe(false);
+  });
+
+  test("a pinned step is still inside the daily autonomous budget", async () => {
+    /*
+     * Bringing your own provider does not buy an exemption: the budget is
+     * keyed on the feature, not the provider, so a pinned step that trips it
+     * fails like any other.
+     */
+    mockProviderUsable(true);
+    jest
+      .spyOn(AIService, "executeWithLogging")
+      .mockRejectedValue(
+        new Error("Daily autonomous AI token budget exhausted"),
+      );
+
+    const result: StepRunResult = await runAiStep(
+      makeAiStep({ llmProviderId: PINNED_PROVIDER_ID.toString() }),
+      makeCtx(),
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.errorMessage).toContain("budget exhausted");
   });
 });

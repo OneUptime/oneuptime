@@ -6,7 +6,7 @@ import ObjectID from "../../Types/ObjectID";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import BadDataException from "../../Types/Exception/BadDataException";
 import AIRunType from "../../Types/AI/AIRunType";
-import AIRunStatus from "../../Types/AI/AIRunStatus";
+import AIRunStatus, { AIRunStatusHelper } from "../../Types/AI/AIRunStatus";
 import CodeFixTaskType, {
   CodeFixTaskTypeHelper,
 } from "../../Types/AI/CodeFixTaskType";
@@ -433,14 +433,7 @@ export class Service extends DatabaseService<Model> {
           taskType === CodeFixTaskType.FixException
             ? QueryHelper.equalToOrNull(CodeFixTaskType.FixException)
             : taskType,
-        // Every terminal status — see AIRunStatusHelper.isTerminalStatus.
-        status: QueryHelper.notIn([
-          AIRunStatus.Completed,
-          AIRunStatus.NoFixFound,
-          AIRunStatus.Error,
-          AIRunStatus.Cancelled,
-          AIRunStatus.Stale,
-        ]),
+        status: QueryHelper.notIn(AIRunStatusHelper.terminalStatuses()),
       },
       select: {
         _id: true,
@@ -490,13 +483,7 @@ export class Service extends DatabaseService<Model> {
           data.taskType === CodeFixTaskType.FixException
             ? QueryHelper.equalToOrNull(CodeFixTaskType.FixException)
             : data.taskType,
-        status: QueryHelper.notIn([
-          AIRunStatus.Completed,
-          AIRunStatus.NoFixFound,
-          AIRunStatus.Error,
-          AIRunStatus.Cancelled,
-          AIRunStatus.Stale,
-        ]),
+        status: QueryHelper.notIn(AIRunStatusHelper.terminalStatuses()),
       },
       select: {
         triggeredByTelemetryExceptionId: true,

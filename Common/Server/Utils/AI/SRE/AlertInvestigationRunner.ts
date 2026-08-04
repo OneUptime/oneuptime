@@ -20,7 +20,9 @@ import { AI_ALERT_INVESTIGATION_FEATURE } from "../../../Services/AIService";
 import AIInvestigationEngine from "./AIInvestigationEngine";
 import AIInvestigationQueue from "./InvestigationQueue";
 import AIConfidenceSignal, { ConfidenceSignal } from "./ConfidenceSignal";
+import FixFromIncidentTaskTrigger from "./FixFromIncidentTaskTrigger";
 import InstrumentationTaskTrigger from "./InstrumentationTaskTrigger";
+import RemediationHandoff from "./RemediationHandoff";
 import { ObservabilityAssistantResult } from "../Chat/ObservabilityAssistant";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
@@ -60,19 +62,25 @@ export default class AIAlertInvestigationRunner {
    * Entry point called (fire-and-forget) from AlertService.onCreateSuccess.
    * Cheap: gates + a Queued AIRun row; execution happens via the queue.
    * Never throws — all failures are logged.
+   *
+   * Returns whether an investigation run was actually enqueued: the create
+   * hook DEFERS auto-remediation when one was (the RCA-first ordering —
+   * remediation is released by RemediationHandoff when the run settles) and
+   * applies the rules immediately when none was, so remediation never
+   * silently depends on the AI lane.
    */
   @CaptureSpan()
   public static async investigateNewAlert(data: {
     alertId: ObjectID;
     projectId: ObjectID;
-  }): Promise<void> {
+  }): Promise<boolean> {
     const { alertId, projectId } = data;
 
     try {
       if (
         !(await AIInvestigationEngine.isEnabledForProject(projectId, "Alert"))
       ) {
-        return;
+        return false;
       }
 
       const gate: AlertGateDecision = await this.shouldInvestigateAlert({
@@ -84,18 +92,23 @@ export default class AIAlertInvestigationRunner {
         logger.debug(
           `AI: skipping investigation for alert ${alertId.toString()} — ${gate.reason}.`,
         );
-        return;
+        return false;
       }
 
-      await AIInvestigationQueue.enqueue({
-        projectId,
-        subjectAlertId: alertId,
-        subjectMonitorId: gate.monitorId,
-      });
+      const enqueuedRunId: ObjectID | null = await AIInvestigationQueue.enqueue(
+        {
+          projectId,
+          subjectAlertId: alertId,
+          subjectMonitorId: gate.monitorId,
+        },
+      );
+
+      return enqueuedRunId !== null;
     } catch (error) {
       logger.error(
         `AI: unexpected error enqueueing investigation for alert ${alertId.toString()}: ${error}`,
       );
+      return false;
     }
   }
 
@@ -125,16 +138,27 @@ export default class AIAlertInvestigationRunner {
     } catch (error) {
       /*
        * Context assembly failed — the run is claimed, so hand it to the
-       * retry policy rather than leaving it Running until the sweeper.
+       * retry policy rather than leaving it Running until the sweeper. When
+       * this failure FINALIZED the run (retries exhausted), the alert is
+       * terminally settled here and must still be released to
+       * auto-remediation (RCA-first ordering).
        */
-      await AIInvestigationQueue.failOrRequeue({
-        aiRunId,
-        attemptCount,
-        errorMessage: `Failed to build alert context: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-        isPermanent: false,
-      });
+      const outcome: "requeued" | "finalized" | "noop" =
+        await AIInvestigationQueue.failOrRequeue({
+          aiRunId,
+          attemptCount,
+          errorMessage: `Failed to build alert context: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+          isPermanent: false,
+        });
+
+      if (outcome === "finalized") {
+        await RemediationHandoff.runForSettledInvestigation({
+          projectId,
+          alertId,
+        });
+      }
       return;
     }
 
@@ -194,6 +218,40 @@ export default class AIAlertInvestigationRunner {
               },
             );
           }
+
+          /*
+           * The confident twin: a POSITIVE confident classification means
+           * the posted analysis asserts an evidenced root cause — for
+           * opted-in projects (Project.enableAutomaticCodeFixes, default
+           * false), automatically queue the FixFromIncident task that
+           * opens a draft fix PR from this analysis (the automatic form
+           * of the "Open Fix PR from this analysis" button). Runs strictly
+           * AFTER the analysis is posted because the posted RootCause feed
+           * item IS the fix task's entire context, and the trigger never
+           * throws. Fail direction (G6): the deterministic floor and a
+           * failed classification never auto-open a PR.
+           */
+          if (
+            AIConfidenceSignal.shouldAutoEnqueueCodeFixTask(postData.confidence)
+          ) {
+            await FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation(
+              {
+                projectId,
+                alertId,
+              },
+            );
+          }
+        },
+        /*
+         * RCA-first ordering: auto-remediation for this alert was deferred
+         * at creation because this investigation was enqueued — release it
+         * now that the run has settled (any terminal outcome).
+         */
+        onSettled: async (): Promise<void> => {
+          await RemediationHandoff.runForSettledInvestigation({
+            projectId,
+            alertId,
+          });
         },
       },
     });

@@ -266,6 +266,68 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * THE rule for "may this project use this provider?": a global provider is
+   * shared with everyone, and a project-owned provider belongs only to its
+   * own project. Every caller that honours a caller-supplied llmProviderId
+   * routes through this one predicate so the checks cannot drift apart —
+   * a second, subtly different copy of this comparison is how one entry point
+   * ends up accepting a provider another one rejects.
+   */
+  private isProviderUsableBy(provider: Model, projectId: ObjectID): boolean {
+    if (provider.isGlobalLlm === true) {
+      return true;
+    }
+
+    return Boolean(
+      provider.projectId &&
+        provider.projectId.toString() === projectId.toString(),
+    );
+  }
+
+  /*
+   * Can this project run against this provider id? Answers the question
+   * without loading secrets — callers that only need a yes/no (the runbook AI
+   * step validating a pinned provider before it runs) must not pull an apiKey
+   * into memory to get it. A provider that does not exist, or belongs to
+   * another project, is not usable.
+   */
+  @CaptureSpan()
+  public async isProviderUsableByProject(data: {
+    projectId: ObjectID;
+    llmProviderId: ObjectID;
+  }): Promise<boolean> {
+    /*
+     * _id is a uuid column: querying it with a non-uuid string is a Postgres
+     * cast error, not an empty result. A caller-supplied id reaches us
+     * straight from an unvalidated JSON config, so shape-check before the
+     * query and report "not usable" rather than throwing a driver error.
+     */
+    if (!ObjectID.isValidUUID(data.llmProviderId.toString())) {
+      return false;
+    }
+
+    const provider: Model | null = await this.findOneBy({
+      query: {
+        _id: data.llmProviderId.toString(),
+      },
+      select: {
+        _id: true,
+        projectId: true,
+        isGlobalLlm: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!provider) {
+      return false;
+    }
+
+    return this.isProviderUsableBy(provider, data.projectId);
+  }
+
+  /*
    * Resolve the provider to use for a chat turn. When the user has explicitly
    * chosen a provider (llmProviderId), use it — but only if it is actually
    * usable by this project: either a global provider, or one owned by the
@@ -278,7 +340,11 @@ export class Service extends DatabaseService<Model> {
     projectId: ObjectID;
     llmProviderId?: ObjectID | undefined;
   }): Promise<Model | null> {
-    if (data.llmProviderId) {
+    if (
+      data.llmProviderId &&
+      // A non-uuid id would be a Postgres cast error, not a miss. Fall back.
+      ObjectID.isValidUUID(data.llmProviderId.toString())
+    ) {
       const provider: Model | null = await this.findOneBy({
         query: {
           _id: data.llmProviderId.toString(),
@@ -300,14 +366,8 @@ export class Service extends DatabaseService<Model> {
         },
       });
 
-      if (provider) {
-        const isGlobal: boolean = provider.isGlobalLlm === true;
-        const belongsToProject: boolean =
-          provider.projectId?.toString() === data.projectId.toString();
-
-        if (isGlobal || belongsToProject) {
-          return provider;
-        }
+      if (provider && this.isProviderUsableBy(provider, data.projectId)) {
+        return provider;
       }
       // Fall through to default resolution when the id is invalid/inaccessible.
     }

@@ -35,6 +35,7 @@ import AlertFeed, {
 } from "../../Models/DatabaseModels/AlertFeed";
 import AIRunEventType from "../../Types/AI/AIRunEventType";
 import AIRunType from "../../Types/AI/AIRunType";
+import FixVerificationStatus from "../../Types/AI/FixVerificationStatus";
 import CodeFixTaskType, {
   CodeFixContextKind,
   CodeFixTaskTypeHelper,
@@ -438,6 +439,9 @@ export default class AIAgentDataAPI {
                 organizationName: true,
                 repositoryName: true,
                 mainBranchName: true,
+                setupCommand: true,
+                buildCommand: true,
+                testCommand: true,
                 gitHubAppInstallationId: true,
               },
               props: {
@@ -467,6 +471,9 @@ export default class AIAgentDataAPI {
                 organizationName: repository.organizationName || "",
                 repositoryName: repository.repositoryName || "",
                 mainBranchName: repository.mainBranchName || "main",
+                setupCommand: repository.setupCommand || null,
+                buildCommand: repository.buildCommand || null,
+                testCommand: repository.testCommand || null,
                 servicePathInRepository: resolution.servicePathInRepository,
                 gitHubAppInstallationId:
                   repository.gitHubAppInstallationId || null,
@@ -637,6 +644,9 @@ export default class AIAgentDataAPI {
                     organizationName: true,
                     repositoryName: true,
                     mainBranchName: true,
+                    setupCommand: true,
+                    buildCommand: true,
+                    testCommand: true,
                     gitHubAppInstallationId: true,
                   },
                   props: { isRoot: true },
@@ -674,6 +684,9 @@ export default class AIAgentDataAPI {
                   organizationName: repository.organizationName || "",
                   repositoryName: repository.repositoryName || "",
                   mainBranchName: repository.mainBranchName || "main",
+                  setupCommand: repository.setupCommand || null,
+                  buildCommand: repository.buildCommand || null,
+                  testCommand: repository.testCommand || null,
                   servicePathInRepository: resolution.servicePathInRepository,
                   gitHubAppInstallationId:
                     repository.gitHubAppInstallationId || null,
@@ -756,6 +769,9 @@ export default class AIAgentDataAPI {
                     organizationName: true,
                     repositoryName: true,
                     mainBranchName: true,
+                    setupCommand: true,
+                    buildCommand: true,
+                    testCommand: true,
                     gitHubAppInstallationId: true,
                   },
                   props: {
@@ -813,6 +829,9 @@ export default class AIAgentDataAPI {
                   organizationName: repository.organizationName || "",
                   repositoryName: repository.repositoryName || "",
                   mainBranchName: repository.mainBranchName || "main",
+                  setupCommand: repository.setupCommand || null,
+                  buildCommand: repository.buildCommand || null,
+                  testCommand: repository.testCommand || null,
                   servicePathInRepository: resolution.servicePathInRepository,
                   gitHubAppInstallationId:
                     repository.gitHubAppInstallationId || null,
@@ -987,6 +1006,9 @@ export default class AIAgentDataAPI {
                   organizationName: true,
                   repositoryName: true,
                   mainBranchName: true,
+                  setupCommand: true,
+                  buildCommand: true,
+                  testCommand: true,
                   gitHubAppInstallationId: true,
                 },
                 props: {
@@ -1032,6 +1054,9 @@ export default class AIAgentDataAPI {
                 organizationName: repository.organizationName || "",
                 repositoryName: repository.repositoryName || "",
                 mainBranchName: repository.mainBranchName || "main",
+                setupCommand: repository.setupCommand || null,
+                buildCommand: repository.buildCommand || null,
+                testCommand: repository.testCommand || null,
                 servicePathInRepository: resolution.servicePathInRepository,
                 gitHubAppInstallationId:
                   repository.gitHubAppInstallationId || null,
@@ -1281,6 +1306,26 @@ export default class AIAgentDataAPI {
             | undefined;
 
           /*
+           * Runner-side build/test verification outcome (pre-PR, distinct
+           * from the ciStatus the sync worker fills post-PR). Unknown
+           * values are dropped rather than stored — the column is a typed
+           * enum and the Runner may be older or newer than this server.
+           */
+          const rawVerificationStatus: string | undefined = data[
+            "runnerVerificationStatus"
+          ] as string | undefined;
+          const runnerVerificationStatus: FixVerificationStatus | undefined =
+            rawVerificationStatus &&
+            Object.values(FixVerificationStatus).includes(
+              rawVerificationStatus as FixVerificationStatus,
+            )
+              ? (rawVerificationStatus as FixVerificationStatus)
+              : undefined;
+          const runnerVerificationSummary: string | undefined = data[
+            "runnerVerificationSummary"
+          ] as string | undefined;
+
+          /*
            * `taskId` carries the AIRun id of the code-fix run — get the run
            * for the project ID and so the PR can be recorded on its trail.
            */
@@ -1369,10 +1414,15 @@ export default class AIAgentDataAPI {
             pullRequest.pullRequestId = pullRequestId;
           }
 
-          pullRequest.title = title;
+          // The column is ShortText — DatabaseService rejects over 100 chars.
+          pullRequest.title = title.substring(0, 100);
 
           if (description) {
-            pullRequest.description = description;
+            /*
+             * The column is LongText, which DatabaseService validates at 500
+             * characters — truncate, never reject the whole recording.
+             */
+            pullRequest.description = description.substring(0, 500);
           }
 
           pullRequest.pullRequestState = PullRequestState.Open;
@@ -1391,6 +1441,16 @@ export default class AIAgentDataAPI {
 
           if (codeRepository?.repositoryName) {
             pullRequest.repoName = codeRepository.repositoryName;
+          }
+
+          if (runnerVerificationStatus) {
+            pullRequest.runnerVerificationStatus = runnerVerificationStatus;
+          }
+
+          if (runnerVerificationSummary) {
+            // The column is varchar(500) — truncate, never reject.
+            pullRequest.runnerVerificationSummary =
+              runnerVerificationSummary.substring(0, 500);
           }
 
           const createdPullRequest: AIAgentTaskPullRequest =

@@ -444,8 +444,14 @@ describe("AIIncidentInvestigationRunner.investigateNewIncident — gate wiring",
     expect(enqueue).not.toHaveBeenCalled();
   });
 
-  // A gate failure must never take incident creation down with it.
-  test("a throwing gate is swallowed and enqueues nothing", async () => {
+  /*
+   * A gate failure must never take incident creation down with it — and it
+   * must report "not enqueued", because the create hook reads that answer
+   * to decide whether auto-remediation runs immediately or waits for the
+   * investigation to settle. Returning true here would strand remediation
+   * behind an investigation that never started.
+   */
+  test("a throwing gate is swallowed, enqueues nothing, and reports not-enqueued", async () => {
     jest
       .spyOn(AIInvestigationEngine, "isEnabledForProject")
       .mockResolvedValue(true);
@@ -462,7 +468,7 @@ describe("AIIncidentInvestigationRunner.investigateNewIncident — gate wiring",
         incidentId: INCIDENT_ID,
         projectId: PROJECT_ID,
       }),
-    ).resolves.toBeUndefined();
+    ).resolves.toBe(false);
 
     expect(enqueue).not.toHaveBeenCalled();
   });

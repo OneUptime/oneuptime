@@ -1622,6 +1622,36 @@ export default class Project extends TenantModel {
     required: true,
     isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
+    title: "Enable Automatic Code Fixes",
+    description:
+      "When enabled, an AI investigation that ends with a confident, evidenced root cause analysis automatically queues an AI agent task that opens a draft fix pull request from that analysis — the automatic form of the 'Open Fix PR from this analysis' button. Requires a repository connected through the GitHub App and a Runner with the code-fix capability. Pull requests are always human-reviewed — nothing merges automatically.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public enableAutomaticCodeFixes?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
     title: "Enable AI Insights",
     description:
       "When enabled, OneUptime AI continuously watches this project's telemetry with deterministic statistical sensors (error-log spikes, exception novelty and spikes, trace-latency regressions, week-over-week metric drift) and files quiet Insights — never pages, never opens incidents. Each new insight also gets a budgeted, read-only AI triage analysis when an LLM provider is configured.",

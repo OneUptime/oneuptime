@@ -16,6 +16,9 @@ import RepositoryManager, {
 import PullRequestCreator, {
   PullRequestResult,
 } from "../Utils/PullRequestCreator";
+import BuildVerification, {
+  VerificationOutcome,
+} from "../Utils/BuildVerification";
 import WorkspaceManager, { WorkspaceInfo } from "../Utils/WorkspaceManager";
 import {
   CodeAgentFactory,
@@ -318,9 +321,38 @@ export default abstract class SubjectPullRequestTaskHandler extends BaseTaskHand
       `Code agent modified ${agentResult.filesModified.length} file(s)`,
     );
 
-    // Add all changes and commit
+    /*
+     * Verification loop ("tests green before the PR"): run the
+     * repository's configured setup/build/test commands against the
+     * agent's changes, feeding failures back to the agent for bounded
+     * repair passes. Runs BEFORE commit so repair edits land in the same
+     * commit; a fix that still fails opens as a clearly-labeled PR rather
+     * than being thrown away.
+     */
+    const verification: VerificationOutcome =
+      await BuildVerification.verifyWithRepairs({
+        repo,
+        repositoryPath: cloneResult.repositoryPath,
+        agent,
+        originalPrompt: prompt,
+        servicePath: repo.servicePathInRepository || undefined,
+        log: async (message: string): Promise<void> => {
+          await this.log(context, message);
+        },
+      });
+
+    /*
+     * Stage an explicit pathspec, never `git add -A`: the repository's own
+     * build/test commands just ran in this workspace, and whatever they
+     * emitted (build output, caches, lockfile churn) must not be committed
+     * as part of the fix. agentResult.filesModified was captured before any
+     * command ran; repairPaths covers what the repair passes added after.
+     */
     await this.log(context, "Committing changes...");
-    await repoManager.addAllChanges(cloneResult.repositoryPath);
+    await repoManager.addPaths(cloneResult.repositoryPath, [
+      ...agentResult.filesModified,
+      ...verification.repairPaths,
+    ]);
 
     const commitMessage: string = this.buildCommitMessage(details);
     await repoManager.commitChanges(cloneResult.repositoryPath, commitMessage);
@@ -340,10 +372,9 @@ export default abstract class SubjectPullRequestTaskHandler extends BaseTaskHand
     );
 
     const prTitle: string = this.buildPullRequestTitle(details);
-    const prBody: string = this.buildPullRequestBody(
-      details,
-      agentResult.summary,
-    );
+    const prBody: string =
+      this.buildPullRequestBody(details, agentResult.summary) +
+      BuildVerification.buildPullRequestBodySection(verification);
 
     const prResult: PullRequestResult = await prCreator.createPullRequest({
       token: tokenData.token,
@@ -368,6 +399,8 @@ export default abstract class SubjectPullRequestTaskHandler extends BaseTaskHand
       description: prBody.substring(0, 1000),
       headRefName: branchName,
       baseRefName: repo.mainBranchName || "main",
+      runnerVerificationStatus: verification.status,
+      runnerVerificationSummary: verification.summary,
     });
 
     // Cleanup agent
