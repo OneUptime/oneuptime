@@ -4,7 +4,7 @@ import Email from "Common/Types/Email";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import Text from "Common/Types/Text";
 import logger from "Common/Server/Utils/Logger";
-import xmlCrypto, { FileKeyInfo } from "xml-crypto";
+import { Reference, SignedXml } from "xml-crypto";
 import {
   DOMParser,
   Document as XmlDocument,
@@ -159,6 +159,16 @@ export default class SSOUtil {
    *      comments (blocks the SAML comment-truncation class of attacks), no
    *      processing instructions, no child elements. Whatever we read is then
    *      exactly the character data the canonicalizer digested.
+   *   9. The identity itself is read from the CANONICAL BYTES the signature was
+   *      verified over (xml-crypto's `signedReference`), not from a second
+   *      independent parse of the original document. Rules 1-8 establish that
+   *      there is exactly one assertion, in the one position SAML allows, under
+   *      a signature that covers it; rule 9 decides where the characters come
+   *      from. That is what makes a disagreement between our parse and
+   *      xml-crypto's canonicalizer stop being an authentication bug: the
+   *      processing-instruction trick of #2988 is one instance of that
+   *      disagreement, and xml-crypto still renders any node carrying a `data`
+   *      property as plain text in 6.x.
    *
    * Throws BadRequestException on any anomaly.
    */
@@ -203,8 +213,9 @@ export default class SSOUtil {
   }
 
   /*
-   * The single verification pipeline. Returns the one assertion that the
-   * signature provably covers, or throws.
+   * The single verification pipeline. Returns the assertion that the signature
+   * provably covers - parsed out of the canonical bytes the signature was
+   * actually verified over - or throws.
    */
   private static verifyAndGetAssertion(
     samlResponse: string,
@@ -223,15 +234,17 @@ export default class SSOUtil {
 
     SSOUtil.assertSignaturesAreWellPlaced(dom, response, assertion);
 
-    if (
-      !SSOUtil.verifyAssertionSignature(
-        samlResponse,
-        certificate,
-        dom,
-        response,
-        assertion,
-      )
-    ) {
+    SSOUtil.assertIdentityValuesArePlainText(assertion);
+
+    const signedReferenceXml: string | null = SSOUtil.verifyAssertionSignature(
+      samlResponse,
+      certificate,
+      dom,
+      response,
+      assertion,
+    );
+
+    if (signedReferenceXml === null) {
       throw new BadRequestException(
         "Signature is not valid or Public Certificate configured with this SSO provider is not valid",
       );
@@ -239,7 +252,7 @@ export default class SSOUtil {
 
     SSOUtil.assertStatusIsSuccess(dom, response);
 
-    return assertion;
+    return SSOUtil.getAssertionFromSignedBytes(signedReferenceXml, assertion);
   }
 
   /*
@@ -554,11 +567,14 @@ export default class SSOUtil {
    *   - has a verified reference that resolves to exactly one element, and that
    *     element is the Assertion itself or the root <Response>.
    *
-   * The references are read back AFTER checkSignature() because xml-crypto
-   * rebuilds them from the canonicalized <SignedInfo> it just verified - the
-   * ones parsed by loadSignature() are still unauthenticated at that point.
+   * Returns the CANONICAL BYTES of that reference - the exact string xml-crypto
+   * digested and the signature was verified over - or null.
    *
-   * Only if BOTH hold do we consider the assertion authentic.
+   * The references are read back AFTER checkSignature() because xml-crypto
+   * rebuilds them from the canonicalized <SignedInfo> it just verified; the
+   * ones parsed by loadSignature() are still unauthenticated at that point. For
+   * the same reason `signedReference` is only populated once every digest AND
+   * the signature value have checked out - xml-crypto clears it otherwise.
    */
   private static verifyAssertionSignature(
     samlResponse: string,
@@ -566,27 +582,41 @@ export default class SSOUtil {
     dom: XmlDocument,
     response: XmlElement,
     assertion: XmlElement,
-  ): boolean {
+  ): string | null {
     const signatures: Array<XmlElement> = SSOUtil.toElementArray(
       dom.getElementsByTagNameNS(SSOUtil.XMLDSIG_NAMESPACE, "Signature"),
     );
 
     if (signatures.length === 0) {
-      return false;
+      return null;
     }
 
     for (const signature of signatures) {
       try {
-        const sig: xmlCrypto.SignedXml = new xmlCrypto.SignedXml();
+        const sig: SignedXml = new SignedXml({
+          publicCert: certificate,
 
-        sig.keyInfoProvider = {
-          getKeyInfo: function (_key: unknown): string {
-            return `<X509Data><X509Certificate>${certificate}</X509Certificate></X509Data>`;
+          /*
+           * Pin the verification key to the certificate configured on this SSO
+           * provider.
+           *
+           * xml-crypto resolves its key as
+           *   getCertFromKeyInfo(keyInfo) || publicCert || privateKey
+           * where `keyInfo` is the <KeyInfo> carried INSIDE the document being
+           * verified - i.e. supplied by whoever sent it. xml-crypto ships
+           * SignedXml.getCertFromKeyInfo, which reads the certificate straight
+           * out of that element; enabling it would mean accepting a response
+           * signed by any key whose certificate the sender chose to staple on.
+           *
+           * The constructor currently defaults this to a no-op, so we are not
+           * fixing a live bug here. But that is a library default silently
+           * deciding an authentication question, so say it explicitly rather
+           * than inherit it.
+           */
+          getCertFromKeyInfo: (): null => {
+            return null;
           },
-          getKey: function (): string {
-            return certificate;
-          } as unknown as () => Buffer,
-        } as FileKeyInfo;
+        });
 
         sig.loadSignature(signature.toString());
 
@@ -600,22 +630,24 @@ export default class SSOUtil {
          * assertion we are going to read from - a signature over some unrelated
          * element must never authenticate a forged assertion.
          */
-        const references: Array<{ uri?: string | undefined }> =
-          (sig.references as Array<{ uri?: string | undefined }>) || [];
-
-        const coversAssertion: boolean = references.some(
-          (reference: { uri?: string | undefined }): boolean => {
-            return SSOUtil.referenceCoversAssertion(
+        for (const reference of sig.getReferences()) {
+          if (
+            !SSOUtil.referenceCoversAssertion(
               dom,
               response,
               assertion,
               reference.uri,
-            );
-          },
-        );
+            )
+          ) {
+            continue;
+          }
 
-        if (coversAssertion) {
-          return true;
+          const signedReferenceXml: string | undefined =
+            SSOUtil.getSignedReferenceXml(reference);
+
+          if (signedReferenceXml) {
+            return signedReferenceXml;
+          }
         }
       } catch (err) {
         logger.error(err);
@@ -623,7 +655,187 @@ export default class SSOUtil {
       }
     }
 
-    return false;
+    return null;
+  }
+
+  /*
+   * The canonical bytes xml-crypto digested for this reference, or undefined.
+   *
+   * xml-crypto populates `signedReference` only after every reference digest
+   * and the signature value have been verified, and clears it on any failure,
+   * so a non-empty value here is exactly "the bytes this signature vouches
+   * for".
+   */
+  private static getSignedReferenceXml(
+    reference: Reference,
+  ): string | undefined {
+    const signedReferenceXml: string | undefined = reference.signedReference;
+
+    if (typeof signedReferenceXml !== "string" || signedReferenceXml === "") {
+      return undefined;
+    }
+
+    return signedReferenceXml;
+  }
+
+  /*
+   * Re-read the assertion out of the canonical bytes that were signed.
+   *
+   * This is the structural answer to issue #2988 rather than a patch for one
+   * instance of it. Reading identity from a second, independent parse of the
+   * ORIGINAL document means every disagreement between that parse and
+   * xml-crypto's canonicalizer becomes an authentication bug - the processing
+   * instruction trick being one example, and xml-crypto's canonicalizer still
+   * renders any node with a `data` property as plain text in 6.x. Reading it
+   * from the canonical bytes instead means the string we act on is by
+   * construction the string that was digested and signed.
+   *
+   * The document-level rules still run on the original document: they are what
+   * establish that there is exactly one assertion, in the one position SAML
+   * allows, under a signature that covers it. This step only decides WHERE the
+   * characters come from.
+   *
+   * `expected` is the assertion located in the original document; the canonical
+   * copy must be the same assertion, not a different one that happened to be
+   * inside the signed subtree.
+   */
+  private static getAssertionFromSignedBytes(
+    signedReferenceXml: string,
+    expected: XmlElement,
+  ): XmlElement {
+    const signedDom: XmlDocument = SSOUtil.parseXmlStrict(signedReferenceXml);
+
+    /*
+     * A reference covers either the Assertion itself or the whole Response, so
+     * the canonical bytes are rooted at one or the other. Either way there must
+     * be exactly one assertion in them.
+     */
+    const assertions: Array<XmlElement> = SSOUtil.toElementArray(
+      signedDom.getElementsByTagNameNS("*", "Assertion"),
+    );
+
+    if (assertions.length !== 1) {
+      throw new BadRequestException(
+        "Expected exactly one Assertion in the signed SAML content",
+      );
+    }
+
+    const assertion: XmlElement = assertions[0]!;
+
+    if (
+      !SSOUtil.SAML_ASSERTION_NAMESPACES.includes(assertion.namespaceURI || "")
+    ) {
+      throw new BadRequestException("SAML Assertion has an invalid namespace");
+    }
+
+    /*
+     * When the signature covers the Response, the assertion must still sit
+     * directly under it - the same rule the original document had to satisfy.
+     */
+    const signedRoot: XmlElement | null = signedDom.documentElement;
+
+    if (assertion !== signedRoot && assertion.parentNode !== signedRoot) {
+      throw new BadRequestException(
+        "SAML Assertion must be a direct child of the SAML Response",
+      );
+    }
+
+    /*
+     * Pin the canonical assertion to the one the document-level checks were
+     * made about. Without this, a signature covering a Response that contained
+     * some other assertion could hand us an identity those checks never saw.
+     */
+    const expectedId: string = SSOUtil.getIdAttribute(expected);
+    const signedId: string = SSOUtil.getIdAttribute(assertion);
+
+    if (expectedId !== signedId) {
+      throw new BadRequestException(
+        "The signed SAML Assertion is not the Assertion in the SAML Response",
+      );
+    }
+
+    return assertion;
+  }
+
+  /*
+   * Apply the plain-text rule to the identity values in the ORIGINAL document,
+   * not only to the signed copy we read from.
+   *
+   * Since identity now comes from the canonical signed bytes, markup in the
+   * original can no longer change what we act on: exclusive canonicalization
+   * has already dropped comments and collapsed processing instructions into
+   * text by the time we read. We refuse the document anyway. No identity
+   * provider puts markup inside a NameID; every instance of it in the wild has
+   * been an attempt to make two readers of the same document disagree, and
+   * failing closed keeps the guarantee even if the extraction point moves
+   * again.
+   *
+   * Only the values we actually consume are checked, so this adds no rejection
+   * surface beyond what getIssuerFromAssertion / getEmailFromAssertion /
+   * getNameFromAssertion already read.
+   */
+  private static assertIdentityValuesArePlainText(assertion: XmlElement): void {
+    const issuer: XmlElement | null = SSOUtil.getDirectChildByLocalName(
+      assertion,
+      "Issuer",
+    );
+
+    if (issuer) {
+      SSOUtil.assertPlainTextOnly(issuer);
+    }
+
+    const subject: XmlElement | null = SSOUtil.getDirectChildByLocalName(
+      assertion,
+      "Subject",
+    );
+
+    if (subject) {
+      const nameId: XmlElement | null = SSOUtil.getDirectChildByLocalName(
+        subject,
+        "NameID",
+      );
+
+      if (nameId) {
+        SSOUtil.assertPlainTextOnly(nameId);
+      }
+    }
+
+    const attributeStatement: XmlElement | null =
+      SSOUtil.getDirectChildByLocalName(assertion, "AttributeStatement");
+
+    if (!attributeStatement) {
+      return;
+    }
+
+    const attributes: Array<XmlElement> = SSOUtil.toElementArray(
+      attributeStatement.getElementsByTagNameNS("*", "Attribute"),
+    );
+
+    for (const attribute of attributes) {
+      if (attribute.getAttribute("Name") !== SSOUtil.MS_DISPLAY_NAME_CLAIM) {
+        continue;
+      }
+
+      const attributeValue: XmlElement | null =
+        SSOUtil.getDirectChildByLocalName(attribute, "AttributeValue");
+
+      if (attributeValue) {
+        SSOUtil.assertPlainTextOnly(attributeValue);
+      }
+    }
+  }
+
+  // The value of this element's ID / Id / id attribute, or "".
+  private static getIdAttribute(element: XmlElement): string {
+    for (const localName of SSOUtil.ID_ATTRIBUTE_LOCAL_NAMES) {
+      const value: string | null = element.getAttribute(localName);
+
+      if (value) {
+        return value;
+      }
+    }
+
+    return "";
   }
 
   /*

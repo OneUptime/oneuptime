@@ -92,6 +92,133 @@ beforeAll(() => {
 
 /*
  * ---------------------------------------------------------------------------
+ * Minimal self-signed X.509 certificate builder.
+ *
+ * xml-crypto 6 can resolve its verification key from the <KeyInfo> carried in
+ * the document under verification, which is a full authentication bypass if it
+ * is left enabled. Testing that faithfully needs a REAL certificate whose key
+ * actually signed the document - a garbage blob would be rejected by the crypto
+ * layer and the test would pass for the wrong reason.
+ *
+ * Node cannot generate certificates and the repo has no certificate library, so
+ * this emits a minimal X.509 v1 certificate directly. Nothing validates its
+ * contents; it only has to parse and carry the public key.
+ * ---------------------------------------------------------------------------
+ */
+
+function derLength(length: number): Buffer {
+  if (length < 0x80) {
+    return Buffer.from([length]);
+  }
+
+  const bytes: Array<number> = [];
+  let remaining: number = length;
+
+  while (remaining > 0) {
+    bytes.unshift(remaining & 0xff);
+    remaining = remaining >> 8;
+  }
+
+  return Buffer.from([0x80 | bytes.length, ...bytes]);
+}
+
+function der(tag: number, contents: Buffer): Buffer {
+  return Buffer.concat([
+    Buffer.from([tag]),
+    derLength(contents.length),
+    contents,
+  ]);
+}
+
+function derSequence(...parts: Array<Buffer>): Buffer {
+  return der(0x30, Buffer.concat(parts));
+}
+
+// sha256WithRSAEncryption (1.2.840.113549.1.1.11), with the required NULL params.
+function sha256RsaAlgorithmIdentifier(): Buffer {
+  return derSequence(
+    der(
+      0x06,
+      Buffer.from([0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x0b]),
+    ),
+    der(0x05, Buffer.alloc(0)),
+  );
+}
+
+// A Name holding a single commonName (2.5.4.3) attribute.
+function derName(commonName: string): Buffer {
+  return derSequence(
+    der(
+      0x31,
+      derSequence(
+        der(0x06, Buffer.from([0x55, 0x04, 0x03])),
+        der(0x0c, Buffer.from(commonName, "utf8")),
+      ),
+    ),
+  );
+}
+
+function selfSignedCertificateBase64(
+  keys: KeyPair,
+  commonName: string,
+): string {
+  const spki: Buffer = crypto
+    .createPublicKey(keys.publicKey)
+    .export({ type: "spki", format: "der" });
+
+  const validity: Buffer = derSequence(
+    der(0x17, Buffer.from("240101000000Z", "ascii")),
+    der(0x17, Buffer.from("340101000000Z", "ascii")),
+  );
+
+  const tbsCertificate: Buffer = derSequence(
+    der(0x02, Buffer.from([0x01])), // serialNumber
+    sha256RsaAlgorithmIdentifier(),
+    derName(commonName), // issuer == subject: self-signed
+    validity,
+    derName(commonName),
+    spki,
+  );
+
+  const signature: Buffer = crypto.sign(
+    "sha256",
+    tbsCertificate,
+    keys.privateKey,
+  );
+
+  const certificate: Buffer = derSequence(
+    tbsCertificate,
+    sha256RsaAlgorithmIdentifier(),
+    der(0x03, Buffer.concat([Buffer.from([0x00]), signature])), // BIT STRING
+  );
+
+  return certificate.toString("base64");
+}
+
+/*
+ * Verify a document using the certificate the document itself carries, by
+ * opting in to xml-crypto's own SignedXml.getCertFromKeyInfo.
+ *
+ * This is the negative control for the KeyInfo tests: it proves the attack
+ * document is internally self-consistent, so the rejection that follows is
+ * attributable to SSOUtil insisting on the configured certificate rather than
+ * to a malformed one. It also documents the footgun - this is a supported
+ * xml-crypto configuration, one constructor option away.
+ */
+function signatureVerifiesAgainstEmbeddedCertificate(xml: string): boolean {
+  try {
+    const sig: SignedXml = new SignedXml({
+      getCertFromKeyInfo: SignedXml.getCertFromKeyInfo,
+    });
+    sig.loadSignature(extractSignature(xml));
+    return sig.checkSignature(xml);
+  } catch {
+    return false;
+  }
+}
+
+/*
+ * ---------------------------------------------------------------------------
  * SAML document builders
  * ---------------------------------------------------------------------------
  */
@@ -158,28 +285,26 @@ interface SignOptions {
     action: "append" | "prepend" | "before" | "after";
   };
   emptyUri?: boolean;
+  // Raw <KeyInfo> content override (for the embedded-certificate tests).
+  keyInfoContent?: string;
 }
 
 function signXml(xml: string, options: SignOptions): string {
-  const sig: SignedXml = new SignedXml();
-
-  sig.addReference(
-    options.referenceXPath,
-    [XMLDSIG_ENVELOPED, XMLDSIG_EXC_C14N],
-    XMLENC_SHA256,
-    undefined as unknown as string,
-    undefined as unknown as string,
-    undefined as unknown as string,
-    options.emptyUri === true,
-  );
-
-  sig.signatureAlgorithm = RSA_SHA256;
-  sig.signingKey = options.privateKey ?? idpKeys.privateKey;
-  sig.keyInfoProvider = {
-    getKeyInfo: (): string => {
-      return "<X509Data></X509Data>";
+  const sig: SignedXml = new SignedXml({
+    privateKey: options.privateKey ?? idpKeys.privateKey,
+    signatureAlgorithm: RSA_SHA256,
+    canonicalizationAlgorithm: XMLDSIG_EXC_C14N,
+    getKeyInfoContent: (): string => {
+      return options.keyInfoContent ?? "<X509Data></X509Data>";
     },
-  } as unknown as SignedXml["keyInfoProvider"];
+  });
+
+  sig.addReference({
+    xpath: options.referenceXPath,
+    transforms: [XMLDSIG_ENVELOPED, XMLDSIG_EXC_C14N],
+    digestAlgorithm: XMLENC_SHA256,
+    isEmptyUri: options.emptyUri === true,
+  });
 
   sig.computeSignature(xml, {
     location: options.location ?? {
@@ -290,20 +415,26 @@ function genuineSignedErrorResponse(
  * DOM reports, and not merely because the signature happened to break.
  */
 function signatureIsCryptographicallyValid(xml: string): boolean {
-  const sig: SignedXml = new SignedXml();
-
-  sig.keyInfoProvider = {
-    getKeyInfo: (): string => {
-      return "<X509Data></X509Data>";
+  const sig: SignedXml = new SignedXml({
+    publicCert: idpKeys.publicKey,
+    // Same rule SSOUtil enforces: the document's own KeyInfo yields no key.
+    getCertFromKeyInfo: (): null => {
+      return null;
     },
-    getKey: (): string => {
-      return idpKeys.publicKey;
-    },
-  } as unknown as SignedXml["keyInfoProvider"];
+  });
 
-  sig.loadSignature(extractSignature(xml));
+  try {
+    sig.loadSignature(extractSignature(xml));
 
-  return sig.checkSignature(xml);
+    /*
+     * xml-crypto 6 throws (rather than returning false) when the signature
+     * value itself does not verify, and returns false when a digest does not.
+     * Both mean the same thing here.
+     */
+    return sig.checkSignature(xml);
+  } catch {
+    return false;
+  }
 }
 
 /*
@@ -1094,6 +1225,113 @@ describe("SSOUtil - processing instructions are rejected anywhere in the documen
 
 /*
  * ---------------------------------------------------------------------------
+ * Identity is read from the canonical bytes that were signed.
+ *
+ * SSOUtil no longer extracts identity from a second, independent parse of the
+ * original document. It takes xml-crypto's `signedReference` - the exact
+ * canonical string the digest was computed over and the signature verified
+ * against - and reads from that. This is what stops a disagreement between our
+ * parse and xml-crypto's canonicalizer from being an authentication bug in the
+ * first place, rather than patching one instance of it (#2988).
+ *
+ * That makes the canonical fragment a new failure surface: it is a standalone
+ * document, so it has to carry the namespace declarations the assertion
+ * inherited from its ancestors, whatever prefixes the identity provider chose.
+ * These tests exercise the shapes real providers actually send.
+ * ---------------------------------------------------------------------------
+ */
+
+describe("SSOUtil - identity comes from the signed canonical bytes", () => {
+  function expectIdentity(xml: string): void {
+    const result: VerifiedSamlResponse = SSOUtil.getSamlResponseFromXML(
+      xml,
+      idpKeys.publicKey,
+    );
+
+    expect(result.email.toString()).toBe("alice@example.com");
+    expect(result.issuerUrl).toBe(ISSUER);
+  }
+
+  test("namespaces inherited from the Response survive canonicalization", () => {
+    /*
+     * The default shape: xmlns:saml is declared on the Response, used on the
+     * Assertion, and must be rendered into the canonical Assertion fragment.
+     */
+    expectIdentity(genuineAssertionSignedResponse());
+  });
+
+  test("works when SAML uses a default namespace instead of a prefix", () => {
+    const assertion: string = `<Assertion xmlns="urn:oasis:names:tc:SAML:2.0:assertion" ID="_a" Version="2.0" IssueInstant="2024-01-01T00:00:00Z"><Issuer>${ISSUER}</Issuer><Subject><NameID>alice@example.com</NameID></Subject></Assertion>`;
+
+    expectIdentity(sign(buildResponse(assertion), "Assertion"));
+  });
+
+  test("works with an unusual namespace prefix", () => {
+    const assertion: string = `<a:Assertion xmlns:a="urn:oasis:names:tc:SAML:2.0:assertion" ID="_a" Version="2.0" IssueInstant="2024-01-01T00:00:00Z"><a:Issuer>${ISSUER}</a:Issuer><a:Subject><a:NameID>alice@example.com</a:NameID></a:Subject></a:Assertion>`;
+
+    expectIdentity(sign(buildResponse(assertion), "Assertion"));
+  });
+
+  test("works when the signature covers the whole Response", () => {
+    /*
+     * Here the canonical bytes are the entire Response and the assertion has to
+     * be found inside them.
+     */
+    expectIdentity(genuineResponseSignedResponse());
+  });
+
+  test('works for a whole-document signature (Reference URI="")', () => {
+    expectIdentity(
+      signXml(buildResponse(buildAssertion()), {
+        referenceXPath: "//*[local-name(.)='Response']",
+        emptyUri: true,
+      }),
+    );
+  });
+
+  test("reads a NameID delivered as CDATA", () => {
+    expectIdentity(
+      sign(
+        buildResponse(
+          buildAssertion({ nameId: "<![CDATA[alice@example.com]]>" }),
+        ),
+        "Assertion",
+      ),
+    );
+  });
+
+  test("reads a NameID written with character references", () => {
+    expectIdentity(
+      sign(
+        buildResponse(buildAssertion({ nameId: "&#97;lice@example.com" })),
+        "Assertion",
+      ),
+    );
+  });
+
+  test("trims the XML whitespace a pretty-printing provider adds", () => {
+    expectIdentity(
+      sign(
+        buildResponse(
+          buildAssertion({ nameId: "\n        alice@example.com\n      " }),
+        ),
+        "Assertion",
+      ),
+    );
+  });
+
+  test("still extracts the display name through the canonical bytes", () => {
+    const result: VerifiedSamlResponse = SSOUtil.getSamlResponseFromXML(
+      genuineAssertionSignedResponse(),
+      idpKeys.publicKey,
+    );
+
+    expect(result.name?.toString()).toBe("Alice Example");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
  * Issue #2949 - classic signature wrapping must stay rejected.
  * ---------------------------------------------------------------------------
  */
@@ -1678,6 +1916,105 @@ describe("SSOUtil - malformed and abusive input is rejected", () => {
     const xml: string = genuineAssertionSignedResponse();
 
     expect(SSOUtil.isSignatureValid(xml, attackerKeys.publicKey)).toBe(false);
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * The verification key must come from configuration, never from the document.
+ *
+ * xml-crypto 6 resolves its key as
+ *   getCertFromKeyInfo(this.keyInfo) || this.publicCert || this.privateKey
+ * where `keyInfo` is the <KeyInfo> of the document being verified - written by
+ * whoever sent it. xml-crypto ships SignedXml.getCertFromKeyInfo, which reads
+ * the certificate straight out of that element. Turn it on and anyone can sign
+ * a response with a key they generated, staple the matching certificate to it,
+ * and be logged in as anybody.
+ *
+ * The constructor defaults this to a no-op, so this is a footgun rather than a
+ * live bug - but it is one constructor option away, and SSOUtil pins it shut
+ * explicitly instead of relying on that default. These tests lock that in.
+ *
+ * Each test carries a negative control: it first proves the attack document
+ * really is self-consistent (xml-crypto accepts it when told to trust the
+ * embedded certificate), so the rejection that follows is attributable to
+ * SSOUtil refusing the document's own key, not to a malformed certificate.
+ * ---------------------------------------------------------------------------
+ */
+
+describe("SSOUtil - the verification key never comes from the document", () => {
+  function attackerSignedWithEmbeddedCert(assertionXml?: string): string {
+    return signXml(
+      buildResponse(
+        assertionXml ?? buildAssertion({ email: "admin@example.com" }),
+      ),
+      {
+        referenceXPath: "//*[local-name(.)='Assertion']",
+        privateKey: attackerKeys.privateKey,
+        keyInfoContent: `<X509Data><X509Certificate>${selfSignedCertificateBase64(
+          attackerKeys,
+          "attacker.example.net",
+        )}</X509Certificate></X509Data>`,
+      },
+    );
+  }
+
+  test("the attack document is genuinely self-consistent (negative control)", () => {
+    /*
+     * If this ever stops holding, every test below would pass vacuously - the
+     * document would be rejected for being malformed rather than for carrying
+     * its own key.
+     */
+    expect(
+      signatureVerifiesAgainstEmbeddedCertificate(
+        attackerSignedWithEmbeddedCert(),
+      ),
+    ).toBe(true);
+  });
+
+  test("rejects a response signed by the attacker with their certificate in KeyInfo", () => {
+    expectRejected(attackerSignedWithEmbeddedCert());
+  });
+
+  test("rejects it at the Response level too", () => {
+    const xml: string = signXml(buildResponse(buildAssertion()), {
+      referenceXPath: "//*[local-name(.)='Response']",
+      privateKey: attackerKeys.privateKey,
+      keyInfoContent: `<X509Data><X509Certificate>${selfSignedCertificateBase64(
+        attackerKeys,
+        "attacker.example.net",
+      )}</X509Certificate></X509Data>`,
+    });
+
+    expect(signatureVerifiesAgainstEmbeddedCertificate(xml)).toBe(true);
+    expectRejected(xml);
+  });
+
+  test("still rejects when the attacker also names the real issuer", () => {
+    const xml: string = attackerSignedWithEmbeddedCert(
+      buildAssertion({ email: "admin@example.com", issuer: ISSUER }),
+    );
+
+    expect(signatureVerifiesAgainstEmbeddedCertificate(xml)).toBe(true);
+    expectRejected(xml);
+  });
+
+  test("a genuine response is still accepted when KeyInfo carries a certificate", () => {
+    /*
+     * Real identity providers do send their certificate in KeyInfo. Ignoring it
+     * must not mean rejecting it.
+     */
+    const xml: string = signXml(buildResponse(buildAssertion()), {
+      referenceXPath: "//*[local-name(.)='Assertion']",
+      keyInfoContent: `<X509Data><X509Certificate>${selfSignedCertificateBase64(
+        idpKeys,
+        "idp.example.com",
+      )}</X509Certificate></X509Data>`,
+    });
+
+    expect(
+      SSOUtil.getSamlResponseFromXML(xml, idpKeys.publicKey).email.toString(),
+    ).toBe("alice@example.com");
   });
 });
 
