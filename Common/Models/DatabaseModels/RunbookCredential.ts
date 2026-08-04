@@ -212,6 +212,7 @@ export default class RunbookCredential extends BaseModel {
   @Column({
     nullable: true,
     type: ColumnType.LongText,
+    length: ColumnLength.LongText,
   })
   public description?: string = undefined;
 
