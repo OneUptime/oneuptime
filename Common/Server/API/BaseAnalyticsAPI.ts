@@ -293,7 +293,10 @@ export default class BaseAnalyticsAPI<
      * `hasMore` from whether the extra row showed up. `count` is
      * emitted as a lower bound (`skip + data.length + hasMore`) so
      * older clients that read `count` keep rendering something
-     * sensible while newer clients use `hasMore` for prev/next.
+     * sensible while newer clients use `hasMore` for prev/next. That
+     * last `+1` counts the probe row this response drops, so `count` is
+     * one past the rows on the page — anything printing a row range has
+     * to clamp it to the rows it actually rendered.
      */
     const overfetchLimit: PositiveNumber = new PositiveNumber(
       limit.toNumber() + 1,

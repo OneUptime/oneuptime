@@ -31,6 +31,13 @@ export interface ComponentProps {
    * we render prev/next-only with no jump-to-page modal.
    */
   hasMore?: boolean | undefined;
+  /*
+   * Optional. Rows this page actually rendered. The analytics list
+   * endpoints over-fetch one probe row to derive `hasMore` and count it
+   * in `totalItemsCount`, even though it was dropped from the payload —
+   * so the printed range is clamped to rows the page can really show.
+   */
+  itemsOnCurrentPage?: number | undefined;
 }
 
 const Pagination: FunctionComponent<ComponentProps> = (
@@ -84,8 +91,15 @@ const Pagination: FunctionComponent<ComponentProps> = (
   const alreadySeenCount: number =
     props.itemsOnPage * (props.currentPageNumber - 1);
   const firstOnPage: number = alreadySeenCount + 1;
+  const provenOnPage: number = Math.max(
+    props.totalItemsCount - alreadySeenCount,
+    0,
+  );
   const lastOnPage: number =
-    alreadySeenCount + Math.max(props.totalItemsCount - alreadySeenCount, 0);
+    alreadySeenCount +
+    (props.itemsOnCurrentPage === undefined
+      ? provenOnPage
+      : Math.min(provenOnPage, props.itemsOnCurrentPage));
 
   return (
     <nav

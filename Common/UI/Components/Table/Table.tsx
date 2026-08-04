@@ -428,6 +428,7 @@ const Table: TableFunction = <T extends GenericObject>(
               currentPageNumber={props.currentPageNumber}
               totalItemsCount={props.totalItemsCount}
               hasMore={props.hasMore}
+              itemsOnCurrentPage={props.data.length}
               itemsOnPage={props.itemsOnPage}
               onNavigateToPage={props.onNavigateToPage}
               isLoading={props.isLoading}
