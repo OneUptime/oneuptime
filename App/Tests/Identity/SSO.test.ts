@@ -55,6 +55,7 @@ import {
 const XMLDSIG_ENVELOPED: string =
   "http://www.w3.org/2000/09/xmldsig#enveloped-signature";
 const XMLDSIG_EXC_C14N: string = "http://www.w3.org/2001/10/xml-exc-c14n#";
+const XMLDSIG_NAMESPACE: string = "http://www.w3.org/2000/09/xmldsig#";
 const XMLENC_SHA256: string = "http://www.w3.org/2001/04/xmlenc#sha256";
 const RSA_SHA256: string = "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256";
 
@@ -1591,6 +1592,92 @@ describe("SSOUtil - signature placement rules", () => {
       attack,
       "must not contain two Signatures with the same SignatureValue",
     );
+  });
+
+  /*
+   * The duplicate-SignatureValue rule only works if we read <SignatureValue>
+   * the way xml-crypto does. It selects with
+   *   xpath.select1(".//*[local-name(.)='SignatureValue']/text()", signature)
+   * which is namespace-agnostic and returns only the FIRST TEXT NODE. Any
+   * decoy that looks distinct to a namespaced textContent read but identical to
+   * that selection gets stripped out of the digest by the enveloped-signature
+   * transform while evading the rule (issue #2981's defence).
+   */
+  describe("the SignatureValue we compare is the one xml-crypto acts on", () => {
+    function withDecoySignature(decoyInner: string): string {
+      const genuine: string = genuineResponseSignedResponse();
+      const signatureValue: string = extractSignatureValue(
+        extractSignature(genuine),
+      );
+
+      return replaceOnce(
+        genuine,
+        "</saml:Assertion>",
+        `<Signature xmlns="${XMLDSIG_NAMESPACE}">${decoyInner.replace(
+          /\{SV\}/g,
+          signatureValue,
+        )}</Signature></saml:Assertion>`,
+      );
+    }
+
+    test("rejects a decoy whose SignatureValue is split by a comment", () => {
+      expectRejected(
+        withDecoySignature(
+          "<SignatureValue>{SV}<!--split-->Z</SignatureValue>",
+        ),
+      );
+    });
+
+    test("rejects a decoy whose SignatureValue is split by a CDATA section", () => {
+      expectRejected(
+        withDecoySignature(
+          "<SignatureValue>{SV}<![CDATA[Z]]></SignatureValue>",
+        ),
+      );
+    });
+
+    test("rejects a decoy that hides the repeat in a foreign namespace", () => {
+      expectRejected(
+        withDecoySignature(
+          '<foo:SignatureValue xmlns:foo="urn:x">{SV}</foo:SignatureValue><SignatureValue>DIFFERENT</SignatureValue>',
+        ),
+      );
+    });
+
+    test("rejects a Signature carrying two SignatureValue elements", () => {
+      expectRejected(
+        withDecoySignature(
+          "<SignatureValue>{SV}</SignatureValue><SignatureValue>DIFFERENT</SignatureValue>",
+        ),
+      );
+    });
+
+    test("accepts a SignatureValue whose base64 is wrapped across lines", () => {
+      /*
+       * ADFS and Shibboleth pretty-print the signature. Wrapping is still a
+       * single text node, and xml-crypto strips the newlines itself, so this
+       * must keep working.
+       */
+      const genuine: string = genuineAssertionSignedResponse();
+      const signatureValue: string = extractSignatureValue(
+        extractSignature(genuine),
+      );
+
+      const wrapped: string = replaceOnce(
+        genuine,
+        `<SignatureValue>${signatureValue}</SignatureValue>`,
+        `<SignatureValue>\n${(signatureValue.match(/.{1,64}/g) || []).join(
+          "\n",
+        )}\n</SignatureValue>`,
+      );
+
+      expect(
+        SSOUtil.getSamlResponseFromXML(
+          wrapped,
+          idpKeys.publicKey,
+        ).email.toString(),
+      ).toBe("alice@example.com");
+    });
   });
 
   test("rejects a <ds:Object> inside a Signature even with harmless content", () => {

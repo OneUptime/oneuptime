@@ -62,6 +62,7 @@ export default class SSOUtil {
    * compare against.
    */
   private static readonly ELEMENT_NODE: number = 1;
+  private static readonly TEXT_NODE: number = 3;
   private static readonly PROCESSING_INSTRUCTION_NODE: number = 7;
   private static readonly COMMENT_NODE: number = 8;
   private static readonly DOCUMENT_NODE: number = 9;
@@ -546,19 +547,72 @@ export default class SSOUtil {
     }
   }
 
+  /*
+   * The <SignatureValue> text used for the duplicate check above.
+   *
+   * This has to agree with how xml-crypto reads the same element, or the check
+   * compares a different string than the one that decides which signatures get
+   * stripped from the digest. xml-crypto selects it with
+   *
+   *   xpath.select1(".//*[local-name(.)='SignatureValue']/text()", signature)
+   *
+   * (enveloped-signature.js, signed-xml.js), which differs from a namespaced
+   * `textContent` read in two ways an attacker can use:
+   *
+   *   - The selection is namespace-AGNOSTIC. A decoy that puts a foreign
+   *     <foo:SignatureValue xmlns:foo="urn:x"> first is what xml-crypto reads
+   *     and strips on, while a namespaced lookup never sees it.
+   *
+   *   - select1 returns the FIRST TEXT NODE, not the concatenated text. A
+   *     comment or CDATA section splits the value, so xml-crypto reads
+   *     "ABC" where `textContent` reads "ABCZ".
+   *
+   * Either way a decoy signature can repeat the genuine <SignatureValue> as far
+   * as xml-crypto is concerned - and so be deleted from the digest, taking
+   * whatever it carries out of the signed bytes with it - while looking
+   * distinct to us. Rather than reimplement xml-crypto's selection and have to
+   * track it, refuse anything ambiguous.
+   */
   private static getSignatureValueText(signature: XmlElement): string {
     const signatureValues: Array<XmlElement> = SSOUtil.toElementArray(
-      signature.getElementsByTagNameNS(
-        SSOUtil.XMLDSIG_NAMESPACE,
-        "SignatureValue",
-      ),
+      signature.getElementsByTagNameNS("*", "SignatureValue"),
     );
 
     if (signatureValues.length === 0) {
       return "";
     }
 
-    return SSOUtil.getTrimmedText(signatureValues[0]!);
+    if (signatureValues.length > 1) {
+      throw new BadRequestException(
+        "An XML Signature must not contain more than one SignatureValue",
+      );
+    }
+
+    const signatureValue: XmlElement = signatureValues[0]!;
+
+    if (signatureValue.namespaceURI !== SSOUtil.XMLDSIG_NAMESPACE) {
+      throw new BadRequestException(
+        "SignatureValue must be in the XML Signature namespace",
+      );
+    }
+
+    /*
+     * A single run of character data, or nothing. Base64 wrapped across lines
+     * is still one text node, so the identity providers that pretty-print their
+     * signatures are unaffected.
+     */
+    const firstChild: XmlNode | null = signatureValue.firstChild;
+
+    if (
+      firstChild &&
+      (firstChild.nodeType !== SSOUtil.TEXT_NODE || firstChild.nextSibling)
+    ) {
+      throw new BadRequestException(
+        "SignatureValue must contain a single run of text",
+      );
+    }
+
+    return SSOUtil.getTrimmedText(signatureValue);
   }
 
   /*
