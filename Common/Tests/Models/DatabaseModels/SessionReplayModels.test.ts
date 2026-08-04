@@ -95,15 +95,25 @@ describe("RumApplication session replay configuration", () => {
     expect(getColumn("sessionReplaySamplePercentage").defaultValue).toBe(0);
   });
 
-  it("keeps masking strict even though recording is on by default", () => {
+  it("pins the shipped privacy defaults", () => {
     /*
-     * Masking happens in the browser before compression, so an
-     * under-masked capture cannot be repaired after the fact - the server
-     * never had the unmasked content. This default matters MORE now that
-     * recording starts without an explicit opt-in.
+     * This test is a tripwire, not a preference. Masking happens in the
+     * end user's browser before compression, so an under-masked capture
+     * cannot be repaired after the fact - the server never had the
+     * unmasked content. Every value below is a deliberate product
+     * decision about what a customer who configures NOTHING records from
+     * their real users, and changing one should require changing this
+     * test and saying why in the same commit.
+     *
+     * The masking default is MaskSensitiveInputsOnly: passwords and
+     * declared card / one-time-code fields are masked in every mode and
+     * are not configurable, but static page text and ordinary input
+     * values are recorded. That is the trade made to keep recordings
+     * useful to debug from; the two stricter modes and the per-app mask /
+     * block selectors are how a deployment tightens it.
      */
     expect(getColumn("sessionReplayMaskingMode").defaultValue).toBe(
-      SessionReplayMaskingMode.MaskAllText,
+      SessionReplayMaskingMode.MaskSensitiveInputsOnly,
     );
     /*
      * Consent defaults to NotRequired: uploads start without a per-session
@@ -116,10 +126,17 @@ describe("RumApplication session replay configuration", () => {
     expect(getColumn("sessionReplayCaptureTrigger").defaultValue).toBe(
       SessionReplayCaptureTrigger.OnErrorOrFrustration,
     );
+    /*
+     * Identity and country capture are ON, so a support engineer can find
+     * a named customer's session. Both remain behind the narrower write
+     * ACL asserted below - the default changed, the permission did not.
+     */
     expect(getColumn("sessionReplayCaptureUserIdentity").defaultValue).toBe(
-      false,
+      true,
     );
-    expect(getColumn("sessionReplayCaptureGeo").defaultValue).toBe(false);
+    expect(getColumn("sessionReplayCaptureGeo").defaultValue).toBe(true);
+
+    // Canvas stays off: expensive, and the player cannot replay it anyway.
     expect(getColumn("sessionReplayRecordCanvas").defaultValue).toBe(false);
   });
 

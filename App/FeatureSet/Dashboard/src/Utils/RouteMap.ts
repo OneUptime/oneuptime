@@ -388,11 +388,16 @@ export const RumRoutePath: Dictionary<string> = {
    * that recording. A sibling path cannot collide at all.
    */
   [PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_AUDIT]: `${RouteParams.ModelID}/session-replay-audit`,
+  /*
+   * A sibling of /session-replay rather than a child, for the same reason
+   * as the audit page: a child segment would be shadowed by a session
+   * whose id happened to be "settings".
+   */
+  [PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_SETTINGS]: `${RouteParams.ModelID}/session-replay-settings`,
   [PageMap.RUM_APPLICATION_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
   [PageMap.RUM_APPLICATION_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.RUM_SETTINGS_LABEL_RULES]: `settings/label-rules`,
   [PageMap.RUM_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
-  [PageMap.RUM_SETTINGS_SESSION_REPLAY]: `settings/session-replay`,
   [PageMap.RUM_ARCHIVED]: `archived`,
 };
 
@@ -776,6 +781,7 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_TELEMETRY_INGESTION_KEYS]: `telemetry-ingestion-keys`,
   [PageMap.SETTINGS_TELEMETRY_INGESTION_KEY_VIEW]: `telemetry-ingestion-keys/${RouteParams.ModelID}`,
   [PageMap.SETTINGS_TELEMETRY_SETTINGS]: `telemetry-settings`,
+  [PageMap.SETTINGS_SESSION_REPLAY]: `session-replay`,
   [PageMap.SETTINGS_SLACK_INTEGRATION]: "slack-integration",
   [PageMap.SETTINGS_MICROSOFT_TEAMS_INTEGRATION]: "microsoft-teams-integration",
 
@@ -3935,6 +3941,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/rum/${
+      RumRoutePath[PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_SETTINGS]
+    }`,
+  ),
+
   [PageMap.RUM_APPLICATION_VIEW_DOCUMENTATION]: new Route(
     `/dashboard/${RouteParams.ProjectID}/rum/${
       RumRoutePath[PageMap.RUM_APPLICATION_VIEW_DOCUMENTATION]
@@ -3961,12 +3973,6 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.RUM_SETTINGS_OWNER_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/rum/${
       RumRoutePath[PageMap.RUM_SETTINGS_OWNER_RULES]
-    }`,
-  ),
-
-  [PageMap.RUM_SETTINGS_SESSION_REPLAY]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/rum/${
-      RumRoutePath[PageMap.RUM_SETTINGS_SESSION_REPLAY]
     }`,
   ),
 
@@ -5040,6 +5046,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_TELEMETRY_SETTINGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_TELEMETRY_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_SESSION_REPLAY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_SESSION_REPLAY]
     }`,
   ),
 

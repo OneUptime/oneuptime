@@ -3,6 +3,10 @@ import TelemetryDetailPanel, {
   TelemetryDetailPanelTab,
 } from "Common/UI/Components/TelemetryViewer/components/TelemetryDetailPanel";
 import { SessionReplayGap } from "Common/Types/Rum/SessionReplay";
+import SessionReplayMaskingMode, {
+  doesMaskingModeRecordReadableContent,
+} from "Common/Types/Rum/SessionReplayMaskingMode";
+import Text from "Common/Types/Text";
 import Route from "Common/Types/API/Route";
 import AppLink from "../AppLink/AppLink";
 import PageMap from "../../Utils/PageMap";
@@ -129,10 +133,14 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
     <div className="px-1">
       {/*
        * Masking mode is the single most important field on this panel. What
-       * a viewer is looking at depends entirely on it, and MaskInputsOnly
-       * means real page text - potentially real personal data - was recorded.
+       * a viewer is looking at depends entirely on it, and every mode except
+       * MaskAllText means real page text - potentially real personal data -
+       * was recorded.
        */}
-      <DetailRow label="Masking mode" value={d.maskingMode} />
+      <DetailRow
+        label="Masking mode"
+        value={Text.fromPascalCaseToReadable(d.maskingMode)}
+      />
       <DetailRow label="Consent state" value={d.consentState} />
       <DetailRow label="Why recorded" value={d.triggerReason} />
       <DetailRow label="Recorder version" value={d.recorderVersion} />
@@ -145,10 +153,22 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
             : "None"
         }
       />
-      {d.maskingMode === "MaskInputsOnly" && (
+      {/*
+       * Keyed on "not the wireframe mode" rather than on one named mode.
+       * The previous form tested only MaskInputsOnly, so adding
+       * MaskSensitiveInputsOnly - which records page text AND ordinary
+       * input values - would have silently stopped warning anyone on the
+       * mode that is now the default.
+       */}
+      {doesMaskingModeRecordReadableContent(
+        d.maskingMode as SessionReplayMaskingMode,
+      ) && (
         <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-2 py-1.5 text-xs text-amber-800">
-          This application records page text verbatim and masks only input
-          values. Any personal data rendered into the page is in this recording.
+          This recording contains readable page content. Any personal data
+          rendered into the page is in it, and{" "}
+          {d.maskingMode === SessionReplayMaskingMode.MaskSensitiveInputsOnly
+            ? "so is anything typed into a field the page did not declare as sensitive."
+            : "only input values were masked."}
         </div>
       )}
     </div>

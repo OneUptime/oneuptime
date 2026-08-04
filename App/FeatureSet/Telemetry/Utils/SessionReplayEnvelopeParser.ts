@@ -10,7 +10,9 @@ import {
   SessionReplayRecorderKind,
   SessionReplaySignalCounts,
 } from "Common/Types/Rum/SessionReplay";
-import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode";
+import SessionReplayMaskingMode, {
+  parseSessionReplayMaskingMode,
+} from "Common/Types/Rum/SessionReplayMaskingMode";
 import SessionReplayTriggerReason from "Common/Types/Rum/SessionReplayTriggerReason";
 import { JSONObject } from "Common/Types/JSON";
 
@@ -451,9 +453,7 @@ export default class SessionReplayEnvelopeParser {
   }
 
   private static readMaskingMode(value: unknown): SessionReplayMaskingMode {
-    return value === SessionReplayMaskingMode.MaskInputsOnly
-      ? SessionReplayMaskingMode.MaskInputsOnly
-      : SessionReplayMaskingMode.MaskAllText;
+    return parseSessionReplayMaskingMode(value);
   }
 
   private static readTriggerReason(value: unknown): SessionReplayTriggerReason {

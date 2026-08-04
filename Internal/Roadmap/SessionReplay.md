@@ -157,6 +157,8 @@ Served under `/telemetry` deliberately: `App/FeatureSet/Frontend/Index.ts`'s `Da
 
 **Posture: mask at capture, in the browser, before compression, with the recorder failing closed and the server failing closed.** Client-first is not a preference — it is structural. The server never decompresses on the HTTP path, and the existing scrubbers cannot help anyway: `LogScrubRuleService` and `TraceScrubRuleService` both `continue` on any non-string attribute value and never walk nested structures, and an rrweb event stream is a deep tree.
 
+> **The defaults in this table are the original design proposal and several have since been changed.** They were already stale before `SessionReplayDefaultToSensitiveInputMasking` — `isSessionReplayAllowed` and `isSessionReplayEnabled` were flipped on by `EnableSessionReplayByDefault`, and the masking default is now `MaskSensitiveInputsOnly`. Treat the `@TableColumn` decorators in `Common/Models/DatabaseModels/RumApplication.ts` as authoritative, with `Common/Tests/Models/DatabaseModels/SessionReplayModels.test.ts` pinning them; the rows below are kept for the *reasoning*, not the values.
+
 | control | default | where it applies | notes |
 |---|---|---|---|
 | `Project.isSessionReplayAllowed` | **false** | ingest gate + config endpoint | org-wide hard off, pattern of `Project.enableAuditLogs` |

@@ -487,6 +487,7 @@ import { AddRunnerCapabilities1785776960660 } from "./1785776960660-AddRunnerCap
 import { AddRedisAndPostgresHealthNotificationColumns1785749674203 } from "./1785749674203-AddRedisAndPostgresHealthNotificationColumns";
 import { AddAutoRemediation1785763818197 } from "./1785763818197-AddAutoRemediation";
 import { AddRunbookCredential1785800000000 } from "./1785800000000-AddRunbookCredential";
+import { SessionReplayDefaultToSensitiveInputMasking1785860000000 } from "./1785860000000-SessionReplayDefaultToSensitiveInputMasking";
 import { AddIncidentInvestigationGating1785790000000 } from "./1785790000000-AddIncidentInvestigationGating";
 import { AddRemediationVerification1785768089408 } from "./1785768089408-AddRemediationVerification";
 
@@ -982,4 +983,5 @@ export default [
   AddRemediationVerification1785768089408,
   AddIncidentInvestigationGating1785790000000,
   AddRunbookCredential1785800000000,
+  SessionReplayDefaultToSensitiveInputMasking1785860000000,
 ];

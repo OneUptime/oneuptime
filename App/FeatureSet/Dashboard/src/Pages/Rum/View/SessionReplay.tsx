@@ -6,6 +6,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import SessionReplayTable from "../../../Components/SessionReplay/SessionReplayTable";
+import SessionReplaySetupGuide from "../../../Components/SessionReplay/SessionReplaySetupGuide";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 
@@ -21,12 +22,6 @@ const RumApplicationSessionReplay: FunctionComponent<
   return (
     <Fragment>
       <div className="mb-4 flex justify-end gap-2">
-        {/*
-         * The privacy controls live on a project-level settings page that is
-         * not reachable from this application's side menu, so the list links
-         * to it directly. Somebody looking at an empty session list is
-         * almost always looking for the switch that turns recording on.
-         */}
         <Button
           title="Session replay settings"
           icon={IconProp.Settings}
@@ -34,7 +29,10 @@ const RumApplicationSessionReplay: FunctionComponent<
           onClick={(): void => {
             Navigation.navigate(
               RouteUtil.populateRouteParams(
-                RouteMap[PageMap.RUM_SETTINGS_SESSION_REPLAY] as Route,
+                RouteMap[
+                  PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_SETTINGS
+                ] as Route,
+                { modelId: modelId },
               ),
             );
           }}
@@ -56,7 +54,16 @@ const RumApplicationSessionReplay: FunctionComponent<
         />
       </div>
 
-      <SessionReplayTable rumApplicationId={modelId} />
+      {/*
+       * The setup guide is rendered by the table, not beside it: only the
+       * table knows whether the empty list is "never set up" or "your
+       * filters matched nothing", and showing installation steps to
+       * somebody who simply over-filtered would be noise.
+       */}
+      <SessionReplayTable
+        rumApplicationId={modelId}
+        renderWhenEmpty={<SessionReplaySetupGuide rumApplicationId={modelId} />}
+      />
     </Fragment>
   );
 };

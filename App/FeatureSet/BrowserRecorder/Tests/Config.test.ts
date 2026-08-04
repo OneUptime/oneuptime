@@ -237,6 +237,38 @@ describe("Config", (): void => {
       expect(config?.maskingMode).toBe(SessionReplayMaskingMode.MaskAllText);
     });
 
+    it("honours MaskSensitiveInputsOnly", (): void => {
+      const config: LoaderConfig | null = Config.validateConfig({
+        enabled: true,
+        recorderVersion: "1.0.0",
+        maskingMode: SessionReplayMaskingMode.MaskSensitiveInputsOnly,
+      });
+
+      expect(config?.maskingMode).toBe(
+        SessionReplayMaskingMode.MaskSensitiveInputsOnly,
+      );
+    });
+
+    it("does not fall back to the default mode, only to the strictest one", (): void => {
+      /*
+       * MaskSensitiveInputsOnly is the product default, which makes it a
+       * tempting fallback. It must not be one: this branch exists for a
+       * config from a NEWER server than this recorder build, or a tampered
+       * response, and neither should be able to relax masking below what
+       * this build can actually enforce.
+       */
+      const config: LoaderConfig | null = Config.validateConfig({
+        enabled: true,
+        recorderVersion: "1.0.0",
+        maskingMode: "MaskAlmostNothing",
+      });
+
+      expect(config?.maskingMode).not.toBe(
+        SessionReplayMaskingMode.MaskSensitiveInputsOnly,
+      );
+      expect(config?.maskingMode).toBe(SessionReplayMaskingMode.MaskAllText);
+    });
+
     it("defaults an unknown consent mode to RequireExplicit", (): void => {
       const config: LoaderConfig | null = Config.validateConfig({
         enabled: true,

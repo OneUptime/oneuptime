@@ -309,18 +309,25 @@ const InstallationTestPanel: FunctionComponent = (): ReactElement => {
         : "Enable recording in the per-application policy table above.",
     });
 
+    /*
+     * An empty allowlist ACCEPTS every origin - see
+     * SessionReplayGateCache.isOriginAllowed. It is not an install failure
+     * and must not be reported as one, or the panel sends people to fix
+     * the one thing that is not broken. It is still a production gap, so
+     * it warns rather than passes.
+     */
     rows.push({
-      state: status.allowedOrigins.length > 0 ? "pass" : "fail",
+      state: status.allowedOrigins.length > 0 ? "pass" : "warn",
       title:
         status.allowedOrigins.length > 0
           ? `Origin allowlist has ${status.allowedOrigins.length} ${
               status.allowedOrigins.length === 1 ? "entry" : "entries"
             }`
-          : "Origin allowlist is empty — every chunk is refused",
+          : "Origin allowlist is empty — recordings are accepted from any origin",
       detail:
         status.allowedOrigins.length > 0
           ? status.allowedOrigins.join(", ")
-          : "Add your site's origin (e.g. https://app.example.com) to the application's allowed origins. An empty allowlist refuses everything by design.",
+          : "Fine for getting started, wrong for production. Your ingestion key is visible in your page's JavaScript and has no origin binding of its own, so until you list your domains anyone who copies it can write forged recordings into this project.",
     });
 
     const isErrorTriggered: boolean =
