@@ -1,0 +1,67 @@
+name: Postgres Schema Drift
+
+permissions:
+  contents: read
+
+# Supersede in-flight runs for the same branch/PR: only the newest commit needs CI.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+on:
+  pull_request:
+  push:
+    branches-ignore:
+      - 'hotfix-*'   # excludes hotfix branches
+      - 'release'
+
+jobs:
+  # Migrates an empty database with every migration registered in
+  # SchemaMigrations/Index.ts, then asks TypeORM to generate a migration against
+  # the result. A correct migration set leaves nothing to generate.
+  #
+  # This catches the two ways the schema silently rots: an entity edited without
+  # a migration, and a migration file generated but never added to Index.ts (it
+  # never runs, so production never gets the column). It also proves the whole
+  # chain still applies to an empty database — the path every new install takes.
+  postgres-schema-drift:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+      # LocalMigrationGenerationDataSource defaults to localhost:5400, which is
+      # where docker compose publishes Postgres locally. The service below is
+      # mapped to the same port so local and CI runs are the same command.
+      DATABASE_MIGRATIONS_HOST: localhost
+      DATABASE_MIGRATIONS_PORT: 5400
+      DATABASE_USERNAME: postgres
+      DATABASE_PASSWORD: postgres
+      DATABASE_NAME: oneuptimedb
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: oneuptimedb
+        ports:
+          - 5400:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+
+      # typeorm + ts-node live in the root package; the entities the check
+      # reflects over resolve their imports through Common's.
+      - run: npm install
+      - run: cd Common && npm install
+
+      - name: Check for Postgres schema drift
+        run: npm run check-postgres-schema-drift
