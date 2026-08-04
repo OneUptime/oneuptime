@@ -18,6 +18,14 @@ export interface HistogramBucket {
   count: number;
 }
 
+/*
+ * An exact attribute predicate. A single string is `= value`; an array is
+ * `IN (...)`, which is what a multi-select dashboard variable resolves to.
+ * Mirrors LogAttributeFilterValue so both explorers filter identically.
+ */
+export type TraceAttributeFilterValue = string | Array<string>;
+export type TraceAttributeFilters = Record<string, TraceAttributeFilterValue>;
+
 export interface TraceFilters {
   serviceIds?: Array<ObjectID> | undefined;
   entityKeys?: Array<string> | undefined;
@@ -47,7 +55,7 @@ export interface TraceFilters {
   maxDurationNano?: number | undefined;
   exactDurationNano?: number | undefined;
   rootOnly?: boolean | undefined;
-  attributes?: Record<string, string> | undefined;
+  attributes?: TraceAttributeFilters | undefined;
   /*
    * Substring (contains) attribute matches — `@key:~value` in the explorer.
    * Same case-insensitive key matching as `attributes`, value via ILIKE.
@@ -1151,6 +1159,27 @@ export class TraceAggregationService {
          * LogAggregationService.appendCommonFilters. Casings vary across
          * OTEL conventions and app-emitted attributes.
          */
+        if (Array.isArray(attrValue)) {
+          /*
+           * Multi-value selection (a multi-select dashboard variable) — an
+           * empty array means "no selection", which must widen to everything
+           * rather than compile to `IN ()` and match nothing.
+           */
+          if (attrValue.length === 0) {
+            continue;
+          }
+          statement.append(
+            SQL` AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
+              type: TableColumnType.Text,
+              value: attrKey,
+            }}) AND v IN (${{
+              type: TableColumnType.Text,
+              value: new Includes(attrValue),
+            }}), mapKeys(attributes), mapValues(attributes))`,
+          );
+          continue;
+        }
+
         statement.append(
           SQL` AND arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(${{
             type: TableColumnType.Text,

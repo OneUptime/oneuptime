@@ -31,6 +31,7 @@ import TraceAggregationService, {
   FacetValue as TraceFacetValue,
   MultiFacetRequest as TraceMultiFacetRequest,
   TraceFilters,
+  TraceAttributeFilters,
   TraceAnalyticsChartType,
   TraceAnalyticsRequest,
   TraceAnalyticsTimeseriesRow,
@@ -708,6 +709,42 @@ function parseTraceFilterBody(body: JSONObject): TraceFilters {
     return Object.fromEntries(entries);
   };
 
+  /*
+   * Exact attribute predicates accept a single value or a list of values
+   * (`IN (...)`) — a multi-select dashboard variable resolves to the latter.
+   * Non-string array entries are dropped, and an array left empty by that
+   * filtering is dropped entirely so it cannot narrow to nothing.
+   */
+  const attributeFilterRecord: () => TraceAttributeFilters | undefined = ():
+    | TraceAttributeFilters
+    | undefined => {
+    const raw: unknown = body["attributes"];
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+      return undefined;
+    }
+    const filters: TraceAttributeFilters = {};
+    for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+      if (typeof value === "string") {
+        filters[key] = value;
+        continue;
+      }
+      if (Array.isArray(value)) {
+        const values: Array<string> = (value as Array<unknown>).filter(
+          (v: unknown): v is string => {
+            return typeof v === "string";
+          },
+        );
+        if (values.length > 0) {
+          filters[key] = values;
+        }
+      }
+    }
+    if (Object.keys(filters).length === 0) {
+      return undefined;
+    }
+    return filters;
+  };
+
   return {
     serviceIds,
     entityKeys: stringArray("entityKeys"),
@@ -754,7 +791,7 @@ function parseTraceFilterBody(body: JSONObject): TraceFilters {
         : undefined,
     rootOnly:
       body["rootOnly"] === undefined ? undefined : Boolean(body["rootOnly"]),
-    attributes: stringRecord("attributes"),
+    attributes: attributeFilterRecord(),
     attributeSearches: stringRecord("attributeSearches"),
   };
 }
