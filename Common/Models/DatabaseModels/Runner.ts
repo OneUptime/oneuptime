@@ -347,9 +347,9 @@ export default class Runner extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.Version,
-    title: "Agent Version",
+    title: "Runner Version",
     description:
-      "Self-reported version of the agent binary. Updated on each heartbeat.",
+      "Self-reported version of the Runner binary. Updated on each heartbeat.",
   })
   @Column({
     nullable: true,
@@ -357,6 +357,16 @@ export default class Runner extends BaseModel {
     length: ColumnLength.Version,
     transformer: Version.getDatabaseTransformer(),
   })
+  /*
+   * The label reads "Runner Version", but the property — and therefore the
+   * column, the /api/runner field and the POST /heartbeat body key — stays
+   * agentVersion. Runners are customer-pulled containers on their own upgrade
+   * cadence, so an un-redeployed Runner keeps posting agentVersion long after
+   * the server ships. Renaming the key would fail silently: RunnerIngress only
+   * writes the column when the body carries a non-empty string, so the
+   * heartbeat would still return 200 and the Runner would still show as
+   * connected, with a version frozen at whatever it last reported.
+   */
   public agentVersion?: Version = undefined;
 
   @ColumnAccessControl({

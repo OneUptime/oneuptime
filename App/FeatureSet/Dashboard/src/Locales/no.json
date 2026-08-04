@@ -4376,6 +4376,7 @@
   "Runner ID": "Runbook-agent-ID",
   "Runner setup": "Oppsett av runbook-agent",
   "Runner Status": "Status for runbook-agent",
+  "Runner Version": "Versjon av runbook-agent",
   "Runners": "Runbook-agenter",
   "Runbook agents which have access to this secret": "Runbook-agenter som har tilgang til denne hemmeligheten",
   "Runbook Audit Logs": "Revisjonslogger for runbook",

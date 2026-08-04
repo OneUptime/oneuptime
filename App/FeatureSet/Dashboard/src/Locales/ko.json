@@ -4376,6 +4376,7 @@
   "Runner ID": "런북 에이전트 ID",
   "Runner setup": "런북 에이전트 설정",
   "Runner Status": "런북 에이전트 상태",
+  "Runner Version": "런북 에이전트 버전",
   "Runners": "Runbook 에이전트",
   "Runbook agents which have access to this secret": "이 시크릿에 액세스할 수 있는 런북 에이전트",
   "Runbook Audit Logs": "런북 감사 로그",

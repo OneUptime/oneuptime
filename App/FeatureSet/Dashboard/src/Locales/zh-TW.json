@@ -4376,6 +4376,7 @@
   "Runner ID": "操作手冊代理程式 ID",
   "Runner setup": "操作手冊代理程式設定",
   "Runner Status": "操作手冊代理程式狀態",
+  "Runner Version": "操作手冊代理程式版本",
   "Runners": "Runbook 代理程式",
   "Runbook agents which have access to this secret": "可存取此密鑰的操作手冊代理程式",
   "Runbook Audit Logs": "操作手冊稽核日誌",

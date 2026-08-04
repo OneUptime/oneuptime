@@ -4376,6 +4376,7 @@
   "Runner ID": "ID do Agente de Runbook",
   "Runner setup": "Configuração do Agente de Runbook",
   "Runner Status": "Status do Agente de Runbook",
+  "Runner Version": "Versão do Agente de Runbook",
   "Runners": "Agentes de runbook",
   "Runbook agents which have access to this secret": "Agentes de Runbook que têm acesso a este segredo",
   "Runbook Audit Logs": "Registros de auditoria do Runbook",

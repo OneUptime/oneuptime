@@ -4376,6 +4376,7 @@
   "Runner ID": "Runbook エージェント ID",
   "Runner setup": "Runbook エージェントのセットアップ",
   "Runner Status": "Runbook エージェントのステータス",
+  "Runner Version": "Runbook エージェントのバージョン",
   "Runners": "Runbook エージェント",
   "Runbook agents which have access to this secret": "このシークレットにアクセスできる Runbook エージェント",
   "Runbook Audit Logs": "Runbook 監査ログ",
