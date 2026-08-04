@@ -1,6 +1,7 @@
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
 import ObjectID from "Common/Types/ObjectID";
+import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 
 export interface BulkAddStatusPageMonitorFailure {
@@ -13,6 +14,19 @@ export interface BulkAddStatusPageMonitorsResult {
   failed: Array<BulkAddStatusPageMonitorFailure>;
 }
 
+/**
+ * Options that are shared by every resource this bulk add creates. These are
+ * the same options the single resource form offers, minus display name and
+ * description which are copied from each monitor.
+ */
+export interface BulkAddStatusPageMonitorResourceOptions {
+  displayTooltip?: string | undefined;
+  showCurrentStatus?: boolean | undefined;
+  showUptimePercent?: boolean | undefined;
+  uptimePercentPrecision?: UptimePrecision | undefined;
+  showStatusHistoryChart?: boolean | undefined;
+}
+
 export interface BulkAddStatusPageMonitorsOptions {
   monitors: Array<Monitor>;
   projectId: ObjectID;
@@ -20,6 +34,7 @@ export interface BulkAddStatusPageMonitorsOptions {
   statusPageGroupId?: ObjectID | undefined;
   rowAxisValue?: string | undefined;
   columnAxisValue?: string | undefined;
+  resourceOptions?: BulkAddStatusPageMonitorResourceOptions | undefined;
   createResource?:
     | ((resource: StatusPageResource) => Promise<void>)
     | undefined;
@@ -97,6 +112,31 @@ export const bulkAddStatusPageMonitors: (
 
       if (options.columnAxisValue) {
         resource.columnAxisValue = options.columnAxisValue;
+      }
+
+      const resourceOptions: BulkAddStatusPageMonitorResourceOptions =
+        options.resourceOptions || {};
+
+      if (resourceOptions.displayTooltip) {
+        resource.displayTooltip = resourceOptions.displayTooltip;
+      }
+
+      if (resourceOptions.showCurrentStatus !== undefined) {
+        resource.showCurrentStatus = resourceOptions.showCurrentStatus;
+      }
+
+      if (resourceOptions.showUptimePercent !== undefined) {
+        resource.showUptimePercent = resourceOptions.showUptimePercent;
+      }
+
+      if (resourceOptions.uptimePercentPrecision) {
+        resource.uptimePercentPrecision =
+          resourceOptions.uptimePercentPrecision;
+      }
+
+      if (resourceOptions.showStatusHistoryChart !== undefined) {
+        resource.showStatusHistoryChart =
+          resourceOptions.showStatusHistoryChart;
       }
 
       await createResource(resource);

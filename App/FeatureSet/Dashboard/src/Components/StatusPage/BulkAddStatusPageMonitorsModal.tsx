@@ -2,20 +2,28 @@ import bulkAddStatusPageMonitors, {
   BulkAddStatusPageMonitorFailure,
   BulkAddStatusPageMonitorsResult,
 } from "./BulkAddStatusPageMonitors";
+import { getStatusPageResourceAdvancedFields } from "./StatusPageResourceFormFields";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
-import API from "Common/UI/Utils/API/API";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import Dropdown, {
-  DropdownOption,
-  DropdownValue,
-} from "Common/UI/Components/Dropdown/Dropdown";
-import ModelList from "Common/UI/Components/ModelList/ModelList";
-import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import Includes from "Common/Types/BaseDatabase/Includes";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ObjectID from "Common/Types/ObjectID";
+import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
+import API from "Common/UI/Utils/API/API";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import ButtonType from "Common/UI/Components/Button/ButtonTypes";
+import BasicForm from "Common/UI/Components/Forms/BasicForm";
+import Field from "Common/UI/Components/Forms/Types/Field";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import React, {
   FunctionComponent,
+  MutableRefObject,
   ReactElement,
-  useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -35,36 +43,207 @@ export interface ComponentProps {
   onComplete: (result: BulkAddStatusPageMonitorsResult) => void;
 }
 
+/**
+ * Mirrors the single resource form, except the monitor picker is multi-select
+ * and display name / description are not asked for - they are copied from each
+ * monitor. Every other option applies to all of the resources created here.
+ */
+export interface BulkAddStatusPageMonitorsFormValues {
+  monitors?: Array<ObjectID | string> | undefined;
+  rowAxisValue?: string | undefined;
+  columnAxisValue?: string | undefined;
+  displayTooltip?: string | undefined;
+  showCurrentStatus?: boolean | undefined;
+  showUptimePercent?: boolean | undefined;
+  uptimePercentPrecision?: UptimePrecision | undefined;
+  showStatusHistoryChart?: boolean | undefined;
+}
+
+const FORM_STEPS: Array<FormStep<BulkAddStatusPageMonitorsFormValues>> = [
+  {
+    title: "Monitor Details",
+    id: "monitor-details",
+  },
+  {
+    title: "Advanced",
+    id: "advanced",
+  },
+];
+
+type ToObjectIdsFunction = (value: unknown) => Array<ObjectID>;
+
+/*
+ * The multi-select dropdown hands back either raw values or dropdown options
+ * depending on whether the user picked from the list or the form normalized
+ * them on submit - accept both.
+ */
+const toObjectIds: ToObjectIdsFunction = (value: unknown): Array<ObjectID> => {
+  if (!value || !Array.isArray(value)) {
+    return [];
+  }
+
+  const ids: Array<ObjectID> = [];
+
+  for (const item of value) {
+    const rawValue: unknown =
+      item && typeof item === "object" && "value" in item
+        ? (item as { value: unknown }).value
+        : item;
+
+    if (rawValue instanceof ObjectID) {
+      ids.push(rawValue);
+    } else if (typeof rawValue === "string" && rawValue) {
+      ids.push(new ObjectID(rawValue));
+    }
+  }
+
+  return ids;
+};
+
 const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [selectedMonitors, setSelectedMonitors] = useState<Array<Monitor>>([]);
-  const [rowAxisValue, setRowAxisValue] = useState<string>("");
-  const [columnAxisValue, setColumnAxisValue] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [result, setResult] = useState<BulkAddStatusPageMonitorsResult | null>(
     null,
   );
+  const [submitButtonText, setSubmitButtonText] =
+    useState<string>("Add Monitors");
 
-  const rowOptions: Array<DropdownOption> = useMemo(() => {
-    return (props.gridPlacement?.rowValues || []).map((value: string) => {
-      return { label: value, value };
+  const formRef: MutableRefObject<any> = useRef<any>(null);
+
+  const getFields: () => Array<
+    Field<BulkAddStatusPageMonitorsFormValues>
+  > = (): Array<Field<BulkAddStatusPageMonitorsFormValues>> => {
+    const fields: Array<Field<BulkAddStatusPageMonitorsFormValues>> = [
+      {
+        field: {
+          monitors: true,
+        },
+        title: "Monitors",
+        description:
+          "Select monitors that will be shown on the status page. The display name and description of each resource is copied from its monitor.",
+        fieldType: FormFieldSchemaType.MultiSelectDropdown,
+        dropdownModal: {
+          type: Monitor,
+          labelField: "name",
+          valueField: "_id",
+        },
+        required: true,
+        placeholder: "Select Monitors",
+        stepId: "monitor-details",
+      },
+    ];
+
+    if (props.gridPlacement) {
+      fields.push(
+        {
+          field: {
+            rowAxisValue: true,
+          },
+          title: `${props.gridPlacement.rowLabel} (Row)`,
+          description: "Row these resources belong to in the grid.",
+          fieldType: FormFieldSchemaType.Dropdown,
+          dropdownOptions: props.gridPlacement.rowValues.map(
+            (value: string) => {
+              return { label: value, value: value };
+            },
+          ),
+          required: true,
+          placeholder: `Select ${props.gridPlacement.rowLabel.toLowerCase()}`,
+          stepId: "monitor-details",
+        },
+        {
+          field: {
+            columnAxisValue: true,
+          },
+          title: `${props.gridPlacement.columnLabel} (Column)`,
+          description: "Column these resources belong to in the grid.",
+          fieldType: FormFieldSchemaType.Dropdown,
+          dropdownOptions: props.gridPlacement.columnValues.map(
+            (value: string) => {
+              return { label: value, value: value };
+            },
+          ),
+          required: true,
+          placeholder: `Select ${props.gridPlacement.columnLabel.toLowerCase()}`,
+          stepId: "monitor-details",
+        },
+      );
+    }
+
+    /*
+     * The advanced fields are declared against StatusPageResource because the
+     * single resource form uses them too. Their field keys are the same ones
+     * this form collects, so they render and validate identically here.
+     */
+    return [
+      ...fields,
+      ...(getStatusPageResourceAdvancedFields() as unknown as Array<
+        Field<BulkAddStatusPageMonitorsFormValues>
+      >),
+    ];
+  };
+
+  type FetchMonitorsFunction = (
+    monitorIds: Array<ObjectID>,
+  ) => Promise<Array<Monitor>>;
+
+  /*
+   * The form only carries monitor IDs, but each resource copies its display
+   * name and description from the monitor - so fetch those here.
+   */
+  const fetchMonitors: FetchMonitorsFunction = async (
+    monitorIds: Array<ObjectID>,
+  ): Promise<Array<Monitor>> => {
+    const listResult: ListResult<Monitor> = await ModelAPI.getList<Monitor>({
+      modelType: Monitor,
+      query: {
+        _id: new Includes(monitorIds),
+        projectId: props.projectId,
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      select: {
+        _id: true,
+        name: true,
+        description: true,
+      },
+      sort: {
+        name: SortOrder.Ascending,
+      },
+      requestOptions: {},
     });
-  }, [props.gridPlacement?.rowValues]);
 
-  const columnOptions: Array<DropdownOption> = useMemo(() => {
-    return (props.gridPlacement?.columnValues || []).map((value: string) => {
-      return { label: value, value };
-    });
-  }, [props.gridPlacement?.columnValues]);
+    // Create resources in the order the monitors were picked.
+    const monitorsById: Map<string, Monitor> = new Map<string, Monitor>();
 
-  const hasRequiredGridPlacement: boolean = props.gridPlacement
-    ? Boolean(rowAxisValue && columnAxisValue)
-    : true;
+    for (const monitor of listResult.data) {
+      if (monitor._id) {
+        monitorsById.set(monitor._id.toString(), monitor);
+      }
+    }
 
-  const onSubmit: () => Promise<void> = async (): Promise<void> => {
-    if (selectedMonitors.length === 0 || !hasRequiredGridPlacement) {
+    return monitorIds
+      .map((monitorId: ObjectID) => {
+        return monitorsById.get(monitorId.toString());
+      })
+      .filter((monitor: Monitor | undefined): monitor is Monitor => {
+        return Boolean(monitor);
+      });
+  };
+
+  type OnSubmitFunction = (
+    values: FormValues<BulkAddStatusPageMonitorsFormValues>,
+  ) => Promise<void>;
+
+  const onSubmit: OnSubmitFunction = async (
+    values: FormValues<BulkAddStatusPageMonitorsFormValues>,
+  ): Promise<void> => {
+    const monitorIds: Array<ObjectID> = toObjectIds(values.monitors);
+
+    if (monitorIds.length === 0) {
       return;
     }
 
@@ -72,14 +251,25 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
     setError("");
 
     try {
+      const monitors: Array<Monitor> = await fetchMonitors(monitorIds);
+
       const bulkResult: BulkAddStatusPageMonitorsResult =
         await bulkAddStatusPageMonitors({
-          monitors: selectedMonitors,
+          monitors: monitors,
           projectId: props.projectId,
           statusPageId: props.statusPageId,
           statusPageGroupId: props.statusPageGroupId,
-          rowAxisValue: rowAxisValue || undefined,
-          columnAxisValue: columnAxisValue || undefined,
+          rowAxisValue: (values.rowAxisValue as string) || undefined,
+          columnAxisValue: (values.columnAxisValue as string) || undefined,
+          resourceOptions: {
+            displayTooltip: (values.displayTooltip as string) || undefined,
+            showCurrentStatus: Boolean(values.showCurrentStatus),
+            showUptimePercent: Boolean(values.showUptimePercent),
+            uptimePercentPrecision: values.showUptimePercent
+              ? (values.uptimePercentPrecision as UptimePrecision)
+              : undefined,
+            showStatusHistoryChart: Boolean(values.showStatusHistoryChart),
+          },
         });
 
       setResult(bulkResult);
@@ -158,83 +348,35 @@ const BulkAddStatusPageMonitorsModal: FunctionComponent<ComponentProps> = (
   return (
     <Modal
       title="Add Multiple Monitors"
-      description="Select the monitors to add. Each status page display name and description will be copied from its monitor."
+      description="Add monitors to this status page. Each resource gets its display name and description from its monitor."
       modalWidth={ModalWidth.Medium}
-      submitButtonText={
-        selectedMonitors.length > 0
-          ? `Add ${selectedMonitors.length} Monitor${selectedMonitors.length === 1 ? "" : "s"}`
-          : "Add Monitors"
-      }
+      submitButtonText={submitButtonText}
+      submitButtonType={ButtonType.Submit}
       onClose={props.onClose}
       onSubmit={() => {
-        onSubmit().catch((err: Error) => {
-          setError(API.getFriendlyMessage(err));
-        });
+        formRef.current?.submitForm();
       }}
       isLoading={isLoading}
+      disableSubmitButton={isLoading}
       error={error}
-      disableSubmitButton={
-        selectedMonitors.length === 0 || !hasRequiredGridPlacement
-      }
     >
-      <div className="space-y-5">
-        {props.gridPlacement ? (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
-                {props.gridPlacement.rowLabel} (Row)
-              </label>
-              <Dropdown
-                options={rowOptions}
-                placeholder={`Select ${props.gridPlacement.rowLabel.toLowerCase()}`}
-                ariaLabel={`${props.gridPlacement.rowLabel} row`}
-                onChange={(
-                  value: DropdownValue | Array<DropdownValue> | null,
-                ) => {
-                  setRowAxisValue((value as string) || "");
-                }}
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
-                {props.gridPlacement.columnLabel} (Column)
-              </label>
-              <Dropdown
-                options={columnOptions}
-                placeholder={`Select ${props.gridPlacement.columnLabel.toLowerCase()}`}
-                ariaLabel={`${props.gridPlacement.columnLabel} column`}
-                onChange={(
-                  value: DropdownValue | Array<DropdownValue> | null,
-                ) => {
-                  setColumnAxisValue((value as string) || "");
-                }}
-              />
-            </div>
-          </div>
-        ) : null}
-
-        <div>
-          <h4 className="text-sm font-medium text-gray-900">Monitors</h4>
-          <p className="mt-1 text-sm text-gray-500">
-            Choose one or more monitors. Click a selected monitor again to
-            remove it.
-          </p>
-          <ModelList<Monitor>
-            id="bulk-add-status-page-monitors"
-            modelType={Monitor}
-            query={{ projectId: props.projectId }}
-            titleField="name"
-            descriptionField="description"
-            selectMultiple={true}
-            isSearchEnabled={true}
-            select={{ _id: true, name: true, description: true }}
-            noItemsMessage="No monitors are available in this project."
-            onSelectChange={(monitors: Array<Monitor>) => {
-              setSelectedMonitors(monitors);
-            }}
-          />
-        </div>
-      </div>
+      <BasicForm
+        ref={formRef}
+        id="bulk-add-status-page-monitors"
+        name="Status Page > Add Multiple Monitors"
+        hideSubmitButton={true}
+        fields={getFields()}
+        steps={FORM_STEPS}
+        onIsLastFormStep={(isLastFormStep: boolean) => {
+          setSubmitButtonText(isLastFormStep ? "Add Monitors" : "Next");
+        }}
+        onSubmit={(values: FormValues<BulkAddStatusPageMonitorsFormValues>) => {
+          onSubmit(values).catch((err: Error) => {
+            setError(API.getFriendlyMessage(err));
+            setIsLoading(false);
+          });
+        }}
+      />
     </Modal>
   );
 };

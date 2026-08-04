@@ -4,6 +4,7 @@ import bulkAddStatusPageMonitors, {
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import StatusPageResource from "../../../Models/DatabaseModels/StatusPageResource";
 import ObjectID from "../../../Types/ObjectID";
+import UptimePrecision from "../../../Types/StatusPage/UptimePrecision";
 import { describe, expect, jest, test } from "@jest/globals";
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -133,6 +134,65 @@ describe("bulkAddStatusPageMonitors", () => {
         );
       }),
     ).toBe(true);
+  });
+
+  test("applies the shared resource options to every selected monitor", async () => {
+    const monitors: Array<Monitor> = [
+      makeMonitor("0198c8ec-2a1d-7f0c-9e75-384194160035", "US API"),
+      makeMonitor("0198c8ec-2a1d-7f0c-9e75-384194160036", "US Worker"),
+    ];
+    const created: Array<StatusPageResource> = [];
+
+    await bulkAddStatusPageMonitors({
+      monitors,
+      projectId: PROJECT_ID,
+      statusPageId: STATUS_PAGE_ID,
+      resourceOptions: {
+        displayTooltip: "Runs in US East",
+        showCurrentStatus: false,
+        showUptimePercent: true,
+        uptimePercentPrecision: UptimePrecision.TWO_DECIMAL,
+        showStatusHistoryChart: false,
+      },
+      createResource: async (resource: StatusPageResource): Promise<void> => {
+        created.push(resource);
+      },
+    });
+
+    expect(created).toHaveLength(2);
+
+    for (const resource of created) {
+      expect(resource).toMatchObject({
+        displayTooltip: "Runs in US East",
+        showCurrentStatus: false,
+        showUptimePercent: true,
+        uptimePercentPrecision: UptimePrecision.TWO_DECIMAL,
+        showStatusHistoryChart: false,
+      });
+    }
+  });
+
+  test("leaves resource options unset when the form did not collect them", async () => {
+    const monitor: Monitor = makeMonitor(
+      "0198c8ec-2a1d-7f0c-9e75-384194160037",
+      "US API",
+    );
+    let created: StatusPageResource | null = null;
+
+    await bulkAddStatusPageMonitors({
+      monitors: [monitor],
+      projectId: PROJECT_ID,
+      statusPageId: STATUS_PAGE_ID,
+      createResource: async (resource: StatusPageResource): Promise<void> => {
+        created = resource;
+      },
+    });
+
+    expect(created!.displayTooltip).toBeUndefined();
+    expect(created!.showCurrentStatus).toBeUndefined();
+    expect(created!.showUptimePercent).toBeUndefined();
+    expect(created!.uptimePercentPrecision).toBeUndefined();
+    expect(created!.showStatusHistoryChart).toBeUndefined();
   });
 
   test("deduplicates repeated monitor selections while retaining first-selection order", async () => {
