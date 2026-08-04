@@ -483,8 +483,37 @@ for test_name in "${TEST_DIRS[@]}"; do
         echo ""
         echo "  [destroy]"
         cd "$test_path"
-        if ! terraform destroy -auto-approve 2>&1; then
-            echo "  ✗ FAILED: Destroy failed"
+
+        # Destroy is retried because Terraform tears resources down
+        # concurrently and a delete can be rejected while the rows referencing
+        # it are still committing. 35-monitor-with-steps hit this: deleting
+        # monitor_status "operational" came back with "Monitor records still
+        # reference it" — a Postgres foreign-key violation — even though every
+        # monitor delete had already returned success, and the deletion
+        # verification immediately below then found all of them gone.
+        #
+        # Retrying is safe and cheap: terraform destroy is idempotent, whatever
+        # is already gone drops out of state on the next refresh, and the
+        # verify-deletion phase stays the real correctness gate — it confirms
+        # against the API that nothing leaked, so a retry cannot paper over a
+        # resource that genuinely failed to delete.
+        destroy_ok=0
+        for destroy_attempt in 1 2 3; do
+            if terraform destroy -auto-approve 2>&1; then
+                destroy_ok=1
+                if [ $destroy_attempt -gt 1 ]; then
+                    echo "  ↻ Destroy succeeded on attempt $destroy_attempt"
+                fi
+                break
+            fi
+            if [ $destroy_attempt -lt 3 ]; then
+                echo "  ↻ Destroy failed on attempt $destroy_attempt — retrying in 10s"
+                sleep 10
+            fi
+        done
+
+        if [ $destroy_ok -eq 0 ]; then
+            echo "  ✗ FAILED: Destroy failed after 3 attempts"
             test_failed=1
         fi
 
