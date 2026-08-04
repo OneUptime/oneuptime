@@ -60,7 +60,7 @@ Configureer op een Bash-stap:
 - **Uitvoer-timeout** — hoe lang de agent het script laat draaien voordat hij het met `SIGKILL` afbreekt. Standaard 30 seconden; verhoog deze voor stappen die daadwerkelijk minuten duren.
 - **Claim-timeout** — hoe lang de Worker wacht tot de agent de job oppakt. Standaard 2 minuten.
 
-Als de gekozen agent offline is wanneer het runbook deze stap bereikt, wacht de stap tot de **claim-timeout** (standaard 2 minuten) en faalt dan met `TimedOut`. Voeg een agent toe via **Runbooks → Settings → Agents** voordat je op een Bash-stap leunt.
+Als de gekozen agent offline is wanneer het runbook deze stap bereikt, wacht de stap tot de **claim-timeout** (standaard 2 minuten) en faalt dan met `TimedOut`. Voeg een agent toe via **Settings → Runners** voordat je op een Bash-stap leunt.
 
 ### AI
 

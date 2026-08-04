@@ -30,7 +30,7 @@ Runbook 代理程式將這一點反轉過來。Bash 與 JavaScript 步驟不會�
 
 ### 1. 建立代理程式記錄
 
-前往 **Runbooks → Settings → Agents** 並建立一個新的代理程式。填入：
+前往 **Settings → Runners** 並建立一個新的代理程式。填入：
 
 | 欄位            | 說明                                                                                                                                |
 | --------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
@@ -58,7 +58,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
 
 ### 4. 確認代理程式已連線
 
-回到 **Runbooks → Settings → Agents**。約在 60 秒內，該代理程式所在列應會切換為 `Connected`，並顯示一個最新的 **Last seen** 時間戳記。如果它仍維持在 `Disconnected`：
+回到 **Settings → Runners**。約在 60 秒內，該代理程式所在列應會切換為 `Connected`，並顯示一個最新的 **Last seen** 時間戳記。如果它仍維持在 `Disconnected`：
 
 - 檢查容器記錄（`docker logs oneuptime-runner`），看看是否有驗證錯誤或網路失敗。
 - 以 `curl` 確認該主機能連到您的 OneUptime URL。

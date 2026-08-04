@@ -765,9 +765,9 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
 
     if (checkId === "agentAvailable") {
       return {
-        title: "View AI Agents",
+        title: "View Runners",
         route: RouteUtil.populateRouteParams(
-          RouteMap[PageMap.SETTINGS_AI_AGENTS] as Route,
+          RouteMap[PageMap.SETTINGS_RUNNERS] as Route,
         ),
       };
     }

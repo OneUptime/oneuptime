@@ -748,8 +748,8 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
         {agents.length === 0 ? (
           <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
             No Runners in this project yet. Create one under{" "}
-            <strong>Runbooks &rsaquo; Agents</strong>, then come back to pick it
-            here.
+            <strong>Settings &rsaquo; Runners</strong>, then come back to pick
+            it here.
           </div>
         ) : (
           <Dropdown
@@ -821,7 +821,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
         {usable.length === 0 ? (
           <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
             No {args.credentialType} credentials in this project yet. Create one
-            under <strong>Runbooks &rsaquo; Credentials</strong>, assign it to
+            under <strong>Settings &rsaquo; Credentials</strong>, assign it to
             the Runner that will use it, then come back and pick it here.
           </div>
         ) : (

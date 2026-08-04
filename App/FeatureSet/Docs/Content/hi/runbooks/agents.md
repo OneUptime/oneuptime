@@ -30,7 +30,7 @@ Runbook एजेंट इसे उलट देते हैं। Bash औ�
 
 ### 1. एजेंट का रिकॉर्ड बनाएँ
 
-**Runbooks → Settings → Agents** पर जाएँ और एक नया एजेंट बनाएँ। भरें:
+**Settings → Runners** पर जाएँ और एक नया एजेंट बनाएँ। भरें:
 
 | फ़ील्ड    | टिप्पणियाँ                                                                                                                      |
 | --------- | ------------------------------------------------------------------------------------------------------------------------------- |
@@ -58,7 +58,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
 
 ### 4. एजेंट का connection सत्यापित करें
 
-**Runbooks → Settings → Agents** पर वापस जाएँ। लगभग 60 सेकंड के भीतर एजेंट की पंक्ति को ताज़ा **Last seen** टाइमस्टैम्प के साथ `Connected` में बदल जाना चाहिए। अगर वह `Disconnected` ही रहे:
+**Settings → Runners** पर वापस जाएँ। लगभग 60 सेकंड के भीतर एजेंट की पंक्ति को ताज़ा **Last seen** टाइमस्टैम्प के साथ `Connected` में बदल जाना चाहिए। अगर वह `Disconnected` ही रहे:
 
 - container logs (`docker logs oneuptime-runner`) में auth या नेटवर्क errors देखें।
 - सत्यापित करें कि host `curl` से OneUptime URL तक पहुँचता है।

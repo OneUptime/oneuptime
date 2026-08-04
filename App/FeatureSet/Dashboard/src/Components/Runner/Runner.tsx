@@ -22,7 +22,7 @@ const RunnerElement: FunctionComponent<ComponentProps> = (
       <AppLink
         className="hover:underline"
         to={RouteUtil.populateRouteParams(
-          RouteMap[PageMap.RUNBOOKS_AGENT_VIEW] as Route,
+          RouteMap[PageMap.SETTINGS_RUNNER_VIEW] as Route,
           {
             modelId: new ObjectID(props.runner._id as string),
           },

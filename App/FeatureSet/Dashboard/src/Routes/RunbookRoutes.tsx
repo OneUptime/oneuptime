@@ -9,10 +9,7 @@ import { Route as PageRoute, Routes } from "react-router-dom";
 
 import Runbooks from "../Pages/Runbook/Runbooks";
 import RunbooksExecutions from "../Pages/Runbook/Executions";
-import Runners from "../Pages/Runbook/Agents";
-import RunnerView from "../Pages/Runbook/AgentView";
 import RunbookSecrets from "../Pages/Runbook/Secrets";
-import RunbookCredentials from "../Pages/Runbook/Credentials";
 import RunbookOverview from "../Pages/Runbook/View/Index";
 import RunbookSteps from "../Pages/Runbook/View/Steps";
 import RunbookExecutionsList from "../Pages/Runbook/View/Executions";
@@ -49,38 +46,11 @@ const RunbookRoutes: FunctionComponent<ComponentProps> = (
           }
         />
         <PageRoute
-          path={RunbookRoutePath[PageMap.RUNBOOKS_AGENTS] || ""}
-          element={
-            <Runners
-              {...props}
-              pageRoute={RouteMap[PageMap.RUNBOOKS_AGENTS] as Route}
-            />
-          }
-        />
-        <PageRoute
-          path={RunbookRoutePath[PageMap.RUNBOOKS_AGENT_VIEW] || ""}
-          element={
-            <RunnerView
-              {...props}
-              pageRoute={RouteMap[PageMap.RUNBOOKS_AGENT_VIEW] as Route}
-            />
-          }
-        />
-        <PageRoute
           path={RunbookRoutePath[PageMap.RUNBOOKS_SECRETS] || ""}
           element={
             <RunbookSecrets
               {...props}
               pageRoute={RouteMap[PageMap.RUNBOOKS_SECRETS] as Route}
-            />
-          }
-        />
-        <PageRoute
-          path={RunbookRoutePath[PageMap.RUNBOOKS_CREDENTIALS] || ""}
-          element={
-            <RunbookCredentials
-              {...props}
-              pageRoute={RouteMap[PageMap.RUNBOOKS_CREDENTIALS] as Route}
             />
           }
         />

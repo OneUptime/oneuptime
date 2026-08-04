@@ -30,7 +30,7 @@ Der Agent benötigt nur **ausgehendes HTTPS** zu Ihrer OneUptime-Instanz. Er akz
 
 ### 1. Den Agent-Datensatz anlegen
 
-Gehen Sie zu **Runbooks → Settings → Agents** und erstellen Sie einen neuen Agent. Füllen Sie aus:
+Gehen Sie zu **Settings → Runners** und erstellen Sie einen neuen Agent. Füllen Sie aus:
 
 | Feld             | Hinweise                                                                                                                                                              |
 | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -58,7 +58,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
 
 ### 4. Verifizieren, dass der Agent verbunden ist
 
-Gehen Sie zurück zu **Runbooks → Settings → Agents**. Innerhalb von ~60 Sekunden sollte die Zeile des Agents auf `Connected` umschalten und einen frischen **Last seen**-Zeitstempel zeigen. Wenn er auf `Disconnected` bleibt:
+Gehen Sie zurück zu **Settings → Runners**. Innerhalb von ~60 Sekunden sollte die Zeile des Agents auf `Connected` umschalten und einen frischen **Last seen**-Zeitstempel zeigen. Wenn er auf `Disconnected` bleibt:
 
 - Prüfen Sie die Container-Logs (`docker logs oneuptime-runner`) auf Auth-Fehler oder Netzwerkprobleme.
 - Verifizieren Sie, dass der Host Ihre OneUptime-URL mit `curl` erreicht.

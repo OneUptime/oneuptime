@@ -4,7 +4,7 @@ A credential is how a runbook reaches something that is **not** the Runner's own
 
 Without one, "restart the service" means writing a shell script and provisioning a key or a kubeconfig onto the Runner host by hand, where it sits on disk outside OneUptime's control. A credential is that same access as a managed object: encrypted at rest, assigned to specific Runners, and referenced by name from a step.
 
-Manage them under **Runbooks → Credentials**.
+Manage them under **Settings → Runners → Credentials**.
 
 ## What is stored
 

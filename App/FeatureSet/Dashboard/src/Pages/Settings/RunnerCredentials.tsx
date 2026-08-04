@@ -30,7 +30,7 @@ const RunbookCredentials: FunctionComponent<
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}
         id="runbook-credential-table"
-        name="Runbooks > Credentials"
+        name="Settings > Runner Credentials"
         saveFilterProps={{
           tableId: "runbook-credentials-table",
         }}

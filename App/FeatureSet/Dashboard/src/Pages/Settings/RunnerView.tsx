@@ -424,7 +424,7 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
         onDeleteSuccess={() => {
           Navigation.navigate(
             RouteUtil.populateRouteParams(
-              RouteMap[PageMap.RUNBOOKS_AGENTS] as Route,
+              RouteMap[PageMap.SETTINGS_RUNNERS] as Route,
             ),
           );
         }}

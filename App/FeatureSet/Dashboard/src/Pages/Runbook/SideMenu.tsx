@@ -38,30 +38,12 @@ const RunbookSideMenu: () => ReactElement = (): ReactElement => {
       items: [
         {
           link: {
-            title: "Agents",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.RUNBOOKS_AGENTS] as Route,
-            ),
-          },
-          icon: IconProp.Terminal,
-        },
-        {
-          link: {
             title: "Secrets",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.RUNBOOKS_SECRETS] as Route,
             ),
           },
           icon: IconProp.Lock,
-        },
-        {
-          link: {
-            title: "Credentials",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.RUNBOOKS_CREDENTIALS] as Route,
-            ),
-          },
-          icon: IconProp.Key,
         },
         {
           link: {

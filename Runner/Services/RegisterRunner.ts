@@ -125,7 +125,7 @@ export default class Register {
     } else {
       /*
        * Project-scoped mode: the id and key were issued by the dashboard
-       * (Runbooks > Runners), so they identify a Runner row. Validate
+       * (Settings > Runners), so they identify a Runner row. Validate
        * them against the Runner work mount, which is the endpoint that
        * authenticates against that table — the AIAgent alive endpoint would
        * reject them, since no AIAgent row is ever created for a
@@ -226,7 +226,7 @@ export default class Register {
         });
 
         logger.warn(
-          "Registered with legacy AI Agent credentials. Create a Runner under Runbooks > Runners and switch to its id and key — runbook execution needs one.",
+          "Registered with legacy AI Agent credentials. Create a Runner under Settings > Runners and switch to its id and key — runbook execution needs one.",
           { runnerName: RUNNER_NAME } as LogAttributes,
         );
       }
