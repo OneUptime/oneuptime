@@ -43,6 +43,7 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
         isCreateable={true}
         isViewable={true}
         showRefreshButton={true}
+        createEditModalWidth={ModalWidth.Large}
         cardProps={{
           title: "Runners",
           description:
@@ -58,10 +59,16 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           "No runbook agents yet. Create one, then run the Docker command on a host inside your infrastructure."
         }
         viewPageRoute={Navigation.getCurrentRoute()}
+        formSteps={[
+          { title: "Runner", id: "runner" },
+          { title: "Capabilities", id: "capabilities" },
+          { title: "Labels", id: "labels" },
+        ]}
         formFields={[
           {
             field: { name: true },
             title: "Name",
+            stepId: "runner",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "prod-eu-runbook-agent",
@@ -70,6 +77,7 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           {
             field: { description: true },
             title: "Description",
+            stepId: "runner",
             fieldType: FormFieldSchemaType.LongText,
             required: false,
             placeholder:
@@ -78,6 +86,7 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           {
             field: { canRunRunbooks: true },
             title: "Runs Runbooks",
+            stepId: "capabilities",
             description:
               "Let this Runner execute runbook Bash and JavaScript steps on the host it runs on. On by default — this is why most Runners are installed.",
             fieldType: FormFieldSchemaType.Toggle,
@@ -87,6 +96,7 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           {
             field: { canRunCodeFixTasks: true },
             title: "Runs AI Code Fixes",
+            stepId: "capabilities",
             description:
               "Let this Runner work in the code repositories connected to this project and open draft pull requests. Off by default; it needs a connected repository. The Runner picks this up on its next heartbeat — no restart needed.",
             fieldType: FormFieldSchemaType.Toggle,
@@ -96,6 +106,7 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           {
             field: { canRunAiCommands: true },
             title: "Runs AI Remediation Commands",
+            stepId: "capabilities",
             description:
               "Let AI auto-remediation execute policy-checked commands on this Runner. Off by default — commands either match the rule's allowlist or wait for one-click human approval, and destructive commands are always refused. Takes effect on the Runner's next heartbeat, no restart needed.",
             fieldType: FormFieldSchemaType.Toggle,
@@ -105,6 +116,7 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           {
             field: { labels: true },
             title: "Labels",
+            stepId: "labels",
             description:
               "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
             fieldType: FormFieldSchemaType.MultiSelectDropdown,
