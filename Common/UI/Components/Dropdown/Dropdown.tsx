@@ -1,4 +1,5 @@
 import ObjectID from "../../../Types/ObjectID";
+import DROPDOWN_MENU_Z_INDEX from "./DropdownMenuZIndex";
 import useTranslateValue from "../../Utils/Translation";
 import React, {
   FunctionComponent,
@@ -41,11 +42,7 @@ export interface DropdownOptionGroup {
   options: Array<DropdownOption>;
 }
 
-/*
- * Modal surfaces use z-50. The portalled menu must sit above that stacking
- * context so options are not painted underneath an anchored modal footer.
- */
-export const DROPDOWN_MENU_Z_INDEX: number = 60;
+export { DROPDOWN_MENU_Z_INDEX };
 
 export interface ComponentProps {
   options: Array<DropdownOption | DropdownOptionGroup>;
