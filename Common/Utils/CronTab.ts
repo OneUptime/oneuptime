@@ -563,6 +563,30 @@ export default class CronTab {
       !parsed.hasSeconds ||
       (second.values.length === 1 && second.values[0] === 0);
 
+    /*
+     * Every N seconds. Sub-minute monitoring intervals ("*\/10 * * * * *") are
+     * stored in this shape, so without this branch they fall all the way
+     * through to describeGeneric and read as "at every 10, every minute (UTC)".
+     */
+    if (
+      !secondsAreDefault &&
+      minute.isWildcard &&
+      hour.isWildcard &&
+      dom.isWildcard &&
+      month.isWildcard &&
+      dow.isWildcard
+    ) {
+      const secondStep: number | null = this.detectStep(second, 0, 59);
+
+      if (secondStep === 1) {
+        return "Every second";
+      }
+
+      if (secondStep !== null) {
+        return `Every ${secondStep} seconds`;
+      }
+    }
+
     // Only attempt the "nice" templates for the common seconds-at-zero case.
     if (secondsAreDefault) {
       // Every minute.
@@ -708,7 +732,7 @@ export default class CronTab {
 
   private static describeFieldValues(field: ParsedField, kind: string): string {
     const step: number | null =
-      kind === "minute"
+      kind === "minute" || kind === "second"
         ? this.detectStep(field, 0, 59)
         : kind === "hour"
           ? this.detectStep(field, 0, 23)

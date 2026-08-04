@@ -62,6 +62,12 @@ describe("CronTab", () => {
       "30 2 * * * ", // trailing space
       "0 0 * * SUN,SAT",
       "5/10 * * * *",
+      // 6-field expressions with a leading seconds field.
+      "*/10 * * * * *",
+      "*/20 * * * * *",
+      "*/30 * * * * *",
+      "* * * * * *",
+      "0 * * * * *",
     ];
 
     test.each(validExpressions)(
@@ -136,6 +142,17 @@ describe("CronTab", () => {
       "0 0 29 2 *", // leap-day only — sparse, exercises month/day jumps
       "15,45 8-10 * * *",
       "0 12 1,15 * *",
+      /*
+       * Sub-minute monitoring intervals. These are the shapes
+       * Monitor.monitoringInterval stores for 10s/20s/30s checks, and
+       * cron-parser is what MonitorProbeService actually computes nextPingAt
+       * with - so the two engines disagreeing here would mean the dashboard
+       * previewing one cadence while the probe runs another.
+       */
+      "*/10 * * * * *",
+      "*/20 * * * * *",
+      "*/30 * * * * *",
+      "*/15 * * * * *",
     ];
 
     test.each(expressions)("next 8 runs for %s", (expr: string) => {
@@ -168,6 +185,12 @@ describe("CronTab", () => {
       ["0 0 1 * *", "Every month on the 1st at 00:00 (UTC)"],
       ["0 0 1 */3 *", "Every 3 months on the 1st at 00:00 (UTC)"],
       ["0 0 1 1 *", "On the 1st of January at 00:00 (UTC)"],
+      ["*/10 * * * * *", "Every 10 seconds"],
+      ["*/20 * * * * *", "Every 20 seconds"],
+      ["*/30 * * * * *", "Every 30 seconds"],
+      ["* * * * * *", "Every second"],
+      // A 6-field expression whose seconds field is 0 still reads as before.
+      ["0 * * * * *", "Every minute"],
     ];
 
     test.each(cases)("describes %s as %s", (expr: string, expected: string) => {
@@ -176,6 +199,68 @@ describe("CronTab", () => {
 
     test("returns null for invalid expressions", () => {
       expect(CronTab.getHumanReadableDescription("nonsense")).toBeNull();
+    });
+  });
+
+  describe("sub-minute expressions fire on an even grid", () => {
+    /*
+     * 10, 20 and 30 all divide 60, so the gap between consecutive fires must
+     * be constant - including across the minute rollover, which is where an
+     * expression like "*\/45 * * * * *" falls apart.
+     */
+    const evenCases: Array<[string, number]> = [
+      ["*/10 * * * * *", 10000],
+      ["*/20 * * * * *", 20000],
+      ["*/30 * * * * *", 30000],
+    ];
+
+    test.each(evenCases)(
+      "%s fires every %s ms with no gap anomaly at the minute rollover",
+      (expr: string, expectedGapInMs: number) => {
+        const times: Array<Date> = CronTab.getNextExecutionTimes(
+          expr,
+          12,
+          new Date(Date.UTC(2026, 0, 1, 0, 0, 5)),
+        );
+
+        expect(times.length).toBe(12);
+
+        // The window has to span at least one minute boundary to be meaningful.
+        expect(
+          times[times.length - 1]!.getTime() - times[0]!.getTime(),
+        ).toBeGreaterThanOrEqual(60000);
+
+        for (let i: number = 1; i < times.length; i++) {
+          expect(times[i]!.getTime() - times[i - 1]!.getTime()).toBe(
+            expectedGapInMs,
+          );
+        }
+      },
+    );
+
+    test("*/45 * * * * * has an uneven grid - the reason it is not offered", () => {
+      const times: Array<Date> = CronTab.getNextExecutionTimes(
+        "*/45 * * * * *",
+        4,
+        new Date(Date.UTC(2026, 0, 1, 0, 0, 0)),
+      );
+
+      const gaps: Array<number> = [];
+      for (let i: number = 1; i < times.length; i++) {
+        gaps.push((times[i]!.getTime() - times[i - 1]!.getTime()) / 1000);
+      }
+
+      expect(gaps).toEqual([15, 45, 15]);
+    });
+
+    test("next fire is strictly after the reference time, never equal to it", () => {
+      const times: Array<Date> = CronTab.getNextExecutionTimes(
+        "*/10 * * * * *",
+        1,
+        new Date(Date.UTC(2026, 0, 1, 0, 0, 10)),
+      );
+
+      expect(times[0]!.toISOString()).toBe("2026-01-01T00:00:20.000Z");
     });
   });
 

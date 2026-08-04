@@ -344,6 +344,10 @@ const DocsNav: NavGroup[] = [
         title: "Monitor Secrets",
         url: "/docs/monitor/monitor-secrets",
       },
+      {
+        title: "Monitoring Interval",
+        url: "/docs/monitor/monitoring-interval",
+      },
     ],
   },
   {

@@ -143,6 +143,10 @@ spec:
               {{- end }}
             - name: PROBE_MONITOR_FETCH_LIMIT
               value: {{ $val.monitorFetchLimit | squote }}
+              {{- if $val.monitorFetchIntervalInSeconds }}
+            - name: PROBE_MONITOR_FETCH_INTERVAL_IN_SECONDS
+              value: {{ $val.monitorFetchIntervalInSeconds | squote }}
+              {{- end }}
             {{- if $val.disableTelemetryCollection }}
             - name: DISABLE_TELEMETRY
               value: {{ $val.disableTelemetryCollection | quote }}

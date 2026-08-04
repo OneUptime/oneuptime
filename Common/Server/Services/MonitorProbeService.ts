@@ -15,6 +15,22 @@ import { MonitorTypeHelper } from "../../Types/Monitor/MonitorType";
 import CronTab from "../Utils/CronTab";
 import logger, { LogAttributes } from "../Utils/Logger";
 
+/*
+ * How far ahead of "now" the next fire time is computed from.
+ *
+ * Without it, a monitor claimed a hair before its own next tick gets a
+ * nextPingAt milliseconds in the future and is immediately due again - two
+ * probes back to back instead of one. A "*\/10 * * * * *" monitor claimed at
+ * 12:00:09.999 would be scheduled for 12:00:10.000, a 1ms cooldown on a
+ * 10-second interval.
+ *
+ * One second is deliberately well under the 10-second floor
+ * (MINIMUM_MONITORING_INTERVAL_IN_SECONDS), so the only tick this can ever
+ * skip is one that was less than a second away - which is exactly the tick we
+ * have just probed.
+ */
+const SCHEDULING_ANCHOR_IN_SECONDS: number = 1;
+
 export class Service extends DatabaseService<MonitorProbe> {
   public constructor() {
     super(MonitorProbe);
@@ -97,19 +113,23 @@ export class Service extends DatabaseService<MonitorProbe> {
       },
     });
 
+    const currentDate: Date = OneUptimeDate.getCurrentDate();
+    const schedulingAnchor: Date = OneUptimeDate.addRemoveSeconds(
+      currentDate,
+      SCHEDULING_ANCHOR_IN_SECONDS,
+    );
+
     for (const monitorProbe of monitorProbes) {
       if (!monitorProbe.probeId) {
         continue;
       }
 
-      let nextPing: Date = OneUptimeDate.addRemoveMinutes(
-        OneUptimeDate.getCurrentDate(),
-        1,
-      );
+      let nextPing: Date = OneUptimeDate.addRemoveMinutes(currentDate, 1);
 
       try {
         nextPing = CronTab.getNextExecutionTime(
           monitorProbe?.monitor?.monitoringInterval as string,
+          schedulingAnchor,
         );
       } catch (err) {
         logger.error(err, {
@@ -201,6 +221,18 @@ export class Service extends DatabaseService<MonitorProbe> {
           1,
         );
 
+        /*
+         * Anchored off the single currentDate captured above rather than a
+         * fresh clock read per row, so every row in a batch is scheduled
+         * consistently even if the transaction stalls part way through. At a
+         * 60-second cadence the drift was immaterial; at 10 seconds it is a
+         * whole missed tick.
+         */
+        const schedulingAnchor: Date = OneUptimeDate.addRemoveSeconds(
+          currentDate,
+          SCHEDULING_ANCHOR_IN_SECONDS,
+        );
+
         const ids: Array<string> = [];
         const nextPingDates: Array<Date> = [];
         const caseFragments: Array<string> = [];
@@ -213,9 +245,19 @@ export class Service extends DatabaseService<MonitorProbe> {
           let nextPing: Date = defaultNextPing;
           if (row.monitoringInterval) {
             try {
-              nextPing = CronTab.getNextExecutionTime(row.monitoringInterval);
+              nextPing = CronTab.getNextExecutionTime(
+                row.monitoringInterval,
+                schedulingAnchor,
+              );
             } catch {
-              // fall back to default 1 minute
+              /*
+               * Fall back to a one minute cooldown. Silently degrading a
+               * 10-second monitor to 60 seconds is the kind of thing nobody
+               * notices until they go looking, so say so.
+               */
+              logger.warn(
+                `Could not parse monitoring interval "${row.monitoringInterval}" for monitor probe ${row._id}. Falling back to a one minute interval.`,
+              );
             }
           }
 

@@ -59,6 +59,74 @@ export const PROBE_MONITOR_FETCH_LIMIT: number =
     min: 1,
   });
 
+/*
+ * How often the probe asks the server for monitors that are due.
+ *
+ * This is the ceiling on how fast any monitor can actually be checked: a
+ * monitor set to run every 20 seconds goes due three times a minute, and if
+ * the probe only asks for work once a minute it is checked once a minute no
+ * matter what its interval says. The default of 10 seconds matches the
+ * fastest monitoring interval OneUptime offers, so sub-minute monitors work
+ * out of the box.
+ *
+ * Raising it trades check punctuality for fewer control-plane requests: at 60
+ * the probe behaves exactly as it did before sub-minute intervals existed, and
+ * no monitor is checked more than once a minute. It also raises throughput -
+ * the probe claims up to PROBE_MONITOR_FETCH_LIMIT monitors per fetch, so a
+ * 10-second cadence claims six times as many monitors per minute as a
+ * 60-second one.
+ */
+export const PROBE_MONITOR_FETCH_INTERVAL_IN_SECONDS: number =
+  NumberUtil.parseNumberWithDefault({
+    value: process.env["PROBE_MONITOR_FETCH_INTERVAL_IN_SECONDS"],
+    defaultValue: 10,
+    min: 10,
+    max: 60,
+  });
+
+/*
+ * Only divisors of 60 give an even grid - "*\/45 * * * * *" would fire at :00
+ * and :45, alternating 45- and 15-second gaps. Anything else falls back to the
+ * default rather than silently producing a lumpy schedule.
+ */
+const MONITOR_FETCH_CRON_BY_INTERVAL: Record<number, string> = {
+  10: "*/10 * * * * *",
+  12: "*/12 * * * * *",
+  15: "*/15 * * * * *",
+  20: "*/20 * * * * *",
+  30: "*/30 * * * * *",
+  60: "* * * * *",
+};
+
+export const PROBE_MONITOR_FETCH_CRON: string = ((): string => {
+  const cron: string | undefined =
+    MONITOR_FETCH_CRON_BY_INTERVAL[PROBE_MONITOR_FETCH_INTERVAL_IN_SECONDS];
+
+  if (cron) {
+    return cron;
+  }
+
+  logger.warn(
+    `PROBE_MONITOR_FETCH_INTERVAL_IN_SECONDS=${PROBE_MONITOR_FETCH_INTERVAL_IN_SECONDS} does not divide 60 evenly. Falling back to 10 seconds. Supported values: ${Object.keys(
+      MONITOR_FETCH_CRON_BY_INTERVAL,
+    ).join(", ")}.`,
+  );
+
+  return MONITOR_FETCH_CRON_BY_INTERVAL[10]!;
+})();
+
+/*
+ * A small random delay before each fetch so several workers in the same probe
+ * do not hit the server in lockstep. It has to stay well inside one tick -
+ * jitter larger than the interval turns a 20-second monitor into anything
+ * between 15 and 105 seconds, which is precisely the bug sub-minute intervals
+ * are meant to fix. Concurrent claims are already safe by design: the server
+ * claims with FOR UPDATE SKIP LOCKED, so workers never collide.
+ */
+export const PROBE_MONITOR_FETCH_JITTER_IN_MS: number = Math.floor(
+  (PROBE_MONITOR_FETCH_INTERVAL_IN_SECONDS * 1000) / 10,
+);
+
 export const HOSTNAME: string = process.env["HOSTNAME"] || "localhost";
 
 export const PROBE_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS: number =

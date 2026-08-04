@@ -35,6 +35,16 @@ import MonitorSecret from "Common/Models/DatabaseModels/MonitorSecret";
 
 const router: ExpressRouter = Express.getRouter();
 
+/*
+ * Ceiling on how many monitors a probe may claim in a single fetch. The probe
+ * picks its own batch size (PROBE_MONITOR_FETCH_LIMIT), and it now asks for
+ * work every few seconds rather than once a minute, so an unbounded value
+ * here means a much larger claim transaction many times more often. The
+ * ceiling sits far above any sane configuration - it exists so a typo cannot
+ * ask for the whole table.
+ */
+const MAX_MONITOR_FETCH_LIMIT: number = 1000;
+
 type GetMonitorFetchQueryFunction = (probeId: ObjectID) => Query<MonitorProbe>;
 
 const getMonitorFetchQuery: GetMonitorFetchQueryFunction = (
@@ -360,7 +370,10 @@ router.post(
 
     try {
       const data: JSONObject = req.body;
-      const limit: number = (data["limit"] as number) || 100;
+      const limit: number = Math.min(
+        (data["limit"] as number) || 100,
+        MAX_MONITOR_FETCH_LIMIT,
+      );
 
       logger.debug(
         "Monitor list API called with limit: " + limit,
@@ -587,7 +600,10 @@ router.post(
 
     try {
       const data: JSONObject = req.body;
-      const limit: number = (data["limit"] as number) || 100;
+      const limit: number = Math.min(
+        (data["limit"] as number) || 100,
+        MAX_MONITOR_FETCH_LIMIT,
+      );
 
       logger.debug(
         "Monitor test list API called with limit: " + limit,

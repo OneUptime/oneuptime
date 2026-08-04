@@ -59,7 +59,7 @@ import {
   buildQueryConfigsFromSerializedQueries,
 } from "../../Components/Metrics/Utils/MetricConfigReconstruct";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
-import MonitoringInterval from "../../Utils/MonitorIntervalDropdownOptions";
+import { getMonitoringIntervalOptions } from "../../Utils/MonitorIntervalDropdownOptions";
 import Card from "Common/UI/Components/Card/Card";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceAlertPackUtil from "Common/Types/Monitor/SnmpMonitor/NetworkDeviceAlertPack";
@@ -719,28 +719,9 @@ const MonitorCreate: FunctionComponent<
                   fieldType: FormFieldSchemaType.Dropdown,
                   required: true,
                   fetchDropdownOptions: (item: FormValues<Monitor>) => {
-                    let interval: Array<DropdownOption> = [
-                      ...MonitoringInterval,
-                    ];
-
-                    if (
-                      item &&
-                      (item.monitorType === MonitorType.SyntheticMonitor ||
-                        item.monitorType === MonitorType.CustomJavaScriptCode ||
-                        item.monitorType === MonitorType.SSLCertificate)
-                    ) {
-                      // remove the every minute option, every 2 mins, every 10 minutes
-                      interval = interval.filter((option: DropdownOption) => {
-                        return (
-                          option.value !== "* * * * *" &&
-                          option.value !== "*/2 * * * *"
-                        );
-                      });
-
-                      return Promise.resolve(interval);
-                    }
-
-                    return Promise.resolve(interval);
+                    return Promise.resolve(
+                      getMonitoringIntervalOptions(item?.monitorType),
+                    );
                   },
 
                   placeholder: "Select Monitoring Interval",
