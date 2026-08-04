@@ -5,8 +5,8 @@ import ObjectID from "../../Types/ObjectID";
 import Version from "../../Types/Version";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Model, {
-  RunbookAgentConnectionStatus,
-} from "../../Models/DatabaseModels/RunbookAgent";
+  RunnerConnectionStatus,
+} from "../../Models/DatabaseModels/Runner";
 import OneUptimeDate from "../../Types/Date";
 import { JSONObject } from "../../Types/JSON";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -37,8 +37,7 @@ export class Service extends DatabaseService<Model> {
     }
 
     if (!createBy.data.connectionStatus) {
-      createBy.data.connectionStatus =
-        RunbookAgentConnectionStatus.Disconnected;
+      createBy.data.connectionStatus = RunnerConnectionStatus.Disconnected;
     }
 
     return { createBy, carryForward: [] };
@@ -119,7 +118,7 @@ export class Service extends DatabaseService<Model> {
 
     const update: JSONObject = {
       lastAlive: OneUptimeDate.getCurrentDate(),
-      connectionStatus: RunbookAgentConnectionStatus.Connected,
+      connectionStatus: RunnerConnectionStatus.Connected,
     };
 
     if (data.agentVersion) {

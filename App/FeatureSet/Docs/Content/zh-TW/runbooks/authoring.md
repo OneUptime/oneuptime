@@ -60,7 +60,7 @@ return { durationMs: Date.now() - start };
 - **Execution timeout** — agent 在以 `SIGKILL` 終止腳本之前，會讓它執行多久。預設為 30 秒；對於確實需要數分鐘的步驟，請將它調高。
 - **Claim timeout** — Worker 等待 agent 認領工作的時間。預設為 2 分鐘。
 
-若 runbook 執行到此步驟時選定的 agent 處於離線狀態，該步驟最多會等待至**認領逾時**（預設 2 分鐘），然後以 `TimedOut` 失敗。在依賴 Bash 步驟之前，請先在 **Runbooks → Settings → Agents** 下新增一個 agent。
+若 runbook 執行到此步驟時選定的 agent 處於離線狀態，該步驟最多會等待至**認領逾時**（預設 2 分鐘），然後以 `TimedOut` 失敗。在依賴 Bash 步驟之前，請先在 **Settings → Runners** 下新增一個 agent。
 
 ### AI
 

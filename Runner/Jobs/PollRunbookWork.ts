@@ -1,5 +1,5 @@
 import { MAX_CONCURRENT_JOBS, POLL_INTERVAL_MS } from "../Config";
-import AgentClient, { ClaimedJob } from "../Services/RunbookAgentClient";
+import AgentClient, { ClaimedJob } from "../Services/RunnerClient";
 import Executor from "../Services/RunbookExecutor";
 import RunnerCapabilities from "../Utils/RunnerCapabilities";
 import logger from "Common/Server/Utils/Logger";

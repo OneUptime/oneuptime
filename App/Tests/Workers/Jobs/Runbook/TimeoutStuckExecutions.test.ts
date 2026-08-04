@@ -59,7 +59,7 @@ jest.mock("Common/Server/Services/RunbookExecutionService", () => {
   };
 });
 
-jest.mock("Common/Server/Services/RunbookAgentJobService", () => {
+jest.mock("Common/Server/Services/RunnerJobService", () => {
   return {
     __esModule: true,
     default: {
@@ -71,14 +71,14 @@ jest.mock("Common/Server/Services/RunbookAgentJobService", () => {
 // Imported AFTER the mocks above (jest hoists them) so the job registers into the recorder.
 import "../../../../FeatureSet/Workers/Jobs/Runbook/TimeoutStuckExecutions";
 import RunbookExecutionService from "Common/Server/Services/RunbookExecutionService";
-import RunbookAgentJobService from "Common/Server/Services/RunbookAgentJobService";
+import RunnerJobService from "Common/Server/Services/RunnerJobService";
 
 const findBy: jest.Mock =
   RunbookExecutionService.findBy as unknown as jest.Mock;
 const updateOneById: jest.Mock =
   RunbookExecutionService.updateOneById as unknown as jest.Mock;
 const cancelJobsForExecution: jest.Mock =
-  RunbookAgentJobService.cancelJobsForExecution as unknown as jest.Mock;
+  RunnerJobService.cancelJobsForExecution as unknown as jest.Mock;
 
 const JOB_NAME: string = "Runbook:TimeoutStuckExecutions";
 

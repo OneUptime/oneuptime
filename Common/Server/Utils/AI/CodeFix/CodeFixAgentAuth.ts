@@ -1,9 +1,9 @@
 import AIAgentService from "../../../Services/AIAgentService";
-import RunbookAgentService from "../../../Services/RunbookAgentService";
+import RunnerService from "../../../Services/RunnerService";
 import ObjectID from "../../../../Types/ObjectID";
 import { JSONObject } from "../../../../Types/JSON";
 import AIAgent from "../../../../Models/DatabaseModels/AIAgent";
-import RunbookAgent from "../../../../Models/DatabaseModels/RunbookAgent";
+import Runner from "../../../../Models/DatabaseModels/Runner";
 
 /*
  * Which registry the presented credentials matched. Consumers that write the
@@ -28,11 +28,11 @@ export interface CodeFixAgentIdentity {
  *
  *   - AIAgent: the in-cluster fleet (cluster-key auto-registration) and any
  *     legacy per-project agents created before the Runner merge.
- *   - RunbookAgent: the unified OneUptime Runner customers install. The
+ *   - Runner: the unified OneUptime Runner customers install. The
  *     dashboard issues its id + key from this table, and the Runner presents
  *     them on the code-fix protocol too — so the protocol must accept them.
  *
- * The RunbookAgent path is also where the canRunCodeFixTasks capability is
+ * The Runner path is also where the canRunCodeFixTasks capability is
  * enforced: a Runner whose code-fix capability was revoked in the dashboard
  * authenticates like any other invalid credential — it cannot claim work,
  * fetch task data, or mint repository tokens, no matter what its container
@@ -78,7 +78,7 @@ export default class CodeFixAgentAuth {
       };
     }
 
-    const runner: RunbookAgent | null = await RunbookAgentService.findOneBy({
+    const runner: Runner | null = await RunnerService.findOneBy({
       query: {
         _id: agentId.toString(),
         key: agentKey,

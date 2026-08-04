@@ -1,5 +1,5 @@
 import Project from "./Project";
-import RunbookAgent from "./RunbookAgent";
+import Runner from "./Runner";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
@@ -27,7 +27,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectMember,
     Permission.RunbookAdmin,
     Permission.RunbookMember,
-    Permission.CreateRunbookAgentOwnerUser,
+    Permission.CreateRunnerOwnerUser,
   ],
   read: [
     Permission.ProjectOwner,
@@ -37,7 +37,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.RunbookAdmin,
     Permission.RunbookMember,
     Permission.RunbookViewer,
-    Permission.ReadRunbookAgentOwnerUser,
+    Permission.ReadRunnerOwnerUser,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -45,7 +45,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectMember,
     Permission.RunbookAdmin,
     Permission.RunbookMember,
-    Permission.DeleteRunbookAgentOwnerUser,
+    Permission.DeleteRunnerOwnerUser,
   ],
   update: [
     Permission.ProjectOwner,
@@ -53,7 +53,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
     Permission.ProjectMember,
     Permission.RunbookAdmin,
     Permission.RunbookMember,
-    Permission.EditRunbookAgentOwnerUser,
+    Permission.EditRunnerOwnerUser,
   ],
 })
 @EnableWorkflow({
@@ -62,19 +62,19 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   update: true,
   read: true,
 })
-@CrudApiEndpoint(new Route("/runbook-agent-owner-user"))
+@CrudApiEndpoint(new Route("/runner-owner-user"))
 @TableMetadata({
-  tableName: "RunbookAgentOwnerUser",
+  tableName: "RunnerOwnerUser",
   singularName: "Runner User Owner",
   pluralName: "Runner User Owners",
   icon: IconProp.Terminal,
   tableDescription: "Add users as owners to your runbook agents.",
 })
 @Entity({
-  name: "RunbookAgentOwnerUser",
+  name: "RunnerOwnerUser",
 })
-@Index(["runbookAgentId", "userId", "projectId"])
-export default class RunbookAgentOwnerUser extends BaseModel {
+@Index(["runnerId", "userId", "projectId"])
+export default class RunnerOwnerUser extends BaseModel {
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -82,7 +82,7 @@ export default class RunbookAgentOwnerUser extends BaseModel {
       Permission.ProjectMember,
       Permission.RunbookAdmin,
       Permission.RunbookMember,
-      Permission.CreateRunbookAgentOwnerUser,
+      Permission.CreateRunnerOwnerUser,
     ],
     read: [
       Permission.ProjectOwner,
@@ -92,7 +92,7 @@ export default class RunbookAgentOwnerUser extends BaseModel {
       Permission.RunbookAdmin,
       Permission.RunbookMember,
       Permission.RunbookViewer,
-      Permission.ReadRunbookAgentOwnerUser,
+      Permission.ReadRunnerOwnerUser,
     ],
     update: [],
   })
@@ -124,7 +124,7 @@ export default class RunbookAgentOwnerUser extends BaseModel {
       Permission.ProjectMember,
       Permission.RunbookAdmin,
       Permission.RunbookMember,
-      Permission.CreateRunbookAgentOwnerUser,
+      Permission.CreateRunnerOwnerUser,
     ],
     read: [
       Permission.ProjectOwner,
@@ -134,7 +134,7 @@ export default class RunbookAgentOwnerUser extends BaseModel {
       Permission.RunbookAdmin,
       Permission.RunbookMember,
       Permission.RunbookViewer,
-      Permission.ReadRunbookAgentOwnerUser,
+      Permission.ReadRunnerOwnerUser,
     ],
     update: [],
   })
@@ -159,7 +159,7 @@ export default class RunbookAgentOwnerUser extends BaseModel {
       Permission.ProjectMember,
       Permission.RunbookAdmin,
       Permission.RunbookMember,
-      Permission.CreateRunbookAgentOwnerUser,
+      Permission.CreateRunnerOwnerUser,
     ],
     read: [
       Permission.ProjectOwner,
@@ -169,20 +169,20 @@ export default class RunbookAgentOwnerUser extends BaseModel {
       Permission.RunbookAdmin,
       Permission.RunbookMember,
       Permission.RunbookViewer,
-      Permission.ReadRunbookAgentOwnerUser,
+      Permission.ReadRunnerOwnerUser,
     ],
     update: [],
   })
   @TableColumn({
-    manyToOneRelationColumn: "runbookAgentId",
+    manyToOneRelationColumn: "runnerId",
     type: TableColumnType.Entity,
-    modelType: RunbookAgent,
+    modelType: Runner,
     title: "Runner",
     description: "Relation to Runner Resource in which this object belongs",
   })
   @ManyToOne(
     () => {
-      return RunbookAgent;
+      return Runner;
     },
     {
       eager: false,
@@ -191,8 +191,8 @@ export default class RunbookAgentOwnerUser extends BaseModel {
       orphanedRowAction: "nullify",
     },
   )
-  @JoinColumn({ name: "runbookAgentId" })
-  public runbookAgent?: RunbookAgent = undefined;
+  @JoinColumn({ name: "runnerId" })
+  public runner?: Runner = undefined;
 
   @ColumnAccessControl({
     create: [
@@ -201,7 +201,7 @@ export default class RunbookAgentOwnerUser extends BaseModel {
       Permission.ProjectMember,
       Permission.RunbookAdmin,
       Permission.RunbookMember,
-      Permission.CreateRunbookAgentOwnerUser,
+      Permission.CreateRunnerOwnerUser,
     ],
     read: [
       Permission.ProjectOwner,
@@ -211,7 +211,7 @@ export default class RunbookAgentOwnerUser extends BaseModel {
       Permission.RunbookAdmin,
       Permission.RunbookMember,
       Permission.RunbookViewer,
-      Permission.ReadRunbookAgentOwnerUser,
+      Permission.ReadRunnerOwnerUser,
     ],
     update: [],
   })
@@ -227,7 +227,7 @@ export default class RunbookAgentOwnerUser extends BaseModel {
     nullable: false,
     transformer: ObjectID.getDatabaseTransformer(),
   })
-  public runbookAgentId?: ObjectID = undefined;
+  public runnerId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [
@@ -236,7 +236,7 @@ export default class RunbookAgentOwnerUser extends BaseModel {
       Permission.ProjectMember,
       Permission.RunbookAdmin,
       Permission.RunbookMember,
-      Permission.CreateRunbookAgentOwnerUser,
+      Permission.CreateRunnerOwnerUser,
     ],
     read: [
       Permission.ProjectOwner,
@@ -246,7 +246,7 @@ export default class RunbookAgentOwnerUser extends BaseModel {
       Permission.RunbookAdmin,
       Permission.RunbookMember,
       Permission.RunbookViewer,
-      Permission.ReadRunbookAgentOwnerUser,
+      Permission.ReadRunnerOwnerUser,
     ],
     update: [],
   })
@@ -279,7 +279,7 @@ export default class RunbookAgentOwnerUser extends BaseModel {
       Permission.ProjectMember,
       Permission.RunbookAdmin,
       Permission.RunbookMember,
-      Permission.CreateRunbookAgentOwnerUser,
+      Permission.CreateRunnerOwnerUser,
     ],
     read: [
       Permission.ProjectOwner,
@@ -289,7 +289,7 @@ export default class RunbookAgentOwnerUser extends BaseModel {
       Permission.RunbookAdmin,
       Permission.RunbookMember,
       Permission.RunbookViewer,
-      Permission.ReadRunbookAgentOwnerUser,
+      Permission.ReadRunnerOwnerUser,
     ],
     update: [],
   })
@@ -314,7 +314,7 @@ export default class RunbookAgentOwnerUser extends BaseModel {
       Permission.ProjectMember,
       Permission.RunbookAdmin,
       Permission.RunbookMember,
-      Permission.CreateRunbookAgentOwnerUser,
+      Permission.CreateRunnerOwnerUser,
     ],
     read: [
       Permission.ProjectOwner,
@@ -324,7 +324,7 @@ export default class RunbookAgentOwnerUser extends BaseModel {
       Permission.RunbookAdmin,
       Permission.RunbookMember,
       Permission.RunbookViewer,
-      Permission.ReadRunbookAgentOwnerUser,
+      Permission.ReadRunnerOwnerUser,
     ],
     update: [],
   })
@@ -357,7 +357,7 @@ export default class RunbookAgentOwnerUser extends BaseModel {
       Permission.ProjectMember,
       Permission.RunbookAdmin,
       Permission.RunbookMember,
-      Permission.CreateRunbookAgentOwnerUser,
+      Permission.CreateRunnerOwnerUser,
     ],
     read: [
       Permission.ProjectOwner,
@@ -367,7 +367,7 @@ export default class RunbookAgentOwnerUser extends BaseModel {
       Permission.RunbookAdmin,
       Permission.RunbookMember,
       Permission.RunbookViewer,
-      Permission.ReadRunbookAgentOwnerUser,
+      Permission.ReadRunnerOwnerUser,
     ],
     update: [],
   })
@@ -394,7 +394,7 @@ export default class RunbookAgentOwnerUser extends BaseModel {
       Permission.RunbookAdmin,
       Permission.RunbookMember,
       Permission.RunbookViewer,
-      Permission.ReadRunbookAgentOwnerUser,
+      Permission.ReadRunnerOwnerUser,
     ],
     update: [],
   })
@@ -431,7 +431,7 @@ export default class RunbookAgentOwnerUser extends BaseModel {
       Permission.RunbookAdmin,
       Permission.RunbookMember,
       Permission.RunbookViewer,
-      Permission.ReadRunbookAgentOwnerUser,
+      Permission.ReadRunnerOwnerUser,
     ],
     update: [],
   })
@@ -458,7 +458,7 @@ export default class RunbookAgentOwnerUser extends BaseModel {
       Permission.RunbookAdmin,
       Permission.RunbookMember,
       Permission.RunbookViewer,
-      Permission.ReadRunbookAgentOwnerUser,
+      Permission.ReadRunnerOwnerUser,
     ],
     update: [],
   })

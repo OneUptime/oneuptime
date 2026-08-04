@@ -30,7 +30,7 @@ Der Agent benötigt nur **ausgehendes HTTPS** zu Ihrer OneUptime-Instanz. Er akz
 
 ### 1. Den Agent-Datensatz anlegen
 
-Gehen Sie zu **Runbooks → Settings → Agents** und erstellen Sie einen neuen Agent. Füllen Sie aus:
+Gehen Sie zu **Settings → Runners** und erstellen Sie einen neuen Agent. Füllen Sie aus:
 
 | Feld             | Hinweise                                                                                                                                                              |
 | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -58,7 +58,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
 
 ### 4. Verifizieren, dass der Agent verbunden ist
 
-Gehen Sie zurück zu **Runbooks → Settings → Agents**. Innerhalb von ~60 Sekunden sollte die Zeile des Agents auf `Connected` umschalten und einen frischen **Last seen**-Zeitstempel zeigen. Wenn er auf `Disconnected` bleibt:
+Gehen Sie zurück zu **Settings → Runners**. Innerhalb von ~60 Sekunden sollte die Zeile des Agents auf `Connected` umschalten und einen frischen **Last seen**-Zeitstempel zeigen. Wenn er auf `Disconnected` bleibt:
 
 - Prüfen Sie die Container-Logs (`docker logs oneuptime-runner`) auf Auth-Fehler oder Netzwerkprobleme.
 - Verifizieren Sie, dass der Host Ihre OneUptime-URL mit `curl` erreicht.
@@ -139,7 +139,7 @@ Wenn ein Schlüssel kompromittiert wird, öffnen Sie den Agent in OneUptime und 
 
 Die Verwaltung von Agents liegt in der bestehenden Runbooks-Berechtigungsgruppe:
 
-- `CreateRunbookAgent`, `EditRunbookAgent`, `DeleteRunbookAgent`, `ReadRunbookAgent` — Agent-Datensätze verwalten.
+- `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — Agent-Datensätze verwalten.
 - `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (Rollen) — einem Team zuweisen, um vollständige Kontrolle, alltägliche Nutzung oder nur Lesezugriff zu gewähren. `RunbookAdmin` bündelt alle obigen Einzel-Berechtigungen.
 
 Berechtigungen, um ein Runbook _auszulösen_ (und damit Bash- und JavaScript-Schritte zur Ausführung zu bringen), sind weiterhin `CreateRunbookExecution` / `EditRunbookExecution`.

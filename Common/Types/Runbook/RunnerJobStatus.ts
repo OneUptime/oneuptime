@@ -1,4 +1,4 @@
-enum RunbookAgentJobStatus {
+enum RunnerJobStatus {
   // Inserted by the Worker. No agent has claimed it yet.
   Pending = "Pending",
   // An agent has atomically claimed the job and is preparing to execute it.
@@ -18,4 +18,4 @@ enum RunbookAgentJobStatus {
   Cancelled = "Cancelled",
 }
 
-export default RunbookAgentJobStatus;
+export default RunnerJobStatus;

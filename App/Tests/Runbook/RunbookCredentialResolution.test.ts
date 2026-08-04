@@ -153,7 +153,7 @@ describe("RunbookCredentialsUtil.resolveForJob", () => {
    * arbitrary credential id in the system and get secret material back.
    */
   describe("query scoping", () => {
-    test("scopes by _id AND projectId AND runbookAgents containing the claiming agent", async () => {
+    test("scopes by _id AND projectId AND runners containing the claiming agent", async () => {
       returns(sshCredential({ sshPassword: "hunter2" }));
 
       await resolve();
@@ -163,7 +163,7 @@ describe("RunbookCredentialsUtil.resolveForJob", () => {
           query: expect.objectContaining({
             _id: credentialId.toString(),
             projectId: projectId,
-            runbookAgents: [agentId],
+            runners: [agentId],
           }),
         }),
       );
@@ -191,13 +191,13 @@ describe("RunbookCredentialsUtil.resolveForJob", () => {
       );
     });
 
-    test("the runbookAgents clause is the AUTHENTICATED agent, as a relation-array match", async () => {
+    test("the runners clause is the AUTHENTICATED agent, as a relation-array match", async () => {
       returns(null);
 
       const claimingAgent: ObjectID = ObjectID.generate();
       await resolve({ agentId: claimingAgent });
 
-      const relation: unknown = findArgs().query["runbookAgents"];
+      const relation: unknown = findArgs().query["runners"];
 
       expect(Array.isArray(relation)).toBe(true);
       expect(relation as Array<ObjectID>).toHaveLength(1);
@@ -214,7 +214,7 @@ describe("RunbookCredentialsUtil.resolveForJob", () => {
       const query: Dictionary<unknown> = findArgs().query;
 
       expect(Object.keys(query).sort()).toEqual(
-        ["_id", "projectId", "runbookAgents"].sort(),
+        ["_id", "projectId", "runners"].sort(),
       );
     });
 

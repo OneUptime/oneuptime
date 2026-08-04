@@ -48,7 +48,7 @@ export default class RunbookCredentialsUtil {
         query: {
           _id: credentialId.toString(),
           projectId: data.projectId,
-          runbookAgents: QueryHelper.inRelationArray([data.agentId]),
+          runners: QueryHelper.inRelationArray([data.agentId]),
         },
         select: {
           _id: true,

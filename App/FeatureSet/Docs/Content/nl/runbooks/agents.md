@@ -30,7 +30,7 @@ De agent heeft alleen **uitgaande HTTPS** naar je OneUptime-instantie nodig. Hij
 
 ### 1. Het agent-record aanmaken
 
-Ga naar **Runbooks → Settings → Agents** en maak een nieuwe agent aan. Vul in:
+Ga naar **Settings → Runners** en maak een nieuwe agent aan. Vul in:
 
 | Veld             | Opmerkingen                                                                                                                                              |
 | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -58,7 +58,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
 
 ### 4. Verifiëren dat de agent verbonden is
 
-Ga terug naar **Runbooks → Settings → Agents**. Binnen ~60 seconden moet de rij van de agent omschakelen naar `Connected` met een verse **Last seen**-tijdstempel. Als hij op `Disconnected` blijft:
+Ga terug naar **Settings → Runners**. Binnen ~60 seconden moet de rij van de agent omschakelen naar `Connected` met een verse **Last seen**-tijdstempel. Als hij op `Disconnected` blijft:
 
 - Controleer de container-logs (`docker logs oneuptime-runner`) op auth-fouten of netwerkproblemen.
 - Verifieer dat de host je OneUptime-URL met `curl` kan bereiken.
@@ -139,7 +139,7 @@ Als een sleutel lekt, open de agent in OneUptime en reset zijn sleutel. De oude 
 
 Het beheren van agents valt onder de bestaande Runbooks-rechtengroep:
 
-- `CreateRunbookAgent`, `EditRunbookAgent`, `DeleteRunbookAgent`, `ReadRunbookAgent` — agent-records beheren.
+- `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — agent-records beheren.
 - `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (rollen) — toewijzen aan een team om volledige controle, dagelijks gebruik of alleen-lezen toegang te verlenen. `RunbookAdmin` bundelt alle bovenstaande granulaire rechten.
 
 Rechten om een runbook te _triggeren_ (en dus Bash- en JavaScript-stappen te laten verspreiden) zijn nog steeds `CreateRunbookExecution` / `EditRunbookExecution`.

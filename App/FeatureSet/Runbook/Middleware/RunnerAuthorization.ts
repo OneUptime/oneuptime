@@ -1,15 +1,15 @@
-import { RunbookAgentExpressRequest } from "../Types/Request";
+import { RunnerExpressRequest } from "../Types/Request";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import RunbookAgentService from "Common/Server/Services/RunbookAgentService";
+import RunnerService from "Common/Server/Services/RunnerService";
 import { ExpressResponse, NextFunction } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
-import RunbookAgent from "Common/Models/DatabaseModels/RunbookAgent";
+import Runner from "Common/Models/DatabaseModels/Runner";
 
-export default class RunbookAgentAuthorization {
+export default class RunnerAuthorization {
   public static async isAuthorizedAgent(
-    req: RunbookAgentExpressRequest,
+    req: RunnerExpressRequest,
     res: ExpressResponse,
     next: NextFunction,
   ): Promise<void> {
@@ -42,12 +42,10 @@ export default class RunbookAgentAuthorization {
       );
     }
 
-    const agent: RunbookAgent | null = await RunbookAgentService.findByIdAndKey(
-      {
-        agentId,
-        agentKey: agentKeyRaw,
-      },
-    );
+    const agent: Runner | null = await RunnerService.findByIdAndKey({
+      agentId,
+      agentKey: agentKeyRaw,
+    });
 
     if (!agent) {
       return Response.sendErrorResponse(
@@ -57,7 +55,7 @@ export default class RunbookAgentAuthorization {
       );
     }
 
-    req.runbookAgent = agent;
+    req.runner = agent;
     return next();
   }
 }

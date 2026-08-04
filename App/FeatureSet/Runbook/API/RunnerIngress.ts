@@ -1,16 +1,16 @@
-import RunbookAgentAuthorization from "../Middleware/RunbookAgentAuthorization";
-import { RunbookAgentExpressRequest } from "../Types/Request";
+import RunnerAuthorization from "../Middleware/RunnerAuthorization";
+import { RunnerExpressRequest } from "../Types/Request";
 import RunbookSecretsUtil from "../Utils/Secrets";
 import RunbookCredentialsUtil from "../Utils/Credentials";
-import RunbookAgentService from "Common/Server/Services/RunbookAgentService";
-import RunbookAgentJobService from "Common/Server/Services/RunbookAgentJobService";
+import RunnerService from "Common/Server/Services/RunnerService";
+import RunnerJobService from "Common/Server/Services/RunnerJobService";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import NotFoundException from "Common/Types/Exception/NotFoundException";
 import ObjectID from "Common/Types/ObjectID";
 import Version from "Common/Types/Version";
 import { JSONObject } from "Common/Types/JSON";
-import RunbookAgent from "Common/Models/DatabaseModels/RunbookAgent";
-import RunbookAgentJob from "Common/Models/DatabaseModels/RunbookAgentJob";
+import Runner from "Common/Models/DatabaseModels/Runner";
+import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
 import RunbookSecret from "Common/Models/DatabaseModels/RunbookSecret";
 import Express, {
   ExpressResponse,
@@ -19,7 +19,7 @@ import Express, {
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
 
-export default class RunbookAgentIngressAPI {
+export default class RunnerIngressAPI {
   public router!: ExpressRouter;
 
   public constructor() {
@@ -27,36 +27,36 @@ export default class RunbookAgentIngressAPI {
 
     this.router.post(
       `/heartbeat`,
-      RunbookAgentAuthorization.isAuthorizedAgent,
+      RunnerAuthorization.isAuthorizedAgent,
       this.heartbeat,
     );
 
     this.router.post(
       `/claim-next-job`,
-      RunbookAgentAuthorization.isAuthorizedAgent,
+      RunnerAuthorization.isAuthorizedAgent,
       this.claimNextJob,
     );
 
     this.router.post(
       `/job/:jobId/heartbeat`,
-      RunbookAgentAuthorization.isAuthorizedAgent,
+      RunnerAuthorization.isAuthorizedAgent,
       this.heartbeatJob,
     );
 
     this.router.post(
       `/job/:jobId/result`,
-      RunbookAgentAuthorization.isAuthorizedAgent,
+      RunnerAuthorization.isAuthorizedAgent,
       this.submitJobResult,
     );
   }
 
   public async heartbeat(
-    req: RunbookAgentExpressRequest,
+    req: RunnerExpressRequest,
     res: ExpressResponse,
     next: NextFunction,
   ): Promise<void> {
     try {
-      const agent: RunbookAgent | undefined = req.runbookAgent;
+      const agent: Runner | undefined = req.runner;
       if (!agent || !agent.id) {
         throw new BadDataException("Agent not found on request");
       }
@@ -75,7 +75,7 @@ export default class RunbookAgentIngressAPI {
           ? (hostInfoRaw as JSONObject)
           : undefined;
 
-      await RunbookAgentService.heartbeat({
+      await RunnerService.heartbeat({
         agentId: agent.id,
         ...(versionValue ? { agentVersion: versionValue } : {}),
         ...(hostInfoValue ? { hostInfo: hostInfoValue } : {}),
@@ -101,12 +101,12 @@ export default class RunbookAgentIngressAPI {
   }
 
   public async claimNextJob(
-    req: RunbookAgentExpressRequest,
+    req: RunnerExpressRequest,
     res: ExpressResponse,
     next: NextFunction,
   ): Promise<void> {
     try {
-      const agent: RunbookAgent | undefined = req.runbookAgent;
+      const agent: Runner | undefined = req.runner;
       if (!agent || !agent.id || !agent.projectId) {
         throw new BadDataException("Agent not found on request");
       }
@@ -133,11 +133,10 @@ export default class RunbookAgentIngressAPI {
        * own ID is the only thing we trust here — a leaked key cannot be used
        * to claim work targeted at a different agent.
        */
-      const job: RunbookAgentJob | null =
-        await RunbookAgentJobService.claimNextJob({
-          agentId: agent.id,
-          projectId: agent.projectId,
-        });
+      const job: RunnerJob | null = await RunnerJobService.claimNextJob({
+        agentId: agent.id,
+        projectId: agent.projectId,
+      });
 
       if (!job) {
         return Response.sendJsonObjectResponse(req, res, { job: null });
@@ -182,7 +181,7 @@ export default class RunbookAgentIngressAPI {
            * Fail the job rather than handing over a step it cannot run: a
            * Runner that silently no-ops looks identical to one that worked.
            */
-          await RunbookAgentJobService.submitResult({
+          await RunnerJobService.submitResult({
             jobId: job.id!,
             agentId: agent.id,
             success: false,
@@ -213,12 +212,12 @@ export default class RunbookAgentIngressAPI {
   }
 
   public async heartbeatJob(
-    req: RunbookAgentExpressRequest,
+    req: RunnerExpressRequest,
     res: ExpressResponse,
     next: NextFunction,
   ): Promise<void> {
     try {
-      const agent: RunbookAgent | undefined = req.runbookAgent;
+      const agent: Runner | undefined = req.runner;
       if (!agent || !agent.id) {
         throw new BadDataException("Agent not found on request");
       }
@@ -227,7 +226,7 @@ export default class RunbookAgentIngressAPI {
         throw new BadDataException("jobId is required");
       }
 
-      const stillOurs: boolean = await RunbookAgentJobService.heartbeatJob({
+      const stillOurs: boolean = await RunnerJobService.heartbeatJob({
         jobId: new ObjectID(jobIdRaw),
         agentId: agent.id,
       });
@@ -246,12 +245,12 @@ export default class RunbookAgentIngressAPI {
   }
 
   public async submitJobResult(
-    req: RunbookAgentExpressRequest,
+    req: RunnerExpressRequest,
     res: ExpressResponse,
     next: NextFunction,
   ): Promise<void> {
     try {
-      const agent: RunbookAgent | undefined = req.runbookAgent;
+      const agent: Runner | undefined = req.runner;
       if (!agent || !agent.id) {
         throw new BadDataException("Agent not found on request");
       }
@@ -266,7 +265,7 @@ export default class RunbookAgentIngressAPI {
       const exitCodeRaw: unknown = body["exitCode"];
       const errorMessageRaw: unknown = body["errorMessage"];
 
-      const accepted: boolean = await RunbookAgentJobService.submitResult({
+      const accepted: boolean = await RunnerJobService.submitResult({
         jobId: new ObjectID(jobIdRaw),
         agentId: agent.id,
         success,

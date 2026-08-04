@@ -15,7 +15,7 @@ import { JSONObject } from "Common/Types/JSON";
  * code-fix runs would be failed as "no agent available".
  *
  * A project-scoped Runner is not registered in that table at all: its
- * liveness is the runbook heartbeat against its own RunbookAgent row, so this
+ * liveness is the runbook heartbeat against its own Runner row, so this
  * job is only started in cluster mode (see Runner/Index.ts).
  */
 const InitJob: VoidFunction = (): void => {

@@ -30,7 +30,7 @@ The agent only needs **outbound HTTPS** to your OneUptime instance. It does not 
 
 ### 1. Create the agent record
 
-Go to **Runbooks → Settings → Agents** and create a new agent. Fill in:
+Go to **Settings → Runners** and create a new agent. Fill in:
 
 | Field           | Notes                                                                                                                                             |
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -58,7 +58,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
 
 ### 4. Verify the agent is connected
 
-Go back to **Runbooks → Settings → Agents**. Within ~60 seconds the agent's row should switch to `Connected` with a fresh **Last seen** timestamp. If it stays `Disconnected`:
+Go back to **Settings → Runners**. Within ~60 seconds the agent's row should switch to `Connected` with a fresh **Last seen** timestamp. If it stays `Disconnected`:
 
 - Check the container logs (`docker logs oneuptime-runner`) for auth errors or network failures.
 - Verify the host can reach your OneUptime URL with `curl`.
@@ -148,14 +148,14 @@ If a key leaks, open the agent in OneUptime and reset its key. The old key stops
 
 Managing agents lives under the existing Runbooks permission group:
 
-- `CreateRunbookAgent`, `EditRunbookAgent`, `DeleteRunbookAgent`, `ReadRunbookAgent` — manage agent records.
+- `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — manage agent records.
 - `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (roles) — assign to a team to grant full control, day-to-day usage, or read-only access respectively. `RunbookAdmin` bundles all of the granular permissions above.
 
 Permissions to _trigger_ a runbook (and therefore cause Bash and JavaScript steps to dispatch) are still `CreateRunbookExecution` / `EditRunbookExecution`.
 
 ## Agent-facing API
 
-For the curious — the agent uses these endpoints, mounted under `/runner-ingest`. They are authenticated by the agent's ID + key in the JSON body (or `x-agent-id` / `x-agent-key` headers).
+For the curious — the agent uses these endpoints, mounted under `/runner-ingest`. The pre-merge path `/runbook-agent-ingest` is still served for agents that have not been redeployed yet, so upgrading the server does not break them. They are authenticated by the agent's ID + key in the JSON body (or `x-agent-id` / `x-agent-key` headers).
 
 | Endpoint                     | Purpose                                                                                                                     |
 | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------- |

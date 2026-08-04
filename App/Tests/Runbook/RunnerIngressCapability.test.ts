@@ -1,6 +1,6 @@
-import RunbookAgentService from "Common/Server/Services/RunbookAgentService";
-import RunbookAgentJobService from "Common/Server/Services/RunbookAgentJobService";
-import RunbookAgent from "Common/Models/DatabaseModels/RunbookAgent";
+import RunnerService from "Common/Server/Services/RunnerService";
+import RunnerJobService from "Common/Server/Services/RunnerJobService";
+import Runner from "Common/Models/DatabaseModels/Runner";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -23,12 +23,12 @@ import {
  * ---------------------------------------------------------------------------
  * Regression tests for the Runner capability toggles on the agent ingress.
  *
- * RunbookAgent.canRunRunbooks / canRunCodeFixTasks used to be decorative:
+ * Runner.canRunRunbooks / canRunCodeFixTasks used to be decorative:
  * the dashboard let an operator flip them, but no server code ever read them,
  * so revoking a capability did nothing. Two things now make them real:
  *
  *   1. POST /claim-next-job rejects an agent whose row says
- *      canRunRunbooks === false — BEFORE RunbookAgentJobService.claimNextJob
+ *      canRunRunbooks === false — BEFORE RunnerJobService.claimNextJob
  *      runs, so a revoked Runner can never lease work.
  *   2. POST /heartbeat answers with the granted capabilities so the Runner
  *      adopts the dashboard's decision on its next boot.
@@ -136,8 +136,8 @@ jest.mock("../../FeatureSet/Runbook/Utils/Secrets", () => {
 });
 
 // Import AFTER the jest.mock calls above (they are hoisted by jest).
-import RunbookAgentIngressAPI from "../../FeatureSet/Runbook/API/RunbookAgentIngress";
-import { RunbookAgentExpressRequest } from "../../FeatureSet/Runbook/Types/Request";
+import RunnerIngressAPI from "../../FeatureSet/Runbook/API/RunnerIngress";
+import { RunnerExpressRequest } from "../../FeatureSet/Runbook/Types/Request";
 
 const HEARTBEAT_ROUTE: string = "/heartbeat";
 const CLAIM_ROUTE: string = "/claim-next-job";
@@ -160,23 +160,23 @@ function matchRoute(method: string, uri: string): MockRoute {
 }
 
 /*
- * The ingress handlers read req.runbookAgent, which the auth middleware
- * (RunbookAgentAuthorization.isAuthorizedAgent) sets from the row it loaded.
+ * The ingress handlers read req.runner, which the auth middleware
+ * (RunnerAuthorization.isAuthorizedAgent) sets from the row it loaded.
  * The middleware is not under test here, so the request is constructed with
  * the property already populated — exactly what the handler receives.
  */
 async function callRoute(data: {
   uri: string;
-  agent?: RunbookAgent | undefined;
+  agent?: Runner | undefined;
   body?: JSONObject | undefined;
 }): Promise<RouteCallResult> {
-  const req: RunbookAgentExpressRequest = {
+  const req: RunnerExpressRequest = {
     params: {} as Dictionary<string>,
     query: {},
     body: data.body || {},
     headers: {},
-    runbookAgent: data.agent,
-  } as unknown as RunbookAgentExpressRequest;
+    runner: data.agent,
+  } as unknown as RunnerExpressRequest;
 
   const res: ExpressResponse = {
     send: jest.fn(),
@@ -223,7 +223,7 @@ describe("Runner capability enforcement on the agent ingress", () => {
   function buildAgent(data: {
     canRunRunbooks?: boolean | undefined;
     canRunCodeFixTasks?: boolean | undefined;
-  }): RunbookAgent {
+  }): Runner {
     return {
       id: agentId,
       projectId: projectId,
@@ -234,12 +234,12 @@ describe("Runner capability enforcement on the agent ingress", () => {
       ...(data.canRunCodeFixTasks !== undefined
         ? { canRunCodeFixTasks: data.canRunCodeFixTasks }
         : {}),
-    } as unknown as RunbookAgent;
+    } as unknown as Runner;
   }
 
   beforeAll(() => {
     mockRoutes.length = 0;
-    new RunbookAgentIngressAPI();
+    new RunnerIngressAPI();
   });
 
   beforeEach(() => {
@@ -249,10 +249,10 @@ describe("Runner capability enforcement on the agent ingress", () => {
     projectId = ObjectID.generate();
 
     heartbeatSpy = jest
-      .spyOn(RunbookAgentService, "heartbeat")
+      .spyOn(RunnerService, "heartbeat")
       .mockResolvedValue(undefined);
     claimNextJobSpy = jest
-      .spyOn(RunbookAgentJobService, "claimNextJob")
+      .spyOn(RunnerJobService, "claimNextJob")
       .mockResolvedValue(null);
   });
 
@@ -380,19 +380,19 @@ describe("Runner capability enforcement on the agent ingress", () => {
     });
   });
 
-  describe("RunbookAgentService.findByIdAndKey loads the capability columns", () => {
+  describe("RunnerService.findByIdAndKey loads the capability columns", () => {
     /*
-     * The auth middleware sets req.runbookAgent from this read. If the
+     * The auth middleware sets req.runner from this read. If the
      * select ever drops the capability columns, the route sees undefined —
      * which the claim gate treats as allowed — and a dashboard revoke
      * silently stops working. Pin the select.
      */
     test("selects canRunRunbooks and canRunCodeFixTasks", async () => {
       const findOneBySpy: jest.SpyInstance = jest
-        .spyOn(RunbookAgentService, "findOneBy")
+        .spyOn(RunnerService, "findOneBy")
         .mockResolvedValue(null);
 
-      await RunbookAgentService.findByIdAndKey({
+      await RunnerService.findByIdAndKey({
         agentId: agentId,
         agentKey: "some-agent-key",
       });

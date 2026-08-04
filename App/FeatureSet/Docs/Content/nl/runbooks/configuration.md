@@ -7,7 +7,7 @@ Bash- en JavaScript-stappen **draaien nooit op de OneUptime Worker**. Ze worden 
 Het dispatch-model:
 
 1. De auteur van de runbook-stap kiest bij het schrijven van de stap een Runbook-agent uit de dropdown.
-2. Wanneer de stap draait, voegt de Worker een rij toe in `RunbookAgentJob` met `targetAgentId` gezet op de ID van die agent en status `Pending`.
+2. Wanneer de stap draait, voegt de Worker een rij toe in `RunnerJob` met `targetAgentId` gezet op de ID van die agent en status `Pending`.
 3. Die specifieke agent (en alleen die agent) claimt de job atomair, voert het script lokaal uit — Bash via `bash -c <script>`, JavaScript in een `isolated-vm`-sandbox — en stuurt het resultaat terug.
 4. De Worker hervat het runbook met het resultaat.
 
@@ -27,7 +27,7 @@ Runbook-rechten leven in de `Runbook`-rechtengroep:
 - `CreateRunbook`, `EditRunbook`, `DeleteRunbook`, `ReadRunbook` — runbook-templates beheren.
 - `CreateRunbookExecution`, `EditRunbookExecution`, `ReadRunbookExecution` — uitvoeringen starten, afvinken en lezen.
 - `CreateRunbookRule`, `EditRunbookRule`, `DeleteRunbookRule`, `ReadRunbookRule` — auto-trigger-regels beheren.
-- `CreateRunbookAgent`, `EditRunbookAgent`, `DeleteRunbookAgent`, `ReadRunbookAgent` — Runbook-agents beheren die Bash- en JavaScript-stappen in je eigen infrastructuur uitvoeren.
+- `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — Runbook-agents beheren die Bash- en JavaScript-stappen in je eigen infrastructuur uitvoeren.
 - `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (rollen) — toewijzen aan een team om volledige controle, dagelijks gebruik of alleen-lezen toegang te verlenen. `RunbookAdmin` bundelt alle bovenstaande granulaire rechten.
 
 ## Queue & worker
@@ -47,8 +47,8 @@ Wanneer een handmatige stap via de API wordt afgevinkt, wordt de uitvoering opni
 - `Runbook` — template (name, slug, description, isEnabled, steps JSON).
 - `RunbookExecution` — één rij per run, met nullable `incidentId`-, `alertId`- en `scheduledMaintenanceId`-foreign keys en een JSON-`stepExecutions`-array die de stappen en per-stap-status snapshotten.
 - `RunbookRule` — auto-trigger-regels met een `triggerEntityType`-discriminator (Incident, Alert, ScheduledMaintenance) en een many-to-many-relatie naar te starten runbooks.
-- `RunbookAgent` — één rij per geïnstalleerde agent: naam, secret-sleutel, `lastAlive`, `connectionStatus`, host-info.
-- `RunbookAgentJob` — één rij per gedispatchte Bash- of JavaScript-stap: `targetAgentId` (de agent die de stapauteur uitkoos), staptype, script, status (`Pending` → `Claimed` → `Running` → `Succeeded`/`Failed`/`TimedOut`/`Cancelled`), claim-deadline, lease, output, exit-code.
+- `Runner` — één rij per geïnstalleerde agent: naam, secret-sleutel, `lastAlive`, `connectionStatus`, host-info.
+- `RunnerJob` — één rij per gedispatchte Bash- of JavaScript-stap: `targetAgentId` (de agent die de stapauteur uitkoos), staptype, script, status (`Pending` → `Claimed` → `Running` → `Succeeded`/`Failed`/`TimedOut`/`Cancelled`), claim-deadline, lease, output, exit-code.
 
 ## Operationele tips
 

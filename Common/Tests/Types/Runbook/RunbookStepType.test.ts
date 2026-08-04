@@ -14,10 +14,10 @@ import { describe, expect, test } from "@jest/globals";
  * Worker has no route to a customer's SSH host.
  *
  * Getting the lane wrong is not a graceful failure. Classifying a Worker type
- * as Runner work enqueues a RunbookAgentJob a Runner will claim and cannot
+ * as Runner work enqueues a RunnerJob a Runner will claim and cannot
  * execute; classifying a Runner type as Worker work drops the step's agentId
  * on the floor and tries to run customer infrastructure commands on shared
- * OneUptime infrastructure. RunbookAgentJobService.enqueue is the gate, and
+ * OneUptime infrastructure. RunnerJobService.enqueue is the gate, and
  * it asks this function.
  *
  * So the list is pinned member by member, and the partition is checked to be
@@ -137,7 +137,7 @@ describe("isRunnerExecutedStepType", () => {
 
   test("returns a boolean for every member of the enum", () => {
     /*
-     * No member may fall through to undefined: RunbookAgentJobService.enqueue
+     * No member may fall through to undefined: RunnerJobService.enqueue
      * branches on `!isRunnerExecutedStepType(...)`, so an undefined answer
      * would read as "the Worker handles it" and quietly refuse to dispatch.
      */

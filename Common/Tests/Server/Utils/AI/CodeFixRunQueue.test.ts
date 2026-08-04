@@ -1,7 +1,7 @@
 import CodeFixRunQueue from "../../../../Server/Utils/AI/CodeFix/CodeFixRunQueue";
 import AIRunService from "../../../../Server/Services/AIRunService";
 import AIAgentService from "../../../../Server/Services/AIAgentService";
-import RunbookAgentService from "../../../../Server/Services/RunbookAgentService";
+import RunnerService from "../../../../Server/Services/RunnerService";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import AIAgent from "../../../../Models/DatabaseModels/AIAgent";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
@@ -62,7 +62,7 @@ describe("CodeFixRunQueue.failOrphanedQueuedRuns", () => {
    */
   beforeEach(() => {
     jest
-      .spyOn(RunbookAgentService, "getOnlineCodeFixRunnerForProject")
+      .spyOn(RunnerService, "getOnlineCodeFixRunnerForProject")
       .mockResolvedValue(null);
   });
 
@@ -163,7 +163,7 @@ describe("CodeFixRunQueue.failOrphanedQueuedRuns", () => {
       .spyOn(AIAgentService, "getConnectedAIAgentForProject")
       .mockResolvedValue(null);
     jest
-      .spyOn(RunbookAgentService, "getOnlineCodeFixRunnerForProject")
+      .spyOn(RunnerService, "getOnlineCodeFixRunnerForProject")
       .mockResolvedValue({
         id: ObjectID.generate(),
         name: "Prod Runner",

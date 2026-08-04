@@ -1,6 +1,6 @@
 import { spawn } from "child_process";
 import { JOB_HEARTBEAT_INTERVAL_MS, MAX_OUTPUT_BYTES } from "../Config";
-import AgentClient, { ClaimedJob } from "./RunbookAgentClient";
+import AgentClient, { ClaimedJob } from "./RunnerClient";
 import SSHExecutor from "./SSHExecutor";
 import KubernetesExecutor from "./KubernetesExecutor";
 import logger from "Common/Server/Utils/Logger";

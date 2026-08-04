@@ -133,15 +133,6 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           },
           icon: IconProp.Brain,
         },
-        {
-          link: {
-            title: "AI Agents",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_AI_AGENTS] as Route,
-            ),
-          },
-          icon: IconProp.CPUChip,
-        },
         ...(BILLING_ENABLED
           ? [
               {
@@ -172,6 +163,34 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
             ),
           },
           icon: IconProp.Terminal,
+        },
+      ],
+    },
+    /*
+     * Runners execute runbook steps AND AI code fixes, so they sit on their
+     * own rather than under either — they used to live under Runbook settings,
+     * which stopped being true when the AI agent merged into them.
+     */
+    {
+      title: "Runners",
+      items: [
+        {
+          link: {
+            title: "Runners",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_RUNNERS] as Route,
+            ),
+          },
+          icon: IconProp.Terminal,
+        },
+        {
+          link: {
+            title: "Credentials",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_RUNNER_CREDENTIALS] as Route,
+            ),
+          },
+          icon: IconProp.Key,
         },
       ],
     },

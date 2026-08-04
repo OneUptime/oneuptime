@@ -813,20 +813,20 @@ enum Permission {
   EditRunbookOwnerUser = "EditRunbookOwnerUser",
   ReadRunbookOwnerUser = "ReadRunbookOwnerUser",
 
-  CreateRunbookAgent = "CreateRunbookAgent",
-  DeleteRunbookAgent = "DeleteRunbookAgent",
-  EditRunbookAgent = "EditRunbookAgent",
-  ReadRunbookAgent = "ReadRunbookAgent",
+  CreateRunner = "CreateRunner",
+  DeleteRunner = "DeleteRunner",
+  EditRunner = "EditRunner",
+  ReadRunner = "ReadRunner",
 
-  CreateRunbookAgentOwnerTeam = "CreateRunbookAgentOwnerTeam",
-  DeleteRunbookAgentOwnerTeam = "DeleteRunbookAgentOwnerTeam",
-  EditRunbookAgentOwnerTeam = "EditRunbookAgentOwnerTeam",
-  ReadRunbookAgentOwnerTeam = "ReadRunbookAgentOwnerTeam",
+  CreateRunnerOwnerTeam = "CreateRunnerOwnerTeam",
+  DeleteRunnerOwnerTeam = "DeleteRunnerOwnerTeam",
+  EditRunnerOwnerTeam = "EditRunnerOwnerTeam",
+  ReadRunnerOwnerTeam = "ReadRunnerOwnerTeam",
 
-  CreateRunbookAgentOwnerUser = "CreateRunbookAgentOwnerUser",
-  DeleteRunbookAgentOwnerUser = "DeleteRunbookAgentOwnerUser",
-  EditRunbookAgentOwnerUser = "EditRunbookAgentOwnerUser",
-  ReadRunbookAgentOwnerUser = "ReadRunbookAgentOwnerUser",
+  CreateRunnerOwnerUser = "CreateRunnerOwnerUser",
+  DeleteRunnerOwnerUser = "DeleteRunnerOwnerUser",
+  EditRunnerOwnerUser = "EditRunnerOwnerUser",
+  ReadRunnerOwnerUser = "ReadRunnerOwnerUser",
 
   CreateRunbookSecret = "CreateRunbookSecret",
   EditRunbookSecret = "EditRunbookSecret",
@@ -4276,7 +4276,7 @@ export class PermissionHelper {
       },
 
       {
-        permission: Permission.CreateRunbookAgent,
+        permission: Permission.CreateRunner,
         title: "Create Runbook Agent",
         description:
           "This permission can register Runbook Agents in this project. Runbook Agents execute Bash steps in your own infrastructure.",
@@ -4286,7 +4286,7 @@ export class PermissionHelper {
         group: PermissionGroup.Runbook,
       },
       {
-        permission: Permission.DeleteRunbookAgent,
+        permission: Permission.DeleteRunner,
         title: "Delete Runbook Agent",
         description:
           "This permission can delete Runbook Agents in this project.",
@@ -4296,7 +4296,7 @@ export class PermissionHelper {
         group: PermissionGroup.Runbook,
       },
       {
-        permission: Permission.EditRunbookAgent,
+        permission: Permission.EditRunner,
         title: "Edit Runbook Agent",
         description:
           "This permission can edit Runbook Agents (name, description, tags, key) in this project.",
@@ -4306,7 +4306,7 @@ export class PermissionHelper {
         group: PermissionGroup.Runbook,
       },
       {
-        permission: Permission.ReadRunbookAgent,
+        permission: Permission.ReadRunner,
         title: "Read Runbook Agent",
         description: "This permission can read Runbook Agents in this project.",
         isAssignableToTenant: true,
@@ -4316,7 +4316,7 @@ export class PermissionHelper {
       },
 
       {
-        permission: Permission.CreateRunbookAgentOwnerTeam,
+        permission: Permission.CreateRunnerOwnerTeam,
         title: "Create Runbook Agent Team Owner",
         description:
           "This permission can create Runbook Agent Team Owners of this project.",
@@ -4326,7 +4326,7 @@ export class PermissionHelper {
         group: PermissionGroup.Runbook,
       },
       {
-        permission: Permission.DeleteRunbookAgentOwnerTeam,
+        permission: Permission.DeleteRunnerOwnerTeam,
         title: "Delete Runbook Agent Team Owner",
         description:
           "This permission can delete Runbook Agent Team Owner of this project.",
@@ -4336,7 +4336,7 @@ export class PermissionHelper {
         group: PermissionGroup.Runbook,
       },
       {
-        permission: Permission.EditRunbookAgentOwnerTeam,
+        permission: Permission.EditRunnerOwnerTeam,
         title: "Edit Runbook Agent Team Owner",
         description:
           "This permission can edit Runbook Agent Team Owner of this project.",
@@ -4346,7 +4346,7 @@ export class PermissionHelper {
         group: PermissionGroup.Runbook,
       },
       {
-        permission: Permission.ReadRunbookAgentOwnerTeam,
+        permission: Permission.ReadRunnerOwnerTeam,
         title: "Read Runbook Agent Team Owner",
         description:
           "This permission can read Runbook Agent Team Owner of this project.",
@@ -4357,7 +4357,7 @@ export class PermissionHelper {
       },
 
       {
-        permission: Permission.CreateRunbookAgentOwnerUser,
+        permission: Permission.CreateRunnerOwnerUser,
         title: "Create Runbook Agent User Owner",
         description:
           "This permission can create Runbook Agent User Owners of this project.",
@@ -4367,7 +4367,7 @@ export class PermissionHelper {
         group: PermissionGroup.Runbook,
       },
       {
-        permission: Permission.DeleteRunbookAgentOwnerUser,
+        permission: Permission.DeleteRunnerOwnerUser,
         title: "Delete Runbook Agent User Owner",
         description:
           "This permission can delete Runbook Agent User Owner of this project.",
@@ -4377,7 +4377,7 @@ export class PermissionHelper {
         group: PermissionGroup.Runbook,
       },
       {
-        permission: Permission.EditRunbookAgentOwnerUser,
+        permission: Permission.EditRunnerOwnerUser,
         title: "Edit Runbook Agent User Owner",
         description:
           "This permission can edit Runbook Agent User Owner of this project.",
@@ -4387,7 +4387,7 @@ export class PermissionHelper {
         group: PermissionGroup.Runbook,
       },
       {
-        permission: Permission.ReadRunbookAgentOwnerUser,
+        permission: Permission.ReadRunnerOwnerUser,
         title: "Read Runbook Agent User Owner",
         description:
           "This permission can read Runbook Agent User Owner of this project.",

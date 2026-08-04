@@ -139,7 +139,7 @@ Si une clé fuite, ouvrez l'agent dans OneUptime et réinitialisez sa clé. L'an
 
 La gestion des agents vit sous le groupe de permissions Runbooks existant :
 
-- `CreateRunbookAgent`, `EditRunbookAgent`, `DeleteRunbookAgent`, `ReadRunbookAgent` — gérer les enregistrements d'agents.
+- `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — gérer les enregistrements d'agents.
 - `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (rôles) — à attribuer à une équipe pour accorder respectivement le contrôle total, l'usage quotidien ou un accès en lecture seule. `RunbookAdmin` regroupe toutes les permissions granulaires ci-dessus.
 
 Les permissions pour _déclencher_ un runbook (et donc dispatcher des étapes Bash et JavaScript) restent `CreateRunbookExecution` / `EditRunbookExecution`.

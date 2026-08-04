@@ -30,7 +30,7 @@ Runbook 代理程式將這一點反轉過來。Bash 與 JavaScript 步驟不會�
 
 ### 1. 建立代理程式記錄
 
-前往 **Runbooks → Settings → Agents** 並建立一個新的代理程式。填入：
+前往 **Settings → Runners** 並建立一個新的代理程式。填入：
 
 | 欄位            | 說明                                                                                                                                |
 | --------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
@@ -58,7 +58,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
 
 ### 4. 確認代理程式已連線
 
-回到 **Runbooks → Settings → Agents**。約在 60 秒內，該代理程式所在列應會切換為 `Connected`，並顯示一個最新的 **Last seen** 時間戳記。如果它仍維持在 `Disconnected`：
+回到 **Settings → Runners**。約在 60 秒內，該代理程式所在列應會切換為 `Connected`，並顯示一個最新的 **Last seen** 時間戳記。如果它仍維持在 `Disconnected`：
 
 - 檢查容器記錄（`docker logs oneuptime-runner`），看看是否有驗證錯誤或網路失敗。
 - 以 `curl` 確認該主機能連到您的 OneUptime URL。
@@ -139,7 +139,7 @@ Worker 的整體等待時間區間為 `claim timeout + execution timeout + a few
 
 代理程式的管理隸屬於既有的 Runbooks 權限群組：
 
-- `CreateRunbookAgent`、`EditRunbookAgent`、`DeleteRunbookAgent`、`ReadRunbookAgent` — 管理代理程式記錄。
+- `CreateRunner`、`EditRunner`、`DeleteRunner`、`ReadRunner` — 管理代理程式記錄。
 - `RunbookAdmin`、`RunbookMember`、`RunbookViewer`（角色）— 指派給團隊，以分別授予完整控制、日常使用，或唯讀存取權限。`RunbookAdmin` 包含上述所有細部權限。
 
 _觸發_ runbook（並因而導致 Bash 與 JavaScript 步驟被派發）的權限，仍然是 `CreateRunbookExecution` / `EditRunbookExecution`。

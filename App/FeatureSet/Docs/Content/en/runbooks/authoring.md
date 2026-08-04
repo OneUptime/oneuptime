@@ -60,7 +60,7 @@ Configure these on a Bash step:
 - **Execution timeout** — how long the agent lets the script run before killing it with `SIGKILL`. Defaults to 30 seconds; raise it for steps that legitimately take minutes.
 - **Claim timeout** — how long the Worker waits for the agent to pick the job up. Defaults to 2 minutes.
 
-If the selected agent is offline when the runbook reaches this step, the step waits up to the **claim timeout** (default 2 minutes) and then fails with `TimedOut`. Add an agent under **Runbooks → Settings → Agents** before relying on a Bash step.
+If the selected agent is offline when the runbook reaches this step, the step waits up to the **claim timeout** (default 2 minutes) and then fails with `TimedOut`. Add an agent under **Settings → Runners** before relying on a Bash step.
 
 ### SSH
 

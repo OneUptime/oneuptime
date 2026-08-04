@@ -2,6 +2,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
@@ -9,350 +10,17 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import IconProp from "Common/Types/Icon/IconProp";
 import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
-
-interface CatalogItem {
-  type: DashboardComponentType;
-  label: string;
-  icon: IconProp;
-  description: string;
-}
-
-interface CatalogCategory {
-  name: string;
-  description: string;
-  items: Array<CatalogItem>;
-}
-
-const WIDGET_CATALOG: ReadonlyArray<CatalogCategory> = [
-  {
-    name: "Visualization",
-    description: "Charts, values, tables, and other generic visualizations.",
-    items: [
-      {
-        type: DashboardComponentType.Chart,
-        label: "Chart",
-        icon: IconProp.ChartBar,
-        description: "Time-series chart from a metrics query.",
-      },
-      {
-        type: DashboardComponentType.Value,
-        label: "Value",
-        icon: IconProp.Hashtag,
-        description: "Single big-number stat, ideal for KPIs.",
-      },
-      {
-        type: DashboardComponentType.Gauge,
-        label: "Gauge",
-        icon: IconProp.Gauge,
-        description: "Radial gauge for a percent or threshold.",
-      },
-      {
-        type: DashboardComponentType.Table,
-        label: "Table",
-        icon: IconProp.TableCells,
-        description:
-          "Tabular metric values — set a Group By (e.g. host.name) for one row per entity, or none for time-bucketed rows. Add formulas for derived columns like availability %.",
-      },
-      {
-        type: DashboardComponentType.Text,
-        label: "Text",
-        icon: IconProp.Text,
-        description: "Free-form Markdown text for headers and notes.",
-      },
-      {
-        type: DashboardComponentType.Clock,
-        label: "Clock",
-        icon: IconProp.Clock,
-        description:
-          "Current time in any timezone — digital or analog. Add one per office so you can see who is awake.",
-      },
-      {
-        type: DashboardComponentType.Html,
-        label: "HTML",
-        icon: IconProp.Code,
-        description:
-          "Your own HTML, CSS, and JavaScript, rendered in a sandbox.",
-      },
-    ],
-  },
-  {
-    name: "Telemetry",
-    description: "Live streams from your logs and traces.",
-    items: [
-      {
-        type: DashboardComponentType.LogStream,
-        label: "Log Stream",
-        icon: IconProp.Logs,
-        description: "Tail recent log records matching a filter.",
-      },
-      {
-        type: DashboardComponentType.LogChart,
-        label: "Log Chart",
-        icon: IconProp.ChartBar,
-        description:
-          "Log volume over time by severity, with bar, line, or area visualization and friendly attribute filters.",
-      },
-      {
-        type: DashboardComponentType.TraceList,
-        label: "Trace List",
-        icon: IconProp.Waterfall,
-        description: "Most recent traces for a service or operation.",
-      },
-      {
-        type: DashboardComponentType.TraceChart,
-        label: "Trace Chart",
-        icon: IconProp.ChartBar,
-        description:
-          "Span counts or response-time percentiles over time, optionally split by an attribute (e.g. per tenant).",
-      },
-      {
-        type: DashboardComponentType.TraceTable,
-        label: "Trace Table",
-        icon: IconProp.TableCells,
-        description:
-          "Top dimensions by request count — requests, median, avg, min, and max response time per span name, status, or attribute.",
-      },
-    ],
-  },
-  {
-    name: "Alerts & Status",
-    description: "OneUptime incidents, alerts, and monitor status.",
-    items: [
-      {
-        type: DashboardComponentType.IncidentList,
-        label: "Incident List",
-        icon: IconProp.Alert,
-        description: "Filtered list of incidents with state and severity.",
-      },
-      {
-        type: DashboardComponentType.AlertList,
-        label: "Alert List",
-        icon: IconProp.Bell,
-        description: "Recent alerts with state and severity.",
-      },
-      {
-        type: DashboardComponentType.MonitorList,
-        label: "Monitor List",
-        icon: IconProp.AltGlobe,
-        description: "Monitors with current operational status.",
-      },
-      {
-        type: DashboardComponentType.Slo,
-        label: "SLO",
-        icon: IconProp.Percent,
-        description:
-          "SLI, error budget remaining, or burn rate for one SLO — as a big number or a trend chart.",
-      },
-    ],
-  },
-  {
-    name: "Hosts",
-    description:
-      "Hosts auto-discovered from the host.name OTel resource attribute.",
-    items: [
-      {
-        type: DashboardComponentType.HostList,
-        label: "Hosts",
-        icon: IconProp.Server,
-        description:
-          "Hosts with connection status, OS, CPU/memory, and last-seen.",
-      },
-    ],
-  },
-  {
-    name: "Kubernetes",
-    description:
-      "Live inventory from any connected Kubernetes cluster — populated by the OneUptime Kubernetes Agent.",
-    items: [
-      {
-        type: DashboardComponentType.KubernetesPodList,
-        label: "Pods",
-        icon: IconProp.Cube,
-        description: "Pods with phase, namespace, and cluster.",
-      },
-      {
-        type: DashboardComponentType.KubernetesNodeList,
-        label: "Nodes",
-        icon: IconProp.Server,
-        description: "Nodes with readiness and pressure conditions.",
-      },
-      {
-        type: DashboardComponentType.KubernetesNamespaceList,
-        label: "Namespaces",
-        icon: IconProp.Folder,
-        description: "All namespaces across selected clusters.",
-      },
-      {
-        type: DashboardComponentType.KubernetesDeploymentList,
-        label: "Deployments",
-        icon: IconProp.ServerStack,
-        description: "Deployments in selected clusters or namespaces.",
-      },
-      {
-        type: DashboardComponentType.KubernetesStatefulSetList,
-        label: "StatefulSets",
-        icon: IconProp.ServerStack,
-        description: "StatefulSets in selected clusters or namespaces.",
-      },
-      {
-        type: DashboardComponentType.KubernetesDaemonSetList,
-        label: "DaemonSets",
-        icon: IconProp.ServerStack,
-        description: "DaemonSets in selected clusters or namespaces.",
-      },
-      {
-        type: DashboardComponentType.KubernetesJobList,
-        label: "Jobs",
-        icon: IconProp.Clock,
-        description: "Jobs in selected clusters or namespaces.",
-      },
-      {
-        type: DashboardComponentType.KubernetesCronJobList,
-        label: "CronJobs",
-        icon: IconProp.Clock,
-        description: "CronJobs in selected clusters or namespaces.",
-      },
-    ],
-  },
-  {
-    name: "Docker",
-    description:
-      "Live inventory from any connected Docker host — populated by the OneUptime Docker Agent.",
-    items: [
-      {
-        type: DashboardComponentType.DockerHostList,
-        label: "Hosts",
-        icon: IconProp.Server,
-        description:
-          "Docker hosts with connection status and container counts.",
-      },
-      {
-        type: DashboardComponentType.DockerContainerList,
-        label: "Containers",
-        icon: IconProp.Cube,
-        description: "Containers with state, image, and CPU/memory.",
-      },
-      {
-        type: DashboardComponentType.DockerImageList,
-        label: "Images",
-        icon: IconProp.Cube,
-        description: "Images present on selected hosts.",
-      },
-      {
-        type: DashboardComponentType.DockerNetworkList,
-        label: "Networks",
-        icon: IconProp.Globe,
-        description: "Networks defined on selected hosts.",
-      },
-      {
-        type: DashboardComponentType.DockerVolumeList,
-        label: "Volumes",
-        icon: IconProp.Database,
-        description: "Volumes defined on selected hosts.",
-      },
-    ],
-  },
-  {
-    name: "Podman",
-    description:
-      "Live inventory from any connected Podman host — populated by the OneUptime Podman Agent.",
-    items: [
-      {
-        type: DashboardComponentType.PodmanHostList,
-        label: "Hosts",
-        icon: IconProp.Server,
-        description:
-          "Podman hosts with connection status and container counts.",
-      },
-      {
-        type: DashboardComponentType.PodmanContainerList,
-        label: "Containers",
-        icon: IconProp.Cube,
-        description: "Containers with state, image, and CPU/memory.",
-      },
-      {
-        type: DashboardComponentType.PodmanImageList,
-        label: "Images",
-        icon: IconProp.Cube,
-        description: "Images present on selected hosts.",
-      },
-      {
-        type: DashboardComponentType.PodmanNetworkList,
-        label: "Networks",
-        icon: IconProp.Globe,
-        description: "Networks defined on selected hosts.",
-      },
-      {
-        type: DashboardComponentType.PodmanVolumeList,
-        label: "Volumes",
-        icon: IconProp.Database,
-        description: "Volumes defined on selected hosts.",
-      },
-    ],
-  },
-  {
-    name: "Proxmox",
-    description:
-      "Live inventory from any connected Proxmox VE cluster — populated by the OneUptime Proxmox Agent.",
-    items: [
-      {
-        type: DashboardComponentType.ProxmoxNodeList,
-        label: "Nodes",
-        icon: IconProp.ServerStack,
-        description: "PVE nodes with online status and CPU/memory.",
-      },
-      {
-        type: DashboardComponentType.ProxmoxGuestList,
-        label: "Guests",
-        icon: IconProp.Cube,
-        description:
-          "QEMU VMs and LXC containers with run state, HA state, and node.",
-      },
-    ],
-  },
-  {
-    name: "Docker Swarm",
-    description:
-      "Live inventory from any connected Docker Swarm cluster — populated by the OneUptime Docker Swarm Agent.",
-    items: [
-      {
-        type: DashboardComponentType.DockerSwarmNodeList,
-        label: "Nodes",
-        icon: IconProp.ServerStack,
-        description:
-          "Swarm nodes with manager/worker role, ready state, and CPU/memory.",
-      },
-      {
-        type: DashboardComponentType.DockerSwarmServiceList,
-        label: "Services",
-        icon: IconProp.Cube,
-        description:
-          "Replicated and global services with replicas, image, and converge state.",
-      },
-    ],
-  },
-  {
-    name: "Ceph",
-    description:
-      "Live inventory from any connected Ceph cluster — populated by the OneUptime Ceph Agent.",
-    items: [
-      {
-        type: DashboardComponentType.CephOsdList,
-        label: "OSDs",
-        icon: IconProp.SquareStack,
-        description:
-          "The OSD wall — a honeycomb of OSDs colored by up/in state.",
-      },
-      {
-        type: DashboardComponentType.CephPoolList,
-        label: "Pools",
-        icon: IconProp.Database,
-        description:
-          "Pools with stored bytes, capacity-used bars, and object counts.",
-      },
-    ],
-  },
-];
+import {
+  WIDGET_CATALOG,
+  WidgetCatalogCategory,
+  WidgetCatalogItem,
+  WidgetCategoryGroupSection,
+  countWidgets,
+  findCategoryByName,
+  getFirstWidget,
+  groupWidgetCategories,
+  searchWidgetCatalog,
+} from "./WidgetCatalog";
 
 export interface ComponentProps {
   onAddComponentClick: (type: DashboardComponentType) => void;
@@ -364,36 +32,132 @@ const AddWidgetModal: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const { translateString } = useTranslateValue();
   const [searchTerm, setSearchTerm] = useState<string>("");
-  const trimmedSearch: string = searchTerm.trim().toLowerCase();
+  const [selectedCategoryName, setSelectedCategoryName] = useState<
+    string | null
+  >(null);
+  const searchInputRef: React.RefObject<HTMLInputElement> =
+    useRef<HTMLInputElement>(null);
 
-  const filteredCatalog: ReadonlyArray<CatalogCategory> = useMemo(() => {
-    if (!trimmedSearch) {
-      return WIDGET_CATALOG;
-    }
-    const out: Array<CatalogCategory> = [];
-    for (const category of WIDGET_CATALOG) {
-      const items: Array<CatalogItem> = category.items.filter(
-        (item: CatalogItem) => {
-          return (
-            item.label.toLowerCase().includes(trimmedSearch) ||
-            item.description.toLowerCase().includes(trimmedSearch) ||
-            category.name.toLowerCase().includes(trimmedSearch)
-          );
-        },
-      );
-      if (items.length > 0) {
-        out.push({ ...category, items });
-      }
-    }
-    return out;
-  }, [trimmedSearch]);
+  const isSearching: boolean = searchTerm.trim().length > 0;
 
-  const totalMatches: number = filteredCatalog.reduce(
-    (acc: number, c: CatalogCategory) => {
-      return acc + c.items.length;
-    },
-    0,
+  // Everything the current search matches. Drives both panes.
+  const matchingCatalog: Array<WidgetCatalogCategory> = useMemo(() => {
+    return searchWidgetCatalog(searchTerm, WIDGET_CATALOG);
+  }, [searchTerm]);
+
+  const totalMatches: number = countWidgets(matchingCatalog);
+
+  /*
+   * A search can filter away the category the rail has selected. Rather than
+   * showing an empty pane next to a list of live results, fall back to showing
+   * every match — the rail selection is picked back up as soon as the search
+   * matches it again.
+   */
+  const selectedCategory: WidgetCatalogCategory | null = findCategoryByName(
+    matchingCatalog,
+    selectedCategoryName,
   );
+
+  const visibleCategories: Array<WidgetCatalogCategory> = selectedCategory
+    ? [selectedCategory]
+    : matchingCatalog;
+
+  const railSections: Array<WidgetCategoryGroupSection> = useMemo(() => {
+    return groupWidgetCategories(matchingCatalog);
+  }, [matchingCatalog]);
+
+  type AddWidgetFunction = (type: DashboardComponentType) => void;
+
+  const addWidget: AddWidgetFunction = (type: DashboardComponentType): void => {
+    props.onAddComponentClick(type);
+    props.onClose();
+  };
+
+  type SearchKeyDownFunction = (
+    event: React.KeyboardEvent<HTMLInputElement>,
+  ) => void;
+
+  /*
+   * Command-palette behaviour: type a few characters, hit Enter, get the top
+   * match. Only while searching, so Enter can never add a widget by accident
+   * on an untouched picker.
+   */
+  const onSearchKeyDown: SearchKeyDownFunction = (
+    event: React.KeyboardEvent<HTMLInputElement>,
+  ): void => {
+    if (event.key !== "Enter" || !isSearching) {
+      return;
+    }
+
+    const firstWidget: WidgetCatalogItem | null =
+      getFirstWidget(visibleCategories);
+
+    if (!firstWidget) {
+      return;
+    }
+
+    event.preventDefault();
+    addWidget(firstWidget.type);
+  };
+
+  type ClearSearchFunction = () => void;
+
+  const clearSearch: ClearSearchFunction = (): void => {
+    setSearchTerm("");
+    searchInputRef.current?.focus();
+  };
+
+  type RenderRailButtonFunction = (options: {
+    key: string;
+    label: string;
+    icon: IconProp;
+    count: number;
+    isSelected: boolean;
+    onClick: () => void;
+    testId: string;
+  }) => ReactElement;
+
+  const renderRailButton: RenderRailButtonFunction = (options: {
+    key: string;
+    label: string;
+    icon: IconProp;
+    count: number;
+    isSelected: boolean;
+    onClick: () => void;
+    testId: string;
+  }): ReactElement => {
+    return (
+      <button
+        key={options.key}
+        type="button"
+        data-testid={options.testId}
+        aria-pressed={options.isSelected}
+        onClick={options.onClick}
+        className={`flex shrink-0 items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-sm transition-colors focus:outline-none focus:ring-1 focus:ring-indigo-300 md:w-full ${
+          options.isSelected
+            ? "bg-indigo-50 font-medium text-indigo-700"
+            : "text-gray-600 hover:bg-gray-100"
+        }`}
+      >
+        <Icon
+          icon={options.icon}
+          className={`h-4 w-4 shrink-0 ${
+            options.isSelected ? "text-indigo-500" : "text-gray-400"
+          }`}
+        />
+        <span className="flex-1 truncate">
+          {translateString(options.label)}
+        </span>
+        <span
+          className={`ml-1 shrink-0 text-xs tabular-nums ${
+            options.isSelected ? "text-indigo-400" : "text-gray-400"
+          }`}
+        >
+          {options.count}
+        </span>
+      </button>
+    );
+  };
 
   return (
     <Modal
@@ -410,73 +174,172 @@ const AddWidgetModal: FunctionComponent<ComponentProps> = (
             <Icon icon={IconProp.Search} className="h-4 w-4 text-gray-400" />
           </div>
           <input
+            ref={searchInputRef}
             type="text"
             value={searchTerm}
+            aria-label="Search widgets"
+            data-testid="add-widget-search"
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
               setSearchTerm(e.target.value);
             }}
-            placeholder="Search widgets..."
-            className="block w-full rounded-md border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm text-gray-700 placeholder-gray-400 focus:border-indigo-300 focus:outline-none focus:ring-1 focus:ring-indigo-300"
+            onKeyDown={onSearchKeyDown}
+            placeholder="Search widgets by name, e.g. chart, logs, pods..."
+            className="block w-full rounded-md border border-gray-200 bg-white py-2 pl-9 pr-9 text-sm text-gray-700 placeholder-gray-400 focus:border-indigo-300 focus:outline-none focus:ring-1 focus:ring-indigo-300"
             autoFocus={true}
           />
+          {isSearching && (
+            <button
+              type="button"
+              aria-label="Clear search"
+              data-testid="add-widget-search-clear"
+              onClick={clearSearch}
+              className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 focus:outline-none"
+            >
+              <Icon icon={IconProp.Close} className="h-4 w-4" />
+            </button>
+          )}
         </div>
 
-        {/* Empty search state */}
-        {totalMatches === 0 && (
-          <div className="py-12 flex flex-col items-center justify-center text-center text-gray-400">
-            <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center mb-2">
-              <Icon icon={IconProp.Search} className="h-5 w-5 text-gray-300" />
-            </div>
-            <p className="text-sm">
-              No widgets match &ldquo;{searchTerm}&rdquo;.
-            </p>
-          </div>
-        )}
+        <div className="flex flex-col gap-4 md:flex-row md:gap-5">
+          {/* Category rail. Horizontal chips on small screens, a vertical
+              list with group headings from md up. Hidden entirely when a
+              search matched nothing — there is nothing to navigate to. */}
+          <nav
+            aria-label="Widget categories"
+            className={`shrink-0 flex-row gap-1 overflow-x-auto pb-1 md:max-h-[60vh] md:w-52 md:flex-col md:overflow-x-visible md:overflow-y-auto md:pb-0 md:pr-1 ${
+              totalMatches === 0 ? "hidden" : "flex"
+            }`}
+          >
+            {renderRailButton({
+              key: "all",
+              testId: "widget-category-all",
+              label: "All widgets",
+              icon: IconProp.Squares,
+              count: totalMatches,
+              isSelected: selectedCategory === null,
+              onClick: () => {
+                setSelectedCategoryName(null);
+              },
+            })}
 
-        {/* Categorized grid — single scroll container so the modal
-            footer (close button) is always reachable. */}
-        <div className="max-h-[60vh] overflow-y-auto pr-1 -mr-1 space-y-6">
-          {filteredCatalog.map((category: CatalogCategory) => {
-            return (
-              <div key={category.name}>
-                <div className="mb-2">
-                  <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    {translateString(category.name)}
-                  </h4>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    {translateString(category.description)}
-                  </p>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                  {category.items.map((item: CatalogItem) => {
-                    return (
-                      <button
-                        key={item.type}
-                        type="button"
-                        onClick={() => {
-                          props.onAddComponentClick(item.type);
-                          props.onClose();
-                        }}
-                        className="group flex items-start gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-left transition-colors hover:border-indigo-300 hover:bg-indigo-50/30 focus:outline-none focus:ring-1 focus:ring-indigo-300"
-                      >
-                        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md bg-gray-50 text-gray-500 group-hover:bg-indigo-50 group-hover:text-indigo-500 transition-colors">
-                          <Icon icon={item.icon} className="h-4 w-4" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="text-sm font-medium text-gray-800 truncate">
-                            {translateString(item.label)}
-                          </div>
-                          <div className="text-xs text-gray-500 mt-0.5 line-clamp-2">
-                            {translateString(item.description)}
-                          </div>
-                        </div>
-                      </button>
-                    );
+            {railSections.map((section: WidgetCategoryGroupSection) => {
+              return (
+                <div key={section.group} className="contents md:block">
+                  <h5 className="mt-4 hidden px-2.5 pb-1 text-[11px] font-semibold uppercase tracking-wider text-gray-400 md:block">
+                    {translateString(section.group)}
+                  </h5>
+                  {section.categories.map((category: WidgetCatalogCategory) => {
+                    return renderRailButton({
+                      key: category.name,
+                      testId: `widget-category-${category.name}`,
+                      label: category.name,
+                      icon: category.icon,
+                      count: category.items.length,
+                      isSelected: selectedCategoryName === category.name,
+                      onClick: () => {
+                        setSelectedCategoryName(category.name);
+                      },
+                    });
                   })}
                 </div>
+              );
+            })}
+          </nav>
+
+          {/* Widget grid — its own scroll container so the modal footer
+              (close button) is always reachable. */}
+          <div className="min-w-0 flex-1 space-y-6 overflow-y-auto md:max-h-[60vh] md:pr-1">
+            {isSearching && totalMatches > 0 && (
+              <p
+                aria-live="polite"
+                data-testid="add-widget-result-count"
+                className="text-xs text-gray-400"
+              >
+                {totalMatches}{" "}
+                {totalMatches === 1 ? "widget matches" : "widgets match"}
+                &nbsp;&ldquo;{searchTerm.trim()}&rdquo;. Press Enter to add the
+                first one.
+              </p>
+            )}
+
+            {totalMatches === 0 && (
+              <div
+                data-testid="add-widget-empty"
+                className="flex flex-col items-center justify-center py-12 text-center text-gray-400"
+              >
+                <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-gray-50">
+                  <Icon
+                    icon={IconProp.Search}
+                    className="h-5 w-5 text-gray-300"
+                  />
+                </div>
+                <p className="text-sm">
+                  No widgets match &ldquo;{searchTerm.trim()}&rdquo;.
+                </p>
+                <button
+                  type="button"
+                  data-testid="add-widget-empty-clear"
+                  onClick={clearSearch}
+                  className="mt-3 rounded-md px-2 py-1 text-sm font-medium text-indigo-600 hover:bg-indigo-50 focus:outline-none focus:ring-1 focus:ring-indigo-300"
+                >
+                  Clear search
+                </button>
               </div>
-            );
-          })}
+            )}
+
+            {visibleCategories.map((category: WidgetCatalogCategory) => {
+              return (
+                <section key={category.name}>
+                  <div className="mb-2 flex items-start gap-2">
+                    <Icon
+                      icon={category.icon}
+                      className="mt-0.5 h-4 w-4 shrink-0 text-gray-400"
+                    />
+                    <div className="min-w-0">
+                      <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                        {translateString(category.name)}
+                      </h4>
+                      <p className="mt-0.5 text-xs text-gray-400">
+                        {translateString(category.description)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                    {category.items.map((item: WidgetCatalogItem) => {
+                      return (
+                        <button
+                          key={item.type}
+                          type="button"
+                          data-testid={`widget-card-${item.type}`}
+                          title={translateString(item.description)}
+                          onClick={() => {
+                            addWidget(item.type);
+                          }}
+                          className="group relative flex items-start gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-left transition-colors hover:border-indigo-300 hover:bg-indigo-50/30 focus:outline-none focus:ring-1 focus:ring-indigo-300"
+                        >
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-gray-50 text-gray-500 transition-colors group-hover:bg-indigo-50 group-hover:text-indigo-500">
+                            <Icon icon={item.icon} className="h-4 w-4" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate text-sm font-medium text-gray-800">
+                              {translateString(item.label)}
+                            </div>
+                            <div className="mt-0.5 line-clamp-2 text-xs text-gray-500">
+                              {translateString(item.description)}
+                            </div>
+                          </div>
+                          <Icon
+                            icon={IconProp.Add}
+                            className="mt-0.5 h-4 w-4 shrink-0 text-indigo-400 opacity-0 transition-opacity group-hover:opacity-100"
+                          />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </section>
+              );
+            })}
+          </div>
         </div>
       </div>
     </Modal>

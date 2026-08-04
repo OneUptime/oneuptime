@@ -1,7 +1,7 @@
 import CodeFixReadiness from "../../../../Server/Utils/AI/CodeFix/CodeFixReadiness";
 import SubjectCodeFixRun from "../../../../Server/Utils/AI/SRE/SubjectCodeFixRun";
 import AIAgentService from "../../../../Server/Services/AIAgentService";
-import RunbookAgentService from "../../../../Server/Services/RunbookAgentService";
+import RunnerService from "../../../../Server/Services/RunnerService";
 import AIService from "../../../../Server/Services/AIService";
 import LlmProviderService from "../../../../Server/Services/LlmProviderService";
 import ProjectService from "../../../../Server/Services/ProjectService";
@@ -257,7 +257,7 @@ describe("CodeFixReadiness.getAgentCheck", () => {
   beforeEach(() => {
     // Default: no Runner. Individual tests opt into one.
     jest
-      .spyOn(RunbookAgentService, "getOnlineCodeFixRunnerForProject")
+      .spyOn(RunnerService, "getOnlineCodeFixRunnerForProject")
       .mockResolvedValue(null);
   });
 
@@ -319,7 +319,7 @@ describe("CodeFixReadiness.getAgentCheck", () => {
       .spyOn(AIAgentService, "getConnectedAIAgentForProject")
       .mockResolvedValue(null);
     jest
-      .spyOn(RunbookAgentService, "getOnlineCodeFixRunnerForProject")
+      .spyOn(RunnerService, "getOnlineCodeFixRunnerForProject")
       .mockResolvedValue({ name: "prod-runner" } as unknown as never);
 
     const check: AIFixReadinessCheck = await CodeFixReadiness.getAgentCheck({
@@ -396,7 +396,7 @@ describe("CodeFixReadiness.getProjectReadiness", () => {
         params.agentAlive ? ({ name: "agent" } as unknown as AIAgent) : null,
       );
     jest
-      .spyOn(RunbookAgentService, "getOnlineCodeFixRunnerForProject")
+      .spyOn(RunnerService, "getOnlineCodeFixRunnerForProject")
       .mockResolvedValue(null);
   }
 

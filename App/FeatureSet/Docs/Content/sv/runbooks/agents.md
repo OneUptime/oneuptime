@@ -30,7 +30,7 @@ Agenten behöver bara **utgående HTTPS** till din OneUptime-instans. Den accept
 
 ### 1. Skapa agentposten
 
-Gå till **Runbooks → Settings → Agents** och skapa en ny agent. Fyll i:
+Gå till **Settings → Runners** och skapa en ny agent. Fyll i:
 
 | Fält            | Anteckningar                                                                                                                                           |
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -58,7 +58,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
 
 ### 4. Verifiera att agenten är ansluten
 
-Gå tillbaka till **Runbooks → Settings → Agents**. Inom ~60 sekunder bör agentens rad växla till `Connected` med en färsk **Last seen**-tidsstämpel. Om den förblir `Disconnected`:
+Gå tillbaka till **Settings → Runners**. Inom ~60 sekunder bör agentens rad växla till `Connected` med en färsk **Last seen**-tidsstämpel. Om den förblir `Disconnected`:
 
 - Kontrollera container-loggarna (`docker logs oneuptime-runner`) för auth-fel eller nätverksproblem.
 - Verifiera att värden når din OneUptime-URL med `curl`.
@@ -139,7 +139,7 @@ Om en nyckel läcker, öppna agenten i OneUptime och återställ dess nyckel. De
 
 Hanteringen av agenter ligger under den befintliga Runbooks-behörighetsgruppen:
 
-- `CreateRunbookAgent`, `EditRunbookAgent`, `DeleteRunbookAgent`, `ReadRunbookAgent` — hantera agent-poster.
+- `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — hantera agent-poster.
 - `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (roller) — tilldela ett team för att ge full kontroll, daglig användning eller skrivskyddad åtkomst. `RunbookAdmin` paketerar alla granulära behörigheter ovan.
 
 Behörigheter att _trigga_ ett runbook (och därmed få Bash- och JavaScript-steg att dispatch:as) är fortfarande `CreateRunbookExecution` / `EditRunbookExecution`.

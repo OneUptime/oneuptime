@@ -25,9 +25,9 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
 import RunbookCredential from "Common/Models/DatabaseModels/RunbookCredential";
 import RunbookCredentialType from "Common/Types/Runbook/RunbookCredentialType";
-import RunbookAgent, {
-  RunbookAgentConnectionStatus,
-} from "Common/Models/DatabaseModels/RunbookAgent";
+import Runner, {
+  RunnerConnectionStatus,
+} from "Common/Models/DatabaseModels/Runner";
 import { JSONArray } from "Common/Types/JSON";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -448,8 +448,8 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
           select: { steps: true },
           requestOptions: {},
         }),
-        ModelAPI.getList<RunbookAgent>({
-          modelType: RunbookAgent,
+        ModelAPI.getList<Runner>({
+          modelType: Runner,
           query: {
             projectId: ProjectUtil.getCurrentProjectId()!,
           },
@@ -507,15 +507,15 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
       setSteps(loaded);
       setCollapsedState(initialCollapsed);
 
-      const result: ListResult<RunbookAgent> = agentList;
+      const result: ListResult<Runner> = agentList;
       setAgents(
-        result.data.map((a: RunbookAgent): AgentOption => {
+        result.data.map((a: Runner): AgentOption => {
           return {
             id: a._id?.toString() || "",
             name: a.name || "Unnamed agent",
             connected:
               (a.connectionStatus as unknown as string) ===
-              RunbookAgentConnectionStatus.Connected,
+              RunnerConnectionStatus.Connected,
           };
         }),
       );
@@ -748,8 +748,8 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
         {agents.length === 0 ? (
           <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
             No Runners in this project yet. Create one under{" "}
-            <strong>Runbooks &rsaquo; Agents</strong>, then come back to pick it
-            here.
+            <strong>Settings &rsaquo; Runners</strong>, then come back to pick
+            it here.
           </div>
         ) : (
           <Dropdown
@@ -821,7 +821,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
         {usable.length === 0 ? (
           <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
             No {args.credentialType} credentials in this project yet. Create one
-            under <strong>Runbooks &rsaquo; Credentials</strong>, assign it to
+            under <strong>Settings &rsaquo; Credentials</strong>, assign it to
             the Runner that will use it, then come back and pick it here.
           </div>
         ) : (

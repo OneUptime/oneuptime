@@ -3,7 +3,7 @@ import RunRunbook from "../../../FeatureSet/Runbook/Services/RunRunbook";
 import CommonAPI from "Common/Server/API/CommonAPI";
 import RunbookService from "Common/Server/Services/RunbookService";
 import RunbookExecutionService from "Common/Server/Services/RunbookExecutionService";
-import RunbookAgentJobService from "Common/Server/Services/RunbookAgentJobService";
+import RunnerJobService from "Common/Server/Services/RunnerJobService";
 import {
   RUNBOOK_ADVANCE_PERMISSIONS,
   RUNBOOK_EXECUTE_PERMISSIONS,
@@ -345,7 +345,7 @@ describe("Runbook execution routes require an authorized member of the runbook's
       .spyOn(RunbookExecutionService, "updateOneById")
       .mockResolvedValue(undefined as never);
     cancelJobsSpy = jest
-      .spyOn(RunbookAgentJobService, "cancelJobsForExecution")
+      .spyOn(RunnerJobService, "cancelJobsForExecution")
       .mockResolvedValue(undefined as never);
   });
 

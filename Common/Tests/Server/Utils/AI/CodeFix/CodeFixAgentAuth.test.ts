@@ -3,23 +3,23 @@ import CodeFixAgentAuth, {
   CodeFixAgentSource,
 } from "../../../../../Server/Utils/AI/CodeFix/CodeFixAgentAuth";
 import AIAgentService from "../../../../../Server/Services/AIAgentService";
-import RunbookAgentService from "../../../../../Server/Services/RunbookAgentService";
+import RunnerService from "../../../../../Server/Services/RunnerService";
 import AIAgent from "../../../../../Models/DatabaseModels/AIAgent";
-import RunbookAgent from "../../../../../Models/DatabaseModels/RunbookAgent";
+import Runner from "../../../../../Models/DatabaseModels/Runner";
 import ObjectID from "../../../../../Types/ObjectID";
 import { describe, expect, test, afterEach } from "@jest/globals";
 
 /*
  * CodeFixAgentAuth resolves the aiAgentId/aiAgentKey pair carried by every
  * code-fix protocol request. It checks the AIAgent registry first, then falls
- * back to the RunbookAgent registry (the unified OneUptime Runner) — but the
+ * back to the Runner registry (the unified OneUptime Runner) — but the
  * Runner path only authenticates when canRunCodeFixTasks === true. These
  * tests lock in that server-side capability enforcement plus the
  * project-scoping rules of deniesAccessToProject.
  */
 
 type AIAgentFindSpy = jest.SpiedFunction<typeof AIAgentService.findOneBy>;
-type RunnerFindSpy = jest.SpiedFunction<typeof RunbookAgentService.findOneBy>;
+type RunnerFindSpy = jest.SpiedFunction<typeof RunnerService.findOneBy>;
 
 const agentId: ObjectID = ObjectID.generate();
 const agentKey: string = "secret-agent-key";
@@ -29,8 +29,8 @@ function mockAIAgentLookup(result: AIAgent | null): AIAgentFindSpy {
   return jest.spyOn(AIAgentService, "findOneBy").mockResolvedValue(result);
 }
 
-function mockRunnerLookup(result: RunbookAgent | null): RunnerFindSpy {
-  return jest.spyOn(RunbookAgentService, "findOneBy").mockResolvedValue(result);
+function mockRunnerLookup(result: Runner | null): RunnerFindSpy {
+  return jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(result);
 }
 
 function fakeAIAgent(): AIAgent {
@@ -42,13 +42,13 @@ function fakeAIAgent(): AIAgent {
 
 function fakeRunner(
   overrides: { canRunCodeFixTasks?: boolean | undefined } = {},
-): RunbookAgent {
+): Runner {
   return {
     id: agentId,
     projectId: projectId,
     canRunCodeFixTasks: true,
     ...overrides,
-  } as unknown as RunbookAgent;
+  } as unknown as Runner;
 }
 
 describe("CodeFixAgentAuth.resolveAgentIdentity", () => {
@@ -97,7 +97,7 @@ describe("CodeFixAgentAuth.resolveAgentIdentity", () => {
     expect(identity).toBeNull();
   });
 
-  test("an AIAgent match wins: returns AIAgent source and never queries RunbookAgentService", async () => {
+  test("an AIAgent match wins: returns AIAgent source and never queries RunnerService", async () => {
     const aiAgentSpy: AIAgentFindSpy = mockAIAgentLookup(fakeAIAgent());
     const runnerSpy: RunnerFindSpy = mockRunnerLookup(fakeRunner());
 

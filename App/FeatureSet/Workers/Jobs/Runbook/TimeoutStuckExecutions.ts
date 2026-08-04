@@ -4,7 +4,7 @@ import { JSONArray, JSONObject } from "Common/Types/JSON";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import RunbookExecutionService from "Common/Server/Services/RunbookExecutionService";
-import RunbookAgentJobService from "Common/Server/Services/RunbookAgentJobService";
+import RunnerJobService from "Common/Server/Services/RunnerJobService";
 import RunbookExecution from "Common/Models/DatabaseModels/RunbookExecution";
 import RunbookExecutionStatus from "Common/Types/Runbook/RunbookExecutionStatus";
 import RunbookStepExecutionStatus from "Common/Types/Runbook/RunbookStepExecutionStatus";
@@ -133,7 +133,7 @@ RunCron(
          * Pending job stays claimable and an agent could start a script for an
          * execution nobody is reading the result of any more.
          */
-        await RunbookAgentJobService.cancelJobsForExecution({
+        await RunnerJobService.cancelJobsForExecution({
           runbookExecutionId: execution.id!,
         });
 

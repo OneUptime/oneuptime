@@ -1,24 +1,24 @@
-import RunbookAgentElement from "./RunbookAgent";
+import RunnerElement from "./Runner";
 import TableColumnListComponent from "Common/UI/Components/TableColumnList/TableColumnListComponent";
-import RunbookAgent from "Common/Models/DatabaseModels/RunbookAgent";
+import Runner from "Common/Models/DatabaseModels/Runner";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
-  runbookAgents: Array<RunbookAgent>;
+  runners: Array<Runner>;
   onNavigateComplete?: (() => void) | undefined;
 }
 
-const RunbookAgentsElement: FunctionComponent<ComponentProps> = (
+const RunnersElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   return (
     <TableColumnListComponent
-      items={props.runbookAgents}
+      items={props.runners}
       moreText="more agents"
-      getEachElement={(runbookAgent: RunbookAgent) => {
+      getEachElement={(runner: Runner) => {
         return (
-          <RunbookAgentElement
-            runbookAgent={runbookAgent}
+          <RunnerElement
+            runner={runner}
             onNavigateComplete={props.onNavigateComplete}
           />
         );
@@ -28,4 +28,4 @@ const RunbookAgentsElement: FunctionComponent<ComponentProps> = (
   );
 };
 
-export default RunbookAgentsElement;
+export default RunnersElement;
