@@ -183,6 +183,7 @@ export default class Register {
           RunnerCapabilities.setGrantedByServer({
             canRunRunbooks: capabilities["canRunRunbooks"] !== false,
             canRunCodeFixTasks: capabilities["canRunCodeFixTasks"] === true,
+            canRunAiCommands: capabilities["canRunAiCommands"] === true,
           });
         }
 
@@ -223,6 +224,7 @@ export default class Register {
         RunnerCapabilities.setGrantedByServer({
           canRunRunbooks: false,
           canRunCodeFixTasks: true,
+          canRunAiCommands: false,
         });
 
         logger.warn(

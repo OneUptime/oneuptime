@@ -3,8 +3,10 @@ import { JOB_HEARTBEAT_INTERVAL_MS, MAX_OUTPUT_BYTES } from "../Config";
 import AgentClient, { ClaimedJob } from "./RunnerClient";
 import SSHExecutor from "./SSHExecutor";
 import KubernetesExecutor from "./KubernetesExecutor";
+import RunnerCapabilities from "../Utils/RunnerCapabilities";
 import logger from "Common/Server/Utils/Logger";
 import VMUtil from "Common/Server/Utils/VM/VMAPI";
+import CommandPolicy from "Common/Utils/AiRemediation/CommandPolicy";
 import ReturnResult from "Common/Types/IsolatedVM/ReturnResult";
 import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
 
@@ -142,6 +144,49 @@ async function runJavaScriptLocally(data: {
 }
 
 async function runJob(job: ClaimedJob): Promise<ExecResult> {
+  /*
+   * Defense in depth for AI-composed command jobs. The server already gates
+   * these on the dashboard capability and validates the command at enqueue,
+   * but this binary runs on the customer's host — so the host's own refusal
+   * (local env override) and the command denylist are re-checked HERE, where
+   * no server compromise can skip them.
+   */
+  if (job.origin === "AiRemediation") {
+    if (!RunnerCapabilities.resolve().canRunAiCommands) {
+      return {
+        success: false,
+        output: "",
+        errorMessage:
+          "This Runner does not accept AI-composed commands (disabled locally or by the dashboard).",
+      };
+    }
+
+    if (
+      job.stepType !== RunbookStepType.Bash &&
+      job.stepType !== RunbookStepType.SSH
+    ) {
+      return {
+        success: false,
+        output: "",
+        errorMessage: `AI-composed jobs may not use step type ${String(job.stepType)}.`,
+      };
+    }
+
+    const command: string =
+      job.stepType === RunbookStepType.Bash
+        ? job.script
+        : String(job.payload?.["command"] || "");
+
+    const denyReason: string | null = CommandPolicy.getDenyReason(command);
+    if (denyReason) {
+      return {
+        success: false,
+        output: "",
+        errorMessage: `Refused by the Runner's command policy: ${denyReason}.`,
+      };
+    }
+  }
+
   if (job.stepType === RunbookStepType.JavaScript) {
     return runJavaScriptLocally({
       script: job.script,

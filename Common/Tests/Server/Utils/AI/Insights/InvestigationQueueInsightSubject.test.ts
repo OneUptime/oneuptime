@@ -180,7 +180,10 @@ describe("AIInvestigationQueue — lane priority (triage never starves RCA)", ()
   function mockRunningCounts(counts: {
     total: number;
     triage: number;
-    // Running RemediationPlan runs — the other background-lane kind.
+    /*
+     * Running remediation runs (RemediationPlan + RemediationExecution) —
+     * the other background-lane kind.
+     */
     plans?: number;
   }): jest.SpyInstance {
     return jest
@@ -195,8 +198,16 @@ describe("AIInvestigationQueue — lane priority (triage never starves RCA)", ()
         const isTriageLaneQuery: boolean =
           query["triggeredByAiInsightId"] !== undefined;
 
+        /*
+         * Both the global and the remediation-lane counts filter runType
+         * with QueryHelper.any(...), so they are told apart by what is IN
+         * the list: only the global one counts Investigations.
+         */
+        const runTypeFilter: string = JSON.stringify(query["runType"] ?? null);
+
         const isPlanLaneQuery: boolean =
-          query["runType"] === AIRunType.RemediationPlan;
+          runTypeFilter.includes(AIRunType.RemediationPlan) &&
+          !runTypeFilter.includes(AIRunType.Investigation);
 
         if (isTriageLaneQuery) {
           return Promise.resolve(new PositiveNumber(counts.triage));

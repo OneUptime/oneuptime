@@ -11,6 +11,12 @@ import { AlertFeedEventType } from "../../../../Models/DatabaseModels/AlertFeed"
 import { IncidentFeedEventType } from "../../../../Models/DatabaseModels/IncidentFeed";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import AutoRemediationSuggestionStatus from "../../../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
+import AutoRemediationSuggestionType from "../../../../Types/AutoRemediation/AutoRemediationSuggestionType";
+import {
+  AiRemediationCommand,
+  AiRemediationCommandPlan,
+  AiRemediationCommandPlanUtil,
+} from "../../../../Types/AutoRemediation/AiRemediationCommandPlan";
 import { Indigo500 } from "../../../../Types/BrandColors";
 import AIRunService from "../../../Services/AIRunService";
 import AlertFeedService from "../../../Services/AlertFeedService";
@@ -89,7 +95,7 @@ SelectedRunbook: <id>
 where <id> is the exact id of one candidate runbook from the list below, or the word none.`;
 
 // Escape any attempt by embedded text to close its own untrusted frame.
-function escapeUntrustedContext(text: string): string {
+export function escapeUntrustedContext(text: string): string {
   return text.replace(/<\/(untrusted_context)/gi, "<\\/$1");
 }
 
@@ -103,8 +109,10 @@ function capText(text: string, maxChars: number): string {
 /*
  * Redact secrets, THEN cap. Order matters: capping first could slice a
  * secret across the boundary so the redaction regex no longer matches it.
+ * Exported for the remediation-execution runner, which embeds the same
+ * attacker-influenceable signal text under the same rules.
  */
-function redactAndCap(text: string, maxChars: number): string {
+export function redactAndCap(text: string, maxChars: number): string {
   return capText(ToolResultSerializer.redact(text).text, maxChars);
 }
 
@@ -669,6 +677,9 @@ export default class RemediationPlanRunner {
           aiRunId: true,
           ruleNameSnapshot: true,
           createdAt: true,
+          suggestionType: true,
+          commandPlan: true,
+          verificationWindowMinutes: true,
         },
         limit: 100,
         skip: 0,
@@ -681,6 +692,39 @@ export default class RemediationPlanRunner {
 
         if (!reason) {
           continue;
+        }
+
+        /*
+         * A stranded CommandPlan suggestion whose run already EXECUTED
+         * commands (the toolkit persists them before they run) must not be
+         * settled as "nothing happened" — settle it as AutoExecuted with a
+         * verification window so the verifier still judges what ran.
+         */
+        if (
+          suggestion.suggestionType ===
+          AutoRemediationSuggestionType.CommandPlan
+        ) {
+          const persistedPlan: AiRemediationCommandPlan | null =
+            AiRemediationCommandPlanUtil.parse(suggestion.commandPlan);
+
+          if (
+            persistedPlan &&
+            persistedPlan.commands.some(
+              (command: AiRemediationCommand): boolean => {
+                return command.execution !== undefined;
+              },
+            )
+          ) {
+            const remediationExecutionRunner: typeof import("./RemediationExecutionRunner").default =
+              // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+              require("./RemediationExecutionRunner").default;
+
+            await remediationExecutionRunner.settleInterruptedExecution({
+              suggestion,
+              reason,
+            });
+            continue;
+          }
         }
 
         const transitioned: number =

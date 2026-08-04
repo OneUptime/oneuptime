@@ -15,6 +15,16 @@ enum AIRunType {
    * rules, which never involve the AI).
    */
   RemediationPlan = "RemediationPlan",
+  /*
+   * An auto-remediation run that COMPOSES commands instead of picking a
+   * runbook (rules with aiComposesCommands). In Suggest mode it
+   * investigates read-only and proposes a command plan for one-click
+   * approval; in FullAuto mode it may also execute commands inline, but
+   * only ones that match the rule's operator-authored allowlist and pass
+   * the structural policy guard. Requires Project.enableAiCommandExecution
+   * and a target Runner with canRunAiCommands.
+   */
+  RemediationExecution = "RemediationExecution",
 }
 
 export default AIRunType;

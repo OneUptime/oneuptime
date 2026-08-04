@@ -84,6 +84,15 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
             defaultValue: false,
           },
           {
+            field: { canRunAiCommands: true },
+            title: "Runs AI Remediation Commands",
+            description:
+              "Let AI auto-remediation execute policy-checked commands on this Runner. Off by default — commands either match the rule's allowlist or wait for one-click human approval, and destructive commands are always refused. Takes effect on the Runner's next heartbeat, no restart needed.",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            defaultValue: false,
+          },
+          {
             field: { labels: true },
             title: "Labels",
             description:
@@ -133,6 +142,11 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
             {
               field: { canRunCodeFixTasks: true },
               title: "Runs AI Code Fixes",
+              fieldType: FieldType.Boolean,
+            },
+            {
+              field: { canRunAiCommands: true },
+              title: "Runs AI Remediation Commands",
               fieldType: FieldType.Boolean,
             },
             {

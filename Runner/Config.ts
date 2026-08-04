@@ -100,6 +100,14 @@ export const ENABLE_CODE_FIXES_OVERRIDE: boolean | null =
   parseCapabilityOverride(process.env["ONEUPTIME_RUNNER_ENABLE_CODE_FIXES"]);
 
 /*
+ * Local narrow-only override for AI-composed remediation commands. Like the
+ * others, only "false" has an effect: the capability itself is granted (or
+ * not) by the project's dashboard toggle, and env can only refuse it.
+ */
+export const ENABLE_AI_COMMANDS_OVERRIDE: boolean | null =
+  parseCapabilityOverride(process.env["ONEUPTIME_RUNNER_ENABLE_AI_COMMANDS"]);
+
+/*
  * What a cluster-scoped Runner runs, where no dashboard row exists to consult.
  * Code fixes are the only work it can do — runbook steps target a Runner a
  * human picked in a project — so they are ON unless explicitly turned off.

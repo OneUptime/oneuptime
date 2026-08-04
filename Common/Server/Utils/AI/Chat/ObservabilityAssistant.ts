@@ -5,7 +5,7 @@ import { JSONObject } from "../../../../Types/JSON";
 import { AIChatCitation } from "../../../../Types/AI/AIChatTypes";
 import AIService, { AILogResponse } from "../../../Services/AIService";
 import logger from "../../Logger";
-import { LLMMessage } from "../../LLM/LLMService";
+import { LLMMessage, LLMToolDefinition } from "../../LLM/LLMService";
 import AIToolbox, { ToolCallOutcome } from "../Toolbox/Index";
 import { ToolContext } from "../Toolbox/ToolTypes";
 import AIChatPermissionMode from "../../../../Types/AI/AIChatPermissionMode";
@@ -91,6 +91,25 @@ export interface ObservabilityAssistantRequest {
    * failing handler should not break the run.
    */
   onStep?: ((step: ObservabilityAssistantStep) => Promise<void>) | undefined;
+  /*
+   * Run-scoped tools offered to the model IN ADDITION to the read-only
+   * toolbox. The registered toolbox stays authoritative for its own names —
+   * an extra tool can never shadow a registered one.
+   */
+  extraTools?: Array<ObservabilityAssistantExtraTool> | undefined;
+}
+
+/*
+ * A caller-supplied tool grafted onto the loop for one run — how the AI
+ * remediation-execution runner adds its command tools without registering
+ * them in the global chat toolbox (where every conversation would see them).
+ * The execute callback owns its own authorization and timeouts; the loop
+ * wraps it in a catch so a throw becomes a self-correctable error envelope
+ * for the model, never a crashed run.
+ */
+export interface ObservabilityAssistantExtraTool {
+  definition: LLMToolDefinition;
+  execute: (args: JSONObject) => Promise<ToolCallOutcome>;
 }
 
 export interface ObservabilityAssistantResult {
@@ -143,6 +162,18 @@ export default class ObservabilityAssistant {
       projectId: request.projectId,
       props: request.props,
     };
+
+    /*
+     * Registered toolbox names win over extra tools so a run-scoped tool can
+     * never intercept (and man-in-the-middle) a registered tool's calls.
+     */
+    const extraToolsByName: Map<string, ObservabilityAssistantExtraTool> =
+      new Map();
+    for (const extraTool of request.extraTools || []) {
+      if (!AIToolbox.getToolByName(extraTool.definition.name)) {
+        extraToolsByName.set(extraTool.definition.name, extraTool);
+      }
+    }
 
     let systemPromptContent: string = buildObservabilityChatSystemPrompt({
       currentTime: OneUptimeDate.getCurrentDate(),
@@ -204,7 +235,14 @@ export default class ObservabilityAssistant {
         messages: messages,
         tools: budgetExhausted
           ? undefined
-          : AIToolbox.getLlmToolDefinitions(AIChatPermissionMode.ReadOnly),
+          : [
+              ...AIToolbox.getLlmToolDefinitions(AIChatPermissionMode.ReadOnly),
+              ...Array.from(extraToolsByName.values()).map(
+                (extraTool: ObservabilityAssistantExtraTool) => {
+                  return extraTool.definition;
+                },
+              ),
+            ],
         maxTokens: maxOutputTokens,
         temperature: TEMPERATURE,
         // Chat-ops content is per-user — do not persist previews to LlmLog.
@@ -269,11 +307,29 @@ export default class ObservabilityAssistant {
             toolArguments: toolCall.arguments,
           });
 
-          const outcome: ToolCallOutcome = await AIToolbox.executeTool({
-            name: toolCall.name,
-            args: toolCall.arguments,
-            ctx: toolContext,
-          });
+          const extraTool: ObservabilityAssistantExtraTool | undefined =
+            extraToolsByName.get(toolCall.name);
+
+          let outcome: ToolCallOutcome;
+          if (extraTool) {
+            try {
+              outcome = await extraTool.execute(toolCall.arguments);
+            } catch (err) {
+              const errorMessage: string =
+                err instanceof Error ? err.message : String(err);
+              outcome = {
+                success: false,
+                textForLlm: `Error executing ${toolCall.name}: ${errorMessage}. Adjust the arguments and try again, or answer with the data you already have.`,
+                errorMessage: errorMessage,
+              };
+            }
+          } else {
+            outcome = await AIToolbox.executeTool({
+              name: toolCall.name,
+              args: toolCall.arguments,
+              ctx: toolContext,
+            });
+          }
 
           if (!outcome.success || !outcome.result) {
             await emitStep({

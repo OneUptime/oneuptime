@@ -13,7 +13,13 @@ import RunbookExecution from "../../../Models/DatabaseModels/RunbookExecution";
 import { AlertFeedEventType } from "../../../Models/DatabaseModels/AlertFeed";
 import { IncidentFeedEventType } from "../../../Models/DatabaseModels/IncidentFeed";
 import AutoRemediationSuggestionStatus from "../../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
+import AutoRemediationSuggestionType from "../../../Types/AutoRemediation/AutoRemediationSuggestionType";
 import AutoRemediationVerificationStatus from "../../../Types/AutoRemediation/AutoRemediationVerificationStatus";
+import {
+  AiRemediationCommandPlan,
+  AiRemediationCommandPlanUtil,
+  AiRemediationPlanExecutionStatus,
+} from "../../../Types/AutoRemediation/AiRemediationCommandPlan";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import RunbookExecutionStatus from "../../../Types/Runbook/RunbookExecutionStatus";
 import { Green500, Red500 } from "../../../Types/BrandColors";
@@ -31,6 +37,7 @@ import IncidentStateTimelineService from "../../Services/IncidentStateTimelineSe
 import MonitorService from "../../Services/MonitorService";
 import MonitorStatusService from "../../Services/MonitorStatusService";
 import RunbookExecutionService from "../../Services/RunbookExecutionService";
+import CommandPlanExecutor from "./CommandPlanExecutor";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 
@@ -90,6 +97,9 @@ export default class RemediationVerifier {
           incidentId: true,
           alertId: true,
           runbookExecutionId: true,
+          suggestionType: true,
+          commandPlan: true,
+          aiRunId: true,
           verificationDeadlineAt: true,
           autoResolveOnRecovery: true,
           ruleNameSnapshot: true,
@@ -134,6 +144,20 @@ export default class RemediationVerifier {
             outcome,
           });
         }
+
+        /*
+         * G2's undo arm: a FAILED command-plan remediation rolls back the
+         * commands that ran (the ones carrying a rollbackCommand). Fired
+         * only after this sweep WON the verification CAS, so exactly one
+         * replica ever rolls back a given suggestion.
+         */
+        if (
+          outcome.status === AutoRemediationVerificationStatus.Failed &&
+          suggestion.suggestionType ===
+            AutoRemediationSuggestionType.CommandPlan
+        ) {
+          await CommandPlanExecutor.executeRollback({ suggestion });
+        }
       } catch (error) {
         logger.error(
           `RemediationVerifier: failed to verify suggestion ${suggestion.id?.toString()}: ${error}`,
@@ -149,6 +173,16 @@ export default class RemediationVerifier {
   private static async evaluate(
     suggestion: AutoRemediationSuggestion,
   ): Promise<VerificationOutcome | null> {
+    /*
+     * Command-plan suggestions have no runbook execution — their execution
+     * record IS the plan persisted on the suggestion.
+     */
+    if (
+      suggestion.suggestionType === AutoRemediationSuggestionType.CommandPlan
+    ) {
+      return this.evaluateCommandPlan(suggestion);
+    }
+
     const runbookName: string = suggestion.runbookNameSnapshot || "Runbook";
 
     if (!suggestion.runbookExecutionId) {
@@ -258,6 +292,105 @@ export default class RemediationVerifier {
       return {
         status: AutoRemediationVerificationStatus.Failed,
         note: `Runbook "${runbookName}" completed but the service did not recover within the verification window — escalation continues as normal.`,
+        pingWorkspace: true,
+        displayColor: Red500,
+        shouldAutoResolve: false,
+      };
+    }
+
+    return null;
+  }
+
+  /*
+   * The command-plan twin of the runbook evaluation. Same decision shape:
+   * the plan's execution state plays the role of the runbook execution
+   * status, and recovery is judged by the same subject-resolved /
+   * monitors-operational checks. A Failed outcome triggers the rollback
+   * arm in the caller.
+   */
+  private static async evaluateCommandPlan(
+    suggestion: AutoRemediationSuggestion,
+  ): Promise<VerificationOutcome | null> {
+    const plan: AiRemediationCommandPlan | null =
+      AiRemediationCommandPlanUtil.parse(suggestion.commandPlan);
+
+    if (!plan) {
+      return {
+        status: AutoRemediationVerificationStatus.Skipped,
+        note: "No command plan was recorded for this suggestion.",
+        pingWorkspace: false,
+        displayColor: Red500,
+        shouldAutoResolve: false,
+      };
+    }
+
+    const deadlinePassed: boolean = suggestion.verificationDeadlineAt
+      ? suggestion.verificationDeadlineAt.getTime() <
+        OneUptimeDate.getCurrentDate().getTime()
+      : false;
+
+    if (plan.executionStatus === AiRemediationPlanExecutionStatus.Failed) {
+      return {
+        status: AutoRemediationVerificationStatus.Failed,
+        note: "The AI command plan did not complete — a command failed. Executed commands with a rollback are being rolled back.",
+        pingWorkspace: true,
+        displayColor: Red500,
+        shouldAutoResolve: false,
+      };
+    }
+
+    if (plan.executionStatus !== AiRemediationPlanExecutionStatus.Completed) {
+      // NotStarted / Running — the executor may have died mid-plan.
+      if (deadlinePassed) {
+        return {
+          status: AutoRemediationVerificationStatus.Failed,
+          note: "The AI command plan did not complete within the verification window.",
+          pingWorkspace: true,
+          displayColor: Red500,
+          shouldAutoResolve: false,
+        };
+      }
+      return null;
+    }
+
+    // The plan completed — did the subject actually recover?
+    if (await this.isSubjectResolved(suggestion)) {
+      return {
+        status: AutoRemediationVerificationStatus.Verified,
+        note: `The ${suggestion.incidentId ? "incident" : "alert"} was resolved within the verification window.`,
+        pingWorkspace: false,
+        displayColor: Green500,
+        shouldAutoResolve: false,
+      };
+    }
+
+    const monitorsOperational: boolean | null =
+      await this.areSubjectMonitorsOperational(suggestion);
+
+    if (monitorsOperational === null) {
+      return {
+        status: AutoRemediationVerificationStatus.Skipped,
+        note: "There are no monitors to verify recovery against.",
+        pingWorkspace: false,
+        displayColor: Green500,
+        shouldAutoResolve: false,
+      };
+    }
+
+    if (monitorsOperational) {
+      return {
+        status: AutoRemediationVerificationStatus.Verified,
+        note: "The AI command remediation completed and the monitor(s) returned to an operational state within the verification window.",
+        pingWorkspace: true,
+        displayColor: Green500,
+        shouldAutoResolve: suggestion.autoResolveOnRecovery === true,
+      };
+    }
+
+    if (deadlinePassed) {
+      return {
+        status: AutoRemediationVerificationStatus.Failed,
+        note: "The AI command remediation completed but the service did not recover within the verification window — executed commands with a rollback are being rolled back, and escalation continues as normal.",
         pingWorkspace: true,
         displayColor: Red500,
         shouldAutoResolve: false,
@@ -386,7 +519,12 @@ export default class RemediationVerifier {
   private static async systemResolveSubject(
     suggestion: AutoRemediationSuggestion,
   ): Promise<void> {
-    const rootCause: string = `Auto-resolved by auto-remediation: runbook "${suggestion.runbookNameSnapshot || "Runbook"}" (rule "${suggestion.ruleNameSnapshot || "Auto Remediation Rule"}") completed and the monitor(s) recovered within the verification window.`;
+    const remediationDescription: string =
+      suggestion.suggestionType === AutoRemediationSuggestionType.CommandPlan
+        ? "the AI command remediation"
+        : `runbook "${suggestion.runbookNameSnapshot || "Runbook"}"`;
+
+    const rootCause: string = `Auto-resolved by auto-remediation: ${remediationDescription} (rule "${suggestion.ruleNameSnapshot || "Auto Remediation Rule"}") completed and the monitor(s) recovered within the verification window.`;
 
     try {
       if (suggestion.incidentId && suggestion.projectId) {

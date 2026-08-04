@@ -95,7 +95,9 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     logger.info(
       `Runner registered | runnerId=${RunnerIdentity.getRunnerId().toString()} | runbooks=${
         capabilities.canRunRunbooks ? "on" : "off"
-      } | codeFixes=${capabilities.canRunCodeFixTasks ? "on" : "off"}`,
+      } | codeFixes=${capabilities.canRunCodeFixTasks ? "on" : "off"} | aiCommands=${
+        capabilities.canRunAiCommands ? "on" : "off"
+      }`,
       { serviceName: APP_NAME } as LogAttributes,
     );
 
@@ -106,7 +108,11 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
      * would restart-loop it into looking permanently offline, which is the
      * opposite of the signal they need.
      */
-    if (!capabilities.canRunRunbooks && !capabilities.canRunCodeFixTasks) {
+    if (
+      !capabilities.canRunRunbooks &&
+      !capabilities.canRunCodeFixTasks &&
+      !capabilities.canRunAiCommands
+    ) {
       logger.error(
         IS_CLUSTER_SCOPED
           ? "No capability is enabled — this cluster-scoped Runner has nothing to do. Set ONEUPTIME_RUNNER_ENABLE_CODE_FIXES=true, or install a project-scoped Runner to execute runbooks."

@@ -1,7 +1,9 @@
 import { MAX_CONCURRENT_JOBS, POLL_INTERVAL_MS } from "../Config";
 import AgentClient, { ClaimedJob } from "../Services/RunnerClient";
 import Executor from "../Services/RunbookExecutor";
-import RunnerCapabilities from "../Utils/RunnerCapabilities";
+import RunnerCapabilities, {
+  RunnerCapabilitySet,
+} from "../Utils/RunnerCapabilities";
 import logger from "Common/Server/Utils/Logger";
 
 export default function startPolling(): void {
@@ -37,8 +39,14 @@ export default function startPolling(): void {
      * so revoking runbook execution stops this loop claiming within a
      * heartbeat — and granting it starts claiming without a restart. Claims
      * already in flight are left to finish and report.
+     *
+     * AI command jobs travel through the same claim endpoint, so either
+     * capability keeps the loop polling; the server decides which job
+     * origins this Runner's grants entitle it to, and the executor re-checks
+     * the local capability per job.
      */
-    if (!RunnerCapabilities.resolve().canRunRunbooks) {
+    const capabilities: RunnerCapabilitySet = RunnerCapabilities.resolve();
+    if (!capabilities.canRunRunbooks && !capabilities.canRunAiCommands) {
       return;
     }
 

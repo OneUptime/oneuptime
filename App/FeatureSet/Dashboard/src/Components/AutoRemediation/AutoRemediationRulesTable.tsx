@@ -12,9 +12,10 @@ import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
+import Runner from "Common/Models/DatabaseModels/Runner";
 import AutoRemediationExecutionMode from "Common/Types/AutoRemediation/AutoRemediationExecutionMode";
 import AutoRemediationTriggerEntity from "Common/Types/AutoRemediation/AutoRemediationTriggerEntity";
-import { Blue, Green, Red, Yellow } from "Common/Types/BrandColors";
+import { Blue, Green, Purple, Red, Yellow } from "Common/Types/BrandColors";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -48,6 +49,15 @@ A rule matches when **all** specified criteria pass. Empty criteria are skipped.
 ### Let AI Pick the Runbook
 
 Instead of always proposing the same runbook, the AI reads the ${entityLabel} and the surrounding telemetry, then picks the most applicable runbook from the attached candidates (or all enabled runbooks when none are attached) — or proposes nothing when none applies. AI-picked runbooks are **always suggest-only**: they never run without human approval, regardless of the execution mode.
+
+### Let AI Compose Commands
+
+When enabled (it wins over "Let AI Pick the Runbook"), the AI diagnoses the ${entityLabel} and composes a plan of Bash/SSH commands for opted-in Runners instead of picking a runbook. It requires the project's **Enable AI Command Execution** setting and at least one Runner with **Runs AI Remediation Commands** turned on; the Command Runners field narrows which Runners the AI may target (empty means any opted-in Runner).
+
+- **Approval flow** — in Suggest mode the whole plan waits for one-click human approval. In Full Auto mode, a command auto-executes only when it matches a Command Allowlist pattern **and** contains no shell chaining (no \`;\`, \`&\`, \`|\`, backticks or command substitution); everything else in the plan still waits for approval.
+- **Command Allowlist** — operator-authored glob patterns like \`systemctl restart *\`. An empty allowlist means nothing auto-executes: every command requires approval.
+- **Built-in denylist** — destructive commands (\`rm -rf\`, \`mkfs\`, \`shutdown\`, piping downloads into a shell, and similar) are refused outright, even with human approval.
+- **Verification + rollback** — after the plan runs, the verification window below checks that the monitors recover. Each command can carry a rollback command, and rollback status is tracked on the suggestion if the plan has to be unwound.
 
 ### Guardrails
 
@@ -87,7 +97,11 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
       }}
       sortBy="name"
       sortOrder={SortOrder.Ascending}
-      selectMoreFields={{ isEnabled: true, aiSelectsRunbook: true }}
+      selectMoreFields={{
+        isEnabled: true,
+        aiSelectsRunbook: true,
+        aiComposesCommands: true,
+      }}
       filters={[
         { field: { name: true }, title: "Name", type: FieldType.Text },
         {
@@ -103,6 +117,14 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
           title: "Mode",
           type: FieldType.Text,
           getElement: (item: AutoRemediationRule): ReactElement => {
+            if (item.aiComposesCommands) {
+              return item.executionMode ===
+                AutoRemediationExecutionMode.FullAuto ? (
+                <Pill color={Purple} text="AI Commands (Full Auto)" />
+              ) : (
+                <Pill color={Purple} text="AI Commands (Suggest)" />
+              );
+            }
             if (item.aiSelectsRunbook) {
               return <Pill color={Blue} text="AI Suggest" />;
             }
@@ -273,6 +295,40 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
             "The AI reads the telemetry and picks the most applicable runbook — or proposes nothing when none applies. AI-picked runbooks are always suggest-only.",
           fieldType: FormFieldSchemaType.Toggle,
           required: false,
+        },
+        {
+          field: { aiComposesCommands: true },
+          title: "Let AI Compose Commands",
+          stepId: "remediation",
+          description:
+            "Instead of picking a runbook, the AI diagnoses the issue and composes Bash/SSH commands for opted-in Runners. Suggest proposes the plan for one-click approval; Full Auto executes only commands matching the allowlist below. Requires the project's Enable AI Command Execution setting and at least one Runner with Runs AI Remediation Commands.",
+          fieldType: FormFieldSchemaType.Toggle,
+          required: false,
+        },
+        {
+          field: { commandAllowlist: true },
+          title: "Command Allowlist",
+          stepId: "remediation",
+          description:
+            "One glob pattern per entry, e.g. systemctl restart *. Only matching, chain-free commands auto-execute under Full Auto. Leave empty to require approval for every command.",
+          fieldType: FormFieldSchemaType.JSON,
+          required: false,
+          placeholder: '["systemctl restart *", "kubectl rollout restart *"]',
+        },
+        {
+          field: { commandRunners: true },
+          title: "Command Runners",
+          stepId: "remediation",
+          description:
+            "Which Runners the AI may target with composed commands. Leave empty to allow any Runner with AI commands enabled.",
+          fieldType: FormFieldSchemaType.MultiSelectDropdown,
+          dropdownModal: {
+            type: Runner,
+            labelField: "name",
+            valueField: "_id",
+          },
+          required: false,
+          placeholder: "Select Runners (optional)",
         },
         {
           field: { executionMode: true },
