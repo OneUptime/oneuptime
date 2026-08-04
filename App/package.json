@@ -56,7 +56,7 @@
     "ts-node": "^10.9.1",
     "twilio": "^4.20.0",
     "ws": "^8.21.0",
-    "xml-crypto": "^3.2.0"
+    "xml-crypto": "^6.1.2"
   },
   "devDependencies": {
     "@types/jest": "^29.5.11",
