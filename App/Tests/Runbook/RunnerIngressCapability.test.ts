@@ -338,6 +338,7 @@ describe("Runner capability enforcement on the agent ingress", () => {
         capabilities: {
           canRunRunbooks: true,
           canRunCodeFixTasks: false,
+          canRunAiCommands: false,
         },
       });
     });
@@ -353,6 +354,7 @@ describe("Runner capability enforcement on the agent ingress", () => {
         capabilities: {
           canRunRunbooks: true,
           canRunCodeFixTasks: true,
+          canRunAiCommands: false,
         },
       });
     });
@@ -375,6 +377,7 @@ describe("Runner capability enforcement on the agent ingress", () => {
         capabilities: {
           canRunRunbooks: false,
           canRunCodeFixTasks: true,
+          canRunAiCommands: false,
         },
       });
     });

@@ -110,6 +110,47 @@ const AIBillingSettings: FunctionComponent<
         }}
       />
 
+      {/* Enable AI Command Execution */}
+      <CardModelDetail
+        name="Enable AI Command Execution"
+        cardProps={{
+          title: "Enable AI Command Execution",
+          description:
+            "Allow auto-remediation rules to let the AI compose and run commands on opted-in Runners.",
+        }}
+        isEditable={true}
+        editButtonText="Edit AI Command Execution Settings"
+        formFields={[
+          {
+            field: {
+              enableAiCommandExecution: true,
+            },
+            title: "Enable AI Command Execution",
+            description:
+              "Allow auto-remediation rules to let the AI compose and run commands on opted-in Runners. This is off by default. Every command is policy-checked, and it only runs if it matches an operator-defined allowlist or receives one-click human approval.",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+          },
+        ]}
+        modelDetailProps={{
+          modelType: Project,
+          id: "enable-ai-command-execution",
+          fields: [
+            {
+              field: {
+                enableAiCommandExecution: true,
+              },
+              fieldType: FieldType.Boolean,
+              title: "Enable AI Command Execution",
+              placeholder: "Not Enabled",
+              description:
+                "Allow auto-remediation rules to let the AI compose and run commands on opted-in Runners. Off by default. Commands are policy-checked and require either an operator allowlist match or one-click human approval.",
+            },
+          ],
+          modelId: ProjectUtil.getCurrentProjectId()!,
+        }}
+      />
+
       {/* Auto Recharge */}
       <CardModelDetail
         name="Auto Recharge"

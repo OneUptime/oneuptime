@@ -3,9 +3,20 @@ import ObjectID from "../../Types/ObjectID";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Model from "../../Models/DatabaseModels/RunnerJob";
 import RunnerJobStatus from "../../Types/Runbook/RunnerJobStatus";
+import RunnerJobOrigin from "../../Types/Runbook/RunnerJobOrigin";
 import RunbookStepType, {
   isRunnerExecutedStepType,
 } from "../../Types/Runbook/RunbookStepType";
+import { AI_COMMAND_STEP_TYPES } from "../../Types/AutoRemediation/AiRemediationCommandPlan";
+import CommandPolicy from "../../Utils/AiRemediation/CommandPolicy";
+import QueryHelper from "../Types/Database/QueryHelper";
+
+/*
+ * Project-wide hourly ceiling on AI-composed command jobs, counted on the
+ * RunnerJob rows themselves so every path (FullAuto inline execution,
+ * approved plans, rollbacks) shares one brake.
+ */
+export const MAX_AI_COMMAND_JOBS_PER_PROJECT_PER_HOUR: number = 30;
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../Types/Date";
 import { JSONObject } from "../../Types/JSON";
@@ -103,12 +114,120 @@ export class Service extends DatabaseService<Model> {
     const row: Model = new Model();
     row.projectId = data.projectId;
     row.runbookExecutionId = data.runbookExecutionId;
+    row.origin = RunnerJobOrigin.Runbook;
     row.stepId = data.stepId;
     row.stepType = data.stepType;
     row.targetAgentId = data.targetAgentId;
     row.script = data.script;
     if (data.payload) {
       row.payload = data.payload;
+    }
+    row.timeoutInMs = data.timeoutInMs;
+    row.status = RunnerJobStatus.Pending;
+    row.claimDeadlineAt = claimDeadlineAt;
+
+    return this.create({ data: row, props: { isRoot: true } });
+  }
+
+  /*
+   * Enqueue an ad-hoc AI-composed command as an AiRemediation-origin job.
+   * This is a server-side chokepoint on the path an LLM's output takes to a
+   * shell, so it re-validates what the tool layer already checked: step
+   * type and the hard command denylist. The claim path then only serves
+   * these jobs to Runners whose canRunAiCommands capability is on.
+   */
+  @CaptureSpan()
+  public async enqueueAiCommand(data: {
+    projectId: ObjectID;
+    aiRunId: ObjectID;
+    autoRemediationSuggestionId: ObjectID;
+    stepId: string;
+    stepType: RunbookStepType;
+    targetAgentId: ObjectID;
+    command: string;
+    credentialId?: string | undefined;
+    timeoutInMs: number;
+    claimTimeoutInMs?: number | undefined;
+  }): Promise<Model> {
+    if (!data.targetAgentId) {
+      throw new BadDataException(
+        "targetAgentId is required to dispatch a command to a Runner.",
+      );
+    }
+
+    if (!AI_COMMAND_STEP_TYPES.includes(data.stepType)) {
+      throw new BadDataException(
+        `AI remediation does not execute step type "${data.stepType}".`,
+      );
+    }
+
+    const command: string = (data.command || "").trim();
+    if (!command) {
+      throw new BadDataException("An AI command job needs a command.");
+    }
+
+    const denyReason: string | null = CommandPolicy.getDenyReason(command);
+    if (denyReason) {
+      throw new BadDataException(
+        `Denied by the remediation command policy: ${denyReason}.`,
+      );
+    }
+
+    if (data.stepType === RunbookStepType.SSH && !data.credentialId) {
+      throw new BadDataException("An SSH command job needs a credentialId.");
+    }
+
+    /*
+     * Project-wide hourly storm brake for the whole AI-command lane. It
+     * lives HERE, at the single enqueue chokepoint, so it also bounds the
+     * approved-plan and rollback paths — not just the FullAuto inline tool
+     * that has its own pre-check for a friendlier message to the model.
+     * Check-then-act, so a burst of concurrent runs can overshoot slightly;
+     * the cap is a storm brake, not a quota.
+     */
+    const jobsInLastHour: number = (
+      await this.countBy({
+        query: {
+          projectId: data.projectId,
+          origin: RunnerJobOrigin.AiRemediation,
+          createdAt: QueryHelper.greaterThan(OneUptimeDate.getSomeHoursAgo(1)),
+        },
+        props: { isRoot: true },
+      })
+    ).toNumber();
+
+    if (jobsInLastHour >= MAX_AI_COMMAND_JOBS_PER_PROJECT_PER_HOUR) {
+      throw new BadDataException(
+        `This project has run ${jobsInLastHour} AI remediation commands in the last hour, which is its limit (${MAX_AI_COMMAND_JOBS_PER_PROJECT_PER_HOUR}). No further AI commands can run this hour.`,
+      );
+    }
+
+    const claimDeadlineAt: Date = OneUptimeDate.addRemoveSeconds(
+      OneUptimeDate.getCurrentDate(),
+      Math.ceil((data.claimTimeoutInMs ?? DEFAULT_CLAIM_TIMEOUT_MS) / 1000),
+    );
+
+    const row: Model = new Model();
+    row.projectId = data.projectId;
+    row.origin = RunnerJobOrigin.AiRemediation;
+    row.aiRunId = data.aiRunId;
+    row.autoRemediationSuggestionId = data.autoRemediationSuggestionId;
+    row.stepId = data.stepId;
+    row.stepType = data.stepType;
+    row.targetAgentId = data.targetAgentId;
+    /*
+     * Same layout the runbook step executors use: Bash carries the command
+     * as the script; SSH carries an empty script plus structured payload,
+     * and the credential is resolved at claim time — never stored here.
+     */
+    if (data.stepType === RunbookStepType.Bash) {
+      row.script = command;
+    } else {
+      row.script = "";
+      row.payload = {
+        credentialId: data.credentialId as string,
+        command: command,
+      };
     }
     row.timeoutInMs = data.timeoutInMs;
     row.status = RunnerJobStatus.Pending;
@@ -168,6 +287,12 @@ export class Service extends DatabaseService<Model> {
     agentId: ObjectID;
     projectId: ObjectID;
     leaseMs?: number | undefined;
+    /*
+     * Which job origins this Runner's capabilities entitle it to claim.
+     * Defaults to runbook jobs only — the AiRemediation origin must be
+     * asked for explicitly by the ingress after checking canRunAiCommands.
+     */
+    allowedOrigins?: Array<RunnerJobOrigin> | undefined;
   }): Promise<Model | null> {
     const dataSource: ReturnType<typeof PostgresAppInstance.getDataSource> =
       PostgresAppInstance.getDataSource();
@@ -178,12 +303,18 @@ export class Service extends DatabaseService<Model> {
 
     const leaseMs: number = data.leaseMs ?? DEFAULT_LEASE_MS;
 
+    const allowedOrigins: Array<RunnerJobOrigin> =
+      data.allowedOrigins && data.allowedOrigins.length > 0
+        ? data.allowedOrigins
+        : [RunnerJobOrigin.Runbook];
+
     const sql: string = `
       WITH claimed AS (
         SELECT "_id" FROM "RunnerJob"
         WHERE "projectId" = $1::uuid
           AND "status" = $2
           AND "targetAgentId" = $3::uuid
+          AND "origin" = ANY($6::text[])
           AND "claimDeadlineAt" > NOW()
           AND "deletedAt" IS NULL
         ORDER BY "createdAt" ASC
@@ -199,9 +330,11 @@ export class Service extends DatabaseService<Model> {
           "version" = j."version" + 1
       FROM claimed
       WHERE j."_id" = claimed."_id"
-      RETURNING j."_id", j."projectId", j."runbookExecutionId",
+      RETURNING j."_id", j."projectId", j."runbookExecutionId", j."origin",
+                j."aiRunId", j."autoRemediationSuggestionId",
                 j."stepId", j."stepType", j."targetAgentId", j."script",
-                j."timeoutInMs", j."status", j."claimedAt", j."leaseExpiresAt";
+                j."payload", j."timeoutInMs", j."status", j."claimedAt",
+                j."leaseExpiresAt";
     `;
 
     const rows: Array<JSONObject> = unwrapRows(
@@ -211,6 +344,7 @@ export class Service extends DatabaseService<Model> {
         data.agentId.toString(),
         RunnerJobStatus.Claimed,
         leaseMs.toString(),
+        allowedOrigins,
       ]),
     );
 
@@ -222,11 +356,25 @@ export class Service extends DatabaseService<Model> {
     const job: Model = new Model();
     job._id = String(r["_id"]);
     job.projectId = new ObjectID(String(r["projectId"]));
-    job.runbookExecutionId = new ObjectID(String(r["runbookExecutionId"]));
+    if (r["runbookExecutionId"]) {
+      job.runbookExecutionId = new ObjectID(String(r["runbookExecutionId"]));
+    }
+    job.origin = (r["origin"] as RunnerJobOrigin) || RunnerJobOrigin.Runbook;
+    if (r["aiRunId"]) {
+      job.aiRunId = new ObjectID(String(r["aiRunId"]));
+    }
+    if (r["autoRemediationSuggestionId"]) {
+      job.autoRemediationSuggestionId = new ObjectID(
+        String(r["autoRemediationSuggestionId"]),
+      );
+    }
     job.stepId = String(r["stepId"]);
     job.stepType = r["stepType"] as RunbookStepType;
     job.targetAgentId = new ObjectID(String(r["targetAgentId"]));
     job.script = String(r["script"]);
+    if (r["payload"] && typeof r["payload"] === "object") {
+      job.payload = r["payload"] as JSONObject;
+    }
     job.timeoutInMs = Number(r["timeoutInMs"]);
     job.status = r["status"] as RunnerJobStatus;
     if (r["claimedAt"]) {

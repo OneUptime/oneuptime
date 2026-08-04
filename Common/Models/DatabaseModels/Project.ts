@@ -1480,6 +1480,41 @@ export default class Project extends TenantModel {
   })
   public enableAutoRemediation?: boolean = undefined;
 
+  /*
+   * Explicit opt-in (=== true semantics, unlike the kill switches above):
+   * AI-composed remediation COMMANDS never run in a project that has not
+   * turned this on, even when auto-remediation itself is enabled.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Enable AI Command Execution",
+    description:
+      "When enabled, auto-remediation rules may let the AI compose and run commands on opted-in Runners (with an operator allowlist for auto-execution, and one-click approval for everything else). Off by default.",
+    defaultValue: false,
+    example: false,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public enableAiCommandExecution?: boolean = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [

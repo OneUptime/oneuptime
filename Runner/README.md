@@ -6,12 +6,13 @@ A Runner runs **inside your infrastructure**, holds **your** credentials, and
 talks to OneUptime over a single outbound HTTPS connection. It accepts no
 inbound connections and never exposes a port to OneUptime.
 
-It serves two kinds of work, each independently switchable:
+It serves three kinds of work, each independently switchable:
 
 | Capability | Default | What it does |
 | --- | --- | --- |
 | Runs Runbooks | on | Claims Bash and JavaScript runbook steps and executes them here, so the systems being operated on never need to be reachable from OneUptime. |
 | Runs AI Code Fixes | off | Claims AI code-fix runs, works in your connected code repositories and opens **draft** pull requests. Never writes to the default or protected branches. |
+| Runs AI Remediation Commands | off | AI auto-remediation may execute policy-checked Bash and SSH commands on this host (or over its assigned SSH credentials). Suggest-mode commands run only after one-click human approval; FullAuto runs only commands matching the rule's operator allowlist. A built-in denylist refuses destructive commands regardless. |
 
 Capabilities are set **in the dashboard**, on the Runner itself. The Runner
 adopts a change on its next heartbeat — within a minute by default — so turning
@@ -44,6 +45,7 @@ heartbeat.
 | `ONEUPTIME_RUNNER_NAME` | — | Optional friendly name. |
 | `ONEUPTIME_RUNNER_ENABLE_RUNBOOKS` | unset | Local override. Only `false` has an effect: it refuses runbook work on this host even when the dashboard grants it. |
 | `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES` | unset | Local override, same rule. Required (`true`) only for the in-cluster Runner, which has no dashboard row. |
+| `ONEUPTIME_RUNNER_ENABLE_AI_COMMANDS` | unset | Local override. Only `false` has an effect: it refuses AI remediation command work on this host even when the dashboard grants it. |
 | `ONEUPTIME_RUNNER_CONCURRENCY` | `1` | Max runbook jobs executed at once. |
 | `ONEUPTIME_RUNNER_POLL_INTERVAL_MS` | `5000` | How often it asks for work. |
 | `ONEUPTIME_RUNNER_HEARTBEAT_INTERVAL_MS` | `60000` | Liveness reporting cadence. |
@@ -61,6 +63,26 @@ plaintext values.
 OneUptime's own deployment runs one in-cluster Runner in *cluster scope* to
 serve the AI code-fix capability for every project. That mode is for the
 platform's own `runner` service and is not available to a customer install.
+
+### AI remediation commands
+
+Three separate switches must all be on before an AI-composed command can run,
+and every one of them defaults to off: the project-level setting, the **Runs
+AI Remediation Commands** toggle on this Runner, and the opt-in on each
+individual auto-remediation rule. Turning any one of them off stops the work.
+
+SSH credentials work the same way as runbook credentials: the server resolves
+them at claim time and delivers them only inside the claimed job. The AI that
+composes a command never sees a credential — it can only name which one the
+Runner should use.
+
+The Runner does not take the control plane's word for any of this. Before
+executing, it re-checks its own capability grant and the built-in denylist of
+destructive commands, so a compromised or misconfigured server still cannot
+push forbidden work onto this host.
+
+Revoking the capability in the dashboard takes effect on the next heartbeat —
+within a minute by default — like every other capability.
 
 ## Upgrading from the Runbook Agent
 

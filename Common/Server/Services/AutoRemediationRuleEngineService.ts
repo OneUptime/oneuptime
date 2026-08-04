@@ -11,8 +11,10 @@ import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
 import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
+import AIRunType from "../../Types/AI/AIRunType";
 import AutoRemediationExecutionMode from "../../Types/AutoRemediation/AutoRemediationExecutionMode";
 import AutoRemediationSuggestionStatus from "../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
+import AutoRemediationSuggestionType from "../../Types/AutoRemediation/AutoRemediationSuggestionType";
 import AutoRemediationVerificationStatus from "../../Types/AutoRemediation/AutoRemediationVerificationStatus";
 import AutoRemediationTriggerEntity from "../../Types/AutoRemediation/AutoRemediationTriggerEntity";
 import { Indigo500 } from "../../Types/BrandColors";
@@ -117,6 +119,7 @@ class AutoRemediationRuleEngineServiceClass {
       select: {
         enableAi: true,
         enableAutoRemediation: true,
+        enableAiCommandExecution: true,
       },
       props: { isRoot: true },
     });
@@ -138,6 +141,7 @@ class AutoRemediationRuleEngineServiceClass {
           name: true,
           executionMode: true,
           aiSelectsRunbook: true,
+          aiComposesCommands: true,
           verificationWindowMinutes: true,
           autoResolveOnVerifiedRecovery: true,
           titlePattern: true,
@@ -233,6 +237,49 @@ class AutoRemediationRuleEngineServiceClass {
       }
 
       if (rule.id && ruleIdsWithExistingSuggestion.has(rule.id.toString())) {
+        continue;
+      }
+
+      /*
+       * Command composition wins over runbook selection when a rule has
+       * both flags — one run per rule, never two.
+       */
+      if (rule.aiComposesCommands) {
+        if (aiAvailable === null) {
+          aiAvailable =
+            project.enableAi !== false &&
+            (await LlmProviderService.getLLMProviderForProject(
+              data.projectId,
+            )) !== null;
+        }
+
+        if (!aiAvailable) {
+          logger.debug(
+            `AutoRemediationRuleEngine: skipping AI command rule ${rule.id?.toString()} — AI disabled or no LLM provider configured.`,
+            { projectId: data.projectId.toString() } as LogAttributes,
+          );
+          continue;
+        }
+
+        /*
+         * Opt-in semantics (=== true): the project must have explicitly
+         * enabled AI command execution, on top of the AI/auto-remediation
+         * kill switches.
+         */
+        if (project.enableAiCommandExecution !== true) {
+          logger.debug(
+            `AutoRemediationRuleEngine: skipping AI command rule ${rule.id?.toString()} — the project has not enabled AI command execution.`,
+            { projectId: data.projectId.toString() } as LogAttributes,
+          );
+          continue;
+        }
+
+        await this.startAiCommandRun({
+          projectId: data.projectId,
+          rule,
+          linkage,
+        });
+        remainingBudget -= 1;
         continue;
       }
 
@@ -484,6 +531,84 @@ class AutoRemediationRuleEngineServiceClass {
       projectId: data.projectId,
       linkage: data.linkage,
       markdown: `⚡ **Auto Remediation Rule "${data.rule.name}" matched.** AI is picking the most applicable runbook — a suggestion will appear here shortly.`,
+      pingWorkspace: false,
+    });
+  }
+
+  /*
+   * AI command path (rules with aiComposesCommands): create a Planning
+   * CommandPlan suggestion and enqueue a RemediationExecution run. The
+   * execution runner decides Suggest vs FullAuto from the rule's execution
+   * mode + allowlist + circuit breaker at run time; the suggestion's
+   * executionMode snapshots the rule's intent for display.
+   */
+  private async startAiCommandRun(data: {
+    projectId: ObjectID;
+    rule: AutoRemediationRule;
+    linkage: SubjectLinkage;
+  }): Promise<void> {
+    const suggestion: AutoRemediationSuggestion =
+      new AutoRemediationSuggestion();
+    suggestion.projectId = data.projectId;
+    suggestion.autoRemediationRuleId = data.rule.id!;
+    suggestion.ruleNameSnapshot = data.rule.name || "Auto Remediation Rule";
+    suggestion.status = AutoRemediationSuggestionStatus.Planning;
+    suggestion.suggestionType = AutoRemediationSuggestionType.CommandPlan;
+    suggestion.executionMode =
+      data.rule.executionMode === AutoRemediationExecutionMode.FullAuto
+        ? AutoRemediationExecutionMode.FullAuto
+        : AutoRemediationExecutionMode.Suggest;
+    suggestion.verificationWindowMinutes =
+      data.rule.verificationWindowMinutes ||
+      DEFAULT_VERIFICATION_WINDOW_MINUTES;
+    suggestion.autoResolveOnRecovery =
+      data.rule.autoResolveOnVerifiedRecovery === true;
+    if (data.linkage.incidentId) {
+      suggestion.incidentId = data.linkage.incidentId;
+    }
+    if (data.linkage.alertId) {
+      suggestion.alertId = data.linkage.alertId;
+    }
+
+    const created: AutoRemediationSuggestion =
+      await AutoRemediationSuggestionService.create({
+        data: suggestion,
+        props: { isRoot: true },
+      });
+
+    const aiRunId: ObjectID | null = await AIInvestigationQueue.enqueue({
+      projectId: data.projectId,
+      subjectIncidentId: data.linkage.incidentId,
+      subjectAlertId: data.linkage.alertId,
+      subjectAutoRemediationSuggestionId: created.id!,
+      remediationRunType: AIRunType.RemediationExecution,
+    });
+
+    if (!aiRunId) {
+      await AutoRemediationSuggestionService.updateOneById({
+        id: created.id!,
+        data: {
+          status: AutoRemediationSuggestionStatus.NoneApplicable,
+          rationaleMarkdown:
+            "The AI command run could not be started — the daily autonomous AI budget is exhausted or no run could be queued. Re-enable by raising the budget or waiting for the daily reset.",
+        },
+        props: { isRoot: true },
+      });
+      return;
+    }
+
+    await AutoRemediationSuggestionService.updateOneById({
+      id: created.id!,
+      data: {
+        aiRunId,
+      },
+      props: { isRoot: true },
+    });
+
+    await this.postFeedItem({
+      projectId: data.projectId,
+      linkage: data.linkage,
+      markdown: `⚡ **Auto Remediation Rule "${data.rule.name}" matched.** AI is diagnosing the signal and composing remediation commands — a suggestion will appear here shortly.`,
       pingWorkspace: false,
     });
   }

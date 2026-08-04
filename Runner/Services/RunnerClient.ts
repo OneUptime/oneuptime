@@ -8,7 +8,17 @@ export type ClaimedJobStepType = "Bash" | "JavaScript" | "SSH" | "Kubernetes";
 
 export interface ClaimedJob {
   jobId: string;
-  runbookExecutionId: string;
+  /*
+   * Absent for AI-composed command jobs (origin "AiRemediation"), which have
+   * no parent runbook execution.
+   */
+  runbookExecutionId?: string | undefined;
+  /*
+   * "Runbook" (default when the server predates the field) or
+   * "AiRemediation". The executor re-checks the local AI-commands capability
+   * and command policy for AiRemediation jobs before running anything.
+   */
+  origin?: string | undefined;
   stepId: string;
   stepType: ClaimedJobStepType;
   script: string;
@@ -52,7 +62,11 @@ export interface HeartbeatResult {
    * resolved at boot.
    */
   capabilities?:
-    | { canRunRunbooks: boolean; canRunCodeFixTasks: boolean }
+    | {
+        canRunRunbooks: boolean;
+        canRunCodeFixTasks: boolean;
+        canRunAiCommands: boolean;
+      }
     | undefined;
 }
 
@@ -80,6 +94,7 @@ export default class AgentClient {
               capabilities: {
                 canRunRunbooks: payload["canRunRunbooks"] !== false,
                 canRunCodeFixTasks: payload["canRunCodeFixTasks"] === true,
+                canRunAiCommands: payload["canRunAiCommands"] === true,
               },
             }
           : {}),

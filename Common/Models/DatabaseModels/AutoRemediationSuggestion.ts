@@ -8,6 +8,7 @@ import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import AutoRemediationExecutionMode from "../../Types/AutoRemediation/AutoRemediationExecutionMode";
 import AutoRemediationSuggestionStatus from "../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
+import AutoRemediationSuggestionType from "../../Types/AutoRemediation/AutoRemediationSuggestionType";
 import AutoRemediationVerificationStatus from "../../Types/AutoRemediation/AutoRemediationVerificationStatus";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
@@ -22,6 +23,7 @@ import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
+import { JSONObject } from "../../Types/JSON";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 /*
@@ -417,6 +419,60 @@ export default class AutoRemediationSuggestion extends BaseModel {
     length: ColumnLength.ShortText,
   })
   public executionMode?: AutoRemediationExecutionMode = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.ShortText,
+    title: "Suggestion Type",
+    description:
+      "Runbook suggestions propose starting a pre-authored runbook; CommandPlan suggestions carry an AI-composed command plan.",
+    defaultValue: AutoRemediationSuggestionType.Runbook,
+  })
+  @Column({
+    nullable: false,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    default: AutoRemediationSuggestionType.Runbook,
+  })
+  public suggestionType?: AutoRemediationSuggestionType = undefined;
+
+  /*
+   * The frozen AI-composed command plan (AiRemediationCommandPlan shape) for
+   * CommandPlan suggestions. Approval executes exactly this. Holds command
+   * strings and execution output but never credential material — commands
+   * reference credentials by id only.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Command Plan",
+    description:
+      "The AI-composed command plan for CommandPlan suggestions, including per-command execution results once run.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public commandPlan?: JSONObject = undefined;
 
   @ColumnAccessControl({
     create: [],

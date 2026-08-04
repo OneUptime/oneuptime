@@ -17,6 +17,7 @@ import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { JSONObject } from "../../Types/JSON";
 import RunnerJobStatus from "../../Types/Runbook/RunnerJobStatus";
+import RunnerJobOrigin from "../../Types/Runbook/RunnerJobOrigin";
 import RunbookStepType from "../../Types/Runbook/RunbookStepType";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
@@ -132,7 +133,8 @@ export default class RunnerJob extends BaseModel {
     type: TableColumnType.Entity,
     modelType: RunbookExecution,
     title: "Runbook Execution",
-    description: "The parent runbook execution this job belongs to.",
+    description:
+      "The parent runbook execution this job belongs to. Absent for AiRemediation-origin jobs.",
   })
   @ManyToOne(
     () => {
@@ -165,17 +167,113 @@ export default class RunnerJob extends BaseModel {
   @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
-    required: true,
+    required: false,
     canReadOnRelationQuery: true,
     title: "Runbook Execution ID",
-    description: "ID of the parent runbook execution.",
+    description:
+      "ID of the parent runbook execution. Null for AiRemediation-origin jobs, which link to an AI run instead.",
   })
   @Column({
     type: ColumnType.ObjectID,
-    nullable: false,
+    nullable: true,
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public runbookExecutionId?: ObjectID = undefined;
+
+  /*
+   * Which pipeline created this job. Decides the Runner capability that
+   * gates claiming: Runbook-origin jobs need canRunRunbooks,
+   * AiRemediation-origin jobs need canRunAiCommands.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.RunbookViewer,
+      Permission.ReadRunbookExecution,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: true,
+    isDefaultValueColumn: true,
+    title: "Origin",
+    description:
+      "Whether this job came from a runbook execution or from an AI remediation run.",
+    defaultValue: RunnerJobOrigin.Runbook,
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    nullable: false,
+    length: ColumnLength.ShortText,
+    default: RunnerJobOrigin.Runbook,
+  })
+  public origin?: RunnerJobOrigin = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.RunbookViewer,
+      Permission.ReadRunbookExecution,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    title: "AI Run ID",
+    description:
+      "The AI remediation run that composed this job. Set on AiRemediation-origin jobs only.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public aiRunId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.RunbookViewer,
+      Permission.ReadRunbookExecution,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    title: "Auto Remediation Suggestion ID",
+    description:
+      "The auto-remediation suggestion this command belongs to. Set on AiRemediation-origin jobs only.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public autoRemediationSuggestionId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [],

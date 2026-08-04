@@ -72,10 +72,17 @@ RunCron(
          * Investigations and remediation plans are durable-queue runs:
          * requeue while attempts remain so a pod restart costs a retry, not
          * the run. Both are read-only, so re-running from the top is safe.
+         * Remediation EXECUTION runs are also safe to requeue — not because
+         * they are read-only, but because every executed command is
+         * persisted on the suggestion BEFORE it runs, and a retried attempt
+         * that finds executed commands settles what happened instead of
+         * running the loop again (RemediationExecutionRunner's
+         * interrupted-execution check).
          */
         if (
           run.runType === AIRunType.Investigation ||
-          run.runType === AIRunType.RemediationPlan
+          run.runType === AIRunType.RemediationPlan ||
+          run.runType === AIRunType.RemediationExecution
         ) {
           const outcome: "requeued" | "stale" =
             await AIInvestigationQueue.requeueOrMarkStale({

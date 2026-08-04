@@ -23,7 +23,7 @@ function getHostInfo(): {
 function describe(capabilities: RunnerCapabilitySet): string {
   return `runbooks=${capabilities.canRunRunbooks ? "on" : "off"} codeFixes=${
     capabilities.canRunCodeFixTasks ? "on" : "off"
-  }`;
+  } aiCommands=${capabilities.canRunAiCommands ? "on" : "off"}`;
 }
 
 /*
@@ -54,7 +54,8 @@ export default function startHeartbeat(): void {
 
         if (
           after.canRunRunbooks !== before.canRunRunbooks ||
-          after.canRunCodeFixTasks !== before.canRunCodeFixTasks
+          after.canRunCodeFixTasks !== before.canRunCodeFixTasks ||
+          after.canRunAiCommands !== before.canRunAiCommands
         ) {
           logger.info(
             `Capabilities changed by the dashboard: ${describe(before)} -> ${describe(after)}.`,
