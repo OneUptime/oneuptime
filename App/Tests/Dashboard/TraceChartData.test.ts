@@ -1,5 +1,8 @@
 import { describe, expect, test } from "@jest/globals";
 import { JSONObject } from "Common/Types/JSON";
+import DashboardVariable, {
+  DashboardVariableType,
+} from "Common/Types/Dashboard/DashboardVariable";
 import {
   TRACE_CHART_PALETTE,
   TimeseriesRow,
@@ -13,6 +16,7 @@ import {
   isDurationMetric,
   parseAttributeFilters,
   pivotTimeseries,
+  resolveTraceAttributeFilters,
   resolveTraceSeriesColor,
 } from "../../FeatureSet/Dashboard/src/Components/Dashboard/Components/TraceChartData";
 
@@ -106,6 +110,116 @@ describe("TraceChartData.parseAttributeFilters", () => {
     expect(parseAttributeFilters(undefined)).toEqual({});
     expect(parseAttributeFilters("")).toEqual({});
     expect(parseAttributeFilters({})).toEqual({});
+  });
+});
+
+describe("TraceChartData.resolveTraceAttributeFilters", () => {
+  const telemetryVariable: (
+    overrides: Partial<DashboardVariable>,
+  ) => DashboardVariable = (
+    overrides: Partial<DashboardVariable>,
+  ): DashboardVariable => {
+    return {
+      id: "v1",
+      name: "cluster",
+      type: DashboardVariableType.TelemetryAttribute,
+      attributeKey: "k8s.cluster.name",
+      ...overrides,
+    };
+  };
+
+  test("no variables leaves the widget's own filters untouched", () => {
+    expect(
+      resolveTraceAttributeFilters({
+        attributeFilters: { "url.host": "torginol.starship.online" },
+      }),
+    ).toEqual({ "url.host": "torginol.starship.online" });
+  });
+
+  test("single-select variable adds an exact predicate", () => {
+    expect(
+      resolveTraceAttributeFilters({
+        attributeFilters: { "url.host": "torginol.starship.online" },
+        variables: [telemetryVariable({ selectedValue: "prod-eu" })],
+      }),
+    ).toEqual({
+      "url.host": "torginol.starship.online",
+      "k8s.cluster.name": "prod-eu",
+    });
+  });
+
+  /*
+   * The regression this whole change exists for: a multi-select resolves to
+   * an Includes operator, which must reach the wire as a plain array. Sending
+   * the operator object instead is what the server used to silently drop.
+   */
+  test("multi-select variable becomes a plain array of values", () => {
+    expect(
+      resolveTraceAttributeFilters({
+        variables: [
+          telemetryVariable({
+            isMultiSelect: true,
+            selectedValues: ["prod-eu", "prod-us"],
+          }),
+        ],
+      }),
+    ).toEqual({ "k8s.cluster.name": ["prod-eu", "prod-us"] });
+  });
+
+  test('variable set to "All" removes the widget filter on that key', () => {
+    expect(
+      resolveTraceAttributeFilters({
+        attributeFilters: { "k8s.cluster.name": "prod-eu", "url.host": "x" },
+        variables: [telemetryVariable({ selectedValue: "" })],
+      }),
+    ).toEqual({ "url.host": "x" });
+  });
+
+  test("empty multi-select selection means All, not an empty IN list", () => {
+    expect(
+      resolveTraceAttributeFilters({
+        variables: [
+          telemetryVariable({ isMultiSelect: true, selectedValues: [] }),
+        ],
+      }),
+    ).toEqual({});
+  });
+
+  test("variable value overrides a widget filter on the same key", () => {
+    expect(
+      resolveTraceAttributeFilters({
+        attributeFilters: { "k8s.cluster.name": "prod-eu" },
+        variables: [telemetryVariable({ selectedValue: "prod-us" })],
+      }),
+    ).toEqual({ "k8s.cluster.name": "prod-us" });
+  });
+
+  test("non-telemetry-attribute variables are ignored", () => {
+    expect(
+      resolveTraceAttributeFilters({
+        attributeFilters: { "url.host": "x" },
+        variables: [
+          {
+            id: "v2",
+            name: "env",
+            type: DashboardVariableType.TextInput,
+            selectedValue: "prod",
+          },
+        ],
+      }),
+    ).toEqual({ "url.host": "x" });
+  });
+
+  test("legacy semicolon filters still interpolate", () => {
+    expect(
+      resolveTraceAttributeFilters({
+        attributeFilters: "url.host=torginol.starship.online",
+        variables: [telemetryVariable({ selectedValue: "prod-eu" })],
+      }),
+    ).toEqual({
+      "url.host": "torginol.starship.online",
+      "k8s.cluster.name": "prod-eu",
+    });
   });
 });
 
@@ -213,6 +327,48 @@ describe("TraceChartData.buildTraceAnalyticsRequest", () => {
     expect(buildRequest({ spanNameContains: "   " })["spanNameSearches"]).toBe(
       undefined,
     );
+  });
+
+  test("dashboard variable selections reach request.attributes", () => {
+    const request: JSONObject = buildTraceAnalyticsRequest({
+      arguments: { metric: "count", attributeFilters: { "url.host": "x" } },
+      startTime: START,
+      endTime: END_1H,
+      variables: [
+        {
+          id: "v1",
+          name: "cluster",
+          type: DashboardVariableType.TelemetryAttribute,
+          attributeKey: "k8s.cluster.name",
+          isMultiSelect: true,
+          selectedValues: ["prod-eu", "prod-us"],
+        },
+      ],
+    });
+
+    expect(request["attributes"]).toEqual({
+      "url.host": "x",
+      "k8s.cluster.name": ["prod-eu", "prod-us"],
+    });
+  });
+
+  test("a variable alone is enough to emit request.attributes", () => {
+    const request: JSONObject = buildTraceAnalyticsRequest({
+      arguments: { metric: "count" },
+      startTime: START,
+      endTime: END_1H,
+      variables: [
+        {
+          id: "v1",
+          name: "cluster",
+          type: DashboardVariableType.TelemetryAttribute,
+          attributeKey: "k8s.cluster.name",
+          selectedValue: "prod-eu",
+        },
+      ],
+    });
+
+    expect(request["attributes"]).toEqual({ "k8s.cluster.name": "prod-eu" });
   });
 
   test("all options together compose into one coherent request", () => {

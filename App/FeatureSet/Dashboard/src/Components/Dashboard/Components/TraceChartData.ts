@@ -1,6 +1,9 @@
 import { JSONObject } from "Common/Types/JSON";
 import OneUptimeDate from "Common/Types/Date";
+import Includes from "Common/Types/BaseDatabase/Includes";
 import DashboardTraceChartComponent from "Common/Types/Dashboard/DashboardComponents/DashboardTraceChartComponent";
+import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
+import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInterpolation";
 
 /*
  * Pure, React-free data helpers for the trace chart widget. Kept out of the
@@ -222,10 +225,59 @@ export function parseAttributeFilters(
   return filters;
 }
 
+/*
+ * The exact-attribute predicate map the trace analytics endpoint expects.
+ * A single value is `attributes[key] = v`; a list is `attributes[key] IN (...)`
+ * — see TraceAggregationService.appendCommonFilters.
+ */
+export type TraceAttributeFilters = Record<string, string | Array<string>>;
+
+/*
+ * Layer the dashboard's TelemetryAttribute variable selections on top of the
+ * widget's own saved attribute filters, so a toolbar picker narrows trace
+ * widgets the same way it narrows the metric charts and log stream beside
+ * them. A variable set to "All" removes any widget filter on that key, which
+ * is the same precedence the metric widgets use.
+ */
+export function resolveTraceAttributeFilters(data: {
+  attributeFilters?: string | Record<string, unknown> | undefined;
+  variables?: Array<DashboardVariable> | undefined;
+}): TraceAttributeFilters {
+  const interpolated: Record<string, unknown> =
+    DashboardVariableInterpolation.applyToAttributes(
+      parseAttributeFilters(data.attributeFilters),
+      data.variables,
+    );
+
+  const filters: TraceAttributeFilters = {};
+  for (const [key, value] of Object.entries(interpolated)) {
+    if (value instanceof Includes) {
+      const values: Array<string> = value.values.map(
+        (item: unknown): string => {
+          return String(item);
+        },
+      );
+      if (values.length > 0) {
+        filters[key] = values;
+      }
+      continue;
+    }
+    if (value === undefined || value === null) {
+      continue;
+    }
+    const scalar: string = String(value).trim();
+    if (scalar) {
+      filters[key] = scalar;
+    }
+  }
+  return filters;
+}
+
 export interface BuildTraceAnalyticsRequestParams {
   arguments: TraceChartArguments;
   startTime: Date;
   endTime: Date;
+  variables?: Array<DashboardVariable> | undefined;
 }
 
 /*
@@ -266,9 +318,10 @@ export function buildTraceAnalyticsRequest(
     requestData["spanNameSearches"] = [spanNameContains];
   }
 
-  const attributes: Record<string, string> = parseAttributeFilters(
-    args.attributeFilters,
-  );
+  const attributes: TraceAttributeFilters = resolveTraceAttributeFilters({
+    attributeFilters: args.attributeFilters,
+    variables: params.variables,
+  });
   if (Object.keys(attributes).length > 0) {
     requestData["attributes"] = attributes;
   }

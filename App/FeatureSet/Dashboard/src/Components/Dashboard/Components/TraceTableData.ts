@@ -1,10 +1,12 @@
 import { JSONObject } from "Common/Types/JSON";
 import DashboardTraceTableComponent from "Common/Types/Dashboard/DashboardComponents/DashboardTraceTableComponent";
+import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
 import {
+  TraceAttributeFilters,
   computeBucketSizeInMinutes,
   formatCount,
   formatDurationMs,
-  parseAttributeFilters,
+  resolveTraceAttributeFilters,
 } from "./TraceChartData";
 
 /*
@@ -42,6 +44,7 @@ export interface BuildTraceTableRequestParams {
   arguments: TraceTableArguments;
   startTime: Date;
   endTime: Date;
+  variables?: Array<DashboardVariable> | undefined;
 }
 
 /*
@@ -81,9 +84,10 @@ export function buildTraceTableRequest(
     requestData["spanNameSearches"] = [spanNameContains];
   }
 
-  const attributes: Record<string, string> = parseAttributeFilters(
-    args.attributeFilters,
-  );
+  const attributes: TraceAttributeFilters = resolveTraceAttributeFilters({
+    attributeFilters: args.attributeFilters,
+    variables: params.variables,
+  });
   if (Object.keys(attributes).length > 0) {
     requestData["attributes"] = attributes;
   }

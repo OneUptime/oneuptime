@@ -1,5 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 import { JSONObject } from "Common/Types/JSON";
+import { DashboardVariableType } from "Common/Types/Dashboard/DashboardVariable";
 import {
   TraceTableArguments,
   buildTraceTableRequest,
@@ -110,6 +111,34 @@ describe("TraceTableData.buildTraceTableRequest", () => {
         "attributes"
       ],
     ).toEqual({ "url.host": "x", "http.method": "POST" });
+  });
+
+  /*
+   * The table has to narrow with the toolbar pickers alongside the metric
+   * widgets on the same dashboard — see TraceChartData.test.ts for the full
+   * interpolation matrix; this pins that the table request carries it too.
+   */
+  test("dashboard variable selections reach request.attributes", () => {
+    const request: JSONObject = buildTraceTableRequest({
+      arguments: { groupByAttribute: "name", attributeFilters: { a: "b" } },
+      startTime: START,
+      endTime: END_1H,
+      variables: [
+        {
+          id: "v1",
+          name: "cluster",
+          type: DashboardVariableType.TelemetryAttribute,
+          attributeKey: "k8s.cluster.name",
+          isMultiSelect: true,
+          selectedValues: ["prod-eu", "prod-us"],
+        },
+      ],
+    });
+
+    expect(request["attributes"]).toEqual({
+      a: "b",
+      "k8s.cluster.name": ["prod-eu", "prod-us"],
+    });
   });
 
   test("all options together compose into one coherent table request", () => {
