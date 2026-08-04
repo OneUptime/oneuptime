@@ -89,7 +89,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
       ],
     },
     {
-      title: "Workspace Connections",
+      title: "Workspace",
       items: [
         {
           link: {

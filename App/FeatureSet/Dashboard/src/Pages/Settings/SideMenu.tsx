@@ -34,7 +34,7 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
       ],
     },
     {
-      title: "Workspace Connections",
+      title: "Workspace",
       items: [
         {
           link: {
