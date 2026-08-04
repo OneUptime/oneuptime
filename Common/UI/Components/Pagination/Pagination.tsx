@@ -77,6 +77,16 @@ const Pagination: FunctionComponent<ComponentProps> = (
   const [showPaginationModel, setShowPaginationModel] =
     useState<boolean>(false);
 
+  /*
+   * The range has-more mode prints. `totalItemsCount` is only a lower bound
+   * there, so the range is clamped to what this page can prove.
+   */
+  const alreadySeenCount: number =
+    props.itemsOnPage * (props.currentPageNumber - 1);
+  const firstOnPage: number = alreadySeenCount + 1;
+  const lastOnPage: number =
+    alreadySeenCount + Math.max(props.totalItemsCount - alreadySeenCount, 0);
+
   return (
     <nav
       className="flex items-center justify-between border-t border-gray-200 bg-white px-4"
@@ -88,16 +98,15 @@ const Pagination: FunctionComponent<ComponentProps> = (
         <p className="text-sm text-gray-500">
           {!props.isLoading && isHasMoreMode && (
             <span>
-              {`Showing ${
-                props.itemsOnPage * (props.currentPageNumber - 1) + 1
-              } to ${
-                props.itemsOnPage * (props.currentPageNumber - 1) +
-                Math.max(
-                  props.totalItemsCount -
-                    props.itemsOnPage * (props.currentPageNumber - 1),
-                  0,
-                )
-              }${props.hasMore ? "+" : ""} ${props.pluralLabel.toLowerCase()}.`}
+              {/*
+               * An empty page has no range to print - "Showing 1 to 0" is
+               * how that used to read.
+               */}
+              {lastOnPage < firstOnPage
+                ? `No ${props.pluralLabel.toLowerCase()}.`
+                : `Showing ${firstOnPage} to ${lastOnPage}${
+                    props.hasMore ? "+" : ""
+                  } ${props.pluralLabel.toLowerCase()}.`}
             </span>
           )}
           {!props.isLoading && !isHasMoreMode && (

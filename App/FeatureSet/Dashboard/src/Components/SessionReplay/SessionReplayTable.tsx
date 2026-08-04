@@ -25,18 +25,29 @@ import RangeStartAndEndDateTime, {
 } from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
-import Card from "Common/UI/Components/Card/Card";
+import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
+import { getRefreshButton } from "Common/UI/Components/Card/CardButtons/Refresh";
 import Table from "Common/UI/Components/Table/Table";
 import Column from "Common/UI/Components/Table/Types/Column";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import StatusBadge, {
+  StatusBadgeType,
+} from "Common/UI/Components/StatusBadge/StatusBadge";
+import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
+import FilterData from "Common/UI/Components/Filters/Types/FilterData";
 import FilterButtons from "Common/UI/Components/FilterButtons/FilterButtons";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
 import Navigation from "Common/UI/Utils/Navigation";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import SessionReplayFilterModal from "./SessionReplayFilterModal";
+import {
+  buildSessionReplayFilterChipData,
+  SESSION_REPLAY_CHIP_FILTERS,
+} from "./SessionReplayFilterFields";
 import {
   buildFilteredUrl,
   buildSessionReplayListFilters,
@@ -324,6 +335,119 @@ const SIGNAL_FILTERS: Array<{ label: string; value: string }> = [
   { label: "With frustration", value: "frustration" },
 ];
 
+interface SessionReplaySignalBadge {
+  key: string;
+  type: StatusBadgeType;
+  getCount: (row: SessionReplaySummary) => number;
+  getText: (count: number) => string;
+}
+
+const SESSION_REPLAY_SIGNAL_BADGES: Array<SessionReplaySignalBadge> = [
+  {
+    key: "errors",
+    type: StatusBadgeType.Danger,
+    getCount: (row: SessionReplaySummary): number => {
+      return row.errorCount;
+    },
+    getText: (count: number): string => {
+      return `${count} error${count === 1 ? "" : "s"}`;
+    },
+  },
+  {
+    key: "rage",
+    type: StatusBadgeType.Warning,
+    getCount: (row: SessionReplaySummary): number => {
+      return row.rageClickCount;
+    },
+    getText: (count: number): string => {
+      return `${count} rage`;
+    },
+  },
+  {
+    key: "dead",
+    type: StatusBadgeType.Neutral,
+    getCount: (row: SessionReplaySummary): number => {
+      return row.deadClickCount;
+    },
+    getText: (count: number): string => {
+      return `${count} dead`;
+    },
+  },
+  {
+    key: "refresh",
+    type: StatusBadgeType.Info,
+    getCount: (row: SessionReplaySummary): number => {
+      return row.refreshRageCount;
+    },
+    getText: (count: number): string => {
+      return `${count} refresh rage`;
+    },
+  },
+];
+
+interface SessionReplayPlayability {
+  text: string;
+  type: StatusBadgeType;
+  tooltip: string;
+}
+
+/*
+ * Completeness is stated on the list, not hidden until playback. A viewer
+ * choosing between two sessions needs to know one of them is missing footage
+ * before they spend a minute watching it.
+ *
+ * "recording-lost" (sealed by the never-finalized sweep) and a zero chunk
+ * count both mean there is nothing to watch - sending someone into the player
+ * to find that out is the dishonesty this badge removes.
+ *
+ * The chunkCount test is gated on isFinalized: the PROVISIONAL header is
+ * deliberately written with chunkCount 0 (aggregates are the finalizer's
+ * job), so an unfinalized row's zero means "not counted yet", not "no
+ * footage" - and unfinalized rows sit at the top of this newest-first list
+ * during a live incident.
+ */
+function getSessionReplayPlayability(
+  row: SessionReplaySummary,
+): SessionReplayPlayability {
+  const isLost: boolean = row.sealedReason === "recording-lost";
+  const isMetadataOnly: boolean =
+    !isLost && row.isFinalized && row.chunkCount === 0;
+  const isStillCounting: boolean = !isLost && !row.isFinalized;
+
+  if (isStillCounting) {
+    return {
+      text: "Recording",
+      type: StatusBadgeType.Info,
+      tooltip:
+        "This session has not been finalized yet. Footage is playable as it arrives; counts may still change.",
+    };
+  }
+
+  if (isLost) {
+    return {
+      text: "Recording lost",
+      type: StatusBadgeType.Danger,
+      tooltip:
+        "A session header was received but its footage never arrived or expired before it could be processed. The signals and counts here are still accurate.",
+    };
+  }
+
+  if (isMetadataOnly) {
+    return {
+      text: "Metadata only",
+      type: StatusBadgeType.Warning,
+      tooltip:
+        "Only session metadata remains; the footage is no longer stored.",
+    };
+  }
+
+  return {
+    text: "Playable",
+    type: StatusBadgeType.Success,
+    tooltip: "Footage is stored and can be played back.",
+  };
+}
+
 const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
   props: SessionReplayTableProps,
 ): ReactElement => {
@@ -345,20 +469,17 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
   const [signal, setSignal] = useState<string>((): string => {
     return readFiltersFromSearch(window.location.search).signal;
   });
-  /* Applied filters drive the fetch; the draft is what the inputs hold. */
+  /*
+   * Applied filters drive the fetch. The draft the inputs hold lives inside
+   * the modal - restored filters announce themselves in the chips banner
+   * above the rows, so the editor no longer has to open itself to explain a
+   * filtered list.
+   */
   const [advancedFilters, setAdvancedFilters] =
     useState<SessionReplayAdvancedFilters>((): SessionReplayAdvancedFilters => {
       return readFiltersFromSearch(window.location.search).advanced;
     });
-  const [draftFilters, setDraftFilters] =
-    useState<SessionReplayAdvancedFilters>((): SessionReplayAdvancedFilters => {
-      return readFiltersFromSearch(window.location.search).advanced;
-    });
-  const [areFiltersOpen, setAreFiltersOpen] = useState<boolean>((): boolean => {
-    return hasAnyAdvancedFilter(
-      readFiltersFromSearch(window.location.search).advanced,
-    );
-  });
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState<boolean>(false);
   const [pageNumber, setPageNumber] = useState<number>(1);
   const [itemsOnPage, setItemsOnPage] = useState<number>(DEFAULT_ITEMS_ON_PAGE);
   const [timeRange, setTimeRange] =
@@ -446,6 +567,11 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
       buildFilteredUrl(window.location.href, signal, advancedFilters),
     );
   }, [signal, advancedFilters]);
+
+  const reload: VoidFunction = useCallback((): void => {
+    loadGenerationRef.current += 1;
+    void load(loadGenerationRef.current);
+  }, [load]);
 
   useEffect(() => {
     loadGenerationRef.current += 1;
@@ -562,57 +688,26 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
         key: "errorCount",
         disableSort: true,
         getElement: (row: SessionReplaySummary): ReactElement => {
-          const badges: Array<ReactElement> = [];
-
-          if (row.errorCount > 0) {
-            badges.push(
-              <span
-                key="errors"
-                className="rounded bg-rose-50 px-1.5 py-0.5 text-[11px] font-medium text-rose-700 ring-1 ring-inset ring-rose-200"
-              >
-                {row.errorCount} error{row.errorCount === 1 ? "" : "s"}
-              </span>,
-            );
-          }
-
-          if (row.rageClickCount > 0) {
-            badges.push(
-              <span
-                key="rage"
-                className="rounded bg-amber-50 px-1.5 py-0.5 text-[11px] font-medium text-amber-700 ring-1 ring-inset ring-amber-200"
-              >
-                {row.rageClickCount} rage
-              </span>,
-            );
-          }
-
-          if (row.deadClickCount > 0) {
-            badges.push(
-              <span
-                key="dead"
-                className="rounded bg-gray-50 px-1.5 py-0.5 text-[11px] font-medium text-gray-600 ring-1 ring-inset ring-gray-200"
-              >
-                {row.deadClickCount} dead
-              </span>,
-            );
-          }
-
-          if (row.refreshRageCount > 0) {
-            badges.push(
-              <span
-                key="refresh"
-                className="rounded bg-violet-50 px-1.5 py-0.5 text-[11px] font-medium text-violet-700 ring-1 ring-inset ring-violet-200"
-              >
-                {row.refreshRageCount} refresh rage
-              </span>,
-            );
-          }
+          const badges: Array<ReactElement> =
+            SESSION_REPLAY_SIGNAL_BADGES.filter(
+              (badge: SessionReplaySignalBadge): boolean => {
+                return badge.getCount(row) > 0;
+              },
+            ).map((badge: SessionReplaySignalBadge): ReactElement => {
+              return (
+                <StatusBadge
+                  key={badge.key}
+                  text={badge.getText(badge.getCount(row))}
+                  type={badge.type}
+                />
+              );
+            });
 
           if (badges.length === 0) {
-            return <span className="text-xs text-gray-500">Clean</span>;
+            return <span className="text-sm text-gray-500">Clean</span>;
           }
 
-          return <div className="flex flex-wrap gap-1">{badges}</div>;
+          return <div className="flex flex-wrap gap-1.5">{badges}</div>;
         },
       },
       {
@@ -622,59 +717,9 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
         disableSort: true,
         hideOnMobile: true,
         getElement: (row: SessionReplaySummary): ReactElement => {
-          /*
-           * Completeness is stated on the list, not hidden until playback.
-           * A viewer choosing between two sessions needs to know one of them
-           * is missing footage before they spend a minute watching it.
-           */
           const notes: Array<string> = [];
-
-          /*
-           * Playability is stated up front. "recording-lost" (sealed by
-           * the never-finalized sweep) and a zero chunk count both mean
-           * there is nothing to watch — sending someone into the player to
-           * find that out is the dishonesty this pill removes.
-           *
-           * The chunkCount test is gated on isFinalized: the PROVISIONAL
-           * header is deliberately written with chunkCount 0 (aggregates
-           * are the finalizer's job), so an unfinalized row's zero means
-           * "not counted yet", not "no footage" — and unfinalized rows sit
-           * at the top of this newest-first list during a live incident.
-           */
-          const isLost: boolean = row.sealedReason === "recording-lost";
-          const isMetadataOnly: boolean =
-            !isLost && row.isFinalized && row.chunkCount === 0;
-          const isStillCounting: boolean = !isLost && !row.isFinalized;
-
-          const playabilityPill: ReactElement = isStillCounting ? (
-            <span
-              className="rounded bg-sky-50 px-1.5 py-0.5 text-[11px] font-medium text-sky-700 ring-1 ring-inset ring-sky-200"
-              title="This session has not been finalized yet. Footage is playable as it arrives; counts may still change."
-            >
-              Recording
-            </span>
-          ) : isLost ? (
-            <span
-              className="rounded bg-rose-50 px-1.5 py-0.5 text-[11px] font-medium text-rose-700 ring-1 ring-inset ring-rose-200"
-              title="A session header was received but its footage never arrived or expired before it could be processed. The signals and counts here are still accurate."
-            >
-              Recording lost
-            </span>
-          ) : isMetadataOnly ? (
-            <span
-              className="rounded bg-amber-50 px-1.5 py-0.5 text-[11px] font-medium text-amber-700 ring-1 ring-inset ring-amber-200"
-              title="Only session metadata remains; the footage is no longer stored."
-            >
-              Metadata only
-            </span>
-          ) : (
-            <span
-              className="rounded bg-emerald-50 px-1.5 py-0.5 text-[11px] font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200"
-              title="Footage is stored and can be played back."
-            >
-              Playable
-            </span>
-          );
+          const playability: SessionReplayPlayability =
+            getSessionReplayPlayability(row);
 
           if (row.missingChunkCount > 0) {
             notes.push(
@@ -695,13 +740,25 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
           return (
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
-                {playabilityPill}
-                <span className="text-xs capitalize text-gray-600">
+                {/*
+                 * The span is load-bearing: Tippy attaches a ref to its
+                 * child, and StatusBadge is a plain function component that
+                 * cannot take one.
+                 */}
+                <Tooltip text={playability.tooltip}>
+                  <span className="inline-flex">
+                    <StatusBadge
+                      text={playability.text}
+                      type={playability.type}
+                    />
+                  </span>
+                </Tooltip>
+                <span className="text-sm capitalize text-gray-500">
                   {row.triggerReason || "unknown"}
                 </span>
               </div>
               {notes.length > 0 && (
-                <div className="truncate text-xs text-amber-700">
+                <div className="mt-0.5 truncate text-xs text-amber-700">
                   {notes.join(" · ")}
                 </div>
               )}
@@ -761,6 +818,28 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
     signal === "all" &&
     !hasAnyAdvancedFilter(advancedFilters);
 
+  /* Which advanced filters the chips banner above the rows announces. */
+  const filterChipData: FilterData<SessionReplaySummary> = useMemo(() => {
+    return buildSessionReplayFilterChipData(advancedFilters);
+  }, [advancedFilters]);
+
+  const cardButtons: Array<CardButtonSchema> = [
+    {
+      ...getRefreshButton(),
+      className: "py-0 pr-0 pl-1 mt-1",
+      onClick: reload,
+    },
+    {
+      title: "",
+      buttonStyle: ButtonStyleType.ICON,
+      className: "py-0 pr-0 pl-1 mt-1",
+      onClick: (): void => {
+        setIsFilterModalOpen(true);
+      },
+      icon: IconProp.Filter,
+    },
+  ];
+
   return (
     <Fragment>
       <Card
@@ -778,6 +857,7 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
             }}
           />
         }
+        buttons={cardButtons}
       >
         <div className="mb-2 flex flex-wrap items-center gap-3">
           <FilterButtons
@@ -788,194 +868,7 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
               setSignal(value);
             }}
           />
-
-          <button
-            type="button"
-            className="text-xs font-medium text-indigo-600 hover:text-indigo-800"
-            onClick={(): void => {
-              setAreFiltersOpen((existing: boolean): boolean => {
-                return !existing;
-              });
-            }}
-          >
-            {areFiltersOpen ? "Hide filters" : "More filters"}
-            {hasAnyAdvancedFilter(advancedFilters) && !areFiltersOpen
-              ? " (active)"
-              : ""}
-          </button>
         </div>
-
-        {!areFiltersOpen ? (
-          <></>
-        ) : (
-          <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-3">
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-              {(
-                [
-                  {
-                    field: "browserName",
-                    label: "Browser",
-                    placeholder: "Chrome",
-                  },
-                  { field: "osName", label: "OS", placeholder: "macOS" },
-                  {
-                    field: "countryCode",
-                    label: "Country",
-                    placeholder: "DE",
-                  },
-                  {
-                    /*
-                     * Exact match against the stored scrubbed exit URL — the
-                     * server deliberately refuses substring scans over this
-                     * column, and the stored value is origin + path. The
-                     * label and placeholder must say so: a "/checkout"
-                     * fragment silently matches nothing.
-                     */
-                    field: "route",
-                    label: "Exit page URL (exact)",
-                    placeholder: "https://app.example.com/checkout",
-                  },
-                  {
-                    field: "minDurationSeconds",
-                    label: "Min duration (s)",
-                    placeholder: "120",
-                  },
-                  {
-                    field: "identifiedUserKey",
-                    label: "User key",
-                    placeholder: "hashed identifier",
-                  },
-                ] as Array<{
-                  field: keyof SessionReplayAdvancedFilters;
-                  label: string;
-                  placeholder: string;
-                }>
-              ).map(
-                (input: {
-                  field: keyof SessionReplayAdvancedFilters;
-                  label: string;
-                  placeholder: string;
-                }): ReactElement => {
-                  return (
-                    <label key={input.field} className="block">
-                      <span className="mb-1 block text-[11px] font-medium text-gray-600">
-                        {input.label}
-                      </span>
-                      <input
-                        type="text"
-                        className="w-full rounded-md border border-gray-300 px-2 py-1 text-xs"
-                        placeholder={input.placeholder}
-                        value={draftFilters[input.field]}
-                        onChange={(
-                          event: React.ChangeEvent<HTMLInputElement>,
-                        ): void => {
-                          const value: string = event.target.value;
-
-                          setDraftFilters(
-                            (
-                              existing: SessionReplayAdvancedFilters,
-                            ): SessionReplayAdvancedFilters => {
-                              return { ...existing, [input.field]: value };
-                            },
-                          );
-                        }}
-                        onKeyDown={(
-                          event: React.KeyboardEvent<HTMLInputElement>,
-                        ): void => {
-                          if (event.key === "Enter") {
-                            setPageNumber(1);
-                            setAdvancedFilters(draftFilters);
-                          }
-                        }}
-                      />
-                    </label>
-                  );
-                },
-              )}
-
-              <label className="block">
-                <span className="mb-1 block text-[11px] font-medium text-gray-600">
-                  Device
-                </span>
-                <select
-                  className="w-full rounded-md border border-gray-300 px-2 py-1 text-xs"
-                  value={draftFilters.deviceType}
-                  onChange={(
-                    event: React.ChangeEvent<HTMLSelectElement>,
-                  ): void => {
-                    const value: string = event.target.value;
-
-                    setDraftFilters(
-                      (
-                        existing: SessionReplayAdvancedFilters,
-                      ): SessionReplayAdvancedFilters => {
-                        return { ...existing, deviceType: value };
-                      },
-                    );
-                  }}
-                >
-                  <option value="">Any</option>
-                  <option value="desktop">Desktop</option>
-                  <option value="mobile">Mobile</option>
-                  <option value="tablet">Tablet</option>
-                </select>
-              </label>
-
-              <label className="block">
-                <span className="mb-1 block text-[11px] font-medium text-gray-600">
-                  Trigger
-                </span>
-                <select
-                  className="w-full rounded-md border border-gray-300 px-2 py-1 text-xs"
-                  value={draftFilters.triggerReason}
-                  onChange={(
-                    event: React.ChangeEvent<HTMLSelectElement>,
-                  ): void => {
-                    const value: string = event.target.value;
-
-                    setDraftFilters(
-                      (
-                        existing: SessionReplayAdvancedFilters,
-                      ): SessionReplayAdvancedFilters => {
-                        return { ...existing, triggerReason: value };
-                      },
-                    );
-                  }}
-                >
-                  <option value="">Any</option>
-                  <option value="error">Error</option>
-                  <option value="frustration">Frustration</option>
-                  <option value="sampled">Sampled</option>
-                  <option value="manual">Manual</option>
-                </select>
-              </label>
-            </div>
-
-            <div className="mt-3 flex items-center gap-2">
-              <button
-                type="button"
-                className="rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700"
-                onClick={(): void => {
-                  setPageNumber(1);
-                  setAdvancedFilters(draftFilters);
-                }}
-              >
-                Apply filters
-              </button>
-              <button
-                type="button"
-                className="rounded-md px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100"
-                onClick={(): void => {
-                  setPageNumber(1);
-                  setDraftFilters(EMPTY_ADVANCED_FILTERS);
-                  setAdvancedFilters(EMPTY_ADVANCED_FILTERS);
-                }}
-              >
-                Clear
-              </button>
-            </div>
-          </div>
-        )}
 
         <Table<SessionReplaySummary>
           id="rum-session-replay-table"
@@ -986,9 +879,36 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
           pluralLabel="Sessions"
           isLoading={isLoading}
           error={error}
-          onRefreshClick={(): void => {
-            loadGenerationRef.current += 1;
-            void load(loadGenerationRef.current);
+          onRefreshClick={reload}
+          filters={SESSION_REPLAY_CHIP_FILTERS}
+          filterData={filterChipData}
+          /*
+           * Hard false, deliberately: Table's own filter modal renders
+           * FiltersForm, whose TextFilter and NumberFilter offer operators
+           * (contains, starts with, is empty) that this endpoint cannot
+           * honour - it matches these columns with equality and duration
+           * >= only. SessionReplayFilterModal is the editor instead, and
+           * the banner's "Edit Filters" opens it through onFilterModalOpen.
+           */
+          showFilterModal={false}
+          onFilterModalOpen={(): void => {
+            setIsFilterModalOpen(true);
+          }}
+          onFilterModalClose={(): void => {
+            setIsFilterModalOpen(false);
+          }}
+          onFilterChanged={(next: FilterData<SessionReplaySummary>): void => {
+            /*
+             * The only edit the banner can produce is its "Clear Filters"
+             * button, which always emits {}. There is no reverse translation
+             * from FilterData back into SessionReplayAdvancedFilters and none
+             * is needed - applying filters goes through the modal. The signal
+             * segment is a separate control and is intentionally left alone.
+             */
+            if (Object.keys(next).length === 0) {
+              setPageNumber(1);
+              setAdvancedFilters(EMPTY_ADVANCED_FILTERS);
+            }
           }}
           currentPageNumber={pageNumber}
           totalItemsCount={itemsOnPage * (pageNumber - 1) + rows.length}
@@ -1024,6 +944,25 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
           }
         />
       </Card>
+
+      {isFilterModalOpen && (
+        <SessionReplayFilterModal
+          filters={advancedFilters}
+          onClose={(): void => {
+            setIsFilterModalOpen(false);
+          }}
+          onApply={(next: SessionReplayAdvancedFilters): void => {
+            /*
+             * Back to page one on every apply: the keyset cursor map is only
+             * cleared when pageNumber is 1, so a filter change on page 3
+             * would page with cursors that no longer line up.
+             */
+            setPageNumber(1);
+            setAdvancedFilters(next);
+            setIsFilterModalOpen(false);
+          }}
+        />
+      )}
 
       {isEmptyOnDefaultFilters && props.renderWhenEmpty ? (
         props.renderWhenEmpty
