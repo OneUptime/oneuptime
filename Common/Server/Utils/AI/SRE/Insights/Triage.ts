@@ -1,6 +1,6 @@
 import ObjectID from "../../../../../Types/ObjectID";
 import AIRunType from "../../../../../Types/AI/AIRunType";
-import AIRunStatus from "../../../../../Types/AI/AIRunStatus";
+import { AIRunStatusHelper } from "../../../../../Types/AI/AIRunStatus";
 import AIInsight from "../../../../../Models/DatabaseModels/AIInsight";
 import Project from "../../../../../Models/DatabaseModels/Project";
 import LlmProvider from "../../../../../Models/DatabaseModels/LlmProvider";
@@ -107,12 +107,7 @@ export default class InsightTriage {
           query: {
             runType: AIRunType.Investigation,
             triggeredByAiInsightId: insight.id,
-            status: QueryHelper.notIn([
-              AIRunStatus.Completed,
-              AIRunStatus.Error,
-              AIRunStatus.Cancelled,
-              AIRunStatus.Stale,
-            ]),
+            status: QueryHelper.notIn(AIRunStatusHelper.terminalStatuses()),
           },
           props: { isRoot: true },
         })

@@ -1,6 +1,31 @@
 import AIRunStatus, { AIRunStatusHelper } from "../../../Types/AI/AIRunStatus";
 
 describe("AIRunStatusHelper", () => {
+  /*
+   * Database guards spell "still live" as notIn(terminalStatuses()), so the
+   * list and the predicate must never disagree — a status missing from the
+   * list turns a finished run into a permanent dedupe block.
+   */
+  describe("terminalStatuses", () => {
+    test("lists every terminal status and nothing else", () => {
+      const terminal: Array<AIRunStatus> = Object.values(AIRunStatus).filter(
+        (status: AIRunStatus): boolean => {
+          return AIRunStatusHelper.isTerminalStatus(status);
+        },
+      );
+
+      expect(AIRunStatusHelper.terminalStatuses().sort()).toEqual(
+        terminal.sort(),
+      );
+    });
+
+    test("includes NoFixFound — a run that found no fix is over", () => {
+      expect(AIRunStatusHelper.terminalStatuses()).toContain(
+        AIRunStatus.NoFixFound,
+      );
+    });
+  });
+
   describe("isTerminalStatus", () => {
     test.each([
       AIRunStatus.Completed,

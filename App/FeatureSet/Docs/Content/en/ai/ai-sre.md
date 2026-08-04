@@ -29,11 +29,28 @@ Autonomous investigations are **off by default**. To enable them:
 
 Incidents and alerts are opted in independently, so you can start with incidents only.
 
+One further setting builds on top of investigations: **Enable Automatic Code Fixes** (on the same AI settings pages, one project-wide toggle shared by incidents and alerts, off by default) lets a confident investigation open a draft fix pull request automatically — see **Automatic code fixes** below.
+
 ## Quiet mode
 
 An investigation that cannot determine a cause posts its analysis to the timeline **without** pinging your Slack/Teams workspace or the on-call. A non-answer should never page anyone — the analysis is there when someone looks, but nobody is woken up for "inconclusive". Confident analyses notify the workspace normally.
 
 Whether an analysis counts as confident is decided by a server-verified signal, not by what the analysis text says: an investigation that gathered no evidence (no successful telemetry queries, no citations) is always treated as inconclusive, and otherwise a separate constrained check classifies the analysis. If that check itself fails, OneUptime AI errs on the side of notifying — quiet mode fails louder, never silent.
+
+## Automatic code fixes
+
+For projects that opt in, a confident analysis can go one step further than notifying: it opens the fix. **Enable Automatic Code Fixes** (**Incidents > Settings > AI** or **Alerts > Settings > AI** — one project-wide setting shared by both, **off by default**) makes an investigation that ends with a confident, evidenced root cause analysis automatically queue the same fix task as the **Open Fix PR from this analysis** button on the investigation panel: an AI agent task that turns the posted analysis into a draft pull request.
+
+The trigger uses the same server-verified confidence signal as quiet mode, with the opposite fail direction: an investigation that gathered no server-verified evidence, or whose confidence check failed, never auto-opens a pull request — autonomous PR creation always fails toward doing nothing. Everything else matches the manual button: the pull request opens as a draft, needs a GitHub-App-connected repository and a Runner with the code-fix capability, counts against the project's daily fix-task budget and each repository's open-PR cap, and at most one fix task per incident or alert can be active at a time. The investigation itself stays read-only — the fix runs as a separate, fully-logged agent task. See [Fix Tasks](/docs/ai/ai-agent) for how fix pull requests work, including the build-and-test verification that runs before each pull request opens.
+
+## Auto-remediation waits for the analysis
+
+If the project uses auto-remediation rules (rules on the incident and alert settings pages that match new incidents and alerts to remediation runbooks — suggested or fully automatic), their ordering relative to investigations is deliberate — **RCA first**:
+
+- When a new incident or alert **enqueues an AI investigation**, auto-remediation for that incident or alert is deferred until the investigation **settles** — any terminal outcome: the analysis is posted, the run errors out after its retries, it expires in the queue, or it goes stale. Only then do the remediation rules run, so the remediation planner always has the posted root cause analysis as input instead of racing it.
+- When **no investigation is enqueued** (investigations disabled, the alert below the severity floor, the cooldown or a budget skipped it), remediation fires immediately when the incident or alert is created, exactly as before. Auto-remediation never depends on the AI investigation lane being enabled.
+
+An investigation that fails, expires, or goes stale still releases remediation — the deferral delays remediation until the outcome is known; it never cancels it.
 
 ## Cost controls
 

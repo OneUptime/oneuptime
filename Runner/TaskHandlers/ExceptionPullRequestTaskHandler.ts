@@ -16,6 +16,10 @@ import RepositoryManager, {
 import PullRequestCreator, {
   PullRequestResult,
 } from "../Utils/PullRequestCreator";
+import BuildVerification, {
+  VerificationOutcome,
+} from "../Utils/BuildVerification";
+import FixVerificationStatus from "Common/Types/AI/FixVerificationStatus";
 import WorkspaceManager, { WorkspaceInfo } from "../Utils/WorkspaceManager";
 import {
   CodeAgentFactory,
@@ -38,6 +42,25 @@ export default abstract class ExceptionPullRequestTaskHandler extends BaseTaskHa
 
   // Branch names are `<branchPrefix><first 8 chars of the task id>`.
   protected abstract readonly branchPrefix: string;
+
+  /*
+   * Whether this recipe's output should be handed to the build/test
+   * verification loop. Default true.
+   *
+   * WriteRegressionTest overrides it to false: that recipe deliberately
+   * writes a test that MUST FAIL on current code (it proves the bug), so
+   * verification would see a red suite and hand the agent a repair prompt
+   * telling it to make the tests pass — destroying the recipe's entire
+   * output, then labeling the PR as failed anyway.
+   */
+  protected readonly runsVerification: boolean = true;
+
+  /*
+   * What the pull request says about verification when this recipe opts
+   * out. Subclasses that set runsVerification=false should explain why.
+   */
+  protected readonly verificationSkippedMessage: string =
+    "Not verified — this task type is excluded from the build and test verification loop.";
 
   // Failure message when no repository yielded a pull request.
   protected abstract readonly noActionMessage: string;
@@ -332,9 +355,48 @@ export default abstract class ExceptionPullRequestTaskHandler extends BaseTaskHa
       `Code agent modified ${agentResult.filesModified.length} file(s)`,
     );
 
-    // Add all changes and commit
+    /*
+     * Verification loop ("tests green before the PR"): run the
+     * repository's configured setup/build/test commands against the
+     * agent's changes, feeding failures back to the agent for bounded
+     * repair passes. Runs BEFORE commit so repair edits land in the same
+     * commit; a fix that still fails opens as a clearly-labeled PR rather
+     * than being thrown away.
+     *
+     * Recipes whose output is SUPPOSED to fail the suite opt out — see
+     * runsVerification.
+     */
+    const verification: VerificationOutcome = this.runsVerification
+      ? await BuildVerification.verifyWithRepairs({
+          repo,
+          repositoryPath: cloneResult.repositoryPath,
+          agent,
+          originalPrompt: prompt,
+          servicePath: repo.servicePathInRepository || undefined,
+          log: async (message: string): Promise<void> => {
+            await this.log(context, message);
+          },
+        })
+      : {
+          status: FixVerificationStatus.Skipped,
+          summary: this.verificationSkippedMessage,
+          repairAttemptsUsed: 0,
+          repairSummaries: [],
+          repairPaths: [],
+        };
+
+    /*
+     * Stage an explicit pathspec, never `git add -A`: the repository's own
+     * build/test commands just ran in this workspace, and whatever they
+     * emitted (build output, caches, lockfile churn) must not be committed
+     * as part of the fix. agentResult.filesModified was captured before any
+     * command ran; repairPaths covers what the repair passes added after.
+     */
     await this.log(context, "Committing changes...");
-    await repoManager.addAllChanges(cloneResult.repositoryPath);
+    await repoManager.addPaths(cloneResult.repositoryPath, [
+      ...agentResult.filesModified,
+      ...verification.repairPaths,
+    ]);
 
     const commitMessage: string = this.buildCommitMessage(exceptionDetails);
     await repoManager.commitChanges(cloneResult.repositoryPath, commitMessage);
@@ -355,10 +417,9 @@ export default abstract class ExceptionPullRequestTaskHandler extends BaseTaskHa
 
     const prTitle: string = this.buildPullRequestTitle(exceptionDetails);
 
-    const prBody: string = this.buildPullRequestBody(
-      exceptionDetails,
-      agentResult.summary,
-    );
+    const prBody: string =
+      this.buildPullRequestBody(exceptionDetails, agentResult.summary) +
+      BuildVerification.buildPullRequestBodySection(verification);
 
     const prResult: PullRequestResult = await prCreator.createPullRequest({
       token: tokenData.token,
@@ -383,6 +444,8 @@ export default abstract class ExceptionPullRequestTaskHandler extends BaseTaskHa
       description: prBody.substring(0, 1000),
       headRefName: branchName,
       baseRefName: repo.mainBranchName || "main",
+      runnerVerificationStatus: verification.status,
+      runnerVerificationSummary: verification.summary,
     });
 
     // Cleanup agent

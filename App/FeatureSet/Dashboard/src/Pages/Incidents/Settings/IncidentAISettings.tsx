@@ -46,6 +46,16 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
           },
           {
             field: {
+              enableAutomaticCodeFixes: true,
+            },
+            title: "Enable Automatic Code Fixes",
+            description:
+              "Open a draft fix pull request automatically when an investigation ends with a confident, evidenced root cause analysis — the automatic form of the 'Open Fix PR from this analysis' button. Requires a repository connected through the GitHub App and a Runner with the code-fix capability. Pull requests are always human-reviewed — nothing merges automatically. This setting is shared between incident and alert investigations.",
+            required: false,
+            fieldType: FormFieldSchemaType.Toggle,
+          },
+          {
+            field: {
               incidentInvestigationMinimumSeverity: true,
             },
             title: "Minimum Severity To Investigate",
@@ -122,6 +132,14 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
                 enableInstrumentationFixTasks: true,
               },
               title: "Instrumentation PRs From Inconclusive Investigations",
+              placeholder: "Disabled",
+              fieldType: FieldType.Boolean,
+            },
+            {
+              field: {
+                enableAutomaticCodeFixes: true,
+              },
+              title: "Enable Automatic Code Fixes",
               placeholder: "Disabled",
               fieldType: FieldType.Boolean,
             },

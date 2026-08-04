@@ -21,6 +21,8 @@ import { Indigo500 } from "../../Types/BrandColors";
 import OneUptimeDate from "../../Types/Date";
 import ObjectID from "../../Types/ObjectID";
 import QueryHelper from "../Types/Database/QueryHelper";
+import AlertService from "./AlertService";
+import IncidentService from "./IncidentService";
 import AlertFeedService from "./AlertFeedService";
 import AutoRemediationRuleService from "./AutoRemediationRuleService";
 import AutoRemediationSuggestionService from "./AutoRemediationSuggestionService";
@@ -63,6 +65,67 @@ type SubjectLinkage = {
 };
 
 class AutoRemediationRuleEngineServiceClass {
+  /*
+   * Reload an incident and run the rules against it. Used by the
+   * post-investigation remediation hand-off (RemediationHandoff), which
+   * holds only the subject id: the create-hook's in-memory model is long
+   * gone by the time the investigation settles, and the reload also picks
+   * up edits made while the investigation ran. The select mirrors exactly
+   * what doesIncidentMatchRule reads — keep the two in sync.
+   */
+  @CaptureSpan()
+  public async applyRulesToIncidentById(data: {
+    incidentId: ObjectID;
+    projectId: ObjectID;
+  }): Promise<void> {
+    const incident: Incident | null = await IncidentService.findOneById({
+      id: data.incidentId,
+      select: {
+        _id: true,
+        projectId: true,
+        title: true,
+        description: true,
+        incidentSeverityId: true,
+        monitors: { _id: true },
+        labels: { _id: true },
+      },
+      props: { isRoot: true },
+    });
+
+    if (!incident) {
+      return;
+    }
+
+    await this.applyRulesToIncident(incident);
+  }
+
+  // The alert twin of applyRulesToIncidentById — mirrors doesAlertMatchRule.
+  @CaptureSpan()
+  public async applyRulesToAlertById(data: {
+    alertId: ObjectID;
+    projectId: ObjectID;
+  }): Promise<void> {
+    const alert: Alert | null = await AlertService.findOneById({
+      id: data.alertId,
+      select: {
+        _id: true,
+        projectId: true,
+        title: true,
+        description: true,
+        alertSeverityId: true,
+        monitorId: true,
+        labels: { _id: true },
+      },
+      props: { isRoot: true },
+    });
+
+    if (!alert) {
+      return;
+    }
+
+    await this.applyRulesToAlert(alert);
+  }
+
   @CaptureSpan()
   public async applyRulesToIncident(incident: Incident): Promise<void> {
     if (!incident.id || !incident.projectId) {

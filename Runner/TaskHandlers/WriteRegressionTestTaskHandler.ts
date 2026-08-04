@@ -19,6 +19,16 @@ export default class WriteRegressionTestTaskHandler extends ExceptionPullRequest
   protected readonly noActionMessage: string =
     "No regression test could be written for any repository";
 
+  /*
+   * This recipe's whole output is a test that MUST FAIL until someone fixes
+   * the bug. Handing it to the verification loop would read that red suite
+   * as a broken fix and prompt the agent to "make the tests pass" — which
+   * would delete or weaken the very test the task exists to write.
+   */
+  protected override readonly runsVerification: boolean = false;
+  protected override readonly verificationSkippedMessage: string =
+    "Not verified — this pull request adds a regression test that is EXPECTED to fail until the underlying bug is fixed. A red test run here is the intended result, not a broken fix.";
+
   // Build the prompt for the code agent
   protected buildPrompt(
     exceptionDetails: ExceptionDetails,

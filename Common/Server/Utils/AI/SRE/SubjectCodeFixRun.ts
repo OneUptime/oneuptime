@@ -1,6 +1,8 @@
 import ObjectID from "../../../../Types/ObjectID";
 import AIRunType from "../../../../Types/AI/AIRunType";
-import AIRunStatus from "../../../../Types/AI/AIRunStatus";
+import AIRunStatus, {
+  AIRunStatusHelper,
+} from "../../../../Types/AI/AIRunStatus";
 import CodeFixTaskType from "../../../../Types/AI/CodeFixTaskType";
 import CodeFixTaskContext from "../../../../Types/AI/CodeFixTaskContext";
 import CodeRepositoryType from "../../../../Types/CodeRepository/CodeRepositoryType";
@@ -65,12 +67,7 @@ export default class SubjectCodeFixRun {
         ...(data.incidentId
           ? { triggeredByIncidentId: data.incidentId }
           : { triggeredByAlertId: data.alertId! }),
-        status: QueryHelper.notIn([
-          AIRunStatus.Completed,
-          AIRunStatus.Error,
-          AIRunStatus.Cancelled,
-          AIRunStatus.Stale,
-        ]),
+        status: QueryHelper.notIn(AIRunStatusHelper.terminalStatuses()),
       },
       select: { _id: true },
       props: { isRoot: true },
@@ -96,12 +93,7 @@ export default class SubjectCodeFixRun {
         projectId: data.projectId,
         runType: AIRunType.CodeFix,
         codeFixTaskType: CodeFixTaskType.FixPerformance,
-        status: QueryHelper.notIn([
-          AIRunStatus.Completed,
-          AIRunStatus.Error,
-          AIRunStatus.Cancelled,
-          AIRunStatus.Stale,
-        ]),
+        status: QueryHelper.notIn(AIRunStatusHelper.terminalStatuses()),
       },
       select: { _id: true, taskContext: true },
       limit: LIMIT_PER_PROJECT,
@@ -135,12 +127,7 @@ export default class SubjectCodeFixRun {
         projectId: data.projectId,
         runType: AIRunType.CodeFix,
         codeFixTaskType: data.taskType,
-        status: QueryHelper.notIn([
-          AIRunStatus.Completed,
-          AIRunStatus.Error,
-          AIRunStatus.Cancelled,
-          AIRunStatus.Stale,
-        ]),
+        status: QueryHelper.notIn(AIRunStatusHelper.terminalStatuses()),
       },
       select: { _id: true, taskContext: true },
       limit: LIMIT_PER_PROJECT,

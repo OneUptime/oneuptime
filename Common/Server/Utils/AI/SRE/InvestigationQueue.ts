@@ -273,14 +273,20 @@ export default class AIInvestigationQueue {
         status: AIRunStatus.Queued,
         createdAt: QueryHelper.lessThan(expiryThreshold),
       },
-      select: { _id: true },
+      select: {
+        _id: true,
+        projectId: true,
+        runType: true,
+        triggeredByIncidentId: true,
+        triggeredByAlertId: true,
+      },
       limit: 100,
       skip: 0,
       props: { isRoot: true },
     });
 
     for (const expired of expiredRuns) {
-      await AIRunService.attemptStatusTransition({
+      const expiredCount: number = await AIRunService.attemptStatusTransition({
         aiRunId: expired.id!,
         fromStatus: AIRunStatus.Queued,
         set: {
@@ -289,6 +295,22 @@ export default class AIInvestigationQueue {
           errorMessage: `Expired in the investigation queue after ${QUEUE_TTL_MINUTES} minutes — a first-pass analysis this late would no longer be useful. The project may have been at its concurrency cap or daily token budget.`,
         },
       });
+
+      /*
+       * An expired incident/alert investigation is terminally settled —
+       * release the subject to auto-remediation (RCA-first ordering must
+       * not swallow remediation when the RCA never ran). Guarded on the
+       * WON transition so a run claimed between the query and this
+       * transition is settled by its executor instead.
+       */
+      if (expiredCount > 0) {
+        await this.handOffSettledInvestigationToRemediation({
+          runType: expired.runType,
+          projectId: expired.projectId,
+          triggeredByIncidentId: expired.triggeredByIncidentId,
+          triggeredByAlertId: expired.triggeredByAlertId,
+        });
+      }
     }
 
     const queuedRuns: Array<AIRun> = await AIRunService.findBy({
@@ -362,6 +384,12 @@ export default class AIInvestigationQueue {
    * remain, otherwise mark the run Error. The transition guards on Running
    * so a run that already completed (e.g. only postAnalysis failed) is
    * never clobbered or re-run.
+   *
+   * Returns what actually happened, so callers can settle post-terminal
+   * work (the remediation hand-off) exactly once: "requeued" — a later
+   * attempt owns the run now; "finalized" — THIS call moved the run to
+   * Error, the run is settled; "noop" — another actor moved the run first
+   * (that actor owns settlement).
    */
   @CaptureSpan()
   public static async failOrRequeue(data: {
@@ -369,7 +397,7 @@ export default class AIInvestigationQueue {
     attemptCount: number;
     errorMessage: string;
     isPermanent: boolean;
-  }): Promise<void> {
+  }): Promise<"requeued" | "finalized" | "noop"> {
     const truncatedMessage: string = data.errorMessage.substring(0, 400);
 
     if (!data.isPermanent && data.attemptCount < MAX_INVESTIGATION_ATTEMPTS) {
@@ -386,11 +414,12 @@ export default class AIInvestigationQueue {
         logger.debug(
           `AI: requeued run ${data.aiRunId.toString()} after attempt ${data.attemptCount} failed.`,
         );
+        return "requeued";
       }
-      return;
+      return "noop";
     }
 
-    await AIRunService.attemptStatusTransition({
+    const finalized: number = await AIRunService.attemptStatusTransition({
       aiRunId: data.aiRunId,
       fromStatus: AIRunStatus.Running,
       set: {
@@ -399,17 +428,30 @@ export default class AIInvestigationQueue {
         errorMessage: truncatedMessage,
       },
     });
+
+    return finalized > 0 ? "finalized" : "noop";
   }
 
   /*
    * Called by the stale-run sweeper for an Investigation run whose
    * heartbeat went silent (the pod running it died). Requeues while
    * attempts remain; otherwise marks it Stale as before.
+   *
+   * The optional subject fields let the sweeper hand a terminally-staled
+   * incident/alert investigation to auto-remediation: remediation is
+   * deferred until the investigation settles (RCA-first ordering), so a
+   * run that dies without retries left must still release the subject to
+   * the rule engine — otherwise a dead investigation would silently
+   * swallow remediation for that incident/alert.
    */
   @CaptureSpan()
   public static async requeueOrMarkStale(run: {
     id: ObjectID;
     attemptCount: number;
+    runType?: AIRunType | undefined;
+    projectId?: ObjectID | undefined;
+    triggeredByIncidentId?: ObjectID | undefined;
+    triggeredByAlertId?: ObjectID | undefined;
   }): Promise<"requeued" | "stale"> {
     if ((run.attemptCount || 0) < MAX_INVESTIGATION_ATTEMPTS) {
       const requeued: number = await AIRunService.attemptStatusTransition({
@@ -426,7 +468,7 @@ export default class AIInvestigationQueue {
       }
     }
 
-    await AIRunService.attemptStatusTransition({
+    const staled: number = await AIRunService.attemptStatusTransition({
       aiRunId: run.id,
       fromStatus: AIRunStatus.Running,
       set: {
@@ -437,7 +479,62 @@ export default class AIInvestigationQueue {
       },
     });
 
+    /*
+     * Only the actor that WON the terminal transition may settle — a lost
+     * transition means the run moved on and another actor owns settlement.
+     */
+    if (staled > 0) {
+      await this.handOffSettledInvestigationToRemediation(run);
+    }
+
     return "stale";
+  }
+
+  /*
+   * Release a terminally-settled incident/alert investigation to the
+   * auto-remediation rule engine (the RCA-first ordering's terminal
+   * fallback for runs that expired or went stale — the happy path hands
+   * off from the engine via InvestigationRequest.onSettled). Only fires
+   * for Investigation runs with an incident/alert subject; remediation
+   * runs and insight triage never hand off. Never throws.
+   */
+  private static async handOffSettledInvestigationToRemediation(run: {
+    runType?: AIRunType | undefined;
+    projectId?: ObjectID | undefined;
+    triggeredByIncidentId?: ObjectID | undefined;
+    triggeredByAlertId?: ObjectID | undefined;
+  }): Promise<void> {
+    if (run.runType !== AIRunType.Investigation) {
+      return;
+    }
+
+    if (
+      !run.projectId ||
+      (!run.triggeredByIncidentId && !run.triggeredByAlertId)
+    ) {
+      return;
+    }
+
+    try {
+      /*
+       * Lazy require: RemediationHandoff imports the rule engine, which
+       * imports this queue — a top-level import here would be circular at
+       * module-init time (same pattern as the runner dispatch below).
+       */
+      const remediationHandoff: typeof import("./RemediationHandoff").default =
+        // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+        require("./RemediationHandoff").default;
+
+      await remediationHandoff.runForSettledInvestigation({
+        projectId: run.projectId,
+        incidentId: run.triggeredByIncidentId,
+        alertId: run.triggeredByAlertId,
+      });
+    } catch (error) {
+      logger.error(
+        `AI: remediation hand-off after a settled investigation failed: ${error}`,
+      );
+    }
   }
 
   /*
