@@ -30,17 +30,6 @@ const RunnerInstallInstructions: FunctionComponent<ComponentProps> = (
         never leave your network.
       </p>
 
-      <div className="flex gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
-        <Icon
-          icon={IconProp.Key}
-          className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-600"
-        />
-        <div className="text-sm text-amber-800">
-          <span className="font-semibold">Save the Runner key now.</span> You
-          will not be able to view it again after closing this window.
-        </div>
-      </div>
-
       <div>
         <div className="mb-2 flex items-center gap-2">
           <Icon icon={IconProp.Terminal} className="h-4 w-4 text-gray-500" />
