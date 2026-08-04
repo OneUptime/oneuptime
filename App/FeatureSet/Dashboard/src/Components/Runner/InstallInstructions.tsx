@@ -1,13 +1,16 @@
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
+import AlertBanner, {
+  AlertBannerType,
+} from "Common/UI/Components/AlertBanner/AlertBanner";
 import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
 import Icon from "Common/UI/Components/Icon/Icon";
 import { HOST, HTTP_PROTOCOL } from "Common/UI/Config";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
-  agentId: ObjectID;
-  agentKey: string;
+  runnerId: ObjectID;
+  runnerKey: string;
 }
 
 const RunnerInstallInstructions: FunctionComponent<ComponentProps> = (
@@ -15,9 +18,32 @@ const RunnerInstallInstructions: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const host: string = `${HTTP_PROTOCOL}${HOST}`;
 
+  /*
+   * Reading the key is restricted to Project Owner, Project Admin and Runbook
+   * Admin, so for everyone else it simply is not in the response. Rendering the
+   * command anyway produced ONEUPTIME_RUNNER_KEY= with nothing after it, which
+   * copies and runs and fails on the host with an authentication error — the
+   * one place the cause is hardest to see.
+   */
+  if (!props.runnerKey) {
+    return (
+      <AlertBanner
+        title="You do not have permission to view this Runner's key"
+        type={AlertBannerType.Warning}
+      >
+        <span className="text-sm leading-relaxed">
+          The setup command embeds the Runner&apos;s secret key, and only a
+          Project Owner, Project Admin or Runbook Admin can read it. Ask one of
+          them for the command, or have them reset the key and send you the new
+          one.
+        </span>
+      </AlertBanner>
+    );
+  }
+
   const dockerCommand: string = `docker run --name oneuptime-runner --restart unless-stopped \\
-  -e ONEUPTIME_RUNNER_ID=${props.agentId.toString()} \\
-  -e ONEUPTIME_RUNNER_KEY=${props.agentKey} \\
+  -e ONEUPTIME_RUNNER_ID=${props.runnerId.toString()} \\
+  -e ONEUPTIME_RUNNER_KEY=${props.runnerKey} \\
   -e ONEUPTIME_URL=${host} \\
   -d oneuptime/runner:release`;
 
@@ -38,6 +64,19 @@ const RunnerInstallInstructions: FunctionComponent<ComponentProps> = (
           </span>
         </div>
         <CodeBlock language="bash" code={dockerCommand} />
+      </div>
+
+      <div className="flex gap-2 text-xs leading-relaxed text-gray-500">
+        <Icon
+          icon={IconProp.Signal}
+          className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-400"
+        />
+        <span>
+          The Runner reports in every 60 seconds. Once the first heartbeat
+          lands, this Runner shows as Connected and its version and host appear
+          on the Runner Status card — allow up to a minute after the container
+          starts.
+        </span>
       </div>
 
       <div className="flex gap-2 text-xs leading-relaxed text-gray-500">

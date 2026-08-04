@@ -1,4 +1,5 @@
 import RunnerInstallInstructions from "../../Components/Runner/InstallInstructions";
+import RunnerStatusElement from "../../Components/Runner/RunnerStatus";
 import PageComponentProps from "../PageComponentProps";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
@@ -7,12 +8,19 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
+import useTranslateValue, {
+  UseTranslateValueResult,
+} from "Common/UI/Utils/Translation";
 import Label from "Common/Models/DatabaseModels/Label";
-import Runner, {
-  RunnerConnectionStatus,
-} from "Common/Models/DatabaseModels/Runner";
+import Runner from "Common/Models/DatabaseModels/Runner";
+import {
+  getRunnerLiveStatus,
+  getRunnerLiveStatusLabel,
+} from "Common/Types/Runner/RunnerLiveStatus";
+import { Gray500 } from "Common/Types/BrandColors";
 import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
 import React, {
@@ -24,6 +32,8 @@ import React, {
 
 const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [showSetupAgent, setShowSetupAgent] = useState<Runner | null>(null);
+
+  const { translateString }: UseTranslateValueResult = useTranslateValue();
 
   return (
     <Fragment>
@@ -47,16 +57,22 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
         cardProps={{
           title: "Runners",
           description:
-            "Self-hosted agents that execute Bash and JavaScript runbook steps in your own infrastructure. Each step picks the agent that should run it.",
+            "Self-hosted Runners that execute Bash and JavaScript runbook steps in your own infrastructure. Each step picks the Runner that should run it.",
         }}
         selectMoreFields={{
           _id: true,
           key: true,
           canRunCodeFixTasks: true,
           canRunAiCommands: true,
+          /*
+           * The Status column renders from lastAlive, so it has to be
+           * selected here and not only by the Last Seen column — a Runner
+           * fetched without it reads as never connected.
+           */
+          lastAlive: true,
         }}
         noItemsMessage={
-          "No runbook agents yet. Create one, then run the Docker command on a host inside your infrastructure."
+          "No Runners yet. Create one, then run the Docker command on a host inside your infrastructure."
         }
         viewPageRoute={Navigation.getCurrentRoute()}
         formSteps={[
@@ -71,7 +87,7 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
             stepId: "runner",
             fieldType: FormFieldSchemaType.Text,
             required: true,
-            placeholder: "prod-eu-runbook-agent",
+            placeholder: "prod-eu-runner",
             validation: { minLength: 2 },
           },
           {
@@ -186,37 +202,55 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
             type: FieldType.Text,
           },
           {
+            /*
+             * Rendered from lastAlive, not from connectionStatus — the column
+             * this field names is written on create and on the first heartbeat
+             * and never again, so it reports every Runner that ever connected
+             * as connected forever. lastAlive comes in via selectMoreFields.
+             */
             field: { connectionStatus: true },
             title: "Status",
             type: FieldType.Element,
-            getElement: (item: Runner): ReactElement => {
-              const isConnected: boolean =
-                item.connectionStatus === RunnerConnectionStatus.Connected;
-              return (
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`inline-block w-2 h-2 rounded-full ${
-                      isConnected ? "bg-emerald-500" : "bg-red-500"
-                    }`}
-                  />
-                  <span
-                    className={`text-sm font-medium ${
-                      isConnected ? "text-emerald-700" : "text-red-700"
-                    }`}
-                  >
-                    {isConnected ? "Connected" : "Disconnected"}
-                  </span>
-                </div>
+            /*
+             * Sorting and CSV export both go straight to the named column and
+             * never through getElement, so leaving them on the default would
+             * order and export the stale value this cell exists to stop
+             * showing. Sorting is disabled outright — Last Seen next to it
+             * sorts on lastAlive, which is the ordering "sort by status"
+             * actually means — and the export is given the derived text.
+             */
+            disableSort: true,
+            getExportValue: (item: Runner): string => {
+              return getRunnerLiveStatusLabel(
+                getRunnerLiveStatus(item.lastAlive),
               );
+            },
+            getElement: (item: Runner): ReactElement => {
+              return <RunnerStatusElement runner={item} showLastSeen={false} />;
             },
           },
           {
             field: { lastAlive: true },
             title: "Last Seen",
             type: FieldType.Element,
+            /*
+             * Without this the export writes a raw Date toString next to a
+             * column that reads "3 months ago" on screen.
+             */
+            getExportValue: (item: Runner): string => {
+              if (!item.lastAlive) {
+                return "Never";
+              }
+
+              return OneUptimeDate.fromNow(item.lastAlive);
+            },
             getElement: (item: Runner): ReactElement => {
               if (!item.lastAlive) {
-                return <span className="text-gray-500">Never</span>;
+                return (
+                  <span className="text-gray-500">
+                    {translateString("Never") || "Never"}
+                  </span>
+                );
               }
               return <span>{OneUptimeDate.fromNow(item.lastAlive)}</span>;
             },
@@ -241,10 +275,32 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               }
 
               if (capabilities.length === 0) {
-                return <span className="text-gray-500">None</span>;
+                return (
+                  <span className="text-gray-500">
+                    {translateString("None") || "None"}
+                  </span>
+                );
               }
 
-              return <span>{capabilities.join(", ")}</span>;
+              /*
+               * Pills rather than a comma-joined sentence: with three
+               * capabilities the joined string wrapped to two lines and could
+               * not be scanned down the column.
+               */
+              return (
+                <div className="flex flex-wrap gap-1">
+                  {capabilities.map((capability: string): ReactElement => {
+                    return (
+                      <Pill
+                        key={capability}
+                        text={translateString(capability) || capability}
+                        color={Gray500}
+                        size={PillSize.Small}
+                      />
+                    );
+                  })}
+                </div>
+              );
             },
           },
           {
@@ -278,8 +334,8 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           closeButtonText="Close"
         >
           <RunnerInstallInstructions
-            agentId={new ObjectID(showSetupAgent._id!.toString())}
-            agentKey={(showSetupAgent.key as string) || ""}
+            runnerId={new ObjectID(showSetupAgent._id!.toString())}
+            runnerKey={(showSetupAgent.key as string) || ""}
           />
         </Modal>
       ) : (

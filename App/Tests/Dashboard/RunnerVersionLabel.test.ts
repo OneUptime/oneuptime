@@ -148,13 +148,20 @@ function localeKeys(code: string): Array<string> {
 }
 
 describe("RunnerView shows the version as 'Runner Version'", () => {
+  /*
+   * The field is rendered through getElement rather than FieldType.Text now:
+   * RunnerService.onBeforeCreate stamps every new row with agentVersion
+   * 1.0.0 before the Runner has ever spoken to us, so a plain Text render
+   * showed a fabricated version for a Runner that had never reported one.
+   * The title and its position on the card are what this suite exists to
+   * pin, and both are unchanged — so this asserts the pair, not the
+   * renderer.
+   */
   test("the Runner Status card's version field is titled 'Runner Version'", () => {
     expect(readSource(...RUNNER_VIEW)).toContain(
       squash(`{
               field: { agentVersion: true },
-              title: "Runner Version",
-              fieldType: FieldType.Text,
-            },`),
+              title: "Runner Version",`),
     );
   });
 

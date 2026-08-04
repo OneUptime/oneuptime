@@ -14,7 +14,7 @@ const RunnersElement: FunctionComponent<ComponentProps> = (
   return (
     <TableColumnListComponent
       items={props.runners}
-      moreText="more agents"
+      moreText="more Runners"
       getEachElement={(runner: Runner) => {
         return (
           <RunnerElement
@@ -23,7 +23,7 @@ const RunnersElement: FunctionComponent<ComponentProps> = (
           />
         );
       }}
-      noItemsMessage="No runbook agents."
+      noItemsMessage="No Runners."
     />
   );
 };

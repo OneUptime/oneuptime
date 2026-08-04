@@ -11,13 +11,7 @@ import OneUptimeDate from "../../Types/Date";
 import { JSONObject } from "../../Types/JSON";
 import QueryHelper from "../Types/Database/QueryHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-
-/*
- * How recently a Runner must have heartbeated to count as online. Matches the
- * window AIAgentService.isAgentAlive uses, and comfortably clears the Runner's
- * 60s heartbeat interval.
- */
-const RUNNER_ALIVE_WINDOW_IN_MINUTES: number = 5;
+import { RUNNER_ALIVE_WINDOW_IN_MINUTES } from "../../Types/Runner/RunnerLiveStatus";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {

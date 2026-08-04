@@ -1,4 +1,5 @@
 import RunnerInstallInstructions from "../../Components/Runner/InstallInstructions";
+import RunnerStatusElement from "../../Components/Runner/RunnerStatus";
 import TeamElement from "../../Components/Team/Team";
 import UserElement from "../../Components/User/User";
 import PageMap from "../../Utils/PageMap";
@@ -6,7 +7,10 @@ import ProjectUser from "../../Utils/ProjectUser";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
+import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
+import { JSONObject } from "Common/Types/JSON";
+import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -18,10 +22,11 @@ import ResetObjectID from "Common/UI/Components/ResetObjectID/ResetObjectID";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
+import useTranslateValue, {
+  UseTranslateValueResult,
+} from "Common/UI/Utils/Translation";
 import Label from "Common/Models/DatabaseModels/Label";
-import Runner, {
-  RunnerConnectionStatus,
-} from "Common/Models/DatabaseModels/Runner";
+import Runner from "Common/Models/DatabaseModels/Runner";
 import RunnerOwnerTeam from "Common/Models/DatabaseModels/RunnerOwnerTeam";
 import RunnerOwnerUser from "Common/Models/DatabaseModels/RunnerOwnerUser";
 import Team from "Common/Models/DatabaseModels/Team";
@@ -38,6 +43,27 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
 ): ReactElement => {
   const [modelId] = useState<ObjectID>(Navigation.getLastParamAsObjectID());
   const [agentKey, setAgentKey] = useState<string | null>(null);
+  const [isRunnerLoaded, setIsRunnerLoaded] = useState<boolean>(false);
+
+  const { translateString }: UseTranslateValueResult = useTranslateValue();
+
+  /*
+   * Reused by the three Status-card fields that have nothing to show until the
+   * Runner has checked in at least once. An empty cell reads as "we lost it";
+   * this reads as "it has not reported yet", which is what is actually true.
+   *
+   * A function, not a hoisted element: ModelDetail snapshots these getElement
+   * closures into state once on mount, so a single element built up here would
+   * carry whatever translation was active at that moment and keep rendering it
+   * after the viewer switched language.
+   */
+  const notReportedYet: GetReactElementFunction = (): ReactElement => {
+    return (
+      <span className="text-gray-500">
+        {translateString("Not reported yet") || "Not reported yet"}
+      </span>
+    );
+  };
 
   return (
     <Fragment>
@@ -45,7 +71,7 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
         name="Runner Details"
         cardProps={{
           title: "Runner Details",
-          description: "Here are more details for this runbook agent.",
+          description: "Here are more details for this Runner.",
         }}
         isEditable={true}
         formFields={[
@@ -54,7 +80,7 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
             title: "Name",
             fieldType: FormFieldSchemaType.Text,
             required: true,
-            placeholder: "prod-eu-runbook-agent",
+            placeholder: "prod-eu-runner",
             validation: { minLength: 2 },
           },
           {
@@ -112,6 +138,7 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
             if (item.key) {
               setAgentKey(item.key as string);
             }
+            setIsRunnerLoaded(true);
           },
           modelType: Runner,
           id: "model-detail-runbook-agent",
@@ -131,7 +158,7 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
             },
             {
               field: { key: true },
-              title: "Agent Key",
+              title: "Runner Key",
               fieldType: FieldType.HiddenText,
             },
             {
@@ -172,61 +199,145 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
         cardProps={{
           title: "Runner Status",
           description:
-            "Here is more details on the connection status for this runbook agent.",
+            "Here is more details on the connection status for this Runner.",
         }}
         isEditable={false}
         modelDetailProps={{
           modelType: Runner,
           id: "model-detail-runbook-agent-status",
+          /*
+           * lastAlive drives all three fields — it is the only column that
+           * tells the truth about a Runner. connectionStatus is written once
+           * on create and once on the first heartbeat and never again, so a
+           * Runner that died months ago still has it set to "connected".
+           */
+          selectMoreFields: { lastAlive: true },
           fields: [
             {
               field: { connectionStatus: true },
               title: "Connection Status",
               fieldType: FieldType.Element,
               getElement: (item: Runner): ReactElement => {
-                const isConnected: boolean =
-                  item.connectionStatus === RunnerConnectionStatus.Connected;
-                return (
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`inline-block w-2 h-2 rounded-full ${
-                        isConnected ? "bg-emerald-500" : "bg-red-500"
-                      }`}
-                    />
-                    <span
-                      className={`text-sm font-medium ${
-                        isConnected ? "text-emerald-700" : "text-red-700"
-                      }`}
-                    >
-                      {isConnected ? "Connected" : "Disconnected"}
-                    </span>
-                  </div>
-                );
+                return <RunnerStatusElement runner={item} />;
               },
             },
             {
               field: { lastAlive: true },
               title: "Last Heartbeat",
-              fieldType: FieldType.DateTime,
+              fieldType: FieldType.Element,
+              getElement: (item: Runner): ReactElement => {
+                if (!item.lastAlive) {
+                  return notReportedYet();
+                }
+
+                /*
+                 * Relative first because that is the question being asked of
+                 * this field; the exact timestamp underneath for anyone
+                 * correlating against their own logs.
+                 */
+                return (
+                  <div>
+                    <div>{OneUptimeDate.fromNow(item.lastAlive)}</div>
+                    <div className="text-xs text-gray-500">
+                      {OneUptimeDate.getDateAsLocalFormattedString(
+                        item.lastAlive,
+                      )}
+                    </div>
+                  </div>
+                );
+              },
             },
             {
               field: { agentVersion: true },
               title: "Runner Version",
-              fieldType: FieldType.Text,
+              fieldType: FieldType.Element,
+              getElement: (item: Runner): ReactElement => {
+                /*
+                 * RunnerService.onBeforeCreate stamps every new row with
+                 * 1.0.0 before any Runner has spoken to us, so the column is
+                 * never empty and cannot be trusted on its own. lastAlive is
+                 * what separates a self-reported version from that
+                 * placeholder.
+                 */
+                if (!item.lastAlive || !item.agentVersion) {
+                  return notReportedYet();
+                }
+
+                return <span>{item.agentVersion.toString()}</span>;
+              },
+            },
+            {
+              field: { hostInfo: true },
+              title: "Host",
+              fieldType: FieldType.Element,
+              getElement: (item: Runner): ReactElement => {
+                const hostInfo: JSONObject | undefined | null =
+                  item.hostInfo as JSONObject | undefined | null;
+
+                if (!item.lastAlive || !hostInfo) {
+                  return notReportedYet();
+                }
+
+                /*
+                 * Self-reported by the container on each heartbeat. Shown
+                 * because "which machine is this actually running on" is the
+                 * first thing asked when a Runner misbehaves, and until now
+                 * the answer was only in the database.
+                 */
+                const hostname: string = String(hostInfo["hostname"] || "");
+
+                const platformLine: string = [
+                  String(hostInfo["platform"] || ""),
+                  String(hostInfo["arch"] || ""),
+                  String(hostInfo["release"] || ""),
+                ]
+                  .filter((part: string): boolean => {
+                    return Boolean(part);
+                  })
+                  .join(" · ");
+
+                if (!hostname && !platformLine) {
+                  return notReportedYet();
+                }
+
+                return (
+                  <div>
+                    {hostname ? (
+                      <div className="font-mono text-sm">{hostname}</div>
+                    ) : (
+                      <></>
+                    )}
+                    {platformLine ? (
+                      <div className="text-xs text-gray-500">
+                        {platformLine}
+                      </div>
+                    ) : (
+                      <></>
+                    )}
+                  </div>
+                );
+              },
             },
           ],
           modelId: modelId,
         }}
       />
 
-      {agentKey && (
+      {/*
+       * Gated on the load, not on the key. A reader who cannot see the key
+       * used to get no Setup Instructions card at all and no hint that one
+       * exists; now they get the card explaining who can hand them the
+       * command. Waiting for the load keeps that explanation from flashing up
+       * before we know whether the key is coming.
+       */}
+      {isRunnerLoaded && (
         <Card
           title="Setup Instructions"
           description={
             <div className="mt-5">
               <RunnerInstallInstructions
-                agentId={modelId}
-                agentKey={agentKey}
+                runnerId={modelId}
+                runnerKey={agentKey || ""}
               />
             </div>
           }
@@ -259,9 +370,9 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
         cardProps={{
           title: "Owners (Teams)",
           description:
-            "Here is the list of teams that own this runbook agent. They will be alerted when this runbook agent's status changes.",
+            "Here is the list of teams that own this Runner. They will be alerted when this Runner's status changes.",
         }}
-        noItemsMessage={"No teams associated with this runbook agent so far."}
+        noItemsMessage={"No teams associated with this Runner so far."}
         formFields={[
           {
             field: { team: true },
@@ -348,9 +459,9 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
         cardProps={{
           title: "Owners (Users)",
           description:
-            "Here is the list of users that own this runbook agent. They will be alerted when this runbook agent's status changes.",
+            "Here is the list of users that own this Runner. They will be alerted when this Runner's status changes.",
         }}
-        noItemsMessage={"No users associated with this runbook agent so far."}
+        noItemsMessage={"No users associated with this Runner so far."}
         formFields={[
           {
             field: { user: true },
@@ -425,8 +536,9 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
         description={
           <p className="mt-2">
             Resetting the secret key will generate a new key. The secret is used
-            to authenticate runbook agent requests. Existing agents will stop
-            connecting until the new key is configured on them.
+            to authenticate this Runner&apos;s requests. This Runner will stop
+            connecting until the new key is configured on it, so re-run the
+            setup command on its host afterwards.
           </p>
         }
         modelId={modelId}

@@ -25,9 +25,14 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
 import RunbookCredential from "Common/Models/DatabaseModels/RunbookCredential";
 import RunbookCredentialType from "Common/Types/Runbook/RunbookCredentialType";
-import Runner, {
-  RunnerConnectionStatus,
-} from "Common/Models/DatabaseModels/Runner";
+import Runner from "Common/Models/DatabaseModels/Runner";
+import RunnerLiveStatus, {
+  getRunnerLiveStatus,
+  getRunnerLiveStatusLabel,
+} from "Common/Types/Runner/RunnerLiveStatus";
+import useTranslateValue, {
+  UseTranslateValueResult,
+} from "Common/UI/Utils/Translation";
 import { JSONArray } from "Common/Types/JSON";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -69,7 +74,7 @@ import {
 interface AgentOption {
   id: string;
   name: string;
-  connected: boolean;
+  liveStatus: RunnerLiveStatus;
 }
 
 /*
@@ -435,6 +440,9 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [hasUnsaved, setHasUnsaved] = useState<boolean>(false);
   const [agents, setAgents] = useState<AgentOption[]>([]);
   const [credentials, setCredentials] = useState<CredentialOption[]>([]);
+
+  const { translateString }: UseTranslateValueResult = useTranslateValue();
+
   const [collapsedState, setCollapsedState] = useState<Record<string, boolean>>(
     {},
   );
@@ -456,7 +464,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
           select: {
             _id: true,
             name: true,
-            connectionStatus: true,
+            lastAlive: true,
           },
           sort: { name: SortOrder.Ascending },
           limit: LIMIT_MAX,
@@ -512,10 +520,8 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
         result.data.map((a: Runner): AgentOption => {
           return {
             id: a._id?.toString() || "",
-            name: a.name || "Unnamed agent",
-            connected:
-              (a.connectionStatus as unknown as string) ===
-              RunnerConnectionStatus.Connected,
+            name: a.name || "Unnamed Runner",
+            liveStatus: getRunnerLiveStatus(a.lastAlive),
           };
         }),
       );
@@ -699,7 +705,17 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
     (a: AgentOption): DropdownOption => {
       return {
         value: a.id,
-        label: `${a.name} ${a.connected ? "· connected" : "· disconnected"}`,
+        /*
+         * Dropdown translates an option label as one whole string, so the
+         * composed "name · status" can never match a key. The status word is
+         * therefore translated on its own and then joined — and it reuses the
+         * same three labels the status bubble uses, which every locale
+         * already carries.
+         */
+        label: `${a.name} · ${
+          translateString(getRunnerLiveStatusLabel(a.liveStatus)) ||
+          getRunnerLiveStatusLabel(a.liveStatus)
+        }`,
       };
     },
   );
