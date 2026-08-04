@@ -72,6 +72,21 @@ export interface AIStepConfig {
    * Response token cap. Defaults to 4096; clamped server-side.
    */
   maxTokens?: number;
+  /*
+   * Pin this step to a specific LLM provider. Optional — when unset the step
+   * uses the project's default provider (and, failing that, the global
+   * OneUptime provider), which is what every AI step did before this field
+   * existed.
+   *
+   * The id must name a provider the project owns or a global one; the server
+   * re-checks that on every run rather than trusting the stored config, since
+   * Runbook.steps is an unvalidated JSON column. A pinned provider that no
+   * longer resolves FAILS the step instead of quietly falling back to the
+   * default: an AI step runs unattended, and silently answering on a
+   * different model than the one a responder pinned is a change nobody would
+   * see. (Interactive chat, which has a human watching, does fall back.)
+   */
+  llmProviderId?: string;
 }
 
 /*

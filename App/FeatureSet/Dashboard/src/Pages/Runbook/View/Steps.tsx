@@ -28,7 +28,11 @@ import RunbookCredentialType from "Common/Types/Runbook/RunbookCredentialType";
 import Runner, {
   RunnerConnectionStatus,
 } from "Common/Models/DatabaseModels/Runner";
-import { JSONArray } from "Common/Types/JSON";
+import { JSONArray, JSONObject } from "Common/Types/JSON";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import URL from "Common/Types/API/URL";
+import { APP_API_URL } from "Common/UI/Config";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import {
@@ -85,6 +89,22 @@ interface CredentialOption {
   name: string;
   credentialType: RunbookCredentialType;
 }
+
+/*
+ * A provider an AI step can be pinned to. Mirrors the non-secret shape that
+ * POST /ai-chat/providers returns — the project's own providers plus the
+ * global ones, which is exactly the set the server will accept on a run.
+ */
+interface LlmProviderOption {
+  id: string;
+  name: string;
+  llmType: string | null;
+  modelName: string | null;
+  isDefault: boolean;
+}
+
+// The empty value stands for "no pin" — use whatever the project defaults to.
+const PROJECT_DEFAULT_PROVIDER_VALUE: string = "";
 
 const HTTP_METHODS: HttpRequestMethod[] = [
   "GET",
@@ -435,6 +455,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [hasUnsaved, setHasUnsaved] = useState<boolean>(false);
   const [agents, setAgents] = useState<AgentOption[]>([]);
   const [credentials, setCredentials] = useState<CredentialOption[]>([]);
+  const [llmProviders, setLlmProviders] = useState<LlmProviderOption[]>([]);
   const [collapsedState, setCollapsedState] = useState<Record<string, boolean>>(
     {},
   );
@@ -519,6 +540,41 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
           };
         }),
       );
+
+      /*
+       * Providers are fetched outside the Promise.all above, and their
+       * failure is swallowed on purpose: pinning a provider is optional, so
+       * a project with no AI configured (or an endpoint that errors) must
+       * still be able to edit every other kind of step. An empty list just
+       * collapses the picker to "project default".
+       */
+      try {
+        const providerResponse: HTTPResponse<JSONObject> | HTTPErrorResponse =
+          await API.post<JSONObject>({
+            url: URL.fromString(APP_API_URL.toString() + "/ai-chat/providers"),
+            data: {},
+            headers: ModelAPI.getCommonHeaders(),
+          });
+
+        if (!(providerResponse instanceof HTTPErrorResponse)) {
+          const providerData: JSONObject = providerResponse.data as JSONObject;
+          setLlmProviders(
+            ((providerData["providers"] as JSONArray) || []).map(
+              (provider: JSONObject): LlmProviderOption => {
+                return {
+                  id: (provider["id"] as string) || "",
+                  name: (provider["name"] as string) || "Unnamed provider",
+                  llmType: (provider["llmType"] as string) || null,
+                  modelName: (provider["modelName"] as string) || null,
+                  isDefault: Boolean(provider["isDefault"]),
+                };
+              },
+            ),
+          );
+        }
+      } catch {
+        // Non-fatal — the picker falls back to "project default" only.
+      }
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     } finally {
@@ -770,6 +826,105 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
           />
         )}
         <p className="text-xs text-gray-500 mt-1.5">{args.helperText}</p>
+      </div>
+    );
+  };
+
+  /*
+   * Optional provider pin for an AI step. The first option is always "project
+   * default", which writes an empty id — that is the pre-existing behaviour
+   * and stays the default for every new step.
+   *
+   * A pinned provider that is no longer in the list (deleted, or moved to
+   * another project) is surfaced as an explicit "unavailable" option rather
+   * than silently reset to the default: the server FAILS such a step, so the
+   * form has to show the responder the same broken state the run will hit.
+   */
+  const renderLlmProviderPicker: (args: {
+    currentProviderId: string;
+    onChange: (id: string) => void;
+  }) => ReactElement = (args: {
+    currentProviderId: string;
+    onChange: (id: string) => void;
+  }): ReactElement => {
+    const defaultOption: DropdownOption = {
+      value: PROJECT_DEFAULT_PROVIDER_VALUE,
+      label: "Project default",
+    };
+
+    const providerOptions: Array<DropdownOption> = llmProviders.map(
+      (provider: LlmProviderOption): DropdownOption => {
+        const detail: string = [provider.llmType, provider.modelName]
+          .filter(Boolean)
+          .join(" · ");
+
+        return {
+          value: provider.id,
+          label: `${provider.name}${detail ? ` (${detail})` : ""}${
+            provider.isDefault ? " · default" : ""
+          }`,
+        };
+      },
+    );
+
+    const knownOption: DropdownOption | undefined = providerOptions.find(
+      (o: DropdownOption) => {
+        return o.value === args.currentProviderId;
+      },
+    );
+
+    const staleOption: DropdownOption | undefined =
+      args.currentProviderId && !knownOption
+        ? {
+            value: args.currentProviderId,
+            label: `Unavailable provider (${args.currentProviderId})`,
+          }
+        : undefined;
+
+    const options: Array<DropdownOption> = [
+      defaultOption,
+      ...(staleOption ? [staleOption] : []),
+      ...providerOptions,
+    ];
+
+    return (
+      <div>
+        <label className="block text-xs font-medium text-gray-700 mb-1.5">
+          LLM provider <span className="text-gray-400">(optional)</span>
+        </label>
+        <Dropdown
+          options={options}
+          value={staleOption || knownOption || defaultOption}
+          placeholder="Project default"
+          onChange={(
+            value: DropdownValue | Array<DropdownValue> | null,
+          ): void => {
+            const id: string =
+              value === null || value === undefined
+                ? PROJECT_DEFAULT_PROVIDER_VALUE
+                : Array.isArray(value)
+                  ? String(value[0] ?? PROJECT_DEFAULT_PROVIDER_VALUE)
+                  : String(value);
+            args.onChange(id);
+          }}
+        />
+        <p className="text-xs text-gray-500 mt-1.5">
+          {staleOption ? (
+            <span className="text-amber-700">
+              The provider pinned on this step is no longer available to this
+              project, so the step will fail when it runs. Pick another
+              provider, or switch back to the project default.
+            </span>
+          ) : (
+            <>
+              Leave this on <strong>Project default</strong> unless this step
+              needs a specific model — a cheaper one for routine triage, or a
+              self-hosted one for data that should not leave your network.
+              Changing the project default later moves every step still set to
+              default; a pinned step stays where you put it.
+            </>
+          )}
+        </p>
       </div>
     );
   };
@@ -1744,15 +1899,16 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                                 placeholder="What should the AI analyze, summarize or decide? Its response becomes this step's output."
                                               />
                                               <p className="text-xs text-gray-500 mt-1.5">
-                                                Runs on your project&rsquo;s LLM
-                                                provider (Settings &rsaquo; AI
-                                                &rsaquo; LLM Providers). Calls
-                                                are metered like any other AI
-                                                feature. Pair with
-                                                &ldquo;Require approval&rdquo;
-                                                below to have a human review the
-                                                AI&rsquo;s answer before the
-                                                next step runs.
+                                                Runs on the LLM provider
+                                                selected below (Settings
+                                                &rsaquo; AI &rsaquo; LLM
+                                                Providers). Calls are metered
+                                                like any other AI feature. Pair
+                                                with &ldquo;Require
+                                                approval&rdquo; below to have a
+                                                human review the AI&rsquo;s
+                                                answer before the next step
+                                                runs.
                                               </p>
                                               <div className="mt-2">
                                                 {renderScriptExamples({
@@ -1765,6 +1921,16 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                                 })}
                                               </div>
                                             </div>
+                                            {renderLlmProviderPicker({
+                                              currentProviderId:
+                                                (step.config as AIStepConfig)
+                                                  .llmProviderId || "",
+                                              onChange: (id: string): void => {
+                                                updateConfig(idx, {
+                                                  llmProviderId: id,
+                                                });
+                                              },
+                                            })}
                                             <Toggle
                                               title="Include previous step context"
                                               description="Give the AI everything about the steps that ran before this one — title, type, status, output and errors."

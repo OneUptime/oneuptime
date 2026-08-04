@@ -2,6 +2,7 @@ import logger from "Common/Server/Utils/Logger";
 import ObjectID from "Common/Types/ObjectID";
 import User from "Common/Models/DatabaseModels/User";
 import UserService from "Common/Server/Services/UserService";
+import LlmProviderService from "Common/Server/Services/LlmProviderService";
 import AIService, {
   AILogRequest,
   AILogResponse,
@@ -387,9 +388,18 @@ export function readAiConfig(step: RunbookStep): {
   includePreviousStepContext: boolean;
   includeTriggerContext: boolean;
   maxTokens: number | undefined;
+  llmProviderId: string | undefined;
 } {
   const config: Partial<AIStepConfig> =
     (step.config as Partial<AIStepConfig> | null | undefined) || {};
+
+  /*
+   * An empty or whitespace-only provider id means "no pin" — the form writes
+   * "" when the user picks the default option back, and that must resolve to
+   * the project default rather than to a lookup for a provider named "".
+   */
+  const llmProviderId: string =
+    typeof config.llmProviderId === "string" ? config.llmProviderId.trim() : "";
 
   return {
     prompt: typeof config.prompt === "string" ? config.prompt.trim() : "",
@@ -397,6 +407,7 @@ export function readAiConfig(step: RunbookStep): {
     includeTriggerContext: config.includeTriggerContext === true,
     maxTokens:
       typeof config.maxTokens === "number" ? config.maxTokens : undefined,
+    llmProviderId: llmProviderId || undefined,
   };
 }
 
@@ -414,6 +425,46 @@ export async function runAiStep(
         errorMessage:
           "AI step has no prompt configured. Edit the step and describe what the AI should do.",
       };
+    }
+
+    /*
+     * Resolve the pinned provider BEFORE building any context: the context
+     * builders issue several queries and can embed a large incident dossier,
+     * and none of that is worth doing for a step that cannot run.
+     *
+     * The re-check is not redundant with the form. Runbook.steps is an
+     * unvalidated JSON column written by the CRUD API, so the id here is
+     * caller-supplied — a runbook in project A must never be able to name
+     * project B's provider (and with it, project B's API key) by pasting an
+     * id into the config. Validating against the project on every run is the
+     * tenant boundary; the dropdown is only a convenience.
+     */
+    let pinnedProviderId: ObjectID | undefined = undefined;
+
+    if (config.llmProviderId) {
+      pinnedProviderId = new ObjectID(config.llmProviderId);
+
+      const isUsable: boolean =
+        await LlmProviderService.isProviderUsableByProject({
+          projectId: ctx.projectId,
+          llmProviderId: pinnedProviderId,
+        });
+
+      if (!isUsable) {
+        /*
+         * Fail rather than fall back to the project default. This step runs
+         * unattended, so quietly answering on a different model than the one
+         * a responder pinned is a substitution nobody would ever see — and
+         * the model choice is often the point (a cheaper model for triage, a
+         * self-hosted one for data that must not leave the network).
+         */
+        return {
+          success: false,
+          output: "",
+          errorMessage:
+            "The LLM provider pinned on this AI step is no longer available to this project. Edit the step to pick a different provider, or clear the selection to use the project default.",
+        };
+      }
     }
 
     const triggerContext: string | undefined = config.includeTriggerContext
@@ -447,6 +498,9 @@ export async function runAiStep(
       storeContentPreviews: false,
     };
 
+    if (pinnedProviderId) {
+      request.llmProviderId = pinnedProviderId;
+    }
     if (ctx.incidentId) {
       request.incidentId = ctx.incidentId;
     }
