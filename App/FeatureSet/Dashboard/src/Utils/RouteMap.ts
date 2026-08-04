@@ -326,6 +326,8 @@ export const HostRoutePath: Dictionary<string> = {
   [PageMap.HOST_VIEW_PROCESS_VIEW]: `${RouteParams.ModelID}/processes/${RouteParams.SubModelID}`,
   [PageMap.HOST_VIEW_SERVICES]: `${RouteParams.ModelID}/services`,
   [PageMap.HOST_VIEW_SERVICE_VIEW]: `${RouteParams.ModelID}/services/${RouteParams.SubModelID}`,
+  [PageMap.HOST_VIEW_SYSTEMD_UNITS]: `${RouteParams.ModelID}/systemd`,
+  [PageMap.HOST_VIEW_SYSTEMD_UNIT_VIEW]: `${RouteParams.ModelID}/systemd/${RouteParams.SubModelID}`,
   [PageMap.HOST_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
   [PageMap.HOST_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
   [PageMap.HOST_VIEW_PROFILES]: `${RouteParams.ModelID}/profiles`,
@@ -371,6 +373,7 @@ export const CloudRoutePath: Dictionary<string> = {
 
 export const RumRoutePath: Dictionary<string> = {
   [PageMap.RUM_APPLICATION_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.RUM_APPLICATION_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
   [PageMap.RUM_APPLICATION_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
   [PageMap.RUM_APPLICATION_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
   [PageMap.RUM_APPLICATION_VIEW_TRACES]: `${RouteParams.ModelID}/traces`,
@@ -385,11 +388,16 @@ export const RumRoutePath: Dictionary<string> = {
    * that recording. A sibling path cannot collide at all.
    */
   [PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_AUDIT]: `${RouteParams.ModelID}/session-replay-audit`,
+  /*
+   * A sibling of /session-replay rather than a child, for the same reason
+   * as the audit page: a child segment would be shadowed by a session
+   * whose id happened to be "settings".
+   */
+  [PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_SETTINGS]: `${RouteParams.ModelID}/session-replay-settings`,
   [PageMap.RUM_APPLICATION_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
   [PageMap.RUM_APPLICATION_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.RUM_SETTINGS_LABEL_RULES]: `settings/label-rules`,
   [PageMap.RUM_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
-  [PageMap.RUM_SETTINGS_SESSION_REPLAY]: `settings/session-replay`,
   [PageMap.RUM_ARCHIVED]: `archived`,
 };
 
@@ -410,8 +418,6 @@ export const WorkflowRoutePath: Dictionary<string> = {
 
 export const RunbookRoutePath: Dictionary<string> = {
   [PageMap.RUNBOOKS_EXECUTIONS]: "executions",
-  [PageMap.RUNBOOKS_AGENTS]: "settings/agents",
-  [PageMap.RUNBOOKS_AGENT_VIEW]: `settings/agents/${RouteParams.ModelID}`,
   [PageMap.RUNBOOKS_SECRETS]: "settings/secrets",
   [PageMap.RUNBOOK_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.RUNBOOK_VIEW_STEPS]: `${RouteParams.ModelID}/steps`,
@@ -623,6 +629,8 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENTS_SETTINGS_PRIVACY_RULES]: "settings/privacy-rules",
   [PageMap.INCIDENTS_SETTINGS_LABEL_RULES]: "settings/label-rules",
   [PageMap.INCIDENTS_SETTINGS_RUNBOOK_RULES]: "settings/runbook-rules",
+  [PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES]:
+    "settings/auto-remediation-rules",
   [PageMap.INCIDENTS_SETTINGS_SLA_RULES]: "settings/sla-rules",
   [PageMap.INCIDENTS_SETTINGS_REMINDER_RULES]: "settings/reminder-rules",
   [PageMap.INCIDENTS_SETTINGS_ROLES]: "settings/roles",
@@ -684,6 +692,8 @@ export const AlertsRoutePath: Dictionary<string> = {
   [PageMap.ALERTS_SETTINGS_PRIVACY_RULES]: "settings/privacy-rules",
   [PageMap.ALERTS_SETTINGS_LABEL_RULES]: "settings/label-rules",
   [PageMap.ALERTS_SETTINGS_RUNBOOK_RULES]: "settings/runbook-rules",
+  [PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES]:
+    "settings/auto-remediation-rules",
   [PageMap.ALERTS_SETTINGS_REMINDER_RULES]: "settings/reminder-rules",
   [PageMap.ALERTS_SETTINGS_MORE]: "settings/more",
   [PageMap.ALERTS_SETTINGS_AI]: "settings/ai",
@@ -758,8 +768,9 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_MOBILE_APPS]: "mobile-apps",
   [PageMap.SETTINGS_AI_LLM_PROVIDERS]: "llm-providers",
   [PageMap.SETTINGS_AI_LLM_PROVIDER_VIEW]: `llm-providers/${RouteParams.ModelID}`,
-  [PageMap.SETTINGS_AI_AGENTS]: "ai-agents",
-  [PageMap.SETTINGS_AI_AGENT_VIEW]: `ai-agents/${RouteParams.ModelID}`,
+  [PageMap.SETTINGS_RUNNERS]: "runners",
+  [PageMap.SETTINGS_RUNNER_VIEW]: `runners/${RouteParams.ModelID}`,
+  [PageMap.SETTINGS_RUNNER_CREDENTIALS]: "runner-credentials",
   [PageMap.SETTINGS_AI_CREDITS]: "ai-credits",
   [PageMap.SETTINGS_AI_LOGS]: "ai-logs",
   [PageMap.SETTINGS_MCP_SERVER]: "mcp-server",
@@ -768,6 +779,7 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_TELEMETRY_INGESTION_KEYS]: `telemetry-ingestion-keys`,
   [PageMap.SETTINGS_TELEMETRY_INGESTION_KEY_VIEW]: `telemetry-ingestion-keys/${RouteParams.ModelID}`,
   [PageMap.SETTINGS_TELEMETRY_SETTINGS]: `telemetry-settings`,
+  [PageMap.SETTINGS_SESSION_REPLAY]: `session-replay`,
   [PageMap.SETTINGS_SLACK_INTEGRATION]: "slack-integration",
   [PageMap.SETTINGS_MICROSOFT_TEAMS_INTEGRATION]: "microsoft-teams-integration",
 
@@ -1286,6 +1298,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES]
+    }`,
+  ),
+
   [PageMap.ALERTS_SETTINGS_REMINDER_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/alerts/${
       AlertsRoutePath[PageMap.ALERTS_SETTINGS_REMINDER_RULES]
@@ -1768,6 +1786,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.INCIDENTS_SETTINGS_RUNBOOK_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_RUNBOOK_RULES]
+    }`,
+  ),
+
+  [PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES]
     }`,
   ),
 
@@ -3617,6 +3641,18 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.HOST_VIEW_SYSTEMD_UNITS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/host/${
+      HostRoutePath[PageMap.HOST_VIEW_SYSTEMD_UNITS]
+    }`,
+  ),
+
+  [PageMap.HOST_VIEW_SYSTEMD_UNIT_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/host/${
+      HostRoutePath[PageMap.HOST_VIEW_SYSTEMD_UNIT_VIEW]
+    }`,
+  ),
+
   [PageMap.HOST_VIEW_LOGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/host/${
       HostRoutePath[PageMap.HOST_VIEW_LOGS]
@@ -3855,6 +3891,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.RUM_APPLICATION_VIEW_RECOMMENDATIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/rum/${
+      RumRoutePath[PageMap.RUM_APPLICATION_VIEW_RECOMMENDATIONS]
+    }`,
+  ),
+
   [PageMap.RUM_APPLICATION_VIEW_METRICS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/rum/${
       RumRoutePath[PageMap.RUM_APPLICATION_VIEW_METRICS]
@@ -3897,6 +3939,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/rum/${
+      RumRoutePath[PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_SETTINGS]
+    }`,
+  ),
+
   [PageMap.RUM_APPLICATION_VIEW_DOCUMENTATION]: new Route(
     `/dashboard/${RouteParams.ProjectID}/rum/${
       RumRoutePath[PageMap.RUM_APPLICATION_VIEW_DOCUMENTATION]
@@ -3923,12 +3971,6 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.RUM_SETTINGS_OWNER_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/rum/${
       RumRoutePath[PageMap.RUM_SETTINGS_OWNER_RULES]
-    }`,
-  ),
-
-  [PageMap.RUM_SETTINGS_SESSION_REPLAY]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/rum/${
-      RumRoutePath[PageMap.RUM_SETTINGS_SESSION_REPLAY]
     }`,
   ),
 
@@ -4951,15 +4993,21 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
-  [PageMap.SETTINGS_AI_AGENTS]: new Route(
+  [PageMap.SETTINGS_RUNNERS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_AI_AGENTS]
+      SettingsRoutePath[PageMap.SETTINGS_RUNNERS]
     }`,
   ),
 
-  [PageMap.SETTINGS_AI_AGENT_VIEW]: new Route(
+  [PageMap.SETTINGS_RUNNER_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_AI_AGENT_VIEW]
+      SettingsRoutePath[PageMap.SETTINGS_RUNNER_VIEW]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_RUNNER_CREDENTIALS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_RUNNER_CREDENTIALS]
     }`,
   ),
 
@@ -5002,6 +5050,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_TELEMETRY_SETTINGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_TELEMETRY_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.SETTINGS_SESSION_REPLAY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/settings/${
+      SettingsRoutePath[PageMap.SETTINGS_SESSION_REPLAY]
     }`,
   ),
 
@@ -5166,16 +5220,6 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.RUNBOOKS_EXECUTIONS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/runbooks/${
       RunbookRoutePath[PageMap.RUNBOOKS_EXECUTIONS]
-    }`,
-  ),
-  [PageMap.RUNBOOKS_AGENTS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/runbooks/${
-      RunbookRoutePath[PageMap.RUNBOOKS_AGENTS]
-    }`,
-  ),
-  [PageMap.RUNBOOKS_AGENT_VIEW]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/runbooks/${
-      RunbookRoutePath[PageMap.RUNBOOKS_AGENT_VIEW]
     }`,
   ),
   [PageMap.RUNBOOKS_SECRETS]: new Route(

@@ -27,7 +27,13 @@ import {
   SessionReplayChunkManifestEntry,
   SessionReplayGap,
 } from "Common/Types/Rum/SessionReplay";
-import ChunkLoader, { SessionReplayRecordedEvent } from "./ChunkLoader";
+import ChunkLoader, {
+  ReplayTimelineEvent,
+  SessionReplayRecordedEvent,
+} from "./ChunkLoader";
+import ReplayDevtoolsPanel from "./ReplayDevtoolsPanel";
+import ReplayPinControl from "./ReplayPinControl";
+import { getFidelityNoticeCopy } from "./FidelityNoticeCopy";
 import ReplayStage, {
   ReplaySeekRequest,
   ReplayerFactory,
@@ -67,22 +73,13 @@ const HEARTBEAT_INTERVAL_MS: number = 15 * 1000;
 /*
  * Per-chunk manifest row.
  *
- * The signal counters are read defensively rather than required: the chunk
- * table carries them, but the manifest endpoint's SELECT
+ * The signal counters are projected by the manifest endpoint's SELECT
  * (Common/Server/Utils/SessionReplay/SessionReplayReadService.getManifest)
- * does not project them today, so they arrive as 0 and the frustration,
- * error and route lanes stay empty. Parsing them here means the lanes light
- * up the moment the projection is widened, with no client change.
+ * and feed the frustration, error and route lanes plus the "next error"
+ * jump. They are still read defensively (missing -> 0) so a manifest from
+ * an older server renders as an empty lane rather than a parse failure.
  */
-export interface SessionReplayManifestChunk
-  extends SessionReplayChunkManifestEntry {
-  errorCount: number;
-  rageClickCount: number;
-  deadClickCount: number;
-  errorClickCount: number;
-  refreshRageCount: number;
-  routeCount: number;
-}
+export type SessionReplayManifestChunk = SessionReplayChunkManifestEntry;
 
 export interface SessionReplayManifestTab {
   tabId: string;
@@ -108,9 +105,11 @@ export interface SessionReplayManifest {
   missingAssets: Array<string>;
   details: ReplaySessionDetails;
   /*
-   * Exact-timestamp network markers. Not produced by the endpoint today, so
-   * this lane is empty; kept because the alternative - deriving 4xx/5xx
-   * positions from something else - would be a guess drawn as evidence.
+   * Exact-timestamp network markers from the manifest endpoint. Still not
+   * produced there; the player now derives its network lane from the
+   * type-5 custom events the ChunkLoader extracts, which are exact to the
+   * recorder's clock. Kept on the type so a future server-side producer
+   * slots in without a shape change.
    */
   networkMarkers: Array<ReplayMarker>;
 }
@@ -293,6 +292,16 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
   const [crossedGaps, setCrossedGaps] = useState<Array<SessionReplayGap>>([]);
   const [isPanelOpen, setIsPanelOpen] = useState<boolean>(false);
   const [panelTabId, setPanelTabId] = useState<string>("session");
+  const [timelineEvents, setTimelineEvents] = useState<
+    Array<ReplayTimelineEvent>
+  >([]);
+  const [areEventsTruncated, setAreEventsTruncated] = useState<boolean>(false);
+  const [isBuffering, setIsBuffering] = useState<boolean>(false);
+  const [isPermalinkCopied, setIsPermalinkCopied] = useState<boolean>(false);
+  const [isTheaterMode, setIsTheaterMode] = useState<boolean>(false);
+
+  const theaterRef: React.MutableRefObject<HTMLDivElement | null> =
+    useRef<HTMLDivElement | null>(null);
 
   /*
    * Navigation.getLastParamAsObjectID mints a NEW ObjectID on every call, and
@@ -517,8 +526,47 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     setLoadedChunkIndexes([]);
     setStageError("");
     setCurrentTimeMs(0);
+    setTimelineEvents([]);
+    setAreEventsTruncated(false);
+    /*
+     * isBuffering is deliberately NOT reset here: the stage's initial
+     * build effect (keyed on the same loader, and run BEFORE this parent
+     * effect) has already asserted buffering=true, and buildSegment's
+     * generation-guarded finally owns clearing it.
+     */
     watchedMsRef.current = 0;
   }, [loader]);
+
+  /*
+   * Timeline events are extracted as chunks are admitted, so the loaded
+   * set changing is exactly the signal that new events may exist. Pulled
+   * rather than pushed: the loader stays a plain class with no React.
+   */
+  useEffect(() => {
+    if (!loader) {
+      return;
+    }
+
+    setTimelineEvents(loader.getTimelineEvents());
+    setAreEventsTruncated(loader.areTimelineEventsTruncated());
+  }, [loader, loadedChunkIndexes]);
+
+  /*
+   * Native fullscreen for theater mode. State follows the DOCUMENT's
+   * fullscreen element rather than the button, so Esc — which exits
+   * fullscreen without consulting us — cannot leave the toggle lying.
+   */
+  useEffect(() => {
+    const onFullscreenChange: () => void = (): void => {
+      setIsTheaterMode(document.fullscreenElement === theaterRef.current);
+    };
+
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+
+    return () => {
+      document.removeEventListener("fullscreenchange", onFullscreenChange);
+    };
+  }, []);
 
   /* Honour the ?t= deep link once, after the loader exists. */
   const hasAppliedInitialSeekRef: React.MutableRefObject<boolean> =
@@ -546,10 +594,54 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     (offsetMs: number): void => {
       seekTokenRef.current += 1;
       setCurrentTimeMs(offsetMs);
+      /*
+       * A stale stage error must not outlive the action that recovers
+       * from it: seeking rebuilds the segment, and keeping the old
+       * banner up makes a successful rebuild look broken.
+       */
+      setStageError("");
       setSeekRequest({ offsetMs: offsetMs, token: seekTokenRef.current });
     },
     [],
   );
+
+  const copyPermalink: () => void = useCallback((): void => {
+    /*
+     * The permalink is the CURRENT page address with the playhead stamped
+     * into ?t= — the parameter the player already honours on load. Kept as
+     * whole seconds: sub-second precision implies an exactness the seek
+     * anchors cannot deliver.
+     */
+    const url: globalThis.URL = new globalThis.URL(window.location.href);
+
+    url.searchParams.set("t", String(Math.floor(currentTimeMs / 1000)));
+
+    void navigator.clipboard
+      ?.writeText(url.toString())
+      .then((): void => {
+        setIsPermalinkCopied(true);
+
+        setTimeout((): void => {
+          setIsPermalinkCopied(false);
+        }, 2000);
+      })
+      .catch((): void => {
+        /* Clipboard denied: nothing useful to do beyond not crashing. */
+      });
+  }, [currentTimeMs]);
+
+  const toggleTheaterMode: () => void = useCallback((): void => {
+    if (document.fullscreenElement) {
+      void document.exitFullscreen?.().catch((): void => {
+        /* Ignored: the fullscreenchange listener owns the state. */
+      });
+      return;
+    }
+
+    void theaterRef.current?.requestFullscreen?.().catch((): void => {
+      /* Fullscreen denied (iframe policy, user setting). Stay inline. */
+    });
+  }, []);
 
   const handleTimeUpdate: (offsetMs: number) => void = useCallback(
     (offsetMs: number): void => {
@@ -698,6 +790,27 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     return { errors: errors, frustration: frustration, routes: routes };
   }, [activeTab]);
 
+  /*
+   * Exact-timestamp network markers, from the extracted timeline events.
+   * 4xx/5xx only — 2xx noise would make the lane useless. This replaces
+   * the manifest's never-produced markers with positions accurate to the
+   * recorder's own clock, filling in as chunks load.
+   */
+  const networkMarkers: Array<ReplayMarker> = useMemo(() => {
+    return timelineEvents
+      .filter((event: ReplayTimelineEvent): boolean => {
+        return event.kind === "network" && (event.status ?? 0) >= 400;
+      })
+      .map((event: ReplayTimelineEvent): ReplayMarker => {
+        return {
+          atMs: event.offsetMs,
+          label: `${event.method ?? ""} ${event.status ?? ""} ${
+            event.url ?? ""
+          }`.trim(),
+        };
+      });
+  }, [timelineEvents]);
+
   const jumpToNextError: () => void = useCallback((): void => {
     const next: ReplayMarker | undefined = chunkMarkers.errors.find(
       (marker: ReplayMarker): boolean => {
@@ -842,7 +955,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
   }
 
   for (const notice of manifest.fidelityNotices) {
-    notices.push(`Not captured: ${notice}.`);
+    notices.push(getFidelityNoticeCopy(notice).title);
   }
 
   return (
@@ -858,7 +971,33 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
             : ""}
         </div>
 
-        <div className="ml-auto">
+        {isBuffering && (
+          <div className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-2.5 py-1 text-xs text-gray-600">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-indigo-500" />
+            Buffering…
+          </div>
+        )}
+
+        <div className="ml-auto flex items-center gap-2">
+          <ReplayPinControl
+            rumApplicationId={props.rumApplicationId}
+            sessionId={props.sessionId}
+          />
+
+          <Button
+            title={isPermalinkCopied ? "Copied!" : "Copy link at this moment"}
+            icon={IconProp.Link}
+            buttonStyle={ButtonStyleType.OUTLINE}
+            onClick={copyPermalink}
+          />
+
+          <Button
+            title={isTheaterMode ? "Exit theater" : "Theater"}
+            icon={IconProp.Window}
+            buttonStyle={ButtonStyleType.OUTLINE}
+            onClick={toggleTheaterMode}
+          />
+
           <Button
             title="Session details"
             icon={IconProp.Info}
@@ -907,42 +1046,55 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
         </div>
       )}
 
-      <ReplayStage
-        loader={loader}
-        replayerFactory={replayerFactory}
-        isPlaying={isPlaying}
-        speed={speed}
-        skipInactive={skipInactive}
-        seekRequest={seekRequest}
-        onTimeUpdate={handleTimeUpdate}
-        onPlayingChange={setIsPlaying}
-        onGapCrossed={handleGapCrossed}
-        onLoadedChunkIndexesChange={setLoadedChunkIndexes}
-        onError={setStageError}
-      />
-
-      <div className="mt-3">
-        <ReplayScrubber
-          durationMs={durationMs}
-          currentTimeMs={currentTimeMs}
+      <div
+        ref={theaterRef}
+        className={isTheaterMode ? "flex flex-col bg-white p-4" : ""}
+      >
+        <ReplayStage
+          loader={loader}
+          replayerFactory={replayerFactory}
           isPlaying={isPlaying}
           speed={speed}
           skipInactive={skipInactive}
-          bands={bands}
-          frustrationMarkers={chunkMarkers.frustration}
-          errorMarkers={chunkMarkers.errors}
-          networkMarkers={manifest.networkMarkers}
-          routeMarkers={chunkMarkers.routes}
+          seekRequest={seekRequest}
+          onTimeUpdate={handleTimeUpdate}
+          onPlayingChange={setIsPlaying}
+          onGapCrossed={handleGapCrossed}
+          onLoadedChunkIndexesChange={setLoadedChunkIndexes}
+          onError={setStageError}
+          onBufferingChange={setIsBuffering}
+        />
+
+        <div className="mt-3">
+          <ReplayScrubber
+            durationMs={durationMs}
+            currentTimeMs={currentTimeMs}
+            isPlaying={isPlaying}
+            speed={speed}
+            skipInactive={skipInactive}
+            bands={bands}
+            frustrationMarkers={chunkMarkers.frustration}
+            errorMarkers={chunkMarkers.errors}
+            networkMarkers={networkMarkers}
+            routeMarkers={chunkMarkers.routes}
+            onSeek={seekTo}
+            onPlayPauseToggle={(): void => {
+              setIsPlaying((existing: boolean): boolean => {
+                return !existing;
+              });
+            }}
+            onSpeedChange={setSpeed}
+            onSkipInactiveChange={setSkipInactive}
+            onJumpToNextError={jumpToNextError}
+            areShortcutsEnabled={!isPanelOpen}
+          />
+        </div>
+
+        <ReplayDevtoolsPanel
+          events={timelineEvents}
+          isTruncated={areEventsTruncated}
+          currentTimeMs={currentTimeMs}
           onSeek={seekTo}
-          onPlayPauseToggle={(): void => {
-            setIsPlaying((existing: boolean): boolean => {
-              return !existing;
-            });
-          }}
-          onSpeedChange={setSpeed}
-          onSkipInactiveChange={setSkipInactive}
-          onJumpToNextError={jumpToNextError}
-          areShortcutsEnabled={!isPanelOpen}
         />
       </div>
 

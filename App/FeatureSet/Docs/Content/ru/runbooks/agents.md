@@ -49,18 +49,18 @@ Runbook-агенты переворачивают это. Bash- и JavaScript-ш
 - делать то, что должны делать ваши Bash/JavaScript-шаги (например, SSH к другим хостам, `kubectl`, обращение к базе).
 
 ```bash
-docker run --name oneuptime-runbook-agent --restart unless-stopped \
-  -e RUNBOOK_AGENT_ID=<agent-id> \
-  -e RUNBOOK_AGENT_KEY=<agent-key> \
+docker run --name oneuptime-runner --restart unless-stopped \
+  -e ONEUPTIME_RUNNER_ID=<agent-id> \
+  -e ONEUPTIME_RUNNER_KEY=<agent-key> \
   -e ONEUPTIME_URL=https://oneuptime.yourdomain.com \
-  -d oneuptime/runbook-agent:release
+  -d oneuptime/runner:release
 ```
 
 ### 4. Убедитесь, что агент подключился
 
 Вернитесь в **Runbooks → Настройки → Агенты**. Примерно за 60 секунд строка агента должна переключиться на `Connected` со свежей меткой **Last seen**. Если остаётся `Disconnected`:
 
-- Посмотрите логи контейнера (`docker logs oneuptime-runbook-agent`) на предмет ошибок аутентификации или сети.
+- Посмотрите логи контейнера (`docker logs oneuptime-runner`) на предмет ошибок аутентификации или сети.
 - Убедитесь, что хост достигает OneUptime URL через `curl`.
 - Убедитесь, что ID и ключ скопированы без пробелов.
 
@@ -92,8 +92,8 @@ docker run --name oneuptime-runbook-agent --restart unless-stopped \
 
 Два момента, о которых стоит помнить, снижая claim timeout:
 
-- Агент опрашивает наличие новых job'ов с фиксированным интервалом (`RUNBOOK_AGENT_POLL_INTERVAL_MS`, по умолчанию 5 секунд). Claim timeout короче одного интервала опроса может истечь ещё до того, как совершенно здоровый агент вообще увидит job, и тогда шаг падает с тем же сообщением («no agent claimed the job»), что и в случае офлайн-агента.
-- По умолчанию агент выполняет одну job за раз (`RUNBOOK_AGENT_CONCURRENCY`). Пока долгий шаг его занимает, другие шаги, нацеленные на того же агента, ждут, расходуя собственные claim timeout'ы. Если вы поднимаете execution timeout до нескольких минут, поднимите соразмерно и claim timeout на других шагах того же агента — либо отдайте им другого агента.
+- Агент опрашивает наличие новых job'ов с фиксированным интервалом (`ONEUPTIME_RUNNER_POLL_INTERVAL_MS`, по умолчанию 5 секунд). Claim timeout короче одного интервала опроса может истечь ещё до того, как совершенно здоровый агент вообще увидит job, и тогда шаг падает с тем же сообщением («no agent claimed the job»), что и в случае офлайн-агента.
+- По умолчанию агент выполняет одну job за раз (`ONEUPTIME_RUNNER_CONCURRENCY`). Пока долгий шаг его занимает, другие шаги, нацеленные на того же агента, ждут, расходуя собственные claim timeout'ы. Если вы поднимаете execution timeout до нескольких минут, поднимите соразмерно и claim timeout на других шагах того же агента — либо отдайте им другого агента.
 
 ### Lease и heartbeat
 
@@ -115,7 +115,7 @@ docker run --name oneuptime-runbook-agent --restart unless-stopped \
 
 ### Параллелизм
 
-По умолчанию каждый агент выполняет одну job за раз. Чтобы разрешить больше, задайте `RUNBOOK_AGENT_CONCURRENCY` в контейнере агента — но помните, что агент делит хост со всем остальным, что там живёт.
+По умолчанию каждый агент выполняет одну job за раз. Чтобы разрешить больше, задайте `ONEUPTIME_RUNNER_CONCURRENCY` в контейнере агента — но помните, что агент делит хост со всем остальным, что там живёт.
 
 ## Переменные окружения
 
@@ -124,12 +124,12 @@ docker run --name oneuptime-runbook-agent --restart unless-stopped \
 | Переменная                                | Обязательная | По умолчанию | Заметки                                                                    |
 | ----------------------------------------- | ------------ | ------------ | -------------------------------------------------------------------------- |
 | `ONEUPTIME_URL`                           | да           | —            | Базовый URL вашего OneUptime, например `https://oneuptime.yourdomain.com`. |
-| `RUNBOOK_AGENT_ID`                        | да           | —            | UUID из модального окна настройки агента.                                  |
-| `RUNBOOK_AGENT_KEY`                       | да           | —            | Секрет из модального окна настройки агента.                                |
-| `RUNBOOK_AGENT_POLL_INTERVAL_MS`          | нет          | `5000`       | Как часто агент опрашивает наличие новых job'ов.                           |
-| `RUNBOOK_AGENT_HEARTBEAT_INTERVAL_MS`     | нет          | `60000`      | Как часто агент сообщает, что жив.                                         |
-| `RUNBOOK_AGENT_JOB_HEARTBEAT_INTERVAL_MS` | нет          | `10000`      | Как часто агент продлевает lease работающего job'а.                        |
-| `RUNBOOK_AGENT_CONCURRENCY`               | нет          | `1`          | Максимум одновременных job'ов на этом агенте.                              |
+| `ONEUPTIME_RUNNER_ID`                        | да           | —            | UUID из модального окна настройки агента.                                  |
+| `ONEUPTIME_RUNNER_KEY`                       | да           | —            | Секрет из модального окна настройки агента.                                |
+| `ONEUPTIME_RUNNER_POLL_INTERVAL_MS`          | нет          | `5000`       | Как часто агент опрашивает наличие новых job'ов.                           |
+| `ONEUPTIME_RUNNER_HEARTBEAT_INTERVAL_MS`     | нет          | `60000`      | Как часто агент сообщает, что жив.                                         |
+| `ONEUPTIME_RUNNER_JOB_HEARTBEAT_INTERVAL_MS` | нет          | `10000`      | Как часто агент продлевает lease работающего job'а.                        |
+| `ONEUPTIME_RUNNER_CONCURRENCY`               | нет          | `1`          | Максимум одновременных job'ов на этом агенте.                              |
 
 ## Ротация ключа агента
 
@@ -139,14 +139,14 @@ docker run --name oneuptime-runbook-agent --restart unless-stopped \
 
 Управление агентами живёт в существующей группе прав Runbooks:
 
-- `CreateRunbookAgent`, `EditRunbookAgent`, `DeleteRunbookAgent`, `ReadRunbookAgent` — управление записями агентов.
+- `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — управление записями агентов.
 - `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (роли) — назначайте команде для полного контроля, повседневного использования или доступа только на чтение соответственно. `RunbookAdmin` объединяет все детализированные права выше.
 
 Права на _запуск_ runbook'а (и, как следствие, диспетчеризацию Bash- и JavaScript-шагов) по-прежнему `CreateRunbookExecution` / `EditRunbookExecution`.
 
 ## API для агентов
 
-Для любопытных — агент использует эти эндпойнты, смонтированные под `/runbook-agent-ingest`. Они аутентифицируются по ID + ключу агента в JSON-теле (или заголовкам `x-agent-id` / `x-agent-key`).
+Для любопытных — агент использует эти эндпойнты, смонтированные под `/runner-ingest`. Они аутентифицируются по ID + ключу агента в JSON-теле (или заголовкам `x-agent-id` / `x-agent-key`).
 
 | Эндпойнт                     | Назначение                                                                                                                   |
 | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |

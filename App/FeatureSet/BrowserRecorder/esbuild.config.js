@@ -82,7 +82,14 @@ const FORBIDDEN_IN_BUNDLE = [
  * every page view on a customer's site, and the artifact is a RUM vendor's
  * own contribution to its customer's Core Web Vitals.
  */
-const LOADER_MAX_BYTES = 6 * 1024;
+/*
+ * Raised from 6 KB after three deliberate feature sets landed in the stub:
+ * the pre-load early-error buffer, the host-defaulting + misconfiguration
+ * warning from the end-to-end fixes, and the /telemetry-prefixed paths.
+ * Measured 6345 bytes at the time of the raise; the gzip budget below is
+ * unchanged and is the number a customer's browser actually pays.
+ */
+const LOADER_MAX_BYTES = 7 * 1024;
 const RECORDER_MAX_BYTES = 320 * 1024;
 
 /*

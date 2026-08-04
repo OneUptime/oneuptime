@@ -3,9 +3,8 @@ import OneUptimeDate from "../../../../Types/Date";
 import AIRunType from "../../../../Types/AI/AIRunType";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
-import AIAgent from "../../../../Models/DatabaseModels/AIAgent";
 import AIRunService from "../../../Services/AIRunService";
-import AIAgentService from "../../../Services/AIAgentService";
+import CodeFixAgentAvailability from "./CodeFixAgentAvailability";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
@@ -98,9 +97,12 @@ export default class CodeFixRunQueue {
       const projectIdStr: string = run.projectId.toString();
 
       if (!projectHasAliveAgent.has(projectIdStr)) {
-        const aliveAgent: AIAgent | null =
-          await AIAgentService.getConnectedAIAgentForProject(run.projectId);
-        projectHasAliveAgent.set(projectIdStr, Boolean(aliveAgent));
+        projectHasAliveAgent.set(
+          projectIdStr,
+          await CodeFixAgentAvailability.hasOnlineAgentForProject(
+            run.projectId,
+          ),
+        );
       }
 
       if (projectHasAliveAgent.get(projectIdStr)) {

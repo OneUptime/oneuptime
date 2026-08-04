@@ -1,208 +1,120 @@
-# Guia de Início Rápido do Provedor Terraform
+# Quick Start
 
-Este guia ajudará você a começar a usar o Provedor Terraform do OneUptime em apenas alguns minutos.
+This guide takes you from nothing to managed OneUptime resources in about 10 minutes: create an API key, configure the provider, and apply a label, an HTTP monitor, and a status page.
 
-## Pré-requisitos
+## Prerequisites
 
-- Terraform >= 1.0 instalado
-- Conta do OneUptime (Cloud ou Auto-Hospedado)
-- Chave de API do OneUptime
+- [Terraform](https://developer.hashicorp.com/terraform/install) 1.5 or later
+- A OneUptime account with a project ([oneuptime.com](https://oneuptime.com) or your self-hosted instance)
 
-## Passo 1: Criar Chave de API
+## Step 1: Create a project API key
 
-### Para o OneUptime Cloud
+The provider authenticates with a **project-scoped API key**. In the OneUptime dashboard:
 
-1. Vá para [OneUptime Cloud](https://oneuptime.com) e faça login
-2. Navegue para **Settings** → **API Keys**
-3. Clique em **Create API Key**
-4. Nomeie como "Provedor Terraform"
-5. Selecione as permissões necessárias
-6. Copie a chave de API gerada
+1. Select your project.
+2. Go to **Project Settings** > **API Keys**.
+3. Click **Create API Key**.
+4. Give it a name (for example `terraform`) and an expiry.
+5. Grant permissions. Terraform needs **Create**, **Read**, **Update (Edit)**, and **Delete** on every resource type you plan to manage — for this guide: Label, Monitor, and Status Page.
+6. Copy the generated key.
 
-### Para o OneUptime Auto-Hospedado
+> **Warning:** Do not use a user key or a self-hosted master API key. Master keys are not scoped to a project, and API calls made with them fail with `ProjectId required` errors. Only project API keys work with the Terraform provider.
 
-1. Acesse sua instância do OneUptime
-2. Navegue para **Settings** → **API Keys**
-3. Clique em **Create API Key**
-4. Nomeie como "Provedor Terraform"
-5. Selecione as permissões necessárias
-6. Copie a chave de API gerada
+Export the key as an environment variable so it never lands in your Terraform files:
 
-## Passo 2: Criar Configuração Terraform
+```bash
+export ONEUPTIME_API_KEY="your-project-api-key"
+```
 
-Crie um novo diretório e arquivo `main.tf`:
+## Step 2: Configure the provider
+
+Create a working directory with a `main.tf`:
 
 ```hcl
 terraform {
   required_providers {
     oneuptime = {
       source  = "oneuptime/oneuptime"
-      # Para clientes Cloud
-      version = "~> 7.0"
-
-      # Para clientes Auto-Hospedados - fixe na sua versão exata
-      # version = "= 7.0.123"  # Substitua pela sua versão do OneUptime
+      version = "~> 11.0"
     }
   }
-  required_version = ">= 1.0"
 }
 
 provider "oneuptime" {
-  # Para clientes Cloud
-  oneuptime_url = "https://oneuptime.com"
-
-  # Para clientes Auto-Hospedados - use a URL da sua instância
-  # oneuptime_url = "https://oneuptime.suaempresa.com"
-
-  api_key = var.oneuptime_api_key
-}
-
-variable "oneuptime_api_key" {
-  description = "Chave de API do OneUptime"
-  type        = string
-  sensitive   = true
-}
-
-# Nota: Projetos devem ser criados manualmente no painel do OneUptime
-# Use o ID do projeto existente aqui
-variable "project_id" {
-  description = "ID do projeto OneUptime"
-  type        = string
-}
-
-# Criar um monitor de site simples
-resource "oneuptime_monitor" "website" {
-  name        = "Monitor de Site"
-  description = "Monitor para uptime do site"
-  data        = jsonencode({
-    url = "https://example.com"
-    interval = "5m"
-    timeout = "30s"
-  })
-}
-
-# Exibir o ID do monitor
-output "monitor_id" {
-  value = oneuptime_monitor.website.id
+  # api_key is read from the ONEUPTIME_API_KEY environment variable.
+  # oneuptime_url defaults to https://oneuptime.com — set it only if self-hosted:
+  # oneuptime_url = "https://oneuptime.example.com"
 }
 ```
 
-## Passo 3: Criar Arquivo de Variáveis
+Self-hosted users: set `oneuptime_url` to your instance URL and check the version guidance in [Self-Hosted Setup](/docs/terraform/self-hosted) before pinning a provider version.
 
-Crie `terraform.tfvars`:
+## Step 3: Define your first resources
+
+Append the following to `main.tf`. It creates a label, a website monitor for your homepage, and a private status page:
 
 ```hcl
-# terraform.tfvars
-oneuptime_api_key = "sua-chave-de-api-aqui"
-project_id        = "seu-id-de-projeto-aqui"  # Obtenha isso do painel do OneUptime
+resource "oneuptime_label" "critical" {
+  name        = "critical"
+  description = "Resources that page on-call when down"
+  color       = "#FF5733"
+}
+
+resource "oneuptime_monitor" "homepage" {
+  name         = "Homepage"
+  description  = "Checks that the homepage responds"
+  monitor_type = "Website"
+  labels       = [oneuptime_label.critical.id]
+}
+
+resource "oneuptime_status_page" "internal" {
+  name                     = "Internal Status"
+  description              = "Status page for internal services"
+  page_title               = "Service Status"
+  page_description         = "Live status of our services"
+  is_public_status_page    = false
+  enable_email_subscribers = false
+  enable_sms_subscribers   = false
+}
+
+output "monitor_id" {
+  value = oneuptime_monitor.homepage.id
+}
 ```
 
-**Importante**: Adicione `terraform.tfvars` ao seu `.gitignore` para manter as chaves de API seguras!
+A `Website` monitor created without explicit `monitor_steps` gets sensible server-side defaults. To control the URL, request type, and up/down criteria yourself, pass `monitor_steps` as JSON — that is covered in [Monitor Steps](/docs/terraform/monitor-steps).
 
-## Passo 4: Inicializar e Aplicar
+## Step 4: Init, plan, apply
 
 ```bash
-# Inicializar o Terraform
 terraform init
-
-# Planejar a implantação
 terraform plan
-
-# Aplicar a configuração
 terraform apply
 ```
 
-## Passo 5: Verificar Recursos
+Review the plan (3 resources to add) and confirm with `yes`. Apply completes in a few seconds and prints the monitor ID.
 
-1. Verifique seu painel do OneUptime
-2. Vá para o projeto existente
-3. Verifique se o "Monitor de Site" foi criado e está em execução
+## Step 5: Verify in the dashboard
 
-## Próximas Etapas
+In the OneUptime dashboard:
 
-1. **Explore Mais Recursos**: Verifique a [documentação completa](./README.md) para todos os recursos disponíveis
-2. **Configure Alertas**: Adicione políticas de alerta e canais de notificação
-3. **Crie Páginas de Status**: Configure páginas de status públicas para seus serviços
-4. **Organize com Equipes**: Crie equipes e atribua permissões
+- **Monitors** — the `Homepage` monitor is listed with the `critical` label.
+- **Status Pages** — `Internal Status` appears.
+- **Project Settings > Labels** — the `critical` label exists with the color you set.
 
-## Exemplos Específicos de Versão
+Run `terraform plan` again: it reports `No changes.` Server-computed fields (slugs, current status, default monitoring steps) do not cause drift.
 
-### Clientes Cloud (Versão Mais Recente)
+## Step 6: Clean up
 
-```hcl
-terraform {
-  required_providers {
-    oneuptime = {
-      source  = "oneuptime/oneuptime"
-      version = "~> 7.0"  # Sempre obtém a versão 7.x compatível mais recente
-    }
-  }
-}
-
-provider "oneuptime" {
-  oneuptime_url = "https://oneuptime.com"
-  api_key       = var.oneuptime_api_key
-}
-```
-
-### Clientes Auto-Hospedados (Versão Fixada)
-
-```hcl
-terraform {
-  required_providers {
-    oneuptime = {
-      source  = "oneuptime/oneuptime"
-      version = "= 7.0.123"  # Deve corresponder à sua versão do OneUptime exatamente
-    }
-  }
-}
-
-provider "oneuptime" {
-  oneuptime_url = "https://oneuptime.suaempresa.com"  # Sua URL auto-hospedada
-  api_key       = var.oneuptime_api_key
-}
-```
-
-## Solução de Problemas do Início Rápido
-
-### Problema: Provedor não encontrado
-
-```
-Error: Failed to query available provider packages
-```
-
-**Solução**: Execute `terraform init` para baixar o provedor
-
-### Problema: Autenticação falhou
-
-```
-Error: Invalid API key
-```
-
-**Solução**:
-
-1. Verifique sua chave de API no painel do OneUptime
-2. Verifique se a chave de API tem permissões suficientes
-3. Certifique-se de que `oneuptime_url` está correto para sua instância
-
-### Problema: Incompatibilidade de versão (Auto-Hospedado)
-
-```
-Error: API version incompatible
-```
-
-**Solução**:
-
-1. Verifique sua versão do OneUptime no painel
-2. Atualize a versão do provedor para corresponder exatamente
-3. Execute `terraform init -upgrade`
-
-## Limpeza
-
-Para remover todos os recursos criados neste início rápido:
+If this was a test drive, remove everything the configuration created:
 
 ```bash
 terraform destroy
 ```
 
-Isso excluirá o monitor e o projeto criados durante o início rápido.
+## Next steps
+
+- [Complete Guide](/docs/terraform/complete-guide) — authentication options, project layout, dependencies, data sources, remote state
+- [Examples](/docs/terraform/examples) — configurations for every major resource type
+- [Monitor Steps](/docs/terraform/monitor-steps) — take control of what your monitors check
+- [Importing Resources](/docs/terraform/importing-resources) — adopt resources you already created in the dashboard

@@ -1,7 +1,9 @@
 import CommonMasking from "Common/Utils/Rum/Masking";
 import UrlScrubber from "Common/Utils/Rum/UrlScrubber";
 import ErrorRecorder, {
+  CompiledIgnorePatterns,
   ERROR_CUSTOM_EVENT_TAG,
+  MAX_IGNORE_PATTERNS,
   RecordedError,
 } from "../src/ErrorRecorder";
 
@@ -191,5 +193,205 @@ describe("ErrorRecorder", (): void => {
     throwError("boom");
 
     expect(errors).toHaveLength(0);
+  });
+});
+
+/*
+ * The trigger-worthiness decision. One chronically-throwing third-party
+ * tag used to convert error-triggered capture into always-on upload;
+ * these tests pin the two escape valves — the automatic stackless
+ * cross-origin "Script error." suppression and the config-driven ignore
+ * patterns — while asserting the error is still RECORDED either way.
+ */
+describe("ErrorRecorder trigger-worthiness", (): void => {
+  interface ObservedError {
+    atUnixMs: number;
+    error: RecordedError;
+    isTriggerWorthy: boolean;
+  }
+
+  let observed: Array<ObservedError>;
+  let emitted: Array<{ tag: string; payload: unknown }>;
+
+  const makeRecorder: (ignorePatterns?: Array<RegExp>) => ErrorRecorder = (
+    ignorePatterns?: Array<RegExp>,
+  ): ErrorRecorder => {
+    observed = [];
+    emitted = [];
+
+    return new ErrorRecorder({
+      emitCustomEvent: (tag: string, payload: unknown): void => {
+        emitted.push({ tag: tag, payload: payload });
+      },
+      maskMessage: (message: string): string => {
+        /* A visible transform, so raw-vs-masked matching is testable. */
+        return `masked:${message}`;
+      },
+      scrubUrl: (url: string): string => {
+        return url;
+      },
+      onError: (
+        atUnixMs: number,
+        error: RecordedError,
+        isTriggerWorthy: boolean,
+      ): void => {
+        observed.push({
+          atUnixMs: atUnixMs,
+          error: error,
+          isTriggerWorthy: isTriggerWorthy,
+        });
+      },
+      ...(ignorePatterns ? { ignorePatterns: ignorePatterns } : {}),
+    });
+  };
+
+  const fire: (recorder: ErrorRecorder, init: ErrorEventInit) => void = (
+    recorder: ErrorRecorder,
+    init: ErrorEventInit,
+  ): void => {
+    recorder.start(window);
+    window.dispatchEvent(new ErrorEvent("error", init));
+    recorder.stop(window);
+  };
+
+  it("stackless, sourceless 'Script error.' is recorded but not trigger-worthy", (): void => {
+    const recorder: ErrorRecorder = makeRecorder();
+
+    fire(recorder, { message: "Script error." });
+
+    expect(observed).toHaveLength(1);
+    expect(observed[0]!.isTriggerWorthy).toBe(false);
+    /* Still recorded: the custom event went into the stream. */
+    expect(emitted).toHaveLength(1);
+    expect(recorder.getRecordedCount()).toBe(1);
+  });
+
+  it("the period-less and case variants are equally unactionable", (): void => {
+    const recorder: ErrorRecorder = makeRecorder();
+
+    fire(recorder, { message: "script error" });
+
+    expect(observed[0]!.isTriggerWorthy).toBe(false);
+  });
+
+  it("'Script error.' WITH a source is a real, trigger-worthy error", (): void => {
+    const recorder: ErrorRecorder = makeRecorder();
+
+    fire(recorder, {
+      message: "Script error.",
+      filename: "https://app.example.com/main.js",
+    });
+
+    expect(observed[0]!.isTriggerWorthy).toBe(true);
+  });
+
+  it("an ignore pattern matching the message suppresses the trigger, not the record", (): void => {
+    const recorder: ErrorRecorder = makeRecorder([
+      new RegExp("ResizeObserver loop", "i"),
+    ]);
+
+    fire(recorder, {
+      message: "resizeobserver LOOP limit exceeded",
+      filename: "https://app.example.com/main.js",
+    });
+
+    expect(observed[0]!.isTriggerWorthy).toBe(false);
+    expect(emitted).toHaveLength(1);
+  });
+
+  it("an ignore pattern matching the SOURCE quiets a whole third-party tag", (): void => {
+    const recorder: ErrorRecorder = makeRecorder([
+      new RegExp("third-party-tag\\.js", "i"),
+    ]);
+
+    fire(recorder, {
+      message: "Cannot read properties of undefined",
+      filename: "https://cdn.example.net/third-party-tag.js",
+    });
+
+    expect(observed[0]!.isTriggerWorthy).toBe(false);
+  });
+
+  it("matches against the RAW message, before masking rewrites it", (): void => {
+    const recorder: ErrorRecorder = makeRecorder([new RegExp("^exact match$")]);
+
+    fire(recorder, {
+      message: "exact match",
+      filename: "https://app.example.com/main.js",
+    });
+
+    /* maskMessage prefixed the stored message; the raw one matched. */
+    expect(observed[0]!.error.message).toBe("masked:exact match");
+    expect(observed[0]!.isTriggerWorthy).toBe(false);
+  });
+
+  it("a non-matching error stays trigger-worthy", (): void => {
+    const recorder: ErrorRecorder = makeRecorder([new RegExp("quiet-me")]);
+
+    fire(recorder, {
+      message: "genuine failure",
+      filename: "https://app.example.com/main.js",
+    });
+
+    expect(observed[0]!.isTriggerWorthy).toBe(true);
+  });
+
+  it("record() replays a buffered error with its ORIGINAL time on the payload", (): void => {
+    const recorder: ErrorRecorder = makeRecorder();
+    const occurredAt: number = 1_700_000_000_123;
+
+    recorder.record(
+      { kind: "error", message: "boom during startup" },
+      occurredAt,
+    );
+
+    expect(observed).toHaveLength(1);
+    expect(observed[0]!.atUnixMs).toBe(occurredAt);
+    expect(observed[0]!.isTriggerWorthy).toBe(true);
+    expect(
+      (emitted[0]!.payload as Record<string, unknown>)["occurredAtUnixMs"],
+    ).toBe(occurredAt);
+  });
+});
+
+describe("ErrorRecorder.compileIgnorePatterns", (): void => {
+  it("compiles valid patterns case-insensitively", (): void => {
+    const compiled: CompiledIgnorePatterns =
+      ErrorRecorder.compileIgnorePatterns(["ResizeObserver"]);
+
+    expect(compiled.patterns).toHaveLength(1);
+    expect(compiled.discardedCount).toBe(0);
+    expect(compiled.patterns[0]!.test("resizeobserver loop")).toBe(true);
+  });
+
+  it("discards an invalid regex and counts it, instead of throwing", (): void => {
+    const compiled: CompiledIgnorePatterns =
+      ErrorRecorder.compileIgnorePatterns(["([unclosed", "valid"]);
+
+    expect(compiled.patterns).toHaveLength(1);
+    expect(compiled.discardedCount).toBe(1);
+  });
+
+  it("caps the pattern count and reports the overflow as discarded", (): void => {
+    const many: Array<string> = Array.from(
+      { length: MAX_IGNORE_PATTERNS + 5 },
+      (_unused: unknown, index: number): string => {
+        return `pattern-${index}`;
+      },
+    );
+
+    const compiled: CompiledIgnorePatterns =
+      ErrorRecorder.compileIgnorePatterns(many);
+
+    expect(compiled.patterns).toHaveLength(MAX_IGNORE_PATTERNS);
+    expect(compiled.discardedCount).toBe(5);
+  });
+
+  it("discards an over-length pattern — remote config must not hand the page a ReDoS", (): void => {
+    const compiled: CompiledIgnorePatterns =
+      ErrorRecorder.compileIgnorePatterns(["a".repeat(500)]);
+
+    expect(compiled.patterns).toHaveLength(0);
+    expect(compiled.discardedCount).toBe(1);
   });
 });

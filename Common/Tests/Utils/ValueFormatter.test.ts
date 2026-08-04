@@ -1,4 +1,4 @@
-import ValueFormatter from "../../Utils/ValueFormatter";
+import ValueFormatter, { FormattedValue } from "../../Utils/ValueFormatter";
 
 describe("ValueFormatter", () => {
   describe("formatValue - bytes", () => {
@@ -300,6 +300,304 @@ describe("ValueFormatter", () => {
 
     test("unknown unit is returned unchanged", () => {
       expect(ValueFormatter.getReadableUnit("widgets")).toBe("widgets");
+    });
+  });
+
+  /*
+   * `formatValue` was refactored to delegate to a shared core that can emit
+   * either the spelled-out unit name or its symbol. Its readable output must
+   * not have moved by a single character: it feeds chart axis ticks, threshold
+   * annotations, the gauge widget and the metric list. This table walks every
+   * branch of that core and pins the readable result.
+   */
+  describe("formatValue - no drift after the shared-core extraction", () => {
+    interface NoDriftCase {
+      value: number;
+      unit: string;
+      options?: { metricName?: string } | undefined;
+      expected: string;
+    }
+
+    const cases: Array<NoDriftCase> = [
+      { value: 23.5, unit: "Cel", expected: "23.5 Celsius" },
+      { value: 12, unit: "ug/m3", expected: "12 ug per m3" },
+      { value: 23.5, unit: "%", expected: "23.50%" },
+      { value: 1536, unit: "By", expected: "1.54 KB" },
+      { value: 0, unit: "By", expected: "0 B" },
+      { value: -2000, unit: "bytes", expected: "-2 KB" },
+      { value: 90, unit: "s", expected: "1.5 min" },
+      { value: 3600, unit: "seconds", expected: "1 hours" },
+      { value: 86400, unit: "seconds", expected: "1 days" },
+      { value: 0, unit: "seconds", expected: "0 sec" },
+      { value: 0.5, unit: "seconds", expected: "500 ms" },
+      { value: 1500, unit: "ms", expected: "1.5 sec" },
+      { value: 42, unit: "1", expected: "42" },
+      { value: 1234, unit: "1", expected: "1.23K" },
+      {
+        value: 0.25,
+        unit: "1",
+        options: { metricName: "system.cpu.utilization" },
+        expected: "25.00%",
+      },
+      { value: 42, unit: "{thread}", expected: "42" },
+      { value: 1500000, unit: "By/s", expected: "1.5 MB/s" },
+      { value: 2000, unit: "bytes/s", expected: "2 KB/s" },
+      { value: 5, unit: "requests/s", expected: "5 requests per Second" },
+      { value: 98.6, unit: "[degF]", expected: "98.6 Fahrenheit" },
+      { value: 10, unit: "hz", expected: "10 Hertz" },
+      { value: 5, unit: "v", expected: "5 Volts" },
+      { value: 5, unit: "widgets", expected: "5 widgets" },
+      { value: 7, unit: "St", expected: "7 St" },
+      { value: 42, unit: "", expected: "42" },
+    ];
+
+    test.each(cases)(
+      "formatValue($value, '$unit') stays '$expected'",
+      (noDriftCase: NoDriftCase) => {
+        expect(
+          ValueFormatter.formatValue(
+            noDriftCase.value,
+            noDriftCase.unit,
+            noDriftCase.options,
+          ),
+        ).toBe(noDriftCase.expected);
+      },
+    );
+  });
+
+  describe("getCompactUnit", () => {
+    test("maps UCUM codes to their symbols", () => {
+      expect(ValueFormatter.getCompactUnit("By")).toBe("B");
+      expect(ValueFormatter.getCompactUnit("Cel")).toBe("°C");
+      expect(ValueFormatter.getCompactUnit("[degF]")).toBe("°F");
+      expect(ValueFormatter.getCompactUnit("kW")).toBe("kW");
+      expect(ValueFormatter.getCompactUnit("hz")).toBe("Hz");
+      expect(ValueFormatter.getCompactUnit("ms")).toBe("ms");
+      expect(ValueFormatter.getCompactUnit("microseconds")).toBe("µs");
+      expect(ValueFormatter.getCompactUnit("hours")).toBe("h");
+    });
+
+    test("is case-insensitive", () => {
+      expect(ValueFormatter.getCompactUnit("CEL")).toBe("°C");
+      expect(ValueFormatter.getCompactUnit("by")).toBe("B");
+      expect(ValueFormatter.getCompactUnit("  Cel  ")).toBe("°C");
+    });
+
+    test("percent and dimensionless behave like getReadableUnit's contract", () => {
+      expect(ValueFormatter.getCompactUnit("%")).toBe("%");
+      expect(ValueFormatter.getCompactUnit("pct")).toBe("%");
+      expect(ValueFormatter.getCompactUnit("1")).toBe("");
+      expect(ValueFormatter.getCompactUnit("")).toBe("");
+      expect(
+        ValueFormatter.getCompactUnit("1", { metricName: "cpu.utilization" }),
+      ).toBe("%");
+    });
+
+    test("annotation-only units carry no suffix at all", () => {
+      /*
+       * formatValue already drops them from the number, so the compact unit is
+       * empty rather than getReadableUnit's capitalised "Thread" — a widget
+       * that showed "42 Thread" next to a big number would be spending width
+       * on a word the metric name already says.
+       */
+      expect(ValueFormatter.getCompactUnit("{thread}")).toBe("");
+      expect(ValueFormatter.getCompactUnit("{packets}")).toBe("");
+    });
+
+    test("compound units keep the slash rather than spelling out 'per'", () => {
+      expect(ValueFormatter.getCompactUnit("By/s")).toBe("B/s");
+      expect(ValueFormatter.getCompactUnit("ug/m3")).toBe("ug/m3");
+      expect(ValueFormatter.getCompactUnit("m/s")).toBe("m/s");
+      expect(ValueFormatter.getCompactUnit("requests/s")).toBe("requests/s");
+    });
+
+    test("unknown units are returned unchanged", () => {
+      expect(ValueFormatter.getCompactUnit("widgets")).toBe("widgets");
+      expect(ValueFormatter.getCompactUnit("rad")).toBe("rad");
+      expect(ValueFormatter.getCompactUnit("St")).toBe("St");
+    });
+
+    test("ambiguous single letters echo the exporter's own code", () => {
+      /*
+       * These are the keys readableUnitMap resolves ambiguously, so the
+       * compact map deliberately omits them and they fall through to the code
+       * the exporter actually wrote. Mapping them would assert a reading we
+       * cannot justify: in UCUM "a" is the annum, not the ampere, and "b" is
+       * the bel rather than the bit or the byte. Echoing the code is both
+       * shorter than the spelled-out guess and honest about the ambiguity.
+       *
+       * Casing is preserved for the same reason — "K" for kelvin is what the
+       * metric declared, and it is worth keeping distinct from the "300K"
+       * formatLargeNumber emits for 300000.
+       *
+       * A later "completeness" change that adds these to the map has to argue
+       * with this test.
+       */
+      expect(ValueFormatter.getCompactUnit("a")).toBe("a");
+      expect(ValueFormatter.getCompactUnit("A")).toBe("A");
+      expect(ValueFormatter.getCompactUnit("K")).toBe("K");
+      expect(ValueFormatter.getReadableUnit("a")).toBe("Amperes");
+      expect(ValueFormatter.getReadableUnit("K")).toBe("Kelvin");
+    });
+
+    test("bytes still scale through the threshold table, whatever the code", () => {
+      // "b" is in unitTableMap, so it never reaches the compact-unit lookup.
+      expect(ValueFormatter.formatValueCompact(1536, "b").unit).toBe("KB");
+      expect(ValueFormatter.formatValueCompact(512, "b").unit).toBe("B");
+    });
+  });
+
+  describe("formatValueCompact", () => {
+    test("returns the number and the unit as separate parts", () => {
+      const parts: FormattedValue = ValueFormatter.formatValueCompact(
+        23.5,
+        "Cel",
+      );
+
+      expect(parts.value).toBe("23.5");
+      expect(parts.unit).toBe("°C");
+      expect(parts.formatted).toBe("23.5 °C");
+    });
+
+    test("splits compound units the string-splitting heuristic got wrong", () => {
+      /*
+       * These are the exact cases that broke the old widget: it joined the
+       * value and unit into one string and then split on the LAST space, so
+       * "5 requests per Second" put "requests per" in the big-number span.
+       */
+      expect(ValueFormatter.formatValueCompact(5, "requests/s")).toEqual({
+        value: "5",
+        unit: "requests/s",
+        formatted: "5 requests/s",
+      });
+      expect(ValueFormatter.formatValueCompact(12, "ug/m3")).toEqual({
+        value: "12",
+        unit: "ug/m3",
+        formatted: "12 ug/m3",
+      });
+      expect(ValueFormatter.formatValueCompact(12, "m/s")).toEqual({
+        value: "12",
+        unit: "m/s",
+        formatted: "12 m/s",
+      });
+      expect(ValueFormatter.formatValueCompact(1.5, "MB/s")).toEqual({
+        value: "1.5",
+        unit: "MB/s",
+        formatted: "1.5 MB/s",
+      });
+    });
+
+    test("scales the value exactly as formatValue does", () => {
+      expect(ValueFormatter.formatValueCompact(1536, "By")).toEqual({
+        value: "1.54",
+        unit: "KB",
+        formatted: "1.54 KB",
+      });
+      expect(ValueFormatter.formatValueCompact(1500000, "By/s")).toEqual({
+        value: "1.5",
+        unit: "MB/s",
+        formatted: "1.5 MB/s",
+      });
+      expect(ValueFormatter.formatValueCompact(1234, "1").value).toBe("1.23K");
+    });
+
+    test("compacts the suffixes the threshold tables spell out", () => {
+      /*
+       * A second source of long suffixes the unit map alone cannot reach:
+       * formatValue(3600, "s") scales to "1 hours".
+       */
+      expect(ValueFormatter.formatValueCompact(3600, "s")).toEqual({
+        value: "1",
+        unit: "h",
+        formatted: "1 h",
+      });
+      expect(ValueFormatter.formatValueCompact(86400, "seconds").unit).toBe(
+        "d",
+      );
+      expect(ValueFormatter.formatValueCompact(0, "seconds").unit).toBe("s");
+      expect(ValueFormatter.formatValueCompact(90, "s").unit).toBe("min");
+    });
+
+    test("percent joins with no space", () => {
+      expect(ValueFormatter.formatValueCompact(23.5, "%")).toEqual({
+        value: "23.50",
+        unit: "%",
+        formatted: "23.50%",
+      });
+      expect(
+        ValueFormatter.formatValueCompact(0.25, "1", {
+          metricName: "system.cpu.utilization",
+        }),
+      ).toEqual({ value: "25.00", unit: "%", formatted: "25.00%" });
+    });
+
+    test("dimensionless and annotation-only units carry no suffix", () => {
+      expect(ValueFormatter.formatValueCompact(42, "{thread}")).toEqual({
+        value: "42",
+        unit: "",
+        formatted: "42",
+      });
+      expect(ValueFormatter.formatValueCompact(42, "1")).toEqual({
+        value: "42",
+        unit: "",
+        formatted: "42",
+      });
+      expect(ValueFormatter.formatValueCompact(42, "")).toEqual({
+        value: "42",
+        unit: "",
+        formatted: "42",
+      });
+    });
+
+    test("is never longer than the readable form, and usually much shorter", () => {
+      const units: Array<string> = [
+        "Cel",
+        "[degF]",
+        "kW",
+        "ms",
+        "By",
+        "hz",
+        "ug/m3",
+        "s",
+      ];
+
+      for (const unit of units) {
+        const compact: FormattedValue = ValueFormatter.formatValueCompact(
+          42,
+          unit,
+        );
+        const readable: string = ValueFormatter.formatValue(42, unit);
+
+        expect(compact.formatted.length).toBeLessThanOrEqual(readable.length);
+      }
+    });
+
+    test("keeps the value identical to formatValue for every branch", () => {
+      const units: Array<string> = [
+        "Cel",
+        "%",
+        "By",
+        "s",
+        "ms",
+        "1",
+        "{thread}",
+        "By/s",
+        "ug/m3",
+        "widgets",
+      ];
+
+      for (const unit of units) {
+        for (const value of [0, 0.25, 42, 1536, 1500000]) {
+          const compact: FormattedValue = ValueFormatter.formatValueCompact(
+            value,
+            unit,
+          );
+          const readable: string = ValueFormatter.formatValue(value, unit);
+
+          // The numeric portion never changes — only how the unit is spelled.
+          expect(readable.startsWith(compact.value)).toBe(true);
+        }
+      }
     });
   });
 });

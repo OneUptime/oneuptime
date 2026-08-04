@@ -68,6 +68,7 @@ import {
   EntityManager,
   Repository,
   SelectQueryBuilder,
+  UpdateResult,
 } from "typeorm";
 import { ColumnMetadata } from "typeorm/metadata/ColumnMetadata";
 import { EntityMetadata } from "typeorm/metadata/EntityMetadata";
@@ -1950,6 +1951,49 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           })
         : [];
 
+      /*
+       * save() has upsert semantics: if the located row is hard-deleted by a
+       * concurrent request between the _findBy above and the write below,
+       * save() INSERTs a resurrected "zombie" row carrying only the update's
+       * columns. Zombies with enough NOT NULL columns persist and then hold
+       * foreign keys forever (e.g. a probe status-update racing a monitor
+       * delete resurrected the Monitor and permanently blocked deleting the
+       * MonitorStatus it referenced). Updates therefore go through
+       * repository.update(), which never inserts and simply affects zero
+       * rows when the target is gone.
+       *
+       * Only EntityArray (many-to-many) columns still need save(), because
+       * their junction rows cannot be written by a plain UPDATE. Entity
+       * (many-to-one) columns must NOT route to save(): they are ordinary
+       * foreign-key columns on this same table, and TypeORM's update()
+       * resolves a relation property to its join columns
+       * (EntityMetadata.findColumnsWithPropertyPath). Routing them to save()
+       * left the resurrection hole open for any caller that expressed the
+       * write as the relation member rather than the scalar id — e.g.
+       * Monitor.currentMonitorStatus vs Monitor.currentMonitorStatusId,
+       * which are two decorated members over the SAME physical column.
+       */
+      const relationColumnNames: Set<string> = new Set<string>(
+        this.getModel()
+          .getTableColumns()
+          .columns.filter((column: string) => {
+            const metadata: TableColumnMetadata | undefined =
+              this.getModel().getTableColumnMetadata(column);
+            return metadata?.type === TableColumnType.EntityArray;
+          }),
+      );
+      const hasRelationUpdates: boolean = dataKeys.some((key: string) => {
+        return relationColumnNames.has(key);
+      });
+
+      /*
+       * Rows the write actually touched. A row hard-deleted between the find
+       * above and the write is reported by update() as zero rows affected;
+       * it must not fire success hooks (they re-read the row and would
+       * dereference null) nor be counted as updated.
+       */
+      const affectedItems: Array<TBaseModel> = [];
+
       for (const item of items) {
         /*
          * _id must be set AFTER the spread: update data can carry an
@@ -1971,7 +2015,37 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           projectId: updateBy.props.tenantId?.toString(),
         } as LogAttributes);
 
-        await this.getRepository().save(updatedItem);
+        if (hasRelationUpdates) {
+          await this.getRepository().save(updatedItem);
+        } else {
+          const { _id, ...updateData } = updatedItem;
+          const updateResult: UpdateResult = await this.getRepository().update(
+            { _id: _id } as any,
+            {
+              ...updateData,
+              /*
+               * save() bumps the @VersionColumn automatically; update() does
+               * not, so emulate it to keep the audit counter behaviour
+               * identical.
+               */
+              version: () => {
+                return '"version" + 1';
+              },
+            } as any,
+          );
+
+          /*
+           * The row was hard-deleted between the find above and this write.
+           * Nothing was updated, so skip the success hooks for it: they
+           * re-read the row and would dereference null (and would report a
+           * change that never happened).
+           */
+          if (updateResult.affected === 0) {
+            continue;
+          }
+        }
+
+        affectedItems.push(item);
 
         // hit workflow.
         if (
@@ -2033,16 +2107,22 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
        *     ).affected || 0;
        */
 
+      /*
+       * onUpdateSuccess always fires — subclasses rely on it being called
+       * even when nothing matched — but it is handed only the rows the write
+       * actually affected, so a row deleted mid-update never appears as a
+       * phantom id that hooks would then fail to re-read.
+       */
       if (!updateBy.props.ignoreHooks) {
         await this.onUpdateSuccess(
           { updateBy, carryForward },
-          items.map((i: TBaseModel) => {
+          affectedItems.map((i: TBaseModel) => {
             return new ObjectID(i._id!);
           }),
         );
       }
 
-      return items.length;
+      return affectedItems.length;
     } catch (error) {
       await this.onUpdateError(error as Exception);
       throw this.getException(error as Exception);
@@ -2173,6 +2253,14 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   public async updateColumnsByIdWithoutHooks(input: {
     id: ObjectID;
     data: PartialEntity<TBaseModel>;
+    /*
+     * Leave `updatedAt` untouched. For passive bookkeeping writes (liveness
+     * timestamps, ingest health markers) where consumers key change
+     * detection off updatedAt - e.g. the session replay configEpoch - a
+     * refreshed updateDate would broadcast "configuration changed" on every
+     * heartbeat.
+     */
+    skipUpdateDateColumn?: boolean;
   }): Promise<void> {
     if (!input.id) {
       throw new BadDataException("id is required");
@@ -2222,7 +2310,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     }
 
     // The raw path has no entity machinery to touch updateDate — do it here.
-    if (metadata.updateDateColumn) {
+    if (metadata.updateDateColumn && !input.skipUpdateDateColumn) {
       setClauses.push(
         `"${metadata.updateDateColumn.databaseName}" = CURRENT_TIMESTAMP`,
       );

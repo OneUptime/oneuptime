@@ -112,6 +112,14 @@ const NETWORK_SITE_TYPE_SELECT: Select<NetworkSiteType> = {
  */
 type MapMode = "grouped" | "all";
 
+/*
+ * How many search hits /network-site/search answers with. Deliberately far
+ * below LIMIT_PER_PROJECT: this feeds a dropdown somebody reads, and a
+ * franchise estate matching "unit" on ten thousand rows is a request to type
+ * more, not a list to scroll. The response says when the cap was hit.
+ */
+const SEARCH_RESULT_LIMIT: number = 50;
+
 type StatusMap = Map<string, StatusInfo>;
 
 function toStatusMap(statuses: Array<MonitorStatus>): StatusMap {
@@ -1028,6 +1036,177 @@ export default class NetworkSiteHierarchyAPI {
             isTruncated:
               childRows.length >= LIMIT_PER_PROJECT ||
               subtreeRows.length >= LIMIT_PER_PROJECT,
+          } as unknown as JSONObject);
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+
+    /*
+     * Find a site by name ANYWHERE in the project.
+     *
+     * The map is a drill-down, and that is exactly what makes it hard to
+     * search: a store four levels under a region is reachable only by
+     * opening every level above it, and "which market is Unit 104822 in" is
+     * precisely the question you have when you cannot do that. A filter over
+     * the level in view cannot answer it — the answer is not on that level.
+     *
+     * So each hit carries the PATH to it. That is what tells two similarly
+     * named stores apart before the click, and it answers "where is this"
+     * without drilling at all.
+     *
+     * Reads are permission-scoped through the standard props helper like
+     * every other query in this file, so a user only ever finds sites they
+     * are allowed to read — including in the ancestor lookup that builds the
+     * paths, where an unreadable ancestor simply drops out of the string.
+     */
+    router.post(
+      "/network-site/search",
+      UserMiddleware.getUserMiddleware,
+      async (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction,
+      ): Promise<void> => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          if (!props.tenantId) {
+            throw new BadDataException("Project not found in request");
+          }
+          const projectId: ObjectID = props.tenantId;
+
+          const body: JSONObject = (req.body || {}) as JSONObject;
+          const searchText: string =
+            NetworkSiteHierarchyUtil.normalizeSearchText(body["searchText"]);
+
+          /*
+           * An empty box is not an error, and it is emphatically not a query
+           * for every site in the project — it is simply no results.
+           */
+          if (!searchText) {
+            return Response.sendJsonObjectResponse(req, res, {
+              results: [],
+              isTruncated: false,
+            } as unknown as JSONObject);
+          }
+
+          const matchedSites: Array<NetworkSite> =
+            await NetworkSiteService.findBy({
+              query: {
+                projectId: projectId,
+                name: QueryHelper.search(searchText),
+              },
+              select: {
+                _id: true,
+                name: true,
+                siteType: true,
+                networkSiteType: NETWORK_SITE_TYPE_SELECT,
+                materializedPath: true,
+                currentMonitorStatusId: true,
+              },
+              sort: {
+                name: SortOrder.Ascending,
+              },
+              limit: SEARCH_RESULT_LIMIT,
+              skip: 0,
+              props: props,
+            });
+
+          const matches: Array<{ site: NetworkSite; id: string }> = matchedSites
+            .filter((site: NetworkSite) => {
+              return Boolean(site._id);
+            })
+            .map((site: NetworkSite): { site: NetworkSite; id: string } => {
+              return { site: site, id: site._id!.toString() };
+            });
+
+          const nameById: Map<string, string> = new Map<string, string>();
+          for (const match of matches) {
+            if (match.site.name) {
+              nameById.set(match.id, match.site.name);
+            }
+          }
+
+          const statusIds: Set<string> = new Set<string>();
+          for (const match of matches) {
+            if (match.site.currentMonitorStatusId) {
+              statusIds.add(match.site.currentMonitorStatusId.toString());
+            }
+          }
+
+          /*
+           * One extra query resolves the ancestors of the WHOLE result set —
+           * the ids are collected up front precisely so this does not become
+           * a path walk per hit.
+           */
+          const ancestorIds: Array<string> =
+            NetworkSiteHierarchyUtil.collectAncestorIds(
+              matches.map((match: { site: NetworkSite; id: string }) => {
+                return {
+                  id: match.id,
+                  materializedPath: match.site.materializedPath,
+                };
+              }),
+              new Set<string>(nameById.keys()),
+            );
+
+          const [ancestorRows, statusById]: [Array<NetworkSite>, StatusMap] =
+            await Promise.all([
+              ancestorIds.length > 0
+                ? NetworkSiteService.findBy({
+                    query: {
+                      projectId: projectId,
+                      _id: QueryHelper.any(ancestorIds),
+                    },
+                    select: {
+                      _id: true,
+                      name: true,
+                    },
+                    limit: LIMIT_PER_PROJECT,
+                    skip: 0,
+                    props: props,
+                  })
+                : Promise.resolve([]),
+              fetchStatusesByIds(projectId, Array.from(statusIds), props),
+            ]);
+
+          for (const ancestor of ancestorRows) {
+            if (ancestor._id && ancestor.name) {
+              nameById.set(ancestor._id.toString(), ancestor.name);
+            }
+          }
+
+          const results: Array<JSONObject> = matches.map(
+            (match: { site: NetworkSite; id: string }): JSONObject => {
+              const status: StatusInfo | undefined = match.site
+                .currentMonitorStatusId
+                ? statusById.get(match.site.currentMonitorStatusId.toString())
+                : undefined;
+              return {
+                id: match.id,
+                name: match.site.name || "Unnamed site",
+                ...getSiteTypeInfo(match.site),
+                path: NetworkSiteHierarchyUtil.buildParentBreadcrumbString(
+                  match.site.materializedPath,
+                  match.id,
+                  nameById,
+                ),
+                currentMonitorStatus: status,
+              } as unknown as JSONObject;
+            },
+          );
+
+          return Response.sendJsonObjectResponse(req, res, {
+            results: results,
+            /*
+             * Hitting the cap means there are more matches than are being
+             * shown, so the box can tell the user to keep typing rather than
+             * let them read a partial list as the whole answer.
+             */
+            isTruncated: matchedSites.length >= SEARCH_RESULT_LIMIT,
           } as unknown as JSONObject);
         } catch (err) {
           return next(err);

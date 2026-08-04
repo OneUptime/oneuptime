@@ -1,4 +1,5 @@
 import Redis, { ClientType } from "Common/Server/Infrastructure/Redis";
+import SessionReplayUsage from "Common/Server/Utils/SessionReplay/SessionReplayUsage";
 import logger from "Common/Server/Utils/Logger";
 import ObjectID from "Common/Types/ObjectID";
 import {
@@ -34,7 +35,6 @@ import {
  */
 
 const CHUNK_RATE_KEY_PREFIX: string = "replay:rate:chunks:";
-const BYTE_BUDGET_KEY_PREFIX: string = "replay:rate:bytes:";
 
 /*
  * Two minutes, so the counter for a minute bucket outlives the bucket it
@@ -45,6 +45,14 @@ const CHUNK_RATE_TTL_SECONDS: number = 120;
 
 /* Two days, for the same boundary reason applied to a UTC day bucket. */
 const BYTE_BUDGET_TTL_SECONDS: number = 2 * 24 * 60 * 60;
+
+/*
+ * The monthly key is created by whichever chunk lands first in the month,
+ * possibly on day 1, and must survive to the end of a 31-day month plus the
+ * same boundary margin. 40 days is one small integer per application per
+ * month - the memory cost is nothing.
+ */
+const MONTHLY_BYTE_BUDGET_TTL_SECONDS: number = 40 * 24 * 60 * 60;
 
 export enum SessionReplayLimitOutcome {
   /* Within both limits. */
@@ -145,7 +153,9 @@ export default class SessionReplayRateLimiter {
       return { outcome: SessionReplayLimitOutcome.CounterUnavailable };
     }
 
-    const key: string = `${BYTE_BUDGET_KEY_PREFIX}${data.projectId.toString()}:${this.getUtcDayBucket()}`;
+    const key: string = SessionReplayUsage.getDailyProjectByteKey(
+      data.projectId,
+    );
 
     try {
       const total: number = await client.incrby(key, data.bytes);
@@ -169,45 +179,84 @@ export default class SessionReplayRateLimiter {
   }
 
   /*
-   * Bytes already consumed today. Read-only, used by the config endpoint so
-   * a Dashboard can surface "quota exhausted" as a state rather than
-   * leaving the customer to infer it from missing recordings.
+   * Consume `bytes` from one application's customer-configured MONTHLY
+   * budget. Same crossing-request semantics as the daily budget above, and
+   * the same fail-closed answer when the counter is unreachable.
+   *
+   * The instance-wide daily cap and this cap answer different questions:
+   * the daily cap protects the operator's ClickHouse from any single
+   * project, while this one enforces the spend ceiling the customer set on
+   * their own application - it is the only control a customer can actually
+   * turn.
    */
-  public static async getBytesUsedToday(
-    projectId: ObjectID,
-  ): Promise<number | null> {
+  public static async consumeApplicationMonthlyBudget(data: {
+    projectId: ObjectID;
+    rumApplicationId: ObjectID;
+    bytes: number;
+    budgetBytes: number;
+  }): Promise<SessionReplayLimitDecision> {
     const client: ClientType | null = Redis.getClient();
 
     if (!client || !Redis.isConnected()) {
-      return null;
+      return { outcome: SessionReplayLimitOutcome.CounterUnavailable };
     }
 
-    const key: string = `${BYTE_BUDGET_KEY_PREFIX}${projectId.toString()}:${this.getUtcDayBucket()}`;
+    const key: string = SessionReplayUsage.getMonthlyApplicationByteKey({
+      projectId: data.projectId,
+      rumApplicationId: data.rumApplicationId,
+    });
 
     try {
-      const value: string | null = await client.get(key);
+      const total: number = await client.incrby(key, data.bytes);
 
-      if (value === null) {
-        return 0;
+      if (total === data.bytes) {
+        await client.expire(key, MONTHLY_BYTE_BUDGET_TTL_SECONDS);
       }
 
-      const parsed: number = parseInt(value, 10);
+      if (total > data.budgetBytes) {
+        /*
+         * Refund the refused bytes. Unlike the daily counter (which resets
+         * in 24h), this counter is read back as "usage" by the Dashboard's
+         * ingest-status endpoint and accumulates for up to 31 days — every
+         * post-exhaustion upload attempt would otherwise inflate the
+         * displayed figure past both the budget and the bytes actually
+         * stored, and a mid-month budget raise would find its new headroom
+         * already eaten by chunks that were never accepted. Best-effort:
+         * losing one decrement to a Redis blip skews the display by one
+         * chunk, which is better than failing the refusal path.
+         */
+        try {
+          await client.decrby(key, data.bytes);
+        } catch (decrementErr) {
+          logger.warn(
+            `SessionReplayRateLimiter: could not refund refused bytes for application ${data.rumApplicationId.toString()}`,
+          );
+          logger.warn(decrementErr);
+        }
 
-      return isNaN(parsed) ? 0 : parsed;
+        return { outcome: SessionReplayLimitOutcome.BudgetExhausted };
+      }
+
+      return { outcome: SessionReplayLimitOutcome.Allowed };
     } catch (err) {
       logger.warn(
-        `SessionReplayRateLimiter: could not read the byte budget for project ${projectId.toString()}`,
+        `SessionReplayRateLimiter: monthly budget counter failed for application ${data.rumApplicationId.toString()}`,
       );
       logger.warn(err);
-      return null;
+      return { outcome: SessionReplayLimitOutcome.CounterUnavailable };
     }
   }
 
   /*
-   * UTC rather than local, so the budget window is the same for every pod
-   * regardless of container timezone.
+   * Bytes already consumed today. Read-only, used by the ingest-status
+   * endpoint so a Dashboard can surface "quota exhausted" as a state rather
+   * than leaving the customer to infer it from missing recordings. The
+   * actual read lives in Common (SessionReplayUsage) so the Dashboard API
+   * and this consumer can never disagree on the key.
    */
-  private static getUtcDayBucket(): string {
-    return new Date().toISOString().substring(0, 10);
+  public static async getBytesUsedToday(
+    projectId: ObjectID,
+  ): Promise<number | null> {
+    return SessionReplayUsage.getProjectBytesUsedToday(projectId);
   }
 }

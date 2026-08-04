@@ -3192,7 +3192,7 @@
             },
             "additionalProperties": false
         },
-        "aiAgent": {
+        "runner": {
             "type": "object",
             "properties": {
                 "podDisruptionBudget": {

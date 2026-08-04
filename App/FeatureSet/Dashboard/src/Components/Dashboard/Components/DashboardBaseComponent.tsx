@@ -6,6 +6,7 @@ import React, {
   useState,
 } from "react";
 import DashboardTextComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardTextComponent";
+import DashboardClockComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardClockComponent";
 import DashboardChartComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardChartComponent";
 import DashboardValueComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardValueComponent";
 import DashboardTableComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardTableComponent";
@@ -44,10 +45,12 @@ import DashboardDockerSwarmNodeListComponentType from "Common/Types/Dashboard/Da
 import DashboardDockerSwarmServiceListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardDockerSwarmServiceListComponent";
 import DashboardCephOsdListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardCephOsdListComponent";
 import DashboardCephPoolListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardCephPoolListComponent";
+import DashboardHtmlComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardHtmlComponent";
 import DashboardBaseComponent from "Common/Types/Dashboard/DashboardComponents/DashboardBaseComponent";
 import DashboardChartComponent from "./DashboardChartComponent";
 import DashboardValueComponent from "./DashboardValueComponent";
 import DashboardTextComponent from "./DashboardTextComponent";
+import DashboardClockComponent from "./DashboardClockComponent";
 import DashboardTableComponent from "./DashboardTableComponent";
 import DashboardGaugeComponent from "./DashboardGaugeComponent";
 import DashboardSloComponent from "./DashboardSloComponent";
@@ -84,6 +87,7 @@ import DashboardDockerSwarmNodeListComponent from "./DashboardDockerSwarmNodeLis
 import DashboardDockerSwarmServiceListComponent from "./DashboardDockerSwarmServiceListComponent";
 import DashboardCephOsdListComponent from "./DashboardCephOsdListComponent";
 import DashboardCephPoolListComponent from "./DashboardCephPoolListComponent";
+import DashboardHtmlComponent from "./DashboardHtmlComponent";
 import DefaultDashboardSize, {
   GetDashboardComponentHeightInDashboardUnits,
   GetDashboardComponentWidthInDashboardUnits,
@@ -645,6 +649,14 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
             component={component as DashboardTextComponentType}
           />
         )}
+        {component.componentType === DashboardComponentType.Clock && (
+          <DashboardClockComponent
+            {...props}
+            isEditMode={props.isEditMode}
+            isSelected={props.isSelected}
+            component={component as DashboardClockComponentType}
+          />
+        )}
         {component.componentType === DashboardComponentType.Chart && (
           <DashboardChartComponent
             {...props}
@@ -974,6 +986,14 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
             isEditMode={props.isEditMode}
             isSelected={props.isSelected}
             component={component as DashboardCephPoolListComponentType}
+          />
+        )}
+        {component.componentType === DashboardComponentType.Html && (
+          <DashboardHtmlComponent
+            {...props}
+            isEditMode={props.isEditMode}
+            isSelected={props.isSelected}
+            component={component as DashboardHtmlComponentType}
           />
         )}
       </div>

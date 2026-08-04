@@ -3,12 +3,12 @@
 #
 # This test validates the oneuptime_file resource:
 # 1. File resources are created successfully
-# 2. A second terraform plan does NOT fail with "Read Not Implemented"
-# 3. The state is preserved correctly (idempotency)
+# 2. The state is preserved correctly across plans
 #
-# This is the critical regression test for:
-# https://github.com/OneUptime/oneuptime/issues/XXXX
-# "Error: Read Not Implemented - This resource does not support read operations"
+# Historical regression context: a second plan used to fail with
+# "Error: Read Not Implemented - This resource does not support read
+# operations". The runner's drift gate now exercises the second plan; this
+# script only performs state/output assertions.
 
 set -e
 
@@ -52,37 +52,5 @@ fi
 
 echo ""
 echo "  === Step 2: File resource fields verified ==="
-
-# Step 3: Critical test - Run terraform plan to check for "Read Not Implemented" error
-# This is the exact bug that was reported: second plan fails with Read Not Implemented
-echo ""
-echo "  === Step 3: Verifying second plan succeeds (no Read Not Implemented error) ==="
-echo "  Running terraform plan to check for errors..."
-
-PLAN_OUTPUT=$(terraform plan -detailed-exitcode 2>&1) || PLAN_EXIT_CODE=$?
-PLAN_EXIT_CODE=${PLAN_EXIT_CODE:-0}
-
-if [ "$PLAN_EXIT_CODE" -eq 1 ]; then
-    # Check specifically for the "Read Not Implemented" error
-    if echo "$PLAN_OUTPUT" | grep -q "Read Not Implemented"; then
-        echo "  ✗ FAILED: 'Read Not Implemented' error on second plan!"
-        echo "  This is the exact bug being tested."
-        echo "  Plan output:"
-        echo "$PLAN_OUTPUT"
-        print_failed "File Resource Read Idempotency"
-    fi
-    echo "  ✗ FAILED: terraform plan error (exit code 1)"
-    echo "$PLAN_OUTPUT"
-    print_failed "File Resource Plan"
-elif [ "$PLAN_EXIT_CODE" -eq 0 ]; then
-    echo "  ✓ Terraform plan shows no changes - idempotency PASSED"
-elif [ "$PLAN_EXIT_CODE" -eq 2 ]; then
-    # Changes detected but no error - acceptable for timestamp-based names
-    echo "  ⚠ Changes detected (expected due to timestamp in name with lifecycle ignore)"
-    echo "  ✓ No 'Read Not Implemented' error - the critical fix is working"
-fi
-
-echo ""
-echo "  === Step 3: Second plan succeeded (no Read Not Implemented error) ==="
 
 print_passed "File Resource CRUD & Idempotency Verification"

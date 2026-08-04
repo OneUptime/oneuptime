@@ -1,208 +1,120 @@
-# Hurtig start-vejledning til Terraform Provider
+# Quick Start
 
-Denne vejledning hjælper dig med at komme i gang med OneUptime Terraform Provider på få minutter.
+This guide takes you from nothing to managed OneUptime resources in about 10 minutes: create an API key, configure the provider, and apply a label, an HTTP monitor, and a status page.
 
-## Forudsætninger
+## Prerequisites
 
-- Terraform >= 1.0 installeret
-- OneUptime-konto (Sky eller Selvhostet)
-- OneUptime API-nøgle
+- [Terraform](https://developer.hashicorp.com/terraform/install) 1.5 or later
+- A OneUptime account with a project ([oneuptime.com](https://oneuptime.com) or your self-hosted instance)
 
-## Trin 1: Opret API-nøgle
+## Step 1: Create a project API key
 
-### Til OneUptime Cloud
+The provider authenticates with a **project-scoped API key**. In the OneUptime dashboard:
 
-1. Gå til [OneUptime Cloud](https://oneuptime.com) og log ind
-2. Naviger til **Indstillinger** → **API-nøgler**
-3. Klik på **Opret API-nøgle**
-4. Navngiv den "Terraform Provider"
-5. Vælg påkrævede tilladelser
-6. Kopiér den genererede API-nøgle
+1. Select your project.
+2. Go to **Project Settings** > **API Keys**.
+3. Click **Create API Key**.
+4. Give it a name (for example `terraform`) and an expiry.
+5. Grant permissions. Terraform needs **Create**, **Read**, **Update (Edit)**, and **Delete** on every resource type you plan to manage — for this guide: Label, Monitor, and Status Page.
+6. Copy the generated key.
 
-### Til selvhostet OneUptime
+> **Warning:** Do not use a user key or a self-hosted master API key. Master keys are not scoped to a project, and API calls made with them fail with `ProjectId required` errors. Only project API keys work with the Terraform provider.
 
-1. Tilgå din OneUptime-instans
-2. Naviger til **Indstillinger** → **API-nøgler**
-3. Klik på **Opret API-nøgle**
-4. Navngiv den "Terraform Provider"
-5. Vælg påkrævede tilladelser
-6. Kopiér den genererede API-nøgle
+Export the key as an environment variable so it never lands in your Terraform files:
 
-## Trin 2: Opret Terraform-konfiguration
+```bash
+export ONEUPTIME_API_KEY="your-project-api-key"
+```
 
-Opret en ny mappe og `main.tf`-fil:
+## Step 2: Configure the provider
+
+Create a working directory with a `main.tf`:
 
 ```hcl
 terraform {
   required_providers {
     oneuptime = {
       source  = "oneuptime/oneuptime"
-      # Til skykunder
-      version = "~> 7.0"
-
-      # Til selvhostede kunder – fastlås til din nøjagtige version
-      # version = "= 7.0.123"  # Erstat med din OneUptime-version
+      version = "~> 11.0"
     }
   }
-  required_version = ">= 1.0"
 }
 
 provider "oneuptime" {
-  # Til skykunder
-  oneuptime_url = "https://oneuptime.com"
-
-  # Til selvhostede kunder – brug din instans-URL
-  # oneuptime_url = "https://oneuptime.yourcompany.com"
-
-  api_key = var.oneuptime_api_key
-}
-
-variable "oneuptime_api_key" {
-  description = "OneUptime API-nøgle"
-  type        = string
-  sensitive   = true
-}
-
-# Bemærk: Projekter skal oprettes manuelt i OneUptime-dashboardet
-# Brug dit eksisterende projekt-ID her
-variable "project_id" {
-  description = "OneUptime projekt-ID"
-  type        = string
-}
-
-# Opret en simpel website-monitor
-resource "oneuptime_monitor" "website" {
-  name        = "Website Monitor"
-  description = "Monitor til webstedets oppetid"
-  data        = jsonencode({
-    url = "https://example.com"
-    interval = "5m"
-    timeout = "30s"
-  })
-}
-
-# Udskriv monitor-ID'et
-output "monitor_id" {
-  value = oneuptime_monitor.website.id
+  # api_key is read from the ONEUPTIME_API_KEY environment variable.
+  # oneuptime_url defaults to https://oneuptime.com — set it only if self-hosted:
+  # oneuptime_url = "https://oneuptime.example.com"
 }
 ```
 
-## Trin 3: Opret variabelfil
+Self-hosted users: set `oneuptime_url` to your instance URL and check the version guidance in [Self-Hosted Setup](/docs/terraform/self-hosted) before pinning a provider version.
 
-Opret `terraform.tfvars`:
+## Step 3: Define your first resources
+
+Append the following to `main.tf`. It creates a label, a website monitor for your homepage, and a private status page:
 
 ```hcl
-# terraform.tfvars
-oneuptime_api_key = "your-api-key-here"
-project_id        = "your-project-id-here"  # Hent dette fra OneUptime-dashboardet
+resource "oneuptime_label" "critical" {
+  name        = "critical"
+  description = "Resources that page on-call when down"
+  color       = "#FF5733"
+}
+
+resource "oneuptime_monitor" "homepage" {
+  name         = "Homepage"
+  description  = "Checks that the homepage responds"
+  monitor_type = "Website"
+  labels       = [oneuptime_label.critical.id]
+}
+
+resource "oneuptime_status_page" "internal" {
+  name                     = "Internal Status"
+  description              = "Status page for internal services"
+  page_title               = "Service Status"
+  page_description         = "Live status of our services"
+  is_public_status_page    = false
+  enable_email_subscribers = false
+  enable_sms_subscribers   = false
+}
+
+output "monitor_id" {
+  value = oneuptime_monitor.homepage.id
+}
 ```
 
-**Vigtigt**: Tilføj `terraform.tfvars` til din `.gitignore` for at holde API-nøgler hemmelige!
+A `Website` monitor created without explicit `monitor_steps` gets sensible server-side defaults. To control the URL, request type, and up/down criteria yourself, pass `monitor_steps` as JSON — that is covered in [Monitor Steps](/docs/terraform/monitor-steps).
 
-## Trin 4: Initialisér og anvend
+## Step 4: Init, plan, apply
 
 ```bash
-# Initialisér Terraform
 terraform init
-
-# Planlæg deploymentet
 terraform plan
-
-# Anvend konfigurationen
 terraform apply
 ```
 
-## Trin 5: Bekræft ressourcer
+Review the plan (3 resources to add) and confirm with `yes`. Apply completes in a few seconds and prints the monitor ID.
 
-1. Kontroller dit OneUptime-dashboard
-2. Gå til dit eksisterende projekt
-3. Bekræft, at "Website Monitor" er oprettet og kører
+## Step 5: Verify in the dashboard
 
-## Næste trin
+In the OneUptime dashboard:
 
-1. **Udforsk flere ressourcer**: Se [den fulde dokumentation](./README.md) for alle tilgængelige ressourcer
-2. **Opsæt advarsler**: Tilføj advarsels-politikker og notifikationskanaler
-3. **Opret statussider**: Opsæt offentlige statussider til dine tjenester
-4. **Organiser med teams**: Opret teams og tildel tilladelser
+- **Monitors** — the `Homepage` monitor is listed with the `critical` label.
+- **Status Pages** — `Internal Status` appears.
+- **Project Settings > Labels** — the `critical` label exists with the color you set.
 
-## Versionsspecifikke eksempler
+Run `terraform plan` again: it reports `No changes.` Server-computed fields (slugs, current status, default monitoring steps) do not cause drift.
 
-### Skykunder (seneste version)
+## Step 6: Clean up
 
-```hcl
-terraform {
-  required_providers {
-    oneuptime = {
-      source  = "oneuptime/oneuptime"
-      version = "~> 7.0"  # Henter altid seneste kompatible 7.x-version
-    }
-  }
-}
-
-provider "oneuptime" {
-  oneuptime_url = "https://oneuptime.com"
-  api_key       = var.oneuptime_api_key
-}
-```
-
-### Selvhostede kunder (version fastlåst)
-
-```hcl
-terraform {
-  required_providers {
-    oneuptime = {
-      source  = "oneuptime/oneuptime"
-      version = "= 7.0.123"  # Skal matche din OneUptime-version nøjagtigt
-    }
-  }
-}
-
-provider "oneuptime" {
-  oneuptime_url = "https://oneuptime.mycompany.com"  # Din selvhostede URL
-  api_key       = var.oneuptime_api_key
-}
-```
-
-## Fejlfinding af hurtig start
-
-### Problem: Provider ikke fundet
-
-```
-Error: Failed to query available provider packages
-```
-
-**Løsning**: Kør `terraform init` for at downloade provideren
-
-### Problem: Autentificering mislykkedes
-
-```
-Error: Invalid API key
-```
-
-**Løsning**:
-
-1. Bekræft din API-nøgle i OneUptime-dashboardet
-2. Kontroller, at API-nøglen har tilstrækkelige tilladelser
-3. Sørg for, at `oneuptime_url` er korrekt til din instans
-
-### Problem: Versionsmismatch (selvhostet)
-
-```
-Error: API version incompatible
-```
-
-**Løsning**:
-
-1. Kontroller din OneUptime-version i dashboardet
-2. Opdater providerversionen til at matche nøjagtigt
-3. Kør `terraform init -upgrade`
-
-## Oprydning
-
-For at fjerne alle ressourcer oprettet i denne hurtige start:
+If this was a test drive, remove everything the configuration created:
 
 ```bash
 terraform destroy
 ```
 
-Dette sletter den monitor og det projekt, der blev oprettet under den hurtige start.
+## Next steps
+
+- [Complete Guide](/docs/terraform/complete-guide) — authentication options, project layout, dependencies, data sources, remote state
+- [Examples](/docs/terraform/examples) — configurations for every major resource type
+- [Monitor Steps](/docs/terraform/monitor-steps) — take control of what your monitors check
+- [Importing Resources](/docs/terraform/importing-resources) — adopt resources you already created in the dashboard

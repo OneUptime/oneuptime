@@ -43,6 +43,41 @@ export default class CommonAPI {
   }
 
   /*
+   * Like assertAuthenticatedProjectMember, but also admits a project API key.
+   *
+   * An API key request carries no userId, so the member check rejects it —
+   * yet it is neither anonymous nor unscoped: ProjectMiddleware resolves the
+   * project from the KEY ITSELF (never the caller-supplied `tenantid` header,
+   * which it overwrites) and attaches the permissions granted to that key.
+   * Endpoints meant to be automatable should use this and then check whatever
+   * permission the action needs; that permission check is what separates a
+   * read-only key from one allowed to act.
+   */
+  public static assertAuthenticatedProjectPrincipal(
+    databaseProps: DatabaseCommonInteractionProps,
+  ): ObjectID {
+    const projectId: ObjectID | undefined = databaseProps.tenantId;
+
+    if (!projectId) {
+      throw new BadDataException("Project ID is required");
+    }
+
+    const isApiKey: boolean = databaseProps.userType === UserType.API;
+
+    if (
+      (!databaseProps.userId && !isApiKey) ||
+      !databaseProps.userTenantAccessPermission ||
+      !databaseProps.userTenantAccessPermission[projectId.toString()]
+    ) {
+      throw new NotAuthorizedException(
+        "You are not authorized to access this project's data.",
+      );
+    }
+
+    return projectId;
+  }
+
+  /*
    * getUserMiddleware lets unauthenticated requests through as "public" and
    * takes the tenant id from a caller-supplied header — custom endpoints
    * that disclose project data must require an authenticated member of the

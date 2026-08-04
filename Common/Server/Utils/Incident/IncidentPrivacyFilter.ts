@@ -153,3 +153,63 @@ export function applyIncidentRelatedRecordPrivacyFilter<T>(
   );
   return query;
 }
+
+/*
+ * Null-tolerant variant of the related-record filter for child tables whose
+ * incident link is OPTIONAL (e.g. AutoRemediationSuggestion, which links an
+ * incident OR an alert). In SQL, `NULL IN (subquery)` evaluates to NULL, so
+ * the strict clause above would hide every row whose incidentId is NULL —
+ * this variant lets NULL-linked rows through and defers to the sibling
+ * column's own filter.
+ */
+export function getOptionalIncidentRelatedRecordPrivacyRaw(
+  props: DatabaseCommonInteractionProps,
+): FindWhereProperty<any> | undefined {
+  if (shouldBypassIncidentPrivacy(props)) {
+    return undefined;
+  }
+
+  if (!props.userId) {
+    return Raw((alias: string): string => {
+      return `(${alias} IS NULL OR ${alias} IN (SELECT i."_id" FROM "Incident" i WHERE i."deletedAt" IS NULL AND (i."isPrivate" IS NULL OR i."isPrivate" = FALSE)))`;
+    });
+  }
+
+  const uidRid: string = "uidRelOpt_" + Text.generateRandomText(10);
+
+  return Raw(
+    (alias: string): string => {
+      return (
+        `(${alias} IS NULL OR ${alias} IN (SELECT i."_id" FROM "Incident" i WHERE i."deletedAt" IS NULL AND (` +
+        `i."isPrivate" IS NULL OR i."isPrivate" = FALSE OR ` +
+        `i."_id" IN (SELECT iou."incidentId" FROM "IncidentOwnerUser" iou WHERE iou."userId" = :${uidRid} AND iou."deletedAt" IS NULL) OR ` +
+        `i."_id" IN (SELECT iot."incidentId" FROM "IncidentOwnerTeam" iot INNER JOIN "TeamMember" tm ON tm."teamId" = iot."teamId" WHERE tm."userId" = :${uidRid} AND tm."deletedAt" IS NULL AND iot."deletedAt" IS NULL))))`
+      );
+    },
+    {
+      [uidRid]: props.userId.toString(),
+    },
+  );
+}
+
+export function applyOptionalIncidentRelatedRecordPrivacyFilter<T>(
+  query: T,
+  props: DatabaseCommonInteractionProps,
+): T {
+  const rawClause: FindWhereProperty<any> | undefined =
+    getOptionalIncidentRelatedRecordPrivacyRaw(props);
+
+  if (!rawClause) {
+    return query;
+  }
+
+  if (!query) {
+    return { incidentId: rawClause } as unknown as T;
+  }
+
+  (query as any).incidentId = combineWithPrivacyClause(
+    (query as any).incidentId,
+    rawClause,
+  );
+  return query;
+}

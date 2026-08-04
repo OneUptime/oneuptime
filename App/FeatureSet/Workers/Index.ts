@@ -155,6 +155,11 @@ import "./Jobs/AIAgent/SyncPullRequestStates";
 import "./Jobs/AIChat/TimeoutStuckRuns";
 import "./Jobs/AIChat/ProcessQueuedInvestigations";
 
+// Auto-remediation — settle Planning suggestions whose plan run died.
+import "./Jobs/AutoRemediation/SettleStrandedSuggestions";
+// Auto-remediation — verify started remediations actually restored service.
+import "./Jobs/AutoRemediation/VerifyRemediations";
+
 // AI Insights — preventive telemetry scan (deterministic, no LLM).
 import "./Jobs/AIInsight/ScanForInsights";
 
@@ -163,6 +168,8 @@ import "./Jobs/TelemetryMonitor/ScheduleTelemetryMonitorEvaluations";
 
 // Instance health and capacity management.
 import "./Jobs/InstanceHealth/EvaluateClickhouseCapacity";
+import "./Jobs/InstanceHealth/EvaluatePostgresHealth";
+import "./Jobs/InstanceHealth/EvaluateRedisHealth";
 
 // Derived / recording-rule metrics.
 import "./Jobs/Metrics/ComputeRecordingRules";
@@ -208,6 +215,14 @@ import "./Jobs/TelemetryEntity/ComputeServiceDependencies";
 import "./Jobs/Rum/FinalizeSessions";
 // RUM application disconnect sweeper + abandoned replay activity prune.
 import "./Jobs/Rum/CleanupStaleResources";
+
+/*
+ * The pin materializer is what makes "Pin this recording" true: until it
+ * copies the session under a far-future retentionDate and stamps
+ * materializedAt, a pin protects nothing and ClickHouse TTL deletes the
+ * recording on schedule.
+ */
+import "./Jobs/Rum/MaterializePinnedSessions";
 // GDPR / CCPA erasure of recordings and their correlated telemetry.
 import "./Jobs/Rum/ProcessSessionErasureRequests";
 

@@ -16,6 +16,7 @@ import OneUptimeDate from "Common/Types/Date";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import SessionReplayConsentMode from "Common/Types/Rum/SessionReplayConsentMode";
+import SessionReplayTriggerReason from "Common/Types/Rum/SessionReplayTriggerReason";
 import {
   MAX_SESSION_REPLAY_CHUNKS_PER_SESSION,
   SESSION_REPLAY_ALLOWED_RETENTION_DAYS,
@@ -174,6 +175,11 @@ export default class SessionReplayIngestService {
     appIdentifier: string;
     origin: string | undefined;
     sessionIds: Array<string>;
+    /*
+     * Why the recorder decided to upload. A frame that fired a real trigger
+     * bypasses the sample check below - see the comment there.
+     */
+    triggerReasons?: Array<string> | undefined;
     maxChunkIndex: number;
     chunkCount: number;
     payloadBytes: number;
@@ -274,7 +280,35 @@ export default class SessionReplayIngestService {
      * sample, so a catch-up post carrying several sessions is not thrown
      * away wholesale.
      */
-    if (data.sessionIds.length > 0) {
+    /*
+     * Sampling is ADDITIONAL to the capture trigger, not a gate in front of
+     * it. A frame the recorder uploaded because something actually went wrong
+     * has already earned its place; re-deciding it by dice roll would discard
+     * exactly the sessions the feature exists to keep.
+     *
+     * This was the default configuration, and it recorded nothing: the shipped
+     * defaults are captureTrigger OnErrorOrFrustration with samplePercentage 0,
+     * so isSampled() was false for every session and every chunk was refused
+     * with a 204. Only a project that had explicitly turned sampling up could
+     * record at all.
+     *
+     * "sampled" is the one reason that must still pass the check, because that
+     * is the recorder saying it uploaded on the dice roll alone - and the
+     * server re-rolls it to catch a stale recorder still uploading after the
+     * rate was lowered.
+     */
+    const isEveryFrameSampleTriggered: boolean =
+      (data.triggerReasons || []).length > 0 &&
+      (data.triggerReasons || []).every((reason: string): boolean => {
+        return reason === SessionReplayTriggerReason.Sampled;
+      });
+
+    const shouldApplySampleCheck: boolean =
+      !data.triggerReasons ||
+      data.triggerReasons.length === 0 ||
+      isEveryFrameSampleTriggered;
+
+    if (data.sessionIds.length > 0 && shouldApplySampleCheck) {
       const samplePercentage: number = policy.samplePercentage;
 
       const anySampled: boolean = data.sessionIds.some(
@@ -349,6 +383,50 @@ export default class SessionReplayIngestService {
         reason: "budget-counter-unavailable",
         policy,
       };
+    }
+
+    /*
+     * The customer's own monthly ceiling on this application, distinct from
+     * the operator's instance-wide daily cap above. It is the one budget a
+     * customer can configure, so it must actually be enforced - a budget
+     * field that is stored and displayed but never consulted is worse than
+     * no field, because it promises a protection that does not exist.
+     */
+    if (policy.monthlyBudgetInGB !== null && policy.monthlyBudgetInGB > 0) {
+      const monthlyDecision: SessionReplayLimitDecision =
+        await SessionReplayRateLimiter.consumeApplicationMonthlyBudget({
+          projectId: data.projectId,
+          rumApplicationId: policy.rumApplicationId,
+          bytes: data.payloadBytes,
+          budgetBytes: Math.floor(
+            policy.monthlyBudgetInGB * 1024 * 1024 * 1024,
+          ),
+        });
+
+      if (
+        monthlyDecision.outcome === SessionReplayLimitOutcome.BudgetExhausted
+      ) {
+        return {
+          outcome: SessionReplayGateOutcome.Stop,
+          directive: "stop",
+          configEpoch: policy.configEpoch,
+          reason: "app-monthly-budget-exhausted",
+          policy,
+        };
+      }
+
+      if (
+        monthlyDecision.outcome === SessionReplayLimitOutcome.CounterUnavailable
+      ) {
+        return {
+          outcome: SessionReplayGateOutcome.StorageUnavailable,
+          directive: "throttle",
+          configEpoch: policy.configEpoch,
+          retryAfterSeconds: 30,
+          reason: "budget-counter-unavailable",
+          policy,
+        };
+      }
     }
 
     return {
@@ -818,10 +896,24 @@ export default class SessionReplayIngestService {
       eventCount: envelope.eventCount,
       hasFullSnapshot: envelope.hasFullSnapshot,
       isFinal: envelope.isFinal,
+      isPinnedCopy: false,
       snapshotPartIndex: envelope.snapshotPart?.index ?? 0,
       snapshotPartTotal: envelope.snapshotPart?.total ?? 0,
       recorderKind: envelope.recorderKind,
-      payloadEncoding: envelope.payloadEncoding,
+      /*
+       * The encoding of what is IN the column, not what arrived on the wire.
+       *
+       * The payload above was gunzipped, scrubbed and re-serialised, so a
+       * chunk uploaded as gzip is stored as plain JSON. Copying the
+       * envelope's value through left the column saying "gzip" over bytes
+       * that were not - true of nearly every row, since the recorder gzips
+       * whenever CompressionStream exists. Today's reader ignores the column
+       * and JSON.parses regardless, so nothing is broken yet; the next
+       * consumer to trust it would be the one that breaks. The wire encoding
+       * is not lost - payloadBytes is still the compressed size the customer
+       * uploaded, which is what metering reads.
+       */
+      payloadEncoding: "identity",
       schemaVersion: Math.min(
         envelope.schemaVersion || SESSION_REPLAY_SCHEMA_VERSION,
         255,
@@ -972,6 +1064,7 @@ export default class SessionReplayIngestService {
       ),
       wireVersion: Math.min(envelope.v || SESSION_REPLAY_WIRE_VERSION, 255),
       isLegalHold: false,
+      isPinnedCopy: false,
       attributes: {},
       attributeKeys: [],
       entityKeys: [],

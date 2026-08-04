@@ -12,7 +12,7 @@ export default class RunbookSecretsUtil {
   ): Promise<Array<RunbookSecret>> {
     return RunbookSecretService.findBy({
       query: {
-        runbookAgents: QueryHelper.inRelationArray([agentId]),
+        runners: QueryHelper.inRelationArray([agentId]),
       },
       select: {
         secretValue: true,

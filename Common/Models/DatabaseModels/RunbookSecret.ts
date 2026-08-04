@@ -1,4 +1,4 @@
-import RunbookAgent from "./RunbookAgent";
+import Runner from "./Runner";
 import Project from "./Project";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
@@ -264,21 +264,21 @@ export default class RunbookSecret extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.EntityArray,
-    modelType: RunbookAgent,
-    title: "Runbook Agents",
+    modelType: Runner,
+    title: "Runners",
     description: "List of runbook agents that can access this secret",
     example: '["5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e"]',
   })
   @ManyToMany(
     () => {
-      return RunbookAgent;
+      return Runner;
     },
     { eager: false },
   )
   @JoinTable({
-    name: "RunbookSecretRunbookAgent",
+    name: "RunbookSecretRunner",
     inverseJoinColumn: {
-      name: "runbookAgentId",
+      name: "runnerId",
       referencedColumnName: "_id",
     },
     joinColumn: {
@@ -286,7 +286,7 @@ export default class RunbookSecret extends BaseModel {
       referencedColumnName: "_id",
     },
   })
-  public runbookAgents?: Array<RunbookAgent> = undefined;
+  public runners?: Array<Runner> = undefined;
 
   @ColumnAccessControl({
     create: [

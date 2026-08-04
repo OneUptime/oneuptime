@@ -88,40 +88,18 @@ verify_resource_exists() {
     return 0
 }
 
-# Run idempotency check (terraform plan should show no changes)
-# Usage: check_idempotency [strict]
-# If strict=true, fails on any changes. Otherwise just warns.
-check_idempotency() {
-    local strict="${1:-false}"
-
-    echo ""
-    echo "  === Verifying idempotency ==="
-
-    local plan_output
-    local plan_exit_code
-    plan_output=$(terraform plan -detailed-exitcode 2>&1) || plan_exit_code=$?
-    plan_exit_code=${plan_exit_code:-0}
-
-    if [ "$plan_exit_code" -eq 0 ]; then
-        echo "  ✓ No changes detected - idempotency test PASSED"
-        return 0
-    elif [ "$plan_exit_code" -eq 2 ]; then
-        if [ "$strict" = "true" ]; then
-            echo "  ✗ FAILED: Changes detected after apply"
-            echo "  Plan output:"
-            echo "$plan_output"
-            return 1
-        else
-            echo "  ⚠ WARNING: Changes detected after apply"
-            echo "  This may indicate server defaults are being injected"
-            echo "  Plan output:"
-            echo "$plan_output"
-            return 0
-        fi
-    else
-        echo "  ✗ FAILED: terraform plan failed with exit code $plan_exit_code"
-        echo "$plan_output"
-        return 1
+# Restore the user's ~/.terraformrc after a test run.
+# run-tests.sh backs up any pre-existing file before writing its dev_overrides
+# config. If no backup exists, the file (when it carries our dev_overrides
+# marker) was created by the harness and is removed; a user-authored file
+# without the marker is left untouched.
+restore_terraformrc() {
+    local backup="$HOME/.terraformrc.oneuptime-e2e-backup"
+    if [ -f "$backup" ]; then
+        mv "$backup" "$HOME/.terraformrc"
+        echo "Restored original ~/.terraformrc from backup"
+    elif [ -f "$HOME/.terraformrc" ] && grep -q 'oneuptime/oneuptime' "$HOME/.terraformrc" 2>/dev/null; then
+        rm -f "$HOME/.terraformrc"
     fi
 }
 
@@ -178,7 +156,7 @@ export -f assert_not_empty
 export -f assert_equals
 export -f api_get_resource
 export -f verify_resource_exists
-export -f check_idempotency
+export -f restore_terraformrc
 export -f validate_field
 export -f print_header
 export -f print_passed

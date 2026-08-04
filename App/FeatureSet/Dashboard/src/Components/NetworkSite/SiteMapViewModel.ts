@@ -5,6 +5,11 @@ import {
   GeoClusterPoint,
   clusterPoints,
 } from "./Geo/GeoClusterUtil";
+import {
+  CollidableMarker,
+  MarkerPlacement,
+  resolveMarkerCollisions,
+} from "./Geo/MarkerLayout";
 import { MapSiteView, SiteMapMode } from "./SiteHierarchyTypes";
 
 /*
@@ -560,6 +565,26 @@ export const groupedMarkerRadius: (
 };
 
 /*
+ * A container is drawn as a SQUARE rather than a disc — same shape as the
+ * card it opens into — and a square of side 2r covers a good deal more ink
+ * than a circle of radius r, so the side is pulled in to keep the two shapes
+ * reading at one weight.
+ *
+ * One constant, because three different pieces of geometry have to agree on
+ * it: the square SiteGeoMap draws, the box a label has to clear, and the
+ * circle the collision layout keeps clear around it.
+ */
+export const CONTAINER_SIDE_FACTOR: number = 1.78;
+
+/*
+ * The radius of the circle that CONTAINS that square — half its diagonal.
+ * Collision uses it so two containers cannot be pushed together corner to
+ * corner, which is the one direction a side-length comparison misses.
+ */
+export const CONTAINER_COLLISION_FACTOR: number =
+  (CONTAINER_SIDE_FACTOR / 2) * Math.SQRT2;
+
+/*
  * Past this many markers the name labels come off: they would overlap into
  * an unreadable mat, and the hover tooltip still names every one. Levels
  * with this many children are rare — it is the deep, unit-heavy levels that
@@ -617,8 +642,8 @@ export type LabelPlacement = "below" | "above";
 export const LABEL_PLACEMENTS: Array<LabelPlacement> = ["below", "above"];
 
 /*
- * A container is drawn as a square of side 1.78r, so its label clears the
- * corner rather than the circumscribed circle.
+ * A container is drawn as a square of side CONTAINER_SIDE_FACTOR * r, so its
+ * label clears the SIDE rather than the circumscribed circle.
  */
 const markerLabelRect: (
   marker: MapMarker,
@@ -636,7 +661,7 @@ const markerLabelRect: (
   const centerX: number = marker.x * zoom;
   const offset: number =
     (marker.isContainer
-      ? (marker.screenRadius * 1.78) / 2
+      ? (marker.screenRadius * CONTAINER_SIDE_FACTOR) / 2
       : marker.screenRadius) + LABEL_GAP;
   const centerY: number =
     marker.y * zoom + (placement === "above" ? -offset : offset);
@@ -654,7 +679,7 @@ const markerBodyRect: (marker: MapMarker, zoom: number) => LabelRect = (
   zoom: number,
 ): LabelRect => {
   const half: number = marker.isContainer
-    ? (marker.screenRadius * 1.78) / 2
+    ? (marker.screenRadius * CONTAINER_SIDE_FACTOR) / 2
     : marker.screenRadius;
   const centerX: number = marker.x * zoom;
   const centerY: number = marker.y * zoom;
@@ -927,4 +952,96 @@ export const buildMapMarkers: (input: BuildMarkersInput) => Array<MapMarker> = (
   });
 
   return markers;
+};
+
+/*
+ * ── Where a marker is DRAWN ────────────────────────────────────────────
+ *
+ * Paint order stopped being enough the moment two markers landed on the same
+ * point. The smaller one being painted last only helps while there is some
+ * of the bigger one left to see: a market whose centroid is its parent's, or
+ * six regions whose derived positions all average out over the same city,
+ * draw N markers in one place and show ONE. The rest cannot be hovered,
+ * named or clicked, and nothing on screen admits they exist.
+ *
+ * So markers are laid out before they are drawn: anything that would cover
+ * another is pushed off it by the smallest amount that clears the overlap,
+ * and keeps a line back to where it really is. See Geo/MarkerLayout.ts.
+ */
+
+// A marker plus where the map actually draws it.
+export interface PlacedMapMarker extends MapMarker {
+  // Where the marker belongs — the far end of its leader line.
+  anchorX: number;
+  anchorY: number;
+  /*
+   * Pushed clear of the spot it belongs to, rather than merely nudged within
+   * its own footprint. The map draws a leader line for exactly these, and
+   * says so in the legend.
+   */
+  needsLeaderLine: boolean;
+}
+
+/**
+ * The radius that has to stay clear around a marker, in screen units: its
+ * own radius, or — for a container — the radius of the circle that contains
+ * the square it is drawn as.
+ */
+export const collisionRadiusOfMarker: (marker: MapMarker) => number = (
+  marker: MapMarker,
+): number => {
+  const radius: number =
+    Number.isFinite(marker.screenRadius) && marker.screenRadius > 0
+      ? marker.screenRadius
+      : 0;
+  return marker.isContainer ? radius * CONTAINER_COLLISION_FACTOR : radius;
+};
+
+/**
+ * Place markers so that none of them covers another at this zoom.
+ *
+ * Returns the markers in PAINT order — the order they came in — each
+ * carrying the position it is drawn at, the position it belongs to, and
+ * whether the two differ enough to be worth a leader line. Markers with room
+ * around them come back untouched, so a map with nothing overlapping on it
+ * draws every marker exactly where the customer's coordinates put it.
+ */
+export const layoutMapMarkers: (
+  markers: Array<MapMarker>,
+  zoom: number,
+) => Array<PlacedMapMarker> = (
+  markers: Array<MapMarker>,
+  zoom: number,
+): Array<PlacedMapMarker> => {
+  const placements: Array<MarkerPlacement> = resolveMarkerCollisions(
+    markers.map((marker: MapMarker): CollidableMarker => {
+      return {
+        key: marker.key,
+        x: marker.x,
+        y: marker.y,
+        radius: collisionRadiusOfMarker(marker),
+      };
+    }),
+    zoom,
+  );
+
+  return markers.map((marker: MapMarker, index: number): PlacedMapMarker => {
+    const placement: MarkerPlacement | undefined = placements[index];
+    if (!placement) {
+      return {
+        ...marker,
+        anchorX: marker.x,
+        anchorY: marker.y,
+        needsLeaderLine: false,
+      };
+    }
+    return {
+      ...marker,
+      x: placement.x,
+      y: placement.y,
+      anchorX: placement.anchorX,
+      anchorY: placement.anchorY,
+      needsLeaderLine: placement.needsLeaderLine,
+    };
+  });
 };

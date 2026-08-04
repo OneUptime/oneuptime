@@ -18,6 +18,12 @@ const makeEntry: (
     eventCount: 100,
     hasFullSnapshot: chunkIndex === 0,
     payloadBytes: 7000,
+    errorCount: 0,
+    rageClickCount: 0,
+    deadClickCount: 0,
+    errorClickCount: 0,
+    refreshRageCount: 0,
+    routeCount: 0,
     ...overrides,
   };
 };

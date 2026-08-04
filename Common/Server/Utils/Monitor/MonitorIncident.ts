@@ -47,6 +47,8 @@ import MonitorTemplateUtil from "./MonitorTemplateUtil";
 import { JSONObject } from "../../../Types/JSON";
 import OneUptimeDate from "../../../Types/Date";
 import MonitorEvaluationSummary from "../../../Types/Monitor/MonitorEvaluationSummary";
+import MonitorSummarySnapshot from "../../../Types/Monitor/MonitorSummarySnapshot";
+import MonitorSummarySnapshotUtil from "../../../Utils/Monitor/MonitorSummarySnapshotUtil";
 import { IncidentMemberRoleAssignment } from "../../../Types/Monitor/CriteriaIncident";
 import { PerSeriesCriteriaMatch } from "../../../Types/Probe/ProbeApiIngestResponse";
 import MonitorClusterContextUtil, {
@@ -261,6 +263,13 @@ export default class MonitorIncident {
       Array<string>
     >;
     evaluationSummary?: MonitorEvaluationSummary | undefined;
+    /**
+     * The Monitor Summary as it stood at this evaluation, captured by
+     * MonitorSummaryCapture before this call. Stored on every incident
+     * created below so the incident page can render the same card the
+     * monitor page shows, long after the monitor log has aged out.
+     */
+    monitorSummary?: MonitorSummarySnapshot | null | undefined;
     props: {
       telemetryQuery?: TelemetryQuery | undefined;
     };
@@ -588,6 +597,17 @@ export default class MonitorIncident {
         incident.createdStateLog = JSON.parse(
           JSON.stringify(input.dataToProcess, null, 2),
         );
+
+        /*
+         * Same capture on every incident this evaluation opens - they all
+         * came from the one check.
+         */
+        const serializedMonitorSummary: JSONObject | null =
+          MonitorSummarySnapshotUtil.serialize(input.monitorSummary);
+
+        if (serializedMonitorSummary) {
+          incident.monitorSummary = serializedMonitorSummary;
+        }
 
         /*
          * Guard against missing ids — these are optional reference fields and

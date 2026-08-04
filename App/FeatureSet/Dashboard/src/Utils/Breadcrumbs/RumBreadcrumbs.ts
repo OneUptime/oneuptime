@@ -14,6 +14,15 @@ export function getRumBreadcrumbs(path: string): Array<Link> | undefined {
       "Real User Monitoring",
       "View Application",
     ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.RUM_APPLICATION_VIEW_RECOMMENDATIONS,
+      [
+        "Project",
+        "Real User Monitoring",
+        "View Application",
+        "Recommendations",
+      ],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.RUM_APPLICATION_VIEW_METRICS, [
       "Project",
       "Real User Monitoring",
@@ -65,11 +74,15 @@ export function getRumBreadcrumbs(path: string): Array<Link> | undefined {
       "View Application",
       "Delete Application",
     ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.RUM_SETTINGS_SESSION_REPLAY, [
-      "Project",
-      "Real User Monitoring",
-      "Session Replay Settings",
-    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_SETTINGS,
+      [
+        "Project",
+        "Real User Monitoring",
+        "View Application",
+        "Session Replay Settings",
+      ],
+    ),
   };
   return breadcrumpLinksMap[path];
 }

@@ -1,3 +1,5 @@
+import { DEFAULT_SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY } from "Common/Types/Rum/SessionReplay";
+
 let concurrency: string | number = process.env["TELEMETRY_CONCURRENCY"] || 100;
 
 if (typeof concurrency === "string") {
@@ -110,7 +112,7 @@ export const SESSION_REPLAY_INGEST_ENABLED: boolean =
  * destroying the customer's logs and traces to make room for recordings.
  */
 export const SESSION_REPLAY_ENABLED_BY_DEFAULT: boolean =
-  process.env["SESSION_REPLAY_ENABLED_BY_DEFAULT"] === "true";
+  process.env["SESSION_REPLAY_ENABLED_BY_DEFAULT"] !== "false";
 
 /*
  * Per-project chunk rate ceiling, enforced with a Redis counter so it holds
@@ -132,7 +134,7 @@ export const SESSION_REPLAY_MAX_CHUNKS_PER_PROJECT_PER_MINUTE: number =
 export const SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY: number =
   parseBatchSize(
     "SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY",
-    1024 * 1024 * 1024,
+    DEFAULT_SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY,
   );
 
 /*

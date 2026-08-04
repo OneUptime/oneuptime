@@ -147,12 +147,24 @@ const DocsNav: NavGroup[] = [
         url: "/docs/terraform/complete-guide",
       },
       {
-        title: "Self-Hosted Setup",
-        url: "/docs/terraform/self-hosted",
+        title: "Monitor Steps",
+        url: "/docs/terraform/monitor-steps",
       },
       {
         title: "Examples",
         url: "/docs/terraform/examples",
+      },
+      {
+        title: "Importing Resources",
+        url: "/docs/terraform/importing-resources",
+      },
+      {
+        title: "Troubleshooting",
+        url: "/docs/terraform/troubleshooting",
+      },
+      {
+        title: "Self-Hosted Setup",
+        url: "/docs/terraform/self-hosted",
       },
       {
         title: "Registry Usage",
@@ -388,6 +400,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/runbooks/agents",
       },
       {
+        title: "Runbook Credentials",
+        url: "/docs/runbooks/credentials",
+      },
+      {
         title: "Runbook Configuration & Safety",
         url: "/docs/runbooks/configuration",
       },
@@ -604,14 +620,26 @@ const DocsNav: NavGroup[] = [
         title: "Cloud Environments",
         url: "/docs/telemetry/cloud-environments",
       },
-      {
-        title: "Real User Monitoring",
-        url: "/docs/telemetry/real-user-monitoring",
-      },
-      {
-        title: "Session Replay",
-        url: "/docs/telemetry/session-replay",
-      },
+    ],
+  },
+  /*
+   * RUM is its own product surface in the dashboard (Resources → Real User
+   * Monitoring) with applications, rules, clients and session replay — not
+   * just one more "how to send telemetry from X" recipe — so it gets its own
+   * group rather than a single entry inside Telemetry. Session Replay keeps
+   * its /docs/telemetry/session-replay URL; only its position in the nav
+   * moved, so inbound links are unaffected.
+   */
+  {
+    title: "Real User Monitoring",
+    links: [
+      { title: "RUM Overview", url: "/docs/rum/index" },
+      { title: "Browser Setup", url: "/docs/rum/browser-setup" },
+      { title: "Mobile Setup", url: "/docs/rum/mobile-setup" },
+      { title: "Core Web Vitals", url: "/docs/rum/web-vitals" },
+      { title: "Managing Applications", url: "/docs/rum/applications" },
+      { title: "Session Replay", url: "/docs/telemetry/session-replay" },
+      { title: "RUM Troubleshooting", url: "/docs/rum/troubleshooting" },
     ],
   },
   {

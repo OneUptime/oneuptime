@@ -30,7 +30,7 @@ Agenten behöver bara **utgående HTTPS** till din OneUptime-instans. Den accept
 
 ### 1. Skapa agentposten
 
-Gå till **Runbooks → Settings → Agents** och skapa en ny agent. Fyll i:
+Gå till **Settings → Runners** och skapa en ny agent. Fyll i:
 
 | Fält            | Anteckningar                                                                                                                                           |
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -49,18 +49,18 @@ Kör Docker-kommandot på vilken värd som helst i din miljö som kan:
 - göra det du vill att dina Bash-/JavaScript-steg ska göra (t.ex. SSH till andra värdar, `kubectl`, prata med en databas).
 
 ```bash
-docker run --name oneuptime-runbook-agent --restart unless-stopped \
-  -e RUNBOOK_AGENT_ID=<agent-id> \
-  -e RUNBOOK_AGENT_KEY=<agent-key> \
+docker run --name oneuptime-runner --restart unless-stopped \
+  -e ONEUPTIME_RUNNER_ID=<agent-id> \
+  -e ONEUPTIME_RUNNER_KEY=<agent-key> \
   -e ONEUPTIME_URL=https://oneuptime.yourdomain.com \
-  -d oneuptime/runbook-agent:release
+  -d oneuptime/runner:release
 ```
 
 ### 4. Verifiera att agenten är ansluten
 
-Gå tillbaka till **Runbooks → Settings → Agents**. Inom ~60 sekunder bör agentens rad växla till `Connected` med en färsk **Last seen**-tidsstämpel. Om den förblir `Disconnected`:
+Gå tillbaka till **Settings → Runners**. Inom ~60 sekunder bör agentens rad växla till `Connected` med en färsk **Last seen**-tidsstämpel. Om den förblir `Disconnected`:
 
-- Kontrollera container-loggarna (`docker logs oneuptime-runbook-agent`) för auth-fel eller nätverksproblem.
+- Kontrollera container-loggarna (`docker logs oneuptime-runner`) för auth-fel eller nätverksproblem.
 - Verifiera att värden når din OneUptime-URL med `curl`.
 - Verifiera att ID och nyckel kopierats utan blanksteg.
 
@@ -92,8 +92,8 @@ Worker'ns totala väntefönster är `claim-timeout + körnings-timeout + några 
 
 Två saker att tänka på när du sänker claim-timeouten:
 
-- Agenten frågar efter nya jobb en gång per poll-cykel (`RUNBOOK_AGENT_POLL_INTERVAL_MS`, 5 sekunder som standard). En claim-timeout som är kortare än en poll-cykel kan löpa ut innan en fullt fungerande agent ens har sett jobbet, och steget misslyckas då med samma "ingen agent claim:ade jobbet"-meddelande som du skulle få från en agent som är offline.
-- En agent kör ett jobb i taget som standard (`RUNBOOK_AGENT_CONCURRENCY`). Medan ett långt steg håller den upptagen väntar andra steg som är riktade mot samma agent ut sina egna claim-timeouts. Om du höjer en körnings-timeout till flera minuter, höj claim-timeouten på de steg som delar den agenten i motsvarande grad — eller ge dem en annan agent.
+- Agenten frågar efter nya jobb en gång per poll-cykel (`ONEUPTIME_RUNNER_POLL_INTERVAL_MS`, 5 sekunder som standard). En claim-timeout som är kortare än en poll-cykel kan löpa ut innan en fullt fungerande agent ens har sett jobbet, och steget misslyckas då med samma "ingen agent claim:ade jobbet"-meddelande som du skulle få från en agent som är offline.
+- En agent kör ett jobb i taget som standard (`ONEUPTIME_RUNNER_CONCURRENCY`). Medan ett långt steg håller den upptagen väntar andra steg som är riktade mot samma agent ut sina egna claim-timeouts. Om du höjer en körnings-timeout till flera minuter, höj claim-timeouten på de steg som delar den agenten i motsvarande grad — eller ge dem en annan agent.
 
 ### Lease och heartbeat
 
@@ -115,7 +115,7 @@ Att avbryta en runbook-körning (från körningsvyn eller API:t) markerar omedel
 
 ### Samtidighet
 
-Varje agent kör ett jobb i taget som standard. För att tillåta fler, sätt `RUNBOOK_AGENT_CONCURRENCY` på agent-containern — men kom ihåg att agenten delar värden med vad som än bor där.
+Varje agent kör ett jobb i taget som standard. För att tillåta fler, sätt `ONEUPTIME_RUNNER_CONCURRENCY` på agent-containern — men kom ihåg att agenten delar värden med vad som än bor där.
 
 ## Environment variables
 
@@ -124,12 +124,12 @@ Agenten läser dessa vid uppstart:
 | Variabel                                  | Krävs | Standard | Anteckningar                                                                 |
 | ----------------------------------------- | ----- | -------- | ---------------------------------------------------------------------------- |
 | `ONEUPTIME_URL`                           | ja    | —        | Bas-URL för din OneUptime-instans, t.ex. `https://oneuptime.yourdomain.com`. |
-| `RUNBOOK_AGENT_ID`                        | ja    | —        | UUID:t som visas i agentens installationsmodal.                              |
-| `RUNBOOK_AGENT_KEY`                       | ja    | —        | Hemligheten som visas i agentens installationsmodal.                         |
-| `RUNBOOK_AGENT_POLL_INTERVAL_MS`          | nej   | `5000`   | Hur ofta agenten frågar efter nya jobb.                                      |
-| `RUNBOOK_AGENT_HEARTBEAT_INTERVAL_MS`     | nej   | `60000`  | Hur ofta agenten rapporterar livstecken.                                     |
-| `RUNBOOK_AGENT_JOB_HEARTBEAT_INTERVAL_MS` | nej   | `10000`  | Hur ofta agenten förnyar leasen på ett pågående jobb.                        |
-| `RUNBOOK_AGENT_CONCURRENCY`               | nej   | `1`      | Maximalt antal samtidiga jobb på denna agent.                                |
+| `ONEUPTIME_RUNNER_ID`                        | ja    | —        | UUID:t som visas i agentens installationsmodal.                              |
+| `ONEUPTIME_RUNNER_KEY`                       | ja    | —        | Hemligheten som visas i agentens installationsmodal.                         |
+| `ONEUPTIME_RUNNER_POLL_INTERVAL_MS`          | nej   | `5000`   | Hur ofta agenten frågar efter nya jobb.                                      |
+| `ONEUPTIME_RUNNER_HEARTBEAT_INTERVAL_MS`     | nej   | `60000`  | Hur ofta agenten rapporterar livstecken.                                     |
+| `ONEUPTIME_RUNNER_JOB_HEARTBEAT_INTERVAL_MS` | nej   | `10000`  | Hur ofta agenten förnyar leasen på ett pågående jobb.                        |
+| `ONEUPTIME_RUNNER_CONCURRENCY`               | nej   | `1`      | Maximalt antal samtidiga jobb på denna agent.                                |
 
 ## Rotera en agent-nyckel
 
@@ -139,14 +139,14 @@ Om en nyckel läcker, öppna agenten i OneUptime och återställ dess nyckel. De
 
 Hanteringen av agenter ligger under den befintliga Runbooks-behörighetsgruppen:
 
-- `CreateRunbookAgent`, `EditRunbookAgent`, `DeleteRunbookAgent`, `ReadRunbookAgent` — hantera agent-poster.
+- `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — hantera agent-poster.
 - `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (roller) — tilldela ett team för att ge full kontroll, daglig användning eller skrivskyddad åtkomst. `RunbookAdmin` paketerar alla granulära behörigheter ovan.
 
 Behörigheter att _trigga_ ett runbook (och därmed få Bash- och JavaScript-steg att dispatch:as) är fortfarande `CreateRunbookExecution` / `EditRunbookExecution`.
 
 ## Agent-API
 
-För de nyfikna — agenten använder dessa endpoints, monterade under `/runbook-agent-ingest`. De autentiseras med agentens ID + nyckel i JSON-bodyn (eller `x-agent-id` / `x-agent-key`-headers).
+För de nyfikna — agenten använder dessa endpoints, monterade under `/runner-ingest`. De autentiseras med agentens ID + nyckel i JSON-bodyn (eller `x-agent-id` / `x-agent-key`-headers).
 
 | Endpoint                     | Syfte                                                                                                                                  |
 | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |

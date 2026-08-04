@@ -36,19 +36,46 @@ describe("Consent", (): void => {
   });
 
   describe("isRecordingPermitted", (): void => {
-    it("refuses to record when either side honours the signal", (): void => {
+    it("honours the signal by default, which is what doing nothing gets you", (): void => {
       const dnt: Navigator = navigatorWith({ doNotTrack: "1" });
 
+      /*
+       * Omitting data-oneuptime-respect-do-not-track leaves the page side
+       * true, so the overwhelmingly common case still refuses to record.
+       */
       expect(Consent.isRecordingPermitted(true, true, dnt)).toBe(false);
-      expect(Consent.isRecordingPermitted(true, false, dnt)).toBe(false);
-      expect(Consent.isRecordingPermitted(false, true, dnt)).toBe(false);
     });
 
     /*
-     * Only BOTH sides agreeing can turn honouring off. A page-level override
-     * alone must not be able to defeat a server policy that insists.
+     * The page decides; the server value is the default it starts from.
+     *
+     * "Either side insisting wins" sounds safer but made the documented
+     * data-oneuptime-respect-do-not-track="false" attribute dead config: the
+     * server always sends true, so the attribute could never take effect and
+     * a customer whose lawful basis does not depend on DNT had no way to
+     * record at all - silently, with nothing to debug from the page.
      */
-    it("records only when both sides opt out of honouring the signal", (): void => {
+    it("lets the page explicitly opt out on its own site", (): void => {
+      expect(
+        Consent.isRecordingPermitted(
+          false,
+          true,
+          navigatorWith({ doNotTrack: "1" }),
+        ),
+      ).toBe(true);
+    });
+
+    it("records when the deployment itself does not honour the signal", (): void => {
+      expect(
+        Consent.isRecordingPermitted(
+          true,
+          false,
+          navigatorWith({ doNotTrack: "1" }),
+        ),
+      ).toBe(true);
+    });
+
+    it("records when neither side asks to honour it", (): void => {
       expect(
         Consent.isRecordingPermitted(
           false,

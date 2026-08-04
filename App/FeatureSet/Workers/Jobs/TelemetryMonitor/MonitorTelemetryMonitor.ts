@@ -76,6 +76,7 @@ import ExceptionInstanceService from "Common/Server/Services/ExceptionInstanceSe
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import TelemetryExceptionService from "Common/Server/Services/TelemetryExceptionService";
 import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
+import Includes from "Common/Types/BaseDatabase/Includes";
 import ProfileMonitorResponse from "Common/Types/Monitor/ProfileMonitor/ProfileMonitorResponse";
 import MonitorStepProfileMonitor, {
   MonitorStepProfileMonitorUtil,
@@ -1173,6 +1174,15 @@ export const monitorMetric: MonitorMetricFunction = async (data: {
       time: startAndEndDate,
       name: queryConfig.metricQueryData.filterData.metricName,
     };
+
+    if (
+      metricMonitorConfig.telemetryServiceIds &&
+      metricMonitorConfig.telemetryServiceIds.length > 0
+    ) {
+      query.primaryEntityId = new Includes(
+        metricMonitorConfig.telemetryServiceIds,
+      );
+    }
 
     if (
       queryConfig.metricQueryData &&

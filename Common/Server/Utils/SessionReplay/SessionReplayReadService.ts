@@ -101,6 +101,13 @@ export interface SessionReplayListCursor {
 
 export interface SessionReplayListFilters {
   hasError?: boolean | undefined;
+  /*
+   * Any frustration signal (rage/dead/error clicks, refresh rage).
+   * Server-side, so "frustration" filters the whole table — the old
+   * client-side version filtered only the fetched page, silently showing
+   * an empty list for a project whose frustrated sessions sat on page 2.
+   */
+  hasFrustration?: boolean | undefined;
   isFinalized?: boolean | undefined;
   triggerReasons?: Array<string> | undefined;
   browserNames?: Array<string> | undefined;
@@ -257,6 +264,11 @@ export interface SessionReplayExceptionSession {
   durationMs: number;
   hasError: boolean;
   errorCount: number;
+  rageClickCount: number;
+  deadClickCount: number;
+  errorClickCount: number;
+  refreshRageCount: number;
+  maskingMode: string;
   triggerReason: string;
   entryUrl: string;
   browserName: string;
@@ -818,7 +830,13 @@ export default class SessionReplayReadService {
         chunkEndOffsetMs,
         eventCount,
         hasFullSnapshot,
-        toFloat64(payloadBytes) AS chunkPayloadBytes
+        toFloat64(payloadBytes) AS chunkPayloadBytes,
+        errorCount,
+        rageClickCount,
+        deadClickCount,
+        errorClickCount,
+        refreshRageCount,
+        routeCount
       FROM ${AnalyticsTableName.RumSessionChunk}
       WHERE projectId = ${{
         type: TableColumnType.ObjectID,
@@ -871,6 +889,12 @@ export default class SessionReplayReadService {
         eventCount: readNumber(row, "eventCount"),
         hasFullSnapshot: readBoolean(row, "hasFullSnapshot"),
         payloadBytes: readNumber(row, "chunkPayloadBytes"),
+        errorCount: readNumber(row, "errorCount"),
+        rageClickCount: readNumber(row, "rageClickCount"),
+        deadClickCount: readNumber(row, "deadClickCount"),
+        errorClickCount: readNumber(row, "errorClickCount"),
+        refreshRageCount: readNumber(row, "refreshRageCount"),
+        routeCount: readNumber(row, "routeCount"),
       };
 
       const existing: Array<SessionReplayChunkManifestEntry> | undefined =
@@ -1174,6 +1198,29 @@ export default class SessionReplayReadService {
       { alias: "aggDurationMs", expression: argMaxNumeric("durationMs") },
       { alias: "aggHasError", expression: argMaxColumn("hasError") },
       { alias: "aggErrorCount", expression: argMaxNumeric("errorCount") },
+      /*
+       * The frustration counters and masking mode feed the "Watch what the
+       * user saw" card: the signals line ("2 rage clicks before the error")
+       * and the up-front masking disclosure both come from here. Omitting
+       * them renders the card with empty signals and "unknown" masking.
+       */
+      {
+        alias: "aggRageClickCount",
+        expression: argMaxNumeric("rageClickCount"),
+      },
+      {
+        alias: "aggDeadClickCount",
+        expression: argMaxNumeric("deadClickCount"),
+      },
+      {
+        alias: "aggErrorClickCount",
+        expression: argMaxNumeric("errorClickCount"),
+      },
+      {
+        alias: "aggRefreshRageCount",
+        expression: argMaxNumeric("refreshRageCount"),
+      },
+      { alias: "aggMaskingMode", expression: argMaxColumn("maskingMode") },
       { alias: "aggTriggerReason", expression: argMaxColumn("triggerReason") },
       { alias: "aggEntryUrl", expression: argMaxColumn("entryUrl") },
       { alias: "aggBrowserName", expression: argMaxColumn("browserName") },
@@ -1265,6 +1312,11 @@ export default class SessionReplayReadService {
           durationMs: readNumber(row, "aggDurationMs"),
           hasError: readBoolean(row, "aggHasError"),
           errorCount: readNumber(row, "aggErrorCount"),
+          rageClickCount: readNumber(row, "aggRageClickCount"),
+          deadClickCount: readNumber(row, "aggDeadClickCount"),
+          errorClickCount: readNumber(row, "aggErrorClickCount"),
+          refreshRageCount: readNumber(row, "aggRefreshRageCount"),
+          maskingMode: readString(row, "aggMaskingMode"),
           triggerReason: readString(row, "aggTriggerReason"),
           entryUrl: readString(row, "aggEntryUrl"),
           browserName: readString(row, "aggBrowserName"),
@@ -1286,6 +1338,16 @@ export default class SessionReplayReadService {
           type: TableColumnType.Boolean,
           value: filters.hasError,
         }}`,
+      );
+    }
+
+    if (filters.hasFrustration === true) {
+      /*
+       * Over the argMax aliases, like every HAVING predicate here — the
+       * raw columns would sum across ReplacingMergeTree versions.
+       */
+      statement.append(
+        " AND (aggRageClickCount + aggDeadClickCount + aggErrorClickCount + aggRefreshRageCount) > 0",
       );
     }
 

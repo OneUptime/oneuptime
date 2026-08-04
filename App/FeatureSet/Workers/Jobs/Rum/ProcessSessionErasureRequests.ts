@@ -11,6 +11,7 @@ import RumSessionErasureRequest, {
   RumSessionErasureRequestType,
 } from "Common/Models/DatabaseModels/RumSessionErasureRequest";
 import RumSessionErasureRequestService from "Common/Server/Services/RumSessionErasureRequestService";
+import ProjectService from "Common/Server/Services/ProjectService";
 import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import ExceptionInstanceService from "Common/Server/Services/ExceptionInstanceService";
 import LogService from "Common/Server/Services/LogService";
@@ -151,7 +152,18 @@ const ERASURE_REQUEST_SELECT: Select<RumSessionErasureRequest> = {
   requestedAt: true,
   sessionsDeleted: true,
   chunksDeleted: true,
+  attempts: true,
 };
+
+/*
+ * How many failed runs an erasure request survives before it is marked
+ * Failed for good and the project owners are told. Every step of the
+ * erasure is idempotent by design (the job's own header comment insists
+ * on it), so retrying is always safe — what is NOT safe is one transient
+ * ClickHouse blip terminally killing a legal erasure obligation with
+ * nothing but a log line to show for it.
+ */
+export const MAX_ERASURE_ATTEMPTS: number = 5;
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -623,7 +635,7 @@ export function chunkSessionIds(
   return batches;
 }
 
-async function processErasureRequest(data: {
+export async function processErasureRequest(data: {
   databaseName: string;
   request: RumSessionErasureRequest;
 }): Promise<void> {
@@ -716,15 +728,70 @@ async function processErasureRequest(data: {
     );
   } catch (error) {
     const failureReason: string = getErrorMessage(error);
+    const attempts: number = (request.attempts || 0) + 1;
 
     logger.error(
-      `${JOB_NAME}: erasure request ${requestId.toString()} failed: ${failureReason}`,
+      `${JOB_NAME}: erasure request ${requestId.toString()} failed (attempt ${attempts} of ${MAX_ERASURE_ATTEMPTS}): ${failureReason}`,
     );
+
+    /*
+     * Requeue while attempts remain. Every mutation this job submits is
+     * idempotent, so re-running a half-done request is safe — and the
+     * alternative was terminal: markFailed rows were never re-examined,
+     * so an erasure could die half-done (tombstone written, chunk table
+     * deleted, logs and spans intact) on one transient error.
+     */
+    if (attempts < MAX_ERASURE_ATTEMPTS) {
+      await RumSessionErasureRequestService.updateOneById({
+        id: requestId,
+        data: {
+          status: RumSessionErasureRequestStatus.Pending,
+          attempts: attempts,
+          failureReason: failureReason,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      return;
+    }
+
+    await RumSessionErasureRequestService.updateOneById({
+      id: requestId,
+      data: {
+        attempts: attempts,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
 
     await RumSessionErasureRequestService.markFailed({
       requestId: requestId,
       failureReason: failureReason,
     });
+
+    /*
+     * Terminal failure of a right-to-erasure request is a legal problem,
+     * not an ops nicety, so it must reach a human — a logger.error line
+     * nobody greps is not notice. Best effort: a mail failure must not
+     * throw back into the job.
+     */
+    if (request.projectId) {
+      try {
+        await ProjectService.sendEmailToProjectOwners(
+          request.projectId,
+          "A session replay erasure request could not be completed",
+          `A session replay erasure request (id ${requestId.toString()}) failed ${MAX_ERASURE_ATTEMPTS} times and has been marked as failed. Last error: ${failureReason}. ` +
+            `Parts of the requested erasure may be incomplete. Please review it under RUM > Session Replay, or re-create the request to retry — erasure requests carry a compliance deadline.`,
+        );
+      } catch (mailError) {
+        logger.error(
+          `${JOB_NAME}: could not notify project owners about failed erasure request ${requestId.toString()}: ${getErrorMessage(mailError)}`,
+        );
+      }
+    }
   }
 }
 

@@ -60,7 +60,7 @@ Konfigurieren Sie an einem Bash-Schritt:
 - **Ausführungs-Timeout** — wie lange der Agent das Skript laufen lässt, bevor er es mit `SIGKILL` beendet. Standardmäßig 30 Sekunden; erhöhen Sie ihn für Schritte, die tatsächlich Minuten brauchen.
 - **Claim-Timeout** — wie lange der Worker darauf wartet, dass der Agent den Job aufnimmt. Standardmäßig 2 Minuten.
 
-Wenn der ausgewählte Agent offline ist, wenn das Runbook diesen Schritt erreicht, wartet der Schritt bis zum **Claim-Timeout** (Standard 2 Minuten) und schlägt dann mit `TimedOut` fehl. Fügen Sie unter **Runbooks → Settings → Agents** einen Agent hinzu, bevor Sie sich auf einen Bash-Schritt verlassen.
+Wenn der ausgewählte Agent offline ist, wenn das Runbook diesen Schritt erreicht, wartet der Schritt bis zum **Claim-Timeout** (Standard 2 Minuten) und schlägt dann mit `TimedOut` fehl. Fügen Sie unter **Settings → Runners** einen Agent hinzu, bevor Sie sich auf einen Bash-Schritt verlassen.
 
 ### AI
 

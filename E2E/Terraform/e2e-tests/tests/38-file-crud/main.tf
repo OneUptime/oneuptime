@@ -23,27 +23,19 @@ provider "oneuptime" {
 # - Second plan: READ was returning "Read Not Implemented" error
 # - Fix: READ now preserves existing state as a no-op
 resource "oneuptime_file" "logo" {
-  name      = "tf-e2e-logo-${formatdate("YYYYMMDDhhmmss", timestamp())}"
+  name      = "tf-e2e-logo"
   file_type = "image/png"
   # Small 1x1 red PNG pixel encoded as base64
   file      = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=="
   is_public = "true"
-
-  lifecycle {
-    ignore_changes = [name]
-  }
 }
 
 resource "oneuptime_file" "favicon" {
-  name      = "tf-e2e-favicon-${formatdate("YYYYMMDDhhmmss", timestamp())}"
+  name      = "tf-e2e-favicon"
   file_type = "image/png"
   # Same small 1x1 PNG pixel
   file      = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=="
   is_public = "true"
-
-  lifecycle {
-    ignore_changes = [name]
-  }
 }
 
 output "logo_id" {

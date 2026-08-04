@@ -60,7 +60,33 @@ Configure these on a Bash step:
 - **Execution timeout** — how long the agent lets the script run before killing it with `SIGKILL`. Defaults to 30 seconds; raise it for steps that legitimately take minutes.
 - **Claim timeout** — how long the Worker waits for the agent to pick the job up. Defaults to 2 minutes.
 
-If the selected agent is offline when the runbook reaches this step, the step waits up to the **claim timeout** (default 2 minutes) and then fails with `TimedOut`. Add an agent under **Runbooks → Settings → Agents** before relying on a Bash step.
+If the selected agent is offline when the runbook reaches this step, the step waits up to the **claim timeout** (default 2 minutes) and then fails with `TimedOut`. Add an agent under **Settings → Runners** before relying on a Bash step.
+
+### SSH
+
+Run a command on a host the Runner can reach over SSH. Unlike writing `ssh host cmd` inside a Bash step, the access is a managed [credential](/docs/runbooks/credentials) rather than a private key sitting on the Runner's disk — encrypted at rest, assigned to specific Runners, and never readable back through the API.
+
+Configure on an SSH step:
+
+- **Runner** — the Runner that opens the connection. It must be able to reach the host on the network.
+- **Credential** — an SSH credential holding the host, port, user and key. It must be assigned to the Runner you picked, or the step fails rather than running with the wrong access.
+- **Command** — run on the remote host as the credential's user. Output is captured up to 50 KB and a non-zero exit code fails the step.
+- **Execution timeout** — covers connecting, authenticating and running the command together, so a command that hangs cannot hold the step open indefinitely.
+
+### Kubernetes
+
+Restart or scale a workload in a cluster. The verbs are a closed set on purpose: a step that could PATCH arbitrary objects would be a cluster-admin shell, and the point of this step type is to make the common remediations safe enough to hand to auto-remediation.
+
+Configure on a Kubernetes step:
+
+- **Runner** — the Runner that calls the API server.
+- **Credential** — a Kubernetes credential holding the API server URL, a service account token and the cluster CA. Bind that service account to a role permitting only what your runbooks need.
+- **Action** — **Restart workload** stamps the pod template so the controller recreates pods (what `kubectl rollout restart` does), or **Scale workload** sets the replica count.
+- **Workload kind** — Deployment, StatefulSet or DaemonSet.
+- **Namespace** and **Workload name**.
+- **Replicas** — for Scale only. Zero is allowed; draining a workload is a legitimate remediation. DaemonSets cannot be scaled — they run one pod per node — so restart them instead.
+
+If the API server refuses the change, its own message is surfaced on the step, so a permission failure tells you which role binding to widen.
 
 ### AI
 

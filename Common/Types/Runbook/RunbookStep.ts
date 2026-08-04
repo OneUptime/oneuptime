@@ -74,12 +74,77 @@ export interface AIStepConfig {
   maxTokens?: number;
 }
 
+/*
+ * Run a command on a host the Runner can reach over SSH.
+ *
+ * The point of a first-class step type — rather than "write `ssh host cmd` in
+ * a Bash step" — is that the credential is a managed, encrypted object with
+ * its own permissions instead of a private key sitting on the Runner's disk,
+ * and the command is a value we can validate rather than an opaque script.
+ */
+export interface SSHStepConfig {
+  /*
+   * ID of the RunbookCredential (type SSH) holding the host, user and key.
+   * The Runner resolves it at claim time; it is never stored on the step.
+   */
+  credentialId: string;
+  // The command to run on the remote host, verbatim.
+  command: string;
+  timeoutInMs?: number;
+  // ID of the Runner that opens the connection. Only it may claim the job.
+  agentId: string;
+  claimTimeoutInMs?: number;
+}
+
+/*
+ * The workload actions that cover almost every "turn it off and on again"
+ * remediation. Deliberately a closed set of verbs rather than free-form
+ * manifests: a runbook that can PATCH arbitrary Kubernetes objects is a
+ * cluster-admin shell, and the whole reason this exists is to make the common
+ * remediations safe rather than to add another way to run anything.
+ */
+export enum KubernetesAction {
+  // Rolling restart: stamps the pod template so the controller recreates pods.
+  RestartWorkload = "RestartWorkload",
+  // Set replica count — scale out under load, or to zero and back.
+  ScaleWorkload = "ScaleWorkload",
+}
+
+export enum KubernetesWorkloadKind {
+  Deployment = "Deployment",
+  StatefulSet = "StatefulSet",
+  DaemonSet = "DaemonSet",
+}
+
+export interface KubernetesStepConfig {
+  /*
+   * ID of the RunbookCredential (type Kubernetes) holding the API server URL,
+   * the service-account token and the CA certificate.
+   */
+  credentialId: string;
+  action: KubernetesAction;
+  workloadKind: KubernetesWorkloadKind;
+  namespace: string;
+  workloadName: string;
+  /*
+   * Target replica count. Required for ScaleWorkload and ignored otherwise.
+   * Zero is legitimate — draining a workload is a remediation.
+   */
+  replicas?: number;
+  timeoutInMs?: number;
+  // ID of the Runner that talks to the API server. Only it may claim the job.
+  agentId: string;
+  claimTimeoutInMs?: number;
+}
+
 export type RunbookStepConfig =
   | ManualStepConfig
   | JavaScriptStepConfig
   | HttpRequestStepConfig
   | BashStepConfig
-  | AIStepConfig;
+  | AIStepConfig
+  | SSHStepConfig
+  | KubernetesStepConfig;
 
 export interface RunbookStep {
   id: string;

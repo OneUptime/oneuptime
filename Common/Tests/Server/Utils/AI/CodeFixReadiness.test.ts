@@ -1,6 +1,7 @@
 import CodeFixReadiness from "../../../../Server/Utils/AI/CodeFix/CodeFixReadiness";
 import SubjectCodeFixRun from "../../../../Server/Utils/AI/SRE/SubjectCodeFixRun";
 import AIAgentService from "../../../../Server/Services/AIAgentService";
+import RunnerService from "../../../../Server/Services/RunnerService";
 import AIService from "../../../../Server/Services/AIService";
 import LlmProviderService from "../../../../Server/Services/LlmProviderService";
 import ProjectService from "../../../../Server/Services/ProjectService";
@@ -253,11 +254,21 @@ describe("CodeFixReadiness.getLlmProviderCheck — daily autonomous token budget
 });
 
 describe("CodeFixReadiness.getAgentCheck", () => {
+  beforeEach(() => {
+    // Default: no Runner. Individual tests opt into one.
+    jest
+      .spyOn(RunnerService, "getOnlineCodeFixRunnerForProject")
+      .mockResolvedValue(null);
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
   });
 
   test("no agent for the project: not ready", async () => {
+    jest
+      .spyOn(AIAgentService, "getConnectedAIAgentForProject")
+      .mockResolvedValue(null);
     jest.spyOn(AIAgentService, "getAIAgentForProject").mockResolvedValue(null);
 
     const check: AIFixReadinessCheck = await CodeFixReadiness.getAgentCheck({
@@ -266,14 +277,16 @@ describe("CodeFixReadiness.getAgentCheck", () => {
 
     expect(check.id).toBe("agentAvailable");
     expect(check.ok).toBe(false);
-    expect(check.detail).toContain("No AI agent is available");
+    expect(check.detail).toContain("No agent is available");
   });
 
   test("an agent that exists but is not alive: not ready, and names it", async () => {
     jest
+      .spyOn(AIAgentService, "getConnectedAIAgentForProject")
+      .mockResolvedValue(null);
+    jest
       .spyOn(AIAgentService, "getAIAgentForProject")
       .mockResolvedValue({ name: "fix-worker" } as unknown as AIAgent);
-    jest.spyOn(AIAgentService, "isAgentAlive").mockReturnValue(false);
 
     const check: AIFixReadinessCheck = await CodeFixReadiness.getAgentCheck({
       projectId,
@@ -285,9 +298,8 @@ describe("CodeFixReadiness.getAgentCheck", () => {
 
   test("a live agent is ready and is named", async () => {
     jest
-      .spyOn(AIAgentService, "getAIAgentForProject")
+      .spyOn(AIAgentService, "getConnectedAIAgentForProject")
       .mockResolvedValue({ name: "fix-worker" } as unknown as AIAgent);
-    jest.spyOn(AIAgentService, "isAgentAlive").mockReturnValue(true);
 
     const check: AIFixReadinessCheck = await CodeFixReadiness.getAgentCheck({
       projectId,
@@ -295,6 +307,27 @@ describe("CodeFixReadiness.getAgentCheck", () => {
 
     expect(check.ok).toBe(true);
     expect(check.title).toContain("fix-worker");
+  });
+
+  /*
+   * A customer-installed Runner with the code-fix capability is the agent for
+   * most projects — readiness that only looked at the AIAgent table told them
+   * to go install an agent they were already running.
+   */
+  test("an online code-fix Runner satisfies the check and is named", async () => {
+    jest
+      .spyOn(AIAgentService, "getConnectedAIAgentForProject")
+      .mockResolvedValue(null);
+    jest
+      .spyOn(RunnerService, "getOnlineCodeFixRunnerForProject")
+      .mockResolvedValue({ name: "prod-runner" } as unknown as never);
+
+    const check: AIFixReadinessCheck = await CodeFixReadiness.getAgentCheck({
+      projectId,
+    });
+
+    expect(check.ok).toBe(true);
+    expect(check.title).toContain("prod-runner");
   });
 });
 
@@ -358,8 +391,13 @@ describe("CodeFixReadiness.getProjectReadiness", () => {
       .spyOn(AIAgentService, "getAIAgentForProject")
       .mockResolvedValue({ name: "agent" } as unknown as AIAgent);
     jest
-      .spyOn(AIAgentService, "isAgentAlive")
-      .mockReturnValue(params.agentAlive);
+      .spyOn(AIAgentService, "getConnectedAIAgentForProject")
+      .mockResolvedValue(
+        params.agentAlive ? ({ name: "agent" } as unknown as AIAgent) : null,
+      );
+    jest
+      .spyOn(RunnerService, "getOnlineCodeFixRunnerForProject")
+      .mockResolvedValue(null);
   }
 
   test("all three gates satisfied: ready", async () => {

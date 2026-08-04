@@ -1,9 +1,9 @@
 import axios from "axios";
 import ObjectID from "Common/Types/ObjectID";
 import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
-import RunbookAgentJobStatus from "Common/Types/Runbook/RunbookAgentJobStatus";
-import RunbookAgentJobService from "Common/Server/Services/RunbookAgentJobService";
-import RunbookAgentJob from "Common/Models/DatabaseModels/RunbookAgentJob";
+import RunnerJobStatus from "Common/Types/Runbook/RunnerJobStatus";
+import RunnerJobService from "Common/Server/Services/RunnerJobService";
+import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
 import logger from "Common/Server/Utils/Logger";
 import {
   BashStepConfig,
@@ -82,13 +82,13 @@ function makeJsStep(config: Partial<JavaScriptStepConfig> = {}): RunbookStep {
 
 function makeTerminalJob(
   overrides: Partial<Record<string, unknown>> = {},
-): RunbookAgentJob {
+): RunnerJob {
   return {
     _id: "job1",
-    status: RunbookAgentJobStatus.Succeeded,
+    status: RunnerJobStatus.Succeeded,
     output: "job output",
     ...overrides,
-  } as unknown as RunbookAgentJob;
+  } as unknown as RunnerJob;
 }
 
 describe("truncate", () => {
@@ -224,7 +224,7 @@ describe("agent-dispatched steps (Bash / JavaScript)", () => {
      * exists, has its own describe block below.
      */
     jest
-      .spyOn(RunbookAgentJobService, "findLatestJobForStep")
+      .spyOn(RunnerJobService, "findLatestJobForStep")
       .mockResolvedValue(null);
   });
 
@@ -259,10 +259,10 @@ describe("agent-dispatched steps (Bash / JavaScript)", () => {
      * is to forward the configured ID untouched.
      */
     const enqueueSpy: jest.SpyInstance = jest
-      .spyOn(RunbookAgentJobService, "enqueue")
+      .spyOn(RunnerJobService, "enqueue")
       .mockResolvedValue(makeTerminalJob());
     jest
-      .spyOn(RunbookAgentJobService, "pollUntilTerminal")
+      .spyOn(RunnerJobService, "pollUntilTerminal")
       .mockResolvedValue(makeTerminalJob());
 
     const agentId: string = new ObjectID("agent-xyz").toString();
@@ -275,7 +275,7 @@ describe("agent-dispatched steps (Bash / JavaScript)", () => {
 
   test("an empty script succeeds without dispatching a job", async () => {
     const enqueueSpy: jest.SpyInstance = jest.spyOn(
-      RunbookAgentJobService,
+      RunnerJobService,
       "enqueue",
     );
 
@@ -296,10 +296,10 @@ describe("agent-dispatched steps (Bash / JavaScript)", () => {
      * production while every output assertion here still passed.
      */
     jest
-      .spyOn(RunbookAgentJobService, "enqueue")
+      .spyOn(RunnerJobService, "enqueue")
       .mockResolvedValue(makeTerminalJob({ _id: "job-42" }));
     const pollSpy: jest.SpyInstance = jest
-      .spyOn(RunbookAgentJobService, "pollUntilTerminal")
+      .spyOn(RunnerJobService, "pollUntilTerminal")
       .mockResolvedValue(makeTerminalJob());
 
     await runBashStep(
@@ -316,10 +316,10 @@ describe("agent-dispatched steps (Bash / JavaScript)", () => {
 
   test("Bash success: enqueues for the configured agent and returns the job output", async () => {
     const enqueueSpy: jest.SpyInstance = jest
-      .spyOn(RunbookAgentJobService, "enqueue")
+      .spyOn(RunnerJobService, "enqueue")
       .mockResolvedValue(makeTerminalJob());
     jest
-      .spyOn(RunbookAgentJobService, "pollUntilTerminal")
+      .spyOn(RunnerJobService, "pollUntilTerminal")
       .mockResolvedValue(makeTerminalJob({ output: "hi from agent" }));
 
     const step: RunbookStep = makeBashStep();
@@ -338,10 +338,10 @@ describe("agent-dispatched steps (Bash / JavaScript)", () => {
 
   test("JavaScript success dispatches with the JavaScript step type", async () => {
     const enqueueSpy: jest.SpyInstance = jest
-      .spyOn(RunbookAgentJobService, "enqueue")
+      .spyOn(RunnerJobService, "enqueue")
       .mockResolvedValue(makeTerminalJob());
     jest
-      .spyOn(RunbookAgentJobService, "pollUntilTerminal")
+      .spyOn(RunnerJobService, "pollUntilTerminal")
       .mockResolvedValue(makeTerminalJob({ output: "42" }));
 
     const result: StepRunResult = await runJavaScriptStep(
@@ -358,11 +358,11 @@ describe("agent-dispatched steps (Bash / JavaScript)", () => {
 
   test("a failed job surfaces the agent's error message", async () => {
     jest
-      .spyOn(RunbookAgentJobService, "enqueue")
+      .spyOn(RunnerJobService, "enqueue")
       .mockResolvedValue(makeTerminalJob());
-    jest.spyOn(RunbookAgentJobService, "pollUntilTerminal").mockResolvedValue(
+    jest.spyOn(RunnerJobService, "pollUntilTerminal").mockResolvedValue(
       makeTerminalJob({
-        status: RunbookAgentJobStatus.Failed,
+        status: RunnerJobStatus.Failed,
         output: "partial output",
         errorMessage: "command not found",
       }),
@@ -377,11 +377,11 @@ describe("agent-dispatched steps (Bash / JavaScript)", () => {
 
   test("a failed job without a message falls back to the exit code", async () => {
     jest
-      .spyOn(RunbookAgentJobService, "enqueue")
+      .spyOn(RunnerJobService, "enqueue")
       .mockResolvedValue(makeTerminalJob());
-    jest.spyOn(RunbookAgentJobService, "pollUntilTerminal").mockResolvedValue(
+    jest.spyOn(RunnerJobService, "pollUntilTerminal").mockResolvedValue(
       makeTerminalJob({
-        status: RunbookAgentJobStatus.Failed,
+        status: RunnerJobStatus.Failed,
         output: "",
         errorMessage: undefined,
         exitCode: 127,
@@ -396,11 +396,11 @@ describe("agent-dispatched steps (Bash / JavaScript)", () => {
 
   test("a timed-out job falls back to the terminal status", async () => {
     jest
-      .spyOn(RunbookAgentJobService, "enqueue")
+      .spyOn(RunnerJobService, "enqueue")
       .mockResolvedValue(makeTerminalJob());
-    jest.spyOn(RunbookAgentJobService, "pollUntilTerminal").mockResolvedValue(
+    jest.spyOn(RunnerJobService, "pollUntilTerminal").mockResolvedValue(
       makeTerminalJob({
-        status: RunbookAgentJobStatus.TimedOut,
+        status: RunnerJobStatus.TimedOut,
         output: "",
         errorMessage: undefined,
         exitCode: undefined,
@@ -410,12 +410,12 @@ describe("agent-dispatched steps (Bash / JavaScript)", () => {
     const result: StepRunResult = await runBashStep(makeBashStep(), makeCtx());
 
     expect(result.success).toBe(false);
-    expect(result.errorMessage).toContain(RunbookAgentJobStatus.TimedOut);
+    expect(result.errorMessage).toContain(RunnerJobStatus.TimedOut);
   });
 
   test("an enqueue failure fails the step with the thrown message", async () => {
     jest
-      .spyOn(RunbookAgentJobService, "enqueue")
+      .spyOn(RunnerJobService, "enqueue")
       .mockRejectedValue(new Error("queue unavailable"));
 
     const result: StepRunResult = await runBashStep(makeBashStep(), makeCtx());
@@ -447,23 +447,23 @@ describe("redelivery after a Worker restart", () => {
   });
 
   test.each([
-    RunbookAgentJobStatus.Pending,
-    RunbookAgentJobStatus.Claimed,
-    RunbookAgentJobStatus.Running,
+    RunnerJobStatus.Pending,
+    RunnerJobStatus.Claimed,
+    RunnerJobStatus.Running,
   ])(
     "an in-flight job (%s) is re-attached to instead of dispatched again",
-    async (status: RunbookAgentJobStatus) => {
+    async (status: RunnerJobStatus) => {
       jest
-        .spyOn(RunbookAgentJobService, "findLatestJobForStep")
+        .spyOn(RunnerJobService, "findLatestJobForStep")
         .mockResolvedValue(
           makeTerminalJob({ _id: "existing-job", status, output: undefined }),
         );
       const enqueueSpy: jest.SpyInstance = jest.spyOn(
-        RunbookAgentJobService,
+        RunnerJobService,
         "enqueue",
       );
       const pollSpy: jest.SpyInstance = jest
-        .spyOn(RunbookAgentJobService, "pollUntilTerminal")
+        .spyOn(RunnerJobService, "pollUntilTerminal")
         .mockResolvedValue(
           makeTerminalJob({ _id: "existing-job", output: "finished later" }),
         );
@@ -489,17 +489,15 @@ describe("redelivery after a Worker restart", () => {
      * Worker slot for several.
      */
     const createdAt: Date = new Date("2026-07-30T10:00:00.000Z");
-    jest
-      .spyOn(RunbookAgentJobService, "findLatestJobForStep")
-      .mockResolvedValue(
-        makeTerminalJob({
-          _id: "existing-job",
-          status: RunbookAgentJobStatus.Running,
-          createdAt,
-        }),
-      );
+    jest.spyOn(RunnerJobService, "findLatestJobForStep").mockResolvedValue(
+      makeTerminalJob({
+        _id: "existing-job",
+        status: RunnerJobStatus.Running,
+        createdAt,
+      }),
+    );
     const pollSpy: jest.SpyInstance = jest
-      .spyOn(RunbookAgentJobService, "pollUntilTerminal")
+      .spyOn(RunnerJobService, "pollUntilTerminal")
       .mockResolvedValue(makeTerminalJob());
 
     await runBashStep(makeBashStep(), makeCtx());
@@ -510,31 +508,27 @@ describe("redelivery after a Worker restart", () => {
   });
 
   test.each([
-    RunbookAgentJobStatus.Succeeded,
-    RunbookAgentJobStatus.Failed,
-    RunbookAgentJobStatus.TimedOut,
-    RunbookAgentJobStatus.Cancelled,
+    RunnerJobStatus.Succeeded,
+    RunnerJobStatus.Failed,
+    RunnerJobStatus.TimedOut,
+    RunnerJobStatus.Cancelled,
   ])(
     "a job that already finished (%s) has its result adopted, not re-run",
-    async (status: RunbookAgentJobStatus) => {
-      jest
-        .spyOn(RunbookAgentJobService, "findLatestJobForStep")
-        .mockResolvedValue(
-          makeTerminalJob({
-            status,
-            output: "ran once",
-            errorMessage:
-              status === RunbookAgentJobStatus.Succeeded
-                ? undefined
-                : "it went wrong",
-          }),
-        );
+    async (status: RunnerJobStatus) => {
+      jest.spyOn(RunnerJobService, "findLatestJobForStep").mockResolvedValue(
+        makeTerminalJob({
+          status,
+          output: "ran once",
+          errorMessage:
+            status === RunnerJobStatus.Succeeded ? undefined : "it went wrong",
+        }),
+      );
       const enqueueSpy: jest.SpyInstance = jest.spyOn(
-        RunbookAgentJobService,
+        RunnerJobService,
         "enqueue",
       );
       const pollSpy: jest.SpyInstance = jest.spyOn(
-        RunbookAgentJobService,
+        RunnerJobService,
         "pollUntilTerminal",
       );
 
@@ -546,19 +540,19 @@ describe("redelivery after a Worker restart", () => {
       expect(enqueueSpy).not.toHaveBeenCalled();
       expect(pollSpy).not.toHaveBeenCalled();
       expect(result.output).toBe("ran once");
-      expect(result.success).toBe(status === RunbookAgentJobStatus.Succeeded);
+      expect(result.success).toBe(status === RunnerJobStatus.Succeeded);
     },
   );
 
   test("the lookup is scoped to this execution and this step", async () => {
     const findSpy: jest.SpyInstance = jest
-      .spyOn(RunbookAgentJobService, "findLatestJobForStep")
+      .spyOn(RunnerJobService, "findLatestJobForStep")
       .mockResolvedValue(null);
     jest
-      .spyOn(RunbookAgentJobService, "enqueue")
+      .spyOn(RunnerJobService, "enqueue")
       .mockResolvedValue(makeTerminalJob());
     jest
-      .spyOn(RunbookAgentJobService, "pollUntilTerminal")
+      .spyOn(RunnerJobService, "pollUntilTerminal")
       .mockResolvedValue(makeTerminalJob());
 
     await runBashStep(makeBashStep(), makeCtx());
@@ -574,20 +568,18 @@ describe("redelivery after a Worker restart", () => {
   });
 
   test("JavaScript steps re-attach on the same terms as Bash", async () => {
-    jest
-      .spyOn(RunbookAgentJobService, "findLatestJobForStep")
-      .mockResolvedValue(
-        makeTerminalJob({
-          _id: "existing-js-job",
-          status: RunbookAgentJobStatus.Claimed,
-        }),
-      );
+    jest.spyOn(RunnerJobService, "findLatestJobForStep").mockResolvedValue(
+      makeTerminalJob({
+        _id: "existing-js-job",
+        status: RunnerJobStatus.Claimed,
+      }),
+    );
     const enqueueSpy: jest.SpyInstance = jest.spyOn(
-      RunbookAgentJobService,
+      RunnerJobService,
       "enqueue",
     );
     jest
-      .spyOn(RunbookAgentJobService, "pollUntilTerminal")
+      .spyOn(RunnerJobService, "pollUntilTerminal")
       .mockResolvedValue(makeTerminalJob({ output: "js done" }));
 
     const result: StepRunResult = await runJavaScriptStep(
@@ -624,15 +616,15 @@ describe("per-step timeouts", () => {
      * has to be re-established alongside enqueue and poll.
      */
     jest
-      .spyOn(RunbookAgentJobService, "findLatestJobForStep")
+      .spyOn(RunnerJobService, "findLatestJobForStep")
       .mockResolvedValue(null);
 
     return {
       enqueueSpy: jest
-        .spyOn(RunbookAgentJobService, "enqueue")
+        .spyOn(RunnerJobService, "enqueue")
         .mockResolvedValue(makeTerminalJob()),
       pollSpy: jest
-        .spyOn(RunbookAgentJobService, "pollUntilTerminal")
+        .spyOn(RunnerJobService, "pollUntilTerminal")
         .mockResolvedValue(makeTerminalJob()),
     };
   }

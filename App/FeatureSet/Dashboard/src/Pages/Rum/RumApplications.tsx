@@ -56,18 +56,6 @@ const RumApplications: FunctionComponent<
     return <PageLoader isVisible={true} />;
   }
 
-  if (count === 0) {
-    return (
-      <Fragment>
-        <ResourceDocumentationCard
-          title="Getting Started with Real User Monitoring"
-          description="No RUM applications connected yet. Instrument your browser or mobile app with OpenTelemetry using the guide below — it appears here automatically once the first telemetry arrives."
-          buildMarkdown={getRumDocMarkdown}
-        />
-      </Fragment>
-    );
-  }
-
   return (
     <Fragment>
       <ModelTable<RumApplication>
@@ -76,6 +64,12 @@ const RumApplications: FunctionComponent<
         userPreferencesKey="rum-applications-table"
         query={{
           isArchived: false,
+        }}
+        onCreateSuccess={(item: RumApplication): Promise<RumApplication> => {
+          setCount((currentCount: number | null): number => {
+            return (currentCount || 0) + 1;
+          });
+          return Promise.resolve(item);
         }}
         isDeleteable={false}
         isEditable={false}
@@ -279,6 +273,13 @@ const RumApplications: FunctionComponent<
           );
         }}
       />
+      {count === 0 && (
+        <ResourceDocumentationCard
+          title="Getting Started with Real User Monitoring"
+          description="No RUM applications connected yet. Instrument your browser or mobile app with OpenTelemetry using the guide below — it appears here automatically once the first telemetry arrives."
+          buildMarkdown={getRumDocMarkdown}
+        />
+      )}
     </Fragment>
   );
 };

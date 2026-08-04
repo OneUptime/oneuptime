@@ -286,15 +286,19 @@ import WorkflowOwnerTeam from "./WorkflowOwnerTeam";
 import WorkflowOwnerUser from "./WorkflowOwnerUser";
 // Runbooks.
 import Runbook from "./Runbook";
-import RunbookAgent from "./RunbookAgent";
-import RunbookAgentJob from "./RunbookAgentJob";
-import RunbookAgentOwnerTeam from "./RunbookAgentOwnerTeam";
-import RunbookAgentOwnerUser from "./RunbookAgentOwnerUser";
+import Runner from "./Runner";
+import RunnerJob from "./RunnerJob";
+import RunnerOwnerTeam from "./RunnerOwnerTeam";
+import RunnerOwnerUser from "./RunnerOwnerUser";
+import RunbookCredential from "./RunbookCredential";
 import RunbookSecret from "./RunbookSecret";
 import RunbookExecution from "./RunbookExecution";
 import RunbookOwnerTeam from "./RunbookOwnerTeam";
 import RunbookOwnerUser from "./RunbookOwnerUser";
 import RunbookRule from "./RunbookRule";
+
+import AutoRemediationRule from "./AutoRemediationRule";
+import AutoRemediationSuggestion from "./AutoRemediationSuggestion";
 
 import UserTotpAuth from "./UserTotpAuth";
 import UserWebAuthn from "./UserWebAuthn";
@@ -626,10 +630,13 @@ const AllModelTypes: Array<{
   RunbookOwnerTeam,
   RunbookOwnerUser,
   RunbookRule,
-  RunbookAgent,
-  RunbookAgentJob,
-  RunbookAgentOwnerTeam,
-  RunbookAgentOwnerUser,
+  AutoRemediationRule,
+  AutoRemediationSuggestion,
+  Runner,
+  RunnerJob,
+  RunnerOwnerTeam,
+  RunnerOwnerUser,
+  RunbookCredential,
   RunbookSecret,
 
   ProjectSSO,

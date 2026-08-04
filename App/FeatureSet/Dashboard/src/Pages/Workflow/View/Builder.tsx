@@ -384,6 +384,13 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
                     data: {
                       data: component.arguments,
                     },
+                    /*
+                     * /workflow/manual/run is a custom route, so it gets no
+                     * tenant header unless the call site adds one. It needs
+                     * the header to check the caller is a member of the
+                     * workflow's project before running it.
+                     */
+                    headers: ModelAPI.getCommonHeaders(),
                   });
 
                 if (result instanceof HTTPErrorResponse) {

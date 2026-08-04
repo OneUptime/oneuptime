@@ -234,17 +234,6 @@ const CephClusters: FunctionComponent<
     return <ErrorMessage message={error} />;
   }
 
-  if (clusterCount === 0) {
-    return (
-      <Fragment>
-        <CephDocumentationCard
-          title="Getting Started with Ceph Monitoring"
-          description="No Ceph clusters connected yet. Install the agent using the guide below and your cluster will appear here automatically."
-        />
-      </Fragment>
-    );
-  }
-
   return (
     <Fragment>
       <ModelTable<CephCluster>
@@ -257,6 +246,12 @@ const CephClusters: FunctionComponent<
         query={mergeFiltersIntoQuery({ isArchived: false })}
         onFetchSuccess={(data: Array<CephCluster>) => {
           onResourcesFetched(data);
+        }}
+        onCreateSuccess={(item: CephCluster): Promise<CephCluster> => {
+          setClusterCount((currentCount: number | null): number => {
+            return (currentCount || 0) + 1;
+          });
+          return Promise.resolve(item);
         }}
         isDeleteable={false}
         isEditable={false}
@@ -504,6 +499,12 @@ const CephClusters: FunctionComponent<
           );
         }}
       />
+      {clusterCount === 0 && (
+        <CephDocumentationCard
+          title="Getting Started with Ceph Monitoring"
+          description="No Ceph clusters connected yet. Install the agent using the guide below and your cluster will appear here automatically."
+        />
+      )}
       {labelBulkActionModals}
       {ownerBulkActionModals}
     </Fragment>

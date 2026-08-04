@@ -1,256 +1,95 @@
-# Self-Hosted OneUptime Terraform Configuration Guide
+# Self-Hosted Setup
 
-यह guide specifically उन customers के लिए है जो self-hosted OneUptime instances चला रहे हैं। यह अपने OneUptime deployment के साथ Terraform provider उपयोग करने के लिए version management, configuration और best practices cover करता है।
+Everything specific to using the Terraform provider against a self-hosted OneUptime installation: pointing the provider at your instance, choosing the right provider version, mirroring the provider for air-gapped networks, and TLS.
 
-## महत्वपूर्ण नोट्स
+The provider itself is identical for cloud and self-hosted — same resources, same attributes. Only the URL and the version-selection rule differ.
 
-⚠️ **Projects को Terraform के माध्यम से नहीं बनाया जा सकता** - Projects पहले OneUptime dashboard में manually बनाने होंगे। अपनी Terraform configurations में project ID उपयोग करें।
+## Point the provider at your instance
 
-⚠️ **Self-hosted customers के लिए सबसे महत्वपूर्ण नियम**: अपने Terraform provider version को हमेशा exactly अपने OneUptime installation version से match करने के लिए pin करें।
-
-## Resource Structure
-
-सभी OneUptime Terraform resources एक simplified structure follow करते हैं:
-
-- `name` (आवश्यक) - Resource नाम
-- `description` (वैकल्पिक) - Resource विवरण
-- `data` (वैकल्पिक) - JSON के रूप में Complex configuration
-
-## Critical: Version Compatibility
-
-⚠️ **Self-hosted customers के लिए सबसे महत्वपूर्ण नियम**: अपने Terraform provider version को हमेशा exactly अपने OneUptime installation version से match करने के लिए pin करें।
-
-### Version Pinning Critical क्यों है
-
-- Terraform provider OneUptime API से auto-generate होता है
-- प्रत्येक OneUptime version में अलग API endpoints और schemas हो सकते हैं
-- Mismatched provider version उपयोग करने से errors या unexpected behavior हो सकता है
-- Version pinning compatibility और predictable behavior सुनिश्चित करता है
-
-## अपना OneUptime Version खोजना
-
-### Method 1: Dashboard
-
-1. अपने OneUptime dashboard में login करें
-2. **Settings** → **About** पर जाएं
-3. version number देखें (जैसे "7.0.123")
-
-### Method 2: API Endpoint
-
-```bash
-curl https://your-oneuptime-instance.com/api/status
-```
-
-### Method 3: Docker Images
-
-यदि आप Docker के साथ OneUptime चला रहे हैं:
-
-```bash
-docker images | grep oneuptime
-# tag देखें, जैसे oneuptime/dashboard:7.0.123
-```
-
-### Method 4: Helm Chart
-
-यदि आप Helm उपयोग कर रहे हैं:
-
-```bash
-helm list -n oneuptime
-# chart version जांचें
-```
-
-## Provider Configuration Templates
-
-### Version 7.0.x के लिए Template
+Set `oneuptime_url` to your instance's origin — scheme and host only, no `/api` suffix, no path:
 
 ```hcl
 terraform {
   required_providers {
     oneuptime = {
       source  = "oneuptime/oneuptime"
-      version = "= 7.0.123"  # 123 को अपने exact build number से बदलें
+      version = "~> 11.0"
     }
   }
-  required_version = ">= 1.0"
 }
 
 provider "oneuptime" {
-  oneuptime_url = "https://oneuptime.yourcompany.com"  # आपका self-hosted URL
-  api_key       = var.oneuptime_api_key
+  oneuptime_url = "https://oneuptime.example.com"
+  # api_key from ONEUPTIME_API_KEY, or set explicitly:
+  # api_key = var.oneuptime_api_key
 }
 ```
 
-## Complete Self-Hosted Configuration Example
+Both settings are also available as environment variables, which keeps configuration portable between cloud and self-hosted roots:
 
-यहाँ एक self-hosted OneUptime instance के लिए complete उदाहरण है:
+```bash
+export ONEUPTIME_URL="https://oneuptime.example.com"
+export ONEUPTIME_API_KEY="your-project-api-key"
+```
+
+The API key is a **project API key** created in your instance's dashboard under **Project Settings > API Keys** — exactly as on cloud. Self-hosted master keys do not work and fail with `ProjectId required` (see [Troubleshooting](/docs/terraform/troubleshooting)).
+
+## Choosing a provider version
+
+Provider versions track OneUptime platform versions. The rule for self-hosted:
+
+> Use the **newest published provider version that is less than or equal to your OneUptime platform version.**
+
+- Never use a provider *newer* than your platform — it may drive API fields your installation does not have yet.
+- Do **not** pin an exact patch version. Not every platform patch is published to the registry, so `= 11.0.7`-style pins routinely fail with `no matching version found`.
+
+Express the rule as a bounded constraint. For example, if your installation runs platform release `11.2.x`:
 
 ```hcl
-# versions.tf
-terraform {
-  required_providers {
-    oneuptime = {
-      source  = "oneuptime/oneuptime"
-      version = "= 7.0.123"  # आपके OneUptime version से match होना चाहिए
-    }
-  }
-  required_version = ">= 1.0"
-
-  # वैकल्पिक: team collaboration के लिए remote state उपयोग करें
-  backend "s3" {
-    bucket = "your-terraform-state-bucket"
-    key    = "oneuptime/terraform.tfstate"
-    region = "us-west-2"
-  }
-}
-
-# variables.tf
-variable "oneuptime_url" {
-  description = "OneUptime instance URL"
-  type        = string
-  default     = "https://oneuptime.yourcompany.com"
-}
-
-variable "oneuptime_api_key" {
-  description = "OneUptime API Key"
-  type        = string
-  sensitive   = true
-}
-
-variable "environment" {
-  description = "Environment name"
-  type        = string
-  default     = "production"
-}
-
-# providers.tf
-provider "oneuptime" {
-  oneuptime_url = var.oneuptime_url
-  api_key       = var.oneuptime_api_key
-}
-
-# main.tf
-# teams बनाएं
-resource "oneuptime_team" "infrastructure" {
-  name        = "Infrastructure Team"
-  description = "Infrastructure और operations team"
-}
-
-# Infrastructure monitors
-resource "oneuptime_monitor" "database" {
-  name        = "${var.environment}-database"
-  description = "Database connectivity monitor"
-  data        = jsonencode({
-    hostname = "db.internal.yourcompany.com"
-    port     = 5432
-  })
-}
-
-resource "oneuptime_monitor" "application" {
-  name        = "${var.environment}-application"
-  description = "Application health monitor"
-  data        = jsonencode({
-    url = "https://app.yourcompany.com/health"
-  })
-}
-
-# Status page
-resource "oneuptime_status_page" "internal" {
-  name        = "Internal Services Status"
-  description = "Internal services के लिए status page"
-}
+version = ">= 11.0, <= 11.2"
 ```
 
-## Self-Hosted के लिए Upgrade Process
+Terraform then selects the newest published 11.x release that does not exceed 11.2 — automatically skipping any unpublished patches. If you track platform majors loosely and stay reasonably current, `~> 11.0` is fine too.
 
-अपना OneUptime instance upgrade करते समय:
+Find your platform version in the OneUptime admin dashboard or from your Helm/Docker Compose deployment values. Published provider versions are listed at [registry.terraform.io/providers/oneuptime/oneuptime/versions](https://registry.terraform.io/providers/oneuptime/oneuptime/versions).
 
-### 1. Pre-Upgrade Checklist
+**Upgrade order:** upgrade the OneUptime platform first, then raise the provider constraint and run `terraform init -upgrade`.
+
+## Air-gapped installations: mirroring the provider
+
+If the hosts running Terraform cannot reach `registry.terraform.io`, mirror the provider into your network. On a machine with internet access:
 
 ```bash
-# current Terraform state backup करें
-terraform state pull > backup-$(date +%Y%m%d).tfstate
-
-# current OneUptime version नोट करें
-curl https://oneuptime.yourcompany.com/api/status | jq '.version'
-
-# current provider version नोट करें
-terraform providers | grep oneuptime
+mkdir -p /srv/terraform-mirror
+cd /path/to/your/terraform/config   # a directory whose required_providers includes oneuptime
+terraform providers mirror /srv/terraform-mirror
 ```
 
-### 2. OneUptime Instance Upgrade करें
-
-अपना standard OneUptime upgrade process follow करें (Docker, Helm, आदि)
-
-### 3. Terraform Provider Update करें
+This downloads the provider releases matching your constraints, for all platforms, into a directory layout Terraform understands. Transfer the directory inside, serve it (plain HTTPS file server) or share it as a filesystem path, and point Terraform at it in the CLI configuration (`~/.terraformrc`):
 
 ```hcl
-# terraform block में version update करें
-terraform {
-  required_providers {
-    oneuptime = {
-      source  = "oneuptime/oneuptime"
-      version = "= 7.0.124"  # upgrade के बाद नया version
-    }
+provider_installation {
+  filesystem_mirror {
+    path    = "/srv/terraform-mirror"
+    include = ["registry.terraform.io/oneuptime/oneuptime"]
+  }
+  direct {
+    exclude = ["registry.terraform.io/oneuptime/oneuptime"]
   }
 }
 ```
 
-### 4. Test और Apply करें
+`terraform init` now installs the OneUptime provider from the mirror and everything else from wherever it normally would (drop the `direct` block to force mirror-only). Re-run the `mirror` command whenever you raise your version constraint.
 
-```bash
-# provider update करें
-terraform init -upgrade
+## TLS notes
 
-# कोई changes देखने के लिए plan करें
-terraform plan
+- Terraform is a Go program: it validates your instance's certificate against the **system trust store** of the machine running Terraform. If your instance uses a certificate from a private CA, install that CA certificate on every machine (and CI runner) that runs Terraform. On Debian/Ubuntu: copy the CA to `/usr/local/share/ca-certificates/` and run `update-ca-certificates`.
+- There is deliberately no "skip TLS verification" attribute. If you see `x509: certificate signed by unknown authority`, fix trust — don't try to disable it.
+- Plain HTTP works for lab environments (`oneuptime_url = "http://oneuptime.lab.internal"`), but the project API key is sent with every request; use TLS for anything beyond a throwaway lab.
+- If OneUptime sits behind a reverse proxy or ingress, `oneuptime_url` is the *external* origin the proxy exposes. Make sure the proxy forwards all `/api` paths unmodified.
 
-# यदि सब ठीक लगे तो apply करें
-terraform apply
-```
+## Related pages
 
-## Security Best Practices
-
-### 1. API Key Management
-
-```bash
-# environment variables उपयोग करें
-export ONEUPTIME_API_KEY="your-api-key"
-
-# या secret management system उपयोग करें
-export ONEUPTIME_API_KEY=$(vault kv get -field=api_key secret/oneuptime)
-```
-
-### 2. Least Privilege API Keys
-
-Minimal required permissions के साथ API keys बनाएं:
-
-- Monitor management
-- Alert policy management
-- Team management (यदि आवश्यक हो)
-
-## Troubleshooting Self-Hosted Issues
-
-### समस्या: Connection Refused
-
-```
-Error: connection refused
-```
-
-**Solutions**:
-
-1. जांचें कि OneUptime instance चल रहा है
-2. API URL correct है verify करें
-3. firewall/network connectivity जांचें
-4. TLS certificates valid हैं verify करें
-
-### समस्या: API Version Mismatch
-
-```
-Error: API version incompatible
-```
-
-**Solutions**:
-
-1. OneUptime version जांचें: `curl https://your-instance/api/status`
-2. provider version को match करने के लिए update करें
-3. `terraform init -upgrade` चलाएं
+- [Registry Usage](/docs/terraform/registry) — how versions are published, release notes
+- [Troubleshooting](/docs/terraform/troubleshooting) — URL, TLS, and key errors in detail
+- [Quick Start](/docs/terraform/quick-start) — first apply, works identically self-hosted

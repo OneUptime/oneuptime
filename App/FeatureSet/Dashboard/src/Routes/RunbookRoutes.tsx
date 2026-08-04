@@ -9,8 +9,6 @@ import { Route as PageRoute, Routes } from "react-router-dom";
 
 import Runbooks from "../Pages/Runbook/Runbooks";
 import RunbooksExecutions from "../Pages/Runbook/Executions";
-import RunbookAgents from "../Pages/Runbook/Agents";
-import RunbookAgentView from "../Pages/Runbook/AgentView";
 import RunbookSecrets from "../Pages/Runbook/Secrets";
 import RunbookOverview from "../Pages/Runbook/View/Index";
 import RunbookSteps from "../Pages/Runbook/View/Steps";
@@ -44,24 +42,6 @@ const RunbookRoutes: FunctionComponent<ComponentProps> = (
             <RunbooksExecutions
               {...props}
               pageRoute={RouteMap[PageMap.RUNBOOKS_EXECUTIONS] as Route}
-            />
-          }
-        />
-        <PageRoute
-          path={RunbookRoutePath[PageMap.RUNBOOKS_AGENTS] || ""}
-          element={
-            <RunbookAgents
-              {...props}
-              pageRoute={RouteMap[PageMap.RUNBOOKS_AGENTS] as Route}
-            />
-          }
-        />
-        <PageRoute
-          path={RunbookRoutePath[PageMap.RUNBOOKS_AGENT_VIEW] || ""}
-          element={
-            <RunbookAgentView
-              {...props}
-              pageRoute={RouteMap[PageMap.RUNBOOKS_AGENT_VIEW] as Route}
             />
           }
         />

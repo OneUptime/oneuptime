@@ -226,6 +226,43 @@ const DocsFeatureSet: FeatureSet = {
       },
     );
 
+    /*
+     * Backward-compat: RUM used to be a single page inside the Telemetry
+     * section. It is now its own docs section (/docs/rum/...), with the old
+     * page's content expanded across it. Permanently redirect the old URL in
+     * every shape it was reachable so inbound links, bookmarks and
+     * search-indexed results keep working instead of 404ing.
+     */
+    app.get(
+      "/docs/as-markdown/:lang/telemetry/real-user-monitoring",
+      (req: ExpressRequest, res: ExpressResponse) => {
+        const lang: string = req.params["lang"] || DEFAULT_DOCS_LANGUAGE;
+        return res.redirect(301, `/docs/as-markdown/${lang}/rum/index`);
+      },
+    );
+    app.get(
+      "/docs/as-markdown/telemetry/real-user-monitoring",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        return res.redirect(301, "/docs/as-markdown/rum/index");
+      },
+    );
+    app.get(
+      "/docs/:lang/telemetry/real-user-monitoring",
+      (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        const lang: string = req.params["lang"] || "";
+        if (!isSupportedDocsLanguage(lang)) {
+          return next();
+        }
+        return res.redirect(301, `/docs/${lang}/rum/index`);
+      },
+    );
+    app.get(
+      "/docs/telemetry/real-user-monitoring",
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        return res.redirect(301, "/docs/rum/index");
+      },
+    );
+
     // /docs/:lang — redirect to that language's getting-started page.
     app.get(
       "/docs/:lang",

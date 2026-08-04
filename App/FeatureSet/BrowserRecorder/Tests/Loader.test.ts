@@ -18,6 +18,7 @@ const CONFIG_BODY: Record<string, unknown> = {
   maskSelectors: [],
   blockSelectors: [],
   urlAllowlist: [],
+  ignoreErrorPatterns: [],
   recordCanvas: false,
   captureUserIdentity: false,
   respectDoNotTrack: true,
@@ -166,7 +167,17 @@ describe("Loader", (): void => {
     expect(bootstrapCalls).toHaveLength(1);
   });
 
-  it("still honours the signal when only the server insists", async (): Promise<void> => {
+  /*
+   * The page's explicit opt-out wins over the server default.
+   *
+   * The server always sends respectDoNotTrack: true as its default, so the
+   * old "server insisting wins" rule made the documented
+   * data-oneuptime-respect-do-not-track="false" attribute impossible to use -
+   * a customer whose lawful basis does not depend on DNT could never record,
+   * with no error to explain it. The customer owns the lawful basis for their
+   * own site, so their explicit declaration is theirs to make.
+   */
+  it("records when the page explicitly opts out, even though the server default insists", async (): Promise<void> => {
     setNavigatorSignal(true);
 
     (window as unknown as Record<string, unknown>)[
@@ -183,6 +194,25 @@ describe("Loader", (): void => {
     await runLoader();
 
     expect(fetchMock).toHaveBeenCalled();
+    expect(bootstrapCalls).toHaveLength(1);
+  });
+
+  /* Doing nothing still honours the signal - the default must stay private. */
+  it("does not record when the page says nothing and a signal is present", async (): Promise<void> => {
+    setNavigatorSignal(true);
+
+    (window as unknown as Record<string, unknown>)[
+      "__ONEUPTIME_SESSION_REPLAY__"
+    ] = {
+      host: "https://oneuptime.com",
+      token: "tok",
+      appIdentifier: "app-1",
+    };
+
+    setConfigResponse({ ...CONFIG_BODY, respectDoNotTrack: true });
+
+    await runLoader();
+
     expect(bootstrapCalls).toHaveLength(0);
   });
 
@@ -214,6 +244,133 @@ describe("Loader", (): void => {
     await runLoader();
 
     expect(bootstrapCalls).toHaveLength(0);
+  });
+
+  /*
+   * The pre-load error buffer: the window between the stub starting and
+   * the artifact's first listener used to be a void for the most valuable
+   * failure class an error-triggered recorder has.
+   */
+  describe("pre-load error buffer", (): void => {
+    /*
+     * The config response is released manually, so the test controls
+     * exactly what happens inside the buffer's window.
+     */
+    const runLoaderWithHeldConfig: () => Promise<
+      () => void
+    > = async (): Promise<() => void> => {
+      let release: () => void = (): void => {
+        /* replaced below */
+      };
+
+      fetchMock.mockReturnValue(
+        new Promise((resolve: (value: unknown) => void): void => {
+          release = (): void => {
+            resolve({
+              ok: true,
+              status: 200,
+              json: async (): Promise<unknown> => {
+                return CONFIG_BODY;
+              },
+            });
+          };
+        }),
+      );
+
+      jest.resetModules();
+      await import("../src/Loader");
+
+      return release;
+    };
+
+    it("hands errors captured during the config round trip to bootstrap", async (): Promise<void> => {
+      const release: () => void = await runLoaderWithHeldConfig();
+
+      window.dispatchEvent(
+        new ErrorEvent("error", {
+          message: "boom during startup",
+          filename: "https://shop.example.com/app.js",
+        }),
+      );
+
+      release();
+      await tick();
+      await tick();
+
+      expect(bootstrapCalls).toHaveLength(1);
+
+      const earlyErrors: Array<{ message: string; source?: string }> = (
+        bootstrapCalls[0] as Array<unknown>
+      )[2] as Array<{ message: string; source?: string }>;
+
+      expect(earlyErrors).toHaveLength(1);
+      expect(earlyErrors[0]!.message).toBe("boom during startup");
+      expect(earlyErrors[0]!.source).toBe("https://shop.example.com/app.js");
+    });
+
+    it("a fail-closed exit uninstalls the listeners and hands over nothing", async (): Promise<void> => {
+      const removeSpy: jest.SpyInstance = jest.spyOn(
+        window,
+        "removeEventListener",
+      );
+
+      let release: () => void = (): void => {
+        /* replaced below */
+      };
+
+      fetchMock.mockReturnValue(
+        new Promise((resolve: (value: unknown) => void): void => {
+          release = (): void => {
+            resolve({
+              ok: true,
+              status: 200,
+              json: async (): Promise<unknown> => {
+                return { ...CONFIG_BODY, directive: "stop" };
+              },
+            });
+          };
+        }),
+      );
+
+      jest.resetModules();
+      await import("../src/Loader");
+
+      window.dispatchEvent(
+        new ErrorEvent("error", { message: "captured then discarded" }),
+      );
+
+      release();
+      await tick();
+      await tick();
+
+      expect(bootstrapCalls).toHaveLength(0);
+      expect(removeSpy).toHaveBeenCalledWith(
+        "error",
+        expect.any(Function),
+        true,
+      );
+      expect(removeSpy).toHaveBeenCalledWith(
+        "unhandledrejection",
+        expect.any(Function),
+        true,
+      );
+    });
+
+    it("a user with a privacy signal never gets listeners at all", async (): Promise<void> => {
+      setNavigatorSignal(true);
+
+      const addSpy: jest.SpyInstance = jest.spyOn(window, "addEventListener");
+
+      await runLoader();
+
+      const errorListenerCalls: Array<unknown> = addSpy.mock.calls.filter(
+        (call: Array<unknown>): boolean => {
+          return call[0] === "error" || call[0] === "unhandledrejection";
+        },
+      );
+
+      expect(errorListenerCalls).toHaveLength(0);
+    });
   });
 
   describe("artifact injection", (): void => {

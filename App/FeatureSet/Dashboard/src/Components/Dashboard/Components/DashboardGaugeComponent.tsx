@@ -20,6 +20,12 @@ import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEnd
 import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInterpolation";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import ValueFormatter from "Common/Utils/ValueFormatter";
+import {
+  GaugeArcGeometry,
+  computeGaugeArcGeometry,
+  computeGaugePercentage,
+  gaugeAngleForPercentage,
+} from "./GaugeArcData";
 
 /*
  * Split a ValueFormatter output like "6.91 hours" / "25.00%" / "1.5 MB"
@@ -366,8 +372,11 @@ const DashboardGaugeComponentElement: FunctionComponent<ComponentProps> = (
 
   // Calculate percentage for the gauge arc
   const range: number = maxValue - minValue;
-  const percentage: number =
-    range > 0 ? Math.min(Math.max((scaledValue - minValue) / range, 0), 1) : 0;
+  const percentage: number = computeGaugePercentage(
+    scaledValue,
+    minValue,
+    maxValue,
+  );
 
   // Determine color based on thresholds
   let gaugeColor: string = "#10b981"; // green
@@ -403,25 +412,14 @@ const DashboardGaugeComponentElement: FunctionComponent<ComponentProps> = (
   );
   const gaugeSize: number = Math.max(size, 96);
   const strokeWidth: number = Math.max(gaugeSize * 0.06, 7);
-  const radius: number = (gaugeSize - strokeWidth) / 2;
-  const centerX: number = gaugeSize / 2;
-  const centerY: number = gaugeSize / 2;
 
-  // Semi-circle arc (180 degrees, from left to right)
-  const startAngle: number = Math.PI;
-  const endAngle: number = 0;
-  const sweepAngle: number = startAngle - endAngle;
-  const currentAngle: number = startAngle - sweepAngle * percentage;
-
-  const arcStartX: number = centerX + radius * Math.cos(startAngle);
-  const arcStartY: number = centerY - radius * Math.sin(startAngle);
-  const arcEndX: number = centerX + radius * Math.cos(endAngle);
-  const arcEndY: number = centerY - radius * Math.sin(endAngle);
-  const arcCurrentX: number = centerX + radius * Math.cos(currentAngle);
-  const arcCurrentY: number = centerY - radius * Math.sin(currentAngle);
-
-  const backgroundPath: string = `M ${arcStartX} ${arcStartY} A ${radius} ${radius} 0 0 1 ${arcEndX} ${arcEndY}`;
-  const valuePath: string = `M ${arcStartX} ${arcStartY} A ${radius} ${radius} 0 ${percentage > 0.5 ? 1 : 0} 1 ${arcCurrentX} ${arcCurrentY}`;
+  // Semi-circle arc (180 degrees, from left to right) — see GaugeArcData.
+  const arc: GaugeArcGeometry = computeGaugeArcGeometry({
+    gaugeSize,
+    strokeWidth,
+    percentage,
+  });
+  const { radius, centerX, centerY, backgroundPath, valuePath } = arc;
 
   const { value: displayValue, unit: displayUnit } =
     splitFormattedDisplay(formattedDisplay);
@@ -480,12 +478,13 @@ const DashboardGaugeComponentElement: FunctionComponent<ComponentProps> = (
   const thresholdTicks: Array<ThresholdTick> = [];
 
   if (warningThreshold !== undefined && range > 0) {
-    const warningPct: number = Math.min(
-      Math.max((warningThreshold - minValue) / range, 0),
-      1,
+    const warningPct: number = computeGaugePercentage(
+      warningThreshold,
+      minValue,
+      maxValue,
     );
     thresholdTicks.push({
-      angle: startAngle - sweepAngle * warningPct,
+      angle: gaugeAngleForPercentage(warningPct),
       color: "#f59e0b",
       label: ValueFormatter.formatValue(
         isFractionScale ? warningThreshold / 100 : warningThreshold,
@@ -496,12 +495,13 @@ const DashboardGaugeComponentElement: FunctionComponent<ComponentProps> = (
   }
 
   if (criticalThreshold !== undefined && range > 0) {
-    const criticalPct: number = Math.min(
-      Math.max((criticalThreshold - minValue) / range, 0),
-      1,
+    const criticalPct: number = computeGaugePercentage(
+      criticalThreshold,
+      minValue,
+      maxValue,
     );
     thresholdTicks.push({
-      angle: startAngle - sweepAngle * criticalPct,
+      angle: gaugeAngleForPercentage(criticalPct),
       color: "#ef4444",
       label: ValueFormatter.formatValue(
         isFractionScale ? criticalThreshold / 100 : criticalThreshold,
@@ -603,8 +603,8 @@ const DashboardGaugeComponentElement: FunctionComponent<ComponentProps> = (
           {/* Indicator dot at current position */}
           {percentage > 0 && (
             <circle
-              cx={arcCurrentX}
-              cy={arcCurrentY}
+              cx={arc.arcCurrent.x}
+              cy={arc.arcCurrent.y}
               r={strokeWidth * 0.5}
               fill="var(--ou-chart-marker-ring, #ffffff)"
               stroke={gaugeColor}

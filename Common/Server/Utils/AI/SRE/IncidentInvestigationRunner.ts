@@ -1,5 +1,13 @@
 import ObjectID from "../../../../Types/ObjectID";
 import OneUptimeDate from "../../../../Types/Date";
+import AIRunType from "../../../../Types/AI/AIRunType";
+import QueryHelper from "../../../Types/Database/QueryHelper";
+import Incident from "../../../../Models/DatabaseModels/Incident";
+import IncidentSeverity from "../../../../Models/DatabaseModels/IncidentSeverity";
+import Project from "../../../../Models/DatabaseModels/Project";
+import AIRunService from "../../../Services/AIRunService";
+import IncidentSeverityService from "../../../Services/IncidentSeverityService";
+import ProjectService from "../../../Services/ProjectService";
 import { Blue500 } from "../../../../Types/BrandColors";
 import { IncidentFeedEventType } from "../../../../Models/DatabaseModels/IncidentFeed";
 import IncidentInternalNote from "../../../../Models/DatabaseModels/IncidentInternalNote";
@@ -28,8 +36,22 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  * records durable intent (a Queued AIRun via AIInvestigationQueue), so a
  * pod restart can no longer orphan an investigation; the heavy lifting (run
  * lifecycle, the agent loop, confidence gating) lives in the shared
- * AIInvestigationEngine. See Internal/Roadmap/AISentinelExecution.md.
+ * AIInvestigationEngine.
  */
+/*
+ * The cooldown default. Matches the alert lane: a monitor that was just
+ * investigated does not need a second opinion minutes later.
+ */
+export const DEFAULT_INCIDENT_DEDUPE_WINDOW_MINUTES: number = 30;
+
+const MAX_INCIDENT_DEDUPE_WINDOW_MINUTES: number = 24 * 60;
+
+export interface IncidentGateDecision {
+  investigate: boolean;
+  reason: string;
+  monitorId?: ObjectID | undefined;
+}
+
 export default class AIIncidentInvestigationRunner {
   /*
    * Entry point called (fire-and-forget) from IncidentService.onCreateSuccess.
@@ -53,15 +75,185 @@ export default class AIIncidentInvestigationRunner {
         return;
       }
 
+      const gate: IncidentGateDecision = await this.shouldInvestigateIncident({
+        incidentId,
+        projectId,
+      });
+
+      if (!gate.investigate) {
+        logger.debug(
+          `AI: skipping investigation for incident ${incidentId.toString()} — ${gate.reason}.`,
+        );
+        return;
+      }
+
       await AIInvestigationQueue.enqueue({
         projectId,
         subjectIncidentId: incidentId,
+        subjectMonitorId: gate.monitorId,
       });
     } catch (error) {
       logger.error(
         `AI: unexpected error enqueueing investigation for incident ${incidentId.toString()}: ${error}`,
       );
     }
+  }
+
+  /*
+   * The incident cost gates, evaluated BEFORE anything expensive. Mirrors the
+   * alert lane, with one deliberate difference: the severity floor is UNSET
+   * by default here, so every incident is still investigated unless an
+   * operator narrows it. An alert fires straight off a monitor and is noisy
+   * by nature; an incident already cleared a human-authored threshold to
+   * exist, so silently investigating fewer of them on upgrade would take away
+   * analysis someone was relying on.
+   *
+   * An incident affects a SET of monitors rather than one, so the dedupe key
+   * is "any of them" — a monitor storm that opens several incidents is
+   * exactly the repeat work this suppresses.
+   */
+  @CaptureSpan()
+  public static async shouldInvestigateIncident(data: {
+    incidentId: ObjectID;
+    projectId: ObjectID;
+  }): Promise<IncidentGateDecision> {
+    const { incidentId, projectId } = data;
+
+    const incident: Incident | null = await IncidentService.findOneById({
+      id: incidentId,
+      select: {
+        monitors: {
+          _id: true,
+        },
+        incidentSeverity: {
+          order: true,
+        },
+      },
+      props: { isRoot: true },
+    });
+
+    if (!incident) {
+      return { investigate: false, reason: "incident not found" };
+    }
+
+    const monitorIds: Array<ObjectID> = (incident.monitors || [])
+      .map((monitor: { _id?: string }) => {
+        return monitor._id ? new ObjectID(monitor._id) : null;
+      })
+      .filter((id: ObjectID | null): id is ObjectID => {
+        return id !== null;
+      });
+
+    // The first affected monitor is the run's dedupe key for the next incident.
+    const primaryMonitorId: ObjectID | undefined = monitorIds[0];
+
+    // One project read serves both the severity floor and the dedupe window.
+    const project: Project | null = await ProjectService.findOneById({
+      id: projectId,
+      select: {
+        incidentInvestigationMinimumSeverityId: true,
+        incidentInvestigationDedupeWindowMinutes: true,
+      },
+      props: { isRoot: true },
+    });
+
+    /*
+     * Severity floor. Only filters KNOWN-low-severity incidents: an incident
+     * whose severity order cannot be determined passes, as does every
+     * incident when no floor is configured.
+     */
+    const floorOrder: number | null = await this.getSeverityFloorOrder(
+      project?.incidentInvestigationMinimumSeverityId,
+    );
+    const incidentOrder: number | undefined = incident.incidentSeverity?.order;
+
+    if (
+      floorOrder !== null &&
+      incidentOrder !== undefined &&
+      incidentOrder > floorOrder
+    ) {
+      return {
+        investigate: false,
+        reason: `severity order ${incidentOrder} is below the investigation floor (order ${floorOrder})`,
+        monitorId: primaryMonitorId,
+      };
+    }
+
+    /*
+     * Per-monitor dedupe window: per-project override, defaulting to 30
+     * minutes, clamped to at most a day; 0 disables the cooldown. An incident
+     * affecting no monitor has no dedupe key.
+     */
+    const dedupeWindowMinutes: number = Math.min(
+      MAX_INCIDENT_DEDUPE_WINDOW_MINUTES,
+      Math.max(
+        0,
+        project?.incidentInvestigationDedupeWindowMinutes ??
+          DEFAULT_INCIDENT_DEDUPE_WINDOW_MINUTES,
+      ),
+    );
+
+    if (monitorIds.length > 0 && dedupeWindowMinutes > 0) {
+      const windowStart: Date =
+        OneUptimeDate.getSomeMinutesAgo(dedupeWindowMinutes);
+
+      const recentRunCount: number = (
+        await AIRunService.countBy({
+          query: {
+            projectId,
+            monitorId: QueryHelper.any(monitorIds),
+            runType: AIRunType.Investigation,
+            createdAt: QueryHelper.greaterThan(windowStart),
+          },
+          props: { isRoot: true },
+        })
+      ).toNumber();
+
+      if (recentRunCount > 0) {
+        return {
+          investigate: false,
+          reason: `a monitor affected by this incident was already investigated within the last ${dedupeWindowMinutes} minutes`,
+          monitorId: primaryMonitorId,
+        };
+      }
+    }
+
+    return {
+      investigate: true,
+      reason: "passed severity and dedupe gates",
+      monitorId: primaryMonitorId,
+    };
+  }
+
+  /*
+   * The severity `order` value that still qualifies for investigation (lower
+   * order = higher severity; an incident qualifies when its order <= floor).
+   * Returns null when no floor applies — which, unlike the alert lane, is the
+   * default: no configured minimum means investigate everything.
+   */
+  private static async getSeverityFloorOrder(
+    minimumSeverityId: ObjectID | undefined,
+  ): Promise<number | null> {
+    if (!minimumSeverityId) {
+      return null;
+    }
+
+    const floorSeverity: IncidentSeverity | null =
+      await IncidentSeverityService.findOneById({
+        id: minimumSeverityId,
+        select: { order: true },
+        props: { isRoot: true },
+      });
+
+    /*
+     * A configured severity that has since been deleted must not silently
+     * become "investigate nothing" — fall back to no floor.
+     */
+    if (!floorSeverity || floorSeverity.order === undefined) {
+      return null;
+    }
+
+    return floorSeverity.order;
   }
 
   /*

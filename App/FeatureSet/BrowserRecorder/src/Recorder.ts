@@ -24,13 +24,20 @@ import Config, {
   RECORDER_VERSION,
   RRWEB_VERSION,
   RecorderInitOptions,
+  getChunkUrl,
 } from "./Config";
 import Consent from "./Consent";
 import ConsoleRecorder, { RecordedConsoleEntry } from "./ConsoleRecorder";
-import ErrorRecorder, { RecordedError } from "./ErrorRecorder";
+import { EarlyErrorRecord } from "./EarlyErrors";
+import ErrorRecorder, {
+  CompiledIgnorePatterns,
+  RecordedError,
+} from "./ErrorRecorder";
+import { ExtendedReplayConfig, readExtendedConfig } from "./ExtendedConfig";
 import FrustrationDetector, { FrustrationSignal } from "./FrustrationDetector";
 import Masking, { MaskInputOptionsShape } from "./Masking";
 import NetworkRecorder, { RecordedRequest } from "./NetworkRecorder";
+import PerformanceRecorder, { PerformanceIssue } from "./PerformanceRecorder";
 import RollingBuffer, { BufferedEvent } from "./RollingBuffer";
 import RouteRecorder from "./RouteRecorder";
 import SessionId, { SessionIdentityState } from "./SessionId";
@@ -130,6 +137,13 @@ export interface RecorderRuntimeOptions {
   initOptions: RecorderInitOptions;
   config: SessionReplayConfigResponse;
 
+  /*
+   * Errors the loader stub's pre-load buffer caught before this module
+   * existed. Replayed through the ErrorRecorder's masking path at start,
+   * so a startup crash still triggers capture.
+   */
+  earlyErrors?: Array<EarlyErrorRecord>;
+
   /* Overridable for tests; production always uses the real globals. */
   windowRef?: Window;
   documentRef?: Document;
@@ -156,6 +170,13 @@ export default class Recorder {
 
   private readonly errorRecorder: ErrorRecorder;
   private readonly networkRecorder: NetworkRecorder;
+  private readonly performanceRecorder: PerformanceRecorder;
+
+  /*
+   * The artifact-normalised view of the config fields the loader passes
+   * through unvalidated. Resolved once; see ExtendedConfig.ts.
+   */
+  private readonly extendedConfig: ExtendedReplayConfig;
   private readonly consoleRecorder: ConsoleRecorder;
   private readonly routeRecorder: RouteRecorder;
   private readonly frustrationDetector: FrustrationDetector;
@@ -195,7 +216,11 @@ export default class Recorder {
   private lastUserActivityUnixMs: number = 0;
   private lastTouchedUnixMs: number = 0;
 
+  /* Drained into the ErrorRecorder once, at the end of start(). */
+  private earlyErrors: Array<EarlyErrorRecord>;
+
   public constructor(options: RecorderRuntimeOptions) {
+    this.earlyErrors = options.earlyErrors || [];
     this.initOptions = options.initOptions;
     this.config = options.config;
     this.windowRef = options.windowRef || window;
@@ -204,6 +229,8 @@ export default class Recorder {
     if (this.initOptions.userRef !== undefined) {
       this.userRef = this.initOptions.userRef;
     }
+
+    this.extendedConfig = readExtendedConfig(this.config);
 
     this.masking = new Masking(
       this.config.maskingMode,
@@ -226,7 +253,7 @@ export default class Recorder {
     this.chunker = this.createChunker();
 
     this.transport = new Transport({
-      url: Config.getChunkUrl(this.initOptions),
+      url: getChunkUrl(this.initOptions),
       headers: Config.getIngestHeaders(this.initOptions),
       onDirective: (directive: SessionReplayDirective): void => {
         this.onDirective(directive);
@@ -235,6 +262,17 @@ export default class Recorder {
         this.onPermanentFailure(reason);
       },
     });
+
+    const compiledIgnorePatterns: CompiledIgnorePatterns =
+      ErrorRecorder.compileIgnorePatterns(
+        this.config.ignoreErrorPatterns || [],
+      );
+
+    if (compiledIgnorePatterns.discardedCount > 0) {
+      this.chunker.addFidelityNotice(
+        SessionReplayFidelityNotice.IgnorePatternsDiscarded,
+      );
+    }
 
     this.errorRecorder = new ErrorRecorder({
       emitCustomEvent: (tag: string, payload: unknown): void => {
@@ -246,10 +284,27 @@ export default class Recorder {
       scrubUrl: (url: string): string => {
         return this.scrubUrl(url);
       },
-      onError: (atUnixMs: number, _error: RecordedError): void => {
+      ignorePatterns: compiledIgnorePatterns.patterns,
+      onError: (
+        atUnixMs: number,
+        _error: RecordedError,
+        isTriggerWorthy: boolean,
+      ): void => {
         this.chunker.countSignal("errorCount");
-        this.frustrationDetector.notifyError(atUnixMs);
-        this.trigger(SessionReplayTriggerReason.Error);
+
+        /*
+         * Recorded but not necessarily uploaded-over: stackless
+         * cross-origin "Script error." noise and pattern-ignored errors
+         * must not convert error-triggered capture into always-on upload.
+         * That includes the FRUSTRATION door — notifyError feeds the
+         * error-click detector, whose signal triggers an upload too, so an
+         * ignored error thrown from a third-party tag's click handler
+         * would otherwise re-open the exact hole the suppression closes.
+         */
+        if (isTriggerWorthy) {
+          this.frustrationDetector.notifyError(atUnixMs);
+          this.trigger(SessionReplayTriggerReason.Error);
+        }
       },
     });
 
@@ -267,7 +322,7 @@ export default class Recorder {
         this.frustrationDetector.notifyActivity(atUnixMs);
       },
       onRequestComplete: (
-        _atUnixMs: number,
+        atUnixMs: number,
         request: RecordedRequest,
         traceId: string | null,
       ): void => {
@@ -282,8 +337,36 @@ export default class Recorder {
          */
         if (request.status >= 500) {
           this.trigger(SessionReplayTriggerReason.Error);
+          return;
+        }
+
+        /*
+         * The request that SUCCEEDED slowly is the performance trigger's
+         * half; url is already scrubbed by the NetworkRecorder. Failed
+         * requests stay the error path's business (above) so one request
+         * never counts as two kinds of bad.
+         */
+        if (!request.isError) {
+          this.performanceRecorder.noteRequest(
+            atUnixMs,
+            request.durationMs,
+            request.url,
+          );
         }
       },
+      tracePropagationOrigins: this.extendedConfig.tracePropagationOrigins,
+    });
+
+    this.performanceRecorder = new PerformanceRecorder({
+      emitCustomEvent: (tag: string, payload: unknown): void => {
+        this.emitCustomEvent(tag, payload);
+      },
+      onIssue: (_atUnixMs: number, _issue: PerformanceIssue): void => {
+        this.trigger(SessionReplayTriggerReason.Performance);
+      },
+      lcpBudgetMs: this.extendedConfig.lcpBudgetMs,
+      longTaskBudgetMs: this.extendedConfig.longTaskBudgetMs,
+      slowRequestBudgetMs: this.extendedConfig.slowRequestBudgetMs,
     });
 
     this.consoleRecorder = new ConsoleRecorder({
@@ -447,6 +530,7 @@ export default class Recorder {
 
     this.errorRecorder.start(this.windowRef);
     this.networkRecorder.start(this.windowRef);
+    this.performanceRecorder.start(this.windowRef);
     this.consoleRecorder.start();
     this.routeRecorder.start(this.windowRef);
     this.frustrationDetector.start(this.documentRef);
@@ -490,6 +574,49 @@ export default class Recorder {
 
     if (SessionId.isRefreshRage(refreshRageCount)) {
       this.frustrationDetector.reportRefreshRage(refreshRageCount, Date.now());
+    }
+
+    /*
+     * A dashboard user asked for this end user's next session by name.
+     * Same reason as an explicit captureSession() call - a human decided -
+     * so it shares the Manual label. It is a TRIGGER, not an override:
+     * consent and the transport kill switch still gate the upload.
+     */
+    if (this.extendedConfig.isTargeted) {
+      this.trigger(SessionReplayTriggerReason.Manual);
+    }
+
+    this.replayEarlyErrors();
+  }
+
+  /*
+   * Replay whatever the loader stub's pre-load buffer caught, through the
+   * SAME masking, scrubbing, counting and trigger path a live error takes
+   * — which is the entire reason the stub buffers raw records instead of
+   * acting on them: the stub has no masking code and must never decide
+   * what leaves the page. Runs at the very end of start(), so a trigger
+   * fired by a replayed startup crash finds a fully armed recorder with
+   * rrweb's first snapshot already in the buffer.
+   */
+  private replayEarlyErrors(): void {
+    const records: Array<EarlyErrorRecord> = this.earlyErrors;
+    this.earlyErrors = [];
+
+    for (const record of records) {
+      const error: RecordedError = {
+        kind: record.kind,
+        message: record.message,
+        ...(record.source !== undefined ? { source: record.source } : {}),
+        ...(record.lineNumber !== undefined
+          ? { lineNumber: record.lineNumber }
+          : {}),
+        ...(record.columnNumber !== undefined
+          ? { columnNumber: record.columnNumber }
+          : {}),
+        ...(record.stack !== undefined ? { stack: record.stack } : {}),
+      };
+
+      this.errorRecorder.record(error, record.atUnixMs);
     }
   }
 
@@ -973,6 +1100,16 @@ export default class Recorder {
     this.lastUserActivityUnixMs = nowUnixMs;
     this.lastTouchedUnixMs = nowUnixMs;
 
+    /*
+     * The rotated session must be able to earn its own Performance
+     * trigger: reset the emit cap and re-arm a longtask observer that
+     * disconnected when the OLD session's stream hit the cap. Without
+     * this, a jank-looping SPA that burned the cap in session 1 has
+     * performance triggers permanently dead for every later session on
+     * the same page load.
+     */
+    this.performanceRecorder.resetForNewSession();
+
     this.emitCustomEvent(SESSION_ROTATED_CUSTOM_EVENT_TAG, {
       previousSessionId: previousSessionId,
       rotationReason: reason || SessionRotationReason.New,
@@ -1404,6 +1541,7 @@ export default class Recorder {
 
     this.errorRecorder.stop(this.windowRef);
     this.networkRecorder.stop(this.windowRef);
+    this.performanceRecorder.stop();
     this.consoleRecorder.stop();
     this.routeRecorder.stop(this.windowRef);
     this.frustrationDetector.stop(this.documentRef);

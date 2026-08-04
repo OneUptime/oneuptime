@@ -103,6 +103,8 @@ beforeAll(async () => {
       PageMap.CEPH_CLUSTER_VIEW_RECOMMENDATIONS,
     [MonitorRecommendationResourceType.IoTDevice]:
       PageMap.IOT_FLEET_VIEW_RECOMMENDATIONS,
+    [MonitorRecommendationResourceType.RumApplication]:
+      PageMap.RUM_APPLICATION_VIEW_RECOMMENDATIONS,
   };
 });
 

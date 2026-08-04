@@ -33,11 +33,43 @@ export interface RecordedError {
   stack?: string;
 }
 
+/*
+ * Compiled ignore rules, plus how many pattern strings could not compile.
+ * Kept as a struct so a recorder can self-report discarded patterns
+ * instead of silently narrowing the customer's intent.
+ */
+export interface CompiledIgnorePatterns {
+  patterns: Array<RegExp>;
+  discardedCount: number;
+}
+
+/*
+ * The config endpoint is the only source of these strings, but it is still
+ * remote input: an unbounded list of pathological regexes evaluated on
+ * every uncaught error would be a self-inflicted ReDoS on the customer's
+ * page. Both the count and each pattern's length are capped.
+ */
+export const MAX_IGNORE_PATTERNS: number = 20;
+export const MAX_IGNORE_PATTERN_LENGTH: number = 200;
+
 export interface ErrorRecorderOptions {
   emitCustomEvent: (tag: string, payload: unknown) => void;
 
-  /* Called for every error observed, with the wall-clock time it happened. */
-  onError: (atUnixMs: number, error: RecordedError) => void;
+  /*
+   * Called for every error observed, with the wall-clock time it happened.
+   * isTriggerWorthy is false for errors that are recorded but must not
+   * convert an error-triggered session into an upload: stackless
+   * cross-origin "Script error." noise, and anything the application's
+   * ignoreErrorPatterns match.
+   */
+  onError: (
+    atUnixMs: number,
+    error: RecordedError,
+    isTriggerWorthy: boolean,
+  ) => void;
+
+  /* Config-driven message/source patterns whose errors never trigger. */
+  ignorePatterns?: Array<RegExp>;
 
   /*
    * Error messages routinely quote user data ("could not save order for
@@ -138,7 +170,18 @@ export default class ErrorRecorder {
     );
   }
 
-  private handle(error: RecordedError): void {
+  /*
+   * Record one error, replayed from a buffer the loader stub filled before
+   * this module existed. occurredAtUnixMs is the ORIGINAL wall-clock time,
+   * so the trigger decision and the emitted payload describe when the
+   * error actually happened rather than when the recorder finished
+   * loading.
+   */
+  public record(error: RecordedError, occurredAtUnixMs?: number): void {
+    this.handle(error, occurredAtUnixMs);
+  }
+
+  private handle(error: RecordedError, occurredAtUnixMs?: number): void {
     if (this.recordedCount >= MAX_ERRORS_RECORDED) {
       return;
     }
@@ -178,10 +221,113 @@ export default class ErrorRecorder {
       masked.stack = this.scrubUrlsIn(error.stack).slice(0, MAX_STACK_LENGTH);
     }
 
-    const atUnixMs: number = Date.now();
+    const atUnixMs: number = occurredAtUnixMs ?? Date.now();
 
-    this.options.emitCustomEvent(ERROR_CUSTOM_EVENT_TAG, masked);
-    this.options.onError(atUnixMs, masked);
+    /*
+     * The trigger decision runs on the RAW error, before masking: an
+     * ignore pattern written against "ResizeObserver loop limit exceeded"
+     * must not silently stop matching because the masking transform
+     * rewrote the message.
+     */
+    const isTriggerWorthy: boolean =
+      !ErrorRecorder.isUnactionableCrossOriginError(error) &&
+      !this.matchesIgnorePattern(error);
+
+    const payload: Record<string, unknown> = { ...masked };
+
+    if (occurredAtUnixMs !== undefined) {
+      /* Replayed from before recording started; carry the honest time. */
+      payload["occurredAtUnixMs"] = occurredAtUnixMs;
+    }
+
+    this.options.emitCustomEvent(ERROR_CUSTOM_EVENT_TAG, payload);
+    this.options.onError(atUnixMs, masked, isTriggerWorthy);
+  }
+
+  /*
+   * The opaque signature of an error thrown by a cross-origin script
+   * loaded without crossorigin="anonymous": the browser hides everything
+   * and reports the literal message "Script error." with no stack, no
+   * filename, no line. Ads, tag managers and browser extensions produce
+   * these chronically, and ONE such tag on a page converts error-triggered
+   * capture into always-on upload — silently destroying the storage and
+   * privacy bet the whole default rests on. The error is still recorded
+   * (an engineer watching the session should see it happened); it just
+   * cannot be the reason a recording uploads, because it is unactionable
+   * by definition: there is nothing in it to fix.
+   */
+  private static isUnactionableCrossOriginError(error: RecordedError): boolean {
+    if (error.kind !== "error") {
+      return false;
+    }
+
+    if (error.stack || error.source) {
+      return false;
+    }
+
+    const message: string = error.message.trim().toLowerCase();
+
+    return message === "script error." || message === "script error";
+  }
+
+  private matchesIgnorePattern(error: RecordedError): boolean {
+    const patterns: Array<RegExp> | undefined = this.options.ignorePatterns;
+
+    if (!patterns || patterns.length === 0) {
+      return false;
+    }
+
+    for (const pattern of patterns) {
+      /*
+       * lastIndex reset defensively: a compiled pattern carrying the /g
+       * flag would otherwise match every OTHER occurrence.
+       */
+      pattern.lastIndex = 0;
+
+      if (pattern.test(error.message)) {
+        return true;
+      }
+
+      if (error.source !== undefined) {
+        pattern.lastIndex = 0;
+
+        if (pattern.test(error.source)) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  /*
+   * Compile config-supplied pattern strings, dropping anything that does
+   * not compile or exceeds the caps. Invalid patterns must not take the
+   * recorder down — a customer typo in one pattern should cost that
+   * pattern, not the whole feature.
+   */
+  public static compileIgnorePatterns(
+    patternStrings: Array<string>,
+  ): CompiledIgnorePatterns {
+    const patterns: Array<RegExp> = [];
+    let discardedCount: number = 0;
+
+    for (const patternString of patternStrings.slice(0, MAX_IGNORE_PATTERNS)) {
+      if (!patternString || patternString.length > MAX_IGNORE_PATTERN_LENGTH) {
+        discardedCount++;
+        continue;
+      }
+
+      try {
+        patterns.push(new RegExp(patternString, "i"));
+      } catch {
+        discardedCount++;
+      }
+    }
+
+    discardedCount += Math.max(0, patternStrings.length - MAX_IGNORE_PATTERNS);
+
+    return { patterns: patterns, discardedCount: discardedCount };
   }
 
   private scrubUrlsIn(text: string): string {

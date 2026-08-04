@@ -44,16 +44,21 @@ export function getSettingsBreadcrumbs(path: string): Array<Link> | undefined {
       "LLM Providers",
       "View Provider",
     ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_AI_AGENTS, [
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_RUNNERS, [
       "Project",
       "Settings",
-      "AI Agents",
+      "Runners",
     ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_AI_AGENT_VIEW, [
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_RUNNER_VIEW, [
       "Project",
       "Settings",
-      "AI Agents",
-      "View Agent",
+      "Runners",
+      "View Runner",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_RUNNER_CREDENTIALS, [
+      "Project",
+      "Settings",
+      "Runner Credentials",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_AI_CREDITS, [
       "Project",
@@ -90,6 +95,11 @@ export function getSettingsBreadcrumbs(path: string): Array<Link> | undefined {
       "Project",
       "Settings",
       "Feature Flags",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_SESSION_REPLAY, [
+      "Project",
+      "Settings",
+      "Session Replay",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_BILLING, [
       "Project",

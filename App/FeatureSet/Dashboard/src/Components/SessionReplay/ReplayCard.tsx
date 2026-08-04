@@ -49,7 +49,12 @@ const FOR_EXCEPTION_ROUTE: string =
 const PRE_ROLL_SECONDS: number = 10;
 
 export interface ReplayCardProps {
-  /* The RUM application the session belongs to; also its primaryEntityId. */
+  /*
+   * Optional fallback only. The /for-exception endpoint scopes by the
+   * caller's accessible applications and every returned session names its
+   * own application, so callers like the exception explorer — where an
+   * exception is not scoped to a single RUM application — can omit this.
+   */
   rumApplicationId?: ObjectID | undefined;
   /* Exact session, when the caller already has one (an exception instance). */
   sessionId?: string | undefined;
@@ -60,10 +65,16 @@ export interface ReplayCardProps {
   className?: string | undefined;
 }
 
+interface ReplaySessionRow {
+  summary: SessionReplaySummary;
+  /* From the response row; each session names the application it lives in. */
+  rumApplicationId: string;
+}
+
 const ReplayCard: FunctionComponent<ReplayCardProps> = (
   props: ReplayCardProps,
 ): ReactElement => {
-  const [sessions, setSessions] = useState<Array<SessionReplaySummary>>([]);
+  const [sessions, setSessions] = useState<Array<ReplaySessionRow>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [hasFailed, setHasFailed] = useState<boolean>(false);
 
@@ -84,7 +95,7 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
        * without one. A caller holding only a sessionId has nothing to ask,
        * so the card stays quiet instead of firing a guaranteed 400.
        */
-      if (!rumApplicationIdString || !fingerprint) {
+      if (!fingerprint) {
         setIsLoading(false);
         return;
       }
@@ -99,7 +110,6 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
               FOR_EXCEPTION_ROUTE,
             ),
             data: {
-              rumApplicationId: rumApplicationIdString,
               ...(sessionId ? { sessionId: sessionId } : {}),
               fingerprint: fingerprint,
             },
@@ -118,7 +128,14 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
 
         const rows: JSONArray = (response.data["sessions"] as JSONArray) || [];
 
-        setSessions(rows.map(parseSessionReplaySummary));
+        setSessions(
+          rows.map((row: JSONObject): ReplaySessionRow => {
+            return {
+              summary: parseSessionReplaySummary(row),
+              rumApplicationId: String(row["rumApplicationId"] || ""),
+            };
+          }),
+        );
       } catch {
         if (generation === loadGenerationRef.current) {
           /*
@@ -155,9 +172,17 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
     );
   }
 
-  const primary: SessionReplaySummary | undefined = sessions[0];
+  const primaryRow: ReplaySessionRow | undefined = sessions[0];
+  const primary: SessionReplaySummary | undefined = primaryRow?.summary;
 
-  if (hasFailed || !primary || !rumApplicationId) {
+  /*
+   * The application the watch link points into: the one the session itself
+   * names, falling back to the caller's scope when the row somehow lacks it.
+   */
+  const watchApplicationId: string =
+    primaryRow?.rumApplicationId || rumApplicationIdString;
+
+  if (hasFailed || !primary || !watchApplicationId) {
     return <></>;
   }
 
@@ -186,7 +211,7 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
   let watchRoute: Route = RouteUtil.populateRouteParams(
     RouteMap[PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_VIEW] as Route,
     {
-      modelId: rumApplicationId,
+      modelId: new ObjectID(watchApplicationId),
       subModelId: primary.sessionId,
     },
   );

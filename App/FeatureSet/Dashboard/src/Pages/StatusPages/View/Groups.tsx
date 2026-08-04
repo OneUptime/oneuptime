@@ -12,19 +12,36 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
 import StatusPageGroupTreeUtil from "Common/Utils/StatusPage/GroupTree";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
 import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
 import StatusPageGroupViewMode from "Common/Types/StatusPage/StatusPageGroupViewMode";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import { CardButtonSchema } from "Common/UI/Components/Card/Card";
+import IconProp from "Common/Types/Icon/IconProp";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ProjectUtil from "Common/UI/Utils/Project";
 import MarkdownUtil from "Common/UI/Utils/Markdown";
 import AxisValuesInput from "../../../Components/StatusPage/AxisValuesInput";
+import ImportGroupsFromCsvModal from "../../../Components/StatusPage/ImportGroupsFromCsvModal";
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+
+  const [showImportModal, setShowImportModal] = useState<boolean>(false);
+
+  /*
+   * Bumped when a CSV import creates groups, so the table refetches without a
+   * page reload while the modal is still open on its results.
+   */
+  const [refreshToggle, setRefreshToggle] = useState<string>("");
 
   /*
    * Groups nest, so the parent picker has to show where each candidate sits in
@@ -84,6 +101,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     <Fragment>
       <ModelTable<StatusPageGroup>
         modelType={StatusPageGroup}
+        refreshToggle={refreshToggle}
         id="status-page-group"
         name="Status Page > Groups"
         userPreferencesKey="status-page-group-table"
@@ -115,6 +133,22 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
           title: "Resource Groups",
           description:
             "Here are different groups for your status page resources. Groups can be nested inside other groups, and each level shows the rolled up status and uptime of everything beneath it. Deleting a group also deletes its sub groups and the resources in them.",
+          buttons: [
+            /*
+             * OUTLINE, not NORMAL/PRIMARY: BaseModelTable promotes the first
+             * NORMAL/PRIMARY button to the header slot, and bulk import
+             * belongs in the ⋯ overflow next to the other table-wide actions
+             * — the same place every other bulk import in the product lives.
+             */
+            {
+              title: "Import from CSV",
+              buttonStyle: ButtonStyleType.OUTLINE,
+              icon: IconProp.Upload,
+              onClick: () => {
+                setShowImportModal(true);
+              },
+            } as CardButtonSchema,
+          ],
         }}
         noItemsMessage={"No status page group created for this status page."}
         formSteps={[
@@ -371,6 +405,23 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
           },
         ]}
       />
+
+      {showImportModal && (
+        <ImportGroupsFromCsvModal
+          statusPageId={modelId}
+          projectId={ProjectUtil.getCurrentProjectId()!}
+          onClose={() => {
+            setShowImportModal(false);
+          }}
+          onImportComplete={() => {
+            /*
+             * Fires while the modal is still open on its results, so the
+             * table behind it is already current when the user closes it.
+             */
+            setRefreshToggle(Date.now().toString());
+          }}
+        />
+      )}
     </Fragment>
   );
 };

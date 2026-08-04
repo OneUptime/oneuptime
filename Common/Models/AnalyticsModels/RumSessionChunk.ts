@@ -309,6 +309,16 @@ export default class RumSessionChunk extends AnalyticsBaseModel {
       accessControl: chunkAccessControl,
     });
 
+    const isPinnedCopyColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "isPinnedCopy",
+      title: "Is Pinned Copy",
+      description:
+        "Written by the pin materializer: a re-insert of this chunk with a far-future retentionDate, landing in its own retention partition so a pinned recording survives while the original partition is TTL-dropped. Same sessionId, so erasure still catches it.",
+      required: true,
+      type: TableColumnType.Boolean,
+      accessControl: chunkAccessControl,
+    });
+
     const snapshotPartColumns: Array<AnalyticsTableColumn> = [
       {
         key: "snapshotPartIndex",
@@ -493,6 +503,7 @@ export default class RumSessionChunk extends AnalyticsBaseModel {
         eventCountColumn,
         hasFullSnapshotColumn,
         isFinalColumn,
+        isPinnedCopyColumn,
         ...snapshotPartColumns,
         ...descriptorColumns,
         schemaVersionColumn,
@@ -663,6 +674,14 @@ export default class RumSessionChunk extends AnalyticsBaseModel {
 
   public set isFinal(v: boolean | undefined) {
     this.setColumnValue("isFinal", v);
+  }
+
+  public get isPinnedCopy(): boolean | undefined {
+    return this.getColumnValue("isPinnedCopy") as boolean | undefined;
+  }
+
+  public set isPinnedCopy(v: boolean | undefined) {
+    this.setColumnValue("isPinnedCopy", v);
   }
 
   public get snapshotPartIndex(): number | undefined {

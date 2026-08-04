@@ -1,4 +1,5 @@
 import React, {
+  Fragment,
   FunctionComponent,
   ReactElement,
   useCallback,
@@ -36,6 +37,20 @@ import Navigation from "Common/UI/Utils/Navigation";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import {
+  buildFilteredUrl,
+  buildSessionReplayListFilters,
+  EMPTY_ADVANCED_FILTERS,
+  hasAnyAdvancedFilter,
+  readFiltersFromSearch,
+  SessionReplayAdvancedFilters,
+} from "./SessionReplayListFilters";
+export {
+  buildSessionReplayListFilters,
+  EMPTY_ADVANCED_FILTERS,
+  hasAnyAdvancedFilter,
+} from "./SessionReplayListFilters";
+export type { SessionReplayAdvancedFilters } from "./SessionReplayListFilters";
 
 /*
  * The session list is a bespoke table over POST /telemetry/rum/session-replay/list
@@ -116,10 +131,16 @@ const DEFAULT_ITEMS_ON_PAGE: number = 20;
 
 /*
  * Passing `hasMore` puts Pagination into has-more mode, where Next is driven
- * by the cursor and totalItemsCount is never read. The endpoint runs no
- * COUNT, so any number here would be invented; zero says so.
+ * by the cursor rather than by a total. The endpoint runs no COUNT, so a real
+ * total does not exist here.
+ *
+ * It does NOT mean the number is unread: has-more mode still reads it to close
+ * the range it prints, as `firstOnPage + max(total - alreadySeen, 0)`. Passing
+ * zero rendered "Showing 1 to 0 sessions." over a list with rows in it. The
+ * count of rows actually on this page is the honest input - it makes the
+ * printed range describe the page, which is all has-more mode can claim, and
+ * the trailing "+" already says more may follow.
  */
-const UNKNOWN_TOTAL_ITEMS_COUNT: number = 0;
 
 const DEFAULT_RANGE: RangeStartAndEndDateTime = {
   range: TimeRange.PAST_ONE_DAY,
@@ -201,33 +222,10 @@ export function parseSessionReplaySummary(
   };
 }
 
-/*
- * Translates the three signal buttons into the endpoint's filter object.
- *
- * "frustration" has no server-side filter - the list query only knows
- * hasError - so it is applied client-side over the returned page rather than
- * silently returning every session under a label that promises otherwise.
- */
-export function buildSessionReplayListFilters(signal: string): JSONObject {
-  if (signal === "errors") {
-    return { hasError: true };
-  }
-
-  return {};
-}
-
-export function hasFrustrationSignal(row: SessionReplaySummary): boolean {
-  return (
-    row.rageClickCount > 0 ||
-    row.deadClickCount > 0 ||
-    row.errorClickCount > 0 ||
-    row.refreshRageCount > 0
-  );
-}
-
 export async function fetchSessionReplayList(request: {
   rumApplicationId: ObjectID;
   signal: string;
+  advancedFilters?: SessionReplayAdvancedFilters | undefined;
   startTime: Date;
   endTime: Date;
   limit: number;
@@ -242,7 +240,10 @@ export async function fetchSessionReplayList(request: {
         rumApplicationId: request.rumApplicationId.toString(),
         startTime: OneUptimeDate.toString(request.startTime),
         endTime: OneUptimeDate.toString(request.endTime),
-        filters: buildSessionReplayListFilters(request.signal),
+        filters: buildSessionReplayListFilters(
+          request.signal,
+          request.advancedFilters,
+        ),
         limit: request.limit,
         /*
          * Spread into a plain object: the endpoint reads the two cursor
@@ -307,6 +308,14 @@ export interface SessionReplayTableProps {
   /* Overrides the default "Sessions" card copy on embedded uses. */
   title?: string | undefined;
   description?: string | undefined;
+  /*
+   * Rendered below the table when the list came back empty under the
+   * DEFAULT filters. Used to show setup instructions, which is the right
+   * thing to show somebody who has never had a recording - and the wrong
+   * thing to show somebody who just filtered too narrowly, hence the
+   * gating on filter state rather than on row count alone.
+   */
+  renderWhenEmpty?: ReactElement | undefined;
 }
 
 const SIGNAL_FILTERS: Array<{ label: string; value: string }> = [
@@ -333,7 +342,23 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
   );
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
-  const [signal, setSignal] = useState<string>("all");
+  const [signal, setSignal] = useState<string>((): string => {
+    return readFiltersFromSearch(window.location.search).signal;
+  });
+  /* Applied filters drive the fetch; the draft is what the inputs hold. */
+  const [advancedFilters, setAdvancedFilters] =
+    useState<SessionReplayAdvancedFilters>((): SessionReplayAdvancedFilters => {
+      return readFiltersFromSearch(window.location.search).advanced;
+    });
+  const [draftFilters, setDraftFilters] =
+    useState<SessionReplayAdvancedFilters>((): SessionReplayAdvancedFilters => {
+      return readFiltersFromSearch(window.location.search).advanced;
+    });
+  const [areFiltersOpen, setAreFiltersOpen] = useState<boolean>((): boolean => {
+    return hasAnyAdvancedFilter(
+      readFiltersFromSearch(window.location.search).advanced,
+    );
+  });
   const [pageNumber, setPageNumber] = useState<number>(1);
   const [itemsOnPage, setItemsOnPage] = useState<number>(DEFAULT_ITEMS_ON_PAGE);
   const [timeRange, setTimeRange] =
@@ -376,6 +401,7 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
         const result: SessionReplayListResult = await fetchSessionReplayList({
           rumApplicationId: new ObjectID(rumApplicationIdString),
           signal: signal,
+          advancedFilters: advancedFilters,
           startTime: range.startValue,
           endTime: range.endValue,
           limit: itemsOnPage,
@@ -390,17 +416,7 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
           cursorForPageRef.current.set(pageNumber, result.nextCursor);
         }
 
-        /*
-         * Frustration has no server-side filter, so it is narrowed here.
-         * The page can therefore come back shorter than itemsOnPage; that is
-         * honest, and the alternative - refetching until the page is full -
-         * would multiply reads over a table this wide.
-         */
-        setRows(
-          signal === "frustration"
-            ? result.sessions.filter(hasFrustrationSignal)
-            : result.sessions,
-        );
+        setRows(result.sessions);
         setHasMore(result.nextCursor !== null);
       } catch (err) {
         if (generation === loadGenerationRef.current) {
@@ -412,8 +428,24 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
         }
       }
     },
-    [rumApplicationIdString, signal, timeRange, pageNumber, itemsOnPage],
+    [
+      rumApplicationIdString,
+      signal,
+      advancedFilters,
+      timeRange,
+      pageNumber,
+      itemsOnPage,
+    ],
   );
+
+  /* Every filter change is reflected in the address bar. */
+  useEffect(() => {
+    window.history.replaceState(
+      window.history.state,
+      "",
+      buildFilteredUrl(window.location.href, signal, advancedFilters),
+    );
+  }, [signal, advancedFilters]);
 
   useEffect(() => {
     loadGenerationRef.current += 1;
@@ -597,9 +629,52 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
            */
           const notes: Array<string> = [];
 
-          if (!row.isFinalized) {
-            notes.push("Still recording");
-          }
+          /*
+           * Playability is stated up front. "recording-lost" (sealed by
+           * the never-finalized sweep) and a zero chunk count both mean
+           * there is nothing to watch — sending someone into the player to
+           * find that out is the dishonesty this pill removes.
+           *
+           * The chunkCount test is gated on isFinalized: the PROVISIONAL
+           * header is deliberately written with chunkCount 0 (aggregates
+           * are the finalizer's job), so an unfinalized row's zero means
+           * "not counted yet", not "no footage" — and unfinalized rows sit
+           * at the top of this newest-first list during a live incident.
+           */
+          const isLost: boolean = row.sealedReason === "recording-lost";
+          const isMetadataOnly: boolean =
+            !isLost && row.isFinalized && row.chunkCount === 0;
+          const isStillCounting: boolean = !isLost && !row.isFinalized;
+
+          const playabilityPill: ReactElement = isStillCounting ? (
+            <span
+              className="rounded bg-sky-50 px-1.5 py-0.5 text-[11px] font-medium text-sky-700 ring-1 ring-inset ring-sky-200"
+              title="This session has not been finalized yet. Footage is playable as it arrives; counts may still change."
+            >
+              Recording
+            </span>
+          ) : isLost ? (
+            <span
+              className="rounded bg-rose-50 px-1.5 py-0.5 text-[11px] font-medium text-rose-700 ring-1 ring-inset ring-rose-200"
+              title="A session header was received but its footage never arrived or expired before it could be processed. The signals and counts here are still accurate."
+            >
+              Recording lost
+            </span>
+          ) : isMetadataOnly ? (
+            <span
+              className="rounded bg-amber-50 px-1.5 py-0.5 text-[11px] font-medium text-amber-700 ring-1 ring-inset ring-amber-200"
+              title="Only session metadata remains; the footage is no longer stored."
+            >
+              Metadata only
+            </span>
+          ) : (
+            <span
+              className="rounded bg-emerald-50 px-1.5 py-0.5 text-[11px] font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200"
+              title="Footage is stored and can be played back."
+            >
+              Playable
+            </span>
+          );
 
           if (row.missingChunkCount > 0) {
             notes.push(
@@ -619,8 +694,11 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
 
           return (
             <div className="min-w-0">
-              <div className="text-xs capitalize text-gray-600">
-                {row.triggerReason || "unknown"}
+              <div className="flex items-center gap-1.5">
+                {playabilityPill}
+                <span className="text-xs capitalize text-gray-600">
+                  {row.triggerReason || "unknown"}
+                </span>
               </div>
               {notes.length > 0 && (
                 <div className="truncate text-xs text-amber-700">
@@ -668,77 +746,291 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
     },
   ];
 
+  /*
+   * "Nothing has ever been recorded here", as closely as this endpoint can
+   * answer it. Gated on the filters being untouched AND being on the first
+   * page: an empty page 3 means the list ran out, not that setup is
+   * missing. An error is excluded too - a failed request tells us nothing
+   * about whether recordings exist.
+   */
+  const isEmptyOnDefaultFilters: boolean =
+    !isLoading &&
+    !error &&
+    rows.length === 0 &&
+    pageNumber === 1 &&
+    signal === "all" &&
+    !hasAnyAdvancedFilter(advancedFilters);
+
   return (
-    <Card
-      title={props.title || "Session Replay"}
-      description={
-        props.description ||
-        "Recordings of real end-user sessions for this application. Content is masked at capture in the end user's browser; what you see here is what the recorder was allowed to send."
-      }
-      rightElement={
-        <TelemetryTimeRangePicker
-          value={timeRange}
-          onChange={(value: RangeStartAndEndDateTime): void => {
-            setPageNumber(1);
-            setTimeRange(value);
-          }}
-        />
-      }
-    >
-      <div className="mb-4">
-        <FilterButtons
-          options={SIGNAL_FILTERS}
-          selectedValue={signal}
-          onSelect={(value: string): void => {
-            setPageNumber(1);
-            setSignal(value);
-          }}
-        />
-      </div>
+    <Fragment>
+      <Card
+        title={props.title || "Session Replay"}
+        description={
+          props.description ||
+          "Recordings of real end-user sessions for this application. Content is masked at capture in the end user's browser; what you see here is what the recorder was allowed to send."
+        }
+        rightElement={
+          <TelemetryTimeRangePicker
+            value={timeRange}
+            onChange={(value: RangeStartAndEndDateTime): void => {
+              setPageNumber(1);
+              setTimeRange(value);
+            }}
+          />
+        }
+      >
+        <div className="mb-2 flex flex-wrap items-center gap-3">
+          <FilterButtons
+            options={SIGNAL_FILTERS}
+            selectedValue={signal}
+            onSelect={(value: string): void => {
+              setPageNumber(1);
+              setSignal(value);
+            }}
+          />
 
-      <Table<SessionReplaySummary>
-        id="rum-session-replay-table"
-        columns={columns}
-        actionButtons={actionButtons}
-        data={rows}
-        singularLabel="Session"
-        pluralLabel="Sessions"
-        isLoading={isLoading}
-        error={error}
-        onRefreshClick={(): void => {
-          loadGenerationRef.current += 1;
-          void load(loadGenerationRef.current);
-        }}
-        currentPageNumber={pageNumber}
-        totalItemsCount={UNKNOWN_TOTAL_ITEMS_COUNT}
-        hasMore={hasMore}
-        itemsOnPage={itemsOnPage}
-        onNavigateToPage={(page: number, onPage: number): void => {
-          /*
-           * A different page size invalidates every cursor, so it restarts
-           * from the first page rather than paging with offsets that no
-           * longer line up.
-           */
-          if (onPage !== itemsOnPage) {
-            setItemsOnPage(onPage);
-            setPageNumber(1);
-            return;
+          <button
+            type="button"
+            className="text-xs font-medium text-indigo-600 hover:text-indigo-800"
+            onClick={(): void => {
+              setAreFiltersOpen((existing: boolean): boolean => {
+                return !existing;
+              });
+            }}
+          >
+            {areFiltersOpen ? "Hide filters" : "More filters"}
+            {hasAnyAdvancedFilter(advancedFilters) && !areFiltersOpen
+              ? " (active)"
+              : ""}
+          </button>
+        </div>
+
+        {!areFiltersOpen ? (
+          <></>
+        ) : (
+          <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-3">
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+              {(
+                [
+                  {
+                    field: "browserName",
+                    label: "Browser",
+                    placeholder: "Chrome",
+                  },
+                  { field: "osName", label: "OS", placeholder: "macOS" },
+                  {
+                    field: "countryCode",
+                    label: "Country",
+                    placeholder: "DE",
+                  },
+                  {
+                    /*
+                     * Exact match against the stored scrubbed exit URL — the
+                     * server deliberately refuses substring scans over this
+                     * column, and the stored value is origin + path. The
+                     * label and placeholder must say so: a "/checkout"
+                     * fragment silently matches nothing.
+                     */
+                    field: "route",
+                    label: "Exit page URL (exact)",
+                    placeholder: "https://app.example.com/checkout",
+                  },
+                  {
+                    field: "minDurationSeconds",
+                    label: "Min duration (s)",
+                    placeholder: "120",
+                  },
+                  {
+                    field: "identifiedUserKey",
+                    label: "User key",
+                    placeholder: "hashed identifier",
+                  },
+                ] as Array<{
+                  field: keyof SessionReplayAdvancedFilters;
+                  label: string;
+                  placeholder: string;
+                }>
+              ).map(
+                (input: {
+                  field: keyof SessionReplayAdvancedFilters;
+                  label: string;
+                  placeholder: string;
+                }): ReactElement => {
+                  return (
+                    <label key={input.field} className="block">
+                      <span className="mb-1 block text-[11px] font-medium text-gray-600">
+                        {input.label}
+                      </span>
+                      <input
+                        type="text"
+                        className="w-full rounded-md border border-gray-300 px-2 py-1 text-xs"
+                        placeholder={input.placeholder}
+                        value={draftFilters[input.field]}
+                        onChange={(
+                          event: React.ChangeEvent<HTMLInputElement>,
+                        ): void => {
+                          const value: string = event.target.value;
+
+                          setDraftFilters(
+                            (
+                              existing: SessionReplayAdvancedFilters,
+                            ): SessionReplayAdvancedFilters => {
+                              return { ...existing, [input.field]: value };
+                            },
+                          );
+                        }}
+                        onKeyDown={(
+                          event: React.KeyboardEvent<HTMLInputElement>,
+                        ): void => {
+                          if (event.key === "Enter") {
+                            setPageNumber(1);
+                            setAdvancedFilters(draftFilters);
+                          }
+                        }}
+                      />
+                    </label>
+                  );
+                },
+              )}
+
+              <label className="block">
+                <span className="mb-1 block text-[11px] font-medium text-gray-600">
+                  Device
+                </span>
+                <select
+                  className="w-full rounded-md border border-gray-300 px-2 py-1 text-xs"
+                  value={draftFilters.deviceType}
+                  onChange={(
+                    event: React.ChangeEvent<HTMLSelectElement>,
+                  ): void => {
+                    const value: string = event.target.value;
+
+                    setDraftFilters(
+                      (
+                        existing: SessionReplayAdvancedFilters,
+                      ): SessionReplayAdvancedFilters => {
+                        return { ...existing, deviceType: value };
+                      },
+                    );
+                  }}
+                >
+                  <option value="">Any</option>
+                  <option value="desktop">Desktop</option>
+                  <option value="mobile">Mobile</option>
+                  <option value="tablet">Tablet</option>
+                </select>
+              </label>
+
+              <label className="block">
+                <span className="mb-1 block text-[11px] font-medium text-gray-600">
+                  Trigger
+                </span>
+                <select
+                  className="w-full rounded-md border border-gray-300 px-2 py-1 text-xs"
+                  value={draftFilters.triggerReason}
+                  onChange={(
+                    event: React.ChangeEvent<HTMLSelectElement>,
+                  ): void => {
+                    const value: string = event.target.value;
+
+                    setDraftFilters(
+                      (
+                        existing: SessionReplayAdvancedFilters,
+                      ): SessionReplayAdvancedFilters => {
+                        return { ...existing, triggerReason: value };
+                      },
+                    );
+                  }}
+                >
+                  <option value="">Any</option>
+                  <option value="error">Error</option>
+                  <option value="frustration">Frustration</option>
+                  <option value="sampled">Sampled</option>
+                  <option value="manual">Manual</option>
+                </select>
+              </label>
+            </div>
+
+            <div className="mt-3 flex items-center gap-2">
+              <button
+                type="button"
+                className="rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700"
+                onClick={(): void => {
+                  setPageNumber(1);
+                  setAdvancedFilters(draftFilters);
+                }}
+              >
+                Apply filters
+              </button>
+              <button
+                type="button"
+                className="rounded-md px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100"
+                onClick={(): void => {
+                  setPageNumber(1);
+                  setDraftFilters(EMPTY_ADVANCED_FILTERS);
+                  setAdvancedFilters(EMPTY_ADVANCED_FILTERS);
+                }}
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+        )}
+
+        <Table<SessionReplaySummary>
+          id="rum-session-replay-table"
+          columns={columns}
+          actionButtons={actionButtons}
+          data={rows}
+          singularLabel="Session"
+          pluralLabel="Sessions"
+          isLoading={isLoading}
+          error={error}
+          onRefreshClick={(): void => {
+            loadGenerationRef.current += 1;
+            void load(loadGenerationRef.current);
+          }}
+          currentPageNumber={pageNumber}
+          totalItemsCount={itemsOnPage * (pageNumber - 1) + rows.length}
+          hasMore={hasMore}
+          itemsOnPage={itemsOnPage}
+          onNavigateToPage={(page: number, onPage: number): void => {
+            /*
+             * A different page size invalidates every cursor, so it restarts
+             * from the first page rather than paging with offsets that no
+             * longer line up.
+             */
+            if (onPage !== itemsOnPage) {
+              setItemsOnPage(onPage);
+              setPageNumber(1);
+              return;
+            }
+
+            setPageNumber(page);
+          }}
+          sortOrder={SortOrder.Descending}
+          sortBy={null}
+          onSortChanged={() => {
+            /*
+             * Sorting is fixed to newest-first at the endpoint. The header's
+             * sort key already starts with startTime DESC, so any other order
+             * would be a full sort of the result set for no product benefit.
+             */
+          }}
+          noItemsMessage={
+            isEmptyOnDefaultFilters
+              ? "No recorded sessions yet. The setup steps below explain how to get the first one."
+              : "No recorded sessions match these filters in this window."
           }
+        />
+      </Card>
 
-          setPageNumber(page);
-        }}
-        sortOrder={SortOrder.Descending}
-        sortBy={null}
-        onSortChanged={() => {
-          /*
-           * Sorting is fixed to newest-first at the endpoint. The header's
-           * sort key already starts with startTime DESC, so any other order
-           * would be a full sort of the result set for no product benefit.
-           */
-        }}
-        noItemsMessage="No recorded sessions in this window. Session replay is off by default: enable it per application under Session Replay settings, then confirm the recorder is loading with the installation check in Documentation."
-      />
-    </Card>
+      {isEmptyOnDefaultFilters && props.renderWhenEmpty ? (
+        props.renderWhenEmpty
+      ) : (
+        <></>
+      )}
+    </Fragment>
   );
 };
 

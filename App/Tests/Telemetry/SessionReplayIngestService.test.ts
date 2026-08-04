@@ -183,6 +183,7 @@ jest.mock("../../FeatureSet/Telemetry/Utils/SessionReplayRateLimiter", () => {
     default: {
       consumeChunkAllowance: jest.fn(),
       consumeByteBudget: jest.fn(),
+      consumeApplicationMonthlyBudget: jest.fn(),
       getBytesUsedToday: jest.fn(),
     },
     SessionReplayLimitOutcome: {
@@ -248,6 +249,8 @@ const consumeChunkAllowanceMock: MockedFn =
   SessionReplayRateLimiter.consumeChunkAllowance as unknown as MockedFn;
 const consumeByteBudgetMock: MockedFn =
   SessionReplayRateLimiter.consumeByteBudget as unknown as MockedFn;
+const consumeApplicationMonthlyBudgetMock: MockedFn =
+  SessionReplayRateLimiter.consumeApplicationMonthlyBudget as unknown as MockedFn;
 
 const PROJECT_ID: ObjectID = ObjectID.generate();
 const RUM_APPLICATION_ID: ObjectID = ObjectID.generate();
@@ -274,6 +277,11 @@ function buildPolicy(
     captureGeo: true,
     retentionInDays: 7,
     monthlyBudgetInGB: null,
+    ignoreErrorPatterns: [],
+    tracePropagationOrigins: [],
+    lcpBudgetMs: 0,
+    longTaskBudgetMs: 0,
+    slowRequestBudgetMs: 0,
     configEpoch: 1234,
     ...overrides,
   };
@@ -397,6 +405,9 @@ describe("SessionReplayIngestService.gateChunkRequest", () => {
     consumeByteBudgetMock.mockResolvedValue({
       outcome: SessionReplayLimitOutcome.Allowed,
     } as never);
+    consumeApplicationMonthlyBudgetMock.mockResolvedValue({
+      outcome: SessionReplayLimitOutcome.Allowed,
+    } as never);
   });
 
   const baseGateInput: {
@@ -490,6 +501,80 @@ describe("SessionReplayIngestService.gateChunkRequest", () => {
     expect(decision.reason).toBe("not-sampled");
   });
 
+  /*
+   * The shipped default configuration, which used to record nothing at all.
+   *
+   * Defaults are captureTrigger OnErrorOrFrustration with samplePercentage 0,
+   * so isSampled() was false for every session and every chunk came back 204.
+   * Sampling is meant to be ADDITIONAL to the trigger: a frame uploaded
+   * because something actually went wrong has already earned its place, and
+   * re-deciding it by dice roll discards exactly the sessions the feature
+   * exists to keep.
+   */
+  for (const reason of [
+    SessionReplayTriggerReason.Error,
+    SessionReplayTriggerReason.Frustration,
+    SessionReplayTriggerReason.Manual,
+  ]) {
+    test(`accepts a "${reason}"-triggered chunk at samplePercentage 0`, async () => {
+      getPolicyMock.mockResolvedValue(
+        buildPolicy({ samplePercentage: 0 }) as never,
+      );
+
+      const decision: SessionReplayGateDecision =
+        await SessionReplayIngestService.gateChunkRequest({
+          ...baseGateInput,
+          triggerReasons: [reason],
+        });
+
+      expect(decision.outcome).toBe(SessionReplayGateOutcome.Accepted);
+      expect(decision.directive).toBe("continue");
+    });
+  }
+
+  /*
+   * "sampled" is the one reason that must still face the check: it is the
+   * recorder saying it uploaded on the dice roll alone, so re-rolling it
+   * server-side is what catches a stale recorder still uploading after the
+   * rate was turned down.
+   */
+  test('re-rolls a "sampled"-triggered chunk and stops it when out of sample', async () => {
+    getPolicyMock.mockResolvedValue(
+      buildPolicy({ samplePercentage: 0 }) as never,
+    );
+
+    const decision: SessionReplayGateDecision =
+      await SessionReplayIngestService.gateChunkRequest({
+        ...baseGateInput,
+        triggerReasons: [SessionReplayTriggerReason.Sampled],
+      });
+
+    expect(decision.outcome).toBe(SessionReplayGateOutcome.Stop);
+    expect(decision.reason).toBe("not-sampled");
+  });
+
+  /*
+   * A catch-up post can carry both. One real trigger in the batch is enough:
+   * splitting the batch to refuse only the sampled frames would cost a second
+   * round trip to save writing frames we already have in hand.
+   */
+  test("a mixed batch is accepted when any frame fired a real trigger", async () => {
+    getPolicyMock.mockResolvedValue(
+      buildPolicy({ samplePercentage: 0 }) as never,
+    );
+
+    const decision: SessionReplayGateDecision =
+      await SessionReplayIngestService.gateChunkRequest({
+        ...baseGateInput,
+        triggerReasons: [
+          SessionReplayTriggerReason.Sampled,
+          SessionReplayTriggerReason.Error,
+        ],
+      });
+
+    expect(decision.outcome).toBe(SessionReplayGateOutcome.Accepted);
+  });
+
   test("rate limiting is retryable and carries Retry-After", async () => {
     consumeChunkAllowanceMock.mockResolvedValue({
       outcome: SessionReplayLimitOutcome.RateLimited,
@@ -528,6 +613,74 @@ describe("SessionReplayIngestService.gateChunkRequest", () => {
       await SessionReplayIngestService.gateChunkRequest(baseGateInput);
 
     expect(decision.outcome).toBe(SessionReplayGateOutcome.StorageUnavailable);
+  });
+
+  /*
+   * The application's customer-configured monthly budget, distinct from the
+   * operator's instance-wide daily cap. A budget field that is stored and
+   * displayed but never consulted promises a protection that does not
+   * exist, so these pin that it is actually enforced.
+   */
+  test("does not consult the monthly budget when none is configured", async () => {
+    const decision: SessionReplayGateDecision =
+      await SessionReplayIngestService.gateChunkRequest(baseGateInput);
+
+    expect(decision.outcome).toBe(SessionReplayGateOutcome.Accepted);
+    expect(consumeApplicationMonthlyBudgetMock).not.toHaveBeenCalled();
+  });
+
+  test("charges the monthly budget with the configured ceiling in bytes", async () => {
+    getPolicyMock.mockResolvedValue(
+      buildPolicy({ monthlyBudgetInGB: 2 }) as never,
+    );
+
+    const decision: SessionReplayGateDecision =
+      await SessionReplayIngestService.gateChunkRequest(baseGateInput);
+
+    expect(decision.outcome).toBe(SessionReplayGateOutcome.Accepted);
+    expect(consumeApplicationMonthlyBudgetMock).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      rumApplicationId: RUM_APPLICATION_ID,
+      bytes: baseGateInput.payloadBytes,
+      budgetBytes: 2 * 1024 * 1024 * 1024,
+    });
+  });
+
+  test("an exhausted monthly budget stops the recorder with its own reason", async () => {
+    getPolicyMock.mockResolvedValue(
+      buildPolicy({ monthlyBudgetInGB: 1 }) as never,
+    );
+    consumeApplicationMonthlyBudgetMock.mockResolvedValue({
+      outcome: SessionReplayLimitOutcome.BudgetExhausted,
+    } as never);
+
+    const decision: SessionReplayGateDecision =
+      await SessionReplayIngestService.gateChunkRequest(baseGateInput);
+
+    expect(decision.outcome).toBe(SessionReplayGateOutcome.Stop);
+    expect(decision.directive).toBe("stop");
+    /*
+     * A distinct reason from the instance-wide "budget-exhausted": the
+     * customer's remediation differs (raise your own budget vs contact the
+     * operator), so the two must be tellable apart in the response and on
+     * the refusal metric.
+     */
+    expect(decision.reason).toBe("app-monthly-budget-exhausted");
+  });
+
+  test("an unreachable monthly budget counter fails closed as retryable", async () => {
+    getPolicyMock.mockResolvedValue(
+      buildPolicy({ monthlyBudgetInGB: 1 }) as never,
+    );
+    consumeApplicationMonthlyBudgetMock.mockResolvedValue({
+      outcome: SessionReplayLimitOutcome.CounterUnavailable,
+    } as never);
+
+    const decision: SessionReplayGateDecision =
+      await SessionReplayIngestService.gateChunkRequest(baseGateInput);
+
+    expect(decision.outcome).toBe(SessionReplayGateOutcome.StorageUnavailable);
+    expect(decision.reason).toBe("budget-counter-unavailable");
   });
 });
 
@@ -631,6 +784,45 @@ describe("SessionReplayIngestService.processFromQueue", () => {
     /* Per-chunk counters come off the envelope, never from the payload. */
     expect(chunk["errorCount"]).toBe(2);
     expect(chunk["routeCount"]).toBe(3);
+  });
+
+  /*
+   * Wave 4's new trigger label must survive the parser's closed-set
+   * normalisation, and anything outside the set must still fall back to
+   * "sampled" rather than storing attacker-chosen strings.
+   */
+  test("the performance trigger reason round-trips; unknown reasons normalise to sampled", async () => {
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(
+        buildBody([
+          {
+            chunkIndex: 0,
+            triggerReason: SessionReplayTriggerReason.Performance,
+          },
+        ]),
+      ),
+    );
+
+    expect(getSubmittedRows("RumSessionV1")[0]?.["triggerReason"]).toBe(
+      "performance",
+    );
+
+    submitMock.mockClear();
+
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(
+        buildBody([
+          {
+            chunkIndex: 0,
+            triggerReason: "totally-made-up" as SessionReplayTriggerReason,
+          },
+        ]),
+      ),
+    );
+
+    expect(getSubmittedRows("RumSessionV1")[0]?.["triggerReason"]).toBe(
+      "sampled",
+    );
   });
 
   test("no header row is written for a non-zero chunk index", async () => {
@@ -791,7 +983,15 @@ describe("SessionReplayIngestService.processFromQueue", () => {
     const chunk: JSONObject = getSubmittedRows("RumSessionChunkV1")[0]!;
 
     expect(chunk["payload"]).toBe(JSON.stringify(events));
-    expect(chunk["payloadEncoding"]).toBe("gzip");
+
+    /*
+     * "identity", even though the frame arrived gzipped: the column describes
+     * the bytes in the column, and those were gunzipped, scrubbed and
+     * re-serialised on the way in. It used to be copied straight off the
+     * envelope, so almost every stored row claimed an encoding it did not
+     * have.
+     */
+    expect(chunk["payloadEncoding"]).toBe("identity");
 
     const wireBytes: number = zlib.gzipSync(
       new Uint8Array(Buffer.from(JSON.stringify(events))),

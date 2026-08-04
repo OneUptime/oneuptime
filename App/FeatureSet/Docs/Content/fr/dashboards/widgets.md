@@ -56,6 +56,49 @@ Un bloc statique de Markdown.
 
 À utiliser quand : vous voulez un titre de section, un paragraphe de contexte, une liste de liens vers des runbooks ou une bannière temporaire pendant un incident.
 
+## HTML
+
+Votre propre HTML, CSS et JavaScript, rendus sous forme de widget.
+
+**Paramètres** : le corps HTML, une feuille de style optionnelle, un script optionnel et trois interrupteurs d'autorisation.
+
+À utiliser quand : vous avez besoin de quelque chose qu'aucun widget intégré ne couvre — un badge tiers intégré, un tableau tiré d'une API interne, une légende personnalisée, un ensemble de liens stylés vers vos propres outils.
+
+### Ce qu'il peut et ne peut pas faire
+
+Le widget est rendu dans un cadre en bac à sable (sandbox), sur sa propre origine isolée. À l'intérieur de ce cadre, votre code peut faire à peu près n'importe quoi : construire du DOM, lancer des minuteurs, faire un fetch vers n'importe quelle URL, dessiner sur un canvas.
+
+Ce qu'il ne peut pas faire, c'est atteindre la page OneUptime qui l'entoure. Il n'a accès ni au DOM du tableau de bord, ni aux cookies, ni au stockage local, ni à la session d'API, et il ne peut pas faire quitter la page à l'onglet du navigateur. Cela vaut que le tableau de bord soit privé ou partagé publiquement.
+
+Deux conséquences à connaître avant d'y coller quelque chose :
+
+- Un `fetch` depuis le widget est une requête cross-origin provenant d'une origine opaque : le serveur que vous appelez doit donc l'autoriser via CORS. Appeler l'API de OneUptime depuis ici n'est pas pris en charge.
+- Le widget démarre transparent. Définissez un arrière-plan sur `body` dans votre CSS si vous voulez qu'il remplisse la tuile.
+
+### Utiliser les variables du tableau de bord
+
+Écrivez `{{variableName}}` n'importe où dans le HTML, le CSS ou le JavaScript : la valeur actuelle de cette variable y est substituée avant le rendu du widget. Choisir une nouvelle valeur réaffiche le widget. Un espace réservé qui nomme une variable inexistante est laissé tel quel.
+
+Les scripts reçoivent les mêmes valeurs, ainsi que la plage temporelle du tableau de bord, via `window.ONEUPTIME` :
+
+```javascript
+window.ONEUPTIME.variables.environment; // valeur actuelle, ou "" si non définie
+window.ONEUPTIME.startDate; // chaîne ISO 8601, début de la plage temporelle du tableau de bord
+window.ONEUPTIME.endDate; // chaîne ISO 8601, fin de celle-ci
+```
+
+Le widget se recharge à chaque actualisation du tableau de bord : un widget qui récupère ses propres données suit donc l'intervalle d'actualisation.
+
+### Autorisations
+
+**Run JavaScript** (« Exécuter le JavaScript », activé par défaut) exécute votre script. Désactivez-le pour ne rendre que le balisage et les styles — le script est alors entièrement retiré du widget plutôt que simplement bloqué.
+
+**Open links in a new tab** (« Ouvrir les liens dans un nouvel onglet », activé par défaut) permet aux liens et à `window.open` d'ouvrir un onglet du navigateur. Les liens s'ouvrent toujours dans un nouvel onglet ; le widget ne peut jamais faire naviguer le tableau de bord lui-même.
+
+**Allow forms to submit** (« Autoriser l'envoi des formulaires », désactivé par défaut) permet à un `<form>` situé dans le widget d'être envoyé.
+
+Toute personne pouvant modifier le tableau de bord décide de ce que ce widget exécute, et toute personne qui consulte le tableau de bord l'exécute — sur un tableau de bord public, cela inclut les visiteurs anonymes. Traitez l'accès en modification à un tableau de bord contenant un widget HTML comme vous traiteriez l'accès à n'importe quel autre code que vous livrez.
+
 ## Journaux et traces
 
 ### Log Stream
@@ -143,6 +186,7 @@ Quelques règles rapides :
 - **Ce qu'il se passe dans le système en ce moment ?** Log Stream, Trace List, Incident List.
 - **L'état d'un groupe spécifique de ressources ?** Le widget de liste correspondant.
 - **Un titre, un paragraphe ou un lien ?** Text.
+- **Quelque chose qu'aucun des cas ci-dessus ne couvre ?** HTML — mais seulement après avoir vérifié qu'aucun widget intégré ne peut vraiment le faire.
 
 La plupart des tableaux de bord mélangent quelques widgets — un graphique en haut, une ou deux valeurs à côté, un séparateur en texte et une ou deux listes en dessous.
 

@@ -46,7 +46,7 @@ describe("Masking", (): void => {
       ).toBe(false);
     });
 
-    it("enables every option in both modes", (): void => {
+    it("enables every option, in every mode", (): void => {
       const values: Array<boolean> = Object.values(
         Masking.getMaskInputOptions(),
       );
@@ -60,13 +60,125 @@ describe("Masking", (): void => {
   });
 
   describe("maskAllInputs", (): void => {
-    it("is true even in MaskInputsOnly mode", (): void => {
-      const masking: Masking = new Masking(
-        SessionReplayMaskingMode.MaskInputsOnly,
-        [],
-      );
+    /*
+     * True in every mode - including the one that lets ordinary values
+     * through. It does not mean "mask every input"; it means "route every
+     * input through maskInputFn", which is what lets Masking apply its own
+     * sticky per-node policy instead of rrweb's type-keyed one. Setting it
+     * false for MaskSensitiveInputsOnly would hand the decision back to
+     * rrweb and lose the show-password protection.
+     */
+    for (const mode of [
+      SessionReplayMaskingMode.MaskInputsOnly,
+      SessionReplayMaskingMode.MaskSensitiveInputsOnly,
+      SessionReplayMaskingMode.MaskAllText,
+    ]) {
+      it(`is true in ${mode} mode`, (): void => {
+        const masking: Masking = new Masking(mode, []);
 
-      expect(masking.getRrwebMaskingOptions().maskAllInputs).toBe(true);
+        expect(masking.getRrwebMaskingOptions().maskAllInputs).toBe(true);
+      });
+    }
+  });
+
+  describe("MaskSensitiveInputsOnly", (): void => {
+    const sensitiveOnly: (selectors?: Array<string>) => Masking = (
+      selectors: Array<string> = [],
+    ): Masking => {
+      return new Masking(
+        SessionReplayMaskingMode.MaskSensitiveInputsOnly,
+        selectors,
+      );
+    };
+
+    it("passes an ordinary input value through unchanged", (): void => {
+      const input: HTMLInputElement = document.createElement("input");
+      input.setAttribute("type", "text");
+
+      expect(sensitiveOnly().maskInput("order-8891", input)).toBe("order-8891");
+    });
+
+    it("masks a password input", (): void => {
+      const input: HTMLInputElement = document.createElement("input");
+      input.setAttribute("type", "password");
+
+      expect(sensitiveOnly().maskInput("hunter2", input)).not.toContain(
+        "hunter2",
+      );
+    });
+
+    it("masks a card field that is type=text, keyed on autocomplete", (): void => {
+      /*
+       * The case that makes an input-type-keyed policy wrong: card fields
+       * are type="text" and are only identifiable by their autocomplete
+       * token.
+       */
+      const input: HTMLInputElement = document.createElement("input");
+      input.setAttribute("type", "text");
+      input.setAttribute("autocomplete", "cc-number");
+
+      expect(
+        sensitiveOnly().maskInput("4111111111111111", input),
+      ).not.toContain("4111");
+    });
+
+    it("keeps masking a password field after a show-password toggle", (): void => {
+      const input: HTMLInputElement = document.createElement("input");
+      input.setAttribute("type", "password");
+
+      const masking: Masking = sensitiveOnly();
+
+      // Seen once as a password...
+      masking.maskInput("hunter2", input);
+
+      // ...then revealed. Stickiness must survive the type change.
+      input.setAttribute("type", "text");
+
+      expect(masking.maskInput("hunter2", input)).not.toContain("hunter2");
+    });
+
+    it("masks an input matched by a policy mask selector", (): void => {
+      const wrapper: HTMLDivElement = document.createElement("div");
+      wrapper.className = "pii";
+      const input: HTMLInputElement = document.createElement("input");
+      input.setAttribute("type", "text");
+      wrapper.appendChild(input);
+
+      expect(sensitiveOnly([".pii"]).maskInput("Whitcombe", input)).not.toBe(
+        "Whitcombe",
+      );
+    });
+
+    it("survives an invalid mask selector instead of throwing into the page", (): void => {
+      /*
+       * These selectors are customer-authored, and closest() throws on a
+       * malformed one. Throwing here would throw inside rrweb's
+       * serializer, on the customer's page.
+       */
+      const input: HTMLInputElement = document.createElement("input");
+      input.setAttribute("type", "text");
+
+      expect(sensitiveOnly(["))not-a-selector(("]).maskInput("ok", input)).toBe(
+        "ok",
+      );
+    });
+
+    it("still blanks a file input", (): void => {
+      /*
+       * A file input's DOM value is "C:\fakepath\<real filename>" and
+       * filenames are routinely personal. Blanked in every mode, sensitive
+       * or not.
+       */
+      const input: HTMLInputElement = document.createElement("input");
+      input.setAttribute("type", "file");
+
+      expect(
+        sensitiveOnly().maskInput("C:\\fakepath\\passport-scan.pdf", input),
+      ).toBe("");
+    });
+
+    it("leaves static page text alone", (): void => {
+      expect(sensitiveOnly().getMaskTextSelector()).toBe("");
     });
   });
 

@@ -60,7 +60,7 @@ Konfigurera följande på ett Bash-steg:
 - **Körnings-timeout** — hur länge agenten låter skriptet köra innan den dödar det med `SIGKILL`. Standard är 30 sekunder; höj den för steg som verkligen tar flera minuter.
 - **Claim-timeout** — hur länge Worker'n väntar på att agenten plockar upp jobbet. Standard är 2 minuter.
 
-Om den valda agenten är offline när runbooket når detta steg väntar steget upp till **claim-timeouten** (standard 2 minuter) och misslyckas sedan med `TimedOut`. Lägg till en agent under **Runbooks → Settings → Agents** innan du lutar dig mot ett Bash-steg.
+Om den valda agenten är offline när runbooket når detta steg väntar steget upp till **claim-timeouten** (standard 2 minuter) och misslyckas sedan med `TimedOut`. Lägg till en agent under **Settings → Runners** innan du lutar dig mot ett Bash-steg.
 
 ### AI
 

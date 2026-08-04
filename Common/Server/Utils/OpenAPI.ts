@@ -1082,7 +1082,8 @@ export default class OpenAPIUtil {
 
     data.registry.registerPath({
       method: "post",
-      path: `${model.crudApiPath}/{id}`,
+      // BaseAnalyticsAPI routes get-item at /:id/get-item; a bare /:id POST does not exist.
+      path: `${model.crudApiPath}/{id}/get-item`,
       operationId: `get${tableName}`,
       summary: `Get ${singularModelName}`,
       description: `Endpoint to retrieve a single ${singularModelName} by ID`,

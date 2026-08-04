@@ -4,14 +4,11 @@ import AIRunType from "../../../../Types/AI/AIRunType";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import AIRunAutoGrade from "../../../../Types/AI/AIRunAutoGrade";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
+import PostedRootCause from "./PostedRootCause";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import Incident from "../../../../Models/DatabaseModels/Incident";
-import IncidentFeed, {
-  IncidentFeedEventType,
-} from "../../../../Models/DatabaseModels/IncidentFeed";
 import AIRunService from "../../../Services/AIRunService";
 import IncidentService from "../../../Services/IncidentService";
-import IncidentFeedService from "../../../Services/IncidentFeedService";
 import AIService, {
   AILogResponse,
   AI_INVESTIGATION_GRADING_FEATURE,
@@ -180,27 +177,11 @@ export default class InvestigationGrader {
       /*
        * The posted analysis: the latest RootCause feed item — the AI's
        * postAnalysis is its only writer, and it is the only persisted copy
-       * of the analysis (the same source the fix recipes read).
+       * of the analysis (the same source the fix recipes and the remediation
+       * planner read, through this one helper).
        */
-      const feedItem: IncidentFeed | null = await IncidentFeedService.findOneBy(
-        {
-          query: {
-            incidentId: incidentId,
-            incidentFeedEventType: IncidentFeedEventType.RootCause,
-          },
-          select: {
-            feedInfoInMarkdown: true,
-          },
-          sort: {
-            createdAt: SortOrder.Descending,
-          },
-          props: { isRoot: true },
-        },
-      );
-
-      const analysisMarkdown: string = (
-        feedItem?.feedInfoInMarkdown || ""
-      ).trim();
+      const analysisMarkdown: string | null =
+        await PostedRootCause.getForIncident(incidentId);
 
       if (!analysisMarkdown) {
         logger.debug(

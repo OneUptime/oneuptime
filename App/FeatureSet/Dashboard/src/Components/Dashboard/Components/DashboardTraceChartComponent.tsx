@@ -100,6 +100,7 @@ const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
         arguments: props.component.arguments,
         startTime: startAndEndDate.startValue,
         endTime: startAndEndDate.endValue,
+        variables: props.variables,
       });
 
       const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
@@ -141,6 +142,7 @@ const DashboardTraceChartComponentElement: FunctionComponent<ComponentProps> = (
     props.component.arguments.attributeFilters,
     props.component.arguments.topLimit,
     props.component.arguments.includeChildSpans,
+    props.variables,
   ]);
 
   useEffect(() => {
@@ -354,10 +356,18 @@ function arePropsEqual(prev: ComponentProps, next: ComponentProps): boolean {
     return false;
   }
 
-  return JSONFunctions.deepEqual(
-    prev.component.arguments,
-    next.component.arguments,
-  );
+  if (
+    !JSONFunctions.deepEqual(prev.component.arguments, next.component.arguments)
+  ) {
+    return false;
+  }
+
+  /*
+   * Variable selections feed the request's attribute filter, so a toolbar
+   * pick has to get past the memo — without this the widget keeps rendering
+   * the pre-selection data.
+   */
+  return JSONFunctions.deepEqual(prev.variables, next.variables);
 }
 
 export default React.memo(DashboardTraceChartComponentElement, arePropsEqual);

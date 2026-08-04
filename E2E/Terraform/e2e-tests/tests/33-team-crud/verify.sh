@@ -19,20 +19,4 @@ if [ -z "$BASIC_ID" ] || [ -z "$DETAILED_ID" ] || [ -z "$ENGINEERING_ID" ] || [ 
 fi
 
 echo ""
-echo "=== Verifying idempotency ==="
-PLAN_OUTPUT=$(terraform plan -detailed-exitcode 2>&1) || PLAN_EXIT_CODE=$?
-PLAN_EXIT_CODE=${PLAN_EXIT_CODE:-0}
-
-if [ "$PLAN_EXIT_CODE" -eq 0 ]; then
-    echo "SUCCESS: Idempotency test PASSED"
-elif [ "$PLAN_EXIT_CODE" -eq 2 ]; then
-    echo "ERROR: Changes detected"
-    echo "$PLAN_OUTPUT"
-    exit 1
-else
-    echo "ERROR: terraform plan failed"
-    exit 1
-fi
-
-echo ""
 echo "=== Team CRUD Test PASSED ==="

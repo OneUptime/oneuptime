@@ -46,7 +46,7 @@ const DEFAULT_STATUS_ID: ObjectID = ObjectID.generate();
 const INCIDENT_SEVERITY_ID: ObjectID = ObjectID.generate();
 const ALERT_SEVERITY_ID: ObjectID = ObjectID.generate();
 
-const RESOURCE_IDENTIFIER: string = "prod-cluster-01";
+const RESOURCE_IDENTIFIER: string = ObjectID.generate().toString();
 const RESOURCE_DISPLAY_NAME: string = "Prod Cluster";
 
 const KUBERNETES_RECOMMENDATIONS: Array<MonitorRecommendation> =
@@ -404,11 +404,12 @@ describe("MonitorRecommendationCreateUtil", () => {
           notificationSettings: {},
         });
 
-        expect(monitor.monitorType).toBe(definition.monitorType);
+        expect(monitor.monitorType).toBe(recommendation.monitorType);
+        expect(definition.monitorTypes).toContain(recommendation.monitorType);
         expect(
           MonitorSteps.getValidationError(
             monitor.monitorSteps!,
-            definition.monitorType,
+            recommendation.monitorType,
           ),
         ).toBeNull();
       }

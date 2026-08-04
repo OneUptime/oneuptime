@@ -2,6 +2,7 @@ import { SessionReplayConfigResponse } from "Common/Types/Rum/SessionReplay";
 import SessionReplayTriggerReason from "Common/Types/Rum/SessionReplayTriggerReason";
 import Config, { RECORDER_VERSION, RecorderInitOptions } from "./Config";
 import Consent from "./Consent";
+import { EarlyErrorRecord } from "./EarlyErrors";
 import Recorder from "./Recorder";
 
 /*
@@ -32,10 +33,17 @@ const BOOTSTRAP_FLAG_GLOBAL: string = "__ONEUPTIME_SESSION_REPLAY_STARTED__";
 export interface SessionReplayApi {
   version: string;
 
-  /* Called by the loader with an already-validated policy. */
+  /*
+   * Called by the loader with an already-validated policy, plus whatever
+   * errors its pre-load buffer caught while the artifact was downloading.
+   * The third argument is optional so an OLDER cached stub calling a
+   * newer artifact (or vice versa) keeps working — additive-only is the
+   * rule for this contract.
+   */
   bootstrap: (
     initOptions: RecorderInitOptions,
     config: SessionReplayConfigResponse,
+    earlyErrors?: Array<EarlyErrorRecord>,
   ) => void;
 
   /* Self-service entry point for a page that hosts the bundle itself. */
@@ -69,6 +77,7 @@ function markStarted(): boolean {
 export function bootstrap(
   initOptions: RecorderInitOptions,
   config: SessionReplayConfigResponse,
+  earlyErrors?: Array<EarlyErrorRecord>,
 ): void {
   if (activeRecorder) {
     return;
@@ -96,7 +105,29 @@ export function bootstrap(
     return;
   }
 
-  activeRecorder = new Recorder({ initOptions: initOptions, config: config });
+  activeRecorder = new Recorder({
+    initOptions: initOptions,
+    config: config,
+    ...(earlyErrors && earlyErrors.length > 0
+      ? { earlyErrors: earlyErrors }
+      : {}),
+  });
+
+  /*
+   * Consent decisions queued while the artifact downloaded are applied
+   * BEFORE start(): replayEarlyErrors() runs at the end of start() and
+   * can dispatch the session's first upload, and a revokeConsent the page
+   * already issued must win over that upload, not chase it. Only the
+   * consent-shaped commands run here — captureSession() pre-start would
+   * arm a trigger on a recorder with no snapshot yet.
+   */
+  drainCommandQueue(CONSENT_COMMANDS);
+
+  if (!activeRecorder) {
+    /* Revoked or stopped before it ever started. Nothing may upload. */
+    return;
+  }
+
   activeRecorder.start();
 
   drainCommandQueue();
@@ -160,11 +191,25 @@ export function getSessionId(): string | null {
 export const version: string = RECORDER_VERSION;
 
 /*
+ * The commands that may (and must) run before the recorder starts: they
+ * decide WHETHER anything records or uploads at all, and they are safe on
+ * a not-yet-started recorder. Everything else waits until after start().
+ */
+const CONSENT_COMMANDS: ReadonlyArray<string> = [
+  "grantConsent",
+  "revokeConsent",
+  "stop",
+];
+
+/*
  * Apply commands the page queued before this bundle arrived. Unknown command
  * names are ignored rather than thrown on: the page may have been written
  * against a newer recorder than the one the config pinned.
+ *
+ * With `only`, just the named commands are consumed and everything else
+ * stays queued for a later full drain.
  */
-function drainCommandQueue(): void {
+function drainCommandQueue(only?: ReadonlyArray<string>): void {
   const globalRecord: Record<string, unknown> = globalThis as unknown as Record<
     string,
     unknown
@@ -176,6 +221,8 @@ function drainCommandQueue(): void {
     return;
   }
 
+  const remainder: Array<unknown> = [];
+
   for (const entry of queue) {
     if (!Array.isArray(entry)) {
       continue;
@@ -183,6 +230,11 @@ function drainCommandQueue(): void {
 
     const command: unknown = entry[0];
     const argument: unknown = entry[1];
+
+    if (only && (typeof command !== "string" || !only.includes(command))) {
+      remainder.push(entry);
+      continue;
+    }
 
     if (command === "captureSession") {
       captureSession();
@@ -197,5 +249,5 @@ function drainCommandQueue(): void {
     }
   }
 
-  globalRecord[COMMAND_QUEUE_GLOBAL] = [];
+  globalRecord[COMMAND_QUEUE_GLOBAL] = remainder;
 }

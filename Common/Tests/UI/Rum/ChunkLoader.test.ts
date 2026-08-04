@@ -29,6 +29,12 @@ function makeEntry(
     eventCount: 10,
     hasFullSnapshot: options?.hasFullSnapshot ?? false,
     payloadBytes: options?.payloadBytes ?? 4096,
+    errorCount: 0,
+    rageClickCount: 0,
+    deadClickCount: 0,
+    errorClickCount: 0,
+    refreshRageCount: 0,
+    routeCount: 0,
   };
 }
 
@@ -622,5 +628,163 @@ describe("ChunkLoader paging and caching", () => {
     );
 
     await expect(loader.ensureChunk(9)).resolves.toBeNull();
+  });
+});
+
+/*
+ * Timeline-event extraction: the recorder embeds console/network/route/
+ * error records as rrweb type-5 custom events, and the loader lifts them
+ * out on admit. These pin that the data the DevTools panel and the exact
+ * network lane run on actually gets extracted — it used to be downloaded
+ * and discarded.
+ */
+describe("ChunkLoader timeline events", () => {
+  const customEvent: (
+    tag: string,
+    payload: Record<string, unknown>,
+    timestamp: number,
+  ) => Record<string, unknown> = (
+    tag: string,
+    payload: Record<string, unknown>,
+    timestamp: number,
+  ): Record<string, unknown> => {
+    return { type: 5, timestamp: timestamp, data: { tag: tag, payload } };
+  };
+
+  const baseTs: number = 1_700_000_000_000;
+
+  const eventfulBody: () => string = (): string => {
+    return JSON.stringify([
+      { type: 2, timestamp: baseTs, data: {} },
+      customEvent(
+        "oneuptime.network",
+        {
+          method: "POST",
+          url: "https://api.example.com/orders",
+          status: 500,
+          durationMs: 220,
+          responseBytes: 512,
+        },
+        baseTs + 2000,
+      ),
+      customEvent(
+        "oneuptime.console",
+        { level: "error", message: "order save failed" },
+        baseTs + 2500,
+      ),
+      customEvent(
+        "oneuptime.route",
+        { from: "/cart", to: "/checkout", kind: "pushState" },
+        baseTs + 4000,
+      ),
+      customEvent("oneuptime.unknown-future-tag", { x: 1 }, baseTs + 4100),
+      { type: 5, timestamp: baseTs + 4200, data: { tag: "oneuptime.console" } },
+      { type: 3, timestamp: baseTs + 5000, data: {} },
+    ]);
+  };
+
+  it("extracts the recorder's custom events with exact within-chunk offsets", () => {
+    const extracted: Array<{
+      kind: string;
+      offsetMs: number;
+      method?: string;
+      status?: number;
+      message?: string;
+      to?: string;
+    }> = ChunkLoader.extractTimelineEvents(
+      makeEntry(2),
+      JSON.parse(eventfulBody()),
+    );
+
+    /* Unknown tags are skipped; a payload-less custom event still lands. */
+    expect(extracted).toHaveLength(4);
+
+    /* Chunk 2 starts at 2 * 15s; the network event is 2s into the chunk. */
+    expect(extracted[0]!.kind).toBe("network");
+    expect(extracted[0]!.offsetMs).toBe(2 * CHUNK_MS + 2000);
+    expect(extracted[0]!.method).toBe("POST");
+    expect(extracted[0]!.status).toBe(500);
+
+    expect(extracted[1]!.kind).toBe("console");
+    expect(extracted[1]!.message).toBe("order save failed");
+
+    expect(extracted[2]!.kind).toBe("route");
+    expect(extracted[2]!.to).toBe("/checkout");
+
+    /* The malformed console event degrades to empty fields, not a throw. */
+    expect(extracted[3]!.kind).toBe("console");
+    expect(extracted[3]!.message).toBe("");
+  });
+
+  it("clamps a skewed timestamp inside its chunk's window", () => {
+    const extracted: Array<{ offsetMs: number }> =
+      ChunkLoader.extractTimelineEvents(makeEntry(1), [
+        { type: 2, timestamp: baseTs, data: {} },
+        customEvent(
+          "oneuptime.console",
+          { level: "warn", message: "late" },
+          baseTs + 10 * CHUNK_MS,
+        ) as never,
+      ]);
+
+    expect(extracted[0]!.offsetMs).toBe(2 * CHUNK_MS);
+  });
+
+  it("keeps extracted events across eviction and clears them on dispose", async () => {
+    const fetcher: RecordingFetcher = makeFetcher({
+      payloadFor: (): string => {
+        return eventfulBody();
+      },
+    });
+
+    const loader: ChunkLoader = makeLoader(
+      [makeEntry(0, { hasFullSnapshot: true }), makeEntry(1)],
+      fetcher,
+    );
+
+    await loader.loadPage(0);
+
+    expect(loader.getTimelineEvents().length).toBeGreaterThan(0);
+    const countAfterLoad: number = loader.getTimelineEvents().length;
+
+    /* Evicting the decoded payloads must NOT blank the panel's data. */
+    loader.evictOutsideWindow(99, 0);
+    expect(loader.getDecodedChunkIndexes()).toHaveLength(0);
+    expect(loader.getTimelineEvents()).toHaveLength(countAfterLoad);
+
+    loader.dispose();
+    expect(loader.getTimelineEvents()).toHaveLength(0);
+  });
+
+  it("caps the extracted set and reports the truncation honestly", async () => {
+    const noisyBody: string = JSON.stringify([
+      { type: 2, timestamp: baseTs, data: {} },
+      ...Array.from(
+        { length: 2100 },
+        (_unused: unknown, index: number): Record<string, unknown> => {
+          return customEvent(
+            "oneuptime.console",
+            { level: "log", message: `spam ${index}` },
+            baseTs + index,
+          );
+        },
+      ),
+    ]);
+
+    const fetcher: RecordingFetcher = makeFetcher({
+      payloadFor: (): string => {
+        return noisyBody;
+      },
+    });
+
+    const loader: ChunkLoader = makeLoader(
+      [makeEntry(0, { hasFullSnapshot: true })],
+      fetcher,
+    );
+
+    await loader.loadPage(0);
+
+    expect(loader.getTimelineEvents()).toHaveLength(2000);
+    expect(loader.areTimelineEventsTruncated()).toBe(true);
   });
 });

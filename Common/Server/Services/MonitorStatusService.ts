@@ -1,3 +1,4 @@
+import logger from "../Utils/Logger";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
@@ -142,17 +143,30 @@ export class Service extends DatabaseService<Model> {
         newPriority = monitorStatus.priority! - 1;
       }
 
-      await this.updateOneBy({
-        query: {
-          _id: monitorStatus._id!,
-        },
-        data: {
-          priority: newPriority,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+      /*
+       * Concurrent deletes (e.g. Terraform destroying several statuses in
+       * parallel) can soft-delete a status between the findBy above and this
+       * update. save() then treats the row as new and INSERTs with a null
+       * projectId, failing the whole delete with a 500. A status that
+       * vanished mid-rearrange needs no repositioning — skip it.
+       */
+      try {
+        await this.updateOneBy({
+          query: {
+            _id: monitorStatus._id!,
+          },
+          data: {
+            priority: newPriority,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+      } catch (err) {
+        logger.warn(
+          `rearrangePriority: skipping monitor status ${monitorStatus._id?.toString()} (likely deleted concurrently): ${err}`,
+        );
+      }
     }
   }
 }

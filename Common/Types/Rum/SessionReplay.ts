@@ -48,6 +48,16 @@ export const MAX_SESSION_REPLAY_CHUNKS_PER_READ: number = 8;
 export const MAX_SESSION_REPLAY_READ_BYTES: number = 8 * 1024 * 1024;
 
 /*
+ * Default for the instance-wide per-project daily byte budget. The live
+ * value is the SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY env var; this
+ * default is shared between the ingest gate (App Telemetry Config) and the
+ * Dashboard-facing ingest-status endpoint so the number the gate enforces
+ * and the number the customer is shown cannot drift.
+ */
+export const DEFAULT_SESSION_REPLAY_MAX_BYTES_PER_PROJECT_PER_DAY: number =
+  1024 * 1024 * 1024;
+
+/*
  * Recorder flush triggers. A chunk closes on whichever comes first.
  * SESSION_REPLAY_CHECKOUT_INTERVAL_MS is also the worst-case seek
  * granularity, since seeking rewinds to the nearest full snapshot.
@@ -91,6 +101,24 @@ export const SESSION_REPLAY_CONTENT_TYPE: string =
 /* Header carrying the RUM application identifier, needed pre-decode. */
 export const SESSION_REPLAY_APP_IDENTIFIER_HEADER: string =
   "x-oneuptime-app-identifier";
+
+/*
+ * Header carrying the host page's end-user reference on the CONFIG fetch,
+ * URI-component-encoded so a non-ASCII reference cannot make fetch() throw
+ * and take the whole recorder down with it. Only sent when the page
+ * provided a userRef, and only used server-side to answer one question:
+ * "is there a pending record-next-session target for this user?". A header
+ * rather than a query parameter so it can never land in access logs.
+ */
+export const SESSION_REPLAY_USER_REF_HEADER: string = "x-oneuptime-user-ref";
+
+/*
+ * How long a "record the next session for this user" target waits for
+ * that user to show up before expiring, and the cap on the reference
+ * length accepted from either side (dashboard or config fetch).
+ */
+export const SESSION_REPLAY_TARGET_TTL_SECONDS: number = 24 * 60 * 60;
+export const SESSION_REPLAY_MAX_USER_REF_LENGTH: number = 512;
 
 /*
  * Retention values a session may be clamped to. Under expiry-based
@@ -142,6 +170,12 @@ export enum SessionReplayFidelityNotice {
   SnapshotTooLarge = "snapshot-too-large",
   BufferOverflow = "buffer-overflow",
   BfcacheRestore = "bfcache-restore",
+  /*
+   * One or more configured ignoreErrorPatterns could not be applied
+   * (invalid regex, or over the count/length caps), so error triggering
+   * may be noisier than the application's settings intend.
+   */
+  IgnorePatternsDiscarded = "ignore-patterns-discarded",
 }
 
 /* Why a session stopped accumulating chunks. */
@@ -151,6 +185,13 @@ export enum SessionReplaySealedReason {
   DurationCap = "duration-cap",
   Budget = "budget",
   Truncated = "truncated",
+  /*
+   * Sealed by the never-finalized sweep for a session whose chunks never
+   * landed or expired before finalization could run: the header survives
+   * as an honest "a recording existed but was lost" record instead of
+   * sitting provisional (and re-swept) forever.
+   */
+  RecordingLost = "recording-lost",
 }
 
 /*
@@ -299,6 +340,58 @@ export interface SessionReplayConfigResponse {
   recordCanvas: boolean;
   captureUserIdentity: boolean;
 
+  /*
+   * Regex strings matched (case-insensitively) against an uncaught
+   * error's message and source URL. A matching error is still RECORDED in
+   * the session, but it no longer fires the error capture trigger — the
+   * dashboard-side remedy for a chronically-throwing third-party tag that
+   * would otherwise convert error-triggered capture into always-on
+   * upload, without waiting on a recorder release.
+   */
+  ignoreErrorPatterns: Array<string>;
+
+  /*
+   * ---- Fields below are OPTIONAL on the wire, deliberately. ----
+   *
+   * The loader stub validates this response field-by-field and lives
+   * under a hard byte budget; fields only the full recorder artifact acts
+   * on are not worth loader bytes to validate. The stub passes the raw
+   * body through (LoaderConfig.raw) and the artifact normalises these
+   * itself, treating absence as "feature off". The server always sends
+   * them (pinned by tests); older cached stubs simply don't validate
+   * them, which is the additive-only contract working as intended.
+   */
+
+  /*
+   * Origins the recorder may inject a W3C traceparent header into, so a
+   * recording links to the backend trace of the request that failed —
+   * with NO OTel browser instrumentation on the customer's page.
+   *
+   * Empty means never inject, and that default is the safety mechanism:
+   * adding a request header turns a simple cross-origin request into a
+   * preflighted one, and an API that does not allow traceparent in
+   * Access-Control-Allow-Headers would start failing because a RUM
+   * script was installed. Each listed origin is an explicit statement
+   * that its API accepts the header.
+   */
+  tracePropagationOrigins?: Array<string>;
+
+  /*
+   * Performance capture budgets, milliseconds; 0 disables that trigger.
+   * Exceeding a budget fires the Performance capture trigger, so slow
+   * sessions get recordings the same way broken ones do.
+   */
+  lcpBudgetMs?: number;
+  longTaskBudgetMs?: number;
+  slowRequestBudgetMs?: number;
+
+  /*
+   * True when this recorder boot matched a "record the next session for
+   * this user" target set from the Dashboard. The recorder records from
+   * the first event, trigger reason "manual". Consent gates still apply.
+   */
+  isTargeted?: boolean;
+
   respectDoNotTrack: boolean;
 
   /*
@@ -315,6 +408,14 @@ export interface SessionReplayChunkResponse {
   directive: SessionReplayDirective;
   configEpoch: number;
   retryAfterSeconds?: number;
+  /*
+   * WHY the directive says what it says ("budget-exhausted",
+   * "not-sampled", "rate-limited", ...). A recorder told to stop without a
+   * reason leaves the customer diagnosing silence; the reason string is a
+   * closed vocabulary, carries no user data, and lets the recorder log
+   * something a support ticket can quote.
+   */
+  reason?: string;
 }
 
 /*
@@ -329,6 +430,18 @@ export interface SessionReplayChunkManifestEntry {
   eventCount: number;
   hasFullSnapshot: boolean;
   payloadBytes: number;
+
+  /*
+   * Per-chunk signal counters. These feed the player's error, frustration
+   * and route timeline lanes and the "next error" jump — a lane drawn from
+   * counters the chunk row already carries, never inferred from payloads.
+   */
+  errorCount: number;
+  rageClickCount: number;
+  deadClickCount: number;
+  errorClickCount: number;
+  refreshRageCount: number;
+  routeCount: number;
 }
 
 /* A hole in the chunk sequence. Never crossed silently during playback. */

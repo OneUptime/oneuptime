@@ -45,6 +45,7 @@ export enum AlertFeedEventType {
   OwnerRuleExecuted = "OwnerRuleExecuted",
   PrivacyRuleExecuted = "PrivacyRuleExecuted",
   OnCallRuleExecuted = "OnCallRuleExecuted",
+  AutoRemediation = "AutoRemediation",
 }
 
 @EnableDocumentation()

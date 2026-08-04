@@ -2,11 +2,20 @@ import { JSONObject } from "../JSON";
 import MetricFormulaConfigData from "../Metrics/MetricFormulaConfigData";
 import MetricQueryConfigData from "../Metrics/MetricQueryConfigData";
 import MetricsViewConfig from "../Metrics/MetricsViewConfig";
+import ObjectID from "../ObjectID";
 import RollingTime from "../RollingTime/RollingTime";
 
 export default interface MonitorStepMetricMonitor {
   metricViewConfig: MetricsViewConfig;
   rollingTime: RollingTime;
+  /*
+   * Optional telemetry-resource scope. Historically generic metric monitors
+   * queried every matching series in the project; recommendation-created RUM
+   * monitors need to watch one application, whose id is stored in Metric as
+   * primaryEntityId. Optional keeps every existing project-wide metric
+   * monitor behaving exactly as before.
+   */
+  telemetryServiceIds?: Array<ObjectID> | undefined;
 }
 
 export class MonitorStepMetricMonitorUtil {
@@ -17,6 +26,7 @@ export class MonitorStepMetricMonitorUtil {
         formulaConfigs: [],
       },
       rollingTime: RollingTime.Past1Minute,
+      telemetryServiceIds: [],
     };
   }
 
@@ -64,10 +74,26 @@ export class MonitorStepMetricMonitorUtil {
       metricViewConfig: this.getMetricViewConfig(monitorStepMetricMonitor),
       rollingTime:
         monitorStepMetricMonitor?.rollingTime || RollingTime.Past1Minute,
+      ...(json["telemetryServiceIds"]
+        ? {
+            telemetryServiceIds: ObjectID.fromJSONArray(
+              json["telemetryServiceIds"] as Array<JSONObject>,
+            ),
+          }
+        : {}),
     };
   }
 
   public static toJSON(monitor: MonitorStepMetricMonitor): JSONObject {
-    return monitor as any as JSONObject;
+    return {
+      ...(monitor as any as JSONObject),
+      ...(monitor.telemetryServiceIds !== undefined
+        ? {
+            telemetryServiceIds: ObjectID.toJSONArray(
+              monitor.telemetryServiceIds,
+            ),
+          }
+        : {}),
+    };
   }
 }

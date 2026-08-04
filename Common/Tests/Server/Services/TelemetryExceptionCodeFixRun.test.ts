@@ -5,6 +5,7 @@ import LlmProviderService from "../../../Server/Services/LlmProviderService";
 import ServiceService from "../../../Server/Services/ServiceService";
 import CodeRepositoryService from "../../../Server/Services/CodeRepositoryService";
 import AIAgentService from "../../../Server/Services/AIAgentService";
+import RunnerService from "../../../Server/Services/RunnerService";
 import AIRunService from "../../../Server/Services/AIRunService";
 import AIAgentTaskPullRequestService from "../../../Server/Services/AIAgentTaskPullRequestService";
 import { RepoResolution } from "../../../Server/Utils/CodeRepository/StackTraceRepoResolver";
@@ -83,11 +84,25 @@ function mockReadinessOk(): void {
   jest
     .spyOn(CodeRepositoryService, "resolveRepositoryForException")
     .mockResolvedValue(fakeResolution());
-  jest.spyOn(AIAgentService, "getAIAgentForProject").mockResolvedValue({
+  const onlineAgent: AIAgent = {
     id: ObjectID.generate(),
     name: "agent",
     connectionStatus: AIAgentConnectionStatus.Connected,
-  } as unknown as AIAgent);
+  } as unknown as AIAgent;
+
+  jest
+    .spyOn(AIAgentService, "getAIAgentForProject")
+    .mockResolvedValue(onlineAgent);
+  jest
+    .spyOn(AIAgentService, "getConnectedAIAgentForProject")
+    .mockResolvedValue(onlineAgent);
+  /*
+   * The readiness check falls back to a code-fix-capable Runner when no
+   * AIAgent is online. Stubbed to none so this suite never reaches a database.
+   */
+  jest
+    .spyOn(RunnerService, "getOnlineCodeFixRunnerForProject")
+    .mockResolvedValue(null);
   /*
    * The llmProvider check also gates on the daily autonomous token budget
    * (AI_CODE_FIX_FEATURE is autonomous, so executeWithLogging enforces it).

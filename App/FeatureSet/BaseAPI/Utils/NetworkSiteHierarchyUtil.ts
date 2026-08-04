@@ -67,6 +67,20 @@ export const DEFAULT_UPTIME_WINDOW_DAYS: number = 30;
 export const MAX_UPTIME_WINDOW_DAYS: number = 90;
 export const MIN_UPTIME_WINDOW_DAYS: number = 1;
 
+/*
+ * Longest search text /network-site/search will act on. A site's name is a
+ * ShortText column, so nothing longer than this could match a row anyway —
+ * the cap is there to keep an unbounded caller-supplied string out of the
+ * ILIKE pattern the query builds from it.
+ */
+export const MAX_SEARCH_TEXT_LENGTH: number = 200;
+
+// A row the search endpoint has to print the path to.
+export interface SearchPathRow {
+  id: string;
+  materializedPath?: string | undefined;
+}
+
 export default class NetworkSiteHierarchyUtil {
   /*
    * Normalizes the caller-supplied uptime window: default 30 days, clamped
@@ -147,6 +161,48 @@ export default class NetworkSiteHierarchyUtil {
       isUnitLevel: site.isUnitLevel,
     });
     return breadcrumb;
+  }
+
+  /*
+   * Normalizes the caller-supplied search text. A non-string, or a string
+   * that is blank once trimmed, reads as NO SEARCH — which the endpoint
+   * answers with an empty result rather than with the whole project: an
+   * empty box must not be the query that returns everything.
+   *
+   * The length cap is applied after trimming (see MAX_SEARCH_TEXT_LENGTH).
+   */
+  public static normalizeSearchText(value: unknown): string {
+    if (typeof value !== "string") {
+      return "";
+    }
+    return value.trim().slice(0, MAX_SEARCH_TEXT_LENGTH);
+  }
+
+  /*
+   * Every ancestor id the given rows reference, deduplicated, minus the ones
+   * the caller already holds rows for.
+   *
+   * A search answers with matches from anywhere in the hierarchy, and each
+   * one has to print the path to it — so the names of their ancestors have
+   * to be resolved. Collecting the ids first is what keeps that to ONE extra
+   * query for the whole result set instead of one walk per hit.
+   */
+  public static collectAncestorIds(
+    rows: Array<SearchPathRow>,
+    knownIds: Set<string>,
+  ): Array<string> {
+    const ancestorIds: Set<string> = new Set<string>();
+    for (const row of rows) {
+      for (const ancestorId of NetworkSiteHierarchyUtil.parseAncestorIds(
+        row.materializedPath,
+        row.id,
+      )) {
+        if (!knownIds.has(ancestorId)) {
+          ancestorIds.add(ancestorId);
+        }
+      }
+    }
+    return Array.from(ancestorIds);
   }
 
   // ' / '-joined ancestor names for the map view, root-first.

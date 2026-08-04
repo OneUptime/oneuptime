@@ -1,11 +1,10 @@
-import SSOUtil from "../Utils/SSO";
+import SSOUtil, { VerifiedSamlResponse } from "../Utils/SSO";
 import URL from "Common/Types/API/URL";
 import Email from "Common/Types/Email";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import Exception from "Common/Types/Exception/Exception";
 import ServerException from "Common/Types/Exception/ServerException";
 import HashedString from "Common/Types/HashedString";
-import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { Host, HttpProtocol } from "Common/Server/EnvironmentConfig";
 import StatusPagePrivateUserService from "Common/Server/Services/StatusPagePrivateUserService";
@@ -31,7 +30,6 @@ import logger, {
 import Response from "Common/Server/Utils/Response";
 import StatusPagePrivateUser from "Common/Models/DatabaseModels/StatusPagePrivateUser";
 import StatusPageSSO from "Common/Models/DatabaseModels/StatusPageSso";
-import xml2js from "xml2js";
 
 // Initialize Express router.
 const router: ExpressRouter = Express.getRouter();
@@ -136,9 +134,6 @@ router.post(
         "base64",
       ).toString();
 
-      const response: JSONObject =
-        await xml2js.parseStringPromise(samlResponse);
-
       let issuerUrl: string = "";
       let email: Email | null = null;
 
@@ -225,24 +220,20 @@ router.post(
       }
 
       try {
-        SSOUtil.isPayloadValid(response);
-
-        if (
-          !SSOUtil.isSignatureValid(
+        /*
+         * Verify the signature AND extract the identity from the SAME
+         * cryptographically verified assertion. This single call defends against
+         * XML Signature Wrapping - see SSOUtil.getSamlResponseFromXML and
+         * GitHub issues #2949 and #2981.
+         */
+        const verifiedSaml: VerifiedSamlResponse =
+          SSOUtil.getSamlResponseFromXML(
             samlResponse,
             statusPageSSO.publicCertificate,
-          )
-        ) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadRequestException("Signature is not valid"),
           );
-        }
 
-        issuerUrl = SSOUtil.getIssuer(response);
-
-        email = SSOUtil.getEmail(response);
+        issuerUrl = verifiedSaml.issuerUrl;
+        email = verifiedSaml.email;
       } catch (err: unknown) {
         if (err instanceof Exception) {
           return Response.sendErrorResponse(req, res, err);

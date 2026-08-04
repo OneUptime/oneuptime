@@ -160,17 +160,6 @@ const ProxmoxClusters: FunctionComponent<
     return <ErrorMessage message={error} />;
   }
 
-  if (clusterCount === 0) {
-    return (
-      <Fragment>
-        <ProxmoxDocumentationCard
-          title="Getting Started with Proxmox Monitoring"
-          description="No Proxmox clusters connected yet. Install the agent using the guide below and your cluster will appear here automatically."
-        />
-      </Fragment>
-    );
-  }
-
   return (
     <Fragment>
       <ModelTable<ProxmoxCluster>
@@ -183,6 +172,12 @@ const ProxmoxClusters: FunctionComponent<
         query={mergeFiltersIntoQuery({ isArchived: false })}
         onFetchSuccess={(data: Array<ProxmoxCluster>) => {
           onResourcesFetched(data);
+        }}
+        onCreateSuccess={(item: ProxmoxCluster): Promise<ProxmoxCluster> => {
+          setClusterCount((currentCount: number | null): number => {
+            return (currentCount || 0) + 1;
+          });
+          return Promise.resolve(item);
         }}
         isDeleteable={false}
         isEditable={false}
@@ -360,6 +355,12 @@ const ProxmoxClusters: FunctionComponent<
           );
         }}
       />
+      {clusterCount === 0 && (
+        <ProxmoxDocumentationCard
+          title="Getting Started with Proxmox Monitoring"
+          description="No Proxmox clusters connected yet. Install the agent using the guide below and your cluster will appear here automatically."
+        />
+      )}
       {labelBulkActionModals}
       {ownerBulkActionModals}
     </Fragment>

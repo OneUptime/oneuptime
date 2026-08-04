@@ -56,6 +56,49 @@ En statisk blok af Markdown.
 
 Brug den, når: du vil have en sektionsoverskrift, et stykke kontekstuel tekst, en liste af links til runbooks eller et midlertidigt banner under en hændelse.
 
+## HTML
+
+Din egen HTML, CSS og JavaScript, renderet som en widget.
+
+**Indstillinger**: HTML-body'en, et valgfrit stylesheet, et valgfrit script og tre tilladelser, du kan slå til og fra.
+
+Brug den, når: du har brug for noget, som ingen indbygget widget dækker — et indlejret tredjeparts-badge, en tabel hentet fra et internt API, en brugerdefineret legend, et sæt stylede links ind i dine egne værktøjer.
+
+### Hvad den kan og ikke kan
+
+Widget'en renderes i en sandboxed frame på sin egen isolerede origin. Inde i den frame kan din kode stort set gøre hvad som helst: bygge DOM, køre timere, hente fra en hvilken som helst URL, tegne på et canvas.
+
+Hvad den ikke kan, er at nå ud til OneUptime-siden omkring den. Den har ingen adgang til dashboardets DOM, cookies, local storage eller API-session, og den kan ikke navigere browserfanen væk. Det gælder, uanset om dashboardet er privat eller delt offentligt.
+
+To konsekvenser, det er værd at kende, før du indsætter noget:
+
+- En `fetch` fra widget'en er en cross-origin-forespørgsel fra en opaque origin, så den server, du kalder, skal tillade det med CORS. At kalde OneUptime-API'et herfra er ikke understøttet.
+- Widget'en starter gennemsigtig. Sæt en baggrund på `body` i din CSS, hvis du vil have den til at fylde kortet.
+
+### Brug af dashboard-variabler
+
+Skriv `{{variableName}}` hvor som helst i din HTML, CSS eller JavaScript, og det erstattes med den variabels aktuelle værdi, før widget'en renderes. At vælge en ny værdi renderer widget'en igen. En pladsholder, der navngiver en variabel, som ikke findes, efterlades som den er.
+
+Scripts får de samme værdier plus dashboardets tidsinterval på `window.ONEUPTIME`:
+
+```javascript
+window.ONEUPTIME.variables.environment; // aktuel værdi, eller "" hvis ikke sat
+window.ONEUPTIME.startDate; // ISO 8601-streng, start på dashboardets tidsinterval
+window.ONEUPTIME.endDate; // ISO 8601-streng, slutningen på det
+```
+
+Widget'en genindlæses, hver gang dashboardet opdateres, så en widget, der henter sine egne data, følger med refresh-intervallet.
+
+### Tilladelser
+
+**Run JavaScript** (slået til som standard) kører dit script. Slå den fra for kun at rendere markup og styles — scriptet udelades så helt fra widget'en frem for blot at blive blokeret.
+
+**Open links in a new tab** (slået til som standard) lader links og `window.open` åbne en browserfane. Links åbnes altid i en ny fane; widget'en kan aldrig navigere selve dashboardet.
+
+**Allow forms to submit** (slået fra som standard) lader en `<form>` inde i widget'en indsende.
+
+Enhver, der kan redigere dashboardet, bestemmer, hvad denne widget kører, og alle, der ser dashboardet, kører det — på et offentligt dashboard inkluderer det anonyme besøgende. Behandl redigeringsadgang til et dashboard med en HTML-widget på, som du ville behandle adgang til enhver anden kode, du udgiver.
+
 ## Logs og traces
 
 ### Log Stream
@@ -143,6 +186,7 @@ Et par hurtige regler:
 - **Hvad sker der i systemet lige nu?** Log Stream, Trace List, Incident List.
 - **Tilstanden af en specifik gruppe ressourcer?** Den matchende liste-widget.
 - **En overskrift, et afsnit eller et link?** Text.
+- **Noget, som ingen af ovenstående dækker?** HTML — men først efter du har tjekket, at en indbygget widget virkelig ikke kan klare det.
 
 De fleste dashboards blander et par stykker — et diagram i toppen, en værdi eller to ved siden af, en tekst-adskillelse og en liste eller to nedenunder.
 

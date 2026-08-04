@@ -7,6 +7,8 @@ import SideMenu from "Common/UI/Components/SideMenu/SideMenu";
 import SideMenuItem from "Common/UI/Components/SideMenu/SideMenuItem";
 import SideMenuSection from "Common/UI/Components/SideMenu/SideMenuSection";
 import React, { FunctionComponent, ReactElement } from "react";
+import RecommendationsSideMenuItem from "../../../Components/Recommendations/RecommendationsSideMenuItem";
+import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 
 export interface ComponentProps {
   modelId: ObjectID;
@@ -27,6 +29,18 @@ const RumApplicationViewSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Info}
+        />
+        <RecommendationsSideMenuItem
+          link={{
+            title: "Recommendations",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.RUM_APPLICATION_VIEW_RECOMMENDATIONS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          resourceType={MonitorRecommendationResourceType.RumApplication}
+          resourceId={props.modelId}
+          icon={IconProp.Sparkles}
         />
         <SideMenuItem
           link={{
@@ -95,6 +109,29 @@ const RumApplicationViewSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Film}
+        />
+      </SideMenuSection>
+
+      <SideMenuSection title="Settings">
+        {/*
+         * This application's replay policy - masking, consent, sampling,
+         * origins, retention. It lives here rather than on a project-wide
+         * settings page because it governs THIS application's recordings
+         * and belongs next to them. The project master switch, the
+         * installation test and targeted capture are project-shaped and
+         * live in Project Settings > Session Replay.
+         */}
+        <SideMenuItem
+          link={{
+            title: "Session Replay",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_SETTINGS
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Settings}
         />
       </SideMenuSection>
 

@@ -4,16 +4,9 @@
 
 set -e
 
-# Helper function to unwrap API values that might be in wrapper format
-# e.g., {"_type": "Color", "value": "#FF5733"} -> "#FF5733"
-unwrap_value() {
-    local raw_value="$1"
-    if echo "$raw_value" | jq -e '.value' > /dev/null 2>&1; then
-        echo "$raw_value" | jq -r '.value'
-    else
-        echo "$raw_value" | jq -r '.'
-    fi
-}
+# Source common library (provides unwrap_value and other helpers)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/../../scripts/lib.sh"
 
 # Get terraform outputs
 RESOURCE_ID=$(terraform output -raw incident_state_id)

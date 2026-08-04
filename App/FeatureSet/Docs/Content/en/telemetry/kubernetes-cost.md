@@ -85,7 +85,29 @@ cost:
     scrapeInterval: 60s
 ```
 
-## Right-Sizing Data
+## Right-Sizing
+
+The **Right-Sizing** card on a cluster's Costs page recommends a CPU and memory request for every container it has enough history for, ranked by how much each change saves per month.
+
+A recommendation is observed demand plus 25% headroom, rounded to a value you can paste into a manifest (10m for CPU, 16Mi for memory):
+
+- **CPU** is sized from the **95th percentile** of hourly average usage. High enough to cover real load, low enough that one spike does not re-inflate the request for a month.
+- **Memory** is sized from the **peak** working set — never an average. See below.
+
+Requests are recommended; limits are not. A request is what the scheduler reserves and what the bill is calculated from, so it is the number that moves cost. Limits are a blast-radius decision that depends on whether you would rather a misbehaving container be throttled or killed, and that is not a call usage data can make for you.
+
+Each container is scored against its current request:
+
+- **Over-provisioned** — reserving materially more than it uses. This is where the savings estimate comes from.
+- **Under-provisioned** — reserving less than it uses, so it is being throttled or is at risk of an OOMKill. Fixing this *costs* money, and the card shows that as an increase rather than burying it.
+- **No request set** — nothing to shrink, but the scheduler cannot place the container safely and it is first to be evicted under pressure.
+- Anything within 15% of its recommendation is treated as already right-sized and is left out. Nobody should edit a manifest to shave 3% off a request.
+
+Two guards keep the advice honest. A workload needs at least **24 hours** of cost windows before it is sized at all — a four-hour window catches a nightly batch job at rest and would happily advise shrinking it to nothing. And savings are projected from the length of the window you are looking at, not from the row count, so a Deployment's saving is not multiplied by its replica count.
+
+The estimate assumes spend scales with what the engine allocated, which is `max(request, usage)`. In the over-provisioned case that reduces to the request, so the savings figure is exact rather than approximate.
+
+### The Data Behind It
 
 Alongside spend, the poller collects what a right-sizing recommendation needs: per-container CPU and memory **requests**, **limits**, and **usage**.
 
@@ -115,5 +137,7 @@ Allocation rows are stored in ClickHouse (one row per cluster, window, namespace
 - **Bundled OpenCost not ready** — `kubectl logs -n <agent namespace> deploy/<release>-kubernetes-agent-opencost`. It logs which cloud provider it detected and whether pricing data loaded.
 - **`mkdir /var/configs: permission denied` in the OpenCost log** — a chart bug fixed in chart 0.6.1. OpenCost ran as non-root with no writable config directory, so `Error downloading default pricing data` left its Allocation API unable to answer and the poller stalled — while the pod stayed `Running`, `/healthz` stayed green, and the node cost metrics kept publishing. Upgrade the chart (`helm repo update && helm upgrade ... --reuse-values`); cost rows appear on the next poll.
 - **Dashboard template shows no data** — the template reads the scraped cost metrics; confirm `cost.metrics.enabled` is `true`.
+- **Right-Sizing card is empty** — either the window is shorter than the 24 hours a recommendation needs (widen the time range), or every container is already within 15% of its recommended request, which the card says explicitly.
+- **Memory recommendations show `-` but CPU ones work** — no memory peak reached the server, so memory was deliberately left unsized rather than guessed from an average. On an external-engine install, set `cost.engine.prometheusUrl`. The card reports how many containers this affects.
 - **Numbers differ from the engine's own UI** — OneUptime includes the engine's reconciliation adjustments in each cost component and ships whole closed windows; partial current-hour spend appears after the window closes.
 - **Prometheus pod restarted** — with the default `emptyDir` storage a restart loses a few hours of usage history, so allocations for those windows may be smaller. Set `cost.prometheus.persistence.enabled=true` if that matters to you.

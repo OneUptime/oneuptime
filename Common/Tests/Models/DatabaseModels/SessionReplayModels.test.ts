@@ -85,35 +85,58 @@ describe("RumApplication session replay configuration", () => {
     }
   });
 
-  it("defaults to not recording anything at all", () => {
+  it("is enabled by default, and still captures nothing until something happens", () => {
     /*
-     * The single most important default in the feature. A recorder that is
-     * on by default would start capturing real end users' screens the
-     * moment a customer upgraded.
+     * Recording is on out of the box. The thing that keeps that from meaning
+     * "record everyone continuously" is the capture trigger below: sampling
+     * stays at 0, so a session is only uploaded when it actually goes wrong.
      */
-    expect(getColumn("isSessionReplayEnabled").defaultValue).toBe(false);
+    expect(getColumn("isSessionReplayEnabled").defaultValue).toBe(true);
     expect(getColumn("sessionReplaySamplePercentage").defaultValue).toBe(0);
   });
 
-  it("defaults to the strict privacy posture, not the useful-looking one", () => {
+  it("pins the shipped privacy defaults", () => {
     /*
-     * Masking happens in the browser before compression, so an
-     * under-masked capture cannot be repaired after the fact - the server
-     * never had the unmasked content.
+     * This test is a tripwire, not a preference. Masking happens in the
+     * end user's browser before compression, so an under-masked capture
+     * cannot be repaired after the fact - the server never had the
+     * unmasked content. Every value below is a deliberate product
+     * decision about what a customer who configures NOTHING records from
+     * their real users, and changing one should require changing this
+     * test and saying why in the same commit.
+     *
+     * The masking default is MaskSensitiveInputsOnly: passwords and
+     * declared card / one-time-code fields are masked in every mode and
+     * are not configurable, but static page text and ordinary input
+     * values are recorded. That is the trade made to keep recordings
+     * useful to debug from; the two stricter modes and the per-app mask /
+     * block selectors are how a deployment tightens it.
      */
     expect(getColumn("sessionReplayMaskingMode").defaultValue).toBe(
-      SessionReplayMaskingMode.MaskAllText,
+      SessionReplayMaskingMode.MaskSensitiveInputsOnly,
     );
+    /*
+     * Consent defaults to NotRequired: uploads start without a per-session
+     * grant. A deployment that needs a consent handshake - most EU ones -
+     * must set RequireExplicit per application.
+     */
     expect(getColumn("sessionReplayConsentMode").defaultValue).toBe(
-      SessionReplayConsentMode.RequireExplicit,
+      SessionReplayConsentMode.NotRequired,
     );
     expect(getColumn("sessionReplayCaptureTrigger").defaultValue).toBe(
       SessionReplayCaptureTrigger.OnErrorOrFrustration,
     );
+    /*
+     * Identity and country capture are ON, so a support engineer can find
+     * a named customer's session. Both remain behind the narrower write
+     * ACL asserted below - the default changed, the permission did not.
+     */
     expect(getColumn("sessionReplayCaptureUserIdentity").defaultValue).toBe(
-      false,
+      true,
     );
-    expect(getColumn("sessionReplayCaptureGeo").defaultValue).toBe(false);
+    expect(getColumn("sessionReplayCaptureGeo").defaultValue).toBe(true);
+
+    // Canvas stays off: expensive, and the player cannot replay it anyway.
     expect(getColumn("sessionReplayRecordCanvas").defaultValue).toBe(false);
   });
 
@@ -165,10 +188,15 @@ describe("RumApplication session replay configuration", () => {
 describe("Project.isSessionReplayAllowed", () => {
   const model: Project = new Project();
 
-  it("exists and defaults to off for the whole project", () => {
+  it("exists and defaults to on for the whole project", () => {
+    /*
+     * The project-wide switch is the one place to turn session replay off
+     * across every application at once, so it stays a real control even
+     * though it now defaults on.
+     */
     expect(
       model.getTableColumnMetadata("isSessionReplayAllowed").defaultValue,
-    ).toBe(false);
+    ).toBe(true);
   });
 
   it("is editable by a project owner or admin", () => {

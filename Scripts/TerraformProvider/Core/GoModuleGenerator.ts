@@ -12,41 +12,33 @@ export class GoModuleGenerator {
 
   public async generateModule(): Promise<void> {
     await this.generateGoMod();
-    await this.generateGoSum();
     await this.generateMainGo();
     await this.generateVersionGo();
   }
 
   private async generateGoMod(): Promise<void> {
     /*
-     * Generate minimal go.mod - dependencies will be fetched at latest versions
-     * by running 'go get -u' after 'go mod tidy' in GenerateProvider.ts
+     * Minimum versions only — GenerateProvider.ts runs `go get -u ./...`
+     * followed by `go mod tidy`, so every generation resolves the newest
+     * releases and the compile/vet/test gates catch breakage immediately.
+     * The floors below are recent enough that even a network-restricted
+     * build without the upgrade step gets CVE-patched dependencies.
      */
     const goModContent: string = `module ${this.config.goModuleName}
 
-go 1.23
+go 1.23.0
+
+toolchain go1.24.0
 
 require (
-	github.com/hashicorp/terraform-plugin-framework v1.0.0
+	github.com/hashicorp/terraform-plugin-framework v1.13.0
+	github.com/hashicorp/terraform-plugin-framework-validators v0.16.0
+	github.com/hashicorp/terraform-plugin-go v0.25.0
 	github.com/hashicorp/terraform-plugin-log v0.9.0
 )
 `;
-    /*
-     * Note: The version numbers above are placeholder minimum versions.
-     * The actual latest versions will be fetched by running 'go get -u ./...'
-     * after 'go mod tidy' in the generation process.
-     */
 
     await this.fileGenerator.writeFile("go.mod", goModContent);
-  }
-
-  private async generateGoSum(): Promise<void> {
-    // go.sum will be generated when running go mod tidy
-    const goSumContent: string = `# This file will be generated when running 'go mod tidy'
-# Run 'go mod tidy' after generating the provider to populate dependencies
-`;
-
-    await this.fileGenerator.writeFile("go.sum", goSumContent);
   }
 
   private async generateMainGo(): Promise<void> {

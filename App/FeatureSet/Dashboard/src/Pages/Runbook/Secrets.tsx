@@ -1,4 +1,4 @@
-import RunbookAgentsElement from "../../Components/RunbookAgent/RunbookAgents";
+import RunnersElement from "../../Components/Runner/Runners";
 import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -11,7 +11,7 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
-import RunbookAgent from "Common/Models/DatabaseModels/RunbookAgent";
+import Runner from "Common/Models/DatabaseModels/Runner";
 import RunbookSecret from "Common/Models/DatabaseModels/RunbookSecret";
 import React, {
   Fragment,
@@ -111,12 +111,12 @@ const RunbookSecrets: FunctionComponent<
           },
           {
             field: {
-              runbookAgents: true,
+              runners: true,
             },
             title: "Runbook agents which have access to this secret",
             fieldType: FormFieldSchemaType.MultiSelectDropdown,
             dropdownModal: {
-              type: RunbookAgent,
+              type: Runner,
               labelField: "name",
               valueField: "_id",
             },
@@ -140,12 +140,12 @@ const RunbookSecrets: FunctionComponent<
           },
           {
             field: {
-              runbookAgents: true,
+              runners: true,
             },
             title: "Runbook agents which have access to this secret",
             type: FieldType.EntityArray,
 
-            filterEntityType: RunbookAgent,
+            filterEntityType: Runner,
             filterQuery: {
               projectId: ProjectUtil.getCurrentProjectId()!,
             },
@@ -172,7 +172,7 @@ const RunbookSecrets: FunctionComponent<
           },
           {
             field: {
-              runbookAgents: {
+              runners: {
                 name: true,
                 _id: true,
                 projectId: true,
@@ -182,11 +182,7 @@ const RunbookSecrets: FunctionComponent<
             type: FieldType.EntityArray,
 
             getElement: (item: RunbookSecret): ReactElement => {
-              return (
-                <RunbookAgentsElement
-                  runbookAgents={item["runbookAgents"] || []}
-                />
-              );
+              return <RunnersElement runners={item["runners"] || []} />;
             },
           },
         ]}

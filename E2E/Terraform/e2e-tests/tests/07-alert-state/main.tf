@@ -13,7 +13,7 @@ provider "oneuptime" {
 }
 
 resource "oneuptime_alert_state" "test" {
-  name        = "terraform-e2e-alert-state-${formatdate("YYYYMMDDhhmmss", timestamp())}"
+  name        = "terraform-e2e-alert-state"
   description = "Alert state created by Terraform E2E tests"
   color       = "#800080"
   order       = 99

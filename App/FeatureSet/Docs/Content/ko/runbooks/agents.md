@@ -49,18 +49,18 @@ Runbook 에이전트는 이를 뒤집습니다. Bash와 JavaScript 단계는 우
 - Bash/JavaScript 단계로 하고 싶은 일을 할 수 있어야 합니다 (다른 호스트로 SSH, `kubectl`, 데이터베이스와 통신 등).
 
 ```bash
-docker run --name oneuptime-runbook-agent --restart unless-stopped \
-  -e RUNBOOK_AGENT_ID=<agent-id> \
-  -e RUNBOOK_AGENT_KEY=<agent-key> \
+docker run --name oneuptime-runner --restart unless-stopped \
+  -e ONEUPTIME_RUNNER_ID=<agent-id> \
+  -e ONEUPTIME_RUNNER_KEY=<agent-key> \
   -e ONEUPTIME_URL=https://oneuptime.yourdomain.com \
-  -d oneuptime/runbook-agent:release
+  -d oneuptime/runner:release
 ```
 
 ### 4. 에이전트 연결 확인
 
 **Runbooks → 설정 → 에이전트**로 돌아갑니다. 약 60초 안에 에이전트의 행이 `Connected`로 바뀌고 **마지막 확인** 시각이 갱신되어야 합니다. 계속 `Disconnected`라면:
 
-- 컨테이너 로그(`docker logs oneuptime-runbook-agent`)에서 인증 오류나 네트워크 실패를 확인.
+- 컨테이너 로그(`docker logs oneuptime-runner`)에서 인증 오류나 네트워크 실패를 확인.
 - 호스트에서 `curl`로 OneUptime URL에 닿는지 확인.
 - ID와 키가 공백 없이 복사됐는지 확인.
 
@@ -92,8 +92,8 @@ Runbook이 실행돼 그 단계에 닿으면, 워커는 그 에이전트 ID를 �
 
 클레임 타임아웃을 낮출 때 기억할 두 가지가 있습니다:
 
-- 에이전트는 폴링 주기(`RUNBOOK_AGENT_POLL_INTERVAL_MS`, 기본 5초)마다 새 작업을 요청합니다. 폴링 주기 한 번보다 짧은 클레임 타임아웃은 아무 문제 없는 에이전트가 작업을 보기도 전에 만료될 수 있고, 그러면 단계는 오프라인 에이전트일 때와 똑같은 "작업을 가져간 에이전트 없음" 메시지로 실패합니다.
-- 에이전트는 기본적으로 한 번에 한 작업만 실행합니다(동시 작업 수 상한은 `RUNBOOK_AGENT_CONCURRENCY`). 긴 단계가 에이전트를 점유하는 동안, 같은 에이전트를 향한 다른 단계들은 각자의 클레임 타임아웃을 소진하며 기다립니다. 실행 타임아웃을 분 단위로 올렸다면, 그 에이전트를 함께 쓰는 단계들의 클레임 타임아웃도 그에 맞춰 올리세요 — 아니면 다른 에이전트를 지정하세요.
+- 에이전트는 폴링 주기(`ONEUPTIME_RUNNER_POLL_INTERVAL_MS`, 기본 5초)마다 새 작업을 요청합니다. 폴링 주기 한 번보다 짧은 클레임 타임아웃은 아무 문제 없는 에이전트가 작업을 보기도 전에 만료될 수 있고, 그러면 단계는 오프라인 에이전트일 때와 똑같은 "작업을 가져간 에이전트 없음" 메시지로 실패합니다.
+- 에이전트는 기본적으로 한 번에 한 작업만 실행합니다(동시 작업 수 상한은 `ONEUPTIME_RUNNER_CONCURRENCY`). 긴 단계가 에이전트를 점유하는 동안, 같은 에이전트를 향한 다른 단계들은 각자의 클레임 타임아웃을 소진하며 기다립니다. 실행 타임아웃을 분 단위로 올렸다면, 그 에이전트를 함께 쓰는 단계들의 클레임 타임아웃도 그에 맞춰 올리세요 — 아니면 다른 에이전트를 지정하세요.
 
 ### 리스와 하트비트
 
@@ -115,7 +115,7 @@ Runbook 실행을 (실행 뷰나 API에서) 취소하면 `Pending`/`Claimed`/`Ru
 
 ### 동시성
 
-각 에이전트는 기본적으로 한 번에 한 작업만 실행합니다. 더 허용하려면 에이전트 컨테이너에 `RUNBOOK_AGENT_CONCURRENCY`를 설정하세요 — 단, 에이전트가 그 호스트의 다른 것과 자원을 공유한다는 점을 잊지 마세요.
+각 에이전트는 기본적으로 한 번에 한 작업만 실행합니다. 더 허용하려면 에이전트 컨테이너에 `ONEUPTIME_RUNNER_CONCURRENCY`를 설정하세요 — 단, 에이전트가 그 호스트의 다른 것과 자원을 공유한다는 점을 잊지 마세요.
 
 ## 환경 변수
 
@@ -124,12 +124,12 @@ Runbook 실행을 (실행 뷰나 API에서) 취소하면 `Pending`/`Claimed`/`Ru
 | 변수                                      | 필수   | 기본값  | 메모                                                                     |
 | ----------------------------------------- | ------ | ------- | ------------------------------------------------------------------------ |
 | `ONEUPTIME_URL`                           | 예     | —       | OneUptime 인스턴스의 베이스 URL, 예: `https://oneuptime.yourdomain.com`. |
-| `RUNBOOK_AGENT_ID`                        | 예     | —       | 에이전트의 설치 모달에 나오는 UUID.                                      |
-| `RUNBOOK_AGENT_KEY`                       | 예     | —       | 에이전트의 설치 모달에 나오는 시크릿.                                    |
-| `RUNBOOK_AGENT_POLL_INTERVAL_MS`          | 아니오 | `5000`  | 새 작업을 폴링하는 주기.                                                 |
-| `RUNBOOK_AGENT_HEARTBEAT_INTERVAL_MS`     | 아니오 | `60000` | 에이전트가 생존을 보고하는 주기.                                         |
-| `RUNBOOK_AGENT_JOB_HEARTBEAT_INTERVAL_MS` | 아니오 | `10000` | 실행 중인 작업의 리스를 갱신하는 주기.                                   |
-| `RUNBOOK_AGENT_CONCURRENCY`               | 아니오 | `1`     | 이 에이전트의 동시 작업 수 상한.                                         |
+| `ONEUPTIME_RUNNER_ID`                        | 예     | —       | 에이전트의 설치 모달에 나오는 UUID.                                      |
+| `ONEUPTIME_RUNNER_KEY`                       | 예     | —       | 에이전트의 설치 모달에 나오는 시크릿.                                    |
+| `ONEUPTIME_RUNNER_POLL_INTERVAL_MS`          | 아니오 | `5000`  | 새 작업을 폴링하는 주기.                                                 |
+| `ONEUPTIME_RUNNER_HEARTBEAT_INTERVAL_MS`     | 아니오 | `60000` | 에이전트가 생존을 보고하는 주기.                                         |
+| `ONEUPTIME_RUNNER_JOB_HEARTBEAT_INTERVAL_MS` | 아니오 | `10000` | 실행 중인 작업의 리스를 갱신하는 주기.                                   |
+| `ONEUPTIME_RUNNER_CONCURRENCY`               | 아니오 | `1`     | 이 에이전트의 동시 작업 수 상한.                                         |
 
 ## 에이전트 키 교체
 
@@ -139,14 +139,14 @@ Runbook 실행을 (실행 뷰나 API에서) 취소하면 `Pending`/`Claimed`/`Ru
 
 에이전트 관리는 기존 Runbooks 권한 그룹 아래에 있습니다:
 
-- `CreateRunbookAgent`, `EditRunbookAgent`, `DeleteRunbookAgent`, `ReadRunbookAgent` — 에이전트 레코드를 관리.
+- `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — 에이전트 레코드를 관리.
 - `RunbookAdmin`, `RunbookMember`, `RunbookViewer`(역할) — 팀에 할당하여 각각 전체 제어, 일상 사용, 읽기 전용 접근을 부여. `RunbookAdmin`은 위의 세분 권한을 모두 묶은 것.
 
 Runbook을 *트리거*하는 (따라서 Bash와 JavaScript 단계가 디스패치되도록 하는) 권한은 여전히 `CreateRunbookExecution` / `EditRunbookExecution`입니다.
 
 ## 에이전트 대상 API
 
-궁금한 분을 위해 — 에이전트는 다음 엔드포인트를 사용합니다. 모두 `/runbook-agent-ingest` 아래 마운트되며, JSON 본문의 에이전트 ID + 키(또는 `x-agent-id` / `x-agent-key` 헤더)로 인증됩니다.
+궁금한 분을 위해 — 에이전트는 다음 엔드포인트를 사용합니다. 모두 `/runner-ingest` 아래 마운트되며, JSON 본문의 에이전트 ID + 키(또는 `x-agent-id` / `x-agent-key` 헤더)로 인증됩니다.
 
 | 엔드포인트                   | 목적                                                                                                              |
 | ---------------------------- | ----------------------------------------------------------------------------------------------------------------- |

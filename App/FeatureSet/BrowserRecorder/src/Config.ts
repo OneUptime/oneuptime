@@ -1,5 +1,6 @@
 import {
   SESSION_REPLAY_APP_IDENTIFIER_HEADER,
+  SESSION_REPLAY_USER_REF_HEADER,
   SessionReplayConfigResponse,
 } from "Common/Types/Rum/SessionReplay";
 import SessionReplayCaptureTrigger from "Common/Types/Rum/SessionReplayCaptureTrigger";
@@ -33,8 +34,33 @@ export const RRWEB_VERSION: string = "2.1.1";
 
 export const AUTH_TOKEN_HEADER: string = "x-oneuptime-token";
 
-export const CONFIG_PATH: string = "/session-replay/v1/config";
-export const CHUNK_PATH: string = "/session-replay/v1/chunk";
+/*
+ * Every path is /telemetry-prefixed, and that prefix is load-bearing.
+ *
+ * The router is mounted at both "/" and "/telemetry", so the bare paths look
+ * equivalent from the server's point of view - but they are not equivalent
+ * from the browser's. On a real deployment nginx has a catch-all `location /`
+ * that proxies to the Home app, and Frontend's DashboardFallbackRoutePrefixes-
+ * ToSkip only exempts /telemetry. A request to /session-replay/v1/config
+ * therefore reaches the Home app and comes back 404, while the CORS preflight
+ * still succeeds - so the recorder saw a well-formed rejection and stopped,
+ * with no error anywhere.
+ *
+ * The artifact path already had the prefix; these two did not, which meant the
+ * recorder could never start against any deployment behind that nginx config.
+ */
+export const CONFIG_PATH: string = "/telemetry/session-replay/v1/config";
+export const CHUNK_PATH: string = "/telemetry/session-replay/v1/chunk";
+
+/*
+ * A standalone function rather than a Config static on purpose: class
+ * methods are never tree-shaken, and only the ARTIFACT posts chunks. As
+ * a static this rode along in the loader stub (which lives on a hard
+ * byte budget) as dead weight - together with the CHUNK_PATH string.
+ */
+export function getChunkUrl(options: RecorderInitOptions): string {
+  return `${options.host}${CHUNK_PATH}`;
+}
 
 /* Where the pinned, immutable artifact lives. */
 export const ARTIFACT_PATH_PREFIX: string = "/telemetry/session-replay";
@@ -73,6 +99,16 @@ export const CONFIG_FETCH_TIMEOUT_MS: number = 5000;
  */
 export interface LoaderConfig extends SessionReplayConfigResponse {
   recorderIntegrity?: string;
+
+  /*
+   * The config body exactly as received, UNVALIDATED. The loader stub
+   * lives under a hard byte budget, so fields only the full artifact acts
+   * on (trace propagation, performance budgets, targeted capture) are not
+   * validated here field-by-field; the artifact normalises them from this
+   * passthrough (see ExtendedConfig.ts) and treats a missing or hostile
+   * value as "feature off". Nothing in the LOADER may read through this.
+   */
+  raw?: Record<string, unknown>;
 }
 
 export interface RecorderInitOptions {
@@ -153,8 +189,24 @@ export default class Config {
       return null;
     }
 
+    /*
+     * The host defaults to wherever this script was served from.
+     *
+     * By definition that IS the OneUptime host - the browser just fetched
+     * the recorder from it - so requiring the customer to repeat it in a
+     * data-oneuptime-host attribute is redundant and, worse, silent when
+     * omitted: normaliseOptions rejects the whole config and the recorder
+     * does nothing at all, with no console output to explain why. The
+     * documented install snippet does not include the attribute, so anyone
+     * following the docs verbatim hit exactly that.
+     *
+     * An explicit data-oneuptime-host still wins, for deployments that proxy
+     * the script through their own domain.
+     */
+    const explicitHost: string | null = tag.getAttribute("data-oneuptime-host");
+
     const dataset: Record<string, unknown> = {
-      host: tag.getAttribute("data-oneuptime-host"),
+      host: explicitHost || Config.readHostFromScriptSrc(tag),
       token: tag.getAttribute("data-oneuptime-token"),
       appIdentifier: tag.getAttribute("data-oneuptime-app-identifier"),
       userRef: tag.getAttribute("data-oneuptime-user-ref"),
@@ -163,6 +215,29 @@ export default class Config {
     };
 
     return Config.normaliseOptions(dataset);
+  }
+
+  /*
+   * Origin of the script tag's own src, or null when it cannot be derived
+   * (an inline tag, or a src that will not parse).
+   */
+  private static readHostFromScriptSrc(tag: Element): string | null {
+    const src: string | null = tag.getAttribute("src");
+
+    if (!src) {
+      return null;
+    }
+
+    try {
+      /*
+       * Resolved against the page so a relative src - which is what a
+       * customer proxying the script through their own domain would use -
+       * still yields an absolute origin.
+       */
+      return new URL(src, window.location.href).origin;
+    } catch {
+      return null;
+    }
   }
 
   private static normaliseOptions(
@@ -205,10 +280,6 @@ export default class Config {
 
   public static getConfigUrl(options: RecorderInitOptions): string {
     return `${options.host}${CONFIG_PATH}`;
-  }
-
-  public static getChunkUrl(options: RecorderInitOptions): string {
-    return `${options.host}${CHUNK_PATH}`;
   }
 
   public static isValidRecorderVersion(value: unknown): value is string {
@@ -259,10 +330,37 @@ export default class Config {
       controller.abort();
     }, CONFIG_FETCH_TIMEOUT_MS);
 
+    const headers: Record<string, string> = Config.getIngestHeaders(options);
+
+    /*
+     * Config fetch only, never on chunks: the server answers the
+     * "record this user's next session" question exactly once, here.
+     * Encoded because fetch() THROWS on a non-ISO-8859-1 header value —
+     * an emoji in a customer's user id must not disable recording.
+     */
+    if (options.userRef) {
+      try {
+        /*
+         * Sliced to 512 = SESSION_REPLAY_MAX_USER_REF_LENGTH (a literal:
+         * importing the constant costs loader bytes we do not have). A
+         * longer ref can never match a target, and an unbounded one can
+         * blow the HTTP header-size limit and kill the whole fetch.
+         * encodeURIComponent throws on a lone surrogate — a page that
+         * truncated a string through an emoji, or this very slice — and
+         * that must skip targeting, never break recording.
+         */
+        headers[SESSION_REPLAY_USER_REF_HEADER] = encodeURIComponent(
+          options.userRef.slice(0, 512),
+        );
+      } catch {
+        /* Un-encodable ref: recording proceeds untargeted. */
+      }
+    }
+
     try {
       const response: Response = await fetch(Config.getConfigUrl(options), {
         method: "GET",
-        headers: Config.getIngestHeaders(options),
+        headers: headers,
         signal: controller.signal,
 
         /*
@@ -318,10 +416,21 @@ export default class Config {
       return null;
     }
 
+    /*
+     * Fail-closed on an unrecognised value: a config from a newer server
+     * than this recorder build, or a tampered response, must not be able
+     * to relax masking. Only the modes this build actually implements are
+     * honoured, and everything else collapses to the strictest one - NOT
+     * to the application's configured default, which this recorder has no
+     * trustworthy way to learn.
+     */
     const maskingMode: SessionReplayMaskingMode =
       raw["maskingMode"] === SessionReplayMaskingMode.MaskInputsOnly
         ? SessionReplayMaskingMode.MaskInputsOnly
-        : SessionReplayMaskingMode.MaskAllText;
+        : raw["maskingMode"] ===
+            SessionReplayMaskingMode.MaskSensitiveInputsOnly
+          ? SessionReplayMaskingMode.MaskSensitiveInputsOnly
+          : SessionReplayMaskingMode.MaskAllText;
 
     const consentMode: SessionReplayConsentMode =
       raw["consentMode"] === SessionReplayConsentMode.NotRequired
@@ -345,6 +454,11 @@ export default class Config {
       maskSelectors: Config.readStringArray(raw["maskSelectors"]),
       blockSelectors: Config.readStringArray(raw["blockSelectors"]),
       urlAllowlist: Config.readStringArray(raw["urlAllowlist"]),
+      /*
+       * Absent on an older server is an empty list: every error stays
+       * trigger-worthy, which is the pre-feature behaviour.
+       */
+      ignoreErrorPatterns: Config.readStringArray(raw["ignoreErrorPatterns"]),
       recordCanvas: raw["recordCanvas"] === true,
       captureUserIdentity: raw["captureUserIdentity"] === true,
 
@@ -357,6 +471,9 @@ export default class Config {
           : raw["directive"] === "throttle"
             ? "throttle"
             : "continue",
+
+      /* Artifact-only fields ride through unvalidated; see LoaderConfig.raw. */
+      raw: raw,
     };
 
     if (typeof integrity === "string" && integrity) {

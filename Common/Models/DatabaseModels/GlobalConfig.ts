@@ -1145,4 +1145,316 @@ export default class GlobalConfig extends GlobalConfigModel {
     default: 80,
   })
   public clickhouseDataPruningTargetPercent?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    title: "Redis Memory Notifications",
+    description:
+      "Notify master administrators when Redis memory usage rises above the configured threshold.",
+    defaultValue: false,
+    isDefaultValueColumn: true,
+    required: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public redisMemoryNotificationEnabled?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    title: "Redis Memory Notification Threshold (%)",
+    description:
+      "Notify master administrators when Redis memory usage rises above this percentage of maxmemory.",
+    defaultValue: 80,
+    isDefaultValueColumn: true,
+    required: true,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    default: 80,
+  })
+  public redisMemoryNotificationThresholdPercent?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    title: "Redis Connection Saturation Notifications",
+    description:
+      "Notify master administrators when Redis client connections approach the maxclients limit or connections are being rejected.",
+    defaultValue: false,
+    isDefaultValueColumn: true,
+    required: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public redisConnectionNotificationEnabled?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    title: "Redis Connection Notification Threshold (%)",
+    description:
+      "Notify master administrators when connected Redis clients rise above this percentage of maxclients.",
+    defaultValue: 80,
+    isDefaultValueColumn: true,
+    required: true,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    default: 80,
+  })
+  public redisConnectionNotificationThresholdPercent?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    title: "Redis Key Eviction Notifications",
+    description:
+      "Notify master administrators when Redis evicts keys because it reached its memory limit.",
+    defaultValue: false,
+    isDefaultValueColumn: true,
+    required: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public redisKeyEvictionNotificationEnabled?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    title: "Redis Persistence Failure Notifications",
+    description:
+      "Notify master administrators when a Redis RDB snapshot or AOF write fails.",
+    defaultValue: false,
+    isDefaultValueColumn: true,
+    required: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public redisPersistenceFailureNotificationEnabled?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    title: "Postgres Storage Notifications",
+    description:
+      "Notify master administrators when the Postgres database size rises above the configured share of its storage limit.",
+    defaultValue: false,
+    isDefaultValueColumn: true,
+    required: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public postgresStorageNotificationEnabled?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    title: "Postgres Storage Limit (GB)",
+    description:
+      "Size of the volume backing Postgres, in gigabytes. Postgres cannot report filesystem free space over SQL, so this is supplied by the administrator.",
+    required: false,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public postgresStorageLimitInGb?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    title: "Postgres Storage Notification Threshold (%)",
+    description:
+      "Notify master administrators when the Postgres database size rises above this percentage of the configured storage limit.",
+    defaultValue: 80,
+    isDefaultValueColumn: true,
+    required: true,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    default: 80,
+  })
+  public postgresStorageNotificationThresholdPercent?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    title: "Postgres Connection Saturation Notifications",
+    description:
+      "Notify master administrators when Postgres client backends approach the max_connections limit.",
+    defaultValue: false,
+    isDefaultValueColumn: true,
+    required: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public postgresConnectionNotificationEnabled?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    title: "Postgres Connection Notification Threshold (%)",
+    description:
+      "Notify master administrators when Postgres client backends rise above this percentage of max_connections.",
+    defaultValue: 80,
+    isDefaultValueColumn: true,
+    required: true,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    default: 80,
+  })
+  public postgresConnectionNotificationThresholdPercent?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    title: "Postgres Transaction ID Wraparound Notifications",
+    description:
+      "Notify master administrators when Postgres transaction-ID age approaches the wraparound ceiling at which Postgres refuses writes.",
+    defaultValue: false,
+    isDefaultValueColumn: true,
+    required: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public postgresWraparoundNotificationEnabled?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    title: "Postgres Wraparound Notification Threshold (%)",
+    description:
+      "Notify master administrators when transaction-ID age rises above this percentage of the wraparound ceiling.",
+    defaultValue: 50,
+    isDefaultValueColumn: true,
+    required: true,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    default: 50,
+  })
+  public postgresWraparoundNotificationThresholdPercent?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    title: "Postgres Replication Slot Notifications",
+    description:
+      "Notify master administrators when a Postgres replication slot retains too much WAL or has lost its WAL segments.",
+    defaultValue: false,
+    isDefaultValueColumn: true,
+    required: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public postgresReplicationSlotNotificationEnabled?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Number,
+    title: "Postgres Retained WAL Limit (GB)",
+    description:
+      "Notify master administrators when a single replication slot retains more than this many gigabytes of WAL.",
+    defaultValue: 10,
+    isDefaultValueColumn: true,
+    required: true,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    default: 10,
+  })
+  public postgresRetainedWalLimitInGb?: number = undefined;
 }

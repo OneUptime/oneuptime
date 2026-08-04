@@ -49,18 +49,18 @@ Kør Docker-kommandoen på en hvilken som helst host i dit miljø, der kan:
 - gøre de ting, du vil have dine Bash/JavaScript-trin til at gøre (fx SSH til andre hosts, `kubectl`, snakke med en database).
 
 ```bash
-docker run --name oneuptime-runbook-agent --restart unless-stopped \
-  -e RUNBOOK_AGENT_ID=<agent-id> \
-  -e RUNBOOK_AGENT_KEY=<agent-key> \
+docker run --name oneuptime-runner --restart unless-stopped \
+  -e ONEUPTIME_RUNNER_ID=<agent-id> \
+  -e ONEUPTIME_RUNNER_KEY=<agent-key> \
   -e ONEUPTIME_URL=https://oneuptime.dit-domæne.com \
-  -d oneuptime/runbook-agent:release
+  -d oneuptime/runner:release
 ```
 
 ### 4. Verificér at agenten er forbundet
 
 Gå tilbage til **Runbooks → Indstillinger → Agents**. Inden for ca. 60 sekunder skal agentens række skifte til `Connected` med et frisk **Last seen**-tidsstempel. Hvis den bliver `Disconnected`:
 
-- Tjek container-logs (`docker logs oneuptime-runbook-agent`) for auth- eller netværksfejl.
+- Tjek container-logs (`docker logs oneuptime-runner`) for auth- eller netværksfejl.
 - Verificér at hosten kan nå OneUptime-URL'en med `curl`.
 - Verificér at ID og nøgle blev kopieret uden whitespace.
 
@@ -92,8 +92,8 @@ Worker'ens samlede ventevindue er `claim timeout + execution timeout + et par se
 
 To ting du skal huske på, når du sætter claim timeout ned:
 
-- Agenten spørger efter arbejde i en fast poll-cyklus (`RUNBOOK_AGENT_POLL_INTERVAL_MS`, 5 sekunder som standard). En claim timeout, der er kortere end én poll-cyklus, kan udløbe, før en helt sund agent overhovedet har set jobbet, og trinnet fejler så med den samme besked ("no agent claimed the job"), som du ville få fra en offline agent.
-- En agent kører ét job ad gangen som standard (`RUNBOOK_AGENT_CONCURRENCY`). Mens et langt trin optager den, venter andre trin, der peger mod den samme agent, deres egen claim timeout ud. Hæver du en execution timeout til minutter, så hæv claim timeout tilsvarende på de trin, der deler den agent — eller giv dem en anden agent.
+- Agenten spørger efter arbejde i en fast poll-cyklus (`ONEUPTIME_RUNNER_POLL_INTERVAL_MS`, 5 sekunder som standard). En claim timeout, der er kortere end én poll-cyklus, kan udløbe, før en helt sund agent overhovedet har set jobbet, og trinnet fejler så med den samme besked ("no agent claimed the job"), som du ville få fra en offline agent.
+- En agent kører ét job ad gangen som standard (`ONEUPTIME_RUNNER_CONCURRENCY`). Mens et langt trin optager den, venter andre trin, der peger mod den samme agent, deres egen claim timeout ud. Hæver du en execution timeout til minutter, så hæv claim timeout tilsvarende på de trin, der deler den agent — eller giv dem en anden agent.
 
 ### Lease og heartbeat
 
@@ -115,7 +115,7 @@ Annullering af en runbook-eksekvering (fra eksekveringsvisningen eller API'en) m
 
 ### Samtidighed
 
-Hver agent kører ét job ad gangen som standard. For at tillade flere, sæt `RUNBOOK_AGENT_CONCURRENCY` på agent-containeren — men husk, at agenten deler host med alt andet der lever der.
+Hver agent kører ét job ad gangen som standard. For at tillade flere, sæt `ONEUPTIME_RUNNER_CONCURRENCY` på agent-containeren — men husk, at agenten deler host med alt andet der lever der.
 
 ## Environment variables
 
@@ -124,12 +124,12 @@ Agenten læser disse ved opstart:
 | Variabel                                  | Påkrævet | Standard | Noter                                                                      |
 | ----------------------------------------- | -------- | -------- | -------------------------------------------------------------------------- |
 | `ONEUPTIME_URL`                           | ja       | —        | Base-URL for din OneUptime-instans, fx `https://oneuptime.dit-domæne.com`. |
-| `RUNBOOK_AGENT_ID`                        | ja       | —        | UUID'en vist i agentens setup-modal.                                       |
-| `RUNBOOK_AGENT_KEY`                       | ja       | —        | Hemmeligheden vist i agentens setup-modal.                                 |
-| `RUNBOOK_AGENT_POLL_INTERVAL_MS`          | nej      | `5000`   | Hvor ofte agenten spørger efter nye jobs.                                  |
-| `RUNBOOK_AGENT_HEARTBEAT_INTERVAL_MS`     | nej      | `60000`  | Hvor ofte agenten rapporterer at den lever.                                |
-| `RUNBOOK_AGENT_JOB_HEARTBEAT_INTERVAL_MS` | nej      | `10000`  | Hvor ofte agenten fornyer lease'en på et kørende job.                      |
-| `RUNBOOK_AGENT_CONCURRENCY`               | nej      | `1`      | Maks. antal samtidige jobs på denne agent.                                 |
+| `ONEUPTIME_RUNNER_ID`                        | ja       | —        | UUID'en vist i agentens setup-modal.                                       |
+| `ONEUPTIME_RUNNER_KEY`                       | ja       | —        | Hemmeligheden vist i agentens setup-modal.                                 |
+| `ONEUPTIME_RUNNER_POLL_INTERVAL_MS`          | nej      | `5000`   | Hvor ofte agenten spørger efter nye jobs.                                  |
+| `ONEUPTIME_RUNNER_HEARTBEAT_INTERVAL_MS`     | nej      | `60000`  | Hvor ofte agenten rapporterer at den lever.                                |
+| `ONEUPTIME_RUNNER_JOB_HEARTBEAT_INTERVAL_MS` | nej      | `10000`  | Hvor ofte agenten fornyer lease'en på et kørende job.                      |
+| `ONEUPTIME_RUNNER_CONCURRENCY`               | nej      | `1`      | Maks. antal samtidige jobs på denne agent.                                 |
 
 ## Roter en agent-nøgle
 
@@ -139,14 +139,14 @@ Hvis en nøgle lækker, åbn agenten i OneUptime og nulstil nøglen. Den gamle s
 
 Håndtering af agenter ligger under den eksisterende Runbooks-rettighedsgruppe:
 
-- `CreateRunbookAgent`, `EditRunbookAgent`, `DeleteRunbookAgent`, `ReadRunbookAgent` — håndter agent-records.
+- `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — håndter agent-records.
 - `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (roller) — tildel et team for at give henholdsvis fuld kontrol, daglig brug eller læseadgang. `RunbookAdmin` samler alle de granulære rettigheder ovenfor.
 
 Rettigheder til at _udløse_ et runbook (og dermed afsende Bash- og JavaScript-trin) er stadig `CreateRunbookExecution` / `EditRunbookExecution`.
 
 ## Agent-API
 
-For de nysgerrige — agenten bruger disse endpoints, monteret under `/runbook-agent-ingest`. De godkendes af agent-ID + nøgle i JSON-body'en (eller `x-agent-id` / `x-agent-key`-headere).
+For de nysgerrige — agenten bruger disse endpoints, monteret under `/runner-ingest`. De godkendes af agent-ID + nøgle i JSON-body'en (eller `x-agent-id` / `x-agent-key`-headere).
 
 | Endpoint                     | Formål                                                                                                                    |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------- |

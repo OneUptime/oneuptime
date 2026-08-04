@@ -2,6 +2,7 @@ import {
   NetworkTopologyEdge,
   NetworkTopologyEdgeEndpoint,
   NetworkTopologyNode,
+  NetworkTopologyNodeStatus,
 } from "Common/Types/Monitor/SnmpMonitor/NetworkTopology";
 
 /*
@@ -144,6 +145,159 @@ export function formatUtilization(value: number | undefined): string {
     return "—";
   }
   return `${Math.round(value)}%`;
+}
+
+/*
+ * Node status colours, alongside the link colours above and following the
+ * same rule: red and green carry meaning that must not change between
+ * light and dark, so they stay literal hex. "Unknown" carries no meaning
+ * beyond "no data", so it uses the theme's neutral variable — the old
+ * literal #9ca3af is not one of the greys Theme.css remaps for SVG, so an
+ * unknown device was very nearly invisible against a dark canvas.
+ */
+export const NODE_STATUS_COLORS: Record<NetworkTopologyNodeStatus, string> = {
+  up: "#16a34a",
+  down: "#dc2626",
+  unknown: "var(--ou-chart-series-neutral, #64748b)",
+};
+
+export type NetworkTopologyNodeKind = "device" | "unmanaged" | "endpoint";
+
+/**
+ * What each node shape means. Endpoints are violet on purpose —
+ * deliberately outside the up/down/unknown range, so a discovered
+ * printer can never be misread as a device that is down, and legible on
+ * both a white and a near-black canvas.
+ */
+export const ENDPOINT_NODE_FILL: string = "#a78bfa";
+export const ENDPOINT_NODE_STROKE: string = "#7c3aed";
+
+/** The key to reading the graph, as data rather than as prose. */
+export interface TopologyLegendEntry {
+  group: "Status" | "Kind" | "Link";
+  label: string;
+  /** How the swatch is drawn: a filled dot, an outline, or a line. */
+  swatch: "dot" | "hollow-dot" | "square" | "line" | "dashed-line";
+  color: string;
+}
+
+export const TOPOLOGY_LEGEND: Array<TopologyLegendEntry> = [
+  { group: "Status", label: "Up", swatch: "dot", color: NODE_STATUS_COLORS.up },
+  {
+    group: "Status",
+    label: "Down",
+    swatch: "dot",
+    color: NODE_STATUS_COLORS.down,
+  },
+  {
+    group: "Status",
+    label: "Unknown",
+    swatch: "dot",
+    color: NODE_STATUS_COLORS.unknown,
+  },
+  {
+    group: "Kind",
+    label: "Managed device",
+    swatch: "dot",
+    color: "var(--ou-text-muted, #6b7280)",
+  },
+  {
+    group: "Kind",
+    label: "Unmanaged peer",
+    swatch: "hollow-dot",
+    color: "var(--ou-text-muted, #6b7280)",
+  },
+  {
+    group: "Kind",
+    label: "Discovered endpoint",
+    swatch: "square",
+    color: ENDPOINT_NODE_FILL,
+  },
+  {
+    group: "Link",
+    label: "Healthy",
+    swatch: "line",
+    color: LINK_STATE_COLORS.healthy,
+  },
+  {
+    group: "Link",
+    label: `Busy (over ${LINK_SATURATION_THRESHOLD_PERCENT}%)`,
+    swatch: "line",
+    color: LINK_STATE_COLORS.saturated,
+  },
+  {
+    group: "Link",
+    label: "An end is down",
+    swatch: "dashed-line",
+    color: LINK_STATE_COLORS.down,
+  },
+  {
+    group: "Link",
+    label: "Learned from FDB",
+    swatch: "dashed-line",
+    color: LINK_STATE_COLORS.unknown,
+  },
+];
+
+/**
+ * What a screen reader hears for a node.
+ *
+ * The graph used to be a single `role="img"` with one label, which hid
+ * every clickable device behind an opaque picture. Each node is now a
+ * button, and this is what it announces.
+ */
+export function accessibleLabelForNode(node: NetworkTopologyNode): string {
+  const parts: Array<string> = [node.name || node.id];
+  if (node.kind === "endpoint") {
+    parts.push("endpoint");
+    if (node.ipAddress) {
+      parts.push(node.ipAddress);
+    }
+    if (typeof node.vlanId === "number") {
+      parts.push(`VLAN ${node.vlanId}`);
+    }
+  } else {
+    parts.push(node.isManaged ? "managed device" : "unmanaged peer");
+    parts.push(`status ${node.status}`);
+    if (node.vendor) {
+      parts.push(node.vendor);
+    }
+    if (node.interfacesUp !== undefined || node.interfacesDown !== undefined) {
+      parts.push(
+        `${node.interfacesUp ?? 0} interfaces up, ${
+          node.interfacesDown ?? 0
+        } down`,
+      );
+    }
+  }
+  return parts.join(", ");
+}
+
+/** What a screen reader hears for a link. Never truncated. */
+export function accessibleLabelForEdge(
+  edge: NetworkTopologyEdge,
+  fromName: string | undefined,
+  toName: string | undefined,
+): string {
+  const state: NetworkLinkState = linkStateForEdge(edge);
+  const stateText: Record<NetworkLinkState, string> = {
+    down: "an end is down",
+    saturated: "running hot",
+    healthy: "healthy",
+    unknown: "no operational data",
+  };
+  const utilization: number | undefined = maxUtilizationForEdge(edge);
+  const parts: Array<string> = [
+    `Link from ${fromName || edge.fromNodeId} to ${toName || edge.toNodeId}`,
+    stateText[state],
+  ];
+  if (utilization !== undefined) {
+    parts.push(`${formatUtilization(utilization)} utilization`);
+  }
+  if (edge.protocols && edge.protocols.length > 0) {
+    parts.push(`reported by ${edge.protocols.join(" and ").toUpperCase()}`);
+  }
+  return parts.join(", ");
 }
 
 /** One-line summary of an edge end for tooltips: "Gi0/1 · 84% · ↓12 ↑3 Mbps". */

@@ -10,6 +10,7 @@ import SessionReplayConsentMode from "Common/Types/Rum/SessionReplayConsentMode"
 import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode";
 import SessionReplayTriggerReason from "Common/Types/Rum/SessionReplayTriggerReason";
 import { RecorderInitOptions } from "../src/Config";
+import { PERFORMANCE_CUSTOM_EVENT_TAG } from "../src/PerformanceRecorder";
 import Recorder from "../src/Recorder";
 import SessionId from "../src/SessionId";
 import Transport from "../src/Transport";
@@ -37,6 +38,7 @@ const baseConfig: () => SessionReplayConfigResponse =
       maskSelectors: [],
       blockSelectors: [],
       urlAllowlist: [],
+      ignoreErrorPatterns: [],
       recordCanvas: false,
       captureUserIdentity: false,
       respectDoNotTrack: true,
@@ -197,6 +199,97 @@ describe("Recorder", (): void => {
       ).toBe(true);
     });
 
+    /*
+     * The 15x storage/privacy bet: one chronically-throwing third-party
+     * tag must not convert error-triggered capture into always-on upload.
+     */
+    it("does not upload over stackless cross-origin 'Script error.' noise", (): void => {
+      const instance: Recorder = startRecorder();
+
+      window.dispatchEvent(
+        new ErrorEvent("error", { message: "Script error." }),
+      );
+
+      expect(instance.isUploading()).toBe(false);
+      expect(instance.getTriggerReason()).toBeNull();
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it("does not upload over a pattern-ignored error, but a genuine one still triggers", (): void => {
+      const instance: Recorder = startRecorder({
+        ignoreErrorPatterns: ["third-party-tag\\.js"],
+      });
+
+      window.dispatchEvent(
+        new ErrorEvent("error", {
+          message: "boom",
+          filename: "https://cdn.example.net/third-party-tag.js",
+        }),
+      );
+
+      expect(instance.isUploading()).toBe(false);
+
+      window.dispatchEvent(
+        new ErrorEvent("error", {
+          message: "genuine failure",
+          filename: "https://shop.example.com/app.js",
+        }),
+      );
+
+      expect(instance.isUploading()).toBe(true);
+      expect(instance.getTriggerReason()).toBe(
+        SessionReplayTriggerReason.Error,
+      );
+    });
+
+    /*
+     * A startup crash caught by the loader stub's pre-load buffer must
+     * trigger capture once the recorder starts — that window used to be
+     * a void.
+     */
+    it("a replayed early error triggers the upload at start", (): void => {
+      const instance: Recorder = new Recorder({
+        initOptions: INIT_OPTIONS,
+        config: baseConfig(),
+        earlyErrors: [
+          {
+            kind: "error",
+            message: "boom during startup",
+            source: "https://shop.example.com/app.js",
+            atUnixMs: Date.now() - 3000,
+          },
+        ],
+      });
+
+      instance.start();
+      recorder = instance;
+
+      expect(instance.isUploading()).toBe(true);
+      expect(instance.getTriggerReason()).toBe(
+        SessionReplayTriggerReason.Error,
+      );
+    });
+
+    it("a replayed early 'Script error.' stays noise, exactly like a live one", (): void => {
+      const instance: Recorder = new Recorder({
+        initOptions: INIT_OPTIONS,
+        config: baseConfig(),
+        earlyErrors: [
+          {
+            kind: "error",
+            message: "Script error.",
+            atUnixMs: Date.now() - 3000,
+          },
+        ],
+      });
+
+      instance.start();
+      recorder = instance;
+
+      expect(instance.isUploading()).toBe(false);
+      expect(instance.getTriggerReason()).toBeNull();
+    });
+
     it("uploads on an explicit captureSession call", (): void => {
       const instance: Recorder = startRecorder();
 
@@ -205,6 +298,218 @@ describe("Recorder", (): void => {
       expect(instance.isUploading()).toBe(true);
       expect(instance.getTriggerReason()).toBe(
         SessionReplayTriggerReason.Manual,
+      );
+    });
+
+    /*
+     * Targeted capture: a dashboard user asked for this end user's next
+     * session by name, so an isTargeted config uploads from the first
+     * event with the Manual label - no error required.
+     */
+    it("a targeted boot uploads immediately with the manual label", async (): Promise<void> => {
+      const instance: Recorder = startRecorder({ isTargeted: true });
+
+      expect(instance.isUploading()).toBe(true);
+      expect(instance.getTriggerReason()).toBe(
+        SessionReplayTriggerReason.Manual,
+      );
+
+      await flushUploads();
+
+      expect(
+        readPost(fetchMock.mock.calls[0] as Array<unknown>).envelope
+          .triggerReason,
+      ).toBe(SessionReplayTriggerReason.Manual);
+    });
+
+    it("targeting is a trigger, not a consent override", (): void => {
+      const instance: Recorder = startRecorder({
+        isTargeted: true,
+        consentMode: SessionReplayConsentMode.RequireExplicit,
+      });
+
+      /* Armed but held: nothing leaves the device without consent. */
+      expect(instance.isUploading()).toBe(false);
+      expect(fetchMock).not.toHaveBeenCalled();
+
+      instance.grantConsent();
+
+      expect(instance.isUploading()).toBe(true);
+      expect(instance.getTriggerReason()).toBe(
+        SessionReplayTriggerReason.Manual,
+      );
+    });
+
+    it("a request that SUCCEEDS slowly fires the performance trigger", async (): Promise<void> => {
+      const instance: Recorder = startRecorder({ slowRequestBudgetMs: 100 });
+
+      expect(instance.isUploading()).toBe(false);
+
+      /*
+       * Monotonic mock clock: every Date.now() call advances 200ms, so
+       * the patched fetch measures a duration over the 100ms budget
+       * without this test actually sleeping.
+       */
+      let mockNow: number = Date.now();
+
+      jest.spyOn(Date, "now").mockImplementation((): number => {
+        mockNow += 200;
+        return mockNow;
+      });
+
+      await window.fetch("https://api.example.com/slow-but-fine");
+
+      expect(instance.isUploading()).toBe(true);
+      expect(instance.getTriggerReason()).toBe(
+        SessionReplayTriggerReason.Performance,
+      );
+    });
+
+    it("a slow FAILING request stays an error, never a performance issue", async (): Promise<void> => {
+      fetchMock.mockResolvedValue({
+        status: 503,
+        headers: {
+          get: (): string | null => {
+            return null;
+          },
+        },
+        text: async (): Promise<string> => {
+          return "";
+        },
+      });
+
+      const instance: Recorder = startRecorder({ slowRequestBudgetMs: 100 });
+
+      let mockNow: number = Date.now();
+
+      jest.spyOn(Date, "now").mockImplementation((): number => {
+        mockNow += 200;
+        return mockNow;
+      });
+
+      await window.fetch("https://api.example.com/slow-and-broken");
+
+      expect(instance.getTriggerReason()).toBe(
+        SessionReplayTriggerReason.Error,
+      );
+
+      /*
+       * The trigger-reason check alone is a weak oracle (first reason
+       * wins, and Error always fires first). What must ALSO hold is that
+       * the failing request produced no performance custom event - one
+       * request must never count as two kinds of bad.
+       */
+      await flushUploads();
+
+      const uploadedPayloads: string = fetchMock.mock.calls
+        .filter((call: Array<unknown>): boolean => {
+          return (
+            ((call[1] || {}) as Record<string, unknown>)["body"] instanceof
+            Uint8Array
+          );
+        })
+        .map((call: Array<unknown>): string => {
+          return readPost(call).payload;
+        })
+        .join("\n");
+
+      expect(uploadedPayloads.length).toBeGreaterThan(0);
+      expect(uploadedPayloads).not.toContain(PERFORMANCE_CUSTOM_EVENT_TAG);
+    });
+
+    it("an over-budget LCP fires the performance trigger end to end", (): void => {
+      /*
+       * A minimal PerformanceObserver double, installed before the
+       * recorder boots so PerformanceRecorder picks it up.
+       */
+      /*
+       * Held in an object property rather than a let-binding: TypeScript's
+       * flow analysis cannot see the constructor assignment and would
+       * narrow a plain variable to null.
+       */
+      const holder: {
+        callback:
+          | ((list: { getEntries: () => Array<PerformanceEntry> }) => void)
+          | null;
+      } = { callback: null };
+
+      class FakeObserver {
+        public static supportedEntryTypes: Array<string> = [
+          "largest-contentful-paint",
+        ];
+
+        public constructor(
+          callback: (list: {
+            getEntries: () => Array<PerformanceEntry>;
+          }) => void,
+        ) {
+          holder.callback = callback;
+        }
+
+        public observe(): void {}
+        public disconnect(): void {}
+      }
+
+      (window as unknown as Record<string, unknown>)["PerformanceObserver"] =
+        FakeObserver;
+
+      try {
+        const instance: Recorder = startRecorder({ lcpBudgetMs: 2500 });
+
+        expect(holder.callback).not.toBeNull();
+
+        holder.callback?.({
+          getEntries: (): Array<PerformanceEntry> => {
+            return [{ startTime: 4200 } as PerformanceEntry];
+          },
+        });
+
+        expect(instance.isUploading()).toBe(true);
+        expect(instance.getTriggerReason()).toBe(
+          SessionReplayTriggerReason.Performance,
+        );
+      } finally {
+        delete (window as unknown as Record<string, unknown>)[
+          "PerformanceObserver"
+        ];
+      }
+    });
+
+    /*
+     * End-to-end correlation: an injected traceparent's id must surface in
+     * the envelope's traceIds rollup, or the header cost bought nothing.
+     */
+    it("an injected traceparent's id lands in the envelope traceIds", async (): Promise<void> => {
+      const instance: Recorder = startRecorder({
+        tracePropagationOrigins: ["https://api.example.com"],
+      });
+
+      await window.fetch("https://api.example.com/orders");
+
+      /* The outbound request carried the generated header. */
+      const sentInit: RequestInit | undefined = fetchMock.mock.calls[0]?.[1];
+      const sentHeader: string | null =
+        sentInit && sentInit.headers
+          ? (sentInit.headers as Record<string, string>)["traceparent"] || null
+          : null;
+
+      expect(sentHeader).toMatch(/^00-[0-9a-f]{32}-[0-9a-f]{16}-01$/);
+
+      instance.trigger(SessionReplayTriggerReason.Manual);
+
+      await flushUploads();
+
+      const posts: Array<CapturedPost> = fetchMock.mock.calls
+        .filter((call: Array<unknown>): boolean => {
+          return String(call[0]).indexOf("session-replay/v1/chunk") >= 0;
+        })
+        .map((call: Array<unknown>): CapturedPost => {
+          return readPost(call);
+        });
+
+      expect(posts.length).toBeGreaterThan(0);
+      expect(posts[0]?.envelope.traceIds).toContain(
+        (sentHeader || "").slice(3, 35),
       );
     });
 
@@ -294,7 +599,9 @@ describe("Recorder", (): void => {
         fetchMock.mock.calls[0] as Array<unknown>,
       );
 
-      expect(post.url).toBe("https://oneuptime.com/session-replay/v1/chunk");
+      expect(post.url).toBe(
+        "https://oneuptime.com/telemetry/session-replay/v1/chunk",
+      );
       expect(post.envelope.v).toBe(1);
       expect(post.envelope.appIdentifier).toBe("app-1");
       expect(post.envelope.sessionId).toBe(instance.getSessionId());

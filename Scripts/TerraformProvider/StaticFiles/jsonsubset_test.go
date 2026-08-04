@@ -90,3 +90,32 @@ func TestStringSemanticEquals_NonJSONFallsBackToByteEquality(t *testing.T) {
 		t.Fatal("differing non-JSON strings must be unequal")
 	}
 }
+
+// The framework calls SemanticEquals with receiver = the newer/refreshed
+// value and argument = the prior/planned value. A sparse plan compared
+// against the server's default-filled echo must be equal in that direction.
+func TestJSONSubsetSemanticEquals_ServerFilledDefaults(t *testing.T) {
+	sparse := NewJSONSubsetValue(`{"_type":"RestrictionTimes","value":{"restictionType":"None"}}`)
+	full := NewJSONSubsetValue(`{"_type":"RestrictionTimes","value":{"restictionType":"None","weeklyRestrictionTimes":[]}}`)
+
+	equal, diags := full.StringSemanticEquals(context.Background(), sparse)
+	if diags.HasError() {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+	if !equal {
+		t.Fatal("server echo with extra keys must equal the sparse plan")
+	}
+}
+
+func TestJSONSubsetSemanticEquals_ConflictingValuesStillUnequal(t *testing.T) {
+	a := NewJSONSubsetValue(`{"value":{"intervalType":"Day"}}`)
+	b := NewJSONSubsetValue(`{"value":{"intervalType":"Week","extra":true}}`)
+	equal, _ := a.StringSemanticEquals(context.Background(), b)
+	if equal {
+		t.Fatal("values that disagree on a shared key must stay unequal")
+	}
+	equal, _ = b.StringSemanticEquals(context.Background(), a)
+	if equal {
+		t.Fatal("values that disagree on a shared key must stay unequal (reversed)")
+	}
+}

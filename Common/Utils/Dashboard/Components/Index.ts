@@ -6,6 +6,7 @@ import DashboardAlertListComponentUtil from "./DashboardAlertListComponent";
 import DashboardCephOsdListComponentUtil from "./DashboardCephOsdListComponent";
 import DashboardCephPoolListComponentUtil from "./DashboardCephPoolListComponent";
 import DashboardChartComponentUtil from "./DashboardChartComponent";
+import DashboardClockComponentUtil from "./DashboardClockComponent";
 import DashboardDockerContainerListComponentUtil from "./DashboardDockerContainerListComponent";
 import DashboardDockerHostListComponentUtil from "./DashboardDockerHostListComponent";
 import DashboardDockerImageListComponentUtil from "./DashboardDockerImageListComponent";
@@ -13,6 +14,7 @@ import DashboardDockerNetworkListComponentUtil from "./DashboardDockerNetworkLis
 import DashboardDockerVolumeListComponentUtil from "./DashboardDockerVolumeListComponent";
 import DashboardGaugeComponentUtil from "./DashboardGaugeComponent";
 import DashboardHostListComponentUtil from "./DashboardHostListComponent";
+import DashboardHtmlComponentUtil from "./DashboardHtmlComponent";
 import DashboardIncidentListComponentUtil from "./DashboardIncidentListComponent";
 import DashboardKubernetesCronJobListComponentUtil from "./DashboardKubernetesCronJobListComponent";
 import DashboardKubernetesDaemonSetListComponentUtil from "./DashboardKubernetesDaemonSetListComponent";
@@ -54,6 +56,12 @@ export default class DashboardComponentsUtil {
 
     if (dashboardComponentType === DashboardComponentType.Text) {
       return DashboardTextComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.Clock) {
+      return DashboardClockComponentUtil.getComponentConfigArguments() as Array<
         ComponentArgument<DashboardBaseComponent>
       >;
     }
@@ -289,6 +297,12 @@ export default class DashboardComponentsUtil {
 
     if (dashboardComponentType === DashboardComponentType.CephPoolList) {
       return DashboardCephPoolListComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.Html) {
+      return DashboardHtmlComponentUtil.getComponentConfigArguments() as Array<
         ComponentArgument<DashboardBaseComponent>
       >;
     }

@@ -102,6 +102,7 @@ const PAGE_FOLDER_BY_RESOURCE_TYPE: Record<
   [MonitorRecommendationResourceType.Proxmox]: "Proxmox",
   [MonitorRecommendationResourceType.Ceph]: "Ceph",
   [MonitorRecommendationResourceType.IoTDevice]: "IoT",
+  [MonitorRecommendationResourceType.RumApplication]: "Rum",
 };
 
 /*
@@ -142,7 +143,7 @@ describe("the resource-type table this file loops over", () => {
    * ever empty or short, every one of those tests would pass by never running.
    */
   test("covers every member of the enum", () => {
-    expect(ALL_RESOURCE_TYPES.length).toBe(8);
+    expect(ALL_RESOURCE_TYPES.length).toBe(9);
     expect(RESOURCE_CASES.length).toBe(ALL_RESOURCE_TYPES.length);
 
     for (const resourceCase of RESOURCE_CASES) {

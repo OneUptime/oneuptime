@@ -1,10 +1,12 @@
 import { JSONObject } from "Common/Types/JSON";
 import DashboardTraceTableComponent from "Common/Types/Dashboard/DashboardComponents/DashboardTraceTableComponent";
+import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
 import {
+  TraceAttributeFilters,
   computeBucketSizeInMinutes,
   formatCount,
   formatDurationMs,
-  parseAttributeFilters,
+  resolveTraceAttributeFilters,
 } from "./TraceChartData";
 
 /*
@@ -42,6 +44,7 @@ export interface BuildTraceTableRequestParams {
   arguments: TraceTableArguments;
   startTime: Date;
   endTime: Date;
+  variables?: Array<DashboardVariable> | undefined;
 }
 
 /*
@@ -81,9 +84,10 @@ export function buildTraceTableRequest(
     requestData["spanNameSearches"] = [spanNameContains];
   }
 
-  const attributes: Record<string, string> = parseAttributeFilters(
-    args.attributeFilters,
-  );
+  const attributes: TraceAttributeFilters = resolveTraceAttributeFilters({
+    attributeFilters: args.attributeFilters,
+    variables: params.variables,
+  });
   if (Object.keys(attributes).length > 0) {
     requestData["attributes"] = attributes;
   }
@@ -97,12 +101,29 @@ export function buildTraceTableRequest(
   return requestData;
 }
 
-// Friendly labels for the built-in top-level dimensions a row can group by.
+/*
+ * Friendly labels for the built-in top-level dimensions a row can group by.
+ * The resource dimensions below are not offered by the widget's own split
+ * picker (TraceChartQueryEditor deliberately omits opaque ids) — they arrive
+ * from dashboard templates, which use them because grouping by one also
+ * constrains the query to that resource type server-side. Their VALUES are
+ * resolved to display names by TraceAggregationService; only the column
+ * header is named here.
+ */
 const DIMENSION_LABELS: Record<string, string> = {
   name: "Span Name",
   statusCode: "Status Code",
   kind: "Span Kind",
   primaryEntityId: "Service",
+  rumApplicationId: "Application",
+  hostId: "Host",
+  dockerHostId: "Docker Host",
+  podmanHostId: "Podman Host",
+  kubernetesClusterId: "Kubernetes Cluster",
+  proxmoxClusterId: "Proxmox Cluster",
+  cephClusterId: "Ceph Cluster",
+  serverlessFunctionId: "Serverless Function",
+  cloudResourceId: "Cloud Resource",
 };
 
 export function dimensionLabel(key: string): string {

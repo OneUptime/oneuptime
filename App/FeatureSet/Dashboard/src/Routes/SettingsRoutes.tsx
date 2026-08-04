@@ -19,6 +19,8 @@ import SettingsIngestionKeyView from "../Pages/Settings/TelemetryIngestionKeyVie
 
 import SettingsTelemetrySettings from "../Pages/Settings/TelemetrySettings";
 
+import SettingsSessionReplay from "../Pages/Settings/SessionReplay";
+
 import SettingLabels from "../Pages/Settings/Labels";
 
 import SettingFeatureFlags from "../Pages/Settings/FeatureFlags";
@@ -50,9 +52,9 @@ import SettingsLlmProviders from "../Pages/Settings/LlmProviders";
 
 import SettingsLlmProviderView from "../Pages/Settings/LlmProviderView";
 
-import SettingsAIAgents from "../Pages/Settings/AIAgents";
-
-import SettingsAIAgentView from "../Pages/Settings/AIAgentView";
+import SettingsRunners from "../Pages/Settings/Runners";
+import SettingsRunnerView from "../Pages/Settings/RunnerView";
+import SettingsRunnerCredentials from "../Pages/Settings/RunnerCredentials";
 
 import SettingsAICredits from "../Pages/Settings/AICredits";
 
@@ -146,21 +148,33 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
         />
 
         <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_AI_AGENTS)}
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_RUNNERS)}
           element={
-            <SettingsAIAgents
+            <SettingsRunners
               {...props}
-              pageRoute={RouteMap[PageMap.SETTINGS_AI_AGENTS] as Route}
+              pageRoute={RouteMap[PageMap.SETTINGS_RUNNERS] as Route}
             />
           }
         />
 
         <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_AI_AGENT_VIEW, 2)}
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_RUNNER_VIEW, 2)}
           element={
-            <SettingsAIAgentView
+            <SettingsRunnerView
               {...props}
-              pageRoute={RouteMap[PageMap.SETTINGS_AI_AGENT_VIEW] as Route}
+              pageRoute={RouteMap[PageMap.SETTINGS_RUNNER_VIEW] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SETTINGS_RUNNER_CREDENTIALS,
+          )}
+          element={
+            <SettingsRunnerCredentials
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_RUNNER_CREDENTIALS] as Route}
             />
           }
         />
@@ -350,6 +364,16 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
             <SettingsTelemetrySettings
               {...props}
               pageRoute={RouteMap[PageMap.SETTINGS_TELEMETRY_SETTINGS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_SESSION_REPLAY)}
+          element={
+            <SettingsSessionReplay
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_SESSION_REPLAY] as Route}
             />
           }
         />

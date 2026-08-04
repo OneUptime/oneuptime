@@ -1,155 +1,60 @@
-# Terraform Registryのインストール・使用ガイド
+# Registry Usage
 
-## Terraform Registryからのインストール
+The OneUptime provider is distributed through the public Terraform Registry at [registry.terraform.io/providers/oneuptime/oneuptime](https://registry.terraform.io/providers/oneuptime/oneuptime). This page explains what is published there and how versioning works.
 
-OneUptime Terraformプロバイダーは公式の [Terraform Registry](https://registry.terraform.io/providers/oneuptime/oneuptime) で利用可能です。
+## What's on the registry
 
-### OneUptime Cloudユーザーの場合
+- **The provider binary** for all common platforms (Linux, macOS, Windows; amd64 and arm64). `terraform init` downloads and verifies it automatically — there is nothing to install by hand.
+- **Generated reference documentation** for every resource and data source — the complete attribute list per type, on the registry page's *Documentation* tab. Use it alongside these guides: this documentation explains workflows; the registry docs are the per-attribute reference.
+- **The version history**, one entry per published release.
 
-```hcl
-terraform {
-  required_providers {
-    oneuptime = {
-      source  = "oneuptime/oneuptime"
-      version = "~> 7.0"  # 最新の互換バージョンを使用
-    }
-  }
-  required_version = ">= 1.0"
-}
-
-provider "oneuptime" {
-  oneuptime_url = "https://oneuptime.com"
-  api_key       = var.oneuptime_api_key
-}
-```
-
-### セルフホストOneUptimeユーザーの場合
-
-⚠️ **重要**：セルフホストのお客様はプロバイダーバージョンをOneUptimeのインストールに完全一致するよう固定する必要があります。
+Declare the provider like any registry provider:
 
 ```hcl
 terraform {
   required_providers {
     oneuptime = {
       source  = "oneuptime/oneuptime"
-      version = "= 7.0.123"  # 正確なOneUptimeバージョンに置き換えてください
+      version = "~> 11.0"
     }
   }
-  required_version = ">= 1.0"
-}
-
-provider "oneuptime" {
-  oneuptime_url = "https://oneuptime.yourcompany.com"  # セルフホストURL
-  api_key       = var.oneuptime_api_key
 }
 ```
 
-## セルフホストでバージョン固定が必要な理由
+`terraform init` records the exact selected version and its checksums in `.terraform.lock.hcl` — commit that file, it is what makes CI runs reproducible.
 
-OneUptime TerraformプロバイダーはOneUptime APIの仕様から自動生成されています。各OneUptimeバージョンには以下の変更が含まれる場合があります：
+## How versioning works
 
-- 異なるAPIエンドポイント
-- 更新されたリソーススキーマ
-- 新機能や削除された機能
-- 変更された検証ルール
+Provider versions **track OneUptime platform versions**: provider 11.x is generated from and tested against OneUptime 11.x. This has two practical consequences:
 
-OneUptimeのインストールと一致しないプロバイダーバージョンを使用すると、以下の問題が発生する可能性があります：
+1. **Cloud users** always run the latest platform, so the newest provider is always correct:
 
-- APIの互換性エラー
-- リソースの作成/更新の失敗
-- 予期しない動作
-- リソースステートのドリフト
+```hcl
+version = "~> 11.0"
+```
 
-## OneUptimeのバージョン確認方法
+2. **Self-hosted users** should use the newest published provider version that is **less than or equal to** their OneUptime platform version. A newer provider may reference API fields your older platform does not have.
 
-### 方法1：ダッシュボード
+**Version gaps are normal.** The provider is regenerated and published per meaningful change, not for every platform patch release — so do not pin exact patch versions (`= 11.0.7` may simply not exist on the registry, and `terraform init` will fail with `no matching version found`). Pessimistic constraints (`~> 11.0`) always resolve to a real published version. More on the self-hosted selection rule in [Self-Hosted Setup](/docs/terraform/self-hosted).
 
-1. OneUptime ダッシュボードにログイン
-2. **設定** → **About** に移動
-3. バージョン番号をメモ（例：「7.0.123」）
+## Checking versions and release notes
 
-### 方法2：API
+- Registry version list: [registry.terraform.io/providers/oneuptime/oneuptime/versions](https://registry.terraform.io/providers/oneuptime/oneuptime/versions)
+- Release notes: [github.com/OneUptime/terraform-provider-oneuptime/releases](https://github.com/OneUptime/terraform-provider-oneuptime/releases)
+- Platform releases (which drive provider versions): [github.com/OneUptime/oneuptime/releases](https://github.com/OneUptime/oneuptime/releases)
+
+To move to a newer version within your constraint:
 
 ```bash
-curl https://your-oneuptime-instance.com/api/version | jq '.version'
+terraform init -upgrade
 ```
 
-### 方法3：Docker
+This re-resolves the constraint, updates `.terraform.lock.hcl`, and prints the selected version. Follow with `terraform plan` to confirm nothing unexpected changed.
 
-```bash
-docker images | grep oneuptime
-# タグを確認、例：oneuptime/dashboard:7.0.123
-```
+## Where the code lives
 
-## プロバイダーのRegistry情報
+The provider is **generated from the OneUptime OpenAPI specification** in the main [OneUptime repository](https://github.com/OneUptime/oneuptime). The published provider repository is read-only build output. File issues — including documentation issues — against the main repository: [github.com/OneUptime/oneuptime/issues](https://github.com/OneUptime/oneuptime/issues).
 
-- **Registry URL**：https://registry.terraform.io/providers/oneuptime/oneuptime
-- **ソースリポジトリ**：https://github.com/OneUptime/terraform-provider-oneuptime
-- **ドキュメント**：https://registry.terraform.io/providers/oneuptime/oneuptime/latest/docs
-- **リリース**：https://github.com/OneUptime/terraform-provider-oneuptime/releases
+## Air-gapped environments
 
-## バージョン互換性マトリクス
-
-| OneUptimeバージョン | プロバイダーバージョン | Terraform設定          |
-| ------------------- | ---------------------- | ---------------------- |
-| 7.0.x               | 7.0.x                  | `version = "~> 7.0.0"` |
-| 7.1.x               | 7.1.x                  | `version = "~> 7.1.0"` |
-| 最新Cloud           | 最新プロバイダー       | `version = "~> 7.0"`   |
-
-## クイックスタート例
-
-```hcl
-# プロバイダーを設定
-terraform {
-  required_providers {
-    oneuptime = {
-      source  = "oneuptime/oneuptime"
-      version = "~> 7.0"  # セルフホストの場合は調整
-    }
-  }
-}
-
-provider "oneuptime" {
-  oneuptime_url = "https://oneuptime.com"  # セルフホストの場合は調整
-  api_key       = var.oneuptime_api_key
-}
-
-# プロジェクトを作成
-resource "oneuptime_project" "example" {
-  name        = "Terraform例"
-  description = "Terraformで作成"
-}
-
-# ウェブサイトモニターを作成
-resource "oneuptime_monitor" "website" {
-  name       = "ウェブサイトモニター"
-  project_id = oneuptime_project.example.id
-
-  monitor_type = "website"
-  url          = "https://example.com"
-  interval     = "5m"
-
-  tags = {
-    managed_by = "terraform"
-  }
-}
-```
-
-## インストール手順
-
-1. プロバイダーブロックを含む**Terraform設定を作成**する
-2. **Terraformを初期化**：`terraform init`
-3. **APIキーを設定**：`terraform.tfvars` にAPIキーを記述
-4. **デプロイを計画**：`terraform plan`
-5. **設定を適用**：`terraform apply`
-
-## ヘルプを得る
-
-- **完全なドキュメント**：[Terraformの完全なドキュメント](./README.md)を参照
-- **セルフホストガイド**：[セルフホスト設定ガイド](./self-hosted.md)を確認
-- **使用例**：[設定例](./examples.md)を参照
-- **クイックスタート**：[クイックスタートガイド](./quick-start.md)に従う
-
-## Registryの更新
-
-新しいOneUptimeバージョンがリリースされると、プロバイダーはTerraform Registryに自動的に公開されます。Cloudユーザーはセマンティックバージョニング（`~> 7.0`）を使用して互換性のある更新を自動的に取得できます。セルフホストユーザーは正確なバージョンに固定する必要があります。
+If your Terraform hosts cannot reach the public registry, mirror the provider internally with `terraform providers mirror` — walkthrough in [Self-Hosted Setup](/docs/terraform/self-hosted).

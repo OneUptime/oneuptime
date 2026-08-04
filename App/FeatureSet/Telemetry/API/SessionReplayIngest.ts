@@ -15,14 +15,17 @@ import SessionReplayGateCache, {
   SessionReplayGatePolicy,
 } from "Common/Server/Utils/SessionReplay/SessionReplayGateCache";
 import TelemetryIngestionKeyService from "Common/Server/Services/TelemetryIngestionKeyService";
+import RumApplicationService from "Common/Server/Services/RumApplicationService";
 import logger from "Common/Server/Utils/Logger";
 import StatusCode from "Common/Types/API/StatusCode";
 import ObjectID from "Common/Types/ObjectID";
 import {
   SESSION_REPLAY_APP_IDENTIFIER_HEADER,
+  SESSION_REPLAY_USER_REF_HEADER,
   SessionReplayChunkResponse,
   SessionReplayConfigResponse,
 } from "Common/Types/Rum/SessionReplay";
+import SessionReplayTargeting from "Common/Server/Utils/SessionReplay/SessionReplayTargeting";
 import SessionReplayCaptureTrigger from "Common/Types/Rum/SessionReplayCaptureTrigger";
 import SessionReplayConsentMode from "Common/Types/Rum/SessionReplayConsentMode";
 import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode";
@@ -39,6 +42,7 @@ import {
   RECORDER_VERSION_PATTERN,
   getArtifactFilePath,
   getPinnedRecorderPath,
+  getRecorderIntegrity,
   getRecorderVersion,
 } from "../../BrowserRecorder/Manifest";
 import SessionReplayRequestMiddleware from "../Middleware/SessionReplayRequestMiddleware";
@@ -146,6 +150,20 @@ const replayIngestMetricsMiddleware: ReplayMetricsMiddleware = (
       outcome,
     };
 
+    /*
+     * The gate's reason ("budget-exhausted", "not-sampled", ...) is a small
+     * closed vocabulary, so it is safe as a metric label - and it is the
+     * difference between an alertable "replay refused: budget" series and
+     * an undifferentiated refusal count nobody can act on.
+     */
+    const gateReason: unknown = res.locals
+      ? res.locals["replayGateReason"]
+      : undefined;
+
+    if (typeof gateReason === "string" && gateReason.length > 0) {
+      attributes["reason"] = gateReason;
+    }
+
     AppMetrics.getIngestCounter().add(1, attributes);
     AppMetrics.getIngestDuration().record(Number(elapsedNs) / 1e6, attributes);
   };
@@ -162,6 +180,46 @@ function readAppIdentifier(req: ExpressRequest): string {
       req.headers[SESSION_REPLAY_APP_IDENTIFIER_HEADER],
     )?.trim() || ""
   );
+}
+
+/*
+ * Did a dashboard user ask for this end user's next session?
+ *
+ * The recorder URI-component-encodes the reference (a raw non-ASCII header
+ * value would make its fetch() throw), so decode here; a value that does
+ * not decode is matched as sent, since an older or third-party client may
+ * not encode at all. Every failure path answers false: targeting is a
+ * convenience, and it must never break a config response.
+ */
+async function resolveIsTargeted(
+  req: ExpressRequest,
+  projectId: ObjectID,
+  appIdentifier: string,
+): Promise<boolean> {
+  const rawHeader: string =
+    headerValueToString(req.headers[SESSION_REPLAY_USER_REF_HEADER]) || "";
+
+  if (!rawHeader) {
+    return false;
+  }
+
+  let userRef: string = rawHeader;
+
+  try {
+    userRef = decodeURIComponent(rawHeader);
+  } catch {
+    /* Malformed percent-encoding; match the literal value instead. */
+  }
+
+  if (!SessionReplayTargeting.isUsableUserRef(userRef)) {
+    return false;
+  }
+
+  return SessionReplayTargeting.consumeTarget({
+    projectId: projectId,
+    appIdentifier: appIdentifier,
+    userRef: userRef,
+  });
 }
 
 /*
@@ -219,7 +277,17 @@ function sendChunkDirective(
   const payload: SessionReplayChunkResponse = {
     directive: decision.directive,
     configEpoch: decision.configEpoch,
+    reason: decision.reason,
   };
+
+  /*
+   * Stashed for the metrics middleware, which fires on response finish and
+   * has no other way to see WHY a request was refused. Without the label an
+   * operator cannot tell budget exhaustion from sampling on a dashboard.
+   */
+  if (res.locals) {
+    res.locals["replayGateReason"] = decision.reason;
+  }
 
   if (decision.retryAfterSeconds !== undefined) {
     payload.retryAfterSeconds = decision.retryAfterSeconds;
@@ -236,6 +304,11 @@ function sendChunkDirective(
       "x-oneuptime-replay-config-epoch",
       String(decision.configEpoch),
     );
+
+    if (decision.reason) {
+      res.setHeader("x-oneuptime-replay-reason", decision.reason);
+    }
+
     res.status(204).end();
     return;
   }
@@ -359,16 +432,45 @@ router.post(
         0,
       );
 
+      /*
+       * Carried into the gate so a frame uploaded because something actually
+       * went wrong is not then re-judged by the sample percentage.
+       */
+      const triggerReasons: Array<string> = parsed.frames.map(
+        (frame: ParsedSessionReplayFrame): string => {
+          return frame.envelope.triggerReason;
+        },
+      );
+
       const decision: SessionReplayGateDecision =
         await SessionReplayIngestService.gateChunkRequest({
           projectId: projectId,
           appIdentifier: appIdentifier,
           origin: headerValueToString(req.headers["origin"]),
           sessionIds: sessionIds,
+          triggerReasons: triggerReasons,
           maxChunkIndex: maxChunkIndex,
           chunkCount: parsed.frames.length,
           payloadBytes: body.length,
         });
+
+      /*
+       * Budget exhaustion is recorded on the application row (throttled,
+       * fire-and-forget) so the Dashboard can show WHY recordings stopped.
+       * Without this the customer's only signal is silence.
+       */
+      if (
+        decision.policy?.rumApplicationId &&
+        (decision.reason === "budget-exhausted" ||
+          decision.reason === "app-monthly-budget-exhausted")
+      ) {
+        RumApplicationService.markSessionReplayBudgetExceeded(
+          decision.policy.rumApplicationId,
+        ).catch((err: unknown) => {
+          logger.warn("Could not record replay budget exhaustion:");
+          logger.warn(err);
+        });
+      }
 
       switch (decision.outcome) {
         case SessionReplayGateOutcome.Stop:
@@ -426,6 +528,20 @@ router.post(
           reason: "staging-failed",
         });
         return;
+      }
+
+      /*
+       * Recording health, written after the enqueue so "last chunk
+       * received" means "accepted", not merely "arrived". Throttled and
+       * fire-and-forget - it must never delay or fail the response.
+       */
+      if (decision.policy?.rumApplicationId) {
+        RumApplicationService.markSessionReplayChunkReceived(
+          decision.policy.rumApplicationId,
+        ).catch((err: unknown) => {
+          logger.warn("Could not record replay chunk receipt:");
+          logger.warn(err);
+        });
       }
 
       sendChunkDirective(req, res, 202, decision);
@@ -507,6 +623,12 @@ router.get(
         maskSelectors: [],
         blockSelectors: [],
         urlAllowlist: [],
+        ignoreErrorPatterns: [],
+        tracePropagationOrigins: [],
+        lcpBudgetMs: 0,
+        longTaskBudgetMs: 0,
+        slowRequestBudgetMs: 0,
+        isTargeted: false,
         recordCanvas: false,
         captureUserIdentity: false,
         respectDoNotTrack: true,
@@ -575,14 +697,80 @@ router.get(
          * here means the default cannot leak a reset token or a magic link.
          */
         urlAllowlist: [],
+        /*
+         * Trigger noise control, not a privacy control, so it ships to the
+         * recorder verbatim: patterns are matched against error messages
+         * and source URLs in the browser, and a live recorder picks up a
+         * dashboard edit on its next config refresh.
+         */
+        ignoreErrorPatterns: policy.ignoreErrorPatterns,
+        /*
+         * Correlation and performance knobs ship to the recorder verbatim;
+         * the artifact normalises them defensively (see the recorder's
+         * ExtendedConfig). Empty origins mean the injection code never
+         * runs, which is the safe default the column migration sets.
+         */
+        tracePropagationOrigins: policy.tracePropagationOrigins,
+        lcpBudgetMs: policy.lcpBudgetMs,
+        longTaskBudgetMs: policy.longTaskBudgetMs,
+        slowRequestBudgetMs: policy.slowRequestBudgetMs,
+        isTargeted: await resolveIsTargeted(req, projectId, appIdentifier),
         recordCanvas: policy.recordCanvas,
         captureUserIdentity: policy.captureUserIdentity,
+        /*
+         * The deployment's default answer on DNT, not the final word. A page
+         * that explicitly sets data-oneuptime-respect-do-not-track="false" on
+         * its own script tag overrides it, because the customer owns the
+         * lawful basis for their own site. Omitting the attribute leaves this
+         * in force, so doing nothing still honours the signal.
+         */
         respectDoNotTrack: true,
         configEpoch: policy.configEpoch,
         directive: "continue",
       };
 
-      res.setHeader("Cache-Control", "private, max-age=300");
+      /*
+       * SRI for the pinned artifact. Without it the loader injects the script
+       * with no integrity attribute, which throws away the whole point of
+       * publishing an immutable, hash-pinned build. Optional on the wire: a
+       * server that cannot produce one yields a script tag without integrity
+       * rather than no recording at all.
+       */
+      const recorderIntegrity: string | null = getRecorderIntegrity();
+
+      if (recorderIntegrity) {
+        (config as unknown as Record<string, unknown>)["recorderIntegrity"] =
+          recorderIntegrity;
+      }
+
+      /*
+       * Cache semantics carry the whole targeting handshake:
+       *
+       *  - Any response to a request that IDENTIFIED a user is no-store,
+       *    not just the targeted ones. The primary flow is "support agent
+       *    arms the target, asks the user to reload" - if that user's
+       *    browser can serve a cached isTargeted:false for up to 300s,
+       *    "record the NEXT session" silently becomes "record no session
+       *    for five minutes".
+       *  - The inverse is as bad: a cached isTargeted:true would re-arm
+       *    capture on every reload, turning "next" into "every".
+       *  - Vary tells any shared/HTTP cache that an anonymous response
+       *    must never be reused for an identified fetch.
+       *
+       * Anonymous fetches (no user ref on the page - the overwhelming
+       * majority) keep the 5-minute private cache.
+       */
+      res.setHeader("Vary", SESSION_REPLAY_USER_REF_HEADER);
+
+      const hasUserRef: boolean = Boolean(
+        headerValueToString(req.headers[SESSION_REPLAY_USER_REF_HEADER]),
+      );
+
+      if (config.isTargeted || hasUserRef) {
+        res.setHeader("Cache-Control", "no-store");
+      } else {
+        res.setHeader("Cache-Control", "private, max-age=300");
+      }
 
       Response.sendJsonObjectResponse(
         req,

@@ -125,7 +125,7 @@ const CustomFieldsPageBase: (
             },
             title: "Dropdown Options",
             description:
-              "Add the options that should appear in the dropdown when this field is edited.",
+              "Add the options that should appear in the dropdown and optionally choose a color for each value.",
             fieldType: FormFieldSchemaType.CustomComponent,
             required: (item: FormValues<CustomFieldsBaseModels>) => {
               return isDropdownType((item as any).customFieldType);

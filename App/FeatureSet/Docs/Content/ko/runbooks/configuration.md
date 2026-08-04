@@ -7,7 +7,7 @@ Bash와 JavaScript 단계는 **OneUptime 워커에서 절대 실행되지 않습
 디스패치 모델:
 
 1. Runbook 단계 작성자가 단계를 쓸 때 드롭다운에서 Runbook 에이전트를 선택합니다.
-2. 단계가 실행되면 워커가 `RunbookAgentJob`에 `targetAgentId`를 그 에이전트의 ID로, 상태를 `Pending`으로 설정한 행을 삽입합니다.
+2. 단계가 실행되면 워커가 `RunnerJob`에 `targetAgentId`를 그 에이전트의 ID로, 상태를 `Pending`으로 설정한 행을 삽입합니다.
 3. 그 특정 에이전트(그 에이전트만)가 작업을 원자적으로 가져가, 스크립트를 로컬에서 실행 — Bash는 `bash -c <script>`, JavaScript는 `isolated-vm` 샌드박스 — 결과를 다시 게시합니다.
 4. 워커는 그 결과로 Runbook을 이어갑니다.
 
@@ -27,7 +27,7 @@ Runbook 권한은 `Runbook` 권한 그룹에 있습니다:
 - `CreateRunbook`, `EditRunbook`, `DeleteRunbook`, `ReadRunbook` — Runbook 템플릿 관리.
 - `CreateRunbookExecution`, `EditRunbookExecution`, `ReadRunbookExecution` — 실행 시작, 체크, 조회.
 - `CreateRunbookRule`, `EditRunbookRule`, `DeleteRunbookRule`, `ReadRunbookRule` — 자동 트리거 규칙 관리.
-- `CreateRunbookAgent`, `EditRunbookAgent`, `DeleteRunbookAgent`, `ReadRunbookAgent` — 자체 인프라에서 Bash와 JavaScript 단계를 실행하는 Runbook 에이전트 관리.
+- `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — 자체 인프라에서 Bash와 JavaScript 단계를 실행하는 Runbook 에이전트 관리.
 - `RunbookAdmin`, `RunbookMember`, `RunbookViewer`(역할) — 팀에 할당하여 각각 전체 제어, 일상 사용, 읽기 전용 접근 부여. `RunbookAdmin`은 위의 세분 권한을 모두 묶은 것.
 
 ## 큐 & 워커
@@ -47,8 +47,8 @@ API로 수동 단계에 체크가 들어가면 실행이 큐에 다시 들어가
 - `Runbook` — 템플릿(name, slug, description, isEnabled, steps JSON).
 - `RunbookExecution` — 실행당 한 행. nullable한 `incidentId`, `alertId`, `scheduledMaintenanceId` 외래 키와, 단계와 단계별 상태를 스냅샷한 JSON `stepExecutions` 배열.
 - `RunbookRule` — 자동 트리거 규칙. `triggerEntityType` 식별자(Incident, Alert, ScheduledMaintenance)와 시작할 Runbook에 대한 다대다 관계.
-- `RunbookAgent` — 설치된 에이전트당 한 행: name, secret key, `lastAlive`, `connectionStatus`, 호스트 정보.
-- `RunbookAgentJob` — 디스패치된 Bash 또는 JavaScript 단계당 한 행: `targetAgentId`(단계 작성자가 선택한 에이전트), 단계 타입, 스크립트, 상태(`Pending` → `Claimed` → `Running` → `Succeeded`/`Failed`/`TimedOut`/`Cancelled`), 클레임 마감, 리스, 출력, exit code.
+- `Runner` — 설치된 에이전트당 한 행: name, secret key, `lastAlive`, `connectionStatus`, 호스트 정보.
+- `RunnerJob` — 디스패치된 Bash 또는 JavaScript 단계당 한 행: `targetAgentId`(단계 작성자가 선택한 에이전트), 단계 타입, 스크립트, 상태(`Pending` → `Claimed` → `Running` → `Succeeded`/`Failed`/`TimedOut`/`Cancelled`), 클레임 마감, 리스, 출력, exit code.
 
 ## 운영 팁
 
