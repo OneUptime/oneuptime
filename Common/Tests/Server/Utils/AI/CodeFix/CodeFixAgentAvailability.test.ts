@@ -1,10 +1,10 @@
 import CodeFixAgentAvailability from "../../../../../Server/Utils/AI/CodeFix/CodeFixAgentAvailability";
 import AIAgentService from "../../../../../Server/Services/AIAgentService";
-import RunbookAgentService from "../../../../../Server/Services/RunbookAgentService";
+import RunnerService from "../../../../../Server/Services/RunnerService";
 import AIAgent from "../../../../../Models/DatabaseModels/AIAgent";
-import RunbookAgent, {
-  RunbookAgentConnectionStatus,
-} from "../../../../../Models/DatabaseModels/RunbookAgent";
+import Runner, {
+  RunnerConnectionStatus,
+} from "../../../../../Models/DatabaseModels/Runner";
 import ObjectID from "../../../../../Types/ObjectID";
 import OneUptimeDate from "../../../../../Types/Date";
 import { describe, expect, test, afterEach } from "@jest/globals";
@@ -14,7 +14,7 @@ import { describe, expect, test, afterEach } from "@jest/globals";
  * pick up that work:
  *
  *   - an AIAgent row (in-cluster fleet / legacy per-project agents), and
- *   - a customer-installed OneUptime Runner (RunbookAgent row) with
+ *   - a customer-installed OneUptime Runner (Runner row) with
  *     canRunCodeFixTasks enabled and a recent lastAlive heartbeat.
  *
  * The orphaned-run sweeper and readiness checks share this, so a project
@@ -28,7 +28,7 @@ describe("CodeFixAgentAvailability.getOnlineAgentForProject", () => {
     jest.restoreAllMocks();
   });
 
-  test("a connected AIAgent wins and RunbookAgentService is never consulted", async () => {
+  test("a connected AIAgent wins and RunnerService is never consulted", async () => {
     const projectId: ObjectID = ObjectID.generate();
 
     const aiAgentSpy: jest.SpyInstance = jest
@@ -38,10 +38,10 @@ describe("CodeFixAgentAvailability.getOnlineAgentForProject", () => {
       } as unknown as AIAgent);
 
     const runnerSpy: jest.SpyInstance = jest
-      .spyOn(RunbookAgentService, "getOnlineCodeFixRunnerForProject")
+      .spyOn(RunnerService, "getOnlineCodeFixRunnerForProject")
       .mockResolvedValue({
         name: "should-not-be-consulted",
-      } as unknown as RunbookAgent);
+      } as unknown as Runner);
 
     const result: { name: string } | null =
       await CodeFixAgentAvailability.getOnlineAgentForProject(projectId);
@@ -60,10 +60,10 @@ describe("CodeFixAgentAvailability.getOnlineAgentForProject", () => {
       .mockResolvedValue(null);
 
     const runnerSpy: jest.SpyInstance = jest
-      .spyOn(RunbookAgentService, "getOnlineCodeFixRunnerForProject")
+      .spyOn(RunnerService, "getOnlineCodeFixRunnerForProject")
       .mockResolvedValue({
         name: "warehouse-runner",
-      } as unknown as RunbookAgent);
+      } as unknown as Runner);
 
     const result: { name: string } | null =
       await CodeFixAgentAvailability.getOnlineAgentForProject(projectId);
@@ -80,7 +80,7 @@ describe("CodeFixAgentAvailability.getOnlineAgentForProject", () => {
       .spyOn(AIAgentService, "getConnectedAIAgentForProject")
       .mockResolvedValue(null);
     jest
-      .spyOn(RunbookAgentService, "getOnlineCodeFixRunnerForProject")
+      .spyOn(RunnerService, "getOnlineCodeFixRunnerForProject")
       .mockResolvedValue(null);
 
     expect(
@@ -121,8 +121,8 @@ describe("CodeFixAgentAvailability.getOnlineAgentForProject", () => {
       .spyOn(AIAgentService, "getConnectedAIAgentForProject")
       .mockResolvedValue(null);
     jest
-      .spyOn(RunbookAgentService, "getOnlineCodeFixRunnerForProject")
-      .mockResolvedValue({} as unknown as RunbookAgent);
+      .spyOn(RunnerService, "getOnlineCodeFixRunnerForProject")
+      .mockResolvedValue({} as unknown as Runner);
 
     const result: { name: string } | null =
       await CodeFixAgentAvailability.getOnlineAgentForProject(
@@ -133,7 +133,7 @@ describe("CodeFixAgentAvailability.getOnlineAgentForProject", () => {
   });
 });
 
-describe("RunbookAgentService.getOnlineCodeFixRunnerForProject", () => {
+describe("RunnerService.getOnlineCodeFixRunnerForProject", () => {
   afterEach(() => {
     jest.restoreAllMocks();
   });
@@ -142,10 +142,10 @@ describe("RunbookAgentService.getOnlineCodeFixRunnerForProject", () => {
     const projectId: ObjectID = ObjectID.generate();
 
     const findBySpy: jest.SpyInstance = jest
-      .spyOn(RunbookAgentService, "findBy")
+      .spyOn(RunnerService, "findBy")
       .mockResolvedValue([]);
 
-    await RunbookAgentService.getOnlineCodeFixRunnerForProject(projectId);
+    await RunnerService.getOnlineCodeFixRunnerForProject(projectId);
 
     expect(findBySpy).toHaveBeenCalledTimes(1);
     expect(findBySpy).toHaveBeenCalledWith(
@@ -159,17 +159,15 @@ describe("RunbookAgentService.getOnlineCodeFixRunnerForProject", () => {
   });
 
   test("a Runner returned by the query is online", async () => {
-    const runner: RunbookAgent = {
+    const runner: Runner = {
       name: "fresh-runner",
       lastAlive: OneUptimeDate.getSomeMinutesAgo(1),
-    } as unknown as RunbookAgent;
+    } as unknown as Runner;
 
-    jest.spyOn(RunbookAgentService, "findBy").mockResolvedValue([runner]);
+    jest.spyOn(RunnerService, "findBy").mockResolvedValue([runner]);
 
-    const result: RunbookAgent | null =
-      await RunbookAgentService.getOnlineCodeFixRunnerForProject(
-        ObjectID.generate(),
-      );
+    const result: Runner | null =
+      await RunnerService.getOnlineCodeFixRunnerForProject(ObjectID.generate());
 
     expect(result).toBe(runner);
   });
@@ -185,12 +183,10 @@ describe("RunbookAgentService.getOnlineCodeFixRunnerForProject", () => {
    */
   test("the liveness window is enforced by the query, not by sorting rows", async () => {
     const findBySpy: jest.SpyInstance = jest
-      .spyOn(RunbookAgentService, "findBy")
+      .spyOn(RunnerService, "findBy")
       .mockResolvedValue([]);
 
-    await RunbookAgentService.getOnlineCodeFixRunnerForProject(
-      ObjectID.generate(),
-    );
+    await RunnerService.getOnlineCodeFixRunnerForProject(ObjectID.generate());
 
     const args: Record<string, unknown> = findBySpy.mock.calls[0]![0] as Record<
       string,
@@ -213,17 +209,15 @@ describe("RunbookAgentService.getOnlineCodeFixRunnerForProject", () => {
    */
   test("connectionStatus is not consulted — only lastAlive gates the query", async () => {
     const findBySpy: jest.SpyInstance = jest
-      .spyOn(RunbookAgentService, "findBy")
+      .spyOn(RunnerService, "findBy")
       .mockResolvedValue([
         {
           name: "connected-forever-runner",
-          connectionStatus: RunbookAgentConnectionStatus.Connected,
-        } as unknown as RunbookAgent,
+          connectionStatus: RunnerConnectionStatus.Connected,
+        } as unknown as Runner,
       ]);
 
-    await RunbookAgentService.getOnlineCodeFixRunnerForProject(
-      ObjectID.generate(),
-    );
+    await RunnerService.getOnlineCodeFixRunnerForProject(ObjectID.generate());
 
     const query: Record<string, unknown> = (
       findBySpy.mock.calls[0]![0] as Record<string, unknown>
@@ -233,12 +227,10 @@ describe("RunbookAgentService.getOnlineCodeFixRunnerForProject", () => {
   });
 
   test("empty result returns null", async () => {
-    jest.spyOn(RunbookAgentService, "findBy").mockResolvedValue([]);
+    jest.spyOn(RunnerService, "findBy").mockResolvedValue([]);
 
     expect(
-      await RunbookAgentService.getOnlineCodeFixRunnerForProject(
-        ObjectID.generate(),
-      ),
+      await RunnerService.getOnlineCodeFixRunnerForProject(ObjectID.generate()),
     ).toBeNull();
   });
 });

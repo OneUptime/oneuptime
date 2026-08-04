@@ -139,7 +139,7 @@ Worker 的整体等待窗口是 `领取超时 + 执行超时 + 几秒`。挑能�
 
 代理管理位于现有 Runbooks 权限组之下：
 
-- `CreateRunbookAgent`、`EditRunbookAgent`、`DeleteRunbookAgent`、`ReadRunbookAgent` — 管理代理记录。
+- `CreateRunner`、`EditRunner`、`DeleteRunner`、`ReadRunner` — 管理代理记录。
 - `RunbookAdmin`、`RunbookMember`、`RunbookViewer`（角色） — 分配给团队以分别授予完整控制、日常使用或只读访问。`RunbookAdmin` 把上面所有细粒度权限打包在一起。
 
 _触发_ Runbook（从而让 Bash 与 JavaScript 步骤被派发）的权限仍是 `CreateRunbookExecution` / `EditRunbookExecution`。

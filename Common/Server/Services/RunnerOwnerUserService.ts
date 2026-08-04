@@ -1,5 +1,5 @@
 import DatabaseService from "./DatabaseService";
-import Model from "../../Models/DatabaseModels/RunbookAgentOwnerUser";
+import Model from "../../Models/DatabaseModels/RunnerOwnerUser";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {

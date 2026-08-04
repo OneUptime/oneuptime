@@ -1,5 +1,5 @@
 import RunbookAPI from "./API/Runbook";
-import RunbookAgentIngressAPI from "./API/RunbookAgentIngress";
+import RunnerIngressAPI from "./API/RunnerIngress";
 import QueueRunbook from "./Services/QueueRunbook";
 import RunRunbook from "./Services/RunRunbook";
 import ObjectID from "Common/Types/ObjectID";
@@ -31,7 +31,7 @@ const AGENT_INGRESS_PATH: string = "runner-ingest";
  * dashboard quietly shows the Runner Disconnected, and steps targeting it fail
  * with TimedOut — a failure mode that says nothing about its own cause.
  *
- * The credentials behind both paths are identical (same RunbookAgent row, same
+ * The credentials behind both paths are identical (same Runner row, same
  * id and key), so this is purely the URL an older container happens to know.
  * Safe to remove once the legacy-use log below has been quiet for a release.
  */
@@ -50,7 +50,7 @@ const RunbookFeatureSet: FeatureSet = {
       const app: ExpressApplication = Express.getExpressApp();
 
       app.use(`/${APP_NAME}`, new RunbookAPI().router);
-      app.use(`/${AGENT_INGRESS_PATH}`, new RunbookAgentIngressAPI().router);
+      app.use(`/${AGENT_INGRESS_PATH}`, new RunnerIngressAPI().router);
 
       /*
        * Same router, older URL — see LEGACY_AGENT_INGRESS_PATH. The agent id
@@ -79,7 +79,7 @@ const RunbookFeatureSet: FeatureSet = {
 
           next();
         },
-        new RunbookAgentIngressAPI().router,
+        new RunnerIngressAPI().router,
       );
 
       // Hand the engine a queue enqueuer so rule-triggered runs actually start.

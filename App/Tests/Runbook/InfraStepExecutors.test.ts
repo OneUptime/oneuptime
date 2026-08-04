@@ -1,8 +1,8 @@
 import ObjectID from "Common/Types/ObjectID";
 import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
-import RunbookAgentJobStatus from "Common/Types/Runbook/RunbookAgentJobStatus";
-import RunbookAgentJobService from "Common/Server/Services/RunbookAgentJobService";
-import RunbookAgentJob from "Common/Models/DatabaseModels/RunbookAgentJob";
+import RunnerJobStatus from "Common/Types/Runbook/RunnerJobStatus";
+import RunnerJobService from "Common/Server/Services/RunnerJobService";
+import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
 import logger from "Common/Server/Utils/Logger";
 import {
   KubernetesAction,
@@ -95,15 +95,13 @@ function makeK8sStep(config: RawConfig = k8sConfig()): RunbookStep {
   };
 }
 
-function makeJob(
-  overrides: Partial<Record<string, unknown>> = {},
-): RunbookAgentJob {
+function makeJob(overrides: Partial<Record<string, unknown>> = {}): RunnerJob {
   return {
     _id: "job1",
-    status: RunbookAgentJobStatus.Succeeded,
+    status: RunnerJobStatus.Succeeded,
     output: "job output",
     ...overrides,
-  } as unknown as RunbookAgentJob;
+  } as unknown as RunnerJob;
 }
 
 interface DispatchSpies {
@@ -121,13 +119,13 @@ interface DispatchSpies {
 function stubDispatch(): DispatchSpies {
   return {
     findSpy: jest
-      .spyOn(RunbookAgentJobService, "findLatestJobForStep")
+      .spyOn(RunnerJobService, "findLatestJobForStep")
       .mockResolvedValue(null),
     enqueueSpy: jest
-      .spyOn(RunbookAgentJobService, "enqueue")
+      .spyOn(RunnerJobService, "enqueue")
       .mockResolvedValue(makeJob()),
     pollSpy: jest
-      .spyOn(RunbookAgentJobService, "pollUntilTerminal")
+      .spyOn(RunnerJobService, "pollUntilTerminal")
       .mockResolvedValue(makeJob()),
   };
 }
@@ -411,7 +409,7 @@ describe("runSshStep", () => {
       const { pollSpy } = stubDispatch();
       pollSpy.mockResolvedValue(
         makeJob({
-          status: RunbookAgentJobStatus.Failed,
+          status: RunnerJobStatus.Failed,
           output: "Permission denied (publickey).",
           errorMessage: "SSH authentication failed",
         }),
@@ -443,7 +441,7 @@ describe("runSshStep", () => {
       const { findSpy, enqueueSpy, pollSpy } = stubDispatch();
       findSpy.mockResolvedValue(
         makeJob({
-          status: RunbookAgentJobStatus.Succeeded,
+          status: RunnerJobStatus.Succeeded,
           output: "ran once",
         }),
       );
@@ -837,7 +835,7 @@ describe("runKubernetesStep", () => {
       const { pollSpy } = stubDispatch();
       pollSpy.mockResolvedValue(
         makeJob({
-          status: RunbookAgentJobStatus.Failed,
+          status: RunnerJobStatus.Failed,
           output: "",
           errorMessage: 'deployments.apps "api" is forbidden',
         }),
@@ -856,7 +854,7 @@ describe("runKubernetesStep", () => {
       const { findSpy, enqueueSpy, pollSpy } = stubDispatch();
       findSpy.mockResolvedValue(
         makeJob({
-          status: RunbookAgentJobStatus.Succeeded,
+          status: RunnerJobStatus.Succeeded,
           output: "Scaled deployment production/api to 0 replica(s).",
         }),
       );
@@ -880,7 +878,7 @@ describe("runKubernetesStep", () => {
       findSpy.mockResolvedValue(
         makeJob({
           _id: "existing-k8s-job",
-          status: RunbookAgentJobStatus.Running,
+          status: RunnerJobStatus.Running,
           createdAt,
         }),
       );

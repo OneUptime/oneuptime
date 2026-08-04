@@ -25,9 +25,9 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
 import RunbookCredential from "Common/Models/DatabaseModels/RunbookCredential";
 import RunbookCredentialType from "Common/Types/Runbook/RunbookCredentialType";
-import RunbookAgent, {
-  RunbookAgentConnectionStatus,
-} from "Common/Models/DatabaseModels/RunbookAgent";
+import Runner, {
+  RunnerConnectionStatus,
+} from "Common/Models/DatabaseModels/Runner";
 import { JSONArray } from "Common/Types/JSON";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -448,8 +448,8 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
           select: { steps: true },
           requestOptions: {},
         }),
-        ModelAPI.getList<RunbookAgent>({
-          modelType: RunbookAgent,
+        ModelAPI.getList<Runner>({
+          modelType: Runner,
           query: {
             projectId: ProjectUtil.getCurrentProjectId()!,
           },
@@ -507,15 +507,15 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
       setSteps(loaded);
       setCollapsedState(initialCollapsed);
 
-      const result: ListResult<RunbookAgent> = agentList;
+      const result: ListResult<Runner> = agentList;
       setAgents(
-        result.data.map((a: RunbookAgent): AgentOption => {
+        result.data.map((a: Runner): AgentOption => {
           return {
             id: a._id?.toString() || "",
             name: a.name || "Unnamed agent",
             connected:
               (a.connectionStatus as unknown as string) ===
-              RunbookAgentConnectionStatus.Connected,
+              RunnerConnectionStatus.Connected,
           };
         }),
       );

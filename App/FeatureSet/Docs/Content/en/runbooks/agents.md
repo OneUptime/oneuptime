@@ -148,7 +148,7 @@ If a key leaks, open the agent in OneUptime and reset its key. The old key stops
 
 Managing agents lives under the existing Runbooks permission group:
 
-- `CreateRunbookAgent`, `EditRunbookAgent`, `DeleteRunbookAgent`, `ReadRunbookAgent` — manage agent records.
+- `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — manage agent records.
 - `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (roles) — assign to a team to grant full control, day-to-day usage, or read-only access respectively. `RunbookAdmin` bundles all of the granular permissions above.
 
 Permissions to _trigger_ a runbook (and therefore cause Bash and JavaScript steps to dispatch) are still `CreateRunbookExecution` / `EditRunbookExecution`.

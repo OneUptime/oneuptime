@@ -286,10 +286,10 @@ import WorkflowOwnerTeam from "./WorkflowOwnerTeam";
 import WorkflowOwnerUser from "./WorkflowOwnerUser";
 // Runbooks.
 import Runbook from "./Runbook";
-import RunbookAgent from "./RunbookAgent";
-import RunbookAgentJob from "./RunbookAgentJob";
-import RunbookAgentOwnerTeam from "./RunbookAgentOwnerTeam";
-import RunbookAgentOwnerUser from "./RunbookAgentOwnerUser";
+import Runner from "./Runner";
+import RunnerJob from "./RunnerJob";
+import RunnerOwnerTeam from "./RunnerOwnerTeam";
+import RunnerOwnerUser from "./RunnerOwnerUser";
 import RunbookCredential from "./RunbookCredential";
 import RunbookSecret from "./RunbookSecret";
 import RunbookExecution from "./RunbookExecution";
@@ -632,10 +632,10 @@ const AllModelTypes: Array<{
   RunbookRule,
   AutoRemediationRule,
   AutoRemediationSuggestion,
-  RunbookAgent,
-  RunbookAgentJob,
-  RunbookAgentOwnerTeam,
-  RunbookAgentOwnerUser,
+  Runner,
+  RunnerJob,
+  RunnerOwnerTeam,
+  RunnerOwnerUser,
   RunbookCredential,
   RunbookSecret,
 

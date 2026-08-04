@@ -1,5 +1,5 @@
 import Project from "./Project";
-import RunbookAgent from "./RunbookAgent";
+import Runner from "./Runner";
 import RunbookExecution from "./RunbookExecution";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
@@ -16,17 +16,17 @@ import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { JSONObject } from "../../Types/JSON";
-import RunbookAgentJobStatus from "../../Types/Runbook/RunbookAgentJobStatus";
+import RunnerJobStatus from "../../Types/Runbook/RunnerJobStatus";
 import RunbookStepType from "../../Types/Runbook/RunbookStepType";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 @TenantColumn("projectId")
-@CrudApiEndpoint(new Route("/runbook-agent-job"))
+@CrudApiEndpoint(new Route("/runner-job"))
 @Entity({
-  name: "RunbookAgentJob",
+  name: "RunnerJob",
 })
 @TableMetadata({
-  tableName: "RunbookAgentJob",
+  tableName: "RunnerJob",
   singularName: "Runner Job",
   pluralName: "Runner Jobs",
   icon: IconProp.Logs,
@@ -48,7 +48,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   delete: [],
   update: [],
 })
-export default class RunbookAgentJob extends BaseModel {
+export default class RunnerJob extends BaseModel {
   @ColumnAccessControl({
     create: [],
     read: [
@@ -249,14 +249,14 @@ export default class RunbookAgentJob extends BaseModel {
   @TableColumn({
     manyToOneRelationColumn: "targetAgentId",
     type: TableColumnType.Entity,
-    modelType: RunbookAgent,
+    modelType: Runner,
     title: "Target Agent",
     description:
       "The agent the step is configured to run on. Only this agent may claim the job.",
   })
   @ManyToOne(
     () => {
-      return RunbookAgent;
+      return Runner;
     },
     {
       eager: false,
@@ -266,7 +266,7 @@ export default class RunbookAgentJob extends BaseModel {
     },
   )
   @JoinColumn({ name: "targetAgentId" })
-  public targetAgent?: RunbookAgent = undefined;
+  public targetAgent?: Runner = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -349,7 +349,7 @@ export default class RunbookAgentJob extends BaseModel {
     nullable: false,
     length: ColumnLength.ShortText,
   })
-  public status?: RunbookAgentJobStatus = undefined;
+  public status?: RunnerJobStatus = undefined;
 
   @ColumnAccessControl({
     create: [],

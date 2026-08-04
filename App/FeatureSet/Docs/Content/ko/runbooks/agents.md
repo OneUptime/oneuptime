@@ -139,7 +139,7 @@ Runbook 실행을 (실행 뷰나 API에서) 취소하면 `Pending`/`Claimed`/`Ru
 
 에이전트 관리는 기존 Runbooks 권한 그룹 아래에 있습니다:
 
-- `CreateRunbookAgent`, `EditRunbookAgent`, `DeleteRunbookAgent`, `ReadRunbookAgent` — 에이전트 레코드를 관리.
+- `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — 에이전트 레코드를 관리.
 - `RunbookAdmin`, `RunbookMember`, `RunbookViewer`(역할) — 팀에 할당하여 각각 전체 제어, 일상 사용, 읽기 전용 접근을 부여. `RunbookAdmin`은 위의 세분 권한을 모두 묶은 것.
 
 Runbook을 *트리거*하는 (따라서 Bash와 JavaScript 단계가 디스패치되도록 하는) 권한은 여전히 `CreateRunbookExecution` / `EditRunbookExecution`입니다.

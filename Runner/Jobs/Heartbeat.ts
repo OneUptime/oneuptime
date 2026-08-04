@@ -1,6 +1,6 @@
 import os from "os";
 import { HEARTBEAT_INTERVAL_MS, RUNNER_VERSION } from "../Config";
-import AgentClient, { HeartbeatResult } from "../Services/RunbookAgentClient";
+import AgentClient, { HeartbeatResult } from "../Services/RunnerClient";
 import RunnerCapabilities, {
   RunnerCapabilitySet,
 } from "../Utils/RunnerCapabilities";

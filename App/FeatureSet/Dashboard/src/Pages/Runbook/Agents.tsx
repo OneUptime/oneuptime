@@ -1,4 +1,4 @@
-import RunbookAgentInstallInstructions from "../../Components/RunbookAgent/InstallInstructions";
+import RunnerInstallInstructions from "../../Components/Runner/InstallInstructions";
 import PageComponentProps from "../PageComponentProps";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
@@ -10,9 +10,9 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
-import RunbookAgent, {
-  RunbookAgentConnectionStatus,
-} from "Common/Models/DatabaseModels/RunbookAgent";
+import Runner, {
+  RunnerConnectionStatus,
+} from "Common/Models/DatabaseModels/Runner";
 import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
 import React, {
@@ -22,17 +22,13 @@ import React, {
   useState,
 } from "react";
 
-const RunbookAgentsPage: FunctionComponent<
-  PageComponentProps
-> = (): ReactElement => {
-  const [showSetupAgent, setShowSetupAgent] = useState<RunbookAgent | null>(
-    null,
-  );
+const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const [showSetupAgent, setShowSetupAgent] = useState<Runner | null>(null);
 
   return (
     <Fragment>
-      <ModelTable<RunbookAgent>
-        modelType={RunbookAgent}
+      <ModelTable<Runner>
+        modelType={Runner}
         id="runbook-agents-table"
         userPreferencesKey="runbook-agents-table"
         saveFilterProps={{
@@ -117,7 +113,7 @@ const RunbookAgentsPage: FunctionComponent<
             title: "Show setup instructions",
             buttonStyleType: ButtonStyleType.NORMAL,
             onClick: async (
-              item: RunbookAgent,
+              item: Runner,
               onCompleteAction: VoidFunction,
               onError: ErrorFunction,
             ) => {
@@ -171,10 +167,9 @@ const RunbookAgentsPage: FunctionComponent<
             field: { connectionStatus: true },
             title: "Status",
             type: FieldType.Element,
-            getElement: (item: RunbookAgent): ReactElement => {
+            getElement: (item: Runner): ReactElement => {
               const isConnected: boolean =
-                item.connectionStatus ===
-                RunbookAgentConnectionStatus.Connected;
+                item.connectionStatus === RunnerConnectionStatus.Connected;
               return (
                 <div className="flex items-center gap-2">
                   <span
@@ -197,7 +192,7 @@ const RunbookAgentsPage: FunctionComponent<
             field: { lastAlive: true },
             title: "Last Seen",
             type: FieldType.Element,
-            getElement: (item: RunbookAgent): ReactElement => {
+            getElement: (item: Runner): ReactElement => {
               if (!item.lastAlive) {
                 return <span className="text-gray-500">Never</span>;
               }
@@ -208,7 +203,7 @@ const RunbookAgentsPage: FunctionComponent<
             field: { canRunRunbooks: true },
             title: "Capabilities",
             type: FieldType.Element,
-            getElement: (item: RunbookAgent): ReactElement => {
+            getElement: (item: Runner): ReactElement => {
               const capabilities: Array<string> = [];
 
               if (item.canRunRunbooks !== false) {
@@ -235,7 +230,7 @@ const RunbookAgentsPage: FunctionComponent<
             },
             title: "Labels",
             type: FieldType.EntityArray,
-            getElement: (item: RunbookAgent): ReactElement => {
+            getElement: (item: Runner): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
             },
           },
@@ -256,7 +251,7 @@ const RunbookAgentsPage: FunctionComponent<
           }}
           closeButtonText="Close"
         >
-          <RunbookAgentInstallInstructions
+          <RunnerInstallInstructions
             agentId={new ObjectID(showSetupAgent._id!.toString())}
             agentKey={(showSetupAgent.key as string) || ""}
           />
@@ -268,4 +263,4 @@ const RunbookAgentsPage: FunctionComponent<
   );
 };
 
-export default RunbookAgentsPage;
+export default RunnersPage;

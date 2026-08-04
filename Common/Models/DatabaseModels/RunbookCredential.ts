@@ -1,4 +1,4 @@
-import RunbookAgent from "./RunbookAgent";
+import Runner from "./Runner";
 import Project from "./Project";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
@@ -543,21 +543,21 @@ export default class RunbookCredential extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.EntityArray,
-    modelType: RunbookAgent,
+    modelType: Runner,
     title: "Runners",
     description:
       "The Runners allowed to use this credential. A step referencing it must target one of them.",
   })
   @ManyToMany(
     () => {
-      return RunbookAgent;
+      return Runner;
     },
     { eager: false },
   )
   @JoinTable({
-    name: "RunbookCredentialRunbookAgent",
+    name: "RunbookCredentialRunner",
     inverseJoinColumn: {
-      name: "runbookAgentId",
+      name: "runnerId",
       referencedColumnName: "_id",
     },
     joinColumn: {
@@ -565,7 +565,7 @@ export default class RunbookCredential extends BaseModel {
       referencedColumnName: "_id",
     },
   })
-  public runbookAgents?: Array<RunbookAgent> = undefined;
+  public runners?: Array<Runner> = undefined;
 
   @ColumnAccessControl({
     create: [

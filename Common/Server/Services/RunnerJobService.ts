@@ -1,8 +1,8 @@
 import DatabaseService from "./DatabaseService";
 import ObjectID from "../../Types/ObjectID";
 import BadDataException from "../../Types/Exception/BadDataException";
-import Model from "../../Models/DatabaseModels/RunbookAgentJob";
-import RunbookAgentJobStatus from "../../Types/Runbook/RunbookAgentJobStatus";
+import Model from "../../Models/DatabaseModels/RunnerJob";
+import RunnerJobStatus from "../../Types/Runbook/RunnerJobStatus";
 import RunbookStepType, {
   isRunnerExecutedStepType,
 } from "../../Types/Runbook/RunbookStepType";
@@ -34,15 +34,15 @@ const POLL_INTERVAL_MS: number = 500;
  * durable record of what the step did. Everything else is still in flight and
  * can be waited on.
  */
-const TERMINAL_STATUSES: Array<RunbookAgentJobStatus> = [
-  RunbookAgentJobStatus.Succeeded,
-  RunbookAgentJobStatus.Failed,
-  RunbookAgentJobStatus.TimedOut,
-  RunbookAgentJobStatus.Cancelled,
+const TERMINAL_STATUSES: Array<RunnerJobStatus> = [
+  RunnerJobStatus.Succeeded,
+  RunnerJobStatus.Failed,
+  RunnerJobStatus.TimedOut,
+  RunnerJobStatus.Cancelled,
 ];
 
 export function isTerminalAgentJobStatus(
-  status: RunbookAgentJobStatus | undefined,
+  status: RunnerJobStatus | undefined,
 ): boolean {
   return Boolean(status && TERMINAL_STATUSES.includes(status));
 }
@@ -91,7 +91,7 @@ export class Service extends DatabaseService<Model> {
 
     if (!isRunnerExecutedStepType(data.stepType)) {
       throw new BadDataException(
-        `RunbookAgent does not execute step type "${data.stepType}".`,
+        `Runner does not execute step type "${data.stepType}".`,
       );
     }
 
@@ -111,7 +111,7 @@ export class Service extends DatabaseService<Model> {
       row.payload = data.payload;
     }
     row.timeoutInMs = data.timeoutInMs;
-    row.status = RunbookAgentJobStatus.Pending;
+    row.status = RunnerJobStatus.Pending;
     row.claimDeadlineAt = claimDeadlineAt;
 
     return this.create({ data: row, props: { isRoot: true } });
@@ -180,7 +180,7 @@ export class Service extends DatabaseService<Model> {
 
     const sql: string = `
       WITH claimed AS (
-        SELECT "_id" FROM "RunbookAgentJob"
+        SELECT "_id" FROM "RunnerJob"
         WHERE "projectId" = $1::uuid
           AND "status" = $2
           AND "targetAgentId" = $3::uuid
@@ -190,7 +190,7 @@ export class Service extends DatabaseService<Model> {
         LIMIT 1
         FOR UPDATE SKIP LOCKED
       )
-      UPDATE "RunbookAgentJob" j
+      UPDATE "RunnerJob" j
       SET "status" = $4,
           "assignedAgentId" = $3::uuid,
           "claimedAt" = NOW(),
@@ -207,9 +207,9 @@ export class Service extends DatabaseService<Model> {
     const rows: Array<JSONObject> = unwrapRows(
       await dataSource.query(sql, [
         data.projectId.toString(),
-        RunbookAgentJobStatus.Pending,
+        RunnerJobStatus.Pending,
         data.agentId.toString(),
-        RunbookAgentJobStatus.Claimed,
+        RunnerJobStatus.Claimed,
         leaseMs.toString(),
       ]),
     );
@@ -228,7 +228,7 @@ export class Service extends DatabaseService<Model> {
     job.targetAgentId = new ObjectID(String(r["targetAgentId"]));
     job.script = String(r["script"]);
     job.timeoutInMs = Number(r["timeoutInMs"]);
-    job.status = r["status"] as RunbookAgentJobStatus;
+    job.status = r["status"] as RunnerJobStatus;
     if (r["claimedAt"]) {
       job.claimedAt = new Date(String(r["claimedAt"]));
     }
@@ -259,7 +259,7 @@ export class Service extends DatabaseService<Model> {
      * should stop executing.
      */
     const sql: string = `
-      UPDATE "RunbookAgentJob"
+      UPDATE "RunnerJob"
       SET "status" = CASE WHEN "status" = $4 THEN $5 ELSE "status" END,
           "startedAt" = COALESCE("startedAt", NOW()),
           "leaseExpiresAt" = NOW() + ($1 || ' milliseconds')::interval,
@@ -275,8 +275,8 @@ export class Service extends DatabaseService<Model> {
         leaseMs.toString(),
         data.jobId.toString(),
         data.agentId.toString(),
-        RunbookAgentJobStatus.Claimed,
-        RunbookAgentJobStatus.Running,
+        RunnerJobStatus.Claimed,
+        RunnerJobStatus.Running,
       ]),
     );
 
@@ -298,9 +298,9 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("Database is not connected");
     }
 
-    const status: RunbookAgentJobStatus = data.success
-      ? RunbookAgentJobStatus.Succeeded
-      : RunbookAgentJobStatus.Failed;
+    const status: RunnerJobStatus = data.success
+      ? RunnerJobStatus.Succeeded
+      : RunnerJobStatus.Failed;
 
     /*
      * Only the agent that holds the lease is allowed to write the terminal
@@ -308,7 +308,7 @@ export class Service extends DatabaseService<Model> {
      * reclaimed), this is a no-op.
      */
     const sql: string = `
-      UPDATE "RunbookAgentJob"
+      UPDATE "RunnerJob"
       SET "status" = $1,
           "output" = $2,
           "exitCode" = $3,
@@ -329,8 +329,8 @@ export class Service extends DatabaseService<Model> {
         data.errorMessage ?? null,
         data.jobId.toString(),
         data.agentId.toString(),
-        RunbookAgentJobStatus.Claimed,
-        RunbookAgentJobStatus.Running,
+        RunnerJobStatus.Claimed,
+        RunnerJobStatus.Running,
       ]),
     );
 
@@ -383,7 +383,7 @@ export class Service extends DatabaseService<Model> {
 
       if (!job) {
         throw new BadDataException(
-          `RunbookAgentJob ${data.jobId.toString()} disappeared while waiting.`,
+          `RunnerJob ${data.jobId.toString()} disappeared while waiting.`,
         );
       }
 
@@ -395,7 +395,7 @@ export class Service extends DatabaseService<Model> {
 
       // Pending with claim deadline elapsed -> no agent picked it up.
       if (
-        job.status === RunbookAgentJobStatus.Pending &&
+        job.status === RunnerJobStatus.Pending &&
         job.claimDeadlineAt &&
         now > job.claimDeadlineAt
       ) {
@@ -408,8 +408,8 @@ export class Service extends DatabaseService<Model> {
 
       // Claimed/Running with lease elapsed -> agent went silent.
       if (
-        (job.status === RunbookAgentJobStatus.Claimed ||
-          job.status === RunbookAgentJobStatus.Running) &&
+        (job.status === RunnerJobStatus.Claimed ||
+          job.status === RunnerJobStatus.Running) &&
         job.leaseExpiresAt &&
         now > job.leaseExpiresAt
       ) {
@@ -448,7 +448,7 @@ export class Service extends DatabaseService<Model> {
      * state. The same agent's late-arriving result must lose to this race.
      */
     const sql: string = `
-      UPDATE "RunbookAgentJob"
+      UPDATE "RunnerJob"
       SET "status" = $1,
           "errorMessage" = $2,
           "completedAt" = NOW(),
@@ -459,13 +459,13 @@ export class Service extends DatabaseService<Model> {
       RETURNING "_id";
     `;
     await dataSource.query(sql, [
-      RunbookAgentJobStatus.TimedOut,
+      RunnerJobStatus.TimedOut,
       data.reason,
       data.jobId.toString(),
-      RunbookAgentJobStatus.Succeeded,
-      RunbookAgentJobStatus.Failed,
-      RunbookAgentJobStatus.TimedOut,
-      RunbookAgentJobStatus.Cancelled,
+      RunnerJobStatus.Succeeded,
+      RunnerJobStatus.Failed,
+      RunnerJobStatus.TimedOut,
+      RunnerJobStatus.Cancelled,
     ]);
 
     const updated: Model | null = await this.findOneById({
@@ -483,7 +483,7 @@ export class Service extends DatabaseService<Model> {
 
     if (!updated) {
       throw new BadDataException(
-        `RunbookAgentJob ${data.jobId.toString()} not found while timing out.`,
+        `RunnerJob ${data.jobId.toString()} not found while timing out.`,
       );
     }
 
@@ -501,21 +501,21 @@ export class Service extends DatabaseService<Model> {
     }
     try {
       await dataSource.query(
-        `UPDATE "RunbookAgentJob"
+        `UPDATE "RunnerJob"
          SET "status" = $1, "completedAt" = NOW(), "updatedAt" = NOW(), "version" = "version" + 1
          WHERE "runbookExecutionId" = $2::uuid
            AND "status" NOT IN ($3, $4, $5, $6)`,
         [
-          RunbookAgentJobStatus.Cancelled,
+          RunnerJobStatus.Cancelled,
           data.runbookExecutionId.toString(),
-          RunbookAgentJobStatus.Succeeded,
-          RunbookAgentJobStatus.Failed,
-          RunbookAgentJobStatus.TimedOut,
-          RunbookAgentJobStatus.Cancelled,
+          RunnerJobStatus.Succeeded,
+          RunnerJobStatus.Failed,
+          RunnerJobStatus.TimedOut,
+          RunnerJobStatus.Cancelled,
         ],
       );
     } catch (err) {
-      logger.error("Failed to cancel RunbookAgentJobs for execution");
+      logger.error("Failed to cancel RunnerJobs for execution");
       logger.error(err);
     }
   }

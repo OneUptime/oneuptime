@@ -7,7 +7,7 @@ Bash 與 JavaScript 步驟**絕不會在 OneUptime Worker 上執行**。它們�
 分派模型：
 
 1. Runbook 步驟的作者在撰寫步驟時，從下拉選單中挑選一個 Runbook Agent。
-2. 當步驟執行時，Worker 會在 `RunbookAgentJob` 中插入一列，將 `targetAgentId` 設為該 agent 的 ID，狀態為 `Pending`。
+2. 當步驟執行時，Worker 會在 `RunnerJob` 中插入一列，將 `targetAgentId` 設為該 agent 的 ID，狀態為 `Pending`。
 3. 該特定 agent（且只有該 agent）會以原子方式認領這份工作，於本機執行該指令稿——Bash 透過 `bash -c <script>`、JavaScript 則在 `isolated-vm` 沙箱中執行——並將結果回傳。
 4. Worker 以該結果繼續執行 runbook。
 
@@ -27,7 +27,7 @@ Runbook 權限位於 `Runbook` 權限群組中：
 - `CreateRunbook`、`EditRunbook`、`DeleteRunbook`、`ReadRunbook`——管理 runbook 範本。
 - `CreateRunbookExecution`、`EditRunbookExecution`、`ReadRunbookExecution`——啟動、勾選與讀取執行。
 - `CreateRunbookRule`、`EditRunbookRule`、`DeleteRunbookRule`、`ReadRunbookRule`——管理自動觸發規則。
-- `CreateRunbookAgent`、`EditRunbookAgent`、`DeleteRunbookAgent`、`ReadRunbookAgent`——管理在你自有基礎架構中執行 Bash 與 JavaScript 步驟的 Runbook Agent。
+- `CreateRunner`、`EditRunner`、`DeleteRunner`、`ReadRunner`——管理在你自有基礎架構中執行 Bash 與 JavaScript 步驟的 Runbook Agent。
 - `RunbookAdmin`、`RunbookMember`、`RunbookViewer`（角色）——指派給團隊，分別授予完整控制權、日常使用權或唯讀存取權。`RunbookAdmin` 涵蓋上述所有細部權限。
 
 ## 佇列與 worker
@@ -47,8 +47,8 @@ Runbook 執行會在 `Runbook` BullMQ 佇列上執行。Worker 並行數為 25�
 - `Runbook`——範本（name、slug、description、isEnabled、steps JSON）。
 - `RunbookExecution`——每次執行一列，包含可為 null 的 `incidentId`、`alertId` 與 `scheduledMaintenanceId` 外鍵，以及一個 JSON `stepExecutions` 陣列，用以快照步驟與各步驟狀態。
 - `RunbookRule`——自動觸發規則，帶有 `triggerEntityType` 鑑別欄位（Incident、Alert、ScheduledMaintenance），以及與要啟動的 runbook 之間的多對多關係。
-- `RunbookAgent`——每個已安裝的 agent 一列：name、密鑰、`lastAlive`、`connectionStatus`、主機資訊。
-- `RunbookAgentJob`——每個已分派的 Bash 或 JavaScript 步驟一列：`targetAgentId`（步驟作者所挑選的 agent）、步驟類型、指令稿、狀態（`Pending` → `Claimed` → `Running` → `Succeeded`/`Failed`/`TimedOut`/`Cancelled`）、認領期限、租約、輸出、結束代碼。
+- `Runner`——每個已安裝的 agent 一列：name、密鑰、`lastAlive`、`connectionStatus`、主機資訊。
+- `RunnerJob`——每個已分派的 Bash 或 JavaScript 步驟一列：`targetAgentId`（步驟作者所挑選的 agent）、步驟類型、指令稿、狀態（`Pending` → `Claimed` → `Running` → `Succeeded`/`Failed`/`TimedOut`/`Cancelled`）、認領期限、租約、輸出、結束代碼。
 
 ## 維運提示
 

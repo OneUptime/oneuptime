@@ -1,4 +1,4 @@
-import RunbookAgentInstallInstructions from "../../Components/RunbookAgent/InstallInstructions";
+import RunnerInstallInstructions from "../../Components/Runner/InstallInstructions";
 import TeamElement from "../../Components/Team/Team";
 import UserElement from "../../Components/User/User";
 import PageMap from "../../Utils/PageMap";
@@ -19,11 +19,11 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Label from "Common/Models/DatabaseModels/Label";
-import RunbookAgent, {
-  RunbookAgentConnectionStatus,
-} from "Common/Models/DatabaseModels/RunbookAgent";
-import RunbookAgentOwnerTeam from "Common/Models/DatabaseModels/RunbookAgentOwnerTeam";
-import RunbookAgentOwnerUser from "Common/Models/DatabaseModels/RunbookAgentOwnerUser";
+import Runner, {
+  RunnerConnectionStatus,
+} from "Common/Models/DatabaseModels/Runner";
+import RunnerOwnerTeam from "Common/Models/DatabaseModels/RunnerOwnerTeam";
+import RunnerOwnerUser from "Common/Models/DatabaseModels/RunnerOwnerUser";
 import Team from "Common/Models/DatabaseModels/Team";
 import User from "Common/Models/DatabaseModels/User";
 import React, {
@@ -33,7 +33,7 @@ import React, {
   useState,
 } from "react";
 
-const RunbookAgentView: FunctionComponent<PageComponentProps> = (
+const RunnerView: FunctionComponent<PageComponentProps> = (
   _props: PageComponentProps,
 ): ReactElement => {
   const [modelId] = useState<ObjectID>(Navigation.getLastParamAsObjectID());
@@ -41,7 +41,7 @@ const RunbookAgentView: FunctionComponent<PageComponentProps> = (
 
   return (
     <Fragment>
-      <CardModelDetail<RunbookAgent>
+      <CardModelDetail<Runner>
         name="Runner Details"
         cardProps={{
           title: "Runner Details",
@@ -99,12 +99,12 @@ const RunbookAgentView: FunctionComponent<PageComponentProps> = (
           },
         ]}
         modelDetailProps={{
-          onItemLoaded: (item: RunbookAgent) => {
+          onItemLoaded: (item: Runner) => {
             if (item.key) {
               setAgentKey(item.key as string);
             }
           },
-          modelType: RunbookAgent,
+          modelType: Runner,
           id: "model-detail-runbook-agent",
           fields: [
             {
@@ -144,7 +144,7 @@ const RunbookAgentView: FunctionComponent<PageComponentProps> = (
               },
               title: "Labels",
               fieldType: FieldType.Element,
-              getElement: (item: RunbookAgent): ReactElement => {
+              getElement: (item: Runner): ReactElement => {
                 return <LabelsElement labels={item["labels"] || []} />;
               },
             },
@@ -153,7 +153,7 @@ const RunbookAgentView: FunctionComponent<PageComponentProps> = (
         }}
       />
 
-      <CardModelDetail<RunbookAgent>
+      <CardModelDetail<Runner>
         name="Runner Status"
         cardProps={{
           title: "Runner Status",
@@ -162,17 +162,16 @@ const RunbookAgentView: FunctionComponent<PageComponentProps> = (
         }}
         isEditable={false}
         modelDetailProps={{
-          modelType: RunbookAgent,
+          modelType: Runner,
           id: "model-detail-runbook-agent-status",
           fields: [
             {
               field: { connectionStatus: true },
               title: "Connection Status",
               fieldType: FieldType.Element,
-              getElement: (item: RunbookAgent): ReactElement => {
+              getElement: (item: Runner): ReactElement => {
                 const isConnected: boolean =
-                  item.connectionStatus ===
-                  RunbookAgentConnectionStatus.Connected;
+                  item.connectionStatus === RunnerConnectionStatus.Connected;
                 return (
                   <div className="flex items-center gap-2">
                     <span
@@ -211,7 +210,7 @@ const RunbookAgentView: FunctionComponent<PageComponentProps> = (
           title="Setup Instructions"
           description={
             <div className="mt-5">
-              <RunbookAgentInstallInstructions
+              <RunnerInstallInstructions
                 agentId={modelId}
                 agentKey={agentKey}
               />
@@ -220,8 +219,8 @@ const RunbookAgentView: FunctionComponent<PageComponentProps> = (
         />
       )}
 
-      <ModelTable<RunbookAgentOwnerTeam>
-        modelType={RunbookAgentOwnerTeam}
+      <ModelTable<RunnerOwnerTeam>
+        modelType={RunnerOwnerTeam}
         id="table-runbook-agent-owner-team"
         userPreferencesKey="runbook-agent-owner-team-table"
         name="Runner > Owner Team"
@@ -235,13 +234,11 @@ const RunbookAgentView: FunctionComponent<PageComponentProps> = (
         isViewable={false}
         showViewIdButton={true}
         query={{
-          runbookAgentId: modelId,
+          runnerId: modelId,
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}
-        onBeforeCreate={(
-          item: RunbookAgentOwnerTeam,
-        ): Promise<RunbookAgentOwnerTeam> => {
-          item.runbookAgentId = modelId;
+        onBeforeCreate={(item: RunnerOwnerTeam): Promise<RunnerOwnerTeam> => {
+          item.runnerId = modelId;
           item.projectId = ProjectUtil.getCurrentProjectId()!;
           return Promise.resolve(item);
         }}
@@ -296,7 +293,7 @@ const RunbookAgentView: FunctionComponent<PageComponentProps> = (
             },
             title: "Team",
             type: FieldType.Entity,
-            getElement: (item: RunbookAgentOwnerTeam): ReactElement => {
+            getElement: (item: RunnerOwnerTeam): ReactElement => {
               if (!item["team"]) {
                 throw new BadDataException("Team not found");
               }
@@ -311,8 +308,8 @@ const RunbookAgentView: FunctionComponent<PageComponentProps> = (
         ]}
       />
 
-      <ModelTable<RunbookAgentOwnerUser>
-        modelType={RunbookAgentOwnerUser}
+      <ModelTable<RunnerOwnerUser>
+        modelType={RunnerOwnerUser}
         id="table-runbook-agent-owner-user"
         userPreferencesKey="runbook-agent-owner-user-table"
         name="Runner > Owner User"
@@ -326,13 +323,11 @@ const RunbookAgentView: FunctionComponent<PageComponentProps> = (
         isViewable={false}
         showViewIdButton={true}
         query={{
-          runbookAgentId: modelId,
+          runnerId: modelId,
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}
-        onBeforeCreate={(
-          item: RunbookAgentOwnerUser,
-        ): Promise<RunbookAgentOwnerUser> => {
-          item.runbookAgentId = modelId;
+        onBeforeCreate={(item: RunnerOwnerUser): Promise<RunnerOwnerUser> => {
+          item.runnerId = modelId;
           item.projectId = ProjectUtil.getCurrentProjectId()!;
           return Promise.resolve(item);
         }}
@@ -391,7 +386,7 @@ const RunbookAgentView: FunctionComponent<PageComponentProps> = (
             },
             title: "User",
             type: FieldType.Entity,
-            getElement: (item: RunbookAgentOwnerUser): ReactElement => {
+            getElement: (item: RunnerOwnerUser): ReactElement => {
               if (!item["user"]) {
                 throw new BadDataException("User not found");
               }
@@ -406,8 +401,8 @@ const RunbookAgentView: FunctionComponent<PageComponentProps> = (
         ]}
       />
 
-      <ResetObjectID<RunbookAgent>
-        modelType={RunbookAgent}
+      <ResetObjectID<Runner>
+        modelType={Runner}
         onUpdateComplete={async () => {
           Navigation.reload();
         }}
@@ -424,7 +419,7 @@ const RunbookAgentView: FunctionComponent<PageComponentProps> = (
       />
 
       <ModelDelete
-        modelType={RunbookAgent}
+        modelType={Runner}
         modelId={modelId}
         onDeleteSuccess={() => {
           Navigation.navigate(
@@ -438,4 +433,4 @@ const RunbookAgentView: FunctionComponent<PageComponentProps> = (
   );
 };
 
-export default RunbookAgentView;
+export default RunnerView;

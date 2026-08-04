@@ -7,7 +7,7 @@ Bash と JavaScript ステップは **OneUptime ワーカー上で実行され�
 ディスパッチモデル:
 
 1. Runbook ステップの作成者がステップを書くときにドロップダウンから Runbook エージェントを選択します。
-2. ステップが動くとき、ワーカーは `RunbookAgentJob` に `targetAgentId` をそのエージェントの ID にし、ステータスを `Pending` にした行を挿入します。
+2. ステップが動くとき、ワーカーは `RunnerJob` に `targetAgentId` をそのエージェントの ID にし、ステータスを `Pending` にした行を挿入します。
 3. その特定のエージェント (そしてそのエージェントだけ) がジョブを原子的に取得し、スクリプトをローカルで実行 — Bash は `bash -c <script>`、JavaScript は `isolated-vm` サンドボックス内 — 結果を返します。
 4. ワーカーは結果を持って Runbook を再開します。
 
@@ -27,7 +27,7 @@ Runbook の権限は `Runbook` 権限グループにあります:
 - `CreateRunbook`、`EditRunbook`、`DeleteRunbook`、`ReadRunbook` — Runbook テンプレートを管理。
 - `CreateRunbookExecution`、`EditRunbookExecution`、`ReadRunbookExecution` — 実行の開始、チェック、閲覧。
 - `CreateRunbookRule`、`EditRunbookRule`、`DeleteRunbookRule`、`ReadRunbookRule` — 自動トリガールールの管理。
-- `CreateRunbookAgent`、`EditRunbookAgent`、`DeleteRunbookAgent`、`ReadRunbookAgent` — Bash と JavaScript ステップをお客様自身のインフラで実行する Runbook エージェントの管理。
+- `CreateRunner`、`EditRunner`、`DeleteRunner`、`ReadRunner` — Bash と JavaScript ステップをお客様自身のインフラで実行する Runbook エージェントの管理。
 - `RunbookAdmin`、`RunbookMember`、`RunbookViewer` (ロール) — チームに割り当ててそれぞれフル制御・日常利用・読み取り専用を付与。`RunbookAdmin` は上記の細粒度権限をすべて束ねたもの。
 
 ## キュー & ワーカー
@@ -47,8 +47,8 @@ API で Manual ステップにチェックが入ると、実行は次のステ�
 - `Runbook` — テンプレート (name、slug、description、isEnabled、steps JSON)。
 - `RunbookExecution` — 1 回の実行ごとに 1 行。`incidentId`、`alertId`、`scheduledMaintenanceId` のいずれかが入る (nullable) 外部キーと、ステップとステップごとの状態をスナップショットした JSON `stepExecutions` 配列を持つ。
 - `RunbookRule` — 自動トリガールール。`triggerEntityType` の識別子 (Incident、Alert、ScheduledMaintenance) と、起動する Runbook への多対多のリレーションを持つ。
-- `RunbookAgent` — インストール済みエージェントごとに 1 行: name、secret key、`lastAlive`、`connectionStatus`、ホスト情報。
-- `RunbookAgentJob` — ディスパッチされた Bash または JavaScript ステップごとに 1 行: `targetAgentId` (ステップの作成者が選んだエージェント)、ステップ種別、スクリプト、ステータス (`Pending` → `Claimed` → `Running` → `Succeeded`/`Failed`/`TimedOut`/`Cancelled`)、取得期限、リース、出力、終了コード。
+- `Runner` — インストール済みエージェントごとに 1 行: name、secret key、`lastAlive`、`connectionStatus`、ホスト情報。
+- `RunnerJob` — ディスパッチされた Bash または JavaScript ステップごとに 1 行: `targetAgentId` (ステップの作成者が選んだエージェント)、ステップ種別、スクリプト、ステータス (`Pending` → `Claimed` → `Running` → `Succeeded`/`Failed`/`TimedOut`/`Cancelled`)、取得期限、リース、出力、終了コード。
 
 ## 運用のヒント
 

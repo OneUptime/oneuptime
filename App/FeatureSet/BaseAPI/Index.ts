@@ -954,18 +954,18 @@ import AutoRemediationRuleService, {
 import AutoRemediationSuggestionService, {
   Service as AutoRemediationSuggestionServiceType,
 } from "Common/Server/Services/AutoRemediationSuggestionService";
-import RunbookAgentService, {
-  Service as RunbookAgentServiceType,
-} from "Common/Server/Services/RunbookAgentService";
-import RunbookAgentJobService, {
-  Service as RunbookAgentJobServiceType,
-} from "Common/Server/Services/RunbookAgentJobService";
-import RunbookAgentOwnerTeamService, {
-  Service as RunbookAgentOwnerTeamServiceType,
-} from "Common/Server/Services/RunbookAgentOwnerTeamService";
-import RunbookAgentOwnerUserService, {
-  Service as RunbookAgentOwnerUserServiceType,
-} from "Common/Server/Services/RunbookAgentOwnerUserService";
+import RunnerService, {
+  Service as RunnerServiceType,
+} from "Common/Server/Services/RunnerService";
+import RunnerJobService, {
+  Service as RunnerJobServiceType,
+} from "Common/Server/Services/RunnerJobService";
+import RunnerOwnerTeamService, {
+  Service as RunnerOwnerTeamServiceType,
+} from "Common/Server/Services/RunnerOwnerTeamService";
+import RunnerOwnerUserService, {
+  Service as RunnerOwnerUserServiceType,
+} from "Common/Server/Services/RunnerOwnerUserService";
 import RunbookSecretService, {
   Service as RunbookSecretServiceType,
 } from "Common/Server/Services/RunbookSecretService";
@@ -1002,7 +1002,12 @@ import KubernetesCostAllocationService, {
 import AcmeChallengeAPI from "Common/Server/API/AcmeChallengeAPI";
 
 import FeatureSet from "Common/Server/Types/FeatureSet";
-import Express, { ExpressApplication } from "Common/Server/Utils/Express";
+import Express, {
+  ExpressApplication,
+  ExpressRequest,
+  ExpressResponse,
+  NextFunction,
+} from "Common/Server/Utils/Express";
 import AuditLog from "Common/Models/AnalyticsModels/AuditLog";
 import Log from "Common/Models/AnalyticsModels/Log";
 import Span from "Common/Models/AnalyticsModels/Span";
@@ -1249,10 +1254,10 @@ import RunbookOwnerUser from "Common/Models/DatabaseModels/RunbookOwnerUser";
 import RunbookRule from "Common/Models/DatabaseModels/RunbookRule";
 import AutoRemediationRule from "Common/Models/DatabaseModels/AutoRemediationRule";
 import AutoRemediationSuggestion from "Common/Models/DatabaseModels/AutoRemediationSuggestion";
-import RunbookAgent from "Common/Models/DatabaseModels/RunbookAgent";
-import RunbookAgentJob from "Common/Models/DatabaseModels/RunbookAgentJob";
-import RunbookAgentOwnerTeam from "Common/Models/DatabaseModels/RunbookAgentOwnerTeam";
-import RunbookAgentOwnerUser from "Common/Models/DatabaseModels/RunbookAgentOwnerUser";
+import Runner from "Common/Models/DatabaseModels/Runner";
+import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
+import RunnerOwnerTeam from "Common/Models/DatabaseModels/RunnerOwnerTeam";
+import RunnerOwnerUser from "Common/Models/DatabaseModels/RunnerOwnerUser";
 import RunbookSecret from "Common/Models/DatabaseModels/RunbookSecret";
 import RunbookCredential from "Common/Models/DatabaseModels/RunbookCredential";
 import ProbeOwnerTeam from "Common/Models/DatabaseModels/ProbeOwnerTeam";
@@ -1542,6 +1547,48 @@ const BaseAPIFeatureSet: FeatureSet = {
     const app: ExpressApplication = Express.getExpressApp();
 
     const APP_NAME: string = "api";
+
+    /*
+     * The Runbook Agent became the Runner, and its CRUD paths moved with it.
+     * Those paths are a public contract — anything scripted against
+     * /api/runbook-agent would break on deploy — so the old prefixes are
+     * rewritten onto the new ones here, ahead of every route that could match
+     * them. Rewriting rather than redirecting keeps it a single request, which
+     * matters for the POST-bodied endpoints this API is mostly made of.
+     *
+     * Prefix-anchored and boundary-checked: "/runbook-agent-job" must not be
+     * caught by the "/runbook-agent" rule and rewritten to "/runner-job" by
+     * accident, so longer prefixes are listed first and a match must be
+     * followed by "/" or the end of the path.
+     */
+    const LEGACY_PATH_REWRITES: ReadonlyArray<[string, string]> = [
+      ["/runbook-agent-owner-team", "/runner-owner-team"],
+      ["/runbook-agent-owner-user", "/runner-owner-user"],
+      ["/runbook-agent-job", "/runner-job"],
+      ["/runbook-agent", "/runner"],
+    ];
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      (
+        req: ExpressRequest,
+        _res: ExpressResponse,
+        next: NextFunction,
+      ): void => {
+        for (const [legacy, current] of LEGACY_PATH_REWRITES) {
+          if (
+            req.url === legacy ||
+            req.url.startsWith(`${legacy}/`) ||
+            req.url.startsWith(`${legacy}?`)
+          ) {
+            req.url = current + req.url.slice(legacy.length);
+            break;
+          }
+        }
+
+        next();
+      },
+    );
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
@@ -3189,33 +3236,30 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<RunbookAgent, RunbookAgentServiceType>(
-        RunbookAgent,
-        RunbookAgentService,
+      new BaseAPI<Runner, RunnerServiceType>(Runner, RunnerService).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<RunnerJob, RunnerJobServiceType>(
+        RunnerJob,
+        RunnerJobService,
       ).getRouter(),
     );
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<RunbookAgentJob, RunbookAgentJobServiceType>(
-        RunbookAgentJob,
-        RunbookAgentJobService,
+      new BaseAPI<RunnerOwnerTeam, RunnerOwnerTeamServiceType>(
+        RunnerOwnerTeam,
+        RunnerOwnerTeamService,
       ).getRouter(),
     );
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<RunbookAgentOwnerTeam, RunbookAgentOwnerTeamServiceType>(
-        RunbookAgentOwnerTeam,
-        RunbookAgentOwnerTeamService,
-      ).getRouter(),
-    );
-
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<RunbookAgentOwnerUser, RunbookAgentOwnerUserServiceType>(
-        RunbookAgentOwnerUser,
-        RunbookAgentOwnerUserService,
+      new BaseAPI<RunnerOwnerUser, RunnerOwnerUserServiceType>(
+        RunnerOwnerUser,
+        RunnerOwnerUserService,
       ).getRouter(),
     );
 

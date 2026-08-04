@@ -125,7 +125,7 @@ export default class Register {
     } else {
       /*
        * Project-scoped mode: the id and key were issued by the dashboard
-       * (Runbooks > Runners), so they identify a RunbookAgent row. Validate
+       * (Runbooks > Runners), so they identify a Runner row. Validate
        * them against the Runner work mount, which is the endpoint that
        * authenticates against that table — the AIAgent alive endpoint would
        * reject them, since no AIAgent row is ever created for a

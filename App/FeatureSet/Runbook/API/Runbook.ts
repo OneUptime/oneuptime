@@ -18,7 +18,7 @@ import Express, {
 import Response from "Common/Server/Utils/Response";
 import RunbookService from "Common/Server/Services/RunbookService";
 import RunbookExecutionService from "Common/Server/Services/RunbookExecutionService";
-import RunbookAgentJobService from "Common/Server/Services/RunbookAgentJobService";
+import RunnerJobService from "Common/Server/Services/RunnerJobService";
 import IncidentService from "Common/Server/Services/IncidentService";
 import AlertService from "Common/Server/Services/AlertService";
 import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMaintenanceService";
@@ -403,7 +403,7 @@ export default class RunbookAPI {
         props: { isRoot: true },
       });
 
-      await RunbookAgentJobService.cancelJobsForExecution({
+      await RunnerJobService.cancelJobsForExecution({
         runbookExecutionId: new ObjectID(executionId),
       });
 

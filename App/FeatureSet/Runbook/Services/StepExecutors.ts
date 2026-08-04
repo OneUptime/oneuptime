@@ -16,11 +16,11 @@ import {
   resolveStepExecutionTimeoutInMs,
 } from "Common/Types/Runbook/RunbookStepTimeout";
 import ObjectID from "Common/Types/ObjectID";
-import RunbookAgentJobService, {
+import RunnerJobService, {
   isTerminalAgentJobStatus,
-} from "Common/Server/Services/RunbookAgentJobService";
-import RunbookAgentJobStatus from "Common/Types/Runbook/RunbookAgentJobStatus";
-import RunbookAgentJob from "Common/Models/DatabaseModels/RunbookAgentJob";
+} from "Common/Server/Services/RunnerJobService";
+import RunnerJobStatus from "Common/Types/Runbook/RunnerJobStatus";
+import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
 import { RunbookStepExecutionState } from "Common/Types/Runbook/RunbookStepExecution";
 
 export interface StepRunResult {
@@ -58,10 +58,10 @@ export function truncate(s: string): string {
 }
 
 // Translate a finished agent job row into the step result the runner records.
-function toStepResult(job: RunbookAgentJob): StepRunResult {
+function toStepResult(job: RunnerJob): StepRunResult {
   const output: string = truncate(job.output || "");
 
-  if (job.status === RunbookAgentJobStatus.Succeeded) {
+  if (job.status === RunnerJobStatus.Succeeded) {
     return { success: true, output };
   }
 
@@ -135,8 +135,8 @@ async function dispatchToAgent(args: {
      * produced is the source of truth: adopt it if it finished, wait on it if
      * it did not.
      */
-    const existingJob: RunbookAgentJob | null =
-      await RunbookAgentJobService.findLatestJobForStep({
+    const existingJob: RunnerJob | null =
+      await RunnerJobService.findLatestJobForStep({
         runbookExecutionId: args.ctx.runbookExecutionId,
         stepId: args.step.id,
       });
@@ -163,7 +163,7 @@ async function dispatchToAgent(args: {
       jobId = new ObjectID(existingJob._id!);
       waitStartedAt = existingJob.createdAt;
     } else {
-      const job: RunbookAgentJob = await RunbookAgentJobService.enqueue({
+      const job: RunnerJob = await RunnerJobService.enqueue({
         projectId: args.ctx.projectId,
         runbookExecutionId: args.ctx.runbookExecutionId,
         stepId: args.step.id,
@@ -177,13 +177,12 @@ async function dispatchToAgent(args: {
       jobId = new ObjectID(job._id!);
     }
 
-    const terminal: RunbookAgentJob =
-      await RunbookAgentJobService.pollUntilTerminal({
-        jobId,
-        claimTimeoutInMs: args.claimTimeoutInMs,
-        executionTimeoutInMs: args.timeoutInMs,
-        waitStartedAt,
-      });
+    const terminal: RunnerJob = await RunnerJobService.pollUntilTerminal({
+      jobId,
+      claimTimeoutInMs: args.claimTimeoutInMs,
+      executionTimeoutInMs: args.timeoutInMs,
+      waitStartedAt,
+    });
 
     return toStepResult(terminal);
   } catch (err) {

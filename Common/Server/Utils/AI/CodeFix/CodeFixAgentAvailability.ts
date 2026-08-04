@@ -1,8 +1,8 @@
 import AIAgentService from "../../../Services/AIAgentService";
-import RunbookAgentService from "../../../Services/RunbookAgentService";
+import RunnerService from "../../../Services/RunnerService";
 import ObjectID from "../../../../Types/ObjectID";
 import AIAgent from "../../../../Models/DatabaseModels/AIAgent";
-import RunbookAgent from "../../../../Models/DatabaseModels/RunbookAgent";
+import Runner from "../../../../Models/DatabaseModels/Runner";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 
 export interface OnlineCodeFixAgent {
@@ -14,7 +14,7 @@ export interface OnlineCodeFixAgent {
  * claim that work, so both count:
  *
  *   - an AIAgent row: the in-cluster fleet, and legacy per-project agents.
- *   - a OneUptime Runner (RunbookAgent row) with the code-fix capability
+ *   - a OneUptime Runner (Runner row) with the code-fix capability
  *     enabled — what a customer installs today.
  *
  * Readiness checks and the orphaned-run sweeper share this, so a project
@@ -33,8 +33,8 @@ export default class CodeFixAgentAvailability {
       return { name: aiAgent.name || "AI agent" };
     }
 
-    const runner: RunbookAgent | null =
-      await RunbookAgentService.getOnlineCodeFixRunnerForProject(projectId);
+    const runner: Runner | null =
+      await RunnerService.getOnlineCodeFixRunnerForProject(projectId);
 
     if (runner) {
       return { name: runner.name || "Runner" };

@@ -5,7 +5,7 @@ import LlmProviderService from "../../../Server/Services/LlmProviderService";
 import ServiceService from "../../../Server/Services/ServiceService";
 import CodeRepositoryService from "../../../Server/Services/CodeRepositoryService";
 import AIAgentService from "../../../Server/Services/AIAgentService";
-import RunbookAgentService from "../../../Server/Services/RunbookAgentService";
+import RunnerService from "../../../Server/Services/RunnerService";
 import AIRunService from "../../../Server/Services/AIRunService";
 import AIAgentTaskPullRequestService from "../../../Server/Services/AIAgentTaskPullRequestService";
 import { RepoResolution } from "../../../Server/Utils/CodeRepository/StackTraceRepoResolver";
@@ -101,7 +101,7 @@ function mockReadinessOk(): void {
    * AIAgent is online. Stubbed to none so this suite never reaches a database.
    */
   jest
-    .spyOn(RunbookAgentService, "getOnlineCodeFixRunnerForProject")
+    .spyOn(RunnerService, "getOnlineCodeFixRunnerForProject")
     .mockResolvedValue(null);
   /*
    * The llmProvider check also gates on the daily autonomous token budget

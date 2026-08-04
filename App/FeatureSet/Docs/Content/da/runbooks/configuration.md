@@ -7,7 +7,7 @@ Bash- og JavaScript-trin **kører aldrig på OneUptime Worker'en**. De afsendes 
 Afsendelsesmodellen:
 
 1. Runbook-trinforfatteren vælger en Runbook-agent fra dropdownen, når trinet skrives.
-2. Når trinnet kører, indsætter Worker'en en række i `RunbookAgentJob` med `targetAgentId` sat til den agents ID og status `Pending`.
+2. Når trinnet kører, indsætter Worker'en en række i `RunnerJob` med `targetAgentId` sat til den agents ID og status `Pending`.
 3. Den specifikke agent (og kun den agent) claimer atomart jobbet, kører scriptet lokalt — Bash via `bash -c <script>`, JavaScript inde i en `isolated-vm`-sandkasse — og sender resultatet retur.
 4. Worker'en fortsætter runbook'et med resultatet.
 
@@ -27,7 +27,7 @@ Runbook-rettigheder ligger i rettighedsgruppen `Runbook`:
 - `CreateRunbook`, `EditRunbook`, `DeleteRunbook`, `ReadRunbook` — håndter runbook-skabeloner.
 - `CreateRunbookExecution`, `EditRunbookExecution`, `ReadRunbookExecution` — start, tik af og læs kørsler.
 - `CreateRunbookRule`, `EditRunbookRule`, `DeleteRunbookRule`, `ReadRunbookRule` — håndter automatiske udløsningsregler.
-- `CreateRunbookAgent`, `EditRunbookAgent`, `DeleteRunbookAgent`, `ReadRunbookAgent` — håndter Runbook-agenter, der eksekverer Bash- og JavaScript-trin i din egen infrastruktur.
+- `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — håndter Runbook-agenter, der eksekverer Bash- og JavaScript-trin i din egen infrastruktur.
 - `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (roller) — tildel et team for at give henholdsvis fuld kontrol, daglig brug eller læseadgang. `RunbookAdmin` samler alle de granulære rettigheder ovenfor.
 
 ## Kø & worker
@@ -47,8 +47,8 @@ Når et manuelt trin tikkes af via API'en, lægges kørslen igen i kø for at fo
 - `Runbook` — skabelon (navn, slug, beskrivelse, isEnabled, trin JSON).
 - `RunbookExecution` — én række per kørsel, med nullable `incidentId`-, `alertId`- og `scheduledMaintenanceId`-fremmednøgler og en JSON-array `stepExecutions`, der snapshotter trin og per-trin-tilstand.
 - `RunbookRule` — automatiske udløsningsregler med en `triggerEntityType`-discriminator (Incident, Alert, ScheduledMaintenance) og en mange-til-mange-relation til de runbooks, der skal startes.
-- `RunbookAgent` — én række per installeret agent: navn, hemmelig nøgle, `lastAlive`, `connectionStatus`, host-info.
-- `RunbookAgentJob` — én række per afsendt Bash- eller JavaScript-trin: `targetAgentId` (den agent, trin-forfatteren valgte), trintype, script, status (`Pending` → `Claimed` → `Running` → `Succeeded`/`Failed`/`TimedOut`/`Cancelled`), claim-deadline, lease, output, exit-kode.
+- `Runner` — én række per installeret agent: navn, hemmelig nøgle, `lastAlive`, `connectionStatus`, host-info.
+- `RunnerJob` — én række per afsendt Bash- eller JavaScript-trin: `targetAgentId` (den agent, trin-forfatteren valgte), trintype, script, status (`Pending` → `Claimed` → `Running` → `Succeeded`/`Failed`/`TimedOut`/`Cancelled`), claim-deadline, lease, output, exit-kode.
 
 ## Drifttips
 

@@ -139,7 +139,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
 
 Управление агентами живёт в существующей группе прав Runbooks:
 
-- `CreateRunbookAgent`, `EditRunbookAgent`, `DeleteRunbookAgent`, `ReadRunbookAgent` — управление записями агентов.
+- `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — управление записями агентов.
 - `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (роли) — назначайте команде для полного контроля, повседневного использования или доступа только на чтение соответственно. `RunbookAdmin` объединяет все детализированные права выше.
 
 Права на _запуск_ runbook'а (и, как следствие, диспетчеризацию Bash- и JavaScript-шагов) по-прежнему `CreateRunbookExecution` / `EditRunbookExecution`.

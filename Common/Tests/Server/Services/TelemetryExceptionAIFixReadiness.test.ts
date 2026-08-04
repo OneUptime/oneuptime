@@ -9,7 +9,7 @@ import ProjectService from "../../../Server/Services/ProjectService";
 import ServiceService from "../../../Server/Services/ServiceService";
 import CodeRepositoryService from "../../../Server/Services/CodeRepositoryService";
 import AIAgentService from "../../../Server/Services/AIAgentService";
-import RunbookAgentService from "../../../Server/Services/RunbookAgentService";
+import RunnerService from "../../../Server/Services/RunnerService";
 import { RepoResolution } from "../../../Server/Utils/CodeRepository/StackTraceRepoResolver";
 import TelemetryException from "../../../Models/DatabaseModels/TelemetryException";
 import TelemetryService from "../../../Models/DatabaseModels/Service";
@@ -130,7 +130,7 @@ function mockReadiness(data: ReadinessMocks): void {
    * none — without the stub the fallback would reach a real database.
    */
   jest
-    .spyOn(RunbookAgentService, "getOnlineCodeFixRunnerForProject")
+    .spyOn(RunnerService, "getOnlineCodeFixRunnerForProject")
     .mockResolvedValue(null);
 }
 
