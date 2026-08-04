@@ -1,206 +1,93 @@
-# Agentes de IA
+# AI Fix Tasks — Fix Exceptions with a Pull Request
 
-Los Agentes de IA en OneUptime corrigen automáticamente errores, problemas de rendimiento y consultas de bases de datos en tu código. Impulsados por datos de observabilidad de OpenTelemetry, los Agentes de IA crean solicitudes de extracción (pull requests) con correcciones, no solo alertas.
+<!-- TODO(i18n): Translate this page. English source: en/ai/ai-agent.md (rewritten for the v12 Runner merge; the previous translation described the retired standalone AI Agent). -->
 
-## ¿Qué pueden hacer los Agentes de IA?
+OneUptime AI turns an unresolved exception into a reviewable pull request. On any unresolved exception, click **Fix with AI**: a [Runner](/docs/runbooks/agents) picks the task up, reads the exception (type, error message, and stack trace), clones the GitHub repository linked to the service that threw it, writes a fix on a new branch, and opens a pull request.
 
-Los Agentes de IA analizan tus datos de observabilidad (trazas, registros y métricas) para detectar y corregir automáticamente problemas en tu base de código:
+Every pull request is reviewed and merged by a human. The Runner never merges its own changes — it can push branches and open PRs, nothing more.
 
-- **Corrección automática de errores**: Cuando el Agente de IA detecta excepciones en tus trazas o registros, corrige el problema automáticamente y crea una solicitud de extracción.
-- **Corrección de problemas de rendimiento**: Analiza las trazas que tardan más en ejecutarse y crea solicitudes de extracción con optimizaciones de rendimiento.
-- **Corrección de consultas de bases de datos**: Identifica consultas de bases de datos lentas o ineficientes y las optimiza con índices adecuados y reescrituras de consultas.
-- **Corrección de problemas de frontend**: Aborda problemas de rendimiento específicos del frontend, problemas de renderización y errores de JavaScript automáticamente.
-- **Adición automática de telemetría**: Agrega trazas, métricas y registros a tu base de código con un solo clic. No se necesita instrumentación manual.
-- **Integración con GitHub y GitLab**: Se integra perfectamente con tus repositorios existentes. Los PRs se crean directamente en tu flujo de trabajo.
-- **Integración con CI/CD**: Se integra con tus pipelines de CI/CD existentes. Las correcciones se prueban y validan antes de crear el PR.
-- **Soporte para Terraform**: Corrige problemas de infraestructura automáticamente. Compatible con Terraform y OpenTofu para infraestructura como código.
-- **Integración con rastreadores de incidencias**: Se conecta con Jira, Linear y otros rastreadores de incidencias. Vincula automáticamente las correcciones a los problemas relevantes.
+## How a fix run works
 
-## Cómo funciona
+1. You click **Fix with AI** on an unresolved exception.
+2. A fix task is created and picked up by an available Runner with the **Runs AI Code Fixes** capability.
+3. The Runner fetches the exception details — exception type, error message, and stack trace.
+4. It clones the linked repository into an ephemeral workspace and creates a branch (named `oneuptime-fix-exception-` followed by the first characters of the run id).
+5. A code agent, powered by your project's LLM provider, analyzes the codebase and writes the fix. The LLM calls are executed by the OneUptime server — the Runner container never holds your provider's API key — and every call is metered and logged in the AI logs.
+6. The Runner commits, pushes the branch, opens a pull request, and deletes the workspace.
 
-1. **Recopilar datos**: OpenTelemetry recopila trazas, registros y métricas de tu aplicación
-2. **Detectar problemas**: La IA identifica errores, cuellos de botella de rendimiento y consultas lentas
-3. **Generar corrección**: La IA analiza tu base de código y crea la corrección automáticamente
-4. **Crear PR**: Solicitud de extracción con la corrección y un informe detallado lista para revisión
+The exception page shows the task's live status. The task's detail page (under **AI** > **Tasks**) keeps the full run log — including a line for every file the Runner read or wrote and every command it ran — and links to every pull request the task opened.
 
-## Flexibilidad de proveedor LLM
+Each fix run is capped by server-enforced loop budgets: at most **40 LLM calls** and **100,000 output tokens** per run. A run that hits its budget finishes with a summary of the work done so far instead of looping forever. Fix runs also count against the project's daily autonomous AI token budget, if one is set.
 
-OneUptime funciona con cualquier proveedor LLM. Puedes usar:
+## Prerequisites
 
-- Modelos **OpenAI GPT**
-- Modelos **Anthropic Claude**
-- **Meta Llama** (a través de Ollama u otros proveedores)
-- Modelos **personalizados auto-alojados**
+Three things must be in place before a fix task can run. The exception page checks all of them up front and shows a readiness checklist, so you can see exactly what is missing before a task is created.
 
-Aloja tu modelo de IA por tu cuenta y mantén tu código completamente privado.
+### 1. An LLM provider
 
-## Privacidad
-
-Independientemente de tu plan, OneUptime nunca ve, almacena ni entrena con tu código:
-
-- **Sin acceso al código**: Tu código permanece en tu infraestructura
-- **Sin almacenamiento de datos**: Política de retención de datos cero
-- **Sin entrenamiento**: Tu código nunca se utiliza para entrenar IA
-
-## Agentes de IA globales vs. Agentes de IA auto-alojados
-
-### Agentes de IA globales
-
-Si utilizas **OneUptime SaaS** (versión alojada en la nube), los Agentes de IA globales son proporcionados por OneUptime y están preconfigurados y listos para usar. Estos agentes son gestionados por OneUptime y no requieren configuración adicional.
-
-Los Agentes de IA globales están disponibles automáticamente para todos los proyectos a menos que estén deshabilitados en la configuración de tu proyecto.
-
-### Agentes de IA auto-alojados
-
-Para organizaciones que necesitan ejecutar agentes de IA dentro de su propia infraestructura (por ejemplo, por razones de seguridad, cumplimiento o requisitos de acceso a la red), OneUptime admite agentes de IA auto-alojados.
-
-Los agentes de IA auto-alojados:
-
-- Se ejecutan dentro de tu red privada
-- Pueden acceder a recursos y sistemas internos
-- Te dan control total sobre el entorno del agente
-- Pueden personalizarse para tus necesidades específicas
-
-## Configuración de un Agente de IA auto-alojado
-
-### Paso 1: Crear un Agente de IA en OneUptime
-
-1. Inicia sesión en tu panel de OneUptime
-2. Ve a **Configuración del proyecto** > **Agentes de IA**
-3. Haz clic en **Crear Agente de IA** para agregar un nuevo agente
-4. Rellena los campos requeridos:
-   - **Nombre**: Un nombre descriptivo para tu agente de IA
-   - **Descripción** (opcional): Una descripción del propósito del agente
-5. Una vez creado, recibirás un `AI_AGENT_ID` y un `AI_AGENT_KEY`
-
-**Importante**: Guarda tu `AI_AGENT_KEY` de forma segura. Solo se mostrará una vez y no se puede recuperar posteriormente.
-
-### Paso 2: Implementar el Agente de IA
-
-#### Docker
-
-Para ejecutar un agente de IA, asegúrate de tener Docker instalado. Ejecuta el agente con:
+- **OneUptime Cloud**: zero-config — if your project has no LLM provider of its own, agent tasks use the shared global provider and the usage is billed as metered AI tokens, exactly like every other AI feature. To use your own keys instead, configure a provider under **Project Settings** > **AI** > **LLM Providers** — a project-owned provider always takes precedence.
+- **Self-hosted**: a project-owned provider works the same way, but the zero-config path is to set the `GLOBAL_LLM_PROVIDER_*` environment variables once on your OneUptime server (in `config.env` for Docker Compose, or via Helm values) — a global provider is registered automatically at startup, and every project's AI features, including agent tasks, use it. For a local Ollama:
 
 ```bash
-docker run --name oneuptime-ai-agent --network host \
-  -e AI_AGENT_KEY=<ai-agent-key> \
-  -e AI_AGENT_ID=<ai-agent-id> \
-  -e ONEUPTIME_URL=https://oneuptime.com \
-  -d oneuptime/ai-agent:release
+GLOBAL_LLM_PROVIDER_TYPE=Ollama
+GLOBAL_LLM_PROVIDER_BASE_URL=http://your-ollama-host:11434
+GLOBAL_LLM_PROVIDER_MODEL_NAME=llama3
+# No GLOBAL_LLM_PROVIDER_API_KEY needed — Ollama is keyless.
 ```
 
-Si estás auto-alojando OneUptime, cambia `ONEUPTIME_URL` a la URL de tu instancia auto-alojada personalizada.
+Any supported provider works — see [LLM Providers](/docs/ai/llm-provider) for all providers and the full list of environment variables.
 
-#### Docker Compose
+### 2. GitHub connected through the GitHub App
 
-También puedes ejecutar el agente de IA usando docker-compose. Crea un archivo `docker-compose.yml`:
+Connect GitHub under **Code Repositories** using **Connect with GitHub App** — installing the app imports all of its repositories automatically and keeps them in sync. The GitHub App is the only connection the Runner can push through (GitLab is on the roadmap).
 
-```yaml
-version: "3"
+You do **not** map repositories to services: OneUptime resolves the right repository at fix time by matching the exception's stack-trace file paths against your connected repositories (falling back to repository-name matching and, when the project has exactly one repository, to that repository). The readiness checklist on the exception page shows which repository resolved.
 
-services:
-  oneuptime-ai-agent:
-    image: oneuptime/ai-agent:release
-    container_name: oneuptime-ai-agent
-    environment:
-      - AI_AGENT_KEY=<ai-agent-key>
-      - AI_AGENT_ID=<ai-agent-id>
-      - ONEUPTIME_URL=https://oneuptime.com
-    network_mode: host
-    restart: always
-```
+### 3. A Runner with AI code fixes enabled
 
-Luego ejecuta:
+- **OneUptime Cloud**: the shared Runner fleet is available automatically — there is nothing to run.
+- **Self-hosted**: the Runner container runs by default — the Docker Compose install includes the `runner` service, and the Helm chart deploys it (`runner.enabled`, default `true`). It registers itself with your instance automatically (no credentials to copy) and works on AI code fixes out of the box. The Runner idles cheaply when no LLM provider is configured; tasks fail early with guidance until one is set up.
+
+To run an additional Runner elsewhere (for example on a machine closer to your repositories):
+
+1. Create a Runner under **Settings** > **Runners** and use **Show setup instructions** on its row for a pre-filled install command. The key is shown once — save it securely. The command looks like:
 
 ```bash
-docker compose up -d
+docker run --name oneuptime-runner --restart unless-stopped \
+  -e ONEUPTIME_RUNNER_ID=<runner-id> \
+  -e ONEUPTIME_RUNNER_KEY=<runner-key> \
+  -e ONEUPTIME_URL=<your-oneuptime-url> \
+  -d oneuptime/runner:release
 ```
 
-#### Kubernetes
+2. Enable **Runs AI Code Fixes** on the Runner — the capability is off by default, and the Runner adopts the change on its next heartbeat (about a minute); no restart needed.
 
-Crea un archivo `oneuptime-ai-agent.yaml`:
+Any way of running the container works (Docker Compose, Kubernetes, and so on) as long as these environment variables are set and the container can reach your OneUptime instance over HTTPS:
 
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: oneuptime-ai-agent
-spec:
-  selector:
-    matchLabels:
-      app: oneuptime-ai-agent
-  template:
-    metadata:
-      labels:
-        app: oneuptime-ai-agent
-    spec:
-      containers:
-        - name: oneuptime-ai-agent
-          image: oneuptime/ai-agent:release
-          env:
-            - name: AI_AGENT_KEY
-              value: "<ai-agent-key>"
-            - name: AI_AGENT_ID
-              value: "<ai-agent-id>"
-            - name: ONEUPTIME_URL
-              value: "https://oneuptime.com"
-```
+| Variable               | Description                                                    |
+| ---------------------- | -------------------------------------------------------------- |
+| `ONEUPTIME_RUNNER_ID`  | The Runner id from the dashboard                               |
+| `ONEUPTIME_RUNNER_KEY` | The Runner key shown when the Runner was created               |
+| `ONEUPTIME_URL`        | Your OneUptime instance URL (`https://oneuptime.com` on Cloud) |
 
-Aplica la configuración:
+The Runner shows as connected on the **Settings** > **Runners** page within a minute or two. If it does not, check the container logs (`docker logs oneuptime-runner`) for credential or network errors.
 
-```bash
-kubectl apply -f oneuptime-ai-agent.yaml
-```
+> Before OneUptime 12, AI code fixes ran on a separate **AI Agent** component (the `oneuptime/ai-agent` image with `AI_AGENT_*` variables). That component merged into the Runner — if you still run one, see the [v11 → v12 upgrade guide](/docs/installation/upgrading) for how to replace it.
 
-### Variables de entorno
+## When a fix fails
 
-El agente de IA admite las siguientes variables de entorno:
+- **The run errors** (the fix could not be applied, the repository was unreachable, the LLM call failed): the task's error is shown on the exception page with the reason, and you can retry the fix from there. The full run log is on the task's detail page.
+- **The Runner crashes mid-run**: a run whose heartbeat goes stale for more than about ten minutes is failed with an error. It is never requeued automatically — the Runner may already have pushed a partial fix branch — but you can retry the fix from the exception page.
+- **No Runner is online**: a queued task that waits more than 30 minutes while no Runner with the **Runs AI Code Fixes** capability is connected is failed automatically, with guidance to check the Runner — it will not show "in progress" forever. (If a Runner is online but busy, queued tasks simply wait their turn.)
 
-#### Variables requeridas
+## Privacy
 
-| Variable        | Descripción                                                                 |
-| --------------- | --------------------------------------------------------------------------- |
-| `AI_AGENT_KEY`  | La clave del agente de IA de tu panel de OneUptime                          |
-| `AI_AGENT_ID`   | El ID del agente de IA de tu panel de OneUptime                             |
-| `ONEUPTIME_URL` | La URL de tu instancia de OneUptime (predeterminado: https://oneuptime.com) |
+The repository clone lives in an ephemeral workspace inside the Runner container and is deleted when the run finishes, whether it succeeded or failed. The Runner container never holds your LLM provider's API key — LLM calls are executed by the OneUptime server on the Runner's behalf. OneUptime does not retain your repository and does not train on your code; the task's run log keeps a short preview of each step's output (a few hundred characters) so you can audit what the Runner did, and those previews can include code snippets. Run a self-hosted Runner with your own LLM provider (including local Ollama) and your code never leaves your infrastructure.
 
-## Verificación de tu Agente de IA
+## On the roadmap
 
-Después de implementar tu agente de IA:
+Planned, but **not available today**:
 
-1. Ve a **Configuración del proyecto** > **Agentes de IA** en tu panel de OneUptime
-2. Tu agente debería aparecer como **Conectado** en unos minutos
-3. Si el estado muestra **Desconectado**, revisa los registros del contenedor en busca de errores
-
-Para ver los registros del contenedor:
-
-```bash
-# Docker
-docker logs oneuptime-ai-agent
-
-# Kubernetes
-kubectl logs deployment/oneuptime-ai-agent
-```
-
-## Solución de problemas
-
-### El agente no se conecta
-
-1. **Verificar credenciales**: Asegúrate de que `AI_AGENT_KEY` y `AI_AGENT_ID` sean correctos
-2. **Verificar la red**: Asegúrate de que el agente pueda alcanzar tu instancia de OneUptime
-3. **Revisar los registros**: Verifica los registros del contenedor en busca de mensajes de error
-4. **Reglas de firewall**: Asegúrate de que se permita el tráfico HTTPS saliente (puerto 443)
-
-### El agente sigue desconectándose
-
-1. **Verificar límites de recursos**: Asegúrate de que el contenedor tenga suficiente memoria y CPU
-2. **Estabilidad de la red**: Verifica que la conectividad de red sea estable
-3. **Revisar los registros**: Busca errores de tiempo de espera o conexión en los registros
-
-## ¿Necesitas ayuda?
-
-Si encuentras problemas con tu agente de IA:
-
-1. Consulta los [problemas de GitHub de OneUptime](https://github.com/OneUptime/oneuptime/issues) para ver problemas conocidos
-2. Crea un nuevo problema si el tuyo no está reportado aún
-3. Contacta con [soporte](https://oneuptime.com/support) si estás en un plan empresarial
+- **GitLab support** — repository connections are currently GitHub App only.
+- **Richer telemetry context** — feeding related traces, logs, and metrics around the exception into the fix, beyond the stack trace.
+- **Verification loop** — building the project and running its tests against the fix before the pull request is opened.

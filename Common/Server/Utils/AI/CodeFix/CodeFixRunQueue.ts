@@ -116,7 +116,7 @@ export default class CodeFixRunQueue {
           set: {
             status: AIRunStatus.Error,
             completedAt: OneUptimeDate.getCurrentDate(),
-            errorMessage: `No AI agent picked this task up within ${ORPHANED_QUEUED_TIMEOUT_MINUTES} minutes and none is currently online. Check that your agent container is running (Settings > AI > AI Agents), then retry the fix from the exception page.`,
+            errorMessage: `No AI agent picked this task up within ${ORPHANED_QUEUED_TIMEOUT_MINUTES} minutes and none is currently online. Check that a Runner with Runs AI Code Fixes enabled is running (Settings > Runners), then retry the fix from the exception page.`,
           },
         });
 
