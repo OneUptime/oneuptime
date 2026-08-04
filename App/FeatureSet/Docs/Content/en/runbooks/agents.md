@@ -155,7 +155,7 @@ Permissions to _trigger_ a runbook (and therefore cause Bash and JavaScript step
 
 ## Agent-facing API
 
-For the curious — the agent uses these endpoints, mounted under `/runner-ingest`. They are authenticated by the agent's ID + key in the JSON body (or `x-agent-id` / `x-agent-key` headers).
+For the curious — the agent uses these endpoints, mounted under `/runner-ingest`. The pre-merge path `/runbook-agent-ingest` is still served for agents that have not been redeployed yet, so upgrading the server does not break them. They are authenticated by the agent's ID + key in the JSON body (or `x-agent-id` / `x-agent-key` headers).
 
 | Endpoint                     | Purpose                                                                                                                     |
 | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------- |

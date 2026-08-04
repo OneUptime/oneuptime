@@ -8,7 +8,13 @@ import QueueWorker from "Common/Server/Infrastructure/QueueWorker";
 import { DisableQueueWorkers } from "Common/Server/EnvironmentConfig";
 import RunbookRuleEngineService from "Common/Server/Services/RunbookRuleEngineService";
 import FeatureSet from "Common/Server/Types/FeatureSet";
-import Express, { ExpressApplication } from "Common/Server/Utils/Express";
+import Express, {
+  ExpressApplication,
+  ExpressRequest,
+  ExpressResponse,
+  NextFunction,
+} from "Common/Server/Utils/Express";
+import { JSONObject } from "Common/Types/JSON";
 import logger from "Common/Server/Utils/Logger";
 
 const APP_NAME: string = "runbook";
@@ -18,6 +24,26 @@ const APP_NAME: string = "runbook";
  */
 const AGENT_INGRESS_PATH: string = "runner-ingest";
 
+/*
+ * The pre-merge Runbook Agent hardcoded this path, so an agent container that
+ * has not been redeployed still calls it. Without this mount every heartbeat
+ * and claim from one 404s: the container keeps running and logging, the
+ * dashboard quietly shows the Runner Disconnected, and steps targeting it fail
+ * with TimedOut — a failure mode that says nothing about its own cause.
+ *
+ * The credentials behind both paths are identical (same RunbookAgent row, same
+ * id and key), so this is purely the URL an older container happens to know.
+ * Safe to remove once the legacy-use log below has been quiet for a release.
+ */
+const LEGACY_AGENT_INGRESS_PATH: string = "runbook-agent-ingest";
+
+/*
+ * An old agent polls every few seconds, so logging every request would bury
+ * the signal it carries. One line per agent per process is enough to answer
+ * "is anyone still on the old path, and who".
+ */
+const legacyAgentsSeen: Set<string> = new Set<string>();
+
 const RunbookFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
     try {
@@ -25,6 +51,36 @@ const RunbookFeatureSet: FeatureSet = {
 
       app.use(`/${APP_NAME}`, new RunbookAPI().router);
       app.use(`/${AGENT_INGRESS_PATH}`, new RunbookAgentIngressAPI().router);
+
+      /*
+       * Same router, older URL — see LEGACY_AGENT_INGRESS_PATH. The agent id
+       * is read straight off the unauthenticated request purely to name the
+       * agent in the log; authorization happens inside the router exactly as
+       * it does on the current path.
+       */
+      app.use(
+        `/${LEGACY_AGENT_INGRESS_PATH}`,
+        (
+          req: ExpressRequest,
+          _res: ExpressResponse,
+          next: NextFunction,
+        ): void => {
+          const body: JSONObject = (req.body as JSONObject) || {};
+          const agentId: string = String(
+            body["agentId"] || req.headers["x-agent-id"] || "unknown",
+          );
+
+          if (!legacyAgentsSeen.has(agentId)) {
+            legacyAgentsSeen.add(agentId);
+            logger.warn(
+              `Runbook Agent ${agentId} is calling the pre-merge /${LEGACY_AGENT_INGRESS_PATH} endpoint. It still works, but that agent is running the retired oneuptime/runbook-agent image — redeploy it as oneuptime/runner with ONEUPTIME_RUNNER_ID and ONEUPTIME_RUNNER_KEY (its id and key are unchanged).`,
+            );
+          }
+
+          next();
+        },
+        new RunbookAgentIngressAPI().router,
+      );
 
       // Hand the engine a queue enqueuer so rule-triggered runs actually start.
       RunbookRuleEngineService.registerExecutionEnqueuer(

@@ -62,6 +62,30 @@ OneUptime's own deployment runs one in-cluster Runner in *cluster scope* to
 serve the AI code-fix capability for every project. That mode is for the
 platform's own `runner` service and is not available to a customer install.
 
+## Upgrading from the Runbook Agent
+
+Your agent keeps working — the server still accepts the old
+`/runbook-agent-ingest` endpoint, so an un-redeployed container does not break
+when the server upgrades. It logs a notice naming the agent so you can see who
+still needs moving.
+
+To move one, redeploy it with the new image and variable names. **The id and
+key do not change**: the dashboard row, its ownership, its assigned secrets and
+its runbook history are all the same record, so this is purely a container
+swap.
+
+| Before | Now |
+| --- | --- |
+| `oneuptime/runbook-agent:release` | `oneuptime/runner:release` |
+| `RUNBOOK_AGENT_ID` | `ONEUPTIME_RUNNER_ID` |
+| `RUNBOOK_AGENT_KEY` | `ONEUPTIME_RUNNER_KEY` |
+| `RUNBOOK_AGENT_POLL_INTERVAL_MS` | `ONEUPTIME_RUNNER_POLL_INTERVAL_MS` |
+| `RUNBOOK_AGENT_HEARTBEAT_INTERVAL_MS` | `ONEUPTIME_RUNNER_HEARTBEAT_INTERVAL_MS` |
+| `RUNBOOK_AGENT_CONCURRENCY` | `ONEUPTIME_RUNNER_CONCURRENCY` |
+
+The old image is no longer built, so it will not receive fixes — and only the
+new one can execute the SSH and Kubernetes step types.
+
 ## What happened to the Runbook Agent and the AI Agent?
 
 They merged into this one Runner: one image, one credential, one install, one
