@@ -34,6 +34,12 @@ import {
   ValueWidgetStackMode,
   VALUE_LINE_HEIGHT_RATIO,
 } from "Common/Utils/Dashboard/ValueWidgetLayout";
+import {
+  aggregateValues,
+  collectDataPoints,
+  getNumericValues,
+  getResultsErrorMessage,
+} from "./ValueWidgetData";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardValueComponentType;
@@ -324,6 +330,13 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
    */
   const showStateIcon: boolean = contentBox.heightInPx >= 76;
 
+  /*
+   * Same trade one step further down: below this the tile cannot hold the
+   * title AND a two-line explanation, and the explanation is the part that
+   * carries the meaning.
+   */
+  const showStateTitle: boolean = contentBox.heightInPx >= 60;
+
   if (isLoading && metricResults.length === 0) {
     // Skeleton loading state - only on initial load
     return (
@@ -408,65 +421,65 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
   }
 
   // Collect all data points for sparkline and aggregation
-  const allDataPoints: Array<AggregatedModel> = [];
-  for (const result of metricResults) {
-    for (const item of result.data) {
-      allDataPoints.push(item);
-    }
-  }
+  const allDataPoints: Array<AggregatedModel> =
+    collectDataPoints(metricResults);
+
+  const numericValues: Array<number> = getNumericValues(allDataPoints);
+
+  const hasData: boolean = numericValues.length > 0;
 
   /*
-   * Flatten the per-bucket values, discarding any non-finite entries.
-   * AggregatedModel.value is typed `number` but the model carries a
-   * JSONValue index signature, and a ClickHouse NULL / missing column
-   * arrives as null — left unchecked it poisons the reduction with NaN.
-   */
-  const numericValues: Array<number> = [];
-  for (const item of allDataPoints) {
-    const value: number = item.value as number;
-    if (typeof value === "number" && Number.isFinite(value)) {
-      numericValues.push(value);
-    }
-  }
-
-  /*
-   * Reduce the per-bucket values into the single displayed number.
+   * A configured query that came back empty — or one that failed and
+   * surfaced a reason via AggregatedResult.errorMessage — used to fall
+   * through to the reduction's 0 seed and render a confident "0",
+   * indistinguishable from a metric that is genuinely zero. On the RUM
+   * template that made an untouched dashboard read as a flawless site
+   * ("AVG LCP 0", "AVG CLS 0"), while the gauges directly beneath it
+   * correctly said they had nothing. Show the same explicit no-data state
+   * DashboardGaugeComponent shows.
    *
-   * - Percentiles (P50/P90/P95/P99) are computed per bucket server-side,
-   *   so — like Avg — we take the mean across the window. Without an
-   *   explicit branch they fell through the old if/else chain entirely
-   *   and the value stayed pinned at its 0 seed even though the query
-   *   returned real percentile data (a P95 tile read "0").
-   * - Count sums the per-bucket counts the server already returned
-   *   (`count(value) as value`); the old `+= 1` counted time buckets, not
-   *   samples.
-   * - Min/Max fold over the real values instead of a 0 seed, which
-   *   previously forced any all-positive metric's Min to exactly 0.
+   * The loading case is already owned by the skeleton above, so this
+   * deliberately carries no `!isLoading` term: adding one would re-render
+   * the very "0" this removes for the duration of every auto-refresh of a
+   * metric that is still empty.
    */
-  let aggregatedValue: number = 0;
-  if (numericValues.length > 0) {
-    switch (aggregationType) {
-      case AggregationType.Sum:
-      case AggregationType.Count:
-        aggregatedValue = numericValues.reduce((sum: number, value: number) => {
-          return sum + value;
-        }, 0);
-        break;
-      case AggregationType.Min:
-        aggregatedValue = Math.min(...numericValues);
-        break;
-      case AggregationType.Max:
-        aggregatedValue = Math.max(...numericValues);
-        break;
-      default:
-        // Avg and every percentile aggregation: mean of per-bucket values.
-        aggregatedValue =
-          numericValues.reduce((sum: number, value: number) => {
-            return sum + value;
-          }, 0) / numericValues.length;
-        break;
-    }
+  if (!hasData) {
+    const noDataMessage: string =
+      getResultsErrorMessage(metricResults) ||
+      "No data for the selected time range";
+
+    return (
+      <div className="flex flex-col items-center justify-center w-full h-full gap-1.5 overflow-hidden">
+        {showStateIcon && (
+          <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center shrink-0">
+            <div className="h-5 w-5 text-gray-300">
+              <Icon icon={IconProp.ChartBar} />
+            </div>
+          </div>
+        )}
+        {showStateTitle && props.component.arguments.title ? (
+          <p
+            className="text-xs font-medium text-gray-500 max-w-full line-clamp-1 px-1"
+            title={props.component.arguments.title}
+          >
+            {props.component.arguments.title}
+          </p>
+        ) : (
+          <></>
+        )}
+        <p
+          className="text-xs text-gray-400 text-center max-w-full line-clamp-2 px-1"
+          title={noDataMessage}
+        >
+          {noDataMessage}
+        </p>
+      </div>
+    );
   }
+
+  // Guarded by `hasData` above, so the fallback is unreachable.
+  const aggregatedValue: number =
+    aggregateValues(numericValues, aggregationType) ?? 0;
 
   /*
    * Sparkline data — preserve timestamp alongside value so the parent
