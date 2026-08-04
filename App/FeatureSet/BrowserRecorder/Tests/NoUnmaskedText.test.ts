@@ -374,4 +374,82 @@ describe("no unmasked page text reaches the wire", (): void => {
     expect(posted).not.toContain("4111111111111111");
     expect(posted).not.toContain("alice.hartwell@example.com");
   });
+
+  /*
+   * MaskSensitiveInputsOnly is the DEFAULT mode, so this is the test that
+   * decides what a customer who configures nothing ships to their users.
+   *
+   * It records the most and therefore has the least margin: page text and
+   * ordinary input values go out verbatim, and the only thing standing
+   * between a recording and a password or a card number is the per-node
+   * sensitivity check. Both of those are asserted below against a page
+   * where the card field is type="text" - the case an input-type-keyed
+   * policy gets wrong.
+   */
+  it("masks only declared-sensitive inputs in MaskSensitiveInputsOnly mode", async (): Promise<void> => {
+    const instance: Recorder = new Recorder({
+      initOptions: INIT_OPTIONS,
+      config: {
+        ...maskAllTextConfig(),
+        maskingMode: SessionReplayMaskingMode.MaskSensitiveInputsOnly,
+      },
+    });
+
+    instance.start();
+    recorder = instance;
+
+    instance.trigger(SessionReplayTriggerReason.Manual);
+
+    await flushUploads();
+
+    const posted: string = allPostedBytes();
+
+    /*
+     * Still masked, and this is the whole safety claim of the mode:
+     * type="password", and a type="text" field carrying
+     * autocomplete="cc-number".
+     */
+    expect(posted).not.toContain("battery-staple");
+    expect(posted).not.toContain("4111111111111111");
+
+    /*
+     * Recorded verbatim - that is the point of the mode. Asserted rather
+     * than assumed, because if these were masked too the mode would be a
+     * confusing alias for MaskInputsOnly.
+     */
+    expect(posted).toContain("Hartwell");
+    expect(posted).toContain("alice.hartwell@example.com");
+    expect(posted).toContain("Whitcombe");
+  });
+
+  it("honours mask selectors for input values under the default mode", async (): Promise<void> => {
+    /*
+     * The escape hatch for everything the markup does not declare. Under
+     * the default mode this is the ONLY thing that protects a field like
+     * the free-text note, so a regression here silently un-masks whatever
+     * a customer added the selector for.
+     */
+    const instance: Recorder = new Recorder({
+      initOptions: INIT_OPTIONS,
+      config: {
+        ...maskAllTextConfig(),
+        maskingMode: SessionReplayMaskingMode.MaskSensitiveInputsOnly,
+        maskSelectors: ["#note"],
+      },
+    });
+
+    instance.start();
+    recorder = instance;
+
+    instance.trigger(SessionReplayTriggerReason.Manual);
+
+    await flushUploads();
+
+    const posted: string = allPostedBytes();
+
+    expect(posted).not.toContain("Whitcombe");
+
+    // The selector is targeted; it does not mask the rest of the page.
+    expect(posted).toContain("alice.hartwell@example.com");
+  });
 });

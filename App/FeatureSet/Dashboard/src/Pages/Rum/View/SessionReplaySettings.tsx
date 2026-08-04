@@ -1,17 +1,18 @@
 import PageComponentProps from "../../PageComponentProps";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import ObjectID from "Common/Types/ObjectID";
+import Route from "Common/Types/API/Route";
+import IconProp from "Common/Types/Icon/IconProp";
+import Navigation from "Common/UI/Utils/Navigation";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
-import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red, Yellow } from "Common/Types/BrandColors";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
-import Project from "Common/Models/DatabaseModels/Project";
-import ProjectUtil from "Common/UI/Utils/Project";
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
 import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode";
 import SessionReplayConsentMode from "Common/Types/Rum/SessionReplayConsentMode";
@@ -20,19 +21,23 @@ import {
   DEFAULT_SESSION_REPLAY_RETENTION_IN_DAYS,
   SESSION_REPLAY_ALLOWED_RETENTION_DAYS,
 } from "Common/Types/Rum/SessionReplay";
-import Navigation from "Common/UI/Utils/Navigation";
-import InstallationTestPanel from "../../../Components/SessionReplay/InstallationTestPanel";
-import TargetedCapturePanel from "../../../Components/SessionReplay/TargetedCapturePanel";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 /*
- * Privacy controls for session replay.
+ * Session replay policy for ONE application.
  *
- * Two levels, deliberately. The project-level switch is the kill switch a
- * data-protection owner needs and is intentionally NOT plan-gated: being able
- * to stop recording your end users must never depend on a subscription. The
- * per-application settings below are the operational policy, and every single
- * default is the safe one - recording off, all text masked, explicit consent
- * required, 0% sampling, an empty (and therefore refusing) origin allowlist.
+ * Two levels exist, deliberately. The project-level master switch lives in
+ * Project Settings > Session Replay because it is the control a
+ * data-protection owner reaches for, and it must be findable without
+ * knowing which application is at fault. Everything here is the
+ * operational policy for this application alone.
+ *
+ * Every setting on this page takes effect in the END USER'S BROWSER, at
+ * capture, before anything is uploaded. So loosening masking cannot be
+ * undone for recordings already taken, and tightening it does not scrub
+ * recordings already stored.
  */
 
 /*
@@ -51,154 +56,62 @@ const RETENTION_OPTIONS: Array<DropdownOption> =
     };
   });
 
-const RumSessionReplaySettings: FunctionComponent<
+const RumApplicationSessionReplaySettings: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  /*
+   * Route is ":id/session-replay-settings", so the model id is one segment
+   * before the end. Same as Pages/Rum/View/Clients.tsx.
+   */
+  const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+
   return (
     <Fragment>
-      <CardModelDetail<Project>
-        name="Session Replay Availability"
-        cardProps={{
-          title: "Session Replay for this Project",
-          description:
-            "Master switch for recording your end users' screens. While this is off, no application in this project can record and any chunk that arrives is refused at ingest. This control is never plan-gated.",
-        }}
-        isEditable={true}
-        editButtonText="Update"
-        formFields={[
-          {
-            field: {
-              isSessionReplayAllowed: true,
-            },
-            title: "Allow session replay in this project",
-            description:
-              "Session replay records what real people did on your site, including anything not masked at capture. Turn it on only once you have confirmed your masking policy and your lawful basis for the recording.",
-            required: false,
-            fieldType: FormFieldSchemaType.Toggle,
-          },
-        ]}
-        modelDetailProps={{
-          modelType: Project,
-          id: "model-detail-project-session-replay",
-          fields: [
-            {
-              field: {
-                isSessionReplayAllowed: true,
-              },
-              title: "Allow session replay in this project",
-              placeholder: "Not allowed",
-              fieldType: FieldType.Boolean,
-            },
-          ],
-          modelId: ProjectUtil.getCurrentProjectId()!,
-        }}
+      <Alert
+        type={AlertType.INFO}
+        strongTitle="Recording must also be allowed for the project"
+        title="These settings only take effect while session replay is allowed project-wide. That master switch, the installation test and the targeted-capture tool live in Project Settings > Session Replay."
       />
 
-      <ModelTable<RumApplication>
-        modelType={RumApplication}
-        id="rum-application-session-replay-settings-table"
-        userPreferencesKey="rum-application-session-replay-settings-table"
-        name="Settings > RUM Application Session Replay"
-        isDeleteable={false}
-        isEditable={true}
-        isCreateable={false}
-        isViewable={false}
-        showRefreshButton={true}
-        createEditModalWidth={ModalWidth.Large}
-        sortBy="name"
-        sortOrder={SortOrder.Ascending}
-        selectMoreFields={{
-          isSessionReplayEnabled: true,
-          sessionReplayMaskingMode: true,
-          sessionReplayAllowedOrigins: true,
-          sessionReplaySamplePercentage: true,
-        }}
+      <CardModelDetail<RumApplication>
+        name="Session Replay Policy"
         cardProps={{
-          title: "Per-application Session Replay Policy",
+          title: "Session Replay Policy",
           description:
-            "Masking, consent, sampling and retention for each RUM application. Masking is applied in the end user's browser before anything is uploaded, so loosening it cannot be undone for recordings already taken - and tightening it does not scrub recordings already stored.",
-        }}
-        noItemsMessage="No RUM applications yet. Create one first, then configure its replay policy here."
-        filters={[
-          { field: { name: true }, title: "Application", type: FieldType.Text },
-        ]}
-        columns={[
-          {
-            field: { name: true },
-            title: "Application",
-            type: FieldType.Text,
-          },
-          {
-            field: { isSessionReplayEnabled: true },
-            title: "Recording",
-            type: FieldType.Element,
-            getElement: (item: RumApplication): ReactElement => {
-              return item.isSessionReplayEnabled ? (
-                <Pill color={Green} text="On" />
-              ) : (
-                <Pill color={Red} text="Off" />
-              );
-            },
-          },
-          {
-            field: { sessionReplayMaskingMode: true },
-            title: "Masking",
-            type: FieldType.Element,
-            getElement: (item: RumApplication): ReactElement => {
-              /*
-               * MaskInputsOnly records page text verbatim. It is flagged
-               * amber everywhere it appears so nobody discovers what it does
-               * by watching a recording of a customer's order details.
-               */
-              return item.sessionReplayMaskingMode ===
-                SessionReplayMaskingMode.MaskInputsOnly ? (
-                <Pill color={Yellow} text="Inputs only (records page text)" />
-              ) : (
-                <Pill color={Green} text="All text masked" />
-              );
-            },
-          },
-          {
-            field: { sessionReplaySamplePercentage: true },
-            title: "Sampling",
-            type: FieldType.Element,
-            getElement: (item: RumApplication): ReactElement => {
-              return (
-                <span className="font-mono text-sm tabular-nums text-gray-900">
-                  {item.sessionReplaySamplePercentage ?? 0}%
-                </span>
-              );
-            },
-          },
-          {
-            field: { sessionReplayAllowedOrigins: true },
-            title: "Allowed origins",
-            type: FieldType.Element,
-            hideOnMobile: true,
-            getElement: (item: RumApplication): ReactElement => {
-              const origins: Array<string> =
-                item.sessionReplayAllowedOrigins ?? [];
-
-              /*
-               * Empty is an allowlist with nothing on it, so ingest refuses
-               * everything. That reads as "unset" unless it is spelled out.
-               */
-              if (origins.length === 0) {
-                return (
-                  <span className="text-xs text-amber-700">
-                    None — all chunks refused
-                  </span>
+            "Recording, masking, consent and limits for this application. Masking happens in the end user's browser before anything is uploaded.",
+          buttons: [
+            {
+              title: "View recordings",
+              icon: IconProp.Film,
+              buttonStyle: ButtonStyleType.OUTLINE,
+              onClick: (): void => {
+                Navigation.navigate(
+                  RouteUtil.populateRouteParams(
+                    RouteMap[
+                      PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY
+                    ] as Route,
+                    { modelId: modelId },
+                  ),
                 );
-              }
-
-              return (
-                <span className="truncate text-xs text-gray-700">
-                  {origins.join(", ")}
-                </span>
-              );
+              },
             },
-          },
-        ]}
+            {
+              title: "Project settings",
+              icon: IconProp.Settings,
+              buttonStyle: ButtonStyleType.OUTLINE,
+              onClick: (): void => {
+                Navigation.navigate(
+                  RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.SETTINGS_SESSION_REPLAY] as Route,
+                  ),
+                );
+              },
+            },
+          ],
+        }}
+        isEditable={true}
+        editButtonText="Edit Policy"
+        createEditModalWidth={ModalWidth.Large}
         formSteps={[
           { title: "Recording", id: "recording" },
           { title: "Privacy", id: "privacy" },
@@ -213,16 +126,17 @@ const RumSessionReplaySettings: FunctionComponent<
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             description:
-              "Off by default. Also requires session replay to be allowed for the project above.",
+              "On by default. Also requires session replay to be allowed for the project.",
           },
           {
             field: { sessionReplayCaptureTrigger: true },
             title: "When to upload a recording",
             stepId: "recording",
             fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
-              SessionReplayCaptureTrigger,
-            ),
+            dropdownOptions:
+              DropdownUtil.getDropdownOptionsFromEnumWithReadableLabels(
+                SessionReplayCaptureTrigger,
+              ),
             required: false,
             description:
               "On error or frustration keeps a rolling in-memory buffer and only uploads when something actually went wrong, which costs roughly 15x less and stores far less end-user data. Always uploads every sampled session from its first event.",
@@ -246,7 +160,7 @@ const RumSessionReplaySettings: FunctionComponent<
             required: false,
             placeholder: '["https://app.example.com"]',
             description:
-              "JSON array of origins allowed to post recordings. This is an allowlist: while it is empty every chunk is refused at ingest. It is one of the few real anti-abuse controls, since a browser can always regenerate ids until sampling passes.",
+              "JSON array of origins allowed to post recordings. Leave it empty (the default) to accept any origin. Fill it in for production: your ingestion key is visible in your page's JavaScript, and this list is the only thing stopping someone who copies it from writing forged recordings into this project.",
           },
           {
             field: { sessionReplayIgnoreErrorPatterns: true },
@@ -264,24 +178,26 @@ const RumSessionReplaySettings: FunctionComponent<
             title: "Masking mode",
             stepId: "privacy",
             fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
-              SessionReplayMaskingMode,
-            ),
+            dropdownOptions:
+              DropdownUtil.getDropdownOptionsFromEnumWithReadableLabels(
+                SessionReplayMaskingMode,
+              ),
             required: false,
             description:
-              "MaskAllText (default, safe) replaces every text node and input value at capture, giving a wireframe. MaskInputsOnly is the LESS SAFE option: static page text is recorded verbatim, so any personal data rendered into the page - order ids, email addresses in a header, an error banner quoting user data - ends up in the recording.",
+              "Mask Sensitive Inputs Only (default) masks passwords and declared card / one-time-code fields and records the rest of the page as it looked. Mask Inputs Only additionally masks every other input value. Mask All Text also replaces static page text, giving a wireframe with no readable copy. Anything your markup does not declare as sensitive — an account number in a plain text input, an order id in a heading — is only covered by the two stricter modes or by the selectors below.",
           },
           {
             field: { sessionReplayConsentMode: true },
             title: "Consent",
             stepId: "privacy",
             fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
-              SessionReplayConsentMode,
-            ),
+            dropdownOptions:
+              DropdownUtil.getDropdownOptionsFromEnumWithReadableLabels(
+                SessionReplayConsentMode,
+              ),
             required: false,
             description:
-              "RequireExplicit (default) uploads nothing until your page calls grantConsent(); the recorder still buffers in memory so the run-up to an error is not lost while a banner is on screen. NotRequired asserts you have a lawful basis that does not need a per-session grant.",
+              "Not Required (default) asserts you have a lawful basis that does not need a per-session grant. Require Explicit uploads nothing until your page calls grantConsent(); the recorder still buffers in memory so the run-up to an error is not lost while a banner is on screen.",
           },
           {
             field: { sessionReplayMaskSelectors: true },
@@ -291,7 +207,7 @@ const RumSessionReplaySettings: FunctionComponent<
             required: false,
             placeholder: '[".customer-name", "#invoice-total"]',
             description:
-              "JSON array of CSS selectors whose text is masked on top of whatever the masking mode already covers.",
+              "JSON array of CSS selectors whose content is masked on top of whatever the masking mode already covers. This is the setting to reach for under the default masking mode, since it is what protects data your markup does not declare as sensitive.",
           },
           {
             field: { sessionReplayBlockSelectors: true },
@@ -310,7 +226,7 @@ const RumSessionReplaySettings: FunctionComponent<
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             description:
-              "Off by default. Turning this on is what converts a pseudonymous recording into an identified one: the reference your page supplies is stored alongside the hash used for erasure requests.",
+              "On by default, so you can find the session a named customer is complaining about. This is what makes a recording identified rather than pseudonymous: the reference your page supplies is stored alongside the hash used for erasure requests. Turn it off to keep recordings pseudonymous.",
           },
           {
             field: { sessionReplayCaptureGeo: true },
@@ -319,7 +235,7 @@ const RumSessionReplaySettings: FunctionComponent<
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             description:
-              "Off by default. Stores a country code only. End-user IP addresses are never stored.",
+              "On by default. Stores a country code only. End-user IP addresses are never stored.",
           },
           {
             field: { sessionReplayRecordCanvas: true },
@@ -397,24 +313,126 @@ const RumSessionReplaySettings: FunctionComponent<
             validation: { minValue: 0 },
           },
         ]}
-        viewPageRoute={Navigation.getCurrentRoute()}
+        modelDetailProps={{
+          modelType: RumApplication,
+          id: "model-detail-rum-application-session-replay",
+          fields: [
+            {
+              field: { isSessionReplayEnabled: true },
+              title: "Recording",
+              fieldType: FieldType.Element,
+              getElement: (item: RumApplication): ReactElement => {
+                return item.isSessionReplayEnabled ? (
+                  <Pill color={Green} text="On" />
+                ) : (
+                  <Pill color={Red} text="Off" />
+                );
+              },
+            },
+            {
+              field: { sessionReplayMaskingMode: true },
+              title: "Masking",
+              fieldType: FieldType.Element,
+              getElement: (item: RumApplication): ReactElement => {
+                /*
+                 * The two relaxed modes both record readable page text, so
+                 * both are flagged amber. Only the wireframe mode is green:
+                 * nobody should discover what the default records by
+                 * watching a recording of a customer's order details.
+                 */
+                if (
+                  item.sessionReplayMaskingMode ===
+                  SessionReplayMaskingMode.MaskAllText
+                ) {
+                  return <Pill color={Green} text="All text masked" />;
+                }
+
+                return item.sessionReplayMaskingMode ===
+                  SessionReplayMaskingMode.MaskInputsOnly ? (
+                  <Pill
+                    color={Yellow}
+                    text="Inputs masked, page text recorded"
+                  />
+                ) : (
+                  <Pill
+                    color={Yellow}
+                    text="Sensitive inputs masked, rest recorded"
+                  />
+                );
+              },
+            },
+            {
+              field: { sessionReplayCaptureTrigger: true },
+              title: "Uploads when",
+              fieldType: FieldType.Text,
+            },
+            {
+              field: { sessionReplaySamplePercentage: true },
+              title: "Sampling",
+              fieldType: FieldType.Element,
+              getElement: (item: RumApplication): ReactElement => {
+                return (
+                  <span className="font-mono text-sm tabular-nums text-gray-900">
+                    {item.sessionReplaySamplePercentage ?? 0}%
+                  </span>
+                );
+              },
+            },
+            {
+              field: { sessionReplayAllowedOrigins: true },
+              title: "Allowed origins",
+              fieldType: FieldType.Element,
+              getElement: (item: RumApplication): ReactElement => {
+                const origins: Array<string> =
+                  item.sessionReplayAllowedOrigins ?? [];
+
+                /*
+                 * An empty allowlist accepts everything - see
+                 * SessionReplayGateCache.isOriginAllowed. Rendering a blank
+                 * cell would read as "nothing gets through", which is the
+                 * exact opposite of what it does.
+                 */
+                if (origins.length === 0) {
+                  return (
+                    <span className="text-sm text-amber-700">
+                      Any origin accepted — list your domains before production
+                    </span>
+                  );
+                }
+
+                return (
+                  <span className="text-sm text-gray-700">
+                    {origins.join(", ")}
+                  </span>
+                );
+              },
+            },
+            {
+              field: { sessionReplayConsentMode: true },
+              title: "Consent",
+              fieldType: FieldType.Text,
+            },
+            {
+              field: { sessionReplayCaptureUserIdentity: true },
+              title: "Captures end-user identity",
+              fieldType: FieldType.Boolean,
+            },
+            {
+              field: { sessionReplayCaptureGeo: true },
+              title: "Captures country",
+              fieldType: FieldType.Boolean,
+            },
+            {
+              field: { sessionReplayRetentionInDays: true },
+              title: "Retention (days)",
+              fieldType: FieldType.Number,
+            },
+          ],
+          modelId: modelId,
+        }}
       />
-
-      {/*
-       * The diagnostic both the README and the customer docs point at.
-       * Placed after the policy tables because its failing checks refer the
-       * user back up to them.
-       */}
-      {/*
-       * Support workflow: arm a one-shot "record this user's next
-       * session" target. Placed before the diagnostic panel because it is
-       * an action, not a health readout.
-       */}
-      <TargetedCapturePanel />
-
-      <InstallationTestPanel />
     </Fragment>
   );
 };
 
-export default RumSessionReplaySettings;
+export default RumApplicationSessionReplaySettings;

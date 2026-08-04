@@ -17,11 +17,11 @@ import RumApplicationClients from "../Pages/Rum/View/Clients";
 import RumApplicationSessionReplay from "../Pages/Rum/View/SessionReplay";
 import RumApplicationSessionReplayView from "../Pages/Rum/View/SessionReplayView";
 import RumApplicationSessionReplayAudit from "../Pages/Rum/View/SessionReplayAudit";
+import RumApplicationSessionReplaySettings from "../Pages/Rum/View/SessionReplaySettings";
 import RumApplicationDocumentation from "../Pages/Rum/View/Documentation";
 import RumApplicationDelete from "../Pages/Rum/View/Delete";
 import RumLabelRules from "../Pages/Rum/Settings/LabelRules";
 import RumOwnerRules from "../Pages/Rum/Settings/OwnerRules";
-import RumSessionReplaySettings from "../Pages/Rum/Settings/SessionReplay";
 import RumArchived from "../Pages/Rum/Archived";
 
 const RumApplicationRoutes: FunctionComponent<ComponentProps> = (
@@ -63,15 +63,6 @@ const RumApplicationRoutes: FunctionComponent<ComponentProps> = (
             <RumOwnerRules
               {...props}
               pageRoute={RouteMap[PageMap.RUM_SETTINGS_OWNER_RULES] as Route}
-            />
-          }
-        />
-        <PageRoute
-          path={RumRoutePath[PageMap.RUM_SETTINGS_SESSION_REPLAY] || ""}
-          element={
-            <RumSessionReplaySettings
-              {...props}
-              pageRoute={RouteMap[PageMap.RUM_SETTINGS_SESSION_REPLAY] as Route}
             />
           }
         />
@@ -203,6 +194,22 @@ const RumApplicationRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[
                   PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_AUDIT
+                ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_SETTINGS,
+          )}
+          element={
+            <RumApplicationSessionReplaySettings
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_SETTINGS
                 ] as Route
               }
             />

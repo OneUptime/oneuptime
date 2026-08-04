@@ -112,6 +112,29 @@ const RumApplicationViewSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
+      <SideMenuSection title="Settings">
+        {/*
+         * This application's replay policy - masking, consent, sampling,
+         * origins, retention. It lives here rather than on a project-wide
+         * settings page because it governs THIS application's recordings
+         * and belongs next to them. The project master switch, the
+         * installation test and targeted capture are project-shaped and
+         * live in Project Settings > Session Replay.
+         */}
+        <SideMenuItem
+          link={{
+            title: "Session Replay",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_SETTINGS
+              ] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Settings}
+        />
+      </SideMenuSection>
+
       <SideMenuSection title="Advanced">
         {/*
          * Deliberately under Advanced rather than beside the player: this

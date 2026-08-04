@@ -416,10 +416,21 @@ export default class Config {
       return null;
     }
 
+    /*
+     * Fail-closed on an unrecognised value: a config from a newer server
+     * than this recorder build, or a tampered response, must not be able
+     * to relax masking. Only the modes this build actually implements are
+     * honoured, and everything else collapses to the strictest one - NOT
+     * to the application's configured default, which this recorder has no
+     * trustworthy way to learn.
+     */
     const maskingMode: SessionReplayMaskingMode =
       raw["maskingMode"] === SessionReplayMaskingMode.MaskInputsOnly
         ? SessionReplayMaskingMode.MaskInputsOnly
-        : SessionReplayMaskingMode.MaskAllText;
+        : raw["maskingMode"] ===
+            SessionReplayMaskingMode.MaskSensitiveInputsOnly
+          ? SessionReplayMaskingMode.MaskSensitiveInputsOnly
+          : SessionReplayMaskingMode.MaskAllText;
 
     const consentMode: SessionReplayConsentMode =
       raw["consentMode"] === SessionReplayConsentMode.NotRequired

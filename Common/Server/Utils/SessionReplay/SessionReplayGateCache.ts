@@ -12,7 +12,9 @@ import { SelectOptions } from "../../Types/Database/Select";
 import ObjectID from "../../../Types/ObjectID";
 import SessionReplayCaptureTrigger from "../../../Types/Rum/SessionReplayCaptureTrigger";
 import SessionReplayConsentMode from "../../../Types/Rum/SessionReplayConsentMode";
-import SessionReplayMaskingMode from "../../../Types/Rum/SessionReplayMaskingMode";
+import SessionReplayMaskingMode, {
+  parseSessionReplayMaskingMode,
+} from "../../../Types/Rum/SessionReplayMaskingMode";
 import {
   DEFAULT_SESSION_REPLAY_RETENTION_IN_DAYS,
   SESSION_REPLAY_ALLOWED_RETENTION_DAYS,
@@ -326,11 +328,9 @@ export default class SessionReplayGateCache {
       allowedOrigins: this.readStringArray(
         appView["sessionReplayAllowedOrigins"],
       ),
-      maskingMode:
-        appView["sessionReplayMaskingMode"] ===
-        SessionReplayMaskingMode.MaskInputsOnly
-          ? SessionReplayMaskingMode.MaskInputsOnly
-          : SessionReplayMaskingMode.MaskAllText,
+      maskingMode: parseSessionReplayMaskingMode(
+        appView["sessionReplayMaskingMode"],
+      ),
       consentMode:
         appView["sessionReplayConsentMode"] ===
         SessionReplayConsentMode.NotRequired

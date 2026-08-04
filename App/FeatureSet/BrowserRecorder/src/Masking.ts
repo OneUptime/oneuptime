@@ -127,25 +127,91 @@ export default class Masking {
   }
 
   /*
+   * The one mode that lets an ordinary input value through. Every other
+   * mode masks every input, so this is the only place the value argument
+   * of maskInput is ever returned.
+   */
+  public isMaskSensitiveInputsOnly(): boolean {
+    return (
+      this.maskingMode === SessionReplayMaskingMode.MaskSensitiveInputsOnly
+    );
+  }
+
+  /*
    * rrweb's maskInputFn. Called with the current value and the element.
    *
-   * The value argument is deliberately ignored: returning anything derived
-   * from it, including its length, is the length-oracle bug this whole
-   * module exists to avoid. The element is used only to record stickiness
-   * and to blank file inputs, whose DOM value is
-   * "C:\fakepath\<real filename>".
+   * rrweb is configured with maskAllInputs: true in EVERY mode, so this
+   * function is the single place that decides whether a value survives.
+   * Leaving the decision to rrweb's maskInputOptions would key it on the
+   * input's current type, which a "show password" toggle mutates - the
+   * exact bug the sticky WeakSet exists to prevent.
+   *
+   * When a value is masked the returned mask is constant-width: returning
+   * anything derived from the real value, including its length, is the
+   * length-oracle bug this module exists to avoid.
    */
-  public maskInput = (_value: string, element: HTMLElement): string => {
-    this.markIfSensitive(element);
+  public maskInput = (value: string, element: HTMLElement): string => {
+    const isSensitive: boolean = this.markIfSensitive(element);
 
     const type: string = (element.getAttribute("type") || "").toLowerCase();
 
+    /*
+     * File inputs are blanked in every mode, sensitive or not: their DOM
+     * value is "C:\fakepath\<real filename>" and filenames are routinely
+     * personal ("passport-scan.pdf").
+     */
     if (type === "file") {
       return CommonMasking.maskFileInputValue();
     }
 
+    if (
+      this.isMaskSensitiveInputsOnly() &&
+      !isSensitive &&
+      !this.matchesMaskSelector(element)
+    ) {
+      return value;
+    }
+
     return CommonMasking.maskInputValue();
   };
+
+  /*
+   * Does this element match one of the application's configured mask
+   * selectors?
+   *
+   * Only consulted in MaskSensitiveInputsOnly. In the two stricter modes
+   * every input is masked anyway, and static text is handled by rrweb
+   * through getMaskTextSelector. Without this, "Additional mask
+   * selectors" would silently do nothing to input VALUES under the
+   * default mode, which is exactly where a customer reaches for it.
+   */
+  public matchesMaskSelector(element: Element): boolean {
+    if (this.maskSelectors.length === 0) {
+      return false;
+    }
+
+    for (const selector of this.maskSelectors) {
+      if (!selector) {
+        continue;
+      }
+
+      try {
+        if (element.closest(selector)) {
+          return true;
+        }
+      } catch {
+        /*
+         * A customer-authored selector can be invalid, and closest()
+         * throws on a bad one. Skipping it is right: one broken entry
+         * must not disable the rest of the list, and it must never throw
+         * into the host page from inside rrweb's serializer.
+         */
+        continue;
+      }
+    }
+
+    return false;
+  }
 
   /* rrweb's maskTextFn. element is null for detached text nodes. */
   public maskText = (text: string, element: HTMLElement | null): string => {
@@ -332,8 +398,11 @@ export default class Masking {
   } {
     return {
       /*
-       * Always true, in every mode. MaskInputsOnly relaxes static text, and
-       * never input values.
+       * Always true, in every mode - but it no longer means "mask every
+       * input". It means "route every input through maskInputFn", which
+       * is the only way this module gets to apply its own sticky
+       * per-node policy instead of rrweb's type-keyed one. maskInput
+       * above is what decides; see its header.
        */
       maskAllInputs: true,
       maskInputOptions: MASK_INPUT_OPTIONS,

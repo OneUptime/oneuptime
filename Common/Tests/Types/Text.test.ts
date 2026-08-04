@@ -1,6 +1,66 @@
 import Text from "../../Types/Text";
 
 describe("class Text", () => {
+  describe("Text.fromPascalCaseToReadable", () => {
+    test("spaces out a PascalCase identifier", () => {
+      expect(Text.fromPascalCaseToReadable("MaskAllText")).toEqual(
+        "Mask All Text",
+      );
+      expect(Text.fromPascalCaseToReadable("MaskSensitiveInputsOnly")).toEqual(
+        "Mask Sensitive Inputs Only",
+      );
+      expect(Text.fromPascalCaseToReadable("OnErrorOrFrustration")).toEqual(
+        "On Error Or Frustration",
+      );
+    });
+
+    test("preserves an acronym instead of title-casing it away", () => {
+      /*
+       * The reason this lowercases nothing. Enum values in this codebase
+       * include identifiers like OIDC and SSO, and "Oidc Provider" would
+       * be worse than the PascalCase it replaced.
+       */
+      expect(Text.fromPascalCaseToReadable("OIDCProvider")).toEqual(
+        "OIDC Provider",
+      );
+      expect(Text.fromPascalCaseToReadable("SSO")).toEqual("SSO");
+    });
+
+    test("leaves already-readable text alone", () => {
+      /*
+       * Safe to apply to an enum whose values are a mix of PascalCase and
+       * spaced prose - which is most of them.
+       */
+      expect(Text.fromPascalCaseToReadable("Not Required")).toEqual(
+        "Not Required",
+      );
+      expect(Text.fromPascalCaseToReadable("Always")).toEqual("Always");
+    });
+
+    test("does not split a letter-digit boundary", () => {
+      expect(Text.fromPascalCaseToReadable("Version2Recorder")).toEqual(
+        "Version2 Recorder",
+      );
+      expect(Text.fromPascalCaseToReadable("")).toEqual("");
+    });
+
+    test("mangles embedded proper nouns — which is why callers opt in", () => {
+      /*
+       * Pinned deliberately. A case boundary inside a word is
+       * indistinguishable from a word boundary, so this transform is
+       * wrong for product names and initialisms. These are real enum
+       * values in this codebase (TechStack, CodeRepositoryType), and
+       * this test is the reason getDropdownOptionsFromEnum does NOT
+       * apply the transform by default.
+       */
+      expect(Text.fromPascalCaseToReadable("GitHub")).toEqual("Git Hub");
+      expect(Text.fromPascalCaseToReadable("NodeJS")).toEqual("Node JS");
+      expect(Text.fromPascalCaseToReadable("IPv4Address")).toEqual(
+        "I Pv4 Address",
+      );
+    });
+  });
+
   test("Text.uppercaseFirstLetter should make string first letter Uppercase", () => {
     expect(Text.uppercaseFirstLetter("text")).toEqual("Text");
     expect(Text.uppercaseFirstLetter("another test")).toEqual("Another test");

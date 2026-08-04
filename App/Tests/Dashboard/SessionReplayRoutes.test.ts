@@ -3,11 +3,11 @@ import fs from "fs";
 import nodePath from "path";
 
 /*
- * Session replay adds four pages, and reaching any of them takes six
- * independent hand-written wirings: a PageMap key, a RumRoutePath entry, an
- * absolute RouteMap Route, a PageRoute in RumApplicationRoutes.tsx, a
- * SideMenuItem, and a breadcrumb. Nothing ties those together, and every one
- * of them fails silently:
+ * Session replay adds four pages under the RUM application, and reaching any
+ * of them takes six independent hand-written wirings: a PageMap key, a
+ * RumRoutePath entry, an absolute RouteMap Route, a PageRoute in
+ * RumApplicationRoutes.tsx, a SideMenuItem, and a breadcrumb. Nothing ties
+ * those together, and every one of them fails silently:
  *
  *  - a route missing from RouteMap makes Navigation.getRoutePath() return ""
  *    in Pages/Rum/View/Layout.tsx and the breadcrumb trail just vanishes;
@@ -170,7 +170,7 @@ beforeAll(async () => {
     PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY,
     PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_VIEW,
     PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_AUDIT,
-    PageMap.RUM_SETTINGS_SESSION_REPLAY,
+    PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_SETTINGS,
   ];
 });
 
@@ -282,6 +282,7 @@ describe("Session replay page wiring", () => {
       "RUM_APPLICATION_VIEW_SESSION_REPLAY",
       "RUM_APPLICATION_VIEW_SESSION_REPLAY_VIEW",
       "RUM_APPLICATION_VIEW_SESSION_REPLAY_AUDIT",
+      "RUM_APPLICATION_VIEW_SESSION_REPLAY_SETTINGS",
     ]) {
       const occurrences: number = (
         routeSource.match(
@@ -291,11 +292,6 @@ describe("Session replay page wiring", () => {
 
       expect([key, occurrences]).toEqual([key, 1]);
     }
-
-    // The settings page is project-level, so it registers by RumRoutePath.
-    expect(routeSource).toContain(
-      "RumRoutePath[PageMap.RUM_SETTINGS_SESSION_REPLAY]",
-    );
   });
 
   test("canvas replay stays disabled in the stage", () => {
@@ -368,13 +364,58 @@ describe("Session replay page wiring", () => {
     expect(auditPath.split("/").slice(-2)[0]).toBe(RouteParams.ModelID);
   });
 
-  test("the settings route is a project-level rum settings page", () => {
+  test("the per-application settings route is scoped to one application", () => {
+    /*
+     * Replay policy is per-application and lives on the application, so
+     * the route has to carry a :id the page can read - it is NOT a
+     * project-wide page. The page reads it with
+     * Navigation.getLastParamAsObjectID(1), which only resolves for a
+     * route shaped ":id/session-replay-settings".
+     */
     const path: string =
-      RouteMap[PageMap.RUM_SETTINGS_SESSION_REPLAY]!.toString();
+      RouteMap[
+        PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_SETTINGS
+      ]!.toString();
+    const segments: Array<string> = path.split("/");
 
-    expect(path.endsWith("/rum/settings/session-replay")).toBe(true);
-    // No :id anywhere - it is not scoped to a single application.
+    expect(path.endsWith("/session-replay-settings")).toBe(true);
+    expect(segments[segments.length - 2]).toBe(RouteParams.ModelID);
+  });
+
+  test("the per-application settings route cannot be shadowed by a session id", () => {
+    /*
+     * Same trap as the audit page. At ":id/session-replay/settings" a
+     * recording whose session id was literally "settings" would open this
+     * page instead of the player, because React Router prefers a static
+     * segment over a dynamic one. A sibling path removes the possibility.
+     */
+    const settingsPath: string =
+      RouteMap[
+        PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_SETTINGS
+      ]!.toString();
+    const playerPath: string =
+      RouteMap[PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_VIEW]!.toString();
+
+    const playerPrefix: string = playerPath.slice(
+      0,
+      playerPath.lastIndexOf("/") + 1,
+    );
+
+    expect(settingsPath.startsWith(playerPrefix)).toBe(false);
+  });
+
+  test("the project-level settings page lives under /settings, not /rum", () => {
+    /*
+     * The project master switch, the installation test and targeted
+     * capture are project-shaped and are reached from the Settings side
+     * menu. Nothing about them is scoped to one application, so a :id in
+     * this route would mean the page had been wired to the wrong section.
+     */
+    const path: string = RouteMap[PageMap.SETTINGS_SESSION_REPLAY]!.toString();
+
+    expect(path.endsWith("/settings/session-replay")).toBe(true);
     expect(path).not.toContain(RouteParams.ModelID);
+    expect(path).not.toContain("/rum/");
   });
 
   test("every session replay page has a breadcrumb trail", () => {
