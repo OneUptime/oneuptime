@@ -71,6 +71,7 @@ import AlertLabelRuleEngineService from "./AlertLabelRuleEngineService";
 import AlertOnCallRuleEngineService from "./AlertOnCallRuleEngineService";
 import AlertOwnerRuleEngineService from "./AlertOwnerRuleEngineService";
 import RunbookRuleEngineService from "./RunbookRuleEngineService";
+import AutoRemediationRuleEngineService from "./AutoRemediationRuleEngineService";
 import AIAlertInvestigationRunner from "../Utils/AI/SRE/AlertInvestigationRunner";
 import AlertPrivacyRuleEngineService from "./AlertPrivacyRuleEngineService";
 import ProjectService from "./ProjectService";
@@ -474,6 +475,14 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("currentAlertStateId is required");
     }
 
+    /*
+     * Whether an AI investigation run was enqueued for this alert — set by
+     * the investigation step below and read by the auto-remediation step
+     * after it: an enqueued investigation DEFERS remediation until the run
+     * settles (RCA-first ordering, see RemediationHandoff).
+     */
+    let aiInvestigationEnqueued: boolean = false;
+
     // Execute operations sequentially with error handling
     Promise.resolve()
       .then(async () => {
@@ -693,14 +702,42 @@ export class Service extends DatabaseService<Model> {
          */
         try {
           if (createdItem.projectId && createdItem.id) {
-            await AIAlertInvestigationRunner.investigateNewAlert({
-              alertId: createdItem.id,
-              projectId: createdItem.projectId,
-            });
+            aiInvestigationEnqueued =
+              await AIAlertInvestigationRunner.investigateNewAlert({
+                alertId: createdItem.id,
+                projectId: createdItem.projectId,
+              });
           }
         } catch (error) {
           logger.error(
             `AI alert investigation failed in AlertService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              alertId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
+      .then(async () => {
+        /*
+         * Auto-remediation runs LAST — and only when NO AI investigation
+         * was enqueued above. RCA-first ordering: when an investigation is
+         * in flight, remediation is deferred until that run settles
+         * (RemediationHandoff releases it on any terminal outcome), so the
+         * remediation planner always has the posted root cause analysis as
+         * input instead of racing it. Without an investigation (opt-out,
+         * gates, budget) remediation fires here immediately — it must
+         * never silently depend on the AI lane being enabled.
+         */
+        try {
+          if (!aiInvestigationEnqueued) {
+            await AutoRemediationRuleEngineService.applyRulesToAlert(
+              createdItem,
+            );
+          }
+        } catch (error) {
+          logger.error(
+            `Apply auto-remediation rules failed in AlertService.onCreateSuccess: ${error}`,
             {
               projectId: createdItem.projectId?.toString(),
               alertId: createdItem.id?.toString(),

@@ -3,6 +3,7 @@ enum ProductType {
   Traces = "Traces",
   Metrics = "Metrics",
   Profiles = "Profiles",
+  SessionReplay = "Session Replay",
   ActiveMonitoring = "Active Monitoring",
 }
 

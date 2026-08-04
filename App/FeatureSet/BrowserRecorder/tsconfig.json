@@ -1,0 +1,61 @@
+{
+  "compilerOptions": {
+    /*
+     * es2019 is the floor the shipped bundle targets. It is deliberately
+     * lower than the rest of the repo: this bundle runs in whatever browser
+     * a customer's end user happens to have, not in a browser we control.
+     */
+    "target": "es2019",
+    "lib": ["es2019", "dom", "dom.iterable"],
+    "module": "es2022",
+    "moduleResolution": "node",
+
+    /*
+     * The recorder must never IMPORT from Common at runtime. It resolves
+     * the handful of dependency-free pure modules under Common/{Utils,Types}/Rum
+     * through this path map, and the esbuild plugin inlines exactly those
+     * two prefixes and hard-fails the build on any other Common import.
+     */
+    "baseUrl": ".",
+    "paths": {
+      "Common/*": ["../../../Common/*"]
+    },
+
+    "typeRoots": ["./node_modules/@types"],
+
+    /*
+     * "node" is deliberately NOT here. This is browser code, and @types/node
+     * overrides the DOM's fetch / BodyInit / stream definitions with Node's,
+     * which then reject a Uint8Array request body that browsers accept.
+     */
+    "types": ["jest"],
+
+    /* Type-check only. The shipped artifact is produced by esbuild. */
+    "noEmit": true,
+
+    "sourceMap": false,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "useUnknownInCatchVariables": true,
+    "alwaysStrict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true
+  },
+  "include": ["src/**/*.ts", "Tests/**/*.ts"],
+  "exclude": ["node_modules", "public"]
+}

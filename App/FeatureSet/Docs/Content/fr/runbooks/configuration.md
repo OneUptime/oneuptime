@@ -7,7 +7,7 @@ Les étapes Bash et JavaScript **ne s'exécutent jamais sur le Worker OneUptime*
 Le modèle de dispatch :
 
 1. L'auteur de l'étape choisit un Agent de runbook dans le menu déroulant au moment de rédiger l'étape.
-2. Quand l'étape s'exécute, le Worker insère une ligne dans `RunbookAgentJob` avec `targetAgentId` défini sur l'ID de cet agent et un statut `Pending`.
+2. Quand l'étape s'exécute, le Worker insère une ligne dans `RunnerJob` avec `targetAgentId` défini sur l'ID de cet agent et un statut `Pending`.
 3. Cet agent spécifique (et seulement lui) réclame atomiquement le job, exécute le script localement — Bash via `bash -c <script>`, JavaScript dans un bac à sable `isolated-vm` — et renvoie le résultat.
 4. Le Worker reprend le runbook avec le résultat.
 
@@ -27,7 +27,7 @@ Les permissions de runbook vivent dans le groupe de permissions `Runbook` :
 - `CreateRunbook`, `EditRunbook`, `DeleteRunbook`, `ReadRunbook` — gérer les modèles de runbook.
 - `CreateRunbookExecution`, `EditRunbookExecution`, `ReadRunbookExecution` — démarrer, valider et lire les exécutions.
 - `CreateRunbookRule`, `EditRunbookRule`, `DeleteRunbookRule`, `ReadRunbookRule` — gérer les règles d'auto-déclenchement.
-- `CreateRunbookAgent`, `EditRunbookAgent`, `DeleteRunbookAgent`, `ReadRunbookAgent` — gérer les Agents de runbook qui exécutent les étapes Bash et JavaScript dans votre propre infrastructure.
+- `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — gérer les Agents de runbook qui exécutent les étapes Bash et JavaScript dans votre propre infrastructure.
 - `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (rôles) — à attribuer à une équipe pour accorder respectivement le contrôle total, l'usage quotidien ou un accès en lecture seule. `RunbookAdmin` regroupe toutes les permissions granulaires ci-dessus.
 
 ## File & worker
@@ -47,8 +47,8 @@ Quand une étape manuelle est validée via l'API, l'exécution est remise en fil
 - `Runbook` — modèle (nom, slug, description, isEnabled, JSON des étapes).
 - `RunbookExecution` — une ligne par exécution, avec des clés étrangères nullables `incidentId`, `alertId` et `scheduledMaintenanceId` et un tableau JSON `stepExecutions` qui prend en snapshot les étapes et l'état par étape.
 - `RunbookRule` — règles d'auto-déclenchement avec discriminateur `triggerEntityType` (Incident, Alert, ScheduledMaintenance) et une relation many-to-many vers les runbooks à démarrer.
-- `RunbookAgent` — une ligne par agent installé : nom, clé secrète, `lastAlive`, `connectionStatus`, infos d'hôte.
-- `RunbookAgentJob` — une ligne par étape Bash ou JavaScript envoyée : `targetAgentId` (l'agent que l'auteur de l'étape a choisi), type d'étape, script, statut (`Pending` → `Claimed` → `Running` → `Succeeded`/`Failed`/`TimedOut`/`Cancelled`), claim deadline, lease, sortie, code de sortie.
+- `Runner` — une ligne par agent installé : nom, clé secrète, `lastAlive`, `connectionStatus`, infos d'hôte.
+- `RunnerJob` — une ligne par étape Bash ou JavaScript envoyée : `targetAgentId` (l'agent que l'auteur de l'étape a choisi), type d'étape, script, statut (`Pending` → `Claimed` → `Running` → `Succeeded`/`Failed`/`TimedOut`/`Cancelled`), claim deadline, lease, sortie, code de sortie.
 
 ## Conseils opérationnels
 

@@ -1,6 +1,7 @@
 import MetricDownsamplingRetentionDays from "../../Types/Metrics/MetricDownsamplingRetentionDays";
 import TelemetryRetentionConfig from "../../Types/Telemetry/TelemetryRetentionConfig";
 import AlertSeverity from "./AlertSeverity";
+import IncidentSeverity from "./IncidentSeverity";
 import Reseller from "./Reseller";
 import ResellerPlan from "./ResellerPlan";
 import User from "./User";
@@ -1460,6 +1461,71 @@ export default class Project extends TenantModel {
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
     ],
+    update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Enable Auto Remediation",
+    description:
+      "Kill switch for auto-remediation: when disabled, no auto-remediation rule fires in this project.",
+    defaultValue: true,
+    example: true,
+  })
+  @Column({
+    nullable: false,
+    default: true,
+    type: ColumnType.Boolean,
+  })
+  public enableAutoRemediation?: boolean = undefined;
+
+  /*
+   * Explicit opt-in (=== true semantics, unlike the kill switches above):
+   * AI-composed remediation COMMANDS never run in a project that has not
+   * turned this on, even when auto-remediation itself is enabled.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ManageProjectBilling],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Enable AI Command Execution",
+    description:
+      "When enabled, auto-remediation rules may let the AI compose and run commands on opted-in Runners (with an operator allowlist for auto-execution, and one-click approval for everything else). Off by default.",
+    defaultValue: false,
+    example: false,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public enableAiCommandExecution?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
     update: [Permission.ProjectOwner, Permission.ProjectAdmin],
   })
   @TableColumn({
@@ -1538,6 +1604,36 @@ export default class Project extends TenantModel {
     type: ColumnType.Boolean,
   })
   public enableInstrumentationFixTasks?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Enable Automatic Code Fixes",
+    description:
+      "When enabled, an AI investigation that ends with a confident, evidenced root cause analysis automatically queues an AI agent task that opens a draft fix pull request from that analysis — the automatic form of the 'Open Fix PR from this analysis' button. Requires a repository connected through the GitHub App and a Runner with the code-fix capability. Pull requests are always human-reviewed — nothing merges automatically.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public enableAutomaticCodeFixes?: boolean = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -1772,6 +1868,95 @@ export default class Project extends TenantModel {
     type: ColumnType.Number,
   })
   public alertInvestigationDedupeWindowMinutes?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "incidentInvestigationMinimumSeverityId",
+    type: TableColumnType.Entity,
+    modelType: IncidentSeverity,
+    title: "Incident Investigation Minimum Severity",
+    description:
+      "Only incidents at or above this severity are investigated automatically by AI. Unset means every incident is investigated — unlike alerts, which default to the top two tiers, because an incident already cleared a human-authored threshold to exist.",
+  })
+  @ManyToOne(
+    () => {
+      return IncidentSeverity;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "incidentInvestigationMinimumSeverityId" })
+  public incidentInvestigationMinimumSeverity?: IncidentSeverity = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ObjectID,
+    title: "Incident Investigation Minimum Severity ID",
+    description:
+      "ID of the minimum incident severity that is investigated automatically by AI.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public incidentInvestigationMinimumSeverityId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Incident Re-investigation Cooldown (Minutes)",
+    description:
+      "Incidents affecting a monitor that AI investigated within this many minutes are not re-investigated — the first analysis stands. Unset means the default of 30 minutes; 0 disables the cooldown.",
+    example: 30,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public incidentInvestigationDedupeWindowMinutes?: number = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -2561,6 +2746,52 @@ export default class Project extends TenantModel {
     create: PlanType.Free,
   })
   public enableAuditLogs?: boolean = undefined;
+
+  /*
+   * Organisation-wide hard off switch for session replay, checked by both
+   * the recorder config endpoint and the ingest gate. Follows the shape of
+   * enableAuditLogs above, with one deliberate difference: no
+   * ColumnBillingAccessControl. Being able to switch off recording of your
+   * end users' screens must not depend on a plan tier, so update is not
+   * gated behind Enterprise the way audit logs are.
+   *
+   * Off by default. Every per-application toggle is ANDed with this, so a
+   * project that never opts in cannot have a recorder enabled by an
+   * application-level mistake.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProject,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.Boolean,
+    isDefaultValueColumn: true,
+    defaultValue: true,
+    title: "Allow Session Replay",
+    description:
+      "When enabled, RUM applications in this project may record session replays if they are individually enabled too. On by default; switch it off here to stop session replay across the entire project in one place.",
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    unique: false,
+    default: true,
+  })
+  public isSessionReplayAllowed?: boolean = undefined;
 
   @ColumnAccessControl({
     create: [Permission.User],

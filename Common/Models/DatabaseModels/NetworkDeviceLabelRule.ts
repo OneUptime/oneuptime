@@ -311,7 +311,7 @@ export default class NetworkDeviceLabelRule extends BaseModel {
     type: TableColumnType.LongText,
     title: "Network Device Name Pattern",
     description:
-      "Regex (case-insensitive) matched against the network device name. Leave empty to match any name.",
+      "Regex or * wildcard pattern (case-insensitive) matched against the network device name. Leave empty to match any name.",
   })
   @Column({
     type: ColumnType.LongText,
@@ -344,7 +344,7 @@ export default class NetworkDeviceLabelRule extends BaseModel {
     type: TableColumnType.LongText,
     title: "Network Device Description Pattern",
     description:
-      "Regex (case-insensitive) matched against the network device description. Leave empty to match any description.",
+      "Regex or * wildcard pattern (case-insensitive) matched against the network device description. Leave empty to match any description.",
   })
   @Column({
     type: ColumnType.LongText,

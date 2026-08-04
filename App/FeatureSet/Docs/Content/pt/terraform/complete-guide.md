@@ -1,596 +1,217 @@
-# Provedor Terraform do OneUptime
+# Complete Guide
 
-O Provedor Terraform do OneUptime permite gerenciar recursos do OneUptime usando Infraestrutura como Código (IaC). Este provedor permite configurar monitoramento, gerenciamento de incidentes, páginas de status e outros recursos do OneUptime através do Terraform.
+This guide covers everything beyond the first apply: authentication patterns, how to structure a OneUptime Terraform project, resource dependencies, data sources, state management, and upgrades.
 
-## Índice
+If you have never used the provider, start with the [Quick Start](/docs/terraform/quick-start).
 
-- [Instalação](#instalação)
-- [Configuração do Provedor](#configuração-do-provedor)
-- [Início Rápido](#início-rápido)
-- [Compatibilidade de Versões](#compatibilidade-de-versões)
-- [Recursos Disponíveis](#recursos-disponíveis)
-- [Exemplos](#exemplos)
-- [Melhores Práticas](#melhores-práticas)
-- [Guia de Migração](#guia-de-migração)
+## Provider configuration
 
-## Instalação
+The provider block accepts two attributes:
 
-### Do Registro do Terraform (Recomendado)
+| Attribute | Required | Environment variable | Default |
+|-----------|----------|----------------------|---------|
+| `api_key` | No (falls back to env var) | `ONEUPTIME_API_KEY` | — |
+| `oneuptime_url` | No | `ONEUPTIME_URL` | `https://oneuptime.com` |
 
-O provedor Terraform do OneUptime está disponível no [Registro do Terraform](https://registry.terraform.io/providers/oneuptime/oneuptime).
+If no API key is available from either the provider block or the environment, the provider fails at configure time with an explicit error — before any plan or apply work happens.
 
-```hcl
-terraform {
-  required_providers {
-    oneuptime = {
-      source  = "oneuptime/oneuptime"
-      version = "~> 7.0"  # Use a versão 7.x mais recente
-    }
-  }
-  required_version = ">= 1.0"
-}
-```
+The key must be a **project API key** (Project Settings > API Keys), with Create/Read/Update/Delete permission on the resource types your configuration manages. Master keys and user keys do not work — see [Troubleshooting](/docs/terraform/troubleshooting).
 
-### Fixação de Versão para Instalações Auto-Hospedadas
+### Option 1: Environment variables (recommended)
 
-⚠️ **Importante para Clientes Auto-Hospedados**: Sempre fixe a versão do provedor Terraform para corresponder à versão de instalação do OneUptime para garantir compatibilidade de API.
-
-```hcl
-terraform {
-  required_providers {
-    oneuptime = {
-      source  = "oneuptime/oneuptime"
-      version = "= 7.0.123"  # Fixe na versão exata que corresponde à sua instalação do OneUptime
-    }
-  }
-  required_version = ">= 1.0"
-}
-```
-
-#### Encontrando Sua Versão do OneUptime
-
-Você pode encontrar sua versão do OneUptime de várias formas:
-
-1. **Painel**: Vá para Settings → About no seu painel do OneUptime
-2. **API**: Chame o endpoint `GET /api/status`
-3. **Docker**: Verifique a tag da imagem que você está usando
-4. **Helm**: Verifique a versão do seu Helm chart
+Keep credentials out of your configuration entirely:
 
 ```bash
-# Exemplo: Se executando o OneUptime 7.0.123
-terraform {
-  required_providers {
-    oneuptime = {
-      source  = "oneuptime/oneuptime"
-      version = "= 7.0.123"
-    }
-  }
-}
+export ONEUPTIME_API_KEY="your-project-api-key"
+# Only needed for self-hosted instances:
+export ONEUPTIME_URL="https://oneuptime.example.com"
 ```
-
-## Configuração do Provedor
-
-### Configuração Básica
 
 ```hcl
-provider "oneuptime" {
-  oneuptime_url = "https://sua-instancia-oneuptime.com"  # Ou https://oneuptime.com para nuvem
-  api_key       = var.oneuptime_api_key
-}
+provider "oneuptime" {}
 ```
 
-### Variáveis de Ambiente
-
-Você pode configurar o provedor usando variáveis de ambiente:
-
-```bash
-export ONEUPTIME_URL="https://sua-instancia-oneuptime.com"
-export ONEUPTIME_API_KEY="sua-chave-de-api-aqui"
-```
-
-Em seguida, use o provedor sem configuração explícita:
+### Option 2: Variables with a tfvars file
 
 ```hcl
-provider "oneuptime" {
-  # A configuração será lida das variáveis de ambiente
-}
-```
-
-### Opções de Configuração
-
-| Argumento       | Variável de Ambiente | Descrição                 | Obrigatório |
-| --------------- | -------------------- | ------------------------- | ----------- |
-| `oneuptime_url` | `ONEUPTIME_URL`      | URL do OneUptime          | Sim         |
-| `api_key`       | `ONEUPTIME_API_KEY`  | Chave de API do OneUptime | Sim         |
-
-## Início Rápido
-
-### 1. Criar Chave de API
-
-Primeiro, crie uma chave de API no seu painel do OneUptime:
-
-1. Vá para **Settings** → **API Keys**
-2. Clique em **Create API Key**
-3. Dê um nome descritivo (ex.: "Automação Terraform")
-4. Selecione as permissões apropriadas
-5. Copie a chave de API gerada
-
-### 2. Configuração Básica do Terraform
-
-Crie um arquivo `main.tf`:
-
-```hcl
-terraform {
-  required_providers {
-    oneuptime = {
-      source  = "oneuptime/oneuptime"
-      version = "~> 7.0"
-    }
-  }
-}
-
-provider "oneuptime" {
-  oneuptime_url = "https://oneuptime.com"  # Use a URL da sua instância
-  api_key       = var.oneuptime_api_key
-}
-
-# Nota: Projetos devem ser criados manualmente no painel do OneUptime
-variable "project_id" {
-  description = "ID do projeto OneUptime"
-  type        = string
-}
-
-# Criar um monitor
-resource "oneuptime_monitor" "website" {
-  name        = "Monitor de Site"
-  description = "Monitor para uptime do site"
-  data        = jsonencode({
-    url = "https://example.com"
-    interval = "5m"
-    timeout = "30s"
-  })
-}
-
-# Criar uma equipe
-resource "oneuptime_team" "platform" {
-  name        = "Equipe de Plataforma"
-  description = "Equipe de engenharia de plataforma"
-}
-```
-
-### 3. Inicializar e Aplicar
-
-```bash
-# Inicializar o Terraform
-terraform init
-
-# Planejar as mudanças
-terraform plan
-
-# Aplicar a configuração
-terraform apply
-```
-
-## Compatibilidade de Versões
-
-### Clientes de Nuvem
-
-Para clientes do OneUptime Cloud, use a versão mais recente do provedor:
-
-```hcl
-terraform {
-  required_providers {
-    oneuptime = {
-      source  = "oneuptime/oneuptime"
-      version = "~> 7.0"  # Sempre use a versão compatível mais recente
-    }
-  }
-}
-```
-
-### Clientes Auto-Hospedados
-
-**Crítico**: Os clientes auto-hospedados devem fixar a versão do provedor para corresponder à instalação do OneUptime:
-
-| Versão do OneUptime | Versão do Provedor | Configuração           |
-| ------------------- | ------------------ | ---------------------- |
-| 7.0.x               | 7.0.x              | `version = "~> 7.0.0"` |
-| 7.1.x               | 7.1.x              | `version = "~> 7.1.0"` |
-| 7.2.x               | 7.2.x              | `version = "~> 7.2.0"` |
-
-Exemplo para OneUptime 7.0.123:
-
-```hcl
-terraform {
-  required_providers {
-    oneuptime = {
-      source  = "oneuptime/oneuptime"
-      version = "= 7.0.123"  # Correspondência de versão exata
-    }
-  }
-}
-```
-
-## Recursos Disponíveis
-
-O provedor Terraform do OneUptime suporta os seguintes recursos:
-
-### Recursos Principais
-
-- `oneuptime_team` - Gerenciar equipes
-
-### Monitoramento
-
-- `oneuptime_monitor` - Criar e gerenciar monitores
-- `oneuptime_probe` - Gerenciar probes de monitoramento
-
-### Gerenciamento de Plantão
-
-- `oneuptime_on_call_duty_policy` - Configurar escalas de plantão
-
-### Páginas de Status
-
-- `oneuptime_status_page` - Criar páginas de status
-
-### Catálogo de Serviços
-
-- `oneuptime_service_catalog` - Gerenciar entradas do catálogo de serviços
-
-### Catálogo de Serviços
-
-- `oneuptime_service` - Definir serviços
-- `oneuptime_service_dependency` - Mapear dependências de serviços
-
-### Fontes de Dados
-
-Nota: As fontes de dados não estão disponíveis atualmente no provedor, pois nenhuma fonte de dados está definida no esquema do provedor.
-
-## Exemplos
-
-### Configuração Completa de Monitoramento
-
-```hcl
-# Variáveis
 variable "oneuptime_api_key" {
-  description = "Chave de API do OneUptime"
+  description = "OneUptime project API key"
   type        = string
   sensitive   = true
 }
 
-variable "project_id" {
-  description = "ID do projeto OneUptime (crie o projeto manualmente no painel)"
-  type        = string
-}
-
-variable "oneuptime_url" {
-  description = "URL do OneUptime"
-  type        = string
-  default     = "https://oneuptime.com"
-}
-
-# Configuração do provedor
-terraform {
-  required_providers {
-    oneuptime = {
-      source  = "oneuptime/oneuptime"
-      version = "~> 7.0"
-    }
-  }
-}
-
 provider "oneuptime" {
-  oneuptime_url = var.oneuptime_url
-  api_key       = var.oneuptime_api_key
-}
-
-# Equipe
-resource "oneuptime_team" "platform" {
-  name        = "Equipe de Plataforma"
-  description = "Equipe de engenharia de plataforma"
-}
-
-# Monitores
-resource "oneuptime_monitor" "api" {
-  name        = "Verificação de Saúde da API"
-  description = "Monitor para o endpoint de saúde da API"
-  data        = jsonencode({
-    url = "https://api.mycompany.com/health"
-    method = "GET"
-    interval = "1m"
-    timeout = "30s"
-  })
-}
-
-resource "oneuptime_monitor" "database" {
-  name       = "Conexão com o Banco de Dados"
-  project_id = oneuptime_project.production.id
-
-  monitor_type = "port"
-  hostname     = "db.mycompany.com"
-  port         = 5432
-  interval     = "2m"
-
-  tags = {
-    service     = "database"
-    environment = "production"
-    criticality = "critical"
-  }
-}
-
-# Política de plantão
-resource "oneuptime_on_call_policy" "platform_oncall" {
-  name       = "Plantão de Plataforma"
-  project_id = oneuptime_project.production.id
-  team_id    = oneuptime_team.platform.id
-
-  schedules {
-    name      = "Horário Comercial"
-    timezone  = "America/New_York"
-
-    layers {
-      name = "Primário"
-      users = ["user1@mycompany.com", "user2@mycompany.com"]
-      rotation_type = "weekly"
-      start_time = "09:00"
-      end_time = "17:00"
-      days = ["monday", "tuesday", "wednesday", "thursday", "friday"]
-    }
-  }
-}
-
-# Política de alertas
-resource "oneuptime_alert_policy" "critical_alerts" {
-  name       = "Alertas Críticos do Sistema"
-  project_id = oneuptime_project.production.id
-
-  conditions {
-    monitor_id = oneuptime_monitor.api.id
-    threshold  = "down"
-  }
-
-  conditions {
-    monitor_id = oneuptime_monitor.database.id
-    threshold  = "down"
-  }
-
-  actions {
-    type = "webhook"
-    url  = "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
-  }
-
-  actions {
-    type           = "oncall_escalation"
-    oncall_policy_id = oneuptime_on_call_policy.platform_oncall.id
-  }
-}
-
-# Página de status
-resource "oneuptime_status_page" "public" {
-  name       = "Status da MyCompany"
-  project_id = oneuptime_project.production.id
-
-  domain = "status.mycompany.com"
-
-  components {
-    name       = "API"
-    monitor_id = oneuptime_monitor.api.id
-  }
-
-  components {
-    name       = "Banco de Dados"
-    monitor_id = oneuptime_monitor.database.id
-  }
+  api_key = var.oneuptime_api_key
 }
 ```
 
-### Exemplo de Configuração Auto-Hospedada
+Put the value in `terraform.tfvars` (and add that file to `.gitignore`):
 
 ```hcl
-# Para instância auto-hospedada do OneUptime versão 7.0.123
-terraform {
-  required_providers {
-    oneuptime = {
-      source  = "oneuptime/oneuptime"
-      version = "= 7.0.123"  # Deve corresponder exatamente à sua versão do OneUptime
-    }
-  }
-  required_version = ">= 1.0"
-}
-
-provider "oneuptime" {
-  oneuptime_url = "https://oneuptime.mycompany.com"  # Sua URL auto-hospedada
-  api_key       = var.oneuptime_api_key
-}
-
-# Restante da sua configuração...
+oneuptime_api_key = "your-project-api-key"
 ```
 
-## Melhores Práticas
+### Option 3: CI/CD secrets
 
-### 1. Gerenciamento de Versões
+In CI, inject the key as a masked environment variable. GitHub Actions example:
 
-**Para Clientes de Nuvem:**
+```yaml
+env:
+  ONEUPTIME_API_KEY: ${{ secrets.ONEUPTIME_API_KEY }}
+steps:
+  - uses: hashicorp/setup-terraform@v3
+  - run: terraform init
+  - run: terraform plan -input=false
+  - run: terraform apply -auto-approve -input=false
+```
 
-- Use versionamento semântico com `~>` para obter atualizações compatíveis
-- Revise o changelog antes de atualizações de versão principal
+The same pattern works in GitLab CI (masked variables), CircleCI (contexts), and Terraform Cloud (environment variables on the workspace).
 
-**Para Clientes Auto-Hospedados:**
+## Project structure
 
-- Sempre fixe na versão exata correspondente à sua instalação
-- Atualize a versão do provedor ao atualizar o OneUptime
-- Teste em ambiente não produtivo primeiro
+A layout that works well for OneUptime configurations:
 
-### 2. Gerenciamento de Estado
+```
+oneuptime/
+├── main.tf          # terraform {} and provider {} blocks
+├── variables.tf     # input variables
+├── outputs.tf       # exported IDs
+├── labels.tf        # labels, teams — shared building blocks
+├── monitors.tf      # monitors and monitor statuses
+├── status-pages.tf  # status pages and domains
+├── on-call.tf       # on-call policies and escalation rules
+└── environments/
+    ├── production.tfvars
+    └── staging.tfvars
+```
+
+Two conventions that pay off:
+
+- **One Terraform root per OneUptime project.** API keys are project-scoped, so a root module maps naturally to one project. For multiple projects, use separate root modules (or provider aliases with one key each).
+- **Define shared building blocks (labels, teams, monitor statuses) once** in their own file and reference them by resource address everywhere else.
+
+## Resource dependencies
+
+Terraform infers dependencies from references. A typical graph — labels and teams feeding monitors, which feed a status page:
+
+```hcl
+resource "oneuptime_label" "payments" {
+  name        = "payments"
+  description = "Payment infrastructure"
+  color       = "#2ecc71"
+}
+
+resource "oneuptime_team" "payments_oncall" {
+  name        = "Payments On-Call"
+  description = "Owns payment service availability"
+}
+
+resource "oneuptime_monitor" "checkout_api" {
+  name         = "Checkout API"
+  description  = "Availability of the checkout API"
+  monitor_type = "API"
+  labels       = [oneuptime_label.payments.id]
+}
+
+resource "oneuptime_status_page" "payments" {
+  name                     = "Payments Status"
+  description              = "Customer-facing payments status"
+  page_title               = "Payments Status"
+  page_description         = "Live status of payment processing"
+  is_public_status_page    = true
+  enable_email_subscribers = true
+  enable_sms_subscribers   = false
+  labels                   = [oneuptime_label.payments.id]
+}
+```
+
+Because `oneuptime_monitor.checkout_api` references `oneuptime_label.payments.id`, Terraform creates the label first and destroys it last. Explicit `depends_on` is rarely needed — only add it when there is a real ordering requirement without an attribute reference.
+
+Attributes like `labels` are **unordered sets of ID strings**: changing the order of entries produces no diff.
+
+## Data sources
+
+Every resource has a matching data source with the same name. Use data sources to reference resources that are *not* managed by this configuration — created in the dashboard, or owned by another Terraform root.
+
+Look up by `name`:
+
+```hcl
+data "oneuptime_label" "critical" {
+  name = "critical"
+}
+
+resource "oneuptime_monitor" "db" {
+  name         = "Database Health"
+  description  = "Managed here, but reuses a dashboard-created label"
+  monitor_type = "Manual"
+  labels       = [data.oneuptime_label.critical.id]
+}
+```
+
+Or look up by `id`:
+
+```hcl
+data "oneuptime_status_page" "main" {
+  id = "5f8a1b2c3d4e5f6a7b8c9d0e"
+}
+```
+
+Lookup rules:
+
+- Provide `id` **or** `name`.
+- If nothing matches, the data source returns an error (fix the name, or create the resource).
+- If more than one resource matches a `name`, the data source also errors — names used for lookups must be unique. Look up by `id` instead.
+
+> **Note:** If you want to *manage* an existing resource rather than just reference it, import it instead — see [Importing Resources](/docs/terraform/importing-resources).
+
+## State management
+
+Terraform state for OneUptime configurations contains resource IDs and attribute values — including anything sensitive you set. Treat it accordingly:
+
+- **Use a remote backend** for anything beyond a personal experiment, so state is shared, locked, and not sitting in a laptop directory. Any [standard backend](https://developer.hashicorp.com/terraform/language/backend) works — S3 + DynamoDB, Terraform Cloud, azurerm, GCS:
 
 ```hcl
 terraform {
   backend "s3" {
-    bucket = "meu-estado-terraform"
-    key    = "oneuptime/terraform.tfstate"
-    region = "us-west-2"
+    bucket         = "my-terraform-state"
+    key            = "oneuptime/production.tfstate"
+    region         = "us-east-1"
+    dynamodb_table = "terraform-locks"
+    encrypt        = true
   }
 }
 ```
 
-### 3. Separação de Ambientes
+- **Never edit state by hand.** Use `terraform state mv` / `terraform state rm` if you need surgery.
+- **Never commit `terraform.tfstate` or `*.tfvars` with secrets** to version control.
 
-Use workspaces ou arquivos de estado separados para diferentes ambientes:
+## Timestamps and drift
 
-```bash
-# Usando workspaces
-terraform workspace new production
-terraform workspace new staging
+Date/time attributes (for example `starts_at` / `ends_at` on `oneuptime_scheduled_maintenance_event`, or computed `created_at` fields) are RFC3339 strings. The provider compares timestamps semantically: `2026-08-01T02:00:00Z` and the server-normalized form of the same instant are treated as equal, so timestamp normalization does not produce spurious diffs.
 
-# Usando diretórios separados
-mkdir -p environments/{staging,production}
-```
-
-### 4. Gerenciamento de Variáveis
+When you generate timestamps with functions like `timestamp()` or `timeadd()`, the *generated value* changes on every run — that is a Terraform behavior, not a provider one. Either use static values or ignore changes after creation:
 
 ```hcl
-# variables.tf
-variable "environment" {
-  description = "Nome do ambiente"
-  type        = string
-}
-
-variable "monitors" {
-  description = "Lista de monitores a criar"
-  type = list(object({
-    name = string
-    url  = string
-    type = string
-  }))
-}
-
-# terraform.tfvars
-environment = "production"
-monitors = [
-  {
-    name = "Site"
-    url  = "https://example.com"
-    type = "website"
-  },
-  {
-    name = "API"
-    url  = "https://api.example.com/health"
-    type = "api"
-  }
-]
-```
-
-### 5. Nomenclatura de Recursos
-
-Use convenções de nomenclatura consistentes:
-
-```hcl
-resource "oneuptime_monitor" "website_production" {
-  name = "${var.environment}-website-monitor"
-  # ...
-}
-
-resource "oneuptime_alert_policy" "critical_production" {
-  name = "${var.environment}-critical-alerts"
-  # ...
+resource "oneuptime_scheduled_maintenance_event" "db_upgrade" {
+  title       = "Database upgrade"
+  description = "Planned PostgreSQL upgrade"
+  starts_at   = "2026-08-01T02:00:00Z"
+  ends_at     = "2026-08-01T04:00:00Z"
 }
 ```
 
-## Guia de Migração
+## Upgrading the provider
 
-### Da Configuração Manual
+1. Read the release notes on the [registry page](https://registry.terraform.io/providers/oneuptime/oneuptime) or [GitHub releases](https://github.com/OneUptime/terraform-provider-oneuptime/releases).
+2. Raise the version constraint (for example `~> 11.0` already allows all 11.x releases; moving to a new major requires editing the constraint).
+3. Run `terraform init -upgrade` to fetch the new version.
+4. Run `terraform plan` and confirm the plan is empty (or contains only changes you expect) before applying.
 
-1. **Audite os recursos existentes** no painel do OneUptime
-2. **Crie a configuração Terraform** para recursos existentes
-3. **Importe os recursos existentes** para o estado do Terraform
-4. **Valide a configuração** corresponde ao estado atual
-5. **Aplique as mudanças** incrementalmente
+Self-hosted installations must keep the provider version at or below the platform version — upgrade OneUptime first, then the provider. See [Self-Hosted Setup](/docs/terraform/self-hosted).
 
-Exemplo de importação:
+## Further reading
 
-```bash
-# Importar monitor existente
-terraform import oneuptime_monitor.website monitor-id-here
-
-# Importar projeto existente
-terraform import oneuptime_project.main project-id-here
-```
-
-### Atualizações de Versão
-
-Ao atualizar o OneUptime (auto-hospedado):
-
-1. **Faça backup do seu estado atual**
-2. **Verifique a compatibilidade do provedor**
-3. **Atualize a versão do provedor** na configuração
-4. **Teste no ambiente de staging**
-5. **Aplique na produção**
-
-```bash
-# Backup do estado
-terraform state pull > backup.tfstate
-
-# Atualize a versão do provedor
-# Edite o bloco terraform na sua configuração
-
-# Planeje e aplique
-terraform init -upgrade
-terraform plan
-terraform apply
-```
-
-## Suporte e Recursos
-
-- **Documentação**: [Docs do OneUptime](https://docs.oneuptime.com)
-- **Registro Terraform**: [Provedor OneUptime](https://registry.terraform.io/providers/oneuptime/oneuptime)
-- **Problemas GitHub**: [OneUptime GitHub](https://github.com/OneUptime/oneuptime/issues)
-- **Comunidade**: [Comunidade OneUptime](https://community.oneuptime.com)
-
-## Solução de Problemas
-
-### Problemas Comuns
-
-1. **Incompatibilidade de Versão (Auto-Hospedado)**
-
-   ```
-   Error: API version incompatible
-   ```
-
-   **Solução**: Certifique-se de que a versão do provedor corresponde à instalação do OneUptime
-
-2. **Problemas de Autenticação**
-
-   ```
-   Error: Invalid API key
-   ```
-
-   **Solução**: Verifique a chave de API e as permissões
-
-3. **Recurso Não Encontrado**
-   ```
-   Error: Resource not found
-   ```
-   **Solução**: Verifique os IDs de recursos e certifique-se de que o recurso existe
-
-### Modo Debug
-
-Habilite o log detalhado:
-
-```bash
-export TF_LOG=DEBUG
-terraform apply
-```
-
-### Verificação de Versão
-
-Verifique sua configuração:
-
-```bash
-# Verificar versão do Terraform
-terraform version
-
-# Verificar versão do provedor
-terraform providers
-
-# Validar configuração
-terraform validate
-```
+- [Examples](/docs/terraform/examples) — real configurations for each resource type
+- [Monitor Steps](/docs/terraform/monitor-steps) — the `monitor_steps` JSON schema in depth
+- [Importing Resources](/docs/terraform/importing-resources) — adopting existing resources
+- [Troubleshooting](/docs/terraform/troubleshooting) — common errors and fixes

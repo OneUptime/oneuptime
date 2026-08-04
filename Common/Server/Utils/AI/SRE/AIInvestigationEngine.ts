@@ -17,6 +17,7 @@ import LlmProviderService from "../../../Services/LlmProviderService";
 import AIInvestigationQueue from "./InvestigationQueue";
 import AIConfidenceSignal, { ConfidenceSignal } from "./ConfidenceSignal";
 import ObservabilityAssistant, {
+  ObservabilityAssistantExtraTool,
   ObservabilityAssistantResult,
   ObservabilityAssistantStep,
   ObservabilityAssistantStepType,
@@ -104,6 +105,37 @@ export interface InvestigationRequest {
     confidence: ConfidenceSignal;
     result: ObservabilityAssistantResult;
   }) => Promise<void>;
+  /*
+   * Optional: called exactly once when THIS attempt settles the run into a
+   * terminal state — Completed (with or without an analysis, and even when
+   * only postAnalysis failed afterwards) or Error once retries are
+   * exhausted. NOT called when the attempt was requeued (a later attempt
+   * settles) or when another actor won the terminal transition (that actor
+   * settles). The investigation runners use it to hand the subject to
+   * auto-remediation AFTER the RCA had its chance to post (RCA-first
+   * ordering — see RemediationHandoff). Errors are logged, never allowed
+   * to fail the run.
+   */
+  onSettled?: (() => Promise<void>) | undefined;
+  /*
+   * Optional overrides for non-investigation run kinds that reuse this
+   * engine (remediation planning/execution). Defaults preserve the classic
+   * investigation behavior exactly.
+   */
+  // Replaces INVESTIGATION_PERSONA as the appended system instructions.
+  personaOverride?: string | undefined;
+  // Replaces the "A new signal has just been declared..." user preamble.
+  questionOverride?: string | undefined;
+  /*
+   * Run-scoped tools grafted onto the loop (see
+   * ObservabilityAssistantExtraTool). The read-only toolbox is always
+   * present; extras are additive and own their own authorization.
+   */
+  extraTools?: Array<ObservabilityAssistantExtraTool> | undefined;
+  maxLlmCalls?: number | undefined;
+  maxToolCalls?: number | undefined;
+  maxWallClockMs?: number | undefined;
+  maxOutputTokens?: number | undefined;
 }
 
 export default class AIInvestigationEngine {
@@ -235,6 +267,14 @@ export default class AIInvestigationEngine {
       await this.touchHeartbeat(aiRunId);
     };
 
+    /*
+     * Whether THIS attempt won the Running -> Completed transition. Once it
+     * did, the run is terminally settled by this attempt no matter what
+     * happens afterwards (a postAnalysis failure does not un-complete it),
+     * so the settlement callback must still fire from the catch block.
+     */
+    let settledAsCompleted: boolean = false;
+
     try {
       const result: ObservabilityAssistantResult =
         await ObservabilityAssistant.answerQuestion({
@@ -242,13 +282,17 @@ export default class AIInvestigationEngine {
           // System run — full read access to the project's telemetry.
           props: { isRoot: true },
           feature: request.feature,
-          systemInstructions: INVESTIGATION_PERSONA,
-          question: `A new signal has just been declared and you have been woken to investigate it. Investigate now and produce your root cause analysis.\n\n${request.contextSummary}`,
-          maxLlmCalls: MAX_LLM_CALLS,
-          maxToolCalls: MAX_TOOL_CALLS,
-          maxWallClockMs: MAX_WALL_CLOCK_MS,
-          maxOutputTokens: MAX_OUTPUT_TOKENS,
+          systemInstructions: request.personaOverride ?? INVESTIGATION_PERSONA,
+          question: `${
+            request.questionOverride ??
+            "A new signal has just been declared and you have been woken to investigate it. Investigate now and produce your root cause analysis."
+          }\n\n${request.contextSummary}`,
+          maxLlmCalls: request.maxLlmCalls ?? MAX_LLM_CALLS,
+          maxToolCalls: request.maxToolCalls ?? MAX_TOOL_CALLS,
+          maxWallClockMs: request.maxWallClockMs ?? MAX_WALL_CLOCK_MS,
+          maxOutputTokens: request.maxOutputTokens ?? MAX_OUTPUT_TOKENS,
           onStep,
+          extraTools: request.extraTools,
         });
 
       /*
@@ -281,6 +325,8 @@ export default class AIInvestigationEngine {
         return;
       }
 
+      settledAsCompleted = true;
+
       await this.emitEvent({
         projectId,
         aiRunId,
@@ -294,6 +340,12 @@ export default class AIInvestigationEngine {
         logger.debug(
           `AI: investigation (run ${aiRunId.toString()}) produced no analysis; nothing posted.`,
         );
+
+        /*
+         * No analysis is still a settled run — the subject must not lose
+         * its deferred remediation because the model had nothing to say.
+         */
+        await this.invokeOnSettled(request, aiRunId);
         return;
       }
 
@@ -330,6 +382,9 @@ export default class AIInvestigationEngine {
       logger.debug(
         `AI: investigation complete (run ${aiRunId.toString()}, confident=${confidence.confident} via ${confidence.source}, ${result.llmCallCount} LLM calls, ${result.toolCallCount} tools, ${result.totalTokens} tokens).`,
       );
+
+      // The run is settled and the RCA posted — release deferred follow-ups.
+      await this.invokeOnSettled(request, aiRunId);
     } catch (error) {
       const message: string =
         error instanceof Error ? error.message : String(error);
@@ -351,15 +406,51 @@ export default class AIInvestigationEngine {
        * Only configuration/budget gating — which a retry cannot change
        * within the run's usefulness window — counts as permanent.
        */
-      await AIInvestigationQueue.failOrRequeue({
-        aiRunId,
-        attemptCount: data.attemptCount,
-        errorMessage: message,
-        isPermanent: PERMANENT_FAILURE_RE.test(message),
-      });
+      const outcome: "requeued" | "finalized" | "noop" =
+        await AIInvestigationQueue.failOrRequeue({
+          aiRunId,
+          attemptCount: data.attemptCount,
+          errorMessage: message,
+          isPermanent: PERMANENT_FAILURE_RE.test(message),
+        });
+
+      /*
+       * Settle-once discipline: fire the settlement callback when this
+       * attempt terminally owns the run — either it already won the
+       * Completed transition (the error came from confidence/postAnalysis
+       * afterwards; failOrRequeue no-ops on a Completed run) or this
+       * failOrRequeue finalized it as Error. A requeued attempt is NOT
+       * settled (the retry owns it), and "noop" without a won Completed
+       * means another actor moved the run and owns settlement.
+       */
+      if (settledAsCompleted || outcome === "finalized") {
+        await this.invokeOnSettled(request, aiRunId);
+      }
 
       logger.error(
         `AI: investigation attempt ${data.attemptCount} failed (run ${aiRunId.toString()}): ${message}`,
+      );
+    }
+  }
+
+  /*
+   * Fire the caller's settlement callback, exactly at the points where this
+   * attempt terminally settled the run. Best-effort by contract: the run is
+   * already settled, so a hand-off failure is logged and swallowed.
+   */
+  private static async invokeOnSettled(
+    request: InvestigationRequest,
+    aiRunId: ObjectID,
+  ): Promise<void> {
+    if (!request.onSettled) {
+      return;
+    }
+
+    try {
+      await request.onSettled();
+    } catch (error) {
+      logger.error(
+        `AI: post-settlement follow-up failed for run ${aiRunId.toString()}: ${error}`,
       );
     }
   }

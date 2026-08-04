@@ -545,7 +545,7 @@ describe("MonitorRecommendationSeverityMapper", () => {
 
     function buildArgs(): MonitorRecommendationArgs {
       return {
-        resourceIdentifier: "prod-cluster-01",
+        resourceIdentifier: ObjectID.generate().toString(),
         onlineMonitorStatusId: ObjectID.generate(),
         offlineMonitorStatusId: ObjectID.generate(),
         defaultIncidentSeverityId: TEMPLATE_INCIDENT_SEVERITY_ID,

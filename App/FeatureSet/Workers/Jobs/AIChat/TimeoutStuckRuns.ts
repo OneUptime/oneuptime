@@ -49,6 +49,9 @@ RunCron(
         conversationId: true,
         runType: true,
         attemptCount: true,
+        projectId: true,
+        triggeredByIncidentId: true,
+        triggeredByAlertId: true,
       },
       limit: 100,
       skip: 0,
@@ -69,18 +72,39 @@ RunCron(
     for (const run of staleRuns) {
       try {
         /*
-         * Investigations are durable-queue runs: requeue while attempts
-         * remain so a pod restart costs a retry, not the investigation.
+         * Investigations and remediation plans are durable-queue runs:
+         * requeue while attempts remain so a pod restart costs a retry, not
+         * the run. Both are read-only, so re-running from the top is safe.
+         * Remediation EXECUTION runs are also safe to requeue — not because
+         * they are read-only, but because every executed command is
+         * persisted on the suggestion BEFORE it runs, and a retried attempt
+         * that finds executed commands settles what happened instead of
+         * running the loop again (RemediationExecutionRunner's
+         * interrupted-execution check).
          */
-        if (run.runType === AIRunType.Investigation) {
+        if (
+          run.runType === AIRunType.Investigation ||
+          run.runType === AIRunType.RemediationPlan ||
+          run.runType === AIRunType.RemediationExecution
+        ) {
+          /*
+           * The subject fields let the queue hand a terminally-staled
+           * incident/alert investigation to auto-remediation — deferred
+           * remediation (RCA-first ordering) must be released even when
+           * the investigation died without retries left.
+           */
           const outcome: "requeued" | "stale" =
             await AIInvestigationQueue.requeueOrMarkStale({
               id: run.id!,
               attemptCount: run.attemptCount || 0,
+              runType: run.runType,
+              projectId: run.projectId,
+              triggeredByIncidentId: run.triggeredByIncidentId,
+              triggeredByAlertId: run.triggeredByAlertId,
             });
 
           logger.info(
-            `Stale investigation run ${run.id?.toString()}: ${outcome}.`,
+            `Stale ${run.runType === AIRunType.RemediationPlan ? "remediation plan" : "investigation"} run ${run.id?.toString()}: ${outcome}.`,
             { service: "workers" },
           );
           continue;

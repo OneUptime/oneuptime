@@ -2,6 +2,7 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap from "../../Utils/RouteMap";
 import HealthPage from "./HealthPage";
 import PostgresCluster from "./PostgresCluster";
+import PostgresHealthSettings from "./PostgresHealthSettings";
 import Route from "Common/Types/API/Route";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -15,6 +16,7 @@ const HealthPostgres: FunctionComponent = (): ReactElement => {
       enterpriseFeatureDescription="Replication lag, slot health, connection saturation, lock pressure, cache-hit ratio and transaction-ID wraparound headroom for the Postgres backing this instance."
     >
       <PostgresCluster />
+      <PostgresHealthSettings />
     </HealthPage>
   );
 };

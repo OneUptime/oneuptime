@@ -1,0 +1,12 @@
+# Session cookies (scripts write these to a temp dir, never the repo)
+cookies.txt
+
+# Generated per-run environment
+test-env.sh
+
+# Terraform working files
+tests/**/.terraform/
+tests/**/.terraform.lock.hcl
+tests/**/terraform.tfstate
+tests/**/terraform.tfstate.*
+tests/**/tfplan

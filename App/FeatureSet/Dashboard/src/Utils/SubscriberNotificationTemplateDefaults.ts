@@ -805,24 +805,34 @@ const reportDefaults: EventDefaults = {
       </td>
     </tr>
   </table>
-  <h3 style="color: #1a1a2e; font-size: 16px; font-weight: 700; margin: 0 0 12px 0;">Per-resource breakdown</h3>
+  <h3 style="color: #1a1a2e; font-size: 16px; font-weight: 700; margin: 0 0 12px 0;">{{#if report.hasGroups}}Breakdown by group{{else}}Per-resource breakdown{{/if}}</h3>
   <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: separate; border-spacing: 0; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; margin: 0 0 24px 0;">
     <thead>
       <tr>
-        <th align="left" style="background-color: #1a1a2e; color: #ffffff; padding: 12px 14px; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase;">Resource</th>
+        <th align="left" style="background-color: #1a1a2e; color: #ffffff; padding: 12px 14px; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase;">{{#if report.hasGroups}}Group / Resource{{else}}Resource{{/if}}</th>
         <th align="right" style="background-color: #1a1a2e; color: #ffffff; padding: 12px 14px; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase;">Uptime</th>
         <th align="right" style="background-color: #1a1a2e; color: #ffffff; padding: 12px 14px; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase;">Downtime</th>
         <th align="right" style="background-color: #1a1a2e; color: #ffffff; padding: 12px 14px; font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase;">Incidents</th>
       </tr>
     </thead>
     <tbody>
-      {{#each report.resources}}
+      {{!-- report.rows is the status page's group hierarchy flattened into render order, so any depth of nesting renders without recursion. Loop over report.resources instead for a flat list. --}}
+      {{#each report.rows}}
+      {{#if this.isGroup}}
+      <tr style="background-color: #e8ecf5;">
+        <td align="left" style="padding: 12px 14px; border-top: 1px solid #d6dcea; font-size: 14px; color: #1a1a2e; font-weight: 700;"><div style="margin-left: {{this.indentInPixels}}px;">{{this.name}}</div></td>
+        <td align="right" style="padding: 12px 14px; border-top: 1px solid #d6dcea; font-size: 14px; color: #1a1a2e; font-weight: 700;">{{this.uptimePercentAsString}}</td>
+        <td align="right" style="padding: 12px 14px; border-top: 1px solid #d6dcea; font-size: 14px; color: #1a1a2e; font-weight: 600;">{{this.downtimeInHoursAndMinutes}}</td>
+        <td align="right" style="padding: 12px 14px; border-top: 1px solid #d6dcea; font-size: 14px; color: #1a1a2e; font-weight: 700;">{{this.totalIncidentCount}}</td>
+      </tr>
+      {{else}}
       <tr>
-        <td align="left" style="padding: 12px 14px; border-top: 1px solid #e5e8f0; font-size: 14px; color: #374151; font-weight: 500;">{{this.resourceName}}</td>
+        <td align="left" style="padding: 12px 14px; border-top: 1px solid #e5e8f0; font-size: 14px; color: #374151; font-weight: 500;"><div style="margin-left: {{this.indentInPixels}}px;">{{this.name}}</div></td>
         <td align="right" style="padding: 12px 14px; border-top: 1px solid #e5e8f0; font-size: 14px; color: #1e293b; font-weight: 600;">{{this.uptimePercentAsString}}</td>
         <td align="right" style="padding: 12px 14px; border-top: 1px solid #e5e8f0; font-size: 14px; color: #374151;">{{this.downtimeInHoursAndMinutes}}</td>
         <td align="right" style="padding: 12px 14px; border-top: 1px solid #e5e8f0; font-size: 14px; color: #1e293b; font-weight: 600;">{{this.totalIncidentCount}}</td>
       </tr>
+      {{/if}}
       {{/each}}
     </tbody>
   </table>

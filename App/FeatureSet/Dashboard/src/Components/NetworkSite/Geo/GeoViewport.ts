@@ -65,14 +65,32 @@ const heightForWidth: (width: number) => number = (width: number): number => {
  * Zoom is expressed as magnification relative to the whole-world view, so
  * zoom 1 is the world and zoom 8 shows an eighth of its width.
  *
- * MAX_ZOOM is bounded by the geometry we ship, not by taste: the detail tier
- * is simplified to 0.04 viewBox units of error (see
- * Scripts/Geo/GenerateMapGeometry.js), which is about one screen pixel at
- * this zoom. Going deeper would magnify simplification artefacts into visible
- * corners on a coastline. The two constants are chosen together.
+ * MAX_ZOOM is a trade against the geometry we ship. The detail tier is
+ * simplified to 0.04 viewBox units of error (see
+ * Scripts/Geo/GenerateMapGeometry.js) — about one screen pixel at zoom 20,
+ * and a couple of pixels here. That softening is worth paying for, because
+ * the alternative is worse: sites in one metro area are a fraction of a
+ * pixel apart at zoom 20, so a reader who zooms in to tell two of them apart
+ * hits the stop with the two still on top of each other and no way further
+ * in. Country outlines are the BACKDROP; the markers are the subject, and
+ * this is the range in which a busy corner of an estate actually comes
+ * apart.
+ *
+ * Beyond that the collision layout is what guarantees markers stay legible
+ * (Geo/MarkerLayout.ts) — zoom separates them for real, and the layout holds
+ * the picture together until it does.
  */
 export const MIN_ZOOM: number = 1;
-export const MAX_ZOOM: number = 20;
+export const MAX_ZOOM: number = 64;
+
+/*
+ * The deepest the map will FRAME ITSELF, as opposed to the deepest a reader
+ * may zoom. An estate that sits in one town has a near-zero bounding box, and
+ * opening on a single street with no town around it tells nobody anything —
+ * the opening view has to carry enough context to be recognisable. Manual
+ * zoom goes all the way to MAX_ZOOM from there.
+ */
+export const FIT_MAX_ZOOM: number = 20;
 
 /*
  * Below this zoom the map draws the small overview outlines; at or above it
@@ -92,11 +110,14 @@ const FIT_PADDING_FRACTION: number = 0.18;
 /*
  * Minimum fitted width in viewBox units, before padding. A single site — or
  * several in one city — has a zero-size bounding box, which would otherwise
- * fit to infinite zoom. 48 units is the MAX_ZOOM frame, so the clamp below
- * would land there anyway; naming it here keeps the degenerate case from
- * depending on that coincidence.
+ * fit to infinite zoom.
+ *
+ * This is FIT_MAX_ZOOM's frame, not MAX_ZOOM's: how deep a reader may go and
+ * how deep the map opens are different questions, and tying them together
+ * meant that raising the manual limit silently dropped every one-town estate
+ * onto a street corner the moment the page loaded.
  */
-const MIN_FIT_WIDTH: number = WORLD_VIEWPORT.width / MAX_ZOOM;
+const MIN_FIT_WIDTH: number = WORLD_VIEWPORT.width / FIT_MAX_ZOOM;
 
 export interface ViewportPoint {
   x: number;

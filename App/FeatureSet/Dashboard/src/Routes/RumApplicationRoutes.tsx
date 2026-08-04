@@ -9,14 +9,20 @@ import { Route as PageRoute, Routes } from "react-router-dom";
 
 import RumApplications from "../Pages/Rum/RumApplications";
 import RumApplicationOverview from "../Pages/Rum/View/Overview";
+import RumApplicationRecommendations from "../Pages/Rum/View/Recommendations";
 import RumApplicationMetrics from "../Pages/Rum/View/Metrics";
 import RumApplicationLogs from "../Pages/Rum/View/Logs";
 import RumApplicationTraces from "../Pages/Rum/View/Traces";
 import RumApplicationClients from "../Pages/Rum/View/Clients";
+import RumApplicationSessionReplay from "../Pages/Rum/View/SessionReplay";
+import RumApplicationSessionReplayView from "../Pages/Rum/View/SessionReplayView";
+import RumApplicationSessionReplayAudit from "../Pages/Rum/View/SessionReplayAudit";
+import RumApplicationSessionReplaySettings from "../Pages/Rum/View/SessionReplaySettings";
 import RumApplicationDocumentation from "../Pages/Rum/View/Documentation";
 import RumApplicationDelete from "../Pages/Rum/View/Delete";
 import RumLabelRules from "../Pages/Rum/Settings/LabelRules";
 import RumOwnerRules from "../Pages/Rum/Settings/OwnerRules";
+import RumSessionReplaySettings from "../Pages/Rum/Settings/SessionReplay";
 import RumArchived from "../Pages/Rum/Archived";
 
 const RumApplicationRoutes: FunctionComponent<ComponentProps> = (
@@ -61,6 +67,15 @@ const RumApplicationRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+        <PageRoute
+          path={RumRoutePath[PageMap.RUM_SETTINGS_SESSION_REPLAY] || ""}
+          element={
+            <RumSessionReplaySettings
+              {...props}
+              pageRoute={RouteMap[PageMap.RUM_SETTINGS_SESSION_REPLAY] as Route}
+            />
+          }
+        />
       </PageRoute>
 
       <PageRoute
@@ -73,6 +88,20 @@ const RumApplicationRoutes: FunctionComponent<ComponentProps> = (
             <RumApplicationOverview
               {...props}
               pageRoute={RouteMap[PageMap.RUM_APPLICATION_VIEW] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.RUM_APPLICATION_VIEW_RECOMMENDATIONS,
+          )}
+          element={
+            <RumApplicationRecommendations
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.RUM_APPLICATION_VIEW_RECOMMENDATIONS] as Route
+              }
             />
           }
         />
@@ -122,6 +151,76 @@ const RumApplicationRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.RUM_APPLICATION_VIEW_CLIENTS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY,
+          )}
+          element={
+            <RumApplicationSessionReplay
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY] as Route
+              }
+            />
+          }
+        />
+
+        {/*
+         * Count 2, not the default 1. The player's route is
+         * ":id/session-replay/:subModelId"; with the default the registered
+         * path would collapse to just ":subModelId", which matches every
+         * single-segment child of the application view and would shadow the
+         * other tabs.
+         */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_VIEW,
+            2,
+          )}
+          element={
+            <RumApplicationSessionReplayView
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_VIEW
+                ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_AUDIT,
+          )}
+          element={
+            <RumApplicationSessionReplayAudit
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_AUDIT
+                ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_SETTINGS,
+          )}
+          element={
+            <RumApplicationSessionReplaySettings
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_SETTINGS
+                ] as Route
               }
             />
           }

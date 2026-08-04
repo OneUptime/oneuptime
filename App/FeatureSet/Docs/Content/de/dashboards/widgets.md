@@ -56,6 +56,49 @@ Ein statischer Markdown-Block.
 
 Verwenden Sie ihn, wenn: Sie eine Abschnittsüberschrift, einen Kontextabsatz, eine Linkliste zu Runbooks oder ein temporäres Banner während eines Vorfalls wünschen.
 
+## HTML
+
+Ihr eigenes HTML, CSS und JavaScript, als Widget gerendert.
+
+**Einstellungen**: der HTML-Inhalt, ein optionales Stylesheet, ein optionales Skript und drei Berechtigungsschalter.
+
+Verwenden Sie es, wenn: Sie etwas brauchen, das kein eingebautes Widget abdeckt – ein eingebettetes Badge eines Drittanbieters, eine Tabelle aus einer internen API, eine eigene Legende, eine Sammlung gestalteter Links in Ihre eigenen Tools.
+
+### Was es kann und was nicht
+
+Das Widget wird in einem Sandbox-Frame mit einer eigenen, isolierten Origin gerendert. Innerhalb dieses Frames kann Ihr Code so gut wie alles tun: DOM aufbauen, Timer laufen lassen, von beliebigen URLs abrufen, auf ein Canvas zeichnen.
+
+Was es nicht kann, ist die OneUptime-Seite drumherum zu erreichen. Es hat keinen Zugriff auf das DOM des Dashboards, auf Cookies, den lokalen Speicher oder die API-Sitzung, und es kann den Browser-Tab nicht wegnavigieren. Das gilt unabhängig davon, ob das Dashboard privat oder öffentlich freigegeben ist.
+
+Zwei Konsequenzen, die Sie kennen sollten, bevor Sie etwas hineinkopieren:
+
+- Ein `fetch` aus dem Widget ist eine Cross-Origin-Anfrage von einer intransparenten Origin, der aufgerufene Server muss sie also per CORS erlauben. Die OneUptime-API von hier aus aufzurufen wird nicht unterstützt.
+- Das Widget startet transparent. Setzen Sie in Ihrem CSS einen Hintergrund auf `body`, wenn es die Kachel ausfüllen soll.
+
+### Dashboard-Variablen verwenden
+
+Schreiben Sie `{{variableName}}` an beliebiger Stelle im HTML, CSS oder JavaScript, und der Platzhalter wird vor dem Rendern des Widgets durch den aktuellen Wert dieser Variablen ersetzt. Die Auswahl eines neuen Werts rendert das Widget neu. Ein Platzhalter, der eine nicht existierende Variable benennt, bleibt unverändert stehen.
+
+Skripte erhalten dieselben Werte sowie den Zeitbereich des Dashboards über `window.ONEUPTIME`:
+
+```javascript
+window.ONEUPTIME.variables.environment; // aktueller Wert oder "", falls nicht gesetzt
+window.ONEUPTIME.startDate; // String im Format ISO 8601, Beginn des Zeitbereichs des Dashboards
+window.ONEUPTIME.endDate; // String im Format ISO 8601, dessen Ende
+```
+
+Das Widget lädt bei jeder Aktualisierung des Dashboards neu, sodass ein Widget, das seine eigenen Daten abruft, mit dem Aktualisierungsintervall Schritt hält.
+
+### Berechtigungen
+
+**Run JavaScript** („JavaScript ausführen", standardmäßig aktiviert) führt Ihr Skript aus. Schalten Sie es aus, um nur Markup und Styles zu rendern – das Skript wird dann vollständig aus dem Widget herausgelassen und nicht bloß blockiert.
+
+**Open links in a new tab** („Links in neuem Tab öffnen", standardmäßig aktiviert) erlaubt Links und `window.open`, einen Browser-Tab zu öffnen. Links öffnen immer in einem neuen Tab; das Widget kann niemals das Dashboard selbst wegnavigieren.
+
+**Allow forms to submit** („Absenden von Formularen erlauben", standardmäßig deaktiviert) erlaubt es einem `<form>` innerhalb des Widgets, abgesendet zu werden.
+
+Wer das Dashboard bearbeiten darf, bestimmt, was dieses Widget ausführt, und jeder, der das Dashboard ansieht, führt es aus – bei einem öffentlichen Dashboard schließt das anonyme Besucher ein. Behandeln Sie Bearbeitungsrechte an einem Dashboard mit einem HTML-Widget so, wie Sie den Zugriff auf jeden anderen Code behandeln würden, den Sie ausliefern.
+
 ## Logs und Traces
 
 ### Log-Stream
@@ -143,6 +186,7 @@ Ein paar Faustregeln:
 - **Was passiert gerade im System?** Log-Stream, Trace-Liste, Vorfall-Liste.
 - **Status einer bestimmten Ressourcengruppe?** Das passende Listen-Widget.
 - **Eine Überschrift, ein Absatz oder ein Link?** Text.
+- **Etwas, das nichts davon abdeckt?** HTML – aber erst, nachdem Sie geprüft haben, ob ein eingebautes Widget es wirklich nicht kann.
 
 Die meisten Dashboards mischen ein paar – ein Diagramm oben, daneben ein oder zwei Werte, ein Text-Trenner und ein oder zwei Listen darunter.
 

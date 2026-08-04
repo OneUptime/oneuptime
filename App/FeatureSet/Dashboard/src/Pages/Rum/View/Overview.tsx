@@ -46,10 +46,21 @@ import {
   SpanMetrics,
   WebVital,
 } from "../../../Components/TelemetryResource/telemetryMetrics";
+import {
+  fetchSessionReplayList,
+  SessionReplayListResult,
+} from "../../../Components/SessionReplay/SessionReplayTable";
 
 const DEFAULT_RANGE: RangeStartAndEndDateTime = {
   range: TimeRange.PAST_ONE_HOUR,
 };
+
+/*
+ * One page of session headers for the overview tile. Matches the endpoint's
+ * own default so the request is a single narrow-column granule read; the tile
+ * shows "50+" rather than pretending to a total the endpoint never computes.
+ */
+const SESSION_REPLAY_COUNT_PAGE_SIZE: number = 50;
 
 const RumApplicationOverview: FunctionComponent<
   PageComponentProps
@@ -60,6 +71,17 @@ const RumApplicationOverview: FunctionComponent<
     null,
   );
   const [clientCount, setClientCount] = useState<number | null>(null);
+  const [sessionReplayCount, setSessionReplayCount] = useState<number | null>(
+    null,
+  );
+  const [sessionReplayHasMore, setSessionReplayHasMore] =
+    useState<boolean>(false);
+  /*
+   * Kept apart from the count so a failed lookup renders as unknown rather
+   * than as zero recordings.
+   */
+  const [sessionReplayCountFailed, setSessionReplayCountFailed] =
+    useState<boolean>(false);
   const [metrics, setMetrics] = useState<SpanMetrics | null>(null);
   const [webVitals, setWebVitals] = useState<Array<WebVital>>([]);
   const [webVitalsLoading, setWebVitalsLoading] = useState<boolean>(true);
@@ -193,6 +215,39 @@ const RumApplicationOverview: FunctionComponent<
         setWebVitalsLoading(false);
       });
 
+    /*
+     * Recorded-session count for the tile.
+     *
+     * The list endpoint runs no COUNT - it is a keyset-paginated projection -
+     * so this counts one page and says "N+" when there is another. Failure is
+     * tracked separately from an empty result: collapsing a 403 from a
+     * missing ReadRumSessionReplay permission, or a 500, into a confident "0"
+     * would be indistinguishable from a project that genuinely has no
+     * recordings, which is a wrong number rather than an unknown one.
+     */
+    setSessionReplayCount(null);
+    setSessionReplayCountFailed(false);
+    fetchSessionReplayList({
+      rumApplicationId: modelId,
+      signal: "all",
+      startTime: start,
+      endTime: end,
+      limit: SESSION_REPLAY_COUNT_PAGE_SIZE,
+    })
+      .then((result: SessionReplayListResult) => {
+        if (ignore) {
+          return;
+        }
+        setSessionReplayCount(result.sessions.length);
+        setSessionReplayHasMore(result.nextCursor !== null);
+      })
+      .catch(() => {
+        if (ignore) {
+          return;
+        }
+        setSessionReplayCountFailed(true);
+      });
+
     return () => {
       ignore = true;
     };
@@ -268,6 +323,21 @@ const RumApplicationOverview: FunctionComponent<
       sublabel: "platforms seen",
       to: populate(PageMap.RUM_APPLICATION_VIEW_CLIENTS),
     },
+    {
+      title: "Sessions recorded",
+      value: sessionReplayCountFailed
+        ? "—"
+        : sessionReplayCount === null
+          ? "—"
+          : `${formatCompact(sessionReplayCount)}${
+              sessionReplayHasMore ? "+" : ""
+            }`,
+      icon: IconProp.Film,
+      iconColor: "sky",
+      loading: sessionReplayCount === null && !sessionReplayCountFailed,
+      sublabel: sessionReplayCountFailed ? "could not load" : "selected range",
+      to: populate(PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY),
+    },
   ];
 
   const charts: ReactElement = (
@@ -310,6 +380,12 @@ const RumApplicationOverview: FunctionComponent<
   );
 
   const quickLinks: Array<ResourceOverviewQuickLink> = [
+    {
+      title: "Session Replay",
+      description: "Watch what real users saw",
+      to: populate(PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY),
+      icon: IconProp.Film,
+    },
     {
       title: "Traces",
       description: "Page loads, interactions and fetches",

@@ -13,6 +13,7 @@ import {
   MetricsDataIngestMeteredPlan,
   TracesDataIngestMetredPlan,
   ProfilesDataIngestMeteredPlan,
+  SessionReplayDataIngestMeteredPlan,
 } from "Common/Server/Types/Billing/MeteredPlan/AllMeteredPlans";
 import logger from "Common/Server/Utils/Logger";
 import Project from "Common/Models/DatabaseModels/Project";
@@ -81,6 +82,29 @@ RunCron(
           await ProfilesDataIngestMeteredPlan.reportQuantityToBillingProvider(
             project.id,
           );
+
+          await Sleep.sleep(1000);
+
+          /*
+           * Session replay is reported in its own try/catch, and last.
+           *
+           * Its Stripe price ids do not exist yet, so
+           * getMeteredPlanPriceId throws for it. Everything else in this loop
+           * shares one try/catch per project, so letting that throw escape
+           * would abort the remaining pillars for the project and log a fresh
+           * error every run. Usage still accrues in TelemetryUsageBilling and
+           * will be reported once the price ids are set - only this final push
+           * is unavailable.
+           */
+          try {
+            await SessionReplayDataIngestMeteredPlan.reportQuantityToBillingProvider(
+              project.id,
+            );
+          } catch (sessionReplayError) {
+            logger.debug(
+              `MeteredPlan:ReportTelemetryMeteredPlan Skipping session replay for project ${project.id}: ${sessionReplayError}`,
+            );
+          }
 
           await Sleep.sleep(1000);
         }

@@ -10,6 +10,7 @@ import { OpenAPIParser } from "./OpenAPIParser";
 import { GoCodeGenerator } from "./GoCodeGenerator";
 import { ObjectType } from "Common/Types/JSON";
 import path from "path";
+import fs from "fs";
 
 /*
  * StaticFiles holds Go source we copy verbatim into the generated provider
@@ -42,6 +43,25 @@ export class ResourceGenerator {
      */
     await this.copyStaticFile("jsonsubset.go", "internal/provider");
     await this.copyStaticFile("jsonsubset_test.go", "internal/provider");
+    await this.copyStaticFile("rfc3339.go", "internal/provider");
+    await this.copyStaticFile("rfc3339_test.go", "internal/provider");
+    await this.copyStaticFile("jsonenvelope.go", "internal/provider");
+    await this.copyStaticFile("jsonenvelope_test.go", "internal/provider");
+    await this.copyStaticFileIfExists("monitorsteps.go", "internal/provider");
+    await this.copyStaticFileIfExists(
+      "monitorsteps_test.go",
+      "internal/provider",
+    );
+    await this.copyStaticFile(
+      "provider_schema_smoke_test.go",
+      "internal/provider",
+    );
+
+    /*
+     * Package-level ObjectType registry shared by every resource and the
+     * envelope validator (was duplicated as a per-resource map).
+     */
+    await this.generateObjectTypesFile();
 
     // Generate each resource
     for (const resource of resources) {
@@ -67,6 +87,18 @@ export class ResourceGenerator {
     await this.fileGenerator.writeFileInDir(targetDir, fileName, content);
   }
 
+  private async copyStaticFileIfExists(
+    fileName: string,
+    targetDir: string,
+  ): Promise<boolean> {
+    const sourcePath: string = path.join(STATIC_FILES_DIR, fileName);
+    if (!fs.existsSync(sourcePath)) {
+      return false;
+    }
+    await this.copyStaticFile(fileName, targetDir);
+    return true;
+  }
+
   private async generateResource(resource: TerraformResource): Promise<void> {
     const resourceGoContent: string = this.generateResourceGoFile(resource);
     const fileName: string = `resource_${resource.name}.go`;
@@ -85,7 +117,6 @@ export class ResourceGenerator {
     const imports: string[] = [
       "context",
       "fmt",
-      "github.com/hashicorp/terraform-plugin-framework/path",
       "github.com/hashicorp/terraform-plugin-framework/resource",
       "github.com/hashicorp/terraform-plugin-framework/resource/schema",
       "github.com/hashicorp/terraform-plugin-framework/types",
@@ -100,6 +131,7 @@ export class ResourceGenerator {
 
     // Add conditional imports only if they're actually used
     const hasReadOperation: boolean = Boolean(resource.operations.read);
+    const hasDeleteOperation: boolean = Boolean(resource.operations.delete);
     const hasDefaultValues: boolean = Object.values(resource.schema).some(
       (attr: any) => {
         return attr.default !== undefined && attr.default !== null;
@@ -109,8 +141,17 @@ export class ResourceGenerator {
     // Always add math/big since the bigFloatToFloat64 helper method uses it
     imports.push("math/big");
 
-    if (hasReadOperation) {
+    // Read uses http.StatusNotFound for gone-detection; Delete for tolerating it.
+    if (hasReadOperation || hasDeleteOperation) {
       imports.push("net/http");
+    }
+
+    /*
+     * path.Root is only used by the passthrough importer, which requires a
+     * read endpoint; read-less resources emit an error importer instead.
+     */
+    if (hasReadOperation) {
+      imports.push("github.com/hashicorp/terraform-plugin-framework/path");
     }
 
     // Always add encoding/json since we have helper methods that use it
@@ -280,27 +321,34 @@ export class ResourceGenerator {
     }
 
     if (resource.operations.create || resource.operations.update) {
-      // Check which plan modifier imports are needed based on Optional+Computed fields
-      const hasOptionalComputedBools: boolean = Object.values(
-        resource.schema,
-      ).some((attr: any) => {
-        return attr.optional && attr.computed && attr.type === "bool";
-      });
-      const hasOptionalComputedNumbers: boolean = Object.values(
-        resource.schema,
-      ).some((attr: any) => {
-        return attr.optional && attr.computed && attr.type === "number";
-      });
-      const hasOptionalComputedLists: boolean = Object.values(
-        resource.schema,
-      ).some((attr: any) => {
-        return attr.optional && attr.computed && attr.type === "list";
-      });
-      const hasOptionalComputedSets: boolean = Object.values(
-        resource.schema,
-      ).some((attr: any) => {
-        return attr.optional && attr.computed && attr.type === "set";
-      });
+      /*
+       * A per-type plan modifier import is needed when a field of that type is
+       * Optional+Computed (UseStateForUnknown) or immutable (RequiresReplace).
+       */
+      const needsPlanModifier: (type: string) => boolean = (
+        type: string,
+      ): boolean => {
+        return Object.entries(resource.schema).some(
+          ([name, attr]: [string, any]) => {
+            if (attr.type !== type) {
+              return false;
+            }
+            const isProjectId: boolean =
+              name === "project_id" || name === "projectId";
+            const isComputedOnly: boolean = Boolean(
+              attr.computed && !attr.optional,
+            );
+            /*
+             * Must mirror generateSchemaAttribute's emission conditions
+             * exactly, or Go ends up with unused imports.
+             */
+            return (
+              (attr.optional && attr.computed && !isProjectId) ||
+              (attr.forceNew && !isComputedOnly && !isProjectId)
+            );
+          },
+        );
+      };
 
       // Always need planmodifier and stringplanmodifier for the id field and Optional+Computed strings
       imports.push(
@@ -311,26 +359,80 @@ export class ResourceGenerator {
       );
 
       // Only add other plan modifier imports if needed
-      if (hasOptionalComputedBools) {
+      if (needsPlanModifier("bool")) {
         imports.push(
           "github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier",
         );
       }
-      if (hasOptionalComputedNumbers) {
+      if (needsPlanModifier("number")) {
         imports.push(
           "github.com/hashicorp/terraform-plugin-framework/resource/schema/numberplanmodifier",
         );
       }
-      if (hasOptionalComputedLists) {
+      if (needsPlanModifier("list")) {
         imports.push(
           "github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier",
         );
       }
-      if (hasOptionalComputedSets) {
+      if (needsPlanModifier("set")) {
         imports.push(
           "github.com/hashicorp/terraform-plugin-framework/resource/schema/setplanmodifier",
         );
       }
+    }
+
+    /*
+     * Enum strings get OneOf validators; writable complex-JSON fields get
+     * the plan-time envelope validator. Both need the validator package.
+     */
+    const isProjectIdName: (name: string) => boolean = (
+      name: string,
+    ): boolean => {
+      return name === "project_id" || name === "projectId";
+    };
+    const hasEnumValidators: boolean = Object.entries(resource.schema).some(
+      ([name, attr]: [string, any]) => {
+        return (
+          attr.type === "string" &&
+          Array.isArray(attr.enumValues) &&
+          attr.enumValues.length > 0 &&
+          !(attr.computed && !attr.optional) &&
+          !isProjectIdName(name)
+        );
+      },
+    );
+    const hasEnvelopeValidators: boolean = Object.entries(resource.schema).some(
+      ([name, attr]: [string, any]) => {
+        return (
+          attr.type === "string" &&
+          attr.isComplexObject &&
+          !(attr.computed && !attr.optional) &&
+          !isProjectIdName(name)
+        );
+      },
+    );
+    if (hasEnumValidators || hasEnvelopeValidators) {
+      imports.push(
+        "github.com/hashicorp/terraform-plugin-framework/schema/validator",
+      );
+    }
+    if (hasEnumValidators) {
+      imports.push(
+        "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator",
+      );
+    }
+
+    // Scalar (non-entity) list/set attributes need strconv for numeric round-trips.
+    const hasScalarCollections: boolean = Object.values(resource.schema).some(
+      (attr: any) => {
+        return (
+          (attr.type === "list" || attr.type === "set") &&
+          attr.elementKind === "scalar"
+        );
+      },
+    );
+    if (hasScalarCollections) {
+      imports.push("strconv");
     }
 
     const importStatements: string = imports
@@ -369,7 +471,7 @@ func (r *${resourceTypeName}Resource) Metadata(ctx context.Context, req resource
 
 func (r *${resourceTypeName}Resource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
     resp.Schema = schema.Schema{
-        MarkdownDescription: "${resource.name} resource",
+        MarkdownDescription: "${GoCodeGenerator.escapeString(resource.description || `Manages a ${resource.name.replace(/_/g, " ")} in OneUptime.`)}",
 
         Attributes: map[string]schema.Attribute{
 ${this.generateSchemaAttributes(resource)}
@@ -400,7 +502,16 @@ func (r *${resourceTypeName}Resource) Configure(ctx context.Context, req resourc
 ${this.generateCRUDMethods(resource, resourceTypeName, resourceVarName)}
 
 func (r *${resourceTypeName}Resource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-    resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+${
+  resource.operations.read
+    ? `    resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)`
+    : `    // Without a read endpoint, a passthrough import would silently create
+    // id-only state that can never be refreshed. Fail loudly instead.
+    resp.Diagnostics.AddError(
+        "Import Not Supported",
+        "oneuptime_${resource.name} cannot be imported: the OneUptime API exposes no read endpoint for it.",
+    )`
+}
 }
 
 // Helper method to convert Terraform map to Go interface{}
@@ -426,10 +537,10 @@ func (r *${resourceTypeName}Resource) convertTerraformListToInterface(terraformL
     if terraformList.IsNull() || terraformList.IsUnknown() {
         return nil
     }
-    
+
     var stringList []string
     terraformList.ElementsAs(context.Background(), &stringList, false)
-    
+
     // Convert string array to OneUptime format with _id fields
     var result []interface{}
     for _, str := range stringList {
@@ -447,10 +558,10 @@ func (r *${resourceTypeName}Resource) convertTerraformSetToInterface(terraformSe
     if terraformSet.IsNull() || terraformSet.IsUnknown() {
         return nil
     }
-    
+
     var stringList []string
     terraformSet.ElementsAs(context.Background(), &stringList, false)
-    
+
     // Convert string array to OneUptime format with _id fields
     var result []interface{}
     for _, str := range stringList {
@@ -462,6 +573,7 @@ func (r *${resourceTypeName}Resource) convertTerraformSetToInterface(terraformSe
     }
     return result
 }
+${this.generateScalarCollectionHelpers(resource, resourceTypeName)}
 
 // Helper method to parse JSON field for complex objects
 func (r *${resourceTypeName}Resource) parseJSONField(terraformString basetypes.StringValuable) interface{} {
@@ -522,16 +634,32 @@ func (r *${resourceTypeName}Resource) bigFloatToFloat64(bf *big.Float) interface
     return f
 }
 
-// Helper method to check if a type string is a valid OneUptime ObjectType
-// Only these types should be marshalled/unmarshalled as typed wrapper objects
-// This list is dynamically generated from Common/Types/JSON.ts ObjectType enum
+// Helper method to check if a type string is a valid OneUptime ObjectType.
+// The registry itself lives in objecttypes.go, shared across the package.
 func (r *${resourceTypeName}Resource) isValidOneUptimeObjectType(typeStr string) bool {
-    validTypes := map[string]bool{
-${this.generateValidObjectTypesMap()}
-    }
-    return validTypes[typeStr]
+    return validOneUptimeObjectTypes[typeStr]
 }
 `;
+  }
+
+  /*
+   * Emits the package-level ObjectType registry, generated from
+   * Common/Types/JSON.ts so it stays in sync with the API's wrapper types.
+   */
+  private async generateObjectTypesFile(): Promise<void> {
+    const content: string = `package provider
+
+// validOneUptimeObjectTypes lists every {_type: ...} wrapper the OneUptime
+// API emits. Generated from Common/Types/JSON.ts ObjectType.
+var validOneUptimeObjectTypes = map[string]bool{
+${this.generateValidObjectTypesMap()}
+}
+`;
+    await this.fileGenerator.writeFileInDir(
+      "internal/provider",
+      "objecttypes.go",
+      content,
+    );
   }
 
   private generateModelFields(resource: TerraformResource): string {
@@ -542,12 +670,17 @@ ${this.generateValidObjectTypesMap()}
       const fieldName: string = StringUtils.toPascalCase(sanitizedName);
       /*
        * Complex JSON string fields use a custom type whose semantic-equality
-       * tolerates server-side defaults (see jsonsubset.go).
+       * tolerates server-side defaults (see jsonsubset.go); RFC3339 fields use
+       * a custom type whose semantic-equality compares instants (rfc3339.go).
        */
-      const goType: string =
-        attr.type === "string" && attr.isComplexObject
-          ? "JSONSubsetValue"
-          : this.mapTerraformTypeToGo(attr.type);
+      let goType: string = this.mapTerraformTypeToGo(attr.type);
+      if (attr.type === "monitor_steps") {
+        goType = "MonitorStepsValue";
+      } else if (attr.type === "string" && attr.isDateTime) {
+        goType = "RFC3339Value";
+      } else if (attr.type === "string" && attr.isComplexObject) {
+        goType = "JSONSubsetValue";
+      }
       fields.push(`    ${fieldName} ${goType} \`tfsdk:"${sanitizedName}"\``);
     }
 
@@ -594,6 +727,17 @@ ${this.generateValidObjectTypesMap()}
     attr: any,
     resource?: TerraformResource,
   ): string {
+    /*
+     * MonitorSteps fields use the hand-written typed nested attribute
+     * (monitorsteps.go) instead of a generated JSON-string attribute.
+     */
+    if (attr.isMonitorSteps) {
+      return `MonitorStepsSchemaAttribute("${GoCodeGenerator.escapeString(
+        attr.description ||
+          "Monitoring steps: destinations, request settings, and alerting criteria.",
+      )}")`;
+    }
+
     const attrType: string = this.mapTerraformTypeToSchemaType(attr.type);
     const options: string[] = [];
 
@@ -606,8 +750,12 @@ ${this.generateValidObjectTypesMap()}
     /*
      * Complex JSON string fields use JSONSubsetType so the framework treats
      * server-supplied defaults as semantically equal to the planned value.
+     * RFC3339 fields use RFC3339Type so server-side timestamp normalization
+     * (e.g. "...Z" -> "...000Z") is not reported as drift.
      */
-    if (attr.type === "string" && attr.isComplexObject) {
+    if (attr.type === "string" && attr.isDateTime) {
+      options.push("CustomType: RFC3339Type{}");
+    } else if (attr.type === "string" && attr.isComplexObject) {
       options.push("CustomType: JSONSubsetType{}");
     }
 
@@ -743,47 +891,94 @@ ${this.generateValidObjectTypesMap()}
       options.push("ElementType: types.StringType");
     }
 
+    /*
+     * Plan modifiers: UseStateForUnknown for the id and Optional+Computed
+     * fields (prevents "inconsistent result after apply" when the server
+     * fills defaults); RequiresReplace for fields the API only accepts at
+     * create time.
+     */
+    const modifierPackageByType: Record<string, string> = {
+      string: "stringplanmodifier",
+      bool: "boolplanmodifier",
+      number: "numberplanmodifier",
+      list: "listplanmodifier",
+      set: "setplanmodifier",
+    };
+    const modifierInterfaceByType: Record<string, string> = {
+      string: "String",
+      bool: "Bool",
+      number: "Number",
+      list: "List",
+      set: "Set",
+    };
+    const modifierPackage: string | undefined =
+      modifierPackageByType[attr.type];
+    const modifierInterface: string | undefined =
+      modifierInterfaceByType[attr.type];
+
+    const modifiers: string[] = [];
+    if (name === "id" || (attr.optional && attr.computed && modifierPackage)) {
+      modifiers.push(
+        `${modifierPackage || "stringplanmodifier"}.UseStateForUnknown()`,
+      );
+    }
+    const isComputedOnly: boolean = Boolean(attr.computed && !attr.optional);
+
+    if (
+      attr.forceNew &&
+      name !== "id" &&
+      !isComputedOnly &&
+      !isProjectIdField &&
+      modifierPackage
+    ) {
+      modifiers.push(`${modifierPackage}.RequiresReplace()`);
+    }
+
     let planModifiers: string = "";
-    if (name === "id") {
+    if (modifiers.length > 0 && modifierInterface) {
       planModifiers = `,
-                PlanModifiers: []planmodifier.String{
-                    stringplanmodifier.UseStateForUnknown(),
+                PlanModifiers: []planmodifier.${modifierInterface}{
+                    ${modifiers.join(",\n                    ")},
                 }`;
-    } else if (attr.optional && attr.computed) {
-      /*
-       * Add UseStateForUnknown() for Optional+Computed fields
-       * This prevents "inconsistent result after apply" errors when server provides defaults
-       */
-      if (attr.type === "string") {
-        planModifiers = `,
-                PlanModifiers: []planmodifier.String{
-                    stringplanmodifier.UseStateForUnknown(),
+    }
+
+    /*
+     * Plan-time validators: OneOf for enum strings; the JSON-envelope
+     * validator for writable complex-JSON fields, so malformed JSON, bogus
+     * {_type} values, and unparseable DateTime values fail at plan time
+     * instead of as API 400/500s at apply time.
+     */
+    let validators: string = "";
+    if (
+      attr.type === "string" &&
+      Array.isArray(attr.enumValues) &&
+      attr.enumValues.length > 0 &&
+      !isComputedOnly &&
+      !isProjectIdField
+    ) {
+      const values: string = attr.enumValues
+        .map((value: string) => {
+          return `"${GoCodeGenerator.escapeString(value)}"`;
+        })
+        .join(", ");
+      validators = `,
+                Validators: []validator.String{
+                    stringvalidator.OneOf(${values}),
                 }`;
-      } else if (attr.type === "bool") {
-        planModifiers = `,
-                PlanModifiers: []planmodifier.Bool{
-                    boolplanmodifier.UseStateForUnknown(),
+    } else if (
+      attr.type === "string" &&
+      attr.isComplexObject &&
+      !isComputedOnly &&
+      !isProjectIdField
+    ) {
+      validators = `,
+                Validators: []validator.String{
+                    JSONEnvelopeValidator(),
                 }`;
-      } else if (attr.type === "number") {
-        planModifiers = `,
-                PlanModifiers: []planmodifier.Number{
-                    numberplanmodifier.UseStateForUnknown(),
-                }`;
-      } else if (attr.type === "list") {
-        planModifiers = `,
-                PlanModifiers: []planmodifier.List{
-                    listplanmodifier.UseStateForUnknown(),
-                }`;
-      } else if (attr.type === "set") {
-        planModifiers = `,
-                PlanModifiers: []planmodifier.Set{
-                    setplanmodifier.UseStateForUnknown(),
-                }`;
-      }
     }
 
     return `schema.${attrType}Attribute{
-                ${options.join(",\n                ")}${planModifiers},
+                ${options.join(",\n                ")}${planModifiers}${validators},
             }`;
   }
 
@@ -849,6 +1044,79 @@ ${this.generateValidObjectTypesMap()}
     const operation: any = resource.operations.create!;
     const path: string = this.extractPathFromOperation(operation);
 
+    /*
+     * After a successful POST, re-read the resource through the get-item
+     * endpoint (when one exists) with the full select. The raw create
+     * response omits server-computed fields, and mapping it directly is what
+     * produced "planned value -> null" inconsistencies.
+     */
+    let readBackCode: string = `
+    // No read endpoint for this resource: map the create response directly.
+    // Update the model with response data
+${this.generateResponseMapping(resource, resourceVarName + "Response", true)}`;
+
+    if (resource.operations.read) {
+      const readPath: string = this.buildPathExpression(
+        this.extractPathFromOperation(resource.operations.read),
+      );
+      readBackCode = `
+    // Extract the new resource id from the create response.
+    createdId := ""
+    if wrapper, ok := ${resourceVarName}Response["data"].(map[string]interface{}); ok {
+        if val, ok := wrapper["_id"].(string); ok {
+            createdId = val
+        }
+    } else if val, ok := ${resourceVarName}Response["_id"].(string); ok {
+        createdId = val
+    }
+    if createdId == "" {
+        resp.Diagnostics.AddError("OneUptime API Error", "Create response for ${resource.name} did not contain an id. This is a bug in the provider or the API; please report it.")
+        return
+    }
+    data.Id = types.StringValue(createdId)
+
+    /*
+     * The server has committed the row. Persist what we know to state BEFORE
+     * the read-back: if the read-back fails and we return without setting
+     * state, Terraform never learns the resource exists and the created
+     * ${resource.name} is orphaned server-side — never refreshed, never
+     * destroyed. Delete already refuses to drop state on failure for the
+     * same reason; Create must not either.
+     */
+    resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+    if resp.Diagnostics.HasError() {
+        return
+    }
+
+    // Re-read the resource so state reflects server-normalized values.
+    selectParam := map[string]interface{}{
+${this.generateSelectParameter(resource)}
+    }
+
+    readResp, err := r.client.PostWithSelect(ctx, ${readPath}, selectParam)
+    if err != nil {
+        /*
+         * State already owns the id, so the resource is tracked and the next
+         * refresh reconciles the remaining attributes. Warn rather than
+         * error: erroring here would strand a real resource.
+         */
+        resp.Diagnostics.AddWarning("Read After Create Failed", fmt.Sprintf("Created ${resource.name} but could not read it back; state is incomplete until the next refresh: %s", err))
+        return
+    }
+
+    var readResponse map[string]interface{}
+    err = r.client.ParseResponse(readResp, &readResponse)
+    if err != nil {
+        resp.Diagnostics.AddWarning("Read After Create Failed", fmt.Sprintf("Created ${resource.name} but could not parse the read-back response; state is incomplete until the next refresh: %s", err))
+        return
+    }
+
+    // Update the model with the authoritative read response
+${this.generateResponseMapping(resource, "readResponse", true)}
+    // The read response is authoritative, but never let it clobber the id we just received.
+    data.Id = types.StringValue(createdId)`;
+    }
+
     return `
 func (r *${resourceTypeName}Resource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
     var data ${resourceTypeName}ResourceModel
@@ -862,15 +1130,16 @@ func (r *${resourceTypeName}Resource) Create(ctx context.Context, req resource.C
 
 ${this.generateOriginalValueStorage(resource)}
 
-    // Create API request body
+    // Create API request body. Unset (null/unknown) optional fields are
+    // omitted so server-side defaults apply instead of being overwritten
+    // with zero values.
     ${resourceVarName}Request := map[string]interface{}{
-        "data": map[string]interface{}{
-${this.generateRequestBody(resource)}
-        },
+        "data": map[string]interface{}{},
     }
+${this.generateGuardedCreateRequestBody(resource, resourceVarName)}
 
     // Make API call
-    httpResp, err := r.client.Post("${path}", ${resourceVarName}Request)
+    httpResp, err := r.client.Post(ctx, "${path}", ${resourceVarName}Request)
     if err != nil {
         resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create ${resource.name}, got error: %s", err))
         return
@@ -879,12 +1148,10 @@ ${this.generateRequestBody(resource)}
     var ${resourceVarName}Response map[string]interface{}
     err = r.client.ParseResponse(httpResp, &${resourceVarName}Response)
     if err != nil {
-        resp.Diagnostics.AddError("Parse Error", fmt.Sprintf("Unable to parse ${resource.name} response, got error: %s", err))
+        resp.Diagnostics.AddError("OneUptime API Error", fmt.Sprintf("Unable to create ${resource.name}: %s", err))
         return
     }
-
-    // Update the model with response data
-${this.generateResponseMapping(resource, resourceVarName + "Response", true)}
+${readBackCode}
 
     // Write logs using the tflog package
     tflog.Trace(ctx, "created a resource")
@@ -893,6 +1160,32 @@ ${this.generateResponseMapping(resource, resourceVarName + "Response", true)}
     resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 `;
+  }
+
+  /*
+   * Builds a Go string expression for an API path, replacing {param}
+   * placeholders with the resource id from state.
+   */
+  private buildPathExpression(path: string): string {
+    const pathWithParams: string = path.replace(
+      /{([^}]+)}/g,
+      `" + data.Id.ValueString() + "`,
+    );
+
+    let finalPath: string;
+    if (pathWithParams.includes('" + ')) {
+      if (pathWithParams.startsWith('" + ')) {
+        finalPath = pathWithParams.substring(4);
+      } else {
+        finalPath = `"${pathWithParams}"`;
+      }
+      if (finalPath.endsWith(' + "')) {
+        finalPath = finalPath.substring(0, finalPath.length - 4);
+      }
+    } else {
+      finalPath = `"${pathWithParams}"`;
+    }
+    return finalPath;
   }
 
   private generateReadMethod(
@@ -944,7 +1237,7 @@ ${this.generateSelectParameter(resource)}
     }
 
     // Make API call with select parameter
-    httpResp, err := r.client.PostWithSelect(${finalPath}, selectParam)
+    httpResp, err := r.client.PostWithSelect(ctx, ${finalPath}, selectParam)
     if err != nil {
         resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read ${resource.name}, got error: %s", err))
         return
@@ -977,67 +1270,48 @@ ${this.generateResponseMapping(resource, resourceVarName + "Response", false)}
     resourceVarName: string,
   ): string {
     const updateOperation: any = resource.operations.update!;
-    const updatePath: string = this.extractPathFromOperation(updateOperation);
-
-    // Also get the read path for refreshing after update
-    const readOperation: any = resource.operations.read!;
-    const readPath: string = this.extractPathFromOperation(readOperation);
-
-    // Replace path parameters for update
-    const updatePathWithParams: string = updatePath.replace(
-      /{([^}]+)}/g,
-      `" + data.Id.ValueString() + "`,
+    const finalUpdatePath: string = this.buildPathExpression(
+      this.extractPathFromOperation(updateOperation),
     );
 
-    // Replace path parameters for read
-    const readPathWithParams: string = readPath.replace(
-      /{([^}]+)}/g,
-      `" + data.Id.ValueString() + "`,
-    );
-
-    // Clean up the update path string construction
-    let finalUpdatePath: string;
-    if (updatePathWithParams.includes('" + ')) {
-      // Path has parameters
-      if (updatePathWithParams.startsWith('" + ')) {
-        finalUpdatePath = updatePathWithParams.substring(4);
-      } else {
-        finalUpdatePath = `"${updatePathWithParams}"`;
-      }
-
-      if (finalUpdatePath.endsWith(' + "')) {
-        finalUpdatePath = finalUpdatePath.substring(
-          0,
-          finalUpdatePath.length - 4,
-        );
-      }
-    } else {
-      // Path has no parameters
-      finalUpdatePath = `"${updatePathWithParams}"`;
-    }
-
-    // Clean up the read path string construction
-    let finalReadPath: string;
-    if (readPathWithParams.includes('" + ')) {
-      // Path has parameters
-      if (readPathWithParams.startsWith('" + ')) {
-        finalReadPath = readPathWithParams.substring(4);
-      } else {
-        finalReadPath = `"${readPathWithParams}"`;
-      }
-
-      if (finalReadPath.endsWith(' + "')) {
-        finalReadPath = finalReadPath.substring(0, finalReadPath.length - 4);
-      }
-    } else {
-      // Path has no parameters
-      finalReadPath = `"${readPathWithParams}"`;
-    }
+    // Refresh through the read endpoint after update, when one exists.
+    const hasRead: boolean = Boolean(resource.operations.read);
+    const finalReadPath: string = hasRead
+      ? this.buildPathExpression(
+          this.extractPathFromOperation(resource.operations.read),
+        )
+      : "";
 
     const httpMethod: string =
       updateOperation.method && updateOperation.method.toUpperCase() === "PATCH"
         ? "Patch"
         : "Put";
+
+    const readBackCode: string = hasRead
+      ? `
+    // After successful update, fetch the current state by calling Read with select parameter
+    selectParam := map[string]interface{}{
+${this.generateSelectParameter(resource)}
+    }
+
+    readResp, err := r.client.PostWithSelect(ctx, ${finalReadPath}, selectParam)
+    if err != nil {
+        resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read ${resource.name} after update, got error: %s", err))
+        return
+    }
+
+    var readResponse map[string]interface{}
+    err = r.client.ParseResponse(readResp, &readResponse)
+    if err != nil {
+        resp.Diagnostics.AddError("OneUptime API Error", fmt.Sprintf("Unable to read ${resource.name} after update: %s", err))
+        return
+    }
+
+    // Update the model with response data from the Read operation
+${this.generateResponseMapping(resource, "readResponse", false)}
+    data.Id = state.Id`
+      : `
+    // No read endpoint for this resource: the planned values become state.`;
 
     return `
 func (r *${resourceTypeName}Resource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
@@ -1065,47 +1339,26 @@ func (r *${resourceTypeName}Resource) Update(ctx context.Context, req resource.U
     }
 ${this.generateConditionalUpdateRequestBodyWithDeclaration(resource, resourceVarName)}
 
-    // Nothing to send. The API rejects an update that carries no fields, so keep the current state and skip the call.
-    if len(${resourceVarName}Request["data"].(map[string]interface{})) == 0 {
-        resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
-        return
-    }
+    // Only call the API when there are changed fields to send. An empty
+    // update body is rejected by the API; state is still refreshed below so
+    // this method never writes unverified plan values into state.
+    if len(${resourceVarName}Request["data"].(map[string]interface{})) > 0 {
+        httpResp, err := r.client.${httpMethod}(ctx, ${finalUpdatePath}, ${resourceVarName}Request)
+        if err != nil {
+            resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update ${resource.name}, got error: %s", err))
+            return
+        }
 
-    // Make API call
-    httpResp, err := r.client.${httpMethod}(${finalUpdatePath}, ${resourceVarName}Request)
-    if err != nil {
-        resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update ${resource.name}, got error: %s", err))
-        return
+        // Parse the update response
+        var ${resourceVarName}Response map[string]interface{}
+        err = r.client.ParseResponse(httpResp, &${resourceVarName}Response)
+        if err != nil {
+            resp.Diagnostics.AddError("OneUptime API Error", fmt.Sprintf("Unable to update ${resource.name}: %s", err))
+            return
+        }
+        _ = ${resourceVarName}Response
     }
-
-    // Parse the update response
-    var ${resourceVarName}Response map[string]interface{}
-    err = r.client.ParseResponse(httpResp, &${resourceVarName}Response)
-    if err != nil {
-        resp.Diagnostics.AddError("Parse Error", fmt.Sprintf("Unable to parse ${resource.name} response, got error: %s", err))
-        return
-    }
-
-    // After successful update, fetch the current state by calling Read with select parameter
-    selectParam := map[string]interface{}{
-${this.generateSelectParameter(resource)}
-    }
-
-    readResp, err := r.client.PostWithSelect(${finalReadPath}, selectParam)
-    if err != nil {
-        resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read ${resource.name} after update, got error: %s", err))
-        return
-    }
-
-    var readResponse map[string]interface{}
-    err = r.client.ParseResponse(readResp, &readResponse)
-    if err != nil {
-        resp.Diagnostics.AddError("Parse Error", fmt.Sprintf("Unable to parse ${resource.name} read response, got error: %s", err))
-        return
-    }
-
-    // Update the model with response data from the Read operation
-${this.generateResponseMapping(resource, "readResponse", false)}
+${readBackCode}
 
     // Save updated data into Terraform state
     resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -1157,10 +1410,21 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
     }
 
     // Make API call
-    _, err := r.client.Delete(${finalPath})
+    httpResp, err := r.client.Delete(ctx, ${finalPath})
     if err != nil {
         resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete ${resource.name}, got error: %s", err))
         return
+    }
+
+    // A failed delete must keep the resource in state — silently dropping it
+    // orphans real infrastructure. 404 means it is already gone.
+    if httpResp.StatusCode >= 400 && httpResp.StatusCode != http.StatusNotFound {
+        err = r.client.ParseResponse(httpResp, nil)
+        resp.Diagnostics.AddError("OneUptime API Error", fmt.Sprintf("Unable to delete ${resource.name}: %s", err))
+        return
+    }
+    if httpResp.Body != nil {
+        httpResp.Body.Close()
     }
 }
 `;
@@ -1231,8 +1495,83 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
 `;
   }
 
-  private generateRequestBody(resource: TerraformResource): string {
-    return this.generateRequestBodyInternal(resource, false);
+  /*
+   * Emits the Create request body: one guarded assignment per writable field
+   * in the create schema. Null/unknown values are omitted entirely — sending
+   * ""/false/null for unset optionals overrode server defaults and corrupted
+   * created resources.
+   */
+  private generateGuardedCreateRequestBody(
+    resource: TerraformResource,
+    resourceVarName: string,
+  ): string {
+    const createSchema: Record<string, TerraformAttribute> =
+      resource.operationSchemas?.create || {};
+    const serverInferredFields: Array<string> = ["projectId", "project_id"];
+    const assignments: string[] = [];
+
+    const fieldNames: string[] = Object.keys(createSchema).filter(
+      (name: string) => {
+        const attr: TerraformAttribute = createSchema[name]!;
+        return (
+          name !== "id" &&
+          !(attr.computed && !attr.optional) &&
+          !serverInferredFields.includes(name)
+        );
+      },
+    );
+
+    if (fieldNames.length === 0) {
+      return "";
+    }
+
+    assignments.push(
+      `    requestDataMap := ${resourceVarName}Request["data"].(map[string]interface{})`,
+    );
+    assignments.push("");
+
+    for (const name of fieldNames) {
+      // Prefer the merged schema's metadata (elementKind, isDateTime, ...).
+      const attr: TerraformAttribute =
+        resource.schema[name] || createSchema[name]!;
+      const sanitizedName: string = this.sanitizeAttributeName(name);
+      const fieldName: string = StringUtils.toPascalCase(sanitizedName);
+      const apiFieldName: string = attr.apiFieldName || name;
+
+      const valueAssignment: string = this.generateValueAssignment(
+        fieldName,
+        apiFieldName,
+        attr,
+      );
+
+      if (attr.isMonitorSteps) {
+        assignments.push(
+          `    if !data.${fieldName}.IsNull() && !data.${fieldName}.IsUnknown() {
+        ${StringUtils.toCamelCase(fieldName)}Value, ${StringUtils.toCamelCase(fieldName)}Diags := MonitorStepsToAPI(ctx, data.${fieldName}.ListValue)
+        resp.Diagnostics.Append(${StringUtils.toCamelCase(fieldName)}Diags...)
+        if resp.Diagnostics.HasError() {
+            return
+        }
+        requestDataMap["${apiFieldName}"] = ${StringUtils.toCamelCase(fieldName)}Value
+    }`,
+        );
+      } else if (attr.type === "string" && attr.isComplexObject) {
+        // parseJSONField already returns nil for null/unknown/empty.
+        assignments.push(
+          `    if parsed${fieldName} := r.parseJSONField(data.${fieldName}); parsed${fieldName} != nil {
+        requestDataMap["${apiFieldName}"] = parsed${fieldName}
+    }`,
+        );
+      } else {
+        assignments.push(
+          `    if !data.${fieldName}.IsNull() && !data.${fieldName}.IsUnknown() {
+        ${valueAssignment}
+    }`,
+        );
+      }
+    }
+
+    return assignments.join("\n");
   }
 
   private generateConditionalUpdateRequestBodyWithDeclaration(
@@ -1342,11 +1681,32 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
       `data.${fieldName}`,
     );
 
+    if (terraformAttr.isMonitorSteps) {
+      return `${StringUtils.toCamelCase(fieldName)}Value, ${StringUtils.toCamelCase(fieldName)}Diags := MonitorStepsToAPI(ctx, data.${fieldName}.ListValue)
+        resp.Diagnostics.Append(${StringUtils.toCamelCase(fieldName)}Diags...)
+        if resp.Diagnostics.HasError() {
+            return
+        }
+        requestDataMap["${apiFieldName}"] = ${StringUtils.toCamelCase(fieldName)}Value`;
+    }
+
+    /*
+     * Scalar arrays are sent as plain values; only entity-reference arrays
+     * are wrapped in {_id: ...} objects.
+     */
+    const isScalarCollection: boolean = terraformAttr.elementKind === "scalar";
+
     if (terraformAttr.type === "map") {
       return `requestDataMap["${apiFieldName}"] = r.convertTerraformMapToInterface(data.${fieldName})`;
     } else if (terraformAttr.type === "list") {
+      if (isScalarCollection) {
+        return `requestDataMap["${apiFieldName}"] = r.convertTerraformListToScalarSlice(data.${fieldName}, ${terraformAttr.elementType === "number" || terraformAttr.elementType === "integer"})`;
+      }
       return `requestDataMap["${apiFieldName}"] = r.convertTerraformListToInterface(data.${fieldName})`;
     } else if (terraformAttr.type === "set") {
+      if (isScalarCollection) {
+        return `requestDataMap["${apiFieldName}"] = r.convertTerraformSetToScalarSlice(data.${fieldName}, ${terraformAttr.elementType === "number" || terraformAttr.elementType === "integer"})`;
+      }
       return `requestDataMap["${apiFieldName}"] = r.convertTerraformSetToInterface(data.${fieldName})`;
     } else if (
       terraformAttr.type === "string" &&
@@ -1368,98 +1728,21 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
     return `requestDataMap["${apiFieldName}"] = ${value}`;
   }
 
-  private generateRequestBodyInternal(
-    resource: TerraformResource,
-    isUpdate: boolean,
-  ): string {
-    return this.generateRequestBodyInternalWithSchema(
-      resource,
-      resource.schema,
-      isUpdate,
-    );
-  }
-
-  private generateRequestBodyInternalWithSchema(
-    resource: TerraformResource,
-    schema: Record<string, TerraformAttribute>,
-    isUpdate: boolean,
-  ): string {
-    const fields: string[] = [];
-
-    // Fields that should not be included in requests (inferred from API key)
-    const serverInferredFields: Array<string> = ["projectId", "project_id"];
-
-    for (const [name, attr] of Object.entries(schema)) {
-      if (name === "id") {
-        continue;
-      }
-
-      // Only exclude fields that are computed-only (not optional+computed)
-      if (attr.computed && !attr.optional) {
-        continue;
-      }
-
-      // Skip project_id - it's inferred from API key authentication
-      if (serverInferredFields.includes(name)) {
-        continue;
-      }
-
-      const sanitizedName: string = this.sanitizeAttributeName(name);
-      const fieldName: string = StringUtils.toPascalCase(sanitizedName);
-      const apiFieldName: string = attr.apiFieldName || name; // Use original OpenAPI field name
-
-      /*
-       * For update operations, only include the field if it exists in the resource's main schema
-       * This ensures we only send fields that are defined in the main resource
-       */
-      if (isUpdate && !resource.schema[name]) {
-        continue;
-      }
-
-      // Handle different field types
-      if (attr.type === "map") {
-        // Convert map types from Terraform state to Go interface{}
-        fields.push(
-          `        "${apiFieldName}": r.convertTerraformMapToInterface(data.${fieldName}),`,
-        );
-      } else if (attr.type === "list") {
-        // Convert list types from Terraform state to Go interface{}
-        fields.push(
-          `        "${apiFieldName}": r.convertTerraformListToInterface(data.${fieldName}),`,
-        );
-      } else if (attr.type === "set") {
-        // Convert set types from Terraform state to Go interface{}
-        fields.push(
-          `        "${apiFieldName}": r.convertTerraformSetToInterface(data.${fieldName}),`,
-        );
-      } else if (attr.type === "string" && attr.isComplexObject) {
-        /*
-         * For complex object strings, parse JSON and convert to interface{}.
-         * Server-side defaults (e.g. MonitorCriteriaInstance.isEnabled) are
-         * absorbed by JSONSubsetType's semantic equality on the model field,
-         * so no per-field normalization is needed here.
-         */
-        fields.push(
-          `        "${apiFieldName}": r.parseJSONField(data.${fieldName}),`,
-        );
-      } else {
-        const value: string = this.getGoValueForTerraformType(
-          attr.type,
-          `data.${fieldName}`,
-        );
-        fields.push(`        "${apiFieldName}": ${value},`);
-      }
-    }
-
-    return fields.join("\n");
-  }
-
+  /*
+   * The select clause only asks for fields the read schema says are
+   * readable. Selecting write-only columns (passwords, permission-gated
+   * fields) made the server reject the entire Read.
+   */
   private generateSelectParameter(resource: TerraformResource): string {
     const selectFields: string[] = [];
+    const readSchema: Record<string, TerraformAttribute> =
+      resource.operationSchemas?.read || {};
 
     for (const [name, attr] of Object.entries(resource.schema)) {
-      // Skip the id field since it's computed and maps to _id
       if (name === "id") {
+        continue;
+      }
+      if (!Object.prototype.hasOwnProperty.call(readSchema, name)) {
         continue;
       }
 
@@ -1494,7 +1777,24 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
     mappings.push(`    }`);
     mappings.push(``);
 
+    const readSchema: Record<string, TerraformAttribute> =
+      resource.operationSchemas?.read || {};
+
     for (const [name, attr] of Object.entries(resource.schema)) {
+      // id is mapped from _id at the end of this block.
+      if (name === "id") {
+        continue;
+      }
+
+      /*
+       * Write-only fields (in the create/update schemas but never in a
+       * response) are not present in API responses. Skip mapping them so the
+       * value the user configured is preserved instead of being nulled out.
+       */
+      if (!Object.prototype.hasOwnProperty.call(readSchema, name)) {
+        continue;
+      }
+
       const sanitizedName: string = this.sanitizeAttributeName(name);
       const fieldName: string = StringUtils.toPascalCase(sanitizedName);
       const apiFieldName: string = attr.apiFieldName || name; // Use original OpenAPI field name
@@ -1518,14 +1818,11 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
         mappings.push(`    }`);
       } else {
         const setter: string = this.generateResponseSetter(
-          attr.type,
+          attr,
           `data.${fieldName}`,
           `dataMap["${apiFieldName}"]`,
-          attr.default !== undefined && attr.default !== null, // hasDefault
-          attr.isComplexObject || false, // isComplexObject
-          attr.format, // format
-          isCreateMethod, // isCreateMethod
-          sanitizedName, // fieldName for original value preservation
+          isCreateMethod,
+          sanitizedName,
         );
         mappings.push(`    ${setter}`);
       }
@@ -1542,16 +1839,30 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
   }
 
   private generateResponseSetter(
-    terraformType: string,
+    attr: TerraformAttribute,
     fieldName: string,
     responseValue: string,
-    hasDefault: boolean = false,
-    isComplexObject: boolean = false,
-    format?: string,
     isCreateMethod: boolean = false,
     originalFieldName?: string,
   ): string {
+    const terraformType: string = attr.type;
+    const hasDefault: boolean =
+      attr.default !== undefined && attr.default !== null;
+    const isComplexObject: boolean = attr.isComplexObject || false;
+    const format: string | undefined = attr.format;
+    const isScalarCollection: boolean = attr.elementKind === "scalar";
+
     switch (terraformType) {
+      case "monitor_steps":
+        /*
+         * Typed nested monitor steps: conversion (and dropping of
+         * server-injected extras like ids) lives in monitorsteps.go.
+         */
+        return `{
+        mappedSteps, stepsDiags := MonitorStepsFromAPI(ctx, ${responseValue})
+        resp.Diagnostics.Append(stepsDiags...)
+        ${fieldName} = MonitorStepsValue{ListValue: mappedSteps}
+    }`;
       case "string":
         // Handle binary format fields (like base64 file content) specially
         if (format === "binary") {
@@ -1575,17 +1886,39 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
         // Keep existing value to prevent drift - API doesn't return binary content
         // ${fieldName} value is already set from the existing state
     }`;
-        } else if (isComplexObject) {
+        }
+
+        /*
+         * RFC3339 timestamps arrive either as a {_type: "DateTime", value}
+         * wrapper or as a raw string. Unwrap to the raw string; RFC3339Type's
+         * semantic equality absorbs server-side normalization (e.g. added
+         * milliseconds), so no byte-level comparison drift.
+         */
+        if (attr.isDateTime) {
+          return `if obj, ok := ${responseValue}.(map[string]interface{}); ok {
+        if val, ok := obj["value"].(string); ok && val != "" {
+            ${fieldName} = NewRFC3339Value(val)
+        } else {
+            ${fieldName} = NewRFC3339Null()
+        }
+    } else if val, ok := ${responseValue}.(string); ok && val != "" {
+        ${fieldName} = NewRFC3339Value(val)
+    } else {
+        ${fieldName} = NewRFC3339Null()
+    }`;
+        }
+
+        if (isComplexObject) {
           /*
            * For complex object strings, check if it's a wrapper object with _type and value fields
-           * (e.g., {"_type":"Version","value":"1.0.0"} or {"_type":"DateTime","value":"..."})
+           * (e.g., {"_type":"Version","value":"1.0.0"})
            * If so, extract the value for simple types; preserve full structure for complex typed objects
            * This path uses the same robust unwrapping logic as the default string handler
            * to ensure consistent behavior between CREATE and READ operations.
            * Uses NewJSONSubset* constructors to keep the field's JSONSubsetType.
            */
           return `if obj, ok := ${responseValue}.(map[string]interface{}); ok {
-        // Handle ObjectID type responses and wrapper objects (e.g., Version, DateTime, Name types)
+        // Handle ObjectID type responses and wrapper objects (e.g., Version, Name types)
         if val, ok := obj["_id"].(string); ok && val != "" {
             ${fieldName} = NewJSONSubsetValue(val)
         } else if val, ok := obj["value"].(string); ok {
@@ -1616,7 +1949,7 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
         } else {
             ${fieldName} = NewJSONSubsetNull()
         }
-    } else if val, ok := ${responseValue}.(string); ok && val != "" {
+    } else if val, ok := ${responseValue}.(string); ok {
         ${fieldName} = NewJSONSubsetValue(val)
     } else {
         ${fieldName} = NewJSONSubsetNull()
@@ -1660,7 +1993,7 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
         } else {
             ${fieldName} = types.StringNull()
         }
-    } else if val, ok := ${responseValue}.(string); ok && val != "" {
+    } else if val, ok := ${responseValue}.(string); ok {
         ${fieldName} = types.StringValue(val)
     } else {
         ${fieldName} = types.StringNull()
@@ -1673,7 +2006,15 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
         ${fieldName} = types.NumberValue(big.NewFloat(float64(val)))
     } else if val, ok := ${responseValue}.(int64); ok {
         ${fieldName} = types.NumberValue(big.NewFloat(float64(val)))
-    } else if ${responseValue} == nil {
+    } else if obj, ok := ${responseValue}.(map[string]interface{}); ok {
+        // Unwrap numeric wrapper objects (e.g. {_type: "Port", value: 443})
+        if val, ok := obj["value"].(float64); ok {
+            ${fieldName} = types.NumberValue(big.NewFloat(val))
+        } else {
+            ${fieldName} = types.NumberNull()
+        }
+    } else {
+        // Missing or unrecognized value: null, never unknown, so apply can complete.
         ${fieldName} = types.NumberNull()
     }`;
       case "bool":
@@ -1685,7 +2026,7 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
         }
         return `if val, ok := ${responseValue}.(bool); ok {
         ${fieldName} = types.BoolValue(val)
-    } else if ${responseValue} == nil {
+    } else {
         ${fieldName} = types.BoolNull()
     }`;
 
@@ -1717,6 +2058,14 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
             } else if str, ok := item.(string); ok {
                 // Handle direct string values
                 listItems = append(listItems, types.StringValue(str))
+            }${
+              isScalarCollection
+                ? ` else if num, ok := item.(float64); ok {
+                listItems = append(listItems, types.StringValue(strconv.FormatFloat(num, 'f', -1, 64)))
+            } else if b, ok := item.(bool); ok {
+                listItems = append(listItems, types.StringValue(fmt.Sprintf("%t", b)))
+            }`
+                : ""
             }
         }
         ${fieldName} = types.ListValueMust(types.StringType, listItems)
@@ -1744,6 +2093,14 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
             } else if str, ok := item.(string); ok {
                 // Handle direct string values
                 setItems = append(setItems, types.StringValue(str))
+            }${
+              isScalarCollection
+                ? ` else if num, ok := item.(float64); ok {
+                setItems = append(setItems, types.StringValue(strconv.FormatFloat(num, 'f', -1, 64)))
+            } else if b, ok := item.(bool); ok {
+                setItems = append(setItems, types.StringValue(fmt.Sprintf("%t", b)))
+            }`
+                : ""
             }
         }
         // Sort set items for deterministic state representation
@@ -1894,6 +2251,76 @@ ${resourceFunctions}
     }
 
     return storage.join("\n");
+  }
+
+  /*
+   * Converters for scalar (non-entity) list/set attributes: plain values on
+   * the wire, never wrapped in {_id}. Only emitted when the resource has at
+   * least one such attribute — they need strconv, which is imported
+   * conditionally.
+   */
+  private generateScalarCollectionHelpers(
+    resource: TerraformResource,
+    resourceTypeName: string,
+  ): string {
+    const hasScalarCollections: boolean = Object.values(resource.schema).some(
+      (attr: any) => {
+        return (
+          (attr.type === "list" || attr.type === "set") &&
+          attr.elementKind === "scalar"
+        );
+      },
+    );
+    if (!hasScalarCollections) {
+      return "";
+    }
+
+    return `
+// Converts a Terraform list of scalars to the wire format. Numeric elements
+// are sent as numbers; everything else as strings.
+func (r *${resourceTypeName}Resource) convertTerraformListToScalarSlice(terraformList types.List, numeric bool) interface{} {
+    if terraformList.IsNull() || terraformList.IsUnknown() {
+        return nil
+    }
+
+    var stringList []string
+    terraformList.ElementsAs(context.Background(), &stringList, false)
+
+    result := []interface{}{}
+    for _, str := range stringList {
+        if numeric {
+            if f, err := strconv.ParseFloat(str, 64); err == nil {
+                result = append(result, f)
+                continue
+            }
+        }
+        result = append(result, str)
+    }
+    return result
+}
+
+// Set variant of convertTerraformListToScalarSlice.
+func (r *${resourceTypeName}Resource) convertTerraformSetToScalarSlice(terraformSet types.Set, numeric bool) interface{} {
+    if terraformSet.IsNull() || terraformSet.IsUnknown() {
+        return nil
+    }
+
+    var stringList []string
+    terraformSet.ElementsAs(context.Background(), &stringList, false)
+
+    result := []interface{}{}
+    for _, str := range stringList {
+        if numeric {
+            if f, err := strconv.ParseFloat(str, 64); err == nil {
+                result = append(result, f)
+                continue
+            }
+        }
+        result = append(result, str)
+    }
+    return result
+}
+`;
   }
 
   /**

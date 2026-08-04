@@ -158,17 +158,6 @@ const IoTFleets: FunctionComponent<PageComponentProps> = (): ReactElement => {
     return <ErrorMessage message={error} />;
   }
 
-  if (fleetCount === 0) {
-    return (
-      <Fragment>
-        <IoTDocumentationCard
-          title="Getting Started with IoT Monitoring"
-          description="No IoT fleets connected yet. Install the agent using the guide below and your fleet will appear here automatically."
-        />
-      </Fragment>
-    );
-  }
-
   return (
     <Fragment>
       <ModelTable<IoTFleet>
@@ -181,6 +170,12 @@ const IoTFleets: FunctionComponent<PageComponentProps> = (): ReactElement => {
         query={mergeFiltersIntoQuery({ isArchived: false })}
         onFetchSuccess={(data: Array<IoTFleet>) => {
           onResourcesFetched(data);
+        }}
+        onCreateSuccess={(item: IoTFleet): Promise<IoTFleet> => {
+          setFleetCount((currentCount: number | null): number => {
+            return (currentCount || 0) + 1;
+          });
+          return Promise.resolve(item);
         }}
         isDeleteable={false}
         isEditable={false}
@@ -373,6 +368,12 @@ const IoTFleets: FunctionComponent<PageComponentProps> = (): ReactElement => {
           );
         }}
       />
+      {fleetCount === 0 && (
+        <IoTDocumentationCard
+          title="Getting Started with IoT Monitoring"
+          description="No IoT fleets connected yet. Install the agent using the guide below and your fleet will appear here automatically."
+        />
+      )}
       {labelBulkActionModals}
       {ownerBulkActionModals}
     </Fragment>

@@ -12,6 +12,7 @@ import {
 } from "../../Utils/OtelPayloadDecoder";
 import { headerValueToString } from "Common/Server/Utils/Express";
 import TelemetryBodyStore from "../../Utils/TelemetryBodyStore";
+import SessionReplayChunkStore from "../../Utils/SessionReplayChunkStore";
 import { INCOMING_REQUEST_INGEST_COALESCE_ENABLED } from "../../Config";
 
 export enum TelemetryType {
@@ -26,6 +27,7 @@ export enum TelemetryType {
   IncomingRequestIngest = "incoming-request-ingest",
   TelemetryMonitorEvaluation = "telemetry-monitor-evaluation",
   KubernetesCostIngest = "kubernetes-cost-ingest",
+  SessionReplay = "session-replay",
 }
 
 export type ProbeIngestJobType =
@@ -97,6 +99,34 @@ export interface KubernetesCostIngestJobData {
   ingestionTimestamp: Date;
 }
 
+export interface SessionReplayIngestJobData {
+  projectId: string;
+
+  /*
+   * The x-oneuptime-app-identifier header value the request was gated
+   * against. Carried explicitly rather than re-read from the envelope so
+   * the worker resolves the SAME application the gate authorized.
+   */
+  appIdentifier: string;
+
+  /*
+   * Base64 of the raw request body, present only for bodies at or under
+   * SESSION_REPLAY_INLINE_STAGING_MAX_BYTES. Larger bodies travel via the
+   * top-level `bodyKey` instead. A typical chunk is a few KB, so this keeps
+   * almost every chunk out of Redis staging entirely.
+   */
+  inlineBodyBase64?: string;
+
+  /* Wall-clock time the app tier accepted the chunk. Server-authoritative. */
+  serverReceiveUnixMs: number;
+
+  /* Sample percentage in force at the gate, stored to un-bias analytics. */
+  samplePercentageAtCapture: number;
+
+  /* Best-effort viewer geography source. Never stored; only the country is. */
+  countryCode: string;
+}
+
 export interface TelemetryIngestJobData {
   type: TelemetryType;
   projectId?: string;
@@ -137,6 +167,13 @@ export interface TelemetryIngestJobData {
   telemetryMonitorEvaluation?: TelemetryMonitorEvaluationJobData;
   // KubernetesCostIngest-specific
   kubernetesCostIngest?: KubernetesCostIngestJobData;
+  /*
+   * SessionReplay-specific. Note the raw body reference is NOT in here: it
+   * uses the top-level `bodyKey` above, because the post-success reclaim at
+   * the bottom of ProcessTelemetry tests `jobData.bodyKey`. Nesting it would
+   * leave every staged blob to expire on its own 6-hour TTL.
+   */
+  sessionReplayIngest?: SessionReplayIngestJobData;
 }
 
 // Legacy interfaces for backward compatibility
@@ -741,6 +778,81 @@ export default class TelemetryQueueService {
       logger.debug(`Added kubernetes cost ingestion job: ${jobId}`);
     } catch (error) {
       logger.error(`Error adding kubernetes cost ingestion job:`);
+      logger.error(error);
+      throw error;
+    }
+  }
+
+  /*
+   * Stage and enqueue one session-replay chunk POST.
+   *
+   * The caller MUST await this before answering the recorder, and must
+   * answer 503 if it throws. The trace path does the opposite - it sends 200
+   * and then awaits the enqueue - which loses the payload behind a success
+   * response when Redis is down (StartServer's error handler bails out once
+   * headersSent). For a recording that cannot be re-derived, the recorder
+   * has to be able to learn that its chunk did not land so it can retry.
+   *
+   * Staging is inline as base64 under the threshold and out-of-band above
+   * it. The out-of-band key goes at the TOP level of the job data so
+   * ProcessTelemetry's existing post-success reclaim finds it.
+   */
+  public static async addSessionReplayIngestJob(data: {
+    projectId: ObjectID;
+    appIdentifier: string;
+    body: Buffer;
+    serverReceiveUnixMs: number;
+    samplePercentageAtCapture: number;
+    countryCode: string;
+    inlineStagingMaxBytes: number;
+  }): Promise<void> {
+    try {
+      const sessionReplayIngest: SessionReplayIngestJobData = {
+        projectId: data.projectId.toString(),
+        appIdentifier: data.appIdentifier,
+        serverReceiveUnixMs: data.serverReceiveUnixMs,
+        samplePercentageAtCapture: data.samplePercentageAtCapture,
+        countryCode: data.countryCode,
+      };
+
+      const jobData: TelemetryIngestJobData = {
+        type: TelemetryType.SessionReplay,
+        projectId: data.projectId.toString(),
+        ingestionTimestamp: OneUptimeDate.getCurrentDate(),
+        sessionReplayIngest,
+      };
+
+      if (data.body.length <= data.inlineStagingMaxBytes) {
+        sessionReplayIngest.inlineBodyBase64 = data.body.toString("base64");
+      } else {
+        /*
+         * The body SET completes before the BullMQ enqueue, so a worker can
+         * never pick up a job whose body has not landed yet.
+         */
+        jobData.bodyKey = await SessionReplayChunkStore.storeBody(data.body);
+      }
+
+      const jobId: string = `session-replay-${data.projectId.toString()}-${OneUptimeDate.getCurrentDateAsUnixNano()}-${ObjectID.generate().toString()}`;
+
+      await Queue.addJob(
+        QueueName.Telemetry,
+        jobId,
+        "ProcessTelemetry",
+        jobData as unknown as JSONObject,
+        {
+          /*
+           * Job ids carry a random UUID suffix and are therefore unique
+           * (the unix-nano prefix alone is millisecond-precision and
+           * collides under concurrency) — skip the duplicate-id
+           * existence check (2 Redis round trips).
+           */
+          skipExistenceCheck: true,
+        },
+      );
+
+      logger.debug(`Added session replay ingestion job: ${jobId}`);
+    } catch (error) {
+      logger.error(`Error adding session replay ingestion job:`);
       logger.error(error);
       throw error;
     }

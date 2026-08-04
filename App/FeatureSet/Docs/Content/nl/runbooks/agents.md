@@ -30,7 +30,7 @@ De agent heeft alleen **uitgaande HTTPS** naar je OneUptime-instantie nodig. Hij
 
 ### 1. Het agent-record aanmaken
 
-Ga naar **Runbooks → Settings → Agents** en maak een nieuwe agent aan. Vul in:
+Ga naar **Settings → Runners** en maak een nieuwe agent aan. Vul in:
 
 | Veld             | Opmerkingen                                                                                                                                              |
 | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -49,18 +49,18 @@ Voer het Docker-commando uit op elke host in je omgeving die:
 - de dingen kan doen die je Bash-/JavaScript-stappen moeten doen (bv. SSH naar andere hosts, `kubectl`, met een database praten).
 
 ```bash
-docker run --name oneuptime-runbook-agent --restart unless-stopped \
-  -e RUNBOOK_AGENT_ID=<agent-id> \
-  -e RUNBOOK_AGENT_KEY=<agent-key> \
+docker run --name oneuptime-runner --restart unless-stopped \
+  -e ONEUPTIME_RUNNER_ID=<agent-id> \
+  -e ONEUPTIME_RUNNER_KEY=<agent-key> \
   -e ONEUPTIME_URL=https://oneuptime.yourdomain.com \
-  -d oneuptime/runbook-agent:release
+  -d oneuptime/runner:release
 ```
 
 ### 4. Verifiëren dat de agent verbonden is
 
-Ga terug naar **Runbooks → Settings → Agents**. Binnen ~60 seconden moet de rij van de agent omschakelen naar `Connected` met een verse **Last seen**-tijdstempel. Als hij op `Disconnected` blijft:
+Ga terug naar **Settings → Runners**. Binnen ~60 seconden moet de rij van de agent omschakelen naar `Connected` met een verse **Last seen**-tijdstempel. Als hij op `Disconnected` blijft:
 
-- Controleer de container-logs (`docker logs oneuptime-runbook-agent`) op auth-fouten of netwerkproblemen.
+- Controleer de container-logs (`docker logs oneuptime-runner`) op auth-fouten of netwerkproblemen.
 - Verifieer dat de host je OneUptime-URL met `curl` kan bereiken.
 - Verifieer dat de ID en sleutel zonder whitespace gekopieerd zijn.
 
@@ -92,8 +92,8 @@ Het totale wachtvenster van de Worker is `claim-timeout + uitvoer-timeout + een 
 
 Twee dingen om in gedachten te houden wanneer je de claim-timeout verlaagt:
 
-- De agent vraagt volgens een pollcyclus om werk (`RUNBOOK_AGENT_POLL_INTERVAL_MS`, standaard 5 seconden). Een claim-timeout die korter is dan één pollcyclus kan verstrijken voordat een volkomen gezonde agent de job zelfs maar gezien heeft, en de stap faalt dan met dezelfde "geen agent heeft de job geclaimd"-melding die je van een offline agent zou krijgen.
-- Een agent voert standaard één job tegelijk uit (`RUNBOOK_AGENT_CONCURRENCY`). Terwijl een lange stap hem bezet houdt, zitten andere stappen die op dezelfde agent gericht zijn hun eigen claim-timeout uit. Verhoog je een uitvoer-timeout naar minuten, verhoog dan ook de claim-timeout van de stappen die dezelfde agent delen — of geef ze een andere agent.
+- De agent vraagt volgens een pollcyclus om werk (`ONEUPTIME_RUNNER_POLL_INTERVAL_MS`, standaard 5 seconden). Een claim-timeout die korter is dan één pollcyclus kan verstrijken voordat een volkomen gezonde agent de job zelfs maar gezien heeft, en de stap faalt dan met dezelfde "geen agent heeft de job geclaimd"-melding die je van een offline agent zou krijgen.
+- Een agent voert standaard één job tegelijk uit (`ONEUPTIME_RUNNER_CONCURRENCY`). Terwijl een lange stap hem bezet houdt, zitten andere stappen die op dezelfde agent gericht zijn hun eigen claim-timeout uit. Verhoog je een uitvoer-timeout naar minuten, verhoog dan ook de claim-timeout van de stappen die dezelfde agent delen — of geef ze een andere agent.
 
 ### Lease en heartbeat
 
@@ -115,7 +115,7 @@ Een runbook-uitvoering annuleren (vanuit de uitvoeringsweergave of de API) marke
 
 ### Concurrency
 
-Elke agent voert standaard één job tegelijk uit. Wil je meer toestaan, zet dan `RUNBOOK_AGENT_CONCURRENCY` op de agent-container — maar onthoud dat de agent de host deelt met wat er verder ook leeft.
+Elke agent voert standaard één job tegelijk uit. Wil je meer toestaan, zet dan `ONEUPTIME_RUNNER_CONCURRENCY` op de agent-container — maar onthoud dat de agent de host deelt met wat er verder ook leeft.
 
 ## Environment variables
 
@@ -124,12 +124,12 @@ De agent leest deze bij het opstarten:
 | Variabele                                 | Verplicht | Standaard | Opmerkingen                                                                   |
 | ----------------------------------------- | --------- | --------- | ----------------------------------------------------------------------------- |
 | `ONEUPTIME_URL`                           | ja        | —         | Basis-URL van je OneUptime-instantie, bv. `https://oneuptime.yourdomain.com`. |
-| `RUNBOOK_AGENT_ID`                        | ja        | —         | De UUID die in de installatiemodal van de agent wordt getoond.                |
-| `RUNBOOK_AGENT_KEY`                       | ja        | —         | Het secret dat in de installatiemodal van de agent wordt getoond.             |
-| `RUNBOOK_AGENT_POLL_INTERVAL_MS`          | nee       | `5000`    | Hoe vaak de agent polls voor nieuwe jobs.                                     |
-| `RUNBOOK_AGENT_HEARTBEAT_INTERVAL_MS`     | nee       | `60000`   | Hoe vaak de agent zijn levensteken rapporteert.                               |
-| `RUNBOOK_AGENT_JOB_HEARTBEAT_INTERVAL_MS` | nee       | `10000`   | Hoe vaak de agent de lease van een draaiende job vernieuwt.                   |
-| `RUNBOOK_AGENT_CONCURRENCY`               | nee       | `1`       | Maximaal aantal gelijktijdige jobs op deze agent.                             |
+| `ONEUPTIME_RUNNER_ID`                        | ja        | —         | De UUID die in de installatiemodal van de agent wordt getoond.                |
+| `ONEUPTIME_RUNNER_KEY`                       | ja        | —         | Het secret dat in de installatiemodal van de agent wordt getoond.             |
+| `ONEUPTIME_RUNNER_POLL_INTERVAL_MS`          | nee       | `5000`    | Hoe vaak de agent polls voor nieuwe jobs.                                     |
+| `ONEUPTIME_RUNNER_HEARTBEAT_INTERVAL_MS`     | nee       | `60000`   | Hoe vaak de agent zijn levensteken rapporteert.                               |
+| `ONEUPTIME_RUNNER_JOB_HEARTBEAT_INTERVAL_MS` | nee       | `10000`   | Hoe vaak de agent de lease van een draaiende job vernieuwt.                   |
+| `ONEUPTIME_RUNNER_CONCURRENCY`               | nee       | `1`       | Maximaal aantal gelijktijdige jobs op deze agent.                             |
 
 ## Een agent-sleutel roteren
 
@@ -139,14 +139,14 @@ Als een sleutel lekt, open de agent in OneUptime en reset zijn sleutel. De oude 
 
 Het beheren van agents valt onder de bestaande Runbooks-rechtengroep:
 
-- `CreateRunbookAgent`, `EditRunbookAgent`, `DeleteRunbookAgent`, `ReadRunbookAgent` — agent-records beheren.
+- `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — agent-records beheren.
 - `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (rollen) — toewijzen aan een team om volledige controle, dagelijks gebruik of alleen-lezen toegang te verlenen. `RunbookAdmin` bundelt alle bovenstaande granulaire rechten.
 
 Rechten om een runbook te _triggeren_ (en dus Bash- en JavaScript-stappen te laten verspreiden) zijn nog steeds `CreateRunbookExecution` / `EditRunbookExecution`.
 
 ## Agent-side API
 
-Voor de nieuwsgierigen — de agent gebruikt deze endpoints, gemount onder `/runbook-agent-ingest`. Ze worden geauthenticeerd via de ID + sleutel van de agent in de JSON-body (of de headers `x-agent-id` / `x-agent-key`).
+Voor de nieuwsgierigen — de agent gebruikt deze endpoints, gemount onder `/runner-ingest`. Ze worden geauthenticeerd via de ID + sleutel van de agent in de JSON-body (of de headers `x-agent-id` / `x-agent-key`).
 
 | Endpoint                     | Doel                                                                                                                                 |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |

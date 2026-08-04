@@ -7,7 +7,7 @@ Bash and JavaScript steps **never execute on the OneUptime Worker**. They are di
 The dispatch model:
 
 1. The runbook step author picks a Runbook Agent from the dropdown when writing the step.
-2. When the step runs, the Worker inserts a row in `RunbookAgentJob` with `targetAgentId` set to that agent's ID and status `Pending`.
+2. When the step runs, the Worker inserts a row in `RunnerJob` with `targetAgentId` set to that agent's ID and status `Pending`.
 3. That specific agent (and only that agent) atomically claims the job, runs the script locally — Bash via `bash -c <script>`, JavaScript inside an `isolated-vm` sandbox — and posts the result back.
 4. The Worker resumes the runbook with the result.
 
@@ -27,7 +27,7 @@ Runbook permissions live in the `Runbook` permission group:
 - `CreateRunbook`, `EditRunbook`, `DeleteRunbook`, `ReadRunbook` — manage runbook templates.
 - `CreateRunbookExecution`, `EditRunbookExecution`, `ReadRunbookExecution` — start, tick off, and read executions.
 - `CreateRunbookRule`, `EditRunbookRule`, `DeleteRunbookRule`, `ReadRunbookRule` — manage auto-trigger rules.
-- `CreateRunbookAgent`, `EditRunbookAgent`, `DeleteRunbookAgent`, `ReadRunbookAgent` — manage Runbook Agents that execute Bash and JavaScript steps in your own infrastructure.
+- `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — manage Runners that execute steps in your own infrastructure. (These were named `*RunbookAgent` before the Runner rename; existing grants were migrated, so nothing needs reassigning.)
 - `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (roles) — assign to a team to grant full control, day-to-day usage, or read-only access respectively. `RunbookAdmin` bundles all of the granular permissions above.
 
 ## Queue & worker
@@ -47,8 +47,8 @@ When a manual step is ticked off via the API, the execution is re-enqueued to co
 - `Runbook` — template (name, slug, description, isEnabled, steps JSON).
 - `RunbookExecution` — one row per run, with nullable `incidentId`, `alertId`, and `scheduledMaintenanceId` foreign keys and a JSON `stepExecutions` array snapshotting the steps and per-step state.
 - `RunbookRule` — auto-trigger rules with a `triggerEntityType` discriminator (Incident, Alert, ScheduledMaintenance) and a many-to-many relationship to runbooks to start.
-- `RunbookAgent` — one row per installed agent: name, secret key, `lastAlive`, `connectionStatus`, host info.
-- `RunbookAgentJob` — one row per dispatched Bash or JavaScript step: `targetAgentId` (the agent the step author picked), step type, script, status (`Pending` → `Claimed` → `Running` → `Succeeded`/`Failed`/`TimedOut`/`Cancelled`), claim deadline, lease, output, exit code.
+- `Runner` — one row per installed agent: name, secret key, `lastAlive`, `connectionStatus`, host info.
+- `RunnerJob` — one row per dispatched Bash or JavaScript step: `targetAgentId` (the agent the step author picked), step type, script, status (`Pending` → `Claimed` → `Running` → `Succeeded`/`Failed`/`TimedOut`/`Cancelled`), claim deadline, lease, output, exit code.
 
 ## Operational tips
 

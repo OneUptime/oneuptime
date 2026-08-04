@@ -17,6 +17,7 @@ export enum PermissionGroup {
   Telemetry = "Telemetry",
   Workflow = "Workflow",
   Runbook = "Runbook",
+  AutoRemediation = "Auto Remediation",
   Team = "Team",
   Billing = "Billing",
   ServiceCatalog = "Service Catalog",
@@ -797,6 +798,11 @@ enum Permission {
   EditRunbookRule = "EditRunbookRule",
   ReadRunbookRule = "ReadRunbookRule",
 
+  CreateAutoRemediationRule = "CreateAutoRemediationRule",
+  DeleteAutoRemediationRule = "DeleteAutoRemediationRule",
+  EditAutoRemediationRule = "EditAutoRemediationRule",
+  ReadAutoRemediationRule = "ReadAutoRemediationRule",
+
   CreateRunbookOwnerTeam = "CreateRunbookOwnerTeam",
   DeleteRunbookOwnerTeam = "DeleteRunbookOwnerTeam",
   EditRunbookOwnerTeam = "EditRunbookOwnerTeam",
@@ -807,25 +813,30 @@ enum Permission {
   EditRunbookOwnerUser = "EditRunbookOwnerUser",
   ReadRunbookOwnerUser = "ReadRunbookOwnerUser",
 
-  CreateRunbookAgent = "CreateRunbookAgent",
-  DeleteRunbookAgent = "DeleteRunbookAgent",
-  EditRunbookAgent = "EditRunbookAgent",
-  ReadRunbookAgent = "ReadRunbookAgent",
+  CreateRunner = "CreateRunner",
+  DeleteRunner = "DeleteRunner",
+  EditRunner = "EditRunner",
+  ReadRunner = "ReadRunner",
 
-  CreateRunbookAgentOwnerTeam = "CreateRunbookAgentOwnerTeam",
-  DeleteRunbookAgentOwnerTeam = "DeleteRunbookAgentOwnerTeam",
-  EditRunbookAgentOwnerTeam = "EditRunbookAgentOwnerTeam",
-  ReadRunbookAgentOwnerTeam = "ReadRunbookAgentOwnerTeam",
+  CreateRunnerOwnerTeam = "CreateRunnerOwnerTeam",
+  DeleteRunnerOwnerTeam = "DeleteRunnerOwnerTeam",
+  EditRunnerOwnerTeam = "EditRunnerOwnerTeam",
+  ReadRunnerOwnerTeam = "ReadRunnerOwnerTeam",
 
-  CreateRunbookAgentOwnerUser = "CreateRunbookAgentOwnerUser",
-  DeleteRunbookAgentOwnerUser = "DeleteRunbookAgentOwnerUser",
-  EditRunbookAgentOwnerUser = "EditRunbookAgentOwnerUser",
-  ReadRunbookAgentOwnerUser = "ReadRunbookAgentOwnerUser",
+  CreateRunnerOwnerUser = "CreateRunnerOwnerUser",
+  DeleteRunnerOwnerUser = "DeleteRunnerOwnerUser",
+  EditRunnerOwnerUser = "EditRunnerOwnerUser",
+  ReadRunnerOwnerUser = "ReadRunnerOwnerUser",
 
   CreateRunbookSecret = "CreateRunbookSecret",
   EditRunbookSecret = "EditRunbookSecret",
   DeleteRunbookSecret = "DeleteRunbookSecret",
   ReadRunbookSecret = "ReadRunbookSecret",
+
+  CreateRunbookCredential = "CreateRunbookCredential",
+  EditRunbookCredential = "EditRunbookCredential",
+  DeleteRunbookCredential = "DeleteRunbookCredential",
+  ReadRunbookCredential = "ReadRunbookCredential",
 
   CreateStatusPageGroup = "CreateStatusPageGroup",
   DeleteStatusPageGroup = "DeleteStatusPageGroup",
@@ -1370,6 +1381,24 @@ enum Permission {
   DeleteRumApplication = "DeleteRumApplication",
   EditRumApplication = "EditRumApplication",
   ReadRumApplication = "ReadRumApplication",
+
+  /*
+   * Session replay is deliberately NOT covered by ReadRumApplication.
+   *
+   * RumApplication's read ACL includes Permission.Viewer, the project-wide
+   * read-only role — so reusing it would let every read-only member watch
+   * recordings of real end users' screens. Listing sessions and *watching*
+   * one are also split, so a support engineer can triage "which sessions
+   * errored" without playing anyone's screen back.
+   */
+  CreateRumSessionReplay = "CreateRumSessionReplay",
+  ReadRumSessionReplay = "ReadRumSessionReplay",
+  DeleteRumSessionReplay = "DeleteRumSessionReplay",
+  ReadRumSessionReplayPayload = "ReadRumSessionReplayPayload",
+  ReadRumSessionReplayAudit = "ReadRumSessionReplayAudit",
+
+  CreateRumSessionErasureRequest = "CreateRumSessionErasureRequest",
+  ReadRumSessionErasureRequest = "ReadRumSessionErasureRequest",
 
   CreateRumApplicationOwnerTeam = "CreateRumApplicationOwnerTeam",
   DeleteRumApplicationOwnerTeam = "DeleteRumApplicationOwnerTeam",
@@ -4124,6 +4153,47 @@ export class PermissionHelper {
       },
 
       {
+        permission: Permission.CreateAutoRemediationRule,
+        title: "Create Auto Remediation Rule",
+        description:
+          "This permission can create Auto Remediation Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.AutoRemediation,
+      },
+      {
+        permission: Permission.DeleteAutoRemediationRule,
+        title: "Delete Auto Remediation Rule",
+        description:
+          "This permission can delete Auto Remediation Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.AutoRemediation,
+      },
+      {
+        permission: Permission.EditAutoRemediationRule,
+        title: "Edit Auto Remediation Rule",
+        description:
+          "This permission can edit Auto Remediation Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.AutoRemediation,
+      },
+      {
+        permission: Permission.ReadAutoRemediationRule,
+        title: "Read Auto Remediation Rule",
+        description:
+          "This permission can read Auto Remediation Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.AutoRemediation,
+      },
+
+      {
         permission: Permission.CreateRunbookOwnerTeam,
         title: "Create Runbook Team Owner",
         description:
@@ -4206,7 +4276,7 @@ export class PermissionHelper {
       },
 
       {
-        permission: Permission.CreateRunbookAgent,
+        permission: Permission.CreateRunner,
         title: "Create Runbook Agent",
         description:
           "This permission can register Runbook Agents in this project. Runbook Agents execute Bash steps in your own infrastructure.",
@@ -4216,7 +4286,7 @@ export class PermissionHelper {
         group: PermissionGroup.Runbook,
       },
       {
-        permission: Permission.DeleteRunbookAgent,
+        permission: Permission.DeleteRunner,
         title: "Delete Runbook Agent",
         description:
           "This permission can delete Runbook Agents in this project.",
@@ -4226,7 +4296,7 @@ export class PermissionHelper {
         group: PermissionGroup.Runbook,
       },
       {
-        permission: Permission.EditRunbookAgent,
+        permission: Permission.EditRunner,
         title: "Edit Runbook Agent",
         description:
           "This permission can edit Runbook Agents (name, description, tags, key) in this project.",
@@ -4236,7 +4306,7 @@ export class PermissionHelper {
         group: PermissionGroup.Runbook,
       },
       {
-        permission: Permission.ReadRunbookAgent,
+        permission: Permission.ReadRunner,
         title: "Read Runbook Agent",
         description: "This permission can read Runbook Agents in this project.",
         isAssignableToTenant: true,
@@ -4246,7 +4316,7 @@ export class PermissionHelper {
       },
 
       {
-        permission: Permission.CreateRunbookAgentOwnerTeam,
+        permission: Permission.CreateRunnerOwnerTeam,
         title: "Create Runbook Agent Team Owner",
         description:
           "This permission can create Runbook Agent Team Owners of this project.",
@@ -4256,7 +4326,7 @@ export class PermissionHelper {
         group: PermissionGroup.Runbook,
       },
       {
-        permission: Permission.DeleteRunbookAgentOwnerTeam,
+        permission: Permission.DeleteRunnerOwnerTeam,
         title: "Delete Runbook Agent Team Owner",
         description:
           "This permission can delete Runbook Agent Team Owner of this project.",
@@ -4266,7 +4336,7 @@ export class PermissionHelper {
         group: PermissionGroup.Runbook,
       },
       {
-        permission: Permission.EditRunbookAgentOwnerTeam,
+        permission: Permission.EditRunnerOwnerTeam,
         title: "Edit Runbook Agent Team Owner",
         description:
           "This permission can edit Runbook Agent Team Owner of this project.",
@@ -4276,7 +4346,7 @@ export class PermissionHelper {
         group: PermissionGroup.Runbook,
       },
       {
-        permission: Permission.ReadRunbookAgentOwnerTeam,
+        permission: Permission.ReadRunnerOwnerTeam,
         title: "Read Runbook Agent Team Owner",
         description:
           "This permission can read Runbook Agent Team Owner of this project.",
@@ -4287,7 +4357,7 @@ export class PermissionHelper {
       },
 
       {
-        permission: Permission.CreateRunbookAgentOwnerUser,
+        permission: Permission.CreateRunnerOwnerUser,
         title: "Create Runbook Agent User Owner",
         description:
           "This permission can create Runbook Agent User Owners of this project.",
@@ -4297,7 +4367,7 @@ export class PermissionHelper {
         group: PermissionGroup.Runbook,
       },
       {
-        permission: Permission.DeleteRunbookAgentOwnerUser,
+        permission: Permission.DeleteRunnerOwnerUser,
         title: "Delete Runbook Agent User Owner",
         description:
           "This permission can delete Runbook Agent User Owner of this project.",
@@ -4307,7 +4377,7 @@ export class PermissionHelper {
         group: PermissionGroup.Runbook,
       },
       {
-        permission: Permission.EditRunbookAgentOwnerUser,
+        permission: Permission.EditRunnerOwnerUser,
         title: "Edit Runbook Agent User Owner",
         description:
           "This permission can edit Runbook Agent User Owner of this project.",
@@ -4317,7 +4387,7 @@ export class PermissionHelper {
         group: PermissionGroup.Runbook,
       },
       {
-        permission: Permission.ReadRunbookAgentOwnerUser,
+        permission: Permission.ReadRunnerOwnerUser,
         title: "Read Runbook Agent User Owner",
         description:
           "This permission can read Runbook Agent User Owner of this project.",
@@ -4358,6 +4428,45 @@ export class PermissionHelper {
         permission: Permission.ReadRunbookSecret,
         title: "Read Runbook Secret",
         description: "This permission can read runbook secret.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Runbook,
+      },
+
+      {
+        permission: Permission.CreateRunbookCredential,
+        title: "Create Runbook Credential",
+        description:
+          "This permission can create runbook credentials (SSH keys, Kubernetes service account tokens).",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Runbook,
+      },
+      {
+        permission: Permission.DeleteRunbookCredential,
+        title: "Delete Runbook Credential",
+        description: "This permission can delete runbook credentials.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Runbook,
+      },
+      {
+        permission: Permission.EditRunbookCredential,
+        title: "Edit Runbook Credential",
+        description: "This permission can edit runbook credentials.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Runbook,
+      },
+      {
+        permission: Permission.ReadRunbookCredential,
+        title: "Read Runbook Credential",
+        description:
+          "This permission can read runbook credentials. Secret values are never returned by the API.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -8429,6 +8538,77 @@ export class PermissionHelper {
         title: "Read RUM Application",
         description:
           "This permission can read RUM Application of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+
+      {
+        permission: Permission.CreateRumSessionReplay,
+        title: "Create Session Replay",
+        description:
+          "This permission can ingest session replay recordings for this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadRumSessionReplay,
+        title: "List Session Replays",
+        description:
+          "This permission can list session replay recordings and their metadata for this project. It does NOT grant the ability to watch a recording.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadRumSessionReplayPayload,
+        title: "Watch Session Replays",
+        description:
+          "This permission can play back session replay recordings, viewing what a real end user saw on screen. Grant sparingly and separately from listing.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.DeleteRumSessionReplay,
+        title: "Delete Session Replays",
+        description:
+          "This permission can delete session replay recordings of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadRumSessionReplayAudit,
+        title: "Read Session Replay Audit",
+        description:
+          "This permission can read the audit trail of who watched which session replay recording.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.CreateRumSessionErasureRequest,
+        title: "Create Session Replay Erasure Request",
+        description:
+          "This permission can request erasure of session replay recordings, for example to satisfy a right-to-erasure request from an end user.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Telemetry,
+      },
+      {
+        permission: Permission.ReadRumSessionErasureRequest,
+        title: "Read Session Replay Erasure Requests",
+        description:
+          "This permission can read session replay erasure requests and their completion status.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
         isRolePermission: false,

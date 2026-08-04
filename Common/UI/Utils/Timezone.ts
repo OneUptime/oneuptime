@@ -1,10 +1,26 @@
 import Timezone from "../../Types/Timezone";
 import { DropdownOption } from "../Components/Dropdown/Dropdown";
-import OneUptimeDate from "../../Types/Date";
+import OneUptimeDate, { Moment } from "../../Types/Date";
 
 export default class TimezoneUtil {
   public static getTimezoneDropdownOptions(): DropdownOption[] {
-    let timezoneOptions: Array<string> = Object.keys(Timezone);
+    /*
+     * The Timezone enum outlives the tzdb, so it can still list a zone the
+     * bundled moment-timezone has since dropped ("US/Pacific-New", removed in
+     * tzdata 2020b). Offering one is a trap: every consumer of the choice —
+     * the on-call rotation engine, the SLO windows, this user's own profile —
+     * then holds a zone that cannot be resolved to a wall clock. Filter them
+     * out at the source rather than leave each caller to discover it.
+     */
+    let timezoneOptions: Array<string> = Object.keys(Timezone).filter(
+      (key: string): boolean => {
+        const timezone: Timezone = Timezone[key as keyof typeof Timezone];
+
+        return (
+          Boolean(timezone) && Boolean(Moment.tz.zone(timezone.toString()))
+        );
+      },
+    );
 
     // order timezone by GMT offset.
 

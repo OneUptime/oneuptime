@@ -10,3 +10,10 @@ kubectl get pods --field-selector=status.phase=Failed | grep Error | awk '{print
 kubectl get pods --field-selector=status.phase=Failed | grep ContainerStatusUnknown | awk '{print $1}' | xargs kubectl delete pod
 kubectl get pods --field-selector=status.phase=Failed | grep OOMKilled | awk '{print $1}' | xargs kubectl delete pod
 ```
+
+
+## View Logs
+
+```bash
+kubectl logs -l app=oneuptime-app --all-containers=true -f --max-log-requests=100 > logs.txt
+```

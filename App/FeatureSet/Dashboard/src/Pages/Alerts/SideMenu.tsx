@@ -89,7 +89,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
       ],
     },
     {
-      title: "Workspace Connections",
+      title: "Workspace",
       items: [
         {
           link: {
@@ -197,6 +197,15 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             ),
           },
           icon: IconProp.BookOpen,
+        },
+        {
+          link: {
+            title: "Auto Remediation",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES] as Route,
+            ),
+          },
+          icon: IconProp.Bolt,
         },
         {
           link: {

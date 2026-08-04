@@ -49,18 +49,18 @@ Runbook 代理把这件事翻转过来。Bash 和 JavaScript 步骤不再跑在�
 - 做你希望 Bash/JavaScript 步骤做的事（例如 SSH 到其他主机、`kubectl`、与数据库通信）。
 
 ```bash
-docker run --name oneuptime-runbook-agent --restart unless-stopped \
-  -e RUNBOOK_AGENT_ID=<agent-id> \
-  -e RUNBOOK_AGENT_KEY=<agent-key> \
+docker run --name oneuptime-runner --restart unless-stopped \
+  -e ONEUPTIME_RUNNER_ID=<agent-id> \
+  -e ONEUPTIME_RUNNER_KEY=<agent-key> \
   -e ONEUPTIME_URL=https://oneuptime.yourdomain.com \
-  -d oneuptime/runbook-agent:release
+  -d oneuptime/runner:release
 ```
 
 ### 4. 确认代理已连接
 
 回到 **Runbooks → 设置 → 代理**。约 60 秒之内，这个代理的那一行应该切换到 `Connected`，并显示新的 **最近活跃** 时间戳。如果它一直 `Disconnected`：
 
-- 查看容器日志（`docker logs oneuptime-runbook-agent`）寻找认证错误或网络失败。
+- 查看容器日志（`docker logs oneuptime-runner`）寻找认证错误或网络失败。
 - 用 `curl` 验证主机能否触达你的 OneUptime URL。
 - 验证 ID 与密钥拷贝时没有夹带空白字符。
 
@@ -92,8 +92,8 @@ Worker 的整体等待窗口是 `领取超时 + 执行超时 + 几秒`。挑能�
 
 调低领取超时时有两点要记住：
 
-- 代理是按轮询周期来问有没有活干的（`RUNBOOK_AGENT_POLL_INTERVAL_MS` 决定代理轮询新任务的频率，默认 5 秒）。比一个轮询周期还短的领取超时，可能在一个完全健康的代理连这条任务都还没看到时就已经到点，此时步骤失败给出的信息和代理离线时一样，都是"没有代理领取任务"。
-- 每个代理默认一次只跑一个任务（`RUNBOOK_AGENT_CONCURRENCY` 决定该代理上最多同时跑的任务数）。当一个长步骤占着它时，指向同一个代理的其他步骤只能各自耗着自己的领取超时。如果你把某个执行超时调到几分钟，就把共用这个代理的那些步骤的领取超时也一并调大——或者给它们换一个别的代理。
+- 代理是按轮询周期来问有没有活干的（`ONEUPTIME_RUNNER_POLL_INTERVAL_MS` 决定代理轮询新任务的频率，默认 5 秒）。比一个轮询周期还短的领取超时，可能在一个完全健康的代理连这条任务都还没看到时就已经到点，此时步骤失败给出的信息和代理离线时一样，都是"没有代理领取任务"。
+- 每个代理默认一次只跑一个任务（`ONEUPTIME_RUNNER_CONCURRENCY` 决定该代理上最多同时跑的任务数）。当一个长步骤占着它时，指向同一个代理的其他步骤只能各自耗着自己的领取超时。如果你把某个执行超时调到几分钟，就把共用这个代理的那些步骤的领取超时也一并调大——或者给它们换一个别的代理。
 
 ### 租约与心跳
 
@@ -115,7 +115,7 @@ Worker 的整体等待窗口是 `领取超时 + 执行超时 + 几秒`。挑能�
 
 ### 并发
 
-每个代理默认一次只跑一个任务。要允许更多，在代理容器上设置 `RUNBOOK_AGENT_CONCURRENCY` — 但记住代理是和该主机上其他东西共享资源的。
+每个代理默认一次只跑一个任务。要允许更多，在代理容器上设置 `ONEUPTIME_RUNNER_CONCURRENCY` — 但记住代理是和该主机上其他东西共享资源的。
 
 ## 环境变量
 
@@ -124,12 +124,12 @@ Worker 的整体等待窗口是 `领取超时 + 执行超时 + 几秒`。挑能�
 | 变量                                      | 必填 | 默认值  | 说明                                                                   |
 | ----------------------------------------- | ---- | ------- | ---------------------------------------------------------------------- |
 | `ONEUPTIME_URL`                           | 是   | —       | 你的 OneUptime 实例基础 URL，例如 `https://oneuptime.yourdomain.com`。 |
-| `RUNBOOK_AGENT_ID`                        | 是   | —       | 代理设置对话框中显示的 UUID。                                          |
-| `RUNBOOK_AGENT_KEY`                       | 是   | —       | 代理设置对话框中显示的密钥。                                           |
-| `RUNBOOK_AGENT_POLL_INTERVAL_MS`          | 否   | `5000`  | 代理轮询新任务的频率。                                                 |
-| `RUNBOOK_AGENT_HEARTBEAT_INTERVAL_MS`     | 否   | `60000` | 代理上报存活的频率。                                                   |
-| `RUNBOOK_AGENT_JOB_HEARTBEAT_INTERVAL_MS` | 否   | `10000` | 代理为运行中任务续约的频率。                                           |
-| `RUNBOOK_AGENT_CONCURRENCY`               | 否   | `1`     | 该代理上最多同时跑的任务数。                                           |
+| `ONEUPTIME_RUNNER_ID`                        | 是   | —       | 代理设置对话框中显示的 UUID。                                          |
+| `ONEUPTIME_RUNNER_KEY`                       | 是   | —       | 代理设置对话框中显示的密钥。                                           |
+| `ONEUPTIME_RUNNER_POLL_INTERVAL_MS`          | 否   | `5000`  | 代理轮询新任务的频率。                                                 |
+| `ONEUPTIME_RUNNER_HEARTBEAT_INTERVAL_MS`     | 否   | `60000` | 代理上报存活的频率。                                                   |
+| `ONEUPTIME_RUNNER_JOB_HEARTBEAT_INTERVAL_MS` | 否   | `10000` | 代理为运行中任务续约的频率。                                           |
+| `ONEUPTIME_RUNNER_CONCURRENCY`               | 否   | `1`     | 该代理上最多同时跑的任务数。                                           |
 
 ## 轮换代理密钥
 
@@ -139,14 +139,14 @@ Worker 的整体等待窗口是 `领取超时 + 执行超时 + 几秒`。挑能�
 
 代理管理位于现有 Runbooks 权限组之下：
 
-- `CreateRunbookAgent`、`EditRunbookAgent`、`DeleteRunbookAgent`、`ReadRunbookAgent` — 管理代理记录。
+- `CreateRunner`、`EditRunner`、`DeleteRunner`、`ReadRunner` — 管理代理记录。
 - `RunbookAdmin`、`RunbookMember`、`RunbookViewer`（角色） — 分配给团队以分别授予完整控制、日常使用或只读访问。`RunbookAdmin` 把上面所有细粒度权限打包在一起。
 
 _触发_ Runbook（从而让 Bash 与 JavaScript 步骤被派发）的权限仍是 `CreateRunbookExecution` / `EditRunbookExecution`。
 
 ## 面向代理的 API
 
-供好奇者参考——代理使用以下端点。所有端点都挂在 `/runbook-agent-ingest` 下，通过 JSON 体里的代理 ID + 密钥（或 `x-agent-id` / `x-agent-key` 头）认证。
+供好奇者参考——代理使用以下端点。所有端点都挂在 `/runner-ingest` 下，通过 JSON 体里的代理 ID + 密钥（或 `x-agent-id` / `x-agent-key` 头）认证。
 
 | 端点                         | 用途                                                                                        |
 | ---------------------------- | ------------------------------------------------------------------------------------------- |

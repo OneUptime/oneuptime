@@ -16,6 +16,7 @@ import UpdateBy from "../Types/Database/UpdateBy";
 import logger, { LogAttributes } from "../Utils/Logger";
 import Errors from "../Utils/Errors";
 import ProductAnalytics from "../Utils/ProductAnalytics";
+import SessionReplayGateCacheStore from "../Utils/SessionReplay/SessionReplayGateCacheStore";
 import AccessTokenService from "./AccessTokenService";
 import BillingService from "./BillingService";
 import DatabaseService from "./DatabaseService";
@@ -358,6 +359,52 @@ export class ProjectService extends DatabaseService<Model> {
     }
 
     return Promise.resolve({ createBy: data, carryForward: null });
+  }
+
+  /*
+   * Session replay is gated on the project's org-wide allow flag, and the
+   * ingest gate caches the resolved policy per pod. Turning the flag off has
+   * to reach every pod now, not after the cache TTL plus the config
+   * endpoint's browser cache - roughly six minutes - so the Redis kill key
+   * is written here. Best effort: a Redis outage only means the ordinary
+   * cache expiry applies.
+   */
+  @CaptureSpan()
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<Model>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<Model>> {
+    const updateData: Record<string, unknown> = onUpdate.updateBy
+      .data as unknown as Record<string, unknown>;
+
+    if (!("isSessionReplayAllowed" in updateData)) {
+      return onUpdate;
+    }
+
+    const isTurningOff: boolean = updateData["isSessionReplayAllowed"] !== true;
+
+    for (const projectId of updatedItemIds) {
+      try {
+        SessionReplayGateCacheStore.clearCache(projectId);
+
+        if (isTurningOff) {
+          await SessionReplayGateCacheStore.markProjectDisabled(projectId);
+        } else {
+          /*
+           * Re-enabling has to drop a kill key left over from an earlier
+           * disable, or the project stays refused for the rest of its TTL.
+           */
+          await SessionReplayGateCacheStore.clearProjectDisabled(projectId);
+        }
+      } catch (err) {
+        logger.warn(
+          `ProjectService: could not invalidate the session replay gate cache for project ${projectId.toString()}`,
+        );
+        logger.warn(err);
+      }
+    }
+
+    return onUpdate;
   }
 
   @CaptureSpan()

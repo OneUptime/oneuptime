@@ -609,6 +609,13 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_http_version 1.1;
         proxy_set_header Connection $connection_upgrade;
 
+        # The session replay router is mounted on BOTH "/" and "/telemetry",
+        # so /telemetry/session-replay/v1/chunk is equally live. Without this
+        # line nginx's 1M default applies on that path and a 1-2M chunk gets a
+        # bare nginx 413 with no directive and no chance for the app to answer.
+        # Kept identical to the /session-replay block.
+        client_max_body_size 4M;
+
         proxy_pass ${BACKEND_APP_TARGET};
     }
 
@@ -662,6 +669,34 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
         proxy_set_header Connection $connection_upgrade;
 
         proxy_pass ${BACKEND_APP_TARGET};
+    }
+
+    # Session replay chunk ingestion, posted to directly by end-user browsers.
+    # Needs its own location for the same reason /otlp, /pyroscope and
+    # /kubernetes-cost do: with BILLING_ENABLED=true the catch-all
+    # `location /` proxies to the marketing Home service, so a root-path
+    # ingest would 404 instead of reaching the app.
+    location /session-replay {
+        resolver ${NGINX_RESOLVER} valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Reuse pooled upstream connections for this high-volume ingest path.
+        proxy_http_version 1.1;
+        proxy_set_header Connection $connection_upgrade;
+
+        proxy_pass ${BACKEND_APP_TARGET};
+
+        # nginx.conf sets no global client_max_body_size, so without this line
+        # nginx's 1M default would apply while Express allows 50M — chunks
+        # between 1M and 2M would be rejected by the proxy with no way for the
+        # app to answer 413 with a directive. 4M rather than 2M because
+        # MAX_SESSION_REPLAY_CHUNK_BYTES is a per-REQUEST cap enforced in the
+        # app, and this only has to be comfortably above it.
+        client_max_body_size 4M;
     }
 
     # Pyroscope profiling ingestion endpoint
@@ -1082,6 +1117,58 @@ ${PROVISION_SSL_CERTIFICATE_KEY_DIRECTIVE}
     }
 
     location /runbook {
+        resolver ${NGINX_RESOLVER} valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # enable WebSockets
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_pass ${BACKEND_APP_TARGET};
+
+        client_max_body_size 50M;
+    }
+
+    # The OneUptime Runner's work mount: heartbeat, claim-next-job, and job
+    # result reporting. A customer's Runner is installed OUTSIDE the cluster and
+    # reaches this over the public URL, so it has to be routed here explicitly.
+    #
+    # It needs its own location for the same reason /probe-ingest and /telemetry
+    # do: the catch-all `location /` proxies to the marketing Home service when
+    # billing is enabled, so without this block every heartbeat 404s. That is
+    # exactly what happened when the mount was renamed from
+    # /runbook-agent-ingest to /runner-ingest — the old name was matched by the
+    # `location /runbook` prefix above purely by accident, the new one is not,
+    # and every project-scoped Runner failed to register with a bare 404.
+    location /runner-ingest {
+        resolver ${NGINX_RESOLVER} valid=30s;
+        set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # enable WebSockets
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_pass ${BACKEND_APP_TARGET};
+
+        # A job result carries the step's stdout/stderr, so it is far larger
+        # than a heartbeat. The 1M default would 413 a chatty script.
+        client_max_body_size 50M;
+    }
+
+    # The pre-merge Runbook Agent hardcoded this path and the app still mounts
+    # it (see LEGACY_AGENT_INGRESS_PATH in App/FeatureSet/Runbook/Index.ts).
+    # Written out rather than left to the `location /runbook` prefix above,
+    # because relying on that accidental match is what broke the rename in the
+    # first place. Longest-prefix wins, so this takes precedence over /runbook.
+    location /runbook-agent-ingest {
         resolver ${NGINX_RESOLVER} valid=30s;
         set $backend_app http://${SERVER_APP_HOSTNAME}:${APP_PORT};
         proxy_set_header Host $host;

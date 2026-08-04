@@ -5,9 +5,17 @@ import SiteContainerGraph from "../../Components/NetworkSite/SiteContainerGraph"
 import SiteGeoMap from "../../Components/NetworkSite/SiteGeoMap";
 import {
   LEGACY_NETWORK_MAP_REGION_PARAM,
+  NETWORK_MAP_SEARCH_PARAM,
   NetworkMapDrillState,
   readDrillStateFromUrl,
 } from "../../Components/NetworkSite/NetworkMapDrillState";
+import SiteSearchBox from "../../Components/NetworkSite/SiteSearchBox";
+import {
+  filterLinksBySearch,
+  filterSitesBySearch,
+  normalizeSiteSearchText,
+  siteIdSet,
+} from "../../Components/NetworkSite/SiteSearchUtil";
 import {
   MapSiteView,
   MapUnplacedSiteView,
@@ -142,6 +150,16 @@ const NetworkSiteMap: FunctionComponent<
   const [error, setError] = useState<string>("");
 
   /*
+   * What the search box holds. Seeded from the URL like the drill position
+   * is, and mirrored back to it, so a filtered map is a link somebody can
+   * send. It narrows the level in view locally; finding a site ELSEWHERE in
+   * the hierarchy is the search box's own job (see SiteSearchBox).
+   */
+  const [searchText, setSearchTextState] = useState<string>((): string => {
+    return readDrillStateFromUrl().searchText;
+  });
+
+  /*
    * How the map groups what it draws. Deliberately NOT in the URL: the
    * drill state is the shareable part of this page (see
    * NetworkMapDrillState), and whether one viewer prefers to see regions or
@@ -196,6 +214,16 @@ const NetworkSiteMap: FunctionComponent<
       }
     };
   }, []);
+
+  /*
+   * React state is the source of truth; the URL is a mirror, written through
+   * the same debounced queue the drill position uses (Safari rate-limits
+   * replaceState, and this one is written per keystroke).
+   */
+  const setSearchText: (value: string) => void = (value: string): void => {
+    setSearchTextState(value);
+    queueQueryStringUpdate({ [NETWORK_MAP_SEARCH_PARAM]: value || null });
+  };
 
   const location: Location = useLocation();
 
@@ -415,7 +443,12 @@ const NetworkSiteMap: FunctionComponent<
     setIsLoading(true);
     setError("");
     setCurrentSiteId(siteId);
-    queueQueryStringUpdate({ site: siteId });
+    // Text that narrowed THIS level would hide most of the next one.
+    setSearchTextState("");
+    queueQueryStringUpdate({
+      site: siteId,
+      [NETWORK_MAP_SEARCH_PARAM]: null,
+    });
   };
 
   /*
@@ -441,6 +474,12 @@ const NetworkSiteMap: FunctionComponent<
   useEffect(() => {
     const drillState: NetworkMapDrillState = readDrillStateFromUrl();
     changeSite(drillState.siteId);
+    /*
+     * After changeSite, never before: a real drill clears the search, and
+     * seeding it first would hand that clear something to throw away. The URL
+     * is the authority on both halves of what is on screen.
+     */
+    setSearchTextState(drillState.searchText);
     /*
      * Links from before the map dropped its "United States / World" toggle
      * still carry that parameter. Nothing reads it any more, so clear it
@@ -513,12 +552,54 @@ const NetworkSiteMap: FunctionComponent<
    * children are all Regions still says "regions" while some of them are
    * missing from the map for want of coordinates.
    */
-  const levelSites: Array<SiteChildView> = childrenData?.children || [];
-  const levelLinks: Array<SiteLinkView> = childrenData?.links || [];
-  const pinnedSites: Array<MapSiteView> = mapData?.sites || [];
-  const unplacedSites: Array<MapUnplacedSiteView> =
-    mapData?.unplacedSites || [];
-  const childTypeLabel: string = childTypeLabelFor(levelSites);
+  const allLevelSites: Array<SiteChildView> = childrenData?.children || [];
+  const allLevelLinks: Array<SiteLinkView> = childrenData?.links || [];
+  const allPinnedSites: Array<MapSiteView> = mapData?.sites || [];
+  /*
+   * From the UNFILTERED list on purpose. The label names what the children of
+   * this level ARE — searching for one region does not turn a level of
+   * Regions into a level of something else, and a label that changed under a
+   * filter would rewrite the map's legend and its counts as you type.
+   */
+  const childTypeLabel: string = childTypeLabelFor(allLevelSites);
+
+  /*
+   * The search narrows the whole level at once — the markers, the cards or
+   * graph, the unplaced list and the WAN links all through the same
+   * predicate, so the halves of this page cannot disagree about what is being
+   * looked at. An empty box is not a filter: every helper here hands back the
+   * input array untouched, which also keeps the map's projection and the
+   * graph's grid layout off the work queue on every unrelated re-render.
+   */
+  const normalizedSearch: string = normalizeSiteSearchText(searchText);
+  const levelSites: Array<SiteChildView> = filterSitesBySearch(
+    allLevelSites,
+    normalizedSearch,
+  );
+  const pinnedSites: Array<MapSiteView> = filterSitesBySearch(
+    allPinnedSites,
+    normalizedSearch,
+  );
+  const unplacedSites: Array<MapUnplacedSiteView> = filterSitesBySearch(
+    mapData?.unplacedSites || [],
+    normalizedSearch,
+  );
+  const levelLinks: Array<SiteLinkView> = filterLinksBySearch(
+    allLevelLinks,
+    normalizedSearch,
+    siteIdSet(levelSites),
+  );
+
+  const searchBox: ReactElement = (
+    <SiteSearchBox
+      value={searchText}
+      onChange={setSearchText}
+      onSelectSite={changeSite}
+      localMatchCount={levelSites.length}
+      localTotalCount={allLevelSites.length}
+      childTypeLabel={childTypeLabel}
+    />
+  );
 
   const geoMap: ReactElement = (
     <SiteGeoMap
@@ -528,6 +609,7 @@ const NetworkSiteMap: FunctionComponent<
       onModeChange={setMapMode}
       unplacedSites={unplacedSites}
       childTypeLabel={childTypeLabel}
+      searchText={searchText}
       onSiteClick={changeSite}
     />
   );
@@ -548,6 +630,13 @@ const NetworkSiteMap: FunctionComponent<
           buttons={[refreshButton]}
         >
           {/*
+           * Above the map, not beside it: the box narrows the map AND the
+           * graph under it, so it has to read as belonging to both rather
+           * than as a control on either one.
+           */}
+          <div className="mb-4 sm:max-w-md">{searchBox}</div>
+
+          {/*
            * The map comes first at every level, and it is the SAME map:
            * drilling re-frames it onto this site's children instead of
            * swapping it out for a diagram. The graph below it is the other
@@ -559,7 +648,11 @@ const NetworkSiteMap: FunctionComponent<
           <MapSection
             title="Sites"
             count={levelSites.length}
-            hint="Click a site to drill in; a unit opens its device topology."
+            hint={
+              normalizedSearch
+                ? "Matching sites at this level. Click one to drill in."
+                : "Click a site to drill in; a unit opens its device topology."
+            }
           >
             <SiteContainerGraph
               sites={levelSites}
@@ -568,6 +661,7 @@ const NetworkSiteMap: FunctionComponent<
               descendantCountsTruncated={Boolean(
                 childrenData?.descendantCountsTruncated,
               )}
+              searchText={searchText}
               onSiteClick={changeSite}
             />
           </MapSection>
@@ -580,7 +674,13 @@ const NetworkSiteMap: FunctionComponent<
   const rootSites: Array<SiteChildView> = levelSites;
   const rootLinks: Array<SiteLinkView> = levelLinks;
 
-  if (rootSites.length === 0 && pinnedSites.length === 0) {
+  /*
+   * "No network sites yet" is a claim about the PROJECT, so it is decided on
+   * the unfiltered lists. A search that matches nothing must not tell a
+   * customer with a thousand stores that they have never created one — that
+   * case is the map's own "nothing matches" state, further down.
+   */
+  if (allLevelSites.length === 0 && allPinnedSites.length === 0) {
     return (
       <Card title={PAGE_TITLE} description={PAGE_DESCRIPTION}>
         {/* EmptyState ships 13rem of vertical padding for a full-page
@@ -624,6 +724,8 @@ const NetworkSiteMap: FunctionComponent<
        * sites are, and zoom/pan live on the map itself where the geography
        * is — see Components/NetworkSite/Geo/GeoViewport.ts.
        */}
+      <div className="mb-4 sm:max-w-md">{searchBox}</div>
+
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-xs text-gray-500">
           Drag to pan, scroll to zoom, or use the controls on the map.
@@ -652,7 +754,11 @@ const NetworkSiteMap: FunctionComponent<
         <MapSection
           title="Sites"
           count={rootSites.length}
-          hint="Click a site to drill into its markets and units."
+          hint={
+            normalizedSearch
+              ? "Matching top-level sites. Click one to drill in."
+              : "Click a site to drill into its markets and units."
+          }
         >
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {rootSites.map((site: SiteChildView): ReactElement => {

@@ -11,6 +11,11 @@ import BaseModel, {
   DatabaseBaseModelType,
 } from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import CustomFieldType from "../../../Types/CustomField/CustomFieldType";
+import {
+  CustomFieldDropdownOption,
+  parseCustomFieldDropdownOptions,
+} from "../../../Types/CustomField/CustomFieldDropdownOption";
+import Color from "../../../Types/Color";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import { PromiseVoidFunction } from "../../../Types/FunctionTypes";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -22,20 +27,20 @@ import useAsyncEffect from "use-async-effect";
 const parseDropdownOptions: (value: unknown) => Array<DropdownOption> = (
   value: unknown,
 ): Array<DropdownOption> => {
-  if (typeof value !== "string" || !value) {
-    return [];
-  }
-  return value
-    .split("\n")
-    .map((line: string) => {
-      return line.trim();
-    })
-    .filter((line: string) => {
-      return line.length > 0;
-    })
-    .map((line: string) => {
-      return { label: line, value: line };
-    });
+  return parseCustomFieldDropdownOptions(value).map(
+    (option: CustomFieldDropdownOption): DropdownOption => {
+      const dropdownOption: DropdownOption = {
+        label: option.value,
+        value: option.value,
+      };
+
+      if (option.color) {
+        dropdownOption.color = Color.fromString(option.color);
+      }
+
+      return dropdownOption;
+    },
+  );
 };
 
 export interface ComponentProps {

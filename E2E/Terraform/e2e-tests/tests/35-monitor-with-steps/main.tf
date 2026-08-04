@@ -20,7 +20,7 @@ resource "random_id" "suffix" {
   byte_length = 4
 }
 
-# Test: Monitor Types with Monitor Steps
+# Test: Monitor Types with Monitor Steps (typed nested syntax)
 #
 # This test validates creating different monitor types with proper monitor_steps:
 # - Website Monitor with HTTP checks
@@ -29,13 +29,24 @@ resource "random_id" "suffix" {
 # - Port Monitor with specific port
 # - SSL Certificate Monitor
 # - IP Monitor
+#
+# monitor_steps is a typed nested attribute: no jsonencode(), no
+# {_type, value} envelopes and no hand-written step/criteria ids —
+# the server generates ids.
 
-# Create monitor statuses for criteria
+# Create monitor statuses for criteria.
+#
+# Priority semantics on the server are INSERT slots: creating a status with
+# priority P shifts every existing status with priority >= P up by one, and
+# priority cannot be updated after create. Dense low priorities therefore
+# collide with the project's default statuses and race under Terraform's
+# parallel creates. High, gapped priorities created in ascending order
+# (chained with depends_on) never shift anything and are deterministic.
 resource "oneuptime_monitor_status" "operational" {
   name                 = "TF Operational ${random_id.suffix.hex}"
   description          = "Monitor is operational"
   color                = "#2ecc71"
-  priority             = 1
+  priority             = 101
   is_operational_state = true
 }
 
@@ -43,16 +54,20 @@ resource "oneuptime_monitor_status" "degraded" {
   name                 = "TF Degraded ${random_id.suffix.hex}"
   description          = "Monitor is degraded"
   color                = "#f39c12"
-  priority             = 2
+  priority             = 102
   is_operational_state = false
+
+  depends_on = [oneuptime_monitor_status.operational]
 }
 
 resource "oneuptime_monitor_status" "offline" {
   name                 = "TF Offline ${random_id.suffix.hex}"
   description          = "Monitor is offline"
   color                = "#e74c3c"
-  priority             = 3
+  priority             = 103
   is_operational_state = false
+
+  depends_on = [oneuptime_monitor_status.degraded]
 }
 
 # =============================================================================
@@ -62,88 +77,58 @@ resource "oneuptime_monitor" "website" {
   name         = "TF Website Monitor ${random_id.suffix.hex}"
   description  = "Website monitor with URL destination and response criteria"
   monitor_type = "Website"
+  # Probes must not evaluate these monitors: an active probe writes
+  # currentMonitorStatusId back onto the monitor while the destroy is
+  # deleting it, racing the status deletes this fixture performs next.
+  # The monitor_steps contract under test is exercised by create /
+  # read / import round-trip, not by live probing.
+  disable_active_monitoring = true
 
-  monitor_steps = jsonencode({
-    _type = "MonitorSteps"
-    value = {
-      monitorStepsInstanceArray = [
-        {
-          _type = "MonitorStep"
-          value = {
-            id = "step-website-1"
-            monitorDestination = {
-              _type = "URL"
-              value = "https://example.com"
-            }
-            requestType = "GET"
-            monitorCriteria = {
-              _type = "MonitorCriteria"
-              value = {
-                monitorCriteriaInstanceArray = [
-                  {
-                    _type = "MonitorCriteriaInstance"
-                    value = {
-                      id               = "criteria-online"
-                      name             = "Online"
-                      description      = "Check if website is online"
-                      filterCondition  = "All"
-                      changeMonitorStatus = true
-                      createIncidents  = false
-                      createAlerts     = false
-                      monitorStatusId  = oneuptime_monitor_status.operational.id
-                      filters = [
-                        {
-                          _type = "CriteriaFilter"
-                          value = {
-                            checkOn    = "Is Online"
-                            filterType = "True"
-                          }
-                        },
-                        {
-                          _type = "CriteriaFilter"
-                          value = {
-                            checkOn    = "Response Status Code"
-                            filterType = "Equal To"
-                            value      = "200"
-                          }
-                        }
-                      ]
-                      incidents = []
-                      alerts    = []
-                    }
-                  },
-                  {
-                    _type = "MonitorCriteriaInstance"
-                    value = {
-                      id               = "criteria-offline"
-                      name             = "Offline"
-                      description      = "Check if website is offline"
-                      filterCondition  = "Any"
-                      changeMonitorStatus = true
-                      createIncidents  = false
-                      createAlerts     = false
-                      monitorStatusId  = oneuptime_monitor_status.offline.id
-                      filters = [
-                        {
-                          _type = "CriteriaFilter"
-                          value = {
-                            checkOn    = "Is Online"
-                            filterType = "False"
-                          }
-                        }
-                      ]
-                      incidents = []
-                      alerts    = []
-                    }
-                  }
-                ]
-              }
-            }
+  monitor_steps = [{
+    monitor_destination      = "https://example.com"
+    monitor_destination_type = "URL"
+    request_type             = "GET"
+
+    criteria = [
+      {
+        name                  = "Online"
+        description           = "Check if website is online"
+        filter_condition      = "All"
+        change_monitor_status = true
+        create_incidents      = false
+        create_alerts         = false
+        monitor_status_id     = oneuptime_monitor_status.operational.id
+
+        filters = [
+          {
+            check_on    = "Is Online"
+            filter_type = "True"
+          },
+          {
+            check_on    = "Response Status Code"
+            filter_type = "Equal To"
+            value       = "200"
           }
-        }
-      ]
-    }
-  })
+        ]
+      },
+      {
+        name                  = "Offline"
+        description           = "Check if website is offline"
+        filter_condition      = "Any"
+        change_monitor_status = true
+        create_incidents      = false
+        create_alerts         = false
+        monitor_status_id     = oneuptime_monitor_status.offline.id
+
+        filters = [
+          {
+            check_on    = "Is Online"
+            filter_type = "False"
+          }
+        ]
+      }
+    ]
+  }]
 
   depends_on = [oneuptime_monitor_status.operational, oneuptime_monitor_status.offline]
 }
@@ -155,70 +140,50 @@ resource "oneuptime_monitor" "api" {
   name         = "TF API Monitor ${random_id.suffix.hex}"
   description  = "API monitor with POST request, headers, and body"
   monitor_type = "API"
+  # Probes must not evaluate these monitors: an active probe writes
+  # currentMonitorStatusId back onto the monitor while the destroy is
+  # deleting it, racing the status deletes this fixture performs next.
+  # The monitor_steps contract under test is exercised by create /
+  # read / import round-trip, not by live probing.
+  disable_active_monitoring = true
 
-  monitor_steps = jsonencode({
-    _type = "MonitorSteps"
-    value = {
-      monitorStepsInstanceArray = [
-        {
-          _type = "MonitorStep"
-          value = {
-            id = "step-api-1"
-            monitorDestination = {
-              _type = "URL"
-              value = "https://httpbin.org/post"
-            }
-            requestType = "POST"
-            requestHeaders = {
-              "Content-Type"    = "application/json"
-              "Accept"          = "application/json"
-              "X-Custom-Header" = "test-value"
-            }
-            requestBody = "{\"test\": \"data\"}"
-            monitorCriteria = {
-              _type = "MonitorCriteria"
-              value = {
-                monitorCriteriaInstanceArray = [
-                  {
-                    _type = "MonitorCriteriaInstance"
-                    value = {
-                      id               = "criteria-api-success"
-                      name             = "API Success"
-                      description      = "API returns success response"
-                      filterCondition  = "All"
-                      changeMonitorStatus = true
-                      createIncidents  = false
-                      createAlerts     = false
-                      monitorStatusId  = oneuptime_monitor_status.operational.id
-                      filters = [
-                        {
-                          _type = "CriteriaFilter"
-                          value = {
-                            checkOn    = "Is Online"
-                            filterType = "True"
-                          }
-                        },
-                        {
-                          _type = "CriteriaFilter"
-                          value = {
-                            checkOn    = "Response Status Code"
-                            filterType = "Equal To"
-                            value      = "200"
-                          }
-                        }
-                      ]
-                      incidents = []
-                      alerts    = []
-                    }
-                  }
-                ]
-              }
-            }
-          }
-        }
-      ]
+  monitor_steps = [{
+    monitor_destination      = "https://httpbin.org/post"
+    monitor_destination_type = "URL"
+    request_type             = "POST"
+
+    request_headers = {
+      "Content-Type"    = "application/json"
+      "Accept"          = "application/json"
+      "X-Custom-Header" = "test-value"
     }
-  })
+
+    request_body = "{\"test\": \"data\"}"
+
+    criteria = [
+      {
+        name                  = "API Success"
+        description           = "API returns success response"
+        filter_condition      = "All"
+        change_monitor_status = true
+        create_incidents      = false
+        create_alerts         = false
+        monitor_status_id     = oneuptime_monitor_status.operational.id
+
+        filters = [
+          {
+            check_on    = "Is Online"
+            filter_type = "True"
+          },
+          {
+            check_on    = "Response Status Code"
+            filter_type = "Equal To"
+            value       = "200"
+          }
+        ]
+      }
+    ]
+  }]
 
   depends_on = [oneuptime_monitor_status.operational]
 }
@@ -230,80 +195,53 @@ resource "oneuptime_monitor" "ping" {
   name         = "TF Ping Monitor ${random_id.suffix.hex}"
   description  = "Ping monitor with hostname destination"
   monitor_type = "Ping"
+  # Probes must not evaluate these monitors: an active probe writes
+  # currentMonitorStatusId back onto the monitor while the destroy is
+  # deleting it, racing the status deletes this fixture performs next.
+  # The monitor_steps contract under test is exercised by create /
+  # read / import round-trip, not by live probing.
+  disable_active_monitoring = true
 
-  monitor_steps = jsonencode({
-    _type = "MonitorSteps"
-    value = {
-      monitorStepsInstanceArray = [
-        {
-          _type = "MonitorStep"
-          value = {
-            id = "step-ping-1"
-            monitorDestination = {
-              _type = "Hostname"
-              value = "google.com"
-            }
-            requestType = "GET"
-            monitorCriteria = {
-              _type = "MonitorCriteria"
-              value = {
-                monitorCriteriaInstanceArray = [
-                  {
-                    _type = "MonitorCriteriaInstance"
-                    value = {
-                      id               = "criteria-ping-online"
-                      name             = "Ping Success"
-                      description      = "Host responds to ping"
-                      filterCondition  = "All"
-                      changeMonitorStatus = true
-                      createIncidents  = false
-                      createAlerts     = false
-                      monitorStatusId  = oneuptime_monitor_status.operational.id
-                      filters = [
-                        {
-                          _type = "CriteriaFilter"
-                          value = {
-                            checkOn    = "Is Online"
-                            filterType = "True"
-                          }
-                        }
-                      ]
-                      incidents = []
-                      alerts    = []
-                    }
-                  },
-                  {
-                    _type = "MonitorCriteriaInstance"
-                    value = {
-                      id               = "criteria-ping-offline"
-                      name             = "Ping Failure"
-                      description      = "Host does not respond"
-                      filterCondition  = "All"
-                      changeMonitorStatus = true
-                      createIncidents  = false
-                      createAlerts     = false
-                      monitorStatusId  = oneuptime_monitor_status.offline.id
-                      filters = [
-                        {
-                          _type = "CriteriaFilter"
-                          value = {
-                            checkOn    = "Is Online"
-                            filterType = "False"
-                          }
-                        }
-                      ]
-                      incidents = []
-                      alerts    = []
-                    }
-                  }
-                ]
-              }
-            }
+  monitor_steps = [{
+    monitor_destination      = "google.com"
+    monitor_destination_type = "Hostname"
+    request_type             = "GET"
+
+    criteria = [
+      {
+        name                  = "Ping Success"
+        description           = "Host responds to ping"
+        filter_condition      = "All"
+        change_monitor_status = true
+        create_incidents      = false
+        create_alerts         = false
+        monitor_status_id     = oneuptime_monitor_status.operational.id
+
+        filters = [
+          {
+            check_on    = "Is Online"
+            filter_type = "True"
           }
-        }
-      ]
-    }
-  })
+        ]
+      },
+      {
+        name                  = "Ping Failure"
+        description           = "Host does not respond"
+        filter_condition      = "All"
+        change_monitor_status = true
+        create_incidents      = false
+        create_alerts         = false
+        monitor_status_id     = oneuptime_monitor_status.offline.id
+
+        filters = [
+          {
+            check_on    = "Is Online"
+            filter_type = "False"
+          }
+        ]
+      }
+    ]
+  }]
 
   depends_on = [oneuptime_monitor_status.operational, oneuptime_monitor_status.offline]
 }
@@ -315,60 +253,38 @@ resource "oneuptime_monitor" "port" {
   name         = "TF Port Monitor ${random_id.suffix.hex}"
   description  = "Port monitor checking HTTPS port"
   monitor_type = "Port"
+  # Probes must not evaluate these monitors: an active probe writes
+  # currentMonitorStatusId back onto the monitor while the destroy is
+  # deleting it, racing the status deletes this fixture performs next.
+  # The monitor_steps contract under test is exercised by create /
+  # read / import round-trip, not by live probing.
+  disable_active_monitoring = true
 
-  monitor_steps = jsonencode({
-    _type = "MonitorSteps"
-    value = {
-      monitorStepsInstanceArray = [
-        {
-          _type = "MonitorStep"
-          value = {
-            id = "step-port-1"
-            monitorDestination = {
-              _type = "Hostname"
-              value = "google.com"
-            }
-            monitorDestinationPort = {
-              _type = "Port"
-              value = 443
-            }
-            requestType = "GET"
-            monitorCriteria = {
-              _type = "MonitorCriteria"
-              value = {
-                monitorCriteriaInstanceArray = [
-                  {
-                    _type = "MonitorCriteriaInstance"
-                    value = {
-                      id               = "criteria-port-open"
-                      name             = "Port Open"
-                      description      = "Port is accepting connections"
-                      filterCondition  = "All"
-                      changeMonitorStatus = true
-                      createIncidents  = false
-                      createAlerts     = false
-                      monitorStatusId  = oneuptime_monitor_status.operational.id
-                      filters = [
-                        {
-                          _type = "CriteriaFilter"
-                          value = {
-                            checkOn    = "Is Online"
-                            filterType = "True"
-                          }
-                        }
-                      ]
-                      incidents = []
-                      alerts    = []
-                    }
-                  }
-                ]
-              }
-            }
+  monitor_steps = [{
+    monitor_destination      = "google.com"
+    monitor_destination_type = "Hostname"
+    port                     = 443
+    request_type             = "GET"
+
+    criteria = [
+      {
+        name                  = "Port Open"
+        description           = "Port is accepting connections"
+        filter_condition      = "All"
+        change_monitor_status = true
+        create_incidents      = false
+        create_alerts         = false
+        monitor_status_id     = oneuptime_monitor_status.operational.id
+
+        filters = [
+          {
+            check_on    = "Is Online"
+            filter_type = "True"
           }
-        }
-      ]
-    }
-  })
+        ]
+      }
+    ]
+  }]
 
   depends_on = [oneuptime_monitor_status.operational]
 }
@@ -380,81 +296,54 @@ resource "oneuptime_monitor" "ssl" {
   name         = "TF SSL Certificate Monitor ${random_id.suffix.hex}"
   description  = "SSL certificate monitor checking certificate validity"
   monitor_type = "SSL Certificate"
+  # Probes must not evaluate these monitors: an active probe writes
+  # currentMonitorStatusId back onto the monitor while the destroy is
+  # deleting it, racing the status deletes this fixture performs next.
+  # The monitor_steps contract under test is exercised by create /
+  # read / import round-trip, not by live probing.
+  disable_active_monitoring = true
 
-  monitor_steps = jsonencode({
-    _type = "MonitorSteps"
-    value = {
-      monitorStepsInstanceArray = [
-        {
-          _type = "MonitorStep"
-          value = {
-            id = "step-ssl-1"
-            monitorDestination = {
-              _type = "URL"
-              value = "https://google.com"
-            }
-            requestType = "GET"
-            monitorCriteria = {
-              _type = "MonitorCriteria"
-              value = {
-                monitorCriteriaInstanceArray = [
-                  {
-                    _type = "MonitorCriteriaInstance"
-                    value = {
-                      id               = "criteria-ssl-valid"
-                      name             = "Certificate Valid"
-                      description      = "SSL certificate is valid"
-                      filterCondition  = "All"
-                      changeMonitorStatus = true
-                      createIncidents  = false
-                      createAlerts     = false
-                      monitorStatusId  = oneuptime_monitor_status.operational.id
-                      filters = [
-                        {
-                          _type = "CriteriaFilter"
-                          value = {
-                            checkOn    = "Is Valid Certificate"
-                            filterType = "True"
-                          }
-                        }
-                      ]
-                      incidents = []
-                      alerts    = []
-                    }
-                  },
-                  {
-                    _type = "MonitorCriteriaInstance"
-                    value = {
-                      id               = "criteria-ssl-expiring"
-                      name             = "Certificate Expiring Soon"
-                      description      = "Certificate expires within 30 days"
-                      filterCondition  = "All"
-                      changeMonitorStatus = true
-                      createIncidents  = false
-                      createAlerts     = false
-                      monitorStatusId  = oneuptime_monitor_status.degraded.id
-                      filters = [
-                        {
-                          _type = "CriteriaFilter"
-                          value = {
-                            checkOn    = "Expires In Days"
-                            filterType = "Less Than"
-                            value      = "30"
-                          }
-                        }
-                      ]
-                      incidents = []
-                      alerts    = []
-                    }
-                  }
-                ]
-              }
-            }
+  monitor_steps = [{
+    monitor_destination      = "https://google.com"
+    monitor_destination_type = "URL"
+    request_type             = "GET"
+
+    criteria = [
+      {
+        name                  = "Certificate Valid"
+        description           = "SSL certificate is valid"
+        filter_condition      = "All"
+        change_monitor_status = true
+        create_incidents      = false
+        create_alerts         = false
+        monitor_status_id     = oneuptime_monitor_status.operational.id
+
+        filters = [
+          {
+            check_on    = "Is Valid Certificate"
+            filter_type = "True"
           }
-        }
-      ]
-    }
-  })
+        ]
+      },
+      {
+        name                  = "Certificate Expiring Soon"
+        description           = "Certificate expires within 30 days"
+        filter_condition      = "All"
+        change_monitor_status = true
+        create_incidents      = false
+        create_alerts         = false
+        monitor_status_id     = oneuptime_monitor_status.degraded.id
+
+        filters = [
+          {
+            check_on    = "Expires In Days"
+            filter_type = "Less Than"
+            value       = "30"
+          }
+        ]
+      }
+    ]
+  }]
 
   depends_on = [oneuptime_monitor_status.operational, oneuptime_monitor_status.degraded]
 }
@@ -466,56 +355,37 @@ resource "oneuptime_monitor" "ip" {
   name         = "TF IP Monitor ${random_id.suffix.hex}"
   description  = "IP monitor checking connectivity"
   monitor_type = "IP"
+  # Probes must not evaluate these monitors: an active probe writes
+  # currentMonitorStatusId back onto the monitor while the destroy is
+  # deleting it, racing the status deletes this fixture performs next.
+  # The monitor_steps contract under test is exercised by create /
+  # read / import round-trip, not by live probing.
+  disable_active_monitoring = true
 
-  monitor_steps = jsonencode({
-    _type = "MonitorSteps"
-    value = {
-      monitorStepsInstanceArray = [
-        {
-          _type = "MonitorStep"
-          value = {
-            id = "step-ip-1"
-            monitorDestination = {
-              _type = "IP"
-              value = "8.8.8.8"
-            }
-            requestType = "GET"
-            monitorCriteria = {
-              _type = "MonitorCriteria"
-              value = {
-                monitorCriteriaInstanceArray = [
-                  {
-                    _type = "MonitorCriteriaInstance"
-                    value = {
-                      id               = "criteria-ip-online"
-                      name             = "IP Reachable"
-                      description      = "IP address is reachable"
-                      filterCondition  = "All"
-                      changeMonitorStatus = true
-                      createIncidents  = false
-                      createAlerts     = false
-                      monitorStatusId  = oneuptime_monitor_status.operational.id
-                      filters = [
-                        {
-                          _type = "CriteriaFilter"
-                          value = {
-                            checkOn    = "Is Online"
-                            filterType = "True"
-                          }
-                        }
-                      ]
-                      incidents = []
-                      alerts    = []
-                    }
-                  }
-                ]
-              }
-            }
+  monitor_steps = [{
+    monitor_destination      = "8.8.8.8"
+    monitor_destination_type = "IP"
+    request_type             = "GET"
+
+    criteria = [
+      {
+        name                  = "IP Reachable"
+        description           = "IP address is reachable"
+        filter_condition      = "All"
+        change_monitor_status = true
+        create_incidents      = false
+        create_alerts         = false
+        monitor_status_id     = oneuptime_monitor_status.operational.id
+
+        filters = [
+          {
+            check_on    = "Is Online"
+            filter_type = "True"
           }
-        }
-      ]
-    }
-  })
+        ]
+      }
+    ]
+  }]
 
   depends_on = [oneuptime_monitor_status.operational]
 }
@@ -531,6 +401,11 @@ output "website_monitor_id" {
 output "website_monitor_type" {
   value       = oneuptime_monitor.website.monitor_type
   description = "Website monitor type"
+}
+
+output "website_monitor_destination" {
+  value       = oneuptime_monitor.website.monitor_steps[0].monitor_destination
+  description = "Website monitor step destination (typed attribute access)"
 }
 
 output "api_monitor_id" {
@@ -561,6 +436,11 @@ output "port_monitor_id" {
 output "port_monitor_type" {
   value       = oneuptime_monitor.port.monitor_type
   description = "Port monitor type"
+}
+
+output "port_monitor_port" {
+  value       = oneuptime_monitor.port.monitor_steps[0].port
+  description = "Port monitor step port (typed attribute access)"
 }
 
 output "ssl_monitor_id" {

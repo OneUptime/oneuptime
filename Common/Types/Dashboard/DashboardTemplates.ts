@@ -20,6 +20,11 @@ import { DashboardValueTrendDirection } from "./DashboardComponents/DashboardVal
  * define names that are not emitted anywhere in the codebase, so the
  * templates only ever rendered empty widgets. Reach for the Logs /
  * Traces / Exceptions pages directly until those metrics exist.
+ *
+ * The Rum template does use span data, but through the TraceChart /
+ * TraceTable widgets, which query the trace analytics endpoint directly
+ * rather than through a metric catalog — so it is not subject to the
+ * caveat above.
  */
 export enum DashboardTemplateType {
   Blank = "Blank",
@@ -33,6 +38,7 @@ export enum DashboardTemplateType {
   Ceph = "Ceph",
   DockerSwarm = "DockerSwarm",
   Metrics = "Metrics",
+  Rum = "Rum",
 }
 
 /*
@@ -85,6 +91,14 @@ export const DashboardTemplates: Array<DashboardTemplate> = [
     description:
       "HTTP request rate, latency, error rate, CPU utilization gauge, memory usage, disk and network I/O, and runtime metrics.",
     icon: IconProp.ChartBar,
+    category: DashboardTemplateCategory.Monitoring,
+  },
+  {
+    type: DashboardTemplateType.Rum,
+    name: "Real User Monitoring Dashboard",
+    description:
+      "Core Web Vitals gauges and trends (LCP, INP, CLS, FCP, TTFB), page-load volume and duration, browser errors, and breakdowns by application, route and platform.",
+    icon: IconProp.Globe,
     category: DashboardTemplateCategory.Monitoring,
   },
   {
@@ -432,6 +446,75 @@ function createTableComponent(data: {
               groupBy: undefined,
             },
           },
+    },
+  };
+}
+
+/*
+ * Trace analytics widgets query POST /telemetry/traces/analytics rather
+ * than the metric store, so they work off raw spans.
+ *
+ * `groupByAttribute` is what scopes them. A resource dimension key such
+ * as `rumApplicationId` compiles to `primaryEntityType = 'RealUserMonitor'`
+ * server-side (TraceAggregationService.appendGroupByDimensionFilters), so
+ * grouping by it both splits the series per RUM application AND excludes
+ * backend spans. A plain attribute key compiles to
+ * `mapContains(attributes, '<key>')`, which excludes any span that does
+ * not carry it — that is how the route / browser breakdowns below stay
+ * browser-only without a hand-written filter.
+ */
+function createTraceChartComponent(data: {
+  title: string;
+  metric: string;
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+  groupByAttribute?: string;
+  topLimit?: number;
+}): DashboardBaseComponent {
+  return {
+    _type: ObjectType.DashboardComponent,
+    componentType: DashboardComponentType.TraceChart,
+    componentId: ObjectID.generate(),
+    topInDashboardUnits: data.top,
+    leftInDashboardUnits: data.left,
+    widthInDashboardUnits: data.width,
+    heightInDashboardUnits: data.height,
+    minHeightInDashboardUnits: 3,
+    minWidthInDashboardUnits: 6,
+    arguments: {
+      title: data.title,
+      metric: data.metric,
+      groupByAttribute: data.groupByAttribute,
+      topLimit: data.topLimit ?? 10,
+    },
+  };
+}
+
+function createTraceTableComponent(data: {
+  title: string;
+  groupByAttribute: string;
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+  topLimit?: number;
+}): DashboardBaseComponent {
+  return {
+    _type: ObjectType.DashboardComponent,
+    componentType: DashboardComponentType.TraceTable,
+    componentId: ObjectID.generate(),
+    topInDashboardUnits: data.top,
+    leftInDashboardUnits: data.left,
+    widthInDashboardUnits: data.width,
+    heightInDashboardUnits: data.height,
+    minHeightInDashboardUnits: 3,
+    minWidthInDashboardUnits: 6,
+    arguments: {
+      title: data.title,
+      groupByAttribute: data.groupByAttribute,
+      topLimit: data.topLimit ?? 10,
     },
   };
 }
@@ -2187,6 +2270,437 @@ function createMetricsDashboardConfig(): DashboardViewConfig {
   };
 }
 
+/*
+ * Canonical Core Web Vital metric names. OneUptime probes several
+ * community spellings per vital when it reads them (see WEB_VITAL_DEFS in
+ * the RUM overview page and the /docs/rum/web-vitals table), but a widget
+ * can only query one name, so the template uses the `web_vital.*` names —
+ * the ones the docs tell new instrumentation to emit, and the ones the
+ * RUM alert templates in RumAlertTemplates.ts already alert on.
+ */
+enum RumWebVitalMetric {
+  Lcp = "web_vital.lcp",
+  Inp = "web_vital.inp",
+  Cls = "web_vital.cls",
+  Fcp = "web_vital.fcp",
+  Ttfb = "web_vital.ttfb",
+}
+
+function createRumDashboardConfig(): DashboardViewConfig {
+  /*
+   * Layout notes:
+   *
+   * - The value tiles and gauges aggregate with Avg so they read exactly
+   *   like the Core Web Vitals card on a RUM application's overview, and
+   *   so the gauge thresholds below can be Google's published good /
+   *   needs-improvement / poor boundaries unchanged (2500/4000 ms LCP,
+   *   200/500 ms INP, 0.1/0.25 CLS, 1800/3000 ms FCP). An average is a
+   *   trend indicator, not the p75 Google's field tooling reports — the
+   *   per-route chart uses P95 for exactly that reason.
+   *
+   * - CLS is emitted with unit "1" but is NOT an OTel ratio metric, and
+   *   `isFractionMetric` keys off the metric NAME (`.utilization`,
+   *   `.ratio`, `.fraction`, `.percent`), so `web_vital.cls` renders raw
+   *   rather than being multiplied to a percent. The 0-0.5 gauge sweep is
+   *   therefore in the vital's own units.
+   *
+   * - Every trace widget is scoped by its group-by dimension rather than
+   *   by a filter — see the comment on createTraceChartComponent. That is
+   *   also why there is no TraceList widget here: it has no group-by, so
+   *   it would list every span in the project, backend included.
+   *
+   * - `legendUnit` is set on the charts only. Value tiles and gauges go
+   *   through buildMetricQueryData, which drops metricAliasData (the only
+   *   carrier of legendUnit), and take their unit from the stored
+   *   MetricType instead — so setting it there would be inert config that
+   *   reads as if it were doing something.
+   */
+  const components: Array<DashboardBaseComponent> = [
+    // Row 0: Title
+    createTextComponent({
+      text: "Real User Monitoring Dashboard",
+      top: 0,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    // Row 1: Headline vitals. Every one of these is worse when it rises.
+    createValueComponent({
+      title: "Avg LCP",
+      top: 1,
+      left: 0,
+      width: 3,
+      metricConfig: {
+        metricName: RumWebVitalMetric.Lcp,
+        aggregationType: MetricsAggregationType.Avg,
+      },
+      trendDirection: DashboardValueTrendDirection.HigherIsWorse,
+    }),
+    createValueComponent({
+      title: "Avg INP",
+      top: 1,
+      left: 3,
+      width: 3,
+      metricConfig: {
+        metricName: RumWebVitalMetric.Inp,
+        aggregationType: MetricsAggregationType.Avg,
+      },
+      trendDirection: DashboardValueTrendDirection.HigherIsWorse,
+    }),
+    createValueComponent({
+      title: "Avg CLS",
+      top: 1,
+      left: 6,
+      width: 3,
+      metricConfig: {
+        metricName: RumWebVitalMetric.Cls,
+        aggregationType: MetricsAggregationType.Avg,
+      },
+      trendDirection: DashboardValueTrendDirection.HigherIsWorse,
+    }),
+    createValueComponent({
+      title: "Avg TTFB",
+      top: 1,
+      left: 9,
+      width: 3,
+      metricConfig: {
+        metricName: RumWebVitalMetric.Ttfb,
+        aggregationType: MetricsAggregationType.Avg,
+      },
+      trendDirection: DashboardValueTrendDirection.HigherIsWorse,
+    }),
+
+    // Row 2-4: The same vitals against their rating boundaries.
+    createGaugeComponent({
+      title: "Largest Contentful Paint",
+      top: 2,
+      left: 0,
+      width: 3,
+      height: 3,
+      minValue: 0,
+      maxValue: 6000,
+      warningThreshold: 2500,
+      criticalThreshold: 4000,
+      metricConfig: {
+        metricName: RumWebVitalMetric.Lcp,
+        aggregationType: MetricsAggregationType.Avg,
+      },
+    }),
+    createGaugeComponent({
+      title: "Interaction to Next Paint",
+      top: 2,
+      left: 3,
+      width: 3,
+      height: 3,
+      minValue: 0,
+      maxValue: 1000,
+      warningThreshold: 200,
+      criticalThreshold: 500,
+      metricConfig: {
+        metricName: RumWebVitalMetric.Inp,
+        aggregationType: MetricsAggregationType.Avg,
+      },
+    }),
+    createGaugeComponent({
+      title: "Cumulative Layout Shift",
+      top: 2,
+      left: 6,
+      width: 3,
+      height: 3,
+      minValue: 0,
+      maxValue: 0.5,
+      warningThreshold: 0.1,
+      criticalThreshold: 0.25,
+      metricConfig: {
+        metricName: RumWebVitalMetric.Cls,
+        aggregationType: MetricsAggregationType.Avg,
+      },
+    }),
+    createGaugeComponent({
+      title: "First Contentful Paint",
+      top: 2,
+      left: 9,
+      width: 3,
+      height: 3,
+      minValue: 0,
+      maxValue: 5000,
+      warningThreshold: 1800,
+      criticalThreshold: 3000,
+      metricConfig: {
+        metricName: RumWebVitalMetric.Fcp,
+        aggregationType: MetricsAggregationType.Avg,
+      },
+    }),
+
+    // Row 5: Section header
+    createTextComponent({
+      text: "Core Web Vital Trends",
+      top: 5,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    // Row 6-14: One trend per vital, plus the per-route P95 breakdown.
+    createChartComponent({
+      title: "Largest Contentful Paint Over Time",
+      chartType: DashboardChartType.Line,
+      top: 6,
+      left: 0,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: RumWebVitalMetric.Lcp,
+        aggregationType: MetricsAggregationType.Avg,
+        legend: "LCP",
+        legendUnit: "ms",
+      },
+    }),
+    createChartComponent({
+      title: "Interaction to Next Paint Over Time",
+      chartType: DashboardChartType.Line,
+      top: 6,
+      left: 6,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: RumWebVitalMetric.Inp,
+        aggregationType: MetricsAggregationType.Avg,
+        legend: "INP",
+        legendUnit: "ms",
+      },
+    }),
+    createChartComponent({
+      title: "Cumulative Layout Shift Over Time",
+      chartType: DashboardChartType.Line,
+      top: 9,
+      left: 0,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: RumWebVitalMetric.Cls,
+        aggregationType: MetricsAggregationType.Avg,
+        legend: "CLS",
+      },
+    }),
+    createChartComponent({
+      title: "First Contentful Paint Over Time",
+      chartType: DashboardChartType.Line,
+      top: 9,
+      left: 6,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: RumWebVitalMetric.Fcp,
+        aggregationType: MetricsAggregationType.Avg,
+        legend: "FCP",
+        legendUnit: "ms",
+      },
+    }),
+    createChartComponent({
+      title: "Time to First Byte Over Time",
+      chartType: DashboardChartType.Line,
+      top: 12,
+      left: 0,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: RumWebVitalMetric.Ttfb,
+        aggregationType: MetricsAggregationType.Avg,
+        legend: "TTFB",
+        legendUnit: "ms",
+      },
+    }),
+    /*
+     * `app.route` is the low-cardinality route PATTERN the web-vitals doc
+     * tells you to record alongside each vital. A metric group-by does NOT
+     * emit a presence predicate — a missing map key reads back as "" — so
+     * until you record it this renders a single `app.route=(unset)` series
+     * carrying the ungrouped P95, not an empty chart. That series is
+     * labelled, so it reads as "no route attribution" rather than as a
+     * one-route site.
+     */
+    createChartComponent({
+      title: "Largest Contentful Paint by Route (P95)",
+      chartType: DashboardChartType.Bar,
+      top: 12,
+      left: 6,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: RumWebVitalMetric.Lcp,
+        aggregationType: MetricsAggregationType.P95,
+        legend: "P95 LCP",
+        legendUnit: "ms",
+        groupByAttributeKeys: ["app.route"],
+      },
+    }),
+
+    /*
+     * Row 15: Section header. It says "span-based" because these widgets
+     * query the trace analytics endpoint, which does not read dashboard
+     * variables — the toolbar pickers above narrow the metric widgets and
+     * the log stream but not this section, and a header that does not say
+     * so invites reading the two halves as one filtered view.
+     */
+    createTextComponent({
+      text: "Page Loads & Browser Errors (span-based — not narrowed by the filters above)",
+      top: 15,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    /*
+     * Rows 16-21: root browser spans. "Root" is the trace-explorer default
+     * and is what excludes documentLoad's documentFetch / resourceFetch
+     * children — but a fetch or XHR started outside an active span is
+     * itself a root, and the documented setup installs both fetch and XHR
+     * instrumentation. So the population here is document loads PLUS AJAX
+     * calls PLUS any manual route-change spans, which is why these are
+     * titled "requests" rather than "page loads".
+     */
+    createTraceChartComponent({
+      title: "Page Loads & Requests",
+      metric: "count",
+      top: 16,
+      left: 0,
+      width: 6,
+      height: 3,
+      groupByAttribute: "rumApplicationId",
+    }),
+    createTraceChartComponent({
+      title: "Browser Errors Over Time",
+      metric: "errorCount",
+      top: 16,
+      left: 6,
+      width: 6,
+      height: 3,
+      groupByAttribute: "rumApplicationId",
+    }),
+    createTraceChartComponent({
+      title: "Page Load & Request Time (P95)",
+      metric: "p95Duration",
+      top: 19,
+      left: 0,
+      width: 6,
+      height: 3,
+      groupByAttribute: "rumApplicationId",
+    }),
+    /*
+     * Only route-change spans carry `app.route` (the SPA snippet in
+     * /docs/rum/browser-setup sets it on the span it creates), and a plain
+     * attribute group-by compiles to `mapContains(attributes, key)` — so
+     * this measures route changes, never document loads. Titled as such,
+     * and empty on a site that does not emit them.
+     */
+    createTraceChartComponent({
+      title: "Route Change Duration (Avg)",
+      metric: "avgDuration",
+      top: 19,
+      left: 6,
+      width: 6,
+      height: 3,
+      groupByAttribute: "app.route",
+    }),
+
+    // Row 22: Section header
+    createTextComponent({
+      text: "Breakdowns",
+      top: 22,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    /*
+     * Rows 23-28: each table returns count / errorCount / p50 / p95 per
+     * row, so one query answers "how much traffic, how broken, how slow"
+     * per application, route, and platform. The `rumApplicationId` column
+     * holds internal ids; TraceAggregationService resolves them to
+     * application names before the rows leave the server.
+     */
+    createTraceTableComponent({
+      title: "Applications",
+      groupByAttribute: "rumApplicationId",
+      top: 23,
+      left: 0,
+      width: 6,
+      height: 3,
+    }),
+    // Route-change spans only, for the same reason as the chart above.
+    createTraceTableComponent({
+      title: "Top Route Changes",
+      groupByAttribute: "app.route",
+      top: 23,
+      left: 6,
+      width: 6,
+      height: 3,
+    }),
+    /*
+     * `browser.platform` is a RESOURCE attribute, stored on spans under
+     * the `resource.` prefix at ingest. It is Chromium-only unless the app
+     * sets it explicitly — see "Setting browser.* without the detector"
+     * in /docs/rum/browser-setup.
+     */
+    createTraceTableComponent({
+      title: "Browsers & Platforms",
+      groupByAttribute: "resource.browser.platform",
+      top: 26,
+      left: 0,
+      width: 6,
+      height: 3,
+    }),
+    createLogStreamComponent({
+      title: "Recent Browser Logs",
+      top: 26,
+      left: 6,
+      width: 6,
+      height: 3,
+    }),
+  ];
+
+  /*
+   * These narrow the metric widgets and the log stream; the trace widgets
+   * do not read variables and carry their own group-by scoping instead
+   * (the section header above says so).
+   *
+   * Both keys are RESOURCE attributes, which is deliberate: resource
+   * attributes are stamped onto metrics, logs AND spans from the same
+   * OTel Resource, so a selection means the same thing on every widget
+   * that reads it. `app.route` is NOT offered here even though the metric
+   * charts group by it — it is recorded on metrics and spans but never on
+   * logs, so selecting a route would empty "Recent Browser Logs" and read
+   * as "this route produced no logs".
+   */
+  const variables: Array<DashboardVariable> = [
+    createTelemetryAttributeVariable({
+      name: "application",
+      label: "Application",
+      attributeKey: "resource.service.name",
+      isMultiSelect: true,
+    }),
+    createTelemetryAttributeVariable({
+      name: "platform",
+      label: "Platform",
+      attributeKey: "resource.browser.platform",
+      isMultiSelect: true,
+    }),
+  ];
+
+  return {
+    _type: ObjectType.DashboardViewConfig,
+    components,
+    variables,
+    heightInDashboardUnits: Math.max(DashboardSize.heightInDashboardUnits, 29),
+  };
+}
+
 function createHostDashboardConfig(): DashboardViewConfig {
   /*
    * Layout notes:
@@ -2921,6 +3435,8 @@ export function getTemplateConfig(
       return createDockerSwarmDashboardConfig();
     case DashboardTemplateType.Metrics:
       return createMetricsDashboardConfig();
+    case DashboardTemplateType.Rum:
+      return createRumDashboardConfig();
     case DashboardTemplateType.Blank:
       return null;
   }

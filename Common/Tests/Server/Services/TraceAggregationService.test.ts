@@ -220,6 +220,54 @@ describe("TraceAggregationService", () => {
     expect(paramValues(statement)).toContain("%starship.online%");
   });
 
+  test("a single-value attribute filter compiles to an equality match", () => {
+    const statement: Statement = buildHistogramStatement({
+      attributes: { "k8s.cluster.name": "prod-eu" },
+    });
+
+    expect(normalizedQuery(statement)).toContain(") AND v = ");
+    expect(normalizedQuery(statement)).not.toContain(") AND v IN (");
+    expect(paramValues(statement)).toContain("prod-eu");
+  });
+
+  /*
+   * A multi-select dashboard variable resolves to a list of values. Without
+   * the IN branch these arrived as a single stringified value and matched
+   * nothing, so the widget silently emptied instead of widening.
+   */
+  test("a multi-value attribute filter compiles to an IN match", () => {
+    const statement: Statement = buildHistogramStatement({
+      attributes: { "k8s.cluster.name": ["prod-eu", "prod-us"] },
+    });
+
+    const query: string = normalizedQuery(statement);
+    expect(query).toContain("arrayExists((k, v) -> lowerUTF8(k) = lowerUTF8(");
+    expect(query).toContain(") AND v IN (");
+    expect(paramValues(statement)).toContain("k8s.cluster.name");
+    expect(paramValues(statement)).toContainEqual(["prod-eu", "prod-us"]);
+  });
+
+  /*
+   * An empty list is "nothing selected", which must widen to everything —
+   * emitting `IN ()` would narrow the widget to zero rows instead.
+   */
+  test("an empty multi-value attribute filter adds no predicate", () => {
+    const statement: Statement = buildHistogramStatement({
+      attributes: { "k8s.cluster.name": [] },
+    });
+
+    expect(normalizedQuery(statement)).not.toContain(") AND v IN (");
+    expect(normalizedQuery(statement)).not.toContain(") AND v = ");
+  });
+
+  test("multi-value attribute keys are validated like single-value ones", () => {
+    expect(() => {
+      buildHistogramStatement({
+        attributes: { "x') OR 1=1 --": ["v"] },
+      });
+    }).toThrow("Invalid facetKey");
+  });
+
   test("attributeSearches rejects malicious keys and skips blank values", () => {
     expect(() => {
       buildHistogramStatement({

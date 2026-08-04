@@ -13,7 +13,7 @@ provider "oneuptime" {
 }
 
 resource "oneuptime_alert_severity" "test" {
-  name        = "terraform-e2e-alert-sev-${formatdate("YYYYMMDDhhmmss", timestamp())}"
+  name        = "terraform-e2e-alert-sev"
   description = "Alert severity created by Terraform E2E tests"
   color       = "#FF0000"
   order       = 99

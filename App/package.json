@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/app",
-  "version": "11.7.4",
+  "version": "12.0.0",
   "description": "",
   "repository": {
     "type": "git",
@@ -13,13 +13,15 @@
     "build-frontend:admin-dashboard": "bash ./scripts/frontend-run.sh FeatureSet/AdminDashboard dev-build",
     "build-frontend:status-page": "bash ./scripts/frontend-run.sh FeatureSet/StatusPage dev-build",
     "build-frontend:public-dashboard": "bash ./scripts/frontend-run.sh FeatureSet/PublicDashboard dev-build",
-    "build-frontends": "npm run build-frontend:accounts && npm run build-frontend:dashboard && npm run build-frontend:admin-dashboard && npm run build-frontend:status-page && npm run build-frontend:public-dashboard",
+    "build-frontend:browser-recorder": "bash ./scripts/frontend-run.sh FeatureSet/BrowserRecorder dev-build",
+    "build-frontends": "npm run build-frontend:accounts && npm run build-frontend:dashboard && npm run build-frontend:admin-dashboard && npm run build-frontend:status-page && npm run build-frontend:public-dashboard && npm run build-frontend:browser-recorder",
     "build-frontend:accounts:prod": "bash ./scripts/frontend-run.sh FeatureSet/Accounts build",
     "build-frontend:dashboard:prod": "bash ./scripts/frontend-run.sh FeatureSet/Dashboard build",
     "build-frontend:admin-dashboard:prod": "bash ./scripts/frontend-run.sh FeatureSet/AdminDashboard build",
     "build-frontend:status-page:prod": "bash ./scripts/frontend-run.sh FeatureSet/StatusPage build",
     "build-frontend:public-dashboard:prod": "bash ./scripts/frontend-run.sh FeatureSet/PublicDashboard build",
-    "build-frontends:prod": "npm run build-frontend:accounts:prod && npm run build-frontend:dashboard:prod && npm run build-frontend:admin-dashboard:prod && npm run build-frontend:status-page:prod && npm run build-frontend:public-dashboard:prod",
+    "build-frontend:browser-recorder:prod": "bash ./scripts/frontend-run.sh FeatureSet/BrowserRecorder build",
+    "build-frontends:prod": "npm run build-frontend:accounts:prod && npm run build-frontend:dashboard:prod && npm run build-frontend:admin-dashboard:prod && npm run build-frontend:status-page:prod && npm run build-frontend:public-dashboard:prod && npm run build-frontend:browser-recorder:prod",
     "watch-frontend:accounts": "bash ./scripts/frontend-run.sh FeatureSet/Accounts dev-build --watch",
     "watch-frontend:dashboard": "bash ./scripts/frontend-run.sh FeatureSet/Dashboard dev-build --watch",
     "watch-frontend:admin-dashboard": "bash ./scripts/frontend-run.sh FeatureSet/AdminDashboard dev-build --watch",
@@ -54,15 +56,13 @@
     "ts-node": "^10.9.1",
     "twilio": "^4.20.0",
     "ws": "^8.21.0",
-    "xml-crypto": "^3.2.0",
-    "xml2js": "^0.6.2"
+    "xml-crypto": "^6.1.2"
   },
   "devDependencies": {
     "@types/jest": "^29.5.11",
     "@types/node": "^26.1.1",
     "@types/nodemailer": "^8.0.1",
     "@types/ws": "^8.18.1",
-    "@types/xml2js": "^0.4.14",
     "jest": "^28.1.0",
     "nodemon": "^3.1.14",
     "ts-jest": "^28.0.8",

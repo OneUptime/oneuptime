@@ -36,6 +36,7 @@ export interface ComponentProps {
   onActionComplete: () => void;
   eventNumber?: string | undefined;
   title?: string | undefined;
+  eventStartsAt?: Date | undefined;
   severity?: { name: string; color: Color } | undefined;
   isPrivate?: boolean | undefined;
 }
@@ -260,7 +261,7 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
   }
 
   const durationStartsAt: Date | undefined =
-    incidentStateTimelines[0]?.startsAt;
+    props.eventStartsAt || incidentStateTimelines[0]?.startsAt;
 
   let durationEndsAt: Date | undefined = undefined;
   let durationPrefix: string = "Ongoing for";

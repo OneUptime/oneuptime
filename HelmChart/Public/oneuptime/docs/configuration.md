@@ -49,10 +49,10 @@ up-to-date list see [`values.yaml`](../values.yaml).
 | `autoscaling.maxReplicas`                       | Maximum number of replicas.                                                                    | `100`   |
 | `autoscaling.targetCPUUtilizationPercentage`    | Target CPU utilization percentage.                                                            | `80`    |
 | `autoscaling.targetMemoryUtilizationPercentage` | Target memory utilization percentage.                                                        | `80`    |
-| `podDisruptionBudget.enabled`                   | Create a PodDisruptionBudget for each stateless deployment (app, worker, nginx, home, ai-agent, probes, pgbouncer) to cap voluntary disruptions during node drains / upgrades. | `false` |
+| `podDisruptionBudget.enabled`                   | Create a PodDisruptionBudget for each stateless deployment (app, worker, nginx, home, runner, probes, pgbouncer) to cap voluntary disruptions during node drains / upgrades. | `false` |
 | `podDisruptionBudget.minAvailable`              | Minimum pods that must stay available. Integer or percentage (e.g. `"50%"`). Takes precedence over `maxUnavailable`. Leave empty to use `maxUnavailable`. | `""` |
 | `podDisruptionBudget.maxUnavailable`            | Maximum pods that may be unavailable during a voluntary disruption. Integer or percentage.    | `1`     |
-| `<service>.podDisruptionBudget`                 | Per-service override of the global block. Omitted keys inherit the global value. `<service>` = app/worker/nginx/home/aiAgent/probes.&lt;key&gt;/pgbouncer. | `{}` (inherit) |
+| `<service>.podDisruptionBudget`                 | Per-service override of the global block. Omitted keys inherit the global value. `<service>` = app/worker/nginx/home/runner/probes.&lt;key&gt;/pgbouncer. | `{}` (inherit) |
 
 ## Probes
 

@@ -24,30 +24,22 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
 import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInterpolation";
-import ValueFormatter from "Common/Utils/ValueFormatter";
+import ValueFormatter, { FormattedValue } from "Common/Utils/ValueFormatter";
 import OneUptimeDate from "Common/Types/Date";
-
-/*
- * Split a ValueFormatter output like "1.5 MB" / "25.00%" / "1.23K" into a
- * numeric portion and a unit portion so the widget can render them with
- * different font sizes (big number, small unit suffix).
- */
-function splitFormattedValue(formatted: string): {
-  value: string;
-  unit: string;
-} {
-  if (formatted.endsWith("%")) {
-    return { value: formatted.slice(0, -1), unit: "%" };
-  }
-  const lastSpace: number = formatted.lastIndexOf(" ");
-  if (lastSpace > 0) {
-    return {
-      value: formatted.substring(0, lastSpace),
-      unit: formatted.substring(lastSpace + 1),
-    };
-  }
-  return { value: formatted, unit: "" };
-}
+import {
+  getValueContentBox,
+  getValueWidgetLayout,
+  ValueContentBox,
+  ValueWidgetLayout,
+  ValueWidgetStackMode,
+  VALUE_LINE_HEIGHT_RATIO,
+} from "Common/Utils/Dashboard/ValueWidgetLayout";
+import {
+  aggregateValues,
+  collectDataPoints,
+  getNumericValues,
+  getResultsErrorMessage,
+} from "./ValueWidgetData";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardValueComponentType;
@@ -90,7 +82,13 @@ const Sparkline: FunctionComponent<SparklineProps> = (
   const minVal: number = Math.min(...values);
   const maxVal: number = Math.max(...values);
   const range: number = maxVal - minVal || 1;
-  const padding: number = 2;
+  /*
+   * The hover marker is an r=3.5 circle with a 2px stroke drawn at
+   * `x = width - padding`, so a 2px inset painted it past the svg's own edge
+   * and relied on `overflow-visible` to show it. The row height is budgeted
+   * now, so nothing is allowed to bleed — inset far enough to contain it.
+   */
+  const padding: number = 4;
 
   const pointAt: (i: number) => [number, number] = (i: number) => {
     const x: number =
@@ -146,50 +144,54 @@ const Sparkline: FunctionComponent<SparklineProps> = (
   const hoverPos: [number, number] | null =
     hoverIndex !== null ? pointAt(hoverIndex) : null;
 
+  /*
+   * Rendered as a bare <svg>, not wrapped in a div. The old
+   * `relative inline-block` wrapper was an inline-level box, so its line box
+   * added the strut's below-baseline space — around 6px of phantom height the
+   * row budget could not see.
+   */
   return (
-    <div className="relative inline-block">
-      <svg
-        ref={svgRef}
-        width={props.width}
-        height={props.height}
-        viewBox={`0 0 ${props.width} ${props.height}`}
-        className="overflow-visible cursor-crosshair"
-        onMouseMove={onMove}
-        onMouseLeave={onLeave}
-      >
-        <polygon points={fillPoints} fill={props.fillColor} />
-        <polyline
-          points={points}
-          fill="none"
-          stroke={props.color}
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        {hoverPos && (
-          <>
-            <line
-              x1={hoverPos[0]}
-              x2={hoverPos[0]}
-              y1={0}
-              y2={props.height}
-              stroke={props.color}
-              strokeOpacity={0.35}
-              strokeWidth={1}
-              strokeDasharray="2 2"
-            />
-            <circle
-              cx={hoverPos[0]}
-              cy={hoverPos[1]}
-              r={3.5}
-              fill="var(--ou-chart-marker-ring, #ffffff)"
-              stroke={props.color}
-              strokeWidth={2}
-            />
-          </>
-        )}
-      </svg>
-    </div>
+    <svg
+      ref={svgRef}
+      width={props.width}
+      height={props.height}
+      viewBox={`0 0 ${props.width} ${props.height}`}
+      className="block cursor-crosshair"
+      onMouseMove={onMove}
+      onMouseLeave={onLeave}
+    >
+      <polygon points={fillPoints} fill={props.fillColor} />
+      <polyline
+        points={points}
+        fill="none"
+        stroke={props.color}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      {hoverPos && (
+        <>
+          <line
+            x1={hoverPos[0]}
+            x2={hoverPos[0]}
+            y1={0}
+            y2={props.height}
+            stroke={props.color}
+            strokeOpacity={0.35}
+            strokeWidth={1}
+            strokeDasharray="2 2"
+          />
+          <circle
+            cx={hoverPos[0]}
+            cy={hoverPos[1]}
+            r={3.5}
+            fill="var(--ou-chart-marker-ring, #ffffff)"
+            stroke={props.color}
+            strokeWidth={2}
+          />
+        </>
+      )}
+    </svg>
   );
 };
 
@@ -310,26 +312,67 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
     fetchAggregatedResults,
   ]);
 
+  /*
+   * The three non-numeric states used fixed pixel heights that ignored the
+   * tile: the skeleton alone is 92px of content, against as little as 32px of
+   * edit-mode content box on the shipped 3x1 default. `justify-center` then
+   * clipped them at the top AND the bottom at once.
+   */
+  const contentBox: ValueContentBox = getValueContentBox({
+    widthInPx: props.dashboardComponentWidthInPx,
+    heightInPx: props.dashboardComponentHeightInPx,
+    isEditMode: props.isEditMode,
+  });
+
+  /*
+   * The 40px icon disc is the first thing to go on a short tile — it is
+   * decoration, and the message under it is the part the user needs.
+   */
+  const showStateIcon: boolean = contentBox.heightInPx >= 76;
+
+  /*
+   * Same trade one step further down: below this the tile cannot hold the
+   * title AND a two-line explanation, and the explanation is the part that
+   * carries the meaning.
+   */
+  const showStateTitle: boolean = contentBox.heightInPx >= 60;
+
   if (isLoading && metricResults.length === 0) {
     // Skeleton loading state - only on initial load
     return (
-      <div className="w-full h-full flex flex-col items-center justify-center rounded-md animate-pulse">
-        <div className="h-3 w-16 bg-gray-100 rounded mb-3"></div>
-        <div className="h-8 w-24 bg-gray-100 rounded mb-2"></div>
-        <div className="h-6 w-32 bg-gray-50 rounded mt-1"></div>
+      <div className="w-full h-full flex flex-col items-center justify-center rounded-md overflow-hidden gap-1.5 animate-pulse">
+        <div
+          className="w-16 bg-gray-100 rounded shrink-0"
+          style={{ height: `${Math.min(contentBox.heightInPx * 0.12, 12)}px` }}
+        ></div>
+        <div
+          className="w-24 bg-gray-100 rounded shrink-0"
+          style={{ height: `${Math.min(contentBox.heightInPx * 0.3, 32)}px` }}
+        ></div>
+        <div
+          className="w-32 bg-gray-50 rounded shrink-0"
+          style={{ height: `${Math.min(contentBox.heightInPx * 0.1, 12)}px` }}
+        ></div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center w-full h-full gap-1.5">
-        <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center">
-          <div className="h-5 w-5 text-gray-300">
-            <Icon icon={IconProp.ChartBar} />
+      <div className="flex flex-col items-center justify-center w-full h-full gap-1.5 overflow-hidden">
+        {showStateIcon && (
+          <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center shrink-0">
+            <div className="h-5 w-5 text-gray-300">
+              <Icon icon={IconProp.ChartBar} />
+            </div>
           </div>
-        </div>
-        <p className="text-xs text-gray-400 text-center max-w-40">{error}</p>
+        )}
+        <p
+          className="text-xs text-gray-400 text-center max-w-full line-clamp-2 px-1"
+          title={error}
+        >
+          {error}
+        </p>
       </div>
     );
   }
@@ -343,26 +386,34 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
     ).length === 0
   ) {
     return (
-      <div className="flex flex-col items-center justify-center w-full h-full gap-1.5">
-        <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center">
-          <svg
-            className="w-5 h-5 text-indigo-300"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth="1.5"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z"
-            />
-          </svg>
-        </div>
-        <p className="text-xs font-medium text-gray-500">
+      <div className="flex flex-col items-center justify-center w-full h-full gap-1.5 overflow-hidden">
+        {showStateIcon && (
+          <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center shrink-0">
+            <svg
+              className="w-5 h-5 text-indigo-300"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth="1.5"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z"
+              />
+            </svg>
+          </div>
+        )}
+        <p
+          className="text-xs font-medium text-gray-500 max-w-full line-clamp-1 px-1"
+          title={props.component.arguments.title || "Value Widget"}
+        >
           {props.component.arguments.title || "Value Widget"}
         </p>
-        <p className="text-xs text-gray-400 text-center">
+        <p
+          className="text-xs text-gray-400 text-center max-w-full line-clamp-1 px-1"
+          title="Click to configure metric"
+        >
           Click to configure metric
         </p>
       </div>
@@ -370,65 +421,65 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
   }
 
   // Collect all data points for sparkline and aggregation
-  const allDataPoints: Array<AggregatedModel> = [];
-  for (const result of metricResults) {
-    for (const item of result.data) {
-      allDataPoints.push(item);
-    }
-  }
+  const allDataPoints: Array<AggregatedModel> =
+    collectDataPoints(metricResults);
+
+  const numericValues: Array<number> = getNumericValues(allDataPoints);
+
+  const hasData: boolean = numericValues.length > 0;
 
   /*
-   * Flatten the per-bucket values, discarding any non-finite entries.
-   * AggregatedModel.value is typed `number` but the model carries a
-   * JSONValue index signature, and a ClickHouse NULL / missing column
-   * arrives as null — left unchecked it poisons the reduction with NaN.
-   */
-  const numericValues: Array<number> = [];
-  for (const item of allDataPoints) {
-    const value: number = item.value as number;
-    if (typeof value === "number" && Number.isFinite(value)) {
-      numericValues.push(value);
-    }
-  }
-
-  /*
-   * Reduce the per-bucket values into the single displayed number.
+   * A configured query that came back empty — or one that failed and
+   * surfaced a reason via AggregatedResult.errorMessage — used to fall
+   * through to the reduction's 0 seed and render a confident "0",
+   * indistinguishable from a metric that is genuinely zero. On the RUM
+   * template that made an untouched dashboard read as a flawless site
+   * ("AVG LCP 0", "AVG CLS 0"), while the gauges directly beneath it
+   * correctly said they had nothing. Show the same explicit no-data state
+   * DashboardGaugeComponent shows.
    *
-   * - Percentiles (P50/P90/P95/P99) are computed per bucket server-side,
-   *   so — like Avg — we take the mean across the window. Without an
-   *   explicit branch they fell through the old if/else chain entirely
-   *   and the value stayed pinned at its 0 seed even though the query
-   *   returned real percentile data (a P95 tile read "0").
-   * - Count sums the per-bucket counts the server already returned
-   *   (`count(value) as value`); the old `+= 1` counted time buckets, not
-   *   samples.
-   * - Min/Max fold over the real values instead of a 0 seed, which
-   *   previously forced any all-positive metric's Min to exactly 0.
+   * The loading case is already owned by the skeleton above, so this
+   * deliberately carries no `!isLoading` term: adding one would re-render
+   * the very "0" this removes for the duration of every auto-refresh of a
+   * metric that is still empty.
    */
-  let aggregatedValue: number = 0;
-  if (numericValues.length > 0) {
-    switch (aggregationType) {
-      case AggregationType.Sum:
-      case AggregationType.Count:
-        aggregatedValue = numericValues.reduce((sum: number, value: number) => {
-          return sum + value;
-        }, 0);
-        break;
-      case AggregationType.Min:
-        aggregatedValue = Math.min(...numericValues);
-        break;
-      case AggregationType.Max:
-        aggregatedValue = Math.max(...numericValues);
-        break;
-      default:
-        // Avg and every percentile aggregation: mean of per-bucket values.
-        aggregatedValue =
-          numericValues.reduce((sum: number, value: number) => {
-            return sum + value;
-          }, 0) / numericValues.length;
-        break;
-    }
+  if (!hasData) {
+    const noDataMessage: string =
+      getResultsErrorMessage(metricResults) ||
+      "No data for the selected time range";
+
+    return (
+      <div className="flex flex-col items-center justify-center w-full h-full gap-1.5 overflow-hidden">
+        {showStateIcon && (
+          <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center shrink-0">
+            <div className="h-5 w-5 text-gray-300">
+              <Icon icon={IconProp.ChartBar} />
+            </div>
+          </div>
+        )}
+        {showStateTitle && props.component.arguments.title ? (
+          <p
+            className="text-xs font-medium text-gray-500 max-w-full line-clamp-1 px-1"
+            title={props.component.arguments.title}
+          >
+            {props.component.arguments.title}
+          </p>
+        ) : (
+          <></>
+        )}
+        <p
+          className="text-xs text-gray-400 text-center max-w-full line-clamp-2 px-1"
+          title={noDataMessage}
+        >
+          {noDataMessage}
+        </p>
+      </div>
+    );
   }
+
+  // Guarded by `hasData` above, so the fallback is unreachable.
+  const aggregatedValue: number =
+    aggregateValues(numericValues, aggregationType) ?? 0;
 
   /*
    * Sparkline data — preserve timestamp alongside value so the parent
@@ -446,11 +497,6 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
     },
   );
 
-  const valueHeightInPx: number = props.dashboardComponentHeightInPx * 0.35;
-  const titleHeightInPx: number = props.dashboardComponentHeightInPx * 0.11;
-  const showSparkline: boolean =
-    sparklineData.length >= 2 && props.dashboardComponentHeightInPx > 100;
-
   const metricName: string =
     props.component.arguments.metricQueryConfig?.metricQueryData.filterData.metricName?.toString() ||
     "";
@@ -464,22 +510,42 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
    * Run the raw aggregate through ValueFormatter so bytes scale to
    * KB/MB/GB, OTel ratio metrics (unit "1" + `.utilization` name) render
    * as percentages, and dimensionless counts (unit "1" with no fraction
-   * suffix) lose the meaningless "1" suffix. The big-number font is
-   * applied to the numeric portion and the unit suffix is rendered in a
-   * smaller gray span, so we split the formatted string here. When the
-   * cursor is over the sparkline, format the hovered point's value
-   * instead so the big number tracks the chart.
+   * suffix) lose the meaningless "1" suffix. The big-number font is applied
+   * to the numeric portion and the unit suffix is rendered in a smaller gray
+   * span, so we ask the formatter for the two PARTS rather than splitting
+   * its output back apart — a lastIndexOf(" ") over "5 requests per Second"
+   * put "requests per" in the big-number span. The compact variant also
+   * renders the unit as a symbol ("°C", not "Celsius"), which is what makes
+   * long OpenTelemetry units affordable on a narrow tile. When the cursor is
+   * over the sparkline, format the hovered point's value instead so the big
+   * number tracks the chart.
    */
   const displayValue: number = hoveredPoint
     ? hoveredPoint.value
     : aggregatedValue;
-  const formattedString: string = ValueFormatter.formatValue(
+
+  const hideUnit: boolean = props.component.arguments.hideUnit === true;
+
+  const displayParts: FormattedValue = ValueFormatter.formatValueCompact(
     displayValue,
     rawUnit,
     { metricName },
   );
-  const { value: formattedValue, unit: displayUnit } =
-    splitFormattedValue(formattedString);
+
+  /*
+   * Size against the AGGREGATED value, always — never the hovered one. The
+   * font is width-limited by the string, so feeding it the hovered value
+   * would re-solve the layout on every mousemove and make the number pulse
+   * under the cursor. Sizing against the aggregate makes the layout provably
+   * hover-invariant; a hovered point that happens to format longer is caught
+   * by the value row's truncate.
+   */
+  const sizingParts: FormattedValue = hoveredPoint
+    ? ValueFormatter.formatValueCompact(aggregatedValue, rawUnit, {
+        metricName,
+      })
+    : displayParts;
+
   const hoveredTimestamp: string | null = hoveredPoint
     ? OneUptimeDate.getDateAsLocalFormattedString(hoveredPoint.timestamp)
     : null;
@@ -554,85 +620,35 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
     }
   }
 
-  const sparklineWidth: number = Math.min(
-    props.dashboardComponentWidthInPx * 0.6,
-    120,
-  );
-  const sparklineHeight: number = Math.min(
-    props.dashboardComponentHeightInPx * 0.18,
-    30,
-  );
+  /*
+   * One arithmetic pass decides the whole layout: how big the number can be on
+   * BOTH axes, and which optional rows the widget can still afford at this
+   * size. No DOM measurement — the canvas already knows the tile size, so
+   * measuring would only buy a second render on every resize frame, which is
+   * exactly the re-measure flicker DashboardBaseComponent's constant edit-mode
+   * padding exists to avoid. `arePropsEqual` already busts on both px props,
+   * so this re-runs on resize with no observer.
+   */
+  const layout: ValueWidgetLayout = getValueWidgetLayout({
+    widthInPx: props.dashboardComponentWidthInPx,
+    heightInPx: props.dashboardComponentHeightInPx,
+    isEditMode: props.isEditMode,
+    hasTitle: Boolean(props.component.arguments.title?.trim()),
+    hasTrend: trendPercent !== null && trendDirection !== "flat",
+    hasSparklineData: sparklineData.length >= 2,
+    valueText: sizingParts.value || "0",
+    unitText: hideUnit ? "" : sizingParts.unit,
+  });
 
-  return (
-    <div
-      className="w-full h-full flex flex-col items-center justify-center rounded-md relative overflow-hidden"
-      style={{
-        ...bgStyle,
-        opacity: isLoading ? 0.5 : 1,
-        transition: "opacity 0.2s ease-in-out",
-      }}
-    >
-      {/* Title */}
-      <div className="flex items-center gap-1.5 mb-0.5">
-        <span
-          style={{
-            fontSize:
-              titleHeightInPx > 0
-                ? `${Math.max(Math.min(titleHeightInPx, 14), 11)}px`
-                : "12px",
-          }}
-          className="text-center font-medium text-gray-400 truncate uppercase tracking-wider"
-        >
-          {props.component.arguments.title || " "}
-        </span>
-      </div>
-
-      {/* Value */}
-      <div
-        className={`text-center font-bold truncate ${valueColorClass}`}
-        style={{
-          fontSize: valueHeightInPx > 0 ? `${valueHeightInPx}px` : "",
-          lineHeight: 1.15,
-          letterSpacing: "-0.03em",
-        }}
-      >
-        {formattedValue || "0"}
-        <span
-          className="text-gray-400 font-normal"
-          style={{
-            fontSize: valueHeightInPx > 0 ? `${valueHeightInPx * 0.3}px` : "",
-          }}
-        >
-          {displayUnit
-            ? displayUnit === "%"
-              ? displayUnit
-              : ` ${displayUnit}`
-            : ""}
-        </span>
-      </div>
-
-      {/* Hovered timestamp \u2014 takes the trend indicator's slot while the
-          cursor is over the sparkline so the layout stays stable. */}
-      {hoveredTimestamp && (
-        <div
-          className="mt-0.5 text-gray-400 font-medium tabular-nums"
-          style={{
-            fontSize: `${Math.max(Math.min(titleHeightInPx, 12), 10)}px`,
-          }}
-        >
-          {hoveredTimestamp}
-        </div>
-      )}
-
-      {/* Trend indicator \u2014 colour depends on whether a rising value is good
-          or bad for this metric. The widget config takes precedence; when it
-          says "Auto" (or is unset) we fall back to a metric-name heuristic
-          so legacy widgets get sensible defaults without re-saving. Hidden
-          while hovering so the timestamp can take its slot. */}
-      {!hoveredTimestamp &&
-        trendPercent !== null &&
-        trendDirection !== "flat" &&
-        (() => {
+  /*
+   * Trend indicator — colour depends on whether a rising value is good or bad
+   * for this metric. The widget config takes precedence; when it says "Auto"
+   * (or is unset) we fall back to a metric-name heuristic so legacy widgets
+   * get sensible defaults without re-saving.
+   */
+  const trendElement: ReactElement | null =
+    trendPercent !== null && trendDirection !== "flat"
+      ? (() => {
           const configured: DashboardValueTrendDirection | undefined =
             props.component.arguments.trendDirection;
           let higherIsWorse: boolean;
@@ -649,29 +665,135 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
             ? trendDirection === "down"
             : trendDirection === "up";
           return (
-            <div
-              className={`flex items-center gap-0.5 mt-0.5 ${
+            <span
+              className={`inline-flex items-center gap-0.5 ${
                 trendIsGood ? "text-emerald-500" : "text-red-500"
               }`}
-              style={{
-                fontSize: `${Math.max(Math.min(titleHeightInPx, 12), 10)}px`,
-              }}
             >
-              <span>{trendDirection === "up" ? "\u2191" : "\u2193"}</span>
+              <span>{trendDirection === "up" ? "↑" : "↓"}</span>
               <span className="font-medium tabular-nums">
                 {Math.abs(trendPercent)}%
               </span>
-            </div>
+            </span>
           );
-        })()}
+        })()
+      : null;
+
+  /*
+   * The hovered timestamp takes the trend indicator's slot while the cursor is
+   * over the sparkline. The slot's height is reserved from whether the widget
+   * COULD show either, never from whether it currently is, so the swap cannot
+   * move anything below it.
+   */
+  const statusElement: ReactElement | null = hoveredTimestamp ? (
+    <span className="text-gray-400 font-medium tabular-nums truncate">
+      {hoveredTimestamp}
+    </span>
+  ) : (
+    trendElement
+  );
+
+  const titleElement: ReactElement = (
+    <span
+      className="font-medium text-gray-400 truncate uppercase tracking-wider"
+      style={{ fontSize: `${layout.titleFontSizeInPx}px` }}
+      title={props.component.arguments.title}
+    >
+      {props.component.arguments.title}
+    </span>
+  );
+
+  return (
+    <div
+      className="w-full h-full flex flex-col items-center justify-center rounded-md relative overflow-hidden"
+      style={{
+        ...bgStyle,
+        opacity: isLoading ? 0.5 : 1,
+        transition: "opacity 0.2s ease-in-out",
+      }}
+    >
+      {/* Header — on a short widget the title and the trend share one line so
+          the height they would each claim goes to the number instead. */}
+      {layout.stackMode === ValueWidgetStackMode.Compact &&
+        (layout.showTitle || layout.showStatusRow) && (
+          <div
+            className="w-full shrink-0 overflow-hidden flex items-center justify-center gap-2"
+            style={{
+              height: `${layout.headerRowHeightInPx}px`,
+              fontSize: `${layout.statusFontSizeInPx}px`,
+            }}
+          >
+            {layout.showTitle && titleElement}
+            {layout.showStatusRow && statusElement}
+          </div>
+        )}
+
+      {/* Title */}
+      {layout.stackMode === ValueWidgetStackMode.Column && layout.showTitle && (
+        <div
+          className="w-full shrink-0 overflow-hidden flex items-center justify-center"
+          style={{ height: `${layout.titleRowHeightInPx}px` }}
+        >
+          {titleElement}
+        </div>
+      )}
+
+      {/* Value — the row height is dictated by the budget and the font was
+          solved to fit inside it, so nothing here can be squeezed. `w-full` is
+          what makes `truncate` produce an ellipsis rather than letting the
+          parent hard-clip both edges of an over-wide number. */}
+      <div
+        className="w-full shrink-0 overflow-hidden flex items-center justify-center"
+        style={{ height: `${layout.valueRowHeightInPx}px` }}
+      >
+        <div
+          className={`w-full text-center font-bold tabular-nums truncate ${valueColorClass}`}
+          style={{
+            fontSize: `${layout.valueFontSizeInPx}px`,
+            lineHeight: VALUE_LINE_HEIGHT_RATIO,
+            letterSpacing: "-0.03em",
+          }}
+          title={displayParts.formatted}
+        >
+          {displayParts.value || "0"}
+          {layout.showUnit && displayParts.unit && (
+            <span
+              className="text-gray-400 font-normal"
+              style={{ fontSize: `${layout.unitFontSizeInPx}px` }}
+            >
+              {displayParts.unit === "%"
+                ? displayParts.unit
+                : ` ${displayParts.unit}`}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Trend indicator, or the hovered point's timestamp. One slot with a
+          dictated height, so the swap cannot move anything below it. */}
+      {layout.stackMode === ValueWidgetStackMode.Column &&
+        layout.showStatusRow && (
+          <div
+            className="w-full shrink-0 overflow-hidden flex items-center justify-center whitespace-nowrap"
+            style={{
+              height: `${layout.statusRowHeightInPx}px`,
+              fontSize: `${layout.statusFontSizeInPx}px`,
+            }}
+          >
+            {statusElement}
+          </div>
+        )}
 
       {/* Sparkline */}
-      {showSparkline && (
-        <div className="mt-1">
+      {layout.showSparkline && (
+        <div
+          className="w-full shrink-0 overflow-hidden flex items-center justify-center"
+          style={{ height: `${layout.sparklineRowHeightInPx}px` }}
+        >
           <Sparkline
             data={sparklineData}
-            width={sparklineWidth}
-            height={sparklineHeight}
+            width={layout.sparklineWidthInPx}
+            height={layout.sparklineHeightInPx}
             color={sparklineColor}
             fillColor={sparklineFill}
             onHoverPoint={handleHoverPoint}

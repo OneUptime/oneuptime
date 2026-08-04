@@ -1,6 +1,6 @@
 import { ExpressRequest } from "Common/Server/Utils/Express";
-import RunbookAgent from "Common/Models/DatabaseModels/RunbookAgent";
+import Runner from "Common/Models/DatabaseModels/Runner";
 
-export interface RunbookAgentExpressRequest extends ExpressRequest {
-  runbookAgent?: RunbookAgent | undefined;
+export interface RunnerExpressRequest extends ExpressRequest {
+  runner?: Runner | undefined;
 }

@@ -1,4 +1,3 @@
-import AIAgentService from "../Services/AIAgentService";
 import TelemetryExceptionService from "../Services/TelemetryExceptionService";
 import ServiceService from "../Services/ServiceService";
 import CodeRepositoryService from "../Services/CodeRepositoryService";
@@ -17,7 +16,10 @@ import Express, {
   NextFunction,
 } from "../Utils/Express";
 import Response from "../Utils/Response";
-import AIAgent from "../../Models/DatabaseModels/AIAgent";
+import CodeFixAgentAuth, {
+  CodeFixAgentIdentity,
+  CodeFixAgentSource,
+} from "../Utils/AI/CodeFix/CodeFixAgentAuth";
 import TelemetryException from "../../Models/DatabaseModels/TelemetryException";
 import Service from "../../Models/DatabaseModels/Service";
 import CodeRepository from "../../Models/DatabaseModels/CodeRepository";
@@ -33,6 +35,7 @@ import AlertFeed, {
 } from "../../Models/DatabaseModels/AlertFeed";
 import AIRunEventType from "../../Types/AI/AIRunEventType";
 import AIRunType from "../../Types/AI/AIRunType";
+import FixVerificationStatus from "../../Types/AI/FixVerificationStatus";
 import CodeFixTaskType, {
   CodeFixContextKind,
   CodeFixTaskTypeHelper,
@@ -109,8 +112,9 @@ export default class AIAgentDataAPI {
         try {
           const data: JSONObject = req.body;
 
-          // Validate AI Agent credentials
-          const aiAgent: AIAgent | null = await this.validateAIAgent(data);
+          // Validate agent credentials (AIAgent fleet or a Runner)
+          const aiAgent: CodeFixAgentIdentity | null =
+            await CodeFixAgentAuth.resolveAgentIdentity(data);
 
           if (!aiAgent || !aiAgent.id) {
             return Response.sendErrorResponse(
@@ -129,6 +133,36 @@ export default class AIAgentDataAPI {
           }
 
           const taskId: ObjectID = new ObjectID(data["taskId"] as string);
+
+          /*
+           * A project-scoped Runner may only spend a run of its own project.
+           * Without this, one tenant's Runner key could burn another
+           * tenant's LLM budget and read back the completions.
+           */
+          const completionRun: AIRun | null = await AIRunService.findOneById({
+            id: taskId,
+            select: {
+              _id: true,
+              projectId: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+          if (
+            !completionRun ||
+            CodeFixAgentAuth.deniesAccessToProject(
+              aiAgent,
+              completionRun.projectId,
+            )
+          ) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Task not found"),
+            );
+          }
 
           const messages: Array<LLMMessage> = this.parseCompletionMessages(
             data["messages"],
@@ -175,8 +209,9 @@ export default class AIAgentDataAPI {
         try {
           const data: JSONObject = req.body;
 
-          // Validate AI Agent credentials
-          const aiAgent: AIAgent | null = await this.validateAIAgent(data);
+          // Validate agent credentials (AIAgent fleet or a Runner)
+          const aiAgent: CodeFixAgentIdentity | null =
+            await CodeFixAgentAuth.resolveAgentIdentity(data);
 
           if (!aiAgent) {
             return Response.sendErrorResponse(
@@ -205,6 +240,7 @@ export default class AIAgentDataAPI {
               id: exceptionId,
               select: {
                 _id: true,
+                projectId: true,
                 message: true,
                 stackTrace: true,
                 exceptionType: true,
@@ -218,7 +254,14 @@ export default class AIAgentDataAPI {
               },
             });
 
-          if (!exception) {
+          /*
+           * A project-scoped Runner only sees its own project's exceptions —
+           * this response carries stack traces and messages.
+           */
+          if (
+            !exception ||
+            CodeFixAgentAuth.deniesAccessToProject(aiAgent, exception.projectId)
+          ) {
             return Response.sendErrorResponse(
               req,
               res,
@@ -301,8 +344,9 @@ export default class AIAgentDataAPI {
         try {
           const data: JSONObject = req.body;
 
-          // Validate AI Agent credentials
-          const aiAgent: AIAgent | null = await this.validateAIAgent(data);
+          // Validate agent credentials (AIAgent fleet or a Runner)
+          const aiAgent: CodeFixAgentIdentity | null =
+            await CodeFixAgentAuth.resolveAgentIdentity(data);
 
           if (!aiAgent) {
             return Response.sendErrorResponse(
@@ -340,7 +384,11 @@ export default class AIAgentDataAPI {
               },
             });
 
-          if (!exception || !exception.projectId) {
+          if (
+            !exception ||
+            !exception.projectId ||
+            CodeFixAgentAuth.deniesAccessToProject(aiAgent, exception.projectId)
+          ) {
             return Response.sendErrorResponse(
               req,
               res,
@@ -391,6 +439,9 @@ export default class AIAgentDataAPI {
                 organizationName: true,
                 repositoryName: true,
                 mainBranchName: true,
+                setupCommand: true,
+                buildCommand: true,
+                testCommand: true,
                 gitHubAppInstallationId: true,
               },
               props: {
@@ -420,6 +471,9 @@ export default class AIAgentDataAPI {
                 organizationName: repository.organizationName || "",
                 repositoryName: repository.repositoryName || "",
                 mainBranchName: repository.mainBranchName || "main",
+                setupCommand: repository.setupCommand || null,
+                buildCommand: repository.buildCommand || null,
+                testCommand: repository.testCommand || null,
                 servicePathInRepository: resolution.servicePathInRepository,
                 gitHubAppInstallationId:
                   repository.gitHubAppInstallationId || null,
@@ -468,8 +522,9 @@ export default class AIAgentDataAPI {
         try {
           const data: JSONObject = req.body;
 
-          // Validate AI Agent credentials
-          const aiAgent: AIAgent | null = await this.validateAIAgent(data);
+          // Validate agent credentials (AIAgent fleet or a Runner)
+          const aiAgent: CodeFixAgentIdentity | null =
+            await CodeFixAgentAuth.resolveAgentIdentity(data);
 
           if (!aiAgent) {
             return Response.sendErrorResponse(
@@ -505,7 +560,11 @@ export default class AIAgentDataAPI {
             },
           });
 
-          if (!run || !run.projectId) {
+          if (
+            !run ||
+            !run.projectId ||
+            CodeFixAgentAuth.deniesAccessToProject(aiAgent, run.projectId)
+          ) {
             return Response.sendErrorResponse(
               req,
               res,
@@ -585,6 +644,9 @@ export default class AIAgentDataAPI {
                     organizationName: true,
                     repositoryName: true,
                     mainBranchName: true,
+                    setupCommand: true,
+                    buildCommand: true,
+                    testCommand: true,
                     gitHubAppInstallationId: true,
                   },
                   props: { isRoot: true },
@@ -622,6 +684,9 @@ export default class AIAgentDataAPI {
                   organizationName: repository.organizationName || "",
                   repositoryName: repository.repositoryName || "",
                   mainBranchName: repository.mainBranchName || "main",
+                  setupCommand: repository.setupCommand || null,
+                  buildCommand: repository.buildCommand || null,
+                  testCommand: repository.testCommand || null,
                   servicePathInRepository: resolution.servicePathInRepository,
                   gitHubAppInstallationId:
                     repository.gitHubAppInstallationId || null,
@@ -704,6 +769,9 @@ export default class AIAgentDataAPI {
                     organizationName: true,
                     repositoryName: true,
                     mainBranchName: true,
+                    setupCommand: true,
+                    buildCommand: true,
+                    testCommand: true,
                     gitHubAppInstallationId: true,
                   },
                   props: {
@@ -761,6 +829,9 @@ export default class AIAgentDataAPI {
                   organizationName: repository.organizationName || "",
                   repositoryName: repository.repositoryName || "",
                   mainBranchName: repository.mainBranchName || "main",
+                  setupCommand: repository.setupCommand || null,
+                  buildCommand: repository.buildCommand || null,
+                  testCommand: repository.testCommand || null,
                   servicePathInRepository: resolution.servicePathInRepository,
                   gitHubAppInstallationId:
                     repository.gitHubAppInstallationId || null,
@@ -935,6 +1006,9 @@ export default class AIAgentDataAPI {
                   organizationName: true,
                   repositoryName: true,
                   mainBranchName: true,
+                  setupCommand: true,
+                  buildCommand: true,
+                  testCommand: true,
                   gitHubAppInstallationId: true,
                 },
                 props: {
@@ -980,6 +1054,9 @@ export default class AIAgentDataAPI {
                 organizationName: repository.organizationName || "",
                 repositoryName: repository.repositoryName || "",
                 mainBranchName: repository.mainBranchName || "main",
+                setupCommand: repository.setupCommand || null,
+                buildCommand: repository.buildCommand || null,
+                testCommand: repository.testCommand || null,
                 servicePathInRepository: resolution.servicePathInRepository,
                 gitHubAppInstallationId:
                   repository.gitHubAppInstallationId || null,
@@ -1005,8 +1082,9 @@ export default class AIAgentDataAPI {
         try {
           const data: JSONObject = req.body;
 
-          // Validate AI Agent credentials
-          const aiAgent: AIAgent | null = await this.validateAIAgent(data);
+          // Validate agent credentials (AIAgent fleet or a Runner)
+          const aiAgent: CodeFixAgentIdentity | null =
+            await CodeFixAgentAuth.resolveAgentIdentity(data);
 
           if (!aiAgent) {
             return Response.sendErrorResponse(
@@ -1035,6 +1113,7 @@ export default class AIAgentDataAPI {
               id: codeRepositoryId,
               select: {
                 _id: true,
+                projectId: true,
                 repositoryHostedAt: true,
                 organizationName: true,
                 repositoryName: true,
@@ -1046,7 +1125,18 @@ export default class AIAgentDataAPI {
               },
             });
 
-          if (!codeRepository) {
+          /*
+           * This route mints a GitHub token with contents:write and
+           * pull_requests:write, so a project-scoped Runner must never reach
+           * another tenant's repository with it.
+           */
+          if (
+            !codeRepository ||
+            CodeFixAgentAuth.deniesAccessToProject(
+              aiAgent,
+              codeRepository.projectId,
+            )
+          ) {
             return Response.sendErrorResponse(
               req,
               res,
@@ -1148,8 +1238,9 @@ export default class AIAgentDataAPI {
         try {
           const data: JSONObject = req.body;
 
-          // Validate AI Agent credentials
-          const aiAgent: AIAgent | null = await this.validateAIAgent(data);
+          // Validate agent credentials (AIAgent fleet or a Runner)
+          const aiAgent: CodeFixAgentIdentity | null =
+            await CodeFixAgentAuth.resolveAgentIdentity(data);
 
           if (!aiAgent) {
             return Response.sendErrorResponse(
@@ -1215,6 +1306,26 @@ export default class AIAgentDataAPI {
             | undefined;
 
           /*
+           * Runner-side build/test verification outcome (pre-PR, distinct
+           * from the ciStatus the sync worker fills post-PR). Unknown
+           * values are dropped rather than stored — the column is a typed
+           * enum and the Runner may be older or newer than this server.
+           */
+          const rawVerificationStatus: string | undefined = data[
+            "runnerVerificationStatus"
+          ] as string | undefined;
+          const runnerVerificationStatus: FixVerificationStatus | undefined =
+            rawVerificationStatus &&
+            Object.values(FixVerificationStatus).includes(
+              rawVerificationStatus as FixVerificationStatus,
+            )
+              ? (rawVerificationStatus as FixVerificationStatus)
+              : undefined;
+          const runnerVerificationSummary: string | undefined = data[
+            "runnerVerificationSummary"
+          ] as string | undefined;
+
+          /*
            * `taskId` carries the AIRun id of the code-fix run — get the run
            * for the project ID and so the PR can be recorded on its trail.
            */
@@ -1229,7 +1340,10 @@ export default class AIAgentDataAPI {
             },
           });
 
-          if (!run) {
+          if (
+            !run ||
+            CodeFixAgentAuth.deniesAccessToProject(aiAgent, run.projectId)
+          ) {
             return Response.sendErrorResponse(
               req,
               res,
@@ -1243,6 +1357,7 @@ export default class AIAgentDataAPI {
               id: codeRepositoryId,
               select: {
                 _id: true,
+                projectId: true,
                 organizationName: true,
                 repositoryName: true,
               },
@@ -1250,6 +1365,24 @@ export default class AIAgentDataAPI {
                 isRoot: true,
               },
             });
+
+          /*
+           * The recorded repository must exist AND belong to the run's
+           * project. The pull-request row is what the open-PR cap counts, so
+           * a foreign repository id would let one project's records skew
+           * another's guardrail — and a nonexistent one would fail on the
+           * codeRepositoryId foreign key as an opaque 500.
+           */
+          if (
+            !codeRepository ||
+            codeRepository.projectId?.toString() !== run.projectId?.toString()
+          ) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Code repository not found"),
+            );
+          }
 
           // Create the pull request record
           const pullRequest: AIAgentTaskPullRequest =
@@ -1260,7 +1393,16 @@ export default class AIAgentDataAPI {
           }
 
           pullRequest.aiRunId = taskId;
-          pullRequest.aiAgentId = aiAgent.id!;
+
+          /*
+           * aiAgentId is a real foreign key into the AIAgent table, so it can
+           * only carry an AIAgent identity. A Runner leaves it null — the
+           * same "no AIAgent behind it" case chat-authored pull requests
+           * already use, and every consumer tolerates.
+           */
+          if (aiAgent.source === CodeFixAgentSource.AIAgent) {
+            pullRequest.aiAgentId = aiAgent.id!;
+          }
           pullRequest.codeRepositoryId = codeRepositoryId;
           pullRequest.pullRequestUrl = URL.fromString(pullRequestUrl);
 
@@ -1272,10 +1414,15 @@ export default class AIAgentDataAPI {
             pullRequest.pullRequestId = pullRequestId;
           }
 
-          pullRequest.title = title;
+          // The column is ShortText — DatabaseService rejects over 100 chars.
+          pullRequest.title = title.substring(0, 100);
 
           if (description) {
-            pullRequest.description = description;
+            /*
+             * The column is LongText, which DatabaseService validates at 500
+             * characters — truncate, never reject the whole recording.
+             */
+            pullRequest.description = description.substring(0, 500);
           }
 
           pullRequest.pullRequestState = PullRequestState.Open;
@@ -1294,6 +1441,16 @@ export default class AIAgentDataAPI {
 
           if (codeRepository?.repositoryName) {
             pullRequest.repoName = codeRepository.repositoryName;
+          }
+
+          if (runnerVerificationStatus) {
+            pullRequest.runnerVerificationStatus = runnerVerificationStatus;
+          }
+
+          if (runnerVerificationSummary) {
+            // The column is varchar(500) — truncate, never reject.
+            pullRequest.runnerVerificationSummary =
+              runnerVerificationSummary.substring(0, 500);
           }
 
           const createdPullRequest: AIAgentTaskPullRequest =
@@ -1444,31 +1601,5 @@ export default class AIAgentDataAPI {
         inputSchema: toolObject["inputSchema"] as JSONObject,
       };
     });
-  }
-
-  // Validate AI Agent credentials from request body
-  private async validateAIAgent(data: JSONObject): Promise<AIAgent | null> {
-    if (!data["aiAgentId"] || !data["aiAgentKey"]) {
-      return null;
-    }
-
-    const aiAgentId: ObjectID = new ObjectID(data["aiAgentId"] as string);
-    const aiAgentKey: string = data["aiAgentKey"] as string;
-
-    const aiAgent: AIAgent | null = await AIAgentService.findOneBy({
-      query: {
-        _id: aiAgentId.toString(),
-        key: aiAgentKey,
-      },
-      select: {
-        _id: true,
-        projectId: true, // Fetch projectId to check if this is a global or project AI agent
-      },
-      props: {
-        isRoot: true,
-      },
-    });
-
-    return aiAgent;
   }
 }

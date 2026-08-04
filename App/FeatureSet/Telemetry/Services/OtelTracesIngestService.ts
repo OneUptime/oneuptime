@@ -78,6 +78,14 @@ type ExceptionEventPayload = {
   primaryEntityId: ObjectID;
   spanId: string;
   traceId: string;
+  /*
+   * Session replay correlation key, threaded through from the span
+   * context. It cannot be recovered from `attributes` below: that field
+   * holds the span EVENT attributes with every `exception.*` key removed,
+   * so resource and span attributes (where `session.id` actually lives)
+   * never reach it.
+   */
+  sessionId: string;
   spanStatusCode: SpanStatus;
   spanName: string;
   message: string;
@@ -700,6 +708,16 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                         traceId: traceId,
                         spanStatusCode: statusCode,
                         spanName: spanName,
+                        /*
+                         * Read back off the POST-scrub, post-pipeline
+                         * spanRow rather than recomputed from
+                         * spanAttributes, so the exception row and the
+                         * span row can never disagree about which session
+                         * this was: if a scrub rule or pipeline rewrote
+                         * the span's sessionId, the exception inherits the
+                         * same rewrite.
+                         */
+                        sessionId: (spanRow["sessionId"] as string) || "",
                         resourceAttributes: resourceAttributes,
                         serviceMetadata: serviceDictionary[serviceName]!,
                       },
@@ -948,6 +966,13 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       traceId: string;
       spanStatusCode: SpanStatus;
       spanName: string;
+      /*
+       * Threaded through explicitly because rawException.attributes is
+       * the span EVENT attribute bag, which never contains resource or
+       * span attributes: `session.id` is invisible from inside this
+       * function otherwise.
+       */
+      sessionId: string;
       resourceAttributes: Dictionary<AttributeType | Array<AttributeType>>;
       serviceMetadata: TelemetryServiceMetadata;
     };
@@ -988,6 +1013,10 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
          * scrub rule matching its exception messages, orphaning the old
          * rows (with their resolved/archived/classification state) and
          * restarting occurrence counts from zero.
+         *
+         * For exactly the same reason, sessionId is NOT an input here.
+         * It is a per-session value, so folding it in would give every
+         * session its own exception group.
          */
         const fingerprint: string = ExceptionUtil.getFingerprint({
           projectId: spanContext.projectId,
@@ -1023,6 +1052,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
           primaryEntityId: spanContext.primaryEntityId,
           spanId: spanContext.spanId,
           traceId: spanContext.traceId,
+          sessionId: spanContext.sessionId,
           spanStatusCode: spanContext.spanStatusCode,
           spanName: spanContext.spanName,
           message: message,
@@ -1110,6 +1140,55 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
     return spanLinks;
   }
 
+  /*
+   * Session replay correlation. `session.id` reaches us in one of two
+   * shapes and we must accept both:
+   *
+   *   - as a span attribute, under the bare key "session.id";
+   *   - as a RESOURCE attribute, which TelemetryUtil.getAttributes
+   *     prefixes with "resource.", so it arrives as
+   *     "resource.session.id".
+   *
+   * Reading only the bare key would look correct in a unit test and fail
+   * in production, because a browser SDK sets session.id ONCE on the
+   * resource rather than on every span.
+   *
+   * Duplicated verbatim in OtelLogsIngestService: the two ingest services
+   * share no base for row building, and a Common helper would put an
+   * ingest-only concern in the shared telemetry utils.
+   */
+  private static readonly sessionIdAttributeKeys: ReadonlyArray<string> = [
+    "session.id",
+    "resource.session.id",
+  ];
+
+  private static getSessionIdFromAttributes(
+    attributes: Record<string, unknown> | undefined,
+  ): string {
+    if (!attributes) {
+      return "";
+    }
+
+    for (const key of this.sessionIdAttributeKeys) {
+      const value: unknown = attributes[key];
+
+      if (typeof value === "string" && value !== "") {
+        return value;
+      }
+
+      /*
+       * A numeric or boolean session id is nonsense but harmless to
+       * coerce; an array or object is not a usable join key, so it falls
+       * through to the next candidate key and ultimately to "".
+       */
+      if (typeof value === "number" || typeof value === "boolean") {
+        return String(value);
+      }
+    }
+
+    return "";
+  }
+
   private static buildSpanRow(data: {
     projectId: ObjectID;
     primaryEntityId: ObjectID;
@@ -1163,6 +1242,8 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       durationUnixNano: data.durationUnixNano,
       traceId: data.traceId,
       spanId: data.spanId,
+      // '' when this span carries no browser session; never null.
+      sessionId: this.getSessionIdFromAttributes(data.attributes),
       parentSpanId: data.parentSpanId,
       traceState: data.traceState || "",
       attributes: data.attributes,
@@ -1228,6 +1309,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
           : Boolean(data.escaped),
       traceId: data.traceId || "",
       spanId: data.spanId || "",
+      sessionId: data.sessionId || "",
       fingerprint: data.fingerprint,
       spanName: data.spanName || "",
       release: data.release || "",

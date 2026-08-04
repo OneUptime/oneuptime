@@ -19,6 +19,9 @@ import UniqueColumnBy from "../../Types/Database/UniqueColumnBy";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
+import SessionReplayCaptureTrigger from "../../Types/Rum/SessionReplayCaptureTrigger";
+import SessionReplayConsentMode from "../../Types/Rum/SessionReplayConsentMode";
+import SessionReplayMaskingMode from "../../Types/Rum/SessionReplayMaskingMode";
 import TelemetryRetentionConfig from "../../Types/Telemetry/TelemetryRetentionConfig";
 import {
   Column,
@@ -588,6 +591,909 @@ export default class RumApplication extends BaseModel {
     nullable: true,
   })
   public telemetryRetentionConfig?: TelemetryRetentionConfig = undefined;
+
+  /*
+   * Session replay policy.
+   *
+   * Every column below is a server-side privacy control that the recorder
+   * reads through the config endpoint, so a change here has to reach a
+   * browser that already loaded - which is why the config response also
+   * carries a configEpoch and every chunk response carries a directive.
+   *
+   * The defaults are tuned so that a fresh application produces a
+   * recording somebody can actually debug from: recording on, sensitive
+   * inputs masked but the rest of the page readable, no consent
+   * handshake required, and any origin accepted.
+   *
+   * Be clear-eyed about what that trades away. Session replay records
+   * what a real end user saw on screen, and masking is applied in their
+   * browser BEFORE upload - so a leak cannot be repaired retroactively,
+   * and tightening a setting does not scrub recordings already taken
+   * under a looser one. The defaults assume the operator has a lawful
+   * basis for recording and will tighten masking, consent and the origin
+   * allowlist to match their own obligations. Passwords and declared
+   * card / one-time-code fields are masked in every mode and are not
+   * configurable.
+   */
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateRumApplication,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadRumApplication,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditRumApplication,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Enable Session Replay",
+    description:
+      "When enabled, the browser recorder may record and upload session replays for this application. On by default; Project.isSessionReplayAllowed must also be on. Turn it off here to stop recording for one application without affecting the rest of the project.",
+    defaultValue: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: true,
+  })
+  public isSessionReplayEnabled?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateRumApplication,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadRumApplication,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditRumApplication,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.ShortText,
+    title: "Session Replay Masking Mode",
+    description:
+      "How aggressively the recorder masks page content before it leaves the end user's device. MaskSensitiveInputsOnly (default) masks passwords and card / one-time-code fields and records everything else verbatim. MaskInputsOnly additionally masks every other input value. MaskAllText masks static page text too, producing a wireframe.",
+    defaultValue: SessionReplayMaskingMode.MaskSensitiveInputsOnly,
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: false,
+    default: SessionReplayMaskingMode.MaskSensitiveInputsOnly,
+  })
+  public sessionReplayMaskingMode?: SessionReplayMaskingMode = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateRumApplication,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadRumApplication,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditRumApplication,
+    ],
+  })
+  /*
+   * NOT required, even though the column is NOT NULL with a '[]' default.
+   * DatabaseService.checkRequiredFields() runs on the in-memory model
+   * before the INSERT and cannot see a database-side default, so a
+   * required column with no isDefaultValueColumn would make every create
+   * of a RumApplication throw - including the RUM ingest auto-provisioning
+   * path, which supplies nothing but projectId/name/appIdentifier. An
+   * omitted list simply lands as the '[]' default.
+   */
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Session Replay Mask Selectors",
+    description:
+      "CSS selectors whose text content the recorder masks, in addition to whatever the masking mode already covers.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: false,
+    default: () => {
+      return "'[]'";
+    },
+  })
+  public sessionReplayMaskSelectors?: Array<string> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateRumApplication,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadRumApplication,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditRumApplication,
+    ],
+  })
+  /* Not required, for the same reason as the mask selectors above. */
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Session Replay Block Selectors",
+    description:
+      "CSS selectors the recorder excludes from the DOM snapshot entirely, so the subtree is never captured rather than captured and masked.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: false,
+    default: () => {
+      return "'[]'";
+    },
+  })
+  public sessionReplayBlockSelectors?: Array<string> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateRumApplication,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadRumApplication,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditRumApplication,
+    ],
+  })
+  /* Not required, for the same reason as the mask selectors above. */
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Session Replay Ignored Error Patterns",
+    description:
+      "Regex patterns matched against an uncaught error's message and source URL. Matching errors are still recorded in the session but no longer trigger an upload — the remedy for a chronically-throwing third-party tag that would otherwise convert error-triggered capture into always-on recording.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: false,
+    default: () => {
+      return "'[]'";
+    },
+  })
+  public sessionReplayIgnoreErrorPatterns?: Array<string> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateRumApplication,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadRumApplication,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditRumApplication,
+    ],
+  })
+  /* Not required, for the same reason as the mask selectors above. */
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Session Replay Trace Propagation Origins",
+    description:
+      "Origins the recorder may inject a W3C traceparent header into, linking recordings to the backend traces of their requests without any OpenTelemetry browser setup. Empty means never inject: adding a header makes cross-origin requests preflighted, so each listed origin is an explicit statement that its API allows the traceparent header.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: false,
+    default: () => {
+      return "'[]'";
+    },
+  })
+  public sessionReplayTracePropagationOrigins?: Array<string> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateRumApplication,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadRumApplication,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditRumApplication,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.Number,
+    title: "Session Replay LCP Budget (ms)",
+    description:
+      "Largest Contentful Paint budget in milliseconds. A session whose LCP exceeds it uploads with the Performance trigger. 0 disables the trigger.",
+    defaultValue: 0,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    default: 0,
+  })
+  public sessionReplayLcpBudgetMs?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateRumApplication,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadRumApplication,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditRumApplication,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.Number,
+    title: "Session Replay Long Task Budget (ms)",
+    description:
+      "Main-thread long-task budget in milliseconds. A single task blocking longer than this uploads the session with the Performance trigger. 0 disables the trigger.",
+    defaultValue: 0,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    default: 0,
+  })
+  public sessionReplayLongTaskBudgetMs?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateRumApplication,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadRumApplication,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditRumApplication,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.Number,
+    title: "Session Replay Slow Request Budget (ms)",
+    description:
+      "Request duration budget in milliseconds. An instrumented request slower than this uploads the session with the Performance trigger. 0 disables the trigger.",
+    defaultValue: 0,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    default: 0,
+  })
+  public sessionReplaySlowRequestBudgetMs?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateRumApplication,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadRumApplication,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditRumApplication,
+    ],
+  })
+  /*
+   * Not required, for the same reason as the selector lists above - but
+   * unlike those, the omitted value here is the PERMISSIVE one: an empty
+   * allowlist accepts any origin, so a fresh application records without
+   * anyone having to configure a list first.
+   *
+   * See SessionReplayGateCache.isOriginAllowed for what that gives up.
+   * The ingestion key sits in plain sight in the customer's page, so
+   * until this list is filled in, anyone who copies it can write forged
+   * recordings into the project.
+   */
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Session Replay Allowed Origins",
+    description:
+      "Exact browser origins (scheme + host + port) allowed to upload session replay chunks for this application. Empty (the default) accepts any origin. Once you list an origin this becomes a strict allowlist: anything unlisted, and any request with no Origin header, is refused.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: false,
+    default: () => {
+      return "'[]'";
+    },
+  })
+  public sessionReplayAllowedOrigins?: Array<string> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateRumApplication,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadRumApplication,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditRumApplication,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.ShortText,
+    title: "Session Replay Consent Mode",
+    description:
+      "NotRequired (default) uploads immediately, asserting a lawful basis that does not need a per-session grant. RequireExplicit buffers in memory and uploads nothing until the host page calls grantConsent(); set it if you need a per-session consent handshake, which most EU deployments will.",
+    defaultValue: SessionReplayConsentMode.NotRequired,
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: false,
+    default: SessionReplayConsentMode.NotRequired,
+  })
+  public sessionReplayConsentMode?: SessionReplayConsentMode = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateRumApplication,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadRumApplication,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditRumApplication,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.ShortText,
+    title: "Session Replay Capture Trigger",
+    description:
+      "OnErrorOrFrustration (default) keeps a rolling in-memory buffer and uploads only when something actually went wrong. Always uploads every sampled session from its first event, which costs materially more and stores materially more end-user data.",
+    defaultValue: SessionReplayCaptureTrigger.OnErrorOrFrustration,
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: false,
+    default: SessionReplayCaptureTrigger.OnErrorOrFrustration,
+  })
+  public sessionReplayCaptureTrigger?: SessionReplayCaptureTrigger = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateRumApplication,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadRumApplication,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditRumApplication,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.Number,
+    title: "Session Replay Sample Percentage",
+    description:
+      "Percentage of sessions (0 to 100) recorded regardless of whether anything went wrong. 0 by default, so with the default trigger only failing sessions are recorded.",
+    defaultValue: 0,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    unique: false,
+    default: 0,
+  })
+  public sessionReplaySamplePercentage?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SettingsAdmin,
+      Permission.CreateRumApplication,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadRumApplication,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SettingsAdmin,
+      Permission.EditRumApplication,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Capture Session Replay User Identity",
+    description:
+      "When enabled, the raw end-user reference supplied by the host page is stored alongside the recording, so a support engineer can find the session a named customer is complaining about. When off, only a one-way per-project HMAC of it is stored. On by default. Narrower create/update ACL than the other replay settings: this is the switch that turns a pseudonymous recording into an identified one.",
+    defaultValue: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: true,
+  })
+  public sessionReplayCaptureUserIdentity?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SettingsAdmin,
+      Permission.CreateRumApplication,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadRumApplication,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SettingsAdmin,
+      Permission.EditRumApplication,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Capture Session Replay Country",
+    description:
+      "When enabled, a country code is derived from the request and stored on the session. On by default. The end user's IP address is never stored either way - the country is the only geographic fact this keeps.",
+    defaultValue: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: true,
+  })
+  public sessionReplayCaptureGeo?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateRumApplication,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadRumApplication,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditRumApplication,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Record Canvas In Session Replay",
+    description:
+      "When enabled, canvas contents are recorded. Off by default because canvas capture is expensive on the end user's device and canvases routinely render content the text masking cannot reach.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public sessionReplayRecordCanvas?: boolean = undefined;
+
+  /*
+   * Deliberately separate from retainTelemetryDataForDays. That column
+   * feeds every other pillar and sits ABOVE the project-level pillar
+   * default in resolveTelemetryRetentionInDays' candidate order, so an
+   * application configured for 90-day trace retention would silently
+   * inherit 90-day replay retention. Replay retention is resolved by
+   * Common/Server/Utils/SessionReplay/SessionReplayRetention.ts instead,
+   * and clamped to the allowed closed set.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateRumApplication,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadRumApplication,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditRumApplication,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.Number,
+    title: "Session Replay Retention (days)",
+    description:
+      "How long session recordings are kept for this application. Clamped to 1, 7, 14, 30 or 90 days. Defaults to 7 rather than the 15 the other telemetry pillars use, because a short retention is itself a privacy control.",
+    defaultValue: 7,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    unique: false,
+    default: 7,
+  })
+  public sessionReplayRetentionInDays?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateRumApplication,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadRumApplication,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditRumApplication,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Session Replay Monthly Budget (GB)",
+    description:
+      "Optional ceiling on replay bytes ingested per calendar month for this application. Once exceeded, live recorders are told to stop. Leave blank for no application-level ceiling.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+    unique: false,
+  })
+  public sessionReplayMonthlyBudgetInGB?: number = undefined;
+
+  /*
+   * The next two columns exist purely so a support engineer can answer
+   * "why is nothing being recorded?" from the application row itself,
+   * without querying ClickHouse or reading ingest logs. They are written
+   * by the ingest path as root, hence no create/update ACL.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadRumApplication,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Session Replay Last Chunk Received At",
+    description:
+      "When a session replay chunk was last accepted for this application.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public sessionReplayLastChunkReceivedAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadRumApplication,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Session Replay Budget Exceeded At",
+    description:
+      "When the session replay byte budget was last hit for this application. Non-null means recorders are currently being told to stop.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public sessionReplayBudgetExceededAt?: Date = undefined;
 
   @ColumnAccessControl({
     create: [

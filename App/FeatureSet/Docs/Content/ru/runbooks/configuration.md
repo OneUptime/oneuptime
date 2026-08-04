@@ -7,7 +7,7 @@ Bash- и JavaScript-шаги **никогда не выполняются на O
 Модель диспетчеризации:
 
 1. Автор шага runbook-а выбирает Runbook-агента из выпадающего списка при написании шага.
-2. Когда шаг выполняется, Worker вставляет строку в `RunbookAgentJob` с `targetAgentId`, равным ID этого агента, и статусом `Pending`.
+2. Когда шаг выполняется, Worker вставляет строку в `RunnerJob` с `targetAgentId`, равным ID этого агента, и статусом `Pending`.
 3. Этот конкретный агент (и только он) атомарно забирает job, локально запускает скрипт — Bash через `bash -c <скрипт>`, JavaScript в песочнице `isolated-vm` — и присылает результат обратно.
 4. Worker продолжает runbook с этим результатом.
 
@@ -27,7 +27,7 @@ Bash- и JavaScript-шаги **никогда не выполняются на O
 - `CreateRunbook`, `EditRunbook`, `DeleteRunbook`, `ReadRunbook` — управлять шаблонами runbook-ов.
 - `CreateRunbookExecution`, `EditRunbookExecution`, `ReadRunbookExecution` — запускать, отмечать и читать исполнения.
 - `CreateRunbookRule`, `EditRunbookRule`, `DeleteRunbookRule`, `ReadRunbookRule` — управлять правилами автозапуска.
-- `CreateRunbookAgent`, `EditRunbookAgent`, `DeleteRunbookAgent`, `ReadRunbookAgent` — управлять Runbook-агентами, которые выполняют Bash- и JavaScript-шаги в вашей инфраструктуре.
+- `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — управлять Runbook-агентами, которые выполняют Bash- и JavaScript-шаги в вашей инфраструктуре.
 - `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (роли) — назначайте команде для полного контроля, повседневного использования или доступа только на чтение соответственно. `RunbookAdmin` объединяет все детализированные права выше.
 
 ## Очередь и воркер
@@ -47,8 +47,8 @@ Bash- и JavaScript-шаги **никогда не выполняются на O
 - `Runbook` — шаблон (имя, slug, описание, isEnabled, JSON шагов).
 - `RunbookExecution` — одна строка на прогон, с nullable-ссылками `incidentId`, `alertId` и `scheduledMaintenanceId` и JSON-массивом `stepExecutions`, который сохраняет снимок шагов и состояния по каждому шагу.
 - `RunbookRule` — правила автозапуска с дискриминатором `triggerEntityType` (Incident, Alert, ScheduledMaintenance) и связью many-to-many с runbook-ами для запуска.
-- `RunbookAgent` — одна строка на установленного агента: имя, секретный ключ, `lastAlive`, `connectionStatus`, информация о хосте.
-- `RunbookAgentJob` — одна строка на отправленный Bash- или JavaScript-шаг: `targetAgentId` (агент, которого выбрал автор шага), тип шага, скрипт, статус (`Pending` → `Claimed` → `Running` → `Succeeded`/`Failed`/`TimedOut`/`Cancelled`), claim deadline, lease, вывод, exit code.
+- `Runner` — одна строка на установленного агента: имя, секретный ключ, `lastAlive`, `connectionStatus`, информация о хосте.
+- `RunnerJob` — одна строка на отправленный Bash- или JavaScript-шаг: `targetAgentId` (агент, которого выбрал автор шага), тип шага, скрипт, статус (`Pending` → `Claimed` → `Running` → `Succeeded`/`Failed`/`TimedOut`/`Cancelled`), claim deadline, lease, вывод, exit code.
 
 ## Эксплуатационные советы
 

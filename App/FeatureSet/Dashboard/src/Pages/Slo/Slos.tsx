@@ -5,6 +5,14 @@ import SloStatusPill from "../../Components/Slo/SloStatusPill";
 import MonitorsElement from "../../Components/Monitor/Monitors";
 import Route from "Common/Types/API/Route";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
+import ServiceLevelObjectiveOwnerTeam from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerTeam";
+import ServiceLevelObjectiveOwnerUser from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerUser";
+import useSloBulkActions, {
+  SLO_OWNER_RESOURCE_ID_FIELD,
+  SloBulkActionsResult,
+} from "../../Components/Slo/useSloBulkActions";
+import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
+import useResourceOwners from "../../Components/ResourceOwners/useResourceOwners";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -587,12 +595,30 @@ export const getSloViewRoute: GetSloViewRouteFunction = (
 };
 
 const Slos: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const { bulkActions, modals }: SloBulkActionsResult = useSloBulkActions();
+
+  /*
+   * Only the owners cell, not the facet filter bar the peer lists also take
+   * from this hook: "Add Owner" needs somewhere to show its result, and
+   * without a column the whole bulk action would land with nothing on
+   * screen changing.
+   */
+  const { getOwnersForResource, isLoadingOwners, onResourcesFetched } =
+    useResourceOwners<ServiceLevelObjective>({
+      ownerUserModelType: ServiceLevelObjectiveOwnerUser,
+      ownerTeamModelType: ServiceLevelObjectiveOwnerTeam,
+      resourceIdField: SLO_OWNER_RESOURCE_ID_FIELD,
+    });
+
   return (
     <Fragment>
       <ModelTable<ServiceLevelObjective>
         modelType={ServiceLevelObjective}
         id="slos-table"
         userPreferencesKey="slos-table"
+        onFetchSuccess={(data: Array<ServiceLevelObjective>) => {
+          onResourcesFetched(data);
+        }}
         isDeleteable={false}
         isEditable={false}
         isCreateable={true}
@@ -616,6 +642,9 @@ const Slos: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }}
         documentationLink={new Route("/docs/slo/introduction")}
         showViewIdButton={true}
+        bulkActions={{
+          buttons: [...bulkActions],
+        }}
         filters={[
           {
             field: {
@@ -756,12 +785,29 @@ const Slos: FunctionComponent<PageComponentProps> = (): ReactElement => {
               return <LabelsElement labels={item["labels"] || []} />;
             },
           },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: ServiceLevelObjective): ReactElement => {
+              return (
+                <OwnersCell
+                  owners={getOwnersForResource(item)}
+                  isLoading={isLoadingOwners}
+                />
+              );
+            },
+          },
         ]}
         selectMoreFields={SLO_TABLE_SELECT_MORE_FIELDS}
         onViewPage={(item: ServiceLevelObjective): Promise<Route> => {
           return Promise.resolve(getSloViewRoute(item));
         }}
       />
+      {modals}
     </Fragment>
   );
 };

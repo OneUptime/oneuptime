@@ -111,7 +111,7 @@ jobs:
           max_attempts: 3
           command: sudo docker build --no-cache -f ./Probe/Dockerfile .
 
-  docker-build-runbook-agent:
+  docker-build-runner:
     runs-on: ubuntu-latest
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
@@ -126,13 +126,13 @@ jobs:
           max_attempts: 3
           command: npm run prerun
 
-      # build runbook agent image
+      # build runner image (the merged Runbook Agent + AI Agent)
       - name: build docker image
         uses: nick-fields/retry@v3
         with:
-          timeout_minutes: 30
+          timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build --no-cache -f ./RunbookAgent/Dockerfile .
+          command: sudo docker build --no-cache -f ./Runner/Dockerfile .
 
   docker-build-test-server:
     runs-on: ubuntu-latest
@@ -156,26 +156,3 @@ jobs:
           timeout_minutes: 45
           max_attempts: 3
           command: sudo docker build --no-cache -f ./TestServer/Dockerfile .
-
-  docker-build-ai-agent:
-    runs-on: ubuntu-latest
-    env:
-      CI_PIPELINE_ID: ${{github.run_number}}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Preinstall
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 10
-          max_attempts: 3
-          command: npm run prerun
-
-      # build image for ai agent service
-      - name: build docker image
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 45
-          max_attempts: 3
-          command: sudo docker build --no-cache -f ./AIAgent/Dockerfile .

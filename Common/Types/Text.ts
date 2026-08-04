@@ -63,6 +63,39 @@ export default class Text {
     return result.toLowerCase();
   }
 
+  /*
+   * Space out a PascalCase identifier for display: "MaskAllText" becomes
+   * "Mask All Text".
+   *
+   * Casing is preserved rather than lowercased, so acronyms survive
+   * ("OIDCProvider" -> "OIDC Provider" and not "Oidc Provider"). Text that
+   * is already spaced is returned unchanged, which makes this safe to
+   * apply to an enum whose values are a mix of both.
+   *
+   * LIMITATION, and the reason callers must opt in rather than getting
+   * this for free: a case boundary inside a single word is
+   * indistinguishable from a word boundary, so proper nouns and
+   * initialisms that embed one come out wrong - "GitHub" -> "Git Hub",
+   * "NodeJS" -> "Node JS", "IPv4Address" -> "I Pv4 Address". Do not use
+   * this on values that are product names, identifiers, or anything else
+   * that is not simply English words concatenated.
+   */
+  public static fromPascalCaseToReadable(text: string): string {
+    if (!text) {
+      return text;
+    }
+
+    return (
+      text
+        // "maskAll" / "v2Recorder" -> "mask All" / "v2 Recorder"
+        .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+        // "OIDCProvider" -> "OIDC Provider"; the run keeps its own casing.
+        .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2")
+        .replace(/\s+/g, " ")
+        .trim()
+    );
+  }
+
   public static getFirstWord(text: string): string {
     if (!text || text.length === 0) {
       return text;

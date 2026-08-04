@@ -30,8 +30,8 @@ import { resolveTargetRepository } from "./CodeTools";
  * The trust boundary here is the sharpest in the toolbox. This agent reads
  * telemetry — log lines and exception messages authored by whatever the
  * monitored application threw, which an attacker can influence — and it can
- * now turn that input into code. AISentinelVision.md's answer to exactly this
- * threat ("a prompt-injected log line must never become a merged backdoor") is
+ * now turn that input into code. The answer to exactly this threat (a
+ * prompt-injected log line must never become a merged backdoor) is
  * structural, not behavioural: a human reviews before anything merges.
  *
  * So the invariant these tools enforce, and which nothing here may relax:

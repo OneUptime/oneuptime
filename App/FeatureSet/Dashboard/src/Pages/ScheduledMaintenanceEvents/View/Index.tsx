@@ -150,7 +150,7 @@ const ScheduledMaintenanceView: FunctionComponent<
                 icon={IconProp.Clock}
               />
               <EventStatTile
-                label="Window"
+                label="Duration"
                 value={
                   <LiveDuration
                     startDate={eventStartsAt}

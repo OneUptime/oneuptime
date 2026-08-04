@@ -130,7 +130,7 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
       ],
     },
     {
-      title: "Workspace Connections",
+      title: "Workspace",
       items: [
         {
           link: {

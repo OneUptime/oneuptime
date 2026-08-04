@@ -100,7 +100,7 @@ describe("InsightTriageRunner.executeTriage", () => {
       .mockRejectedValue(new Error("db down"));
     const failOrRequeue: jest.SpyInstance = jest
       .spyOn(AIInvestigationQueue, "failOrRequeue")
-      .mockResolvedValue(undefined);
+      .mockResolvedValue("requeued");
     const executeRun: jest.SpyInstance = jest.spyOn(
       AIInvestigationEngine,
       "executeRun",
@@ -127,7 +127,7 @@ describe("InsightTriageRunner.executeTriage", () => {
     jest.spyOn(AIInsightService, "findOneById").mockResolvedValue(null);
     const failOrRequeue: jest.SpyInstance = jest
       .spyOn(AIInvestigationQueue, "failOrRequeue")
-      .mockResolvedValue(undefined);
+      .mockResolvedValue("requeued");
 
     await InsightTriageRunner.executeTriage({
       aiRunId,

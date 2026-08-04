@@ -2,6 +2,8 @@ import { describe, expect, test } from "@jest/globals";
 import {
   BuildPinsResult,
   CLUSTER_CELL_SIZE,
+  CONTAINER_COLLISION_FACTOR,
+  CONTAINER_SIDE_FACTOR,
   ClusterColorKey,
   ClusterColorMember,
   GENERIC_SITE_TYPE_LABEL,
@@ -14,11 +16,13 @@ import {
   LabelPlacement,
   MapMarker,
   PinnableSite,
+  PlacedMapMarker,
   buildMapMarkers,
   buildPins,
   childTypeLabelFor,
   clusterCellSize,
   clusterRadius,
+  collisionRadiusOfMarker,
   colorKeyForTone,
   decideClusterColorKey,
   describeMapCoverage,
@@ -26,6 +30,7 @@ import {
   describeMarkerSite,
   formatUptimePercent,
   groupedMarkerRadius,
+  layoutMapMarkers,
   mapPinFingerprint,
   pluralizeSiteType,
   markerCountForSite,
@@ -34,6 +39,7 @@ import {
   truncateMarkerLabel,
   unitRollupTone,
 } from "../../FeatureSet/Dashboard/src/Components/NetworkSite/SiteMapViewModel";
+import { MARKER_CLEARANCE } from "../../FeatureSet/Dashboard/src/Components/NetworkSite/Geo/MarkerLayout";
 import { MapSiteView } from "../../FeatureSet/Dashboard/src/Components/NetworkSite/SiteHierarchyTypes";
 import {
   ROBINSON_VIEW_BOX_HEIGHT,
@@ -1571,5 +1577,364 @@ describe("buildMapMarkers sizes markers by what is under them", () => {
       ),
     );
     expect(radii.size).toBe(1);
+  });
+});
+
+/*
+ * Paint order stopped being enough the moment two markers landed on the same
+ * point. "The smaller one is painted last" only helps while there is some of
+ * the bigger one left to see — and a market whose centroid is its parent's,
+ * or six regions whose derived positions all average out over one city, draw
+ * N markers in one place and show ONE. The others cannot be hovered, named
+ * or clicked, and nothing on screen admits they are there.
+ *
+ * layoutMapMarkers is where that is fixed: it decides where each marker is
+ * DRAWN, and SiteGeoMap threads a line from the ones that moved back to
+ * where they really are. The geometry lives in Geo/MarkerLayout.ts (pinned
+ * by MarkerLayout.test.ts); what is pinned here is the part that knows what
+ * a MARKER is — how much room each shape needs, and that everything
+ * downstream follows the drawn position rather than the projected one.
+ */
+describe("collisionRadiusOfMarker", () => {
+  function marker(overrides: Partial<MapMarker> = {}): MapMarker {
+    return {
+      key: "m",
+      x: 100,
+      y: 100,
+      ids: ["m"],
+      count: 1,
+      screenRadius: 10,
+      colorKey: "ok",
+      isContainer: false,
+      isApproximate: false,
+      label: "",
+      tooltip: "",
+      ...overrides,
+    };
+  }
+
+  test("a single site needs exactly its own radius", () => {
+    expect(collisionRadiusOfMarker(marker())).toBe(10);
+  });
+
+  /*
+   * A container is a SQUARE. Keeping squares apart by their side length lets
+   * two of them meet corner to corner, which is the one direction that looks
+   * like a collision to a reader and like clearance to the math.
+   */
+  test("a container needs the circle that contains its square", () => {
+    expect(collisionRadiusOfMarker(marker({ isContainer: true }))).toBeCloseTo(
+      10 * CONTAINER_COLLISION_FACTOR,
+      9,
+    );
+    expect(CONTAINER_COLLISION_FACTOR).toBeGreaterThan(1);
+    // Which is exactly half the diagonal of the square that gets drawn.
+    expect(CONTAINER_COLLISION_FACTOR).toBeCloseTo(
+      (CONTAINER_SIDE_FACTOR / 2) * Math.SQRT2,
+      9,
+    );
+  });
+
+  test.each([
+    ["NaN", Number.NaN],
+    ["negative", -4],
+    ["infinite", Infinity],
+    ["zero", 0],
+  ])(
+    "a %s radius asks for no room rather than a broken layout",
+    (_name: string, screenRadius: number) => {
+      expect(collisionRadiusOfMarker(marker({ screenRadius }))).toBe(0);
+      expect(
+        collisionRadiusOfMarker(marker({ screenRadius, isContainer: true })),
+      ).toBe(0);
+    },
+  );
+});
+
+describe("layoutMapMarkers", () => {
+  function marker(
+    key: string,
+    x: number,
+    y: number,
+    overrides: Partial<MapMarker> = {},
+  ): MapMarker {
+    return {
+      key: key,
+      x: x,
+      y: y,
+      ids: [key],
+      count: 4,
+      screenRadius: MIN_CLUSTER_RADIUS,
+      colorKey: "ok",
+      isContainer: true,
+      isApproximate: false,
+      label: key,
+      tooltip: `${key} tooltip`,
+      ...overrides,
+    };
+  }
+
+  // The square SiteGeoMap actually draws, in screen units.
+  function squareOf(
+    placed: PlacedMapMarker,
+    zoom: number,
+  ): {
+    left: number;
+    right: number;
+    top: number;
+    bottom: number;
+  } {
+    const half: number = (placed.screenRadius * CONTAINER_SIDE_FACTOR) / 2;
+    return {
+      left: placed.x * zoom - half,
+      right: placed.x * zoom + half,
+      top: placed.y * zoom - half,
+      bottom: placed.y * zoom + half,
+    };
+  }
+
+  test("markers come back in paint order, with everything else intact", () => {
+    const markers: Array<MapMarker> = [
+      marker("first", 100, 100, { count: 90 }),
+      marker("second", 400, 300, { count: 3, colorKey: "down" }),
+    ];
+    const placed: Array<PlacedMapMarker> = layoutMapMarkers(markers, 1);
+
+    expect(
+      placed.map((entry: PlacedMapMarker): string => {
+        return entry.key;
+      }),
+    ).toEqual(["first", "second"]);
+    expect(placed[0]!.count).toBe(90);
+    expect(placed[1]!.colorKey).toBe("down");
+    expect(placed[1]!.tooltip).toBe("second tooltip");
+    expect(placed[1]!.ids).toEqual(["second"]);
+  });
+
+  test("a map with room on it is drawn exactly where the coordinates say", () => {
+    const placed: Array<PlacedMapMarker> = layoutMapMarkers(
+      [marker("a", 100, 100), marker("b", 500, 300)],
+      1,
+    );
+    for (const entry of placed) {
+      expect(entry.x).toBe(entry.anchorX);
+      expect(entry.y).toBe(entry.anchorY);
+      expect(entry.needsLeaderLine).toBe(false);
+    }
+  });
+
+  test("an empty map lays out to nothing", () => {
+    expect(layoutMapMarkers([], 1)).toEqual([]);
+  });
+
+  /*
+   * The defect, end to end: two children of a level whose positions are the
+   * same point. Before, one of them was simply invisible.
+   */
+  test("two markers on one point are drawn clear of each other", () => {
+    const placed: Array<PlacedMapMarker> = layoutMapMarkers(
+      [marker("alpha", 480, 250), marker("beta", 480, 250)],
+      1,
+    );
+
+    const first: {
+      left: number;
+      right: number;
+      top: number;
+      bottom: number;
+    } = squareOf(placed[0]!, 1);
+    const second: {
+      left: number;
+      right: number;
+      top: number;
+      bottom: number;
+    } = squareOf(placed[1]!, 1);
+
+    const overlaps: boolean = !(
+      first.right <= second.left ||
+      first.left >= second.right ||
+      first.bottom <= second.top ||
+      first.top >= second.bottom
+    );
+    expect(overlaps).toBe(false);
+
+    // Both keep a line home to the spot they share.
+    for (const entry of placed) {
+      expect(entry.needsLeaderLine).toBe(true);
+      expect(entry.anchorX).toBe(480);
+      expect(entry.anchorY).toBe(250);
+    }
+  });
+
+  test("containers are given more room than single sites of the same size", () => {
+    const gap: (isContainer: boolean) => number = (
+      isContainer: boolean,
+    ): number => {
+      const placed: Array<PlacedMapMarker> = layoutMapMarkers(
+        [
+          marker("a", 480, 250, { isContainer }),
+          marker("b", 480, 250, { isContainer }),
+        ],
+        1,
+      );
+      return Math.hypot(
+        placed[0]!.x - placed[1]!.x,
+        placed[0]!.y - placed[1]!.y,
+      );
+    };
+    expect(gap(true)).toBeGreaterThan(gap(false));
+    expect(gap(false)).toBeCloseTo(
+      2 * MIN_CLUSTER_RADIUS + MARKER_CLEARANCE,
+      2,
+    );
+  });
+
+  /*
+   * The whole point of laying out before drawing: everything the reader
+   * touches — the name under the marker, the tooltip anchor, the site picker
+   * — follows the marker they can SEE, not the coordinate underneath it.
+   */
+  test("names come back once the markers they belong to are pulled apart", () => {
+    /*
+     * Short names, so what is being measured is the marker positions rather
+     * than how wide "Region 1000" is: a label reserves a box roughly its own
+     * length, and six long names cannot fit around one point however well
+     * the markers are spread.
+     */
+    const markers: Array<MapMarker> = ["A", "B", "C", "D", "E", "F"].map(
+      (name: string): MapMarker => {
+        return marker(name, 480, 250);
+      },
+    );
+
+    const stacked: number = resolveMarkerLabels(markers, 1).size;
+    const spread: number = resolveMarkerLabels(
+      layoutMapMarkers(markers, 1),
+      1,
+    ).size;
+
+    /*
+     * Stacked, every name but the two that fit above and below has to be
+     * dropped rather than printed on top of another one. Spread out, the
+     * map can say what each marker is again.
+     */
+    expect(stacked).toBeLessThan(markers.length);
+    expect(spread).toBeGreaterThan(stacked);
+  });
+
+  /*
+   * Straight off the real builder, not hand-made markers: five sites a
+   * customer pinned to the same coordinates.
+   */
+  test("a level whose children share one address draws all of them", () => {
+    const sites: Array<MapSiteView> = [0, 1, 2, 3, 4].map(
+      (index: number): MapSiteView => {
+        return mapSite({
+          id: `store-${index}`,
+          name: `Store ${index}`,
+          latitude: 41.88,
+          longitude: -87.63,
+          totalUnits: 10,
+          operationalUnits: 10,
+        });
+      },
+    );
+    const placed: Array<PlacedMapMarker> = layoutMapMarkers(
+      buildMapMarkers({ sites: sites, mode: "grouped", cellSize: 0 }),
+      1,
+    );
+
+    expect(placed).toHaveLength(5);
+    const tooClose: Array<string> = [];
+    for (let i: number = 0; i < placed.length; i++) {
+      for (let j: number = i + 1; j < placed.length; j++) {
+        const distance: number = Math.hypot(
+          placed[i]!.x - placed[j]!.x,
+          placed[i]!.y - placed[j]!.y,
+        );
+        const required: number =
+          collisionRadiusOfMarker(placed[i]!) +
+          collisionRadiusOfMarker(placed[j]!) +
+          MARKER_CLEARANCE;
+        if (distance < required - 0.05) {
+          tooClose.push(
+            `${placed[i]!.key}/${placed[j]!.key}: ${distance.toFixed(2)}`,
+          );
+        }
+      }
+    }
+    expect(tooClose).toEqual([]);
+
+    // Every one of them still knows the address it was pinned to.
+    for (const entry of placed) {
+      expect(entry.anchorX).toBeCloseTo(placed[0]!.anchorX, 9);
+      expect(entry.anchorY).toBeCloseTo(placed[0]!.anchorY, 9);
+    }
+
+    /*
+     * And none of them is drawn off that address without saying so. A pile
+     * this size usually settles as one marker still sitting on the spot with
+     * the rest fanned around it — the one in the middle needs no line,
+     * because it has not left.
+     */
+    const unexplained: Array<string> = placed
+      .filter((entry: PlacedMapMarker): boolean => {
+        const moved: number = Math.hypot(
+          entry.x - entry.anchorX,
+          entry.y - entry.anchorY,
+        );
+        return !entry.needsLeaderLine && moved > collisionRadiusOfMarker(entry);
+      })
+      .map((entry: PlacedMapMarker): string => {
+        return entry.key;
+      });
+    expect(unexplained).toEqual([]);
+    expect(
+      placed.filter((entry: PlacedMapMarker): boolean => {
+        return entry.needsLeaderLine;
+      }).length,
+    ).toBeGreaterThanOrEqual(placed.length - 1);
+  });
+
+  /*
+   * Clusters in "all" mode overlap too — the cluster grid buckets by
+   * proximity, and two neighbouring buckets can still draw discs that touch.
+   */
+  test("clustered markers are laid out as well as grouped ones", () => {
+    const sites: Array<MapSiteView> = [];
+    for (let index: number = 0; index < 8; index++) {
+      sites.push(
+        mapSite({
+          id: `site-${index}`,
+          latitude: 34.05 + index * 0.01,
+          longitude: -118.24,
+          isContainer: false,
+          isOperational: true,
+        }),
+      );
+    }
+    const markers: Array<MapMarker> = buildMapMarkers({
+      sites: sites,
+      mode: "all",
+      cellSize: 0.2,
+    });
+    const placed: Array<PlacedMapMarker> = layoutMapMarkers(markers, 1);
+
+    expect(placed).toHaveLength(markers.length);
+    const tooClose: Array<string> = [];
+    for (let i: number = 0; i < placed.length; i++) {
+      for (let j: number = i + 1; j < placed.length; j++) {
+        const distance: number = Math.hypot(
+          placed[i]!.x - placed[j]!.x,
+          placed[i]!.y - placed[j]!.y,
+        );
+        const required: number =
+          placed[i]!.screenRadius + placed[j]!.screenRadius + MARKER_CLEARANCE;
+        if (distance < required - 0.05) {
+          tooClose.push(`${i}/${j}`);
+        }
+      }
+    }
+    expect(tooClose).toEqual([]);
   });
 });

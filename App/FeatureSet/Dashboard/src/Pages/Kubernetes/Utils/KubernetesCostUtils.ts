@@ -159,7 +159,13 @@ type BuildAggregateBy = (data: {
   extraQuery?: Record<string, unknown> | undefined;
 }) => AggregateBy<KubernetesCostAllocation>;
 
-const buildAggregateBy: BuildAggregateBy = (data: {
+/*
+ * Exported so the right-sizing helpers query the same table through the
+ * same project / cluster / window scoping — two spellings of "which rows
+ * count" is how a savings figure ends up disagreeing with the spend figure
+ * sitting next to it.
+ */
+export const buildAggregateBy: BuildAggregateBy = (data: {
   params: FetchCostParams;
   aggregateColumnName: keyof KubernetesCostAllocation;
   aggregationType: AggregationType;
@@ -210,7 +216,7 @@ type RunAggregate = (
   aggregateBy: AggregateBy<KubernetesCostAllocation>,
 ) => Promise<AggregatedResult>;
 
-const runAggregate: RunAggregate = (
+export const runAggregate: RunAggregate = (
   aggregateBy: AggregateBy<KubernetesCostAllocation>,
 ): Promise<AggregatedResult> => {
   return AnalyticsModelAPI.aggregate<KubernetesCostAllocation>({

@@ -144,6 +144,8 @@ const STEP_TYPE_ICON: Record<RunbookStepType, IconProp> = {
   [RunbookStepType.JavaScript]: IconProp.Code,
   [RunbookStepType.HttpRequest]: IconProp.Globe,
   [RunbookStepType.Bash]: IconProp.Terminal,
+  [RunbookStepType.SSH]: IconProp.Terminal,
+  [RunbookStepType.Kubernetes]: IconProp.Cube,
   [RunbookStepType.AI]: IconProp.Sparkles,
 };
 
@@ -152,6 +154,8 @@ const STEP_TYPE_LABEL: Record<RunbookStepType, string> = {
   [RunbookStepType.JavaScript]: "JavaScript",
   [RunbookStepType.HttpRequest]: "HTTP",
   [RunbookStepType.Bash]: "Bash",
+  [RunbookStepType.SSH]: "SSH",
+  [RunbookStepType.Kubernetes]: "Kubernetes",
   [RunbookStepType.AI]: "AI",
 };
 

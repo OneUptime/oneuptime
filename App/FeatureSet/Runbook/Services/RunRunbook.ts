@@ -14,6 +14,8 @@ import {
   runJavaScriptStep,
   StepExecutionContext,
   StepRunResult,
+  runKubernetesStep,
+  runSshStep,
 } from "./StepExecutors";
 import { runAiStep } from "./AIStepExecutor";
 import QueueRunbook from "./QueueRunbook";
@@ -252,6 +254,10 @@ export default class RunRunbook {
         return runHttpStep(step);
       case RunbookStepType.Bash:
         return runBashStep(step, ctx);
+      case RunbookStepType.SSH:
+        return runSshStep(step, ctx);
+      case RunbookStepType.Kubernetes:
+        return runKubernetesStep(step, ctx);
       case RunbookStepType.AI:
         return runAiStep(step, ctx);
       default:

@@ -32,11 +32,10 @@ const REPO_ROOT: string = path.resolve(__dirname, "..", "..", "..", "..");
 // Every service whose container start script boots a long-lived process.
 const LONG_RUNNING_SERVICES: Array<string> = [
   "App",
-  "AIAgent",
   "Home",
   "Nginx",
   "Probe",
-  "RunbookAgent",
+  "Runner",
   "TestServer",
 ];
 
@@ -307,7 +306,7 @@ describe("Graceful shutdown signal delivery", () => {
       "exec preserves the NODE_OPTIONS append semantics the images rely on",
       async () => {
         /*
-         * Probe, AIAgent and RunbookAgent set ENV NODE_OPTIONS="--use-openssl-ca"
+         * Probe and Runner set ENV NODE_OPTIONS="--use-openssl-ca"
          * in their Dockerfiles; the start script appends the heap flag to it via
          * ${NODE_OPTIONS:+ $NODE_OPTIONS}. Moving NODE_OPTIONS into the Dockerfile
          * instead of using `exec` would silently drop --use-openssl-ca, so this

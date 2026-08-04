@@ -3,6 +3,7 @@ import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Project from "Common/Models/DatabaseModels/Project";
+import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import ProjectUtil from "Common/UI/Utils/Project";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -42,6 +43,43 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
               "Open instrumentation pull requests from inconclusive investigations (requires a connected GitHub repository). When an investigation cannot determine a root cause because telemetry was insufficient, OneUptime AI opens a pull request adding the missing logs, spans, and metrics to the implicated code paths — always human-reviewed, never auto-merged. This setting is shared between incident and alert investigations.",
             required: false,
             fieldType: FormFieldSchemaType.Toggle,
+          },
+          {
+            field: {
+              enableAutomaticCodeFixes: true,
+            },
+            title: "Enable Automatic Code Fixes",
+            description:
+              "Open a draft fix pull request automatically when an investigation ends with a confident, evidenced root cause analysis — the automatic form of the 'Open Fix PR from this analysis' button. Requires a repository connected through the GitHub App and a Runner with the code-fix capability. Pull requests are always human-reviewed — nothing merges automatically. This setting is shared between incident and alert investigations.",
+            required: false,
+            fieldType: FormFieldSchemaType.Toggle,
+          },
+          {
+            field: {
+              incidentInvestigationMinimumSeverity: true,
+            },
+            title: "Minimum Severity To Investigate",
+            description:
+              "Only incidents at or above this severity are investigated. Leave unset to investigate every incident — unlike alerts, incidents have no default floor, because an incident already cleared a threshold to be declared.",
+            required: false,
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownModal: {
+              type: IncidentSeverity,
+              labelField: "name",
+              valueField: "_id",
+            },
+            placeholder: "Every severity",
+          },
+          {
+            field: {
+              incidentInvestigationDedupeWindowMinutes: true,
+            },
+            title: "Re-investigation Cooldown (Minutes)",
+            description:
+              "Incidents affecting a monitor that was investigated within this many minutes are not re-investigated — the first analysis stands. Leave empty for the default of 30 minutes; set 0 to investigate every qualifying incident.",
+            required: false,
+            fieldType: FormFieldSchemaType.Number,
+            placeholder: "30",
           },
           {
             field: {
@@ -96,6 +134,32 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
               title: "Instrumentation PRs From Inconclusive Investigations",
               placeholder: "Disabled",
               fieldType: FieldType.Boolean,
+            },
+            {
+              field: {
+                enableAutomaticCodeFixes: true,
+              },
+              title: "Enable Automatic Code Fixes",
+              placeholder: "Disabled",
+              fieldType: FieldType.Boolean,
+            },
+            {
+              field: {
+                incidentInvestigationMinimumSeverity: {
+                  name: true,
+                },
+              },
+              title: "Minimum Severity To Investigate",
+              placeholder: "Every severity",
+              fieldType: FieldType.Entity,
+            },
+            {
+              field: {
+                incidentInvestigationDedupeWindowMinutes: true,
+              },
+              title: "Re-investigation Cooldown (Minutes)",
+              placeholder: "Default (30 minutes)",
+              fieldType: FieldType.Number,
             },
             {
               field: {

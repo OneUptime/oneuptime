@@ -42,6 +42,7 @@ import TraceTable from "../../../Components/Traces/TraceTable";
 import { TelemetryQuery } from "Common/Types/Telemetry/TelemetryQuery";
 import MetricView from "../../../Components/Metrics/MetricView";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
+import MetricSeriesScope from "Common/Utils/Metrics/MetricSeriesScope";
 import IconProp from "Common/Types/Icon/IconProp";
 import HeaderAlert, {
   HeaderAlertType,
@@ -50,7 +51,9 @@ import ColorSwatch from "Common/Types/ColorSwatch";
 import IncidentFeedElement from "../../../Components/Incident/IncidentFeed";
 import InvestigationPanel from "../../../Components/AI/InvestigationPanel";
 import EntityRunbooks from "../../../Components/Runbook/EntityRunbooks";
+import RemediationSuggestionCard from "../../../Components/AutoRemediation/RemediationSuggestionCard";
 import IncidentAffectedResources from "./AffectedResources";
+import MonitorSummarySnapshotCard from "../../../Components/Monitor/MonitorSummarySnapshotCard";
 import IncidentMemberRoleAssignment from "../../../Components/Incident/IncidentMemberRoleAssignment";
 import EventStatTile from "../../../Components/EventView/EventStatTile";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -71,6 +74,8 @@ import Query from "Common/Types/BaseDatabase/Query";
 import Span from "Common/Models/AnalyticsModels/Span";
 import Log from "Common/Models/AnalyticsModels/Log";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
+import LiveDuration from "../../../Components/EventView/LiveDuration";
+import { getEventEndDateForCurrentState } from "../../../Utils/EventDuration";
 
 const IncidentView: FunctionComponent<
   PageComponentProps
@@ -88,9 +93,17 @@ const IncidentView: FunctionComponent<
   const [telemetryQuery, setTelemetryQuery] = useState<TelemetryQuery | null>(
     null,
   );
+  /*
+   * "host.name = prod-01" when a grouped metric monitor opened this
+   * incident for one series. Empty for whole-monitor incidents.
+   */
+  const [seriesSummary, setSeriesSummary] = useState<string>("");
   const [isPrivate, setIsPrivate] = useState<boolean>(false);
   const [eventNumber, setEventNumber] = useState<string | undefined>(undefined);
   const [incidentTitle, setIncidentTitle] = useState<string | undefined>(
+    undefined,
+  );
+  const [incidentStartedAt, setIncidentStartedAt] = useState<Date | undefined>(
     undefined,
   );
   const [severity, setSeverity] = useState<
@@ -143,8 +156,10 @@ const IncidentView: FunctionComponent<
         modelType: Incident,
         select: {
           telemetryQuery: true,
+          seriesLabels: true,
           isPrivate: true,
           title: true,
+          declaredAt: true,
           incidentNumber: true,
           incidentNumberWithPrefix: true,
           incidentSeverity: {
@@ -162,9 +177,43 @@ const IncidentView: FunctionComponent<
         ) as any;
       }
 
+      /*
+       * The stored telemetryQuery is the monitor's whole-evaluation view:
+       * a grouped metric monitor that breached on five hosts stamps the
+       * SAME query configs onto all five incidents. Narrow it to this
+       * incident's own series so the chart shows the host it is about
+       * instead of every host the monitor watches.
+       */
+      if (telemetryQuery?.metricViewData) {
+        /*
+         * Describe the narrowing that was actually applied, not the raw
+         * labels: a label the queries never grouped by narrows nothing, and
+         * announcing it would have the card vouch for a chart that still
+         * shows every series.
+         */
+        setSeriesSummary(
+          MetricSeriesScope.getAppliedSeriesLabelSummary({
+            queryConfigs: telemetryQuery.metricViewData.queryConfigs,
+            seriesLabels: incident?.seriesLabels as JSONObject | undefined,
+          }),
+        );
+
+        telemetryQuery = {
+          ...telemetryQuery,
+          metricViewData:
+            MetricSeriesScope.scopeMetricViewDataToSeries({
+              metricViewData: telemetryQuery.metricViewData,
+              seriesLabels: incident?.seriesLabels as JSONObject | undefined,
+            }) || null,
+        };
+      } else {
+        setSeriesSummary("");
+      }
+
       setIsPrivate(incident?.isPrivate === true);
 
       setIncidentTitle(incident?.title || undefined);
+      setIncidentStartedAt(incident?.declaredAt || undefined);
 
       setEventNumber(
         incident?.incidentNumberWithPrefix ||
@@ -257,7 +306,7 @@ const IncidentView: FunctionComponent<
 
   const getTimeToAcknowledge: getTimeFunction = (): string => {
     const incidentStartTime: Date =
-      incidentStateTimeline[0]?.startsAt || new Date();
+      incidentStartedAt || incidentStateTimeline[0]?.startsAt || new Date();
 
     // last matching acknowledge entry (search a copy in reverse; do not mutate state).
     const acknowledgeTime: Date | undefined = [...incidentStateTimeline]
@@ -299,7 +348,7 @@ const IncidentView: FunctionComponent<
 
   const getTimeToResolve: getTimeFunction = (): string => {
     const incidentStartTime: Date =
-      incidentStateTimeline[0]?.startsAt || new Date();
+      incidentStartedAt || incidentStateTimeline[0]?.startsAt || new Date();
 
     const resolveTime: Date | undefined = incidentStateTimeline.find(
       (timeline: IncidentStateTimeline) => {
@@ -321,6 +370,18 @@ const IncidentView: FunctionComponent<
     );
   };
 
+  const durationStartDate: Date | undefined =
+    incidentStartedAt || incidentStateTimeline[0]?.startsAt;
+  const durationEndDate: Date | undefined = getEventEndDateForCurrentState(
+    incidentStateTimeline.map((timeline: IncidentStateTimeline) => {
+      return {
+        stateId: timeline.incidentStateId?.toString(),
+        startsAt: timeline.startsAt,
+      };
+    }),
+    getResolvedState()?._id?.toString(),
+  );
+
   return (
     <Fragment>
       <div className="mb-5">
@@ -328,6 +389,7 @@ const IncidentView: FunctionComponent<
           incidentId={modelId}
           eventNumber={eventNumber}
           title={incidentTitle}
+          eventStartsAt={durationStartDate}
           severity={severity}
           isPrivate={isPrivate}
           onActionComplete={async () => {
@@ -338,7 +400,7 @@ const IncidentView: FunctionComponent<
 
       <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-3">
         <div className="min-w-0 xl:col-span-2">
-          <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
             <EventStatTile
               label={`${getAcknowledgeState()?.name || "Acknowledged"} in`}
               icon={IconProp.Check}
@@ -348,6 +410,20 @@ const IncidentView: FunctionComponent<
               label={`${getResolvedState()?.name || "Resolved"} in`}
               icon={IconProp.CheckCircle}
               value={getTimeToResolve()}
+            />
+            <EventStatTile
+              label="Duration"
+              icon={IconProp.Clock}
+              value={
+                durationStartDate ? (
+                  <LiveDuration
+                    startDate={durationStartDate}
+                    endDate={durationEndDate}
+                  />
+                ) : (
+                  "-"
+                )
+              }
             />
           </div>
 
@@ -381,7 +457,11 @@ const IncidentView: FunctionComponent<
             telemetryQuery.metricViewData && (
               <Card
                 title={"Metrics"}
-                description={"Metrics related to this incident."}
+                description={
+                  seriesSummary
+                    ? `Metrics related to this incident, scoped to the affected series (${seriesSummary}).`
+                    : "Metrics related to this incident."
+                }
                 rightElement={
                   telemetryQuery.metricViewData.startAndEndDate ? (
                     <HeaderAlert
@@ -426,9 +506,13 @@ const IncidentView: FunctionComponent<
               />
             )}
 
+          <MonitorSummarySnapshotCard incidentId={modelId} />
+
           <IncidentAffectedResources incidentId={modelId} />
 
           <EntityRunbooks incidentId={modelId} hideIfEmpty={true} />
+
+          <RemediationSuggestionCard incidentId={modelId} hideIfEmpty={true} />
 
           <InvestigationPanel subjectType="incident" subjectId={modelId} />
 

@@ -49,18 +49,18 @@ Kjør Docker-kommandoen på en hvilken som helst vert i miljøet ditt som kan:
 - gjøre det du vil Bash/JavaScript-stegene skal gjøre (f.eks. SSH til andre verter, `kubectl`, snakke med en database).
 
 ```bash
-docker run --name oneuptime-runbook-agent --restart unless-stopped \
-  -e RUNBOOK_AGENT_ID=<agent-id> \
-  -e RUNBOOK_AGENT_KEY=<agent-key> \
+docker run --name oneuptime-runner --restart unless-stopped \
+  -e ONEUPTIME_RUNNER_ID=<agent-id> \
+  -e ONEUPTIME_RUNNER_KEY=<agent-key> \
   -e ONEUPTIME_URL=https://oneuptime.ditt-domene.no \
-  -d oneuptime/runbook-agent:release
+  -d oneuptime/runner:release
 ```
 
 ### 4. Verifiser at agenten er tilkoblet
 
 Gå tilbake til **Runbooks → Innstillinger → Agents**. Innen ca. 60 sekunder skal agentens rad bytte til `Connected` med et ferskt **Last seen**-tidsstempel. Hvis den blir værende `Disconnected`:
 
-- Sjekk container-loggene (`docker logs oneuptime-runbook-agent`) for auth- eller nettverksfeil.
+- Sjekk container-loggene (`docker logs oneuptime-runner`) for auth- eller nettverksfeil.
 - Verifiser at verten når OneUptime-URL-en med `curl`.
 - Verifiser at ID og nøkkel ble kopiert uten mellomrom.
 
@@ -92,8 +92,8 @@ Worker'ens totale ventevindu er `claim timeout + execution timeout + et par seku
 
 To ting å ha i mente når du senker claim timeout:
 
-- Agenten spør etter nye jobber med et fast intervall (`RUNBOOK_AGENT_POLL_INTERVAL_MS`, 5 sekunder som standard). En claim timeout som er kortere enn dette intervallet kan gå ut før en helt velfungerende agent i det hele tatt har sett jobben, og steget feiler da med samme melding ("no agent claimed the job") som du ville fått fra en agent som er offline.
-- En agent kjører én jobb om gangen som standard (`RUNBOOK_AGENT_CONCURRENCY`). Mens et langt steg legger beslag på den, må andre steg som peker mot samme agent vente ut sine egne claim timeouts. Hvis du øker en execution timeout til flere minutter, øk claim timeout tilsvarende på stegene som deler den agenten — eller gi dem en annen agent.
+- Agenten spør etter nye jobber med et fast intervall (`ONEUPTIME_RUNNER_POLL_INTERVAL_MS`, 5 sekunder som standard). En claim timeout som er kortere enn dette intervallet kan gå ut før en helt velfungerende agent i det hele tatt har sett jobben, og steget feiler da med samme melding ("no agent claimed the job") som du ville fått fra en agent som er offline.
+- En agent kjører én jobb om gangen som standard (`ONEUPTIME_RUNNER_CONCURRENCY`). Mens et langt steg legger beslag på den, må andre steg som peker mot samme agent vente ut sine egne claim timeouts. Hvis du øker en execution timeout til flere minutter, øk claim timeout tilsvarende på stegene som deler den agenten — eller gi dem en annen agent.
 
 ### Lease og heartbeat
 
@@ -115,7 +115,7 @@ Kombinert stdout + stderr er begrenset til **50 KB** per steg. Større output ku
 
 ### Samtidighet
 
-Hver agent kjører én jobb om gangen som standard. For å tillate flere, sett `RUNBOOK_AGENT_CONCURRENCY` på agent-containeren — men husk at agenten deler verten med alt annet som bor der.
+Hver agent kjører én jobb om gangen som standard. For å tillate flere, sett `ONEUPTIME_RUNNER_CONCURRENCY` på agent-containeren — men husk at agenten deler verten med alt annet som bor der.
 
 ## Environment variables
 
@@ -124,12 +124,12 @@ Agenten leser disse ved oppstart:
 | Variabel                                  | Påkrevd | Standard | Notater                                                                          |
 | ----------------------------------------- | ------- | -------- | -------------------------------------------------------------------------------- |
 | `ONEUPTIME_URL`                           | ja      | —        | Base-URL for OneUptime-instansen din, f.eks. `https://oneuptime.ditt-domene.no`. |
-| `RUNBOOK_AGENT_ID`                        | ja      | —        | UUID'en som vises i agentens oppsetts-modal.                                     |
-| `RUNBOOK_AGENT_KEY`                       | ja      | —        | Hemmeligheten som vises i agentens oppsetts-modal.                               |
-| `RUNBOOK_AGENT_POLL_INTERVAL_MS`          | nei     | `5000`   | Hvor ofte agenten spør etter nye jobber.                                         |
-| `RUNBOOK_AGENT_HEARTBEAT_INTERVAL_MS`     | nei     | `60000`  | Hvor ofte agenten rapporterer at den lever.                                      |
-| `RUNBOOK_AGENT_JOB_HEARTBEAT_INTERVAL_MS` | nei     | `10000`  | Hvor ofte agenten fornyer lease'en til en kjørende jobb.                         |
-| `RUNBOOK_AGENT_CONCURRENCY`               | nei     | `1`      | Maks antall samtidige jobber på denne agenten.                                   |
+| `ONEUPTIME_RUNNER_ID`                        | ja      | —        | UUID'en som vises i agentens oppsetts-modal.                                     |
+| `ONEUPTIME_RUNNER_KEY`                       | ja      | —        | Hemmeligheten som vises i agentens oppsetts-modal.                               |
+| `ONEUPTIME_RUNNER_POLL_INTERVAL_MS`          | nei     | `5000`   | Hvor ofte agenten spør etter nye jobber.                                         |
+| `ONEUPTIME_RUNNER_HEARTBEAT_INTERVAL_MS`     | nei     | `60000`  | Hvor ofte agenten rapporterer at den lever.                                      |
+| `ONEUPTIME_RUNNER_JOB_HEARTBEAT_INTERVAL_MS` | nei     | `10000`  | Hvor ofte agenten fornyer lease'en til en kjørende jobb.                         |
+| `ONEUPTIME_RUNNER_CONCURRENCY`               | nei     | `1`      | Maks antall samtidige jobber på denne agenten.                                   |
 
 ## Roter en agent-nøkkel
 
@@ -139,14 +139,14 @@ Hvis en nøkkel lekker, åpne agenten i OneUptime og resett nøkkelen. Den gamle
 
 Håndtering av agenter ligger under den eksisterende Runbooks-rettighetsgruppen:
 
-- `CreateRunbookAgent`, `EditRunbookAgent`, `DeleteRunbookAgent`, `ReadRunbookAgent` — administrer agent-oppføringer.
+- `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — administrer agent-oppføringer.
 - `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (roller) — tildel et team for å gi henholdsvis full kontroll, daglig bruk eller lesetilgang. `RunbookAdmin` samler alle de granulære rettighetene over.
 
 Rettigheter til å _utløse_ et runbook (og dermed sende Bash- og JavaScript-steg) er fortsatt `CreateRunbookExecution` / `EditRunbookExecution`.
 
 ## Agent-API
 
-For de nysgjerrige — agenten bruker disse endepunktene, montert under `/runbook-agent-ingest`. De autentiseres med agent-ID + nøkkel i JSON-body'en (eller `x-agent-id` / `x-agent-key`-headere).
+For de nysgjerrige — agenten bruker disse endepunktene, montert under `/runner-ingest`. De autentiseres med agent-ID + nøkkel i JSON-body'en (eller `x-agent-id` / `x-agent-key`-headere).
 
 | Endepunkt                    | Formål                                                                                                                            |
 | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |

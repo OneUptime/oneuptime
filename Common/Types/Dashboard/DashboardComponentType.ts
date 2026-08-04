@@ -2,6 +2,7 @@ enum DashboardComponentType {
   Chart = `Chart`,
   Value = `Value`,
   Text = `Text`,
+  Clock = `Clock`,
   Table = `Table`,
   Gauge = `Gauge`,
   LogStream = `LogStream`,
@@ -38,6 +39,7 @@ enum DashboardComponentType {
   DockerSwarmServiceList = `DockerSwarmServiceList`,
   CephOsdList = `CephOsdList`,
   CephPoolList = `CephPoolList`,
+  Html = `Html`,
 }
 
 export default DashboardComponentType;

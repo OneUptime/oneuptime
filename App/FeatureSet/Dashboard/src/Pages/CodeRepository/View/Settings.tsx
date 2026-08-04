@@ -45,6 +45,39 @@ const CodeRepositorySettings: FunctionComponent<
             required: false,
             placeholder: "5",
           },
+          {
+            field: {
+              setupCommand: true,
+            },
+            title: "Setup Command",
+            description:
+              "Command the AI fix Runner executes at the repository root to install dependencies before verifying an AI-authored fix (e.g. 'npm ci'). Runs on your Runner, in the cloned workspace, before the build and test commands. Leave empty to skip.",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            placeholder: "npm ci",
+          },
+          {
+            field: {
+              buildCommand: true,
+            },
+            title: "Build Command",
+            description:
+              "Command the AI fix Runner executes at the repository root to verify an AI-authored fix compiles/builds (e.g. 'npm run build'). A failure is fed back to the code agent for bounded repair attempts before the pull request opens. Leave empty to skip the build check.",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            placeholder: "npm run build",
+          },
+          {
+            field: {
+              testCommand: true,
+            },
+            title: "Test Command",
+            description:
+              "Command the AI fix Runner executes at the repository root to run the test suite against an AI-authored fix (e.g. 'npm test'). A failure is fed back to the code agent for bounded repair attempts before the pull request opens. Leave empty to skip the test check.",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            placeholder: "npm test",
+          },
         ]}
         modelDetailProps={{
           modelType: CodeRepository,
@@ -67,6 +100,36 @@ const CodeRepositorySettings: FunctionComponent<
                 "How many AI-authored fix pull requests may be open at once on this repository.",
               placeholder: "Default (5)",
               fieldType: FieldType.Number,
+            },
+            {
+              field: {
+                setupCommand: true,
+              },
+              title: "Setup Command",
+              description:
+                "Dependency-install command the Runner executes at the repository root before verifying an AI-authored fix.",
+              placeholder: "Not set (skipped)",
+              fieldType: FieldType.Text,
+            },
+            {
+              field: {
+                buildCommand: true,
+              },
+              title: "Build Command",
+              description:
+                "Build command the Runner executes at the repository root to verify an AI-authored fix before the pull request opens.",
+              placeholder: "Not set (skipped)",
+              fieldType: FieldType.Text,
+            },
+            {
+              field: {
+                testCommand: true,
+              },
+              title: "Test Command",
+              description:
+                "Test command the Runner executes at the repository root to verify an AI-authored fix before the pull request opens.",
+              placeholder: "Not set (skipped)",
+              fieldType: FieldType.Text,
             },
           ],
           modelId: modelId,

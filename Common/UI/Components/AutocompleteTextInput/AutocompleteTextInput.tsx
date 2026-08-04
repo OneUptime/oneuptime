@@ -1,11 +1,14 @@
 import React, {
   FunctionComponent,
   ReactElement,
+  useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
+import { createPortal } from "react-dom";
 
 export interface ComponentProps {
   value?: string;
@@ -37,6 +40,92 @@ const BASE_INPUT_CLASS: string =
  */
 const MAX_SUGGESTIONS: number = 100;
 
+/*
+ * Modal surfaces sit at z-50 (see Modal.tsx), and react-select portals its menu
+ * at DROPDOWN_MENU_Z_INDEX (60). The suggestion list matches the latter so it
+ * draws above a modal without fighting other portalled menus.
+ */
+export const SUGGESTIONS_MENU_Z_INDEX: number = 60;
+
+// Tailwind's max-h-56 — the tallest the menu is allowed to grow.
+export const SUGGESTIONS_MENU_MAX_HEIGHT_IN_PX: number = 224;
+
+// Gap between the input and the menu, matching the old `mt-1`.
+const MENU_OFFSET_IN_PX: number = 4;
+
+// Smallest gap the menu keeps from the viewport edges.
+const VIEWPORT_PADDING_IN_PX: number = 8;
+
+export interface MenuPosition {
+  top: number;
+  left: number;
+  width: number;
+  maxHeight: number;
+  placement: "below" | "above";
+}
+
+/*
+ * The menu used to be `absolute` inside the input's `relative` wrapper, which
+ * meant any ancestor with `overflow: auto` clipped it. The "Filter <Resource>"
+ * modal body is exactly that (`overflow-y-auto` in Modal.tsx), so opening the
+ * JSON/attributes key input near the bottom of a scrolled modal showed only a
+ * sliver of the list and made suggestions unpickable. The menu is now portalled
+ * to document.body and positioned `fixed` from the trigger's viewport rect.
+ */
+export function getMenuPosition(
+  triggerRect: DOMRect,
+  viewportWidth: number,
+  viewportHeight: number,
+): MenuPosition {
+  const spaceBelow: number =
+    viewportHeight - triggerRect.bottom - MENU_OFFSET_IN_PX;
+  const spaceAbove: number = triggerRect.top - MENU_OFFSET_IN_PX;
+
+  /*
+   * Prefer opening downwards. Flip up only when below is too cramped to be
+   * usable *and* above genuinely has more room, so the menu does not jump
+   * around for a few pixels of difference.
+   */
+  const shouldFlipUp: boolean =
+    spaceBelow < SUGGESTIONS_MENU_MAX_HEIGHT_IN_PX && spaceAbove > spaceBelow;
+
+  const availableHeight: number = shouldFlipUp ? spaceAbove : spaceBelow;
+  const maxHeight: number = Math.max(
+    0,
+    Math.min(
+      SUGGESTIONS_MENU_MAX_HEIGHT_IN_PX,
+      availableHeight - VIEWPORT_PADDING_IN_PX,
+    ),
+  );
+
+  // Never wider than the viewport allows, even when the input itself is.
+  const width: number = Math.min(
+    triggerRect.width,
+    Math.max(0, viewportWidth - VIEWPORT_PADDING_IN_PX * 2),
+  );
+
+  const maximumLeft: number = viewportWidth - width - VIEWPORT_PADDING_IN_PX;
+  const left: number = Math.max(
+    VIEWPORT_PADDING_IN_PX,
+    Math.min(triggerRect.left, Math.max(VIEWPORT_PADDING_IN_PX, maximumLeft)),
+  );
+
+  const top: number = shouldFlipUp
+    ? Math.max(
+        VIEWPORT_PADDING_IN_PX,
+        triggerRect.top - MENU_OFFSET_IN_PX - maxHeight,
+      )
+    : triggerRect.bottom + MENU_OFFSET_IN_PX;
+
+  return {
+    top: top,
+    left: left,
+    width: width,
+    maxHeight: maxHeight,
+    placement: shouldFlipUp ? "above" : "below",
+  };
+}
+
 // Provides a free-form text input with an optional suggestion dropdown.
 const AutocompleteTextInput: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -44,7 +133,10 @@ const AutocompleteTextInput: FunctionComponent<ComponentProps> = (
   const [inputValue, setInputValue] = useState<string>(props.value || "");
   const [isMenuVisible, setIsMenuVisible] = useState<boolean>(false);
   const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
+  const [menuPosition, setMenuPosition] = useState<MenuPosition | null>(null);
   const containerRef: React.MutableRefObject<HTMLDivElement | null> =
+    useRef<HTMLDivElement | null>(null);
+  const menuRef: React.MutableRefObject<HTMLDivElement | null> =
     useRef<HTMLDivElement | null>(null);
   const blurTimeoutRef: React.MutableRefObject<number | null> = useRef<
     number | null
@@ -61,11 +153,23 @@ const AutocompleteTextInput: FunctionComponent<ComponentProps> = (
     const handleClickOutside: (event: MouseEvent) => void = (
       event: MouseEvent,
     ) => {
-      if (
-        containerRef.current &&
-        event.target instanceof Node &&
-        !containerRef.current.contains(event.target)
-      ) {
+      if (!(event.target instanceof Node)) {
+        return;
+      }
+
+      /*
+       * The menu is portalled out of `containerRef`, so a click on a suggestion
+       * is "outside" the container as far as the DOM is concerned. Check the
+       * menu too, otherwise the list closes before the click lands on it.
+       */
+      const isInsideContainer: boolean = Boolean(
+        containerRef.current?.contains(event.target),
+      );
+      const isInsideMenu: boolean = Boolean(
+        menuRef.current?.contains(event.target),
+      );
+
+      if (!isInsideContainer && !isInsideMenu) {
         setIsMenuVisible(false);
         setHighlightedIndex(-1);
       }
@@ -102,6 +206,48 @@ const AutocompleteTextInput: FunctionComponent<ComponentProps> = (
   const isLoadingSuggestions: boolean = Boolean(props.isLoadingSuggestions);
   const showMenu: boolean =
     isMenuVisible && (suggestions.length > 0 || isLoadingSuggestions);
+
+  const updateMenuPosition: () => void = useCallback((): void => {
+    const container: HTMLDivElement | null = containerRef.current;
+
+    if (!container) {
+      return;
+    }
+
+    setMenuPosition(
+      getMenuPosition(
+        container.getBoundingClientRect(),
+        window.innerWidth,
+        window.innerHeight,
+      ),
+    );
+  }, []);
+
+  /*
+   * Measure before paint so the menu never renders at a stale position, then
+   * keep it glued to the input: capture-phase scroll catches scrolling in the
+   * modal body (and any other ancestor), which does not bubble to window.
+   */
+  useLayoutEffect(() => {
+    if (!showMenu) {
+      setMenuPosition(null);
+      return;
+    }
+
+    updateMenuPosition();
+
+    const handleLayoutChange: () => void = (): void => {
+      updateMenuPosition();
+    };
+
+    window.addEventListener("scroll", handleLayoutChange, true);
+    window.addEventListener("resize", handleLayoutChange);
+
+    return () => {
+      window.removeEventListener("scroll", handleLayoutChange, true);
+      window.removeEventListener("resize", handleLayoutChange);
+    };
+  }, [showMenu, updateMenuPosition]);
 
   const getInputClassName: () => string = (): string => {
     let className: string = props.className || BASE_INPUT_CLASS;
@@ -156,6 +302,18 @@ const AutocompleteTextInput: FunctionComponent<ComponentProps> = (
   const handleKeyDown: (
     event: React.KeyboardEvent<HTMLInputElement>,
   ) => void = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    /*
+     * Escape closes the list even when there is nothing to pick (the loading
+     * row counts as an open menu). Marking the event handled stops Modal's
+     * document-level listener from closing the whole dialog behind the menu.
+     */
+    if (event.key === "Escape" && showMenu) {
+      event.preventDefault();
+      setIsMenuVisible(false);
+      setHighlightedIndex(-1);
+      return;
+    }
+
     if (!showMenu || suggestions.length === 0) {
       return;
     }
@@ -187,11 +345,6 @@ const AutocompleteTextInput: FunctionComponent<ComponentProps> = (
         handleSuggestionSelect(suggestions[highlightedIndex]!);
       }
     }
-
-    if (event.key === "Escape") {
-      setIsMenuVisible(false);
-      setHighlightedIndex(-1);
-    }
   };
 
   useEffect(() => {
@@ -199,6 +352,101 @@ const AutocompleteTextInput: FunctionComponent<ComponentProps> = (
       setHighlightedIndex(suggestions.length - 1);
     }
   }, [suggestions, highlightedIndex]);
+
+  const activeOptionId: string | undefined =
+    highlightedIndex >= 0 && highlightedIndex < suggestions.length
+      ? `${listboxIdRef.current}-option-${highlightedIndex}`
+      : undefined;
+
+  const menu: ReactElement | null = showMenu ? (
+    <div
+      ref={menuRef}
+      className={
+        props.menuClassName ||
+        "overflow-auto rounded-md border border-gray-200 bg-white py-1 text-sm shadow-lg"
+      }
+      style={{
+        position: "fixed",
+        top: menuPosition?.top ?? 0,
+        left: menuPosition?.left ?? 0,
+        width: menuPosition?.width ?? 0,
+        maxHeight: menuPosition?.maxHeight ?? SUGGESTIONS_MENU_MAX_HEIGHT_IN_PX,
+        zIndex: SUGGESTIONS_MENU_Z_INDEX,
+        // Avoid a flash at (0, 0) on the first frame before the rect is read.
+        visibility: menuPosition ? "visible" : "hidden",
+      }}
+      data-testid={
+        props.dataTestId ? `${props.dataTestId}-suggestions` : undefined
+      }
+      data-placement={menuPosition?.placement}
+      id={listboxIdRef.current}
+      role="listbox"
+    >
+      {isLoadingSuggestions && (
+        <div className="flex w-full items-center px-3 py-2 text-left text-gray-500">
+          <svg
+            className="animate-spin -ml-0.5 mr-2 h-4 w-4 text-indigo-500"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            ></circle>
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+            ></path>
+          </svg>
+          <span>{props.loadingMessage || "Loading..."}</span>
+        </div>
+      )}
+      {!isLoadingSuggestions &&
+        suggestions.length === 0 &&
+        props.noSuggestionsMessage && (
+          <div className="flex w-full items-center px-3 py-2 text-left text-gray-500">
+            {props.noSuggestionsMessage}
+          </div>
+        )}
+      {!isLoadingSuggestions &&
+        suggestions.map((suggestion: string, index: number) => {
+          const isActive: boolean = index === highlightedIndex;
+          return (
+            <button
+              key={`${suggestion}-${index}`}
+              id={`${listboxIdRef.current}-option-${index}`}
+              type="button"
+              role="option"
+              /*
+               * Portalling puts these buttons outside Modal's focus trap, which
+               * is built from `modalRef.current.querySelectorAll(...)`. Keeping
+               * them out of the tab order means Tab still cycles the modal's own
+               * controls instead of dead-ending here; the list stays reachable
+               * through the arrow keys and Enter on the input.
+               */
+              tabIndex={-1}
+              aria-selected={isActive}
+              className={`flex w-full items-center px-3 py-2 text-left hover:bg-indigo-50 ${isActive ? "bg-indigo-600 text-white hover:bg-indigo-500" : "text-gray-700"}`}
+              onMouseDown={(event: React.MouseEvent<HTMLButtonElement>) => {
+                event.preventDefault();
+              }}
+              onClick={() => {
+                handleSuggestionSelect(suggestion);
+              }}
+            >
+              {suggestion}
+            </button>
+          );
+        })}
+    </div>
+  ) : null;
 
   return (
     <div
@@ -213,6 +461,7 @@ const AutocompleteTextInput: FunctionComponent<ComponentProps> = (
         aria-autocomplete="list"
         aria-controls={listboxIdRef.current}
         aria-expanded={showMenu}
+        aria-activedescendant={activeOptionId}
         role="combobox"
         onBlur={handleInputBlur}
         onChange={handleInputChange}
@@ -223,71 +472,7 @@ const AutocompleteTextInput: FunctionComponent<ComponentProps> = (
         type="text"
         value={inputValue}
       />
-      {showMenu && (
-        <div
-          className={
-            props.menuClassName ||
-            "absolute z-10 mt-1 max-h-56 w-full overflow-auto rounded-md border border-gray-200 bg-white py-1 text-sm shadow-lg"
-          }
-          id={listboxIdRef.current}
-          role="listbox"
-        >
-          {isLoadingSuggestions && (
-            <div className="flex w-full items-center px-3 py-2 text-left text-gray-500">
-              <svg
-                className="animate-spin -ml-0.5 mr-2 h-4 w-4 text-indigo-500"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                ></circle>
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                ></path>
-              </svg>
-              <span>{props.loadingMessage || "Loading..."}</span>
-            </div>
-          )}
-          {!isLoadingSuggestions &&
-            suggestions.length === 0 &&
-            props.noSuggestionsMessage && (
-              <div className="flex w-full items-center px-3 py-2 text-left text-gray-500">
-                {props.noSuggestionsMessage}
-              </div>
-            )}
-          {!isLoadingSuggestions &&
-            suggestions.map((suggestion: string, index: number) => {
-              const isActive: boolean = index === highlightedIndex;
-              return (
-                <button
-                  key={`${suggestion}-${index}`}
-                  type="button"
-                  role="option"
-                  aria-selected={isActive}
-                  className={`flex w-full items-center px-3 py-2 text-left hover:bg-indigo-50 ${isActive ? "bg-indigo-600 text-white hover:bg-indigo-500" : "text-gray-700"}`}
-                  onMouseDown={(event: React.MouseEvent<HTMLButtonElement>) => {
-                    event.preventDefault();
-                  }}
-                  onClick={() => {
-                    handleSuggestionSelect(suggestion);
-                  }}
-                >
-                  {suggestion}
-                </button>
-              );
-            })}
-        </div>
-      )}
+      {menu && createPortal(menu, document.body)}
     </div>
   );
 };

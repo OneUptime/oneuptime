@@ -1,6 +1,6 @@
 # Code-Fix Verification & Sandbox — Design (B4)
 
-> The design spike the execution doc requires before any code-fix verification ships ("per-repo CI sandbox — isolation model, resource limits, secrets handling, air-gapped behavior, multi-tenant cost"). Status: **approved for implementation** (founder, 2026-07-13). Companion tracker: [AISentinelExecution.md](./AISentinelExecution.md) — code-fix track.
+> The design spike the execution doc requires before any code-fix verification ships ("per-repo CI sandbox — isolation model, resource limits, secrets handling, air-gapped behavior, multi-tenant cost"). Status: **approved for implementation** (founder, 2026-07-13).
 
 ## The problem, precisely
 

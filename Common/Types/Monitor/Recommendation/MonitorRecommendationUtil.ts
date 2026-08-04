@@ -17,19 +17,31 @@ import {
 } from "./MonitorRecommendationTypes";
 
 /*
- * The structural slice of every `MonitorStep<X>Monitor` this module reads.
+ * The structural slice of every recommendation-capable step config this
+ * module reads.
  *
- * All eight infrastructure step configs carry a `metricViewConfig` plus
- * exactly one identifier field, whose name varies by resource type
- * (see `MonitorRecommendationTypes.MonitorRecommendationArgs`). Reading all
- * three optional names keeps the fingerprint logic resource-type-agnostic
- * without needing a per-type switch.
+ * Infrastructure configs carry a metric view plus a named resource
+ * identifier. RUM uses generic metric, trace and exception configs, where the
+ * application id lives in `telemetryServiceIds`. The optional fields below are
+ * the stable query inputs that distinguish those shapes.
  */
-interface InfrastructureMonitorStepConfig {
+interface RecommendationMonitorStepConfig {
   clusterIdentifier?: string | undefined;
   hostIdentifier?: string | undefined;
   fleetIdentifier?: string | undefined;
+  telemetryServiceIds?: Array<ObjectID | string> | undefined;
   metricViewConfig?: MetricsViewConfig | undefined;
+  rollingTime?: unknown;
+  attributes?: Record<string, unknown> | undefined;
+  spanStatuses?: Array<unknown> | undefined;
+  spanName?: string | undefined;
+  entityKeys?: Array<string> | undefined;
+  lastXSecondsOfSpans?: number | undefined;
+  exceptionTypes?: Array<string> | undefined;
+  message?: string | undefined;
+  includeResolved?: boolean | undefined;
+  includeArchived?: boolean | undefined;
+  lastXSecondsOfExceptions?: number | undefined;
 }
 
 /*
@@ -55,7 +67,7 @@ interface InfrastructureMonitorStepConfig {
  * So the fingerprint now carries everything that distinguishes one shipped
  * template from another:
  *
- *   configKind        which infrastructure config the step carries. Docker,
+ *   configKind        which recommendation config the step carries. Docker,
  *                     Docker Swarm and Podman ship byte-identical metric sets
  *                     ("container.cpu.utilization"), and while the page never
  *                     mixes resource types today, nothing in this function
@@ -68,6 +80,8 @@ interface InfrastructureMonitorStepConfig {
  *                     several Ceph health-detail templates.
  *   criteriaFilters   the thresholds. The last resort, and the only thing that
  *                     separates "near full" (85%) from "full" (95%).
+ *   configValues      non-metric query inputs such as a trace status, exception
+ *                     filter, lookback window, or metric rolling window.
  *
  * Including thresholds has a cost worth stating: retuning a created monitor
  * from 90% to 85% makes its recommendation resurface as not-yet-created. That
@@ -87,6 +101,7 @@ export interface MonitorRecommendationFingerprint {
   metricAliases: Array<string>;
   queryAttributes: Array<string>;
   criteriaFilters: Array<string>;
+  configValues: Array<string>;
 }
 
 export default class MonitorRecommendationUtil {
@@ -309,7 +324,7 @@ export default class MonitorRecommendationUtil {
 
   /*
    * Reduce a monitor step to what it watches. Returns undefined for steps that
-   * carry no infrastructure config (an HTTP monitor step, say) — those can
+   * carry no recommendation config (an HTTP monitor step, say) — those can
    * never match a recommendation.
    *
    * See `MonitorRecommendationFingerprint` for why each component is here.
@@ -318,16 +333,16 @@ export default class MonitorRecommendationUtil {
     monitorStep: MonitorStep,
   ): MonitorRecommendationFingerprint | undefined {
     const configKind: string | undefined =
-      this.getInfrastructureConfigKind(monitorStep);
+      this.getRecommendationConfigKind(monitorStep);
 
     if (!configKind) {
       return undefined;
     }
 
-    const config: InfrastructureMonitorStepConfig = (
+    const config: RecommendationMonitorStepConfig = (
       monitorStep.data as unknown as Record<
         string,
-        InfrastructureMonitorStepConfig
+        RecommendationMonitorStepConfig
       >
     )[configKind]!;
 
@@ -335,6 +350,7 @@ export default class MonitorRecommendationUtil {
       config.clusterIdentifier ||
       config.hostIdentifier ||
       config.fleetIdentifier ||
+      this.getTelemetryResourceIdentifier(config) ||
       "";
 
     const metricNames: Array<string> = [];
@@ -382,18 +398,20 @@ export default class MonitorRecommendationUtil {
       metricAliases: metricAliases.sort(),
       queryAttributes: queryAttributes.sort(),
       criteriaFilters: this.getCriteriaFilterKeys(monitorStep).sort(),
+      configValues: this.getConfigValues(configKind, config).sort(),
     };
   }
 
   /*
-   * Which infrastructure config the step carries, as the property name.
+   * Which recommendation-capable config the step carries, as the property
+   * name.
    *
    * Returned instead of the config object itself because the NAME is part of
    * the fingerprint: Docker, Docker Swarm and Podman ship structurally
    * identical metric configs, so a Docker monitor and a Podman monitor
    * watching container CPU are indistinguishable by contents alone.
    */
-  private static getInfrastructureConfigKind(
+  private static getRecommendationConfigKind(
     monitorStep: MonitorStep,
   ): string | undefined {
     if (!monitorStep.data) {
@@ -409,6 +427,9 @@ export default class MonitorRecommendationUtil {
       "proxmoxMonitor",
       "cephMonitor",
       "iotMonitor",
+      "metricMonitor",
+      "traceMonitor",
+      "exceptionMonitor",
     ];
 
     const data: Record<string, unknown> = monitorStep.data as unknown as Record<
@@ -419,6 +440,68 @@ export default class MonitorRecommendationUtil {
     return kinds.find((kind: string) => {
       return Boolean(data[kind]);
     });
+  }
+
+  private static getTelemetryResourceIdentifier(
+    config: RecommendationMonitorStepConfig,
+  ): string {
+    return (config.telemetryServiceIds || [])
+      .map((id: ObjectID | string) => {
+        return id.toString();
+      })
+      .sort()
+      .join(",");
+  }
+
+  /*
+   * Query inputs that do not live in a metric view. They must participate in
+   * coverage identity: an all-span trace monitor does not cover an error-span
+   * recommendation, and a project-wide metric monitor does not cover the same
+   * metric scoped to one RUM application.
+   */
+  private static getConfigValues(
+    configKind: string,
+    config: RecommendationMonitorStepConfig,
+  ): Array<string> {
+    const values: Array<string> = [];
+
+    if (config.metricViewConfig) {
+      values.push(`rollingTime=${String(config.rollingTime ?? "")}`);
+    }
+
+    if (configKind === "traceMonitor") {
+      values.push(
+        `attributes=${this.getStableRecordKey(config.attributes || {})}`,
+        `spanStatuses=${(config.spanStatuses || []).map(String).sort().join(",")}`,
+        `spanName=${config.spanName || ""}`,
+        `entityKeys=${(config.entityKeys || []).slice().sort().join(",")}`,
+        `lastXSecondsOfSpans=${String(config.lastXSecondsOfSpans ?? "")}`,
+      );
+    }
+
+    if (configKind === "exceptionMonitor") {
+      values.push(
+        `exceptionTypes=${(config.exceptionTypes || []).slice().sort().join(",")}`,
+        `message=${config.message || ""}`,
+        `entityKeys=${(config.entityKeys || []).slice().sort().join(",")}`,
+        `includeResolved=${String(Boolean(config.includeResolved))}`,
+        `includeArchived=${String(Boolean(config.includeArchived))}`,
+        `lastXSecondsOfExceptions=${String(
+          config.lastXSecondsOfExceptions ?? "",
+        )}`,
+      );
+    }
+
+    return values;
+  }
+
+  private static getStableRecordKey(record: Record<string, unknown>): string {
+    return Object.keys(record)
+      .sort()
+      .map((key: string) => {
+        return `${key}=${String(record[key])}`;
+      })
+      .join(",");
   }
 
   /*
@@ -443,12 +526,9 @@ export default class MonitorRecommendationUtil {
       unknown
     >;
 
-    return Object.keys(record)
-      .sort()
-      .map((key: string) => {
-        return `${key}=${String(record[key])}`;
-      })
-      .join(",");
+    return Object.keys(record).length > 0
+      ? this.getStableRecordKey(record)
+      : "";
   }
 
   /*
@@ -533,6 +613,7 @@ export default class MonitorRecommendationUtil {
       fingerprint.metricAliases,
       fingerprint.queryAttributes,
       fingerprint.criteriaFilters,
+      fingerprint.configValues,
     ]);
   }
 

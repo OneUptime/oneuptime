@@ -90,6 +90,7 @@ import MonitorOwnerTeamService from "./MonitorOwnerTeamService";
 import MonitorOwnerUserService from "./MonitorOwnerUserService";
 import MonitorProbeService from "./MonitorProbeService";
 import MonitorSecretService from "./MonitorSecretService";
+import RunbookCredentialService from "./RunbookCredentialService";
 import RunbookSecretService from "./RunbookSecretService";
 import AIInsightService from "./AIInsightService";
 
@@ -121,6 +122,11 @@ import ProjectService from "./ProjectService";
 import ProjectUserProfileService from "./ProjectUserProfileService";
 import ProfileService from "./ProfileService";
 import ProfileSampleService from "./ProfileSampleService";
+import RumSessionService from "./RumSessionService";
+import RumSessionChunkService from "./RumSessionChunkService";
+import RumSessionReplayViewService from "./RumSessionReplayViewService";
+import RumSessionErasureRequestService from "./RumSessionErasureRequestService";
+import RumSessionPinService from "./RumSessionPinService";
 // Project SMTP Config.
 import ProjectSmtpConfigService from "./ProjectSmtpConfigService";
 import ProjectSsoService from "./ProjectSsoService";
@@ -372,6 +378,7 @@ const services: Array<BaseService> = [
   MonitorStatusService,
   MonitorStatusTimelineService,
   MonitorSecretService,
+  RunbookCredentialService,
   RunbookSecretService,
   AIInsightService,
   MonitorFeedService,
@@ -546,6 +553,11 @@ const services: Array<BaseService> = [
 
   ProjectSCIMLogService,
   StatusPageSCIMLogService,
+
+  // Session replay control tables (the recordings themselves are in ClickHouse).
+  RumSessionReplayViewService,
+  RumSessionErasureRequestService,
+  RumSessionPinService,
 ];
 
 export const AnalyticsServices: Array<
@@ -573,6 +585,13 @@ export const AnalyticsServices: Array<
   NetworkFlowService,
   ProfileService,
   ProfileSampleService,
+  /*
+   * Session replay. THIS is the array boot-time createTables() iterates —
+   * omitting it here means the tables are silently never created, however
+   * correctly the models are registered elsewhere.
+   */
+  RumSessionService,
+  RumSessionChunkService,
   AuditLogService,
 ];
 

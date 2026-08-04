@@ -33,12 +33,12 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  * degradation when the classification itself failed (unparseable response or
  * the call errored). As implemented:
  *
- *   | source                | confident | workspace ping | instrumentation PR |
- *   |-----------------------|-----------|----------------|--------------------|
- *   | deterministic-floor   | false     | no (quiet)     | yes (enqueue)      |
- *   | classification        | true      | yes            | no                 |
- *   | classification        | false     | no (quiet)     | yes (enqueue)      |
- *   | classification-failed | false (*) | YES — louder   | NO — no PR         |
+ *   | source                | confident | workspace ping | instrumentation PR | auto fix PR |
+ *   |-----------------------|-----------|----------------|--------------------|-------------|
+ *   | deterministic-floor   | false     | no (quiet)     | yes (enqueue)      | no          |
+ *   | classification        | true      | yes            | no                 | yes         |
+ *   | classification        | false     | no (quiet)     | yes (enqueue)      | no          |
+ *   | classification-failed | false (*) | YES — louder   | NO — no PR         | NO — no PR  |
  *
  *   - The workspace ping treats classification-failed as CONFIDENT: quiet
  *     mode's fail direction is "louder, not silent" (vision §6) — a broken
@@ -47,6 +47,11 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  *     NOT-inconclusive: autonomous PR creation (G11 posture) requires a
  *     POSITIVE, verified inconclusive verdict — "we don't know" must fail
  *     toward doing nothing.
+ *   - The automatic fix-PR trigger requires a POSITIVE confident verdict
+ *     from the constrained classification: the deterministic floor (no
+ *     evidence) and a failed classification both fail toward doing
+ *     nothing — same G11 posture as the instrumentation trigger, opposite
+ *     verdict.
  *   - (*) When source is "classification-failed" the `confident` boolean is
  *     a placeholder, NOT a verdict — consumers must route decisions through
  *     the helpers below, never through the raw boolean.
@@ -214,6 +219,23 @@ export default class AIConfidenceSignal {
     }
 
     return !signal.confident;
+  }
+
+  /*
+   * Consumer decision: should a FixFromIncident code-fix task be enqueued
+   * automatically (projects opted in via Project.enableAutomaticCodeFixes —
+   * the trigger has its own gates)? Requires a POSITIVE confident verdict
+   * from the constrained classification: the analysis asserts a specific,
+   * evidenced root cause worth turning into a fix PR. Fail directions:
+   * the deterministic floor (no server-minted evidence) and
+   * classification-failed both return FALSE — autonomous PR creation fails
+   * toward doing nothing (G11 posture), mirroring the instrumentation
+   * trigger's direction on the opposite verdict.
+   */
+  public static shouldAutoEnqueueCodeFixTask(
+    signal: ConfidenceSignal,
+  ): boolean {
+    return signal.source === "classification" && signal.confident === true;
   }
 
   /*

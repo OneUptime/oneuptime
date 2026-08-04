@@ -7,7 +7,7 @@ Los pasos Bash y JavaScript **nunca se ejecutan en el Worker de OneUptime**. Se 
 El modelo de dispatch:
 
 1. El autor del paso elige un Agente de Runbook desde el desplegable al redactar el paso.
-2. Al ejecutarse el paso, el Worker inserta una fila en `RunbookAgentJob` con `targetAgentId` apuntando al ID de ese agente y estado `Pending`.
+2. Al ejecutarse el paso, el Worker inserta una fila en `RunnerJob` con `targetAgentId` apuntando al ID de ese agente y estado `Pending`.
 3. Ese agente concreto (y solo ese agente) reclama atómicamente el job, ejecuta el script localmente — Bash vía `bash -c <script>`, JavaScript dentro de un sandbox `isolated-vm` — y publica el resultado de vuelta.
 4. El Worker reanuda el runbook con el resultado.
 
@@ -27,7 +27,7 @@ Los permisos de runbook viven en el grupo de permisos `Runbook`:
 - `CreateRunbook`, `EditRunbook`, `DeleteRunbook`, `ReadRunbook` — gestionar plantillas de runbook.
 - `CreateRunbookExecution`, `EditRunbookExecution`, `ReadRunbookExecution` — iniciar, marcar y leer ejecuciones.
 - `CreateRunbookRule`, `EditRunbookRule`, `DeleteRunbookRule`, `ReadRunbookRule` — gestionar reglas de auto-disparo.
-- `CreateRunbookAgent`, `EditRunbookAgent`, `DeleteRunbookAgent`, `ReadRunbookAgent` — gestionar Agentes de Runbook que ejecutan pasos Bash y JavaScript en tu propia infraestructura.
+- `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — gestionar Agentes de Runbook que ejecutan pasos Bash y JavaScript en tu propia infraestructura.
 - `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (roles) — asignables a un equipo para conceder control total, uso diario o acceso de solo lectura, respectivamente. `RunbookAdmin` agrupa todos los permisos granulares anteriores.
 
 ## Cola y worker
@@ -47,8 +47,8 @@ Cuando un paso manual se marca vía API, la ejecución se vuelve a encolar para 
 - `Runbook` — plantilla (nombre, slug, descripción, isEnabled, JSON de pasos).
 - `RunbookExecution` — una fila por ejecución, con foreign keys anulables `incidentId`, `alertId` y `scheduledMaintenanceId` y un array JSON `stepExecutions` que captura los pasos y el estado por paso.
 - `RunbookRule` — reglas de auto-disparo con un discriminador `triggerEntityType` (Incident, Alert, ScheduledMaintenance) y una relación muchos-a-muchos con los runbooks a iniciar.
-- `RunbookAgent` — una fila por agente instalado: nombre, clave secreta, `lastAlive`, `connectionStatus`, info del host.
-- `RunbookAgentJob` — una fila por paso Bash o JavaScript despachado: `targetAgentId` (el agente que eligió el autor del paso), tipo de paso, script, estado (`Pending` → `Claimed` → `Running` → `Succeeded`/`Failed`/`TimedOut`/`Cancelled`), deadline del claim, lease, salida, código de salida.
+- `Runner` — una fila por agente instalado: nombre, clave secreta, `lastAlive`, `connectionStatus`, info del host.
+- `RunnerJob` — una fila por paso Bash o JavaScript despachado: `targetAgentId` (el agente que eligió el autor del paso), tipo de paso, script, estado (`Pending` → `Claimed` → `Running` → `Succeeded`/`Failed`/`TimedOut`/`Cancelled`), deadline del claim, lease, salida, código de salida.
 
 ## Consejos operativos
 

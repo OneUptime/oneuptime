@@ -3,9 +3,8 @@ import OneUptimeDate from "../../../../Types/Date";
 import AIRunType from "../../../../Types/AI/AIRunType";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
-import AIAgent from "../../../../Models/DatabaseModels/AIAgent";
 import AIRunService from "../../../Services/AIRunService";
-import AIAgentService from "../../../Services/AIAgentService";
+import CodeFixAgentAvailability from "./CodeFixAgentAvailability";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
@@ -98,9 +97,12 @@ export default class CodeFixRunQueue {
       const projectIdStr: string = run.projectId.toString();
 
       if (!projectHasAliveAgent.has(projectIdStr)) {
-        const aliveAgent: AIAgent | null =
-          await AIAgentService.getConnectedAIAgentForProject(run.projectId);
-        projectHasAliveAgent.set(projectIdStr, Boolean(aliveAgent));
+        projectHasAliveAgent.set(
+          projectIdStr,
+          await CodeFixAgentAvailability.hasOnlineAgentForProject(
+            run.projectId,
+          ),
+        );
       }
 
       if (projectHasAliveAgent.get(projectIdStr)) {
@@ -114,7 +116,7 @@ export default class CodeFixRunQueue {
           set: {
             status: AIRunStatus.Error,
             completedAt: OneUptimeDate.getCurrentDate(),
-            errorMessage: `No AI agent picked this task up within ${ORPHANED_QUEUED_TIMEOUT_MINUTES} minutes and none is currently online. Check that your agent container is running (Settings > AI > AI Agents), then retry the fix from the exception page.`,
+            errorMessage: `No AI agent picked this task up within ${ORPHANED_QUEUED_TIMEOUT_MINUTES} minutes and none is currently online. Check that a Runner with Runs AI Code Fixes enabled is running (Settings > Runners), then retry the fix from the exception page.`,
           },
         });
 

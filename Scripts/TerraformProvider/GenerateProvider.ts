@@ -60,13 +60,35 @@ async function main(): Promise<void> {
     const parser: OpenAPIParser = new OpenAPIParser();
     const apiSpec: any = await parser.parseOpenAPISpec(openApiSpecPath);
 
+    /*
+     * Surface everything the parser skipped so incomplete generation is
+     * visible in CI logs instead of silently shipping fewer resources.
+     */
+    const discoveredResources: number = parser.getResources().length;
+    const discoveredDataSources: number = parser.getDataSources().length;
+    Logger.info(
+      `📊 Discovered ${discoveredResources} resources and ${discoveredDataSources} data sources.`,
+    );
+    for (const warning of parser.warnings) {
+      Logger.warn(`⚠️ ${warning}`);
+    }
+    if (discoveredResources === 0) {
+      throw new Error(
+        "OpenAPI parsing discovered zero Terraform resources — the spec or parser is broken.",
+      );
+    }
+
     // Step 4: Initialize Terraform provider generator
     Logger.info("⚙️ Step 3: Initializing Terraform provider generator...");
+    const rootVersionPath: string = path.resolve(__dirname, "../../VERSION");
+    const providerVersion: string = fs
+      .readFileSync(rootVersionPath, "utf-8")
+      .trim();
     const generator: TerraformProviderGenerator =
       new TerraformProviderGenerator({
         outputDir: providerDir,
         providerName: "oneuptime",
-        providerVersion: "1.0.0",
+        providerVersion: providerVersion,
         goModuleName: "github.com/oneuptime/terraform-provider-oneuptime",
       });
 
@@ -109,27 +131,36 @@ async function main(): Promise<void> {
     );
     await docGen.generateDocumentation();
 
-    // Step 10: Write VERSION file to ensure git always detects changes
+    /*
+     * Step 10: Write VERSION file (no timestamp — regeneration is a no-op
+     * when nothing changed, letting the publish pipeline skip empty releases)
+     */
     Logger.info("📝 Step 9: Writing VERSION file...");
-    const rootVersionPath: string = path.resolve(__dirname, "../../VERSION");
     const providerVersionPath: string = path.resolve(providerDir, "VERSION");
-    const versionContent: string = fs
-      .readFileSync(rootVersionPath, "utf-8")
-      .trim();
-    const versionFileContent: string = `${versionContent}
+    const versionFileContent: string = `${providerVersion}
 # This file is auto-generated from the root VERSION file.
-# It ensures the Terraform provider is regenerated for each OneUptime release.
-# Generated at: ${new Date().toISOString()}
 `;
     fs.writeFileSync(providerVersionPath, versionFileContent);
-    Logger.info(`✅ VERSION file written: ${versionContent}`);
+    Logger.info(`✅ VERSION file written: ${providerVersion}`);
 
     // Step 11: Generate build scripts
     Logger.info("🔨 Step 10: Generating build and installation scripts...");
     await generator.generateBuildScripts();
 
-    // Step 12: Run go mod tidy
-    Logger.info("📦 Step 11: Running go mod tidy...");
+    // Step 12: Upgrade dependencies to the newest releases, then tidy.
+    Logger.info("📦 Step 11: Running go get -u ./... && go mod tidy...");
+
+    try {
+      await execAsync("go get -u ./...", { cwd: providerDir });
+    } catch (error) {
+      /*
+       * Non-fatal: offline/network-restricted environments still build with
+       * the pinned minimum versions in go.mod.
+       */
+      Logger.warn(
+        `⚠️ go get -u failed (continuing with pinned minimums): ${formatCommandError(error)}`,
+      );
+    }
 
     try {
       await execAsync("go mod tidy", { cwd: providerDir });

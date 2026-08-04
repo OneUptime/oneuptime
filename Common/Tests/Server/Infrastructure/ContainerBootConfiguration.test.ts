@@ -264,9 +264,9 @@ describe("Container boot configuration", () => {
   describe("the dev loop keeps its existing transpile-only behaviour", () => {
     const nodemonServices: Array<string> = [
       "App",
-      "AIAgent",
       "Home",
       "Probe",
+      "Runner",
       "TestServer",
     ];
 
@@ -291,7 +291,7 @@ describe("Container boot configuration", () => {
     /*
      * A tsconfig `include` entry beginning with "/" is an ABSOLUTE glob rooted
      * at the filesystem, not at the tsconfig's directory. AIAgent, Probe and
-     * RunbookAgent all shipped `["/**\/*.ts"]`, which meant `npm run compile`
+     * Runner all shipped `["/**\/*.ts"]`, which meant `npm run compile`
      * matched whatever .ts files happened to lie within tsc's glob reach of `/`
      * -- nothing at all on a developer machine (tsc exits 2 with TS18003), and
      * an arbitrary set inside the container, where /usr/src/app sits shallow

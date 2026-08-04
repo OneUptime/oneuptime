@@ -138,6 +138,28 @@ export interface SiteMapResponse {
   isTruncated: boolean;
 }
 
+/*
+ * One hit of /network-site/search — a site matched by name from anywhere in
+ * the project, not just the level in view. `path` is what makes the hit
+ * usable: two stores called "Michigan Ave" are told apart by the markets
+ * above them, and it answers "where is this" without drilling.
+ */
+export interface SiteSearchResultView {
+  id: string;
+  name: string;
+  siteType: string;
+  isUnitLevel: boolean;
+  /** ' / '-joined ancestor names, root-first. Empty for a root site. */
+  path: string;
+  currentMonitorStatus: SiteStatusInfo | undefined;
+}
+
+export interface SiteSearchResponse {
+  results: Array<SiteSearchResultView>;
+  // The server capped the result set — there are more matches than these.
+  isTruncated: boolean;
+}
+
 const asString: (value: unknown, fallback: string) => string = (
   value: unknown,
   fallback: string,
@@ -286,6 +308,54 @@ export const parseSiteChildrenResponse: (
     links: links,
     childrenTruncated: data?.["childrenTruncated"] === true,
     descendantCountsTruncated: data?.["descendantCountsTruncated"] === true,
+  };
+};
+
+const parseSearchResultRow: (value: unknown) => SiteSearchResultView | null = (
+  value: unknown,
+): SiteSearchResultView | null => {
+  const row: JSONObject = (value || {}) as JSONObject;
+  const id: string = asString(row["id"], "");
+  if (!id) {
+    return null;
+  }
+  return {
+    id: id,
+    name: asString(row["name"], "Unnamed site"),
+    siteType: asString(row["siteType"], "Other"),
+    isUnitLevel: row["isUnitLevel"] === true,
+    /*
+     * A root site has no ancestors, so an absent path is the normal case
+     * here rather than a defect — it narrows to "" and the row simply
+     * prints no path line.
+     */
+    path: asString(row["path"], ""),
+    currentMonitorStatus: parseStatusInfo(row["currentMonitorStatus"]),
+  };
+};
+
+/**
+ * Narrow an untyped /network-site/search payload. Rows without an id are
+ * dropped; everything else falls back the same way the other parsers here
+ * do, so a partially broken server costs the user a label rather than the
+ * whole search box.
+ */
+export const parseSiteSearchResponse: (
+  data: JSONObject | undefined,
+) => SiteSearchResponse = (
+  data: JSONObject | undefined,
+): SiteSearchResponse => {
+  return {
+    results: asRows(data?.["results"])
+      .map(parseSearchResultRow)
+      .filter(
+        (
+          result: SiteSearchResultView | null,
+        ): result is SiteSearchResultView => {
+          return result !== null;
+        },
+      ),
+    isTruncated: data?.["isTruncated"] === true,
   };
 };
 

@@ -64,7 +64,13 @@ type MetricInfoKey =
   | "overallStatus"
   | "memoryUtilization"
   | "memoryUsed"
-  | "memoryLimit";
+  | "memoryLimit"
+  | "evictionPolicy"
+  | "connections"
+  | "blockedClients"
+  | "evictedKeys"
+  | "rejectedConnections"
+  | "persistence";
 
 const METRIC_INFO: Record<MetricInfoKey, MetricInfo> = {
   overallStatus: {
@@ -82,6 +88,30 @@ const METRIC_INFO: Record<MetricInfoKey, MetricInfo> = {
   memoryLimit: {
     title: "Memory limit",
     body: "The maxmemory ceiling Redis will use before it starts evicting keys or rejecting writes. 'Not configured' means Redis can grow until the host itself runs out of memory.",
+  },
+  evictionPolicy: {
+    title: "Eviction policy",
+    body: "What Redis does at the memory limit. Any allkeys-* or volatile-* policy discards keys to make room, silently losing cached data and queued job state. 'noeviction' instead rejects writes outright, so background jobs start failing.",
+  },
+  connections: {
+    title: "Client connections",
+    body: "Clients connected right now against the maxclients limit. Redis refuses new connections once maxclients is reached, which stalls every OneUptime process that needs the cache or a job queue.",
+  },
+  blockedClients: {
+    title: "Blocked clients",
+    body: "Clients parked in a blocking command such as BLPOP — normal for job-queue workers waiting on work. A number far above your worker count suggests commands that are not completing.",
+  },
+  evictedKeys: {
+    title: "Keys evicted",
+    body: "Keys Redis has discarded since it last restarted because it hit its memory limit. Any non-zero value means cached data or queued job state was lost. This counter only resets when Redis restarts.",
+  },
+  rejectedConnections: {
+    title: "Rejected connections",
+    body: "Connection attempts Redis turned away since it last restarted, because maxclients was already reached. Any non-zero value means some part of OneUptime could not reach Redis.",
+  },
+  persistence: {
+    title: "Persistence",
+    body: "Whether Redis' last write to disk succeeded. When this is failing, Redis still serves from memory but everything since the last good write is lost on restart — usually a full disk or a permissions problem on the data directory.",
   },
 };
 
@@ -128,11 +158,74 @@ const RedisHealth: FunctionComponent = (): ReactElement => {
     maxMemory !== null && maxMemory > 0 && usedMemory !== null
       ? (usedMemory / maxMemory) * 100
       : null;
+  const connectedClients: number | null = toNumberOrNull(
+    data?.["connectedClients"],
+  );
+  const maxClients: number | null = toNumberOrNull(data?.["maxClients"]);
+  const connectionPercent: number | null =
+    maxClients !== null && maxClients > 0 && connectedClients !== null
+      ? (connectedClients / maxClients) * 100
+      : null;
+  const evictedKeys: number | null = toNumberOrNull(data?.["evictedKeys"]);
+  const rejectedConnections: number | null = toNumberOrNull(
+    data?.["rejectedConnections"],
+  );
+  const isAofEnabled: boolean = Boolean(data?.["aofEnabled"]);
+  const rdbStatus: string = String(data?.["rdbLastBgsaveStatus"] || "unknown");
+  const aofWriteStatus: string = String(
+    data?.["aofLastWriteStatus"] || "unknown",
+  );
+
+  /*
+   * "unknown" means the field was missing from INFO, not that a write failed, so
+   * it must not read as a failure on the card.
+   */
+  const isStatusFailing: (status: string) => boolean = (
+    status: string,
+  ): boolean => {
+    return status !== "ok" && status !== "unknown";
+  };
+  const isPersistenceFailing: boolean =
+    isStatusFailing(rdbStatus) ||
+    (isAofEnabled && isStatusFailing(aofWriteStatus));
+  const persistenceLabel: string = isPersistenceFailing
+    ? "Failing"
+    : isAofEnabled
+      ? `RDB ${rdbStatus} · AOF ${aofWriteStatus}`
+      : `RDB ${rdbStatus}`;
+
+  const renderStat: (
+    label: string,
+    value: string,
+    info: MetricInfo,
+    isBad?: boolean,
+  ) => ReactElement = (
+    label: string,
+    value: string,
+    info: MetricInfo,
+    isBad?: boolean,
+  ): ReactElement => {
+    return (
+      <div className="rounded-lg border border-gray-200 p-3">
+        <div className="text-xs text-gray-500 flex items-center">
+          {label}
+          <MetricInfoTip info={info} />
+        </div>
+        <div
+          className={`text-base font-semibold mt-1 ${
+            isBad ? "text-red-600" : "text-gray-900"
+          }`}
+        >
+          {value}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <Card
       title="Redis capacity"
-      description="Connectivity and memory utilization for the Redis backing this instance."
+      description="Connectivity, memory and connection utilization, key eviction and persistence status for the Redis backing this instance."
       buttons={[
         {
           title: "Refresh",
@@ -197,27 +290,67 @@ const RedisHealth: FunctionComponent = (): ReactElement => {
                   />
                 )}
 
+                {connectionPercent !== null ? (
+                  <MetricInfoWrap info={METRIC_INFO.connections}>
+                    <div className="cursor-help">
+                      <ResourceUsageBar
+                        label="Redis connections"
+                        value={connectionPercent}
+                        valueLabel={`${connectionPercent.toFixed(0)}%`}
+                        secondaryLabel={`${connectedClients} / ${maxClients} clients`}
+                      />
+                    </div>
+                  </MetricInfoWrap>
+                ) : (
+                  <></>
+                )}
+
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  <div className="rounded-lg border border-gray-200 p-3">
-                    <div className="text-xs text-gray-500 flex items-center">
-                      Memory used
-                      <MetricInfoTip info={METRIC_INFO.memoryUsed} />
-                    </div>
-                    <div className="text-base font-semibold text-gray-900 mt-1">
-                      {bytesToReadable(usedMemory)}
-                    </div>
-                  </div>
-                  <div className="rounded-lg border border-gray-200 p-3">
-                    <div className="text-xs text-gray-500 flex items-center">
-                      Memory limit
-                      <MetricInfoTip info={METRIC_INFO.memoryLimit} />
-                    </div>
-                    <div className="text-base font-semibold text-gray-900 mt-1">
-                      {maxMemory !== null && maxMemory > 0
-                        ? bytesToReadable(maxMemory)
-                        : "Not configured"}
-                    </div>
-                  </div>
+                  {renderStat(
+                    "Memory used",
+                    bytesToReadable(usedMemory),
+                    METRIC_INFO.memoryUsed,
+                  )}
+                  {renderStat(
+                    "Memory limit",
+                    maxMemory !== null && maxMemory > 0
+                      ? bytesToReadable(maxMemory)
+                      : "Not configured",
+                    METRIC_INFO.memoryLimit,
+                  )}
+                  {renderStat(
+                    "Eviction policy",
+                    String(data?.["maxMemoryPolicy"] || "—"),
+                    METRIC_INFO.evictionPolicy,
+                  )}
+                  {renderStat(
+                    "Blocked clients",
+                    data?.["blockedClients"] === null ||
+                      data?.["blockedClients"] === undefined
+                      ? "—"
+                      : String(data["blockedClients"]),
+                    METRIC_INFO.blockedClients,
+                  )}
+                  {renderStat(
+                    "Keys evicted",
+                    evictedKeys === null ? "—" : evictedKeys.toLocaleString(),
+                    METRIC_INFO.evictedKeys,
+                    evictedKeys !== null && evictedKeys > 0,
+                  )}
+                  {renderStat(
+                    "Rejected connections",
+                    rejectedConnections === null
+                      ? "—"
+                      : rejectedConnections.toLocaleString(),
+                    METRIC_INFO.rejectedConnections,
+                    rejectedConnections !== null && rejectedConnections > 0,
+                  )}
+                  {renderStat(
+                    "Persistence",
+                    persistenceLabel,
+                    METRIC_INFO.persistence,
+                    isPersistenceFailing,
+                  )}
                 </div>
               </>
             ) : (

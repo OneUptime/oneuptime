@@ -7,7 +7,7 @@ Bash 和 JavaScript 步骤**绝不在 OneUptime Worker 上执行**。它们被�
 派发模型：
 
 1. Runbook 步骤的作者在写步骤时从下拉列表里选定一个 Runbook 代理。
-2. 步骤运行时，Worker 在 `RunbookAgentJob` 里插入一行，把 `targetAgentId` 设为该代理 ID，状态为 `Pending`。
+2. 步骤运行时，Worker 在 `RunnerJob` 里插入一行，把 `targetAgentId` 设为该代理 ID，状态为 `Pending`。
 3. 那个特定的代理（且只有它）原子性地领取任务，在本地执行脚本 — Bash 走 `bash -c <script>`，JavaScript 在 `isolated-vm` 沙箱中 — 然后回报结果。
 4. Worker 拿到结果后继续推进 Runbook。
 
@@ -27,7 +27,7 @@ Runbook 权限位于 `Runbook` 权限组：
 - `CreateRunbook`、`EditRunbook`、`DeleteRunbook`、`ReadRunbook` — 管理 Runbook 模板。
 - `CreateRunbookExecution`、`EditRunbookExecution`、`ReadRunbookExecution` — 启动、勾选与查看执行。
 - `CreateRunbookRule`、`EditRunbookRule`、`DeleteRunbookRule`、`ReadRunbookRule` — 管理自动触发规则。
-- `CreateRunbookAgent`、`EditRunbookAgent`、`DeleteRunbookAgent`、`ReadRunbookAgent` — 管理那些在你自己基础设施中执行 Bash 与 JavaScript 步骤的 Runbook 代理。
+- `CreateRunner`、`EditRunner`、`DeleteRunner`、`ReadRunner` — 管理那些在你自己基础设施中执行 Bash 与 JavaScript 步骤的 Runbook 代理。
 - `RunbookAdmin`、`RunbookMember`、`RunbookViewer`（角色） — 分配给团队以分别授予完整控制、日常使用或只读访问。`RunbookAdmin` 把上述细粒度权限打包在一起。
 
 ## 队列 & worker
@@ -47,8 +47,8 @@ Runbook 执行运行在 `Runbook` 这条 BullMQ 队列上。worker 并发为 25 
 - `Runbook` — 模板（name、slug、description、isEnabled、steps JSON）。
 - `RunbookExecution` — 每次运行一行，带可空的 `incidentId`、`alertId` 和 `scheduledMaintenanceId` 外键，以及一个 JSON `stepExecutions` 数组，对步骤和每步状态做快照。
 - `RunbookRule` — 自动触发规则，带 `triggerEntityType` 区分（Incident、Alert、ScheduledMaintenance），以及与要启动的 Runbook 的多对多关系。
-- `RunbookAgent` — 每个已安装代理一行：name、secret key、`lastAlive`、`connectionStatus`、主机信息。
-- `RunbookAgentJob` — 每个派发的 Bash 或 JavaScript 步骤一行：`targetAgentId`（步骤作者选定的代理）、步骤类型、脚本、状态（`Pending` → `Claimed` → `Running` → `Succeeded`/`Failed`/`TimedOut`/`Cancelled`）、领取截止、租约、输出、退出码。
+- `Runner` — 每个已安装代理一行：name、secret key、`lastAlive`、`connectionStatus`、主机信息。
+- `RunnerJob` — 每个派发的 Bash 或 JavaScript 步骤一行：`targetAgentId`（步骤作者选定的代理）、步骤类型、脚本、状态（`Pending` → `Claimed` → `Running` → `Succeeded`/`Failed`/`TimedOut`/`Cancelled`）、领取截止、租约、输出、退出码。
 
 ## 运营建议
 

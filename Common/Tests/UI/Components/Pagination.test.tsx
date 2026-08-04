@@ -167,4 +167,89 @@ describe("Pagination", () => {
       expect(mockOnNavigateToPage).toHaveBeenCalledWith(1, 10);
     });
   });
+
+  /*
+   * Has-more mode. The analytics list endpoints skip COUNT(*) and instead
+   * over-fetch one probe row, so `totalItemsCount` is a lower bound that
+   * includes a row the response dropped. The printed range has to come
+   * from the rows the page really rendered.
+   */
+  describe("has-more mode", () => {
+    const hasMoreProps: ComponentProps = {
+      currentPageNumber: 1,
+      totalItemsCount: 11,
+      itemsOnPage: 10,
+      itemsOnCurrentPage: 10,
+      hasMore: true,
+      onNavigateToPage: jest.fn(),
+      isLoading: false,
+      isError: false,
+      singularLabel: "Trace",
+      pluralLabel: "Traces",
+    };
+
+    it("does not print the probe row the response dropped", () => {
+      render(<Pagination {...hasMoreProps} />);
+
+      expect(screen.getByText("Showing 1 to 10+ traces.")).toBeInTheDocument();
+      expect(screen.queryByText(/to 11\+/i)).toBeNull();
+    });
+
+    it("keeps the range on the page when paging past the first page", () => {
+      const props: ComponentProps = {
+        ...hasMoreProps,
+        currentPageNumber: 3,
+        totalItemsCount: 31,
+      };
+
+      render(<Pagination {...props} />);
+
+      expect(screen.getByText("Showing 21 to 30+ traces.")).toBeInTheDocument();
+    });
+
+    it("prints a partial last page without the trailing plus", () => {
+      const props: ComponentProps = {
+        ...hasMoreProps,
+        currentPageNumber: 2,
+        totalItemsCount: 13,
+        itemsOnCurrentPage: 3,
+        hasMore: false,
+      };
+
+      render(<Pagination {...props} />);
+
+      expect(screen.getByText("Showing 11 to 13 traces.")).toBeInTheDocument();
+    });
+
+    it("has no range to print for an empty page", () => {
+      const props: ComponentProps = {
+        ...hasMoreProps,
+        currentPageNumber: 2,
+        totalItemsCount: 10,
+        itemsOnCurrentPage: 0,
+        hasMore: false,
+      };
+
+      render(<Pagination {...props} />);
+
+      expect(screen.getByText("No traces.")).toBeInTheDocument();
+    });
+
+    /*
+     * Callers whose count carries no probe row (the session replay table
+     * passes skip + rendered rows) are left to the count alone.
+     */
+    it("falls back to the count when the rendered row count is absent", () => {
+      const props: ComponentProps = {
+        ...hasMoreProps,
+        currentPageNumber: 2,
+        totalItemsCount: 17,
+        itemsOnCurrentPage: undefined,
+      };
+
+      render(<Pagination {...props} />);
+
+      expect(screen.getByText("Showing 11 to 17+ traces.")).toBeInTheDocument();
+    });
+  });
 });

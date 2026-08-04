@@ -49,18 +49,18 @@ Lancez la commande Docker sur n'importe quel hôte de votre environnement qui pe
 - faire ce que vous voulez que vos étapes Bash/JavaScript fassent (SSH vers d'autres hôtes, `kubectl`, accès base de données, etc.).
 
 ```bash
-docker run --name oneuptime-runbook-agent --restart unless-stopped \
-  -e RUNBOOK_AGENT_ID=<agent-id> \
-  -e RUNBOOK_AGENT_KEY=<agent-key> \
+docker run --name oneuptime-runner --restart unless-stopped \
+  -e ONEUPTIME_RUNNER_ID=<agent-id> \
+  -e ONEUPTIME_RUNNER_KEY=<agent-key> \
   -e ONEUPTIME_URL=https://oneuptime.votre-domaine.com \
-  -d oneuptime/runbook-agent:release
+  -d oneuptime/runner:release
 ```
 
 ### 4. Vérifier que l'agent est connecté
 
 Retournez à **Runbooks → Paramètres → Agents**. En environ 60 secondes, la ligne de l'agent doit passer à `Connected` avec un horodatage **Last seen** récent. Si elle reste `Disconnected` :
 
-- Vérifiez les logs du conteneur (`docker logs oneuptime-runbook-agent`) pour des erreurs d'auth ou de réseau.
+- Vérifiez les logs du conteneur (`docker logs oneuptime-runner`) pour des erreurs d'auth ou de réseau.
 - Vérifiez que l'hôte atteint votre URL OneUptime avec `curl`.
 - Vérifiez que l'ID et la clé ont été copiés sans espaces.
 
@@ -92,8 +92,8 @@ La fenêtre d'attente totale du Worker est `claim timeout + execution timeout + 
 
 Deux points à garder en tête quand vous réduisez le claim timeout :
 
-- L'agent demande de nouveaux jobs à intervalles réguliers (`RUNBOOK_AGENT_POLL_INTERVAL_MS`, 5 secondes par défaut). Un claim timeout plus court que cet intervalle peut expirer avant même qu'un agent en parfaite santé ait vu le job, et l'étape échoue alors avec le même message (« no agent claimed the job ») que pour un agent hors ligne.
-- Un agent traite un job à la fois par défaut (`RUNBOOK_AGENT_CONCURRENCY`). Pendant qu'une longue étape l'occupe, les autres étapes dirigées vers ce même agent voient leur propre claim timeout s'écouler. Si vous portez un execution timeout à plusieurs minutes, augmentez en conséquence le claim timeout des étapes qui partagent cet agent — ou dirigez-les vers un autre agent.
+- L'agent demande de nouveaux jobs à intervalles réguliers (`ONEUPTIME_RUNNER_POLL_INTERVAL_MS`, 5 secondes par défaut). Un claim timeout plus court que cet intervalle peut expirer avant même qu'un agent en parfaite santé ait vu le job, et l'étape échoue alors avec le même message (« no agent claimed the job ») que pour un agent hors ligne.
+- Un agent traite un job à la fois par défaut (`ONEUPTIME_RUNNER_CONCURRENCY`). Pendant qu'une longue étape l'occupe, les autres étapes dirigées vers ce même agent voient leur propre claim timeout s'écouler. Si vous portez un execution timeout à plusieurs minutes, augmentez en conséquence le claim timeout des étapes qui partagent cet agent — ou dirigez-les vers un autre agent.
 
 ### Lease et heartbeat
 
@@ -115,7 +115,7 @@ Annuler une exécution de runbook (depuis la vue d'exécution ou l'API) marque i
 
 ### Concurrence
 
-Chaque agent traite un job à la fois par défaut. Pour en autoriser plus, positionnez `RUNBOOK_AGENT_CONCURRENCY` sur le conteneur de l'agent — mais rappelez-vous que l'agent partage l'hôte avec tout ce qui y vit déjà.
+Chaque agent traite un job à la fois par défaut. Pour en autoriser plus, positionnez `ONEUPTIME_RUNNER_CONCURRENCY` sur le conteneur de l'agent — mais rappelez-vous que l'agent partage l'hôte avec tout ce qui y vit déjà.
 
 ## Variables d'environnement
 
@@ -124,12 +124,12 @@ L'agent les lit au démarrage :
 | Variable                                  | Requise | Défaut  | Notes                                                                                   |
 | ----------------------------------------- | ------- | ------- | --------------------------------------------------------------------------------------- |
 | `ONEUPTIME_URL`                           | oui     | —       | URL de base de votre instance OneUptime, par ex. `https://oneuptime.votre-domaine.com`. |
-| `RUNBOOK_AGENT_ID`                        | oui     | —       | L'UUID affiché dans le modal de configuration de l'agent.                               |
-| `RUNBOOK_AGENT_KEY`                       | oui     | —       | Le secret affiché dans le modal de configuration de l'agent.                            |
-| `RUNBOOK_AGENT_POLL_INTERVAL_MS`          | non     | `5000`  | Fréquence à laquelle l'agent demande de nouveaux jobs.                                  |
-| `RUNBOOK_AGENT_HEARTBEAT_INTERVAL_MS`     | non     | `60000` | Fréquence à laquelle l'agent signale qu'il est vivant.                                  |
-| `RUNBOOK_AGENT_JOB_HEARTBEAT_INTERVAL_MS` | non     | `10000` | Fréquence à laquelle l'agent renouvelle le lease d'un job en cours.                     |
-| `RUNBOOK_AGENT_CONCURRENCY`               | non     | `1`     | Nombre maximum de jobs simultanés sur cet agent.                                        |
+| `ONEUPTIME_RUNNER_ID`                        | oui     | —       | L'UUID affiché dans le modal de configuration de l'agent.                               |
+| `ONEUPTIME_RUNNER_KEY`                       | oui     | —       | Le secret affiché dans le modal de configuration de l'agent.                            |
+| `ONEUPTIME_RUNNER_POLL_INTERVAL_MS`          | non     | `5000`  | Fréquence à laquelle l'agent demande de nouveaux jobs.                                  |
+| `ONEUPTIME_RUNNER_HEARTBEAT_INTERVAL_MS`     | non     | `60000` | Fréquence à laquelle l'agent signale qu'il est vivant.                                  |
+| `ONEUPTIME_RUNNER_JOB_HEARTBEAT_INTERVAL_MS` | non     | `10000` | Fréquence à laquelle l'agent renouvelle le lease d'un job en cours.                     |
+| `ONEUPTIME_RUNNER_CONCURRENCY`               | non     | `1`     | Nombre maximum de jobs simultanés sur cet agent.                                        |
 
 ## Faire tourner la clé d'un agent
 
@@ -139,14 +139,14 @@ Si une clé fuite, ouvrez l'agent dans OneUptime et réinitialisez sa clé. L'an
 
 La gestion des agents vit sous le groupe de permissions Runbooks existant :
 
-- `CreateRunbookAgent`, `EditRunbookAgent`, `DeleteRunbookAgent`, `ReadRunbookAgent` — gérer les enregistrements d'agents.
+- `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — gérer les enregistrements d'agents.
 - `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (rôles) — à attribuer à une équipe pour accorder respectivement le contrôle total, l'usage quotidien ou un accès en lecture seule. `RunbookAdmin` regroupe toutes les permissions granulaires ci-dessus.
 
 Les permissions pour _déclencher_ un runbook (et donc dispatcher des étapes Bash et JavaScript) restent `CreateRunbookExecution` / `EditRunbookExecution`.
 
 ## API exposée aux agents
 
-Pour les curieux — l'agent utilise ces endpoints, montés sous `/runbook-agent-ingest`. Ils sont authentifiés par l'ID + la clé de l'agent dans le corps JSON (ou les en-têtes `x-agent-id` / `x-agent-key`).
+Pour les curieux — l'agent utilise ces endpoints, montés sous `/runner-ingest`. Ils sont authentifiés par l'ID + la clé de l'agent dans le corps JSON (ou les en-têtes `x-agent-id` / `x-agent-key`).
 
 | Endpoint                     | Rôle                                                                                                                     |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------ |

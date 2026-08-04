@@ -21,6 +21,7 @@ import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import PullRequestState from "../../Types/CodeRepository/PullRequestState";
 import FixPullRequestCiStatus from "../../Types/AI/FixPullRequestCiStatus";
+import FixVerificationStatus from "../../Types/AI/FixVerificationStatus";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 
@@ -570,6 +571,57 @@ export default class AIAgentTaskPullRequest extends BaseModel {
     type: ColumnType.Date,
   })
   public ciStatusAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProjectAIAgentTask,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "Runner Verification Status",
+    description:
+      "Outcome of the Runner-side build/test verification that ran against the fix BEFORE this pull request opened (Passed, Failed, Skipped when the repository has no verification commands configured). Distinct from CI Status, which mirrors the repository's own CI checks after the PR exists. Written by the Runner at record time — never by users.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public runnerVerificationStatus?: FixVerificationStatus = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProjectAIAgentTask,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    title: "Runner Verification Summary",
+    description:
+      "Human-readable summary of the Runner-side verification (which commands ran, what failed, how many repair attempts were used). Written by the Runner at record time.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+  })
+  public runnerVerificationSummary?: string = undefined;
 
   @ColumnAccessControl({
     create: [

@@ -62,6 +62,7 @@ import {
   getTotalCostElement,
   noCostDataMessage,
 } from "../Utils/KubernetesCostTableCells";
+import KubernetesRightSizingCard from "./KubernetesRightSizingCard";
 
 function getSectionTitle(icon: IconProp, title: string): ReactElement {
   return (
@@ -480,6 +481,13 @@ const KubernetesClusterCosts: FunctionComponent<
           )}
         </div>
       </EmbeddedMetricCard>
+
+      <KubernetesRightSizingCard
+        kubernetesClusterId={modelId}
+        startDate={startAndEndDate.startValue}
+        endDate={startAndEndDate.endValue}
+        refreshToggle={refreshToggle}
+      />
 
       <Card
         title="Spend by Namespace"

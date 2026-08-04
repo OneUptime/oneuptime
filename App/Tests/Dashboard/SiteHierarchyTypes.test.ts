@@ -3,8 +3,11 @@ import { JSONObject } from "Common/Types/JSON";
 import {
   SiteChildrenResponse,
   SiteMapResponse,
+  SiteSearchResponse,
+  SiteSearchResultView,
   parseSiteChildrenResponse,
   parseSiteMapResponse,
+  parseSiteSearchResponse,
 } from "../../FeatureSet/Dashboard/src/Components/NetworkSite/SiteHierarchyTypes";
 
 /*
@@ -500,5 +503,120 @@ describe("parseSiteMapResponse", () => {
       { id: "r7", name: "Region 2100", siteType: "Region", isUnitLevel: false },
       { id: "u9", name: "Unnamed site", siteType: "Other", isUnitLevel: true },
     ]);
+  });
+});
+
+/*
+ * The search payload gets the same defensive treatment as the other two: a
+ * partially broken (or older) server must cost the reader a label, never the
+ * whole search box.
+ *
+ * `path` earns its own attention. It is the only thing that tells two stores
+ * called "Michigan Ave" apart before the click, and a root site legitimately
+ * has none — so an absent path is the NORMAL case here and has to narrow to
+ * "" rather than to a hole in the row.
+ */
+describe("parseSiteSearchResponse", () => {
+  test("undefined/empty/malformed payloads narrow to an empty response", () => {
+    const expected: SiteSearchResponse = { results: [], isTruncated: false };
+    expect(parseSiteSearchResponse(undefined)).toEqual(expected);
+    expect(parseSiteSearchResponse({})).toEqual(expected);
+    expect(
+      parseSiteSearchResponse({
+        results: "nope",
+        isTruncated: "yes",
+      } as unknown as JSONObject),
+    ).toEqual(expected);
+  });
+
+  test("a well-formed payload narrows faithfully", () => {
+    const parsed: SiteSearchResponse = parseSiteSearchResponse({
+      results: [
+        {
+          id: "u1",
+          name: "Unit 104822 — Michigan Ave",
+          siteType: "Store",
+          isUnitLevel: true,
+          path: "East / Acme Franchising / Chicago North",
+          currentMonitorStatus: {
+            id: "s1",
+            name: "Operational",
+            color: "#4ade80",
+            priority: 1,
+            isOperationalState: true,
+          },
+        },
+      ],
+      isTruncated: true,
+    } as unknown as JSONObject);
+
+    expect(parsed.isTruncated).toBe(true);
+    expect(parsed.results).toEqual([
+      {
+        id: "u1",
+        name: "Unit 104822 — Michigan Ave",
+        siteType: "Store",
+        isUnitLevel: true,
+        path: "East / Acme Franchising / Chicago North",
+        currentMonitorStatus: {
+          id: "s1",
+          name: "Operational",
+          color: "#4ade80",
+          priority: 1,
+          isOperationalState: true,
+        },
+      },
+    ]);
+  });
+
+  test("rows without an id are dropped; the rest fall back safely", () => {
+    const parsed: SiteSearchResponse = parseSiteSearchResponse({
+      results: [{ name: "no id at all", siteType: "Region" }, { id: "r1" }],
+    } as unknown as JSONObject);
+
+    expect(parsed.results).toEqual([
+      {
+        id: "r1",
+        name: "Unnamed site",
+        siteType: "Other",
+        // Never inferred from a name — an unflagged row is a container.
+        isUnitLevel: false,
+        path: "",
+        currentMonitorStatus: undefined,
+      },
+    ]);
+  });
+
+  /*
+   * A root site has no ancestors. Its path is legitimately absent, and a
+   * non-string one is corrupt — both narrow to "" so the row simply prints no
+   * path line instead of "undefined" under the site's name.
+   */
+  test("a missing or non-string path narrows to no path", () => {
+    expect(
+      parseSiteSearchResponse({ results: [{ id: "r1", name: "East" }] })
+        .results[0]!.path,
+    ).toBe("");
+    expect(
+      parseSiteSearchResponse({
+        results: [{ id: "r1", name: "East", path: 42 }],
+      } as unknown as JSONObject).results[0]!.path,
+    ).toBe("");
+  });
+
+  // isUnitLevel decides whether drilling opens a device topology or a level.
+  test("isUnitLevel is strictly boolean", () => {
+    const parsed: SiteSearchResponse = parseSiteSearchResponse({
+      results: [
+        { id: "a", isUnitLevel: true },
+        { id: "b", isUnitLevel: "true" },
+        { id: "c", isUnitLevel: 1 },
+      ],
+    } as unknown as JSONObject);
+    expect(
+      parsed.results.map((row: SiteSearchResultView): boolean => {
+        return row.isUnitLevel;
+      }),
+    ).toEqual([true, false, false]);
   });
 });

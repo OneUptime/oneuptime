@@ -157,8 +157,13 @@ export default class Validation {
         }
       }
 
-      if (field.validation.maxValue) {
-        if (content > field.validation?.maxValue) {
+      /*
+       * `!== undefined`, not truthiness: a declared bound of 0 is a real
+       * bound (e.g. "not less than 0" on a milliseconds field), and the
+       * old falsy guard silently skipped it.
+       */
+      if (field.validation.maxValue !== undefined) {
+        if (content > field.validation.maxValue) {
           return translateValidationMessage(
             "{{field}} should not be more than {{maxValue}}.",
             {
@@ -169,8 +174,8 @@ export default class Validation {
         }
       }
 
-      if (field.validation.minValue) {
-        if (content < field.validation?.minValue) {
+      if (field.validation.minValue !== undefined) {
+        if (content < field.validation.minValue) {
           return translateValidationMessage(
             "{{field}} should not be less than {{minValue}}.",
             {

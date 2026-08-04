@@ -7,7 +7,7 @@ Bash- och JavaScript-steg **körs aldrig på OneUptime-Worker'n**. De dispatch:a
 Dispatch-modellen:
 
 1. Författaren av runbook-steget väljer en Runbook-agent från dropdownen när hen skriver steget.
-2. När steget körs lägger Worker'n in en rad i `RunbookAgentJob` med `targetAgentId` satt till den agentens ID och status `Pending`.
+2. När steget körs lägger Worker'n in en rad i `RunnerJob` med `targetAgentId` satt till den agentens ID och status `Pending`.
 3. Den specifika agenten (och bara den agenten) claim:ar jobbet atomiskt, kör skriptet lokalt — Bash via `bash -c <skript>`, JavaScript i en `isolated-vm`-sandlåda — och skickar tillbaka resultatet.
 4. Worker'n återupptar runbooket med resultatet.
 
@@ -27,7 +27,7 @@ Runbook-behörigheter lever i `Runbook`-behörighetsgruppen:
 - `CreateRunbook`, `EditRunbook`, `DeleteRunbook`, `ReadRunbook` — hantera runbook-mallar.
 - `CreateRunbookExecution`, `EditRunbookExecution`, `ReadRunbookExecution` — starta, bocka av och läsa körningar.
 - `CreateRunbookRule`, `EditRunbookRule`, `DeleteRunbookRule`, `ReadRunbookRule` — hantera auto-triggerregler.
-- `CreateRunbookAgent`, `EditRunbookAgent`, `DeleteRunbookAgent`, `ReadRunbookAgent` — hantera Runbook-agenter som kör Bash- och JavaScript-steg i din egen infrastruktur.
+- `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — hantera Runbook-agenter som kör Bash- och JavaScript-steg i din egen infrastruktur.
 - `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (roller) — tilldela ett team för att ge full kontroll, daglig användning eller skrivskyddad åtkomst. `RunbookAdmin` paketerar alla granulära behörigheter ovan.
 
 ## Kö & worker
@@ -47,8 +47,8 @@ När ett manuellt steg bockas av via API:t läggs körningen i kön igen för at
 - `Runbook` — mall (name, slug, description, isEnabled, steps JSON).
 - `RunbookExecution` — en rad per körning, med nullable `incidentId`-, `alertId`- och `scheduledMaintenanceId`-foreign keys och en JSON `stepExecutions`-array som snapshot:ar stegen och per-steg-tillstånd.
 - `RunbookRule` — auto-triggerregler med en `triggerEntityType`-diskriminator (Incident, Alert, ScheduledMaintenance) och en many-to-many-relation till runbooks som ska startas.
-- `RunbookAgent` — en rad per installerad agent: namn, hemlig nyckel, `lastAlive`, `connectionStatus`, host-info.
-- `RunbookAgentJob` — en rad per dispatch:at Bash- eller JavaScript-steg: `targetAgentId` (agenten som stegförfattaren valde), stegtyp, skript, status (`Pending` → `Claimed` → `Running` → `Succeeded`/`Failed`/`TimedOut`/`Cancelled`), claim-deadline, lease, utdata, exit-kod.
+- `Runner` — en rad per installerad agent: namn, hemlig nyckel, `lastAlive`, `connectionStatus`, host-info.
+- `RunnerJob` — en rad per dispatch:at Bash- eller JavaScript-steg: `targetAgentId` (agenten som stegförfattaren valde), stegtyp, skript, status (`Pending` → `Claimed` → `Running` → `Succeeded`/`Failed`/`TimedOut`/`Cancelled`), claim-deadline, lease, utdata, exit-kod.
 
 ## Driftstips
 

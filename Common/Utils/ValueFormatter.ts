@@ -171,6 +171,98 @@ const readableUnitMap: Record<string, string> = {
   j: "Joules",
 };
 
+/*
+ * The compact sibling of readableUnitMap: the symbol a metric tile can afford
+ * to draw next to a big number, where the spelled-out name would push the
+ * digits off the tile. "Cel" spells out to the 7 characters of "Celsius";
+ * "°C" is two.
+ *
+ * Bit prefixes stay `kbit`/`Mbit`/`Gbit` rather than `kb`/`Mb`: at the suffix
+ * font size a case-only distinction from kB/MB/GB is unreadable.
+ *
+ * Three keys readableUnitMap resolves ambiguously are DELIBERATELY ABSENT and
+ * fall through to the verbose name: "a" (UCUM annum vs. ampere — the map
+ * already reads it as Amperes, and "5 A" for a metric that meant 5 years is a
+ * silent mis-read), "b" (bel vs. bit vs. byte), and "k" ("300 K" for kelvin
+ * sits one space away from the "300K" formatLargeNumber emits for 300000).
+ * All three are short already, so abbreviating them buys nothing and costs
+ * clarity.
+ */
+const compactUnitMap: Record<string, string> = {
+  // Dimensionless
+  "1": "",
+
+  // Bytes (decimal)
+  by: "B",
+  byte: "B",
+  bytes: "B",
+  kby: "kB",
+  mby: "MB",
+  gby: "GB",
+  tby: "TB",
+  pby: "PB",
+
+  // Bytes (binary)
+  kiby: "KiB",
+  miby: "MiB",
+  giby: "GiB",
+  tiby: "TiB",
+  piby: "PiB",
+
+  // Bits
+  bit: "bit",
+  bits: "bit",
+  kbit: "kbit",
+  mbit: "Mbit",
+  gbit: "Gbit",
+
+  // Time
+  ns: "ns",
+  nanosecond: "ns",
+  nanoseconds: "ns",
+  us: "µs",
+  µs: "µs",
+  microsecond: "µs",
+  microseconds: "µs",
+  ms: "ms",
+  millisecond: "ms",
+  milliseconds: "ms",
+  s: "s",
+  sec: "s",
+  second: "s",
+  seconds: "s",
+  min: "min",
+  minute: "min",
+  minutes: "min",
+  h: "h",
+  hr: "h",
+  hour: "h",
+  hours: "h",
+  d: "d",
+  day: "d",
+  days: "d",
+
+  // Percent
+  "%": "%",
+  percent: "%",
+
+  // Frequency
+  hz: "Hz",
+  khz: "kHz",
+  mhz: "MHz",
+  ghz: "GHz",
+
+  // Temperature
+  cel: "°C",
+  "[degf]": "°F",
+
+  // Electrical
+  v: "V",
+  w: "W",
+  kw: "kW",
+  j: "J",
+};
+
 function normalizeUnit(unit: string): string {
   return unit.trim().toLowerCase();
 }
@@ -328,6 +420,155 @@ function formatPercent(value: number): string {
   return value.toFixed(2);
 }
 
+/*
+ * Whether a formatted value carries the spelled-out unit name ("Milliseconds")
+ * or its symbol ("ms"). Readable is what charts, badges and the metric details
+ * modal want; compact is for width-constrained surfaces like the dashboard
+ * Value tile, where the name competes with the number for horizontal space.
+ */
+type UnitStyle = "readable" | "compact";
+
+/*
+ * The separator rules formatValue has always used: percent joins with no
+ * space, an empty unit contributes nothing, everything else gets one space.
+ */
+function joinValueAndUnit(value: string, unit: string): string {
+  if (unit === "") {
+    return value;
+  }
+  if (unit === "%") {
+    return `${value}%`;
+  }
+  return `${value} ${unit}`;
+}
+
+/*
+ * Compacts the suffixes the threshold tables emit, which are a second source
+ * of long unit names that compactUnitMap alone cannot reach: formatValue(3600,
+ * "seconds") scales to "1 hours". Suffixes with no compact form ("B", "KB",
+ * "MB", …) are already short and pass through untouched.
+ */
+function compactThresholdUnit(unit: string): string {
+  const compact: string | undefined = compactUnitMap[normalizeUnit(unit)];
+  return compact === undefined ? unit : compact;
+}
+
+/*
+ * The shared core behind formatValue and formatValueCompact. Returning the
+ * number and the unit SEPARATELY is the point: the Value widget draws them at
+ * different font sizes, and splitting the joined string back apart in the
+ * widget is guesswork — a lastIndexOf(" ") over "5 requests per Second" puts
+ * "requests per" in the big-number span.
+ *
+ * The "readable" path must stay byte-identical to what formatValue has always
+ * emitted; it has 20+ non-test callers (chart axis ticks, threshold
+ * annotations, the Gauge, the metric list) and a table test pins every branch.
+ */
+function formatValueParts(
+  value: number,
+  unit: string,
+  options: { metricName?: string } | undefined,
+  unitStyle: UnitStyle,
+): FormattedValue {
+  const trimmedUnit: string = (unit || "").trim();
+
+  const build: (partValue: string, partUnit: string) => FormattedValue = (
+    partValue: string,
+    partUnit: string,
+  ): FormattedValue => {
+    return {
+      value: partValue,
+      unit: partUnit,
+      formatted: joinValueAndUnit(partValue, partUnit),
+    };
+  };
+
+  /*
+   * OTel/UCUM ratio metrics carry a [0, 1] fraction with unit "1". Render
+   * them as a percentage so chart axes / thresholds read 25.00% instead
+   * of 0.25. Percent values always render with two decimal places so
+   * low-utilization series (e.g. 2.04%) and exact values (e.g. 100.00%)
+   * read consistently across axis ticks and tooltips.
+   */
+  if (
+    trimmedUnit === "1" &&
+    ValueFormatter.isFractionMetric(options?.metricName)
+  ) {
+    return build(formatPercent(value * 100), "%");
+  }
+
+  // OpenTelemetry uses "1" as the dimensionless marker — render as a bare number.
+  if (trimmedUnit === "" || trimmedUnit === "1") {
+    return build(formatNumber(value), "");
+  }
+
+  /*
+   * "%" and its spelled-out / casual variants all render inline with no
+   * separating space — `25.00%`, never `25 Percent`.
+   */
+  if (ValueFormatter.isPercentUnit(trimmedUnit)) {
+    return build(formatPercent(value), "%");
+  }
+
+  /*
+   * UCUM annotation-only units (e.g. "{thread}", "{packets}", "{errors}")
+   * are dimensionless — the brace contents are descriptive only and the
+   * value itself is the count. Render the bare number so chart y-axis
+   * labels stay short and don't wrap into the plot area.
+   */
+  const annotationOnlyUnitPattern: RegExp = /^\{[^{}]*\}$/;
+  if (annotationOnlyUnitPattern.test(trimmedUnit)) {
+    return build(formatNumber(value), "");
+  }
+
+  const normalizedUnit: string = normalizeUnit(unit);
+  const thresholds: Array<UnitThreshold> | undefined =
+    unitTableMap[normalizedUnit];
+
+  if (thresholds) {
+    const scaled: FormattedValue = formatWithThresholds(value, thresholds);
+    return build(
+      scaled.value,
+      unitStyle === "compact" ? compactThresholdUnit(scaled.unit) : scaled.unit,
+    );
+  }
+
+  /*
+   * Compound rate units like "By/s" or "ms/s". Scale the numerator with
+   * its threshold table when we know one (so 1500000 By/s renders as
+   * "1.5 MB/s" rather than "1500000 Bytes per Second"), and keep a
+   * compact denominator. Falls back to the verbose readable form for
+   * unrecognized compound units.
+   */
+  if (trimmedUnit.includes("/")) {
+    const [numeratorRaw, ...denominatorParts] = trimmedUnit.split("/");
+    const denominator: string = denominatorParts.join("/").trim();
+    if (numeratorRaw && denominator) {
+      const numeratorThresholds: Array<UnitThreshold> | undefined =
+        unitTableMap[normalizeUnit(numeratorRaw)];
+      if (numeratorThresholds) {
+        const scaled: FormattedValue = formatWithThresholds(
+          value,
+          numeratorThresholds,
+        );
+        const scaledUnit: string =
+          unitStyle === "compact"
+            ? compactThresholdUnit(scaled.unit)
+            : scaled.unit;
+        return build(scaled.value, `${scaledUnit}/${denominator}`);
+      }
+    }
+  }
+
+  // Unknown unit — format number and show the readable unit name when we have one.
+  return build(
+    formatNumber(value),
+    unitStyle === "compact"
+      ? ValueFormatter.getCompactUnit(unit, options)
+      : ValueFormatter.getReadableUnit(unit),
+  );
+}
+
 export default class ValueFormatter {
   /*
    * Format a value with a unit into a human-friendly string.
@@ -341,79 +582,84 @@ export default class ValueFormatter {
     unit: string,
     options?: { metricName?: string },
   ): string {
-    const trimmedUnit: string = (unit || "").trim();
+    return formatValueParts(value, unit, options, "readable").formatted;
+  }
 
-    /*
-     * OTel/UCUM ratio metrics carry a [0, 1] fraction with unit "1". Render
-     * them as a percentage so chart axes / thresholds read 25.00% instead
-     * of 0.25. Percent values always render with two decimal places so
-     * low-utilization series (e.g. 2.04%) and exact values (e.g. 100.00%)
-     * read consistently across axis ticks and tooltips.
-     */
+  /*
+   * Compact sibling of getReadableUnit: the unit SYMBOL, for surfaces where
+   * the spelled-out name competes with the value for horizontal space.
+   * e.g. getCompactUnit("Cel") → "°C", getCompactUnit("By") → "B".
+   *
+   * Deliberately separate from getReadableUnit — the metric details modal, the
+   * metric list badge and the chart legend all read better with
+   * "Milliseconds" than "ms", and only the dashboard Value tile is
+   * width-constrained enough to need the symbol.
+   */
+  public static getCompactUnit(
+    unit: string,
+    options?: { metricName?: string },
+  ): string {
+    const trimmed: string = (unit || "").trim();
+
     if (
-      trimmedUnit === "1" &&
+      trimmed === "1" &&
       ValueFormatter.isFractionMetric(options?.metricName)
     ) {
-      return `${formatPercent(value * 100)}%`;
+      return "%";
     }
-
-    // OpenTelemetry uses "1" as the dimensionless marker — render as a bare number.
-    if (trimmedUnit === "" || trimmedUnit === "1") {
-      return formatNumber(value);
+    if (trimmed === "" || trimmed === "1") {
+      return "";
     }
-
-    /*
-     * "%" and its spelled-out / casual variants all render inline with no
-     * separating space — `25.00%`, never `25 Percent`.
-     */
-    if (ValueFormatter.isPercentUnit(trimmedUnit)) {
-      return `${formatPercent(value)}%`;
+    if (ValueFormatter.isPercentUnit(trimmed)) {
+      return "%";
     }
 
     /*
-     * UCUM annotation-only units (e.g. "{thread}", "{packets}", "{errors}")
-     * are dimensionless — the brace contents are descriptive only and the
-     * value itself is the count. Render the bare number so chart y-axis
-     * labels stay short and don't wrap into the plot area.
+     * Annotation-only units ("{thread}") are descriptive, not dimensional.
+     * formatValue already drops them from the number, so the compact unit is
+     * empty rather than getReadableUnit's capitalised "Thread".
      */
     const annotationOnlyUnitPattern: RegExp = /^\{[^{}]*\}$/;
-    if (annotationOnlyUnitPattern.test(trimmedUnit)) {
-      return formatNumber(value);
+    if (annotationOnlyUnitPattern.test(trimmed)) {
+      return "";
     }
 
-    const normalizedUnit: string = normalizeUnit(unit);
-    const thresholds: Array<UnitThreshold> | undefined =
-      unitTableMap[normalizedUnit];
-
-    if (thresholds) {
-      return formatWithThresholds(value, thresholds).formatted;
+    const compact: string | undefined = compactUnitMap[normalizeUnit(trimmed)];
+    if (compact !== undefined) {
+      return compact;
     }
 
     /*
-     * Compound rate units like "By/s" or "ms/s". Scale the numerator with
-     * its threshold table when we know one (so 1500000 By/s renders as
-     * "1.5 MB/s" rather than "1500000 Bytes per Second"), and keep a
-     * compact denominator. Falls back to the verbose readable form for
-     * unrecognized compound units.
+     * Compound units keep the slash the exporter wrote: "ug/m3" is five
+     * characters where getReadableUnit's "ug per m3" is nine.
      */
-    if (trimmedUnit.includes("/")) {
-      const [numeratorRaw, ...denominatorParts] = trimmedUnit.split("/");
-      const denominator: string = denominatorParts.join("/").trim();
-      if (numeratorRaw && denominator) {
-        const numeratorThresholds: Array<UnitThreshold> | undefined =
-          unitTableMap[normalizeUnit(numeratorRaw)];
-        if (numeratorThresholds) {
-          const scaled: FormattedValue = formatWithThresholds(
-            value,
-            numeratorThresholds,
-          );
-          return `${scaled.value} ${scaled.unit}/${denominator}`;
-        }
-      }
+    if (trimmed.includes("/")) {
+      return trimmed
+        .split("/")
+        .map((part: string): string => {
+          const partCompact: string | undefined =
+            compactUnitMap[normalizeUnit(part)];
+          return partCompact === undefined ? part.trim() : partCompact;
+        })
+        .join("/");
     }
 
-    // Unknown unit — format number and show the readable unit name when we have one.
-    return `${formatNumber(value)} ${ValueFormatter.getReadableUnit(unit)}`;
+    return trimmed;
+  }
+
+  /*
+   * formatValue, but returning the number and the unit separately and with the
+   * unit in symbol form. Returning the pair is the point: a widget that draws
+   * the two at different font sizes cannot recover them from the joined
+   * string — a lastIndexOf(" ") over "5 requests per Second" puts
+   * "requests per" in the big-number span.
+   */
+  public static formatValueCompact(
+    value: number,
+    unit: string,
+    options?: { metricName?: string },
+  ): FormattedValue {
+    return formatValueParts(value, unit, options, "compact");
   }
 
   /*

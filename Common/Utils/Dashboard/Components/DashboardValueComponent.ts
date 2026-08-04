@@ -19,7 +19,7 @@ const DataSourceSection: ComponentArgumentSection = {
 
 const DisplaySection: ComponentArgumentSection = {
   name: "Display",
-  description: "Tune how the trend arrow is coloured",
+  description: "Tune the trend arrow colour and the unit suffix",
   order: 2,
   defaultCollapsed: true,
 };
@@ -103,6 +103,17 @@ export default class DashboardValueComponentUtil extends DashboardBaseComponentU
           value: DashboardValueTrendDirection.HigherIsWorse,
         },
       ],
+    });
+
+    componentArguments.push({
+      name: "Hide Unit",
+      description:
+        'Show only the number. The unit is abbreviated automatically ("Celsius" reads as "°C") and dropped on its own when the widget is too narrow for it, so this is only needed when the title already says what the unit is.',
+      required: false,
+      type: ComponentInputType.Boolean,
+      id: "hideUnit",
+      isAdvanced: true,
+      section: DisplaySection,
     });
 
     componentArguments.push({

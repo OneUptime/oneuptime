@@ -20,6 +20,7 @@ import DashboardBaseComponent from "Common/Types/Dashboard/DashboardComponents/D
 import DashboardChartComponentUtil from "Common/Utils/Dashboard/Components/DashboardChartComponent";
 import DashboardValueComponentUtil from "Common/Utils/Dashboard/Components/DashboardValueComponent";
 import DashboardTextComponentUtil from "Common/Utils/Dashboard/Components/DashboardTextComponent";
+import DashboardClockComponentUtil from "Common/Utils/Dashboard/Components/DashboardClockComponent";
 import DashboardTableComponentUtil from "Common/Utils/Dashboard/Components/DashboardTableComponent";
 import DashboardGaugeComponentUtil from "Common/Utils/Dashboard/Components/DashboardGaugeComponent";
 import DashboardLogStreamComponentUtil from "Common/Utils/Dashboard/Components/DashboardLogStreamComponent";
@@ -56,6 +57,7 @@ import DashboardDockerSwarmNodeListComponentUtil from "Common/Utils/Dashboard/Co
 import DashboardDockerSwarmServiceListComponentUtil from "Common/Utils/Dashboard/Components/DashboardDockerSwarmServiceListComponent";
 import DashboardCephOsdListComponentUtil from "Common/Utils/Dashboard/Components/DashboardCephOsdListComponent";
 import DashboardCephPoolListComponentUtil from "Common/Utils/Dashboard/Components/DashboardCephPoolListComponent";
+import DashboardHtmlComponentUtil from "Common/Utils/Dashboard/Components/DashboardHtmlComponent";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import Dashboard from "Common/Models/DatabaseModels/Dashboard";
@@ -536,6 +538,10 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
             newComponent = DashboardTextComponentUtil.getDefaultComponent();
           }
 
+          if (componentType === DashboardComponentType.Clock) {
+            newComponent = DashboardClockComponentUtil.getDefaultComponent();
+          }
+
           if (componentType === DashboardComponentType.Table) {
             newComponent = DashboardTableComponentUtil.getDefaultComponent();
           }
@@ -717,6 +723,10 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
           if (componentType === DashboardComponentType.CephPoolList) {
             newComponent =
               DashboardCephPoolListComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.Html) {
+            newComponent = DashboardHtmlComponentUtil.getDefaultComponent();
           }
 
           if (!newComponent) {

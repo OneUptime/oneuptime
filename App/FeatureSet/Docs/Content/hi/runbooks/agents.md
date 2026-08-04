@@ -21,7 +21,7 @@ Runbook एजेंट इसे उलट देते हैं। Bash औ�
 2. आप उस ID/key और अपने OneUptime URL के साथ अपने इन्फ्रास्ट्रक्चर के एक host पर एजेंट का container चलाते हैं।
 3. एजेंट हर कुछ सेकंड में OneUptime से पूछता है: "मेरे लिए कोई काम है?"
 4. जब आप एक Bash या JavaScript step लिखते हैं, तो ड्रॉपडाउन से एजेंट चुनते हैं — step उस विशिष्ट एजेंट से बँध जाता है।
-5. जब step चलता है, Worker `RunbookAgentJob` पंक्ति डालता है जिसमें `targetAgentId` उस एजेंट पर सेट होता है। केवल वही एजेंट उसे claim कर सकता है।
+5. जब step चलता है, Worker `RunnerJob` पंक्ति डालता है जिसमें `targetAgentId` उस एजेंट पर सेट होता है। केवल वही एजेंट उसे claim कर सकता है।
 6. एजेंट script को लोकल में चलाता है — Bash के लिए `bash -c <script>`, JavaScript के लिए एक `isolated-vm` sandbox — परिणाम कैप्चर करके वापस भेजता है। Worker उस परिणाम के साथ runbook को आगे बढ़ाता है।
 
 एजेंट को बस आपके OneUptime instance तक **outbound HTTPS** चाहिए। यह कोई inbound connection स्वीकार नहीं करता।
@@ -30,7 +30,7 @@ Runbook एजेंट इसे उलट देते हैं। Bash औ�
 
 ### 1. एजेंट का रिकॉर्ड बनाएँ
 
-**Runbooks → Settings → Agents** पर जाएँ और एक नया एजेंट बनाएँ। भरें:
+**Settings → Runners** पर जाएँ और एक नया एजेंट बनाएँ। भरें:
 
 | फ़ील्ड    | टिप्पणियाँ                                                                                                                      |
 | --------- | ------------------------------------------------------------------------------------------------------------------------------- |
@@ -49,18 +49,18 @@ Runbook एजेंट इसे उलट देते हैं। Bash औ�
 - वे चीज़ें कर सकता हो जो आप Bash/JavaScript steps से करवाना चाहते हैं (जैसे दूसरे hosts पर SSH, `kubectl`, database से बात करना)।
 
 ```bash
-docker run --name oneuptime-runbook-agent --restart unless-stopped \
-  -e RUNBOOK_AGENT_ID=<agent-id> \
-  -e RUNBOOK_AGENT_KEY=<agent-key> \
+docker run --name oneuptime-runner --restart unless-stopped \
+  -e ONEUPTIME_RUNNER_ID=<agent-id> \
+  -e ONEUPTIME_RUNNER_KEY=<agent-key> \
   -e ONEUPTIME_URL=https://oneuptime.yourdomain.com \
-  -d oneuptime/runbook-agent:release
+  -d oneuptime/runner:release
 ```
 
 ### 4. एजेंट का connection सत्यापित करें
 
-**Runbooks → Settings → Agents** पर वापस जाएँ। लगभग 60 सेकंड के भीतर एजेंट की पंक्ति को ताज़ा **Last seen** टाइमस्टैम्प के साथ `Connected` में बदल जाना चाहिए। अगर वह `Disconnected` ही रहे:
+**Settings → Runners** पर वापस जाएँ। लगभग 60 सेकंड के भीतर एजेंट की पंक्ति को ताज़ा **Last seen** टाइमस्टैम्प के साथ `Connected` में बदल जाना चाहिए। अगर वह `Disconnected` ही रहे:
 
-- container logs (`docker logs oneuptime-runbook-agent`) में auth या नेटवर्क errors देखें।
+- container logs (`docker logs oneuptime-runner`) में auth या नेटवर्क errors देखें।
 - सत्यापित करें कि host `curl` से OneUptime URL तक पहुँचता है।
 - सत्यापित करें कि ID और key बिना whitespace के copy हुए हैं।
 
@@ -92,8 +92,8 @@ Worker का कुल प्रतीक्षा window `claim timeout + exec
 
 claim timeout घटाते समय दो बातें ध्यान में रखें:
 
-- एजेंट हर poll चक्र में ही नए jobs माँगता है (`RUNBOOK_AGENT_POLL_INTERVAL_MS`, डिफ़ॉल्ट 5 सेकंड)। एक poll चक्र से छोटा claim timeout किसी बिल्कुल ठीक चल रहे एजेंट के job को देखने से पहले ही expire हो सकता है, और तब step ठीक उसी संदेश ("no agent claimed the job") के साथ fail हो जाती है जो आपको किसी offline एजेंट से मिलता है।
-- एक एजेंट डिफ़ॉल्ट रूप से एक समय में एक job चलाता है (`RUNBOOK_AGENT_CONCURRENCY`)। जब तक कोई लंबी step उसे व्यस्त रखती है, उसी एजेंट की ओर इंगित की गई बाकी steps अपने-अपने claim timeout के बीतने का इंतज़ार करती रहती हैं। अगर आप execution timeout को मिनटों तक बढ़ाते हैं, तो उस एजेंट को साझा करने वाली steps का claim timeout भी उसी हिसाब से बढ़ाएँ — या उन्हें कोई दूसरा एजेंट दें।
+- एजेंट हर poll चक्र में ही नए jobs माँगता है (`ONEUPTIME_RUNNER_POLL_INTERVAL_MS`, डिफ़ॉल्ट 5 सेकंड)। एक poll चक्र से छोटा claim timeout किसी बिल्कुल ठीक चल रहे एजेंट के job को देखने से पहले ही expire हो सकता है, और तब step ठीक उसी संदेश ("no agent claimed the job") के साथ fail हो जाती है जो आपको किसी offline एजेंट से मिलता है।
+- एक एजेंट डिफ़ॉल्ट रूप से एक समय में एक job चलाता है (`ONEUPTIME_RUNNER_CONCURRENCY`)। जब तक कोई लंबी step उसे व्यस्त रखती है, उसी एजेंट की ओर इंगित की गई बाकी steps अपने-अपने claim timeout के बीतने का इंतज़ार करती रहती हैं। अगर आप execution timeout को मिनटों तक बढ़ाते हैं, तो उस एजेंट को साझा करने वाली steps का claim timeout भी उसी हिसाब से बढ़ाएँ — या उन्हें कोई दूसरा एजेंट दें।
 
 ### Lease और heartbeat
 
@@ -115,7 +115,7 @@ Runbook execution को रद्द करना (execution view या API �
 
 ### समवर्तीता (Concurrency)
 
-हर एजेंट डिफ़ॉल्ट रूप से एक समय में एक job चलाता है। अधिक की अनुमति देने के लिए, एजेंट container पर `RUNBOOK_AGENT_CONCURRENCY` सेट करें — लेकिन याद रखें कि एजेंट host को वहाँ रहने वाली बाकी सब चीज़ों के साथ साझा करता है।
+हर एजेंट डिफ़ॉल्ट रूप से एक समय में एक job चलाता है। अधिक की अनुमति देने के लिए, एजेंट container पर `ONEUPTIME_RUNNER_CONCURRENCY` सेट करें — लेकिन याद रखें कि एजेंट host को वहाँ रहने वाली बाकी सब चीज़ों के साथ साझा करता है।
 
 ## Environment variables
 
@@ -124,12 +124,12 @@ Runbook execution को रद्द करना (execution view या API �
 | Variable                                  | आवश्यक | डिफ़ॉल्ट | टिप्पणियाँ                                                                    |
 | ----------------------------------------- | ------ | -------- | ----------------------------------------------------------------------------- |
 | `ONEUPTIME_URL`                           | हाँ    | —        | आपके OneUptime instance का base URL, जैसे `https://oneuptime.yourdomain.com`। |
-| `RUNBOOK_AGENT_ID`                        | हाँ    | —        | एजेंट के setup modal में दिखाया गया UUID।                                     |
-| `RUNBOOK_AGENT_KEY`                       | हाँ    | —        | एजेंट के setup modal में दिखाया गया secret।                                   |
-| `RUNBOOK_AGENT_POLL_INTERVAL_MS`          | नहीं   | `5000`   | एजेंट कितनी बार नए jobs के लिए poll करता है।                                  |
-| `RUNBOOK_AGENT_HEARTBEAT_INTERVAL_MS`     | नहीं   | `60000`  | एजेंट कितनी बार जीवित होने की रिपोर्ट देता है।                                |
-| `RUNBOOK_AGENT_JOB_HEARTBEAT_INTERVAL_MS` | नहीं   | `10000`  | एजेंट चालू job के lease को कितनी बार नवीनीकृत करता है।                        |
-| `RUNBOOK_AGENT_CONCURRENCY`               | नहीं   | `1`      | इस एजेंट पर अधिकतम समवर्ती jobs।                                              |
+| `ONEUPTIME_RUNNER_ID`                        | हाँ    | —        | एजेंट के setup modal में दिखाया गया UUID।                                     |
+| `ONEUPTIME_RUNNER_KEY`                       | हाँ    | —        | एजेंट के setup modal में दिखाया गया secret।                                   |
+| `ONEUPTIME_RUNNER_POLL_INTERVAL_MS`          | नहीं   | `5000`   | एजेंट कितनी बार नए jobs के लिए poll करता है।                                  |
+| `ONEUPTIME_RUNNER_HEARTBEAT_INTERVAL_MS`     | नहीं   | `60000`  | एजेंट कितनी बार जीवित होने की रिपोर्ट देता है।                                |
+| `ONEUPTIME_RUNNER_JOB_HEARTBEAT_INTERVAL_MS` | नहीं   | `10000`  | एजेंट चालू job के lease को कितनी बार नवीनीकृत करता है।                        |
+| `ONEUPTIME_RUNNER_CONCURRENCY`               | नहीं   | `1`      | इस एजेंट पर अधिकतम समवर्ती jobs।                                              |
 
 ## एजेंट की key rotate करना
 
@@ -139,14 +139,14 @@ Runbook execution को रद्द करना (execution view या API �
 
 एजेंट का प्रबंधन मौजूदा Runbooks permission group के अंतर्गत आता है:
 
-- `CreateRunbookAgent`, `EditRunbookAgent`, `DeleteRunbookAgent`, `ReadRunbookAgent` — एजेंट records का प्रबंधन।
+- `CreateRunner`, `EditRunner`, `DeleteRunner`, `ReadRunner` — एजेंट records का प्रबंधन।
 - `RunbookAdmin`, `RunbookMember`, `RunbookViewer` (भूमिकाएँ) — किसी टीम को असाइन करें ताकि क्रमशः पूर्ण नियंत्रण, रोज़मर्रा उपयोग या केवल-पठन पहुँच मिले। `RunbookAdmin` ऊपर की सभी सूक्ष्म अनुमतियों को bundle करता है।
 
 Runbook को _trigger_ करने (और इस तरह Bash व JavaScript steps dispatch करने) की अनुमतियाँ अभी भी `CreateRunbookExecution` / `EditRunbookExecution` हैं।
 
 ## एजेंट-facing API
 
-जिज्ञासुओं के लिए — एजेंट `/runbook-agent-ingest` के अंतर्गत मौजूद इन endpoints का उपयोग करता है। ये JSON body में एजेंट ID + key (या `x-agent-id` / `x-agent-key` headers) से authenticate होते हैं।
+जिज्ञासुओं के लिए — एजेंट `/runner-ingest` के अंतर्गत मौजूद इन endpoints का उपयोग करता है। ये JSON body में एजेंट ID + key (या `x-agent-id` / `x-agent-key` headers) से authenticate होते हैं।
 
 | Endpoint                     | उद्देश्य                                                                                                                      |
 | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |

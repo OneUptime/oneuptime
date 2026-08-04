@@ -214,6 +214,50 @@ describe("per-consumer fail directions", () => {
   });
 });
 
+describe("AIConfidenceSignal.shouldAutoEnqueueCodeFixTask", () => {
+  test("only a POSITIVE confident classification enqueues an automatic fix PR", () => {
+    expect(
+      AIConfidenceSignal.shouldAutoEnqueueCodeFixTask({
+        confident: true,
+        source: "classification",
+      }),
+    ).toBe(true);
+    expect(
+      AIConfidenceSignal.shouldAutoEnqueueCodeFixTask({
+        confident: false,
+        source: "classification",
+      }),
+    ).toBe(false);
+  });
+
+  test("the deterministic floor (no server-minted evidence) never enqueues", () => {
+    expect(
+      AIConfidenceSignal.shouldAutoEnqueueCodeFixTask({
+        confident: false,
+        source: "deterministic-floor",
+      }),
+    ).toBe(false);
+  });
+
+  test("fails toward DOING NOTHING: classification-failed → no fix PR", () => {
+    expect(
+      AIConfidenceSignal.shouldAutoEnqueueCodeFixTask({
+        confident: false,
+        source: "classification-failed",
+      }),
+    ).toBe(false);
+  });
+
+  test("the placeholder boolean on classification-failed must not leak into the decision", () => {
+    expect(
+      AIConfidenceSignal.shouldAutoEnqueueCodeFixTask({
+        confident: true,
+        source: "classification-failed",
+      }),
+    ).toBe(false);
+  });
+});
+
 describe("AIConfidenceSignal.computeConfidenceSignal", () => {
   afterEach(() => {
     jest.restoreAllMocks();

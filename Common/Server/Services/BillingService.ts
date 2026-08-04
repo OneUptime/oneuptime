@@ -261,12 +261,23 @@ export class BillingService extends BaseService {
     meteredSubscriptionId: string;
     trialEndsAt: Date | null;
   }> {
+    /*
+     * Only plans with a Stripe price can become subscription items. A plan
+     * without one yet would make getPriceId throw and abort project
+     * creation, so we skip them here - their usage still stages
+     * into TelemetryUsageBilling and is pushed once the price ids exist.
+     */
+    const priceableMeteredPlans: Array<ServerMeteredPlan> =
+      data.serverMeteredPlans.filter((plan: ServerMeteredPlan) => {
+        return plan.hasPriceId();
+      });
+
     const meteredPlanSubscriptionParams: Stripe.SubscriptionCreateParams = {
       customer: data.customerId,
 
       proration_behavior: "always_invoice",
 
-      items: data.serverMeteredPlans.map((item: ServerMeteredPlan) => {
+      items: priceableMeteredPlans.map((item: ServerMeteredPlan) => {
         return {
           price: item.getPriceId(),
         };
@@ -454,6 +465,16 @@ export class BillingService extends BaseService {
   ): Promise<void> {
     if (!this.isBillingEnabled()) {
       throw new BadDataException(Errors.BillingService.BILLING_NOT_ENABLED);
+    }
+
+    /*
+     * A plan without a Stripe price yet cannot be pushed
+     * to a subscription - getPriceId would throw. Usage has already been staged
+     * into TelemetryUsageBilling by the caller, so skipping here loses nothing;
+     * the push happens once the price ids are created.
+     */
+    if (!serverMeteredPlan.hasPriceId()) {
+      return;
     }
 
     // get subscription.
@@ -1496,9 +1517,37 @@ export class BillingService extends BaseService {
       return "price_1TGwTDANuQdJ93r7s0jKRxaT";
     }
 
+    if (productType === ProductType.SessionReplay) {
+      if (this.isTestEnvironment()) {
+        return "price_1U0icaANuQdJ93r7yE4a6icc";
+      }
+
+      return "price_1U0iWJANuQdJ93r7iVAXwhdP";
+    }
+
     throw new BadDataException(
       "Plan with productType " + productType + " not found",
     );
+  }
+
+  /*
+   * Whether a Stripe metered price exists for this product type yet.
+   *
+   * getMeteredPlanPriceId throws for product types whose Stripe prices have
+   * not been created and for unknown types. Every product type is priced
+   * today, so this only guards the next one added ahead of its Stripe price.
+   * Callers that build Stripe subscription items must skip those plans instead of
+   * letting the throw abort the whole operation - a metered plan without a
+   * price still stages usage into TelemetryUsageBilling, only the push to
+   * Stripe waits on the price ids. This is the single, side-effect-free way to
+   * ask, so we keep getMeteredPlanPriceId as the single source of truth.
+   */
+  public hasMeteredPlanPriceId(productType: ProductType): boolean {
+    try {
+      return Boolean(this.getMeteredPlanPriceId(productType));
+    } catch {
+      return false;
+    }
   }
 
   @CaptureSpan()

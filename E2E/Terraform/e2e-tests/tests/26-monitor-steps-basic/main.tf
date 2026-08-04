@@ -24,12 +24,10 @@ resource "random_id" "suffix" {
 #
 # This test validates:
 # 1. Creating monitors with minimal configuration (server provides defaults)
-# 2. Creating monitors with explicit monitor_steps
+# 2. Creating a monitor with minimal typed monitor_steps (nested attributes,
+#    no jsonencode, no hand-written ids)
 # 3. Verifying monitor_steps server defaults don't cause drift
-# 4. Testing idempotency with complex JSON fields
-#
-# Issue being validated: Server injects exceptionMonitor, logMonitor, etc.
-# into monitor_steps which can cause "inconsistent result after apply" errors
+# 4. Testing idempotency
 
 # Test Case 1: Manual Monitor - No monitor_steps (server provides defaults)
 resource "oneuptime_monitor" "manual_no_steps" {
@@ -55,21 +53,44 @@ resource "oneuptime_monitor" "with_interval" {
 
 # Test Case 4: Monitor with disable flag
 resource "oneuptime_monitor" "disabled" {
-  name                    = "TF Disabled Monitor ${random_id.suffix.hex}"
-  description             = "Monitor that is disabled"
-  monitor_type            = "Manual"
+  name                      = "TF Disabled Monitor ${random_id.suffix.hex}"
+  description               = "Monitor that is disabled"
+  monitor_type              = "Manual"
   disable_active_monitoring = true
+}
+
+# Test Case 5: Website Monitor - minimal typed monitor_steps
+resource "oneuptime_monitor" "with_steps" {
+  name         = "TF Basic Steps Monitor ${random_id.suffix.hex}"
+  description  = "Website monitor with minimal typed monitor_steps"
+  monitor_type = "Website"
+
+  monitor_steps = [{
+    monitor_destination      = "https://example.com"
+    monitor_destination_type = "URL"
+    request_type             = "GET"
+
+    criteria = [
+      {
+        name             = "Check if online"
+        description      = "Website responds successfully"
+        filter_condition = "All"
+
+        filters = [
+          {
+            check_on    = "Is Online"
+            filter_type = "True"
+          }
+        ]
+      }
+    ]
+  }]
 }
 
 # Outputs for verification
 output "manual_no_steps_id" {
   value       = oneuptime_monitor.manual_no_steps.id
   description = "ID of manual monitor without steps"
-}
-
-output "manual_no_steps_monitor_steps" {
-  value       = oneuptime_monitor.manual_no_steps.monitor_steps
-  description = "Server-provided monitor_steps for manual monitor"
 }
 
 output "manual_with_description_id" {
@@ -95,6 +116,16 @@ output "disabled_id" {
 output "disabled_disable_active_monitoring" {
   value       = oneuptime_monitor.disabled.disable_active_monitoring
   description = "Disable active monitoring flag"
+}
+
+output "with_steps_id" {
+  value       = oneuptime_monitor.with_steps.id
+  description = "ID of monitor with typed monitor_steps"
+}
+
+output "with_steps_destination" {
+  value       = oneuptime_monitor.with_steps.monitor_steps[0].monitor_destination
+  description = "Destination of the first monitor step (typed attribute access)"
 }
 
 # Server-computed fields

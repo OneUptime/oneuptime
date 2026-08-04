@@ -319,7 +319,7 @@ export default class NetworkSiteAssignmentRule extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Hostname Pattern",
     description:
-      "Devices with a hostname matching this wildcard pattern are assigned to the site",
+      "Devices whose hostname, SNMP system name or display name matches this wildcard pattern are assigned to the site",
     example: "unit-1042-*",
   })
   @Column({

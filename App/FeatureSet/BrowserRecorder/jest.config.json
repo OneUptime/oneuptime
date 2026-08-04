@@ -1,0 +1,26 @@
+{
+  "preset": "ts-jest",
+  "testPathIgnorePatterns": ["node_modules", "public"],
+  "verbose": true,
+  "transform": {
+    ".(ts|tsx)": [
+      "ts-jest",
+      {
+        "tsconfig": "tsconfig.json",
+        "babelConfig": false
+      }
+    ]
+  },
+  "moduleNameMapper": {
+    "^Common/(.*)$": "<rootDir>/../../../Common/$1"
+  },
+  "moduleFileExtensions": ["ts", "js", "json"],
+  "testEnvironment": "jsdom",
+  "testEnvironmentOptions": {
+    "url": "https://shop.example.com/checkout"
+  },
+  "collectCoverage": false,
+  "testTimeout": 30000,
+  "testRegex": "./Tests/(.*)\\.test\\.ts$",
+  "setupFilesAfterEnv": ["<rootDir>/Tests/jest.setup.js"]
+}

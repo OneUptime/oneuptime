@@ -16,9 +16,17 @@ import Navigation from "Common/UI/Utils/Navigation";
  */
 export interface NetworkMapDrillState {
   siteId: string | null;
+  /*
+   * What the search box is narrowing the map to. It rides along with the
+   * drill position for the same reason the drill position is in the URL at
+   * all: what is on screen should survive a copy-paste and a back button.
+   * Absent reads as "" — no filter — never as a filter matching nothing.
+   */
+  searchText: string;
 }
 
 export const NETWORK_MAP_SITE_PARAM: string = "site";
+export const NETWORK_MAP_SEARCH_PARAM: string = "siteSearch";
 
 /*
  * The map used to offer a "United States / World" toggle, mirrored into this
@@ -32,6 +40,7 @@ export const LEGACY_NETWORK_MAP_REGION_PARAM: string = "mapRegion";
 export function readDrillStateFromUrl(): NetworkMapDrillState {
   return {
     siteId: Navigation.getQueryStringByName(NETWORK_MAP_SITE_PARAM),
+    searchText: Navigation.getQueryStringByName(NETWORK_MAP_SEARCH_PARAM) || "",
   };
 }
 

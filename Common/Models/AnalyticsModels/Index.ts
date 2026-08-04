@@ -15,6 +15,8 @@ import NetworkFlow from "./NetworkFlow";
 import KubernetesCostAllocation from "./KubernetesCostAllocation";
 import Profile from "./Profile";
 import ProfileSample from "./ProfileSample";
+import RumSession from "./RumSession";
+import RumSessionChunk from "./RumSessionChunk";
 import AuditLog from "./AuditLog";
 
 const AnalyticsModels: Array<{ new (): AnalyticsBaseModel }> = [
@@ -48,6 +50,14 @@ const AnalyticsModels: Array<{ new (): AnalyticsBaseModel }> = [
   KubernetesCostAllocation,
   Profile,
   ProfileSample,
+  /*
+   * Session replay. Registered here for Realtime lookup and table-name
+   * resolution; boot-time table creation is driven by the separate
+   * AnalyticsServices array in Common/Server/Services/Index.ts, so both
+   * registrations are required.
+   */
+  RumSession,
+  RumSessionChunk,
   AuditLog,
 ];
 

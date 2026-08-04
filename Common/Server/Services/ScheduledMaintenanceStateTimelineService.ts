@@ -646,12 +646,26 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
       scheduledMaintenanceEvent.monitors &&
       scheduledMaintenanceEvent.monitors.length > 0
     ) {
-      // get resolved monitor state.
+      /*
+       * Resolve monitors back to the project's operational status once
+       * maintenance ends. A project can hold more than one operational state,
+       * so this lookup MUST be deterministic: without an explicit sort
+       * findOneBy falls back to `createdAt DESC` and would resolve monitors
+       * into whichever operational status was created most recently rather
+       * than the seeded default. Order by priority ascending (seeded default
+       * operational status is priority 0), tie-broken by the oldest row,
+       * matching MonitorService.onBeforeCreate so a monitor's operational
+       * status stays the same canonical one across its lifecycle.
+       */
       const resolvedMonitorState: MonitorStatus | null =
         await MonitorStatusService.findOneBy({
           query: {
             projectId: scheduledMaintenanceEvent.projectId!,
             isOperationalState: true,
+          },
+          sort: {
+            priority: SortOrder.Ascending,
+            createdAt: SortOrder.Ascending,
           },
           props: {
             isRoot: true,

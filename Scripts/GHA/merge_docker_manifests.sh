@@ -2,6 +2,10 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=Scripts/GHA/retry.sh
+source "${SCRIPT_DIR}/retry.sh"
+
 usage() {
 	cat <<'EOF'
 Usage: merge_docker_manifests.sh --image <name> --tags <tag1,tag2,...>
@@ -59,8 +63,12 @@ for tag in "${TAG_LIST[@]}"; do
 	echo "🔗 Creating multi-arch manifest for ${IMAGE}:${tag}"
 
 	# Use GHCR as the source for arch-specific images (no rate limits in GHA)
-	# and push the merged manifest to both registries
-	docker buildx imagetools create \
+	# and push the merged manifest to both registries. Retried for the same
+	# reason as the per-arch pushes — all the merge jobs land at once and can
+	# trip GitHub's secondary rate limit. See Scripts/GHA/retry.sh. Re-running
+	# is idempotent: the same tag is rewritten from the same per-arch digests.
+	retry_with_backoff "merge manifest for ${IMAGE}:${tag}" \
+		docker buildx imagetools create \
 		--tag "${GHCR}/${IMAGE}:${tag}" \
 		--tag "${DOCKER_HUB}/${IMAGE}:${tag}" \
 		"${GHCR}/${IMAGE}:${tag}-amd64" \
