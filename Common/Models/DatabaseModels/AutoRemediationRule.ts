@@ -4,6 +4,7 @@ import Label from "./Label";
 import Monitor from "./Monitor";
 import Project from "./Project";
 import Runbook from "./Runbook";
+import Runner from "./Runner";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
@@ -339,6 +340,134 @@ export default class AutoRemediationRule extends BaseModel {
     default: false,
   })
   public aiSelectsRunbook?: boolean = undefined;
+
+  /*
+   * When both AI flags are set, aiComposesCommands wins — a rule either
+   * picks runbooks or composes commands, never both in one run.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateAutoRemediationRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadAutoRemediationRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditAutoRemediationRule,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Let AI Compose Commands",
+    description:
+      "When enabled, the AI investigates the incident/alert and composes Bash/SSH commands for opted-in Runners instead of picking a runbook. Suggest mode proposes a command plan for one-click approval; FullAuto mode may execute commands inline, but only ones matching the command allowlist. Requires the project's Enable AI Command Execution setting.",
+    defaultValue: false,
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public aiComposesCommands?: boolean = undefined;
+
+  /*
+   * Operator-authored glob patterns ("systemctl restart *",
+   * "kubectl rollout restart deployment/*"). Only commands matching one of
+   * these — and passing the structural chain guard — may auto-execute under
+   * FullAuto. An empty list means nothing auto-executes.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateAutoRemediationRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadAutoRemediationRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditAutoRemediationRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Command Allowlist",
+    description:
+      "Glob patterns for commands the AI may execute WITHOUT human approval under FullAuto (for example: systemctl restart *). Commands that do not match are proposed for one-click approval instead. Destructive commands are always refused by the built-in policy.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public commandAllowlist?: Array<string> = undefined;
+
+  /*
+   * Which Runners the AI may target with composed commands. Empty means any
+   * Runner in the project that has canRunAiCommands enabled — the Runner
+   * capability is always required either way.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateAutoRemediationRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadAutoRemediationRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditAutoRemediationRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: Runner,
+    title: "Command Runners",
+    description:
+      "Runners the AI may target with composed commands. Leave empty to allow any Runner in the project that has AI commands enabled.",
+  })
+  @ManyToMany(
+    () => {
+      return Runner;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "AutoRemediationRuleRunner",
+    inverseJoinColumn: {
+      name: "runnerId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "autoRemediationRuleId",
+      referencedColumnName: "_id",
+    },
+  })
+  public commandRunners?: Array<Runner> = undefined;
 
   @ColumnAccessControl({
     create: [

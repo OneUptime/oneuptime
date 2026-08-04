@@ -1,5 +1,6 @@
 import {
   CLUSTER_ENABLE_CODE_FIXES,
+  ENABLE_AI_COMMANDS_OVERRIDE,
   ENABLE_CODE_FIXES_OVERRIDE,
   ENABLE_RUNBOOKS_OVERRIDE,
   IS_CLUSTER_SCOPED,
@@ -8,6 +9,7 @@ import {
 export interface RunnerCapabilitySet {
   canRunRunbooks: boolean;
   canRunCodeFixTasks: boolean;
+  canRunAiCommands: boolean;
 }
 
 /*
@@ -43,17 +45,24 @@ export default class RunnerCapabilities {
       return {
         canRunRunbooks: false,
         canRunCodeFixTasks: CLUSTER_ENABLE_CODE_FIXES,
+        /*
+         * AI commands target a specific Runner a project opted in — a
+         * cluster Runner has no project row to opt in with, so never.
+         */
+        canRunAiCommands: false,
       };
     }
 
     /*
      * An older server does not report capabilities. Fall back to the
      * historical env-var defaults so upgrading the Runner first never
-     * silently stops it working.
+     * silently stops it working. AI commands stay default-deny: an old
+     * server cannot have granted them.
      */
     const granted: RunnerCapabilitySet = RunnerCapabilities.granted ?? {
       canRunRunbooks: true,
       canRunCodeFixTasks: ENABLE_CODE_FIXES_OVERRIDE === true,
+      canRunAiCommands: false,
     };
 
     return {
@@ -61,6 +70,8 @@ export default class RunnerCapabilities {
         granted.canRunRunbooks && ENABLE_RUNBOOKS_OVERRIDE !== false,
       canRunCodeFixTasks:
         granted.canRunCodeFixTasks && ENABLE_CODE_FIXES_OVERRIDE !== false,
+      canRunAiCommands:
+        granted.canRunAiCommands && ENABLE_AI_COMMANDS_OVERRIDE !== false,
     };
   }
 }

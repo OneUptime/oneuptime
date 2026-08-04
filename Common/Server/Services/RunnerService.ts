@@ -63,7 +63,39 @@ export class Service extends DatabaseService<Model> {
         name: true,
         canRunRunbooks: true,
         canRunCodeFixTasks: true,
+        canRunAiCommands: true,
       },
+      props: { isRoot: true },
+    });
+  }
+
+  /*
+   * Runners in this project that have opted into AI-composed commands and
+   * heartbeated recently. Same liveness semantics as the code-fix lookup:
+   * lastAlive as a query predicate, never a sort over possibly-NULL rows.
+   */
+  @CaptureSpan()
+  public async getOnlineAiCommandRunnersForProject(data: {
+    projectId: ObjectID;
+    limit?: number | undefined;
+  }): Promise<Array<Model>> {
+    return this.findBy({
+      query: {
+        projectId: data.projectId,
+        canRunAiCommands: true,
+        lastAlive: QueryHelper.greaterThan(
+          OneUptimeDate.getSomeMinutesAgo(RUNNER_ALIVE_WINDOW_IN_MINUTES),
+        ),
+      },
+      select: {
+        _id: true,
+        name: true,
+        description: true,
+        lastAlive: true,
+        hostInfo: true,
+      },
+      limit: data.limit ?? 25,
+      skip: 0,
       props: { isRoot: true },
     });
   }

@@ -22,6 +22,7 @@ import type { RunnerCapabilitySet } from "../../Utils/RunnerCapabilities";
 const ENV_VARS_UNDER_TEST: Array<string> = [
   "ONEUPTIME_RUNNER_ENABLE_RUNBOOKS",
   "ONEUPTIME_RUNNER_ENABLE_CODE_FIXES",
+  "ONEUPTIME_RUNNER_ENABLE_AI_COMMANDS",
   "ONEUPTIME_SECRET",
 ];
 
@@ -76,6 +77,7 @@ describe("a capability granted while the Runner is running", () => {
     RunnerCapabilities.setGrantedByServer({
       canRunRunbooks: true,
       canRunCodeFixTasks: false,
+      canRunAiCommands: false,
     });
 
     expect(RunnerCapabilities.resolve().canRunCodeFixTasks).toBe(false);
@@ -84,6 +86,7 @@ describe("a capability granted while the Runner is running", () => {
     RunnerCapabilities.setGrantedByServer({
       canRunRunbooks: true,
       canRunCodeFixTasks: true,
+      canRunAiCommands: false,
     });
 
     expect(RunnerCapabilities.resolve().canRunCodeFixTasks).toBe(true);
@@ -96,12 +99,14 @@ describe("a capability granted while the Runner is running", () => {
     RunnerCapabilities.setGrantedByServer({
       canRunRunbooks: true,
       canRunCodeFixTasks: true,
+      canRunAiCommands: false,
     });
     expect(RunnerCapabilities.resolve().canRunRunbooks).toBe(true);
 
     RunnerCapabilities.setGrantedByServer({
       canRunRunbooks: false,
       canRunCodeFixTasks: true,
+      canRunAiCommands: false,
     });
 
     expect(RunnerCapabilities.resolve().canRunRunbooks).toBe(false);
@@ -119,6 +124,7 @@ describe("a capability granted while the Runner is running", () => {
     RunnerCapabilities.setGrantedByServer({
       canRunRunbooks: true,
       canRunCodeFixTasks: true,
+      canRunAiCommands: false,
     });
 
     expect(RunnerCapabilities.resolve().canRunCodeFixTasks).toBe(false);
@@ -131,6 +137,7 @@ describe("a capability granted while the Runner is running", () => {
     const granted: RunnerCapabilitySet = {
       canRunRunbooks: true,
       canRunCodeFixTasks: true,
+      canRunAiCommands: false,
     };
 
     RunnerCapabilities.setGrantedByServer(granted);
@@ -155,6 +162,7 @@ describe("a capability granted while the Runner is running", () => {
     expect(RunnerCapabilities.resolve()).toEqual({
       canRunRunbooks: true,
       canRunCodeFixTasks: false,
+      canRunAiCommands: false,
     });
   });
 
@@ -171,6 +179,7 @@ describe("a capability granted while the Runner is running", () => {
     RunnerCapabilities.setGrantedByServer({
       canRunRunbooks: true,
       canRunCodeFixTasks: true,
+      canRunAiCommands: false,
     });
 
     expect(RunnerCapabilities.resolve().canRunRunbooks).toBe(false);

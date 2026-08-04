@@ -17,6 +17,7 @@ import LlmProviderService from "../../../Services/LlmProviderService";
 import AIInvestigationQueue from "./InvestigationQueue";
 import AIConfidenceSignal, { ConfidenceSignal } from "./ConfidenceSignal";
 import ObservabilityAssistant, {
+  ObservabilityAssistantExtraTool,
   ObservabilityAssistantResult,
   ObservabilityAssistantStep,
   ObservabilityAssistantStepType,
@@ -104,6 +105,25 @@ export interface InvestigationRequest {
     confidence: ConfidenceSignal;
     result: ObservabilityAssistantResult;
   }) => Promise<void>;
+  /*
+   * Optional overrides for non-investigation run kinds that reuse this
+   * engine (remediation planning/execution). Defaults preserve the classic
+   * investigation behavior exactly.
+   */
+  // Replaces INVESTIGATION_PERSONA as the appended system instructions.
+  personaOverride?: string | undefined;
+  // Replaces the "A new signal has just been declared..." user preamble.
+  questionOverride?: string | undefined;
+  /*
+   * Run-scoped tools grafted onto the loop (see
+   * ObservabilityAssistantExtraTool). The read-only toolbox is always
+   * present; extras are additive and own their own authorization.
+   */
+  extraTools?: Array<ObservabilityAssistantExtraTool> | undefined;
+  maxLlmCalls?: number | undefined;
+  maxToolCalls?: number | undefined;
+  maxWallClockMs?: number | undefined;
+  maxOutputTokens?: number | undefined;
 }
 
 export default class AIInvestigationEngine {
@@ -242,13 +262,17 @@ export default class AIInvestigationEngine {
           // System run — full read access to the project's telemetry.
           props: { isRoot: true },
           feature: request.feature,
-          systemInstructions: INVESTIGATION_PERSONA,
-          question: `A new signal has just been declared and you have been woken to investigate it. Investigate now and produce your root cause analysis.\n\n${request.contextSummary}`,
-          maxLlmCalls: MAX_LLM_CALLS,
-          maxToolCalls: MAX_TOOL_CALLS,
-          maxWallClockMs: MAX_WALL_CLOCK_MS,
-          maxOutputTokens: MAX_OUTPUT_TOKENS,
+          systemInstructions: request.personaOverride ?? INVESTIGATION_PERSONA,
+          question: `${
+            request.questionOverride ??
+            "A new signal has just been declared and you have been woken to investigate it. Investigate now and produce your root cause analysis."
+          }\n\n${request.contextSummary}`,
+          maxLlmCalls: request.maxLlmCalls ?? MAX_LLM_CALLS,
+          maxToolCalls: request.maxToolCalls ?? MAX_TOOL_CALLS,
+          maxWallClockMs: request.maxWallClockMs ?? MAX_WALL_CLOCK_MS,
+          maxOutputTokens: request.maxOutputTokens ?? MAX_OUTPUT_TOKENS,
           onStep,
+          extraTools: request.extraTools,
         });
 
       /*

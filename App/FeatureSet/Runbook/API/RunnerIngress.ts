@@ -7,6 +7,7 @@ import RunnerJobService from "Common/Server/Services/RunnerJobService";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import NotFoundException from "Common/Types/Exception/NotFoundException";
 import ObjectID from "Common/Types/ObjectID";
+import RunnerJobOrigin from "Common/Types/Runbook/RunnerJobOrigin";
 import Version from "Common/Types/Version";
 import { JSONObject } from "Common/Types/JSON";
 import Runner from "Common/Models/DatabaseModels/Runner";
@@ -93,6 +94,7 @@ export default class RunnerIngressAPI {
         capabilities: {
           canRunRunbooks: agent.canRunRunbooks !== false,
           canRunCodeFixTasks: agent.canRunCodeFixTasks === true,
+          canRunAiCommands: agent.canRunAiCommands === true,
         },
       });
     } catch (err) {
@@ -124,18 +126,30 @@ export default class RunnerIngressAPI {
        * sides. It picks the revocation up from the heartbeat on its next
        * restart; until then it simply never receives a job.
        */
-      if (agent.canRunRunbooks === false) {
+      const allowedOrigins: Array<RunnerJobOrigin> = [];
+      if (agent.canRunRunbooks !== false) {
+        allowedOrigins.push(RunnerJobOrigin.Runbook);
+      }
+      if (agent.canRunAiCommands === true) {
+        allowedOrigins.push(RunnerJobOrigin.AiRemediation);
+      }
+
+      if (allowedOrigins.length === 0) {
         return Response.sendJsonObjectResponse(req, res, { job: null });
       }
 
       /*
        * Steps now target a specific agent by ID. The authenticated agent's
        * own ID is the only thing we trust here — a leaked key cannot be used
-       * to claim work targeted at a different agent.
+       * to claim work targeted at a different agent. The origins list keeps
+       * each capability's revoke authoritative per job kind: a Runner whose
+       * canRunAiCommands was just turned off stops being served AI command
+       * jobs on its next claim, runbook work unaffected (and vice versa).
        */
       const job: RunnerJob | null = await RunnerJobService.claimNextJob({
         agentId: agent.id,
         projectId: agent.projectId,
+        allowedOrigins,
       });
 
       if (!job) {
@@ -147,9 +161,18 @@ export default class RunnerIngressAPI {
        * the agent's assigned secret values. Secrets are loaded per claim so
        * a freshly-rotated value reaches the next run without redeploying
        * the agent, and the stored script row never holds plaintext values.
+       *
+       * NEVER for AI-composed commands: a human authored every runbook
+       * script, but an AI-composed command is model output shaped by
+       * attacker-influenceable telemetry. Substituting there would turn
+       * `{{runbookSecrets.X}}` into an exfiltration macro that reads
+       * harmless on the approval card and expands to the plaintext secret
+       * at claim time. AI commands reach credentials only through the
+       * credentialId path below, which never exposes the material to the
+       * model.
        */
       let scriptToSend: string = job.script ?? "";
-      if (scriptToSend) {
+      if (scriptToSend && job.origin !== RunnerJobOrigin.AiRemediation) {
         const secrets: Array<RunbookSecret> =
           await RunbookSecretsUtil.loadForAgent(agent.id);
         scriptToSend = RunbookSecretsUtil.populateInScript({
@@ -196,7 +219,10 @@ export default class RunnerIngressAPI {
       return Response.sendJsonObjectResponse(req, res, {
         job: {
           jobId: job.id?.toString(),
-          runbookExecutionId: job.runbookExecutionId?.toString(),
+          ...(job.runbookExecutionId
+            ? { runbookExecutionId: job.runbookExecutionId.toString() }
+            : {}),
+          origin: job.origin || RunnerJobOrigin.Runbook,
           stepId: job.stepId,
           stepType: job.stepType,
           script: scriptToSend,

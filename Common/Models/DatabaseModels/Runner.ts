@@ -512,6 +512,54 @@ export default class Runner extends BaseModel {
   })
   public canRunCodeFixTasks?: boolean = undefined;
 
+  /*
+   * Opt-in consent for AI-composed remediation commands: with this off, the
+   * server never serves this Runner an AiRemediation-origin job, no matter
+   * what the project or rule configuration says. The operator who runs the
+   * host decides whether an AI may execute commands on it.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.CreateRunner,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.RunbookViewer,
+      Permission.ReadRunner,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.RunbookAdmin,
+      Permission.EditRunner,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Runs AI Remediation Commands",
+    description:
+      "Whether AI auto-remediation may execute commands on this Runner. Off by default. Commands are policy-checked and either match an operator allowlist or require one-click human approval.",
+    defaultValue: false,
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public canRunAiCommands?: boolean = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [

@@ -52,6 +52,7 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           _id: true,
           key: true,
           canRunCodeFixTasks: true,
+          canRunAiCommands: true,
         }}
         noItemsMessage={
           "No runbook agents yet. Create one, then run the Docker command on a host inside your infrastructure."
@@ -88,6 +89,15 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title: "Runs AI Code Fixes",
             description:
               "Let this Runner work in the code repositories connected to this project and open draft pull requests. Off by default; it needs a connected repository. The Runner picks this up on its next heartbeat — no restart needed.",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            defaultValue: false,
+          },
+          {
+            field: { canRunAiCommands: true },
+            title: "Runs AI Remediation Commands",
+            description:
+              "Let AI auto-remediation execute policy-checked commands on this Runner. Off by default — commands either match the rule's allowlist or wait for one-click human approval, and destructive commands are always refused. Takes effect on the Runner's next heartbeat, no restart needed.",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             defaultValue: false,
@@ -212,6 +222,10 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
               if (item.canRunCodeFixTasks === true) {
                 capabilities.push("AI code fixes");
+              }
+
+              if (item.canRunAiCommands === true) {
+                capabilities.push("AI remediation commands");
               }
 
               if (capabilities.length === 0) {

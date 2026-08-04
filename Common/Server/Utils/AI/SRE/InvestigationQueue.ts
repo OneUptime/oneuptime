@@ -125,12 +125,21 @@ export default class AIInvestigationQueue {
     subjectMonitorId?: ObjectID | undefined;
     subjectAIInsightId?: ObjectID | undefined;
     /*
-     * When set, the run is a RemediationPlan (not an Investigation): a
-     * read-only planning run that picks a runbook for this suggestion.
+     * When set, the run is a remediation run (not an Investigation): by
+     * default a read-only RemediationPlan that picks a runbook for this
+     * suggestion, or a RemediationExecution when remediationRunType says so.
      * dispatch() routes on runType FIRST, so the incident/alert subject ids
      * above may still be set for dashboard linkage.
      */
     subjectAutoRemediationSuggestionId?: ObjectID | undefined;
+    /*
+     * Only meaningful with subjectAutoRemediationSuggestionId: which kind
+     * of remediation run to enqueue. Defaults to RemediationPlan.
+     */
+    remediationRunType?:
+      | AIRunType.RemediationPlan
+      | AIRunType.RemediationExecution
+      | undefined;
   }): Promise<ObjectID | null> {
     const { projectId } = data;
 
@@ -157,7 +166,7 @@ export default class AIInvestigationQueue {
     }
 
     const runType: AIRunType = data.subjectAutoRemediationSuggestionId
-      ? AIRunType.RemediationPlan
+      ? data.remediationRunType || AIRunType.RemediationPlan
       : AIRunType.Investigation;
 
     const run: AIRun = new AIRun();
@@ -259,6 +268,7 @@ export default class AIInvestigationQueue {
         runType: QueryHelper.any([
           AIRunType.Investigation,
           AIRunType.RemediationPlan,
+          AIRunType.RemediationExecution,
         ]),
         status: AIRunStatus.Queued,
         createdAt: QueryHelper.lessThan(expiryThreshold),
@@ -286,6 +296,7 @@ export default class AIInvestigationQueue {
         runType: QueryHelper.any([
           AIRunType.Investigation,
           AIRunType.RemediationPlan,
+          AIRunType.RemediationExecution,
         ]),
         status: AIRunStatus.Queued,
       },
@@ -453,9 +464,9 @@ export default class AIInvestigationQueue {
     );
 
     /*
-     * Investigations and remediation plans share the same per-project cap —
-     * both are read-only, short, and storm-shaped on incident/alert
-     * creation, so one pool keeps the cost model simple.
+     * Investigations, remediation plans and remediation executions share
+     * the same per-project cap — all are short and storm-shaped on
+     * incident/alert creation, so one pool keeps the cost model simple.
      */
     const runningCount: number = (
       await AIRunService.countBy({
@@ -464,6 +475,7 @@ export default class AIInvestigationQueue {
           runType: QueryHelper.any([
             AIRunType.Investigation,
             AIRunType.RemediationPlan,
+            AIRunType.RemediationExecution,
           ]),
           status: AIRunStatus.Running,
         },
@@ -493,7 +505,8 @@ export default class AIInvestigationQueue {
      */
     const isBackgroundLane: boolean =
       Boolean(run.triggeredByAiInsightId) ||
-      run.runType === AIRunType.RemediationPlan;
+      run.runType === AIRunType.RemediationPlan ||
+      run.runType === AIRunType.RemediationExecution;
 
     if (isBackgroundLane) {
       const backgroundCap: number = Math.max(
@@ -521,7 +534,10 @@ export default class AIInvestigationQueue {
         await AIRunService.countBy({
           query: {
             projectId: run.projectId,
-            runType: AIRunType.RemediationPlan,
+            runType: QueryHelper.any([
+              AIRunType.RemediationPlan,
+              AIRunType.RemediationExecution,
+            ]),
             status: AIRunStatus.Running,
           },
           props: { isRoot: true },
@@ -611,6 +627,34 @@ export default class AIInvestigationQueue {
         require("../Remediation/RemediationPlanRunner").default;
 
       await remediationPlanRunner.executePlan({
+        aiRunId: run.id,
+        projectId: run.projectId,
+        suggestionId: run.triggeredByAutoRemediationSuggestionId,
+        attemptCount: attempt,
+      });
+      return;
+    }
+
+    if (run.runType === AIRunType.RemediationExecution) {
+      if (!run.triggeredByAutoRemediationSuggestionId) {
+        await AIRunService.attemptStatusTransition({
+          aiRunId: run.id,
+          fromStatus: AIRunStatus.Running,
+          set: {
+            status: AIRunStatus.Error,
+            completedAt: OneUptimeDate.getCurrentDate(),
+            errorMessage:
+              "Queued remediation execution has no suggestion to work on.",
+          },
+        });
+        return;
+      }
+
+      const remediationExecutionRunner: typeof import("../Remediation/RemediationExecutionRunner").default =
+        // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+        require("../Remediation/RemediationExecutionRunner").default;
+
+      await remediationExecutionRunner.executeRemediation({
         aiRunId: run.id,
         projectId: run.projectId,
         suggestionId: run.triggeredByAutoRemediationSuggestionId,

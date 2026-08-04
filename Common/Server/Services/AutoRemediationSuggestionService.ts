@@ -1,5 +1,6 @@
 import AutoRemediationSuggestionStatus from "../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
 import AutoRemediationVerificationStatus from "../../Types/AutoRemediation/AutoRemediationVerificationStatus";
+import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import CountBy from "../Types/Database/CountBy";
@@ -32,6 +33,12 @@ export interface SuggestionTransitionSet {
   dismissedAt?: Date | undefined;
   verificationStatus?: AutoRemediationVerificationStatus | undefined;
   verificationDeadlineAt?: Date | undefined;
+  /*
+   * The frozen AI-composed command plan (AiRemediationCommandPlan as plain
+   * JSON) for CommandPlan suggestions. jsonb column — no transformer, so
+   * the query-builder update stores it as-is.
+   */
+  commandPlan?: JSONObject | undefined;
 }
 
 // What the outcome verifier may set when a verification concludes.
@@ -127,10 +134,15 @@ export class Service extends DatabaseService<Model> {
     fromStatus: AutoRemediationSuggestionStatus;
     set: SuggestionTransitionSet;
   }): Promise<number> {
+    /*
+     * The double cast stops TS from structurally exploring JSONObject
+     * (commandPlan) against the entity type — a recursive type that trips
+     * TS2589. The set is intentionally a raw column map.
+     */
     const queryBuilder: UpdateQueryBuilder<Model> = this.getRepository()
       .createQueryBuilder()
       .update(Model)
-      .set(data.set as QueryDeepPartialEntity<Model>)
+      .set(data.set as unknown as QueryDeepPartialEntity<Model>)
       .where('"_id" = :id', { id: data.suggestionId.toString() })
       .andWhere('"status" = :fromStatus', { fromStatus: data.fromStatus })
       .andWhere('"deletedAt" IS NULL');

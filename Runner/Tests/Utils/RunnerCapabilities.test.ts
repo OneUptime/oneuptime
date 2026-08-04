@@ -71,11 +71,13 @@ function loadCapabilities(
 const BOTH_GRANTED: RunnerCapabilitySet = {
   canRunRunbooks: true,
   canRunCodeFixTasks: true,
+  canRunAiCommands: false,
 };
 
 const NEITHER_GRANTED: RunnerCapabilitySet = {
   canRunRunbooks: false,
   canRunCodeFixTasks: false,
+  canRunAiCommands: false,
 };
 
 describe("project-scoped Runner: the dashboard grants, env vars only narrow", () => {
@@ -94,6 +96,7 @@ describe("project-scoped Runner: the dashboard grants, env vars only narrow", ()
     expect(RunnerCapabilities.resolve()).toEqual({
       canRunRunbooks: true,
       canRunCodeFixTasks: true,
+      canRunAiCommands: false,
     });
   });
 
@@ -107,6 +110,7 @@ describe("project-scoped Runner: the dashboard grants, env vars only narrow", ()
     expect(RunnerCapabilities.resolve()).toEqual({
       canRunRunbooks: true,
       canRunCodeFixTasks: false,
+      canRunAiCommands: false,
     });
   });
 
@@ -139,6 +143,7 @@ describe("project-scoped Runner: the dashboard grants, env vars only narrow", ()
     expect(RunnerCapabilities.resolve()).toEqual({
       canRunRunbooks: false,
       canRunCodeFixTasks: true,
+      canRunAiCommands: false,
     });
   });
 
@@ -155,6 +160,7 @@ describe("project-scoped Runner: the dashboard grants, env vars only narrow", ()
       expect(RunnerCapabilities.resolve()).toEqual({
         canRunRunbooks: true,
         canRunCodeFixTasks: false,
+        canRunAiCommands: false,
       });
     });
 
@@ -167,6 +173,7 @@ describe("project-scoped Runner: the dashboard grants, env vars only narrow", ()
       expect(RunnerCapabilities.resolve()).toEqual({
         canRunRunbooks: true,
         canRunCodeFixTasks: true,
+        canRunAiCommands: false,
       });
     });
 
@@ -179,6 +186,7 @@ describe("project-scoped Runner: the dashboard grants, env vars only narrow", ()
       expect(RunnerCapabilities.resolve()).toEqual({
         canRunRunbooks: false,
         canRunCodeFixTasks: false,
+        canRunAiCommands: false,
       });
     });
   });
@@ -211,6 +219,7 @@ describe("cluster-scoped Runner: no dashboard row, env vars are the whole answer
     expect(RunnerCapabilities.resolve()).toEqual({
       canRunRunbooks: false,
       canRunCodeFixTasks: true,
+      canRunAiCommands: false,
     });
   });
 
@@ -227,6 +236,7 @@ describe("cluster-scoped Runner: no dashboard row, env vars are the whole answer
     expect(RunnerCapabilities.resolve()).toEqual({
       canRunRunbooks: false,
       canRunCodeFixTasks: true,
+      canRunAiCommands: false,
     });
   });
 
