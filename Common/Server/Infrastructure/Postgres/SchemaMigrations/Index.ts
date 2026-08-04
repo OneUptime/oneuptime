@@ -490,6 +490,7 @@ import { RenameRunbookAgentToRunner1785810000000 } from "./1785810000000-RenameR
 import { AddRunbookCredential1785800000000 } from "./1785800000000-AddRunbookCredential";
 import { SessionReplayDefaultToSensitiveInputMasking1785860000000 } from "./1785860000000-SessionReplayDefaultToSensitiveInputMasking";
 import { AddAiCommandRemediation1785870000000 } from "./1785870000000-AddAiCommandRemediation";
+import { AlignRunnerSchemaWithEntities1785880000000 } from "./1785880000000-AlignRunnerSchemaWithEntities";
 import { AddIncidentInvestigationGating1785790000000 } from "./1785790000000-AddIncidentInvestigationGating";
 import { AddRemediationVerification1785768089408 } from "./1785768089408-AddRemediationVerification";
 
@@ -988,4 +989,5 @@ export default [
   RenameRunbookAgentToRunner1785810000000,
   SessionReplayDefaultToSensitiveInputMasking1785860000000,
   AddAiCommandRemediation1785870000000,
+  AlignRunnerSchemaWithEntities1785880000000,
 ];
