@@ -43,11 +43,11 @@ services:
     depends_on:
       <<: *common-depends-on
 
-  ai-agent:
-    image: oneuptime/ai-agent:${APP_TAG}
+  runner:
+    image: oneuptime/runner:${APP_TAG}
     extends:
       file: ./docker-compose.base.yml
-      service: ai-agent
+      service: runner
     depends_on:
       <<: *common-depends-on
 
