@@ -1,4 +1,10 @@
-import React, { ReactElement, useEffect, useState } from "react";
+import React, {
+  MutableRefObject,
+  ReactElement,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Label from "../../../Models/DatabaseModels/Label";
@@ -63,14 +69,27 @@ function useBulkLabelActions<T extends BaseModel>(
   >([]);
   const [isLoadingRemoveLabels, setIsLoadingRemoveLabels] =
     useState<boolean>(false);
+  const removeLabelsRequestRef: MutableRefObject<number> = useRef<number>(0);
 
   useEffect(() => {
+    /*
+     * Without the guard the query went out as `projectId: null`, which is
+     * not "every project" — it is a filter nothing matches, so the add
+     * modal silently offered an empty dropdown. Skipping the request says
+     * the same thing without the round trip. Mirrors BulkOwnerActions.
+     */
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+
+    if (!projectId) {
+      return;
+    }
+
     const fetchLabels: () => Promise<void> = async (): Promise<void> => {
       try {
         const result: ListResult<Label> = await ModelAPI.getList<Label>({
           modelType: Label,
           query: {
-            projectId: ProjectUtil.getCurrentProjectId()!,
+            projectId: projectId,
           },
           limit: LIMIT_PER_PROJECT,
           skip: 0,
@@ -110,6 +129,26 @@ function useBulkLabelActions<T extends BaseModel>(
     setShowAddModal(false);
     setShowRemoveModal(false);
 
+    /*
+     * A label whose row came back without an `_id` would render as an
+     * option with an empty value, and submitting it would put "" into the
+     * labels array, failing the whole item over one unusable option.
+     */
+    const selectedLabelIds: Array<string> = labelIds.filter((id: string) => {
+      return Boolean(id);
+    });
+
+    /*
+     * Bail before starting rather than running the loop with nothing to
+     * apply: every item would fall through the no-op short-circuit below
+     * and be reported as a success, telling the user a bulk action landed
+     * when nothing was asked for.
+     */
+    if (selectedLabelIds.length === 0) {
+      setBulkActionProps(null);
+      return;
+    }
+
     onBulkActionStart();
 
     const totalItems: Array<T> = [...items];
@@ -133,14 +172,32 @@ function useBulkLabelActions<T extends BaseModel>(
           modelType: config.modelType,
           id: item.id,
           select: {
+            _id: true,
             labels: {
               _id: true,
             },
           } as any,
         });
 
+        /*
+         * A row that was deleted or filtered out between the table load
+         * and this action comes back as HTTP 200 with an empty body, which
+         * hydrates into a truthy but empty model — so "no labels" and
+         * "could not read it" are the same value here unless we look at
+         * `_id`, which a real read always carries. Without the check, add
+         * mode would treat the item as unlabelled and replace its entire
+         * label set with the selection: exactly the clobber the merge
+         * below exists to prevent. Fail the item instead; the user sees it
+         * in the failed list and nothing is lost.
+         */
+        if (!currentItem || !currentItem._id) {
+          throw new BadDataException(
+            "Could not read the current labels for this item.",
+          );
+        }
+
         const existingLabelIds: Array<string> = (
-          ((currentItem as any)?.labels as Array<Label> | undefined) || []
+          ((currentItem as any).labels as Array<Label> | undefined) || []
         )
           .map((label: Label) => {
             return label._id?.toString() || "";
@@ -153,11 +210,11 @@ function useBulkLabelActions<T extends BaseModel>(
 
         if (mode === "add") {
           newLabelIds = Array.from(
-            new Set<string>([...existingLabelIds, ...labelIds]),
+            new Set<string>([...existingLabelIds, ...selectedLabelIds]),
           );
         } else {
           newLabelIds = existingLabelIds.filter((id: string) => {
-            return !labelIds.includes(id);
+            return !selectedLabelIds.includes(id);
           });
         }
 
@@ -211,6 +268,20 @@ function useBulkLabelActions<T extends BaseModel>(
   const loadLabelsForSelectedItems: (items: Array<T>) => Promise<void> = async (
     items: Array<T>,
   ): Promise<void> => {
+    /*
+     * Close the modal and reopen it on a different selection and there are
+     * two fetches in flight; the slower one settles last and wins, so the
+     * modal ends up offering the previous selection's labels. Stamp each
+     * run and let only the newest one write state.
+     */
+    const requestId: number = ++removeLabelsRequestRef.current;
+
+    type IsCurrentRequestFunction = () => boolean;
+
+    const isCurrentRequest: IsCurrentRequestFunction = (): boolean => {
+      return requestId === removeLabelsRequestRef.current;
+    };
+
     setIsLoadingRemoveLabels(true);
 
     try {
@@ -223,7 +294,9 @@ function useBulkLabelActions<T extends BaseModel>(
         });
 
       if (itemIds.length === 0) {
-        setRemoveLabelDropdownOptions([]);
+        if (isCurrentRequest()) {
+          setRemoveLabelDropdownOptions([]);
+        }
         return;
       }
 
@@ -278,12 +351,18 @@ function useBulkLabelActions<T extends BaseModel>(
         return a.label.localeCompare(b.label);
       });
 
-      setRemoveLabelDropdownOptions(options);
+      if (isCurrentRequest()) {
+        setRemoveLabelDropdownOptions(options);
+      }
     } catch {
       // on error, show no options rather than every label in the project
-      setRemoveLabelDropdownOptions([]);
+      if (isCurrentRequest()) {
+        setRemoveLabelDropdownOptions([]);
+      }
     } finally {
-      setIsLoadingRemoveLabels(false);
+      if (isCurrentRequest()) {
+        setIsLoadingRemoveLabels(false);
+      }
     }
   };
 
@@ -306,8 +385,18 @@ function useBulkLabelActions<T extends BaseModel>(
     title: "Add Labels",
     buttonStyleType: ButtonStyleType.NORMAL,
     icon: IconProp.Label,
+    /*
+     * The two modals are independent booleans rendered as sibling
+     * branches, so nothing in the hook keeps them mutually exclusive —
+     * only the modal backdrop covering the action bar does, which is a
+     * property of a different component. Resetting the sibling here makes
+     * the invariant local: two stacked dialogs would share one
+     * bulkActionProps, and whichever submitted first would null it and
+     * leave the other silently inert.
+     */
     onClick: async (actionProps: BulkActionOnClickProps<T>): Promise<void> => {
       setBulkActionProps(actionProps);
+      setShowRemoveModal(false);
       setShowAddModal(true);
     },
   };
@@ -319,6 +408,7 @@ function useBulkLabelActions<T extends BaseModel>(
     onClick: async (actionProps: BulkActionOnClickProps<T>): Promise<void> => {
       setBulkActionProps(actionProps);
       setRemoveLabelDropdownOptions([]);
+      setShowAddModal(false);
       setShowRemoveModal(true);
       await loadLabelsForSelectedItems(actionProps.items);
     },

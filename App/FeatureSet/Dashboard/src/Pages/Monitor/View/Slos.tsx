@@ -5,6 +5,15 @@ import {
   getSloViewRoute,
   SLO_TABLE_SELECT_MORE_FIELDS,
 } from "../../Slo/Slos";
+import useSloBulkActions, {
+  SLO_OWNER_RESOURCE_ID_FIELD,
+  SloBulkActionsResult,
+} from "../../../Components/Slo/useSloBulkActions";
+import OwnersCell from "../../../Components/ResourceOwners/OwnersCell";
+import useResourceOwners from "../../../Components/ResourceOwners/useResourceOwners";
+import ServiceLevelObjectiveOwnerTeam from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerTeam";
+import ServiceLevelObjectiveOwnerUser from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerUser";
+import LabelsElement from "Common/UI/Components/Label/Labels";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import Includes from "Common/Types/BaseDatabase/Includes";
@@ -32,6 +41,21 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 const MonitorSlos: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
+  /*
+   * Same bulk label / owner actions as the SLOs page. Reaching several SLOs
+   * at once is if anything more useful here: "everything this flapping
+   * monitor measures" is exactly the set an SRE wants to re-label or hand to
+   * an owner, and it is already the set this table has selected.
+   */
+  const { bulkActions, modals }: SloBulkActionsResult = useSloBulkActions();
+
+  const { getOwnersForResource, isLoadingOwners, onResourcesFetched } =
+    useResourceOwners<ServiceLevelObjective>({
+      ownerUserModelType: ServiceLevelObjectiveOwnerUser,
+      ownerTeamModelType: ServiceLevelObjectiveOwnerTeam,
+      resourceIdField: SLO_OWNER_RESOURCE_ID_FIELD,
+    });
+
   return (
     <Fragment>
       <DisabledWarning monitorId={modelId} />
@@ -55,6 +79,9 @@ const MonitorSlos: FunctionComponent<PageComponentProps> = (): ReactElement => {
         query={{
           projectId: ProjectUtil.getCurrentProjectId()!,
           monitors: new Includes([modelId]),
+        }}
+        onFetchSuccess={(data: Array<ServiceLevelObjective>) => {
+          onResourcesFetched(data);
         }}
         cardProps={{
           title: "Service Level Objectives",
@@ -81,12 +108,53 @@ const MonitorSlos: FunctionComponent<PageComponentProps> = (): ReactElement => {
           },
         ]}
         documentationLink={new Route("/docs/slo/introduction")}
-        columns={getSloTableColumns()}
+        bulkActions={{
+          buttons: [...bulkActions],
+        }}
+        columns={[
+          ...getSloTableColumns(),
+          /*
+           * Not part of the shared column set, but this table can now
+           * re-label SLOs in bulk — without a Labels column the only
+           * feedback on "Add Labels" would be the progress modal closing.
+           */
+          {
+            field: {
+              labels: {
+                name: true,
+                color: true,
+              },
+            },
+            title: "Labels",
+            type: FieldType.EntityArray,
+            hideOnMobile: true,
+            getElement: (item: ServiceLevelObjective): ReactElement => {
+              return <LabelsElement labels={item["labels"] || []} />;
+            },
+          },
+          {
+            field: {
+              _id: true,
+            },
+            title: "Owners",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            getElement: (item: ServiceLevelObjective): ReactElement => {
+              return (
+                <OwnersCell
+                  owners={getOwnersForResource(item)}
+                  isLoading={isLoadingOwners}
+                />
+              );
+            },
+          },
+        ]}
         selectMoreFields={SLO_TABLE_SELECT_MORE_FIELDS}
         onViewPage={(item: ServiceLevelObjective): Promise<Route> => {
           return Promise.resolve(getSloViewRoute(item));
         }}
       />
+      {modals}
     </Fragment>
   );
 };
