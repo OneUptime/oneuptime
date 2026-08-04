@@ -77,15 +77,6 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           },
           icon: IconProp.Settings,
         },
-        {
-          link: {
-            title: "Session Replay",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_SESSION_REPLAY] as Route,
-            ),
-          },
-          icon: IconProp.Film,
-        },
       ],
     },
     {

@@ -22,6 +22,7 @@ import RumApplicationDocumentation from "../Pages/Rum/View/Documentation";
 import RumApplicationDelete from "../Pages/Rum/View/Delete";
 import RumLabelRules from "../Pages/Rum/Settings/LabelRules";
 import RumOwnerRules from "../Pages/Rum/Settings/OwnerRules";
+import RumSessionReplaySettings from "../Pages/Rum/Settings/SessionReplay";
 import RumArchived from "../Pages/Rum/Archived";
 
 const RumApplicationRoutes: FunctionComponent<ComponentProps> = (
@@ -63,6 +64,15 @@ const RumApplicationRoutes: FunctionComponent<ComponentProps> = (
             <RumOwnerRules
               {...props}
               pageRoute={RouteMap[PageMap.RUM_SETTINGS_OWNER_RULES] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={RumRoutePath[PageMap.RUM_SETTINGS_SESSION_REPLAY] || ""}
+          element={
+            <RumSessionReplaySettings
+              {...props}
+              pageRoute={RouteMap[PageMap.RUM_SETTINGS_SESSION_REPLAY] as Route}
             />
           }
         />

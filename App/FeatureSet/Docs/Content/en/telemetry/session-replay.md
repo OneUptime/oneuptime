@@ -10,7 +10,7 @@ That default matters. It means a recording almost always exists for the sessions
 
 - A RUM application — create one from _Resources → Real User Monitoring_, or let one be auto-discovered from your telemetry. See [Real User Monitoring](/docs/rum/index).
 - A **Telemetry Ingestion Token** — _Project Settings → Telemetry Ingestion Keys_.
-- Session Replay is **on by default**. Settings live in two places: per-application policy (masking, consent, sampling, retention) under _Real User Monitoring → your application → Session Replay_, and the project-wide master switch, installation test and targeted capture under _Project Settings → Session Replay_.
+- Session Replay is **on by default**. Settings live in two places: per-application policy (masking, consent, sampling, retention) under _Real User Monitoring → your application → Session Replay_, and the project-wide master switch, installation test and targeted capture under _Real User Monitoring → Settings → Session Replay_.
 
 ## Install
 
@@ -123,7 +123,7 @@ If you self-host OneUptime, use your own host instead.
 
 One more CSP-adjacent detail: for playback to render your styles, your stylesheets must be readable by the recorder. A cross-origin stylesheet without `crossorigin="anonymous"` cannot be read, and the session will play back unstyled with a notice explaining why.
 
-Use the **Test your installation** panel in _Project Settings → Session Replay_ to confirm the token, the origin allowlist and the CSP all line up.
+Use the **Test your installation** panel in _Real User Monitoring → Settings → Session Replay_ to confirm the token, the origin allowlist and the CSP all line up.
 
 ## Correlating with your other telemetry
 
@@ -154,7 +154,7 @@ Each budget is off at `0` (the default). Sessions captured this way appear with 
 
 ## Recording a specific user's next session
 
-When a named customer reports a problem you cannot reproduce, you can arm a one-shot target instead of waiting for an error: in _Project Settings → Session Replay_ → **Record a specific user's next session**, enter the same end-user reference your page supplies and click **Record next session**. That user's next visit records from its first event, labelled with trigger reason **manual**.
+When a named customer reports a problem you cannot reproduce, you can arm a one-shot target instead of waiting for an error: in _Real User Monitoring → Settings → Session Replay_ → **Record a specific user's next session**, enter the same end-user reference your page supplies and click **Record next session**. That user's next visit records from its first event, labelled with trigger reason **manual**.
 
 Honest limits, so "armed" is not misread as "guaranteed":
 

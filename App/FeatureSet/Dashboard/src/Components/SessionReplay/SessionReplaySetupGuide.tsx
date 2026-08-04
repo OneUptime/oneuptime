@@ -204,9 +204,9 @@ connect-src ${oneuptimeUrl};`}
               Still empty after all that?
             </span>{" "}
             The server cannot see a recorder that never loaded, so the
-            installation test on the project settings page is the definitive
-            check — it reports every switch and the moment the last chunk
-            actually landed.
+            installation test under Real User Monitoring &gt; Settings &gt;
+            Session Replay is the definitive check — it reports every switch and
+            the moment the last chunk actually landed.
           </div>
         </div>
 
@@ -218,7 +218,7 @@ connect-src ${oneuptimeUrl};`}
             onClick={(): void => {
               Navigation.navigate(
                 RouteUtil.populateRouteParams(
-                  RouteMap[PageMap.SETTINGS_SESSION_REPLAY] as Route,
+                  RouteMap[PageMap.RUM_SETTINGS_SESSION_REPLAY] as Route,
                 ),
               );
             }}

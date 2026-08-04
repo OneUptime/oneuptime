@@ -96,11 +96,6 @@ export function getSettingsBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Feature Flags",
     ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_SESSION_REPLAY, [
-      "Project",
-      "Settings",
-      "Session Replay",
-    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_BILLING, [
       "Project",
       "Settings",

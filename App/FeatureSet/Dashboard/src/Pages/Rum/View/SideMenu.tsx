@@ -119,7 +119,7 @@ const RumApplicationViewSideMenu: FunctionComponent<ComponentProps> = (
          * settings page because it governs THIS application's recordings
          * and belongs next to them. The project master switch, the
          * installation test and targeted capture are project-shaped and
-         * live in Project Settings > Session Replay.
+         * live in Real User Monitoring > Settings > Session Replay.
          */}
         <SideMenuItem
           link={{

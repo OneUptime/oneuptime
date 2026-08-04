@@ -54,6 +54,15 @@ const RumSideMenu: FunctionComponent = (): ReactElement => {
           },
           icon: IconProp.Tag,
         },
+        {
+          link: {
+            title: "Session Replay",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.RUM_SETTINGS_SESSION_REPLAY] as Route,
+            ),
+          },
+          icon: IconProp.Film,
+        },
       ],
     },
   ];
