@@ -23,11 +23,26 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
         }}
         isEditable={true}
         editButtonText={"Update"}
+        formSteps={[
+          {
+            title: "Investigation",
+            id: "investigation",
+          },
+          {
+            title: "Limits",
+            id: "limits",
+          },
+          {
+            title: "Fix Tasks",
+            id: "fix-tasks",
+          },
+        ]}
         formFields={[
           {
             field: {
               enableAutomaticAlertInvestigation: true,
             },
+            stepId: "investigation",
             title: "Automatically Investigate Alerts",
             description:
               "Investigate every new alert and post a cited root cause analysis to the alert timeline.",
@@ -36,28 +51,9 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
           },
           {
             field: {
-              enableInstrumentationFixTasks: true,
-            },
-            title: "Instrumentation PRs From Inconclusive Investigations",
-            description:
-              "Open instrumentation pull requests from inconclusive investigations (requires a connected GitHub repository). When an investigation cannot determine a root cause because telemetry was insufficient, OneUptime AI opens a pull request adding the missing logs, spans, and metrics to the implicated code paths — always human-reviewed, never auto-merged. This setting is shared between incident and alert investigations.",
-            required: false,
-            fieldType: FormFieldSchemaType.Toggle,
-          },
-          {
-            field: {
-              enableAutomaticCodeFixes: true,
-            },
-            title: "Enable Automatic Code Fixes",
-            description:
-              "Open a draft fix pull request automatically when an investigation ends with a confident, evidenced root cause analysis — the automatic form of the 'Open Fix PR from this analysis' button. Requires a repository connected through the GitHub App and a Runner with the code-fix capability. Pull requests are always human-reviewed — nothing merges automatically. This setting is shared between incident and alert investigations.",
-            required: false,
-            fieldType: FormFieldSchemaType.Toggle,
-          },
-          {
-            field: {
               alertInvestigationMinimumSeverity: true,
             },
+            stepId: "investigation",
             title: "Minimum Severity To Investigate",
             description:
               "Only alerts at or above this severity are investigated. When unset, the top two severity tiers are investigated by default.",
@@ -74,6 +70,7 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
             field: {
               alertInvestigationDedupeWindowMinutes: true,
             },
+            stepId: "investigation",
             title: "Re-investigation Cooldown (Minutes)",
             description:
               "Repeat alerts from the same monitor within this many minutes are not re-investigated — the first analysis stands. Leave empty for the default of 30 minutes; set 0 to investigate every qualifying alert.",
@@ -85,6 +82,7 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
             field: {
               aiMaxConcurrentInvestigations: true,
             },
+            stepId: "limits",
             title: "Max Concurrent Investigations",
             description:
               "How many investigations may run at the same time, shared across incident and alert investigations for this project. Queued investigations wait for a free slot and expire after 30 minutes. Leave empty for the default of 3 (minimum 1, maximum 25).",
@@ -96,6 +94,7 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
             field: {
               aiDailyAutonomousTokenLimit: true,
             },
+            stepId: "limits",
             title: "Daily Autonomous Token Limit",
             description:
               "Maximum tokens per day (UTC) that autonomous investigations may consume, shared across incident and alert investigations for this project. When reached, new investigations are skipped until the next day — interactive AI chat is never blocked. Leave empty for no limit; set 0 to pause autonomous investigations entirely.",
@@ -105,8 +104,31 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
           },
           {
             field: {
+              enableInstrumentationFixTasks: true,
+            },
+            stepId: "fix-tasks",
+            title: "Instrumentation PRs From Inconclusive Investigations",
+            description:
+              "Open instrumentation pull requests from inconclusive investigations (requires a connected GitHub repository). When an investigation cannot determine a root cause because telemetry was insufficient, OneUptime AI opens a pull request adding the missing logs, spans, and metrics to the implicated code paths — always human-reviewed, never auto-merged. This setting is shared between incident and alert investigations.",
+            required: false,
+            fieldType: FormFieldSchemaType.Toggle,
+          },
+          {
+            field: {
+              enableAutomaticCodeFixes: true,
+            },
+            stepId: "fix-tasks",
+            title: "Enable Automatic Code Fixes",
+            description:
+              "Open a draft fix pull request automatically when an investigation ends with a confident, evidenced root cause analysis — the automatic form of the 'Open Fix PR from this analysis' button. Requires a repository connected through the GitHub App and a Runner with the code-fix capability. Pull requests are always human-reviewed — nothing merges automatically. This setting is shared between incident and alert investigations.",
+            required: false,
+            fieldType: FormFieldSchemaType.Toggle,
+          },
+          {
+            field: {
               aiDailyFixTaskLimit: true,
             },
+            stepId: "fix-tasks",
             title: "Daily AI Fix Task Limit",
             description:
               "Maximum AI fix tasks (agent runs that open pull requests) that may be created per day (UTC) for this project, across every fix recipe — manual and automatic. Leave empty for the default of 25 per day; set 0 to pause AI fix tasks entirely.",
@@ -129,24 +151,9 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
             },
             {
               field: {
-                enableInstrumentationFixTasks: true,
-              },
-              title: "Instrumentation PRs From Inconclusive Investigations",
-              placeholder: "Disabled",
-              fieldType: FieldType.Boolean,
-            },
-            {
-              field: {
-                enableAutomaticCodeFixes: true,
-              },
-              title: "Enable Automatic Code Fixes",
-              placeholder: "Disabled",
-              fieldType: FieldType.Boolean,
-            },
-            {
-              field: {
                 alertInvestigationMinimumSeverity: {
                   name: true,
+                  color: true,
                 },
               },
               title: "Minimum Severity To Investigate",
@@ -176,6 +183,22 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
               title: "Daily Autonomous Token Limit",
               placeholder: "No limit",
               fieldType: FieldType.Number,
+            },
+            {
+              field: {
+                enableInstrumentationFixTasks: true,
+              },
+              title: "Instrumentation PRs From Inconclusive Investigations",
+              placeholder: "Disabled",
+              fieldType: FieldType.Boolean,
+            },
+            {
+              field: {
+                enableAutomaticCodeFixes: true,
+              },
+              title: "Enable Automatic Code Fixes",
+              placeholder: "Disabled",
+              fieldType: FieldType.Boolean,
             },
             {
               field: {
