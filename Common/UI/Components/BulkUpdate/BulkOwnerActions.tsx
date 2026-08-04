@@ -415,8 +415,18 @@ function useBulkOwnerActions<T extends BaseModel>(
     title: "Add Owner",
     buttonStyleType: ButtonStyleType.NORMAL,
     icon: IconProp.UserPlus,
+    /*
+     * The two modals are independent booleans rendered as sibling
+     * branches, so nothing in the hook keeps them mutually exclusive —
+     * only the modal backdrop covering the action bar does, which is a
+     * property of a different component. Resetting the sibling here makes
+     * the invariant local: two stacked dialogs would share one
+     * bulkActionProps, and whichever submitted first would null it and
+     * leave the other silently inert.
+     */
     onClick: async (actionProps: BulkActionOnClickProps<T>): Promise<void> => {
       setBulkActionProps(actionProps);
+      setShowRemoveModal(false);
       setShowAddModal(true);
     },
   };
@@ -427,6 +437,7 @@ function useBulkOwnerActions<T extends BaseModel>(
     icon: IconProp.UserMinus,
     onClick: async (actionProps: BulkActionOnClickProps<T>): Promise<void> => {
       setBulkActionProps(actionProps);
+      setShowAddModal(false);
       setShowRemoveModal(true);
     },
   };
