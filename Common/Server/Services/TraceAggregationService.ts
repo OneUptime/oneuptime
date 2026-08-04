@@ -11,6 +11,10 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { DbJSONResponse, Results } from "./AnalyticsDatabaseService";
 import logger from "../Utils/Logger";
 import ServiceType from "../../Types/Telemetry/ServiceType";
+import ResourceFacetResolver, {
+  ResolvedFacetValue,
+  ResourceFacetSpec,
+} from "../Utils/Telemetry/ResourceFacetResolver";
 
 export interface HistogramBucket {
   time: string;
@@ -1258,7 +1262,116 @@ export class TraceAggregationService {
    * (LogAggregationService.getAnalyticsTimeseries and friends) and shares
    * appendCommonFilters with the histogram/facets, so every explorer filter
    * applies identically.
+   *
+   * A resource dimension (rumApplicationId, hostId, kubernetesClusterId, …)
+   * selects the bare `toString(primaryEntityId)`, so grouping by one returns
+   * internal ObjectIDs. Nothing downstream turns those into names: the traces
+   * explorer resolves only its own `primaryEntityId` split, client-side, and
+   * the dashboard TraceChart / TraceTable widgets have no equivalent — so the
+   * raw id reaches the chart legend, the tooltip series name and the table
+   * cell. Resolve them here, once per query, through the same resolver the
+   * facet sidebar uses.
+   *
+   * Deliberately NOT applied to getAnalyticsTopList: the timeseries path
+   * feeds that method's values straight back into the query as an IN filter
+   * (see getAnalyticsTimeseries), and the AI latency detectors match on them,
+   * so those must stay raw.
+   *
+   * Unresolvable ids — a deleted resource, or one past the resolver's page
+   * size — keep their raw value rather than vanishing from the result.
    */
+  private static async applyResourceDisplayValues<
+    TRow extends { groupValues: Record<string, string> },
+  >(
+    projectId: ObjectID,
+    groupByKeys: Array<string>,
+    rows: Array<TRow>,
+  ): Promise<Array<TRow>> {
+    /*
+     * Both memberships are required, and the two sets genuinely differ:
+     *
+     * - `proxmoxClusterId` / `cephClusterId` are resource dimensions here
+     *   but have no branch in ResourceFacetResolver.resolveOne, which
+     *   returns [] for them. Asking anyway would cost a round-trip and
+     *   still leave the cell raw.
+     * - `primaryEntityId` / `serviceId` are resolvable but are NOT resource
+     *   dimensions here — they select the OpenTelemetry-service slot, and
+     *   the traces explorer already resolves that split client-side
+     *   (TracesAnalyticsView's serviceNameMap). Renaming their values
+     *   server-side would change an existing surface for no gain.
+     *
+     * Taking the intersection means a key becomes resolvable here the
+     * moment the resolver learns it, with no second list to update.
+     */
+    const resourceKeys: Array<string> = groupByKeys.filter(
+      (key: string): boolean => {
+        return (
+          TraceAggregationService.RESOURCE_FACET_KEYS.has(key) &&
+          ResourceFacetResolver.isResourceFacet(key)
+        );
+      },
+    );
+
+    if (resourceKeys.length === 0 || rows.length === 0) {
+      return rows;
+    }
+
+    const specs: Array<ResourceFacetSpec> = resourceKeys.map(
+      (key: string): ResourceFacetSpec => {
+        const counts: Map<string, number> = new Map();
+
+        for (const row of rows) {
+          const raw: string | undefined = row.groupValues[key];
+          if (raw) {
+            counts.set(raw, (counts.get(raw) || 0) + 1);
+          }
+        }
+
+        return { facetKey: key, counts: counts };
+      },
+    );
+
+    let resolved: Record<string, Array<ResolvedFacetValue>> = {};
+
+    try {
+      resolved = await ResourceFacetResolver.resolve(projectId, specs);
+    } catch (err: unknown) {
+      logger.warn(
+        `Could not resolve resource display names for trace analytics group-by; falling back to raw ids: ${err}`,
+      );
+      return rows;
+    }
+
+    const displayNamesByKey: Map<string, Map<string, string>> = new Map();
+
+    for (const key of resourceKeys) {
+      const displayNames: Map<string, string> = new Map();
+
+      for (const entry of resolved[key] || []) {
+        if (entry.displayName) {
+          displayNames.set(entry.value, entry.displayName);
+        }
+      }
+
+      displayNamesByKey.set(key, displayNames);
+    }
+
+    for (const row of rows) {
+      for (const key of resourceKeys) {
+        const raw: string | undefined = row.groupValues[key];
+        const displayName: string | undefined = raw
+          ? displayNamesByKey.get(key)?.get(raw)
+          : undefined;
+
+        if (displayName) {
+          row.groupValues[key] = displayName;
+        }
+      }
+    }
+
+    return rows;
+  }
+
   @CaptureSpan()
   public static async getAnalyticsTimeseries(
     request: TraceAnalyticsRequest,
@@ -1314,20 +1427,31 @@ export class TraceAggregationService {
       );
     }
 
-    return rows.map((row: JSONObject): TraceAnalyticsTimeseriesRow => {
-      const groupValues: Record<string, string> = {};
+    const timeseriesRows: Array<TraceAnalyticsTimeseriesRow> = rows.map(
+      (row: JSONObject): TraceAnalyticsTimeseriesRow => {
+        const groupValues: Record<string, string> = {};
 
-      for (const [index, key] of groupByKeys.entries()) {
-        const alias: string = TraceAggregationService.groupByAlias(key, index);
-        groupValues[key] = String(row[alias] ?? "");
-      }
+        for (const [index, key] of groupByKeys.entries()) {
+          const alias: string = TraceAggregationService.groupByAlias(
+            key,
+            index,
+          );
+          groupValues[key] = String(row[alias] ?? "");
+        }
 
-      return {
-        time: String(row["bucket"] || ""),
-        value: Number(row["val"] || 0),
-        groupValues,
-      };
-    });
+        return {
+          time: String(row["bucket"] || ""),
+          value: Number(row["val"] || 0),
+          groupValues,
+        };
+      },
+    );
+
+    return TraceAggregationService.applyResourceDisplayValues(
+      request.projectId,
+      groupByKeys,
+      timeseriesRows,
+    );
   }
 
   @CaptureSpan()
@@ -1399,27 +1523,38 @@ export class TraceAggregationService {
 
     const groupByKeys: Array<string> = request.groupBy;
 
-    return rows.map((row: JSONObject): TraceAnalyticsTableRow => {
-      const groupValues: Record<string, string> = {};
+    const tableRows: Array<TraceAnalyticsTableRow> = rows.map(
+      (row: JSONObject): TraceAnalyticsTableRow => {
+        const groupValues: Record<string, string> = {};
 
-      for (const [index, key] of groupByKeys.entries()) {
-        const alias: string = TraceAggregationService.groupByAlias(key, index);
-        groupValues[key] = String(row[alias] ?? "");
-      }
+        for (const [index, key] of groupByKeys.entries()) {
+          const alias: string = TraceAggregationService.groupByAlias(
+            key,
+            index,
+          );
+          groupValues[key] = String(row[alias] ?? "");
+        }
 
-      return {
-        groupValues,
-        count: Number(row["cnt"] || 0),
-        errorCount: Number(row["err_cnt"] || 0),
-        avgDurationMs: Number(row["avg_ms"] || 0),
-        p50DurationMs: Number(row["p50_ms"] || 0),
-        p90DurationMs: Number(row["p90_ms"] || 0),
-        p95DurationMs: Number(row["p95_ms"] || 0),
-        p99DurationMs: Number(row["p99_ms"] || 0),
-        minDurationMs: Number(row["min_ms"] || 0),
-        maxDurationMs: Number(row["max_ms"] || 0),
-      };
-    });
+        return {
+          groupValues,
+          count: Number(row["cnt"] || 0),
+          errorCount: Number(row["err_cnt"] || 0),
+          avgDurationMs: Number(row["avg_ms"] || 0),
+          p50DurationMs: Number(row["p50_ms"] || 0),
+          p90DurationMs: Number(row["p90_ms"] || 0),
+          p95DurationMs: Number(row["p95_ms"] || 0),
+          p99DurationMs: Number(row["p99_ms"] || 0),
+          minDurationMs: Number(row["min_ms"] || 0),
+          maxDurationMs: Number(row["max_ms"] || 0),
+        };
+      },
+    );
+
+    return TraceAggregationService.applyResourceDisplayValues(
+      request.projectId,
+      groupByKeys,
+      tableRows,
+    );
   }
 
   /*
