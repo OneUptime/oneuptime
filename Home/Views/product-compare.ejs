@@ -147,6 +147,20 @@
     </div>
   </section>
 
+  <% if ((productConfig.prerequisites && productConfig.prerequisites.length) || (productConfig.limitations && productConfig.limitations.length) || (productConfig.evidenceSources && productConfig.evidenceSources.length)) { %>
+  <section class="py-20 bg-white border-y border-gray-100">
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
+      <h2 class="text-3xl font-semibold tracking-tight text-gray-900">Validation notes and evidence</h2>
+      <p class="mt-3 text-gray-600">Sources were accessed on <%= productConfig.lastUpdated || 'the comparison update date' %>. Re-check time-sensitive pricing and product documentation before making a decision.</p>
+      <div class="mt-10 grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <% if (productConfig.prerequisites && productConfig.prerequisites.length) { %><div><h3 class="font-semibold text-gray-900">Prerequisites</h3><ul class="mt-4 space-y-3 text-sm text-gray-600 list-disc pl-5"><% productConfig.prerequisites.forEach(function(item) { %><li><%= item %></li><% }); %></ul></div><% } %>
+        <% if (productConfig.limitations && productConfig.limitations.length) { %><div><h3 class="font-semibold text-gray-900">Limitations</h3><ul class="mt-4 space-y-3 text-sm text-gray-600 list-disc pl-5"><% productConfig.limitations.forEach(function(item) { %><li><%= item %></li><% }); %></ul></div><% } %>
+        <% if (productConfig.evidenceSources && productConfig.evidenceSources.length) { %><div><h3 class="font-semibold text-gray-900">First-party sources</h3><ul class="mt-4 space-y-3 text-sm"><% productConfig.evidenceSources.forEach(function(source) { %><li><a class="text-blue-700 hover:underline" href="<%= source.url %>" rel="nofollow"><%= source.label %></a></li><% }); %><% if (productConfig.canonicalGitHubPath) { %><li><a class="text-blue-700 hover:underline" href="<%= productConfig.canonicalGitHubPath %>">Canonical GitHub source</a></li><% } %></ul></div><% } %>
+      </div>
+    </div>
+  </section>
+  <% } %>
+
   <!-- Platform Section - Dark -->
   <section class="relative py-24 sm:py-32 bg-gray-900 overflow-hidden">
     <!-- Mouse glow -->
