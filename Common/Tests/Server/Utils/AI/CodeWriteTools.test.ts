@@ -28,8 +28,8 @@ import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
 /*
  * The chat agent reads telemetry an attacker can influence (a log line or an
  * exception message is whatever the monitored app threw) and can now turn it
- * into code. AISentinelVision.md's defense is structural: a human reviews
- * before anything merges.
+ * into code. The defense is structural: a human reviews before anything
+ * merges.
  *
  * That defense reduces to ONE invariant, and these tests exist to make it
  * impossible to regress silently:

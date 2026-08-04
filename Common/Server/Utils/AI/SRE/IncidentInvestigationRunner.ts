@@ -36,7 +36,7 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  * records durable intent (a Queued AIRun via AIInvestigationQueue), so a
  * pod restart can no longer orphan an investigation; the heavy lifting (run
  * lifecycle, the agent loop, confidence gating) lives in the shared
- * AIInvestigationEngine. See Internal/Roadmap/AISentinelExecution.md.
+ * AIInvestigationEngine.
  */
 /*
  * The cooldown default. Matches the alert lane: a monitor that was just

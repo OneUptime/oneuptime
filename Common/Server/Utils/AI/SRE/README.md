@@ -6,5 +6,3 @@ Wake-on-signal AI SRE: when an incident or alert is created (and the project has
 - `IncidentInvestigationRunner.ts` / `AlertInvestigationRunner.ts` — per-subject context assembly + result posting
 - `IncidentPostmortemRunner.ts` — auto-draft postmortem when an incident resolves
 - `AIMemory.ts` — recurrence context from past resolved incidents (retrieval-only v1)
-
-**Roadmap & status:** [Internal/Roadmap/AISentinelExecution.md](../../../../../Internal/Roadmap/AISentinelExecution.md) (tracker — update it in the same PR when you change behavior here) and [Internal/Roadmap/AISentinelVision.md](../../../../../Internal/Roadmap/AISentinelVision.md) (strategy).
