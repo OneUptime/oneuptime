@@ -2,6 +2,10 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=Scripts/GHA/retry.sh
+source "${SCRIPT_DIR}/retry.sh"
+
 usage() {
 	cat <<'EOF'
 Usage: build_docker_images.sh --image <name> --version <version> --dockerfile <path> [options]
@@ -140,7 +144,12 @@ build_variant() {
 	# `docker login`, never as build args, so nothing sensitive is embedded.
 	# Side effect: this turns each pushed tag into an OCI index, so registry UIs
 	# list an extra "unknown/unknown" entry per image — that's the attestation.
-	docker buildx build \
+	# Retried: the parallel per-image, per-arch push burst trips GitHub's
+	# secondary rate limit, which GHCR reports as a 403 "permission_denied".
+	# See Scripts/GHA/retry.sh. The rebuild on retry is cheap — the builder
+	# survives the failed attempt, so its local layer cache is still warm.
+	retry_with_backoff "push ${IMAGE}:${variant_prefix}${SANITIZED_VERSION}${ARCH_SUFFIX}" \
+		docker buildx build \
 		--file "$DOCKERFILE" \
 		--platform "$PLATFORMS" \
 		--push \

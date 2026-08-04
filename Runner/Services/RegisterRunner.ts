@@ -65,6 +65,38 @@ export default class Register {
     }
   }
 
+  /*
+   * Turn a failed registration into a sentence an operator can act on.
+   *
+   * A bare status code is close to useless here — the Runner is a container
+   * on someone else's host and the only thing they can see is this line. A
+   * 404 in particular does NOT mean "wrong credentials": bad credentials are
+   * answered 400 by the ingest middleware. It means the request never reached
+   * the Runner work mount at all, which in practice is an ingress that does
+   * not route /runner-ingest to the app, or an ONEUPTIME_URL pointing
+   * somewhere that is not a OneUptime server.
+   */
+  public static describeRegistrationFailure(data: {
+    statusCode: number;
+    url: URL;
+  }): string {
+    const base: string = `Failed to register Runner: ${data.statusCode} from ${data.url.toString()}`;
+
+    if (data.statusCode === 404) {
+      return (
+        `${base}. A 404 means the request did not reach the Runner work mount — the credentials were never checked ` +
+        `(bad credentials answer 400, not 404). Check that ONEUPTIME_URL is the base URL of your OneUptime server ` +
+        `(no trailing path), and that your ingress routes /runner-ingest to the app service.`
+      );
+    }
+
+    if (data.statusCode === 400 || data.statusCode === 401) {
+      return `${base}. The server rejected the credentials — check ONEUPTIME_RUNNER_ID and ONEUPTIME_RUNNER_KEY against Project Settings > Runners.`;
+    }
+
+    return base;
+  }
+
   private static async _registerRunner(): Promise<void> {
     if (HasClusterKey) {
       // Clustered mode: Auto-register and get ID from server
@@ -212,7 +244,12 @@ export default class Register {
         });
 
         if (!legacyResult.isSuccess()) {
-          throw new Error("Failed to register Runner: " + result.statusCode);
+          throw new Error(
+            Register.describeRegistrationFailure({
+              statusCode: result.statusCode,
+              url: heartbeatUrl,
+            }),
+          );
         }
 
         LocalCache.setString(
