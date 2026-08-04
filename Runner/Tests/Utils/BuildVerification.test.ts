@@ -408,6 +408,32 @@ describe("runCommand: process group, stdin, and the settle guard", () => {
     }
   }, 20000);
 
+  test("output delivered after the shell exits still reaches the tail", async () => {
+    /*
+     * Settling the instant "exit" fires drops output the pipe has not handed
+     * over yet. On Linux a plain `echo ...; exit 7` routinely delivers its
+     * "data" event after "exit", so the tail kept the exit-code note and lost
+     * the error explaining the failure — which is the entire point of the
+     * tail. Large outputs hid it, because they fill the pipe and flush long
+     * before the shell exits.
+     *
+     * Writing from a grandchild that outlives the shell forces that ordering
+     * on every platform: the shell exits immediately, the write lands after,
+     * and the tail must still carry it.
+     */
+    const result: CommandRunResult = await BuildVerification.runCommand({
+      command: {
+        label: "test",
+        command: "(sleep 0.2; echo written-after-exit) & exit 7",
+      },
+      repositoryPath: makeRepoDir(),
+    });
+
+    expect(result.passed).toBe(false);
+    expect(result.outputTail).toContain("written-after-exit");
+    expect(result.outputTail).toContain("test command exited with code 7");
+  }, 20000);
+
   test("the promise settles exactly once — a later stream close cannot change the result", async () => {
     const dir: string = makeRepoDir();
 

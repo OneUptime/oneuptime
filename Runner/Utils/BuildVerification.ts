@@ -59,6 +59,13 @@ export const MAX_REPAIR_ATTEMPTS: number = 2;
  */
 const OUTPUT_TAIL_CHARS: number = 8000;
 
+/*
+ * How long "exit" waits for the stdio pipes to drain before settling anyway.
+ * Long enough that a loaded runner still delivers the last chunk, short enough
+ * that a grandchild holding the pipes open costs a fraction of a second.
+ */
+const STDIO_DRAIN_GRACE_MS: number = 500;
+
 // Wall clock granted to each agent repair pass.
 const REPAIR_AGENT_TIMEOUT_MS: number = 15 * 60 * 1000;
 
@@ -206,9 +213,11 @@ export default class BuildVerification {
    *   - detached: the command gets its own process group, and the timeout
    *     kills the GROUP. `npm test` spawns the real work in grandchildren;
    *     signalling only the direct child leaves them running.
-   *   - settle on "exit", not just "close": surviving grandchildren inherit
-   *     the stdio pipes, so "close" (which waits for stream EOF) may never
-   *     fire. A settle guard keeps whichever event wins authoritative.
+   *   - "exit" starts a short grace period rather than settling outright:
+   *     surviving grandchildren inherit the stdio pipes, so "close" (which
+   *     waits for stream EOF) may never fire, but "exit" on its own can beat
+   *     the last "data" event. Whichever lands first wins, and a settle guard
+   *     keeps it authoritative.
    *   - stdin is /dev/null: a command that reads stdin gets EOF and fails
    *     fast instead of blocking for the entire timeout. CI=true only helps
    *     tools that honor it.
@@ -272,6 +281,9 @@ export default class BuildVerification {
           killProcessGroup();
         }, VERIFICATION_COMMAND_TIMEOUT_MS);
 
+        // Set once "exit" has landed but the stdio pipes have not drained yet.
+        let drainTimer: NodeJS.Timeout | undefined = undefined;
+
         const settle: (result: CommandRunResult) => void = (
           result: CommandRunResult,
         ): void => {
@@ -280,6 +292,9 @@ export default class BuildVerification {
           }
           settled = true;
           clearTimeout(timer);
+          if (drainTimer) {
+            clearTimeout(drainTimer);
+          }
           resolve(result);
         };
 
@@ -295,12 +310,33 @@ export default class BuildVerification {
         });
 
         /*
-         * "exit" fires when the direct child ends, even if grandchildren
-         * still hold the stdio pipes open. Killing the group above means
-         * the surviving work is already being torn down; settling here
+         * "exit" fires when the direct child ends, even if grandchildren still
+         * hold the stdio pipes open. Killing the group above means the
+         * surviving work is already being torn down, and settling on "exit"
          * stops one runaway daemon from hanging the whole fix run.
+         *
+         * But "exit" alone loses output. A command that writes a short line and
+         * exits at once — `echo compile blew up; exit 7` — routinely delivers
+         * its "data" event AFTER "exit", so the tail ends up holding only the
+         * exit-code note and none of the error that explains the failure. (Big
+         * writes hide this: they fill the pipe and flush long before exit.)
+         * "close" is the event that means the pipes are drained, so wait for
+         * it — but only briefly, because a lingering grandchild means it may
+         * never arrive at all.
          */
-        child.on("exit", (code: number | null, signal: string | null) => {
+        let exitOutcome: { code: number | null; signal: string | null } | null =
+          null;
+        let stdioClosed: boolean = false;
+
+        const settleFromExit: () => void = (): void => {
+          if (!exitOutcome) {
+            // "close" beat "exit"; the exit handler will settle.
+            return;
+          }
+
+          const outcome: { code: number | null; signal: string | null } =
+            exitOutcome;
+
           if (timedOut) {
             settle({
               passed: false,
@@ -312,7 +348,7 @@ export default class BuildVerification {
             return;
           }
 
-          if (code === 0) {
+          if (outcome.code === 0) {
             settle({ passed: true });
             return;
           }
@@ -322,10 +358,26 @@ export default class BuildVerification {
             failedCommand: data.command,
             outputTail:
               `${outputTail}\n\n(The ${data.command.label} command ` +
-              (signal
-                ? `was killed by signal ${signal}.)`
-                : `exited with code ${code}.)`),
+              (outcome.signal
+                ? `was killed by signal ${outcome.signal}.)`
+                : `exited with code ${outcome.code}.)`),
           });
+        };
+
+        child.on("close", () => {
+          stdioClosed = true;
+          settleFromExit();
+        });
+
+        child.on("exit", (code: number | null, signal: string | null) => {
+          exitOutcome = { code, signal };
+
+          if (stdioClosed) {
+            settleFromExit();
+            return;
+          }
+
+          drainTimer = setTimeout(settleFromExit, STDIO_DRAIN_GRACE_MS);
         });
       },
     );
