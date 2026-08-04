@@ -1517,13 +1517,10 @@ export class BillingService extends BaseService {
       return "price_1TGwTDANuQdJ93r7s0jKRxaT";
     }
 
-   
     if (productType === ProductType.SessionReplay) {
-      
       if (this.isTestEnvironment()) {
         return "price_1U0icaANuQdJ93r7yE4a6icc";
       }
-
 
       return "price_1U0iWJANuQdJ93r7iVAXwhdP";
     }

@@ -150,7 +150,7 @@ describe("HTML widget registration", () => {
       description: "the renderer dispatch",
     },
     {
-      file: "App/FeatureSet/Dashboard/src/Components/Dashboard/Toolbar/AddWidgetModal.tsx",
+      file: "App/FeatureSet/Dashboard/src/Components/Dashboard/Toolbar/WidgetCatalog.ts",
       description: "the Add Widget catalog",
     },
   ];
