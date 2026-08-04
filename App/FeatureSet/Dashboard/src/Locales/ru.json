@@ -4376,6 +4376,7 @@
   "Runner ID": "ID агента сценария",
   "Runner setup": "Настройка агента сценария",
   "Runner Status": "Статус агента сценария",
+  "Runner Version": "Версия агента сценария",
   "Runners": "Агенты runbook-ов",
   "Runbook agents which have access to this secret": "Агенты сценария, имеющие доступ к этому секрету",
   "Runbook Audit Logs": "Журналы аудита сценария",

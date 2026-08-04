@@ -211,7 +211,7 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
             },
             {
               field: { agentVersion: true },
-              title: "Agent Version",
+              title: "Runner Version",
               fieldType: FieldType.Text,
             },
           ],
