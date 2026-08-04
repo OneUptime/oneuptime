@@ -571,10 +571,19 @@ export default class OnCallDutyPolicyScheduleLayer extends BaseModel {
       Permission.EditOnCallDutyPolicyScheduleLayer,
     ],
   })
+  /*
+   * The default is `.toJSON()` rather than the Recurring instance itself. Both
+   * serialize to the identical JSON, so the DDL is unchanged — but TypeORM
+   * compares a jsonb default by deep-comparing the entity default against the
+   * value parsed back out of the database, and that comparison rejects any pair
+   * whose constructors differ (OrmUtils.compare2Objects). An instance never
+   * equals the plain object Postgres hands back, so every generated migration
+   * re-emitted this SET DEFAULT as phantom drift. A plain object compares equal.
+   */
   @Column({
     nullable: false,
     type: ColumnType.JSON,
-    default: Recurring.getDefault(),
+    default: Recurring.getDefault().toJSON(),
     transformer: Recurring.getDatabaseTransformer(),
   })
   public rotation?: Recurring = undefined;
@@ -654,10 +663,11 @@ export default class OnCallDutyPolicyScheduleLayer extends BaseModel {
       Permission.EditOnCallDutyPolicyScheduleLayer,
     ],
   })
+  // Plain object, not the instance — see the note on `rotation` above.
   @Column({
     nullable: false,
     type: ColumnType.JSON,
-    default: RestrictionTimes.getDefault(),
+    default: RestrictionTimes.getDefault().toJSON(),
     transformer: RestrictionTimes.getDatabaseTransformer(),
   })
   public restrictionTimes?: RestrictionTimes = undefined;
