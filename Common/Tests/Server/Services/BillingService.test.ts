@@ -238,11 +238,19 @@ describe("BillingService", () => {
 
       it("should skip metered plans that have no Stripe price yet", async () => {
         /*
-         * Regression test: session replay was added to AllMeteredPlans without
-         * a Stripe price. subscribeToMeteredPlan must not turn it into a
-         * subscription item (getPriceId throws for it), which otherwise aborts
-         * project creation. The priced plans must still be subscribed.
+         * Regression test: a metered plan can reach AllMeteredPlans before its
+         * Stripe price is created. subscribeToMeteredPlan must not turn such a
+         * plan into a subscription item (getPriceId throws for it), which
+         * otherwise aborts project creation. The priced plans must still be
+         * subscribed.
+         *
+         * Every product type has a price today, so the unpriced plan is
+         * simulated at hasPriceId - the seam subscribeToMeteredPlan consults -
+         * rather than by naming whichever product happens to lack one.
          */
+        jest
+          .spyOn(SessionReplayDataIngestMeteredPlan, "hasPriceId")
+          .mockReturnValue(false);
         jest
           .spyOn(ActiveMonitoringMeteredPlan, "reportQuantityToBillingProvider")
           .mockResolvedValue(undefined);
@@ -256,22 +264,30 @@ describe("BillingService", () => {
         mockStripe.subscriptions.create =
           getJestMockFunction().mockResolvedValue(mockSubscription);
 
-        await billingService.subscribeToMeteredPlan({
-          ...subscription,
-          serverMeteredPlans: [
-            ActiveMonitoringMeteredPlan,
-            SessionReplayDataIngestMeteredPlan,
-          ],
-        });
+        try {
+          await billingService.subscribeToMeteredPlan({
+            ...subscription,
+            serverMeteredPlans: [
+              ActiveMonitoringMeteredPlan,
+              SessionReplayDataIngestMeteredPlan,
+            ],
+          });
 
-        expect(mockStripe.subscriptions.create).toHaveBeenCalledWith(
-          expect.objectContaining({
-            items: [{ price: ActiveMonitoringMeteredPlan.getPriceId() }],
-          }),
-        );
+          expect(mockStripe.subscriptions.create).toHaveBeenCalledWith(
+            expect.objectContaining({
+              items: [{ price: ActiveMonitoringMeteredPlan.getPriceId() }],
+            }),
+          );
+        } finally {
+          // Nothing restores spies between tests, so the stub must not leak.
+          jest.restoreAllMocks();
+        }
       });
 
       it("should not throw when every metered plan lacks a Stripe price", async () => {
+        jest
+          .spyOn(SessionReplayDataIngestMeteredPlan, "hasPriceId")
+          .mockReturnValue(false);
         jest
           .spyOn(
             SessionReplayDataIngestMeteredPlan,
@@ -282,22 +298,26 @@ describe("BillingService", () => {
         mockStripe.subscriptions.create =
           getJestMockFunction().mockResolvedValue(mockSubscription);
 
-        await expect(
-          billingService.subscribeToMeteredPlan({
-            ...subscription,
-            serverMeteredPlans: [SessionReplayDataIngestMeteredPlan],
-          }),
-        ).resolves.toEqual(
-          expect.objectContaining({
-            meteredSubscriptionId: mockSubscription.id,
-          }),
-        );
+        try {
+          await expect(
+            billingService.subscribeToMeteredPlan({
+              ...subscription,
+              serverMeteredPlans: [SessionReplayDataIngestMeteredPlan],
+            }),
+          ).resolves.toEqual(
+            expect.objectContaining({
+              meteredSubscriptionId: mockSubscription.id,
+            }),
+          );
 
-        expect(mockStripe.subscriptions.create).toHaveBeenCalledWith(
-          expect.objectContaining({
-            items: [],
-          }),
-        );
+          expect(mockStripe.subscriptions.create).toHaveBeenCalledWith(
+            expect.objectContaining({
+              items: [],
+            }),
+          );
+        } finally {
+          jest.restoreAllMocks();
+        }
       });
     });
 
@@ -741,21 +761,30 @@ describe("BillingService", () => {
 
       it("should no-op for a metered plan without a Stripe price", async () => {
         /*
-         * Session replay has no Stripe price yet, so getPriceId throws. The
+         * getPriceId throws for a plan whose Stripe price does not exist. The
          * report path must skip the push instead of throwing - usage is already
-         * staged into TelemetryUsageBilling by the caller.
+         * staged into TelemetryUsageBilling by the caller. Every product type
+         * is priced today, so the unpriced plan is stubbed at hasPriceId.
          */
+        jest
+          .spyOn(SessionReplayDataIngestMeteredPlan, "hasPriceId")
+          .mockReturnValue(false);
+
         mockStripe.subscriptions.retrieve = getJestMockFunction();
 
-        await expect(
-          billingService.addOrUpdateMeteredPricingOnSubscription(
-            mockSubscription.id,
-            SessionReplayDataIngestMeteredPlan,
-            quantity,
-          ),
-        ).resolves.toBeUndefined();
+        try {
+          await expect(
+            billingService.addOrUpdateMeteredPricingOnSubscription(
+              mockSubscription.id,
+              SessionReplayDataIngestMeteredPlan,
+              quantity,
+            ),
+          ).resolves.toBeUndefined();
 
-        expect(mockStripe.subscriptions.retrieve).not.toHaveBeenCalled();
+          expect(mockStripe.subscriptions.retrieve).not.toHaveBeenCalled();
+        } finally {
+          jest.restoreAllMocks();
+        }
       });
     });
 
@@ -775,18 +804,27 @@ describe("BillingService", () => {
         expect(service.hasMeteredPlanPriceId(ProductType.Metrics)).toBe(true);
         expect(service.hasMeteredPlanPriceId(ProductType.Traces)).toBe(true);
         expect(service.hasMeteredPlanPriceId(ProductType.Profiles)).toBe(true);
+        expect(service.hasMeteredPlanPriceId(ProductType.SessionReplay)).toBe(
+          true,
+        );
       });
 
-      it("should return false for session replay until its price is created", () => {
-        expect(service.hasMeteredPlanPriceId(ProductType.SessionReplay)).toBe(
-          false,
-        );
+      it("should return false for a product type with no Stripe price", () => {
+        /*
+         * Every ProductType is priced today, so the false branch is only
+         * reachable through a type that getMeteredPlanPriceId does not know.
+         * It still has to answer false rather than propagate the throw - that
+         * is the whole reason callers can use it as a guard.
+         */
+        expect(
+          service.hasMeteredPlanPriceId("Unpriced Product" as ProductType),
+        ).toBe(false);
       });
 
       it("should mirror getPriceId for the metered plan instances", () => {
         expect(ActiveMonitoringMeteredPlan.hasPriceId()).toBe(true);
         expect(LogDataIngestMeteredPlan.hasPriceId()).toBe(true);
-        expect(SessionReplayDataIngestMeteredPlan.hasPriceId()).toBe(false);
+        expect(SessionReplayDataIngestMeteredPlan.hasPriceId()).toBe(true);
       });
     });
 

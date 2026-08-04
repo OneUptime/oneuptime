@@ -32,10 +32,10 @@ export default class ServerMeteredPlan {
   }
 
   /*
-   * Whether this plan has a Stripe price yet. Plans without one (e.g. session
-   * replay, whose price ids are not created in Stripe) must be skipped when
-   * building Stripe subscription items - getPriceId throws for them - while
-   * still staging usage into TelemetryUsageBilling.
+   * Whether this plan has a Stripe price yet. A plan whose price ids are not
+   * created in Stripe must be skipped when building Stripe subscription
+   * items - getPriceId throws for it - while still staging usage into
+   * TelemetryUsageBilling.
    */
   public hasPriceId(): boolean {
     return BillingService.hasMeteredPlanPriceId(this.getProductType());

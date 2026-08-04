@@ -262,9 +262,9 @@ export class BillingService extends BaseService {
     trialEndsAt: Date | null;
   }> {
     /*
-     * Only plans with a Stripe price can become subscription items. Plans
-     * without one yet (e.g. session replay) would make getPriceId throw and
-     * abort project creation, so we skip them here - their usage still stages
+     * Only plans with a Stripe price can become subscription items. A plan
+     * without one yet would make getPriceId throw and abort project
+     * creation, so we skip them here - their usage still stages
      * into TelemetryUsageBilling and is pushed once the price ids exist.
      */
     const priceableMeteredPlans: Array<ServerMeteredPlan> =
@@ -468,7 +468,7 @@ export class BillingService extends BaseService {
     }
 
     /*
-     * Plans without a Stripe price yet (e.g. session replay) cannot be pushed
+     * A plan without a Stripe price yet cannot be pushed
      * to a subscription - getPriceId would throw. Usage has already been staged
      * into TelemetryUsageBilling by the caller, so skipping here loses nothing;
      * the push happens once the price ids are created.
@@ -1534,8 +1534,9 @@ export class BillingService extends BaseService {
    * Whether a Stripe metered price exists for this product type yet.
    *
    * getMeteredPlanPriceId throws for product types whose Stripe prices have
-   * not been created (currently session replay) and for unknown types. Callers
-   * that build Stripe subscription items must skip those plans instead of
+   * not been created and for unknown types. Every product type is priced
+   * today, so this only guards the next one added ahead of its Stripe price.
+   * Callers that build Stripe subscription items must skip those plans instead of
    * letting the throw abort the whole operation - a metered plan without a
    * price still stages usage into TelemetryUsageBilling, only the push to
    * Stripe waits on the price ids. This is the single, side-effect-free way to
