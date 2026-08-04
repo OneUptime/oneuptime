@@ -56,6 +56,16 @@ export default class SSOUtil {
   private static readonly MS_DISPLAY_NAME_CLAIM: string =
     "http://schemas.microsoft.com/identity/claims/displayname";
 
+  /*
+   * DOM node types we test for. xmldom exposes these as Node constants, but
+   * spelling them out keeps the checks readable next to the nodeType they
+   * compare against.
+   */
+  private static readonly ELEMENT_NODE: number = 1;
+  private static readonly PROCESSING_INSTRUCTION_NODE: number = 7;
+  private static readonly COMMENT_NODE: number = 8;
+  private static readonly DOCUMENT_NODE: number = 9;
+
   public static createSAMLRequestUrl(data: {
     acsUrl: URL;
     signOnUrl: URL;
@@ -87,7 +97,7 @@ export default class SSOUtil {
    * where a genuinely signed element and the element we actually read are not
    * the same element.
    *
-   * Two reported bypasses shaped this code:
+   * Three reported bypasses shaped this code:
    *
    *   - GitHub issue #2949: the original implementation validated whichever
    *     <Signature> appeared first and then extracted the identity from an
@@ -107,12 +117,25 @@ export default class SSOUtil {
    *     so a decoy <Signature> that merely repeats the genuine
    *     <SignatureValue> is removed from the digest too.
    *
+   *   - GitHub issue #2988: even a signature that provably covers the element
+   *     we read is not enough if the bytes that were digested and the bytes we
+   *     read are not the same bytes. xml-crypto canonicalizes every node that
+   *     exposes a `data` property by emitting that data as plain text, so a
+   *     processing instruction `<?p not-an-?>` is digested as the characters
+   *     `not-an-` rather than as `<?p not-an-?>`. The DOM, correctly, leaves
+   *     processing instructions out of `textContent` entirely. So
+   *     `<NameID><?p not-an-?>admin@example.com</NameID>` digests exactly like
+   *     the genuine `<NameID>not-an-admin@example.com</NameID>` while we read
+   *     it as `admin@example.com`.
+   *
    * The defence is to stop reasoning about "is this signed?" in isolation and
    * instead pin the document to the shape SAML actually defines, so that the
    * element we read cannot be anywhere except inside the signed payload:
    *
    *   1. Well-formed XML with no DOCTYPE / entity declarations (blocks XXE,
-   *      entity expansion and parser-differential tricks).
+   *      entity expansion and parser-differential tricks) and no processing
+   *      instructions anywhere in the document apart from the XML declaration
+   *      (blocks the canonicalization/`textContent` desynchronization above).
    *   2. The root MUST be <samlp:Response> (SAML 2.0 protocol namespace).
    *   3. No encrypted elements - we cannot decrypt them, and silently reading
    *      around them would mean reading unauthenticated data.
@@ -132,8 +155,10 @@ export default class SSOUtil {
    *      an identity provider returning an error "MUST NOT include any
    *      assertions in the <Response> message", so an assertion delivered
    *      alongside an error status is by definition not one the IdP issued.
-   *   8. The identity-bearing nodes must not contain XML comments (blocks the
-   *      SAML comment-truncation class of attacks).
+   *   8. The identity-bearing nodes must hold plain text and nothing else - no
+   *      comments (blocks the SAML comment-truncation class of attacks), no
+   *      processing instructions, no child elements. Whatever we read is then
+   *      exactly the character data the canonicalizer digested.
    *
    * Throws BadRequestException on any anomaly.
    */
@@ -156,14 +181,20 @@ export default class SSOUtil {
   /*
    * Boolean form of the verification above. Kept for callers/tests that only
    * need to know whether the response carries a valid, wrapping-safe signature.
-   * Uses exactly the same strict pipeline as getSamlResponseFromXML.
+   *
+   * It runs getSamlResponseFromXML itself rather than a subset of it. Anything
+   * less would let this return true for a document the real entry point
+   * refuses - the rules that reject a NameID containing a comment, a processing
+   * instruction or a child element live in the extraction step, and a caller
+   * gating on "is this SAML response valid?" must not be told yes about a
+   * document whose identity we would then refuse to read.
    */
   public static isSignatureValid(
     samlResponse: string,
     certificate: string,
   ): boolean {
     try {
-      SSOUtil.verifyAndGetAssertion(samlResponse, certificate);
+      SSOUtil.getSamlResponseFromXML(samlResponse, certificate);
       return true;
     } catch (err) {
       logger.error(err);
@@ -251,7 +282,63 @@ export default class SSOUtil {
       throw new BadRequestException("SAML Response is not valid XML");
     }
 
+    SSOUtil.assertNoProcessingInstructions(dom);
+
     return dom;
+  }
+
+  /*
+   * Reject XML processing instructions (issue #2988).
+   *
+   * xml-crypto's canonicalizer emits any node that exposes a `data` property as
+   * plain text, so a processing instruction is digested as its data rather than
+   * as `<?target data?>`. The DOM, per spec, omits processing instructions from
+   * `textContent` entirely. The digest and the value we read therefore describe
+   * different strings, and an attacker can wrap any leading part of a signed
+   * value in a processing instruction to delete it from what we read while the
+   * digest stays byte-for-byte identical:
+   *
+   *   <saml:NameID>not-an-admin@example.com</saml:NameID>       (signed)
+   *   <saml:NameID><?p not-an-?>admin@example.com</saml:NameID> (forged)
+   *
+   * Both digest as "not-an-admin@example.com"; the second reads as
+   * "admin@example.com".
+   *
+   * A SAML Response has no legitimate use for a processing instruction, so we
+   * reject every one of them rather than trying to reason about which ones land
+   * somewhere harmless. The XML declaration is the sole exception: xmldom
+   * surfaces it as a processing instruction node with target "xml" parented on
+   * the Document (never inside the document element), it is not part of any
+   * canonicalized subtree, and real identity providers emit it.
+   */
+  private static assertNoProcessingInstructions(dom: XmlDocument): void {
+    const stack: Array<XmlNode> = [dom as unknown as XmlNode];
+
+    while (stack.length > 0) {
+      const node: XmlNode = stack.pop()!;
+
+      for (
+        let child: XmlNode | null = node.firstChild;
+        child;
+        child = child.nextSibling
+      ) {
+        if (child.nodeType === SSOUtil.PROCESSING_INSTRUCTION_NODE) {
+          const parentNodeType: number | undefined = child.parentNode?.nodeType;
+
+          const isXmlDeclaration: boolean =
+            parentNodeType === SSOUtil.DOCUMENT_NODE &&
+            (child as unknown as { target?: string }).target === "xml";
+
+          if (!isXmlDeclaration) {
+            throw new BadRequestException(
+              "SAML Response must not contain XML processing instructions",
+            );
+          }
+        }
+
+        stack.push(child);
+      }
+    }
   }
 
   /*
@@ -702,7 +789,7 @@ export default class SSOUtil {
       throw new BadRequestException("Issuer not found in SAML Assertion");
     }
 
-    SSOUtil.assertNoComments(issuerElement);
+    SSOUtil.assertPlainTextOnly(issuerElement);
 
     const issuerUrl: string = SSOUtil.getTrimmedText(issuerElement);
 
@@ -733,13 +820,10 @@ export default class SSOUtil {
     }
 
     /*
-     * Reject comments inside the NameID. Exclusive canonicalization strips
-     * comments before hashing, so a naive extractor that stopped at a comment
-     * could read a different value than the one that was signed
-     * (e.g. "victim@corp.com<!---->.attacker.com"). We read the full text and
-     * additionally refuse any comment here.
+     * The NameID is the identity itself, so it is the value an attacker most
+     * wants to desynchronize from the digest. See assertPlainTextOnly.
      */
-    SSOUtil.assertNoComments(nameId);
+    SSOUtil.assertPlainTextOnly(nameId);
 
     const emailString: string = SSOUtil.getTrimmedText(nameId);
 
@@ -770,7 +854,7 @@ export default class SSOUtil {
           SSOUtil.getDirectChildByLocalName(attribute, "AttributeValue");
 
         if (attributeValue) {
-          SSOUtil.assertNoComments(attributeValue);
+          SSOUtil.assertPlainTextOnly(attributeValue);
           const fullName: string = SSOUtil.getTrimmedText(attributeValue);
           if (fullName) {
             return new Name(fullName);
@@ -817,25 +901,49 @@ export default class SSOUtil {
     return (element.textContent || "").trim();
   }
 
-  // Throw if the element subtree contains any XML comment node.
-  private static assertNoComments(element: XmlElement): void {
-    const stack: Array<XmlNode> = [element];
+  /*
+   * An identity-bearing element must hold character data and nothing else.
+   *
+   * This keeps the string we read identical to the string the canonicalizer
+   * digested. Three node kinds would break that equality:
+   *
+   *   - Comments. Exclusive canonicalization strips them before hashing, so an
+   *     extractor that stopped at one could read a different value than was
+   *     signed (e.g. "victim@corp.com<!---->.attacker.com").
+   *
+   *   - Processing instructions. xml-crypto digests their data as plain text
+   *     while the DOM leaves them out of `textContent` (issue #2988). The
+   *     parser already refuses these across the whole document; refusing them
+   *     here too keeps the guarantee attached to the values we consume rather
+   *     than to a check somewhere upstream.
+   *
+   *   - Child elements. `textContent` flattens their markup away while
+   *     canonicalization digests it, so the two views of the value diverge.
+   *     No SAML element we read from is allowed mixed content anyway: NameID
+   *     and Issuer are both NameIDType, whose content model is a plain string.
+   */
+  private static assertPlainTextOnly(element: XmlElement): void {
+    for (
+      let child: XmlNode | null = element.firstChild;
+      child;
+      child = child.nextSibling
+    ) {
+      if (child.nodeType === SSOUtil.COMMENT_NODE) {
+        throw new BadRequestException(
+          "SAML Assertion must not contain XML comments",
+        );
+      }
 
-    while (stack.length > 0) {
-      const node: XmlNode = stack.pop()!;
+      if (child.nodeType === SSOUtil.PROCESSING_INSTRUCTION_NODE) {
+        throw new BadRequestException(
+          "SAML Response must not contain XML processing instructions",
+        );
+      }
 
-      for (
-        let child: XmlNode | null = node.firstChild;
-        child;
-        child = child.nextSibling
-      ) {
-        // nodeType 8 === COMMENT_NODE
-        if (child.nodeType === 8) {
-          throw new BadRequestException(
-            "SAML Assertion must not contain XML comments",
-          );
-        }
-        stack.push(child);
+      if (child.nodeType === SSOUtil.ELEMENT_NODE) {
+        throw new BadRequestException(
+          "SAML Assertion identity values must not contain nested elements",
+        );
       }
     }
   }

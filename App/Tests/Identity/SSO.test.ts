@@ -6,11 +6,16 @@ import URL from "Common/Types/API/URL";
 import { describe, expect, test, beforeAll } from "@jest/globals";
 import crypto from "crypto";
 import { SignedXml } from "xml-crypto";
+import {
+  DOMParser,
+  Element as XmlElement,
+  Node as XmlNode,
+} from "@xmldom/xmldom";
 
 /*
  * Security regression tests for SAML XML Signature Wrapping (XSW).
  *
- * Two publicly reported bypasses are covered here:
+ * Three publicly reported bypasses are covered here:
  *
  *   - GitHub issue #2949: the original implementation validated the first
  *     <Signature> element it found and then extracted the identity from an
@@ -28,6 +33,15 @@ import { SignedXml } from "xml-crypto";
  *     transform removes EVERY <Signature> whose <SignatureValue> text matches
  *     the one being verified, so a decoy signature that simply repeats the
  *     genuine <SignatureValue> also disappears from the digest.
+ *
+ *   - GitHub issue #2988: a signature that provably covers the element we read
+ *     still is not enough, because the bytes that were digested and the bytes
+ *     the DOM reports need not be the same bytes. xml-crypto canonicalizes any
+ *     node exposing a `data` property by emitting that data as plain text, so a
+ *     processing instruction `<?p not-an-?>` is digested as `not-an-` while
+ *     `textContent` omits it entirely. An attacker can therefore hide any
+ *     substring of a genuinely signed value inside a processing instruction and
+ *     the digest does not move.
  *
  * These tests:
  *   1. Prove the genuine ("happy path") SAML flows still work.
@@ -265,6 +279,58 @@ function genuineSignedErrorResponse(
   return sign(buildResponse("", { statusCode }), "Response");
 }
 
+/*
+ * Verify a document's <Signature> with xml-crypto alone, bypassing every
+ * structural rule SSOUtil layers on top of it.
+ *
+ * The #2988 attack documents are built so that this returns TRUE: the digest is
+ * byte-for-byte the digest of the genuine response. Asserting it in the tests
+ * is what makes them meaningful - it proves the document is rejected because
+ * SSOUtil refuses to read a value whose canonical form differs from what the
+ * DOM reports, and not merely because the signature happened to break.
+ */
+function signatureIsCryptographicallyValid(xml: string): boolean {
+  const sig: SignedXml = new SignedXml();
+
+  sig.keyInfoProvider = {
+    getKeyInfo: (): string => {
+      return "<X509Data></X509Data>";
+    },
+    getKey: (): string => {
+      return idpKeys.publicKey;
+    },
+  } as unknown as SignedXml["keyInfoProvider"];
+
+  sig.loadSignature(extractSignature(xml));
+
+  return sig.checkSignature(xml);
+}
+
+/*
+ * The value a textContent-based extractor (i.e. SSOUtil) sees for the first
+ * element with this local name. Used to show, in the test itself, that the DOM
+ * and the digest disagree.
+ */
+function domTextOf(xml: string, localName: string): string {
+  const element: XmlNode | null = new DOMParser()
+    .parseFromString(xml, "text/xml")
+    .getElementsByTagNameNS("*", localName)
+    .item(0);
+
+  return ((element as XmlElement | null)?.textContent || "").trim();
+}
+
+/*
+ * Hide `text` inside a processing instruction.
+ *
+ * xml-crypto digests the instruction's data as if it were character data, so
+ * `hidden("not-an-") + "admin@example.com"` canonicalizes exactly like
+ * "not-an-admin@example.com" while the DOM reports only "admin@example.com".
+ */
+function hidden(text: string): string {
+  return `<?p ${text}?>`;
+}
+
 // Assert that both entry points reject a document.
 function expectRejected(xml: string, messageFragment?: string): void {
   expect(SSOUtil.isSignatureValid(xml, idpKeys.publicKey)).toBe(false);
@@ -418,6 +484,67 @@ describe("SSOUtil - genuine SAML flow (must not break)", () => {
 
     expect(result.email.toString()).toBe("alice@example.com");
     expect(result.name).toBeNull();
+  });
+
+  /*
+   * xmldom surfaces the XML declaration as a processing instruction node, and
+   * essentially every identity provider emits one. It is the single processing
+   * instruction the parser is allowed to keep (issue #2988), so each spelling
+   * has to keep working.
+   */
+  test.each([
+    ['<?xml version="1.0" encoding="UTF-8"?>', "double-quoted, with encoding"],
+    ['<?xml version="1.0"?>', "no encoding"],
+    [
+      "<?xml version='1.0' encoding='utf-8' standalone='no'?>",
+      "single-quoted, standalone",
+    ],
+  ])(
+    "accepts a response introduced by an XML declaration (%s)",
+    (declaration: string) => {
+      const xml: string = declaration + genuineAssertionSignedResponse();
+
+      expect(SSOUtil.isSignatureValid(xml, idpKeys.publicKey)).toBe(true);
+      expect(
+        SSOUtil.getSamlResponseFromXML(xml, idpKeys.publicKey).email.toString(),
+      ).toBe("alice@example.com");
+    },
+  );
+
+  test("accepts an XML declaration that was present when the document was signed", () => {
+    const xml: string = sign(
+      `<?xml version="1.0" encoding="UTF-8"?>${buildResponse(buildAssertion())}`,
+      "Assertion",
+    );
+
+    expect(xml.startsWith("<?xml ")).toBe(true);
+    expect(SSOUtil.isSignatureValid(xml, idpKeys.publicKey)).toBe(true);
+  });
+
+  test("accepts a Response-signed document introduced by an XML declaration", () => {
+    const xml: string =
+      '<?xml version="1.0" encoding="UTF-8"?>' +
+      genuineResponseSignedResponse();
+
+    expect(SSOUtil.isSignatureValid(xml, idpKeys.publicKey)).toBe(true);
+  });
+
+  test("accepts a display-name AttributeValue carrying xsi:type", () => {
+    /*
+     * Identity values must be plain text (issue #2988), but an xsi:type is an
+     * ATTRIBUTE, not a child element - Okta, Entra and ADFS all send it.
+     */
+    const attributeStatement: string = `<saml:AttributeStatement><saml:Attribute Name="${DISPLAY_NAME_CLAIM}"><saml:AttributeValue xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="xs:string">Alice Example</saml:AttributeValue></saml:Attribute></saml:AttributeStatement>`;
+
+    const assertion: string = `<saml:Assertion ID="_a" Version="2.0" IssueInstant="2024-01-01T00:00:00Z"><saml:Issuer>${ISSUER}</saml:Issuer><saml:Subject><saml:NameID>alice@example.com</saml:NameID></saml:Subject>${attributeStatement}</saml:Assertion>`;
+
+    const result: VerifiedSamlResponse = SSOUtil.getSamlResponseFromXML(
+      sign(buildResponse(assertion), "Assertion"),
+      idpKeys.publicKey,
+    );
+
+    expect(result.name?.toString()).toBe("Alice Example");
+    expect(result.email.toString()).toBe("alice@example.com");
   });
 
   test("works when the base64 SAMLResponse is decoded first (end-to-end shape)", () => {
@@ -652,6 +779,315 @@ describe("SSOUtil - signed error Response cannot smuggle an assertion (issue #29
       SSOUtil.getSamlResponseFromXML(xml, idpKeys.publicKey);
     } catch (err) {
       expect((err as Error).message).not.toContain("script");
+    }
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Issue #2988 - a processing instruction must not be able to rewrite a signed
+ * value.
+ *
+ * Every attack below starts from a GENUINE, correctly signed IdP response and
+ * edits it. Each one asserts three things in order:
+ *
+ *   1. the edited document's signature still verifies under xml-crypto, i.e.
+ *      the attacker did not have to touch the digest at all;
+ *   2. a textContent-based read of the edited document now yields a different
+ *      identity than the one that was signed;
+ *   3. SSOUtil rejects it.
+ *
+ * Drop the fix and (1) and (2) still hold - only (3) fails, and the result is a
+ * full authentication bypass.
+ * ---------------------------------------------------------------------------
+ */
+
+const PI_REJECTED: string =
+  "SAML Response must not contain XML processing instructions";
+
+describe("SSOUtil - processing instructions cannot rewrite signed values (issue #2988)", () => {
+  test("rejects the reported PoC: a processing instruction hiding part of the NameID", () => {
+    // A genuine response for an ordinary, unprivileged user.
+    const genuine: string = sign(
+      buildResponse(buildAssertion({ nameId: "not-an-admin@example.com" })),
+      "Assertion",
+    );
+
+    expect(
+      SSOUtil.getSamlResponseFromXML(
+        genuine,
+        idpKeys.publicKey,
+      ).email.toString(),
+    ).toBe("not-an-admin@example.com");
+
+    // The attacker hides the "not-an-" prefix inside a processing instruction.
+    const attack: string = replaceOnce(
+      genuine,
+      ">not-an-admin@example.com<",
+      `>${hidden("not-an-")}admin@example.com<`,
+    );
+
+    // The digest never moved: xml-crypto still accepts the signature.
+    expect(signatureIsCryptographicallyValid(attack)).toBe(true);
+
+    // But the DOM now reports a completely different user.
+    expect(domTextOf(attack, "NameID")).toBe("admin@example.com");
+
+    expectRejected(attack, PI_REJECTED);
+  });
+
+  test("rejects the same rewrite under a Response-level signature", () => {
+    const genuine: string = sign(
+      buildResponse(buildAssertion({ nameId: "not-an-admin@example.com" })),
+      "Response",
+    );
+
+    const attack: string = replaceOnce(
+      genuine,
+      ">not-an-admin@example.com<",
+      `>${hidden("not-an-")}admin@example.com<`,
+    );
+
+    expect(signatureIsCryptographicallyValid(attack)).toBe(true);
+    expect(domTextOf(attack, "NameID")).toBe("admin@example.com");
+
+    expectRejected(attack, PI_REJECTED);
+  });
+
+  test("rejects a processing instruction that truncates the tail of the NameID", () => {
+    /*
+     * The mirror image of the reported shape: the signed value carries a suffix
+     * the attacker wants gone, so the domain the email appears to belong to
+     * changes instead of the local part.
+     */
+    const genuine: string = sign(
+      buildResponse(
+        buildAssertion({ nameId: "admin@example.com.attacker.net" }),
+      ),
+      "Assertion",
+    );
+
+    const attack: string = replaceOnce(
+      genuine,
+      ">admin@example.com.attacker.net<",
+      `>admin@example.com${hidden(".attacker.net")}<`,
+    );
+
+    expect(signatureIsCryptographicallyValid(attack)).toBe(true);
+    expect(domTextOf(attack, "NameID")).toBe("admin@example.com");
+
+    expectRejected(attack, PI_REJECTED);
+  });
+
+  test("rejects a processing instruction that rewrites the Issuer", () => {
+    /*
+     * On a multi-tenant IdP the attacker legitimately holds a signed response
+     * for their own tenant path and deletes the tenant segment from what we
+     * read, so the assertion appears to come from the tenant-less issuer.
+     */
+    const genuine: string = sign(
+      buildResponse(
+        buildAssertion({
+          issuer: "https://idp.example.com/attacker/metadata",
+        }),
+      ),
+      "Assertion",
+    );
+
+    const attack: string = replaceOnce(
+      genuine,
+      ">https://idp.example.com/attacker/metadata<",
+      `>https://idp.example.com/${hidden("attacker/")}metadata<`,
+    );
+
+    expect(signatureIsCryptographicallyValid(attack)).toBe(true);
+    expect(domTextOf(attack, "Issuer")).toBe(
+      "https://idp.example.com/metadata",
+    );
+
+    expectRejected(attack, PI_REJECTED);
+  });
+
+  test("rejects a processing instruction that rewrites the display name", () => {
+    const genuine: string = sign(
+      buildResponse(buildAssertion({ displayName: "Mallory Alice Example" })),
+      "Assertion",
+    );
+
+    const attack: string = replaceOnce(
+      genuine,
+      ">Mallory Alice Example<",
+      `>${hidden("Mallory ")}Alice Example<`,
+    );
+
+    expect(signatureIsCryptographicallyValid(attack)).toBe(true);
+    expect(domTextOf(attack, "AttributeValue")).toBe("Alice Example");
+
+    expectRejected(attack, PI_REJECTED);
+  });
+
+  test("rejects a processing instruction between two text runs of the NameID", () => {
+    const genuine: string = sign(
+      buildResponse(buildAssertion({ nameId: "ad-DROP-min@example.com" })),
+      "Assertion",
+    );
+
+    const attack: string = replaceOnce(
+      genuine,
+      ">ad-DROP-min@example.com<",
+      `>ad${hidden("-DROP-")}min@example.com<`,
+    );
+
+    expect(signatureIsCryptographicallyValid(attack)).toBe(true);
+    expect(domTextOf(attack, "NameID")).toBe("admin@example.com");
+
+    expectRejected(attack, PI_REJECTED);
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Issue #2988 - processing instructions are refused wherever they sit.
+ *
+ * The rewrite above only needs a processing instruction inside an identity
+ * value, but there is no position in a SAML Response where one is legitimate,
+ * and leaving any of them parseable leaves the next variant of the trick
+ * available. These documents are SIGNED WITH the instruction already in place,
+ * so the signature is genuinely valid and only the structural rule rejects them.
+ * ---------------------------------------------------------------------------
+ */
+
+describe("SSOUtil - processing instructions are rejected anywhere in the document (issue #2988)", () => {
+  test("rejects a processing instruction that is a direct child of the Response", () => {
+    const xml: string = sign(
+      buildResponse(buildAssertion(), { beforeStatus: hidden("junk") }),
+      "Response",
+    );
+
+    expect(signatureIsCryptographicallyValid(xml)).toBe(true);
+    expectRejected(xml, PI_REJECTED);
+  });
+
+  test("rejects a processing instruction inside <samlp:Extensions>", () => {
+    const xml: string = sign(
+      buildResponse(buildAssertion(), {
+        extensions: `<samlp:Extensions>${hidden("junk")}</samlp:Extensions>`,
+      }),
+      "Response",
+    );
+
+    expect(signatureIsCryptographicallyValid(xml)).toBe(true);
+    expectRejected(xml, PI_REJECTED);
+  });
+
+  test("rejects a processing instruction inside <samlp:Status>", () => {
+    const xml: string = sign(
+      buildResponse(buildAssertion(), {
+        statusXml: `<samlp:Status>${hidden(
+          "junk",
+        )}<samlp:StatusCode Value="${STATUS_SUCCESS}"/></samlp:Status>`,
+      }),
+      "Response",
+    );
+
+    expect(signatureIsCryptographicallyValid(xml)).toBe(true);
+    expectRejected(xml, PI_REJECTED);
+  });
+
+  test("rejects a processing instruction inside the Assertion but outside any identity value", () => {
+    const xml: string = sign(
+      buildResponse(buildAssertion({ extraInner: hidden("junk") })),
+      "Assertion",
+    );
+
+    expect(signatureIsCryptographicallyValid(xml)).toBe(true);
+    expectRejected(xml, PI_REJECTED);
+  });
+
+  test("rejects a processing instruction inside the <Subject>", () => {
+    const assertion: string = `<saml:Assertion ID="_a" Version="2.0" IssueInstant="2024-01-01T00:00:00Z"><saml:Issuer>${ISSUER}</saml:Issuer><saml:Subject>${hidden(
+      "junk",
+    )}<saml:NameID>alice@example.com</saml:NameID></saml:Subject></saml:Assertion>`;
+
+    const xml: string = sign(buildResponse(assertion), "Assertion");
+
+    expect(signatureIsCryptographicallyValid(xml)).toBe(true);
+    expectRejected(xml, PI_REJECTED);
+  });
+
+  test("rejects a processing instruction smuggled inside the <Signature> subtree", () => {
+    /*
+     * The enveloped-signature transform strips the whole <Signature> out of the
+     * digest, so this instruction is free: the signature stays valid no matter
+     * what is parked here.
+     */
+    const xml: string = replaceOnce(
+      genuineAssertionSignedResponse(),
+      "<X509Data/>",
+      `<X509Data>${hidden("junk")}</X509Data>`,
+    );
+
+    expect(signatureIsCryptographicallyValid(xml)).toBe(true);
+    expectRejected(xml, PI_REJECTED);
+  });
+
+  test("rejects a processing instruction in the prolog", () => {
+    const xml: string = `<?xml-stylesheet href="evil.xsl"?>${genuineAssertionSignedResponse()}`;
+
+    expect(signatureIsCryptographicallyValid(xml)).toBe(true);
+    expectRejected(xml, PI_REJECTED);
+  });
+
+  test("rejects a processing instruction after the root element", () => {
+    const xml: string = `${genuineAssertionSignedResponse()}${hidden("junk")}`;
+
+    expect(signatureIsCryptographicallyValid(xml)).toBe(true);
+    expectRejected(xml, PI_REJECTED);
+  });
+
+  test("rejects a prolog processing instruction that follows a valid XML declaration", () => {
+    const xml: string = `<?xml version="1.0" encoding="UTF-8"?>${hidden(
+      "junk",
+    )}${genuineAssertionSignedResponse()}`;
+
+    expectRejected(xml, PI_REJECTED);
+  });
+
+  test("rejects a processing instruction carrying no data at all", () => {
+    const xml: string = replaceOnce(
+      genuineAssertionSignedResponse(),
+      ">alice@example.com<",
+      "><?p?>alice@example.com<",
+    );
+
+    expectRejected(xml, PI_REJECTED);
+  });
+
+  test("rejects a processing instruction whose data is only whitespace", () => {
+    const xml: string = replaceOnce(
+      genuineAssertionSignedResponse(),
+      ">alice@example.com<",
+      "><?p ?>alice@example.com<",
+    );
+
+    expectRejected(xml, PI_REJECTED);
+  });
+
+  test("rejects the reserved 'xml' target used inside the document element", () => {
+    /*
+     * The XML declaration is allowed through as the one legitimate processing
+     * instruction, so make sure its target cannot be reused inside the tree to
+     * borrow that exemption. "xml" is a reserved target, so this does not even
+     * parse - which is a fine way to be rejected, as long as it is rejected.
+     */
+    for (const target of ["xml", "XML", "xMl"]) {
+      const xml: string = replaceOnce(
+        genuineAssertionSignedResponse(),
+        ">alice@example.com<",
+        `><?${target} junk?>alice@example.com<`,
+      );
+
+      expectRejected(xml);
     }
   });
 });
@@ -1053,10 +1489,13 @@ describe("SSOUtil - signature tampering and forgery is rejected", () => {
     expectRejected(stripped);
   });
 
+  const COMMENT_REJECTED: string =
+    "SAML Assertion must not contain XML comments";
+
   test("rejects a NameID containing an XML comment (comment-truncation defense)", () => {
     /*
      * Signed WITH the comment present. Exclusive c14n excludes comments, so the
-     * signature is valid, but our extractor must refuse comments outright.
+     * signature is genuinely valid, but our extractor must refuse them outright.
      */
     const xml: string = sign(
       buildResponse(
@@ -1065,10 +1504,8 @@ describe("SSOUtil - signature tampering and forgery is rejected", () => {
       "Assertion",
     );
 
-    expect(SSOUtil.isSignatureValid(xml, idpKeys.publicKey)).toBe(true);
-    expect(() => {
-      return SSOUtil.getSamlResponseFromXML(xml, idpKeys.publicKey);
-    }).toThrow("SAML Assertion must not contain XML comments");
+    expect(signatureIsCryptographicallyValid(xml)).toBe(true);
+    expectRejected(xml, COMMENT_REJECTED);
   });
 
   test("rejects an Issuer containing an XML comment", () => {
@@ -1081,9 +1518,8 @@ describe("SSOUtil - signature tampering and forgery is rejected", () => {
       "Assertion",
     );
 
-    expect(() => {
-      return SSOUtil.getSamlResponseFromXML(xml, idpKeys.publicKey);
-    }).toThrow("SAML Assertion must not contain XML comments");
+    expect(signatureIsCryptographicallyValid(xml)).toBe(true);
+    expectRejected(xml, COMMENT_REJECTED);
   });
 
   test("rejects a display name containing an XML comment", () => {
@@ -1092,9 +1528,59 @@ describe("SSOUtil - signature tampering and forgery is rejected", () => {
       "Assertion",
     );
 
-    expect(() => {
-      return SSOUtil.getSamlResponseFromXML(xml, idpKeys.publicKey);
-    }).toThrow("SAML Assertion must not contain XML comments");
+    expect(signatureIsCryptographicallyValid(xml)).toBe(true);
+    expectRejected(xml, COMMENT_REJECTED);
+  });
+
+  /*
+   * Child elements are the third way the digested bytes and `textContent` can
+   * describe different strings: canonicalization digests the markup,
+   * `textContent` flattens it away. The signature over these documents is
+   * genuine - only the plain-text rule rejects them.
+   */
+  const NESTED_REJECTED: string =
+    "SAML Assertion identity values must not contain nested elements";
+
+  test("rejects a NameID containing a nested element", () => {
+    const xml: string = sign(
+      buildResponse(
+        buildAssertion({
+          nameId: "admin@corp.com<saml:Wrap>.attacker.com</saml:Wrap>",
+        }),
+      ),
+      "Assertion",
+    );
+
+    expect(signatureIsCryptographicallyValid(xml)).toBe(true);
+    expectRejected(xml, NESTED_REJECTED);
+  });
+
+  test("rejects an Issuer containing a nested element", () => {
+    const xml: string = sign(
+      buildResponse(
+        buildAssertion({
+          issuer: `${ISSUER}<saml:Wrap>.attacker.com</saml:Wrap>`,
+        }),
+      ),
+      "Assertion",
+    );
+
+    expect(signatureIsCryptographicallyValid(xml)).toBe(true);
+    expectRejected(xml, NESTED_REJECTED);
+  });
+
+  test("rejects a display name containing a nested element", () => {
+    const xml: string = sign(
+      buildResponse(
+        buildAssertion({
+          displayName: "Alice<saml:Wrap>Attacker</saml:Wrap>",
+        }),
+      ),
+      "Assertion",
+    );
+
+    expect(signatureIsCryptographicallyValid(xml)).toBe(true);
+    expectRejected(xml, NESTED_REJECTED);
   });
 });
 
@@ -1222,5 +1708,53 @@ describe("SSOUtil - sanity", () => {
       idpKeys.publicKey,
     );
     expect(result.email).toBeInstanceOf(Email);
+  });
+
+  /*
+   * The two public entry points must never disagree. isSignatureValid()
+   * returning true for a document getSamlResponseFromXML() refuses would hand
+   * any caller that gates on it exactly the bypass this file exists to prevent.
+   */
+  test("isSignatureValid agrees with getSamlResponseFromXML on every document above", () => {
+    const documents: Array<string> = [
+      genuineAssertionSignedResponse(),
+      genuineResponseSignedResponse(),
+      '<?xml version="1.0" encoding="UTF-8"?>' +
+        genuineAssertionSignedResponse(),
+      genuineSignedErrorResponse(),
+      sign(
+        buildResponse(
+          buildAssertion({ nameId: "admin@corp.com<!-- -->.attacker.com" }),
+        ),
+        "Assertion",
+      ),
+      sign(
+        buildResponse(
+          buildAssertion({
+            nameId: "admin@corp.com<saml:Wrap>.attacker.com</saml:Wrap>",
+          }),
+        ),
+        "Assertion",
+      ),
+      replaceOnce(
+        genuineAssertionSignedResponse(),
+        ">alice@example.com<",
+        `>${hidden("alice@")}example.com<`,
+      ),
+      "",
+      "<not-xml",
+    ];
+
+    for (const xml of documents) {
+      let extracted: boolean = true;
+
+      try {
+        SSOUtil.getSamlResponseFromXML(xml, idpKeys.publicKey);
+      } catch {
+        extracted = false;
+      }
+
+      expect(SSOUtil.isSignatureValid(xml, idpKeys.publicKey)).toBe(extracted);
+    }
   });
 });
