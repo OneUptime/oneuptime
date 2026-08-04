@@ -3,6 +3,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import PageComponentProps from "../PageComponentProps";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Runner from "Common/Models/DatabaseModels/Runner";
@@ -47,8 +48,25 @@ const RunbookCredentials: FunctionComponent<
         }
         formSteps={[
           { title: "Credential", id: "credential" },
-          { title: "SSH", id: "ssh" },
-          { title: "Kubernetes", id: "kubernetes" },
+          /*
+           * Only the chosen type's step is shown. Walking an SSH credential
+           * through a Kubernetes step asks for fields that will never be read
+           * and reads as though both were required.
+           */
+          {
+            title: "SSH",
+            id: "ssh",
+            showIf: (item: FormValues<RunbookCredential>): boolean => {
+              return item.credentialType === RunbookCredentialType.SSH;
+            },
+          },
+          {
+            title: "Kubernetes",
+            id: "kubernetes",
+            showIf: (item: FormValues<RunbookCredential>): boolean => {
+              return item.credentialType === RunbookCredentialType.Kubernetes;
+            },
+          },
           { title: "Runners", id: "runners" },
         ]}
         formFields={[
@@ -77,6 +95,14 @@ const RunbookCredentials: FunctionComponent<
               "Which kind of access this is. It cannot be changed later — create a new credential instead.",
             fieldType: FormFieldSchemaType.Dropdown,
             required: true,
+            /*
+             * The column is immutable, so its update ACL is empty and the edit
+             * form would not fetch it. It still has to be present in the form
+             * values, because every step below is chosen by it — without this
+             * an edit would show neither the SSH nor the Kubernetes step.
+             */
+            showEvenIfPermissionDoesNotExist: true,
+            doNotShowWhenEditing: true,
             dropdownOptions: [
               { value: RunbookCredentialType.SSH, label: "SSH" },
               {
@@ -90,15 +116,20 @@ const RunbookCredentials: FunctionComponent<
             field: { sshHostname: true },
             title: "Hostname",
             stepId: "ssh",
-            description: "Only used by SSH credentials.",
+            showIf: (item: FormValues<RunbookCredential>): boolean => {
+              return item.credentialType === RunbookCredentialType.SSH;
+            },
             fieldType: FormFieldSchemaType.Text,
-            required: false,
+            required: true,
             placeholder: "10.0.4.21",
           },
           {
             field: { sshPort: true },
             title: "Port",
             stepId: "ssh",
+            showIf: (item: FormValues<RunbookCredential>): boolean => {
+              return item.credentialType === RunbookCredentialType.SSH;
+            },
             fieldType: FormFieldSchemaType.Number,
             required: false,
             placeholder: "22",
@@ -107,14 +138,20 @@ const RunbookCredentials: FunctionComponent<
             field: { sshUsername: true },
             title: "Username",
             stepId: "ssh",
+            showIf: (item: FormValues<RunbookCredential>): boolean => {
+              return item.credentialType === RunbookCredentialType.SSH;
+            },
             fieldType: FormFieldSchemaType.Text,
-            required: false,
+            required: true,
             placeholder: "deploy",
           },
           {
             field: { sshPrivateKey: true },
             title: "Private Key (PEM)",
             stepId: "ssh",
+            showIf: (item: FormValues<RunbookCredential>): boolean => {
+              return item.credentialType === RunbookCredentialType.SSH;
+            },
             description:
               "Encrypted at rest and never shown again. Leave empty when using a password.",
             fieldType: FormFieldSchemaType.LongText,
@@ -125,6 +162,9 @@ const RunbookCredentials: FunctionComponent<
             field: { sshPassphrase: true },
             title: "Private Key Passphrase",
             stepId: "ssh",
+            showIf: (item: FormValues<RunbookCredential>): boolean => {
+              return item.credentialType === RunbookCredentialType.SSH;
+            },
             description: "Only if the key is passphrase-protected.",
             fieldType: FormFieldSchemaType.Password,
             required: false,
@@ -133,6 +173,9 @@ const RunbookCredentials: FunctionComponent<
             field: { sshPassword: true },
             title: "Password",
             stepId: "ssh",
+            showIf: (item: FormValues<RunbookCredential>): boolean => {
+              return item.credentialType === RunbookCredentialType.SSH;
+            },
             description:
               "For hosts without key access. A key is the better option where you have the choice.",
             fieldType: FormFieldSchemaType.Password,
@@ -143,24 +186,32 @@ const RunbookCredentials: FunctionComponent<
             field: { kubernetesApiServerUrl: true },
             title: "API Server URL",
             stepId: "kubernetes",
-            description: "Only used by Kubernetes credentials.",
+            showIf: (item: FormValues<RunbookCredential>): boolean => {
+              return item.credentialType === RunbookCredentialType.Kubernetes;
+            },
             fieldType: FormFieldSchemaType.Text,
-            required: false,
+            required: true,
             placeholder: "https://10.0.0.1:6443",
           },
           {
             field: { kubernetesServiceAccountToken: true },
             title: "Service Account Token",
             stepId: "kubernetes",
+            showIf: (item: FormValues<RunbookCredential>): boolean => {
+              return item.credentialType === RunbookCredentialType.Kubernetes;
+            },
             description:
               "Bind the account to a role that permits only the actions your runbooks need. Encrypted at rest and never shown again.",
             fieldType: FormFieldSchemaType.LongText,
-            required: false,
+            required: true,
           },
           {
             field: { kubernetesCaCertificate: true },
             title: "CA Certificate (PEM)",
             stepId: "kubernetes",
+            showIf: (item: FormValues<RunbookCredential>): boolean => {
+              return item.credentialType === RunbookCredentialType.Kubernetes;
+            },
             description:
               "So the Runner can verify the API server. Leave empty only if it presents a certificate your Runner already trusts.",
             fieldType: FormFieldSchemaType.LongText,
