@@ -1,4 +1,4 @@
-import PageComponentProps from "../PageComponentProps";
+import PageComponentProps from "../../PageComponentProps";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -12,13 +12,17 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
 import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode";
 import Route from "Common/Types/API/Route";
-import PageMap from "../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import InstallationTestPanel from "../../Components/SessionReplay/InstallationTestPanel";
-import TargetedCapturePanel from "../../Components/SessionReplay/TargetedCapturePanel";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import InstallationTestPanel from "../../../Components/SessionReplay/InstallationTestPanel";
+import TargetedCapturePanel from "../../../Components/SessionReplay/TargetedCapturePanel";
 
 /*
- * Project-level session replay controls.
+ * Project-level session replay controls, under Real User Monitoring >
+ * Settings. Session replay only exists for RUM applications, so this sits
+ * beside the recordings and the applications it governs rather than in
+ * project settings, where it was several clicks away from everything it
+ * relates to.
  *
  * This page is deliberately NOT the place to edit one application's
  * masking or sampling - that lives on the application itself, under
@@ -38,7 +42,7 @@ import TargetedCapturePanel from "../../Components/SessionReplay/TargetedCapture
  * change one.
  */
 
-const SettingsSessionReplay: FunctionComponent<
+const RumSessionReplaySettings: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   return (
@@ -97,7 +101,7 @@ const SettingsSessionReplay: FunctionComponent<
         modelType={RumApplication}
         id="rum-application-session-replay-roster-table"
         userPreferencesKey="rum-application-session-replay-roster-table"
-        name="Settings > Session Replay > Applications"
+        name="Real User Monitoring > Settings > Session Replay > Applications"
         isDeleteable={false}
         isEditable={false}
         isCreateable={false}
@@ -223,4 +227,4 @@ const SettingsSessionReplay: FunctionComponent<
   );
 };
 
-export default SettingsSessionReplay;
+export default RumSessionReplaySettings;

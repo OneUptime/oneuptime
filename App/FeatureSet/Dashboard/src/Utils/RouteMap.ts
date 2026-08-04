@@ -398,6 +398,13 @@ export const RumRoutePath: Dictionary<string> = {
   [PageMap.RUM_APPLICATION_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.RUM_SETTINGS_LABEL_RULES]: `settings/label-rules`,
   [PageMap.RUM_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
+  /*
+   * Project-shaped session replay controls (master switch, targeted
+   * capture, installation test). Under settings/ rather than at the top
+   * level so it cannot be shadowed by an application whose id happened to
+   * be "session-replay".
+   */
+  [PageMap.RUM_SETTINGS_SESSION_REPLAY]: `settings/session-replay`,
   [PageMap.RUM_ARCHIVED]: `archived`,
 };
 
@@ -779,7 +786,6 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_TELEMETRY_INGESTION_KEYS]: `telemetry-ingestion-keys`,
   [PageMap.SETTINGS_TELEMETRY_INGESTION_KEY_VIEW]: `telemetry-ingestion-keys/${RouteParams.ModelID}`,
   [PageMap.SETTINGS_TELEMETRY_SETTINGS]: `telemetry-settings`,
-  [PageMap.SETTINGS_SESSION_REPLAY]: `session-replay`,
   [PageMap.SETTINGS_SLACK_INTEGRATION]: "slack-integration",
   [PageMap.SETTINGS_MICROSOFT_TEAMS_INTEGRATION]: "microsoft-teams-integration",
 
@@ -3974,6 +3980,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.RUM_SETTINGS_SESSION_REPLAY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/rum/${
+      RumRoutePath[PageMap.RUM_SETTINGS_SESSION_REPLAY]
+    }`,
+  ),
+
   // Dashboards
 
   [PageMap.DASHBOARDS_ROOT]: new Route(
@@ -5050,12 +5062,6 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_TELEMETRY_SETTINGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_TELEMETRY_SETTINGS]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_SESSION_REPLAY]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_SESSION_REPLAY]
     }`,
   ),
 

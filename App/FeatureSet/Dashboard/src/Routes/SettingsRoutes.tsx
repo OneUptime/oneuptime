@@ -19,8 +19,6 @@ import SettingsIngestionKeyView from "../Pages/Settings/TelemetryIngestionKeyVie
 
 import SettingsTelemetrySettings from "../Pages/Settings/TelemetrySettings";
 
-import SettingsSessionReplay from "../Pages/Settings/SessionReplay";
-
 import SettingLabels from "../Pages/Settings/Labels";
 
 import SettingFeatureFlags from "../Pages/Settings/FeatureFlags";
@@ -364,16 +362,6 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
             <SettingsTelemetrySettings
               {...props}
               pageRoute={RouteMap[PageMap.SETTINGS_TELEMETRY_SETTINGS] as Route}
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_SESSION_REPLAY)}
-          element={
-            <SettingsSessionReplay
-              {...props}
-              pageRoute={RouteMap[PageMap.SETTINGS_SESSION_REPLAY] as Route}
             />
           }
         />

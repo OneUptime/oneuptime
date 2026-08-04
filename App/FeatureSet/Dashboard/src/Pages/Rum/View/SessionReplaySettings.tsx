@@ -29,9 +29,9 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
  * Session replay policy for ONE application.
  *
  * Two levels exist, deliberately. The project-level master switch lives in
- * Project Settings > Session Replay because it is the control a
- * data-protection owner reaches for, and it must be findable without
- * knowing which application is at fault. Everything here is the
+ * Real User Monitoring > Settings > Session Replay because it is the
+ * control a data-protection owner reaches for, and it must be findable
+ * without knowing which application is at fault. Everything here is the
  * operational policy for this application alone.
  *
  * Every setting on this page takes effect in the END USER'S BROWSER, at
@@ -70,7 +70,7 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
       <Alert
         type={AlertType.INFO}
         strongTitle="Recording must also be allowed for the project"
-        title="These settings only take effect while session replay is allowed project-wide. That master switch, the installation test and the targeted-capture tool live in Project Settings > Session Replay."
+        title="These settings only take effect while session replay is allowed project-wide. That master switch, the installation test and the targeted-capture tool live in Real User Monitoring > Settings > Session Replay."
       />
 
       <CardModelDetail<RumApplication>
@@ -96,13 +96,13 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
               },
             },
             {
-              title: "Project settings",
+              title: "Project-wide replay settings",
               icon: IconProp.Settings,
               buttonStyle: ButtonStyleType.OUTLINE,
               onClick: (): void => {
                 Navigation.navigate(
                   RouteUtil.populateRouteParams(
-                    RouteMap[PageMap.SETTINGS_SESSION_REPLAY] as Route,
+                    RouteMap[PageMap.RUM_SETTINGS_SESSION_REPLAY] as Route,
                   ),
                 );
               },

@@ -83,6 +83,12 @@ export function getRumBreadcrumbs(path: string): Array<Link> | undefined {
         "Session Replay Settings",
       ],
     ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.RUM_SETTINGS_SESSION_REPLAY, [
+      "Project",
+      "Real User Monitoring",
+      "Settings",
+      "Session Replay",
+    ]),
   };
   return breadcrumpLinksMap[path];
 }

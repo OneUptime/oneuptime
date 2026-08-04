@@ -171,6 +171,7 @@ beforeAll(async () => {
     PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_VIEW,
     PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_AUDIT,
     PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_SETTINGS,
+    PageMap.RUM_SETTINGS_SESSION_REPLAY,
   ];
 });
 
@@ -294,6 +295,23 @@ describe("Session replay page wiring", () => {
     }
   });
 
+  test("the project-level settings page is registered under the RUM list layout", () => {
+    /*
+     * Registered from RumRoutePath rather than getLastPathForKey because
+     * the path is two segments ("settings/session-replay"), and it belongs
+     * to the RumLayout branch, not the application-view branch: nesting it
+     * under the application view would put a :id in front of a page that
+     * has no application to read.
+     */
+    const occurrences: number = (
+      routeSource.match(
+        /RumRoutePath\[\s*PageMap\.RUM_SETTINGS_SESSION_REPLAY\s*\]/g,
+      ) ?? []
+    ).length;
+
+    expect(occurrences).toBe(1);
+  });
+
   test("canvas replay stays disabled in the stage", () => {
     /*
      * rrweb implements canvas replay by dropping the strict sandbox for
@@ -404,18 +422,32 @@ describe("Session replay page wiring", () => {
     expect(settingsPath.startsWith(playerPrefix)).toBe(false);
   });
 
-  test("the project-level settings page lives under /settings, not /rum", () => {
+  test("the project-level settings page lives under RUM settings, unscoped to an application", () => {
     /*
      * The project master switch, the installation test and targeted
-     * capture are project-shaped and are reached from the Settings side
-     * menu. Nothing about them is scoped to one application, so a :id in
-     * this route would mean the page had been wired to the wrong section.
+     * capture are project-shaped: they are reached from the Real User
+     * Monitoring > Settings side menu, beside the applications and
+     * recordings they govern. Nothing about them is scoped to ONE
+     * application, so a :id in this route would mean the page had been
+     * wired under the application view by mistake.
      */
-    const path: string = RouteMap[PageMap.SETTINGS_SESSION_REPLAY]!.toString();
+    const path: string =
+      RouteMap[PageMap.RUM_SETTINGS_SESSION_REPLAY]!.toString();
 
-    expect(path.endsWith("/settings/session-replay")).toBe(true);
+    expect(path.endsWith("/rum/settings/session-replay")).toBe(true);
     expect(path).not.toContain(RouteParams.ModelID);
-    expect(path).not.toContain("/rum/");
+  });
+
+  test("the project-level settings page is no longer under project settings", () => {
+    /*
+     * The old SETTINGS_SESSION_REPLAY key is gone. Leaving it defined
+     * would let a stale link keep resolving to a route nothing renders.
+     */
+    expect(
+      (PageMap as Record<string, string | undefined>)[
+        "SETTINGS_SESSION_REPLAY"
+      ],
+    ).toBeUndefined();
   });
 
   test("every session replay page has a breadcrumb trail", () => {
