@@ -12,6 +12,7 @@ import {
 } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
+import useCustomFieldFacets from "../CustomFields/useCustomFieldFacets";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -347,6 +348,13 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
   const tableUrlStateKey: string =
     props.saveFilterProps?.tableId || "alerts-table";
 
+  /*
+   * One chip per custom field this project has defined, appended after the
+   * built-in ones. They arrive a render or two late (the definitions are
+   * fetched), which is what `areFacetsLoading` below tells the bar.
+   */
+  const { facets: customFieldFacets, isLoading: areCustomFieldFacetsLoading } =
+    useCustomFieldFacets({ customFieldsModelType: AlertCustomField });
   const {
     getOwnersForResource,
     isLoadingOwners,
@@ -361,7 +369,8 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
     ownerTeamModelType: AlertOwnerTeam,
     resourceIdField: "alertId",
     showLabelsFacet: true,
-    extraFacets: alertExtraFacets,
+    extraFacets: [...alertExtraFacets, ...customFieldFacets],
+    areFacetsLoading: areCustomFieldFacetsLoading,
   });
 
   // Fetch alert states on mount
