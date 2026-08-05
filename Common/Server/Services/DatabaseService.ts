@@ -1062,10 +1062,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * `text` columns (VeryLongText and friends) declare none and pass
    * through untouched, as do numbers, dates and ObjectIDs.
    *
-   * This is a safety net for the raw, hook-free write paths
-   * (updateColumnsByIdWithoutHooks) that bypass checkMaxLengthOfFields. It
-   * is NOT a substitute for sizing a column correctly: if a field is
-   * legitimately long, widen the column.
+   * The raw, hook-free write paths (updateColumnsByIdWithoutHooks and
+   * atomicAddToColumnsByIdWithoutHooks) call this themselves, so callers do
+   * NOT need to — and must not rely on being able to skip it by writing a
+   * new raw path of their own. It is NOT a substitute for sizing a column
+   * correctly: if a field is legitimately long, widen the column.
    */
   public truncateStringColumnsToMaxLength(
     data: Record<string, unknown>,
@@ -2302,6 +2303,17 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * the caller), and every value is bound as a parameter, so this is not an
    * injection surface. Use ONLY for trusted, internal, side-effect-free
    * column writes where the full pipeline is pure overhead.
+   *
+   * Oversized strings are CLAMPED here (truncateStringColumnsToMaxLength)
+   * rather than rejected. Skipping the hooks also skips
+   * checkMaxLengthOfFields, so before this an over-long value reached
+   * Postgres raw and failed the ENTIRE statement — including whatever else
+   * rode along with it. On the telemetry liveness writes that is fatal: one
+   * over-long OpenTelemetry resource attribute took `lastSeenAt` down with
+   * it and markDisconnected* stranded a healthy resource as "disconnected"
+   * 15 minutes later while its data kept arriving (issue #3006). Clamping
+   * in here, at the choke point, is what makes that unforgettable — every
+   * caller of this path gets it, including ones not written yet.
    */
   @CaptureSpan()
   public async updateColumnsByIdWithoutHooks(input: {
@@ -2327,9 +2339,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     const setClauses: Array<string> = [];
     const params: Array<unknown> = [];
 
-    for (const [propertyName, value] of Object.entries(
-      input.data as ObjectLiteral,
-    )) {
+    /*
+     * Clamp on a shallow COPY: callers must not have their own object
+     * mutated behind their back (a liveness-only retry, for instance,
+     * rebuilds its payload from the same source values).
+     */
+    const data: ObjectLiteral = this.truncateStringColumnsToMaxLength({
+      ...(input.data as ObjectLiteral),
+    });
+
+    for (const [propertyName, value] of Object.entries(data)) {
       const column: ColumnMetadata | undefined =
         metadata.findColumnWithPropertyName(propertyName);
       if (!column) {
@@ -2401,6 +2420,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * caller) and every value is bound as a parameter, so this is not an
    * injection surface. Use ONLY for trusted, internal, side-effect-free
    * column writes.
+   *
+   * `set` values are clamped to their column widths for the same reason
+   * updateColumnsByIdWithoutHooks clamps: this path also skips
+   * checkMaxLengthOfFields, and an over-long string here would abort the
+   * counter increments riding in the same statement.
    */
   @CaptureSpan()
   public async atomicAddToColumnsByIdWithoutHooks(input: {
@@ -2447,9 +2471,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       setClauses.push(`${quoted} = COALESCE(${quoted}, 0) + $${params.length}`);
     }
 
-    for (const [propertyName, value] of Object.entries(
-      (input.set || {}) as ObjectLiteral,
-    )) {
+    // Shallow copy — never mutate the caller's object. See the clamp note above.
+    const set: ObjectLiteral = this.truncateStringColumnsToMaxLength({
+      ...((input.set || {}) as ObjectLiteral),
+    });
+
+    for (const [propertyName, value] of Object.entries(set)) {
       if (typeof value === "function") {
         throw new BadDataException(
           `atomicAddToColumnsByIdWithoutHooks: SQL-expression values are not supported (column "${propertyName}"); pass a literal value.`,
