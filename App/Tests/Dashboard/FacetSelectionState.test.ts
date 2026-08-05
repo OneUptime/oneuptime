@@ -2,6 +2,7 @@ import {
   FacetSelectionConstraint,
   FacetSelectionState,
   getEmptyFacetSelectionState,
+  isFacetActive,
   isFacetSelectionActive,
   isFilterOperator,
   normalizeFacetValues,
@@ -29,15 +30,21 @@ import { describe, expect, test } from "@jest/globals";
  */
 
 describe("isFilterOperator", () => {
-  test("accepts the four supported operators", () => {
+  test("accepts the operators every chip kind offers", () => {
     expect(isFilterOperator("is")).toBe(true);
     expect(isFilterOperator("is_not")).toBe(true);
     expect(isFilterOperator("is_empty")).toBe(true);
     expect(isFilterOperator("is_not_empty")).toBe(true);
+    // Date chips.
+    expect(isFilterOperator("before")).toBe(true);
+    expect(isFilterOperator("between")).toBe(true);
+    // Text and number chips.
+    expect(isFilterOperator("contains")).toBe(true);
+    expect(isFilterOperator("greater_than")).toBe(true);
   });
 
   test("rejects anything else", () => {
-    expect(isFilterOperator("contains")).toBe(false);
+    expect(isFilterOperator("matches")).toBe(false);
     expect(isFilterOperator("")).toBe(false);
     expect(isFilterOperator(null)).toBe(false);
     expect(isFilterOperator(undefined)).toBe(false);
@@ -383,7 +390,7 @@ describe("resolveFacetOperator", () => {
       "IS",
       " is",
       "is ",
-      "contains",
+      "matches",
       "isnt",
       "is_empty_",
       "__proto__",
@@ -598,5 +605,193 @@ describe("sanitizeFacetSelectionState", () => {
         ).toBeLessThanOrEqual(1);
       }
     }
+  });
+});
+
+/*
+ * Custom field chips arrive asynchronously — the definitions have to be
+ * fetched — while a shared link is restored synchronously on the first render.
+ * So a selection routinely exists before the facet that owns it does, and this
+ * parser is the only thing standing between that and a lost filter.
+ *
+ * The asymmetry with the column-filter popup's `sanitizeFilterData`, which
+ * drops any key it does not recognise, is deliberate and load-bearing: here an
+ * unknown key survives, and useResourceOwners reconciles it once the facet
+ * list settles.
+ */
+describe("selections whose facet has not arrived yet", () => {
+  test("parse preserves a custom field key verbatim", () => {
+    const state: FacetSelectionState = parseFacetSelectionState({
+      facetSelections: { "customField:Severity Band": ["P1"] },
+      facetOperators: { "customField:Severity Band": "is_not" },
+    } as JSONObject);
+
+    expect(state.facetSelections["customField:Severity Band"]).toEqual(["P1"]);
+    expect(state.facetOperators["customField:Severity Band"]).toBe("is_not");
+  });
+
+  test("sanitize against an empty facet list leaves it alone", () => {
+    /*
+     * This runs on the first render, before the definitions land. Clamping
+     * here would throw away the link's filter a moment before the chip that
+     * could show it appears.
+     */
+    const restored: FacetSelectionState = {
+      ...getEmptyFacetSelectionState(),
+      facetSelections: { "customField:Team": ["Payments"] },
+      facetOperators: { "customField:Team": "contains" },
+    };
+
+    const sanitized: FacetSelectionState = sanitizeFacetSelectionState(
+      restored,
+      [],
+    );
+
+    expect(sanitized.facetSelections["customField:Team"]).toEqual(["Payments"]);
+    expect(sanitized.facetOperators["customField:Team"]).toBe("contains");
+  });
+
+  test("counts as an active selection while the facet is missing", () => {
+    // Otherwise the URL effect reads the link as "nothing selected" and deletes it.
+    expect(
+      isFacetSelectionActive({
+        ...getEmptyFacetSelectionState(),
+        facetSelections: { "customField:Team": ["Payments"] },
+      }),
+    ).toBe(true);
+  });
+});
+
+describe("text and number chips", () => {
+  const TEXT: FacetSelectionConstraint = {
+    key: "customField:Ticket",
+    type: "text",
+    supportedOperators: [
+      "is",
+      "is_not",
+      "contains",
+      "not_contains",
+      "starts_with",
+      "ends_with",
+      "is_empty",
+      "is_not_empty",
+    ],
+  };
+
+  const NUMBER: FacetSelectionConstraint = {
+    key: "customField:Impacted Users",
+    type: "number",
+    supportedOperators: [
+      "is",
+      "is_not",
+      "greater_than",
+      "greater_than_or_equal",
+      "less_than",
+      "less_than_or_equal",
+      "is_empty",
+      "is_not_empty",
+    ],
+  };
+
+  function stateWith(
+    facetSelections: { [key: string]: Array<string> },
+    facetOperators: { [key: string]: FilterOperator },
+  ): FacetSelectionState {
+    return {
+      ...getEmptyFacetSelectionState(),
+      facetSelections: facetSelections,
+      facetOperators: facetOperators,
+    };
+  }
+
+  test("accepts the text and numeric operators", () => {
+    for (const operator of [
+      "contains",
+      "not_contains",
+      "starts_with",
+      "ends_with",
+      "greater_than",
+      "greater_than_or_equal",
+      "less_than",
+      "less_than_or_equal",
+    ]) {
+      expect(isFilterOperator(operator)).toBe(true);
+    }
+  });
+
+  test("keeps a typed operator the chip offers", () => {
+    const sanitized: FacetSelectionState = sanitizeFacetSelectionState(
+      stateWith({ [TEXT.key]: ["JIRA-1"] }, { [TEXT.key]: "contains" }),
+      [TEXT],
+    );
+
+    expect(sanitized.facetOperators[TEXT.key]).toBe("contains");
+    expect(sanitized.facetSelections[TEXT.key]).toEqual(["JIRA-1"]);
+  });
+
+  test("keeps only the first value — the input can show one", () => {
+    const sanitized: FacetSelectionState = sanitizeFacetSelectionState(
+      stateWith({ [TEXT.key]: ["a", "b"] }, {}),
+      [TEXT],
+    );
+
+    expect(sanitized.facetSelections[TEXT.key]).toEqual(["a"]);
+  });
+
+  test("drops a blank text value", () => {
+    // A lit chip over an unfiltered list is worse than an empty chip.
+    expect(
+      sanitizeFacetSelectionState(stateWith({ [TEXT.key]: ["   "] }, {}), [
+        TEXT,
+      ]).facetSelections[TEXT.key],
+    ).toEqual([]);
+  });
+
+  test("keeps a numeric value that is a number", () => {
+    expect(
+      sanitizeFacetSelectionState(
+        stateWith({ [NUMBER.key]: ["42"] }, { [NUMBER.key]: "greater_than" }),
+        [NUMBER],
+      ).facetSelections[NUMBER.key],
+    ).toEqual(["42"]);
+  });
+
+  test("drops a numeric value that is not a number", () => {
+    /*
+     * The number input can only show a number, so a hand-edited URL carrying
+     * anything else would leave the chip lit with an empty box under it.
+     */
+    for (const value of ["abc", "", "Infinity", "1,000"]) {
+      expect(
+        sanitizeFacetSelectionState(stateWith({ [NUMBER.key]: [value] }, {}), [
+          NUMBER,
+        ]).facetSelections[NUMBER.key],
+      ).toEqual([]);
+    }
+  });
+
+  test("a negative or decimal number survives", () => {
+    for (const value of ["-5", "3.14", "0"]) {
+      expect(
+        sanitizeFacetSelectionState(stateWith({ [NUMBER.key]: [value] }, {}), [
+          NUMBER,
+        ]).facetSelections[NUMBER.key],
+      ).toEqual([value]);
+    }
+  });
+
+  test("an operator the chip does not offer still clamps", () => {
+    expect(
+      sanitizeFacetSelectionState(
+        stateWith({ [NUMBER.key]: ["42"] }, { [NUMBER.key]: "contains" }),
+        [NUMBER],
+      ).facetOperators[NUMBER.key],
+    ).toBe("is");
+  });
+
+  test("a typed chip is active once it holds a value", () => {
+    expect(isFacetActive(TEXT, ["JIRA-1"], "contains")).toBe(true);
+    expect(isFacetActive(TEXT, [], "contains")).toBe(false);
+    expect(isFacetActive(TEXT, [], "is_empty")).toBe(true);
   });
 });

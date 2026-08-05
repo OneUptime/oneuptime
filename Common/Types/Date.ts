@@ -9,6 +9,12 @@ import Zod, { ZodSchema } from "../Utils/Schema/Zod";
 
 export const Moment: typeof moment = moment;
 
+/*
+ * The units a calendar (rather than a fixed-length) interval can be measured in.
+ * See getStartOfCalendarUnit / addRemoveCalendarUnits below.
+ */
+export type CalendarUnit = "hour" | "day" | "week" | "month" | "year";
+
 export default class OneUptimeDate {
   // get date time from unix timestamp
 
@@ -361,6 +367,27 @@ export default class OneUptimeDate {
         ? ""
         : " " + this.getZoneAbbrByTimezone(data.timezone as Timezone, date))
     ).trim();
+  }
+
+  /*
+   * Format an instant with an explicit moment format string, resolved in an
+   * IANA timezone. The formatted-string helpers above each bake in a layout;
+   * this one is for callers that need a specific shape ("MMMM YYYY" for the
+   * month a status page report covers) and know exactly which zone it must be
+   * read in. Falls back to the viewer's / process's zone without one.
+   */
+  public static getDateAsCustomFormattedStringInTimezone(data: {
+    date: Date | string;
+    format: string;
+    timezone?: string | undefined;
+  }): string {
+    const date: Date = this.fromString(data.date);
+
+    if (!data.timezone) {
+      return this.inCurrentTimezone(date).format(data.format);
+    }
+
+    return moment(date).tz(data.timezone).format(data.format);
   }
 
   /**
@@ -1211,6 +1238,91 @@ export default class OneUptimeDate {
       return moment.tz(date, timezone).endOf("day").toDate();
     }
     return moment(date).endOf("day").toDate();
+  }
+
+  /*
+   * Calendar arithmetic - "the previous calendar month", "add 3 calendar
+   * months" - as opposed to the fixed-length arithmetic the rest of this class
+   * does. A calendar month is 28-31 days long and a calendar day is 23-25 hours
+   * long across a DST transition, so anything that has to line up with a wall
+   * clock (a status page report that must read "Jul 1 - Jul 31", a schedule that
+   * must keep firing at 09:00 local) cannot be expressed by adding milliseconds.
+   *
+   * Every helper below takes an optional IANA timezone. Without one the
+   * boundaries land in the process's local zone, which on a server is UTC.
+   */
+  private static toMomentCalendarUnit(
+    unit: CalendarUnit,
+    forStartOf: boolean,
+  ): moment.unitOfTime.StartOf & moment.unitOfTime.DurationConstructor {
+    /*
+     * moment's "week" starts on the locale's first day, which differs between
+     * environments and would make a weekly report cover Sun-Sat on one host and
+     * Mon-Sun on another. ISO weeks are always Monday-Sunday, so the boundary is
+     * the same everywhere. Durations have no such ambiguity - a week is 7 days -
+     * and moment has no "isoWeek" duration, so only startOf is remapped.
+     */
+    if (unit === "week" && forStartOf) {
+      return "isoWeek" as moment.unitOfTime.StartOf &
+        moment.unitOfTime.DurationConstructor;
+    }
+
+    return unit as moment.unitOfTime.StartOf &
+      moment.unitOfTime.DurationConstructor;
+  }
+
+  private static inTimezone(
+    date: Date,
+    timezone?: string | undefined,
+  ): moment.Moment {
+    return timezone ? moment.tz(date, timezone) : moment(date);
+  }
+
+  /*
+   * The instant the calendar unit containing `date` began - e.g. the first
+   * millisecond of that month, in `timezone`.
+   */
+  public static getStartOfCalendarUnit(
+    date: Date,
+    unit: CalendarUnit,
+    timezone?: string | undefined,
+  ): Date {
+    return this.inTimezone(this.fromString(date), timezone)
+      .startOf(this.toMomentCalendarUnit(unit, true))
+      .toDate();
+  }
+
+  /*
+   * Move `date` by whole calendar units, keeping the wall clock in `timezone`.
+   * Adding one month to Jan 31 lands on Feb 28/29 (moment clamps), and adding a
+   * day across a DST boundary still lands at the same local time.
+   */
+  public static addRemoveCalendarUnits(
+    date: Date,
+    unit: CalendarUnit,
+    count: number,
+    timezone?: string | undefined,
+  ): Date {
+    return this.inTimezone(this.fromString(date), timezone)
+      .add(count, this.toMomentCalendarUnit(unit, false))
+      .toDate();
+  }
+
+  /*
+   * How many whole calendar units fit between the two instants, measured in
+   * `timezone`. Used to jump a recurrence forward to "now" in one step instead
+   * of looping one interval at a time.
+   */
+  public static getCalendarUnitsBetween(
+    startDate: Date,
+    endDate: Date,
+    unit: CalendarUnit,
+    timezone?: string | undefined,
+  ): number {
+    return this.inTimezone(this.fromString(endDate), timezone).diff(
+      this.inTimezone(this.fromString(startDate), timezone),
+      this.toMomentCalendarUnit(unit, false),
+    );
   }
 
   public static isBetween(date: Date, startDate: Date, endDate: Date): boolean {

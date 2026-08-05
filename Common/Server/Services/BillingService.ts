@@ -23,6 +23,7 @@ import APIException from "../../Types/Exception/ApiException";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ProductType from "../../Types/MeteredPlan/ProductType";
 import ObjectID from "../../Types/ObjectID";
+import Sleep from "../../Types/Sleep";
 import Stripe from "stripe";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
@@ -43,6 +44,16 @@ export interface PaymentMethod {
  * instead of a raw payment-provider failure.
  */
 export const MAX_TRIAL_LENGTH_IN_DAYS: number = 730;
+
+/*
+ * How long to wait before trying a cancel again, per retry.
+ *
+ * The errors that lose a cancel - a rate limit, a dropped connection, a
+ * transient 5xx - are the ones a second attempt fixes, and a cancel that never
+ * lands leaves an open subscription nothing in OneUptime points at any more.
+ * Kept short and finite because this runs inside the plan change request.
+ */
+const CANCEL_RETRY_DELAYS_IN_MS: Array<number> = [1000, 3000];
 
 export interface Invoice {
   id: string;
@@ -257,6 +268,7 @@ export class BillingService extends BaseService {
     trialDate: Date | null;
     defaultPaymentMethodId?: string | undefined;
     promoCode?: string | undefined;
+    metadata?: Dictionary<string> | undefined;
   }): Promise<{
     meteredSubscriptionId: string;
     trialEndsAt: Date | null;
@@ -296,6 +308,10 @@ export class BillingService extends BaseService {
     if (data.defaultPaymentMethodId) {
       meteredPlanSubscriptionParams.default_payment_method =
         data.defaultPaymentMethodId;
+    }
+
+    if (data.metadata) {
+      meteredPlanSubscriptionParams.metadata = data.metadata;
     }
 
     // Create metered subscriptions
@@ -370,6 +386,86 @@ export class BillingService extends BaseService {
       trialDate = data.trial;
     }
 
+    /*
+     * A trial is live when its end date is still ahead of us - nothing else
+     * decides it.
+     *
+     * The new plan's configured trial length is an input to how long a *fresh*
+     * trial runs (the boolean branch above). It must not decide whether an
+     * already-running trial handed over by changePlan survives: gating on it
+     * meant a project that changed plan mid-trial onto a plan configured with
+     * 0 trial days got trial_end "now", and Stripe invoiced the full plan on
+     * the spot. That is the upgrade-during-trial charge customers reported.
+     *
+     * Same predicate as subscribeToMeteredPlan, so the flat-fee and the
+     * metered subscription always end their trial on the same date.
+     */
+    const isTrialing: boolean = Boolean(
+      trialDate && OneUptimeDate.isInTheFuture(trialDate),
+    );
+
+    const subscriptionId: string = await this.createFlatFeeSubscription({
+      customerId: data.customerId,
+      plan: data.plan,
+      quantity: data.quantity,
+      isYearly: data.isYearly,
+      trialDate: isTrialing ? trialDate : null,
+      defaultPaymentMethodId: data.defaultPaymentMethodId,
+      promoCode: data.promoCode,
+    });
+
+    // Create metered subscriptions
+    const meteredSubscription: {
+      meteredSubscriptionId: string;
+      trialEndsAt: Date | null;
+    } = await this.subscribeToMeteredPlan({
+      ...data,
+
+      /*
+       * The resolved trial, not the raw one: both subscriptions have to answer
+       * "is this project trialing" the same way, or usage starts being invoiced
+       * while the flat fee is still waived.
+       */
+      trialDate: isTrialing ? trialDate : null,
+    });
+
+    return {
+      subscriptionId: subscriptionId,
+      meteredSubscriptionId: meteredSubscription.meteredSubscriptionId,
+
+      /*
+       * Reported with the same predicate that built trial_end. Callers persist
+       * this onto the project row, so a mismatch would leave the project
+       * showing no trial while Stripe has the subscription trialing (or the
+       * reverse) - and the project row is what gates the in-app trial banner.
+       */
+      trialEndsAt: isTrialing ? trialDate : null,
+    };
+  }
+
+  /*
+   * Creates the flat-fee subscription that carries the plan's price.
+   *
+   * Split out of subscribeToPlan so a plan change can rebuild the flat-fee
+   * subscription on its own. The metered subscription is not part of a plan
+   * change - it carries the usage already reported for the current period -
+   * and is only ever rebuilt when it is itself dead.
+   *
+   * The trial is passed in already resolved. Whether one is running is the
+   * caller's decision, and it has to be the same decision the metered
+   * subscription is created with, or usage starts being invoiced while the
+   * flat fee is still waived.
+   */
+  private async createFlatFeeSubscription(data: {
+    customerId: string;
+    plan: SubscriptionPlan;
+    quantity: number;
+    isYearly: boolean;
+    trialDate: Date | null;
+    defaultPaymentMethodId?: string | undefined;
+    promoCode?: string | undefined;
+    metadata?: Dictionary<string> | undefined;
+  }): Promise<string> {
     const subscriptionParams: Stripe.SubscriptionCreateParams = {
       customer: data.customerId,
 
@@ -384,9 +480,10 @@ export class BillingService extends BaseService {
 
       proration_behavior: "always_invoice",
 
+      // Same predicate as subscribeToMeteredPlan, so the pair trials together.
       trial_end:
-        trialDate && data.plan.getTrialPeriod() > 0
-          ? OneUptimeDate.toUnixTimestamp(trialDate)
+        data.trialDate && OneUptimeDate.isInTheFuture(data.trialDate)
+          ? OneUptimeDate.toUnixTimestamp(data.trialDate)
           : "now",
     };
 
@@ -398,24 +495,14 @@ export class BillingService extends BaseService {
       subscriptionParams.default_payment_method = data.defaultPaymentMethodId;
     }
 
+    if (data.metadata) {
+      subscriptionParams.metadata = data.metadata;
+    }
+
     const subscription: Stripe.Response<Stripe.Subscription> =
       await this.stripe.subscriptions.create(subscriptionParams);
 
-    // Create metered subscriptions
-    const meteredSubscription: {
-      meteredSubscriptionId: string;
-      trialEndsAt: Date | null;
-    } = await this.subscribeToMeteredPlan({
-      ...data,
-      trialDate,
-    });
-
-    return {
-      subscriptionId: subscription.id,
-      meteredSubscriptionId: meteredSubscription.meteredSubscriptionId,
-      trialEndsAt:
-        trialDate && data.plan.getTrialPeriod() > 0 ? trialDate : null,
-    };
+    return subscription.id;
   }
 
   @CaptureSpan()
@@ -609,6 +696,137 @@ export class BillingService extends BaseService {
     return subscription.items.data;
   }
 
+  /*
+   * The trial a subscription itself carries, as a Date. Null when it carries
+   * none - which is also what a subscription that no longer exists reports.
+   */
+  private getTrialEndOnSubscription(
+    subscription: Stripe.Subscription | null,
+  ): Date | null {
+    return subscription?.trial_end
+      ? OneUptimeDate.fromUnixTimestamp(subscription.trial_end)
+      : null;
+  }
+
+  /*
+   * Whether a subscription is one the project has to keep.
+   *
+   * A subscription that still bills the customer - active, trialing, or
+   * past_due, the same three the rest of the product counts as active - is
+   * kept, and a plan change is applied to it in place. Cancelling one of
+   * these and creating a replacement bills the customer for both for as long
+   * as the cancel does not land, and Stripe is still collecting on a past_due
+   * subscription, so an abandoned one is not harmless either.
+   *
+   * The rest - cancelled, unpaid, incomplete, incomplete_expired, paused -
+   * bill nothing and cannot be revived by an update: swapping a price onto
+   * one would leave the project on a subscription that still bills nothing.
+   * Those are replaced.
+   */
+  private isSubscriptionStillBilling(
+    subscription: Stripe.Subscription | null,
+  ): boolean {
+    if (!subscription?.status) {
+      return false;
+    }
+
+    /*
+     * isSubscriptionActive answers "yes" to an absent status - it is written
+     * for project rows, where no status means a project that predates the
+     * column. A subscription always has one, and the guard above has already
+     * dealt with a subscription that is not there at all.
+     */
+    return SubscriptionStatusUtil.isSubscriptionActive(
+      subscription.status as SubscriptionStatus,
+    );
+  }
+
+  /*
+   * Whether a subscription has already finished, and so has nothing left to
+   * cancel.
+   *
+   * Not the negation of isSubscriptionStillBilling: between the two sit the
+   * statuses that bill nothing but are not over either - unpaid, incomplete,
+   * paused - which are replaced AND still have to be cancelled, because the
+   * subscription is still open at the payment provider.
+   *
+   * A subscription that is already cancelled or expired is not sent to the
+   * provider to be cancelled again. The provider rejects that, and the reject
+   * is indistinguishable to the retry loop from a cancel that genuinely did
+   * not land: it would spend seconds retrying and then raise an alert asking
+   * an operator to cancel by hand something that is already cancelled. Null
+   * is the same case - findSubscription has already established the provider
+   * does not have it.
+   */
+  private isSubscriptionAlreadyFinished(
+    subscription: Stripe.Subscription | null,
+  ): boolean {
+    return (
+      !subscription ||
+      subscription.status === "canceled" ||
+      subscription.status === "incomplete_expired"
+    );
+  }
+
+  /*
+   * Retrieves a subscription, returning null only when the payment provider
+   * says it does not have it.
+   *
+   * A project row can point at an id the provider has since dropped, and that
+   * is a reason to give the project a new subscription rather than to fail its
+   * plan change outright.
+   *
+   * Every other error is thrown. A rate limit, a dropped connection or a
+   * transient 5xx says nothing about whether the subscription is live, and
+   * reading one as "it is gone" is how a perfectly healthy project got routed
+   * onto the path that cancels and recreates its subscriptions. Failing the
+   * plan change leaves the project exactly as it was, which is the safe answer
+   * when we cannot tell.
+   */
+  private async findSubscription(
+    subscriptionId: string,
+  ): Promise<Stripe.Subscription | null> {
+    try {
+      return (await this.stripe.subscriptions.retrieve(subscriptionId)) || null;
+    } catch (err) {
+      if (this.isResourceMissingError(err)) {
+        logger.debug(
+          `Payment provider has no subscription ${subscriptionId}. It will be replaced.`,
+        );
+        return null;
+      }
+
+      logger.error(err, { subscriptionId } as LogAttributes);
+      throw err;
+    }
+  }
+
+  /*
+   * A payment provider error saying the object is not there.
+   *
+   * Matched on the error's shape rather than with instanceof: the error can be
+   * raised by a different copy of the stripe package than the one imported
+   * here, and instanceof would then quietly say no - turning a subscription
+   * that is simply gone into a failed plan change.
+   */
+  private isResourceMissingError(error: unknown): boolean {
+    const providerError: {
+      type?: string | undefined;
+      rawType?: string | undefined;
+      code?: string | undefined;
+    } = (error || {}) as {
+      type?: string | undefined;
+      rawType?: string | undefined;
+      code?: string | undefined;
+    };
+
+    return (
+      providerError.code === "resource_missing" &&
+      (providerError.type === "StripeInvalidRequestError" ||
+        providerError.rawType === "invalid_request_error")
+    );
+  }
+
   @CaptureSpan()
   public async changePlan(data: {
     projectId: ObjectID;
@@ -623,6 +841,7 @@ export class BillingService extends BaseService {
     subscriptionId: string;
     meteredSubscriptionId: string;
     trialEndsAt?: Date | undefined;
+    subscriptionIdsPendingCancellation: Array<string>;
   }> {
     logger.debug("Changing plan");
     logger.debug(data);
@@ -660,49 +879,369 @@ export class BillingService extends BaseService {
       throw new BadDataException(Errors.BillingService.NO_PAYMENTS_METHODS);
     }
 
-    logger.debug("Cancelling subscriptions");
-    logger.debug(data.subscriptionId);
-    await this.cancelSubscription(data.subscriptionId);
+    /*
+     * The trial the customer is really on lives on the subscription being
+     * changed; endTrialAt is only the caller's copy of it. Resolve both while
+     * the old subscription is still readable, and keep whichever runs longer.
+     *
+     * Changing plan must never shorten a trial. A caller holding a stale
+     * project row - or one that does not pass endTrialAt at all - would
+     * otherwise be able to end a trial the customer was promised, and Stripe
+     * would invoice the full plan on the spot.
+     */
+    const trialEndOnCurrentSubscription: Date | null =
+      this.getTrialEndOnSubscription(subscription);
 
-    logger.debug("Cancelling metered subscriptions");
-    logger.debug(data.meteredSubscriptionId);
-    await this.cancelSubscription(data.meteredSubscriptionId);
+    let endTrialAt: Date | undefined = data.endTrialAt;
 
-    if (data.endTrialAt && !OneUptimeDate.isInTheFuture(data.endTrialAt)) {
-      data.endTrialAt = undefined;
+    if (
+      trialEndOnCurrentSubscription &&
+      (!endTrialAt ||
+        OneUptimeDate.isAfter(trialEndOnCurrentSubscription, endTrialAt))
+    ) {
+      endTrialAt = trialEndOnCurrentSubscription;
     }
 
-    logger.debug("Subscribing to plan");
+    /*
+     * A trial that has already lapsed is not revived by a plan change - the
+     * customer is billed from now, which is what changing plan off a finished
+     * trial is meant to do.
+     */
+    if (endTrialAt && !OneUptimeDate.isInTheFuture(endTrialAt)) {
+      endTrialAt = undefined;
+    }
 
-    const subscribeToPlan: {
-      subscriptionId: string;
-      meteredSubscriptionId: string;
-      trialEndsAt: Date | null;
-    } = await this.subscribeToPlan({
-      projectId: data.projectId,
-      customerId: subscription.customer.toString(),
-      serverMeteredPlans: data.serverMeteredPlans,
-      plan: data.newPlan,
-      quantity: data.quantity,
-      isYearly: data.isYearly,
-      trial: data.endTrialAt,
-      defaultPaymentMethodId: paymentMethods[0]?.id,
-      promoCode: undefined,
-    });
+    /*
+     * The metered subscription is read but never rebuilt while it is alive.
+     * Its items come from the metered plans' own price ids, which have nothing
+     * to do with the plan being changed - recreating it would throw away the
+     * usage already reported against it for the current period. It is fetched
+     * here to find out whether it is one of the two halves that has to be
+     * replaced.
+     */
+    const meteredSubscription: Stripe.Subscription | null =
+      await this.findSubscription(data.meteredSubscriptionId);
 
-    logger.debug("Subscribed to plan");
+    const subscriptionItemId: string | undefined =
+      subscription.items.data[0]?.id;
 
-    const value: {
-      subscriptionId: string;
-      meteredSubscriptionId: string;
-      trialEndsAt?: Date | undefined;
-    } = {
-      subscriptionId: subscribeToPlan.subscriptionId,
-      meteredSubscriptionId: subscribeToPlan.meteredSubscriptionId,
-      trialEndsAt: subscribeToPlan.trialEndsAt || undefined,
+    /*
+     * A plan change is a price swap, so do exactly that whenever the project's
+     * subscription can take one. Cancelling and recreating it means every
+     * piece of subscription state - the trial, the billing cycle anchor,
+     * discounts, billing anchor history, reported usage - has to be rebuilt by
+     * hand, and the window between the create and the cancel is one the
+     * customer pays for twice.
+     *
+     * The two subscriptions are decided separately, because they fail
+     * separately: a project can be billing quite happily on its flat-fee
+     * subscription while its metered one is dead, and the reverse. Replacing
+     * the pair whenever either half was dead is what cancelled a live, billing
+     * subscription and left the customer paying for it alongside its
+     * replacement. Nothing that still bills is cancelled here.
+     *
+     * A subscription with no item has no handle to swap a price onto, so it is
+     * replaced whatever its status says. It charges nothing either way - the
+     * items are what carry the prices - so replacing it bills nobody twice.
+     */
+    const canSwapPriceOnSubscription: boolean =
+      Boolean(subscriptionItemId) &&
+      this.isSubscriptionStillBilling(subscription);
+
+    const canKeepMeteredSubscription: boolean =
+      this.isSubscriptionStillBilling(meteredSubscription);
+
+    const customerId: string = subscription.customer.toString();
+
+    /*
+     * Order matters, and it is: update what is being kept, create what is
+     * replacing what is not, cancel what has been replaced.
+     *
+     * The updates come first because they are the only steps that can fail
+     * without leaving anything behind - the project is left on the
+     * subscriptions it already had. The creates come before the cancels so
+     * that a failure between them leaves the project on the subscriptions it
+     * had rather than on none at all.
+     */
+    const subscriptionIdsToCancel: Array<string> = [];
+
+    let newSubscriptionId: string = data.subscriptionId;
+    let newMeteredSubscriptionId: string = data.meteredSubscriptionId;
+
+    if (canSwapPriceOnSubscription) {
+      await this.swapPlanPriceOnSubscription({
+        subscriptionId: data.subscriptionId,
+        subscriptionItemId: subscriptionItemId!,
+        priceId: data.isYearly
+          ? data.newPlan.getYearlyPlanId()
+          : data.newPlan.getMonthlyPlanId(),
+        quantity: data.quantity,
+        endTrialAt: endTrialAt,
+        trialEndOnSubscription: trialEndOnCurrentSubscription,
+      });
+    }
+
+    if (canKeepMeteredSubscription) {
+      await this.moveTrialOnMeteredSubscription({
+        meteredSubscriptionId: data.meteredSubscriptionId,
+        meteredSubscription: meteredSubscription,
+        endTrialAt: endTrialAt,
+      });
+    }
+
+    if (!canSwapPriceOnSubscription) {
+      logger.debug("Replacing the flat-fee subscription");
+
+      newSubscriptionId = await this.createFlatFeeSubscription({
+        customerId: customerId,
+        plan: data.newPlan,
+        quantity: data.quantity,
+        isYearly: data.isYearly,
+        trialDate: endTrialAt || null,
+        defaultPaymentMethodId: paymentMethods[0]?.id,
+        metadata: this.getReplacementSubscriptionMetadata({
+          projectId: data.projectId,
+          replacedSubscriptionId: data.subscriptionId,
+        }),
+      });
+
+      if (!this.isSubscriptionAlreadyFinished(subscription)) {
+        subscriptionIdsToCancel.push(data.subscriptionId);
+      }
+    }
+
+    if (!canKeepMeteredSubscription) {
+      logger.debug("Replacing the metered subscription");
+
+      const replacementMeteredSubscription: {
+        meteredSubscriptionId: string;
+        trialEndsAt: Date | null;
+      } = await this.subscribeToMeteredPlan({
+        projectId: data.projectId,
+        customerId: customerId,
+        serverMeteredPlans: data.serverMeteredPlans,
+        trialDate: endTrialAt || null,
+        defaultPaymentMethodId: paymentMethods[0]?.id,
+        metadata: this.getReplacementSubscriptionMetadata({
+          projectId: data.projectId,
+          replacedSubscriptionId: data.meteredSubscriptionId,
+        }),
+      });
+
+      newMeteredSubscriptionId =
+        replacementMeteredSubscription.meteredSubscriptionId;
+
+      if (!this.isSubscriptionAlreadyFinished(meteredSubscription)) {
+        subscriptionIdsToCancel.push(data.meteredSubscriptionId);
+      }
+    }
+
+    const subscriptionIdsPendingCancellation: Array<string> =
+      await this.cancelReplacedSubscriptions(subscriptionIdsToCancel);
+
+    return {
+      subscriptionId: newSubscriptionId,
+      meteredSubscriptionId: newMeteredSubscriptionId,
+
+      /*
+       * endTrialAt is the resolved trial: the longer of the caller's and the
+       * one the old subscription carried, and undefined once it has lapsed.
+       * It is what was sent to the payment provider on both halves, and the
+       * caller writes it onto the project row.
+       */
+      trialEndsAt: endTrialAt,
+      subscriptionIdsPendingCancellation: subscriptionIdsPendingCancellation,
+    };
+  }
+
+  /*
+   * The breadcrumb a replacement subscription carries at the payment provider.
+   *
+   * It is set when the replacement is created, which is before anything is
+   * cancelled and before the caller writes the new ids over the old ones. That
+   * ordering is the point: if the cancel is lost, or the plan change dies
+   * between the two creates, this is what is left to find the abandoned
+   * subscription - and the project it belongs to - with.
+   */
+  private getReplacementSubscriptionMetadata(data: {
+    projectId: ObjectID;
+    replacedSubscriptionId: string;
+  }): Dictionary<string> {
+    return {
+      projectId: data.projectId.toString(),
+      replacedSubscriptionId: data.replacedSubscriptionId,
+    };
+  }
+
+  /*
+   * Puts the new plan's price on the subscription the project already has.
+   *
+   * The subscription survives, so everything it carries survives with it.
+   */
+  private async swapPlanPriceOnSubscription(data: {
+    subscriptionId: string;
+    subscriptionItemId: string;
+    priceId: string;
+    quantity: number;
+    endTrialAt: Date | undefined;
+    trialEndOnSubscription: Date | null;
+  }): Promise<void> {
+    logger.debug("Swapping plan price on subscription");
+    logger.debug(data.subscriptionId);
+
+    const isTrialing: boolean = Boolean(data.endTrialAt);
+
+    const updateParams: Stripe.SubscriptionUpdateParams = {
+      items: [
+        {
+          /*
+           * The id of the item being replaced. It is not optional: without it
+           * Stripe ADDS the new price alongside the old one instead of
+           * swapping it, and the customer is billed for both plans.
+           */
+          id: data.subscriptionItemId,
+          price: data.priceId,
+          quantity: data.quantity,
+        },
+      ],
+
+      /*
+       * Prorations are recorded and settle on the next invoice. Never
+       * "always_invoice" - that raises an invoice on the spot, which is the
+       * surprise charge a plan change must not produce. A trialing
+       * subscription has nothing to prorate, so it asks for nothing.
+       */
+      proration_behavior: isTrialing ? "none" : "create_prorations",
     };
 
-    return value;
+    /*
+     * trial_end is deliberately absent unless the trial has to move forward.
+     * Omitting it is what leaves the subscription trialing on the trial it
+     * already has - sending a value re-anchors the billing cycle to it, and
+     * sending "now" ends the trial and invoices the plan immediately.
+     *
+     * It is sent only when the resolved trial outlasts the one the
+     * subscription carries: an extension recorded on the project but not yet
+     * pushed to the payment provider is still a trial the customer was
+     * promised, and the date returned below is written onto the project row,
+     * so the two have to agree.
+     */
+    if (
+      data.endTrialAt &&
+      (!data.trialEndOnSubscription ||
+        OneUptimeDate.isAfter(data.endTrialAt, data.trialEndOnSubscription))
+    ) {
+      updateParams.trial_end = OneUptimeDate.toUnixTimestamp(data.endTrialAt);
+    }
+
+    await this.stripe.subscriptions.update(data.subscriptionId, updateParams);
+
+    logger.debug("Swapped plan price on subscription");
+  }
+
+  /*
+   * Carries a trial that has moved forward onto the metered subscription.
+   *
+   * Both subscriptions bill the same customer for the same project, so they
+   * have to end their trial on the same date - see subscribeToPlan. The
+   * metered one is touched only for that; its plan is not part of a plan
+   * change, and its items are the metered plans' own price ids.
+   */
+  private async moveTrialOnMeteredSubscription(data: {
+    meteredSubscriptionId: string;
+    meteredSubscription: Stripe.Subscription | null;
+    endTrialAt: Date | undefined;
+  }): Promise<void> {
+    const trialEndOnMeteredSubscription: Date | null =
+      this.getTrialEndOnSubscription(data.meteredSubscription);
+
+    if (
+      data.endTrialAt &&
+      (!trialEndOnMeteredSubscription ||
+        OneUptimeDate.isAfter(data.endTrialAt, trialEndOnMeteredSubscription))
+    ) {
+      await this.stripe.subscriptions.update(data.meteredSubscriptionId, {
+        trial_end: OneUptimeDate.toUnixTimestamp(data.endTrialAt),
+        proration_behavior: "none",
+      });
+    }
+  }
+
+  /*
+   * Cancels the subscriptions a plan change has replaced, and reports back the
+   * ones that are still there.
+   *
+   * Every id handed here belongs to a subscription that was not billing when
+   * the plan change read it - changePlan keeps anything that was - so a cancel
+   * that does not land is a loose end rather than a second charge. It still
+   * must not pass silently: the caller is about to write the replacement ids
+   * over these, and after that nothing in OneUptime points at them.
+   *
+   * The cancel is not allowed to throw, because by this point the replacements
+   * already exist. Failing here would mean the caller never records them, and
+   * the abandoned subscription would be the new, live pair instead of the dead
+   * one - strictly worse than the problem being solved.
+   */
+  private async cancelReplacedSubscriptions(
+    subscriptionIds: Array<string>,
+  ): Promise<Array<string>> {
+    const subscriptionIdsPendingCancellation: Array<string> = [];
+
+    for (const subscriptionId of subscriptionIds) {
+      if (!subscriptionId) {
+        continue;
+      }
+
+      logger.debug(`Cancelling replaced subscription ${subscriptionId}`);
+
+      const isCancelled: boolean =
+        await this.cancelReplacedSubscription(subscriptionId);
+
+      if (!isCancelled) {
+        subscriptionIdsPendingCancellation.push(subscriptionId);
+      }
+    }
+
+    return subscriptionIdsPendingCancellation;
+  }
+
+  // Cancels one replaced subscription, retrying. True when it is gone.
+  private async cancelReplacedSubscription(
+    subscriptionId: string,
+  ): Promise<boolean> {
+    for (
+      let attempt: number = 0;
+      attempt <= CANCEL_RETRY_DELAYS_IN_MS.length;
+      attempt++
+    ) {
+      try {
+        await this.stripe.subscriptions.del(subscriptionId);
+
+        return true;
+      } catch (err) {
+        /*
+         * Already gone - cancelled by a webhook, by another request, or by an
+         * earlier attempt of this one whose response was lost. Gone is the
+         * state being asked for.
+         */
+        if (this.isResourceMissingError(err)) {
+          return true;
+        }
+
+        logger.error(err, { subscriptionId } as LogAttributes);
+
+        const delayInMs: number | undefined =
+          CANCEL_RETRY_DELAYS_IN_MS[attempt];
+
+        if (delayInMs === undefined) {
+          return false;
+        }
+
+        await Sleep.sleep(delayInMs);
+      }
+    }
+
+    return false;
   }
 
   @CaptureSpan()
@@ -886,6 +1425,16 @@ export class BillingService extends BaseService {
     return ((customer as Stripe.Customer).balance || 0) / 100;
   }
 
+  /*
+   * Cancels a subscription, and carries on if it could not be cancelled.
+   *
+   * The leniency is for deleting a project: the project row goes away either
+   * way, and a failed cancel there is a billing loose end to chase, not a
+   * reason to leave the project half-deleted. A caller that needs to know the
+   * subscription really stopped billing must not use this - a plan change goes
+   * through cancelReplacedSubscriptions, which retries and reports what is
+   * left.
+   */
   @CaptureSpan()
   public async cancelSubscription(subscriptionId: string): Promise<void> {
     if (!this.isBillingEnabled()) {

@@ -1,9 +1,14 @@
 import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/DockerSwarmResource";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import ColumnLength from "../../Types/Database/ColumnLength";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import { JSONObject } from "../../Types/JSON";
+import {
+  truncateLongText,
+  truncateShortText,
+} from "../Utils/Database/TruncateColumnValue";
 import logger from "../Utils/Logger";
 
 /*
@@ -95,6 +100,33 @@ const UPSERT_COLUMNS: Array<string> = [
   "version",
 ];
 
+/*
+ * DockerSwarmResource's text columns are bounded varchars — image at
+ * 500 chars, everything else at 100. The bulk paths below go through
+ * manager.query(), which skips the length validation DatabaseService
+ * applies to ordinary writes, so a single oversized value aborts the
+ * whole 500-row INSERT chunk it rides in. Clamp per value instead, so
+ * one pathological task can never drop the rest of the snapshot.
+ */
+function sanitizeResource(
+  r: ParsedDockerSwarmResource,
+): ParsedDockerSwarmResource {
+  return {
+    ...r,
+    kind: truncateShortText(r.kind),
+    externalId: truncateShortText(r.externalId),
+    name: truncateShortText(r.name),
+    state: truncateShortText(r.state),
+    role: truncateShortText(r.role),
+    serviceMode: truncateShortText(r.serviceMode),
+    image: truncateLongText(r.image),
+    stackName: truncateShortText(r.stackName),
+    serviceName: truncateShortText(r.serviceName),
+    nodeHostname: truncateShortText(r.nodeHostname),
+    driver: truncateShortText(r.driver),
+  };
+}
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
@@ -120,8 +152,20 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
-    for (let i: number = 0; i < data.resources.length; i += UPSERT_BATCH_SIZE) {
-      const chunk: Array<ParsedDockerSwarmResource> = data.resources.slice(
+    const resources: Array<ParsedDockerSwarmResource> = data.resources.map(
+      (r: ParsedDockerSwarmResource) => {
+        const sanitized: ParsedDockerSwarmResource = sanitizeResource(r);
+        if (sanitized.externalId !== r.externalId) {
+          logger.warn(
+            `DockerSwarmResource externalId exceeds ${ColumnLength.ShortText} chars; truncated to "${sanitized.externalId}" (cluster ${data.dockerSwarmClusterId.toString()}).`,
+          );
+        }
+        return sanitized;
+      },
+    );
+
+    for (let i: number = 0; i < resources.length; i += UPSERT_BATCH_SIZE) {
+      const chunk: Array<ParsedDockerSwarmResource> = resources.slice(
         i,
         i + UPSERT_BATCH_SIZE,
       );
@@ -231,9 +275,14 @@ export class Service extends DatabaseService<Model> {
         valueFragments.push(
           `($${paramIndex++}, $${paramIndex++}, $${paramIndex++}::numeric, $${paramIndex++}::bigint, $${paramIndex++}::bigint, $${paramIndex++}::numeric, $${paramIndex++}::timestamptz)`,
         );
+        /*
+         * The identity clamps MUST match bulkUpsert's, or this mirror
+         * UPDATE would silently miss the row the upsert just wrote
+         * under the truncated externalId.
+         */
         params.push(
-          m.kind,
-          m.externalId,
+          truncateShortText(m.kind),
+          truncateShortText(m.externalId),
           m.cpuPercent !== null && m.cpuPercent !== undefined
             ? m.cpuPercent
             : null,

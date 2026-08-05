@@ -492,6 +492,10 @@ import { SessionReplayDefaultToSensitiveInputMasking1785860000000 } from "./1785
 import { AddAiCommandRemediation1785870000000 } from "./1785870000000-AddAiCommandRemediation";
 import { AlignRunnerSchemaWithEntities1785880000000 } from "./1785880000000-AlignRunnerSchemaWithEntities";
 import { AddFixVerificationAndAutomaticCodeFixes1785890000000 } from "./1785890000000-AddFixVerificationAndAutomaticCodeFixes";
+import { AddSloMonitorLabelRule1785900000000 } from "./1785900000000-AddSloMonitorLabelRule";
+import { IncreaseHostIpAddressesLength1785915638551 } from "./1785915638551-IncreaseHostIpAddressesLength";
+import { WidenInventoryResourceNameColumns1785930000000 } from "./1785930000000-WidenInventoryResourceNameColumns";
+import { AddStatusPageReportPeriod1785930709405 } from "./1785930709405-AddStatusPageReportPeriod";
 import { AddIncidentInvestigationGating1785790000000 } from "./1785790000000-AddIncidentInvestigationGating";
 import { AddRemediationVerification1785768089408 } from "./1785768089408-AddRemediationVerification";
 
@@ -992,4 +996,8 @@ export default [
   AddAiCommandRemediation1785870000000,
   AlignRunnerSchemaWithEntities1785880000000,
   AddFixVerificationAndAutomaticCodeFixes1785890000000,
+  AddSloMonitorLabelRule1785900000000,
+  IncreaseHostIpAddressesLength1785915638551,
+  WidenInventoryResourceNameColumns1785930000000,
+  AddStatusPageReportPeriod1785930709405,
 ];

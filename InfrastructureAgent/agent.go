@@ -35,7 +35,7 @@ func NewAgent(secretKey string, oneuptimeUrl string, proxyUrl string) *Agent {
 
 	slog.Info("Starting agent...")
 	slog.Info("Agent configuration:")
-	slog.Info("Secret key: " + ag.SecretKey)
+	slog.Info("Secret key: " + utils.MaskSecret(ag.SecretKey))
 	slog.Info("OneUptime URL: " + ag.OneUptimeURL)
 	slog.Info("Proxy URL: " + ag.ProxyURL)
 	if ag.SecretKey == "" || ag.OneUptimeURL == "" {
@@ -160,16 +160,23 @@ func collectMetricsJob(secretKey string, oneuptimeUrl string, proxyUrl string) {
 		slog.Info("Using proxy to send request:" + proxyUrl)
 	}
 
-	resp, err := client.Post(oneuptimeUrl+"/server-monitor/response/ingest/"+secretKey, "application/json", bytes.NewBuffer(reqBody))
+	const ingestPath = "/server-monitor/response/ingest/"
+
+	resp, err := client.Post(oneuptimeUrl+ingestPath+secretKey, "application/json", bytes.NewBuffer(reqBody))
 	if err != nil {
-		slog.Error("Failed to send request to server", "error", err)
+		// client.Post returns a *url.Error whose text embeds the whole request
+		// URL, and the secret is that URL's final path segment - so the error
+		// carries the secret even though nothing here names it.
+		slog.Error("Failed to send request to server", "error", utils.RedactSecret(err.Error(), secretKey))
 		return
 	}
 
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusOK {
-		slog.Info("Metrics successfully pushed to OneUptime server", "status", resp.StatusCode, "endpoint", oneuptimeUrl+"/server-monitor/response/ingest/"+secretKey)
+		// The secret key is the last path segment of the endpoint, so log the
+		// URL with that segment replaced rather than the URL we requested.
+		slog.Info("Metrics successfully pushed to OneUptime server", "status", resp.StatusCode, "endpoint", oneuptimeUrl+ingestPath+utils.RedactedPlaceholder)
 	} else {
 		slog.Error("Failed to ingest metrics", "status_code", resp.StatusCode)
 		respBody, err := io.ReadAll(resp.Body)
@@ -200,7 +207,9 @@ func checkIfSecretKeyIsValid(secretKey string, oneuptimeUrl string, proxyUrl str
 	}
 	resp, err := client.Get(oneuptimeUrl + "/server-monitor/secret-key/verify/" + secretKey)
 	if err != nil {
-		slog.Error(err.Error())
+		// Same *url.Error leak as the ingest request above: the verify URL also
+		// ends in the secret.
+		slog.Error(utils.RedactSecret(err.Error(), secretKey))
 		return false
 	}
 	if resp.StatusCode != 200 {

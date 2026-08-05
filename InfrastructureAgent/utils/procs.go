@@ -15,7 +15,7 @@ func GetServerProcesses() []*model.ServerProcess {
 
 	processList, err := process.Processes()
 	if err != nil {
-		slog.Error("Failed to fetch process list", err)
+		slog.Error("Failed to fetch process list", "error", err)
 		return nil
 	}
 

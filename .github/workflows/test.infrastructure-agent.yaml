@@ -1,0 +1,30 @@
+name: Infrastructure Agent Test
+
+# Supersede in-flight runs for the same branch/PR: only the newest commit needs CI.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+on:
+  pull_request:
+  push:
+    branches-ignore:
+      - 'hotfix-*'   # excludes hotfix branches
+      - 'release'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          # Pin to the module's own Go version instead of drifting with whatever
+          # the runner image happens to ship.
+          go-version-file: InfrastructureAgent/go.mod
+      # The suite includes the secret-key redaction guards, which are what keep
+      # the agent's secret out of its world-readable log file. -race is cheap
+      # here and the agent runs a scheduler, so it is worth the coverage.
+      - run: cd InfrastructureAgent && go test ./... -race

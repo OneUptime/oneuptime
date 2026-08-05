@@ -78,6 +78,7 @@ import LabelService from "Common/Server/Services/LabelService";
 import Host from "Common/Models/DatabaseModels/Host";
 import { extractOneuptimeLabelNames } from "Common/Server/Utils/Telemetry/OneuptimeLabel";
 import { HEARTBEAT_MAX_BACKDATE_MS } from "Common/Utils/Telemetry/HeartbeatAvailability";
+import { normalizeHostIpAddresses } from "Common/Utils/Telemetry/HostIpAddresses";
 import {
   PVE_SNAPSHOT_METRIC_NAMES,
   CEPH_SNAPSHOT_METRIC_NAMES,
@@ -496,7 +497,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       if (!entry.hostIpAddresses) {
         const ips: Array<string> =
           OtelIngestBaseService.getStringArrayAttribute(ras, "host.ip");
-        entry.hostIpAddresses = ips.length > 0 ? ips.join(", ") : null;
+        entry.hostIpAddresses = normalizeHostIpAddresses(ips);
       }
       if (!entry.containerRuntime) {
         entry.containerRuntime = OtelIngestBaseService.getStringAttribute(

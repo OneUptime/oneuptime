@@ -41,18 +41,69 @@ export default class ProjectMiddleware {
     return projectId;
   }
 
-  @CaptureSpan()
-  public static getApiKey(req: ExpressRequest): ObjectID | null {
-    if (req.headers && req.headers["apikey"]) {
-      return new ObjectID(req.headers["apikey"] as string);
+  /*
+   * The `apikey` header exactly as it arrived, or null when it was never
+   * sent at all. Node lower-cases header names, and a caller that sends the
+   * header twice arrives here as one comma-joined string — never a usable
+   * key, but unmistakably a caller who meant to authenticate by key.
+   *
+   * An empty or whitespace-only value is a header that WAS sent. Keeping that
+   * distinct from "absent" is the whole point of this helper; see hasApiKey.
+   */
+  private static getRawApiKeyHeader(req: ExpressRequest): string | null {
+    const rawHeader: string | Array<string> | undefined =
+      req.headers?.["apikey"];
+
+    if (rawHeader === undefined) {
+      return null;
     }
 
-    return null;
+    return Array.isArray(rawHeader) ? rawHeader.join(",") : rawHeader;
   }
 
   @CaptureSpan()
+  public static getApiKey(req: ExpressRequest): ObjectID | null {
+    const rawHeader: string | null = ProjectMiddleware.getRawApiKeyHeader(req);
+
+    if (rawHeader === null) {
+      return null;
+    }
+
+    const apiKey: string = rawHeader.trim();
+
+    /*
+     * `ApiKey.apiKey` is a Postgres `uuid` column, so a non-UUID value makes
+     * the lookup raise "invalid input syntax for type uuid" down in the query
+     * layer. A raw QueryFailedError is not a OneUptime Exception, so it slips
+     * past the error translator and answers 500 to what is really a malformed
+     * request. Reject the shape here and let the caller get `Invalid API Key`.
+     */
+    if (!ObjectID.isValidUUID(apiKey)) {
+      return null;
+    }
+
+    return new ObjectID(apiKey);
+  }
+
+  /*
+   * Presence, not usability — deliberately NOT `Boolean(this.getApiKey(req))`.
+   *
+   * A request carrying an empty or malformed `ApiKey` header is a caller
+   * trying to authenticate by key and getting it wrong. Answering false here
+   * routed it down the anonymous path, where it failed much later with
+   * "A user should be logged in to <op> record of <Model>." — an error about
+   * session auth, raised against a caller who never attempted session auth,
+   * naming a model as though the model were what went wrong. It reads as an
+   * RBAC bug in whichever resource happened to be asked for, and has been
+   * reported as one more than once (issues #1754, #3004). An unset shell
+   * variable, a client that sends the header blank, and our own CLI's
+   * partial-credential path all land here.
+   *
+   * Claim the request instead, so it fails as `Invalid API Key`.
+   */
+  @CaptureSpan()
   public static hasApiKey(req: ExpressRequest): boolean {
-    return Boolean(this.getApiKey(req));
+    return ProjectMiddleware.getRawApiKeyHeader(req) !== null;
   }
 
   @CaptureSpan()
@@ -118,6 +169,17 @@ export default class ProjectMiddleware {
       }
 
       if (!apiKey) {
+        /*
+         * Separate "no header at all" from "header sent, but unusable".
+         * getUserMiddleware only routes here once the header is present, so
+         * in practice it is always the second: an empty value from an unset
+         * variable, a non-UUID string, or duplicate headers that Node joined
+         * into a comma-separated list.
+         */
+        if (ProjectMiddleware.hasApiKey(req)) {
+          throw new BadDataException("Invalid API Key");
+        }
+
         throw new BadDataException(
           "API Key not found in the request header. Please provide a valid API Key in the request header.",
         );

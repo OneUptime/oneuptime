@@ -35,9 +35,16 @@ export default class PublicPermission {
         return;
       }
 
-      // this means the record is not publicly createable and the user is not logged in.
+      /*
+       * The record is not publicly accessible and the caller presented
+       * neither a session nor an API key. Name both, the way the analytics
+       * counterpart of this check already does — the old wording talked only
+       * about logging in, which reads as an RBAC failure on the named model
+       * to anyone authenticating by key, and repeatedly sent API callers off
+       * to audit permissions when their key had simply not arrived.
+       */
       throw new NotAuthenticatedException(
-        `A user should be logged in to ${type} record of ${
+        `Authenticated user or a valid API key is needed to ${type} record of ${
           new modelType().singularName
         }.`,
       );

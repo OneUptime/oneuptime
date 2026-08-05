@@ -1892,6 +1892,12 @@ microsoftTeamsApp:
   clientId:
   clientSecret:
   tenantId:
+  # If you're using an existing secret for the configuration, please use this and update accordingly instead of the parameters above.
+  # existingSecret:
+  #   name: "app-secret"
+  #   clientIdKey: clientId
+  #   clientSecretKey: clientSecret
+  #   tenantIdKey: tenantId
 
 # GitHub Example Configuration
 # gitHubApp:

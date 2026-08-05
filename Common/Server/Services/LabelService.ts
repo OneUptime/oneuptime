@@ -1,14 +1,20 @@
 import CreateBy from "../Types/Database/CreateBy";
-import { OnCreate } from "../Types/Database/Hooks";
+import DeleteBy from "../Types/Database/DeleteBy";
+import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import DatabaseService from "./DatabaseService";
+import ServiceLevelObjectiveMonitorRuleEngineService from "./ServiceLevelObjectiveMonitorRuleEngineService";
+import ServiceLevelObjectiveService from "./ServiceLevelObjectiveService";
+import ServiceLevelObjective from "../../Models/DatabaseModels/ServiceLevelObjective";
 import BadDataException from "../../Types/Exception/BadDataException";
+import LIMIT_MAX from "../../Types/Database/LimitMax";
 import ObjectID from "../../Types/ObjectID";
 import Color from "../../Types/Color";
 import { BrightColors } from "../../Types/BrandColors";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import Model from "../../Models/DatabaseModels/Label";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import logger from "../Utils/Logger";
 
 const AUTO_LABEL_ID_CACHE_NAMESPACE: string = "auto-label-id";
 const AUTO_LABEL_ID_CACHE_TTL_SECONDS: number = 24 * 60 * 60;
@@ -55,6 +61,105 @@ export class Service extends DatabaseService<Model> {
     }
 
     return Promise.resolve({ createBy, carryForward: null });
+  }
+
+  /*
+   * Deleting a label cascades its join rows away at the database level, so no
+   * service hook ever fires for the SLO label rules that referenced it. Those
+   * SLOs would keep the monitors the rule attached, with nothing left to
+   * explain why. Note the ids down while the label still exists, and re-run
+   * the (now smaller) rules once it is gone.
+   */
+  @CaptureSpan()
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<OnDelete<Model>> {
+    let serviceLevelObjectiveIds: Array<ObjectID> = [];
+
+    try {
+      const labels: Array<Model> = await this.findBy({
+        query: deleteBy.query,
+        select: {
+          _id: true,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      const labelIds: Array<ObjectID> = labels
+        .map((label: Model) => {
+          return label.id;
+        })
+        .filter((id: ObjectID | null): id is ObjectID => {
+          return Boolean(id);
+        });
+
+      if (labelIds.length > 0) {
+        const slos: Array<ServiceLevelObjective> =
+          await ServiceLevelObjectiveService.findBy({
+            query: {
+              monitorLabels: labelIds,
+            },
+            select: {
+              _id: true,
+            },
+            limit: LIMIT_MAX,
+            skip: 0,
+            props: {
+              isRoot: true,
+            },
+          });
+
+        serviceLevelObjectiveIds = slos
+          .map((slo: ServiceLevelObjective) => {
+            return slo.id;
+          })
+          .filter((id: ObjectID | null): id is ObjectID => {
+            return Boolean(id);
+          });
+      }
+    } catch (err) {
+      logger.error(
+        `Error collecting SLO label rules affected by a label delete: ${err}`,
+      );
+    }
+
+    return {
+      deleteBy,
+      carryForward: {
+        serviceLevelObjectiveIds: serviceLevelObjectiveIds,
+      },
+    };
+  }
+
+  @CaptureSpan()
+  protected override async onDeleteSuccess(
+    onDelete: OnDelete<Model>,
+    _itemIdsBeforeDelete: Array<ObjectID>,
+  ): Promise<OnDelete<Model>> {
+    const serviceLevelObjectiveIds: Array<ObjectID> =
+      (
+        onDelete.carryForward as {
+          serviceLevelObjectiveIds?: Array<ObjectID>;
+        } | null
+      )?.serviceLevelObjectiveIds || [];
+
+    for (const serviceLevelObjectiveId of serviceLevelObjectiveIds) {
+      try {
+        await ServiceLevelObjectiveMonitorRuleEngineService.syncMonitorsForSlo({
+          serviceLevelObjectiveId: serviceLevelObjectiveId,
+        });
+      } catch (err) {
+        logger.error(
+          `Error re-applying the monitor label rule for SLO ${serviceLevelObjectiveId.toString()} after a label delete: ${err}`,
+        );
+      }
+    }
+
+    return onDelete;
   }
 
   /**

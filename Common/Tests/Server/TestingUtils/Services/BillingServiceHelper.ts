@@ -61,31 +61,91 @@ const getStripeCustomer: GetStripeCustomerFunction = (
 type GetStripeSubscriptionFunction = (options?: {
   id?: string | undefined;
   status?: Stripe.Subscription.Status | undefined;
+
+  /*
+   * The trial Stripe itself reports on the subscription, as a unix timestamp -
+   * what a real subscription carries and what changePlan reads to make sure a
+   * plan change cannot cut a running trial short. Omitted means no trial.
+   */
+  trialEnd?: number | null | undefined;
+  customer?: string | undefined;
+
+  /*
+   * The id of the subscription's single item - the handle changePlan swaps the
+   * new plan's price onto. An empty array stands for a subscription with no
+   * items at all, which has no such handle.
+   */
+  itemId?: string | undefined;
+  items?: Array<{ id: string }> | undefined;
 }) => Stripe.Subscription;
 
 const getStripeSubscription: GetStripeSubscriptionFunction = (options?: {
   id?: string | undefined;
   status?: Stripe.Subscription.Status | undefined;
+  trialEnd?: number | null | undefined;
+  customer?: string | undefined;
+  itemId?: string | undefined;
+  items?: Array<{ id: string }> | undefined;
 }): Stripe.Subscription => {
+  const items: Array<{ id: string }> = options?.items || [
+    { id: options?.itemId || Faker.generateRandomObjectID().toString() },
+  ];
+
   return {
     id: options?.id || Faker.generateRandomObjectID().toString(),
     items: {
-      data: [
-        {
-          id: Faker.generateRandomObjectID().toString(),
-          // @ts-expect-error - Simplified mock price object for testing without all required Stripe Price properties
+      data: items.map((item: { id: string }) => {
+        // Simplified mock item: only the fields the service actually reads.
+        return {
+          id: item.id,
           price: {
             id: new BillingService().getMeteredPlanPriceId(
               ProductType.ActiveMonitoring,
             ),
           },
-        },
-      ],
+        } as Stripe.SubscriptionItem;
+      }),
     },
     status: options?.status || "active",
-    customer: getStripeCustomer(),
-  };
+    trial_end: options?.trialEnd ?? null,
+    customer: options?.customer || getStripeCustomer(),
+  } as Stripe.Subscription;
 };
+
+/*
+ * A plan with an exact trial period, for the cases where the trial length is
+ * the thing under test. getSubscriptionPlanData randomises it between 1 and
+ * 100, so it can never produce the 0-trial-day plans (Basic, Scale) that the
+ * mid-trial plan change has to keep trialing.
+ */
+type GetSubscriptionPlanWithTrialPeriodFunction = (
+  trialPeriodInDays: number,
+  options?: {
+    name?: string | undefined;
+    monthlyPlanId?: string | undefined;
+    yearlyPlanId?: string | undefined;
+  },
+) => SubscriptionPlan;
+
+const getSubscriptionPlanWithTrialPeriod: GetSubscriptionPlanWithTrialPeriodFunction =
+  (
+    trialPeriodInDays: number,
+    options?: {
+      name?: string | undefined;
+      monthlyPlanId?: string | undefined;
+      yearlyPlanId?: string | undefined;
+    },
+  ): SubscriptionPlan => {
+    return new SubscriptionPlan(
+      options?.monthlyPlanId || "price_monthly_test_plan",
+      options?.yearlyPlanId || "price_yearly_test_plan",
+      options?.name || "Scale",
+      99, // monthlySubscriptionAmountInUSD
+      84, // yearlySubscriptionAmountInUSD
+      3, // order
+      trialPeriodInDays,
+    );
+  };
 
 type GetSubscriptionPlanDataFunction = () => SubscriptionPlan;
 
@@ -200,6 +260,7 @@ export {
   getStripeCustomer,
   getStripeSubscription,
   getSubscriptionPlanData,
+  getSubscriptionPlanWithTrialPeriod,
   getCustomerData,
   getSubscriptionData,
   getMeteredSubscription,

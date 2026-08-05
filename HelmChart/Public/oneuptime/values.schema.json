@@ -3101,6 +3101,30 @@
                         "string",
                         "null"
                     ]
+                },
+                "existingSecret": {
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": "string"
+                        },
+                        "clientIdKey": {
+                            "type": "string"
+                        },
+                        "clientSecretKey": {
+                            "type": "string"
+                        },
+                        "tenantIdKey": {
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "name",
+                        "clientIdKey",
+                        "clientSecretKey",
+                        "tenantIdKey"
+                    ],
+                    "additionalProperties": false
                 }
             },
             "additionalProperties": false

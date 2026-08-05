@@ -45,6 +45,7 @@ import {
 } from "../ResourceOwners/FilterChipDropdown";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import buildAffectedResourcesFacet from "../AffectedResources/buildAffectedResourcesFacet";
+import useCustomFieldFacets from "../CustomFields/useCustomFieldFacets";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -269,6 +270,14 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
   ];
 
   /*
+   * One chip per custom field this project has defined, appended after the
+   * built-in ones. They arrive a render or two late (the definitions are
+   * fetched), which is what `areFacetsLoading` below tells the bar.
+   */
+  const { facets: customFieldFacets, isLoading: areCustomFieldFacetsLoading } =
+    useCustomFieldFacets({ customFieldsModelType: IncidentCustomField });
+
+  /*
    * One namespace for everything this table mirrors into the URL, so the
    * column filters (persisted by ModelTable) and the facet chips (persisted
    * by useResourceOwners) always travel together. Falls back to a stable
@@ -291,7 +300,8 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
     ownerTeamModelType: IncidentOwnerTeam,
     resourceIdField: "incidentId",
     showLabelsFacet: true,
-    extraFacets: incidentExtraFacets,
+    extraFacets: [...incidentExtraFacets, ...customFieldFacets],
+    areFacetsLoading: areCustomFieldFacetsLoading,
   });
 
   // Fetch incident states on mount

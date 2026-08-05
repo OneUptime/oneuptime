@@ -580,6 +580,77 @@ describe("BillingService", () => {
         mockStripe.subscriptions.retrieve =
           getJestMockFunction().mockResolvedValue(mockSubscription);
 
+        mockStripe.subscriptions.update =
+          getJestMockFunction().mockResolvedValue({});
+
+        mockStripe.subscriptions.del = getJestMockFunction().mockResolvedValue(
+          {},
+        );
+
+        const mockPaymentMethods: Array<PaymentMethod> = [
+          {
+            id: "pm_123",
+            type: "card",
+            last4Digits: "4242",
+            isDefault: true,
+          },
+        ];
+        billingService.getPaymentMethods =
+          getJestMockFunction().mockResolvedValue(mockPaymentMethods);
+
+        const result: {
+          subscriptionId: string;
+          meteredSubscriptionId: string;
+          trialEndsAt?: Date | undefined;
+        } = await billingService.changePlan(newPlan);
+
+        /*
+         * The plan is swapped onto the subscriptions the project already has,
+         * so its ids do not move. The existing item's id has to be in the
+         * update: without it Stripe adds the new price alongside the old one
+         * and the customer is billed for both plans.
+         */
+        expect(mockStripe.subscriptions.update).toHaveBeenCalledWith(
+          newPlan.subscriptionId,
+          expect.objectContaining({
+            items: [
+              {
+                id: mockSubscription.items.data[0]?.id,
+                price: newPlan.newPlan.getMonthlyPlanId(),
+                quantity: newPlan.quantity,
+              },
+            ],
+          }),
+        );
+
+        expect(result.subscriptionId).toEqual(newPlan.subscriptionId);
+        expect(result.meteredSubscriptionId).toEqual(
+          newPlan.meteredSubscriptionId,
+        );
+
+        expect(mockStripe.subscriptions.del).not.toHaveBeenCalled();
+        expect(mockStripe.subscriptions.create).not.toHaveBeenCalled();
+      });
+
+      it("should replace a subscription that cannot be updated", async () => {
+        /*
+         * An update cannot revive an unpaid subscription, so the project is
+         * given new ones - the path reactivation takes.
+         *
+         * "unpaid" rather than "canceled" because this asserts on the cancel
+         * too: unpaid bills nothing but is still open at the payment
+         * provider, so it is both replaced and cancelled. A subscription that
+         * is already cancelled is replaced but never sent back to be
+         * cancelled again.
+         */
+        mockSubscription.status = "unpaid";
+
+        mockStripe.subscriptions.retrieve =
+          getJestMockFunction().mockResolvedValue(mockSubscription);
+
+        mockStripe.subscriptions.update =
+          getJestMockFunction().mockResolvedValue({});
+
         mockStripe.subscriptions.del = getJestMockFunction().mockResolvedValue(
           {},
         );
@@ -615,9 +686,13 @@ describe("BillingService", () => {
           newMockMeteredSubscription.id,
         );
 
-        expect(mockStripe.subscriptions.del).toHaveBeenCalled();
-        expect(mockStripe.subscriptions.del).toHaveBeenCalled();
-        expect(mockStripe.subscriptions.create).toHaveBeenCalled();
+        expect(mockStripe.subscriptions.update).not.toHaveBeenCalled();
+        expect(mockStripe.subscriptions.del).toHaveBeenCalledWith(
+          newPlan.subscriptionId,
+        );
+        expect(mockStripe.subscriptions.del).toHaveBeenCalledWith(
+          newPlan.meteredSubscriptionId,
+        );
       });
 
       it("should handle errors when the current subscription is not found", async () => {

@@ -47,13 +47,24 @@
      * NOT in the Common Test CI job, which installs Common alone. The result
      * was a suite that passed locally and failed in CI.
      *
+     * "react-router-dom" is here for the same reason, one level out: those
+     * same Dashboard sources import it, and unlike "react" it is not covered
+     * by anything the type checker can already reach from Common. Node
+     * resolution walks up from the importing FILE, so from
+     * App/FeatureSet/Dashboard/src/... it only ever looks in App's and the
+     * repo root's node_modules - never in Common's, which in the Common Test
+     * CI job is the only one installed. Common's jest moduleNameMapper
+     * already maps this specifier to this same directory at runtime; this is
+     * the type checker's half of that.
+     *
      * Deliberately `paths` WITHOUT `baseUrl` (supported since TS 4.4, and
      * paths here are relative to this file). Setting baseUrl would change how
      * every bare specifier in Common resolves, which is a much larger blast
      * radius than this needs.
      */
     "paths": {
-      "Common/*": ["./*"]
+      "Common/*": ["./*"],
+      "react-router-dom": ["./node_modules/react-router-dom"]
     },
     // "rootDirs": [],                                   /* Allow multiple folders to be treated as one when resolving modules. */
     "typeRoots": [
