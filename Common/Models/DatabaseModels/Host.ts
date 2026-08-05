@@ -594,6 +594,15 @@ export default class Host extends BaseModel {
   })
   public hostType?: string = undefined;
 
+  /*
+   * `text`, not varchar(500). A Docker/Kubernetes host with IPv6 enabled
+   * reports one host.ip entry per interface — physical NICs, docker
+   * bridges, every veth, plus an IPv6 link-local per interface. Real
+   * reports of 55 addresses / ~1450 characters exist, and the count grows
+   * with the number of containers, so any fixed bound is the wrong shape
+   * here. Overflowing it used to abort the whole Host metadata write and
+   * strand the host as "disconnected" (issue #3006).
+   */
   @ColumnAccessControl({
     create: [],
     read: [
@@ -614,17 +623,16 @@ export default class Host extends BaseModel {
   })
   @TableColumn({
     required: false,
-    type: TableColumnType.LongText,
+    type: TableColumnType.VeryLongText,
     canReadOnRelationQuery: true,
     title: "Host IP Addresses",
     description:
-      "Comma-separated list of IP addresses reported by the OTel host.ip resource attribute. The first non-loopback IPv4 is used for display.",
+      "Comma-separated list of every IP address reported by the OTel host.ip resource attribute, in the order the collector reported them, deduplicated. The Hosts list shows the most routable one (IPv4, non-loopback, non-link-local) first; the host detail page groups them all by category.",
     example: "192.168.1.42, 10.0.0.5",
   })
   @Column({
     nullable: true,
-    type: ColumnType.LongText,
-    length: ColumnLength.LongText,
+    type: ColumnType.VeryLongText,
   })
   public hostIpAddresses?: string = undefined;
 

@@ -48,6 +48,7 @@ import TelemetryEntity, {
 } from "Common/Server/Utils/Telemetry/TelemetryEntity";
 import { reconcileEntityRegistryThrottled } from "Common/Server/Utils/Telemetry/EntityRegistry";
 import { canonicalizeEntityValue } from "Common/Utils/Telemetry/EntityKey";
+import { normalizeHostIpAddresses } from "Common/Utils/Telemetry/HostIpAddresses";
 import Dictionary from "Common/Types/Dictionary";
 
 export default abstract class OtelIngestBaseService {
@@ -2656,8 +2657,7 @@ export default abstract class OtelIngestBaseService {
         data.attributes,
         "host.ip",
       );
-      const hostIpJoined: string | null =
-        ipAddresses.length > 0 ? ipAddresses.join(", ") : null;
+      const hostIpJoined: string | null = normalizeHostIpAddresses(ipAddresses);
       const osType: string | null = this.getStringAttribute(
         data.attributes,
         "os.type",

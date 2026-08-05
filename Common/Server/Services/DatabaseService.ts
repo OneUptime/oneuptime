@@ -1046,6 +1046,60 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     return data;
   }
 
+  /*
+   * Clamp string values to the max length their column declares, instead of
+   * rejecting the whole write the way checkMaxLengthOfFields does.
+   *
+   * For machine-stamped metadata harvested from OpenTelemetry resource
+   * attributes there is no user to show a validation error to, and the
+   * write these values ride along with also carries liveness columns
+   * (lastSeenAt / otelCollectorStatus). Letting one oversized optional
+   * attribute abort that statement strands a healthy resource as
+   * "disconnected" — the failure mode in issue #3006. A clipped display
+   * string is strictly better than a lost heartbeat.
+   *
+   * Only string values on columns with a declared max length are touched;
+   * `text` columns (VeryLongText and friends) declare none and pass
+   * through untouched, as do numbers, dates and ObjectIDs.
+   *
+   * This is a safety net for the raw, hook-free write paths
+   * (updateColumnsByIdWithoutHooks) that bypass checkMaxLengthOfFields. It
+   * is NOT a substitute for sizing a column correctly: if a field is
+   * legitimately long, widen the column.
+   */
+  public truncateStringColumnsToMaxLength(
+    data: Record<string, unknown>,
+  ): Record<string, unknown> {
+    for (const column of Object.keys(data)) {
+      const value: unknown = data[column];
+
+      if (typeof value !== "string" || value.length === 0) {
+        continue;
+      }
+
+      /*
+       * Returns undefined for an unmapped column name despite its type —
+       * leave those alone and let the write path complain about them.
+       */
+      const metadata: TableColumnMetadata | undefined =
+        this.model.getTableColumnMetadata(column);
+
+      if (!metadata?.type) {
+        continue;
+      }
+
+      const maxLength: number | undefined = getMaxLengthFromTableColumnType(
+        metadata.type,
+      );
+
+      if (maxLength !== undefined && value.length > maxLength) {
+        data[column] = value.substring(0, maxLength);
+      }
+    }
+
+    return data;
+  }
+
   private async checkTotalItemsBy(
     createdBy: CreateBy<TBaseModel>,
   ): Promise<void> {
