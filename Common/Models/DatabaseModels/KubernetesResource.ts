@@ -214,15 +214,16 @@ export default class KubernetesResource extends BaseModel {
   })
   @TableColumn({
     required: true,
-    type: TableColumnType.ShortText,
+    type: TableColumnType.LongText,
     canReadOnRelationQuery: true,
     title: "Name",
-    description: "Kubernetes resource name (metadata.name).",
+    description:
+      "Kubernetes resource name (metadata.name). Kubernetes allows DNS-subdomain names up to 253 characters, so this is a 500-char column rather than the usual 100.",
   })
   @Column({
     nullable: false,
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
   })
   public name?: string = undefined;
 
@@ -449,7 +450,7 @@ export default class KubernetesResource extends BaseModel {
   })
   @TableColumn({
     required: false,
-    type: TableColumnType.ShortText,
+    type: TableColumnType.LongText,
     canReadOnRelationQuery: true,
     title: "Controller Deployment Name",
     description:
@@ -457,8 +458,8 @@ export default class KubernetesResource extends BaseModel {
   })
   @Column({
     nullable: true,
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
   })
   public controllerDeploymentName?: string = undefined;
 

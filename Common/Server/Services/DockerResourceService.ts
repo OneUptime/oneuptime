@@ -1,9 +1,14 @@
 import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/DockerResource";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import ColumnLength from "../../Types/Database/ColumnLength";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import { JSONObject } from "../../Types/JSON";
+import {
+  truncateLongText,
+  truncateShortText,
+} from "../Utils/Database/TruncateColumnValue";
 import logger from "../Utils/Logger";
 
 /*
@@ -56,6 +61,35 @@ export interface DockerHostInventoryCounts {
 const UPSERT_BATCH_SIZE: number = 500;
 const STALE_DELETE_WARN_THRESHOLD: number = 100;
 
+/*
+ * DockerResource's text columns are bounded varchars — name / imageName
+ * at 500 chars, kind / containerId / state at 100. These bulk paths go
+ * through manager.query(), which skips the length validation
+ * DatabaseService applies to ordinary writes, so a single oversized
+ * value aborts the whole 500-row INSERT chunk it rides in. Clamp per
+ * value instead, so one pathological container can never drop the rest.
+ */
+function sanitizeContainer(c: ParsedDockerContainer): ParsedDockerContainer {
+  return {
+    ...c,
+    containerName: truncateLongText(c.containerName),
+    containerId: truncateShortText(c.containerId),
+    imageName: truncateLongText(c.imageName),
+    state: truncateShortText(c.state),
+  };
+}
+
+function sanitizeResource(r: ParsedDockerResource): ParsedDockerResource {
+  return {
+    ...r,
+    kind: truncateShortText(r.kind),
+    name: truncateLongText(r.name),
+    containerId: truncateShortText(r.containerId),
+    imageName: truncateLongText(r.imageName),
+    state: truncateShortText(r.state),
+  };
+}
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
@@ -83,12 +117,20 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
-    for (
-      let i: number = 0;
-      i < data.containers.length;
-      i += UPSERT_BATCH_SIZE
-    ) {
-      const chunk: Array<ParsedDockerContainer> = data.containers.slice(
+    const containers: Array<ParsedDockerContainer> = data.containers.map(
+      (c: ParsedDockerContainer) => {
+        const sanitized: ParsedDockerContainer = sanitizeContainer(c);
+        if (sanitized.containerName !== c.containerName) {
+          logger.warn(
+            `DockerResource container name exceeds ${ColumnLength.LongText} chars; truncated to "${sanitized.containerName}" (host ${data.dockerHostId.toString()}).`,
+          );
+        }
+        return sanitized;
+      },
+    );
+
+    for (let i: number = 0; i < containers.length; i += UPSERT_BATCH_SIZE) {
+      const chunk: Array<ParsedDockerContainer> = containers.slice(
         i,
         i + UPSERT_BATCH_SIZE,
       );
@@ -164,8 +206,20 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
-    for (let i: number = 0; i < data.resources.length; i += UPSERT_BATCH_SIZE) {
-      const chunk: Array<ParsedDockerResource> = data.resources.slice(
+    const resources: Array<ParsedDockerResource> = data.resources.map(
+      (r: ParsedDockerResource) => {
+        const sanitized: ParsedDockerResource = sanitizeResource(r);
+        if (sanitized.name !== r.name) {
+          logger.warn(
+            `DockerResource name exceeds ${ColumnLength.LongText} chars; truncated to "${sanitized.name}" (host ${data.dockerHostId.toString()}).`,
+          );
+        }
+        return sanitized;
+      },
+    );
+
+    for (let i: number = 0; i < resources.length; i += UPSERT_BATCH_SIZE) {
+      const chunk: Array<ParsedDockerResource> = resources.slice(
         i,
         i + UPSERT_BATCH_SIZE,
       );
