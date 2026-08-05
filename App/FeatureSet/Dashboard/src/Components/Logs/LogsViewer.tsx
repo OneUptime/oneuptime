@@ -15,6 +15,14 @@ import {
   LogsSavedViewOption,
   normalizeLogsTableColumns,
 } from "Common/UI/Components/LogsViewer/types";
+import useLiveLogsRefresh from "Common/UI/Components/LogsViewer/useLiveLogsRefresh";
+import useLogsHistogram, {
+  LogsHistogramState,
+} from "Common/UI/Components/LogsViewer/useLogsHistogram";
+import {
+  buildLogsHistogramRequest,
+  RESOURCE_FACET_KEYS,
+} from "./LogsHistogramRequest";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
@@ -396,12 +404,6 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   const hasAppliedInitialSavedView: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
 
-  // Histogram state
-  const [histogramBuckets, setHistogramBuckets] = useState<
-    Array<HistogramBucket>
-  >([]);
-  const [histogramLoading, setHistogramLoading] = useState<boolean>(false);
-
   // Facet state
   const [facetData, setFacetData] = useState<FacetData>({});
   /*
@@ -744,108 +746,30 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
 
   // --- Fetch histogram ---
 
-  const fetchHistogram: () => Promise<void> =
-    useCallback(async (): Promise<void> => {
-      try {
-        setHistogramLoading(true);
+  const fetchHistogramBuckets: () => Promise<Array<HistogramBucket>> =
+    useCallback(async (): Promise<Array<HistogramBucket>> => {
+      /*
+       * The window is resolved inside the builder on every call, so a preset
+       * range slides forward with the clock and live polls pick up newly
+       * ingested logs.
+       */
+      const requestData: JSONObject = buildLogsHistogramRequest({
+        timeRange: timeRange,
+        serviceIds: serviceIdStrings,
+        traceIds: traceIdStrings,
+        spanIds: spanIdStrings,
+        attributes: logQueryAttributes,
+        entityKeys: logQueryEntityKeys,
+        appliedFacetFilters: appliedFacetFilters,
+      });
 
-        // Compute fresh dates from time range (preset ranges are relative to "now")
-        const dateRange: InBetween<Date> =
-          RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
+      const response: HTTPResponse<JSONObject> = await postApi(
+        "/telemetry/logs/histogram",
+        requestData,
+      );
 
-        const requestData: JSONObject = {
-          startTime: dateRange.startValue.toISOString(),
-          endTime: dateRange.endValue.toISOString(),
-        } as JSONObject;
-
-        if (serviceIdStrings) {
-          (requestData as any)["serviceIds"] = serviceIdStrings;
-        }
-
-        /*
-         * Base trace/span filters from props — must be applied so the chart
-         * matches the logs list when the viewer is scoped to a trace/span.
-         */
-        if (traceIdStrings) {
-          (requestData as any)["traceIds"] = traceIdStrings;
-        }
-
-        if (spanIdStrings) {
-          (requestData as any)["spanIds"] = spanIdStrings;
-        }
-
-        // Pass active facet filters to the histogram so it reflects the current view
-        const severityValues: Set<string> | undefined =
-          appliedFacetFilters.get("severityText");
-
-        if (severityValues && severityValues.size > 0) {
-          (requestData as any)["severityTexts"] = Array.from(severityValues);
-        }
-
-        /*
-         * primaryEntityId and the virtual resource facets (hostId / dockerHostId /
-         * kubernetesClusterId) all read out of the same `primaryEntityId` column —
-         * merge them into a single serviceIds list so the histogram applies
-         * the union of selected resources.
-         */
-        const resourceFilterIds: Set<string> = new Set<string>();
-        for (const facetKey of [
-          "primaryEntityId",
-          "hostId",
-          "dockerHostId",
-          "podmanHostId",
-          "kubernetesClusterId",
-        ]) {
-          const values: Set<string> | undefined =
-            appliedFacetFilters.get(facetKey);
-          if (values) {
-            for (const value of values) {
-              resourceFilterIds.add(value);
-            }
-          }
-        }
-
-        if (resourceFilterIds.size > 0) {
-          (requestData as any)["serviceIds"] = Array.from(resourceFilterIds);
-        }
-
-        const traceFilterValues: Set<string> | undefined =
-          appliedFacetFilters.get("traceId");
-
-        if (traceFilterValues && traceFilterValues.size > 0) {
-          (requestData as any)["traceIds"] = Array.from(traceFilterValues);
-        }
-
-        const spanFilterValues: Set<string> | undefined =
-          appliedFacetFilters.get("spanId");
-
-        if (spanFilterValues && spanFilterValues.size > 0) {
-          (requestData as any)["spanIds"] = Array.from(spanFilterValues);
-        }
-
-        if (logQueryAttributes) {
-          (requestData as any)["attributes"] = logQueryAttributes;
-        }
-
-        if (logQueryEntityKeys) {
-          (requestData as any)["entityKeys"] = logQueryEntityKeys;
-        }
-
-        const response: HTTPResponse<JSONObject> = await postApi(
-          "/telemetry/logs/histogram",
-          requestData,
-        );
-
-        const buckets: Array<HistogramBucket> = (response.data["buckets"] ||
-          []) as unknown as Array<HistogramBucket>;
-
-        setHistogramBuckets(buckets);
-      } catch {
-        // Histogram is non-critical; silently degrade
-        setHistogramBuckets([]);
-      } finally {
-        setHistogramLoading(false);
-      }
+      return (response.data["buckets"] ||
+        []) as unknown as Array<HistogramBucket>;
     }, [
       serviceIdStrings,
       traceIdStrings,
@@ -855,6 +779,8 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       logQueryAttributes,
       logQueryEntityKeys,
     ]);
+
+  const histogram: LogsHistogramState = useLogsHistogram(fetchHistogramBuckets);
 
   // --- Fetch facets ---
 
@@ -997,10 +923,6 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   }, [fetchItems]);
 
   useEffect(() => {
-    void fetchHistogram();
-  }, [fetchHistogram]);
-
-  useEffect(() => {
     void fetchFacets();
   }, [fetchFacets]);
 
@@ -1044,27 +966,23 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     }
   }, [savedViews, selectedSavedViewId]);
 
-  // Live polling
-  useEffect(() => {
-    if (
-      !isLiveEnabled ||
-      page !== 1 ||
-      sortField !== "time" ||
-      sortOrder !== SortOrder.Descending
-    ) {
-      return;
-    }
-
-    void fetchItems({ skipLoadingState: true });
-
-    const intervalId: number = window.setInterval(() => {
+  /*
+   * Live polling. The list and the histogram come from different endpoints,
+   * so both have to be refreshed on the same beat — otherwise new rows keep
+   * arriving under a chart that never moves.
+   */
+  useLiveLogsRefresh({
+    isLive: isLiveEnabled,
+    isEligible:
+      page === 1 && sortField === "time" && sortOrder === SortOrder.Descending,
+    intervalInMs: LIVE_POLL_INTERVAL_MS,
+    refreshLogs: () => {
       void fetchItems({ skipLoadingState: true });
-    }, LIVE_POLL_INTERVAL_MS);
-
-    return () => {
-      window.clearInterval(intervalId);
-    };
-  }, [fetchItems, isLiveEnabled, page, sortField, sortOrder]);
+    },
+    refreshHistogram: () => {
+      void histogram.refresh({ silent: true });
+    },
+  });
 
   // Realtime
   useEffect(() => {
@@ -1239,13 +1157,9 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
        * `primaryEntityId IN (...)` predicate.
        */
       const resourceIds: Set<string> = new Set<string>();
-      const resourceFacetKeys: Set<string> = new Set<string>([
-        "primaryEntityId",
-        "hostId",
-        "dockerHostId",
-        "podmanHostId",
-        "kubernetesClusterId",
-      ]);
+      const resourceFacetKeys: Set<string> = new Set<string>(
+        RESOURCE_FACET_KEYS,
+      );
 
       for (const [key, values] of facets.entries()) {
         if (values.size === 0) {
@@ -1750,8 +1664,8 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           }}
           getTraceRoute={getTraceRoute}
           getSpanRoute={getSpanRoute}
-          histogramBuckets={histogramBuckets}
-          histogramLoading={histogramLoading}
+          histogramBuckets={histogram.buckets}
+          histogramLoading={histogram.isLoading}
           onHistogramTimeRangeSelect={handleHistogramTimeRangeSelect}
           facetData={facetData}
           facetLoading={facetLoading}
