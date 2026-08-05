@@ -550,13 +550,15 @@ describe("buildDeviceStatusFacetQuery", () => {
      * operator to the vocabulary forces this list to be revisited instead of
      * quietly falling through to whichever branch happens to match.
      *
-     * Seven: the four the option chips have always had, plus the three a date
-     * chip needs. Status offers only "is" and refuses every other one above —
-     * including the date operators, which have no date to compare against here.
+     * Fifteen: the four the option chips have always had, the three a date
+     * chip needs, and the eight custom-field filtering added for text and
+     * number columns. Status offers only "is" and refuses every other one
+     * above — the date operators have no date to compare against here, and
+     * the text/number ones have no free-typed value either.
      */
     test("covers every operator the chip can offer", () => {
-      expect(ALL_OPERATORS).toHaveLength(7);
-      expect(OPERATORS_OTHER_THAN_IS).toHaveLength(6);
+      expect(ALL_OPERATORS).toHaveLength(15);
+      expect(OPERATORS_OTHER_THAN_IS).toHaveLength(14);
       expect(OPERATORS_OTHER_THAN_IS).not.toContain("is");
     });
   });
