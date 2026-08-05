@@ -634,10 +634,16 @@ describe("BillingService", () => {
 
       it("should replace a subscription that cannot be updated", async () => {
         /*
-         * An update cannot revive a cancelled subscription, so the project is
+         * An update cannot revive an unpaid subscription, so the project is
          * given new ones - the path reactivation takes.
+         *
+         * "unpaid" rather than "canceled" because this asserts on the cancel
+         * too: unpaid bills nothing but is still open at the payment
+         * provider, so it is both replaced and cancelled. A subscription that
+         * is already cancelled is replaced but never sent back to be
+         * cancelled again.
          */
-        mockSubscription.status = "canceled";
+        mockSubscription.status = "unpaid";
 
         mockStripe.subscriptions.retrieve =
           getJestMockFunction().mockResolvedValue(mockSubscription);

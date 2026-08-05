@@ -235,8 +235,15 @@ describe("BillingService.changePlan - replacing and cancelling subscriptions", (
    * both from the moment the cancel was lost.
    */
   describe("a subscription that still bills is never replaced", () => {
+    /*
+     * "unpaid" is the status used throughout for a dead subscription that
+     * still has to be cancelled: it bills nothing and an update cannot revive
+     * it, but it is still open at the payment provider. A "canceled" one is
+     * already over and is never sent back to be cancelled again - that case
+     * has its own tests below.
+     */
     it("should keep an active flat-fee subscription when the metered one is dead", async () => {
-      setup({ status: "active", meteredStatus: "canceled" });
+      setup({ status: "active", meteredStatus: "unpaid" });
 
       const result: {
         subscriptionId: string;
@@ -254,7 +261,7 @@ describe("BillingService.changePlan - replacing and cancelling subscriptions", (
        * metered subscription carries the usage already reported for the
        * period, which a replacement starts over from zero.
        */
-      setup({ status: "canceled", meteredStatus: "active" });
+      setup({ status: "unpaid", meteredStatus: "active" });
 
       const result: {
         subscriptionId: string;
@@ -277,7 +284,7 @@ describe("BillingService.changePlan - replacing and cancelling subscriptions", (
     });
 
     it("should replace both when neither subscription bills", async () => {
-      setup({ status: "canceled" });
+      setup({ status: "unpaid" });
 
       await changePlan();
 
@@ -328,20 +335,29 @@ describe("BillingService.changePlan - replacing and cancelling subscriptions", (
       expect(result.meteredSubscriptionId).toBe(METERED_SUBSCRIPTION_ID);
     });
 
+    /*
+     * Every status an update cannot revive is replaced. Whether the old
+     * subscription is then cancelled is a separate question, answered by
+     * whether it is still open - see "subscriptions that are already over".
+     */
     it.each([
       ["unpaid"],
       ["incomplete"],
       ["incomplete_expired"],
       ["paused"],
+      ["canceled"],
     ] as Array<[Stripe.Subscription.Status]>)(
       "should replace a %s subscription, which an update cannot revive",
       async (status: Stripe.Subscription.Status) => {
         setup({ status: status });
 
-        await changePlan();
+        const result: {
+          subscriptionId: string;
+        } = await changePlan();
 
-        expect(cancelledIds()).toContain(SUBSCRIPTION_ID);
         expect(mockStripe.subscriptions.create).toHaveBeenCalled();
+        expect(result.subscriptionId).toBe("sub_main_new");
+        expect(mockStripe.subscriptions.update).not.toHaveBeenCalled();
       },
     );
   });
@@ -380,7 +396,9 @@ describe("BillingService.changePlan - replacing and cancelling subscriptions", (
       expect(mockStripe.subscriptions.create).toHaveBeenCalledTimes(1);
       expect(result.subscriptionId).toBe(SUBSCRIPTION_ID);
       expect(result.meteredSubscriptionId).toBe("sub_main_new");
-      expect(cancelledIds()).toEqual([METERED_SUBSCRIPTION_ID]);
+
+      // Nothing to cancel: the provider does not have it in the first place.
+      expect(mockStripe.subscriptions.del).not.toHaveBeenCalled();
     });
   });
 
@@ -391,7 +409,7 @@ describe("BillingService.changePlan - replacing and cancelling subscriptions", (
        * leaves the project on the subscriptions it had; cancelling first left
        * it with none at all.
        */
-      setup({ status: "canceled" });
+      setup({ status: "unpaid" });
 
       await changePlan();
 
@@ -413,7 +431,7 @@ describe("BillingService.changePlan - replacing and cancelling subscriptions", (
     it(
       "should retry a cancel that fails and report nothing when it lands",
       async () => {
-        setup({ status: "canceled", meteredStatus: "active" });
+        setup({ status: "unpaid", meteredStatus: "active" });
 
         mockStripe.subscriptions.del = getJestMockFunction()
           .mockRejectedValueOnce(rateLimitError())
@@ -432,7 +450,7 @@ describe("BillingService.changePlan - replacing and cancelling subscriptions", (
     it(
       "should report a cancel that fails every time",
       async () => {
-        setup({ status: "canceled", meteredStatus: "active" });
+        setup({ status: "unpaid", meteredStatus: "active" });
 
         mockStripe.subscriptions.del =
           getJestMockFunction().mockRejectedValue(rateLimitError());
@@ -458,7 +476,7 @@ describe("BillingService.changePlan - replacing and cancelling subscriptions", (
     );
 
     it("should treat a subscription the provider no longer has as cancelled", async () => {
-      setup({ status: "canceled", meteredStatus: "active" });
+      setup({ status: "unpaid", meteredStatus: "active" });
 
       mockStripe.subscriptions.del = getJestMockFunction().mockRejectedValue(
         resourceMissingError(),
@@ -476,7 +494,7 @@ describe("BillingService.changePlan - replacing and cancelling subscriptions", (
     it(
       "should report both subscriptions when neither cancel lands",
       async () => {
-        setup({ status: "canceled" });
+        setup({ status: "unpaid" });
 
         mockStripe.subscriptions.del =
           getJestMockFunction().mockRejectedValue(connectionError());
@@ -505,13 +523,92 @@ describe("BillingService.changePlan - replacing and cancelling subscriptions", (
   });
 
   /*
+   * A subscription that has already finished is replaced but not cancelled.
+   * Asking the payment provider to cancel one again is rejected, and to the
+   * retry loop that rejection is indistinguishable from a cancel that did not
+   * land: it would burn seconds retrying and then raise an alert asking an
+   * operator to cancel by hand something that is already cancelled. This is
+   * the common case - it is how reactivation reaches this path at all.
+   */
+  describe("subscriptions that are already over", () => {
+    it.each([["canceled"], ["incomplete_expired"]] as Array<
+      [Stripe.Subscription.Status]
+    >)(
+      "should replace a %s subscription without asking for it to be cancelled",
+      async (status: Stripe.Subscription.Status) => {
+        setup({ status: status, meteredStatus: "active" });
+
+        const result: {
+          subscriptionId: string;
+          subscriptionIdsPendingCancellation: Array<string>;
+        } = await changePlan();
+
+        // Replaced...
+        expect(result.subscriptionId).toBe("sub_main_new");
+
+        // ...but never sent to be cancelled, and so never reported.
+        expect(mockStripe.subscriptions.del).not.toHaveBeenCalled();
+        expect(result.subscriptionIdsPendingCancellation).toEqual([]);
+      },
+    );
+
+    it("should not raise a false alert when the provider refuses to cancel an already cancelled subscription", async () => {
+      setup({ status: "canceled" });
+
+      /*
+       * What a provider does with a cancel for a subscription that is already
+       * cancelled. It is not resource_missing - the subscription is still
+       * there, it is just finished - so nothing downstream can tell it apart
+       * from a cancel that failed.
+       */
+      mockStripe.subscriptions.del = getJestMockFunction().mockRejectedValue(
+        providerError({
+          type: "StripeInvalidRequestError",
+          rawType: "invalid_request_error",
+        }),
+      );
+
+      const result: {
+        subscriptionIdsPendingCancellation: Array<string>;
+      } = await changePlan();
+
+      expect(mockStripe.subscriptions.del).not.toHaveBeenCalled();
+      expect(result.subscriptionIdsPendingCancellation).toEqual([]);
+    });
+
+    it("should not treat a subscription the provider does not have as one to cancel", async () => {
+      setup({ status: "active", meteredRetrieveError: resourceMissingError() });
+
+      const result: {
+        subscriptionIdsPendingCancellation: Array<string>;
+      } = await changePlan();
+
+      expect(mockStripe.subscriptions.create).toHaveBeenCalledTimes(1);
+      expect(mockStripe.subscriptions.del).not.toHaveBeenCalled();
+      expect(result.subscriptionIdsPendingCancellation).toEqual([]);
+    });
+
+    it("should still cancel a subscription that bills nothing but is not over", async () => {
+      // The counterpart: unpaid, incomplete and paused are all still open.
+      setup({ status: "unpaid", meteredStatus: "incomplete" });
+
+      await changePlan();
+
+      expect(cancelledIds()).toEqual([
+        SUBSCRIPTION_ID,
+        METERED_SUBSCRIPTION_ID,
+      ]);
+    });
+  });
+
+  /*
    * The last line of defence. Whatever happens to the cancel, the replacement
    * carries the id it replaced and the project it belongs to, recorded at the
    * payment provider before anything was cancelled or overwritten.
    */
   describe("the breadcrumb left on a replacement", () => {
     it("should record the project and the subscription each replacement replaces", async () => {
-      setup({ status: "canceled" });
+      setup({ status: "unpaid" });
 
       await changePlan();
 
@@ -529,7 +626,7 @@ describe("BillingService.changePlan - replacing and cancelling subscriptions", (
     it(
       "should record it before the subscription it replaces is cancelled",
       async () => {
-        setup({ status: "canceled", meteredStatus: "active" });
+        setup({ status: "unpaid", meteredStatus: "active" });
 
         mockStripe.subscriptions.del =
           getJestMockFunction().mockRejectedValue(rateLimitError());

@@ -742,6 +742,33 @@ export class BillingService extends BaseService {
   }
 
   /*
+   * Whether a subscription has already finished, and so has nothing left to
+   * cancel.
+   *
+   * Not the negation of isSubscriptionStillBilling: between the two sit the
+   * statuses that bill nothing but are not over either - unpaid, incomplete,
+   * paused - which are replaced AND still have to be cancelled, because the
+   * subscription is still open at the payment provider.
+   *
+   * A subscription that is already cancelled or expired is not sent to the
+   * provider to be cancelled again. The provider rejects that, and the reject
+   * is indistinguishable to the retry loop from a cancel that genuinely did
+   * not land: it would spend seconds retrying and then raise an alert asking
+   * an operator to cancel by hand something that is already cancelled. Null
+   * is the same case - findSubscription has already established the provider
+   * does not have it.
+   */
+  private isSubscriptionAlreadyFinished(
+    subscription: Stripe.Subscription | null,
+  ): boolean {
+    return (
+      !subscription ||
+      subscription.status === "canceled" ||
+      subscription.status === "incomplete_expired"
+    );
+  }
+
+  /*
    * Retrieves a subscription, returning null only when the payment provider
    * says it does not have it.
    *
@@ -978,7 +1005,9 @@ export class BillingService extends BaseService {
         }),
       });
 
-      subscriptionIdsToCancel.push(data.subscriptionId);
+      if (!this.isSubscriptionAlreadyFinished(subscription)) {
+        subscriptionIdsToCancel.push(data.subscriptionId);
+      }
     }
 
     if (!canKeepMeteredSubscription) {
@@ -1002,7 +1031,9 @@ export class BillingService extends BaseService {
       newMeteredSubscriptionId =
         replacementMeteredSubscription.meteredSubscriptionId;
 
-      subscriptionIdsToCancel.push(data.meteredSubscriptionId);
+      if (!this.isSubscriptionAlreadyFinished(meteredSubscription)) {
+        subscriptionIdsToCancel.push(data.meteredSubscriptionId);
+      }
     }
 
     const subscriptionIdsPendingCancellation: Array<string> =

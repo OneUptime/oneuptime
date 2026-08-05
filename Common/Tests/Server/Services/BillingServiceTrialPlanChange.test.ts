@@ -945,13 +945,19 @@ describe("BillingService - plan changes during trial", () => {
         expect(result.trialEndsAt).toEqual(runningTrialEndsAt);
       });
 
+      /*
+       * "unpaid" rather than "canceled" below: it is the status that both has
+       * to be replaced AND still has to be cancelled. A cancelled
+       * subscription is already over and is never sent back to the payment
+       * provider to be cancelled again.
+       */
       it("should create the replacements before cancelling the old subscriptions", async () => {
         /*
          * The two are not atomic. Creating first means a failure in between
          * leaves the project on the subscriptions it had; cancelling first
          * left it with none at all.
          */
-        setup({ status: "canceled" });
+        setup({ status: "unpaid" });
 
         await changePlan();
 
@@ -961,7 +967,7 @@ describe("BillingService - plan changes during trial", () => {
       });
 
       it("should still cancel both of the old subscriptions", async () => {
-        setup({ status: "canceled" });
+        setup({ status: "unpaid" });
 
         await changePlan();
 
@@ -981,7 +987,7 @@ describe("BillingService - plan changes during trial", () => {
          */
         const trialOnStripe: Date = stripeTrial(6);
         setup({
-          status: "canceled",
+          status: "unpaid",
           trialEndOnStripe: OneUptimeDate.toUnixTimestamp(trialOnStripe),
         });
 

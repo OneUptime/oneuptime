@@ -575,4 +575,76 @@ describe("ProjectService.changePlan", () => {
       expect(error).not.toHaveBeenCalled();
     });
   });
+
+  /*
+   * The subscription ids changePlan returns are the ONLY record of the
+   * subscriptions it created: the replacement already exists at the payment
+   * provider and is already billing, and nothing else in OneUptime points at
+   * it. Reading a status back sits between the two, and a rate limit there
+   * must not be what stops the ids being written down - reactivation is
+   * retried from BillingInvoiceService, so a row left pointing at the old id
+   * mints another live subscription every time it runs.
+   */
+  describe("reading the new subscription statuses back", () => {
+    it("should still record the new subscription ids when the status cannot be read", async () => {
+      const spies: ChangePlanSpies = setup();
+
+      spies.getSubscriptionStatus.mockRejectedValue(
+        new Error("Request rate limit exceeded") as never,
+      );
+
+      jest.spyOn(logger, "error").mockReturnValue(undefined);
+
+      await ProjectService.changePlan({
+        projectId: PROJECT_ID,
+        paymentProviderPlanId: NEW_PLAN_ID,
+      });
+
+      expect(spies.updateOneById).toHaveBeenCalled();
+      expect(getUpdatedData(spies)).toMatchObject({
+        paymentProviderSubscriptionId: NEW_SUBSCRIPTION_ID,
+        paymentProviderMeteredSubscriptionId: NEW_METERED_SUBSCRIPTION_ID,
+      });
+    });
+
+    it("should leave the status columns alone rather than guess at them", async () => {
+      const spies: ChangePlanSpies = setup();
+
+      spies.getSubscriptionStatus.mockRejectedValue(
+        new Error("Request rate limit exceeded") as never,
+      );
+
+      jest.spyOn(logger, "error").mockReturnValue(undefined);
+
+      await ProjectService.changePlan({
+        projectId: PROJECT_ID,
+        paymentProviderPlanId: NEW_PLAN_ID,
+      });
+
+      /*
+       * Left for PaymentProvider:CheckSubscriptionStatus to fill in. Writing a
+       * guess would drive the paywall off a status nobody read.
+       */
+      expect(getUpdatedData(spies)).not.toHaveProperty(
+        "paymentProviderSubscriptionStatus",
+      );
+      expect(getUpdatedData(spies)).not.toHaveProperty(
+        "paymentProviderMeteredSubscriptionStatus",
+      );
+    });
+
+    it("should record the statuses when they can be read", async () => {
+      const spies: ChangePlanSpies = setup();
+
+      await ProjectService.changePlan({
+        projectId: PROJECT_ID,
+        paymentProviderPlanId: NEW_PLAN_ID,
+      });
+
+      expect(getUpdatedData(spies)).toMatchObject({
+        paymentProviderSubscriptionStatus: SubscriptionStatus.Trialing,
+        paymentProviderMeteredSubscriptionStatus: SubscriptionStatus.Trialing,
+      });
+    });
+  });
 });
