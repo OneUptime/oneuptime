@@ -315,13 +315,66 @@ describe("TeamMembersByUser.groupByUser", () => {
     expect(rows[0]!.pendingTeamCountForUser).toBe(0);
   });
 
-  it("keeps the first membership's id on the row so the table has a stable row key", () => {
-    const rows: Array<ProjectUserRow> = TeamMembersByUser.groupByUser([
+  /*
+   * The row's id identifies the person, and the table matches a selected row
+   * to an on-screen row by that id alone. It fetches the visible page and the
+   * "select all" set with two different sorts (the bulk fetch appends `_id` as
+   * a tiebreaker), so a first-seen id would make the same person carry a
+   * different id in the two results and every multi-team user's checkbox would
+   * silently fail to tick. Hence: lowest membership id, independent of the
+   * order the server happened to return.
+   */
+  it("gives a row the same id whatever order the memberships arrive in", () => {
+    const oneOrder: Array<ProjectUserRow> = TeamMembersByUser.groupByUser([
+      buildMembership({ id: "member-3", userId: "user-1", teamId: "team-3" }),
       buildMembership({ id: "member-1", userId: "user-1", teamId: "team-1" }),
       buildMembership({ id: "member-2", userId: "user-1", teamId: "team-2" }),
     ]);
 
-    expect(rows[0]!._id).toBe("member-1");
+    const otherOrder: Array<ProjectUserRow> = TeamMembersByUser.groupByUser([
+      buildMembership({ id: "member-2", userId: "user-1", teamId: "team-2" }),
+      buildMembership({ id: "member-3", userId: "user-1", teamId: "team-3" }),
+      buildMembership({ id: "member-1", userId: "user-1", teamId: "team-1" }),
+    ]);
+
+    expect(oneOrder[0]!._id).toBe("member-1");
+    expect(otherOrder[0]!._id).toBe(oneOrder[0]!._id);
+  });
+
+  it("keeps the row id pointing at a real membership of that user", () => {
+    const rows: Array<ProjectUserRow> = TeamMembersByUser.groupByUser([
+      buildMembership({ id: "member-9", userId: "user-1", teamId: "team-1" }),
+      buildMembership({ id: "member-4", userId: "user-1", teamId: "team-2" }),
+    ]);
+
+    expect(["member-9", "member-4"]).toContain(rows[0]!._id);
+  });
+
+  it("leaves a single-membership row on its own id", () => {
+    const rows: Array<ProjectUserRow> = TeamMembersByUser.groupByUser([
+      buildMembership({ id: "member-7", userId: "user-1", teamId: "team-1" }),
+    ]);
+
+    expect(rows[0]!._id).toBe("member-7");
+  });
+
+  it("gives different users different row ids", () => {
+    const rows: Array<ProjectUserRow> = TeamMembersByUser.groupByUser([
+      buildMembership({ id: "member-1", userId: "user-1", teamId: "team-1" }),
+      buildMembership({ id: "member-2", userId: "user-2", teamId: "team-1" }),
+      buildMembership({ id: "member-3", userId: "user-1", teamId: "team-2" }),
+    ]);
+
+    expect(rows[0]!._id).not.toBe(rows[1]!._id);
+  });
+
+  it("does not invent an id for a row whose memberships have none", () => {
+    const rows: Array<ProjectUserRow> = TeamMembersByUser.groupByUser([
+      buildMembership({ userId: "user-1", teamId: "team-1" }),
+      buildMembership({ userId: "user-1", teamId: "team-2" }),
+    ]);
+
+    expect(rows[0]!._id).toBeUndefined();
   });
 
   it("groups by user even when the same person's memberships are not adjacent", () => {
