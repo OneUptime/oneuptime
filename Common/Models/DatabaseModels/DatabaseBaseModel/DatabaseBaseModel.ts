@@ -17,6 +17,10 @@ import TableColumn, {
   getTableColumns,
 } from "../../../Types/Database/TableColumn";
 import TableColumnType from "../../../Types/Database/TableColumnType";
+import {
+  coerceNumericColumnValue,
+  isNumericTableColumnType,
+} from "../../../Types/Database/NumericColumnValue";
 import { getFirstColorFieldColumn } from "../../../Types/Database/ColorField";
 import Dictionary from "../../../Types/Dictionary";
 import Email from "../../../Types/Email";
@@ -727,6 +731,16 @@ export default class DatabaseBaseModel extends BaseEntity {
             json[key] as JSONArray,
             tableColumnMetadata.modelType,
           );
+        } else if (isNumericTableColumnType(tableColumnMetadata.type)) {
+          /*
+           * An `<input type="number">` hands back a string, so the dashboard
+           * posts "10" for a number column. This is the one place that knows
+           * the column's declared type, and it runs on both sides of the
+           * wire — ModelForm on the way out, BaseAPI on the way in — so a
+           * number column holds a number before any hook or validator reads
+           * it. See Types/Database/NumericColumnValue.
+           */
+          (baseModel as any)[key] = coerceNumericColumnValue(json[key]);
         } else {
           (baseModel as any)[key] = json[key];
         }

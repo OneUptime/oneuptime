@@ -35,14 +35,26 @@ export default class Decimal extends DatabaseProperty {
     return this.value.toString();
   }
 
+  /*
+   * A decimal column is declared `TableColumnType.Number`, so what reaches
+   * the transformer may be a Decimal, a string, or a plain number depending
+   * on how far the request body got through deserialization.
+   *
+   * Both raw forms are handled before the truthiness check, because `0` is a
+   * perfectly good decimal and the old `if (value)` sent it to `null` — on a
+   * NOT NULL column that is a constraint violation for a value the caller
+   * supplied.
+   */
   protected static override toDatabase(
     value: Decimal | FindOperator<Decimal>,
   ): string | null {
-    if (value) {
-      if (typeof value === "string") {
-        value = new Decimal(value);
-      }
+    const rawValue: unknown = value;
 
+    if (typeof rawValue === "string" || typeof rawValue === "number") {
+      return new Decimal(rawValue).toString();
+    }
+
+    if (value) {
       return value.toString();
     }
 

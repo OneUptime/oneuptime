@@ -45,6 +45,32 @@ export default class DatabaseProperty extends SerializableObject {
   public static getDatabaseTransformer(): ValueTransformer {
     return {
       to: (value: any) => {
+        /*
+         * `undefined` means "the caller did not set this column", and it has
+         * to stay distinguishable from `null` all the way into TypeORM.
+         *
+         * TypeORM runs the transformer BEFORE deciding whether the column
+         * was supplied:
+         *
+         *   InsertQueryBuilder.createColumnValueExpression
+         *     -> driver.preparePersistentValue   (runs this function)
+         *     -> if (value === undefined) expression += "DEFAULT"
+         *
+         * so answering `null` here (which every `toDatabase` does for a
+         * falsy value) rewrites an omitted column into an explicit NULL and
+         * makes the column's DEFAULT unreachable. On a NOT NULL column with
+         * a default — an on-call layer's `rotation`, a drop filter's
+         * `droppedCount` — that is a not-null constraint violation, i.e. an
+         * HTTP 500, on every create that leaves the column alone.
+         *
+         * UPDATE is unaffected either way: UpdateQueryBuilder strips
+         * undefined properties before the transformer ever sees them
+         * ("it doesn't make sense to update undefined properties").
+         */
+        if (value === undefined) {
+          return undefined;
+        }
+
         return this._toDatabase(value);
       },
       from: (value: any) => {

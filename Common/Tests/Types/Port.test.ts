@@ -36,4 +36,42 @@ describe("Testing class port", () => {
     const value: Port = new Port("6000");
     expect(typeof value.port.positiveNumber).toBe("number");
   });
+
+  /*
+   * A port column is declared `TableColumnType.Number`, so whatever reaches
+   * the transformer may be a Port, a string, or a plain number depending on
+   * how far the request body got through deserialization. A raw number used
+   * to fall off the end of `toDatabase` and return null, which wrote NULL
+   * over an SMTP port the user had just typed — silently, since null is a
+   * legal value for the column.
+   */
+  describe("getDatabaseTransformer().to", () => {
+    const transformer: ReturnType<typeof Port.getDatabaseTransformer> =
+      Port.getDatabaseTransformer();
+
+    test("stores a Port instance as its number", () => {
+      expect(transformer.to(new Port(587))).toBe(587);
+    });
+
+    test("stores a raw string port as a number", () => {
+      expect(transformer.to("587")).toBe(587);
+    });
+
+    test("stores a raw number port rather than dropping it", () => {
+      expect(transformer.to(587)).toBe(587);
+      expect(transformer.to(0)).toBe(0);
+      expect(transformer.to(65535)).toBe(65535);
+    });
+
+    test("keeps undefined distinct from null so a column DEFAULT applies", () => {
+      expect(transformer.to(undefined)).toBeUndefined();
+      expect(transformer.to(null)).toBeNull();
+    });
+
+    test("rejects a port outside the valid range instead of storing null", () => {
+      expect(() => {
+        return transformer.to(70000);
+      }).toThrow(BadDataException);
+    });
+  });
 });

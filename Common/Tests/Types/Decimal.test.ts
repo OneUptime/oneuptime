@@ -89,4 +89,41 @@ describe("Decimal", () => {
       expect(restored.equals(original)).toBe(true);
     });
   });
+
+  /*
+   * A decimal column is declared `TableColumnType.Number`, so whatever
+   * reaches the transformer may be a Decimal, a string, or a plain number
+   * depending on how far the request body got through deserialization.
+   */
+  describe("getDatabaseTransformer().to", () => {
+    const transformer: ReturnType<typeof Decimal.getDatabaseTransformer> =
+      Decimal.getDatabaseTransformer();
+
+    test("stores a Decimal instance as its string form", () => {
+      expect(transformer.to(new Decimal(125.5))).toBe("125.5");
+    });
+
+    test("stores a raw string", () => {
+      expect(transformer.to("125.5")).toBe("125.5");
+    });
+
+    test("stores a raw number", () => {
+      expect(transformer.to(125.5)).toBe("125.5");
+    });
+
+    /*
+     * `0` is a perfectly good decimal, and both of its columns are NOT NULL.
+     * A truthiness check used to send it to null, which the column rejects.
+     */
+    test("stores zero rather than turning it into null", () => {
+      expect(transformer.to(0)).toBe("0");
+      expect(transformer.to("0")).toBe("0");
+      expect(transformer.to(new Decimal(0))).toBe("0");
+    });
+
+    test("keeps undefined distinct from null so a column DEFAULT applies", () => {
+      expect(transformer.to(undefined)).toBeUndefined();
+      expect(transformer.to(null)).toBeNull();
+    });
+  });
 });

@@ -59,17 +59,29 @@ export default class Port extends DatabaseProperty {
     this.port = new PositiveNumber(port);
   }
 
+  /*
+   * A port column is declared `TableColumnType.Number`, so a raw number is
+   * as legitimate an incoming value as a raw string — the SMTP forms send
+   * one or the other depending on how far the value got through
+   * deserialization. Dropping a number on the floor here wrote NULL over a
+   * port the user had just typed, with no error anywhere.
+   */
   public static override toDatabase(
     value: Port | FindOperator<Port>,
   ): number | null {
-    if (typeof value === "string") {
-      value = new Port(value);
+    /*
+     * The declared parameter type stays Port-shaped so this still overrides
+     * DatabaseProperty.toDatabase, but a raw string or number genuinely
+     * arrives here — see the note above — so widen at the check instead.
+     */
+    const rawValue: unknown = value;
+
+    if (typeof rawValue === "string" || typeof rawValue === "number") {
+      value = new Port(rawValue);
     }
 
     if (value instanceof Port) {
       return value.toNumber();
-    } else if (typeof value === "string") {
-      return parseInt(value);
     }
 
     return null;
