@@ -515,6 +515,97 @@ export default class ServiceLevelObjective extends BaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.EntityArray,
+    modelType: Label,
+    title: "Auto-Add Monitors With Labels",
+    description:
+      "Monitor labels that automatically attach monitors to this SLO. Any monitor in the project carrying at least one of these labels is added to the Monitors list, and is removed again when it stops carrying any of them.",
+  })
+  @ManyToMany(
+    () => {
+      return Label;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "ServiceLevelObjectiveMonitorLabel",
+    inverseJoinColumn: {
+      name: "labelId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "serviceLevelObjectiveId",
+      referencedColumnName: "_id",
+    },
+  })
+  public monitorLabels?: Array<Label> = undefined;
+
+  /*
+   * Bookkeeping shadow of `monitors`: the subset of attached monitors that the
+   * label rule put there. Without it the rule could not tell a monitor it
+   * added from one a human attached by hand, so "this monitor no longer
+   * matches, detach it" would silently delete deliberate, manual attachments.
+   * Root-only: it is derived state, never something a client sets.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadServiceLevelObjective,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: Monitor,
+    title: "Auto Added Monitors",
+    description:
+      "Monitors that were attached to this SLO by its label rule rather than by hand. Maintained by the server.",
+  })
+  @ManyToMany(
+    () => {
+      return Monitor;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "ServiceLevelObjectiveAutoAddedMonitor",
+    inverseJoinColumn: {
+      name: "monitorId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "serviceLevelObjectiveId",
+      referencedColumnName: "_id",
+    },
+  })
+  public autoAddedMonitors?: Array<Monitor> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateServiceLevelObjective,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadServiceLevelObjective,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditServiceLevelObjective,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
     modelType: MonitorStatus,
     isDefaultValueColumn: true,
     computed: true,
