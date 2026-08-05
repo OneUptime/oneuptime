@@ -17,7 +17,7 @@ The value of the error budget framing is that it turns reliability into a spenda
 
 An SLO in OneUptime is made of:
 
-- **One or more monitors** — the SLI source. OneUptime computes good and bad time from each monitor's status timeline, the same data that powers your status pages.
+- **One or more monitors** — the SLI source. OneUptime computes good and bad time from each monitor's status timeline, the same data that powers your status pages. Attach them by hand, or by label so the list maintains itself.
 - **A target percentage** — for example `99.9`. The target must be below 100% (a 100% target has no error budget, so there is nothing to track).
 - **A compliance window** — either a **rolling window** of any length from 1 to 366 days (7, 28, 30 and 90 are the usual choices), or a **calendar month**.
 - **Downtime statuses** — which monitor statuses count as downtime for this SLO.
@@ -33,10 +33,10 @@ You can tune this per SLO. A common pattern is two SLOs over the same monitors:
 
 ### Compliance windows
 
-| Window type        | Behavior                                                                                                                                   |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Window type        | Behavior                                                                                                                                      |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Rolling**        | Always looks back a fixed number of days from now (1 to 366). Bad time gradually ages out of the window, so the budget recovers continuously. |
-| **Calendar month** | Measures from the first of the month in the SLO's timezone. The budget resets in full at the start of each month.                          |
+| **Calendar month** | Measures from the first of the month in the SLO's timezone. The budget resets in full at the start of each month.                             |
 
 Calendar-month SLOs have a **timezone** setting (defaulting to UTC) that determines exactly when the month rolls over.
 
@@ -44,9 +44,9 @@ Calendar-month SLOs have a **timezone** setting (defaulting to UTC) that determi
 
 When an SLO has more than one monitor attached, you choose how their downtime combines:
 
-| Mode                           | Semantics                                                                                                                                                                                    | Use when…                                                                                            |
-| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| **Any Monitor Down** (default) | Any moment where _at least one_ attached monitor is in a downtime status counts as downtime for the whole SLO. Overlapping outages are not double-counted — the union of down time is taken. | The monitors together represent one user-facing service: if any of them is down, users are affected. |
+| Mode                           | Semantics                                                                                                                                                                                                                                                  | Use when…                                                                                            |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| **Any Monitor Down** (default) | Any moment where _at least one_ attached monitor is in a downtime status counts as downtime for the whole SLO. Overlapping outages are not double-counted — the union of down time is taken.                                                               | The monitors together represent one user-facing service: if any of them is down, users are affected. |
 | **Monitor Seconds Average**    | Each monitor's downtime is counted separately and averaged: SLI = 1 − (total down seconds across monitors ÷ total monitored seconds across monitors). This changes the denominator as well as the numerator — see [Error Budgets](/docs/slo/error-budget). | The monitors are a fleet of similar resources and partial impact should count partially.             |
 
 An example: Monitor A is down from 10:00 to 11:00 while Monitor B stays up.
@@ -54,17 +54,34 @@ An example: Monitor A is down from 10:00 to 11:00 while Monitor B stays up.
 - **Any Monitor Down** — the SLO records 60 minutes of downtime (the service was impaired for that hour).
 - **Monitor Seconds Average** — the SLO records the equivalent of 30 minutes (one of two monitors was down for an hour, so half the fleet-seconds were bad).
 
+### Attaching monitors by label
+
+Picking monitors by hand goes stale: someone adds the fourth checkout monitor and nobody remembers to add it to the checkout SLO, so the SLO quietly under-reports for weeks.
+
+**Auto-Add Monitors With Labels** on the SLO form fixes that. Name one or more monitor labels, and every monitor in the project carrying at least one of them is attached automatically:
+
+- when the SLO is created or the rule is edited, every matching monitor is attached at once;
+- when a monitor is created with a matching label — including a label one of your monitor label rules gave it — it is attached;
+- when a monitor gains a matching label, it is attached;
+- when a monitor loses its last matching label, it is detached again.
+
+A monitor matches if it carries **any** of the rule's labels, not all of them.
+
+**Monitors you attach by hand are never removed.** The SLO remembers which monitors the rule attached and only ever takes those back, so a monitor you picked deliberately stays attached even when it stops matching — and stays attached if you delete the rule entirely. Deleting the rule (clearing the labels) detaches everything the rule had attached, and nothing else.
+
+If you use a rule, the Monitors picker becomes optional — you can create an SLO with only a rule and let it fill in. Its list still shows the full attached set, so the Overview tab always tells you exactly what is being measured.
+
 ## SLO status
 
 Every SLO carries a status computed from its remaining error budget:
 
-| Status               | Meaning                                                                                                                   |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| **Healthy**          | Plenty of budget left.                                                                                                    |
-| **At Risk**          | Remaining budget has dropped to or below the at-risk threshold — **20% of the budget by default** (configurable per SLO). |
-| **Budget Exhausted** | The budget is fully spent (or overspent).                                                                                 |
+| Status               | Meaning                                                                                                                                         |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Healthy**          | Plenty of budget left.                                                                                                                          |
+| **At Risk**          | Remaining budget has dropped to or below the at-risk threshold — **20% of the budget by default** (configurable per SLO).                       |
+| **Budget Exhausted** | The budget is fully spent (or overspent).                                                                                                       |
 | **Misconfigured**    | The SLO cannot be evaluated — no monitors attached, no monitor data in the window yet, or a target outside 0–100%. The SLO page explains which. |
-| **Paused**           | All attached monitors are disabled, so there is no signal to evaluate.                                                    |
+| **Paused**           | All attached monitors are disabled, so there is no signal to evaluate.                                                                          |
 
 SLO owners are notified when the status changes to **At Risk** or **Budget Exhausted** — see [Error Budgets](/docs/slo/error-budget) for details.
 
@@ -73,7 +90,7 @@ SLO owners are notified when the status changes to **At Risk** or **Budget Exhau
 1. Go to **SLOs** in the OneUptime Dashboard
 2. Click **Create SLO**
 3. Give it a name and description
-4. Attach one or more **monitors**
+4. Attach one or more **monitors**, or name the monitor labels to attach them by under **Auto-Add Monitors With Labels** (or both)
 5. Set the **target percentage** (e.g., `99.9`)
 6. Pick the **window type** — **Rolling** (then set the window length in days, 1 to 366) or **Calendar Month** (then pick the **timezone** the month rolls over in)
 7. Optionally adjust the **at-risk threshold**, the **downtime statuses**, and — for multiple monitors — the **multi-monitor mode**
@@ -93,13 +110,13 @@ The SLO's **Overview** tab shows, live:
 
 The SLO's other tabs are:
 
-| Tab | What it shows |
-| --- | --- |
-| **Charts** | SLI, budget remaining and burn rate over time, with reference lines at your target, at the at-risk and exhausted budget boundaries, and at each enabled burn rate rule's threshold. |
-| **Burn Rate Rules** | The rules that page you when the budget burns too fast, and whether each one is currently firing. |
-| **Alerts** | Every alert this SLO's burn rate rules have raised. |
-| **Audit Logs** | Every change made to this SLO's definition. |
-| **Owners** | The users and teams notified when the status changes. |
+| Tab                 | What it shows                                                                                                                                                                       |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Charts**          | SLI, budget remaining and burn rate over time, with reference lines at your target, at the at-risk and exhausted budget boundaries, and at each enabled burn rate rule's threshold. |
+| **Burn Rate Rules** | The rules that page you when the budget burns too fast, and whether each one is currently firing.                                                                                   |
+| **Alerts**          | Every alert this SLO's burn rate rules have raised.                                                                                                                                 |
+| **Audit Logs**      | Every change made to this SLO's definition.                                                                                                                                         |
+| **Owners**          | The users and teams notified when the status changes.                                                                                                                               |
 
 For a brand-new SLO with a rolling window, the window is not full yet — a 30-day SLO created yesterday only has one day of data. OneUptime measures over the data that exists and flags the SLO as "window not yet full", so early numbers move around more than they will once the window fills.
 

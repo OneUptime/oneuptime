@@ -14,6 +14,7 @@ import MonitorOwnerTeamService from "./MonitorOwnerTeamService";
 import MonitorOwnerUserService from "./MonitorOwnerUserService";
 import MonitorProbeService from "./MonitorProbeService";
 import MonitorStatusService from "./MonitorStatusService";
+import ServiceLevelObjectiveMonitorRuleEngineService from "./ServiceLevelObjectiveMonitorRuleEngineService";
 import NetworkSiteService from "./NetworkSiteService";
 import MonitorStatusTimelineService, {
   MONITOR_STATUS_SAME_AS_PREVIOUS_ERROR_MESSAGE,
@@ -612,6 +613,37 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
+    /*
+     * Labels decide SLO membership, so a label added or removed here can pull
+     * this monitor into an SLO's error budget or push it out of one. Keyed on
+     * `!== undefined` rather than on a non-empty array: clearing every label
+     * arrives as `[]`, and that is precisely the edit that should detach the
+     * monitor from every rule-driven SLO.
+     */
+    if (
+      onUpdate.updateBy.data.labels !== undefined &&
+      updatedItemIds.length > 0
+    ) {
+      for (const monitorId of updatedItemIds) {
+        try {
+          await ServiceLevelObjectiveMonitorRuleEngineService.syncSlosForMonitor(
+            {
+              monitorId: monitorId,
+              projectId: onUpdate.updateBy.props.tenantId as ObjectID,
+            },
+          );
+        } catch (error) {
+          logger.error(
+            "Syncing SLO label rules failed in MonitorService.onUpdateSuccess",
+            {
+              monitorId: monitorId?.toString(),
+            } as LogAttributes,
+          );
+          logger.error(error as Error);
+        }
+      }
+    }
+
     return onUpdate;
   }
 
@@ -980,6 +1012,31 @@ ${createdItem.description?.trim() || "No description provided."}
           );
           logger.error(error as Error);
           return Promise.resolve();
+        }
+        return Promise.resolve();
+      })
+      .then(async () => {
+        /*
+         * Runs after the label rules above so a monitor created with no labels
+         * of its own, but given some by a MonitorLabelRule, still lands in the
+         * SLOs those labels imply.
+         */
+        try {
+          await ServiceLevelObjectiveMonitorRuleEngineService.syncSlosForMonitor(
+            {
+              monitorId: createdItem.id!,
+              projectId: createdItem.projectId!,
+            },
+          );
+        } catch (error) {
+          logger.error(
+            "Syncing SLO label rules failed in MonitorService.onCreateSuccess",
+            {
+              projectId: createdItem.projectId?.toString(),
+              monitorId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+          logger.error(error as Error);
         }
         return Promise.resolve();
       })

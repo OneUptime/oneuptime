@@ -223,8 +223,34 @@ export const getSloFormFields: GetSloFormFieldsFunction = (
         labelField: "name",
         valueField: "_id",
       },
-      required: true,
+      /*
+       * Required only when nothing else can fill the list. An SLO driven
+       * entirely by the label rule below starts with no monitors picked by
+       * hand, and the server attaches the matching ones the moment it is
+       * saved — demanding a manual pick there would force the user to attach
+       * a monitor they did not mean to curate.
+       */
+      required: (item: FormValues<ServiceLevelObjective>): boolean => {
+        const monitorLabels: unknown = item.monitorLabels;
+        return !Array.isArray(monitorLabels) || monitorLabels.length === 0;
+      },
       placeholder: "Select Monitors",
+    },
+    {
+      field: {
+        monitorLabels: true,
+      },
+      title: "Auto-Add Monitors With Labels",
+      description:
+        "Keep this SLO's monitor list in step with your labels: every monitor carrying one of these labels is attached automatically, and is detached again when it stops carrying any of them. Monitors you attach by hand above are never removed.",
+      fieldType: FormFieldSchemaType.MultiSelectDropdown,
+      dropdownModal: {
+        type: Label,
+        labelField: "name",
+        valueField: "_id",
+      },
+      required: false,
+      placeholder: "Select Monitor Labels",
     },
     {
       field: {

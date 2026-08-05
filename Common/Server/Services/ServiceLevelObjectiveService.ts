@@ -25,6 +25,7 @@ import DatabaseService from "./DatabaseService";
 import MonitorStatusService from "./MonitorStatusService";
 import ProjectService from "./ProjectService";
 import ServiceLevelObjectiveBurnRateRuleService from "./ServiceLevelObjectiveBurnRateRuleService";
+import ServiceLevelObjectiveMonitorRuleEngineService from "./ServiceLevelObjectiveMonitorRuleEngineService";
 import ServiceLevelObjectiveOwnerTeamService from "./ServiceLevelObjectiveOwnerTeamService";
 import ServiceLevelObjectiveOwnerUserService from "./ServiceLevelObjectiveOwnerUserService";
 import TeamMemberService from "./TeamMemberService";
@@ -156,6 +157,22 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
+    /*
+     * An SLO created with a label rule must already carry the monitors that
+     * rule matches — otherwise it reads "no monitors attached, cannot be
+     * evaluated" until someone happens to edit a monitor.
+     */
+    try {
+      await ServiceLevelObjectiveMonitorRuleEngineService.syncMonitorsForSlo({
+        serviceLevelObjectiveId: createdItem.id!,
+      });
+    } catch (err) {
+      logger.error(
+        `Error applying the monitor label rule for SLO ${createdItem.id?.toString()}: ${err}`,
+        { projectId: createdItem.projectId?.toString() } as LogAttributes,
+      );
+    }
+
     return createdItem;
   }
 
@@ -232,6 +249,28 @@ export class Service extends DatabaseService<Model> {
         } catch (err) {
           logger.error(
             `Error resolving open burn rate alerts for disabled SLO ${updatedItemId.toString()}: ${err}`,
+          );
+        }
+      }
+    }
+
+    /*
+     * The label rule changed, so the monitor set it implies changed with it.
+     * Re-run it before the re-evaluation stamp below: the sync writes
+     * `monitors`, which goes through this same hook and stamps
+     * nextEvaluationAt itself once the new set is persisted.
+     */
+    if (onUpdate.updateBy.data.monitorLabels !== undefined) {
+      for (const updatedItemId of updatedItemIds) {
+        try {
+          await ServiceLevelObjectiveMonitorRuleEngineService.syncMonitorsForSlo(
+            {
+              serviceLevelObjectiveId: updatedItemId,
+            },
+          );
+        } catch (err) {
+          logger.error(
+            `Error applying the monitor label rule for SLO ${updatedItemId.toString()}: ${err}`,
           );
         }
       }

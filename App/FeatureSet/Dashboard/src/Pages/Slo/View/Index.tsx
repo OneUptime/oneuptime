@@ -474,6 +474,36 @@ const SloView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
             {
               field: {
+                monitorLabels: {
+                  name: true,
+                  color: true,
+                },
+              },
+              title: "Auto-Add Monitors With Labels",
+              fieldType: FieldType.Element,
+              getElement: (item: ServiceLevelObjective): ReactElement => {
+                const monitorLabels: Array<Label> =
+                  (item.monitorLabels as Array<Label>) || [];
+
+                /*
+                 * Spelled out rather than left blank: an empty cell here and
+                 * a rule that matches nothing look identical, and the
+                 * difference decides whether the Monitors list above is
+                 * maintained for you or entirely yours to curate.
+                 */
+                if (monitorLabels.length === 0) {
+                  return (
+                    <span className="text-gray-400">
+                      No label rule — monitors are attached by hand.
+                    </span>
+                  );
+                }
+
+                return <LabelsElement labels={monitorLabels} />;
+              },
+            },
+            {
+              field: {
                 downtimeMonitorStatuses: {
                   name: true,
                 },

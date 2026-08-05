@@ -13,6 +13,7 @@ import AlertStateTimelineService from "../../../Server/Services/AlertStateTimeli
 import MonitorStatusService from "../../../Server/Services/MonitorStatusService";
 import ServiceLevelObjectiveService from "../../../Server/Services/ServiceLevelObjectiveService";
 import ServiceLevelObjectiveBurnRateRuleService from "../../../Server/Services/ServiceLevelObjectiveBurnRateRuleService";
+import ServiceLevelObjectiveMonitorRuleEngineService from "../../../Server/Services/ServiceLevelObjectiveMonitorRuleEngineService";
 import ServiceLevelObjectiveOwnerTeamService from "../../../Server/Services/ServiceLevelObjectiveOwnerTeamService";
 import ServiceLevelObjectiveOwnerUserService from "../../../Server/Services/ServiceLevelObjectiveOwnerUserService";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
@@ -1984,5 +1985,134 @@ describe("ServiceLevelObjectiveService.getSloLinkInDashboard", () => {
       path.indexOf(SLO_ID.toString()),
     );
     expect(path).toContain("/slos/");
+  });
+});
+
+/*
+ * The label rule has to be applied by the service that owns the column, not
+ * only by the dashboard that sets it: an SLO created or edited over the API
+ * must come out carrying the monitors its rule implies. Both hooks are
+ * best-effort - a rule that cannot be applied is logged, never allowed to
+ * fail the write that triggered it.
+ */
+describe("ServiceLevelObjectiveService - applying the monitor label rule", () => {
+  let syncMonitorsForSloSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    syncMonitorsForSloSpy = jest
+      .spyOn(
+        ServiceLevelObjectiveMonitorRuleEngineService,
+        "syncMonitorsForSlo",
+      )
+      .mockResolvedValue({ monitorIdsAdded: [], monitorIdsRemoved: [] });
+
+    jest
+      .spyOn(ServiceLevelObjectiveService, "updateOneById")
+      .mockResolvedValue(1);
+    jest
+      .spyOn(ServiceLevelObjectiveService, "findOneById")
+      .mockResolvedValue(makeSlo({ projectId: PROJECT_ID }));
+    jest
+      .spyOn(ServiceLevelObjectiveService, "resolveOpenBurnRateAlertsForSlo")
+      .mockResolvedValue(undefined);
+    jest.spyOn(AlertSeverityService, "findOneBy").mockResolvedValue(null);
+    jest
+      .spyOn(ServiceLevelObjectiveBurnRateRuleService, "create")
+      .mockResolvedValue(makeBurnRateRule(RULE_ID));
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("runs the rule for a newly created SLO so it is not born with an empty monitor list", async () => {
+    const createdItem: ServiceLevelObjective = makeSlo({
+      _id: SLO_ID.toString(),
+      id: SLO_ID,
+      projectId: PROJECT_ID,
+      targetPercentage: 99.9,
+    });
+
+    await callHook(
+      "onCreateSuccess",
+      {
+        createBy: makeCreateBy({
+          projectId: PROJECT_ID,
+          targetPercentage: 99.9,
+        }),
+        carryForward: null,
+      },
+      createdItem,
+    );
+
+    expect(syncMonitorsForSloSpy).toHaveBeenCalledTimes(1);
+    expect(syncMonitorsForSloSpy).toHaveBeenCalledWith({
+      serviceLevelObjectiveId: SLO_ID,
+    });
+  });
+
+  it("does not fail the create when the rule cannot be applied", async () => {
+    syncMonitorsForSloSpy.mockRejectedValue(new Error("db down"));
+
+    const createdItem: ServiceLevelObjective = makeSlo({
+      _id: SLO_ID.toString(),
+      id: SLO_ID,
+      projectId: PROJECT_ID,
+    });
+
+    await expect(
+      callHook(
+        "onCreateSuccess",
+        {
+          createBy: makeCreateBy({ projectId: PROJECT_ID }),
+          carryForward: null,
+        },
+        createdItem,
+      ),
+    ).resolves.toBe(createdItem);
+  });
+
+  it("re-runs the rule for every SLO whose rule was just edited", async () => {
+    await callHook(
+      "onUpdateSuccess",
+      makeOnUpdate({ monitorLabels: [{ _id: RULE_ID.toString() }] }),
+      [SLO_ID, OTHER_RULE_ID],
+    );
+
+    expect(syncMonitorsForSloSpy).toHaveBeenCalledTimes(2);
+    expect(syncMonitorsForSloSpy).toHaveBeenNthCalledWith(1, {
+      serviceLevelObjectiveId: SLO_ID,
+    });
+    expect(syncMonitorsForSloSpy).toHaveBeenNthCalledWith(2, {
+      serviceLevelObjectiveId: OTHER_RULE_ID,
+    });
+  });
+
+  it("re-runs the rule when it is cleared, which is what gives the monitors back", async () => {
+    await callHook("onUpdateSuccess", makeOnUpdate({ monitorLabels: [] }), [
+      SLO_ID,
+    ]);
+
+    expect(syncMonitorsForSloSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("leaves the rule alone for an edit that does not touch it", async () => {
+    await callHook(
+      "onUpdateSuccess",
+      makeOnUpdate({ targetPercentage: 99.5 }),
+      [SLO_ID],
+    );
+
+    expect(syncMonitorsForSloSpy).not.toHaveBeenCalled();
+  });
+
+  it("does not fail the update when the rule cannot be applied", async () => {
+    syncMonitorsForSloSpy.mockRejectedValue(new Error("db down"));
+
+    await expect(
+      callHook("onUpdateSuccess", makeOnUpdate({ monitorLabels: [] }), [
+        SLO_ID,
+      ]),
+    ).resolves.toBeDefined();
   });
 });
