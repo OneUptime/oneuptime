@@ -370,6 +370,24 @@ export class BillingService extends BaseService {
       trialDate = data.trial;
     }
 
+    /*
+     * A trial is live when its end date is still ahead of us - nothing else
+     * decides it.
+     *
+     * The new plan's configured trial length is an input to how long a *fresh*
+     * trial runs (the boolean branch above). It must not decide whether an
+     * already-running trial handed over by changePlan survives: gating on it
+     * meant a project that changed plan mid-trial onto a plan configured with
+     * 0 trial days got trial_end "now", and Stripe invoiced the full plan on
+     * the spot. That is the upgrade-during-trial charge customers reported.
+     *
+     * Same predicate as subscribeToMeteredPlan, so the flat-fee and the
+     * metered subscription always end their trial on the same date.
+     */
+    const isTrialing: boolean = Boolean(
+      trialDate && OneUptimeDate.isInTheFuture(trialDate),
+    );
+
     const subscriptionParams: Stripe.SubscriptionCreateParams = {
       customer: data.customerId,
 
@@ -384,10 +402,7 @@ export class BillingService extends BaseService {
 
       proration_behavior: "always_invoice",
 
-      trial_end:
-        trialDate && data.plan.getTrialPeriod() > 0
-          ? OneUptimeDate.toUnixTimestamp(trialDate)
-          : "now",
+      trial_end: isTrialing ? OneUptimeDate.toUnixTimestamp(trialDate!) : "now",
     };
 
     if (data.promoCode) {
@@ -407,14 +422,26 @@ export class BillingService extends BaseService {
       trialEndsAt: Date | null;
     } = await this.subscribeToMeteredPlan({
       ...data,
-      trialDate,
+
+      /*
+       * The resolved trial, not the raw one: both subscriptions have to answer
+       * "is this project trialing" the same way, or usage starts being invoiced
+       * while the flat fee is still waived.
+       */
+      trialDate: isTrialing ? trialDate : null,
     });
 
     return {
       subscriptionId: subscription.id,
       meteredSubscriptionId: meteredSubscription.meteredSubscriptionId,
-      trialEndsAt:
-        trialDate && data.plan.getTrialPeriod() > 0 ? trialDate : null,
+
+      /*
+       * Reported with the same predicate that built trial_end. Callers persist
+       * this onto the project row, so a mismatch would leave the project
+       * showing no trial while Stripe has the subscription trialing (or the
+       * reverse) - and the project row is what gates the in-app trial banner.
+       */
+      trialEndsAt: isTrialing ? trialDate : null,
     };
   }
 
@@ -660,6 +687,41 @@ export class BillingService extends BaseService {
       throw new BadDataException(Errors.BillingService.NO_PAYMENTS_METHODS);
     }
 
+    /*
+     * The trial the customer is really on lives on the subscription being
+     * replaced; endTrialAt is only the caller's copy of it. Resolve both while
+     * the old subscription still exists, and carry whichever runs longer onto
+     * the replacements.
+     *
+     * Changing plan must never shorten a trial. The subscriptions below are
+     * cancelled and recreated, so a caller holding a stale project row - or one
+     * that does not pass endTrialAt at all - would otherwise hand the new
+     * subscription no trial, and Stripe would invoice the full plan on the
+     * spot.
+     */
+    const trialEndOnCurrentSubscription: Date | null = subscription.trial_end
+      ? OneUptimeDate.fromUnixTimestamp(subscription.trial_end)
+      : null;
+
+    let endTrialAt: Date | undefined = data.endTrialAt;
+
+    if (
+      trialEndOnCurrentSubscription &&
+      (!endTrialAt ||
+        OneUptimeDate.isAfter(trialEndOnCurrentSubscription, endTrialAt))
+    ) {
+      endTrialAt = trialEndOnCurrentSubscription;
+    }
+
+    /*
+     * A trial that has already lapsed is not revived by a plan change - the
+     * customer is billed from now, which is what changing plan off a finished
+     * trial is meant to do.
+     */
+    if (endTrialAt && !OneUptimeDate.isInTheFuture(endTrialAt)) {
+      endTrialAt = undefined;
+    }
+
     logger.debug("Cancelling subscriptions");
     logger.debug(data.subscriptionId);
     await this.cancelSubscription(data.subscriptionId);
@@ -667,10 +729,6 @@ export class BillingService extends BaseService {
     logger.debug("Cancelling metered subscriptions");
     logger.debug(data.meteredSubscriptionId);
     await this.cancelSubscription(data.meteredSubscriptionId);
-
-    if (data.endTrialAt && !OneUptimeDate.isInTheFuture(data.endTrialAt)) {
-      data.endTrialAt = undefined;
-    }
 
     logger.debug("Subscribing to plan");
 
@@ -685,7 +743,7 @@ export class BillingService extends BaseService {
       plan: data.newPlan,
       quantity: data.quantity,
       isYearly: data.isYearly,
-      trial: data.endTrialAt,
+      trial: endTrialAt,
       defaultPaymentMethodId: paymentMethods[0]?.id,
       promoCode: undefined,
     });

@@ -61,11 +61,21 @@ const getStripeCustomer: GetStripeCustomerFunction = (
 type GetStripeSubscriptionFunction = (options?: {
   id?: string | undefined;
   status?: Stripe.Subscription.Status | undefined;
+
+  /*
+   * The trial Stripe itself reports on the subscription, as a unix timestamp -
+   * what a real subscription carries and what changePlan reads to make sure a
+   * plan change cannot cut a running trial short. Omitted means no trial.
+   */
+  trialEnd?: number | null | undefined;
+  customer?: string | undefined;
 }) => Stripe.Subscription;
 
 const getStripeSubscription: GetStripeSubscriptionFunction = (options?: {
   id?: string | undefined;
   status?: Stripe.Subscription.Status | undefined;
+  trialEnd?: number | null | undefined;
+  customer?: string | undefined;
 }): Stripe.Subscription => {
   return {
     id: options?.id || Faker.generateRandomObjectID().toString(),
@@ -83,9 +93,45 @@ const getStripeSubscription: GetStripeSubscriptionFunction = (options?: {
       ],
     },
     status: options?.status || "active",
-    customer: getStripeCustomer(),
+    trial_end: options?.trialEnd ?? null,
+    customer: options?.customer || getStripeCustomer(),
   };
 };
+
+/*
+ * A plan with an exact trial period, for the cases where the trial length is
+ * the thing under test. getSubscriptionPlanData randomises it between 1 and
+ * 100, so it can never produce the 0-trial-day plans (Basic, Scale) that the
+ * mid-trial plan change has to keep trialing.
+ */
+type GetSubscriptionPlanWithTrialPeriodFunction = (
+  trialPeriodInDays: number,
+  options?: {
+    name?: string | undefined;
+    monthlyPlanId?: string | undefined;
+    yearlyPlanId?: string | undefined;
+  },
+) => SubscriptionPlan;
+
+const getSubscriptionPlanWithTrialPeriod: GetSubscriptionPlanWithTrialPeriodFunction =
+  (
+    trialPeriodInDays: number,
+    options?: {
+      name?: string | undefined;
+      monthlyPlanId?: string | undefined;
+      yearlyPlanId?: string | undefined;
+    },
+  ): SubscriptionPlan => {
+    return new SubscriptionPlan(
+      options?.monthlyPlanId || "price_monthly_test_plan",
+      options?.yearlyPlanId || "price_yearly_test_plan",
+      options?.name || "Scale",
+      99, // monthlySubscriptionAmountInUSD
+      84, // yearlySubscriptionAmountInUSD
+      3, // order
+      trialPeriodInDays,
+    );
+  };
 
 type GetSubscriptionPlanDataFunction = () => SubscriptionPlan;
 
@@ -200,6 +246,7 @@ export {
   getStripeCustomer,
   getStripeSubscription,
   getSubscriptionPlanData,
+  getSubscriptionPlanWithTrialPeriod,
   getCustomerData,
   getSubscriptionData,
   getMeteredSubscription,
