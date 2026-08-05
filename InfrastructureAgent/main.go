@@ -176,7 +176,7 @@ func main() {
 				os.Exit(2)
 			}
 			slog.Info("Configuring service...")
-			slog.Info("Secret key: " + *secretKey)
+			slog.Info("Secret key: " + utils.MaskSecret(*secretKey))
 			slog.Info("OneUptime URL: " + *oneuptimeURL)
 			slog.Info("Proxy URL: " + *proxyURL)
 			err = agentSvc.config.save(agentSvc.config.SecretKey, agentSvc.config.OneUptimeURL, agentSvc.config.ProxyURL)
