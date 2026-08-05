@@ -36,8 +36,9 @@ import (
 //   - a value DERIVED from a secret, above all an error. net/http returns a
 //     *url.Error whose text embeds the requested URL, so logging that error
 //     discloses the secret path segment with no secret-named identifier
-//     anywhere in the logging call. agent.go does exactly this on both of its
-//     transport-error paths and this guard is blind to both of them; they are
+//     anywhere in the logging call. agent.go's two transport-error paths are
+//     exactly this shape: they pass the error through utils.RedactSecret, and
+//     if that wrapper were dropped this guard would stay green. They are
 //     covered instead by the behavioural tests
 //     TestCollectMetricsJobTransportErrorLogsNoSecret and
 //     TestCheckIfSecretKeyIsValidTransportErrorLogsNoSecret in agent_test.go.
