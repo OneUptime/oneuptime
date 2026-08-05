@@ -317,16 +317,38 @@ export class Service extends DatabaseService<Model> {
      * `version` bump, avoiding the hot-row Postgres lock convoy that the
      * full updateOneById pipeline causes. See ServiceService.updateLastSeen.
      *
+     * It is the SKIP LOCKED variant, so a contended writer yields instead of
+     * joining a lock queue — the structural cap that holds even when the
+     * throttle above fails open during a Redis outage.
+     *
      * Every optional value above comes from an OpenTelemetry resource
      * attribute, so its length is whatever the collector felt like sending.
-     * updateColumnsByIdWithoutHooks clamps them to their declared column
-     * widths for us — see truncateStringColumnsToMaxLength.
+     * The write primitive clamps them to their declared column widths for us
+     * — see truncateStringColumnsToMaxLength.
      */
     try {
-      await this.updateColumnsByIdWithoutHooks({
-        id: hostId,
-        data: data,
-      });
+      const wrote: boolean = await this.updateColumnsByIdIfUnlockedWithoutHooks(
+        {
+          id: hostId,
+          data: data,
+        },
+      );
+
+      if (!wrote) {
+        /*
+         * Skipped, not applied: another writer holds the row. Dropping the
+         * liveness half is harmless (they are writing the same timestamp),
+         * but the enrichment half carries values that writer may not have,
+         * and the throttle key is already armed — so it would stay unwritten
+         * for the rest of the window. Re-open the window instead; the next
+         * batch is milliseconds away and each attempt is non-blocking.
+         */
+        try {
+          await GlobalCache.deleteKey(LAST_SEEN_CACHE_NAMESPACE, cacheKey);
+        } catch {
+          // Best-effort.
+        }
+      }
     } catch (err) {
       /*
        * Liveness must survive bad metadata. The enriched write carries
@@ -356,7 +378,7 @@ export class Service extends DatabaseService<Model> {
         // Best-effort; the fallback write below is what actually matters.
       }
 
-      await this.updateColumnsByIdWithoutHooks({
+      await this.updateColumnsByIdIfUnlockedWithoutHooks({
         id: hostId,
         data: liveness,
       });
@@ -392,9 +414,16 @@ export class Service extends DatabaseService<Model> {
       hostArch: extra?.hostArch ?? null,
       hostType: extra?.hostType ?? null,
       hostIpAddresses: extra?.hostIpAddresses ?? null,
-      cpuCores: extra?.cpuCores ?? null,
-      totalMemoryBytes: extra?.totalMemoryBytes ?? null,
-      processCount: extra?.processCount ?? null,
+      /*
+       * cpuCores / totalMemoryBytes / processCount are DELIBERATELY not
+       * hashed. They are per-scrape gauges, and `system.processes.count` in
+       * particular is partitioned by process.status and summed, so it changes
+       * on essentially every scrape. Hashing them made the throttle key differ
+       * every time and the 60s window never engaged — for exactly the hosts
+       * producing the most batches, which is the worst possible place to lose
+       * a throttle. The columns are still written; they simply ride along on
+       * whatever write the throttle admits rather than forcing one.
+       */
       containerRuntime: extra?.containerRuntime ?? null,
       dockerHostId: extra?.dockerHostId?.toString() ?? null,
       kubernetesClusterId: extra?.kubernetesClusterId?.toString() ?? null,

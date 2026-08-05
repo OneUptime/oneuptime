@@ -168,12 +168,42 @@ export const PostgresStatementTimeoutMs: number = parseInt(
 );
 
 /*
+ * Postgres-side lock timeout (ms). Caps how long a statement will WAIT for a
+ * row/table lock before giving up — distinct from statement_timeout, which
+ * caps total execution.
+ *
+ * Without it, contention on a hot row degrades into a strictly-ordered queue:
+ * every waiter pins a backend for the sum of everyone ahead of it. That is the
+ * row-lock convoy that took production down — 892 connections parked on locks,
+ * the tail waiting 3.7 hours — and no amount of database capacity changes it,
+ * because the queue itself is the failure. A short lock_timeout converts an
+ * unbounded wait into a fast, retryable error.
+ *
+ * Must stay well below statement_timeout so a lock wait surfaces as
+ * `lock_not_available` (55P03) rather than a generic statement timeout — the
+ * two want very different handling.
+ */
+export const PostgresLockTimeoutMs: number = parseInt(
+  process.env["DATABASE_LOCK_TIMEOUT_MS"] || "3000",
+  10,
+);
+
+/*
  * Node-postgres client-side query timeout (ms). Belt-and-braces for the
  * server-side statement_timeout — fires even if the connection has gone
  * silent or the server-side timeout doesn't kick in.
+ *
+ * Deliberately LONGER than statement_timeout. These two used to be equal, and
+ * because the client timer starts before the packet even reaches the backend,
+ * the client always won by a round trip — so the app never observed Postgres's
+ * real SQLSTATE and, worse, the client-side timeout only ABANDONS the query:
+ * the backend keeps running and keeps its place in the lock queue. Letting the
+ * server win means contention is cancelled server-side instead of accumulating
+ * invisibly behind a pooler.
  */
 export const PostgresQueryTimeoutMs: number = parseInt(
-  process.env["DATABASE_QUERY_TIMEOUT_MS"] || "30000",
+  process.env["DATABASE_QUERY_TIMEOUT_MS"] ||
+    String(PostgresStatementTimeoutMs + 5000),
   10,
 );
 

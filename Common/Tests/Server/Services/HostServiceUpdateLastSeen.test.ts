@@ -50,7 +50,7 @@ type UpdateLastSeenExtra = Parameters<typeof HostService.updateLastSeen>[1];
 
 /** The argument to the hook-free UPDATE the service ultimately issues. */
 type ColumnWrite = Parameters<
-  typeof HostService.updateColumnsByIdWithoutHooks
+  typeof HostService.updateColumnsByIdIfUnlockedWithoutHooks
 >[0];
 
 let writes: Array<WriteCall> = [];
@@ -92,9 +92,11 @@ function recordWrite(input: {
 /** Records every hook-free UPDATE instead of issuing it. */
 function mockWritesSucceeding(): void {
   jest
-    .spyOn(HostService, "updateColumnsByIdWithoutHooks")
+    .spyOn(HostService, "updateColumnsByIdIfUnlockedWithoutHooks")
     .mockImplementation(async (input: ColumnWrite) => {
       recordWrite(input);
+      // The SKIP LOCKED primitive resolves true when the row was updated.
+      return true;
     });
 }
 
@@ -106,12 +108,13 @@ function mockEnrichedWriteFailing(
   message: string = `value too long for type character varying(100)`,
 ): void {
   jest
-    .spyOn(HostService, "updateColumnsByIdWithoutHooks")
+    .spyOn(HostService, "updateColumnsByIdIfUnlockedWithoutHooks")
     .mockImplementation(async (input: ColumnWrite) => {
       const data: Record<string, unknown> = recordWrite(input);
       if (Object.keys(data).length > 2) {
         throw new Error(message);
       }
+      return true;
     });
 }
 
@@ -213,6 +216,74 @@ describe("HostService.updateLastSeen", () => {
       await HostService.updateLastSeen(HOST_ID, { osType: "windows" });
 
       expect(writes).toHaveLength(2);
+    });
+
+    /*
+     * Per-scrape gauges must NOT participate in the throttle fingerprint.
+     *
+     * cpuCores, totalMemoryBytes and processCount used to be hashed into it,
+     * and `system.processes.count` is partitioned by process.status and
+     * summed — so it changes on essentially every scrape. The fingerprint
+     * differed every time and the 60s window never engaged, for exactly the
+     * hosts producing the most batches. OneUptime's own install guide enables
+     * the processes scraper at a 30s interval, so every host following the
+     * documentation hit this.
+     *
+     * They are still WRITTEN (see below) — they just ride along on whatever
+     * write the throttle admits instead of forcing one.
+     */
+    test("a gauge-only change does not defeat the throttle", async () => {
+      await HostService.updateLastSeen(HOST_ID, {
+        osType: "linux",
+        cpuCores: 8,
+        totalMemoryBytes: 17179869184,
+        processCount: 412,
+      });
+      await HostService.updateLastSeen(HOST_ID, {
+        osType: "linux",
+        cpuCores: 8,
+        totalMemoryBytes: 17179869184,
+        processCount: 413,
+      });
+
+      expect(writes).toHaveLength(1);
+    });
+
+    test("a churning process count over many scrapes still writes once", async () => {
+      for (let scrape: number = 0; scrape < 20; scrape++) {
+        await HostService.updateLastSeen(HOST_ID, {
+          osType: "linux",
+          processCount: 400 + scrape,
+        });
+      }
+
+      expect(writes).toHaveLength(1);
+    });
+
+    test("a real metadata change alongside a churning gauge still writes", async () => {
+      await HostService.updateLastSeen(HOST_ID, {
+        osType: "linux",
+        processCount: 412,
+      });
+      await HostService.updateLastSeen(HOST_ID, {
+        osType: "windows",
+        processCount: 413,
+      });
+
+      expect(writes).toHaveLength(2);
+    });
+
+    test("the gauges are still written when a write happens", async () => {
+      await HostService.updateLastSeen(HOST_ID, {
+        osType: "linux",
+        cpuCores: 8,
+        totalMemoryBytes: 17179869184,
+        processCount: 412,
+      });
+
+      expect(lastWrite()["cpuCores"]).toBe(8);
+      expect(lastWrite()["totalMemoryBytes"]).toBe(17179869184);
+      expect(lastWrite()["processCount"]).toBe(412);
     });
   });
 
@@ -383,7 +454,7 @@ describe("HostService.updateLastSeen", () => {
     test("surfaces a genuinely broken database instead of hiding it", async () => {
       // Both attempts fail — the caller must find out.
       jest
-        .spyOn(HostService, "updateColumnsByIdWithoutHooks")
+        .spyOn(HostService, "updateColumnsByIdIfUnlockedWithoutHooks")
         .mockRejectedValue(new Error("connection terminated"));
 
       await expect(

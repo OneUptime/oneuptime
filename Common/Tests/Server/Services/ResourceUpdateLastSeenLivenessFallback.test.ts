@@ -47,16 +47,35 @@ import {
 
 type WriteCall = { id: ObjectID; data: Record<string, unknown> };
 
+/*
+ * Which hook-free write primitive this service's heartbeat uses.
+ *
+ * `updateColumnsByIdIfUnlockedWithoutHooks` is the SKIP LOCKED variant: it
+ * yields instead of queueing when another writer holds the row, which caps the
+ * number of backends blocked on any one row at one. The hottest heartbeats
+ * (Host, and Service in its own suite) are on it because they are the ones the
+ * row-lock convoy formed on. The rest stay on the blocking write: every one of
+ * them is fenced upstream by shouldRunMaintenance at five minutes, so their
+ * arrival rate never approaches their service rate and there is nothing for
+ * SKIP LOCKED to save them from.
+ *
+ * If a heartbeat moves between the two, change it HERE — the assertions below
+ * are about liveness surviving, not about which primitive delivers it.
+ */
+type WriteMethodName =
+  | "updateColumnsByIdWithoutHooks"
+  | "updateColumnsByIdIfUnlockedWithoutHooks";
+
 type ServiceCase = {
   /** Name of the service, used as the describe() title. */
   name: string;
   service: {
     updateLastSeen(id: ObjectID, extra?: never): Promise<void>;
-    updateColumnsByIdWithoutHooks(input: {
-      id: ObjectID;
-      data: unknown;
-    }): Promise<void>;
-  };
+  } & Record<
+    WriteMethodName,
+    (input: { id: ObjectID; data: unknown }) => Promise<unknown>
+  >;
+  writeMethod: WriteMethodName;
   /** A metadata payload this service accepts, and a different one. */
   extra: Record<string, unknown>;
   otherExtra: Record<string, unknown>;
@@ -72,6 +91,7 @@ const SERVICE_CASES: Array<ServiceCase> = [
   {
     name: "DockerHostService",
     service: DockerHostService as any,
+    writeMethod: "updateColumnsByIdWithoutHooks",
     extra: { osType: "linux" },
     otherExtra: { osType: "windows" },
     oversizedExtra: { osVersion: OVERSIZED },
@@ -79,6 +99,7 @@ const SERVICE_CASES: Array<ServiceCase> = [
   {
     name: "PodmanHostService",
     service: PodmanHostService as any,
+    writeMethod: "updateColumnsByIdWithoutHooks",
     extra: { osType: "linux" },
     otherExtra: { osType: "windows" },
     oversizedExtra: { osVersion: OVERSIZED },
@@ -86,6 +107,7 @@ const SERVICE_CASES: Array<ServiceCase> = [
   {
     name: "KubernetesClusterService",
     service: KubernetesClusterService as any,
+    writeMethod: "updateColumnsByIdWithoutHooks",
     extra: { agentVersion: "1.2.3" },
     otherExtra: { agentVersion: "1.2.4" },
     oversizedExtra: { agentVersion: OVERSIZED },
@@ -93,6 +115,7 @@ const SERVICE_CASES: Array<ServiceCase> = [
   {
     name: "ProxmoxClusterService",
     service: ProxmoxClusterService as any,
+    writeMethod: "updateColumnsByIdWithoutHooks",
     extra: { pveVersion: "8.1.4" },
     otherExtra: { pveVersion: "8.2.0" },
     oversizedExtra: { pveVersion: OVERSIZED },
@@ -100,6 +123,7 @@ const SERVICE_CASES: Array<ServiceCase> = [
   {
     name: "IoTFleetService",
     service: IoTFleetService as any,
+    writeMethod: "updateColumnsByIdWithoutHooks",
     extra: { agentVersion: "1.2.3" },
     otherExtra: { agentVersion: "1.2.4" },
     oversizedExtra: { agentVersion: OVERSIZED },
@@ -107,6 +131,7 @@ const SERVICE_CASES: Array<ServiceCase> = [
   {
     name: "DockerSwarmClusterService",
     service: DockerSwarmClusterService as any,
+    writeMethod: "updateColumnsByIdWithoutHooks",
     extra: { dockerVersion: "25.0.3" },
     otherExtra: { dockerVersion: "26.0.0" },
     oversizedExtra: { swarmId: OVERSIZED },
@@ -114,6 +139,7 @@ const SERVICE_CASES: Array<ServiceCase> = [
   {
     name: "CephClusterService",
     service: CephClusterService as any,
+    writeMethod: "updateColumnsByIdWithoutHooks",
     extra: { cephVersion: "18.2.2" },
     otherExtra: { cephVersion: "19.0.0" },
     oversizedExtra: { fsid: OVERSIZED },
@@ -121,6 +147,7 @@ const SERVICE_CASES: Array<ServiceCase> = [
   {
     name: "ServerlessFunctionService",
     service: ServerlessFunctionService as any,
+    writeMethod: "updateColumnsByIdWithoutHooks",
     extra: { runtimeName: "nodejs" },
     otherExtra: { runtimeName: "python" },
     oversizedExtra: { functionVersion: OVERSIZED },
@@ -128,6 +155,7 @@ const SERVICE_CASES: Array<ServiceCase> = [
   {
     name: "CloudResourceService",
     service: CloudResourceService as any,
+    writeMethod: "updateColumnsByIdWithoutHooks",
     extra: { cloudProvider: "aws" },
     otherExtra: { cloudProvider: "gcp" },
     oversizedExtra: { cloudRegion: OVERSIZED },
@@ -135,6 +163,7 @@ const SERVICE_CASES: Array<ServiceCase> = [
   {
     name: "RumApplicationService",
     service: RumApplicationService as any,
+    writeMethod: "updateColumnsByIdWithoutHooks",
     extra: { sdkLanguage: "webjs" },
     otherExtra: { sdkLanguage: "swift" },
     oversizedExtra: { clientType: OVERSIZED },
@@ -147,6 +176,7 @@ const SERVICE_CASES: Array<ServiceCase> = [
      */
     name: "HostService",
     service: HostService as any,
+    writeMethod: "updateColumnsByIdIfUnlockedWithoutHooks",
     extra: { osType: "linux" },
     otherExtra: { osType: "windows" },
     oversizedExtra: { hostId: OVERSIZED },
@@ -156,22 +186,33 @@ const SERVICE_CASES: Array<ServiceCase> = [
 
 describe.each(SERVICE_CASES)(
   "$name.updateLastSeen",
-  ({ service, extra, otherExtra, oversizedExtra }: ServiceCase) => {
+  ({
+    service,
+    writeMethod,
+    extra,
+    otherExtra,
+    oversizedExtra,
+  }: ServiceCase) => {
     let writes: Array<WriteCall>;
     let cache: Map<string, string>;
     let deletedCacheKeys: Array<string>;
 
     const RESOURCE_ID: ObjectID = ObjectID.generate();
 
-    /** Records every hook-free UPDATE instead of issuing it. */
+    /**
+     * Records every hook-free UPDATE instead of issuing it. Resolves `true`,
+     * which the SKIP LOCKED variant reads as "the row was updated" and the
+     * blocking variant ignores — so one fake serves both.
+     */
     function mockWritesSucceeding(): void {
       jest
-        .spyOn(service, "updateColumnsByIdWithoutHooks")
+        .spyOn(service, writeMethod)
         .mockImplementation(async (input: { id: ObjectID; data: unknown }) => {
           writes.push({
             id: input.id,
             data: { ...(input.data as Record<string, unknown>) },
           });
+          return true;
         });
     }
 
@@ -181,7 +222,7 @@ describe.each(SERVICE_CASES)(
      */
     function mockEnrichedWriteFailing(): void {
       jest
-        .spyOn(service, "updateColumnsByIdWithoutHooks")
+        .spyOn(service, writeMethod)
         .mockImplementation(async (input: { id: ObjectID; data: unknown }) => {
           const data: Record<string, unknown> = {
             ...(input.data as Record<string, unknown>),
@@ -190,6 +231,7 @@ describe.each(SERVICE_CASES)(
           if (Object.keys(data).length > 2) {
             throw new Error("value too long for type character varying(100)");
           }
+          return true;
         });
     }
 
@@ -330,7 +372,7 @@ describe.each(SERVICE_CASES)(
       test("surfaces a genuinely broken database instead of hiding it", async () => {
         // Both attempts fail — the caller must find out.
         jest
-          .spyOn(service, "updateColumnsByIdWithoutHooks")
+          .spyOn(service, writeMethod)
           .mockRejectedValue(new Error("connection terminated"));
 
         await expect(

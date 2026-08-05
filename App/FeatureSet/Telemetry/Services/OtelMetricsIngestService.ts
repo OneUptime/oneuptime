@@ -1561,7 +1561,19 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         return;
       }
 
-      TelemetryUtil.indexMetricNameServiceNameMap({
+      /*
+       * Awaited, not fire-and-forget. Detaching it meant the job completed
+       * while its MetricType writes were still outstanding, so the worker
+       * immediately pulled the next job and the number of concurrent open
+       * catalog writes was bounded by nothing at all — BullMQ concurrency
+       * stopped applying to them. Awaiting restores that backpressure, and
+       * lets worker.close() drain these before GracefulShutdown tears the
+       * Postgres pool down underneath them.
+       *
+       * Failure stays non-fatal: the catalog is descriptive metadata, and
+       * losing it must never fail a batch whose telemetry already landed.
+       */
+      await TelemetryUtil.indexMetricNameServiceNameMap({
         metricNameServiceNameMap: metricNameServiceNameMap,
         projectId: projectId,
       }).catch((err: Error) => {

@@ -205,6 +205,18 @@ postgresql:
       # 400 in front. Raise it (and pod memory) for larger deployments.
       max_connections = 500
       shared_buffers = 128MB
+      # Cap how long a statement WAITS for a lock. The app also sends this as a
+      # startup parameter, but pgbouncer accepts-and-discards startup
+      # parameters (see the pgbouncer block below), so behind the pooler this
+      # backend-side setting is the ONLY thing that applies. Without it,
+      # contention on a hot row becomes a strictly-ordered queue in which every
+      # waiter pins a backend for the sum of everyone ahead of it — that is the
+      # row-lock convoy shape, and it is unbounded.
+      #
+      # NOTE: lock_timeout only bounds WAITING for a lock, so ordinary queries
+      # are unaffected. Do NOT add statement_timeout here: it would apply to
+      # migrations too, which legitimately run long.
+      lock_timeout = '3s'
     # pg_hba.conf rules. These enable password auth (md5) from any host/IP.
     # Tighten these for production to your pod/service/network CIDRs.
     hbaConfiguration: |-
@@ -255,6 +267,9 @@ postgresOperator:
     parameters:
       max_connections: "500"
       shared_buffers: "128MB"
+      # See the lock_timeout note in postgresql.primary.configuration above:
+      # behind pgbouncer this backend-side value is the only one that applies.
+      lock_timeout: "3s"
     resources: {}
     nodeSelector: {}
     tolerations: []
@@ -734,10 +749,17 @@ pgbouncer:
   # as protocol-level startup parameters (from DATABASE_STATEMENT_TIMEOUT_MS /
   # DATABASE_IDLE_IN_TRANSACTION_TIMEOUT_MS), and idle_session_timeout via "options".
   # pgbouncer ACCEPTS and IGNORES these — it does NOT forward them to the backend,
-  # so those server-side GUCs are not applied through the pooler. The app's
-  # client-side query_timeout (DATABASE_QUERY_TIMEOUT_MS) still aborts slow queries.
-  # For server-side statement_timeout enforcement, set it on the backend (e.g.
-  # CNPG parameters, or `ALTER DATABASE oneuptimedb SET statement_timeout=...`).
+  # so those server-side GUCs are not applied through the pooler.
+  #
+  # The app's client-side query_timeout (DATABASE_QUERY_TIMEOUT_MS) is NOT a
+  # substitute: it ABANDONS the query rather than cancelling it. The backend
+  # keeps executing and keeps its place in the lock queue, which is how killed
+  # and scaled-down workers left orphaned statements holding a queue through
+  # the pooler during the row-lock convoy incident.
+  # Server-side enforcement must therefore be set on the BACKEND — the chart
+  # now ships lock_timeout in both postgresql.primary.configuration and
+  # postgresOperator.cnpg.parameters. For an externalPostgres, set it yourself
+  # (e.g. `ALTER DATABASE oneuptimedb SET lock_timeout='3s'`).
   ignoreStartupParameters: "extra_float_digits,options,statement_timeout,idle_in_transaction_session_timeout,lock_timeout,idle_session_timeout"
   # TLS from pgbouncer to the Postgres backend. When fronting an externalPostgres
   # with ssl.enabled, this auto-defaults to "require" and verifies against

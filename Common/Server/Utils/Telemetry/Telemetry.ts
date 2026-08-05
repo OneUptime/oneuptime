@@ -5,35 +5,58 @@ import MetricType from "../../../Models/DatabaseModels/MetricType";
 import MetricTypeService from "../../Services/MetricTypeService";
 import Service from "../../../Models/DatabaseModels/Service";
 import Dictionary from "../../../Types/Dictionary";
+import GlobalCache from "../../Infrastructure/GlobalCache";
+import logger from "../Logger";
+import crypto from "crypto";
 
 export type AttributeType = string | number | boolean | null;
 
+/*
+ * Shares the namespace used by the OTLP maintenance fences so the metric
+ * catalog is throttled by the same machinery, with the same TTL, as every
+ * other per-batch reconcile on the ingest path.
+ */
+const METRIC_TYPE_FENCE_NAMESPACE: string = "otel-maintenance-fence";
+const METRIC_TYPE_FENCE_TTL_SECONDS: number = 5 * 60; // 5 minutes
+
 export default class TelemetryUtil {
+  /*
+   * Reconcile the metric catalog: one MetricType row per (project, metric
+   * name), carrying its description/unit/counter-semantics and the set of
+   * services that emit it.
+   *
+   * This runs on the ingest hot path, once per distinct metric name per batch,
+   * and it used to be the only per-batch Postgres writer with no fence, no
+   * cache and no dedup of any kind. It had two separate defects that together
+   * made it write on EVERY batch, forever:
+   *
+   *  1. Rows are created with `description || ""`, so the stored value is `""`
+   *     whenever OTLP omits the field — but the INCOMING value is `undefined`
+   *     for the same case (protobuf omits unset scalars). `"" !== undefined`
+   *     is true, so the "has anything changed?" check answered yes on every
+   *     batch for every metric without a description or unit. The counter
+   *     semantics below already had the correct `!== undefined` guard;
+   *     description and unit were simply left behind.
+   *  2. The write shipped the whole `services` array, which routes through
+   *     `save()` — a multi-round-trip transaction holding the row's write lock
+   *     — and deletes any association not present in the current batch.
+   *
+   * Both are fixed here. Absent now means "unknown", not "clear", and the two
+   * kinds of change are tracked separately so a scalar edit takes a single
+   * auto-committed UPDATE and an association takes an additive insert.
+   *
+   * A fence in front of the whole thing removes the SELECT as well as the
+   * write in the steady state. The fence key includes the batch's service set:
+   * `servicesInMap` holds only the services in THIS batch, so keying on the
+   * name alone would let a batch from service A satisfy the fence and suppress
+   * the association that a concurrent batch from service B still needs.
+   */
   @CaptureSpan()
   public static async indexMetricNameServiceNameMap(data: {
     projectId: ObjectID;
     metricNameServiceNameMap: Dictionary<MetricType>;
   }): Promise<void> {
     for (const metricName of Object.keys(data.metricNameServiceNameMap)) {
-      // fetch metric
-      const metricType: MetricType | null = await MetricTypeService.findOneBy({
-        query: {
-          projectId: data.projectId,
-          name: metricName,
-        },
-        select: {
-          services: true,
-          name: true,
-          description: true,
-          unit: true,
-          isMonotonic: true,
-          aggregationTemporality: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
       const metricTypeInMap: MetricType =
         data.metricNameServiceNameMap[metricName]!;
 
@@ -43,123 +66,329 @@ export default class TelemetryUtil {
           return service.id!;
         }) || [];
 
-      if (metricType) {
-        if (!metricType.services) {
-          metricType.services = [];
-        }
+      const fenceKey: string = TelemetryUtil.buildMetricTypeFenceKey({
+        projectId: data.projectId,
+        metricName: metricName,
+        serviceIds: servicesInMap,
+      });
 
-        const serviceIds: Array<ObjectID> = metricType.services!.map(
-          (service: Service) => {
-            return service.id!;
-          },
-        );
-
-        let isSame: boolean = true;
-
-        // check if description is same
-        if (metricType.description !== metricTypeInMap.description) {
-          isSame = false;
-          metricType.description = metricTypeInMap.description || "";
-        }
-
-        // check if unit is same
-        if (metricType.unit !== metricTypeInMap.unit) {
-          isSame = false;
-          metricType.unit = metricTypeInMap.unit || "";
-        }
-
-        /*
-         * Counter semantics (isMonotonic / aggregationTemporality) are only
-         * known on OTel metric ingest paths — other callers (monitor
-         * metrics, heartbeat metrics) never set them, so an undefined
-         * incoming value means "unknown", not "clear the stored value".
-         */
-        if (
-          metricTypeInMap.isMonotonic !== undefined &&
-          metricType.isMonotonic !== metricTypeInMap.isMonotonic
-        ) {
-          isSame = false;
-          metricType.isMonotonic = metricTypeInMap.isMonotonic;
-        }
-
-        if (
-          metricTypeInMap.aggregationTemporality !== undefined &&
-          metricType.aggregationTemporality !==
-            metricTypeInMap.aggregationTemporality
-        ) {
-          isSame = false;
-          metricType.aggregationTemporality =
-            metricTypeInMap.aggregationTemporality;
-        }
-
-        // check if services are same
-
-        for (const serviceId of servicesInMap) {
-          if (
-            serviceIds.filter((existingServiceId: ObjectID) => {
-              return existingServiceId.toString() === serviceId.toString();
-            }).length === 0
-          ) {
-            isSame = false;
-            // add the service id to the list
-            const service: Service = new Service();
-            service.id = serviceId;
-            metricType.services!.push(service);
-          }
-        }
-
-        // if its not the same then update the metric type
-
-        if (!isSame) {
-          // update metric type
-          await MetricTypeService.updateOneById({
-            id: metricType.id!,
-            data: {
-              services: metricType.services || [],
-              description: metricTypeInMap.description || "",
-              unit: metricTypeInMap.unit || "",
-              ...(metricType.isMonotonic !== undefined
-                ? { isMonotonic: metricType.isMonotonic }
-                : {}),
-              ...(metricType.aggregationTemporality !== undefined
-                ? { aggregationTemporality: metricType.aggregationTemporality }
-                : {}),
-            },
-            props: {
-              isRoot: true,
-            },
-          } as any);
-        }
-      } else {
-        // create metric type
-        const metricType: MetricType = new MetricType();
-        metricType.name = metricName;
-        metricType.description = metricTypeInMap.description || "";
-        metricType.unit = metricTypeInMap.unit || "";
-        if (metricTypeInMap.isMonotonic !== undefined) {
-          metricType.isMonotonic = metricTypeInMap.isMonotonic;
-        }
-        if (metricTypeInMap.aggregationTemporality !== undefined) {
-          metricType.aggregationTemporality =
-            metricTypeInMap.aggregationTemporality;
-        }
-        metricType.projectId = data.projectId;
-        metricType.services = [];
-
-        for (const serviceId of servicesInMap) {
-          const service: Service = new Service();
-          service.id = serviceId;
-          metricType.services!.push(service);
-        }
-
-        // save metric type
-        await MetricTypeService.create({
-          data: metricType,
-          props: {
-            isRoot: true,
-          },
-        });
+      if (
+        !(await TelemetryUtil.shouldIndexMetricType(
+          fenceKey,
+          TelemetryUtil.fingerprintMetricTypeScalars(metricTypeInMap),
+        ))
+      ) {
+        continue;
       }
+
+      try {
+        await TelemetryUtil.reconcileMetricType({
+          projectId: data.projectId,
+          metricName: metricName,
+          metricTypeInMap: metricTypeInMap,
+          servicesInMap: servicesInMap,
+        });
+      } catch (err) {
+        /*
+         * Per-metric isolation. This loop used to let any failure escape and
+         * abort indexing for every REMAINING metric name in the batch — and
+         * the only caller just logs, so a single bad row silently stopped the
+         * whole catalog from converging.
+         */
+        await TelemetryUtil.clearMetricTypeFence(fenceKey);
+
+        logger.warn(
+          `TelemetryUtil.indexMetricNameServiceNameMap: failed to reconcile metric "${metricName}": ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+      }
+    }
+  }
+
+  private static async reconcileMetricType(data: {
+    projectId: ObjectID;
+    metricName: string;
+    metricTypeInMap: MetricType;
+    servicesInMap: Array<ObjectID>;
+  }): Promise<void> {
+    const { projectId, metricName, metricTypeInMap, servicesInMap } = data;
+
+    const metricType: MetricType | null = await MetricTypeService.findOneBy({
+      query: {
+        projectId: projectId,
+        name: metricName,
+      },
+      select: {
+        services: true,
+        name: true,
+        description: true,
+        unit: true,
+        isMonotonic: true,
+        aggregationTemporality: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (metricType) {
+      await TelemetryUtil.updateExistingMetricType({
+        metricType,
+        metricTypeInMap,
+        servicesInMap,
+      });
+      return;
+    }
+
+    try {
+      await TelemetryUtil.createMetricType({
+        projectId,
+        metricName,
+        metricTypeInMap,
+        servicesInMap,
+      });
+    } catch (err) {
+      /*
+       * Uniqueness on (projectId, name) is enforced in application code by a
+       * countBy, not by a database constraint, so two workers can both decide
+       * to create the same metric. Re-find to disambiguate: a row now means a
+       * concurrent worker won (harmless — reconcile against it); no row means
+       * the insert itself was invalid and must surface.
+       */
+      const winner: MetricType | null = await MetricTypeService.findOneBy({
+        query: { projectId: projectId, name: metricName },
+        select: {
+          services: true,
+          name: true,
+          description: true,
+          unit: true,
+          isMonotonic: true,
+          aggregationTemporality: true,
+        },
+        props: { isRoot: true },
+      });
+
+      if (!winner) {
+        throw err;
+      }
+
+      logger.debug(
+        `TelemetryUtil: create raced for metric "${metricName}" (concurrent insert); reconciling against the winning row.`,
+      );
+
+      await TelemetryUtil.updateExistingMetricType({
+        metricType: winner,
+        metricTypeInMap,
+        servicesInMap,
+      });
+    }
+  }
+
+  private static async updateExistingMetricType(data: {
+    metricType: MetricType;
+    metricTypeInMap: MetricType;
+    servicesInMap: Array<ObjectID>;
+  }): Promise<void> {
+    const { metricType, metricTypeInMap, servicesInMap } = data;
+
+    if (!metricType.services) {
+      metricType.services = [];
+    }
+
+    const existingServiceIds: Set<string> = new Set<string>(
+      metricType.services.map((service: Service) => {
+        return service.id!.toString();
+      }),
+    );
+
+    /*
+     * Two flags, not one. A scalar edit and a new association need completely
+     * different statements, and conflating them is what forced every scalar
+     * edit through the relation-writing `save()` path.
+     */
+    let scalarsChanged: boolean = false;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const scalarUpdate: any = {};
+
+    /*
+     * An absent incoming value means "this producer didn't say", not "clear
+     * the stored value" — the same rule the counter-semantics block below has
+     * always used. Without the truthiness guard, a stored `""` compared
+     * against an incoming `undefined` reported a change on every single batch.
+     */
+    if (
+      metricTypeInMap.description &&
+      (metricType.description ?? "") !== metricTypeInMap.description
+    ) {
+      scalarsChanged = true;
+      scalarUpdate.description = metricTypeInMap.description;
+    }
+
+    if (
+      metricTypeInMap.unit &&
+      (metricType.unit ?? "") !== metricTypeInMap.unit
+    ) {
+      scalarsChanged = true;
+      scalarUpdate.unit = metricTypeInMap.unit;
+    }
+
+    /*
+     * Counter semantics (isMonotonic / aggregationTemporality) are only
+     * known on OTel metric ingest paths — other callers (monitor
+     * metrics, heartbeat metrics) never set them, so an undefined
+     * incoming value means "unknown", not "clear the stored value".
+     */
+    if (
+      metricTypeInMap.isMonotonic !== undefined &&
+      metricType.isMonotonic !== metricTypeInMap.isMonotonic
+    ) {
+      scalarsChanged = true;
+      scalarUpdate.isMonotonic = metricTypeInMap.isMonotonic;
+    }
+
+    if (
+      metricTypeInMap.aggregationTemporality !== undefined &&
+      metricType.aggregationTemporality !==
+        metricTypeInMap.aggregationTemporality
+    ) {
+      scalarsChanged = true;
+      scalarUpdate.aggregationTemporality =
+        metricTypeInMap.aggregationTemporality;
+    }
+
+    const servicesToAttach: Array<ObjectID> = servicesInMap.filter(
+      (serviceId: ObjectID) => {
+        return !existingServiceIds.has(serviceId.toString());
+      },
+    );
+
+    if (scalarsChanged) {
+      /*
+       * One auto-committed UPDATE. Deliberately NOT updateOneById: with
+       * `services` absent from the payload that path still opens a transaction
+       * and bumps `version`, and MetricType declares no update workflow, no
+       * realtime events and no audit log, so the full pipeline buys nothing
+       * here. Nothing in the codebase uses TypeORM optimistic locking, so the
+       * skipped version bump has no consumer.
+       */
+      await MetricTypeService.updateColumnsByIdWithoutHooks({
+        id: metricType.id!,
+        data: scalarUpdate,
+      });
+    }
+
+    if (servicesToAttach.length > 0) {
+      await MetricTypeService.attachServices({
+        metricTypeId: metricType.id!,
+        serviceIds: servicesToAttach,
+      });
+    }
+  }
+
+  private static async createMetricType(data: {
+    projectId: ObjectID;
+    metricName: string;
+    metricTypeInMap: MetricType;
+    servicesInMap: Array<ObjectID>;
+  }): Promise<void> {
+    const metricType: MetricType = new MetricType();
+    metricType.name = data.metricName;
+    metricType.description = data.metricTypeInMap.description || "";
+    metricType.unit = data.metricTypeInMap.unit || "";
+    if (data.metricTypeInMap.isMonotonic !== undefined) {
+      metricType.isMonotonic = data.metricTypeInMap.isMonotonic;
+    }
+    if (data.metricTypeInMap.aggregationTemporality !== undefined) {
+      metricType.aggregationTemporality =
+        data.metricTypeInMap.aggregationTemporality;
+    }
+    metricType.projectId = data.projectId;
+    metricType.services = [];
+
+    for (const serviceId of data.servicesInMap) {
+      const service: Service = new Service();
+      service.id = serviceId;
+      metricType.services!.push(service);
+    }
+
+    /*
+     * Creates stay on the ORM path: a raw INSERT would bypass tenant stamping,
+     * slug generation and the uniqueness check. Creates are also rare — this
+     * runs once per metric name in a project's lifetime.
+     */
+    await MetricTypeService.create({
+      data: metricType,
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
+  private static buildMetricTypeFenceKey(data: {
+    projectId: ObjectID;
+    metricName: string;
+    serviceIds: Array<ObjectID>;
+  }): string {
+    const services: string = data.serviceIds
+      .map((serviceId: ObjectID) => {
+        return serviceId.toString();
+      })
+      .sort()
+      .join(",");
+
+    return `metric-type:${data.projectId.toString()}:${
+      data.metricName
+    }:${crypto.createHash("sha1").update(services).digest("hex")}`;
+  }
+
+  private static fingerprintMetricTypeScalars(metricType: MetricType): string {
+    return crypto
+      .createHash("sha1")
+      .update(
+        JSON.stringify({
+          description: metricType.description ?? null,
+          unit: metricType.unit ?? null,
+          isMonotonic: metricType.isMonotonic ?? null,
+          aggregationTemporality: metricType.aggregationTemporality ?? null,
+        }),
+      )
+      .digest("hex");
+  }
+
+  /*
+   * Compare-and-claim rather than plain set-if-absent: a metric whose
+   * description or unit genuinely changed must be written promptly, not wait
+   * out the window. Atomic, so concurrent workers cannot all pass the gate the
+   * way a read-then-write lets them.
+   */
+  private static async shouldIndexMetricType(
+    fenceKey: string,
+    fingerprint: string,
+  ): Promise<boolean> {
+    try {
+      return await GlobalCache.setStringIfChanged(
+        METRIC_TYPE_FENCE_NAMESPACE,
+        fenceKey,
+        fingerprint,
+        {
+          expiresInSeconds: GlobalCache.withJitter(
+            METRIC_TYPE_FENCE_TTL_SECONDS,
+          ),
+        },
+      );
+    } catch {
+      // If the cache is down, default to running the reconcile.
+      return true;
+    }
+  }
+
+  private static async clearMetricTypeFence(fenceKey: string): Promise<void> {
+    try {
+      await GlobalCache.deleteKey(METRIC_TYPE_FENCE_NAMESPACE, fenceKey);
+    } catch {
+      // Best effort — losing the release costs one window of staleness.
     }
   }
 
