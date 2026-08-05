@@ -5,6 +5,7 @@ import ColumnLength from "../../Types/Database/ColumnLength";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import { clampIoTTimestamp } from "../Utils/Telemetry/IoTSnapshotScan";
+import { truncateShortText } from "../Utils/Database/TruncateColumnValue";
 import logger from "../Utils/Logger";
 
 /*
@@ -58,23 +59,6 @@ export interface IoTInventorySummary {
 
 const UPSERT_BATCH_SIZE: number = 500;
 const STALE_DELETE_WARN_THRESHOLD: number = 100;
-
-/*
- * The identity/text columns are ShortText (100 chars). A single value
- * over the column limit fails the whole multi-row INSERT chunk it rides
- * in — truncate per value instead so one malformed device can never
- * drop the other rows of its chunk.
- */
-function truncateShortText(value: string): string;
-function truncateShortText(value: string | null): string | null;
-function truncateShortText(value: string | null): string | null {
-  if (value === null) {
-    return value;
-  }
-  return value.length > ColumnLength.ShortText
-    ? value.substring(0, ColumnLength.ShortText)
-    : value;
-}
 
 /*
  * Column order used by bulkUpsert() and its generated parameter tuples.

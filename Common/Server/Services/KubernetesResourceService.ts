@@ -1,9 +1,14 @@
 import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/KubernetesResource";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import ColumnLength from "../../Types/Database/ColumnLength";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import { ParsedKubernetesResource } from "../../Types/Kubernetes/KubernetesInventoryExtractor";
+import {
+  truncateLongText,
+  truncateShortText,
+} from "../Utils/Database/TruncateColumnValue";
 import logger from "../Utils/Logger";
 
 /*
@@ -317,6 +322,28 @@ const UPSERT_COLUMNS: Array<keyof ParsedKubernetesResource | string> = [
   "version",
 ];
 
+/*
+ * KubernetesResource's text columns are bounded varchars — name and
+ * controllerDeploymentName at 500 chars, kind / namespaceKey / uid /
+ * phase at 100. The bulk paths below go through manager.query(), which
+ * skips the length validation DatabaseService applies to ordinary
+ * writes, so a single oversized value aborts the whole 500-row INSERT
+ * chunk it rides in. Clamp per value instead, so one pathological
+ * object can never drop the rest of the snapshot.
+ */
+function sanitizeResource(
+  r: ParsedKubernetesResource,
+): ParsedKubernetesResource {
+  return {
+    ...r,
+    kind: truncateShortText(r.kind),
+    namespaceKey: truncateShortText(r.namespaceKey),
+    name: truncateLongText(r.name),
+    uid: truncateShortText(r.uid),
+    phase: truncateShortText(r.phase),
+  };
+}
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
@@ -338,9 +365,21 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
+    const resources: Array<ParsedKubernetesResource> = data.resources.map(
+      (r: ParsedKubernetesResource) => {
+        const sanitized: ParsedKubernetesResource = sanitizeResource(r);
+        if (sanitized.name !== r.name) {
+          logger.warn(
+            `KubernetesResource name exceeds ${ColumnLength.LongText} chars; truncated to "${sanitized.name}" (cluster ${data.kubernetesClusterId.toString()}).`,
+          );
+        }
+        return sanitized;
+      },
+    );
+
     // Chunk to keep individual statement parameter counts reasonable.
-    for (let i: number = 0; i < data.resources.length; i += UPSERT_BATCH_SIZE) {
-      const chunk: Array<ParsedKubernetesResource> = data.resources.slice(
+    for (let i: number = 0; i < resources.length; i += UPSERT_BATCH_SIZE) {
+      const chunk: Array<ParsedKubernetesResource> = resources.slice(
         i,
         i + UPSERT_BATCH_SIZE,
       );
@@ -450,10 +489,17 @@ export class Service extends DatabaseService<Model> {
         valueFragments.push(
           `($${paramIndex++}, $${paramIndex++}, $${paramIndex++}, $${paramIndex++}::numeric, $${paramIndex++}::bigint, $${paramIndex++}::numeric, $${paramIndex++}::timestamptz, $${paramIndex++}, $${paramIndex++})`,
         );
+        /*
+         * The identity clamps MUST match bulkUpsert's, or this mirror
+         * UPDATE would silently miss the row the upsert just wrote
+         * under the truncated name. controllerDeploymentName /
+         * controllerCronJobName are assigned columns, so an oversized
+         * value there aborts the chunk exactly like the INSERT path.
+         */
         params.push(
-          m.kind,
-          m.namespaceKey,
-          m.name,
+          truncateShortText(m.kind),
+          truncateShortText(m.namespaceKey),
+          truncateLongText(m.name),
           m.cpuPercent !== null && m.cpuPercent !== undefined
             ? m.cpuPercent
             : null,
@@ -464,8 +510,8 @@ export class Service extends DatabaseService<Model> {
             ? m.memoryPercent
             : null,
           m.observedAt,
-          m.controllerDeploymentName ?? null,
-          m.controllerCronJobName ?? null,
+          truncateLongText(m.controllerDeploymentName ?? null),
+          truncateShortText(m.controllerCronJobName ?? null),
         );
       }
 
