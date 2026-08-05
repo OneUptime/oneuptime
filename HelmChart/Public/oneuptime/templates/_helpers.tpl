@@ -122,8 +122,8 @@ its userlist at startup.
   {{- if $.Values.microsoftTeamsApp.existingSecret }}
   valueFrom:
     secretKeyRef:
-      name: {{ $.Values.microsoftTeamsApp.existingSecret.name }}
-      key: {{ $.Values.microsoftTeamsApp.existingSecret.clientIdKey }}
+      name: {{ $.Values.microsoftTeamsApp.existingSecret.name | quote }}
+      key: {{ $.Values.microsoftTeamsApp.existingSecret.clientIdKey | quote }}
   {{- else }}
   value: {{ $.Values.microsoftTeamsApp.clientId }}
   {{- end }}
@@ -131,8 +131,8 @@ its userlist at startup.
   {{- if $.Values.microsoftTeamsApp.existingSecret }}
   valueFrom:
     secretKeyRef:
-      name: {{ $.Values.microsoftTeamsApp.existingSecret.name }}
-      key: {{ $.Values.microsoftTeamsApp.existingSecret.tenantIdKey }}
+      name: {{ $.Values.microsoftTeamsApp.existingSecret.name | quote }}
+      key: {{ $.Values.microsoftTeamsApp.existingSecret.tenantIdKey | quote }}
   {{- else }}
   value: {{ $.Values.microsoftTeamsApp.tenantId }}
   {{- end }}
@@ -404,8 +404,8 @@ GLOBAL_LLM_PROVIDER_API_KEY is rendered only when an API key is configured.
   {{- if $.Values.microsoftTeamsApp.existingSecret }}
   valueFrom:
     secretKeyRef:
-      name: {{ $.Values.microsoftTeamsApp.existingSecret.name }}
-      key: {{ $.Values.microsoftTeamsApp.existingSecret.clientSecretKey }}
+      name: {{ $.Values.microsoftTeamsApp.existingSecret.name | quote }}
+      key: {{ $.Values.microsoftTeamsApp.existingSecret.clientSecretKey | quote }}
   {{- else }}
   value: {{ $.Values.microsoftTeamsApp.clientSecret }}
   {{- end }}
