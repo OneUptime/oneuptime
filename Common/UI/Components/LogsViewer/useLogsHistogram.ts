@@ -50,6 +50,18 @@ const useLogsHistogram: UseLogsHistogramFunction = (
   const silentRequestInFlight: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
 
+  /*
+   * The query the viewer is on right now. A request that comes back after the
+   * reader has moved to another time range or filter is dropped rather than
+   * painted over the window they are actually looking at.
+   */
+  const currentQuery: React.MutableRefObject<FetchHistogramBucketsFunction> =
+    useRef<FetchHistogramBucketsFunction>(fetchBuckets);
+
+  useEffect(() => {
+    currentQuery.current = fetchBuckets;
+  }, [fetchBuckets]);
+
   const refresh: (options?: LogsHistogramRefreshOptions) => Promise<void> =
     useCallback(
       async (options: LogsHistogramRefreshOptions = {}): Promise<void> => {
@@ -66,16 +78,20 @@ const useLogsHistogram: UseLogsHistogramFunction = (
         }
 
         try {
-          setBuckets(await fetchBuckets());
+          const nextBuckets: Array<HistogramBucket> = await fetchBuckets();
+
+          if (currentQuery.current === fetchBuckets) {
+            setBuckets(nextBuckets);
+          }
         } catch {
           // The histogram is non-critical; degrade rather than fail the page.
-          if (!isSilent) {
+          if (!isSilent && currentQuery.current === fetchBuckets) {
             setBuckets([]);
           }
         } finally {
           if (isSilent) {
             silentRequestInFlight.current = false;
-          } else {
+          } else if (currentQuery.current === fetchBuckets) {
             setIsLoading(false);
           }
         }

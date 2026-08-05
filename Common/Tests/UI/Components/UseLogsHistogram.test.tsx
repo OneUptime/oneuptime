@@ -196,6 +196,97 @@ describe("useLogsHistogram", () => {
 
       expect(calls).toBe(1);
     });
+
+    /*
+     * A poll fired against the old time range can easily outlive the switch to
+     * a new one. Painting its answer would leave the reader looking at a
+     * window they have already moved off.
+     */
+    test("ignores an answer to a query the reader has already left", async () => {
+      const pending: Array<(buckets: Array<HistogramBucket>) => void> = [];
+
+      const fetchBuckets: FetchHistogramBucketsFunction = (): Promise<
+        Array<HistogramBucket>
+      > => {
+        return new Promise<Array<HistogramBucket>>(
+          (resolve: (buckets: Array<HistogramBucket>) => void) => {
+            pending.push(resolve);
+          },
+        );
+      };
+
+      const view: ReturnType<typeof render> = render(
+        <HistogramProbe fetchBuckets={fetchBuckets} queryKey="one-hour" />,
+      );
+
+      await waitFor(() => {
+        expect(pending.length).toBe(1);
+      });
+
+      view.rerender(
+        <HistogramProbe fetchBuckets={fetchBuckets} queryKey="five-minutes" />,
+      );
+
+      await waitFor(() => {
+        expect(pending.length).toBe(2);
+      });
+
+      // The new window answers first, then the abandoned one straggles in.
+      await act(async () => {
+        pending[1]!(SECOND_WINDOW);
+      });
+      await act(async () => {
+        pending[0]!(FIRST_WINDOW);
+      });
+
+      expect(counts()).toBe("11:59=3,12:00=8");
+    });
+
+    test("does not blank the chart when an abandoned query fails", async () => {
+      const pending: Array<{
+        resolve: (buckets: Array<HistogramBucket>) => void;
+        reject: (error: Error) => void;
+      }> = [];
+
+      const fetchBuckets: FetchHistogramBucketsFunction = (): Promise<
+        Array<HistogramBucket>
+      > => {
+        return new Promise<Array<HistogramBucket>>(
+          (
+            resolve: (buckets: Array<HistogramBucket>) => void,
+            reject: (error: Error) => void,
+          ) => {
+            pending.push({ resolve: resolve, reject: reject });
+          },
+        );
+      };
+
+      const view: ReturnType<typeof render> = render(
+        <HistogramProbe fetchBuckets={fetchBuckets} queryKey="one-hour" />,
+      );
+
+      await waitFor(() => {
+        expect(pending.length).toBe(1);
+      });
+
+      view.rerender(
+        <HistogramProbe fetchBuckets={fetchBuckets} queryKey="five-minutes" />,
+      );
+
+      await waitFor(() => {
+        expect(pending.length).toBe(2);
+      });
+
+      await act(async () => {
+        pending[1]!.resolve(SECOND_WINDOW);
+      });
+      await act(async () => {
+        pending[0]!.reject(new Error("clickhouse timeout"));
+      });
+
+      expect(counts()).toBe("11:59=3,12:00=8");
+      expect(isLoading()).toBe(false);
+    });
   });
 
   /*
