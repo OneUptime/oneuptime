@@ -606,6 +606,7 @@ export class ProjectService extends DatabaseService<Model> {
       subscriptionId: string;
       meteredSubscriptionId: string;
       trialEndsAt?: Date | undefined;
+      subscriptionIdsPendingCancellation: Array<string>;
     } = await BillingService.changePlan({
       projectId: project.id!,
       subscriptionId: project.paymentProviderSubscriptionId,
@@ -647,6 +648,15 @@ export class ProjectService extends DatabaseService<Model> {
       },
     });
 
+    /*
+     * Raised after the row is written, because the row is what makes these ids
+     * unreachable: it now carries the replacements.
+     */
+    await this.alertOnSubscriptionsPendingCancellation({
+      projectId: project.id!,
+      subscriptionIds: subscription.subscriptionIdsPendingCancellation,
+    });
+
     this.capturePlanChangeAnalytics({
       project: project,
       newPlan: plan,
@@ -655,6 +665,65 @@ export class ProjectService extends DatabaseService<Model> {
     });
 
     await this.sendSubscriptionChangeWebhookSlackNotification(project.id!);
+  }
+
+  /*
+   * Raises the subscriptions a plan change replaced but could not cancel.
+   *
+   * The project row now carries the replacement ids, so these ones exist
+   * nowhere in OneUptime any more. They were not billing when the plan change
+   * read them and the cancel has already been retried, so this is a loose end
+   * rather than a double charge - but it is one nobody will find on their own,
+   * which is why the ids travel with the alert instead of only reaching a log
+   * line. The replacements also carry them in their payment-provider metadata,
+   * as replacedSubscriptionId.
+   *
+   * Called once the plan change has already been applied and written down, so
+   * nothing in here is allowed to throw: failing to raise a loose end must not
+   * turn a plan change that worked into one the caller is told failed.
+   */
+  private async alertOnSubscriptionsPendingCancellation(data: {
+    projectId: ObjectID;
+    subscriptionIds: Array<string>;
+  }): Promise<void> {
+    if (!data.subscriptionIds || data.subscriptionIds.length === 0) {
+      return;
+    }
+
+    logger.error(
+      `Could not cancel subscriptions replaced by a plan change for project ${data.projectId.toString()}. They are still open at the payment provider and have to be cancelled by hand: ${data.subscriptionIds.join(
+        ", ",
+      )}`,
+      {
+        projectId: data.projectId.toString(),
+      } as LogAttributes,
+    );
+
+    if (!NotificationSlackWebhookOnSubscriptionUpdate) {
+      return;
+    }
+
+    const slackMessage: string = `*Subscriptions could not be cancelled after a plan change:*
+*Project ID:* ${data.projectId.toString()}
+*Subscriptions still open at the payment provider:* ${data.subscriptionIds.join(", ")}
+These are no longer recorded against the project and have to be cancelled by hand.
+`;
+
+    /*
+     * Best effort, and that includes reading the configured webhook: an alert
+     * that cannot be delivered must not fail a plan change that worked. The
+     * ids are already on the error log above either way.
+     */
+    try {
+      await SlackUtil.sendMessageToChannelViaIncomingWebhook({
+        url: URL.fromString(NotificationSlackWebhookOnSubscriptionUpdate),
+        text: slackMessage,
+      });
+    } catch (error) {
+      logger.error("Error sending slack message: " + error, {
+        projectId: data.projectId.toString(),
+      } as LogAttributes);
+    }
   }
 
   /*
@@ -2244,6 +2313,7 @@ export class ProjectService extends DatabaseService<Model> {
       subscriptionId: string;
       meteredSubscriptionId: string;
       trialEndsAt?: Date | undefined;
+      subscriptionIdsPendingCancellation: Array<string>;
     } = await BillingService.changePlan({
       projectId: project.id as ObjectID,
       subscriptionId: project.paymentProviderSubscriptionId,
@@ -2299,6 +2369,11 @@ export class ProjectService extends DatabaseService<Model> {
       props: {
         isRoot: true,
       },
+    });
+
+    await this.alertOnSubscriptionsPendingCancellation({
+      projectId: project.id!,
+      subscriptionIds: result.subscriptionIdsPendingCancellation,
     });
 
     // send slack message on plan change.

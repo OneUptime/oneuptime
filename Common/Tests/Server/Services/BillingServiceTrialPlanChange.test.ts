@@ -857,6 +857,11 @@ describe("BillingService - plan changes during trial", () => {
      * A subscription an update cannot fix still has to be replaced. This is
      * how reactiveSubscription puts a project back on its plan once payment
      * recovers, and it is the only caller that lands here.
+     *
+     * The two subscriptions are replaced independently. Replacing the pair
+     * whenever either half was dead meant a live, billing subscription got
+     * cancelled to make way for a duplicate of itself, and the customer paid
+     * for both until the cancel landed.
      */
     describe("subscriptions that cannot be updated", () => {
       it("should build replacements when the project's subscription is cancelled", async () => {
@@ -876,18 +881,40 @@ describe("BillingService - plan changes during trial", () => {
         expect(mockStripe.subscriptions.update).not.toHaveBeenCalled();
       });
 
-      it("should build replacements when only the metered subscription is dead", async () => {
+      it("should replace only the metered subscription when only it is dead", async () => {
         /*
-         * Leaving a cancelled metered subscription in place would put the
-         * project back on its plan while its usage silently stops being
-         * billed, and reactivation would have to run again.
+         * The half that is dead is the half that is replaced. Leaving a
+         * cancelled metered subscription in place would put the project back
+         * on its plan while its usage silently stops being billed - but
+         * cancelling the flat-fee subscription alongside it is what billed
+         * the customer twice: it is active, so it is swapped in place.
          */
         setup({ status: "active", meteredStatus: "canceled" });
 
-        await changePlan();
+        // The only subscription created here is the metered replacement.
+        mockStripe.subscriptions.create =
+          getJestMockFunction().mockResolvedValue(
+            getStripeSubscription({ id: "sub_metered_new" }),
+          );
 
-        expect(mockStripe.subscriptions.create).toHaveBeenCalledTimes(2);
-        expect(mockStripe.subscriptions.update).not.toHaveBeenCalled();
+        const result: {
+          subscriptionId: string;
+          meteredSubscriptionId: string;
+          trialEndsAt?: Date | undefined;
+        } = await changePlan();
+
+        expect(mockStripe.subscriptions.create).toHaveBeenCalledTimes(1);
+        expect(updateCallParams(SUBSCRIPTION_ID)?.items).toEqual([
+          {
+            id: SUBSCRIPTION_ITEM_ID,
+            price: "price_monthly_scale",
+            quantity: 3,
+          },
+        ]);
+
+        // The flat-fee subscription is kept; only the metered id moves.
+        expect(result.subscriptionId).toBe(SUBSCRIPTION_ID);
+        expect(result.meteredSubscriptionId).toBe("sub_metered_new");
       });
 
       it("should build replacements when there is no item to swap a price onto", async () => {

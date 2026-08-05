@@ -6,6 +6,7 @@ import SubscriptionPlan from "../../../Types/Billing/SubscriptionPlan";
 import SubscriptionStatus from "../../../Types/Billing/SubscriptionStatus";
 import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
+import logger from "../../../Server/Utils/Logger";
 import { describe, expect, it, afterEach } from "@jest/globals";
 
 /*
@@ -84,6 +85,12 @@ describe("ProjectService.changePlan", () => {
 
     // Trial period configured on the plan being moved to. 0 for Scale/Basic.
     newPlanTrialPeriodInDays?: number;
+
+    /*
+     * Subscriptions changePlan replaced but could not cancel. They are about
+     * to disappear from the project row, so the plan change has to raise them.
+     */
+    subscriptionIdsPendingCancellation?: Array<string> | undefined;
   }): ChangePlanSpies {
     const findOneById: jest.SpyInstance = jest
       .spyOn(ProjectService, "findOneById")
@@ -115,6 +122,8 @@ describe("ProjectService.changePlan", () => {
         subscriptionId: NEW_SUBSCRIPTION_ID,
         meteredSubscriptionId: NEW_METERED_SUBSCRIPTION_ID,
         trialEndsAt: data?.billingTrialEndsAt,
+        subscriptionIdsPendingCancellation:
+          data?.subscriptionIdsPendingCancellation || [],
       } as never);
 
     const getSubscriptionStatus: jest.SpyInstance = jest
@@ -508,6 +517,62 @@ describe("ProjectService.changePlan", () => {
       ).rejects.toThrow("Payment Provider metered subscription not found");
 
       expect(spies.changePlan).not.toHaveBeenCalled();
+    });
+  });
+
+  /*
+   * A plan change can replace a project's subscriptions, and the row written
+   * above is what makes the old ids unreachable - it now carries the new ones.
+   * A replaced subscription that could not be cancelled therefore has to be
+   * raised here, with its id, or nobody ever finds it again.
+   */
+  describe("subscriptions that could not be cancelled", () => {
+    it("should raise the ids of subscriptions left open at the payment provider", async () => {
+      const spies: ChangePlanSpies = setup({
+        subscriptionIdsPendingCancellation: [
+          SUBSCRIPTION_ID,
+          METERED_SUBSCRIPTION_ID,
+        ],
+      });
+
+      const error: jest.SpyInstance = jest
+        .spyOn(logger, "error")
+        .mockReturnValue(undefined);
+
+      await ProjectService.changePlan({
+        projectId: PROJECT_ID,
+        paymentProviderPlanId: NEW_PLAN_ID,
+      });
+
+      const raised: string = error.mock.calls
+        .map((call: Array<unknown>) => {
+          return String(call[0]);
+        })
+        .join("\n");
+
+      expect(raised).toContain(SUBSCRIPTION_ID);
+      expect(raised).toContain(METERED_SUBSCRIPTION_ID);
+
+      // And the plan change itself still went through.
+      expect(getUpdatedData(spies)).toMatchObject({
+        paymentProviderSubscriptionId: NEW_SUBSCRIPTION_ID,
+        paymentProviderMeteredSubscriptionId: NEW_METERED_SUBSCRIPTION_ID,
+      });
+    });
+
+    it("should stay quiet when every replaced subscription was cancelled", async () => {
+      setup({ subscriptionIdsPendingCancellation: [] });
+
+      const error: jest.SpyInstance = jest
+        .spyOn(logger, "error")
+        .mockReturnValue(undefined);
+
+      await ProjectService.changePlan({
+        projectId: PROJECT_ID,
+        paymentProviderPlanId: NEW_PLAN_ID,
+      });
+
+      expect(error).not.toHaveBeenCalled();
     });
   });
 });
