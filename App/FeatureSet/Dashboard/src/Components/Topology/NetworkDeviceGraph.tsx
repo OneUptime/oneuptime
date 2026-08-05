@@ -12,6 +12,8 @@ import {
 } from "../NetworkDevice/TopologyLayout";
 import { computeForceTopologyModel } from "../NetworkDevice/ForceTopologyLayout";
 import { computeRadialTopologyModel } from "../NetworkDevice/RadialTopologyLayout";
+import { computeStarTopologyModel } from "../NetworkDevice/StarTopologyLayout";
+import { computeParentChildTopologyModel } from "../NetworkDevice/ParentChildTopologyLayout";
 import { TopologyPoint } from "../NetworkDevice/TopologyGraphUtil";
 import {
   LABEL_VISIBILITY_MIN_SCALE,
@@ -106,7 +108,10 @@ export interface ComponentProps {
   /*
    * "force" (the default) is the organic project-wide map, "tiered" lays
    * routers over switches over endpoints for a single site, and "radial"
-   * puts the core at the centre with everything hanging off it.
+   * puts the core at the centre with everything hanging off it. "star"
+   * also centres one hub, but ranks by hops from it rather than by role,
+   * so a ring reads as blast radius; "parentChild" draws the same
+   * hierarchy as a top-down tree, every node under its own parent.
    */
   layoutMode?: TopologyLayoutMode | undefined;
   /** Node kinds to draw. Absent means all of them. */
@@ -225,6 +230,17 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
     }
     if (layoutMode === "radial") {
       return computeRadialTopologyModel(nodes, edges, VIEW_WIDTH, VIEW_HEIGHT);
+    }
+    if (layoutMode === "star") {
+      return computeStarTopologyModel(nodes, edges, VIEW_WIDTH, VIEW_HEIGHT);
+    }
+    if (layoutMode === "parentChild") {
+      return computeParentChildTopologyModel(
+        nodes,
+        edges,
+        VIEW_WIDTH,
+        VIEW_HEIGHT,
+      );
     }
     return computeForceTopologyModel(nodes, edges, VIEW_WIDTH, VIEW_HEIGHT);
     /*
@@ -458,12 +474,12 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
   }, [viewModel]);
 
   /*
-   * A new layout mode is a new coordinate system — force, tiered and
-   * radial each centre their own content independently — so the viewport
-   * the user framed in the old one means nothing in the new one. Without
-   * this, panning down a tall tiered graph and then switching to radial
-   * leaves the camera pointing at empty canvas with no way back except
-   * Fit to view.
+   * A new layout mode is a new coordinate system — every mode centres its
+   * own content independently, and a tree is a different shape from a
+   * ring — so the viewport the user framed in the old one means nothing in
+   * the new one. Without this, panning down a tall tiered graph and then
+   * switching to radial leaves the camera pointing at empty canvas with no
+   * way back except Fit to view.
    */
   useEffect(() => {
     hasUserAdjustedView.current = false;

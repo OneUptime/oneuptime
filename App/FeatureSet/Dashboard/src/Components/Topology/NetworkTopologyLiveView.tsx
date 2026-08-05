@@ -8,13 +8,13 @@ import {
   kindOfNode,
 } from "./NetworkTopologyViewModel";
 import {
+  ArrangementPersistence,
   PositionOverrides,
   TopologyLayoutMode,
   TopologyOverrideStorage,
+  createArrangementPersistence,
   positionOverridesStorageKey,
   prunePositionOverrides,
-  readPersistedOverrides,
-  writePersistedOverrides,
 } from "./TopologyPositionOverrides";
 import { isEndpointNode } from "../NetworkDevice/EndpointNodeUtil";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -73,7 +73,7 @@ export interface ComponentProps {
   siteId?: string | undefined;
   /*
    * The layout the view opens on. The user can switch between force,
-   * tiered and radial from the toolbar afterwards.
+   * tiered, radial, star and parent-child from the toolbar afterwards.
    */
   layoutMode?: TopologyLayoutMode | undefined;
 }
@@ -391,46 +391,50 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
   }, [props.siteId, layoutMode]);
 
   /*
+   * Which arrangement is pending a write, and which key it belongs to.
+   * Kept in one object precisely so the two cannot drift apart — see
+   * ArrangementPersistence for what happens when they do. Built once and
+   * held in a ref: the storage handle is feature-detected once at mount
+   * and never changes, so there is nothing here to rebuild.
+   */
+  const persistenceRef: React.MutableRefObject<ArrangementPersistence | null> =
+    useRef<ArrangementPersistence | null>(null);
+  if (persistenceRef.current === null) {
+    persistenceRef.current = createArrangementPersistence(
+      overrideStorage,
+      overridesStorageKey,
+    );
+  }
+  const persistence: ArrangementPersistence = persistenceRef.current;
+
+  /*
+   * Render phase: refresh the coordinates a flush would write, and
+   * nothing else. `overridesStorageKey` has ALREADY advanced to the mode
+   * the user just picked while `positionOverrides` still holds the
+   * outgoing mode's coordinates, so the key must not be touched here;
+   * only `adopt` below moves it, and only alongside the arrangement it
+   * belongs to.
+   */
+  persistence.hold(positionOverrides);
+
+  /*
    * Load the saved arrangement for this (project, site, layout mode).
    * Each layout is its own coordinate system, so switching modes loads a
    * different arrangement rather than reinterpreting the current one.
    */
   useEffect(() => {
-    setPositionOverrides(
-      readPersistedOverrides(overrideStorage, overridesStorageKey),
-    );
-  }, [overrideStorage, overridesStorageKey]);
-
-  /*
-   * The latest arrangement and the key it belongs to, so a write can be
-   * flushed from a cleanup — which runs after `positionOverrides` has
-   * already moved on — without the flush itself depending on them.
-   */
-  const pendingWrite: React.MutableRefObject<{
-    key: string;
-    overrides: PositionOverrides;
-  }> = useRef<{ key: string; overrides: PositionOverrides }>({
-    key: overridesStorageKey,
-    overrides: positionOverrides,
-  });
-  pendingWrite.current = {
-    key: overridesStorageKey,
-    overrides: positionOverrides,
-  };
+    setPositionOverrides(persistence.adopt(overridesStorageKey));
+  }, [persistence, overridesStorageKey]);
 
   // Persist, debounced, so a drag does not write on every commit.
   useEffect(() => {
     const timer: ReturnType<typeof setTimeout> = setTimeout(() => {
-      writePersistedOverrides(
-        overrideStorage,
-        overridesStorageKey,
-        positionOverrides,
-      );
+      persistence.flush();
     }, 500);
     return () => {
       clearTimeout(timer);
     };
-  }, [overrideStorage, overridesStorageKey, positionOverrides]);
+  }, [persistence, overridesStorageKey, positionOverrides]);
 
   /*
    * Flush a pending write when the key changes or the view goes away.
@@ -440,20 +444,16 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
    *
    * Deliberately NOT folded into the debounce effect above: that one
    * depends on `positionOverrides`, so its cleanup fires on every commit
-   * and would write on each one, defeating the debounce. This effect's
-   * cleanup runs only on a key change or unmount, and because cleanups
-   * run before any effect body, the ref still holds the OLD key at that
-   * moment — which is the key the pending arrangement belongs to.
+   * and would write on each one, defeating the debounce. This cleanup
+   * runs only on a key change or unmount, and because every cleanup runs
+   * before any effect body, it happens before the `adopt` that switches
+   * modes — so the outgoing arrangement is still the held one.
    */
   useEffect(() => {
     return () => {
-      writePersistedOverrides(
-        overrideStorage,
-        pendingWrite.current.key,
-        pendingWrite.current.overrides,
-      );
+      persistence.flush();
     };
-  }, [overrideStorage, overridesStorageKey]);
+  }, [persistence, overridesStorageKey]);
 
   /*
    * Forget positions for devices that have left the topology. Runs
@@ -524,13 +524,23 @@ const NetworkTopologyLiveView: FunctionComponent<ComponentProps> = (
         <div
           role="group"
           aria-label={translateString("Topology layout") || "Topology layout"}
-          className="inline-flex flex-shrink-0 rounded-lg border border-gray-200 bg-gray-50 p-0.5"
+          /*
+           * flex-wrap because five pills no longer fit a phone. The group
+           * is flex-shrink-0 inside a flex-shrink-0 header column, so
+           * without it the row simply grows past the card and the last
+           * option is unreachable rather than merely cramped — and
+           * "Parent-Child" is the widest label of the five, so it is the
+           * one that would be lost.
+           */
+          className="inline-flex flex-wrap flex-shrink-0 rounded-lg border border-gray-200 bg-gray-50 p-0.5"
         >
           {(
             [
               { mode: "force", label: "Force" },
               { mode: "tiered", label: "Tiered" },
               { mode: "radial", label: "Radial" },
+              { mode: "star", label: "Star" },
+              { mode: "parentChild", label: "Parent-Child" },
             ] as Array<{ mode: TopologyLayoutMode; label: string }>
           ).map(
             (option: {

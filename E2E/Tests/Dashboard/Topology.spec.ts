@@ -102,6 +102,12 @@ test.describe("Topology page", () => {
     await expect(
       page.getByTestId("network-topology-layout-mode-radial"),
     ).toBeVisible();
+    await expect(
+      page.getByTestId("network-topology-layout-mode-star"),
+    ).toBeVisible();
+    await expect(
+      page.getByTestId("network-topology-layout-mode-parentChild"),
+    ).toBeVisible();
 
     // Force is the default, and it says so to assistive technology.
     await expect(
@@ -109,6 +115,12 @@ test.describe("Topology page", () => {
     ).toHaveAttribute("aria-pressed", "true");
     await expect(
       page.getByTestId("network-topology-layout-mode-tiered"),
+    ).toHaveAttribute("aria-pressed", "false");
+    await expect(
+      page.getByTestId("network-topology-layout-mode-star"),
+    ).toHaveAttribute("aria-pressed", "false");
+    await expect(
+      page.getByTestId("network-topology-layout-mode-parentChild"),
     ).toHaveAttribute("aria-pressed", "false");
 
     // Switching modes moves the pressed state, and only one is ever pressed.
@@ -121,6 +133,48 @@ test.describe("Topology page", () => {
     ).toHaveAttribute("aria-pressed", "false");
     await expect(
       page.getByTestId("network-topology-layout-mode-tiered"),
+    ).toHaveAttribute("aria-pressed", "false");
+    await expect(
+      page.getByTestId("network-topology-layout-mode-star"),
+    ).toHaveAttribute("aria-pressed", "false");
+    await expect(
+      page.getByTestId("network-topology-layout-mode-parentChild"),
+    ).toHaveAttribute("aria-pressed", "false");
+
+    // Star is a mode of its own, not a variant of radial.
+    await page.getByTestId("network-topology-layout-mode-star").click();
+    await expect(
+      page.getByTestId("network-topology-layout-mode-star"),
+    ).toHaveAttribute("aria-pressed", "true");
+    await expect(
+      page.getByTestId("network-topology-layout-mode-force"),
+    ).toHaveAttribute("aria-pressed", "false");
+    await expect(
+      page.getByTestId("network-topology-layout-mode-tiered"),
+    ).toHaveAttribute("aria-pressed", "false");
+    await expect(
+      page.getByTestId("network-topology-layout-mode-radial"),
+    ).toHaveAttribute("aria-pressed", "false");
+    await expect(
+      page.getByTestId("network-topology-layout-mode-parentChild"),
+    ).toHaveAttribute("aria-pressed", "false");
+
+    // ...and so is parent-child, the last option in the group.
+    await page.getByTestId("network-topology-layout-mode-parentChild").click();
+    await expect(
+      page.getByTestId("network-topology-layout-mode-parentChild"),
+    ).toHaveAttribute("aria-pressed", "true");
+    await expect(
+      page.getByTestId("network-topology-layout-mode-force"),
+    ).toHaveAttribute("aria-pressed", "false");
+    await expect(
+      page.getByTestId("network-topology-layout-mode-tiered"),
+    ).toHaveAttribute("aria-pressed", "false");
+    await expect(
+      page.getByTestId("network-topology-layout-mode-radial"),
+    ).toHaveAttribute("aria-pressed", "false");
+    await expect(
+      page.getByTestId("network-topology-layout-mode-star"),
     ).toHaveAttribute("aria-pressed", "false");
 
     // The empty state survives a layout change rather than blanking.
