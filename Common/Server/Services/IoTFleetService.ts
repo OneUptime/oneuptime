@@ -214,10 +214,13 @@ export class Service extends DatabaseService<Model> {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const data: any = {
+    const liveness: any = {
       lastSeenAt: OneUptimeDate.getCurrentDate(),
       otelCollectorStatus: "connected",
     };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data: any = { ...liveness };
 
     if (extra?.agentVersion) {
       data.agentVersion = extra.agentVersion;
@@ -234,11 +237,50 @@ export class Service extends DatabaseService<Model> {
      * Heartbeat write: a single-statement UPDATE with no hooks and no
      * `version` bump, avoiding the hot-row Postgres lock convoy that the
      * full updateOneById pipeline causes. See ServiceService.updateLastSeen.
+     *
+     * Collector-supplied strings are clamped to their declared column
+     * widths inside updateColumnsByIdWithoutHooks — see
+     * DatabaseService.truncateStringColumnsToMaxLength.
      */
-    await this.updateColumnsByIdWithoutHooks({
-      id: fleetId,
-      data: data,
-    });
+    try {
+      await this.updateColumnsByIdWithoutHooks({
+        id: fleetId,
+        data: data,
+      });
+    } catch (err) {
+      /*
+       * Liveness must survive bad metadata. The enriched write carries
+       * `lastSeenAt` and `otelCollectorStatus` alongside optional,
+       * collector-supplied columns; if any one of them makes Postgres
+       * reject the statement, lastSeenAt silently stops advancing and
+       * markDisconnectedFleets flips a perfectly healthy IoT fleet to
+       * "disconnected" 15 minutes later — with telemetry still arriving the
+       * whole time. That was issue #3006 on the Host path (a host.ip list
+       * longer than the then-varchar(500) column). Retry with liveness only
+       * so the enrichment is what gets dropped, never the heartbeat.
+       */
+      logger.warn(
+        `IoTFleetService.updateLastSeen: metadata write failed for IoT fleet ${fleetId.toString()}, falling back to a liveness-only update: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+
+      /*
+       * The throttle fingerprint was already stored, so without this the
+       * next batch would short-circuit on a cache hit and skip the retry
+       * for the rest of the window.
+       */
+      try {
+        await GlobalCache.deleteKey(LAST_SEEN_CACHE_NAMESPACE, cacheKey);
+      } catch {
+        // Best-effort; the fallback write below is what actually matters.
+      }
+
+      await this.updateColumnsByIdWithoutHooks({
+        id: fleetId,
+        data: liveness,
+      });
+    }
   }
 
   /**

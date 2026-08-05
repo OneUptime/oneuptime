@@ -22,6 +22,14 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  *      liveness columns are retried on their own. Enrichment is what gets
  *      dropped, never the heartbeat.
  *
+ * Guard 1 has since moved DOWN a layer: updateColumnsByIdWithoutHooks
+ * clamps for every caller, so no service can forget it (see
+ * HookFreeWriteLengthClamp.test.ts, which pins that for all eleven
+ * telemetry models). The clamp assertions below therefore run the real
+ * write path against a faked repository and inspect the values actually
+ * BOUND to the SQL — the same end-to-end claim, checked where it is now
+ * true rather than where it used to be.
+ *
  * Everything external is mocked — no Postgres, no Redis.
  */
 
@@ -107,6 +115,58 @@ function mockEnrichedWriteFailing(
     });
 }
 
+/**
+ * Runs the REAL updateColumnsByIdWithoutHooks against a faked repository,
+ * recording the values actually BOUND to the generated SQL. The length
+ * clamp lives inside that method now, so this is the only way to observe
+ * it end-to-end from the service without a database — mocking the method
+ * out (as the other blocks do) would mock the clamp out with it.
+ */
+function mockRealWritePath(): void {
+  const host: Host = new Host();
+  let bound: Record<string, unknown> = {};
+
+  jest.spyOn(HostService, "getRepository").mockReturnValue({
+    metadata: {
+      tableName: "Host",
+      findColumnWithPropertyName: (
+        propertyName: string,
+      ): { databaseName: string } | undefined => {
+        return host.hasColumn(propertyName)
+          ? { databaseName: propertyName }
+          : undefined;
+      },
+      updateDateColumn: { databaseName: "updatedAt" },
+      primaryColumns: [{ databaseName: "_id" }],
+    },
+    manager: {
+      connection: {
+        driver: {
+          preparePersistentValue: (
+            value: unknown,
+            column: { databaseName: string },
+          ): unknown => {
+            bound[column.databaseName] = value;
+            return value;
+          },
+        },
+      },
+      query: async (
+        _sql: string,
+        params: Array<unknown>,
+      ): Promise<Array<unknown>> => {
+        writes.push({
+          id: new ObjectID(String(params[params.length - 1])),
+          data: bound,
+        });
+        bound = {};
+        return [];
+      },
+    },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any);
+}
+
 function lastWrite(): Record<string, unknown> {
   return writes[writes.length - 1]?.data as Record<string, unknown>;
 }
@@ -158,7 +218,8 @@ describe("HostService.updateLastSeen", () => {
 
   describe("oversized collector metadata", () => {
     beforeEach(() => {
-      mockWritesSucceeding();
+      // The clamp lives in the write path, so run the real one.
+      mockRealWritePath();
     });
 
     test("stores a 55-address host.ip list untouched — the column is text now", async () => {

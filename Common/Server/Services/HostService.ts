@@ -313,18 +313,14 @@ export class Service extends DatabaseService<Model> {
     }
 
     /*
-     * Every value above comes from an OpenTelemetry resource attribute, so
-     * its length is whatever the collector felt like sending. Clamp to the
-     * declared column widths — this write bypasses the hook pipeline (and
-     * therefore checkMaxLengthOfFields), so an oversized attribute would
-     * otherwise reach Postgres raw and fail the statement.
-     */
-    this.truncateStringColumnsToMaxLength(data);
-
-    /*
      * Heartbeat write: a single-statement UPDATE with no hooks and no
      * `version` bump, avoiding the hot-row Postgres lock convoy that the
      * full updateOneById pipeline causes. See ServiceService.updateLastSeen.
+     *
+     * Every optional value above comes from an OpenTelemetry resource
+     * attribute, so its length is whatever the collector felt like sending.
+     * updateColumnsByIdWithoutHooks clamps them to their declared column
+     * widths for us — see truncateStringColumnsToMaxLength.
      */
     try {
       await this.updateColumnsByIdWithoutHooks({
