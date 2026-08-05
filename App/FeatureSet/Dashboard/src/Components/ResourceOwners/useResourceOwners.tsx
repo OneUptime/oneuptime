@@ -31,8 +31,18 @@ import FilterChipDropdown, {
   FilterOperator,
 } from "./FilterChipDropdown";
 import FilterChipDateRange from "./FilterChipDateRange";
-import { FacetKind, OPTION_FACET_OPERATORS } from "./FilterChipDropdownTypes";
-import { buildFacetDateRangeQuery } from "./FacetDateRange";
+import FilterChipValueInput from "./FilterChipValueInput";
+import { CUSTOM_FIELD_FACET_KEY_PREFIX } from "../CustomFields/CustomFieldFacets";
+import { ResourceFacet } from "./ResourceFacet";
+import {
+  FacetColumnQuery,
+  buildFacetColumnQuery,
+  defaultFacetQueryValue,
+} from "./FacetColumnQuery";
+import {
+  OPTION_FACET_OPERATORS,
+  isTypedValueFacetKind,
+} from "./FilterChipDropdownTypes";
 import { ResourceOwnerEntry } from "./OwnerEntry";
 import {
   FacetConflictMap,
@@ -46,44 +56,6 @@ import {
 } from "./FacetSelectionState";
 
 const PICKER_PAGE_SIZE: number = 50;
-
-/**
- * Default query value builder when a facet doesn't supply its own
- * `toQueryValue`. Handles is / is_not / is_empty / is_not_empty for
- * raw-string fields.
- */
-const defaultFacetQueryValue: (
-  values: Array<string>,
-  operator: FilterOperator,
-  isMulti: boolean,
-) => unknown = (
-  values: Array<string>,
-  operator: FilterOperator,
-  isMulti: boolean,
-): unknown => {
-  if (operator === "is_empty") {
-    return new IsNull();
-  }
-  if (operator === "is_not_empty") {
-    return new NotNull();
-  }
-  /*
-   * Date operators against an option list have no date to compare with — the
-   * values here are option ids. Only a hand-edited URL can pair the two, and
-   * sanitizeFacetSelectionState clamps that before it reaches here; refusing it
-   * again is what keeps "cannot express this" from becoming a filter on a
-   * string that happens to parse.
-   */
-  if (operator === "before" || operator === "after" || operator === "between") {
-    return undefined;
-  }
-  if (isMulti) {
-    return operator === "is_not"
-      ? new IncludesNone(values)
-      : new Includes(values);
-  }
-  return operator === "is_not" ? new NotEqual(values[0]!) : values[0];
-};
 
 /**
  * Helper for facets whose values are ObjectIDs (entity references like
@@ -184,115 +156,7 @@ type OwnerJunctionModel = BaseModel & {
   team?: Team;
 };
 
-export interface ResourceFacet {
-  /** Internal state key; also the default query field name. */
-  key: string;
-  /** Chip label (e.g. "Status", "Type"). */
-  label: string;
-  /**
-   * What the chip's popover holds. Defaults to "options" — a searchable option
-   * list. Use "dateRange" for a date column, where there is no option list to
-   * offer and the useful questions ("not seen since last Tuesday", "between the
-   * 1st and the 5th") are only expressible by typing a date.
-   *
-   * A "dateRange" facet stores its selection in FacetDateRange's encoding and
-   * ignores `options` / `fetchOptions` / `loadOptions`.
-   */
-  type?: FacetKind | undefined;
-  /** Icon shown on the empty chip. */
-  icon?: IconProp | undefined;
-  /** Allow selecting multiple values. Defaults to false. */
-  isMultiSelect?: boolean | undefined;
-  /** Hint shown inside the popover search box. */
-  searchPlaceholder?: string | undefined;
-  /** Static option list (use either this or `fetchOptions` / `loadOptions`). */
-  options?: Array<FilterChipDropdownOption> | undefined;
-  /**
-   * Dynamic option list, fetched once on mount. Receives the current
-   * project's id. Suitable for bounded option sets (state, severity,
-   * status — typically <100 rows).
-   */
-  fetchOptions?:
-    | ((projectId: ObjectID) => Promise<Array<FilterChipDropdownOption>>)
-    | undefined;
-  /**
-   * Async loader for unbounded / very large option sets (e.g. a Monitor
-   * picker on a project with thousands of monitors). The chip calls this
-   * on open and on each (debounced) keystroke, so the server does the
-   * heavy lifting. When set, `options` / `fetchOptions` are ignored.
-   */
-  loadOptions?:
-    | ((
-        projectId: ObjectID,
-        searchTerm: string,
-      ) => Promise<Array<FilterChipDropdownOption>>)
-    | undefined;
-  /**
-   * Companion to `loadOptions`. Resolves a set of previously-selected
-   * values (e.g. from a saved view) into options so the chip can show
-   * proper labels even when the values aren't in the current search page.
-   */
-  resolveOptions?:
-    | ((
-        projectId: ObjectID,
-        values: Array<string>,
-      ) => Promise<Array<FilterChipDropdownOption>>)
-    | undefined;
-  /**
-   * Query field name. Defaults to `key`. Useful when the chip key differs
-   * from the actual entity field (e.g. internal key "status" mapped to
-   * `currentMonitorStatus`).
-   */
-  queryField?: string | undefined;
-  /**
-   * Convert selected raw string values into the query value. Defaults:
-   * - multi-select: new Includes(values) (raw strings)
-   * - single-select: values[0] (raw string)
-   * Override for ObjectID-wrapped values or booleans:
-   *   `(values) => values[0] === "true"`
-   *   `(values) => new Includes(values.map((v) => new ObjectID(v)))`
-   */
-  toQueryValue?:
-    | ((values: Array<string>, operator: FilterOperator) => unknown)
-    | undefined;
-  /**
-   * Which operators this facet should expose in the chip dropdown.
-   * Defaults to ["is", "is_not", "is_empty", "is_not_empty"], or to
-   * DATE_FACET_OPERATORS for a "dateRange" facet.
-   */
-  supportedOperators?: Array<FilterOperator> | undefined;
-  /**
-   * Other facet keys this chip cannot be active alongside, because they write
-   * the same column.
-   *
-   * `mergeFiltersIntoQuery` builds one object, so two chips over one field do
-   * not AND — the later one simply overwrites the earlier, silently, while both
-   * chips stay lit and claim to apply. Naming the conflict here makes activating
-   * either of them clear the other, so the bar always shows the filter the table
-   * is actually running.
-   *
-   * Declaring it on one side is enough; the hook reads it symmetrically.
-   */
-  exclusiveWith?: Array<string> | undefined;
-  /**
-   * For facets that filter across *multiple* relationship fields with OR
-   * semantics (e.g. an "Affected Resources" chip spanning monitors / hosts /
-   * services / dockerHosts / kubernetesClusters), supply this resolver. It
-   * receives the current selection and returns the set of parent-row IDs
-   * (e.g. incident IDs) that match. The hook unions these into an
-   * `_id` filter, intersected with the owner filter when both are active.
-   *
-   * When set, `toQueryValue` and `queryField` are ignored — the facet
-   * never writes directly to a column.
-   */
-  computeMatchingResourceIds?:
-    | ((
-        projectId: ObjectID,
-        values: Array<string>,
-        operator: FilterOperator,
-      ) => Promise<Array<string>>)
-    | undefined;
-}
+export type { ResourceFacet } from "./ResourceFacet";
 
 export interface UseResourceOwnersOptions {
   /**
@@ -325,6 +189,24 @@ export interface UseResourceOwnersOptions {
    * makes the filtered view shareable. Omit to disable URL persistence.
    */
   persistKey?: string | undefined;
+  /**
+   * True while `extraFacets` is still being assembled from an async source —
+   * today, a resource's custom field definitions.
+   *
+   * While it is true the hook neither writes nor clears the URL snapshot,
+   * because a facet that has not arrived yet cannot be told apart from one the
+   * user cleared, and the two call for opposite things. When it goes false the
+   * hook reconciles once: late facets get their clamp, and selections for
+   * facets that never arrived are dropped.
+   */
+  areFacetsLoading?: boolean | undefined;
+  /**
+   * Facet-key prefixes the settle-time reconciliation is allowed to drop.
+   * Defaults to the custom field prefix. A key outside these prefixes is left
+   * alone however long it goes unclaimed — the hook cannot know whether a page
+   * puts its own bookkeeping in the snapshot.
+   */
+  reconcilableFacetKeyPrefixes?: Array<string> | undefined;
 }
 
 export interface UseResourceOwnersResult<TResource extends BaseModel> {
@@ -424,6 +306,9 @@ const useResourceOwners: <TResource extends BaseModel>(
   const showLabelsFacet: boolean = Boolean(options.showLabelsFacet);
   const extraFacets: Array<ResourceFacet> = options.extraFacets || [];
   const persistKey: string | undefined = options.persistKey;
+  const areFacetsLoading: boolean = Boolean(options.areFacetsLoading);
+  const reconcilableFacetKeyPrefixes: Array<string> =
+    options.reconcilableFacetKeyPrefixes || [CUSTOM_FIELD_FACET_KEY_PREFIX];
 
   const [ownersByResourceId, setOwnersByResourceId] = useState<{
     [resourceId: string]: Array<ResourceOwnerEntry>;
@@ -1121,33 +1006,26 @@ const useResourceOwners: <TResource extends BaseModel>(
         continue;
       }
 
-      if (op === "is_empty" || op === "is_not_empty") {
-        (merged as unknown as Record<string, unknown>)[field] =
-          op === "is_empty" ? new IsNull() : new NotNull();
-        continue;
-      }
-
-      if (selected.length === 0) {
-        continue;
-      }
-
-      const value: unknown = facet.toQueryValue
-        ? facet.toQueryValue(selected, op)
-        : facet.type === "dateRange"
-          ? buildFacetDateRangeQuery(selected, op)
-          : defaultFacetQueryValue(selected, op, Boolean(facet.isMultiSelect));
-
       /*
-       * `undefined` is a query builder's way of saying "do not constrain this
-       * column" — a half-entered date range, or a value this build cannot read.
-       * Writing the key anyway would leave the field present-but-undefined in
-       * the request, which is a different statement from not filtering on it.
+       * Which column this chip writes, and what — including how it combines
+       * with a chip that already wrote the same column. See FacetColumnQuery;
+       * it lives outside the hook so the two rules that fail invisibly (chips
+       * clobbering each other, and "is empty" asking about the wrong thing)
+       * can be pinned in tests.
        */
-      if (value === undefined) {
+      const columnQuery: FacetColumnQuery | null = buildFacetColumnQuery({
+        facet: facet,
+        operator: op,
+        values: selected,
+        existingValue: (merged as unknown as Record<string, unknown>)[field],
+      });
+
+      if (!columnQuery) {
         continue;
       }
 
-      (merged as unknown as Record<string, unknown>)[field] = value;
+      (merged as unknown as Record<string, unknown>)[columnQuery.field] =
+        columnQuery.value;
     }
 
     // Combine the collected _id sets.
@@ -1753,6 +1631,27 @@ const useResourceOwners: <TResource extends BaseModel>(
             );
           }
 
+          if (isTypedValueFacetKind(facet.type)) {
+            return (
+              <FilterChipValueInput
+                key={facet.key}
+                label={facet.label}
+                emptyIcon={facet.icon}
+                values={selected}
+                valueType={facet.type === "number" ? "number" : "text"}
+                operator={facetOperators[facet.key] || "is"}
+                supportedOperators={facet.supportedOperators}
+                placeholder={facet.searchPlaceholder}
+                onChange={(
+                  nextValues: Array<string>,
+                  nextOperator: FilterOperator,
+                ) => {
+                  applyFacetChange(facet.key, nextValues, nextOperator);
+                }}
+              />
+            );
+          }
+
           const opts: Array<FilterChipDropdownOption> =
             facet.options || facetDynamicOptions[facet.key] || [];
           const value: string | Array<string> | null = facet.isMultiSelect
@@ -1897,12 +1796,113 @@ const useResourceOwners: <TResource extends BaseModel>(
    * and then threw it away.
    */
   useEffect(() => {
+    /*
+     * While the facet list is still being assembled from an async source
+     * (custom field definitions), a restored selection whose chip has not
+     * arrived yet is indistinguishable from one the user cleared — and
+     * `hasActiveFilters` reads it as cleared. Writing then would delete the
+     * very param the link was opened with, before the chips that justify it
+     * exist. So the URL is left exactly as found until the list settles.
+     */
+    if (areFacetsLoading) {
+      return;
+    }
+
     TableFilterUrlState.write(
       persistKey,
       "facets",
       hasActiveFilters ? facetSaveState : null,
     );
-  }, [persistKey, hasActiveFilters, facetSaveState]);
+  }, [persistKey, hasActiveFilters, facetSaveState, areFacetsLoading]);
+
+  /*
+   * Reconcile once the facet list settles.
+   *
+   * Two things can only be decided here. A late-arriving facet's restored
+   * selection has never been clamped against the chip that now owns it, and a
+   * selection whose facet never arrives at all — a custom field that was
+   * renamed or deleted since the link was made — would otherwise filter the
+   * list forever with no chip on screen to explain or clear it.
+   *
+   * Scoped to `reconcilableFacetKeyPrefixes` so a page carrying keys this hook
+   * does not know about (a summary tile's own bookkeeping, say) is untouched.
+   */
+  const hasReconciledFacets: React.MutableRefObject<boolean> =
+    React.useRef<boolean>(false);
+
+  useEffect(() => {
+    if (areFacetsLoading) {
+      /*
+       * A reload — the project changed under the page — deserves the same
+       * reconciliation the first load got, so the flag is armed again rather
+       * than left set from last time.
+       */
+      hasReconciledFacets.current = false;
+      return;
+    }
+
+    if (hasReconciledFacets.current) {
+      return;
+    }
+
+    hasReconciledFacets.current = true;
+
+    const declaredKeys: Set<string> = new Set<string>(
+      extraFacets.map((facet: ResourceFacet) => {
+        return facet.key;
+      }),
+    );
+
+    const isOrphaned: (key: string) => boolean = (key: string): boolean => {
+      if (declaredKeys.has(key)) {
+        return false;
+      }
+
+      return reconcilableFacetKeyPrefixes.some((prefix: string) => {
+        return key.startsWith(prefix);
+      });
+    };
+
+    const clamped: FacetSelectionState = sanitizeFacetSelectionState(
+      {
+        selectedOwnerKeys: selectedOwnerKeys,
+        selectedLabelIds: selectedLabelIds,
+        facetSelections: facetSelections,
+        ownerOperator: ownerOperator,
+        labelOperator: labelOperator,
+        facetOperators: facetOperators,
+      },
+      extraFacets,
+    );
+
+    const nextSelections: { [facetKey: string]: Array<string> } = {};
+    const nextOperators: { [facetKey: string]: FilterOperator } = {};
+
+    for (const key of Object.keys(clamped.facetSelections)) {
+      if (!isOrphaned(key)) {
+        nextSelections[key] = clamped.facetSelections[key]!;
+      }
+    }
+
+    for (const key of Object.keys(clamped.facetOperators)) {
+      if (!isOrphaned(key)) {
+        nextOperators[key] = clamped.facetOperators[key]!;
+      }
+    }
+
+    /*
+     * Both setters run through the same equality check so a settled list with
+     * nothing to fix does not schedule a re-render — and, through
+     * `facetSaveState`, a redundant URL write.
+     */
+    if (
+      JSON.stringify(nextSelections) !== JSON.stringify(facetSelections) ||
+      JSON.stringify(nextOperators) !== JSON.stringify(facetOperators)
+    ) {
+      setFacetSelections(nextSelections);
+      setFacetOperators(nextOperators);
+    }
+  }, [areFacetsLoading, extraFacets]);
 
   const getOwnersForResource: (
     resource: TResource,

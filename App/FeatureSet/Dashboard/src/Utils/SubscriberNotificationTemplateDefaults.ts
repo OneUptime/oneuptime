@@ -782,12 +782,12 @@ const reportDefaults: EventDefaults = {
     subject: "[Report] {{statusPageName}}",
     body: `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif; max-width: 600px; margin: 0 auto; color: #1e293b;">
   <h2 style="color: #1a1a2e; font-size: 24px; line-height: 32px; font-weight: 700; margin: 0 0 8px 0;">Uptime Report: {{statusPageName}}</h2>
-  <p style="color: #374151; font-size: 15px; line-height: 26px; margin: 0 0 24px 0;">Here is your status summary for the last {{report.reportDates}}.</p>
+  <p style="color: #374151; font-size: 15px; line-height: 26px; margin: 0 0 24px 0;">Here is your status summary for {{report.reportPeriodName}}.</p>
   {{#if report.totalResources}}
   <div style="background-color: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 12px; padding: 28px 24px; text-align: center; margin: 0 0 14px 0;">
     <p style="margin: 0 0 6px 0; font-size: 11px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase; color: #64748b;">Average Uptime</p>
     <p style="margin: 0; font-size: 52px; line-height: 56px; font-weight: 700; color: #1a1a2e;">{{report.averageUptimePercent}}</p>
-    <p style="margin: 10px 0 0 0; font-size: 13px; color: #64748b;">across {{report.reportDates}}</p>
+    <p style="margin: 10px 0 0 0; font-size: 13px; color: #64748b;">{{report.reportStartDate}} &ndash; {{report.reportEndDate}} ({{report.reportTimezone}})</p>
   </div>
   <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 12px; margin: 0 0 24px 0;">
     <tr>
@@ -853,12 +853,12 @@ const reportDefaults: EventDefaults = {
 </div>`,
   },
   [StatusPageSubscriberNotificationMethod.SMS]: {
-    body: `{{statusPageName}} uptime report ({{report.reportDates}}): {{report.averageUptimePercent}} average uptime, {{report.totalIncidents}} incidents, {{report.totalDowntimeInHoursAndMinutes}} downtime. {{statusPageUrl}}`,
+    body: `{{statusPageName}} uptime report for {{report.reportPeriodName}} ({{report.reportDates}}): {{report.averageUptimePercent}} average uptime, {{report.totalIncidents}} incidents, {{report.totalDowntimeInHoursAndMinutes}} downtime. {{statusPageUrl}}`,
   },
   [StatusPageSubscriberNotificationMethod.Slack]: {
     body: `## 📊 Uptime Report - {{statusPageName}}
 
-**Period:** {{report.reportDates}}
+**Period:** {{report.reportPeriodName}} ({{report.reportDates}} {{report.reportTimezone}})
 **Average Uptime:** {{report.averageUptimePercent}}
 **Total Downtime:** {{report.totalDowntimeInHoursAndMinutes}}
 **Incidents:** {{report.totalIncidents}}
@@ -867,7 +867,7 @@ const reportDefaults: EventDefaults = {
   },
   [StatusPageSubscriberNotificationMethod.MicrosoftTeams]: {
     body: `## 📊 Uptime Report - {{statusPageName}}
-**Period:** {{report.reportDates}}
+**Period:** {{report.reportPeriodName}} ({{report.reportDates}} {{report.reportTimezone}})
 **Average Uptime:** {{report.averageUptimePercent}}
 **Total Downtime:** {{report.totalDowntimeInHoursAndMinutes}}
 **Incidents:** {{report.totalIncidents}}
@@ -880,6 +880,10 @@ const reportDefaults: EventDefaults = {
   "statusPageUrl": "{{statusPageUrl}}",
   "report": {
     "reportDates": "{{report.reportDates}}",
+    "reportPeriodName": "{{report.reportPeriodName}}",
+    "reportStartDate": "{{report.reportStartDate}}",
+    "reportEndDate": "{{report.reportEndDate}}",
+    "reportTimezone": "{{report.reportTimezone}}",
     "averageUptimePercent": "{{report.averageUptimePercent}}",
     "totalDowntimeInHoursAndMinutes": "{{report.totalDowntimeInHoursAndMinutes}}",
     "totalIncidents": "{{report.totalIncidents}}",

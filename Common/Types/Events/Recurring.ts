@@ -1,5 +1,5 @@
 import DatabaseProperty from "../Database/DatabaseProperty";
-import OneUptimeDate from "../Date";
+import OneUptimeDate, { CalendarUnit } from "../Date";
 import BadDataException from "../Exception/BadDataException";
 import { JSONArray, JSONObject, ObjectType } from "../JSON";
 import JSONFunctions from "../JSONFunctions";
@@ -107,6 +107,104 @@ export default class Recurring extends DatabaseProperty {
     }
 
     return nextDate;
+  }
+
+  /*
+   * The calendar unit this interval is expressed in, for the date helpers that
+   * do calendar (rather than fixed-millisecond) arithmetic.
+   */
+  public static toCalendarUnit(intervalType: EventInterval): CalendarUnit {
+    switch (intervalType) {
+      case EventInterval.Hour:
+        return "hour";
+      case EventInterval.Day:
+        return "day";
+      case EventInterval.Week:
+        return "week";
+      case EventInterval.Month:
+        return "month";
+      case EventInterval.Year:
+        return "year";
+      default:
+        throw new BadDataException("Invalid Interval Type: " + intervalType);
+    }
+  }
+
+  /**
+   * The first occurrence of `recurring` (anchored at `startDate`) strictly after
+   * `afterDate`, stepping in whole CALENDAR units in `timezone`.
+   *
+   * getNextDate() approximates a month as 30.4375 days and a year as 365.25
+   * days, which is fine for hours/days/weeks but makes a monthly recurrence
+   * walk backwards through the calendar: anchored on 1 Jul it fires on 31 Jul,
+   * then 30 Aug, and eventually skips a month entirely. This steps 1 Jul ->
+   * 1 Aug -> 1 Sep instead, and holds the local time of day across DST.
+   *
+   * A start date already after `afterDate` is returned unchanged - the first
+   * occurrence has not happened yet.
+   */
+  public static getNextDateAfter(data: {
+    startDate: Date;
+    recurring: Recurring;
+    afterDate: Date;
+    timezone?: string | undefined;
+  }): Date {
+    const startDate: Date = OneUptimeDate.fromString(data.startDate);
+    const recurring: Recurring = Recurring.fromJSON(data.recurring);
+    const unit: CalendarUnit = Recurring.toCalendarUnit(recurring.intervalType);
+
+    const intervalCount: number = Math.max(
+      1,
+      Math.floor(recurring.intervalCount.toNumber()),
+    );
+
+    if (startDate.getTime() > data.afterDate.getTime()) {
+      return startDate;
+    }
+
+    /*
+     * Jump most of the way in one step so a status page left disabled for a year
+     * does not loop 365 times, then walk the remainder. The estimate can only be
+     * off by a single interval either way (calendar units are not uniform), so
+     * the two loops below run a handful of times at most.
+     */
+    const elapsedUnits: number = OneUptimeDate.getCalendarUnitsBetween(
+      startDate,
+      data.afterDate,
+      unit,
+      data.timezone,
+    );
+
+    let intervals: number = Math.max(
+      0,
+      Math.floor(elapsedUnits / intervalCount),
+    );
+
+    type OccurrenceFunction = (intervalsToAdd: number) => Date;
+
+    const occurrence: OccurrenceFunction = (intervalsToAdd: number): Date => {
+      return OneUptimeDate.addRemoveCalendarUnits(
+        startDate,
+        unit,
+        intervalsToAdd * intervalCount,
+        data.timezone,
+      );
+    };
+
+    // Overshot - come back until we are at or before the cutoff.
+    while (
+      intervals > 0 &&
+      occurrence(intervals - 1).getTime() > data.afterDate.getTime()
+    ) {
+      intervals--;
+    }
+
+    // Undershot - advance until we are strictly after it.
+    while (occurrence(intervals).getTime() <= data.afterDate.getTime()) {
+      intervals++;
+    }
+
+    return occurrence(intervals);
   }
 
   private data: RecurringData = Recurring.getDefaultRotationData();

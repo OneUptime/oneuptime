@@ -9,6 +9,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageCustomField from "Common/Models/DatabaseModels/StatusPageCustomField";
+import useCustomFieldFacets from "../../Components/CustomFields/useCustomFieldFacets";
 import StatusPageOwnerTeam from "Common/Models/DatabaseModels/StatusPageOwnerTeam";
 import StatusPageOwnerUser from "Common/Models/DatabaseModels/StatusPageOwnerUser";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -27,6 +28,14 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
       resourceIdField: "statusPageId",
     });
 
+  /*
+   * One chip per custom field this project has defined. They arrive a render
+   * or two late (the definitions are fetched), which is what
+   * `areFacetsLoading` below tells the bar.
+   */
+  const { facets: customFieldFacets, isLoading: areCustomFieldFacetsLoading } =
+    useCustomFieldFacets({ customFieldsModelType: StatusPageCustomField });
+
   const {
     getOwnersForResource,
     isLoadingOwners,
@@ -41,6 +50,8 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
     ownerTeamModelType: StatusPageOwnerTeam,
     resourceIdField: "statusPageId",
     showLabelsFacet: true,
+    extraFacets: customFieldFacets,
+    areFacetsLoading: areCustomFieldFacetsLoading,
   });
 
   return (

@@ -85,6 +85,17 @@ export interface StatusPageReportRow {
 
 export interface StatusPageReport {
   reportDates: string; // start date and end date in string. e.g. "01 July 2021 - 14 July 2021"
+  /*
+   * How a sentence refers to the period this report covers - "the last 30
+   * days", "July 2026", "the week of Jul 27, 2026". `reportDates` is the raw
+   * range; this is the phrase that goes after "your status summary for ...".
+   */
+  reportPeriodName: string;
+  // The two ends of the window on their own, for templates that lay them out.
+  reportStartDate: string;
+  reportEndDate: string;
+  // The IANA zone every date above was resolved in, e.g. "America/New_York".
+  reportTimezone: string;
   totalResources: number;
   totalIncidents: number;
   averageUptimePercent: string;

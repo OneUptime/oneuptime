@@ -28,6 +28,10 @@ import StatusPageResource from "../../../Models/DatabaseModels/StatusPageResourc
 import Dictionary from "../../../Types/Dictionary";
 import ObjectID from "../../../Types/ObjectID";
 import OneUptimeDate from "../../../Types/Date";
+import StatusPageReportPeriodType from "../../../Types/StatusPage/StatusPageReportPeriodType";
+import StatusPageReportPeriodUtil, {
+  StatusPageReportPeriod,
+} from "../../../Utils/StatusPage/ReportPeriod";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { Green, Red } from "../../../Types/BrandColors";
 import {
@@ -73,6 +77,18 @@ const WEBSITE_MONITOR: ObjectID = new ObjectID(
 );
 
 const HISTORY_DAYS: number = 14;
+
+/*
+ * The window under test: the rolling fourteen days the timeline below is built
+ * around. Resolved through the same util the worker uses so these tests keep
+ * exercising the real string formatting as well as the boundaries.
+ */
+function reportPeriod(): StatusPageReportPeriod {
+  return StatusPageReportPeriodUtil.getReportPeriod({
+    periodType: StatusPageReportPeriodType.Rolling,
+    reportDataInDays: HISTORY_DAYS,
+  });
+}
 
 const OPERATIONAL: MonitorStatus = new MonitorStatus();
 OPERATIONAL.id = new ObjectID("bb000000-0000-4000-8000-000000000001");
@@ -284,7 +300,7 @@ describe("StatusPageService.getReportByStatusPage", () => {
       const report: StatusPageReport =
         await StatusPageService.getReportByStatusPage({
           statusPageId: STATUS_PAGE_ID,
-          historyDays: HISTORY_DAYS,
+          reportPeriod: reportPeriod(),
         });
 
       expect(report.hasGroups).toBe(true);
@@ -303,7 +319,7 @@ describe("StatusPageService.getReportByStatusPage", () => {
       const report: StatusPageReport =
         await StatusPageService.getReportByStatusPage({
           statusPageId: STATUS_PAGE_ID,
-          historyDays: HISTORY_DAYS,
+          reportPeriod: reportPeriod(),
         });
 
       expect(rowNames(report.rows)).toEqual([
@@ -321,7 +337,7 @@ describe("StatusPageService.getReportByStatusPage", () => {
       const report: StatusPageReport =
         await StatusPageService.getReportByStatusPage({
           statusPageId: STATUS_PAGE_ID,
-          historyDays: HISTORY_DAYS,
+          reportPeriod: reportPeriod(),
         });
 
       const unit: StatusPageReportGroup =
@@ -344,7 +360,7 @@ describe("StatusPageService.getReportByStatusPage", () => {
       const report: StatusPageReport =
         await StatusPageService.getReportByStatusPage({
           statusPageId: STATUS_PAGE_ID,
-          historyDays: HISTORY_DAYS,
+          reportPeriod: reportPeriod(),
         });
 
       const pathByName: Dictionary<string> = {};
@@ -368,7 +384,7 @@ describe("StatusPageService.getReportByStatusPage", () => {
       const report: StatusPageReport =
         await StatusPageService.getReportByStatusPage({
           statusPageId: STATUS_PAGE_ID,
-          historyDays: HISTORY_DAYS,
+          reportPeriod: reportPeriod(),
         });
 
       const uptimeByName: Dictionary<string> = {};
@@ -387,7 +403,7 @@ describe("StatusPageService.getReportByStatusPage", () => {
       const report: StatusPageReport =
         await StatusPageService.getReportByStatusPage({
           statusPageId: STATUS_PAGE_ID,
-          historyDays: HISTORY_DAYS,
+          reportPeriod: reportPeriod(),
         });
 
       const corporate: StatusPageReportGroup = report.groups[0]!;
@@ -405,7 +421,7 @@ describe("StatusPageService.getReportByStatusPage", () => {
       const report: StatusPageReport =
         await StatusPageService.getReportByStatusPage({
           statusPageId: STATUS_PAGE_ID,
-          historyDays: HISTORY_DAYS,
+          reportPeriod: reportPeriod(),
         });
 
       const corporate: StatusPageReportGroup = report.groups[0]!;
@@ -418,7 +434,7 @@ describe("StatusPageService.getReportByStatusPage", () => {
       const report: StatusPageReport =
         await StatusPageService.getReportByStatusPage({
           statusPageId: STATUS_PAGE_ID,
-          historyDays: HISTORY_DAYS,
+          reportPeriod: reportPeriod(),
         });
 
       const corporate: StatusPageReportGroup = report.groups[0]!;
@@ -441,7 +457,7 @@ describe("StatusPageService.getReportByStatusPage", () => {
 
       await StatusPageService.getReportByStatusPage({
         statusPageId: STATUS_PAGE_ID,
-        historyDays: HISTORY_DAYS,
+        reportPeriod: reportPeriod(),
       });
 
       /*
@@ -456,7 +472,7 @@ describe("StatusPageService.getReportByStatusPage", () => {
       const report: StatusPageReport =
         await StatusPageService.getReportByStatusPage({
           statusPageId: STATUS_PAGE_ID,
-          historyDays: HISTORY_DAYS,
+          reportPeriod: reportPeriod(),
         });
 
       expect(report.totalResources).toBe(3);
@@ -471,7 +487,7 @@ describe("StatusPageService.getReportByStatusPage", () => {
       const report: StatusPageReport =
         await StatusPageService.getReportByStatusPage({
           statusPageId: STATUS_PAGE_ID,
-          historyDays: HISTORY_DAYS,
+          reportPeriod: reportPeriod(),
         });
 
       expect(
@@ -513,7 +529,7 @@ describe("StatusPageService.getReportByStatusPage", () => {
       const report: StatusPageReport =
         await StatusPageService.getReportByStatusPage({
           statusPageId: STATUS_PAGE_ID,
-          historyDays: HISTORY_DAYS,
+          reportPeriod: reportPeriod(),
         });
 
       expect(report.hasGroups).toBe(false);
@@ -541,7 +557,7 @@ describe("StatusPageService.getReportByStatusPage", () => {
       const report: StatusPageReport =
         await StatusPageService.getReportByStatusPage({
           statusPageId: STATUS_PAGE_ID,
-          historyDays: HISTORY_DAYS,
+          reportPeriod: reportPeriod(),
         });
 
       expect(report.totalResources).toBe(0);

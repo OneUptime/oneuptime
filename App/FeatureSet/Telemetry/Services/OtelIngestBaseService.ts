@@ -51,6 +51,17 @@ import { canonicalizeEntityValue } from "Common/Utils/Telemetry/EntityKey";
 import { normalizeHostIpAddresses } from "Common/Utils/Telemetry/HostIpAddresses";
 import Dictionary from "Common/Types/Dictionary";
 
+/*
+ * A maintenance fence that one autoDiscover* attempt armed, recorded so
+ * that attempt's catch block can release what it armed — and only what it
+ * armed, never a fence another worker is holding. See
+ * OtelIngestBaseService.releaseMaintenanceFences.
+ */
+type MaintenanceFence = {
+  scope: string;
+  id: string;
+};
+
 export default abstract class OtelIngestBaseService {
   private static readonly DOCKER_CONTAINER_NAME_CACHE_NAMESPACE: string =
     "docker-container-name";
@@ -128,6 +139,36 @@ export default abstract class OtelIngestBaseService {
       );
     } catch {
       // best-effort — the fence TTL will expire the key regardless.
+    }
+  }
+
+  /*
+   * Release every fence an autoDiscover* attempt armed. Each of those
+   * methods records its fences in a local `armedFences` array as it arms
+   * them and calls this from its catch block, so a transient failure
+   * anywhere in the method (Postgres contention on a hot row, a label
+   * upsert that lost a race) costs one retry rather than a full 5-minute
+   * window of suppressed lastSeenAt refreshes.
+   *
+   * Recording what was armed — rather than re-deriving a key in the catch —
+   * is what keeps this safe under concurrency: when shouldRunMaintenance
+   * says another worker already holds the fence, nothing is recorded, so a
+   * failure here can never clear a window that worker is relying on.
+   *
+   * It is deliberately all-or-nothing WITHIN one attempt: a method with two
+   * fences (the *-instance / rum-client live-inventory fences run under
+   * their own) releases both even if only the later one failed. The cost of
+   * that is bounded and small — updateLastSeen and attachLabels each carry
+   * their own 60-second throttle, so redoing them next batch is at most one
+   * extra UPDATE per minute, the same tradeoff already accepted for two
+   * callers sharing one extras fingerprint. Tracking per-fence success to
+   * shave that off is not worth the extra invariant.
+   */
+  protected static async releaseMaintenanceFences(
+    fences: Array<MaintenanceFence>,
+  ): Promise<void> {
+    for (const fence of fences) {
+      await this.clearMaintenanceFence(fence.scope, fence.id);
     }
   }
 
@@ -877,8 +918,13 @@ export default abstract class OtelIngestBaseService {
     projectId: ObjectID;
     attributes: JSONArray;
   }): Promise<ObjectID | null> {
-    let clusterIdStr: string | null = null;
+    /*
+     * Fences armed below, released by the catch block. See
+     * releaseMaintenanceFences.
+     */
+    const armedFences: Array<MaintenanceFence> = [];
     try {
+      let clusterIdStr: string | null = null;
       const clusterName: string | null = this.getClusterNameFromAttributes(
         data.attributes,
       );
@@ -922,6 +968,7 @@ export default abstract class OtelIngestBaseService {
          * bounded by the TTL.
          */
         if (await this.shouldRunMaintenance("k8s-cluster", clusterIdStr)) {
+          armedFences.push({ scope: "k8s-cluster", id: clusterIdStr });
           const agentVersion: string | null = this.getStringAttribute(
             data.attributes,
             "oneuptime.agent.version",
@@ -940,16 +987,7 @@ export default abstract class OtelIngestBaseService {
 
       return null;
     } catch (err) {
-      /*
-       * The fence for this cluster is armed before updateLastSeen runs,
-       * so a failure here (e.g. Postgres contention on the shared hot
-       * cluster row) would otherwise suppress the next ~5 minutes of
-       * lastSeenAt refreshes. Release it so the next batch retries and
-       * the cluster does not drift to "disconnected" while data flows.
-       */
-      if (clusterIdStr) {
-        await this.clearMaintenanceFence("k8s-cluster", clusterIdStr);
-      }
+      await this.releaseMaintenanceFences(armedFences);
       logger.error(
         "Error auto-discovering Kubernetes cluster: " + (err as Error).message,
       );
@@ -1020,6 +1058,11 @@ export default abstract class OtelIngestBaseService {
     projectId: ObjectID;
     attributes: JSONArray;
   }): Promise<ObjectID | null> {
+    /*
+     * Fences armed below, released by the catch block. See
+     * releaseMaintenanceFences.
+     */
+    const armedFences: Array<MaintenanceFence> = [];
     try {
       const clusterName: string | null =
         this.getProxmoxClusterNameFromAttributes(data.attributes);
@@ -1060,6 +1103,7 @@ export default abstract class OtelIngestBaseService {
          * already ran it within the fence window.
          */
         if (await this.shouldRunMaintenance("proxmox-cluster", clusterIdStr)) {
+          armedFences.push({ scope: "proxmox-cluster", id: clusterIdStr });
           const agentVersion: string | null = this.getStringAttribute(
             data.attributes,
             "oneuptime.agent.version",
@@ -1078,6 +1122,7 @@ export default abstract class OtelIngestBaseService {
 
       return null;
     } catch (err) {
+      await this.releaseMaintenanceFences(armedFences);
       logger.error(
         "Error auto-discovering Proxmox cluster: " + (err as Error).message,
       );
@@ -1152,6 +1197,11 @@ export default abstract class OtelIngestBaseService {
     projectId: ObjectID;
     attributes: JSONArray;
   }): Promise<ObjectID | null> {
+    /*
+     * Fences armed below, released by the catch block. See
+     * releaseMaintenanceFences.
+     */
+    const armedFences: Array<MaintenanceFence> = [];
     try {
       const fleetName: string | null = this.getIoTFleetNameFromAttributes(
         data.attributes,
@@ -1193,6 +1243,7 @@ export default abstract class OtelIngestBaseService {
          * already ran it within the fence window.
          */
         if (await this.shouldRunMaintenance("iot-fleet", fleetIdStr)) {
+          armedFences.push({ scope: "iot-fleet", id: fleetIdStr });
           const agentVersion: string | null = this.getStringAttribute(
             data.attributes,
             "oneuptime.agent.version",
@@ -1211,6 +1262,7 @@ export default abstract class OtelIngestBaseService {
 
       return null;
     } catch (err) {
+      await this.releaseMaintenanceFences(armedFences);
       logger.error(
         "Error auto-discovering IoT fleet: " + (err as Error).message,
       );
@@ -1282,6 +1334,11 @@ export default abstract class OtelIngestBaseService {
     projectId: ObjectID;
     attributes: JSONArray;
   }): Promise<ObjectID | null> {
+    /*
+     * Fences armed below, released by the catch block. See
+     * releaseMaintenanceFences.
+     */
+    const armedFences: Array<MaintenanceFence> = [];
     try {
       const clusterName: string | null =
         this.getDockerSwarmClusterNameFromAttributes(data.attributes);
@@ -1322,6 +1379,10 @@ export default abstract class OtelIngestBaseService {
         if (
           await this.shouldRunMaintenance("docker-swarm-cluster", clusterIdStr)
         ) {
+          armedFences.push({
+            scope: "docker-swarm-cluster",
+            id: clusterIdStr,
+          });
           const agentVersion: string | null = this.getStringAttribute(
             data.attributes,
             "oneuptime.agent.version",
@@ -1340,6 +1401,7 @@ export default abstract class OtelIngestBaseService {
 
       return null;
     } catch (err) {
+      await this.releaseMaintenanceFences(armedFences);
       logger.error(
         "Error auto-discovering Docker Swarm cluster: " +
           (err as Error).message,
@@ -1409,6 +1471,11 @@ export default abstract class OtelIngestBaseService {
     projectId: ObjectID;
     attributes: JSONArray;
   }): Promise<ObjectID | null> {
+    /*
+     * Fences armed below, released by the catch block. See
+     * releaseMaintenanceFences.
+     */
+    const armedFences: Array<MaintenanceFence> = [];
     try {
       const clusterName: string | null = this.getCephClusterNameFromAttributes(
         data.attributes,
@@ -1450,6 +1517,7 @@ export default abstract class OtelIngestBaseService {
          * already ran it within the fence window.
          */
         if (await this.shouldRunMaintenance("ceph-cluster", clusterIdStr)) {
+          armedFences.push({ scope: "ceph-cluster", id: clusterIdStr });
           const agentVersion: string | null = this.getStringAttribute(
             data.attributes,
             "oneuptime.agent.version",
@@ -1474,6 +1542,7 @@ export default abstract class OtelIngestBaseService {
 
       return null;
     } catch (err) {
+      await this.releaseMaintenanceFences(armedFences);
       logger.error(
         "Error auto-discovering Ceph cluster: " + (err as Error).message,
       );
@@ -1554,6 +1623,11 @@ export default abstract class OtelIngestBaseService {
     projectId: ObjectID;
     attributes: JSONArray;
   }): Promise<ObjectID | null> {
+    /*
+     * Fences armed below, released by the catch block. See
+     * releaseMaintenanceFences.
+     */
+    const armedFences: Array<MaintenanceFence> = [];
     try {
       const faasName: string | null = this.getStringAttribute(
         data.attributes,
@@ -1613,6 +1687,10 @@ export default abstract class OtelIngestBaseService {
         if (
           await this.shouldRunMaintenance("serverless-function", functionIdStr)
         ) {
+          armedFences.push({
+            scope: "serverless-function",
+            id: functionIdStr,
+          });
           const agentVersion: string | null = this.getStringAttribute(
             data.attributes,
             "oneuptime.agent.version",
@@ -1662,6 +1740,10 @@ export default abstract class OtelIngestBaseService {
             `${functionIdStr}:${faasInstance}`,
           ))
         ) {
+          armedFences.push({
+            scope: "serverless-fn-instance",
+            id: `${functionIdStr}:${faasInstance}`,
+          });
           await ServerlessFunctionInstanceService.recordInstance({
             projectId: data.projectId,
             serverlessFunctionId: functionId,
@@ -1673,6 +1755,7 @@ export default abstract class OtelIngestBaseService {
 
       return null;
     } catch (err) {
+      await this.releaseMaintenanceFences(armedFences);
       logger.error(
         "Error auto-discovering Serverless function: " + (err as Error).message,
       );
@@ -1766,6 +1849,11 @@ export default abstract class OtelIngestBaseService {
     projectId: ObjectID;
     attributes: JSONArray;
   }): Promise<ObjectID | null> {
+    /*
+     * Fences armed below, released by the catch block. See
+     * releaseMaintenanceFences.
+     */
+    const armedFences: Array<MaintenanceFence> = [];
     try {
       const cloudPlatform: string | null = this.getStringAttribute(
         data.attributes,
@@ -1837,6 +1925,7 @@ export default abstract class OtelIngestBaseService {
       if (resourceIdStr) {
         const cloudResourceId: ObjectID = new ObjectID(resourceIdStr);
         if (await this.shouldRunMaintenance("cloud-resource", resourceIdStr)) {
+          armedFences.push({ scope: "cloud-resource", id: resourceIdStr });
           await CloudResourceService.updateLastSeen(cloudResourceId, {
             cloudPlatform: cloudPlatform || undefined,
             cloudProvider: cloudProvider || undefined,
@@ -1862,6 +1951,10 @@ export default abstract class OtelIngestBaseService {
             `${resourceIdStr}:${instanceName}`,
           ))
         ) {
+          armedFences.push({
+            scope: "cloud-resource-instance",
+            id: `${resourceIdStr}:${instanceName}`,
+          });
           await CloudResourceInstanceService.recordInstance({
             projectId: data.projectId,
             cloudResourceId,
@@ -1873,6 +1966,7 @@ export default abstract class OtelIngestBaseService {
 
       return null;
     } catch (err) {
+      await this.releaseMaintenanceFences(armedFences);
       logger.error(
         "Error auto-discovering Cloud resource: " + (err as Error).message,
       );
@@ -1957,6 +2051,11 @@ export default abstract class OtelIngestBaseService {
     projectId: ObjectID;
     attributes: JSONArray;
   }): Promise<ObjectID | null> {
+    /*
+     * Fences armed below, released by the catch block. See
+     * releaseMaintenanceFences.
+     */
+    const armedFences: Array<MaintenanceFence> = [];
     try {
       const clientType: string | null = this.getRumClientType(data.attributes);
       if (!clientType) {
@@ -1997,6 +2096,7 @@ export default abstract class OtelIngestBaseService {
       if (appIdStr) {
         const rumApplicationId: ObjectID = new ObjectID(appIdStr);
         if (await this.shouldRunMaintenance("rum-application", appIdStr)) {
+          armedFences.push({ scope: "rum-application", id: appIdStr });
           const agentVersion: string | null =
             this.getStringAttribute(data.attributes, "telemetry.sdk.version") ||
             this.getStringAttribute(data.attributes, "oneuptime.agent.version");
@@ -2027,6 +2127,10 @@ export default abstract class OtelIngestBaseService {
             `${appIdStr}:${clientName}`,
           ))
         ) {
+          armedFences.push({
+            scope: "rum-client",
+            id: `${appIdStr}:${clientName}`,
+          });
           await RumApplicationClientService.recordClient({
             projectId: data.projectId,
             rumApplicationId,
@@ -2039,6 +2143,7 @@ export default abstract class OtelIngestBaseService {
 
       return null;
     } catch (err) {
+      await this.releaseMaintenanceFences(armedFences);
       logger.error(
         "Error auto-discovering RUM application: " + (err as Error).message,
       );
@@ -2288,6 +2393,11 @@ export default abstract class OtelIngestBaseService {
     projectId: ObjectID;
     attributes: JSONArray;
   }): Promise<ObjectID | null> {
+    /*
+     * Fences armed below, released by the catch block. See
+     * releaseMaintenanceFences.
+     */
+    const armedFences: Array<MaintenanceFence> = [];
     try {
       if (!this.isDockerRuntime(data.attributes)) {
         return null;
@@ -2341,6 +2451,7 @@ export default abstract class OtelIngestBaseService {
          * already ran it within the fence window.
          */
         if (await this.shouldRunMaintenance("docker-host", hostIdStr)) {
+          armedFences.push({ scope: "docker-host", id: hostIdStr });
           const agentVersion: string | null = this.getStringAttribute(
             data.attributes,
             "oneuptime.agent.version",
@@ -2361,6 +2472,7 @@ export default abstract class OtelIngestBaseService {
 
       return null;
     } catch (err) {
+      await this.releaseMaintenanceFences(armedFences);
       logger.error(
         "Error auto-discovering Docker host: " + (err as Error).message,
       );
@@ -2414,6 +2526,11 @@ export default abstract class OtelIngestBaseService {
     projectId: ObjectID;
     attributes: JSONArray;
   }): Promise<ObjectID | null> {
+    /*
+     * Fences armed below, released by the catch block. See
+     * releaseMaintenanceFences.
+     */
+    const armedFences: Array<MaintenanceFence> = [];
     try {
       if (!this.isPodmanRuntime(data.attributes)) {
         return null;
@@ -2467,6 +2584,7 @@ export default abstract class OtelIngestBaseService {
          * already ran it within the fence window.
          */
         if (await this.shouldRunMaintenance("podman-host", hostIdStr)) {
+          armedFences.push({ scope: "podman-host", id: hostIdStr });
           const agentVersion: string | null = this.getStringAttribute(
             data.attributes,
             "oneuptime.agent.version",
@@ -2487,6 +2605,7 @@ export default abstract class OtelIngestBaseService {
 
       return null;
     } catch (err) {
+      await this.releaseMaintenanceFences(armedFences);
       logger.error(
         "Error auto-discovering Podman host: " + (err as Error).message,
       );
@@ -2587,6 +2706,11 @@ export default abstract class OtelIngestBaseService {
     totalMemoryBytes?: number | undefined;
     processCount?: number | undefined;
   }): Promise<ObjectID | null> {
+    /*
+     * Fences armed below, released by the catch block. See
+     * releaseMaintenanceFences.
+     */
+    const armedFences: Array<MaintenanceFence> = [];
     try {
       /*
        * Docker hosts, Podman hosts and Kubernetes clusters/nodes live in
@@ -2708,6 +2832,7 @@ export default abstract class OtelIngestBaseService {
          * minutes, so a 5-minute stale window is acceptable.
          */
         if (await this.shouldRunMaintenance("host", hostIdStr)) {
+          armedFences.push({ scope: "host", id: hostIdStr });
           const agentVersion: string | null = this.getStringAttribute(
             data.attributes,
             "oneuptime.agent.version",
@@ -2783,6 +2908,7 @@ export default abstract class OtelIngestBaseService {
 
       return null;
     } catch (err) {
+      await this.releaseMaintenanceFences(armedFences);
       logger.error("Error auto-discovering Host: " + (err as Error).message);
       return null;
     }

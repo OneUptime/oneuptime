@@ -8,6 +8,7 @@ import { Black } from "Common/Types/BrandColors";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
+import useCustomFieldFacets from "../CustomFields/useCustomFieldFacets";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -192,6 +193,15 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
   const tableUrlStateKey: string =
     props.saveFilterProps?.tableId || "scheduled-maintenance-table";
 
+  /*
+   * One chip per custom field this project has defined, appended after the
+   * built-in ones. They arrive a render or two late (the definitions are
+   * fetched), which is what `areFacetsLoading` below tells the bar.
+   */
+  const { facets: customFieldFacets, isLoading: areCustomFieldFacetsLoading } =
+    useCustomFieldFacets({
+      customFieldsModelType: ScheduledMaintenanceCustomField,
+    });
   const {
     getOwnersForResource,
     isLoadingOwners,
@@ -206,7 +216,8 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
     ownerTeamModelType: ScheduledMaintenanceOwnerTeam,
     resourceIdField: "scheduledMaintenanceId",
     showLabelsFacet: true,
-    extraFacets: scheduledMaintenanceExtraFacets,
+    extraFacets: [...scheduledMaintenanceExtraFacets, ...customFieldFacets],
+    areFacetsLoading: areCustomFieldFacetsLoading,
   });
 
   // Fetch scheduled maintenance states on mount
