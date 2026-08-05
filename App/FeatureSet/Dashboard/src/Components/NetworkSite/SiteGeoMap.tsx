@@ -54,6 +54,11 @@ import {
   MapUnplacedSiteView,
   SiteMapMode,
 } from "./SiteHierarchyTypes";
+import {
+  GeometryFeature,
+  getCachedGeometryFeatures,
+  loadGeometryFeatures,
+} from "./Geo/WorldGeometry";
 
 /*
  * Inline-SVG world map of network sites: checked-in country outlines
@@ -83,65 +88,11 @@ import {
  * fallbacks.
  */
 
-interface GeometryFeature {
-  id: string;
-  name: string;
-  path: string;
-}
-
-interface GeometryFile {
-  viewBox: string;
-  features: Array<GeometryFeature>;
-}
-
 /*
- * Outlines ship in two resolutions (see Scripts/Geo/README.md), in the same
- * viewBox, so swapping between them never moves an outline or a pin:
- *
- *   overview — small, drawn at continent-and-wider zoom.
- *   detail   — ~6x larger, fetched only once somebody zooms in far enough
- *              for the overview's generalization to read as chunky.
- *
- * Neither is statically imported. Every route module in the dashboard lands
- * in one shared esbuild chunk, so a static import here would make every page
- * — Incidents, a monitor, Settings — download and parse country outlines it
- * never draws. They are loaded on demand and memoized for the life of the
- * tab.
- *
- * They stay .json rather than .svg on purpose: esbuild base64-inlines an
- * imported .svg, which would put us straight back in the shared chunk.
+ * The outlines themselves — and the on-demand loader that fetches them once
+ * per tab — live in Geo/WorldGeometry.ts, so this component and the Network
+ * Map dashboard widget share one cache rather than fetching a copy each.
  */
-type GeometryTier = "overview" | "detail";
-
-const geometryCache: Partial<Record<GeometryTier, Array<GeometryFeature>>> = {};
-
-const loadGeometryFeatures: (
-  tier: GeometryTier,
-) => Promise<Array<GeometryFeature>> = async (
-  tier: GeometryTier,
-): Promise<Array<GeometryFeature>> => {
-  const cached: Array<GeometryFeature> | undefined = geometryCache[tier];
-  if (cached) {
-    return cached;
-  }
-
-  /*
-   * The two import() calls are written out rather than built from a
-   * variable so esbuild can statically see both targets and emit a chunk
-   * for each.
-   */
-  const loaded: unknown =
-    tier === "detail"
-      ? await import("./Geo/WorldCountriesDetailGeometry.json")
-      : await import("./Geo/WorldCountriesGeometry.json");
-
-  // JSON modules arrive under `default` once bundled, bare under ts-jest.
-  const file: GeometryFile = ((loaded as { default?: GeometryFile }).default ||
-    loaded) as GeometryFile;
-  const features: Array<GeometryFeature> = file.features || [];
-  geometryCache[tier] = features;
-  return features;
-};
 
 const CLUSTER_COLORS: Record<ClusterColorKey, string> = {
   none: "#9ca3af", // gray-400
@@ -412,9 +363,13 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
   const [hovered, setHovered] = useState<HoveredCluster | null>(null);
   const [focusedKey, setFocusedKey] = useState<string | null>(null);
   const [overviewFeatures, setOverviewFeatures] =
-    useState<Array<GeometryFeature> | null>(geometryCache["overview"] || null);
+    useState<Array<GeometryFeature> | null>(
+      getCachedGeometryFeatures("overview"),
+    );
   const [detailFeatures, setDetailFeatures] =
-    useState<Array<GeometryFeature> | null>(geometryCache["detail"] || null);
+    useState<Array<GeometryFeature> | null>(
+      getCachedGeometryFeatures("detail"),
+    );
 
   /*
    * Pin geometry, keyed by an order-independent fingerprint rather than by

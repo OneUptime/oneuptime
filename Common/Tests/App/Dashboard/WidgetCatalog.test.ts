@@ -207,6 +207,7 @@ describe("WidgetCatalog", () => {
         "Podman",
         "Proxmox",
         "Ceph",
+        "Network",
       ]) {
         expect(getCategory(name).group).toBe(
           WidgetCategoryGroup.Infrastructure,
@@ -277,6 +278,7 @@ describe("WidgetCatalog", () => {
         "Podman",
         "Proxmox",
         "Ceph",
+        "Network",
       ]);
     });
 

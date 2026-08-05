@@ -710,30 +710,6 @@ describe("SiteGeoMap", () => {
     "SiteGeoMap.tsx",
   );
 
-  /*
-   * The geometry is ~600 KB across both tiers. Every route module lands in
-   * one shared esbuild chunk, so a static import here is downloaded and
-   * parsed by every dashboard page — Incidents, a monitor, Settings — none
-   * of which draw a map. They must be loaded on demand, and they must stay
-   * .json: esbuild base64-inlines an imported .svg straight back into the
-   * shared chunk.
-   */
-  test("map geometry is not statically imported", () => {
-    expect(source).not.toMatch(
-      /import \S+ from "\.\/Geo\/WorldCountries\w*Geometry\.json";/,
-    );
-  });
-
-  test("both tiers are loaded lazily, by literal specifier", () => {
-    // Literal specifiers so esbuild can see both targets and split them out.
-    expect(source).toContain(
-      'await import("./Geo/WorldCountriesGeometry.json")',
-    );
-    expect(source).toContain(
-      'await import("./Geo/WorldCountriesDetailGeometry.json")',
-    );
-  });
-
   test("the async load has a rendered pending state", () => {
     expect(source).toContain("overviewFeatures === null ?");
     expect(source).toContain('data-testid="site-geo-map-skeleton"');

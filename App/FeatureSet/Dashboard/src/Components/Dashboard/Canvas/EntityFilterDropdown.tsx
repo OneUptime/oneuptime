@@ -29,6 +29,7 @@ import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
+import NetworkSiteType from "Common/Models/DatabaseModels/NetworkSiteType";
 import { EntityFilterModelType } from "Common/Types/Dashboard/DashboardComponents/ComponentArgument";
 
 type ModelTypeOf<T extends BaseModel> = { new (): T };
@@ -125,6 +126,17 @@ function getEntityModelDef(
       return {
         modelType: DockerSwarmCluster as unknown as ModelTypeOf<BaseModel>,
         sortField: "name" as keyof BaseModel,
+        sortOrder: SortOrder.Ascending,
+      };
+    case EntityFilterModelType.NetworkSiteType:
+      /*
+       * `order` places a type in the hierarchy (lower is higher up), so
+       * sorting by it lists Region before Market before Store — the order a
+       * customer thinks about their own estate in.
+       */
+      return {
+        modelType: NetworkSiteType as unknown as ModelTypeOf<BaseModel>,
+        sortField: "order" as keyof BaseModel,
         sortOrder: SortOrder.Ascending,
       };
     default:

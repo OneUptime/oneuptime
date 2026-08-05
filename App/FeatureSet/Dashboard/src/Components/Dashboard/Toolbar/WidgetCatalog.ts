@@ -492,6 +492,33 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
       },
     ],
   },
+  {
+    name: "Network",
+    group: WidgetCategoryGroup.Infrastructure,
+    icon: IconProp.Map,
+    description:
+      "The network estate itself — the sites you model on the Network Map page.",
+    items: [
+      {
+        type: DashboardComponentType.NetworkMap,
+        label: "Network Map",
+        icon: IconProp.Map,
+        description:
+          "Your network sites on the world map, each pinned at its coordinates and colored by its rolled-up status.",
+        keywords: [
+          "map",
+          "site",
+          "geo",
+          "location",
+          "world",
+          "branch",
+          "store",
+          "franchise",
+          "wan",
+        ],
+      },
+    ],
+  },
 ];
 
 export interface WidgetCategoryGroupSection {

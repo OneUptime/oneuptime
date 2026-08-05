@@ -194,6 +194,20 @@ Hosts monitored by OneUptime's server monitor, with status, CPU, memory, and upt
 
 **Settings**: filters by labels or current state.
 
+## Network
+
+### Network Map
+
+Your network sites drawn on the world map, each pinned at its own latitude and longitude and colored by the monitor status rolled up onto it. Sites close together share a marker with the count printed inside it; a marker that stands for exactly one site opens that site when you click it.
+
+The map frames itself to the sites it drew — an estate inside one country fills the frame with that country, one spread across continents opens on the world. There are no zoom or pan controls: a dashboard tile is a picture, and the Network Map page under Network is where you walk the hierarchy.
+
+Above the map it prints how many sites are down, because a two-pixel red dot among two hundred green ones is not something anyone reads at dashboard distance. Below it, a coverage line says what the map is *not* showing — sites with no coordinates, and whether the row cap was hit.
+
+**Settings**: title, map or list view, maximum sites drawn, whether to print site names, and filters by site type and by status. Site names come off automatically when the map gets too busy for them to be readable; the tooltip still names every marker.
+
+A site only appears if it has coordinates. Add latitude and longitude on the site (or import them from CSV) to pin it.
+
 ## Which widget should I use?
 
 A few quick rules:
@@ -204,6 +218,7 @@ A few quick rules:
 - **Breakdown across many things?** Table.
 - **What's happening in the system right now?** Log Stream, Trace List, Incident List.
 - **The state of a specific group of resources?** The matching list widget.
+- **Where in the world your network is, and what's red?** Network Map.
 - **A heading, a paragraph, or a link?** Text.
 - **Something none of the above covers?** HTML — but only after checking that a built-in widget really can't do it.
 

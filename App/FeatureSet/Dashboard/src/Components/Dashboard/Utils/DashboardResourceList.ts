@@ -29,6 +29,7 @@ export type DashboardResourceType =
   | "proxmox-resource"
   | "ceph-resource"
   | "docker-swarm-resource"
+  | "network-site"
   | "span"
   | "log";
 

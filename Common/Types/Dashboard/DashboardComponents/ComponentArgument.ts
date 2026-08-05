@@ -39,6 +39,7 @@ export enum EntityFilterModelType {
   ProxmoxCluster = "ProxmoxCluster",
   CephCluster = "CephCluster",
   DockerSwarmCluster = "DockerSwarmCluster",
+  NetworkSiteType = "NetworkSiteType",
 }
 
 export interface ComponentArgumentSection {
