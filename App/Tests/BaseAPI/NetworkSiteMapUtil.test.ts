@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import NetworkSiteMapUtil, {
   GeoPoint,
   MapChildRow,
+  MapLinkRow,
   MapMarkerAggregate,
   MapStatusInfo,
   MapSubtreeRow,
@@ -657,5 +658,130 @@ describe("aggregateMapMarkers", () => {
     expect(region.isDerivedLocation).toBe(true);
     expect(region.locatedDescendantCount).toBe(69);
     expect(isUsableCoordinate(region.latitude, region.longitude)).toBe(true);
+  });
+});
+
+/*
+ * Which site links the map can draw as a line.
+ *
+ * The map answers with the links between the markers it is showing, so this
+ * is the filter that decides what a customer sees connected to what. The
+ * rule that matters most is the one that is NOT here: a missing monitor is
+ * never a reason to drop a link. The monitor colors the line; it does not
+ * decide whether the connection exists.
+ */
+describe("NetworkSiteMapUtil.filterDrawableLinks", () => {
+  function link(overrides: Partial<MapLinkRow> & { id: string }): MapLinkRow {
+    return {
+      name: `Link ${overrides.id}`,
+      fromSiteId: "a",
+      toSiteId: "b",
+      ...overrides,
+    };
+  }
+
+  const markers: Set<string> = new Set<string>(["a", "b", "c"]);
+
+  test("keeps a link whose both ends have a marker", () => {
+    expect(
+      NetworkSiteMapUtil.filterDrawableLinks(
+        [link({ id: "l1", fromSiteId: "a", toSiteId: "c" })],
+        markers,
+      ).map((row: MapLinkRow): string => {
+        return row.id;
+      }),
+    ).toEqual(["l1"]);
+  });
+
+  /*
+   * The headline requirement. A link with no monitor attached — the normal
+   * state of a freshly modelled network — has to survive this filter, or
+   * the map silently shows a fraction of the customer's links.
+   */
+  test("keeps a link with no monitor attached", () => {
+    const kept: Array<MapLinkRow> = NetworkSiteMapUtil.filterDrawableLinks(
+      [
+        link({ id: "unmonitored", monitorId: undefined }),
+        link({ id: "monitored", monitorId: "monitor1" }),
+      ],
+      markers,
+    );
+    expect(
+      kept.map((row: MapLinkRow): string => {
+        return row.id;
+      }),
+    ).toEqual(["unmonitored", "monitored"]);
+  });
+
+  test("drops a link whose far end is not on the map", () => {
+    expect(
+      NetworkSiteMapUtil.filterDrawableLinks(
+        [
+          link({ id: "l1", fromSiteId: "a", toSiteId: "elsewhere" }),
+          link({ id: "l2", fromSiteId: "elsewhere", toSiteId: "b" }),
+        ],
+        markers,
+      ),
+    ).toEqual([]);
+  });
+
+  test("drops a link that is missing an end entirely", () => {
+    expect(
+      NetworkSiteMapUtil.filterDrawableLinks(
+        [
+          link({ id: "l1", fromSiteId: undefined }),
+          link({ id: "l2", toSiteId: undefined }),
+          link({ id: "l3", fromSiteId: "", toSiteId: "" }),
+        ],
+        markers,
+      ),
+    ).toEqual([]);
+  });
+
+  /*
+   * A line from a point to itself is a dot. This is not hypothetical: in
+   * "all" mode two linked sites can be close enough to share one clustered
+   * marker, and a self-referencing row is cheap to write through the API.
+   */
+  test("drops a link whose two ends are the same site", () => {
+    expect(
+      NetworkSiteMapUtil.filterDrawableLinks(
+        [link({ id: "l1", fromSiteId: "a", toSiteId: "a" })],
+        markers,
+      ),
+    ).toEqual([]);
+  });
+
+  test("no markers means no lines", () => {
+    expect(
+      NetworkSiteMapUtil.filterDrawableLinks(
+        [link({ id: "l1" })],
+        new Set<string>(),
+      ),
+    ).toEqual([]);
+  });
+
+  /*
+   * The response order is the drawing order, and parallel links between one
+   * pair of markers are bowed apart in the order they arrive — so a filter
+   * that reordered them would shuffle the picture between refreshes.
+   */
+  test("preserves input order and does not mutate the input", () => {
+    const links: Array<MapLinkRow> = [
+      link({ id: "l3", fromSiteId: "a", toSiteId: "c" }),
+      link({ id: "l1", fromSiteId: "b", toSiteId: "c" }),
+      link({ id: "dropped", fromSiteId: "a", toSiteId: "gone" }),
+      link({ id: "l2", fromSiteId: "a", toSiteId: "b" }),
+    ];
+    const before: string = JSON.stringify(links);
+
+    expect(
+      NetworkSiteMapUtil.filterDrawableLinks(links, markers).map(
+        (row: MapLinkRow): string => {
+          return row.id;
+        },
+      ),
+    ).toEqual(["l3", "l1", "l2"]);
+    expect(JSON.stringify(links)).toBe(before);
   });
 });

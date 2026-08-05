@@ -17,6 +17,7 @@ import {
   siteIdSet,
 } from "../../Components/NetworkSite/SiteSearchUtil";
 import {
+  MapLinkView,
   MapSiteView,
   MapUnplacedSiteView,
   SiteBreadcrumbEntry,
@@ -589,6 +590,19 @@ const NetworkSiteMap: FunctionComponent<
     normalizedSearch,
     siteIdSet(levelSites),
   );
+  /*
+   * The map draws its own links rather than the graph's: the map endpoint
+   * answers with the links between the markers IT is showing, which in "all"
+   * mode are individual sites rather than this level's children. Narrowed
+   * through the same predicate as everything else on the page, against the
+   * sites still on the map — a search that hides one end of a link hides the
+   * line with it.
+   */
+  const mapLinks: Array<MapLinkView> = filterLinksBySearch(
+    mapData?.links || [],
+    normalizedSearch,
+    siteIdSet(pinnedSites),
+  );
 
   const searchBox: ReactElement = (
     <SiteSearchBox
@@ -604,6 +618,7 @@ const NetworkSiteMap: FunctionComponent<
   const geoMap: ReactElement = (
     <SiteGeoMap
       sites={pinnedSites}
+      links={mapLinks}
       mode={mapData?.mode || mapMode}
       selectedMode={mapMode}
       onModeChange={setMapMode}

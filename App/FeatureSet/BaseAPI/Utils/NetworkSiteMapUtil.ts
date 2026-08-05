@@ -58,6 +58,18 @@ export interface MapSubtreeRow {
   currentMonitorStatusId?: string | undefined;
 }
 
+/*
+ * An explicit link between two Network Sites (a WAN link, a fibre pair),
+ * optionally backed by a Monitor whose status colors it.
+ */
+export interface MapLinkRow {
+  id: string;
+  name?: string | undefined;
+  fromSiteId?: string | undefined;
+  toSiteId?: string | undefined;
+  monitorId?: string | undefined;
+}
+
 // A direct child of the viewed level — one marker each.
 export interface MapChildRow {
   id: string;
@@ -443,5 +455,39 @@ export default class NetworkSiteMapUtil {
     }
 
     return result;
+  }
+
+  /**
+   * The links the map can actually DRAW as a line: both ends have a marker
+   * on it, and the two ends are different markers.
+   *
+   * A link with no Monitor on it is kept. The monitor only decides what
+   * COLOR the line is — a fibre pair nobody has pointed a monitor at is
+   * still part of the network's shape, and dropping it would make the map
+   * disagree with the link list on the same page.
+   *
+   * Deliberately stricter than NetworkSiteHierarchyUtil.filterLinksBetweenChildren
+   * on one point: a link whose two ends resolve to the SAME marker is
+   * dropped, because a line from a point to itself is a dot. That happens on
+   * the map and not on the child graph — in "all" mode two linked sites can
+   * be close enough to share one clustered marker.
+   *
+   * Input order is preserved and the input array is never mutated: the
+   * drawing order is the response order, so the same data always draws the
+   * same way.
+   */
+  public static filterDrawableLinks(
+    links: Array<MapLinkRow>,
+    markerSiteIds: Set<string>,
+  ): Array<MapLinkRow> {
+    return links.filter((link: MapLinkRow): boolean => {
+      return Boolean(
+        link.fromSiteId &&
+          link.toSiteId &&
+          link.fromSiteId !== link.toSiteId &&
+          markerSiteIds.has(link.fromSiteId) &&
+          markerSiteIds.has(link.toSiteId),
+      );
+    });
   }
 }

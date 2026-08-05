@@ -29,22 +29,27 @@ import {
   BuildPinsResult,
   CONTAINER_SIDE_FACTOR,
   ClusterColorKey,
+  DEFAULT_MAP_LINK_COLOR,
+  DrawableMapLink,
   MapMarker,
   LABEL_FONT_SIZE,
   LABEL_GAP,
   LabelPlacement,
   PlacedMapMarker,
+  buildMapLinks,
   buildMapMarkers,
   buildPins,
   GENERIC_SITE_TYPE_LABEL,
   clusterCellSize,
   describeMapCoverage,
   layoutMapMarkers,
+  mapLinkPath,
   mapPinFingerprint,
   pluralizeSiteType,
   resolveMarkerLabels,
 } from "./SiteMapViewModel";
 import {
+  MapLinkView,
   MapSiteView,
   MapUnplacedSiteView,
   SiteMapMode,
@@ -267,6 +272,12 @@ const MapControlButton: FunctionComponent<{
 
 export interface ComponentProps {
   sites: Array<MapSiteView>;
+  /*
+   * The site links between those sites, drawn as lines between the markers.
+   * A link with no monitor attached is still drawn — the monitor decides
+   * the line's color, not whether the connection exists.
+   */
+  links: Array<MapLinkView>;
   /*
    * What the rows in `sites` ARE — grouped markers (one per child of the
    * level in view) or every located site under it. This drives the drawing.
@@ -511,6 +522,19 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
   const labelPlacements: Map<string, LabelPlacement> = useMemo(() => {
     return resolveMarkerLabels(placedMarkers, zoom);
   }, [placedMarkers, zoom]);
+
+  /*
+   * The lines between the markers. Built from the PLACED markers so a line
+   * ends where its marker is actually drawn, and rebuilt with the zoom
+   * because the bow that keeps parallel links apart is a screen distance.
+   */
+  const linkLines: Array<DrawableMapLink> = useMemo(() => {
+    return buildMapLinks({
+      links: props.links,
+      markers: placedMarkers,
+      zoom: zoom,
+    });
+  }, [props.links, placedMarkers, zoom]);
 
   // Whether the legend has to explain the leader lines this frame.
   const hasNudgedMarkers: boolean = placedMarkers.some(
@@ -963,6 +987,80 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
                   );
                 },
               )}
+            </g>
+
+            {/*
+             * Site links, under everything else on the map.
+             *
+             * This is the network's shape — what is connected to what —
+             * which geography alone cannot show. A link is drawn WHETHER OR
+             * NOT a monitor is attached to it: the monitor decides the
+             * color, never whether the connection exists. Unmonitored links
+             * are dashed and neutral, so "nothing is watching this" reads
+             * differently from "something is watching this and it is fine"
+             * even for a customer whose operational color is a grey.
+             *
+             * Each line is drawn over a white under-stroke, the same trick
+             * the leader lines and the name labels use, so it survives a
+             * coastline or a dark landmass.
+             */}
+            <g data-testid="site-geo-map-links">
+              {linkLines.map((link: DrawableMapLink): ReactElement => {
+                const path: string = mapLinkPath(link);
+                return (
+                  <g key={`link-${link.key}`}>
+                    <path
+                      d={path}
+                      fill="none"
+                      stroke="var(--ou-surface-primary, #ffffff)"
+                      strokeWidth={4 / zoom}
+                      strokeOpacity={0.85}
+                      strokeLinecap="round"
+                      style={{ pointerEvents: "none" }}
+                    />
+                    <path
+                      d={path}
+                      fill="none"
+                      stroke={link.color}
+                      strokeWidth={1.75 / zoom}
+                      strokeOpacity={0.95}
+                      strokeLinecap="round"
+                      strokeDasharray={
+                        link.hasMonitor ? undefined : `${5 / zoom} ${4 / zoom}`
+                      }
+                      style={{ pointerEvents: "none" }}
+                    />
+                    {/*
+                     * The hit area. A 2px line is unhoverable in practice,
+                     * and the name of a link is the whole reason to hover
+                     * one — so the pointer target is a fat invisible stroke
+                     * over the same path.
+                     */}
+                    <path
+                      d={path}
+                      fill="none"
+                      stroke="transparent"
+                      strokeWidth={12 / zoom}
+                      strokeLinecap="round"
+                      onMouseEnter={() => {
+                        if (dragState.current) {
+                          return;
+                        }
+                        setHovered({
+                          x: link.midX,
+                          y: link.midY,
+                          label: link.tooltip,
+                        });
+                      }}
+                      onMouseLeave={() => {
+                        setHovered(null);
+                      }}
+                    >
+                      <title>{link.tooltip}</title>
+                    </path>
+                  </g>
+                );
+              })}
             </g>
 
             {/*
@@ -1454,6 +1552,47 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
               Single site
             </li>
           </ul>
+        ) : (
+          <></>
+        )}
+
+        {/*
+         * What the lines are. Shown only when the map is drawing some, and
+         * it says both halves of the rule: the color comes from the monitor
+         * on the link, and a link without one is dashed rather than absent.
+         */}
+        {linkLines.length > 0 ? (
+          <span
+            data-testid="site-geo-map-link-key"
+            className="flex items-center gap-1.5 text-xs text-gray-600"
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 12"
+              className="h-3 w-6 flex-shrink-0"
+            >
+              <line
+                x1="2"
+                y1="4"
+                x2="22"
+                y2="4"
+                stroke={DEFAULT_MAP_LINK_COLOR}
+                strokeWidth="1.6"
+                strokeLinecap="round"
+              />
+              <line
+                x1="2"
+                y1="9"
+                x2="22"
+                y2="9"
+                stroke={DEFAULT_MAP_LINK_COLOR}
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeDasharray="4 3"
+              />
+            </svg>
+            Site link — colored by its monitor; dashed when it has none
+          </span>
         ) : (
           <></>
         )}

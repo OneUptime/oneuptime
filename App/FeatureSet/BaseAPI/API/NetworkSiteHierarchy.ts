@@ -37,6 +37,7 @@ import NetworkSiteHierarchyUtil, {
 } from "../Utils/NetworkSiteHierarchyUtil";
 import NetworkSiteMapUtil, {
   MapChildRow,
+  MapLinkRow,
   MapMarkerAggregate,
   MapStatusInfo,
   MapSubtreeRow,
@@ -164,6 +165,76 @@ async function fetchStatusesByIds(
     props: props,
   });
   return toStatusMap(statuses);
+}
+
+/*
+ * Which MonitorStatus each of these links is colored by, keyed by monitor
+ * id: the CURRENT status of the Monitor attached to the link.
+ *
+ * Links with no monitor simply have no entry here. They are still returned
+ * — a link is part of the network's shape whether or not anybody has
+ * pointed a monitor at it, and the monitor only decides the color.
+ */
+async function fetchStatusIdsByLinkMonitorId(
+  projectId: ObjectID,
+  links: Array<{ monitorId?: string | undefined }>,
+  props: DatabaseCommonInteractionProps,
+): Promise<Map<string, string>> {
+  const statusIdByMonitorId: Map<string, string> = new Map<string, string>();
+
+  const monitorIds: Array<string> = Array.from(
+    new Set<string>(
+      links
+        .map((link: { monitorId?: string | undefined }) => {
+          return link.monitorId;
+        })
+        .filter((monitorId: string | undefined): monitorId is string => {
+          return Boolean(monitorId);
+        }),
+    ),
+  );
+
+  if (monitorIds.length === 0) {
+    return statusIdByMonitorId;
+  }
+
+  const monitors: Array<Monitor> = await MonitorService.findBy({
+    query: {
+      projectId: projectId,
+      _id: QueryHelper.any(monitorIds),
+    },
+    select: {
+      _id: true,
+      currentMonitorStatusId: true,
+    },
+    limit: LIMIT_PER_PROJECT,
+    skip: 0,
+    props: props,
+  });
+
+  for (const monitor of monitors) {
+    if (monitor._id && monitor.currentMonitorStatusId) {
+      statusIdByMonitorId.set(
+        monitor._id.toString(),
+        monitor.currentMonitorStatusId.toString(),
+      );
+    }
+  }
+
+  return statusIdByMonitorId;
+}
+
+// The wire shape of a link's status, shared by both endpoints' responses.
+function toLinkStatusJson(
+  status: StatusInfo | undefined,
+): JSONObject | undefined {
+  return status
+    ? ({
+        name: status.name,
+        color: status.color,
+        priority: status.priority,
+      } as unknown as JSONObject)
+    : undefined;
 }
 
 export default class NetworkSiteHierarchyAPI {
@@ -402,20 +473,6 @@ export default class NetworkSiteHierarchyAPI {
               childIdSet,
             );
 
-          const linkMonitorIds: Array<string> = Array.from(
-            new Set<string>(
-              linksBetweenChildren
-                .map((link: SiteLinkRow) => {
-                  return link.monitorId;
-                })
-                .filter(
-                  (monitorId: string | undefined): monitorId is string => {
-                    return Boolean(monitorId);
-                  },
-                ),
-            ),
-          );
-
           const windowEnd: Date = OneUptimeDate.getCurrentDate();
           const windowStart: Date =
             OneUptimeDate.getSomeDaysAgo(uptimeWindowInDays);
@@ -425,9 +482,9 @@ export default class NetworkSiteHierarchyAPI {
            * at once, and the monitors backing the surviving links — both
            * batched, both dependent on the child set resolved above.
            */
-          const [timelineRows, linkMonitors]: [
+          const [timelineRows, statusIdByMonitorId]: [
             Array<NetworkSiteStatusTimeline>,
-            Array<Monitor>,
+            Map<string, string>,
           ] = await Promise.all([
             childIds.length > 0
               ? NetworkSiteStatusTimelineService.findBy({
@@ -452,35 +509,12 @@ export default class NetworkSiteHierarchyAPI {
                   props: props,
                 })
               : Promise.resolve([]),
-            linkMonitorIds.length > 0
-              ? MonitorService.findBy({
-                  query: {
-                    projectId: projectId,
-                    _id: QueryHelper.any(linkMonitorIds),
-                  },
-                  select: {
-                    _id: true,
-                    currentMonitorStatusId: true,
-                  },
-                  limit: LIMIT_PER_PROJECT,
-                  skip: 0,
-                  props: props,
-                })
-              : Promise.resolve([]),
+            fetchStatusIdsByLinkMonitorId(
+              projectId,
+              linksBetweenChildren,
+              props,
+            ),
           ]);
-
-          const statusIdByMonitorId: Map<string, string> = new Map<
-            string,
-            string
-          >();
-          for (const monitor of linkMonitors) {
-            if (monitor._id && monitor.currentMonitorStatusId) {
-              statusIdByMonitorId.set(
-                monitor._id.toString(),
-                monitor.currentMonitorStatusId.toString(),
-              );
-            }
-          }
 
           // Every status id any part of the response needs, fetched once.
           const statusIds: Set<string> = new Set<string>();
@@ -663,13 +697,7 @@ export default class NetworkSiteHierarchyAPI {
                 name: link.name,
                 fromSiteId: link.fromSiteId,
                 toSiteId: link.toSiteId,
-                monitorStatus: status
-                  ? {
-                      name: status.name,
-                      color: status.color,
-                      priority: status.priority,
-                    }
-                  : undefined,
+                monitorStatus: toLinkStatusJson(status),
               } as unknown as JSONObject;
             },
           );
@@ -713,6 +741,11 @@ export default class NetworkSiteHierarchyAPI {
      * It also used to require a "mapRegion" of "us" or "world" and then
      * ignore it. The map has no regions; an old client still sending it is
      * simply answered.
+     *
+     * Alongside the markers it answers with the LINKS between them, so the
+     * map can draw the network's connections and not just its locations. A
+     * link is returned whether or not a monitor is attached to it — the
+     * monitor decides the line's color, never whether the line exists.
      */
     router.post(
       "/network-site/map",
@@ -774,14 +807,16 @@ export default class NetworkSiteHierarchyAPI {
           }
 
           /*
-           * Two batch queries, mirroring /network-site/children: the direct
-           * children of this level, and everything beneath it. At the root
-           * the subtree is the whole project (the roots themselves
-           * included — the aggregator skips rows it has already seeded).
+           * Three batch queries, mirroring /network-site/children: the
+           * direct children of this level, everything beneath it, and the
+           * project's site links. At the root the subtree is the whole
+           * project (the roots themselves included — the aggregator skips
+           * rows it has already seeded).
            */
-          const [childRows, subtreeRows]: [
+          const [childRows, subtreeRows, linkRows]: [
             Array<NetworkSite>,
             Array<NetworkSite>,
+            Array<NetworkSiteLink>,
           ] = await Promise.all([
             NetworkSiteService.findBy({
               query: {
@@ -833,6 +868,27 @@ export default class NetworkSiteHierarchyAPI {
               skip: 0,
               props: props,
             }),
+            /*
+             * Every link in the project. Which of them the map can draw
+             * depends on which sites end up with a marker, and that is not
+             * known until the markers are built — so they are narrowed in
+             * memory below rather than in the query.
+             */
+            NetworkSiteLinkService.findBy({
+              query: {
+                projectId: projectId,
+              },
+              select: {
+                _id: true,
+                name: true,
+                fromSiteId: true,
+                toSiteId: true,
+                monitorId: true,
+              },
+              limit: LIMIT_PER_PROJECT,
+              skip: 0,
+              props: props,
+            }),
           ]);
 
           /*
@@ -858,6 +914,59 @@ export default class NetworkSiteHierarchyAPI {
             }
           }
 
+          /*
+           * Which sites could carry a marker in this mode — the set both
+           * ends of a link have to be in for the map to draw a line for it.
+           *
+           * Grouped mode draws one marker per child, so links are level
+           * links: exactly what the graph and the WAN strip on the same page
+           * list. "All" mode draws one marker per located site in the
+           * subtree, so a link between any two of them is drawable.
+           *
+           * In grouped mode this is only the CANDIDATE set: a child with
+           * nothing locatable under it ends up in unplacedSites rather than
+           * on the map, and its links are dropped by the second pass below,
+           * once the markers are known.
+           */
+          const candidateMarkerIds: Set<string> = new Set<string>(
+            (mode === "all" ? descendantRows : childRows)
+              .filter((row: NetworkSite) => {
+                return Boolean(
+                  row._id &&
+                    (mode !== "all" ||
+                      isUsableCoordinate(row.latitude, row.longitude)),
+                );
+              })
+              .map((row: NetworkSite): string => {
+                return row._id!.toString();
+              }),
+          );
+
+          const candidateLinks: Array<MapLinkRow> =
+            NetworkSiteMapUtil.filterDrawableLinks(
+              linkRows
+                .filter((link: NetworkSiteLink) => {
+                  return Boolean(link._id);
+                })
+                .map((link: NetworkSiteLink): MapLinkRow => {
+                  return {
+                    id: link._id!.toString(),
+                    name: link.name,
+                    fromSiteId: link.fromSiteId?.toString(),
+                    toSiteId: link.toSiteId?.toString(),
+                    monitorId: link.monitorId?.toString(),
+                  };
+                }),
+              candidateMarkerIds,
+            );
+
+          const statusIdByLinkMonitorId: Map<string, string> =
+            await fetchStatusIdsByLinkMonitorId(
+              projectId,
+              candidateLinks,
+              props,
+            );
+
           // Every status any part of the response reasons about, fetched once.
           const statusIds: Set<string> = new Set<string>();
           for (const site of childRows) {
@@ -869,6 +978,9 @@ export default class NetworkSiteHierarchyAPI {
             if (site.currentMonitorStatusId) {
               statusIds.add(site.currentMonitorStatusId.toString());
             }
+          }
+          for (const statusId of statusIdByLinkMonitorId.values()) {
+            statusIds.add(statusId);
           }
           const statusById: StatusMap = await fetchStatusesByIds(
             projectId,
@@ -889,6 +1001,8 @@ export default class NetworkSiteHierarchyAPI {
 
           const sites: Array<JSONObject> = [];
           const unplacedSites: Array<JSONObject> = [];
+          // The sites that actually got a marker — a line needs two of them.
+          const drawnSiteIds: Set<string> = new Set<string>();
 
           if (mode === "all") {
             /*
@@ -913,6 +1027,7 @@ export default class NetworkSiteHierarchyAPI {
                 ? status.isOperationalState
                 : null;
 
+              drawnSiteIds.add(rowSiteId);
               sites.push({
                 id: rowSiteId,
                 name: site.name || "Unnamed site",
@@ -1003,6 +1118,7 @@ export default class NetworkSiteHierarchyAPI {
                 continue;
               }
 
+              drawnSiteIds.add(childId);
               sites.push({
                 id: childId,
                 name: child.name || "Unnamed site",
@@ -1028,10 +1144,38 @@ export default class NetworkSiteHierarchyAPI {
             }
           }
 
+          /*
+           * The lines. Narrowed a second time against the markers that were
+           * actually drawn — the first pass could not know which children
+           * would turn out to be unplaceable — and colored by the status of
+           * the monitor attached to each link, if there is one. A link with
+           * no monitor keeps its line and simply carries no status; the map
+           * draws it neutral.
+           */
+          const links: Array<JSONObject> =
+            NetworkSiteMapUtil.filterDrawableLinks(
+              candidateLinks,
+              drawnSiteIds,
+            ).map((link: MapLinkRow): JSONObject => {
+              const monitorStatusId: string | undefined = link.monitorId
+                ? statusIdByLinkMonitorId.get(link.monitorId)
+                : undefined;
+              return {
+                id: link.id,
+                name: link.name,
+                fromSiteId: link.fromSiteId,
+                toSiteId: link.toSiteId,
+                monitorStatus: toLinkStatusJson(
+                  monitorStatusId ? statusById.get(monitorStatusId) : undefined,
+                ),
+              } as unknown as JSONObject;
+            });
+
           return Response.sendJsonObjectResponse(req, res, {
             mode: mode,
             siteId: siteId,
             sites: sites,
+            links: links,
             unplacedSites: unplacedSites,
             isTruncated:
               childRows.length >= LIMIT_PER_PROJECT ||

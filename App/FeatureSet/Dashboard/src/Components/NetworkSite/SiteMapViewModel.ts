@@ -10,7 +10,7 @@ import {
   MarkerPlacement,
   resolveMarkerCollisions,
 } from "./Geo/MarkerLayout";
-import { MapSiteView, SiteMapMode } from "./SiteHierarchyTypes";
+import { MapLinkView, MapSiteView, SiteMapMode } from "./SiteHierarchyTypes";
 
 /*
  * Pure, react-free view-model for the SiteGeoMap component: projecting map
@@ -1044,4 +1044,255 @@ export const layoutMapMarkers: (
       needsLeaderLine: placement.needsLeaderLine,
     };
   });
+};
+
+/*
+ * ── Link lines ─────────────────────────────────────────────────────────
+ *
+ * A map of where the sites are is only half of a network. The other half is
+ * what is CONNECTED to what — the WAN links, the fibre pairs — and until
+ * now those existed on this page only as a strip of chips under the map and
+ * as edges on the child graph, never on the map itself.
+ *
+ * Two rules matter here, and both come straight from what a link IS:
+ *
+ *   A link is drawn whether or not a monitor is attached to it. The monitor
+ *   decides the line's COLOR, never whether the line exists — a fibre pair
+ *   nobody has pointed a monitor at is still part of the network, and a map
+ *   that hid it would be describing a different network from the one the
+ *   customer modelled.
+ *
+ *   A line is drawn between MARKERS, at the positions the markers are
+ *   actually drawn at (see layoutMapMarkers). A line to where a marker
+ *   would have been if it had not been nudged clear of its neighbour points
+ *   at nothing.
+ */
+
+/*
+ * The neutral a link with no monitor on it is drawn in — slate-400, the
+ * same neutral the child graph uses for its unmonitored edges, so the two
+ * views of the same link agree.
+ */
+export const DEFAULT_MAP_LINK_COLOR: string = "#94a3b8";
+
+/*
+ * How far apart two links between the SAME pair of markers bow, in screen
+ * units. Drawn straight, the second of them would sit exactly on top of the
+ * first: one line on screen where the customer has modelled two, with the
+ * one on top silently deciding what color the pair looks like.
+ */
+export const MAP_LINK_PARALLEL_OFFSET: number = 16;
+
+/**
+ * How far the nth link between one pair of markers bows away from the
+ * straight line between them, in screen units.
+ *
+ * The first is straight — the overwhelmingly common case is one link
+ * between two sites, and bowing it would be decoration. The rest alternate
+ * sides in widening steps so a bundle stays symmetric about the line it
+ * belongs to instead of drifting off to one side.
+ */
+export const parallelLinkOffset: (index: number) => number = (
+  index: number,
+): number => {
+  const safeIndex: number =
+    Number.isFinite(index) && index > 0 ? Math.floor(index) : 0;
+  if (safeIndex === 0) {
+    return 0;
+  }
+  const step: number = Math.ceil(safeIndex / 2);
+  const side: number = safeIndex % 2 === 1 ? 1 : -1;
+  return side * step * MAP_LINK_PARALLEL_OFFSET;
+};
+
+/**
+ * The color a link's line is drawn in: the color of the monitor status
+ * attached to it, or the neutral when there is no monitor (or when the
+ * status carries no color of its own).
+ */
+export const mapLinkColor: (link: {
+  monitorStatus?: { color: string | undefined } | undefined;
+}) => string = (link: {
+  monitorStatus?: { color: string | undefined } | undefined;
+}): string => {
+  return (
+    (link.monitorStatus && link.monitorStatus.color) || DEFAULT_MAP_LINK_COLOR
+  );
+};
+
+/**
+ * Hover/accessible text for one line: what the link is called, and what the
+ * monitor on it currently says. "No monitor attached" is the honest answer
+ * for an unmonitored link — the line is grey because nothing is watching
+ * it, not because something is wrong.
+ */
+export const describeMapLink: (link: {
+  name: string;
+  monitorStatus?: { name: string } | undefined;
+}) => string = (link: {
+  name: string;
+  monitorStatus?: { name: string } | undefined;
+}): string => {
+  const name: string = link.name || "Unnamed link";
+  return `${name} — ${
+    link.monitorStatus ? link.monitorStatus.name : "No monitor attached"
+  }`;
+};
+
+// What buildMapLinks needs off a marker: its identity, its sites, its spot.
+export interface LinkableMarker {
+  key: string;
+  ids: Array<string>;
+  x: number;
+  y: number;
+}
+
+// One drawable line. All coordinates are viewBox units.
+export interface DrawableMapLink {
+  // Stable across re-renders — React's key. Link ids are unique.
+  key: string;
+  id: string;
+  name: string;
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  /*
+   * Quadratic control point. Equal to the midpoint for a straight line, so
+   * a single link between two markers draws as a plain segment.
+   */
+  controlX: number;
+  controlY: number;
+  // Where the drawn curve passes at its middle — the hover anchor.
+  midX: number;
+  midY: number;
+  color: string;
+  /*
+   * A monitor is attached, so the color means something. Lines without one
+   * are drawn dashed: the difference between "no monitor is watching this"
+   * and "a monitor is watching this and it is fine" must survive a customer
+   * whose operational status happens to be a grey.
+   */
+  hasMonitor: boolean;
+  tooltip: string;
+}
+
+export interface BuildMapLinksInput {
+  links: Array<MapLinkView>;
+  // The markers as DRAWN (see layoutMapMarkers), in paint order.
+  markers: Array<LinkableMarker>;
+  // Current map zoom — bows stay a constant size on screen.
+  zoom: number;
+}
+
+/**
+ * Turn link rows into drawable lines between the markers on the map.
+ *
+ * A link is dropped only when the map cannot draw it:
+ *
+ *   - an end that has no marker (the site is not on this level, or it has
+ *     no coordinates anywhere beneath it), or
+ *   - both ends on the SAME marker. That is not a line, it is a dot — and
+ *     in "all" mode it happens honestly, when two linked sites are close
+ *     enough to share one clustered marker.
+ *
+ * A missing monitor is never a reason to drop one.
+ *
+ * Output order is input order, and parallel links between one pair of
+ * markers are bowed apart in the order they arrive, so the same payload
+ * always draws the same picture.
+ */
+export const buildMapLinks: (
+  input: BuildMapLinksInput,
+) => Array<DrawableMapLink> = (
+  input: BuildMapLinksInput,
+): Array<DrawableMapLink> => {
+  const safeZoom: number =
+    Number.isFinite(input.zoom) && input.zoom > 0 ? input.zoom : 1;
+
+  /*
+   * Every site id to the marker that stands for it. In grouped mode that is
+   * one id per marker; in "all" mode a clustered marker speaks for all of
+   * the sites in it, which is what lets a link between two clustered sites
+   * still be drawn between the clusters.
+   */
+  const markerBySiteId: Map<string, LinkableMarker> = new Map<
+    string,
+    LinkableMarker
+  >();
+  for (const marker of input.markers) {
+    for (const siteId of marker.ids) {
+      if (!markerBySiteId.has(siteId)) {
+        markerBySiteId.set(siteId, marker);
+      }
+    }
+  }
+
+  const drawnPerPair: Map<string, number> = new Map<string, number>();
+  const lines: Array<DrawableMapLink> = [];
+
+  for (const link of input.links) {
+    const from: LinkableMarker | undefined = markerBySiteId.get(
+      link.fromSiteId,
+    );
+    const to: LinkableMarker | undefined = markerBySiteId.get(link.toSiteId);
+    if (!from || !to || from.key === to.key) {
+      continue;
+    }
+
+    // Order-independent: A→B and B→A belong to the same bundle.
+    const pairKey: string =
+      from.key < to.key ? `${from.key}|${to.key}` : `${to.key}|${from.key}`;
+    const indexInPair: number = drawnPerPair.get(pairKey) || 0;
+    drawnPerPair.set(pairKey, indexInPair + 1);
+
+    const deltaX: number = to.x - from.x;
+    const deltaY: number = to.y - from.y;
+    const length: number = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+    /*
+     * The unit normal the bow is measured along. Two markers on the exact
+     * same point have no direction to be perpendicular to; bowing straight
+     * up at least keeps a bundle of links between them apart.
+     */
+    const normalX: number = length > 0 ? -deltaY / length : 0;
+    const normalY: number = length > 0 ? deltaX / length : -1;
+
+    const bow: number = parallelLinkOffset(indexInPair) / safeZoom;
+    const midX: number = (from.x + to.x) / 2 + normalX * bow;
+    const midY: number = (from.y + to.y) / 2 + normalY * bow;
+
+    lines.push({
+      key: link.id,
+      id: link.id,
+      name: link.name,
+      x1: from.x,
+      y1: from.y,
+      x2: to.x,
+      y2: to.y,
+      /*
+       * A quadratic curve passes through its control point at half the
+       * offset, so the control goes twice as far out as the bow the drawn
+       * line is meant to have.
+       */
+      controlX: (from.x + to.x) / 2 + normalX * bow * 2,
+      controlY: (from.y + to.y) / 2 + normalY * bow * 2,
+      midX: midX,
+      midY: midY,
+      color: mapLinkColor(link),
+      hasMonitor: Boolean(link.monitorStatus),
+      tooltip: describeMapLink(link),
+    });
+  }
+
+  return lines;
+};
+
+/**
+ * The SVG path for one line: a quadratic through its control point, which
+ * is the straight segment when the link is not bowed.
+ */
+export const mapLinkPath: (link: DrawableMapLink) => string = (
+  link: DrawableMapLink,
+): string => {
+  return `M ${link.x1} ${link.y1} Q ${link.controlX} ${link.controlY} ${link.x2} ${link.y2}`;
 };

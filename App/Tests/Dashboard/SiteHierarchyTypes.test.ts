@@ -240,6 +240,7 @@ describe("parseSiteMapResponse", () => {
     const expected: SiteMapResponse = {
       mode: "grouped",
       sites: [],
+      links: [],
       unplacedSites: [],
       isTruncated: false,
     };
@@ -248,6 +249,7 @@ describe("parseSiteMapResponse", () => {
     expect(
       parseSiteMapResponse({
         sites: "nope",
+        links: "nope",
         unplacedSites: 42,
       } as unknown as JSONObject),
     ).toEqual(expected);
@@ -489,6 +491,117 @@ describe("parseSiteMapResponse", () => {
     expect(
       parseSiteMapResponse({ mode: 1 } as unknown as JSONObject).mode,
     ).toBe("grouped");
+  });
+
+  /*
+   * The map draws the links between its markers as lines. The parser is
+   * what decides which rows can become one, and the load-bearing promise
+   * is the negative: a link with NO monitor on it survives parsing intact,
+   * because the monitor only decides what color the line is.
+   */
+  test("a well-formed link row narrows faithfully, monitor status and all", () => {
+    const parsed: SiteMapResponse = parseSiteMapResponse({
+      links: [
+        {
+          id: "l1",
+          name: "DC1 to Midwest WAN",
+          fromSiteId: "r1",
+          toSiteId: "r2",
+          monitorStatus: { name: "Degraded", color: "#f59e0b", priority: 2 },
+        },
+      ],
+    } as unknown as JSONObject);
+    expect(parsed.links).toEqual([
+      {
+        id: "l1",
+        name: "DC1 to Midwest WAN",
+        fromSiteId: "r1",
+        toSiteId: "r2",
+        monitorStatus: { name: "Degraded", color: "#f59e0b", priority: 2 },
+      },
+    ]);
+  });
+
+  test("a link with no monitor attached is kept, with no status on it", () => {
+    const parsed: SiteMapResponse = parseSiteMapResponse({
+      links: [
+        { id: "l1", name: "Dark fibre", fromSiteId: "r1", toSiteId: "r2" },
+        {
+          id: "l2",
+          name: "Null status",
+          fromSiteId: "r1",
+          toSiteId: "r3",
+          monitorStatus: null,
+        },
+        /*
+         * An array is an object to typeof, so the status parser has to
+         * exclude it explicitly or a row like this narrows to a status
+         * object of defaults — a line colored by nothing at all.
+         */
+        {
+          id: "l3",
+          name: "Array status",
+          fromSiteId: "r1",
+          toSiteId: "r4",
+          monitorStatus: [],
+        },
+      ],
+    } as unknown as JSONObject);
+    expect(parsed.links.length).toBe(3);
+    for (const link of parsed.links) {
+      expect(link.monitorStatus).toBeUndefined();
+    }
+  });
+
+  test("link rows missing an id or either end are dropped", () => {
+    const parsed: SiteMapResponse = parseSiteMapResponse({
+      links: [
+        { name: "no id", fromSiteId: "r1", toSiteId: "r2" },
+        { id: "l2", name: "no from", toSiteId: "r2" },
+        { id: "l3", name: "no to", fromSiteId: "r1" },
+        { id: "l4", name: "blank ends", fromSiteId: "", toSiteId: "" },
+        {
+          id: "l5",
+          name: "non-string ends",
+          fromSiteId: 7,
+          toSiteId: { id: "r2" },
+        },
+        { id: "l6", name: "keeper", fromSiteId: "r1", toSiteId: "r2" },
+      ],
+    } as unknown as JSONObject);
+    expect(
+      parsed.links.map((link: { id: string }): string => {
+        return link.id;
+      }),
+    ).toEqual(["l6"]);
+  });
+
+  test("a link row's missing scalars fall back rather than blanking the line", () => {
+    const parsed: SiteMapResponse = parseSiteMapResponse({
+      links: [
+        {
+          id: "l1",
+          fromSiteId: "r1",
+          toSiteId: "r2",
+          monitorStatus: { color: 42, priority: "high" },
+        },
+      ],
+    } as unknown as JSONObject);
+    expect(parsed.links[0]).toEqual({
+      id: "l1",
+      name: "Unnamed link",
+      fromSiteId: "r1",
+      toSiteId: "r2",
+      monitorStatus: { name: "Unknown", color: undefined, priority: 0 },
+    });
+  });
+
+  /*
+   * A server that predates link lines sends no links key at all. That has
+   * to narrow to "no lines", never to a hole the map then iterates.
+   */
+  test("a payload with no links key narrows to no lines", () => {
+    expect(parseSiteMapResponse({ mode: "all", sites: [] }).links).toEqual([]);
   });
 
   test("unplaced sites narrow, and rows without an id are dropped", () => {
