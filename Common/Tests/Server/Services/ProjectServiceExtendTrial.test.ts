@@ -404,6 +404,7 @@ describe("ProjectService.reactiveSubscription", () => {
         subscriptionId: REACTIVATED_SUBSCRIPTION_ID,
         meteredSubscriptionId: REACTIVATED_METERED_SUBSCRIPTION_ID,
         trialEndsAt: data?.billingTrialEndsAt,
+        subscriptionIdsPendingCancellation: [],
       } as never);
 
     const getSubscriptionStatus: jest.SpyInstance = jest

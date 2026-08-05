@@ -606,6 +606,7 @@ export class ProjectService extends DatabaseService<Model> {
       subscriptionId: string;
       meteredSubscriptionId: string;
       trialEndsAt?: Date | undefined;
+      subscriptionIdsPendingCancellation: Array<string>;
     } = await BillingService.changePlan({
       projectId: project.id!,
       subscriptionId: project.paymentProviderSubscriptionId,
@@ -617,34 +618,49 @@ export class ProjectService extends DatabaseService<Model> {
       endTrialAt: endTrialAt,
     });
 
-    const subscriptionState: SubscriptionStatus =
-      await BillingService.getSubscriptionStatus(subscription.subscriptionId);
+    const subscriptionState: SubscriptionStatus | null =
+      await this.findSubscriptionStatus(subscription.subscriptionId);
 
-    const meteredSubscriptionState: SubscriptionStatus =
-      await BillingService.getSubscriptionStatus(
-        subscription.meteredSubscriptionId,
-      );
+    const meteredSubscriptionState: SubscriptionStatus | null =
+      await this.findSubscriptionStatus(subscription.meteredSubscriptionId);
+
+    const updateData: QueryDeepPartialEntity<Model> = {
+      paymentProviderPlanId: params.paymentProviderPlanId,
+      paymentProviderSubscriptionId: subscription.subscriptionId,
+      paymentProviderMeteredSubscriptionId: subscription.meteredSubscriptionId,
+      paymentProviderSubscriptionSeats: seats,
+      trialEndsAt: subscription.trialEndsAt || endTrialAt || new Date(),
+      planName: SubscriptionPlan.getPlanType(
+        params.paymentProviderPlanId,
+        getAllEnvVars(),
+      ),
+    };
+
+    if (meteredSubscriptionState) {
+      updateData.paymentProviderMeteredSubscriptionStatus =
+        meteredSubscriptionState;
+    }
+
+    if (subscriptionState) {
+      updateData.paymentProviderSubscriptionStatus = subscriptionState;
+    }
 
     await this.updateOneById({
       id: project.id!,
-      data: {
-        paymentProviderPlanId: params.paymentProviderPlanId,
-        paymentProviderSubscriptionId: subscription.subscriptionId,
-        paymentProviderMeteredSubscriptionId:
-          subscription.meteredSubscriptionId,
-        paymentProviderSubscriptionSeats: seats,
-        trialEndsAt: subscription.trialEndsAt || endTrialAt || new Date(),
-        planName: SubscriptionPlan.getPlanType(
-          params.paymentProviderPlanId,
-          getAllEnvVars(),
-        ),
-        paymentProviderMeteredSubscriptionStatus: meteredSubscriptionState,
-        paymentProviderSubscriptionStatus: subscriptionState,
-      },
+      data: updateData,
       props: {
         isRoot: true,
         ignoreHooks: true,
       },
+    });
+
+    /*
+     * Raised after the row is written, because the row is what makes these ids
+     * unreachable: it now carries the replacements.
+     */
+    this.alertOnSubscriptionsPendingCancellation({
+      projectId: project.id!,
+      subscriptionIds: subscription.subscriptionIdsPendingCancellation,
     });
 
     this.capturePlanChangeAnalytics({
@@ -655,6 +671,103 @@ export class ProjectService extends DatabaseService<Model> {
     });
 
     await this.sendSubscriptionChangeWebhookSlackNotification(project.id!);
+  }
+
+  /*
+   * Reads a subscription's status back, and gives up rather than throwing.
+   *
+   * This sits between a plan change returning and the project row being
+   * written, and that write is what records the subscription ids the plan
+   * change produced. A replacement already exists at the payment provider and
+   * is already billing by this point, and the row is the only thing in
+   * OneUptime that will ever point at it - so a rate limit or a dropped
+   * connection reading a status back must not be what stops it being written
+   * down. Worse than the missing status: reactivation is retried from
+   * BillingInvoiceService whenever the customer's invoices look settled, so a
+   * row left pointing at the old id mints another live subscription every
+   * time it runs.
+   *
+   * The status columns are refreshed daily by
+   * PaymentProvider:CheckSubscriptionStatus, so leaving one behind costs a
+   * day of staleness. Losing the id costs a subscription nobody can find.
+   */
+  private async findSubscriptionStatus(
+    subscriptionId: string,
+  ): Promise<SubscriptionStatus | null> {
+    try {
+      return await BillingService.getSubscriptionStatus(subscriptionId);
+    } catch (err) {
+      logger.error(err, { subscriptionId } as LogAttributes);
+      return null;
+    }
+  }
+
+  /*
+   * Raises the subscriptions a plan change replaced but could not cancel.
+   *
+   * The project row now carries the replacement ids, so these ones exist
+   * nowhere in OneUptime any more. They were not billing when the plan change
+   * read them and the cancel has already been retried, so this is a loose end
+   * rather than a double charge - but it is one nobody will find on their own,
+   * which is why the ids travel with the alert instead of only reaching a log
+   * line. The replacements also carry them in their payment-provider metadata,
+   * as replacedSubscriptionId.
+   *
+   * Called once the plan change has already been applied and written down, so
+   * nothing in here is allowed to throw, and nothing in here is allowed to
+   * hold the response open either: failing - or being slow - to raise a loose
+   * end must not turn a plan change that worked into one the caller is told
+   * failed, or one that never comes back.
+   */
+  private alertOnSubscriptionsPendingCancellation(data: {
+    projectId: ObjectID;
+    subscriptionIds: Array<string>;
+  }): void {
+    if (!data.subscriptionIds || data.subscriptionIds.length === 0) {
+      return;
+    }
+
+    logger.error(
+      `Could not cancel subscriptions replaced by a plan change for project ${data.projectId.toString()}. They are still open at the payment provider and have to be cancelled by hand: ${data.subscriptionIds.join(
+        ", ",
+      )}`,
+      {
+        projectId: data.projectId.toString(),
+      } as LogAttributes,
+    );
+
+    if (!NotificationSlackWebhookOnSubscriptionUpdate) {
+      return;
+    }
+
+    const slackMessage: string = `*Subscriptions could not be cancelled after a plan change:*
+*Project ID:* ${data.projectId.toString()}
+*Subscriptions still open at the payment provider:* ${data.subscriptionIds.join(", ")}
+These are no longer recorded against the project and have to be cancelled by hand.
+`;
+
+    /*
+     * Delivery is deliberately not awaited, and neither is reading the
+     * configured webhook. SlackUtil retries three times with exponential
+     * backoff and sets no HTTP timeout, so awaiting it would let a webhook
+     * that hangs hold the plan-change response open with it - for a message
+     * whose contents are already on the error log above. Same shape as
+     * sendSubscriptionChangeWebhookSlackNotification below.
+     */
+    try {
+      SlackUtil.sendMessageToChannelViaIncomingWebhook({
+        url: URL.fromString(NotificationSlackWebhookOnSubscriptionUpdate),
+        text: slackMessage,
+      }).catch((error: Error) => {
+        logger.error("Error sending slack message: " + error, {
+          projectId: data.projectId.toString(),
+        } as LogAttributes);
+      });
+    } catch (error) {
+      logger.error("Error sending slack message: " + error, {
+        projectId: data.projectId.toString(),
+      } as LogAttributes);
+    }
   }
 
   /*
@@ -2244,6 +2357,7 @@ export class ProjectService extends DatabaseService<Model> {
       subscriptionId: string;
       meteredSubscriptionId: string;
       trialEndsAt?: Date | undefined;
+      subscriptionIdsPendingCancellation: Array<string>;
     } = await BillingService.changePlan({
       projectId: project.id as ObjectID,
       subscriptionId: project.paymentProviderSubscriptionId,
@@ -2256,10 +2370,8 @@ export class ProjectService extends DatabaseService<Model> {
     });
 
     // refresh subscription status.
-    const subscriptionState: SubscriptionStatus =
-      await BillingService.getSubscriptionStatus(
-        result.subscriptionId as string,
-      );
+    const subscriptionState: SubscriptionStatus | null =
+      await this.findSubscriptionStatus(result.subscriptionId as string);
 
     /*
      * The metered subscription changePlan returns, not the one the project row
@@ -2267,19 +2379,24 @@ export class ProjectService extends DatabaseService<Model> {
      * names a cancelled subscription, and its status would be persisted against
      * the new one.
      */
-    const meteredSubscriptionState: SubscriptionStatus =
-      await BillingService.getSubscriptionStatus(
-        result.meteredSubscriptionId as string,
-      );
+    const meteredSubscriptionState: SubscriptionStatus | null =
+      await this.findSubscriptionStatus(result.meteredSubscriptionId as string);
 
     // now update project with new subscription id.
 
     const updateData: QueryDeepPartialEntity<Model> = {
       paymentProviderSubscriptionId: result.subscriptionId,
       paymentProviderMeteredSubscriptionId: result.meteredSubscriptionId,
-      paymentProviderSubscriptionStatus: subscriptionState,
-      paymentProviderMeteredSubscriptionStatus: meteredSubscriptionState,
     };
+
+    if (subscriptionState) {
+      updateData.paymentProviderSubscriptionStatus = subscriptionState;
+    }
+
+    if (meteredSubscriptionState) {
+      updateData.paymentProviderMeteredSubscriptionStatus =
+        meteredSubscriptionState;
+    }
 
     /*
      * The payment provider is the source of truth for the trial the new
@@ -2299,6 +2416,11 @@ export class ProjectService extends DatabaseService<Model> {
       props: {
         isRoot: true,
       },
+    });
+
+    this.alertOnSubscriptionsPendingCancellation({
+      projectId: project.id!,
+      subscriptionIds: result.subscriptionIdsPendingCancellation,
     });
 
     // send slack message on plan change.
