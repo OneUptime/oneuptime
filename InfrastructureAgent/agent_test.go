@@ -379,27 +379,24 @@ func TestCollectMetricsJobServerErrorLogsNoSecret(t *testing.T) {
 
 // A transport failure is a real leak channel: client.Post returns a *url.Error
 // whose Error() string embeds the full request URL, secret path segment and
-// all, and agent.go logs that error verbatim.
+// all, so logging that error verbatim would write the monitor secret into the
+// 0666 log file.
 //
-// THIS TEST FAILS AGAINST THE CURRENT agent.go, AND THAT IS THE POINT. The
-// CodeQL patch redacted the success-path "endpoint" attribute and left this
-// path alone, so an agent that cannot reach OneUptime - the most common
-// operational failure there is, and the one an operator opens the log file to
-// diagnose - writes its monitor secret into the 0666 log file on every 30s
-// scheduler tick. An earlier version of this test called t.Skip on exactly
-// this condition, which made the package report "ok" on a live disclosure and
-// hid the SKIP line from CI (the workflow does not pass -v). A skipped
-// security assertion is indistinguishable from no assertion at all: do not
-// re-introduce the skip.
-//
-// The fix is one line in agent.go's collectMetricsJob:
+// It is also the leak likeliest to fire in practice, because it happens exactly
+// when the agent cannot reach OneUptime - the failure an operator opens the log
+// file to diagnose - and it repeats on every 30s scheduler tick. So
+// collectMetricsJob redacts the error before logging it:
 //
 //	slog.Error("Failed to send request to server", "error",
 //	    utils.RedactSecret(err.Error(), secretKey))
 //
-// utils.RedactSecret exists and is tested for this; the AST guard in
-// logging_guard_test.go lists it as an approved redactor, so the fixed line
-// passes that guard too.
+// The AST guard in logging_guard_test.go is blind to this call: the logging
+// call names only `err`, with no secret-named identifier anywhere in it. This
+// behavioural test is what holds the redaction in place, so its assertion has
+// to stay executable. An earlier version called t.Skip when the secret turned
+// up, which made the package report "ok" on a live disclosure and hid the SKIP
+// line from CI (the workflow does not pass -v). A skipped security assertion is
+// indistinguishable from no assertion at all: do not re-introduce the skip.
 func TestCollectMetricsJobTransportErrorLogsNoSecret(t *testing.T) {
 	buf := captureAgentLogs(t)
 	srv, recorder := newDroppingAgentServer(t)
@@ -430,12 +427,11 @@ func TestCollectMetricsJobTransportErrorLogsNoSecret(t *testing.T) {
 }
 
 // The mirror image of the test above, for the other function that builds a
-// secret-bearing URL. checkIfSecretKeyIsValid logs its transport error the same
-// way - `slog.Error(err.Error())` on the client.Get failure in agent.go - so
-// this test fails today for the same reason and is fixed the same way:
+// secret-bearing URL. checkIfSecretKeyIsValid's client.Get failure carries the
+// verify URL in its error text for the same reason, and agent.go redacts it the
+// same way:
 //
-//	slog.Error("Secret key verification request failed", "error",
-//	    utils.RedactSecret(err.Error(), secretKey))
+//	slog.Error(utils.RedactSecret(err.Error(), secretKey))
 func TestCheckIfSecretKeyIsValidTransportErrorLogsNoSecret(t *testing.T) {
 	buf := captureAgentLogs(t)
 	srv, recorder := newDroppingAgentServer(t)
@@ -467,9 +463,8 @@ func TestCheckIfSecretKeyIsValidTransportErrorLogsNoSecret(t *testing.T) {
 // HTTP-status paths exercised here that URL is not logged, and this table is
 // what keeps it that way. It deliberately does NOT cover the transport-error
 // path: every case below reaches a live server, so client.Get never returns an
-// error and agent.go's `slog.Error(err.Error())` is never executed. That path
-// does log the URL today and is covered - as a failing test - by
-// TestCheckIfSecretKeyIsValidTransportErrorLogsNoSecret.
+// error and agent.go's redacted error log is never executed. That path is
+// covered by TestCheckIfSecretKeyIsValidTransportErrorLogsNoSecret.
 func TestCheckIfSecretKeyIsValid(t *testing.T) {
 	cases := []struct {
 		name   string
