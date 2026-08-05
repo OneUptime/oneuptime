@@ -194,9 +194,16 @@ test.describe("SLOs", () => {
      * Monitors is an EntityDropdown (server-side typeahead), so type the
      * monitor's run-unique name and pick it out of the results rather than
      * relying on it being on the first page of options.
+     *
+     * `exact` is load-bearing: accessible-name matching is a substring match
+     * by default, and the form gained "Auto-Add Monitors With Labels" — the
+     * label rule that keeps this list in step with a label — directly below
+     * this field. Without it the locator matches both comboboxes and fails
+     * on strict mode rather than picking the one meant here.
      */
     const monitorsDropdown: Locator = form.getByRole("combobox", {
       name: "Monitors",
+      exact: true,
     });
     await monitorsDropdown.click();
     await monitorsDropdown.fill(ctx.monitorName);
