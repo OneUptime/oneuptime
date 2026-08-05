@@ -6,7 +6,7 @@ import UserElement from "../../Components/User/User";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import { ModalTableBulkDefaultActions } from "Common/UI/Components/ModelTable/BaseModelTable";
 import Team from "Common/Models/DatabaseModels/Team";
-import TeamElement from "../../Components/Team/Team";
+import TeamsElement from "../../Components/Team/TeamsElement";
 import Route from "Common/Types/API/Route";
 import { RouteUtil } from "../../Utils/RouteMap";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -23,6 +23,8 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Yellow } from "Common/Types/BrandColors";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ProjectUsersModelAPI from "Common/UI/Utils/ModelAPI/ProjectUsersModelAPI";
+import { ProjectUserRow } from "Common/UI/Utils/TeamMembersByUser";
 import ProjectSCIM from "Common/Models/DatabaseModels/ProjectSCIM";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Banner from "Common/UI/Components/Banner/Banner";
@@ -207,6 +209,16 @@ const Users: FunctionComponent<PageComponentProps> = (
 
       <ModelTable<TeamMember>
         modelType={TeamMember}
+        /*
+         * One row per user, not per team membership. TeamMember is a
+         * (user, team) pair, so the default API would list someone who belongs
+         * to three teams as three rows - three lines with the same name and
+         * avatar, which reads as three different people. This one pages over
+         * users and hands each row every team that user belongs to.
+         */
+        modelAPI={ProjectUsersModelAPI}
+        singularName="User"
+        pluralName="Users"
         id="teams-table"
         name="Settings > Users"
         userPreferencesKey="users-table"
@@ -214,6 +226,12 @@ const Users: FunctionComponent<PageComponentProps> = (
           tableId: "settings-users-table",
         }}
         isDeleteable={!isPushGroupsManaged}
+        /*
+         * A row is a person, so removing one removes them from the project -
+         * every team they are on. Removing someone from a single team is done
+         * from that user's own Teams tab.
+         */
+        deleteButtonText="Remove from Project"
         bulkActions={
           !isPushGroupsManaged
             ? {
@@ -238,7 +256,7 @@ const Users: FunctionComponent<PageComponentProps> = (
         cardProps={{
           title: "Users",
           description:
-            "Here is a list of all the team members in this project.",
+            "Here is a list of everyone in this project, and the teams they belong to.",
           buttons: [
             {
               title: "Invite User",
@@ -296,13 +314,16 @@ const Users: FunctionComponent<PageComponentProps> = (
                 _id: true,
               },
             },
-            title: "Team",
+            title: "Teams",
             type: FieldType.Element,
             getElement: (item: TeamMember) => {
-              if (!item.team) {
+              const teams: Array<Team> = (item as ProjectUserRow).teamsForUser;
+
+              if (!teams || teams.length === 0) {
                 return <p>No team assigned</p>;
               }
-              return <TeamElement team={item.team!} />;
+
+              return <TeamsElement teams={teams} />;
             },
           },
           {
@@ -312,10 +333,32 @@ const Users: FunctionComponent<PageComponentProps> = (
             title: "Status",
             type: FieldType.Element,
             getElement: (item: TeamMember) => {
-              if (item.hasAcceptedInvitation) {
-                return <Pill text="Member" color={Green} />;
+              if (!item.hasAcceptedInvitation) {
+                return <Pill text="Invitation Sent" color={Yellow} />;
               }
-              return <Pill text="Invitation Sent" color={Yellow} />;
+
+              /*
+               * Accepted on at least one team makes them a member of the
+               * project. Any team they have not accepted yet is called out
+               * next to it, because that state is otherwise invisible now that
+               * the row no longer shows one team at a time.
+               */
+              const pendingTeamCount: number =
+                (item as ProjectUserRow).pendingTeamCountForUser || 0;
+
+              return (
+                <div className="flex space-x-2">
+                  <Pill text="Member" color={Green} />
+                  {pendingTeamCount > 0 && (
+                    <Pill
+                      text={`${pendingTeamCount} Invitation${
+                        pendingTeamCount === 1 ? "" : "s"
+                      } Pending`}
+                      color={Yellow}
+                    />
+                  )}
+                </div>
+              );
             },
           },
         ]}
