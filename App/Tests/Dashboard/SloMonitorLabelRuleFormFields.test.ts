@@ -1,5 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
-import { getSloFormFields } from "../../FeatureSet/Dashboard/src/Pages/Slo/Slos";
+import { getSloFormFields } from "../../FeatureSet/Dashboard/src/Pages/Slo/SloFormFields";
 import Label from "Common/Models/DatabaseModels/Label";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";

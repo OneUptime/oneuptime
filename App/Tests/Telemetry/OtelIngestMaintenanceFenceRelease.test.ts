@@ -38,14 +38,15 @@ import ServerlessFunctionService from "Common/Server/Services/ServerlessFunction
 import ServerlessFunctionInstanceService from "Common/Server/Services/ServerlessFunctionInstanceService";
 import ObjectID from "Common/Types/ObjectID";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+/*
+ * `jest` is deliberately taken from the ambient global rather than from
+ * "@jest/globals". App pins @types/jest 29 against jest 28, so the two spell
+ * a spy differently: the global one hands back jest.SpyInstance<T, Y, C>,
+ * @jest/globals hands back jest-mock 28's one-parameter SpyInstance. Mixing
+ * them — an @jest/globals spy annotated with the global jest.SpiedFunction —
+ * does not compile, and the annotation is worth keeping.
+ */
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
  * Per-resource ingest maintenance (updateLastSeen + label promotion) is

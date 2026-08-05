@@ -1,7 +1,7 @@
 import PageComponentProps from "../../PageComponentProps";
 import SloNoticeBanner from "../../../Components/Slo/SloNoticeBanner";
 import SloStatusPill from "../../../Components/Slo/SloStatusPill";
-import { getSloFormFields } from "../Slos";
+import { getSloFormFields } from "../SloFormFields";
 import MonitorsElement from "../../../Components/Monitor/Monitors";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";

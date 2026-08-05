@@ -264,6 +264,23 @@ describe("BaseAPI CRUD auth contract for the ApiKey header (issue #3004)", () =>
     );
 
     /*
+     * getDatabaseCommonInteractionProps reads the project's billing plan on
+     * every request that resolved a tenant, but ONLY when BILLING_ENABLED is
+     * set - and the Common Test CI job sets it while a bare local jest run
+     * does not. Unstubbed, that is a real ProjectService.findOneById on a
+     * service this file never stubs, so the five cases that get as far as a
+     * tenant died with "Database not connected" in CI and passed locally.
+     *
+     * Answering as the no-plan project keeps the auth contract below reading
+     * the same either way: BillingPermissions short-circuits on an undefined
+     * currentPlan, which is exactly the billing-disabled path.
+     */
+    getJestSpyOn(ProjectService, "getCurrentPlan").mockResolvedValue({
+      plan: null,
+      isSubscriptionUnpaid: false,
+    });
+
+    /*
      * Never stubbed to succeed - it exists so tests can assert whether the
      * session branch of getUserMiddleware was entered at all. Reaching it is
      * always the regression, never the expectation.
