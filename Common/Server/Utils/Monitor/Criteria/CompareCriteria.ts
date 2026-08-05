@@ -192,6 +192,18 @@ export default class CompareCriteria {
       return null;
     }
 
+    /*
+     * parseInt("abc") returns NaN rather than throwing, and NaN is typeof
+     * "number" — so without this guard a non-numeric threshold would leak
+     * past callers that only check for `=== null`, leaving every numeric
+     * comparison silently false (value > NaN is always false). Treat an
+     * unparseable value the same as a missing one so the caller can ignore
+     * it instead of firing a broken criterion.
+     */
+    if (Number.isNaN(threshold as number)) {
+      return null;
+    }
+
     return threshold as number;
   }
 
