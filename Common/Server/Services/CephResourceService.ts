@@ -1,8 +1,10 @@
 import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/CephResource";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import ColumnLength from "../../Types/Database/ColumnLength";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
+import { truncateShortText } from "../Utils/Database/TruncateColumnValue";
 import logger from "../Utils/Logger";
 
 /*
@@ -86,6 +88,26 @@ const UPSERT_COLUMNS: Array<string> = [
   "version",
 ];
 
+/*
+ * CephResource's text columns are all ShortText (100 chars). The bulk
+ * paths below go through manager.query(), which skips the length
+ * validation DatabaseService applies to ordinary writes, so a single
+ * oversized value aborts the whole 500-row INSERT chunk it rides in.
+ * Clamp per value instead, so one pathological daemon can never drop
+ * the rest of the scrape.
+ */
+function sanitizeResource(r: ParsedCephResource): ParsedCephResource {
+  return {
+    ...r,
+    kind: truncateShortText(r.kind),
+    externalId: truncateShortText(r.externalId),
+    name: truncateShortText(r.name),
+    hostname: truncateShortText(r.hostname),
+    daemonVersion: truncateShortText(r.daemonVersion),
+    deviceClass: truncateShortText(r.deviceClass),
+  };
+}
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
@@ -112,9 +134,21 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
+    const resources: Array<ParsedCephResource> = data.resources.map(
+      (r: ParsedCephResource) => {
+        const sanitized: ParsedCephResource = sanitizeResource(r);
+        if (sanitized.externalId !== r.externalId) {
+          logger.warn(
+            `CephResource externalId exceeds ${ColumnLength.ShortText} chars; truncated to "${sanitized.externalId}" (cluster ${data.cephClusterId.toString()}).`,
+          );
+        }
+        return sanitized;
+      },
+    );
+
     // Chunk to keep individual statement parameter counts reasonable.
-    for (let i: number = 0; i < data.resources.length; i += UPSERT_BATCH_SIZE) {
-      const chunk: Array<ParsedCephResource> = data.resources.slice(
+    for (let i: number = 0; i < resources.length; i += UPSERT_BATCH_SIZE) {
+      const chunk: Array<ParsedCephResource> = resources.slice(
         i,
         i + UPSERT_BATCH_SIZE,
       );
@@ -218,9 +252,14 @@ export class Service extends DatabaseService<Model> {
         valueFragments.push(
           `($${paramIndex++}, $${paramIndex++}, $${paramIndex++}::bigint, $${paramIndex++}::bigint, $${paramIndex++}::numeric, $${paramIndex++}::numeric, $${paramIndex++}::integer, $${paramIndex++}::bigint, $${paramIndex++}::bigint, $${paramIndex++}::bigint, $${paramIndex++}::bigint, $${paramIndex++}::bigint, $${paramIndex++}::timestamptz)`,
         );
+        /*
+         * The identity clamps MUST match bulkUpsert's, or this mirror
+         * UPDATE would silently miss the row the upsert just wrote
+         * under the truncated externalId.
+         */
         params.push(
-          m.kind,
-          m.externalId,
+          truncateShortText(m.kind),
+          truncateShortText(m.externalId),
           bigintOrNull(m.statBytes),
           bigintOrNull(m.statBytesUsed),
           m.applyLatencyMs !== null && m.applyLatencyMs !== undefined

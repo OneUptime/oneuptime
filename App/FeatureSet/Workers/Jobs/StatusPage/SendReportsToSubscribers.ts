@@ -6,6 +6,7 @@ import StatusPageService from "Common/Server/Services/StatusPageService";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import logger from "Common/Server/Utils/Logger";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import StatusPageReportPeriodUtil from "Common/Utils/StatusPage/ReportPeriod";
 
 RunCron(
   "StatusPage:SendReportToSubscribers",
@@ -31,14 +32,25 @@ RunCron(
           _id: true,
           sendNextReportBy: true,
           reportRecurringInterval: true,
+          reportTimezone: true,
         },
       });
 
     for (const statusPageToSendReport of statusPageToSendReports) {
-      const nextReportBy: Date = Recurring.getNextDate(
-        statusPageToSendReport.sendNextReportBy!,
-        statusPageToSendReport.reportRecurringInterval!,
-      );
+      /*
+       * Calendar-correct so a monthly schedule keeps landing on the same day of
+       * the month. The old fixed-millisecond arithmetic treated a month as
+       * 30.4375 days, so a report anchored to the 1st drifted to the 31st, then
+       * the 30th, and eventually skipped a month entirely.
+       */
+      const nextReportBy: Date = Recurring.getNextDateAfter({
+        startDate: statusPageToSendReport.sendNextReportBy!,
+        recurring: statusPageToSendReport.reportRecurringInterval!,
+        afterDate: OneUptimeDate.getCurrentDate(),
+        timezone:
+          statusPageToSendReport.reportTimezone ||
+          StatusPageReportPeriodUtil.DEFAULT_TIMEZONE,
+      });
 
       // update this date in the status page
 

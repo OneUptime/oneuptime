@@ -44,6 +44,7 @@ import {
   ManyToOne,
 } from "typeorm";
 import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
+import StatusPageReportPeriodType from "../../Types/StatusPage/StatusPageReportPeriodType";
 import { DEFAULT_STATUS_PAGE_LANGUAGE } from "../../Types/StatusPage/StatusPageLanguage";
 
 @OperationalResource()
@@ -2632,6 +2633,100 @@ export default class StatusPage extends BaseModel {
     create: PlanType.Free,
   })
   public reportDataInDays?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.CreateProjectStatusPage,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
+      Permission.ReadProjectStatusPage,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.EditProjectStatusPage,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    defaultValue: StatusPageReportPeriodType.Rolling,
+    title: "Report Period Type",
+    description:
+      "Should the report cover a rolling number of days, or the previous whole calendar period?",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    nullable: true,
+    default: StatusPageReportPeriodType.Rolling,
+  })
+  @ColumnBillingAccessControl({
+    read: PlanType.Free,
+    update: PlanType.Growth,
+    create: PlanType.Free,
+  })
+  public reportPeriodType?: StatusPageReportPeriodType = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.CreateProjectStatusPage,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
+      Permission.ReadProjectStatusPage,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.EditProjectStatusPage,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    defaultValue: Timezone.UTC,
+    title: "Report Timezone",
+    description:
+      "The timezone report periods and send times are resolved in. A monthly report in this timezone runs from the 1st at 00:00 to the last day at 23:59.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    nullable: true,
+    default: Timezone.UTC,
+  })
+  @ColumnBillingAccessControl({
+    read: PlanType.Free,
+    update: PlanType.Growth,
+    create: PlanType.Free,
+  })
+  public reportTimezone?: Timezone = undefined;
 
   @ColumnAccessControl({
     create: [

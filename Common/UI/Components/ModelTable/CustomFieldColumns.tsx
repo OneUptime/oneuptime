@@ -5,6 +5,7 @@ import DropdownValueBadge from "../Dropdown/DropdownValueBadge";
 import AnalyticsBaseModel from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import CustomFieldType from "../../../Types/CustomField/CustomFieldType";
+import { CustomFieldDefinition } from "../../../Types/CustomField/CustomFieldDefinition";
 import {
   CustomFieldDropdownOption,
   parseCustomFieldDropdownOptions,
@@ -45,12 +46,7 @@ import React, { ReactElement } from "react";
  * fall-through text branch understands a dotted key.
  */
 
-export interface CustomFieldDefinition {
-  name: string;
-  description?: string | undefined;
-  customFieldType?: CustomFieldType | undefined;
-  dropdownOptions?: string | undefined;
-}
+export type { CustomFieldDefinition } from "../../../Types/CustomField/CustomFieldDefinition";
 
 export const CustomFieldsColumnKey: string = "customFields";
 

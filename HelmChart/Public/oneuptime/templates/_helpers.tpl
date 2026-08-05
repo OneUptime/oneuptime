@@ -119,9 +119,23 @@ its userlist at startup.
 - name: IS_ENTERPRISE_EDITION
   value: {{ (ternary "true" "false" $isEnterpriseEdition) | squote }}
 - name: MICROSOFT_TEAMS_APP_CLIENT_ID
+  {{- if $.Values.microsoftTeamsApp.existingSecret }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $.Values.microsoftTeamsApp.existingSecret.name | quote }}
+      key: {{ $.Values.microsoftTeamsApp.existingSecret.clientIdKey | quote }}
+  {{- else }}
   value: {{ $.Values.microsoftTeamsApp.clientId }}
+  {{- end }}
 - name: MICROSOFT_TEAMS_APP_TENANT_ID
+  {{- if $.Values.microsoftTeamsApp.existingSecret }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $.Values.microsoftTeamsApp.existingSecret.name | quote }}
+      key: {{ $.Values.microsoftTeamsApp.existingSecret.tenantIdKey | quote }}
+  {{- else }}
   value: {{ $.Values.microsoftTeamsApp.tenantId }}
+  {{- end }}
 
 {{- if $.Values.openTelemetryExporter.endpoint }}
 - name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
@@ -387,7 +401,14 @@ GLOBAL_LLM_PROVIDER_API_KEY is rendered only when an API key is configured.
   {{- end }}
 
 - name: MICROSOFT_TEAMS_APP_CLIENT_SECRET
+  {{- if $.Values.microsoftTeamsApp.existingSecret }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $.Values.microsoftTeamsApp.existingSecret.name | quote }}
+      key: {{ $.Values.microsoftTeamsApp.existingSecret.clientSecretKey | quote }}
+  {{- else }}
   value: {{ $.Values.microsoftTeamsApp.clientSecret }}
+  {{- end }}
 
 - name: GITHUB_APP_CLIENT_SECRET
   value: {{ $.Values.gitHubApp.clientSecret }}

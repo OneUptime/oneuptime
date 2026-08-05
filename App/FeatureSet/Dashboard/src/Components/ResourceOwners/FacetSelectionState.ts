@@ -3,7 +3,10 @@ import {
   FILTER_OPERATOR_LABELS,
   FacetKind,
   FilterOperator,
+  NUMBER_FACET_OPERATORS,
   OPTION_FACET_OPERATORS,
+  TEXT_FACET_OPERATORS,
+  isTypedValueFacetKind,
 } from "./FilterChipDropdownTypes";
 import { isFacetDateRangeActive } from "./FacetDateRange";
 import { JSONObject } from "Common/Types/JSON";
@@ -307,6 +310,7 @@ export const sanitizeFacetSelectionState: SanitizeFacetSelectionStateFunction =
 
     for (const facet of facets) {
       const isDateRange: boolean = facet.type === "dateRange";
+      const isTypedValue: boolean = isTypedValueFacetKind(facet.type);
       const operator: FilterOperator | undefined =
         sanitized.facetOperators[facet.key];
       const supported: Array<FilterOperator> =
@@ -314,23 +318,64 @@ export const sanitizeFacetSelectionState: SanitizeFacetSelectionStateFunction =
           ? facet.supportedOperators
           : isDateRange
             ? DATE_FACET_OPERATORS
-            : OPTION_FACET_OPERATORS;
+            : facet.type === "number"
+              ? NUMBER_FACET_OPERATORS
+              : facet.type === "text"
+                ? TEXT_FACET_OPERATORS
+                : OPTION_FACET_OPERATORS;
 
       const resolvedOperator: FilterOperator =
         operator !== undefined && !supported.includes(operator)
           ? supported[0]!
           : operator || "is";
 
+      const values: Array<string> | undefined =
+        sanitized.facetSelections[facet.key];
+
       if (operator !== undefined && !supported.includes(operator)) {
         sanitized.facetOperators[facet.key] = supported[0]!;
       }
 
-      const values: Array<string> | undefined =
-        sanitized.facetSelections[facet.key];
-
-      if (!facet.isMultiSelect && values && values.length > 1) {
+      if (
+        (!facet.isMultiSelect || isTypedValue) &&
+        values &&
+        values.length > 1
+      ) {
         // The chip shows only the first value, so only the first may filter.
         sanitized.facetSelections[facet.key] = [values[0]!];
+      }
+
+      /*
+       * A number chip's input can only show a number. A restored selection
+       * holding anything else — a hand-edited URL, or a definition whose type
+       * was changed under a saved view — would leave the chip lit over a
+       * filter the user can neither see nor correct, so it is dropped and the
+       * chip comes back empty.
+       */
+      if (facet.type === "number") {
+        const numericValue: string | undefined =
+          sanitized.facetSelections[facet.key]?.[0];
+
+        if (
+          numericValue !== undefined &&
+          (numericValue.trim() === "" || !Number.isFinite(Number(numericValue)))
+        ) {
+          sanitized.facetSelections[facet.key] = [];
+        }
+      }
+
+      /*
+       * A blank text value is not a filter — it is the chip in its empty
+       * state — and letting it through would light the chip over an unfiltered
+       * list.
+       */
+      if (facet.type === "text") {
+        const textValue: string | undefined =
+          sanitized.facetSelections[facet.key]?.[0];
+
+        if (textValue !== undefined && textValue.trim() === "") {
+          sanitized.facetSelections[facet.key] = [];
+        }
       }
 
       /*

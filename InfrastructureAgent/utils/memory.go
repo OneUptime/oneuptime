@@ -10,7 +10,7 @@ import (
 func GetMemoryMetrics() *model.MemoryMetrics {
 	memoryInfo, err := mem.VirtualMemory()
 	if err != nil {
-		slog.Error("Error while fetching memory metrics: ", err)
+		slog.Error("Error while fetching memory metrics", "error", err)
 		return nil
 	}
 

@@ -141,7 +141,11 @@ ${commonVariablesRows}`;
 | \`{{detailsUrl}}\` | URL to view the full status page |
 | \`{{unsubscribeUrl}}\` | URL for subscribers to unsubscribe from notifications |
 | \`{{subscriberEmailNotificationFooterText}}\` | Custom footer text configured for the status page |
-| \`{{report.reportDates}}\` | The reporting period (e.g. "14 days (01 Jul - 14 Jul)") |
+| \`{{report.reportDates}}\` | The reporting period as a range (e.g. "30 days (Jun 29, 2026 - Jul 29, 2026)" for a rolling window, "Jul 1, 2026 - Jul 31, 2026" for a calendar one) |
+| \`{{report.reportPeriodName}}\` | How a sentence refers to the period — "the last 30 days", "July 2026", "the week of Jul 27, 2026" |
+| \`{{report.reportStartDate}}\` | First day of the period (e.g. "Jul 1, 2026") |
+| \`{{report.reportEndDate}}\` | Last day of the period (e.g. "Jul 31, 2026") |
+| \`{{report.reportTimezone}}\` | The timezone every date above was resolved in (e.g. "America/New_York") |
 | \`{{report.averageUptimePercent}}\` | Average uptime across all resources (e.g. "99.95%") |
 | \`{{report.totalDowntimeInHoursAndMinutes}}\` | Total downtime in the period |
 | \`{{report.totalIncidents}}\` | Total number of incidents in the period |

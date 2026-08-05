@@ -55,11 +55,24 @@ const useCustomFieldColumns: UseCustomFieldColumnsFunction = <
   const [definitions, setDefinitions] = useState<Array<CustomFieldDefinition>>(
     [],
   );
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string>("");
 
   const projectId: ObjectID | null =
     data.projectId ?? ProjectUtil.getCurrentProjectId();
+
+  /*
+   * Starts true whenever a request is actually going to happen, rather than
+   * false-until-the-effect-runs.
+   *
+   * Columns did not care — they only ever appear — but a caller that has to
+   * distinguish "no custom fields" from "not yet" does. The facet bar is one:
+   * on the first render it must know that a chip restored from a shared link
+   * may still be on its way, or it drops the link's filter before the request
+   * has even been sent.
+   */
+  const [isLoading, setIsLoading] = useState<boolean>(
+    Boolean(data.customFieldsModelType && projectId),
+  );
+  const [error, setError] = useState<string>("");
 
   const projectIdString: string = projectId?.toString() || "";
   const modelName: string = customFieldsModelType?.name || "";
@@ -67,6 +80,12 @@ const useCustomFieldColumns: UseCustomFieldColumnsFunction = <
   useEffect(() => {
     if (!customFieldsModelType || !projectId) {
       setDefinitions([]);
+      /*
+       * Nothing to wait for. Said explicitly because the initial state is now
+       * "loading" whenever a request is expected, and a model type that goes
+       * away between renders would otherwise leave it stuck there.
+       */
+      setIsLoading(false);
       return;
     }
 

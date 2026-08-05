@@ -7,6 +7,7 @@ import Typeof from "../../../Types/Typeof";
 import { FindOperator, Raw } from "typeorm";
 import { FindWhereProperty } from "../../../Types/BaseDatabase/Query";
 import CaptureSpan from "../../Utils/Telemetry/CaptureSpan";
+import buildJSONColumnQuery, { JSONColumnQuery } from "./JSONColumnQuery";
 
 export default class QueryHelper {
   @CaptureSpan()
@@ -668,40 +669,25 @@ export default class QueryHelper {
     ) as FindWhereProperty<any>;
   }
 
+  /**
+   * Filter on the keys of a jsonb column — `customFields` above all, whose
+   * keys are the names a project gave its custom fields.
+   *
+   * The per-key predicates (equality, "is any of", contains, numeric
+   * comparison, is-empty, and their negations) live in JSONColumnQuery. Two
+   * things this used to get wrong and no longer does: the key was spliced
+   * straight into the SQL string, and every value was compared with `=`, so an
+   * operator such as `Includes` reached Postgres stringified.
+   */
   @CaptureSpan()
   public static queryJson(value: JSONObject): FindWhereProperty<any> {
-    // seed random text
-    const values: JSONObject = {};
-
-    let queryText: string = "";
-
-    if (typeof value === Typeof.String) {
-      value = JSON.parse(value.toString());
-    }
-
     if (value instanceof FindOperator) {
       return value;
     }
 
-    const hasValue: boolean = value && Object.keys(value).length > 0;
-
-    for (const key in value) {
-      const temp: string = Text.generateRandomText(10);
-
-      values[temp] = value[key];
-
-      if (!queryText) {
-        queryText = `(COLUMN_NAME_ALIAS->>'${key}' = :${temp as string}`;
-      } else {
-        queryText += ` AND COLUMN_NAME_ALIAS->>'${key}' = :${temp as string}`;
-      }
-    }
-
-    if (hasValue) {
-      queryText += ")";
-    } else {
-      queryText = "(COLUMN_NAME_ALIAS IS NULL OR COLUMN_NAME_ALIAS = '{}')";
-    }
+    const jsonQuery: JSONColumnQuery = buildJSONColumnQuery({
+      value: value as JSONObject,
+    });
 
     return Raw((alias: string) => {
       /*
@@ -709,16 +695,15 @@ export default class QueryHelper {
        * we need to convert this to "tableName"."columnName"
        */
 
-      alias = alias
+      const columnReference: string = alias
         .split(".")
         .map((item: string) => {
           return `"${item}"`;
         })
         .join(".");
 
-      queryText = Text.replaceAll(queryText, "COLUMN_NAME_ALIAS", `${alias}`);
-      return queryText;
-    }, values);
+      return jsonQuery.toSql(columnReference);
+    }, jsonQuery.parameters);
   }
 
   @CaptureSpan()

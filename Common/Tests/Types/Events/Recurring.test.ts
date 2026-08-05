@@ -326,6 +326,163 @@ describe("Recurring", () => {
     });
   });
 
+  /*
+   * getNextDate approximates a month as 30.4375 days, which walks a monthly
+   * schedule backwards through the calendar (1 Jul -> 31 Jul -> 30 Aug) and
+   * eventually skips a month outright. getNextDateAfter steps in whole calendar
+   * units instead, which is what a status page report scheduled for "the 1st of
+   * every month" needs.
+   */
+  describe("getNextDateAfter", () => {
+    test("keeps a monthly schedule on the same day of the month", () => {
+      const start: Date = OneUptimeDate.fromString("2026-07-01T09:00:00.000Z");
+      const recurring: Recurring = makeRecurring(EventInterval.Month, 1);
+
+      let next: Date = Recurring.getNextDateAfter({
+        startDate: start,
+        recurring: recurring,
+        afterDate: OneUptimeDate.fromString("2026-07-01T09:00:01.000Z"),
+        timezone: "UTC",
+      });
+      expect(next.toISOString()).toBe("2026-08-01T09:00:00.000Z");
+
+      next = Recurring.getNextDateAfter({
+        startDate: next,
+        recurring: recurring,
+        afterDate: OneUptimeDate.fromString("2026-08-01T09:00:01.000Z"),
+        timezone: "UTC",
+      });
+      expect(next.toISOString()).toBe("2026-09-01T09:00:00.000Z");
+
+      next = Recurring.getNextDateAfter({
+        startDate: next,
+        recurring: recurring,
+        afterDate: OneUptimeDate.fromString("2026-09-01T09:00:01.000Z"),
+        timezone: "UTC",
+      });
+      expect(next.toISOString()).toBe("2026-10-01T09:00:00.000Z");
+    });
+
+    test("never skips a month, which the millisecond approximation does", () => {
+      const start: Date = OneUptimeDate.fromString("2026-01-01T09:00:00.000Z");
+
+      const next: Date = Recurring.getNextDateAfter({
+        startDate: start,
+        recurring: makeRecurring(EventInterval.Month, 1),
+        // A status page left alone for most of a year.
+        afterDate: OneUptimeDate.fromString("2026-11-15T00:00:00.000Z"),
+        timezone: "UTC",
+      });
+
+      expect(next.toISOString()).toBe("2026-12-01T09:00:00.000Z");
+    });
+
+    test("holds the local time of day across a DST transition", () => {
+      /*
+       * 1 Mar 2026 09:00 in New York is EST (UTC-5); 1 Apr is EDT (UTC-4).
+       * Adding a fixed number of milliseconds would land at 08:00 local.
+       */
+      const next: Date = Recurring.getNextDateAfter({
+        startDate: OneUptimeDate.fromString("2026-03-01T14:00:00.000Z"),
+        recurring: makeRecurring(EventInterval.Month, 1),
+        afterDate: OneUptimeDate.fromString("2026-03-15T00:00:00.000Z"),
+        timezone: "America/New_York",
+      });
+
+      expect(next.toISOString()).toBe("2026-04-01T13:00:00.000Z");
+    });
+
+    test("clamps a day-of-month that the next month does not have", () => {
+      const next: Date = Recurring.getNextDateAfter({
+        startDate: OneUptimeDate.fromString("2026-01-31T09:00:00.000Z"),
+        recurring: makeRecurring(EventInterval.Month, 1),
+        afterDate: OneUptimeDate.fromString("2026-02-01T00:00:00.000Z"),
+        timezone: "UTC",
+      });
+
+      expect(next.toISOString()).toBe("2026-02-28T09:00:00.000Z");
+    });
+
+    test("returns a start date that has not happened yet unchanged", () => {
+      const start: Date = OneUptimeDate.fromString("2026-08-01T09:00:00.000Z");
+
+      const next: Date = Recurring.getNextDateAfter({
+        startDate: start,
+        recurring: makeRecurring(EventInterval.Month, 1),
+        afterDate: OneUptimeDate.fromString("2026-07-15T00:00:00.000Z"),
+        timezone: "UTC",
+      });
+
+      expect(next.getTime()).toBe(start.getTime());
+    });
+
+    test("advances by whole intervals for a multi-unit recurrence", () => {
+      const next: Date = Recurring.getNextDateAfter({
+        startDate: OneUptimeDate.fromString("2026-01-01T00:00:00.000Z"),
+        recurring: makeRecurring(EventInterval.Month, 3),
+        afterDate: OneUptimeDate.fromString("2026-05-02T00:00:00.000Z"),
+        timezone: "UTC",
+      });
+
+      // Occurrences are 1 Jan, 1 Apr, 1 Jul - the first after 2 May is 1 Jul.
+      expect(next.toISOString()).toBe("2026-07-01T00:00:00.000Z");
+    });
+
+    test("handles hourly, daily, weekly and yearly recurrences", () => {
+      const start: Date = OneUptimeDate.fromString("2026-01-01T00:00:00.000Z");
+      const after: Date = OneUptimeDate.fromString("2026-01-01T05:30:00.000Z");
+
+      expect(
+        Recurring.getNextDateAfter({
+          startDate: start,
+          recurring: makeRecurring(EventInterval.Hour, 2),
+          afterDate: after,
+          timezone: "UTC",
+        }).toISOString(),
+      ).toBe("2026-01-01T06:00:00.000Z");
+
+      expect(
+        Recurring.getNextDateAfter({
+          startDate: start,
+          recurring: makeRecurring(EventInterval.Day, 1),
+          afterDate: after,
+          timezone: "UTC",
+        }).toISOString(),
+      ).toBe("2026-01-02T00:00:00.000Z");
+
+      expect(
+        Recurring.getNextDateAfter({
+          startDate: start,
+          recurring: makeRecurring(EventInterval.Week, 1),
+          afterDate: after,
+          timezone: "UTC",
+        }).toISOString(),
+      ).toBe("2026-01-08T00:00:00.000Z");
+
+      expect(
+        Recurring.getNextDateAfter({
+          startDate: start,
+          recurring: makeRecurring(EventInterval.Year, 1),
+          afterDate: after,
+          timezone: "UTC",
+        }).toISOString(),
+      ).toBe("2027-01-01T00:00:00.000Z");
+    });
+
+    test("throws BadDataException for an unknown interval type", () => {
+      const recurring: Recurring = makeRecurring(EventInterval.Day, 1);
+      recurring.intervalType = "Fortnight" as unknown as EventInterval;
+
+      expect(() => {
+        Recurring.getNextDateAfter({
+          startDate: baseDate,
+          recurring: recurring,
+          afterDate: OneUptimeDate.getCurrentDate(),
+        });
+      }).toThrowError(BadDataException);
+    });
+  });
+
   describe("toString", () => {
     test("formats as count and interval type", () => {
       expect(makeRecurring(EventInterval.Day, 1).toString()).toBe("1 Day");
