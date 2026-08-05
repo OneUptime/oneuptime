@@ -493,6 +493,7 @@ import { AddAiCommandRemediation1785870000000 } from "./1785870000000-AddAiComma
 import { AlignRunnerSchemaWithEntities1785880000000 } from "./1785880000000-AlignRunnerSchemaWithEntities";
 import { AddFixVerificationAndAutomaticCodeFixes1785890000000 } from "./1785890000000-AddFixVerificationAndAutomaticCodeFixes";
 import { AddSloMonitorLabelRule1785900000000 } from "./1785900000000-AddSloMonitorLabelRule";
+import { IncreaseHostIpAddressesLength1785915638551 } from "./1785915638551-IncreaseHostIpAddressesLength";
 import { AddIncidentInvestigationGating1785790000000 } from "./1785790000000-AddIncidentInvestigationGating";
 import { AddRemediationVerification1785768089408 } from "./1785768089408-AddRemediationVerification";
 
@@ -994,4 +995,5 @@ export default [
   AlignRunnerSchemaWithEntities1785880000000,
   AddFixVerificationAndAutomaticCodeFixes1785890000000,
   AddSloMonitorLabelRule1785900000000,
+  IncreaseHostIpAddressesLength1785915638551,
 ];

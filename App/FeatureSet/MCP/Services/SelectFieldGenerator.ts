@@ -31,6 +31,33 @@ const HEAVY_COLUMN_TYPES: TableColumnType[] = [
   TableColumnType.HTML,
 ];
 
+/*
+ * `<tableName>.<columnName>` entries whose column type is nominally heavy but
+ * whose real payload is small and identifying, so excluding them by default
+ * costs the agent more than the tokens it saves.
+ *
+ * Host.hostIpAddresses is `text` only because the OpenTelemetry `host.ip`
+ * resource attribute is an unbounded array — one address per interface, per
+ * docker bridge, per veth (issue #3006). In practice the stored value is a
+ * short comma-separated IP list, and it is one of the few fields that lets an
+ * agent tell two hosts apart.
+ */
+const HEAVY_COLUMN_EXEMPTIONS: Set<string> = new Set<string>([
+  "Host.hostIpAddresses",
+]);
+
+function isHeavyColumn(
+  tableName: string,
+  columnName: string,
+  columnType: TableColumnType | undefined,
+): boolean {
+  if (!columnType || !HEAVY_COLUMN_TYPES.includes(columnType)) {
+    return false;
+  }
+
+  return !HEAVY_COLUMN_EXEMPTIONS.has(`${tableName}.${columnName}`);
+}
+
 // Type for model constructor
 type ModelConstructor<T> = new () => T;
 
@@ -132,7 +159,13 @@ export function getSelectableFieldsForModel(
         continue;
       }
       allFields.push(columnName);
-      if (metadata?.type && HEAVY_COLUMN_TYPES.includes(metadata.type)) {
+      if (
+        isHeavyColumn(
+          (model as unknown as ModelWithTableName).tableName,
+          columnName,
+          metadata?.type,
+        )
+      ) {
         heavyFields.push(columnName);
       }
     }
@@ -218,12 +251,10 @@ function generateSelectFromTableColumns(
     for (const columnName of columnNames) {
       const columnType: TableColumnType | undefined =
         tableColumns[columnName]?.type;
-      const isHeavyColumn: boolean = Boolean(
-        columnType && HEAVY_COLUMN_TYPES.includes(columnType),
-      );
+      const isHeavy: boolean = isHeavyColumn(tableName, columnName, columnType);
 
       if (shouldIncludeField(columnName, accessControlForColumns)) {
-        if (isHeavyColumn) {
+        if (isHeavy) {
           // Excluded by default; agents can request via the select parameter
           filteredCount++;
           continue;
