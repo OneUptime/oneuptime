@@ -85,6 +85,23 @@ describe("BillingService - plan changes during trial", () => {
     return call[0] as Stripe.SubscriptionCreateParams;
   };
 
+  type FirstCallOrderFunction = (mockFunction: unknown) => number;
+
+  // Where a mock's first call sits in the global order of all mock calls.
+  const firstCallOrder: FirstCallOrderFunction = (
+    mockFunction: unknown,
+  ): number => {
+    const order: number | undefined = (
+      mockFunction as { mock: { invocationCallOrder: Array<number> } }
+    ).mock.invocationCallOrder[0];
+
+    if (order === undefined) {
+      throw new Error("mock was never called");
+    }
+
+    return order;
+  };
+
   /*
    * Built once: mockIsBillingEnabled resets the module registry and re-imports
    * the whole service graph, which costs seconds. Nothing here toggles billing
@@ -329,7 +346,16 @@ describe("BillingService - plan changes during trial", () => {
     });
   });
 
-  describe("changePlan - carrying the trial onto the new subscriptions", () => {
+  /*
+   * A plan change is a price swap on the subscription the project already has.
+   * Cancelling it and building a replacement meant every piece of subscription
+   * state - the trial above all - had to be reconstructed by hand, which is how
+   * the mid-trial charge got in. Keeping the subscription keeps its trial for
+   * free: the assertions below are mostly about what changePlan does NOT send.
+   */
+  describe("changePlan - swapping the price on the subscription the project has", () => {
+    const SUBSCRIPTION_ITEM_ID: string = "si_flat_fee_123";
+
     /*
      * Stripe reports trial_end as whole seconds, so a date that has been
      * through it has no milliseconds. Building the expected date the same way
@@ -345,24 +371,59 @@ describe("BillingService - plan changes during trial", () => {
       );
     };
 
-    type SetupFunction = (options?: {
+    interface SetupOptions {
       trialEndOnStripe?: number | null | undefined;
       status?: Stripe.Subscription.Status | undefined;
-    }) => void;
 
-    const setup: SetupFunction = (options?: {
-      trialEndOnStripe?: number | null | undefined;
-      status?: Stripe.Subscription.Status | undefined;
-    }): void => {
+      /*
+       * The metered subscription defaults to the same shape as the flat-fee
+       * one, which is how a real project's pair looks - they are created
+       * together and their trials move together.
+       */
+      meteredStatus?: Stripe.Subscription.Status | undefined;
+      meteredTrialEndOnStripe?: number | null | undefined;
+
+      // An empty array stands for a subscription with nothing to swap a price onto.
+      subscriptionItems?: Array<{ id: string }> | undefined;
+    }
+
+    type SetupFunction = (options?: SetupOptions) => void;
+
+    const setup: SetupFunction = (options?: SetupOptions): void => {
       mockStripe.subscriptions.retrieve =
-        getJestMockFunction().mockResolvedValue(
-          getStripeSubscription({
-            id: SUBSCRIPTION_ID,
-            status: options?.status || "trialing",
-            trialEnd: options?.trialEndOnStripe ?? null,
-            customer: CUSTOMER_ID,
-          }),
+        getJestMockFunction().mockImplementation(
+          (subscriptionId: string): Promise<Stripe.Subscription> => {
+            if (subscriptionId === METERED_SUBSCRIPTION_ID) {
+              return Promise.resolve(
+                getStripeSubscription({
+                  id: METERED_SUBSCRIPTION_ID,
+                  status:
+                    options?.meteredStatus || options?.status || "trialing",
+                  trialEnd:
+                    options?.meteredTrialEndOnStripe ??
+                    options?.trialEndOnStripe ??
+                    null,
+                  customer: CUSTOMER_ID,
+                }),
+              );
+            }
+
+            return Promise.resolve(
+              getStripeSubscription({
+                id: SUBSCRIPTION_ID,
+                status: options?.status || "trialing",
+                trialEnd: options?.trialEndOnStripe ?? null,
+                customer: CUSTOMER_ID,
+                itemId: SUBSCRIPTION_ITEM_ID,
+                items: options?.subscriptionItems,
+              }),
+            );
+          },
         );
+
+      mockStripe.subscriptions.update = getJestMockFunction().mockResolvedValue(
+        {},
+      );
 
       mockStripe.subscriptions.del = getJestMockFunction().mockResolvedValue(
         {},
@@ -379,6 +440,25 @@ describe("BillingService - plan changes during trial", () => {
 
       billingService.getPaymentMethods =
         getJestMockFunction().mockResolvedValue(paymentMethods);
+    };
+
+    type UpdateCallParamsFunction = (
+      subscriptionId: string,
+    ) => Stripe.SubscriptionUpdateParams | undefined;
+
+    // What was sent to update a given subscription, or undefined if it was left alone.
+    const updateCallParams: UpdateCallParamsFunction = (
+      subscriptionId: string,
+    ): Stripe.SubscriptionUpdateParams | undefined => {
+      const call: Array<unknown> | undefined = (
+        mockStripe.subscriptions.update as unknown as {
+          mock: { calls: Array<Array<unknown>> };
+        }
+      ).mock.calls.find((call: Array<unknown>) => {
+        return call[0] === subscriptionId;
+      });
+
+      return call?.[1] as Stripe.SubscriptionUpdateParams | undefined;
     };
 
     type ChangePlanFunction = (data?: {
@@ -410,174 +490,331 @@ describe("BillingService - plan changes during trial", () => {
       });
     };
 
-    it("should not charge a project that upgrades mid-trial to a plan with no trial period", async () => {
-      /*
-       * The exact scenario from the bug report, end to end through changePlan:
-       * trialing on Growth with nine days left, owner picks Scale. Both
-       * replacement subscriptions must be created still trialing.
-       */
-      const runningTrialEndsAt: Date = OneUptimeDate.getSomeDaysAfter(9);
-      setup();
+    describe("changing the plan", () => {
+      it("should put the new plan's price on the subscription the project already has", async () => {
+        setup({ status: "active" });
 
-      const result: {
-        subscriptionId: string;
-        meteredSubscriptionId: string;
-        trialEndsAt?: Date | undefined;
-      } = await changePlan({ endTrialAt: runningTrialEndsAt });
+        const result: {
+          subscriptionId: string;
+          meteredSubscriptionId: string;
+          trialEndsAt?: Date | undefined;
+        } = await changePlan();
 
-      expect(createCallParams(1).trial_end).toBe(
-        OneUptimeDate.toUnixTimestamp(runningTrialEndsAt),
-      );
-      expect(createCallParams(2).trial_end).toBe(
-        OneUptimeDate.toUnixTimestamp(runningTrialEndsAt),
-      );
-      expect(result.trialEndsAt).toEqual(runningTrialEndsAt);
-    });
+        expect(updateCallParams(SUBSCRIPTION_ID)?.items).toEqual([
+          {
+            id: SUBSCRIPTION_ITEM_ID,
+            price: "price_monthly_scale",
+            quantity: 3,
+          },
+        ]);
 
-    it("should not charge a project that downgrades mid-trial", async () => {
-      // A downgrade is the same operation; nothing about it ends the trial.
-      const runningTrialEndsAt: Date = OneUptimeDate.getSomeDaysAfter(4);
-      const basicPlan: SubscriptionPlan = getSubscriptionPlanWithTrialPeriod(
-        0,
-        {
-          name: "Free",
-          monthlyPlanId: "price_monthly_basic",
-          yearlyPlanId: "price_yearly_basic",
-        },
-      );
-      setup();
-
-      await changePlan({
-        endTrialAt: runningTrialEndsAt,
-        newPlan: basicPlan,
+        // The same subscription, so the project's ids do not move.
+        expect(result.subscriptionId).toBe(SUBSCRIPTION_ID);
+        expect(result.meteredSubscriptionId).toBe(METERED_SUBSCRIPTION_ID);
       });
 
-      expect(createCallParams(1).trial_end).toBe(
-        OneUptimeDate.toUnixTimestamp(runningTrialEndsAt),
-      );
-      expect(createCallParams(1).items).toEqual([
-        { price: "price_monthly_basic", quantity: 3 },
-      ]);
+      it("should send the id of the item it is replacing", async () => {
+        /*
+         * Without the existing item's id Stripe ADDS the new price alongside
+         * the old one instead of swapping it, and the customer is billed for
+         * both plans at once.
+         */
+        setup({ status: "active" });
+
+        await changePlan();
+
+        const items: Stripe.SubscriptionUpdateParams["items"] =
+          updateCallParams(SUBSCRIPTION_ID)?.items;
+
+        expect(items).toHaveLength(1);
+        expect(items?.[0]?.id).toBe(SUBSCRIPTION_ITEM_ID);
+      });
+
+      it("should downgrade the same way it upgrades", async () => {
+        const basicPlan: SubscriptionPlan = getSubscriptionPlanWithTrialPeriod(
+          0,
+          {
+            name: "Free",
+            monthlyPlanId: "price_monthly_basic",
+            yearlyPlanId: "price_yearly_basic",
+          },
+        );
+        setup({ status: "active" });
+
+        await changePlan({ newPlan: basicPlan });
+
+        expect(updateCallParams(SUBSCRIPTION_ID)?.items).toEqual([
+          {
+            id: SUBSCRIPTION_ITEM_ID,
+            price: "price_monthly_basic",
+            quantity: 3,
+          },
+        ]);
+      });
+
+      it("should not cancel or recreate anything", async () => {
+        /*
+         * Cancel-then-create is not atomic - a failure between the two leaves
+         * the project with no subscription at all - and it throws away the
+         * billing cycle anchor, discounts and reported usage on the way.
+         */
+        setup({ status: "active" });
+
+        await changePlan();
+
+        expect(mockStripe.subscriptions.del).not.toHaveBeenCalled();
+        expect(mockStripe.subscriptions.create).not.toHaveBeenCalled();
+      });
+
+      it("should leave the metered subscription completely alone", async () => {
+        /*
+         * Its items come from the metered plans' own price ids, which have
+         * nothing to do with the plan being changed. Rebuilding it would throw
+         * away the usage already reported against it for the period.
+         */
+        const trialOnStripe: Date = stripeTrial(9);
+        setup({
+          trialEndOnStripe: OneUptimeDate.toUnixTimestamp(trialOnStripe),
+        });
+
+        await changePlan({ endTrialAt: trialOnStripe });
+
+        expect(updateCallParams(METERED_SUBSCRIPTION_ID)).toBeUndefined();
+      });
+
+      it("should never raise an invoice on the spot", async () => {
+        /*
+         * "always_invoice" bills the change immediately. Prorations are
+         * recorded and settle on the customer's next invoice instead.
+         */
+        setup({ status: "active" });
+
+        await changePlan();
+
+        expect(updateCallParams(SUBSCRIPTION_ID)?.proration_behavior).toBe(
+          "create_prorations",
+        );
+      });
     });
 
-    it("should fall back to the trial the payment provider reports when the caller passes none", async () => {
-      /*
-       * The payment provider is the source of truth for what the customer is
-       * actually trialing on. A caller that does not pass endTrialAt - or one
-       * holding a project row written before an admin extended the trial -
-       * must not be able to cut that trial short.
-       */
-      const trialOnStripe: Date = stripeTrial(6);
-      setup({ trialEndOnStripe: OneUptimeDate.toUnixTimestamp(trialOnStripe) });
+    describe("keeping a running trial", () => {
+      it("should not charge a project that upgrades mid-trial to a plan with no trial period", async () => {
+        /*
+         * The exact scenario from the bug report: trialing on Growth with nine
+         * days left, owner picks Scale, which is configured with 0 trial days.
+         *
+         * Leaving trial_end out of the update is what keeps the subscription
+         * trialing. Sending one - even the same date - re-anchors the billing
+         * cycle to it, and sending "now" ends the trial and invoices the full
+         * plan on the spot, which is the charge customers reported.
+         */
+        const trialOnStripe: Date = stripeTrial(9);
+        setup({
+          trialEndOnStripe: OneUptimeDate.toUnixTimestamp(trialOnStripe),
+        });
 
-      const result: {
-        subscriptionId: string;
-        meteredSubscriptionId: string;
-        trialEndsAt?: Date | undefined;
-      } = await changePlan({ endTrialAt: undefined });
+        const result: {
+          subscriptionId: string;
+          meteredSubscriptionId: string;
+          trialEndsAt?: Date | undefined;
+        } = await changePlan({ endTrialAt: trialOnStripe });
 
-      expect(createCallParams(1).trial_end).toBe(
-        OneUptimeDate.toUnixTimestamp(trialOnStripe),
-      );
-      expect(createCallParams(2).trial_end).toBe(
-        OneUptimeDate.toUnixTimestamp(trialOnStripe),
-      );
-      expect(result.trialEndsAt).toEqual(trialOnStripe);
+        const params: Stripe.SubscriptionUpdateParams | undefined =
+          updateCallParams(SUBSCRIPTION_ID);
+
+        expect(params).toBeDefined();
+        expect(params).not.toHaveProperty("trial_end");
+        expect(params).not.toHaveProperty("billing_cycle_anchor");
+        expect(result.trialEndsAt).toEqual(trialOnStripe);
+      });
+
+      it("should not prorate a change made during a trial", async () => {
+        // There is nothing to prorate while the plan is not being billed.
+        const trialOnStripe: Date = stripeTrial(9);
+        setup({
+          trialEndOnStripe: OneUptimeDate.toUnixTimestamp(trialOnStripe),
+        });
+
+        await changePlan({ endTrialAt: trialOnStripe });
+
+        expect(updateCallParams(SUBSCRIPTION_ID)?.proration_behavior).toBe(
+          "none",
+        );
+      });
+
+      it("should report the trial the payment provider reports when the caller passes none", async () => {
+        /*
+         * The payment provider is the source of truth for what the customer is
+         * actually trialing on. A caller that does not pass endTrialAt - or one
+         * holding a project row written before an admin extended the trial -
+         * must not be able to cut that trial short.
+         */
+        const trialOnStripe: Date = stripeTrial(6);
+        setup({
+          trialEndOnStripe: OneUptimeDate.toUnixTimestamp(trialOnStripe),
+        });
+
+        const result: {
+          subscriptionId: string;
+          meteredSubscriptionId: string;
+          trialEndsAt?: Date | undefined;
+        } = await changePlan({ endTrialAt: undefined });
+
+        expect(updateCallParams(SUBSCRIPTION_ID)).not.toHaveProperty(
+          "trial_end",
+        );
+        expect(result.trialEndsAt).toEqual(trialOnStripe);
+      });
+
+      it("should keep the trial the payment provider reports when the caller is behind it", async () => {
+        const trialOnStripe: Date = stripeTrial(20);
+        const staleTrialFromCaller: Date = OneUptimeDate.getSomeDaysAfter(3);
+        setup({
+          trialEndOnStripe: OneUptimeDate.toUnixTimestamp(trialOnStripe),
+        });
+
+        const result: {
+          subscriptionId: string;
+          meteredSubscriptionId: string;
+          trialEndsAt?: Date | undefined;
+        } = await changePlan({ endTrialAt: staleTrialFromCaller });
+
+        expect(updateCallParams(SUBSCRIPTION_ID)).not.toHaveProperty(
+          "trial_end",
+        );
+        expect(result.trialEndsAt).toEqual(trialOnStripe);
+      });
+
+      it("should push a trial forward when the caller is ahead of the payment provider", async () => {
+        /*
+         * The other direction, and the one case where trial_end is sent: an
+         * extension recorded on the project but not yet pushed to the payment
+         * provider is still a trial the customer was promised. The date
+         * returned here is written back onto the project row, so the row and
+         * the payment provider have to end up agreeing.
+         */
+        const trialOnStripe: Date = stripeTrial(3);
+        const extendedTrial: Date = OneUptimeDate.getSomeDaysAfter(20);
+        setup({
+          trialEndOnStripe: OneUptimeDate.toUnixTimestamp(trialOnStripe),
+        });
+
+        const result: {
+          subscriptionId: string;
+          meteredSubscriptionId: string;
+          trialEndsAt?: Date | undefined;
+        } = await changePlan({ endTrialAt: extendedTrial });
+
+        expect(updateCallParams(SUBSCRIPTION_ID)?.trial_end).toBe(
+          OneUptimeDate.toUnixTimestamp(extendedTrial),
+        );
+        expect(result.trialEndsAt).toEqual(extendedTrial);
+      });
+
+      it("should push the same trial onto the metered subscription", async () => {
+        /*
+         * The two subscriptions bill the same customer for the same project.
+         * If only one of them trials, the other starts invoicing usage while
+         * the customer still believes they are on trial.
+         */
+        const trialOnStripe: Date = stripeTrial(3);
+        const extendedTrial: Date = OneUptimeDate.getSomeDaysAfter(20);
+        setup({
+          trialEndOnStripe: OneUptimeDate.toUnixTimestamp(trialOnStripe),
+        });
+
+        await changePlan({ endTrialAt: extendedTrial });
+
+        expect(updateCallParams(METERED_SUBSCRIPTION_ID)).toEqual({
+          trial_end: OneUptimeDate.toUnixTimestamp(extendedTrial),
+          proration_behavior: "none",
+        });
+      });
+
+      it("should carry a trial that is only minutes away from ending", async () => {
+        // A trial is live right up to its last second; it is not rounded away.
+        const almostOver: Date = OneUptimeDate.addRemoveMinutes(
+          OneUptimeDate.getCurrentDate(),
+          5,
+        );
+        setup({
+          trialEndOnStripe: OneUptimeDate.toUnixTimestamp(almostOver),
+        });
+
+        const result: {
+          subscriptionId: string;
+          meteredSubscriptionId: string;
+          trialEndsAt?: Date | undefined;
+        } = await changePlan({ endTrialAt: undefined });
+
+        expect(updateCallParams(SUBSCRIPTION_ID)?.proration_behavior).toBe(
+          "none",
+        );
+        expect(result.trialEndsAt).toBeDefined();
+      });
     });
 
-    it("should keep the longer trial when the payment provider is ahead of the caller", async () => {
-      const trialOnStripe: Date = stripeTrial(20);
-      const staleTrialFromCaller: Date = OneUptimeDate.getSomeDaysAfter(3);
-      setup({ trialEndOnStripe: OneUptimeDate.toUnixTimestamp(trialOnStripe) });
+    describe("changing plan off a trial that is over", () => {
+      it("should not revive a trial the payment provider reports as lapsed", async () => {
+        setup({
+          status: "active",
+          trialEndOnStripe: OneUptimeDate.toUnixTimestamp(pastDate(5)),
+        });
 
-      await changePlan({ endTrialAt: staleTrialFromCaller });
+        const result: {
+          subscriptionId: string;
+          meteredSubscriptionId: string;
+          trialEndsAt?: Date | undefined;
+        } = await changePlan({ endTrialAt: undefined });
 
-      expect(createCallParams(1).trial_end).toBe(
-        OneUptimeDate.toUnixTimestamp(trialOnStripe),
-      );
-    });
+        expect(result.trialEndsAt).toBeUndefined();
+        expect(updateCallParams(METERED_SUBSCRIPTION_ID)).toBeUndefined();
+      });
 
-    it("should keep the longer trial when the caller is ahead of the payment provider", async () => {
-      /*
-       * The other direction: an extension recorded on the project but not yet
-       * pushed to the payment provider is still a trial the customer was
-       * promised, so it wins.
-       */
-      const trialOnStripe: Date = stripeTrial(3);
-      const extendedTrial: Date = OneUptimeDate.getSomeDaysAfter(20);
-      setup({ trialEndOnStripe: OneUptimeDate.toUnixTimestamp(trialOnStripe) });
+      it("should not revive a trial the caller reports as lapsed", async () => {
+        setup({ status: "active" });
 
-      await changePlan({ endTrialAt: extendedTrial });
+        const result: {
+          subscriptionId: string;
+          meteredSubscriptionId: string;
+          trialEndsAt?: Date | undefined;
+        } = await changePlan({ endTrialAt: pastDate(5) });
 
-      expect(createCallParams(1).trial_end).toBe(
-        OneUptimeDate.toUnixTimestamp(extendedTrial),
-      );
-    });
+        expect(result.trialEndsAt).toBeUndefined();
+      });
 
-    it("should read the trial off the old subscription before cancelling it", async () => {
-      /*
-       * Ordering matters: the old subscription is deleted, and a deleted
-       * subscription cannot be asked what trial it had. Retrieve has to happen
-       * first or the fallback above silently reads nothing.
-       */
-      const trialOnStripe: Date = stripeTrial(6);
-      setup({ trialEndOnStripe: OneUptimeDate.toUnixTimestamp(trialOnStripe) });
+      it("should never end a trial by sending trial_end now", async () => {
+        /*
+         * A lapsed trial is Stripe's to close, and it already has. Sending
+         * "now" here would re-anchor the billing cycle and invoice the plan
+         * immediately - the surprise charge, arriving by another route.
+         */
+        setup({
+          status: "active",
+          trialEndOnStripe: OneUptimeDate.toUnixTimestamp(pastDate(5)),
+        });
 
-      await changePlan({ endTrialAt: undefined });
+        await changePlan({ endTrialAt: pastDate(1) });
 
-      const retrieveOrder: number = (
-        mockStripe.subscriptions.retrieve as unknown as {
-          mock: { invocationCallOrder: Array<number> };
-        }
-      ).mock.invocationCallOrder[0]!;
+        expect(updateCallParams(SUBSCRIPTION_ID)).not.toHaveProperty(
+          "trial_end",
+        );
+      });
 
-      const firstDeleteOrder: number = (
-        mockStripe.subscriptions.del as unknown as {
-          mock: { invocationCallOrder: Array<number> };
-        }
-      ).mock.invocationCallOrder[0]!;
+      it("should charge from now when there is no trial anywhere", async () => {
+        setup({ status: "active" });
 
-      expect(retrieveOrder).toBeLessThan(firstDeleteOrder);
-    });
+        const result: {
+          subscriptionId: string;
+          meteredSubscriptionId: string;
+          trialEndsAt?: Date | undefined;
+        } = await changePlan({ endTrialAt: undefined });
 
-    it("should charge from now when the trial reported by the payment provider has lapsed", async () => {
-      setup({ trialEndOnStripe: OneUptimeDate.toUnixTimestamp(pastDate(5)) });
-
-      const result: {
-        subscriptionId: string;
-        meteredSubscriptionId: string;
-        trialEndsAt?: Date | undefined;
-      } = await changePlan({ endTrialAt: undefined });
-
-      expect(createCallParams(1).trial_end).toBe("now");
-      expect(createCallParams(2).trial_end).toBe("now");
-      expect(result.trialEndsAt).toBeUndefined();
-    });
-
-    it("should charge from now when the caller's trial has lapsed and the payment provider reports none", async () => {
-      setup();
-
-      const result: {
-        subscriptionId: string;
-        meteredSubscriptionId: string;
-        trialEndsAt?: Date | undefined;
-      } = await changePlan({ endTrialAt: pastDate(5) });
-
-      expect(createCallParams(1).trial_end).toBe("now");
-      expect(result.trialEndsAt).toBeUndefined();
-    });
-
-    it("should charge from now when there is no trial anywhere", async () => {
-      setup({ status: "active" });
-
-      const result: {
-        subscriptionId: string;
-        meteredSubscriptionId: string;
-        trialEndsAt?: Date | undefined;
-      } = await changePlan({ endTrialAt: undefined });
-
-      expect(createCallParams(1).trial_end).toBe("now");
-      expect(result.trialEndsAt).toBeUndefined();
+        expect(updateCallParams(SUBSCRIPTION_ID)?.proration_behavior).toBe(
+          "create_prorations",
+        );
+        expect(result.trialEndsAt).toBeUndefined();
+      });
     });
 
     it("should not mutate the caller's arguments while resolving the trial", async () => {
@@ -616,34 +853,120 @@ describe("BillingService - plan changes during trial", () => {
       expect(data.endTrialAt).toBe(originalEndTrialAt);
     });
 
-    it("should still cancel both of the old subscriptions", async () => {
-      // The trial resolution moved above the cancels; they must still happen.
-      setup({
-        trialEndOnStripe: OneUptimeDate.toUnixTimestamp(
-          OneUptimeDate.getSomeDaysAfter(6),
-        ),
+    /*
+     * A subscription an update cannot fix still has to be replaced. This is
+     * how reactiveSubscription puts a project back on its plan once payment
+     * recovers, and it is the only caller that lands here.
+     */
+    describe("subscriptions that cannot be updated", () => {
+      it("should build replacements when the project's subscription is cancelled", async () => {
+        setup({ status: "canceled" });
+
+        const result: {
+          subscriptionId: string;
+          meteredSubscriptionId: string;
+          trialEndsAt?: Date | undefined;
+        } = await changePlan();
+
+        expect(createCallParams(1).items).toEqual([
+          { price: "price_monthly_scale", quantity: 3 },
+        ]);
+        expect(result.subscriptionId).toBe("sub_main_new");
+        expect(result.meteredSubscriptionId).toBe("sub_metered_new");
+        expect(mockStripe.subscriptions.update).not.toHaveBeenCalled();
       });
 
-      await changePlan({ endTrialAt: undefined });
+      it("should build replacements when only the metered subscription is dead", async () => {
+        /*
+         * Leaving a cancelled metered subscription in place would put the
+         * project back on its plan while its usage silently stops being
+         * billed, and reactivation would have to run again.
+         */
+        setup({ status: "active", meteredStatus: "canceled" });
 
-      expect(mockStripe.subscriptions.del).toHaveBeenCalledWith(
-        SUBSCRIPTION_ID,
-      );
-      expect(mockStripe.subscriptions.del).toHaveBeenCalledWith(
-        METERED_SUBSCRIPTION_ID,
-      );
-    });
+        await changePlan();
 
-    it("should put the new plan's price on the replacement subscription", async () => {
-      // The trial is preserved, but the plan really does change.
-      const runningTrialEndsAt: Date = OneUptimeDate.getSomeDaysAfter(9);
-      setup();
+        expect(mockStripe.subscriptions.create).toHaveBeenCalledTimes(2);
+        expect(mockStripe.subscriptions.update).not.toHaveBeenCalled();
+      });
 
-      await changePlan({ endTrialAt: runningTrialEndsAt });
+      it("should build replacements when there is no item to swap a price onto", async () => {
+        setup({ status: "active", subscriptionItems: [] });
 
-      expect(createCallParams(1).items).toEqual([
-        { price: "price_monthly_scale", quantity: 3 },
-      ]);
+        await changePlan();
+
+        expect(mockStripe.subscriptions.create).toHaveBeenCalled();
+        expect(mockStripe.subscriptions.update).not.toHaveBeenCalled();
+      });
+
+      it("should carry a running trial onto the replacements", async () => {
+        const runningTrialEndsAt: Date = OneUptimeDate.getSomeDaysAfter(9);
+        setup({ status: "canceled" });
+
+        const result: {
+          subscriptionId: string;
+          meteredSubscriptionId: string;
+          trialEndsAt?: Date | undefined;
+        } = await changePlan({ endTrialAt: runningTrialEndsAt });
+
+        expect(createCallParams(1).trial_end).toBe(
+          OneUptimeDate.toUnixTimestamp(runningTrialEndsAt),
+        );
+        expect(createCallParams(2).trial_end).toBe(
+          OneUptimeDate.toUnixTimestamp(runningTrialEndsAt),
+        );
+        expect(result.trialEndsAt).toEqual(runningTrialEndsAt);
+      });
+
+      it("should create the replacements before cancelling the old subscriptions", async () => {
+        /*
+         * The two are not atomic. Creating first means a failure in between
+         * leaves the project on the subscriptions it had; cancelling first
+         * left it with none at all.
+         */
+        setup({ status: "canceled" });
+
+        await changePlan();
+
+        expect(firstCallOrder(mockStripe.subscriptions.create)).toBeLessThan(
+          firstCallOrder(mockStripe.subscriptions.del),
+        );
+      });
+
+      it("should still cancel both of the old subscriptions", async () => {
+        setup({ status: "canceled" });
+
+        await changePlan();
+
+        expect(mockStripe.subscriptions.del).toHaveBeenCalledWith(
+          SUBSCRIPTION_ID,
+        );
+        expect(mockStripe.subscriptions.del).toHaveBeenCalledWith(
+          METERED_SUBSCRIPTION_ID,
+        );
+      });
+
+      it("should read the trial off the old subscription before cancelling it", async () => {
+        /*
+         * Ordering matters: a deleted subscription cannot be asked what trial
+         * it had. Retrieve has to happen first or the fallback silently reads
+         * nothing.
+         */
+        const trialOnStripe: Date = stripeTrial(6);
+        setup({
+          status: "canceled",
+          trialEndOnStripe: OneUptimeDate.toUnixTimestamp(trialOnStripe),
+        });
+
+        await changePlan({ endTrialAt: undefined });
+
+        expect(firstCallOrder(mockStripe.subscriptions.retrieve)).toBeLessThan(
+          firstCallOrder(mockStripe.subscriptions.del),
+        );
+        expect(createCallParams(1).trial_end).toBe(
+          OneUptimeDate.toUnixTimestamp(trialOnStripe),
+        );
+      });
     });
   });
 });
