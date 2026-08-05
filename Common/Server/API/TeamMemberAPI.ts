@@ -1,3 +1,4 @@
+import CommonAPI from "./CommonAPI";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import ProjectSCIMService from "../Services/ProjectSCIMService";
 import TeamMemberService, {
@@ -12,6 +13,9 @@ import {
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import Query from "../../Types/BaseDatabase/Query";
+import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import Email from "../../Types/Email";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
@@ -70,6 +74,87 @@ export default class TeamMemberAPI extends BaseAPI<
 
           return Response.sendJsonObjectResponse(req, res, {
             isRegistered: Boolean(user),
+          });
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+
+    /*
+     * Removes one user from the current project - every team they belong to in
+     * it - in a single call.
+     *
+     * The Users table lists people rather than memberships, so "remove" there
+     * means "remove from the project". Doing that as N separate DELETEs from
+     * the browser is not equivalent: TeamMemberService.onBeforeDelete rejects
+     * the removal of the last accepted member of a team that
+     * `shouldHaveAtLeastOneMember` (the Owners team), and it rejects it per
+     * request - so a client-side loop deletes every other membership first and
+     * only then hits the guard, leaving the user stripped of the teams the
+     * caller was told they had not been removed from. One deleteBy over the
+     * whole set runs that guard against all of the user's memberships before
+     * anything is deleted, so the removal either happens or it does not.
+     *
+     * The project is taken from the request's tenant, never from the body, and
+     * the delete runs with the caller's own permissions - so this grants
+     * nothing that DELETE /team-member/:id did not already grant.
+     */
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/remove-user-from-project`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const oneUptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
+
+          if (!oneUptimeRequest.userAuthorization?.userId) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new NotAuthorizedException("Not authenticated"),
+            );
+          }
+
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          const projectId: ObjectID | undefined = props.tenantId;
+
+          if (!projectId) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Project ID is required"),
+            );
+          }
+
+          const userIdParam: string = (
+            (req.body?.["userId"] as string) || ""
+          ).trim();
+
+          if (!userIdParam) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("User ID is required"),
+            );
+          }
+
+          ObjectID.validateUUID(userIdParam);
+
+          const numberOfMembershipsDeleted: number =
+            await this.service.deleteBy({
+              query: {
+                userId: new ObjectID(userIdParam),
+                projectId: projectId,
+              } as Query<TeamMember>,
+              limit: LIMIT_PER_PROJECT,
+              skip: 0,
+              props: props,
+            });
+
+          return Response.sendJsonObjectResponse(req, res, {
+            numberOfMembershipsDeleted: numberOfMembershipsDeleted,
           });
         } catch (err) {
           return next(err);
