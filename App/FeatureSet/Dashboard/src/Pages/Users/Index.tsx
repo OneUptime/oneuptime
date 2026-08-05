@@ -325,6 +325,21 @@ const Users: FunctionComponent<PageComponentProps> = (
 
               return <TeamsElement teams={teams} />;
             },
+            /*
+             * Without this the CSV exporter falls back to the column's `field`
+             * and writes `item.team` - the one membership the row was built
+             * from - so the export would disagree with the cell next to it.
+             */
+            getExportValue: (item: TeamMember): string => {
+              return ((item as ProjectUserRow).teamsForUser || [])
+                .map((team: Team) => {
+                  return team.name?.toString() || "";
+                })
+                .filter((name: string) => {
+                  return Boolean(name);
+                })
+                .join("; ");
+            },
           },
           {
             field: {
@@ -332,6 +347,14 @@ const Users: FunctionComponent<PageComponentProps> = (
             },
             title: "Status",
             type: FieldType.Element,
+            /*
+             * A grouped row's status is derived ("accepted at least one"), so
+             * the server cannot order by it: it would sort the memberships,
+             * and a user with one accepted and one pending membership would
+             * land in the pending block while rendering as a Member. Better no
+             * sort control than one that visibly does not sort.
+             */
+            disableSort: true,
             getElement: (item: TeamMember) => {
               if (!item.hasAcceptedInvitation) {
                 return <Pill text="Invitation Sent" color={Yellow} />;

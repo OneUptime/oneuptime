@@ -10,6 +10,7 @@
   },
   "modulePathIgnorePatterns": ["<rootDir>/build/dist"],
   "moduleNameMapper": {
+    "\\.(svg|png|jpg|jpeg|gif|webp)$": "<rootDir>/Tests/__mocks__/styleMock.js",
     "Common/(.*)": "<rootDir>/$1",
     "\\.(css|less|scss|sass)$": "<rootDir>/Tests/__mocks__/styleMock.js",
     "^uuid$": "<rootDir>/Tests/__mocks__/uuid.js",
@@ -25,6 +26,7 @@
     "^react$": "<rootDir>/node_modules/react",
     "^react-dom$": "<rootDir>/node_modules/react-dom",
     "^react-dom/(.*)$": "<rootDir>/node_modules/react-dom/$1",
+    "^react-router-dom$": "<rootDir>/node_modules/react-router-dom",
     "^react-markdown$": "<rootDir>/Tests/__mocks__/react-markdown.js",
     "^remark-gfm$": "<rootDir>/Tests/__mocks__/remark-gfm.js",
     "^react-syntax-highlighter$": "<rootDir>/Tests/__mocks__/react-syntax-highlighter.js",

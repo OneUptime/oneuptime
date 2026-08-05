@@ -9,6 +9,11 @@ import {
 import ModelAPI, { ListResult } from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUsersModelAPI from "../../../UI/Utils/ModelAPI/ProjectUsersModelAPI";
 import { ProjectUserRow } from "../../../UI/Utils/TeamMembersByUser";
+import API from "../../../UI/Utils/API/API";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
+import HTTPResponse from "../../../Types/API/HTTPResponse";
+import { JSONObject } from "../../../Types/JSON";
+import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import Project from "../../../Models/DatabaseModels/Project";
 import Team from "../../../Models/DatabaseModels/Team";
 import TeamMember from "../../../Models/DatabaseModels/TeamMember";
@@ -112,7 +117,9 @@ interface Spy {
 }
 
 let getListSpy: Spy;
+let getItemSpy: Spy;
 let deleteItemSpy: Spy;
+let postSpy: Spy;
 
 const getListCallArgs: (callIndex: number) => GetListArgs = (
   callIndex: number,
@@ -120,13 +127,44 @@ const getListCallArgs: (callIndex: number) => GetListArgs = (
   return getListSpy.mock.calls[callIndex]![0] as GetListArgs;
 };
 
+const postCallArgs: (callIndex: number) => {
+  url: { toString: () => string };
+  data: Record<string, unknown>;
+  headers?: Record<string, string> | undefined;
+} = (
+  callIndex: number,
+): {
+  url: { toString: () => string };
+  data: Record<string, unknown>;
+  headers?: Record<string, string> | undefined;
+} => {
+  return postSpy.mock.calls[callIndex]![0] as {
+    url: { toString: () => string };
+    data: Record<string, unknown>;
+    headers?: Record<string, string> | undefined;
+  };
+};
+
 beforeEach(() => {
   getListSpy = jest.spyOn(ModelAPI, "getList") as unknown as Spy;
+  getItemSpy = jest.spyOn(ModelAPI, "getItem") as unknown as Spy;
   deleteItemSpy = (
     jest.spyOn(ModelAPI, "deleteItem") as unknown as Spy
   ).mockImplementation(async () => {
     return undefined;
   });
+  postSpy = (jest.spyOn(API, "post") as unknown as Spy).mockImplementation(
+    async () => {
+      return new HTTPResponse<JSONObject>(
+        200,
+        { numberOfMembershipsDeleted: 3 },
+        {},
+      );
+    },
+  );
+  jest
+    .spyOn(ModelAPI, "getCommonHeaders")
+    .mockReturnValue({ tenantid: PROJECT_ID.toString() });
 });
 
 afterEach(() => {
@@ -480,66 +518,117 @@ describe("ProjectUsersModelAPI.getList", () => {
 });
 
 describe("ProjectUsersModelAPI.deleteItem", () => {
-  it("removes every membership the user has in the project, not just the row's own", async () => {
-    getListSpy
-      .mockResolvedValueOnce(
-        asListResult([
-          buildMembership({ id: "m1", userId: "u1", teamId: "t1" }),
-        ]) as never,
-      )
-      .mockResolvedValueOnce(
-        asListResult([
-          buildMembership({ id: "m1", userId: "u1", teamId: "t1" }),
-          buildMembership({ id: "m2", userId: "u1", teamId: "t2" }),
-          buildMembership({ id: "m3", userId: "u1", teamId: "t3" }),
-        ]) as never,
-      );
+  /*
+   * The whole point of routing this through one endpoint is atomicity. The
+   * server refuses to remove the last accepted member of the Owners team, and
+   * it refuses per request - so a DELETE-per-membership loop destroys every
+   * other team first and only then reports the failure, leaving the person
+   * stripped of teams the admin was just told they had not lost. These tests
+   * pin "one request, and never a per-membership fan-out".
+   */
+  it("removes the user from the project in a single request", async () => {
+    getItemSpy.mockResolvedValue(
+      buildMembership({ id: "m1", userId: "u1", teamId: "t1" }) as never,
+    );
 
     await ProjectUsersModelAPI.deleteItem<TeamMember>({
       modelType: TeamMember,
       id: new ObjectID("m1"),
     });
 
-    expect(deleteItemSpy).toHaveBeenCalledTimes(3);
-    expect(
-      deleteItemSpy.mock.calls.map((call: Array<unknown>) => {
-        return (call[0] as { id: ObjectID }).id.toString();
-      }),
-    ).toEqual(["m1", "m2", "m3"]);
+    expect(postSpy.mock.calls).toHaveLength(1);
+    expect(postCallArgs(0).url.toString()).toContain(
+      "/team-member/remove-user-from-project",
+    );
+    expect(postCallArgs(0).data).toEqual({ userId: "u1" });
   });
 
-  it("looks up the siblings by the row's user and project", async () => {
-    getListSpy
-      .mockResolvedValueOnce(
-        asListResult([
-          buildMembership({ id: "m1", userId: "u1", teamId: "t1" }),
-        ]) as never,
-      )
-      .mockResolvedValueOnce(asListResult([]) as never);
+  it("never issues a delete per membership", async () => {
+    getItemSpy.mockResolvedValue(
+      buildMembership({ id: "m1", userId: "u1", teamId: "t1" }) as never,
+    );
 
     await ProjectUsersModelAPI.deleteItem<TeamMember>({
       modelType: TeamMember,
       id: new ObjectID("m1"),
     });
 
-    const siblingQuery: Record<string, unknown> = getListCallArgs(1)
-      .query as unknown as Record<string, unknown>;
+    expect(deleteItemSpy.mock.calls).toHaveLength(0);
+    // No sibling enumeration either - the server resolves the set itself.
+    expect(getListSpy.mock.calls).toHaveLength(0);
+  });
 
-    expect((siblingQuery["userId"] as ObjectID).toString()).toBe("u1");
-    expect((siblingQuery["projectId"] as ObjectID).toString()).toBe(
-      PROJECT_ID.toString(),
+  it("resolves the person from the row it was handed", async () => {
+    getItemSpy.mockResolvedValue(
+      buildMembership({ id: "m1", userId: "u1", teamId: "t1" }) as never,
     );
+
+    await ProjectUsersModelAPI.deleteItem<TeamMember>({
+      modelType: TeamMember,
+      id: new ObjectID("m1"),
+    });
+
+    const lookup: { id: ObjectID; select: Record<string, unknown> } = getItemSpy
+      .mock.calls[0]![0] as { id: ObjectID; select: Record<string, unknown> };
+
+    expect(lookup.id.toString()).toBe("m1");
+    expect(lookup.select["userId"]).toBe(true);
+  });
+
+  it("sends the tenant headers so the server scopes the removal to this project", async () => {
+    getItemSpy.mockResolvedValue(
+      buildMembership({ id: "m1", userId: "u1", teamId: "t1" }) as never,
+    );
+
+    await ProjectUsersModelAPI.deleteItem<TeamMember>({
+      modelType: TeamMember,
+      id: new ObjectID("m1"),
+    });
+
+    expect(postCallArgs(0).headers).toEqual({
+      tenantid: PROJECT_ID.toString(),
+    });
+  });
+
+  it("throws when the server rejects the removal, so the table reports the failure", async () => {
+    getItemSpy.mockResolvedValue(
+      buildMembership({ id: "m1", userId: "u1", teamId: "t1" }) as never,
+    );
+
+    const rejection: HTTPErrorResponse = new HTTPErrorResponse(
+      400,
+      {
+        message:
+          "This team should have at least 1 member who has accepted the invitation.",
+      },
+      {},
+    );
+
+    postSpy.mockImplementation(async () => {
+      return rejection;
+    });
+
+    await expect(
+      ProjectUsersModelAPI.deleteItem<TeamMember>({
+        modelType: TeamMember,
+        id: new ObjectID("m1"),
+      }),
+    ).rejects.toBe(rejection);
+
+    // Nothing was removed on the way to the rejection.
+    expect(deleteItemSpy.mock.calls).toHaveLength(0);
   });
 
   it("falls back to deleting just the row when its user cannot be resolved", async () => {
-    getListSpy.mockResolvedValueOnce(asListResult([]) as never);
+    getItemSpy.mockResolvedValue(null as never);
 
     await ProjectUsersModelAPI.deleteItem<TeamMember>({
       modelType: TeamMember,
       id: new ObjectID("m1"),
     });
 
-    expect(deleteItemSpy).toHaveBeenCalledTimes(1);
+    expect(postSpy.mock.calls).toHaveLength(0);
+    expect(deleteItemSpy.mock.calls).toHaveLength(1);
     expect(
       (deleteItemSpy.mock.calls[0]![0] as { id: ObjectID }).id.toString(),
     ).toBe("m1");
@@ -551,7 +640,100 @@ describe("ProjectUsersModelAPI.deleteItem", () => {
       id: new ObjectID("p1"),
     });
 
-    expect(getListSpy).not.toHaveBeenCalled();
-    expect(deleteItemSpy).toHaveBeenCalledTimes(1);
+    expect(getItemSpy.mock.calls).toHaveLength(0);
+    expect(postSpy.mock.calls).toHaveLength(0);
+    expect(deleteItemSpy.mock.calls).toHaveLength(1);
+  });
+});
+
+describe("ProjectUsersModelAPI.getList reading past the page cap", () => {
+  const buildMemberships: (
+    count: number,
+    fromIndex: number,
+  ) => Array<TeamMember> = (
+    count: number,
+    fromIndex: number,
+  ): Array<TeamMember> => {
+    const memberships: Array<TeamMember> = [];
+
+    for (let i: number = 0; i < count; i++) {
+      const index: number = fromIndex + i;
+      memberships.push(
+        buildMembership({
+          id: `m${index}`,
+          userId: `u${index}`,
+          userName: `User ${String(index).padStart(6, "0")}`,
+          teamId: "t1",
+        }),
+      );
+    }
+
+    return memberships;
+  };
+
+  it("stops after one request when the first page is short", async () => {
+    getListSpy.mockResolvedValue(asListResult(buildMemberships(3, 0)) as never);
+
+    const result: ListResult<TeamMember> =
+      await ProjectUsersModelAPI.getList<TeamMember>({
+        modelType: TeamMember,
+        query: { projectId: PROJECT_ID } as Query<TeamMember>,
+        limit: 10,
+        skip: 0,
+        select: {} as Select<TeamMember>,
+        sort: {} as never,
+      });
+
+    expect(getListSpy.mock.calls).toHaveLength(1);
+    expect(result.count).toBe(3);
+  });
+
+  /*
+   * A full page is indistinguishable from a truncated one. Stopping there
+   * would drop every user beyond the cap from the list AND report the
+   * truncated total as the number of people in the project, with nothing on
+   * screen saying so.
+   */
+  it("keeps reading while pages come back full, and counts everyone", async () => {
+    getListSpy
+      .mockResolvedValueOnce(
+        asListResult(buildMemberships(LIMIT_PER_PROJECT, 0)) as never,
+      )
+      .mockResolvedValueOnce(
+        asListResult(buildMemberships(5, LIMIT_PER_PROJECT)) as never,
+      );
+
+    const result: ListResult<TeamMember> =
+      await ProjectUsersModelAPI.getList<TeamMember>({
+        modelType: TeamMember,
+        query: { projectId: PROJECT_ID } as Query<TeamMember>,
+        limit: 10,
+        skip: 0,
+        select: {} as Select<TeamMember>,
+        sort: {} as never,
+      });
+
+    expect(getListSpy.mock.calls).toHaveLength(2);
+    expect(getListCallArgs(0).skip).toBe(0);
+    expect(getListCallArgs(1).skip).toBe(LIMIT_PER_PROJECT);
+    expect(result.count).toBe(LIMIT_PER_PROJECT + 5);
+  });
+
+  it("gives up rather than looping forever if pages never get shorter", async () => {
+    getListSpy.mockResolvedValue(
+      asListResult(buildMemberships(LIMIT_PER_PROJECT, 0)) as never,
+    );
+
+    await ProjectUsersModelAPI.getList<TeamMember>({
+      modelType: TeamMember,
+      query: { projectId: PROJECT_ID } as Query<TeamMember>,
+      limit: 10,
+      skip: 0,
+      select: {} as Select<TeamMember>,
+      sort: {} as never,
+    });
+
+    expect(getListSpy.mock.calls.length).toBeLessThanOrEqual(10);
+    expect(getListSpy.mock.calls.length).toBeGreaterThan(1);
   });
 });

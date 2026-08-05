@@ -80,6 +80,15 @@ export default class TeamMembersByUser {
       Set<string>
     >();
 
+    /*
+     * Every membership id folded into each row, so the row can be given a
+     * stable identity below.
+     */
+    const membershipIdsByRow: Map<ProjectUserRow, Array<string>> = new Map<
+      ProjectUserRow,
+      Array<string>
+    >();
+
     for (const teamMember of teamMembers) {
       const groupKey: string | null = this.getGroupKey(teamMember);
 
@@ -94,11 +103,16 @@ export default class TeamMembersByUser {
           teamKeysByRow.get(existingRow)!,
           Boolean(teamMember.hasAcceptedInvitation),
         );
+        this.rememberMembershipId(
+          membershipIdsByRow.get(existingRow)!,
+          teamMember,
+        );
         continue;
       }
 
       const row: ProjectUserRow = teamMember as ProjectUserRow;
       const teamKeys: Set<string> = new Set<string>();
+      const membershipIds: Array<string> = [];
 
       /*
        * The row *is* this membership, so read its acceptance before the reset
@@ -120,7 +134,9 @@ export default class TeamMembersByUser {
       row.hasAcceptedInvitation = false;
 
       teamKeysByRow.set(row, teamKeys);
+      membershipIdsByRow.set(row, membershipIds);
       this.addMembershipToRow(row, teamMember, teamKeys, hasAcceptedInvitation);
+      this.rememberMembershipId(membershipIds, teamMember);
 
       if (groupKey) {
         rowsByGroupKey.set(groupKey, row);
@@ -130,7 +146,7 @@ export default class TeamMembersByUser {
     }
 
     for (const row of rows) {
-      this.finalizeRow(row);
+      this.finalizeRow(row, membershipIdsByRow.get(row) || []);
     }
 
     return rows;
@@ -247,7 +263,21 @@ export default class TeamMembersByUser {
     row.teamsForUser.push(team);
   }
 
-  private static finalizeRow(row: ProjectUserRow): void {
+  private static rememberMembershipId(
+    membershipIds: Array<string>,
+    teamMember: TeamMember,
+  ): void {
+    const membershipId: string = teamMember._id?.toString() || "";
+
+    if (membershipId) {
+      membershipIds.push(membershipId);
+    }
+  }
+
+  private static finalizeRow(
+    row: ProjectUserRow,
+    membershipIds: Array<string>,
+  ): void {
     row.teamsForUser.sort((a: Team, b: Team) => {
       return (a.name?.toString() || "")
         .toLowerCase()
@@ -255,5 +285,18 @@ export default class TeamMembersByUser {
     });
 
     row.teamCountForUser = row.teamsForUser.length;
+
+    /*
+     * The row's id has to identify the *person*, not "whichever of their
+     * memberships was returned first". The table matches a selected row to an
+     * on-screen row by _id, and it fetches the on-screen page and the
+     * select-all set with two different sorts - so a first-seen id makes the
+     * same person carry different ids in the two results, and every
+     * multi-team user's checkbox silently fails to tick. The lowest membership
+     * id is stable under any ordering the server returns.
+     */
+    if (membershipIds.length > 1) {
+      row._id = [...membershipIds].sort()[0]!;
+    }
   }
 }
