@@ -1,9 +1,11 @@
 import LogDropFilterService from "../../../Server/Services/LogDropFilterService";
 import TraceDropFilterService from "../../../Server/Services/TraceDropFilterService";
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import LogDropFilter from "../../../Models/DatabaseModels/LogDropFilter";
 import TraceDropFilter from "../../../Models/DatabaseModels/TraceDropFilter";
 import LogDropFilterAction from "../../../Types/Log/LogDropFilterAction";
 import TraceDropFilterAction from "../../../Types/Trace/TraceDropFilterAction";
+import { coerceNumericColumnsInJSON } from "../../../Types/Database/NumericColumnValue";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
@@ -52,6 +54,7 @@ const VALID_QUERY: string = "severityText = 'Debug'";
 const SUITES: Array<{
   name: string;
   service: any;
+  modelType: any;
   makeModel: () => any;
   sampleAction: string;
   dropAction: string;
@@ -60,6 +63,7 @@ const SUITES: Array<{
   {
     name: "LogDropFilterService",
     service: LogDropFilterService,
+    modelType: LogDropFilter,
     makeModel: (): LogDropFilter => {
       return new LogDropFilter();
     },
@@ -70,6 +74,7 @@ const SUITES: Array<{
   {
     name: "TraceDropFilterService",
     service: TraceDropFilterService,
+    modelType: TraceDropFilter,
     makeModel: (): TraceDropFilter => {
       return new TraceDropFilter();
     },
@@ -393,6 +398,246 @@ describe.each(SUITES)(
 
         expect(findBy).not.toHaveBeenCalled();
       });
+    });
+  },
+);
+
+/*
+ * The reported failure, driven the way the product actually drives it.
+ *
+ * The suites above hand the hook a model built in TypeScript, where a number
+ * is a number by construction. Nothing reaches the hook that way in
+ * production: BaseAPI.createItem rebuilds the model from the request body
+ * with BaseModel.fromJSON, and that body comes from a dashboard form whose
+ * "Sample Percentage" field is an `<input type="number">` — a DOM input
+ * whose value is a *string*. So the hook was handed "10", the check read
+ * `typeof samplePercentage !== "number"`, and a user who had filled the form
+ * in correctly got:
+ *
+ *   HTTP 400 — Sample percentage is required when the action is "Sample".
+ *   Enter the percentage of matching logs to keep, between 1 and 99.
+ *
+ * github.com/OneUptime/oneuptime/issues/3027
+ *
+ * These go through fromJSON on purpose. A test that constructs the model
+ * directly cannot fail on this bug, which is precisely why the existing
+ * suite passed while the feature was unusable.
+ */
+describe.each(SUITES)(
+  "$name create from a dashboard request body",
+  ({ service, modelType, sampleAction, dropAction }: any) => {
+    function createByFromRequestBody(body: Record<string, unknown>): any {
+      return {
+        data: BaseModel.fromJSON(body as any, modelType),
+        props: { isRoot: true },
+      };
+    }
+
+    it("accepts the sample percentage as the number input sends it", async () => {
+      await expect(
+        service.onBeforeCreate(
+          createByFromRequestBody({
+            name: "Sample healthcheck logs",
+            filterQuery: VALID_QUERY,
+            action: sampleAction,
+            samplePercentage: "10",
+            sortOrder: "1",
+            isEnabled: true,
+          }),
+        ),
+      ).resolves.toBeDefined();
+    });
+
+    it("stores it as a number, not as the string it arrived as", async () => {
+      const createBy: any = createByFromRequestBody({
+        filterQuery: VALID_QUERY,
+        action: sampleAction,
+        samplePercentage: "10",
+      });
+
+      await service.onBeforeCreate(createBy);
+
+      expect(createBy.data.samplePercentage).toBe(10);
+      expect(typeof createBy.data.samplePercentage).toBe("number");
+    });
+
+    it("accepts every percentage the form allows", async () => {
+      for (const percentage of ["1", "5", "10", "50", "99"]) {
+        await expect(
+          service.onBeforeCreate(
+            createByFromRequestBody({
+              filterQuery: VALID_QUERY,
+              action: sampleAction,
+              samplePercentage: percentage,
+            }),
+          ),
+        ).resolves.toBeDefined();
+      }
+    });
+
+    /*
+     * Coercion must not become a way around the range check — "0" and "100"
+     * are still the two values that mean something the Sample action cannot
+     * express.
+     */
+    it("still rejects an out-of-range percentage that arrives as a string", async () => {
+      for (const percentage of ["0", "100", "-1", "250"]) {
+        await expect(
+          service.onBeforeCreate(
+            createByFromRequestBody({
+              filterQuery: VALID_QUERY,
+              action: sampleAction,
+              samplePercentage: percentage,
+            }),
+          ),
+        ).rejects.toThrow(BadDataException);
+      }
+    });
+
+    it("still rejects a sample filter whose percentage field was left blank", async () => {
+      await expect(
+        service.onBeforeCreate(
+          createByFromRequestBody({
+            filterQuery: VALID_QUERY,
+            action: sampleAction,
+            samplePercentage: "",
+          }),
+        ),
+      ).rejects.toThrow(BadDataException);
+    });
+
+    it("still rejects a percentage that is not a number at all", async () => {
+      await expect(
+        service.onBeforeCreate(
+          createByFromRequestBody({
+            filterQuery: VALID_QUERY,
+            action: sampleAction,
+            samplePercentage: "abc",
+          }),
+        ),
+      ).rejects.toThrow(BadDataException);
+    });
+
+    it("accepts the drop payload, which carries no percentage at all", async () => {
+      await expect(
+        service.onBeforeCreate(
+          createByFromRequestBody({
+            name: "Drop debug",
+            filterQuery: VALID_QUERY,
+            action: dropAction,
+            sortOrder: "1",
+            isEnabled: true,
+          }),
+        ),
+      ).resolves.toBeDefined();
+    });
+
+    /*
+     * The other half of the same create. `droppedCount` is ingest-owned and
+     * never present in a create body, so it has to stay unset all the way to
+     * the INSERT — where the column's DEFAULT 0 applies. A create that
+     * carried an explicit null instead is what made this a 500 rather than a
+     * 400. github.com/OneUptime/oneuptime/issues/3026
+     */
+    it("leaves the ingest-owned counter unset for the column default", async () => {
+      const createBy: any = createByFromRequestBody({
+        name: "Drop debug",
+        filterQuery: VALID_QUERY,
+        action: dropAction,
+      });
+
+      await service.onBeforeCreate(createBy);
+
+      expect(createBy.data.droppedCount).toBeUndefined();
+      expect(createBy.data.lastDroppedAt).toBeUndefined();
+    });
+  },
+);
+
+/*
+ * The same request body, sent as an edit rather than a create.
+ *
+ * `BaseAPI.updateItem` does not build a model — it deserializes the body
+ * into a partial entity — so it normalizes number columns itself. Without
+ * that, changing a saved filter's percentage in the dashboard failed the
+ * same way creating one did, and only on the update verb.
+ */
+describe.each(SUITES)(
+  "$name update from a dashboard request body",
+  ({ service, makeModel, sampleAction, dropAction }: any) => {
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    function updateByFromRequestBody(body: Record<string, unknown>): any {
+      return {
+        query: { _id: FILTER_ID.toString() },
+        data: coerceNumericColumnsInJSON(body as any, makeModel()),
+        props: { isRoot: true },
+      };
+    }
+
+    function mockStoredRow(row: StoredRow): void {
+      const model: any = makeModel();
+      model._id = FILTER_ID.toString();
+      model.action = row.action;
+      model.filterQuery = row.filterQuery;
+      if (row.samplePercentage !== undefined) {
+        model.samplePercentage = row.samplePercentage;
+      }
+
+      jest
+        .spyOn(service, "findBy")
+        .mockImplementation(async (): Promise<Array<any>> => {
+          return [model];
+        });
+    }
+
+    it("accepts a percentage change sent as a string", async () => {
+      mockStoredRow({
+        action: sampleAction,
+        samplePercentage: 10,
+        filterQuery: VALID_QUERY,
+      });
+
+      await expect(
+        service.onBeforeUpdate(
+          updateByFromRequestBody({ samplePercentage: "25" }),
+        ),
+      ).resolves.toBeDefined();
+    });
+
+    it("accepts flipping a drop filter to sample with a string percentage", async () => {
+      mockStoredRow({
+        action: dropAction,
+        samplePercentage: undefined,
+        filterQuery: VALID_QUERY,
+      });
+
+      await expect(
+        service.onBeforeUpdate(
+          updateByFromRequestBody({
+            action: sampleAction,
+            samplePercentage: "5",
+          }),
+        ),
+      ).resolves.toBeDefined();
+    });
+
+    it("still rejects an out-of-range percentage sent as a string", async () => {
+      mockStoredRow({
+        action: sampleAction,
+        samplePercentage: 10,
+        filterQuery: VALID_QUERY,
+      });
+
+      for (const percentage of ["0", "100"]) {
+        await expect(
+          service.onBeforeUpdate(
+            updateByFromRequestBody({ samplePercentage: percentage }),
+          ),
+        ).rejects.toThrow(BadDataException);
+      }
     });
   },
 );
