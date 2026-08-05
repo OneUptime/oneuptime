@@ -10,6 +10,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicyCustomField from "Common/Models/DatabaseModels/OnCallDutyPolicyCustomField";
+import useCustomFieldFacets from "../../Components/CustomFields/useCustomFieldFacets";
 import OnCallDutyPolicyOwnerTeam from "Common/Models/DatabaseModels/OnCallDutyPolicyOwnerTeam";
 import OnCallDutyPolicyOwnerUser from "Common/Models/DatabaseModels/OnCallDutyPolicyOwnerUser";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
@@ -29,6 +30,16 @@ const OnCallDutyPage: FunctionComponent<
       resourceIdField: "onCallDutyPolicyId",
     });
 
+  /*
+   * One chip per custom field this project has defined. They arrive a render
+   * or two late (the definitions are fetched), which is what
+   * `areFacetsLoading` below tells the bar.
+   */
+  const { facets: customFieldFacets, isLoading: areCustomFieldFacetsLoading } =
+    useCustomFieldFacets({
+      customFieldsModelType: OnCallDutyPolicyCustomField,
+    });
+
   const {
     getOwnersForResource,
     isLoadingOwners,
@@ -43,6 +54,8 @@ const OnCallDutyPage: FunctionComponent<
     ownerTeamModelType: OnCallDutyPolicyOwnerTeam,
     resourceIdField: "onCallDutyPolicyId",
     showLabelsFacet: true,
+    extraFacets: customFieldFacets,
+    areFacetsLoading: areCustomFieldFacetsLoading,
   });
 
   return (

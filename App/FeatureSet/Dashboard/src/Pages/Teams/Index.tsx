@@ -6,6 +6,7 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Team from "Common/Models/DatabaseModels/Team";
 import TeamCustomField from "Common/Models/DatabaseModels/TeamCustomField";
+import useCustomFieldFacets from "../../Components/CustomFields/useCustomFieldFacets";
 import IconProp from "Common/Types/Icon/IconProp";
 import Query from "Common/Types/BaseDatabase/Query";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
@@ -59,6 +60,14 @@ const Teams: FunctionComponent<PageComponentProps> = (
     },
   ];
 
+  /*
+   * One chip per custom field this project has defined. They arrive a render
+   * or two late (the definitions are fetched), which is what
+   * `areFacetsLoading` below tells the bar.
+   */
+  const { facets: customFieldFacets, isLoading: areCustomFieldFacetsLoading } =
+    useCustomFieldFacets({ customFieldsModelType: TeamCustomField });
+
   const {
     filterBar,
     mergeFiltersIntoQuery,
@@ -67,7 +76,8 @@ const Teams: FunctionComponent<PageComponentProps> = (
   } = useResourceOwners<Team>({
     persistKey: "settings-teams-table",
     showOwnerFacet: false,
-    extraFacets: teamExtraFacets,
+    extraFacets: [...teamExtraFacets, ...customFieldFacets],
+    areFacetsLoading: areCustomFieldFacetsLoading,
   });
 
   return (

@@ -23,8 +23,13 @@ import IconProp from "Common/Types/Icon/IconProp";
  *   option list to offer (every instant is a distinct value), so the question a
  *   user actually has of one — "not polled since last Tuesday" — is only
  *   expressible by typing a date.
+ * - "text" / "number" — an operator plus one typed value. Same reason as dates:
+ *   a free-text custom field's values are whatever anyone has ever entered, so
+ *   there is no list to offer, and the question a user has of one ("Ticket
+ *   contains JIRA-", "Impacted Users is over 500") is only expressible by
+ *   typing.
  */
-export type FacetKind = "options" | "dateRange";
+export type FacetKind = "options" | "dateRange" | "text" | "number";
 
 export interface FilterChipDropdownOption {
   value: string;
@@ -58,6 +63,9 @@ export interface FilterChipDropdownOption {
  * - "before" / "after" / "between" — date-range chips only, and never offered
  *   by an option-list chip: they compare against a date the user typed rather
  *   than against anything in an option list.
+ * - "contains" / "not_contains" / "starts_with" / "ends_with" — text chips.
+ * - "greater_than" / "greater_than_or_equal" / "less_than" /
+ *   "less_than_or_equal" — number chips.
  */
 export type FilterOperator =
   | "is"
@@ -66,7 +74,15 @@ export type FilterOperator =
   | "is_not_empty"
   | "before"
   | "after"
-  | "between";
+  | "between"
+  | "contains"
+  | "not_contains"
+  | "starts_with"
+  | "ends_with"
+  | "greater_than"
+  | "greater_than_or_equal"
+  | "less_than"
+  | "less_than_or_equal";
 
 export const FILTER_OPERATOR_LABELS: Record<FilterOperator, string> = {
   is: "is",
@@ -76,6 +92,14 @@ export const FILTER_OPERATOR_LABELS: Record<FilterOperator, string> = {
   before: "is before",
   after: "is after",
   between: "is between",
+  contains: "contains",
+  not_contains: "does not contain",
+  starts_with: "starts with",
+  ends_with: "ends with",
+  greater_than: "is greater than",
+  greater_than_or_equal: "is greater than or equal to",
+  less_than: "is less than",
+  less_than_or_equal: "is less than or equal to",
 };
 
 /**
@@ -109,6 +133,78 @@ export const OPTION_FACET_OPERATORS: Array<FilterOperator> = [
   "is_not_empty",
 ];
 
+/**
+ * The operators a free-text chip offers.
+ *
+ * "is" leads rather than "contains" because an exact match is what a user
+ * picking a value out of a column they can see is usually after; "contains" is
+ * one click away and is what makes the chip a *search* rather than a filter.
+ */
+export const TEXT_FACET_OPERATORS: Array<FilterOperator> = [
+  "is",
+  "is_not",
+  "contains",
+  "not_contains",
+  "starts_with",
+  "ends_with",
+  "is_empty",
+  "is_not_empty",
+];
+
+/** The operators a numeric chip offers. */
+export const NUMBER_FACET_OPERATORS: Array<FilterOperator> = [
+  "is",
+  "is_not",
+  "greater_than",
+  "greater_than_or_equal",
+  "less_than",
+  "less_than_or_equal",
+  "is_empty",
+  "is_not_empty",
+];
+
+/**
+ * Does this chip hold one value the user typed, rather than a selection from a
+ * list? Both kinds render the same control and store their value the same way
+ * (a single-element array), so most call sites want to ask this rather than
+ * compare against each kind.
+ */
+export const isTypedValueFacetKind: (kind: FacetKind | undefined) => boolean = (
+  kind: FacetKind | undefined,
+): boolean => {
+  return kind === "text" || kind === "number";
+};
+
+/**
+ * Is this operator one only a numeric chip can answer? Kept next to the
+ * operator list it comes from so a new comparison cannot be added to one
+ * without the other noticing.
+ */
+export const isNumericComparisonOperator: (op: FilterOperator) => boolean = (
+  op: FilterOperator,
+): boolean => {
+  return (
+    op === "greater_than" ||
+    op === "greater_than_or_equal" ||
+    op === "less_than" ||
+    op === "less_than_or_equal"
+  );
+};
+
+/**
+ * Is this operator one of the substring comparisons a text chip offers?
+ */
+export const isTextMatchOperator: (op: FilterOperator) => boolean = (
+  op: FilterOperator,
+): boolean => {
+  return (
+    op === "contains" ||
+    op === "not_contains" ||
+    op === "starts_with" ||
+    op === "ends_with"
+  );
+};
+
 export const isValueOperator: (op: FilterOperator) => boolean = (
   op: FilterOperator,
 ): boolean => {
@@ -116,8 +212,10 @@ export const isValueOperator: (op: FilterOperator) => boolean = (
 };
 
 /**
- * Does this operator carry no value at all? Both chip kinds hide their value
- * input on these, and both write IsNull / NotNull for them.
+ * Does this operator carry no value at all? Every chip kind hides its value
+ * input on these, and they all write IsNull / NotNull for them — except a chip
+ * over one key inside a JSON column, which writes the same pair *inside* that
+ * column (see ResourceFacet.handlesValuelessOperators).
  */
 export const isValuelessOperator: (op: FilterOperator) => boolean = (
   op: FilterOperator,
