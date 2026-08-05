@@ -69,6 +69,14 @@ type GetStripeSubscriptionFunction = (options?: {
    */
   trialEnd?: number | null | undefined;
   customer?: string | undefined;
+
+  /*
+   * The id of the subscription's single item - the handle changePlan swaps the
+   * new plan's price onto. An empty array stands for a subscription with no
+   * items at all, which has no such handle.
+   */
+  itemId?: string | undefined;
+  items?: Array<{ id: string }> | undefined;
 }) => Stripe.Subscription;
 
 const getStripeSubscription: GetStripeSubscriptionFunction = (options?: {
@@ -76,26 +84,32 @@ const getStripeSubscription: GetStripeSubscriptionFunction = (options?: {
   status?: Stripe.Subscription.Status | undefined;
   trialEnd?: number | null | undefined;
   customer?: string | undefined;
+  itemId?: string | undefined;
+  items?: Array<{ id: string }> | undefined;
 }): Stripe.Subscription => {
+  const items: Array<{ id: string }> = options?.items || [
+    { id: options?.itemId || Faker.generateRandomObjectID().toString() },
+  ];
+
   return {
     id: options?.id || Faker.generateRandomObjectID().toString(),
     items: {
-      data: [
-        {
-          id: Faker.generateRandomObjectID().toString(),
-          // @ts-expect-error - Simplified mock price object for testing without all required Stripe Price properties
+      data: items.map((item: { id: string }) => {
+        // Simplified mock item: only the fields the service actually reads.
+        return {
+          id: item.id,
           price: {
             id: new BillingService().getMeteredPlanPriceId(
               ProductType.ActiveMonitoring,
             ),
           },
-        },
-      ],
+        } as Stripe.SubscriptionItem;
+      }),
     },
     status: options?.status || "active",
     trial_end: options?.trialEnd ?? null,
     customer: options?.customer || getStripeCustomer(),
-  };
+  } as Stripe.Subscription;
 };
 
 /*

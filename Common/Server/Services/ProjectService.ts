@@ -2224,11 +2224,13 @@ export class ProjectService extends DatabaseService<Model> {
     }
 
     /*
-     * Reactivating goes through changePlan, which cancels both subscriptions
-     * and creates new ones - so a trial the project still has to run has to be
-     * carried onto the replacements explicitly. Otherwise a customer whose
-     * trial a master admin extended as a goodwill gesture loses the extension
-     * the moment their subscription is reactivated, and is billed right away.
+     * Reactivating goes through changePlan, and it is the one caller that
+     * genuinely lands on its recreate path: the subscriptions being reactivated
+     * are not live, so there is nothing to update and new ones are created. A
+     * trial the project still has to run therefore has to be carried onto the
+     * replacements explicitly. Otherwise a customer whose trial a master admin
+     * extended as a goodwill gesture loses the extension the moment their
+     * subscription is reactivated, and is billed right away.
      *
      * A trial that has already lapsed is not revived: reactivation is not the
      * place to hand out free service.
@@ -2259,9 +2261,15 @@ export class ProjectService extends DatabaseService<Model> {
         result.subscriptionId as string,
       );
 
+    /*
+     * The metered subscription changePlan returns, not the one the project row
+     * still points at. When changePlan replaced the subscriptions the old id
+     * names a cancelled subscription, and its status would be persisted against
+     * the new one.
+     */
     const meteredSubscriptionState: SubscriptionStatus =
       await BillingService.getSubscriptionStatus(
-        project.paymentProviderMeteredSubscriptionId as string,
+        result.meteredSubscriptionId as string,
       );
 
     // now update project with new subscription id.
