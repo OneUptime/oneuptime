@@ -1,7 +1,12 @@
 import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/KubernetesContainer";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import ColumnLength from "../../Types/Database/ColumnLength";
 import ObjectID from "../../Types/ObjectID";
+import {
+  truncateLongText,
+  truncateShortText,
+} from "../Utils/Database/TruncateColumnValue";
 import logger from "../Utils/Logger";
 
 /*
@@ -61,6 +66,29 @@ const UPSERT_COLUMNS: Array<string> = [
   "version",
 ];
 
+/*
+ * KubernetesContainer's text columns are bounded varchars — podName and
+ * image at 500 chars, podNamespaceKey / name / state / reason at 100.
+ * The bulk paths below go through manager.query(), which skips the
+ * length validation DatabaseService applies to ordinary writes, so a
+ * single oversized value aborts the whole 500-row INSERT chunk it rides
+ * in. Clamp per value instead, so one pathological pod can never drop
+ * the rest of the snapshot.
+ */
+function sanitizeContainer(
+  c: ParsedKubernetesContainer,
+): ParsedKubernetesContainer {
+  return {
+    ...c,
+    podNamespaceKey: truncateShortText(c.podNamespaceKey),
+    podName: truncateLongText(c.podName),
+    name: truncateShortText(c.name),
+    image: truncateLongText(c.image),
+    state: truncateShortText(c.state),
+    reason: truncateShortText(c.reason),
+  };
+}
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
@@ -86,12 +114,20 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
-    for (
-      let i: number = 0;
-      i < data.containers.length;
-      i += UPSERT_BATCH_SIZE
-    ) {
-      const chunk: Array<ParsedKubernetesContainer> = data.containers.slice(
+    const containers: Array<ParsedKubernetesContainer> = data.containers.map(
+      (c: ParsedKubernetesContainer) => {
+        const sanitized: ParsedKubernetesContainer = sanitizeContainer(c);
+        if (sanitized.podName !== c.podName) {
+          logger.warn(
+            `KubernetesContainer podName exceeds ${ColumnLength.LongText} chars; truncated to "${sanitized.podName}" (cluster ${data.kubernetesClusterId.toString()}).`,
+          );
+        }
+        return sanitized;
+      },
+    );
+
+    for (let i: number = 0; i < containers.length; i += UPSERT_BATCH_SIZE) {
+      const chunk: Array<ParsedKubernetesContainer> = containers.slice(
         i,
         i + UPSERT_BATCH_SIZE,
       );
@@ -224,10 +260,15 @@ export class Service extends DatabaseService<Model> {
         valueFragments.push(
           `($${paramIndex++}, $${paramIndex++}, $${paramIndex++}, $${paramIndex++}::numeric, $${paramIndex++}::bigint, $${paramIndex++}::timestamptz)`,
         );
+        /*
+         * The identity clamps MUST match bulkUpsert's, or this mirror
+         * UPDATE would silently miss the row the upsert just wrote
+         * under the truncated podName.
+         */
         params.push(
-          m.podNamespaceKey,
-          m.podName,
-          m.name,
+          truncateShortText(m.podNamespaceKey),
+          truncateLongText(m.podName),
+          truncateShortText(m.name),
           m.cpuPercent !== null && m.cpuPercent !== undefined
             ? m.cpuPercent
             : null,

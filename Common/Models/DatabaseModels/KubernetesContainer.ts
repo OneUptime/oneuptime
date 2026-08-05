@@ -193,15 +193,16 @@ export default class KubernetesContainer extends BaseModel {
   })
   @TableColumn({
     required: true,
-    type: TableColumnType.ShortText,
+    type: TableColumnType.LongText,
     canReadOnRelationQuery: true,
     title: "Pod Name",
-    description: "metadata.name of the parent Pod.",
+    description:
+      "metadata.name of the parent Pod. Generated pod names (deployment + replicaset hash + pod hash) routinely run past 100 characters, so this is a 500-char column rather than the usual 100.",
   })
   @Column({
     nullable: false,
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
   })
   public podName?: string = undefined;
 
