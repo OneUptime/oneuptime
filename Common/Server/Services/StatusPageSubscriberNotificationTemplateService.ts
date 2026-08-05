@@ -256,7 +256,24 @@ export class Service extends DatabaseService<Model> {
           ...commonVariables,
           {
             name: "report.reportDates",
-            description: "The reporting period",
+            description: "The reporting period as a range",
+          },
+          {
+            name: "report.reportPeriodName",
+            description:
+              'How a sentence refers to the period - "the last 30 days", "July 2026"',
+          },
+          {
+            name: "report.reportStartDate",
+            description: "First day of the reporting period",
+          },
+          {
+            name: "report.reportEndDate",
+            description: "Last day of the reporting period",
+          },
+          {
+            name: "report.reportTimezone",
+            description: "The timezone the reporting period was resolved in",
           },
           {
             name: "report.averageUptimePercent",

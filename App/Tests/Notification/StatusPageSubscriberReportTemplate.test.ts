@@ -121,7 +121,11 @@ function buildReport(data: {
   });
 
   return {
-    reportDates: "14 days (01 Jul 2026 - 14 Jul 2026)",
+    reportDates: "Jul 1, 2026 - Jul 31, 2026",
+    reportPeriodName: "July 2026",
+    reportStartDate: "Jul 1, 2026",
+    reportEndDate: "Jul 31, 2026",
+    reportTimezone: "UTC",
     totalResources: structure.resources.length,
     totalIncidents: 3,
     averageUptimePercent: "97.85%",

@@ -89,6 +89,10 @@ import {
   StatusPageReportItem,
   StatusPageReportRow,
 } from "../../Types/StatusPage/StatusPageReport";
+import StatusPageReportPeriodUtil, {
+  StatusPageReportPeriod,
+} from "../../Utils/StatusPage/ReportPeriod";
+import Timezone from "../../Types/Timezone";
 
 export {
   StatusPageReport,
@@ -995,6 +999,7 @@ export class Service extends DatabaseService<StatusPage> {
     if (
       updateBy.data.reportStartDateTime ||
       updateBy.data.reportRecurringInterval ||
+      updateBy.data.reportTimezone ||
       updateBy.data.sendNextReportBy
     ) {
       const statusPages: Array<StatusPage> = await this.findBy({
@@ -1003,6 +1008,7 @@ export class Service extends DatabaseService<StatusPage> {
           _id: true,
           reportStartDateTime: true,
           reportRecurringInterval: true,
+          reportTimezone: true,
         },
         props: {
           isRoot: true,
@@ -1012,7 +1018,7 @@ export class Service extends DatabaseService<StatusPage> {
       });
 
       for (const statusPage of statusPages) {
-        const rerportStartDate: Date | undefined =
+        const reportStartDate: Date | undefined =
           (updateBy.data.reportStartDateTime as Date) ||
           statusPage.reportStartDateTime;
         const reportRecurringInterval: Recurring | undefined =
@@ -1021,12 +1027,23 @@ export class Service extends DatabaseService<StatusPage> {
               statusPage.reportRecurringInterval,
           );
 
-        if (rerportStartDate && reportRecurringInterval) {
-          const nextReportDate: Date = Recurring.getNextDate(
-            rerportStartDate,
-            reportRecurringInterval,
-          );
-          updateBy.data.sendNextReportBy = nextReportDate;
+        if (reportStartDate && reportRecurringInterval) {
+          /*
+           * Calendar-correct rather than Recurring.getNextDate's fixed
+           * millisecond approximation, which walks a monthly schedule anchored
+           * on the 1st backwards to the 31st, then the 30th, and eventually
+           * skips a month. Resolved in the report timezone so "the 1st at
+           * 09:00" survives a DST transition.
+           */
+          updateBy.data.sendNextReportBy = Recurring.getNextDateAfter({
+            startDate: reportStartDate,
+            recurring: reportRecurringInterval,
+            afterDate: OneUptimeDate.getCurrentDate(),
+            timezone:
+              (updateBy.data.reportTimezone as Timezone) ||
+              statusPage.reportTimezone ||
+              StatusPageReportPeriodUtil.DEFAULT_TIMEZONE,
+          });
         }
       }
     }
@@ -1035,6 +1052,24 @@ export class Service extends DatabaseService<StatusPage> {
       carryForward: null,
       updateBy: updateBy,
     };
+  }
+
+  /*
+   * The window the next report off this status page will cover. Static because
+   * the settings screen resolves the very same window from the very same
+   * columns to show the user what they are about to schedule.
+   */
+  public static getReportPeriodForStatusPage(
+    statusPage: StatusPage,
+    sentAt?: Date | undefined,
+  ): StatusPageReportPeriod {
+    return StatusPageReportPeriodUtil.getReportPeriod({
+      periodType: statusPage.reportPeriodType,
+      reportRecurringInterval: statusPage.reportRecurringInterval,
+      reportDataInDays: statusPage.reportDataInDays,
+      timezone: statusPage.reportTimezone,
+      sentAt: sentAt,
+    });
   }
 
   @CaptureSpan()
@@ -1069,7 +1104,7 @@ export class Service extends DatabaseService<StatusPage> {
 
     const report: StatusPageReport = await this.getReportByStatusPage({
       statusPageId: statuspage.id!,
-      historyDays: statuspage.reportDataInDays || 14,
+      reportPeriod: Service.getReportPeriodForStatusPage(statuspage),
     });
 
     /*
@@ -1219,7 +1254,12 @@ export class Service extends DatabaseService<StatusPage> {
   @CaptureSpan()
   public async getReportByStatusPage(data: {
     statusPageId: ObjectID;
-    historyDays: number;
+    /*
+     * The exact window to measure. Resolved by StatusPageReportPeriodUtil from
+     * the status page's report settings, so a monthly report can cover July
+     * rather than "the 30 days ending whenever the cron happened to fire".
+     */
+    reportPeriod: StatusPageReportPeriod;
   }): Promise<StatusPageReport> {
     const statusPage: StatusPage | null = await this.findOneById({
       id: data.statusPageId,
@@ -1240,27 +1280,48 @@ export class Service extends DatabaseService<StatusPage> {
         statusPageId: data.statusPageId,
       });
 
-    const numberOfDays: number = data.historyDays || 14;
-
-    const endDate: Date = OneUptimeDate.getCurrentDate();
-    const startDate: Date = OneUptimeDate.getSomeDaysAgo(numberOfDays);
-    const startAndEndDate: string = `${numberOfDays} days (${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(startDate, true)} - ${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(endDate, true)})`;
+    const startDate: Date = data.reportPeriod.startDate;
+    const endDate: Date = data.reportPeriod.endDate;
 
     /*
-     * The report is explicitly "the last N days", so this window is what every uptime number
-     * below has to be measured against. It used to be computed only to fetch the timeline and
-     * was then discarded, which let an event that started before the window contribute its
-     * whole duration to the downtime total, and made the denominator "first event -> now"
-     * instead of the window - so the reported percentage drifted upwards every day.
+     * This window is what every uptime number below has to be measured against.
+     * It used to be computed only to fetch the timeline and was then discarded,
+     * which let an event that started before the window contribute its whole
+     * duration to the downtime total, and made the denominator "first event ->
+     * now" instead of the window - so the reported percentage drifted upwards
+     * every day.
      */
     const reportWindow: UptimeWindow = {
       startDate: startDate,
       endDate: endDate,
     };
 
+    const periodStrings: Pick<
+      StatusPageReport,
+      | "reportDates"
+      | "reportPeriodName"
+      | "reportStartDate"
+      | "reportEndDate"
+      | "reportTimezone"
+    > = {
+      reportDates: data.reportPeriod.reportDates,
+      reportPeriodName: data.reportPeriod.periodName,
+      reportStartDate: OneUptimeDate.getDateAsCustomFormattedStringInTimezone({
+        date: startDate,
+        format: "MMM D, YYYY",
+        timezone: data.reportPeriod.timezone,
+      }),
+      reportEndDate: OneUptimeDate.getDateAsCustomFormattedStringInTimezone({
+        date: endDate,
+        format: "MMM D, YYYY",
+        timezone: data.reportPeriod.timezone,
+      }),
+      reportTimezone: data.reportPeriod.timezone,
+    };
+
     if (statusPageResources.length === 0) {
       return {
-        reportDates: startAndEndDate,
+        ...periodStrings,
         totalResources: 0,
         totalIncidents: 0,
         averageUptimePercent: "0%",
@@ -1275,7 +1336,8 @@ export class Service extends DatabaseService<StatusPage> {
 
     const incidentCount: number = await this.getIncidentCountOnStatusPage({
       statusPageId: data.statusPageId,
-      historyDays: data.historyDays,
+      startDate: startDate,
+      endDate: endDate,
     });
 
     const monitors: {
@@ -1344,7 +1406,8 @@ export class Service extends DatabaseService<StatusPage> {
           resourceName: resource.displayName || "",
           totalIncidentCount: await this.getIncidentCountByMonitorIds({
             monitorIds: monitorIdsForThisResource,
-            historyDays: data.historyDays,
+            startDate: startDate,
+            endDate: endDate,
           }),
           uptimePercent: uptimePercent,
           uptimePercentAsString: `${uptimePercent}%`,
@@ -1393,7 +1456,6 @@ export class Service extends DatabaseService<StatusPage> {
         timeline: timeline,
         downtimeMonitorStatuses: statusPage.downtimeMonitorStatuses || [],
         reportWindow: reportWindow,
-        historyDays: data.historyDays,
       });
 
     const structure: StatusPageReportStructure = StatusPageReportTreeUtil.build(
@@ -1405,7 +1467,7 @@ export class Service extends DatabaseService<StatusPage> {
     );
 
     return {
-      reportDates: startAndEndDate,
+      ...periodStrings,
       totalResources: statusPageResources.length,
       totalIncidents: incidentCount,
       averageUptimePercent: avgUptimePercentString,
@@ -1434,7 +1496,6 @@ export class Service extends DatabaseService<StatusPage> {
     timeline: Array<MonitorStatusTimeline>;
     downtimeMonitorStatuses: Array<MonitorStatus>;
     reportWindow: UptimeWindow;
-    historyDays: number;
   }): Promise<Dictionary<StatusPageReportGroupMetrics>> {
     const groupMetricsByGroupId: Dictionary<StatusPageReportGroupMetrics> = {};
     const incidentCountByMonitorSet: Dictionary<number> = {};
@@ -1528,7 +1589,8 @@ export class Service extends DatabaseService<StatusPage> {
           monitorIds.length > 0
             ? await this.getIncidentCountByMonitorIds({
                 monitorIds: monitorIds,
-                historyDays: data.historyDays,
+                startDate: data.reportWindow.startDate,
+                endDate: data.reportWindow.endDate,
               })
             : 0;
 
@@ -1577,18 +1639,13 @@ export class Service extends DatabaseService<StatusPage> {
   @CaptureSpan()
   public async getIncidentCountByMonitorIds(data: {
     monitorIds: Array<ObjectID>;
-    historyDays: number;
+    startDate: Date;
+    endDate: Date;
   }): Promise<number> {
-    const today: Date = OneUptimeDate.getCurrentDate();
-
-    const historyDays: Date = OneUptimeDate.getSomeDaysAgo(
-      data.historyDays || 14,
-    );
-
     const incidentCount: PositiveNumber = await IncidentService.countBy({
       query: {
         monitors: data.monitorIds as any,
-        createdAt: QueryHelper.inBetween(historyDays, today),
+        createdAt: QueryHelper.inBetween(data.startDate, data.endDate),
       },
       props: {
         isRoot: true,
@@ -1601,7 +1658,8 @@ export class Service extends DatabaseService<StatusPage> {
   @CaptureSpan()
   public async getIncidentCountOnStatusPage(data: {
     statusPageId: ObjectID;
-    historyDays: number;
+    startDate: Date;
+    endDate: Date;
   }): Promise<number> {
     const monitorsOnStatusPage: {
       monitorsOnStatusPage: Array<ObjectID>;
@@ -1612,7 +1670,8 @@ export class Service extends DatabaseService<StatusPage> {
 
     return this.getIncidentCountByMonitorIds({
       monitorIds: monitorsOnStatusPage.monitorsOnStatusPage,
-      historyDays: data.historyDays,
+      startDate: data.startDate,
+      endDate: data.endDate,
     });
   }
 
