@@ -1169,9 +1169,22 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
   public toSortStatement(sort: Sort<TBaseModel>): Statement {
     const sortStatement: Statement = new Statement();
 
+    /*
+     * Keys must be comma separated. Without the separator a multi-key sort
+     * concatenates into a single malformed term (`time DESCseverity ASC`),
+     * so every ORDER BY beyond the first key was unusable. Mirrors
+     * toGroupByStatement above.
+     */
+    let first: boolean = true;
     for (const key in sort) {
       if (!this.model.getTableColumn(key)) {
         throw new BadDataException(`Unknown column: ${key}`);
+      }
+
+      if (first) {
+        first = false;
+      } else {
+        sortStatement.append(SQL`, `);
       }
 
       const value: SortOrder = sort[key]!;

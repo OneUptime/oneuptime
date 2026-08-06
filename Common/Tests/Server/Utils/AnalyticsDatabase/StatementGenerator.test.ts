@@ -24,6 +24,7 @@ import IncludesNone from "../../../../Types/BaseDatabase/IncludesNone";
 import MultiSearch from "../../../../Types/BaseDatabase/MultiSearch";
 import Search from "../../../../Types/BaseDatabase/Search";
 import StartsWith from "../../../../Types/BaseDatabase/StartsWith";
+import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 
 function expectStatement(actual: Statement, expected: Statement): void {
@@ -1428,6 +1429,125 @@ describe("StatementGenerator", () => {
         p1: "createdAt",
       });
       expect(columns).toStrictEqual(["_id", "createdAt"]);
+    });
+  });
+
+  /*
+   * The separator here is load-bearing for pagination. `toSortStatement`
+   * used to append sort keys with no delimiter, so anything past the first
+   * key produced a malformed term (`col_1 DESCcol_2 ASC`) — which meant a
+   * multi-key ORDER BY was unusable and, in practice, every paginated read
+   * ran on a single, non-unique sort column. See the pagination-stability
+   * suite in Tests/Server/Services/AnalyticsDatabasePaginationStability.
+   */
+  describe("toSortStatement", () => {
+    /*
+     * TestModel declares its columns through `tableColumns`, not as TS
+     * properties, so a `Sort<TestModel>` literal would fail excess-property
+     * checking on every key. Funnelling through one helper keeps the cast
+     * in a single place instead of on each call.
+     */
+    const sortStatementFor: (sort: Record<string, SortOrder>) => Statement = (
+      sort: Record<string, SortOrder>,
+    ): Statement => {
+      return generator.toSortStatement(sort as any);
+    };
+
+    test("renders a single ascending key with no trailing separator", () => {
+      const statement: Statement = sortStatementFor({
+        column_1: SortOrder.Ascending,
+      });
+
+      expect(statement.query).toBe("{p0:Identifier} ASC");
+      expect(statement.query_params).toStrictEqual({ p0: "column_1" });
+    });
+
+    test("renders a single descending key", () => {
+      const statement: Statement = sortStatementFor({
+        column_1: SortOrder.Descending,
+      });
+
+      expect(statement.query).toBe("{p0:Identifier} DESC");
+      expect(statement.query_params).toStrictEqual({ p0: "column_1" });
+    });
+
+    test("comma separates two keys", () => {
+      const statement: Statement = sortStatementFor({
+        column_1: SortOrder.Descending,
+        column_2: SortOrder.Ascending,
+      });
+
+      expect(statement.query).toBe("{p0:Identifier} DESC, {p1:Identifier} ASC");
+      expect(statement.query_params).toStrictEqual({
+        p0: "column_1",
+        p1: "column_2",
+      });
+    });
+
+    test("comma separates three keys and preserves declaration order", () => {
+      const statement: Statement = sortStatementFor({
+        column_2: SortOrder.Ascending,
+        column_1: SortOrder.Descending,
+        column_ObjectID: SortOrder.Ascending,
+      });
+
+      expect(statement.query).toBe(
+        "{p0:Identifier} ASC, {p1:Identifier} DESC, {p2:Identifier} ASC",
+      );
+      expect(statement.query_params).toStrictEqual({
+        p0: "column_2",
+        p1: "column_1",
+        p2: "column_ObjectID",
+      });
+    });
+
+    /*
+     * Regression guard for the exact malformed shape. Asserting on the
+     * rendered text rather than the param map is deliberate: the old bug
+     * produced correct PARAMS and broken SQL, so a params-only assertion
+     * would have passed straight through it.
+     */
+    test("never concatenates a direction into the next identifier", () => {
+      const statement: Statement = sortStatementFor({
+        column_1: SortOrder.Descending,
+        column_2: SortOrder.Ascending,
+      });
+
+      expect(statement.query).not.toContain("DESC{");
+      expect(statement.query).not.toContain("ASC{");
+      expect(statement.query).toContain(", ");
+    });
+
+    test("separator count is always one fewer than the key count", () => {
+      const statement: Statement = sortStatementFor({
+        column_ObjectID: SortOrder.Ascending,
+        column_1: SortOrder.Ascending,
+        column_2: SortOrder.Ascending,
+      });
+
+      expect(statement.query.split(", ")).toHaveLength(3);
+    });
+
+    test("an empty sort produces an empty statement", () => {
+      const statement: Statement = sortStatementFor({});
+
+      expect(statement.query).toBe("");
+      expect(statement.query_params).toStrictEqual({});
+    });
+
+    test("still rejects an unknown column", () => {
+      expect(() => {
+        return sortStatementFor({ not_a_column: SortOrder.Ascending });
+      }).toThrow(BadDataException);
+    });
+
+    test("rejects an unknown column that appears after a valid one", () => {
+      expect(() => {
+        return sortStatementFor({
+          column_1: SortOrder.Ascending,
+          not_a_column: SortOrder.Descending,
+        });
+      }).toThrow(BadDataException);
     });
   });
 

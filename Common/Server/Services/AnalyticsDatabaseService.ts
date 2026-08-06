@@ -1440,6 +1440,75 @@ export default class AnalyticsDatabaseService<
     return { statement, columns: select.columns };
   }
 
+  /**
+   * Append the unique `_id` as a final sort key so the ORDER BY is a TOTAL
+   * order.
+   *
+   * `ORDER BY time DESC` alone is not: rows tying on `time` may come back
+   * in any order, and ClickHouse is free to order them differently between
+   * two executions of the same query (part order, thread scheduling and
+   * `optimize_read_in_order` all feed into it). Paging with LIMIT/OFFSET on
+   * top of a non-total order silently drops rows at page boundaries and
+   * repeats others: a row that sat at offset 49 on page 1 can shift to
+   * offset 50 before page 2 is fetched, so nobody ever sees it.
+   *
+   * Ties are the normal case, not an edge case — a service emitting a burst
+   * of logs writes many rows with an identical timestamp.
+   *
+   * `_id` is stamped per row with `ObjectID.generateTimeOrdered()`, so it is
+   * unique and its ordering agrees with time order.
+   *
+   * Two cases must NOT get the tiebreaker:
+   * - GROUP BY queries, where `_id` is neither a grouping key nor an
+   *   aggregate, so referencing it is an error.
+   * - Models with no `_id` column: derived aggregate targets deliberately
+   *   omit it because the aggregation key is the row identity (see _findBy).
+   */
+  private toPaginationStableSort(
+    sort: Sort<TBaseModel>,
+    options: { hasGroupBy: boolean },
+  ): Sort<TBaseModel> {
+    if (options.hasGroupBy) {
+      return sort;
+    }
+
+    const sortKeys: Array<string> = Object.keys(sort || {});
+
+    // Already a total order; adding `_id` again would be a no-op term.
+    if (sortKeys.includes("_id")) {
+      return sort;
+    }
+
+    const hasIdColumn: boolean = this.model.tableColumns.some(
+      (column: AnalyticsTableColumn): boolean => {
+        return column.key === "_id";
+      },
+    );
+
+    if (!hasIdColumn) {
+      return sort;
+    }
+
+    /*
+     * Tie-break in the same direction as the last declared sort key, so a
+     * newest-first list stays newest-first within a single timestamp.
+     */
+    const lastSortKey: string | undefined = sortKeys[sortKeys.length - 1];
+
+    const direction: SortOrder =
+      (lastSortKey
+        ? ((sort as Record<string, SortOrder | undefined>)[lastSortKey] as
+            | SortOrder
+            | undefined)
+        : undefined) ?? SortOrder.Descending;
+
+    /*
+     * `_id` is absent from `sort` (checked above), so spreading appends it
+     * last and the caller's own keys keep their relative order.
+     */
+    return { ...sort, _id: direction } as Sort<TBaseModel>;
+  }
+
   public toFindStatement(findBy: FindBy<TBaseModel>): {
     statement: Statement;
     columns: Array<string>;
@@ -1470,7 +1539,9 @@ export default class AnalyticsDatabaseService<
     );
 
     const sortStatement: Statement = this.statementGenerator.toSortStatement(
-      findBy.sort!,
+      this.toPaginationStableSort(findBy.sort!, {
+        hasGroupBy: Boolean(groupByStatement),
+      }),
     );
 
     const statement: Statement = SQL``;

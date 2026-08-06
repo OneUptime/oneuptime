@@ -206,8 +206,13 @@ describe("AnalyticsDatabaseService", () => {
       expect(service.statementGenerator.toWhereStatement).toBeCalledWith({
         field: "value",
       });
+      /*
+       * `_id` is appended as a pagination tiebreaker so the ORDER BY is a
+       * total order. See the PaginationStableSort suite below.
+       */
       expect(service.statementGenerator.toSortStatement).toBeCalledWith({
         field: "asc",
+        _id: "asc",
       });
 
       expect(jest.mocked(logger.debug)).toHaveBeenCalledTimes(2);
