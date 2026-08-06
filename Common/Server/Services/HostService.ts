@@ -5,6 +5,7 @@ import Model from "../../Models/DatabaseModels/Host";
 import Label from "../../Models/DatabaseModels/Label";
 import { OnCreate } from "../Types/Database/Hooks";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import ResourceHeartbeat from "../Utils/Telemetry/ResourceHeartbeat";
 import ObjectID from "../../Types/ObjectID";
 import QueryHelper from "../Types/Database/QueryHelper";
 import OneUptimeDate from "../../Types/Date";
@@ -212,35 +213,7 @@ export class Service extends DatabaseService<Model> {
      * once per throttle window. If any extra value changed (e.g. cpuCores
      * updated, IP address changed), bust the cache and write immediately.
      */
-    const cacheKey: string = hostId.toString();
     const extrasFingerprint: string = this.fingerprintExtras(extra);
-    let cached: string | null = null;
-    try {
-      cached = await GlobalCache.getString(LAST_SEEN_CACHE_NAMESPACE, cacheKey);
-    } catch {
-      /*
-       * Cache unavailable — fail open and refresh lastSeenAt anyway. A
-       * cache error must never skip the DB write below, otherwise the
-       * resource is wrongly marked "disconnected" while telemetry is
-       * still flowing. Mirrors shouldRunMaintenance's fail-open stance.
-       */
-      cached = null;
-    }
-
-    if (cached === extrasFingerprint) {
-      return; // same data was written recently
-    }
-
-    try {
-      await GlobalCache.setString(
-        LAST_SEEN_CACHE_NAMESPACE,
-        cacheKey,
-        extrasFingerprint,
-        { expiresInSeconds: LAST_SEEN_THROTTLE_SECONDS },
-      );
-    } catch {
-      // Best-effort throttle write; proceed with the DB update regardless.
-    }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const liveness: any = {
@@ -249,140 +222,85 @@ export class Service extends DatabaseService<Model> {
     };
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const data: any = { ...liveness };
+    const metadata: any = {};
 
     if (extra?.osType) {
-      data.osType = extra.osType;
+      metadata.osType = extra.osType;
     }
     if (extra?.osVersion) {
-      data.osVersion = extra.osVersion;
+      metadata.osVersion = extra.osVersion;
     }
     if (extra?.hostId) {
-      data.hostId = extra.hostId;
+      metadata.hostId = extra.hostId;
     }
     if (extra?.hostArch) {
-      data.hostArch = extra.hostArch;
+      metadata.hostArch = extra.hostArch;
     }
     if (extra?.hostType) {
-      data.hostType = extra.hostType;
+      metadata.hostType = extra.hostType;
     }
     if (extra?.hostIpAddresses) {
-      data.hostIpAddresses = extra.hostIpAddresses;
+      metadata.hostIpAddresses = extra.hostIpAddresses;
     }
     if (extra?.cpuCores !== undefined) {
-      data.cpuCores = extra.cpuCores;
+      metadata.cpuCores = extra.cpuCores;
     }
     if (extra?.totalMemoryBytes !== undefined) {
-      data.totalMemoryBytes = extra.totalMemoryBytes;
+      metadata.totalMemoryBytes = extra.totalMemoryBytes;
     }
     if (extra?.processCount !== undefined) {
-      data.processCount = extra.processCount;
+      metadata.processCount = extra.processCount;
     }
     if (extra?.containerRuntime) {
-      data.containerRuntime = extra.containerRuntime;
+      metadata.containerRuntime = extra.containerRuntime;
     }
     if (extra?.dockerHostId) {
-      data.dockerHostId = extra.dockerHostId;
+      metadata.dockerHostId = extra.dockerHostId;
     }
     if (extra?.kubernetesClusterId) {
-      data.kubernetesClusterId = extra.kubernetesClusterId;
+      metadata.kubernetesClusterId = extra.kubernetesClusterId;
     }
     if (extra?.agentVersion) {
-      data.agentVersion = extra.agentVersion;
+      metadata.agentVersion = extra.agentVersion;
     }
     if (extra?.deploymentEnvironment) {
-      data.deploymentEnvironment = extra.deploymentEnvironment;
+      metadata.deploymentEnvironment = extra.deploymentEnvironment;
     }
     if (extra?.runtimeName) {
-      data.runtimeName = extra.runtimeName;
+      metadata.runtimeName = extra.runtimeName;
     }
     if (extra?.runtimeVersion) {
-      data.runtimeVersion = extra.runtimeVersion;
+      metadata.runtimeVersion = extra.runtimeVersion;
     }
     if (extra?.cloudProvider) {
-      data.cloudProvider = extra.cloudProvider;
+      metadata.cloudProvider = extra.cloudProvider;
     }
     if (extra?.cloudPlatform) {
-      data.cloudPlatform = extra.cloudPlatform;
+      metadata.cloudPlatform = extra.cloudPlatform;
     }
     if (extra?.cloudRegion) {
-      data.cloudRegion = extra.cloudRegion;
+      metadata.cloudRegion = extra.cloudRegion;
     }
     if (extra?.cloudAccountId) {
-      data.cloudAccountId = extra.cloudAccountId;
+      metadata.cloudAccountId = extra.cloudAccountId;
     }
 
     /*
-     * Heartbeat write: a single-statement UPDATE with no hooks and no
-     * `version` bump, avoiding the hot-row Postgres lock convoy that the
-     * full updateOneById pipeline causes. See ServiceService.updateLastSeen.
-     *
-     * It is the SKIP LOCKED variant, so a contended writer yields instead of
-     * joining a lock queue — the structural cap that holds even when the
-     * throttle above fails open during a Redis outage.
-     *
-     * Every optional value above comes from an OpenTelemetry resource
-     * attribute, so its length is whatever the collector felt like sending.
-     * The write primitive clamps them to their declared column widths for us
-     * — see truncateStringColumnsToMaxLength.
+     * One gated, non-blocking heartbeat write. The gates, the fail-open /
+     * fail-closed split and the liveness-only fallback all live in
+     * ResourceHeartbeat — see there for why this row's throttle used to
+     * provide no throttling at all.
      */
-    try {
-      const wrote: boolean = await this.updateColumnsByIdIfUnlockedWithoutHooks(
-        {
-          id: hostId,
-          data: data,
-        },
-      );
-
-      if (!wrote) {
-        /*
-         * Skipped, not applied: another writer holds the row. Dropping the
-         * liveness half is harmless (they are writing the same timestamp),
-         * but the enrichment half carries values that writer may not have,
-         * and the throttle key is already armed — so it would stay unwritten
-         * for the rest of the window. Re-open the window instead; the next
-         * batch is milliseconds away and each attempt is non-blocking.
-         */
-        try {
-          await GlobalCache.deleteKey(LAST_SEEN_CACHE_NAMESPACE, cacheKey);
-        } catch {
-          // Best-effort.
-        }
-      }
-    } catch (err) {
-      /*
-       * Liveness must survive bad metadata. The enriched write carries
-       * `lastSeenAt` and `otelCollectorStatus` alongside a dozen optional,
-       * collector-supplied columns; if any one of them makes Postgres
-       * reject the statement, the host silently stops advancing
-       * lastSeenAt and MarkDisconnectedHosts flips a perfectly healthy
-       * host to "disconnected" 15 minutes later — with telemetry still
-       * arriving the whole time. That was issue #3006 (a host.ip list
-       * longer than the then-varchar(500) column). Retry with liveness
-       * only so the enrichment is what gets dropped, never the heartbeat.
-       */
-      logger.warn(
-        `HostService.updateLastSeen: metadata write failed for host ${hostId.toString()}, falling back to a liveness-only update: ${
-          err instanceof Error ? err.message : String(err)
-        }`,
-      );
-
-      /*
-       * The throttle fingerprint was already stored, so without this the
-       * next batch would short-circuit on a cache hit and skip the retry
-       * for the rest of the window.
-       */
-      try {
-        await GlobalCache.deleteKey(LAST_SEEN_CACHE_NAMESPACE, cacheKey);
-      } catch {
-        // Best-effort; the fallback write below is what actually matters.
-      }
-
-      await this.updateColumnsByIdIfUnlockedWithoutHooks({
-        id: hostId,
-        data: liveness,
-      });
-    }
+    await ResourceHeartbeat.write({
+      service: this,
+      id: hostId,
+      cacheNamespace: LAST_SEEN_CACHE_NAMESPACE,
+      throttleInSeconds: LAST_SEEN_THROTTLE_SECONDS,
+      liveness: liveness,
+      metadata: metadata,
+      fingerprint: extrasFingerprint,
+      describe: `host ${hostId.toString()}`,
+    });
   }
 
   private fingerprintExtras(extra?: {
