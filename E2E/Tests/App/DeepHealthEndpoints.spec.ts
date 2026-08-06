@@ -21,6 +21,16 @@ import URL from "Common/Types/API/URL";
  * per-store health view silently started 400/500-ing. No E2E suite guards them
  * today; this one does.
  *
+ * Why the "/api" prefix instead of the root path: nginx's catch-all
+ * `location /` (Nginx/default.conf.template) proxies to the *Home* service when
+ * BILLING_ENABLED=true (the SaaS CI stack, docker-compose.billing.yml) and to
+ * the *App* service otherwise (the self-hosted stack). Home only passes
+ * liveCheck/readyCheck to StatusAPI.init, so the three deep routes answer 400
+ * "check not implemented" there. `location /api` is unconditional and always
+ * proxies to App, and Common/Server/API/Index.ts mounts StatusAPI at both
+ * `/${appName}` and `/` with App/Index.ts setting appName = "api" — so
+ * /api/status/* reaches the App's own deep checks in both deployment modes.
+ *
  * Robustness: the deploy's readiness gate (Tests/Scripts/status-check.sh) blocks
  * on /status/ready, whose check verifies Postgres, ClickHouse AND Redis with
  * retries, so by the time this suite runs every backing store the three deep
@@ -29,9 +39,9 @@ import URL from "Common/Types/API/URL";
  */
 
 const DEEP_HEALTH_ROUTES: Array<string> = [
-  "/status/database", // Postgres reachability
-  "/status/analytics-database", // ClickHouse reachability
-  "/status/global-cache", // Redis reachability
+  "/api/status/database", // Postgres reachability
+  "/api/status/analytics-database", // ClickHouse reachability
+  "/api/status/global-cache", // Redis reachability
 ];
 
 test.describe("App per-datastore deep health endpoints return well-formed JSON", () => {
