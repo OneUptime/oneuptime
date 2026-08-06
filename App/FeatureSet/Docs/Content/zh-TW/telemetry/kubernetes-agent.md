@@ -11,7 +11,7 @@ OneUptime Kubernetes Agent 是一個預先封裝好的 Helm chart，會在您的
 - 一個運作中的 Kubernetes 叢集（v1.23+）
 - 已設定可存取您叢集的 `kubectl`
 - 已安裝 `helm` v3
-- 一組 **OneUptime API key**——請從 _Project Settings → API Keys_ 建立
+- 一組 **OneUptime API key**——請從 _專案設定 → API 金鑰_ 建立
 
 ## 步驟 1 — 加入 OneUptime Helm Repository
 
@@ -164,7 +164,7 @@ podLogs 與 ebpfDiscovery 規則會在來源端篩選：被排除的日誌檔案
 
 容器執行階段並不會在日誌行上記錄嚴重性，因此 agent 會自行從日誌文字中解析出嚴重性（`[ERROR]`、`WARN:`、`level=info` 等）。
 
-> **Kubernetes 事件與資源規格絕不會被它篩選。** 它們來自 Kubernetes API，本身不帶任何嚴重性，因此設定門檻會刪除整個資料流，而不是將它變稀疏——包括您最想看到的 `FailedScheduling`、`BackOff` 與 `OOMKilling` 警告。它們資料量低而價值高，因此 agent 一律會傳送它們。若要精簡它們，請改用儀表板中伺服器端的 **Logs → Settings → Drop Filters**。
+> **Kubernetes 事件與資源規格絕不會被它篩選。** 它們來自 Kubernetes API，本身不帶任何嚴重性，因此設定門檻會刪除整個資料流，而不是將它變稀疏——包括您最想看到的 `FailedScheduling`、`BackOff` 與 `OOMKilling` 警告。它們資料量低而價值高，因此 agent 一律會傳送它們。若要精簡它們，請改用儀表板中伺服器端的 **日誌 → 設定 → 捨棄過濾器**。
 
 **一行沒有可辨識層級的日誌會有什麼結果，取決於日誌模式**，因為這兩種模式可取得的資訊並不相同：
 
@@ -247,7 +247,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 - **跨叢集預設就能運作。** 只有當兩個 agent 在 `hashSeed` 與 `percentage` 上都一致時，它們才會保留同一筆追蹤。兩者在各處的預設值都相同，因此一筆橫跨兩個叢集的追蹤，無需任何額外設定就能完整存活。只有在您想刻意**去相關**兩個取樣層級時，才需要變更 `hashSeed`——因為這個決定是對同一個雜湊取門檻，所以相同的 seed 在不同比率下會呈巢狀關係，於是第二層只會重新挑出第一層已經保留的那些追蹤，而不是獨立抽取。
 - **Pod 日誌永遠不會被取樣**，因此在 `ebpf.logToTraceCorrelation: true` 之下，每一筆日誌記錄仍然會帶有 trace ID，但這些追蹤只有 `percentage`% 會被保留。大約 (100 − `percentage`)% 的日誌記錄，其顯示的追蹤連結會指向一個不存在的追蹤。追蹤 → 日誌的導覽不受影響；只有日誌 → 追蹤可能會落空。
 
-> **設定這個值時，請重新調校您以 span 為基礎的監控。** 取樣會減少抵達 OneUptime 的 span，因此任何在計數 span 的東西都會算得比較少：一個以 `Span Count` 為條件的 **Traces** 監控，以及一個以 `Exception Count` 為條件的 **Exceptions** 監控，看到的大約會是昨天資料量的 `percentage`%。以未取樣流量調校出來的門檻會悄悄地不再被跨越——監控不會報錯，它只是變得靜默。設定這個比率時，請將那些門檻除以相同的倍數；這個比率是叢集範圍的，因此沒有辦法讓個別服務豁免於它。錯誤**分組**的劣化則比線性更嚴重：常見的例外仍然會浮現，但罕見的一次性例外，比起「出現頻率變成十分之一」，更可能是完全消失。
+> **設定這個值時，請重新調校您以 span 為基礎的監控。** 取樣會減少抵達 OneUptime 的 span，因此任何在計數 span 的東西都會算得比較少：一個以 `Span Count` 為條件的 **追蹤** 監控，以及一個以 `Exception Count` 為條件的 **例外** 監控，看到的大約會是昨天資料量的 `percentage`%。以未取樣流量調校出來的門檻會悄悄地不再被跨越——監控不會報錯，它只是變得靜默。設定這個比率時，請將那些門檻除以相同的倍數；這個比率是叢集範圍的，因此沒有辦法讓個別服務豁免於它。錯誤**分組**的劣化則比線性更嚴重：常見的例外仍然會浮現，但罕見的一次性例外，比起「出現頻率變成十分之一」，更可能是完全消失。
 
 > **為什麼這裡沒有日誌或指標取樣。** collector 的取樣器根本無法對指標取樣。它可以對日誌取樣，但它的隨機性來源是 trace ID——而 Pod 日誌沒有 trace ID。於是每一筆沒有 trace ID 的記錄都會雜湊到同一個 bucket，因此日誌比率並不會讓資料流變稀疏：它會依 seed 而定，不是全部保留，就是全部刪除。與其推出一個會默默刪除您日誌的開關，chart 選擇不提供。若要精簡日誌，請改用[依日誌嚴重性篩選](#依日誌嚴重性篩選)與 [Namespace 篩選](#namespace-篩選)，它們對於自己移除什麼是精確的。
 
@@ -649,7 +649,7 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 
 ### 衡量效果
 
-遙測用量是以每日為單位彙總的，因此請在 **Project Settings → Usage History** 下觀察一兩天的趨勢來確認下降——它不會在您套用變更的當下就立即變化。一次只調整一個槓桿，這樣您才能歸因於差異——先關閉日誌，接著調高間隔，然後精簡 eBPF——而不是一次把所有東西都調降，結果失去一個您實際依賴的監控。
+遙測用量是以每日為單位彙總的，因此請在 **專案設定 → 使用歷程** 下觀察一兩天的趨勢來確認下降——它不會在您套用變更的當下就立即變化。一次只調整一個槓桿，這樣您才能歸因於差異——先關閉日誌，接著調高間隔，然後精簡 eBPF——而不是一次把所有東西都調降，結果失去一個您實際依賴的監控。
 
 ## 疑難排解
 
@@ -687,7 +687,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
    curl -i -H "x-oneuptime-token: <YOUR_API_KEY>" https://oneuptime.com/otlp/v1/validate
    ```
 
-   如果它回傳 `401`，表示您 release 中的 key 是錯誤的或已被撤銷。請從 _Project Settings → 遙測與 APM → 擷取金鑰_ 複製一個有效的 key 並重新部署：
+   如果它回傳 `401`，表示您 release 中的 key 是錯誤的或已被撤銷。請從 _專案設定 → 遙測與 APM → 擷取金鑰_ 複製一個有效的 key 並重新部署：
 
    ```bash
    helm upgrade kubernetes-agent oneuptime/kubernetes-agent \

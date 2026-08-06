@@ -70,7 +70,7 @@ Sélectionnez un ou plusieurs services depuis lesquels surveiller les traces. Le
 
 #### Alerter sur les erreurs dans un point d'accès spécifique
 
-- **Nom de span** : `POST /api/checkout`
+- **Nom du span** : `POST /api/checkout`
 - **Statuts de span** : ERROR
 - **Fenêtre temporelle** : 120 secondes
 - **Vérifier sur** : Nombre de spans

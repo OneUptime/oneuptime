@@ -4,23 +4,23 @@ Deze pagina behandelt de instellingen en veiligheidslimieten die de moeite waard
 
 ## Een workflow aan- of uitzetten
 
-Elke workflow heeft een schakelaar **Enabled** in **Settings**. Wanneer die uitstaat draait de workflow niet — webhook-aanroepen, geplande tijden en OneUptime-events worden allemaal genegeerd. Nieuwe workflows starten uitgeschakeld.
+Elke workflow heeft een schakelaar **Ingeschakeld** in **Instellingen**. Wanneer die uitstaat draait de workflow niet — webhook-aanroepen, geplande tijden en OneUptime-events worden allemaal genegeerd. Nieuwe workflows starten uitgeschakeld.
 
 Gebruik deze schakelaar als je "klaar om te gaan"-poort:
 
 1. Bouw de workflow.
 2. Klik op **Run Manually** met een realistische payload.
-3. Controleer de **Logs** — zorg dat elk blok ging waar je verwachtte.
-4. Zet **Enabled** aan.
+3. Controleer de **Logboeken** — zorg dat elk blok ging waar je verwachtte.
+4. Zet **Ingeschakeld** aan.
 
 Een workflow uitzetten stopt geen runs die al bezig zijn; het voorkomt alleen dat nieuwe starten.
 
 ## Eigenaren en labels
 
-- **Owners** — gebruikers en teams die als eigenaar zijn opgenomen, krijgen toegang tot de workflow en kunnen zich aanmelden voor notificaties wanneer hij faalt. Stel ze in onder **Settings → Owners**.
+- **Eigenaren** — gebruikers en teams die als eigenaar zijn opgenomen, krijgen toegang tot de workflow en kunnen zich aanmelden voor notificaties wanneer hij faalt. Stel ze in onder **Instellingen → Eigenaren**.
 - **Labels** — tags om workflows te groeperen. De workflowlijst laat je filteren op label, wat een druk project een stuk makkelijker te navigeren maakt. Handig wanneer je workflows hebt georganiseerd per team, integratie of omgeving.
-- **Label rules** — onder **Workflows → Settings → Label Rules** worden labels automatisch toegepast op nieuwe workflows op basis van naam- of beschrijvingspatronen.
-- **Owner rules** — onder **Workflows → Settings → Owner Rules** worden automatisch eigenaren toegewezen aan nieuwe workflows.
+- **Label rules** — onder **Workflows → Instellingen → Labelregels** worden labels automatisch toegepast op nieuwe workflows op basis van naam- of beschrijvingspatronen.
+- **Owner rules** — onder **Workflows → Instellingen → Eigenaarsregels** worden automatisch eigenaren toegewezen aan nieuwe workflows.
 
 ## Geheimen
 
@@ -52,7 +52,7 @@ Als je echt een lange keten nodig hebt (bijvoorbeeld een taak die per run één 
 Webhook-triggers geven je een unieke URL. Iedereen die de URL kent kan hem aanroepen. Om je te beschermen tegen onbedoelde of ongewenste aanroepers:
 
 - Behandel de URL als een wachtwoord. Deel hem niet publiekelijk en commit hem niet naar een publieke repo.
-- Voor gevoelige workflows kun je het aanroepende systeem vragen een gedeeld token als header te sturen (zoals `X-Webhook-Token`) en die controleren met een **Conditions**-blok voordat je iets belangrijks doet. Sla het verwachte token op als secret-variabele.
+- Voor gevoelige workflows kun je het aanroepende systeem vragen een gedeeld token als header te sturen (zoals `X-Webhook-Token`) en die controleren met een **Voorwaarden**-blok voordat je iets belangrijks doet. Sla het verwachte token op als secret-variabele.
 - Voor zeer gevoelige workflows geef je de voorkeur aan een OneUptime event-trigger en een handmatige importstap in plaats van een publieke webhook.
 
 ## Uitgaande netwerktoegang
@@ -64,7 +64,7 @@ API- en andere HTTP-blokken doen hun aanvragen vanuit OneUptime. Bij self-hostin
 Workflows respecteren de role-based access control van je project. De relevante machtigingen:
 
 - **Create / Read / Edit / Delete Workflow** — de basismachtigingen op de workflow zelf.
-- **Run Workflow** — nodig om op **Run Manually** te klikken of een workflow via de API te triggeren.
+- **Workflow uitvoeren** — nodig om op **Run Manually** te klikken of een workflow via de API te triggeren.
 - **Read Workflow Log** — nodig om runs te bekijken.
 - **Read / Create / Edit / Delete Workflow Variable** — controle over de lijst met globale variabelen.
 
@@ -72,7 +72,7 @@ De meeste engineers zouden create/edit/read op workflows moeten hebben, maar nie
 
 ## Plan-limieten
 
-OneUptime Cloud beperkt het aantal runs per maand op kleinere plannen. Je huidige limiet staat onder **Project Settings → Billing**. Wanneer je hem bereikt, worden nieuwe triggers afgewezen tot de volgende factureringscyclus. Self-hosted installaties hebben deze limiet niet.
+OneUptime Cloud beperkt het aantal runs per maand op kleinere plannen. Je huidige limiet staat onder **Projectinstellingen → Facturering**. Wanneer je hem bereikt, worden nieuwe triggers afgewezen tot de volgende factureringscyclus. Self-hosted installaties hebben deze limiet niet.
 
 ## Wanneer workflows niet de juiste tool zijn
 

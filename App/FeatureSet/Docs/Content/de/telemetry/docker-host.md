@@ -10,7 +10,7 @@ Diese Seite ist die **Installationsanleitung**. Informationen zum Konfigurieren 
 
 - Docker Engine 20.10+
 - Zugriff auf `/var/run/docker.sock` auf dem Host
-- Ein **OneUptime Telemetry Ingestion Token** — erstellen Sie eines unter _Project Settings → Telemetrie & APM → Ingestion-Schlüssel_ und kopieren Sie den Wert
+- Ein **OneUptime Telemetry Ingestion Token** — erstellen Sie eines unter _Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel_ und kopieren Sie den Wert
 
 ## Schnellstart (Ein Befehl)
 
@@ -67,7 +67,7 @@ docker compose up -d
 | Variable                  | Erforderlich | Beschreibung                                                                                                                               |
 | ------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | `ONEUPTIME_URL`           | Ja           | Die URL Ihrer OneUptime-Instanz (zum Beispiel `https://oneuptime.com` oder Ihr selbst gehosteter Host)                                     |
-| `ONEUPTIME_SERVICE_TOKEN` | Ja           | Telemetry Ingestion Token aus _Project Settings → Telemetrie & APM → Ingestion-Schlüssel_                                                                |
+| `ONEUPTIME_SERVICE_TOKEN` | Ja           | Telemetry Ingestion Token aus _Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel_                                                            |
 | `DOCKER_HOST_NAME`        | Nein         | Sprechender Name für diesen Host. Standardwert ist `docker-host`. Setzen Sie ihn pro Host auf einen stabilen Wert (z. B. `prod-docker-01`) |
 
 ## Installation überprüfen

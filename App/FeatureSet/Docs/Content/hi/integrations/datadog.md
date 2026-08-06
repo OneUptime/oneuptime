@@ -15,16 +15,16 @@ Datadog monitor alerts  ──►  Webhook integration  ──►  OneUptime Web
 
 ## चरण 1 — OneUptime वर्कफ़्लो बनाएँ
 
-1. **Workflows → Create Workflow** खोलें, इसे `Datadog → Incidents` नाम दें, और **Builder** खोलें।
-2. एक **Webhook** trigger जोड़ें और **उसका URL कॉपी करें**। ब्लॉक का नाम `Datadog` रखें।
-3. trigger से connected एक **Conditions** ब्लॉक जोड़ें:
+1. **वर्कफ़्लो → वर्कफ़्लो बनाएं** खोलें, इसे `Datadog → Incidents` नाम दें, और **बिल्डर** खोलें।
+2. एक **वेबहुक** trigger जोड़ें और **उसका URL कॉपी करें**। ब्लॉक का नाम `Datadog` रखें।
+3. trigger से connected एक **शर्तें** ब्लॉक जोड़ें:
    - **Left**: `{{Datadog.Request Body.transition}}`
    - **Operator**: `==`
    - **Right**: `Triggered`
-4. **Yes** से, एक **Create Incident** ब्लॉक जोड़ें:
-   - **Title**: `{{Datadog.Request Body.title}}`
-   - **Description**: `{{Datadog.Request Body.body}}\nHost: {{Datadog.Request Body.host}}\n{{Datadog.Request Body.link}}`
-   - **Severity**: कोई एक चुनें।
+4. **हाँ** से, एक **घटना बनाएं** ब्लॉक जोड़ें:
+   - **शीर्षक**: `{{Datadog.Request Body.title}}`
+   - **विवरण**: `{{Datadog.Request Body.body}}\nHost: {{Datadog.Request Body.host}}\n{{Datadog.Request Body.link}}`
+   - **गंभीरता**: कोई एक चुनें।
 5. **सहेजें** (test होने तक disabled छोड़ें)।
 
 ## चरण 2 — Datadog webhook बनाएँ
@@ -32,7 +32,7 @@ Datadog monitor alerts  ──►  Webhook integration  ──►  OneUptime Web
 1. Datadog में, **Integrations → Webhooks** पर जाएँ (यदि आपने नहीं किया है तो **Webhooks** integration install करें)।
 2. **एक webhook जोड़ें**:
 
-   - **Name**: `oneuptime` (यह `@webhook-oneuptime` बन जाता है)।
+   - **नाम**: `oneuptime` (यह `@webhook-oneuptime` बन जाता है)।
    - **URL**: आपके वर्कफ़्लो का webhook URL।
    - **Payload** — Datadog आपको [template variables](https://docs.datadoghq.com/integrations/webhooks/#usage) का उपयोग करके JSON body define करने देता है:
 
@@ -66,16 +66,16 @@ Webhook handle उन monitors में जोड़ें जिन्हे�
 
 1. वर्कफ़्लो enable करें।
 2. किसी monitor से, **Test Notifications → Alert** इस्तेमाल करें, या कोई real monitor trip होने दें।
-3. वर्कफ़्लो का **Logs** tab और अपना **Incidents** list जाँचें।
+3. वर्कफ़्लो का **लॉग** tab और अपना **घटनाएं** list जाँचें।
 
 ## Recovery पर resolve करना (वैकल्पिक)
 
-`$ALERT_TRANSITION` monitor clear होने पर `Recovered` होता है। एक दूसरा **Conditions** branch जोड़ें (`transition == Recovered`), matching incident खोजें (भेजे गए `id` पर match करें), और इसे **Update Incident** के साथ आपके resolved state में ले जाएँ।
+`$ALERT_TRANSITION` monitor clear होने पर `Recovered` होता है। एक दूसरा **शर्तें** branch जोड़ें (`transition == Recovered`), matching incident खोजें (भेजे गए `id` पर match करें), और इसे **Update Incident** के साथ आपके resolved state में ले जाएँ।
 
 ## समस्या निवारण
 
-- **कोई run नहीं दिखता** — पुष्टि करें कि monitor के message में `@webhook-oneuptime` शामिल है और वर्कफ़्लो **Enabled** है।
-- **Fields खाली हैं** — Datadog केवल event पर लागू होने वाले template variables substitute करता है। **Logs** tab में trigger output inspect करें और अपना webhook payload adjust करें।
+- **कोई run नहीं दिखता** — पुष्टि करें कि monitor के message में `@webhook-oneuptime` शामिल है और वर्कफ़्लो **सक्षम** है।
+- **Fields खाली हैं** — Datadog केवल event पर लागू होने वाले template variables substitute करता है। **लॉग** tab में trigger output inspect करें और अपना webhook payload adjust करें।
 - **Duplicate incidents** — एक monitor जो re-alert करता है (renotify) कई `Triggered` events भेजता है; create करने से पहले `id` पर **Find Incident** check से dedupe करें।
 
 ## आगे क्या पढ़ें

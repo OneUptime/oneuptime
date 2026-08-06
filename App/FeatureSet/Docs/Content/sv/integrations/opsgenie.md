@@ -16,12 +16,12 @@ OneUptime Incident → On Create  ──►  API component (POST /v2/alerts)  �
 
 ## Steg 1 — Spara API-nyckeln
 
-1. Gå till **Workflows → Global Variables → Create**.
+1. Gå till **Arbetsflöden → Globala variabler → Skapa**.
 2. Namnge det `OPSGENIE_KEY`, klistra in API-nyckeln och slå på **Is Secret**.
 
 ## Steg 2 — Bygg arbetsflödet för "skapa larm"
 
-1. Öppna **Workflows → Create Workflow**, namnge det `Incidents → Opsgenie` och öppna **Builder**.
+1. Öppna **Arbetsflöden → Skapa arbetsflöde**, namnge det `Incidents → Opsgenie` och öppna **Byggare**.
 2. Lägg till en **Incident**-utlösare inställd på **On Create**. Byt namn till `Incident`.
 3. Lägg till ett **API**-block kopplat till utlösaren:
 
@@ -53,8 +53,8 @@ OneUptime Incident → On Create  ──►  API component (POST /v2/alerts)  �
 ## Steg 3 — Stäng vid OneUptime-lösning (rekommenderas)
 
 1. Skapa ett **andra** arbetsflöde som heter `Close Opsgenie` med en **Incident → On Update**-utlösare.
-2. Lägg till ett **Conditions**-block som kontrollerar att incidenten nu är löst (förgrena på `{{Incident.currentIncidentState.name}}`).
-3. Från **Yes**, lägg till ett **API**-block:
+2. Lägg till ett **Villkor**-block som kontrollerar att incidenten nu är löst (förgrena på `{{Incident.currentIncidentState.name}}`).
+3. Från **Ja**, lägg till ett **API**-block:
    - **Method**: `POST`
    - **URL**: `https://api.opsgenie.com/v2/alerts/oneuptime-{{Incident._id}}/close?identifierType=alias`
    - **Headers**: samma `Authorization: GenieKey {{variable.OPSGENIE_KEY}}`
@@ -64,13 +64,13 @@ Opsgenie letar upp larmet via alias och stänger det.
 
 ## Prioritetsmappning (valfritt)
 
-Opsgenie-prioriteter går från `P1`–`P5`. Mappa från OneUptime-allvarlighetsgrader med **Conditions**-grenar på `{{Incident.incidentSeverity.name}}` före API-blocket.
+Opsgenie-prioriteter går från `P1`–`P5`. Mappa från OneUptime-allvarlighetsgrader med **Villkor**-grenar på `{{Incident.incidentSeverity.name}}` före API-blocket.
 
 ## Felsökning
 
 - **`401`/`403`** — fel nyckel, fel regions-host, eller integrationen saknar behörighet att skapa larm. Bekräfta att du använder en **API**-integrationsnyckel och den matchande `api`/`api.eu`-hosten.
 - **Stängning returnerar `404`** — `alias` i stängningsanropet måste matcha skapanropsanropet exakt, och `identifierType=alias` måste finnas i query-strängen.
-- **Ingenting händer** — bekräfta att arbetsflödet är **Enabled**.
+- **Ingenting händer** — bekräfta att arbetsflödet är **Aktiverad**.
 
 ## Läs vidare
 

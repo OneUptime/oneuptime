@@ -4,7 +4,7 @@ OneUptime 支持通过自定义 SMTP 服务器发送电子邮件，提供三种�
 
 - **用户名和密码** - 传统 SMTP 认证
 - **OAuth 2.0** - 适用于 Microsoft 365 和 Google Workspace 的现代认证
-- **无认证** - 适用于不需要认证的中继服务器
+- **无** - 适用于不需要认证的中继服务器
 
 本指南介绍如何为 Microsoft 365 和 Google Workspace 配置 OAuth 2.0 认证。
 
@@ -26,10 +26,10 @@ OAuth 2.0 为与邮件服务器进行认证提供了更安全的方式，尤其�
 | **用户名**           | 发送邮件的电子邮件地址                                                    |
 | **认证类型**         | 选择"OAuth"                                                               |
 | **OAuth 提供商类型** | Microsoft 365 选择"Client Credentials"，Google Workspace 选择"JWT Bearer" |
-| **Client ID**        | 来自您 OAuth 提供商的应用程序/客户端 ID（Google 填写服务账号邮件地址）    |
-| **Client Secret**    | 来自您 OAuth 提供商的客户端密钥（Google 填写私钥）                        |
+| **客户端 ID**        | 来自您 OAuth 提供商的应用程序/客户端 ID（Google 填写服务账号邮件地址）    |
+| **客户端密钥**       | 来自您 OAuth 提供商的客户端密钥（Google 填写私钥）                        |
 | **Token URL**        | OAuth 令牌端点 URL                                                        |
-| **Scope**            | SMTP 访问所需的 OAuth 范围                                                |
+| **范围**             | SMTP 访问所需的 OAuth 范围                                                |
 
 ---
 
@@ -230,7 +230,7 @@ Google Workspace 需要一个具有域范围委派权限的**服务账号**，�
 
 ### 通用
 
-- **测试您的配置**：使用 OneUptime 中的"发送测试邮件"按钮验证您的设置
+- **测试您的配置**：使用 OneUptime 中的"发送测试电子邮件"按钮验证您的设置
 - **检查日志**：查看 OneUptime 日志以获取详细错误信息
 - **令牌缓存**：OneUptime 会缓存 OAuth 令牌并在过期前自动刷新
 

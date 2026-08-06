@@ -15,16 +15,16 @@ Datadog monitor alerts  ──►  Webhook integration  ──►  OneUptime Web
 
 ## Steg 1 — Bygg OneUptime-arbetsflödet
 
-1. Öppna **Workflows → Create Workflow**, namnge det `Datadog → Incidents` och öppna **Builder**.
+1. Öppna **Arbetsflöden → Skapa arbetsflöde**, namnge det `Datadog → Incidents` och öppna **Byggare**.
 2. Lägg till en **Webhook**-utlösare och **kopiera dess URL**. Byt namn på blocket till `Datadog`.
-3. Lägg till ett **Conditions**-block kopplat till utlösaren:
+3. Lägg till ett **Villkor**-block kopplat till utlösaren:
    - **Left**: `{{Datadog.Request Body.transition}}`
    - **Operator**: `==`
    - **Right**: `Triggered`
-4. Från **Yes**, lägg till ett **Create Incident**-block:
-   - **Title**: `{{Datadog.Request Body.title}}`
-   - **Description**: `{{Datadog.Request Body.body}}\nHost: {{Datadog.Request Body.host}}\n{{Datadog.Request Body.link}}`
-   - **Severity**: välj en.
+4. Från **Ja**, lägg till ett **Skapa incident**-block:
+   - **Titel**: `{{Datadog.Request Body.title}}`
+   - **Beskrivning**: `{{Datadog.Request Body.body}}\nHost: {{Datadog.Request Body.host}}\n{{Datadog.Request Body.link}}`
+   - **Allvarlighetsgrad**: välj en.
 5. **Spara** (lämna inaktiverat tills det testats).
 
 ## Steg 2 — Skapa Datadog-webhooken
@@ -66,16 +66,16 @@ Detta skickar både larmet och återhämtningen till OneUptime. (För att vidare
 
 1. Aktivera arbetsflödet.
 2. Från en monitor, använd **Test Notifications → Alert**, eller låt en riktig monitor utlösas.
-3. Kontrollera arbetsflödets flik **Logs** och din lista med **Incidents**.
+3. Kontrollera arbetsflödets flik **Loggar** och din lista med **Incidenter**.
 
 ## Lösning vid återhämtning (valfritt)
 
-`$ALERT_TRANSITION` är `Recovered` när en monitor rensas. Lägg till en andra **Conditions**-gren (`transition == Recovered`), hitta den matchande incidenten (matcha på det `id` du skickade) och flytta den till ditt lösta tillstånd med **Update Incident**.
+`$ALERT_TRANSITION` är `Recovered` när en monitor rensas. Lägg till en andra **Villkor**-gren (`transition == Recovered`), hitta den matchande incidenten (matcha på det `id` du skickade) och flytta den till ditt lösta tillstånd med **Update Incident**.
 
 ## Felsökning
 
-- **Ingen körning visas** — bekräfta att monitorns meddelande innehåller `@webhook-oneuptime` och att arbetsflödet är **Enabled**.
-- **Fält är tomma** — Datadog ersätter bara mallvariabler som gäller för händelsen. Granska utlösarens utdata på fliken **Logs** och justera din webhook-payload.
+- **Ingen körning visas** — bekräfta att monitorns meddelande innehåller `@webhook-oneuptime` och att arbetsflödet är **Aktiverad**.
+- **Fält är tomma** — Datadog ersätter bara mallvariabler som gäller för händelsen. Granska utlösarens utdata på fliken **Loggar** och justera din webhook-payload.
 - **Dubblettincidenter** — en monitor som larmar om igen (renotify) skickar flera `Triggered`-händelser; deduplicera med en **Find Incident**-kontroll på `id` innan du skapar.
 
 ## Läs vidare

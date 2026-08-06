@@ -90,14 +90,14 @@ Da du selvhoster OneUptime, skal du konfigurere din egen Twilio-konto. Dette giv
 4. Udfyld følgende felter:
    - **Navn**: Et brugervenligt navn (f.eks. "Produktions-Twilio-konfiguration")
    - **Beskrivelse**: Valgfri beskrivelse
-   - **Twilio Konto-SID**: Dit Twilio-konto-SID (starter med `AC`)
+   - **Twilio Account SID**: Dit Twilio-konto-SID (starter med `AC`)
    - **Twilio Auth Token**: Dit Twilio Auth Token
-   - **Twilio primære telefonnummer**: Et telefonnummer fra din Twilio-konto til udgående opkald
+   - **Twilio primært telefonnummer**: Et telefonnummer fra din Twilio-konto til udgående opkald
 5. Klik på **Gem**
 
 ## Trin 3: Opret en indgående opkaldspolitik
 
-1. Gå til **Vagttjeneste** > **Indgående opkaldspolitikker**
+1. Gå til **Vagtordning** > **Indgående opkaldspolitikker**
 2. Klik på **Opret indgående opkaldspolitik**
 3. Udfyld følgende felter:
    - **Navn**: Et brugervenligt navn (f.eks. "Support-hotline")
@@ -161,8 +161,8 @@ Eskaleringsregler bestemmer, hvordan opkald dirigeres:
 3. Klik på **Tilføj eskaleringsregel**
 4. Konfigurer reglen:
    - **Rækkefølge**: Prioritetsrækkefølgen (lavere tal prøves først)
-   - **Eskaler efter (sekunder)**: Tid at vente, inden der eskaleres
-   - **Vagtplan**: Vælg en plan for at dirigere til den, der er på vagt
+   - **Eskalér efter (sekunder)**: Tid at vente, inden der eskaleres
+   - **Vagttidsplan**: Vælg en plan for at dirigere til den, der er på vagt
    - **Teams**: Vælg specifikke teams
    - **Brugere**: Vælg specifikke brugere
 5. Tilføj yderligere eskaleringsregler efter behov
@@ -191,9 +191,9 @@ Tilpas de beskeder, opkaldere hører:
 1. Åbn din indgående opkaldspolitik
 2. Gå til **Indstillinger**
 3. Konfigurer:
-   - **Hilsenbesked**: Afspilles, når opkaldet besvares
-   - **Besked om intet svar**: Afspilles, når alle eskaleringsregler fejler
-   - **Ingen tilgængelig-besked**: Afspilles, når ingen er på vagt
+   - **Velkomstbesked**: Afspilles, når opkaldet besvares
+   - **Besked ved intet svar**: Afspilles, når alle eskaleringsregler fejler
+   - **Besked ved ingen tilgængelige**: Afspilles, når ingen er på vagt
 
 ## Konfigurationsindstillinger
 
@@ -221,9 +221,9 @@ Tilpas de beskeder, opkaldere hører:
 
 For at se historikken for indgående opkald:
 
-1. Gå til **Vagttjeneste** > **Indgående opkaldspolitikker**
+1. Gå til **Vagtordning** > **Indgående opkaldspolitikker**
 2. Klik på din politik
-3. Gå til fanen **Opkaldslogge**
+3. Gå til fanen **Opkaldslogs**
 
 Loggene viser:
 

@@ -3,21 +3,21 @@
 Le regole di runbook collegano automaticamente i runbook quando viene creato un **incidente**, un **allarme** o un **evento di manutenzione programmata**. Si gestiscono dal menu Impostazioni di ciascuna entità:
 
 - Incidenti → Impostazioni → **Regole di runbook**
-- Allarmi → Impostazioni → **Regole di runbook**
+- Avvisi → Impostazioni → **Regole di runbook**
 - Manutenzione programmata → Impostazioni → **Regole di runbook**
 
 Le tre pagine modificano lo stesso modello di regole sottostante — sono solo filtrate per mostrare le regole di quel tipo di entità.
 
 ## Anatomia di una regola
 
-| Campo                   | Scopo                                                                                             |
-| ----------------------- | ------------------------------------------------------------------------------------------------- |
-| **Nome**                | Etichetta breve e leggibile. Compare nei log di audit.                                            |
-| **Descrizione**         | Contesto opzionale per i colleghi.                                                                |
-| **Abilitata**           | Toggle per sospendere una regola senza cancellarla.                                               |
-| **Title Pattern**       | Regex case-insensitive confrontata col titolo dell'entità. Vuoto = qualsiasi titolo.              |
-| **Description Pattern** | Regex case-insensitive confrontata con la descrizione dell'entità. Vuoto = qualsiasi descrizione. |
-| **Runbook da avviare**  | Uno o più runbook da lanciare quando la regola scatta.                                            |
+| Campo                         | Scopo                                                                                             |
+| ----------------------------- | ------------------------------------------------------------------------------------------------- |
+| **Nome**                      | Etichetta breve e leggibile. Compare nei log di audit.                                            |
+| **Descrizione**               | Contesto opzionale per i colleghi.                                                                |
+| **Abilitato**                 | Toggle per sospendere una regola senza cancellarla.                                               |
+| **Modello del titolo**        | Regex case-insensitive confrontata col titolo dell'entità. Vuoto = qualsiasi titolo.              |
+| **Pattern della descrizione** | Regex case-insensitive confrontata con la descrizione dell'entità. Vuoto = qualsiasi descrizione. |
+| **Runbook da avviare**        | Uno o più runbook da lanciare quando la regola scatta.                                            |
 
 ## Semantica del matching
 

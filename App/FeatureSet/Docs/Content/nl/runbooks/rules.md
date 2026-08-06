@@ -2,22 +2,22 @@
 
 Runbook-regels koppelen runbooks automatisch zodra een **incident**, **alert** of **gepland onderhoudsevent** wordt aangemaakt. Ze worden beheerd vanuit het Settings-menu van elke entiteit:
 
-- Incidents → Settings → **Runbook Rules**
-- Alerts → Settings → **Runbook Rules**
-- Scheduled Maintenance → Settings → **Runbook Rules**
+- Incidenten → Instellingen → **Runbook-regels**
+- Waarschuwingen → Instellingen → **Runbook-regels**
+- Geplande onderhoud → Instellingen → **Runbook-regels**
 
 Alle drie de pagina's bewerken hetzelfde onderliggende regelmodel — ze zijn alleen gefilterd om enkel regels voor dat entiteitstype te tonen.
 
 ## Anatomie van een regel
 
-| Veld                    | Doel                                                                                                                   |
-| ----------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| **Naam**                | Kort, leesbaar label. Verschijnt in audit-logs.                                                                        |
-| **Beschrijving**        | Optionele context voor teamleden.                                                                                      |
-| **Ingeschakeld**        | Schakelaar om een regel te pauzeren zonder te verwijderen.                                                             |
-| **Titelpatroon**        | Hoofdletterongevoelige regex die wordt afgespeeld op de titel van de entiteit. Leeg = elke titel matcht.               |
-| **Beschrijvingpatroon** | Hoofdletterongevoelige regex die wordt afgespeeld op de beschrijving van de entiteit. Leeg = elke beschrijving matcht. |
-| **Te starten runbooks** | Eén of meer runbooks die starten wanneer de regel afgaat.                                                              |
+| Veld                     | Doel                                                                                                                   |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| **Naam**                 | Kort, leesbaar label. Verschijnt in audit-logs.                                                                        |
+| **Beschrijving**         | Optionele context voor teamleden.                                                                                      |
+| **Ingeschakeld**         | Schakelaar om een regel te pauzeren zonder te verwijderen.                                                             |
+| **Titelpatroon**         | Hoofdletterongevoelige regex die wordt afgespeeld op de titel van de entiteit. Leeg = elke titel matcht.               |
+| **Beschrijvingspatroon** | Hoofdletterongevoelige regex die wordt afgespeeld op de beschrijving van de entiteit. Leeg = elke beschrijving matcht. |
+| **Te starten runbooks**  | Eén of meer runbooks die starten wanneer de regel afgaat.                                                              |
 
 ## Match-semantiek
 
@@ -57,7 +57,7 @@ Gaat af bij elk incident — handig voor het vastleggen van snapshots van de sys
 3. De uitvoering wordt in de queue van de runbook-queue-worker gezet.
 4. De uitvoering wordt gekoppeld aan de bron-entiteit — hij verschijnt op de pagina van het incident, het alert of het geplande onderhoudsevent en op de Executions-lijst van het runbook.
 
-Je ziet alle door regels getriggerde runs onder **Runbooks → Executions**, gefilterd op status, runbook of datum.
+Je ziet alle door regels getriggerde runs onder **Runbooks → Uitvoeringen**, gefilterd op status, runbook of datum.
 
 ## Uitgeschakelde runbooks
 

@@ -14,8 +14,8 @@ DNS 監控會向 DNS 伺服器查詢特定的記錄類型並評估結果。這�
 
 ## 建立 DNS 監控
 
-1. 前往 OneUptime 儀表板中的 **Monitors**
-2. 點擊 **Create Monitor**
+1. 前往 OneUptime 儀表板中的 **監測**
+2. 點擊 **建立監測器**
 3. 選擇 **DNS** 作為監控類型
 4. 輸入要查詢的網域名稱與記錄類型
 5. 依需要設定監控條件
@@ -92,21 +92,21 @@ DNS 監控會向 DNS 伺服器查詢特定的記錄類型並評估結果。這�
 #### 檢查 DNS 是否能夠解析
 
 - **Check On**：DNS Is Online
-- **Filter Type**：True
+- **篩選器類型**：True
 
 #### 驗證 A 記錄是否指向正確的 IP
 
 - **Check On**：DNS Record Value
-- **Filter Type**：Equal To
-- **Value**：`93.184.216.34`
+- **篩選器類型**：Equal To
+- **值**：`93.184.216.34`
 
 #### 在 DNS 回應緩慢時發出警示
 
 - **Check On**：DNS Response Time (in ms)
-- **Filter Type**：Greater Than
-- **Value**：500
+- **篩選器類型**：Greater Than
+- **值**：500
 
 #### 驗證 DNSSEC 是否有效
 
 - **Check On**：DNSSEC Is Valid
-- **Filter Type**：True
+- **篩選器類型**：True

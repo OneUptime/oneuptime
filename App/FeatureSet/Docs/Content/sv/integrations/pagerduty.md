@@ -17,12 +17,12 @@ OneUptime Incident → On Create  ──►  API component (POST /v2/enqueue)  �
 
 ## Steg 1 — Spara routing-nyckeln
 
-1. Gå till **Workflows → Global Variables → Create**.
+1. Gå till **Arbetsflöden → Globala variabler → Skapa**.
 2. Namnge det `PAGERDUTY_ROUTING_KEY`, klistra in integrationsnyckeln och slå på **Is Secret**.
 
 ## Steg 2 — Bygg arbetsflödet för "utlösning"
 
-1. Öppna **Workflows → Create Workflow**, namnge det `Incidents → PagerDuty` och öppna **Builder**.
+1. Öppna **Arbetsflöden → Skapa arbetsflöde**, namnge det `Incidents → PagerDuty` och öppna **Byggare**.
 2. Lägg till en **Incident**-utlösare inställd på **On Create**. Byt namn till `Incident`.
 3. Lägg till ett **API**-block kopplat till utlösaren:
 
@@ -54,8 +54,8 @@ OneUptime Incident → On Create  ──►  API component (POST /v2/enqueue)  �
 ## Steg 3 — Lös vid OneUptime-lösning (rekommenderas)
 
 1. I **samma** arbetsflöde, lägg till en andra **Incident**-utlösare? Nej — ett arbetsflöde har en utlösare. Skapa i stället ett **andra** arbetsflöde som heter `Resolve PagerDuty` med en **Incident → On Update**-utlösare.
-2. Lägg till ett **Conditions**-block för att kontrollera att incidenten nu är löst (förgrena på incidentens tillstånd/`{{Incident.currentIncidentState.name}}` lika med ditt lösta tillståndsnamn).
-3. Från **Yes**, lägg till ett **API**-block till PagerDuty med samma **`dedup_key`** och `event_action` inställt på `resolve`:
+2. Lägg till ett **Villkor**-block för att kontrollera att incidenten nu är löst (förgrena på incidentens tillstånd/`{{Incident.currentIncidentState.name}}` lika med ditt lösta tillståndsnamn).
+3. Från **Ja**, lägg till ett **API**-block till PagerDuty med samma **`dedup_key`** och `event_action` inställt på `resolve`:
 
    ```json
    {
@@ -69,17 +69,17 @@ PagerDuty matchar `dedup_key` och stänger den ursprungliga incidenten.
 
 ## Allvarlighetsgradsmappning (valfritt)
 
-PagerDutys `severity` accepterar `critical`, `error`, `warning` eller `info`. För att mappa från OneUptime-allvarlighetsgrader, lägg till **Conditions**-grenar på `{{Incident.incidentSeverity.name}}` före API-blocket och skicka en annan body från var och en.
+PagerDutys `severity` accepterar `critical`, `error`, `warning` eller `info`. För att mappa från OneUptime-allvarlighetsgrader, lägg till **Villkor**-grenar på `{{Incident.incidentSeverity.name}}` före API-blocket och skicka en annan body från var och en.
 
 ## Inkommande (valfritt)
 
-För att gå den andra vägen — öppna en OneUptime-incident från en PagerDuty-händelse — lägg till ett arbetsflöde med **Webhook**-utlösare och peka en PagerDuty [V3-webhook](https://developer.pagerduty.com/docs/webhooks/v3-overview/) (eller en Events Orchestration) mot dess URL, använd sedan **Create Incident**. Se det [inkommande mönstret](/docs/integrations/index#inbound-another-tool-sends-data-into-oneuptime).
+För att gå den andra vägen — öppna en OneUptime-incident från en PagerDuty-händelse — lägg till ett arbetsflöde med **Webhook**-utlösare och peka en PagerDuty [V3-webhook](https://developer.pagerduty.com/docs/webhooks/v3-overview/) (eller en Events Orchestration) mot dess URL, använd sedan **Skapa incident**. Se det [inkommande mönstret](/docs/integrations/index#inbound-another-tool-sends-data-into-oneuptime).
 
 ## Felsökning
 
 - **`400` med `"invalid routing key"`** — integrationen måste vara **Events API v2**, inte det äldre Events API v1 eller en annan integrationstyp. Kopiera om nyckeln.
 - **Lösning stänger ingenting** — `dedup_key` i lösningsanropet måste matcha utlösningsanropet exakt.
-- **Ingenting i loggarna** — bekräfta att arbetsflödet är **Enabled** och att utlösaren är **On Create**.
+- **Ingenting i loggarna** — bekräfta att arbetsflödet är **Aktiverad** och att utlösaren är **On Create**.
 
 ## Läs vidare
 

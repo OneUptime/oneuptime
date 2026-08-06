@@ -15,7 +15,7 @@
 ## ウェブサイトモニターの作成
 
 1. OneUptime ダッシュボードで **モニター** を開きます
-2. **モニターの作成** をクリックします
+2. **モニターを作成** をクリックします
 3. モニタータイプとして **ウェブサイト** を選択します
 4. 監視するウェブサイトのURLを入力します
 5. 必要に応じて監視条件を設定します
@@ -71,11 +71,11 @@ Enable this option to skip TLS certificate validation. Useful when the target se
 
 #### Client Certificate (mTLS)
 
-If your endpoint requires mutual TLS authentication, enable **Use client certificate (mTLS)** and provide:
+If your endpoint requires mutual TLS authentication, enable **クライアント証明書を使用（mTLS）** and provide:
 
-- **Client Certificate (PEM)** — the PEM-encoded client certificate to present.
-- **Client Private Key (PEM)** — the matching PEM-encoded private key.
-- **Client Private Key Passphrase** _(optional)_ — required only if the private key is encrypted.
+- **クライアント証明書 (PEM)** — the PEM-encoded client certificate to present.
+- **クライアント秘密鍵 (PEM)** — the matching PEM-encoded private key.
+- **クライアント秘密鍵のパスフレーズ** _(optional)_ — required only if the private key is encrypted.
 
 This is the OneUptime equivalent of the `--cert` and `--key` flags in curl:
 
@@ -91,5 +91,5 @@ For sensitive values, store the certificate and key as [Monitor Secrets](/docs/m
 
 - **レスポンスステータスコード** — HTTPステータスコードが期待値と一致するか確認（例：200、301）
 - **レスポンスタイム** — レスポンスタイムがしきい値を超えているか監視
-- **レスポンス本文** — レスポンス本文が特定の内容を含むまたは一致するか確認
+- **レスポンスボディ** — レスポンス本文が特定の内容を含むまたは一致するか確認
 - **レスポンスヘッダー** — 特定のレスポンスヘッダーが存在し、期待値と一致するか確認

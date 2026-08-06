@@ -19,8 +19,8 @@ Innerhalb von etwa einer Stunde (dem ersten abgeschlossenen Stundenfenster) erha
 
 - Eine **Costs-Seite pro Cluster** (_Kubernetes → Ihr Cluster → Costs_): Ausgabentrend, Ausgaben pro Namespace mit CPU-/Memory-/Storage-Aufteilung, Ausgaben pro Workload, ungenutzte Ausgaben und Effizienz.
 - Eine **Costs-Seite auf Projektebene** (_Kubernetes → Costs_): Ausgaben über alle Cluster des Projekts hinweg.
-- Eine **Kubernetes-Cost-Dashboard-Vorlage** (_Dashboards → Create → Kubernetes Cost Dashboard_): Trends der stündlichen Node-Kosten, CPU-/RAM-Einheitskosten, Ausgaben für Persistent Volumes und Load Balancer.
-- Rohe Kostenmetriken (`node_total_hourly_cost`, `pv_hourly_cost`, ...) im **Metric Explorer**, nutzbar in eigenen Dashboards und Metrik-Alarmen.
+- Eine **Kubernetes-Cost-Dashboard-Vorlage** (_Dashboards → Erstellen → Kubernetes Cost Dashboard_): Trends der stündlichen Node-Kosten, CPU-/RAM-Einheitskosten, Ausgaben für Persistent Volumes und Load Balancer.
+- Rohe Kostenmetriken (`node_total_hourly_cost`, `pv_hourly_cost`, ...) im **Metrik-Explorer**, nutzbar in eigenen Dashboards und Metrik-Alarmen.
 
 ## Funktionsweise
 

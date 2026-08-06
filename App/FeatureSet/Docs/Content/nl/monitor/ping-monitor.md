@@ -13,8 +13,8 @@ Ping-monitors testen basisnetwerkconnectiviteit door ICMP ping-verzoeken naar ee
 
 ## Een Ping Monitor aanmaken
 
-1. Ga naar **Monitors** in het OneUptime-dashboard
-2. Klik op **Monitor aanmaken**
+1. Ga naar **Monitoren** in het OneUptime-dashboard
+2. Klik op **Monitor maken**
 3. Selecteer **Ping** als het monitortype
 4. Voer de hostnaam of het IP-adres in dat u wilt bewaken
 5. Configureer monitoringcriteria naar wens
@@ -44,7 +44,7 @@ Voor **Is online** en **Is verzoek time-out**:
 - **True** — Voorwaarde is waar
 - **False** — Voorwaarde is onwaar
 
-Voor **Responstijd**:
+Voor **Reactietijd**:
 
 - **Groter dan** — Responstijd overschrijdt een drempelwaarde
 - **Kleiner dan** — Responstijd is onder een drempelwaarde

@@ -49,11 +49,11 @@ SQL 查詢監控器支援以下資料庫引擎：
 建立一個新的監控器，並選擇 **SQL Query** 作為監控器類型，然後填入連線詳細資訊：
 
 - **Database Type** — PostgreSQL、MySQL 或 Microsoft SQL Server。選擇類型會設定預設的連接埠。
-- **Host** — 探針可連線到的資料庫主機（例如 `db.internal`）。
-- **Port** — 資料庫連接埠。
+- **主機** — 探針可連線到的資料庫主機（例如 `db.internal`）。
+- **連接埠** — 資料庫連接埠。
 - **Database Name** — 要執行查詢的資料庫。
-- **Username** — 一個唯讀、最小權限的資料庫使用者。
-- **Password** — 資料庫密碼。我們強烈建議以 `{{monitorSecrets.name}}` 引用[監控器密鑰](/docs/monitor/monitor-secrets)，而非以純文字輸入密碼（見下方說明）。
+- **使用者名稱** — 一個唯讀、最小權限的資料庫使用者。
+- **密碼** — 資料庫密碼。我們強烈建議以 `{{monitorSecrets.name}}` 引用[監控器密鑰](/docs/monitor/monitor-secrets)，而非以純文字輸入密碼（見下方說明）。
 - **SQL Query** — 要執行的唯讀查詢（請參閱撰寫查詢）。
 - **Use SSL/TLS** — 啟用以透過 TLS 連線。啟用後，如果資料庫使用自我簽署的憑證，您可以關閉 **Verify server certificate**。
 

@@ -15,16 +15,16 @@ Datadog monitor alerts  ──►  Webhook integration  ──►  OneUptime Web
 
 ## 步驟 1 — 建立 OneUptime 工作流程
 
-1. 開啟 **Workflows → Create Workflow**，將其命名為 `Datadog → Incidents`，然後開啟 **Builder**。
+1. 開啟 **工作流程 → 建立工作流程**，將其命名為 `Datadog → Incidents`，然後開啟 **建構器**。
 2. 新增一個 **Webhook** 觸發器並**複製其 URL**。將該區塊重新命名為 `Datadog`。
 3. 新增一個連接至觸發器的 **Conditions** 區塊：
    - **Left**：`{{Datadog.Request Body.transition}}`
    - **Operator**：`==`
    - **Right**：`Triggered`
 4. 從 **Yes** 新增一個 **Create Incident** 區塊：
-   - **Title**：`{{Datadog.Request Body.title}}`
-   - **Description**：`{{Datadog.Request Body.body}}\nHost: {{Datadog.Request Body.host}}\n{{Datadog.Request Body.link}}`
-   - **Severity**：選擇其一。
+   - **標題**：`{{Datadog.Request Body.title}}`
+   - **描述**：`{{Datadog.Request Body.body}}\nHost: {{Datadog.Request Body.host}}\n{{Datadog.Request Body.link}}`
+   - **嚴重程度**：選擇其一。
 5. **儲存**（在測試完成前保持停用狀態）。
 
 ## 步驟 2 — 建立 Datadog webhook
@@ -66,7 +66,7 @@ Datadog monitor alerts  ──►  Webhook integration  ──►  OneUptime Web
 
 1. 啟用工作流程。
 2. 從監控中使用 **Test Notifications → Alert**，或讓真實的監控觸發。
-3. 檢查工作流程的 **Logs** 分頁以及你的 **Incidents** 清單。
+3. 檢查工作流程的 **日誌** 分頁以及你的 **事件** 清單。
 
 ## 在復原時解決（選用）
 
@@ -75,7 +75,7 @@ Datadog monitor alerts  ──►  Webhook integration  ──►  OneUptime Web
 ## 疑難排解
 
 - **沒有出現任何執行紀錄** — 確認監控的訊息包含 `@webhook-oneuptime` 且工作流程已**啟用**。
-- **欄位為空** — Datadog 只會替換適用於該事件的範本變數。請在 **Logs** 分頁中檢查觸發器輸出，並調整你的 webhook payload。
+- **欄位為空** — Datadog 只會替換適用於該事件的範本變數。請在 **日誌** 分頁中檢查觸發器輸出，並調整你的 webhook payload。
 - **重複的事件** — 重複發出警報（renotify）的監控會傳送多個 `Triggered` 事件；在建立之前，先以針對 `id` 的 **Find Incident** 檢查進行去重。
 
 ## 後續閱讀

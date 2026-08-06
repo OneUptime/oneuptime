@@ -14,8 +14,8 @@ Domeinmonitors bevragen WHOIS-gegevens voor uw domeinen om registratiedetails bi
 
 ## Een Domein Monitor aanmaken
 
-1. Ga naar **Monitors** in het OneUptime-dashboard
-2. Klik op **Monitor aanmaken**
+1. Ga naar **Monitoren** in het OneUptime-dashboard
+2. Klik op **Monitor maken**
 3. Selecteer **Domein** als het monitortype
 4. Voer de domeinnaam in die u wilt bewaken
 5. Configureer monitoringcriteria naar wens

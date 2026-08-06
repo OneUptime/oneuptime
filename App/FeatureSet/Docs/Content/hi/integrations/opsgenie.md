@@ -2,7 +2,7 @@
 
 जब भी OneUptime incident बनाया जाए तो एक [Opsgenie](https://www.atlassian.com/software/opsgenie) alert बनाएँ, और OneUptime resolve करने पर उसे बंद करें।
 
-यह इंटीग्रेशन **आउटबाउंड** है: OneUptime [Opsgenie Alert API](https://docs.opsgenie.com/docs/alert-api) को कॉल करता है। यह **Incident → On Create** trigger और **API component** के साथ OneUptime **[वर्कफ़्लो](/docs/workflows/index)** का उपयोग करता है।
+यह इंटीग्रेशन **आउटबाउंड** है: OneUptime [Opsgenie Alert API](https://docs.opsgenie.com/docs/alert-api) को कॉल करता है। यह **घटना → On Create** trigger और **API component** के साथ OneUptime **[वर्कफ़्लो](/docs/workflows/index)** का उपयोग करता है।
 
 ```text
 OneUptime Incident → On Create  ──►  API component (POST /v2/alerts)  ──►  Opsgenie alert
@@ -16,13 +16,13 @@ OneUptime Incident → On Create  ──►  API component (POST /v2/alerts)  �
 
 ## चरण 1 — API key store करें
 
-1. **Workflows → Global Variables → Create** पर जाएँ।
+1. **वर्कफ़्लो → ग्लोबल वेरिएबल → बनाएँ** पर जाएँ।
 2. इसे `OPSGENIE_KEY` नाम दें, API key पेस्ट करें, और **Is Secret** चालू करें।
 
 ## चरण 2 — "create alert" वर्कफ़्लो बनाएँ
 
-1. **Workflows → Create Workflow** खोलें, इसे `Incidents → Opsgenie` नाम दें, और **Builder** खोलें।
-2. **On Create** पर सेट एक **Incident** trigger जोड़ें। इसे `Incident` नाम दें।
+1. **वर्कफ़्लो → वर्कफ़्लो बनाएं** खोलें, इसे `Incidents → Opsgenie` नाम दें, और **बिल्डर** खोलें।
+2. **On Create** पर सेट एक **घटना** trigger जोड़ें। इसे `Incident` नाम दें।
 3. trigger से connected एक **API** ब्लॉक जोड़ें:
 
    - **Method**: `POST`
@@ -52,9 +52,9 @@ OneUptime Incident → On Create  ──►  API component (POST /v2/alerts)  �
 
 ## चरण 3 — OneUptime resolve पर बंद करें (अनुशंसित)
 
-1. **Incident → On Update** trigger के साथ `Close Opsgenie` नामक एक **दूसरा** वर्कफ़्लो बनाएँ।
-2. एक **Conditions** ब्लॉक जोड़ें जो जाँचे कि incident अब resolved है (`{{Incident.currentIncidentState.name}}` पर branch करें)।
-3. **Yes** से, एक **API** ब्लॉक जोड़ें:
+1. **घटना → On Update** trigger के साथ `Close Opsgenie` नामक एक **दूसरा** वर्कफ़्लो बनाएँ।
+2. एक **शर्तें** ब्लॉक जोड़ें जो जाँचे कि incident अब resolved है (`{{Incident.currentIncidentState.name}}` पर branch करें)।
+3. **हाँ** से, एक **API** ब्लॉक जोड़ें:
    - **Method**: `POST`
    - **URL**: `https://api.opsgenie.com/v2/alerts/oneuptime-{{Incident._id}}/close?identifierType=alias`
    - **Headers**: वही `Authorization: GenieKey {{variable.OPSGENIE_KEY}}`
@@ -64,13 +64,13 @@ Opsgenie alias द्वारा alert खोजता है और उसे 
 
 ## Priority mapping (वैकल्पिक)
 
-Opsgenie priorities `P1`–`P5` चलते हैं। API block से पहले `{{Incident.incidentSeverity.name}}` पर **Conditions** branches के साथ OneUptime severities से map करें।
+Opsgenie priorities `P1`–`P5` चलते हैं। API block से पहले `{{Incident.incidentSeverity.name}}` पर **शर्तें** branches के साथ OneUptime severities से map करें।
 
 ## समस्या निवारण
 
 - **`401`/`403`** — गलत key, गलत region host, या integration में alert-create permission नहीं है। पुष्टि करें कि आप **API** integration key और matching `api`/`api.eu` host इस्तेमाल कर रहे हैं।
 - **Close `404` return करता है** — close call पर `alias` create call से बिल्कुल match होनी चाहिए, और `identifierType=alias` query string में होना चाहिए।
-- **कुछ नहीं होता** — पुष्टि करें कि वर्कफ़्लो **Enabled** है।
+- **कुछ नहीं होता** — पुष्टि करें कि वर्कफ़्लो **सक्षम** है।
 
 ## आगे क्या पढ़ें
 

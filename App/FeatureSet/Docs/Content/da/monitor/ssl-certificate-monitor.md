@@ -14,7 +14,7 @@ SSL-certifikatmonitorer opretter forbindelse til dine HTTPS-endpoints og inspice
 
 ## Oprettelse af en SSL-certifikatmonitor
 
-1. Gå til **Monitorer** i OneUptime-dashboardet
+1. Gå til **Overvågninger** i OneUptime-dashboardet
 2. Klik på **Opret monitor**
 3. Vælg **SSL-certifikat** som monitortype
 4. Indtast URL'en til det HTTPS-endpoint der skal kontrolleres

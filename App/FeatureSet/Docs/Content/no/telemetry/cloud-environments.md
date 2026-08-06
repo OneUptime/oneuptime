@@ -2,13 +2,13 @@
 
 ## Oversikt
 
-OneUptime grupperer administrert skybasert databehandling i **skymiljoer** (Cloud Environments) — AWS ECS / Fargate, Google Cloud Run, Azure Container Apps / Container Instances, AWS Elastic Beanstalk, AWS App Runner og Azure App Service. Det opprettes ett miljo per unik kombinasjon av `cloud.platform` + `cloud.account.id` + `cloud.region`, slik at noe som _"AWS ECS · us-east-1 · 123456789012"_ er en enkelt enhet som aggregerer alle arbeidsbelastninger som kjorer pa den.
+OneUptime grupperer administrert skybasert databehandling i **Skymiljøer** (Cloud Environments) — AWS ECS / Fargate, Google Cloud Run, Azure Container Apps / Container Instances, AWS Elastic Beanstalk, AWS App Runner og Azure App Service. Det opprettes ett miljo per unik kombinasjon av `cloud.platform` + `cloud.account.id` + `cloud.region`, slik at noe som _"AWS ECS · us-east-1 · 123456789012"_ er en enkelt enhet som aggregerer alle arbeidsbelastninger som kjorer pa den.
 
-Rene virtuelle maskiner (EC2, Compute Engine, Azure VM) forblir **verter** (Hosts), og Kubernetes ligger fortsatt under **Kubernetes**. Denne visningen er spesifikt for administrert / PaaS-databehandling.
+Rene virtuelle maskiner (EC2, Compute Engine, Azure VM) forblir **Verter** (Hosts), og Kubernetes ligger fortsatt under **Kubernetes**. Denne visningen er spesifikt for administrert / PaaS-databehandling.
 
 ## Forutsetninger
 
-- En **OneUptime Telemetry Ingestion Token** — opprett en fra _Project Settings → Telemetri og APM → Inntaksnøkler_.
+- En **OneUptime Telemetry Ingestion Token** — opprett en fra _Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler_.
 - En OpenTelemetry Collector eller SDK som kjorer i eller ved siden av arbeidsbelastningene dine.
 
 ## Hvordan OneUptime identifiserer et miljo
@@ -70,9 +70,9 @@ Hvis du selv hoster OneUptime, bruker du `https://YOUR-ONEUPTIME-HOST/otlp`.
 
 Miljooversikten viser:
 
-- **CPU** og **minne** per oppgave/instans som kjorer (fra `container.cpu.utilization` / `container.memory.usage`), pluss en liste over **Topp-instanser etter CPU**.
+- **CPU** og **Minne** per oppgave/instans som kjorer (fra `container.cpu.utilization` / `container.memory.usage`), pluss en liste over **Toppinstanser etter CPU**.
 - **Instanser** — en direkte telling av oppgaver.
-- **Foresporsler** og trenddiagrammer utledet fra sporene dine.
-- Fullstendige faner for **Logger**, **Spor**, **Metrikker** og **Instanser**.
+- **Forespørsler** og trenddiagrammer utledet fra sporene dine.
+- Fullstendige faner for **Logger**, **Spor**, **Målinger** og **Instanser**.
 
 Fordeling per tjeneste for de samme arbeidsbelastningene er tilgjengelig under **Tjenester**.

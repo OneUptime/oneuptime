@@ -27,23 +27,23 @@ Se [Widgets](/docs/dashboards/widgets) for den fulde liste og hvad hver enkelt v
 | ---------------- | ----------------------------------------------------------------------------------------------------- |
 | **Dashboard**    | Hele siden — et navn, et net af widgets, tidsinterval-kontroller og en liste af variabler.            |
 | **Widget**       | Én flise på siden — et diagram, et tal, en liste, et afsnit.                                          |
-| **Variable**     | En dropdown i toppen, der filtrerer hver widget på én gang (cluster, service, customer, environment). |
+| **Variabel**     | En dropdown i toppen, der filtrerer hver widget på én gang (cluster, service, customer, environment). |
 | **Tidsinterval** | Det vindue af tid, hvert diagram og tal bruger. Sæt det én gang i toppen af siden.                    |
-| **Refresh**      | Hvor ofte widgets re-forespørger data. Slukket, hvert par sekunder, hvert par minutter.               |
-| **Mode**         | Enten **Edit** (træk widgets rundt) eller **View** (read-only, sådan som besøgende ser det).          |
+| **Opdater**      | Hvor ofte widgets re-forespørger data. Slukket, hvert par sekunder, hvert par minutter.               |
+| **Mode**         | Enten **Rediger** (træk widgets rundt) eller **Vis** (read-only, sådan som besøgende ser det).        |
 
 ## Hvor du finder dashboards
 
 Åbn **Dashboards** i venstre navigation.
 
-| Side                     | Hvad du gør der                                                                       |
-| ------------------------ | ------------------------------------------------------------------------------------- |
-| **Dashboards**           | Din liste over dashboards. Opret et nyt, søg eller filtrér efter label.               |
-| **Dashboard → View**     | Lærredet. Skift mellem **Edit** og **View** i headeren.                               |
-| **Dashboard → Overview** | Beskrivelse, ejere og labels.                                                         |
-| **Dashboard → Settings** | Offentlig deling, adgangskode, IP-tilladelsesliste, brugerdefineret domæne, branding. |
-| **Dashboard → Owners**   | Brugere og teams med eksplicit adgang.                                                |
-| **Dashboard → Delete**   | Fjern dashboardet.                                                                    |
+| Side                          | Hvad du gør der                                                                       |
+| ----------------------------- | ------------------------------------------------------------------------------------- |
+| **Dashboards**                | Din liste over dashboards. Opret et nyt, søg eller filtrér efter label.               |
+| **Dashboard → Vis**           | Lærredet. Skift mellem **Rediger** og **Vis** i headeren.                             |
+| **Dashboard → Oversigt**      | Beskrivelse, ejere og labels.                                                         |
+| **Dashboard → Indstillinger** | Offentlig deling, adgangskode, IP-tilladelsesliste, brugerdefineret domæne, branding. |
+| **Dashboard → Ejere**         | Brugere og teams med eksplicit adgang.                                                |
+| **Dashboard → Slet**          | Fjern dashboardet.                                                                    |
 
 ## Byg et dashboard
 
@@ -60,18 +60,18 @@ Mål: en vagt-side til checkout-servicen med latency, fejlrate, åbne hændelser
 
 1. Opret et dashboard kaldet "Checkout on-call."
 2. Tilføj en `service`-variabel. Sæt standarden til `checkout`.
-3. Tilføj en **Chart**-widget med P95-latency, filtreret efter `service`-variablen.
-4. Ved siden af den, en **Value**-widget for fejlrate, med advarsel ved 1% og kritisk ved 5%.
-5. Nedenunder en **Incident List**-widget for hændelser tagget `checkout`.
-6. Under den en **Log Stream**-widget, der viser logs fra samme service.
+3. Tilføj en **Diagram**-widget med P95-latency, filtreret efter `service`-variablen.
+4. Ved siden af den, en **Værdi**-widget for fejlrate, med advarsel ved 1% og kritisk ved 5%.
+5. Nedenunder en **Hændelsesliste**-widget for hændelser tagget `checkout`.
+6. Under den en **Logstrøm**-widget, der viser logs fra samme service.
 7. Gem. Skift dropdownen til `payments` — det samme dashboard viser nu payments-servicen.
 
 ## Hvordan dashboards passer ind i resten af OneUptime
 
 - **Monitorer og telemetri** er datakilderne. Hver metrik, log og trace, du indsamler, kan forespørges på en widget.
-- **Hændelser og alarmer** dukker op i **Incident List**- og **Alert List**-widgets. Dashboards er read-only for disse — opret og opdater dem andetsteds.
+- **Hændelser og alarmer** dukker op i **Hændelsesliste**- og **Advarselsliste**-widgets. Dashboards er read-only for disse — opret og opdater dem andetsteds.
 - **Statussider** er kundevendt kommunikation ("er systemet oppe?"). Dashboards er til at kigge i detaljer på, hvordan systemet opfører sig. De to arbejder sammen, de erstatter ikke hinanden.
-- **Workflows** er sådan, OneUptime tager handling. Dashboards er sådan, du læser, hvad der sker.
+- **Arbejdsgange** er sådan, OneUptime tager handling. Dashboards er sådan, du læser, hvad der sker.
 
 ## Læs videre
 

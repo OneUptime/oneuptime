@@ -14,9 +14,9 @@ Metrics monitors आपकी telemetry services से numeric metrics query �
 
 ## Metrics Monitor बनाना
 
-1. OneUptime Dashboard में **Monitors** पर जाएं
-2. **Create Monitor** पर क्लिक करें
-3. monitor type के रूप में **Metrics** चुनें
+1. OneUptime Dashboard में **मॉनिटर** पर जाएं
+2. **मॉनिटर बनाएं** पर क्लिक करें
+3. monitor type के रूप में **मेट्रिक्स** चुनें
 4. metric queries और वैकल्पिक formulas configure करें
 5. aggregation strategy चुनें
 6. आवश्यकतानुसार monitoring criteria configure करें
@@ -91,17 +91,17 @@ evaluation के लिए metric values को कैसे aggregate कर�
 
 - **Query a**: `http_requests_total` filtered by `status=5xx`
 - **Query b**: `http_requests_total`
-- **Formula**: `a / b * 100`
+- **सूत्र**: `a / b * 100`
 - **Check On**: Metric Value
-- **Filter Type**: Greater Than
-- **Value**: 5
+- **फ़िल्टर प्रकार**: Greater Than
+- **मान**: 5
 
 #### Request queue depth अधिक होने पर Alert करें
 
 - **Query**: `request_queue_size`, aggregation: Maximum Value
 - **Check On**: Metric Value
-- **Filter Type**: Greater Than
-- **Value**: 1000
+- **फ़िल्टर प्रकार**: Greater Than
+- **मान**: 1000
 
 ## Setup Requirements
 

@@ -16,16 +16,16 @@ Grafana alert rule fires  ──►  Webhook contact point  ──►  OneUptime
 
 ## 步骤 1——构建 OneUptime 工作流
 
-1. 打开 **Workflows → Create Workflow**，命名为 `Grafana → Incidents`，并打开 **Builder**。
+1. 打开 **工作流 → 创建工作流**，命名为 `Grafana → Incidents`，并打开 **生成器**。
 2. 添加 **Webhook** 触发器并**复制其 URL**。将模块重命名为 `Grafana`。
-3. 添加连接到触发器的 **Conditions** 模块：
+3. 添加连接到触发器的 **条件** 模块：
    - **Left**：`{{Grafana.Request Body.status}}`
    - **Operator**：`==`
    - **Right**：`firing`
-4. 从 **Yes** 出发，添加 **Create Incident** 模块：
-   - **Title**：`{{Grafana.Request Body.title}}`
-   - **Description**：`{{Grafana.Request Body.message}}`
-   - **Severity**：选择一个（或对 `{{Grafana.Request Body.commonLabels.severity}}` 进行分支）。
+4. 从 **是** 出发，添加 **创建事件** 模块：
+   - **标题**：`{{Grafana.Request Body.title}}`
+   - **描述**：`{{Grafana.Request Body.message}}`
+   - **严重程度**：选择一个（或对 `{{Grafana.Request Body.commonLabels.severity}}` 进行分支）。
 5. **保存**（测试前保持禁用状态）。
 
 Grafana 的 webhook 负载遵循 Alertmanager 的格式——包含 `status`、一个 `alerts` 数组、`commonLabels` 和 `commonAnnotations`，以及便捷的顶层 `title` 和 `message` 字段。
@@ -42,11 +42,11 @@ Grafana 的 webhook 负载遵循 Alertmanager 的格式——包含 `status`、�
 
 1. 启用工作流。
 2. 在联系人界面使用 **Test** 发送一个示例通知，或让真实的告警规则触发。
-3. 检查工作流的 **Logs** 标签和你的**事件**列表。
+3. 检查工作流的 **日志** 标签和你的**事件**列表。
 
 ## 恢复时解决（可选）
 
-当告警清除时，Grafana 会发送另一个 `status: resolved` 的通知。添加第二个 **Conditions** 分支（`status == resolved`），找到匹配的事件，并用 **Update Incident** 将其移至已解决状态。
+当告警清除时，Grafana 会发送另一个 `status: resolved` 的通知。添加第二个 **条件** 分支（`status == resolved`），找到匹配的事件，并用 **Update Incident** 将其移至已解决状态。
 
 ## 注意事项
 
@@ -55,8 +55,8 @@ Grafana 的 webhook 负载遵循 Alertmanager 的格式——包含 `status`、�
 
 ## 故障排查
 
-- **没有运行记录出现**——确认 Grafana 可以访问该 URL（检查 Grafana 的服务器日志），以及工作流已 **Enabled**。
-- **字段为空**——在 **Logs** 标签中检查触发器输出；引用适合你告警版本的实际存在字段。
+- **没有运行记录出现**——确认 Grafana 可以访问该 URL（检查 Grafana 的服务器日志），以及工作流处于 **已启用** 状态。
+- **字段为空**——在 **日志** 标签中检查触发器输出；引用适合你告警版本的实际存在字段。
 
 ## 接下来读什么
 

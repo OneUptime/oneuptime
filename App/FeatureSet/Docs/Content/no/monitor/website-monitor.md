@@ -14,8 +14,8 @@ Nettstedmonitorer sjekker nettsidene dine ved å sende HTTP-forespørsler og eva
 
 ## Opprette en nettstedmonitor
 
-1. Gå til **Monitors** i OneUptime-dashbordet
-2. Klikk **Create Monitor**
+1. Gå til **Overvåkere** i OneUptime-dashbordet
+2. Klikk **Opprett monitor**
 3. Velg **Website** som monitortype
 4. Skriv inn nettstedets URL du ønsker å overvåke
 5. Konfigurer overvåkingskriterier etter behov
@@ -71,11 +71,11 @@ Enable this option to skip TLS certificate validation. Useful when the target se
 
 #### Client Certificate (mTLS)
 
-If your endpoint requires mutual TLS authentication, enable **Use client certificate (mTLS)** and provide:
+If your endpoint requires mutual TLS authentication, enable **Bruk klientsertifikat (mTLS)** and provide:
 
-- **Client Certificate (PEM)** — the PEM-encoded client certificate to present.
-- **Client Private Key (PEM)** — the matching PEM-encoded private key.
-- **Client Private Key Passphrase** _(optional)_ — required only if the private key is encrypted.
+- **Klientsertifikat (PEM)** — the PEM-encoded client certificate to present.
+- **Klientens private nøkkel (PEM)** — the matching PEM-encoded private key.
+- **Passordfrase for klientens private nøkkel** _(optional)_ — required only if the private key is encrypted.
 
 This is the OneUptime equivalent of the `--cert` and `--key` flags in curl:
 
@@ -89,7 +89,7 @@ For sensitive values, store the certificate and key as [Monitor Secrets](/docs/m
 
 Du kan konfigurere kriterier for å bestemme når nettstedet anses som tilgjengelig, degradert eller utilgjengelig basert på:
 
-- **Svarstatuskode** – Sjekk om HTTP-statuskoden samsvarer med forventede verdier (f.eks. 200, 301)
+- **Statuskode for svar** – Sjekk om HTTP-statuskoden samsvarer med forventede verdier (f.eks. 200, 301)
 - **Svartid** – Overvåk om svartiden overskrider en terskelverdi
-- **Svarkropp** – Sjekk om svarkroppen inneholder eller samsvarer med spesifikt innhold
+- **Svartekst** – Sjekk om svarkroppen inneholder eller samsvarer med spesifikt innhold
 - **Svarhoder** – Verifiser at spesifikke svarhoder er til stede eller samsvarer med forventede verdier

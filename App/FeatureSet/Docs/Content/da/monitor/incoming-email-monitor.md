@@ -12,7 +12,7 @@ Dette er en kraftfuld måde at integrere e-mailbaserede advarslingssystemer med 
 
 ## Oprettelse af en Indgående e-mailmonitor
 
-1. Naviger til **Monitorer** i dit OneUptime-dashboard
+1. Naviger til **Overvågninger** i dit OneUptime-dashboard
 2. Klik på **Opret monitor**
 3. Vælg **Indgående e-mail** som monitortype
 4. Konfigurer monitorindstillingerne:

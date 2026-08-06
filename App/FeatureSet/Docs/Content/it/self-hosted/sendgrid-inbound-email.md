@@ -100,7 +100,7 @@ inboundEmail:
 ### Fase 6: Creare un Monitor Email In Entrata
 
 1. Accedere al proprio Dashboard OneUptime
-2. Navigare a **Monitor** > **Crea Monitor**
+2. Navigare a **Monitor** > **Crea monitor**
 3. Selezionare **Email In Entrata** come tipo di monitor
 4. Configurare il monitor:
    - **Nome:** Dare al monitor un nome descrittivo
@@ -133,13 +133,13 @@ Dopo la creazione, verrà visualizzato l'indirizzo email univoco per questo moni
 
 Quando si configura il proprio Monitor Email In Entrata, è possibile creare criteri basati su:
 
-| Campo              | Descrizione                        | Filtri Disponibili                                                                          |
-| ------------------ | ---------------------------------- | ------------------------------------------------------------------------------------------- |
-| **Oggetto Email**  | La riga dell'oggetto dell'email    | Contiene, Non Contiene, Uguale a, Diverso da, Inizia Con, Termina Con, È Vuoto, Non È Vuoto |
-| **Email Da**       | L'indirizzo email del mittente     | Contiene, Non Contiene, Uguale a, Diverso da, Inizia Con, Termina Con, È Vuoto, Non È Vuoto |
-| **Corpo Email**    | Il corpo testuale dell'email       | Contiene, Non Contiene, Uguale a, Diverso da, Inizia Con, Termina Con, È Vuoto, Non È Vuoto |
-| **Email A**        | L'indirizzo email del destinatario | Contiene, Non Contiene, Uguale a, Diverso da, Inizia Con, Termina Con, È Vuoto, Non È Vuoto |
-| **Email Ricevuta** | Tempo dall'ultima email ricevuta   | Ricevuta In Minuti, Non Ricevuta In Minuti                                                  |
+| Campo                  | Descrizione                        | Filtri Disponibili                                                                          |
+| ---------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------- |
+| **Oggetto dell'email** | La riga dell'oggetto dell'email    | Contiene, Non Contiene, Uguale a, Diverso da, Inizia Con, Termina Con, È Vuoto, Non È Vuoto |
+| **Email mittente**     | L'indirizzo email del mittente     | Contiene, Non Contiene, Uguale a, Diverso da, Inizia Con, Termina Con, È Vuoto, Non È Vuoto |
+| **Corpo Email**        | Il corpo testuale dell'email       | Contiene, Non Contiene, Uguale a, Diverso da, Inizia Con, Termina Con, È Vuoto, Non È Vuoto |
+| **Email A**            | L'indirizzo email del destinatario | Contiene, Non Contiene, Uguale a, Diverso da, Inizia Con, Termina Con, È Vuoto, Non È Vuoto |
+| **Email Ricevuta**     | Tempo dall'ultima email ricevuta   | Ricevuta In Minuti, Non Ricevuta In Minuti                                                  |
 
 ## Casi d'Uso di Esempio
 

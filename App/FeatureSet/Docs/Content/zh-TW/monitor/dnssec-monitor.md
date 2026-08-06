@@ -14,8 +14,8 @@ DNSSEC 監控會驗證從根區域往下到您網域的整條信任鏈。這讓�
 
 ## 建立 DNSSEC 監控
 
-1. 前往 OneUptime 儀表板中的 **Monitors**
-2. 點選 **Create Monitor**
+1. 前往 OneUptime 儀表板中的 **監測**
+2. 點選 **建立監測器**
 3. 選擇 **DNSSEC** 作為監控類型
 4. 輸入您想驗證的區域（網域）
 5. 視需要設定解析器與監控條件
@@ -70,28 +70,28 @@ DNSSEC 監控會驗證從根區域往下到您網域的整條信任鏈。這讓�
 #### 當 DNSSEC 信任鏈損壞時發出警示
 
 - **Check On**：DNSSEC Chain Is Valid
-- **Filter Type**：False
+- **篩選器類型**：False
 
 #### 在簽章過期前發出警告
 
 - **Check On**：DNSSEC Signature Expires In Days
-- **Filter Type**：Less Than
-- **Value**：7
+- **篩選器類型**：Less Than
+- **值**：7
 
 #### 捕捉父區域缺少 DS（委派損壞）
 
 - **Check On**：DNSSEC DS Record Exists At Parent
-- **Filter Type**：False
+- **篩選器類型**：False
 
 #### 偵測解析器不一致
 
 - **Check On**：DNSSEC Resolver Consensus (AD Flag)
-- **Filter Type**：False
+- **篩選器類型**：False
 
 #### 捕捉名稱伺服器腦裂（split-brain）
 
 - **Check On**：DNSSEC Nameservers Are Consistent
-- **Filter Type**：False
+- **篩選器類型**：False
 
 ## 最佳實務
 

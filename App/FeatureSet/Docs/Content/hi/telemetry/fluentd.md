@@ -34,13 +34,13 @@ Fluentd सैकड़ों data sources का समर्थन करत�
 - **चरण 3: OneUptime Project बनाएं** - Account होने के बाद, आप OneUptime dashboard से एक project बना सकते हैं।
 - **चरण 4: Telemetry Ingestion Token बनाएं** - OneUptime account बनाने के बाद, आप अपने application से logs, metrics और traces ingest करने के लिए एक telemetry ingestion token बना सकते हैं।
 
-OneUptime sign up करने और project बनाने के बाद। Navigation bar में "Products" पर क्लिक करें और "Project Settings" पर क्लिक करें।
+OneUptime sign up करने और project बनाने के बाद। Navigation bar में "उत्पाद" पर क्लिक करें और "प्रोजेक्ट सेटिंग्स" पर क्लिक करें।
 
-Telemetry Ingestion Key page पर, token बनाने के लिए "Create Ingestion Key" पर क्लिक करें।
+Telemetry Ingestion Key page पर, token बनाने के लिए "इन्जेशन कुंजी बनाएँ" पर क्लिक करें।
 
 ![Create Service](/docs/static/images/TelemetryIngestionKeys.png)
 
-Token बनाने के बाद, token देखने के लिए "View" पर क्लिक करें।
+Token बनाने के बाद, token देखने के लिए "देखें" पर क्लिक करें।
 
 ![View Service](/docs/static/images/TelemetryIngestionKeyView.png)
 

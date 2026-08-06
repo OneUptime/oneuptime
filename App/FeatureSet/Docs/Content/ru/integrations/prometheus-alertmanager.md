@@ -16,16 +16,16 @@ Prometheus rule fires  ──►  Alertmanager webhook receiver  ──►  OneU
 
 ## Шаг 1 — Создайте рабочий процесс в OneUptime
 
-1. Откройте **Workflows → Create Workflow**, назовите его `Alertmanager → Incidents` и откройте **Builder**.
+1. Откройте **Рабочие процессы → Создать рабочий процесс**, назовите его `Alertmanager → Incidents` и откройте **Конструктор**.
 2. Добавьте триггер **Webhook** и **скопируйте его URL**. Переименуйте блок в `Alertmanager`.
-3. Добавьте блок **Conditions**, соединённый с триггером:
+3. Добавьте блок **Условия**, соединённый с триггером:
    - **Left**: `{{Alertmanager.Request Body.status}}`
    - **Operator**: `==`
    - **Right**: `firing`
-4. Из выхода **Yes** добавьте блок **Create Incident**:
-   - **Title**: `{{Alertmanager.Request Body.commonAnnotations.summary}}`
-   - **Description**: `{{Alertmanager.Request Body.commonAnnotations.description}}\nAlert: {{Alertmanager.Request Body.commonLabels.alertname}}`
-   - **Severity**: выберите один (или сначала ветвитесь по `{{Alertmanager.Request Body.commonLabels.severity}}`).
+4. Из выхода **Да** добавьте блок **Создать инцидент**:
+   - **Заголовок**: `{{Alertmanager.Request Body.commonAnnotations.summary}}`
+   - **Описание**: `{{Alertmanager.Request Body.commonAnnotations.description}}\nAlert: {{Alertmanager.Request Body.commonLabels.alertname}}`
+   - **Серьёзность**: выберите один (или сначала ветвитесь по `{{Alertmanager.Request Body.commonLabels.severity}}`).
 5. **Сохраните** (оставьте отключённым до тестирования).
 
 > **О сгруппированных оповещениях.** Alertmanager группирует оповещения и отправляет **массив** `alerts`. `commonLabels` и `commonAnnotations` выше — это поля, общие для всей группы, что идеально подходит для одного инцидента на уведомление. Если вы хотите **один инцидент на оповещение**, добавьте блок [Custom Code](/docs/workflows/components#custom-code), который перебирает `Request Body.alerts` и создаёт инцидент для каждого. Настройте группировку с помощью `group_by` в маршруте.
@@ -60,16 +60,16 @@ route:
    amtool alert add test_alert severity=warning --annotation=summary="Test from Alertmanager" --alertmanager.url=http://localhost:9093
    ```
 
-3. Проверьте вкладку **Logs** рабочего процесса и список **Incidents**.
+3. Проверьте вкладку **Журналы** рабочего процесса и список **Инциденты**.
 
 ## Разрешение при восстановлении (опционально)
 
-При `send_resolved: true` Alertmanager также отправляет `POST` при сбросе оповещения, на этот раз со значением `status: resolved`. Добавьте вторую ветвь **Conditions** (`status == resolved`), найдите соответствующий инцидент (совпадение по `commonLabels.alertname`) и переведите его в состояние разрешено с помощью **Update Incident**.
+При `send_resolved: true` Alertmanager также отправляет `POST` при сбросе оповещения, на этот раз со значением `status: resolved`. Добавьте вторую ветвь **Условия** (`status == resolved`), найдите соответствующий инцидент (совпадение по `commonLabels.alertname`) и переведите его в состояние разрешено с помощью **Update Incident**.
 
 ## Устранение неполадок
 
-- **Запуск не появляется** — убедитесь, что Alertmanager может достичь URL (проверьте его журналы на наличие ошибок доставки) и что рабочий процесс **Enabled**.
-- **Поля инцидента пустые** — разные правила задают разные аннотации. Проверьте вывод триггера на вкладке **Logs** и ссылайтесь на поля, которые реально существуют (`commonAnnotations` или `annotations` отдельных оповещений).
+- **Запуск не появляется** — убедитесь, что Alertmanager может достичь URL (проверьте его журналы на наличие ошибок доставки) и что рабочий процесс **Включено**.
+- **Поля инцидента пустые** — разные правила задают разные аннотации. Проверьте вывод триггера на вкладке **Журналы** и ссылайтесь на поля, которые реально существуют (`commonAnnotations` или `annotations` отдельных оповещений).
 - **Слишком много инцидентов** — увеличьте `group_by`/`group_interval`, чтобы Alertmanager объединял связанные оповещения.
 
 ## Что читать дальше

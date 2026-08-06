@@ -137,7 +137,7 @@ gitHubApp:
 ### 步驟 10：在 OneUptime 中連接儲存庫
 
 1. 登入您的 OneUptime 儀表板
-2. 導覽至 **Products** > **Code Repositories**
+2. 導覽至 **產品** > **程式碼儲存庫**
 3. 點選 **「Create Repository」** 或使用 GitHub App 安裝流程
 4. 若從 GitHub 重新導向而來，系統將自動擷取安裝 ID
 5. 從清單中選取您要連接的儲存庫

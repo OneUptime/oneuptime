@@ -108,7 +108,7 @@ microsoftTeamsApp:
 
 ### Trinn 7: Last opp Teams-appmanifest
 
-1. Gå til prosjektets **Settings** > **Arbeidsområde** > **Microsoft Teams**
+1. Gå til prosjektets **Prosjektinnstillinger** > **Arbeidsområde** > **Microsoft Teams**
 2. Last ned Teams-appmanifestet derfra
 3. Gå til Microsoft Teams, klikk på "Apps" i sidefeltet
 4. Klikk nederst "Manage your apps"

@@ -9,7 +9,7 @@
 
 2. **將 Microsoft Teams 連接至 OneUptime 專案**
 
-   - 在您的 OneUptime 專案中，前往 **Project Settings** > **Microsoft Teams**。
+   - 在您的 OneUptime 專案中，前往 **專案設定** > **Microsoft Teams**。
    - 依照提示將您的 Microsoft Teams 帳戶與 OneUptime 專案連接。
 
 3. **設定事件通知**

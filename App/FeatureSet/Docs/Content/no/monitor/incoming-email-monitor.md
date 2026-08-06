@@ -12,15 +12,15 @@ Dette er en kraftig måte å integrere e-postbaserte varslingssystemer med OneUp
 
 ## Opprette en innkommende e-postmonitor
 
-1. Naviger til **Monitors** i OneUptime-dashbordet ditt
-2. Klikk **Create Monitor**
+1. Naviger til **Overvåkere** i OneUptime-dashbordet ditt
+2. Klikk **Opprett monitor**
 3. Velg **Incoming Email** som monitortype
 4. Konfigurer monitorinnstillingene:
    - **Navn:** Et beskrivende navn for monitoren din
    - **Beskrivelse:** Hva monitoren er til for
 5. Sett opp dine **Kriterier for oppretting av varsler** (betingelser som oppretter varsler)
 6. Sett opp dine **Kriterier for løsning av varsler** (betingelser som løser varsler)
-7. Klikk **Create**
+7. Klikk **Opprett**
 
 Etter opprettelse vil du se den unike e-postadressen for denne monitoren vist på monitorens detaljside.
 
@@ -42,8 +42,8 @@ Du kan opprette kriterier basert på følgende e-postfelt:
 
 | Felt               | Beskrivelse                                   |
 | ------------------ | --------------------------------------------- |
-| **Email Subject**  | Emnelinjen i den innkommende e-posten         |
-| **Email From**     | Avsenderens e-postadresse                     |
+| **E-postemne**     | Emnelinjen i den innkommende e-posten         |
+| **E-post fra**     | Avsenderens e-postadresse                     |
 | **Email Body**     | Det rene tekstinnholdet i e-postkroppen       |
 | **Email To**       | Mottakerens e-postadresse                     |
 | **Email Received** | Tidsbaserte kriterier for når e-poster mottas |
@@ -56,7 +56,7 @@ Du kan opprette kriterier basert på følgende e-postfelt:
 | ---------------- | ------------------------------------------------- | ---------------------------------- |
 | **Contains**     | Feltet inneholder den angitte teksten             | Subject inneholder "CRITICAL"      |
 | **Not Contains** | Feltet inneholder ikke den angitte teksten        | Subject inneholder ikke "TEST"     |
-| **Equals**       | Feltet samsvarer nøyaktig med den angitte teksten | From er lik "alerts@service.com"   |
+| **Er lik**       | Feltet samsvarer nøyaktig med den angitte teksten | From er lik "alerts@service.com"   |
 | **Not Equals**   | Feltet samsvarer ikke med den angitte teksten     | Subject er ikke lik "OK"           |
 | **Starts With**  | Feltet starter med den angitte teksten            | Subject starter med "[ALERT]"      |
 | **Ends With**    | Feltet slutter med den angitte teksten            | Subject slutter med "- Production" |
@@ -90,12 +90,12 @@ Du kan opprette kriterier basert på følgende e-postfelt:
 
 **Kriterier for oppretting av varsler:**
 
-- E-post fra **Equals** "monitoring@legacy-system.com"
+- E-post fra **Er lik** "monitoring@legacy-system.com"
 - OG E-postemne **Contains** "Failed"
 
 **Kriterier for løsning av varsler:**
 
-- E-post fra **Equals** "monitoring@legacy-system.com"
+- E-post fra **Er lik** "monitoring@legacy-system.com"
 - OG E-postemne **Contains** "Success"
 
 ### Eksempel 3: Hjerteslag-monitor (ingen e-post = varsel)
@@ -163,10 +163,10 @@ Når du konfigurerer hendelsesmaler, kan du bruke disse variablene fra innkommen
 
 Monitorsammendraget viser:
 
-- **Last Email Received At:** Når den seneste e-posten ble mottatt
-- **From:** Avsenderen av den siste e-posten
-- **Subject:** Emnelinjen i den siste e-posten
-- **Email Headers:** Fullstendige hoder for den siste e-posten (utvidbar)
+- **Siste e-post mottatt:** Når den seneste e-posten ble mottatt
+- **Fra:** Avsenderen av den siste e-posten
+- **Emne:** Emnelinjen i den siste e-posten
+- **E-posthoder:** Fullstendige hoder for den siste e-posten (utvidbar)
 - **Email Body:** Innholdet i den siste e-posten (utvidbar)
 
 ## Oppsett for selvhostede installasjoner

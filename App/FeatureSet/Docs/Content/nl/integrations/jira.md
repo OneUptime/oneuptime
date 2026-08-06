@@ -26,14 +26,14 @@ Jira Cloud gebruikt **Basic auth** met je e-mail en API-token, base64-gecodeerd.
    printf '%s' 'you@example.com:your_api_token' | base64
    ```
 
-2. Ga in OneUptime naar **Workflows → Global Variables → Create**.
+2. Ga in OneUptime naar **Workflows → Globale variabelen → Aanmaken**.
 3. Geef het de naam `JIRA_AUTH`, plak de base64-string als waarde, en zet **Is Secret** aan.
 
 Nu kun je `Basic {{variable.JIRA_AUTH}}` gebruiken als auth-header en het token verschijnt nooit in de workflow of de logs.
 
 ## Stap 2 — Bouw de workflow
 
-1. Open **Workflows → Create Workflow**, geef het de naam `Incidents → Jira`, en open de **Builder**.
+1. Open **Workflows → Workflow maken**, geef het de naam `Incidents → Jira`, en open de **Bouwer**.
 2. Sleep een **Incident**-trigger op het canvas en kies het event **On Create**. Hernoem het naar `Incident`.
 3. Sleep een **API**-blok en verbind de trigger ermee. Configureer:
 
@@ -76,9 +76,9 @@ Nu kun je `Basic {{variable.JIRA_AUTH}}` gebruiken als auth-header en het token 
 
 ## Stap 3 — Test het
 
-1. Zet de workflow **Enabled** aan.
+1. Zet de workflow **Ingeschakeld** aan.
 2. Maak een testincident aan in OneUptime (of trigger er één vanuit een monitor).
-3. Open het tabblad **Logs** van de workflow. Het **API**-blok moet een status `201` tonen en een responsebody met de `key` van de nieuwe issue (bijvoorbeeld `OPS-1234`).
+3. Open het tabblad **Logboeken** van de workflow. Het **API**-blok moet een status `201` tonen en een responsebody met de `key` van de nieuwe issue (bijvoorbeeld `OPS-1234`).
 4. Controleer Jira — de issue is aangemaakt.
 
 Als het API-blok een fout teruggeeft, vouw het dan uit in de logs — de respons van Jira legt precies uit welk veld werd afgewezen. Zie [Probleemoplossing](#probleemoplossing).
@@ -114,7 +114,7 @@ Als je de Jira-key op het incident hebt opgeslagen in Stap 4, is de koppeling ee
 
 Een paar veelgebruikte aanpassingen aan de body van het API-blok:
 
-- **Priority** — voeg `"priority": { "name": "High" }` toe binnen `fields`. Je kunt op `{{Incident.incidentSeverity.name}}` vertakken met **Conditions** om OneUptime-severities naar Jira-prioriteiten te mappen.
+- **Priority** — voeg `"priority": { "name": "High" }` toe binnen `fields`. Je kunt op `{{Incident.incidentSeverity.name}}` vertakken met **Voorwaarden** om OneUptime-severities naar Jira-prioriteiten te mappen.
 - **Labels** — voeg `"labels": ["oneuptime", "incident"]` toe.
 - **Assignee** — voeg `"assignee": { "id": "<accountId>" }` toe (Jira Cloud gebruikt account-ID's, geen gebruikersnamen).
 - **Aangepaste velden** — voeg `"customfield_XXXXX": "..."` toe met het ID van het veld uit je Jira-beheer.

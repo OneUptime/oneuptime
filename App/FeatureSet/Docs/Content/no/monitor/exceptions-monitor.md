@@ -14,9 +14,9 @@ Unntak-monitorer teller og filtrerer unntak som samsvarer med spesifikke kriteri
 
 ## Opprette en unntak-monitor
 
-1. Gå til **Monitors** i OneUptime-dashbordet
-2. Klikk **Create Monitor**
-3. Velg **Exceptions** som monitortype
+1. Gå til **Overvåkere** i OneUptime-dashbordet
+2. Klikk **Opprett monitor**
+3. Velg **Unntak** som monitortype
 4. Velg telemetritjenestene som skal overvåkes
 5. Konfigurer unntaksfiltre og kriterier etter behov
 
@@ -58,23 +58,23 @@ Velg én eller flere tjenester det skal overvåkes unntak fra. Tjenester må sen
 #### Varsle hvis mer enn 10 unntak på 60 sekunder
 
 - **Tidsvindu**: 60 sekunder
-- **Sjekk på**: Exception Count
+- **Check On**: Exception Count
 - **Filtertype**: Greater Than
 - **Verdi**: 10
 
 #### Varsle ved enhver NullPointerException
 
-- **Exception Types**: `NullPointerException`
+- **Unntakstyper**: `NullPointerException`
 - **Tidsvindu**: 60 sekunder
-- **Sjekk på**: Exception Count
+- **Check On**: Exception Count
 - **Filtertype**: Greater Than
 - **Verdi**: 0
 
 #### Overvåke unntak som inneholder en spesifikk melding
 
-- **Message**: `out of memory`
+- **Melding**: `out of memory`
 - **Tidsvindu**: 300 sekunder
-- **Sjekk på**: Exception Count
+- **Check On**: Exception Count
 - **Filtertype**: Greater Than
 - **Verdi**: 0
 

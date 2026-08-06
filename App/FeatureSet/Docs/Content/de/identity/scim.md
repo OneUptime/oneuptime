@@ -24,8 +24,8 @@ Projekt-SCIM ermöglicht Identity Providern, Teammitglieder innerhalb von OneUpt
 
 2. **SCIM-Einstellungen konfigurieren**
 
-   - Aktivieren Sie **Benutzer automatisch bereitstellen**, um Benutzer automatisch hinzuzufügen, wenn sie im IdP zugewiesen werden
-   - Aktivieren Sie **Benutzer automatisch entbereitstellen**, um Benutzer automatisch zu entfernen, wenn sie im IdP nicht mehr zugewiesen sind
+   - Aktivieren Sie **Benutzer automatisch provisionieren**, um Benutzer automatisch hinzuzufügen, wenn sie im IdP zugewiesen werden
+   - Aktivieren Sie **Benutzer automatisch deprovisionieren**, um Benutzer automatisch zu entfernen, wenn sie im IdP nicht mehr zugewiesen sind
    - Wählen Sie die **Standard-Teams**, denen neue Benutzer hinzugefügt werden sollen
    - Kopieren Sie die **SCIM-Basis-URL** und das **Bearer-Token** für Ihre IdP-Konfiguration
 
@@ -63,7 +63,7 @@ Status-Seiten-SCIM ermöglicht Identity Providern, Abonnenten privater Status-Se
 
 2. **SCIM-Einstellungen konfigurieren**
 
-   - Aktivieren Sie **Benutzer automatisch bereitstellen** und **Benutzer automatisch entbereitstellen**
+   - Aktivieren Sie **Benutzer automatisch provisionieren** und **Benutzer automatisch deprovisionieren**
    - Kopieren Sie die **SCIM-Basis-URL** und das **Bearer-Token** für Ihre IdP-Konfiguration
 
 3. **Ihren Identity Provider konfigurieren**

@@ -8,7 +8,7 @@ Global SSO es una funcionalidad de **OneUptime Enterprise Edition** y solo está
 
 |                                | Project SSO                                                         | Global SSO                                                 |
 | ------------------------------ | ------------------------------------------------------------------- | ---------------------------------------------------------- |
-| Configurado por                | Propietario/administrador del proyecto (Configuración del proyecto) | Administrador maestro de la instancia (Admin Dashboard)    |
+| Configurado por                | Propietario/administrador del proyecto (Ajustes del proyecto)       | Administrador maestro de la instancia (Admin Dashboard)    |
 | Alcance                        | Un solo proyecto                                                    | Toda la instancia, conectable a cualquier proyecto         |
 | Resultado del inicio de sesión | Acceso a ese único proyecto                                         | Acceso a todos los proyectos que el usuario pueda alcanzar |
 

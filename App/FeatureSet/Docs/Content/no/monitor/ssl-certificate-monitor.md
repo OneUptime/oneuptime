@@ -14,8 +14,8 @@ SSL-sertifikatmonitorer kobler til HTTPS-endepunktene dine og inspiserer SSL/TLS
 
 ## Opprette en SSL-sertifikatmonitor
 
-1. Gå til **Monitors** i OneUptime-dashbordet
-2. Klikk **Create Monitor**
+1. Gå til **Overvåkere** i OneUptime-dashbordet
+2. Klikk **Opprett monitor**
 3. Velg **SSL Certificate** som monitortype
 4. Skriv inn URL-en til HTTPS-endepunktet som skal sjekkes
 5. Konfigurer overvåkingskriterier etter behov
@@ -63,23 +63,23 @@ For **Expires In Hours** og **Expires In Days**:
 
 #### Marker som degradert hvis sertifikatet utløper innen 30 dager
 
-- **Sjekk på**: Expires In Days
+- **Check On**: Expires In Days
 - **Filtertype**: Less Than
 - **Verdi**: 30
 
 #### Marker som utilgjengelig hvis sertifikatet er utløpt
 
-- **Sjekk på**: Is Expired Certificate
+- **Check On**: Is Expired Certificate
 - **Filtertype**: True
 
 #### Varsle hvis sertifikatet er selvsignert
 
-- **Sjekk på**: Is Self-Signed Certificate
+- **Check On**: Is Self-Signed Certificate
 - **Filtertype**: True
 
 #### Marker som utilgjengelig hvis sertifikatet er ugyldig
 
-- **Sjekk på**: Is Not A Valid Certificate
+- **Check On**: Is Not A Valid Certificate
 - **Filtertype**: True
 
 ## Beste praksis

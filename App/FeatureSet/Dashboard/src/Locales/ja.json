@@ -4135,6 +4135,7 @@
   "Processors transform spans as they flow through the pipeline. They run in order after the filter conditions match. Each processor modifies the span before it is stored.": "プロセッサーは、スパンがパイプラインを通過する際に変換します。フィルター条件が一致した後、順番に実行されます。各プロセッサーは、スパンが保存される前にそれを変更します。",
   "Processors transform spans matched by this pipeline. They run in the order shown below. Drag to reorder.": "プロセッサーは、このパイプラインに一致するスパンを変換します。以下に示す順序で実行されます。ドラッグして並べ替えます。",
   "Product": "製品",
+  "Products": "製品",
   "Production API Health": "本番APIのヘルス",
   "Production cluster running in US East": "US Eastで稼働している本番クラスター",
   "Production cluster running in US East region on EKS": "EKS上のUS Eastリージョンで稼働している本番クラスター",

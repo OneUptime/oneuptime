@@ -4,27 +4,27 @@ Ogni volta che un workflow viene eseguito, OneUptime salva un record di cio che 
 
 ## Dove trovarle
 
-| Pagina                           | Cosa vedi                                                                                         |
-| -------------------------------- | ------------------------------------------------------------------------------------------------- |
-| **Workflows → Esecuzioni e log** | Ogni esecuzione di ogni workflow del progetto. Filtra per workflow, stato e intervallo temporale. |
-| **Workflow → Scheda Logs**       | Solo le esecuzioni di questo specifico workflow.                                                  |
-| **Una singola esecuzione**       | Una sola esecuzione, con l'output di ogni blocco.                                                 |
+| Pagina                                       | Cosa vedi                                                                                         |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| **Flussi di lavoro → Esecuzioni e registri** | Ogni esecuzione di ogni workflow del progetto. Filtra per workflow, stato e intervallo temporale. |
+| **Flusso di lavoro → Scheda Registri**       | Solo le esecuzioni di questo specifico workflow.                                                  |
+| **Una singola esecuzione**                   | Una sola esecuzione, con l'output di ogni blocco.                                                 |
 
 ## Stati delle esecuzioni
 
-| Stato         | Cosa significa                                                                                                                                                  |
-| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Scheduled** | Il trigger e scattato e l'esecuzione sta per iniziare. Di solito richiede solo una frazione di secondo.                                                         |
-| **Running**   | Il workflow e in corso. I blocchi di lunga durata mantengono un'esecuzione in questo stato.                                                                     |
-| **Success**   | Ogni blocco eseguito si e concluso senza errori. (Prendere un ramo **error** intenzionalmente conta comunque come successo — il workflow in se non ha fallito.) |
-| **Error**     | Un blocco e fallito e non c'era un percorso **error** collegato per gestirlo. L'esecuzione si e fermata li.                                                     |
-| **Timeout**   | L'esecuzione ha richiesto piu tempo di quello consentito. Vedi [Configurazione e sicurezza](/docs/workflows/configuration).                                     |
+| Stato             | Cosa significa                                                                                                                                                  |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Programmato**   | Il trigger e scattato e l'esecuzione sta per iniziare. Di solito richiede solo una frazione di secondo.                                                         |
+| **In esecuzione** | Il workflow e in corso. I blocchi di lunga durata mantengono un'esecuzione in questo stato.                                                                     |
+| **Successo**      | Ogni blocco eseguito si e concluso senza errori. (Prendere un ramo **error** intenzionalmente conta comunque come successo — il workflow in se non ha fallito.) |
+| **Errore**        | Un blocco e fallito e non c'era un percorso **error** collegato per gestirlo. L'esecuzione si e fermata li.                                                     |
+| **Timeout**       | L'esecuzione ha richiesto piu tempo di quello consentito. Vedi [Configurazione e sicurezza](/docs/workflows/configuration).                                     |
 
 ## Leggere un'esecuzione
 
 Clicca su una qualsiasi esecuzione per aprirne i dettagli. Vedrai:
 
-- **Header** — il trigger, l'ora di inizio e fine, la durata totale e lo stato.
+- **Intestazione** — il trigger, l'ora di inizio e fine, la durata totale e lo stato.
 - **Elenco dei blocchi** — ogni blocco eseguito, in ordine. Ognuno mostra i valori che ha ricevuto, il suo output e quale percorso ha preso.
 - **Errori** — se un blocco e fallito, il messaggio di errore e (quando disponibile) maggiori dettagli.
 
@@ -39,14 +39,14 @@ I valori mostrati sono esattamente quelli che il blocco ha visto — dopo che tu
 3. Per un trigger webhook: conferma che l'altro sistema stia inviando all'URL corretto. La maggior parte degli strumenti registra quando invia un webhook — controlla li.
 4. Per un trigger pianificato: verifica che l'espressione cron corrisponda all'orario previsto.
 
-Se il trigger e scattato ma non appare alcuna esecuzione, controlla la tua quota di esecuzioni sotto **Project Settings → Billing**.
+Se il trigger e scattato ma non appare alcuna esecuzione, controlla la tua quota di esecuzioni sotto **Impostazioni del progetto → Fatturazione**.
 
 ### "Un blocco successivo non e mai stato eseguito."
 
 Un blocco che non viene eseguito di solito e un problema di collegamento. Apri il canvas e controlla:
 
 - L'output del blocco precedente e collegato all'input di questo blocco?
-- Il blocco precedente ha preso un output diverso da quello che ti aspettavi (per esempio, **error** invece di **success**, o **No** invece di **Yes**)? Il dettaglio dell'esecuzione mostra quale percorso e stato preso.
+- Il blocco precedente ha preso un output diverso da quello che ti aspettavi (per esempio, **error** invece di **success**, o **No** invece di **Sì**)? Il dettaglio dell'esecuzione mostra quale percorso e stato preso.
 
 ### "Una variabile e arrivata vuota."
 

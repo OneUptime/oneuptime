@@ -8,7 +8,7 @@ OneUptime は、マネージドなクラウドコンピュートを **クラウ�
 
 ## 前提条件
 
-- **OneUptime Telemetry Ingestion Token** — _Project Settings → テレメトリと APM → 取り込みキー_ から作成します。
+- **OneUptime Telemetry Ingestion Token** — _プロジェクト設定 → テレメトリと APM → 取り込みキー_ から作成します。
 - ワークロード内またはワークロードと併せて動作する OpenTelemetry Collector または SDK。
 
 ## OneUptime が環境を識別する仕組み
@@ -70,7 +70,7 @@ OneUptime をセルフホストしている場合は、`https://YOUR-ONEUPTIME-H
 
 環境の概要では、次の情報が表示されます。
 
-- 実行中のタスク / インスタンスごとの **CPU** と **メモリ**（`container.cpu.utilization` / `container.memory.usage` から取得）に加え、**CPU 別の上位インスタンス（Top instances by CPU）** リスト。
+- 実行中のタスク / インスタンスごとの **CPU** と **メモリ**（`container.cpu.utilization` / `container.memory.usage` から取得）に加え、**CPU別の上位インスタンス（Top instances by CPU）** リスト。
 - **インスタンス（Instances）** — タスクのライブカウント。
 - トレースから導出される **リクエスト（Requests）** とトレンドチャート。
 - 完全な **ログ（Logs）**、**トレース（Traces）**、**メトリクス（Metrics）**、**インスタンス（Instances）** タブ。

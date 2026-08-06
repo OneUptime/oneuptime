@@ -1,10 +1,10 @@
 # Runbook-regler
 
-Runbook-regler kopplar runbooks automatiskt när en **incident**, ett **larm** eller en **planerad underhållshändelse** skapas. De hanteras från Settings-menyn på varje entitet:
+Runbook-regler kopplar runbooks automatiskt när en **incident**, ett **larm** eller en **planerad underhållshändelse** skapas. De hanteras från Inställningar-menyn på varje entitet:
 
-- Incidents → Settings → **Runbook Rules**
-- Alerts → Settings → **Runbook Rules**
-- Scheduled Maintenance → Settings → **Runbook Rules**
+- Incidenter → Inställningar → **Runbook-regler**
+- Varningar → Inställningar → **Runbook-regler**
+- Schemalagt underhåll → Inställningar → **Runbook-regler**
 
 Alla tre sidorna redigerar samma underliggande regelmodell — de är bara filtrerade för att visa endast regler för den entitetstypen.
 
@@ -55,9 +55,9 @@ Utlöses på varje incident — användbart för att fånga snapshots av systemt
 1. Runbooket laddas.
 2. Dess steg **snapshot:as** in på en ny runbook-körning.
 3. Körningen läggs i Runbook-köns worker.
-4. Körningen länkas till käll-entiteten — den dyker upp på incidentens, larmets eller den planerade underhållshändelsens sida och på runbookets Executions-lista.
+4. Körningen länkas till käll-entiteten — den dyker upp på incidentens, larmets eller den planerade underhållshändelsens sida och på runbookets Körningar-lista.
 
-Du kan se alla regelutlösta körningar under **Runbooks → Executions**, filtrerade efter status, runbook eller datum.
+Du kan se alla regelutlösta körningar under **Runbooks → Körningar**, filtrerade efter status, runbook eller datum.
 
 ## Inaktiverade runbooks
 

@@ -14,10 +14,10 @@ Innkommende forespørselsmonitorer gir en unik webhook-URL som tjenestene dine k
 
 ## Opprette en innkommende forespørselsmonitor
 
-1. Gå til **Monitors** i OneUptime-dashbordet
-2. Klikk **Create Monitor**
+1. Gå til **Overvåkere** i OneUptime-dashbordet
+2. Klikk **Opprett monitor**
 3. Velg **Incoming Request** som monitortype
-4. En **hemmelig nøkkel** og hjerteslag-URL genereres for denne monitoren
+4. En **Hemmelig nøkkel** og hjerteslag-URL genereres for denne monitoren
 5. Konfigurer tjenesten din til å sende forespørsler til hjerteslag-URL-en
 6. Konfigurer overvåkingskriterier etter behov
 
@@ -88,7 +88,7 @@ For **Incoming Request**:
 - **Received In Minutes** – Et hjerteslag ble mottatt innen det angitte antallet minutter
 - **Not Received In Minutes** – Ingen hjerteslag ble mottatt innen det angitte antallet minutter
 
-For **Request Body**, **Request Header** og **Request Header Value**:
+For **Forespørselstekst**, **Request Header** og **Request Header Value**:
 
 - **Contains** – Verdien inneholder den angitte teksten
 - **Not Contains** – Verdien inneholder ikke den angitte teksten
@@ -97,13 +97,13 @@ For **Request Body**, **Request Header** og **Request Header Value**:
 
 #### Merk som utilgjengelig hvis intet hjerteslag på 10 minutter
 
-- **Sjekk på**: Incoming Request
+- **Check On**: Incoming Request
 - **Filtertype**: Not Received In Minutes
 - **Verdi**: 10
 
 #### Merk som degradert basert på forespørselskroppinnhold
 
-- **Sjekk på**: Request Body
+- **Check On**: Request Body
 - **Filtertype**: Contains
 - **Verdi**: `"status": "degraded"`
 

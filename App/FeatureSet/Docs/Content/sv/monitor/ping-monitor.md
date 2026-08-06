@@ -13,7 +13,7 @@ Ping-monitorer testar grundläggande nätverksanslutning genom att skicka ICMP-p
 
 ## Skapa en ping-monitor
 
-1. Gå till **Monitorer** i OneUptime-instrumentpanelen
+1. Gå till **Övervakare** i OneUptime-instrumentpanelen
 2. Klicka på **Skapa monitor**
 3. Välj **Ping** som monitortyp
 4. Ange värdnamnet eller IP-adressen du vill övervaka

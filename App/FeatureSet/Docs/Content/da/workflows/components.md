@@ -17,8 +17,8 @@ Foretag en HTTP-anmodning til en hvilken som helst URL.
 
 **Outputs**:
 
-- **Success** — udløses, når kaldet lykkedes (2xx-svar). Sender status, headers og body videre.
-- **Error** — udløses ved en netværksfejl eller et ikke-2xx-svar. Sender fejlbeskeden videre.
+- **Succes** — udløses, når kaldet lykkedes (2xx-svar). Sender status, headers og body videre.
+- **Fejl** — udløses ved en netværksfejl eller et ikke-2xx-svar. Sender fejlbeskeden videre.
 
 Brug denne til: ethvert eksternt API, dine egne admin-endpoints eller enhver integration, som ikke har sin egen komponent.
 
@@ -34,10 +34,10 @@ Post en besked til en Slack-kanal.
 
 **Indstillinger**:
 
-- **Channel** — kanalens navn. Bot'en skal allerede være i den kanal.
-- **Message** — den tekst, der skal sendes. Understøtter Slack-formatering.
+- **Kanal** — kanalens navn. Bot'en skal allerede være i den kanal.
+- **Besked** — den tekst, der skal sendes. Understøtter Slack-formatering.
 
-Forbind først Slack til dit projekt under **Project Settings → Arbejdsområde → Slack**. Se [Slack Workspace-forbindelse](/docs/workspace-connections/slack).
+Forbind først Slack til dit projekt under **Projektindstillinger → Arbejdsområde → Slack**. Se [Slack Workspace-forbindelse](/docs/workspace-connections/slack).
 
 ## Microsoft Teams
 
@@ -46,7 +46,7 @@ Post en besked til en Microsoft Teams-kanal.
 **Indstillinger**:
 
 - **Team and channel** — hvor der skal postes.
-- **Message** — den tekst, der skal sendes.
+- **Besked** — den tekst, der skal sendes.
 
 Se [Microsoft Teams Workspace-forbindelse](/docs/workspace-connections/microsoft-teams) for opsætning.
 
@@ -64,8 +64,8 @@ Send en e-mail gennem OneUptime.
 
 **Indstillinger**:
 
-- **To** — modtagerens e-mailadresse.
-- **Subject** — emnelinjen.
+- **Til** — modtagerens e-mailadresse.
+- **Emne** — emnelinjen.
 - **Body** — beskeden i Markdown eller HTML.
 
 E-mailen sendes fra dit projekts konfigurerede afsender — se [SMTP](/docs/emails/smtp).
@@ -76,7 +76,7 @@ Kør et lille stykke JavaScript, når du har brug for noget, de andre blokke ikk
 
 **Indstillinger**:
 
-- **Code** — din JavaScript. Den sidste værdi (eller det, du returnerer fra en async-funktion) bliver blokkens output.
+- **Kode** — din JavaScript. Den sidste værdi (eller det, du returnerer fra en async-funktion) bliver blokkens output.
 - **Arguments** — navngivne værdier, du kan sende ind.
 
 **Outputs**: success (din returværdi) og error (enhver undtagelse).
@@ -100,7 +100,7 @@ Forgren ud fra en sammenligning.
 - **Operator** — `==`, `!=`, `>`, `>=`, `<`, `<=`, `contains`, `starts with`, `ends with`.
 - **Right value** — det, der skal sammenlignes med.
 
-**Outputs**: **Yes** og **No**. Forbind de næste blokke til den gren, du vil have.
+**Outputs**: **Ja** og **Nej**. Forbind de næste blokke til den gren, du vil have.
 
 ## Delay
 
@@ -124,12 +124,12 @@ For hver slags post i OneUptime (monitorer, hændelser, alarmer, statussider, va
 
 - **Find One** — hent én post efter ID eller filter.
 - **Find** — hent en liste af poster.
-- **Create** — tilføj en ny post.
-- **Update** — ændr én post.
-- **Delete** — fjern én post.
-- **Count** — tæl poster, der matcher et filter.
+- **Opret** — tilføj en ny post.
+- **Opdater** — ændr én post.
+- **Slet** — fjern én post.
+- **Antal** — tæl poster, der matcher et filter.
 
-Sådan kan et workflow læse og ændre OneUptime-data. For eksempel: en webhook fra dit CI-værktøj kan bruge **Create Incident** til at åbne en hændelse med fejldetaljerne.
+Sådan kan et workflow læse og ændre OneUptime-data. For eksempel: en webhook fra dit CI-værktøj kan bruge **Opret hændelse** til at åbne en hændelse med fejldetaljerne.
 
 ## Hvilken komponent skal jeg bruge?
 
@@ -138,7 +138,7 @@ Et par hurtige regler:
 - Hvis der findes en dedikeret blok til det, du vil have (Slack, Email, en OneUptime-post), så brug den — du får pænere fejlhåndtering og klarere logfiler.
 - Til ethvert andet eksternt API: brug **API**.
 - Til at omforme data mellem blokke: brug **Custom Code** eller **JSON**.
-- Til at tage forskellige handlinger baseret på en værdi: brug **Conditions**.
+- Til at tage forskellige handlinger baseret på en værdi: brug **Betingelser**.
 
 ## Læs videre
 

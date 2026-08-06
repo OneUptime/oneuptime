@@ -44,7 +44,7 @@ MCP server 與您的 OneUptime 執行個體一同託管，並透過 Streamable H
 ## 取得您的 API 金鑰
 
 1. 登入您的 OneUptime 執行個體
-2. 前往 **Settings** → **API Keys**
+2. 前往 **設定** → **API 金鑰**
 3. 點選 **Create API Key**
 4. 提供一個名稱（例如「MCP Server」）
 5. 為您的使用情境選擇適當的權限

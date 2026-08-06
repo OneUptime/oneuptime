@@ -10,14 +10,14 @@ Sie können den **OpenTelemetry Collector** als Dienst direkt auf Ihren Linux-, 
 - **systemd-Unit-Status** (versorgt den Host-Tab **Systemd Units**) über den [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver) — im Upstream-`otelcol-contrib`-Build ab **v0.142.0** enthalten, ab **v0.143.0** einsetzbar (siehe „Linux Services (systemd-Units)" weiter unten)
 - **Apple Unified Log** (macOS) über den [`logstransformprocessor`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/logstransformprocessor), der eine getailte `log stream`-Ausgabe umschließt
 - **Windows Event Logs** über den [`windowseventlogreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowseventlogreceiver)
-- **Windows-Dienststatus** (versorgt den Host-Tab **Services**) über den [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver) — im Upstream-`otelcol-contrib`-Build ab **v0.155.0** enthalten (siehe „Windows Services (Metriken)" weiter unten)
+- **Windows-Dienststatus** (versorgt den Host-Tab **Dienste**) über den [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver) — im Upstream-`otelcol-contrib`-Build ab **v0.155.0** enthalten (siehe „Windows Services (Metriken)" weiter unten)
 
 > **Was ist mit dem OneUptime Infrastructure Agent?** Dieser Agent ist ein separater, leichtgewichtiger Go-Daemon, der sich auf grundlegende Metriken und die Funktion _Server / VM Monitor_ (Status, Prozesse, Alerting) konzentriert. Der hier beschriebene OpenTelemetry Collector ist unabhängig davon und das richtige Werkzeug, wenn Sie Logs (Dateilogs, journald, Windows Event Logs) oder umfangreichere Host-Metriken als standardisiertes OTLP erfassen möchten. Beide können auf demselben Host laufen, ohne sich gegenseitig zu beeinträchtigen.
 
 ## Voraussetzungen
 
-- Ein **OneUptime Telemetry Ingestion Token** — erstellen Sie eines unter _Project Settings → Telemetrie & APM → Ingestion-Schlüssel_ und kopieren Sie den Wert von `x-oneuptime-token`.
-- Die Distribution **OpenTelemetry Collector Contrib** (`otelcol-contrib`). Der standardmäßige `otelcol`-Build enthält Receiver wie `windowseventlogreceiver`, `journaldreceiver` oder `hostmetrics`-Extras **nicht** — stellen Sie sicher, dass Sie die `contrib`-Distribution verwenden. Der Alpha-`windowsservicereceiver`, der den Windows-**Services**-Tab versorgt, ist in `otelcol-contrib` ab **v0.155.0** enthalten, und der Alpha-`systemdreceiver`, der den Linux-**Systemd Units**-Tab versorgt, ab **v0.143.0**; installieren Sie daher ein aktuelles Release; siehe „Windows Services (Metriken)" und „Linux Services (systemd-Units)" weiter unten.
+- Ein **OneUptime Telemetry Ingestion Token** — erstellen Sie eines unter _Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel_ und kopieren Sie den Wert von `x-oneuptime-token`.
+- Die Distribution **OpenTelemetry Collector Contrib** (`otelcol-contrib`). Der standardmäßige `otelcol`-Build enthält Receiver wie `windowseventlogreceiver`, `journaldreceiver` oder `hostmetrics`-Extras **nicht** — stellen Sie sicher, dass Sie die `contrib`-Distribution verwenden. Der Alpha-`windowsservicereceiver`, der den Windows-**Dienste**-Tab versorgt, ist in `otelcol-contrib` ab **v0.155.0** enthalten, und der Alpha-`systemdreceiver`, der den Linux-**Systemd Units**-Tab versorgt, ab **v0.143.0**; installieren Sie daher ein aktuelles Release; siehe „Windows Services (Metriken)" und „Linux Services (systemd-Units)" weiter unten.
 - Root-/Administratorrechte auf dem Host, um den Collector als Dienst zu installieren und (sofern zutreffend) privilegierte Log-Quellen zu lesen.
 
 ## Schritt 1 — Den OpenTelemetry Collector installieren
@@ -69,7 +69,7 @@ Sie erstellen `/etc/otelcol-contrib/config.yaml` in Schritt 2 und eine `launchd`
 
 ### Windows
 
-Laden Sie unter Windows das Upstream-**`otelcol-contrib`**-Release herunter — es bringt den `windows_service`-Receiver mit, der den Host-Tab **Services** versorgt (ab **v0.155.0**). Über eine PowerShell-Eingabeaufforderung **mit erhöhten Rechten**:
+Laden Sie unter Windows das Upstream-**`otelcol-contrib`**-Release herunter — es bringt den `windows_service`-Receiver mit, der den Host-Tab **Dienste** versorgt (ab **v0.155.0**). Über eine PowerShell-Eingabeaufforderung **mit erhöhten Rechten**:
 
 ```powershell
 $VERSION = "0.156.0"                          # use v0.155.0 or later for the Services tab
@@ -83,7 +83,7 @@ tar -xf $tar -C $dest                          # tar.exe ships with Windows 10 1
 
 Dies entpackt `otelcol-contrib.exe` nach `C:\Program Files\otelcol-contrib`. Sie erstellen `config.yaml` im selben Ordner in Schritt 2 und registrieren in Schritt 3 einen Windows-Dienst.
 
-> Bevorzugen Sie einen nativen Installer? OpenTelemetry veröffentlicht auf derselben [Releases-Seite](https://github.com/open-telemetry/opentelemetry-collector-releases/releases) auch eine signierte **`.msi`** (`otelcol-contrib_<version>_windows_x64.msi`), die den Collector für Sie als Windows-Dienst registriert. Wenn Sie sie verwenden, richten Sie sie auf die `config.yaml` aus Schritt 2 aus und stellen Sie sicher, dass der Dienst als `LocalSystem` läuft, damit der **Services**-Tab den Service Control Manager lesen kann.
+> Bevorzugen Sie einen nativen Installer? OpenTelemetry veröffentlicht auf derselben [Releases-Seite](https://github.com/open-telemetry/opentelemetry-collector-releases/releases) auch eine signierte **`.msi`** (`otelcol-contrib_<version>_windows_x64.msi`), die den Collector für Sie als Windows-Dienst registriert. Wenn Sie sie verwenden, richten Sie sie auf die `config.yaml` aus Schritt 2 aus und stellen Sie sicher, dass der Dienst als `LocalSystem` läuft, damit der **Dienste**-Tab den Service Control Manager lesen kann.
 
 ## Schritt 2 — Den Collector konfigurieren
 
@@ -168,7 +168,7 @@ receivers:
 
 `start_at: end` bedeutet neue Zeilen ab dem Moment, in dem der Collector startet; ändern Sie es auf `beginning`, um beim ersten Lauf nachzufüllen. Der Collector verfolgt die Datei-Offsets und setzt daher über Neustarts hinweg korrekt fort.
 
-**Stacktraces aus Host-Logs in Exceptions umwandeln.** OneUptime durchsucht Error- und Fatal-Logzeilen automatisch nach Stacktraces und fasst sie in der Ansicht **Exceptions** (Issues) zusammen, zugeordnet zu diesem Host — ohne zusätzliche Konfiguration. Damit dies gut gruppiert wird, muss ein mehrzeiliger Stacktrace (Java, Python, .NET, Ruby) als **ein** Logdatensatz ankommen, nicht als ein Datensatz pro Zeile. Aktivieren Sie die Mehrzeilen-Zusammenführung auf dem `filelog`-Receiver, damit ein Trace und seine Frames zusammenbleiben:
+**Stacktraces aus Host-Logs in Exceptions umwandeln.** OneUptime durchsucht Error- und Fatal-Logzeilen automatisch nach Stacktraces und fasst sie in der Ansicht **Ausnahmen** (Issues) zusammen, zugeordnet zu diesem Host — ohne zusätzliche Konfiguration. Damit dies gut gruppiert wird, muss ein mehrzeiliger Stacktrace (Java, Python, .NET, Ruby) als **ein** Logdatensatz ankommen, nicht als ein Datensatz pro Zeile. Aktivieren Sie die Mehrzeilen-Zusammenführung auf dem `filelog`-Receiver, damit ein Trace und seine Frames zusammenbleiben:
 
 ```yaml
 receivers:
@@ -204,7 +204,7 @@ Die Collector-Binärdatei muss `journalctl` ausführen können (die Debian-/RPM-
 
 ### Linux Services (systemd-Units, Metriken)
 
-Der Host-**Systemd Units**-Tab wird vom [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver) (Konfigurationstyp `systemd`) versorgt, der den Aktivierungszustand von systemd-Units als Metriken meldet — das Linux-Gegenstück zum **Services**-Tab unter Windows.
+Der Host-**Systemd Units**-Tab wird vom [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver) (Konfigurationstyp `systemd`) versorgt, der den Aktivierungszustand von systemd-Units als Metriken meldet — das Linux-Gegenstück zum **Dienste**-Tab unter Windows.
 
 **Der Receiver ist erstmals in v0.142.0 in der Upstream-`otelcol-contrib`-Binärdatei ausgeliefert worden, und v0.143.0 ist das erste Release, dessen Betrieb sich lohnt** — bei allem, was älter ist, schlägt das Hinzufügen von `systemd` beim Start mit `'receivers' unknown type: "systemd"` fehl, und allein v0.142.0 nennt seine CPU-Metrik `systemd.unit.cpu.time` und sucht auf jeder Unit nach cgroup-Statistiken, was für jede Unit, die keine `.service`-Unit ist, einen Scrape-Fehler protokolliert. v0.143.0 hat diese Metrik in `systemd.service.cpu.time` umbenannt und die Suche auf Dienste beschränkt. Installieren Sie ein aktuelles Release (Schritt 1), aktivieren Sie ihn dann in Ihrer `config.yaml` und fügen Sie ihn der Metriken-Pipeline hinzu:
 
@@ -307,7 +307,7 @@ windowseventlog/iis:
 
 ### Windows Services (Metriken)
 
-Der Host-**Services**-Tab wird vom [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver) (Konfigurationstyp `windows_service`) versorgt, der den Laufzustand und den Starttyp von Windows-Diensten als Metriken meldet.
+Der Host-**Dienste**-Tab wird vom [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver) (Konfigurationstyp `windows_service`) versorgt, der den Laufzustand und den Starttyp von Windows-Diensten als Metriken meldet.
 
 **Dieser Receiver ist ab v0.155.0 in der Upstream-`otelcol-contrib`-Binärdatei enthalten** — bei älteren Releases schlägt das Hinzufügen von `windows_service` beim Start mit `'receivers' unknown type: "windows_service"` fehl. Installieren Sie ein aktuelles Release (Schritt 1), aktivieren Sie ihn dann in Ihrer `config.yaml` und fügen Sie ihn der Metriken-Pipeline hinzu:
 
@@ -330,7 +330,7 @@ service:
 
 Der Receiver gibt pro Dienst einen `windows.service.status`-Gauge aus — die Ganzzahl ist der Win32-Dienstzustand (`4` = läuft, `1` = gestoppt) — mit den Attributen `name` und `startup_mode`. Führen Sie den Collector als `LocalSystem` aus (der `sc.exe`-Standard), damit er jeden Dienst lesen kann; jeder Dienst, den er nicht öffnen kann, wird übersprungen. Der Receiver ist **Alpha** und **nur für Windows**; bekannte Probleme umfassen einen Scrape-Fehler, der den Collector zum Absturz bringen könnte, und ein `access denied` bei einem Dienst, das andere beeinträchtigt — beschränken Sie sich auf `include_services`, falls Sie darauf stoßen.
 
-> **`include_services` hat keine Wirkung?** Der Filter kann die Menge immer nur *eingrenzen*. Wenn Sie also Dienste auflisten und trotzdem jeden einzelnen sehen, hat die bearbeitete Konfiguration den laufenden Collector mit ziemlicher Sicherheit nicht erreicht. Starten Sie den Dienst nach der Bearbeitung neu (Schritt 3); stellen Sie sicher, dass `include_services` eine befüllte Liste auf derselben Einrückungsebene wie `collection_interval` ist (nicht auskommentiert oder leer gelassen); und geben Sie dem **Services**-Tab ein paar Minuten, damit vor der Änderung gemeldete Dienste aus seinem gleitenden Zeitfenster herausfallen. Die Namen sind exakte, case-sensitive Windows-Dienst-_Schlüssel_-Namen (z. B. `Spooler`, `W3SVC`), die Sie mit `Get-Service | Select-Object Name` auflisten können.
+> **`include_services` hat keine Wirkung?** Der Filter kann die Menge immer nur *eingrenzen*. Wenn Sie also Dienste auflisten und trotzdem jeden einzelnen sehen, hat die bearbeitete Konfiguration den laufenden Collector mit ziemlicher Sicherheit nicht erreicht. Starten Sie den Dienst nach der Bearbeitung neu (Schritt 3); stellen Sie sicher, dass `include_services` eine befüllte Liste auf derselben Einrückungsebene wie `collection_interval` ist (nicht auskommentiert oder leer gelassen); und geben Sie dem **Dienste**-Tab ein paar Minuten, damit vor der Änderung gemeldete Dienste aus seinem gleitenden Zeitfenster herausfallen. Die Namen sind exakte, case-sensitive Windows-Dienst-_Schlüssel_-Namen (z. B. `Spooler`, `W3SVC`), die Sie mit `Get-Service | Select-Object Name` auflisten können.
 
 ### Vollständiges Beispiel — Linux-Host
 
@@ -602,10 +602,10 @@ Der Dienst läuft standardmäßig unter `LocalSystem`, das über die nötigen Be
 1. Erzeugen Sie ein Signal auf dem Host:
    - **Linux / macOS:** `logger "hello from oneuptime"` (schreibt nach syslog / journald).
    - **Windows:** `eventcreate /T INFORMATION /ID 999 /L APPLICATION /SO OneUptimeTest /D "hello from oneuptime"` von einer Eingabeaufforderung mit erhöhten Rechten.
-2. Öffnen Sie im OneUptime-Dashboard **Products → Dienste** und wählen Sie den von Ihnen konfigurierten `service.name`.
-3. Öffnen Sie **Metrics** — Host-Metriken (CPU, Arbeitsspeicher, Dateisystem usw.) sollten innerhalb einer Minute erscheinen.
-4. Öffnen Sie **Logs** — Ihre Dateilogs / journald-Einträge / Windows Event Logs sollten eintreffen. Nützliche durchsuchbare Attribute sind u. a. `log.file.name`, `systemd.unit`, `winlog.channel`, `winlog.event_id` und `winlog.provider.name`.
-5. Wenn Sie den `systemd`- (Linux) oder `windows_service`-Receiver (Windows) aktiviert haben, öffnen Sie **Infrastructure → Hosts**, wählen Sie den Host aus und prüfen Sie den Tab **Systemd Units** / **Services** — jede gescrapte Unit sollte mit ihrem aktuellen Zustand aufgeführt sein.
+2. Öffnen Sie im OneUptime-Dashboard **Produkte → Dienste** und wählen Sie den von Ihnen konfigurierten `service.name`.
+3. Öffnen Sie **Metriken** — Host-Metriken (CPU, Arbeitsspeicher, Dateisystem usw.) sollten innerhalb einer Minute erscheinen.
+4. Öffnen Sie **Protokolle** — Ihre Dateilogs / journald-Einträge / Windows Event Logs sollten eintreffen. Nützliche durchsuchbare Attribute sind u. a. `log.file.name`, `systemd.unit`, `winlog.channel`, `winlog.event_id` und `winlog.provider.name`.
+5. Wenn Sie den `systemd`- (Linux) oder `windows_service`-Receiver (Windows) aktiviert haben, öffnen Sie **Infrastruktur → Hosts**, wählen Sie den Host aus und prüfen Sie den Tab **Systemd Units** / **Dienste** — jede gescrapte Unit sollte mit ihrem aktuellen Zustand aufgeführt sein.
 
 ## Das erfasste Datenvolumen reduzieren
 
@@ -848,7 +848,7 @@ service:
 
 Fügen Sie bei Bedarf eine `logs`-Pipeline mit einem eng abgegrenzten `filelog`- oder `journald`-Receiver wieder hinzu.
 
-> **Achten Sie darauf, was Sie streichen.** Log-basierte Alerts benötigen die ankommenden Logs: Wenn Sie einen Schweregrad oder einen Kanal herausfiltern, verstummen Monitore, die darauf abstellen. Trimmen Sie die Quellen, auf die Sie nicht reagieren, nicht die, die ein Monitor überwacht. Ändern Sie jeweils nur einen Hebel und bestätigen Sie den Rückgang unter **Project Settings → Usage History** (die Nutzung wird täglich aggregiert, geben Sie ihr also ein bis zwei Tage), bevor Sie zum nächsten übergehen.
+> **Achten Sie darauf, was Sie streichen.** Log-basierte Alerts benötigen die ankommenden Logs: Wenn Sie einen Schweregrad oder einen Kanal herausfiltern, verstummen Monitore, die darauf abstellen. Trimmen Sie die Quellen, auf die Sie nicht reagieren, nicht die, die ein Monitor überwacht. Ändern Sie jeweils nur einen Hebel und bestätigen Sie den Rückgang unter **Projekteinstellungen → Nutzungsverlauf** (die Nutzung wird täglich aggregiert, geben Sie ihr also ein bis zwei Tage), bevor Sie zum nächsten übergehen.
 
 ## Selbst gehostetes OneUptime
 
@@ -879,7 +879,7 @@ Der OpenTelemetry Collector berücksichtigt die standardmäßigen Umgebungsvaria
   - **Linux / macOS:** `journalctl -u otelcol-contrib -f` (Linux) oder `tail -f /var/log/otelcol-contrib.err.log` (macOS).
   - **Windows:** Schauen Sie unter _Event Viewer → Windows Logs → Application_ nach der Quelle `otelcol-contrib`.
   - Stellen Sie sicher, dass der Host `https://oneuptime.com/otlp` (oder Ihren selbst gehosteten Endpunkt) erreichen kann: `curl -v https://oneuptime.com/otlp` von demselben Rechner.
-- **HTTP 401 vom Exporter** — das Ingestion-Token ist ungültig oder widerrufen. Erstellen Sie ein neues unter _Project Settings → Telemetrie & APM → Ingestion-Schlüssel_.
+- **HTTP 401 vom Exporter** — das Ingestion-Token ist ungültig oder widerrufen. Erstellen Sie ein neues unter _Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel_.
 - **Der Windows-Event-Log-Kanal `Security` gibt „access denied“ zurück** — der Dienst läuft nicht mit ausreichenden Berechtigungen. Erstellen Sie ihn unter `LocalSystem` neu (der Standard bei `sc.exe create`) oder erteilen Sie dem Dienstkonto das Benutzerrecht _Manage auditing and security log_.
 - **Der `journald`-Receiver startet nicht** — stellen Sie sicher, dass `journalctl` im `PATH` des Collectors liegt und dass `/var/log/journal` existiert (führen Sie andernfalls `sudo systemd-tmpfiles --create --prefix /var/log/journal` aus).
 - **Der `systemd`-Receiver meldet einen D-Bus-Verbindungsfehler** — der Collector kann den System-Bus nicht erreichen. Prüfen Sie, ob `/run/dbus/system_bus_socket` existiert und ob der Benutzer des Collectors es öffnen kann; `systemctl list-units` als dieser Benutzer ausgeführt ist die schnellste Probe. Root ist nicht erforderlich. Ein Collector, der in einem Container läuft, sieht überhaupt keinen Bus, sofern Sie nicht den Socket des Hosts einhängen; bevorzugen Sie für diesen Receiver daher eine native Installation.

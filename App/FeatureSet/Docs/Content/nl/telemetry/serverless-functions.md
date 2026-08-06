@@ -2,13 +2,13 @@
 
 ## Overzicht
 
-OneUptime herkent automatisch een **Serverless Function** zodra het OpenTelemetry-data ontvangt die is voorzien van de resource-attribuut `faas.name`. Er hoeft niets handmatig te worden aangemaakt — instrumenteer je functie met de OpenTelemetry SDK voor je runtime, richt de OTLP-exporter op OneUptime, en de functie verschijnt onder **Serverless Functions** met zijn traces, logs en metrics.
+OneUptime herkent automatisch een **Serverless functie** zodra het OpenTelemetry-data ontvangt die is voorzien van de resource-attribuut `faas.name`. Er hoeft niets handmatig te worden aangemaakt — instrumenteer je functie met de OpenTelemetry SDK voor je runtime, richt de OTLP-exporter op OneUptime, en de functie verschijnt onder **Serverless functies** met zijn traces, logs en metrics.
 
 Dit werkt voor AWS Lambda, Google Cloud Functions, Azure Functions, Cloudflare Workers of elke andere FaaS-runtime die OpenTelemetry kan uitzenden.
 
 ## Vereisten
 
-- Een **OneUptime Telemetry Ingestion Token** — maak er een aan via _Project Settings → Telemetrie & APM → Ingestiesleutels_ en kopieer de waarde van `x-oneuptime-token`.
+- Een **OneUptime Telemetry Ingestion Token** — maak er een aan via _Projectinstellingen → Telemetrie & APM → Ingestiesleutels_ en kopieer de waarde van `x-oneuptime-token`.
 - De OpenTelemetry SDK (of een auto-instrumentatielaag) voor de taal van je functie.
 
 ## Hoe OneUptime een functie identificeert
@@ -19,11 +19,11 @@ OneUptime indexeert elke functie op basis van de resource-attribuut `faas.name`:
 | ------------------------------------------------------ | ------- | ----------------------------------------------------------- |
 | `faas.name`                                            | **ja**  | Functie-identiteit (bijv. `checkout-handler`)               |
 | `faas.version`                                         | nee     | Wordt weergegeven in het overzicht                          |
-| `faas.instance`                                        | nee     | Per instance bijgehouden onder het tabblad **Instances**    |
+| `faas.instance`                                        | nee     | Per instance bijgehouden onder het tabblad **Instanties**   |
 | `cloud.platform`                                       | nee     | `aws_lambda`, `gcp_cloud_functions`, `azure_functions`, ... |
 | `cloud.provider` / `cloud.region` / `cloud.account.id` | nee     | Wordt weergegeven in het overzicht                          |
 
-> Een functie die ook `service.name` instelt, verschijnt nog steeds ook onder **Services**. De weergave **Serverless Functions** is de FaaS-gerichte lens, afgebakend door `faas.name`.
+> Een functie die ook `service.name` instelt, verschijnt nog steeds ook onder **Services**. De weergave **Serverless functies** is de FaaS-gerichte lens, afgebakend door `faas.name`.
 
 ## Stap 1 — Stel de omgevingsvariabelen voor de OTLP-exporter in
 
@@ -51,10 +51,10 @@ De laag stelt `faas.name` automatisch in op basis van de functienaam, en de reso
 
 ## Wat je krijgt
 
-Zodra de functie een span, log of metric uitzendt, verschijnt deze onder **Serverless Functions**. Het overzicht toont:
+Zodra de functie een span, log of metric uitzendt, verschijnt deze onder **Serverless functies**. Het overzicht toont:
 
-- **Invocations**, **error rate** en **p95 duration** — afgeleid van je traces, over een selecteerbaar tijdsbereik, met trendgrafieken.
-- **Instances** — een live telling van de waargenomen `faas.instance`-waarden.
-- Volledige tabbladen **Logs**, **Traces** en **Metrics** afgebakend tot deze functie.
+- **Aanroepen**, **error rate** en **p95-duur** — afgeleid van je traces, over een selecteerbaar tijdsbereik, met trendgrafieken.
+- **Instanties** — een live telling van de waargenomen `faas.instance`-waarden.
+- Volledige tabbladen **Logboeken**, **Traces** en **Metrieken** afgebakend tot deze functie.
 
-Je kunt ook automatisch labels en eigenaren toepassen via _Serverless → Settings → Label Rules / Owner Rules_.
+Je kunt ook automatisch labels en eigenaren toepassen via _Serverless → Instellingen → Labelregels / Eigenaarsregels_.

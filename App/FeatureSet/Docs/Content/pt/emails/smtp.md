@@ -19,17 +19,17 @@ O OAuth 2.0 fornece uma maneira mais segura de autenticar com servidores de emai
 
 Ao configurar o SMTP com autenticação OAuth no OneUptime, você precisará:
 
-| Campo                   | Descrição                                                                                |
-| ----------------------- | ---------------------------------------------------------------------------------------- |
-| **Hostname**            | Endereço do servidor SMTP                                                                |
-| **Port**                | Porta SMTP (tipicamente 587 para STARTTLS ou 465 para TLS implícito)                     |
-| **Username**            | O endereço de email para enviar                                                          |
-| **Authentication Type** | Selecione "OAuth"                                                                        |
-| **OAuth Provider Type** | Selecione "Client Credentials" para Microsoft 365, ou "JWT Bearer" para Google Workspace |
-| **Client ID**           | ID da Aplicação/Cliente do seu provedor OAuth (para Google: email da conta de serviço)   |
-| **Client Secret**       | Segredo do cliente do seu provedor OAuth (para Google: chave privada)                    |
-| **Token URL**           | URL do endpoint de token OAuth                                                           |
-| **Scope**               | Escopo(s) OAuth necessário(s) para acesso SMTP                                           |
+| Campo                      | Descrição                                                                                |
+| -------------------------- | ---------------------------------------------------------------------------------------- |
+| **Nome do host**           | Endereço do servidor SMTP                                                                |
+| **Porta**                  | Porta SMTP (tipicamente 587 para STARTTLS ou 465 para TLS implícito)                     |
+| **Nome de usuário**        | O endereço de email para enviar                                                          |
+| **Tipo de autenticação**   | Selecione "OAuth"                                                                        |
+| **Tipo de provedor OAuth** | Selecione "Client Credentials" para Microsoft 365, ou "JWT Bearer" para Google Workspace |
+| **Client ID**              | ID da Aplicação/Cliente do seu provedor OAuth (para Google: email da conta de serviço)   |
+| **Client Secret**          | Segredo do cliente do seu provedor OAuth (para Google: chave privada)                    |
+| **Token URL**              | URL do endpoint de token OAuth                                                           |
+| **Escopo**                 | Escopo(s) OAuth necessário(s) para acesso SMTP                                           |
 
 ---
 
@@ -230,7 +230,7 @@ No OneUptime, crie ou edite uma configuração SMTP com estas configurações:
 
 ### Geral
 
-- **Teste sua configuração**: Use o botão "Send Test Email" no OneUptime para verificar sua configuração
+- **Teste sua configuração**: Use o botão "Enviar e-mail de teste" no OneUptime para verificar sua configuração
 - **Verifique os logs**: Revise os logs do OneUptime para mensagens de erro detalhadas
 - **Cache de token**: O OneUptime armazena em cache tokens OAuth e os atualiza automaticamente antes do vencimento
 

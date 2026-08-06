@@ -4,29 +4,29 @@ Elke keer dat een workflow draait, slaat OneUptime een record op van wat er is g
 
 ## Waar je ze vindt
 
-| Pagina                      | Wat je ziet                                                                    |
-| --------------------------- | ------------------------------------------------------------------------------ |
-| **Workflows → Runs & Logs** | Elke run van elke workflow in het project. Filter op workflow, status en tijd. |
-| **Workflow → Logs-tabblad** | Alleen de runs van deze ene workflow.                                          |
-| **Eén run**                 | Eén uitvoering, met de output van elk blok.                                    |
+| Pagina                           | Wat je ziet                                                                    |
+| -------------------------------- | ------------------------------------------------------------------------------ |
+| **Workflows → Runs & logboeken** | Elke run van elke workflow in het project. Filter op workflow, status en tijd. |
+| **Workflow → Logboeken-tabblad** | Alleen de runs van deze ene workflow.                                          |
+| **Eén run**                      | Eén uitvoering, met de output van elk blok.                                    |
 
 ## Run-statussen
 
 | Status        | Wat het betekent                                                                                                                                |
 | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Scheduled** | De trigger is afgegaan en de run staat op het punt te starten. Duurt meestal maar een fractie van een seconde.                                  |
-| **Running**   | De workflow is bezig. Langdurige blokken houden een run in deze staat.                                                                          |
-| **Success**   | Elk blok dat draaide is zonder fouten afgerond. (Bewust de **error**-tak nemen telt nog steeds als success — de workflow zelf is niet gefaald.) |
-| **Error**     | Een blok is gefaald en er was geen **error**-pad verbonden om dat af te handelen. De run is daar gestopt.                                       |
+| **Gepland**   | De trigger is afgegaan en de run staat op het punt te starten. Duurt meestal maar een fractie van een seconde.                                  |
+| **Actief**    | De workflow is bezig. Langdurige blokken houden een run in deze staat.                                                                          |
+| **Succes**    | Elk blok dat draaide is zonder fouten afgerond. (Bewust de **error**-tak nemen telt nog steeds als success — de workflow zelf is niet gefaald.) |
+| **Fout**      | Een blok is gefaald en er was geen **error**-pad verbonden om dat af te handelen. De run is daar gestopt.                                       |
 | **Timeout**   | De run duurde langer dan toegestaan. Zie [Configuratie en veiligheid](/docs/workflows/configuration).                                           |
 
 ## Een run lezen
 
 Klik op een run om de details te openen. Je ziet:
 
-- **Header** — de trigger, start- en eindtijd, totale duur en status.
+- **Koptekst** — de trigger, start- en eindtijd, totale duur en status.
 - **Bloklijst** — elk blok dat is gedraaid, in volgorde. Elk laat zien welke waarden het kreeg, zijn output en welk pad het nam.
-- **Errors** — als een blok is gefaald, het foutbericht en (indien beschikbaar) meer details.
+- **Fouten** — als een blok is gefaald, het foutbericht en (indien beschikbaar) meer details.
 
 De waarden die je ziet zijn precies wat het blok zag — nadat alle variabelen zijn ingevuld. Dit is de allernuttigste debug-view: als een Slack-bericht de letterlijke tekst `{{Incident.title}}` toont in plaats van de echte titel, dan weet je dat de variabele niet is opgelost.
 
@@ -39,14 +39,14 @@ De waarden die je ziet zijn precies wat het blok zag — nadat alle variabelen z
 3. Voor een webhook-trigger: controleer dat het andere systeem naar de juiste URL stuurt. De meeste tools loggen wanneer ze een webhook versturen — kijk daar.
 4. Voor een schedule-trigger: controleer dat de cron-expressie overeenkomt met de tijd die je verwacht.
 
-Als de trigger is afgegaan maar er geen run verschijnt, controleer dan je run-quotum onder **Project Settings → Billing**.
+Als de trigger is afgegaan maar er geen run verschijnt, controleer dan je run-quotum onder **Projectinstellingen → Facturering**.
 
 ### "Een later blok heeft nooit gedraaid."
 
 Een blok dat niet draait is meestal een bedradingsprobleem. Open het canvas en controleer:
 
 - Is de output van het eerdere blok verbonden met de input van dit blok?
-- Heeft het eerdere blok een andere output genomen dan je verwachtte (bijvoorbeeld **error** in plaats van **success**, of **No** in plaats van **Yes**)? Het run-detail laat zien welk pad is genomen.
+- Heeft het eerdere blok een andere output genomen dan je verwachtte (bijvoorbeeld **error** in plaats van **success**, of **Nee** in plaats van **Ja**)? Het run-detail laat zien welk pad is genomen.
 
 ### "Een variabele kwam leeg door."
 

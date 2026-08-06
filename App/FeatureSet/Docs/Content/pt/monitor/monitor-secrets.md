@@ -10,7 +10,7 @@ Para adicionar um segredo, vá para Painel do OneUptime -> Monitores -> Configur
 
 Você pode selecionar quais monitores têm acesso ao segredo. Neste caso, adicionamos o segredo `ApiKey` e selecionamos monitores para ter acesso a ele.
 
-**Observe**: Os segredos são criptografados e armazenados com segurança. O valor nunca é exibido novamente depois de salvo — nem na tabela, nem no formulário de edição, nem pela API. Se você perder o valor, precisará obtê-lo na origem e defini-lo de novo. Para rotacionar um segredo, use o botão **Update Secret Value** na linha dele; não é preciso excluir e recriar.
+**Observe**: Os segredos são criptografados e armazenados com segurança. O valor nunca é exibido novamente depois de salvo — nem na tabela, nem no formulário de edição, nem pela API. Se você perder o valor, precisará obtê-lo na origem e defini-lo de novo. Para rotacionar um segredo, use o botão **Atualizar Valor do Segredo** na linha dele; não é preciso excluir e recriar.
 
 ### Usando um segredo
 

@@ -25,7 +25,7 @@ Zabbix trigger fires  ──►  Webhook media type  ──►  OneUptime Workfl
 
 이 작업을 먼저 하세요. 여기서 생성되는 webhook URL이 필요합니다.
 
-1. **Workflows → Create Workflow** 를 열고 이름을 `Zabbix → Incidents` 로 지정한 후 **Builder** 탭을 엽니다.
+1. **워크플로 → 워크플로 생성** 을 열고 이름을 `Zabbix → Incidents` 로 지정한 후 **빌더** 탭을 엽니다.
 2. **Webhook** 트리거를 캔버스에 끌어다 놓습니다. 클릭하고 **고유 URL을 복사합니다**. 이 URL을 안전하게 보관하세요 — 이 URL을 가진 사람은 누구나 워크플로를 시작할 수 있습니다. 블록 이름을 `Zabbix` 로 바꾸면 변수를 읽기 쉬워집니다.
 3. **Conditions** 블록을 캔버스에 끌어다 놓고 트리거 출력에 연결합니다. 다음과 같이 설정합니다:
    - **Left value**: `{{Zabbix.Request Body.status}}`
@@ -35,7 +35,7 @@ Zabbix trigger fires  ──►  Webhook media type  ──►  OneUptime Workfl
    - **Title**: `Zabbix: {{Zabbix.Request Body.name}}`
    - **Description**: `Host: {{Zabbix.Request Body.host}}\nSeverity: {{Zabbix.Request Body.severity}}\nZabbix event: {{Zabbix.Request Body.event_id}}`
    - **Severity**: 원하는 OneUptime 인시던트 심각도를 선택합니다(나중에 Zabbix 심각도를 매핑하는 추가 Conditions 분기로 세분화할 수 있습니다).
-5. 저장합니다. **Enabled** 는 _끔_ 상태로 유지하세요 — 테스트 후에 켜겠습니다.
+5. 저장합니다. **활성화됨** 은 _끔_ 상태로 유지하세요 — 테스트 후에 켜겠습니다.
 
 > **팁:** 설명(또는 인시던트 라벨)에 Zabbix `event_id` 를 넣어두면 나중에 복구 시 자동 해결을 원할 때 이 인시던트를 다시 찾을 수 있습니다. [자동 해결 (선택 사항)](#자동-해결-선택-사항)을 참조하세요.
 
@@ -114,10 +114,10 @@ Zabbix는 _사용자에게_ 알림을 보냅니다. 통합을 쉽게 찾고 비�
 
 ## 3단계 — 테스트
 
-1. OneUptime 워크플로로 돌아가 **Enabled** 를 켭니다.
+1. OneUptime 워크플로로 돌아가 **활성화됨** 을 켭니다.
 2. Zabbix에서 테스트 문제를 발생시킵니다 — 예를 들어 일시적으로 트리거 임계값을 낮추거나, 문제 상태로 전환되는 테스트 항목을 사용합니다.
-3. 워크플로의 **Logs** 탭을 엽니다. Zabbix 페이로드가 포함된 실행, Conditions 블록이 **Yes** 경로를 취한 것, 인시던트가 생성된 것을 확인할 수 있습니다.
-4. OneUptime의 **Incidents** 를 확인합니다 — Zabbix 문제가 이제 인시던트로 나타납니다.
+3. 워크플로의 **로그** 탭을 엽니다. Zabbix 페이로드가 포함된 실행, Conditions 블록이 **Yes** 경로를 취한 것, 인시던트가 생성된 것을 확인할 수 있습니다.
+4. OneUptime의 **인시던트** 를 확인합니다 — Zabbix 문제가 이제 인시던트로 나타납니다.
 
 아무것도 도착하지 않으면 [문제 해결](#문제-해결)을 참조하세요.
 
@@ -140,7 +140,7 @@ Zabbix 심각도(`Not classified`, `Information`, `Warning`, `Average`, `High`, 
 
 **워크플로가 전혀 실행되지 않습니다.**
 
-- 워크플로의 **Enabled** 스위치가 켜져 있는지 확인합니다.
+- 워크플로의 **활성화됨** 스위치가 켜져 있는지 확인합니다.
 - Zabbix 서버에서 URL에 도달할 수 있는지 확인합니다: `curl -i -X POST <workflow-url> -d '{}' -H 'Content-Type: application/json'`. 빠른 응답 확인을 받아야 합니다.
 - Zabbix에서 **Reports → Action log** 를 확인해 전달 오류가 있는지 확인합니다.
 
@@ -151,7 +151,7 @@ Zabbix 심각도(`Not classified`, `Information`, `Warning`, `Average`, `High`, 
 
 **인시던트가 생성되었지만 필드가 비어 있습니다.**
 
-- 워크플로의 **Logs** 탭을 열고 트리거 출력을 검사합니다. **Request Body** 아래의 필드 이름이 참조한 것(`name`, `host`, `severity`, `status`, `event_id`)과 일치하는지 확인합니다.
+- 워크플로의 **로그** 탭을 열고 트리거 출력을 검사합니다. **Request Body** 아래의 필드 이름이 참조한 것(`name`, `host`, `severity`, `status`, `event_id`)과 일치하는지 확인합니다.
 - 누락된 필드는 오류 대신 빈 문자열로 처리됩니다 — [변수 → 주의사항](/docs/workflows/variables#gotchas)을 참조하시기 바랍니다.
 
 **모든 것이 두 번 발생합니다.**

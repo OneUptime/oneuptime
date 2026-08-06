@@ -14,9 +14,9 @@ Spor-monitorer søker etter og teller spans som samsvarer med spesifikke filtre.
 
 ## Opprette en spor-monitor
 
-1. Gå til **Monitors** i OneUptime-dashbordet
-2. Klikk **Create Monitor**
-3. Velg **Traces** som monitortype
+1. Gå til **Overvåkere** i OneUptime-dashbordet
+2. Klikk **Opprett monitor**
+3. Velg **Spor** som monitortype
 4. Velg telemetritjenestene som skal overvåkes
 5. Konfigurer span-filtre og kriterier etter behov
 
@@ -64,16 +64,16 @@ Velg én eller flere tjenester det skal overvåkes spor fra. Tjenester må sende
 
 - **Span Statuses**: ERROR
 - **Tidsvindu**: 60 sekunder
-- **Sjekk på**: Span Count
+- **Check On**: Span Count
 - **Filtertype**: Greater Than
 - **Verdi**: 50
 
 #### Varsle ved feil i et spesifikt endepunkt
 
-- **Span Name**: `POST /api/checkout`
+- **Span-navn**: `POST /api/checkout`
 - **Span Statuses**: ERROR
 - **Tidsvindu**: 120 sekunder
-- **Sjekk på**: Span Count
+- **Check On**: Span Count
 - **Filtertype**: Greater Than
 - **Verdi**: 0
 

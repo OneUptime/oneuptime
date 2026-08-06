@@ -14,7 +14,7 @@ DNS-monitorer forespørger DNS-servere efter specifikke posttyper og evaluerer r
 
 ## Oprettelse af en DNS Monitor
 
-1. Gå til **Monitorer** i OneUptime-dashboardet
+1. Gå til **Overvågninger** i OneUptime-dashboardet
 2. Klik på **Opret monitor**
 3. Vælg **DNS** som monitortype
 4. Indtast domænenavnet og posttypen der skal forespørges

@@ -10,14 +10,14 @@
 - [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver)를 통한 **systemd 유닛 상태** (호스트 **Systemd Units** 탭을 구동) — **v0.142.0**부터 업스트림 `otelcol-contrib` 빌드에 번들로 포함되며, **v0.143.0**부터 실제로 쓸 만합니다 (아래의 "Linux Services (systemd 유닛)" 참조)
 - 테일링된 `log stream` 출력을 래핑하는 [`logstransformprocessor`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/logstransformprocessor)를 통한 **Apple Unified Log** (macOS)
 - [`windowseventlogreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowseventlogreceiver)를 통한 **Windows Event Logs**
-- [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver)를 통한 **Windows 서비스 상태** (호스트 **Services** 탭을 구동) — **v0.155.0**부터 업스트림 `otelcol-contrib` 빌드에 번들로 포함됩니다 (아래의 "Windows Services (메트릭)" 참조)
+- [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver)를 통한 **Windows 서비스 상태** (호스트 **서비스** 탭을 구동) — **v0.155.0**부터 업스트림 `otelcol-contrib` 빌드에 번들로 포함됩니다 (아래의 "Windows Services (메트릭)" 참조)
 
 > **OneUptime Infrastructure Agent는 어떤가요?** 그 에이전트는 기본 메트릭과 _Server / VM Monitor_ 기능(상태, 프로세스, 알림)에 중점을 둔 별도의 경량 Go 데몬입니다. 여기에서 설명하는 OpenTelemetry Collector는 독립적이며, 로그(파일 로그, journald, Windows Event Logs)나 표준 OTLP로 수집되는 더 풍부한 호스트 메트릭을 원할 때 적합한 도구입니다. 둘 다 서로 간섭하지 않고 동일한 호스트에서 실행할 수 있습니다.
 
 ## 사전 요구 사항
 
-- **OneUptime Telemetry Ingestion Token** — *Project Settings → 텔레메트리 및 APM → 수집 키*에서 생성하고 `x-oneuptime-token` 값을 복사합니다.
-- **OpenTelemetry Collector Contrib** 배포판(`otelcol-contrib`). 기본 `otelcol` 빌드에는 `windowseventlogreceiver`, `journaldreceiver` 또는 `hostmetrics` 추가 기능과 같은 receiver가 **포함되어 있지 않습니다** — 반드시 `contrib` 배포판을 사용하세요. Windows **Services** 탭을 구동하는 alpha `windowsservicereceiver`는 **v0.155.0**부터, Linux **Systemd Units** 탭을 구동하는 alpha `systemdreceiver`는 **v0.143.0**부터 `otelcol-contrib`에 번들로 포함되어 있으므로, 최신 릴리스를 설치하세요. 아래의 "Windows Services (메트릭)"와 "Linux Services (systemd 유닛)"를 참조하세요.
+- **OneUptime Telemetry Ingestion Token** — *프로젝트 설정 → 텔레메트리 및 APM → 수집 키*에서 생성하고 `x-oneuptime-token` 값을 복사합니다.
+- **OpenTelemetry Collector Contrib** 배포판(`otelcol-contrib`). 기본 `otelcol` 빌드에는 `windowseventlogreceiver`, `journaldreceiver` 또는 `hostmetrics` 추가 기능과 같은 receiver가 **포함되어 있지 않습니다** — 반드시 `contrib` 배포판을 사용하세요. Windows **서비스** 탭을 구동하는 alpha `windowsservicereceiver`는 **v0.155.0**부터, Linux **Systemd Units** 탭을 구동하는 alpha `systemdreceiver`는 **v0.143.0**부터 `otelcol-contrib`에 번들로 포함되어 있으므로, 최신 릴리스를 설치하세요. 아래의 "Windows Services (메트릭)"와 "Linux Services (systemd 유닛)"를 참조하세요.
 - Collector를 서비스로 설치하고 (해당되는 경우) 권한이 필요한 로그 소스를 읽으려면 호스트에 대한 Root / Administrator 권한이 필요합니다.
 
 ## 1단계 — OpenTelemetry Collector 설치
@@ -69,7 +69,7 @@ sudo mkdir -p /etc/otelcol-contrib
 
 ### Windows
 
-Windows에서는 업스트림 **`otelcol-contrib`** 릴리스를 다운로드하세요 — 이것은 (**v0.155.0**부터) 호스트 **Services** 탭을 구동하는 `windows_service` receiver를 번들로 포함합니다. **권한이 상승된** PowerShell 프롬프트에서:
+Windows에서는 업스트림 **`otelcol-contrib`** 릴리스를 다운로드하세요 — 이것은 (**v0.155.0**부터) 호스트 **서비스** 탭을 구동하는 `windows_service` receiver를 번들로 포함합니다. **권한이 상승된** PowerShell 프롬프트에서:
 
 ```powershell
 $VERSION = "0.156.0"                          # use v0.155.0 or later for the Services tab
@@ -83,7 +83,7 @@ tar -xf $tar -C $dest                          # tar.exe ships with Windows 10 1
 
 이것은 `otelcol-contrib.exe`를 `C:\Program Files\otelcol-contrib`에 압축 해제합니다. 2단계에서 같은 폴더에 `config.yaml`을 생성하고 3단계에서 Windows 서비스를 등록하게 됩니다.
 
-> 네이티브 설치 프로그램을 선호하시나요? OpenTelemetry는 동일한 [릴리스 페이지](https://github.com/open-telemetry/opentelemetry-collector-releases/releases)에서 서명된 **`.msi`**(`otelcol-contrib_<version>_windows_x64.msi`)도 게시하며, 이는 Collector를 Windows 서비스로 자동 등록해 줍니다. 이를 사용하는 경우, 2단계의 `config.yaml`을 가리키도록 하고, **Services** 탭이 Service Control Manager를 읽을 수 있도록 서비스가 `LocalSystem`으로 실행되는지 확인하세요.
+> 네이티브 설치 프로그램을 선호하시나요? OpenTelemetry는 동일한 [릴리스 페이지](https://github.com/open-telemetry/opentelemetry-collector-releases/releases)에서 서명된 **`.msi`**(`otelcol-contrib_<version>_windows_x64.msi`)도 게시하며, 이는 Collector를 Windows 서비스로 자동 등록해 줍니다. 이를 사용하는 경우, 2단계의 `config.yaml`을 가리키도록 하고, **서비스** 탭이 Service Control Manager를 읽을 수 있도록 서비스가 `LocalSystem`으로 실행되는지 확인하세요.
 
 ## 2단계 — Collector 구성
 
@@ -168,7 +168,7 @@ receivers:
 
 `start_at: end`는 Collector가 시작되는 순간부터의 새 줄을 의미합니다. 첫 실행 시 백필하려면 `beginning`으로 변경하세요. Collector는 파일 오프셋을 추적하므로 재시작 후에도 올바르게 재개합니다.
 
-**호스트 로그 스택 트레이스를 Exceptions로 변환하기.** OneUptime은 error 및 fatal 로그 줄에서 스택 트레이스를 자동으로 스캔하여 이 호스트에 귀속된 **Exceptions**(Issues) 보기로 통합합니다 — 추가 구성이 필요하지 않습니다. 이것이 잘 그룹화되려면 다중 줄 스택 트레이스(Java, Python, .NET, Ruby)가 줄당 한 레코드가 아니라 **하나의** 로그 레코드로 도착해야 합니다. 트레이스와 그 프레임이 함께 유지되도록 `filelog` receiver에서 다중 줄 재결합을 활성화하세요:
+**호스트 로그 스택 트레이스를 예외로 변환하기.** OneUptime은 error 및 fatal 로그 줄에서 스택 트레이스를 자동으로 스캔하여 이 호스트에 귀속된 **예외**(Issues) 보기로 통합합니다 — 추가 구성이 필요하지 않습니다. 이것이 잘 그룹화되려면 다중 줄 스택 트레이스(Java, Python, .NET, Ruby)가 줄당 한 레코드가 아니라 **하나의** 로그 레코드로 도착해야 합니다. 트레이스와 그 프레임이 함께 유지되도록 `filelog` receiver에서 다중 줄 재결합을 활성화하세요:
 
 ```yaml
 receivers:
@@ -204,7 +204,7 @@ Collector 바이너리는 `journalctl`을 실행할 수 있어야 합니다(Debi
 
 ### Linux Services (systemd 유닛, 메트릭)
 
-호스트 **Systemd Units** 탭은 [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver)(구성 유형 `systemd`)에 의해 구동되며, 이는 systemd 유닛의 활성 상태를 메트릭으로 보고합니다 — Windows의 **Services** 탭에 해당하는 Linux 버전입니다.
+호스트 **Systemd Units** 탭은 [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver)(구성 유형 `systemd`)에 의해 구동되며, 이는 systemd 유닛의 활성 상태를 메트릭으로 보고합니다 — Windows의 **서비스** 탭에 해당하는 Linux 버전입니다.
 
 **이 receiver는 업스트림 `otelcol-contrib` 바이너리에 v0.142.0에서 처음 포함되었지만, 실제로 운영할 만한 첫 릴리스는 v0.143.0입니다** — 그보다 이전 릴리스에서는 `systemd`를 추가하면 `'receivers' unknown type: "systemd"` 오류와 함께 시작에 실패하며, v0.142.0만 유독 CPU 메트릭 이름이 `systemd.unit.cpu.time`이고 모든 유닛에 대해 cgroup 통계를 찾기 때문에 `.service`가 아닌 유닛마다 스크레이프 오류를 기록합니다. v0.143.0에서 이 메트릭은 `systemd.service.cpu.time`으로 이름이 바뀌었고 해당 조회는 서비스로만 제한되었습니다. 최신 릴리스를 설치한 다음(1단계), `config.yaml`에서 이를 활성화하고 메트릭 파이프라인에 추가하세요:
 
@@ -307,7 +307,7 @@ windowseventlog/iis:
 
 ### Windows Services (메트릭)
 
-호스트 **Services** 탭은 [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver)(구성 유형 `windows_service`)에 의해 구동되며, 이는 Windows 서비스의 실행 상태와 시작 유형을 메트릭으로 보고합니다.
+호스트 **서비스** 탭은 [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver)(구성 유형 `windows_service`)에 의해 구동되며, 이는 Windows 서비스의 실행 상태와 시작 유형을 메트릭으로 보고합니다.
 
 **이 receiver는 v0.155.0부터 업스트림 `otelcol-contrib` 바이너리에 포함되어 있습니다** — 이전 릴리스에서는 `windows_service`를 추가하면 `'receivers' unknown type: "windows_service"` 오류와 함께 시작에 실패합니다. 최신 릴리스를 설치한 다음(1단계), `config.yaml`에서 이를 활성화하고 메트릭 파이프라인에 추가하세요:
 
@@ -330,7 +330,7 @@ service:
 
 receiver는 서비스당 하나의 `windows.service.status` 게이지를 내보냅니다 — 정수는 Win32 서비스 상태(`4` = 실행 중, `1` = 중지됨)입니다 — `name` 및 `startup_mode` 속성과 함께. 모든 서비스를 읽을 수 있도록 Collector를 `LocalSystem`(`sc.exe` 기본값)으로 실행하세요. 열 수 없는 서비스는 건너뜁니다. 이 receiver는 **alpha** 단계이며 **Windows 전용**입니다. 알려진 문제로는 Collector를 충돌시킬 수 있는 스크레이프 오류와 한 서비스의 `access denied`가 다른 서비스에 영향을 미치는 문제가 있습니다 — 이러한 문제가 발생하면 `include_services`로 제한하세요.
 
-> **`include_services`가 효과가 없나요?** 이 필터는 집합을 *좁히기*만 할 수 있으므로, 서비스를 나열했는데도 여전히 모든 서비스가 보인다면, 편집한 구성이 실행 중인 Collector에 거의 확실히 반영되지 않은 것입니다. 편집 후 서비스를 재시작하세요(3단계); `include_services`가 `collection_interval`과 동일한 들여쓰기 수준에서 값이 채워진 목록인지 확인하세요(주석 처리되거나 비어 있지 않도록); 그리고 변경 전에 보고된 서비스가 롤링 윈도우에서 만료되도록 **Services** 탭에 몇 분의 시간을 주세요. 이름은 정확한 대소문자 구분 Windows 서비스 _키_ 이름(예: `Spooler`, `W3SVC`)이며, `Get-Service | Select-Object Name`으로 나열할 수 있습니다.
+> **`include_services`가 효과가 없나요?** 이 필터는 집합을 *좁히기*만 할 수 있으므로, 서비스를 나열했는데도 여전히 모든 서비스가 보인다면, 편집한 구성이 실행 중인 Collector에 거의 확실히 반영되지 않은 것입니다. 편집 후 서비스를 재시작하세요(3단계); `include_services`가 `collection_interval`과 동일한 들여쓰기 수준에서 값이 채워진 목록인지 확인하세요(주석 처리되거나 비어 있지 않도록); 그리고 변경 전에 보고된 서비스가 롤링 윈도우에서 만료되도록 **서비스** 탭에 몇 분의 시간을 주세요. 이름은 정확한 대소문자 구분 Windows 서비스 _키_ 이름(예: `Spooler`, `W3SVC`)이며, `Get-Service | Select-Object Name`으로 나열할 수 있습니다.
 
 ### 완전한 예제 — Linux 호스트
 
@@ -602,10 +602,10 @@ sc.exe query "otelcol-contrib"
 1. 호스트에서 일부 신호를 생성하세요:
    - **Linux / macOS:** `logger "hello from oneuptime"` (syslog / journald에 기록).
    - **Windows:** 권한이 상승된 프롬프트에서 `eventcreate /T INFORMATION /ID 999 /L APPLICATION /SO OneUptimeTest /D "hello from oneuptime"`.
-2. OneUptime 대시보드에서 **Products → 서비스**를 열고 구성한 `service.name`을 선택하세요.
-3. **Metrics**를 여세요 — 호스트 메트릭(CPU, 메모리, 파일 시스템 등)이 1분 이내에 나타나야 합니다.
-4. **Logs**를 여세요 — 파일 로그 / journald 항목 / Windows Event Logs가 스트리밍되어 들어와야 합니다. 유용한 검색 가능 속성으로는 `log.file.name`, `systemd.unit`, `winlog.channel`, `winlog.event_id`, `winlog.provider.name`이 있습니다.
-5. `systemd`(Linux) 또는 `windows_service`(Windows) receiver를 활성화했다면, **Infrastructure → Hosts**를 열고 호스트를 선택한 다음 **Systemd Units** / **Services** 탭을 확인하세요 — 스크레이프된 모든 유닛이 현재 상태와 함께 나열되어야 합니다.
+2. OneUptime 대시보드에서 **제품 → 서비스**를 열고 구성한 `service.name`을 선택하세요.
+3. **메트릭**을 여세요 — 호스트 메트릭(CPU, 메모리, 파일 시스템 등)이 1분 이내에 나타나야 합니다.
+4. **로그**를 여세요 — 파일 로그 / journald 항목 / Windows Event Logs가 스트리밍되어 들어와야 합니다. 유용한 검색 가능 속성으로는 `log.file.name`, `systemd.unit`, `winlog.channel`, `winlog.event_id`, `winlog.provider.name`이 있습니다.
+5. `systemd`(Linux) 또는 `windows_service`(Windows) receiver를 활성화했다면, **인프라 → 호스트**를 열고 호스트를 선택한 다음 **Systemd Units** / **서비스** 탭을 확인하세요 — 스크레이프된 모든 유닛이 현재 상태와 함께 나열되어야 합니다.
 
 ## 수집되는 데이터 양 줄이기
 
@@ -879,7 +879,7 @@ OpenTelemetry Collector는 표준 `HTTPS_PROXY` / `HTTP_PROXY` / `NO_PROXY` 환�
   - **Linux / macOS:** `journalctl -u otelcol-contrib -f` (Linux) 또는 `tail -f /var/log/otelcol-contrib.err.log` (macOS).
   - **Windows:** *Event Viewer → Windows Logs → Application*에서 소스 `otelcol-contrib`를 찾으세요.
   - 호스트가 `https://oneuptime.com/otlp`(또는 자체 호스팅 엔드포인트)에 도달할 수 있는지 확인하세요: 동일한 머신에서 `curl -v https://oneuptime.com/otlp`.
-- **exporter에서 HTTP 401** — ingestion token이 유효하지 않거나 취소되었습니다. *Project Settings → 텔레메트리 및 APM → 수집 키*에서 새로 생성하세요.
+- **exporter에서 HTTP 401** — ingestion token이 유효하지 않거나 취소되었습니다. *프로젝트 설정 → 텔레메트리 및 APM → 수집 키*에서 새로 생성하세요.
 - **`Security` Windows Event Log가 access denied를 반환함** — 서비스가 충분한 권한으로 실행되고 있지 않습니다. `LocalSystem`(`sc.exe create`의 기본값)으로 다시 생성하거나 서비스 계정에 _Manage auditing and security log_ 사용자 권한을 부여하세요.
 - **`journald` receiver가 시작에 실패함** — `journalctl`이 Collector의 `PATH`에 있고 `/var/log/journal`이 존재하는지 확인하세요(존재하지 않으면 `sudo systemd-tmpfiles --create --prefix /var/log/journal`을 실행).
 - **`systemd` receiver가 D-Bus 연결 오류를 보고함** — Collector가 시스템 버스에 도달할 수 없습니다. `/run/dbus/system_bus_socket`이 존재하는지, 그리고 Collector의 사용자가 그것을 열 수 있는지 확인하세요. 해당 사용자로 `systemctl list-units`를 실행해 보는 것이 가장 빠른 확인 방법입니다. root는 필요하지 않습니다. 컨테이너 내부에서 실행되는 Collector는 호스트의 소켓을 바인드 마운트하지 않는 한 버스를 전혀 볼 수 없으므로, 이 receiver에는 네이티브 설치를 권장합니다.

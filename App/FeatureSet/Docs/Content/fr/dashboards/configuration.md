@@ -6,7 +6,7 @@ Cette page couvre les paramètres et les contrôles d'accès qu'il convient de c
 
 Les **propriétaires** d'un tableau de bord sont les utilisateurs et équipes auxquels vous avez accordé un accès explicite (en plus de leur rôle dans le projet).
 
-Sous **Dashboard → Owners** :
+Sous **Tableau de bord → Propriétaires** :
 
 - Ajoutez un **propriétaire utilisateur** pour donner à une personne un accès supplémentaire à ce tableau de bord.
 - Ajoutez un **propriétaire équipe** pour donner le même accès à tous les membres d'une équipe.
@@ -15,7 +15,7 @@ Utilisez les propriétaires lorsque le rôle de lecture général du projet est 
 
 ## Étiquettes
 
-Les étiquettes sont des balises pour organiser les tableaux de bord. Appliquez-les sous **Dashboard → Overview**.
+Les étiquettes sont des balises pour organiser les tableaux de bord. Appliquez-les sous **Tableau de bord → Vue d'ensemble**.
 
 Schémas courants :
 
@@ -23,7 +23,7 @@ Schémas courants :
 - **Par environnement** : `env:prod`, `env:staging`.
 - **Par objectif** : `purpose:oncall`, `purpose:exec`, `purpose:investigation`.
 
-La liste **Dashboards** vous permet de filtrer par étiquette, ce qui est le moyen le plus rapide de retrouver un tableau de bord dans un projet qui en a accumulé beaucoup.
+La liste **Tableaux de bord** vous permet de filtrer par étiquette, ce qui est le moyen le plus rapide de retrouver un tableau de bord dans un projet qui en a accumulé beaucoup.
 
 ## Permissions
 
@@ -38,15 +38,15 @@ Les tableaux de bord fonctionnent avec le contrôle d'accès basé sur les rôle
 
 Il existe des permissions équivalentes pour les propriétaires de tableaux de bord et les domaines personnalisés, vous pouvez donc accorder « gérer les propriétaires » sans accorder « modifier le tableau de bord ».
 
-Attribuez ces permissions aux rôles de projet sous **Products → Équipes → Autorisations**.
+Attribuez ces permissions aux rôles de projet sous **Produits → Équipes → Autorisations**.
 
 ## Accès aux tableaux de bord publics
 
 Lorsque vous rendez un tableau de bord public (voir [Partage et tableaux de bord publics](/docs/dashboards/sharing)), trois paramètres contrôlent qui peut le voir :
 
 1. Interrupteur **Public Dashboard** — s'il est désactivé, l'URL publique renvoie une 404.
-2. **Master Password** — s'il est défini, les visiteurs saisissent un mot de passe avant que le tableau de bord n'apparaisse.
-3. **IP Whitelist** (plan Scale) — si elle est définie, les requêtes provenant d'autres IP sont rejetées.
+2. **Mot de passe maître** — s'il est défini, les visiteurs saisissent un mot de passe avant que le tableau de bord n'apparaisse.
+3. **Liste blanche d'IP** (plan Scale) — si elle est définie, les requêtes provenant d'autres IP sont rejetées.
 
 Vous pouvez combiner ces options. La combinaison la plus verrouillée est « Public activé, mot de passe défini, liste d'IP autorisées active » — utile pour des portails partenaires où vous voulez les trois couches.
 
@@ -62,7 +62,7 @@ C'est la bonne approche quand vous voulez dériver un modèle (comme « notre ta
 
 ## Supprimer un tableau de bord
 
-Sous **Dashboard → Delete**. Cette action est irréversible — la mise en page du tableau de bord et tous les domaines personnalisés qui y sont rattachés sont supprimés. Vos données de télémétrie ne sont pas affectées.
+Sous **Tableau de bord → Supprimer**. Cette action est irréversible — la mise en page du tableau de bord et tous les domaines personnalisés qui y sont rattachés sont supprimés. Vos données de télémétrie ne sont pas affectées.
 
 Si le tableau de bord est public sur un domaine personnalisé, l'URL cesse de répondre dès que vous le supprimez. Déplacez d'abord le domaine vers un autre tableau de bord si vous souhaitez que l'URL continue de fonctionner.
 

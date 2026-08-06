@@ -14,7 +14,7 @@ OneUptime はチームがすでに使っているツール — Zabbix、Jira、P
 
 1. **[Webhook トリガー](/docs/workflows/triggers#webhook)** で始まるワークフローを作ります。OneUptime が固有の URL を発行します。
 2. 別のツール側で、何かが起きたときにその URL に POST するよう Webhook / 通知アクションを設定します。
-3. ワークフロー内で受信ペイロードを読み取り、**Create Incident** (または Create Alert) コンポーネントで記録します。
+3. ワークフロー内で受信ペイロードを読み取り、**インシデントを作成** (または Create Alert) コンポーネントで記録します。
 
 ```text
 Zabbix / Prometheus / Grafana / Datadog  ──►  OneUptime Webhook trigger  ──►  Create Incident
@@ -24,7 +24,7 @@ Zabbix / Prometheus / Grafana / Datadog  ──►  OneUptime Webhook trigger  �
 
 OneUptime で起きたことを*別のツールに反映*させる場合 — Jira チケットを開く、PagerDuty で誰かに連絡する、Slack に投稿する — に使います。
 
-1. **[OneUptime イベントトリガー](/docs/workflows/triggers#oneuptime-event-triggers)** で始まるワークフローを作ります。たとえば **Incident → On Create**。
+1. **[OneUptime イベントトリガー](/docs/workflows/triggers#oneuptime-event-triggers)** で始まるワークフローを作ります。たとえば **インシデント → On Create**。
 2. **[API コンポーネント](/docs/workflows/components#api)** を追加して、インシデントの詳細を持つ別のツールの REST API を呼び出します。
 3. API キーはすべて**シークレット [グローバル変数](/docs/workflows/variables#global-variables)** として保存し、ワークフローやそのログに絶対に表示されないようにします。
 
@@ -57,7 +57,7 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 
 API キーやトークンをブロックに直接貼り付けないでください。代わりに:
 
-1. **Workflows → Global Variables** を開きます。
+1. **ワークフロー → グローバル変数** を開きます。
 2. 変数を作成します。たとえば `JIRA_AUTH` という名前にして **Is Secret** をオンにします。
 3. どこからでも `{{variable.JIRA_AUTH}}` で参照できます。
 

@@ -2,13 +2,13 @@
 
 ## Oversigt
 
-OneUptime genkender automatisk en **Serverless-funktion** i det øjeblik, den modtager OpenTelemetry-data, der er mærket med ressourceattributten `faas.name`. Der er ikke noget at oprette manuelt — instrumentér din funktion med OpenTelemetry SDK'et for din runtime, peg dens OTLP-eksportør mod OneUptime, og funktionen dukker op under **Serverless Functions** med dens traces, logs og metrics.
+OneUptime genkender automatisk en **Serverless-funktion** i det øjeblik, den modtager OpenTelemetry-data, der er mærket med ressourceattributten `faas.name`. Der er ikke noget at oprette manuelt — instrumentér din funktion med OpenTelemetry SDK'et for din runtime, peg dens OTLP-eksportør mod OneUptime, og funktionen dukker op under **Serverløse funktioner** med dens traces, logs og metrics.
 
 Dette virker for AWS Lambda, Google Cloud Functions, Azure Functions, Cloudflare Workers eller enhver FaaS-runtime, der kan udsende OpenTelemetry.
 
 ## Forudsætninger
 
-- En **OneUptime Telemetry Ingestion Token** — opret en fra _Project Settings → Telemetri og APM → Indtagelsesnøgler_ og kopiér værdien `x-oneuptime-token`.
+- En **OneUptime Telemetry Ingestion Token** — opret en fra _Projektindstillinger → Telemetri og APM → Indtagelsesnøgler_ og kopiér værdien `x-oneuptime-token`.
 - OpenTelemetry SDK'et (eller et auto-instrumenteringslag) for din funktions sprog.
 
 ## Hvordan OneUptime identificerer en funktion
@@ -19,11 +19,11 @@ OneUptime indekserer hver funktion på ressourceattributten `faas.name`:
 | ------------------------------------------------------ | -------- | ----------------------------------------------------------- |
 | `faas.name`                                            | **ja**   | Funktionsidentitet (f.eks. `checkout-handler`)              |
 | `faas.version`                                         | nej      | Vises på oversigten                                         |
-| `faas.instance`                                        | nej      | Spores per instans under fanen **Instances**                |
+| `faas.instance`                                        | nej      | Spores per instans under fanen **Instanser**                |
 | `cloud.platform`                                       | nej      | `aws_lambda`, `gcp_cloud_functions`, `azure_functions`, ... |
 | `cloud.provider` / `cloud.region` / `cloud.account.id` | nej      | Vises på oversigten                                         |
 
-> En funktion, der også sætter `service.name`, vises stadig under **Services**. Visningen **Serverless Functions** er det FaaS-fokuserede perspektiv, afgrænset af `faas.name`.
+> En funktion, der også sætter `service.name`, vises stadig under **Tjenester**. Visningen **Serverløse funktioner** er det FaaS-fokuserede perspektiv, afgrænset af `faas.name`.
 
 ## Trin 1 — Indstil miljøvariablerne for OTLP-eksportøren
 
@@ -51,10 +51,10 @@ Laget sætter `faas.name` ud fra funktionsnavnet automatisk, og ressourcedetekto
 
 ## Hvad du får
 
-Når funktionen udsender et span, en log eller en metric, dukker den op under **Serverless Functions**. Oversigten viser:
+Når funktionen udsender et span, en log eller en metric, dukker den op under **Serverløse funktioner**. Oversigten viser:
 
-- **Invocations**, **error rate** og **p95 duration** — udledt fra dine traces, over et valgbart tidsinterval, med trend-diagrammer.
-- **Instances** — en realtidsoptælling af de `faas.instance`-værdier, der er observeret.
-- Fulde faner for **Logs**, **Traces** og **Metrics** afgrænset til denne funktion.
+- **Kald**, **error rate** og **p95-varighed** — udledt fra dine traces, over et valgbart tidsinterval, med trend-diagrammer.
+- **Instanser** — en realtidsoptælling af de `faas.instance`-værdier, der er observeret.
+- Fulde faner for **Protokoller**, **Spor** og **Metrikker** afgrænset til denne funktion.
 
-Du kan også automatisk anvende labels og ejere via _Serverless → Settings → Label Rules / Owner Rules_.
+Du kan også automatisk anvende labels og ejere via _Serverløs → Indstillinger → Etiketregler / Ejerregler_.

@@ -14,7 +14,7 @@ Usalo quando un sistema esterno deve _creare o aggiornare qualcosa in OneUptime_
 
 1. Crea un workflow che inizia con un **[trigger Webhook](/docs/workflows/triggers#webhook)**. OneUptime ti fornisce un URL univoco.
 2. Nell'altro strumento, configura un'azione webhook/notifica che fa una POST su quell'URL quando accade qualcosa.
-3. Nel workflow, leggi il payload in arrivo e usa un componente **Create Incident** (o Create Alert) per registrarlo.
+3. Nel workflow, leggi il payload in arrivo e usa un componente **Crea incidente** (o Create Alert) per registrarlo.
 
 ```text
 Zabbix / Prometheus / Grafana / Datadog  ──►  OneUptime Webhook trigger  ──►  Create Incident
@@ -24,7 +24,7 @@ Zabbix / Prometheus / Grafana / Datadog  ──►  OneUptime Webhook trigger  �
 
 Usalo quando _qualcosa in OneUptime deve comparire in un altro strumento_ — aprire un ticket Jira, avvisare qualcuno in PagerDuty, pubblicare su Slack.
 
-1. Crea un workflow che inizia con un **[trigger eventi OneUptime](/docs/workflows/triggers#oneuptime-event-triggers)** — ad esempio **Incident → On Create**.
+1. Crea un workflow che inizia con un **[trigger eventi OneUptime](/docs/workflows/triggers#oneuptime-event-triggers)** — ad esempio **Incidente → On Create**.
 2. Aggiungi un **[componente API](/docs/workflows/components#api)** che chiama la REST API dell'altro strumento con i dettagli dell'incidente.
 3. Salva le chiavi API come **[variabili globali](/docs/workflows/variables#global-variables)** segrete in modo che non appaiano mai nel workflow o nei suoi log.
 
@@ -57,7 +57,7 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 
 Non incollare mai una chiave API o un token direttamente in un blocco. Invece:
 
-1. Vai su **Workflows → Global Variables**.
+1. Vai su **Flussi di lavoro → Variabili globali**.
 2. Crea una variabile — ad esempio `JIRA_AUTH` — e attiva **Is Secret**.
 3. Riferisciti ad essa ovunque con `{{variable.JIRA_AUTH}}`.
 

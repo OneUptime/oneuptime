@@ -98,7 +98,7 @@ Una volta acquisite, queste metriche appaiono nel Metric Explorer con nomi come 
 
 ### Considerazioni
 
-- Puoi usare `console.log` per registrare i dati nella console. Questi saranno disponibili nella sezione log del monitor (Probe > Visualizza Log).
+- Puoi usare `console.log` per registrare i dati nella console. Questi saranno disponibili nella sezione log del monitor (Sonde > Visualizza log).
 - Puoi restituire i dati dallo script usando l'istruzione `return`.
 - Questo è uno script JavaScript, quindi puoi usare tutte le funzionalità JavaScript nello script.
 - Il timeout per lo script è di 2 minuti. Se lo script impiega più di 2 minuti, verrà terminato.

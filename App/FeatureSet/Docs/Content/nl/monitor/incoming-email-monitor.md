@@ -12,8 +12,8 @@ Dit is een krachtige manier om e-mailgebaseerde meldingssystemen te integreren m
 
 ## Een Inkomend e-mail-monitor aanmaken
 
-1. Navigeer naar **Monitors** in uw OneUptime-dashboard
-2. Klik op **Monitor aanmaken**
+1. Navigeer naar **Monitoren** in uw OneUptime-dashboard
+2. Klik op **Monitor maken**
 3. Selecteer **Inkomend e-mail** als het monitortype
 4. Configureer de monitorinstellingen:
    - **Naam:** Een beschrijvende naam voor uw monitor

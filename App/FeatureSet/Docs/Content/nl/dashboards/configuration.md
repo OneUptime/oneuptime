@@ -6,7 +6,7 @@ Deze pagina behandelt de instellingen en toegangscontroles die de moeite waard z
 
 De **eigenaren** van een dashboard zijn gebruikers en teams aan wie je expliciete toegang hebt gegeven (bovenop hun projectbrede rol).
 
-Onder **Dashboard → Owners**:
+Onder **Dashboard → Eigenaren**:
 
 - Voeg een **gebruiker als eigenaar** toe om één persoon extra toegang tot dit dashboard te geven.
 - Voeg een **team als eigenaar** toe om hetzelfde aan elk lid van een team te geven.
@@ -15,7 +15,7 @@ Gebruik eigenaren wanneer de projectbrede leesrol te breed is — bijvoorbeeld e
 
 ## Labels
 
-Labels zijn tags om dashboards te organiseren. Pas ze toe onder **Dashboard → Overview**.
+Labels zijn tags om dashboards te organiseren. Pas ze toe onder **Dashboard → Overzicht**.
 
 Veelvoorkomende patronen:
 
@@ -38,15 +38,15 @@ Dashboards werken met de role-based access control van je project. De relevante 
 
 Er zijn bijbehorende machtigingen voor dashboard-eigenaren en custom domains, zodat je "eigenaren beheren" kunt toekennen zonder "het dashboard bewerken" toe te kennen.
 
-Wijs deze toe op projectrollen onder **Products → Teams → Machtigingen**.
+Wijs deze toe op projectrollen onder **Producten → Teams → Machtigingen**.
 
 ## Toegang voor publieke dashboards
 
 Wanneer je een dashboard publiek maakt (zie [Delen en publieke dashboards](/docs/dashboards/sharing)), bepalen drie instellingen wie het kan zien:
 
 1. **Public Dashboard**-schakelaar — als deze uit is, geeft de publieke URL een 404 terug.
-2. **Master Password** — indien ingesteld voeren bezoekers een wachtwoord in voordat het dashboard verschijnt.
-3. **IP Whitelist** (Scale-plan) — indien ingesteld worden verzoeken vanaf andere IP's afgewezen.
+2. **Hoofdwachtwoord** — indien ingesteld voeren bezoekers een wachtwoord in voordat het dashboard verschijnt.
+3. **IP-whitelist** (Scale-plan) — indien ingesteld worden verzoeken vanaf andere IP's afgewezen.
 
 Je kunt al deze combineren. De meest dichtgetimmerde combinatie is "Public aan, wachtwoord ingesteld, IP-allowlist actief" — handig voor partner-portalen waar je alle drie de lagen wilt.
 
@@ -62,7 +62,7 @@ Dit is de juiste zet wanneer je een template (zoals "ons oncall-dashboard") wilt
 
 ## Een dashboard verwijderen
 
-Onder **Dashboard → Delete**. Dit kan niet ongedaan worden gemaakt — de layout van het dashboard en eventuele eraan gekoppelde custom domains worden verwijderd. Je telemetry-data wordt niet beïnvloed.
+Onder **Dashboard → Verwijderen**. Dit kan niet ongedaan worden gemaakt — de layout van het dashboard en eventuele eraan gekoppelde custom domains worden verwijderd. Je telemetry-data wordt niet beïnvloed.
 
 Als het dashboard publiek staat op een custom domain, stopt de URL met werken zodra je hem verwijdert. Verplaats het domein eerst naar een ander dashboard als je de URL wilt blijven gebruiken.
 

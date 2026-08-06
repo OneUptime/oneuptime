@@ -49,11 +49,11 @@ probe केवल इतना report करता है:
 एक नया monitor बनाएँ और monitor type के रूप में **SQL Query** चुनें, फिर connection विवरण भरें:
 
 - **Database Type** — PostgreSQL, MySQL, या Microsoft SQL Server। एक type चुनने से default port सेट हो जाता है।
-- **Host** — probe से पहुँचने योग्य database host (उदाहरण के लिए `db.internal`)।
-- **Port** — database port।
+- **होस्ट** — probe से पहुँचने योग्य database host (उदाहरण के लिए `db.internal`)।
+- **पोर्ट** — database port।
 - **Database Name** — जिस database के विरुद्ध query चलानी है।
-- **Username** — एक read-only, न्यूनतम-विशेषाधिकार database user।
-- **Password** — database password। हम दृढ़ता से अनुशंसा करते हैं कि plain text में password टाइप करने के बजाय `{{monitorSecrets.name}}` के साथ एक [Monitor Secret](/docs/monitor/monitor-secrets) का reference दें (नीचे देखें)।
+- **उपयोगकर्ता नाम** — एक read-only, न्यूनतम-विशेषाधिकार database user।
+- **पासवर्ड** — database password। हम दृढ़ता से अनुशंसा करते हैं कि plain text में password टाइप करने के बजाय `{{monitorSecrets.name}}` के साथ एक [Monitor Secret](/docs/monitor/monitor-secrets) का reference दें (नीचे देखें)।
 - **SQL Query** — चलाने के लिए read-only query (देखें query लिखना)।
 - **Use SSL/TLS** — TLS पर connect करने के लिए सक्षम करें। सक्षम होने पर, यदि database एक self-signed certificate का उपयोग करता है तो आप **Verify server certificate** को बंद कर सकते हैं।
 

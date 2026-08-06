@@ -40,8 +40,8 @@ Abre **Paneles** en la navegación lateral.
 | ------------------------- | ------------------------------------------------------------------------------------------ |
 | **Paneles**               | Tu lista de paneles. Crea uno nuevo, busca o filtra por etiqueta.                          |
 | **Panel → Vista**         | El lienzo. Alterna entre **Edición** y **Vista** en el encabezado.                         |
-| **Panel → Resumen**       | Descripción, propietarios y etiquetas.                                                     |
-| **Panel → Configuración** | Compartir públicamente, contraseña, lista de IPs permitidas, dominio personalizado, marca. |
+| **Panel → Vista General** | Descripción, propietarios y etiquetas.                                                     |
+| **Panel → Ajustes**       | Compartir públicamente, contraseña, lista de IPs permitidas, dominio personalizado, marca. |
 | **Panel → Propietarios**  | Usuarios y equipos con acceso explícito.                                                   |
 | **Panel → Eliminar**      | Eliminar el panel.                                                                         |
 
@@ -62,14 +62,14 @@ Objetivo: una página de guardia para el servicio de checkout con latencia, tasa
 2. Añade una variable `service`. Establece el valor predeterminado en `checkout`.
 3. Añade un widget de **Gráfico** con latencia P95, filtrado por la variable `service`.
 4. Junto a él, añade un widget de **Valor** para la tasa de errores, con advertencia al 1% y crítico al 5%.
-5. Debajo, añade un widget de **Lista de Incidentes** para incidentes etiquetados como `checkout`.
-6. Debajo de eso, un widget de **Flujo de Logs** mostrando logs del mismo servicio.
+5. Debajo, añade un widget de **Lista de incidentes** para incidentes etiquetados como `checkout`.
+6. Debajo de eso, un widget de **Flujo de registros** mostrando logs del mismo servicio.
 7. Guarda. Cambia el menú desplegable a `payments`: el mismo panel ahora muestra el servicio de pagos.
 
 ## Cómo encajan los paneles con el resto de OneUptime
 
 - Los **monitores y la telemetría** son las fuentes de datos. Cada métrica, log y traza que recopilas se puede consultar en un widget.
-- Los **incidentes y alertas** aparecen en los widgets **Lista de Incidentes** y **Lista de Alertas**. Los paneles son solo de lectura para estos; créalos y actualízalos en otra parte.
+- Los **incidentes y alertas** aparecen en los widgets **Lista de incidentes** y **Lista de alertas**. Los paneles son solo de lectura para estos; créalos y actualízalos en otra parte.
 - Las **páginas de estado** son comunicación de cara al cliente ("¿está el sistema activo?"). Los paneles son para ver con detalle cómo se comporta el sistema. Ambos trabajan juntos, no se reemplazan.
 - Los **workflows** son cómo OneUptime actúa. Los paneles son cómo lees lo que ocurre.
 

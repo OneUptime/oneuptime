@@ -16,7 +16,7 @@ Logs-Monitore suchen und zählen Logs, die bestimmten Filtern in einem Zeitfenst
 
 1. Gehen Sie zu **Monitore** im OneUptime-Dashboard
 2. Klicken Sie auf **Monitor erstellen**
-3. Wählen Sie **Logs** als Monitortyp
+3. Wählen Sie **Protokolle** als Monitortyp
 4. Wählen Sie die zu überwachenden Telemetrie-Dienste aus
 5. Konfigurieren Sie bei Bedarf Log-Filter und Kriterien
 

@@ -12,15 +12,15 @@ Incoming Email Monitor आपको unique monitor-specific email addresses प�
 
 ## Incoming Email Monitor बनाना
 
-1. अपने OneUptime Dashboard में **Monitors** पर जाएं
-2. **Create Monitor** पर क्लिक करें
+1. अपने OneUptime Dashboard में **मॉनिटर** पर जाएं
+2. **मॉनिटर बनाएं** पर क्लिक करें
 3. monitor type के रूप में **Incoming Email** चुनें
 4. monitor settings configure करें:
-   - **Name:** आपके monitor के लिए एक वर्णनात्मक नाम
-   - **Description:** यह monitor किस लिए है
+   - **नाम:** आपके monitor के लिए एक वर्णनात्मक नाम
+   - **विवरण:** यह monitor किस लिए है
 5. अपनी **Alert Creation Criteria** सेट अप करें (alerts बनाने वाली conditions)
 6. अपनी **Alert Resolution Criteria** सेट अप करें (alerts resolve करने वाली conditions)
-7. **Create** पर क्लिक करें
+7. **बनाएँ** पर क्लिक करें
 
 Creation के बाद, आपको monitor details page पर इस monitor के लिए unique email address दिखाई देगा।
 
@@ -42,8 +42,8 @@ monitor-{secret-key}@{inbound-domain}
 
 | Field              | विवरण                                                  |
 | ------------------ | ------------------------------------------------------ |
-| **Email Subject**  | incoming email की subject line                         |
-| **Email From**     | sender का email address                                |
+| **ईमेल विषय**      | incoming email की subject line                         |
+| **ईमेल प्रेषक**    | sender का email address                                |
 | **Email Body**     | email body का plain text content                       |
 | **Email To**       | recipient email address                                |
 | **Email Received** | emails receive होने के time के लिए Time-based criteria |
@@ -56,7 +56,7 @@ monitor-{secret-key}@{inbound-domain}
 | ---------------- | --------------------------------------------- | -------------------------------- |
 | **Contains**     | Field निर्दिष्ट text contain करती है          | Subject contains "CRITICAL"      |
 | **Not Contains** | Field निर्दिष्ट text contain नहीं करती        | Subject not contains "TEST"      |
-| **Equals**       | Field निर्दिष्ट text से exactly match करती है | From equals "alerts@service.com" |
+| **बराबर**        | Field निर्दिष्ट text से exactly match करती है | From equals "alerts@service.com" |
 | **Not Equals**   | Field निर्दिष्ट text से match नहीं करती       | Subject not equals "OK"          |
 | **Starts With**  | Field निर्दिष्ट text से शुरू होती है          | Subject starts with "[ALERT]"    |
 | **Ends With**    | Field निर्दिष्ट text पर खत्म होती है          | Subject ends with "- Production" |
@@ -90,12 +90,12 @@ monitor-{secret-key}@{inbound-domain}
 
 **Alert Creation Criteria:**
 
-- Email From **Equals** "monitoring@legacy-system.com"
+- Email From **बराबर** "monitoring@legacy-system.com"
 - AND Email Subject **Contains** "Failed"
 
 **Alert Resolution Criteria:**
 
-- Email From **Equals** "monitoring@legacy-system.com"
+- Email From **बराबर** "monitoring@legacy-system.com"
 - AND Email Subject **Contains** "Success"
 
 ### उदाहरण 3: Heartbeat Monitor (No Email = Alert)

@@ -8,10 +8,10 @@ Esistono due tipi e condividono la stessa sintassi.
 
 Valori a livello di progetto che salvi una sola volta e riutilizzi ovunque. Pensa a chiavi API, URL, nomi di canali — qualsiasi cosa che non vuoi copiare in dieci workflow diversi.
 
-Le trovi sotto **Workflows → Global Variables**. Ognuna ha:
+Le trovi sotto **Flussi di lavoro → Variabili globali**. Ognuna ha:
 
-- **Name** — come la richiamerai. Usa `UPPER_SNAKE_CASE` per farla risaltare nei tuoi blocchi.
-- **Value** — il valore vero e proprio. Funzionano anche i valori su piu righe.
+- **Nome** — come la richiamerai. Usa `UPPER_SNAKE_CASE` per farla risaltare nei tuoi blocchi.
+- **Valore** — il valore vero e proprio. Funzionano anche i valori su piu righe.
 - **Is Secret** — se attivo, il valore viene nascosto nell'interfaccia dopo il salvataggio e nei log delle esecuzioni.
 
 Usa una variabile globale in qualsiasi workflow con:
@@ -37,7 +37,7 @@ Fai riferimento all'output di un blocco precedente in questo modo:
 Esempi:
 
 - Dopo l'esecuzione di un blocco **API** chiamato `LookupUser`, puoi leggere il codice di stato come `{{LookupUser.response-status}}` e il body come `{{LookupUser.response-body}}`.
-- Dopo un trigger **Incident → On Create** chiamato `Incident`, puoi leggere `{{Incident.title}}`, `{{Incident.description}}` e qualsiasi altro campo dell'incidente.
+- Dopo un trigger **Incidente → On Create** chiamato `Incident`, puoi leggere `{{Incident.title}}`, `{{Incident.description}}` e qualsiasi altro campo dell'incidente.
 - Dopo un blocco **Custom Code** chiamato `Transform`, il valore restituito si trova in `{{Transform.value}}`.
 
 Le variabili locali esistono solo durante l'esecuzione corrente. Ogni nuova esecuzione inizia da zero.
@@ -63,8 +63,8 @@ Il blocco **Custom Code** legge le variabili in modo diverso — le variabili gl
 Arriva un webhook con un body come `{ "service": "checkout", "status": "failed" }`. Per trasformarlo in un incidente OneUptime:
 
 1. Trigger **Webhook** chiamato `CIWebhook`.
-2. Blocco **Conditions**: left `{{CIWebhook.Request Body.status}}`, operatore `==`, right `failed`.
-3. Dal ramo **Yes**, un blocco **Create Incident** con:
+2. Blocco **Condizioni**: left `{{CIWebhook.Request Body.status}}`, operatore `==`, right `failed`.
+3. Dal ramo **Sì**, un blocco **Crea incidente** con:
    - Titolo: `CI build failed: {{CIWebhook.Request Body.service}}`
    - Descrizione: `See {{CIWebhook.Request Body.url}} for the logs.`
 
@@ -90,7 +90,7 @@ Se `LookupOrder` fallisce, scatta il suo output **error** invece di **success**.
 
 - **Rinominare un blocco rompe i riferimenti.** Se rinomini un blocco, aggiorna ogni luogo in cui viene utilizzato. Nel log dell'esecuzione, un riferimento non risolto appare come testo letterale `{{BlockName.field}}`.
 - **I nomi delle variabili sono case-sensitive.** `{{variable.MyKey}}` e `{{variable.mykey}}` sono diverse.
-- **I campi mancanti diventano vuoti.** Fare riferimento a un campo che non esiste restituisce una stringa vuota, non un errore. Comodo — ma puo nascondere bug. Usa un blocco **Conditions** per verificare i campi importanti prima di continuare.
+- **I campi mancanti diventano vuoti.** Fare riferimento a un campo che non esiste restituisce una stringa vuota, non un errore. Comodo — ma puo nascondere bug. Usa un blocco **Condizioni** per verificare i campi importanti prima di continuare.
 
 ## Letture successive
 

@@ -15,8 +15,8 @@ Kubernetes 监控器使用来自您集群的指标，为您的基础设施提供
 
 ## 创建 Kubernetes 监控器
 
-1. 在 OneUptime 仪表板中前往 **Monitors**
-2. 点击 **Create Monitor**
+1. 在 OneUptime 仪表板中前往 **监视器**
+2. 点击 **创建监视器**
 3. 选择 **Kubernetes** 作为监控器类型
 4. 选择要监控的集群和资源范围
 5. 配置资源过滤器和指标查询

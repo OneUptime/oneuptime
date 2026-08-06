@@ -4,7 +4,7 @@ Una variabile trasforma una singola dashboard in un template. Aggiungi una varia
 
 ## Tipi di variabile
 
-Aggiungi le variabili sotto **Dashboard → Settings → Variables**. Ogni variabile ha un nome (usato come `{{name}}` nei tuoi widget), un'etichetta opzionale e un tipo.
+Aggiungi le variabili sotto **Dashboard → Impostazioni → Variabili**. Ogni variabile ha un nome (usato come `{{name}}` nei tuoi widget), un'etichetta opzionale e un tipo.
 
 ### Custom List
 

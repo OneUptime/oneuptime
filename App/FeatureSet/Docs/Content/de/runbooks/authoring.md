@@ -1,6 +1,6 @@
 # Ein Runbook verfassen
 
-Erstellen Sie ein Runbook unter **Runbooks → Runbook erstellen**, öffnen Sie es dann und gehen Sie zum **Steps**-Tab.
+Erstellen Sie ein Runbook unter **Runbooks → Runbook erstellen**, öffnen Sie es dann und gehen Sie zum **Schritte**-Tab.
 
 ## Aufbau eines Schritts
 
@@ -60,11 +60,11 @@ Konfigurieren Sie an einem Bash-Schritt:
 - **Ausführungs-Timeout** — wie lange der Agent das Skript laufen lässt, bevor er es mit `SIGKILL` beendet. Standardmäßig 30 Sekunden; erhöhen Sie ihn für Schritte, die tatsächlich Minuten brauchen.
 - **Claim-Timeout** — wie lange der Worker darauf wartet, dass der Agent den Job aufnimmt. Standardmäßig 2 Minuten.
 
-Wenn der ausgewählte Agent offline ist, wenn das Runbook diesen Schritt erreicht, wartet der Schritt bis zum **Claim-Timeout** (Standard 2 Minuten) und schlägt dann mit `TimedOut` fehl. Fügen Sie unter **Settings → Runners** einen Agent hinzu, bevor Sie sich auf einen Bash-Schritt verlassen.
+Wenn der ausgewählte Agent offline ist, wenn das Runbook diesen Schritt erreicht, wartet der Schritt bis zum **Claim-Timeout** (Standard 2 Minuten) und schlägt dann mit `TimedOut` fehl. Fügen Sie unter **Einstellungen → Runbook-Agents** einen Agent hinzu, bevor Sie sich auf einen Bash-Schritt verlassen.
 
 ### AI
 
-Bitten Sie eine KI, mitten im Lauf etwas zu analysieren, zusammenzufassen oder zu entscheiden. Der Prompt wird an den LLM-Provider Ihres Projekts gesendet (**Settings → AI → LLM Providers**), und die Antwort des Modells wird zur Schrittausgabe auf der Ausführungs-Timeline. AI-Schritte laufen auf dem OneUptime-Worker; kein Agent nötig.
+Bitten Sie eine KI, mitten im Lauf etwas zu analysieren, zusammenzufassen oder zu entscheiden. Der Prompt wird an den LLM-Provider Ihres Projekts gesendet (**Einstellungen → KI → LLM-Anbieter**), und die Antwort des Modells wird zur Schrittausgabe auf der Ausführungs-Timeline. AI-Schritte laufen auf dem OneUptime-Worker; kein Agent nötig.
 
 Konfigurieren Sie an einem AI-Schritt:
 

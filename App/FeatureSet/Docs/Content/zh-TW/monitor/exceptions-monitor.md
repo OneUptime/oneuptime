@@ -14,9 +14,9 @@
 
 ## 建立例外監控
 
-1. 在 OneUptime Dashboard 中前往 **Monitors**
-2. 點選 **Create Monitor**
-3. 選擇 **Exceptions** 作為監控類型
+1. 在 OneUptime Dashboard 中前往 **監測**
+2. 點選 **建立監測器**
+3. 選擇 **例外** 作為監控類型
 4. 選擇要監控的遙測服務
 5. 視需要設定例外篩選條件與準則
 
@@ -57,26 +57,26 @@
 
 #### 在 60 秒內超過 10 個例外時發出警示
 
-- **Time Window**：60 秒
+- **時間範圍**：60 秒
 - **Check On**：Exception Count
-- **Filter Type**：Greater Than
-- **Value**：10
+- **篩選器類型**：Greater Than
+- **值**：10
 
 #### 針對任何 NullPointerException 發出警示
 
-- **Exception Types**：`NullPointerException`
-- **Time Window**：60 秒
+- **例外類型**：`NullPointerException`
+- **時間範圍**：60 秒
 - **Check On**：Exception Count
-- **Filter Type**：Greater Than
-- **Value**：0
+- **篩選器類型**：Greater Than
+- **值**：0
 
 #### 監控包含特定訊息的例外
 
-- **Message**：`out of memory`
-- **Time Window**：300 秒
+- **訊息**：`out of memory`
+- **時間範圍**：300 秒
 - **Check On**：Exception Count
-- **Filter Type**：Greater Than
-- **Value**：0
+- **篩選器類型**：Greater Than
+- **值**：0
 
 ## 設定需求
 

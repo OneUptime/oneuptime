@@ -15,8 +15,8 @@ Kubernetes-monitorer bruger metrikker fra din klynge til at give dyb indsigt i d
 
 ## Oprettelse af en Kubernetes-monitor
 
-1. Gå til **Monitors** i OneUptime Dashboard
-2. Klik på **Create Monitor**
+1. Gå til **Overvågninger** i OneUptime Dashboard
+2. Klik på **Opret monitor**
 3. Vælg **Kubernetes** som monitor-type
 4. Vælg klyngen og ressource-scope, der skal overvåges
 5. Konfigurér ressourcefiltre og metrik-forespørgsler
@@ -57,8 +57,8 @@ Indsnævr scope med valgfrie filtre:
 Konfigurér en eller flere metrik-forespørgsler, der skal evalueres. Hver forespørgsel specificerer:
 
 - **Metric name** — Den Kubernetes-metrik, der skal forespørges
-- **Aggregation** — Hvordan metrik-værdier skal aggregeres
-- **Filters** — Yderligere attribut-baseret filtrering
+- **Aggregering** — Hvordan metrik-værdier skal aggregeres
+- **Filtre** — Yderligere attribut-baseret filtrering
 
 Du kan også oprette **formler**, der kombinerer flere metrik-forespørgsler ved hjælp af matematiske udtryk.
 

@@ -21,12 +21,12 @@ OneUptime Incident → On Create  ──►  Telegram component  ──►  mess
 
 ## Étape 3 — Stocker les secrets
 
-1. Dans OneUptime, allez dans **Workflows → Global Variables → Create**.
+1. Dans OneUptime, allez dans **Flux de travail → Variables globales → Créer**.
 2. Créez `TELEGRAM_BOT_TOKEN` (secret) et `TELEGRAM_CHAT_ID`.
 
 ## Étape 4 — Créer le workflow
 
-1. Ouvrez **Workflows → Create Workflow**, nommez-le `Incidents → Telegram`, et ouvrez le **Builder**.
+1. Ouvrez **Flux de travail → Créer un flux de travail**, nommez-le `Incidents → Telegram`, et ouvrez le **Constructeur**.
 2. Ajoutez un déclencheur **Incident** sur **On Create**. Renommez-le `Incident`.
 3. Ajoutez un composant **Telegram** connecté au déclencheur :
    - **Bot token** : `{{variable.TELEGRAM_BOT_TOKEN}}`

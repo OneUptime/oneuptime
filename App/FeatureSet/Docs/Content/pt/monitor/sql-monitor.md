@@ -52,10 +52,10 @@ Crie um novo monitor e escolha **SQL Query** como o tipo de monitor, depois pree
 - **Host** — o host do banco de dados acessível a partir da probe (por exemplo `db.internal`).
 - **Porta** — a porta do banco de dados.
 - **Nome do Banco de Dados** — o banco de dados no qual a consulta será executada.
-- **Nome de Usuário** — um usuário de banco de dados somente leitura, com privilégio mínimo.
+- **Nome de usuário** — um usuário de banco de dados somente leitura, com privilégio mínimo.
 - **Senha** — a senha do banco de dados. Recomendamos fortemente referenciar um [Segredo de Monitor](/docs/monitor/monitor-secrets) com `{{monitorSecrets.name}}` em vez de digitar a senha em texto simples (veja abaixo).
 - **Consulta SQL** — a consulta somente leitura a ser executada (consulte Escrevendo a consulta).
-- **Usar SSL/TLS** — habilite para conectar via TLS. Quando habilitado, você pode desativar **Verificar certificado do servidor** se o banco de dados usar um certificado autoassinado.
+- **Usar SSL / TLS** — habilite para conectar via TLS. Quando habilitado, você pode desativar **Verificar certificado do servidor** se o banco de dados usar um certificado autoassinado.
 
 ### Opções avançadas
 

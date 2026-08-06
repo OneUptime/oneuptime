@@ -49,24 +49,24 @@ Como você está auto-hospedando o OneUptime, precisará configurar sua própria
 ## Passo 2: Configurar Call/SMS Config no OneUptime
 
 1. Faça login no seu Painel do OneUptime
-2. Vá para **Project Settings** > **Notificações** > **Configurações de notificação**
+2. Vá para **Configurações do projeto** > **Notificações** > **Configurações de notificação**
 3. Clique em **Create Custom Call/SMS Config**
 4. Preencha os seguintes campos:
-   - **Name**: Um nome amigável (ex.: "Configuração Twilio de Produção")
-   - **Description**: Descrição opcional
-   - **Twilio Account SID**: Seu Account SID do Twilio (começa com `AC`)
-   - **Twilio Auth Token**: Seu Auth Token do Twilio
-   - **Twilio Primary Phone Number**: Um número de telefone da sua conta Twilio para chamadas de saída
-5. Clique em **Save**
+   - **Nome**: Um nome amigável (ex.: "Configuração Twilio de Produção")
+   - **Descrição**: Descrição opcional
+   - **SID da Conta Twilio**: Seu Account SID do Twilio (começa com `AC`)
+   - **Token de Autenticação Twilio**: Seu Auth Token do Twilio
+   - **Número de Telefone Principal do Twilio**: Um número de telefone da sua conta Twilio para chamadas de saída
+5. Clique em **Salvar**
 
 ## Passo 3: Criar uma Política de Chamadas de Entrada
 
-1. Vá para **On-Call Duty** > **Incoming Call Policies**
+1. Vá para **Plantão** > **Políticas de chamadas recebidas**
 2. Clique em **Create Incoming Call Policy**
 3. Preencha os seguintes campos:
-   - **Name**: Um nome amigável (ex.: "Linha de Suporte")
-   - **Description**: Descrição opcional
-4. Clique em **Save**
+   - **Nome**: Um nome amigável (ex.: "Linha de Suporte")
+   - **Descrição**: Descrição opcional
+4. Clique em **Salvar**
 
 ## Passo 4: Vincular Configuração do Twilio à Política
 
@@ -83,7 +83,7 @@ Você tem duas opções para configurar um número de telefone:
 
 Se você já tem números de telefone na sua conta Twilio:
 
-1. No cartão **Phone Number**, clique em **Use Existing Number**
+1. No cartão **Número de telefone**, clique em **Use Existing Number**
 2. O OneUptime buscará todos os números de telefone da sua conta Twilio
 3. Selecione o número de telefone que deseja usar
 4. Clique em **Use This** para atribuí-lo à política
@@ -94,11 +94,11 @@ Se você já tem números de telefone na sua conta Twilio:
 
 Para comprar um novo número de telefone diretamente do OneUptime:
 
-1. No cartão **Phone Number**, clique em **Buy New Number**
-2. Selecione um **Country** no menu suspenso
+1. No cartão **Número de telefone**, clique em **Buy New Number**
+2. Selecione um **País** no menu suspenso
 3. Opcionalmente insira um **Area Code** (ex.: 415 para São Francisco)
 4. Opcionalmente insira os dígitos que o número deve **Contain** (ex.: 555)
-5. Clique em **Search** para encontrar números disponíveis
+5. Clique em **Pesquisar** para encontrar números disponíveis
 6. Selecione um número de telefone nos resultados
 7. Clique em **Purchase** para comprar o número
 
@@ -109,14 +109,14 @@ O número de telefone será comprado da sua conta Twilio e o webhook será **con
 As regras de escalonamento determinam como as chamadas são roteadas:
 
 1. Abra sua Política de Chamadas de Entrada
-2. Vá para a aba **Escalation Rules**
+2. Vá para a aba **Regras de escalonamento**
 3. Clique em **Add Escalation Rule**
 4. Configure a regra:
-   - **Order**: A ordem de prioridade (números menores são tentados primeiro)
-   - **Escalate After (seconds)**: Quanto tempo aguardar antes de escalonar
-   - **On-Call Schedule**: Selecione uma escala para rotear para quem está de plantão
-   - **Teams**: Selecione equipes específicas
-   - **Users**: Selecione usuários específicos
+   - **Ordem**: A ordem de prioridade (números menores são tentados primeiro)
+   - **Escalonar após (segundos)**: Quanto tempo aguardar antes de escalonar
+   - **Agendamento de Plantão**: Selecione uma escala para rotear para quem está de plantão
+   - **Equipes**: Selecione equipes específicas
+   - **Usuários**: Selecione usuários específicos
 5. Adicione regras de escalonamento adicionais conforme necessário
 
 ### Exemplo de Regra de Escalonamento
@@ -132,11 +132,11 @@ As regras de escalonamento determinam como as chamadas são roteadas:
 Personalize as mensagens que os chamadores ouvem:
 
 1. Abra sua Política de Chamadas de Entrada
-2. Vá para **Settings**
+2. Vá para **Configurações**
 3. Configure:
-   - **Greeting Message**: Reproduzida quando a chamada é atendida
-   - **No Answer Message**: Reproduzida quando todas as regras de escalonamento falham
-   - **No One Available Message**: Reproduzida quando ninguém está de plantão
+   - **Mensagem de Saudação**: Reproduzida quando a chamada é atendida
+   - **Mensagem de Sem Resposta**: Reproduzida quando todas as regras de escalonamento falham
+   - **Mensagem de Ninguém Disponível**: Reproduzida quando ninguém está de plantão
 
 ## Opções de Configuração
 
@@ -144,8 +144,8 @@ Personalize as mensagens que os chamadores ouvem:
 
 | Configuração                    | Descrição                                               | Padrão                                                                     |
 | ------------------------------- | ------------------------------------------------------- | -------------------------------------------------------------------------- |
-| Greeting Message                | Mensagem TTS reproduzida quando a chamada é atendida    | "Por favor, aguarde enquanto o conectamos ao engenheiro de plantão."       |
-| No Answer Message               | Mensagem quando todas as regras de escalonamento falham | "Ninguém está disponível. Por favor, tente novamente mais tarde."          |
+| Greeting Message                | Mensagem TTS reproduzida quando a chamada é atendida    | "Aguarde enquanto conectamos você ao engenheiro de plantão."               |
+| No Answer Message               | Mensagem quando todas as regras de escalonamento falham | "Ninguém está disponível. Tente novamente mais tarde."                     |
 | No One Available Message        | Mensagem quando ninguém está de plantão                 | "Lamentamos, mas nenhum engenheiro de plantão está disponível no momento." |
 | Repeat Policy If No One Answers | Reiniciar da primeira regra se todas falharem           | Desabilitado                                                               |
 | Repeat Policy Times             | Tentativas de repetição máximas                         | 1                                                                          |
@@ -164,9 +164,9 @@ Personalize as mensagens que os chamadores ouvem:
 
 Para visualizar o histórico de chamadas de entrada:
 
-1. Vá para **On-Call Duty** > **Incoming Call Policies**
+1. Vá para **Plantão** > **Políticas de chamadas recebidas**
 2. Clique na sua política
-3. Vá para a aba **Call Logs**
+3. Vá para a aba **Registros de chamadas**
 
 Os logs mostram:
 
@@ -180,7 +180,7 @@ Os logs mostram:
 
 Para que os usuários recebam chamadas de entrada, eles devem ter um número de telefone verificado:
 
-1. Os usuários vão para **User Settings** > **Notification Methods**
+1. Os usuários vão para **Configurações do usuário** > **Métodos de notificação**
 2. Adicionam um número de telefone em **Incoming Call Numbers**
 3. Verificam o número de telefone via código SMS
 
@@ -191,7 +191,7 @@ Apenas usuários com números de telefone verificados podem ser chamados atravé
 Se você não precisar mais de um número de telefone:
 
 1. Abra sua Política de Chamadas de Entrada
-2. No cartão **Phone Number**, clique em **Release Number**
+2. No cartão **Número de telefone**, clique em **Liberar número**
 3. Confirme a liberação
 
 > **Aviso**: Os números liberados são devolvidos ao Twilio e podem não estar disponíveis para recompra.

@@ -6,7 +6,7 @@ Esta página cobre as configurações e controles de acesso que vale conhecer as
 
 Os **donos** de um painel são usuários e equipes a quem você concedeu acesso explícito (além do papel deles em todo o projeto).
 
-Em **Painel → Donos**:
+Em **Painel → Proprietários**:
 
 - Adicione um **dono usuário** para dar a uma pessoa acesso extra a este painel.
 - Adicione um **dono equipe** para dar o mesmo acesso a cada membro de uma equipe.
@@ -15,7 +15,7 @@ Use donos quando o papel de leitura geral do projeto é amplo demais — por exe
 
 ## Etiquetas
 
-Etiquetas são tags para organizar painéis. Aplique-as em **Painel → Visão Geral**.
+Etiquetas são tags para organizar painéis. Aplique-as em **Painel → Visão geral**.
 
 Padrões comuns:
 
@@ -38,15 +38,15 @@ Painéis funcionam com o controle de acesso baseado em papéis do seu projeto. A
 
 Existem permissões correspondentes para donos de painel e domínios personalizados, então você pode conceder "gerenciar donos" sem conceder "editar o painel".
 
-Atribua-as aos papéis do projeto em **Products → Equipes → Permissões**.
+Atribua-as aos papéis do projeto em **Produtos → Equipes → Permissões**.
 
 ## Acesso para painéis públicos
 
 Quando você torna um painel público (veja [Compartilhamento e Painéis Públicos](/docs/dashboards/sharing)), três configurações controlam quem pode vê-lo:
 
 1. Interruptor **Painel Público** — se desligado, a URL pública retorna 404.
-2. **Senha Mestra** — se definida, os visitantes digitam uma senha antes do painel aparecer.
-3. **Lista de IPs Permitidos** (plano Scale) — se definida, requisições de outros IPs são rejeitadas.
+2. **Senha mestra** — se definida, os visitantes digitam uma senha antes do painel aparecer.
+3. **Lista de permissões de IP** (plano Scale) — se definida, requisições de outros IPs são rejeitadas.
 
 Você pode combinar quaisquer dessas. A combinação mais bloqueada é "Público ligado, senha definida, lista de IPs ativa" — útil para portais de parceiros onde você quer todas as três camadas.
 

@@ -10,7 +10,7 @@ Er is geen agent die je aan de apparaatzijde hoeft te installeren — alles wat 
 
 - Een apparaat, gateway of collector die OTLP/HTTP naar OneUptime kan sturen
 - Netwerkbereikbaarheid van het apparaat/de gateway naar je OneUptime-instantie
-- Een **OneUptime Telemetry Ingestion Token** — maak er een aan via _Project Settings → Telemetrie & APM → Ingestiesleutels_ en kopieer de `x-oneuptime-token`-waarde
+- Een **OneUptime Telemetry Ingestion Token** — maak er een aan via _Projectinstellingen → Telemetrie & APM → Ingestiesleutels_ en kopieer de `x-oneuptime-token`-waarde
 
 ## Hoe OneUptime IoT modelleert
 
@@ -212,7 +212,7 @@ OneUptime herkent de volgende `iot_*`-metricnamen. Elk datapunt moet het `device
 1. Bevestig dat je apparaat of gateway zonder fouten exporteert (controleer de SDK-/collector-logs op exportfouten en HTTP `401`/`403`-antwoorden).
 2. Open in het OneUptime-dashboard het gedeelte **IoT** — je vloot zou binnen ongeveer een minuut moeten verschijnen als `iot/<fleet>`.
 3. Open het tabblad **Devices** van de vloot — elke `device.id` die je hebt verstuurd, zou vermeld moeten staan met de meest recente accu, signaal, temperatuur, CPU, geheugen en up/down-status.
-4. Open **Metrics** onder de vloot om een van de bovenstaande `iot_*`-reeksen in een grafiek weer te geven.
+4. Open **Metrieken** onder de vloot om een van de bovenstaande `iot_*`-reeksen in een grafiek weer te geven.
 
 ## Probleemoplossing
 
@@ -230,7 +230,7 @@ OneUptime herkent de volgende `iot_*`-metricnamen. Elk datapunt moet het `device
 
 ### HTTP 401 / 403 van de exporter
 
-Het ingestietoken is ongeldig, ingetrokken of ontbreekt. Genereer een nieuw token via _Project Settings → Telemetrie & APM → Ingestiesleutels_ en werk de `x-oneuptime-token`-header bij.
+Het ingestietoken is ongeldig, ingetrokken of ontbreekt. Genereer een nieuw token via _Projectinstellingen → Telemetrie & APM → Ingestiesleutels_ en werk de `x-oneuptime-token`-header bij.
 
 ### Metrics worden niet in grafieken weergegeven
 

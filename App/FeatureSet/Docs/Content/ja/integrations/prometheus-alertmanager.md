@@ -16,17 +16,17 @@ Prometheus rule fires  ──►  Alertmanager webhook receiver  ──►  OneU
 
 ## ステップ 1 — OneUptime ワークフローを作成する
 
-1. **Workflows → Create Workflow** を開き、`Alertmanager → Incidents` という名前にして **Builder** を開きます。
+1. **ワークフロー → ワークフローを作成** を開き、`Alertmanager → Incidents` という名前にして **ビルダー** を開きます。
 2. **Webhook** トリガーを追加して **URL をコピー**します。ブロックを `Alertmanager` にリネームします。
-3. トリガーに接続した **Conditions** ブロックを追加します:
+3. トリガーに接続した **条件** ブロックを追加します:
    - **Left**: `{{Alertmanager.Request Body.status}}`
    - **Operator**: `==`
    - **Right**: `firing`
-4. **Yes** から **Create Incident** ブロックを追加します:
-   - **Title**: `{{Alertmanager.Request Body.commonAnnotations.summary}}`
-   - **Description**: `{{Alertmanager.Request Body.commonAnnotations.description}}\nAlert: {{Alertmanager.Request Body.commonLabels.alertname}}`
-   - **Severity**: 1 つ選びます (先に `{{Alertmanager.Request Body.commonLabels.severity}}` で分岐することもできます)。
-5. **Save** します (テストするまで無効のままにしておきます)。
+4. **はい** から **インシデントを作成** ブロックを追加します:
+   - **タイトル**: `{{Alertmanager.Request Body.commonAnnotations.summary}}`
+   - **説明**: `{{Alertmanager.Request Body.commonAnnotations.description}}\nAlert: {{Alertmanager.Request Body.commonLabels.alertname}}`
+   - **重大度**: 1 つ選びます (先に `{{Alertmanager.Request Body.commonLabels.severity}}` で分岐することもできます)。
+5. **保存** します (テストするまで無効のままにしておきます)。
 
 > **グループ化されたアラートについて。** Alertmanager はアラートをグループ化して `alerts` **配列**として送ります。上記の `commonLabels` と `commonAnnotations` はグループ全体で共通のフィールドです — 通知ごとに 1 つのインシデントを作るのに最適です。**アラートごとに 1 つのインシデント**を作りたい場合は、`Request Body.alerts` をループして各アラートのインシデントを作成する [Custom Code](/docs/workflows/components#custom-code) ブロックを追加します。グループ化はルートの `group_by` で調整できます。
 
@@ -60,16 +60,16 @@ Alertmanager をリロードします (`curl -X POST http://localhost:9093/-/rel
    amtool alert add test_alert severity=warning --annotation=summary="Test from Alertmanager" --alertmanager.url=http://localhost:9093
    ```
 
-3. ワークフローの **Logs** タブと **Incidents** リストを確認します。
+3. ワークフローの **ログ** タブと **インシデント** リストを確認します。
 
 ## 回復時に解決する (オプション)
 
-`send_resolved: true` を設定すると、アラートがクリアされたときにも Alertmanager が POST します。このとき `status: resolved` が届きます。2 つ目の **Conditions** ブランチ (`status == resolved`) を追加し、マッチするインシデントを見つけて (`commonLabels.alertname` でマッチング)、**Update Incident** で解決済み状態に変更します。
+`send_resolved: true` を設定すると、アラートがクリアされたときにも Alertmanager が POST します。このとき `status: resolved` が届きます。2 つ目の **条件** ブランチ (`status == resolved`) を追加し、マッチするインシデントを見つけて (`commonLabels.alertname` でマッチング)、**Update Incident** で解決済み状態に変更します。
 
 ## トラブルシューティング
 
-- **実行が表示されない** — Alertmanager が URL に到達できるか確認し (Alertmanager のログで配信エラーを確認)、ワークフローが **Enabled** であることを確認します。
-- **インシデントフィールドが空** — ルールによってアノテーションが異なります。**Logs** タブでトリガーの出力を確認し、実際に存在するフィールドを参照します (`commonAnnotations` 対 アラートごとの `annotations`)。
+- **実行が表示されない** — Alertmanager が URL に到達できるか確認し (Alertmanager のログで配信エラーを確認)、ワークフローが **有効** であることを確認します。
+- **インシデントフィールドが空** — ルールによってアノテーションが異なります。**ログ** タブでトリガーの出力を確認し、実際に存在するフィールドを参照します (`commonAnnotations` 対 アラートごとの `annotations`)。
 - **インシデントが多すぎる** — Alertmanager が関連アラートをまとめるよう `group_by`/`group_interval` を増やします。
 
 ## 次に読むべきページ

@@ -2,7 +2,7 @@
 
 Crea un allarme [Opsgenie](https://www.atlassian.com/software/opsgenie) ogni volta che viene creato un incidente OneUptime, e chiudilo quando OneUptime lo risolve.
 
-Questa integrazione è **in uscita**: OneUptime chiama l'[Opsgenie Alert API](https://docs.opsgenie.com/docs/alert-api). Utilizza un **[Workflow](/docs/workflows/index)** di OneUptime con un trigger **Incident → On Create** e un **componente API**.
+Questa integrazione è **in uscita**: OneUptime chiama l'[Opsgenie Alert API](https://docs.opsgenie.com/docs/alert-api). Utilizza un **[Workflow](/docs/workflows/index)** di OneUptime con un trigger **Incidente → On Create** e un **componente API**.
 
 ```text
 OneUptime Incident → On Create  ──►  API component (POST /v2/alerts)  ──►  Opsgenie alert
@@ -16,13 +16,13 @@ OneUptime Incident → On Create  ──►  API component (POST /v2/alerts)  �
 
 ## Passaggio 1 — Salva la chiave API
 
-1. Vai su **Workflows → Global Variables → Create**.
+1. Vai su **Flussi di lavoro → Variabili globali → Crea**.
 2. Chiamala `OPSGENIE_KEY`, incolla la chiave API e attiva **Is Secret**.
 
 ## Passaggio 2 — Crea il workflow di "creazione allarme"
 
-1. Apri **Workflows → Create Workflow**, chiamalo `Incidents → Opsgenie` e apri il **Builder**.
-2. Aggiungi un trigger **Incident** impostato su **On Create**. Rinominalo `Incident`.
+1. Apri **Flussi di lavoro → Crea flusso di lavoro**, chiamalo `Incidents → Opsgenie` e apri il **Costruttore**.
+2. Aggiungi un trigger **Incidente** impostato su **On Create**. Rinominalo `Incident`.
 3. Aggiungi un blocco **API** collegato al trigger:
 
    - **Method**: `POST`
@@ -52,9 +52,9 @@ OneUptime Incident → On Create  ──►  API component (POST /v2/alerts)  �
 
 ## Passaggio 3 — Chiudi alla risoluzione in OneUptime (consigliato)
 
-1. Crea un **secondo** workflow chiamato `Close Opsgenie` con un trigger **Incident → On Update**.
-2. Aggiungi un blocco **Conditions** che verifica che l'incidente sia ora risolto (ramifica su `{{Incident.currentIncidentState.name}}`).
-3. Da **Yes**, aggiungi un blocco **API**:
+1. Crea un **secondo** workflow chiamato `Close Opsgenie` con un trigger **Incidente → On Update**.
+2. Aggiungi un blocco **Condizioni** che verifica che l'incidente sia ora risolto (ramifica su `{{Incident.currentIncidentState.name}}`).
+3. Da **Sì**, aggiungi un blocco **API**:
    - **Method**: `POST`
    - **URL**: `https://api.opsgenie.com/v2/alerts/oneuptime-{{Incident._id}}/close?identifierType=alias`
    - **Headers**: lo stesso `Authorization: GenieKey {{variable.OPSGENIE_KEY}}`
@@ -64,13 +64,13 @@ Opsgenie cerca l'allarme per alias e lo chiude.
 
 ## Mappatura delle priorità (opzionale)
 
-Le priorità Opsgenie vanno da `P1` a `P5`. Mappa dalle severità OneUptime con rami **Conditions** su `{{Incident.incidentSeverity.name}}` prima del blocco API.
+Le priorità Opsgenie vanno da `P1` a `P5`. Mappa dalle severità OneUptime con rami **Condizioni** su `{{Incident.incidentSeverity.name}}` prima del blocco API.
 
 ## Risoluzione dei problemi
 
 - **`401`/`403`** — chiave errata, host di regione sbagliato, o l'integrazione non ha il permesso di creare allarmi. Conferma di star usando una chiave di integrazione **API** e il corrispondente host `api`/`api.eu`.
 - **La chiusura restituisce `404`** — l'`alias` nella chiamata di chiusura deve corrispondere esattamente a quello della chiamata di creazione, e `identifierType=alias` deve essere nella query string.
-- **Non succede nulla** — conferma che il workflow sia **Enabled**.
+- **Non succede nulla** — conferma che il workflow sia **Abilitato**.
 
 ## Dove leggere poi
 

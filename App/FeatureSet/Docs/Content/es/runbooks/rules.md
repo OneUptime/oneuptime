@@ -2,22 +2,22 @@
 
 Las reglas de runbook adjuntan runbooks automáticamente cuando se crea un **incidente**, una **alerta** o un **evento de mantenimiento programado**. Se gestionan desde el menú de Configuración de cada entidad:
 
-- Incidentes → Configuración → **Reglas de runbook**
-- Alertas → Configuración → **Reglas de runbook**
-- Mantenimiento programado → Configuración → **Reglas de runbook**
+- Incidentes → Ajustes → **Reglas de runbook**
+- Alertas → Ajustes → **Reglas de runbook**
+- Mantenimiento programado → Ajustes → **Reglas de runbook**
 
 Las tres páginas editan el mismo modelo subyacente de reglas — simplemente están filtradas para mostrar solo las reglas de ese tipo de entidad.
 
 ## Anatomía de una regla
 
-| Campo                   | Propósito                                                                                                     |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------- |
-| **Nombre**              | Etiqueta corta y legible. Aparece en los logs de auditoría.                                                   |
-| **Descripción**         | Contexto opcional para los compañeros de equipo.                                                              |
-| **Habilitada**          | Conmutador para suspender una regla sin borrarla.                                                             |
-| **Title Pattern**       | Regex sin distinguir mayúsculas, evaluado contra el título de la entidad. Vacío = cualquier título.           |
-| **Description Pattern** | Regex sin distinguir mayúsculas, evaluado contra la descripción de la entidad. Vacío = cualquier descripción. |
-| **Runbooks a iniciar**  | Uno o más runbooks que se lanzan al dispararse la regla.                                                      |
+| Campo                     | Propósito                                                                                                     |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| **Nombre**                | Etiqueta corta y legible. Aparece en los logs de auditoría.                                                   |
+| **Descripción**           | Contexto opcional para los compañeros de equipo.                                                              |
+| **Habilitado**            | Conmutador para suspender una regla sin borrarla.                                                             |
+| **Patrón de título**      | Regex sin distinguir mayúsculas, evaluado contra el título de la entidad. Vacío = cualquier título.           |
+| **Patrón de descripción** | Regex sin distinguir mayúsculas, evaluado contra la descripción de la entidad. Vacío = cualquier descripción. |
+| **Runbooks para iniciar** | Uno o más runbooks que se lanzan al dispararse la regla.                                                      |
 
 ## Semántica de coincidencia
 

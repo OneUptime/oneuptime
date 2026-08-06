@@ -13,6 +13,7 @@ import NavBarMenuModal from "./NavBarMenuModal";
 import Button, { ButtonStyleType } from "../Button/Button";
 import Navigation from "../../Utils/Navigation";
 import useComponentOutsideClick from "../../Types/UseComponentOutsideClick";
+import useTranslateValue from "../../Utils/Translation";
 import Icon, { ThickProp } from "../Icon/Icon";
 
 export interface NavItem {
@@ -54,7 +55,7 @@ export interface ComponentProps {
   items?: NavItem[];
   rightElement?: NavItem;
   moreMenuItems?: MoreMenuItem[];
-  moreMenuTitle?: string; // Title for the more menu (default: "More")
+  moreMenuTitle?: string; // Title for the more menu (default: "Products")
   moreMenuSearchPlaceholder?: string; // Placeholder for the menu search box
   moreMenuNoResultsText?: string; // Empty-state text when search matches nothing
   moreMenuKeyboardHint?: string; // Keyboard hint shown in the menu footer
@@ -79,6 +80,7 @@ const MOBILE_MENU_MIN_HEIGHT_IN_PX: number = 160;
 const Navbar: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { translateString } = useTranslateValue();
   const [isMobile, setIsMobile] = useState<boolean>(false);
   const [isMobileMenuVisible, setIsMobileMenuVisible] =
     useState<boolean>(false);
@@ -408,7 +410,15 @@ const Navbar: FunctionComponent<ComponentProps> = (
                     className="mr-1.5 h-4 w-4 transition-transform duration-150 group-hover:scale-110 group-hover:text-indigo-600"
                     thick={ThickProp.Thick}
                   />
-                  <span>{props.moreMenuTitle || "Products"}</span>
+                  {/*
+                   * Callers pass a plain English literal here (or nothing, and
+                   * take the default) — run it through the same flat-key lookup
+                   * the side menu uses so the button is localised like every
+                   * other label in the nav.
+                   */}
+                  <span>
+                    {translateString(props.moreMenuTitle || "Products")}
+                  </span>
                   <Icon
                     icon={IconProp.ChevronDown}
                     className={`ml-1.5 h-3 w-3 text-gray-400 transition-transform duration-200 ${

@@ -14,9 +14,9 @@
 
 ## 建立追蹤監控器
 
-1. 前往 OneUptime 儀表板中的 **Monitors**
-2. 點選 **Create Monitor**
-3. 選擇 **Traces** 作為監控器類型
+1. 前往 OneUptime 儀表板中的 **監測**
+2. 點選 **建立監測器**
+3. 選擇 **追蹤** 作為監控器類型
 4. 選擇要監控的遙測服務
 5. 視需要設定 span 篩選條件與準則
 
@@ -63,19 +63,19 @@
 #### 若 60 秒內錯誤 span 超過 50 個則發出警示
 
 - **Span Statuses**：ERROR
-- **Time Window**：60 秒
+- **時間範圍**：60 秒
 - **Check On**：Span Count
-- **Filter Type**：Greater Than
-- **Value**：50
+- **篩選器類型**：Greater Than
+- **值**：50
 
 #### 針對特定端點的錯誤發出警示
 
-- **Span Name**：`POST /api/checkout`
+- **Span 名稱**：`POST /api/checkout`
 - **Span Statuses**：ERROR
-- **Time Window**：120 秒
+- **時間範圍**：120 秒
 - **Check On**：Span Count
-- **Filter Type**：Greater Than
-- **Value**：0
+- **篩選器類型**：Greater Than
+- **值**：0
 
 ## 設定需求
 

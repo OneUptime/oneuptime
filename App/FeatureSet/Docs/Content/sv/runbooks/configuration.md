@@ -16,7 +16,7 @@ Det finns ingen `RUNBOOK_BASH_ENABLED`-environmentflagga längre. Huruvida Bash-
 ## Utdatatak och timeouts
 
 - Utdata per steg: **50&nbsp;KB**. Större utdata trunkeras med en markör.
-- Standard körnings-timeout per steg: **30 sekunder** för JavaScript, Bash och HTTP. Sätt den per steg på runbookets **Steps**-sida — lämna fältet tomt för att behålla standardvärdet.
+- Standard körnings-timeout per steg: **30 sekunder** för JavaScript, Bash och HTTP. Sätt den per steg på runbookets **Steg**-sida — lämna fältet tomt för att behålla standardvärdet.
 - **Claim-timeout** per steg för Bash- och JavaScript-steg: **2 minuter** — hur länge Worker'n väntar på att den valda agenten plockar upp jobbet innan den misslyckas. Sätts också per steg.
 - Båda timeouterna accepterar **1 sekund till 1 timme**. Ett värde utanför det intervallet begränsas till närmaste tillåtna värde när steget körs, så en felskriven konfiguration kan varken stänga av timeouten eller hålla en Worker-slot öppen för evigt.
 

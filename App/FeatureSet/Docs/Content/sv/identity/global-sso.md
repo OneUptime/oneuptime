@@ -16,12 +16,12 @@ Global SSO är en funktion i **OneUptime Enterprise Edition** och är endast til
 
 1. **Öppna Admin Dashboard**
 
-   - Logga in som master admin och öppna **Admin** > **Settings** > **Global SSO** (för SAML) eller **Global OIDC** (för OpenID Connect).
+   - Logga in som master admin och öppna **Admin** > **Inställningar** > **Global SSO** (för SAML) eller **Global OIDC** (för OpenID Connect).
 
 2. **Skapa en leverantör**
 
    - Klicka på **Create Global SSO**.
-   - För SAML: ange ett **Name**, **Sign On URL** och **Issuer** från din identitetsleverantör, och klistra in **Public Certificate**. Välj **Signature**- och **Digest**-metoderna (behåll standardvärdena — `RSA-SHA256` / `SHA256` — om du är osäker).
+   - För SAML: ange ett **Namn**, **Sign On URL** och **Issuer** från din identitetsleverantör, och klistra in **Public Certificate**. Välj **Signature**- och **Digest**-metoderna (behåll standardvärdena — `RSA-SHA256` / `SHA256` — om du är osäker).
    - För OIDC: ange **Discovery URL**, **Issuer**, **Client ID**, **Client Secret**, **Scopes** (måste inkludera `openid`), och claim-namnen för **email** / **name**.
 
 3. **Kopiera OneUptime-URL:erna till din identitetsleverantör**
@@ -48,7 +48,7 @@ Om du vill förhindra all automatisk kontoskapande även när projekt är anslut
 Att konfigurera en global leverantör tvingar ingen att använda den; lösenordsinloggning fungerar fortfarande. För att kräva SSO, använd kontrollerna **Require SSO for Login**:
 
 - **Per projekt:** ett projekt kan kräva SSO, och valfritt kräva en _specifik_ leverantör (projekt eller global).
-- **Instansövergripande:** **Admin** > **Settings** > **Authentication** har en växel **Require SSO for Login** som tvingar fram SSO för varje användare i hela instansen. Master admins förblir undantagna så att de inte kan låsas ute.
+- **Instansövergripande:** **Admin** > **Inställningar** > **Autentisering** har en växel **Require SSO for Login** som tvingar fram SSO för varje användare i hela instansen. Master admins förblir undantagna så att de inte kan låsas ute.
 
 ## Relaterat
 

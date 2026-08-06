@@ -11,7 +11,7 @@ Denne siden er **installasjonsveiledningen**. For å konfigurere Kubernetes-moni
 - En kjørende Kubernetes-klynge (v1.23+)
 - `kubectl` konfigurert til å få tilgang til klyngen din
 - `helm` v3 installert
-- En **OneUptime API-nøkkel** — opprett en fra _Project Settings → API Keys_
+- En **OneUptime API-nøkkel** — opprett en fra _Prosjektinnstillinger → API-nøkler_
 
 ## Steg 1 — Legg til OneUptime Helm-repositoriet
 
@@ -164,7 +164,7 @@ Godtar `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`. `WARN` beholder WARN,
 
 Container-runtime-er registrerer ikke en alvorlighetsgrad på selve logglinjen, så agenten parser en ut av loggteksten selv (`[ERROR]`, `WARN:`, `level=info`, …).
 
-> **Kubernetes-hendelser og ressursspesifikasjoner filtreres aldri av dette.** De ankommer fra Kubernetes-API-et uten en egen alvorlighetsgrad, så en terskel ville slettet hele strømmen i stedet for å tynne den ut — inkludert `FailedScheduling`-, `BackOff`- og `OOMKilling`-advarslene du helst vil ha. De har lavt volum og høy verdi, så agenten sender dem alltid. For å tynne dem ut, bruk heller dashbordets serversidige **Logs → Settings → Drop Filters**.
+> **Kubernetes-hendelser og ressursspesifikasjoner filtreres aldri av dette.** De ankommer fra Kubernetes-API-et uten en egen alvorlighetsgrad, så en terskel ville slettet hele strømmen i stedet for å tynne den ut — inkludert `FailedScheduling`-, `BackOff`- og `OOMKilling`-advarslene du helst vil ha. De har lavt volum og høy verdi, så agenten sender dem alltid. For å tynne dem ut, bruk heller dashbordets serversidige **Logger → Innstillinger → Drop-filtre**.
 
 **Hva som skjer med en linje uten et gjenkjennelig nivå, avhenger av loggmodusen**, fordi de to modusene har ulik informasjon tilgjengelig:
 
@@ -247,7 +247,7 @@ Notater som vil spare deg for en hendelse:
 - **Flere klynger fungerer som standard.** To agenter beholder den samme sporingen kun hvis de er enige om både `hashSeed` og `percentage`. Begge har den samme standardverdien overalt, så en sporing som krysser to klynger, overlever i sin helhet uten noen ekstra konfigurasjon. Endre `hashSeed` kun for med hensikt å *dekorrelere* to samplingsnivåer — fordi avgjørelsen er en terskel på den samme hashen, nøstes den samme seeden med ulike rater, så et andre nivå bare velger på nytt blant sporingene det første allerede beholdt, i stedet for å trekke uavhengig.
 - **Pod-logger samples aldri**, så med `ebpf.logToTraceCorrelation: true` bærer hver eneste loggpost fortsatt en sporings-ID, mens kun `percentage` % av disse sporingene beholdes. Omtrent (100 − `percentage`) % av loggpostene vil vise en sporingslenke som ender i ingenting. Navigering fra sporing → logger påvirkes ikke; kun logger → sporing kan bomme.
 
-> **Juster tersklene på de span-baserte monitorene dine på nytt når du setter denne.** Sampling reduserer spansene som når OneUptime, så alt som teller dem, teller mindre: en **Traces**-monitor på `Span Count` og en **Exceptions**-monitor på `Exception Count` vil se omtrent `percentage` % av gårsdagens volum. En terskel som er innstilt på usamplet trafikk, slutter i stillhet å bli krysset — monitoren feiler ikke, den blir bare stille. Del disse tersklene på den samme faktoren når du setter raten; raten gjelder hele klyngen, så det finnes ingen måte å unnta en enkelt tjeneste fra den. **Gruppering** av feil degraderes verre enn lineært: et vanlig unntak dukker fortsatt opp, men et sjeldent engangstilfelle forsvinner heller helt enn å dukke opp en tidel så ofte.
+> **Juster tersklene på de span-baserte monitorene dine på nytt når du setter denne.** Sampling reduserer spansene som når OneUptime, så alt som teller dem, teller mindre: en **Spor**-monitor på `Span Count` og en **Unntak**-monitor på `Exception Count` vil se omtrent `percentage` % av gårsdagens volum. En terskel som er innstilt på usamplet trafikk, slutter i stillhet å bli krysset — monitoren feiler ikke, den blir bare stille. Del disse tersklene på den samme faktoren når du setter raten; raten gjelder hele klyngen, så det finnes ingen måte å unnta en enkelt tjeneste fra den. **Gruppering** av feil degraderes verre enn lineært: et vanlig unntak dukker fortsatt opp, men et sjeldent engangstilfelle forsvinner heller helt enn å dukke opp en tidel så ofte.
 
 > **Hvorfor det ikke finnes logg- eller metrikk-sampling her.** Collectorens sampler kan ikke sample metrikker i det hele tatt. Den kan sample logger, men den henter tilfeldigheten sin fra sporings-ID-en — og pod-logger har ingen. Hver post uten sporings-ID hasher da til den samme bøtta, så en logg-rate ville ikke tynnet ut strømmen: den ville beholdt alt eller slettet alt, avhengig av seeden. I stedet for å levere en spak som i stillhet sletter loggene dine, tilbyr ikke chartet noen. Tynn ut logger med [Filtrering etter loggalvorlighetsgrad](#filtrering-etter-loggalvorlighetsgrad) og [Namespace-filtrering](#namespace-filtrering), som er presise på hva de fjerner.
 
@@ -443,7 +443,7 @@ Tre måter å kutte volum på, og det er verdt å vite hvilken av dem du bruker:
 - **På filter-prosessoren** — dataene samles inn, og droppes så før eksport. `filters.logs.minSeverity`, `filters.metrics.*`, `namespaceFilters.rules` (`metrics`/`traces`). Litt mer collector-CPU, men det fungerer på tvers av mottakere og kan uttrykke ting en mottaker ikke kan.
 - **På sampleren** — dataene samles inn, og så beholdes en representativ brøkdel. `sampling.traces.percentage`. Den som skiller seg ut: de to ovenfor fjerner en hel *kategori* av telemetri, så det de dropper, er borte fra hver eneste sporing. Sampling beholder hver kategori og tynner ut populasjonen, så det som overlever, er fortsatt komplett og representativt.
 
-Alle tre er **irreversible**: det du dropper her, når aldri OneUptime, og alle tre kan gjøre at en monitor blir stille. De to første gjør en monitor stille ved å fjerne signalet den følger med på. Sampling er smalere: eBPF RED-metrikkene beregnes før sampleren kjører, så metrikkbaserte monitorer forblir eksakte — men monitorer som teller *spans* (Traces på `Span Count`, Exceptions på `Exception Count`) ser proporsjonalt færre og trenger tersklene sine justert på nytt med den samme faktoren. Hvis du heller vil bestemme deg senere, kan OneUptime droppe data på serversiden i stedet (**Logs → Settings → Drop Filters**, **Metrics → Settings → Pipeline Rules**) — det koster fortsatt egress, men det er en innstilling du kan endre uten en ny deploy.
+Alle tre er **irreversible**: det du dropper her, når aldri OneUptime, og alle tre kan gjøre at en monitor blir stille. De to første gjør en monitor stille ved å fjerne signalet den følger med på. Sampling er smalere: eBPF RED-metrikkene beregnes før sampleren kjører, så metrikkbaserte monitorer forblir eksakte — men monitorer som teller *spans* (Traces på `Span Count`, Exceptions på `Exception Count`) ser proporsjonalt færre og trenger tersklene sine justert på nytt med den samme faktoren. Hvis du heller vil bestemme deg senere, kan OneUptime droppe data på serversiden i stedet (**Logger → Innstillinger → Drop-filtre**, **Målinger → Innstillinger → Pipelineregler**) — det koster fortsatt egress, men det er en innstilling du kan endre uten en ny deploy.
 
 ### Spak 1 — Pod-logger er vanligvis den enkeltstående største kilden
 
@@ -656,7 +656,7 @@ Stram inn mer ved behov: øk minSeverity til ERROR, legg metrics til scopene i e
 
 ### Mål effekten
 
-Telemetribruk aggregeres per dag, så sjekk trenden over en dag eller to under **Project Settings → Usage History** for å bekrefte nedgangen — den beveger seg ikke i det øyeblikket du gjør en endring. Endre én spak om gangen slik at du kan tilskrive forskjellen — logger av, så intervall opp, så eBPF trimmet — i stedet for å skru alt ned på én gang og miste en monitor du faktisk stolte på.
+Telemetribruk aggregeres per dag, så sjekk trenden over en dag eller to under **Prosjektinnstillinger → Brukshistorikk** for å bekrefte nedgangen — den beveger seg ikke i det øyeblikket du gjør en endring. Endre én spak om gangen slik at du kan tilskrive forskjellen — logger av, så intervall opp, så eBPF trimmet — i stedet for å skru alt ned på én gang og miste en monitor du faktisk stolte på.
 
 ## Feilsøking
 
@@ -694,7 +694,7 @@ Den vanligste årsaken — spesielt etter en reinstallasjon — er en **feil ell
    curl -i -H "x-oneuptime-token: <YOUR_API_KEY>" https://oneuptime.com/otlp/v1/validate
    ```
 
-   Hvis den returnerer `401`, er nøkkelen i releasen din feil eller ble tilbakekalt. Kopier en aktiv nøkkel fra _Project Settings → Telemetri og APM → Inntaksnøkler_ og deploy på nytt:
+   Hvis den returnerer `401`, er nøkkelen i releasen din feil eller ble tilbakekalt. Kopier en aktiv nøkkel fra _Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler_ og deploy på nytt:
 
    ```bash
    helm upgrade kubernetes-agent oneuptime/kubernetes-agent \

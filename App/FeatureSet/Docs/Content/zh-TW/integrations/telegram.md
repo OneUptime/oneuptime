@@ -21,18 +21,18 @@ OneUptime Incident → On Create  ──►  Telegram component  ──►  mess
 
 ## 步驟 3 — 儲存密鑰
 
-1. 在 OneUptime 中，前往 **Workflows → Global Variables → Create**。
+1. 在 OneUptime 中，前往 **工作流程 → 全域變數 → 建立**。
 2. 建立 `TELEGRAM_BOT_TOKEN`（secret）與 `TELEGRAM_CHAT_ID`。
 
 ## 步驟 4 — 建構工作流程
 
-1. 開啟 **Workflows → Create Workflow**，將其命名為 `Incidents → Telegram`，然後開啟 **Builder**。
+1. 開啟 **工作流程 → 建立工作流程**，將其命名為 `Incidents → Telegram`，然後開啟 **建構器**。
 2. 新增一個設定為 **On Create** 的 **Incident** 觸發器。將其重新命名為 `Incident`。
 3. 新增一個連接至觸發器的 **Telegram** 元件：
    - **Bot token**：`{{variable.TELEGRAM_BOT_TOKEN}}`
    - **Chat ID**：`{{variable.TELEGRAM_CHAT_ID}}`
-   - **Message**：`🔴 New incident: {{Incident.title}}\n{{Incident.description}}`
-4. **Save**、啟用，然後建立一個測試事件。訊息便會送達您的聊天。
+   - **訊息**：`🔴 New incident: {{Incident.title}}\n{{Incident.description}}`
+4. **儲存**、啟用，然後建立一個測試事件。訊息便會送達您的聊天。
 
 ## 替代方案：API 元件
 

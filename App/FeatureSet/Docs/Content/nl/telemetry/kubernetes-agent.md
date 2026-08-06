@@ -11,7 +11,7 @@ Deze pagina is de **installatiegids**. Voor het configureren van Kubernetes-moni
 - Een draaiend Kubernetes-cluster (v1.23+)
 - `kubectl` geconfigureerd om toegang te krijgen tot je cluster
 - `helm` v3 geïnstalleerd
-- Een **OneUptime API-sleutel** — maak er een aan via _Project Settings → API Keys_
+- Een **OneUptime API-sleutel** — maak er een aan via _Projectinstellingen → API-sleutels_
 
 ## Stap 1 — Voeg de OneUptime Helm Repository toe
 
@@ -164,7 +164,7 @@ Accepteert `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`. `WARN` behoudt WA
 
 Container-runtimes registreren geen severity op de logregel, dus parseert de agent er zelf een uit de logtekst (`[ERROR]`, `WARN:`, `level=info`, …).
 
-> **Kubernetes-events en resource-specs worden hier nooit door gefilterd.** Ze komen binnen via de Kubernetes API zonder een eigen severity, dus een drempel zou de hele feed verwijderen in plaats van hem uit te dunnen — inclusief de `FailedScheduling`-, `BackOff`- en `OOMKilling`-waarschuwingen die je juist het hardst nodig hebt. Ze zijn laag in volume en hoog in waarde, dus de agent verzendt ze altijd. Om ze uit te dunnen, gebruik je in plaats daarvan de server-side **Logs → Settings → Drop Filters** in het dashboard.
+> **Kubernetes-events en resource-specs worden hier nooit door gefilterd.** Ze komen binnen via de Kubernetes API zonder een eigen severity, dus een drempel zou de hele feed verwijderen in plaats van hem uit te dunnen — inclusief de `FailedScheduling`-, `BackOff`- en `OOMKilling`-waarschuwingen die je juist het hardst nodig hebt. Ze zijn laag in volume en hoog in waarde, dus de agent verzendt ze altijd. Om ze uit te dunnen, gebruik je in plaats daarvan de server-side **Logboeken → Instellingen → Drop-filters** in het dashboard.
 
 **Wat er gebeurt met een regel zonder herkenbaar niveau hangt af van de logmodus**, omdat de twee modi over verschillende informatie beschikken:
 
@@ -247,7 +247,7 @@ Notities die je een incident besparen:
 - **Multi-cluster werkt standaard.** Twee agents behouden dezelfde trace alleen als ze het eens zijn over zowel `hashSeed` als `percentage`. Beide hebben overal dezelfde standaardwaarde, dus een trace die twee clusters kruist, overleeft in zijn geheel zonder extra configuratie. Wijzig `hashSeed` alleen om twee sampling-niveaus bewust te *decorreleren* — omdat de beslissing een drempel op dezelfde hash is, nestelen twee niveaus met dezelfde seed maar verschillende percentages in elkaar, waardoor een tweede niveau simpelweg de traces herkiest die het eerste al had behouden, in plaats van onafhankelijk te trekken.
 - **Pod-logs worden nooit gesampled**, dus met `ebpf.logToTraceCorrelation: true` draagt elk logrecord nog steeds een trace-ID terwijl er maar `percentage`% van die traces behouden blijft. Ruwweg (100 − `percentage`)% van de logrecords toont een trace-link die doodloopt. Navigatie van trace → logs blijft onaangetast; alleen logs → trace kan missen.
 
-> **Stem je span-gebaseerde monitors opnieuw af wanneer je dit instelt.** Sampling vermindert de spans die OneUptime bereiken, dus alles wat ze telt, telt minder: een **Traces**-monitor op `Span Count` en een **Exceptions**-monitor op `Exception Count` zien ruwweg `percentage`% van het volume van gisteren. Een drempel die is afgestemd op ongesampled verkeer wordt stilletjes niet meer overschreden — de monitor geeft geen fout, hij valt gewoon stil. Deel die drempels door dezelfde factor wanneer je het percentage instelt; het percentage geldt cluster-breed, dus er is geen manier om een individuele service ervan uit te zonderen. Het **groeperen** van errors verslechtert erger dan lineair: een veelvoorkomende exception komt nog steeds bovendrijven, maar een zeldzame eenmalige verdwijnt eerder helemaal dan dat hij een tiende zo vaak verschijnt.
+> **Stem je span-gebaseerde monitors opnieuw af wanneer je dit instelt.** Sampling vermindert de spans die OneUptime bereiken, dus alles wat ze telt, telt minder: een **Traces**-monitor op `Span Count` en een **Uitzonderingen**-monitor op `Exception Count` zien ruwweg `percentage`% van het volume van gisteren. Een drempel die is afgestemd op ongesampled verkeer wordt stilletjes niet meer overschreden — de monitor geeft geen fout, hij valt gewoon stil. Deel die drempels door dezelfde factor wanneer je het percentage instelt; het percentage geldt cluster-breed, dus er is geen manier om een individuele service ervan uit te zonderen. Het **groeperen** van errors verslechtert erger dan lineair: een veelvoorkomende exception komt nog steeds bovendrijven, maar een zeldzame eenmalige verdwijnt eerder helemaal dan dat hij een tiende zo vaak verschijnt.
 
 > **Waarom er hier geen log- of metriek-sampling is.** De sampler van de collector kan metrieken helemaal niet samplen. Logs kan hij wel samplen, maar hij ontleent zijn willekeur aan de trace-ID — en pod-logs hebben er geen. Elk record zonder trace-ID hasht dan naar dezelfde bucket, dus een log-percentage zou de feed niet uitdunnen: het zou alles behouden of alles verwijderen, afhankelijk van de seed. In plaats van een knop uit te leveren die stilzwijgend je logs verwijdert, biedt de chart die niet aan. Dun logs uit met [Filteren op log-severity](#filteren-op-log-severity) en [Namespace-filtering](#namespace-filtering), die precies zijn over wat ze verwijderen.
 
@@ -443,7 +443,7 @@ Er zijn drie manieren om volume te beperken, en het is de moeite waard om te wet
 - **Bij de filter-processor** — de data wordt verzameld en daarna vóór de export weggegooid. `filters.logs.minSeverity`, `filters.metrics.*`, `namespaceFilters.rules` (`metrics`/`traces`). Iets meer collector-CPU, maar het werkt over receivers heen en kan dingen uitdrukken die een receiver niet kan.
 - **Bij de sampler** — de data wordt verzameld en daarna wordt er een representatieve fractie van behouden. `sampling.traces.percentage`. De vreemde eend in de bijt: de twee hierboven verwijderen een hele *categorie* telemetrie, dus wat zij weggooien, is uit elke trace verdwenen. Sampling behoudt elke categorie en dunt de populatie uit, dus wat overleeft, is nog steeds compleet en representatief.
 
-Alle drie zijn **onomkeerbaar**: wat je hier weggooit, bereikt OneUptime nooit, en bij alle drie kan een monitor stilvallen. De eerste twee leggen een monitor stil door het signaal weg te nemen waar hij naar kijkt. Sampling is beperkter: de eBPF RED-metrieken worden berekend vóórdat de sampler draait, dus metriek-gebaseerde monitors blijven exact — maar monitors die *spans* tellen (Traces op `Span Count`, Exceptions op `Exception Count`) zien er evenredig minder en hebben drempels nodig die met dezelfde factor opnieuw zijn afgestemd. Als je liever later beslist, kan OneUptime data in plaats daarvan server-side laten vallen (**Logs → Settings → Drop Filters**, **Metrics → Settings → Pipeline Rules**) — dat kost nog steeds egress, maar het is een instelling die je kunt wijzigen zonder opnieuw te deployen.
+Alle drie zijn **onomkeerbaar**: wat je hier weggooit, bereikt OneUptime nooit, en bij alle drie kan een monitor stilvallen. De eerste twee leggen een monitor stil door het signaal weg te nemen waar hij naar kijkt. Sampling is beperkter: de eBPF RED-metrieken worden berekend vóórdat de sampler draait, dus metriek-gebaseerde monitors blijven exact — maar monitors die *spans* tellen (Traces op `Span Count`, Exceptions op `Exception Count`) zien er evenredig minder en hebben drempels nodig die met dezelfde factor opnieuw zijn afgestemd. Als je liever later beslist, kan OneUptime data in plaats daarvan server-side laten vallen (**Logboeken → Instellingen → Drop-filters**, **Metrieken → Instellingen → Pipelineregels**) — dat kost nog steeds egress, maar het is een instelling die je kunt wijzigen zonder opnieuw te deployen.
 
 ### Hendel 1 — Pod-logs zijn meestal de grootste afzonderlijke bron
 
@@ -656,7 +656,7 @@ Beperk indien nodig verder: verhoog minSeverity naar ERROR, voeg metrics toe aan
 
 ### Meet het effect
 
-Telemetriegebruik wordt per dag geaggregeerd, dus controleer de trend over een dag of twee onder **Project Settings → Usage History** om de daling te bevestigen — het verandert niet op het moment dat je een wijziging toepast. Wijzig één hendel tegelijk, zodat je het verschil kunt toeschrijven — logs uit, dan het interval omhoog, dan eBPF gesnoeid — in plaats van alles tegelijk terug te schroeven en een monitor te verliezen waar je echt op vertrouwde.
+Telemetriegebruik wordt per dag geaggregeerd, dus controleer de trend over een dag of twee onder **Projectinstellingen → Gebruiksgeschiedenis** om de daling te bevestigen — het verandert niet op het moment dat je een wijziging toepast. Wijzig één hendel tegelijk, zodat je het verschil kunt toeschrijven — logs uit, dan het interval omhoog, dan eBPF gesnoeid — in plaats van alles tegelijk terug te schroeven en een monitor te verliezen waar je echt op vertrouwde.
 
 ## Probleemoplossing
 
@@ -694,7 +694,7 @@ De meest voorkomende reden — vooral na een herinstallatie — is een **verkeer
    curl -i -H "x-oneuptime-token: <YOUR_API_KEY>" https://oneuptime.com/otlp/v1/validate
    ```
 
-   Als het `401` retourneert, is de sleutel in je release verkeerd of is deze ingetrokken. Kopieer een actieve sleutel uit _Project Settings → Telemetrie & APM → Ingestiesleutels_ en deploy opnieuw:
+   Als het `401` retourneert, is de sleutel in je release verkeerd of is deze ingetrokken. Kopieer een actieve sleutel uit _Projectinstellingen → Telemetrie & APM → Ingestiesleutels_ en deploy opnieuw:
 
    ```bash
    helm upgrade kubernetes-agent oneuptime/kubernetes-agent \

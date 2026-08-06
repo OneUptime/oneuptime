@@ -26,14 +26,14 @@ Jira Cloud는 이메일과 API 토큰을 base64 인코딩한 **Basic 인증** �
    printf '%s' 'you@example.com:your_api_token' | base64
    ```
 
-2. OneUptime에서 **Workflows → Global Variables → Create** 로 이동합니다.
+2. OneUptime에서 **워크플로 → 전역 변수 → 만들기** 로 이동합니다.
 3. 이름을 `JIRA_AUTH` 로 지정하고 base64 문자열을 값으로 붙여넣고 **Is Secret** 를 켭니다.
 
 이제 `Basic {{variable.JIRA_AUTH}}` 를 인증 헤더로 사용할 수 있으며, 토큰은 워크플로나 로그에 절대 노출되지 않습니다.
 
 ## 2단계 — 워크플로 구성
 
-1. **Workflows → Create Workflow** 를 열고, 이름을 `Incidents → Jira` 로 지정하고 **Builder** 를 엽니다.
+1. **워크플로 → 워크플로 생성** 을 열고, 이름을 `Incidents → Jira` 로 지정하고 **빌더** 를 엽니다.
 2. **Incident** 트리거를 캔버스에 끌어다 놓고 **On Create** 이벤트를 선택합니다. 이름을 `Incident` 로 변경합니다.
 3. **API** 블록을 끌어다 트리거에 연결합니다. 다음과 같이 설정합니다:
 
@@ -76,9 +76,9 @@ Jira Cloud는 이메일과 API 토큰을 base64 인코딩한 **Basic 인증** �
 
 ## 3단계 — 테스트
 
-1. 워크플로 **Enabled** 를 켭니다.
+1. 워크플로 **활성화됨** 을 켭니다.
 2. OneUptime에서 테스트 인시던트를 만듭니다(또는 모니터에서 하나 트리거합니다).
-3. 워크플로의 **Logs** 탭을 엽니다. **API** 블록에서 `201` 상태와 새 이슈의 `key` 가 포함된 응답 본문(예: `OPS-1234`)을 확인합니다.
+3. 워크플로의 **로그** 탭을 엽니다. **API** 블록에서 `201` 상태와 새 이슈의 `key` 가 포함된 응답 본문(예: `OPS-1234`)을 확인합니다.
 4. Jira를 확인합니다 — 이슈가 생성되어 있습니다.
 
 API 블록에서 오류가 반환되면 로그에서 확장합니다 — Jira의 응답에 어떤 필드가 거부되었는지 정확히 설명됩니다. [문제 해결](#문제-해결)을 참조하세요.

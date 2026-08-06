@@ -24,9 +24,9 @@ Projekt-SCIM gör det möjligt för identitetsleverantörer att hantera teammedl
 
 2. **Konfigurera SCIM-inställningar**
 
-   - Aktivera **Automatisk provisionering av användare** för att automatiskt lägga till användare när de tilldelas i din IdP
-   - Aktivera **Automatisk avetablering av användare** för att automatiskt ta bort användare när de tas bort i din IdP
-   - Välj de **standardteam** som nya användare ska läggas till i
+   - Aktivera **Etablera användare automatiskt** för att automatiskt lägga till användare när de tilldelas i din IdP
+   - Aktivera **Avetablera användare automatiskt** för att automatiskt ta bort användare när de tas bort i din IdP
+   - Välj de **Standardteam** som nya användare ska läggas till i
    - Kopiera **SCIM bas-URL** och **Bearer-token** för din IdP-konfiguration
 
 3. **Konfigurera din identitetsleverantör**
@@ -69,12 +69,12 @@ Statussida-SCIM gör det möjligt för identitetsleverantörer att hantera prenu
 1. **Navigera till statussideinställningar**
 
    - Gå till din OneUptime-statussida
-   - Navigera till **Statussideinställningar** > **Säkerhet** > **SCIM**
+   - Navigera till **Statussida** > **Säkerhet** > **SCIM**
 
 2. **Konfigurera SCIM-inställningar**
 
-   - Aktivera **Automatisk provisionering av användare** för att automatiskt lägga till prenumeranter när de tilldelas i din IdP
-   - Aktivera **Automatisk avetablering av användare** för att automatiskt ta bort prenumeranter när de tas bort i din IdP
+   - Aktivera **Etablera användare automatiskt** för att automatiskt lägga till prenumeranter när de tilldelas i din IdP
+   - Aktivera **Avetablera användare automatiskt** för att automatiskt ta bort prenumeranter när de tas bort i din IdP
    - Kopiera **SCIM bas-URL** och **Bearer-token** för din IdP-konfiguration
 
 3. **Konfigurera din identitetsleverantör**
@@ -121,10 +121,10 @@ Microsoft Entra ID tillhandahåller enterprise-grade identitetshantering med rob
 3. Klicka på **Skapa SCIM-konfiguration**
 4. Ange ett beskrivande namn (t.ex. "Microsoft Entra ID Provisioning")
 5. Konfigurera följande alternativ:
-   - **Automatisk provisionering av användare**: Aktivera för att automatiskt skapa användare
-   - **Automatisk avetablering av användare**: Aktivera för att automatiskt ta bort användare
+   - **Etablera användare automatiskt**: Aktivera för att automatiskt skapa användare
+   - **Avetablera användare automatiskt**: Aktivera för att automatiskt ta bort användare
    - **Standardteam**: Välj team som nya användare ska läggas till i
-   - **Aktivera Push-grupper**: Aktivera om du vill hantera teammedlemskap via Entra ID-grupper
+   - **Aktivera push-grupper**: Aktivera om du vill hantera teammedlemskap via Entra ID-grupper
 6. Spara konfigurationen
 7. Kopiera **SCIM bas-URL** och **Bearer-token** – du behöver dessa för Entra ID
 
@@ -223,10 +223,10 @@ Okta tillhandahåller flexibel identitetshantering med utmärkt SCIM-stöd. Föl
 3. Klicka på **Skapa SCIM-konfiguration**
 4. Ange ett beskrivande namn (t.ex. "Okta Provisioning")
 5. Konfigurera följande alternativ:
-   - **Automatisk provisionering av användare**: Aktivera för att automatiskt skapa användare
-   - **Automatisk avetablering av användare**: Aktivera för att automatiskt ta bort användare
+   - **Etablera användare automatiskt**: Aktivera för att automatiskt skapa användare
+   - **Avetablera användare automatiskt**: Aktivera för att automatiskt ta bort användare
    - **Standardteam**: Välj team som nya användare ska läggas till i
-   - **Aktivera Push-grupper**: Aktivera om du vill hantera teammedlemskap via Okta-grupper
+   - **Aktivera push-grupper**: Aktivera om du vill hantera teammedlemskap via Okta-grupper
 6. Spara konfigurationen
 7. Kopiera **SCIM bas-URL** och **Bearer-token** – du behöver dessa för Okta
 

@@ -11,7 +11,7 @@ Ein Dashboard ist ein Raster. Widgets rasten ein – Sie entscheiden, wo jedes s
 Der Umschalter im Kopfbereich wechselt zwischen zwei Modi:
 
 - **Bearbeiten** – die Widget-Palette ist geöffnet, Sie können Widgets verschieben, ihre Größe ändern und jedes Widget anklicken, um seine Einstellungen zu bearbeiten.
-- **Ansicht** – das Dashboard ist schreibgeschützt, genau so, wie es Besucher und andere Teammitglieder sehen. Nutzen Sie diesen Modus, um das Ergebnis vor dem Teilen zu prüfen.
+- **Ansehen** – das Dashboard ist schreibgeschützt, genau so, wie es Besucher und andere Teammitglieder sehen. Nutzen Sie diesen Modus, um das Ergebnis vor dem Teilen zu prüfen.
 
 Es handelt sich um dasselbe Dashboard in beiden Modi. Es gibt keinen separaten Schritt zum „Veröffentlichen" – jede Änderung ist live, sobald sie gespeichert ist.
 
@@ -34,7 +34,7 @@ Die meisten Widgets lesen aus einer von drei Quellen:
 
 ## Schwellenwerte und Formatierung
 
-Einzelwert-Widgets (**Wert**, **Anzeige**) erlauben Folgendes:
+Einzelwert-Widgets (**Wert**, **Messwert**) erlauben Folgendes:
 
 - Einen **Warn-Schwellenwert** – die Farbe wechselt auf Gelb, wenn der Wert ihn überschreitet.
 - Einen **Kritisch-Schwellenwert** – die Farbe wechselt auf Rot, wenn der Wert ihn überschreitet.
@@ -46,7 +46,7 @@ Bei Diagrammen können Sie die Einheit der Y-Achse festlegen, die Legendenpositi
 Oben am Dashboard wirken sich zwei Steuerungen auf jedes Metrik-Widget aus:
 
 - **Zeitbereich** – eine Voreinstellung (letzte Stunde, 24 Stunden, 7 Tage, 30 Tage) oder ein eigener Bereich. Jedes Diagramm und jede Zahl verwendet dieses Fenster.
-- **Aktualisierung** – wie häufig die Widgets neu abfragen. Aus, 5 s, 10 s, 30 s, 1 min, 5 min, 15 min. Live-Listen aktualisieren sich unabhängig von dieser Einstellung selbst.
+- **Aktualisieren** – wie häufig die Widgets neu abfragen. Aus, 5 s, 10 s, 30 s, 1 min, 5 min, 15 min. Live-Listen aktualisieren sich unabhängig von dieser Einstellung selbst.
 
 Widgets, die den Zeitbereich nicht nutzen (zum Beispiel ein Text-Widget), ignorieren beide Steuerungen.
 

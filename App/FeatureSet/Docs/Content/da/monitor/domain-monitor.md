@@ -14,7 +14,7 @@ Domænemonitoer forespørger WHOIS-data for dine domæner for at spore registrer
 
 ## Oprettelse af en Domænemonitor
 
-1. Gå til **Monitorer** i OneUptime-dashboardet
+1. Gå til **Overvågninger** i OneUptime-dashboardet
 2. Klik på **Opret monitor**
 3. Vælg **Domæne** som monitortype
 4. Indtast det domænenavn, du vil overvåge

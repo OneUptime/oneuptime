@@ -108,7 +108,7 @@ microsoftTeamsApp:
 
 ### 第七步：上传 Teams 应用清单
 
-1. 前往项目 **设置** > **工作区** > **Microsoft Teams**
+1. 前往 **项目设置** > **工作区** > **Microsoft Teams**
 2. 从那里下载 Teams 应用清单
 3. 前往 Microsoft Teams，点击侧边栏中的"应用"
 4. 在底部，点击"管理您的应用"

@@ -25,17 +25,17 @@ Zabbix trigger fires  ──►  Webhook media type  ──►  OneUptime Workfl
 
 先完成这一步，因为你需要它生成的 webhook URL。
 
-1. 打开 **Workflows → Create Workflow**，命名为 `Zabbix → Incidents`，并打开 **Builder** 标签。
+1. 打开 **工作流 → 创建工作流**，命名为 `Zabbix → Incidents`，并打开 **生成器** 标签。
 2. 将 **Webhook** 触发器拖到画布上。点击它并**复制其显示的唯一 URL**。请妥善保管——任何拥有它的人都可以启动工作流。将该模块重命名为 `Zabbix`，以便变量读取更清晰。
-3. 将 **Conditions** 模块拖到画布上，并将触发器的输出连接到它。配置：
+3. 将 **条件** 模块拖到画布上，并将触发器的输出连接到它。配置：
    - **Left value**：`{{Zabbix.Request Body.status}}`
    - **Operator**：`==`
    - **Right value**：`1` _（Zabbix 发送 `1` 表示问题，`0` 表示恢复）_
-4. 拖入 **Create Incident** 模块并连接到 Conditions 模块的 **Yes** 输出。填写：
-   - **Title**：`Zabbix: {{Zabbix.Request Body.name}}`
-   - **Description**：`Host: {{Zabbix.Request Body.host}}\nSeverity: {{Zabbix.Request Body.severity}}\nZabbix event: {{Zabbix.Request Body.event_id}}`
-   - **Severity**：选择你想要的 OneUptime 事件严重程度（之后可以通过更多 Conditions 分支来映射 Zabbix 严重程度）。
-5. 保存。暂时将 **Enabled** 保持*关闭*——测试后再开启。
+4. 拖入 **创建事件** 模块并连接到 Conditions 模块的 **是** 输出。填写：
+   - **标题**：`Zabbix: {{Zabbix.Request Body.name}}`
+   - **描述**：`Host: {{Zabbix.Request Body.host}}\nSeverity: {{Zabbix.Request Body.severity}}\nZabbix event: {{Zabbix.Request Body.event_id}}`
+   - **严重程度**：选择你想要的 OneUptime 事件严重程度（之后可以通过更多 Conditions 分支来映射 Zabbix 严重程度）。
+5. 保存。暂时将 **已启用** 保持*关闭*——测试后再开启。
 
 > **提示：** 在描述（或事件标签）中放入 Zabbix `event_id`，可以让你在 Zabbix 恢复时再次找到该事件。参见[自动解决（可选）](#自动解决可选)。
 
@@ -114,9 +114,9 @@ Zabbix 将通知发送*给一个用户*。创建一个专用用户，便于查�
 
 ## 第三部分——测试
 
-1. 回到 OneUptime 工作流，开启 **Enabled**。
+1. 回到 OneUptime 工作流，开启 **已启用**。
 2. 在 Zabbix 中触发一个测试问题——例如，临时降低触发器阈值，或使用翻转为问题状态的测试监控项。
-3. 打开工作流的 **Logs** 标签。你应该看到一次包含 Zabbix 负载的运行，Conditions 模块走 **Yes** 路径，并创建了事件。
+3. 打开工作流的 **日志** 标签。你应该看到一次包含 Zabbix 负载的运行，Conditions 模块走 **是** 路径，并创建了事件。
 4. 在 OneUptime 中检查**事件**——你的 Zabbix 问题现在已成为一个事件。
 
 如果没有收到任何内容，参见[故障排查](#故障排查)。
@@ -126,21 +126,21 @@ Zabbix 将通知发送*给一个用户*。创建一个专用用户，便于查�
 上面的核心工作流只*创建*事件。要在 Zabbix 恢复时*关闭*事件：
 
 1. 确保你的 Zabbix 动作已配置 **Recovery operations**（上面的步骤 3），以便也发送恢复事件。恢复时，`status` 值为 `0`。
-2. 在工作流中，添加第二个 **Conditions** 分支：左侧 `{{Zabbix.Request Body.status}}`，运算符 `==`，右侧 `0`。
-3. 从其 **Yes** 输出，添加一个 **Find Incident** 模块，查找你之前创建的未解决事件——通过描述或标签中存储的 Zabbix `event_id` 来匹配。
+2. 在工作流中，添加第二个 **条件** 分支：左侧 `{{Zabbix.Request Body.status}}`，运算符 `==`，右侧 `0`。
+3. 从其 **是** 输出，添加一个 **Find Incident** 模块，查找你之前创建的未解决事件——通过描述或标签中存储的 Zabbix `event_id` 来匹配。
 4. 将其连接到 **Update Incident** 模块，并将事件移至你的*已解决*状态。
 
 由于解决方式取决于你在项目中如何建模事件状态，请先确保事件正确流转后再添加解决路径。参见[组件 → OneUptime 数据组件](/docs/workflows/components#oneuptime-data-components)。
 
 ## 映射 Zabbix 严重程度（可选）
 
-Zabbix 严重程度（`Not classified`、`Information`、`Warning`、`Average`、`High`、`Disaster`）以 `{{Zabbix.Request Body.severity}}` 形式传入。要将它们映射到 OneUptime 事件严重程度，在 **Create Incident** 之前添加 **Conditions** 分支——例如，将 `Disaster` 和 `High` 路由到"Critical"事件，将其他所有内容路由到"Major"。每个分支各建一个 **Create Incident** 模块。
+Zabbix 严重程度（`Not classified`、`Information`、`Warning`、`Average`、`High`、`Disaster`）以 `{{Zabbix.Request Body.severity}}` 形式传入。要将它们映射到 OneUptime 事件严重程度，在 **创建事件** 之前添加 **条件** 分支——例如，将 `Disaster` 和 `High` 路由到"Critical"事件，将其他所有内容路由到"Major"。每个分支各建一个 **创建事件** 模块。
 
 ## 故障排查
 
 **工作流从未运行。**
 
-- 确认工作流的 **Enabled** 开关已开启。
+- 确认工作流的 **已启用** 开关已开启。
 - 从 Zabbix 服务器确认能访问该 URL：`curl -i -X POST <workflow-url> -d '{}' -H 'Content-Type: application/json'`。你应该很快收到确认响应。
 - 在 Zabbix 中检查 **Reports → Action log** 是否有投递错误。
 
@@ -151,7 +151,7 @@ Zabbix 严重程度（`Not classified`、`Information`、`Warning`、`Average`�
 
 **事件已创建但字段为空。**
 
-- 打开工作流的 **Logs** 标签并检查触发器输出。确认 **Request Body** 下的字段名与你引用的字段（`name`、`host`、`severity`、`status`、`event_id`）一致。
+- 打开工作流的 **日志** 标签并检查触发器输出。确认 **请求主体** 下的字段名与你引用的字段（`name`、`host`、`severity`、`status`、`event_id`）一致。
 - 缺失的字段会解析为空字符串而不是错误——参见[变量 → 注意事项](/docs/workflows/variables#gotchas)。
 
 **所有内容触发了两次。**

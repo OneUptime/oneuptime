@@ -19,8 +19,8 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 
 - **每個叢集的 Costs 頁面**（_Kubernetes → 您的叢集 → Costs_）：支出趨勢、依命名空間並按 cpu/記憶體/儲存拆分的支出、依工作負載的支出、閒置支出與效率。
 - **專案層級的 Costs 頁面**（_Kubernetes → Costs_）：專案中每個叢集的支出。
-- **一個 Kubernetes 成本儀表板範本**（_Dashboards → Create → Kubernetes Cost Dashboard_）：節點每小時成本趨勢、CPU/RAM 單位成本、persistent volume 與負載平衡器支出。
-- **Metric Explorer** 中的原始成本指標（`node_total_hourly_cost`、`pv_hourly_cost`……），可用於自訂儀表板與指標警示。
+- **一個 Kubernetes 成本儀表板範本**（_儀表板 → 建立 → Kubernetes Cost Dashboard_）：節點每小時成本趨勢、CPU/RAM 單位成本、persistent volume 與負載平衡器支出。
+- **指標瀏覽器** 中的原始成本指標（`node_total_hourly_cost`、`pv_hourly_cost`……），可用於自訂儀表板與指標警示。
 
 ## 運作方式
 

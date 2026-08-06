@@ -21,8 +21,8 @@ images are no longer built or published — existing tags remain pullable,
 but they will never receive another update.
 
 A Runner is one installed container that can hold several **capabilities**,
-toggled per Runner in the dashboard: **Runs Runbooks** (on by default),
-**Runs AI Code Fixes** (off by default), and **Runs AI Remediation Commands** (off by
+toggled per Runner in the dashboard: **执行运行手册** (on by default),
+**执行 AI 代码修复** (off by default), and **执行 AI 补救命令** (off by
 default). Capability changes are adopted on the Runner's next heartbeat —
 no restart needed. See [Runners](/docs/runbooks/agents) for how the
 component works day to day.
@@ -91,8 +91,8 @@ docker run --name oneuptime-runner --restart unless-stopped \
   -d oneuptime/runner:release
 ```
 
-(Or open the Runner in **Settings → Runners** and use **Show setup
-instructions** for a pre-filled command.)
+(Or open the Runner in **设置 → Runbook 代理** and use **显示设置说明**
+for a pre-filled command.)
 
 If you tuned the agent with environment variables, rename them — the old
 names are **silently ignored** by the new image:
@@ -108,13 +108,13 @@ names are **silently ignored** by the new image:
 
 ### If you ran the standalone AI Agent
 
-The **Settings → AI → AI Agents** page is gone and the `oneuptime/ai-agent`
+The **设置 → 人工智能 → AI 代理** page is gone and the `oneuptime/ai-agent`
 image is no longer built. If you had installed an AI Agent container
 yourself, replace it with a Runner:
 
-1. Create a Runner under **Settings → Runners** and install it with the
-   command from **Show setup instructions**.
-2. Enable **Runs AI Code Fixes** on it. The change is picked up on the next
+1. Create a Runner under **设置 → Runbook 代理** and install it with the
+   command from **显示设置说明**.
+2. Enable **执行 AI 代码修复** on it. The change is picked up on the next
    heartbeat.
 
 Old AI Agent credentials still boot the new `oneuptime/runner` image
@@ -199,11 +199,11 @@ wiki links:
 
 | Page                    | Old location                             | New location                              |
 | ----------------------- | ---------------------------------------- | ----------------------------------------- |
-| Runners (was "Agents")  | Runbooks → Settings → Agents (`…/runbooks/settings/agents`) | Settings → Runners (`…/settings/runners`) |
-| Runner Credentials      | Runbooks → Settings → Credentials (`…/runbooks/settings/credentials`) | Settings → Runner Credentials (`…/settings/runner-credentials`) |
-| AI Agents               | Settings → AI → AI Agents (`…/settings/ai-agents`) | Removed — Runners with the **Runs AI Code Fixes** capability replace it |
+| Runners (was "Agents")  | 运行手册 → 设置 → 代理 (`…/runbooks/settings/agents`) | 设置 → Runbook 代理 (`…/settings/runners`)      |
+| Runner Credentials      | 运行手册 → 设置 → 凭据 (`…/runbooks/settings/credentials`) | 设置 → Runner Credentials (`…/settings/runner-credentials`)                |
+| AI Agents               | 设置 → 人工智能 → AI 代理 (`…/settings/ai-agents`) | Removed — Runners with the **执行 AI 代码修复** capability replace it   |
 
-Runbook Secrets stays where it was, under Runbooks → Settings → Secrets.
+Runbook Secrets stays where it was, under 运行手册 → 设置 → 密钥.
 
 ### New in 12, nothing to enable by accident
 

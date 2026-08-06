@@ -14,7 +14,7 @@ I monitor IP verificano che un indirizzo IP specifico sia raggiungibile e reatti
 ## Creazione di un Monitor IP
 
 1. Accedere a **Monitor** nel Dashboard di OneUptime
-2. Fare clic su **Crea Monitor**
+2. Fare clic su **Crea monitor**
 3. Selezionare **IP** come tipo di monitor
 4. Inserire l'indirizzo IP da monitorare
 5. Configurare i criteri di monitoraggio secondo necessità
@@ -44,7 +44,7 @@ Per **È Online** e **Richiesta Timeout**:
 - **Vero** — La condizione è vera
 - **Falso** — La condizione è falsa
 
-Per **Tempo di Risposta**:
+Per **Tempo di risposta**:
 
 - **Maggiore Di** — Il tempo di risposta supera una soglia
 - **Minore Di** — Il tempo di risposta è inferiore a una soglia
@@ -59,10 +59,10 @@ Per **Tempo di Risposta**:
 #### Considerare offline se l'IP non è raggiungibile
 
 - **Controlla Su**: È Online
-- **Tipo Filtro**: Falso
+- **Tipo di filtro**: Falso
 
 #### Avviso se la latenza supera 100ms
 
 - **Controlla Su**: Tempo di Risposta (in ms)
-- **Tipo Filtro**: Maggiore Di
+- **Tipo di filtro**: Maggiore Di
 - **Valore**: 100

@@ -100,7 +100,7 @@ inboundEmail:
 ### Stap 6: Een Inkomend e-mail-monitor aanmaken
 
 1. Log in op uw OneUptime-dashboard
-2. Navigeer naar **Monitors** > **Monitor aanmaken**
+2. Navigeer naar **Monitoren** > **Monitor maken**
 3. Selecteer **Inkomend e-mail** als het monitortype
 4. Configureer uw monitor:
    - **Naam:** Geef uw monitor een beschrijvende naam

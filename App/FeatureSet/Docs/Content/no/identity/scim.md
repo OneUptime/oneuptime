@@ -24,10 +24,10 @@ Prosjekt-SCIM lar identitetsleverandører administrere teammedlemmer innenfor On
 
 2. **Konfigurer SCIM-innstillinger**
 
-   - Aktiver **Automatisk brukerklargjøring** for å legge til brukere automatisk når de tildeles i IdP-en
-   - Aktiver **Automatisk brukeravklargjøring** for å fjerne brukere automatisk når de fratildelses i IdP-en
+   - Aktiver **Automatisk klargjøring av brukere** for å legge til brukere automatisk når de tildeles i IdP-en
+   - Aktiver **Automatisk avvikling av brukere** for å fjerne brukere automatisk når de fratildelses i IdP-en
    - Velg **Standardteam** som nye brukere skal legges til i
-   - Kopier **SCIM-basis-URL** og **Bearer-token** for IdP-konfigurasjonen
+   - Kopier **SCIM Base URL** og **Bearer Token** for IdP-konfigurasjonen
 
 3. **Konfigurer identitetsleverandøren din**
    - Bruk SCIM-basis-URL: `https://oneuptime.com/scim/v2/{scimId}`
@@ -69,13 +69,13 @@ Statusside-SCIM lar identitetsleverandører administrere abonnenter på private 
 1. **Naviger til statussideinnstillinger**
 
    - Gå til OneUptime-statussiden din
-   - Naviger til **Statussideinnstillinger** > **Sikkerhet** > **SCIM**
+   - Naviger til **Statusside** > **Sikkerhet** > **SCIM**
 
 2. **Konfigurer SCIM-innstillinger**
 
-   - Aktiver **Automatisk brukerklargjøring** for å legge til abonnenter automatisk når de tildeles i IdP-en
-   - Aktiver **Automatisk brukeravklargjøring** for å fjerne abonnenter automatisk når de fratildelses i IdP-en
-   - Kopier **SCIM-basis-URL** og **Bearer-token** for IdP-konfigurasjonen
+   - Aktiver **Automatisk klargjøring av brukere** for å legge til abonnenter automatisk når de tildeles i IdP-en
+   - Aktiver **Automatisk avvikling av brukere** for å fjerne abonnenter automatisk når de fratildelses i IdP-en
+   - Kopier **SCIM Base URL** og **Bearer Token** for IdP-konfigurasjonen
 
 3. **Konfigurer identitetsleverandøren din**
    - Bruk SCIM-basis-URL: `https://oneuptime.com/status-page-scim/v2/{scimId}`
@@ -121,12 +121,12 @@ Microsoft Entra ID gir identitetsstyring på bedriftsnivå med robuste SCIM-klar
 3. Klikk **Opprett SCIM-konfigurasjon**
 4. Skriv inn et vennlig navn (f.eks. "Microsoft Entra ID Provisioning")
 5. Konfigurer følgende alternativer:
-   - **Automatisk brukerklargjøring**: Aktiver for å automatisk opprette brukere
-   - **Automatisk brukeravklargjøring**: Aktiver for å automatisk fjerne brukere
+   - **Automatisk klargjøring av brukere**: Aktiver for å automatisk opprette brukere
+   - **Automatisk avvikling av brukere**: Aktiver for å automatisk fjerne brukere
    - **Standardteam**: Velg team som nye brukere skal legges til i
-   - **Aktiver Push Groups**: Aktiver hvis du vil administrere teammedlemskap via Entra ID-grupper
+   - **Aktiver push-grupper**: Aktiver hvis du vil administrere teammedlemskap via Entra ID-grupper
 6. Lagre konfigurasjonen
-7. Kopier **SCIM-basis-URL** og **Bearer-token** – du trenger disse for Entra ID
+7. Kopier **SCIM Base URL** og **Bearer Token** – du trenger disse for Entra ID
 
 #### Trinn 2: Opprett bedriftsapplikasjon i Microsoft Entra ID
 
@@ -169,7 +169,7 @@ Microsoft Entra ID gir identitetsstyring på bedriftsnivå med robuste SCIM-klar
 
 #### Trinn 5: Konfigurer gruppeklargjøring (valgfritt)
 
-Hvis du aktiverte **Push Groups** i OneUptime:
+Hvis du aktiverte **Push-grupper** i OneUptime:
 
 1. Gå tilbake til **Kartlegginger**
 2. Klikk **Klargjør Azure Active Directory-grupper**
@@ -223,12 +223,12 @@ Okta gir fleksibel identitetsstyring med utmerket SCIM-støtte. Følg disse deta
 3. Klikk **Opprett SCIM-konfigurasjon**
 4. Skriv inn et vennlig navn (f.eks. "Okta Provisioning")
 5. Konfigurer følgende alternativer:
-   - **Automatisk brukerklargjøring**: Aktiver for å automatisk opprette brukere
-   - **Automatisk brukeravklargjøring**: Aktiver for å automatisk fjerne brukere
+   - **Automatisk klargjøring av brukere**: Aktiver for å automatisk opprette brukere
+   - **Automatisk avvikling av brukere**: Aktiver for å automatisk fjerne brukere
    - **Standardteam**: Velg team som nye brukere skal legges til i
-   - **Aktiver Push Groups**: Aktiver hvis du vil administrere teammedlemskap via Okta-grupper
+   - **Aktiver push-grupper**: Aktiver hvis du vil administrere teammedlemskap via Okta-grupper
 6. Lagre konfigurasjonen
-7. Kopier **SCIM-basis-URL** og **Bearer-token** – du trenger disse for Okta
+7. Kopier **SCIM Base URL** og **Bearer Token** – du trenger disse for Okta
 
 #### Trinn 2: Opprett eller konfigurer Okta-applikasjon
 
@@ -303,7 +303,7 @@ Okta gir fleksibel identitetsstyring med utmerket SCIM-støtte. Følg disse deta
 
 #### Trinn 7: Konfigurer Push Groups (valgfritt)
 
-Hvis du aktiverte **Push Groups** i OneUptime:
+Hvis du aktiverte **Push-grupper** i OneUptime:
 
 1. Gå til fanen **Push Groups**
 2. Klikk **+ Push Groups**
@@ -340,7 +340,7 @@ Hvis du aktiverte **Push Groups** i OneUptime:
 
 OneUptimes SCIM-implementasjon følger SCIM v2.0-spesifikasjonen og skal fungere med alle kompatible identitetsleverandører. Generelle konfigurasjonstrinn:
 
-1. **SCIM-basis-URL**: `https://oneuptime.com/api/identity/scim/v2/{scim-id}` (for prosjekter) eller `https://oneuptime.com/api/identity/status-page-scim/v2/{scim-id}` (for statussider)
+1. **SCIM Base URL**: `https://oneuptime.com/api/identity/scim/v2/{scim-id}` (for prosjekter) eller `https://oneuptime.com/api/identity/status-page-scim/v2/{scim-id}` (for statussider)
 2. **Autentisering**: HTTP Bearer-token
 3. **Påkrevd brukerattributt**: `userName` (må være en gyldig e-postadresse)
 4. **Støttede operasjoner**: GET, POST, PUT, PATCH, DELETE for brukere og grupper

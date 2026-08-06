@@ -10,7 +10,7 @@ OneUptime Docker Agent 是一個預先建置的容器映像檔，內含經過調
 
 - Docker Engine 20.10+
 - 可存取主機上的 `/var/run/docker.sock`
-- 一組 **OneUptime Telemetry Ingestion Token** — 從 _Project Settings → 遙測與 APM → 擷取金鑰_ 建立一組，並複製其值
+- 一組 **OneUptime Telemetry Ingestion Token** — 從 _專案設定 → 遙測與 APM → 擷取金鑰_ 建立一組，並複製其值
 
 ## 快速開始（單一指令）
 
@@ -67,7 +67,7 @@ docker compose up -d
 | 變數                      | 必填 | 說明                                                                                            |
 | ------------------------- | ---- | ----------------------------------------------------------------------------------------------- |
 | `ONEUPTIME_URL`           | 是   | 您的 OneUptime 執行個體 URL（例如 `https://oneuptime.com` 或您的自架主機）                      |
-| `ONEUPTIME_SERVICE_TOKEN` | 是   | 來自 _Project Settings → 遙測與 APM → 擷取金鑰_ 的遙測擷取權杖                               |
+| `ONEUPTIME_SERVICE_TOKEN` | 是   | 來自 _專案設定 → 遙測與 APM → 擷取金鑰_ 的遙測擷取權杖                                       |
 | `DOCKER_HOST_NAME`        | 否   | 此主機的易記名稱。預設為 `docker-host`。請為每台主機設定一個穩定的名稱（例如 `prod-docker-01`） |
 
 ## 驗證安裝

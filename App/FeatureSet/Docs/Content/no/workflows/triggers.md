@@ -4,7 +4,7 @@ En trigger er den første blokken i en arbeidsflyt — den bestemmer når arbeid
 
 ## Manuell
 
-Kjør arbeidsflyten på forespørsel ved å klikke **Kjør manuelt** på arbeidsflytsiden. Du kan lime inn en JSON-nyttelast som resten av arbeidsflyten kan lese.
+Kjør arbeidsflyten på forespørsel ved å klikke **Run Manually** på arbeidsflytsiden. Du kan lime inn en JSON-nyttelast som resten av arbeidsflyten kan lese.
 
 Bra for: ettklikks-automatiseringer du vil ha en knapp for, som "roter denne nøkkelen" eller "send et testvarsel."
 
@@ -32,9 +32,9 @@ Bra for: å motta data inn til OneUptime fra et annet verktøy — CI/CD-tilbake
 
 **Utdata**:
 
-- **Request Headers** — alle headerne fra den innkommende forespørselen.
+- **Forespørselshoder** — alle headerne fra den innkommende forespørselen.
 - **Request Query Params** — den tolkede spørringsstrengen.
-- **Request Body** — den tolkede kroppen (eller råteksten hvis den ikke er JSON).
+- **Forespørselstekst** — den tolkede kroppen (eller råteksten hvis den ikke er JSON).
 
 URL-en aksepterer både `GET` og `POST`. Den som kaller får en rask bekreftelse — selve arbeidsflyten kjører i bakgrunnen.
 
@@ -44,21 +44,21 @@ Behandle URL-en som et passord. Alle som har den kan starte arbeidsflyten din.
 
 Nesten alt i OneUptime — monitorer, hendelser, varsler, planlagt vedlikehold, statussider, vaktordningspolicyer, team — kan trigge en arbeidsflyt. Hver av dem tilbyr tre hendelser:
 
-- **Ved opprettelse** — utløses når en ny legges til.
-- **Ved oppdatering** — utløses når en endres.
-- **Ved sletting** — utløses når en slettes.
+- **On Create** — utløses når en ny legges til.
+- **On Update** — utløses når en endres.
+- **On Delete** — utløses når en slettes.
 
 Slik bygger du "når X skjer i OneUptime, gjør Y" uten å måtte sjekke ting i en løkke.
 
-Hele oppføringen sendes til neste blokk. For eksempel sender triggeren **Hendelse → Ved opprettelse** den nye hendelsen, slik at neste blokk kan lese tittelen, beskrivelsen, alvorlighetsgraden og ethvert annet felt.
+Hele oppføringen sendes til neste blokk. For eksempel sender triggeren **Hendelse → On Create** den nye hendelsen, slik at neste blokk kan lese tittelen, beskrivelsen, alvorlighetsgraden og ethvert annet felt.
 
 ### Hendelser team bruker mest
 
 - **Hendelse** — reager når en hendelse åpnes, oppdateres (bekreftet, løst) eller slettes.
 - **Varsel** — samme tre for varsler.
-- **Monitor** — reager når en monitor legges til, redigeres eller fjernes.
+- **Overvåking** — reager når en monitor legges til, redigeres eller fjernes.
 - **Planlagt vedlikehold** — annonser et vedlikeholdsvindu automatisk når det planlegges.
-- **Statussideabonnent** — ønsk velkommen til noen som abonnerer på en statusside.
+- **Statusside Abonnent** — ønsk velkommen til noen som abonnerer på en statusside.
 - **Vaktordningspolicy** — synkroniser tidsplanendringer til et annet vaktsystem.
 
 Søk i triggerpaletten etter navn for å finne den du vil ha.
@@ -67,7 +67,7 @@ Søk i triggerpaletten etter navn for å finne den du vil ha.
 
 | Hvis du vil…                              | Velg                   |
 | ----------------------------------------- | ---------------------- |
-| Klikke en knapp for å kjøre arbeidsflyten | **Manuell**            |
+| Klikke en knapp for å kjøre arbeidsflyten | **Manual**             |
 | Kjøre på en gjentakende tidsplan          | **Tidsplan**           |
 | La et annet system pushe data inn         | **Webhook**            |
 | Reagere på noe inne i OneUptime           | **OneUptime-hendelse** |

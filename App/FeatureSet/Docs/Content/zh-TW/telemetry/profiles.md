@@ -23,13 +23,13 @@ OneUptime 支援以下剖析類型：
 
 ### 步驟 1 - 建立遙測擷取權杖
 
-當您註冊 OneUptime 並建立專案後，請點擊導覽列中的「Products」，然後點擊「Project Settings」。
+當您註冊 OneUptime 並建立專案後，請點擊導覽列中的「產品」，然後點擊「專案設定」。
 
-在 Telemetry Ingestion Key 頁面上，點擊「Create Ingestion Key」以建立權杖。
+在 Telemetry Ingestion Key 頁面上，點擊「建立擷取金鑰」以建立權杖。
 
 ![Create Service](/docs/static/images/TelemetryIngestionKeys.png)
 
-建立權杖後，點擊「View」以檢視該權杖。
+建立權杖後，點擊「檢視」以檢視該權杖。
 
 ![View Service](/docs/static/images/TelemetryIngestionKeyView.png)
 
@@ -177,7 +177,7 @@ OneUptime 中的剖析資料可以與分散式追蹤建立關聯。當剖析資�
 
 剖析資料的保留期限是在您的 OneUptime 專案設定中針對每個遙測服務進行設定。預設保留期限為 15 天。資料會在保留期限到期後自動刪除。
 
-若要變更某個服務的保留期限，請前往 **Products > 服務 > [您的服務] > Settings**，並更新資料保留值。
+若要變更某個服務的保留期限，請前往 **產品 > 服務 > [您的服務] > 設定**，並更新資料保留值。
 
 ## 需要協助嗎？
 

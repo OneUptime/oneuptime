@@ -6,7 +6,7 @@ O serviço de Ingestão OpenTelemetry agora aceita payloads Syslog nativos. Voc�
 
 ## Pré-requisitos
 
-- **Token de Ingestão de Telemetria** – crie um em _Project Settings → Telemetria e APM → Chaves de ingestão_ e copie o valor `x-oneuptime-token`.
+- **Token de Ingestão de Telemetria** – crie um em _Configurações do projeto → Telemetria e APM → Chaves de ingestão_ e copie o valor `x-oneuptime-token`.
 - **Encaminhador de syslog** – qualquer ferramenta capaz de enviar requisições HTTP POST (por exemplo `curl`, `rsyslog` via `omhttp`, ou `syslog-ng` com o plugin de destino HTTP).
 - **Nome do serviço (opcional)** – defina o cabeçalho `x-oneuptime-service-name` para agrupar os logs de entrada em um serviço de telemetria específico. Quando omitido, o OneUptime recorre ao `APP-NAME` do syslog, hostname ou `Syslog`.
 
@@ -182,7 +182,7 @@ O OneUptime adiciona automaticamente os seguintes atributos a cada entrada de lo
 - `syslog.structured.*` (dados estruturados RFC5424 achatados)
 - `syslog.raw` (mensagem original para rastreabilidade)
 
-Esses atributos tornam-se pesquisáveis dentro do explorador de Telemetria → Logs.
+Esses atributos tornam-se pesquisáveis dentro do explorador de Telemetria → Registros.
 
 ## Solução de Problemas
 

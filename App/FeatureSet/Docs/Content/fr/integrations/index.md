@@ -57,7 +57,7 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 
 Ne collez jamais une clé d'API ou un jeton directement dans un bloc. À la place :
 
-1. Allez dans **Workflows → Global Variables**.
+1. Allez dans **Flux de travail → Variables globales**.
 2. Créez une variable — par exemple `JIRA_AUTH` — et activez **Is Secret**.
 3. Référencez-la partout avec `{{variable.JIRA_AUTH}}`.
 

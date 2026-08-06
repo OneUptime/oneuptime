@@ -34,13 +34,13 @@ Fluentd 支援數百種資料來源，您可以將這些來源中的任何日誌
 - **步驟 3：建立 OneUptime 專案** - 擁有帳號後，您可以從 OneUptime 儀表板建立專案。如果您在建立專案時需要任何協助或有任何疑問，請透過 support@oneuptime.com 與我們聯絡
 - **步驟 4：建立遙測擷取權杖** - 建立 OneUptime 帳號後，您可以建立遙測擷取權杖，以從您的應用程式擷取日誌、指標與追蹤。
 
-註冊 OneUptime 並建立專案後。點擊導覽列中的「Products」，然後點擊「Project Settings」。
+註冊 OneUptime 並建立專案後。點擊導覽列中的「產品」，然後點擊「專案設定」。
 
-在 Telemetry Ingestion Key 頁面上，點擊「Create Ingestion Key」以建立權杖。
+在 Telemetry Ingestion Key 頁面上，點擊「建立擷取金鑰」以建立權杖。
 
 ![Create Service](/docs/static/images/TelemetryIngestionKeys.png)
 
-建立權杖後，點擊「View」以檢視該權杖。
+建立權杖後，點擊「檢視」以檢視該權杖。
 
 ![View Service](/docs/static/images/TelemetryIngestionKeyView.png)
 

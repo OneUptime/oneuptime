@@ -21,17 +21,17 @@ OneUptime Incident → On Create  ──►  Telegram component  ──►  mess
 
 ## Schritt 3 — Die Geheimnisse speichern
 
-1. Gehen Sie in OneUptime zu **Workflows → Global Variables → Create**.
+1. Gehen Sie in OneUptime zu **Arbeitsabläufe → Globale Variablen → Erstellen**.
 2. Erstellen Sie `TELEGRAM_BOT_TOKEN` (geheim) und `TELEGRAM_CHAT_ID`.
 
 ## Schritt 4 — Den Workflow erstellen
 
-1. Öffnen Sie **Workflows → Create Workflow**, benennen Sie ihn `Incidents → Telegram`, und öffnen Sie den **Builder**.
-2. Fügen Sie einen **Incident**-Auslöser mit **On Create** hinzu. Benennen Sie ihn in `Incident` um.
+1. Öffnen Sie **Arbeitsabläufe → Workflow erstellen**, benennen Sie ihn `Incidents → Telegram`, und öffnen Sie den **Builder**.
+2. Fügen Sie einen **Vorfall**-Auslöser mit **On Create** hinzu. Benennen Sie ihn in `Incident` um.
 3. Fügen Sie eine **Telegram**-Komponente verbunden mit dem Auslöser hinzu:
    - **Bot token**: `{{variable.TELEGRAM_BOT_TOKEN}}`
    - **Chat ID**: `{{variable.TELEGRAM_CHAT_ID}}`
-   - **Message**: `🔴 New incident: {{Incident.title}}\n{{Incident.description}}`
+   - **Nachricht**: `🔴 New incident: {{Incident.title}}\n{{Incident.description}}`
 4. **Speichern**, aktivieren und einen Test-Vorfall erstellen. Die Nachricht kommt in Ihrem Chat an.
 
 ## Alternative: die API-Komponente
@@ -46,7 +46,7 @@ Ein **API**-Block funktioniert ebenfalls:
 ## Tipps
 
 - Der Bot sieht Nachrichten erst, nachdem er zu einer Gruppe hinzugefügt wurde und der **Privacy-Modus** es erlaubt – wenn `getUpdates` leer ist, senden Sie dem Bot zuerst eine Nachricht oder deaktivieren Sie den Privacy-Modus über BotFather.
-- Verwenden Sie **Conditions**, um vor dem Senden nach Schweregrad zu filtern.
+- Verwenden Sie **Bedingungen**, um vor dem Senden nach Schweregrad zu filtern.
 - Fügen Sie `"parse_mode": "Markdown"` zum API-Body hinzu (oder verwenden Sie die Formatierung der Komponente) für Fett- und Links.
 
 ## Weiterführende Themen

@@ -34,12 +34,12 @@ Você constrói tudo isso visualmente em um canvas. Sem necessidade de código p
 
 ## Onde encontrar workflows no OneUptime
 
-Abra **Workflows** na navegação à esquerda. A partir daí:
+Abra **Fluxos de trabalho** na navegação à esquerda. A partir daí:
 
-- **Workflows** — sua lista de workflows. Crie um novo ou abra um existente.
-- **Aba Builder** — o canvas onde você desenha o workflow.
-- **Aba Logs** — toda execução deste workflow, com detalhes.
-- **Aba Settings** — nome, descrição, donos, etiquetas, ativar/desativar.
+- **Fluxos de trabalho** — sua lista de workflows. Crie um novo ou abra um existente.
+- **Aba Construtor** — o canvas onde você desenha o workflow.
+- **Aba Registros** — toda execução deste workflow, com detalhes.
+- **Aba Configurações** — nome, descrição, donos, etiquetas, ativar/desativar.
 - **Variáveis globais** — valores compartilhados em todos os seus workflows.
 - **Execuções e registros** — histórico de execuções de todos os workflows do seu projeto.
 
@@ -49,7 +49,7 @@ Abra **Workflows** na navegação à esquerda. A partir daí:
 2. **Escolha um gatilho** — manual, agendado, webhook ou um evento do OneUptime.
 3. **Adicione componentes** — arraste ações para o canvas e conecte-as.
 4. **Teste** — clique em **Executar Manualmente** e veja o que acontece nos logs.
-5. **Ative** — vire o interruptor **Ativado** nas Configurações quando estiver pronto.
+5. **Ative** — vire o interruptor **Habilitado** nas Configurações quando estiver pronto.
 
 ## Um exemplo rápido
 
@@ -65,9 +65,9 @@ Da próxima vez que alguém abrir um incidente com "Sev 1" no título, o Slack s
 
 ## Como os workflows se encaixam no restante do OneUptime
 
-- **Monitores** detectam o problema. **Incidentes** o registram. **Workflows** reagem a ele.
+- **Monitores** detectam o problema. **Incidentes** o registram. **Fluxos de trabalho** reagem a ele.
 - **Runbooks** são guias passo a passo para pessoas. Workflows são automação sem supervisão. Use um runbook quando um humano precisa tomar decisões; use um workflow quando os passos são automáticos.
-- **Conexões de workspace** (Slack, Teams) são para onde os workflows enviam suas mensagens.
+- **Conexões do espaço de trabalho** (Slack, Teams) são para onde os workflows enviam suas mensagens.
 
 ## O que ler em seguida
 

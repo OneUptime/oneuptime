@@ -16,16 +16,16 @@ Grafana alert rule fires  ──►  Webhook contact point  ──►  OneUptime
 
 ## 步驟 1 — 建立 OneUptime Workflow
 
-1. 開啟 **Workflows → Create Workflow**，將其命名為 `Grafana → Incidents`，然後開啟 **Builder**。
+1. 開啟 **工作流程 → 建立工作流程**，將其命名為 `Grafana → Incidents`，然後開啟 **建構器**。
 2. 新增一個 **Webhook** 觸發器並**複製其 URL**。將該區塊重新命名為 `Grafana`。
 3. 新增一個連接到觸發器的 **Conditions** 區塊：
    - **Left**：`{{Grafana.Request Body.status}}`
    - **Operator**：`==`
    - **Right**：`firing`
 4. 從 **Yes** 新增一個 **Create Incident** 區塊：
-   - **Title**：`{{Grafana.Request Body.title}}`
-   - **Description**：`{{Grafana.Request Body.message}}`
-   - **Severity**：選擇其中一個（或依 `{{Grafana.Request Body.commonLabels.severity}}` 進行分支）。
+   - **標題**：`{{Grafana.Request Body.title}}`
+   - **描述**：`{{Grafana.Request Body.message}}`
+   - **嚴重程度**：選擇其中一個（或依 `{{Grafana.Request Body.commonLabels.severity}}` 進行分支）。
 5. **儲存**（在測試之前保持停用狀態）。
 
 Grafana 的 webhook 酬載遵循 Alertmanager 的格式——它包含 `status`、一個 `alerts` 陣列、`commonLabels` 與 `commonAnnotations`，以及方便使用的頂層 `title` 與 `message` 欄位。
@@ -42,7 +42,7 @@ Grafana 的 webhook 酬載遵循 Alertmanager 的格式——它包含 `status`�
 
 1. 啟用 Workflow。
 2. 在聯絡點畫面中，使用 **Test** 傳送範例通知，或讓真實的警報規則觸發。
-3. 檢查 Workflow 的 **Logs** 分頁以及您的 **Incidents** 清單。
+3. 檢查 Workflow 的 **日誌** 分頁以及您的 **事件** 清單。
 
 ## 在復原時解除 (選用)
 
@@ -56,7 +56,7 @@ Grafana 的 webhook 酬載遵循 Alertmanager 的格式——它包含 `status`�
 ## 疑難排解
 
 - **沒有出現任何執行紀錄** — 確認 Grafana 能連線到該 URL（檢查 Grafana 的伺服器記錄），且該 Workflow 已**啟用**。
-- **欄位為空** — 在 **Logs** 分頁中檢視觸發器的輸出；請參照您警報版本中實際存在的欄位。
+- **欄位為空** — 在 **日誌** 分頁中檢視觸發器的輸出；請參照您警報版本中實際存在的欄位。
 
 ## 接下來閱讀
 

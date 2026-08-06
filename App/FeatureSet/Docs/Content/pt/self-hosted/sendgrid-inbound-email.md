@@ -100,16 +100,16 @@ inboundEmail:
 ### Passo 6: Criar um Monitor de Email de Entrada
 
 1. Faça login no seu Painel do OneUptime
-2. Navegue para **Monitors** > **Create Monitor**
+2. Navegue para **Monitores** > **Criar monitor**
 3. Selecione **Incoming Email** como o tipo de monitor
 4. Configure seu monitor:
-   - **Name:** Dê ao seu monitor um nome descritivo
-   - **Description:** Descreva para que serve este monitor
+   - **Nome:** Dê ao seu monitor um nome descritivo
+   - **Descrição:** Descreva para que serve este monitor
 5. Configure **Alert Creation Criteria** (quando criar um alerta):
    - Exemplo: Email Subject contém "ALERT" ou "CRITICAL"
 6. Configure **Alert Resolution Criteria** (quando resolver um alerta):
    - Exemplo: Email Subject contém "RESOLVED" ou "OK"
-7. Clique em **Create**
+7. Clique em **Criar**
 
 Após a criação, você verá o endereço de email único para este monitor (ex.: `monitor-abc123def456@inbound.seudominio.com`).
 
@@ -133,13 +133,13 @@ Após a criação, você verá o endereço de email único para este monitor (ex
 
 Ao configurar seu Monitor de Email de Entrada, você pode criar critérios baseados em:
 
-| Campo              | Descrição                                   | Filtros Disponíveis                                                                        |
-| ------------------ | ------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| **Email Subject**  | A linha de assunto do email                 | Contains, Not Contains, Equals, Not Equals, Starts With, Ends With, Is Empty, Is Not Empty |
-| **Email From**     | O endereço de email do remetente            | Contains, Not Contains, Equals, Not Equals, Starts With, Ends With, Is Empty, Is Not Empty |
-| **Email Body**     | O corpo em texto simples do email           | Contains, Not Contains, Equals, Not Equals, Starts With, Ends With, Is Empty, Is Not Empty |
-| **Email To**       | O endereço de email do destinatário         | Contains, Not Contains, Equals, Not Equals, Starts With, Ends With, Is Empty, Is Not Empty |
-| **Email Received** | Tempo desde que o último email foi recebido | Received In Minutes, Not Received In Minutes                                               |
+| Campo                 | Descrição                                   | Filtros Disponíveis                                                                        |
+| --------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| **Assunto do e-mail** | A linha de assunto do email                 | Contains, Not Contains, Equals, Not Equals, Starts With, Ends With, Is Empty, Is Not Empty |
+| **E-mail de origem**  | O endereço de email do remetente            | Contains, Not Contains, Equals, Not Equals, Starts With, Ends With, Is Empty, Is Not Empty |
+| **Email Body**        | O corpo em texto simples do email           | Contains, Not Contains, Equals, Not Equals, Starts With, Ends With, Is Empty, Is Not Empty |
+| **Email To**          | O endereço de email do destinatário         | Contains, Not Contains, Equals, Not Equals, Starts With, Ends With, Is Empty, Is Not Empty |
+| **Email Received**    | Tempo desde que o último email foi recebido | Received In Minutes, Not Received In Minutes                                               |
 
 ## Casos de Uso de Exemplo
 

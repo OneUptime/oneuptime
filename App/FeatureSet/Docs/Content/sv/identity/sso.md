@@ -23,7 +23,7 @@ SSO-integration ger följande fördelar:
    - Klicka på **Skapa SSO**
    - Ange ett **Namn** för SSO-konfigurationen (t.ex. "Keycloak SAML" eller "Okta SAML")
    - Ange **Inloggnings-URL** från din identitetsleverantör
-   - Ange **Utgivare** (Entity ID) från din identitetsleverantör
+   - Ange **Utfärdare** (Entity ID) från din identitetsleverantör
    - Klistra in **Offentligt certifikat** från din identitetsleverantör
    - Välj **Signaturalgoritm** (t.ex. `RSA-SHA-256`)
    - Välj **Digest-algoritm** (t.ex. `SHA256`)
@@ -50,7 +50,7 @@ Keycloak är en populär open source-lösning för identitets- och åtkomsthante
 3. Klicka på **Skapa SSO** och fyll i följande:
    - **Namn**: Ett beskrivande namn (t.ex. `my-project-oneuptime`)
    - **Inloggnings-URL**: `https://<your-keycloak-domain>/auth/realms/<your-realm>/protocol/saml`
-   - **Utgivare**: `https://<your-keycloak-domain>/auth/realms/<your-realm>`
+   - **Utfärdare**: `https://<your-keycloak-domain>/auth/realms/<your-realm>`
    - **Certifikat**: Se [Steg 2](#steg-2-hämta-keycloak-certifikatet) nedan
    - **Signaturalgoritm**: `RSA-SHA-256`
    - **Digest-algoritm**: `SHA256`
@@ -117,7 +117,7 @@ Microsoft Entra ID är Microsofts molnbaserade identitets- och åtkomsthantering
 3. Klicka på **Skapa SSO** och fyll i följande:
    - **Namn**: Ett beskrivande namn (t.ex. `Azure AD SAML`)
    - **Inloggnings-URL**: Du hämtar detta från Entra ID i [Steg 3](#steg-3-konfigurera-saml-sso-i-entra-id)
-   - **Utgivare**: Du hämtar detta från Entra ID i [Steg 3](#steg-3-konfigurera-saml-sso-i-entra-id)
+   - **Utfärdare**: Du hämtar detta från Entra ID i [Steg 3](#steg-3-konfigurera-saml-sso-i-entra-id)
    - **Certifikat**: Du hämtar detta från Entra ID i [Steg 3](#steg-3-konfigurera-saml-sso-i-entra-id)
    - **Signaturalgoritm**: `RSA-SHA-256`
    - **Digest-algoritm**: `SHA256`
@@ -146,7 +146,7 @@ Microsoft Entra ID är Microsofts molnbaserade identitets- och åtkomsthantering
    - Öppna det nedladdade certifikatfilen i en textredigerare och kopiera innehållet
 6. I avsnittet **Konfigurera OneUptime**, kopiera:
    - **Inloggnings-URL** – klistra in detta som **Inloggnings-URL** i OneUptime
-   - **Azure AD-identifierare** – klistra in detta som **Utgivare** i OneUptime
+   - **Azure AD-identifierare** – klistra in detta som **Utfärdare** i OneUptime
 7. Gå tillbaka till OneUptime och klistra in certifikatet och URL:erna, spara sedan
 
 ### Steg 4: Konfigurera användarattribut och anspråk
@@ -202,7 +202,7 @@ Okta är en vanligt använd identitetsplattform som tillhandahåller robusta SAM
 3. Klicka på **Skapa SSO** och fyll i följande:
    - **Namn**: Ett beskrivande namn (t.ex. `Okta SAML`)
    - **Inloggnings-URL**: Du hämtar detta från Okta i [Steg 3](#steg-3-kopiera-okta-saml-metadata-till-oneuptime)
-   - **Utgivare**: Du hämtar detta från Okta i [Steg 3](#steg-3-kopiera-okta-saml-metadata-till-oneuptime)
+   - **Utfärdare**: Du hämtar detta från Okta i [Steg 3](#steg-3-kopiera-okta-saml-metadata-till-oneuptime)
    - **Certifikat**: Du hämtar detta från Okta i [Steg 3](#steg-3-kopiera-okta-saml-metadata-till-oneuptime)
    - **Signaturalgoritm**: `RSA-SHA-256`
    - **Digest-algoritm**: `SHA256`
@@ -228,7 +228,7 @@ Okta är en vanligt använd identitetsplattform som tillhandahåller robusta SAM
 2. I avsnittet **SAML-signeringscertifikat**, hitta det aktiva certifikatet och klicka på **Åtgärder** > **Visa IdP-metadata**
 3. Från metadata-XML eller från detaljer på fliken **Sign On**:
    - Kopiera **Sign On URL** (kallas även **Identity Provider Single Sign-On URL**) – klistra in detta som **Inloggnings-URL** i OneUptime
-   - Kopiera **Utgivare** (kallas även **Identity Provider Issuer**) – klistra in detta som **Utgivare** i OneUptime
+   - Kopiera **Utgivare** (kallas även **Identity Provider Issuer**) – klistra in detta som **Utfärdare** i OneUptime
 4. Ladda ned signeringscertifikatet:
    - I avsnittet **SAML-signeringscertifikat**, klicka på **Åtgärder** > **Ladda ned certifikat** för det aktiva certifikatet
    - Öppna den nedladdade `.cert`-filen i en textredigerare och kopiera innehållet
@@ -283,7 +283,7 @@ OneUptimes SSO-implementering använder SAML 2.0-protokollet och bör fungera me
    - **Name ID-format**: E-postadress
 3. Från din identitetsleverantör, kopiera följande till OneUptime:
    - **Inloggnings-URL** (SSO-slutpunkt)
-   - **Utgivare** (Entity ID för IdP:n)
+   - **Utfärdare** (Entity ID för IdP:n)
    - **Offentligt certifikat** (X.509-signeringscertifikat)
 4. Ange **Signaturalgoritm** till `RSA-SHA-256` och **Digest-algoritm** till `SHA256`
 

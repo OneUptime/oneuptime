@@ -92,7 +92,7 @@ DaemonSet 在每个节点上运行一个 OpenTelemetry Collector pod。它通过
 
 chart 在每个节点上部署一个运行 [OpenTelemetry eBPF Instrumentation (OBI)](https://opentelemetry.io/docs/zero-code/obi/) 的 DaemonSet。OBI 将 eBPF 程序加载到 Linux 内核中，监视套接字级流量，从节点上的每个 Pod 重建 HTTP/HTTPS、gRPC 和 SQL/Redis 调用 —— 无需修改代码、无需 SDK、无需 sidecar。捕获到的流量以 OTLP 追踪和请求/延迟指标的形式直接导出到 OneUptime。
 
-安装完成后一两分钟内，您的服务就会出现在 **Products → 追踪** 和服务图谱中，并将 `k8s.cluster.name` 设置为您的 `clusterName`，便于按集群过滤。
+安装完成后一两分钟内，您的服务就会出现在 **产品 → 跟踪** 和服务图谱中，并将 `k8s.cluster.name` 设置为您的 `clusterName`，便于按集群过滤。
 
 ### 何时关闭
 
@@ -163,7 +163,7 @@ kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=2
 
 ## 持续 CPU 性能分析（默认禁用）
 
-另一个独立的 DaemonSet 运行 [OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) —— 以 `otel/opentelemetry-collector-ebpf-profiler` 镜像形式打包。它以 19Hz 在所有支持的运行时（Go、Java、.NET、Python、Ruby、Node.js、PHP、Perl、C/C++、Rust）上采样 on-CPU 调用栈，并将 OTLP profile 发送到 OneUptime，您可以在 **Products → 性能配置文件** 中以及从单个 trace span 链接的火焰图中看到这些数据。
+另一个独立的 DaemonSet 运行 [OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) —— 以 `otel/opentelemetry-collector-ebpf-profiler` 镜像形式打包。它以 19Hz 在所有支持的运行时（Go、Java、.NET、Python、Ruby、Node.js、PHP、Perl、C/C++、Rust）上采样 on-CPU 调用栈，并将 OTLP profile 发送到 OneUptime，您可以在 **产品 → 性能配置** 中以及从单个 trace span 链接的火焰图中看到这些数据。
 
 性能分析**默认禁用** —— 它比 OBI 自动埋点更耗资源（每个节点的 CPU 占用更多，内存占用更大），并非每个集群都希望始终开启火焰图。当您需要更丰富的遥测数据时再启用它：`--set profiling.enabled=true`。
 

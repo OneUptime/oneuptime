@@ -39,7 +39,7 @@ Vai su **Runbook → Impostazioni → Agenti** e crea un nuovo agente. Compila:
 
 ### 2. Copia il comando di installazione
 
-Dopo aver creato l'agente, clicca **Mostra istruzioni di setup** sulla sua riga. Vedrai un comando `docker run` precompilato con ID e chiave di questo agente. **Salva la chiave ora** — puoi rigenerarla in seguito, ma non potrai più vedere lo stesso valore della chiave dopo aver chiuso il modale.
+Dopo aver creato l'agente, clicca **Mostra istruzioni di configurazione** sulla sua riga. Vedrai un comando `docker run` precompilato con ID e chiave di questo agente. **Salva la chiave ora** — puoi rigenerarla in seguito, ma non potrai più vedere lo stesso valore della chiave dopo aver chiuso il modale.
 
 ### 3. Eseguilo su un host della tua infrastruttura
 
@@ -86,7 +86,7 @@ A ogni passo Bash o JavaScript si applicano due timeout:
 | **Claim timeout**     | 2 minuti   | Quanto tempo il Worker aspetta che l'agente selezionato reclami il job. Se non lo prende in tempo, il passo fallisce con `TimedOut` e il runbook prosegue (o si ferma, a seconda di **Continua in caso di errore**). |
 | **Execution timeout** | 30 secondi | Quanto tempo l'agente lascia girare lo script prima di terminarlo. (Bash riceve `SIGKILL`; l'isolate di JavaScript viene smontato.)                                                                                  |
 
-Entrambi sono configurabili per passo. Apri **Runbook &rsaquo; il tuo runbook &rsaquo; Passi**, espandi un passo Bash o JavaScript e imposta **Execution timeout** e **Claim timeout** (in secondi) sotto lo script. Lascia un campo vuoto per usare il valore predefinito. Ognuno accetta da 1 secondo a 1 ora; i valori fuori da questo intervallo vengono riportati entro i limiti quando il passo viene eseguito.
+Entrambi sono configurabili per passo. Apri **Runbook &rsaquo; il tuo runbook &rsaquo; Passaggi**, espandi un passo Bash o JavaScript e imposta **Execution timeout** e **Claim timeout** (in secondi) sotto lo script. Lascia un campo vuoto per usare il valore predefinito. Ognuno accetta da 1 secondo a 1 ora; i valori fuori da questo intervallo vengono riportati entro i limiti quando il passo viene eseguito.
 
 La finestra di attesa complessiva del Worker è `claim timeout + execution timeout + qualche secondo`. Scegli numeri che si adattino al passo.
 

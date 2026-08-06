@@ -15,8 +15,8 @@ I monitor Kubernetes usano le metriche del vostro cluster per fornire una visibi
 
 ## Creare un monitor Kubernetes
 
-1. Andate su **Monitors** nella Dashboard di OneUptime
-2. Cliccate su **Create Monitor**
+1. Andate su **Monitor** nella Dashboard di OneUptime
+2. Cliccate su **Crea monitor**
 3. Selezionate **Kubernetes** come tipo di monitor
 4. Selezionate il cluster e l'ambito delle risorse da monitorare
 5. Configurate filtri delle risorse e query delle metriche
@@ -57,8 +57,8 @@ Restringete l'ambito con filtri opzionali:
 Configurate una o più query delle metriche da valutare. Ciascuna query specifica:
 
 - **Metric name** — La metrica Kubernetes da interrogare
-- **Aggregation** — Come aggregare i valori della metrica
-- **Filters** — Filtraggio aggiuntivo basato su attributi
+- **Aggregazione** — Come aggregare i valori della metrica
+- **Filtri** — Filtraggio aggiuntivo basato su attributi
 
 Potete anche creare **formule** che combinano più query di metriche utilizzando espressioni matematiche.
 

@@ -15,18 +15,18 @@ OneUptime Incident → On Create  ──►  Discord component  ──►  messa
 
 ## Шаг 2 — Сохраните URL webhook (опционально, но рекомендуется)
 
-1. В OneUptime перейдите в **Workflows → Global Variables → Create**.
+1. В OneUptime перейдите в **Рабочие процессы → Глобальные переменные → Создать**.
 2. Назовите переменную `DISCORD_WEBHOOK_URL`, вставьте URL и включите **Is Secret**.
 
 Хранение в переменной позволяет переиспользовать её в разных рабочих процессах и менять в одном месте.
 
 ## Шаг 3 — Создайте рабочий процесс
 
-1. Откройте **Workflows → Create Workflow**, назовите его `Incidents → Discord` и откройте **Builder**.
+1. Откройте **Рабочие процессы → Создать рабочий процесс**, назовите его `Incidents → Discord` и откройте **Конструктор**.
 2. Добавьте триггер **Incident**, установив **On Create**. Переименуйте его в `Incident`.
 3. Добавьте компонент **Discord**, соединённый с триггером:
-   - **Webhook URL**: `{{variable.DISCORD_WEBHOOK_URL}}` (или вставьте напрямую).
-   - **Message**: `🔴 New incident: {{Incident.title}}\n{{Incident.description}}`
+   - **URL webhook**: `{{variable.DISCORD_WEBHOOK_URL}}` (или вставьте напрямую).
+   - **Сообщение**: `🔴 New incident: {{Incident.title}}\n{{Incident.description}}`
 4. **Сохраните**, включите и создайте тестовый инцидент. Сообщение появится в вашем канале.
 
 ## Альтернатива: компонент API
@@ -42,7 +42,7 @@ OneUptime Incident → On Create  ──►  Discord component  ──►  messa
 
 ## Советы
 
-- Используйте **Conditions**, чтобы публиковать только для определённых уровней серьёзности — ветвитесь по `{{Incident.incidentSeverity.name}}` перед блоком Discord.
+- Используйте **Условия**, чтобы публиковать только для определённых уровней серьёзности — ветвитесь по `{{Incident.incidentSeverity.name}}` перед блоком Discord.
 - Добавьте ещё рабочие процессы на **Incident → On Update** для публикации подтверждений и разрешений в тот же канал.
 
 ## Что читать дальше

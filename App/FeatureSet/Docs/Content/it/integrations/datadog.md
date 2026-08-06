@@ -15,16 +15,16 @@ Datadog monitor alerts  ──►  Webhook integration  ──►  OneUptime Web
 
 ## Passaggio 1 — Crea il workflow OneUptime
 
-1. Apri **Workflows → Create Workflow**, chiamalo `Datadog → Incidents` e apri il **Builder**.
+1. Apri **Flussi di lavoro → Crea flusso di lavoro**, chiamalo `Datadog → Incidents` e apri il **Costruttore**.
 2. Aggiungi un trigger **Webhook** e **copia il suo URL**. Rinomina il blocco in `Datadog`.
-3. Aggiungi un blocco **Conditions** collegato al trigger:
+3. Aggiungi un blocco **Condizioni** collegato al trigger:
    - **Left**: `{{Datadog.Request Body.transition}}`
    - **Operator**: `==`
    - **Right**: `Triggered`
-4. Da **Yes**, aggiungi un blocco **Create Incident**:
-   - **Title**: `{{Datadog.Request Body.title}}`
-   - **Description**: `{{Datadog.Request Body.body}}\nHost: {{Datadog.Request Body.host}}\n{{Datadog.Request Body.link}}`
-   - **Severity**: scegline una.
+4. Da **Sì**, aggiungi un blocco **Crea incidente**:
+   - **Titolo**: `{{Datadog.Request Body.title}}`
+   - **Descrizione**: `{{Datadog.Request Body.body}}\nHost: {{Datadog.Request Body.host}}\n{{Datadog.Request Body.link}}`
+   - **Gravità**: scegline una.
 5. **Salva** (lascia disabilitato finché non è testato).
 
 ## Passaggio 2 — Crea il webhook Datadog
@@ -66,16 +66,16 @@ Questo invia sia l'allarme che il ripristino a OneUptime. (Per inoltrare tutto, 
 
 1. Abilita il workflow.
 2. Da un monitor, usa **Test Notifications → Alert**, o lascia che scatti un vero monitor.
-3. Controlla la scheda **Logs** del workflow e il tuo elenco **Incidents**.
+3. Controlla la scheda **Registri** del workflow e il tuo elenco **Incidenti**.
 
 ## Risoluzione al ripristino (opzionale)
 
-`$ALERT_TRANSITION` è `Recovered` quando un monitor si ripristina. Aggiungi un secondo ramo **Conditions** (`transition == Recovered`), trova l'incidente corrispondente (cerca per l'`id` che hai inviato) e spostalo nel tuo stato risolto con **Update Incident**.
+`$ALERT_TRANSITION` è `Recovered` quando un monitor si ripristina. Aggiungi un secondo ramo **Condizioni** (`transition == Recovered`), trova l'incidente corrispondente (cerca per l'`id` che hai inviato) e spostalo nel tuo stato risolto con **Update Incident**.
 
 ## Risoluzione dei problemi
 
-- **Nessuna esecuzione appare** — conferma che il messaggio del monitor includa `@webhook-oneuptime` e che il workflow sia **Enabled**.
-- **I campi sono vuoti** — Datadog sostituisce solo le variabili template applicabili all'evento. Ispeziona l'output del trigger nella scheda **Logs** e adatta il tuo payload webhook.
+- **Nessuna esecuzione appare** — conferma che il messaggio del monitor includa `@webhook-oneuptime` e che il workflow sia **Abilitato**.
+- **I campi sono vuoti** — Datadog sostituisce solo le variabili template applicabili all'evento. Ispeziona l'output del trigger nella scheda **Registri** e adatta il tuo payload webhook.
 - **Incidenti duplicati** — un monitor che rinotifica invia più eventi `Triggered`; deduplicali con un controllo **Find Incident** sull'`id` prima di creare.
 
 ## Dove leggere poi

@@ -25,17 +25,17 @@ Zabbix trigger fires  ──►  Webhook media type  ──►  OneUptime Workfl
 
 請先做這件事，因為您會需要它所產生的 webhook URL。
 
-1. 開啟 **Workflows → Create Workflow**。將它命名為 `Zabbix → Incidents` 並開啟 **Builder** 分頁。
+1. 開啟 **工作流程 → 建立工作流程**。將它命名為 `Zabbix → Incidents` 並開啟 **建構器** 分頁。
 2. 將一個 **Webhook** trigger 拖曳至畫布上。點擊它並**複製它顯示的唯一 URL**。請妥善保管——任何擁有它的人都能啟動此 workflow。將該區塊重新命名為 `Zabbix`，這樣變數讀起來會比較順。
 3. 將一個 **Conditions** 區塊拖曳至畫布上，並將 trigger 的輸出連接至它。進行設定：
    - **Left value**：`{{Zabbix.Request Body.status}}`
    - **Operator**：`==`
    - **Right value**：`1` _（Zabbix 在發生問題時傳送 `1`，復原時傳送 `0`）_
 4. 將一個 **Create Incident** 區塊拖曳進來，並將它連接至 Conditions 區塊的 **Yes** 輸出。填入：
-   - **Title**：`Zabbix: {{Zabbix.Request Body.name}}`
-   - **Description**：`Host: {{Zabbix.Request Body.host}}\nSeverity: {{Zabbix.Request Body.severity}}\nZabbix event: {{Zabbix.Request Body.event_id}}`
-   - **Severity**：挑選您想要的 OneUptime 事件嚴重性（您稍後可以透過更多 Conditions 分支來細化此設定，將 Zabbix 嚴重性對應過來）。
-5. 儲存。目前先讓 **Enabled** _保持關閉_——您會在測試之後再將它開啟。
+   - **標題**：`Zabbix: {{Zabbix.Request Body.name}}`
+   - **描述**：`Host: {{Zabbix.Request Body.host}}\nSeverity: {{Zabbix.Request Body.severity}}\nZabbix event: {{Zabbix.Request Body.event_id}}`
+   - **嚴重程度**：挑選您想要的 OneUptime 事件嚴重性（您稍後可以透過更多 Conditions 分支來細化此設定，將 Zabbix 嚴重性對應過來）。
+5. 儲存。目前先讓 **已啟用** _保持關閉_——您會在測試之後再將它開啟。
 
 > **提示：** 將 Zabbix 的 `event_id` 放入描述（或事件標籤）中，可讓您稍後想要在復原時自動解決事件時，再次找到此事件。請參閱 [自動解決](#自動解決選用)。
 
@@ -114,10 +114,10 @@ Zabbix 是將通知傳送*給某個使用者*。建立一個專用的使用者�
 
 ## 第 3 部分 — 測試它
 
-1. 回到 OneUptime workflow，將 **Enabled** 開啟。
+1. 回到 OneUptime workflow，將 **已啟用** 開啟。
 2. 在 Zabbix 中，觸發一個測試問題——例如，暫時調低某個 trigger 閾值，或使用一個會翻轉至問題狀態的測試項目。
-3. 開啟您 workflow 的 **Logs** 分頁。您應該會看到一次執行，其中包含 Zabbix 酬載、Conditions 區塊走 **Yes** 路徑，以及該事件被建立。
-4. 在 OneUptime 中查看 **Incidents**——您的 Zabbix 問題現在已成為一個事件。
+3. 開啟您 workflow 的 **日誌** 分頁。您應該會看到一次執行，其中包含 Zabbix 酬載、Conditions 區塊走 **Yes** 路徑，以及該事件被建立。
+4. 在 OneUptime 中查看 **事件**——您的 Zabbix 問題現在已成為一個事件。
 
 如果什麼都沒收到，請參閱 [疑難排解](#疑難排解)。
 
@@ -140,7 +140,7 @@ Zabbix 嚴重性（`Not classified`、`Information`、`Warning`、`Average`、`H
 
 **Workflow 從未執行。**
 
-- 確認 workflow 的 **Enabled** 開關已開啟。
+- 確認 workflow 的 **已啟用** 開關已開啟。
 - 從 Zabbix 伺服器，確認它可以連接到該 URL：`curl -i -X POST <workflow-url> -d '{}' -H 'Content-Type: application/json'`。您應該會很快收到一個確認回應。
 - 在 Zabbix 中查看 **Reports → Action log** 是否有傳遞錯誤。
 
@@ -151,7 +151,7 @@ Zabbix 嚴重性（`Not classified`、`Information`、`Warning`、`Average`、`H
 
 **事件已建立，但欄位是空的。**
 
-- 開啟 workflow 的 **Logs** 分頁並檢查 trigger 輸出。確認 **Request Body** 下的欄位名稱與您所參照的相符（`name`、`host`、`severity`、`status`、`event_id`）。
+- 開啟 workflow 的 **日誌** 分頁並檢查 trigger 輸出。確認 **Request Body** 下的欄位名稱與您所參照的相符（`name`、`host`、`severity`、`status`、`event_id`）。
 - 缺漏的欄位會解析為空字串，而非錯誤——請參閱 [Variables → Gotchas](/docs/workflows/variables#gotchas)。
 
 **所有事情都觸發了兩次。**

@@ -32,9 +32,9 @@ OneUptime crea una URL única. Cualquier cosa que llegue a esa URL inicia el wor
 
 **Salida**:
 
-- **Request Headers** — todas las cabeceras de la solicitud entrante.
+- **Encabezados de la solicitud** — todas las cabeceras de la solicitud entrante.
 - **Request Query Params** — la cadena de consulta analizada.
-- **Request Body** — el cuerpo analizado (o el texto sin procesar si no es JSON).
+- **Cuerpo de la solicitud** — el cuerpo analizado (o el texto sin procesar si no es JSON).
 
 La URL acepta tanto `GET` como `POST`. El emisor recibe una confirmación rápida; el workflow en sí se ejecuta en segundo plano.
 
@@ -57,9 +57,9 @@ El registro completo se pasa al siguiente bloque. Por ejemplo, el disparador **I
 - **Incidente** — reacciona cuando se abre, actualiza (reconoce, resuelve) o elimina un incidente.
 - **Alerta** — los mismos tres para alertas.
 - **Monitor** — reacciona cuando se añade, edita o elimina un monitor.
-- **Mantenimiento Programado** — anuncia automáticamente una ventana de mantenimiento cuando se programa.
-- **Suscriptor de Página de Estado** — da la bienvenida a alguien que se suscribe a una página de estado.
-- **Política de Guardia** — sincroniza los cambios de horario a otro sistema de rotación.
+- **Mantenimiento programado** — anuncia automáticamente una ventana de mantenimiento cuando se programa.
+- **Página de estado Suscriptor** — da la bienvenida a alguien que se suscribe a una página de estado.
+- **Política de guardia** — sincroniza los cambios de horario a otro sistema de rotación.
 
 Busca por nombre en la paleta de disparadores para encontrar el que quieres.
 

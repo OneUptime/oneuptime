@@ -24,11 +24,11 @@ La Table API de ServiceNow acepta **autenticación básica**.
    printf '%s' 'integration_user:password' | base64
    ```
 
-2. En OneUptime, ve a **Workflows → Global Variables → Create**, nómbrala `SERVICENOW_AUTH`, pega la cadena en base64 y activa **Is Secret**.
+2. En OneUptime, ve a **Flujos de trabajo → Variables Globales → Crear**, nómbrala `SERVICENOW_AUTH`, pega la cadena en base64 y activa **Is Secret**.
 
 ## Paso 2 — Construir el workflow
 
-1. Abre **Workflows → Create Workflow**, nómbralo `Incidents → ServiceNow` y abre el **Builder**.
+1. Abre **Flujos de trabajo → Crear flujo de trabajo**, nómbralo `Incidents → ServiceNow` y abre el **Constructor**.
 2. Añade un disparador **Incident** configurado en **On Create**. Renómbralo `Incident`.
 3. Añade un bloque **API** conectado al disparador:
 
@@ -60,7 +60,7 @@ La Table API de ServiceNow acepta **autenticación básica**.
 
 ## Paso 3 — Resolver al resolver en OneUptime (opcional)
 
-1. Crea un **segundo** workflow con un disparador **Incident → On Update** y un bloque **Conditions** que compruebe que el incidente está resuelto.
+1. Crea un **segundo** workflow con un disparador **Incident → On Update** y un bloque **Condiciones** que compruebe que el incidente está resuelto.
 2. Para actualizar el registro correcto de ServiceNow necesitas su `sys_id`. Puedes guardarlo en el incidente de OneUptime en el Paso 2 (lee `{{CreateRecord.response-body.result.sys_id}}` y escríbelo en una etiqueta con **Update Incident**), o busca el registro primero con un `GET` en `/api/now/table/incident?sysparm_query=correlation_id=oneuptime-{{Incident._id}}`.
 3. Añade un bloque **API**: **Method** `PATCH`, **URL** `https://tu-instancia.service-now.com/api/now/table/incident/<sys_id>`, cuerpo `{ "state": "6", "close_code": "Resolved by monitoring", "close_notes": "Resolved in OneUptime" }` (`state` `6` = Resuelto en el flujo de trabajo ITIL predeterminado).
 

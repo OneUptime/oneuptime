@@ -23,9 +23,9 @@ OneUptime ondersteunt de volgende profieltypen:
 
 ### Stap 1 - Een telemetrie-ingestietoken aanmaken
 
-Nadat u zich hebt aangemeld bij OneUptime en een project hebt aangemaakt, klikt u op "Products" in de navigatiebalk en vervolgens op "Projectinstellingen".
+Nadat u zich hebt aangemeld bij OneUptime en een project hebt aangemaakt, klikt u op "Producten" in de navigatiebalk en vervolgens op "Projectinstellingen".
 
-Klik op de pagina Telemetrie-ingestiesleutel op "Ingestiesleutel aanmaken" om een token aan te maken.
+Klik op de pagina Telemetrie-ingestiesleutel op "Inname-sleutel aanmaken" om een token aan te maken.
 
 ![Dienst aanmaken](/docs/static/images/TelemetryIngestionKeys.png)
 

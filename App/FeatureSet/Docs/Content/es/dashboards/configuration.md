@@ -15,7 +15,7 @@ Usa propietarios cuando el rol de lectura del proyecto sea demasiado amplio — 
 
 ## Etiquetas
 
-Las etiquetas son tags para organizar paneles. Aplícalas en **Panel → Resumen**.
+Las etiquetas son tags para organizar paneles. Aplícalas en **Panel → Vista General**.
 
 Patrones comunes:
 
@@ -38,15 +38,15 @@ Los paneles funcionan con el control de acceso basado en roles de tu proyecto. L
 
 Hay permisos equivalentes para propietarios de paneles y dominios personalizados, para que puedas otorgar "gestionar propietarios" sin otorgar "editar el panel".
 
-Asígnalos en los roles del proyecto en **Products → Equipos → Permisos**.
+Asígnalos en los roles del proyecto en **Productos → Equipos → Permisos**.
 
 ## Acceso para paneles públicos
 
 Cuando haces que un panel sea público (consulta [Compartir y Paneles Públicos](/docs/dashboards/sharing)), tres ajustes controlan quién puede verlo:
 
 1. Interruptor **Panel Público** — si está apagado, la URL pública devuelve un 404.
-2. **Contraseña Maestra** — si está configurada, los visitantes introducen una contraseña antes de que aparezca el panel.
-3. **Lista Blanca de IPs** (plan Scale) — si está configurada, se rechazan las solicitudes desde otras IPs.
+2. **Contraseña maestra** — si está configurada, los visitantes introducen una contraseña antes de que aparezca el panel.
+3. **Lista blanca de IP** (plan Scale) — si está configurada, se rechazan las solicitudes desde otras IPs.
 
 Puedes combinar cualquiera de estos. La combinación más restrictiva es "Público activado, contraseña configurada, lista de IPs permitidas activa" — útil para portales de socios donde quieres las tres capas.
 

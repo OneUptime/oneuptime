@@ -32,7 +32,7 @@ Trin 2 og 4 pauser kørslen, indtil de tikkes af. Trin 1, 3, 5 kører automatisk
 
 ## Annullér en kørsel
 
-Klik **Annullér kørsel** på kørselsiden. Det aktuelle trin (hvis et) afsluttes; efterfølgende trin starter ikke. Status bliver `Cancelled`.
+Klik **Annuller udførelse** på kørselsiden. Det aktuelle trin (hvis et) afsluttes; efterfølgende trin starter ikke. Status bliver `Cancelled`.
 
 ## Output-tilbageholdelse
 
@@ -44,4 +44,4 @@ En runbook-kørsel er en engangshandling, en uforanderlig record. For at køre i
 
 ## Find tidligere kørsler
 
-Hvert runbook har en **Kørsler**-fane, der lister alle dets kørsler, med filtre for status, datointerval og kilde-entitet. Fra en hændelse, alarm eller planlagt vedligehold viser **Runbooks**-fanen kørsler knyttet til den entitet.
+Hvert runbook har en **Udførelser**-fane, der lister alle dets kørsler, med filtre for status, datointerval og kilde-entitet. Fra en hændelse, alarm eller planlagt vedligehold viser **Runbooks**-fanen kørsler knyttet til den entitet.

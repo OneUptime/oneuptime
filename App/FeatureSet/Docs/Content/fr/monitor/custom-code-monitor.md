@@ -98,7 +98,7 @@ Une fois capturées, ces métriques apparaissent dans l'Explorateur de métrique
 
 ### Points à considérer
 
-- Vous pouvez utiliser `console.log` pour journaliser les données dans la console. Celles-ci seront disponibles dans la section journaux du moniteur (Sondes > Afficher les journaux).
+- Vous pouvez utiliser `console.log` pour journaliser les données dans la console. Celles-ci seront disponibles dans la section journaux du moniteur (Sondes > Voir les journaux).
 - Vous pouvez retourner des données depuis le script en utilisant l'instruction `return`.
 - C'est un script JavaScript, vous pouvez donc utiliser toutes les fonctionnalités JavaScript dans le script.
 - Le délai d'attente du script est de 2 minutes. Si le script prend plus de 2 minutes, il sera interrompu.

@@ -8,7 +8,7 @@ Deze pagina is de catalogus. Voor hoe je componenten over het canvas sleept, nee
 
 Doe een HTTP-verzoek naar elke URL.
 
-**Settings**:
+**Instellingen**:
 
 - **Method** — `GET`, `POST`, `PUT`, `PATCH` of `DELETE`.
 - **URL** — het adres dat je wilt aanroepen.
@@ -17,8 +17,8 @@ Doe een HTTP-verzoek naar elke URL.
 
 **Outputs**:
 
-- **Success** — gaat af wanneer de aanroep werkte (2xx-respons). Geeft de status, headers en body door.
-- **Error** — gaat af bij een netwerkfout of een respons die geen 2xx is. Geeft het foutbericht door.
+- **Succes** — gaat af wanneer de aanroep werkte (2xx-respons). Geeft de status, headers en body door.
+- **Fout** — gaat af bij een netwerkfout of een respons die geen 2xx is. Geeft het foutbericht door.
 
 Gebruik dit voor: elke externe API, je eigen admin-endpoints of elke integratie die geen eigen component heeft.
 
@@ -32,21 +32,21 @@ Gebruik **API** als je de respons moet lezen. Gebruik **Webhook** als je alleen 
 
 Post een bericht in een Slack-kanaal.
 
-**Settings**:
+**Instellingen**:
 
-- **Channel** — de kanaalnaam. De bot moet al lid zijn van dat kanaal.
-- **Message** — de te versturen tekst. Ondersteunt Slack-opmaak.
+- **Kanaal** — de kanaalnaam. De bot moet al lid zijn van dat kanaal.
+- **Bericht** — de te versturen tekst. Ondersteunt Slack-opmaak.
 
-Koppel Slack eerst aan je project onder **Project Settings → Werkruimte → Slack**. Zie [Slack Workspace Connection](/docs/workspace-connections/slack).
+Koppel Slack eerst aan je project onder **Projectinstellingen → Werkruimte → Slack**. Zie [Slack Workspace Connection](/docs/workspace-connections/slack).
 
 ## Microsoft Teams
 
 Post een bericht in een Microsoft Teams-kanaal.
 
-**Settings**:
+**Instellingen**:
 
 - **Team and channel** — waar je wilt posten.
-- **Message** — de te versturen tekst.
+- **Bericht** — de te versturen tekst.
 
 Zie [Microsoft Teams Workspace Connection](/docs/workspace-connections/microsoft-teams) voor het opzetten.
 
@@ -62,10 +62,10 @@ Verstuur een bericht naar een Telegram-chat met een bottoken en chat-ID.
 
 Verstuur een e-mail via OneUptime.
 
-**Settings**:
+**Instellingen**:
 
-- **To** — het e-mailadres van de ontvanger.
-- **Subject** — de onderwerpregel.
+- **Aan** — het e-mailadres van de ontvanger.
+- **Onderwerp** — de onderwerpregel.
 - **Body** — het bericht in Markdown of HTML.
 
 De e-mail wordt verstuurd vanaf de geconfigureerde afzender van je project — zie [SMTP](/docs/emails/smtp).
@@ -74,7 +74,7 @@ De e-mail wordt verstuurd vanaf de geconfigureerde afzender van je project — z
 
 Voer een klein stukje JavaScript uit wanneer je iets nodig hebt wat de andere blokken niet kunnen.
 
-**Settings**:
+**Instellingen**:
 
 - **Code** — je JavaScript. De laatste waarde (of wat je vanuit een async functie returnt) wordt de output van het blok.
 - **Arguments** — benoemde waarden die je kunt meegeven.
@@ -94,13 +94,13 @@ Converteer tussen tekst en JSON.
 
 Vertak op basis van een vergelijking.
 
-**Settings**:
+**Instellingen**:
 
 - **Left value** — meestal een waarde uit een eerder blok.
 - **Operator** — `==`, `!=`, `>`, `>=`, `<`, `<=`, `contains`, `starts with`, `ends with`.
 - **Right value** — waarmee je vergelijkt.
 
-**Outputs**: **Yes** en **No**. Verbind de volgende blokken met de tak die je wilt.
+**Outputs**: **Ja** en **Nee**. Verbind de volgende blokken met de tak die je wilt.
 
 ## Delay
 
@@ -124,12 +124,12 @@ Voor elk soort record in OneUptime (monitors, incidenten, alerts, statuspagina's
 
 - **Find One** — haal één record op via ID of filter.
 - **Find** — haal een lijst met records op.
-- **Create** — voeg een nieuw record toe.
-- **Update** — wijzig één record.
-- **Delete** — verwijder één record.
-- **Count** — tel records die aan een filter voldoen.
+- **Aanmaken** — voeg een nieuw record toe.
+- **Bijwerken** — wijzig één record.
+- **Verwijderen** — verwijder één record.
+- **Aantal** — tel records die aan een filter voldoen.
 
-Zo kan een workflow OneUptime-data lezen en wijzigen. Bijvoorbeeld: een webhook vanuit je CI-tool kan **Create Incident** gebruiken om een incident te openen met de faaldetails.
+Zo kan een workflow OneUptime-data lezen en wijzigen. Bijvoorbeeld: een webhook vanuit je CI-tool kan **Incident maken** gebruiken om een incident te openen met de faaldetails.
 
 ## Welke component moet ik gebruiken?
 
@@ -138,7 +138,7 @@ Een paar vuistregels:
 - Als er een speciaal blok is voor wat je wilt (Slack, Email, een OneUptime-record), gebruik dat — je krijgt netter foutafhandeling en duidelijkere logs.
 - Voor elke andere externe API gebruik je **API**.
 - Voor het omvormen van data tussen blokken gebruik je **Custom Code** of **JSON**.
-- Om verschillende acties op basis van een waarde te nemen, gebruik je **Conditions**.
+- Om verschillende acties op basis van een waarde te nemen, gebruik je **Voorwaarden**.
 
 ## Waar verder lezen
 

@@ -26,14 +26,14 @@ Jira Cloud använder **Basic auth** med din e-post och API-token, base64-kodad.
    printf '%s' 'you@example.com:your_api_token' | base64
    ```
 
-2. Gå i OneUptime till **Workflows → Global Variables → Create**.
+2. Gå i OneUptime till **Arbetsflöden → Globala variabler → Skapa**.
 3. Namnge det `JIRA_AUTH`, klistra in base64-strängen som värde och slå på **Is Secret**.
 
 Nu kan du använda `Basic {{variable.JIRA_AUTH}}` som en auth-header och token visas aldrig i arbetsflödet eller dess loggar.
 
 ## Steg 2 — Bygg arbetsflödet
 
-1. Öppna **Workflows → Create Workflow**, namnge det `Incidents → Jira` och öppna **Builder**.
+1. Öppna **Arbetsflöden → Skapa arbetsflöde**, namnge det `Incidents → Jira` och öppna **Byggare**.
 2. Dra en **Incident**-utlösare till arbetsytan och välj händelsen **On Create**. Byt namn till `Incident`.
 3. Dra ett **API**-block och koppla utlösaren till det. Konfigurera:
 
@@ -76,9 +76,9 @@ Nu kan du använda `Basic {{variable.JIRA_AUTH}}` som en auth-header och token v
 
 ## Steg 3 — Testa det
 
-1. Slå på arbetsflödet **Enabled**.
+1. Slå på arbetsflödet **Aktiverad**.
 2. Skapa en testincident i OneUptime (eller utlös en från en monitor).
-3. Öppna arbetsflödets flik **Logs**. **API**-blocket bör visa en `201`-status och en svars-body som innehåller det nya ärendets `key` (till exempel `OPS-1234`).
+3. Öppna arbetsflödets flik **Loggar**. **API**-blocket bör visa en `201`-status och en svars-body som innehåller det nya ärendets `key` (till exempel `OPS-1234`).
 4. Kontrollera Jira — ärendet finns där.
 
 Om API-blocket returnerar ett fel, expandera det i loggarna — Jiras svar förklarar exakt vilket fält det avvisade. Se [Felsökning](#felsökning).
@@ -114,7 +114,7 @@ Om du sparade Jira-nyckeln på incidenten i Steg 4 är matchningen enkel. Se [Ko
 
 Några vanliga justeringar av API-blockets body:
 
-- **Prioritet** — lägg till `"priority": { "name": "High" }` inuti `fields`. Du kan förgrena på `{{Incident.incidentSeverity.name}}` med **Conditions** för att mappa OneUptime-allvarlighetsgrader till Jira-prioriteter.
+- **Prioritet** — lägg till `"priority": { "name": "High" }` inuti `fields`. Du kan förgrena på `{{Incident.incidentSeverity.name}}` med **Villkor** för att mappa OneUptime-allvarlighetsgrader till Jira-prioriteter.
 - **Etiketter** — lägg till `"labels": ["oneuptime", "incident"]`.
 - **Tilldelad** — lägg till `"assignee": { "id": "<accountId>" }` (Jira Cloud använder konto-ID:n, inte användarnamn).
 - **Anpassade fält** — lägg till `"customfield_XXXXX": "..."` med fältets ID från din Jira-administration.

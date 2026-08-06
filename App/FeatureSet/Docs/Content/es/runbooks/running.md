@@ -14,7 +14,7 @@ Abre cualquier ejecución para ver su UI de checklist. Cada paso muestra:
 - **Título y descripción** — copiados del runbook en el momento de la ejecución.
 - **Salida** (replegable) — stdout, valores de retorno, respuestas HTTP.
 - **Mensaje de error** si el paso falló.
-- En pasos manuales en `WaitingForUser`: botones **Marcar como completado** y **Saltar**.
+- En pasos manuales en `WaitingForUser`: botones **Marcar como completado** y **Omitir**.
 
 La página sondea cada 3 segundos mientras la ejecución no es terminal, así que verás los pasos automatizados completarse casi en tiempo real.
 

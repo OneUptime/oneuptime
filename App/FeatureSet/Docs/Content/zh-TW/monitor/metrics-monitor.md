@@ -14,9 +14,9 @@
 
 ## 建立指標監測器
 
-1. 前往 OneUptime 儀表板中的 **Monitors**
-2. 點擊 **Create Monitor**
-3. 選擇 **Metrics** 作為監測器類型
+1. 前往 OneUptime 儀表板中的 **監測**
+2. 點擊 **建立監測器**
+3. 選擇 **指標** 作為監測器類型
 4. 設定指標查詢與選用的公式
 5. 選擇彙總策略
 6. 視需要設定監測條件
@@ -91,17 +91,17 @@
 
 - **Query a**：`http_requests_total`，以 `status=5xx` 篩選
 - **Query b**：`http_requests_total`
-- **Formula**：`a / b * 100`
+- **公式**：`a / b * 100`
 - **Check On**：Metric Value
-- **Filter Type**：Greater Than
-- **Value**：5
+- **篩選器類型**：Greater Than
+- **值**：5
 
 #### 當請求佇列深度過高時發出警示
 
 - **Query**：`request_queue_size`，彙總方式：Maximum Value
 - **Check On**：Metric Value
-- **Filter Type**：Greater Than
-- **Value**：1000
+- **篩選器類型**：Greater Than
+- **值**：1000
 
 ## 設定需求
 

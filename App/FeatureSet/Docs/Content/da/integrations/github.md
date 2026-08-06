@@ -2,7 +2,7 @@
 
 Åbn automatisk en [GitHub](https://github.com)-sag, når en OneUptime-hændelse oprettes — så ingeniørernes opfølgning spores i det repo, der ejer den berørte tjeneste.
 
-Denne integration er **udgående**: OneUptime kalder [GitHub REST API](https://docs.github.com/en/rest/issues/issues). Den bruger et OneUptime **[Workflow](/docs/workflows/index)** med en **Incident → On Create**-trigger og en **API-komponent**.
+Denne integration er **udgående**: OneUptime kalder [GitHub REST API](https://docs.github.com/en/rest/issues/issues). Den bruger et OneUptime **[Workflow](/docs/workflows/index)** med en **Hændelse → On Create**-trigger og en **API-komponent**.
 
 > **Leder du efter den dybere GitHub-forbindelse?** OneUptime har også en native **GitHub App**-integration til at forbinde kode-repositories (brugt af AI-agenten og kodefunktioner). Den konfigureres med miljøvariabler, ikke workflows — se [GitHub-integration (selvhostet)](/docs/self-hosted/github-integration). Denne side handler specifikt om _oprettelse af sager fra hændelser_.
 
@@ -24,13 +24,13 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 
 ## Trin 1 — Gem tokenet
 
-1. Gå til **Workflows → Global Variables → Create**.
+1. Gå til **Arbejdsgange → Globale variabler → Opret**.
 2. Navngiv det `GITHUB_TOKEN`, indsæt tokenet, og slå **Is Secret** til.
 
 ## Trin 2 — Byg workflowet
 
-1. Åbn **Workflows → Create Workflow**, navngiv det `Incidents → GitHub Issues`, og åbn **Builder**.
-2. Tilføj en **Incident**-trigger sat til **On Create**. Omdøb den til `Incident`.
+1. Åbn **Arbejdsgange → Opret arbejdsgang**, navngiv det `Incidents → GitHub Issues`, og åbn **Bygger**.
+2. Tilføj en **Hændelse**-trigger sat til **On Create**. Omdøb den til `Incident`.
 3. Tilføj en **API**-blok forbundet til triggeren:
 
    - **Method**: `POST`

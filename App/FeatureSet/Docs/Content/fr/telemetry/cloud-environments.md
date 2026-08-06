@@ -70,9 +70,9 @@ Si vous hébergez OneUptime vous-même, utilisez `https://YOUR-ONEUPTIME-HOST/ot
 
 La vue d'ensemble de l'environnement affiche :
 
-- **CPU** et **mémoire** par tâche/instance en cours d'exécution (à partir de `container.cpu.utilization` / `container.memory.usage`), ainsi qu'une liste **Top des instances par CPU**.
+- **CPU** et **mémoire** par tâche/instance en cours d'exécution (à partir de `container.cpu.utilization` / `container.memory.usage`), ainsi qu'une liste **Principales instances par CPU**.
 - **Instances** — un décompte en direct des tâches.
 - **Requêtes** et graphiques de tendance dérivés de vos traces.
-- Des onglets complets **Logs**, **Traces**, **Métriques** et **Instances**.
+- Des onglets complets **Journaux**, **Traces**, **Métriques** et **Instances**.
 
 La répartition par service pour les mêmes charges de travail est disponible sous **Services**.

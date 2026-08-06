@@ -17,12 +17,12 @@ OneUptime Incident → On Create  ──►  API component (POST /v2/enqueue)  �
 
 ## 1단계 — 라우팅 키 저장
 
-1. **Workflows → Global Variables → Create** 로 이동합니다.
+1. **워크플로 → 전역 변수 → 만들기** 로 이동합니다.
 2. 이름을 `PAGERDUTY_ROUTING_KEY` 로 지정하고 통합 키를 붙여넣고 **Is Secret** 를 켭니다.
 
 ## 2단계 — "트리거" 워크플로 구성
 
-1. **Workflows → Create Workflow** 를 열고, 이름을 `Incidents → PagerDuty` 로 지정하고 **Builder** 를 엽니다.
+1. **워크플로 → 워크플로 생성** 을 열고, 이름을 `Incidents → PagerDuty` 로 지정하고 **빌더** 를 엽니다.
 2. **Incident** 트리거를 **On Create** 로 설정해 추가합니다. 이름을 `Incident` 로 변경합니다.
 3. 트리거에 연결된 **API** 블록을 추가합니다:
 
@@ -79,7 +79,7 @@ PagerDuty의 `severity` 는 `critical`, `error`, `warning`, `info` 를 허용합
 
 - **`400` with `"invalid routing key"`** — 통합은 이전 Events API v1이나 다른 통합 유형이 아닌 반드시 **Events API v2** 여야 합니다. 키를 다시 복사하세요.
 - **Resolve가 아무것도 닫지 않습니다** — 해결 호출의 `dedup_key` 가 트리거 호출과 정확히 일치해야 합니다.
-- **로그에 아무것도 없습니다** — 워크플로가 **Enabled** 상태이고 트리거가 **On Create** 인지 확인합니다.
+- **로그에 아무것도 없습니다** — 워크플로가 **활성화됨** 상태이고 트리거가 **On Create** 인지 확인합니다.
 
 ## 다음에 읽어 볼 내용
 

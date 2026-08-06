@@ -13,8 +13,8 @@ Port-monitorer tester om en spesifikk nettverksport aksepterer tilkoblinger. Det
 
 ## Opprette en port-monitor
 
-1. Gå til **Monitors** i OneUptime-dashbordet
-2. Klikk **Create Monitor**
+1. Gå til **Overvåkere** i OneUptime-dashbordet
+2. Klikk **Opprett monitor**
 3. Velg **Port** som monitortype
 4. Skriv inn vertsnavnet eller IP-adressen og portnummeret
 5. Konfigurer overvåkingskriterier etter behov
@@ -59,7 +59,7 @@ For **Is Online** og **Is Request Timeout**:
 - **True** – Betingelsen er sann
 - **False** – Betingelsen er usann
 
-For **Response Time**:
+For **Svartid**:
 
 - **Greater Than** – Svartiden overskrider en terskel
 - **Less Than** – Svartiden er under en terskel
@@ -73,17 +73,17 @@ For **Response Time**:
 
 #### Marker som utilgjengelig hvis porten er lukket
 
-- **Sjekk på**: Is Online
+- **Check On**: Is Online
 - **Filtertype**: False
 
 #### Varsle hvis tilkobningstid overskrider 500 ms
 
-- **Sjekk på**: Response Time (in ms)
+- **Check On**: Response Time (in ms)
 - **Filtertype**: Greater Than
 - **Verdi**: 500
 
 #### Marker som degradert hvis tilkoblingen er treg
 
-- **Sjekk på**: Response Time (in ms)
+- **Check On**: Response Time (in ms)
 - **Filtertype**: Greater Than
 - **Verdi**: 200

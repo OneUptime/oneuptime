@@ -2,7 +2,7 @@
 
 ## Overzicht
 
-[Serilog](https://serilog.net) is de populairste bibliotheek voor gestructureerde logging voor .NET. OneUptime neemt Serilog-logs op via het OpenTelemetry Protocol (OTLP) met behulp van de officiële [`Serilog.Sinks.OpenTelemetry`](https://github.com/serilog/serilog-sinks-opentelemetry) sink. Eenmaal geconfigureerd wordt elke loggebeurtenis die je applicatie via Serilog schrijft naar OneUptime verzonden, waar deze doorzoekbaar wordt in **Products → Logboeken**, compleet met gestructureerde eigenschappen, ernst en trace/span-correlatie.
+[Serilog](https://serilog.net) is de populairste bibliotheek voor gestructureerde logging voor .NET. OneUptime neemt Serilog-logs op via het OpenTelemetry Protocol (OTLP) met behulp van de officiële [`Serilog.Sinks.OpenTelemetry`](https://github.com/serilog/serilog-sinks-opentelemetry) sink. Eenmaal geconfigureerd wordt elke loggebeurtenis die je applicatie via Serilog schrijft naar OneUptime verzonden, waar deze doorzoekbaar wordt in **Producten → Logboeken**, compleet met gestructureerde eigenschappen, ernst en trace/span-correlatie.
 
 Er is geen OneUptime-specifiek pakket om te installeren — de sink communiceert met hetzelfde OTLP-eindpunt dat OneUptime beschikbaar stelt voor alle OpenTelemetry-data. Dit werkt voor console-apps, worker-services, ASP.NET Core-apps en alles wat verder op .NET draait.
 
@@ -12,13 +12,13 @@ Er is geen OneUptime-specifiek pakket om te installeren — de sink communiceert
 - **Maak een OneUptime-project aan** – Zodra je een account hebt, maak je een project aan vanuit het OneUptime-dashboard. Heb je hulp nodig, neem dan contact met ons op via support@oneuptime.com.
 - **Maak een Telemetry Ingestion Token aan** – Je hebt een token nodig om je logs te authenticeren.
 
-Nadat je je hebt aangemeld bij OneUptime en een project hebt aangemaakt, klik je op "Products" in de navigatiebalk en vervolgens op "Project Settings".
+Nadat je je hebt aangemeld bij OneUptime en een project hebt aangemaakt, klik je op "Producten" in de navigatiebalk en vervolgens op "Projectinstellingen".
 
-Klik op de pagina Telemetry Ingestion Key op "Create Ingestion Key" om een token aan te maken.
+Klik op de pagina Telemetry Ingestion Key op "Inname-sleutel aanmaken" om een token aan te maken.
 
 ![Create Service](/docs/static/images/TelemetryIngestionKeys.png)
 
-Zodra je een token hebt aangemaakt, klik je op "View" om het token te bekijken.
+Zodra je een token hebt aangemaakt, klik je op "Bekijken" om het token te bekijken.
 
 ![View Service](/docs/static/images/TelemetryIngestionKeyView.png)
 
@@ -197,7 +197,7 @@ Log.Information("Order {OrderId} placed by {CustomerId} for {Amount:C}",
 Log.Warning("Payment gateway slow: {LatencyMs}ms", latencyMs);
 ```
 
-Elke benoemde eigenschap (`OrderId`, `CustomerId`, `Amount`, `LatencyMs`) wordt als log-attribuut verzonden, zodat je erop kunt filteren en zoeken in de **Products → Logboeken**-verkenner.
+Elke benoemde eigenschap (`OrderId`, `CustomerId`, `Amount`, `LatencyMs`) wordt als log-attribuut verzonden, zodat je erop kunt filteren en zoeken in de **Producten → Logboeken**-verkenner.
 
 ## Exceptions
 
@@ -214,7 +214,7 @@ catch (Exception ex)
 }
 ```
 
-OneUptime detecteert deze attributen en neemt de fout automatisch op in de **Exceptions** (Issues)-weergave, gegroepeerd op fingerprint en toegeschreven aan de juiste service. Een fout die zowel door een trace als door een log wordt gerapporteerd, valt samen tot één enkel issue. Zie [Exceptions from logs](/docs/telemetry/open-telemetry) voor details over hoe de detectie werkt.
+OneUptime detecteert deze attributen en neemt de fout automatisch op in de **Uitzonderingen** (Issues)-weergave, gegroepeerd op fingerprint en toegeschreven aan de juiste service. Een fout die zowel door een trace als door een log wordt gerapporteerd, valt samen tot één enkel issue. Zie [Exceptions from logs](/docs/telemetry/open-telemetry) voor details over hoe de detectie werkt.
 
 ## Trace-correlatie
 
@@ -223,7 +223,7 @@ Als je applicatie ook is geïnstrumenteerd met de OpenTelemetry .NET SDK voor tr
 ## Verifiëren
 
 1. Voer je applicatie uit en genereer een paar loggebeurtenissen.
-2. Open OneUptime, ga naar **Telemetry**, selecteer je service (`my-service`) en open **Logs**.
+2. Open OneUptime, ga naar **Telemetrie**, selecteer je service (`my-service`) en open **Logboeken**.
 3. Je zou je Serilog-gebeurtenissen binnen een paar seconden moeten zien verschijnen, met hun gestructureerde eigenschappen beschikbaar als filters.
 
 ## Problemen oplossen

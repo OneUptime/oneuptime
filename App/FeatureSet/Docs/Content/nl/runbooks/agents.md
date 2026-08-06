@@ -30,7 +30,7 @@ De agent heeft alleen **uitgaande HTTPS** naar je OneUptime-instantie nodig. Hij
 
 ### 1. Het agent-record aanmaken
 
-Ga naar **Settings → Runners** en maak een nieuwe agent aan. Vul in:
+Ga naar **Instellingen → Runbook-agenten** en maak een nieuwe agent aan. Vul in:
 
 | Veld             | Opmerkingen                                                                                                                                              |
 | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -39,7 +39,7 @@ Ga naar **Settings → Runners** en maak een nieuwe agent aan. Vul in:
 
 ### 2. Het installatiecommando kopiëren
 
-Klik na het aanmaken van de agent op **Installatie-instructies tonen** in zijn rij. Je ziet een `docker run`-commando met de ID en sleutel van deze agent al vooringevuld. **Bewaar de sleutel nu** — je kunt hem later resetten, maar dezelfde sleutelwaarde kun je na het sluiten van de modal niet opnieuw bekijken.
+Klik na het aanmaken van de agent op **Installatie-instructies weergeven** in zijn rij. Je ziet een `docker run`-commando met de ID en sleutel van deze agent al vooringevuld. **Bewaar de sleutel nu** — je kunt hem later resetten, maar dezelfde sleutelwaarde kun je na het sluiten van de modal niet opnieuw bekijken.
 
 ### 3. Hem draaien op een host binnen je infrastructuur
 
@@ -58,7 +58,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
 
 ### 4. Verifiëren dat de agent verbonden is
 
-Ga terug naar **Settings → Runners**. Binnen ~60 seconden moet de rij van de agent omschakelen naar `Connected` met een verse **Last seen**-tijdstempel. Als hij op `Disconnected` blijft:
+Ga terug naar **Instellingen → Runbook-agenten**. Binnen ~60 seconden moet de rij van de agent omschakelen naar `Connected` met een verse **Last seen**-tijdstempel. Als hij op `Disconnected` blijft:
 
 - Controleer de container-logs (`docker logs oneuptime-runner`) op auth-fouten of netwerkproblemen.
 - Verifieer dat de host je OneUptime-URL met `curl` kan bereiken.
@@ -86,7 +86,7 @@ Twee timeouts gelden voor elke Bash- of JavaScript-stap:
 | **Claim-timeout**   | 2 minuten   | Hoe lang de Worker wacht tot de gekozen agent de job claimt. Pakt de agent hem niet op tijd op, dan faalt de stap met `TimedOut` en gaat het runbook verder (of stopt, afhankelijk van **Doorgaan bij fout**). |
 | **Uitvoer-timeout** | 30 seconden | Hoe lang de agent het script laat draaien voordat hij het beëindigt. (Bash krijgt `SIGKILL`; het JavaScript-isolate wordt afgebroken.)                                                                         |
 
-Beide zijn per stap configureerbaar. Open **Runbooks &rsaquo; je runbook &rsaquo; Steps**, klap een Bash- of JavaScript-stap uit en stel onder het script **Uitvoer-timeout** en **Claim-timeout** (in seconden) in. Laat een veld leeg om de standaardwaarde te gebruiken. Elk veld accepteert 1 seconde tot 1 uur; waarden daarbuiten worden bij het draaien van de stap tot dat bereik begrensd.
+Beide zijn per stap configureerbaar. Open **Runbooks &rsaquo; je runbook &rsaquo; Stappen**, klap een Bash- of JavaScript-stap uit en stel onder het script **Uitvoer-timeout** en **Claim-timeout** (in seconden) in. Laat een veld leeg om de standaardwaarde te gebruiken. Elk veld accepteert 1 seconde tot 1 uur; waarden daarbuiten worden bij het draaien van de stap tot dat bereik begrensd.
 
 Het totale wachtvenster van de Worker is `claim-timeout + uitvoer-timeout + een paar seconden`. Kies waarden die bij de stap passen.
 

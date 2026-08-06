@@ -10,7 +10,7 @@ For å legge til en hemmelighet, gå til OneUptime Dashboard -> Overvåkere -> I
 
 Du kan velge hvilke monitorer som har tilgang til hemmeligheten. I dette tilfellet la vi til `ApiKey`-hemmeligheten og valgte monitorer som skal ha tilgang til den.
 
-**Merk**: Hemmeligheter krypteres og lagres sikkert. Verdien vises aldri igjen etter at den er lagret — verken i tabellen, i redigeringsskjemaet eller via API-et. Mister du verdien, må du hente den fra kilden og sette den på nytt. Bruk knappen **Update Secret Value** på raden for å rotere en hemmelighet; du trenger ikke slette og opprette den på nytt.
+**Merk**: Hemmeligheter krypteres og lagres sikkert. Verdien vises aldri igjen etter at den er lagret — verken i tabellen, i redigeringsskjemaet eller via API-et. Mister du verdien, må du hente den fra kilden og sette den på nytt. Bruk knappen **Oppdater hemmelig verdi** på raden for å rotere en hemmelighet; du trenger ikke slette og opprette den på nytt.
 
 ### Bruke en hemmelighet
 

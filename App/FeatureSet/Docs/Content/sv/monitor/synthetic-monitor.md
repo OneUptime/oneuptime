@@ -93,7 +93,7 @@ return {
 
 #### Lägga till en hemlighet
 
-För att lägga till en hemlighet, gå till OneUptime-instrumentpanelen -> Övervakare -> Inställningar -> Hemligheter -> Skapa monitorhemlighet.
+För att lägga till en hemlighet, gå till OneUptime-instrumentpanelen -> Övervakare -> Inställningar -> Hemligheter -> Create Monitor Secret.
 
 ![Create Secret](/docs/static/images/CreateMonitorSecret.png)
 

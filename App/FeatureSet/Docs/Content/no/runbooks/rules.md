@@ -17,7 +17,7 @@ Alle tre sider redigerer samme underliggende regelmodell — de er bare filtrert
 | **Aktivert**                 | Bryter for å pause en regel uten å slette den.                                                |
 | **Tittelmønster**            | Regex uten bokstavssensitivitet mot entitetens tittel. Tom = enhver tittel matcher.           |
 | **Beskrivelsesmønster**      | Regex uten bokstavssensitivitet mot entitetens beskrivelse. Tom = enhver beskrivelse matcher. |
-| **Runbooks som skal starte** | Ett eller flere runbooks som lanseres når regelen utløses.                                    |
+| **Runbooks å starte**        | Ett eller flere runbooks som lanseres når regelen utløses.                                    |
 
 ## Match-semantikk
 

@@ -14,7 +14,7 @@ OneUptime 通过内置的自动化引擎 **[工作流](/docs/workflows/index)** 
 
 1. 构建一个以 **[Webhook 触发器](/docs/workflows/triggers#webhook)** 开始的工作流。OneUptime 会给你一个唯一的 URL。
 2. 在另一个工具中，配置一个 webhook / 通知动作，在发生某些事情时 POST 到该 URL。
-3. 在工作流中，读取传入的负载，并使用 **Create Incident**（或 Create Alert）组件将其记录下来。
+3. 在工作流中，读取传入的负载，并使用 **创建事件**（或 Create Alert）组件将其记录下来。
 
 ```text
 Zabbix / Prometheus / Grafana / Datadog  ──►  OneUptime Webhook trigger  ──►  Create Incident
@@ -24,7 +24,7 @@ Zabbix / Prometheus / Grafana / Datadog  ──►  OneUptime Webhook trigger  �
 
 当 *OneUptime 中发生的事情需要呈现在另一个工具中*时使用此模式——在 Jira 中创建工单、在 PagerDuty 中呼叫某人、发布到 Slack。
 
-1. 构建一个以 **[OneUptime 事件触发器](/docs/workflows/triggers#oneuptime-event-triggers)** 开始的工作流——例如 **Incident → On Create**。
+1. 构建一个以 **[OneUptime 事件触发器](/docs/workflows/triggers#oneuptime-event-triggers)** 开始的工作流——例如 **事件 → On Create**。
 2. 添加一个 **[API 组件](/docs/workflows/components#api)**，用事件详情调用另一个工具的 REST API。
 3. 将所有 API 密钥作为**机密[全局变量](/docs/workflows/variables#global-variables)**存储，使其不会出现在工作流或日志中。
 
@@ -57,7 +57,7 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 
 永远不要将 API 密钥或令牌直接粘贴到模块中。应当：
 
-1. 前往 **Workflows → Global Variables**。
+1. 前往 **工作流 → 全局变量**。
 2. 创建一个变量——例如 `JIRA_AUTH`——并开启 **Is Secret**。
 3. 在任何地方通过 `{{variable.JIRA_AUTH}}` 引用它。
 

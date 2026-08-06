@@ -8,10 +8,10 @@
 
 一度保存して、どこからでも再利用できるプロジェクト全体の値です。API キー、URL、チャンネル名など、10 個のワークフローにコピペしたくないものに使います。
 
-**Workflows → Global Variables** にあります。各変数は次の情報を持ちます:
+**ワークフロー → グローバル変数** にあります。各変数は次の情報を持ちます:
 
-- **Name** — 参照に使う名前。ブロック内で目立つように `UPPER_SNAKE_CASE` を使うとよいでしょう。
-- **Value** — 実際の値。複数行の値も可能です。
+- **名前** — 参照に使う名前。ブロック内で目立つように `UPPER_SNAKE_CASE` を使うとよいでしょう。
+- **値** — 実際の値。複数行の値も可能です。
 - **Is Secret** — オンにすると、保存後は UI に表示されず、実行ログにも表示されなくなります。
 
 どのワークフローでもグローバル変数を次のように使えます:
@@ -37,7 +37,7 @@
 例:
 
 - `LookupUser` という名前の **API** ブロックの実行後、ステータスコードを `{{LookupUser.response-status}}`、ボディを `{{LookupUser.response-body}}` として読み取れます。
-- `Incident` という名前の **Incident → On Create** トリガーの後、`{{Incident.title}}`、`{{Incident.description}}` などインシデントの任意のフィールドを読み取れます。
+- `Incident` という名前の **インシデント → On Create** トリガーの後、`{{Incident.title}}`、`{{Incident.description}}` などインシデントの任意のフィールドを読み取れます。
 - `Transform` という名前の **Custom Code** ブロックの後、return された値は `{{Transform.value}}` にあります。
 
 ローカル変数は現在の実行中のみ存在します。新しい実行ごとにリセットされます。
@@ -63,8 +63,8 @@
 `{ "service": "checkout", "status": "failed" }` のようなボディで Webhook が届きます。これを OneUptime のインシデントに変えるには:
 
 1. `CIWebhook` という名前の **Webhook** トリガー。
-2. **Conditions** ブロック: 左 `{{CIWebhook.Request Body.status}}`、演算子 `==`、右 `failed`。
-3. **Yes** ブランチから、**Create Incident** ブロックを次のように設定:
+2. **条件** ブロック: 左 `{{CIWebhook.Request Body.status}}`、演算子 `==`、右 `failed`。
+3. **はい** ブランチから、**インシデントを作成** ブロックを次のように設定:
    - Title: `CI build failed: {{CIWebhook.Request Body.service}}`
    - Description: `See {{CIWebhook.Request Body.url}} for the logs.`
 
@@ -90,7 +90,7 @@ PagerDuty を呼び出すワークフロー:
 
 - **ブロックをリネームすると参照が壊れます。** ブロックをリネームしたら、それを使っているすべての場所を更新してください。実行ログでは、解決できなかった参照はリテラルの `{{BlockName.field}}` テキストとして表示されます。
 - **変数名は大文字小文字を区別します。** `{{variable.MyKey}}` と `{{variable.mykey}}` は別物です。
-- **存在しないフィールドは空文字列になります。** 存在しないフィールドを参照すると、エラーではなく空文字列が返されます。便利ですが、バグを隠す可能性があります。重要なフィールドは **Conditions** ブロックで確認してから続行しましょう。
+- **存在しないフィールドは空文字列になります。** 存在しないフィールドを参照すると、エラーではなく空文字列が返されます。便利ですが、バグを隠す可能性があります。重要なフィールドは **条件** ブロックで確認してから続行しましょう。
 
 ## 次に読むべきページ
 

@@ -61,7 +61,7 @@ Eftersom du egeninstallerar OneUptime behöver du konfigurera ditt eget Twilio-k
 
 ## Steg 3: Skapa en policy för inkommande samtal
 
-1. Gå till **Jour** > **Policyer för inkommande samtal**
+1. Gå till **Jourtjänst** > **Inkommande samtalspolicyer**
 2. Klicka på **Skapa policy för inkommande samtal**
 3. Fyll i följande fält:
    - **Namn**: Ett beskrivande namn (t.ex. "Support Hotline")
@@ -114,7 +114,7 @@ Eskaleringsregler avgör hur samtal dirigeras:
 4. Konfigurera regeln:
    - **Ordning**: Prioritetsordning (lägre nummer prövas först)
    - **Eskalera efter (sekunder)**: Hur länge man väntar innan eskalering
-   - **Jourschemat**: Välj ett schema för att dirigera till vem som är i jour
+   - **Jourschema**: Välj ett schema för att dirigera till vem som är i jour
    - **Team**: Välj specifika team
    - **Användare**: Välj specifika användare
 5. Lägg till ytterligare eskaleringsregler efter behov
@@ -127,20 +127,20 @@ Anpassa meddelandena som uppringare hör:
 2. Gå till **Inställningar**
 3. Konfigurera:
    - **Hälsningsmeddelande**: Spelas upp när samtalet besvaras
-   - **Inget svar-meddelande**: Spelas upp när alla eskaleringsregler misslyckas
-   - **Ingen tillgänglig-meddelande**: Spelas upp när ingen är i jour
+   - **Meddelande vid inget svar**: Spelas upp när alla eskaleringsregler misslyckas
+   - **Meddelande om att ingen är tillgänglig**: Spelas upp när ingen är i jour
 
 ## Konfigurationsalternativ
 
 ### Policyinställningar
 
-| Inställning                    | Beskrivning                                       | Standard                                                       |
-| ------------------------------ | ------------------------------------------------- | -------------------------------------------------------------- |
-| Hälsningsmeddelande            | TTS-meddelande som spelas upp när samtal besvaras | "Please wait while we connect you to the on-call engineer."    |
-| Inget svar-meddelande          | Meddelande när alla eskaleringsregler misslyckas  | "No one is available. Please try again later."                 |
-| Ingen tillgänglig-meddelande   | Meddelande när ingen är i jour                    | "We're sorry, but no on-call engineer is currently available." |
-| Upprepa policy om ingen svarar | Starta om från första regeln om alla misslyckas   | Inaktiverat                                                    |
-| Antal upprepningar             | Maximalt antal upprepningsförsök                  | 1                                                              |
+| Inställning                            | Beskrivning                                       | Standard                                                       |
+| -------------------------------------- | ------------------------------------------------- | -------------------------------------------------------------- |
+| Hälsningsmeddelande                    | TTS-meddelande som spelas upp när samtal besvaras | "Please wait while we connect you to the on-call engineer."    |
+| Meddelande vid inget svar              | Meddelande när alla eskaleringsregler misslyckas  | "No one is available. Please try again later."                 |
+| Meddelande om att ingen är tillgänglig | Meddelande när ingen är i jour                    | "We're sorry, but no on-call engineer is currently available." |
+| Upprepa policy om ingen svarar         | Starta om från första regeln om alla misslyckas   | Inaktiverat                                                    |
+| Antal upprepningar av policy           | Maximalt antal upprepningsförsök                  | 1                                                              |
 
 ### Inställningar för eskaleringsregel
 
@@ -148,7 +148,7 @@ Anpassa meddelandena som uppringare hör:
 | ----------------------- | -------------------------------------------------- |
 | Ordning                 | Prioritetsordning (1 = högst prioritet)            |
 | Eskalera efter sekunder | Väntetid innan nästa regel prövas (standard: 30 s) |
-| Jourschemat             | Dirigera till vem som för närvarande är i jour     |
+| Jourschema              | Dirigera till vem som för närvarande är i jour     |
 | Team                    | Dirigera till alla medlemmar i valda team          |
 | Användare               | Dirigera till specifika användare                  |
 
@@ -156,7 +156,7 @@ Anpassa meddelandena som uppringare hör:
 
 För att visa historik över inkommande samtal:
 
-1. Gå till **Jour** > **Policyer för inkommande samtal**
+1. Gå till **Jourtjänst** > **Inkommande samtalspolicyer**
 2. Klicka på din policy
 3. Gå till fliken **Samtalsloggar**
 

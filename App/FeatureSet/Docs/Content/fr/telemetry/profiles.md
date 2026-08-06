@@ -23,13 +23,13 @@ OneUptime prend en charge les types de profils suivants :
 
 ### Étape 1 - Créer un jeton d'ingestion de télémétrie
 
-Après vous être inscrit à OneUptime et avoir créé un projet, cliquez sur « Products » dans la barre de navigation et cliquez sur « Paramètres du projet ».
+Après vous être inscrit à OneUptime et avoir créé un projet, cliquez sur « Produits » dans la barre de navigation et cliquez sur « Paramètres du projet ».
 
 Sur la page des clés d'ingestion de télémétrie, cliquez sur « Créer une clé d'ingestion » pour créer un jeton.
 
 ![Créer un service](/docs/static/images/TelemetryIngestionKeys.png)
 
-Une fois que vous avez créé un jeton, cliquez sur « Afficher » pour le visualiser.
+Une fois que vous avez créé un jeton, cliquez sur « Voir » pour le visualiser.
 
 ![Afficher le service](/docs/static/images/TelemetryIngestionKeyView.png)
 

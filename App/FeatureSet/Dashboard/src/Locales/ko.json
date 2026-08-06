@@ -4135,6 +4135,7 @@
   "Processors transform spans as they flow through the pipeline. They run in order after the filter conditions match. Each processor modifies the span before it is stored.": "프로세서는 스팬이 파이프라인을 통과할 때 스팬을 변환합니다. 필터 조건이 일치한 후 순서대로 실행됩니다. 각 프로세서는 스팬이 저장되기 전에 스팬을 수정합니다.",
   "Processors transform spans matched by this pipeline. They run in the order shown below. Drag to reorder.": "프로세서는 이 파이프라인과 일치하는 스팬을 변환합니다. 아래에 표시된 순서대로 실행됩니다. 끌어서 순서를 변경하세요.",
   "Product": "제품",
+  "Products": "제품",
   "Production API Health": "프로덕션 API 상태",
   "Production cluster running in US East": "US East에서 실행 중인 프로덕션 클러스터",
   "Production cluster running in US East region on EKS": "EKS의 US East 리전에서 실행 중인 프로덕션 클러스터",

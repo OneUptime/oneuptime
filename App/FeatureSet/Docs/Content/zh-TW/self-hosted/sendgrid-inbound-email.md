@@ -100,16 +100,16 @@ inboundEmail:
 ### 步驟 6：建立收件電子郵件監控器
 
 1. 登入您的 OneUptime Dashboard
-2. 導覽至 **Monitors** > **Create Monitor**
+2. 導覽至 **監測** > **建立監測器**
 3. 選擇 **Incoming Email** 作為監控器類型
 4. 設定您的監控器：
-   - **Name：** 為您的監控器取一個具描述性的名稱
-   - **Description：** 描述此監控器的用途
+   - **名稱：** 為您的監控器取一個具描述性的名稱
+   - **描述：** 描述此監控器的用途
 5. 設定 **Alert Creation Criteria**（何時建立警示）：
    - 範例：電子郵件主旨包含 "ALERT" 或 "CRITICAL"
 6. 設定 **Alert Resolution Criteria**（何時解除警示）：
    - 範例：電子郵件主旨包含 "RESOLVED" 或 "OK"
-7. 點選 **Create**
+7. 點選 **建立**
 
 建立完成後，您會看到此監控器的專屬電子郵件地址（例如 `monitor-abc123def456@inbound.yourdomain.com`）。
 
@@ -135,8 +135,8 @@ inboundEmail:
 
 | 欄位               | 說明                       | 可用篩選條件                                                                               |
 | ------------------ | -------------------------- | ------------------------------------------------------------------------------------------ |
-| **Email Subject**  | 電子郵件的主旨列           | Contains、Not Contains、Equals、Not Equals、Starts With、Ends With、Is Empty、Is Not Empty |
-| **Email From**     | 寄件者的電子郵件地址       | Contains、Not Contains、Equals、Not Equals、Starts With、Ends With、Is Empty、Is Not Empty |
+| **電子郵件主旨**   | 電子郵件的主旨列           | Contains、Not Contains、Equals、Not Equals、Starts With、Ends With、Is Empty、Is Not Empty |
+| **寄件者電子郵件** | 寄件者的電子郵件地址       | Contains、Not Contains、Equals、Not Equals、Starts With、Ends With、Is Empty、Is Not Empty |
 | **Email Body**     | 電子郵件的純文字內文       | Contains、Not Contains、Equals、Not Equals、Starts With、Ends With、Is Empty、Is Not Empty |
 | **Email To**       | 收件者的電子郵件地址       | Contains、Not Contains、Equals、Not Equals、Starts With、Ends With、Is Empty、Is Not Empty |
 | **Email Received** | 距離上次收到電子郵件的時間 | Received In Minutes、Not Received In Minutes                                               |

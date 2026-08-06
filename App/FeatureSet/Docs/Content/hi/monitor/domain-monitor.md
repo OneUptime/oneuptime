@@ -14,9 +14,9 @@ Domain monitors आपके domains के लिए WHOIS data query करत
 
 ## Domain Monitor बनाना
 
-1. OneUptime Dashboard में **Monitors** पर जाएं
-2. **Create Monitor** पर क्लिक करें
-3. monitor type के रूप में **Domain** चुनें
+1. OneUptime Dashboard में **मॉनिटर** पर जाएं
+2. **मॉनिटर बनाएं** पर क्लिक करें
+3. monitor type के रूप में **डोमेन** चुनें
 4. वह domain name दर्ज करें जिसे आप monitor करना चाहते हैं
 5. आवश्यकतानुसार monitoring criteria configure करें
 
@@ -74,19 +74,19 @@ Domain monitors आपके domains के लिए WHOIS data query करत
 #### 30 दिनों के भीतर domain expire होने पर Alert करें
 
 - **Check On**: Domain Expires In Days
-- **Filter Type**: Less Than
-- **Value**: 30
+- **फ़िल्टर प्रकार**: Less Than
+- **मान**: 30
 
 #### Domain expired होने पर offline mark करें
 
 - **Check On**: Domain Is Expired
-- **Filter Type**: True
+- **फ़िल्टर प्रकार**: True
 
 #### सत्यापित करें कि nameservers सही हैं
 
 - **Check On**: Domain Name Server
-- **Filter Type**: Contains
-- **Value**: `ns1.example.com`
+- **फ़िल्टर प्रकार**: Contains
+- **मान**: `ns1.example.com`
 
 ## सर्वोत्तम प्रथाएं
 

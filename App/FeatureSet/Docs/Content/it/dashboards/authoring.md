@@ -1,6 +1,6 @@
 # Creazione di una dashboard
 
-Per creare una dashboard, apri **Dashboards → Create Dashboard**, assegnale un nome e aprila. Il canvas si apre in modalita **Edit**, pronto perche tu inizi ad aggiungere widget.
+Per creare una dashboard, apri **Dashboard → Create Dashboard**, assegnale un nome e aprila. Il canvas si apre in modalita **Modifica**, pronto perche tu inizi ad aggiungere widget.
 
 ## Il canvas
 
@@ -10,8 +10,8 @@ Una dashboard e una griglia. I widget si agganciano alla griglia — decidi tu d
 
 L'interruttore nell'intestazione passa tra due modalita:
 
-- **Edit** — la palette dei widget e aperta, puoi trascinare i widget, ridimensionarli e cliccarne uno qualsiasi per modificarne le impostazioni.
-- **View** — la dashboard e in sola lettura, esattamente come la vedono i visitatori e gli altri membri del team. Usala per controllare il risultato prima di condividerla.
+- **Modifica** — la palette dei widget e aperta, puoi trascinare i widget, ridimensionarli e cliccarne uno qualsiasi per modificarne le impostazioni.
+- **Visualizza** — la dashboard e in sola lettura, esattamente come la vedono i visitatori e gli altri membri del team. Usala per controllare il risultato prima di condividerla.
 
 E la stessa dashboard in entrambe le modalita. Non c'e un passaggio separato di "pubblicazione" — ogni modifica e attiva nel momento in cui viene salvata.
 
@@ -30,11 +30,11 @@ La maggior parte dei widget legge da una di tre fonti:
 
 - **Metriche** — scegli una metrica e un'aggregazione (media, max, conteggio, percentile). Aggiungi filtri. Scegli come raggruppare il risultato. E lo stesso query builder che vedi altrove in OneUptime.
 - **Elenchi live** — incidenti, allarmi, monitor, pod Kubernetes, container Docker, host. Ogni widget elenco prende un filtro e mostra gli elementi corrispondenti, aggiornati in tempo reale.
-- **Contenuto statico** — il widget **Text** accetta un blocco Markdown. Usalo per intestazioni, contesto, link ai runbook o note temporanee durante un incidente.
+- **Contenuto statico** — il widget **Testo** accetta un blocco Markdown. Usalo per intestazioni, contesto, link ai runbook o note temporanee durante un incidente.
 
 ## Soglie e formattazione
 
-I widget a valore singolo (**Value**, **Gauge**) ti permettono di impostare:
+I widget a valore singolo (**Valore**, **Indicatore**) ti permettono di impostare:
 
 - Una **soglia warning** — il colore diventa giallo quando il valore la supera.
 - Una **soglia critical** — il colore diventa rosso quando il valore la supera.

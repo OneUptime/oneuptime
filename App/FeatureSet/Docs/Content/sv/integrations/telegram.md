@@ -21,17 +21,17 @@ OneUptime Incident → On Create  ──►  Telegram component  ──►  mess
 
 ## Steg 3 — Spara hemligheterna
 
-1. Gå i OneUptime till **Workflows → Global Variables → Create**.
+1. Gå i OneUptime till **Arbetsflöden → Globala variabler → Skapa**.
 2. Skapa `TELEGRAM_BOT_TOKEN` (hemlighet) och `TELEGRAM_CHAT_ID`.
 
 ## Steg 4 — Bygg arbetsflödet
 
-1. Öppna **Workflows → Create Workflow**, namnge det `Incidents → Telegram` och öppna **Builder**.
+1. Öppna **Arbetsflöden → Skapa arbetsflöde**, namnge det `Incidents → Telegram` och öppna **Byggare**.
 2. Lägg till en **Incident**-utlösare inställd på **On Create**. Byt namn till `Incident`.
 3. Lägg till en **Telegram**-komponent kopplad till utlösaren:
    - **Bot token**: `{{variable.TELEGRAM_BOT_TOKEN}}`
    - **Chat ID**: `{{variable.TELEGRAM_CHAT_ID}}`
-   - **Message**: `🔴 New incident: {{Incident.title}}\n{{Incident.description}}`
+   - **Meddelande**: `🔴 New incident: {{Incident.title}}\n{{Incident.description}}`
 4. **Spara**, aktivera och skapa en testincident. Meddelandet anländer i din chatt.
 
 ## Alternativ: API-komponenten
@@ -46,7 +46,7 @@ Ett **API**-block fungerar också:
 ## Tips
 
 - Boten ser bara meddelanden efter att den lagts till i en grupp och **sekretessläget** tillåter det — om `getUpdates` är tomt, skicka boten ett meddelande först, eller inaktivera sekretessläget via BotFather.
-- Använd **Conditions** för att filtrera på allvarlighetsgrad innan du skickar.
+- Använd **Villkor** för att filtrera på allvarlighetsgrad innan du skickar.
 - Lägg till `"parse_mode": "Markdown"` i API-bodyn (eller använd komponentens formatering) för fetstil och länkar.
 
 ## Läs vidare

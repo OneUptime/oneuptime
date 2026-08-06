@@ -13,7 +13,7 @@ Ping-monitorer tester grundlæggende netværksforbindelsen ved at sende ICMP-pin
 
 ## Oprettelse af en Ping Monitor
 
-1. Gå til **Monitorer** i OneUptime-dashboardet
+1. Gå til **Overvågninger** i OneUptime-dashboardet
 2. Klik på **Opret monitor**
 3. Vælg **Ping** som monitortype
 4. Indtast det hostnavn eller den IP-adresse, du vil overvåge

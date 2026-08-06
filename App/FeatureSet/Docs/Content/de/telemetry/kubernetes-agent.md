@@ -11,7 +11,7 @@ Diese Seite ist die **Installationsanleitung**. Für die Konfiguration von Kuber
 - Ein laufendes Kubernetes-Cluster (v1.23+)
 - `kubectl`, konfiguriert für den Zugriff auf Ihr Cluster
 - `helm` v3 installiert
-- Ein **OneUptime-API-Schlüssel** — erstellen Sie einen unter _Project Settings → API Keys_
+- Ein **OneUptime-API-Schlüssel** — erstellen Sie einen unter _Projekteinstellungen → API-Schlüssel_
 
 ## Schritt 1 — Das OneUptime Helm-Repository hinzufügen
 
@@ -164,7 +164,7 @@ Akzeptiert `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`. `WARN` behält WA
 
 Container-Laufzeitumgebungen halten keinen Schweregrad an der Log-Zeile fest, daher parst der Agent selbst einen aus dem Log-Text heraus (`[ERROR]`, `WARN:`, `level=info`, …).
 
-> **Kubernetes-Events und Ressourcen-Spezifikationen werden hiervon niemals gefiltert.** Sie treffen von der Kubernetes-API ohne eigenen Schweregrad ein, sodass ein Schwellenwert den gesamten Feed löschen statt ihn ausdünnen würde — einschließlich der `FailedScheduling`-, `BackOff`- und `OOMKilling`-Warnungen, die Sie am dringendsten brauchen. Sie sind volumenarm und von hohem Wert, daher liefert der Agent sie immer aus. Um sie auszudünnen, verwenden Sie stattdessen die serverseitigen **Logs → Settings → Drop Filters** im Dashboard.
+> **Kubernetes-Events und Ressourcen-Spezifikationen werden hiervon niemals gefiltert.** Sie treffen von der Kubernetes-API ohne eigenen Schweregrad ein, sodass ein Schwellenwert den gesamten Feed löschen statt ihn ausdünnen würde — einschließlich der `FailedScheduling`-, `BackOff`- und `OOMKilling`-Warnungen, die Sie am dringendsten brauchen. Sie sind volumenarm und von hohem Wert, daher liefert der Agent sie immer aus. Um sie auszudünnen, verwenden Sie stattdessen die serverseitigen **Protokolle → Einstellungen → Drop-Filter** im Dashboard.
 
 **Was mit einer Zeile ohne erkennbaren Level geschieht, hängt vom Log-Modus ab**, denn den beiden Modi stehen unterschiedliche Informationen zur Verfügung:
 
@@ -247,7 +247,7 @@ Hinweise, die Ihnen einen Incident ersparen:
 - **Multi-Cluster funktioniert standardmäßig.** Zwei Agents behalten denselben Trace nur dann, wenn sie sich sowohl bei `hashSeed` als auch bei `percentage` einig sind. Beide haben überall denselben Standardwert, sodass ein Trace, der zwei Cluster überquert, ohne zusätzliche Konfiguration vollständig überlebt. Ändern Sie `hashSeed` nur, um zwei Sampling-Stufen bewusst zu *entkoppeln* — weil die Entscheidung ein Schwellenwert auf demselben Hash ist, verschachtelt sich derselbe Seed bei unterschiedlichen Raten, sodass eine zweite Stufe lediglich die Traces erneut auswählt, die die erste bereits behalten hat, statt unabhängig zu ziehen.
 - **Pod-Logs werden niemals gesampelt**, sodass mit `ebpf.logToTraceCorrelation: true` jeder Log-Datensatz weiterhin eine Trace-ID trägt, während nur `percentage` % dieser Traces behalten werden. Ungefähr (100 − `percentage`) % der Log-Datensätze zeigen damit einen Trace-Link, der ins Leere führt. Die Navigation Trace → Logs ist davon nicht betroffen; nur Logs → Trace kann danebengehen.
 
-> **Justieren Sie Ihre span-basierten Monitore neu, wenn Sie dies setzen.** Sampling reduziert die Spans, die OneUptime erreichen, sodass alles, was sie zählt, weniger zählt: Ein **Traces**-Monitor auf `Span Count` und ein **Exceptions**-Monitor auf `Exception Count` sehen ungefähr `percentage` % des gestrigen Volumens. Ein Schwellenwert, der auf ungesampeltem Verkehr eingestellt wurde, wird stillschweigend nicht mehr überschritten — der Monitor meldet keinen Fehler, er verstummt einfach. Teilen Sie diese Schwellenwerte durch denselben Faktor, wenn Sie die Rate setzen; die Rate gilt clusterweit, es gibt also keine Möglichkeit, einen einzelnen Service davon auszunehmen. Die Fehler-**Gruppierung** verschlechtert sich schlechter als linear: Eine häufige Exception taucht weiterhin auf, aber ein seltener Einzelfall verschwindet eher ganz, als dass er ein Zehntel so oft erscheint.
+> **Justieren Sie Ihre span-basierten Monitore neu, wenn Sie dies setzen.** Sampling reduziert die Spans, die OneUptime erreichen, sodass alles, was sie zählt, weniger zählt: Ein **Traces**-Monitor auf `Span Count` und ein **Ausnahmen**-Monitor auf `Exception Count` sehen ungefähr `percentage` % des gestrigen Volumens. Ein Schwellenwert, der auf ungesampeltem Verkehr eingestellt wurde, wird stillschweigend nicht mehr überschritten — der Monitor meldet keinen Fehler, er verstummt einfach. Teilen Sie diese Schwellenwerte durch denselben Faktor, wenn Sie die Rate setzen; die Rate gilt clusterweit, es gibt also keine Möglichkeit, einen einzelnen Service davon auszunehmen. Die Fehler-**Gruppierung** verschlechtert sich schlechter als linear: Eine häufige Exception taucht weiterhin auf, aber ein seltener Einzelfall verschwindet eher ganz, als dass er ein Zehntel so oft erscheint.
 
 > **Warum es hier kein Log- oder Metrik-Sampling gibt.** Der Sampler des Collectors kann Metriken überhaupt nicht samplen. Logs kann er samplen, aber er bezieht seine Zufälligkeit aus der Trace-ID — und Pod-Logs haben keine. Jeder Datensatz ohne Trace-ID hasht dann in denselben Bucket, sodass eine Log-Rate den Feed nicht ausdünnen würde: Sie würde ihn je nach Seed vollständig behalten oder vollständig löschen. Statt eine Stellschraube auszuliefern, die stillschweigend Ihre Logs löscht, bietet das Chart keine an. Dünnen Sie Logs mit [Filterung nach Log-Schweregrad](#filterung-nach-log-schweregrad) und [Namespace-Filterung](#namespace-filterung) aus, die präzise darin sind, was sie entfernen.
 
@@ -443,7 +443,7 @@ Es gibt drei Wege, das Volumen zu senken, und es lohnt sich zu wissen, welchen S
 - **Am Filter-Processor** — die Daten werden erfasst und dann vor dem Export verworfen. `filters.logs.minSeverity`, `filters.metrics.*`, `namespaceFilters.rules` (`metrics`/`traces`). Etwas mehr Collector-CPU, dafür wirkt es über Receiver hinweg und kann Dinge ausdrücken, die ein Receiver nicht kann.
 - **Am Sampler** — die Daten werden erfasst, und dann wird ein repräsentativer Anteil behalten. `sampling.traces.percentage`. Der Sonderfall: Die beiden oben entfernen eine ganze *Kategorie* von Telemetrie, sodass alles, was sie verwerfen, aus jedem Trace verschwunden ist. Sampling behält jede Kategorie und dünnt die Grundgesamtheit aus, sodass das, was überlebt, weiterhin vollständig und repräsentativ ist.
 
-Alle drei sind **unumkehrbar**: Was Sie hier verwerfen, erreicht OneUptime nie, und alle drei können einen Monitor verstummen lassen. Die ersten beiden lassen einen Monitor verstummen, indem sie das Signal entfernen, das er beobachtet. Sampling ist enger gefasst: Die eBPF-RED-Metriken werden berechnet, bevor der Sampler läuft, sodass metrikbasierte Monitore exakt bleiben — aber Monitore, die *Spans* zählen (**Traces** auf `Span Count`, **Exceptions** auf `Exception Count`), sehen proportional weniger und benötigen ihre Schwellenwerte um denselben Faktor neu justiert. Wenn Sie lieber später entscheiden möchten, kann OneUptime Daten stattdessen serverseitig verwerfen (**Logs → Settings → Drop Filters**, **Metrics → Settings → Pipeline Rules**) — das kostet weiterhin Egress, ist aber eine Einstellung, die Sie ohne erneutes Deployment ändern können.
+Alle drei sind **unumkehrbar**: Was Sie hier verwerfen, erreicht OneUptime nie, und alle drei können einen Monitor verstummen lassen. Die ersten beiden lassen einen Monitor verstummen, indem sie das Signal entfernen, das er beobachtet. Sampling ist enger gefasst: Die eBPF-RED-Metriken werden berechnet, bevor der Sampler läuft, sodass metrikbasierte Monitore exakt bleiben — aber Monitore, die *Spans* zählen (**Traces** auf `Span Count`, **Ausnahmen** auf `Exception Count`), sehen proportional weniger und benötigen ihre Schwellenwerte um denselben Faktor neu justiert. Wenn Sie lieber später entscheiden möchten, kann OneUptime Daten stattdessen serverseitig verwerfen (**Protokolle → Einstellungen → Drop-Filter**, **Metriken → Einstellungen → Pipeline-Regeln**) — das kostet weiterhin Egress, ist aber eine Einstellung, die Sie ohne erneutes Deployment ändern können.
 
 ### Hebel 1 — Pod-Logs sind meist die mit Abstand größte Quelle
 
@@ -593,7 +593,7 @@ Das ist eine Reduktion des Trace-Volumens um 90 % bei einem engeren Verlust als 
 
 Was Sie aufgeben, sind größtenteils Beispiel-Traces: Wenn ein Monitor auslöst, haben Sie ein Zehntel so viele Traces zum Öffnen. Auf einem Cluster, das Tausende identischer Requests pro Sekunde abwickelt, ist das meist ein guter Tausch — der hundertste identische `/healthz`-Span lehrt Sie nichts, was der erste nicht schon getan hätte. Auf einem ruhigen Cluster ist es ein schlechter, weil Sie womöglich kein Beispiel des seltenen Requests haben, der kaputtgegangen ist.
 
-Die Ausnahme, und das eine, was Sie vor dem Ausrollen prüfen sollten: Monitore, die **Spans zählen** statt Metriken — **Traces** auf `Span Count`, **Exceptions** auf `Exception Count` —, sehen proportional weniger, sodass ihre Schwellenwerte um denselben Faktor neu justiert werden müssen. Siehe [Trace-Sampling](#trace-sampling).
+Die Ausnahme, und das eine, was Sie vor dem Ausrollen prüfen sollten: Monitore, die **Spans zählen** statt Metriken — **Traces** auf `Span Count`, **Ausnahmen** auf `Exception Count` —, sehen proportional weniger, sodass ihre Schwellenwerte um denselben Faktor neu justiert werden müssen. Siehe [Trace-Sampling](#trace-sampling).
 
 Greifen Sie dazu, wenn eBPF-Traces einen großen Anteil an Ihrem Ingest ausmachen, Sie aber die Service-Map und die RED-Metriken intakt behalten möchten. Bevorzugen Sie Hebel 2, wenn Sie etwas vollständig nicht mehr instrumentieren möchten.
 
@@ -652,11 +652,11 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 
 Bei Bedarf weiter einschränken: minSeverity auf ERROR erhöhen, metrics zu den Bereichen einer Namespace-Regel hinzufügen oder ebpf.enabled=false setzen, wenn Sie bereits Traces über OTel-SDKs senden.
 
-> **Achten Sie darauf, was Sie streichen.** Einige Monitore hängen von bestimmten Signalen ab: Das Deaktivieren von `cadvisor` entfernt die OOM-Kill- und CPU-Throttling-Monitore; das Deaktivieren von `kubeletstats.volumeMetrics` entfernt den PVC-Low-Disk-Monitor; das Deaktivieren von Logs entfernt log-basierte Alarme; und `sampling.traces.percentage` entfernt zwar keinen Monitor, skaliert aber die span-basierten herunter (**Traces** auf `Span Count`, **Exceptions** auf `Exception Count`), justieren Sie deren Schwellenwerte also entsprechend neu. Streichen Sie die Signale, auf die Sie nicht reagieren, nicht die, die ein Monitor überwacht.
+> **Achten Sie darauf, was Sie streichen.** Einige Monitore hängen von bestimmten Signalen ab: Das Deaktivieren von `cadvisor` entfernt die OOM-Kill- und CPU-Throttling-Monitore; das Deaktivieren von `kubeletstats.volumeMetrics` entfernt den PVC-Low-Disk-Monitor; das Deaktivieren von Logs entfernt log-basierte Alarme; und `sampling.traces.percentage` entfernt zwar keinen Monitor, skaliert aber die span-basierten herunter (**Traces** auf `Span Count`, **Ausnahmen** auf `Exception Count`), justieren Sie deren Schwellenwerte also entsprechend neu. Streichen Sie die Signale, auf die Sie nicht reagieren, nicht die, die ein Monitor überwacht.
 
 ### Die Auswirkung messen
 
-Die Telemetrie-Nutzung wird pro Tag aggregiert, prüfen Sie also den Trend über ein oder zwei Tage unter **Project Settings → Usage History**, um den Rückgang zu bestätigen — er bewegt sich nicht in dem Moment, in dem Sie eine Änderung anwenden. Ändern Sie jeweils einen Hebel, damit Sie den Unterschied zuordnen können — Logs aus, dann Intervall hoch, dann eBPF eingegrenzt — statt alles auf einmal herunterzuregeln und einen Monitor zu verlieren, auf den Sie tatsächlich angewiesen waren.
+Die Telemetrie-Nutzung wird pro Tag aggregiert, prüfen Sie also den Trend über ein oder zwei Tage unter **Projekteinstellungen → Nutzungsverlauf**, um den Rückgang zu bestätigen — er bewegt sich nicht in dem Moment, in dem Sie eine Änderung anwenden. Ändern Sie jeweils einen Hebel, damit Sie den Unterschied zuordnen können — Logs aus, dann Intervall hoch, dann eBPF eingegrenzt — statt alles auf einmal herunterzuregeln und einen Monitor zu verlieren, auf den Sie tatsächlich angewiesen waren.
 
 ## Fehlerbehebung
 
@@ -694,7 +694,7 @@ Der häufigste Grund — besonders nach einer Neuinstallation — ist ein **fals
    curl -i -H "x-oneuptime-token: <YOUR_API_KEY>" https://oneuptime.com/otlp/v1/validate
    ```
 
-   Wenn `401` zurückgegeben wird, ist der Schlüssel in Ihrem Release falsch oder wurde widerrufen. Kopieren Sie einen aktiven Schlüssel aus _Project Settings → Telemetrie & APM → Ingestion-Schlüssel_ und deployen Sie erneut:
+   Wenn `401` zurückgegeben wird, ist der Schlüssel in Ihrem Release falsch oder wurde widerrufen. Kopieren Sie einen aktiven Schlüssel aus _Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel_ und deployen Sie erneut:
 
    ```bash
    helm upgrade kubernetes-agent oneuptime/kubernetes-agent \

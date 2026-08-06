@@ -4,7 +4,7 @@ Una variable convierte un solo panel en una plantilla. Añade una variable `serv
 
 ## Tipos de variables
 
-Añade variables en **Panel → Configuración → Variables**. Cada variable tiene un nombre (usado como `{{name}}` en tus widgets), una etiqueta opcional y un tipo.
+Añade variables en **Panel → Ajustes → Variables**. Cada variable tiene un nombre (usado como `{{name}}` en tus widgets), una etiqueta opcional y un tipo.
 
 ### Lista personalizada
 

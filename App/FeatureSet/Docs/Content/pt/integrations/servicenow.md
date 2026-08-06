@@ -2,7 +2,7 @@
 
 Abra um incidente no [ServiceNow](https://www.servicenow.com) automaticamente sempre que um incidente do OneUptime for criado — para que o ITSM e o monitoramento permaneçam em sincronia.
 
-Esta integração é de **saída**: o OneUptime chama a [Table API](https://docs.servicenow.com/bundle/utah-application-development/page/integrate/inbound-rest/concept/c_TableAPI.html) do ServiceNow. Ela usa um **[Workflow](/docs/workflows/index)** do OneUptime com um gatilho **Incident → On Create** e um **componente API**.
+Esta integração é de **saída**: o OneUptime chama a [Table API](https://docs.servicenow.com/bundle/utah-application-development/page/integrate/inbound-rest/concept/c_TableAPI.html) do ServiceNow. Ela usa um **[Workflow](/docs/workflows/index)** do OneUptime com um gatilho **Incidente → On Create** e um **componente API**.
 
 ```text
 OneUptime Incident → On Create  ──►  API component (POST /api/now/table/incident)  ──►  ServiceNow incident
@@ -24,12 +24,12 @@ A Table API do ServiceNow aceita **Basic auth**.
    printf '%s' 'integration_user:password' | base64
    ```
 
-2. No OneUptime, vá em **Workflows → Global Variables → Create**, nomeie como `SERVICENOW_AUTH`, cole a string base64 e ative **Is Secret**.
+2. No OneUptime, vá em **Fluxos de trabalho → Variáveis globais → Criar**, nomeie como `SERVICENOW_AUTH`, cole a string base64 e ative **Is Secret**.
 
 ## Passo 2 — Construa o workflow
 
-1. Abra **Workflows → Create Workflow**, nomeie-o `Incidents → ServiceNow` e abra o **Builder**.
-2. Adicione um gatilho **Incident** definido como **On Create**. Renomeie-o para `Incident`.
+1. Abra **Fluxos de trabalho → Criar fluxo de trabalho**, nomeie-o `Incidents → ServiceNow` e abra o **Construtor**.
+2. Adicione um gatilho **Incidente** definido como **On Create**. Renomeie-o para `Incident`.
 3. Adicione um bloco **API** conectado ao gatilho:
 
    - **Method**: `POST`
@@ -56,11 +56,11 @@ A Table API do ServiceNow aceita **Basic auth**.
 
    O `correlation_id` mantém um vínculo com o incidente do OneUptime — útil se você adicionar um passo de resolução depois. O `urgency`/`impact` do ServiceNow usa `1` (alto), `2` (médio), `3` (baixo).
 
-4. **Salve**, ative e crie um incidente de teste. Uma resposta `201 Created` nos logs do workflow retorna o `sys_id` e o `number` do novo registro (por exemplo `INC0012345`).
+4. **Salvar**, ative e crie um incidente de teste. Uma resposta `201 Created` nos logs do workflow retorna o `sys_id` e o `number` do novo registro (por exemplo `INC0012345`).
 
 ## Passo 3 — Resolver quando o OneUptime resolver (opcional)
 
-1. Crie um **segundo** workflow com um gatilho **Incident → On Update** e um bloco **Conditions** que verifica se o incidente está resolvido.
+1. Crie um **segundo** workflow com um gatilho **Incidente → On Update** e um bloco **Condições** que verifica se o incidente está resolvido.
 2. Para atualizar o registro correto no ServiceNow, você precisa do seu `sys_id`. Armazene-o no incidente do OneUptime no Passo 2 (leia `{{CreateRecord.response-body.result.sys_id}}` e escreva-o em um rótulo com **Update Incident**), ou busque o registro primeiro com um `GET` em `/api/now/table/incident?sysparm_query=correlation_id=oneuptime-{{Incident._id}}`.
 3. Adicione um bloco **API**: **Method** `PATCH`, **URL** `https://sua-instancia.service-now.com/api/now/table/incident/<sys_id>`, corpo `{ "state": "6", "close_code": "Resolved by monitoring", "close_notes": "Resolved in OneUptime" }` (`state` `6` = Resolvido no workflow ITIL padrão).
 

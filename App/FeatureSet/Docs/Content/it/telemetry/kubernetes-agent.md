@@ -11,7 +11,7 @@ Questa pagina è la **guida all'installazione**. Per configurare monitor e avvis
 - Un cluster Kubernetes in esecuzione (v1.23+)
 - `kubectl` configurato per accedere al tuo cluster
 - `helm` v3 installato
-- Una **chiave API di OneUptime** — creane una da _Project Settings → API Keys_
+- Una **chiave API di OneUptime** — creane una da _Impostazioni del progetto → Chiavi API_
 
 ## Passo 1 — Aggiungi il repository Helm di OneUptime
 
@@ -164,7 +164,7 @@ Accetta `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`. `WARN` mantiene WARN
 
 I runtime dei container non registrano una severità sulla riga di log, quindi l'agent ne ricava una dal testo del log stesso (`[ERROR]`, `WARN:`, `level=info`, …).
 
-> **Gli eventi Kubernetes e le specifiche delle risorse non vengono mai filtrati da questo.** Arrivano dall'API Kubernetes senza una severità propria, quindi una soglia eliminerebbe l'intero flusso invece di ridurlo — inclusi gli avvisi `FailedScheduling`, `BackOff` e `OOMKilling` che più ti interessano. Sono a basso volume e ad alto valore, quindi l'agent li invia sempre. Per ridurli, usa invece i **Logs → Settings → Drop Filters** lato server della dashboard.
+> **Gli eventi Kubernetes e le specifiche delle risorse non vengono mai filtrati da questo.** Arrivano dall'API Kubernetes senza una severità propria, quindi una soglia eliminerebbe l'intero flusso invece di ridurlo — inclusi gli avvisi `FailedScheduling`, `BackOff` e `OOMKilling` che più ti interessano. Sono a basso volume e ad alto valore, quindi l'agent li invia sempre. Per ridurli, usa invece i **Log → Impostazioni → Filtri di scarto** lato server della dashboard.
 
 **Cosa succede a una riga senza un livello riconoscibile dipende dalla modalità di log**, perché le due modalità hanno a disposizione informazioni diverse:
 
@@ -247,7 +247,7 @@ Note che ti eviteranno un incidente:
 - **Il multi-cluster funziona per impostazione predefinita.** Due agent mantengono la stessa traccia solo se concordano sia su `hashSeed` sia su `percentage`. Entrambi hanno lo stesso valore predefinito ovunque, quindi una traccia che attraversa due cluster sopravvive intera senza alcuna configurazione aggiuntiva. Cambia `hashSeed` solo per *decorrelare* deliberatamente due livelli di campionamento — poiché la decisione è una soglia sullo stesso hash, lo stesso seed a frequenze diverse si annida, quindi un secondo livello si limita a riscegliere le tracce che il primo aveva già mantenuto invece di estrarne di indipendenti.
 - **I log dei pod non vengono mai campionati**, quindi con `ebpf.logToTraceCorrelation: true` ogni record di log continua a portare un trace ID mentre viene mantenuto solo il `percentage`% di quelle tracce. Circa il (100 − `percentage`)% dei record di log mostrerà un collegamento a una traccia che non porta da nessuna parte. La navigazione traccia → log non ne è influenzata; solo log → traccia può fallire.
 
-> **Ritara i tuoi monitor basati sugli span quando imposti questo valore.** Il campionamento riduce gli span che raggiungono OneUptime, quindi tutto ciò che li conta ne conta di meno: un monitor **Traces** su `Span Count` e un monitor **Exceptions** su `Exception Count` vedranno circa il `percentage`% del volume di ieri. Una soglia tarata su traffico non campionato smette silenziosamente di essere superata — il monitor non va in errore, semplicemente resta muto. Dividi quelle soglie per lo stesso fattore quando imposti la frequenza; la frequenza vale per l'intero cluster, quindi non c'è modo di esentarne un singolo servizio. Il **raggruppamento** degli errori degrada peggio che linearmente: un'eccezione comune emerge comunque, ma un caso isolato e raro ha più probabilità di sparire del tutto che di apparire un decimo delle volte.
+> **Ritara i tuoi monitor basati sugli span quando imposti questo valore.** Il campionamento riduce gli span che raggiungono OneUptime, quindi tutto ciò che li conta ne conta di meno: un monitor **Tracce** su `Span Count` e un monitor **Eccezioni** su `Exception Count` vedranno circa il `percentage`% del volume di ieri. Una soglia tarata su traffico non campionato smette silenziosamente di essere superata — il monitor non va in errore, semplicemente resta muto. Dividi quelle soglie per lo stesso fattore quando imposti la frequenza; la frequenza vale per l'intero cluster, quindi non c'è modo di esentarne un singolo servizio. Il **raggruppamento** degli errori degrada peggio che linearmente: un'eccezione comune emerge comunque, ma un caso isolato e raro ha più probabilità di sparire del tutto che di apparire un decimo delle volte.
 
 > **Perché qui non c'è campionamento di log o metriche.** Il sampler del collector non è affatto in grado di campionare le metriche. Può campionare i log, ma ricava la sua casualità dal trace ID — e i log dei pod non ne hanno uno. Ogni record privo di trace ID finisce poi nello stesso bucket dell'hash, quindi una frequenza per i log non ridurrebbe il flusso: lo manterrebbe tutto oppure lo eliminerebbe tutto a seconda del seed. Invece di fornire un parametro che elimina silenziosamente i tuoi log, il chart non ne offre nessuno. Riduci i log con [Filtraggio per severità dei log](#filtraggio-per-severità-dei-log) e [Filtraggio dei namespace](#filtraggio-dei-namespace), che sono precisi su ciò che rimuovono.
 
@@ -443,7 +443,7 @@ Ci sono tre modi per ridurre il volume, e vale la pena sapere quale stai usando:
 - **Al processor `filter`** — i dati vengono raccolti, poi eliminati prima dell'esportazione. `filters.logs.minSeverity`, `filters.metrics.*`, `namespaceFilters.rules` (`metrics`/`traces`). Un po' più di CPU per il collector, ma funziona su tutti i receiver e può esprimere cose che un receiver non può.
 - **Al sampler** — i dati vengono raccolti, poi ne viene mantenuta una frazione rappresentativa. `sampling.traces.percentage`. È quello anomalo: i due qui sopra rimuovono un'intera *categoria* di telemetria, quindi ciò che eliminano sparisce da ogni traccia. Il campionamento mantiene ogni categoria e riduce la popolazione, quindi ciò che sopravvive è comunque completo e rappresentativo.
 
-Tutti e tre sono **irreversibili**: ciò che elimini qui non raggiunge mai OneUptime, e tutti e tre possono far restare muto un monitor. I primi due silenziano un monitor rimuovendo il segnale che osserva. Il campionamento è più circoscritto: le metriche RED di eBPF vengono calcolate prima che il sampler venga eseguito, quindi i monitor basati sulle metriche restano esatti — ma i monitor che contano gli *span* (**Traces** su `Span Count`, **Exceptions** su `Exception Count`) ne vedono proporzionalmente meno e hanno bisogno che le loro soglie vengano ritarate dello stesso fattore. Se preferisci decidere più tardi, OneUptime può invece eliminare i dati lato server (**Logs → Settings → Drop Filters**, **Metrics → Settings → Pipeline Rules**) — questo costa comunque egress, ma è un'impostazione che puoi cambiare senza un nuovo deploy.
+Tutti e tre sono **irreversibili**: ciò che elimini qui non raggiunge mai OneUptime, e tutti e tre possono far restare muto un monitor. I primi due silenziano un monitor rimuovendo il segnale che osserva. Il campionamento è più circoscritto: le metriche RED di eBPF vengono calcolate prima che il sampler venga eseguito, quindi i monitor basati sulle metriche restano esatti — ma i monitor che contano gli *span* (**Tracce** su `Span Count`, **Eccezioni** su `Exception Count`) ne vedono proporzionalmente meno e hanno bisogno che le loro soglie vengano ritarate dello stesso fattore. Se preferisci decidere più tardi, OneUptime può invece eliminare i dati lato server (**Log → Impostazioni → Filtri di scarto**, **Metriche → Impostazioni → Regole pipeline**) — questo costa comunque egress, ma è un'impostazione che puoi cambiare senza un nuovo deploy.
 
 ### Leva 1 — I log dei pod sono di solito la singola fonte più grande
 
@@ -593,7 +593,7 @@ Si tratta di una riduzione del 90% del volume delle tracce, a fronte di una perd
 
 Ciò a cui rinunci sono per lo più le tracce di esempio: quando un monitor scatta, hai un decimo delle tracce da aprire. Su un cluster che gestisce migliaia di richieste identiche al secondo di solito è un buon compromesso — il centesimo span `/healthz` identico non ti insegna nulla che non ti avesse già insegnato il primo. Su un cluster tranquillo è un cattivo compromesso, perché potresti non avere alcun esempio della rara richiesta che si è rotta.
 
-L'eccezione, e l'unica cosa da controllare prima di distribuire questa modifica: i monitor che **contano gli span** invece delle metriche — **Traces** su `Span Count`, **Exceptions** su `Exception Count` — ne vedono proporzionalmente meno, quindi le loro soglie vanno ritarate dello stesso fattore. Consulta [Campionamento delle tracce](#campionamento-delle-tracce).
+L'eccezione, e l'unica cosa da controllare prima di distribuire questa modifica: i monitor che **contano gli span** invece delle metriche — **Tracce** su `Span Count`, **Eccezioni** su `Exception Count` — ne vedono proporzionalmente meno, quindi le loro soglie vanno ritarate dello stesso fattore. Consulta [Campionamento delle tracce](#campionamento-delle-tracce).
 
 Ricorri a questa leva quando le tracce eBPF sono una quota consistente della tua ingestione ma vuoi comunque la mappa dei servizi e le metriche RED intatte. Preferisci la Leva 2 quando vuoi smettere del tutto di strumentare qualcosa.
 
@@ -652,11 +652,11 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 
 Riduci ulteriormente se necessario: imposta minSeverity su ERROR, aggiungi metrics agli ambiti di una regola namespace oppure imposta ebpf.enabled=false se invii già tracce dagli SDK OTel.
 
-> **Attenzione a cosa tagli.** Alcuni monitor dipendono da segnali specifici: disabilitare `cadvisor` rimuove i monitor di OOM-kill e CPU-throttling; disabilitare `kubeletstats.volumeMetrics` rimuove il monitor di spazio su disco basso dei PVC; disabilitare i log rimuove gli avvisi basati sui log; e `sampling.traces.percentage` non rimuove un monitor ma riduce quelli basati sugli span (**Traces** su `Span Count`, **Exceptions** su `Exception Count`), quindi ritara le loro soglie di conseguenza. Riduci i segnali su cui non intervieni, non quelli che un monitor sta osservando.
+> **Attenzione a cosa tagli.** Alcuni monitor dipendono da segnali specifici: disabilitare `cadvisor` rimuove i monitor di OOM-kill e CPU-throttling; disabilitare `kubeletstats.volumeMetrics` rimuove il monitor di spazio su disco basso dei PVC; disabilitare i log rimuove gli avvisi basati sui log; e `sampling.traces.percentage` non rimuove un monitor ma riduce quelli basati sugli span (**Tracce** su `Span Count`, **Eccezioni** su `Exception Count`), quindi ritara le loro soglie di conseguenza. Riduci i segnali su cui non intervieni, non quelli che un monitor sta osservando.
 
 ### Misura l'effetto
 
-L'utilizzo della telemetria è aggregato per giorno, quindi controlla l'andamento su uno o due giorni in **Project Settings → Usage History** per confermare la riduzione — non cambierà nell'istante in cui applichi una modifica. Modifica una leva alla volta così puoi attribuire la differenza — log disattivati, poi intervallo aumentato, poi eBPF ridotto — invece di ridurre tutto in una volta e perdere un monitor su cui facevi effettivamente affidamento.
+L'utilizzo della telemetria è aggregato per giorno, quindi controlla l'andamento su uno o due giorni in **Impostazioni del progetto → Cronologia utilizzo** per confermare la riduzione — non cambierà nell'istante in cui applichi una modifica. Modifica una leva alla volta così puoi attribuire la differenza — log disattivati, poi intervallo aumentato, poi eBPF ridotto — invece di ridurre tutto in una volta e perdere un monitor su cui facevi effettivamente affidamento.
 
 ## Risoluzione dei problemi
 
@@ -694,7 +694,7 @@ Il motivo più comune — specialmente dopo una reinstallazione — è una **chi
    curl -i -H "x-oneuptime-token: <YOUR_API_KEY>" https://oneuptime.com/otlp/v1/validate
    ```
 
-   Se restituisce `401`, la chiave nella tua release è errata o è stata revocata. Copia una chiave attiva da _Project Settings → Telemetria e APM → Chiavi di acquisizione_ e riesegui il deploy:
+   Se restituisce `401`, la chiave nella tua release è errata o è stata revocata. Copia una chiave attiva da _Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione_ e riesegui il deploy:
 
    ```bash
    helm upgrade kubernetes-agent oneuptime/kubernetes-agent \

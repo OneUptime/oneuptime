@@ -9,7 +9,7 @@
 
 2. **Conectar o Microsoft Teams ao Projeto OneUptime**
 
-   - Navegue para **Project Settings** > **Microsoft Teams** dentro do seu projeto OneUptime.
+   - Navegue para **Configurações do projeto** > **Microsoft Teams** dentro do seu projeto OneUptime.
    - Siga os prompts para conectar sua conta do Microsoft Teams ao projeto OneUptime.
 
 3. **Configurar Notificações de Incidentes**

@@ -10,14 +10,14 @@ Du kan køre **OpenTelemetry Collector** som en tjeneste direkte på dine Linux-
 - **systemd-unit-tilstand** (driver host-fanen **Systemd Units**) via [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver) — medleveres i upstream-`otelcol-contrib`-buildet fra **v0.142.0** og kan bruges fra **v0.143.0** og frem (se "Linux Services (systemd-units)" nedenfor)
 - **Apple Unified Log** (macOS) via [`logstransformprocessor`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/logstransformprocessor), der indkapsler et tailed `log stream`-output
 - **Windows Event Logs** via [`windowseventlogreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowseventlogreceiver)
-- **Windows-tjenestestatus** (driver host-fanen **Services**) via [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver) — medleveres i upstream-`otelcol-contrib`-buildet fra **v0.155.0** og frem (se "Windows Services (metrikker)" nedenfor)
+- **Windows-tjenestestatus** (driver host-fanen **Tjenester**) via [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver) — medleveres i upstream-`otelcol-contrib`-buildet fra **v0.155.0** og frem (se "Windows Services (metrikker)" nedenfor)
 
 > **Hvad med OneUptime Infrastructure Agent?** Den agent er en separat, letvægts Go-dæmon med fokus på grundlæggende metrikker og funktionen _Server / VM Monitor_ (status, processer, alarmering). Den OpenTelemetry Collector, der beskrives her, er uafhængig og er det rette værktøj, når du ønsker logs (filbaserede logs, journald, Windows Event Logs) eller rigere host-metrikker indsamlet som standard OTLP. Begge kan køre på den samme host uden at forstyrre hinanden.
 
 ## Forudsætninger
 
-- Et **OneUptime Telemetry Ingestion Token** — opret et fra _Project Settings → Telemetri og APM → Indtagelsesnøgler_ og kopiér værdien `x-oneuptime-token`.
-- Distributionen **OpenTelemetry Collector Contrib** (`otelcol-contrib`). Standard-`otelcol`-buildet inkluderer **ikke** receivere som `windowseventlogreceiver`, `journaldreceiver` eller `hostmetrics`-ekstraer — sørg for at bruge `contrib`-distributionen. Alpha-receiveren `windowsservicereceiver`, som driver Windows-fanen **Services**, medleveres i `otelcol-contrib` fra **v0.155.0** og frem, og alpha-receiveren `systemdreceiver`, som driver Linux-fanen **Systemd Units**, fra **v0.143.0** og frem, så installér en aktuel udgivelse; se "Windows Services (metrikker)" og "Linux Services (systemd-units)" nedenfor.
+- Et **OneUptime Telemetry Ingestion Token** — opret et fra _Projektindstillinger → Telemetri og APM → Indtagelsesnøgler_ og kopiér værdien `x-oneuptime-token`.
+- Distributionen **OpenTelemetry Collector Contrib** (`otelcol-contrib`). Standard-`otelcol`-buildet inkluderer **ikke** receivere som `windowseventlogreceiver`, `journaldreceiver` eller `hostmetrics`-ekstraer — sørg for at bruge `contrib`-distributionen. Alpha-receiveren `windowsservicereceiver`, som driver Windows-fanen **Tjenester**, medleveres i `otelcol-contrib` fra **v0.155.0** og frem, og alpha-receiveren `systemdreceiver`, som driver Linux-fanen **Systemd Units**, fra **v0.143.0** og frem, så installér en aktuel udgivelse; se "Windows Services (metrikker)" og "Linux Services (systemd-units)" nedenfor.
 - Root / Administrator på hosten for at installere collectoren som en tjeneste og (hvor det er relevant) læse privilegerede logkilder.
 
 ## Trin 1 — Installér OpenTelemetry Collector
@@ -69,7 +69,7 @@ Du opretter `/etc/otelcol-contrib/config.yaml` i Trin 2 og en `launchd`-plist i 
 
 ### Windows
 
-På Windows skal du downloade upstream-**`otelcol-contrib`**-udgivelsen — den medleverer `windows_service`-receiveren, der driver host-fanen **Services** (fra **v0.155.0** og frem). Fra en **forhøjet** PowerShell-prompt:
+På Windows skal du downloade upstream-**`otelcol-contrib`**-udgivelsen — den medleverer `windows_service`-receiveren, der driver host-fanen **Tjenester** (fra **v0.155.0** og frem). Fra en **forhøjet** PowerShell-prompt:
 
 ```powershell
 $VERSION = "0.156.0"                          # use v0.155.0 or later for the Services tab
@@ -83,7 +83,7 @@ tar -xf $tar -C $dest                          # tar.exe ships with Windows 10 1
 
 Dette udpakker `otelcol-contrib.exe` til `C:\Program Files\otelcol-contrib`. Du opretter `config.yaml` i den samme mappe i Trin 2 og registrerer en Windows-tjeneste i Trin 3.
 
-> Foretrækker du et native installeringsprogram? OpenTelemetry publicerer også en signeret **`.msi`** (`otelcol-contrib_<version>_windows_x64.msi`) på den samme [udgivelsesside](https://github.com/open-telemetry/opentelemetry-collector-releases/releases), som registrerer collectoren som en Windows-tjeneste for dig. Hvis du bruger den, skal du pege den mod `config.yaml` fra Trin 2 og sørge for, at tjenesten kører som `LocalSystem`, så fanen **Services** kan læse Service Control Manager.
+> Foretrækker du et native installeringsprogram? OpenTelemetry publicerer også en signeret **`.msi`** (`otelcol-contrib_<version>_windows_x64.msi`) på den samme [udgivelsesside](https://github.com/open-telemetry/opentelemetry-collector-releases/releases), som registrerer collectoren som en Windows-tjeneste for dig. Hvis du bruger den, skal du pege den mod `config.yaml` fra Trin 2 og sørge for, at tjenesten kører som `LocalSystem`, så fanen **Tjenester** kan læse Service Control Manager.
 
 ## Trin 2 — Konfigurér collectoren
 
@@ -168,7 +168,7 @@ receivers:
 
 `start_at: end` betyder nye linjer fra det øjeblik, collectoren starter; skift til `beginning` for at indhente ved første kørsel. Collectoren holder styr på file-offsets, så den genoptager korrekt på tværs af genstarter.
 
-**Omdannelse af host-log-stack traces til Exceptions.** OneUptime scanner automatisk error- og fatal-loglinjer for stack traces og samler dem op i visningen **Exceptions** (Issues), tilskrevet denne host — ingen ekstra konfiguration nødvendig. For at dette grupperes godt, skal en flerliniet stack trace (Java, Python, .NET, Ruby) ankomme som **én** logpost, ikke én post pr. linje. Aktivér multiline-rekombination på `filelog`-receiveren, så en trace og dens frames forbliver samlet:
+**Omdannelse af host-log-stack traces til Exceptions.** OneUptime scanner automatisk error- og fatal-loglinjer for stack traces og samler dem op i visningen **Undtagelser** (Issues), tilskrevet denne host — ingen ekstra konfiguration nødvendig. For at dette grupperes godt, skal en flerliniet stack trace (Java, Python, .NET, Ruby) ankomme som **én** logpost, ikke én post pr. linje. Aktivér multiline-rekombination på `filelog`-receiveren, så en trace og dens frames forbliver samlet:
 
 ```yaml
 receivers:
@@ -204,7 +204,7 @@ Collector-binæren skal kunne eksekvere `journalctl` (Debian- / RPM-pakkerne ink
 
 ### Linux Services (systemd-units, metrikker)
 
-Host-fanen **Systemd Units** drives af [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver) (config-typen `systemd`), som rapporterer den aktive tilstand for systemd-units som metrikker — Linux-modstykket til fanen **Services** på Windows.
+Host-fanen **Systemd Units** drives af [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver) (config-typen `systemd`), som rapporterer den aktive tilstand for systemd-units som metrikker — Linux-modstykket til fanen **Tjenester** på Windows.
 
 **Receiveren kom første gang med i upstream-`otelcol-contrib`-binæren i v0.142.0, og v0.143.0 er den første udgivelse, der er værd at køre** — på alt ældre fejler tilføjelse af `systemd` ved opstart med `'receivers' unknown type: "systemd"`, og v0.142.0 alene kalder sin CPU-metrik `systemd.unit.cpu.time` og leder efter cgroup-statistik på hver eneste unit, hvilket logger en scrape-fejl for hver unit, der ikke er en `.service`. v0.143.0 omdøbte den metrik til `systemd.service.cpu.time` og begrænsede opslaget til tjenester. Installér en aktuel udgivelse (Trin 1), aktivér den derefter i din `config.yaml`, og tilføj den til metrik-pipelinen:
 
@@ -307,7 +307,7 @@ windowseventlog/iis:
 
 ### Windows Services (metrikker)
 
-Host-fanen **Services** drives af [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver) (config-typen `windows_service`), som rapporterer den kørende tilstand og opstartstype for Windows-tjenester som metrikker.
+Host-fanen **Tjenester** drives af [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver) (config-typen `windows_service`), som rapporterer den kørende tilstand og opstartstype for Windows-tjenester som metrikker.
 
 **Denne receiver medleveres i upstream-`otelcol-contrib`-binæren fra v0.155.0 og frem** — på tidligere udgivelser fejler tilføjelse af `windows_service` ved opstart med `'receivers' unknown type: "windows_service"`. Installér en aktuel udgivelse (Trin 1), aktivér den derefter i din `config.yaml`, og tilføj den til metrik-pipelinen:
 
@@ -330,7 +330,7 @@ service:
 
 Receiveren udsender én `windows.service.status`-gauge pr. tjeneste — heltallet er Win32-tjenestetilstanden (`4` = kører, `1` = stoppet) — med `name`- og `startup_mode`-attributter. Kør collectoren som `LocalSystem` (`sc.exe`-standarden), så den kan læse hver tjeneste; enhver, den ikke kan åbne, springes over. Receiveren er **alpha** og **kun til Windows**; kendte problemer inkluderer en scrape-fejl, der kan få collectoren til at gå ned, og en `access denied` på én tjeneste, der påvirker andre — begræns til `include_services`, hvis du støder på dem.
 
-> **`include_services` har ingen effekt?** Filteret kan kun nogensinde *indsnævre* mængden, så hvis du angiver tjenester og stadig ser dem alle, er den redigerede konfiguration næsten helt sikkert ikke nået frem til den kørende collector. Genstart tjenesten efter redigering (Trin 3); sørg for, at `include_services` er en udfyldt liste med samme indrykning som `collection_interval` (ikke ladt udkommenteret eller tom); og giv fanen **Services** et par minutter, så tjenester, der blev rapporteret før ændringen, ældes ud af dens rullende vindue. Navnene er nøjagtige, versalfølsomme Windows-tjeneste-_nøgle_navne (f.eks. `Spooler`, `W3SVC`), som du kan liste med `Get-Service | Select-Object Name`.
+> **`include_services` har ingen effekt?** Filteret kan kun nogensinde *indsnævre* mængden, så hvis du angiver tjenester og stadig ser dem alle, er den redigerede konfiguration næsten helt sikkert ikke nået frem til den kørende collector. Genstart tjenesten efter redigering (Trin 3); sørg for, at `include_services` er en udfyldt liste med samme indrykning som `collection_interval` (ikke ladt udkommenteret eller tom); og giv fanen **Tjenester** et par minutter, så tjenester, der blev rapporteret før ændringen, ældes ud af dens rullende vindue. Navnene er nøjagtige, versalfølsomme Windows-tjeneste-_nøgle_navne (f.eks. `Spooler`, `W3SVC`), som du kan liste med `Get-Service | Select-Object Name`.
 
 ### Komplet eksempel — Linux-host
 
@@ -602,10 +602,10 @@ Tjenesten kører som standard under `LocalSystem`, som har de privilegier, der k
 1. Generér noget signal på hosten:
    - **Linux / macOS:** `logger "hello from oneuptime"` (skriver til syslog / journald).
    - **Windows:** `eventcreate /T INFORMATION /ID 999 /L APPLICATION /SO OneUptimeTest /D "hello from oneuptime"` fra en forhøjet prompt.
-2. I OneUptime-dashboardet skal du åbne **Products → Tjenester** og vælge den `service.name`, du konfigurerede.
-3. Åbn **Metrics** — host-metrikker (CPU, hukommelse, filsystem osv.) bør vises inden for et minut.
-4. Åbn **Logs** — dine filbaserede logs / journald-poster / Windows Event Logs bør streame ind. Nyttige søgbare attributter inkluderer `log.file.name`, `systemd.unit`, `winlog.channel`, `winlog.event_id` og `winlog.provider.name`.
-5. Hvis du aktiverede `systemd`- (Linux) eller `windows_service`-receiveren (Windows), skal du åbne **Infrastructure → Hosts**, vælge hosten og tjekke fanen **Systemd Units** / **Services** — hver scrapet unit bør være listet med sin aktuelle tilstand.
+2. I OneUptime-dashboardet skal du åbne **Produkter → Tjenester** og vælge den `service.name`, du konfigurerede.
+3. Åbn **Metrikker** — host-metrikker (CPU, hukommelse, filsystem osv.) bør vises inden for et minut.
+4. Åbn **Protokoller** — dine filbaserede logs / journald-poster / Windows Event Logs bør streame ind. Nyttige søgbare attributter inkluderer `log.file.name`, `systemd.unit`, `winlog.channel`, `winlog.event_id` og `winlog.provider.name`.
+5. Hvis du aktiverede `systemd`- (Linux) eller `windows_service`-receiveren (Windows), skal du åbne **Infrastruktur → Værter**, vælge hosten og tjekke fanen **Systemd Units** / **Tjenester** — hver scrapet unit bør være listet med sin aktuelle tilstand.
 
 ## Reduktion af mængden af indsamlede data
 
@@ -848,7 +848,7 @@ service:
 
 Tilføj en `logs`-pipeline igen med en snævert afgrænset `filelog`- eller `journald`-receiver, når du har brug for det.
 
-> **Pas på, hvad du skærer væk.** Log-baserede alarmer kræver, at logsene ankommer: hvis du filtrerer en alvorlighed eller en kanal fra, forstummer de monitorer, der nøgles på den. Skær de kilder væk, du ikke handler på, ikke dem, en monitor overvåger. Ændr én løftestang ad gangen, og bekræft faldet under **Project Settings → Usage History** (forbruget aggregeres dagligt, så giv det en dag eller to), før du går videre til den næste.
+> **Pas på, hvad du skærer væk.** Log-baserede alarmer kræver, at logsene ankommer: hvis du filtrerer en alvorlighed eller en kanal fra, forstummer de monitorer, der nøgles på den. Skær de kilder væk, du ikke handler på, ikke dem, en monitor overvåger. Ændr én løftestang ad gangen, og bekræft faldet under **Projektindstillinger → Brugshistorik** (forbruget aggregeres dagligt, så giv det en dag eller to), før du går videre til den næste.
 
 ## Selvhostet OneUptime
 
@@ -879,7 +879,7 @@ OpenTelemetry Collector respekterer standard-miljøvariablerne `HTTPS_PROXY` / `
   - **Linux / macOS:** `journalctl -u otelcol-contrib -f` (Linux) eller `tail -f /var/log/otelcol-contrib.err.log` (macOS).
   - **Windows:** kig under _Event Viewer → Windows Logs → Application_ efter kilden `otelcol-contrib`.
   - Bekræft, at hosten kan nå `https://oneuptime.com/otlp` (eller dit selvhostede endpoint): `curl -v https://oneuptime.com/otlp` fra den samme maskine.
-- **HTTP 401 fra eksportøren** — ingestion-tokenet er ugyldigt eller tilbagekaldt. Generér et nyt fra _Project Settings → Telemetri og APM → Indtagelsesnøgler_.
+- **HTTP 401 fra eksportøren** — ingestion-tokenet er ugyldigt eller tilbagekaldt. Generér et nyt fra _Projektindstillinger → Telemetri og APM → Indtagelsesnøgler_.
 - **`Security` Windows Event Log returnerer access denied** — tjenesten kører ikke med tilstrækkelige privilegier. Genopret den under `LocalSystem` (standarden med `sc.exe create`), eller tildel tjenestekontoen brugerrettigheden _Manage auditing and security log_.
 - **`journald`-receiveren undlader at starte** — sørg for, at `journalctl` er på collectorens `PATH`, og at `/var/log/journal` eksisterer (kør `sudo systemd-tmpfiles --create --prefix /var/log/journal`, hvis ikke).
 - **`systemd`-receiveren rapporterer en D-Bus-forbindelsesfejl** — collectoren kan ikke nå systembussen. Bekræft, at `/run/dbus/system_bus_socket` findes, og at collectorens bruger kan åbne den; at køre `systemctl list-units` som den bruger er den hurtigste kontrol. Root er ikke påkrævet. En collector, der kører inde i en container, ser slet ingen bus, medmindre du bind-mounter hostens socket, så foretræk en native installation til denne receiver.

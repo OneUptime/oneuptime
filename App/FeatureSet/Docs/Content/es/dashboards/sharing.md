@@ -10,7 +10,7 @@ Dentro del proyecto, los propietarios y las etiquetas controlan quién ve qué; 
 
 ## Paneles públicos
 
-En **Panel → Configuración**, activa **Panel Público**. El panel ahora tiene una segunda URL que no necesita inicio de sesión. Compártela con proveedores, socios, clientes, o pégala en un README público.
+En **Panel → Ajustes**, activa **Panel Público**. El panel ahora tiene una segunda URL que no necesita inicio de sesión. Compártela con proveedores, socios, clientes, o pégala en un README público.
 
 Un panel público:
 
@@ -25,7 +25,7 @@ Trata activar un panel público como publicar una página web. Cada widget en é
 Para poner una contraseña en un panel público:
 
 1. Activa **Panel Público**.
-2. Activa **Contraseña Maestra**.
+2. Activa **Contraseña maestra**.
 3. Establece la contraseña.
 
 Los visitantes ven una solicitud de contraseña antes de que aparezca el panel. La contraseña se almacena como un hash; nunca vemos la contraseña real.
@@ -39,7 +39,7 @@ Para un control más estricto (cuentas separadas por espectador, una auditoría 
 
 ## Lista de IPs permitidas
 
-En el plan **Scale**, puedes restringir un panel público a una lista de direcciones IP o rangos. Configúralo en **Panel → Configuración → Lista Blanca de IPs**.
+En el plan **Scale**, puedes restringir un panel público a una lista de direcciones IP o rangos. Configúralo en **Panel → Ajustes → Lista blanca de IP**.
 
 Úsalo cuando:
 
@@ -54,7 +54,7 @@ Las solicitudes desde cualquier otra IP se rechazan.
 De forma predeterminada, un panel público se sirve en `oneuptime.com`. Para alojarlo en tu propio subdominio como `dashboard.acme.com`:
 
 1. Añade un registro CNAME en tu DNS apuntando el subdominio al destino de OneUptime.
-2. En **Panel → Configuración → Dominios Personalizados**, añade el dominio.
+2. En **Panel → Ajustes → Dominios Personalizados**, añade el dominio.
 3. Verifícalo. OneUptime comprueba el registro DNS por ti.
 4. Una vez verificado, el panel es accesible tanto en tu dominio personalizado como en la URL original.
 
@@ -68,11 +68,11 @@ Puedes adjuntar más de un dominio personalizado a un solo panel si sirves el mi
 
 ## Marca
 
-En **Panel → Configuración**, puedes configurar:
+En **Panel → Ajustes**, puedes configurar:
 
 - **Título de página** — lo que se muestra en la pestaña del navegador y en la parte superior de la página.
 - **Descripción de página** — la descripción usada por los motores de búsqueda y las vistas previas sociales.
-- **Logo** — sube un PNG o SVG para mostrarlo en el encabezado.
+- **Logotipo** — sube un PNG o SVG para mostrarlo en el encabezado.
 - **Favicon** — el pequeño icono en la pestaña del navegador.
 
 La marca se aplica solo cuando el panel se ve públicamente. Los espectadores internos siempre ven la marca de OneUptime.

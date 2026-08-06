@@ -12,15 +12,15 @@ Esta é uma forma poderosa de integrar sistemas de alerta baseados em email com 
 
 ## Criando um Monitor de Email de Entrada
 
-1. Navegue para **Monitors** no seu Painel do OneUptime
-2. Clique em **Create Monitor**
+1. Navegue para **Monitores** no seu Painel do OneUptime
+2. Clique em **Criar monitor**
 3. Selecione **Incoming Email** como o tipo de monitor
 4. Configure as definições do monitor:
-   - **Name:** Um nome descritivo para o seu monitor
-   - **Description:** Para que serve este monitor
+   - **Nome:** Um nome descritivo para o seu monitor
+   - **Descrição:** Para que serve este monitor
 5. Configure seus **Alert Creation Criteria** (condições que criam alertas)
 6. Configure seus **Alert Resolution Criteria** (condições que resolvem alertas)
-7. Clique em **Create**
+7. Clique em **Criar**
 
 Após a criação, você verá o endereço de email único para este monitor exibido na página de detalhes do monitor.
 
@@ -40,13 +40,13 @@ Você pode copiar este endereço da página de detalhes do monitor e configurar 
 
 Você pode criar critérios com base nos seguintes campos de email:
 
-| Campo              | Descrição                                                       |
-| ------------------ | --------------------------------------------------------------- |
-| **Email Subject**  | A linha de assunto do email de entrada                          |
-| **Email From**     | O endereço de email do remetente                                |
-| **Email Body**     | O conteúdo em texto simples do corpo do email                   |
-| **Email To**       | O endereço de email do destinatário                             |
-| **Email Received** | Critérios baseados em tempo para quando os emails são recebidos |
+| Campo                 | Descrição                                                       |
+| --------------------- | --------------------------------------------------------------- |
+| **Assunto do e-mail** | A linha de assunto do email de entrada                          |
+| **E-mail de origem**  | O endereço de email do remetente                                |
+| **Email Body**        | O conteúdo em texto simples do corpo do email                   |
+| **Email To**          | O endereço de email do destinatário                             |
+| **Email Received**    | Critérios baseados em tempo para quando os emails são recebidos |
 
 ## Tipos de Filtro Disponíveis
 
@@ -56,7 +56,7 @@ Você pode criar critérios com base nos seguintes campos de email:
 | ---------------- | ---------------------------------------------------- | -------------------------------- |
 | **Contains**     | O campo contém o texto especificado                  | Subject contains "CRITICAL"      |
 | **Not Contains** | O campo não contém o texto especificado              | Subject not contains "TEST"      |
-| **Equals**       | O campo corresponde exatamente ao texto especificado | From equals "alerts@service.com" |
+| **Igual a**      | O campo corresponde exatamente ao texto especificado | From equals "alerts@service.com" |
 | **Not Equals**   | O campo não corresponde ao texto especificado        | Subject not equals "OK"          |
 | **Starts With**  | O campo começa com o texto especificado              | Subject starts with "[ALERT]"    |
 | **Ends With**    | O campo termina com o texto especificado             | Subject ends with "- Production" |
@@ -90,12 +90,12 @@ Você pode criar critérios com base nos seguintes campos de email:
 
 **Alert Creation Criteria:**
 
-- Email From **Equals** "monitoring@legacy-system.com"
+- Email From **Igual a** "monitoring@legacy-system.com"
 - AND Email Subject **Contains** "Failed"
 
 **Alert Resolution Criteria:**
 
-- Email From **Equals** "monitoring@legacy-system.com"
+- Email From **Igual a** "monitoring@legacy-system.com"
 - AND Email Subject **Contains** "Success"
 
 ### Exemplo 3: Monitor de Heartbeat (Sem Email = Alerta)
@@ -163,10 +163,10 @@ Ao configurar modelos de incidentes, você pode usar estas variáveis de emails 
 
 O resumo do monitor mostra:
 
-- **Last Email Received At:** Quando o email mais recente foi recebido
-- **From:** O remetente do último email
-- **Subject:** A linha de assunto do último email
-- **Email Headers:** Cabeçalhos completos do último email (expansível)
+- **Último E-mail Recebido Em:** Quando o email mais recente foi recebido
+- **De:** O remetente do último email
+- **Assunto:** A linha de assunto do último email
+- **Cabeçalhos do e-mail:** Cabeçalhos completos do último email (expansível)
 - **Email Body:** Conteúdo do último email (expansível)
 
 ## Configuração Auto-Hospedada

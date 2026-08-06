@@ -24,12 +24,12 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 
 ## Paso 1 — Guardar el token
 
-1. Ve a **Workflows → Global Variables → Create**.
+1. Ve a **Flujos de trabajo → Variables Globales → Crear**.
 2. Nómbrala `GITHUB_TOKEN`, pega el token y activa **Is Secret**.
 
 ## Paso 2 — Construir el workflow
 
-1. Abre **Workflows → Create Workflow**, nómbralo `Incidents → GitHub Issues` y abre el **Builder**.
+1. Abre **Flujos de trabajo → Crear flujo de trabajo**, nómbralo `Incidents → GitHub Issues` y abre el **Constructor**.
 2. Añade un disparador **Incident** configurado en **On Create**. Renómbralo `Incident`.
 3. Añade un bloque **API** conectado al disparador:
 

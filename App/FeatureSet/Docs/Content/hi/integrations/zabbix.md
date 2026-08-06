@@ -25,17 +25,17 @@ Zabbix trigger fires  ──►  Webhook media type  ──►  OneUptime Workfl
 
 यह पहले करें, क्योंकि आपको उस webhook URL की ज़रूरत होगी जो यह generate करता है।
 
-1. **Workflows → Create Workflow** खोलें। इसे `Zabbix → Incidents` नाम दें और **Builder** tab खोलें।
-2. कैनवास पर एक **Webhook** trigger खींचें। उस पर क्लिक करें और **unique URL कॉपी करें** जो यह दिखाता है। इसे सुरक्षित रखें — जिसके पास भी यह है वह वर्कफ़्लो शुरू कर सकता है। ब्लॉक का नाम `Zabbix` रखें ताकि variables सुंदर दिखें।
-3. कैनवास पर एक **Conditions** ब्लॉक खींचें और trigger का output उससे जोड़ें। कॉन्फ़िगर करें:
+1. **वर्कफ़्लो → वर्कफ़्लो बनाएं** खोलें। इसे `Zabbix → Incidents` नाम दें और **बिल्डर** tab खोलें।
+2. कैनवास पर एक **वेबहुक** trigger खींचें। उस पर क्लिक करें और **unique URL कॉपी करें** जो यह दिखाता है। इसे सुरक्षित रखें — जिसके पास भी यह है वह वर्कफ़्लो शुरू कर सकता है। ब्लॉक का नाम `Zabbix` रखें ताकि variables सुंदर दिखें।
+3. कैनवास पर एक **शर्तें** ब्लॉक खींचें और trigger का output उससे जोड़ें। कॉन्फ़िगर करें:
    - **Left value**: `{{Zabbix.Request Body.status}}`
    - **Operator**: `==`
    - **Right value**: `1` _(Zabbix समस्या के लिए `1` और recovery के लिए `0` भेजता है)_
-4. एक **Create Incident** ब्लॉक खींचें और उसे Conditions ब्लॉक के **Yes** output से जोड़ें। भरें:
-   - **Title**: `Zabbix: {{Zabbix.Request Body.name}}`
-   - **Description**: `Host: {{Zabbix.Request Body.host}}\nSeverity: {{Zabbix.Request Body.severity}}\nZabbix event: {{Zabbix.Request Body.event_id}}`
-   - **Severity**: वह OneUptime incident severity चुनें जो आप चाहते हैं (आप बाद में अधिक Conditions branches जोड़कर इसे बेहतर कर सकते हैं जो Zabbix severities को map करें)।
-5. सहेजें। **Enabled** _बंद_ छोड़ें अभी के लिए — test के बाद आप इसे चालू करेंगे।
+4. एक **घटना बनाएं** ब्लॉक खींचें और उसे Conditions ब्लॉक के **हाँ** output से जोड़ें। भरें:
+   - **शीर्षक**: `Zabbix: {{Zabbix.Request Body.name}}`
+   - **विवरण**: `Host: {{Zabbix.Request Body.host}}\nSeverity: {{Zabbix.Request Body.severity}}\nZabbix event: {{Zabbix.Request Body.event_id}}`
+   - **गंभीरता**: वह OneUptime incident severity चुनें जो आप चाहते हैं (आप बाद में अधिक Conditions branches जोड़कर इसे बेहतर कर सकते हैं जो Zabbix severities को map करें)।
+5. सहेजें। **सक्षम** _बंद_ छोड़ें अभी के लिए — test के बाद आप इसे चालू करेंगे।
 
 > **टिप:** description (या incident label) में Zabbix `event_id` रखने से आप बाद में इस incident को फिर से खोज सकते हैं यदि आप recovery पर auto-resolve करना चाहते हैं। [स्वचालित रूप से resolve करना](#स्वचालित-रूप-से-resolve-करना-वैकल्पिक) देखें।
 
@@ -114,10 +114,10 @@ Zabbix notifications _एक user को_ भेजता है। एक स�
 
 ## भाग 3 — परीक्षण करें
 
-1. OneUptime वर्कफ़्लो में वापस जाएँ, **Enabled** चालू करें।
+1. OneUptime वर्कफ़्लो में वापस जाएँ, **सक्षम** चालू करें।
 2. Zabbix में, एक परीक्षण समस्या trigger करें — उदाहरण के लिए, अस्थायी रूप से trigger threshold कम करें, या एक test item इस्तेमाल करें जो problem state में बदल जाए।
-3. अपने वर्कफ़्लो का **Logs** tab खोलें। आपको Zabbix payload के साथ एक run दिखना चाहिए, Conditions ब्लॉक **Yes** path लेते हुए, और incident बनते हुए।
-4. OneUptime में **Incidents** जाँचें — आपकी Zabbix समस्या अब एक incident है।
+3. अपने वर्कफ़्लो का **लॉग** tab खोलें। आपको Zabbix payload के साथ एक run दिखना चाहिए, Conditions ब्लॉक **हाँ** path लेते हुए, और incident बनते हुए।
+4. OneUptime में **घटनाएं** जाँचें — आपकी Zabbix समस्या अब एक incident है।
 
 यदि कुछ नहीं पहुँचता है, तो [समस्या निवारण](#समस्या-निवारण) देखें।
 
@@ -126,21 +126,21 @@ Zabbix notifications _एक user को_ भेजता है। एक स�
 ऊपर का मुख्य वर्कफ़्लो incidents _खोलता_ है। Zabbix के recover होने पर उन्हें _बंद_ भी करने के लिए:
 
 1. सुनिश्चित करें कि आपके Zabbix action में **Recovery operations** कॉन्फ़िगर हैं (ऊपर चरण 3) ताकि recovery events भी भेजे जाएँ। Recovery पर, `status` `0` के रूप में आता है।
-2. वर्कफ़्लो में, एक दूसरा **Conditions** branch जोड़ें: left `{{Zabbix.Request Body.status}}`, operator `==`, right `0`।
-3. उसके **Yes** output से, एक **Find Incident** ब्लॉक जोड़ें जो पहले बनाए गए open incident को खोजे — description या label में स्टोर किए गए Zabbix `event_id` पर match करें।
+2. वर्कफ़्लो में, एक दूसरा **शर्तें** branch जोड़ें: left `{{Zabbix.Request Body.status}}`, operator `==`, right `0`।
+3. उसके **हाँ** output से, एक **Find Incident** ब्लॉक जोड़ें जो पहले बनाए गए open incident को खोजे — description या label में स्टोर किए गए Zabbix `event_id` पर match करें।
 4. उसे एक **Update Incident** ब्लॉक से जोड़ें और incident को आपके _resolved_ state में ले जाएँ।
 
 चूँकि resolution इस बात पर निर्भर करता है कि आप अपने project में incident states कैसे model करते हैं, **create** path को reliable core के रूप में रखें और resolve path बाद में जोड़ें जब आप पुष्टि कर लें कि events सही से flow हो रहे हैं। [कंपोनेंट → OneUptime data components](/docs/workflows/components#oneuptime-data-components) देखें।
 
 ## Zabbix severities mapping (वैकल्पिक)
 
-Zabbix severities (`Not classified`, `Information`, `Warning`, `Average`, `High`, `Disaster`) `{{Zabbix.Request Body.severity}}` के रूप में आती हैं। उन्हें OneUptime incident severities से map करने के लिए, **Create Incident** से पहले **Conditions** branches जोड़ें — उदाहरण के लिए, `Disaster` और `High` को "Critical" incident में और बाकी सब को "Major" में route करें। प्रत्येक branch के लिए एक **Create Incident** ब्लॉक बनाएँ।
+Zabbix severities (`Not classified`, `Information`, `Warning`, `Average`, `High`, `Disaster`) `{{Zabbix.Request Body.severity}}` के रूप में आती हैं। उन्हें OneUptime incident severities से map करने के लिए, **घटना बनाएं** से पहले **शर्तें** branches जोड़ें — उदाहरण के लिए, `Disaster` और `High` को "Critical" incident में और बाकी सब को "Major" में route करें। प्रत्येक branch के लिए एक **घटना बनाएं** ब्लॉक बनाएँ।
 
 ## समस्या निवारण
 
 **वर्कफ़्लो कभी नहीं चलता।**
 
-- पुष्टि करें कि वर्कफ़्लो का **Enabled** switch चालू है।
+- पुष्टि करें कि वर्कफ़्लो का **सक्षम** switch चालू है।
 - Zabbix server से, पुष्टि करें कि वह URL तक पहुँच सकता है: `curl -i -X POST <workflow-url> -d '{}' -H 'Content-Type: application/json'`। आपको एक त्वरित acknowledgement मिलना चाहिए।
 - Zabbix में **Reports → Action log** जाँचें delivery errors के लिए।
 
@@ -151,7 +151,7 @@ Zabbix severities (`Not classified`, `Information`, `Warning`, `Average`, `High`
 
 **Incident बनता है लेकिन fields खाली हैं।**
 
-- वर्कफ़्लो का **Logs** tab खोलें और trigger output inspect करें। पुष्टि करें कि **Request Body** के अंतर्गत field names वही हैं जिन्हें आप reference कर रहे हैं (`name`, `host`, `severity`, `status`, `event_id`)।
+- वर्कफ़्लो का **लॉग** tab खोलें और trigger output inspect करें। पुष्टि करें कि **अनुरोध बॉडी** के अंतर्गत field names वही हैं जिन्हें आप reference कर रहे हैं (`name`, `host`, `severity`, `status`, `event_id`)।
 - एक missing field error की बजाय empty string में resolve होता है — [Variables → Gotchas](/docs/workflows/variables#gotchas) देखें।
 
 **सब कुछ दो बार fire होता है।**

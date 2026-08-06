@@ -14,10 +14,10 @@ Os monitores de requisição de entrada fornecem uma URL de webhook única que s
 
 ## Criando um Monitor de Requisição de Entrada
 
-1. Vá para **Monitors** no Painel do OneUptime
-2. Clique em **Create Monitor**
+1. Vá para **Monitores** no Painel do OneUptime
+2. Clique em **Criar monitor**
 3. Selecione **Incoming Request** como o tipo de monitor
-4. Uma **Secret Key** e URL de heartbeat serão geradas para este monitor
+4. Uma **Chave secreta** e URL de heartbeat serão geradas para este monitor
 5. Configure seu serviço para enviar requisições para a URL de heartbeat
 6. Configure os critérios de monitoramento conforme necessário
 
@@ -88,7 +88,7 @@ Para **Incoming Request**:
 - **Received In Minutes** — Um heartbeat foi recebido dentro do número especificado de minutos
 - **Not Received In Minutes** — Nenhum heartbeat foi recebido dentro do número especificado de minutos
 
-Para **Request Body**, **Request Header** e **Request Header Value**:
+Para **Corpo da Requisição**, **Request Header** e **Request Header Value**:
 
 - **Contains** — O valor contém o texto especificado
 - **Not Contains** — O valor não contém o texto especificado
@@ -98,14 +98,14 @@ Para **Request Body**, **Request Header** e **Request Header Value**:
 #### Marcar como offline se nenhum heartbeat em 10 minutos
 
 - **Check On**: Incoming Request
-- **Filter Type**: Not Received In Minutes
-- **Value**: 10
+- **Tipo de filtro**: Not Received In Minutes
+- **Valor**: 10
 
 #### Marcar como degradado com base no conteúdo do corpo de requisição
 
 - **Check On**: Request Body
-- **Filter Type**: Contains
-- **Value**: `"status": "degraded"`
+- **Tipo de filtro**: Contains
+- **Valor**: `"status": "degraded"`
 
 ## Melhores Práticas
 

@@ -192,20 +192,20 @@ Personnalisez les messages entendus par les appelants :
 2. Allez dans **Paramètres**
 3. Configurez :
    - **Message d'accueil** : Joué lorsque l'appel est répondu
-   - **Message sans réponse** : Joué lorsque toutes les règles d'escalade échouent
-   - **Message aucune personne disponible** : Joué lorsque personne n'est d'astreinte
+   - **Message en cas de non-réponse** : Joué lorsque toutes les règles d'escalade échouent
+   - **Message lorsque personne n'est disponible** : Joué lorsque personne n'est d'astreinte
 
 ## Options de configuration
 
 ### Paramètres de la politique
 
-| Paramètre                                  | Description                                            | Par défaut                                                                               |
-| ------------------------------------------ | ------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
-| Message d'accueil                          | Message TTS joué lors de la réponse à l'appel          | « Veuillez patienter pendant que nous vous connectons à l'ingénieur d'astreinte. »       |
-| Message sans réponse                       | Message quand toutes les règles d'escalade échouent    | « Personne n'est disponible. Veuillez réessayer plus tard. »                             |
-| Message aucune personne disponible         | Message quand personne n'est d'astreinte               | « Nous sommes désolés, mais aucun ingénieur d'astreinte n'est actuellement disponible. » |
-| Répéter la politique si personne ne répond | Redémarrer depuis la première règle si toutes échouent | Désactivé                                                                                |
-| Nombre de répétitions de la politique      | Nombre maximum de tentatives de répétition             | 1                                                                                        |
+| Paramètre                                  | Description                                            | Par défaut                                                                                     |
+| ------------------------------------------ | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
+| Message d'accueil                          | Message TTS joué lors de la réponse à l'appel          | « Veuillez patienter pendant que nous vous mettons en relation avec l'ingénieur d'astreinte. » |
+| Message sans réponse                       | Message quand toutes les règles d'escalade échouent    | « Personne n'est disponible. Veuillez réessayer plus tard. »                                   |
+| Message aucune personne disponible         | Message quand personne n'est d'astreinte               | « Nous sommes désolés, mais aucun ingénieur d'astreinte n'est actuellement disponible. »       |
+| Répéter la politique si personne ne répond | Redémarrer depuis la première règle si toutes échouent | Désactivé                                                                                      |
+| Nombre de répétitions de la politique      | Nombre maximum de tentatives de répétition             | 1                                                                                              |
 
 ### Paramètres des règles d'escalade
 

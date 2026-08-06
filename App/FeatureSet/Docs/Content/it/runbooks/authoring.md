@@ -1,6 +1,6 @@
 # Scrivere un runbook
 
-Crea un runbook in **Runbook → Crea Runbook**, poi aprilo e vai sulla scheda **Passi**.
+Crea un runbook in **Runbook → Crea Runbook**, poi aprilo e vai sulla scheda **Passaggi**.
 
 ## Anatomia di un passo
 
@@ -64,7 +64,7 @@ Se l'agente selezionato è offline quando il runbook arriva a questo passo, il p
 
 ### AI
 
-Chiedi all'AI di analizzare, riassumere o decidere qualcosa durante l'esecuzione. Il prompt viene inviato al provider LLM del tuo progetto (**Impostazioni → AI → LLM Providers**) e la risposta del modello diventa l'output del passo nella timeline dell'esecuzione. I passi AI girano direttamente sul Worker OneUptime; non serve alcun agente.
+Chiedi all'AI di analizzare, riassumere o decidere qualcosa durante l'esecuzione. Il prompt viene inviato al provider LLM del tuo progetto (**Impostazioni → IA → Provider LLM**) e la risposta del modello diventa l'output del passo nella timeline dell'esecuzione. I passi AI girano direttamente sul Worker OneUptime; non serve alcun agente.
 
 Configura in un passo AI:
 

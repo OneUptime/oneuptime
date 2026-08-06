@@ -4,7 +4,7 @@ En variabel förvandlar en enskild instrumentpanel till en mall. Lägg till en `
 
 ## Variabeltyper
 
-Lägg till variabler under **Dashboard → Settings → Variables**. Varje variabel har ett namn (används som `{{name}}` i dina widgetar), en valfri etikett och en typ.
+Lägg till variabler under **Instrumentpanel → Inställningar → Variabler**. Varje variabel har ett namn (används som `{{name}}` i dina widgetar), en valfri etikett och en typ.
 
 ### Custom List
 

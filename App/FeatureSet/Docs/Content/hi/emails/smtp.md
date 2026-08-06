@@ -4,7 +4,7 @@ OneUptime तीन authentication methods के साथ custom SMTP servers 
 
 - **Username और Password** - पारंपरिक SMTP authentication
 - **OAuth 2.0** - Microsoft 365 और Google Workspace के लिए आधुनिक authentication
-- **None** - उन relay servers के लिए जिन्हें authentication की आवश्यकता नहीं है
+- **कोई नहीं** - उन relay servers के लिए जिन्हें authentication की आवश्यकता नहीं है
 
 यह मार्गदर्शिका Microsoft 365 और Google Workspace के लिए OAuth 2.0 authentication configure करने का तरीका बताती है।
 
@@ -21,15 +21,15 @@ OneUptime में OAuth authentication के साथ SMTP configure कर�
 
 | Field                   | विवरण                                                                                    |
 | ----------------------- | ---------------------------------------------------------------------------------------- |
-| **Hostname**            | SMTP server address                                                                      |
-| **Port**                | SMTP port (आमतौर पर STARTTLS के लिए 587 या implicit TLS के लिए 465)                      |
-| **Username**            | भेजने के लिए email address                                                               |
-| **Authentication Type** | "OAuth" चुनें                                                                            |
-| **OAuth Provider Type** | Microsoft 365 के लिए "Client Credentials", या Google Workspace के लिए "JWT Bearer" चुनें |
-| **Client ID**           | आपके OAuth provider से Application/Client ID (Google के लिए: service account email)      |
-| **Client Secret**       | आपके OAuth provider से Client secret (Google के लिए: private key)                        |
+| **होस्टनाम**            | SMTP server address                                                                      |
+| **पोर्ट**               | SMTP port (आमतौर पर STARTTLS के लिए 587 या implicit TLS के लिए 465)                      |
+| **उपयोगकर्ता नाम**      | भेजने के लिए email address                                                               |
+| **प्रमाणीकरण प्रकार**   | "OAuth" चुनें                                                                            |
+| **OAuth प्रदाता प्रकार** | Microsoft 365 के लिए "Client Credentials", या Google Workspace के लिए "JWT Bearer" चुनें |
+| **क्लाइंट ID**          | आपके OAuth provider से Application/Client ID (Google के लिए: service account email)      |
+| **क्लाइंट सीक्रेट**     | आपके OAuth provider से Client secret (Google के लिए: private key)                        |
 | **Token URL**           | OAuth token endpoint URL                                                                 |
-| **Scope**               | SMTP access के लिए आवश्यक OAuth scope(s)                                                 |
+| **दायरा**               | SMTP access के लिए आवश्यक OAuth scope(s)                                                 |
 
 ---
 
@@ -230,7 +230,7 @@ OneUptime में, इन settings के साथ एक SMTP configuration 
 
 ### सामान्य
 
-- **अपनी configuration परीक्षण करें**: अपना setup सत्यापित करने के लिए OneUptime में "Send Test Email" button उपयोग करें
+- **अपनी configuration परीक्षण करें**: अपना setup सत्यापित करने के लिए OneUptime में "परीक्षण ईमेल भेजें" button उपयोग करें
 - **logs जांचें**: विस्तृत त्रुटि संदेशों के लिए OneUptime logs समीक्षा करें
 - **Token caching**: OneUptime OAuth tokens cache करता है और expiry से पहले उन्हें स्वचालित रूप से refresh करता है
 

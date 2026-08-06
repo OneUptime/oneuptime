@@ -14,10 +14,10 @@ Server monitors आपके servers पर install एक infrastructure agent 
 
 ## Server Monitor बनाना
 
-1. OneUptime Dashboard में **Monitors** पर जाएं
-2. **Create Monitor** पर क्लिक करें
+1. OneUptime Dashboard में **मॉनिटर** पर जाएं
+2. **मॉनिटर बनाएं** पर क्लिक करें
 3. monitor type के रूप में **Server / VM** चुनें
-4. इस monitor के लिए एक **Secret Key** generate होगी — आपको agent configure करने के लिए इसकी आवश्यकता होगी
+4. इस monitor के लिए एक **सीक्रेट कुंजी** generate होगी — आपको agent configure करने के लिए इसकी आवश्यकता होगी
 5. अपने server पर agent सेट अप करने के लिए installation निर्देशों का पालन करें
 
 ## Infrastructure Agent Install करना
@@ -84,11 +84,11 @@ Agent आपके server से निम्नलिखित metrics एक�
 ### CPU
 
 - **CPU Usage Percent** — percentage के रूप में overall CPU utilization
-- **CPU Cores** — CPU cores की संख्या
+- **CPU कोर** — CPU cores की संख्या
 
 ### Memory
 
-- **Total Memory** — कुल available memory
+- **कुल मेमोरी** — कुल available memory
 - **Used Memory** — वर्तमान में उपयोग में memory
 - **Free Memory** — available free memory
 - **Memory Usage Percent** — percentage के रूप में Memory utilization
@@ -101,7 +101,7 @@ Agent आपके server से निम्नलिखित metrics एक�
 - **Used Disk Space** — वर्तमान में उपयोग में space
 - **Free Disk Space** — available free space
 - **Disk Usage Percent** — percentage के रूप में disk utilization
-- **Disk Path** — disk का mount path
+- **डिस्क पथ** — disk का mount path
 
 ### Processes
 
@@ -145,32 +145,32 @@ Process checks के लिए:
 #### Agent reporting बंद होने पर server offline mark करें
 
 - **Check On**: Is Online
-- **Filter Type**: False
+- **फ़िल्टर प्रकार**: False
 
 #### CPU usage 90% से अधिक होने पर Alert करें
 
 - **Check On**: CPU Usage Percent
-- **Filter Type**: Greater Than
-- **Value**: 90
+- **फ़िल्टर प्रकार**: Greater Than
+- **मान**: 90
 
 #### Disk usage 85% से अधिक होने पर Alert करें
 
 - **Check On**: Disk Usage Percent
-- **Disk Path**: `/`
-- **Filter Type**: Greater Than
-- **Value**: 85
+- **डिस्क पथ**: `/`
+- **फ़िल्टर प्रकार**: Greater Than
+- **मान**: 85
 
 #### Memory usage 80% से अधिक होने पर Alert करें
 
 - **Check On**: Memory Usage Percent
-- **Filter Type**: Greater Than
-- **Value**: 80
+- **फ़िल्टर प्रकार**: Greater Than
+- **मान**: 80
 
 #### Critical process बंद होने पर Alert करें
 
 - **Check On**: Server Process Name
-- **Filter Type**: Is Not Executing
-- **Value**: `nginx`
+- **फ़िल्टर प्रकार**: Is Not Executing
+- **मान**: `nginx`
 
 ## समस्या निवारण
 

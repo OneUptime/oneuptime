@@ -14,8 +14,8 @@ DNSSEC-monitorer validerer hele tillitskjeden fra rotsonen og ned til ditt domen
 
 ## Opprette en DNSSEC-monitor
 
-1. Gå til **Monitors** i OneUptime-dashbordet
-2. Klikk **Create Monitor**
+1. Gå til **Overvåkere** i OneUptime-dashbordet
+2. Klikk **Opprett monitor**
 3. Velg **DNSSEC** som monitortype
 4. Skriv inn sonen (domenet) du vil validere
 5. Konfigurer resolvere og overvåkingskriterier etter behov
@@ -69,28 +69,28 @@ For **DNSSEC Signature Expires In Days**:
 
 #### Varsle hvis DNSSEC-kjeden er brutt
 
-- **Sjekk på**: DNSSEC Chain Is Valid
+- **Check On**: DNSSEC Chain Is Valid
 - **Filtertype**: False
 
 #### Varsle før signaturer utløper
 
-- **Sjekk på**: DNSSEC Signature Expires In Days
+- **Check On**: DNSSEC Signature Expires In Days
 - **Filtertype**: Less Than
 - **Verdi**: 7
 
 #### Fang opp manglende DS hos overordnet (delegering brutt)
 
-- **Sjekk på**: DNSSEC DS Record Exists At Parent
+- **Check On**: DNSSEC DS Record Exists At Parent
 - **Filtertype**: False
 
 #### Oppdag resolveruenighet
 
-- **Sjekk på**: DNSSEC Resolver Consensus (AD Flag)
+- **Check On**: DNSSEC Resolver Consensus (AD Flag)
 - **Filtertype**: False
 
 #### Fang opp delte navneservere
 
-- **Sjekk på**: DNSSEC Nameservers Are Consistent
+- **Check On**: DNSSEC Nameservers Are Consistent
 - **Filtertype**: False
 
 ## Beste praksis

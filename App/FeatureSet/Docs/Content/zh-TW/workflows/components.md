@@ -34,10 +34,10 @@ API 元件的簡化版本，適用於「發送後不理會」的情境。將 JSO
 
 **設定**：
 
-- **Channel** — 頻道名稱。機器人必須已經在該頻道中。
-- **Message** — 要傳送的文字。支援 Slack 格式設定。
+- **頻道** — 頻道名稱。機器人必須已經在該頻道中。
+- **訊息** — 要傳送的文字。支援 Slack 格式設定。
 
-請先在 **Project Settings → 工作區 → Slack** 下將 Slack 連接到您的專案。請參閱 [Slack 工作區連線](/docs/workspace-connections/slack)。
+請先在 **專案設定 → 工作區 → Slack** 下將 Slack 連接到您的專案。請參閱 [Slack 工作區連線](/docs/workspace-connections/slack)。
 
 ## Microsoft Teams
 
@@ -46,7 +46,7 @@ API 元件的簡化版本，適用於「發送後不理會」的情境。將 JSO
 **設定**：
 
 - **Team and channel** — 張貼的位置。
-- **Message** — 要傳送的文字。
+- **訊息** — 要傳送的文字。
 
 設定方式請參閱 [Microsoft Teams 工作區連線](/docs/workspace-connections/microsoft-teams)。
 
@@ -64,8 +64,8 @@ API 元件的簡化版本，適用於「發送後不理會」的情境。將 JSO
 
 **設定**：
 
-- **To** — 收件者的電子郵件位址。
-- **Subject** — 主旨列。
+- **收件者** — 收件者的電子郵件位址。
+- **主旨** — 主旨列。
 - **Body** — 以 Markdown 或 HTML 撰寫的訊息。
 
 電子郵件會從您專案所設定的寄件者送出——請參閱 [SMTP](/docs/emails/smtp)。
@@ -76,7 +76,7 @@ API 元件的簡化版本，適用於「發送後不理會」的情境。將 JSO
 
 **設定**：
 
-- **Code** — 您的 JavaScript。最後一個值（或您從非同步函式回傳的內容）會成為該區塊的輸出。
+- **代碼** — 您的 JavaScript。最後一個值（或您從非同步函式回傳的內容）會成為該區塊的輸出。
 - **Arguments** — 您可以傳入的具名值。
 
 **輸出**：success（您的回傳值）與 error（任何例外狀況）。

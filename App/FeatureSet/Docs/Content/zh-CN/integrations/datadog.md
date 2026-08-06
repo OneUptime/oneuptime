@@ -15,16 +15,16 @@ Datadog monitor alerts  ──►  Webhook integration  ──►  OneUptime Web
 
 ## 步骤 1——构建 OneUptime 工作流
 
-1. 打开 **Workflows → Create Workflow**，命名为 `Datadog → Incidents`，并打开 **Builder**。
+1. 打开 **工作流 → 创建工作流**，命名为 `Datadog → Incidents`，并打开 **生成器**。
 2. 添加 **Webhook** 触发器并**复制其 URL**。将模块重命名为 `Datadog`。
-3. 添加连接到触发器的 **Conditions** 模块：
+3. 添加连接到触发器的 **条件** 模块：
    - **Left**：`{{Datadog.Request Body.transition}}`
    - **Operator**：`==`
    - **Right**：`Triggered`
-4. 从 **Yes** 出发，添加 **Create Incident** 模块：
-   - **Title**：`{{Datadog.Request Body.title}}`
-   - **Description**：`{{Datadog.Request Body.body}}\nHost: {{Datadog.Request Body.host}}\n{{Datadog.Request Body.link}}`
-   - **Severity**：选择一个。
+4. 从 **是** 出发，添加 **创建事件** 模块：
+   - **标题**：`{{Datadog.Request Body.title}}`
+   - **描述**：`{{Datadog.Request Body.body}}\nHost: {{Datadog.Request Body.host}}\n{{Datadog.Request Body.link}}`
+   - **严重程度**：选择一个。
 5. **保存**（测试前保持禁用状态）。
 
 ## 步骤 2——创建 Datadog webhook
@@ -66,16 +66,16 @@ Datadog monitor alerts  ──►  Webhook integration  ──►  OneUptime Web
 
 1. 启用工作流。
 2. 从监控器使用 **Test Notifications → Alert**，或让真实的监控器触发。
-3. 检查工作流的 **Logs** 标签和你的**事件**列表。
+3. 检查工作流的 **日志** 标签和你的**事件**列表。
 
 ## 恢复时解决（可选）
 
-当监控器清除时，`$ALERT_TRANSITION` 为 `Recovered`。添加第二个 **Conditions** 分支（`transition == Recovered`），找到匹配的事件（通过你发送的 `id` 匹配），并用 **Update Incident** 将其移至已解决状态。
+当监控器清除时，`$ALERT_TRANSITION` 为 `Recovered`。添加第二个 **条件** 分支（`transition == Recovered`），找到匹配的事件（通过你发送的 `id` 匹配），并用 **Update Incident** 将其移至已解决状态。
 
 ## 故障排查
 
-- **没有运行记录出现**——确认监控器消息中包含 `@webhook-oneuptime`，以及工作流已 **Enabled**。
-- **字段为空**——Datadog 只会替换适用于该事件的模板变量。在 **Logs** 标签中检查触发器输出，并调整你的 webhook 负载。
+- **没有运行记录出现**——确认监控器消息中包含 `@webhook-oneuptime`，以及工作流处于 **已启用** 状态。
+- **字段为空**——Datadog 只会替换适用于该事件的模板变量。在 **日志** 标签中检查触发器输出，并调整你的 webhook 负载。
 - **重复事件**——重新告警（renotify）的监控器会发送多个 `Triggered` 事件；在创建之前用 **Find Incident** 检查 `id` 来去重。
 
 ## 接下来读什么

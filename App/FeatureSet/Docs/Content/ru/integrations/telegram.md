@@ -21,17 +21,17 @@ OneUptime Incident → On Create  ──►  Telegram component  ──►  mess
 
 ## Шаг 3 — Сохраните секреты
 
-1. В OneUptime перейдите в **Workflows → Global Variables → Create**.
+1. В OneUptime перейдите в **Рабочие процессы → Глобальные переменные → Создать**.
 2. Создайте `TELEGRAM_BOT_TOKEN` (секрет) и `TELEGRAM_CHAT_ID`.
 
 ## Шаг 4 — Создайте рабочий процесс
 
-1. Откройте **Workflows → Create Workflow**, назовите его `Incidents → Telegram` и откройте **Builder**.
+1. Откройте **Рабочие процессы → Создать рабочий процесс**, назовите его `Incidents → Telegram` и откройте **Конструктор**.
 2. Добавьте триггер **Incident**, установив **On Create**. Переименуйте его в `Incident`.
 3. Добавьте компонент **Telegram**, соединённый с триггером:
    - **Bot token**: `{{variable.TELEGRAM_BOT_TOKEN}}`
    - **Chat ID**: `{{variable.TELEGRAM_CHAT_ID}}`
-   - **Message**: `🔴 New incident: {{Incident.title}}\n{{Incident.description}}`
+   - **Сообщение**: `🔴 New incident: {{Incident.title}}\n{{Incident.description}}`
 4. **Сохраните**, включите и создайте тестовый инцидент. Сообщение придёт в ваш чат.
 
 ## Альтернатива: компонент API
@@ -46,7 +46,7 @@ OneUptime Incident → On Create  ──►  Telegram component  ──►  mess
 ## Советы
 
 - Бот видит сообщения только после добавления в группу и при разрешающем **режиме конфиденциальности** — если `getUpdates` пуст, сначала напишите боту или отключите режим конфиденциальности через BotFather.
-- Используйте **Conditions** для фильтрации по уровню серьёзности перед отправкой.
+- Используйте **Условия** для фильтрации по уровню серьёзности перед отправкой.
 - Добавьте `"parse_mode": "Markdown"` в тело API (или используйте форматирование компонента) для жирного текста и ссылок.
 
 ## Что читать дальше

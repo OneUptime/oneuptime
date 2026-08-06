@@ -23,13 +23,13 @@ O OneUptime suporta os seguintes tipos de perfil:
 
 ### Passo 1 - Criar um Token de Ingestão de Telemetria
 
-Depois de se registrar no OneUptime e criar um projeto, clique em "Products" na barra de navegação e clique em "Project Settings".
+Depois de se registrar no OneUptime e criar um projeto, clique em "Produtos" na barra de navegação e clique em "Configurações do projeto".
 
-Na página de Chaves de Ingestão de Telemetria, clique em "Create Ingestion Key" para criar um token.
+Na página de Chaves de Ingestão de Telemetria, clique em "Criar chave de ingestão" para criar um token.
 
 ![Create Service](/docs/static/images/TelemetryIngestionKeys.png)
 
-Depois de criar um token, clique em "View" para visualizá-lo.
+Depois de criar um token, clique em "Visualizar" para visualizá-lo.
 
 ![View Service](/docs/static/images/TelemetryIngestionKeyView.png)
 
@@ -177,7 +177,7 @@ Filtre perfis por tipo (cpu, wall, alloc_objects, alloc_space, goroutine, conten
 
 A retenção de dados de perfil é configurada por serviço de telemetria nas configurações do seu projeto do OneUptime. O período de retenção padrão é de 15 dias. Os dados são automaticamente excluídos após o período de retenção expirar.
 
-Para alterar o período de retenção de um serviço, navegue para **Products > Serviços > [Seu Serviço] > Settings** e atualize o valor de retenção de dados.
+Para alterar o período de retenção de um serviço, navegue para **Produtos > Serviços > [Seu Serviço] > Configurações** e atualize o valor de retenção de dados.
 
 ## Precisa de Ajuda?
 

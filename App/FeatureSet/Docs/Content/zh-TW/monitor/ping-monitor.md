@@ -13,8 +13,8 @@ Ping 監測器透過向主機傳送 ICMP ping 請求來測試基本的網路連�
 
 ## 建立 Ping 監測器
 
-1. 前往 OneUptime Dashboard 中的 **Monitors**
-2. 點選 **Create Monitor**
+1. 前往 OneUptime Dashboard 中的 **監測**
+2. 點選 **建立監測器**
 3. 選擇 **Ping** 作為監測器類型
 4. 輸入您想要監測的主機名稱或 IP 位址
 5. 視需要設定監測條件
@@ -44,7 +44,7 @@ Ping 監測器透過向主機傳送 ICMP ping 請求來測試基本的網路連�
 - **True** — 條件為真
 - **False** — 條件為假
 
-對於 **Response Time**：
+對於 **回應時間**：
 
 - **Greater Than** — 回應時間超過某個門檻
 - **Less Than** — 回應時間低於某個門檻
@@ -59,10 +59,10 @@ Ping 監測器透過向主機傳送 ICMP ping 請求來測試基本的網路連�
 #### 若主機無法連線則標記為離線
 
 - **Check On**：Is Online
-- **Filter Type**：False
+- **篩選器類型**：False
 
 #### 若回應時間超過 200ms 則發出警示
 
 - **Check On**：Response Time (in ms)
-- **Filter Type**：Greater Than
-- **Value**：200
+- **篩選器類型**：Greater Than
+- **值**：200

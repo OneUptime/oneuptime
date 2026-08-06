@@ -19,8 +19,8 @@ Entro circa un'ora (la prima finestra oraria chiusa), ottieni:
 
 - Una **pagina Costs per cluster** (_Kubernetes → il tuo cluster → Costs_): andamento della spesa, spesa per namespace con suddivisione cpu/memoria/storage, spesa per workload, spesa inattiva ed efficienza.
 - Una **pagina Costs a livello di progetto** (_Kubernetes → Costs_): la spesa di tutti i cluster del progetto.
-- Un **modello di dashboard Kubernetes Cost** (_Dashboards → Create → Kubernetes Cost Dashboard_): andamenti del costo orario dei nodi, costi unitari di CPU/RAM, spesa per volumi persistenti e load balancer.
-- Metriche di costo grezze (`node_total_hourly_cost`, `pv_hourly_cost`, ...) nel **Metric Explorer**, utilizzabili in dashboard personalizzate e avvisi sulle metriche.
+- Un **modello di dashboard Kubernetes Cost** (_Dashboard → Create → Kubernetes Cost Dashboard_): andamenti del costo orario dei nodi, costi unitari di CPU/RAM, spesa per volumi persistenti e load balancer.
+- Metriche di costo grezze (`node_total_hourly_cost`, `pv_hourly_cost`, ...) nell'**Esplora metriche**, utilizzabili in dashboard personalizzate e avvisi sulle metriche.
 
 ## Come funziona
 

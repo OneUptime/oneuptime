@@ -2,7 +2,7 @@
 
 ## 概觀
 
-[Serilog](https://serilog.net) 是 .NET 上最受歡迎的結構化日誌函式庫。OneUptime 使用官方的 [`Serilog.Sinks.OpenTelemetry`](https://github.com/serilog/serilog-sinks-opentelemetry) sink，透過 OpenTelemetry Protocol (OTLP) 來擷取 Serilog 日誌。設定完成後，您的應用程式透過 Serilog 寫入的每一筆日誌事件都會被傳送到 OneUptime，並在 **Products → 日誌** 中變成可搜尋的內容，包含結構化屬性、嚴重程度，以及 trace/span 關聯。
+[Serilog](https://serilog.net) 是 .NET 上最受歡迎的結構化日誌函式庫。OneUptime 使用官方的 [`Serilog.Sinks.OpenTelemetry`](https://github.com/serilog/serilog-sinks-opentelemetry) sink，透過 OpenTelemetry Protocol (OTLP) 來擷取 Serilog 日誌。設定完成後，您的應用程式透過 Serilog 寫入的每一筆日誌事件都會被傳送到 OneUptime，並在 **產品 → 日誌** 中變成可搜尋的內容，包含結構化屬性、嚴重程度，以及 trace/span 關聯。
 
 不需要安裝任何 OneUptime 專屬套件 — 此 sink 與 OneUptime 為所有 OpenTelemetry 資料所公開的同一個 OTLP 端點溝通。這適用於主控台應用程式、worker 服務、ASP.NET Core 應用程式，以及任何在 .NET 上執行的程式。
 
@@ -12,13 +12,13 @@
 - **建立 OneUptime 專案** – 擁有帳號後，從 OneUptime 儀表板建立一個專案。如果您需要協助，請透過 support@oneuptime.com 與我們聯絡。
 - **建立 Telemetry 擷取權杖（Ingestion Token）** – 您需要一個權杖來驗證您的日誌。
 
-註冊 OneUptime 並建立專案後，點選導覽列中的「Products」，再點選「Project Settings」。
+註冊 OneUptime 並建立專案後，點選導覽列中的「產品」，再點選「專案設定」。
 
-在 Telemetry Ingestion Key 頁面上，點選「Create Ingestion Key」以建立權杖。
+在 Telemetry Ingestion Key 頁面上，點選「建立擷取金鑰」以建立權杖。
 
 ![Create Service](/docs/static/images/TelemetryIngestionKeys.png)
 
-建立權杖後，點選「View」以檢視該權杖。
+建立權杖後，點選「檢視」以檢視該權杖。
 
 ![View Service](/docs/static/images/TelemetryIngestionKeyView.png)
 
@@ -197,7 +197,7 @@ Log.Information("Order {OrderId} placed by {CustomerId} for {Amount:C}",
 Log.Warning("Payment gateway slow: {LatencyMs}ms", latencyMs);
 ```
 
-每個具名屬性（`OrderId`、`CustomerId`、`Amount`、`LatencyMs`）都會以日誌屬性的形式傳送，因此您可以在 **Products → 日誌** 探索器中對它們進行篩選與搜尋。
+每個具名屬性（`OrderId`、`CustomerId`、`Amount`、`LatencyMs`）都會以日誌屬性的形式傳送，因此您可以在 **產品 → 日誌** 探索器中對它們進行篩選與搜尋。
 
 ## 例外狀況
 
@@ -214,7 +214,7 @@ catch (Exception ex)
 }
 ```
 
-OneUptime 會偵測這些屬性，並自動將該錯誤匯整到 **Exceptions**（Issues）檢視中，依指紋（fingerprint）分組並歸屬到正確的服務。由 trace 與 log 同時回報的錯誤會合併成單一 issue。如需了解偵測的運作方式，請參閱[從日誌偵測的例外狀況](/docs/telemetry/open-telemetry)。
+OneUptime 會偵測這些屬性，並自動將該錯誤匯整到 **例外**（Issues）檢視中，依指紋（fingerprint）分組並歸屬到正確的服務。由 trace 與 log 同時回報的錯誤會合併成單一 issue。如需了解偵測的運作方式，請參閱[從日誌偵測的例外狀況](/docs/telemetry/open-telemetry)。
 
 ## Trace 關聯
 
@@ -223,7 +223,7 @@ OneUptime 會偵測這些屬性，並自動將該錯誤匯整到 **Exceptions**�
 ## 驗證
 
 1. 執行您的應用程式並產生幾筆日誌事件。
-2. 開啟 OneUptime，前往 **Telemetry**，選擇您的服務（`my-service`），並開啟 **Logs**。
+2. 開啟 OneUptime，前往 **遙測**，選擇您的服務（`my-service`），並開啟 **日誌**。
 3. 您應該會在幾秒內看到您的 Serilog 事件出現，並可使用其結構化屬性作為篩選條件。
 
 ## 疑難排解

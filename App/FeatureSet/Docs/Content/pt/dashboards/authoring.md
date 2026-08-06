@@ -1,6 +1,6 @@
 # Criando um Painel
 
-Para criar um painel, abra **Dashboards → Criar Painel**, dê um nome a ele e abra-o. O canvas abre no modo **Edição**, pronto para você começar a adicionar widgets.
+Para criar um painel, abra **Painéis → Criar Painel**, dê um nome a ele e abra-o. O canvas abre no modo **Editar**, pronto para você começar a adicionar widgets.
 
 ## O canvas
 
@@ -10,8 +10,8 @@ Um painel é uma grade. Os widgets se encaixam — você decide onde cada um fic
 
 O alternador no cabeçalho troca entre dois modos:
 
-- **Edição** — a paleta de widgets está aberta, você pode arrastar widgets pela página, redimensioná-los e clicar em qualquer widget para alterar suas configurações.
-- **Visualização** — o painel é somente leitura, exatamente como visitantes e outros membros da equipe veem. Use este modo para conferir o resultado antes de compartilhar.
+- **Editar** — a paleta de widgets está aberta, você pode arrastar widgets pela página, redimensioná-los e clicar em qualquer widget para alterar suas configurações.
+- **Visualizar** — o painel é somente leitura, exatamente como visitantes e outros membros da equipe veem. Use este modo para conferir o resultado antes de compartilhar.
 
 É o mesmo painel nos dois modos. Não há um passo separado de "publicar" — toda edição fica no ar no momento em que é salva.
 
@@ -34,7 +34,7 @@ A maioria dos widgets lê de um destes três lugares:
 
 ## Limiares e formatação
 
-Widgets de valor único (**Valor**, **Indicador**) permitem definir:
+Widgets de valor único (**Valor**, **Medidor**) permitem definir:
 
 - Um **limiar de aviso** — a cor fica amarela quando o valor o ultrapassa.
 - Um **limiar crítico** — a cor fica vermelha quando o valor o ultrapassa.
@@ -46,7 +46,7 @@ Gráficos permitem definir a unidade do eixo Y, escolher onde a legenda aparece 
 No topo do painel, dois controles afetam todos os widgets de métricas:
 
 - **Intervalo de tempo** — uma predefinição (última hora, 24 horas, 7 dias, 30 dias) ou um intervalo personalizado. Todo gráfico e número usa essa janela.
-- **Atualização** — com que frequência os widgets reconsultam. Desligado, 5s, 10s, 30s, 1m, 5m, 15m. Listas ao vivo atualizam por conta própria, independentemente dessa configuração.
+- **Atualizar** — com que frequência os widgets reconsultam. Desligado, 5s, 10s, 30s, 1m, 5m, 15m. Listas ao vivo atualizam por conta própria, independentemente dessa configuração.
 
 Widgets que não usam o intervalo de tempo (como um widget de Texto) ignoram ambos os controles.
 

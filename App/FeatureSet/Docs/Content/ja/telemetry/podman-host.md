@@ -10,7 +10,7 @@ This page is the **installation guide**. For configuring Podman monitors and ale
 
 - Podman 4.0+
 - Access to `/run/podman/podman.sock` on the host
-- A **OneUptime Telemetry Ingestion Token** — create one from _Project Settings → テレメトリと APM → 取り込みキー_ and copy the value
+- A **OneUptime Telemetry Ingestion Token** — create one from _プロジェクト設定 → テレメトリと APM → 取り込みキー_ and copy the value
 
 ## Quick Start (One Command)
 
@@ -67,7 +67,7 @@ podman compose up -d
 | Variable                  | Required | Description                                                                                                         |
 | ------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------- |
 | `ONEUPTIME_URL`           | Yes      | Your OneUptime instance URL (for example `https://oneuptime.com` or your self-hosted host)                          |
-| `ONEUPTIME_SERVICE_TOKEN` | Yes      | Telemetry ingestion token from _Project Settings → テレメトリと APM → 取り込みキー_                                        |
+| `ONEUPTIME_SERVICE_TOKEN` | Yes      | Telemetry ingestion token from _プロジェクト設定 → テレメトリと APM → 取り込みキー_                                        |
 | `PODMAN_HOST_NAME`        | No       | Friendly name for this host. Defaults to `podman-host`. Set it to something stable per host (e.g. `prod-podman-01`) |
 
 ## Verify the Installation
@@ -124,7 +124,7 @@ podman compose down
 | **Network Metrics**   | Bytes and packets received / transmitted (per container)       |
 | **Block I/O Metrics** | Read / write bytes and operations (per container)              |
 | **Container Info**    | Uptime, restart count, process count                           |
-| **Container Logs**    | stdout / stderr logs from all containers                       |
+| **コンテナログ**      | stdout / stderr logs from all containers                       |
 
 ## Self-hosted OneUptime
 

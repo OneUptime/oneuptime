@@ -44,4 +44,4 @@ Eine Runbook-Ausführung ist ein einmaliges, unveränderliches Protokoll. Klicke
 
 ## Vergangene Ausführungen finden
 
-Jedes Runbook hat einen **Executions**-Tab, der alle seine Läufe auflistet, mit Filtern für Status, Datumsbereich und Quell-Entität. Auf einem Vorfall, einer Warnmeldung oder einem geplanten Wartungsereignis zeigt der **Runbooks**-Tab die an diese Entität gekoppelten Läufe.
+Jedes Runbook hat einen **Ausführungen**-Tab, der alle seine Läufe auflistet, mit Filtern für Status, Datumsbereich und Quell-Entität. Auf einem Vorfall, einer Warnmeldung oder einem geplanten Wartungsereignis zeigt der **Runbooks**-Tab die an diese Entität gekoppelten Läufe.

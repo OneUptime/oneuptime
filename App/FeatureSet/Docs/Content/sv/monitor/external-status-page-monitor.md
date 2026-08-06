@@ -38,7 +38,7 @@ När den är inställd på **Auto** försöker OneUptime automatiskt identifiera
 
 ## Skapa en monitor för extern statussida
 
-1. Gå till **Monitorer** i OneUptime-instrumentpanelen
+1. Gå till **Övervakare** i OneUptime-instrumentpanelen
 2. Klicka på **Skapa monitor**
 3. Välj **Extern statussida** som monitortyp
 4. Ange URL:en till statussidan du vill övervaka
@@ -95,7 +95,7 @@ Du kan konfigurera kriterier för att avgöra när den externa tjänsten anses v
 
 Som standard förinställer OneUptime kriterier baserat på vad som faktiskt har betydelse för en statussida — dess aktiva incidenter och komponenthälsa, snarare än enbart nåbarhet:
 
-- Monitorn markeras som **Operational** när det inte finns några aktiva incidenter inom omfattningen.
+- Monitorn markeras som **Fungerar** när det inte finns några aktiva incidenter inom omfattningen.
 - Monitorn markeras som **Down** (och en incident skapas) när det finns minst en aktiv incident inom omfattningen, eller när en komponent inom omfattningen rapporterar `degraded_performance`, `partial_outage`, `major_outage` eller `full_outage`.
 
 Eftersom antalet aktiva incidenter och komponentstatusarna respekterar komponentgrupps-/komponentnamnsfiltren riktar dessa standardkriterier automatiskt in sig på endast de komponenter du bryr dig om.

@@ -14,7 +14,7 @@ Bruk dette når et eksternt system må _opprette eller oppdatere noe i OneUptime
 
 1. Bygg en arbeidsflyt som starter med en **[Webhook-trigger](/docs/workflows/triggers#webhook)**. OneUptime gir deg en unik URL.
 2. I det andre verktøyet, konfigurer en webhook / varslingshendelse som POSTer til den URL-en når noe skjer.
-3. I arbeidsflyten, les den innkommende nyttelasten og bruk en **Create Incident**-komponent (eller Create Alert) for å registrere den.
+3. I arbeidsflyten, les den innkommende nyttelasten og bruk en **Opprett hendelse**-komponent (eller Create Alert) for å registrere den.
 
 ```text
 Zabbix / Prometheus / Grafana / Datadog  ──►  OneUptime Webhook trigger  ──►  Create Incident
@@ -24,7 +24,7 @@ Zabbix / Prometheus / Grafana / Datadog  ──►  OneUptime Webhook trigger  �
 
 Bruk dette når _noe i OneUptime skal vises i et annet verktøy_ — åpne en Jira-sak, varsle noen i PagerDuty, poste til Slack.
 
-1. Bygg en arbeidsflyt som starter med en **[OneUptime-hendelsestrigger](/docs/workflows/triggers#oneuptime-event-triggers)** — for eksempel **Incident → On Create**.
+1. Bygg en arbeidsflyt som starter med en **[OneUptime-hendelsestrigger](/docs/workflows/triggers#oneuptime-event-triggers)** — for eksempel **Hendelse → On Create**.
 2. Legg til en **[API-komponent](/docs/workflows/components#api)** som kaller det andre verktøyets REST API med hendelsens detaljer.
 3. Lagre alle API-nøkler som **hemmelige [globale variabler](/docs/workflows/variables#global-variables)** slik at de aldri vises i arbeidsflyten eller dens logger.
 
@@ -57,7 +57,7 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 
 Lim aldri en API-nøkkel eller et token direkte inn i en blokk. Gjør i stedet slik:
 
-1. Gå til **Workflows → Global Variables**.
+1. Gå til **Arbeidsflyter → Globale variabler**.
 2. Opprett en variabel — for eksempel `JIRA_AUTH` — og slå på **Is Secret**.
 3. Referer til den hvor som helst med `{{variable.JIRA_AUTH}}`.
 

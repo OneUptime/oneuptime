@@ -14,7 +14,7 @@ I monitor manuali sono segnaposto che si aggiornano autonomamente. Questo è uti
 ## Creazione di un Monitor Manuale
 
 1. Accedere a **Monitor** nel Dashboard di OneUptime
-2. Fare clic su **Crea Monitor**
+2. Fare clic su **Crea monitor**
 3. Selezionare **Manuale** come tipo di monitor
 4. Inserire un nome e una descrizione per il monitor
 

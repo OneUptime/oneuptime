@@ -14,7 +14,7 @@ Undantagsmonitorer räknar och filtrerar undantag som matchar specifika kriterie
 
 ## Skapa en undantagsmonitor
 
-1. Gå till **Monitorer** i OneUptime-instrumentpanelen
+1. Gå till **Övervakare** i OneUptime-instrumentpanelen
 2. Klicka på **Skapa monitor**
 3. Välj **Undantag** som monitortyp
 4. Välj de telemetritjänster att övervaka

@@ -14,7 +14,7 @@ DNSSEC-monitorer validerar hela förtroendekedjan från rotzonen ner till din do
 
 ## Skapa en DNSSEC-monitor
 
-1. Gå till **Monitorer** i OneUptime-instrumentpanelen
+1. Gå till **Övervakare** i OneUptime-instrumentpanelen
 2. Klicka på **Skapa monitor**
 3. Välj **DNSSEC** som monitortyp
 4. Ange den zon (domän) du vill validera

@@ -14,9 +14,9 @@ Profiles monitors specific criteria से match करने वाले profi
 
 ## Profiles Monitor बनाना
 
-1. OneUptime Dashboard में **Monitors** पर जाएं
-2. **Create Monitor** पर क्लिक करें
-3. monitor type के रूप में **Profiles** चुनें
+1. OneUptime Dashboard में **मॉनिटर** पर जाएं
+2. **मॉनिटर बनाएं** पर क्लिक करें
+3. monitor type के रूप में **प्रोफ़ाइल** चुनें
 4. monitor करने के लिए telemetry services चुनें
 5. आवश्यकतानुसार profile filters और criteria configure करें
 
@@ -55,10 +55,10 @@ profiles monitor करने के लिए एक या अधिक servic
 
 #### 5 minutes में कोई profiles receive नहीं होने पर Alert करें
 
-- **Time Window**: 300 seconds
+- **समय विंडो**: 300 seconds
 - **Check On**: Profile Count
-- **Filter Type**: Equal To
-- **Value**: 0
+- **फ़िल्टर प्रकार**: Equal To
+- **मान**: 0
 
 ## Setup Requirements
 

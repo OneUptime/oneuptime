@@ -14,10 +14,10 @@ Incoming Request monitors एक unique webhook URL प्रदान करत
 
 ## Incoming Request Monitor बनाना
 
-1. OneUptime Dashboard में **Monitors** पर जाएं
-2. **Create Monitor** पर क्लिक करें
+1. OneUptime Dashboard में **मॉनिटर** पर जाएं
+2. **मॉनिटर बनाएं** पर क्लिक करें
 3. monitor type के रूप में **Incoming Request** चुनें
-4. इस monitor के लिए एक **Secret Key** और heartbeat URL generate होगी
+4. इस monitor के लिए एक **सीक्रेट कुंजी** और heartbeat URL generate होगी
 5. heartbeat URL पर requests भेजने के लिए अपनी service configure करें
 6. आवश्यकतानुसार monitoring criteria configure करें
 
@@ -88,7 +88,7 @@ requests.get('https://oneuptime.com/heartbeat/YOUR_SECRET_KEY')
 - **Received In Minutes** — निर्दिष्ट minutes की संख्या के भीतर heartbeat received हुआ था
 - **Not Received In Minutes** — निर्दिष्ट minutes की संख्या के भीतर कोई heartbeat received नहीं हुआ
 
-**Request Body**, **Request Header** और **Request Header Value** के लिए:
+**अनुरोध बॉडी**, **Request Header** और **Request Header Value** के लिए:
 
 - **Contains** — Value निर्दिष्ट text contain करती है
 - **Not Contains** — Value निर्दिष्ट text contain नहीं करती
@@ -98,14 +98,14 @@ requests.get('https://oneuptime.com/heartbeat/YOUR_SECRET_KEY')
 #### 10 minutes में कोई heartbeat नहीं होने पर offline mark करें
 
 - **Check On**: Incoming Request
-- **Filter Type**: Not Received In Minutes
-- **Value**: 10
+- **फ़िल्टर प्रकार**: Not Received In Minutes
+- **मान**: 10
 
 #### request body content के आधार पर degraded mark करें
 
 - **Check On**: Request Body
-- **Filter Type**: Contains
-- **Value**: `"status": "degraded"`
+- **फ़िल्टर प्रकार**: Contains
+- **मान**: `"status": "degraded"`
 
 ## सर्वोत्तम प्रथाएं
 

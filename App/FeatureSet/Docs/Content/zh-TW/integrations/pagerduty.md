@@ -17,12 +17,12 @@ OneUptime Incident → On Create  ──►  API component (POST /v2/enqueue)  �
 
 ## 步驟 1 — 儲存 routing key
 
-1. 前往 **Workflows → Global Variables → Create**。
+1. 前往 **工作流程 → 全域變數 → 建立**。
 2. 將它命名為 `PAGERDUTY_ROUTING_KEY`，貼上 integration key，並開啟 **Is Secret**。
 
 ## 步驟 2 — 建立「觸發」工作流程
 
-1. 開啟 **Workflows → Create Workflow**，命名為 `Incidents → PagerDuty`，然後開啟 **Builder**。
+1. 開啟 **工作流程 → 建立工作流程**，命名為 `Incidents → PagerDuty`，然後開啟 **建構器**。
 2. 新增一個設定為 **On Create** 的 **Incident** 觸發器。將它重新命名為 `Incident`。
 3. 新增一個連接到觸發器的 **API** 區塊：
 
@@ -49,7 +49,7 @@ OneUptime Incident → On Create  ──►  API component (POST /v2/enqueue)  �
 
    **`dedup_key`** 將這個 PagerDuty 事件與 OneUptime 事件綁定在一起，讓你之後可以解決它。使用 OneUptime 事件 id 可以讓它保持唯一且可預測。
 
-4. **Save**、啟用，並建立一個測試事件。工作流程記錄中出現 `202` 回應，代表 PagerDuty 已接受該事件。
+4. **儲存**、啟用，並建立一個測試事件。工作流程記錄中出現 `202` 回應，代表 PagerDuty 已接受該事件。
 
 ## 步驟 3 — 在 OneUptime 解決時一併解決（建議）
 
@@ -79,7 +79,7 @@ PagerDuty 的 `severity` 接受 `critical`、`error`、`warning` 或 `info`。�
 
 - **`400` 且出現 `"invalid routing key"`** — 該整合必須是 **Events API v2**，而非較舊的 Events API v1 或其他整合類型。請重新複製金鑰。
 - **解決時沒有關閉任何東西** — 解決呼叫上的 `dedup_key` 必須與觸發呼叫完全相符。
-- **記錄中沒有任何內容** — 請確認工作流程已 **Enabled**，且觸發器設為 **On Create**。
+- **記錄中沒有任何內容** — 請確認工作流程為 **已啟用**，且觸發器設為 **On Create**。
 
 ## 接下來閱讀
 

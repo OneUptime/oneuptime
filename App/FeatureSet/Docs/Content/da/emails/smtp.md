@@ -24,12 +24,12 @@ Når du konfigurerer SMTP med OAuth-autentificering i OneUptime, skal du bruge:
 | **Værtsnavn**            | SMTP-serveradresse                                                                   |
 | **Port**                 | SMTP-port (typisk 587 for STARTTLS eller 465 for implicit TLS)                       |
 | **Brugernavn**           | Den e-mailadresse der sendes fra                                                     |
-| **Autentificeringstype** | Vælg "OAuth"                                                                         |
+| **Godkendelsestype**     | Vælg "OAuth"                                                                         |
 | **OAuth-udbydertype**    | Vælg "Client Credentials" til Microsoft 365, eller "JWT Bearer" til Google Workspace |
 | **Klient-ID**            | Applikations-/klient-ID fra din OAuth-udbyder (til Google: tjenestekontoens e-mail)  |
 | **Klienthemmelighed**    | Klienthemmelighed fra din OAuth-udbyder (til Google: privat nøgle)                   |
 | **Token URL**            | OAuth-tokenendpoint-URL                                                              |
-| **Scope**                | Påkrævede OAuth-scope(s) til SMTP-adgang                                             |
+| **Omfang**               | Påkrævede OAuth-scope(s) til SMTP-adgang                                             |
 
 ---
 

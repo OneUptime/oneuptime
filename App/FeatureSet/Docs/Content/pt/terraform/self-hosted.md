@@ -32,7 +32,7 @@ export ONEUPTIME_URL="https://oneuptime.example.com"
 export ONEUPTIME_API_KEY="your-project-api-key"
 ```
 
-The API key is a **project API key** created in your instance's dashboard under **Project Settings > API Keys** — exactly as on cloud. Self-hosted master keys do not work and fail with `ProjectId required` (see [Troubleshooting](/docs/terraform/troubleshooting)).
+The API key is a **project API key** created in your instance's dashboard under **Configurações do projeto > Chaves de API** — exactly as on cloud. Self-hosted master keys do not work and fail with `ProjectId required` (see [Troubleshooting](/docs/terraform/troubleshooting)).
 
 ## Choosing a provider version
 

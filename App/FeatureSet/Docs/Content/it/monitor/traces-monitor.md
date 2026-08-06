@@ -15,7 +15,7 @@ I monitor tracce ricercano e contano gli span corrispondenti a filtri specifici.
 ## Creazione di un Monitor Tracce
 
 1. Accedere a **Monitor** nel Dashboard di OneUptime
-2. Fare clic su **Crea Monitor**
+2. Fare clic su **Crea monitor**
 3. Selezionare **Tracce** come tipo di monitor
 4. Selezionare i servizi di telemetria da monitorare
 5. Configurare i filtri degli span e i criteri secondo necessità
@@ -63,18 +63,18 @@ Selezionare uno o più servizi da cui monitorare le tracce. I servizi devono inv
 #### Avviso se più di 50 span in errore in 60 secondi
 
 - **Stati Span**: ERROR
-- **Finestra Temporale**: 60 secondi
+- **Finestra temporale**: 60 secondi
 - **Controlla Su**: Conteggio Span
-- **Tipo Filtro**: Maggiore Di
+- **Tipo di filtro**: Maggiore Di
 - **Valore**: 50
 
 #### Avviso sugli errori in un endpoint specifico
 
-- **Nome Span**: `POST /api/checkout`
+- **Nome dello span**: `POST /api/checkout`
 - **Stati Span**: ERROR
-- **Finestra Temporale**: 120 secondi
+- **Finestra temporale**: 120 secondi
 - **Controlla Su**: Conteggio Span
-- **Tipo Filtro**: Maggiore Di
+- **Tipo di filtro**: Maggiore Di
 - **Valore**: 0
 
 ## Requisiti di Configurazione

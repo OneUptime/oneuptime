@@ -1,6 +1,6 @@
 # Integrações
 
-O OneUptime se conecta às ferramentas que o seu time já usa — Zabbix, Jira, PagerDuty, Slack e muitas outras — através dos **[Workflows](/docs/workflows/index)**, o motor de automação integrado. Não há plugin separado para instalar. Você monta uma integração no canvas de arrastar e soltar, e ela roda sempre que algo acontece.
+O OneUptime se conecta às ferramentas que o seu time já usa — Zabbix, Jira, PagerDuty, Slack e muitas outras — através dos **[Fluxos de trabalho](/docs/workflows/index)**, o motor de automação integrado. Não há plugin separado para instalar. Você monta uma integração no canvas de arrastar e soltar, e ela roda sempre que algo acontece.
 
 Esta página explica os dois padrões que toda integração usa. Depois de entendê-los, você pode conectar o OneUptime a quase qualquer coisa, mesmo ferramentas que não têm uma página própria aqui.
 
@@ -14,7 +14,7 @@ Use quando um sistema externo precisa _criar ou atualizar algo no OneUptime_ —
 
 1. Construa um workflow que começa com um **[gatilho Webhook](/docs/workflows/triggers#webhook)**. O OneUptime fornece uma URL única.
 2. Na outra ferramenta, configure um webhook / ação de notificação que faça POST para essa URL quando algo acontecer.
-3. No workflow, leia o payload recebido e use um componente **Create Incident** (ou Create Alert) para registrá-lo.
+3. No workflow, leia o payload recebido e use um componente **Criar incidente** (ou Create Alert) para registrá-lo.
 
 ```text
 Zabbix / Prometheus / Grafana / Datadog  ──►  OneUptime Webhook trigger  ──►  Create Incident
@@ -24,7 +24,7 @@ Zabbix / Prometheus / Grafana / Datadog  ──►  OneUptime Webhook trigger  �
 
 Use quando _algo no OneUptime deve aparecer em outra ferramenta_ — abrir um ticket no Jira, acionar alguém no PagerDuty, postar no Slack.
 
-1. Construa um workflow que começa com um **[gatilho de evento do OneUptime](/docs/workflows/triggers#oneuptime-event-triggers)** — por exemplo **Incident → On Create**.
+1. Construa um workflow que começa com um **[gatilho de evento do OneUptime](/docs/workflows/triggers#oneuptime-event-triggers)** — por exemplo **Incidente → On Create**.
 2. Adicione um **[componente API](/docs/workflows/components#api)** que chama a REST API da outra ferramenta com os detalhes do incidente.
 3. Armazene quaisquer chaves de API como **[variáveis globais](/docs/workflows/variables#global-variables)** secretas para que nunca apareçam no workflow ou em seus logs.
 
@@ -57,7 +57,7 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 
 Nunca cole uma chave de API ou token diretamente em um bloco. Em vez disso:
 
-1. Vá em **Workflows → Global Variables**.
+1. Vá em **Fluxos de trabalho → Variáveis globais**.
 2. Crie uma variável — por exemplo `JIRA_AUTH` — e ative **Is Secret**.
 3. Referencie-a em qualquer lugar com `{{variable.JIRA_AUTH}}`.
 

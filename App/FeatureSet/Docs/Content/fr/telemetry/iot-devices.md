@@ -15,7 +15,7 @@ Il n'y a aucun agent propriétaire à installer côté appareil. Cette page est 
 
 - Un appareil, une passerelle ou un collector capable d'envoyer du OTLP/HTTP vers OneUptime
 - Une accessibilité réseau depuis l'appareil/la passerelle vers votre instance OneUptime
-- Un **jeton d'ingestion de télémétrie OneUptime** — créez-en un depuis _Project Settings → Télémétrie & APM → Clés d'ingestion_ et copiez la valeur `x-oneuptime-token`
+- Un **jeton d'ingestion de télémétrie OneUptime** — créez-en un depuis _Paramètres du projet → Télémétrie & APM → Clés d'ingestion_ et copiez la valeur `x-oneuptime-token`
 
 ## Comment OneUptime modélise l'IoT
 
@@ -214,7 +214,7 @@ OneUptime reconnaît les noms de métriques `iot_*` suivants. Chaque point de do
 1. Confirmez que votre appareil ou passerelle exporte sans erreurs (vérifiez dans les logs du SDK/collector les échecs d'export et les réponses HTTP `401`/`403`).
 2. Dans le tableau de bord OneUptime, ouvrez la section **IoT** — votre flotte devrait apparaître comme `iot/<fleet>` en l'espace d'une minute environ.
 3. Ouvrez l'onglet **Devices** de la flotte — chaque `device.id` que vous avez envoyé devrait être listé avec ses dernières valeurs de batterie, signal, température, CPU, mémoire et son statut en service/hors service.
-4. Ouvrez **Metrics** sous la flotte pour tracer n'importe quelle des séries `iot_*` ci-dessus.
+4. Ouvrez **Métriques** sous la flotte pour tracer n'importe quelle des séries `iot_*` ci-dessus.
 
 ## Dépannage
 
@@ -232,7 +232,7 @@ OneUptime reconnaît les noms de métriques `iot_*` suivants. Chaque point de do
 
 ### HTTP 401 / 403 depuis l'exportateur
 
-Le jeton d'ingestion est invalide, révoqué ou manquant. Générez-en un nouveau depuis _Project Settings → Télémétrie & APM → Clés d'ingestion_ et mettez à jour l'en-tête `x-oneuptime-token`.
+Le jeton d'ingestion est invalide, révoqué ou manquant. Générez-en un nouveau depuis _Paramètres du projet → Télémétrie & APM → Clés d'ingestion_ et mettez à jour l'en-tête `x-oneuptime-token`.
 
 ### Les métriques ne se tracent pas
 

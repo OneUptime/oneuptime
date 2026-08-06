@@ -10,7 +10,7 @@ Voor hoe je widgets over het canvas sleept, zie [Een dashboard maken](/docs/dash
 
 Een lijn-, balk- of vlakchart van één of meer metric-series over het tijdsbereik van het dashboard.
 
-**Settings**:
+**Instellingen**:
 
 - Eén of meer metric-queries.
 - Een optionele formule die twee queries combineert (bijvoorbeeld `errors / total * 100` voor een foutpercentage).
@@ -23,7 +23,7 @@ Gebruik dit wanneer: trends ertoe doen. Latency in de tijd, foutaantal, wachtrij
 
 Eén groot getal met optionele gekleurde drempels.
 
-**Settings**:
+**Instellingen**:
 
 - Een metric-query die één getal teruggeeft (laatste waarde, gemiddelde of max over het tijdsbereik).
 - Een optionele **warning**-drempel (geel boven).
@@ -36,7 +36,7 @@ Gebruik dit wanneer: één getal de vraag beantwoordt. Huidig foutpercentage, P9
 
 Een ronde gauge met een minimum, maximum, warning-band en critical-band.
 
-**Settings**: een metric-query en de vier grenzen.
+**Instellingen**: een metric-query en de vier grenzen.
 
 Gebruik dit wanneer: de waarde binnen een bekend bereik valt. CPU-percentage (0–100%), schijfgebruik, wachtrijcapaciteit.
 
@@ -44,7 +44,7 @@ Gebruik dit wanneer: de waarde binnen een bekend bereik valt. CPU-percentage (0�
 
 Een tabel met metric-resultaten, één rij per groep.
 
-**Settings**: een metric-query (meestal gegroepeerd op een label zoals host of service), de kolommen om te tonen en een rijlimiet.
+**Instellingen**: een metric-query (meestal gegroepeerd op een label zoals host of service), de kolommen om te tonen en een rijlimiet.
 
 Gebruik dit wanneer: je een uitsplitsing wilt in plaats van een trend. Top 10 luidruchtigste hosts, foutaantal per service, requests per endpoint.
 
@@ -52,7 +52,7 @@ Gebruik dit wanneer: je een uitsplitsing wilt in plaats van een trend. Top 10 lu
 
 Een statisch blok Markdown.
 
-**Settings**: de Markdown-body. Koppen, lijsten, links, nadruk en codeblokken worden allemaal gerenderd.
+**Instellingen**: de Markdown-body. Koppen, lijsten, links, nadruk en codeblokken worden allemaal gerenderd.
 
 Gebruik dit wanneer: je een sectiekop wilt, een alinea context, een lijst met links naar runbooks of een tijdelijke banner tijdens een incident.
 
@@ -60,7 +60,7 @@ Gebruik dit wanneer: je een sectiekop wilt, een alinea context, een lijst met li
 
 Je eigen HTML, CSS en JavaScript, gerenderd als widget.
 
-**Settings**: de HTML-body, een optionele stylesheet, een optioneel script en drie permissie-schakelaars.
+**Instellingen**: de HTML-body, een optionele stylesheet, een optioneel script en drie permissie-schakelaars.
 
 Gebruik dit wanneer: je iets nodig hebt wat geen enkele ingebouwde widget dekt — een ingesloten badge van een derde partij, een tabel opgehaald uit een interne API, een eigen legenda, een set gestylede links naar je eigen tools.
 
@@ -105,7 +105,7 @@ Iedereen die het dashboard kan bewerken bepaalt wat deze widget draait, en ieder
 
 Een live tail van logregels die aan een filter voldoen.
 
-**Settings**: log-filters (service, severity, attributen) en de kolommen om te tonen.
+**Instellingen**: log-filters (service, severity, attributen) en de kolommen om te tonen.
 
 Gebruik dit wanneer: je wilt zien wat de applicatie nu zegt, zonder het dashboard te verlaten.
 
@@ -113,7 +113,7 @@ Gebruik dit wanneer: je wilt zien wat de applicatie nu zegt, zonder het dashboar
 
 Een lijst met recente traces die aan een filter voldoen, met duur, status en service.
 
-**Settings**: trace-filters (service, status, attributen).
+**Instellingen**: trace-filters (service, status, attributen).
 
 Gebruik dit wanneer: je een lijst met recente activiteit wilt in plaats van een chart. Een veelvoorkomend patroon is een latency-chart bovenaan met een lijst van langzame traces eronder.
 
@@ -123,7 +123,7 @@ Gebruik dit wanneer: je een lijst met recente activiteit wilt in plaats van een 
 
 Een live lijst met incidenten die aan een filter voldoen.
 
-**Settings**: filters op state, severity, labels, monitor of team.
+**Instellingen**: filters op state, severity, labels, monitor of team.
 
 Gebruik dit wanneer: het dashboard de vraag "wat is er nu kapot?" beantwoordt.
 
@@ -131,7 +131,7 @@ Gebruik dit wanneer: het dashboard de vraag "wat is er nu kapot?" beantwoordt.
 
 Een live lijst met alerts die aan een filter voldoen.
 
-**Settings**: filters op state, severity, labels.
+**Instellingen**: filters op state, severity, labels.
 
 Gebruik dit wanneer: een teamdashboard alerts op zijn services volgt.
 
@@ -139,7 +139,7 @@ Gebruik dit wanneer: een teamdashboard alerts op zijn services volgt.
 
 Een live lijst met monitors en hun huidige status.
 
-**Settings**: filters op monitortype, labels of huidige state.
+**Instellingen**: filters op monitortype, labels of huidige state.
 
 Gebruik dit wanneer: je een wagenpark-view wilt — "zijn alle sites up?"
 
@@ -174,7 +174,7 @@ Voor projecten met Docker-monitoring opgezet.
 
 Hosts gemonitord door OneUptime's server-monitor, met status, CPU, geheugen en uptime.
 
-**Settings**: filters op labels of huidige state.
+**Instellingen**: filters op labels of huidige state.
 
 ## Welke widget moet ik gebruiken?
 

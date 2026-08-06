@@ -92,7 +92,7 @@ $1 हर कंटेनर स्ट्रीम kube-apiserver से लं�
 
 Chart प्रत्येक नोड पर [OpenTelemetry eBPF Instrumentation (OBI)](https://opentelemetry.io/docs/zero-code/obi/) चलाने वाला एक DaemonSet भेजता है। OBI Linux कर्नेल में eBPF प्रोग्राम लोड करता है और सॉकेट-स्तर के ट्रैफ़िक को देखता है ताकि नोड पर प्रत्येक पॉड से HTTP/HTTPS, gRPC, और SQL/Redis कॉल्स को पुनर्निर्मित किया जा सके — कोई कोड परिवर्तन नहीं, कोई SDK नहीं, कोई sidecar नहीं। कैप्चर किए गए ट्रैफ़िक को OTLP ट्रेस और रिक्वेस्ट/लेटेंसी मेट्रिक्स के रूप में सीधे OneUptime को निर्यात किया जाता है।
 
-इंस्टॉल करने के बाद, आपकी सर्विसें एक या दो मिनट के भीतर **Products → ट्रेस** और सर्विस मैप के तहत दिखाई देने लगती हैं, जिसमें `k8s.cluster.name` आपके `clusterName` पर सेट होता है ताकि आप क्लस्टर के अनुसार फ़िल्टर कर सकें।
+इंस्टॉल करने के बाद, आपकी सर्विसें एक या दो मिनट के भीतर **उत्पाद → ट्रेस** और सर्विस मैप के तहत दिखाई देने लगती हैं, जिसमें `k8s.cluster.name` आपके `clusterName` पर सेट होता है ताकि आप क्लस्टर के अनुसार फ़िल्टर कर सकें।
 
 ### इसे कब बंद करें
 
@@ -163,7 +163,7 @@ kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=2
 
 ## निरंतर CPU प्रोफाइलिंग (डिफ़ॉल्ट रूप से बंद)
 
-एक अलग DaemonSet [OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) चलाता है — जो `otel/opentelemetry-collector-ebpf-profiler` इमेज के रूप में पैक किया गया है। यह प्रत्येक समर्थित रनटाइम (Go, Java, .NET, Python, Ruby, Node.js, PHP, Perl, C/C++, Rust) में 19Hz पर on-CPU स्टैक्स को सैंपल करता है और OneUptime को OTLP प्रोफ़ाइल भेजता है, जहाँ वे **Products → प्रदर्शन प्रोफ़ाइल** के तहत और व्यक्तिगत ट्रेस spans से लिंक किए गए फ्लेम ग्राफ़ के रूप में दिखाई देते हैं।
+एक अलग DaemonSet [OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) चलाता है — जो `otel/opentelemetry-collector-ebpf-profiler` इमेज के रूप में पैक किया गया है। यह प्रत्येक समर्थित रनटाइम (Go, Java, .NET, Python, Ruby, Node.js, PHP, Perl, C/C++, Rust) में 19Hz पर on-CPU स्टैक्स को सैंपल करता है और OneUptime को OTLP प्रोफ़ाइल भेजता है, जहाँ वे **उत्पाद → प्रदर्शन प्रोफाइल** के तहत और व्यक्तिगत ट्रेस spans से लिंक किए गए फ्लेम ग्राफ़ के रूप में दिखाई देते हैं।
 
 प्रोफाइलिंग **डिफ़ॉल्ट रूप से बंद** है — यह OBI ऑटो-इंस्ट्रुमेंटेशन की तुलना में भारी है (प्रति नोड अधिक CPU, बड़ा मेमोरी फ़ुटप्रिंट) और हर क्लस्टर हमेशा-चालू फ्लेम ग्राफ़ नहीं चाहता। जब आप समृद्ध टेलीमेट्री चाहें तो इसे सक्षम करें: `--set profiling.enabled=true`।
 

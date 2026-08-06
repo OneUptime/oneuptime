@@ -29,21 +29,21 @@ Voir [Widgets](/docs/dashboards/widgets) pour la liste complète et ce que chacu
 | **Widget**           | Une tuile sur la page — un graphique, un nombre, une liste, un paragraphe.                                                    |
 | **Variable**         | Une liste déroulante en haut de la page qui filtre tous les widgets à la fois (cluster, service, client, environnement).      |
 | **Plage temporelle** | La fenêtre de temps utilisée par chaque graphique et chaque nombre. Définissez-la une fois en haut de la page.                |
-| **Actualisation**    | À quelle fréquence les widgets relancent leur requête. Désactivée, toutes les quelques secondes, toutes les quelques minutes. |
-| **Mode**             | Soit **Edit** (déplacer les widgets), soit **View** (lecture seule, tel que les visiteurs le voient).                         |
+| **Actualiser**       | À quelle fréquence les widgets relancent leur requête. Désactivée, toutes les quelques secondes, toutes les quelques minutes. |
+| **Mode**             | Soit **Modifier** (déplacer les widgets), soit **Voir** (lecture seule, tel que les visiteurs le voient).                     |
 
 ## Où trouver les tableaux de bord
 
-Ouvrez **Dashboards** dans la navigation de gauche.
+Ouvrez **Tableaux de bord** dans la navigation de gauche.
 
-| Page                     | Ce que vous y faites                                                                          |
-| ------------------------ | --------------------------------------------------------------------------------------------- |
-| **Dashboards**           | Votre liste de tableaux de bord. Créez-en un nouveau, recherchez ou filtrez par étiquette.    |
-| **Dashboard → View**     | Le canevas. Basculez entre **Edit** et **View** dans l'en-tête.                               |
-| **Dashboard → Overview** | Description, propriétaires et étiquettes.                                                     |
-| **Dashboard → Settings** | Partage public, mot de passe, liste d'IP autorisées, domaine personnalisé, identité visuelle. |
-| **Dashboard → Owners**   | Utilisateurs et équipes ayant un accès explicite.                                             |
-| **Dashboard → Delete**   | Supprimer le tableau de bord.                                                                 |
+| Page                                 | Ce que vous y faites                                                                          |
+| ------------------------------------ | --------------------------------------------------------------------------------------------- |
+| **Tableaux de bord**                 | Votre liste de tableaux de bord. Créez-en un nouveau, recherchez ou filtrez par étiquette.    |
+| **Tableau de bord → Voir**           | Le canevas. Basculez entre **Modifier** et **Voir** dans l'en-tête.                           |
+| **Tableau de bord → Vue d'ensemble** | Description, propriétaires et étiquettes.                                                     |
+| **Tableau de bord → Paramètres**     | Partage public, mot de passe, liste d'IP autorisées, domaine personnalisé, identité visuelle. |
+| **Tableau de bord → Propriétaires**  | Utilisateurs et équipes ayant un accès explicite.                                             |
+| **Tableau de bord → Supprimer**      | Supprimer le tableau de bord.                                                                 |
 
 ## Construire un tableau de bord
 
@@ -60,16 +60,16 @@ Objectif : une page d'astreinte pour le service checkout avec latence, taux d'er
 
 1. Créez un tableau de bord intitulé « Checkout on-call ».
 2. Ajoutez une variable `service`. Mettez-la par défaut à `checkout`.
-3. Ajoutez un widget **Chart** avec la latence P95, filtré par la variable `service`.
-4. À côté, ajoutez un widget **Value** pour le taux d'erreur, avec un avertissement à 1 % et un seuil critique à 5 %.
-5. En dessous, ajoutez un widget **Incident List** pour les incidents étiquetés `checkout`.
-6. En dessous, un widget **Log Stream** affichant les journaux du même service.
+3. Ajoutez un widget **Graphique** avec la latence P95, filtré par la variable `service`.
+4. À côté, ajoutez un widget **Valeur** pour le taux d'erreur, avec un avertissement à 1 % et un seuil critique à 5 %.
+5. En dessous, ajoutez un widget **Liste des incidents** pour les incidents étiquetés `checkout`.
+6. En dessous, un widget **Flux de journaux** affichant les journaux du même service.
 7. Enregistrez. Passez la liste déroulante à `payments` — le même tableau de bord affiche désormais le service payments.
 
 ## Comment les tableaux de bord s'intègrent au reste de OneUptime
 
 - Les **monitors et la télémétrie** sont les sources de données. Chaque métrique, journal et trace que vous collectez peut être interrogé par un widget.
-- Les **incidents et alertes** apparaissent dans les widgets **Incident List** et **Alert List**. Les tableaux de bord sont en lecture seule pour ces données — créez-les et mettez-les à jour ailleurs.
+- Les **incidents et alertes** apparaissent dans les widgets **Liste des incidents** et **Liste des alertes**. Les tableaux de bord sont en lecture seule pour ces données — créez-les et mettez-les à jour ailleurs.
 - Les **status pages** sont la communication tournée vers le client (« est-ce que le système fonctionne ? »). Les tableaux de bord servent à examiner en détail le comportement du système. Les deux sont complémentaires, ils ne se remplacent pas.
 - Les **workflows** sont la façon dont OneUptime agit. Les tableaux de bord sont la façon dont vous lisez ce qui se passe.
 

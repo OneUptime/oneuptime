@@ -10,7 +10,7 @@ Um ein Geheimnis hinzuzufügen, gehen Sie bitte zum OneUptime-Dashboard -> Monit
 
 Sie können auswählen, welche Monitore Zugriff auf das Geheimnis haben. In diesem Fall haben wir ein `ApiKey`-Geheimnis hinzugefügt und Monitore ausgewählt, die Zugriff darauf haben.
 
-**Bitte beachten**: Geheimnisse werden verschlüsselt und sicher gespeichert. Der Wert wird nach dem Speichern nie wieder angezeigt — weder in der Tabelle noch im Bearbeitungsformular noch über die API. Wenn Sie den Wert verlieren, müssen Sie ihn erneut aus der Quelle holen und neu eintragen. Verwenden Sie zum Rotieren eines Geheimnisses die Schaltfläche **Update Secret Value** in der Zeile; Sie müssen es nicht löschen und neu anlegen.
+**Bitte beachten**: Geheimnisse werden verschlüsselt und sicher gespeichert. Der Wert wird nach dem Speichern nie wieder angezeigt — weder in der Tabelle noch im Bearbeitungsformular noch über die API. Wenn Sie den Wert verlieren, müssen Sie ihn erneut aus der Quelle holen und neu eintragen. Verwenden Sie zum Rotieren eines Geheimnisses die Schaltfläche **Geheimwert aktualisieren** in der Zeile; Sie müssen es nicht löschen und neu anlegen.
 
 ### Ein Geheimnis verwenden
 

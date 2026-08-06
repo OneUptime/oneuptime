@@ -137,7 +137,7 @@ gitHubApp:
 ### Étape 10 : Connecter des dépôts dans OneUptime
 
 1. Connectez-vous à votre tableau de bord OneUptime
-2. Accédez à **Products** > **Dépôts de code**
+2. Accédez à **Produits** > **Dépôts de code**
 3. Cliquez sur **« Créer un dépôt »** ou utilisez le flux d'installation de l'application GitHub
 4. Si redirigé depuis GitHub, l'ID d'installation sera automatiquement capturé
 5. Sélectionnez les dépôts que vous souhaitez connecter dans la liste

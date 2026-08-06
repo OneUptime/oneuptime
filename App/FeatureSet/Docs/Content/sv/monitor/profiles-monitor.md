@@ -14,7 +14,7 @@ Profilmonitorer räknar och filtrerar profileringsdata som matchar specifika kri
 
 ## Skapa en profilmonitor
 
-1. Gå till **Monitorer** i OneUptime-instrumentpanelen
+1. Gå till **Övervakare** i OneUptime-instrumentpanelen
 2. Klicka på **Skapa monitor**
 3. Välj **Profiler** som monitortyp
 4. Välj de telemetritjänster att övervaka

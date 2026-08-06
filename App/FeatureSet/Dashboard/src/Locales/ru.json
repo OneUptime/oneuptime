@@ -4135,6 +4135,7 @@
   "Processors transform spans as they flow through the pipeline. They run in order after the filter conditions match. Each processor modifies the span before it is stored.": "Процессоры преобразуют спаны по мере их прохождения через конвейер. Они выполняются по порядку после совпадения условий фильтра. Каждый процессор изменяет спан перед его сохранением.",
   "Processors transform spans matched by this pipeline. They run in the order shown below. Drag to reorder.": "Процессоры преобразуют спаны, совпавшие с этим конвейером. Они выполняются в показанном ниже порядке. Перетащите для изменения порядка.",
   "Product": "Продукт",
+  "Products": "Продукты",
   "Production API Health": "Состояние API в продакшене",
   "Production cluster running in US East": "Кластер продакшена, работающий в US East",
   "Production cluster running in US East region on EKS": "Кластер продакшена, работающий в регионе US East на EKS",

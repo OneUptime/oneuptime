@@ -9,7 +9,7 @@ Every pull request is reviewed and merged by a human. The Runner never merges it
 ## How a fix run works
 
 1. You click **Fix with AI** on an unresolved exception.
-2. A fix task is created and picked up by an available Runner with the **Runs AI Code Fixes** capability.
+2. A fix task is created and picked up by an available Runner with the **Ejecuta correcciones de código con IA** capability.
 3. The Runner fetches the exception details — exception type, error message, and stack trace.
 4. It clones the linked repository into an ephemeral workspace and creates a branch (named `oneuptime-fix-exception-` followed by the first characters of the run id).
 5. A code agent, powered by your project's LLM provider, analyzes the codebase and writes the fix. The LLM calls are executed by the OneUptime server — the Runner container never holds your provider's API key — and every call is metered and logged in the AI logs.
@@ -25,7 +25,7 @@ Three things must be in place before a fix task can run. The exception page chec
 
 ### 1. An LLM provider
 
-- **OneUptime Cloud**: zero-config — if your project has no LLM provider of its own, agent tasks use the shared global provider and the usage is billed as metered AI tokens, exactly like every other AI feature. To use your own keys instead, configure a provider under **Project Settings** > **AI** > **LLM Providers** — a project-owned provider always takes precedence.
+- **OneUptime Cloud**: zero-config — if your project has no LLM provider of its own, agent tasks use the shared global provider and the usage is billed as metered AI tokens, exactly like every other AI feature. To use your own keys instead, configure a provider under **Ajustes del proyecto** > **IA** > **Proveedores LLM** — a project-owned provider always takes precedence.
 - **Self-hosted**: a project-owned provider works the same way, but the zero-config path is to set the `GLOBAL_LLM_PROVIDER_*` environment variables once on your OneUptime server (in `config.env` for Docker Compose, or via Helm values) — a global provider is registered automatically at startup, and every project's AI features, including agent tasks, use it. For a local Ollama:
 
 ```bash
@@ -39,7 +39,7 @@ Any supported provider works — see [LLM Providers](/docs/ai/llm-provider) for 
 
 ### 2. GitHub connected through the GitHub App
 
-Connect GitHub under **Code Repositories** using **Connect with GitHub App** — installing the app imports all of its repositories automatically and keeps them in sync. The GitHub App is the only connection the Runner can push through (GitLab is on the roadmap).
+Connect GitHub under **Repositorios de código** using **Connect with GitHub App** — installing the app imports all of its repositories automatically and keeps them in sync. The GitHub App is the only connection the Runner can push through (GitLab is on the roadmap).
 
 You do **not** map repositories to services: OneUptime resolves the right repository at fix time by matching the exception's stack-trace file paths against your connected repositories (falling back to repository-name matching and, when the project has exactly one repository, to that repository). The readiness checklist on the exception page shows which repository resolved.
 
@@ -50,7 +50,7 @@ You do **not** map repositories to services: OneUptime resolves the right reposi
 
 To run an additional Runner elsewhere (for example on a machine closer to your repositories):
 
-1. Create a Runner under **Settings** > **Runners** and use **Show setup instructions** on its row for a pre-filled install command. The key is shown once — save it securely. The command looks like:
+1. Create a Runner under **Ajustes** > **Agentes de runbook** and use **Mostrar instrucciones de configuración** on its row for a pre-filled install command. The key is shown once — save it securely. The command looks like:
 
 ```bash
 docker run --name oneuptime-runner --restart unless-stopped \
@@ -60,7 +60,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
   -d oneuptime/runner:release
 ```
 
-2. Enable **Runs AI Code Fixes** on the Runner — the capability is off by default, and the Runner adopts the change on its next heartbeat (about a minute); no restart needed.
+2. Enable **Ejecuta correcciones de código con IA** on the Runner — the capability is off by default, and the Runner adopts the change on its next heartbeat (about a minute); no restart needed.
 
 Any way of running the container works (Docker Compose, Kubernetes, and so on) as long as these environment variables are set and the container can reach your OneUptime instance over HTTPS:
 
@@ -70,7 +70,7 @@ Any way of running the container works (Docker Compose, Kubernetes, and so on) a
 | `ONEUPTIME_RUNNER_KEY` | The Runner key shown when the Runner was created               |
 | `ONEUPTIME_URL`        | Your OneUptime instance URL (`https://oneuptime.com` on Cloud) |
 
-The Runner shows as connected on the **Settings** > **Runners** page within a minute or two. If it does not, check the container logs (`docker logs oneuptime-runner`) for credential or network errors.
+The Runner shows as connected on the **Ajustes** > **Agentes de runbook** page within a minute or two. If it does not, check the container logs (`docker logs oneuptime-runner`) for credential or network errors.
 
 > Before OneUptime 12, AI code fixes ran on a separate **AI Agent** component (the `oneuptime/ai-agent` image with `AI_AGENT_*` variables). That component merged into the Runner — if you still run one, see the [v11 → v12 upgrade guide](/docs/installation/upgrading) for how to replace it.
 
@@ -78,7 +78,7 @@ The Runner shows as connected on the **Settings** > **Runners** page within a mi
 
 - **The run errors** (the fix could not be applied, the repository was unreachable, the LLM call failed): the task's error is shown on the exception page with the reason, and you can retry the fix from there. The full run log is on the task's detail page.
 - **The Runner crashes mid-run**: a run whose heartbeat goes stale for more than about ten minutes is failed with an error. It is never requeued automatically — the Runner may already have pushed a partial fix branch — but you can retry the fix from the exception page.
-- **No Runner is online**: a queued task that waits more than 30 minutes while no Runner with the **Runs AI Code Fixes** capability is connected is failed automatically, with guidance to check the Runner — it will not show "in progress" forever. (If a Runner is online but busy, queued tasks simply wait their turn.)
+- **No Runner is online**: a queued task that waits more than 30 minutes while no Runner with the **Ejecuta correcciones de código con IA** capability is connected is failed automatically, with guidance to check the Runner — it will not show "in progress" forever. (If a Runner is online but busy, queued tasks simply wait their turn.)
 
 ## Privacy
 

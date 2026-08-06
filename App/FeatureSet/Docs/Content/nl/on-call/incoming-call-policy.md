@@ -97,7 +97,7 @@ Omdat u OneUptime zelf host, moet u uw eigen Twilio-account configureren. Dit ge
 
 ## Stap 3: Een inkomend belbeleid aanmaken
 
-1. Ga naar **Piketdienst** > **Inkomend belbeleid**
+1. Ga naar **Bereikbaarheidsdienst** > **Beleid inkomende gesprekken**
 2. Klik op **Inkomend belbeleid aanmaken**
 3. Vul de volgende velden in:
    - **Naam**: Een beschrijvende naam (bijv. "Ondersteuningshotline")
@@ -162,7 +162,7 @@ Escalatieregels bepalen hoe gesprekken worden gerouteerd:
 4. Configureer de regel:
    - **Volgorde**: De prioriteitsvolgorde (lagere nummers worden eerst geprobeerd)
    - **Escaleren na (seconden)**: Hoe lang te wachten voordat er wordt geëscaleerd
-   - **Piketschema**: Selecteer een schema om te routeren naar wie er op dat moment piket heeft
+   - **Bereikbaarheidsschema**: Selecteer een schema om te routeren naar wie er op dat moment piket heeft
    - **Teams**: Selecteer specifieke teams
    - **Gebruikers**: Selecteer specifieke gebruikers
 5. Voeg indien nodig aanvullende escalatieregels toe
@@ -192,8 +192,8 @@ Pas de berichten aan die bellers horen:
 2. Ga naar **Instellingen**
 3. Configureer:
    - **Begroetingsbericht**: Wordt afgespeeld wanneer het gesprek wordt beantwoord
-   - **Geen antwoordbericht**: Wordt afgespeeld wanneer alle escalatieregels mislukken
-   - **Niemand beschikbaar-bericht**: Wordt afgespeeld wanneer niemand piket heeft
+   - **Bericht bij geen antwoord**: Wordt afgespeeld wanneer alle escalatieregels mislukken
+   - **Bericht bij niemand beschikbaar**: Wordt afgespeeld wanneer niemand piket heeft
 
 ## Configuratie-opties
 
@@ -221,9 +221,9 @@ Pas de berichten aan die bellers horen:
 
 Om de geschiedenis van inkomende gesprekken te bekijken:
 
-1. Ga naar **Piketdienst** > **Inkomend belbeleid**
+1. Ga naar **Bereikbaarheidsdienst** > **Beleid inkomende gesprekken**
 2. Klik op uw beleid
-3. Ga naar het tabblad **Gesprekslogboeken**
+3. Ga naar het tabblad **Belogboeken**
 
 De logboeken tonen:
 

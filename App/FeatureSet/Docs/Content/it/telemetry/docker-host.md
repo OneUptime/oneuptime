@@ -10,7 +10,7 @@ Questa pagina è la **guida all'installazione**. Per configurare i monitor e gli
 
 - Docker Engine 20.10+
 - Accesso a `/var/run/docker.sock` sull'host
-- Un **token di acquisizione della telemetria di OneUptime** — creane uno da _Project Settings → Telemetria e APM → Chiavi di acquisizione_ e copia il valore
+- Un **token di acquisizione della telemetria di OneUptime** — creane uno da _Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione_ e copia il valore
 
 ## Avvio rapido (un solo comando)
 
@@ -67,7 +67,7 @@ docker compose up -d
 | Variabile                 | Obbligatoria | Descrizione                                                                                                                                        |
 | ------------------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ONEUPTIME_URL`           | Sì           | L'URL della tua istanza OneUptime (ad esempio `https://oneuptime.com` o il tuo host self-hosted)                                                   |
-| `ONEUPTIME_SERVICE_TOKEN` | Sì           | Token di acquisizione della telemetria da _Project Settings → Telemetria e APM → Chiavi di acquisizione_                                                            |
+| `ONEUPTIME_SERVICE_TOKEN` | Sì           | Token di acquisizione della telemetria da _Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione_                                  |
 | `DOCKER_HOST_NAME`        | No           | Nome descrittivo per questo host. Il valore predefinito è `docker-host`. Impostalo su un valore stabile per ciascun host (ad es. `prod-docker-01`) |
 
 ## Verifica dell'installazione

@@ -34,9 +34,9 @@ Du kan finde den fulde liste over understøttede kilder [her](https://www.fluent
 - **Trin 3: Opret OneUptime-projekt** – Når du har kontoen, kan du oprette et projekt fra OneUptime-dashboardet. Hvis du har brug for hjælp til at oprette et projekt eller har spørgsmål, bedes du kontakte os på support@oneuptime.com
 - **Trin 4: Opret Telemetry Ingestion Token** – Når du har oprettet en OneUptime-konto, kan du oprette et telemetriindtagelsestoken til at indsamle logs, metrikker og traces fra din applikation.
 
-Når du har tilmeldt dig OneUptime og oprettet et projekt, skal du klikke på "Products" i navigationslinjen og klikke på "Projektindstillinger".
+Når du har tilmeldt dig OneUptime og oprettet et projekt, skal du klikke på "Produkter" i navigationslinjen og klikke på "Projektindstillinger".
 
-På siden Telemetry Ingestion Key skal du klikke på "Opret indtagelsesnøgle" for at oprette et token.
+På siden Telemetry Ingestion Key skal du klikke på "Opret ingestion-nøgle" for at oprette et token.
 
 ![Opret tjeneste](/docs/static/images/TelemetryIngestionKeys.png)
 

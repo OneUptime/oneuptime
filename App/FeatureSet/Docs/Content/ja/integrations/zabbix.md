@@ -25,17 +25,17 @@ Zabbix trigger fires  ──►  Webhook media type  ──►  OneUptime Workfl
 
 Webhook URL が必要なので、先にこちらを行ってください。
 
-1. **Workflows → Create Workflow** を開きます。`Zabbix → Incidents` という名前にして **Builder** タブを開きます。
+1. **ワークフロー → ワークフローを作成** を開きます。`Zabbix → Incidents` という名前にして **ビルダー** タブを開きます。
 2. **Webhook** トリガーをキャンバスにドラッグします。クリックして**固有の URL をコピー**します。この URL はパスワードのように扱ってください — URL を持っている人なら誰でもワークフローを開始できます。変数が見やすくなるよう、ブロックを `Zabbix` にリネームします。
-3. **Conditions** ブロックをキャンバスにドラッグし、トリガーの出力に接続します。次のように設定します:
+3. **条件** ブロックをキャンバスにドラッグし、トリガーの出力に接続します。次のように設定します:
    - **Left value**: `{{Zabbix.Request Body.status}}`
    - **Operator**: `==`
    - **Right value**: `1` _(Zabbix は問題のとき `1`、回復のとき `0` を送ります)_
-4. **Create Incident** ブロックをドラッグして Conditions ブロックの **Yes** 出力に接続します。次のように入力します:
-   - **Title**: `Zabbix: {{Zabbix.Request Body.name}}`
-   - **Description**: `Host: {{Zabbix.Request Body.host}}\nSeverity: {{Zabbix.Request Body.severity}}\nZabbix event: {{Zabbix.Request Body.event_id}}`
-   - **Severity**: 希望する OneUptime のインシデント重大度を選びます (後で Conditions ブランチを追加して Zabbix の重大度をマッピングできます)。
-5. 保存します。テストが完了するまで **Enabled** は*オフ*のままにしておきます。
+4. **インシデントを作成** ブロックをドラッグして Conditions ブロックの **はい** 出力に接続します。次のように入力します:
+   - **タイトル**: `Zabbix: {{Zabbix.Request Body.name}}`
+   - **説明**: `Host: {{Zabbix.Request Body.host}}\nSeverity: {{Zabbix.Request Body.severity}}\nZabbix event: {{Zabbix.Request Body.event_id}}`
+   - **重大度**: 希望する OneUptime のインシデント重大度を選びます (後で Conditions ブランチを追加して Zabbix の重大度をマッピングできます)。
+5. 保存します。テストが完了するまで **有効** は*オフ*のままにしておきます。
 
 > **ヒント:** 説明 (またはインシデントラベル) に Zabbix の `event_id` を入れておくと、回復時に自動解決したい場合に後でそのインシデントを見つけやすくなります。[自動解決 (オプション)](#自動解決-オプション) を参照してください。
 
@@ -114,10 +114,10 @@ Zabbix は*ユーザー宛て*に通知を送ります。専用のユーザー�
 
 ## Part 3 — テストする
 
-1. OneUptime ワークフローに戻り、**Enabled** をオンにします。
+1. OneUptime ワークフローに戻り、**有効** をオンにします。
 2. Zabbix でテスト問題を発生させます。たとえば、一時的にトリガーのしきい値を下げるか、問題状態に変わるテストアイテムを使います。
-3. ワークフローの **Logs** タブを開きます。Zabbix ペイロードを含む実行が表示され、Conditions ブロックが **Yes** のパスを通り、インシデントが作成されているはずです。
-4. OneUptime の **Incidents** を確認します — Zabbix の問題がインシデントになっています。
+3. ワークフローの **ログ** タブを開きます。Zabbix ペイロードを含む実行が表示され、Conditions ブロックが **はい** のパスを通り、インシデントが作成されているはずです。
+4. OneUptime の **インシデント** を確認します — Zabbix の問題がインシデントになっています。
 
 何も届かない場合は [トラブルシューティング](#トラブルシューティング) を参照してください。
 
@@ -126,21 +126,21 @@ Zabbix は*ユーザー宛て*に通知を送ります。専用のユーザー�
 上記のコアワークフローはインシデントを*開く*だけです。Zabbix が回復したときに*クローズ*するには:
 
 1. Zabbix アクションに **Recovery operations** が設定されていることを確認します (ステップ 3)。回復イベントも送られるようにするためです。回復時には `status` が `0` として届きます。
-2. ワークフローに 2 つ目の **Conditions** ブランチを追加します: left `{{Zabbix.Request Body.status}}`、operator `==`、right `0`。
-3. **Yes** 出力から **Find Incident** ブロックを追加して、先ほど作成したオープン状態のインシデントを検索します — 説明またはラベルに保存した Zabbix `event_id` でマッチングします。
+2. ワークフローに 2 つ目の **条件** ブランチを追加します: left `{{Zabbix.Request Body.status}}`、operator `==`、right `0`。
+3. **はい** 出力から **Find Incident** ブロックを追加して、先ほど作成したオープン状態のインシデントを検索します — 説明またはラベルに保存した Zabbix `event_id` でマッチングします。
 4. **Update Incident** ブロックに接続して、インシデントを*解決済み*状態に変更します。
 
 解決は自プロジェクトのインシデント状態の定義に依存するため、まず**作成**パスが確実に動くことを確認してから解決パスを追加してください。[コンポーネント → OneUptime データコンポーネント](/docs/workflows/components#oneuptime-data-components) を参照してください。
 
 ## Zabbix 重大度のマッピング (オプション)
 
-Zabbix の重大度 (`Not classified`、`Information`、`Warning`、`Average`、`High`、`Disaster`) は `{{Zabbix.Request Body.severity}}` として届きます。OneUptime のインシデント重大度にマッピングするには、**Create Incident** の前に **Conditions** ブランチを追加します。たとえば、`Disaster` と `High` を「Critical」インシデントに、それ以外を「Major」にルーティングします。ブランチごとに **Create Incident** ブロックを 1 つ作成します。
+Zabbix の重大度 (`Not classified`、`Information`、`Warning`、`Average`、`High`、`Disaster`) は `{{Zabbix.Request Body.severity}}` として届きます。OneUptime のインシデント重大度にマッピングするには、**インシデントを作成** の前に **条件** ブランチを追加します。たとえば、`Disaster` と `High` を「Critical」インシデントに、それ以外を「Major」にルーティングします。ブランチごとに **インシデントを作成** ブロックを 1 つ作成します。
 
 ## トラブルシューティング
 
 **ワークフローが一切実行されない。**
 
-- ワークフローの **Enabled** スイッチがオンになっているか確認します。
+- ワークフローの **有効** スイッチがオンになっているか確認します。
 - Zabbix サーバーから URL に到達できるか確認します: `curl -i -X POST <workflow-url> -d '{}' -H 'Content-Type: application/json'`。すぐに確認応答が返るはずです。
 - Zabbix の **Reports → Action log** で配信エラーを確認します。
 
@@ -151,7 +151,7 @@ Zabbix の重大度 (`Not classified`、`Information`、`Warning`、`Average`、
 
 **インシデントが作成されたがフィールドが空。**
 
-- ワークフローの **Logs** タブを開いてトリガーの出力を確認します。**Request Body** 以下のフィールド名が参照しているもの (`name`、`host`、`severity`、`status`、`event_id`) と一致しているか確認します。
+- ワークフローの **ログ** タブを開いてトリガーの出力を確認します。**リクエストボディ** 以下のフィールド名が参照しているもの (`name`、`host`、`severity`、`status`、`event_id`) と一致しているか確認します。
 - フィールドが存在しない場合はエラーにならず空文字列になります — [変数 → 注意点](/docs/workflows/variables#gotchas) を参照してください。
 
 **すべてが 2 回発火する。**

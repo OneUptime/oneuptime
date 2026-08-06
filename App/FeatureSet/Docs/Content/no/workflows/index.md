@@ -41,14 +41,14 @@ Du bygger alt dette visuelt på et lerret. Ingen koding kreves for de fleste arb
 - **Logger-fanen** — hver kjøring av denne arbeidsflyten, med detaljer.
 - **Innstillinger-fanen** — navn, beskrivelse, eiere, etiketter, aktiver/deaktiver.
 - **Globale variabler** — verdier som deles på tvers av alle arbeidsflytene dine.
-- **Kjøringer & logger** — eksekveringshistorikk på tvers av hver arbeidsflyt i prosjektet ditt.
+- **Kjøringer og logger** — eksekveringshistorikk på tvers av hver arbeidsflyt i prosjektet ditt.
 
 ## Bygge din første arbeidsflyt
 
 1. **Opprett** — gi arbeidsflyten din et navn og en kort beskrivelse.
 2. **Velg en trigger** — manuell, planlagt, webhook eller en hendelse fra OneUptime.
 3. **Legg til komponenter** — dra handlinger inn på lerretet og koble dem sammen.
-4. **Test** — klikk **Kjør manuelt** og se hva som skjer i loggene.
+4. **Test** — klikk **Run Manually** og se hva som skjer i loggene.
 5. **Slå den på** — vri på **Aktivert**-bryteren i Innstillinger når du er klar.
 
 ## Et raskt eksempel
@@ -56,7 +56,7 @@ Du bygger alt dette visuelt på et lerret. Ingen koding kreves for de fleste arb
 Si at du vil poste i Slack hver gang en kritisk hendelse opprettes:
 
 1. Opprett en arbeidsflyt kalt "Kritiske hendelser til Slack."
-2. Velg triggeren **Hendelse → Ved opprettelse**.
+2. Velg triggeren **Hendelse → On Create**.
 3. Legg til en **Betingelser**-blokk. Sett den til å sjekke om hendelsestittelen inneholder "Sev 1."
 4. Fra **Ja**-grenen, legg til en **Slack**-blokk. Velg kanalen og skriv meldingen.
 5. Slå på arbeidsflyten.
@@ -65,7 +65,7 @@ Neste gang noen åpner en hendelse med "Sev 1" i tittelen, lyser Slack opp.
 
 ## Hvordan arbeidsflyter passer sammen med resten av OneUptime
 
-- **Monitorer** oppdager problemet. **Hendelser** registrerer det. **Arbeidsflyter** reagerer på det.
+- **Overvåkere** oppdager problemet. **Hendelser** registrerer det. **Arbeidsflyter** reagerer på det.
 - **Runbooks** er trinn-for-trinn-veiledninger for mennesker. Arbeidsflyter er automatisering uten oppsyn. Bruk en runbook når et menneske må ta beslutninger; bruk en arbeidsflyt når trinnene er automatiske.
 - **Arbeidsområdekoblinger** (Slack, Teams) er der arbeidsflyter sender meldingene sine.
 

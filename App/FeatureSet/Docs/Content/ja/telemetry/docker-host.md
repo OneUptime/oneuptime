@@ -10,7 +10,7 @@ OneUptime Docker エージェントは、チューニング済みの OpenTelemet
 
 - Docker Engine 20.10 以上
 - ホスト上の `/var/run/docker.sock` へのアクセス
-- **OneUptime Telemetry Ingestion Token** — _Project Settings → テレメトリと APM → 取り込みキー_ から作成し、その値をコピーしてください
+- **OneUptime Telemetry Ingestion Token** — _プロジェクト設定 → テレメトリと APM → 取り込みキー_ から作成し、その値をコピーしてください
 
 ## クイックスタート（1 コマンド）
 
@@ -67,7 +67,7 @@ docker compose up -d
 | 変数                      | 必須   | 説明                                                                                                                            |
 | ------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------- |
 | `ONEUPTIME_URL`           | はい   | お使いの OneUptime インスタンスの URL（例: `https://oneuptime.com` またはセルフホストのホスト）                                 |
-| `ONEUPTIME_SERVICE_TOKEN` | はい   | _Project Settings → テレメトリと APM → 取り込みキー_ から取得したテレメトリ取り込みトークン                                            |
+| `ONEUPTIME_SERVICE_TOKEN` | はい   | _プロジェクト設定 → テレメトリと APM → 取り込みキー_ から取得したテレメトリ取り込みトークン                                            |
 | `DOCKER_HOST_NAME`        | いいえ | このホストのわかりやすい名前。デフォルトは `docker-host` です。ホストごとに安定した値（例: `prod-docker-01`）を設定してください |
 
 ## インストールの確認

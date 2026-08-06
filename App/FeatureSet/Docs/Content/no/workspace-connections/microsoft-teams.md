@@ -9,7 +9,7 @@
 
 2. **Koble Microsoft Teams til OneUptime-prosjektet**
 
-   - Naviger til **Project Settings** > **Microsoft Teams** innenfor OneUptime-prosjektet ditt.
+   - Naviger til **Prosjektinnstillinger** > **Microsoft Teams** innenfor OneUptime-prosjektet ditt.
    - Følg instruksjonene for å koble Microsoft Teams-kontoen din til OneUptime-prosjektet.
 
 3. **Konfigurer hendelsesvarsler**

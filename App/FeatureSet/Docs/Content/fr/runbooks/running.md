@@ -4,7 +4,7 @@ Il existe trois façons de créer une exécution de runbook :
 
 1. **Automatiquement via une règle** — voir [Règles de runbook](/docs/runbooks/rules).
 2. **Manuellement depuis la page du runbook** — cliquez sur **Exécuter maintenant** depuis la vue d'ensemble d'un runbook. Non rattaché à un incident, une alerte ou une maintenance.
-3. **Manuellement depuis le flux d'une entité** — cliquez sur **Exécuter le runbook** sur un incident, une alerte ou une maintenance planifiée. L'exécution est rattachée à cette entité.
+3. **Manuellement depuis le flux d'une entité** — cliquez sur **Exécuter le Runbook** sur un incident, une alerte ou une maintenance planifiée. L'exécution est rattachée à cette entité.
 
 ## La vue d'exécution
 
@@ -14,7 +14,7 @@ Ouvrez n'importe quelle exécution pour voir sa liste de contrôle. Chaque étap
 - **Titre et description** — copiés depuis le runbook au moment de l'exécution.
 - **Sortie** (repliable) — stdout, valeurs de retour, réponses HTTP.
 - **Message d'erreur** si l'étape a échoué.
-- Pour les étapes manuelles en `WaitingForUser` : boutons **Marquer comme terminé** et **Sauter**.
+- Pour les étapes manuelles en `WaitingForUser` : boutons **Marquer comme terminé** et **Ignorer**.
 
 Tant que l'exécution n'est pas terminale, la page rafraîchit toutes les 3 secondes ; vous voyez donc les étapes automatisées s'achever quasiment en temps réel.
 

@@ -25,7 +25,7 @@ Zabbix trigger fires  ──►  Webhook media type  ──►  OneUptime Workfl
 
 Faites cela en premier, car vous aurez besoin de l'URL webhook qu'il génère.
 
-1. Ouvrez **Workflows → Create Workflow**. Nommez-le `Zabbix → Incidents` et ouvrez l'onglet **Builder**.
+1. Ouvrez **Flux de travail → Créer un flux de travail**. Nommez-le `Zabbix → Incidents` et ouvrez l'onglet **Constructeur**.
 2. Faites glisser un déclencheur **Webhook** sur le canevas. Cliquez dessus et **copiez l'URL unique** qu'il affiche. Gardez-la en sécurité — quiconque la possède peut démarrer le workflow. Renommez le bloc `Zabbix` pour que les variables soient lisibles.
 3. Faites glisser un bloc **Conditions** sur le canevas et connectez la sortie du déclencheur à celui-ci. Configurez :
    - **Left value** : `{{Zabbix.Request Body.status}}`
@@ -35,7 +35,7 @@ Faites cela en premier, car vous aurez besoin de l'URL webhook qu'il génère.
    - **Title** : `Zabbix: {{Zabbix.Request Body.name}}`
    - **Description** : `Host: {{Zabbix.Request Body.host}}\nSeverity: {{Zabbix.Request Body.severity}}\nZabbix event: {{Zabbix.Request Body.event_id}}`
    - **Severity** : choisissez la gravité d'incident OneUptime souhaitée (vous pourrez l'affiner plus tard avec davantage de branches Conditions qui associent les gravités Zabbix).
-5. Enregistrez. Laissez **Enabled** _désactivé_ pour l'instant — vous l'activerez après un test.
+5. Enregistrez. Laissez **Activé** _désactivé_ pour l'instant — vous l'activerez après un test.
 
 > **Conseil :** Mettre l'`event_id` Zabbix dans la description (ou un label d'incident) vous permet de retrouver cet incident plus tard si vous souhaitez le résoudre automatiquement à la reprise. Voir [Résolution automatique](#résolution-automatique-optionnel).
 
@@ -114,9 +114,9 @@ Zabbix envoie des notifications _à un utilisateur_. Créez-en un dédié pour q
 
 ## Partie 3 — Tester
 
-1. De retour dans le workflow OneUptime, activez **Enabled**.
+1. De retour dans le workflow OneUptime, activez **Activé**.
 2. Dans Zabbix, déclenchez un problème de test — par exemple, abaissez temporairement un seuil de déclencheur, ou utilisez un élément de test qui passe à l'état problème.
-3. Ouvrez l'onglet **Logs** de votre workflow. Vous devriez voir une exécution avec la charge utile Zabbix, le bloc Conditions prenant le chemin **Yes**, et l'incident étant créé.
+3. Ouvrez l'onglet **Journaux** de votre workflow. Vous devriez voir une exécution avec la charge utile Zabbix, le bloc Conditions prenant le chemin **Yes**, et l'incident étant créé.
 4. Vérifiez **Incidents** dans OneUptime — votre problème Zabbix est maintenant un incident.
 
 Si rien n'arrive, voir [Dépannage](#dépannage).
@@ -140,7 +140,7 @@ Les gravités Zabbix (`Not classified`, `Information`, `Warning`, `Average`, `Hi
 
 **Le workflow ne s'exécute jamais.**
 
-- Confirmez que l'interrupteur **Enabled** du workflow est activé.
+- Confirmez que l'interrupteur **Activé** du workflow est activé.
 - Depuis le serveur Zabbix, confirmez qu'il peut atteindre l'URL : `curl -i -X POST <workflow-url> -d '{}' -H 'Content-Type: application/json'`. Vous devriez recevoir un accusé de réception rapide.
 - Vérifiez **Reports → Action log** dans Zabbix pour les erreurs de livraison.
 
@@ -151,7 +151,7 @@ Les gravités Zabbix (`Not classified`, `Information`, `Warning`, `Average`, `Hi
 
 **L'incident est créé mais les champs sont vides.**
 
-- Ouvrez l'onglet **Logs** du workflow et inspectez la sortie du déclencheur. Confirmez que les noms de champs sous **Request Body** correspondent à ce que vous référencez (`name`, `host`, `severity`, `status`, `event_id`).
+- Ouvrez l'onglet **Journaux** du workflow et inspectez la sortie du déclencheur. Confirmez que les noms de champs sous **Request Body** correspondent à ce que vous référencez (`name`, `host`, `severity`, `status`, `event_id`).
 - Un champ manquant se résout en chaîne vide plutôt qu'en erreur — voir [Variables → Pièges](/docs/workflows/variables#gotchas).
 
 **Tout se déclenche deux fois.**

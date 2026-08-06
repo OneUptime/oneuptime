@@ -13,8 +13,8 @@ IP monitors सत्यापित करते हैं कि एक specif
 
 ## IP Monitor बनाना
 
-1. OneUptime Dashboard में **Monitors** पर जाएं
-2. **Create Monitor** पर क्लिक करें
+1. OneUptime Dashboard में **मॉनिटर** पर जाएं
+2. **मॉनिटर बनाएं** पर क्लिक करें
 3. monitor type के रूप में **IP** चुनें
 4. वह IP address दर्ज करें जिसे आप monitor करना चाहते हैं
 5. आवश्यकतानुसार monitoring criteria configure करें
@@ -44,7 +44,7 @@ IP monitors सत्यापित करते हैं कि एक specif
 - **True** — condition true है
 - **False** — condition false है
 
-**Response Time** के लिए:
+**प्रतिक्रिया समय** के लिए:
 
 - **Greater Than** — Response time एक threshold से अधिक है
 - **Less Than** — Response time एक threshold से कम है
@@ -59,10 +59,10 @@ IP monitors सत्यापित करते हैं कि एक specif
 #### IP unreachable होने पर offline mark करें
 
 - **Check On**: Is Online
-- **Filter Type**: False
+- **फ़िल्टर प्रकार**: False
 
 #### Latency 100ms से अधिक होने पर Alert करें
 
 - **Check On**: Response Time (in ms)
-- **Filter Type**: Greater Than
-- **Value**: 100
+- **फ़िल्टर प्रकार**: Greater Than
+- **मान**: 100

@@ -85,24 +85,24 @@ Incoming Call Policy feature इस तरह काम करता है:
 ## चरण 2: OneUptime में Call/SMS Config Configure करें
 
 1. अपने OneUptime Dashboard में log in करें
-2. **Project Settings** > **सूचनाएं** > **सूचना सेटिंग्स** पर जाएं
+2. **प्रोजेक्ट सेटिंग्स** > **सूचनाएं** > **सूचना सेटिंग्स** पर जाएं
 3. **Create Custom Call/SMS Config** पर क्लिक करें
 4. निम्नलिखित fields भरें:
-   - **Name**: एक friendly name (जैसे "Production Twilio Config")
-   - **Description**: वैकल्पिक description
+   - **नाम**: एक friendly name (जैसे "Production Twilio Config")
+   - **विवरण**: वैकल्पिक description
    - **Twilio Account SID**: आपका Twilio Account SID (`AC` से शुरू होता है)
    - **Twilio Auth Token**: आपका Twilio Auth Token
-   - **Twilio Primary Phone Number**: outbound calls के लिए आपके Twilio account का phone number
-5. **Save** पर क्लिक करें
+   - **Twilio प्राथमिक फ़ोन नंबर**: outbound calls के लिए आपके Twilio account का phone number
+5. **सहेजें** पर क्लिक करें
 
 ## चरण 3: Incoming Call Policy बनाएं
 
-1. **On-Call Duty** > **Incoming Call Policies** पर जाएं
+1. **ऑन-कॉल ड्यूटी** > **इनकमिंग कॉल नीतियां** पर जाएं
 2. **Create Incoming Call Policy** पर क्लिक करें
 3. निम्नलिखित fields भरें:
-   - **Name**: एक friendly name (जैसे "Support Hotline")
-   - **Description**: वैकल्पिक description
-4. **Save** पर क्लिक करें
+   - **नाम**: एक friendly name (जैसे "Support Hotline")
+   - **विवरण**: वैकल्पिक description
+4. **सहेजें** पर क्लिक करें
 
 ## चरण 4: Twilio Configuration को Policy से Link करें
 
@@ -119,7 +119,7 @@ Phone number सेट अप करने के लिए आपके पा�
 
 यदि आपके Twilio account में पहले से phone numbers हैं:
 
-1. **Phone Number** card में, **Use Existing Number** पर क्लिक करें
+1. **फ़ोन नंबर** card में, **Use Existing Number** पर क्लिक करें
 2. OneUptime आपके Twilio account से सभी phone numbers fetch करेगा
 3. वह phone number चुनें जिसे आप उपयोग करना चाहते हैं
 4. इसे policy assign करने के लिए **Use This** पर क्लिक करें
@@ -130,11 +130,11 @@ Phone number सेट अप करने के लिए आपके पा�
 
 OneUptime से directly नया phone number खरीदने के लिए:
 
-1. **Phone Number** card में, **Buy New Number** पर क्लिक करें
-2. dropdown से एक **Country** चुनें
+1. **फ़ोन नंबर** card में, **Buy New Number** पर क्लिक करें
+2. dropdown से एक **देश** चुनें
 3. वैकल्पिक रूप से एक **Area Code** दर्ज करें (जैसे San Francisco के लिए 415)
 4. वैकल्पिक रूप से वे digits दर्ज करें जो number में **Contain** होने चाहिए (जैसे 555)
-5. उपलब्ध numbers खोजने के लिए **Search** पर क्लिक करें
+5. उपलब्ध numbers खोजने के लिए **खोजें** पर क्लिक करें
 6. results से एक phone number चुनें
 7. number खरीदने के लिए **Purchase** पर क्लिक करें
 
@@ -145,14 +145,14 @@ Phone number आपके Twilio account से खरीदा जाएगा 
 Escalation rules यह निर्धारित करते हैं कि calls कैसे route होती हैं:
 
 1. अपनी Incoming Call Policy खोलें
-2. **Escalation Rules** tab पर जाएं
+2. **एस्केलेशन नियम** tab पर जाएं
 3. **Add Escalation Rule** पर क्लिक करें
 4. rule configure करें:
-   - **Order**: priority order (कम numbers पहले try किए जाते हैं)
-   - **Escalate After (seconds)**: escalate करने से पहले कितना इंतज़ार करें
-   - **On-Call Schedule**: whoever is on-call पर route करने के लिए schedule चुनें
-   - **Teams**: specific teams चुनें
-   - **Users**: specific users चुनें
+   - **क्रम**: priority order (कम numbers पहले try किए जाते हैं)
+   - **इसके बाद एस्केलेट करें (सेकंड)**: escalate करने से पहले कितना इंतज़ार करें
+   - **ऑन-कॉल अनुसूची**: whoever is on-call पर route करने के लिए schedule चुनें
+   - **टीमें**: specific teams चुनें
+   - **उपयोगकर्ता**: specific users चुनें
 5. आवश्यकतानुसार additional escalation rules जोड़ें
 
 | Order | Escalate After | Target                     |
@@ -166,11 +166,11 @@ Escalation rules यह निर्धारित करते हैं क�
 callers जो messages सुनते हैं उन्हें customize करें:
 
 1. अपनी Incoming Call Policy खोलें
-2. **Settings** पर जाएं
+2. **सेटिंग्स** पर जाएं
 3. Configure करें:
-   - **Greeting Message**: call answer होने पर play होता है
-   - **No Answer Message**: सभी escalation rules fail होने पर play होता है
-   - **No One Available Message**: कोई on-call नहीं होने पर play होता है
+   - **अभिवादन संदेश**: call answer होने पर play होता है
+   - **कोई उत्तर नहीं संदेश**: सभी escalation rules fail होने पर play होता है
+   - **कोई उपलब्ध नहीं संदेश**: कोई on-call नहीं होने पर play होता है
 
 ## Configuration Options
 
@@ -178,9 +178,9 @@ callers जो messages सुनते हैं उन्हें customize �
 
 | Setting                         | विवरण                                          | Default                                                        |
 | ------------------------------- | ---------------------------------------------- | -------------------------------------------------------------- |
-| Greeting Message                | call answer होने पर play होने वाला TTS message | "Please wait while we connect you to the on-call engineer."    |
-| No Answer Message               | सभी escalation rules fail होने पर message      | "No one is available. Please try again later."                 |
-| No One Available Message        | कोई on-call नहीं होने पर message               | "We're sorry, but no on-call engineer is currently available." |
+| Greeting Message                | call answer होने पर play होने वाला TTS message | "कृपया प्रतीक्षा करें जब तक हम आपको ऑन-कॉल इंजीनियर से जोड़ते हैं।" |
+| No Answer Message               | सभी escalation rules fail होने पर message      | "कोई उपलब्ध नहीं है। कृपया बाद में पुनः प्रयास करें।"          |
+| No One Available Message        | कोई on-call नहीं होने पर message               | "हमें खेद है, लेकिन वर्तमान में कोई ऑन-कॉल इंजीनियर उपलब्ध नहीं है।" |
 | Repeat Policy If No One Answers | सभी fail होने पर first rule से restart करें    | Disabled                                                       |
 | Repeat Policy Times             | maximum repeat attempts                        | 1                                                              |
 
@@ -198,9 +198,9 @@ callers जो messages सुनते हैं उन्हें customize �
 
 Incoming call history देखने के लिए:
 
-1. **On-Call Duty** > **Incoming Call Policies** पर जाएं
+1. **ऑन-कॉल ड्यूटी** > **इनकमिंग कॉल नीतियां** पर जाएं
 2. अपनी policy पर क्लिक करें
-3. **Call Logs** tab पर जाएं
+3. **कॉल लॉग** tab पर जाएं
 
 Logs दिखाते हैं:
 
@@ -214,7 +214,7 @@ Logs दिखाते हैं:
 
 Users को incoming calls receive करने के लिए, उनके पास verified phone number होना चाहिए:
 
-1. Users **User Settings** > **Notification Methods** पर जाते हैं
+1. Users **उपयोगकर्ता सेटिंग्स** > **सूचना विधियां** पर जाते हैं
 2. **Incoming Call Numbers** के अंतर्गत phone number जोड़ें
 3. SMS code के माध्यम से phone number verify करें
 
@@ -225,7 +225,7 @@ Users को incoming calls receive करने के लिए, उनके 
 यदि आपको phone number की अब आवश्यकता नहीं है:
 
 1. अपनी Incoming Call Policy खोलें
-2. **Phone Number** card में, **Release Number** पर क्लिक करें
+2. **फ़ोन नंबर** card में, **नंबर रिलीज़ करें** पर क्लिक करें
 3. release confirm करें
 
 > **चेतावनी**: Released numbers Twilio को वापस कर दिए जाते हैं और re-purchase के लिए उपलब्ध नहीं हो सकते।

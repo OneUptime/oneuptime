@@ -8,10 +8,10 @@ Il en existe deux types, et ils partagent la même syntaxe.
 
 Des valeurs à l'échelle du projet que vous enregistrez une fois et réutilisez partout. Pensez aux clés d'API, aux URL, aux noms de canaux — tout ce que vous ne voulez pas copier dans dix workflows différents.
 
-Vous les trouverez sous **Workflows → Global Variables**. Chacune possède :
+Vous les trouverez sous **Flux de travail → Variables globales**. Chacune possède :
 
-- **Name** — la façon dont vous y ferez référence. Utilisez `UPPER_SNAKE_CASE` pour qu'elle se distingue bien dans vos blocs.
-- **Value** — la valeur réelle. Les valeurs multilignes fonctionnent aussi.
+- **Nom** — la façon dont vous y ferez référence. Utilisez `UPPER_SNAKE_CASE` pour qu'elle se distingue bien dans vos blocs.
+- **Valeur** — la valeur réelle. Les valeurs multilignes fonctionnent aussi.
 - **Is Secret** — lorsqu'activé, la valeur est masquée dans l'interface après enregistrement et masquée dans les journaux d'exécution.
 
 Utilisez une variable globale dans n'importe quel workflow avec :

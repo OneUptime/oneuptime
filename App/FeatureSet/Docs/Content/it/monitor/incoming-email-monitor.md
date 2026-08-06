@@ -13,7 +13,7 @@ Questo è un modo efficace per integrare i sistemi di avviso basati su email con
 ## Creazione di un Monitor Email In Entrata
 
 1. Accedere a **Monitor** nel Dashboard di OneUptime
-2. Fare clic su **Crea Monitor**
+2. Fare clic su **Crea monitor**
 3. Selezionare **Email In Entrata** come tipo di monitor
 4. Configurare le impostazioni del monitor:
    - **Nome:** Un nome descrittivo per il monitor
@@ -40,13 +40,13 @@ Ad esempio: `monitor-abc123def456@inbound.yourdomain.com`
 
 È possibile creare criteri basati sui seguenti campi dell'email:
 
-| Campo              | Descrizione                                                   |
-| ------------------ | ------------------------------------------------------------- |
-| **Oggetto Email**  | La riga dell'oggetto dell'email in entrata                    |
-| **Email Da**       | L'indirizzo email del mittente                                |
-| **Corpo Email**    | Il contenuto testuale del corpo dell'email                    |
-| **Email A**        | L'indirizzo email del destinatario                            |
-| **Email Ricevuta** | Criteri basati sul tempo per quando le email vengono ricevute |
+| Campo                  | Descrizione                                                   |
+| ---------------------- | ------------------------------------------------------------- |
+| **Oggetto dell'email** | La riga dell'oggetto dell'email in entrata                    |
+| **Email mittente**     | L'indirizzo email del mittente                                |
+| **Corpo Email**        | Il contenuto testuale del corpo dell'email                    |
+| **Email A**            | L'indirizzo email del destinatario                            |
+| **Email Ricevuta**     | Criteri basati sul tempo per quando le email vengono ricevute |
 
 ## Tipi di Filtro Disponibili
 

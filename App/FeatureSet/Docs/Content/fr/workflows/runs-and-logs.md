@@ -4,11 +4,11 @@ Chaque fois qu'un workflow s'exécute, OneUptime enregistre un compte rendu de c
 
 ## Où les trouver
 
-| Page                           | Ce que vous voyez                                                                               |
-| ------------------------------ | ----------------------------------------------------------------------------------------------- |
-| **Workflows → Runs & Logs**    | Toutes les exécutions de tous les workflows du projet. Filtrez par workflow, statut et période. |
-| **Workflow → Onglet Logs**     | Seulement les exécutions de ce workflow.                                                        |
-| **Une exécution individuelle** | Une seule exécution, avec la sortie de chaque bloc.                                             |
+| Page                                        | Ce que vous voyez                                                                               |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| **Flux de travail → Exécutions & journaux** | Toutes les exécutions de tous les workflows du projet. Filtrez par workflow, statut et période. |
+| **Flux de travail → Onglet Journaux**       | Seulement les exécutions de ce workflow.                                                        |
+| **Une exécution individuelle**              | Une seule exécution, avec la sortie de chaque bloc.                                             |
 
 ## Statuts d'exécution
 
@@ -39,7 +39,7 @@ Les valeurs affichées sont exactement ce que le bloc a vu — après que toutes
 3. Pour un déclencheur webhook : confirmez que l'autre système envoie bien à la bonne URL. La plupart des outils consignent l'envoi d'un webhook — vérifiez de leur côté.
 4. Pour un déclencheur planifié : confirmez que l'expression cron correspond à l'heure attendue.
 
-Si le déclencheur s'est bien activé mais qu'aucune exécution n'apparaît, vérifiez votre quota d'exécutions sous **Project Settings → Billing**.
+Si le déclencheur s'est bien activé mais qu'aucune exécution n'apparaît, vérifiez votre quota d'exécutions sous **Paramètres du projet → Facturation**.
 
 ### « Un bloc ultérieur ne s'est jamais exécuté. »
 

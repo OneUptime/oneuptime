@@ -99,12 +99,12 @@ inboundEmail:
 ### चरण 6: Incoming Email Monitor बनाएं
 
 1. अपने OneUptime Dashboard में login करें
-2. **Monitors** > **Create Monitor** पर जाएं
+2. **मॉनिटर** > **मॉनिटर बनाएं** पर जाएं
 3. monitor type के रूप में **Incoming Email** चुनें
 4. अपना monitor configure करें
 5. **Alert Creation Criteria** configure करें (alert कब बनाएं)
 6. **Alert Resolution Criteria** configure करें (alert कब resolve करें)
-7. **Create** पर क्लिक करें
+7. **बनाएँ** पर क्लिक करें
 
 Creation के बाद, आपको इस monitor के लिए unique email address दिखाई देगा।
 

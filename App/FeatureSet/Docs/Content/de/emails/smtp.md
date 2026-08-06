@@ -27,9 +27,9 @@ Bei der Konfiguration von SMTP mit OAuth-Authentifizierung in OneUptime benötig
 | **Authentifizierungstyp** | „OAuth" auswählen                                                                       |
 | **OAuth-Anbietertyp**     | „Client Credentials" für Microsoft 365 oder „JWT Bearer" für Google Workspace auswählen |
 | **Client-ID**             | Anwendungs-/Client-ID von Ihrem OAuth-Anbieter (für Google: Dienstkonto-E-Mail)         |
-| **Client Secret**         | Client Secret von Ihrem OAuth-Anbieter (für Google: privater Schlüssel)                 |
+| **Client-Secret**         | Client Secret von Ihrem OAuth-Anbieter (für Google: privater Schlüssel)                 |
 | **Token-URL**             | OAuth-Token-Endpunkt-URL                                                                |
-| **Scope**                 | Erforderliche OAuth-Bereiche für den SMTP-Zugriff                                       |
+| **Geltungsbereich**       | Erforderliche OAuth-Bereiche für den SMTP-Zugriff                                       |
 
 ---
 

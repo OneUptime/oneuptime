@@ -39,7 +39,7 @@ Allez dans **Runbooks → Paramètres → Agents** et créez un nouvel agent. Re
 
 ### 2. Copier la commande d'installation
 
-Après création, cliquez sur **Afficher les instructions d'installation** dans la ligne de l'agent. Vous verrez une commande `docker run` préremplie avec l'ID et la clé de cet agent. **Sauvegardez la clé maintenant** — vous pouvez la réinitialiser plus tard, mais vous ne pourrez pas revoir la même valeur après fermeture de la fenêtre.
+Après création, cliquez sur **Afficher les instructions de configuration** dans la ligne de l'agent. Vous verrez une commande `docker run` préremplie avec l'ID et la clé de cet agent. **Sauvegardez la clé maintenant** — vous pouvez la réinitialiser plus tard, mais vous ne pourrez pas revoir la même valeur après fermeture de la fenêtre.
 
 ### 3. L'exécuter sur un hôte de votre infrastructure
 

@@ -23,9 +23,9 @@ OneUptime supporta i seguenti tipi di profilo:
 
 ### Fase 1 - Creare un Token di Acquisizione Telemetria
 
-Dopo aver effettuato la registrazione a OneUptime e creato un progetto, fare clic su "Products" nella barra di navigazione e fare clic su "Impostazioni Progetto".
+Dopo aver effettuato la registrazione a OneUptime e creato un progetto, fare clic su "Prodotti" nella barra di navigazione e fare clic su "Impostazioni del progetto".
 
-Nella pagina Chiave di Acquisizione Telemetria, fare clic su "Crea Chiave di Acquisizione" per creare un token.
+Nella pagina Chiave di Acquisizione Telemetria, fare clic su "Crea chiave di ingestione" per creare un token.
 
 ![Crea Servizio](/docs/static/images/TelemetryIngestionKeys.png)
 
@@ -177,7 +177,7 @@ Filtrare i profili per tipo (cpu, wall, alloc_objects, alloc_space, goroutine, c
 
 La conservazione dei dati di profilo è configurata per servizio di telemetria nelle impostazioni del progetto OneUptime. Il periodo di conservazione predefinito è di 15 giorni. I dati vengono eliminati automaticamente dopo la scadenza del periodo di conservazione.
 
-Per modificare il periodo di conservazione per un servizio, navigare a **Telemetria > Servizi > [Il Proprio Servizio] > Impostazioni** e aggiornare il valore di conservazione dei dati.
+Per modificare il periodo di conservazione per un servizio, navigare a **Prodotti > Servizi > [Il Proprio Servizio] > Impostazioni** e aggiornare il valore di conservazione dei dati.
 
 ## Hai Bisogno di Aiuto?
 

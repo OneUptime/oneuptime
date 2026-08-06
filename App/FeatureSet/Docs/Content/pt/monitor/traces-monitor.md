@@ -14,9 +14,9 @@ Os monitores de rastreamentos pesquisam e contam spans que correspondem a filtro
 
 ## Criando um Monitor de Rastreamentos
 
-1. Vá para **Monitors** no Painel do OneUptime
-2. Clique em **Create Monitor**
-3. Selecione **Traces** como o tipo de monitor
+1. Vá para **Monitores** no Painel do OneUptime
+2. Clique em **Criar monitor**
+3. Selecione **Traços** como o tipo de monitor
 4. Selecione os serviços de telemetria para monitorar
 5. Configure filtros e critérios de span conforme necessário
 
@@ -63,19 +63,19 @@ Selecione um ou mais serviços para monitorar rastreamentos. Os serviços devem 
 #### Alertar se mais de 50 spans de erro em 60 segundos
 
 - **Span Statuses**: ERROR
-- **Time Window**: 60 segundos
+- **Janela de tempo**: 60 segundos
 - **Check On**: Span Count
-- **Filter Type**: Greater Than
-- **Value**: 50
+- **Tipo de filtro**: Greater Than
+- **Valor**: 50
 
 #### Alertar sobre erros em um endpoint específico
 
-- **Span Name**: `POST /api/checkout`
+- **Nome do span**: `POST /api/checkout`
 - **Span Statuses**: ERROR
-- **Time Window**: 120 segundos
+- **Janela de tempo**: 120 segundos
 - **Check On**: Span Count
-- **Filter Type**: Greater Than
-- **Value**: 0
+- **Tipo de filtro**: Greater Than
+- **Valor**: 0
 
 ## Requisitos de Configuração
 

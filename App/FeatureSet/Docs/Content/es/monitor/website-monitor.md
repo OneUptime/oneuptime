@@ -71,11 +71,11 @@ Enable this option to skip TLS certificate validation. Useful when the target se
 
 #### Client Certificate (mTLS)
 
-If your endpoint requires mutual TLS authentication, enable **Use client certificate (mTLS)** and provide:
+If your endpoint requires mutual TLS authentication, enable **Usar certificado de cliente (mTLS)** and provide:
 
-- **Client Certificate (PEM)** — the PEM-encoded client certificate to present.
-- **Client Private Key (PEM)** — the matching PEM-encoded private key.
-- **Client Private Key Passphrase** _(optional)_ — required only if the private key is encrypted.
+- **Certificado de cliente (PEM)** — the PEM-encoded client certificate to present.
+- **Clave privada de cliente (PEM)** — the matching PEM-encoded private key.
+- **Frase de contraseña de la clave privada de cliente** _(optional)_ — required only if the private key is encrypted.
 
 This is the OneUptime equivalent of the `--cert` and `--key` flags in curl:
 
@@ -91,5 +91,5 @@ Puedes configurar criterios para determinar cuándo tu sitio web se considera en
 
 - **Código de estado de respuesta**: Verifica si el código de estado HTTP coincide con los valores esperados (por ejemplo, 200, 301)
 - **Tiempo de respuesta**: Monitorea si el tiempo de respuesta supera un umbral
-- **Cuerpo de respuesta**: Verifica si el cuerpo de respuesta contiene o coincide con contenido específico
+- **Cuerpo de la respuesta**: Verifica si el cuerpo de respuesta contiene o coincide con contenido específico
 - **Encabezados de respuesta**: Verifica que los encabezados de respuesta específicos estén presentes o coincidan con los valores esperados

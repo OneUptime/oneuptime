@@ -15,17 +15,17 @@ Datadog monitor alerts  ──►  Webhook integration  ──►  OneUptime Web
 
 ## ステップ 1 — OneUptime ワークフローを作成する
 
-1. **Workflows → Create Workflow** を開き、`Datadog → Incidents` という名前にして **Builder** を開きます。
+1. **ワークフロー → ワークフローを作成** を開き、`Datadog → Incidents` という名前にして **ビルダー** を開きます。
 2. **Webhook** トリガーを追加して **URL をコピー**します。ブロックを `Datadog` にリネームします。
-3. トリガーに接続した **Conditions** ブロックを追加します:
+3. トリガーに接続した **条件** ブロックを追加します:
    - **Left**: `{{Datadog.Request Body.transition}}`
    - **Operator**: `==`
    - **Right**: `Triggered`
-4. **Yes** から **Create Incident** ブロックを追加します:
-   - **Title**: `{{Datadog.Request Body.title}}`
-   - **Description**: `{{Datadog.Request Body.body}}\nHost: {{Datadog.Request Body.host}}\n{{Datadog.Request Body.link}}`
-   - **Severity**: 1 つ選びます。
-5. **Save** します (テストするまで無効のままにしておきます)。
+4. **はい** から **インシデントを作成** ブロックを追加します:
+   - **タイトル**: `{{Datadog.Request Body.title}}`
+   - **説明**: `{{Datadog.Request Body.body}}\nHost: {{Datadog.Request Body.host}}\n{{Datadog.Request Body.link}}`
+   - **重大度**: 1 つ選びます。
+5. **保存** します (テストするまで無効のままにしておきます)。
 
 ## ステップ 2 — Datadog の Webhook を作成する
 
@@ -66,16 +66,16 @@ Datadog monitor alerts  ──►  Webhook integration  ──►  OneUptime Web
 
 1. ワークフローを有効化します。
 2. モニターから **Test Notifications → Alert** を使うか、実際のモニターを発火させます。
-3. ワークフローの **Logs** タブと **Incidents** リストを確認します。
+3. ワークフローの **ログ** タブと **インシデント** リストを確認します。
 
 ## 回復時に解決する (オプション)
 
-モニターがクリアすると `$ALERT_TRANSITION` は `Recovered` になります。2 つ目の **Conditions** ブランチ (`transition == Recovered`) を追加し、マッチするインシデントを見つけて (送信した `id` でマッチング)、**Update Incident** で解決済み状態に変更します。
+モニターがクリアすると `$ALERT_TRANSITION` は `Recovered` になります。2 つ目の **条件** ブランチ (`transition == Recovered`) を追加し、マッチするインシデントを見つけて (送信した `id` でマッチング)、**Update Incident** で解決済み状態に変更します。
 
 ## トラブルシューティング
 
-- **実行が表示されない** — モニターのメッセージに `@webhook-oneuptime` が含まれていること、ワークフローが **Enabled** であることを確認します。
-- **フィールドが空** — Datadog はイベントに該当するテンプレート変数のみを置換します。**Logs** タブでトリガーの出力を確認して Webhook ペイロードを調整します。
+- **実行が表示されない** — モニターのメッセージに `@webhook-oneuptime` が含まれていること、ワークフローが **有効** であることを確認します。
+- **フィールドが空** — Datadog はイベントに該当するテンプレート変数のみを置換します。**ログ** タブでトリガーの出力を確認して Webhook ペイロードを調整します。
 - **重複するインシデント** — 再アラート (renotify) するモニターは複数の `Triggered` イベントを送ります。作成前に `id` で **Find Incident** チェックを行って重複を排除します。
 
 ## 次に読むべきページ

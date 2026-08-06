@@ -16,16 +16,16 @@ Grafana alert rule fires  ──►  Webhook contact point  ──►  OneUptime
 
 ## Steg 1 — Bygg OneUptime-arbetsflödet
 
-1. Öppna **Workflows → Create Workflow**, namnge det `Grafana → Incidents` och öppna **Builder**.
+1. Öppna **Arbetsflöden → Skapa arbetsflöde**, namnge det `Grafana → Incidents` och öppna **Byggare**.
 2. Lägg till en **Webhook**-utlösare och **kopiera dess URL**. Byt namn på blocket till `Grafana`.
-3. Lägg till ett **Conditions**-block kopplat till utlösaren:
+3. Lägg till ett **Villkor**-block kopplat till utlösaren:
    - **Left**: `{{Grafana.Request Body.status}}`
    - **Operator**: `==`
    - **Right**: `firing`
-4. Från **Yes**, lägg till ett **Create Incident**-block:
-   - **Title**: `{{Grafana.Request Body.title}}`
-   - **Description**: `{{Grafana.Request Body.message}}`
-   - **Severity**: välj en (eller förgrena på `{{Grafana.Request Body.commonLabels.severity}}`).
+4. Från **Ja**, lägg till ett **Skapa incident**-block:
+   - **Titel**: `{{Grafana.Request Body.title}}`
+   - **Beskrivning**: `{{Grafana.Request Body.message}}`
+   - **Allvarlighetsgrad**: välj en (eller förgrena på `{{Grafana.Request Body.commonLabels.severity}}`).
 5. **Spara** (lämna inaktiverat tills det testats).
 
 Grafanas webhook-payload följer Alertmanager-formen — den innehåller `status`, en `alerts`-array, `commonLabels` och `commonAnnotations`, plus praktiska toppnivåfält `title` och `message`.
@@ -42,11 +42,11 @@ Grafanas webhook-payload följer Alertmanager-formen — den innehåller `status
 
 1. Aktivera arbetsflödet.
 2. På contact point-skärmen, använd **Test** för att skicka en exempelnotifiering, eller låt en riktig larmregel utlösas.
-3. Kontrollera arbetsflödets flik **Logs** och din lista med **Incidents**.
+3. Kontrollera arbetsflödets flik **Loggar** och din lista med **Incidenter**.
 
 ## Lösning vid återhämtning (valfritt)
 
-När larmet rensas skickar Grafana en annan notifiering med `status: resolved`. Lägg till en andra **Conditions**-gren (`status == resolved`), hitta den matchande incidenten och flytta den till ditt lösta tillstånd med **Update Incident**.
+När larmet rensas skickar Grafana en annan notifiering med `status: resolved`. Lägg till en andra **Villkor**-gren (`status == resolved`), hitta den matchande incidenten och flytta den till ditt lösta tillstånd med **Update Incident**.
 
 ## Noteringar
 
@@ -55,8 +55,8 @@ När larmet rensas skickar Grafana en annan notifiering med `status: resolved`. 
 
 ## Felsökning
 
-- **Ingen körning visas** — bekräfta att Grafana kan nå URL:en (kontrollera Grafanas serverloggar) och att arbetsflödet är **Enabled**.
-- **Tomma fält** — granska utlösarens utdata på fliken **Logs**; referera till fält som finns för din larmhanteringsversion.
+- **Ingen körning visas** — bekräfta att Grafana kan nå URL:en (kontrollera Grafanas serverloggar) och att arbetsflödet är **Aktiverad**.
+- **Tomma fält** — granska utlösarens utdata på fliken **Loggar**; referera till fält som finns för din larmhanteringsversion.
 
 ## Läs vidare
 

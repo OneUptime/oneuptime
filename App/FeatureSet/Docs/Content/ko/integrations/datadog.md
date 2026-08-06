@@ -15,7 +15,7 @@ Datadog monitor alerts  ──►  Webhook integration  ──►  OneUptime Web
 
 ## 1단계 — OneUptime 워크플로 구성
 
-1. **Workflows → Create Workflow** 를 열고, 이름을 `Datadog → Incidents` 로 지정하고 **Builder** 를 엽니다.
+1. **워크플로 → 워크플로 생성** 을 열고, 이름을 `Datadog → Incidents` 로 지정하고 **빌더** 를 엽니다.
 2. **Webhook** 트리거를 추가하고 **URL을 복사합니다**. 블록 이름을 `Datadog` 으로 변경합니다.
 3. 트리거에 연결된 **Conditions** 블록을 추가합니다:
    - **Left**: `{{Datadog.Request Body.transition}}`
@@ -66,7 +66,7 @@ Datadog monitor alerts  ──►  Webhook integration  ──►  OneUptime Web
 
 1. 워크플로를 활성화합니다.
 2. 모니터에서 **Test Notifications → Alert** 를 사용하거나 실제 모니터가 발동되도록 합니다.
-3. 워크플로의 **Logs** 탭과 **Incidents** 목록을 확인합니다.
+3. 워크플로의 **로그** 탭과 **인시던트** 목록을 확인합니다.
 
 ## 복구 시 해결 (선택 사항)
 
@@ -74,8 +74,8 @@ Datadog monitor alerts  ──►  Webhook integration  ──►  OneUptime Web
 
 ## 문제 해결
 
-- **실행이 나타나지 않습니다** — 모니터 메시지에 `@webhook-oneuptime` 이 포함되어 있고 워크플로가 **Enabled** 상태인지 확인합니다.
-- **필드가 비어 있습니다** — Datadog은 이벤트에 해당하는 템플릿 변수만 치환합니다. **Logs** 탭에서 트리거 출력을 검사하고 webhook 페이로드를 조정하세요.
+- **실행이 나타나지 않습니다** — 모니터 메시지에 `@webhook-oneuptime` 이 포함되어 있고 워크플로가 **활성화됨** 상태인지 확인합니다.
+- **필드가 비어 있습니다** — Datadog은 이벤트에 해당하는 템플릿 변수만 치환합니다. **로그** 탭에서 트리거 출력을 검사하고 webhook 페이로드를 조정하세요.
 - **중복 인시던트** — 재알림(renotify) 모니터는 여러 `Triggered` 이벤트를 보냅니다. 생성 전에 `id` 로 **Find Incident** 검사를 해 중복을 제거하세요.
 
 ## 다음에 읽어 볼 내용

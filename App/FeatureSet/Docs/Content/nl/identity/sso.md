@@ -22,8 +22,8 @@ SSO-integratie biedt de volgende voordelen:
 
    - Klik op **SSO aanmaken**
    - Voer een **Naam** in voor de SSO-configuratie (bijv. "Keycloak SAML" of "Okta SAML")
-   - Voer de **Sign On URL** in van uw identiteitsprovider
-   - Voer de **Issuer** (Entiteit-ID) in van uw identiteitsprovider
+   - Voer de **Aanmeldings-URL** in van uw identiteitsprovider
+   - Voer de **Uitgever** (Entiteit-ID) in van uw identiteitsprovider
    - Plak het **Openbaar certificaat** van uw identiteitsprovider
    - Selecteer het **Handtekeningalgoritme** (bijv. `RSA-SHA-256`)
    - Selecteer het **Digestalgoritme** (bijv. `SHA256`)
@@ -49,8 +49,8 @@ Keycloak is een populaire open-source oplossing voor identiteits- en toegangsbeh
 2. Navigeer naar **Projectinstellingen** > **Beveiliging** > **SSO**
 3. Klik op **SSO aanmaken** en vul het volgende in:
    - **Naam**: Een beschrijvende naam (bijv. `my-project-oneuptime`)
-   - **Sign On URL**: `https://<your-keycloak-domain>/auth/realms/<your-realm>/protocol/saml`
-   - **Issuer**: `https://<your-keycloak-domain>/auth/realms/<your-realm>`
+   - **Aanmeldings-URL**: `https://<your-keycloak-domain>/auth/realms/<your-realm>/protocol/saml`
+   - **Uitgever**: `https://<your-keycloak-domain>/auth/realms/<your-realm>`
    - **Certificaat**: Zie [Stap 2](#stap-2-het-keycloak-certificaat-ophalen) hieronder
    - **Handtekeningalgoritme**: `RSA-SHA-256`
    - **Digestalgoritme**: `SHA256`
@@ -116,8 +116,8 @@ Microsoft Entra ID is de cloudgebaseerde identiteits- en toegangsbeheerservice v
 2. Navigeer naar **Projectinstellingen** > **Beveiliging** > **SSO**
 3. Klik op **SSO aanmaken** en vul het volgende in:
    - **Naam**: Een beschrijvende naam (bijv. `Azure AD SAML`)
-   - **Sign On URL**: U ontvangt dit van Entra ID in [Stap 3](#stap-3-saml-sso-configureren-in-entra-id)
-   - **Issuer**: U ontvangt dit van Entra ID in [Stap 3](#stap-3-saml-sso-configureren-in-entra-id)
+   - **Aanmeldings-URL**: U ontvangt dit van Entra ID in [Stap 3](#stap-3-saml-sso-configureren-in-entra-id)
+   - **Uitgever**: U ontvangt dit van Entra ID in [Stap 3](#stap-3-saml-sso-configureren-in-entra-id)
    - **Certificaat**: U ontvangt dit van Entra ID in [Stap 3](#stap-3-saml-sso-configureren-in-entra-id)
    - **Handtekeningalgoritme**: `RSA-SHA-256`
    - **Digestalgoritme**: `SHA256`
@@ -145,8 +145,8 @@ Microsoft Entra ID is de cloudgebaseerde identiteits- en toegangsbeheerservice v
    - Download het **Certificaat (Base64)**
    - Open het gedownloade certificaatbestand in een teksteditor en kopieer de inhoud
 6. Kopieer in de sectie **OneUptime instellen**:
-   - **Aanmeldings-URL** — plak dit als de **Sign On URL** in OneUptime
-   - **Azure AD-identifier** — plak dit als de **Issuer** in OneUptime
+   - **Aanmeldings-URL** — plak dit als de **Aanmeldings-URL** in OneUptime
+   - **Azure AD-identifier** — plak dit als de **Uitgever** in OneUptime
 7. Ga terug naar OneUptime en plak het certificaat en de URL's, sla dan op
 
 ### Stap 4: Gebruikersattributen en claims configureren
@@ -201,8 +201,8 @@ Okta is een veelgebruikt identiteitsplatform dat robuuste SAML SSO-mogelijkheden
 2. Navigeer naar **Projectinstellingen** > **Beveiliging** > **SSO**
 3. Klik op **SSO aanmaken** en vul het volgende in:
    - **Naam**: Een beschrijvende naam (bijv. `Okta SAML`)
-   - **Sign On URL**: U ontvangt dit van Okta in [Stap 3](#stap-3-okta-saml-metagegevens-kopiëren-naar-oneuptime)
-   - **Issuer**: U ontvangt dit van Okta in [Stap 3](#stap-3-okta-saml-metagegevens-kopiëren-naar-oneuptime)
+   - **Aanmeldings-URL**: U ontvangt dit van Okta in [Stap 3](#stap-3-okta-saml-metagegevens-kopiëren-naar-oneuptime)
+   - **Uitgever**: U ontvangt dit van Okta in [Stap 3](#stap-3-okta-saml-metagegevens-kopiëren-naar-oneuptime)
    - **Certificaat**: U ontvangt dit van Okta in [Stap 3](#stap-3-okta-saml-metagegevens-kopiëren-naar-oneuptime)
    - **Handtekeningalgoritme**: `RSA-SHA-256`
    - **Digestalgoritme**: `SHA256`
@@ -227,8 +227,8 @@ Okta is een veelgebruikt identiteitsplatform dat robuuste SAML SSO-mogelijkheden
 1. Ga in uw Okta-applicatie naar het tabblad **Aanmelden**
 2. Zoek in de sectie **SAML-handtekeningcertificaten** het actieve certificaat en klik op **Acties** > **IdP-metagegevens bekijken**
 3. Vanuit de metagegevens-XML, of vanuit de details op het tabblad **Aanmelden**:
-   - Kopieer de **Sign On URL** (ook wel **Identity Provider Single Sign-On URL** genoemd) — plak dit als de **Sign On URL** in OneUptime
-   - Kopieer de **Issuer** (ook wel **Identity Provider Issuer** genoemd) — plak dit als de **Issuer** in OneUptime
+   - Kopieer de **Sign On URL** (ook wel **Identity Provider Single Sign-On URL** genoemd) — plak dit als de **Aanmeldings-URL** in OneUptime
+   - Kopieer de **Issuer** (ook wel **Identity Provider Issuer** genoemd) — plak dit als de **Uitgever** in OneUptime
 4. Download het handtekeningcertificaat:
    - Klik in de sectie **SAML-handtekeningcertificaten** op **Acties** > **Certificaat downloaden** voor het actieve certificaat
    - Open het gedownloade `.cert`-bestand in een teksteditor en kopieer de inhoud
@@ -282,8 +282,8 @@ De SSO-implementatie van OneUptime gebruikt het SAML 2.0-protocol en zou moeten 
    - **Entity ID / Audience URI**: Uit OneUptime SSO-configuratie
    - **Name ID Format**: E-mailadres
 3. Kopieer het volgende vanuit uw identiteitsprovider naar OneUptime:
-   - **Sign On URL** (SSO-eindpunt)
-   - **Issuer** (Entiteit-ID van de IdP)
+   - **Aanmeldings-URL** (SSO-eindpunt)
+   - **Uitgever** (Entiteit-ID van de IdP)
    - **Openbaar certificaat** (X.509-handtekeningcertificaat)
 4. Stel het **Handtekeningalgoritme** in op `RSA-SHA-256` en het **Digestalgoritme** op `SHA256`
 

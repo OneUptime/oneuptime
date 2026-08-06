@@ -25,17 +25,17 @@ Zabbix trigger fires  ──►  Webhook media type  ──►  OneUptime Workfl
 
 Gør dette først, fordi du skal bruge den webhook-URL, det genererer.
 
-1. Åbn **Workflows → Create Workflow**. Navngiv det `Zabbix → Incidents` og åbn **Builder**-fanen.
+1. Åbn **Arbejdsgange → Opret arbejdsgang**. Navngiv det `Zabbix → Incidents` og åbn **Bygger**-fanen.
 2. Træk en **Webhook**-trigger ud på lærredet. Klik på den og **kopiér den unikke URL**, den viser. Opbevar den sikkert — enhver med den kan starte workflowet. Omdøb blokken til `Zabbix`, så variabler er lette at læse.
-3. Træk en **Conditions**-blok ud på lærredet og forbind triggerens output til den. Konfigurér:
+3. Træk en **Betingelser**-blok ud på lærredet og forbind triggerens output til den. Konfigurér:
    - **Left value**: `{{Zabbix.Request Body.status}}`
    - **Operator**: `==`
    - **Right value**: `1` _(Zabbix sender `1` for et problem, `0` for genopretning)_
-4. Træk en **Create Incident**-blok og forbind den til **Conditions**-blokkens **Yes**-output. Udfyld:
-   - **Title**: `Zabbix: {{Zabbix.Request Body.name}}`
-   - **Description**: `Host: {{Zabbix.Request Body.host}}\nSeverity: {{Zabbix.Request Body.severity}}\nZabbix event: {{Zabbix.Request Body.event_id}}`
-   - **Severity**: vælg den OneUptime-hændelsesalvorlighed, du ønsker (du kan forfine dette senere med flere Conditions-grene, der afbilder Zabbix-alvorligheder).
-5. Gem. Lad **Enabled** være _slået fra_ indtil videre — du tænder for det efter en test.
+4. Træk en **Opret hændelse**-blok og forbind den til **Betingelser**-blokkens **Ja**-output. Udfyld:
+   - **Titel**: `Zabbix: {{Zabbix.Request Body.name}}`
+   - **Beskrivelse**: `Host: {{Zabbix.Request Body.host}}\nSeverity: {{Zabbix.Request Body.severity}}\nZabbix event: {{Zabbix.Request Body.event_id}}`
+   - **Alvorlighed**: vælg den OneUptime-hændelsesalvorlighed, du ønsker (du kan forfine dette senere med flere Conditions-grene, der afbilder Zabbix-alvorligheder).
+5. Gem. Lad **Aktiveret** være _slået fra_ indtil videre — du tænder for det efter en test.
 
 > **Tip:** At sætte Zabbix `event_id` i beskrivelsen (eller en hændelseslabel) giver dig mulighed for at finde denne hændelse igen senere, hvis du ønsker at auto-løse ved genopretning. Se [Automatisk løsning](#automatisk-løsning-valgfrit).
 
@@ -114,10 +114,10 @@ Zabbix sender notifikationer _til en bruger_. Opret en dedikeret bruger, så int
 
 ## Del 3 — Test det
 
-1. Tilbage i OneUptime-workflowet, slå **Enabled** til.
+1. Tilbage i OneUptime-workflowet, slå **Aktiveret** til.
 2. I Zabbix, udløs et testproblem — for eksempel ved midlertidigt at sænke en triggertærskel eller bruge et testobjekt, der skifter til en problemtilstand.
-3. Åbn din workflows **Logs**-fane. Du bør se en kørsel med Zabbix-payloaden, Conditions-blokken, der tager **Yes**-stien, og hændelsen, der oprettes.
-4. Tjek **Incidents** i OneUptime — dit Zabbix-problem er nu en hændelse.
+3. Åbn din workflows **Protokoller**-fane. Du bør se en kørsel med Zabbix-payloaden, Conditions-blokken, der tager **Ja**-stien, og hændelsen, der oprettes.
+4. Tjek **Hændelser** i OneUptime — dit Zabbix-problem er nu en hændelse.
 
 Hvis intet ankommer, se [Fejlfinding](#fejlfinding).
 
@@ -126,21 +126,21 @@ Hvis intet ankommer, se [Fejlfinding](#fejlfinding).
 Det grundlæggende workflow ovenfor _åbner_ hændelser. For også at _lukke_ dem, når Zabbix genopretter sig:
 
 1. Sørg for, at din Zabbix-action har **Recovery operations** konfigureret (Trin 3 ovenfor), så genopretningshændelser også sendes. Ved genopretning ankommer `status` som `0`.
-2. I workflowet tilføjer du en anden **Conditions**-gren: venstre `{{Zabbix.Request Body.status}}`, operator `==`, højre `0`.
-3. Fra dens **Yes**-output tilføjer du en **Find Incident**-blok, der slår den åbne hændelse op, du oprettede tidligere — match på det Zabbix `event_id`, du gemte i beskrivelsen eller en label.
+2. I workflowet tilføjer du en anden **Betingelser**-gren: venstre `{{Zabbix.Request Body.status}}`, operator `==`, højre `0`.
+3. Fra dens **Ja**-output tilføjer du en **Find Incident**-blok, der slår den åbne hændelse op, du oprettede tidligere — match på det Zabbix `event_id`, du gemte i beskrivelsen eller en label.
 4. Forbind det til en **Update Incident**-blok og flyt hændelsen til din _løst_-tilstand.
 
 Fordi løsning afhænger af, hvordan du modellerer hændelsestilstande i dit projekt, skal du holde **opret**-stien som den pålidelige kerne og lægge løsningsstien til, når du har bekræftet, at events flyder korrekt. Se [Komponenter → OneUptime data-komponenter](/docs/workflows/components#oneuptime-data-components).
 
 ## Afbildning af Zabbix-alvorligheder (valgfrit)
 
-Zabbix-alvorligheder (`Not classified`, `Information`, `Warning`, `Average`, `High`, `Disaster`) ankommer som `{{Zabbix.Request Body.severity}}`. For at afbilde dem til OneUptime-hændelsesalvorligheder tilføjer du **Conditions**-grene før **Create Incident** — for eksempel ruter du `Disaster` og `High` til en "Critical"-hændelse og alt andet til "Major". Byg én **Create Incident**-blok per gren.
+Zabbix-alvorligheder (`Not classified`, `Information`, `Warning`, `Average`, `High`, `Disaster`) ankommer som `{{Zabbix.Request Body.severity}}`. For at afbilde dem til OneUptime-hændelsesalvorligheder tilføjer du **Betingelser**-grene før **Opret hændelse** — for eksempel ruter du `Disaster` og `High` til en "Critical"-hændelse og alt andet til "Major". Byg én **Opret hændelse**-blok per gren.
 
 ## Fejlfinding
 
 **Workflowet kører aldrig.**
 
-- Bekræft, at workflowets **Enabled**-kontakt er slået til.
+- Bekræft, at workflowets **Aktiveret**-kontakt er slået til.
 - Fra Zabbix-serveren, bekræft at den kan nå URL'en: `curl -i -X POST <workflow-url> -d '{}' -H 'Content-Type: application/json'`. Du bør få en hurtig bekræftelse.
 - Tjek **Reports → Action log** i Zabbix for leveringsfejl.
 
@@ -151,7 +151,7 @@ Zabbix-alvorligheder (`Not classified`, `Information`, `Warning`, `Average`, `Hi
 
 **Hændelsen oprettes, men felter er tomme.**
 
-- Åbn workflowets **Logs**-fane og inspicér trigger-outputtet. Bekræft, at feltnavnene under **Request Body** matcher dem, du refererer til (`name`, `host`, `severity`, `status`, `event_id`).
+- Åbn workflowets **Protokoller**-fane og inspicér trigger-outputtet. Bekræft, at feltnavnene under **Anmodningsbrødtekst** matcher dem, du refererer til (`name`, `host`, `severity`, `status`, `event_id`).
 - Et manglende felt opløses til en tom streng frem for en fejl — se [Variabler → Gotchas](/docs/workflows/variables#gotchas).
 
 **Alt fyrer to gange.**

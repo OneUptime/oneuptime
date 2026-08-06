@@ -34,14 +34,14 @@ All das bauen Sie visuell auf einer Arbeitsfläche zusammen. Für die meisten Wo
 
 ## Wo Sie Workflows in OneUptime finden
 
-Öffnen Sie **Workflows** in der linken Navigation. Von dort aus:
+Öffnen Sie **Arbeitsabläufe** in der linken Navigation. Von dort aus:
 
-- **Workflows** – Ihre Liste der Workflows. Erstellen Sie einen neuen oder öffnen Sie einen vorhandenen.
+- **Arbeitsabläufe** – Ihre Liste der Workflows. Erstellen Sie einen neuen oder öffnen Sie einen vorhandenen.
 - **Builder-Tab** – die Arbeitsfläche, auf der Sie den Workflow gestalten.
-- **Logs-Tab** – jede Ausführung dieses Workflows mit Details.
+- **Protokolle-Tab** – jede Ausführung dieses Workflows mit Details.
 - **Einstellungen-Tab** – Name, Beschreibung, Eigentümer, Labels, Aktivieren/Deaktivieren.
 - **Globale Variablen** – Werte, die für alle Ihre Workflows gemeinsam genutzt werden.
-- **Ausführungen & Logs** – Ausführungsverlauf über alle Workflows in Ihrem Projekt hinweg.
+- **Ausführungen & Protokolle** – Ausführungsverlauf über alle Workflows in Ihrem Projekt hinweg.
 
 ## Ihren ersten Workflow erstellen
 
@@ -65,7 +65,7 @@ Beim nächsten Vorfall mit „Sev 1" im Titel leuchtet Slack auf.
 
 ## Wie Workflows in OneUptime hineinpassen
 
-- **Monitore** erkennen das Problem. **Vorfälle** halten es fest. **Workflows** reagieren darauf.
+- **Monitore** erkennen das Problem. **Vorfälle** halten es fest. **Arbeitsabläufe** reagieren darauf.
 - **Runbooks** sind schrittweise Anleitungen für Menschen. Workflows sind unbeaufsichtigte Automatisierung. Nutzen Sie ein Runbook, wenn ein Mensch entscheiden muss; nutzen Sie einen Workflow, wenn die Schritte automatisch ablaufen.
 - **Workspace-Verbindungen** (Slack, Teams) sind die Ziele, an die Workflows ihre Nachrichten senden.
 

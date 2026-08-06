@@ -14,7 +14,7 @@ Loggmonitorer söker och räknar loggar som matchar specifika filter under ett t
 
 ## Skapa en loggmonitor
 
-1. Gå till **Monitorer** i OneUptime-instrumentpanelen
+1. Gå till **Övervakare** i OneUptime-instrumentpanelen
 2. Klicka på **Skapa monitor**
 3. Välj **Loggar** som monitortyp
 4. Välj de telemetritjänster att övervaka

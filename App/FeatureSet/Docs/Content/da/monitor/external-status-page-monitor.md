@@ -38,7 +38,7 @@ Når indstillet til **Auto**, forsøger OneUptime automatisk at registrere statu
 
 ## Oprettelse af en Ekstern Statussidemonitor
 
-1. Gå til **Monitorer** i OneUptime-dashboardet
+1. Gå til **Overvågninger** i OneUptime-dashboardet
 2. Klik på **Opret monitor**
 3. Vælg **Ekstern statusside** som monitortype
 4. Indtast statussideURL'en, du vil overvåge
@@ -86,16 +86,16 @@ Antallet af gange der skal genforsøges, hvis anmodningen mislykkes. Standard er
 Du kan konfigurere kriterier til at afgøre, hvornår den eksterne tjeneste betragtes som online eller offline baseret på:
 
 - **Er online** – Om statussiden er tilgængelig og returnerer statusdata
-- **Overordnet status** – Den overordnede statusindikator for statussiden (f.eks. `operational`, `degraded_performance`, `partial_outage`, `major_outage`)
+- **Samlet status** – Den overordnede statusindikator for statussiden (f.eks. `operational`, `degraded_performance`, `partial_outage`, `major_outage`)
 - **Komponentstatus** – Status for komponenterne inden for rækkevidde (under hensyntagen til komponentgruppe-/komponentnavnefiltrene)
-- **Aktive incidents** – Antallet af aktuelt aktive incidents rapporteret på statussiden (begrænset til komponentgruppen/komponenten, når et filter er angivet)
+- **Aktive hændelser** – Antallet af aktuelt aktive incidents rapporteret på statussiden (begrænset til komponentgruppen/komponenten, når et filter er angivet)
 - **Svartid** – Hvor lang tid det tager at hente statussidedata
 
 ### Standardkriterier
 
 Som standard opretter OneUptime kriterier baseret på, hvad der faktisk betyder noget for en statusside — dens aktive incidents og komponentsundhed, snarere end blot tilgængelighed:
 
-- Monitoren markeres som **Operational**, når der ikke er nogen aktive incidents inden for rækkevidde.
+- Monitoren markeres som **I drift**, når der ikke er nogen aktive incidents inden for rækkevidde.
 - Monitoren markeres som **Down** (og der oprettes en incident), når der er mindst én aktiv incident inden for rækkevidde, eller når en komponent inden for rækkevidde rapporterer `degraded_performance`, `partial_outage`, `major_outage` eller `full_outage`.
 
 Fordi antallet af aktive incidents og komponentstatus respekterer komponentgruppe-/komponentnavnefiltrene, målretter disse standardkriterier automatisk kun de komponenter, du bekymrer dig om.

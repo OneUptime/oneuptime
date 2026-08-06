@@ -37,7 +37,7 @@ OneUptime supporta attualmente i seguenti provider LLM:
 ### Passo 1: Naviga alle Impostazioni dei Provider LLM
 
 1. Accedi alla dashboard di OneUptime
-2. Vai su **Agenti AI** > **Provider LLM**
+2. Vai su **Agenti IA** > **Provider LLM**
 3. Clicca su **Crea Provider LLM** per aggiungere un nuovo provider
 
 ### Passo 2: Configura il tuo Provider
@@ -48,8 +48,8 @@ Compila i seguenti campi:
 - **Descrizione** (opzionale): Una descrizione per identificare lo scopo di questo provider
 - **Tipo LLM**: Seleziona il tipo di provider (OpenAI, Azure OpenAI, Anthropic, Groq, Mistral, Ollama o OpenAI Compatible)
 - **Chiave API**: La tua chiave API (richiesta per OpenAI, Azure OpenAI, Anthropic, Groq e Mistral; opzionale per Ollama e per i server compatibili con OpenAI)
-- **Nome del Modello**: Il modello specifico da utilizzare (es. `gpt-4o`, `claude-3-opus-20240229`, `llama2`)
-- **URL Base** (opzionale): URL endpoint API personalizzato (richiesto per Azure OpenAI, Ollama e OpenAI Compatible; opzionale per gli altri)
+- **Nome modello**: Il modello specifico da utilizzare (es. `gpt-4o`, `claude-3-opus-20240229`, `llama2`)
+- **URL di base** (opzionale): URL endpoint API personalizzato (richiesto per Azure OpenAI, Ollama e OpenAI Compatible; opzionale per gli altri)
 
 ## Configurazione Specifica per Provider
 
@@ -127,8 +127,8 @@ Usa il provider **OpenAI Compatible** per qualsiasi server che implementa l'API 
 
 1. Avvia il tuo server compatibile con OpenAI e annota il suo URL base (di solito termina con `/v1`)
 2. Seleziona **OpenAI Compatible** come Tipo LLM
-3. Inserisci l'**URL Base** (obbligatorio), es. `http://your-server:8000/v1`
-4. Inserisci il **Nome del Modello** (obbligatorio) — deve corrispondere a un modello esposto dal tuo server
+3. Inserisci l'**URL di base** (obbligatorio), es. `http://your-server:8000/v1`
+4. Inserisci il **Nome modello** (obbligatorio) — deve corrispondere a un modello esposto dal tuo server
 5. Inserisci la **Chiave API** solo se il tuo server la richiede; lasciala vuota per i server senza autenticazione
 
 **Esempio di Configurazione (vLLM senza chiave):**

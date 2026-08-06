@@ -2,7 +2,7 @@
 
 Öffnen Sie automatisch ein [Jira](https://www.atlassian.com/software/jira)-Issue, sobald ein OneUptime-Vorfall erstellt wird – damit die technische Arbeit dort nachverfolgt wird, wo Ihre Entwickler bereits arbeiten, mit einem Link zurück zum Vorfall.
 
-Diese Integration ist **ausgehend**: OneUptime ruft die REST-API von Jira auf. Sie verwendet einen OneUptime-**[Workflow](/docs/workflows/index)** mit einem **Incident → On Create**-Auslöser und einer **API-Komponente**. Optional können Sie einen **eingehenden** Pfad hinzufügen, sodass das Schließen des Jira-Issues den OneUptime-Vorfall auflöst.
+Diese Integration ist **ausgehend**: OneUptime ruft die REST-API von Jira auf. Sie verwendet einen OneUptime-**[Workflow](/docs/workflows/index)** mit einem **Vorfall → On Create**-Auslöser und einer **API-Komponente**. Optional können Sie einen **eingehenden** Pfad hinzufügen, sodass das Schließen des Jira-Issues den OneUptime-Vorfall auflöst.
 
 ```text
 OneUptime Incident → On Create  ──►  API component (POST /rest/api/3/issue)  ──►  Jira issue
@@ -26,15 +26,15 @@ Jira Cloud verwendet **Basic-Auth** mit Ihrer E-Mail und Ihrem API-Token, Base64
    printf '%s' 'you@example.com:your_api_token' | base64
    ```
 
-2. Gehen Sie in OneUptime zu **Workflows → Global Variables → Create**.
+2. Gehen Sie in OneUptime zu **Arbeitsabläufe → Globale Variablen → Erstellen**.
 3. Benennen Sie die Variable `JIRA_AUTH`, fügen Sie die Base64-Zeichenkette als Wert ein und aktivieren Sie **Is Secret**.
 
 Jetzt können Sie `Basic {{variable.JIRA_AUTH}}` als Auth-Header verwenden, und der Token erscheint nie im Workflow oder dessen Logs.
 
 ## Schritt 2 — Den Workflow erstellen
 
-1. Öffnen Sie **Workflows → Create Workflow**, benennen Sie ihn `Incidents → Jira`, und öffnen Sie den **Builder**.
-2. Ziehen Sie einen **Incident**-Auslöser auf die Arbeitsfläche und wählen Sie das Ereignis **On Create**. Benennen Sie ihn in `Incident` um.
+1. Öffnen Sie **Arbeitsabläufe → Workflow erstellen**, benennen Sie ihn `Incidents → Jira`, und öffnen Sie den **Builder**.
+2. Ziehen Sie einen **Vorfall**-Auslöser auf die Arbeitsfläche und wählen Sie das Ereignis **On Create**. Benennen Sie ihn in `Incident` um.
 3. Ziehen Sie einen **API**-Block und verbinden Sie den Auslöser damit. Konfigurieren Sie:
 
    - **Method**: `POST`
@@ -76,9 +76,9 @@ Jetzt können Sie `Basic {{variable.JIRA_AUTH}}` als Auth-Header verwenden, und 
 
 ## Schritt 3 — Testen
 
-1. Aktivieren Sie den Workflow mit **Enabled**.
+1. Aktivieren Sie den Workflow mit **Aktiviert**.
 2. Erstellen Sie einen Test-Vorfall in OneUptime (oder lösen Sie einen aus einem Monitor heraus aus).
-3. Öffnen Sie den Tab **Logs** des Workflows. Der **API**-Block sollte einen `201`-Status und einen Response-Body anzeigen, der den `key` des neuen Issues enthält (zum Beispiel `OPS-1234`).
+3. Öffnen Sie den Tab **Protokolle** des Workflows. Der **API**-Block sollte einen `201`-Status und einen Response-Body anzeigen, der den `key` des neuen Issues enthält (zum Beispiel `OPS-1234`).
 4. Prüfen Sie Jira – das Issue ist vorhanden.
 
 Wenn der API-Block einen Fehler zurückgibt, klappen Sie ihn in den Logs auf – die Antwort von Jira erklärt genau, welches Feld abgelehnt wurde. Siehe [Fehlerbehebung](#fehlerbehebung).
@@ -114,7 +114,7 @@ Wenn Sie den Jira-Key in Schritt 4 am Vorfall gespeichert haben, ist die Zuordnu
 
 Einige häufige Anpassungen am Body des API-Blocks:
 
-- **Priorität** — fügen Sie `"priority": { "name": "High" }` in `fields` ein. Sie können auf `{{Incident.incidentSeverity.name}}` mit **Conditions** verzweigen, um OneUptime-Schweregrade auf Jira-Prioritäten abzubilden.
+- **Priorität** — fügen Sie `"priority": { "name": "High" }` in `fields` ein. Sie können auf `{{Incident.incidentSeverity.name}}` mit **Bedingungen** verzweigen, um OneUptime-Schweregrade auf Jira-Prioritäten abzubilden.
 - **Labels** — fügen Sie `"labels": ["oneuptime", "incident"]` hinzu.
 - **Verantwortlicher** — fügen Sie `"assignee": { "id": "<accountId>" }` hinzu (Jira Cloud verwendet Account-IDs, keine Benutzernamen).
 - **Benutzerdefinierte Felder** — fügen Sie `"customfield_XXXXX": "..."` mit der Feld-ID aus Ihrer Jira-Administration hinzu.

@@ -16,12 +16,12 @@ O Global SSO é um recurso da **OneUptime Enterprise Edition** e está disponív
 
 1. **Abra o Admin Dashboard**
 
-   - Faça login como master admin e abra **Admin** > **Settings** > **Global SSO** (para SAML) ou **Global OIDC** (para OpenID Connect).
+   - Faça login como master admin e abra **Admin** > **Configurações** > **Global SSO** (para SAML) ou **Global OIDC** (para OpenID Connect).
 
 2. **Crie um provedor**
 
    - Clique em **Create Global SSO**.
-   - Para SAML: insira um **Name**, a **Sign On URL** e o **Issuer** do seu provedor de identidade, e cole o **Public Certificate**. Escolha os métodos de **Signature** e **Digest** (deixe os padrões — `RSA-SHA256` / `SHA256` — se estiver em dúvida).
+   - Para SAML: insira um **Nome**, a **Sign On URL** e o **Issuer** do seu provedor de identidade, e cole o **Public Certificate**. Escolha os métodos de **Signature** e **Digest** (deixe os padrões — `RSA-SHA256` / `SHA256` — se estiver em dúvida).
    - Para OIDC: insira a **Discovery URL**, o **Issuer**, o **Client ID**, o **Client Secret**, os **Scopes** (devem incluir `openid`) e os nomes das declarações de **email** / **name**.
 
 3. **Copie as URLs do OneUptime para o seu provedor de identidade**
@@ -48,7 +48,7 @@ Se você quiser impedir qualquer criação automática de conta mesmo quando há
 Configurar um provedor global não força ninguém a usá-lo; o login com senha ainda funciona. Para exigir o SSO, use os controles **Require SSO for Login**:
 
 - **Por projeto:** um projeto pode exigir o SSO e, opcionalmente, exigir um provedor _específico_ (de projeto ou global).
-- **Em toda a instância:** **Admin** > **Settings** > **Authentication** tem uma opção **Require SSO for Login** que força o SSO para cada usuário em toda a instância. Os master admins permanecem isentos para que não possam ser bloqueados.
+- **Em toda a instância:** **Admin** > **Configurações** > **Autenticação** tem uma opção **Require SSO for Login** que força o SSO para cada usuário em toda a instância. Os master admins permanecem isentos para que não possam ser bloqueados.
 
 ## Relacionado
 

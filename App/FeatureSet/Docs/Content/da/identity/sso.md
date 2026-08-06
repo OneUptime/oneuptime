@@ -22,11 +22,11 @@ SSO-integration giver følgende fordele:
 
    - Klik på **Opret SSO**
    - Indtast et **Navn** til SSO-konfigurationen (f.eks. "Keycloak SAML" eller "Okta SAML")
-   - Indtast **Sign On URL** fra din identitetsudbyder
+   - Indtast **Log på-URL** fra din identitetsudbyder
    - Indtast **Udsteder** (Entity ID) fra din identitetsudbyder
    - Indsæt **Offentligt certifikat** fra din identitetsudbyder
-   - Vælg **Signaturalgoritme** (f.eks. `RSA-SHA-256`)
-   - Vælg **Digest-algoritme** (f.eks. `SHA256`)
+   - Vælg **Signaturmetode** (f.eks. `RSA-SHA-256`)
+   - Vælg **Digest-metode** (f.eks. `SHA256`)
 
 3. **Hent OneUptime SSO-metadata**
    - Efter gemning skal du klikke på knappen **Vis SSO-konfiguration**
@@ -49,11 +49,11 @@ Keycloak er en populær open source-identitets- og adgangsstyringsløsning. Føl
 2. Naviger til **Projektindstillinger** > **Sikkerhed** > **SSO**
 3. Klik på **Opret SSO** og udfyld følgende:
    - **Navn**: Et beskrivende navn (f.eks. `my-project-oneuptime`)
-   - **Sign On URL**: `https://<your-keycloak-domain>/auth/realms/<your-realm>/protocol/saml`
+   - **Log på-URL**: `https://<your-keycloak-domain>/auth/realms/<your-realm>/protocol/saml`
    - **Udsteder**: `https://<your-keycloak-domain>/auth/realms/<your-realm>`
    - **Certifikat**: Se [Trin 2](#trin-2-hent-keycloak-certifikatet) nedenfor
-   - **Signaturalgoritme**: `RSA-SHA-256`
-   - **Digest-algoritme**: `SHA256`
+   - **Signaturmetode**: `RSA-SHA-256`
+   - **Digest-metode**: `SHA256`
 4. Gem konfigurationen
 
 ### Trin 2: Hent Keycloak-certifikatet
@@ -116,11 +116,11 @@ Microsoft Entra ID er Microsofts skybaserede identitets- og adgangsstyringstjene
 2. Naviger til **Projektindstillinger** > **Sikkerhed** > **SSO**
 3. Klik på **Opret SSO** og udfyld følgende:
    - **Navn**: Et beskrivende navn (f.eks. `Azure AD SAML`)
-   - **Sign On URL**: Du henter dette fra Entra ID i [Trin 3](#trin-3-konfigurer-saml-sso-i-entra-id)
+   - **Log på-URL**: Du henter dette fra Entra ID i [Trin 3](#trin-3-konfigurer-saml-sso-i-entra-id)
    - **Udsteder**: Du henter dette fra Entra ID i [Trin 3](#trin-3-konfigurer-saml-sso-i-entra-id)
    - **Certifikat**: Du henter dette fra Entra ID i [Trin 3](#trin-3-konfigurer-saml-sso-i-entra-id)
-   - **Signaturalgoritme**: `RSA-SHA-256`
-   - **Digest-algoritme**: `SHA256`
+   - **Signaturmetode**: `RSA-SHA-256`
+   - **Digest-metode**: `SHA256`
 4. Klik på **Vis SSO-konfiguration** og kopiér **Identifikator (Entity ID)** og **Svar-URL (Assertion Consumer Service URL)** – du skal bruge disse til Entra ID
 
 ### Trin 2: Opret enterprise-applikation i Microsoft Entra ID
@@ -145,7 +145,7 @@ Microsoft Entra ID er Microsofts skybaserede identitets- og adgangsstyringstjene
    - Download **Certifikat (Base64)**
    - Åbn den downloadede certifikatfil i en teksteditor og kopiér indholdet
 6. I afsnittet **Konfigurer OneUptime** skal du kopiere:
-   - **Login URL** – indsæt dette som **Sign On URL** i OneUptime
+   - **Login URL** – indsæt dette som **Log på-URL** i OneUptime
    - **Azure AD-identifikator** – indsæt dette som **Udsteder** i OneUptime
 7. Gå tilbage til OneUptime og indsæt certifikatet og URL'erne, og gem derefter
 
@@ -201,11 +201,11 @@ Okta er en bredt anvendt identitetsplatform, der leverer robuste SAML SSO-kapaci
 2. Naviger til **Projektindstillinger** > **Sikkerhed** > **SSO**
 3. Klik på **Opret SSO** og udfyld følgende:
    - **Navn**: Et beskrivende navn (f.eks. `Okta SAML`)
-   - **Sign On URL**: Du henter dette fra Okta i [Trin 3](#trin-3-kopiér-okta-saml-metadata-til-oneuptime)
+   - **Log på-URL**: Du henter dette fra Okta i [Trin 3](#trin-3-kopiér-okta-saml-metadata-til-oneuptime)
    - **Udsteder**: Du henter dette fra Okta i [Trin 3](#trin-3-kopiér-okta-saml-metadata-til-oneuptime)
    - **Certifikat**: Du henter dette fra Okta i [Trin 3](#trin-3-kopiér-okta-saml-metadata-til-oneuptime)
-   - **Signaturalgoritme**: `RSA-SHA-256`
-   - **Digest-algoritme**: `SHA256`
+   - **Signaturmetode**: `RSA-SHA-256`
+   - **Digest-metode**: `SHA256`
 4. Klik på **Vis SSO-konfiguration** og kopiér **Identifikator (Entity ID)** og **Svar-URL (Assertion Consumer Service URL)** – du skal bruge disse til Okta
 
 ### Trin 2: Opret SAML-applikation i Okta
@@ -227,7 +227,7 @@ Okta er en bredt anvendt identitetsplatform, der leverer robuste SAML SSO-kapaci
 1. I din Okta-applikation skal du gå til fanen **Sign On**
 2. I afsnittet **SAML-signeringscertifikater** skal du finde det aktive certifikat og klikke på **Handlinger** > **Vis IdP-metadata**
 3. Fra metadata-XML eller fra fanens **Sign On**-detaljer:
-   - Kopiér **Sign On URL** (også kaldet **Identity Provider Single Sign-On URL**) – indsæt dette som **Sign On URL** i OneUptime
+   - Kopiér **Sign On URL** (også kaldet **Identity Provider Single Sign-On URL**) – indsæt dette som **Log på-URL** i OneUptime
    - Kopiér **Udsteder** (også kaldet **Identity Provider Issuer**) – indsæt dette som **Udsteder** i OneUptime
 4. Download signeringscertifikatet:
    - I afsnittet **SAML-signeringscertifikater** skal du klikke på **Handlinger** > **Download certifikat** for det aktive certifikat
@@ -282,10 +282,10 @@ OneUptimes SSO-implementering bruger SAML 2.0-protokollen og bør fungere med en
    - **Entity ID / Audience URI**: Fra OneUptime SSO-konfiguration
    - **Name ID Format**: E-mailadresse
 3. Fra din identitetsudbyder skal du kopiere følgende til OneUptime:
-   - **Sign On URL** (SSO-endpoint)
+   - **Log på-URL** (SSO-endpoint)
    - **Udsteder** (IdP'ens Entity ID)
    - **Offentligt certifikat** (X.509-signeringscertifikat)
-4. Sæt **Signaturalgoritme** til `RSA-SHA-256` og **Digest-algoritme** til `SHA256`
+4. Sæt **Signaturmetode** til `RSA-SHA-256` og **Digest-metode** til `SHA256`
 
 ## Noter om SSO og roller
 

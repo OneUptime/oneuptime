@@ -37,7 +37,7 @@ OneUptime ondersteunt momenteel de volgende LLM-providers:
 ### Stap 1: Navigeer naar de instellingen van LLM Providers
 
 1. Log in op uw OneUptime-dashboard
-2. Ga naar **AI Agenten** > **LLM Providers**
+2. Ga naar **AI-agenten** > **LLM-providers**
 3. Klik op **LLM Provider aanmaken** om een nieuwe provider toe te voegen
 
 ### Stap 2: Configureer uw provider
@@ -141,7 +141,7 @@ Model Name: meta-llama/Llama-3.1-8B-Instruct
 API Key: (leave blank)
 ```
 
-> Tip: Gebruik na het opslaan de knop **Test** op de provider om te bevestigen dat de verbinding, modelnaam en basis-URL correct zijn.
+> Tip: Gebruik na het opslaan de knop **Testen** op de provider om te bevestigen dat de verbinding, modelnaam en basis-URL correct zijn.
 
 ### Zelf-gehoste vLLM op Kubernetes (Helm)
 

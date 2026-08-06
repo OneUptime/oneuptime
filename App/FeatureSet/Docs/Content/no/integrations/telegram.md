@@ -21,17 +21,17 @@ OneUptime Incident → On Create  ──►  Telegram component  ──►  mess
 
 ## Steg 3 — Lagre hemmelighetene
 
-1. I OneUptime, gå til **Workflows → Global Variables → Create**.
+1. I OneUptime, gå til **Arbeidsflyter → Globale variabler → Opprett**.
 2. Opprett `TELEGRAM_BOT_TOKEN` (hemmelig) og `TELEGRAM_CHAT_ID`.
 
 ## Steg 4 — Bygg arbeidsflyten
 
-1. Åpne **Workflows → Create Workflow**, gi den navnet `Incidents → Telegram`, og åpne **Builder**.
-2. Legg til en **Incident**-trigger satt til **On Create**. Gi den nytt navn `Incident`.
+1. Åpne **Arbeidsflyter → Opprett arbeidsflyt**, gi den navnet `Incidents → Telegram`, og åpne **Bygger**.
+2. Legg til en **Hendelse**-trigger satt til **On Create**. Gi den nytt navn `Incident`.
 3. Legg til en **Telegram**-komponent koblet til triggeren:
    - **Bot token**: `{{variable.TELEGRAM_BOT_TOKEN}}`
    - **Chat ID**: `{{variable.TELEGRAM_CHAT_ID}}`
-   - **Message**: `🔴 New incident: {{Incident.title}}\n{{Incident.description}}`
+   - **Melding**: `🔴 New incident: {{Incident.title}}\n{{Incident.description}}`
 4. **Lagre**, aktiver, og opprett en testhendelse. Meldingen ankommer i chatten din.
 
 ## Alternativ: API-komponenten
@@ -46,7 +46,7 @@ En **API**-blokk fungerer også:
 ## Tips
 
 - Boten ser bare meldinger etter at den er lagt til i en gruppe og **personvernmodus** tillater det — hvis `getUpdates` er tomt, send boten en melding først, eller deaktiver personvernmodus via BotFather.
-- Bruk **Conditions** for å filtrere etter alvorlighetsgrad før sending.
+- Bruk **Betingelser** for å filtrere etter alvorlighetsgrad før sending.
 - Legg til `"parse_mode": "Markdown"` i API-body-en (eller bruk komponentens formatering) for fet tekst og lenker.
 
 ## Hvor du leser videre

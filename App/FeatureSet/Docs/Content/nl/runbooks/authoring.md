@@ -1,6 +1,6 @@
 # Een runbook schrijven
 
-Maak een runbook via **Runbooks → Runbook aanmaken**, open het daarna en ga naar het tabblad **Steps**.
+Maak een runbook via **Runbooks → Runbook aanmaken**, open het daarna en ga naar het tabblad **Stappen**.
 
 ## Anatomie van een stap
 
@@ -60,11 +60,11 @@ Configureer op een Bash-stap:
 - **Uitvoer-timeout** — hoe lang de agent het script laat draaien voordat hij het met `SIGKILL` afbreekt. Standaard 30 seconden; verhoog deze voor stappen die daadwerkelijk minuten duren.
 - **Claim-timeout** — hoe lang de Worker wacht tot de agent de job oppakt. Standaard 2 minuten.
 
-Als de gekozen agent offline is wanneer het runbook deze stap bereikt, wacht de stap tot de **claim-timeout** (standaard 2 minuten) en faalt dan met `TimedOut`. Voeg een agent toe via **Settings → Runners** voordat je op een Bash-stap leunt.
+Als de gekozen agent offline is wanneer het runbook deze stap bereikt, wacht de stap tot de **claim-timeout** (standaard 2 minuten) en faalt dan met `TimedOut`. Voeg een agent toe via **Instellingen → Runbook-agenten** voordat je op een Bash-stap leunt.
 
 ### AI
 
-Vraag AI om midden in een run iets te analyseren, samen te vatten of te beslissen. De prompt wordt naar de LLM-provider van je project gestuurd (**Settings → AI → LLM Providers**) en het antwoord van het model wordt de stapoutput op de uitvoeringstijdlijn. AI-stappen draaien op de OneUptime Worker; er is geen agent nodig.
+Vraag AI om midden in een run iets te analyseren, samen te vatten of te beslissen. De prompt wordt naar de LLM-provider van je project gestuurd (**Instellingen → AI → LLM-providers**) en het antwoord van het model wordt de stapoutput op de uitvoeringstijdlijn. AI-stappen draaien op de OneUptime Worker; er is geen agent nodig.
 
 Configureer op een AI-stap:
 

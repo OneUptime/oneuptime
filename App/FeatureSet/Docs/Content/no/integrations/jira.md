@@ -2,7 +2,7 @@
 
 Åpne en [Jira](https://www.atlassian.com/software/jira)-sak automatisk hver gang en OneUptime-hendelse opprettes — slik at ingeniørarbeid spores der utviklerne dine allerede jobber, med en lenke tilbake til hendelsen.
 
-Denne integrasjonen er **utgående**: OneUptime kaller Jiras REST API. Den bruker en OneUptime **[Arbeidsflyt](/docs/workflows/index)** med en **Incident → On Create**-trigger og en **API-komponent**. Du kan eventuelt legge til en **innkommende** sti slik at lukking av Jira-saken løser OneUptime-hendelsen.
+Denne integrasjonen er **utgående**: OneUptime kaller Jiras REST API. Den bruker en OneUptime **[Arbeidsflyt](/docs/workflows/index)** med en **Hendelse → On Create**-trigger og en **API-komponent**. Du kan eventuelt legge til en **innkommende** sti slik at lukking av Jira-saken løser OneUptime-hendelsen.
 
 ```text
 OneUptime Incident → On Create  ──►  API component (POST /rest/api/3/issue)  ──►  Jira issue
@@ -26,15 +26,15 @@ Jira Cloud bruker **Basic auth** med e-post og API-token, base64-kodet.
    printf '%s' 'you@example.com:your_api_token' | base64
    ```
 
-2. I OneUptime, gå til **Workflows → Global Variables → Create**.
+2. I OneUptime, gå til **Arbeidsflyter → Globale variabler → Opprett**.
 3. Gi den navnet `JIRA_AUTH`, lim inn base64-strengen som verdi, og slå på **Is Secret**.
 
 Nå kan du bruke `Basic {{variable.JIRA_AUTH}}` som en auth-header, og tokenet vises aldri i arbeidsflyten eller dens logger.
 
 ## Steg 2 — Bygg arbeidsflyten
 
-1. Åpne **Workflows → Create Workflow**, gi den navnet `Incidents → Jira`, og åpne **Builder**.
-2. Dra en **Incident**-trigger inn på lerretet og velg **On Create**-hendelsen. Gi den nytt navn `Incident`.
+1. Åpne **Arbeidsflyter → Opprett arbeidsflyt**, gi den navnet `Incidents → Jira`, og åpne **Bygger**.
+2. Dra en **Hendelse**-trigger inn på lerretet og velg **On Create**-hendelsen. Gi den nytt navn `Incident`.
 3. Dra en **API**-blokk og koble triggeren til den. Konfigurer:
 
    - **Method**: `POST`
@@ -76,9 +76,9 @@ Nå kan du bruke `Basic {{variable.JIRA_AUTH}}` som en auth-header, og tokenet v
 
 ## Steg 3 — Test det
 
-1. Slå på **Enabled** for arbeidsflyten.
+1. Slå på **Aktivert** for arbeidsflyten.
 2. Opprett en testhendelse i OneUptime (eller utløs en fra en monitor).
-3. Åpne arbeidsflytens **Logs**-fane. **API**-blokken bør vise en `201`-status og en respons-body som inneholder den nye sakens `key` (for eksempel `OPS-1234`).
+3. Åpne arbeidsflytens **Logger**-fane. **API**-blokken bør vise en `201`-status og en respons-body som inneholder den nye sakens `key` (for eksempel `OPS-1234`).
 4. Sjekk Jira — saken er der.
 
 Hvis API-blokken returnerer en feil, utvid den i loggene — Jiras svar forklarer nøyaktig hvilket felt det avviste. Se [Feilsøking](#feilsøking).
@@ -114,7 +114,7 @@ Hvis du lagret Jira-nøkkelen på hendelsen i Steg 4, er matching enkelt. Se [Ko
 
 Noen vanlige justeringer i API-blokkens body:
 
-- **Prioritet** — legg til `"priority": { "name": "High" }` inne i `fields`. Du kan forgrene på `{{Incident.incidentSeverity.name}}` med **Conditions** for å mappe OneUptime-alvorlighetsgrader til Jira-prioriteter.
+- **Prioritet** — legg til `"priority": { "name": "High" }` inne i `fields`. Du kan forgrene på `{{Incident.incidentSeverity.name}}` med **Betingelser** for å mappe OneUptime-alvorlighetsgrader til Jira-prioriteter.
 - **Koder** — legg til `"labels": ["oneuptime", "incident"]`.
 - **Ansvarlig** — legg til `"assignee": { "id": "<accountId>" }` (Jira Cloud bruker konto-ID-er, ikke brukernavn).
 - **Egendefinerte felt** — legg til `"customfield_XXXXX": "..."` ved å bruke feltets ID fra Jira-admin.

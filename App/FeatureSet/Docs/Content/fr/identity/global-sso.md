@@ -16,7 +16,7 @@ Global SSO est une fonctionnalité de **OneUptime Enterprise Edition** et n'est 
 
 1. **Ouvrir l'Admin Dashboard**
 
-   - Connectez-vous en tant que master admin et ouvrez **Admin** > **Settings** > **Global SSO** (pour SAML) ou **Global OIDC** (pour OpenID Connect).
+   - Connectez-vous en tant que master admin et ouvrez **Admin** > **Paramètres** > **Global SSO** (pour SAML) ou **Global OIDC** (pour OpenID Connect).
 
 2. **Créer un fournisseur**
 
@@ -48,7 +48,7 @@ Si vous souhaitez empêcher toute création automatique de compte même lorsque 
 Configurer un fournisseur global n'oblige personne à l'utiliser ; la connexion par mot de passe fonctionne toujours. Pour exiger le SSO, utilisez les contrôles **Require SSO for Login** :
 
 - **Par projet :** un projet peut exiger le SSO, et éventuellement exiger un fournisseur _spécifique_ (de projet ou global).
-- **À l'échelle de l'instance :** **Admin** > **Settings** > **Authentication** dispose d'un commutateur **Require SSO for Login** qui force le SSO pour chaque utilisateur de l'instance. Les master admins restent exemptés afin de ne pas pouvoir être verrouillés à l'extérieur.
+- **À l'échelle de l'instance :** **Admin** > **Paramètres** > **Authentification** dispose d'un commutateur **Require SSO for Login** qui force le SSO pour chaque utilisateur de l'instance. Les master admins restent exemptés afin de ne pas pouvoir être verrouillés à l'extérieur.
 
 ## Connexes
 

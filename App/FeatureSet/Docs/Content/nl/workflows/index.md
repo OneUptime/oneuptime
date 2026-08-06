@@ -37,11 +37,11 @@ Dit alles bouw je visueel op een canvas. Voor de meeste workflows is geen code n
 Open **Workflows** in de linkernavigatie. Vanaf daar:
 
 - **Workflows** — je lijst met workflows. Maak een nieuwe aan of open een bestaande.
-- **Builder-tabblad** — het canvas waar je de workflow ontwerpt.
-- **Logs-tabblad** — elke run van deze workflow, met details.
-- **Settings-tabblad** — naam, beschrijving, eigenaren, labels, in-/uitschakelen.
-- **Global Variables** — waarden die je deelt over al je workflows.
-- **Runs & Logs** — uitvoeringsgeschiedenis voor elke workflow in je project.
+- **Bouwer**-tabblad — het canvas waar je de workflow ontwerpt.
+- **Logboeken**-tabblad — elke run van deze workflow, met details.
+- **Instellingen**-tabblad — naam, beschrijving, eigenaren, labels, in-/uitschakelen.
+- **Globale variabelen** — waarden die je deelt over al je workflows.
+- **Runs & logboeken** — uitvoeringsgeschiedenis voor elke workflow in je project.
 
 ## Je eerste workflow bouwen
 
@@ -49,7 +49,7 @@ Open **Workflows** in de linkernavigatie. Vanaf daar:
 2. **Trigger kiezen** — handmatig, gepland, webhook of een event uit OneUptime.
 3. **Componenten toevoegen** — sleep acties op het canvas en verbind ze.
 4. **Testen** — klik op **Run Manually** en kijk in de logs wat er gebeurt.
-5. **Inschakelen** — zet de schakelaar **Enabled** om in Settings als je er klaar voor bent.
+5. **Inschakelen** — zet de schakelaar **Ingeschakeld** om in Settings als je er klaar voor bent.
 
 ## Een snel voorbeeld
 
@@ -57,17 +57,17 @@ Stel dat je in Slack wilt posten zodra er een kritiek incident wordt aangemaakt:
 
 1. Maak een workflow aan met de naam "Critical incidents to Slack".
 2. Kies de trigger **Incident → On Create**.
-3. Voeg een **Conditions**-blok toe. Stel het in om te controleren of de incidenttitel "Sev 1" bevat.
-4. Voeg vanuit de **Yes**-tak een **Slack**-blok toe. Kies het kanaal en schrijf het bericht.
+3. Voeg een **Voorwaarden**-blok toe. Stel het in om te controleren of de incidenttitel "Sev 1" bevat.
+4. Voeg vanuit de **Ja**-tak een **Slack**-blok toe. Kies het kanaal en schrijf het bericht.
 5. Zet de workflow aan.
 
 De volgende keer dat iemand een incident opent met "Sev 1" in de titel, licht Slack op.
 
 ## Hoe workflows passen bij de rest van OneUptime
 
-- **Monitors** signaleren het probleem. **Incidenten** registreren het. **Workflows** reageren erop.
+- **Monitoren** signaleren het probleem. **Incidenten** registreren het. **Workflows** reageren erop.
 - **Runbooks** zijn stap-voor-stap-gidsen voor mensen. Workflows zijn onbeheerde automatisering. Gebruik een runbook wanneer een mens beslissingen moet nemen; gebruik een workflow wanneer de stappen automatisch zijn.
-- **Workspace-verbindingen** (Slack, Teams) zijn waar workflows hun berichten naartoe sturen.
+- **Werkruimte-verbindingen** (Slack, Teams) zijn waar workflows hun berichten naartoe sturen.
 
 ## Waar verder lezen
 

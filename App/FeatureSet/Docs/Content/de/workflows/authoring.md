@@ -1,6 +1,6 @@
 # Workflow erstellen
 
-Um einen Workflow zu erstellen, öffnen Sie **Workflows → Workflow erstellen**, geben Sie ihm einen Namen und klicken Sie auf den Tab **Builder**. Sie sehen eine leere Arbeitsfläche, auf der Sie die Automatisierung aufbauen.
+Um einen Workflow zu erstellen, öffnen Sie **Arbeitsabläufe → Workflow erstellen**, geben Sie ihm einen Namen und klicken Sie auf den Tab **Builder**. Sie sehen eine leere Arbeitsfläche, auf der Sie die Automatisierung aufbauen.
 
 ## Die Arbeitsfläche
 
@@ -38,11 +38,11 @@ Die meisten Textfelder akzeptieren Variablen – so fließen Daten von einem Bau
 So lernen Sie die Arbeitsfläche am schnellsten kennen:
 
 1. Ziehen Sie einen **Manuell**-Auslöser auf die Arbeitsfläche.
-2. Ziehen Sie eine **Log**-Komponente (unter **Utils**) daneben. Verbinden Sie den Auslöser mit der Log-Komponente.
+2. Ziehen Sie eine **Protokoll**-Komponente (unter **Utils**) daneben. Verbinden Sie den Auslöser mit der Log-Komponente.
 3. Geben Sie im Nachrichtenfeld des Log-Bausteins `Hello from {{Manual.JSON.name}}` ein.
 4. Speichern Sie und aktivieren Sie den Workflow.
 5. Klicken Sie auf **Manuell ausführen**, fügen Sie `{ "name": "Ada" }` als Eingabe ein und senden Sie ab.
-6. Öffnen Sie den Tab **Logs**. Die neueste Ausführung zeigt `Hello from Ada`.
+6. Öffnen Sie den Tab **Protokolle**. Die neueste Ausführung zeigt `Hello from Ada`.
 
 Dieser Ablauf – ziehen, verbinden, konfigurieren, ausführen, das Log prüfen – ist die Grundlage für jeden Workflow, den Sie bauen.
 

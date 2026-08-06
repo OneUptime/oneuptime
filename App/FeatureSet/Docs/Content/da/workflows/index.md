@@ -34,14 +34,14 @@ Du bygger det hele visuelt på et lærred. Ingen kodning krævet til de fleste w
 
 ## Hvor du finder workflows i OneUptime
 
-Åbn **Workflows** i venstre navigation. Derfra:
+Åbn **Arbejdsgange** i venstre navigation. Derfra:
 
-- **Workflows** — din liste over workflows. Opret et nyt, eller åbn et eksisterende.
-- **Builder-fane** — lærredet, hvor du designer workflowet.
-- **Logs-fane** — hver kørsel af dette workflow, med detaljer.
-- **Settings-fane** — navn, beskrivelse, ejere, labels, aktivér/deaktivér.
-- **Global Variables** — værdier delt på tværs af alle dine workflows.
-- **Runs & Logs** — afviklingshistorik på tværs af hvert workflow i dit projekt.
+- **Arbejdsgange** — din liste over workflows. Opret et nyt, eller åbn et eksisterende.
+- **Bygger-fane** — lærredet, hvor du designer workflowet.
+- **Protokoller-fane** — hver kørsel af dette workflow, med detaljer.
+- **Indstillinger-fane** — navn, beskrivelse, ejere, labels, aktivér/deaktivér.
+- **Globale variabler** — værdier delt på tværs af alle dine workflows.
+- **Kørsler og logs** — afviklingshistorik på tværs af hvert workflow i dit projekt.
 
 ## Byg dit første workflow
 
@@ -49,23 +49,23 @@ Du bygger det hele visuelt på et lærred. Ingen kodning krævet til de fleste w
 2. **Vælg en trigger** — manuel, planlagt, webhook eller en event fra OneUptime.
 3. **Tilføj komponenter** — træk handlinger ud på lærredet og forbind dem.
 4. **Test** — klik **Run Manually** og se, hvad der sker i logfilerne.
-5. **Tænd for det** — slå **Enabled**-kontakten til i Settings, når du er klar.
+5. **Tænd for det** — slå **Aktiveret**-kontakten til i Settings, når du er klar.
 
 ## Et hurtigt eksempel
 
 Lad os sige, at du vil poste i Slack, hver gang en kritisk hændelse oprettes:
 
 1. Opret et workflow kaldet "Kritiske hændelser til Slack."
-2. Vælg triggeren **Incident → On Create**.
-3. Tilføj en **Conditions**-blok. Indstil den til at tjekke, om hændelsens titel indeholder "Sev 1."
-4. Fra **Yes**-grenen tilføjer du en **Slack**-blok. Vælg kanalen og skriv beskeden.
+2. Vælg triggeren **Hændelse → On Create**.
+3. Tilføj en **Betingelser**-blok. Indstil den til at tjekke, om hændelsens titel indeholder "Sev 1."
+4. Fra **Ja**-grenen tilføjer du en **Slack**-blok. Vælg kanalen og skriv beskeden.
 5. Tænd for workflowet.
 
 Næste gang nogen åbner en hændelse med "Sev 1" i titlen, lyser Slack op.
 
 ## Hvordan workflows passer ind i resten af OneUptime
 
-- **Monitorer** opdager problemet. **Hændelser** registrerer det. **Workflows** reagerer på det.
+- **Monitorer** opdager problemet. **Hændelser** registrerer det. **Arbejdsgange** reagerer på det.
 - **Runbooks** er trin-for-trin-guides til mennesker. Workflows er ubemandet automatisering. Brug en runbook, når et menneske skal træffe beslutninger; brug et workflow, når trinnene er automatiske.
 - **Workspace-forbindelser** (Slack, Teams) er der, hvor workflows sender deres beskeder.
 

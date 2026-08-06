@@ -13,9 +13,9 @@ Os monitores de porta testam se uma porta de rede específica está aceitando co
 
 ## Criando um Monitor de Porta
 
-1. Vá para **Monitors** no Painel do OneUptime
-2. Clique em **Create Monitor**
-3. Selecione **Port** como o tipo de monitor
+1. Vá para **Monitores** no Painel do OneUptime
+2. Clique em **Criar monitor**
+3. Selecione **Porta** como o tipo de monitor
 4. Insira o hostname ou endereço IP e o número da porta
 5. Configure os critérios de monitoramento conforme necessário
 
@@ -59,7 +59,7 @@ Para **Is Online** e **Is Request Timeout**:
 - **True** — Condição é verdadeira
 - **False** — Condição é falsa
 
-Para **Response Time**:
+Para **Tempo de resposta**:
 
 - **Greater Than** — O tempo de resposta excede um limite
 - **Less Than** — O tempo de resposta está abaixo de um limite
@@ -74,16 +74,16 @@ Para **Response Time**:
 #### Marcar como offline se a porta estiver fechada
 
 - **Check On**: Is Online
-- **Filter Type**: False
+- **Tipo de filtro**: False
 
 #### Alertar se o tempo de conexão exceder 500ms
 
 - **Check On**: Response Time (in ms)
-- **Filter Type**: Greater Than
-- **Value**: 500
+- **Tipo de filtro**: Greater Than
+- **Valor**: 500
 
 #### Marcar como degradado se a conexão for lenta
 
 - **Check On**: Response Time (in ms)
-- **Filter Type**: Greater Than
-- **Value**: 200
+- **Tipo de filtro**: Greater Than
+- **Valor**: 200

@@ -22,9 +22,9 @@ Die SSO-Integration bietet folgende Vorteile:
 
    - Klicken Sie auf **SSO erstellen**
    - Geben Sie einen **Namen** für die SSO-Konfiguration ein (z. B. "Keycloak SAML" oder "Okta SAML")
-   - Geben Sie die **Sign-On-URL** von Ihrem Identity Provider ein
+   - Geben Sie die **Anmelde-URL** von Ihrem Identity Provider ein
    - Geben Sie den **Aussteller** (Entity ID) von Ihrem Identity Provider ein
-   - Fügen Sie das **öffentliche Zertifikat** von Ihrem Identity Provider ein
+   - Fügen Sie das **Öffentliche Zertifikat** von Ihrem Identity Provider ein
    - Wählen Sie den **Signaturalgorithmus** (z. B. `RSA-SHA-256`)
    - Wählen Sie den **Digest-Algorithmus** (z. B. `SHA256`)
 
@@ -43,7 +43,7 @@ Keycloak ist eine beliebte Open-Source-Identitäts- und Zugriffsmanagementlösun
 2. Navigieren Sie zu **Projekteinstellungen** > **Sicherheit** > **SSO**
 3. Klicken Sie auf **SSO erstellen** und füllen Sie Folgendes aus:
    - **Name**: Ein beschreibender Name (z. B. `my-project-oneuptime`)
-   - **Sign-On-URL**: `https://<your-keycloak-domain>/auth/realms/<your-realm>/protocol/saml`
+   - **Anmelde-URL**: `https://<your-keycloak-domain>/auth/realms/<your-realm>/protocol/saml`
    - **Aussteller**: `https://<your-keycloak-domain>/auth/realms/<your-realm>`
    - **Zertifikat**: Siehe Schritt 2 unten
    - **Signaturalgorithmus**: `RSA-SHA-256`
@@ -119,7 +119,7 @@ OneUptime's SSO-Implementierung verwendet das SAML 2.0-Protokoll und sollte mit 
    - **Entity ID / Audience URI**: Aus der OneUptime SSO-Konfiguration
    - **Name-ID-Format**: E-Mail-Adresse
 3. Von Ihrem Identity Provider folgendes in OneUptime einfügen:
-   - **Sign-On-URL** (SSO-Endpunkt)
+   - **Anmelde-URL** (SSO-Endpunkt)
    - **Aussteller** (Entity ID des IdP)
    - **Öffentliches Zertifikat** (X.509-Signierzertifikat)
 4. **Signaturalgorithmus** auf `RSA-SHA-256` und **Digest-Algorithmus** auf `SHA256` setzen

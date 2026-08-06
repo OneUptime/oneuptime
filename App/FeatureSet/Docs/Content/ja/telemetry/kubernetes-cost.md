@@ -19,8 +19,8 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 
 - **クラスターごとの Costs ページ** (_Kubernetes → クラスター → Costs_): 支出の推移、cpu / メモリ / ストレージの内訳付きの名前空間ごとの支出、ワークロードごとの支出、アイドル支出、効率。
 - **プロジェクトレベルの Costs ページ** (_Kubernetes → Costs_): プロジェクト内のすべてのクラスターにわたる支出。
-- **Kubernetes Cost ダッシュボードテンプレート** (_Dashboards → Create → Kubernetes Cost Dashboard_): ノードの時間あたりコストの推移、CPU/RAM の単価、永続ボリュームとロードバランサーの支出。
-- **Metric Explorer** の生のコストメトリクス (`node_total_hourly_cost`、`pv_hourly_cost`、...)。カスタムダッシュボードやメトリクスアラートで使用できます。
+- **Kubernetes Cost ダッシュボードテンプレート** (_ダッシュボード → 作成 → Kubernetes Cost Dashboard_): ノードの時間あたりコストの推移、CPU/RAM の単価、永続ボリュームとロードバランサーの支出。
+- **メトリクスエクスプローラー** の生のコストメトリクス (`node_total_hourly_cost`、`pv_hourly_cost`、...)。カスタムダッシュボードやメトリクスアラートで使用できます。
 
 ## 仕組み
 

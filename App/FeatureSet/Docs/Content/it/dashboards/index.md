@@ -30,20 +30,20 @@ Vedi [Widget](/docs/dashboards/widgets) per l'elenco completo e cosa mostra cias
 | **Variabile**            | Un menu a tendina in cima che filtra tutti i widget contemporaneamente (cluster, servizio, cliente, ambiente).   |
 | **Intervallo temporale** | La finestra temporale che ogni grafico e numero utilizza. Impostala una volta in cima alla pagina.               |
 | **Refresh**              | Con quale frequenza i widget rieseguono la query sui dati. Off, ogni pochi secondi, ogni pochi minuti.           |
-| **Modalita**             | **Edit** (trascina i widget) o **View** (sola lettura, come la vedono i visitatori).                             |
+| **Modalita**             | **Modifica** (trascina i widget) o **Visualizza** (sola lettura, come la vedono i visitatori).                   |
 
 ## Dove trovare le dashboard
 
-Apri **Dashboards** nel menu di navigazione a sinistra.
+Apri **Dashboard** nel menu di navigazione a sinistra.
 
-| Pagina                   | Cosa ci fai                                                                         |
-| ------------------------ | ----------------------------------------------------------------------------------- |
-| **Dashboards**           | Il tuo elenco di dashboard. Crea una nuova dashboard, cerca o filtra per etichetta. |
-| **Dashboard → View**     | Il canvas. Cambia tra **Edit** e **View** nell'intestazione.                        |
-| **Dashboard → Overview** | Descrizione, proprietari ed etichette.                                              |
-| **Dashboard → Settings** | Condivisione pubblica, password, allowlist IP, dominio personalizzato, branding.    |
-| **Dashboard → Owners**   | Utenti e team con accesso esplicito.                                                |
-| **Dashboard → Delete**   | Rimuovi la dashboard.                                                               |
+| Pagina                       | Cosa ci fai                                                                         |
+| ---------------------------- | ----------------------------------------------------------------------------------- |
+| **Dashboard**                | Il tuo elenco di dashboard. Crea una nuova dashboard, cerca o filtra per etichetta. |
+| **Dashboard → Visualizza**   | Il canvas. Cambia tra **Modifica** e **Visualizza** nell'intestazione.              |
+| **Dashboard → Panoramica**   | Descrizione, proprietari ed etichette.                                              |
+| **Dashboard → Impostazioni** | Condivisione pubblica, password, allowlist IP, dominio personalizzato, branding.    |
+| **Dashboard → Proprietari**  | Utenti e team con accesso esplicito.                                                |
+| **Dashboard → Elimina**      | Rimuovi la dashboard.                                                               |
 
 ## Costruire una dashboard
 
@@ -60,16 +60,16 @@ Obiettivo: una pagina on-call per il servizio checkout con latenza, tasso di err
 
 1. Crea una dashboard chiamata "Checkout on-call."
 2. Aggiungi una variabile `service`. Impostala su `checkout` come predefinito.
-3. Aggiungi un widget **Chart** con la latenza P95, filtrato dalla variabile `service`.
-4. Accanto, aggiungi un widget **Value** per il tasso di errore, con warning all'1% e critical al 5%.
-5. Sotto, aggiungi un widget **Incident List** per gli incidenti taggati `checkout`.
-6. Sotto ancora, un widget **Log Stream** che mostra i log dello stesso servizio.
+3. Aggiungi un widget **Grafico** con la latenza P95, filtrato dalla variabile `service`.
+4. Accanto, aggiungi un widget **Valore** per il tasso di errore, con warning all'1% e critical al 5%.
+5. Sotto, aggiungi un widget **Elenco incidenti** per gli incidenti taggati `checkout`.
+6. Sotto ancora, un widget **Flusso di log** che mostra i log dello stesso servizio.
 7. Salva. Cambia il menu a tendina su `payments` — la stessa dashboard ora mostra il servizio payments.
 
 ## Come si integrano le dashboard con il resto di OneUptime
 
 - **Monitor e telemetria** sono le fonti dei dati. Ogni metrica, log e trace che raccogli e interrogabile su un widget.
-- **Incidenti e allarmi** appaiono nei widget **Incident List** e **Alert List**. Le dashboard sono in sola lettura per questi — creali e aggiornali altrove.
+- **Incidenti e allarmi** appaiono nei widget **Elenco incidenti** e **Elenco avvisi**. Le dashboard sono in sola lettura per questi — creali e aggiornali altrove.
 - Le **status page** sono comunicazione rivolta ai clienti ("il sistema e su?"). Le dashboard servono a guardare come si sta comportando il sistema nel dettaglio. Le due cose lavorano insieme, non si sostituiscono a vicenda.
 - I **workflow** sono il modo in cui OneUptime agisce. Le dashboard sono il modo in cui leggi cio che sta accadendo.
 

@@ -4,13 +4,13 @@ Ci sono tre modi in cui viene creata un'esecuzione di runbook:
 
 1. **Automaticamente tramite una regola** — vedi [Regole di runbook](/docs/runbooks/rules).
 2. **Manualmente dalla pagina del runbook** — clicca **Esegui ora** sulla panoramica di un runbook. Non legata ad alcun incidente, allarme o manutenzione.
-3. **Manualmente dal feed di un'entità** — clicca **Esegui runbook** su un incidente, allarme o evento di manutenzione programmata. L'esecuzione è legata a quell'entità.
+3. **Manualmente dal feed di un'entità** — clicca **Esegui Runbook** su un incidente, allarme o evento di manutenzione programmata. L'esecuzione è legata a quell'entità.
 
 ## La vista di esecuzione
 
 Apri una qualsiasi esecuzione per vederne la UI checklist. Ogni passo mostra:
 
-- **Pillola di stato** — In attesa, In esecuzione, In attesa di te, Fatto, Saltato, Fallito.
+- **Pillola di stato** — In sospeso, In esecuzione, In attesa di te, Fatto, Saltato, Non riuscito.
 - **Titolo e descrizione** — copiati dal runbook al momento dell'esecuzione.
 - **Output** (collassabile) — stdout, valori di ritorno, risposte HTTP.
 - **Messaggio di errore** se il passo è fallito.

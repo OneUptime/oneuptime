@@ -24,8 +24,8 @@ Projekt-SCIM giver identitetsudbydere mulighed for at administrere teammedlemmer
 
 2. **Konfigurer SCIM-indstillinger**
 
-   - Aktiver **Auto-klargøring af brugere** for automatisk at tilføje brugere, når de tildeles i din IdP
-   - Aktiver **Auto-afklargøring af brugere** for automatisk at fjerne brugere, når de fjernes i din IdP
+   - Aktiver **Klargør brugere automatisk** for automatisk at tilføje brugere, når de tildeles i din IdP
+   - Aktiver **Fjern automatisk klargøring af brugere** for automatisk at fjerne brugere, når de fjernes i din IdP
    - Vælg de **Standardteams**, som nye brugere skal tilføjes til
    - Kopiér **SCIM Base URL** og **Bearer Token** til din IdP-konfiguration
 
@@ -73,8 +73,8 @@ Statusside-SCIM giver identitetsudbydere mulighed for at administrere abonnenter
 
 2. **Konfigurer SCIM-indstillinger**
 
-   - Aktiver **Auto-klargøring af brugere** for automatisk at tilføje abonnenter, når de tildeles i din IdP
-   - Aktiver **Auto-afklargøring af brugere** for automatisk at fjerne abonnenter, når de fjernes i din IdP
+   - Aktiver **Klargør brugere automatisk** for automatisk at tilføje abonnenter, når de tildeles i din IdP
+   - Aktiver **Fjern automatisk klargøring af brugere** for automatisk at fjerne abonnenter, når de fjernes i din IdP
    - Kopiér **SCIM Base URL** og **Bearer Token** til din IdP-konfiguration
 
 3. **Konfigurer din identitetsudbyder**
@@ -121,10 +121,10 @@ Microsoft Entra ID leverer enterprise-grade identitetsstyring med robuste SCIM-k
 3. Klik på **Opret SCIM-konfiguration**
 4. Indtast et brugervenligt navn (f.eks. "Microsoft Entra ID Klargøring")
 5. Konfigurer følgende indstillinger:
-   - **Auto-klargøring af brugere**: Aktiver for automatisk at oprette brugere
-   - **Auto-afklargøring af brugere**: Aktiver for automatisk at fjerne brugere
+   - **Klargør brugere automatisk**: Aktiver for automatisk at oprette brugere
+   - **Fjern automatisk klargøring af brugere**: Aktiver for automatisk at fjerne brugere
    - **Standardteams**: Vælg teams, som nye brugere skal tilføjes til
-   - **Aktiver Push-grupper**: Aktiver, hvis du vil administrere teammedlemskab via Entra ID-grupper
+   - **Aktivér push-grupper**: Aktiver, hvis du vil administrere teammedlemskab via Entra ID-grupper
 6. Gem konfigurationen
 7. Kopiér **SCIM Base URL** og **Bearer Token** – du skal bruge dem til Entra ID
 
@@ -223,10 +223,10 @@ Okta leverer fleksibel identitetsstyring med fremragende SCIM-understøttelse. F
 3. Klik på **Opret SCIM-konfiguration**
 4. Indtast et brugervenligt navn (f.eks. "Okta Klargøring")
 5. Konfigurer følgende indstillinger:
-   - **Auto-klargøring af brugere**: Aktiver for automatisk at oprette brugere
-   - **Auto-afklargøring af brugere**: Aktiver for automatisk at fjerne brugere
+   - **Klargør brugere automatisk**: Aktiver for automatisk at oprette brugere
+   - **Fjern automatisk klargøring af brugere**: Aktiver for automatisk at fjerne brugere
    - **Standardteams**: Vælg teams, som nye brugere skal tilføjes til
-   - **Aktiver Push-grupper**: Aktiver, hvis du vil administrere teammedlemskab via Okta-grupper
+   - **Aktivér push-grupper**: Aktiver, hvis du vil administrere teammedlemskab via Okta-grupper
 6. Gem konfigurationen
 7. Kopiér **SCIM Base URL** og **Bearer Token** – du skal bruge dem til Okta
 

@@ -8,10 +8,10 @@ Er zijn twee soorten, en ze delen dezelfde syntax.
 
 Projectbrede waarden die je één keer opslaat en overal hergebruikt. Denk aan API-sleutels, URL's, kanaalnamen — alles wat je niet wilt kopiëren naar tien verschillende workflows.
 
-Vind ze onder **Workflows → Global Variables**. Elk heeft:
+Vind ze onder **Workflows → Globale variabelen**. Elk heeft:
 
-- **Name** — hoe je ernaar verwijst. Gebruik `UPPER_SNAKE_CASE` zodat het opvalt in je blokken.
-- **Value** — de daadwerkelijke waarde. Waarden over meerdere regels werken ook.
+- **Naam** — hoe je ernaar verwijst. Gebruik `UPPER_SNAKE_CASE` zodat het opvalt in je blokken.
+- **Waarde** — de daadwerkelijke waarde. Waarden over meerdere regels werken ook.
 - **Is Secret** — wanneer dit aanstaat, wordt de waarde na opslaan verborgen in de UI en in run-logs.
 
 Gebruik een globale variabele in elke workflow met:
@@ -63,8 +63,8 @@ Het **Custom Code**-blok leest variabelen anders — globale variabelen komen bi
 Er komt een webhook binnen met een body als `{ "service": "checkout", "status": "failed" }`. Om dat om te zetten in een OneUptime-incident:
 
 1. **Webhook**-trigger met de naam `CIWebhook`.
-2. **Conditions**-blok: links `{{CIWebhook.Request Body.status}}`, operator `==`, rechts `failed`.
-3. Vanuit de **Yes**-tak een **Create Incident**-blok met:
+2. **Voorwaarden**-blok: links `{{CIWebhook.Request Body.status}}`, operator `==`, rechts `failed`.
+3. Vanuit de **Ja**-tak een **Incident maken**-blok met:
    - Title: `CI build failed: {{CIWebhook.Request Body.service}}`
    - Description: `See {{CIWebhook.Request Body.url}} for the logs.`
 
@@ -90,7 +90,7 @@ Als `LookupOrder` faalt, gaat zijn **error**-output af in plaats van **success**
 
 - **Een blok hernoemen breekt verwijzingen.** Als je een blok hernoemt, werk dan elke plek bij waar het wordt gebruikt. In het run-log verschijnt een onopgeloste verwijzing als de letterlijke tekst `{{BlockName.field}}`.
 - **Variabelenamen zijn hoofdlettergevoelig.** `{{variable.MyKey}}` en `{{variable.mykey}}` zijn verschillend.
-- **Ontbrekende velden worden leeg.** Verwijzen naar een veld dat niet bestaat geeft je een lege string, geen fout. Handig — maar het kan bugs verbergen. Gebruik een **Conditions**-blok om belangrijke velden te controleren voordat je verder gaat.
+- **Ontbrekende velden worden leeg.** Verwijzen naar een veld dat niet bestaat geeft je een lege string, geen fout. Handig — maar het kan bugs verbergen. Gebruik een **Voorwaarden**-blok om belangrijke velden te controleren voordat je verder gaat.
 
 ## Waar verder lezen
 

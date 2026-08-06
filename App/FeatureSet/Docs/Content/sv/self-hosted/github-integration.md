@@ -137,7 +137,7 @@ gitHubApp:
 ### Steg 10: Anslut repositorier i OneUptime
 
 1. Logga in på din OneUptime-instrumentpanel
-2. Navigera till **Products** > **Kodrepositorie**
+2. Navigera till **Produkter** > **Kodförråd**
 3. Klicka på **"Skapa repositorie"** eller använd GitHub App-installationsflödet
 4. Om du omdirigerades från GitHub registreras installations-ID:t automatiskt
 5. Välj de repositorier du vill ansluta från listan

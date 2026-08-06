@@ -2,7 +2,7 @@
 
 ## Oversigt
 
-[Serilog](https://serilog.net) er det mest populære struktureret logning-bibliotek til .NET. OneUptime indtager Serilog-logs over OpenTelemetry Protocol (OTLP) ved hjælp af den officielle [`Serilog.Sinks.OpenTelemetry`](https://github.com/serilog/serilog-sinks-opentelemetry)-sink. Når den er konfigureret, sendes hver loghændelse, som din applikation skriver gennem Serilog, til OneUptime, hvor den bliver søgbar i **Products → Protokoller**, komplet med strukturerede egenskaber, alvorlighed og trace/span-korrelation.
+[Serilog](https://serilog.net) er det mest populære struktureret logning-bibliotek til .NET. OneUptime indtager Serilog-logs over OpenTelemetry Protocol (OTLP) ved hjælp af den officielle [`Serilog.Sinks.OpenTelemetry`](https://github.com/serilog/serilog-sinks-opentelemetry)-sink. Når den er konfigureret, sendes hver loghændelse, som din applikation skriver gennem Serilog, til OneUptime, hvor den bliver søgbar i **Produkter → Protokoller**, komplet med strukturerede egenskaber, alvorlighed og trace/span-korrelation.
 
 Der er ingen OneUptime-specifik pakke at installere — sinken taler med det samme OTLP-endpoint, som OneUptime eksponerer for alle OpenTelemetry-data. Dette fungerer for konsolapps, worker-tjenester, ASP.NET Core-apps og alt andet, der kører på .NET.
 
@@ -12,13 +12,13 @@ Der er ingen OneUptime-specifik pakke at installere — sinken taler med det sam
 - **Opret et OneUptime-projekt** – Når du har en konto, skal du oprette et projekt fra OneUptime-dashboardet. Hvis du har brug for hjælp, kan du kontakte os på support@oneuptime.com.
 - **Opret et token til telemetri-indtagelse** – Du har brug for et token til at autentificere dine logs.
 
-Efter du har tilmeldt dig OneUptime og oprettet et projekt, skal du klikke på "Products" i navigationslinjen og klikke på "Project Settings".
+Efter du har tilmeldt dig OneUptime og oprettet et projekt, skal du klikke på "Produkter" i navigationslinjen og klikke på "Projektindstillinger".
 
-På siden Telemetry Ingestion Key skal du klikke på "Create Ingestion Key" for at oprette et token.
+På siden Telemetry Ingestion Key skal du klikke på "Opret ingestion-nøgle" for at oprette et token.
 
 ![Create Service](/docs/static/images/TelemetryIngestionKeys.png)
 
-Når du har oprettet et token, skal du klikke på "View" for at se tokenet.
+Når du har oprettet et token, skal du klikke på "Vis" for at se tokenet.
 
 ![View Service](/docs/static/images/TelemetryIngestionKeyView.png)
 
@@ -197,7 +197,7 @@ Log.Information("Order {OrderId} placed by {CustomerId} for {Amount:C}",
 Log.Warning("Payment gateway slow: {LatencyMs}ms", latencyMs);
 ```
 
-Hver navngiven egenskab (`OrderId`, `CustomerId`, `Amount`, `LatencyMs`) sendes som en log-attribut, så du kan filtrere og søge på dem i **Products → Protokoller**-udforskeren.
+Hver navngiven egenskab (`OrderId`, `CustomerId`, `Amount`, `LatencyMs`) sendes som en log-attribut, så du kan filtrere og søge på dem i **Produkter → Protokoller**-udforskeren.
 
 ## Undtagelser
 
@@ -214,7 +214,7 @@ catch (Exception ex)
 }
 ```
 
-OneUptime registrerer disse attributter og ruller automatisk fejlen ind i **Exceptions** (Issues)-visningen, grupperet efter fingeraftryk og tilskrevet den rigtige tjeneste. En fejl, der rapporteres af både et trace og en log, kollapser til et enkelt issue. Se [Undtagelser fra logs](/docs/telemetry/open-telemetry) for detaljer om, hvordan registreringen fungerer.
+OneUptime registrerer disse attributter og ruller automatisk fejlen ind i **Undtagelser** (Issues)-visningen, grupperet efter fingeraftryk og tilskrevet den rigtige tjeneste. En fejl, der rapporteres af både et trace og en log, kollapser til et enkelt issue. Se [Undtagelser fra logs](/docs/telemetry/open-telemetry) for detaljer om, hvordan registreringen fungerer.
 
 ## Trace-korrelation
 
@@ -223,7 +223,7 @@ Hvis din applikation også er instrumenteret med OpenTelemetry .NET SDK til trac
 ## Verificér
 
 1. Kør din applikation og generér nogle få loghændelser.
-2. Åbn OneUptime, gå til **Telemetry**, vælg din tjeneste (`my-service`), og åbn **Logs**.
+2. Åbn OneUptime, gå til **Telemetri**, vælg din tjeneste (`my-service`), og åbn **Protokoller**.
 3. Du bør se dine Serilog-hændelser dukke op inden for nogle få sekunder, med deres strukturerede egenskaber tilgængelige som filtre.
 
 ## Fejlfinding

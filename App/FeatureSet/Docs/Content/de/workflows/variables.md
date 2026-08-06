@@ -8,7 +8,7 @@ Es gibt zwei Arten, beide nutzen dieselbe Syntax.
 
 Projektweite Werte, die Sie einmal speichern und überall wiederverwenden. Denken Sie an API-Schlüssel, URLs, Kanalnamen – alles, was Sie nicht in zehn verschiedene Workflows kopieren möchten.
 
-Sie finden sie unter **Workflows → Globale Variablen**. Jede Variable hat:
+Sie finden sie unter **Arbeitsabläufe → Globale Variablen**. Jede Variable hat:
 
 - **Name** – wie Sie sie referenzieren. Verwenden Sie `UPPER_SNAKE_CASE`, damit sie in Ihren Bausteinen hervorsticht.
 - **Wert** – der tatsächliche Wert. Mehrzeilige Werte sind ebenfalls möglich.

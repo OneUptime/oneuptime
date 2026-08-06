@@ -14,8 +14,8 @@ DNSSEC monitors root zone से आपके domain तक के पूरे 
 
 ## DNSSEC Monitor बनाना
 
-1. OneUptime Dashboard में **Monitors** पर जाएं
-2. **Create Monitor** पर क्लिक करें
+1. OneUptime Dashboard में **मॉनिटर** पर जाएं
+2. **मॉनिटर बनाएं** पर क्लिक करें
 3. monitor type के रूप में **DNSSEC** चुनें
 4. वह zone (domain) दर्ज करें जिसे आप validate करना चाहते हैं
 5. आवश्यकतानुसार resolvers और monitoring criteria configure करें
@@ -70,28 +70,28 @@ DNSSEC monitors root zone से आपके domain तक के पूरे 
 #### DNSSEC chain टूटने पर Alert करें
 
 - **Check On**: DNSSEC Chain Is Valid
-- **Filter Type**: False
+- **फ़िल्टर प्रकार**: False
 
 #### signatures expire होने से पहले चेतावनी दें
 
 - **Check On**: DNSSEC Signature Expires In Days
-- **Filter Type**: Less Than
-- **Value**: 7
+- **फ़िल्टर प्रकार**: Less Than
+- **मान**: 7
 
 #### parent पर missing DS पकड़ें (delegation टूटा)
 
 - **Check On**: DNSSEC DS Record Exists At Parent
-- **Filter Type**: False
+- **फ़िल्टर प्रकार**: False
 
 #### resolvers के बीच असहमति का पता लगाएं
 
 - **Check On**: DNSSEC Resolver Consensus (AD Flag)
-- **Filter Type**: False
+- **फ़िल्टर प्रकार**: False
 
 #### nameserver data असंगति पकड़ें
 
 - **Check On**: DNSSEC Nameservers Are Consistent
-- **Filter Type**: False
+- **फ़िल्टर प्रकार**: False
 
 ## Best Practices
 

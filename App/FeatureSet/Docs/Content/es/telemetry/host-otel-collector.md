@@ -10,14 +10,14 @@ Puedes ejecutar el **OpenTelemetry Collector** como un servicio directamente en 
 - **Estado de las unidades de systemd** (que alimenta la pestaña **Systemd Units** del host) mediante el [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver) — incluido en la compilación oficial de `otelcol-contrib` a partir de la **v0.142.0**, utilizable a partir de la **v0.143.0** (consulta "Linux Services (unidades de systemd)" más abajo)
 - **Apple Unified Log** (macOS) mediante el [`logstransformprocessor`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/logstransformprocessor) que envuelve una salida de `log stream` capturada
 - **Windows Event Logs** mediante el [`windowseventlogreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowseventlogreceiver)
-- **Estado de los servicios de Windows** (que alimenta la pestaña **Services** del host) mediante el [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver) — incluido en la compilación oficial de `otelcol-contrib` a partir de la **v0.155.0** (consulta "Windows Services (métricas)" más abajo)
+- **Estado de los servicios de Windows** (que alimenta la pestaña **Servicios** del host) mediante el [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver) — incluido en la compilación oficial de `otelcol-contrib` a partir de la **v0.155.0** (consulta "Windows Services (métricas)" más abajo)
 
 > **¿Y el OneUptime Infrastructure Agent?** Ese agente es un demonio Go separado y ligero, centrado en métricas básicas y en la función _Server / VM Monitor_ (estado, procesos, alertas). El OpenTelemetry Collector descrito aquí es independiente y es la herramienta adecuada cuando quieres logs (logs de archivos, journald, Windows Event Logs) o métricas del host más completas ingeridas como OTLP estándar. Ambos pueden ejecutarse en el mismo host sin interferir entre sí.
 
 ## Requisitos previos
 
-- Un **OneUptime Telemetry Ingestion Token** — crea uno desde _Project Settings → Telemetría y APM → Claves de Ingesta_ y copia el valor de `x-oneuptime-token`.
-- La distribución **OpenTelemetry Collector Contrib** (`otelcol-contrib`). La compilación predeterminada `otelcol` **no** incluye receptores como `windowseventlogreceiver`, `journaldreceiver` ni los extras de `hostmetrics` — asegúrate de usar la distribución `contrib`. El `windowsservicereceiver` en alpha que alimenta la pestaña **Services** de Windows viene incluido en `otelcol-contrib` a partir de la **v0.155.0**, y el `systemdreceiver` en alpha que alimenta la pestaña **Systemd Units** de Linux a partir de la **v0.143.0**, así que instala una versión actual; consulta "Windows Services (métricas)" y "Linux Services (unidades de systemd)" más abajo.
+- Un **OneUptime Telemetry Ingestion Token** — crea uno desde _Ajustes del proyecto → Telemetría y APM → Claves de Ingesta_ y copia el valor de `x-oneuptime-token`.
+- La distribución **OpenTelemetry Collector Contrib** (`otelcol-contrib`). La compilación predeterminada `otelcol` **no** incluye receptores como `windowseventlogreceiver`, `journaldreceiver` ni los extras de `hostmetrics` — asegúrate de usar la distribución `contrib`. El `windowsservicereceiver` en alpha que alimenta la pestaña **Servicios** de Windows viene incluido en `otelcol-contrib` a partir de la **v0.155.0**, y el `systemdreceiver` en alpha que alimenta la pestaña **Systemd Units** de Linux a partir de la **v0.143.0**, así que instala una versión actual; consulta "Windows Services (métricas)" y "Linux Services (unidades de systemd)" más abajo.
 - Root / Administrador en el host para instalar el recolector como servicio y (donde corresponda) leer fuentes de logs privilegiadas.
 
 ## Paso 1 — Instalar el OpenTelemetry Collector
@@ -69,7 +69,7 @@ Crearás `/etc/otelcol-contrib/config.yaml` en el Paso 2 y un plist de `launchd`
 
 ### Windows
 
-En Windows, descarga la versión oficial de **`otelcol-contrib`** — incluye el receptor `windows_service` que alimenta la pestaña **Services** del host (a partir de la **v0.155.0**). Desde un símbolo del sistema de PowerShell **elevado**:
+En Windows, descarga la versión oficial de **`otelcol-contrib`** — incluye el receptor `windows_service` que alimenta la pestaña **Servicios** del host (a partir de la **v0.155.0**). Desde un símbolo del sistema de PowerShell **elevado**:
 
 ```powershell
 $VERSION = "0.156.0"                          # use v0.155.0 or later for the Services tab
@@ -83,7 +83,7 @@ tar -xf $tar -C $dest                          # tar.exe ships with Windows 10 1
 
 Esto descomprime `otelcol-contrib.exe` en `C:\Program Files\otelcol-contrib`. Crearás `config.yaml` en la misma carpeta en el Paso 2 y registrarás un servicio de Windows en el Paso 3.
 
-> ¿Prefieres un instalador nativo? OpenTelemetry también publica un **`.msi`** firmado (`otelcol-contrib_<version>_windows_x64.msi`) en la misma [página de releases](https://github.com/open-telemetry/opentelemetry-collector-releases/releases), que registra el recolector como un servicio de Windows por ti. Si lo usas, apúntalo al `config.yaml` del Paso 2 y asegúrate de que el servicio se ejecute como `LocalSystem` para que la pestaña **Services** pueda leer el Service Control Manager.
+> ¿Prefieres un instalador nativo? OpenTelemetry también publica un **`.msi`** firmado (`otelcol-contrib_<version>_windows_x64.msi`) en la misma [página de releases](https://github.com/open-telemetry/opentelemetry-collector-releases/releases), que registra el recolector como un servicio de Windows por ti. Si lo usas, apúntalo al `config.yaml` del Paso 2 y asegúrate de que el servicio se ejecute como `LocalSystem` para que la pestaña **Servicios** pueda leer el Service Control Manager.
 
 ## Paso 2 — Configurar el recolector
 
@@ -168,7 +168,7 @@ receivers:
 
 `start_at: end` significa que se capturan las líneas nuevas desde el momento en que el recolector arranca; cambia a `beginning` para rellenar datos anteriores en la primera ejecución. El recolector rastrea los desplazamientos de los archivos, por lo que reanuda correctamente tras los reinicios.
 
-**Convertir los rastros de pila de los logs del host en Exceptions.** OneUptime escanea automáticamente las líneas de log de error y fatales en busca de rastros de pila y los agrupa en la vista de **Exceptions** (Issues), atribuidos a este host — sin necesidad de configuración adicional. Para que esto se agrupe bien, un rastro de pila de varias líneas (Java, Python, .NET, Ruby) debe llegar como **un solo** registro de log, no como un registro por línea. Habilita la recombinación de varias líneas en el receptor `filelog` para que un rastro y sus fotogramas se mantengan juntos:
+**Convertir los rastros de pila de los logs del host en Exceptions.** OneUptime escanea automáticamente las líneas de log de error y fatales en busca de rastros de pila y los agrupa en la vista de **Excepciones** (Issues), atribuidos a este host — sin necesidad de configuración adicional. Para que esto se agrupe bien, un rastro de pila de varias líneas (Java, Python, .NET, Ruby) debe llegar como **un solo** registro de log, no como un registro por línea. Habilita la recombinación de varias líneas en el receptor `filelog` para que un rastro y sus fotogramas se mantengan juntos:
 
 ```yaml
 receivers:
@@ -204,7 +204,7 @@ El binario del recolector debe poder ejecutar `journalctl` (los paquetes Debian 
 
 ### Linux Services (unidades de systemd, métricas)
 
-La pestaña **Systemd Units** del host se alimenta del [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver) (tipo de configuración `systemd`), que informa del estado activo de las unidades de systemd como métricas — el equivalente en Linux de la pestaña **Services** en Windows.
+La pestaña **Systemd Units** del host se alimenta del [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver) (tipo de configuración `systemd`), que informa del estado activo de las unidades de systemd como métricas — el equivalente en Linux de la pestaña **Servicios** en Windows.
 
 **El receptor llegó por primera vez al binario oficial `otelcol-contrib` en la v0.142.0, y la v0.143.0 es la primera versión que merece la pena ejecutar** — en cualquier versión anterior, añadir `systemd` falla al arrancar con `'receivers' unknown type: "systemd"`, y la v0.142.0 por sí sola llama a su métrica de CPU `systemd.unit.cpu.time` y busca estadísticas de cgroups en cada unidad, lo que registra un error de scrape por cada unidad que no sea `.service`. La v0.143.0 renombró esa métrica a `systemd.service.cpu.time` y limitó esa búsqueda a los servicios. Instala una versión actual (Paso 1) y luego habilítalo en tu `config.yaml` y añádelo a la canalización de métricas:
 
@@ -307,7 +307,7 @@ windowseventlog/iis:
 
 ### Windows Services (métricas)
 
-La pestaña **Services** del host se alimenta del [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver) (tipo de configuración `windows_service`), que informa del estado de ejecución y del tipo de inicio de los servicios de Windows como métricas.
+La pestaña **Servicios** del host se alimenta del [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver) (tipo de configuración `windows_service`), que informa del estado de ejecución y del tipo de inicio de los servicios de Windows como métricas.
 
 **Este receptor se incluye en el binario oficial `otelcol-contrib` a partir de la v0.155.0** — en versiones anteriores, añadir `windows_service` falla al arrancar con `'receivers' unknown type: "windows_service"`. Instala una versión actual (Paso 1) y luego habilítalo en tu `config.yaml` y añádelo a la canalización de métricas:
 
@@ -330,7 +330,7 @@ service:
 
 El receptor emite un medidor `windows.service.status` por servicio — el entero es el estado del servicio Win32 (`4` = en ejecución, `1` = detenido) — con los atributos `name` y `startup_mode`. Ejecuta el recolector como `LocalSystem` (el valor predeterminado de `sc.exe`) para que pueda leer todos los servicios; cualquiera que no pueda abrir se omite. El receptor está en **alpha** y es **exclusivo de Windows**; entre los problemas conocidos se incluyen un error de scrape que podría hacer caer al recolector y un `access denied` en un servicio que afecta a otros — restríngelo a `include_services` si los encuentras.
 
-> **¿`include_services` no tiene efecto?** El filtro solo puede *acotar* el conjunto, así que si listas servicios y aun así los sigues viendo todos, es casi seguro que la configuración editada no ha llegado al recolector en ejecución. Reinicia el servicio después de editar (Paso 3); asegúrate de que `include_services` sea una lista con elementos con la misma indentación que `collection_interval` (que no quede comentada ni vacía); y dale unos minutos a la pestaña **Services** para que los servicios reportados antes del cambio caduquen de su ventana móvil. Los nombres son nombres de _clave_ de servicio de Windows exactos y sensibles a mayúsculas y minúsculas (por ejemplo, `Spooler`, `W3SVC`), que puedes listar con `Get-Service | Select-Object Name`.
+> **¿`include_services` no tiene efecto?** El filtro solo puede *acotar* el conjunto, así que si listas servicios y aun así los sigues viendo todos, es casi seguro que la configuración editada no ha llegado al recolector en ejecución. Reinicia el servicio después de editar (Paso 3); asegúrate de que `include_services` sea una lista con elementos con la misma indentación que `collection_interval` (que no quede comentada ni vacía); y dale unos minutos a la pestaña **Servicios** para que los servicios reportados antes del cambio caduquen de su ventana móvil. Los nombres son nombres de _clave_ de servicio de Windows exactos y sensibles a mayúsculas y minúsculas (por ejemplo, `Spooler`, `W3SVC`), que puedes listar con `Get-Service | Select-Object Name`.
 
 ### Ejemplo completo — host Linux
 
@@ -602,10 +602,10 @@ El servicio se ejecuta bajo `LocalSystem` de forma predeterminada, que tiene los
 1. Genera alguna señal en el host:
    - **Linux / macOS:** `logger "hello from oneuptime"` (escribe en syslog / journald).
    - **Windows:** `eventcreate /T INFORMATION /ID 999 /L APPLICATION /SO OneUptimeTest /D "hello from oneuptime"` desde un símbolo del sistema elevado.
-2. En el panel de OneUptime, abre **Products → Servicios** y elige el `service.name` que configuraste.
-3. Abre **Metrics** — las métricas del host (CPU, memoria, sistema de archivos, etc.) deberían aparecer en un minuto.
-4. Abre **Logs** — tus logs de archivos / entradas de journald / Windows Event Logs deberían estar transmitiéndose. Entre los atributos útiles para búsquedas se incluyen `log.file.name`, `systemd.unit`, `winlog.channel`, `winlog.event_id` y `winlog.provider.name`.
-5. Si habilitaste el receptor `systemd` (Linux) o `windows_service` (Windows), abre **Infrastructure → Hosts**, elige el host y revisa la pestaña **Systemd Units** / **Services** — cada unidad de la que se haga scrape debería aparecer con su estado actual.
+2. En el panel de OneUptime, abre **Productos → Servicios** y elige el `service.name` que configuraste.
+3. Abre **Métricas** — las métricas del host (CPU, memoria, sistema de archivos, etc.) deberían aparecer en un minuto.
+4. Abre **Registros** — tus logs de archivos / entradas de journald / Windows Event Logs deberían estar transmitiéndose. Entre los atributos útiles para búsquedas se incluyen `log.file.name`, `systemd.unit`, `winlog.channel`, `winlog.event_id` y `winlog.provider.name`.
+5. Si habilitaste el receptor `systemd` (Linux) o `windows_service` (Windows), abre **Infraestructura → Hosts**, elige el host y revisa la pestaña **Systemd Units** / **Servicios** — cada unidad de la que se haga scrape debería aparecer con su estado actual.
 
 ## Reducir el volumen de datos recopilados
 
@@ -783,7 +783,7 @@ service:
       exporters: [otlphttp]
 ```
 
-> **¿Estás editando la configuración que OneUptime generó para ti?** La canalización de arriba coincide con los ejemplos completos de esta página. La configuración del panel (Hosts → Documentation) nombra las cosas de otra manera: sus procesadores son `resourcedetection` y `batch` (**no** hay procesador `resource`) y su exportador es `otlphttp/oneuptime`. Referenciar un procesador que no está definido detiene el recolector al arrancar con `references processor "resource" which is not configured`. Añade el filtro a lo que ya está ahí en lugar de pegar este bloque encima:
+> **¿Estás editando la configuración que OneUptime generó para ti?** La canalización de arriba coincide con los ejemplos completos de esta página. La configuración del panel (Hosts → Documentación) nombra las cosas de otra manera: sus procesadores son `resourcedetection` y `batch` (**no** hay procesador `resource`) y su exportador es `otlphttp/oneuptime`. Referenciar un procesador que no está definido detiene el recolector al arrancar con `references processor "resource" which is not configured`. Añade el filtro a lo que ya está ahí en lugar de pegar este bloque encima:
 >
 > ```yaml
 > service:
@@ -848,7 +848,7 @@ service:
 
 Vuelve a añadir una canalización de `logs` con un receptor `filelog` o `journald` de alcance reducido cuando lo necesites.
 
-> **Ten cuidado con lo que recortas.** Las alertas basadas en logs necesitan que los logs lleguen: si filtras una gravedad o un canal, los monitores que dependen de ello se quedan en silencio. Recorta las fuentes sobre las que no actúas, no las que un monitor está vigilando. Cambia una palanca cada vez y confirma la reducción en **Project Settings → Usage History** (el uso se agrega a diario, así que dale un día o dos) antes de pasar a la siguiente.
+> **Ten cuidado con lo que recortas.** Las alertas basadas en logs necesitan que los logs lleguen: si filtras una gravedad o un canal, los monitores que dependen de ello se quedan en silencio. Recorta las fuentes sobre las que no actúas, no las que un monitor está vigilando. Cambia una palanca cada vez y confirma la reducción en **Ajustes del proyecto → Historial de Uso** (el uso se agrega a diario, así que dale un día o dos) antes de pasar a la siguiente.
 
 ## OneUptime autoalojado
 
@@ -879,7 +879,7 @@ El OpenTelemetry Collector respeta las variables de entorno estándar `HTTPS_PRO
   - **Linux / macOS:** `journalctl -u otelcol-contrib -f` (Linux) o `tail -f /var/log/otelcol-contrib.err.log` (macOS).
   - **Windows:** mira en _Event Viewer → Windows Logs → Application_ la fuente `otelcol-contrib`.
   - Confirma que el host puede alcanzar `https://oneuptime.com/otlp` (o tu endpoint autoalojado): `curl -v https://oneuptime.com/otlp` desde la misma máquina.
-- **HTTP 401 desde el exportador** — el token de ingestión es inválido o ha sido revocado. Genera uno nuevo desde _Project Settings → Telemetría y APM → Claves de Ingesta_.
+- **HTTP 401 desde el exportador** — el token de ingestión es inválido o ha sido revocado. Genera uno nuevo desde _Ajustes del proyecto → Telemetría y APM → Claves de Ingesta_.
 - **El canal `Security` de Windows Event Log devuelve acceso denegado** — el servicio no se ejecuta con privilegios suficientes. Recréalo bajo `LocalSystem` (el valor predeterminado con `sc.exe create`) o concede a la cuenta del servicio el derecho de usuario _Manage auditing and security log_.
 - **El receptor `journald` no arranca** — asegúrate de que `journalctl` esté en el `PATH` del recolector y de que exista `/var/log/journal` (ejecuta `sudo systemd-tmpfiles --create --prefix /var/log/journal` si no es así).
 - **El receptor `systemd` informa de un error de conexión con D-Bus** — el recolector no puede alcanzar el bus del sistema. Confirma que `/run/dbus/system_bus_socket` existe y que el usuario del recolector puede abrirlo; ejecutar `systemctl list-units` con ese usuario es la comprobación más rápida. No hace falta root. Un recolector que se ejecuta dentro de un contenedor no ve ningún bus salvo que montes el socket del host, así que prefiere una instalación nativa para este receptor.

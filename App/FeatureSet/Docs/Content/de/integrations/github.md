@@ -2,7 +2,7 @@
 
 Öffnen Sie automatisch ein [GitHub](https://github.com)-Issue, wenn ein OneUptime-Vorfall erstellt wird – damit technische Nachverfolgung im Repository erfasst wird, das den betroffenen Service besitzt.
 
-Diese Integration ist **ausgehend**: OneUptime ruft die [GitHub REST API](https://docs.github.com/en/rest/issues/issues) auf. Sie verwendet einen OneUptime-**[Workflow](/docs/workflows/index)** mit einem **Incident → On Create**-Auslöser und einer **API-Komponente**.
+Diese Integration ist **ausgehend**: OneUptime ruft die [GitHub REST API](https://docs.github.com/en/rest/issues/issues) auf. Sie verwendet einen OneUptime-**[Workflow](/docs/workflows/index)** mit einem **Vorfall → On Create**-Auslöser und einer **API-Komponente**.
 
 > **Suchen Sie die tiefere GitHub-Verbindung?** OneUptime hat auch eine native **GitHub App**-Integration zum Verbinden von Code-Repositories (verwendet von der KI-Agent- und Code-Funktion). Diese wird mit Umgebungsvariablen konfiguriert, nicht mit Workflows – siehe [GitHub-Integration (selbst gehostet)](/docs/self-hosted/github-integration). Diese Seite behandelt speziell das _Anlegen von Issues aus Vorfällen_.
 
@@ -24,13 +24,13 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 
 ## Schritt 1 — Den Token speichern
 
-1. Gehen Sie zu **Workflows → Global Variables → Create**.
+1. Gehen Sie zu **Arbeitsabläufe → Globale Variablen → Erstellen**.
 2. Benennen Sie die Variable `GITHUB_TOKEN`, fügen Sie den Token ein und aktivieren Sie **Is Secret**.
 
 ## Schritt 2 — Den Workflow erstellen
 
-1. Öffnen Sie **Workflows → Create Workflow**, benennen Sie ihn `Incidents → GitHub Issues`, und öffnen Sie den **Builder**.
-2. Fügen Sie einen **Incident**-Auslöser mit **On Create** hinzu. Benennen Sie ihn in `Incident` um.
+1. Öffnen Sie **Arbeitsabläufe → Workflow erstellen**, benennen Sie ihn `Incidents → GitHub Issues`, und öffnen Sie den **Builder**.
+2. Fügen Sie einen **Vorfall**-Auslöser mit **On Create** hinzu. Benennen Sie ihn in `Incident` um.
 3. Fügen Sie einen **API**-Block verbunden mit dem Auslöser hinzu:
 
    - **Method**: `POST`

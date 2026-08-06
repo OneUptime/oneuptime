@@ -14,8 +14,8 @@ DNS-monitorer spør DNS-servere om spesifikke posttyper og evaluerer resultatene
 
 ## Opprette en DNS-monitor
 
-1. Gå til **Monitors** i OneUptime-dashbordet
-2. Klikk **Create Monitor**
+1. Gå til **Overvåkere** i OneUptime-dashbordet
+2. Klikk **Opprett monitor**
 3. Velg **DNS** som monitortype
 4. Skriv inn domenenavnet og posttypen som skal spørres
 5. Konfigurer overvåkingskriterier etter behov
@@ -91,22 +91,22 @@ For **DNS Record Value**:
 
 #### Sjekk om DNS løser opp
 
-- **Sjekk på**: DNS Is Online
+- **Check On**: DNS Is Online
 - **Filtertype**: True
 
 #### Verifiser at A-posten peker til korrekt IP
 
-- **Sjekk på**: DNS Record Value
+- **Check On**: DNS Record Value
 - **Filtertype**: Equal To
 - **Verdi**: `93.184.216.34`
 
 #### Varsle hvis DNS-svaret er tregt
 
-- **Sjekk på**: DNS Response Time (in ms)
+- **Check On**: DNS Response Time (in ms)
 - **Filtertype**: Greater Than
 - **Verdi**: 500
 
 #### Verifiser at DNSSEC er gyldig
 
-- **Sjekk på**: DNSSEC Is Valid
+- **Check On**: DNSSEC Is Valid
 - **Filtertype**: True

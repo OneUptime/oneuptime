@@ -14,10 +14,10 @@
 
 ## 建立傳入請求監控器
 
-1. 前往 OneUptime 儀表板中的 **Monitors**
-2. 點擊 **Create Monitor**
+1. 前往 OneUptime 儀表板中的 **監測**
+2. 點擊 **建立監測器**
 3. 選擇 **Incoming Request** 作為監控器類型
-4. 系統會為此監控器產生一組 **Secret Key** 與心跳 URL
+4. 系統會為此監控器產生一組 **密鑰金鑰** 與心跳 URL
 5. 設定您的服務以傳送請求至心跳 URL
 6. 視需要設定監控條件
 
@@ -88,7 +88,7 @@ requests.get('https://oneuptime.com/heartbeat/YOUR_SECRET_KEY')
 - **Received In Minutes** — 在指定的分鐘數內收到心跳
 - **Not Received In Minutes** — 在指定的分鐘數內未收到心跳
 
-對於 **Request Body**、**Request Header** 與 **Request Header Value**：
+對於 **請求內文**、**Request Header** 與 **Request Header Value**：
 
 - **Contains** — 值包含指定的文字
 - **Not Contains** — 值不包含指定的文字
@@ -98,14 +98,14 @@ requests.get('https://oneuptime.com/heartbeat/YOUR_SECRET_KEY')
 #### 若 10 分鐘內未收到心跳則標記為離線
 
 - **Check On**：Incoming Request
-- **Filter Type**：Not Received In Minutes
-- **Value**：10
+- **篩選器類型**：Not Received In Minutes
+- **值**：10
 
 #### 根據請求內文內容標記為效能降級
 
 - **Check On**：Request Body
-- **Filter Type**：Contains
-- **Value**：`"status": "degraded"`
+- **篩選器類型**：Contains
+- **值**：`"status": "degraded"`
 
 ## 最佳實務
 

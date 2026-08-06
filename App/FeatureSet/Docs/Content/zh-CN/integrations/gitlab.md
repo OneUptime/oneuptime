@@ -2,7 +2,7 @@
 
 每当创建 OneUptime 事件时，自动创建一个 [GitLab](https://gitlab.com) issue——让工程跟进工作落在拥有受影响服务的项目中。
 
-此集成为**出站**模式：OneUptime 调用 [GitLab REST API](https://docs.gitlab.com/ee/api/issues.html)。它使用带有 **Incident → On Create** 触发器和 **API 组件**的 OneUptime **[工作流](/docs/workflows/index)**。在 GitLab.com 和自托管 GitLab 上的操作方式完全相同。
+此集成为**出站**模式：OneUptime 调用 [GitLab REST API](https://docs.gitlab.com/ee/api/issues.html)。它使用带有 **事件 → On Create** 触发器和 **API 组件**的 OneUptime **[工作流](/docs/workflows/index)**。在 GitLab.com 和自托管 GitLab 上的操作方式完全相同。
 
 ```text
 OneUptime Incident → On Create  ──►  API component (POST /projects/{id}/issues)  ──►  GitLab issue
@@ -16,13 +16,13 @@ OneUptime Incident → On Create  ──►  API component (POST /projects/{id}/
 
 ## 步骤 1——存储令牌
 
-1. 前往 **Workflows → Global Variables → Create**。
+1. 前往 **工作流 → 全局变量 → 创建**。
 2. 命名为 `GITLAB_TOKEN`，粘贴令牌，并开启 **Is Secret**。
 
 ## 步骤 2——构建工作流
 
-1. 打开 **Workflows → Create Workflow**，命名为 `Incidents → GitLab Issues`，并打开 **Builder**。
-2. 添加 **Incident** 触发器，设置为 **On Create**。重命名为 `Incident`。
+1. 打开 **工作流 → 创建工作流**，命名为 `Incidents → GitLab Issues`，并打开 **生成器**。
+2. 添加 **事件** 触发器，设置为 **On Create**。重命名为 `Incident`。
 3. 添加连接到触发器的 **API** 模块：
 
    - **Method**：`POST`

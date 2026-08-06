@@ -15,7 +15,7 @@ I monitor metriche interrogano e valutano metriche numeriche dai servizi di tele
 ## Creazione di un Monitor Metriche
 
 1. Accedere a **Monitor** nel Dashboard di OneUptime
-2. Fare clic su **Crea Monitor**
+2. Fare clic su **Crea monitor**
 3. Selezionare **Metriche** come tipo di monitor
 4. Configurare le query metriche e le formule opzionali
 5. Selezionare la strategia di aggregazione
@@ -93,14 +93,14 @@ Scegliere come aggregare i valori delle metriche per la valutazione:
 - **Query b**: `http_requests_total`
 - **Formula**: `a / b * 100`
 - **Controlla Su**: Valore Metrica
-- **Tipo Filtro**: Maggiore Di
+- **Tipo di filtro**: Maggiore Di
 - **Valore**: 5
 
 #### Avviso se la profondità della coda di richieste è elevata
 
 - **Query**: `request_queue_size`, aggregazione: Valore Massimo
 - **Controlla Su**: Valore Metrica
-- **Tipo Filtro**: Maggiore Di
+- **Tipo di filtro**: Maggiore Di
 - **Valore**: 1000
 
 ## Requisiti di Configurazione

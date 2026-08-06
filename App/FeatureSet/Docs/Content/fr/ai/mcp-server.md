@@ -32,7 +32,7 @@ Avec le serveur MCP de OneUptime, les assistants IA peuvent vous aider à :
 - **Opérations d'équipe** : Gérer les équipes et les politiques d'astreinte
 - **Pages de statut** : Gérer les pages de statut et créer des annonces
 - **Alertes** : Prendre en charge et résoudre les alertes, ajouter des notes d'alerte et gérer les états et sévérités des alertes
-- **Maintenance programmée** : Créer et gérer des événements de maintenance programmée
+- **Maintenance planifiée** : Créer et gérer des événements de maintenance programmée
 - **Télémétrie** : Interroger les journaux, les métriques, les traces, les exceptions et les journaux de moniteurs (lecture seule)
 
 ## Prérequis
@@ -427,7 +427,7 @@ Le serveur MCP fournit des outils pour les ressources suivantes :
 **Incidents** : Incident, Incident State, Incident Severity, Incident State Timeline, Incident Public Note, Incident Internal Note
 **Alertes** : Alert, Alert State, Alert Severity, Alert State Timeline, Alert Internal Note
 **Pages de statut** : Status Page, Status Page Announcement
-**Maintenance programmée** : Scheduled Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline
+**Maintenance planifiée** : Scheduled Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline
 **Équipes et astreinte** : Team, On-Call Policy
 **Étiquettes** : Label
 **Télémétrie (lecture seule)** : Log, Metric, Span, Exception Instance, Monitor Log

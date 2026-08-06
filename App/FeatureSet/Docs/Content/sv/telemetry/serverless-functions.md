@@ -2,13 +2,13 @@
 
 ## Översikt
 
-OneUptime känner automatiskt igen en **serverlös funktion** i samma ögonblick som den tar emot OpenTelemetry-data märkt med resursattributet `faas.name`. Det finns ingenting att skapa för hand — instrumentera din funktion med OpenTelemetry SDK för din runtime, peka dess OTLP-exportör mot OneUptime, så dyker funktionen upp under **Serverless Functions** med sina spårningar, loggar och mätvärden.
+OneUptime känner automatiskt igen en **serverlös funktion** i samma ögonblick som den tar emot OpenTelemetry-data märkt med resursattributet `faas.name`. Det finns ingenting att skapa för hand — instrumentera din funktion med OpenTelemetry SDK för din runtime, peka dess OTLP-exportör mot OneUptime, så dyker funktionen upp under **Serverlösa funktioner** med sina spårningar, loggar och mätvärden.
 
 Detta fungerar för AWS Lambda, Google Cloud Functions, Azure Functions, Cloudflare Workers eller vilken FaaS-runtime som helst som kan sända OpenTelemetry.
 
 ## Förutsättningar
 
-- En **OneUptime Telemetry Ingestion Token** — skapa en från _Project Settings → Telemetri och APM → Intagningsnycklar_ och kopiera värdet för `x-oneuptime-token`.
+- En **OneUptime Telemetry Ingestion Token** — skapa en från _Projektinställningar → Telemetri och APM → Intagningsnycklar_ och kopiera värdet för `x-oneuptime-token`.
 - OpenTelemetry SDK (eller ett lager för automatisk instrumentering) för din funktions språk.
 
 ## Hur OneUptime identifierar en funktion
@@ -19,11 +19,11 @@ OneUptime nycklar varje funktion på resursattributet `faas.name`:
 | ------------------------------------------------------ | ------------- | ----------------------------------------------------------- |
 | `faas.name`                                            | **ja**        | Funktionsidentitet (t.ex. `checkout-handler`)               |
 | `faas.version`                                         | nej           | Visas i översikten                                          |
-| `faas.instance`                                        | nej           | Spåras per instans under fliken **Instances**               |
+| `faas.instance`                                        | nej           | Spåras per instans under fliken **Instanser**               |
 | `cloud.platform`                                       | nej           | `aws_lambda`, `gcp_cloud_functions`, `azure_functions`, ... |
 | `cloud.provider` / `cloud.region` / `cloud.account.id` | nej           | Visas i översikten                                          |
 
-> En funktion som även sätter `service.name` visas fortfarande under **Services** också. Vyn **Serverless Functions** är den FaaS-fokuserade linsen, avgränsad av `faas.name`.
+> En funktion som även sätter `service.name` visas fortfarande under **Tjänster** också. Vyn **Serverlösa funktioner** är den FaaS-fokuserade linsen, avgränsad av `faas.name`.
 
 ## Steg 1 — Ställ in miljövariablerna för OTLP-exportören
 
@@ -51,10 +51,10 @@ Lagret sätter `faas.name` från funktionsnamnet automatiskt, och resursdetektor
 
 ## Vad du får
 
-När funktionen sänder en span, logg eller ett mätvärde visas den under **Serverless Functions**. Översikten visar:
+När funktionen sänder en span, logg eller ett mätvärde visas den under **Serverlösa funktioner**. Översikten visar:
 
-- **Invocations**, **error rate** och **p95 duration** — härledda från dina spårningar, över ett valbart tidsintervall, med trenddiagram.
-- **Instances** — en liveräkning av de `faas.instance`-värden som setts.
-- Fullständiga flikar för **Logs**, **Traces** och **Metrics** avgränsade till denna funktion.
+- **Anrop**, **Felfrekvens** och **p95-varaktighet** — härledda från dina spårningar, över ett valbart tidsintervall, med trenddiagram.
+- **Instanser** — en liveräkning av de `faas.instance`-värden som setts.
+- Fullständiga flikar för **Loggar**, **Spår** och **Mätvärden** avgränsade till denna funktion.
 
-Du kan även automatiskt tillämpa etiketter och ägare via _Serverless → Settings → Label Rules / Owner Rules_.
+Du kan även automatiskt tillämpa etiketter och ägare via _Serverlös → Inställningar → Etikettregler / Ägarregler_.

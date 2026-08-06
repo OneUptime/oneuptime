@@ -10,7 +10,7 @@ OneUptime 透過擷取標準的 OpenTelemetry (OTLP) 指標來監控 IoT 裝置�
 
 - 一個能夠將 OTLP/HTTP 傳送到 OneUptime 的裝置、閘道器或 collector
 - 從裝置／閘道器到你的 OneUptime 執行個體之間的網路連通性
-- 一個 **OneUptime 遙測擷取權杖（Telemetry Ingestion Token）** — 從 _Project Settings → 遙測與 APM → 擷取金鑰_ 建立一個，並複製 `x-oneuptime-token` 的值
+- 一個 **OneUptime 遙測擷取權杖（Telemetry Ingestion Token）** — 從 _專案設定 → 遙測與 APM → 擷取金鑰_ 建立一個，並複製 `x-oneuptime-token` 的值
 
 ## OneUptime 如何建模 IoT
 
@@ -212,7 +212,7 @@ OneUptime 可辨識下列 `iot_*` 指標名稱。每個資料點都應帶有 `de
 1. 確認你的裝置或閘道器在匯出時沒有錯誤（檢查 SDK／collector 記錄是否有匯出失敗以及 HTTP `401`/`403` 回應）。
 2. 在 OneUptime 儀表板中，開啟 **IoT** 區段 — 你的機群應在大約一分鐘內以 `iot/<fleet>` 的形式出現。
 3. 開啟該機群的 **Devices** 分頁 — 你傳送的每個 `device.id` 都應列出，並顯示其最新的電池、訊號、溫度、CPU、記憶體與上線／下線狀態。
-4. 開啟該機群下的 **Metrics**，以繪製上述任何 `iot_*` 序列的圖表。
+4. 開啟該機群下的 **指標**，以繪製上述任何 `iot_*` 序列的圖表。
 
 ## 疑難排解
 
@@ -230,7 +230,7 @@ OneUptime 可辨識下列 `iot_*` 指標名稱。每個資料點都應帶有 `de
 
 ### 匯出器傳回 HTTP 401 / 403
 
-擷取權杖無效、已撤銷或遺漏。請從 _Project Settings → 遙測與 APM → 擷取金鑰_ 產生一個新的，並更新 `x-oneuptime-token` 標頭。
+擷取權杖無效、已撤銷或遺漏。請從 _專案設定 → 遙測與 APM → 擷取金鑰_ 產生一個新的，並更新 `x-oneuptime-token` 標頭。
 
 ### 指標未繪製成圖表
 

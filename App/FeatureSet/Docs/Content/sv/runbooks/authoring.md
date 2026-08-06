@@ -1,6 +1,6 @@
 # Skriva ett runbook
 
-Skapa ett runbook under **Runbooks → Skapa runbook**, öppna det och gå till fliken **Steps**.
+Skapa ett runbook under **Runbooks → Create Runbook**, öppna det och gå till fliken **Steg**.
 
 ## Anatomin av ett steg
 
@@ -14,7 +14,7 @@ Varje steg har:
 | **Kräver godkännande**        | Om på pausar runbooket efter detta steg och väntar tills en användare godkänner innan nästa steg körs. |
 | **Typspecifik konfiguration** | Skript, URL, agent, etc. — se nedan.                                                                   |
 
-Steg körs **i ordning**. Omordna dem med upp/ned-pilarna i Steps-editorn.
+Steg körs **i ordning**. Omordna dem med upp/ned-pilarna i Steg-editorn.
 
 ## Stegtyper
 
@@ -60,11 +60,11 @@ Konfigurera följande på ett Bash-steg:
 - **Körnings-timeout** — hur länge agenten låter skriptet köra innan den dödar det med `SIGKILL`. Standard är 30 sekunder; höj den för steg som verkligen tar flera minuter.
 - **Claim-timeout** — hur länge Worker'n väntar på att agenten plockar upp jobbet. Standard är 2 minuter.
 
-Om den valda agenten är offline när runbooket når detta steg väntar steget upp till **claim-timeouten** (standard 2 minuter) och misslyckas sedan med `TimedOut`. Lägg till en agent under **Settings → Runners** innan du lutar dig mot ett Bash-steg.
+Om den valda agenten är offline när runbooket når detta steg väntar steget upp till **claim-timeouten** (standard 2 minuter) och misslyckas sedan med `TimedOut`. Lägg till en agent under **Inställningar → Runbook-agenter** innan du lutar dig mot ett Bash-steg.
 
 ### AI
 
-Be AI analysera, sammanfatta eller avgöra något mitt i körningen. Prompten skickas till ditt projekts LLM-leverantör (**Settings → AI → LLM Providers**) och modellens svar blir stegets utdata på körningstidslinjen. AI-steg körs direkt på OneUptime-Worker'n; ingen agent krävs.
+Be AI analysera, sammanfatta eller avgöra något mitt i körningen. Prompten skickas till ditt projekts LLM-leverantör (**Inställningar → AI → LLM-leverantörer**) och modellens svar blir stegets utdata på körningstidslinjen. AI-steg körs direkt på OneUptime-Worker'n; ingen agent krävs.
 
 Konfigurera på ett AI-steg:
 

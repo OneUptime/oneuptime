@@ -57,8 +57,8 @@ O registro completo é repassado ao próximo bloco. Por exemplo, o gatilho **Inc
 - **Incidente** — reagir quando um incidente é aberto, atualizado (confirmado, resolvido) ou excluído.
 - **Alerta** — os mesmos três para alertas.
 - **Monitor** — reagir quando um monitor é adicionado, editado ou removido.
-- **Manutenção Programada** — anunciar uma janela de manutenção automaticamente quando ela é agendada.
-- **Inscrito em Página de Status** — dar boas-vindas a quem se inscreve em uma página de status.
+- **Manutenção programada** — anunciar uma janela de manutenção automaticamente quando ela é agendada.
+- **Página de status Assinante** — dar boas-vindas a quem se inscreve em uma página de status.
 - **Política de Plantão** — sincronizar mudanças de escala com outro sistema de escalas.
 
 Busque pelo nome na paleta de gatilhos para encontrar o que você quer.
@@ -68,7 +68,7 @@ Busque pelo nome na paleta de gatilhos para encontrar o que você quer.
 | Se você quer…                               | Escolha                 |
 | ------------------------------------------- | ----------------------- |
 | Clicar em um botão para executar o workflow | **Manual**              |
-| Executar em um agendamento recorrente       | **Agendado**            |
+| Executar em um agendamento recorrente       | **Agendamento**         |
 | Ter outro sistema enviando dados            | **Webhook**             |
 | Reagir a algo dentro do OneUptime           | **Evento do OneUptime** |
 

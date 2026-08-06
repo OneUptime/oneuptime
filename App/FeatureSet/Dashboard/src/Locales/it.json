@@ -4135,6 +4135,7 @@
   "Processors transform spans as they flow through the pipeline. They run in order after the filter conditions match. Each processor modifies the span before it is stored.": "I processori trasformano gli span mentre attraversano la pipeline. Vengono eseguiti in ordine dopo che le condizioni del filtro corrispondono. Ogni processore modifica lo span prima che venga archiviato.",
   "Processors transform spans matched by this pipeline. They run in the order shown below. Drag to reorder.": "I processori trasformano gli span corrispondenti a questa pipeline. Vengono eseguiti nell'ordine mostrato di seguito. Trascina per riordinare.",
   "Product": "Prodotto",
+  "Products": "Prodotti",
   "Production API Health": "Stato dell'API di produzione",
   "Production cluster running in US East": "Cluster di produzione in esecuzione in US East",
   "Production cluster running in US East region on EKS": "Cluster di produzione in esecuzione nella regione US East su EKS",

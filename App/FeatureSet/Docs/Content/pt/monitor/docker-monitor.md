@@ -14,8 +14,8 @@ Os monitores do Docker usam métricas e logs dos seus hosts para fornecer visibi
 
 ## Criando um Monitor do Docker
 
-1. Vá para **Monitors** no Painel do OneUptime
-2. Clique em **Create Monitor**
+1. Vá para **Monitores** no Painel do OneUptime
+2. Clique em **Criar monitor**
 3. Selecione **Docker** como o tipo de monitor
 4. Selecione o host Docker e o escopo de recurso para monitorar
 5. Configure consultas de métricas e agregação
@@ -40,10 +40,10 @@ Escolha o nível no qual monitorar recursos:
 
 Configure uma ou mais consultas de métricas para avaliar. Cada consulta especifica:
 
-- **Nome da métrica** — A métrica do contêiner a consultar
+- **Nome da Métrica** — A métrica do contêiner a consultar
 - **Agregação** — Como agregar valores de métricas (Méd, Soma, Máx, Mín)
 - **Filtros** — Filtragem adicional baseada em atributos (ex.: por nome do contêiner, imagem ou host)
-- **Group By** — Opcionalmente agrupar por `resource.container.name` para que cada contêiner seja avaliado de forma independente
+- **Agrupar Por** — Opcionalmente agrupar por `resource.container.name` para que cada contêiner seja avaliado de forma independente
 
 Você também pode criar **fórmulas** que combinam múltiplas consultas de métricas usando expressões matemáticas.
 
@@ -150,7 +150,7 @@ Além das métricas, o Agente Docker acompanha o arquivo `*-json.log` de cada co
 - `body` — a linha de log bruta emitida pelo processo do contêiner
 - `time` — o timestamp do daemon Docker para a linha
 
-Os logs aparecem na aba **Logs** do host Docker e na página de detalhes de cada contêiner.
+Os logs aparecem na aba **Registros** do host Docker e na página de detalhes de cada contêiner.
 
 ### Requisito do Driver de Log
 
@@ -160,7 +160,7 @@ Os logs aparecem na aba **Logs** do host Docker e na página de detalhes de cada
 - **`journald`**, **`syslog`**, **`fluentd`**, **`gelf`**, **`awslogs`**, **`splunk`**, etc. — enviam logs para um destino remoto; nenhum arquivo para acompanhar.
 - **`none`** — descarta os logs completamente.
 
-Se algum dos acima estiver em uso, você verá métricas na página do host Docker, mas a aba **Logs** estará vazia (ou conterá apenas os logs do próprio Agente Docker).
+Se algum dos acima estiver em uso, você verá métricas na página do host Docker, mas a aba **Registros** estará vazia (ou conterá apenas os logs do próprio Agente Docker).
 
 **Verificar o driver de log de um contêiner específico:**
 

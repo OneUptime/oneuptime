@@ -14,9 +14,9 @@ Os monitores de domínio consultam dados WHOIS para seus domínios para rastrear
 
 ## Criando um Monitor de Domínio
 
-1. Vá para **Monitors** no Painel do OneUptime
-2. Clique em **Create Monitor**
-3. Selecione **Domain** como o tipo de monitor
+1. Vá para **Monitores** no Painel do OneUptime
+2. Clique em **Criar monitor**
+3. Selecione **Domínio** como o tipo de monitor
 4. Insira o nome do domínio que deseja monitorar
 5. Configure os critérios de monitoramento conforme necessário
 
@@ -74,19 +74,19 @@ Para **Domain Registrar**, **Domain Name Server** e **Domain Status Code**:
 #### Alertar se o domínio expirar em 30 dias
 
 - **Check On**: Domain Expires In Days
-- **Filter Type**: Less Than
-- **Value**: 30
+- **Tipo de filtro**: Less Than
+- **Valor**: 30
 
 #### Marcar como offline se o domínio estiver expirado
 
 - **Check On**: Domain Is Expired
-- **Filter Type**: True
+- **Tipo de filtro**: True
 
 #### Verificar se os servidores de nomes estão corretos
 
 - **Check On**: Domain Name Server
-- **Filter Type**: Contains
-- **Value**: `ns1.example.com`
+- **Tipo de filtro**: Contains
+- **Valor**: `ns1.example.com`
 
 ## Melhores Práticas
 

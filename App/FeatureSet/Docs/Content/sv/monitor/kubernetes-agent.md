@@ -92,7 +92,7 @@ Du kan också inaktivera logginsamling helt med `--set logs.enabled=false` och s
 
 Diagrammet levererar en DaemonSet som kör [OpenTelemetry eBPF Instrumentation (OBI)](https://opentelemetry.io/docs/zero-code/obi/) på varje nod. OBI laddar eBPF-program i Linux-kärnan och bevakar trafik på socketnivå för att rekonstruera HTTP/HTTPS-, gRPC- och SQL/Redis-anrop från varje pod på noden — inga kodändringar, ingen SDK, ingen sidecar. Insamlad trafik exporteras som OTLP-spårningar och förfrågnings-/latensmätvärden direkt till OneUptime.
 
-Efter installationen börjar dina tjänster visas under **Products → Spår** och tjänstekartan inom en minut eller två, med `k8s.cluster.name` satt till ditt `clusterName` så att du kan filtrera per kluster.
+Efter installationen börjar dina tjänster visas under **Produkter → Spår** och tjänstekartan inom en minut eller två, med `k8s.cluster.name` satt till ditt `clusterName` så att du kan filtrera per kluster.
 
 ### När du ska stänga av det
 
@@ -163,7 +163,7 @@ kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=2
 
 ## Kontinuerlig CPU-profilering (av som standard)
 
-En separat DaemonSet kör [OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) — paketerad som avbildningen `otel/opentelemetry-collector-ebpf-profiler`. Den samplar stackar på CPU vid 19 Hz för varje stödd runtime (Go, Java, .NET, Python, Ruby, Node.js, PHP, Perl, C/C++, Rust) och skickar OTLP-profiler till OneUptime, där de visas under **Products → Prestandaprofiler** och som flame graphs länkade från enskilda spår-spans.
+En separat DaemonSet kör [OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) — paketerad som avbildningen `otel/opentelemetry-collector-ebpf-profiler`. Den samplar stackar på CPU vid 19 Hz för varje stödd runtime (Go, Java, .NET, Python, Ruby, Node.js, PHP, Perl, C/C++, Rust) och skickar OTLP-profiler till OneUptime, där de visas under **Produkter → Prestandaprofiler** och som flame graphs länkade från enskilda spår-spans.
 
 Profilering är **av som standard** — den är tyngre än OBI-autoinstrumenteringen (mer CPU per nod, större minnesavtryck) och alla kluster vill inte ha alltid-på flame graphs. Aktivera den när du vill ha rikare telemetri: `--set profiling.enabled=true`.
 
@@ -206,7 +206,7 @@ Diagrammet kan också samla in:
 | ----------------------------------------- | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `preset`                                  | (tom — behandlas som `standard`) | Se tabellen ovan.                                                                                                                                                                        |
 | `oneuptime.url`                           | _(krävs)_                        | URL till din OneUptime-instans.                                                                                                                                                          |
-| `oneuptime.apiKey`                        | _(krävs)_                        | Projekt-API-nyckel (Settings → API Keys).                                                                                                                                                |
+| `oneuptime.apiKey`                        | _(krävs)_                        | Projekt-API-nyckel (Inställningar → API-nycklar).                                                                                                                                        |
 | `clusterName`                             | _(krävs)_                        | Unikt namn för detta kluster. Stämplas som `k8s.cluster.name` på varje post.                                                                                                             |
 | `namespaceFilters.rules`                  | Uteslut kube-system från podLogs och ebpfDiscovery | Scopade include/exclude-regler för podLogs, ebpfDiscovery, metrics och traces. Namespace-mönster stöder * och exclude vinner alltid. |
 | `logs.enabled`                            | `true`                           | Aktivera eller inaktivera logginsamling.                                                                                                                                                 |

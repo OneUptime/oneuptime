@@ -2,7 +2,7 @@
 
 Öffnen Sie automatisch ein [GitLab](https://gitlab.com)-Issue, wenn ein OneUptime-Vorfall erstellt wird – damit technische Nachverfolgung im Projekt landet, das den betroffenen Service besitzt.
 
-Diese Integration ist **ausgehend**: OneUptime ruft die [GitLab REST API](https://docs.gitlab.com/ee/api/issues.html) auf. Sie verwendet einen OneUptime-**[Workflow](/docs/workflows/index)** mit einem **Incident → On Create**-Auslöser und einer **API-Komponente**. Sie funktioniert auf GitLab.com und selbstverwaltetem GitLab gleich.
+Diese Integration ist **ausgehend**: OneUptime ruft die [GitLab REST API](https://docs.gitlab.com/ee/api/issues.html) auf. Sie verwendet einen OneUptime-**[Workflow](/docs/workflows/index)** mit einem **Vorfall → On Create**-Auslöser und einer **API-Komponente**. Sie funktioniert auf GitLab.com und selbstverwaltetem GitLab gleich.
 
 ```text
 OneUptime Incident → On Create  ──►  API component (POST /projects/{id}/issues)  ──►  GitLab issue
@@ -16,13 +16,13 @@ OneUptime Incident → On Create  ──►  API component (POST /projects/{id}/
 
 ## Schritt 1 — Den Token speichern
 
-1. Gehen Sie zu **Workflows → Global Variables → Create**.
+1. Gehen Sie zu **Arbeitsabläufe → Globale Variablen → Erstellen**.
 2. Benennen Sie die Variable `GITLAB_TOKEN`, fügen Sie den Token ein und aktivieren Sie **Is Secret**.
 
 ## Schritt 2 — Den Workflow erstellen
 
-1. Öffnen Sie **Workflows → Create Workflow**, benennen Sie ihn `Incidents → GitLab Issues`, und öffnen Sie den **Builder**.
-2. Fügen Sie einen **Incident**-Auslöser mit **On Create** hinzu. Benennen Sie ihn in `Incident` um.
+1. Öffnen Sie **Arbeitsabläufe → Workflow erstellen**, benennen Sie ihn `Incidents → GitLab Issues`, und öffnen Sie den **Builder**.
+2. Fügen Sie einen **Vorfall**-Auslöser mit **On Create** hinzu. Benennen Sie ihn in `Incident` um.
 3. Fügen Sie einen **API**-Block verbunden mit dem Auslöser hinzu:
 
    - **Method**: `POST`

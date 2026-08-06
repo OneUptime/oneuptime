@@ -15,19 +15,19 @@ OneUptime Incident → On Create  ──►  Discord component  ──►  messa
 
 ## Stap 2 — Sla de webhook-URL op (optioneel maar aanbevolen)
 
-1. Ga in OneUptime naar **Workflows → Global Variables → Create**.
+1. Ga in OneUptime naar **Workflows → Globale variabelen → Aanmaken**.
 2. Geef het de naam `DISCORD_WEBHOOK_URL`, plak de URL, en zet **Is Secret** aan.
 
 Door hem in een variabele te bewaren kun je hem hergebruiken over workflows en op één plek roteren.
 
 ## Stap 3 — Bouw de workflow
 
-1. Open **Workflows → Create Workflow**, geef het de naam `Incidents → Discord`, en open de **Builder**.
+1. Open **Workflows → Workflow maken**, geef het de naam `Incidents → Discord`, en open de **Bouwer**.
 2. Voeg een **Incident**-trigger toe ingesteld op **On Create**. Hernoem het naar `Incident`.
 3. Voeg een **Discord**-component toe verbonden met de trigger:
-   - **Webhook URL**: `{{variable.DISCORD_WEBHOOK_URL}}` (of plak hem direct).
-   - **Message**: `🔴 New incident: {{Incident.title}}\n{{Incident.description}}`
-4. **Sla op**, schakel in en maak een testincident aan. Het bericht verschijnt in je kanaal.
+   - **Webhook-URL**: `{{variable.DISCORD_WEBHOOK_URL}}` (of plak hem direct).
+   - **Bericht**: `🔴 New incident: {{Incident.title}}\n{{Incident.description}}`
+4. **Opslaan**, schakel in en maak een testincident aan. Het bericht verschijnt in je kanaal.
 
 ## Alternatief: de API-component
 
@@ -42,7 +42,7 @@ Dit is handig als je Discord's rijkere [embeds](https://discord.com/developers/d
 
 ## Tips
 
-- Gebruik **Conditions** om alleen te posten voor bepaalde severities — vertak op `{{Incident.incidentSeverity.name}}` vóór het Discord-blok.
+- Gebruik **Voorwaarden** om alleen te posten voor bepaalde severities — vertak op `{{Incident.incidentSeverity.name}}` vóór het Discord-blok.
 - Voeg meer workflows toe op **Incident → On Update** om bevestigingen en oplossingen naar hetzelfde kanaal te posten.
 
 ## Waar verder lezen

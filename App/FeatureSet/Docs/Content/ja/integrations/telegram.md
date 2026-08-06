@@ -21,18 +21,18 @@ OneUptime Incident → On Create  ──►  Telegram component  ──►  mess
 
 ## ステップ 3 — シークレットを保存する
 
-1. OneUptime で **Workflows → Global Variables → Create** に移動します。
+1. OneUptime で **ワークフロー → グローバル変数 → 作成** に移動します。
 2. `TELEGRAM_BOT_TOKEN` (シークレット) と `TELEGRAM_CHAT_ID` を作成します。
 
 ## ステップ 4 — ワークフローを作成する
 
-1. **Workflows → Create Workflow** を開き、`Incidents → Telegram` という名前にして **Builder** を開きます。
-2. **Incident** トリガーを **On Create** に設定して追加します。`Incident` にリネームします。
+1. **ワークフロー → ワークフローを作成** を開き、`Incidents → Telegram` という名前にして **ビルダー** を開きます。
+2. **インシデント** トリガーを **On Create** に設定して追加します。`Incident` にリネームします。
 3. トリガーに接続した **Telegram** コンポーネントを追加します:
    - **Bot token**: `{{variable.TELEGRAM_BOT_TOKEN}}`
    - **Chat ID**: `{{variable.TELEGRAM_CHAT_ID}}`
-   - **Message**: `🔴 New incident: {{Incident.title}}\n{{Incident.description}}`
-4. **Save** して有効化し、テスト用インシデントを作成します。メッセージがチャットに届きます。
+   - **メッセージ**: `🔴 New incident: {{Incident.title}}\n{{Incident.description}}`
+4. **保存** して有効化し、テスト用インシデントを作成します。メッセージがチャットに届きます。
 
 ## 代替方法: API コンポーネント
 
@@ -46,7 +46,7 @@ OneUptime Incident → On Create  ──►  Telegram component  ──►  mess
 ## ヒント
 
 - ボットはグループに追加され、**プライバシーモード**で許可されてからメッセージを受け取れるようになります。`getUpdates` が空の場合は先にボットにメッセージを送るか、BotFather でプライバシーモードを無効にします。
-- 送信前に **Conditions** で重大度を絞り込みます。
+- 送信前に **条件** で重大度を絞り込みます。
 - API ボディに `"parse_mode": "Markdown"` を追加する (またはコンポーネントのフォーマット機能を使う) と、太字やリンクが使えます。
 
 ## 次に読むべきページ

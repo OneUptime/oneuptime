@@ -49,11 +49,11 @@ Hele resultatsettet sendes aldri til OneUptime, så kundedata replikeres ikke in
 Opprett en ny monitor og velg **SQL Query** som monitortype, og fyll deretter inn tilkoblingsdetaljene:
 
 - **Database Type** — PostgreSQL, MySQL eller Microsoft SQL Server. Å velge en type angir standardporten.
-- **Host** — databaseverten som er tilgjengelig fra proben (for eksempel `db.internal`).
+- **Vert** — databaseverten som er tilgjengelig fra proben (for eksempel `db.internal`).
 - **Port** — databaseporten.
 - **Database Name** — databasen spørringen skal kjøres mot.
-- **Username** — en skrivebeskyttet databasebruker med minst mulige rettigheter.
-- **Password** — databasepassordet. Vi anbefaler på det sterkeste å referere til en [Monitor Secret](/docs/monitor/monitor-secrets) med `{{monitorSecrets.name}}` i stedet for å skrive passordet i klartekst (se nedenfor).
+- **Brukernavn** — en skrivebeskyttet databasebruker med minst mulige rettigheter.
+- **Passord** — databasepassordet. Vi anbefaler på det sterkeste å referere til en [Monitor Secret](/docs/monitor/monitor-secrets) med `{{monitorSecrets.name}}` i stedet for å skrive passordet i klartekst (se nedenfor).
 - **SQL Query** — den skrivebeskyttede spørringen som skal kjøres (se Skrive spørringen).
 - **Use SSL/TLS** — aktiver for å koble til over TLS. Når dette er aktivert, kan du slå av **Verify server certificate** hvis databasen bruker et selvsignert sertifikat.
 

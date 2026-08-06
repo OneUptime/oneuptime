@@ -15,8 +15,8 @@ API monitors आपके endpoints पर HTTP requests करते हैं 
 
 ## API Monitor बनाना
 
-1. OneUptime Dashboard में **Monitors** पर जाएं
-2. **Create Monitor** पर क्लिक करें
+1. OneUptime Dashboard में **मॉनिटर** पर जाएं
+2. **मॉनिटर बनाएं** पर क्लिक करें
 3. monitor type के रूप में **API** चुनें
 4. API URL दर्ज करें और request settings configure करें
 5. आवश्यकतानुसार monitoring criteria configure करें
@@ -93,11 +93,11 @@ Enable this option to skip TLS certificate validation. Useful when the target se
 
 #### Client Certificate (mTLS)
 
-If your endpoint requires mutual TLS authentication, enable **Use client certificate (mTLS)** and provide:
+If your endpoint requires mutual TLS authentication, enable **क्लाइंट प्रमाणपत्र (mTLS) का उपयोग करें** and provide:
 
-- **Client Certificate (PEM)** — the PEM-encoded client certificate to present.
-- **Client Private Key (PEM)** — the matching PEM-encoded private key.
-- **Client Private Key Passphrase** _(optional)_ — required only if the private key is encrypted.
+- **क्लाइंट प्रमाणपत्र (PEM)** — the PEM-encoded client certificate to present.
+- **क्लाइंट निजी कुंजी (PEM)** — the matching PEM-encoded private key.
+- **क्लाइंट निजी कुंजी पासफ़्रेज़** _(optional)_ — required only if the private key is encrypted.
 
 This is the OneUptime equivalent of the `--cert` and `--key` flags in curl:
 
@@ -111,8 +111,8 @@ For sensitive values, store the certificate and key as [Monitor Secrets](/docs/m
 
 आप criteria configure कर सकते हैं जो यह निर्धारित करे कि आपका API निम्न के आधार पर online, degraded, या offline माना जाए:
 
-- **Response Status Code** - जांचें कि HTTP status code अपेक्षित values से मेल खाता है (जैसे 200, 201)
-- **Response Time** - Monitor करें कि response time एक threshold से अधिक है
-- **Response Body** - जांचें कि response body में specific content है या उससे मेल खाती है
-- **Response Headers** - सत्यापित करें कि specific response headers मौजूद हैं या अपेक्षित values से मेल खाते हैं
+- **प्रतिक्रिया स्थिति कोड** - जांचें कि HTTP status code अपेक्षित values से मेल खाता है (जैसे 200, 201)
+- **प्रतिक्रिया समय** - Monitor करें कि response time एक threshold से अधिक है
+- **प्रतिक्रिया बॉडी** - जांचें कि response body में specific content है या उससे मेल खाती है
+- **प्रतिक्रिया हेडर** - सत्यापित करें कि specific response headers मौजूद हैं या अपेक्षित values से मेल खाते हैं
 - **JavaScript Expression** - response का मूल्यांकन करने के लिए custom expressions लिखें। विवरण के लिए [JavaScript Expressions](/docs/monitor/javascript-expression) देखें।

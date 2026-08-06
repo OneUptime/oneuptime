@@ -8,7 +8,7 @@ Hay dos tipos, y comparten la misma sintaxis.
 
 Valores a nivel de proyecto que guardas una vez y reutilizas en cualquier lugar. Piensa en claves de API, URLs, nombres de canales: cualquier cosa que no quieras copiar en diez workflows distintos.
 
-Encuéntralas en **Workflows → Variables Globales**. Cada una tiene:
+Encuéntralas en **Flujos de trabajo → Variables Globales**. Cada una tiene:
 
 - **Nombre** — cómo la referenciarás. Usa `UPPER_SNAKE_CASE` para que destaque en tus bloques.
 - **Valor** — el valor real. También funcionan valores de varias líneas.
@@ -64,7 +64,7 @@ Llega un webhook con un cuerpo como `{ "service": "checkout", "status": "failed"
 
 1. Disparador **Webhook** llamado `CIWebhook`.
 2. Bloque **Condiciones**: izquierdo `{{CIWebhook.Request Body.status}}`, operador `==`, derecho `failed`.
-3. Desde la rama **Sí**, un bloque **Crear Incidente** con:
+3. Desde la rama **Sí**, un bloque **Crear incidente** con:
    - Título: `CI build failed: {{CIWebhook.Request Body.service}}`
    - Descripción: `See {{CIWebhook.Request Body.url}} for the logs.`
 

@@ -24,12 +24,12 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 
 ## Шаг 1 — Сохраните токен
 
-1. Перейдите в **Workflows → Global Variables → Create**.
+1. Перейдите в **Рабочие процессы → Глобальные переменные → Создать**.
 2. Назовите переменную `GITHUB_TOKEN`, вставьте токен и включите **Is Secret**.
 
 ## Шаг 2 — Создайте рабочий процесс
 
-1. Откройте **Workflows → Create Workflow**, назовите его `Incidents → GitHub Issues` и откройте **Builder**.
+1. Откройте **Рабочие процессы → Создать рабочий процесс**, назовите его `Incidents → GitHub Issues` и откройте **Конструктор**.
 2. Добавьте триггер **Incident**, установив **On Create**. Переименуйте его в `Incident`.
 3. Добавьте блок **API**, соединённый с триггером:
 

@@ -32,9 +32,9 @@ Adatto per: ricevere dati in OneUptime da un altro strumento — callback CI/CD,
 
 **Output**:
 
-- **Request Headers** — tutti gli header della richiesta in arrivo.
+- **Intestazioni della richiesta** — tutti gli header della richiesta in arrivo.
 - **Request Query Params** — la query string analizzata.
-- **Request Body** — il corpo analizzato (o il testo grezzo se non e JSON).
+- **Corpo della Richiesta** — il corpo analizzato (o il testo grezzo se non e JSON).
 
 L'URL accetta sia `GET` che `POST`. Il chiamante riceve un riscontro rapido — il workflow vero e proprio viene eseguito in background.
 
@@ -50,15 +50,15 @@ Quasi tutti gli elementi di OneUptime — monitor, incidenti, allarmi, manutenzi
 
 Ecco come costruire "quando X accade in OneUptime, fai Y" senza dover controllare le cose in un ciclo.
 
-Il record completo viene passato al blocco successivo. Per esempio, il trigger **Incident → On Create** passa il nuovo incidente, cosi il blocco successivo puo leggerne titolo, descrizione, severita e qualsiasi altro campo.
+Il record completo viene passato al blocco successivo. Per esempio, il trigger **Incidente → On Create** passa il nuovo incidente, cosi il blocco successivo puo leggerne titolo, descrizione, severita e qualsiasi altro campo.
 
 ### Eventi piu utilizzati dai team
 
-- **Incident** — reagisci quando un incidente viene aperto, aggiornato (preso in carico, risolto) o eliminato.
-- **Alert** — gli stessi tre eventi per gli allarmi.
+- **Incidente** — reagisci quando un incidente viene aperto, aggiornato (preso in carico, risolto) o eliminato.
+- **Avviso** — gli stessi tre eventi per gli allarmi.
 - **Monitor** — reagisci quando un monitor viene aggiunto, modificato o rimosso.
-- **Scheduled Maintenance** — annuncia automaticamente una finestra di manutenzione quando viene pianificata.
-- **Status Page Subscriber** — dai il benvenuto a chi si iscrive a una status page.
+- **Manutenzione programmata** — annuncia automaticamente una finestra di manutenzione quando viene pianificata.
+- **Pagina di stato Iscritto** — dai il benvenuto a chi si iscrive a una status page.
 - **On-Call Duty Policy** — sincronizza le modifiche alla pianificazione con un altro sistema di turni.
 
 Cerca nel pannello dei trigger per nome per trovare quello che ti serve.
@@ -68,7 +68,7 @@ Cerca nel pannello dei trigger per nome per trovare quello che ti serve.
 | Se vuoi…                                      | Scegli              |
 | --------------------------------------------- | ------------------- |
 | Cliccare un pulsante per eseguire il workflow | **Manual**          |
-| Eseguire su una pianificazione ricorrente     | **Schedule**        |
+| Eseguire su una pianificazione ricorrente     | **Pianificazione**  |
 | Far inviare dati a un altro sistema           | **Webhook**         |
 | Reagire a qualcosa all'interno di OneUptime   | **OneUptime event** |
 

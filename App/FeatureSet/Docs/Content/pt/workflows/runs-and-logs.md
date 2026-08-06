@@ -4,18 +4,18 @@ Toda vez que um workflow roda, o OneUptime salva um registro do que aconteceu �
 
 ## Onde encontrá-las
 
-| Página                                | O que você vê                                                                             |
-| ------------------------------------- | ----------------------------------------------------------------------------------------- |
-| **Workflows → Execuções e Registros** | Todas as execuções de todos os workflows do projeto. Filtre por workflow, status e tempo. |
-| **Workflow → Aba Logs**               | Apenas as execuções deste workflow.                                                       |
-| **Uma execução individual**           | Uma execução, com a saída de cada bloco.                                                  |
+| Página                                         | O que você vê                                                                             |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| **Fluxos de trabalho → Execuções e registros** | Todas as execuções de todos os workflows do projeto. Filtre por workflow, status e tempo. |
+| **Fluxo de trabalho → Aba Registros**          | Apenas as execuções deste workflow.                                                       |
+| **Uma execução individual**                    | Uma execução, com a saída de cada bloco.                                                  |
 
 ## Status de execução
 
 | Status          | Significado                                                                                                                                |
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Agendada**    | O gatilho disparou e a execução está prestes a começar. Geralmente leva uma fração de segundo.                                             |
-| **Em Execução** | O workflow está em andamento. Blocos demorados mantêm a execução nesse estado.                                                             |
+| **Agendado**    | O gatilho disparou e a execução está prestes a começar. Geralmente leva uma fração de segundo.                                             |
+| **Em execução** | O workflow está em andamento. Blocos demorados mantêm a execução nesse estado.                                                             |
 | **Sucesso**     | Todo bloco que rodou terminou sem erro. (Pegar um ramo de **erro** de propósito ainda conta como sucesso — o próprio workflow não falhou.) |
 | **Erro**        | Um bloco falhou e não havia caminho de **erro** conectado para tratá-lo. A execução parou aí.                                              |
 | **Timeout**     | A execução durou mais que o permitido. Veja [Configuração e Segurança](/docs/workflows/configuration).                                     |
@@ -39,7 +39,7 @@ Os valores mostrados são exatamente o que o bloco viu — depois que todas as v
 3. Para um gatilho de webhook: confirme se o outro sistema está enviando para a URL correta. A maioria das ferramentas registra quando envia um webhook — verifique lá.
 4. Para um gatilho agendado: confirme se a expressão cron corresponde ao horário esperado.
 
-Se o gatilho disparou mas nenhuma execução aparece, verifique sua cota de execuções em **Configurações do Projeto → Cobrança**.
+Se o gatilho disparou mas nenhuma execução aparece, verifique sua cota de execuções em **Configurações do projeto → Cobrança**.
 
 ### "Um bloco posterior nunca rodou."
 

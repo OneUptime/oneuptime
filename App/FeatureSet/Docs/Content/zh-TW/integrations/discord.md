@@ -15,19 +15,19 @@ OneUptime Incident → On Create  ──►  Discord component  ──►  messa
 
 ## 步驟 2 — 儲存 webhook URL（選用但建議）
 
-1. 在 OneUptime 中，前往 **Workflows → Global Variables → Create**。
+1. 在 OneUptime 中，前往 **工作流程 → 全域變數 → 建立**。
 2. 將它命名為 `DISCORD_WEBHOOK_URL`，貼上 URL，並開啟 **Is Secret**。
 
 將它保存在變數中，意味著您可以在多個工作流程中重複使用它，並在同一個地方輪替它。
 
 ## 步驟 3 — 建立工作流程
 
-1. 開啟 **Workflows → Create Workflow**，將它命名為 `Incidents → Discord`，然後開啟 **Builder**。
+1. 開啟 **工作流程 → 建立工作流程**，將它命名為 `Incidents → Discord`，然後開啟 **建構器**。
 2. 新增一個設定為 **On Create** 的 **Incident** 觸發器。將它重新命名為 `Incident`。
 3. 新增一個連接到觸發器的 **Discord** 元件：
    - **Webhook URL**：`{{variable.DISCORD_WEBHOOK_URL}}`（或直接貼上）。
-   - **Message**：`🔴 New incident: {{Incident.title}}\n{{Incident.description}}`
-4. **Save**、啟用，並建立一個測試事件。訊息便會出現在您的頻道中。
+   - **訊息**：`🔴 New incident: {{Incident.title}}\n{{Incident.description}}`
+4. **儲存**、啟用，並建立一個測試事件。訊息便會出現在您的頻道中。
 
 ## 替代方案：API 元件
 

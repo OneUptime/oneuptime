@@ -8,10 +8,10 @@ Det finns två sorter, och de delar samma syntax.
 
 Projektomfattande värden som du sparar en gång och återanvänder överallt. Tänk API-nycklar, URL:er, kanalnamn — allt du inte vill kopiera in i tio olika arbetsflöden.
 
-Du hittar dem under **Workflows → Global Variables**. Var och en har:
+Du hittar dem under **Arbetsflöden → Globala variabler**. Var och en har:
 
-- **Name** — hur du refererar till den. Använd `UPPER_SNAKE_CASE` så att den sticker ut i dina block.
-- **Value** — själva värdet. Värden över flera rader fungerar också.
+- **Namn** — hur du refererar till den. Använd `UPPER_SNAKE_CASE` så att den sticker ut i dina block.
+- **Värde** — själva värdet. Värden över flera rader fungerar också.
 - **Is Secret** — när det är på döljs värdet i gränssnittet efter att du sparat och döljs i körningsloggar.
 
 Använd en global variabel i vilket arbetsflöde som helst med:
@@ -63,8 +63,8 @@ Rena JSON-fält accepterar variabler inuti strängvärden, men du kan inte anvä
 En webhook kommer in med en body som `{ "service": "checkout", "status": "failed" }`. För att förvandla det till en OneUptime-incident:
 
 1. **Webhook**-utlösare med namnet `CIWebhook`.
-2. **Conditions**-block: vänster `{{CIWebhook.Request Body.status}}`, operator `==`, höger `failed`.
-3. Från grenen **Yes**, ett **Create Incident**-block med:
+2. **Villkor**-block: vänster `{{CIWebhook.Request Body.status}}`, operator `==`, höger `failed`.
+3. Från grenen **Ja**, ett **Skapa incident**-block med:
    - Titel: `CI build failed: {{CIWebhook.Request Body.service}}`
    - Beskrivning: `See {{CIWebhook.Request Body.url}} for the logs.`
 
@@ -90,7 +90,7 @@ Om `LookupOrder` misslyckas utlöses dess **error**-utdata istället för **succ
 
 - **Att byta namn på ett block bryter referenser.** Om du byter namn på ett block, uppdatera varje plats där det används. I körningsloggen visas en olöst referens som den bokstavliga texten `{{BlockName.field}}`.
 - **Variabelnamn är versalkänsliga.** `{{variable.MyKey}}` och `{{variable.mykey}}` är olika.
-- **Saknade fält blir tomma.** Att referera till ett fält som inte finns ger dig en tom sträng, inte ett fel. Bekvämt — men det kan dölja buggar. Använd ett **Conditions**-block för att kontrollera viktiga fält innan du fortsätter.
+- **Saknade fält blir tomma.** Att referera till ett fält som inte finns ger dig en tom sträng, inte ett fel. Bekvämt — men det kan dölja buggar. Använd ett **Villkor**-block för att kontrollera viktiga fält innan du fortsätter.
 
 ## Läs vidare
 

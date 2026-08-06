@@ -30,7 +30,7 @@ Der Agent benötigt nur **ausgehendes HTTPS** zu Ihrer OneUptime-Instanz. Er akz
 
 ### 1. Den Agent-Datensatz anlegen
 
-Gehen Sie zu **Settings → Runners** und erstellen Sie einen neuen Agent. Füllen Sie aus:
+Gehen Sie zu **Einstellungen → Runbook-Agents** und erstellen Sie einen neuen Agent. Füllen Sie aus:
 
 | Feld             | Hinweise                                                                                                                                                              |
 | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -39,7 +39,7 @@ Gehen Sie zu **Settings → Runners** und erstellen Sie einen neuen Agent. Füll
 
 ### 2. Den Installationsbefehl kopieren
 
-Klicken Sie nach dem Anlegen des Agents auf **Setup-Anleitung anzeigen** in seiner Zeile. Sie sehen einen `docker run`-Befehl, in dem die ID und der Schlüssel dieses Agents bereits eingetragen sind. **Speichern Sie den Schlüssel jetzt** — Sie können ihn später zurücksetzen, aber denselben Schlüsselwert nach dem Schließen des Modals nicht mehr einsehen.
+Klicken Sie nach dem Anlegen des Agents auf **Einrichtungsanweisungen anzeigen** in seiner Zeile. Sie sehen einen `docker run`-Befehl, in dem die ID und der Schlüssel dieses Agents bereits eingetragen sind. **Speichern Sie den Schlüssel jetzt** — Sie können ihn später zurücksetzen, aber denselben Schlüsselwert nach dem Schließen des Modals nicht mehr einsehen.
 
 ### 3. Den Agent auf einem Host in Ihrer Infrastruktur starten
 
@@ -58,7 +58,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
 
 ### 4. Verifizieren, dass der Agent verbunden ist
 
-Gehen Sie zurück zu **Settings → Runners**. Innerhalb von ~60 Sekunden sollte die Zeile des Agents auf `Connected` umschalten und einen frischen **Last seen**-Zeitstempel zeigen. Wenn er auf `Disconnected` bleibt:
+Gehen Sie zurück zu **Einstellungen → Runbook-Agents**. Innerhalb von ~60 Sekunden sollte die Zeile des Agents auf `Connected` umschalten und einen frischen **Last seen**-Zeitstempel zeigen. Wenn er auf `Disconnected` bleibt:
 
 - Prüfen Sie die Container-Logs (`docker logs oneuptime-runner`) auf Auth-Fehler oder Netzwerkprobleme.
 - Verifizieren Sie, dass der Host Ihre OneUptime-URL mit `curl` erreicht.
@@ -86,7 +86,7 @@ Zwei Timeouts gelten für jeden Bash- oder JavaScript-Schritt:
 | **Claim-Timeout**       | 2 Minuten   | Wie lange der Worker darauf wartet, dass der ausgewählte Agent den Job beansprucht. Greift der Agent nicht rechtzeitig zu, schlägt der Schritt mit `TimedOut` fehl, und das Runbook macht weiter (oder stoppt, abhängig von **Bei Fehler fortfahren**). |
 | **Ausführungs-Timeout** | 30 Sekunden | Wie lange der Agent das Skript laufen lässt, bevor er es beendet. (Bash bekommt `SIGKILL`; das JavaScript-Isolate wird abgerissen.)                                                                                                                     |
 
-Beide sind pro Schritt konfigurierbar. Öffnen Sie **Runbooks &rsaquo; Ihr Runbook &rsaquo; Steps**, klappen Sie einen Bash- oder JavaScript-Schritt auf und setzen Sie unter dem Skript **Ausführungs-Timeout** und **Claim-Timeout** (in Sekunden). Lassen Sie ein Feld leer, um den Standard zu verwenden. Jedes Feld akzeptiert Werte von 1 Sekunde bis 1 Stunde; Werte außerhalb dieses Bereichs werden beim Ausführen des Schritts auf diesen Bereich begrenzt.
+Beide sind pro Schritt konfigurierbar. Öffnen Sie **Runbooks &rsaquo; Ihr Runbook &rsaquo; Schritte**, klappen Sie einen Bash- oder JavaScript-Schritt auf und setzen Sie unter dem Skript **Ausführungs-Timeout** und **Claim-Timeout** (in Sekunden). Lassen Sie ein Feld leer, um den Standard zu verwenden. Jedes Feld akzeptiert Werte von 1 Sekunde bis 1 Stunde; Werte außerhalb dieses Bereichs werden beim Ausführen des Schritts auf diesen Bereich begrenzt.
 
 Das Gesamt-Wartefenster des Workers beträgt `Claim-Timeout + Ausführungs-Timeout + ein paar Sekunden`. Wählen Sie Werte, die zum Schritt passen.
 

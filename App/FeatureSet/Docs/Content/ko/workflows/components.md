@@ -37,7 +37,7 @@ Slack 채널에 메시지를 게시합니다.
 - **Channel** — 채널 이름. 봇이 이미 해당 채널에 있어야 합니다.
 - **Message** — 보낼 텍스트. Slack 서식을 지원합니다.
 
-먼저 **Project Settings → 워크스페이스 → Slack**에서 Slack을 프로젝트에 연결하세요. [Slack 워크스페이스 연결](/docs/workspace-connections/slack)을 참조하시기 바랍니다.
+먼저 **프로젝트 설정 → 워크스페이스 → Slack**에서 Slack을 프로젝트에 연결하세요. [Slack 워크스페이스 연결](/docs/workspace-connections/slack)을 참조하시기 바랍니다.
 
 ## Microsoft Teams
 

@@ -19,8 +19,8 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 
 - **प्रति क्लस्टर एक Costs पेज** (_Kubernetes → आपका क्लस्टर → Costs_): खर्च का रुझान, cpu/memory/storage विभाजन के साथ प्रति namespace खर्च, प्रति workload खर्च, idle खर्च, और दक्षता।
 - **एक प्रोजेक्ट-स्तरीय Costs पेज** (_Kubernetes → Costs_): प्रोजेक्ट के प्रत्येक क्लस्टर में हुआ खर्च।
-- **एक Kubernetes Cost डैशबोर्ड टेम्पलेट** (_Dashboards → Create → Kubernetes Cost Dashboard_): node की hourly लागत के रुझान, CPU/RAM इकाई लागतें, persistent volume और load balancer खर्च।
-- **Metric Explorer** में कच्चे लागत मेट्रिक्स (`node_total_hourly_cost`, `pv_hourly_cost`, ...), जो कस्टम डैशबोर्ड और metric अलर्ट में उपयोग किए जा सकते हैं।
+- **एक Kubernetes Cost डैशबोर्ड टेम्पलेट** (_डैशबोर्ड → बनाएँ → Kubernetes Cost Dashboard_): node की hourly लागत के रुझान, CPU/RAM इकाई लागतें, persistent volume और load balancer खर्च।
+- **मेट्रिक एक्सप्लोरर** में कच्चे लागत मेट्रिक्स (`node_total_hourly_cost`, `pv_hourly_cost`, ...), जो कस्टम डैशबोर्ड और metric अलर्ट में उपयोग किए जा सकते हैं।
 
 ## यह कैसे काम करता है
 

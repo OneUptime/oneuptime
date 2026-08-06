@@ -23,8 +23,8 @@ SSO 集成提供以下优势：
    - 点击 **创建 SSO**
    - 输入 SSO 配置的 **名称**（例如"Keycloak SAML"或"Okta SAML"）
    - 输入身份提供商的 **登录 URL**
-   - 输入身份提供商的 **颁发者**（实体 ID）
-   - 粘贴身份提供商的 **公共证书**
+   - 输入身份提供商的 **签发者**（实体 ID）
+   - 粘贴身份提供商的 **公开证书**
    - 选择 **签名算法**（例如 `RSA-SHA-256`）
    - 选择 **摘要算法**（例如 `SHA256`）
 
@@ -50,7 +50,7 @@ Keycloak 是一款流行的开源身份和访问管理解决方案。按照以�
 3. 点击 **创建 SSO** 并填写以下内容：
    - **名称**：描述性名称（例如 `my-project-oneuptime`）
    - **登录 URL**：`https://<your-keycloak-domain>/auth/realms/<your-realm>/protocol/saml`
-   - **颁发者**：`https://<your-keycloak-domain>/auth/realms/<your-realm>`
+   - **签发者**：`https://<your-keycloak-domain>/auth/realms/<your-realm>`
    - **证书**：参见下方[第二步](#第二步获取-keycloak-证书)
    - **签名算法**：`RSA-SHA-256`
    - **摘要算法**：`SHA256`
@@ -117,7 +117,7 @@ Microsoft Entra ID 是 Microsoft 基于云的身份和访问管理服务。按�
 3. 点击 **创建 SSO** 并填写以下内容：
    - **名称**：描述性名称（例如 `Azure AD SAML`）
    - **登录 URL**：您将在[第三步](#第三步在-entra-id-中配置-saml-sso)中从 Entra ID 获取
-   - **颁发者**：您将在[第三步](#第三步在-entra-id-中配置-saml-sso)中从 Entra ID 获取
+   - **签发者**：您将在[第三步](#第三步在-entra-id-中配置-saml-sso)中从 Entra ID 获取
    - **证书**：您将在[第三步](#第三步在-entra-id-中配置-saml-sso)中从 Entra ID 获取
    - **签名算法**：`RSA-SHA-256`
    - **摘要算法**：`SHA256`
@@ -146,7 +146,7 @@ Microsoft Entra ID 是 Microsoft 基于云的身份和访问管理服务。按�
    - 在文本编辑器中打开下载的证书文件并复制内容
 6. 在 **设置 OneUptime** 部分，复制：
    - **登录 URL** — 将其粘贴为 OneUptime 中的 **登录 URL**
-   - **Azure AD 标识符** — 将其粘贴为 OneUptime 中的 **颁发者**
+   - **Azure AD 标识符** — 将其粘贴为 OneUptime 中的 **签发者**
 7. 返回 OneUptime，粘贴证书和 URL，然后保存
 
 ### 第四步：配置用户属性和声明
@@ -202,7 +202,7 @@ Okta 是一款广泛使用的身份平台，提供强大的 SAML SSO 能力。�
 3. 点击 **创建 SSO** 并填写以下内容：
    - **名称**：描述性名称（例如 `Okta SAML`）
    - **登录 URL**：您将在[第三步](#第三步将-okta-saml-元数据复制到-oneuptime)中从 Okta 获取
-   - **颁发者**：您将在[第三步](#第三步将-okta-saml-元数据复制到-oneuptime)中从 Okta 获取
+   - **签发者**：您将在[第三步](#第三步将-okta-saml-元数据复制到-oneuptime)中从 Okta 获取
    - **证书**：您将在[第三步](#第三步将-okta-saml-元数据复制到-oneuptime)中从 Okta 获取
    - **签名算法**：`RSA-SHA-256`
    - **摘要算法**：`SHA256`
@@ -228,7 +228,7 @@ Okta 是一款广泛使用的身份平台，提供强大的 SAML SSO 能力。�
 2. 在 **SAML 签名证书** 部分，找到活动证书，点击 **操作** > **查看 IdP 元数据**
 3. 从元数据 XML 或 **登录** 选项卡详情中：
    - 复制 **登录 URL**（也称为 **身份提供商单一登录 URL**）— 将其粘贴为 OneUptime 中的 **登录 URL**
-   - 复制 **颁发者**（也称为 **身份提供商颁发者**）— 将其粘贴为 OneUptime 中的 **颁发者**
+   - 复制 **颁发者**（也称为 **身份提供商颁发者**）— 将其粘贴为 OneUptime 中的 **签发者**
 4. 下载签名证书：
    - 在 **SAML 签名证书** 部分，点击活动证书的 **操作** > **下载证书**
    - 在文本编辑器中打开下载的 `.cert` 文件并复制内容
@@ -283,8 +283,8 @@ OneUptime 的 SSO 实现使用 SAML 2.0 协议，应能与任何合规的身份�
    - **Name ID 格式**：电子邮件地址
 3. 从您的身份提供商复制以下信息到 OneUptime：
    - **登录 URL**（SSO 端点）
-   - **颁发者**（IdP 的实体 ID）
-   - **公共证书**（X.509 签名证书）
+   - **签发者**（IdP 的实体 ID）
+   - **公开证书**（X.509 签名证书）
 4. 将 **签名算法** 设置为 `RSA-SHA-256`，将 **摘要算法** 设置为 `SHA256`
 
 ## 关于 SSO 和角色的说明

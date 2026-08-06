@@ -11,7 +11,7 @@ Cette page est le **guide d'installation**. Pour configurer des moniteurs et des
 - Un cluster Kubernetes en cours d'exécution (v1.23+)
 - `kubectl` configuré pour accéder à votre cluster
 - `helm` v3 installé
-- Une **clé d'API OneUptime** — créez-en une depuis _Project Settings → API Keys_
+- Une **clé d'API OneUptime** — créez-en une depuis _Paramètres du projet → Clés API_
 
 ## Étape 1 — Ajouter le dépôt Helm OneUptime
 
@@ -164,7 +164,7 @@ Accepte `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`. `WARN` conserve WARN
 
 Les runtimes de conteneurs n'enregistrent pas de gravité sur la ligne de journal ; l'agent en extrait donc une du texte du journal lui-même (`[ERROR]`, `WARN:`, `level=info`, …).
 
-> **Les événements Kubernetes et les spécifications de ressources ne sont jamais filtrés par ce paramètre.** Ils arrivent depuis l'API Kubernetes sans gravité propre ; un seuil supprimerait donc l'intégralité du flux au lieu de l'alléger — y compris les avertissements `FailedScheduling`, `BackOff` et `OOMKilling` qui vous intéressent le plus. Ils sont peu volumineux et à forte valeur, c'est pourquoi l'agent les transmet toujours. Pour les alléger, utilisez plutôt les **Logs → Settings → Drop Filters** côté serveur du tableau de bord.
+> **Les événements Kubernetes et les spécifications de ressources ne sont jamais filtrés par ce paramètre.** Ils arrivent depuis l'API Kubernetes sans gravité propre ; un seuil supprimerait donc l'intégralité du flux au lieu de l'alléger — y compris les avertissements `FailedScheduling`, `BackOff` et `OOMKilling` qui vous intéressent le plus. Ils sont peu volumineux et à forte valeur, c'est pourquoi l'agent les transmet toujours. Pour les alléger, utilisez plutôt les **Journaux → Paramètres → Filtres d'abandon** côté serveur du tableau de bord.
 
 **Ce qu'il advient d'une ligne sans niveau reconnaissable dépend du mode de journalisation**, car les deux modes ne disposent pas des mêmes informations :
 
@@ -444,7 +444,7 @@ Il existe trois façons de réduire le volume, et il vaut la peine de savoir laq
 - **Au niveau du processeur de filtrage** — les données sont collectées, puis supprimées avant l'export. `filters.logs.minSeverity`, `filters.metrics.*`, `namespaceFilters.rules` (`metrics`/`traces`). Un peu plus de CPU pour le collecteur, mais cela fonctionne à travers les récepteurs et permet d'exprimer des choses qu'un récepteur ne peut pas.
 - **Au niveau de l'échantillonneur** — les données sont collectées, puis une fraction représentative est conservée. `sampling.traces.percentage`. C'est l'exception : les deux options ci-dessus suppriment toute une *catégorie* de télémétrie, de sorte que ce qu'elles suppriment disparaît de chaque trace. L'échantillonnage conserve chaque catégorie et allège la population, de sorte que ce qui survit reste complet et représentatif.
 
-Les trois sont **irréversibles** : ce que vous supprimez ici n'atteint jamais OneUptime, et les trois peuvent rendre un moniteur muet. Les deux premières font taire un moniteur en supprimant le signal qu'il surveille. L'échantillonnage est plus restreint : les métriques RED d'eBPF sont calculées avant que l'échantillonneur ne s'exécute, les moniteurs basés sur les métriques restent donc exacts — mais les moniteurs qui comptent des *spans* (Traces sur `Span Count`, Exceptions sur `Exception Count`) en voient proportionnellement moins et nécessitent un réajustement de leurs seuils selon le même facteur. Si vous préférez décider plus tard, OneUptime peut à la place supprimer les données côté serveur (**Logs → Settings → Drop Filters**, **Metrics → Settings → Pipeline Rules**) — cela coûte toujours du trafic sortant, mais c'est un réglage que vous pouvez modifier sans redéploiement.
+Les trois sont **irréversibles** : ce que vous supprimez ici n'atteint jamais OneUptime, et les trois peuvent rendre un moniteur muet. Les deux premières font taire un moniteur en supprimant le signal qu'il surveille. L'échantillonnage est plus restreint : les métriques RED d'eBPF sont calculées avant que l'échantillonneur ne s'exécute, les moniteurs basés sur les métriques restent donc exacts — mais les moniteurs qui comptent des *spans* (Traces sur `Span Count`, Exceptions sur `Exception Count`) en voient proportionnellement moins et nécessitent un réajustement de leurs seuils selon le même facteur. Si vous préférez décider plus tard, OneUptime peut à la place supprimer les données côté serveur (**Journaux → Paramètres → Filtres d'abandon**, **Métriques → Paramètres → Règles de pipeline**) — cela coûte toujours du trafic sortant, mais c'est un réglage que vous pouvez modifier sans redéploiement.
 
 ### Levier 1 — Les journaux de pods sont généralement la plus grande source
 
@@ -657,7 +657,7 @@ Resserrez davantage si nécessaire : portez minSeverity à ERROR, ajoutez metric
 
 ### Mesurer l'effet
 
-L'utilisation de la télémétrie est agrégée par jour, alors observez la tendance sur un jour ou deux dans **Project Settings → Usage History** pour confirmer la baisse — elle ne bougera pas à l'instant où vous appliquez un changement. Modifiez un levier à la fois afin de pouvoir attribuer la différence — journaux désactivés, puis intervalle augmenté, puis eBPF réduit — plutôt que de tout réduire d'un coup et de perdre un moniteur sur lequel vous comptiez réellement.
+L'utilisation de la télémétrie est agrégée par jour, alors observez la tendance sur un jour ou deux dans **Paramètres du projet → Historique d'utilisation** pour confirmer la baisse — elle ne bougera pas à l'instant où vous appliquez un changement. Modifiez un levier à la fois afin de pouvoir attribuer la différence — journaux désactivés, puis intervalle augmenté, puis eBPF réduit — plutôt que de tout réduire d'un coup et de perdre un moniteur sur lequel vous comptiez réellement.
 
 ## Dépannage
 
@@ -695,7 +695,7 @@ La raison la plus courante — en particulier après une réinstallation — est
    curl -i -H "x-oneuptime-token: <YOUR_API_KEY>" https://oneuptime.com/otlp/v1/validate
    ```
 
-   S'il renvoie `401`, la clé de votre version est incorrecte ou a été révoquée. Copiez une clé active depuis _Project Settings → Télémétrie & APM → Clés d'ingestion_ et redéployez :
+   S'il renvoie `401`, la clé de votre version est incorrecte ou a été révoquée. Copiez une clé active depuis _Paramètres du projet → Télémétrie & APM → Clés d'ingestion_ et redéployez :
 
    ```bash
    helm upgrade kubernetes-agent oneuptime/kubernetes-agent \

@@ -16,7 +16,7 @@ Er is geen `RUNBOOK_BASH_ENABLED`-environmentvlag meer. Of Bash- of JavaScript-s
 ## Outputlimieten en timeouts
 
 - Output per stap: **50&nbsp;KB**. Grotere output wordt afgekapt met een marker.
-- Standaard uitvoer-timeout per stap: **30 seconden** voor JavaScript, Bash en HTTP. Stel deze per stap in op de **Steps**-pagina van het runbook — laat het veld leeg om de standaardwaarde te houden.
+- Standaard uitvoer-timeout per stap: **30 seconden** voor JavaScript, Bash en HTTP. Stel deze per stap in op de **Stappen**-pagina van het runbook — laat het veld leeg om de standaardwaarde te houden.
 - **Claim-timeout** per stap voor Bash- en JavaScript-stappen: **2 minuten** — hoe lang de Worker wacht tot de gekozen agent de job oppakt voordat hij faalt. Ook per stap in te stellen.
 - Beide timeouts accepteren **1 seconde tot 1 uur**. Een waarde daarbuiten wordt bij het draaien van de stap tot dat bereik begrensd, zodat een typefout in de configuratie de timeout niet kan uitschakelen en ook geen Worker-slot eindeloos kan openhouden.
 

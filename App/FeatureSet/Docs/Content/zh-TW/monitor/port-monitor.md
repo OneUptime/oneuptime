@@ -13,9 +13,9 @@
 
 ## 建立連接埠監控
 
-1. 在 OneUptime Dashboard 中前往 **Monitors**
-2. 點擊 **Create Monitor**
-3. 選擇 **Port** 作為監控類型
+1. 在 OneUptime Dashboard 中前往 **監測**
+2. 點擊 **建立監測器**
+3. 選擇 **連接埠** 作為監控類型
 4. 輸入主機名稱或 IP 位址以及連接埠號碼
 5. 視需要設定監控條件
 
@@ -59,7 +59,7 @@
 - **True** — 條件為真
 - **False** — 條件為假
 
-對於 **Response Time**：
+對於 **回應時間**：
 
 - **Greater Than** — 回應時間超過某個閾值
 - **Less Than** — 回應時間低於某個閾值
@@ -74,16 +74,16 @@
 #### 若連接埠關閉則標示為離線
 
 - **Check On**：Is Online
-- **Filter Type**：False
+- **篩選器類型**：False
 
 #### 若連線時間超過 500 毫秒則發出警示
 
 - **Check On**：Response Time (in ms)
-- **Filter Type**：Greater Than
-- **Value**：500
+- **篩選器類型**：Greater Than
+- **值**：500
 
 #### 若連線速度緩慢則標示為降級
 
 - **Check On**：Response Time (in ms)
-- **Filter Type**：Greater Than
-- **Value**：200
+- **篩選器類型**：Greater Than
+- **值**：200

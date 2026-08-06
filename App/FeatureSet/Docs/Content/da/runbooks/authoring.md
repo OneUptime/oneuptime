@@ -60,11 +60,11 @@ Konfigurer følgende på et Bash-trin:
 - **Execution timeout** — hvor længe agenten lader scriptet køre, før den dræber det med `SIGKILL`. Standard er 30 sekunder; hæv den for trin, der reelt tager minutter.
 - **Claim timeout** — hvor længe Worker'en venter på, at agenten samler jobbet op. Standard er 2 minutter.
 
-Hvis den valgte agent er offline, når runbook'et når dette trin, venter trinnet op til **claim timeout** (standard 2 minutter) og fejler så med `TimedOut`. Tilføj en agent under **Runbooks → Indstillinger → Agents**, før du regner med et Bash-trin.
+Hvis den valgte agent er offline, når runbook'et når dette trin, venter trinnet op til **claim timeout** (standard 2 minutter) og fejler så med `TimedOut`. Tilføj en agent under **Runbooks → Indstillinger → Agenter**, før du regner med et Bash-trin.
 
 ### AI
 
-Bed AI om at analysere, opsummere eller beslutte noget midt i en kørsel. Prompten sendes til dit projekts LLM-udbyder (**Indstillinger → AI → LLM Providers**), og modellens svar bliver trinnets output på eksekveringstidslinjen. AI-trin kører på OneUptime Worker'en; ingen agent påkrævet.
+Bed AI om at analysere, opsummere eller beslutte noget midt i en kørsel. Prompten sendes til dit projekts LLM-udbyder (**Indstillinger → AI → LLM-udbydere**), og modellens svar bliver trinnets output på eksekveringstidslinjen. AI-trin kører på OneUptime Worker'en; ingen agent påkrævet.
 
 Konfigurer på et AI-trin:
 

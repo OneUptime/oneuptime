@@ -2,13 +2,13 @@
 
 ## Visão Geral
 
-O OneUptime agrupa a computação gerenciada na nuvem em **Ambientes de Nuvem** — AWS ECS / Fargate, Google Cloud Run, Azure Container Apps / Container Instances, AWS Elastic Beanstalk, AWS App Runner e Azure App Service. Um ambiente é criado por combinação única de `cloud.platform` + `cloud.account.id` + `cloud.region`, de modo que algo como _"AWS ECS · us-east-1 · 123456789012"_ é uma única entidade que agrega todas as cargas de trabalho em execução nele.
+O OneUptime agrupa a computação gerenciada na nuvem em **Ambientes de nuvem** — AWS ECS / Fargate, Google Cloud Run, Azure Container Apps / Container Instances, AWS Elastic Beanstalk, AWS App Runner e Azure App Service. Um ambiente é criado por combinação única de `cloud.platform` + `cloud.account.id` + `cloud.region`, de modo que algo como _"AWS ECS · us-east-1 · 123456789012"_ é uma única entidade que agrega todas as cargas de trabalho em execução nele.
 
 Máquinas virtuais puras (EC2, Compute Engine, Azure VM) permanecem como **Hosts**, e o Kubernetes permanece em **Kubernetes**. Esta visão é especificamente para computação gerenciada / PaaS.
 
 ## Pré-requisitos
 
-- Um **Token de Ingestão de Telemetria do OneUptime** — crie um em _Project Settings → Telemetria e APM → Chaves de ingestão_.
+- Um **Token de Ingestão de Telemetria do OneUptime** — crie um em _Configurações do projeto → Telemetria e APM → Chaves de ingestão_.
 - Um OpenTelemetry Collector ou SDK em execução dentro de/junto com suas cargas de trabalho.
 
 ## Como o OneUptime identifica um ambiente
@@ -18,7 +18,7 @@ Máquinas virtuais puras (EC2, Compute Engine, Azure VM) permanecem como **Hosts
 | `cloud.platform`      | **sim**     | Deve ser uma plataforma de computação gerenciada (por exemplo, `aws_ecs`, `gcp_cloud_run`, `azure_container_apps`) |
 | `cloud.account.id`    | não         | Parte da chave do ambiente                                                                                         |
 | `cloud.region`        | não         | Parte da chave do ambiente                                                                                         |
-| `service.instance.id` | não         | Rastreado por tarefa/instância em **Instances** (com CPU / memória ao vivo)                                        |
+| `service.instance.id` | não         | Rastreado por tarefa/instância em **Instâncias** (com CPU / memória ao vivo)                                       |
 
 Esses valores são normalmente preenchidos automaticamente pelos **resource detectors** do OpenTelemetry.
 
@@ -70,9 +70,9 @@ Se você hospeda o OneUptime por conta própria, use `https://YOUR-ONEUPTIME-HOS
 
 A visão geral do ambiente mostra:
 
-- **CPU** e **Memória** por tarefa/instância em execução (a partir de `container.cpu.utilization` / `container.memory.usage`), além de uma lista **Top instances by CPU**.
-- **Instances** — uma contagem ao vivo de tarefas.
-- **Requests** e gráficos de tendência derivados dos seus traces.
-- Abas completas de **Logs**, **Traces**, **Metrics** e **Instances**.
+- **CPU** e **Memória** por tarefa/instância em execução (a partir de `container.cpu.utilization` / `container.memory.usage`), além de uma lista **Principais instâncias por CPU**.
+- **Instâncias** — uma contagem ao vivo de tarefas.
+- **Requisições** e gráficos de tendência derivados dos seus traces.
+- Abas completas de **Registros**, **Traços**, **Métricas** e **Instâncias**.
 
-A análise detalhada por serviço para as mesmas cargas de trabalho está disponível em **Services**.
+A análise detalhada por serviço para as mesmas cargas de trabalho está disponível em **Serviços**.

@@ -16,16 +16,16 @@ Grafana alert rule fires  ──►  Webhook contact point  ──►  OneUptime
 
 ## Trin 1 — Byg OneUptime-workflowet
 
-1. Åbn **Workflows → Create Workflow**, navngiv det `Grafana → Incidents`, og åbn **Builder**.
+1. Åbn **Arbejdsgange → Opret arbejdsgang**, navngiv det `Grafana → Incidents`, og åbn **Bygger**.
 2. Tilføj en **Webhook**-trigger og **kopiér dens URL**. Omdøb blokken til `Grafana`.
-3. Tilføj en **Conditions**-blok forbundet til triggeren:
+3. Tilføj en **Betingelser**-blok forbundet til triggeren:
    - **Left**: `{{Grafana.Request Body.status}}`
    - **Operator**: `==`
    - **Right**: `firing`
-4. Fra **Yes** tilføjer du en **Create Incident**-blok:
-   - **Title**: `{{Grafana.Request Body.title}}`
-   - **Description**: `{{Grafana.Request Body.message}}`
-   - **Severity**: vælg én (eller forgren på `{{Grafana.Request Body.commonLabels.severity}}`).
+4. Fra **Ja** tilføjer du en **Opret hændelse**-blok:
+   - **Titel**: `{{Grafana.Request Body.title}}`
+   - **Beskrivelse**: `{{Grafana.Request Body.message}}`
+   - **Alvorlighed**: vælg én (eller forgren på `{{Grafana.Request Body.commonLabels.severity}}`).
 5. **Gem** (lad det stå deaktiveret, indtil det er testet).
 
 Grafanas webhook-payload følger Alertmanager-formen — den inkluderer `status`, et `alerts`-array, `commonLabels` og `commonAnnotations`, plus praktiske øverste-niveau-felter `title` og `message`.
@@ -42,11 +42,11 @@ Grafanas webhook-payload følger Alertmanager-formen — den inkluderer `status`
 
 1. Aktivér workflowet.
 2. I contact point-skærmen, brug **Test** til at sende en prøvenotifikation, eller lad en rigtig alarmregel udløse.
-3. Tjek workflowets **Logs**-fane og din **Incidents**-liste.
+3. Tjek workflowets **Protokoller**-fane og din **Hændelser**-liste.
 
 ## Løsning ved genopretning (valgfrit)
 
-Når alarmen rydder, sender Grafana endnu en notifikation med `status: resolved`. Tilføj en anden **Conditions**-gren (`status == resolved`), find den matchende hændelse, og flyt den til din løste tilstand med **Update Incident**.
+Når alarmen rydder, sender Grafana endnu en notifikation med `status: resolved`. Tilføj en anden **Betingelser**-gren (`status == resolved`), find den matchende hændelse, og flyt den til din løste tilstand med **Update Incident**.
 
 ## Noter
 
@@ -55,8 +55,8 @@ Når alarmen rydder, sender Grafana endnu en notifikation med `status: resolved`
 
 ## Fejlfinding
 
-- **Ingen kørsel vises** — bekræft, at Grafana kan nå URL'en (tjek Grafanas serverlogfiler), og at workflowet er **Enabled**.
-- **Tomme felter** — inspicér trigger-outputtet i **Logs**-fanen; referer til felter, der eksisterer for din alarmversion.
+- **Ingen kørsel vises** — bekræft, at Grafana kan nå URL'en (tjek Grafanas serverlogfiler), og at workflowet er **Aktiveret**.
+- **Tomme felter** — inspicér trigger-outputtet i **Protokoller**-fanen; referer til felter, der eksisterer for din alarmversion.
 
 ## Læs videre
 

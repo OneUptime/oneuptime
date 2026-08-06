@@ -34,14 +34,14 @@ Vous construisez tout cela visuellement sur un canevas. Aucune programmation n'e
 
 ## Où trouver les workflows dans OneUptime
 
-Ouvrez **Workflows** dans la navigation de gauche. À partir de là :
+Ouvrez **Flux de travail** dans la navigation de gauche. À partir de là :
 
-- **Workflows** — votre liste de workflows. Créez-en un nouveau ou ouvrez-en un existant.
-- **Onglet Builder** — le canevas où vous concevez le workflow.
-- **Onglet Logs** — toutes les exécutions de ce workflow, avec leurs détails.
-- **Onglet Settings** — nom, description, propriétaires, étiquettes, activation/désactivation.
-- **Global Variables** — valeurs partagées entre tous vos workflows.
-- **Runs & Logs** — historique des exécutions de tous les workflows de votre projet.
+- **Flux de travail** — votre liste de workflows. Créez-en un nouveau ou ouvrez-en un existant.
+- **Onglet Constructeur** — le canevas où vous concevez le workflow.
+- **Onglet Journaux** — toutes les exécutions de ce workflow, avec leurs détails.
+- **Onglet Paramètres** — nom, description, propriétaires, étiquettes, activation/désactivation.
+- **Variables globales** — valeurs partagées entre tous vos workflows.
+- **Exécutions & journaux** — historique des exécutions de tous les workflows de votre projet.
 
 ## Construire votre premier workflow
 
@@ -49,7 +49,7 @@ Ouvrez **Workflows** dans la navigation de gauche. À partir de là :
 2. **Choisissez un déclencheur** — manuel, planifié, webhook ou un événement OneUptime.
 3. **Ajoutez des composants** — glissez les actions sur le canevas et reliez-les.
 4. **Testez** — cliquez sur **Run Manually** et observez ce qui se passe dans les journaux.
-5. **Activez-le** — basculez l'interrupteur **Enabled** dans Settings lorsque vous êtes prêt.
+5. **Activez-le** — basculez l'interrupteur **Activé** dans Settings lorsque vous êtes prêt.
 
 ## Un exemple rapide
 

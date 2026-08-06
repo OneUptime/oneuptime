@@ -4,23 +4,23 @@ Esta página cobre as configurações e limites de segurança que vale conhecer 
 
 ## Ligando ou desligando um workflow
 
-Todo workflow tem um interruptor **Ativado** nas **Configurações**. Quando está desligado, o workflow não roda — chamadas de webhook, horários agendados e eventos do OneUptime são todos ignorados. Workflows novos começam desativados.
+Todo workflow tem um interruptor **Habilitado** nas **Configurações**. Quando está desligado, o workflow não roda — chamadas de webhook, horários agendados e eventos do OneUptime são todos ignorados. Workflows novos começam desativados.
 
 Use esse interruptor como seu "tudo pronto para começar":
 
 1. Construa o workflow.
 2. Clique em **Executar Manualmente** com um payload realista.
-3. Verifique os **Logs** — confirme se cada bloco seguiu o caminho esperado.
-4. Vire **Ativado** para ligado.
+3. Verifique os **Registros** — confirme se cada bloco seguiu o caminho esperado.
+4. Vire **Habilitado** para ligado.
 
 Desligar um workflow não interrompe execuções já em andamento; apenas impede que novas comecem.
 
 ## Donos e etiquetas
 
-- **Donos** — usuários e equipes listados como donos têm acesso ao workflow e podem optar por receber notificações quando ele falha. Defina em **Configurações → Donos**.
-- **Etiquetas** — tags para agrupar workflows. A lista de workflows permite filtrar por etiqueta, o que torna um projeto cheio muito mais fácil de navegar. Útil quando você tem workflows organizados por equipe, integração ou ambiente.
-- **Regras de etiqueta** — em **Workflows → Configurações → Regras de Etiqueta**, aplique etiquetas automaticamente a novos workflows com base em padrões de nome ou descrição.
-- **Regras de dono** — em **Workflows → Configurações → Regras de Dono**, atribua donos automaticamente a novos workflows.
+- **Proprietários** — usuários e equipes listados como donos têm acesso ao workflow e podem optar por receber notificações quando ele falha. Defina em **Configurações → Proprietários**.
+- **Rótulos** — tags para agrupar workflows. A lista de workflows permite filtrar por etiqueta, o que torna um projeto cheio muito mais fácil de navegar. Útil quando você tem workflows organizados por equipe, integração ou ambiente.
+- **Regras de etiqueta** — em **Fluxos de trabalho → Configurações → Regras de Rótulos**, aplique etiquetas automaticamente a novos workflows com base em padrões de nome ou descrição.
+- **Regras de dono** — em **Fluxos de trabalho → Configurações → Regras de proprietário**, atribua donos automaticamente a novos workflows.
 
 ## Segredos
 
@@ -64,7 +64,7 @@ Blocos de API e outros blocos HTTP fazem suas requisições a partir do OneUptim
 Workflows respeitam o controle de acesso baseado em papéis do seu projeto. As permissões relevantes:
 
 - **Criar / Ler / Editar / Excluir Workflow** — as permissões básicas sobre o próprio workflow.
-- **Executar Workflow** — necessária para clicar em **Executar Manualmente** ou disparar um workflow via API.
+- **Executar fluxo de trabalho** — necessária para clicar em **Executar Manualmente** ou disparar um workflow via API.
 - **Ler Log de Workflow** — necessária para visualizar execuções.
 - **Ler / Criar / Editar / Excluir Variável de Workflow** — controle sobre a lista de variáveis globais.
 
@@ -72,7 +72,7 @@ A maioria das pessoas de engenharia deve ter criar/editar/ler em workflows, mas 
 
 ## Limites de plano
 
-O OneUptime Cloud limita o número de execuções por mês em planos menores. Seu limite atual é mostrado em **Configurações do Projeto → Cobrança**. Quando você atinge o limite, novos disparos são rejeitados até o próximo ciclo de cobrança. Instalações auto-hospedadas não têm esse limite.
+O OneUptime Cloud limita o número de execuções por mês em planos menores. Seu limite atual é mostrado em **Configurações do projeto → Cobrança**. Quando você atinge o limite, novos disparos são rejeitados até o próximo ciclo de cobrança. Instalações auto-hospedadas não têm esse limite.
 
 ## Quando workflows não são a ferramenta certa
 

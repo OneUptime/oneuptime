@@ -85,24 +85,24 @@ sequenceDiagram
 ## 步驟 2：在 OneUptime 中設定 Call/SMS Config
 
 1. 登入您的 OneUptime 儀表板
-2. 前往 **Project Settings** > **通知** > **通知設定**
+2. 前往 **專案設定** > **通知** > **通知設定**
 3. 點選 **Create Custom Call/SMS Config**
 4. 填寫以下欄位：
-   - **Name**：易於辨識的名稱（例如「Production Twilio Config」）
-   - **Description**：選填的描述
-   - **Twilio Account SID**：您的 Twilio Account SID（以 `AC` 開頭）
-   - **Twilio Auth Token**：您的 Twilio Auth Token
-   - **Twilio Primary Phone Number**：您 Twilio 帳戶中用於外撥通話的電話號碼
-5. 點選 **Save**
+   - **名稱**：易於辨識的名稱（例如「Production Twilio Config」）
+   - **描述**：選填的描述
+   - **Twilio 帳戶 SID**：您的 Twilio Account SID（以 `AC` 開頭）
+   - **Twilio 驗證權杖**：您的 Twilio Auth Token
+   - **Twilio 主要電話號碼**：您 Twilio 帳戶中用於外撥通話的電話號碼
+5. 點選 **儲存**
 
 ## 步驟 3：建立來電政策
 
-1. 前往 **On-Call Duty** > **Incoming Call Policies**
+1. 前往 **待命** > **來電策略**
 2. 點選 **Create Incoming Call Policy**
 3. 填寫以下欄位：
-   - **Name**：易於辨識的名稱（例如「Support Hotline」）
-   - **Description**：選填的描述
-4. 點選 **Save**
+   - **名稱**：易於辨識的名稱（例如「Support Hotline」）
+   - **描述**：選填的描述
+4. 點選 **儲存**
 
 ## 步驟 4：將 Twilio 設定連結至政策
 
@@ -119,7 +119,7 @@ sequenceDiagram
 
 如果您的 Twilio 帳戶中已有電話號碼：
 
-1. 在 **Phone Number** 卡片中，點選 **Use Existing Number**
+1. 在 **電話號碼** 卡片中，點選 **Use Existing Number**
 2. OneUptime 會從您的 Twilio 帳戶擷取所有電話號碼
 3. 選擇您要使用的電話號碼
 4. 點選 **Use This** 將其指派給該政策
@@ -130,11 +130,11 @@ sequenceDiagram
 
 若要直接從 OneUptime 購買新的電話號碼：
 
-1. 在 **Phone Number** 卡片中，點選 **Buy New Number**
-2. 從下拉選單中選擇一個 **Country**
+1. 在 **電話號碼** 卡片中，點選 **Buy New Number**
+2. 從下拉選單中選擇一個 **國家**
 3. 選填輸入 **Area Code**（例如：415 代表舊金山）
 4. 選填輸入號碼應 **Contain** 的數字（例如：555）
-5. 點選 **Search** 以尋找可用的號碼
+5. 點選 **搜尋** 以尋找可用的號碼
 6. 從結果中選擇一個電話號碼
 7. 點選 **Purchase** 以購買該號碼
 
@@ -157,14 +157,14 @@ flowchart LR
 升級規則決定通話如何被路由：
 
 1. 開啟您的來電政策
-2. 前往 **Escalation Rules** 分頁
+2. 前往 **上報規則** 分頁
 3. 點選 **Add Escalation Rule**
 4. 設定該規則：
-   - **Order**：優先順序（數字越小者越先嘗試）
-   - **Escalate After (seconds)**：在升級之前要等待多久
-   - **On-Call Schedule**：選擇一個排程，以路由給當下待命的人
-   - **Teams**：選擇特定的團隊
-   - **Users**：選擇特定的使用者
+   - **順序**：優先順序（數字越小者越先嘗試）
+   - **升級延遲（秒）**：在升級之前要等待多久
+   - **待命排程**：選擇一個排程，以路由給當下待命的人
+   - **團隊**：選擇特定的團隊
+   - **使用者**：選擇特定的使用者
 5. 視需要新增其他升級規則
 
 ### 升級規則範例
@@ -189,11 +189,11 @@ flowchart TD
 自訂來電者所聽到的訊息：
 
 1. 開啟您的來電政策
-2. 前往 **Settings**
+2. 前往 **設定**
 3. 進行設定：
-   - **Greeting Message**：通話被接通時所播放的訊息
-   - **No Answer Message**：所有升級規則都失敗時所播放的訊息
-   - **No One Available Message**：無人待命時所播放的訊息
+   - **問候訊息**：通話被接通時所播放的訊息
+   - **無人接聽訊息**：所有升級規則都失敗時所播放的訊息
+   - **無人可用訊息**：無人待命時所播放的訊息
 
 ## 設定選項
 
@@ -201,11 +201,11 @@ flowchart TD
 
 | 設定                            | 描述                             | 預設值                                                         |
 | ------------------------------- | -------------------------------- | -------------------------------------------------------------- |
-| Greeting Message                | 通話被接通時所播放的 TTS 訊息    | "Please wait while we connect you to the on-call engineer."    |
-| No Answer Message               | 所有升級規則都失敗時的訊息       | "No one is available. Please try again later."                 |
-| No One Available Message        | 無人待命時的訊息                 | "We're sorry, but no on-call engineer is currently available." |
-| Repeat Policy If No One Answers | 若全部失敗則從第一條規則重新開始 | 停用                                                           |
-| Repeat Policy Times             | 最大重複嘗試次數                 | 1                                                              |
+| 問候訊息                        | 通話被接通時所播放的 TTS 訊息    | 「請稍候，我們正在為您連線至待命工程師。」                     |
+| 無人接聽訊息                    | 所有升級規則都失敗時的訊息       | 「目前無人可用。請稍後再試。」                                 |
+| 無人可用訊息                    | 無人待命時的訊息                 | 「很抱歉，目前沒有可用的待命工程師。」                         |
+| 若無人應答則重複策略            | 若全部失敗則從第一條規則重新開始 | 停用                                                           |
+| 重複策略次數                    | 最大重複嘗試次數                 | 1                                                              |
 
 ### 升級規則設定
 
@@ -221,9 +221,9 @@ flowchart TD
 
 若要檢視來電歷史記錄：
 
-1. 前往 **On-Call Duty** > **Incoming Call Policies**
+1. 前往 **待命** > **來電策略**
 2. 點選您的政策
-3. 前往 **Call Logs** 分頁
+3. 前往 **通話日誌** 分頁
 
 記錄會顯示：
 
@@ -237,7 +237,7 @@ flowchart TD
 
 使用者必須擁有經過驗證的電話號碼，才能接收來電：
 
-1. 使用者前往 **User Settings** > **Notification Methods**
+1. 使用者前往 **使用者設定** > **通知方式**
 2. 在 **Incoming Call Numbers** 之下新增一個電話號碼
 3. 透過 SMS 驗證碼驗證該電話號碼
 
@@ -248,7 +248,7 @@ flowchart TD
 如果您不再需要某個電話號碼：
 
 1. 開啟您的來電政策
-2. 在 **Phone Number** 卡片中，點選 **Release Number**
+2. 在 **電話號碼** 卡片中，點選 **釋出號碼**
 3. 確認釋出
 
 > **警告**：已釋出的號碼會被退還給 Twilio，且可能無法再次購買。

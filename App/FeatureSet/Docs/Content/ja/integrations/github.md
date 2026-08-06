@@ -2,7 +2,7 @@
 
 OneUptime のインシデントが作成されると自動的に [GitHub](https://github.com) の Issue を開きます — 影響を受けるサービスを管理するリポジトリで後続のエンジニアリング作業を追跡できます。
 
-この連携は**アウトバウンド**です: OneUptime が [GitHub REST API](https://docs.github.com/en/rest/issues/issues) を呼び出します。**Incident → On Create** トリガーと **API コンポーネント**を持つ OneUptime の **[ワークフロー](/docs/workflows/index)** を使います。
+この連携は**アウトバウンド**です: OneUptime が [GitHub REST API](https://docs.github.com/en/rest/issues/issues) を呼び出します。**インシデント → On Create** トリガーと **API コンポーネント**を持つ OneUptime の **[ワークフロー](/docs/workflows/index)** を使います。
 
 > **より深い GitHub 接続をお探しですか?** OneUptime にはコードリポジトリを接続するためのネイティブ **GitHub App** インテグレーションもあります (AI エージェントとコード機能で使用)。これはワークフローではなく環境変数で設定します — [GitHub 連携 (セルフホスト)](/docs/self-hosted/github-integration) を参照してください。このページはインシデントから *Issue を登録する*ことについてです。
 
@@ -24,13 +24,13 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 
 ## ステップ 1 — トークンを保存する
 
-1. **Workflows → Global Variables → Create** に移動します。
+1. **ワークフロー → グローバル変数 → 作成** に移動します。
 2. `GITHUB_TOKEN` という名前にして、トークンを貼り付け、**Is Secret** をオンにします。
 
 ## ステップ 2 — ワークフローを作成する
 
-1. **Workflows → Create Workflow** を開き、`Incidents → GitHub Issues` という名前にして **Builder** を開きます。
-2. **Incident** トリガーを **On Create** に設定して追加します。`Incident` にリネームします。
+1. **ワークフロー → ワークフローを作成** を開き、`Incidents → GitHub Issues` という名前にして **ビルダー** を開きます。
+2. **インシデント** トリガーを **On Create** に設定して追加します。`Incident` にリネームします。
 3. トリガーに接続した **API** ブロックを追加します:
 
    - **Method**: `POST`
@@ -54,7 +54,7 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
      }
      ```
 
-4. **Save** して有効化し、テスト用インシデントを作成します。ワークフローのログに `201 Created` が表示されれば Issue が作成されたことを意味し、レスポンスボディに `number` と `html_url` が含まれます。
+4. **保存** して有効化し、テスト用インシデントを作成します。ワークフローのログに `201 Created` が表示されれば Issue が作成されたことを意味し、レスポンスボディに `number` と `html_url` が含まれます。
 
 ## ヒント
 

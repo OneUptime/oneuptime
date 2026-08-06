@@ -2,7 +2,7 @@
 
 ## Überblick
 
-[Serilog](https://serilog.net) ist die beliebteste Bibliothek für strukturiertes Logging in .NET. OneUptime nimmt Serilog-Logs über das OpenTelemetry Protocol (OTLP) entgegen und verwendet dafür den offiziellen [`Serilog.Sinks.OpenTelemetry`](https://github.com/serilog/serilog-sinks-opentelemetry)-Sink. Sobald die Konfiguration abgeschlossen ist, wird jedes Log-Ereignis, das Ihre Anwendung über Serilog schreibt, an OneUptime übermittelt und dort unter **Products → Protokolle** durchsuchbar – inklusive strukturierter Eigenschaften, Schweregrad und Trace-/Span-Korrelation.
+[Serilog](https://serilog.net) ist die beliebteste Bibliothek für strukturiertes Logging in .NET. OneUptime nimmt Serilog-Logs über das OpenTelemetry Protocol (OTLP) entgegen und verwendet dafür den offiziellen [`Serilog.Sinks.OpenTelemetry`](https://github.com/serilog/serilog-sinks-opentelemetry)-Sink. Sobald die Konfiguration abgeschlossen ist, wird jedes Log-Ereignis, das Ihre Anwendung über Serilog schreibt, an OneUptime übermittelt und dort unter **Produkte → Protokolle** durchsuchbar – inklusive strukturierter Eigenschaften, Schweregrad und Trace-/Span-Korrelation.
 
 Es gibt kein OneUptime-spezifisches Paket zu installieren – der Sink kommuniziert mit demselben OTLP-Endpunkt, den OneUptime für alle OpenTelemetry-Daten bereitstellt. Das funktioniert für Konsolenanwendungen, Worker-Dienste, ASP.NET Core-Anwendungen und alles andere, was auf .NET läuft.
 
@@ -12,13 +12,13 @@ Es gibt kein OneUptime-spezifisches Paket zu installieren – der Sink kommunizi
 - **Erstellen Sie ein OneUptime-Projekt** – Sobald Sie ein Konto haben, erstellen Sie ein Projekt über das OneUptime-Dashboard. Wenn Sie Hilfe benötigen, kontaktieren Sie uns unter support@oneuptime.com.
 - **Erstellen Sie ein Telemetry-Ingestion-Token** – Sie benötigen ein Token, um Ihre Logs zu authentifizieren.
 
-Nachdem Sie sich bei OneUptime registriert und ein Projekt erstellt haben, klicken Sie in der Navigationsleiste auf "Products" und anschließend auf "Project Settings".
+Nachdem Sie sich bei OneUptime registriert und ein Projekt erstellt haben, klicken Sie in der Navigationsleiste auf "Produkte" und anschließend auf "Projekteinstellungen".
 
-Klicken Sie auf der Seite "Telemetry Ingestion Key" auf "Create Ingestion Key", um ein Token zu erstellen.
+Klicken Sie auf der Seite "Telemetrie Aufnahme Key" auf "Aufnahmeschlüssel erstellen", um ein Token zu erstellen.
 
 ![Create Service](/docs/static/images/TelemetryIngestionKeys.png)
 
-Sobald Sie ein Token erstellt haben, klicken Sie auf "View", um das Token anzuzeigen.
+Sobald Sie ein Token erstellt haben, klicken Sie auf "Ansehen", um das Token anzuzeigen.
 
 ![View Service](/docs/static/images/TelemetryIngestionKeyView.png)
 
@@ -197,7 +197,7 @@ Log.Information("Order {OrderId} placed by {CustomerId} for {Amount:C}",
 Log.Warning("Payment gateway slow: {LatencyMs}ms", latencyMs);
 ```
 
-Jede benannte Eigenschaft (`OrderId`, `CustomerId`, `Amount`, `LatencyMs`) wird als Log-Attribut gesendet, sodass Sie im Explorer unter **Products → Protokolle** danach filtern und suchen können.
+Jede benannte Eigenschaft (`OrderId`, `CustomerId`, `Amount`, `LatencyMs`) wird als Log-Attribut gesendet, sodass Sie im Explorer unter **Produkte → Protokolle** danach filtern und suchen können.
 
 ## Ausnahmen (Exceptions)
 
@@ -214,7 +214,7 @@ catch (Exception ex)
 }
 ```
 
-OneUptime erkennt diese Attribute und überträgt den Fehler automatisch in die Ansicht **Exceptions** (Issues), gruppiert nach Fingerprint und dem richtigen Dienst zugeordnet. Ein Fehler, der sowohl von einem Trace als auch von einem Log gemeldet wird, wird zu einem einzigen Issue zusammengeführt. Details dazu, wie die Erkennung funktioniert, finden Sie unter [Exceptions from logs](/docs/telemetry/open-telemetry).
+OneUptime erkennt diese Attribute und überträgt den Fehler automatisch in die Ansicht **Ausnahmen** (Issues), gruppiert nach Fingerprint und dem richtigen Dienst zugeordnet. Ein Fehler, der sowohl von einem Trace als auch von einem Log gemeldet wird, wird zu einem einzigen Issue zusammengeführt. Details dazu, wie die Erkennung funktioniert, finden Sie unter [Exceptions from logs](/docs/telemetry/open-telemetry).
 
 ## Trace-Korrelation
 
@@ -223,7 +223,7 @@ Wenn Ihre Anwendung zusätzlich mit dem OpenTelemetry .NET SDK für Traces instr
 ## Überprüfen
 
 1. Führen Sie Ihre Anwendung aus und erzeugen Sie einige Log-Ereignisse.
-2. Öffnen Sie OneUptime, gehen Sie zu **Telemetry**, wählen Sie Ihren Dienst aus (`my-service`) und öffnen Sie **Logs**.
+2. Öffnen Sie OneUptime, gehen Sie zu **Telemetrie**, wählen Sie Ihren Dienst aus (`my-service`) und öffnen Sie **Protokolle**.
 3. Ihre Serilog-Ereignisse sollten innerhalb weniger Sekunden erscheinen, wobei ihre strukturierten Eigenschaften als Filter verfügbar sind.
 
 ## Fehlerbehebung

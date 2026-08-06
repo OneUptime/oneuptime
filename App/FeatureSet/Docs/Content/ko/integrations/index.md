@@ -57,7 +57,7 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 
 API 키나 토큰을 블록에 직접 붙여넣지 마세요. 대신:
 
-1. **Workflows → Global Variables** 로 이동합니다.
+1. **워크플로 → 전역 변수** 로 이동합니다.
 2. 변수를 만듭니다 — 예를 들어 `JIRA_AUTH` — 그리고 **Is Secret** 를 켭니다.
 3. 어디서든 `{{variable.JIRA_AUTH}}` 로 참조합니다.
 

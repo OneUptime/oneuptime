@@ -4,7 +4,7 @@ OneUptime 支援透過自訂 SMTP 伺服器寄送電子郵件，提供三種驗�
 
 - **使用者名稱與密碼** - 傳統的 SMTP 驗證
 - **OAuth 2.0** - 適用於 Microsoft 365 與 Google Workspace 的現代驗證方式
-- **None** - 適用於不需要驗證的轉送（relay）伺服器
+- **無** - 適用於不需要驗證的轉送（relay）伺服器
 
 本指南說明如何為 Microsoft 365 與 Google Workspace 設定 OAuth 2.0 驗證。
 
@@ -19,17 +19,17 @@ OAuth 2.0 提供了一種更安全的方式來向電子郵件伺服器進行驗�
 
 在 OneUptime 中設定使用 OAuth 驗證的 SMTP 時，你會需要：
 
-| 欄位                    | 說明                                                                          |
-| ----------------------- | ----------------------------------------------------------------------------- |
-| **Hostname**            | SMTP 伺服器位址                                                               |
-| **Port**                | SMTP 連接埠（STARTTLS 通常為 587，隱含式 TLS 通常為 465）                     |
-| **Username**            | 用來寄送郵件的電子郵件地址                                                    |
-| **Authentication Type** | 選擇「OAuth」                                                                 |
-| **OAuth Provider Type** | Microsoft 365 選擇「Client Credentials」，Google Workspace 選擇「JWT Bearer」 |
-| **Client ID**           | 來自你 OAuth 供應商的應用程式/用戶端 ID（Google 則為服務帳戶電子郵件）        |
-| **Client Secret**       | 來自你 OAuth 供應商的用戶端密鑰（Google 則為私密金鑰）                        |
-| **Token URL**           | OAuth 權杖端點 URL                                                            |
-| **Scope**               | 存取 SMTP 所需的 OAuth 範圍（scope）                                          |
+| 欄位                 | 說明                                                                          |
+| -------------------- | ----------------------------------------------------------------------------- |
+| **主機名稱**         | SMTP 伺服器位址                                                               |
+| **連接埠**           | SMTP 連接埠（STARTTLS 通常為 587，隱含式 TLS 通常為 465）                     |
+| **使用者名稱**       | 用來寄送郵件的電子郵件地址                                                    |
+| **驗證類型**         | 選擇「OAuth」                                                                 |
+| **OAuth 提供者類型** | Microsoft 365 選擇「Client Credentials」，Google Workspace 選擇「JWT Bearer」 |
+| **用戶端 ID**        | 來自你 OAuth 供應商的應用程式/用戶端 ID（Google 則為服務帳戶電子郵件）        |
+| **用戶端密鑰**       | 來自你 OAuth 供應商的用戶端密鑰（Google 則為私密金鑰）                        |
+| **Token URL**        | OAuth 權杖端點 URL                                                            |
+| **範圍**             | 存取 SMTP 所需的 OAuth 範圍（scope）                                          |
 
 ---
 
@@ -230,7 +230,7 @@ Google Workspace 需要一個具備網域層級委派（domain-wide delegation�
 
 ### 一般
 
-- **測試你的設定**：使用 OneUptime 中的「Send Test Email」按鈕來驗證你的設定
+- **測試你的設定**：使用 OneUptime 中的「傳送測試電子郵件」按鈕來驗證你的設定
 - **檢查記錄**：查看 OneUptime 記錄以取得詳細的錯誤訊息
 - **權杖快取**：OneUptime 會快取 OAuth 權杖，並在到期前自動重新整理
 

@@ -37,7 +37,7 @@ Refererer til utdata fra en tidligere blokk slik:
 Eksempler:
 
 - Etter at en **API**-blokk kalt `LookupUser` kjører, kan du lese statuskoden som `{{LookupUser.response-status}}` og kroppen som `{{LookupUser.response-body}}`.
-- Etter en **Hendelse → Ved opprettelse**-trigger kalt `Incident`, kan du lese `{{Incident.title}}`, `{{Incident.description}}` og ethvert annet felt på hendelsen.
+- Etter en **Hendelse → On Create**-trigger kalt `Incident`, kan du lese `{{Incident.title}}`, `{{Incident.description}}` og ethvert annet felt på hendelsen.
 - Etter en **Egendefinert kode**-blokk kalt `Transform`, finnes den returnerte verdien på `{{Transform.value}}`.
 
 Lokale variabler eksisterer bare under den nåværende kjøringen. Hver nye kjøring starter på nytt.

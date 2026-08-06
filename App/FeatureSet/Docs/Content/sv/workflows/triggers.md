@@ -32,9 +32,9 @@ Bra för: att ta emot data till OneUptime från ett annat verktyg — CI/CD-call
 
 **Utdata**:
 
-- **Request Headers** — alla headers från den inkommande förfrågan.
+- **Begärandehuvuden** — alla headers från den inkommande förfrågan.
 - **Request Query Params** — den tolkade query-strängen.
-- **Request Body** — den tolkade bodyn (eller råtexten om det inte är JSON).
+- **Begärandekropp** — den tolkade bodyn (eller råtexten om det inte är JSON).
 
 URL:en accepterar både `GET` och `POST`. Anroparen får en snabb bekräftelse — själva arbetsflödet körs i bakgrunden.
 
@@ -55,10 +55,10 @@ Hela posten skickas vidare till nästa block. Till exempel skickar utlösaren **
 ### Händelser som team använder mest
 
 - **Incident** — reagera när en incident öppnas, uppdateras (bekräftas, löses) eller raderas.
-- **Alert** — samma tre för larm.
-- **Monitor** — reagera när en monitor läggs till, redigeras eller tas bort.
-- **Scheduled Maintenance** — meddela ett underhållsfönster automatiskt när det schemaläggs.
-- **Status Page Subscriber** — välkomna någon som prenumererar på en statussida.
+- **Larm** — samma tre för larm.
+- **Övervakning** — reagera när en monitor läggs till, redigeras eller tas bort.
+- **Schemalagt underhåll** — meddela ett underhållsfönster automatiskt när det schemaläggs.
+- **Statussida Prenumerant** — välkomna någon som prenumererar på en statussida.
 - **On-Call Duty Policy** — synka schemaändringar till ett annat rostersystem.
 
 Sök i utlösarpaletten på namn för att hitta den du vill ha.

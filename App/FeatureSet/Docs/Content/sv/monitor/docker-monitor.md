@@ -14,7 +14,7 @@ Docker-monitorer använder mätvärden och loggar från dina värdar för att ge
 
 ## Skapa en Docker-monitor
 
-1. Gå till **Monitorer** i OneUptime-instrumentpanelen
+1. Gå till **Övervakare** i OneUptime-instrumentpanelen
 2. Klicka på **Skapa monitor**
 3. Välj **Docker** som monitortyp
 4. Välj Docker-värden och resursomfånget att övervaka

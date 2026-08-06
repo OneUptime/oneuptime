@@ -4,7 +4,7 @@
 
 Una vez que hayas creado una cuenta de OneUptime, puedes crear un token de ingesta de telemetría para ingestar registros, métricas y trazas desde tu aplicación.
 
-Después de registrarte en OneUptime y crear un proyecto. Haz clic en "Products" en la barra de navegación y haz clic en "Configuración del proyecto".
+Después de registrarte en OneUptime y crear un proyecto. Haz clic en "Productos" en la barra de navegación y haz clic en "Ajustes del proyecto".
 
 En la página de Clave de ingesta de telemetría, haz clic en "Crear clave de ingesta" para crear un token.
 

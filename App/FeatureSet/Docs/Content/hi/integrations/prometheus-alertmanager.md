@@ -16,16 +16,16 @@ Prometheus rule fires  ──►  Alertmanager webhook receiver  ──►  OneU
 
 ## चरण 1 — OneUptime वर्कफ़्लो बनाएँ
 
-1. **Workflows → Create Workflow** खोलें, इसे `Alertmanager → Incidents` नाम दें, और **Builder** खोलें।
-2. एक **Webhook** trigger जोड़ें और **उसका URL कॉपी करें**। ब्लॉक का नाम `Alertmanager` रखें।
-3. trigger से connected एक **Conditions** ब्लॉक जोड़ें:
+1. **वर्कफ़्लो → वर्कफ़्लो बनाएं** खोलें, इसे `Alertmanager → Incidents` नाम दें, और **बिल्डर** खोलें।
+2. एक **वेबहुक** trigger जोड़ें और **उसका URL कॉपी करें**। ब्लॉक का नाम `Alertmanager` रखें।
+3. trigger से connected एक **शर्तें** ब्लॉक जोड़ें:
    - **Left**: `{{Alertmanager.Request Body.status}}`
    - **Operator**: `==`
    - **Right**: `firing`
-4. **Yes** से, एक **Create Incident** ब्लॉक जोड़ें:
-   - **Title**: `{{Alertmanager.Request Body.commonAnnotations.summary}}`
-   - **Description**: `{{Alertmanager.Request Body.commonAnnotations.description}}\nAlert: {{Alertmanager.Request Body.commonLabels.alertname}}`
-   - **Severity**: कोई एक चुनें (या पहले `{{Alertmanager.Request Body.commonLabels.severity}}` पर branch करें)।
+4. **हाँ** से, एक **घटना बनाएं** ब्लॉक जोड़ें:
+   - **शीर्षक**: `{{Alertmanager.Request Body.commonAnnotations.summary}}`
+   - **विवरण**: `{{Alertmanager.Request Body.commonAnnotations.description}}\nAlert: {{Alertmanager.Request Body.commonLabels.alertname}}`
+   - **गंभीरता**: कोई एक चुनें (या पहले `{{Alertmanager.Request Body.commonLabels.severity}}` पर branch करें)।
 5. **सहेजें** (test होने तक disabled छोड़ें)।
 
 > **Grouped alerts के बारे में।** Alertmanager alerts को group करता है और एक `alerts` **array** भेजता है। ऊपर `commonLabels` और `commonAnnotations` वे fields हैं जो group में सभी में share हैं — एक notification के लिए एक incident के लिए perfect। यदि आप **प्रत्येक alert के लिए एक incident** चाहते हैं, तो एक [Custom Code](/docs/workflows/components#custom-code) ब्लॉक जोड़ें जो `Request Body.alerts` पर loop करे और हर के लिए एक incident बनाए। अपने route में `group_by` से grouping tune करें।
@@ -60,16 +60,16 @@ Alertmanager reload करें (`curl -X POST http://localhost:9093/-/reload` 
    amtool alert add test_alert severity=warning --annotation=summary="Test from Alertmanager" --alertmanager.url=http://localhost:9093
    ```
 
-3. वर्कफ़्लो का **Logs** tab और अपना **Incidents** list जाँचें।
+3. वर्कफ़्लो का **लॉग** tab और अपना **घटनाएं** list जाँचें।
 
 ## Recovery पर resolve करना (वैकल्पिक)
 
-`send_resolved: true` के साथ, Alertmanager तब भी POST करता है जब कोई alert clear होता है, इस बार `status: resolved` के साथ। एक दूसरा **Conditions** branch जोड़ें (`status == resolved`), matching incident खोजें (`commonLabels.alertname` पर match करें), और इसे **Update Incident** के साथ आपके resolved state में ले जाएँ।
+`send_resolved: true` के साथ, Alertmanager तब भी POST करता है जब कोई alert clear होता है, इस बार `status: resolved` के साथ। एक दूसरा **शर्तें** branch जोड़ें (`status == resolved`), matching incident खोजें (`commonLabels.alertname` पर match करें), और इसे **Update Incident** के साथ आपके resolved state में ले जाएँ।
 
 ## समस्या निवारण
 
-- **कोई run नहीं दिखता** — पुष्टि करें कि Alertmanager URL तक पहुँच सकता है (delivery errors के लिए उसके logs जाँचें) और वर्कफ़्लो **Enabled** है।
-- **Incident fields खाली हैं** — अलग-अलग rules अलग-अलग annotations set करते हैं। **Logs** tab में trigger output inspect करें और उन fields को reference करें जो actually exist करते हैं (`commonAnnotations` vs per-alert `annotations`)।
+- **कोई run नहीं दिखता** — पुष्टि करें कि Alertmanager URL तक पहुँच सकता है (delivery errors के लिए उसके logs जाँचें) और वर्कफ़्लो **सक्षम** है।
+- **Incident fields खाली हैं** — अलग-अलग rules अलग-अलग annotations set करते हैं। **लॉग** tab में trigger output inspect करें और उन fields को reference करें जो actually exist करते हैं (`commonAnnotations` vs per-alert `annotations`)।
 - **बहुत सारे incidents** — `group_by`/`group_interval` बढ़ाएँ ताकि Alertmanager related alerts batch करे।
 
 ## आगे क्या पढ़ें

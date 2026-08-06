@@ -2,7 +2,7 @@
 
 Öffnen Sie automatisch einen [ServiceNow](https://www.servicenow.com)-Vorfall, sobald ein OneUptime-Vorfall erstellt wird – damit ITSM und Monitoring stets synchron bleiben.
 
-Diese Integration ist **ausgehend**: OneUptime ruft die ServiceNow-[Table API](https://docs.servicenow.com/bundle/utah-application-development/page/integrate/inbound-rest/concept/c_TableAPI.html) auf. Sie verwendet einen OneUptime-**[Workflow](/docs/workflows/index)** mit einem **Incident → On Create**-Auslöser und einer **API-Komponente**.
+Diese Integration ist **ausgehend**: OneUptime ruft die ServiceNow-[Table API](https://docs.servicenow.com/bundle/utah-application-development/page/integrate/inbound-rest/concept/c_TableAPI.html) auf. Sie verwendet einen OneUptime-**[Workflow](/docs/workflows/index)** mit einem **Vorfall → On Create**-Auslöser und einer **API-Komponente**.
 
 ```text
 OneUptime Incident → On Create  ──►  API component (POST /api/now/table/incident)  ──►  ServiceNow incident
@@ -24,12 +24,12 @@ Die Table API von ServiceNow akzeptiert **Basic-Auth**.
    printf '%s' 'integration_user:password' | base64
    ```
 
-2. Gehen Sie in OneUptime zu **Workflows → Global Variables → Create**, benennen Sie die Variable `SERVICENOW_AUTH`, fügen Sie die Base64-Zeichenkette ein und aktivieren Sie **Is Secret**.
+2. Gehen Sie in OneUptime zu **Arbeitsabläufe → Globale Variablen → Erstellen**, benennen Sie die Variable `SERVICENOW_AUTH`, fügen Sie die Base64-Zeichenkette ein und aktivieren Sie **Is Secret**.
 
 ## Schritt 2 — Den Workflow erstellen
 
-1. Öffnen Sie **Workflows → Create Workflow**, benennen Sie ihn `Incidents → ServiceNow`, und öffnen Sie den **Builder**.
-2. Fügen Sie einen **Incident**-Auslöser mit **On Create** hinzu. Benennen Sie ihn in `Incident` um.
+1. Öffnen Sie **Arbeitsabläufe → Workflow erstellen**, benennen Sie ihn `Incidents → ServiceNow`, und öffnen Sie den **Builder**.
+2. Fügen Sie einen **Vorfall**-Auslöser mit **On Create** hinzu. Benennen Sie ihn in `Incident` um.
 3. Fügen Sie einen **API**-Block verbunden mit dem Auslöser hinzu:
 
    - **Method**: `POST`
@@ -60,7 +60,7 @@ Die Table API von ServiceNow akzeptiert **Basic-Auth**.
 
 ## Schritt 3 — Bei OneUptime-Auflösung auflösen (optional)
 
-1. Erstellen Sie einen **zweiten** Workflow mit einem **Incident → On Update**-Auslöser und einem **Conditions**-Block, der prüft, ob der Vorfall aufgelöst ist.
+1. Erstellen Sie einen **zweiten** Workflow mit einem **Vorfall → On Update**-Auslöser und einem **Bedingungen**-Block, der prüft, ob der Vorfall aufgelöst ist.
 2. Um den richtigen ServiceNow-Datensatz zu aktualisieren, benötigen Sie seine `sys_id`. Entweder speichern Sie diese am OneUptime-Vorfall in Schritt 2 (lesen Sie `{{CreateRecord.response-body.result.sys_id}}` und schreiben Sie sie mit **Update Incident** in ein Label), oder suchen Sie den Datensatz zuerst mit einem `GET` auf `/api/now/table/incident?sysparm_query=correlation_id=oneuptime-{{Incident._id}}`.
 3. Fügen Sie einen **API**-Block hinzu: **Method** `PATCH`, **URL** `https://your-instance.service-now.com/api/now/table/incident/<sys_id>`, Body `{ "state": "6", "close_code": "Resolved by monitoring", "close_notes": "Resolved in OneUptime" }` (`state` `6` = Aufgelöst im Standard-ITIL-Workflow).
 

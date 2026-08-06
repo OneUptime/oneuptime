@@ -182,7 +182,7 @@ OneUptime tilføjer automatisk følgende attributter til hver logpost:
 - `syslog.structured.*` (fladtrykt RFC5424 strukturerede data)
 - `syslog.raw` (original meddelelse til sporbarhed)
 
-Disse attributter bliver søgbare inde i Telemetri → Log-stifinder.
+Disse attributter bliver søgbare inde i Produkter → Protokoller-stifinderen.
 
 ## Fejlfinding
 

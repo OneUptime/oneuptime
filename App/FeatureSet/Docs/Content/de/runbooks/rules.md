@@ -1,10 +1,10 @@
 # Runbook-Regeln
 
-Runbook-Regeln hängen Runbooks automatisch an, wenn ein **Vorfall**, eine **Warnmeldung** oder ein **geplantes Wartungsereignis** erstellt wird. Sie werden über das Settings-Menü jeder Entität verwaltet:
+Runbook-Regeln hängen Runbooks automatisch an, wenn ein **Vorfall**, eine **Warnmeldung** oder ein **geplantes Wartungsereignis** erstellt wird. Sie werden über das Einstellungen-Menü jeder Entität verwaltet:
 
-- Incidents → Settings → **Runbook Rules**
-- Alerts → Settings → **Runbook Rules**
-- Scheduled Maintenance → Settings → **Runbook Rules**
+- Vorfälle → Einstellungen → **Runbook-Regeln**
+- Warnungen → Einstellungen → **Runbook-Regeln**
+- Geplante Wartung → Einstellungen → **Runbook-Regeln**
 
 Alle drei Seiten bearbeiten dasselbe zugrunde liegende Regelmodell — sie sind nur so gefiltert, dass jeweils nur Regeln für diesen Entitätstyp angezeigt werden.
 
@@ -55,9 +55,9 @@ Feuert bei jedem Vorfall — nützlich, um Snapshots des Systemzustands, Seitenm
 1. Das Runbook wird geladen.
 2. Seine Schritte werden auf eine neue Runbook-Ausführung **gesnapshottet**.
 3. Die Ausführung wird in die Queue des Runbook-Workers gestellt.
-4. Die Ausführung wird mit der Quell-Entität verknüpft — sie erscheint auf der Seite des Vorfalls, der Warnmeldung oder des geplanten Wartungsereignisses und in der Executions-Liste des Runbooks.
+4. Die Ausführung wird mit der Quell-Entität verknüpft — sie erscheint auf der Seite des Vorfalls, der Warnmeldung oder des geplanten Wartungsereignisses und in der Ausführungen-Liste des Runbooks.
 
-Alle regelgesteuerten Läufe sehen Sie unter **Runbooks → Executions**, gefiltert nach Status, Runbook oder Datum.
+Alle regelgesteuerten Läufe sehen Sie unter **Runbooks → Ausführungen**, gefiltert nach Status, Runbook oder Datum.
 
 ## Deaktivierte Runbooks
 
