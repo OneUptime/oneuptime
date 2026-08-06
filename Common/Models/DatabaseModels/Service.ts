@@ -26,28 +26,16 @@ import Permission from "../../Types/Permission";
 import TechStack from "../../Types/Service/TechStack";
 import MetricDownsamplingRetentionDays from "../../Types/Metrics/MetricDownsamplingRetentionDays";
 import TelemetryRetentionConfig from "../../Types/Telemetry/TelemetryRetentionConfig";
+import UNSYNCHRONIZED_INDEX from "../../Types/Database/UnsynchronizedIndex";
 import {
   Column,
   Entity,
   Index,
-  IndexOptions,
   JoinColumn,
   JoinTable,
   ManyToMany,
   ManyToOne,
 } from "typeorm";
-
-/*
- * `synchronize` is a real, supported index option: the @Index decorator
- * forwards it into IndexMetadataArgs (typeorm/decorator/Index.js), the
- * IndexMetadataArgs type declares it, and RdbmsSchemaBuilder reads it in both
- * dropOldIndices and createNewIndices. Only the public IndexOptions type omits
- * it — a gap in TypeORM's own typings rather than a misuse. Named here so the
- * cast is stated once, with its reason, instead of inline at the decorator.
- */
-const UNSYNCHRONIZED_INDEX: IndexOptions = {
-  synchronize: false,
-} as IndexOptions;
 
 @OperationalResource()
 @AccessControlColumn("labels")
