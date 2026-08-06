@@ -109,11 +109,14 @@ describe("restored UNIQUE indexes", () => {
     );
 
     test.each(PINNED_INDEXES)(
-      "%p opts %s OUT of schema synchronization",
+      "%p declares %s as UNIQUE and partial",
       (model: ModelClass, indexName: string): void => {
         /*
-         * THE assertion. Without synchronize:false the schema builder owns the
-         * index again, cannot express the partial predicate, and drops it.
+         * THE assertion. These are declared NATIVELY, not pinned with
+         * synchronize:false, so the schema builder owns them and the drift
+         * check actively polices them. For that to work the declaration has to
+         * match the database: same name, same uniqueness, same columns.
+         * dropOldIndices compares exactly those, and drops on any mismatch.
          */
         const found: IndexMetadataArgs | undefined =
           getMetadataArgsStorage().indices.find(
@@ -122,7 +125,28 @@ describe("restored UNIQUE indexes", () => {
             },
           );
 
-        expect(found?.synchronize).toBe(false);
+        expect(found?.unique).toBe(true);
+        expect(found?.where).toBe('"deletedAt" IS NULL');
+      },
+    );
+
+    test.each(PINNED_INDEXES)(
+      "%p leaves %s under TypeORM's ownership",
+      (model: ModelClass, indexName: string): void => {
+        /*
+         * The opposite of the Service LOWER(name) index, which MUST opt out
+         * because @Index() cannot express an expression index. These nine can
+         * all be expressed, so opting them out would only hide them from the
+         * drift check for no benefit.
+         */
+        const found: IndexMetadataArgs | undefined =
+          getMetadataArgsStorage().indices.find(
+            (index: IndexMetadataArgs): boolean => {
+              return index.target === model && index.name === indexName;
+            },
+          );
+
+        expect(found?.synchronize).not.toBe(false);
       },
     );
   });
