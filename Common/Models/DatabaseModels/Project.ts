@@ -2583,7 +2583,21 @@ export default class Project extends TenantModel {
   })
   public doNotAddGlobalProbesByDefaultOnNewMonitors?: boolean = undefined;
 
-  // GitHub App Installation ID for this project
+  /*
+   * GitHub App Installation ID for this project.
+   *
+   * This column IS the authority on which GitHub App installation a project
+   * owns — every path that mints a repository token re-derives the binding
+   * from it (see GitHubInstallationBinding). That makes it security state, not
+   * project configuration, so `update` is empty: a Project Owner who could PUT
+   * an arbitrary installation ID here would simply be writing their own
+   * permission slip to another tenant's repositories.
+   *
+   * It is written server-side only, with `isRoot`, by the GitHub App install
+   * callback — and only after the OAuth user-to-server round trip has proved
+   * to GitHub's satisfaction that the installer controls that installation —
+   * and cleared again by the `installation.deleted` webhook.
+   */
   @ColumnAccessControl({
     create: [],
     read: [
@@ -2593,7 +2607,7 @@ export default class Project extends TenantModel {
       Permission.Viewer,
       Permission.ReadProject,
     ],
-    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    update: [],
   })
   @TableColumn({
     required: false,

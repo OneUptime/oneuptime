@@ -14,6 +14,11 @@ import {
 import GitHubUtil, {
   GitHubRepository,
 } from "../Utils/CodeRepository/GitHub/GitHub";
+import GitHubInstallationBinding from "../Utils/CodeRepository/GitHub/GitHubInstallationBinding";
+import BadDataException from "../../Types/Exception/BadDataException";
+import CreateBy from "../Types/Database/CreateBy";
+import UpdateBy from "../Types/Database/UpdateBy";
+import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 
 export interface ImportReposFromInstallationResult {
   imported: number;
@@ -23,6 +28,93 @@ export interface ImportReposFromInstallationResult {
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * Last line of defence for the installation-to-project binding.
+   *
+   * gitHubAppInstallationId is already closed to API callers at the column
+   * level, but that only stops requests that go through permission checks —
+   * every write here is made with `props: { isRoot: true }`, which skips them
+   * entirely. This hook runs regardless of isRoot, so any route (including one
+   * added later) that writes a row carrying another tenant's installation ID
+   * is refused at the service boundary rather than at the token endpoint.
+   *
+   * The legitimate writer is importReposFromInstallation, which the install
+   * callback and the installation webhooks only ever call for a project the
+   * installation is already bound to — so this check passes for them.
+   */
+  @CaptureSpan()
+  protected override async onBeforeCreate(
+    createBy: CreateBy<Model>,
+  ): Promise<OnCreate<Model>> {
+    const installationId: string | undefined =
+      createBy.data.gitHubAppInstallationId;
+
+    if (installationId) {
+      const projectId: ObjectID | undefined =
+        createBy.data.projectId || createBy.props.tenantId;
+
+      if (!projectId) {
+        throw new BadDataException(
+          "A project is required to connect a GitHub App installation to a repository.",
+        );
+      }
+
+      await GitHubInstallationBinding.assertInstallationBoundToProject({
+        projectId: projectId,
+        installationId: installationId,
+      });
+    }
+
+    return { createBy, carryForward: null };
+  }
+
+  /*
+   * Same rule on the update path. Clearing the installation ID is always
+   * allowed — that is how the `installation.deleted` webhook tears a
+   * disconnected installation out of the database.
+   */
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    const installationId: string | undefined = updateBy.data
+      .gitHubAppInstallationId as string | undefined;
+
+    if (installationId) {
+      /*
+       * updateBy matches by query rather than by id, so check every row the
+       * write would touch: one unbound row is enough to leak a token.
+       */
+      const repositories: Array<Model> = await this.findBy({
+        query: updateBy.query,
+        select: {
+          _id: true,
+          projectId: true,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      for (const repository of repositories) {
+        if (!repository.projectId) {
+          throw new BadDataException(
+            "A project is required to connect a GitHub App installation to a repository.",
+          );
+        }
+
+        await GitHubInstallationBinding.assertInstallationBoundToProject({
+          projectId: repository.projectId,
+          installationId: installationId,
+        });
+      }
+    }
+
+    return { updateBy, carryForward: null };
   }
 
   /*
@@ -174,13 +266,24 @@ export class Service extends DatabaseService<Model> {
       },
     });
 
-    // Only GitHub-App-connected repos can be cloned/pushed by the agent.
+    /*
+     * Only GitHub-App-connected repos can be cloned/pushed by the agent — and
+     * only ones whose installation this project actually owns. Resolution
+     * probes EVERY candidate's file tree, so an unbound row here would have
+     * the server read another tenant's private repository on its own
+     * initiative (GHSA-xx95-gmcf-7q86).
+     */
+    const boundInstallationId: string | null =
+      await GitHubInstallationBinding.getBoundInstallationId(data.projectId);
+
     const resolvable: Array<ResolvableRepository> = repositories
       .filter((repository: Model) => {
         return (
           repository.repositoryHostedAt === CodeRepositoryType.GitHub &&
           Boolean(repository.gitHubAppInstallationId) &&
-          Boolean(repository.id)
+          Boolean(repository.id) &&
+          Boolean(boundInstallationId) &&
+          repository.gitHubAppInstallationId === boundInstallationId
         );
       })
       .map((repository: Model) => {

@@ -24,8 +24,15 @@ To integrate GitHub with your self-hosted OneUptime instance, you need to create
    - **Callback URL:** `https://your-oneuptime-domain.com/api/github/auth/callback`
    - **Setup URL:** `https://your-oneuptime-domain.com/api/github/auth/callback` - **Important: This URL is where GitHub redirects users after they install the app. It must be set for the redirect to work.**
    - **Redirect on update:** Check this option to redirect users after they update the app installation
+   - **Request user authorization (OAuth) during installation:** **Check this option — it is required.** See below.
    - **Webhook URL:** `https://your-oneuptime-domain.com/api/github/webhook`
-   - **Webhook secret:** Generate a secure random string (save this for later)
+   - **Webhook secret:** Generate a secure random string (save this for later). **Required** — OneUptime rejects unsigned webhooks, so leaving `GITHUB_APP_WEBHOOK_SECRET` unset stops repository sync rather than accepting unverified payloads.
+
+> **Why "Request user authorization (OAuth) during installation" is required**
+>
+> After an install, GitHub redirects back with an `installation_id` in the URL. That number alone proves nothing about who owns the installation — anyone can type a different one. With this option enabled GitHub also returns a single-use OAuth `code` tied to the GitHub account that performed the install, which OneUptime exchanges to confirm that account really administers the installation before connecting it to your project.
+>
+> Without it, OneUptime refuses to connect the installation and the dashboard shows an error asking you to enable this setting. This is deliberate: accepting the installation ID unverified would let one OneUptime project claim another organization's repositories.
 
 ### Step 2: Configure App Permissions
 

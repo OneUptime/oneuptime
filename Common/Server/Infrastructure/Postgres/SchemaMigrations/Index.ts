@@ -503,6 +503,7 @@ import { AddPerUserPasswordSalt1786018109307 } from "./1786018109307-AddPerUserP
 import { WidenHashedStringColumnsForScrypt1786023262402 } from "./1786023262402-WidenHashedStringColumnsForScrypt";
 import { RestoreServiceLowerNameIndex1786100000000 } from "./1786100000000-RestoreServiceLowerNameIndex";
 import { RestoreDroppedUniqueIndexes1786200000000 } from "./1786200000000-RestoreDroppedUniqueIndexes";
+import { QuarantineUnboundGitHubInstallations1786300000000 } from "./1786300000000-QuarantineUnboundGitHubInstallations";
 
 export default [
   InitialMigration,
@@ -1010,4 +1011,5 @@ export default [
   WidenHashedStringColumnsForScrypt1786023262402,
   RestoreServiceLowerNameIndex1786100000000,
   RestoreDroppedUniqueIndexes1786200000000,
+  QuarantineUnboundGitHubInstallations1786300000000,
 ];

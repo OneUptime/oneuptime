@@ -16,6 +16,8 @@ import { JSONArray, JSONObject } from "../../../../Types/JSON";
 import API from "../../../../Utils/API";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import {
+  GitHubAppClientId,
+  GitHubAppClientSecret,
   GitHubAppId,
   GitHubAppPrivateKey,
   GitHubAppWebhookSecret,
@@ -686,6 +688,140 @@ export default class GitHubUtil extends HostedCodeRepository {
     return GitHubUtil.summarizeCheckRuns(allCheckRuns);
   }
 
+  /*
+   * Exchanges the short-lived OAuth `code` GitHub appends to the install
+   * redirect for a user-to-server access token.
+   *
+   * This is the ONLY thing that ties a redirect back to the human who
+   * actually performed the install: `installation_id` is just a number in a
+   * query string that anyone can type, but `code` is minted by GitHub for one
+   * specific GitHub user and is single-use. Pair it with
+   * listInstallationIdsForUserAccessToken below to answer "does this person
+   * really control this installation?".
+   */
+  @CaptureSpan()
+  public static async exchangeOAuthCodeForUserAccessToken(
+    code: string,
+  ): Promise<string> {
+    if (!GitHubAppClientId || !GitHubAppClientSecret) {
+      throw new BadDataException(
+        'GitHub App OAuth is not configured on this OneUptime instance. Set GITHUB_APP_CLIENT_ID and GITHUB_APP_CLIENT_SECRET, and enable "Request user authorization (OAuth) during installation" in the GitHub App settings.',
+      );
+    }
+
+    const result: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.post(
+      {
+        url: URL.fromString("https://github.com/login/oauth/access_token"),
+        data: {
+          client_id: GitHubAppClientId,
+          client_secret: GitHubAppClientSecret,
+          code: code,
+        },
+        headers: {
+          Accept: "application/json",
+        },
+      },
+    );
+
+    if (result instanceof HTTPErrorResponse) {
+      throw new BadDataException(
+        "Could not verify the GitHub App installation with GitHub. Please restart the installation from OneUptime.",
+      );
+    }
+
+    const accessToken: string | undefined =
+      result.data["access_token"]?.toString();
+
+    /*
+     * GitHub answers a bad / expired / already-redeemed code with HTTP 200 and
+     * an `error` body, so a non-error status is not enough on its own.
+     */
+    if (!accessToken) {
+      throw new BadDataException(
+        "The GitHub authorization code is invalid or has already been used. Please restart the installation from OneUptime.",
+      );
+    }
+
+    return accessToken;
+  }
+
+  /*
+   * Lists the IDs of every installation of THIS GitHub App that the user
+   * behind `userAccessToken` can administer. GitHub scopes this endpoint to
+   * the app the token was issued for, so a token minted by another app cannot
+   * widen it.
+   */
+  @CaptureSpan()
+  public static async listInstallationIdsForUserAccessToken(
+    userAccessToken: string,
+  ): Promise<Array<string>> {
+    const installationIds: Array<string> = [];
+    let page: number = 1;
+    let hasMore: boolean = true;
+
+    while (hasMore) {
+      const result: HTTPErrorResponse | HTTPResponse<JSONObject> =
+        await API.get({
+          url: URL.fromString(
+            `https://api.github.com/user/installations?per_page=100&page=${page}`,
+          ),
+          headers: {
+            Authorization: `Bearer ${userAccessToken}`,
+            Accept: "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+          },
+        });
+
+      if (result instanceof HTTPErrorResponse) {
+        throw new BadDataException(
+          "Could not read your GitHub App installations from GitHub. Please restart the installation from OneUptime.",
+        );
+      }
+
+      const installations: JSONArray =
+        (result.data["installations"] as JSONArray) || [];
+
+      for (const installation of installations) {
+        const installationId: string | undefined = (
+          installation as JSONObject
+        )?.["id"]?.toString();
+
+        if (installationId) {
+          installationIds.push(installationId);
+        }
+      }
+
+      hasMore = installations.length === 100;
+      page++;
+    }
+
+    return installationIds;
+  }
+
+  /*
+   * Proves that the person completing the install redirect actually controls
+   * the installation they claim, by round-tripping the OAuth code through
+   * GitHub. Throws (never returns false) so no caller can accidentally treat
+   * a verification failure as a pass.
+   */
+  @CaptureSpan()
+  public static async assertUserControlsInstallation(data: {
+    oauthCode: string;
+    installationId: string;
+  }): Promise<void> {
+    const userAccessToken: string =
+      await GitHubUtil.exchangeOAuthCodeForUserAccessToken(data.oauthCode);
+
+    const installationIds: Array<string> =
+      await GitHubUtil.listInstallationIdsForUserAccessToken(userAccessToken);
+
+    if (!installationIds.includes(data.installationId.toString())) {
+      throw new BadDataException(
+        "The GitHub account you authorized does not have access to this GitHub App installation. Please restart the installation from OneUptime.",
+      );
+    }
+  }
+
   /**
    * Lists repositories accessible to a GitHub App installation
    * @param installationId - The GitHub App installation ID
@@ -767,7 +903,15 @@ export default class GitHubUtil extends HostedCodeRepository {
     branchName: string;
   }): Promise<Array<string>> {
     const cacheNamespace: string = "github-repo-tree";
-    const cacheKey: string = `${data.organizationName}/${data.repositoryName}@${data.branchName}`;
+
+    /*
+     * The installation is part of the key because this cache is read BEFORE a
+     * token is minted — so the key is doing the access control for a cache
+     * hit. Keyed on org/repo/branch alone, any caller who could name someone
+     * else's repository would be served that repository's cached private file
+     * listing without ever proving access to it.
+     */
+    const cacheKey: string = `${data.installationId}:${data.organizationName}/${data.repositoryName}@${data.branchName}`;
 
     try {
       const cachedPaths: Array<string> | null =
@@ -1415,11 +1559,20 @@ export default class GitHubUtil extends HostedCodeRepository {
     payload: string,
     signature: string,
   ): boolean {
+    /*
+     * Fail closed. This used to return true when the secret was unset, which
+     * made the webhook endpoint fully unauthenticated on any instance that had
+     * not configured one — and the handler acts on what it is sent: the
+     * `installation.deleted` branch clears installation IDs across every
+     * tenant, and `installation_repositories` triggers repository imports. An
+     * unconfigured secret is a misconfiguration to surface, not a check to
+     * skip.
+     */
     if (!GitHubAppWebhookSecret) {
-      logger.warn(
-        "GITHUB_APP_WEBHOOK_SECRET is not set, skipping verification",
+      logger.error(
+        "Rejecting GitHub webhook: GITHUB_APP_WEBHOOK_SECRET is not set, so the payload's signature cannot be verified. Set it to the webhook secret configured in the GitHub App settings.",
       );
-      return true;
+      return false;
     }
 
     const expectedSignature: string = `sha256=${crypto

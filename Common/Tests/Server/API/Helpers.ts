@@ -31,11 +31,16 @@ const mockRouterForMethod: MockRouterForMethodFunction = (method: string) => {
     middleware: RouterFunction,
     handlerFunction: RouterFunction,
   ): void => {
+    /*
+     * Routes registered without middleware — router.get(uri, handler) — hand
+     * us the handler in the middleware slot. Normalise so `handlerFunction` is
+     * always the thing that actually serves the request.
+     */
     mockRouter.routes.push({
       method: method.toUpperCase(),
       uri,
       middleware,
-      handlerFunction,
+      handlerFunction: handlerFunction || middleware,
     });
   };
 };

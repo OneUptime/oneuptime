@@ -17,6 +17,7 @@ import {
   RepoResolution,
 } from "../../CodeRepository/StackTraceRepoResolver";
 import logger from "../../Logger";
+import GitHubInstallationBinding from "../../CodeRepository/GitHub/GitHubInstallationBinding";
 import StackTraceParser, {
   ParsedStackTrace,
   StackFrame,
@@ -121,6 +122,7 @@ export async function findReadableRepositories(
       query: query as never,
       select: {
         _id: true,
+        projectId: true,
         name: true,
         organizationName: true,
         repositoryName: true,
@@ -134,11 +136,50 @@ export async function findReadableRepositories(
       props: ctx.props,
     });
 
-  return repositories.filter((repository: CodeRepository) => {
-    return (
-      repository.repositoryHostedAt === CodeRepositoryType.GitHub &&
-      Boolean(repository.gitHubAppInstallationId)
+  const gitHubRepositories: Array<CodeRepository> = repositories.filter(
+    (repository: CodeRepository) => {
+      return (
+        repository.repositoryHostedAt === CodeRepositoryType.GitHub &&
+        Boolean(repository.gitHubAppInstallationId)
+      );
+    },
+  );
+
+  /*
+   * Every code tool — read and write — resolves its target through here, so
+   * this is the one place that has to prove the row's installation really
+   * belongs to the row's project (GHSA-xx95-gmcf-7q86). "The row is in your
+   * project" is not that proof: before the fix a caller could put any
+   * installation ID on a row in a project they owned, and these tools would
+   * then read source, commit and open pull requests in another tenant's
+   * private repositories.
+   *
+   * Writing an unbound installation ID is closed off now and the quarantine
+   * migration clears the rows that already existed, so this filter should
+   * never drop anything on a healthy database. It stays because the cost of
+   * being wrong here is another tenant's source code.
+   */
+  if (gitHubRepositories.length === 0) {
+    return gitHubRepositories;
+  }
+
+  // Every row here is in ctx.projectId, so one lookup answers for all of them.
+  const boundInstallationId: string | null =
+    await GitHubInstallationBinding.getBoundInstallationId(ctx.projectId);
+
+  return gitHubRepositories.filter((repository: CodeRepository) => {
+    if (
+      boundInstallationId &&
+      repository.gitHubAppInstallationId === boundInstallationId
+    ) {
+      return true;
+    }
+
+    logger.error(
+      `Excluding code repository ${repository.id?.toString()} from AI code tools: its GitHub App installation is not bound to project ${ctx.projectId.toString()}.`,
     );
+
+    return false;
   });
 }
 

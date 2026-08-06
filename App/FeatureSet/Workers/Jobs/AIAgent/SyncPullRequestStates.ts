@@ -24,6 +24,7 @@ import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import logger from "Common/Server/Utils/Logger";
+import GitHubInstallationBinding from "Common/Server/Utils/CodeRepository/GitHub/GitHubInstallationBinding";
 
 /**
  * Syncs the state of AI-agent-created pull requests from GitHub
@@ -230,6 +231,7 @@ RunCron(
           ciStatus: true,
           codeRepository: {
             _id: true,
+            projectId: true,
             organizationName: true,
             repositoryName: true,
             gitHubAppInstallationId: true,
@@ -276,6 +278,25 @@ RunCron(
       }
 
       if (deadInstallationIds.has(installationId)) {
+        continue;
+      }
+
+      /*
+       * This sweep runs as root across every tenant on a 30 minute timer, so a
+       * repository row carrying an installation its project does not own would
+       * keep minting tokens against another tenant's repositories forever —
+       * long after the request that planted it (GHSA-xx95-gmcf-7q86). Skip
+       * those rows rather than trusting the column.
+       */
+      if (
+        !(await GitHubInstallationBinding.isRepositoryInstallationBound({
+          projectId: pullRequest.codeRepository?.projectId,
+          gitHubAppInstallationId: installationId,
+        }))
+      ) {
+        logger.error(
+          `Skipping pull request sync for code repository ${pullRequest.codeRepository?._id?.toString()}: GitHub App installation ${installationId} is not bound to its project.`,
+        );
         continue;
       }
 

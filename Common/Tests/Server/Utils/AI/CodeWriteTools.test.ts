@@ -23,6 +23,7 @@ import AIAgentTaskPullRequest from "../../../../Models/DatabaseModels/AIAgentTas
 import CodeRepositoryType from "../../../../Types/CodeRepository/CodeRepositoryType";
 import PullRequestState from "../../../../Types/CodeRepository/PullRequestState";
 import ObjectID from "../../../../Types/ObjectID";
+import GitHubInstallationBinding from "../../../../Server/Utils/CodeRepository/GitHub/GitHubInstallationBinding";
 import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
 
 /*
@@ -68,6 +69,15 @@ beforeEach(() => {
     .spyOn(CodeRepositoryService, "findBy")
     .mockResolvedValue([buildRepository()] as never);
   jest.spyOn(GitHubUtil, "getDefaultBranchName").mockResolvedValue("main");
+
+  /*
+   * resolveTargetRepository now proves each row's GitHub App installation
+   * belongs to the row's project (GHSA-xx95-gmcf-7q86), which is a database
+   * read. That guard has its own tests; treat the fixture row as bound.
+   */
+  jest
+    .spyOn(GitHubInstallationBinding, "getBoundInstallationId")
+    .mockResolvedValue("12345");
 });
 
 afterEach(() => {
