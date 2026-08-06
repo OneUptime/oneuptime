@@ -694,7 +694,7 @@ La razón más común — especialmente después de una reinstalación — es un
    curl -i -H "x-oneuptime-token: <YOUR_API_KEY>" https://oneuptime.com/otlp/v1/validate
    ```
 
-   Si devuelve `401`, la clave en tu release es incorrecta o fue revocada. Copia una clave activa desde _Project Settings → Telemetry Ingestion Keys_ y vuelve a desplegar:
+   Si devuelve `401`, la clave en tu release es incorrecta o fue revocada. Copia una clave activa desde _Project Settings → Telemetría y APM → Claves de Ingesta_ y vuelve a desplegar:
 
    ```bash
    helm upgrade kubernetes-agent oneuptime/kubernetes-agent \

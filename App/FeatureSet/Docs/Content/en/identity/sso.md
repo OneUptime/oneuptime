@@ -16,7 +16,7 @@ SSO integration provides the following benefits:
 1. **Navigate to Project Settings**
 
    - Go to your OneUptime project
-   - Navigate to **Project Settings** > **Authentication** > **SSO**
+   - Navigate to **Project Settings** > **Security** > **SSO**
 
 2. **Create SSO Configuration**
 
@@ -46,7 +46,7 @@ Keycloak is a popular open-source identity and access management solution. Follo
 ### Step 1: Configure OneUptime SSO
 
 1. Log in to your OneUptime dashboard
-2. Navigate to **Project Settings** > **Authentication** > **SSO**
+2. Navigate to **Project Settings** > **Security** > **SSO**
 3. Click **Create SSO** and fill in the following:
    - **Name**: A descriptive name (e.g., `my-project-oneuptime`)
    - **Sign On URL**: `https://<your-keycloak-domain>/auth/realms/<your-realm>/protocol/saml`
@@ -113,7 +113,7 @@ Microsoft Entra ID is Microsoft's cloud-based identity and access management ser
 ### Step 1: Configure OneUptime SSO
 
 1. Log in to your OneUptime dashboard
-2. Navigate to **Project Settings** > **Authentication** > **SSO**
+2. Navigate to **Project Settings** > **Security** > **SSO**
 3. Click **Create SSO** and fill in the following:
    - **Name**: A descriptive name (e.g., `Azure AD SAML`)
    - **Sign On URL**: You will get this from Entra ID in [Step 3](#step-3-configure-saml-sso-in-entra-id)
@@ -198,7 +198,7 @@ Okta is a widely-used identity platform that provides robust SAML SSO capabiliti
 ### Step 1: Configure OneUptime SSO
 
 1. Log in to your OneUptime dashboard
-2. Navigate to **Project Settings** > **Authentication** > **SSO**
+2. Navigate to **Project Settings** > **Security** > **SSO**
 3. Click **Create SSO** and fill in the following:
    - **Name**: A descriptive name (e.g., `Okta SAML`)
    - **Sign On URL**: You will get this from Okta in [Step 3](#step-3-copy-okta-saml-metadata-to-oneuptime)
@@ -289,4 +289,4 @@ OneUptime's SSO implementation uses the SAML 2.0 protocol and should work with a
 
 ## Notes on SSO and Roles
 
-OneUptime does not currently support mapping SAML roles from your identity provider. Role-based access must be configured separately within OneUptime's **Project Settings** > **SSO** settings, where you can assign default roles for SSO users.
+OneUptime does not currently support mapping SAML roles from your identity provider. Role-based access must be configured separately within OneUptime's **Project Settings** > **Security** > **SSO** settings, where you can assign default roles for SSO users.

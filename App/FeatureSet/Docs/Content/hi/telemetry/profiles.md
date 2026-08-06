@@ -23,7 +23,7 @@ OneUptime निम्नलिखित profile types का समर्थन
 
 ### चरण 1 - एक Telemetry Ingestion Token बनाएं
 
-OneUptime sign up करने और project बनाने के बाद, Navigation bar में "More" पर क्लिक करें और "Project Settings" पर क्लिक करें।
+OneUptime sign up करने और project बनाने के बाद, Navigation bar में "Products" पर क्लिक करें और "Project Settings" पर क्लिक करें।
 
 Telemetry Ingestion Key page पर, token बनाने के लिए "Create Ingestion Key" पर क्लिक करें।
 
@@ -139,7 +139,7 @@ OneUptime में Profiles, distributed traces के साथ correlate क�
 
 Profile data retention आपके OneUptime project settings में प्रति telemetry service configure की जाती है। Default retention period 15 दिन है। Data retention period expire होने के बाद automatically delete हो जाता है।
 
-किसी service के लिए retention period बदलने के लिए, **Telemetry > Services > [Your Service] > Settings** पर जाएं और data retention value update करें।
+किसी service के लिए retention period बदलने के लिए, **Products > सेवाएं > [Your Service] > Settings** पर जाएं और data retention value update करें।
 
 ## सहायता चाहिए?
 

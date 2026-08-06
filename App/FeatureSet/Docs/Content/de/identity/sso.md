@@ -16,7 +16,7 @@ Die SSO-Integration bietet folgende Vorteile:
 1. **Zu Projekteinstellungen navigieren**
 
    - Gehen Sie zu Ihrem OneUptime-Projekt
-   - Navigieren Sie zu **Projekteinstellungen** > **Authentifizierung** > **SSO**
+   - Navigieren Sie zu **Projekteinstellungen** > **Sicherheit** > **SSO**
 
 2. **SSO-Konfiguration erstellen**
 
@@ -40,7 +40,7 @@ Keycloak ist eine beliebte Open-Source-Identitäts- und Zugriffsmanagementlösun
 ### Schritt 1: OneUptime SSO konfigurieren
 
 1. Melden Sie sich bei Ihrem OneUptime-Dashboard an
-2. Navigieren Sie zu **Projekteinstellungen** > **Authentifizierung** > **SSO**
+2. Navigieren Sie zu **Projekteinstellungen** > **Sicherheit** > **SSO**
 3. Klicken Sie auf **SSO erstellen** und füllen Sie Folgendes aus:
    - **Name**: Ein beschreibender Name (z. B. `my-project-oneuptime`)
    - **Sign-On-URL**: `https://<your-keycloak-domain>/auth/realms/<your-realm>/protocol/saml`

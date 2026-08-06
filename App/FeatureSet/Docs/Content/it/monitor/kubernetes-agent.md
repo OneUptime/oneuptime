@@ -92,7 +92,7 @@ Potete anche disabilitare del tutto la raccolta log con `--set logs.enabled=fals
 
 Il chart distribuisce un DaemonSet che esegue [OpenTelemetry eBPF Instrumentation (OBI)](https://opentelemetry.io/docs/zero-code/obi/) su ogni nodo. OBI carica programmi eBPF nel kernel Linux e osserva il traffico a livello di socket per ricostruire chiamate HTTP/HTTPS, gRPC e SQL/Redis da ogni pod del nodo — nessuna modifica al codice, nessun SDK, nessun sidecar. Il traffico catturato viene esportato come trace OTLP e metriche di richiesta/latenza direttamente a OneUptime.
 
-Dopo l'installazione, i vostri servizi inizieranno ad apparire sotto **Telemetry → Traces** e nella service map entro un paio di minuti, con `k8s.cluster.name` impostato al vostro `clusterName` in modo da poter filtrare per cluster.
+Dopo l'installazione, i vostri servizi inizieranno ad apparire sotto **Products → Tracce** e nella service map entro un paio di minuti, con `k8s.cluster.name` impostato al vostro `clusterName` in modo da poter filtrare per cluster.
 
 ### Quando disattivarlo
 
@@ -163,7 +163,7 @@ kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=2
 
 ## Profiling CPU continuo (disattivato per impostazione predefinita)
 
-Un DaemonSet separato esegue il [profiler eBPF OpenTelemetry](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) — pacchettizzato come immagine `otel/opentelemetry-collector-ebpf-profiler`. Campiona gli stack on-CPU a 19Hz su ogni runtime supportato (Go, Java, .NET, Python, Ruby, Node.js, PHP, Perl, C/C++, Rust) e invia profili OTLP a OneUptime, dove appaiono sotto **Telemetry → Performance Profiles** e come flame graph collegati dai singoli span delle trace.
+Un DaemonSet separato esegue il [profiler eBPF OpenTelemetry](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) — pacchettizzato come immagine `otel/opentelemetry-collector-ebpf-profiler`. Campiona gli stack on-CPU a 19Hz su ogni runtime supportato (Go, Java, .NET, Python, Ruby, Node.js, PHP, Perl, C/C++, Rust) e invia profili OTLP a OneUptime, dove appaiono sotto **Products → Profili di prestazioni** e come flame graph collegati dai singoli span delle trace.
 
 Il profiling è **disattivato per impostazione predefinita** — è più oneroso dell'auto-strumentazione OBI (più CPU per nodo, maggiore footprint di memoria) e non tutti i cluster vogliono flame graph sempre attivi. Abilitatelo quando desiderate una telemetria più ricca: `--set profiling.enabled=true`.
 

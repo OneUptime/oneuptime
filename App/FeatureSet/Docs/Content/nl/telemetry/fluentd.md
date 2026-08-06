@@ -34,7 +34,7 @@ U vindt de volledige lijst met ondersteunde bronnen [hier](https://www.fluentd.o
 - **Stap 3: OneUptime-project aanmaken** - Zodra u het account heeft, kunt u een project aanmaken vanuit het OneUptime-dashboard. Als u hulp nodig heeft bij het aanmaken van een project of vragen heeft, neem dan contact op via support@oneuptime.com
 - **Stap 4: Telemetrie-ingestietoken aanmaken** - Zodra u een OneUptime-account heeft aangemaakt, kunt u een telemetrie-ingestietoken aanmaken om logboeken, metrics en traces van uw applicatie te verwerken.
 
-Nadat u zich hebt aangemeld bij OneUptime en een project hebt aangemaakt, klikt u op "Meer" in de navigatiebalk en vervolgens op "Projectinstellingen".
+Nadat u zich hebt aangemeld bij OneUptime en een project hebt aangemaakt, klikt u op "Products" in de navigatiebalk en vervolgens op "Projectinstellingen".
 
 Klik op de pagina Telemetrie-ingestiesleutel op "Ingestiesleutel aanmaken" om een token aan te maken.
 

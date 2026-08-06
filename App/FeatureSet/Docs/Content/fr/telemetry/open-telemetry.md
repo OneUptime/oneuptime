@@ -4,7 +4,7 @@
 
 Une fois que vous avez créé un compte OneUptime, vous pouvez créer un jeton d'ingestion de télémétrie pour ingérer des journaux, des métriques et des traces depuis votre application.
 
-Après vous être inscrit à OneUptime et avoir créé un projet. Cliquez sur « Plus » dans la barre de navigation et cliquez sur « Paramètres du projet ».
+Après vous être inscrit à OneUptime et avoir créé un projet. Cliquez sur « Products » dans la barre de navigation et cliquez sur « Paramètres du projet ».
 
 Sur la page des clés d'ingestion de télémétrie, cliquez sur « Créer une clé d'ingestion » pour créer un jeton.
 

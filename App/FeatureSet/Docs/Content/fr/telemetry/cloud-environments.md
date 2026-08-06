@@ -8,7 +8,7 @@ Les machines virtuelles brutes (EC2, Compute Engine, Azure VM) restent des **hô
 
 ## Prérequis
 
-- Un **jeton d'ingestion de télémétrie OneUptime** — créez-en un depuis _Paramètres du projet → Clés d'ingestion de télémétrie_.
+- Un **jeton d'ingestion de télémétrie OneUptime** — créez-en un depuis _Paramètres du projet → Télémétrie & APM → Clés d'ingestion_.
 - Un OpenTelemetry Collector ou un SDK s'exécutant dans ou aux côtés de vos charges de travail.
 
 ## Comment OneUptime identifie un environnement

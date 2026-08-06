@@ -694,7 +694,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
    curl -i -H "x-oneuptime-token: <YOUR_API_KEY>" https://oneuptime.com/otlp/v1/validate
    ```
 
-   Если возвращается `401`, ключ в вашем релизе неверен или был отозван. Скопируйте действующий ключ из _Project Settings → Telemetry Ingestion Keys_ и разверните заново:
+   Если возвращается `401`, ключ в вашем релизе неверен или был отозван. Скопируйте действующий ключ из _Project Settings → Телеметрия и APM → Ключи приема_ и разверните заново:
 
    ```bash
    helm upgrade kubernetes-agent oneuptime/kubernetes-agent \

@@ -49,7 +49,7 @@ Eftersom du egeninstallerar OneUptime behöver du konfigurera ditt eget Twilio-k
 ## Steg 2: Konfigurera Samtal/SMS-konfiguration i OneUptime
 
 1. Logga in på din OneUptime-instrumentpanel
-2. Gå till **Projektinställningar** > **Samtal och SMS** > **Anpassad Samtal/SMS-konfiguration**
+2. Gå till **Projektinställningar** > **Aviseringar** > **Aviseringsinställningar**
 3. Klicka på **Skapa anpassad Samtal/SMS-konfiguration**
 4. Fyll i följande fält:
    - **Namn**: Ett beskrivande namn (t.ex. "Produktion Twilio-konfiguration")

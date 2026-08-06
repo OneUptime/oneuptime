@@ -4,7 +4,7 @@ Les runbooks sont des procédures de réponse réutilisables — des listes ordo
 
 ## En un coup d'œil
 
-- **Fonctionnalité de premier niveau** dans le tableau de bord OneUptime, sous **Analyse & Automatisation → Runbooks**.
+- **Fonctionnalité de premier niveau** dans le tableau de bord OneUptime, sous **Products → Runbooks**.
 - **Cinq types d'étapes** : liste manuelle, JavaScript (en bac à sable) et Bash (tous deux tournent sur un [Agent de runbook](/docs/runbooks/agents) dans votre propre infrastructure), requête HTTP, et AI (analyse le contexte de l'incident et des étapes avec le fournisseur LLM de votre projet).
 - **Trois voies de déclenchement** : règles qui correspondent à des incidents/alertes/maintenances planifiées, ou bouton manuel « Exécuter le runbook » sur tout événement.
 - **Sémantique de snapshot** : au démarrage d'un runbook, ses étapes sont copiées dans l'exécution. Modifier le modèle ensuite ne change jamais une exécution en cours.
@@ -58,7 +58,7 @@ Vous pouvez mélanger les cinq types dans un même runbook — la force des runb
 
 | Page                                                                               | Ce que vous y faites                                                                                       |
 | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| **Analyse & Automatisation → Runbooks**                                            | Parcourir, créer et modifier les modèles de runbook.                                                       |
+| **Products → Runbooks**                                            | Parcourir, créer et modifier les modèles de runbook.                                                       |
 | **Onglet Étapes d'un runbook**                                                     | Rédiger et réorganiser la liste d'étapes.                                                                  |
 | **Onglet Exécutions d'un runbook**                                                 | Voir chaque exécution de ce runbook avec des filtres par statut.                                           |
 | **Bouton « Exécuter maintenant » d'un runbook**                                    | Lancer une exécution ad hoc qui n'est attachée à aucun événement.                                          |

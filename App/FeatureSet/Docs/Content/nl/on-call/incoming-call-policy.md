@@ -85,7 +85,7 @@ Omdat u OneUptime zelf host, moet u uw eigen Twilio-account configureren. Dit ge
 ## Stap 2: Bel/SMS-configuratie instellen in OneUptime
 
 1. Log in op uw OneUptime-dashboard
-2. Ga naar **Projectinstellingen** > **Bel & SMS** > **Aangepaste bel/SMS-configuratie**
+2. Ga naar **Projectinstellingen** > **Meldingen** > **Meldingsinstellingen**
 3. Klik op **Aangepaste bel/SMS-configuratie aanmaken**
 4. Vul de volgende velden in:
    - **Naam**: Een beschrijvende naam (bijv. "Productie Twilio-configuratie")

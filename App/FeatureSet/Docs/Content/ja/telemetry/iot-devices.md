@@ -15,7 +15,7 @@ OneUptime は、少数の `iot_*` メトリクスを取り込むことで、IoT 
 
 - OneUptime へ OTLP/HTTP を送信できるデバイス、ゲートウェイ、またはコレクター
 - デバイス/ゲートウェイから OneUptime インスタンスへのネットワーク到達性
-- **OneUptime テレメトリ取り込みトークン** — _Project Settings → Telemetry Ingestion Keys_ から作成し、`x-oneuptime-token` の値をコピーします
+- **OneUptime テレメトリ取り込みトークン** — _Project Settings → テレメトリと APM → 取り込みキー_ から作成し、`x-oneuptime-token` の値をコピーします
 
 ## OneUptime が IoT をどのようにモデル化するか
 
@@ -232,7 +232,7 @@ OneUptime は、以下の `iot_*` メトリクス名を認識します。各デ�
 
 ### エクスポーターからの HTTP 401 / 403
 
-取り込みトークンが無効、失効、または欠落しています。_Project Settings → Telemetry Ingestion Keys_ から新しいトークンを生成し、`x-oneuptime-token` ヘッダーを更新してください。
+取り込みトークンが無効、失効、または欠落しています。_Project Settings → テレメトリと APM → 取り込みキー_ から新しいトークンを生成し、`x-oneuptime-token` ヘッダーを更新してください。
 
 ### メトリクスがチャート化されない
 

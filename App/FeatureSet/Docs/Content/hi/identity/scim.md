@@ -20,7 +20,7 @@ Project SCIM, identity providers को OneUptime projects के भीतर t
 1. **Project Settings पर जाएं**
 
    - अपने OneUptime project पर जाएं
-   - **Project Settings** > **Team** > **SCIM** पर जाएं
+   - **Project Settings** > **सुरक्षा** > **SCIM** पर जाएं
 
 2. **SCIM Settings Configure करें**
 
@@ -69,7 +69,7 @@ Status Page SCIM, identity providers को private status pages के subscrib
 1. **Status Page Settings पर जाएं**
 
    - अपने OneUptime status page पर जाएं
-   - **Status Page Settings** > **Private Users** > **SCIM** पर जाएं
+   - **Status Page Settings** > **सुरक्षा** > **SCIM** पर जाएं
 
 2. **SCIM Settings Configure करें**
 
@@ -117,7 +117,7 @@ Microsoft Entra ID robust SCIM provisioning capabilities के साथ enterp
 #### चरण 1: OneUptime से SCIM Configuration प्राप्त करें
 
 1. अपने OneUptime dashboard में लॉग इन करें
-2. **Project Settings** > **Team** > **SCIM** पर जाएं
+2. **Project Settings** > **सुरक्षा** > **SCIM** पर जाएं
 3. **Create SCIM Configuration** पर क्लिक करें
 4. एक friendly नाम दर्ज करें (जैसे "Microsoft Entra ID Provisioning")
 5. निम्नलिखित options configure करें:
@@ -219,7 +219,7 @@ Okta उत्कृष्ट SCIM support के साथ flexible identity ma
 #### चरण 1: OneUptime से SCIM Configuration प्राप्त करें
 
 1. अपने OneUptime dashboard में लॉग इन करें
-2. **Project Settings** > **Team** > **SCIM** पर जाएं
+2. **Project Settings** > **सुरक्षा** > **SCIM** पर जाएं
 3. **Create SCIM Configuration** पर क्लिक करें
 4. एक friendly नाम दर्ज करें (जैसे "Okta Provisioning")
 5. निम्नलिखित options configure करें:

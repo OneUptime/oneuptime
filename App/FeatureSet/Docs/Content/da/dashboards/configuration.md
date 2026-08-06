@@ -38,7 +38,7 @@ Dashboards fungerer sammen med dit projekts rollebaserede adgangskontrol. De rel
 
 Der er matchende tilladelser til dashboard-ejere og brugerdefinerede domæner, så du kan give "administrér ejere" uden at give "redigér dashboardet."
 
-Tildel disse på projektroller under **Project Settings → Teams & Roles**.
+Tildel disse på projektroller under **Products → Teams → Tilladelser**.
 
 ## Adgang til offentlige dashboards
 

@@ -38,7 +38,7 @@ Dashbord fungerer med prosjektets rollebaserte tilgangskontroll. De relevante ti
 
 Det finnes tilsvarende tillatelser for dashbord-eiere og egendefinerte domener, slik at du kan gi "administrer eiere" uten å gi "rediger dashbordet."
 
-Tildel disse på prosjektroller under **Prosjektinnstillinger → Team & roller**.
+Tildel disse på prosjektroller under **Products → Team → Tillatelser**.
 
 ## Tilgang for offentlige dashbord
 

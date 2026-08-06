@@ -37,7 +37,7 @@
 - **Channel** — имя канала. Бот уже должен быть в этом канале.
 - **Message** — текст для отправки. Поддерживает форматирование Slack.
 
-Сначала подключите Slack к вашему проекту в разделе **Project Settings → Workspace Connections → Slack**. См. [Подключение рабочего пространства Slack](/docs/workspace-connections/slack).
+Сначала подключите Slack к вашему проекту в разделе **Project Settings → Рабочее пространство → Slack**. См. [Подключение рабочего пространства Slack](/docs/workspace-connections/slack).
 
 ## Microsoft Teams
 

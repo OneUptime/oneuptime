@@ -687,7 +687,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
    curl -i -H "x-oneuptime-token: <YOUR_API_KEY>" https://oneuptime.com/otlp/v1/validate
    ```
 
-   如果它回傳 `401`，表示您 release 中的 key 是錯誤的或已被撤銷。請從 _Project Settings → Telemetry Ingestion Keys_ 複製一個有效的 key 並重新部署：
+   如果它回傳 `401`，表示您 release 中的 key 是錯誤的或已被撤銷。請從 _Project Settings → 遙測與 APM → 擷取金鑰_ 複製一個有效的 key 並重新部署：
 
    ```bash
    helm upgrade kubernetes-agent oneuptime/kubernetes-agent \

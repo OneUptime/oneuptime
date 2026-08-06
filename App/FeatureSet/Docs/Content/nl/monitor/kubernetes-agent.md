@@ -92,7 +92,7 @@ U kunt logboekverzameling ook volledig uitschakelen met `--set logs.enabled=fals
 
 De chart levert een DaemonSet die [OpenTelemetry eBPF Instrumentation (OBI)](https://opentelemetry.io/docs/zero-code/obi/) draait op elke node. OBI laadt eBPF-programma's in de Linux-kernel en bekijkt verkeer op socket-niveau om HTTP/HTTPS-, gRPC- en SQL/Redis-aanroepen vanuit elke pod op de node te reconstrueren — geen codewijzigingen, geen SDK, geen sidecar. Vastgelegd verkeer wordt geëxporteerd als OTLP-traces en verzoek-/latentie-metrics rechtstreeks naar OneUptime.
 
-Na installatie verschijnen uw services binnen een minuut of twee onder **Telemetry → Traces** en op de service-kaart, met `k8s.cluster.name` ingesteld op uw `clusterName` zodat u kunt filteren per cluster.
+Na installatie verschijnen uw services binnen een minuut of twee onder **Products → Traces** en op de service-kaart, met `k8s.cluster.name` ingesteld op uw `clusterName` zodat u kunt filteren per cluster.
 
 ### Wanneer uitschakelen
 
@@ -163,7 +163,7 @@ kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=2
 
 ## Continue CPU-profilering (standaard uit)
 
-Een aparte DaemonSet draait de [OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) — verpakt als de `otel/opentelemetry-collector-ebpf-profiler`-image. Hij bemonstert on-CPU-stacks op 19Hz over elke ondersteunde runtime (Go, Java, .NET, Python, Ruby, Node.js, PHP, Perl, C/C++, Rust) en stuurt OTLP-profielen naar OneUptime, waar ze verschijnen onder **Telemetry → Performance Profiles** en als flame graphs gekoppeld aan individuele trace-spans.
+Een aparte DaemonSet draait de [OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) — verpakt als de `otel/opentelemetry-collector-ebpf-profiler`-image. Hij bemonstert on-CPU-stacks op 19Hz over elke ondersteunde runtime (Go, Java, .NET, Python, Ruby, Node.js, PHP, Perl, C/C++, Rust) en stuurt OTLP-profielen naar OneUptime, waar ze verschijnen onder **Products → Prestatieprofielen** en als flame graphs gekoppeld aan individuele trace-spans.
 
 Profilering staat **standaard uit** — het is zwaarder dan de OBI auto-instrumentatie (meer CPU per node, grotere geheugen-footprint) en niet elk cluster wil altijd-aan flame graphs. Schakel het in wanneer u rijkere telemetrie wilt: `--set profiling.enabled=true`.
 

@@ -92,7 +92,7 @@ hostPath が利用可能であれば、DaemonSet を使用してください。�
 
 chart には、すべてのノードで [OpenTelemetry eBPF Instrumentation (OBI)](https://opentelemetry.io/docs/zero-code/obi/) を実行する DaemonSet が含まれています。OBI は eBPF プログラムを Linux カーネルにロードし、ソケットレベルのトラフィックを監視して、ノード上のすべての pod から HTTP/HTTPS、gRPC、SQL/Redis 呼び出しを再構築します。コード変更、SDK、サイドカーは一切不要です。キャプチャされたトラフィックは、OTLP トレースおよびリクエスト/レイテンシメトリクスとして OneUptime に直接エクスポートされます。
 
-インストール後、数分以内にサービスが **Telemetry → Traces** とサービスマップに表示され始めます。`k8s.cluster.name` が `clusterName` に設定されるため、クラスター単位でフィルタリングできます。
+インストール後、数分以内にサービスが **Products → トレース** とサービスマップに表示され始めます。`k8s.cluster.name` が `clusterName` に設定されるため、クラスター単位でフィルタリングできます。
 
 ### 無効化すべきタイミング
 
@@ -163,7 +163,7 @@ kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=2
 
 ## 連続的な CPU プロファイリング(デフォルトで無効)
 
-別の DaemonSet が [OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler)(`otel/opentelemetry-collector-ebpf-profiler` イメージとしてパッケージ化されたもの)を実行します。サポートされるすべてのランタイム(Go、Java、.NET、Python、Ruby、Node.js、PHP、Perl、C/C++、Rust)で、オン CPU スタックを 19Hz でサンプリングし、OTLP プロファイルを OneUptime に送信します。これらは **Telemetry → Performance Profiles** に表示され、また個々のトレーススパンからリンクされたフレームグラフとしても確認できます。
+別の DaemonSet が [OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler)(`otel/opentelemetry-collector-ebpf-profiler` イメージとしてパッケージ化されたもの)を実行します。サポートされるすべてのランタイム(Go、Java、.NET、Python、Ruby、Node.js、PHP、Perl、C/C++、Rust)で、オン CPU スタックを 19Hz でサンプリングし、OTLP プロファイルを OneUptime に送信します。これらは **Products → パフォーマンスプロファイル** に表示され、また個々のトレーススパンからリンクされたフレームグラフとしても確認できます。
 
 プロファイリングは**デフォルトで無効**です。OBI 自動計装よりも負荷が大きく(ノードあたりの CPU 使用量がより多く、メモリフットプリントもより大きくなります)、すべてのクラスターで常時フレームグラフを取得したいわけではないためです。より豊富なテレメトリーが必要な場合は有効化してください: `--set profiling.enabled=true`。
 

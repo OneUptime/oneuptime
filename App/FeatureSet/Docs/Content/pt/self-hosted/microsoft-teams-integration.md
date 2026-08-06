@@ -108,7 +108,7 @@ microsoftTeamsApp:
 
 ### Passo 7: Fazer Upload do Manifesto do Aplicativo Teams
 
-1. Vá para **Settings** > **Integrations** > **Microsoft Teams** do projeto
+1. Vá para **Settings** > **Espaço de trabalho** > **Microsoft Teams** do projeto
 2. Baixe o manifesto do aplicativo Teams de lá
 3. Vá para o Microsoft Teams, clique em "Apps" na barra lateral
 4. Na parte inferior, clique em "Manage your apps"

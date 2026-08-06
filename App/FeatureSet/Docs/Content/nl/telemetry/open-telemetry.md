@@ -4,7 +4,7 @@
 
 Zodra u een OneUptime-account heeft aangemaakt, kunt u een telemetrie-ingestietoken aanmaken om logboeken, metrics en traces van uw applicatie te verwerken.
 
-Nadat u zich hebt aangemeld bij OneUptime en een project hebt aangemaakt, klikt u op "Meer" in de navigatiebalk en vervolgens op "Projectinstellingen".
+Nadat u zich hebt aangemeld bij OneUptime en een project hebt aangemaakt, klikt u op "Products" in de navigatiebalk en vervolgens op "Projectinstellingen".
 
 Klik op de pagina Telemetrie-ingestiesleutel op "Ingestiesleutel aanmaken" om een token aan te maken.
 

@@ -27,7 +27,7 @@ Pyroscope SDKs append `/ingest` to the base URL and Grafana Alloy appends `/push
 
 ## Step 1 - Create a Telemetry Ingestion Token
 
-After you sign up to OneUptime and create a project, click on "More" in the Navigation bar and click on "Project Settings".
+After you sign up to OneUptime and create a project, click on "Products" in the navigation bar and click on "Project Settings".
 
 On the Telemetry Ingestion Key page, click on "Create Ingestion Key" to create a token.
 
@@ -184,7 +184,7 @@ Anything else (for example a custom sample type) appears under "Other" with its 
 
    A valid token returns `200` with `{"valid": true, ...}`; an unknown or revoked token returns `401`.
 
-2. **Open the Profiles page.** In the OneUptime Dashboard go to **Telemetry > Profiles**. With Alloy's default 15-second collect interval (or the SDKs' ~10-second upload interval), the first profiles and their flamegraphs appear within a minute or two of the agent starting.
+2. **Open the Profiles page.** In the OneUptime Dashboard go to **Products > Performance Profiles**. With Alloy's default 15-second collect interval (or the SDKs' ~10-second upload interval), the first profiles and their flamegraphs appear within a minute or two of the agent starting.
 
 3. **Check the service.** Profiles are attached to the telemetry service named by the SDK's `application_name` / `appName` (or the process executable name under Alloy's default relabel rule above).
 
@@ -210,7 +210,7 @@ Filter profiles by category (CPU, Memory, Locks, Wall time, Goroutines) to focus
 
 Profile data retention is configured per telemetry service in your OneUptime project settings. The default retention period is 15 days. Data is automatically deleted after the retention period expires.
 
-To change the retention period for a service, navigate to **Telemetry > Services > [Your Service] > Settings** and update the data retention value.
+To change the retention period for a service, navigate to **Products > Services > [Your Service] > Settings** and update the data retention value.
 
 ## Need Help?
 

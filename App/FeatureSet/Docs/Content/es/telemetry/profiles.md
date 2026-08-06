@@ -23,7 +23,7 @@ OneUptime admite los siguientes tipos de perfil:
 
 ### Paso 1: Crear un token de ingesta de telemetría
 
-Después de registrarte en OneUptime y crear un proyecto, haz clic en "Más" en la barra de navegación y haz clic en "Configuración del proyecto".
+Después de registrarte en OneUptime y crear un proyecto, haz clic en "Products" en la barra de navegación y haz clic en "Configuración del proyecto".
 
 En la página de Clave de ingesta de telemetría, haz clic en "Crear clave de ingesta" para crear un token.
 

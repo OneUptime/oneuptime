@@ -4,7 +4,7 @@ Runbooks är återanvändbara svarsprocedurer — ordnade listor över manuella 
 
 ## I korthet
 
-- **Toppnivåfunktion** i OneUptime-dashboarden under **Analytics & Automation → Runbooks**.
+- **Toppnivåfunktion** i OneUptime-dashboarden under **Products → Runbooks**.
 - **Fem stegtyper**: Manuell checklista, JavaScript (sandboxat) och Bash (båda körs på en [Runbook-agent](/docs/runbooks/agents) inuti din egen infrastruktur), HTTP-förfrågan, och AI (analysera incident- och stegkontext med ditt projekts LLM-leverantör).
 - **Tre triggervägar**: regler som matchar incidenter/larm/planerat underhåll, eller en manuell "Kör runbook"-knapp på vilket event som helst.
 - **Snapshot-semantik**: när ett runbook startar kopieras dess steg in på körningen. Att senare redigera mallen muterar aldrig en pågående körning.
@@ -58,7 +58,7 @@ Du kan blanda alla fem i ett enda runbook — runbooks styrka är att varva män
 
 | Sida                                                                      | Vad du gör där                                                                            |
 | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| **Analytics & Automation → Runbooks**                                     | Bläddra, skapa och redigera runbook-mallar.                                               |
+| **Products → Runbooks**                                     | Bläddra, skapa och redigera runbook-mallar.                                               |
 | **Ett runbooks Steps-flik**                                               | Författa och omordna steglistan.                                                          |
 | **Ett runbooks Executions-flik**                                          | Se varje körning av detta runbook med statusfilter.                                       |
 | **Ett runbooks "Kör nu"-knapp**                                           | Starta en ad hoc-körning som inte är kopplad till något event.                            |

@@ -16,7 +16,7 @@
 
 ## Предварительные требования
 
-- **OneUptime Telemetry Ingestion Token** — создайте его в _Project Settings → Telemetry Ingestion Keys_ и скопируйте значение `x-oneuptime-token`.
+- **OneUptime Telemetry Ingestion Token** — создайте его в _Project Settings → Телеметрия и APM → Ключи приема_ и скопируйте значение `x-oneuptime-token`.
 - Дистрибутив **OpenTelemetry Collector Contrib** (`otelcol-contrib`). Сборка `otelcol` по умолчанию **не** включает приёмники вроде `windowseventlogreceiver`, `journaldreceiver` или дополнения `hostmetrics` — обязательно используйте дистрибутив `contrib`. Alpha-приёмник `windowsservicereceiver`, который питает вкладку **Services** в Windows, входит в `otelcol-contrib` начиная с **v0.155.0**, а alpha-приёмник `systemdreceiver`, который питает вкладку **Systemd Units** в Linux, — начиная с **v0.143.0**, поэтому установите актуальный релиз; см. «Службы Windows (метрики)» и «Службы Linux (юниты systemd)» ниже.
 - Права root / Администратора на хосте, чтобы установить коллектор как службу и (где применимо) читать привилегированные источники логов.
 
@@ -602,7 +602,7 @@ sc.exe query "otelcol-contrib"
 1. Сгенерируйте какой-нибудь сигнал на хосте:
    - **Linux / macOS:** `logger "hello from oneuptime"` (пишет в syslog / journald).
    - **Windows:** `eventcreate /T INFORMATION /ID 999 /L APPLICATION /SO OneUptimeTest /D "hello from oneuptime"` из командной строки с повышенными правами.
-2. В панели управления OneUptime откройте **Telemetry → Services** и выберите настроенный вами `service.name`.
+2. В панели управления OneUptime откройте **Products → Службы** и выберите настроенный вами `service.name`.
 3. Откройте **Metrics** — метрики хоста (CPU, память, файловая система и т. д.) должны появиться в течение минуты.
 4. Откройте **Logs** — ваши файловые логи / записи journald / журналы событий Windows должны поступать в потоке. Полезные для поиска атрибуты включают `log.file.name`, `systemd.unit`, `winlog.channel`, `winlog.event_id` и `winlog.provider.name`.
 5. Если вы включили приёмник `systemd` (Linux) или `windows_service` (Windows), откройте **Infrastructure → Hosts**, выберите хост и проверьте вкладку **Systemd Units** / **Services** — каждый собранный юнит должен быть в списке со своим текущим состоянием.
@@ -879,7 +879,7 @@ OpenTelemetry Collector учитывает стандартные перемен
   - **Linux / macOS:** `journalctl -u otelcol-contrib -f` (Linux) или `tail -f /var/log/otelcol-contrib.err.log` (macOS).
   - **Windows:** смотрите в _Event Viewer → Windows Logs → Application_ по источнику `otelcol-contrib`.
   - Убедитесь, что хост может достучаться до `https://oneuptime.com/otlp` (или вашей самостоятельно размещённой конечной точки): `curl -v https://oneuptime.com/otlp` с той же машины.
-- **HTTP 401 от экспортёра** — токен приёма данных недействителен или отозван. Сгенерируйте новый в _Project Settings → Telemetry Ingestion Keys_.
+- **HTTP 401 от экспортёра** — токен приёма данных недействителен или отозван. Сгенерируйте новый в _Project Settings → Телеметрия и APM → Ключи приема_.
 - **Журнал событий Windows `Security` возвращает «access denied»** — служба работает с недостаточными привилегиями. Пересоздайте её под `LocalSystem` (по умолчанию при `sc.exe create`) или предоставьте учётной записи службы право пользователя _Manage auditing and security log_.
 - **Приёмник `journald` не запускается** — убедитесь, что `journalctl` находится в `PATH` коллектора и что `/var/log/journal` существует (выполните `sudo systemd-tmpfiles --create --prefix /var/log/journal`, если нет).
 - **Приёмник `systemd` сообщает об ошибке подключения к D-Bus** — коллектор не может достучаться до системной шины. Убедитесь, что `/run/dbus/system_bus_socket` существует и что пользователь коллектора может его открыть; быстрее всего это проверить, выполнив `systemctl list-units` от этого пользователя. Root не требуется. Коллектор, работающий внутри контейнера, вообще не видит шины, если вы не смонтируете сокет хоста через bind mount, — поэтому для этого приёмника предпочтительна нативная установка.

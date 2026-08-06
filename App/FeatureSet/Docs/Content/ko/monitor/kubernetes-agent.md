@@ -92,7 +92,7 @@ hostPath가 작동한다면 DaemonSet을 사용하십시오. 그 외의 환경�
 
 차트는 모든 노드에서 [OpenTelemetry eBPF Instrumentation (OBI)](https://opentelemetry.io/docs/zero-code/obi/)를 실행하는 DaemonSet을 포함합니다. OBI는 Linux 커널에 eBPF 프로그램을 로드하고 소켓 레벨 트래픽을 관찰하여 노드의 모든 파드에서 HTTP/HTTPS, gRPC, SQL/Redis 호출을 재구성합니다 — 코드 변경, SDK, 사이드카가 모두 필요 없습니다. 캡처된 트래픽은 OTLP 트레이스와 요청/지연 메트릭으로 OneUptime에 직접 내보내집니다.
 
-설치 후 1~2분 이내에 **Telemetry → Traces**와 서비스 맵에서 서비스가 표시되기 시작하며, `k8s.cluster.name`이 `clusterName`으로 설정되어 클러스터별로 필터링할 수 있습니다.
+설치 후 1~2분 이내에 **Products → 트레이스**와 서비스 맵에서 서비스가 표시되기 시작하며, `k8s.cluster.name`이 `clusterName`으로 설정되어 클러스터별로 필터링할 수 있습니다.
 
 ### 비활성화해야 할 시점
 
@@ -163,7 +163,7 @@ kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=2
 
 ## 연속 CPU 프로파일링 (기본 비활성화)
 
-별도의 DaemonSet이 [OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler)를 실행합니다 — `otel/opentelemetry-collector-ebpf-profiler` 이미지로 패키징되어 있습니다. 지원되는 모든 런타임(Go, Java, .NET, Python, Ruby, Node.js, PHP, Perl, C/C++, Rust)에서 19Hz로 on-CPU 스택을 샘플링하고 OTLP 프로파일을 OneUptime으로 전송하며, **Telemetry → Performance Profiles** 아래와 개별 트레이스 스팬에서 연결된 플레임 그래프로 표시됩니다.
+별도의 DaemonSet이 [OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler)를 실행합니다 — `otel/opentelemetry-collector-ebpf-profiler` 이미지로 패키징되어 있습니다. 지원되는 모든 런타임(Go, Java, .NET, Python, Ruby, Node.js, PHP, Perl, C/C++, Rust)에서 19Hz로 on-CPU 스택을 샘플링하고 OTLP 프로파일을 OneUptime으로 전송하며, **Products → 성능 프로파일** 아래와 개별 트레이스 스팬에서 연결된 플레임 그래프로 표시됩니다.
 
 프로파일링은 **기본적으로 비활성화**되어 있습니다 — OBI 자동 계측보다 무거우며(노드당 CPU 사용량이 더 많고 메모리 사용량이 더 큼), 모든 클러스터가 항상 켜진 플레임 그래프를 원하는 것은 아닙니다. 더 풍부한 텔레메트리를 원할 때 활성화하십시오: `--set profiling.enabled=true`.
 

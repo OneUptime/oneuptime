@@ -37,7 +37,7 @@ Posta ett meddelande till en Slack-kanal.
 - **Channel** — kanalnamnet. Boten måste redan vara med i den kanalen.
 - **Message** — texten som ska skickas. Stöder Slack-formatering.
 
-Koppla först Slack till ditt projekt under **Project Settings → Workspace Connections → Slack**. Se [Slack Workspace Connection](/docs/workspace-connections/slack).
+Koppla först Slack till ditt projekt under **Project Settings → Arbetsyta → Slack**. Se [Slack Workspace Connection](/docs/workspace-connections/slack).
 
 ## Microsoft Teams
 

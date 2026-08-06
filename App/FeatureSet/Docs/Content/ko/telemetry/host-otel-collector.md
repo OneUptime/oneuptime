@@ -16,7 +16,7 @@
 
 ## 사전 요구 사항
 
-- **OneUptime Telemetry Ingestion Token** — *Project Settings → Telemetry Ingestion Keys*에서 생성하고 `x-oneuptime-token` 값을 복사합니다.
+- **OneUptime Telemetry Ingestion Token** — *Project Settings → 텔레메트리 및 APM → 수집 키*에서 생성하고 `x-oneuptime-token` 값을 복사합니다.
 - **OpenTelemetry Collector Contrib** 배포판(`otelcol-contrib`). 기본 `otelcol` 빌드에는 `windowseventlogreceiver`, `journaldreceiver` 또는 `hostmetrics` 추가 기능과 같은 receiver가 **포함되어 있지 않습니다** — 반드시 `contrib` 배포판을 사용하세요. Windows **Services** 탭을 구동하는 alpha `windowsservicereceiver`는 **v0.155.0**부터, Linux **Systemd Units** 탭을 구동하는 alpha `systemdreceiver`는 **v0.143.0**부터 `otelcol-contrib`에 번들로 포함되어 있으므로, 최신 릴리스를 설치하세요. 아래의 "Windows Services (메트릭)"와 "Linux Services (systemd 유닛)"를 참조하세요.
 - Collector를 서비스로 설치하고 (해당되는 경우) 권한이 필요한 로그 소스를 읽으려면 호스트에 대한 Root / Administrator 권한이 필요합니다.
 
@@ -602,7 +602,7 @@ sc.exe query "otelcol-contrib"
 1. 호스트에서 일부 신호를 생성하세요:
    - **Linux / macOS:** `logger "hello from oneuptime"` (syslog / journald에 기록).
    - **Windows:** 권한이 상승된 프롬프트에서 `eventcreate /T INFORMATION /ID 999 /L APPLICATION /SO OneUptimeTest /D "hello from oneuptime"`.
-2. OneUptime 대시보드에서 **Telemetry → Services**를 열고 구성한 `service.name`을 선택하세요.
+2. OneUptime 대시보드에서 **Products → 서비스**를 열고 구성한 `service.name`을 선택하세요.
 3. **Metrics**를 여세요 — 호스트 메트릭(CPU, 메모리, 파일 시스템 등)이 1분 이내에 나타나야 합니다.
 4. **Logs**를 여세요 — 파일 로그 / journald 항목 / Windows Event Logs가 스트리밍되어 들어와야 합니다. 유용한 검색 가능 속성으로는 `log.file.name`, `systemd.unit`, `winlog.channel`, `winlog.event_id`, `winlog.provider.name`이 있습니다.
 5. `systemd`(Linux) 또는 `windows_service`(Windows) receiver를 활성화했다면, **Infrastructure → Hosts**를 열고 호스트를 선택한 다음 **Systemd Units** / **Services** 탭을 확인하세요 — 스크레이프된 모든 유닛이 현재 상태와 함께 나열되어야 합니다.
@@ -879,7 +879,7 @@ OpenTelemetry Collector는 표준 `HTTPS_PROXY` / `HTTP_PROXY` / `NO_PROXY` 환�
   - **Linux / macOS:** `journalctl -u otelcol-contrib -f` (Linux) 또는 `tail -f /var/log/otelcol-contrib.err.log` (macOS).
   - **Windows:** *Event Viewer → Windows Logs → Application*에서 소스 `otelcol-contrib`를 찾으세요.
   - 호스트가 `https://oneuptime.com/otlp`(또는 자체 호스팅 엔드포인트)에 도달할 수 있는지 확인하세요: 동일한 머신에서 `curl -v https://oneuptime.com/otlp`.
-- **exporter에서 HTTP 401** — ingestion token이 유효하지 않거나 취소되었습니다. *Project Settings → Telemetry Ingestion Keys*에서 새로 생성하세요.
+- **exporter에서 HTTP 401** — ingestion token이 유효하지 않거나 취소되었습니다. *Project Settings → 텔레메트리 및 APM → 수집 키*에서 새로 생성하세요.
 - **`Security` Windows Event Log가 access denied를 반환함** — 서비스가 충분한 권한으로 실행되고 있지 않습니다. `LocalSystem`(`sc.exe create`의 기본값)으로 다시 생성하거나 서비스 계정에 _Manage auditing and security log_ 사용자 권한을 부여하세요.
 - **`journald` receiver가 시작에 실패함** — `journalctl`이 Collector의 `PATH`에 있고 `/var/log/journal`이 존재하는지 확인하세요(존재하지 않으면 `sudo systemd-tmpfiles --create --prefix /var/log/journal`을 실행).
 - **`systemd` receiver가 D-Bus 연결 오류를 보고함** — Collector가 시스템 버스에 도달할 수 없습니다. `/run/dbus/system_bus_socket`이 존재하는지, 그리고 Collector의 사용자가 그것을 열 수 있는지 확인하세요. 해당 사용자로 `systemctl list-units`를 실행해 보는 것이 가장 빠른 확인 방법입니다. root는 필요하지 않습니다. 컨테이너 내부에서 실행되는 Collector는 호스트의 소켓을 바인드 마운트하지 않는 한 버스를 전혀 볼 수 없으므로, 이 receiver에는 네이티브 설치를 권장합니다.

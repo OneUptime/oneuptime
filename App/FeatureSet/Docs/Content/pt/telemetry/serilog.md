@@ -2,7 +2,7 @@
 
 ## Visão geral
 
-O [Serilog](https://serilog.net) é a biblioteca de logging estruturado mais popular para .NET. O OneUptime ingere logs do Serilog por meio do OpenTelemetry Protocol (OTLP) usando o sink oficial [`Serilog.Sinks.OpenTelemetry`](https://github.com/serilog/serilog-sinks-opentelemetry). Uma vez configurado, cada evento de log que sua aplicação escreve por meio do Serilog é enviado ao OneUptime, onde se torna pesquisável em **Telemetry → Logs**, completo com propriedades estruturadas, severidade e correlação de trace/span.
+O [Serilog](https://serilog.net) é a biblioteca de logging estruturado mais popular para .NET. O OneUptime ingere logs do Serilog por meio do OpenTelemetry Protocol (OTLP) usando o sink oficial [`Serilog.Sinks.OpenTelemetry`](https://github.com/serilog/serilog-sinks-opentelemetry). Uma vez configurado, cada evento de log que sua aplicação escreve por meio do Serilog é enviado ao OneUptime, onde se torna pesquisável em **Products → Registros**, completo com propriedades estruturadas, severidade e correlação de trace/span.
 
 Não há nenhum pacote específico do OneUptime para instalar — o sink se comunica com o mesmo endpoint OTLP que o OneUptime expõe para todos os dados do OpenTelemetry. Isso funciona para aplicações de console, worker services, aplicações ASP.NET Core e qualquer outra coisa que rode em .NET.
 
@@ -12,7 +12,7 @@ Não há nenhum pacote específico do OneUptime para instalar — o sink se comu
 - **Crie um Projeto OneUptime** – Uma vez que você tenha uma conta, crie um projeto a partir do dashboard do OneUptime. Se precisar de ajuda, entre em contato conosco em support@oneuptime.com.
 - **Crie um Token de Ingestão de Telemetria** – Você precisa de um token para autenticar seus logs.
 
-Depois de se cadastrar no OneUptime e criar um projeto, clique em "More" na barra de navegação e clique em "Project Settings".
+Depois de se cadastrar no OneUptime e criar um projeto, clique em "Products" na barra de navegação e clique em "Project Settings".
 
 Na página Telemetry Ingestion Key, clique em "Create Ingestion Key" para criar um token.
 
@@ -197,7 +197,7 @@ Log.Information("Order {OrderId} placed by {CustomerId} for {Amount:C}",
 Log.Warning("Payment gateway slow: {LatencyMs}ms", latencyMs);
 ```
 
-Cada propriedade nomeada (`OrderId`, `CustomerId`, `Amount`, `LatencyMs`) é enviada como um atributo de log, então você pode filtrar e pesquisar por elas no explorador **Telemetry → Logs**.
+Cada propriedade nomeada (`OrderId`, `CustomerId`, `Amount`, `LatencyMs`) é enviada como um atributo de log, então você pode filtrar e pesquisar por elas no explorador **Products → Registros**.
 
 ## Exceções
 

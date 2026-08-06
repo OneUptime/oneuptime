@@ -16,7 +16,7 @@ Puoi eseguire l'**OpenTelemetry Collector** come servizio direttamente sui tuoi 
 
 ## Prerequisiti
 
-- Un **OneUptime Telemetry Ingestion Token** — creane uno da _Project Settings → Telemetry Ingestion Keys_ e copia il valore `x-oneuptime-token`.
+- Un **OneUptime Telemetry Ingestion Token** — creane uno da _Project Settings → Telemetria e APM → Chiavi di acquisizione_ e copia il valore `x-oneuptime-token`.
 - La distribuzione **OpenTelemetry Collector Contrib** (`otelcol-contrib`). La build predefinita `otelcol` **non** include receiver come `windowseventlogreceiver`, `journaldreceiver` o gli extra di `hostmetrics` — assicurati di usare la distribuzione `contrib`. Il `windowsservicereceiver` alpha che alimenta la scheda Windows **Services** è incluso in `otelcol-contrib` a partire dalla **v0.155.0**, e il `systemdreceiver` alpha che alimenta la scheda Linux **Systemd Units** a partire dalla **v0.143.0**, quindi installa una release attuale; vedi "Windows Services (metriche)" e "Linux Services (unità systemd)" più avanti.
 - Root / Administrator sull'host per installare il collector come servizio e (ove applicabile) leggere le sorgenti di log privilegiate.
 
@@ -602,7 +602,7 @@ Per impostazione predefinita il servizio viene eseguito come `LocalSystem`, che 
 1. Genera qualche segnale sull'host:
    - **Linux / macOS:** `logger "hello from oneuptime"` (scrive su syslog / journald).
    - **Windows:** `eventcreate /T INFORMATION /ID 999 /L APPLICATION /SO OneUptimeTest /D "hello from oneuptime"` da un prompt con privilegi elevati.
-2. Nella dashboard di OneUptime, apri **Telemetry → Services** e seleziona il `service.name` che hai configurato.
+2. Nella dashboard di OneUptime, apri **Products → Servizi** e seleziona il `service.name` che hai configurato.
 3. Apri **Metrics** — le metriche dell'host (CPU, memoria, filesystem, ecc.) dovrebbero apparire entro un minuto.
 4. Apri **Logs** — i tuoi log da file / le voci di journald / i Windows Event Logs dovrebbero arrivare in streaming. Tra gli attributi utili e ricercabili figurano `log.file.name`, `systemd.unit`, `winlog.channel`, `winlog.event_id` e `winlog.provider.name`.
 5. Se hai abilitato il receiver `systemd` (Linux) o `windows_service` (Windows), apri **Infrastructure → Hosts**, seleziona l'host e controlla la scheda **Systemd Units** / **Services** — ogni unità sottoposta a scrape dovrebbe comparire con il suo stato attuale.
@@ -879,7 +879,7 @@ L'OpenTelemetry Collector rispetta le variabili d'ambiente standard `HTTPS_PROXY
   - **Linux / macOS:** `journalctl -u otelcol-contrib -f` (Linux) o `tail -f /var/log/otelcol-contrib.err.log` (macOS).
   - **Windows:** cerca sotto _Event Viewer → Windows Logs → Application_ la sorgente `otelcol-contrib`.
   - Verifica che l'host possa raggiungere `https://oneuptime.com/otlp` (o il tuo endpoint self-hosted): `curl -v https://oneuptime.com/otlp` dalla stessa macchina.
-- **HTTP 401 dall'exporter** — il token di ingestione non è valido o è stato revocato. Generane uno nuovo da _Project Settings → Telemetry Ingestion Keys_.
+- **HTTP 401 dall'exporter** — il token di ingestione non è valido o è stato revocato. Generane uno nuovo da _Project Settings → Telemetria e APM → Chiavi di acquisizione_.
 - **Il canale `Security` del Windows Event Log restituisce access denied** — il servizio non viene eseguito con privilegi sufficienti. Ricrealo come `LocalSystem` (l'impostazione predefinita con `sc.exe create`) o concedi all'account del servizio il diritto utente _Manage auditing and security log_.
 - **Il receiver `journald` non si avvia** — assicurati che `journalctl` sia nel `PATH` del collector e che `/var/log/journal` esista (esegui `sudo systemd-tmpfiles --create --prefix /var/log/journal` in caso contrario).
 - **Il receiver `systemd` segnala un errore di connessione D-Bus** — il collector non riesce a raggiungere il bus di sistema. Verifica che `/run/dbus/system_bus_socket` esista e che l'utente del collector possa aprirlo; eseguire `systemctl list-units` con quell'utente è la verifica più rapida. Non servono privilegi di root. Un collector eseguito dentro un container non vede alcun bus, a meno che tu non monti in bind il socket dell'host: per questo receiver è quindi preferibile un'installazione nativa.

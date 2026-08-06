@@ -37,7 +37,7 @@ Slack チャンネルにメッセージを投稿します。
 - **Channel** — チャンネル名。ボットが事前にそのチャンネルに参加している必要があります。
 - **Message** — 送信するテキスト。Slack のフォーマットに対応しています。
 
-事前に **Project Settings → Workspace Connections → Slack** で Slack をプロジェクトに接続してください。[Slack ワークスペース接続](/docs/workspace-connections/slack) を参照してください。
+事前に **Project Settings → ワークスペース → Slack** で Slack をプロジェクトに接続してください。[Slack ワークスペース接続](/docs/workspace-connections/slack) を参照してください。
 
 ## Microsoft Teams
 

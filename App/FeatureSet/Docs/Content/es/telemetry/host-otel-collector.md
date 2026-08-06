@@ -16,7 +16,7 @@ Puedes ejecutar el **OpenTelemetry Collector** como un servicio directamente en 
 
 ## Requisitos previos
 
-- Un **OneUptime Telemetry Ingestion Token** — crea uno desde _Project Settings → Telemetry Ingestion Keys_ y copia el valor de `x-oneuptime-token`.
+- Un **OneUptime Telemetry Ingestion Token** — crea uno desde _Project Settings → Telemetría y APM → Claves de Ingesta_ y copia el valor de `x-oneuptime-token`.
 - La distribución **OpenTelemetry Collector Contrib** (`otelcol-contrib`). La compilación predeterminada `otelcol` **no** incluye receptores como `windowseventlogreceiver`, `journaldreceiver` ni los extras de `hostmetrics` — asegúrate de usar la distribución `contrib`. El `windowsservicereceiver` en alpha que alimenta la pestaña **Services** de Windows viene incluido en `otelcol-contrib` a partir de la **v0.155.0**, y el `systemdreceiver` en alpha que alimenta la pestaña **Systemd Units** de Linux a partir de la **v0.143.0**, así que instala una versión actual; consulta "Windows Services (métricas)" y "Linux Services (unidades de systemd)" más abajo.
 - Root / Administrador en el host para instalar el recolector como servicio y (donde corresponda) leer fuentes de logs privilegiadas.
 
@@ -602,7 +602,7 @@ El servicio se ejecuta bajo `LocalSystem` de forma predeterminada, que tiene los
 1. Genera alguna señal en el host:
    - **Linux / macOS:** `logger "hello from oneuptime"` (escribe en syslog / journald).
    - **Windows:** `eventcreate /T INFORMATION /ID 999 /L APPLICATION /SO OneUptimeTest /D "hello from oneuptime"` desde un símbolo del sistema elevado.
-2. En el panel de OneUptime, abre **Telemetry → Services** y elige el `service.name` que configuraste.
+2. En el panel de OneUptime, abre **Products → Servicios** y elige el `service.name` que configuraste.
 3. Abre **Metrics** — las métricas del host (CPU, memoria, sistema de archivos, etc.) deberían aparecer en un minuto.
 4. Abre **Logs** — tus logs de archivos / entradas de journald / Windows Event Logs deberían estar transmitiéndose. Entre los atributos útiles para búsquedas se incluyen `log.file.name`, `systemd.unit`, `winlog.channel`, `winlog.event_id` y `winlog.provider.name`.
 5. Si habilitaste el receptor `systemd` (Linux) o `windows_service` (Windows), abre **Infrastructure → Hosts**, elige el host y revisa la pestaña **Systemd Units** / **Services** — cada unidad de la que se haga scrape debería aparecer con su estado actual.
@@ -879,7 +879,7 @@ El OpenTelemetry Collector respeta las variables de entorno estándar `HTTPS_PRO
   - **Linux / macOS:** `journalctl -u otelcol-contrib -f` (Linux) o `tail -f /var/log/otelcol-contrib.err.log` (macOS).
   - **Windows:** mira en _Event Viewer → Windows Logs → Application_ la fuente `otelcol-contrib`.
   - Confirma que el host puede alcanzar `https://oneuptime.com/otlp` (o tu endpoint autoalojado): `curl -v https://oneuptime.com/otlp` desde la misma máquina.
-- **HTTP 401 desde el exportador** — el token de ingestión es inválido o ha sido revocado. Genera uno nuevo desde _Project Settings → Telemetry Ingestion Keys_.
+- **HTTP 401 desde el exportador** — el token de ingestión es inválido o ha sido revocado. Genera uno nuevo desde _Project Settings → Telemetría y APM → Claves de Ingesta_.
 - **El canal `Security` de Windows Event Log devuelve acceso denegado** — el servicio no se ejecuta con privilegios suficientes. Recréalo bajo `LocalSystem` (el valor predeterminado con `sc.exe create`) o concede a la cuenta del servicio el derecho de usuario _Manage auditing and security log_.
 - **El receptor `journald` no arranca** — asegúrate de que `journalctl` esté en el `PATH` del recolector y de que exista `/var/log/journal` (ejecuta `sudo systemd-tmpfiles --create --prefix /var/log/journal` si no es así).
 - **El receptor `systemd` informa de un error de conexión con D-Bus** — el recolector no puede alcanzar el bus del sistema. Confirma que `/run/dbus/system_bus_socket` existe y que el usuario del recolector puede abrirlo; ejecutar `systemctl list-units` con ese usuario es la comprobación más rápida. No hace falta root. Un recolector que se ejecuta dentro de un contenedor no ve ningún bus salvo que montes el socket del host, así que prefiere una instalación nativa para este receptor.

@@ -6,7 +6,7 @@ OpenTelemetry Ingest-tjänsten accepterar nu inbyggda Syslog-nyttolaster. Du kan
 
 ## Förutsättningar
 
-- **Telemetriintagningstoken** – skapa en från _Projektinställningar → Telemetriintagningsnycklar_ och kopiera `x-oneuptime-token`-värdet.
+- **Telemetriintagningstoken** – skapa en från _Projektinställningar → Telemetri och APM → Intagningsnycklar_ och kopiera `x-oneuptime-token`-värdet.
 - **Syslog-vidarebefordrare** – vilket verktyg som helst som kan skicka HTTP POST-förfrågningar (t.ex. `curl`, `rsyslog` via `omhttp` eller `syslog-ng` med HTTP-destinationsplugin:et).
 - **Tjänstnamn (valfritt)** – ange `x-oneuptime-service-name`-huvudet för att gruppera inkommande loggar under en specifik telemetritjänst. När det utelämnas faller OneUptime tillbaka på syslog `APP-NAME`, värdnamn eller `Syslog`.
 

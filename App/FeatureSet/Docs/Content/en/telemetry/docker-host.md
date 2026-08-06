@@ -10,7 +10,7 @@ This page is the **installation guide**. For configuring Docker monitors and ale
 
 - Docker Engine 20.10+
 - Access to `/var/run/docker.sock` on the host
-- A **OneUptime Telemetry Ingestion Token** — create one from _Project Settings → Telemetry Ingestion Keys_ and copy the value
+- A **OneUptime Telemetry Ingestion Token** — create one from _Project Settings → Telemetry & APM → Ingestion Keys_ and copy the value
 
 ## Quick Start (One Command)
 
@@ -67,7 +67,7 @@ docker compose up -d
 | Variable                  | Required | Description                                                                                                         |
 | ------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------- |
 | `ONEUPTIME_URL`           | Yes      | Your OneUptime instance URL (for example `https://oneuptime.com` or your self-hosted host)                          |
-| `ONEUPTIME_SERVICE_TOKEN` | Yes      | Telemetry ingestion token from _Project Settings → Telemetry Ingestion Keys_                                        |
+| `ONEUPTIME_SERVICE_TOKEN` | Yes      | Telemetry ingestion token from _Project Settings → Telemetry & APM → Ingestion Keys_                                        |
 | `DOCKER_HOST_NAME`        | No       | Friendly name for this host. Defaults to `docker-host`. Set it to something stable per host (e.g. `prod-docker-01`) |
 
 ## Verify the Installation

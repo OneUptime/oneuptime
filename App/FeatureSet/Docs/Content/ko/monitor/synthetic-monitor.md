@@ -92,7 +92,7 @@ return {
 
 #### 시크릿 추가
 
-시크릿을 추가하려면 OneUptime 대시보드 -> 프로젝트 설정 -> 모니터 시크릿 -> 모니터 시크릿 생성으로 이동하십시오.
+시크릿을 추가하려면 OneUptime 대시보드 -> 모니터 -> 설정 -> 시크릿 -> 모니터 시크릿 생성으로 이동하십시오.
 
 ![시크릿 생성](/docs/static/images/CreateMonitorSecret.png)
 

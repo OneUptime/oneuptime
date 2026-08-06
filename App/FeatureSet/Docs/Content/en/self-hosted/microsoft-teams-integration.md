@@ -108,7 +108,7 @@ microsoftTeamsApp:
 
 ### Step 7: Upload Teams App Manifest
 
-1. Go to project **Settings** > **Integrations** > **Microsoft Teams**
+1. Go to **Project Settings** > **Workspace** > **Microsoft Teams**
 2. Download the Teams app manifest from there
 3. Go to Microsoft Teams, click on "Apps" in the sidebar
 4. At the bottom, click "Manage your apps"

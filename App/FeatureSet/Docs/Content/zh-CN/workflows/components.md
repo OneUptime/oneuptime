@@ -37,7 +37,7 @@ API 组件的简化版,适合"发完即走"的场景。向某个 URL 发送一�
 - **频道**——频道名称。机器人必须已经在那个频道里。
 - **消息**——要发送的文本。支持 Slack 格式。
 
-请先在 **项目设置 → 工作区连接 → Slack** 下把 Slack 连接到你的项目。见 [Slack 工作区连接](/docs/workspace-connections/slack)。
+请先在 **项目设置 → 工作区 → Slack** 下把 Slack 连接到你的项目。见 [Slack 工作区连接](/docs/workspace-connections/slack)。
 
 ## Microsoft Teams
 

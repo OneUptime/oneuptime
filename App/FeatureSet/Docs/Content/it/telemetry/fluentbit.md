@@ -34,7 +34,7 @@ e molte altre.
 - **Fase 3: Creare un Progetto OneUptime** - Una volta ottenuto l'account, è possibile creare un progetto dal dashboard di OneUptime. Per qualsiasi aiuto nella creazione di un progetto o domande, contattare support@oneuptime.com
 - **Fase 4: Creare un Token di Acquisizione Telemetria** - Una volta creato un account OneUptime, è possibile creare un token di acquisizione telemetria per acquisire log, metriche e tracce dall'applicazione.
 
-Dopo aver effettuato la registrazione a OneUptime e creato un progetto, fare clic su "Altro" nella barra di navigazione e fare clic su "Impostazioni Progetto".
+Dopo aver effettuato la registrazione a OneUptime e creato un progetto, fare clic su "Products" nella barra di navigazione e fare clic su "Impostazioni Progetto".
 
 Nella pagina Chiave di Acquisizione Telemetria, fare clic su "Crea Chiave di Acquisizione" per creare un token.
 

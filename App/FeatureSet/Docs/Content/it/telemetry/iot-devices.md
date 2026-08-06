@@ -15,7 +15,7 @@ Non c'è alcun agente proprietario da installare sul lato dispositivo. Questa pa
 
 - Un dispositivo, gateway o collector in grado di inviare OTLP/HTTP a OneUptime
 - Raggiungibilità di rete dal dispositivo/gateway verso la tua istanza di OneUptime
-- Un **OneUptime Telemetry Ingestion Token** — creane uno da _Project Settings → Telemetry Ingestion Keys_ e copia il valore `x-oneuptime-token`
+- Un **OneUptime Telemetry Ingestion Token** — creane uno da _Project Settings → Telemetria e APM → Chiavi di acquisizione_ e copia il valore `x-oneuptime-token`
 
 ## Come OneUptime Modella l'IoT
 
@@ -232,7 +232,7 @@ OneUptime riconosce i seguenti nomi di metrica `iot_*`. Ogni datapoint dovrebbe 
 
 ### HTTP 401 / 403 dall'Exporter
 
-Il token di acquisizione non è valido, è stato revocato o è mancante. Generane uno nuovo da _Project Settings → Telemetry Ingestion Keys_ e aggiorna l'header `x-oneuptime-token`.
+Il token di acquisizione non è valido, è stato revocato o è mancante. Generane uno nuovo da _Project Settings → Telemetria e APM → Chiavi di acquisizione_ e aggiorna l'header `x-oneuptime-token`.
 
 ### Le Metriche Non Vengono Rappresentate sui Grafici
 

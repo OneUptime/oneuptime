@@ -8,7 +8,7 @@ OneUptime は、`faas.name` リソース属性でタグ付けされた OpenTelem
 
 ## 前提条件
 
-- **OneUptime Telemetry Ingestion Token** — _Project Settings → Telemetry Ingestion Keys_ から作成し、`x-oneuptime-token` の値をコピーします。
+- **OneUptime Telemetry Ingestion Token** — _Project Settings → テレメトリと APM → 取り込みキー_ から作成し、`x-oneuptime-token` の値をコピーします。
 - 関数の言語用の OpenTelemetry SDK(または自動インストルメンテーションレイヤー)。
 
 ## OneUptime が関数を識別する方法

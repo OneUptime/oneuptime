@@ -49,7 +49,7 @@ Como você está auto-hospedando o OneUptime, precisará configurar sua própria
 ## Passo 2: Configurar Call/SMS Config no OneUptime
 
 1. Faça login no seu Painel do OneUptime
-2. Vá para **Project Settings** > **Call & SMS** > **Custom Call/SMS Config**
+2. Vá para **Project Settings** > **Notificações** > **Configurações de notificação**
 3. Clique em **Create Custom Call/SMS Config**
 4. Preencha os seguintes campos:
    - **Name**: Um nome amigável (ex.: "Configuração Twilio de Produção")

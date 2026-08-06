@@ -99,7 +99,7 @@ WHERE status = 'CANCELLED'
 
 为了使数据库密码绝不会以明文形式存储在监控器上，请创建一个[监控器密钥](/docs/monitor/monitor-secrets)，并在密码字段中引用它：
 
-1. 前往 OneUptime 控制台 → 项目设置 → 监控器密钥 → 创建监控器密钥。
+1. 前往 OneUptime 控制台 → 监控 → 设置 → 密钥 → 创建监控器密钥。
 2. 创建一个密钥（例如 `dbPassword`），并授予此监控器对它的访问权限。
 3. 在监控器的密码字段中，输入 `{{monitorSecrets.dbPassword}}`。
 

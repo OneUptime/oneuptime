@@ -14,7 +14,7 @@ Because everything is OpenTelemetry, the same data also powers dashboards and me
 
 ## Step 1 — Create a Telemetry Ingestion Token
 
-In OneUptime, open **Project Settings → Telemetry Ingestion Keys** and click **Create Ingestion Key**. Copy the key — you will pass it to your app as an OTLP header. (See the [OpenTelemetry guide](/docs/telemetry/open-telemetry) for screenshots.)
+In OneUptime, open **Project Settings → Telemetry & APM → Ingestion Keys** and click **Create Ingestion Key**. Copy the key — you will pass it to your app as an OTLP header. (See the [OpenTelemetry guide](/docs/telemetry/open-telemetry) for screenshots.)
 
 ## Step 2 — Instrument your app
 

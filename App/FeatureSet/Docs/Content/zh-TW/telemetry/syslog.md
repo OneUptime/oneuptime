@@ -6,7 +6,7 @@ OpenTelemetry Ingest 服務現在可接受原生 Syslog 酬載。您可以將任
 
 ## 先決條件
 
-- **遙測擷取權杖（Telemetry Ingestion Token）** – 從 _Project Settings → Telemetry Ingestion Keys_ 建立一個，並複製 `x-oneuptime-token` 的值。
+- **遙測擷取權杖（Telemetry Ingestion Token）** – 從 _Project Settings → 遙測與 APM → 擷取金鑰_ 建立一個，並複製 `x-oneuptime-token` 的值。
 - **Syslog 轉送器** – 任何能夠傳送 HTTP POST 請求的工具（例如 `curl`、透過 `omhttp` 的 `rsyslog`，或搭配 HTTP 目的地外掛的 `syslog-ng`）。
 - **服務名稱（選填）** – 設定 `x-oneuptime-service-name` 標頭，可將傳入的日誌歸入特定的遙測服務。若省略此項，OneUptime 會改用 syslog 的 `APP-NAME`、主機名稱，或 `Syslog`。
 
@@ -182,7 +182,7 @@ OneUptime 會自動為每一筆日誌項目加入下列屬性：
 - `syslog.structured.*`（攤平後的 RFC5424 結構化資料）
 - `syslog.raw`（原始訊息，用於可追溯性）
 
-這些屬性會在 Telemetry → Logs explorer 中變為可搜尋。
+這些屬性會在 **Products → 日誌** explorer 中變為可搜尋。
 
 ## 疑難排解
 

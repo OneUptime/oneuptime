@@ -15,7 +15,7 @@ There is no proprietary agent to install on the device side. This page is the **
 
 - A device, gateway, or collector that can send OTLP/HTTP to OneUptime
 - Network reachability from the device/gateway to your OneUptime instance
-- A **OneUptime Telemetry Ingestion Token** — create one from _Project Settings → Telemetry Ingestion Keys_ and copy the `x-oneuptime-token` value
+- A **OneUptime Telemetry Ingestion Token** — create one from _Project Settings → Telemetry & APM → Ingestion Keys_ and copy the `x-oneuptime-token` value
 
 ## How OneUptime Models IoT
 
@@ -232,7 +232,7 @@ OneUptime recognizes the following `iot_*` metric names. Each datapoint should c
 
 ### HTTP 401 / 403 from the Exporter
 
-The ingestion token is invalid, revoked, or missing. Generate a new one from _Project Settings → Telemetry Ingestion Keys_ and update the `x-oneuptime-token` header.
+The ingestion token is invalid, revoked, or missing. Generate a new one from _Project Settings → Telemetry & APM → Ingestion Keys_ and update the `x-oneuptime-token` header.
 
 ### Metrics Not Charting
 

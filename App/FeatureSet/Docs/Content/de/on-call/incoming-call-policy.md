@@ -29,7 +29,7 @@ Da Sie OneUptime selbst hosten, müssen Sie Ihr eigenes Twilio-Konto konfigurier
 ## Schritt 2: Anruf-/SMS-Konfiguration in OneUptime einrichten
 
 1. Melden Sie sich bei Ihrem OneUptime-Dashboard an
-2. Gehen Sie zu **Projekteinstellungen** > **Anruf & SMS** > **Benutzerdefinierte Anruf-/SMS-Konfiguration**
+2. Gehen Sie zu **Projekteinstellungen** > **Benachrichtigungen** > **Benachrichtigungseinstellungen**
 3. Klicken Sie auf **Benutzerdefinierte Anruf-/SMS-Konfiguration erstellen**
 4. Füllen Sie die folgenden Felder aus:
    - **Name**: Ein verständlicher Name (z. B. "Production Twilio Config")

@@ -37,7 +37,7 @@
 - **Channel** — चैनल का नाम। बॉट उस चैनल में पहले से होना चाहिए।
 - **Message** — भेजने के लिए टेक्स्ट। Slack फ़ॉर्मेटिंग का समर्थन करता है।
 
-पहले **Project Settings → Workspace Connections → Slack** के अंतर्गत Slack को अपने प्रोजेक्ट से जोड़ें। [Slack Workspace Connection](/docs/workspace-connections/slack) देखें।
+पहले **Project Settings → वर्कस्पेस → Slack** के अंतर्गत Slack को अपने प्रोजेक्ट से जोड़ें। [Slack Workspace Connection](/docs/workspace-connections/slack) देखें।
 
 ## Microsoft Teams
 

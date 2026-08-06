@@ -16,7 +16,7 @@ Sie können den **OpenTelemetry Collector** als Dienst direkt auf Ihren Linux-, 
 
 ## Voraussetzungen
 
-- Ein **OneUptime Telemetry Ingestion Token** — erstellen Sie eines unter _Project Settings → Telemetry Ingestion Keys_ und kopieren Sie den Wert von `x-oneuptime-token`.
+- Ein **OneUptime Telemetry Ingestion Token** — erstellen Sie eines unter _Project Settings → Telemetrie & APM → Ingestion-Schlüssel_ und kopieren Sie den Wert von `x-oneuptime-token`.
 - Die Distribution **OpenTelemetry Collector Contrib** (`otelcol-contrib`). Der standardmäßige `otelcol`-Build enthält Receiver wie `windowseventlogreceiver`, `journaldreceiver` oder `hostmetrics`-Extras **nicht** — stellen Sie sicher, dass Sie die `contrib`-Distribution verwenden. Der Alpha-`windowsservicereceiver`, der den Windows-**Services**-Tab versorgt, ist in `otelcol-contrib` ab **v0.155.0** enthalten, und der Alpha-`systemdreceiver`, der den Linux-**Systemd Units**-Tab versorgt, ab **v0.143.0**; installieren Sie daher ein aktuelles Release; siehe „Windows Services (Metriken)" und „Linux Services (systemd-Units)" weiter unten.
 - Root-/Administratorrechte auf dem Host, um den Collector als Dienst zu installieren und (sofern zutreffend) privilegierte Log-Quellen zu lesen.
 
@@ -602,7 +602,7 @@ Der Dienst läuft standardmäßig unter `LocalSystem`, das über die nötigen Be
 1. Erzeugen Sie ein Signal auf dem Host:
    - **Linux / macOS:** `logger "hello from oneuptime"` (schreibt nach syslog / journald).
    - **Windows:** `eventcreate /T INFORMATION /ID 999 /L APPLICATION /SO OneUptimeTest /D "hello from oneuptime"` von einer Eingabeaufforderung mit erhöhten Rechten.
-2. Öffnen Sie im OneUptime-Dashboard **Telemetry → Services** und wählen Sie den von Ihnen konfigurierten `service.name`.
+2. Öffnen Sie im OneUptime-Dashboard **Products → Dienste** und wählen Sie den von Ihnen konfigurierten `service.name`.
 3. Öffnen Sie **Metrics** — Host-Metriken (CPU, Arbeitsspeicher, Dateisystem usw.) sollten innerhalb einer Minute erscheinen.
 4. Öffnen Sie **Logs** — Ihre Dateilogs / journald-Einträge / Windows Event Logs sollten eintreffen. Nützliche durchsuchbare Attribute sind u. a. `log.file.name`, `systemd.unit`, `winlog.channel`, `winlog.event_id` und `winlog.provider.name`.
 5. Wenn Sie den `systemd`- (Linux) oder `windows_service`-Receiver (Windows) aktiviert haben, öffnen Sie **Infrastructure → Hosts**, wählen Sie den Host aus und prüfen Sie den Tab **Systemd Units** / **Services** — jede gescrapte Unit sollte mit ihrem aktuellen Zustand aufgeführt sein.
@@ -879,7 +879,7 @@ Der OpenTelemetry Collector berücksichtigt die standardmäßigen Umgebungsvaria
   - **Linux / macOS:** `journalctl -u otelcol-contrib -f` (Linux) oder `tail -f /var/log/otelcol-contrib.err.log` (macOS).
   - **Windows:** Schauen Sie unter _Event Viewer → Windows Logs → Application_ nach der Quelle `otelcol-contrib`.
   - Stellen Sie sicher, dass der Host `https://oneuptime.com/otlp` (oder Ihren selbst gehosteten Endpunkt) erreichen kann: `curl -v https://oneuptime.com/otlp` von demselben Rechner.
-- **HTTP 401 vom Exporter** — das Ingestion-Token ist ungültig oder widerrufen. Erstellen Sie ein neues unter _Project Settings → Telemetry Ingestion Keys_.
+- **HTTP 401 vom Exporter** — das Ingestion-Token ist ungültig oder widerrufen. Erstellen Sie ein neues unter _Project Settings → Telemetrie & APM → Ingestion-Schlüssel_.
 - **Der Windows-Event-Log-Kanal `Security` gibt „access denied“ zurück** — der Dienst läuft nicht mit ausreichenden Berechtigungen. Erstellen Sie ihn unter `LocalSystem` neu (der Standard bei `sc.exe create`) oder erteilen Sie dem Dienstkonto das Benutzerrecht _Manage auditing and security log_.
 - **Der `journald`-Receiver startet nicht** — stellen Sie sicher, dass `journalctl` im `PATH` des Collectors liegt und dass `/var/log/journal` existiert (führen Sie andernfalls `sudo systemd-tmpfiles --create --prefix /var/log/journal` aus).
 - **Der `systemd`-Receiver meldet einen D-Bus-Verbindungsfehler** — der Collector kann den System-Bus nicht erreichen. Prüfen Sie, ob `/run/dbus/system_bus_socket` existiert und ob der Benutzer des Collectors es öffnen kann; `systemctl list-units` als dieser Benutzer ausgeführt ist die schnellste Probe. Root ist nicht erforderlich. Ein Collector, der in einem Container läuft, sieht überhaupt keinen Bus, sofern Sie nicht den Socket des Hosts einhängen; bevorzugen Sie für diesen Receiver daher eine native Installation.

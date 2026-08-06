@@ -20,7 +20,7 @@ SCIM 整合提供下列優點：
 1. **前往專案設定**
 
    - 進入您的 OneUptime 專案
-   - 前往 **Project Settings** > **Team** > **SCIM**
+   - 前往 **Project Settings** > **安全性** > **SCIM**
 
 2. **設定 SCIM 選項**
 
@@ -69,7 +69,7 @@ SCIM 整合提供下列優點：
 1. **前往狀態頁面設定**
 
    - 進入您的 OneUptime 狀態頁面
-   - 前往 **Status Page Settings** > **Private Users** > **SCIM**
+   - 前往 **Status Page Settings** > **安全性** > **SCIM**
 
 2. **設定 SCIM 選項**
 
@@ -117,7 +117,7 @@ Microsoft Entra ID 提供企業等級的身分管理，並具備強大的 SCIM �
 #### 步驟 1：從 OneUptime 取得 SCIM 設定
 
 1. 登入您的 OneUptime 儀表板
-2. 前往 **Project Settings** > **Team** > **SCIM**
+2. 前往 **Project Settings** > **安全性** > **SCIM**
 3. 點選 **Create SCIM Configuration**
 4. 輸入易記名稱（例如「Microsoft Entra ID Provisioning」）
 5. 設定下列選項：
@@ -219,7 +219,7 @@ Okta 提供具彈性的身分管理，並擁有絕佳的 SCIM 支援。請依照
 #### 步驟 1：從 OneUptime 取得 SCIM 設定
 
 1. 登入您的 OneUptime 儀表板
-2. 前往 **Project Settings** > **Team** > **SCIM**
+2. 前往 **Project Settings** > **安全性** > **SCIM**
 3. 點選 **Create SCIM Configuration**
 4. 輸入易記名稱（例如「Okta Provisioning」）
 5. 設定下列選項：

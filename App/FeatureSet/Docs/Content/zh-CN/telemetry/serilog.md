@@ -2,7 +2,7 @@
 
 ## 概述
 
-[Serilog](https://serilog.net) 是 .NET 中最流行的结构化日志库。OneUptime 使用官方的 [`Serilog.Sinks.OpenTelemetry`](https://github.com/serilog/serilog-sinks-opentelemetry) sink，通过 OpenTelemetry 协议（OTLP）接收 Serilog 日志。配置完成后，应用程序通过 Serilog 写入的每条日志事件都会被发送到 OneUptime，并在 **Telemetry → Logs** 中变得可搜索，同时包含结构化属性、严重级别以及 trace/span 关联信息。
+[Serilog](https://serilog.net) 是 .NET 中最流行的结构化日志库。OneUptime 使用官方的 [`Serilog.Sinks.OpenTelemetry`](https://github.com/serilog/serilog-sinks-opentelemetry) sink，通过 OpenTelemetry 协议（OTLP）接收 Serilog 日志。配置完成后，应用程序通过 Serilog 写入的每条日志事件都会被发送到 OneUptime，并在 **Products → 日志** 中变得可搜索，同时包含结构化属性、严重级别以及 trace/span 关联信息。
 
 无需安装任何 OneUptime 专用的包——该 sink 直接与 OneUptime 为所有 OpenTelemetry 数据提供的同一个 OTLP 端点通信。它适用于控制台应用、worker 服务、ASP.NET Core 应用以及任何运行在 .NET 上的程序。
 
@@ -12,7 +12,7 @@
 - **创建 OneUptime 项目** – 拥有账户后，从 OneUptime 仪表板创建一个项目。如果需要帮助，请通过 support@oneuptime.com 联系我们。
 - **创建遥测接收令牌（Telemetry Ingestion Token）** – 你需要一个令牌来对日志进行身份验证。
 
-注册 OneUptime 并创建项目后，点击导航栏中的 "More"，然后点击 "Project Settings"。
+注册 OneUptime 并创建项目后，点击导航栏中的 "Products"，然后点击 "Project Settings"。
 
 在 Telemetry Ingestion Key 页面，点击 "Create Ingestion Key" 来创建一个令牌。
 
@@ -197,7 +197,7 @@ Log.Information("Order {OrderId} placed by {CustomerId} for {Amount:C}",
 Log.Warning("Payment gateway slow: {LatencyMs}ms", latencyMs);
 ```
 
-每个命名属性（`OrderId`、`CustomerId`、`Amount`、`LatencyMs`）都会作为日志属性发送，因此你可以在 **Telemetry → Logs** 浏览器中对它们进行筛选和搜索。
+每个命名属性（`OrderId`、`CustomerId`、`Amount`、`LatencyMs`）都会作为日志属性发送，因此你可以在 **Products → 日志** 浏览器中对它们进行筛选和搜索。
 
 ## 异常
 

@@ -22,7 +22,7 @@ return {
 
 #### 新增密鑰
 
-若要新增密鑰，請前往 OneUptime Dashboard -> Project Settings -> Monitor Secrets -> Create Monitor Secret。
+若要新增密鑰，請前往 OneUptime Dashboard -> 監測 -> 設定 -> 密鑰 -> Create Monitor Secret。
 
 ![Create Secret](/docs/static/images/CreateMonitorSecret.png)
 

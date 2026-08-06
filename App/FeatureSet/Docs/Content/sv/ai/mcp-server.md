@@ -44,7 +44,7 @@ Med OneUptime MCP-servern kan AI-assistenter hjälpa dig att:
 ## Hämta din API-nyckel
 
 1. Logga in på din OneUptime-instans
-2. Navigera till **Inställningar** → **API-nycklar**
+2. Navigera till **Projektinställningar** → **API-nycklar**
 3. Klicka på **Skapa API-nyckel**
 4. Ange ett namn (t.ex. "MCP-server")
 5. Välj lämpliga behörigheter för ditt användningsfall

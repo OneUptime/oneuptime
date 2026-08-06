@@ -16,7 +16,7 @@
 
 ## 前提条件
 
-- **OneUptime Telemetry Ingestion Token** — _Project Settings → Telemetry Ingestion Keys_ から作成し、`x-oneuptime-token` の値をコピーします。
+- **OneUptime Telemetry Ingestion Token** — _Project Settings → テレメトリと APM → 取り込みキー_ から作成し、`x-oneuptime-token` の値をコピーします。
 - **OpenTelemetry Collector Contrib** ディストリビューション（`otelcol-contrib`）。デフォルトの `otelcol` ビルドには `windowseventlogreceiver`、`journaldreceiver`、`hostmetrics` の追加機能などのレシーバーは**含まれていません** — 必ず `contrib` ディストリビューションを使用してください。Windows の **Services** タブを支える alpha の `windowsservicereceiver` は **v0.155.0** 以降の `otelcol-contrib` に、Linux の **Systemd Units** タブを支える alpha の `systemdreceiver` は **v0.143.0** 以降の `otelcol-contrib` に同梱されているため、最新のリリースをインストールしてください。下記の「Windows サービス（メトリクス）」および「Linux サービス（systemd ユニット）」を参照してください。
 - コレクターをサービスとしてインストールし、（該当する場合は）権限が必要なログソースを読み取るための、ホスト上の Root / Administrator 権限。
 
@@ -602,7 +602,7 @@ sc.exe query "otelcol-contrib"
 1. ホスト上で何らかのシグナルを生成します。
    - **Linux / macOS:** `logger "hello from oneuptime"`（syslog / journald に書き込みます）。
    - **Windows:** 管理者権限のプロンプトから `eventcreate /T INFORMATION /ID 999 /L APPLICATION /SO OneUptimeTest /D "hello from oneuptime"`。
-2. OneUptime ダッシュボードで **Telemetry → Services** を開き、設定した `service.name` を選択します。
+2. OneUptime ダッシュボードで **Products → サービス** を開き、設定した `service.name` を選択します。
 3. **Metrics** を開きます — ホストメトリクス（CPU、メモリ、ファイルシステムなど）が 1 分以内に表示されるはずです。
 4. **Logs** を開きます — ファイルログ / journald のエントリ / Windows イベントログがストリーミングされてくるはずです。検索に役立つ属性には、`log.file.name`、`systemd.unit`、`winlog.channel`、`winlog.event_id`、`winlog.provider.name` などがあります。
 5. `systemd`（Linux）または `windows_service`（Windows）レシーバーを有効にした場合は、**Infrastructure → Hosts** を開いてホストを選択し、**Systemd Units** / **Services** タブを確認します — スクレイプされたすべてのユニットが現在の状態とともに一覧表示されるはずです。
@@ -879,7 +879,7 @@ OpenTelemetry Collector は、標準の `HTTPS_PROXY` / `HTTP_PROXY` / `NO_PROXY
   - **Linux / macOS:** `journalctl -u otelcol-contrib -f`（Linux）または `tail -f /var/log/otelcol-contrib.err.log`（macOS）。
   - **Windows:** _Event Viewer → Windows Logs → Application_ でソース `otelcol-contrib` を確認します。
   - ホストが `https://oneuptime.com/otlp`（またはセルフホストのエンドポイント）に到達できることを確認します。同じマシンから `curl -v https://oneuptime.com/otlp` を実行します。
-- **エクスポーターから HTTP 401 が返る** — 取り込みトークンが無効か失効しています。_Project Settings → Telemetry Ingestion Keys_ から新しいものを生成してください。
+- **エクスポーターから HTTP 401 が返る** — 取り込みトークンが無効か失効しています。_Project Settings → テレメトリと APM → 取り込みキー_ から新しいものを生成してください。
 - **`Security` の Windows イベントログでアクセス拒否が返る** — サービスが十分な権限で実行されていません。`LocalSystem`（`sc.exe create` のデフォルト）の下で再作成するか、サービスアカウントに _Manage auditing and security log_（監査とセキュリティログの管理）ユーザー権利を付与してください。
 - **`journald` レシーバーが起動に失敗する** — `journalctl` がコレクターの `PATH` 上にあること、および `/var/log/journal` が存在することを確認してください（存在しない場合は `sudo systemd-tmpfiles --create --prefix /var/log/journal` を実行）。
 - **`systemd` レシーバーが D-Bus の接続エラーを報告する** — コレクターがシステムバスに到達できていません。`/run/dbus/system_bus_socket` が存在し、コレクターのユーザーがそれを開けることを確認してください。そのユーザーで `systemctl list-units` を実行するのが最も手早い確認方法です。root は必要ありません。コンテナ内で実行しているコレクターは、ホストのソケットをバインドマウントしない限りバスにまったく到達できないため、このレシーバーにはネイティブインストールを推奨します。

@@ -38,7 +38,7 @@ Painéis funcionam com o controle de acesso baseado em papéis do seu projeto. A
 
 Existem permissões correspondentes para donos de painel e domínios personalizados, então você pode conceder "gerenciar donos" sem conceder "editar o painel".
 
-Atribua-as aos papéis do projeto em **Configurações do Projeto → Equipes e Papéis**.
+Atribua-as aos papéis do projeto em **Products → Equipes → Permissões**.
 
 ## Acesso para painéis públicos
 

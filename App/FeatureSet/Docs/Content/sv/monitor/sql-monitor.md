@@ -99,7 +99,7 @@ För en fråga av typen `COUNT(*)` är antalet tillgängligt både som **Radanta
 
 För att databaslösenordet aldrig ska lagras i klartext på monitorn skapar du en [monitorhemlighet](/docs/monitor/monitor-secrets) och refererar till den från lösenordsfältet:
 
-1. Gå till OneUptime-instrumentpanelen → Projektinställningar → Monitorhemligheter → Skapa monitorhemlighet.
+1. Gå till OneUptime-instrumentpanelen → Övervakare → Inställningar → Hemligheter → Skapa monitorhemlighet.
 2. Skapa en hemlighet (till exempel `dbPassword`) och ge den här monitorn åtkomst till den.
 3. I monitorns lösenordsfält anger du `{{monitorSecrets.dbPassword}}`.
 

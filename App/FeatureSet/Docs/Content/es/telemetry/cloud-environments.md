@@ -8,7 +8,7 @@ Las máquinas virtuales puras (EC2, Compute Engine, Azure VM) siguen siendo **Ho
 
 ## Requisitos previos
 
-- Un **Token de ingesta de telemetría de OneUptime** — crea uno desde _Configuración del proyecto → Claves de ingesta de telemetría_.
+- Un **Token de ingesta de telemetría de OneUptime** — crea uno desde _Configuración del proyecto → Telemetría y APM → Claves de Ingesta_.
 - Un OpenTelemetry Collector o SDK ejecutándose dentro de tus cargas de trabajo o junto a ellas.
 
 ## Cómo identifica OneUptime un entorno

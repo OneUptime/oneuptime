@@ -4,13 +4,13 @@ Du kan använda hemligheter för att lagra känslig information som du vill anv�
 
 ### Lägga till en hemlighet
 
-För att lägga till en hemlighet, gå till OneUptime-instrumentpanelen -> Projektinställningar -> Monitorhemligheter -> Skapa monitorhemlighet.
+För att lägga till en hemlighet, gå till OneUptime-instrumentpanelen -> Övervakare -> Inställningar -> Hemligheter -> Skapa monitorhemlighet.
 
 ![Create Secret](/docs/static/images/CreateMonitorSecret.png)
 
 Du kan välja vilka monitorer som har åtkomst till hemligheten. I det här fallet lade vi till `ApiKey`-hemligheten och valde monitorer som ska ha åtkomst till den.
 
-**Observera**: Hemligheter krypteras och lagras säkert. Om du tappar bort hemligheten måste du skapa en ny. Du kan inte visa eller uppdatera hemligheten efter att den har sparats.
+**Observera**: Hemligheter krypteras och lagras säkert. Värdet visas aldrig igen efter att det sparats — varken i tabellen, i redigeringsformuläret eller via API:et. Om du tappar bort värdet måste du hämta det från källan och ange det på nytt. Använd knappen **Update Secret Value** på raden för att rotera en hemlighet; du behöver inte ta bort den och skapa den igen.
 
 ### Använda en hemlighet
 

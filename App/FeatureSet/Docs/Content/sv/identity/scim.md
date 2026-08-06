@@ -20,7 +20,7 @@ Projekt-SCIM gör det möjligt för identitetsleverantörer att hantera teammedl
 1. **Navigera till projektinställningar**
 
    - Gå till ditt OneUptime-projekt
-   - Navigera till **Projektinställningar** > **Team** > **SCIM**
+   - Navigera till **Projektinställningar** > **Säkerhet** > **SCIM**
 
 2. **Konfigurera SCIM-inställningar**
 
@@ -69,7 +69,7 @@ Statussida-SCIM gör det möjligt för identitetsleverantörer att hantera prenu
 1. **Navigera till statussideinställningar**
 
    - Gå till din OneUptime-statussida
-   - Navigera till **Statussideinställningar** > **Privata användare** > **SCIM**
+   - Navigera till **Statussideinställningar** > **Säkerhet** > **SCIM**
 
 2. **Konfigurera SCIM-inställningar**
 
@@ -117,7 +117,7 @@ Microsoft Entra ID tillhandahåller enterprise-grade identitetshantering med rob
 #### Steg 1: Hämta SCIM-konfiguration från OneUptime
 
 1. Logga in på din OneUptime-instrumentpanel
-2. Navigera till **Projektinställningar** > **Team** > **SCIM**
+2. Navigera till **Projektinställningar** > **Säkerhet** > **SCIM**
 3. Klicka på **Skapa SCIM-konfiguration**
 4. Ange ett beskrivande namn (t.ex. "Microsoft Entra ID Provisioning")
 5. Konfigurera följande alternativ:
@@ -219,7 +219,7 @@ Okta tillhandahåller flexibel identitetshantering med utmärkt SCIM-stöd. Föl
 #### Steg 1: Hämta SCIM-konfiguration från OneUptime
 
 1. Logga in på din OneUptime-instrumentpanel
-2. Navigera till **Projektinställningar** > **Team** > **SCIM**
+2. Navigera till **Projektinställningar** > **Säkerhet** > **SCIM**
 3. Klicka på **Skapa SCIM-konfiguration**
 4. Ange ett beskrivande namn (t.ex. "Okta Provisioning")
 5. Konfigurera följande alternativ:

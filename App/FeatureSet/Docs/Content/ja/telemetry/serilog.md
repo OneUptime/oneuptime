@@ -2,7 +2,7 @@
 
 ## 概要
 
-[Serilog](https://serilog.net) は .NET 向けで最も人気のある構造化ロギングライブラリです。OneUptime は、公式の [`Serilog.Sinks.OpenTelemetry`](https://github.com/serilog/serilog-sinks-opentelemetry) シンクを使用して、OpenTelemetry Protocol (OTLP) 経由で Serilog ログを取り込みます。設定が完了すると、アプリケーションが Serilog を通じて書き込むすべてのログイベントが OneUptime に送信され、**Telemetry → Logs** で検索可能になります。構造化されたプロパティ、重大度、トレース/スパンの相関も含まれます。
+[Serilog](https://serilog.net) は .NET 向けで最も人気のある構造化ロギングライブラリです。OneUptime は、公式の [`Serilog.Sinks.OpenTelemetry`](https://github.com/serilog/serilog-sinks-opentelemetry) シンクを使用して、OpenTelemetry Protocol (OTLP) 経由で Serilog ログを取り込みます。設定が完了すると、アプリケーションが Serilog を通じて書き込むすべてのログイベントが OneUptime に送信され、**Products → ログ** で検索可能になります。構造化されたプロパティ、重大度、トレース/スパンの相関も含まれます。
 
 インストールが必要な OneUptime 固有のパッケージはありません。シンクは、OneUptime がすべての OpenTelemetry データ向けに公開しているのと同じ OTLP エンドポイントと通信します。これは、コンソールアプリ、ワーカーサービス、ASP.NET Core アプリ、その他 .NET 上で動作するあらゆるものに対して機能します。
 
@@ -12,7 +12,7 @@
 - **OneUptime プロジェクトを作成する** – アカウントを取得したら、OneUptime ダッシュボードからプロジェクトを作成します。サポートが必要な場合は、support@oneuptime.com までお問い合わせください。
 - **Telemetry Ingestion Token を作成する** – ログを認証するためにトークンが必要です。
 
-OneUptime にサインアップしてプロジェクトを作成したら、ナビゲーションバーの「More」をクリックし、「Project Settings」をクリックします。
+OneUptime にサインアップしてプロジェクトを作成したら、ナビゲーションバーの「Products」をクリックし、「Project Settings」をクリックします。
 
 Telemetry Ingestion Key ページで「Create Ingestion Key」をクリックしてトークンを作成します。
 
@@ -197,7 +197,7 @@ Log.Information("Order {OrderId} placed by {CustomerId} for {Amount:C}",
 Log.Warning("Payment gateway slow: {LatencyMs}ms", latencyMs);
 ```
 
-名前付きの各プロパティ（`OrderId`、`CustomerId`、`Amount`、`LatencyMs`）はログ属性として送信されるため、**Telemetry → Logs** エクスプローラーでそれらをフィルタリングおよび検索できます。
+名前付きの各プロパティ（`OrderId`、`CustomerId`、`Amount`、`LatencyMs`）はログ属性として送信されるため、**Products → ログ** エクスプローラーでそれらをフィルタリングおよび検索できます。
 
 ## 例外
 

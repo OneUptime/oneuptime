@@ -38,7 +38,7 @@ Dashboards werken met de role-based access control van je project. De relevante 
 
 Er zijn bijbehorende machtigingen voor dashboard-eigenaren en custom domains, zodat je "eigenaren beheren" kunt toekennen zonder "het dashboard bewerken" toe te kennen.
 
-Wijs deze toe op projectrollen onder **Project Settings → Teams & Roles**.
+Wijs deze toe op projectrollen onder **Products → Teams → Machtigingen**.
 
 ## Toegang voor publieke dashboards
 

@@ -6,7 +6,7 @@ OpenTelemetry 수집 서비스는 이제 네이티브 Syslog 페이로드를 허
 
 ## 전제 조건
 
-- **텔레메트리 수집 토큰** – *프로젝트 설정 → 텔레메트리 수집 키*에서 생성하고 `x-oneuptime-token` 값을 복사합니다.
+- **텔레메트리 수집 토큰** – *프로젝트 설정 → 텔레메트리 및 APM → 수집 키*에서 생성하고 `x-oneuptime-token` 값을 복사합니다.
 - **Syslog 전달자** – HTTP POST 요청을 보낼 수 있는 모든 도구 (예: `curl`, `omhttp`를 통한 `rsyslog` 또는 HTTP 대상 플러그인이 있는 `syslog-ng`).
 - **서비스 이름 (선택 사항)** – 특정 텔레메트리 서비스 아래에 수신 로그를 그룹화하려면 `x-oneuptime-service-name` 헤더를 설정합니다. 생략하면 OneUptime은 syslog `APP-NAME`, 호스트 이름 또는 `Syslog`로 폴백합니다.
 

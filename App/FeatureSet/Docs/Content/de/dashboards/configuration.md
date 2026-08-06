@@ -38,7 +38,7 @@ Dashboards arbeiten mit der rollenbasierten Zugriffskontrolle Ihres Projekts. Di
 
 Es gibt passende Berechtigungen für Dashboard-Eigentümer und eigene Domains, sodass Sie „Eigentümer verwalten" vergeben können, ohne „Dashboard bearbeiten" zu erteilen.
 
-Vergeben Sie diese in den Projektrollen unter **Projekteinstellungen → Teams & Rollen**.
+Vergeben Sie diese in den Projektrollen unter **Products → Teams → Berechtigungen**.
 
 ## Zugriff für öffentliche Dashboards
 

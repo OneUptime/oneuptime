@@ -34,7 +34,7 @@ Você pode encontrar a lista completa de fontes suportadas [aqui](https://docs.f
 - **Passo 3: Criar Projeto do OneUptime** - Depois de ter a conta, você pode criar um projeto no painel do OneUptime. Se precisar de ajuda para criar um projeto ou tiver alguma dúvida, entre em contato conosco em support@oneuptime.com
 - **Passo 4: Criar Token de Ingestão de Telemetria** - Depois de criar uma conta do OneUptime, você pode criar um token de ingestão de telemetria para ingerir logs, métricas e rastreamentos do seu aplicativo.
 
-Depois de se registrar no OneUptime e criar um projeto. Clique em "More" na barra de navegação e clique em "Project Settings".
+Depois de se registrar no OneUptime e criar um projeto. Clique em "Products" na barra de navegação e clique em "Project Settings".
 
 Na página de Chaves de Ingestão de Telemetria, clique em "Create Ingestion Key" para criar um token.
 

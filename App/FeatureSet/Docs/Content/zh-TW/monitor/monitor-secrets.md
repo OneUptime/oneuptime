@@ -4,13 +4,13 @@
 
 ### 新增密鑰
 
-若要新增密鑰，請前往 OneUptime Dashboard -> Project Settings -> Monitor Secrets -> Create Monitor Secret。
+若要新增密鑰，請前往 OneUptime Dashboard -> 監測 -> 設定 -> 密鑰 -> Create Monitor Secret。
 
 ![Create Secret](/docs/static/images/CreateMonitorSecret.png)
 
 您可以選擇哪些監控器可以存取此密鑰。在此範例中，我們新增了 `ApiKey` 密鑰，並選擇了可以存取它的監控器。
 
-**請注意**：密鑰會經過加密並安全地儲存。如果您遺失了密鑰，您將需要建立一個新的密鑰。密鑰儲存後，您無法檢視或更新它。
+**請注意**：密鑰會經過加密並安全地儲存。儲存後密鑰值不會再次顯示——表格中不會，編輯表單中不會，透過 API 也不會。若您遺失該值，必須從原始來源重新取得並再次設定。若要輪換密鑰，請使用該列上的 **Update Secret Value** 按鈕；不需要刪除後重新建立。
 
 ### 使用密鑰
 

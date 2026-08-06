@@ -6,7 +6,7 @@ The OpenTelemetry Ingest service now accepts native Syslog payloads. You can for
 
 ## Prerequisites
 
-- **Telemetry Ingestion Token** – create one from _Project Settings → Telemetry Ingestion Keys_ and copy the `x-oneuptime-token` value.
+- **Telemetry Ingestion Token** – create one from _Project Settings → Telemetry & APM → Ingestion Keys_ and copy the `x-oneuptime-token` value.
 - **Syslog forwarder** – any tool capable of sending HTTP POST requests (for example `curl`, `rsyslog` via `omhttp`, or `syslog-ng` with the HTTP destination plugin).
 - **Service name (optional)** – set the `x-oneuptime-service-name` header to group incoming logs under a specific telemetry service. When omitted, OneUptime falls back to the syslog `APP-NAME`, hostname, or `Syslog`.
 
@@ -182,7 +182,7 @@ OneUptime automatically adds the following attributes to each log entry:
 - `syslog.structured.*` (flattened RFC5424 structured data)
 - `syslog.raw` (original message for traceability)
 
-These attributes become searchable inside the Telemetry → Logs explorer.
+These attributes become searchable inside the **Products → Logs** explorer.
 
 ## Troubleshooting
 

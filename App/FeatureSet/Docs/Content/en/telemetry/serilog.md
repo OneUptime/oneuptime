@@ -2,7 +2,7 @@
 
 ## Overview
 
-[Serilog](https://serilog.net) is the most popular structured logging library for .NET. OneUptime ingests Serilog logs over the OpenTelemetry Protocol (OTLP) using the official [`Serilog.Sinks.OpenTelemetry`](https://github.com/serilog/serilog-sinks-opentelemetry) sink. Once configured, every log event your application writes through Serilog is shipped to OneUptime where it becomes searchable in **Telemetry → Logs**, complete with structured properties, severity, and trace/span correlation.
+[Serilog](https://serilog.net) is the most popular structured logging library for .NET. OneUptime ingests Serilog logs over the OpenTelemetry Protocol (OTLP) using the official [`Serilog.Sinks.OpenTelemetry`](https://github.com/serilog/serilog-sinks-opentelemetry) sink. Once configured, every log event your application writes through Serilog is shipped to OneUptime where it becomes searchable in **Products → Logs**, complete with structured properties, severity, and trace/span correlation.
 
 There is no OneUptime-specific package to install — the sink talks to the same OTLP endpoint that OneUptime exposes for all OpenTelemetry data. This works for console apps, worker services, ASP.NET Core apps, and anything else that runs on .NET.
 
@@ -12,7 +12,7 @@ There is no OneUptime-specific package to install — the sink talks to the same
 - **Create a OneUptime Project** – Once you have an account, create a project from the OneUptime dashboard. If you need help, reach out to us at support@oneuptime.com.
 - **Create a Telemetry Ingestion Token** – You need a token to authenticate your logs.
 
-After you sign up to OneUptime and create a project, click on "More" in the navigation bar and click on "Project Settings".
+After you sign up to OneUptime and create a project, click on "Products" in the navigation bar and click on "Project Settings".
 
 On the Telemetry Ingestion Key page, click on "Create Ingestion Key" to create a token.
 
@@ -197,7 +197,7 @@ Log.Information("Order {OrderId} placed by {CustomerId} for {Amount:C}",
 Log.Warning("Payment gateway slow: {LatencyMs}ms", latencyMs);
 ```
 
-Each named property (`OrderId`, `CustomerId`, `Amount`, `LatencyMs`) is sent as a log attribute, so you can filter and search on them in the **Telemetry → Logs** explorer.
+Each named property (`OrderId`, `CustomerId`, `Amount`, `LatencyMs`) is sent as a log attribute, so you can filter and search on them in the **Products → Logs** explorer.
 
 ## Exceptions
 

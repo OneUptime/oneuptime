@@ -20,7 +20,7 @@ Projekt-SCIM ermöglicht Identity Providern, Teammitglieder innerhalb von OneUpt
 1. **Zu Projekteinstellungen navigieren**
 
    - Gehen Sie zu Ihrem OneUptime-Projekt
-   - Navigieren Sie zu **Projekteinstellungen** > **Team** > **SCIM**
+   - Navigieren Sie zu **Projekteinstellungen** > **Sicherheit** > **SCIM**
 
 2. **SCIM-Einstellungen konfigurieren**
 
@@ -59,7 +59,7 @@ Status-Seiten-SCIM ermöglicht Identity Providern, Abonnenten privater Status-Se
 1. **Zu Status-Seiten-Einstellungen navigieren**
 
    - Gehen Sie zu Ihrer OneUptime Status-Seite
-   - Navigieren Sie zu **Status-Seiten-Einstellungen** > **Private Benutzer** > **SCIM**
+   - Navigieren Sie zu **Status-Seiten-Einstellungen** > **Sicherheit** > **SCIM**
 
 2. **SCIM-Einstellungen konfigurieren**
 
@@ -82,7 +82,7 @@ Status-Seiten-SCIM ermöglicht Identity Providern, Abonnenten privater Status-Se
 #### Schritt 1: SCIM-Konfiguration von OneUptime erhalten
 
 1. Melden Sie sich bei Ihrem OneUptime-Dashboard an
-2. Navigieren Sie zu **Projekteinstellungen** > **Team** > **SCIM**
+2. Navigieren Sie zu **Projekteinstellungen** > **Sicherheit** > **SCIM**
 3. Klicken Sie auf **SCIM-Konfiguration erstellen**
 4. Kopieren Sie die **SCIM-Basis-URL** und das **Bearer-Token**
 

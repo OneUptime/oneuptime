@@ -10,7 +10,7 @@ OneUptime 透過擷取標準的 OpenTelemetry (OTLP) 指標來監控 IoT 裝置�
 
 - 一個能夠將 OTLP/HTTP 傳送到 OneUptime 的裝置、閘道器或 collector
 - 從裝置／閘道器到你的 OneUptime 執行個體之間的網路連通性
-- 一個 **OneUptime 遙測擷取權杖（Telemetry Ingestion Token）** — 從 _Project Settings → Telemetry Ingestion Keys_ 建立一個，並複製 `x-oneuptime-token` 的值
+- 一個 **OneUptime 遙測擷取權杖（Telemetry Ingestion Token）** — 從 _Project Settings → 遙測與 APM → 擷取金鑰_ 建立一個，並複製 `x-oneuptime-token` 的值
 
 ## OneUptime 如何建模 IoT
 
@@ -230,7 +230,7 @@ OneUptime 可辨識下列 `iot_*` 指標名稱。每個資料點都應帶有 `de
 
 ### 匯出器傳回 HTTP 401 / 403
 
-擷取權杖無效、已撤銷或遺漏。請從 _Project Settings → Telemetry Ingestion Keys_ 產生一個新的，並更新 `x-oneuptime-token` 標頭。
+擷取權杖無效、已撤銷或遺漏。請從 _Project Settings → 遙測與 APM → 擷取金鑰_ 產生一個新的，並更新 `x-oneuptime-token` 標頭。
 
 ### 指標未繪製成圖表
 

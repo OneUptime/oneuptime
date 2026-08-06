@@ -44,7 +44,7 @@ Mit dem OneUptime MCP-Server können KI-Assistenten Ihnen helfen bei:
 ## Ihren API-Schlüssel erhalten
 
 1. Melden Sie sich bei Ihrer OneUptime-Instanz an
-2. Navigieren Sie zu **Einstellungen** → **API-Schlüssel**
+2. Navigieren Sie zu **Projekteinstellungen** → **API-Schlüssel**
 3. Klicken Sie auf **API-Schlüssel erstellen**
 4. Geben Sie einen Namen an (z. B. "MCP Server")
 5. Wählen Sie die entsprechenden Berechtigungen für Ihren Anwendungsfall

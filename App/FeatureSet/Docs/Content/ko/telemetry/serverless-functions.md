@@ -8,7 +8,7 @@ OneUptime은 `faas.name` 리소스 속성으로 태그된 OpenTelemetry 데이�
 
 ## 사전 요구 사항
 
-- **OneUptime 텔레메트리 수집 토큰(Telemetry Ingestion Token)** — *Project Settings → Telemetry Ingestion Keys*에서 하나를 생성하고 `x-oneuptime-token` 값을 복사합니다.
+- **OneUptime 텔레메트리 수집 토큰(Telemetry Ingestion Token)** — *Project Settings → 텔레메트리 및 APM → 수집 키*에서 하나를 생성하고 `x-oneuptime-token` 값을 복사합니다.
 - 함수의 언어에 맞는 OpenTelemetry SDK(또는 자동 계측 레이어).
 
 ## OneUptime이 함수를 식별하는 방법

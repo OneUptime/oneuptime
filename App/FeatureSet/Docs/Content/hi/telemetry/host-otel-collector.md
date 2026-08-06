@@ -16,7 +16,7 @@
 
 ## पूर्वापेक्षाएँ
 
-- एक **OneUptime Telemetry Ingestion Token** — _Project Settings → Telemetry Ingestion Keys_ से एक बनाएँ और `x-oneuptime-token` मान कॉपी करें।
+- एक **OneUptime Telemetry Ingestion Token** — _Project Settings → टेलीमेट्री और APM → इंजेशन कुंजियाँ_ से एक बनाएँ और `x-oneuptime-token` मान कॉपी करें।
 - **OpenTelemetry Collector Contrib** वितरण (`otelcol-contrib`)। डिफ़ॉल्ट `otelcol` बिल्ड में `windowseventlogreceiver`, `journaldreceiver`, या `hostmetrics` अतिरिक्त जैसे receivers **शामिल नहीं** हैं — सुनिश्चित करें कि आप `contrib` वितरण का उपयोग करें। alpha `windowsservicereceiver` जो Windows **Services** टैब को शक्ति प्रदान करता है, **v0.155.0** से आगे `otelcol-contrib` में बंडल किया गया है, और alpha `systemdreceiver` जो Linux **Systemd Units** टैब को शक्ति प्रदान करता है, **v0.143.0** से आगे, इसलिए एक वर्तमान रिलीज़ इंस्टॉल करें; नीचे "Windows Services (मेट्रिक्स)" और "Linux Services (systemd units)" देखें।
 - collector को एक सेवा के रूप में इंस्टॉल करने और (जहाँ लागू हो) विशेषाधिकार प्राप्त log स्रोतों को पढ़ने के लिए होस्ट पर Root / Administrator।
 
@@ -602,7 +602,7 @@ sc.exe query "otelcol-contrib"
 1. होस्ट पर कुछ सिग्नल उत्पन्न करें:
    - **Linux / macOS:** `logger "hello from oneuptime"` (syslog / journald में लिखता है)।
    - **Windows:** एक elevated प्रॉम्प्ट से `eventcreate /T INFORMATION /ID 999 /L APPLICATION /SO OneUptimeTest /D "hello from oneuptime"`।
-2. OneUptime डैशबोर्ड में, **Telemetry → Services** खोलें और आपके द्वारा कॉन्फ़िगर किया गया `service.name` चुनें।
+2. OneUptime डैशबोर्ड में, **Products → सेवाएं** खोलें और आपके द्वारा कॉन्फ़िगर किया गया `service.name` चुनें।
 3. **Metrics** खोलें — होस्ट मेट्रिक्स (CPU, memory, filesystem, आदि) एक मिनट के भीतर दिखाई देने चाहिए।
 4. **Logs** खोलें — आपके फ़ाइल logs / journald प्रविष्टियाँ / Windows Event Logs स्ट्रीमिंग होनी चाहिए। उपयोगी खोजने योग्य विशेषताओं में `log.file.name`, `systemd.unit`, `winlog.channel`, `winlog.event_id`, और `winlog.provider.name` शामिल हैं।
 5. यदि आपने `systemd` (Linux) या `windows_service` (Windows) receiver सक्षम किया है, तो **Infrastructure → Hosts** खोलें, होस्ट चुनें, और **Systemd Units** / **Services** टैब देखें — प्रत्येक scrape किया गया unit अपनी वर्तमान स्थिति के साथ सूचीबद्ध होना चाहिए।
@@ -879,7 +879,7 @@ OpenTelemetry Collector मानक `HTTPS_PROXY` / `HTTP_PROXY` / `NO_PROXY` �
   - **Linux / macOS:** `journalctl -u otelcol-contrib -f` (Linux) या `tail -f /var/log/otelcol-contrib.err.log` (macOS)।
   - **Windows:** स्रोत `otelcol-contrib` के लिए _Event Viewer → Windows Logs → Application_ के अंतर्गत देखें।
   - पुष्टि करें कि होस्ट `https://oneuptime.com/otlp` (या आपका स्व-होस्टेड endpoint) तक पहुँच सकता है: उसी मशीन से `curl -v https://oneuptime.com/otlp`।
-- **exporter से HTTP 401** — ingestion token अमान्य या निरस्त है। _Project Settings → Telemetry Ingestion Keys_ से एक नया बनाएँ।
+- **exporter से HTTP 401** — ingestion token अमान्य या निरस्त है। _Project Settings → टेलीमेट्री और APM → इंजेशन कुंजियाँ_ से एक नया बनाएँ।
 - **`Security` Windows Event Log access denied लौटाता है** — सेवा पर्याप्त विशेषाधिकारों के साथ नहीं चल रही है। इसे `LocalSystem` के अंतर्गत फिर से बनाएँ (`sc.exe create` के साथ डिफ़ॉल्ट) या सेवा खाते को _Manage auditing and security log_ उपयोगकर्ता अधिकार प्रदान करें।
 - **`journald` receiver शुरू होने में विफल रहता है** — सुनिश्चित करें कि `journalctl` collector के `PATH` पर है और कि `/var/log/journal` मौजूद है (यदि नहीं तो `sudo systemd-tmpfiles --create --prefix /var/log/journal` चलाएँ)।
 - **`systemd` receiver एक D-Bus कनेक्शन त्रुटि रिपोर्ट करता है** — collector system bus तक नहीं पहुँच सकता। पुष्टि करें कि `/run/dbus/system_bus_socket` मौजूद है और कि collector का उपयोगकर्ता उसे खोल सकता है; उस उपयोगकर्ता के रूप में `systemctl list-units` चलाना सबसे तेज़ जाँच है। root आवश्यक नहीं है। किसी container के भीतर चलने वाले collector को कोई bus दिखता ही नहीं जब तक आप होस्ट के socket को bind-mount न करें, इसलिए इस receiver के लिए native इंस्टॉल को प्राथमिकता दें।

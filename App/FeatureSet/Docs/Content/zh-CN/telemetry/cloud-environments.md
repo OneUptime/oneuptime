@@ -8,7 +8,7 @@ OneUptime 将托管的云计算资源归类为 **云环境（Cloud Environments�
 
 ## 前提条件
 
-- 一个 **OneUptime 遥测摄取令牌（Telemetry Ingestion Token）**—— 从 _项目设置 → 遥测摄取密钥（Project Settings → Telemetry Ingestion Keys）_ 创建。
+- 一个 **OneUptime 遥测摄取令牌（Telemetry Ingestion Token）**—— 从 _项目设置 → 遥测与 APM → 摄取密钥_ 创建。
 - 一个在你的工作负载中或随其一起运行的 OpenTelemetry Collector 或 SDK。
 
 ## OneUptime 如何识别环境

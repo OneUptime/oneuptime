@@ -108,7 +108,7 @@ microsoftTeamsApp:
 
 ### Stap 7: Teams App-manifest uploaden
 
-1. Ga naar project **Instellingen** > **Integraties** > **Microsoft Teams**
+1. Ga naar project **Instellingen** > **Werkruimte** > **Microsoft Teams**
 2. Download het Teams app-manifest van daar
 3. Ga naar Microsoft Teams, klik op "Apps" in de zijbalk
 4. Klik onderaan op "Uw apps beheren"

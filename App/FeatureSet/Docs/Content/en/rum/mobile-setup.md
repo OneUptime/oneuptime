@@ -25,7 +25,7 @@ Every OpenTelemetry mobile SDK reads the standard environment / configuration ke
 | Metrics | `POST https://oneuptime.com/otlp/v1/metrics` |
 | Logs | `POST https://oneuptime.com/otlp/v1/logs` |
 
-Create the token in _Project Settings → Telemetry Ingestion Keys_. Self-hosted: replace the host with your own.
+Create the token in _Project Settings → Telemetry & APM → Ingestion Keys_. Self-hosted: replace the host with your own.
 
 Because a shipped mobile binary cannot have its token rotated quickly, treat it the same way you treat the browser token — it is an ingestion-only credential and it is effectively public.
 

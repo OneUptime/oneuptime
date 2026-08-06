@@ -16,7 +16,7 @@ SSO integration निम्नलिखित लाभ प्रदान क�
 1. **Project Settings पर जाएं**
 
    - अपने OneUptime project पर जाएं
-   - **Project Settings** > **Authentication** > **SSO** पर जाएं
+   - **Project Settings** > **सुरक्षा** > **SSO** पर जाएं
 
 2. **SSO Configuration बनाएं**
 
@@ -46,7 +46,7 @@ Keycloak एक लोकप्रिय open-source identity और access mana
 ### चरण 1: OneUptime SSO Configure करें
 
 1. अपने OneUptime dashboard में लॉग इन करें
-2. **Project Settings** > **Authentication** > **SSO** पर जाएं
+2. **Project Settings** > **सुरक्षा** > **SSO** पर जाएं
 3. **Create SSO** पर क्लिक करें और निम्नलिखित भरें:
    - **Name**: एक वर्णनात्मक नाम (जैसे `my-project-oneuptime`)
    - **Sign On URL**: `https://<your-keycloak-domain>/auth/realms/<your-realm>/protocol/saml`
@@ -113,7 +113,7 @@ Microsoft Entra ID, Microsoft की cloud-based identity और access manageme
 ### चरण 1: OneUptime SSO Configure करें
 
 1. अपने OneUptime dashboard में लॉग इन करें
-2. **Project Settings** > **Authentication** > **SSO** पर जाएं
+2. **Project Settings** > **सुरक्षा** > **SSO** पर जाएं
 3. **Create SSO** पर क्लिक करें और निम्नलिखित भरें:
    - **Name**: एक वर्णनात्मक नाम (जैसे `Azure AD SAML`)
    - **Sign On URL**: आपको यह Entra ID से [चरण 3](#चरण-3-entra-id-में-saml-sso-configure-करें) में मिलेगा
@@ -198,7 +198,7 @@ Okta एक व्यापक रूप से उपयोग किया ज
 ### चरण 1: OneUptime SSO Configure करें
 
 1. अपने OneUptime dashboard में लॉग इन करें
-2. **Project Settings** > **Authentication** > **SSO** पर जाएं
+2. **Project Settings** > **सुरक्षा** > **SSO** पर जाएं
 3. **Create SSO** पर क्लिक करें और निम्नलिखित भरें:
    - **Name**: एक वर्णनात्मक नाम (जैसे `Okta SAML`)
    - **Sign On URL**: आपको यह Okta से [चरण 3](#चरण-3-okta-saml-metadata-oneuptime-में-copy-करें) में मिलेगा

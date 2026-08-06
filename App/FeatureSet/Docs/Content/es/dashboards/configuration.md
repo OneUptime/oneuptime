@@ -38,7 +38,7 @@ Los paneles funcionan con el control de acceso basado en roles de tu proyecto. L
 
 Hay permisos equivalentes para propietarios de paneles y dominios personalizados, para que puedas otorgar "gestionar propietarios" sin otorgar "editar el panel".
 
-Asígnalos en los roles del proyecto en **Configuración del Proyecto → Equipos y Roles**.
+Asígnalos en los roles del proyecto en **Products → Equipos → Permisos**.
 
 ## Acceso para paneles públicos
 

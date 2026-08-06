@@ -16,7 +16,7 @@ La integración SSO proporciona los siguientes beneficios:
 1. **Navegar a la configuración del proyecto**
 
    - Ve a tu proyecto de OneUptime
-   - Navega a **Configuración del proyecto** > **Autenticación** > **SSO**
+   - Navega a **Configuración del proyecto** > **Seguridad** > **SSO**
 
 2. **Crear la configuración SSO**
 
@@ -46,7 +46,7 @@ Keycloak es una popular solución de código abierto para gestión de identidade
 ### Paso 1: Configurar SSO en OneUptime
 
 1. Inicia sesión en tu panel de OneUptime
-2. Navega a **Configuración del proyecto** > **Autenticación** > **SSO**
+2. Navega a **Configuración del proyecto** > **Seguridad** > **SSO**
 3. Haz clic en **Crear SSO** y completa lo siguiente:
    - **Nombre**: Un nombre descriptivo (por ejemplo, `my-project-oneuptime`)
    - **URL de inicio de sesión**: `https://<your-keycloak-domain>/auth/realms/<your-realm>/protocol/saml`
@@ -113,7 +113,7 @@ Microsoft Entra ID es el servicio de gestión de identidades y accesos en la nub
 ### Paso 1: Configurar SSO en OneUptime
 
 1. Inicia sesión en tu panel de OneUptime
-2. Navega a **Configuración del proyecto** > **Autenticación** > **SSO**
+2. Navega a **Configuración del proyecto** > **Seguridad** > **SSO**
 3. Haz clic en **Crear SSO** y completa lo siguiente:
    - **Nombre**: Un nombre descriptivo (por ejemplo, `Azure AD SAML`)
    - **URL de inicio de sesión**: La obtendrás de Entra ID en el [Paso 3](#paso-3-configurar-sso-saml-en-entra-id)
@@ -198,7 +198,7 @@ Okta es una plataforma de identidad ampliamente utilizada que proporciona sólid
 ### Paso 1: Configurar SSO en OneUptime
 
 1. Inicia sesión en tu panel de OneUptime
-2. Navega a **Configuración del proyecto** > **Autenticación** > **SSO**
+2. Navega a **Configuración del proyecto** > **Seguridad** > **SSO**
 3. Haz clic en **Crear SSO** y completa lo siguiente:
    - **Nombre**: Un nombre descriptivo (por ejemplo, `Okta SAML`)
    - **URL de inicio de sesión**: La obtendrás de Okta en el [Paso 3](#paso-3-copiar-los-metadatos-saml-de-okta-a-oneuptime)

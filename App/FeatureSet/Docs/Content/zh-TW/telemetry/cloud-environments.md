@@ -8,7 +8,7 @@ OneUptime 將受管理的雲端運算歸類為**雲端環境**——AWS ECS / Fa
 
 ## 先決條件
 
-- 一組 **OneUptime 遙測擷取權杖（Telemetry Ingestion Token）**——可從 _Project Settings → Telemetry Ingestion Keys_ 建立。
+- 一組 **OneUptime 遙測擷取權杖（Telemetry Ingestion Token）**——可從 _Project Settings → 遙測與 APM → 擷取金鑰_ 建立。
 - 在你的工作負載中或與其並行執行的 OpenTelemetry Collector 或 SDK。
 
 ## OneUptime 如何識別環境

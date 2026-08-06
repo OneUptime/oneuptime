@@ -16,7 +16,7 @@ A integração SSO oferece os seguintes benefícios:
 1. **Navegar para as Configurações do Projeto**
 
    - Vá para o seu projeto do OneUptime
-   - Navegue para **Project Settings** > **Authentication** > **SSO**
+   - Navegue para **Project Settings** > **Segurança** > **SSO**
 
 2. **Criar Configuração SSO**
 
@@ -46,7 +46,7 @@ O Keycloak é uma solução popular de código aberto para gerenciamento de iden
 ### Passo 1: Configurar o SSO do OneUptime
 
 1. Faça login no seu painel do OneUptime
-2. Navegue para **Project Settings** > **Authentication** > **SSO**
+2. Navegue para **Project Settings** > **Segurança** > **SSO**
 3. Clique em **Create SSO** e preencha o seguinte:
    - **Nome**: Um nome descritivo (ex.: `my-project-oneuptime`)
    - **Sign On URL**: `https://<seu-dominio-keycloak>/auth/realms/<seu-realm>/protocol/saml`
@@ -113,7 +113,7 @@ O Microsoft Entra ID é o serviço de gerenciamento de identidade e acesso basea
 ### Passo 1: Configurar o SSO do OneUptime
 
 1. Faça login no seu painel do OneUptime
-2. Navegue para **Project Settings** > **Authentication** > **SSO**
+2. Navegue para **Project Settings** > **Segurança** > **SSO**
 3. Clique em **Create SSO** e preencha o seguinte:
    - **Nome**: Um nome descritivo (ex.: `Azure AD SAML`)
    - **Sign On URL**: Você obterá isso do Entra ID no [Passo 3](#passo-3-configurar-o-sso-saml-no-entra-id)
@@ -198,7 +198,7 @@ O Okta é uma plataforma de identidade amplamente utilizada que fornece capacida
 ### Passo 1: Configurar o SSO do OneUptime
 
 1. Faça login no seu painel do OneUptime
-2. Navegue para **Project Settings** > **Authentication** > **SSO**
+2. Navegue para **Project Settings** > **Segurança** > **SSO**
 3. Clique em **Create SSO** e preencha o seguinte:
    - **Nome**: Um nome descritivo (ex.: `Okta SAML`)
    - **Sign On URL**: Você obterá isso do Okta no [Passo 3](#passo-3-copiar-metadados-saml-do-okta-para-o-oneuptime)

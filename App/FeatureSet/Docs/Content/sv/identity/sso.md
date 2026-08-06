@@ -16,7 +16,7 @@ SSO-integration ger följande fördelar:
 1. **Navigera till projektinställningar**
 
    - Gå till ditt OneUptime-projekt
-   - Navigera till **Projektinställningar** > **Autentisering** > **SSO**
+   - Navigera till **Projektinställningar** > **Säkerhet** > **SSO**
 
 2. **Skapa SSO-konfiguration**
 
@@ -46,7 +46,7 @@ Keycloak är en populär open source-lösning för identitets- och åtkomsthante
 ### Steg 1: Konfigurera OneUptime SSO
 
 1. Logga in på din OneUptime-instrumentpanel
-2. Navigera till **Projektinställningar** > **Autentisering** > **SSO**
+2. Navigera till **Projektinställningar** > **Säkerhet** > **SSO**
 3. Klicka på **Skapa SSO** och fyll i följande:
    - **Namn**: Ett beskrivande namn (t.ex. `my-project-oneuptime`)
    - **Inloggnings-URL**: `https://<your-keycloak-domain>/auth/realms/<your-realm>/protocol/saml`
@@ -113,7 +113,7 @@ Microsoft Entra ID är Microsofts molnbaserade identitets- och åtkomsthantering
 ### Steg 1: Konfigurera OneUptime SSO
 
 1. Logga in på din OneUptime-instrumentpanel
-2. Navigera till **Projektinställningar** > **Autentisering** > **SSO**
+2. Navigera till **Projektinställningar** > **Säkerhet** > **SSO**
 3. Klicka på **Skapa SSO** och fyll i följande:
    - **Namn**: Ett beskrivande namn (t.ex. `Azure AD SAML`)
    - **Inloggnings-URL**: Du hämtar detta från Entra ID i [Steg 3](#steg-3-konfigurera-saml-sso-i-entra-id)
@@ -198,7 +198,7 @@ Okta är en vanligt använd identitetsplattform som tillhandahåller robusta SAM
 ### Steg 1: Konfigurera OneUptime SSO
 
 1. Logga in på din OneUptime-instrumentpanel
-2. Navigera till **Projektinställningar** > **Autentisering** > **SSO**
+2. Navigera till **Projektinställningar** > **Säkerhet** > **SSO**
 3. Klicka på **Skapa SSO** och fyll i följande:
    - **Namn**: Ett beskrivande namn (t.ex. `Okta SAML`)
    - **Inloggnings-URL**: Du hämtar detta från Okta i [Steg 3](#steg-3-kopiera-okta-saml-metadata-till-oneuptime)

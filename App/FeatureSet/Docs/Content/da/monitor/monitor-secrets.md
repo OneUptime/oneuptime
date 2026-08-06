@@ -4,13 +4,13 @@ Du kan bruge hemmeligheder til at gemme følsomme oplysninger, som du vil bruge 
 
 ### Tilføjelse af en hemmelighed
 
-For at tilføje en hemmelighed skal du gå til OneUptime Dashboard -> Projektindstillinger -> Monitor Secrets -> Opret Monitor Secret.
+For at tilføje en hemmelighed skal du gå til OneUptime Dashboard -> Overvågninger -> Indstillinger -> Hemmeligheder -> Opret Monitor Secret.
 
 ![Opret hemmelighed](/docs/static/images/CreateMonitorSecret.png)
 
 Du kan vælge, hvilke monitorer der har adgang til hemmeligheden. I dette tilfælde har vi tilføjet `ApiKey`-hemmelighed og valgt monitorer til at have adgang til den.
 
-**Bemærk venligst**: Hemmeligheder er krypteret og opbevares sikkert. Hvis du mister hemmeligheden, skal du oprette en ny hemmelighed. Du kan ikke se eller opdatere hemmeligheden, efter den er gemt.
+**Bemærk venligst**: Hemmeligheder er krypteret og opbevares sikkert. Værdien vises aldrig igen, efter den er gemt — hverken i tabellen, i redigeringsformularen eller via API'et. Mister du værdien, skal du hente den fra kilden igen og indtaste den på ny. Brug knappen **Update Secret Value** på rækken for at rotere en hemmelighed; du behøver ikke slette og oprette den igen.
 
 ### Brug af en hemmelighed
 

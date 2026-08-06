@@ -4,13 +4,13 @@ Você pode usar segredos para armazenar informações sensíveis que deseja usar
 
 ### Adicionando um segredo
 
-Para adicionar um segredo, vá para Painel do OneUptime -> Configurações do Projeto -> Segredos de Monitor -> Criar Segredo de Monitor.
+Para adicionar um segredo, vá para Painel do OneUptime -> Monitores -> Configurações -> Segredos -> Criar Segredo de Monitor.
 
 ![Create Secret](/docs/static/images/CreateMonitorSecret.png)
 
 Você pode selecionar quais monitores têm acesso ao segredo. Neste caso, adicionamos o segredo `ApiKey` e selecionamos monitores para ter acesso a ele.
 
-**Observe**: Os segredos são criptografados e armazenados com segurança. Se você perder o segredo, precisará criar um novo. Você não pode visualizar ou atualizar o segredo após salvo.
+**Observe**: Os segredos são criptografados e armazenados com segurança. O valor nunca é exibido novamente depois de salvo — nem na tabela, nem no formulário de edição, nem pela API. Se você perder o valor, precisará obtê-lo na origem e defini-lo de novo. Para rotacionar um segredo, use o botão **Update Secret Value** na linha dele; não é preciso excluir e recriar.
 
 ### Usando um segredo
 

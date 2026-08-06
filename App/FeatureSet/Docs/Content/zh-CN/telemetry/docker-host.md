@@ -10,7 +10,7 @@ OneUptime Docker Agent 是一个预构建的容器镜像，内置了经过调优
 
 - Docker Engine 20.10+
 - 可访问主机上的 `/var/run/docker.sock`
-- 一个 **OneUptime 遥测摄取令牌（Telemetry Ingestion Token）** —— 从 _Project Settings → Telemetry Ingestion Keys_ 创建一个并复制其值
+- 一个 **OneUptime 遥测摄取令牌（Telemetry Ingestion Token）** —— 从 _Project Settings → 遥测与 APM → 摄取密钥_ 创建一个并复制其值
 
 ## 快速开始（一条命令）
 
@@ -67,7 +67,7 @@ docker compose up -d
 | 变量                      | 是否必需 | 说明                                                                                            |
 | ------------------------- | -------- | ----------------------------------------------------------------------------------------------- |
 | `ONEUPTIME_URL`           | 是       | 你的 OneUptime 实例 URL（例如 `https://oneuptime.com` 或你自托管的主机地址）                    |
-| `ONEUPTIME_SERVICE_TOKEN` | 是       | 来自 _Project Settings → Telemetry Ingestion Keys_ 的遥测摄取令牌                               |
+| `ONEUPTIME_SERVICE_TOKEN` | 是       | 来自 _Project Settings → 遥测与 APM → 摄取密钥_ 的遥测摄取令牌                               |
 | `DOCKER_HOST_NAME`        | 否       | 该主机的友好名称。默认值为 `docker-host`。请为每台主机设置一个稳定的值（例如 `prod-docker-01`） |
 
 ## 验证安装

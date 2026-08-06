@@ -8,7 +8,7 @@ Esto funciona para AWS Lambda, Google Cloud Functions, Azure Functions, Cloudfla
 
 ## Requisitos previos
 
-- Un **Token de Ingesta de Telemetría de OneUptime**: crea uno desde _Configuración del Proyecto → Claves de Ingesta de Telemetría_ y copia el valor `x-oneuptime-token`.
+- Un **Token de Ingesta de Telemetría de OneUptime**: crea uno desde _Configuración del Proyecto → Telemetría y APM → Claves de Ingesta_ y copia el valor `x-oneuptime-token`.
 - El SDK de OpenTelemetry (o una capa de instrumentación automática) para el lenguaje de tu función.
 
 ## Cómo OneUptime identifica una función

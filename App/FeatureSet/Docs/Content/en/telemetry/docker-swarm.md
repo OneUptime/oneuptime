@@ -12,7 +12,7 @@ The cluster auto-registers in OneUptime on first telemetry, keyed by the cluster
 ## Prerequisites
 
 - Docker Engine 20.10+ with the Docker Compose v2 plugin, **on a swarm manager node** (the inventory poller calls manager-only API endpoints).
-- A **OneUptime Telemetry Ingestion Key** — create one from _Project Settings → Telemetry Ingestion Keys_ and copy the value.
+- A **OneUptime Telemetry Ingestion Key** — create one from _Project Settings → Telemetry & APM → Ingestion Keys_ and copy the value.
 
 ### Where to run the agent
 

@@ -8,7 +8,7 @@ OneUptime은 관리형 클라우드 컴퓨트를 **클라우드 환경**으로 �
 
 ## 사전 요구 사항
 
-- **OneUptime 텔레메트리 수집 토큰** — *Project Settings → Telemetry Ingestion Keys*에서 생성합니다.
+- **OneUptime 텔레메트리 수집 토큰** — *Project Settings → 텔레메트리 및 APM → 수집 키*에서 생성합니다.
 - 워크로드 내부 또는 워크로드와 함께 실행되는 OpenTelemetry Collector 또는 SDK.
 
 ## OneUptime이 환경을 식별하는 방법

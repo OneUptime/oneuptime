@@ -16,7 +16,7 @@ SSO 集成提供以下优势：
 1. **导航至项目设置**
 
    - 进入您的 OneUptime 项目
-   - 导航至 **项目设置** > **认证** > **SSO**
+   - 导航至 **项目设置** > **安全** > **SSO**
 
 2. **创建 SSO 配置**
 
@@ -46,7 +46,7 @@ Keycloak 是一款流行的开源身份和访问管理解决方案。按照以�
 ### 第一步：配置 OneUptime SSO
 
 1. 登录您的 OneUptime 控制台
-2. 导航至 **项目设置** > **认证** > **SSO**
+2. 导航至 **项目设置** > **安全** > **SSO**
 3. 点击 **创建 SSO** 并填写以下内容：
    - **名称**：描述性名称（例如 `my-project-oneuptime`）
    - **登录 URL**：`https://<your-keycloak-domain>/auth/realms/<your-realm>/protocol/saml`
@@ -113,7 +113,7 @@ Microsoft Entra ID 是 Microsoft 基于云的身份和访问管理服务。按�
 ### 第一步：配置 OneUptime SSO
 
 1. 登录您的 OneUptime 控制台
-2. 导航至 **项目设置** > **认证** > **SSO**
+2. 导航至 **项目设置** > **安全** > **SSO**
 3. 点击 **创建 SSO** 并填写以下内容：
    - **名称**：描述性名称（例如 `Azure AD SAML`）
    - **登录 URL**：您将在[第三步](#第三步在-entra-id-中配置-saml-sso)中从 Entra ID 获取
@@ -198,7 +198,7 @@ Okta 是一款广泛使用的身份平台，提供强大的 SAML SSO 能力。�
 ### 第一步：配置 OneUptime SSO
 
 1. 登录您的 OneUptime 控制台
-2. 导航至 **项目设置** > **认证** > **SSO**
+2. 导航至 **项目设置** > **安全** > **SSO**
 3. 点击 **创建 SSO** 并填写以下内容：
    - **名称**：描述性名称（例如 `Okta SAML`）
    - **登录 URL**：您将在[第三步](#第三步将-okta-saml-元数据复制到-oneuptime)中从 Okta 获取

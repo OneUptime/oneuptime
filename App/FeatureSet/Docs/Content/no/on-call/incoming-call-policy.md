@@ -85,7 +85,7 @@ Siden du selvhoster OneUptime, må du konfigurere din egen Twilio-konto. Dette g
 ## Trinn 2: Konfigurer anrop/SMS-konfigurasjon i OneUptime
 
 1. Logg inn på OneUptime-dashbordet ditt
-2. Gå til **Project Settings** > **Call & SMS** > **Custom Call/SMS Config**
+2. Gå til **Project Settings** > **Varsler** > **Varselinnstillinger**
 3. Klikk **Create Custom Call/SMS Config**
 4. Fyll inn følgende felt:
    - **Name**: Et vennlig navn (f.eks. "Production Twilio Config")

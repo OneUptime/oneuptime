@@ -37,7 +37,7 @@ API 元件的簡化版本，適用於「發送後不理會」的情境。將 JSO
 - **Channel** — 頻道名稱。機器人必須已經在該頻道中。
 - **Message** — 要傳送的文字。支援 Slack 格式設定。
 
-請先在 **Project Settings → Workspace Connections → Slack** 下將 Slack 連接到您的專案。請參閱 [Slack 工作區連線](/docs/workspace-connections/slack)。
+請先在 **Project Settings → 工作區 → Slack** 下將 Slack 連接到您的專案。請參閱 [Slack 工作區連線](/docs/workspace-connections/slack)。
 
 ## Microsoft Teams
 

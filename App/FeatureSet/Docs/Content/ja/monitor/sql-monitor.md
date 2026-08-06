@@ -99,7 +99,7 @@ WHERE status = 'CANCELLED'
 
 データベースのパスワードがモニター上にプレーンテキストで保存されないように、[モニターシークレット](/docs/monitor/monitor-secrets) を作成し、パスワードフィールドからそれを参照します。
 
-1. OneUptime Dashboard → プロジェクト設定 → モニターシークレット → モニターシークレットの作成 に移動します。
+1. OneUptime Dashboard → モニター → 設定 → シークレット → モニターシークレットの作成 に移動します。
 2. シークレット（たとえば `dbPassword`）を作成し、このモニターにそのシークレットへのアクセスを許可します。
 3. モニターのパスワードフィールドに `{{monitorSecrets.dbPassword}}` と入力します。
 

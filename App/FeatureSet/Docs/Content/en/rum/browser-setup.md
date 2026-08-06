@@ -4,7 +4,7 @@ Instrument a web application with the OpenTelemetry browser SDK so it reports to
 
 ## Prerequisites
 
-A **Telemetry Ingestion Token**. In the dashboard, go to _Project Settings → Telemetry Ingestion Keys_ and click **Create Ingestion Key**.
+A **Telemetry Ingestion Token**. In the dashboard, go to _Project Settings → Telemetry & APM → Ingestion Keys_ and click **Create Ingestion Key**.
 
 ![Telemetry Ingestion Keys](/docs/static/images/TelemetryIngestionKeys.png)
 

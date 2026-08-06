@@ -16,7 +16,7 @@ Du kan køre **OpenTelemetry Collector** som en tjeneste direkte på dine Linux-
 
 ## Forudsætninger
 
-- Et **OneUptime Telemetry Ingestion Token** — opret et fra _Project Settings → Telemetry Ingestion Keys_ og kopiér værdien `x-oneuptime-token`.
+- Et **OneUptime Telemetry Ingestion Token** — opret et fra _Project Settings → Telemetri og APM → Indtagelsesnøgler_ og kopiér værdien `x-oneuptime-token`.
 - Distributionen **OpenTelemetry Collector Contrib** (`otelcol-contrib`). Standard-`otelcol`-buildet inkluderer **ikke** receivere som `windowseventlogreceiver`, `journaldreceiver` eller `hostmetrics`-ekstraer — sørg for at bruge `contrib`-distributionen. Alpha-receiveren `windowsservicereceiver`, som driver Windows-fanen **Services**, medleveres i `otelcol-contrib` fra **v0.155.0** og frem, og alpha-receiveren `systemdreceiver`, som driver Linux-fanen **Systemd Units**, fra **v0.143.0** og frem, så installér en aktuel udgivelse; se "Windows Services (metrikker)" og "Linux Services (systemd-units)" nedenfor.
 - Root / Administrator på hosten for at installere collectoren som en tjeneste og (hvor det er relevant) læse privilegerede logkilder.
 
@@ -602,7 +602,7 @@ Tjenesten kører som standard under `LocalSystem`, som har de privilegier, der k
 1. Generér noget signal på hosten:
    - **Linux / macOS:** `logger "hello from oneuptime"` (skriver til syslog / journald).
    - **Windows:** `eventcreate /T INFORMATION /ID 999 /L APPLICATION /SO OneUptimeTest /D "hello from oneuptime"` fra en forhøjet prompt.
-2. I OneUptime-dashboardet skal du åbne **Telemetry → Services** og vælge den `service.name`, du konfigurerede.
+2. I OneUptime-dashboardet skal du åbne **Products → Tjenester** og vælge den `service.name`, du konfigurerede.
 3. Åbn **Metrics** — host-metrikker (CPU, hukommelse, filsystem osv.) bør vises inden for et minut.
 4. Åbn **Logs** — dine filbaserede logs / journald-poster / Windows Event Logs bør streame ind. Nyttige søgbare attributter inkluderer `log.file.name`, `systemd.unit`, `winlog.channel`, `winlog.event_id` og `winlog.provider.name`.
 5. Hvis du aktiverede `systemd`- (Linux) eller `windows_service`-receiveren (Windows), skal du åbne **Infrastructure → Hosts**, vælge hosten og tjekke fanen **Systemd Units** / **Services** — hver scrapet unit bør være listet med sin aktuelle tilstand.
@@ -879,7 +879,7 @@ OpenTelemetry Collector respekterer standard-miljøvariablerne `HTTPS_PROXY` / `
   - **Linux / macOS:** `journalctl -u otelcol-contrib -f` (Linux) eller `tail -f /var/log/otelcol-contrib.err.log` (macOS).
   - **Windows:** kig under _Event Viewer → Windows Logs → Application_ efter kilden `otelcol-contrib`.
   - Bekræft, at hosten kan nå `https://oneuptime.com/otlp` (eller dit selvhostede endpoint): `curl -v https://oneuptime.com/otlp` fra den samme maskine.
-- **HTTP 401 fra eksportøren** — ingestion-tokenet er ugyldigt eller tilbagekaldt. Generér et nyt fra _Project Settings → Telemetry Ingestion Keys_.
+- **HTTP 401 fra eksportøren** — ingestion-tokenet er ugyldigt eller tilbagekaldt. Generér et nyt fra _Project Settings → Telemetri og APM → Indtagelsesnøgler_.
 - **`Security` Windows Event Log returnerer access denied** — tjenesten kører ikke med tilstrækkelige privilegier. Genopret den under `LocalSystem` (standarden med `sc.exe create`), eller tildel tjenestekontoen brugerrettigheden _Manage auditing and security log_.
 - **`journald`-receiveren undlader at starte** — sørg for, at `journalctl` er på collectorens `PATH`, og at `/var/log/journal` eksisterer (kør `sudo systemd-tmpfiles --create --prefix /var/log/journal`, hvis ikke).
 - **`systemd`-receiveren rapporterer en D-Bus-forbindelsesfejl** — collectoren kan ikke nå systembussen. Bekræft, at `/run/dbus/system_bus_socket` findes, og at collectorens bruger kan åbne den; at køre `systemctl list-units` som den bruger er den hurtigste kontrol. Root er ikke påkrævet. En collector, der kører inde i en container, ser slet ingen bus, medmindre du bind-mounter hostens socket, så foretræk en native installation til denne receiver.

@@ -4,7 +4,7 @@ Runbooks são procedimentos de resposta reutilizáveis — listas ordenadas de p
 
 ## Visão rápida
 
-- **Funcionalidade de primeiro nível** no painel do OneUptime, em **Análise & Automação → Runbooks**.
+- **Funcionalidade de primeiro nível** no painel do OneUptime, em **Products → Runbooks**.
 - **Cinco tipos de passo**: checklist manual, JavaScript (em sandbox) e Bash (ambos rodam em um [Agente de Runbook](/docs/runbooks/agents) dentro da sua própria infraestrutura), requisição HTTP e AI (analisa o contexto do incidente e dos passos com o provedor de LLM do seu projeto).
 - **Três formas de disparo**: regras que casam com incidentes/alertas/manutenção programada, ou o botão manual "Executar runbook" em qualquer evento.
 - **Semântica de snapshot**: quando um runbook começa, seus passos são copiados na execução. Editar o modelo depois nunca muda uma execução em andamento.
@@ -58,7 +58,7 @@ Você pode misturar os cinco num único runbook — a força dos runbooks está 
 
 | Página                                                                               | O que você faz lá                                                                                |
 | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
-| **Análise & Automação → Runbooks**                                                   | Navegar, criar e editar modelos de runbook.                                                      |
+| **Products → Runbooks**                                                   | Navegar, criar e editar modelos de runbook.                                                      |
 | **Aba Passos de um runbook**                                                         | Escrever e reordenar a lista de passos.                                                          |
 | **Aba Execuções de um runbook**                                                      | Ver cada execução desse runbook com filtros de status.                                           |
 | **Botão "Executar agora" de um runbook**                                             | Disparar uma execução ad hoc sem vínculo com nenhum evento.                                      |

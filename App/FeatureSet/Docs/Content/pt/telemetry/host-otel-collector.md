@@ -16,7 +16,7 @@ Você pode executar o **OpenTelemetry Collector** como um serviço diretamente e
 
 ## Pré-requisitos
 
-- Um **OneUptime Telemetry Ingestion Token** — crie um em _Project Settings → Telemetry Ingestion Keys_ e copie o valor do `x-oneuptime-token`.
+- Um **OneUptime Telemetry Ingestion Token** — crie um em _Project Settings → Telemetria e APM → Chaves de ingestão_ e copie o valor do `x-oneuptime-token`.
 - A distribuição **OpenTelemetry Collector Contrib** (`otelcol-contrib`). O build padrão `otelcol` **não** inclui receivers como `windowseventlogreceiver`, `journaldreceiver` ou extras de `hostmetrics` — certifique-se de usar a distribuição `contrib`. O `windowsservicereceiver` alpha que alimenta a aba **Services** do Windows está incluído no `otelcol-contrib` a partir da **v0.155.0**, e o `systemdreceiver` alpha que alimenta a aba **Systemd Units** do Linux a partir da **v0.143.0**, então instale uma release atual; veja "Windows Services (métricas)" e "Linux Services (units do systemd)" abaixo.
 - Root / Administrador no host para instalar o coletor como serviço e (quando aplicável) ler fontes de log privilegiadas.
 
@@ -602,7 +602,7 @@ O serviço roda sob `LocalSystem` por padrão, que tem os privilégios necessár
 1. Gere algum sinal no host:
    - **Linux / macOS:** `logger "hello from oneuptime"` (escreve no syslog / journald).
    - **Windows:** `eventcreate /T INFORMATION /ID 999 /L APPLICATION /SO OneUptimeTest /D "hello from oneuptime"` a partir de um prompt elevado.
-2. No dashboard do OneUptime, abra **Telemetry → Services** e escolha o `service.name` que você configurou.
+2. No dashboard do OneUptime, abra **Products → Serviços** e escolha o `service.name` que você configurou.
 3. Abra **Metrics** — as métricas de host (CPU, memória, sistema de arquivos, etc.) devem aparecer em até um minuto.
 4. Abra **Logs** — seus logs de arquivo / entradas do journald / Windows Event Logs devem estar chegando. Atributos pesquisáveis úteis incluem `log.file.name`, `systemd.unit`, `winlog.channel`, `winlog.event_id` e `winlog.provider.name`.
 5. Se você habilitou o receiver `systemd` (Linux) ou `windows_service` (Windows), abra **Infrastructure → Hosts**, escolha o host e confira a aba **Systemd Units** / **Services** — cada unit coletada deve aparecer com o seu estado atual.
@@ -879,7 +879,7 @@ O OpenTelemetry Collector respeita as variáveis de ambiente padrão `HTTPS_PROX
   - **Linux / macOS:** `journalctl -u otelcol-contrib -f` (Linux) ou `tail -f /var/log/otelcol-contrib.err.log` (macOS).
   - **Windows:** procure em _Event Viewer → Windows Logs → Application_ pela origem `otelcol-contrib`.
   - Confirme que o host consegue alcançar `https://oneuptime.com/otlp` (ou o seu endpoint auto-hospedado): `curl -v https://oneuptime.com/otlp` a partir da mesma máquina.
-- **HTTP 401 do exporter** — o token de ingestão é inválido ou foi revogado. Gere um novo em _Project Settings → Telemetry Ingestion Keys_.
+- **HTTP 401 do exporter** — o token de ingestão é inválido ou foi revogado. Gere um novo em _Project Settings → Telemetria e APM → Chaves de ingestão_.
 - **O canal `Security` do Windows Event Log retorna acesso negado** — o serviço não está rodando com privilégios suficientes. Recrie-o sob `LocalSystem` (o padrão com `sc.exe create`) ou conceda à conta de serviço o direito de usuário _Manage auditing and security log_.
 - **O receiver `journald` falha ao iniciar** — certifique-se de que `journalctl` esteja no `PATH` do coletor e de que `/var/log/journal` exista (execute `sudo systemd-tmpfiles --create --prefix /var/log/journal` se não existir).
 - **O receiver `systemd` reporta um erro de conexão D-Bus** — o coletor não consegue alcançar o barramento do sistema. Confirme que `/run/dbus/system_bus_socket` existe e que o usuário do coletor consegue abri-lo; rodar `systemctl list-units` com esse usuário é a verificação mais rápida. Root não é necessário. Um coletor rodando dentro de um contêiner não enxerga barramento algum, a menos que você monte em bind o socket do host, então prefira uma instalação nativa para este receiver.

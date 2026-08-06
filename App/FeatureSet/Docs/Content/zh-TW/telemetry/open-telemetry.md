@@ -4,7 +4,7 @@
 
 建立 OneUptime 帳號後，您可以建立遙測擷取權杖，以從您的應用程式擷取記錄、指標與追蹤。
 
-在您註冊 OneUptime 並建立專案之後，請點選導覽列中的「More」，然後點選「Project Settings」。
+在您註冊 OneUptime 並建立專案之後，請點選導覽列中的「Products」，然後點選「Project Settings」。
 
 在 Telemetry Ingestion Key 頁面上，點選「Create Ingestion Key」以建立權杖。
 

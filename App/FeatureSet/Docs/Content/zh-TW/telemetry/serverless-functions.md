@@ -8,7 +8,7 @@
 
 ## 先決條件
 
-- 一個 **OneUptime 遙測擷取權杖（Telemetry Ingestion Token）**——從 _Project Settings → Telemetry Ingestion Keys_ 建立一個，並複製 `x-oneuptime-token` 的值。
+- 一個 **OneUptime 遙測擷取權杖（Telemetry Ingestion Token）**——從 _Project Settings → 遙測與 APM → 擷取金鑰_ 建立一個，並複製 `x-oneuptime-token` 的值。
 - 對應您函式語言的 OpenTelemetry SDK（或自動檢測層）。
 
 ## OneUptime 如何識別函式

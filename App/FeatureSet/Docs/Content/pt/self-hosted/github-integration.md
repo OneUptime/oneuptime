@@ -137,7 +137,7 @@ gitHubApp:
 ### Passo 10: Conectar Repositórios no OneUptime
 
 1. Faça login no seu painel do OneUptime
-2. Navegue para **More** > **Code Repositories**
+2. Navegue para **Products** > **Code Repositories**
 3. Clique em **"Create Repository"** ou use o fluxo de instalação do GitHub App
 4. Se redirecionado do GitHub, o ID de instalação será capturado automaticamente
 5. Selecione os repositórios que deseja conectar da lista

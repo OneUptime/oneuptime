@@ -85,7 +85,7 @@ Incoming Call Policy feature इस तरह काम करता है:
 ## चरण 2: OneUptime में Call/SMS Config Configure करें
 
 1. अपने OneUptime Dashboard में log in करें
-2. **Project Settings** > **Call & SMS** > **Custom Call/SMS Config** पर जाएं
+2. **Project Settings** > **सूचनाएं** > **सूचना सेटिंग्स** पर जाएं
 3. **Create Custom Call/SMS Config** पर क्लिक करें
 4. निम्नलिखित fields भरें:
    - **Name**: एक friendly name (जैसे "Production Twilio Config")

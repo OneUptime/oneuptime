@@ -99,7 +99,7 @@ For en spørring av typen `COUNT(*)` er antallet tilgjengelig både som **Row Co
 
 For at databasepassordet aldri skal lagres i klartekst på monitoren, opprett en [Monitor Secret](/docs/monitor/monitor-secrets) og referer til den fra Password-feltet:
 
-1. Gå til OneUptime Dashboard → Project Settings → Monitor Secrets → Create Monitor Secret.
+1. Gå til OneUptime Dashboard → Overvåkere → Innstillinger → Hemmeligheter → Create Monitor Secret.
 2. Opprett en hemmelighet (for eksempel `dbPassword`) og gi denne monitoren tilgang til den.
 3. I Password-feltet på monitoren, skriv inn `{{monitorSecrets.dbPassword}}`.
 

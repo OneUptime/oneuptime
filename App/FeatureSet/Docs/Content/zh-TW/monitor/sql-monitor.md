@@ -99,7 +99,7 @@ WHERE status = 'CANCELLED'
 
 為了讓資料庫密碼絕不會以純文字儲存在監控器上，請建立一個[監控器密鑰](/docs/monitor/monitor-secrets)，並從 Password 欄位引用它：
 
-1. 前往 OneUptime Dashboard → Project Settings → Monitor Secrets → Create Monitor Secret。
+1. 前往 OneUptime Dashboard → 監測 → 設定 → 密鑰 → Create Monitor Secret。
 2. 建立一個密鑰（例如 `dbPassword`），並授予此監控器存取它的權限。
 3. 在監控器的 Password 欄位中，輸入 `{{monitorSecrets.dbPassword}}`。
 

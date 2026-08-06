@@ -44,7 +44,7 @@ Met de OneUptime MCP Server kunnen AI-assistenten u helpen bij:
 ## Uw API-sleutel ophalen
 
 1. Log in op uw OneUptime-instantie
-2. Navigeer naar **Instellingen** → **API-sleutels**
+2. Navigeer naar **Projectinstellingen** → **API-sleutels**
 3. Klik op **API-sleutel aanmaken**
 4. Geef een naam op (bijv. "MCP Server")
 5. Selecteer de juiste machtigingen voor uw gebruiksscenario
