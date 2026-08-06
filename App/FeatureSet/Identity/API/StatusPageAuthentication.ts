@@ -629,8 +629,12 @@ router.post(
         { value: user.password, label: "Password" },
       ]);
 
-      await user.password?.hashValue(EncryptionSecret);
-
+      /*
+       * The new password is handed to the update below unhashed on purpose:
+       * the write path mints this user a fresh salt and hashes with it. Only
+       * the reset token — a high-entropy value the server generated, which
+       * has to be searchable by hash — is hashed here, unsalted.
+       */
       const hashedToken: string = await HashedString.hashValue(
         (user.resetPasswordToken as string) || "",
         EncryptionSecret,
@@ -825,18 +829,24 @@ router.post(
         );
       }
 
-      await user.password?.hashValue(EncryptionSecret);
+      /*
+       * The password predicate that used to sit in this query is gone: with a
+       * per-user salt the expected hash cannot be computed until this user's
+       * own salt has been read, so the account is located by its identity
+       * (email + status page) and the password is checked afterwards.
+       */
+      const submittedPassword: string = user.password!.toString();
 
       const alreadySavedUser: StatusPagePrivateUser | null =
         await StatusPagePrivateUserService.findOneBy({
           query: {
             email: user.email!,
-            password: user.password!,
             statusPageId: user.statusPageId!,
           },
           select: {
             _id: true,
             password: true,
+            passwordSalt: true,
             email: true,
             statusPageId: true,
             projectId: true,
@@ -846,7 +856,15 @@ router.post(
           },
         });
 
-      if (alreadySavedUser) {
+      const isPasswordValid: boolean = alreadySavedUser
+        ? await StatusPagePrivateUserService.verifyHashedColumnValue({
+            item: alreadySavedUser,
+            columnName: "password",
+            plainValue: submittedPassword,
+          })
+        : false;
+
+      if (alreadySavedUser && isPasswordValid) {
         const { accessToken } = await finalizeStatusPageLogin({
           req,
           res,
@@ -867,8 +885,10 @@ router.post(
             },
           });
 
-        if (!sanitizedUser && (alreadySavedUser as any).password) {
+        if (!sanitizedUser) {
+          // Never echo the credential columns selected for verification back.
           delete (alreadySavedUser as any).password;
+          delete (alreadySavedUser as any).passwordSalt;
         }
 
         return Response.sendEntityResponse(

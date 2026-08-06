@@ -16,6 +16,17 @@ export interface TableColumnMetadata {
   unique?: boolean;
   computed?: boolean;
   hashed?: boolean;
+  /*
+   * Name of the sibling column that holds this column's per-record salt.
+   *
+   * When set, the write path generates a fresh random salt on every write of
+   * this column, stores it in the named column, and mixes it into the hash.
+   * Two records with the same plaintext then hash to different values, so one
+   * precomputed table (or one cracked value) buys an attacker nothing
+   * anywhere else. The salt column must be nullable — rows written before the
+   * salt existed have none and verify against the legacy unsalted scheme.
+   */
+  hashSaltColumn?: string;
   encrypted?: boolean;
   manyToOneRelationColumn?: string;
   type: TableColumnType;

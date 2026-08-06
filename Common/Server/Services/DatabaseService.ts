@@ -321,6 +321,42 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     return data;
   }
 
+  /*
+   * Hash one HashedString column in place, minting a fresh per-record salt
+   * into the sibling column the model declares via `hashSaltColumn`.
+   *
+   * The salt is written onto the SAME payload as the hash, so the pair can
+   * never be persisted out of step with each other. Columns that declare no
+   * salt column (session refresh tokens, for instance — already
+   * high-entropy random values, where a salt buys nothing) keep hashing
+   * exactly as they did before.
+   *
+   * The salt column grants nobody create or update rights, so it has to get
+   * past the column-permission check some other way on each path. On update
+   * it does so by timing — sanitizeCreateOrUpdate runs after the check. On
+   * create the check runs after `hash()`, so the salt column relies on being
+   * declared `computed: true`, which checkDataColumnPermissions skips on
+   * create. A salt column that forgets that flag breaks every non-root
+   * create of a row carrying a password.
+   */
+  private async hashColumnValue(data: {
+    payload: TBaseModel | PartialEntity<TBaseModel>;
+    columnName: string;
+    columnValue: HashedString;
+  }): Promise<void> {
+    const saltColumnName: string | undefined =
+      this.model.getTableColumnMetadata(data.columnName)?.hashSaltColumn;
+
+    let salt: string | null = null;
+
+    if (saltColumnName) {
+      salt = HashedString.generateSalt();
+      (data.payload as any)[saltColumnName] = salt;
+    }
+
+    await data.columnValue.hashValue(EncryptionSecret, salt);
+  }
+
   protected async hash(data: TBaseModel): Promise<TBaseModel> {
     const columns: Columns = data.getHashedColumns();
 
@@ -329,11 +365,98 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         data.hasValue(key) &&
         !(data.getValue(key) as HashedString).isValueHashed()
       ) {
-        await ((data as any)[key] as HashedString).hashValue(EncryptionSecret);
+        await this.hashColumnValue({
+          payload: data,
+          columnName: key,
+          columnValue: (data as any)[key] as HashedString,
+        });
       }
     }
 
     return data;
+  }
+
+  /*
+   * Check a plaintext secret (a password) against a hashed column on a row
+   * that has already been read out of the database, and upgrade the stored
+   * hash in place when it predates per-user salts.
+   *
+   * The row must have been selected with BOTH the hashed column and its salt
+   * column. Without the salt this cannot tell "this row has no salt" from
+   * "the salt was not selected", and would fall back to the legacy scheme
+   * and reject a perfectly good password.
+   *
+   * Why the caller cannot just query by the hash any more: with a per-user
+   * salt the hash is not computable until the row's own salt is known, so
+   * `WHERE password = <hash>` has nothing to bind. Read the row by its
+   * identity (email, id) and verify here.
+   *
+   * The upgrade is deliberately hook-free and leaves updatedAt alone: the
+   * user did not change their password, the server changed how it stores
+   * it. Firing the password-change hooks would revoke every session and mail
+   * the user about a change they did not make. A failed upgrade is logged
+   * and swallowed — a correct password must not be rejected because a
+   * bookkeeping write lost a race.
+   */
+  @CaptureSpan()
+  public async verifyHashedColumnValue(data: {
+    item: TBaseModel;
+    columnName: string;
+    plainValue: string;
+  }): Promise<boolean> {
+    const storedHash: string | undefined = (data.item as any)[
+      data.columnName
+    ]?.toString();
+
+    if (!storedHash || !data.plainValue) {
+      return false;
+    }
+
+    const saltColumnName: string | undefined =
+      this.model.getTableColumnMetadata(data.columnName)?.hashSaltColumn;
+
+    const salt: string | null = saltColumnName
+      ? ((data.item as any)[saltColumnName] as string | undefined) || null
+      : null;
+
+    const isValid: boolean = await HashedString.verifyValue({
+      plainValue: data.plainValue,
+      hashedValue: storedHash,
+      encryptionSecret: EncryptionSecret,
+      salt: salt,
+    });
+
+    if (!isValid) {
+      return false;
+    }
+
+    if (saltColumnName && !salt && data.item.id) {
+      try {
+        const newSalt: string = HashedString.generateSalt();
+
+        await this.updateColumnsByIdWithoutHooks({
+          id: data.item.id,
+          data: {
+            [data.columnName]: await HashedString.hashValue(
+              data.plainValue,
+              EncryptionSecret,
+              newSalt,
+            ),
+            [saltColumnName]: newSalt,
+          } as unknown as PartialEntity<TBaseModel>,
+          skipUpdateDateColumn: true,
+        });
+      } catch (err) {
+        /*
+         * `data.item` is deliberately left holding the legacy hash and no
+         * salt, so it stays an internally consistent pair whether or not the
+         * write above landed.
+         */
+        logger.error(err);
+      }
+    }
+
+    return true;
   }
 
   protected async decrypt(data: TBaseModel): Promise<TBaseModel> {
@@ -552,6 +675,26 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       if (this.model.isHashedStringColumn(columnName)) {
         const columnValue: JSONValue = (data as any)[columnName];
 
+        /*
+         * A salted column's hash and its salt are only ever correct as a
+         * pair. A write that supplies the column as a bare string skips the
+         * hashing branch below, leaving the row's existing salt attached to
+         * a value it was not computed from — which locks the account out
+         * silently, at the next login, far from whatever wrote it. Refuse
+         * instead. Callers pass a HashedString; the write path hashes it.
+         */
+        if (
+          data &&
+          columnName &&
+          columnValue &&
+          !(columnValue instanceof HashedString) &&
+          this.model.getTableColumnMetadata(columnName)?.hashSaltColumn
+        ) {
+          throw new BadDataException(
+            `${columnName} is a salted column and must be supplied as a HashedString, not a pre-hashed value.`,
+          );
+        }
+
         if (
           data &&
           columnName &&
@@ -559,7 +702,23 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           columnValue instanceof HashedString
         ) {
           if (!columnValue.isValueHashed()) {
-            await columnValue.hashValue(EncryptionSecret);
+            /*
+             * The update path never runs `hash()`, so this is where an
+             * updated password gets both hashed and salted. The salt lands
+             * on `data`, which the caller turns into the SET list, so the
+             * new hash and the salt it was computed with are written by the
+             * same statement.
+             *
+             * An update matching several rows writes the same salt to all of
+             * them, which is correct: they are all being set to the same
+             * value by one statement. Per-row salts come from per-row
+             * writes.
+             */
+            await this.hashColumnValue({
+              payload: data,
+              columnName: columnName,
+              columnValue: columnValue,
+            });
           }
 
           (data as any)[columnName] = columnValue.toString();

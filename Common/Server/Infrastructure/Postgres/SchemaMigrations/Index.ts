@@ -499,6 +499,7 @@ import { AddStatusPageReportPeriod1785930709405 } from "./1785930709405-AddStatu
 import { AddIncidentInvestigationGating1785790000000 } from "./1785790000000-AddIncidentInvestigationGating";
 import { AddRemediationVerification1785768089408 } from "./1785768089408-AddRemediationVerification";
 import { AddStatusPageMonitorRule1786005052769 } from "./1786005052769-AddStatusPageMonitorRule";
+import { AddPerUserPasswordSalt1786018109307 } from "./1786018109307-AddPerUserPasswordSalt";
 
 export default [
   InitialMigration,
@@ -1002,4 +1003,5 @@ export default [
   WidenInventoryResourceNameColumns1785930000000,
   AddStatusPageReportPeriod1785930709405,
   AddStatusPageMonitorRule1786005052769,
+  AddPerUserPasswordSalt1786018109307,
 ];

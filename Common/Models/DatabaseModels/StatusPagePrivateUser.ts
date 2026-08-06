@@ -319,6 +319,7 @@ export default class StatusPagePrivateUser extends BaseModel {
   @TableColumn({
     title: "Password",
     hashed: true,
+    hashSaltColumn: "passwordSalt",
     type: TableColumnType.HashedString,
   })
   @Column({
@@ -329,6 +330,35 @@ export default class StatusPagePrivateUser extends BaseModel {
     transformer: HashedString.getDatabaseTransformer(),
   })
   public password?: HashedString = undefined;
+
+  /*
+   * Per-user salt mixed into `password`'s hash. Written by the database
+   * write path on every password write — never by an API caller, hence the
+   * empty access control and `computed: true`.
+   *
+   * Nullable on purpose: rows that predate per-user salts have none, and are
+   * verified against the legacy unsalted scheme until the next successful
+   * login re-hashes them with a fresh salt.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    title: "Password Salt",
+    description: "Per-user random salt mixed into this user's password hash.",
+    computed: true,
+    type: TableColumnType.ShortText,
+    hideColumnInDocumentation: true,
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    unique: false,
+    nullable: true,
+  })
+  public passwordSalt?: string = undefined;
 
   @ColumnAccessControl({
     create: [],

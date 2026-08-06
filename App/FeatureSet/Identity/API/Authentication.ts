@@ -594,8 +594,12 @@ router.post(
         { value: user.password, label: "Password" },
       ]);
 
-      await user.password?.hashValue(EncryptionSecret);
-
+      /*
+       * The new password is handed to the update below unhashed on purpose:
+       * the write path mints this user a fresh salt and hashes with it. Only
+       * the reset token — a high-entropy value the server generated, which
+       * has to be searchable by hash — is hashed here, unsalted.
+       */
       const hashedToken: string = await HashedString.hashValue(
         (user.resetPasswordToken as string) || "",
         EncryptionSecret,
@@ -1007,13 +1011,19 @@ const login: LoginFunction = async (options: {
       );
     }
 
-    await user.password?.hashValue(EncryptionSecret);
+    /*
+     * The submitted password stays plaintext until the account is on hand:
+     * its hash cannot be computed without that account's own salt, so there
+     * is nothing to pre-hash and nothing to query by.
+     */
+    const submittedPassword: string = user.password.toString();
 
     const alreadySavedUser: User | null = await UserService.findOneBy({
       query: { email: user.email! },
       select: {
         _id: true,
         password: true,
+        passwordSalt: true,
         name: true,
         email: true,
         isMasterAdmin: true,
@@ -1050,7 +1060,19 @@ const login: LoginFunction = async (options: {
         );
       }
 
-      if (alreadySavedUser.password.toString() !== user.password!.toString()) {
+      /*
+       * Verified once, against this user's own salt, and reused for the
+       * final gate below. Re-verifying there would repeat the legacy-hash
+       * upgrade write on every login of an un-upgraded account.
+       */
+      const isPasswordValid: boolean =
+        await UserService.verifyHashedColumnValue({
+          item: alreadySavedUser,
+          columnName: "password",
+          plainValue: submittedPassword,
+        });
+
+      if (!isPasswordValid) {
         return Response.sendErrorResponse(
           req,
           res,
@@ -1085,6 +1107,10 @@ const login: LoginFunction = async (options: {
             new BadDataException(errorMessage),
           );
         }
+
+        // See the note on the successful-login response below.
+        delete (alreadySavedUser as any).password;
+        delete (alreadySavedUser as any).passwordSalt;
 
         return Response.sendEntityResponse(req, res, alreadySavedUser, User, {
           miscData: {
@@ -1148,7 +1174,7 @@ const login: LoginFunction = async (options: {
       } // Refresh Permissions for this user here.
       await AccessTokenService.refreshUserAllPermissions(alreadySavedUser.id!);
 
-      if (alreadySavedUser.password.toString() === user.password!.toString()) {
+      if (isPasswordValid) {
         logger.info(
           "User logged in: " + alreadySavedUser.email?.toString(),
           getLogAttributesFromRequest(req as RequestLike),
@@ -1160,6 +1186,14 @@ const login: LoginFunction = async (options: {
           user: alreadySavedUser,
           isGlobalLogin: true,
         });
+
+        /*
+         * sendEntityResponse serializes whatever is set on the model, with no
+         * regard for read permissions, so the credential columns selected for
+         * verification would otherwise be echoed back in the login response.
+         */
+        delete (alreadySavedUser as any).password;
+        delete (alreadySavedUser as any).passwordSalt;
 
         return Response.sendEntityResponse(req, res, alreadySavedUser, User, {
           miscData: {

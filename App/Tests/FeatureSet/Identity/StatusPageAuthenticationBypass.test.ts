@@ -13,6 +13,8 @@ import {
   NextFunction,
 } from "Common/Server/Utils/Express";
 import ObjectID from "Common/Types/ObjectID";
+import HashedString from "Common/Types/HashedString";
+import { EncryptionSecret } from "Common/Server/EnvironmentConfig";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 
 const mockRouter: MockIdentityRouter = createMockIdentityRouter();
@@ -69,6 +71,30 @@ const privateUserFindOneById: jest.Mock = jest.fn();
 const privateUserUpdateOneBy: jest.Mock = jest.fn();
 const privateUserUpdateOneById: jest.Mock = jest.fn();
 
+/*
+ * Since per-user salts the password is checked here rather than in the query, so the stub has
+ * to actually verify -- otherwise the positive control below would pass on any password and
+ * stop being a control.
+ */
+type VerifyInput = {
+  item: { password?: { toString: () => string }; passwordSalt?: string };
+  columnName: string;
+  plainValue: string;
+};
+
+const privateUserVerifyHashedColumnValue: jest.Mock = jest.fn(
+  async (...args: Array<unknown>): Promise<boolean> => {
+    const input: VerifyInput = args[0] as VerifyInput;
+
+    return await HashedString.verifyValue({
+      plainValue: input.plainValue,
+      hashedValue: input.item.password?.toString() || "",
+      encryptionSecret: EncryptionSecret,
+      salt: input.item.passwordSalt || null,
+    });
+  },
+);
+
 jest.mock("Common/Server/Services/StatusPagePrivateUserService", () => {
   return {
     __esModule: true,
@@ -84,6 +110,9 @@ jest.mock("Common/Server/Services/StatusPagePrivateUserService", () => {
       },
       updateOneById: (...args: Array<unknown>): unknown => {
         return privateUserUpdateOneById(...args);
+      },
+      verifyHashedColumnValue: (...args: Array<unknown>): unknown => {
+        return privateUserVerifyHashedColumnValue(...args);
       },
     },
   };
@@ -421,7 +450,7 @@ describe("Status page /login - private user login bypass", () => {
     expect(result.nextError).toBeInstanceOf(BadDataException);
   });
 
-  it("queries with all three predicates present on the happy path", async () => {
+  it("queries with both identity predicates present on the happy path", async () => {
     privateUserFindOneBy.mockResolvedValue(null);
 
     await invoke("/login", {
@@ -438,17 +467,24 @@ describe("Status page /login - private user login bypass", () => {
       privateUserFindOneBy.mock.calls[0]![0] as Record<string, any>
     )["query"] as Record<string, any>;
 
-    // None of the three may be undefined -- an undefined one is silently dropped by TypeORM.
+    /*
+     * Neither may be undefined -- an undefined one is silently dropped by TypeORM, and dropping
+     * `email` here would degrade the query to "newest private user of this status page".
+     */
     expect(query["email"]).toBeDefined();
-    expect(query["password"]).toBeDefined();
     expect(query["statusPageId"]).toBeDefined();
 
     expect(query["email"].toString()).toBe("real-user@example.com");
     expect(query["statusPageId"].toString()).toBe(PUBLIC_STATUS_PAGE_ID);
 
-    // The password predicate must be the hash, never the plaintext the caller sent.
-    expect(query["password"].toString()).not.toBe("correct-password");
-    expect(query["password"].toString().length).toBeGreaterThan(0);
+    /*
+     * The password is deliberately NOT a predicate any more. Since per-user salts, the expected
+     * hash cannot be computed before the row (and its salt) has been read, so the account is
+     * located by identity and the password is verified afterwards -- see
+     * StatusPagePerUserPasswordSalt.test.ts, which covers that check. The credential guard above
+     * still runs first, so an absent password never reaches this query either way.
+     */
+    expect(query["password"]).toBeUndefined();
   });
 
   /*
@@ -457,12 +493,27 @@ describe("Status page /login - private user login bypass", () => {
    * vacuously. This proves the same probes do fire when a login genuinely succeeds.
    */
   it("issues a session when the credentials match a real user", async () => {
+    const salt: string = HashedString.generateSalt();
+
     privateUserFindOneBy.mockResolvedValue({
       id: new ObjectID("private-user-id"),
       _id: "private-user-id",
       email: "real-user@example.com",
       statusPageId: new ObjectID(PUBLIC_STATUS_PAGE_ID),
       projectId: new ObjectID("project-id"),
+      /*
+       * The password now has to actually match: the handler verifies it in code rather than
+       * leaning on the query to have matched it.
+       */
+      password: new HashedString(
+        await HashedString.hashValue(
+          "correct-password",
+          EncryptionSecret,
+          salt,
+        ),
+        true,
+      ),
+      passwordSalt: salt,
     });
     privateUserFindOneById.mockResolvedValue(null);
 
