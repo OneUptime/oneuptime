@@ -31,11 +31,18 @@ import URL from "Common/Types/API/URL";
  * `/${appName}` and `/` with App/Index.ts setting appName = "api" — so
  * /api/status/* reaches the App's own deep checks in both deployment modes.
  *
- * Robustness: the deploy's readiness gate (Tests/Scripts/status-check.sh) blocks
- * on /status/ready, whose check verifies Postgres, ClickHouse AND Redis with
- * retries, so by the time this suite runs every backing store the three deep
- * endpoints probe is already confirmed reachable. A failure here is therefore a
- * real routing/contract regression, not a warm-up race.
+ * Robustness: App/Index.ts awaits PostgresAppInstance.connect(), Redis.connect()
+ * and ClickhouseAppInstance.connect() BEFORE it calls App.init(), so the App
+ * serves no route at all until all three backing stores are up. The deploy's
+ * readiness gate (Tests/Scripts/status-check.sh) blocks on /dashboard, which
+ * nginx proxies to App unconditionally, so by the time this suite runs the App
+ * is answering and therefore every store it probes is already connected. A
+ * failure here is a real routing/contract regression, not a warm-up race.
+ *
+ * (Note the gate's own "App (Ready Check)" row probes the ROOT /status/ready,
+ * which is Home in a billing deployment — and Home's check disables the
+ * Postgres/ClickHouse/Redis probes — so that row is not what makes this suite
+ * safe.)
  */
 
 const DEEP_HEALTH_ROUTES: Array<string> = [
