@@ -33,7 +33,7 @@ import {
 } from "./InstanceHealthNotification";
 
 const JOB_NAME: string = "InstanceHealth:EvaluatePostgresHealth";
-const ADVISORY_LOCK_LABEL: string = "oneuptime:instance-health:postgres";
+const LEASE_KEY: string = "oneuptime:instance-health:postgres";
 const HEALTH_ROUTE: string = "/health/postgres";
 const HEALTH_PAGE_BUTTON_TEXT: string = "View PostgreSQL Health";
 const CRITICAL_STORAGE_PERCENT: number = 90;
@@ -581,7 +581,7 @@ export async function runEvaluatePostgresHealthWithLock(): Promise<void> {
 
   await runWithInstanceHealthLease({
     jobName: JOB_NAME,
-    lockLabel: ADVISORY_LOCK_LABEL,
+    lockLabel: LEASE_KEY,
     leaseTtlInSeconds: INSTANCE_HEALTH_LEASE_TTL_IN_SECONDS,
     run: evaluatePostgresHealth,
   });

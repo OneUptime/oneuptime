@@ -46,8 +46,7 @@ import { EVERY_FIVE_MINUTE } from "Common/Utils/CronTime";
 import RunCron from "../../Utils/Cron";
 
 const JOB_NAME: string = "InstanceHealth:EvaluateClickhouseCapacity";
-const ADVISORY_LOCK_LABEL: string =
-  "oneuptime:instance-health:clickhouse-capacity";
+const LEASE_KEY: string = "oneuptime:instance-health:clickhouse-capacity";
 const MAX_PARTITIONS_PER_BATCH: number = 25;
 const RECLAIM_CHECK_DELAY_IN_MINUTES: number = 10;
 const RETRY_COOLDOWN_IN_MINUTES: number = 60;
@@ -1173,7 +1172,7 @@ export async function runEvaluateClickhouseCapacityWithLock(): Promise<void> {
    */
   await runWithInstanceHealthLease({
     jobName: JOB_NAME,
-    lockLabel: ADVISORY_LOCK_LABEL,
+    lockLabel: LEASE_KEY,
     leaseTtlInSeconds: INSTANCE_HEALTH_LEASE_TTL_IN_SECONDS,
     run: evaluateClickhouseCapacity,
   });

@@ -30,7 +30,7 @@ import {
 } from "./InstanceHealthNotification";
 
 const JOB_NAME: string = "InstanceHealth:EvaluateRedisHealth";
-const ADVISORY_LOCK_LABEL: string = "oneuptime:instance-health:redis";
+const LEASE_KEY: string = "oneuptime:instance-health:redis";
 const HEALTH_ROUTE: string = "/health/redis";
 const HEALTH_PAGE_BUTTON_TEXT: string = "View Redis Health";
 // Above this the memory ceiling is close enough that eviction is imminent.
@@ -491,7 +491,7 @@ export async function runEvaluateRedisHealthWithLock(): Promise<void> {
 
   await runWithInstanceHealthLease({
     jobName: JOB_NAME,
-    lockLabel: ADVISORY_LOCK_LABEL,
+    lockLabel: LEASE_KEY,
     leaseTtlInSeconds: INSTANCE_HEALTH_LEASE_TTL_IN_SECONDS,
     run: evaluateRedisHealth,
   });
