@@ -4,23 +4,23 @@ Cette page couvre les paramètres et les limites de sécurité qu'il convient de
 
 ## Activer ou désactiver un workflow
 
-Chaque workflow possède un interrupteur **Enabled** dans **Settings**. Lorsqu'il est désactivé, le workflow ne s'exécute pas — les appels webhook, les heures planifiées et les événements OneUptime sont tous ignorés. Les nouveaux workflows démarrent désactivés.
+Chaque workflow possède un interrupteur **Activé** dans **Paramètres**. Lorsqu'il est désactivé, le workflow ne s'exécute pas — les appels webhook, les heures planifiées et les événements OneUptime sont tous ignorés. Les nouveaux workflows démarrent désactivés.
 
 Utilisez cet interrupteur comme votre porte « prêt à partir » :
 
 1. Construisez le workflow.
 2. Cliquez sur **Run Manually** avec une charge utile réaliste.
-3. Vérifiez les **Logs** — assurez-vous que chaque bloc a pris le chemin attendu.
-4. Activez **Enabled**.
+3. Vérifiez les **Journaux** — assurez-vous que chaque bloc a pris le chemin attendu.
+4. Activez **Activé**.
 
 Désactiver un workflow n'arrête pas les exécutions déjà en cours ; cela empêche simplement de nouvelles exécutions de démarrer.
 
 ## Propriétaires et étiquettes
 
-- **Propriétaires** — les utilisateurs et équipes listés comme propriétaires ont accès au workflow et peuvent choisir de recevoir des notifications lorsqu'il échoue. Définissez-les sous **Settings → Owners**.
+- **Propriétaires** — les utilisateurs et équipes listés comme propriétaires ont accès au workflow et peuvent choisir de recevoir des notifications lorsqu'il échoue. Définissez-les sous **Paramètres → Propriétaires**.
 - **Étiquettes** — des balises pour regrouper les workflows. La liste des workflows vous permet de filtrer par étiquette, ce qui facilite grandement la navigation dans un projet chargé. Pratique lorsque vous avez des workflows organisés par équipe, par intégration ou par environnement.
-- **Règles d'étiquettes** — sous **Workflows → Settings → Label Rules**, appliquez automatiquement des étiquettes aux nouveaux workflows en fonction de motifs dans le nom ou la description.
-- **Règles de propriétaires** — sous **Workflows → Settings → Owner Rules**, attribuez automatiquement des propriétaires aux nouveaux workflows.
+- **Règles d'étiquettes** — sous **Flux de travail → Paramètres → Règles d'étiquettes**, appliquez automatiquement des étiquettes aux nouveaux workflows en fonction de motifs dans le nom ou la description.
+- **Règles de propriétaires** — sous **Flux de travail → Paramètres → Règles de propriétaire**, attribuez automatiquement des propriétaires aux nouveaux workflows.
 
 ## Secrets
 
@@ -72,7 +72,7 @@ La plupart des ingénieurs devraient avoir create/edit/read sur les workflows ma
 
 ## Limites de plan
 
-OneUptime Cloud limite le nombre d'exécutions par mois sur les plans inférieurs. Votre limite actuelle est affichée sous **Project Settings → Billing**. Lorsque vous l'atteignez, les nouveaux déclencheurs sont rejetés jusqu'au cycle de facturation suivant. Les installations auto-hébergées n'ont pas cette limite.
+OneUptime Cloud limite le nombre d'exécutions par mois sur les plans inférieurs. Votre limite actuelle est affichée sous **Paramètres du projet → Facturation**. Lorsque vous l'atteignez, les nouveaux déclencheurs sont rejetés jusqu'au cycle de facturation suivant. Les installations auto-hébergées n'ont pas cette limite.
 
 ## Quand les workflows ne sont pas le bon outil
 

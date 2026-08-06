@@ -16,12 +16,12 @@ OneUptime Incident → On Create  ──►  API component (POST /v2/alerts)  �
 
 ## Étape 1 — Stocker la clé d'API
 
-1. Allez dans **Workflows → Global Variables → Create**.
+1. Allez dans **Flux de travail → Variables globales → Créer**.
 2. Nommez-la `OPSGENIE_KEY`, collez la clé d'API, et activez **Is Secret**.
 
 ## Étape 2 — Créer le workflow « créer une alerte »
 
-1. Ouvrez **Workflows → Create Workflow**, nommez-le `Incidents → Opsgenie`, et ouvrez le **Builder**.
+1. Ouvrez **Flux de travail → Créer un flux de travail**, nommez-le `Incidents → Opsgenie`, et ouvrez le **Constructeur**.
 2. Ajoutez un déclencheur **Incident** sur **On Create**. Renommez-le `Incident`.
 3. Ajoutez un bloc **API** connecté au déclencheur :
 
@@ -70,7 +70,7 @@ Les priorités Opsgenie vont de `P1` à `P5`. Faites correspondre les gravités 
 
 - **`401`/`403`** — clé incorrecte, mauvais hôte régional, ou l'intégration n'a pas la permission de créer des alertes. Confirmez que vous utilisez une clé d'intégration **API** et l'hôte `api`/`api.eu` correspondant.
 - **La fermeture retourne `404`** — l'`alias` de l'appel de fermeture doit correspondre exactement à celui de l'appel de création, et `identifierType=alias` doit être dans la chaîne de requête.
-- **Rien ne se passe** — confirmez que le workflow est **Enabled**.
+- **Rien ne se passe** — confirmez que le workflow est **Activé**.
 
 ## Pour aller plus loin
 

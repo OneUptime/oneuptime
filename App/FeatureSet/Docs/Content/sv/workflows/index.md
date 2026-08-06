@@ -34,14 +34,14 @@ Du bygger allt detta visuellt på en arbetsyta. Ingen kodning krävs för de fle
 
 ## Var du hittar arbetsflöden i OneUptime
 
-Öppna **Workflows** i den vänstra navigeringen. Därifrån:
+Öppna **Arbetsflöden** i den vänstra navigeringen. Därifrån:
 
-- **Workflows** — din lista över arbetsflöden. Skapa ett nytt eller öppna ett befintligt.
-- **Builder-flik** — arbetsytan där du designar arbetsflödet.
-- **Logs-flik** — varje körning av detta arbetsflöde, med detaljer.
-- **Settings-flik** — namn, beskrivning, ägare, etiketter, aktivera/inaktivera.
-- **Global Variables** — värden som delas mellan alla dina arbetsflöden.
-- **Runs & Logs** — exekveringshistorik över varje arbetsflöde i ditt projekt.
+- **Arbetsflöden** — din lista över arbetsflöden. Skapa ett nytt eller öppna ett befintligt.
+- **Byggare-flik** — arbetsytan där du designar arbetsflödet.
+- **Loggar-flik** — varje körning av detta arbetsflöde, med detaljer.
+- **Inställningar-flik** — namn, beskrivning, ägare, etiketter, aktivera/inaktivera.
+- **Globala variabler** — värden som delas mellan alla dina arbetsflöden.
+- **Körningar och loggar** — exekveringshistorik över varje arbetsflöde i ditt projekt.
 
 ## Bygga ditt första arbetsflöde
 
@@ -49,7 +49,7 @@ Du bygger allt detta visuellt på en arbetsyta. Ingen kodning krävs för de fle
 2. **Välj en utlösare** — manuell, schemalagd, webhook eller en händelse från OneUptime.
 3. **Lägg till komponenter** — dra åtgärder till arbetsytan och koppla ihop dem.
 4. **Testa** — klicka på **Run Manually** och se vad som händer i loggarna.
-5. **Slå på det** — slå på **Enabled**-växeln i Settings när du är redo.
+5. **Slå på det** — slå på **Aktiverad**-växeln i Inställningar när du är redo.
 
 ## Ett snabbt exempel
 
@@ -57,17 +57,17 @@ Säg att du vill posta i Slack varje gång en kritisk incident skapas:
 
 1. Skapa ett arbetsflöde som heter "Kritiska incidenter till Slack."
 2. Välj utlösaren **Incident → On Create**.
-3. Lägg till ett **Conditions**-block. Ställ in det så att det kontrollerar om incidentens titel innehåller "Sev 1."
-4. Från grenen **Yes**, lägg till ett **Slack**-block. Välj kanalen och skriv meddelandet.
+3. Lägg till ett **Villkor**-block. Ställ in det så att det kontrollerar om incidentens titel innehåller "Sev 1."
+4. Från grenen **Ja**, lägg till ett **Slack**-block. Välj kanalen och skriv meddelandet.
 5. Slå på arbetsflödet.
 
 Nästa gång någon öppnar en incident med "Sev 1" i titeln, lyser Slack upp.
 
 ## Hur arbetsflöden passar in med resten av OneUptime
 
-- **Monitorer** upptäcker problemet. **Incidenter** registrerar det. **Arbetsflöden** reagerar på det.
+- **Övervakare** upptäcker problemet. **Incidenter** registrerar det. **Arbetsflöden** reagerar på det.
 - **Runbooks** är steg-för-steg-guider för människor. Arbetsflöden är obevakad automation. Använd en runbook när en människa behöver fatta beslut; använd ett arbetsflöde när stegen är automatiska.
-- **Workspace connections** (Slack, Teams) är dit arbetsflöden skickar sina meddelanden.
+- **Arbetsyteanslutningar** (Slack, Teams) är dit arbetsflöden skickar sina meddelanden.
 
 ## Läs vidare
 

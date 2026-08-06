@@ -10,11 +10,11 @@ Un tableau de bord n'est accessible qu'aux membres connectés de votre projet. L
 
 ## Tableaux de bord publics
 
-Sous **Dashboard → Settings**, activez **Public Dashboard**. Le tableau de bord dispose désormais d'une seconde URL qui ne nécessite pas de connexion. Partagez-la avec des fournisseurs, des partenaires, des clients, ou collez-la dans un README public.
+Sous **Tableau de bord → Paramètres**, activez **Public Dashboard**. Le tableau de bord dispose désormais d'une seconde URL qui ne nécessite pas de connexion. Partagez-la avec des fournisseurs, des partenaires, des clients, ou collez-la dans un README public.
 
 Un tableau de bord public :
 
-- S'ouvre toujours en mode **View**. Les visiteurs publics ne peuvent ni le modifier ni voir la palette des widgets.
+- S'ouvre toujours en mode **Voir**. Les visiteurs publics ne peuvent ni le modifier ni voir la palette des widgets.
 - Inclut les variables que vous avez ajoutées. Les visiteurs choisissent dans les mêmes listes déroulantes que votre équipe.
 - Utilise l'**identité visuelle** définie dans Settings — titre de page, description, logo, favicon.
 
@@ -25,7 +25,7 @@ Considérez l'activation d'un tableau de bord public comme la publication d'une 
 Pour mettre un mot de passe sur un tableau de bord public :
 
 1. Activez **Public Dashboard**.
-2. Activez **Master Password**.
+2. Activez **Mot de passe maître**.
 3. Définissez le mot de passe.
 
 Les visiteurs voient une invite de mot de passe avant que le tableau de bord n'apparaisse. Le mot de passe est stocké sous forme de hachage — nous ne voyons jamais le mot de passe réel.
@@ -39,7 +39,7 @@ Pour un contrôle plus strict (comptes séparés par visiteur, journal d'audit d
 
 ## Liste d'IP autorisées
 
-Sur le plan **Scale**, vous pouvez restreindre un tableau de bord public à une liste d'adresses IP ou de plages. Configurez-la sous **Dashboard → Settings → IP Whitelist**.
+Sur le plan **Scale**, vous pouvez restreindre un tableau de bord public à une liste d'adresses IP ou de plages. Configurez-la sous **Tableau de bord → Paramètres → Liste blanche d'IP**.
 
 À utiliser quand :
 
@@ -54,7 +54,7 @@ Les requêtes provenant d'une autre IP sont rejetées.
 Par défaut, un tableau de bord public est servi sur `oneuptime.com`. Pour l'héberger sur votre propre sous-domaine comme `dashboard.acme.com` :
 
 1. Ajoutez un enregistrement CNAME sur votre DNS pointant le sous-domaine vers la cible OneUptime.
-2. Sous **Dashboard → Settings → Custom Domains**, ajoutez le domaine.
+2. Sous **Tableau de bord → Paramètres → Domaines personnalisés**, ajoutez le domaine.
 3. Vérifiez-le. OneUptime contrôle l'enregistrement DNS pour vous.
 4. Une fois vérifié, le tableau de bord est accessible à la fois sur votre domaine personnalisé et sur l'URL d'origine.
 
@@ -68,7 +68,7 @@ Vous pouvez attacher plus d'un domaine personnalisé à un même tableau de bord
 
 ## Identité visuelle
 
-Sous **Dashboard → Settings**, vous pouvez configurer :
+Sous **Tableau de bord → Paramètres**, vous pouvez configurer :
 
 - **Titre de page** — ce qui s'affiche dans l'onglet du navigateur et en haut de la page.
 - **Description de page** — la description utilisée par les moteurs de recherche et les aperçus sur les réseaux sociaux.

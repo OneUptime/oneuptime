@@ -9,7 +9,7 @@ Hver arbeidsflyt har en **Aktivert**-bryter i **Innstillinger**. Når den er av,
 Bruk denne bryteren som din "klar til å kjøre"-grind:
 
 1. Bygg arbeidsflyten.
-2. Klikk **Kjør manuelt** med en realistisk nyttelast.
+2. Klikk **Run Manually** med en realistisk nyttelast.
 3. Sjekk **Logger** — sørg for at hver blokk gikk dit du forventet.
 4. Vri **Aktivert** på.
 
@@ -64,7 +64,7 @@ API og andre HTTP-blokker gjør forespørslene sine fra OneUptime. Hvis du kjør
 Arbeidsflyter respekterer prosjektets rollebaserte tilgangskontroll. De relevante tillatelsene:
 
 - **Opprett / les / rediger / slett arbeidsflyt** — de grunnleggende tillatelsene på selve arbeidsflyten.
-- **Kjør arbeidsflyt** — nødvendig for å klikke **Kjør manuelt** eller utløse en arbeidsflyt via API.
+- **Kjør arbeidsflyt** — nødvendig for å klikke **Run Manually** eller utløse en arbeidsflyt via API.
 - **Les arbeidsflytlogg** — nødvendig for å vise kjøringer.
 - **Les / opprett / rediger / slett arbeidsflyt-variabel** — kontroll over listen over globale variabler.
 

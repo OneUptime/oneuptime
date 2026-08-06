@@ -15,16 +15,16 @@ Datadog monitor alerts  ──►  Webhook integration  ──►  OneUptime Web
 
 ## Steg 1 — Bygg OneUptime-arbeidsflyten
 
-1. Åpne **Workflows → Create Workflow**, gi den navnet `Datadog → Incidents`, og åpne **Builder**.
+1. Åpne **Arbeidsflyter → Opprett arbeidsflyt**, gi den navnet `Datadog → Incidents`, og åpne **Bygger**.
 2. Legg til en **Webhook**-trigger og **kopier URL-en**. Gi blokken nytt navn til `Datadog`.
-3. Legg til en **Conditions**-blokk koblet til triggeren:
+3. Legg til en **Betingelser**-blokk koblet til triggeren:
    - **Left**: `{{Datadog.Request Body.transition}}`
    - **Operator**: `==`
    - **Right**: `Triggered`
-4. Fra **Yes**, legg til en **Create Incident**-blokk:
-   - **Title**: `{{Datadog.Request Body.title}}`
-   - **Description**: `{{Datadog.Request Body.body}}\nHost: {{Datadog.Request Body.host}}\n{{Datadog.Request Body.link}}`
-   - **Severity**: velg én.
+4. Fra **Ja**, legg til en **Opprett hendelse**-blokk:
+   - **Tittel**: `{{Datadog.Request Body.title}}`
+   - **Beskrivelse**: `{{Datadog.Request Body.body}}\nHost: {{Datadog.Request Body.host}}\n{{Datadog.Request Body.link}}`
+   - **Alvorlighetsgrad**: velg én.
 5. **Lagre** (la stå deaktivert til det er testet).
 
 ## Steg 2 — Opprett Datadog-webhoken
@@ -65,17 +65,17 @@ Dette sender både varselet og gjenopprettingen til OneUptime. (For å videresen
 ## Steg 4 — Test det
 
 1. Aktiver arbeidsflyten.
-2. Fra en monitor, bruk **Test Notifications → Alert**, eller la en ekte monitor utløse.
-3. Sjekk arbeidsflytens **Logs**-fane og **Incidents**-listen din.
+2. Fra en monitor, bruk **Test Notifications → Varsel**, eller la en ekte monitor utløse.
+3. Sjekk arbeidsflytens **Logger**-fane og **Hendelser**-listen din.
 
 ## Løse ved gjenoppretting (valgfritt)
 
-`$ALERT_TRANSITION` er `Recovered` når en monitor klarnes. Legg til en ny **Conditions**-gren (`transition == Recovered`), finn den matchende hendelsen (match på `id`-en du sendte), og flytt den til din løste tilstand med **Update Incident**.
+`$ALERT_TRANSITION` er `Recovered` når en monitor klarnes. Legg til en ny **Betingelser**-gren (`transition == Recovered`), finn den matchende hendelsen (match på `id`-en du sendte), og flytt den til din løste tilstand med **Update Incident**.
 
 ## Feilsøking
 
-- **Ingen kjøring vises** — bekreft at monitorens melding inkluderer `@webhook-oneuptime` og at arbeidsflyten er **Enabled**.
-- **Felt er tomme** — Datadog erstatter bare malvariabler som gjelder for hendelsen. Inspiser trigger-utdataene i **Logs**-fanen og juster webhook-nyttelasten din.
+- **Ingen kjøring vises** — bekreft at monitorens melding inkluderer `@webhook-oneuptime` og at arbeidsflyten er **Aktivert**.
+- **Felt er tomme** — Datadog erstatter bare malvariabler som gjelder for hendelsen. Inspiser trigger-utdataene i **Logger**-fanen og juster webhook-nyttelasten din.
 - **Duplikathendelser** — en monitor som varsler på nytt (renotify) sender flere `Triggered`-hendelser; dedupliser med en **Find Incident**-sjekk på `id`-en før du oppretter.
 
 ## Hvor du leser videre

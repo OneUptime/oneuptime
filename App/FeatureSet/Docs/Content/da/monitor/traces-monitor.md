@@ -14,9 +14,9 @@ Traces-monitorer søger og tæller spans, der matcher specifikke filtre. Dette g
 
 ## Oprettelse af en Traces Monitor
 
-1. Gå til **Monitorer** i OneUptime-dashboardet
+1. Gå til **Overvågninger** i OneUptime-dashboardet
 2. Klik på **Opret monitor**
-3. Vælg **Traces** som monitortype
+3. Vælg **Spor** som monitortype
 4. Vælg de telemetritjenester, der skal overvåges
 5. Konfigurer span-filtre og kriterier efter behov
 

@@ -4135,6 +4135,7 @@
   "Processors transform spans as they flow through the pipeline. They run in order after the filter conditions match. Each processor modifies the span before it is stored.": "प्रोसेसर स्पैन को पाइपलाइन से प्रवाहित होते समय रूपांतरित करते हैं। फ़िल्टर शर्तें मेल खाने के बाद वे क्रम में चलते हैं। प्रत्येक प्रोसेसर स्पैन को संग्रहीत किए जाने से पहले संशोधित करता है।",
   "Processors transform spans matched by this pipeline. They run in the order shown below. Drag to reorder.": "प्रोसेसर इस पाइपलाइन द्वारा मेल खाए गए स्पैन को रूपांतरित करते हैं। वे नीचे दिखाए गए क्रम में चलते हैं। पुनः क्रमित करने के लिए खींचें।",
   "Product": "उत्पाद",
+  "Products": "उत्पाद",
   "Production API Health": "प्रोडक्शन API स्वास्थ्य",
   "Production cluster running in US East": "US East में चल रहा प्रोडक्शन क्लस्टर",
   "Production cluster running in US East region on EKS": "EKS पर US East क्षेत्र में चल रहा प्रोडक्शन क्लस्टर",

@@ -24,11 +24,11 @@ ServiceNow's Table API accepteert **Basic auth**.
    printf '%s' 'integration_user:password' | base64
    ```
 
-2. Ga in OneUptime naar **Workflows → Global Variables → Create**, geef het de naam `SERVICENOW_AUTH`, plak de base64-string, en zet **Is Secret** aan.
+2. Ga in OneUptime naar **Workflows → Globale variabelen → Aanmaken**, geef het de naam `SERVICENOW_AUTH`, plak de base64-string, en zet **Is Secret** aan.
 
 ## Stap 2 — Bouw de workflow
 
-1. Open **Workflows → Create Workflow**, geef het de naam `Incidents → ServiceNow`, en open de **Builder**.
+1. Open **Workflows → Workflow maken**, geef het de naam `Incidents → ServiceNow`, en open de **Bouwer**.
 2. Voeg een **Incident**-trigger toe ingesteld op **On Create**. Hernoem het naar `Incident`.
 3. Voeg een **API**-blok toe verbonden met de trigger:
 
@@ -56,11 +56,11 @@ ServiceNow's Table API accepteert **Basic auth**.
 
    `correlation_id` houdt een koppeling bij naar het OneUptime-incident — handig als je later een oplossen-stap toevoegt. ServiceNow `urgency`/`impact` gebruiken `1` (hoog), `2` (gemiddeld), `3` (laag).
 
-4. **Sla op**, schakel in en maak een testincident aan. Een respons `201 Created` in de workflow-logs geeft de `sys_id` en het `number` van het nieuwe record terug (bijvoorbeeld `INC0012345`).
+4. **Opslaan**, schakel in en maak een testincident aan. Een respons `201 Created` in de workflow-logs geeft de `sys_id` en het `number` van het nieuwe record terug (bijvoorbeeld `INC0012345`).
 
 ## Stap 3 — Oplossen bij OneUptime-oplossing (optioneel)
 
-1. Maak een **tweede** workflow aan met een trigger **Incident → On Update** en een **Conditions**-blok dat controleert of het incident is opgelost.
+1. Maak een **tweede** workflow aan met een trigger **Incident → On Update** en een **Voorwaarden**-blok dat controleert of het incident is opgelost.
 2. Om het juiste ServiceNow-record bij te werken heb je de `sys_id` nodig. Sla hem op bij het OneUptime-incident in Stap 2 (lees `{{CreateRecord.response-body.result.sys_id}}` en schrijf hem naar een label met **Update Incident**), of zoek het record eerst op met een `GET` op `/api/now/table/incident?sysparm_query=correlation_id=oneuptime-{{Incident._id}}`.
 3. Voeg een **API**-blok toe: **Method** `PATCH`, **URL** `https://your-instance.service-now.com/api/now/table/incident/<sys_id>`, body `{ "state": "6", "close_code": "Resolved by monitoring", "close_notes": "Resolved in OneUptime" }` (`state` `6` = Resolved in de standaard ITIL-workflow).
 

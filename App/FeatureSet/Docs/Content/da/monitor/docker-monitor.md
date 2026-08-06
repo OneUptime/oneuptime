@@ -14,7 +14,7 @@ Docker-monitorer bruger metrikker og logs fra dine hosts til at give indsigt i d
 
 ## Oprettelse af en Docker Monitor
 
-1. Gå til **Monitorer** i OneUptime-dashboardet
+1. Gå til **Overvågninger** i OneUptime-dashboardet
 2. Klik på **Opret monitor**
 3. Vælg **Docker** som monitortype
 4. Vælg Docker-host og ressourceomfang der skal overvåges
@@ -43,7 +43,7 @@ Konfigurer én eller flere metriske forespørgsler til evaluering. Hver forespø
 - **Metrisk navn** – Den container-metrik, der skal forespørges
 - **Aggregering** – Sådan aggregeres metriske værdier (Gns., Sum, Maks., Min.)
 - **Filtre** – Yderligere attributbaseret filtrering (f.eks. efter containernavn, billede eller host)
-- **Grupper efter** – Valgfrit gruppering efter `resource.container.name`, så hver container evalueres uafhængigt
+- **Gruppér efter** – Valgfrit gruppering efter `resource.container.name`, så hver container evalueres uafhængigt
 
 Du kan også oprette **formler**, der kombinerer flere metriske forespørgsler ved hjælp af matematiske udtryk.
 
@@ -150,7 +150,7 @@ Udover metrikker skraber Docker Agent alle containeres `*-json.log`-filer via Op
 - `body` – Den rå loglinje udsendt af containerprocessen
 - `time` – Docker-dæmonens tidsstempel for linjen
 
-Logs vises på Docker-hostens **Logs**-fane og på hver containers detaljeside.
+Logs vises på Docker-hostens **Protokoller**-fane og på hver containers detaljeside.
 
 ### Logdriver-krav
 
@@ -160,7 +160,7 @@ Logs vises på Docker-hostens **Logs**-fane og på hver containers detaljeside.
 - **`journald`**, **`syslog`**, **`fluentd`**, **`gelf`**, **`awslogs`**, **`splunk`** osv. – Sender logs til en fjern destination; ingen fil at skrabe.
 - **`none`** – Kasserer logs fuldstændigt.
 
-Hvis nogen af ovenstående er i brug, vil du se metrikker på Docker-hostsiden, men **Logs**-fanen vil være tom (eller kun indeholde Docker Agents egne logs).
+Hvis nogen af ovenstående er i brug, vil du se metrikker på Docker-hostsiden, men **Protokoller**-fanen vil være tom (eller kun indeholde Docker Agents egne logs).
 
 **Kontroller en specifik containers logdriver:**
 

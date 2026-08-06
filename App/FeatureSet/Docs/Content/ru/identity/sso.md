@@ -16,20 +16,20 @@ OneUptime поддерживает единый вход (SSO) на основе
 1. **Перейдите в настройки проекта**
 
    - Откройте ваш проект OneUptime
-   - Перейдите в **Project Settings** > **Безопасность** > **SSO**
+   - Перейдите в **Настройки проекта** > **Безопасность** > **SSO**
 
 2. **Создайте конфигурацию SSO**
 
    - Нажмите **Create SSO**
-   - Введите **Name** для конфигурации SSO (например, "Keycloak SAML" или "Okta SAML")
-   - Введите **Sign On URL** от вашего поставщика удостоверений
-   - Введите **Issuer** (Entity ID) от вашего поставщика удостоверений
-   - Вставьте **Public Certificate** от вашего поставщика удостоверений
+   - Введите **Имя** для конфигурации SSO (например, "Keycloak SAML" или "Okta SAML")
+   - Введите **URL входа** от вашего поставщика удостоверений
+   - Введите **Издатель** (Entity ID) от вашего поставщика удостоверений
+   - Вставьте **Публичный сертификат** от вашего поставщика удостоверений
    - Выберите **Signature Algorithm** (например, `RSA-SHA-256`)
    - Выберите **Digest Algorithm** (например, `SHA256`)
 
 3. **Получите метаданные SSO OneUptime**
-   - После сохранения нажмите кнопку **View SSO Config**
+   - После сохранения нажмите кнопку **Просмотреть конфигурацию SSO**
    - Скопируйте **Identifier (Entity ID)** — он нужен для настройки вашего IdP
    - Скопируйте **Reply URL (Assertion Consumer Service URL)** — он нужен для настройки вашего IdP
 
@@ -46,12 +46,12 @@ Keycloak — популярное решение с открытым исход�
 ### Шаг 1: Настройка SSO в OneUptime
 
 1. Войдите в панель управления OneUptime
-2. Перейдите в **Project Settings** > **Безопасность** > **SSO**
+2. Перейдите в **Настройки проекта** > **Безопасность** > **SSO**
 3. Нажмите **Create SSO** и заполните следующее:
-   - **Name**: Описательное имя (например, `my-project-oneuptime`)
-   - **Sign On URL**: `https://<your-keycloak-domain>/auth/realms/<your-realm>/protocol/saml`
-   - **Issuer**: `https://<your-keycloak-domain>/auth/realms/<your-realm>`
-   - **Certificate**: See [Step 2](#шаг-2-получение-сертификата-keycloak) below
+   - **Имя**: Описательное имя (например, `my-project-oneuptime`)
+   - **URL входа**: `https://<your-keycloak-domain>/auth/realms/<your-realm>/protocol/saml`
+   - **Издатель**: `https://<your-keycloak-domain>/auth/realms/<your-realm>`
+   - **Сертификат**: See [Step 2](#шаг-2-получение-сертификата-keycloak) below
    - **Signature Algorithm**: `RSA-SHA-256`
    - **Digest Algorithm**: `SHA256`
 4. Сохраните конфигурацию
@@ -74,7 +74,7 @@ MIICnzCCAYcCBgFyPZ8QFzANBgkqhkiG.......
 1. В Keycloak перейдите в **Clients** в вашем realm
 2. Создайте нового клиента или отредактируйте существующий
 3. Установите **Client Protocol** на `saml`
-4. Установите **Client ID** в значение **Identifier (Entity ID)** из **View SSO Config** OneUptime
+4. Установите **Client ID** в значение **Identifier (Entity ID)** из **Просмотреть конфигурацию SSO** OneUptime
 5. Установите **Valid Redirect URIs** на ваш URL OneUptime
 6. Установите **Root URL** на базовый URL OneUptime
 7. Вставьте **Reply URL (Assertion Consumer Service URL)** из OneUptime в поле **Assertion Consumer Service POST Binding URL**
@@ -113,15 +113,15 @@ Microsoft Entra ID — облачная служба управления удо
 ### Шаг 1: Настройка SSO в OneUptime
 
 1. Войдите в панель управления OneUptime
-2. Перейдите в **Project Settings** > **Безопасность** > **SSO**
+2. Перейдите в **Настройки проекта** > **Безопасность** > **SSO**
 3. Нажмите **Create SSO** и заполните следующее:
-   - **Name**: Описательное имя (например, `Azure AD SAML`)
-   - **Sign On URL**: Получите из Entra ID на [шаге 3](#шаг-3-настройка-saml-sso-в-entra-id)
-   - **Issuer**: Получите из Entra ID на [шаге 3](#шаг-3-настройка-saml-sso-в-entra-id)
-   - **Certificate**: Получите из Entra ID на [шаге 3](#шаг-3-настройка-saml-sso-в-entra-id)
+   - **Имя**: Описательное имя (например, `Azure AD SAML`)
+   - **URL входа**: Получите из Entra ID на [шаге 3](#шаг-3-настройка-saml-sso-в-entra-id)
+   - **Издатель**: Получите из Entra ID на [шаге 3](#шаг-3-настройка-saml-sso-в-entra-id)
+   - **Сертификат**: Получите из Entra ID на [шаге 3](#шаг-3-настройка-saml-sso-в-entra-id)
    - **Signature Algorithm**: `RSA-SHA-256`
    - **Digest Algorithm**: `SHA256`
-4. Нажмите **View SSO Config** и скопируйте **Identifier (Entity ID)** и **Reply URL (Assertion Consumer Service URL)** — они понадобятся для Entra ID
+4. Нажмите **Просмотреть конфигурацию SSO** и скопируйте **Identifier (Entity ID)** и **Reply URL (Assertion Consumer Service URL)** — они понадобятся для Entra ID
 
 ### Шаг 2: Создание корпоративного приложения в Microsoft Entra ID
 
@@ -138,15 +138,15 @@ Microsoft Entra ID — облачная служба управления удо
 1. В вашем новом корпоративном приложении перейдите в **Single sign-on**
 2. Выберите **SAML** в качестве метода единого входа
 3. В **Basic SAML Configuration** нажмите **Edit** и установите:
-   - **Identifier (Entity ID)**: Вставьте **Identifier (Entity ID)** из **View SSO Config** OneUptime
-   - **Reply URL (Assertion Consumer Service URL)**: Вставьте **Reply URL** из **View SSO Config** OneUptime
+   - **Identifier (Entity ID)**: Вставьте **Identifier (Entity ID)** из **Просмотреть конфигурацию SSO** OneUptime
+   - **Reply URL (Assertion Consumer Service URL)**: Вставьте **Reply URL** из **Просмотреть конфигурацию SSO** OneUptime
 4. Нажмите **Save**
 5. В разделе **SAML Certificates**:
    - Скачайте **Certificate (Base64)**
    - Откройте скачанный файл сертификата в текстовом редакторе и скопируйте содержимое
 6. В разделе **Set up OneUptime** скопируйте:
-   - **Login URL** — вставьте как **Sign On URL** в OneUptime
-   - **Azure AD Identifier** — вставьте как **Issuer** в OneUptime
+   - **Login URL** — вставьте как **URL входа** в OneUptime
+   - **Azure AD Identifier** — вставьте как **Издатель** в OneUptime
 7. Вернитесь в OneUptime, вставьте сертификат и URL, затем сохраните
 
 ### Шаг 4: Настройка атрибутов и утверждений пользователей
@@ -198,15 +198,15 @@ Okta — широко используемая платформа удостов
 ### Шаг 1: Настройка SSO в OneUptime
 
 1. Войдите в панель управления OneUptime
-2. Перейдите в **Project Settings** > **Безопасность** > **SSO**
+2. Перейдите в **Настройки проекта** > **Безопасность** > **SSO**
 3. Нажмите **Create SSO** и заполните следующее:
-   - **Name**: Описательное имя (например, `Okta SAML`)
-   - **Sign On URL**: Получите из Okta на [шаге 3](#шаг-3-копирование-метаданных-okta-saml-в-oneuptime)
-   - **Issuer**: Получите из Okta на [шаге 3](#шаг-3-копирование-метаданных-okta-saml-в-oneuptime)
-   - **Certificate**: Получите из Okta на [шаге 3](#шаг-3-копирование-метаданных-okta-saml-в-oneuptime)
+   - **Имя**: Описательное имя (например, `Okta SAML`)
+   - **URL входа**: Получите из Okta на [шаге 3](#шаг-3-копирование-метаданных-okta-saml-в-oneuptime)
+   - **Издатель**: Получите из Okta на [шаге 3](#шаг-3-копирование-метаданных-okta-saml-в-oneuptime)
+   - **Сертификат**: Получите из Okta на [шаге 3](#шаг-3-копирование-метаданных-okta-saml-в-oneuptime)
    - **Signature Algorithm**: `RSA-SHA-256`
    - **Digest Algorithm**: `SHA256`
-4. Нажмите **View SSO Config** и скопируйте **Identifier (Entity ID)** и **Reply URL (Assertion Consumer Service URL)** — они понадобятся для Okta
+4. Нажмите **Просмотреть конфигурацию SSO** и скопируйте **Identifier (Entity ID)** и **Reply URL (Assertion Consumer Service URL)** — они понадобятся для Okta
 
 ### Шаг 2: Создание SAML-приложения в Okta
 
@@ -216,8 +216,8 @@ Okta — широко используемая платформа удостов
 4. Выберите **SAML 2.0** и нажмите **Next**
 5. Введите "OneUptime" в качестве **App name** и нажмите **Next**
 6. В разделе **SAML Settings** настройте:
-   - **Single sign-on URL**: Вставьте **Reply URL (Assertion Consumer Service URL)** из **View SSO Config** OneUptime
-   - **Audience URI (SP Entity ID)**: Вставьте **Identifier (Entity ID)** из **View SSO Config** OneUptime
+   - **Single sign-on URL**: Вставьте **Reply URL (Assertion Consumer Service URL)** из **Просмотреть конфигурацию SSO** OneUptime
+   - **Audience URI (SP Entity ID)**: Вставьте **Identifier (Entity ID)** из **Просмотреть конфигурацию SSO** OneUptime
    - **Name ID format**: Выберите `EmailAddress`
    - **Application username**: Выберите `Email`
 7. Нажмите **Next**, затем выберите **I'm an Okta customer adding an internal app** и нажмите **Finish**
@@ -227,8 +227,8 @@ Okta — широко используемая платформа удостов
 1. В вашем приложении Okta перейдите на вкладку **Sign On**
 2. В разделе **SAML Signing Certificates** найдите активный сертификат и нажмите **Actions** > **View IdP metadata**
 3. Из метаданных XML или со вкладки **Sign On**:
-   - Скопируйте **Sign On URL** (также называемый **Identity Provider Single Sign-On URL**) — вставьте как **Sign On URL** в OneUptime
-   - Скопируйте **Issuer** (также называемый **Identity Provider Issuer**) — вставьте как **Issuer** в OneUptime
+   - Скопируйте **Sign On URL** (также называемый **Identity Provider Single Sign-On URL**) — вставьте как **URL входа** в OneUptime
+   - Скопируйте **Issuer** (также называемый **Identity Provider Issuer**) — вставьте как **Издатель** в OneUptime
 4. Скачайте сертификат подписи:
    - В разделе **SAML Signing Certificates** нажмите **Actions** > **Download certificate** для активного сертификата
    - Откройте скачанный файл `.cert` в текстовом редакторе и скопируйте содержимое
@@ -276,17 +276,17 @@ Okta — широко используемая платформа удостов
 
 Реализация SSO в OneUptime использует протокол SAML 2.0 и должна работать с любым совместимым поставщиком удостоверений. Общие шаги настройки:
 
-1. В OneUptime создайте конфигурацию SSO и запишите **Identifier (Entity ID)** и **Reply URL (Assertion Consumer Service URL)** из кнопки **View SSO Config**
+1. В OneUptime создайте конфигурацию SSO и запишите **Identifier (Entity ID)** и **Reply URL (Assertion Consumer Service URL)** из кнопки **Просмотреть конфигурацию SSO**
 2. В вашем поставщике удостоверений создайте SAML-приложение, используя:
    - **Assertion Consumer Service URL / Reply URL**: Из конфигурации SSO OneUptime
    - **Entity ID / Audience URI**: Из конфигурации SSO OneUptime
    - **Name ID Format**: Адрес электронной почты
 3. От вашего поставщика удостоверений скопируйте в OneUptime:
-   - **Sign On URL** (конечная точка SSO)
-   - **Issuer** (Entity ID IdP)
-   - **Public Certificate** (сертификат подписи X.509)
+   - **URL входа** (конечная точка SSO)
+   - **Издатель** (Entity ID IdP)
+   - **Публичный сертификат** (сертификат подписи X.509)
 4. Установите **Signature Algorithm** на `RSA-SHA-256` и **Digest Algorithm** на `SHA256`
 
 ## Примечания об SSO и ролях
 
-OneUptime в настоящее время не поддерживает сопоставление ролей SAML от вашего поставщика удостоверений. Управление доступом на основе ролей необходимо настраивать отдельно в **Project Settings** > **SSO** OneUptime, где вы можете назначать роли по умолчанию для пользователей SSO.
+OneUptime в настоящее время не поддерживает сопоставление ролей SAML от вашего поставщика удостоверений. Управление доступом на основе ролей необходимо настраивать отдельно в **Настройки проекта** > **SSO** OneUptime, где вы можете назначать роли по умолчанию для пользователей SSO.

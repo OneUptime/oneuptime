@@ -102,7 +102,7 @@ microsoftTeamsApp:
 
 ### चरण 7: Teams App Manifest Upload करें
 
-1. project **Settings** > **वर्कस्पेस** > **Microsoft Teams** पर जाएं
+1. project **सेटिंग्स** > **वर्कस्पेस** > **Microsoft Teams** पर जाएं
 2. वहाँ से Teams app manifest download करें
 3. Microsoft Teams पर जाएं, sidebar में "Apps" पर क्लिक करें
 4. नीचे "Manage your apps" पर क्लिक करें

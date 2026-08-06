@@ -8,7 +8,7 @@ OneUptime은 `faas.name` 리소스 속성으로 태그된 OpenTelemetry 데이�
 
 ## 사전 요구 사항
 
-- **OneUptime 텔레메트리 수집 토큰(Telemetry Ingestion Token)** — *Project Settings → 텔레메트리 및 APM → 수집 키*에서 하나를 생성하고 `x-oneuptime-token` 값을 복사합니다.
+- **OneUptime 텔레메트리 수집 토큰(Telemetry Ingestion Token)** — *프로젝트 설정 → 텔레메트리 및 APM → 수집 키*에서 하나를 생성하고 `x-oneuptime-token` 값을 복사합니다.
 - 함수의 언어에 맞는 OpenTelemetry SDK(또는 자동 계측 레이어).
 
 ## OneUptime이 함수를 식별하는 방법
@@ -19,11 +19,11 @@ OneUptime은 각 함수를 `faas.name` 리소스 속성을 기준으로 식별�
 | ------------------------------------------------------ | ------ | ----------------------------------------------------------- |
 | `faas.name`                                            | **예** | 함수 식별자(예: `checkout-handler`)                         |
 | `faas.version`                                         | 아니요 | 개요에 표시됨                                               |
-| `faas.instance`                                        | 아니요 | **Instances** 탭에서 인스턴스별로 추적됨                    |
+| `faas.instance`                                        | 아니요 | **인스턴스** 탭에서 인스턴스별로 추적됨                     |
 | `cloud.platform`                                       | 아니요 | `aws_lambda`, `gcp_cloud_functions`, `azure_functions`, ... |
 | `cloud.provider` / `cloud.region` / `cloud.account.id` | 아니요 | 개요에 표시됨                                               |
 
-> `service.name`도 함께 설정하는 함수는 **Services** 아래에도 계속 표시됩니다. **서버리스 함수(Serverless Functions)** 보기는 `faas.name`으로 범위가 지정된, FaaS에 초점을 맞춘 렌즈입니다.
+> `service.name`도 함께 설정하는 함수는 **서비스** 아래에도 계속 표시됩니다. **서버리스 함수(Serverless Functions)** 보기는 `faas.name`으로 범위가 지정된, FaaS에 초점을 맞춘 렌즈입니다.
 
 ## 1단계 — OTLP 익스포터 환경 변수 설정
 
@@ -55,6 +55,6 @@ OTEL_EXPORTER_OTLP_HEADERS=x-oneuptime-token=YOUR_TELEMETRY_INGESTION_TOKEN
 
 - **호출 수(Invocations)**, **오류율(error rate)**, **p95 지속 시간(p95 duration)** — 트레이스에서 파생되며, 선택 가능한 시간 범위에 걸쳐 추세 차트와 함께 제공됩니다.
 - **인스턴스(Instances)** — 확인된 `faas.instance` 값의 실시간 개수.
-- 이 함수로 범위가 지정된 전체 **Logs**, **Traces**, **Metrics** 탭.
+- 이 함수로 범위가 지정된 전체 **로그**, **트레이스**, **메트릭** 탭.
 
-또한 *Serverless → Settings → Label Rules / Owner Rules*를 통해 레이블과 소유자를 자동으로 적용할 수 있습니다.
+또한 *서버리스 → 설정 → 레이블 규칙 / 소유자 규칙*을 통해 레이블과 소유자를 자동으로 적용할 수 있습니다.

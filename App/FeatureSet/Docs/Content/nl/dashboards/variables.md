@@ -4,7 +4,7 @@ Een variabele verandert één dashboard in een template. Voeg een `service`-vari
 
 ## Variabele-types
 
-Voeg variabelen toe onder **Dashboard → Settings → Variables**. Elke variabele heeft een naam (gebruikt als `{{name}}` in je widgets), een optioneel label en een type.
+Voeg variabelen toe onder **Dashboard → Instellingen → Variabelen**. Elke variabele heeft een naam (gebruikt als `{{name}}` in je widgets), een optioneel label en een type.
 
 ### Custom List
 

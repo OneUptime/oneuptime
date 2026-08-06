@@ -30,7 +30,7 @@ Agenten behöver bara **utgående HTTPS** till din OneUptime-instans. Den accept
 
 ### 1. Skapa agentposten
 
-Gå till **Settings → Runners** och skapa en ny agent. Fyll i:
+Gå till **Inställningar → Runbook-agenter** och skapa en ny agent. Fyll i:
 
 | Fält            | Anteckningar                                                                                                                                           |
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -58,7 +58,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
 
 ### 4. Verifiera att agenten är ansluten
 
-Gå tillbaka till **Settings → Runners**. Inom ~60 sekunder bör agentens rad växla till `Connected` med en färsk **Last seen**-tidsstämpel. Om den förblir `Disconnected`:
+Gå tillbaka till **Inställningar → Runbook-agenter**. Inom ~60 sekunder bör agentens rad växla till `Connected` med en färsk **Senast sedd**-tidsstämpel. Om den förblir `Disconnected`:
 
 - Kontrollera container-loggarna (`docker logs oneuptime-runner`) för auth-fel eller nätverksproblem.
 - Verifiera att värden når din OneUptime-URL med `curl`.
@@ -86,7 +86,7 @@ Två timeouts gäller varje Bash- eller JavaScript-steg:
 | **Claim-timeout**    | 2 minuter   | Hur länge Worker'n väntar på att den valda agenten claim:ar jobbet. Om agenten inte plockar upp det i tid misslyckas steget med `TimedOut` och runbooket går vidare (eller stannar, beroende på **Fortsätt vid fel**). |
 | **Körnings-timeout** | 30 sekunder | Hur länge agenten låter skriptet köra innan den avslutar det. (Bash får `SIGKILL`; JavaScript-isolatet rivs ner.)                                                                                                      |
 
-Båda är konfigurerbara per steg. Öppna **Runbooks &rsaquo; ditt runbook &rsaquo; Steps**, expandera ett Bash- eller JavaScript-steg och sätt **Körnings-timeout** och **Claim-timeout** (i sekunder) under skriptet. Lämna ett fält tomt för att använda standardvärdet. Var och en accepterar 1 sekund till 1 timme; värden utanför det intervallet begränsas till närmaste tillåtna värde när steget körs.
+Båda är konfigurerbara per steg. Öppna **Runbooks &rsaquo; ditt runbook &rsaquo; Steg**, expandera ett Bash- eller JavaScript-steg och sätt **Körnings-timeout** och **Claim-timeout** (i sekunder) under skriptet. Lämna ett fält tomt för att använda standardvärdet. Var och en accepterar 1 sekund till 1 timme; värden utanför det intervallet begränsas till närmaste tillåtna värde när steget körs.
 
 Worker'ns totala väntefönster är `claim-timeout + körnings-timeout + några sekunder`. Välj tal som matchar steget.
 

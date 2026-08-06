@@ -64,7 +64,7 @@
 
 1. 名为 `CIWebhook` 的 **Webhook** 触发器。
 2. **条件** 模块:左侧 `{{CIWebhook.Request Body.status}}`、运算符 `==`、右侧 `failed`。
-3. 从 **是** 分支接一个 **Create Incident** 模块:
+3. 从 **是** 分支接一个 **创建事件** 模块:
    - 标题:`CI build failed: {{CIWebhook.Request Body.service}}`
    - 描述:`See {{CIWebhook.Request Body.url}} for the logs.`
 

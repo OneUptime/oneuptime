@@ -2,7 +2,7 @@
 
 ## Descripción general
 
-[Serilog](https://serilog.net) es la biblioteca de registro estructurado más popular para .NET. OneUptime ingiere los registros de Serilog a través del OpenTelemetry Protocol (OTLP) mediante el sink oficial [`Serilog.Sinks.OpenTelemetry`](https://github.com/serilog/serilog-sinks-opentelemetry). Una vez configurado, cada evento de registro que tu aplicación escribe a través de Serilog se envía a OneUptime, donde se puede buscar en **Products → Registros**, junto con sus propiedades estructuradas, gravedad y correlación de traza/span.
+[Serilog](https://serilog.net) es la biblioteca de registro estructurado más popular para .NET. OneUptime ingiere los registros de Serilog a través del OpenTelemetry Protocol (OTLP) mediante el sink oficial [`Serilog.Sinks.OpenTelemetry`](https://github.com/serilog/serilog-sinks-opentelemetry). Una vez configurado, cada evento de registro que tu aplicación escribe a través de Serilog se envía a OneUptime, donde se puede buscar en **Productos → Registros**, junto con sus propiedades estructuradas, gravedad y correlación de traza/span.
 
 No hay ningún paquete específico de OneUptime que instalar: el sink se comunica con el mismo endpoint OTLP que OneUptime expone para todos los datos de OpenTelemetry. Esto funciona para aplicaciones de consola, servicios de worker, aplicaciones ASP.NET Core y cualquier otra cosa que se ejecute en .NET.
 
@@ -12,13 +12,13 @@ No hay ningún paquete específico de OneUptime que instalar: el sink se comunic
 - **Crea un proyecto de OneUptime** – Una vez que tengas una cuenta, crea un proyecto desde el panel de OneUptime. Si necesitas ayuda, contáctanos en support@oneuptime.com.
 - **Crea un token de ingesta de telemetría** – Necesitas un token para autenticar tus registros.
 
-Después de registrarte en OneUptime y crear un proyecto, haz clic en "Products" en la barra de navegación y luego en "Project Settings".
+Después de registrarte en OneUptime y crear un proyecto, haz clic en "Productos" en la barra de navegación y luego en "Ajustes del proyecto".
 
-En la página Telemetry Ingestion Key, haz clic en "Create Ingestion Key" para crear un token.
+En la página Telemetry Ingestion Key, haz clic en "Crear clave de ingesta" para crear un token.
 
 ![Create Service](/docs/static/images/TelemetryIngestionKeys.png)
 
-Una vez que hayas creado un token, haz clic en "View" para ver el token.
+Una vez que hayas creado un token, haz clic en "Ver" para ver el token.
 
 ![View Service](/docs/static/images/TelemetryIngestionKeyView.png)
 
@@ -197,7 +197,7 @@ Log.Information("Order {OrderId} placed by {CustomerId} for {Amount:C}",
 Log.Warning("Payment gateway slow: {LatencyMs}ms", latencyMs);
 ```
 
-Cada propiedad con nombre (`OrderId`, `CustomerId`, `Amount`, `LatencyMs`) se envía como un atributo de registro, de modo que puedes filtrarlas y buscarlas en el explorador **Products → Registros**.
+Cada propiedad con nombre (`OrderId`, `CustomerId`, `Amount`, `LatencyMs`) se envía como un atributo de registro, de modo que puedes filtrarlas y buscarlas en el explorador **Productos → Registros**.
 
 ## Excepciones
 
@@ -214,7 +214,7 @@ catch (Exception ex)
 }
 ```
 
-OneUptime detecta estos atributos y agrupa automáticamente el error en la vista de **Exceptions** (Issues), agrupado por huella digital y atribuido al servicio correcto. Un error reportado tanto por una traza como por un registro se colapsa en un único problema. Consulta [Excepciones desde registros](/docs/telemetry/open-telemetry) para obtener detalles sobre cómo funciona la detección.
+OneUptime detecta estos atributos y agrupa automáticamente el error en la vista de **Excepciones** (Issues), agrupado por huella digital y atribuido al servicio correcto. Un error reportado tanto por una traza como por un registro se colapsa en un único problema. Consulta [Excepciones desde registros](/docs/telemetry/open-telemetry) para obtener detalles sobre cómo funciona la detección.
 
 ## Correlación de trazas
 
@@ -223,7 +223,7 @@ Si tu aplicación también está instrumentada con el SDK de OpenTelemetry para 
 ## Verificación
 
 1. Ejecuta tu aplicación y genera algunos eventos de registro.
-2. Abre OneUptime, ve a **Telemetry**, selecciona tu servicio (`my-service`) y abre **Logs**.
+2. Abre OneUptime, ve a **Telemetría**, selecciona tu servicio (`my-service`) y abre **Registros**.
 3. Deberías ver tus eventos de Serilog aparecer en unos segundos, con sus propiedades estructuradas disponibles como filtros.
 
 ## Solución de problemas

@@ -16,12 +16,12 @@ OneUptime Incident → On Create  ──►  API component (POST /v2/alerts)  �
 
 ## Stap 1 — Sla de API-sleutel op
 
-1. Ga naar **Workflows → Global Variables → Create**.
+1. Ga naar **Workflows → Globale variabelen → Aanmaken**.
 2. Geef het de naam `OPSGENIE_KEY`, plak de API-sleutel, en zet **Is Secret** aan.
 
 ## Stap 2 — Bouw de "alert aanmaken"-workflow
 
-1. Open **Workflows → Create Workflow**, geef het de naam `Incidents → Opsgenie`, en open de **Builder**.
+1. Open **Workflows → Workflow maken**, geef het de naam `Incidents → Opsgenie`, en open de **Bouwer**.
 2. Voeg een **Incident**-trigger toe ingesteld op **On Create**. Hernoem het naar `Incident`.
 3. Voeg een **API**-blok toe verbonden met de trigger:
 
@@ -48,13 +48,13 @@ OneUptime Incident → On Create  ──►  API component (POST /v2/alerts)  �
 
    De **`alias`** koppelt deze Opsgenie-alert aan het OneUptime-incident zodat je hem later op alias kunt sluiten. Let op dat het Opsgenie-auth-schema het letterlijke woord `GenieKey` is gevolgd door een spatie en je sleutel.
 
-4. **Sla op**, schakel in en maak een testincident aan. Een respons `202 Accepted` in de workflow-logs betekent dat Opsgenie de alert in de wachtrij heeft gezet.
+4. **Opslaan**, schakel in en maak een testincident aan. Een respons `202 Accepted` in de workflow-logs betekent dat Opsgenie de alert in de wachtrij heeft gezet.
 
 ## Stap 3 — Sluiten bij OneUptime-oplossing (aanbevolen)
 
 1. Maak een **tweede** workflow aan met de naam `Close Opsgenie` met een trigger **Incident → On Update**.
-2. Voeg een **Conditions**-blok toe dat controleert of het incident nu is opgelost (vertak op `{{Incident.currentIncidentState.name}}`).
-3. Voeg vanuit **Yes** een **API**-blok toe:
+2. Voeg een **Voorwaarden**-blok toe dat controleert of het incident nu is opgelost (vertak op `{{Incident.currentIncidentState.name}}`).
+3. Voeg vanuit **Ja** een **API**-blok toe:
    - **Method**: `POST`
    - **URL**: `https://api.opsgenie.com/v2/alerts/oneuptime-{{Incident._id}}/close?identifierType=alias`
    - **Headers**: hetzelfde `Authorization: GenieKey {{variable.OPSGENIE_KEY}}`
@@ -64,13 +64,13 @@ Opsgenie zoekt de alert op via alias en sluit hem.
 
 ## Prioriteitsmapping (optioneel)
 
-Opsgenie-prioriteiten lopen van `P1` tot `P5`. Map vanuit OneUptime-severities met **Conditions**-takken op `{{Incident.incidentSeverity.name}}` vóór het API-blok.
+Opsgenie-prioriteiten lopen van `P1` tot `P5`. Map vanuit OneUptime-severities met **Voorwaarden**-takken op `{{Incident.incidentSeverity.name}}` vóór het API-blok.
 
 ## Probleemoplossing
 
 - **`401`/`403`** — verkeerde sleutel, verkeerde regio-host, of de integratie heeft geen toestemming om alerts aan te maken. Bevestig dat je een **API**-integratiesleutel gebruikt en de bijbehorende `api`/`api.eu`-host.
 - **Sluiten geeft `404`** — de `alias` bij de sluit-aanroep moet exact overeenkomen met die van de aanmaak-aanroep, en `identifierType=alias` moet in de querystring staan.
-- **Er gebeurt niets** — bevestig dat de workflow **Enabled** is.
+- **Er gebeurt niets** — bevestig dat de workflow **Ingeschakeld** is.
 
 ## Waar verder lezen
 

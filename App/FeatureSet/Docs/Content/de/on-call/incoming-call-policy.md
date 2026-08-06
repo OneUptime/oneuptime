@@ -34,14 +34,14 @@ Da Sie OneUptime selbst hosten, müssen Sie Ihr eigenes Twilio-Konto konfigurier
 4. Füllen Sie die folgenden Felder aus:
    - **Name**: Ein verständlicher Name (z. B. "Production Twilio Config")
    - **Beschreibung**: Optionale Beschreibung
-   - **Twilio Account-SID**: Ihre Twilio Account-SID (beginnt mit `AC`)
-   - **Twilio Auth-Token**: Ihr Twilio Auth-Token
-   - **Twilio Primäre Telefonnummer**: Eine Telefonnummer aus Ihrem Twilio-Konto für ausgehende Anrufe
+   - **Twilio Account SID**: Ihre Twilio Account-SID (beginnt mit `AC`)
+   - **Twilio Auth Token**: Ihr Twilio Auth-Token
+   - **Twilio-Primärrufnummer**: Eine Telefonnummer aus Ihrem Twilio-Konto für ausgehende Anrufe
 5. Klicken Sie auf **Speichern**
 
 ## Schritt 3: Eingehende Anrufrichtlinie erstellen
 
-1. Gehen Sie zu **Bereitschaft** > **Eingehende Anrufrichtlinien**
+1. Gehen Sie zu **Bereitschaftsdienst** > **Richtlinien für eingehende Anrufe**
 2. Klicken Sie auf **Eingehende Anrufrichtlinie erstellen**
 3. Füllen Sie die folgenden Felder aus:
    - **Name**: Ein verständlicher Name (z. B. "Support-Hotline")
@@ -84,7 +84,7 @@ Eskalationsregeln bestimmen, wie Anrufe weitergeleitet werden:
 4. Konfigurieren Sie die Regel:
    - **Reihenfolge**: Die Prioritätsreihenfolge (niedrigere Zahlen werden zuerst versucht)
    - **Eskalieren nach (Sekunden)**: Wartezeit vor der Eskalation
-   - **Bereitschaftsplan**: Einen Plan auswählen, um den gerade Bereitschafthabenden zu erreichen
+   - **Bereitschaftszeitplan**: Einen Plan auswählen, um den gerade Bereitschafthabenden zu erreichen
    - **Teams**: Bestimmte Teams auswählen
    - **Benutzer**: Bestimmte Benutzer auswählen
 
@@ -101,7 +101,7 @@ Passen Sie die Nachrichten an, die Anrufer hören:
 
 ## Anrufprotokolle anzeigen
 
-1. Gehen Sie zu **Bereitschaft** > **Eingehende Anrufrichtlinien**
+1. Gehen Sie zu **Bereitschaftsdienst** > **Richtlinien für eingehende Anrufe**
 2. Klicken Sie auf Ihre Richtlinie
 3. Gehen Sie zum Tab **Anrufprotokolle**
 

@@ -14,9 +14,9 @@ Logg-monitorer søker etter og teller logger som samsvarer med spesifikke filtre
 
 ## Opprette en logg-monitor
 
-1. Gå til **Monitors** i OneUptime-dashbordet
-2. Klikk **Create Monitor**
-3. Velg **Logs** som monitortype
+1. Gå til **Overvåkere** i OneUptime-dashbordet
+2. Klikk **Opprett monitor**
+3. Velg **Logger** som monitortype
 4. Velg telemetritjenestene som skal overvåkes
 5. Konfigurer loggfiltre og kriterier etter behov
 
@@ -70,7 +70,7 @@ Filtrer logger etter ett eller flere alvorlighetsnivåer:
 
 - **Severity Levels**: ERROR
 - **Tidsvindu**: 60 sekunder
-- **Sjekk på**: Log Count
+- **Check On**: Log Count
 - **Filtertype**: Greater Than
 - **Verdi**: 100
 
@@ -78,7 +78,7 @@ Filtrer logger etter ett eller flere alvorlighetsnivåer:
 
 - **Severity Levels**: FATAL
 - **Tidsvindu**: 60 sekunder
-- **Sjekk på**: Log Count
+- **Check On**: Log Count
 - **Filtertype**: Greater Than
 - **Verdi**: 0
 
@@ -86,7 +86,7 @@ Filtrer logger etter ett eller flere alvorlighetsnivåer:
 
 - **Body**: `database connection timeout`
 - **Tidsvindu**: 300 sekunder
-- **Sjekk på**: Log Count
+- **Check On**: Log Count
 - **Filtertype**: Greater Than
 - **Verdi**: 5
 

@@ -10,7 +10,7 @@ Para agregar un secreto, ve al Panel de OneUptime → Monitores → Ajustes → 
 
 Puedes seleccionar qué monitores tienen acceso al secreto. En este caso agregamos el secreto `ApiKey` y seleccionamos los monitores que tendrán acceso a él.
 
-**Ten en cuenta**: Los secretos están cifrados y almacenados de forma segura. El valor nunca se vuelve a mostrar después de guardarlo: ni en la tabla, ni en el formulario de edición, ni a través de la API. Si pierdes el valor, tendrás que obtenerlo de su origen y volver a introducirlo. Para rotar un secreto, usa el botón **Update Secret Value** de su fila; no hace falta eliminarlo y volver a crearlo.
+**Ten en cuenta**: Los secretos están cifrados y almacenados de forma segura. El valor nunca se vuelve a mostrar después de guardarlo: ni en la tabla, ni en el formulario de edición, ni a través de la API. Si pierdes el valor, tendrás que obtenerlo de su origen y volver a introducirlo. Para rotar un secreto, usa el botón **Actualizar valor del secreto** de su fila; no hace falta eliminarlo y volver a crearlo.
 
 ### Usar un secreto
 

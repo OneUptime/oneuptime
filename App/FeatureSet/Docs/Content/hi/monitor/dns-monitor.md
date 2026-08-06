@@ -14,8 +14,8 @@ DNS monitors specific record types के लिए DNS servers query करत�
 
 ## DNS Monitor बनाना
 
-1. OneUptime Dashboard में **Monitors** पर जाएं
-2. **Create Monitor** पर क्लिक करें
+1. OneUptime Dashboard में **मॉनिटर** पर जाएं
+2. **मॉनिटर बनाएं** पर क्लिक करें
 3. monitor type के रूप में **DNS** चुनें
 4. query करने के लिए domain name और record type दर्ज करें
 5. आवश्यकतानुसार monitoring criteria configure करें
@@ -92,21 +92,21 @@ DNS monitors specific record types के लिए DNS servers query करत�
 #### जांचें कि DNS resolve हो रहा है
 
 - **Check On**: DNS Is Online
-- **Filter Type**: True
+- **फ़िल्टर प्रकार**: True
 
 #### सत्यापित करें कि A record सही IP की ओर point करता है
 
 - **Check On**: DNS Record Value
-- **Filter Type**: Equal To
-- **Value**: `93.184.216.34`
+- **फ़िल्टर प्रकार**: Equal To
+- **मान**: `93.184.216.34`
 
 #### DNS response slow होने पर Alert करें
 
 - **Check On**: DNS Response Time (in ms)
-- **Filter Type**: Greater Than
-- **Value**: 500
+- **फ़िल्टर प्रकार**: Greater Than
+- **मान**: 500
 
 #### सत्यापित करें कि DNSSEC valid है
 
 - **Check On**: DNSSEC Is Valid
-- **Filter Type**: True
+- **फ़िल्टर प्रकार**: True

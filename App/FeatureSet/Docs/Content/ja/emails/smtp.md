@@ -25,8 +25,8 @@ OneUptime で OAuth 認証を使用して SMTP を設定する際に必要な情
 | **ポート**                   | SMTP ポート（通常 STARTTLS は 587、暗黙的 TLS は 465）                                            |
 | **ユーザー名**               | 送信元メールアドレス                                                                              |
 | **認証タイプ**               | "OAuth" を選択                                                                                    |
-| **OAuth プロバイダータイプ** | Microsoft 365 は "Client Credentials"、Google Workspace は "JWT Bearer" を選択                    |
-| **クライアント ID**          | OAuth プロバイダーのアプリケーション/クライアント ID（Google の場合: サービスアカウントのメール） |
+| **OAuthプロバイダータイプ**  | Microsoft 365 は "Client Credentials"、Google Workspace は "JWT Bearer" を選択                    |
+| **クライアントID**           | OAuth プロバイダーのアプリケーション/クライアント ID（Google の場合: サービスアカウントのメール） |
 | **クライアントシークレット** | OAuth プロバイダーのクライアントシークレット（Google の場合: 秘密鍵）                             |
 | **トークン URL**             | OAuth トークンエンドポイント URL                                                                  |
 | **スコープ**                 | SMTP アクセスに必要な OAuth スコープ                                                              |

@@ -37,19 +37,19 @@ OneUptime वर्तमान में निम्नलिखित LLM pro
 ### चरण 1: LLM Providers Settings पर जाएं
 
 1. अपने OneUptime dashboard में लॉग इन करें
-2. **AI Agents** > **LLM Providers** पर जाएं
+2. **AI एजेंट** > **LLM प्रदाता** पर जाएं
 3. नया provider जोड़ने के लिए **Create LLM Provider** पर क्लिक करें
 
 ### चरण 2: अपना Provider Configure करें
 
 निम्नलिखित fields भरें:
 
-- **Name**: इस LLM configuration के लिए एक उचित नाम (जैसे "Production OpenAI", "Local Ollama")
-- **Description** (वैकल्पिक): इस provider के उद्देश्य की पहचान करने में सहायता के लिए एक विवरण
+- **नाम**: इस LLM configuration के लिए एक उचित नाम (जैसे "Production OpenAI", "Local Ollama")
+- **विवरण** (वैकल्पिक): इस provider के उद्देश्य की पहचान करने में सहायता के लिए एक विवरण
 - **LLM Type**: provider प्रकार चुनें (OpenAI, Azure OpenAI, Anthropic, Groq, Mistral, Ollama, या OpenAI Compatible)
-- **API Key**: आपकी API key (OpenAI, Azure OpenAI, Anthropic, Groq, और Mistral के लिए आवश्यक; Ollama और OpenAI-compatible servers के लिए वैकल्पिक)
-- **Model Name**: उपयोग करने के लिए विशिष्ट मॉडल (जैसे `gpt-4o`, `claude-3-opus-20240229`, `llama2`)
-- **Base URL** (वैकल्पिक): Custom API endpoint URL (Azure OpenAI, Ollama, और OpenAI Compatible के लिए आवश्यक; अन्य के लिए वैकल्पिक)
+- **API कुंजी**: आपकी API key (OpenAI, Azure OpenAI, Anthropic, Groq, और Mistral के लिए आवश्यक; Ollama और OpenAI-compatible servers के लिए वैकल्पिक)
+- **मॉडल नाम**: उपयोग करने के लिए विशिष्ट मॉडल (जैसे `gpt-4o`, `claude-3-opus-20240229`, `llama2`)
+- **बेस URL** (वैकल्पिक): Custom API endpoint URL (Azure OpenAI, Ollama, और OpenAI Compatible के लिए आवश्यक; अन्य के लिए वैकल्पिक)
 
 ## Provider-विशिष्ट Configuration
 
@@ -127,9 +127,9 @@ Model Name: llama2
 
 1. अपना OpenAI-compatible server शुरू करें और उसका base URL नोट करें (यह आमतौर पर `/v1` पर समाप्त होता है)
 2. LLM Type के रूप में **OpenAI Compatible** चुनें
-3. **Base URL** दर्ज करें (आवश्यक), जैसे `http://your-server:8000/v1`
-4. **Model Name** दर्ज करें (आवश्यक) — यह आपके server द्वारा उपलब्ध कराए गए किसी मॉडल से मेल खाना चाहिए
-5. **API Key** केवल तभी दर्ज करें जब आपके server को इसकी आवश्यकता हो; keyless servers के लिए इसे खाली छोड़ दें
+3. **बेस URL** दर्ज करें (आवश्यक), जैसे `http://your-server:8000/v1`
+4. **मॉडल नाम** दर्ज करें (आवश्यक) — यह आपके server द्वारा उपलब्ध कराए गए किसी मॉडल से मेल खाना चाहिए
+5. **API कुंजी** केवल तभी दर्ज करें जब आपके server को इसकी आवश्यकता हो; keyless servers के लिए इसे खाली छोड़ दें
 
 **उदाहरण Configuration (keyless vLLM):**
 
@@ -141,7 +141,7 @@ Model Name: meta-llama/Llama-3.1-8B-Instruct
 API Key: (leave blank)
 ```
 
-> Tip: सेव करने के बाद, connection, model name, और base URL सही हैं यह सुनिश्चित करने के लिए provider पर **Test** बटन का उपयोग करें।
+> Tip: सेव करने के बाद, connection, model name, और base URL सही हैं यह सुनिश्चित करने के लिए provider पर **परीक्षण** बटन का उपयोग करें।
 
 ### Self-Hosted vLLM on Kubernetes (Helm)
 

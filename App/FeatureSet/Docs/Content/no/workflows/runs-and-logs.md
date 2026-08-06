@@ -4,11 +4,11 @@ Hver gang en arbeidsflyt kjører, lagrer OneUptime et register over hva som skje
 
 ## Hvor du finner dem
 
-| Side                                   | Hva du ser                                                                                |
-| -------------------------------------- | ----------------------------------------------------------------------------------------- |
-| **Arbeidsflyter → Kjøringer & logger** | Hver kjøring fra hver arbeidsflyt i prosjektet. Filtrer etter arbeidsflyt, status og tid. |
-| **Arbeidsflyt → Logger-fanen**         | Bare kjøringene av denne ene arbeidsflyten.                                               |
-| **En enkelt kjøring**                  | Én eksekvering, med utdata fra hver blokk.                                                |
+| Side                                    | Hva du ser                                                                                |
+| --------------------------------------- | ----------------------------------------------------------------------------------------- |
+| **Arbeidsflyter → Kjøringer og logger** | Hver kjøring fra hver arbeidsflyt i prosjektet. Filtrer etter arbeidsflyt, status og tid. |
+| **Arbeidsflyt → Logger-fanen**          | Bare kjøringene av denne ene arbeidsflyten.                                               |
+| **En enkelt kjøring**                   | Én eksekvering, med utdata fra hver blokk.                                                |
 
 ## Kjøringsstatuser
 
@@ -57,13 +57,13 @@ En blokk som ikke kjører er vanligvis et koblingsproblem. Åpne lerretet og sje
 
 ### "Det fungerer når jeg kjører det manuelt, men ikke fra triggeren."
 
-Bruk **Kjør manuelt** med en JSON-nyttelast som ser ut som det den ekte triggeren sender. Sammenlign så verdiene i den manuelle kjøringen med den ekte kjøringen side om side. Forskjellen er vanligvis ett enkelt feltnavn eller datatype.
+Bruk **Run Manually** med en JSON-nyttelast som ser ut som det den ekte triggeren sender. Sammenlign så verdiene i den manuelle kjøringen med den ekte kjøringen side om side. Forskjellen er vanligvis ett enkelt feltnavn eller datatype.
 
 ## Kjøre en arbeidsflyt på nytt
 
 Det finnes ingen "prøv denne kjøringen på nytt"-knapp. Vi kjører ikke gamle eksekveringer på nytt automatisk fordi bivirkningene (Slack-meldinger, API-kall, saker) kanskje ikke er trygge å gjenta. For å gjøre arbeidet om igjen, fiks arbeidsflyten og la den neste ekte triggeren utløse den.
 
-For manuelle arbeidsflyter, klikk bare **Kjør manuelt** med samme nyttelast.
+For manuelle arbeidsflyter, klikk bare **Run Manually** med samme nyttelast.
 
 ## Hvor lenge oppbevares kjøringer?
 

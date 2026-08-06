@@ -1,6 +1,6 @@
 # Creazione di un workflow
 
-Per creare un workflow, apri **Workflows → Create Workflow**, assegna un nome e clicca sulla scheda **Builder**. Vedrai un canvas vuoto su cui costruirai l'automazione.
+Per creare un workflow, apri **Flussi di lavoro → Crea flusso di lavoro**, assegna un nome e clicca sulla scheda **Costruttore**. Vedrai un canvas vuoto su cui costruirai l'automazione.
 
 ## Il canvas
 
@@ -38,11 +38,11 @@ La maggior parte dei campi di testo accetta variabili — e cosi che i dati pass
 Il modo piu rapido per prendere confidenza con il canvas:
 
 1. Trascina un trigger **Manual** sul canvas.
-2. Trascina un componente **Log** (sotto **Utils**) accanto. Collega il trigger al componente Log.
+2. Trascina un componente **Registro** (sotto **Utils**) accanto. Collega il trigger al componente Log.
 3. Nel campo messaggio del blocco Log, scrivi `Hello from {{Manual.JSON.name}}`.
 4. Salva e attiva il workflow.
 5. Clicca su **Run Manually**, incolla `{ "name": "Ada" }` come input e invia.
-6. Apri la scheda **Logs**. L'ultima esecuzione mostra `Hello from Ada`.
+6. Apri la scheda **Registri**. L'ultima esecuzione mostra `Hello from Ada`.
 
 Quel ciclo — trascina, collega, configura, esegui, controlla il log — e il modo in cui costruirai ogni workflow.
 
@@ -50,9 +50,9 @@ Quel ciclo — trascina, collega, configura, esegui, controlla il log — e il m
 
 Il canvas salva mentre lavori. Non c'e un passaggio separato di "pubblicazione."
 
-Tuttavia, un workflow viene effettivamente eseguito solo quando **Enabled** e attivo in Settings. I nuovi workflow partono disabilitati. Usa quell'interruttore come rete di sicurezza — costruisci, testa con **Run Manually**, controlla i log, poi attivalo.
+Tuttavia, un workflow viene effettivamente eseguito solo quando **Abilitato** e attivo in Settings. I nuovi workflow partono disabilitati. Usa quell'interruttore come rete di sicurezza — costruisci, testa con **Run Manually**, controlla i log, poi attivalo.
 
-Per mettere in pausa un workflow senza eliminarlo, disattiva **Enabled**. Le esecuzioni gia in corso vengono completate; non ne vengono avviate di nuove.
+Per mettere in pausa un workflow senza eliminarlo, disattiva **Abilitato**. Le esecuzioni gia in corso vengono completate; non ne vengono avviate di nuove.
 
 ## Mettere in ordine
 

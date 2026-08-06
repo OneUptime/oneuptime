@@ -17,8 +17,8 @@ Gör en HTTP-förfrågan till valfri URL.
 
 **Utdata**:
 
-- **Success** — utlöses när anropet fungerade (2xx-svar). Skickar vidare status, headers och body.
-- **Error** — utlöses vid nätverksfel eller ett icke-2xx-svar. Skickar vidare felmeddelandet.
+- **Framgång** — utlöses när anropet fungerade (2xx-svar). Skickar vidare status, headers och body.
+- **Fel** — utlöses vid nätverksfel eller ett icke-2xx-svar. Skickar vidare felmeddelandet.
 
 Använd den för: alla externa API:er, dina egna administrationsendpoints, eller integrationer som inte har sin egen komponent.
 
@@ -34,10 +34,10 @@ Posta ett meddelande till en Slack-kanal.
 
 **Inställningar**:
 
-- **Channel** — kanalnamnet. Boten måste redan vara med i den kanalen.
-- **Message** — texten som ska skickas. Stöder Slack-formatering.
+- **Kanal** — kanalnamnet. Boten måste redan vara med i den kanalen.
+- **Meddelande** — texten som ska skickas. Stöder Slack-formatering.
 
-Koppla först Slack till ditt projekt under **Project Settings → Arbetsyta → Slack**. Se [Slack Workspace Connection](/docs/workspace-connections/slack).
+Koppla först Slack till ditt projekt under **Projektinställningar → Arbetsyta → Slack**. Se [Slack Workspace Connection](/docs/workspace-connections/slack).
 
 ## Microsoft Teams
 
@@ -46,7 +46,7 @@ Posta ett meddelande till en Microsoft Teams-kanal.
 **Inställningar**:
 
 - **Team and channel** — var meddelandet ska postas.
-- **Message** — texten som ska skickas.
+- **Meddelande** — texten som ska skickas.
 
 Se [Microsoft Teams Workspace Connection](/docs/workspace-connections/microsoft-teams) för konfiguration.
 
@@ -64,8 +64,8 @@ Skicka ett e-postmeddelande via OneUptime.
 
 **Inställningar**:
 
-- **To** — mottagarens e-postadress.
-- **Subject** — ämnesraden.
+- **Till** — mottagarens e-postadress.
+- **Ämne** — ämnesraden.
 - **Body** — meddelandet i Markdown eller HTML.
 
 E-posten skickas från projektets konfigurerade avsändare — se [SMTP](/docs/emails/smtp).
@@ -76,7 +76,7 @@ Kör en liten bit JavaScript när du behöver något som de andra blocken inte k
 
 **Inställningar**:
 
-- **Code** — din JavaScript. Det sista värdet (eller det du returnerar från en async-funktion) blir blockets utdata.
+- **Kod** — din JavaScript. Det sista värdet (eller det du returnerar från en async-funktion) blir blockets utdata.
 - **Arguments** — namngivna värden du kan skicka in.
 
 **Utdata**: success (ditt returvärde) och error (eventuellt undantag).
@@ -100,7 +100,7 @@ Förgrena baserat på en jämförelse.
 - **Operator** — `==`, `!=`, `>`, `>=`, `<`, `<=`, `contains`, `starts with`, `ends with`.
 - **Right value** — vad det ska jämföras mot.
 
-**Utdata**: **Yes** och **No**. Koppla nästa block till vilken gren du vill.
+**Utdata**: **Ja** och **Nej**. Koppla nästa block till vilken gren du vill.
 
 ## Delay
 
@@ -124,12 +124,12 @@ För varje sorts post i OneUptime (monitorer, incidenter, larm, statussidor, jou
 
 - **Find One** — hämta en post efter ID eller filter.
 - **Find** — hämta en lista med poster.
-- **Create** — lägg till en ny post.
-- **Update** — ändra en post.
-- **Delete** — ta bort en post.
-- **Count** — räkna poster som matchar ett filter.
+- **Skapa** — lägg till en ny post.
+- **Uppdatera** — ändra en post.
+- **Ta bort** — ta bort en post.
+- **Antal** — räkna poster som matchar ett filter.
 
-Det är så ett arbetsflöde kan läsa och ändra OneUptime-data. Till exempel: en webhook från ditt CI-verktyg kan använda **Create Incident** för att öppna en incident med felinformationen.
+Det är så ett arbetsflöde kan läsa och ändra OneUptime-data. Till exempel: en webhook från ditt CI-verktyg kan använda **Skapa incident** för att öppna en incident med felinformationen.
 
 ## Vilken komponent ska jag använda?
 
@@ -138,7 +138,7 @@ Några snabba regler:
 - Om det finns ett dedikerat block för det du vill (Slack, E-post, en OneUptime-post), använd det — du får snyggare felhantering och tydligare loggar.
 - För alla andra externa API:er, använd **API**.
 - För att omforma data mellan block, använd **Custom Code** eller **JSON**.
-- För att vidta olika åtgärder baserat på ett värde, använd **Conditions**.
+- För att vidta olika åtgärder baserat på ett värde, använd **Villkor**.
 
 ## Läs vidare
 

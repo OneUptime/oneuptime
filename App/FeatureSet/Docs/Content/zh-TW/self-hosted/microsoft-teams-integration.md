@@ -108,7 +108,7 @@ microsoftTeamsApp:
 
 ### 步驟 7：上傳 Teams 應用程式資訊清單
 
-1. 前往專案 **Settings** > **工作區** > **Microsoft Teams**
+1. 前往專案 **設定** > **工作區** > **Microsoft Teams**
 2. 從該處下載 Teams 應用程式資訊清單
 3. 前往 Microsoft Teams，點選側邊欄中的「Apps」
 4. 在底部，點選「Manage your apps」

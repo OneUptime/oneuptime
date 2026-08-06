@@ -3,14 +3,14 @@
 Det finns tre sätt en runbook-körning skapas:
 
 1. **Automatiskt via en regel** — se [Runbook-regler](/docs/runbooks/rules).
-2. **Manuellt från runbook-sidan** — klicka **Kör nu** på ett runbooks översiktssida. Inte kopplad till någon incident, något larm eller någon planerad underhållshändelse.
-3. **Manuellt från ett entitetsflöde** — klicka **Kör runbook** på en incident, ett larm eller en planerad underhållshändelse. Körningen kopplas till den entiteten.
+2. **Manuellt från runbook-sidan** — klicka **Run Now** på ett runbooks översiktssida. Inte kopplad till någon incident, något larm eller någon planerad underhållshändelse.
+3. **Manuellt från ett entitetsflöde** — klicka **Kör Runbook** på en incident, ett larm eller en planerad underhållshändelse. Körningen kopplas till den entiteten.
 
 ## Körningsvyn
 
 Öppna vilken körning som helst för att se dess checklist-UI. Varje steg visar:
 
-- **Statusetikett** — Pending, Running, Väntar på dig, Done, Skipped, Failed.
+- **Statusetikett** — Väntar, Körs, Väntar på dig, Klar, Hoppade över, Misslyckades.
 - **Titel och beskrivning** — kopierade från runbooket vid körtid.
 - **Utdata** (hopfällbart) — stdout, returvärden, HTTP-svar.
 - **Felmeddelande** om steget misslyckades.
@@ -40,8 +40,8 @@ Utdata per steg är begränsad till **50KB** för att förhindra att skenande sk
 
 ## Köra ett runbook igen
 
-En runbook-körning är ett engångs, oföränderligt register. För att köra igen, klicka **Kör nu** igen — det skapar en färsk körning med ett färskt snapshot av runbookets nuvarande steg. Den ursprungliga körningen förblir intakt för audit-spåret.
+En runbook-körning är ett engångs, oföränderligt register. För att köra igen, klicka **Run Now** igen — det skapar en färsk körning med ett färskt snapshot av runbookets nuvarande steg. Den ursprungliga körningen förblir intakt för audit-spåret.
 
 ## Hitta tidigare körningar
 
-Varje runbook har en **Executions**-flik som listar alla dess körningar, med filter för status, datumintervall och käll-entitet. Från en incident, ett larm eller en planerad underhållshändelse visar **Runbooks**-fliken körningar kopplade till den entiteten.
+Varje runbook har en **Körningar**-flik som listar alla dess körningar, med filter för status, datumintervall och käll-entitet. Från en incident, ett larm eller en planerad underhållshändelse visar **Runbooks**-fliken körningar kopplade till den entiteten.

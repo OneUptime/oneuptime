@@ -4,29 +4,29 @@ Varje gång ett arbetsflöde körs sparar OneUptime en post över vad som hände
 
 ## Var hittar du dem
 
-| Sida                        | Vad du ser                                                                                 |
-| --------------------------- | ------------------------------------------------------------------------------------------ |
-| **Workflows → Runs & Logs** | Varje körning från varje arbetsflöde i projektet. Filtrera på arbetsflöde, status och tid. |
-| **Workflow → Logs-fliken**  | Bara körningarna av detta enda arbetsflöde.                                                |
-| **En enskild körning**      | En exekvering, med utdata från varje block.                                                |
+| Sida                                    | Vad du ser                                                                                 |
+| --------------------------------------- | ------------------------------------------------------------------------------------------ |
+| **Arbetsflöden → Körningar och loggar** | Varje körning från varje arbetsflöde i projektet. Filtrera på arbetsflöde, status och tid. |
+| **Arbetsflöde → Loggar-fliken**         | Bara körningarna av detta enda arbetsflöde.                                                |
+| **En enskild körning**                  | En exekvering, med utdata från varje block.                                                |
 
 ## Körningsstatusar
 
-| Status        | Betydelse                                                                                                                                                 |
-| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Scheduled** | Utlösaren triggades och körningen ska just börja. Tar oftast bara en bråkdel av en sekund.                                                                |
-| **Running**   | Arbetsflödet pågår. Långkörande block håller en körning i detta läge.                                                                                     |
-| **Success**   | Varje block som kördes avslutades utan fel. (Att avsiktligt ta en **error**-gren räknas fortfarande som success — själva arbetsflödet misslyckades inte.) |
-| **Error**     | Ett block misslyckades och det fanns ingen **error**-väg kopplad för att hantera det. Körningen stannade där.                                             |
-| **Timeout**   | Körningen pågick längre än tillåtet. Se [Konfiguration & säkerhet](/docs/workflows/configuration).                                                        |
+| Status         | Betydelse                                                                                                                                                 |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Schemalagd** | Utlösaren triggades och körningen ska just börja. Tar oftast bara en bråkdel av en sekund.                                                                |
+| **Körs**       | Arbetsflödet pågår. Långkörande block håller en körning i detta läge.                                                                                     |
+| **Framgång**   | Varje block som kördes avslutades utan fel. (Att avsiktligt ta en **error**-gren räknas fortfarande som success — själva arbetsflödet misslyckades inte.) |
+| **Fel**        | Ett block misslyckades och det fanns ingen **error**-väg kopplad för att hantera det. Körningen stannade där.                                             |
+| **Timeout**    | Körningen pågick längre än tillåtet. Se [Konfiguration & säkerhet](/docs/workflows/configuration).                                                        |
 
 ## Läsa en körning
 
 Klicka på vilken körning som helst för att öppna detaljerna. Du ser:
 
-- **Header** — utlösaren, start- och sluttid, total tidsåtgång och status.
+- **Sidhuvud** — utlösaren, start- och sluttid, total tidsåtgång och status.
 - **Block list** — varje block som kördes, i ordning. Var och en visar värdena det fick, dess utdata och vilken väg det tog.
-- **Errors** — om ett block misslyckades, felmeddelandet och (när det är tillgängligt) mer detaljer.
+- **Fel** — om ett block misslyckades, felmeddelandet och (när det är tillgängligt) mer detaljer.
 
 Värdena som visas är exakt vad blocket såg — efter att alla variabler fyllts i. Detta är den enskilt mest användbara felsökningsvyn: om ett Slack-meddelande visar den bokstavliga texten `{{Incident.title}}` istället för den faktiska titeln, vet du att variabeln inte löstes.
 
@@ -34,19 +34,19 @@ Värdena som visas är exakt vad blocket såg — efter att alla variabler fyllt
 
 ### "Mitt arbetsflöde kördes inte."
 
-1. Kontrollera att arbetsflödet är **enabled** i Settings. Nya arbetsflöden börjar inaktiverade.
+1. Kontrollera att arbetsflödet är **Aktiverad** i Inställningar. Nya arbetsflöden börjar inaktiverade.
 2. För en OneUptime-händelseutlösare: bekräfta att händelsen faktiskt inträffade. Öppna posten och kontrollera dess historik.
 3. För en webhook-utlösare: bekräfta att det andra systemet skickar till rätt URL. De flesta verktyg loggar när de skickar en webhook — kolla där.
 4. För en schemaläggningsutlösare: bekräfta att cron-uttrycket matchar den tid du förväntar dig.
 
-Om utlösaren triggades men ingen körning dyker upp, kolla din körningskvot under **Project Settings → Billing**.
+Om utlösaren triggades men ingen körning dyker upp, kolla din körningskvot under **Projektinställningar → Fakturering**.
 
 ### "Ett senare block kördes aldrig."
 
 Ett block som inte körs är vanligtvis ett kopplingsproblem. Öppna arbetsytan och kontrollera:
 
 - Är det tidigare blockets utdata kopplad till detta blocks indata?
-- Tog det tidigare blocket en annan utdata än du förväntade dig (till exempel **error** istället för **success**, eller **No** istället för **Yes**)? Körningsdetaljen visar vilken väg som togs.
+- Tog det tidigare blocket en annan utdata än du förväntade dig (till exempel **error** istället för **success**, eller **Nej** istället för **Ja**)? Körningsdetaljen visar vilken väg som togs.
 
 ### "En variabel kom igenom tom."
 

@@ -15,8 +15,8 @@ I monitor delle eccezioni contano e filtrano le eccezioni che corrispondono a cr
 ## Creazione di un Monitor delle Eccezioni
 
 1. Vai su **Monitor** nella Dashboard di OneUptime
-2. Clicca su **Crea Monitor**
-3. Seleziona **Exceptions** come tipo di monitor
+2. Clicca su **Crea monitor**
+3. Seleziona **Eccezioni** come tipo di monitor
 4. Seleziona i servizi di telemetria da monitorare
 5. Configura i filtri e i criteri delle eccezioni secondo necessità
 
@@ -57,25 +57,25 @@ Seleziona uno o più servizi da cui monitorare le eccezioni. I servizi devono in
 
 #### Avvisa se più di 10 eccezioni in 60 secondi
 
-- **Finestra Temporale**: 60 secondi
+- **Finestra temporale**: 60 secondi
 - **Controlla Su**: Exception Count
-- **Tipo di Filtro**: Greater Than
+- **Tipo di filtro**: Greater Than
 - **Valore**: 10
 
 #### Avvisa su qualsiasi NullPointerException
 
-- **Tipi di Eccezione**: `NullPointerException`
-- **Finestra Temporale**: 60 secondi
+- **Tipi di eccezione**: `NullPointerException`
+- **Finestra temporale**: 60 secondi
 - **Controlla Su**: Exception Count
-- **Tipo di Filtro**: Greater Than
+- **Tipo di filtro**: Greater Than
 - **Valore**: 0
 
 #### Monitora le eccezioni contenenti un messaggio specifico
 
 - **Messaggio**: `out of memory`
-- **Finestra Temporale**: 300 secondi
+- **Finestra temporale**: 300 secondi
 - **Controlla Su**: Exception Count
-- **Tipo di Filtro**: Greater Than
+- **Tipo di filtro**: Greater Than
 - **Valore**: 0
 
 ## Requisiti di Configurazione

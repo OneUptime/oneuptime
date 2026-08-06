@@ -20,13 +20,13 @@ SCIM 整合提供下列優點：
 1. **前往專案設定**
 
    - 進入您的 OneUptime 專案
-   - 前往 **Project Settings** > **安全性** > **SCIM**
+   - 前往 **專案設定** > **安全性** > **SCIM**
 
 2. **設定 SCIM 選項**
 
-   - 啟用 **Auto Provision Users**，當使用者在您的 IdP 中被指派時自動新增使用者
-   - 啟用 **Auto Deprovision Users**，當使用者在您的 IdP 中被取消指派時自動移除使用者
-   - 選取新使用者應加入的 **Default Teams**
+   - 啟用 **自動佈建使用者**，當使用者在您的 IdP 中被指派時自動新增使用者
+   - 啟用 **自動取消佈建使用者**，當使用者在您的 IdP 中被取消指派時自動移除使用者
+   - 選取新使用者應加入的 **預設團隊**
    - 複製 **SCIM Base URL** 與 **Bearer Token**，以供您的 IdP 設定使用
 
 3. **設定您的身分提供者**
@@ -73,8 +73,8 @@ SCIM 整合提供下列優點：
 
 2. **設定 SCIM 選項**
 
-   - 啟用 **Auto Provision Users**，當訂閱者在您的 IdP 中被指派時自動新增訂閱者
-   - 啟用 **Auto Deprovision Users**，當訂閱者在您的 IdP 中被取消指派時自動移除訂閱者
+   - 啟用 **自動佈建使用者**，當訂閱者在您的 IdP 中被指派時自動新增訂閱者
+   - 啟用 **自動取消佈建使用者**，當訂閱者在您的 IdP 中被取消指派時自動移除訂閱者
    - 複製 **SCIM Base URL** 與 **Bearer Token**，以供您的 IdP 設定使用
 
 3. **設定您的身分提供者**
@@ -117,14 +117,14 @@ Microsoft Entra ID 提供企業等級的身分管理，並具備強大的 SCIM �
 #### 步驟 1：從 OneUptime 取得 SCIM 設定
 
 1. 登入您的 OneUptime 儀表板
-2. 前往 **Project Settings** > **安全性** > **SCIM**
+2. 前往 **專案設定** > **安全性** > **SCIM**
 3. 點選 **Create SCIM Configuration**
 4. 輸入易記名稱（例如「Microsoft Entra ID Provisioning」）
 5. 設定下列選項：
-   - **Auto Provision Users**：啟用以自動建立使用者
-   - **Auto Deprovision Users**：啟用以自動移除使用者
-   - **Default Teams**：選取新使用者應加入的團隊
-   - **Enable Push Groups**：若您想透過 Entra ID 群組管理團隊成員資格，請啟用此選項
+   - **自動佈建使用者**：啟用以自動建立使用者
+   - **自動取消佈建使用者**：啟用以自動移除使用者
+   - **預設團隊**：選取新使用者應加入的團隊
+   - **啟用 push 群組**：若您想透過 Entra ID 群組管理團隊成員資格，請啟用此選項
 6. 儲存設定
 7. 複製 **SCIM Base URL** 與 **Bearer Token**——您在 Entra ID 中會需要用到這些資訊
 
@@ -169,7 +169,7 @@ Microsoft Entra ID 提供企業等級的身分管理，並具備強大的 SCIM �
 
 #### 步驟 5：設定群組佈建（選用）
 
-若您在 OneUptime 中啟用了 **Push Groups**：
+若您在 OneUptime 中啟用了 **推送群組**：
 
 1. 返回 **Mappings**
 2. 點選 **Provision Azure Active Directory Groups**
@@ -219,14 +219,14 @@ Okta 提供具彈性的身分管理，並擁有絕佳的 SCIM 支援。請依照
 #### 步驟 1：從 OneUptime 取得 SCIM 設定
 
 1. 登入您的 OneUptime 儀表板
-2. 前往 **Project Settings** > **安全性** > **SCIM**
+2. 前往 **專案設定** > **安全性** > **SCIM**
 3. 點選 **Create SCIM Configuration**
 4. 輸入易記名稱（例如「Okta Provisioning」）
 5. 設定下列選項：
-   - **Auto Provision Users**：啟用以自動建立使用者
-   - **Auto Deprovision Users**：啟用以自動移除使用者
-   - **Default Teams**：選取新使用者應加入的團隊
-   - **Enable Push Groups**：若您想透過 Okta 群組管理團隊成員資格，請啟用此選項
+   - **自動佈建使用者**：啟用以自動建立使用者
+   - **自動取消佈建使用者**：啟用以自動移除使用者
+   - **預設團隊**：選取新使用者應加入的團隊
+   - **啟用 push 群組**：若您想透過 Okta 群組管理團隊成員資格，請啟用此選項
 6. 儲存設定
 7. 複製 **SCIM Base URL** 與 **Bearer Token**——您在 Okta 中會需要用到這些資訊
 
@@ -303,7 +303,7 @@ Okta 提供具彈性的身分管理，並擁有絕佳的 SCIM 支援。請依照
 
 #### 步驟 7：設定推送群組（選用）
 
-若您在 OneUptime 中啟用了 **Push Groups**：
+若您在 OneUptime 中啟用了 **推送群組**：
 
 1. 前往 **Push Groups** 索引標籤
 2. 點選 **+ Push Groups**
@@ -411,8 +411,8 @@ OneUptime 的 SCIM 實作遵循 SCIM v2.0 規格，應可與任何符合規範�
 
 ### 預設團隊與推送群組之間有什麼差異？
 
-- **Default Teams**：所有透過 SCIM 佈建的使用者都會被加入相同的預先定義團隊
-- **Push Groups**：團隊成員資格由您的身分提供者管理，可讓不同的使用者依其 IdP 群組成員資格而被分配至不同的團隊
+- **預設團隊**：所有透過 SCIM 佈建的使用者都會被加入相同的預先定義團隊
+- **推送群組**：團隊成員資格由您的身分提供者管理，可讓不同的使用者依其 IdP 群組成員資格而被分配至不同的團隊
 
 ### 佈建同步多久進行一次？
 

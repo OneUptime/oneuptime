@@ -1,6 +1,6 @@
 # Een dashboard maken
 
-Om een dashboard te maken, open je **Dashboards → Create Dashboard**, geef je het een naam en open je het. Het canvas opent in **Edit**-modus, klaar voor je om widgets toe te voegen.
+Om een dashboard te maken, open je **Dashboards → Create Dashboard**, geef je het een naam en open je het. Het canvas opent in **Bewerken**-modus, klaar voor je om widgets toe te voegen.
 
 ## Het canvas
 
@@ -10,8 +10,8 @@ Een dashboard is een grid. Widgets klikken op hun plek — jij bepaalt waar elke
 
 De schakelaar in de header wisselt tussen twee modi:
 
-- **Edit** — het widget-palet staat open, je kunt widgets verslepen, vergroten of verkleinen en op elke widget klikken om zijn instellingen te wijzigen.
-- **View** — het dashboard is alleen-lezen, precies zoals bezoekers en andere teamleden het zien. Gebruik dit om het resultaat te bekijken voordat je deelt.
+- **Bewerken** — het widget-palet staat open, je kunt widgets verslepen, vergroten of verkleinen en op elke widget klikken om zijn instellingen te wijzigen.
+- **Bekijken** — het dashboard is alleen-lezen, precies zoals bezoekers en andere teamleden het zien. Gebruik dit om het resultaat te bekijken voordat je deelt.
 
 Het is in beide modi hetzelfde dashboard. Er is geen aparte "publish"-stap — elke bewerking is live zodra hij is opgeslagen.
 
@@ -28,13 +28,13 @@ Het is in beide modi hetzelfde dashboard. Er is geen aparte "publish"-stap — e
 
 De meeste widgets lezen uit één van drie bronnen:
 
-- **Metrics** — kies een metric en een aggregatie (gemiddelde, max, count, percentiel). Voeg filters toe. Kies hoe je het resultaat groepeert. Dit is dezelfde query-builder die je elders in OneUptime ziet.
+- **Metrieken** — kies een metric en een aggregatie (gemiddelde, max, count, percentiel). Voeg filters toe. Kies hoe je het resultaat groepeert. Dit is dezelfde query-builder die je elders in OneUptime ziet.
 - **Live lijsten** — incidenten, alerts, monitors, Kubernetes-pods, Docker-containers, hosts. Elke lijst-widget neemt een filter en toont de overeenkomende items, live bijgewerkt.
-- **Statische content** — de **Text**-widget neemt een blok Markdown. Gebruik hem voor koppen, context, links naar runbooks of tijdelijke notities tijdens een incident.
+- **Statische content** — de **Tekst**-widget neemt een blok Markdown. Gebruik hem voor koppen, context, links naar runbooks of tijdelijke notities tijdens een incident.
 
 ## Drempels en opmaak
 
-Single-value-widgets (**Value**, **Gauge**) laten je instellen:
+Single-value-widgets (**Waarde**, **Meter**) laten je instellen:
 
 - Een **warning threshold** — de kleur wordt geel wanneer de waarde deze passeert.
 - Een **critical threshold** — de kleur wordt rood wanneer de waarde deze passeert.
@@ -46,7 +46,7 @@ Bij charts kun je de Y-as-eenheid instellen, kiezen waar de legenda komt en bepa
 Bovenaan het dashboard beïnvloeden twee controls elke metric-widget:
 
 - **Tijdsbereik** — een preset (afgelopen uur, 24 uur, 7 dagen, 30 dagen) of een aangepast bereik. Elke chart en elk getal gebruikt dit venster.
-- **Refresh** — hoe vaak widgets opnieuw queryen. Uit, 5s, 10s, 30s, 1m, 5m, 15m. Live lijsten updaten zelf, ongeacht deze instelling.
+- **Vernieuwen** — hoe vaak widgets opnieuw queryen. Uit, 5s, 10s, 30s, 1m, 5m, 15m. Live lijsten updaten zelf, ongeacht deze instelling.
 
 Widgets die het tijdsbereik niet gebruiken (zoals een Text-widget) negeren beide controls.
 

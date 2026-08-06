@@ -9,7 +9,7 @@
 
 2. **將 Slack 連接至 OneUptime 專案**
 
-   - 在您的 OneUptime 專案中，前往 **Project Settings** > **Slack**。
+   - 在您的 OneUptime 專案中，前往 **專案設定** > **Slack**。
    - 依照提示將您的 Slack 帳戶與 OneUptime 專案連接。
 
 3. **設定事件通知**

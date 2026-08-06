@@ -25,17 +25,17 @@ Zabbix trigger fires  ──►  Webhook media type  ──►  OneUptime Workfl
 
 Tun Sie dies zuerst, da Sie die dabei generierte Webhook-URL benötigen.
 
-1. Öffnen Sie **Workflows → Create Workflow**. Benennen Sie ihn `Zabbix → Incidents` und öffnen Sie den **Builder**-Tab.
+1. Öffnen Sie **Arbeitsabläufe → Workflow erstellen**. Benennen Sie ihn `Zabbix → Incidents` und öffnen Sie den **Builder**-Tab.
 2. Ziehen Sie einen **Webhook**-Auslöser auf die Arbeitsfläche. Klicken Sie darauf und **kopieren Sie die angezeigte eindeutige URL**. Bewahren Sie diese sicher auf – jeder, der sie besitzt, kann den Workflow starten. Benennen Sie den Block in `Zabbix` um, damit Variablen übersichtlich lesbar sind.
-3. Ziehen Sie einen **Conditions**-Block auf die Arbeitsfläche und verbinden Sie den Ausgang des Auslösers damit. Konfigurieren Sie:
+3. Ziehen Sie einen **Bedingungen**-Block auf die Arbeitsfläche und verbinden Sie den Ausgang des Auslösers damit. Konfigurieren Sie:
    - **Linker Wert**: `{{Zabbix.Request Body.status}}`
    - **Operator**: `==`
    - **Rechter Wert**: `1` _(Zabbix sendet `1` für ein Problem, `0` für eine Wiederherstellung)_
-4. Ziehen Sie einen **Create Incident**-Block und verbinden Sie ihn mit dem **Yes**-Ausgang des Conditions-Blocks. Füllen Sie aus:
-   - **Title**: `Zabbix: {{Zabbix.Request Body.name}}`
-   - **Description**: `Host: {{Zabbix.Request Body.host}}\nSeverity: {{Zabbix.Request Body.severity}}\nZabbix event: {{Zabbix.Request Body.event_id}}`
-   - **Severity**: Wählen Sie den gewünschten OneUptime-Vorfallsschweregrad (Sie können dies später mit weiteren Conditions-Zweigen verfeinern, die Zabbix-Schweregrade abbilden).
-5. Speichern. Lassen Sie **Enabled** vorerst _aus_ – Sie aktivieren es nach einem Test.
+4. Ziehen Sie einen **Vorfall erstellen**-Block und verbinden Sie ihn mit dem **Ja**-Ausgang des Conditions-Blocks. Füllen Sie aus:
+   - **Titel**: `Zabbix: {{Zabbix.Request Body.name}}`
+   - **Beschreibung**: `Host: {{Zabbix.Request Body.host}}\nSeverity: {{Zabbix.Request Body.severity}}\nZabbix event: {{Zabbix.Request Body.event_id}}`
+   - **Schweregrad**: Wählen Sie den gewünschten OneUptime-Vorfallsschweregrad (Sie können dies später mit weiteren Conditions-Zweigen verfeinern, die Zabbix-Schweregrade abbilden).
+5. Speichern. Lassen Sie **Aktiviert** vorerst _aus_ – Sie aktivieren es nach einem Test.
 
 > **Tipp:** Wenn Sie die Zabbix-`event_id` in die Beschreibung (oder ein Vorfall-Label) einfügen, können Sie diesen Vorfall später wiederfinden, wenn Sie ihn bei einer Wiederherstellung automatisch auflösen möchten. Siehe [Automatisch auflösen](#automatisch-auflösen-optional).
 
@@ -114,10 +114,10 @@ Zabbix sendet Benachrichtigungen _an einen Benutzer_. Erstellen Sie einen dedizi
 
 ## Teil 3 — Testen
 
-1. Aktivieren Sie im OneUptime-Workflow den Schalter **Enabled**.
+1. Aktivieren Sie im OneUptime-Workflow den Schalter **Aktiviert**.
 2. Lösen Sie in Zabbix ein Testproblem aus – zum Beispiel durch vorübergehendes Absenken eines Trigger-Schwellenwerts oder ein Testelement, das in den Problem-Zustand kippt.
-3. Öffnen Sie den Tab **Logs** Ihres Workflows. Sie sollten einen Lauf mit der Zabbix-Payload sehen, den Conditions-Block, der den **Yes**-Pfad nimmt, und den erstellten Vorfall.
-4. Prüfen Sie **Incidents** in OneUptime – Ihr Zabbix-Problem ist nun ein Vorfall.
+3. Öffnen Sie den Tab **Protokolle** Ihres Workflows. Sie sollten einen Lauf mit der Zabbix-Payload sehen, den Conditions-Block, der den **Ja**-Pfad nimmt, und den erstellten Vorfall.
+4. Prüfen Sie **Vorfälle** in OneUptime – Ihr Zabbix-Problem ist nun ein Vorfall.
 
 Falls nichts eintrifft, lesen Sie [Fehlerbehebung](#fehlerbehebung).
 
@@ -126,21 +126,21 @@ Falls nichts eintrifft, lesen Sie [Fehlerbehebung](#fehlerbehebung).
 Der obige Kern-Workflow _öffnet_ Vorfälle. Um sie auch zu _schließen_, wenn Zabbix sich erholt:
 
 1. Stellen Sie sicher, dass Ihre Zabbix-Aktion **Recovery operations** konfiguriert hat (Schritt 3 oben), damit auch Wiederherstellungsereignisse gesendet werden. Bei Wiederherstellung kommt `status` als `0` an.
-2. Fügen Sie im Workflow einen zweiten **Conditions**-Zweig hinzu: links `{{Zabbix.Request Body.status}}`, Operator `==`, rechts `0`.
-3. Fügen Sie an dessen **Yes**-Ausgang einen **Find Incident**-Block hinzu, der den zuvor erstellten offenen Vorfall sucht – gleichen Sie auf der Zabbix-`event_id` ab, die Sie in der Beschreibung oder einem Label gespeichert haben.
+2. Fügen Sie im Workflow einen zweiten **Bedingungen**-Zweig hinzu: links `{{Zabbix.Request Body.status}}`, Operator `==`, rechts `0`.
+3. Fügen Sie an dessen **Ja**-Ausgang einen **Find Incident**-Block hinzu, der den zuvor erstellten offenen Vorfall sucht – gleichen Sie auf der Zabbix-`event_id` ab, die Sie in der Beschreibung oder einem Label gespeichert haben.
 4. Verbinden Sie diesen mit einem **Update Incident**-Block und bewegen Sie den Vorfall in Ihren _aufgelösten_ Zustand.
 
 Da die Auflösung davon abhängt, wie Sie Vorfallszustände in Ihrem Projekt modellieren, halten Sie den **Erstell**-Pfad als zuverlässigen Kern und ergänzen Sie den Auflöse-Pfad, sobald Sie bestätigt haben, dass die Ereignisse korrekt fließen. Siehe [Komponenten → OneUptime-Datenkomponenten](/docs/workflows/components#oneuptime-data-components).
 
 ## Zabbix-Schweregrade abbilden (optional)
 
-Zabbix-Schweregrade (`Not classified`, `Information`, `Warning`, `Average`, `High`, `Disaster`) kommen als `{{Zabbix.Request Body.severity}}` an. Um sie auf OneUptime-Vorfallsschweregrade abzubilden, fügen Sie **Conditions**-Zweige vor **Create Incident** hinzu – leiten Sie beispielsweise `Disaster` und `High` zu einem „Kritisch"-Vorfall und alles andere zu „Schwerwiegend". Bauen Sie für jeden Zweig einen eigenen **Create Incident**-Block.
+Zabbix-Schweregrade (`Not classified`, `Information`, `Warning`, `Average`, `High`, `Disaster`) kommen als `{{Zabbix.Request Body.severity}}` an. Um sie auf OneUptime-Vorfallsschweregrade abzubilden, fügen Sie **Bedingungen**-Zweige vor **Vorfall erstellen** hinzu – leiten Sie beispielsweise `Disaster` und `High` zu einem „Kritisch"-Vorfall und alles andere zu „Schwerwiegend". Bauen Sie für jeden Zweig einen eigenen **Vorfall erstellen**-Block.
 
 ## Fehlerbehebung
 
 **Der Workflow läuft nie.**
 
-- Vergewissern Sie sich, dass der **Enabled**-Schalter des Workflows aktiviert ist.
+- Vergewissern Sie sich, dass der **Aktiviert**-Schalter des Workflows aktiviert ist.
 - Überprüfen Sie vom Zabbix-Server aus, ob er die URL erreichen kann: `curl -i -X POST <workflow-url> -d '{}' -H 'Content-Type: application/json'`. Sie sollten eine schnelle Bestätigung erhalten.
 - Prüfen Sie **Reports → Action log** in Zabbix auf Zustellfehler.
 
@@ -151,7 +151,7 @@ Zabbix-Schweregrade (`Not classified`, `Information`, `Warning`, `Average`, `Hig
 
 **Der Vorfall wird erstellt, aber Felder sind leer.**
 
-- Öffnen Sie den Tab **Logs** des Workflows und prüfen Sie die Trigger-Ausgabe. Bestätigen Sie, dass die Feldnamen unter **Request Body** mit den referenzierten übereinstimmen (`name`, `host`, `severity`, `status`, `event_id`).
+- Öffnen Sie den Tab **Protokolle** des Workflows und prüfen Sie die Trigger-Ausgabe. Bestätigen Sie, dass die Feldnamen unter **Anfragetext** mit den referenzierten übereinstimmen (`name`, `host`, `severity`, `status`, `event_id`).
 - Ein fehlendes Feld ergibt eine leere Zeichenkette statt eines Fehlers – siehe [Variablen → Fallstricke](/docs/workflows/variables#gotchas).
 
 **Alles wird zweimal ausgelöst.**

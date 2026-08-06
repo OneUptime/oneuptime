@@ -6,7 +6,7 @@ Questa pagina raccoglie le impostazioni e i controlli di accesso che vale la pen
 
 I **proprietari** di una dashboard sono utenti e team a cui hai dato accesso esplicito (in aggiunta al loro ruolo a livello di progetto).
 
-Sotto **Dashboard → Owners**:
+Sotto **Dashboard → Proprietari**:
 
 - Aggiungi un **proprietario utente** per dare a una persona un accesso extra a questa dashboard.
 - Aggiungi un **proprietario team** per dare lo stesso a ogni membro di un team.
@@ -15,7 +15,7 @@ Usa i proprietari quando il ruolo di lettura a livello di progetto e troppo ampi
 
 ## Etichette
 
-Le etichette sono tag per organizzare le dashboard. Applicale sotto **Dashboard → Overview**.
+Le etichette sono tag per organizzare le dashboard. Applicale sotto **Dashboard → Panoramica**.
 
 Pattern comuni:
 
@@ -23,7 +23,7 @@ Pattern comuni:
 - **Per ambiente**: `env:prod`, `env:staging`.
 - **Per scopo**: `purpose:oncall`, `purpose:exec`, `purpose:investigation`.
 
-L'elenco **Dashboards** ti permette di filtrare per etichetta, che e il modo piu veloce per trovare una dashboard in un progetto che ne ha accumulate molte.
+L'elenco **Dashboard** ti permette di filtrare per etichetta, che e il modo piu veloce per trovare una dashboard in un progetto che ne ha accumulate molte.
 
 ## Permessi
 
@@ -38,15 +38,15 @@ Le dashboard funzionano con il controllo accessi basato sui ruoli del tuo proget
 
 Esistono permessi corrispondenti per i proprietari della dashboard e i domini personalizzati, cosi puoi concedere "gestire i proprietari" senza concedere "modificare la dashboard."
 
-Assegnali sui ruoli del progetto sotto **Products → Team → Autorizzazioni**.
+Assegnali sui ruoli del progetto sotto **Prodotti → Team → Autorizzazioni**.
 
 ## Accesso per dashboard pubbliche
 
 Quando rendi una dashboard pubblica (vedi [Condivisione e dashboard pubbliche](/docs/dashboards/sharing)), tre impostazioni controllano chi puo vederla:
 
 1. Interruttore **Public Dashboard** — se disattivato, l'URL pubblico restituisce un 404.
-2. **Master Password** — se impostata, i visitatori inseriscono una password prima che la dashboard appaia.
-3. **IP Whitelist** (piano Scale) — se impostata, le richieste da altri IP vengono rifiutate.
+2. **Password principale** — se impostata, i visitatori inseriscono una password prima che la dashboard appaia.
+3. **Whitelist IP** (piano Scale) — se impostata, le richieste da altri IP vengono rifiutate.
 
 Puoi combinare uno qualsiasi di questi. La combinazione piu restrittiva e "Pubblico attivo, password impostata, allowlist IP attiva" — utile per portali partner dove vuoi tutti e tre i livelli.
 
@@ -62,7 +62,7 @@ E la mossa giusta quando vuoi forkare un template (come "la nostra dashboard on-
 
 ## Eliminare una dashboard
 
-Sotto **Dashboard → Delete**. Non puo essere annullato — il layout della dashboard e qualsiasi dominio personalizzato associato vengono rimossi. I tuoi dati di telemetria non sono influenzati.
+Sotto **Dashboard → Elimina**. Non puo essere annullato — il layout della dashboard e qualsiasi dominio personalizzato associato vengono rimossi. I tuoi dati di telemetria non sono influenzati.
 
 Se la dashboard e pubblica su un dominio personalizzato, l'URL smette di risolvere non appena la elimini. Sposta prima il dominio su una dashboard diversa se vuoi mantenere l'URL funzionante.
 

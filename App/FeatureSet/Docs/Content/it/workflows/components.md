@@ -17,8 +17,8 @@ Effettua una richiesta HTTP verso qualsiasi URL.
 
 **Output**:
 
-- **Success** — scatta quando la chiamata ha funzionato (risposta 2xx). Trasmette stato, header e body.
-- **Error** — scatta in caso di errore di rete o risposta non 2xx. Trasmette il messaggio di errore.
+- **Successo** — scatta quando la chiamata ha funzionato (risposta 2xx). Trasmette stato, header e body.
+- **Errore** — scatta in caso di errore di rete o risposta non 2xx. Trasmette il messaggio di errore.
 
 Usalo per: qualsiasi API esterna, i tuoi endpoint amministrativi o qualsiasi integrazione che non abbia un componente dedicato.
 
@@ -34,10 +34,10 @@ Pubblica un messaggio in un canale Slack.
 
 **Impostazioni**:
 
-- **Channel** — il nome del canale. Il bot deve essere gia presente in quel canale.
-- **Message** — il testo da inviare. Supporta la formattazione di Slack.
+- **Canale** — il nome del canale. Il bot deve essere gia presente in quel canale.
+- **Messaggio** — il testo da inviare. Supporta la formattazione di Slack.
 
-Connetti prima Slack al tuo progetto da **Project Settings → Area di lavoro → Slack**. Vedi [Connessione del workspace Slack](/docs/workspace-connections/slack).
+Connetti prima Slack al tuo progetto da **Impostazioni del progetto → Area di lavoro → Slack**. Vedi [Connessione del workspace Slack](/docs/workspace-connections/slack).
 
 ## Microsoft Teams
 
@@ -46,7 +46,7 @@ Pubblica un messaggio in un canale Microsoft Teams.
 **Impostazioni**:
 
 - **Team e canale** — dove pubblicare.
-- **Message** — il testo da inviare.
+- **Messaggio** — il testo da inviare.
 
 Vedi [Connessione del workspace Microsoft Teams](/docs/workspace-connections/microsoft-teams) per la configurazione.
 
@@ -64,8 +64,8 @@ Invia un'email tramite OneUptime.
 
 **Impostazioni**:
 
-- **To** — l'indirizzo email del destinatario.
-- **Subject** — l'oggetto.
+- **A** — l'indirizzo email del destinatario.
+- **Oggetto** — l'oggetto.
 - **Body** — il messaggio in Markdown o HTML.
 
 L'email viene inviata dal mittente configurato per il tuo progetto — vedi [SMTP](/docs/emails/smtp).
@@ -76,7 +76,7 @@ Esegui un piccolo pezzo di JavaScript quando ti serve qualcosa che gli altri blo
 
 **Impostazioni**:
 
-- **Code** — il tuo JavaScript. L'ultimo valore (o cio che restituisci da una funzione asincrona) diventa l'output del blocco.
+- **Codice** — il tuo JavaScript. L'ultimo valore (o cio che restituisci da una funzione asincrona) diventa l'output del blocco.
 - **Arguments** — valori nominati che puoi passare in input.
 
 **Output**: success (il tuo valore di ritorno) ed error (qualsiasi eccezione).
@@ -100,7 +100,7 @@ Crea una ramificazione in base a un confronto.
 - **Operator** — `==`, `!=`, `>`, `>=`, `<`, `<=`, `contains`, `starts with`, `ends with`.
 - **Right value** — con cosa confrontare.
 
-**Output**: **Yes** e **No**. Collega i blocchi successivi al ramo che preferisci.
+**Output**: **Sì** e **No**. Collega i blocchi successivi al ramo che preferisci.
 
 ## Delay
 
@@ -124,12 +124,12 @@ Per ogni tipo di record di OneUptime (monitor, incidenti, allarmi, status page, 
 
 - **Find One** — ottieni un record per ID o filtro.
 - **Find** — ottieni un elenco di record.
-- **Create** — aggiungi un nuovo record.
-- **Update** — modifica un record.
-- **Delete** — rimuovi un record.
-- **Count** — conta i record che corrispondono a un filtro.
+- **Crea** — aggiungi un nuovo record.
+- **Aggiorna** — modifica un record.
+- **Elimina** — rimuovi un record.
+- **Conteggio** — conta i record che corrispondono a un filtro.
 
-Ecco come un workflow puo leggere e modificare i dati di OneUptime. Per esempio: un webhook dal tuo strumento CI puo usare **Create Incident** per aprire un incidente con i dettagli del fallimento.
+Ecco come un workflow puo leggere e modificare i dati di OneUptime. Per esempio: un webhook dal tuo strumento CI puo usare **Crea incidente** per aprire un incidente con i dettagli del fallimento.
 
 ## Quale componente usare?
 
@@ -138,7 +138,7 @@ Alcune regole rapide:
 - Se esiste un blocco dedicato a cio che ti serve (Slack, Email, un record OneUptime), usalo — avrai una gestione degli errori migliore e log piu chiari.
 - Per qualsiasi altra API esterna, usa **API**.
 - Per rimodellare i dati tra blocchi, usa **Custom Code** o **JSON**.
-- Per intraprendere azioni diverse in base a un valore, usa **Conditions**.
+- Per intraprendere azioni diverse in base a un valore, usa **Condizioni**.
 
 ## Letture successive
 

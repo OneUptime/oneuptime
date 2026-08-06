@@ -13,8 +13,8 @@ Manuelle monitorer er plassholdere som du oppdaterer selv. Dette er nyttig for:
 
 ## Opprette en manuell monitor
 
-1. Gå til **Monitors** i OneUptime-dashbordet
-2. Klikk **Create Monitor**
+1. Gå til **Overvåkere** i OneUptime-dashbordet
+2. Klikk **Opprett monitor**
 3. Velg **Manual** som monitortype
 4. Skriv inn et navn og en beskrivelse for monitoren
 

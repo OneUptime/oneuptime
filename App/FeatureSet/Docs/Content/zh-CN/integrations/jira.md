@@ -26,15 +26,15 @@ Jira Cloud 使用 **Basic 认证**，需要你的邮箱和 API 令牌（base64 �
    printf '%s' 'you@example.com:your_api_token' | base64
    ```
 
-2. 在 OneUptime 中，前往 **Workflows → Global Variables → Create**。
+2. 在 OneUptime 中，前往 **工作流 → 全局变量 → 创建**。
 3. 命名为 `JIRA_AUTH`，将 base64 字符串粘贴为值，并开启 **Is Secret**。
 
 现在你可以使用 `Basic {{variable.JIRA_AUTH}}` 作为认证头，令牌不会出现在工作流或日志中。
 
 ## 步骤 2——构建工作流
 
-1. 打开 **Workflows → Create Workflow**，命名为 `Incidents → Jira`，并打开 **Builder**。
-2. 将 **Incident** 触发器拖到画布上，选择 **On Create** 事件。重命名为 `Incident`。
+1. 打开 **工作流 → 创建工作流**，命名为 `Incidents → Jira`，并打开 **生成器**。
+2. 将 **事件** 触发器拖到画布上，选择 **On Create** 事件。重命名为 `Incident`。
 3. 拖入 **API** 模块并将触发器连接到它。配置：
 
    - **Method**：`POST`
@@ -76,9 +76,9 @@ Jira Cloud 使用 **Basic 认证**，需要你的邮箱和 API 令牌（base64 �
 
 ## 步骤 3——测试
 
-1. 开启工作流 **Enabled**。
+1. 开启工作流的 **已启用** 开关。
 2. 在 OneUptime 中创建一个测试事件（或从监控器触发一个）。
-3. 打开工作流的 **Logs** 标签。**API** 模块应显示 `201` 状态，响应体包含新工单的 `key`（例如 `OPS-1234`）。
+3. 打开工作流的 **日志** 标签。**API** 模块应显示 `201` 状态，响应体包含新工单的 `key`（例如 `OPS-1234`）。
 4. 检查 Jira——工单已在那里。
 
 如果 API 模块返回错误，在日志中展开它——Jira 的响应会明确说明哪个字段被拒绝了。参见[故障排查](#故障排查)。
@@ -114,7 +114,7 @@ Jira Cloud 使用 **Basic 认证**，需要你的邮箱和 API 令牌（base64 �
 
 API 模块正文的几个常见调整：
 
-- **优先级**——在 `fields` 中添加 `"priority": { "name": "High" }`。你可以通过 **Conditions** 分支 `{{Incident.incidentSeverity.name}}` 将 OneUptime 严重程度映射到 Jira 优先级。
+- **优先级**——在 `fields` 中添加 `"priority": { "name": "High" }`。你可以通过 **条件** 分支 `{{Incident.incidentSeverity.name}}` 将 OneUptime 严重程度映射到 Jira 优先级。
 - **标签**——添加 `"labels": ["oneuptime", "incident"]`。
 - **经办人**——添加 `"assignee": { "id": "<accountId>" }`（Jira Cloud 使用账户 ID，不是用户名）。
 - **自定义字段**——使用 Jira 管理中该字段的 ID 添加 `"customfield_XXXXX": "..."`。

@@ -19,8 +19,8 @@ Inom ungefär en timme (det första stängda timfönstret) får du:
 
 - En **Costs-sida per kluster** (_Kubernetes → ditt kluster → Costs_): utgiftstrend, utgifter per namespace med uppdelning på cpu/minne/lagring, utgifter per arbetsbelastning, outnyttjade utgifter och effektivitet.
 - En **Costs-sida på projektnivå** (_Kubernetes → Costs_): utgifter över varje kluster i projektet.
-- En **instrumentpanelsmall för Kubernetes-kostnader** (_Dashboards → Create → Kubernetes Cost Dashboard_): trender för nodernas timkostnader, enhetskostnader för CPU/RAM, utgifter för persistenta volymer och lastbalanserare.
-- Råa kostnadsmått (`node_total_hourly_cost`, `pv_hourly_cost`, ...) i **Metric Explorer**, användbara i egna instrumentpaneler och måttbaserade varningar.
+- En **instrumentpanelsmall för Kubernetes-kostnader** (_Instrumentpaneler → Skapa → Kubernetes Cost Dashboard_): trender för nodernas timkostnader, enhetskostnader för CPU/RAM, utgifter för persistenta volymer och lastbalanserare.
+- Råa kostnadsmått (`node_total_hourly_cost`, `pv_hourly_cost`, ...) i **Måttutforskare**, användbara i egna instrumentpaneler och måttbaserade varningar.
 
 ## Hur det fungerar
 

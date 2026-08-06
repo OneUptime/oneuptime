@@ -1,17 +1,17 @@
 # Skapa en instrumentpanel
 
-För att skapa en instrumentpanel, öppna **Dashboards → Create Dashboard**, ge den ett namn och öppna den. Arbetsytan öppnas i **Edit**-läge, redo för dig att börja lägga till widgetar.
+För att skapa en instrumentpanel, öppna **Instrumentpaneler → Create Dashboard**, ge den ett namn och öppna den. Arbetsytan öppnas i **Redigera**-läge, redo för dig att börja lägga till widgetar.
 
 ## Arbetsytan
 
 En instrumentpanel är ett rutnät. Widgetar fäster på plats — du bestämmer var var och en sitter och hur stor den är. Du kan utöka sidan nedåt allteftersom du lägger till fler rader. Varje widget behåller sina proportioner på större eller mindre skärmar.
 
-## Edit och View
+## Redigera och Visa
 
 Växeln i sidhuvudet växlar mellan två lägen:
 
-- **Edit** — widget-paletten är öppen, du kan dra runt widgetar, ändra storlek på dem och klicka på vilken widget som helst för att ändra dess inställningar.
-- **View** — instrumentpanelen är skrivskyddad, exakt så som besökare och andra teammedlemmar ser den. Använd det här för att kontrollera resultatet innan du delar.
+- **Redigera** — widget-paletten är öppen, du kan dra runt widgetar, ändra storlek på dem och klicka på vilken widget som helst för att ändra dess inställningar.
+- **Visa** — instrumentpanelen är skrivskyddad, exakt så som besökare och andra teammedlemmar ser den. Använd det här för att kontrollera resultatet innan du delar.
 
 Det är samma instrumentpanel i båda lägena. Det finns inget separat "publicera"-steg — varje redigering är live i samma stund den sparas.
 
@@ -34,7 +34,7 @@ De flesta widgetar läser från en av tre platser:
 
 ## Tröskelvärden och formatering
 
-Widgetar med enskilda värden (**Value**, **Gauge**) låter dig ställa in:
+Widgetar med enskilda värden (**Värde**, **Mätare**) låter dig ställa in:
 
 - Ett **varningströskelvärde** — färgen blir gul när värdet passerar det.
 - Ett **kritiskt tröskelvärde** — färgen blir röd när värdet passerar det.
@@ -46,7 +46,7 @@ Diagram låter dig ställa in Y-axelns enhet, välja var teckenförklaringen ska
 Högst upp på instrumentpanelen påverkar två kontroller varje mätvärdeswidget:
 
 - **Tidsintervall** — en förinställning (senaste timmen, 24 timmar, 7 dagar, 30 dagar) eller ett anpassat intervall. Varje diagram och siffra använder detta fönster.
-- **Uppdatering** — hur ofta widgetar frågar om data. Av, 5s, 10s, 30s, 1m, 5m, 15m. Liveslistor uppdateras på egen hand oavsett denna inställning.
+- **Uppdatera** — hur ofta widgetar frågar om data. Av, 5s, 10s, 30s, 1m, 5m, 15m. Liveslistor uppdateras på egen hand oavsett denna inställning.
 
 Widgetar som inte använder tidsintervallet (som en Text-widget) ignorerar båda kontrollerna.
 

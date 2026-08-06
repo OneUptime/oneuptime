@@ -15,18 +15,18 @@ OneUptime Incident → On Create  ──►  Discord component  ──►  messa
 
 ## 步骤 2——存储 webhook URL（可选但推荐）
 
-1. 在 OneUptime 中，前往 **Workflows → Global Variables → Create**。
+1. 在 OneUptime 中，前往 **工作流 → 全局变量 → 创建**。
 2. 命名为 `DISCORD_WEBHOOK_URL`，粘贴 URL，并开启 **Is Secret**。
 
 将其存储在变量中，便于在多个工作流中复用，并在一个地方进行轮换。
 
 ## 步骤 3——构建工作流
 
-1. 打开 **Workflows → Create Workflow**，命名为 `Incidents → Discord`，并打开 **Builder**。
-2. 添加 **Incident** 触发器，设置为 **On Create**。重命名为 `Incident`。
+1. 打开 **工作流 → 创建工作流**，命名为 `Incidents → Discord`，并打开 **生成器**。
+2. 添加 **事件** 触发器，设置为 **On Create**。重命名为 `Incident`。
 3. 添加连接到触发器的 **Discord** 组件：
    - **Webhook URL**：`{{variable.DISCORD_WEBHOOK_URL}}`（或直接粘贴）。
-   - **Message**：`🔴 New incident: {{Incident.title}}\n{{Incident.description}}`
+   - **消息**：`🔴 New incident: {{Incident.title}}\n{{Incident.description}}`
 4. **保存**，启用，并创建一个测试事件。消息会出现在你的频道中。
 
 ## 替代方案：API 组件
@@ -42,8 +42,8 @@ OneUptime Incident → On Create  ──►  Discord component  ──►  messa
 
 ## 提示
 
-- 使用 **Conditions** 仅针对特定严重程度发送——在 Discord 模块之前对 `{{Incident.incidentSeverity.name}}` 进行分支。
-- 在 **Incident → On Update** 上添加更多工作流，将确认和解决消息发布到同一频道。
+- 使用 **条件** 仅针对特定严重程度发送——在 Discord 模块之前对 `{{Incident.incidentSeverity.name}}` 进行分支。
+- 在 **事件 → On Update** 上添加更多工作流，将确认和解决消息发布到同一频道。
 
 ## 接下来读什么
 

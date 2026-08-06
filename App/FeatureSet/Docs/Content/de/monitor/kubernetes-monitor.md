@@ -15,8 +15,8 @@ Kubernetes-Monitore verwenden Metriken aus Ihrem Cluster, um tiefe Einblicke in 
 
 ## Einen Kubernetes-Monitor erstellen
 
-1. Gehen Sie zu **Monitors** im OneUptime-Dashboard
-2. Klicken Sie auf **Create Monitor**
+1. Gehen Sie zu **Monitore** im OneUptime-Dashboard
+2. Klicken Sie auf **Monitor erstellen**
 3. Wählen Sie **Kubernetes** als Monitortyp aus
 4. Wählen Sie den Cluster und den zu überwachenden Ressourcen-Scope aus
 5. Konfigurieren Sie Ressourcenfilter und Metrik-Abfragen

@@ -2,7 +2,7 @@
 
 जब OneUptime incident बनाया जाए तो स्वचालित रूप से एक [GitHub](https://github.com) issue खोलें — ताकि engineering follow-up उस repo में track हो जो affected service की मालिक है।
 
-यह इंटीग्रेशन **आउटबाउंड** है: OneUptime [GitHub REST API](https://docs.github.com/en/rest/issues/issues) को कॉल करता है। यह **Incident → On Create** trigger और **API component** के साथ OneUptime **[वर्कफ़्लो](/docs/workflows/index)** का उपयोग करता है।
+यह इंटीग्रेशन **आउटबाउंड** है: OneUptime [GitHub REST API](https://docs.github.com/en/rest/issues/issues) को कॉल करता है। यह **घटना → On Create** trigger और **API component** के साथ OneUptime **[वर्कफ़्लो](/docs/workflows/index)** का उपयोग करता है।
 
 > **गहरा GitHub connection ढूंढ रहे हैं?** OneUptime के पास code repositories जोड़ने के लिए एक native **GitHub App** integration भी है (AI agent और code features द्वारा इस्तेमाल)। यह environment variables से configure होता है, workflows से नहीं — [GitHub Integration (self-hosted)](/docs/self-hosted/github-integration) देखें। यह पेज विशेष रूप से _incidents से issues file करने_ के बारे में है।
 
@@ -24,13 +24,13 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 
 ## चरण 1 — token store करें
 
-1. **Workflows → Global Variables → Create** पर जाएँ।
+1. **वर्कफ़्लो → ग्लोबल वेरिएबल → बनाएँ** पर जाएँ।
 2. इसे `GITHUB_TOKEN` नाम दें, token पेस्ट करें, और **Is Secret** चालू करें।
 
 ## चरण 2 — वर्कफ़्लो बनाएँ
 
-1. **Workflows → Create Workflow** खोलें, इसे `Incidents → GitHub Issues` नाम दें, और **Builder** खोलें।
-2. **On Create** पर सेट एक **Incident** trigger जोड़ें। इसे `Incident` नाम दें।
+1. **वर्कफ़्लो → वर्कफ़्लो बनाएं** खोलें, इसे `Incidents → GitHub Issues` नाम दें, और **बिल्डर** खोलें।
+2. **On Create** पर सेट एक **घटना** trigger जोड़ें। इसे `Incident` नाम दें।
 3. trigger से connected एक **API** ब्लॉक जोड़ें:
 
    - **Method**: `POST`

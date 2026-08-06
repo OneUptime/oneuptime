@@ -4,7 +4,7 @@ En variabel forvandler et enkelt dashboard til en skabelon. Tilføj en `service`
 
 ## Variabeltyper
 
-Tilføj variabler under **Dashboard → Settings → Variables**. Hver variabel har et navn (brugt som `{{name}}` i dine widgets), en valgfri label og en type.
+Tilføj variabler under **Dashboard → Indstillinger → Variabler**. Hver variabel har et navn (brugt som `{{name}}` i dine widgets), en valgfri label og en type.
 
 ### Custom List
 

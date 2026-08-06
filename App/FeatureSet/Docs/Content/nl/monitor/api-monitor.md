@@ -15,8 +15,8 @@ API-monitors versturen HTTP-verzoeken naar uw eindpunten en controleren de respo
 
 ## Een API Monitor aanmaken
 
-1. Ga naar **Monitors** in het OneUptime-dashboard
-2. Klik op **Monitor aanmaken**
+1. Ga naar **Monitoren** in het OneUptime-dashboard
+2. Klik op **Monitor maken**
 3. Selecteer **API** als het monitortype
 4. Voer de API-URL in en configureer de verzoeksinstellingen
 5. Configureer monitoringcriteria naar wens
@@ -111,8 +111,8 @@ For sensitive values, store the certificate and key as [Monitor Secrets](/docs/m
 
 U kunt criteria configureren om te bepalen wanneer uw API als online, gedegradeerd of offline wordt beschouwd op basis van:
 
-- **Responsstatuscode** - Controleer of de HTTP-statuscode overeenkomt met verwachte waarden (bijv. 200, 201)
-- **Responstijd** - Bewaken of de responstijd een drempelwaarde overschrijdt
-- **Responslichaam** - Controleer of het responslichaam specifieke inhoud bevat of overeenkomt
-- **Responsheaders** - Verifieer of specifieke responsheaders aanwezig zijn of verwachte waarden hebben
+- **Reactiestatuscode** - Controleer of de HTTP-statuscode overeenkomt met verwachte waarden (bijv. 200, 201)
+- **Reactietijd** - Bewaken of de responstijd een drempelwaarde overschrijdt
+- **Antwoordlichaam** - Controleer of het responslichaam specifieke inhoud bevat of overeenkomt
+- **Reactieheaders** - Verifieer of specifieke responsheaders aanwezig zijn of verwachte waarden hebben
 - **JavaScript-expressie** - Schrijf aangepaste expressies om de response te evalueren. Zie [JavaScript-expressies](/docs/monitor/javascript-expression) voor details.

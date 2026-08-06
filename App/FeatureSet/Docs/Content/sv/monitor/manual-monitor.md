@@ -13,7 +13,7 @@ Manuella monitorer är platshållare som du uppdaterar själv. Detta är använd
 
 ## Skapa en manuell monitor
 
-1. Gå till **Monitorer** i OneUptime-instrumentpanelen
+1. Gå till **Övervakare** i OneUptime-instrumentpanelen
 2. Klicka på **Skapa monitor**
 3. Välj **Manuell** som monitortyp
 4. Ange ett namn och en beskrivning för monitorn

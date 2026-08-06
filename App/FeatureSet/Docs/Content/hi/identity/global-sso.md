@@ -16,13 +16,13 @@ Global SSO एक **OneUptime Enterprise Edition** feature है और के�
 
 1. **Admin Dashboard खोलें**
 
-   - master admin के रूप में sign in करें और **Admin** > **Settings** > **Global SSO** (SAML के लिए) या **Global OIDC** (OpenID Connect के लिए) खोलें।
+   - master admin के रूप में sign in करें और **Admin** > **सेटिंग्स** > **Global SSO** (SAML के लिए) या **Global OIDC** (OpenID Connect के लिए) खोलें।
 
 2. **एक provider बनाएं**
 
    - **Create Global SSO** पर क्लिक करें।
-   - SAML के लिए: एक **Name**, अपने identity provider से **Sign On URL** और **Issuer** दर्ज करें, और **Public Certificate** paste करें। **Signature** और **Digest** methods चुनें (यदि आप अनिश्चित हैं तो defaults — `RSA-SHA256` / `SHA256` — रहने दें)।
-   - OIDC के लिए: **Discovery URL**, **Issuer**, **Client ID**, **Client Secret**, **Scopes** (इनमें `openid` शामिल होना चाहिए), और **email** / **name** claim names दर्ज करें।
+   - SAML के लिए: एक **नाम**, अपने identity provider से **साइन ऑन URL** और **जारीकर्ता** दर्ज करें, और **सार्वजनिक प्रमाणपत्र** paste करें। **Signature** और **Digest** methods चुनें (यदि आप अनिश्चित हैं तो defaults — `RSA-SHA256` / `SHA256` — रहने दें)।
+   - OIDC के लिए: **डिस्कवरी URL**, **जारीकर्ता**, **क्लाइंट ID**, **क्लाइंट सीक्रेट**, **दायरे** (इनमें `openid` शामिल होना चाहिए), और **email** / **name** claim names दर्ज करें।
 
 3. **OneUptime URLs को अपने identity provider में copy करें**
 
@@ -48,7 +48,7 @@ Global SSO एक **OneUptime Enterprise Edition** feature है और के�
 किसी global provider को configure करना किसी को भी इसका उपयोग करने के लिए बाध्य नहीं करता; password login अभी भी काम करता है। SSO को आवश्यक बनाने के लिए, **Require SSO for Login** controls का उपयोग करें:
 
 - **प्रति project:** एक project SSO को आवश्यक कर सकता है, और वैकल्पिक रूप से एक _specific_ provider (project या global) को आवश्यक कर सकता है।
-- **Instance-wide:** **Admin** > **Settings** > **Authentication** में एक **Require SSO for Login** toggle है जो instance भर में प्रत्येक उपयोगकर्ता के लिए SSO को बाध्य करता है। Master admins exempt रहते हैं ताकि उन्हें बाहर lock न किया जा सके।
+- **Instance-wide:** **Admin** > **सेटिंग्स** > **प्रमाणीकरण** में एक **Require SSO for Login** toggle है जो instance भर में प्रत्येक उपयोगकर्ता के लिए SSO को बाध्य करता है। Master admins exempt रहते हैं ताकि उन्हें बाहर lock न किया जा सके।
 
 ## संबंधित
 

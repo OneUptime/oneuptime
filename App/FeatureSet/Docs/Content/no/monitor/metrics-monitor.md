@@ -14,9 +14,9 @@ Metrikk-monitorer spør og evaluerer numeriske metrikker fra telemetritjenestene
 
 ## Opprette en metrikk-monitor
 
-1. Gå til **Monitors** i OneUptime-dashbordet
-2. Klikk **Create Monitor**
-3. Velg **Metrics** som monitortype
+1. Gå til **Overvåkere** i OneUptime-dashbordet
+2. Klikk **Opprett monitor**
+3. Velg **Målinger** som monitortype
 4. Konfigurer metrikk-spørringer og valgfrie formler
 5. Velg aggregeringsstrategi
 6. Konfigurer overvåkingskriterier etter behov
@@ -92,14 +92,14 @@ Velg hvordan metrikkverdiene skal aggregeres for evaluering:
 - **Spørring a**: `http_requests_total` filtrert etter `status=5xx`
 - **Spørring b**: `http_requests_total`
 - **Formel**: `a / b * 100`
-- **Sjekk på**: Metric Value
+- **Check On**: Metric Value
 - **Filtertype**: Greater Than
 - **Verdi**: 5
 
 #### Varsle hvis forespørselskødybden er høy
 
 - **Spørring**: `request_queue_size`, aggregering: Maximum Value
-- **Sjekk på**: Metric Value
+- **Check On**: Metric Value
 - **Filtertype**: Greater Than
 - **Verdi**: 1000
 

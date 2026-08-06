@@ -10,13 +10,13 @@ Inom projektet styr ägare och etiketter vem som ser vad — se [Konfiguration &
 
 ## Offentliga instrumentpaneler
 
-Under **Dashboard → Settings**, slå på **Public Dashboard**. Instrumentpanelen har nu en andra URL som inte kräver inloggning. Dela den med leverantörer, partners, kunder eller klistra in den i en offentlig README.
+Under **Instrumentpanel → Inställningar**, slå på **Public Dashboard**. Instrumentpanelen har nu en andra URL som inte kräver inloggning. Dela den med leverantörer, partners, kunder eller klistra in den i en offentlig README.
 
 En offentlig instrumentpanel:
 
-- Öppnas alltid i **View**-läge. Offentliga besökare kan inte redigera eller se widget-paletten.
+- Öppnas alltid i **Visa**-läge. Offentliga besökare kan inte redigera eller se widget-paletten.
 - Inkluderar variablerna du har lagt till. Besökare väljer från samma rullgardinsmenyer som ditt team använder.
-- Använder **varumärket** du ställer in i Settings — sidtitel, beskrivning, logotyp, favicon.
+- Använder **varumärket** du ställer in i Inställningar — sidtitel, beskrivning, logotyp, favicon.
 
 Behandla aktivering av en offentlig instrumentpanel som att publicera en webbsida. Varje widget på den blir världsläsbar. Titta på vad som finns på arbetsytan innan du slår på växeln.
 
@@ -25,7 +25,7 @@ Behandla aktivering av en offentlig instrumentpanel som att publicera en webbsid
 För att sätta ett lösenord på en offentlig instrumentpanel:
 
 1. Slå på **Public Dashboard**.
-2. Slå på **Master Password**.
+2. Slå på **Huvudlösenord**.
 3. Ställ in lösenordet.
 
 Besökare ser en lösenordsprompt innan instrumentpanelen visas. Lösenordet sparas som en hash — vi ser aldrig det faktiska lösenordet.
@@ -39,7 +39,7 @@ För starkare grindkontroll (separata konton per tittare, en granskningslogg öv
 
 ## IP-tillåtslista
 
-På **Scale**-planen kan du begränsa en offentlig instrumentpanel till en lista över IP-adresser eller intervall. Konfigurera det under **Dashboard → Settings → IP Whitelist**.
+På **Scale**-planen kan du begränsa en offentlig instrumentpanel till en lista över IP-adresser eller intervall. Konfigurera det under **Instrumentpanel → Inställningar → IP-vitlista**.
 
 Använd det när:
 
@@ -54,7 +54,7 @@ Förfrågningar från andra IP:er avvisas.
 Som standard serveras en offentlig instrumentpanel på `oneuptime.com`. För att hosta den på din egen subdomän som `dashboard.acme.com`:
 
 1. Lägg till en CNAME-post på din DNS som pekar subdomänen till OneUptimes mål.
-2. Under **Dashboard → Settings → Custom Domains**, lägg till domänen.
+2. Under **Instrumentpanel → Inställningar → Anpassade domäner**, lägg till domänen.
 3. Verifiera den. OneUptime kontrollerar DNS-posten åt dig.
 4. När den är verifierad är instrumentpanelen nåbar på både din anpassade domän och den ursprungliga URL:en.
 
@@ -68,7 +68,7 @@ Du kan koppla mer än en anpassad domän till en enskild instrumentpanel om du s
 
 ## Varumärke
 
-Under **Dashboard → Settings** kan du konfigurera:
+Under **Instrumentpanel → Inställningar** kan du konfigurera:
 
 - **Sidtitel** — vad som visas i webbläsarfliken och högst upp på sidan.
 - **Sidbeskrivning** — beskrivningen som används av sökmotorer och förhandsvisningar i sociala medier.

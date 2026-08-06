@@ -14,9 +14,9 @@ Logs monitors एक time window पर specific filters से match करन�
 
 ## Logs Monitor बनाना
 
-1. OneUptime Dashboard में **Monitors** पर जाएं
-2. **Create Monitor** पर क्लिक करें
-3. monitor type के रूप में **Logs** चुनें
+1. OneUptime Dashboard में **मॉनिटर** पर जाएं
+2. **मॉनिटर बनाएं** पर क्लिक करें
+3. monitor type के रूप में **लॉग** चुनें
 4. monitor करने के लिए telemetry services चुनें
 5. आवश्यकतानुसार log filters और criteria configure करें
 
@@ -69,26 +69,26 @@ logs monitor करने के लिए एक या अधिक services �
 #### 60 seconds में 100 से अधिक error logs पर Alert करें
 
 - **Severity Levels**: ERROR
-- **Time Window**: 60 seconds
+- **समय विंडो**: 60 seconds
 - **Check On**: Log Count
-- **Filter Type**: Greater Than
-- **Value**: 100
+- **फ़िल्टर प्रकार**: Greater Than
+- **मान**: 100
 
 #### कोई भी fatal logs दिखने पर Alert करें
 
 - **Severity Levels**: FATAL
-- **Time Window**: 60 seconds
+- **समय विंडो**: 60 seconds
 - **Check On**: Log Count
-- **Filter Type**: Greater Than
-- **Value**: 0
+- **फ़िल्टर प्रकार**: Greater Than
+- **मान**: 0
 
 #### एक specific error message वाले logs monitor करें
 
 - **Body**: `database connection timeout`
-- **Time Window**: 300 seconds
+- **समय विंडो**: 300 seconds
 - **Check On**: Log Count
-- **Filter Type**: Greater Than
-- **Value**: 5
+- **फ़िल्टर प्रकार**: Greater Than
+- **मान**: 5
 
 ## Setup Requirements
 

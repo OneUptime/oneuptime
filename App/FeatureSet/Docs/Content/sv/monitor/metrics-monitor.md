@@ -14,7 +14,7 @@ Mätvärdesmonitorer frågar och utvärderar numeriska mätvärden från dina te
 
 ## Skapa en mätvärdesmonitor
 
-1. Gå till **Monitorer** i OneUptime-instrumentpanelen
+1. Gå till **Övervakare** i OneUptime-instrumentpanelen
 2. Klicka på **Skapa monitor**
 3. Välj **Mätvärden** som monitortyp
 4. Konfigurera mätvärdesförfrågningar och valfria formler

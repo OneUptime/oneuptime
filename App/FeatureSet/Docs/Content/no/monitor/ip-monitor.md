@@ -13,8 +13,8 @@ IP-monitorer verifiserer at en spesifikk IP-adresse er tilgjengelig og responsiv
 
 ## Opprette en IP-monitor
 
-1. Gå til **Monitors** i OneUptime-dashbordet
-2. Klikk **Create Monitor**
+1. Gå til **Overvåkere** i OneUptime-dashbordet
+2. Klikk **Opprett monitor**
 3. Velg **IP** som monitortype
 4. Skriv inn IP-adressen du ønsker å overvåke
 5. Konfigurer overvåkingskriterier etter behov
@@ -44,7 +44,7 @@ For **Is Online** og **Is Request Timeout**:
 - **True** – Betingelsen er sann
 - **False** – Betingelsen er usann
 
-For **Response Time**:
+For **Svartid**:
 
 - **Greater Than** – Svartiden overskrider en terskel
 - **Less Than** – Svartiden er under en terskel
@@ -58,11 +58,11 @@ For **Response Time**:
 
 #### Marker som utilgjengelig hvis IP ikke er tilgjengelig
 
-- **Sjekk på**: Is Online
+- **Check On**: Is Online
 - **Filtertype**: False
 
 #### Varsle hvis latens overskrider 100 ms
 
-- **Sjekk på**: Response Time (in ms)
+- **Check On**: Response Time (in ms)
 - **Filtertype**: Greater Than
 - **Verdi**: 100

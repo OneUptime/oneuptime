@@ -4,9 +4,9 @@ Les runbooks sont des procédures de réponse réutilisables — des listes ordo
 
 ## En un coup d'œil
 
-- **Fonctionnalité de premier niveau** dans le tableau de bord OneUptime, sous **Products → Runbooks**.
+- **Fonctionnalité de premier niveau** dans le tableau de bord OneUptime, sous **Produits → Runbooks**.
 - **Cinq types d'étapes** : liste manuelle, JavaScript (en bac à sable) et Bash (tous deux tournent sur un [Agent de runbook](/docs/runbooks/agents) dans votre propre infrastructure), requête HTTP, et AI (analyse le contexte de l'incident et des étapes avec le fournisseur LLM de votre projet).
-- **Trois voies de déclenchement** : règles qui correspondent à des incidents/alertes/maintenances planifiées, ou bouton manuel « Exécuter le runbook » sur tout événement.
+- **Trois voies de déclenchement** : règles qui correspondent à des incidents/alertes/maintenances planifiées, ou bouton manuel « Exécuter le Runbook » sur tout événement.
 - **Sémantique de snapshot** : au démarrage d'un runbook, ses étapes sont copiées dans l'exécution. Modifier le modèle ensuite ne change jamais une exécution en cours.
 - **Piste d'audit complète** : le statut, la sortie, le message d'erreur et la durée de chaque étape sont conservés à jamais sur l'exécution.
 
@@ -29,14 +29,14 @@ Quelques termes reviennent dans toute la documentation runbook. Clarifions-les d
 | **Runbook**          | Le modèle. Une procédure nommée et réutilisable, avec une liste ordonnée d'étapes et un drapeau `isEnabled`.                                                                                                                                                                       |
 | **Étape**            | Un élément d'un runbook. Possède un type (Manuelle / JavaScript / HTTP / Bash / AI), un titre, une description et une configuration spécifique au type.                                                                                                                                 |
 | **Règle de runbook** | Un motif qui attache automatiquement un ou plusieurs runbooks à des incidents, alertes ou maintenances planifiées lorsque leur titre ou description correspond à une expression régulière.                                                                                         |
-| **Exécution**        | Une exécution d'un runbook. Créée lorsqu'une règle se déclenche, lorsqu'on clique « Exécuter le runbook » sur un événement, ou lorsqu'on clique « Exécuter maintenant » sur le runbook lui-même. Contient un snapshot des étapes ainsi que le statut et la sortie de chaque étape. |
+| **Exécution**        | Une exécution d'un runbook. Créée lorsqu'une règle se déclenche, lorsqu'on clique « Exécuter le Runbook » sur un événement, ou lorsqu'on clique « Exécuter maintenant » sur le runbook lui-même. Contient un snapshot des étapes ainsi que le statut et la sortie de chaque étape. |
 | **Snapshot**         | La copie figée des étapes du runbook qui vit sur chaque exécution. Permet de modifier le modèle plus tard sans réécrire l'historique.                                                                                                                                              |
 
 ## Le cycle de vie d'un runbook
 
 1. **Rédiger** — Créez un runbook, mélangez des étapes Manuelles, JavaScript, HTTP, Bash et AI. Enregistrez.
 2. **(Optionnel) Ajouter une règle** — Depuis les paramètres des Incidents, Alertes ou Maintenances Planifiées, dites à OneUptime de démarrer ce runbook chaque fois que le titre ou la description d'un événement correspond à une regex.
-3. **Déclencher** — Soit la règle se déclenche automatiquement lors de la création d'un événement correspondant, soit un répondeur clique manuellement **Exécuter le runbook** sur l'événement.
+3. **Déclencher** — Soit la règle se déclenche automatiquement lors de la création d'un événement correspondant, soit un répondeur clique manuellement **Exécuter le Runbook** sur l'événement.
 4. **Exécuter** — Une nouvelle exécution est créée avec un snapshot des étapes. Les étapes automatisées s'exécutent en ligne sur le worker Runbook ; l'exécution se met en pause à chaque étape manuelle jusqu'à ce que quelqu'un la valide.
 5. **Auditer** — L'exécution reste à jamais sur l'onglet **Runbooks** de l'événement et sur la liste **Exécutions** du runbook. La sortie, les erreurs et les temps de chaque étape sont préservés pour le postmortem.
 
@@ -58,12 +58,12 @@ Vous pouvez mélanger les cinq types dans un même runbook — la force des runb
 
 | Page                                                                               | Ce que vous y faites                                                                                       |
 | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| **Products → Runbooks**                                            | Parcourir, créer et modifier les modèles de runbook.                                                       |
+| **Produits → Runbooks**                                            | Parcourir, créer et modifier les modèles de runbook.                                                       |
 | **Onglet Étapes d'un runbook**                                                     | Rédiger et réorganiser la liste d'étapes.                                                                  |
 | **Onglet Exécutions d'un runbook**                                                 | Voir chaque exécution de ce runbook avec des filtres par statut.                                           |
 | **Bouton « Exécuter maintenant » d'un runbook**                                    | Lancer une exécution ad hoc qui n'est attachée à aucun événement.                                          |
-| **Incidents / Alertes / Maintenances Planifiées → Paramètres → Règles de runbook** | Créer les règles de déclenchement automatique par type d'entité.                                           |
-| **Un incident / alerte / événement de maintenance → Onglet Runbooks**              | Voir les exécutions attachées à cet événement et cliquer **Exécuter le runbook** pour un lancement manuel. |
+| **Incidents / Alertes / Maintenance planifiée → Paramètres → Règles de runbook**   | Créer les règles de déclenchement automatique par type d'entité.                                           |
+| **Un incident / alerte / événement de maintenance → Onglet Runbooks**              | Voir les exécutions attachées à cet événement et cliquer **Exécuter le Runbook** pour un lancement manuel. |
 
 ## Cas d'usage courants
 
@@ -99,7 +99,7 @@ Runbooks :      [Bascule DB primary]
 **3. Déclencher.** Une alerte de monitor ouvre l'incident `INC-4821 · db-primary connection timeout`. La règle correspond, une exécution est créée, et :
 
 - L'étape 1 (JavaScript) s'exécute immédiatement sur le worker — sa valeur `return { lagMs: 412 }` est capturée.
-- L'étape 2 (Manuelle) met l'exécution en pause. L'on-call voit une étiquette « En attente de vous » sur la page de l'incident, vérifie le tableau de bord et valide l'étape.
+- L'étape 2 (Manuelle) met l'exécution en pause. L'on-call voit une étiquette « En attente de votre part » sur la page de l'incident, vérifie le tableau de bord et valide l'étape.
 - L'étape 3 (HTTP) s'exécute dès que l'étape 2 est validée — le corps de réponse du `POST` est capturé.
 - L'étape 4 (Manuelle) met en pause à nouveau.
 - L'étape 5 (HTTP) s'exécute et l'exécution se termine.

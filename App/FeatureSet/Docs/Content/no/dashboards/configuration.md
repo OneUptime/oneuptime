@@ -38,15 +38,15 @@ Dashbord fungerer med prosjektets rollebaserte tilgangskontroll. De relevante ti
 
 Det finnes tilsvarende tillatelser for dashbord-eiere og egendefinerte domener, slik at du kan gi "administrer eiere" uten å gi "rediger dashbordet."
 
-Tildel disse på prosjektroller under **Products → Team → Tillatelser**.
+Tildel disse på prosjektroller under **Produkter → Team → Tillatelser**.
 
 ## Tilgang for offentlige dashbord
 
 Når du gjør et dashbord offentlig (se [Deling & offentlige dashbord](/docs/dashboards/sharing)), kontrollerer tre innstillinger hvem som kan se det:
 
-1. **Offentlig dashbord**-bryter — hvis av, returnerer den offentlige URL-en en 404.
+1. **Public Dashboard**-bryter — hvis av, returnerer den offentlige URL-en en 404.
 2. **Hovedpassord** — hvis satt, skriver besøkende inn et passord før dashbordet vises.
-3. **IP-tillatelsesliste** (Scale-plan) — hvis satt, avvises forespørsler fra andre IP-er.
+3. **IP-hviteliste** (Scale-plan) — hvis satt, avvises forespørsler fra andre IP-er.
 
 Du kan kombinere hvilke som helst av disse. Den mest låste kombinasjonen er "Offentlig på, passord satt, IP-tillatelsesliste aktiv" — nyttig for partnerportaler hvor du vil ha alle tre lagene.
 

@@ -8,7 +8,7 @@ Rena virtuella maskiner (EC2, Compute Engine, Azure VM) förblir **Värdar**, oc
 
 ## Förutsättningar
 
-- En **OneUptime-token för telemetriinmatning** — skapa en från _Project Settings → Telemetri och APM → Intagningsnycklar_.
+- En **OneUptime-token för telemetriinmatning** — skapa en från _Projektinställningar → Telemetri och APM → Intagningsnycklar_.
 - En OpenTelemetry Collector eller SDK som körs i eller bredvid dina arbetsbelastningar.
 
 ## Hur OneUptime identifierar en miljö
@@ -70,9 +70,9 @@ Om du själv är värd för OneUptime använder du `https://YOUR-ONEUPTIME-HOST/
 
 Miljööversikten visar:
 
-- **CPU** och **Minne** per körande uppgift/instans (från `container.cpu.utilization` / `container.memory.usage`), plus en lista över **Toppinstanser efter CPU**.
+- **CPU** och **Minne** per körande uppgift/instans (från `container.cpu.utilization` / `container.memory.usage`), plus en lista över **Främsta instanser efter CPU**.
 - **Instanser** — ett live-antal uppgifter.
-- **Förfrågningar** och trenddiagram härledda från dina spår.
+- **Begäranden** och trenddiagram härledda från dina spår.
 - Fullständiga flikar för **Loggar**, **Spår**, **Mätvärden** och **Instanser**.
 
 Uppdelning per tjänst för samma arbetsbelastningar finns under **Tjänster**.

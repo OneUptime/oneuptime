@@ -10,7 +10,7 @@ Cada paso tiene:
 | ------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
 | **Título**                     | Etiqueta corta mostrada en la UI de checklist. Obligatoria.                                                       |
 | **Descripción**                | Contexto opcional para quien responde. Texto seguro para Markdown.                                                |
-| **Continuar al fallar**        | Si está activo, un paso fallido no detiene la ejecución — el siguiente sigue corriendo.                           |
+| **Continuar en caso de error** | Si está activo, un paso fallido no detiene la ejecución — el siguiente sigue corriendo.                           |
 | **Requiere aprobación**        | Si está activo, el runbook pausa tras este paso y espera a que un usuario apruebe antes de ejecutar el siguiente. |
 | **Config específica del tipo** | Script, URL, agente, etc. — ver más abajo.                                                                        |
 
@@ -60,11 +60,11 @@ Configura en un paso Bash:
 - **Execution timeout** — cuánto deja el agente correr el script antes de matarlo con `SIGKILL`. Por defecto, 30 segundos; súbelo para los pasos que legítimamente tardan minutos.
 - **Claim timeout** — cuánto espera el Worker a que el agente recoja el job. Por defecto, 2 minutos.
 
-Si el agente seleccionado está offline cuando el runbook llega a este paso, el paso espera hasta el **claim timeout** (por defecto 2 minutos) y luego falla con `TimedOut`. Añade un agente en **Runbooks → Configuración → Agentes** antes de depender de un paso Bash.
+Si el agente seleccionado está offline cuando el runbook llega a este paso, el paso espera hasta el **claim timeout** (por defecto 2 minutos) y luego falla con `TimedOut`. Añade un agente en **Runbooks → Ajustes → Agentes** antes de depender de un paso Bash.
 
 ### AI
 
-Pide a la IA que analice, resuma o decida algo a mitad de la ejecución. El prompt se envía al proveedor LLM de tu proyecto (**Settings → AI → LLM Providers**) y la respuesta del modelo se convierte en la salida del paso en la línea de tiempo de la ejecución. Los pasos AI corren en el Worker de OneUptime; no se necesita agente.
+Pide a la IA que analice, resuma o decida algo a mitad de la ejecución. El prompt se envía al proveedor LLM de tu proyecto (**Ajustes → IA → Proveedores LLM**) y la respuesta del modelo se convierte en la salida del paso en la línea de tiempo de la ejecución. Los pasos AI corren en el Worker de OneUptime; no se necesita agente.
 
 Configura en un paso AI:
 
@@ -76,7 +76,7 @@ Combina un paso AI con **Requiere aprobación** para poner a un humano en el cir
 
 **Lo que la IA nunca ve.** La respuesta de un paso AI se almacena como salida del paso en la ejecución, y las ejecuciones pueden ser leídas por cualquiera con permiso de lectura de runbooks — una audiencia más amplia que la ACL del incidente. Por eso el contexto del disparador excluye deliberadamente las **notas internas privadas** y los **mensajes de canales de Slack/Teams**: se quedan dentro del incidente, donde los generadores existentes de postmortems y notas mantienen su texto derivado. La salida de los pasos anteriores se escanea en busca de secretos (tokens, claves, credenciales) y se redacta antes de enviarse al modelo.
 
-Los pasos AI se miden y facturan como cualquier otra funcionalidad de IA. Si el proyecto no tiene un proveedor LLM configurado, el paso falla con un error claro (activa **Continuar al fallar** si el resto del runbook debe seguir corriendo).
+Los pasos AI se miden y facturan como cualquier otra funcionalidad de IA. Si el proyecto no tiene un proveedor LLM configurado, el paso falla con un error claro (activa **Continuar en caso de error** si el resto del runbook debe seguir corriendo).
 
 ## Guardar y editar
 
@@ -84,7 +84,7 @@ Pulsa **Guardar pasos** para persistir. Las ejecuciones en curso de versiones an
 
 ## Múltiples pasos y manejo de fallos
 
-Por defecto, un paso fallido detiene la ejecución y la marca como `Failed`. Si activas **Continuar al fallar** en un paso, se registra el fallo pero se ejecuta el siguiente. Útil para patrones tipo "prueba estas tres cosas, después notifica".
+Por defecto, un paso fallido detiene la ejecución y la marca como `Failed`. Si activas **Continuar en caso de error** en un paso, se registra el fallo pero se ejecuta el siguiente. Útil para patrones tipo "prueba estas tres cosas, después notifica".
 
 ## Un ejemplo trabajado
 

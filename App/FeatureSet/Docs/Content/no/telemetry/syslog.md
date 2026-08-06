@@ -6,7 +6,7 @@ OpenTelemetry Ingest-tjenesten aksepterer nå native Syslog-nyttelaster. Du kan 
 
 ## Forutsetninger
 
-- **Telemetriinnhentingstoken** – opprett ett fra _Project Settings → Telemetri og APM → Inntaksnøkler_ og kopier `x-oneuptime-token`-verdien.
+- **Telemetriinnhentingstoken** – opprett ett fra _Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler_ og kopier `x-oneuptime-token`-verdien.
 - **Syslog-videresender** – et hvilket som helst verktøy som kan sende HTTP POST-forespørsler (for eksempel `curl`, `rsyslog` via `omhttp`, eller `syslog-ng` med HTTP-destinasjonspluginen).
 - **Tjenestenavn (valgfritt)** – sett `x-oneuptime-service-name`-hodet for å gruppere innkommende logger under en spesifikk telemetritjeneste. Når utelatt, faller OneUptime tilbake til syslog `APP-NAME`, vertsnavn eller `Syslog`.
 
@@ -182,7 +182,7 @@ OneUptime legger automatisk til følgende attributter til hver loggoppføring:
 - `syslog.structured.*` (flattet RFC5424-strukturerte data)
 - `syslog.raw` (opprinnelig melding for sporbarhet)
 
-Disse attributtene blir søkbare inne i **Products → Logger** explorer.
+Disse attributtene blir søkbare inne i **Produkter → Logger** explorer.
 
 ## Feilsøking
 

@@ -14,8 +14,8 @@ SSL-certificaatmonitors verbinden met uw HTTPS-eindpunten en inspecteren het SSL
 
 ## Een SSL-certificaat Monitor aanmaken
 
-1. Ga naar **Monitors** in het OneUptime-dashboard
-2. Klik op **Monitor aanmaken**
+1. Ga naar **Monitoren** in het OneUptime-dashboard
+2. Klik op **Monitor maken**
 3. Selecteer **SSL-certificaat** als het monitortype
 4. Voer de URL in van het HTTPS-eindpunt om te controleren
 5. Configureer monitoringcriteria naar wens

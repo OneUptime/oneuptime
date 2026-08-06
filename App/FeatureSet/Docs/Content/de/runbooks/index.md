@@ -4,7 +4,7 @@ Runbooks sind wiederverwendbare Reaktionsverfahren — geordnete Listen aus manu
 
 ## Auf einen Blick
 
-- **Top-Level-Feature** im OneUptime-Dashboard unter **Products → Runbooks**.
+- **Top-Level-Feature** im OneUptime-Dashboard unter **Produkte → Runbooks**.
 - **Fünf Schritttypen**: Manuelle Checkliste, JavaScript (in Sandbox) und Bash (beide laufen auf einem [Runbook-Agent](/docs/runbooks/agents) in Ihrer eigenen Infrastruktur), HTTP-Anfrage und AI (analysiert Vorfall- und Schrittkontext mit dem LLM-Provider Ihres Projekts).
 - **Drei Auslösepfade**: Regeln, die auf Vorfälle/Warnmeldungen/geplante Wartung passen, oder ein manueller „Runbook ausführen"-Button auf jedem Ereignis.
 - **Snapshot-Semantik**: Wenn ein Runbook startet, werden seine Schritte auf die Ausführung kopiert. Späteres Bearbeiten der Vorlage verändert nie einen laufenden Ablauf.
@@ -50,20 +50,20 @@ Ein schneller Entscheidungsguide. Die längere Erklärung steht in [Ein Runbook 
 | **JavaScript**   | Sie brauchen eine kleine, abgeschlossene Berechnung — einen Config-Service abfragen, ein Payload transformieren, vor dem nächsten Schritt Logik laufen lassen. Läuft sandboxed auf einem [Runbook-Agent](/docs/runbooks/agents) in Ihrer eigenen Infrastruktur. | Aktuelles Replica-Lag berechnen und entscheiden, ob weitergemacht wird.                      |
 | **HTTP-Anfrage** | Sie rufen ein bestehendes API auf — Ihren eigenen Admin-Endpoint, einen Cloud-Provider, PagerDuty, Slack.                                                                                                                                                       | `POST` an Ihren Failover-Orchestrator.                                                       |
 | **Bash**         | Sie müssen Shell-Befehle in Ihrer eigenen Infrastruktur ausführen — einen Dienst neu starten, `kubectl` aufrufen, ein Deploy-Skript aufrufen. Benötigt einen [Runbook-Agent](/docs/runbooks/agents), der in Ihrer Umgebung installiert ist.                     | Einen Dienst neu starten, `kubectl rollout restart` ausführen, ein Recovery-Skript aufrufen. |
-| **AI**           | Sie möchten mitten im Lauf eine Analyse, Zusammenfassung oder ein Urteil — mit Schlussfolgerungen über den auslösenden Vorfall und die Ausgaben früherer Schritte über den LLM-Provider Ihres Projekts.                                                         | „Prüfen Sie die Diagnosen oben — ist es sicher, mit dem Failover fortzufahren?"              |
+| **KI**           | Sie möchten mitten im Lauf eine Analyse, Zusammenfassung oder ein Urteil — mit Schlussfolgerungen über den auslösenden Vorfall und die Ausgaben früherer Schritte über den LLM-Provider Ihres Projekts.                                                         | „Prüfen Sie die Diagnosen oben — ist es sicher, mit dem Failover fortzufahren?"              |
 
 Sie können alle fünf in einem einzigen Runbook mischen — die Stärke von Runbooks liegt darin, menschliche Verifizierung mit Automatisierung und AI-Analyse zu verschränken.
 
 ## Wo Runbooks im Dashboard leben
 
-| Seite                                                                     | Was Sie dort tun                                                                                                       |
-| ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| **Products → Runbooks**                                     | Runbook-Vorlagen durchsuchen, erstellen und bearbeiten.                                                                |
-| **Steps-Tab eines Runbooks**                                              | Schrittliste verfassen und sortieren.                                                                                  |
-| **Executions-Tab eines Runbooks**                                         | Jeden Lauf dieses Runbooks mit Statusfiltern sehen.                                                                    |
-| **„Jetzt ausführen"-Button eines Runbooks**                               | Eine Ad-hoc-Ausführung starten, die an kein Ereignis gekoppelt ist.                                                    |
-| **Incidents / Alerts / Scheduled Maintenance → Settings → Runbook Rules** | Auto-Trigger-Regeln pro Entitätstyp erstellen.                                                                         |
-| **Vorfall / Warnmeldung / Wartungsereignis → Runbooks-Tab**               | Ausführungen sehen, die an dieses Ereignis angehängt sind, und **Runbook ausführen** für einen manuellen Lauf klicken. |
+| Seite                                                                        | Was Sie dort tun                                                                                                       |
+| ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| **Produkte → Runbooks**                                                      | Runbook-Vorlagen durchsuchen, erstellen und bearbeiten.                                                                |
+| **Schritte-Tab eines Runbooks**                                              | Schrittliste verfassen und sortieren.                                                                                  |
+| **Ausführungen-Tab eines Runbooks**                                          | Jeden Lauf dieses Runbooks mit Statusfiltern sehen.                                                                    |
+| **„Jetzt ausführen"-Button eines Runbooks**                                  | Eine Ad-hoc-Ausführung starten, die an kein Ereignis gekoppelt ist.                                                    |
+| **Vorfälle / Warnungen / Geplante Wartung → Einstellungen → Runbook-Regeln** | Auto-Trigger-Regeln pro Entitätstyp erstellen.                                                                         |
+| **Vorfall / Warnmeldung / Wartungsereignis → Runbooks-Tab**                  | Ausführungen sehen, die an dieses Ereignis angehängt sind, und **Runbook ausführen** für einen manuellen Lauf klicken. |
 
 ## Häufige Anwendungsfälle
 
@@ -89,7 +89,7 @@ Angenommen, Sie möchten, dass jeder Vorfall mit „db-primary" im Titel automat
 | 4   | Manuell    | Bestätigen, dass Writes nun an den neuen Primary gehen |
 | 5   | HTTP       | Entwarnung an `#db-incidents` Slack posten             |
 
-**2. Regel hinzufügen.** Unter **Incidents → Settings → Runbook Rules** erstellen Sie:
+**2. Regel hinzufügen.** Unter **Vorfälle → Einstellungen → Runbook-Regeln** erstellen Sie:
 
 ```
 Title Pattern:  ^db-primary

@@ -137,7 +137,7 @@ gitHubApp:
 ### Trin 10: Forbind repositories i OneUptime
 
 1. Log ind på dit OneUptime-dashboard
-2. Naviger til **Products** > **Koderepositories**
+2. Naviger til **Produkter** > **Kode-repositorier**
 3. Klik på **"Opret repository"** eller brug GitHub App-installationsflowet
 4. Hvis du omdirigeres fra GitHub, fanges installations-ID'et automatisk
 5. Vælg de repositories, du vil forbinde, fra listen

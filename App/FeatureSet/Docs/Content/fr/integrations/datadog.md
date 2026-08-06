@@ -15,7 +15,7 @@ Datadog monitor alerts  ──►  Webhook integration  ──►  OneUptime Web
 
 ## Étape 1 — Créer le workflow OneUptime
 
-1. Ouvrez **Workflows → Create Workflow**, nommez-le `Datadog → Incidents`, et ouvrez le **Builder**.
+1. Ouvrez **Flux de travail → Créer un flux de travail**, nommez-le `Datadog → Incidents`, et ouvrez le **Constructeur**.
 2. Ajoutez un déclencheur **Webhook** et **copiez son URL**. Renommez le bloc `Datadog`.
 3. Ajoutez un bloc **Conditions** connecté au déclencheur :
    - **Left** : `{{Datadog.Request Body.transition}}`
@@ -66,7 +66,7 @@ Cela envoie à la fois l'alerte et la reprise vers OneUptime. (Pour tout transme
 
 1. Activez le workflow.
 2. Depuis un monitor, utilisez **Test Notifications → Alert**, ou laissez un vrai monitor se déclencher.
-3. Vérifiez l'onglet **Logs** du workflow et votre liste **Incidents**.
+3. Vérifiez l'onglet **Journaux** du workflow et votre liste **Incidents**.
 
 ## Résolution à la reprise (optionnel)
 
@@ -74,8 +74,8 @@ Cela envoie à la fois l'alerte et la reprise vers OneUptime. (Pour tout transme
 
 ## Dépannage
 
-- **Aucune exécution n'apparaît** — confirmez que le message du monitor inclut `@webhook-oneuptime` et que le workflow est **Enabled**.
-- **Les champs sont vides** — Datadog ne substitue que les variables de modèle qui s'appliquent à l'événement. Inspectez la sortie du déclencheur dans l'onglet **Logs** et ajustez votre charge utile webhook.
+- **Aucune exécution n'apparaît** — confirmez que le message du monitor inclut `@webhook-oneuptime` et que le workflow est **Activé**.
+- **Les champs sont vides** — Datadog ne substitue que les variables de modèle qui s'appliquent à l'événement. Inspectez la sortie du déclencheur dans l'onglet **Journaux** et ajustez votre charge utile webhook.
 - **Incidents en double** — un monitor qui ré-alerte (renotify) envoie plusieurs événements `Triggered` ; déduplication avec une vérification **Find Incident** sur l'`id` avant la création.
 
 ## Pour aller plus loin

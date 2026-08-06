@@ -19,8 +19,8 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 
 - **每个集群的 Costs 页面**（_Kubernetes → 你的集群 → Costs_）：支出趋势、按命名空间划分并按 cpu/内存/存储拆分的支出、按工作负载划分的支出、空闲支出以及效率。
 - **项目级的 Costs 页面**（_Kubernetes → Costs_）：项目中每个集群的支出。
-- **一个 Kubernetes 成本仪表板模板**（_Dashboards → Create → Kubernetes Cost Dashboard_）：节点每小时成本趋势、CPU/RAM 单位成本、持久卷和负载均衡器支出。
-- **Metric Explorer** 中的原始成本指标（`node_total_hourly_cost`、`pv_hourly_cost`，……），可用于自定义仪表板和指标告警。
+- **一个 Kubernetes 成本仪表板模板**（_仪表板 → 创建 → Kubernetes Cost Dashboard_）：节点每小时成本趋势、CPU/RAM 单位成本、持久卷和负载均衡器支出。
+- **指标浏览器** 中的原始成本指标（`node_total_hourly_cost`、`pv_hourly_cost`，……），可用于自定义仪表板和指标告警。
 
 ## 工作原理
 

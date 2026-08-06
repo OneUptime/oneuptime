@@ -16,12 +16,12 @@ OneUptime Incident → On Create  ──►  API component (POST /projects/{id}/
 
 ## Étape 1 — Stocker le jeton
 
-1. Allez dans **Workflows → Global Variables → Create**.
+1. Allez dans **Flux de travail → Variables globales → Créer**.
 2. Nommez-le `GITLAB_TOKEN`, collez le jeton, et activez **Is Secret**.
 
 ## Étape 2 — Créer le workflow
 
-1. Ouvrez **Workflows → Create Workflow**, nommez-le `Incidents → GitLab Issues`, et ouvrez le **Builder**.
+1. Ouvrez **Flux de travail → Créer un flux de travail**, nommez-le `Incidents → GitLab Issues`, et ouvrez le **Constructeur**.
 2. Ajoutez un déclencheur **Incident** sur **On Create**. Renommez-le `Incident`.
 3. Ajoutez un bloc **API** connecté au déclencheur :
 

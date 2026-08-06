@@ -1,6 +1,7 @@
 import Icon from "../Icon/Icon";
 import Link from "../Link/Link";
 import Navigation from "../../Utils/Navigation";
+import useTranslateValue from "../../Utils/Translation";
 import IconProp from "../../../Types/Icon/IconProp";
 import URL from "../../../Types/API/URL";
 import { isMoreMenuItemActive, type MoreMenuItem } from "./NavBar";
@@ -163,7 +164,18 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
     Array<HTMLDivElement | null>
   >([]);
 
-  const recentLabel: string = props.recentLabel || "Recent";
+  /*
+   * Callers hand us plain English literals (or omit them and take the
+   * defaults). Run every user-facing string through the same flat-key lookup
+   * the rest of the nav uses, so a caller that has not been wired up to i18n
+   * still renders localised text instead of English.
+   */
+  const { translateString } = useTranslateValue();
+  const tx: (value: string) => string = (value: string): string => {
+    return translateString(value) ?? value;
+  };
+
+  const recentLabel: string = tx(props.recentLabel || "Recent");
 
   // Show the OS-appropriate shortcut hint (⌘K on macOS, Ctrl K elsewhere).
   const shortcutLabel: string = useMemo(() => {
@@ -482,7 +494,7 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
                     ? `navbar-menu-option-${activeIndex}`
                     : undefined
                 }
-                aria-label={props.searchPlaceholder || "Search products"}
+                aria-label={tx(props.searchPlaceholder || "Search products")}
                 autoComplete="off"
                 autoCorrect="off"
                 autoCapitalize="off"
@@ -492,7 +504,7 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
                   setQuery(event.target.value);
                 }}
                 onKeyDown={handleKeyDown}
-                placeholder={props.searchPlaceholder || "Search…"}
+                placeholder={tx(props.searchPlaceholder || "Search…")}
                 className="flex-1 border-0 bg-transparent p-0 text-base text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0"
               />
               {query ? (
@@ -530,7 +542,7 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
                     />
                   </div>
                   <p className="text-sm font-medium text-gray-900">
-                    {props.noResultsText || "No results found."}
+                    {tx(props.noResultsText || "No results found.")}
                   </p>
                   {query && (
                     <p className="mt-1 text-xs text-gray-500">
@@ -640,20 +652,20 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
                   </div>
                   <div className="min-w-0 text-left">
                     <p className="flex items-center gap-1 text-sm font-medium text-gray-900">
-                      <span className="truncate">{props.footer.title}</span>
+                      <span className="truncate">{tx(props.footer.title)}</span>
                       <Icon
                         icon={IconProp.ExternalLink}
                         className="h-3 w-3 flex-shrink-0 text-gray-400 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100"
                       />
                     </p>
                     <p className="truncate text-xs text-gray-500">
-                      {props.footer.description}
+                      {tx(props.footer.description)}
                     </p>
                   </div>
                 </Link>
                 {props.keyboardHint && (
                   <div
-                    aria-label={props.keyboardHint}
+                    aria-label={tx(props.keyboardHint)}
                     className="hidden flex-shrink-0 items-center gap-2 text-xs text-gray-400 md:flex"
                   >
                     <span className="flex items-center gap-1">

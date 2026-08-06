@@ -14,7 +14,7 @@ Verwenden Sie dieses Muster, wenn ein externes System in OneUptime _etwas erstel
 
 1. Bauen Sie einen Workflow, der mit einem **[Webhook-Auslöser](/docs/workflows/triggers#webhook)** beginnt. OneUptime gibt Ihnen eine eindeutige URL.
 2. Im anderen Tool konfigurieren Sie eine Webhook- / Benachrichtigungsaktion, die bei einem Ereignis einen POST an diese URL sendet.
-3. Im Workflow lesen Sie die eingehende Payload und verwenden eine **Create Incident**- (oder Create Alert-)Komponente, um sie zu erfassen.
+3. Im Workflow lesen Sie die eingehende Payload und verwenden eine **Vorfall erstellen**- (oder Create Alert-)Komponente, um sie zu erfassen.
 
 ```text
 Zabbix / Prometheus / Grafana / Datadog  ──►  OneUptime Webhook trigger  ──►  Create Incident
@@ -24,7 +24,7 @@ Zabbix / Prometheus / Grafana / Datadog  ──►  OneUptime Webhook trigger  �
 
 Verwenden Sie dieses Muster, wenn _etwas in OneUptime in einem anderen Tool erscheinen soll_ – ein Jira-Ticket öffnen, jemanden in PagerDuty benachrichtigen, in Slack posten.
 
-1. Bauen Sie einen Workflow, der mit einem **[OneUptime-Ereignis-Auslöser](/docs/workflows/triggers#oneuptime-event-triggers)** beginnt – zum Beispiel **Incident → On Create**.
+1. Bauen Sie einen Workflow, der mit einem **[OneUptime-Ereignis-Auslöser](/docs/workflows/triggers#oneuptime-event-triggers)** beginnt – zum Beispiel **Vorfall → On Create**.
 2. Fügen Sie eine **[API-Komponente](/docs/workflows/components#api)** hinzu, die die REST-API des anderen Tools mit den Vorfallsdetails aufruft.
 3. Speichern Sie alle API-Schlüssel als **geheime [globale Variablen](/docs/workflows/variables#global-variables)**, damit sie nie im Workflow oder dessen Logs erscheinen.
 
@@ -57,7 +57,7 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 
 Fügen Sie niemals einen API-Schlüssel oder Token direkt in einen Block ein. Stattdessen:
 
-1. Gehen Sie zu **Workflows → Global Variables**.
+1. Gehen Sie zu **Arbeitsabläufe → Globale Variablen**.
 2. Erstellen Sie eine Variable – zum Beispiel `JIRA_AUTH` – und aktivieren Sie **Is Secret**.
 3. Referenzieren Sie sie überall mit `{{variable.JIRA_AUTH}}`.
 

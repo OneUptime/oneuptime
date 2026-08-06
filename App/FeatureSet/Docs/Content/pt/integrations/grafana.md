@@ -16,17 +16,17 @@ Grafana alert rule fires  ──►  Webhook contact point  ──►  OneUptime
 
 ## Passo 1 — Construa o workflow do OneUptime
 
-1. Abra **Workflows → Create Workflow**, nomeie-o `Grafana → Incidents` e abra o **Builder**.
+1. Abra **Fluxos de trabalho → Criar fluxo de trabalho**, nomeie-o `Grafana → Incidents` e abra o **Construtor**.
 2. Adicione um gatilho **Webhook** e **copie sua URL**. Renomeie o bloco para `Grafana`.
-3. Adicione um bloco **Conditions** conectado ao gatilho:
+3. Adicione um bloco **Condições** conectado ao gatilho:
    - **Left**: `{{Grafana.Request Body.status}}`
    - **Operator**: `==`
    - **Right**: `firing`
-4. A partir de **Yes**, adicione um bloco **Create Incident**:
-   - **Title**: `{{Grafana.Request Body.title}}`
-   - **Description**: `{{Grafana.Request Body.message}}`
-   - **Severity**: escolha uma (ou ramifique em `{{Grafana.Request Body.commonLabels.severity}}`).
-5. **Salve** (deixe desativado até testar).
+4. A partir de **Sim**, adicione um bloco **Criar incidente**:
+   - **Título**: `{{Grafana.Request Body.title}}`
+   - **Descrição**: `{{Grafana.Request Body.message}}`
+   - **Gravidade**: escolha uma (ou ramifique em `{{Grafana.Request Body.commonLabels.severity}}`).
+5. **Salvar** (deixe desativado até testar).
 
 O payload do webhook do Grafana segue o formato do Alertmanager — inclui `status`, um array `alerts`, `commonLabels` e `commonAnnotations`, além de campos convenientes de nível superior `title` e `message`.
 
@@ -42,11 +42,11 @@ O payload do webhook do Grafana segue o formato do Alertmanager — inclui `stat
 
 1. Ative o workflow.
 2. Na tela do contact point, use **Test** para enviar uma notificação de amostra ou deixe uma regra de alerta real disparar.
-3. Verifique a aba **Logs** do workflow e sua lista de **Incidents**.
+3. Verifique a aba **Registros** do workflow e sua lista de **Incidentes**.
 
 ## Resolvendo na recuperação (opcional)
 
-Quando o alerta é limpo, o Grafana envia outra notificação com `status: resolved`. Adicione uma segunda ramificação **Conditions** (`status == resolved`), encontre o incidente correspondente e mova-o ao estado resolvido com **Update Incident**.
+Quando o alerta é limpo, o Grafana envia outra notificação com `status: resolved`. Adicione uma segunda ramificação **Condições** (`status == resolved`), encontre o incidente correspondente e mova-o ao estado resolvido com **Update Incident**.
 
 ## Observações
 
@@ -55,8 +55,8 @@ Quando o alerta é limpo, o Grafana envia outra notificação com `status: resol
 
 ## Solução de problemas
 
-- **Nenhuma execução aparece** — confirme que o Grafana consegue alcançar a URL (verifique os logs do servidor do Grafana) e que o workflow está **Enabled**.
-- **Campos vazios** — inspecione a saída do gatilho na aba **Logs**; referencie campos que existem para a sua versão de alerting.
+- **Nenhuma execução aparece** — confirme que o Grafana consegue alcançar a URL (verifique os logs do servidor do Grafana) e que o workflow está **Habilitado**.
+- **Campos vazios** — inspecione a saída do gatilho na aba **Registros**; referencie campos que existem para a sua versão de alerting.
 
 ## O que ler em seguida
 

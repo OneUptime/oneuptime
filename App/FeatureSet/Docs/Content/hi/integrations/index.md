@@ -14,7 +14,7 @@ OneUptime उन टूल्स से जुड़ता है जो आप�
 
 1. एक वर्कफ़्लो बनाएँ जो **[Webhook trigger](/docs/workflows/triggers#webhook)** से शुरू हो। OneUptime आपको एक यूनिक URL देता है।
 2. दूसरे टूल में, एक webhook / notification action कॉन्फ़िगर करें जो कुछ होने पर उस URL पर POST करे।
-3. वर्कफ़्लो में, आने वाला payload पढ़ें और इसे रिकॉर्ड करने के लिए **Create Incident** (या Create Alert) कंपोनेंट का उपयोग करें।
+3. वर्कफ़्लो में, आने वाला payload पढ़ें और इसे रिकॉर्ड करने के लिए **घटना बनाएं** (या Create Alert) कंपोनेंट का उपयोग करें।
 
 ```text
 Zabbix / Prometheus / Grafana / Datadog  ──►  OneUptime Webhook trigger  ──►  Create Incident
@@ -24,7 +24,7 @@ Zabbix / Prometheus / Grafana / Datadog  ──►  OneUptime Webhook trigger  �
 
 इसे तब इस्तेमाल करें जब _OneUptime में जो होता है वह किसी अन्य टूल में दिखना चाहिए_ — Jira टिकट खोलना, PagerDuty में किसी को पेज करना, Slack पर पोस्ट करना।
 
-1. एक वर्कफ़्लो बनाएँ जो **[OneUptime event trigger](/docs/workflows/triggers#oneuptime-event-triggers)** से शुरू हो — उदाहरण के लिए **Incident → On Create**।
+1. एक वर्कफ़्लो बनाएँ जो **[OneUptime event trigger](/docs/workflows/triggers#oneuptime-event-triggers)** से शुरू हो — उदाहरण के लिए **घटना → On Create**।
 2. एक **[API component](/docs/workflows/components#api)** जोड़ें जो incident के विवरण के साथ दूसरे टूल के REST API को कॉल करे।
 3. कोई भी API key को **secret [global variables](/docs/workflows/variables#global-variables)** के रूप में स्टोर करें ताकि वे वर्कफ़्लो या उसके लॉग में कभी न दिखें।
 
@@ -57,7 +57,7 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 
 कभी भी किसी ब्लॉक में सीधे API key या token पेस्ट न करें। इसके बजाय:
 
-1. **Workflows → Global Variables** पर जाएँ।
+1. **वर्कफ़्लो → ग्लोबल वेरिएबल** पर जाएँ।
 2. एक variable बनाएँ — उदाहरण के लिए `JIRA_AUTH` — और **Is Secret** चालू करें।
 3. इसे कहीं भी `{{variable.JIRA_AUTH}}` से संदर्भित करें।
 

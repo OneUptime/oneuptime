@@ -14,8 +14,8 @@ SSL Certificate monitors आपके HTTPS endpoints से connect होत�
 
 ## SSL Certificate Monitor बनाना
 
-1. OneUptime Dashboard में **Monitors** पर जाएं
-2. **Create Monitor** पर क्लिक करें
+1. OneUptime Dashboard में **मॉनिटर** पर जाएं
+2. **मॉनिटर बनाएं** पर क्लिक करें
 3. monitor type के रूप में **SSL Certificate** चुनें
 4. जांचने के लिए HTTPS endpoint का URL दर्ज करें
 5. आवश्यकतानुसार monitoring criteria configure करें
@@ -64,23 +64,23 @@ SSL Certificate monitors आपके HTTPS endpoints से connect होत�
 #### 30 दिनों के भीतर certificate expire होने पर degraded mark करें
 
 - **Check On**: Expires In Days
-- **Filter Type**: Less Than
-- **Value**: 30
+- **फ़िल्टर प्रकार**: Less Than
+- **मान**: 30
 
 #### Certificate expired होने पर offline mark करें
 
 - **Check On**: Is Expired Certificate
-- **Filter Type**: True
+- **फ़िल्टर प्रकार**: True
 
 #### Certificate self-signed होने पर Alert करें
 
 - **Check On**: Is Self-Signed Certificate
-- **Filter Type**: True
+- **फ़िल्टर प्रकार**: True
 
 #### Certificate invalid होने पर offline mark करें
 
 - **Check On**: Is Not A Valid Certificate
-- **Filter Type**: True
+- **फ़िल्टर प्रकार**: True
 
 ## सर्वोत्तम प्रथाएं
 

@@ -2,7 +2,7 @@
 
 Apri automaticamente un ticket [GitLab](https://gitlab.com) quando viene creato un incidente OneUptime — in modo che il follow-up di engineering finisca nel progetto che gestisce il servizio interessato.
 
-Questa integrazione è **in uscita**: OneUptime chiama la [GitLab REST API](https://docs.gitlab.com/ee/api/issues.html). Utilizza un **[Workflow](/docs/workflows/index)** di OneUptime con un trigger **Incident → On Create** e un **componente API**. Funziona allo stesso modo su GitLab.com e su GitLab self-managed.
+Questa integrazione è **in uscita**: OneUptime chiama la [GitLab REST API](https://docs.gitlab.com/ee/api/issues.html). Utilizza un **[Workflow](/docs/workflows/index)** di OneUptime con un trigger **Incidente → On Create** e un **componente API**. Funziona allo stesso modo su GitLab.com e su GitLab self-managed.
 
 ```text
 OneUptime Incident → On Create  ──►  API component (POST /projects/{id}/issues)  ──►  GitLab issue
@@ -16,13 +16,13 @@ OneUptime Incident → On Create  ──►  API component (POST /projects/{id}/
 
 ## Passaggio 1 — Salva il token
 
-1. Vai su **Workflows → Global Variables → Create**.
+1. Vai su **Flussi di lavoro → Variabili globali → Crea**.
 2. Chiamala `GITLAB_TOKEN`, incolla il token e attiva **Is Secret**.
 
 ## Passaggio 2 — Crea il workflow
 
-1. Apri **Workflows → Create Workflow**, chiamalo `Incidents → GitLab Issues` e apri il **Builder**.
-2. Aggiungi un trigger **Incident** impostato su **On Create**. Rinominalo `Incident`.
+1. Apri **Flussi di lavoro → Crea flusso di lavoro**, chiamalo `Incidents → GitLab Issues` e apri il **Costruttore**.
+2. Aggiungi un trigger **Incidente** impostato su **On Create**. Rinominalo `Incident`.
 3. Aggiungi un blocco **API** collegato al trigger:
 
    - **Method**: `POST`

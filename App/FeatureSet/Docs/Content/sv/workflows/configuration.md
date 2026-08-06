@@ -4,23 +4,23 @@ Den här sidan täcker de inställningar och säkerhetsgränser som är värda a
 
 ## Slå på eller av ett arbetsflöde
 
-Varje arbetsflöde har en **Enabled**-växel i **Settings**. När den är av körs inte arbetsflödet — webhook-anrop, schemalagda tider och OneUptime-händelser ignoreras alla. Nya arbetsflöden börjar inaktiverade.
+Varje arbetsflöde har en **Aktiverad**-växel i **Inställningar**. När den är av körs inte arbetsflödet — webhook-anrop, schemalagda tider och OneUptime-händelser ignoreras alla. Nya arbetsflöden börjar inaktiverade.
 
 Använd den här växeln som din "redo att köra"-grind:
 
 1. Bygg arbetsflödet.
 2. Klicka på **Run Manually** med en realistisk payload.
-3. Kontrollera **Logs** — försäkra dig om att varje block gick dit du förväntade dig.
-4. Slå på **Enabled**.
+3. Kontrollera **Loggar** — försäkra dig om att varje block gick dit du förväntade dig.
+4. Slå på **Aktiverad**.
 
 Att stänga av ett arbetsflöde stoppar inte körningar som redan pågår; det stoppar bara nya från att starta.
 
 ## Ägare och etiketter
 
-- **Owners** — användare och team som listas som ägare får åtkomst till arbetsflödet och kan välja att få notiser när det misslyckas. Ställ in dem under **Settings → Owners**.
-- **Labels** — taggar för att gruppera arbetsflöden. Arbetsflödeslistan låter dig filtrera på etikett, vilket gör ett upptaget projekt mycket enklare att navigera. Användbart när du har arbetsflöden organiserade efter team, integration eller miljö.
-- **Label rules** — under **Workflows → Settings → Label Rules** kan du automatiskt tillämpa etiketter på nya arbetsflöden baserat på namn- eller beskrivningsmönster.
-- **Owner rules** — under **Workflows → Settings → Owner Rules** kan du automatiskt tilldela ägare till nya arbetsflöden.
+- **Ägare** — användare och team som listas som ägare får åtkomst till arbetsflödet och kan välja att få notiser när det misslyckas. Ställ in dem under **Inställningar → Ägare**.
+- **Etiketter** — taggar för att gruppera arbetsflöden. Arbetsflödeslistan låter dig filtrera på etikett, vilket gör ett upptaget projekt mycket enklare att navigera. Användbart när du har arbetsflöden organiserade efter team, integration eller miljö.
+- **Etikettregler** — under **Arbetsflöden → Inställningar → Etikettregler** kan du automatiskt tillämpa etiketter på nya arbetsflöden baserat på namn- eller beskrivningsmönster.
+- **Ägarregler** — under **Arbetsflöden → Inställningar → Ägarregler** kan du automatiskt tilldela ägare till nya arbetsflöden.
 
 ## Hemligheter
 
@@ -52,7 +52,7 @@ Om du har ett verkligt behov av en lång kedja (som ett jobb som bearbetar en po
 Webhook-utlösare ger dig en unik URL. Vem som helst som känner till URL:en kan anropa den. För att skydda mot oavsiktliga eller oönskade anropare:
 
 - Behandla URL:en som ett lösenord. Dela inte den offentligt eller committa den till ett offentligt repo.
-- För känsliga arbetsflöden, be det anropande systemet att skicka en delad token som en header (som `X-Webhook-Token`) och kontrollera den med ett **Conditions**-block innan du gör något viktigt. Spara den förväntade tokenen som en hemlig variabel.
+- För känsliga arbetsflöden, be det anropande systemet att skicka en delad token som en header (som `X-Webhook-Token`) och kontrollera den med ett **Villkor**-block innan du gör något viktigt. Spara den förväntade tokenen som en hemlig variabel.
 - För mycket känsliga arbetsflöden, föredra en OneUptime-händelseutlösare och ett manuellt importsteg istället för en offentlig webhook.
 
 ## Utgående nätverksåtkomst
@@ -64,7 +64,7 @@ API- och andra HTTP-block gör sina förfrågningar från OneUptime. Om du kör 
 Arbetsflöden respekterar ditt projekts rollbaserade åtkomstkontroll. De relevanta behörigheterna:
 
 - **Create / Read / Edit / Delete Workflow** — de grundläggande behörigheterna på själva arbetsflödet.
-- **Run Workflow** — behövs för att klicka på **Run Manually** eller utlösa ett arbetsflöde via API.
+- **Kör arbetsflöde** — behövs för att klicka på **Run Manually** eller utlösa ett arbetsflöde via API.
 - **Read Workflow Log** — behövs för att se körningar.
 - **Read / Create / Edit / Delete Workflow Variable** — kontroll över listan med globala variabler.
 
@@ -72,7 +72,7 @@ De flesta utvecklare bör ha skapa/redigera/läsa på arbetsflöden men inte på
 
 ## Plangränser
 
-OneUptime Cloud begränsar antalet körningar per månad på mindre planer. Din aktuella gräns visas under **Project Settings → Billing**. När du når den avvisas nya utlösare till nästa faktureringscykel. Självhostade installationer har inte denna gräns.
+OneUptime Cloud begränsar antalet körningar per månad på mindre planer. Din aktuella gräns visas under **Projektinställningar → Fakturering**. När du når den avvisas nya utlösare till nästa faktureringscykel. Självhostade installationer har inte denna gräns.
 
 ## När arbetsflöden inte är rätt verktyg
 

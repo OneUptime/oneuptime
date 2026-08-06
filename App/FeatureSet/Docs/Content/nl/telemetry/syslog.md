@@ -182,7 +182,7 @@ OneUptime voegt automatisch de volgende attributen toe aan elk logboekvermelding
 - `syslog.structured.*` (afgevlakte RFC5424 gestructureerde gegevens)
 - `syslog.raw` (origineel bericht voor traceerbaarheid)
 
-Deze attributen worden doorzoekbaar in de Telemetrie → Logboeken verkenner.
+Deze attributen worden doorzoekbaar in de Producten → Logboeken verkenner.
 
 ## Probleemoplossing
 

@@ -1,6 +1,6 @@
 # Création d'un tableau de bord
 
-Pour créer un tableau de bord, ouvrez **Dashboards → Create Dashboard**, donnez-lui un nom et ouvrez-le. Le canevas s'ouvre en mode **Edit**, prêt à recevoir vos premiers widgets.
+Pour créer un tableau de bord, ouvrez **Tableaux de bord → Create Dashboard**, donnez-lui un nom et ouvrez-le. Le canevas s'ouvre en mode **Modifier**, prêt à recevoir vos premiers widgets.
 
 ## Le canevas
 
@@ -10,8 +10,8 @@ Un tableau de bord est une grille. Les widgets s'y placent — vous décidez où
 
 L'interrupteur dans l'en-tête bascule entre deux modes :
 
-- **Edit** — la palette des widgets est ouverte, vous pouvez glisser les widgets, les redimensionner et cliquer sur n'importe quel widget pour modifier ses paramètres.
-- **View** — le tableau de bord est en lecture seule, exactement tel que le voient les visiteurs et les autres membres de l'équipe. Utilisez ce mode pour vérifier le résultat avant de partager.
+- **Modifier** — la palette des widgets est ouverte, vous pouvez glisser les widgets, les redimensionner et cliquer sur n'importe quel widget pour modifier ses paramètres.
+- **Voir** — le tableau de bord est en lecture seule, exactement tel que le voient les visiteurs et les autres membres de l'équipe. Utilisez ce mode pour vérifier le résultat avant de partager.
 
 C'est le même tableau de bord dans les deux modes. Il n'y a pas d'étape « publier » distincte — chaque modification est en ligne dès qu'elle est enregistrée.
 
@@ -30,11 +30,11 @@ La plupart des widgets lisent à partir de l'une de trois sources :
 
 - **Métriques** — choisissez une métrique et une agrégation (moyenne, max, comptage, percentile). Ajoutez des filtres. Choisissez comment regrouper le résultat. C'est le même constructeur de requêtes que vous retrouvez ailleurs dans OneUptime.
 - **Listes en direct** — incidents, alertes, monitors, pods Kubernetes, conteneurs Docker, hôtes. Chaque widget de liste prend un filtre et affiche les éléments correspondants, mis à jour en direct.
-- **Contenu statique** — le widget **Text** accepte un bloc de Markdown. Utilisez-le pour des titres, du contexte, des liens vers des runbooks ou des notes temporaires lors d'un incident.
+- **Contenu statique** — le widget **Texte** accepte un bloc de Markdown. Utilisez-le pour des titres, du contexte, des liens vers des runbooks ou des notes temporaires lors d'un incident.
 
 ## Seuils et mise en forme
 
-Les widgets à valeur unique (**Value**, **Gauge**) vous permettent de définir :
+Les widgets à valeur unique (**Valeur**, **Jauge**) vous permettent de définir :
 
 - Un **seuil d'avertissement** — la couleur passe au jaune quand la valeur le franchit.
 - Un **seuil critique** — la couleur passe au rouge quand la valeur le franchit.
@@ -46,7 +46,7 @@ Les graphiques vous permettent de définir l'unité de l'axe Y, de choisir l'emp
 En haut du tableau de bord, deux contrôles affectent chaque widget de métrique :
 
 - **Plage temporelle** — un préréglage (dernière heure, 24 heures, 7 jours, 30 jours) ou une plage personnalisée. Chaque graphique et chaque nombre utilise cette fenêtre.
-- **Actualisation** — la fréquence à laquelle les widgets relancent leur requête. Désactivée, 5 s, 10 s, 30 s, 1 min, 5 min, 15 min. Les listes en direct se mettent à jour d'elles-mêmes indépendamment de ce paramètre.
+- **Actualiser** — la fréquence à laquelle les widgets relancent leur requête. Désactivée, 5 s, 10 s, 30 s, 1 min, 5 min, 15 min. Les listes en direct se mettent à jour d'elles-mêmes indépendamment de ce paramètre.
 
 Les widgets qui n'utilisent pas la plage temporelle (comme un widget Text) ignorent les deux contrôles.
 

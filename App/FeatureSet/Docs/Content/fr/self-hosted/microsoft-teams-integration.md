@@ -108,7 +108,7 @@ microsoftTeamsApp:
 
 ### Étape 7 : Télécharger le manifeste de l'application Teams
 
-1. Allez dans **Paramètres** du projet > **Espace de travail** > **Microsoft Teams**
+1. Allez dans **Paramètres du projet** > **Espace de travail** > **Microsoft Teams**
 2. Téléchargez le manifeste de l'application Teams depuis cet endroit
 3. Allez dans Microsoft Teams, cliquez sur « Applications » dans la barre latérale
 4. En bas, cliquez sur « Gérer vos applications »

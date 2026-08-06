@@ -15,18 +15,18 @@ OneUptime Incident → On Create  ──►  Discord component  ──►  messa
 
 ## चरण 2 — webhook URL store करें (वैकल्पिक लेकिन अनुशंसित)
 
-1. OneUptime में, **Workflows → Global Variables → Create** पर जाएँ।
+1. OneUptime में, **वर्कफ़्लो → ग्लोबल वेरिएबल → बनाएँ** पर जाएँ।
 2. इसे `DISCORD_WEBHOOK_URL` नाम दें, URL पेस्ट करें, और **Is Secret** चालू करें।
 
 इसे variable में रखने से आप इसे वर्कफ़्लो के पार reuse कर सकते हैं और एक जगह से rotate कर सकते हैं।
 
 ## चरण 3 — वर्कफ़्लो बनाएँ
 
-1. **Workflows → Create Workflow** खोलें, इसे `Incidents → Discord` नाम दें, और **Builder** खोलें।
-2. **On Create** पर सेट एक **Incident** trigger जोड़ें। इसे `Incident` नाम दें।
+1. **वर्कफ़्लो → वर्कफ़्लो बनाएं** खोलें, इसे `Incidents → Discord` नाम दें, और **बिल्डर** खोलें।
+2. **On Create** पर सेट एक **घटना** trigger जोड़ें। इसे `Incident` नाम दें।
 3. trigger से connected एक **Discord** component जोड़ें:
-   - **Webhook URL**: `{{variable.DISCORD_WEBHOOK_URL}}` (या सीधे पेस्ट करें)।
-   - **Message**: `🔴 New incident: {{Incident.title}}\n{{Incident.description}}`
+   - **वेबहुक URL**: `{{variable.DISCORD_WEBHOOK_URL}}` (या सीधे पेस्ट करें)।
+   - **संदेश**: `🔴 New incident: {{Incident.title}}\n{{Incident.description}}`
 4. **सहेजें**, enable करें, और एक test incident बनाएँ। Message आपके channel में दिखाई देता है।
 
 ## वैकल्पिक: API component
@@ -42,8 +42,8 @@ OneUptime Incident → On Create  ──►  Discord component  ──►  messa
 
 ## टिप्स
 
-- केवल कुछ severities के लिए post करने के लिए **Conditions** इस्तेमाल करें — Discord block से पहले `{{Incident.incidentSeverity.name}}` पर branch करें।
-- acknowledgements और resolutions उसी channel में post करने के लिए **Incident → On Update** पर और वर्कफ़्लो जोड़ें।
+- केवल कुछ severities के लिए post करने के लिए **शर्तें** इस्तेमाल करें — Discord block से पहले `{{Incident.incidentSeverity.name}}` पर branch करें।
+- acknowledgements और resolutions उसी channel में post करने के लिए **घटना → On Update** पर और वर्कफ़्लो जोड़ें।
 
 ## आगे क्या पढ़ें
 

@@ -4,23 +4,23 @@ Esta página cubre los ajustes y límites de seguridad que conviene conocer ante
 
 ## Activar o desactivar un workflow
 
-Cada workflow tiene un interruptor **Activado** en **Configuración**. Cuando está apagado, el workflow no se ejecuta: las llamadas de webhook, las horas programadas y los eventos de OneUptime se ignoran. Los workflows nuevos comienzan desactivados.
+Cada workflow tiene un interruptor **Habilitado** en **Ajustes**. Cuando está apagado, el workflow no se ejecuta: las llamadas de webhook, las horas programadas y los eventos de OneUptime se ignoran. Los workflows nuevos comienzan desactivados.
 
 Usa este interruptor como tu puerta de "listo para producción":
 
 1. Construye el workflow.
 2. Haz clic en **Ejecutar Manualmente** con una carga útil realista.
 3. Comprueba los **Registros** — asegúrate de que cada bloque fue a donde esperabas.
-4. Cambia **Activado** a encendido.
+4. Cambia **Habilitado** a encendido.
 
 Apagar un workflow no detiene las ejecuciones que ya están en curso; solo impide que comiencen nuevas.
 
 ## Propietarios y etiquetas
 
-- **Propietarios** — los usuarios y equipos listados como propietarios tienen acceso al workflow y pueden suscribirse a notificaciones cuando falla. Configúralos en **Configuración → Propietarios**.
+- **Propietarios** — los usuarios y equipos listados como propietarios tienen acceso al workflow y pueden suscribirse a notificaciones cuando falla. Configúralos en **Ajustes → Propietarios**.
 - **Etiquetas** — etiquetas para agrupar workflows. La lista de workflows te permite filtrar por etiqueta, lo que hace que un proyecto ocupado sea mucho más fácil de navegar. Útil cuando tienes workflows organizados por equipo, integración o entorno.
-- **Reglas de etiquetas** — en **Workflows → Configuración → Reglas de Etiquetas**, aplica etiquetas automáticamente a los nuevos workflows según patrones de nombre o descripción.
-- **Reglas de propietarios** — en **Workflows → Configuración → Reglas de Propietarios**, asigna automáticamente propietarios a los nuevos workflows.
+- **Reglas de etiquetas** — en **Flujos de trabajo → Ajustes → Reglas de etiquetas**, aplica etiquetas automáticamente a los nuevos workflows según patrones de nombre o descripción.
+- **Reglas de propietarios** — en **Flujos de trabajo → Ajustes → Reglas del propietario**, asigna automáticamente propietarios a los nuevos workflows.
 
 ## Secretos
 
@@ -72,7 +72,7 @@ La mayoría de los ingenieros deberían tener permisos de crear/editar/leer en w
 
 ## Límites del plan
 
-OneUptime Cloud limita el número de ejecuciones al mes en los planes más pequeños. Tu límite actual se muestra en **Configuración del Proyecto → Facturación**. Cuando lo alcances, los nuevos disparadores se rechazan hasta el siguiente ciclo de facturación. Las instalaciones auto-alojadas no tienen este límite.
+OneUptime Cloud limita el número de ejecuciones al mes en los planes más pequeños. Tu límite actual se muestra en **Ajustes del proyecto → Facturación**. Cuando lo alcances, los nuevos disparadores se rechazan hasta el siguiente ciclo de facturación. Las instalaciones auto-alojadas no tienen este límite.
 
 ## Cuándo los workflows no son la herramienta adecuada
 

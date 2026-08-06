@@ -8,7 +8,7 @@ Nuestra API está organizada en torno a los principios REST y utiliza códigos d
 
 ### Autenticación
 
-Todas las solicitudes de API requieren autenticación mediante claves de API. Puedes generar claves de API desde tu panel de OneUptime en Configuración > Claves de API.
+Todas las solicitudes de API requieren autenticación mediante claves de API. Puedes generar claves de API desde tu panel de OneUptime en Ajustes > Claves API.
 
 ### Referencia de la API
 

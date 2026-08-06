@@ -14,9 +14,9 @@ Profiles 監控會計算並篩選符合特定條件的剖析資料。這讓您�
 
 ## 建立 Profiles 監控
 
-1. 在 OneUptime Dashboard 中前往 **Monitors**
-2. 點擊 **Create Monitor**
-3. 選擇 **Profiles** 作為監控類型
+1. 在 OneUptime Dashboard 中前往 **監測**
+2. 點擊 **建立監測器**
+3. 選擇 **設定檔** 作為監控類型
 4. 選擇要監控的遙測服務
 5. 視需要設定剖析篩選條件與準則
 
@@ -55,10 +55,10 @@ Profiles 監控會計算並篩選符合特定條件的剖析資料。這讓您�
 
 #### 若 5 分鐘內未收到任何剖析資料則發出警示
 
-- **Time Window**：300 秒
+- **時間範圍**：300 秒
 - **Check On**：Profile Count
-- **Filter Type**：Equal To
-- **Value**：0
+- **篩選器類型**：Equal To
+- **值**：0
 
 ## 設定需求
 

@@ -16,12 +16,12 @@ Global SSO 是 **OneUptime Enterprise Edition** 功能，仅在运行 Enterprise
 
 1. **打开 Admin Dashboard**
 
-   - 以主管理员身份登录，并打开 **Admin** > **Settings** > **Global SSO**（针对 SAML）或 **Global OIDC**（针对 OpenID Connect）。
+   - 以主管理员身份登录，并打开 **Admin** > **设置** > **Global SSO**（针对 SAML）或 **Global OIDC**（针对 OpenID Connect）。
 
 2. **创建提供商**
 
    - 点击 **Create Global SSO**。
-   - 对于 SAML：输入 **Name**、来自身份提供商的 **Sign On URL** 和 **Issuer**，并粘贴 **Public Certificate**。选择 **Signature** 和 **Digest** 方法（如果不确定，请保留默认值 —— `RSA-SHA256` / `SHA256`）。
+   - 对于 SAML：输入 **名称**、来自身份提供商的 **Sign On URL** 和 **Issuer**，并粘贴 **Public Certificate**。选择 **Signature** 和 **Digest** 方法（如果不确定，请保留默认值 —— `RSA-SHA256` / `SHA256`）。
    - 对于 OIDC：输入 **Discovery URL**、**Issuer**、**Client ID**、**Client Secret**、**Scopes**（必须包含 `openid`），以及 **email** / **name** 声明名称。
 
 3. **将 OneUptime URL 复制到您的身份提供商**
@@ -48,7 +48,7 @@ Global SSO 是 **OneUptime Enterprise Edition** 功能，仅在运行 Enterprise
 配置全局提供商并不会强制任何人使用它；密码登录仍然有效。若要要求使用 SSO，请使用 **Require SSO for Login** 控件：
 
 - **按项目：** 项目可以要求使用 SSO，并可选择要求使用*特定*提供商（项目级或全局）。
-- **实例级：** **Admin** > **Settings** > **Authentication** 中有一个 **Require SSO for Login** 开关，可强制实例中的每位用户使用 SSO。主管理员仍然豁免，以免被锁定在外。
+- **实例级：** **Admin** > **设置** > **认证** 中有一个 **Require SSO for Login** 开关，可强制实例中的每位用户使用 SSO。主管理员仍然豁免，以免被锁定在外。
 
 ## 相关内容
 

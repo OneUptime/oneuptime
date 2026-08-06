@@ -2,7 +2,7 @@
 
 Apri automaticamente un ticket [Jira](https://www.atlassian.com/software/jira) ogni volta che viene creato un incidente OneUptime — in modo che il lavoro di engineering sia tracciato dove i tuoi sviluppatori già lavorano, con un link all'incidente.
 
-Questa integrazione è **in uscita**: OneUptime chiama la REST API di Jira. Utilizza un **[Workflow](/docs/workflows/index)** di OneUptime con un trigger **Incident → On Create** e un **componente API**. Puoi facoltativamente aggiungere un percorso **in entrata** in modo che la chiusura del ticket Jira risolva l'incidente OneUptime.
+Questa integrazione è **in uscita**: OneUptime chiama la REST API di Jira. Utilizza un **[Workflow](/docs/workflows/index)** di OneUptime con un trigger **Incidente → On Create** e un **componente API**. Puoi facoltativamente aggiungere un percorso **in entrata** in modo che la chiusura del ticket Jira risolva l'incidente OneUptime.
 
 ```text
 OneUptime Incident → On Create  ──►  API component (POST /rest/api/3/issue)  ──►  Jira issue
@@ -26,15 +26,15 @@ Jira Cloud usa la **Basic auth** con la tua email e il token API, codificati in 
    printf '%s' 'you@example.com:your_api_token' | base64
    ```
 
-2. In OneUptime, vai su **Workflows → Global Variables → Create**.
+2. In OneUptime, vai su **Flussi di lavoro → Variabili globali → Crea**.
 3. Chiamala `JIRA_AUTH`, incolla la stringa base64 come valore e attiva **Is Secret**.
 
 Ora puoi usare `Basic {{variable.JIRA_AUTH}}` come header di autenticazione e il token non apparirà mai nel workflow o nei suoi log.
 
 ## Passaggio 2 — Crea il workflow
 
-1. Apri **Workflows → Create Workflow**, chiamalo `Incidents → Jira` e apri il **Builder**.
-2. Trascina un trigger **Incident** sul canvas e scegli l'evento **On Create**. Rinominalo `Incident`.
+1. Apri **Flussi di lavoro → Crea flusso di lavoro**, chiamalo `Incidents → Jira` e apri il **Costruttore**.
+2. Trascina un trigger **Incidente** sul canvas e scegli l'evento **On Create**. Rinominalo `Incident`.
 3. Trascina un blocco **API** e collegalo al trigger. Configura:
 
    - **Method**: `POST`
@@ -76,9 +76,9 @@ Ora puoi usare `Basic {{variable.JIRA_AUTH}}` come header di autenticazione e il
 
 ## Passaggio 3 — Testalo
 
-1. Attiva **Enabled** nel workflow.
+1. Attiva **Abilitato** nel workflow.
 2. Crea un incidente di test in OneUptime (o attivane uno da un monitor).
-3. Apri la scheda **Logs** del workflow. Il blocco **API** dovrebbe mostrare uno stato `201` e un corpo della risposta contenente la `key` del nuovo ticket (ad esempio `OPS-1234`).
+3. Apri la scheda **Registri** del workflow. Il blocco **API** dovrebbe mostrare uno stato `201` e un corpo della risposta contenente la `key` del nuovo ticket (ad esempio `OPS-1234`).
 4. Controlla Jira — il ticket è lì.
 
 Se il blocco API restituisce un errore, espandilo nei log — la risposta di Jira spiega esattamente quale campo ha rifiutato. Vedi [Risoluzione dei problemi](#risoluzione-dei-problemi).
@@ -114,7 +114,7 @@ Se hai salvato la chiave Jira sull'incidente nel Passaggio 4, la corrispondenza 
 
 Alcune modifiche comuni al corpo del blocco API:
 
-- **Priorità** — aggiungi `"priority": { "name": "High" }` dentro `fields`. Puoi ramificare su `{{Incident.incidentSeverity.name}}` con **Conditions** per mappare le severità OneUptime alle priorità Jira.
+- **Priorità** — aggiungi `"priority": { "name": "High" }` dentro `fields`. Puoi ramificare su `{{Incident.incidentSeverity.name}}` con **Condizioni** per mappare le severità OneUptime alle priorità Jira.
 - **Etichette** — aggiungi `"labels": ["oneuptime", "incident"]`.
 - **Assegnatario** — aggiungi `"assignee": { "id": "<accountId>" }` (Jira Cloud usa gli ID account, non i nomi utente).
 - **Campi personalizzati** — aggiungi `"customfield_XXXXX": "..."` usando l'ID del campo dal tuo admin Jira.

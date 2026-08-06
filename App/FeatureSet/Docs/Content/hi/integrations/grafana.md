@@ -16,16 +16,16 @@ Grafana alert rule fires  ──►  Webhook contact point  ──►  OneUptime
 
 ## चरण 1 — OneUptime वर्कफ़्लो बनाएँ
 
-1. **Workflows → Create Workflow** खोलें, इसे `Grafana → Incidents` नाम दें, और **Builder** खोलें।
-2. एक **Webhook** trigger जोड़ें और **उसका URL कॉपी करें**। ब्लॉक का नाम `Grafana` रखें।
-3. trigger से connected एक **Conditions** ब्लॉक जोड़ें:
+1. **वर्कफ़्लो → वर्कफ़्लो बनाएं** खोलें, इसे `Grafana → Incidents` नाम दें, और **बिल्डर** खोलें।
+2. एक **वेबहुक** trigger जोड़ें और **उसका URL कॉपी करें**। ब्लॉक का नाम `Grafana` रखें।
+3. trigger से connected एक **शर्तें** ब्लॉक जोड़ें:
    - **Left**: `{{Grafana.Request Body.status}}`
    - **Operator**: `==`
    - **Right**: `firing`
-4. **Yes** से, एक **Create Incident** ब्लॉक जोड़ें:
-   - **Title**: `{{Grafana.Request Body.title}}`
-   - **Description**: `{{Grafana.Request Body.message}}`
-   - **Severity**: कोई एक चुनें (या `{{Grafana.Request Body.commonLabels.severity}}` पर branch करें)।
+4. **हाँ** से, एक **घटना बनाएं** ब्लॉक जोड़ें:
+   - **शीर्षक**: `{{Grafana.Request Body.title}}`
+   - **विवरण**: `{{Grafana.Request Body.message}}`
+   - **गंभीरता**: कोई एक चुनें (या `{{Grafana.Request Body.commonLabels.severity}}` पर branch करें)।
 5. **सहेजें** (test होने तक disabled छोड़ें)।
 
 Grafana का webhook payload Alertmanager shape follow करता है — इसमें `status`, एक `alerts` array, `commonLabels`, और `commonAnnotations` शामिल हैं, साथ ही सुविधाजनक top-level `title` और `message` fields।
@@ -42,11 +42,11 @@ Grafana का webhook payload Alertmanager shape follow करता है —
 
 1. वर्कफ़्लो enable करें।
 2. Contact point screen में, एक sample notification भेजने के लिए **Test** इस्तेमाल करें, या कोई real alert rule fire होने दें।
-3. वर्कफ़्लो का **Logs** tab और अपना **Incidents** list जाँचें।
+3. वर्कफ़्लो का **लॉग** tab और अपना **घटनाएं** list जाँचें।
 
 ## Recovery पर resolve करना (वैकल्पिक)
 
-जब alert clear होता है, Grafana `status: resolved` के साथ एक और notification भेजता है। एक दूसरा **Conditions** branch जोड़ें (`status == resolved`), matching incident खोजें, और इसे **Update Incident** के साथ आपके resolved state में ले जाएँ।
+जब alert clear होता है, Grafana `status: resolved` के साथ एक और notification भेजता है। एक दूसरा **शर्तें** branch जोड़ें (`status == resolved`), matching incident खोजें, और इसे **Update Incident** के साथ आपके resolved state में ले जाएँ।
 
 ## नोट्स
 
@@ -55,8 +55,8 @@ Grafana का webhook payload Alertmanager shape follow करता है —
 
 ## समस्या निवारण
 
-- **कोई run नहीं दिखता** — पुष्टि करें कि Grafana URL तक पहुँच सकता है (Grafana के server logs जाँचें) और वर्कफ़्लो **Enabled** है।
-- **खाली fields** — **Logs** tab में trigger output inspect करें; अपने alerting version के लिए जो fields exist करते हैं उन्हें reference करें।
+- **कोई run नहीं दिखता** — पुष्टि करें कि Grafana URL तक पहुँच सकता है (Grafana के server logs जाँचें) और वर्कफ़्लो **सक्षम** है।
+- **खाली fields** — **लॉग** tab में trigger output inspect करें; अपने alerting version के लिए जो fields exist करते हैं उन्हें reference करें।
 
 ## आगे क्या पढ़ें
 

@@ -21,17 +21,17 @@ OneUptime Incident → On Create  ──►  Telegram component  ──►  mess
 
 ## Passaggio 3 — Salva i segreti
 
-1. In OneUptime, vai su **Workflows → Global Variables → Create**.
+1. In OneUptime, vai su **Flussi di lavoro → Variabili globali → Crea**.
 2. Crea `TELEGRAM_BOT_TOKEN` (segreto) e `TELEGRAM_CHAT_ID`.
 
 ## Passaggio 4 — Crea il workflow
 
-1. Apri **Workflows → Create Workflow**, chiamalo `Incidents → Telegram` e apri il **Builder**.
-2. Aggiungi un trigger **Incident** impostato su **On Create**. Rinominalo `Incident`.
+1. Apri **Flussi di lavoro → Crea flusso di lavoro**, chiamalo `Incidents → Telegram` e apri il **Costruttore**.
+2. Aggiungi un trigger **Incidente** impostato su **On Create**. Rinominalo `Incident`.
 3. Aggiungi un componente **Telegram** collegato al trigger:
    - **Bot token**: `{{variable.TELEGRAM_BOT_TOKEN}}`
    - **Chat ID**: `{{variable.TELEGRAM_CHAT_ID}}`
-   - **Message**: `🔴 New incident: {{Incident.title}}\n{{Incident.description}}`
+   - **Messaggio**: `🔴 New incident: {{Incident.title}}\n{{Incident.description}}`
 4. **Salva**, abilita e crea un incidente di test. Il messaggio arriva nella tua chat.
 
 ## Alternativa: il componente API
@@ -46,7 +46,7 @@ Funziona anche un blocco **API**:
 ## Suggerimenti
 
 - Il bot vede i messaggi solo dopo essere stato aggiunto a un gruppo e con la **modalità privacy** che lo consente — se `getUpdates` è vuoto, invia prima un messaggio al bot, oppure disabilita la modalità privacy tramite BotFather.
-- Usa **Conditions** per filtrare per severità prima di inviare.
+- Usa **Condizioni** per filtrare per severità prima di inviare.
 - Aggiungi `"parse_mode": "Markdown"` al corpo dell'API (o usa la formattazione del componente) per grassetto e link.
 
 ## Dove leggere poi

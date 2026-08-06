@@ -16,12 +16,12 @@ Global SSO is een functie van **OneUptime Enterprise Edition** en is alleen besc
 
 1. **Open het Admin Dashboard**
 
-   - Log in als master admin en open **Admin** > **Settings** > **Global SSO** (voor SAML) of **Global OIDC** (voor OpenID Connect).
+   - Log in als master admin en open **Admin** > **Instellingen** > **Global SSO** (voor SAML) of **Global OIDC** (voor OpenID Connect).
 
 2. **Een provider aanmaken**
 
    - Klik op **Create Global SSO**.
-   - Voor SAML: voer een **Name** in, de **Sign On URL** en **Issuer** van uw identiteitsprovider, en plak het **Public Certificate**. Kies de **Signature**- en **Digest**-methoden (laat de standaardwaarden — `RSA-SHA256` / `SHA256` — staan als u twijfelt).
+   - Voor SAML: voer een **Naam** in, de **Sign On URL** en **Issuer** van uw identiteitsprovider, en plak het **Public Certificate**. Kies de **Signature**- en **Digest**-methoden (laat de standaardwaarden — `RSA-SHA256` / `SHA256` — staan als u twijfelt).
    - Voor OIDC: voer de **Discovery URL**, **Issuer**, **Client ID**, **Client Secret**, **Scopes** (moet `openid` bevatten) en de claimnamen voor **email** / **name** in.
 
 3. **Kopieer de OneUptime-URL's naar uw identiteitsprovider**
@@ -48,7 +48,7 @@ Als u elke automatische accountaanmaak wilt voorkomen, zelfs wanneer er projecte
 Het configureren van een globale provider dwingt niemand om deze te gebruiken; inloggen met een wachtwoord blijft werken. Om SSO te verplichten, gebruikt u de besturingselementen **Require SSO for Login**:
 
 - **Per project:** een project kan SSO vereisen, en optioneel een _specifieke_ provider vereisen (project of globaal).
-- **Instantie-breed:** **Admin** > **Settings** > **Authentication** bevat een schakelaar **Require SSO for Login** die SSO afdwingt voor elke gebruiker in de hele instantie. Master admins blijven uitgezonderd, zodat zij niet buitengesloten kunnen worden.
+- **Instantie-breed:** **Admin** > **Instellingen** > **Authenticatie** bevat een schakelaar **Require SSO for Login** die SSO afdwingt voor elke gebruiker in de hele instantie. Master admins blijven uitgezonderd, zodat zij niet buitengesloten kunnen worden.
 
 ## Gerelateerd
 

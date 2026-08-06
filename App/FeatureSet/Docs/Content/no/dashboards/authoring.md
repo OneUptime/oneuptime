@@ -28,7 +28,7 @@ Det er det samme dashbordet i begge modusene. Det er ingen separat "publiser"-st
 
 De fleste widgets leser fra ett av tre steder:
 
-- **Metrikker** — velg en metrikk og en aggregasjon (gjennomsnitt, maks, antall, persentil). Legg til filtre. Velg hvordan resultatet skal grupperes. Dette er den samme spørringsbyggeren du ser andre steder i OneUptime.
+- **Målinger** — velg en metrikk og en aggregasjon (gjennomsnitt, maks, antall, persentil). Legg til filtre. Velg hvordan resultatet skal grupperes. Dette er den samme spørringsbyggeren du ser andre steder i OneUptime.
 - **Live lister** — hendelser, varsler, monitorer, Kubernetes-pods, Docker-containere, hoster. Hver listewidget tar et filter og viser de samsvarende elementene, oppdatert live.
 - **Statisk innhold** — **Tekst**-widgeten tar en blokk med Markdown. Bruk den for overskrifter, kontekst, lenker til runbooks eller midlertidige notater under en hendelse.
 

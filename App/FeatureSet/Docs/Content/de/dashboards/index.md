@@ -29,8 +29,8 @@ Die vollständige Liste mit dem, was jedes Widget zeigt, finden Sie unter [Widge
 | **Widget**         | Eine Kachel auf der Seite – ein Diagramm, eine Zahl, eine Liste, ein Textabschnitt.                            |
 | **Variable**       | Ein Dropdown oben, das alle Widgets gleichzeitig filtert (Cluster, Service, Kunde, Umgebung).                  |
 | **Zeitbereich**    | Das Zeitfenster, das jedes Diagramm und jede Zahl verwendet. Wird einmal oben auf der Seite eingestellt.       |
-| **Aktualisierung** | Wie oft Widgets die Daten neu abfragen. Aus, alle paar Sekunden, alle paar Minuten.                            |
-| **Modus**          | Entweder **Bearbeiten** (Widgets verschieben) oder **Ansicht** (nur lesen, wie Besucher sie sehen).            |
+| **Aktualisieren**  | Wie oft Widgets die Daten neu abfragen. Aus, alle paar Sekunden, alle paar Minuten.                            |
+| **Modus**          | Entweder **Bearbeiten** (Widgets verschieben) oder **Ansehen** (nur lesen, wie Besucher sie sehen).            |
 
 ## Wo Sie Dashboards finden
 
@@ -39,7 +39,7 @@ Die vollständige Liste mit dem, was jedes Widget zeigt, finden Sie unter [Widge
 | Seite                         | Was Sie dort tun                                                                        |
 | ----------------------------- | --------------------------------------------------------------------------------------- |
 | **Dashboards**                | Ihre Liste der Dashboards. Neues erstellen, suchen oder nach Label filtern.             |
-| **Dashboard → Ansicht**       | Die Arbeitsfläche. Im Kopfbereich wechseln Sie zwischen **Bearbeiten** und **Ansicht**. |
+| **Dashboard → Ansehen**       | Die Arbeitsfläche. Im Kopfbereich wechseln Sie zwischen **Bearbeiten** und **Ansehen**. |
 | **Dashboard → Übersicht**     | Beschreibung, Eigentümer und Labels.                                                    |
 | **Dashboard → Einstellungen** | Öffentliche Freigabe, Passwort, IP-Zugriffsliste, eigene Domain, Branding.              |
 | **Dashboard → Eigentümer**    | Benutzer und Teams mit explizitem Zugriff.                                              |
@@ -62,16 +62,16 @@ Ziel: eine Rufbereitschafts-Seite für den Checkout-Service mit Latenz, Fehlerqu
 2. Fügen Sie eine Variable `service` hinzu. Standardwert `checkout`.
 3. Fügen Sie ein **Diagramm**-Widget mit P95-Latenz hinzu, gefiltert nach der Variablen `service`.
 4. Daneben ein **Wert**-Widget für die Fehlerquote, mit Warnung bei 1 % und kritisch bei 5 %.
-5. Darunter ein **Vorfall-Liste**-Widget für Vorfälle mit dem Label `checkout`.
-6. Darunter ein **Log-Stream**-Widget, das Logs desselben Service zeigt.
+5. Darunter ein **Vorfallsliste**-Widget für Vorfälle mit dem Label `checkout`.
+6. Darunter ein **Protokoll-Stream**-Widget, das Logs desselben Service zeigt.
 7. Speichern. Wechseln Sie das Dropdown auf `payments` – dasselbe Dashboard zeigt nun den Payments-Service.
 
 ## Wie Dashboards in OneUptime hineinpassen
 
 - **Monitore und Telemetrie** sind die Datenquellen. Jede Metrik, jedes Log und jeder Trace, den Sie sammeln, ist in einem Widget abfragbar.
-- **Vorfälle und Benachrichtigungen** tauchen in Widgets vom Typ **Vorfall-Liste** und **Benachrichtigungs-Liste** auf. Dashboards sind dafür nur lesend – erstellen und aktualisieren Sie diese an anderer Stelle.
+- **Vorfälle und Benachrichtigungen** tauchen in Widgets vom Typ **Vorfallsliste** und **Warnungsliste** auf. Dashboards sind dafür nur lesend – erstellen und aktualisieren Sie diese an anderer Stelle.
 - **Statusseiten** sind die kundenseitige Kommunikation („Funktioniert das System?"). Dashboards dienen dazu, im Detail zu sehen, wie sich das System verhält. Beide ergänzen sich, sie ersetzen einander nicht.
-- **Workflows** sind das Mittel, mit dem OneUptime handelt. Dashboards sind das Mittel, mit dem Sie sehen, was passiert.
+- **Arbeitsabläufe** sind das Mittel, mit dem OneUptime handelt. Dashboards sind das Mittel, mit dem Sie sehen, was passiert.
 
 ## Weiterführende Themen
 

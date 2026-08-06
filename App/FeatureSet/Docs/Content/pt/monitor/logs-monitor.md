@@ -14,9 +14,9 @@ Os monitores de logs pesquisam e contam logs que correspondem a filtros específ
 
 ## Criando um Monitor de Logs
 
-1. Vá para **Monitors** no Painel do OneUptime
-2. Clique em **Create Monitor**
-3. Selecione **Logs** como o tipo de monitor
+1. Vá para **Monitores** no Painel do OneUptime
+2. Clique em **Criar monitor**
+3. Selecione **Registros** como o tipo de monitor
 4. Selecione os serviços de telemetria para monitorar
 5. Configure filtros e critérios de log conforme necessário
 
@@ -69,26 +69,26 @@ Filtre logs por um ou mais níveis de severidade:
 #### Alertar se mais de 100 logs de erro em 60 segundos
 
 - **Severity Levels**: ERROR
-- **Time Window**: 60 segundos
+- **Janela de tempo**: 60 segundos
 - **Check On**: Log Count
-- **Filter Type**: Greater Than
-- **Value**: 100
+- **Tipo de filtro**: Greater Than
+- **Valor**: 100
 
 #### Alertar se algum log fatal aparecer
 
 - **Severity Levels**: FATAL
-- **Time Window**: 60 segundos
+- **Janela de tempo**: 60 segundos
 - **Check On**: Log Count
-- **Filter Type**: Greater Than
-- **Value**: 0
+- **Tipo de filtro**: Greater Than
+- **Valor**: 0
 
 #### Monitorar logs contendo uma mensagem de erro específica
 
 - **Body**: `database connection timeout`
-- **Time Window**: 300 segundos
+- **Janela de tempo**: 300 segundos
 - **Check On**: Log Count
-- **Filter Type**: Greater Than
-- **Value**: 5
+- **Tipo de filtro**: Greater Than
+- **Valor**: 5
 
 ## Requisitos de Configuração
 

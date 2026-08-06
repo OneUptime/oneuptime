@@ -30,7 +30,7 @@ El agente solo necesita **HTTPS de salida** hacia tu instancia de OneUptime. No 
 
 ### 1. Crear el registro del agente
 
-Ve a **Runbooks → Configuración → Agentes** y crea un nuevo agente. Rellena:
+Ve a **Runbooks → Ajustes → Agentes** y crea un nuevo agente. Rellena:
 
 | Campo           | Notas                                                                                                                                               |
 | --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -58,7 +58,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
 
 ### 4. Verifica que el agente está conectado
 
-Vuelve a **Runbooks → Configuración → Agentes**. En unos 60 segundos la fila del agente debería pasar a `Connected` con un timestamp **Last seen** fresco. Si sigue `Disconnected`:
+Vuelve a **Runbooks → Ajustes → Agentes**. En unos 60 segundos la fila del agente debería pasar a `Connected` con un timestamp **Last seen** fresco. Si sigue `Disconnected`:
 
 - Revisa los logs del contenedor (`docker logs oneuptime-runner`) por errores de autenticación o de red.
 - Verifica que el host alcanza tu URL de OneUptime con `curl`.
@@ -81,10 +81,10 @@ Cuando el runbook corra y llegue al paso, el Worker encola un job dirigido al ID
 
 A cada paso Bash o JavaScript se le aplican dos timeouts:
 
-| Timeout               | Por defecto | Qué controla                                                                                                                                                                                                        |
-| --------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Claim timeout**     | 2 minutos   | Cuánto espera el Worker a que el agente seleccionado reclame el job. Si el agente no lo recoge a tiempo, el paso falla con `TimedOut` y el runbook continúa (o se detiene, dependiendo de **Continuar al fallar**). |
-| **Execution timeout** | 30 segundos | Cuánto deja el agente correr el script antes de terminarlo. (Bash recibe `SIGKILL`; el aislamiento de JavaScript se desmonta.)                                                                                      |
+| Timeout               | Por defecto | Qué controla                                                                                                                                                                                                               |
+| --------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Claim timeout**     | 2 minutos   | Cuánto espera el Worker a que el agente seleccionado reclame el job. Si el agente no lo recoge a tiempo, el paso falla con `TimedOut` y el runbook continúa (o se detiene, dependiendo de **Continuar en caso de error**). |
+| **Execution timeout** | 30 segundos | Cuánto deja el agente correr el script antes de terminarlo. (Bash recibe `SIGKILL`; el aislamiento de JavaScript se desmonta.)                                                                                             |
 
 Ambos son configurables por paso. Abre **Runbooks &rsaquo; tu runbook &rsaquo; Pasos**, despliega un paso Bash o JavaScript y define **Execution timeout** y **Claim timeout** (en segundos) debajo del script. Deja un campo en blanco para usar el valor por defecto. Cada uno acepta de 1 segundo a 1 hora; los valores fuera de ese rango se ajustan a los límites cuando el paso se ejecuta.
 

@@ -6,7 +6,7 @@ Den här sidan täcker de inställningar och åtkomstkontroller som är värda a
 
 En instrumentpanels **ägare** är användare och team som du har gett explicit åtkomst till (utöver deras projektomfattande roll).
 
-Under **Dashboard → Owners**:
+Under **Instrumentpanel → Ägare**:
 
 - Lägg till en **user owner** för att ge en person extra åtkomst till denna instrumentpanel.
 - Lägg till en **team owner** för att ge samma sak till varje medlem i ett team.
@@ -15,7 +15,7 @@ Använd ägare när den projektomfattande läsrollen är för bred — till exem
 
 ## Etiketter
 
-Etiketter är taggar för att organisera instrumentpaneler. Tillämpa dem under **Dashboard → Overview**.
+Etiketter är taggar för att organisera instrumentpaneler. Tillämpa dem under **Instrumentpanel → Översikt**.
 
 Vanliga mönster:
 
@@ -23,7 +23,7 @@ Vanliga mönster:
 - **Per miljö**: `env:prod`, `env:staging`.
 - **Per syfte**: `purpose:oncall`, `purpose:exec`, `purpose:investigation`.
 
-Listan **Dashboards** låter dig filtrera på etikett, vilket är det snabbaste sättet att hitta en instrumentpanel i ett projekt som har samlat på sig många av dem.
+Listan **Instrumentpaneler** låter dig filtrera på etikett, vilket är det snabbaste sättet att hitta en instrumentpanel i ett projekt som har samlat på sig många av dem.
 
 ## Behörigheter
 
@@ -38,15 +38,15 @@ Instrumentpaneler fungerar med ditt projekts rollbaserade åtkomstkontroll. De r
 
 Det finns matchande behörigheter för instrumentpanelägare och anpassade domäner, så att du kan ge "hantera ägare" utan att ge "redigera instrumentpanelen."
 
-Tilldela dessa på projektroller under **Products → Team → Behörigheter**.
+Tilldela dessa på projektroller under **Produkter → Team → Behörigheter**.
 
 ## Åtkomst för offentliga instrumentpaneler
 
 När du gör en instrumentpanel offentlig (se [Delning & offentliga instrumentpaneler](/docs/dashboards/sharing)), styr tre inställningar vem som kan se den:
 
 1. **Public Dashboard**-växel — om av returnerar den offentliga URL:en 404.
-2. **Master Password** — om inställt anger besökare ett lösenord innan instrumentpanelen visas.
-3. **IP Whitelist** (Scale-plan) — om inställt avvisas förfrågningar från andra IP:er.
+2. **Huvudlösenord** — om inställt anger besökare ett lösenord innan instrumentpanelen visas.
+3. **IP-vitlista** (Scale-plan) — om inställt avvisas förfrågningar från andra IP:er.
 
 Du kan kombinera alla dessa. Den mest låsta kombinationen är "Public på, lösenord inställt, IP-tillåtslista aktiv" — användbart för partnerportaler där du vill ha alla tre lagren.
 
@@ -62,7 +62,7 @@ Detta är rätt drag när du vill forka en mall (som "vår jourinstrumentpanel")
 
 ## Radera en instrumentpanel
 
-Under **Dashboard → Delete**. Detta kan inte ångras — instrumentpanelens layout och alla anpassade domäner som är kopplade till den tas bort. Din telemetridata påverkas inte.
+Under **Instrumentpanel → Ta bort**. Detta kan inte ångras — instrumentpanelens layout och alla anpassade domäner som är kopplade till den tas bort. Din telemetridata påverkas inte.
 
 Om instrumentpanelen är offentlig på en anpassad domän slutar URL:en svara så snart du raderar den. Flytta domänen till en annan instrumentpanel först om du vill behålla URL:en fungerande.
 

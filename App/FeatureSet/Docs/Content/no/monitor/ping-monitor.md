@@ -13,8 +13,8 @@ Ping-monitorer tester grunnleggende nettverkstilkobling ved å sende ICMP-ping-f
 
 ## Opprette en ping-monitor
 
-1. Gå til **Monitors** i OneUptime-dashbordet
-2. Klikk **Create Monitor**
+1. Gå til **Overvåkere** i OneUptime-dashbordet
+2. Klikk **Opprett monitor**
 3. Velg **Ping** som monitortype
 4. Skriv inn vertsnavnet eller IP-adressen du ønsker å overvåke
 5. Konfigurer overvåkingskriterier etter behov
@@ -44,7 +44,7 @@ For **Is Online** og **Is Request Timeout**:
 - **True** – Betingelsen er sann
 - **False** – Betingelsen er usann
 
-For **Response Time**:
+For **Svartid**:
 
 - **Greater Than** – Svartiden overskrider en terskel
 - **Less Than** – Svartiden er under en terskel
@@ -58,11 +58,11 @@ For **Response Time**:
 
 #### Marker som utilgjengelig hvis verten ikke er tilgjengelig
 
-- **Sjekk på**: Is Online
+- **Check On**: Is Online
 - **Filtertype**: False
 
 #### Varsle hvis svartid overskrider 200 ms
 
-- **Sjekk på**: Response Time (in ms)
+- **Check On**: Response Time (in ms)
 - **Filtertype**: Greater Than
 - **Verdi**: 200

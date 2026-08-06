@@ -15,19 +15,19 @@ OneUptime Incident → On Create  ──►  Discord component  ──►  messa
 
 ## Passo 2 — Armazene a URL do webhook (opcional, mas recomendado)
 
-1. No OneUptime, vá em **Workflows → Global Variables → Create**.
+1. No OneUptime, vá em **Fluxos de trabalho → Variáveis globais → Criar**.
 2. Nomeie como `DISCORD_WEBHOOK_URL`, cole a URL e ative **Is Secret**.
 
 Manter em uma variável permite reutilizá-la em workflows e rotacioná-la em um único lugar.
 
 ## Passo 3 — Construa o workflow
 
-1. Abra **Workflows → Create Workflow**, nomeie-o `Incidents → Discord` e abra o **Builder**.
-2. Adicione um gatilho **Incident** definido como **On Create**. Renomeie-o para `Incident`.
+1. Abra **Fluxos de trabalho → Criar fluxo de trabalho**, nomeie-o `Incidents → Discord` e abra o **Construtor**.
+2. Adicione um gatilho **Incidente** definido como **On Create**. Renomeie-o para `Incident`.
 3. Adicione um componente **Discord** conectado ao gatilho:
-   - **Webhook URL**: `{{variable.DISCORD_WEBHOOK_URL}}` (ou cole diretamente).
-   - **Message**: `🔴 New incident: {{Incident.title}}\n{{Incident.description}}`
-4. **Salve**, ative e crie um incidente de teste. A mensagem aparece no seu canal.
+   - **URL do webhook**: `{{variable.DISCORD_WEBHOOK_URL}}` (ou cole diretamente).
+   - **Mensagem**: `🔴 New incident: {{Incident.title}}\n{{Incident.description}}`
+4. **Salvar**, ative e crie um incidente de teste. A mensagem aparece no seu canal.
 
 ## Alternativa: o componente API
 
@@ -42,8 +42,8 @@ Isso é útil se você quiser os [embeds](https://discord.com/developers/docs/re
 
 ## Dicas
 
-- Use **Conditions** para postar apenas para certas severidades — ramifique em `{{Incident.incidentSeverity.name}}` antes do bloco Discord.
-- Adicione mais workflows em **Incident → On Update** para postar confirmações e resoluções no mesmo canal.
+- Use **Condições** para postar apenas para certas severidades — ramifique em `{{Incident.incidentSeverity.name}}` antes do bloco Discord.
+- Adicione mais workflows em **Incidente → On Update** para postar confirmações e resoluções no mesmo canal.
 
 ## O que ler em seguida
 

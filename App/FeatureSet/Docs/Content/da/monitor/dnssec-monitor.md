@@ -14,7 +14,7 @@ DNSSEC-monitorer validerer hele tillidskæden fra rodzonen ned til dit domæne. 
 
 ## Oprettelse af en DNSSEC Monitor
 
-1. Gå til **Monitorer** i OneUptime-dashboardet
+1. Gå til **Overvågninger** i OneUptime-dashboardet
 2. Klik på **Opret monitor**
 3. Vælg **DNSSEC** som monitortype
 4. Indtast den zone (domæne), du vil validere

@@ -85,24 +85,24 @@ Siden du selvhoster OneUptime, må du konfigurere din egen Twilio-konto. Dette g
 ## Trinn 2: Konfigurer anrop/SMS-konfigurasjon i OneUptime
 
 1. Logg inn på OneUptime-dashbordet ditt
-2. Gå til **Project Settings** > **Varsler** > **Varselinnstillinger**
+2. Gå til **Prosjektinnstillinger** > **Varsler** > **Varselinnstillinger**
 3. Klikk **Create Custom Call/SMS Config**
 4. Fyll inn følgende felt:
-   - **Name**: Et vennlig navn (f.eks. "Production Twilio Config")
-   - **Description**: Valgfri beskrivelse
+   - **Navn**: Et vennlig navn (f.eks. "Production Twilio Config")
+   - **Beskrivelse**: Valgfri beskrivelse
    - **Twilio Account SID**: Din Twilio Account SID (starter med `AC`)
    - **Twilio Auth Token**: Din Twilio Auth Token
-   - **Twilio Primary Phone Number**: Et telefonnummer fra din Twilio-konto for utgående anrop
-5. Klikk **Save**
+   - **Twilio primært telefonnummer**: Et telefonnummer fra din Twilio-konto for utgående anrop
+5. Klikk **Lagre**
 
 ## Trinn 3: Opprett en innkommende samtalepolicy
 
-1. Gå til **On-Call Duty** > **Incoming Call Policies**
+1. Gå til **Vakttjeneste** > **Retningslinjer for innkommende anrop**
 2. Klikk **Create Incoming Call Policy**
 3. Fyll inn følgende felt:
-   - **Name**: Et vennlig navn (f.eks. "Support Hotline")
-   - **Description**: Valgfri beskrivelse
-4. Klikk **Save**
+   - **Navn**: Et vennlig navn (f.eks. "Support Hotline")
+   - **Beskrivelse**: Valgfri beskrivelse
+4. Klikk **Lagre**
 
 ## Trinn 4: Koble Twilio-konfigurasjon til policy
 
@@ -119,7 +119,7 @@ Du har to alternativer for å sette opp et telefonnummer:
 
 Hvis du allerede har telefonnumre i Twilio-kontoen din:
 
-1. I kortet **Phone Number**, klikk **Use Existing Number**
+1. I kortet **Telefonnummer**, klikk **Use Existing Number**
 2. OneUptime vil hente alle telefonnumre fra Twilio-kontoen din
 3. Velg telefonnummeret du ønsker å bruke
 4. Klikk **Use This** for å tilordne det til policyen
@@ -130,11 +130,11 @@ Hvis du allerede har telefonnumre i Twilio-kontoen din:
 
 For å kjøpe et nytt telefonnummer direkte fra OneUptime:
 
-1. I kortet **Phone Number**, klikk **Buy New Number**
+1. I kortet **Telefonnummer**, klikk **Buy New Number**
 2. Velg et **Land** fra rullegardinmenyen
 3. Skriv eventuelt inn et **retningsnummer** (f.eks. 47 for Norge)
 4. Skriv eventuelt inn sifre nummeret skal **inneholde** (f.eks. 555)
-5. Klikk **Search** for å finne tilgjengelige numre
+5. Klikk **Søk** for å finne tilgjengelige numre
 6. Velg et telefonnummer fra resultatene
 7. Klikk **Purchase** for å kjøpe nummeret
 
@@ -157,14 +157,14 @@ flowchart LR
 Eskaleringsregler bestemmer hvordan samtaler rutes:
 
 1. Åpne innkommende samtalepolicyen
-2. Gå til fanen **Escalation Rules**
+2. Gå til fanen **Eskaleringsregler**
 3. Klikk **Add Escalation Rule**
 4. Konfigurer regelen:
-   - **Order**: Prioritetsrekkefølge (lavere tall prøves først)
-   - **Escalate After (seconds)**: Hvor lenge det ventes før eskalering
-   - **On-Call Schedule**: Velg en vakt for å rute til den som er vakthavende
-   - **Teams**: Velg spesifikke team
-   - **Users**: Velg spesifikke brukere
+   - **Rekkefølge**: Prioritetsrekkefølge (lavere tall prøves først)
+   - **Eskaler etter (sekunder)**: Hvor lenge det ventes før eskalering
+   - **Vakttidsplan**: Velg en vakt for å rute til den som er vakthavende
+   - **Team**: Velg spesifikke team
+   - **Brukere**: Velg spesifikke brukere
 5. Legg til ytterligere eskaleringsregler etter behov
 
 ### Eksempel på eskaleringsregel
@@ -189,23 +189,23 @@ flowchart TD
 Tilpass meldingene innringere hører:
 
 1. Åpne innkommende samtalepolicyen
-2. Gå til **Settings**
+2. Gå til **Innstillinger**
 3. Konfigurer:
-   - **Greeting Message**: Spilles av når samtalen besvares
-   - **No Answer Message**: Spilles av når alle eskaleringsregler feiler
-   - **No One Available Message**: Spilles av når ingen er på vakt
+   - **Hilsemelding**: Spilles av når samtalen besvares
+   - **Melding ved ingen svar**: Spilles av når alle eskaleringsregler feiler
+   - **Melding ved ingen tilgjengelige**: Spilles av når ingen er på vakt
 
 ## Konfigurasjonsalternativer
 
 ### Policyinnstillinger
 
-| Innstilling                     | Beskrivelse                                     | Standard                                                       |
-| ------------------------------- | ----------------------------------------------- | -------------------------------------------------------------- |
-| Greeting Message                | TTS-melding spilt av når samtalen besvares      | "Please wait while we connect you to the on-call engineer."    |
-| No Answer Message               | Melding når alle eskaleringsregler feiler       | "No one is available. Please try again later."                 |
-| No One Available Message        | Melding når ingen er på vakt                    | "We're sorry, but no on-call engineer is currently available." |
-| Repeat Policy If No One Answers | Start på nytt fra første regel hvis alle feiler | Deaktivert                                                     |
-| Repeat Policy Times             | Maksimalt antall gjentaksforsøk                 | 1                                                              |
+| Innstilling                     | Beskrivelse                                     | Standard                                                                   |
+| ------------------------------- | ----------------------------------------------- | -------------------------------------------------------------------------- |
+| Greeting Message                | TTS-melding spilt av når samtalen besvares      | "Vent mens vi kobler deg til vakt-ingeniøren."                             |
+| No Answer Message               | Melding når alle eskaleringsregler feiler       | "Ingen er tilgjengelig. Prøv igjen senere."                                |
+| No One Available Message        | Melding når ingen er på vakt                    | "Beklager, men ingen vakthavende ingeniør er for øyeblikket tilgjengelig." |
+| Repeat Policy If No One Answers | Start på nytt fra første regel hvis alle feiler | Deaktivert                                                                 |
+| Repeat Policy Times             | Maksimalt antall gjentaksforsøk                 | 1                                                                          |
 
 ### Innstillinger for eskaleringsregel
 
@@ -221,9 +221,9 @@ Tilpass meldingene innringere hører:
 
 For å se historikk over innkommende samtaler:
 
-1. Gå til **On-Call Duty** > **Incoming Call Policies**
+1. Gå til **Vakttjeneste** > **Retningslinjer for innkommende anrop**
 2. Klikk på policyen din
-3. Gå til fanen **Call Logs**
+3. Gå til fanen **Anropslogger**
 
 Loggene viser:
 
@@ -237,7 +237,7 @@ Loggene viser:
 
 For at brukere skal motta innkommende samtaler, må de ha et verifisert telefonnummer:
 
-1. Brukere går til **User Settings** > **Notification Methods**
+1. Brukere går til **Brukerinnstillinger** > **Varselmetoder**
 2. Legg til et telefonnummer under **Incoming Call Numbers**
 3. Verifiser telefonnummeret via SMS-kode
 
@@ -248,7 +248,7 @@ Bare brukere med verifiserte telefonnumre kan ringes opp gjennom eskaleringsregl
 Hvis du ikke lenger trenger et telefonnummer:
 
 1. Åpne innkommende samtalepolicyen
-2. I kortet **Phone Number**, klikk **Release Number**
+2. I kortet **Telefonnummer**, klikk **Frigi nummer**
 3. Bekreft frigjøringen
 
 > **Advarsel**: Frigjorte numre returneres til Twilio og er kanskje ikke tilgjengelige for ny kjøp.

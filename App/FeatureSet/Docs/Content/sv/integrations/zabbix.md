@@ -25,17 +25,17 @@ Zabbix trigger fires  ──►  Webhook media type  ──►  OneUptime Workfl
 
 Gör detta först, eftersom du behöver webhook-URL:en det genererar.
 
-1. Öppna **Workflows → Create Workflow**. Namnge det `Zabbix → Incidents` och öppna fliken **Builder**.
+1. Öppna **Arbetsflöden → Skapa arbetsflöde**. Namnge det `Zabbix → Incidents` och öppna fliken **Byggare**.
 2. Dra en **Webhook**-utlösare till arbetsytan. Klicka på den och **kopiera den unika URL:en** den visar. Håll den säker — vem som helst med den kan starta arbetsflödet. Byt namn på blocket till `Zabbix` så att variabler ser bra ut.
-3. Dra ett **Conditions**-block till arbetsytan och koppla utlösarens utdata till det. Konfigurera:
+3. Dra ett **Villkor**-block till arbetsytan och koppla utlösarens utdata till det. Konfigurera:
    - **Left value**: `{{Zabbix.Request Body.status}}`
    - **Operator**: `==`
    - **Right value**: `1` _(Zabbix skickar `1` för ett problem, `0` för återhämtning)_
-4. Dra ett **Create Incident**-block och koppla det till **Conditions**-blockets **Yes**-utdata. Fyll i:
-   - **Title**: `Zabbix: {{Zabbix.Request Body.name}}`
-   - **Description**: `Host: {{Zabbix.Request Body.host}}\nSeverity: {{Zabbix.Request Body.severity}}\nZabbix event: {{Zabbix.Request Body.event_id}}`
-   - **Severity**: välj den OneUptime-incidentallvarlighetsgrad du vill ha (du kan förfina detta senare med fler **Conditions**-grenar som mappar Zabbix-allvarlighetsgrader).
-5. Spara. Lämna **Enabled** _av_ tills vidare — du slår på det efter ett test.
+4. Dra ett **Skapa incident**-block och koppla det till **Villkor**-blockets **Ja**-utdata. Fyll i:
+   - **Titel**: `Zabbix: {{Zabbix.Request Body.name}}`
+   - **Beskrivning**: `Host: {{Zabbix.Request Body.host}}\nSeverity: {{Zabbix.Request Body.severity}}\nZabbix event: {{Zabbix.Request Body.event_id}}`
+   - **Allvarlighetsgrad**: välj den OneUptime-incidentallvarlighetsgrad du vill ha (du kan förfina detta senare med fler **Villkor**-grenar som mappar Zabbix-allvarlighetsgrader).
+5. Spara. Lämna **Aktiverad** _av_ tills vidare — du slår på det efter ett test.
 
 > **Tips:** Att lägga Zabbix `event_id` i beskrivningen (eller en incidentetikett) gör att du kan hitta den här incidenten igen senare om du vill lösa den automatiskt vid återhämtning. Se [Automatisk lösning](#automatisk-lösning-valfritt).
 
@@ -114,10 +114,10 @@ Zabbix skickar notifieringar _till en användare_. Skapa en dedikerad sådan så
 
 ## Del 3 — Testa det
 
-1. Tillbaka i OneUptime-arbetsflödet, slå på **Enabled**.
+1. Tillbaka i OneUptime-arbetsflödet, slå på **Aktiverad**.
 2. Utlös ett testproblem i Zabbix — till exempel, sänk temporärt ett utlösartröskel, eller använd ett testobjekt som slår om till ett problemtillstånd.
-3. Öppna arbetsflödets flik **Logs**. Du bör se en körning med Zabbix-payload:en, **Conditions**-blocket som tar **Yes**-vägen och incidenten som skapas.
-4. Kontrollera **Incidents** i OneUptime — ditt Zabbix-problem är nu en incident.
+3. Öppna arbetsflödets flik **Loggar**. Du bör se en körning med Zabbix-payload:en, **Villkor**-blocket som tar **Ja**-vägen och incidenten som skapas.
+4. Kontrollera **Incidenter** i OneUptime — ditt Zabbix-problem är nu en incident.
 
 Om ingenting anländer, se [Felsökning](#felsökning).
 
@@ -126,21 +126,21 @@ Om ingenting anländer, se [Felsökning](#felsökning).
 Det grundläggande arbetsflödet ovan _öppnar_ incidenter. För att även _stänga_ dem när Zabbix återhämtar sig:
 
 1. Kontrollera att din Zabbix-action har **Recovery operations** konfigurerade (Steg 3 ovan) så att återhämtningshändelser skickas också. Vid återhämtning anländer `status` som `0`.
-2. I arbetsflödet, lägg till en andra **Conditions**-gren: vänster `{{Zabbix.Request Body.status}}`, operator `==`, höger `0`.
-3. Från dess **Yes**-utdata, lägg till ett **Find Incident**-block som letar upp den öppna incident du skapade tidigare — matcha på Zabbix `event_id` som du lagrade i beskrivningen eller en etikett.
+2. I arbetsflödet, lägg till en andra **Villkor**-gren: vänster `{{Zabbix.Request Body.status}}`, operator `==`, höger `0`.
+3. Från dess **Ja**-utdata, lägg till ett **Find Incident**-block som letar upp den öppna incident du skapade tidigare — matcha på Zabbix `event_id` som du lagrade i beskrivningen eller en etikett.
 4. Koppla det till ett **Update Incident**-block och flytta incidenten till ditt _löst_-tillstånd.
 
 Eftersom lösning beror på hur du modellerar incidenttillstånd i ditt projekt, behåll **skapa**-vägen som det pålitliga kärnan och lägg till lösningsvägen när du bekräftat att händelser flödar korrekt. Se [Komponenter → OneUptime-datakomponenter](/docs/workflows/components#oneuptime-data-components).
 
 ## Mappa Zabbix-allvarlighetsgrader (valfritt)
 
-Zabbix-allvarlighetsgrader (`Not classified`, `Information`, `Warning`, `Average`, `High`, `Disaster`) anländer som `{{Zabbix.Request Body.severity}}`. För att mappa dem till OneUptime-incidentallvarlighetsgrader, lägg till **Conditions**-grenar före **Create Incident** — till exempel, dirigera `Disaster` och `High` till en "Critical"-incident och allt annat till "Major". Bygg ett **Create Incident**-block per gren.
+Zabbix-allvarlighetsgrader (`Not classified`, `Information`, `Warning`, `Average`, `High`, `Disaster`) anländer som `{{Zabbix.Request Body.severity}}`. För att mappa dem till OneUptime-incidentallvarlighetsgrader, lägg till **Villkor**-grenar före **Skapa incident** — till exempel, dirigera `Disaster` och `High` till en "Critical"-incident och allt annat till "Major". Bygg ett **Skapa incident**-block per gren.
 
 ## Felsökning
 
 **Arbetsflödet körs aldrig.**
 
-- Bekräfta att arbetsflödets **Enabled**-växel är på.
+- Bekräfta att arbetsflödets **Aktiverad**-växel är på.
 - Bekräfta från Zabbix-servern att den kan nå URL:en: `curl -i -X POST <workflow-url> -d '{}' -H 'Content-Type: application/json'`. Du bör få en snabb bekräftelse.
 - Kontrollera **Reports → Action log** i Zabbix för leveransfel.
 
@@ -151,7 +151,7 @@ Zabbix-allvarlighetsgrader (`Not classified`, `Information`, `Warning`, `Average
 
 **Incidenten skapas men fälten är tomma.**
 
-- Öppna arbetsflödets flik **Logs** och granska utlösarens utdata. Bekräfta att fältnamnen under **Request Body** matchar vad du refererar till (`name`, `host`, `severity`, `status`, `event_id`).
+- Öppna arbetsflödets flik **Loggar** och granska utlösarens utdata. Bekräfta att fältnamnen under **Begärandekropp** matchar vad du refererar till (`name`, `host`, `severity`, `status`, `event_id`).
 - Ett saknat fält löser till en tom sträng snarare än ett fel — se [Variabler → Fallgropar](/docs/workflows/variables#gotchas).
 
 **Allt utlöses dubbelt.**

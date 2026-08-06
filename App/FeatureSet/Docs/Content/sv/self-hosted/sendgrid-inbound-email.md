@@ -100,7 +100,7 @@ inboundEmail:
 ### Steg 6: Skapa en Monitor för inkommande e-post
 
 1. Logga in på din OneUptime-instrumentpanel
-2. Navigera till **Monitorer** > **Skapa monitor**
+2. Navigera till **Övervakare** > **Skapa monitor**
 3. Välj **Inkommande e-post** som monitortyp
 4. Konfigurera din monitor:
    - **Namn:** Ge din monitor ett beskrivande namn

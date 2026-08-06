@@ -14,8 +14,8 @@ Servermonitors gebruiken een infrastructuuragent die op uw servers is geïnstall
 
 ## Een Server Monitor aanmaken
 
-1. Ga naar **Monitors** in het OneUptime-dashboard
-2. Klik op **Monitor aanmaken**
+1. Ga naar **Monitoren** in het OneUptime-dashboard
+2. Klik op **Monitor maken**
 3. Selecteer **Server / VM** als het monitortype
 4. Er wordt een **Geheime sleutel** gegenereerd voor deze monitor — u heeft deze nodig om de agent te configureren
 5. Volg de installatie-instructies om de agent op uw server in te stellen
@@ -84,7 +84,7 @@ De agent verzamelt de volgende metrics van uw server:
 ### CPU
 
 - **CPU-gebruikspercentage** — Algeheel CPU-gebruik als percentage
-- **CPU-cores** — Aantal CPU-cores
+- **CPU-kernen** — Aantal CPU-cores
 
 ### Geheugen
 

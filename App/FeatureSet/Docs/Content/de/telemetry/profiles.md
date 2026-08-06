@@ -23,9 +23,9 @@ OneUptime unterstützt die folgenden Profiltypen:
 
 ### Schritt 1 - Telemetrie-Ingestion-Token erstellen
 
-Klicken Sie nach der Anmeldung bei OneUptime und dem Erstellen eines Projekts auf „Products" in der Navigationsleiste und dann auf „Projekteinstellungen".
+Klicken Sie nach der Anmeldung bei OneUptime und dem Erstellen eines Projekts auf „Produkte" in der Navigationsleiste und dann auf „Projekteinstellungen".
 
-Klicken Sie auf der Seite Telemetrie-Ingestion-Schlüssel auf „Ingestion-Schlüssel erstellen", um ein Token zu erstellen.
+Klicken Sie auf der Seite Telemetrie Aufnahme Key auf „Aufnahmeschlüssel erstellen", um ein Token zu erstellen.
 
 ### Schritt 2 - Ihren Profiler konfigurieren
 

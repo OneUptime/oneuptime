@@ -4,7 +4,7 @@ Une variable transforme un tableau de bord unique en modèle. Ajoutez une variab
 
 ## Types de variables
 
-Ajoutez des variables sous **Dashboard → Settings → Variables**. Chaque variable a un nom (utilisé sous la forme `{{name}}` dans vos widgets), une étiquette optionnelle et un type.
+Ajoutez des variables sous **Tableau de bord → Paramètres → Variables**. Chaque variable a un nom (utilisé sous la forme `{{name}}` dans vos widgets), une étiquette optionnelle et un type.
 
 ### Custom List
 

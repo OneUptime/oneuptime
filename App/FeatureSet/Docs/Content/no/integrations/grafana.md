@@ -16,16 +16,16 @@ Grafana alert rule fires  ──►  Webhook contact point  ──►  OneUptime
 
 ## Steg 1 — Bygg OneUptime-arbeidsflyten
 
-1. Åpne **Workflows → Create Workflow**, gi den navnet `Grafana → Incidents`, og åpne **Builder**.
+1. Åpne **Arbeidsflyter → Opprett arbeidsflyt**, gi den navnet `Grafana → Incidents`, og åpne **Bygger**.
 2. Legg til en **Webhook**-trigger og **kopier URL-en**. Gi blokken nytt navn til `Grafana`.
-3. Legg til en **Conditions**-blokk koblet til triggeren:
+3. Legg til en **Betingelser**-blokk koblet til triggeren:
    - **Left**: `{{Grafana.Request Body.status}}`
    - **Operator**: `==`
    - **Right**: `firing`
-4. Fra **Yes**, legg til en **Create Incident**-blokk:
-   - **Title**: `{{Grafana.Request Body.title}}`
-   - **Description**: `{{Grafana.Request Body.message}}`
-   - **Severity**: velg én (eller forgren på `{{Grafana.Request Body.commonLabels.severity}}`).
+4. Fra **Ja**, legg til en **Opprett hendelse**-blokk:
+   - **Tittel**: `{{Grafana.Request Body.title}}`
+   - **Beskrivelse**: `{{Grafana.Request Body.message}}`
+   - **Alvorlighetsgrad**: velg én (eller forgren på `{{Grafana.Request Body.commonLabels.severity}}`).
 5. **Lagre** (la stå deaktivert til det er testet).
 
 Grafanas webhook-nyttelast følger Alertmanager-formen — den inkluderer `status`, en `alerts`-matrise, `commonLabels` og `commonAnnotations`, pluss praktiske toppnivå-felt `title` og `message`.
@@ -42,11 +42,11 @@ Grafanas webhook-nyttelast følger Alertmanager-formen — den inkluderer `statu
 
 1. Aktiver arbeidsflyten.
 2. På contact point-skjermen, bruk **Test** for å sende en eksempelvarsling, eller la en ekte varslingsregel utløse.
-3. Sjekk arbeidsflytens **Logs**-fane og **Incidents**-listen din.
+3. Sjekk arbeidsflytens **Logger**-fane og **Hendelser**-listen din.
 
 ## Løse ved gjenoppretting (valgfritt)
 
-Når varselet klarnes, sender Grafana en ny varsling med `status: resolved`. Legg til en ny **Conditions**-gren (`status == resolved`), finn den matchende hendelsen, og flytt den til din løste tilstand med **Update Incident**.
+Når varselet klarnes, sender Grafana en ny varsling med `status: resolved`. Legg til en ny **Betingelser**-gren (`status == resolved`), finn den matchende hendelsen, og flytt den til din løste tilstand med **Update Incident**.
 
 ## Merknader
 
@@ -55,8 +55,8 @@ Når varselet klarnes, sender Grafana en ny varsling med `status: resolved`. Leg
 
 ## Feilsøking
 
-- **Ingen kjøring vises** — bekreft at Grafana kan nå URL-en (sjekk Grafanas serverlogger) og at arbeidsflyten er **Enabled**.
-- **Tomme felt** — inspiser trigger-utdataene i **Logs**-fanen; referer felt som eksisterer for din varslingsversjon.
+- **Ingen kjøring vises** — bekreft at Grafana kan nå URL-en (sjekk Grafanas serverlogger) og at arbeidsflyten er **Aktivert**.
+- **Tomme felt** — inspiser trigger-utdataene i **Logger**-fanen; referer felt som eksisterer for din varslingsversjon.
 
 ## Hvor du leser videre
 

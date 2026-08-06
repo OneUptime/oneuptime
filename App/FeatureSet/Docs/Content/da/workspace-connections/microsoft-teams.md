@@ -14,7 +14,7 @@
 
 3. **Konfigurer incident-notifikationer**
 
-   - Når du har tilsluttet din Microsoft Teams-konto, skal du gå til **Incidents-siden** > **Microsoft Teams**.
+   - Når du har tilsluttet din Microsoft Teams-konto, skal du gå til **Hændelser-siden** > **Microsoft Teams**.
    - Tilføj regler for at sende incident-notifikationer til Microsoft Teams. Du kan f.eks. oprette en regel, der poster meddelelser til en Teams-kanal, når et incident oprettes.
 
 4. **Konfigurer advarsels- og planlagt vedligeholdelsesnotifikationer**

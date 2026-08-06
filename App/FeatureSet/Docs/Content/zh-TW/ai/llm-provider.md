@@ -37,19 +37,19 @@ OneUptime 目前支援以下 LLM 供應商：
 ### 步驟 1：前往 LLM Providers 設定
 
 1. 登入您的 OneUptime 儀表板
-2. 前往 **AI Agents** > **LLM Providers**
+2. 前往 **AI 代理** > **LLM 提供商**
 3. 點選 **Create LLM Provider** 以新增供應商
 
 ### 步驟 2：設定您的供應商
 
 填寫以下欄位：
 
-- **Name**：此 LLM 設定的易記名稱（例如「Production OpenAI」、「Local Ollama」）
-- **Description**（選填）：協助識別此供應商用途的描述
+- **名稱**：此 LLM 設定的易記名稱（例如「Production OpenAI」、「Local Ollama」）
+- **描述**（選填）：協助識別此供應商用途的描述
 - **LLM Type**：選擇供應商類型（OpenAI、Azure OpenAI、Anthropic、Groq、Mistral、Ollama 或 OpenAI Compatible）
-- **API Key**：您的 API 金鑰（OpenAI、Azure OpenAI、Anthropic、Groq 與 Mistral 為必填；Ollama 與 OpenAI 相容伺服器則為選填）
-- **Model Name**：要使用的特定模型（例如 `gpt-4o`、`claude-3-opus-20240229`、`llama2`）
-- **Base URL**（選填）：自訂 API 端點 URL（Azure OpenAI、Ollama 與 OpenAI Compatible 為必填，其他則為選填）
+- **API 金鑰**：您的 API 金鑰（OpenAI、Azure OpenAI、Anthropic、Groq 與 Mistral 為必填；Ollama 與 OpenAI 相容伺服器則為選填）
+- **模型名稱**：要使用的特定模型（例如 `gpt-4o`、`claude-3-opus-20240229`、`llama2`）
+- **基底 URL**（選填）：自訂 API 端點 URL（Azure OpenAI、Ollama 與 OpenAI Compatible 為必填，其他則為選填）
 
 ## 各供應商專屬設定
 
@@ -127,9 +127,9 @@ Model Name: llama2
 
 1. 啟動您的 OpenAI 相容伺服器，並記下其 Base URL（通常以 `/v1` 結尾）
 2. 選擇 **OpenAI Compatible** 作為 LLM Type
-3. 輸入 **Base URL**（必填），例如 `http://your-server:8000/v1`
-4. 輸入 **Model Name**（必填）——必須符合您伺服器所提供的模型
-5. 只有在您的伺服器需要驗證時才輸入 **API Key**；若不需要驗證，請留空
+3. 輸入 **基底 URL**（必填），例如 `http://your-server:8000/v1`
+4. 輸入 **模型名稱**（必填）——必須符合您伺服器所提供的模型
+5. 只有在您的伺服器需要驗證時才輸入 **API 金鑰**；若不需要驗證，請留空
 
 **範例設定（無需金鑰的 vLLM）：**
 
@@ -141,7 +141,7 @@ Model Name: meta-llama/Llama-3.1-8B-Instruct
 API Key: (leave blank)
 ```
 
-> 提示：儲存後，請使用供應商上的 **Test** 按鈕，確認連線、模型名稱與 Base URL 皆正確。
+> 提示：儲存後，請使用供應商上的 **測試** 按鈕，確認連線、模型名稱與 Base URL 皆正確。
 
 ### 在 Kubernetes 上自行託管 vLLM（Helm）
 

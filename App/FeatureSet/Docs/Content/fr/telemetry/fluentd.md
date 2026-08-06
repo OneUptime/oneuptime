@@ -34,13 +34,13 @@ Vous pouvez trouver la liste complète des sources prises en charge [ici](https:
 - **Étape 3 : Créer un projet OneUptime** — Une fois que vous avez le compte, vous pouvez créer un projet depuis le tableau de bord OneUptime. Si vous avez besoin d'aide pour créer un projet ou si vous avez des questions, veuillez nous contacter à support@oneuptime.com
 - **Étape 4 : Créer un jeton d'ingestion de télémétrie** — Une fois que vous avez créé un compte OneUptime, vous pouvez créer un jeton d'ingestion de télémétrie pour ingérer des journaux, des métriques et des traces depuis votre application.
 
-Après vous être inscrit à OneUptime et avoir créé un projet. Cliquez sur « Products » dans la barre de navigation et cliquez sur « Paramètres du projet ».
+Après vous être inscrit à OneUptime et avoir créé un projet. Cliquez sur « Produits » dans la barre de navigation et cliquez sur « Paramètres du projet ».
 
 Sur la page des clés d'ingestion de télémétrie, cliquez sur « Créer une clé d'ingestion » pour créer un jeton.
 
 ![Créer un service](/docs/static/images/TelemetryIngestionKeys.png)
 
-Une fois que vous avez créé un jeton, cliquez sur « Afficher » pour le visualiser.
+Une fois que vous avez créé un jeton, cliquez sur « Voir » pour le visualiser.
 
 ![Afficher le service](/docs/static/images/TelemetryIngestionKeyView.png)
 

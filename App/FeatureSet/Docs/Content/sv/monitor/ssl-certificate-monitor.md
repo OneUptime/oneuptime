@@ -14,7 +14,7 @@ SSL-certifikatmonitorer ansluter till dina HTTPS-slutpunkter och inspekterar SSL
 
 ## Skapa en SSL-certifikatmonitor
 
-1. Gå till **Monitorer** i OneUptime-instrumentpanelen
+1. Gå till **Övervakare** i OneUptime-instrumentpanelen
 2. Klicka på **Skapa monitor**
 3. Välj **SSL-certifikat** som monitortyp
 4. Ange URL:en till HTTPS-slutpunkten att kontrollera

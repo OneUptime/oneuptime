@@ -150,7 +150,7 @@ Zusätzlich zu Metriken liest der Docker Agent die `*-json.log`-Datei jedes Cont
 - `body` — die rohe vom Container-Prozess ausgegebene Log-Zeile
 - `time` — der Zeitstempel des Docker-Daemons für die Zeile
 
-Logs erscheinen auf dem **Logs**-Tab des Docker-Hosts und auf der Detailseite jedes Containers.
+Logs erscheinen auf dem **Protokolle**-Tab des Docker-Hosts und auf der Detailseite jedes Containers.
 
 ### Log-Treiber-Anforderung
 

@@ -16,12 +16,12 @@ OneUptime Incident → On Create  ──►  API component (POST /projects/{id}/
 
 ## 步驟 1 — 儲存權杖
 
-1. 前往 **Workflows → Global Variables → Create**。
+1. 前往 **工作流程 → 全域變數 → 建立**。
 2. 將其命名為 `GITLAB_TOKEN`、貼上權杖，並開啟 **Is Secret**。
 
 ## 步驟 2 — 建立工作流程
 
-1. 開啟 **Workflows → Create Workflow**，將其命名為 `Incidents → GitLab Issues`，然後開啟 **Builder**。
+1. 開啟 **工作流程 → 建立工作流程**，將其命名為 `Incidents → GitLab Issues`，然後開啟 **建構器**。
 2. 新增一個設定為 **On Create** 的 **Incident** 觸發器。將其重新命名為 `Incident`。
 3. 新增一個連接到觸發器的 **API** 區塊：
 

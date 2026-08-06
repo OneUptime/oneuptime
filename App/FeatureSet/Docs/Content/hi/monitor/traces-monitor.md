@@ -14,9 +14,9 @@ Traces monitors specific filters से match करने वाले spans �
 
 ## Traces Monitor बनाना
 
-1. OneUptime Dashboard में **Monitors** पर जाएं
-2. **Create Monitor** पर क्लिक करें
-3. monitor type के रूप में **Traces** चुनें
+1. OneUptime Dashboard में **मॉनिटर** पर जाएं
+2. **मॉनिटर बनाएं** पर क्लिक करें
+3. monitor type के रूप में **ट्रेस** चुनें
 4. monitor करने के लिए telemetry services चुनें
 5. आवश्यकतानुसार span filters और criteria configure करें
 
@@ -63,19 +63,19 @@ traces monitor करने के लिए एक या अधिक services
 #### 60 seconds में 50 से अधिक error spans पर Alert करें
 
 - **Span Statuses**: ERROR
-- **Time Window**: 60 seconds
+- **समय विंडो**: 60 seconds
 - **Check On**: Span Count
-- **Filter Type**: Greater Than
-- **Value**: 50
+- **फ़िल्टर प्रकार**: Greater Than
+- **मान**: 50
 
 #### एक specific endpoint में errors पर Alert करें
 
-- **Span Name**: `POST /api/checkout`
+- **स्पैन नाम**: `POST /api/checkout`
 - **Span Statuses**: ERROR
-- **Time Window**: 120 seconds
+- **समय विंडो**: 120 seconds
 - **Check On**: Span Count
-- **Filter Type**: Greater Than
-- **Value**: 0
+- **फ़िल्टर प्रकार**: Greater Than
+- **मान**: 0
 
 ## Setup Requirements
 

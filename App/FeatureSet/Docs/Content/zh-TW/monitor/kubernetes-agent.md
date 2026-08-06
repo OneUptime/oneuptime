@@ -132,7 +132,7 @@ $1 每個容器串流都是連到 kube-apiserver 的長連線。一個副本通�
 
 此 chart 會發佈一個 DaemonSet，在每個節點上執行 [OpenTelemetry eBPF Instrumentation (OBI)](https://opentelemetry.io/docs/zero-code/obi/)。OBI 將 eBPF 程式載入 Linux 核心，並監看 socket 層級的流量，以從節點上的每個 pod 重建 HTTP/HTTPS、gRPC 和 SQL/Redis 呼叫 — 無需變更程式碼、無需 SDK、無需 sidecar。擷取到的流量會以 OTLP 追蹤和請求/延遲指標的形式直接匯出到 OneUptime。
 
-安裝後，您的服務會在一兩分鐘內開始出現在 **Products → 追蹤** 和服務地圖（service map）中，並將 `k8s.cluster.name` 設定為您的 `clusterName`，以便您可以依叢集進行篩選。
+安裝後，您的服務會在一兩分鐘內開始出現在 **產品 → 追蹤** 和服務地圖（service map）中，並將 `k8s.cluster.name` 設定為您的 `clusterName`，以便您可以依叢集進行篩選。
 
 ### 何時將其關閉
 
@@ -250,7 +250,7 @@ kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=2
 
 ## 持續性 CPU 分析（預設關閉）
 
-一個獨立的 DaemonSet 執行 [OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) — 封裝為 `otel/opentelemetry-collector-ebpf-profiler` 映像檔。它以 19Hz 在每個受支援的執行階段（Go、Java、.NET、Python、Ruby、Node.js、PHP、Perl、C/C++、Rust）上取樣 on-CPU 堆疊，並將 OTLP profile 傳送至 OneUptime，在那裡它們會出現在 **Products → 效能設定檔** 之下，並以從個別追蹤 span 連結而來的火焰圖呈現。
+一個獨立的 DaemonSet 執行 [OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) — 封裝為 `otel/opentelemetry-collector-ebpf-profiler` 映像檔。它以 19Hz 在每個受支援的執行階段（Go、Java、.NET、Python、Ruby、Node.js、PHP、Perl、C/C++、Rust）上取樣 on-CPU 堆疊，並將 OTLP profile 傳送至 OneUptime，在那裡它們會出現在 **產品 → 效能設定檔** 之下，並以從個別追蹤 span 連結而來的火焰圖呈現。
 
 分析（profiling）**預設關閉** — 它比 OBI 自動檢測更重（每個節點更多 CPU、更大的記憶體佔用），而且並非每個叢集都想要永遠開啟的火焰圖。當您想要更豐富的遙測資料時再啟用它：`--set profiling.enabled=true`。
 
@@ -293,7 +293,7 @@ kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=2
 | ----------------------------------------- | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `preset`                                  | （空白 — 視為 `standard`） | 請參閱上方的表格。                                                                                                                                                                        |
 | `oneuptime.url`                           | _(必填)_                   | 您的 OneUptime 實例的 URL。                                                                                                                                                               |
-| `oneuptime.apiKey`                        | _(必填)_                   | 專案 API 金鑰（Settings → API Keys）。                                                                                                                                                    |
+| `oneuptime.apiKey`                        | _(必填)_                   | 專案 API 金鑰（設定 → API 金鑰）。                                                                                                                                                        |
 | `oneuptime.labels`                        | `{}`                       | 要附加到此 agent 每一筆記錄的專案標籤。每個 `<key>: <value>` 都會成為一個 `oneuptime.label.<key>=<value>` 資源屬性。請參閱上方的自動標記章節。                                            |
 | `clusterName`                             | _(必填)_                   | 此叢集的唯一名稱。會在每一筆記錄上標記為 `k8s.cluster.name`。                                                                                                                             |
 | `namespaceFilters.rules`                  | 從 podLogs 與 ebpfDiscovery 排除 kube-system | 針對 podLogs、ebpfDiscovery、metrics 與 traces 的作用域 include/exclude 規則。模式支援 *，而且 exclude 永遠優先。 |

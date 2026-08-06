@@ -55,7 +55,7 @@ Crea un nuevo monitor y elige **Consulta SQL** como tipo de monitor, luego compl
 - **Nombre de usuario**: un usuario de base de datos de solo lectura y con privilegios mínimos.
 - **Contraseña**: la contraseña de la base de datos. Recomendamos encarecidamente hacer referencia a un [Secreto de monitor](/docs/monitor/monitor-secrets) con `{{monitorSecrets.name}}` en lugar de escribir la contraseña en texto plano (ver más abajo).
 - **Consulta SQL**: la consulta de solo lectura que se ejecutará (consulta Escribir la consulta).
-- **Usar SSL/TLS**: actívalo para conectarte mediante TLS. Cuando está activado, puedes desactivar **Verificar el certificado del servidor** si la base de datos usa un certificado autofirmado.
+- **Usar SSL / TLS**: actívalo para conectarte mediante TLS. Cuando está activado, puedes desactivar **Verificar el certificado del servidor** si la base de datos usa un certificado autofirmado.
 
 ### Opciones avanzadas
 

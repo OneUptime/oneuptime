@@ -14,7 +14,7 @@ Webbplatsmonitorer kontrollerar dina webbsidor genom att göra HTTP-förfrågnin
 
 ## Skapa en webbplatsmonitor
 
-1. Gå till **Monitorer** i OneUptime-instrumentpanelen
+1. Gå till **Övervakare** i OneUptime-instrumentpanelen
 2. Klicka på **Skapa monitor**
 3. Välj **Webbplats** som monitortyp
 4. Ange webbplatsens URL du vill övervaka
@@ -71,11 +71,11 @@ Enable this option to skip TLS certificate validation. Useful when the target se
 
 #### Client Certificate (mTLS)
 
-If your endpoint requires mutual TLS authentication, enable **Use client certificate (mTLS)** and provide:
+If your endpoint requires mutual TLS authentication, enable **Använd klientcertifikat (mTLS)** and provide:
 
-- **Client Certificate (PEM)** — the PEM-encoded client certificate to present.
-- **Client Private Key (PEM)** — the matching PEM-encoded private key.
-- **Client Private Key Passphrase** _(optional)_ — required only if the private key is encrypted.
+- **Klientcertifikat (PEM)** — the PEM-encoded client certificate to present.
+- **Privat klientnyckel (PEM)** — the matching PEM-encoded private key.
+- **Lösenfras för privat klientnyckel** _(optional)_ — required only if the private key is encrypted.
 
 This is the OneUptime equivalent of the `--cert` and `--key` flags in curl:
 
@@ -89,7 +89,7 @@ For sensitive values, store the certificate and key as [Monitor Secrets](/docs/m
 
 Du kan konfigurera kriterier för att avgöra när din webbplats anses vara online, degraderad eller offline baserat på:
 
-- **Svarsstatuskod** – Kontrollera om HTTP-statuskoden matchar förväntade värden (t.ex. 200, 301)
+- **Statuskod för svar** – Kontrollera om HTTP-statuskoden matchar förväntade värden (t.ex. 200, 301)
 - **Svarstid** – Övervaka om svarstiden överstiger ett tröskelvärde
-- **Svarsinnehåll** – Kontrollera om svarsinnehållet innehåller eller matchar specifikt innehåll
+- **Svarstext** – Kontrollera om svarsinnehållet innehåller eller matchar specifikt innehåll
 - **Svarshuvuden** – Verifiera att specifika svarshuvuden finns eller matchar förväntade värden

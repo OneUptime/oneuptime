@@ -15,7 +15,7 @@ Non c'è alcun agente proprietario da installare sul lato dispositivo. Questa pa
 
 - Un dispositivo, gateway o collector in grado di inviare OTLP/HTTP a OneUptime
 - Raggiungibilità di rete dal dispositivo/gateway verso la tua istanza di OneUptime
-- Un **OneUptime Telemetry Ingestion Token** — creane uno da _Project Settings → Telemetria e APM → Chiavi di acquisizione_ e copia il valore `x-oneuptime-token`
+- Un **OneUptime Telemetry Ingestion Token** — creane uno da _Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione_ e copia il valore `x-oneuptime-token`
 
 ## Come OneUptime Modella l'IoT
 
@@ -214,7 +214,7 @@ OneUptime riconosce i seguenti nomi di metrica `iot_*`. Ogni datapoint dovrebbe 
 1. Conferma che il tuo dispositivo o gateway stia esportando senza errori (controlla i log dell'SDK/collector per fallimenti di esportazione e risposte HTTP `401`/`403`).
 2. Nella dashboard di OneUptime, apri la sezione **IoT** — la tua flotta dovrebbe apparire come `iot/<fleet>` entro circa un minuto.
 3. Apri la scheda **Devices** della flotta — ogni `device.id` che hai inviato dovrebbe essere elencato con i valori più recenti di batteria, segnale, temperatura, CPU, memoria e stato attivo/inattivo.
-4. Apri **Metrics** all'interno della flotta per rappresentare su grafico una qualsiasi delle serie `iot_*` di cui sopra.
+4. Apri **Metriche** all'interno della flotta per rappresentare su grafico una qualsiasi delle serie `iot_*` di cui sopra.
 
 ## Risoluzione dei Problemi
 
@@ -232,7 +232,7 @@ OneUptime riconosce i seguenti nomi di metrica `iot_*`. Ogni datapoint dovrebbe 
 
 ### HTTP 401 / 403 dall'Exporter
 
-Il token di acquisizione non è valido, è stato revocato o è mancante. Generane uno nuovo da _Project Settings → Telemetria e APM → Chiavi di acquisizione_ e aggiorna l'header `x-oneuptime-token`.
+Il token di acquisizione non è valido, è stato revocato o è mancante. Generane uno nuovo da _Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione_ e aggiorna l'header `x-oneuptime-token`.
 
 ### Le Metriche Non Vengono Rappresentate sui Grafici
 

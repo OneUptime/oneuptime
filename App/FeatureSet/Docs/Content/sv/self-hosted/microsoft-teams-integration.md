@@ -102,7 +102,7 @@ microsoftTeamsApp:
 
 ### Steg 7: Ladda upp Teams App Manifest
 
-1. Gå till projekt **Inställningar** > **Arbetsyta** > **Microsoft Teams**
+1. Gå till **Projektinställningar** > **Arbetsyta** > **Microsoft Teams**
 2. Ladda ned Teams app-manifestet därifrån
 3. Gå till Microsoft Teams, klicka på "Appar" i sidofältet
 4. Längst ned, klicka på "Hantera dina appar"

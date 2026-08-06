@@ -14,8 +14,8 @@ Logboekenmonitors zoeken en tellen logboeken die aan specifieke filters voldoen 
 
 ## Een Logboeken Monitor aanmaken
 
-1. Ga naar **Monitors** in het OneUptime-dashboard
-2. Klik op **Monitor aanmaken**
+1. Ga naar **Monitoren** in het OneUptime-dashboard
+2. Klik op **Monitor maken**
 3. Selecteer **Logboeken** als het monitortype
 4. Selecteer de te bewaken telemetriediensten
 5. Configureer logboekfilters en criteria naar wens

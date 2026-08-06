@@ -26,14 +26,14 @@ Jira Cloud 使用 **Basic auth**，以您的電子郵件與 API token 進行 bas
    printf '%s' 'you@example.com:your_api_token' | base64
    ```
 
-2. 在 OneUptime 中，前往 **Workflows → Global Variables → Create**。
+2. 在 OneUptime 中，前往 **工作流程 → 全域變數 → 建立**。
 3. 將它命名為 `JIRA_AUTH`，把 base64 字串貼上作為其值，並開啟 **Is Secret**。
 
 現在您可以將 `Basic {{variable.JIRA_AUTH}}` 用作認證標頭，而 token 永遠不會出現在 workflow 或其日誌中。
 
 ## 步驟 2 — 建立 workflow
 
-1. 開啟 **Workflows → Create Workflow**，將它命名為 `Incidents → Jira`，並開啟 **Builder**。
+1. 開啟 **工作流程 → 建立工作流程**，將它命名為 `Incidents → Jira`，並開啟 **建構器**。
 2. 將一個 **Incident** 觸發器拖曳到畫布上，並選擇 **On Create** 事件。將它重新命名為 `Incident`。
 3. 拖曳一個 **API** 區塊並將觸發器連接到它。進行如下設定：
 
@@ -76,9 +76,9 @@ Jira Cloud 使用 **Basic auth**，以您的電子郵件與 API token 進行 bas
 
 ## 步驟 3 — 測試
 
-1. 將 workflow 開啟為 **Enabled**。
+1. 將 workflow 開啟為 **已啟用**。
 2. 在 OneUptime 中建立一個測試事件（或從某個 monitor 觸發一個）。
-3. 開啟 workflow 的 **Logs** 分頁。**API** 區塊應顯示 `201` 狀態，以及一個包含新 issue 之 `key`（例如 `OPS-1234`）的回應主體。
+3. 開啟 workflow 的 **日誌** 分頁。**API** 區塊應顯示 `201` 狀態，以及一個包含新 issue 之 `key`（例如 `OPS-1234`）的回應主體。
 4. 檢查 Jira — issue 就在那裡。
 
 如果 API 區塊回傳錯誤，請在日誌中將它展開 — Jira 的回應會精確說明它拒絕了哪個欄位。請參閱 [疑難排解](#疑難排解)。

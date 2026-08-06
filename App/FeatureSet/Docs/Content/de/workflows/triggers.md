@@ -32,9 +32,9 @@ Gut geeignet für: Daten aus einem anderen Tool in OneUptime zu empfangen – CI
 
 **Ausgabe**:
 
-- **Request Headers** – alle Header der eingehenden Anfrage.
+- **Anfrage-Header** – alle Header der eingehenden Anfrage.
 - **Request Query Params** – die geparste Query-Zeichenkette.
-- **Request Body** – der geparste Body (oder der Rohtext, falls es kein JSON ist).
+- **Anfragetext** – der geparste Body (oder der Rohtext, falls es kein JSON ist).
 
 Die URL akzeptiert sowohl `GET` als auch `POST`. Der Aufrufer erhält eine schnelle Bestätigung – der Workflow selbst läuft im Hintergrund.
 
@@ -55,10 +55,10 @@ Der vollständige Datensatz wird an den nächsten Baustein weitergegeben. Beispi
 ### Häufig verwendete Ereignisse
 
 - **Vorfall** – reagieren, wenn ein Vorfall geöffnet, aktualisiert (bestätigt, gelöst) oder gelöscht wird.
-- **Alarm** – dieselben drei Ereignisse für Alarme.
-- **Monitor** – reagieren, wenn ein Monitor hinzugefügt, bearbeitet oder entfernt wird.
+- **Warnung** – dieselben drei Ereignisse für Alarme.
+- **Überwachung** – reagieren, wenn ein Monitor hinzugefügt, bearbeitet oder entfernt wird.
 - **Geplante Wartung** – ein Wartungsfenster automatisch ankündigen, sobald es geplant wird.
-- **Statusseiten-Abonnent** – jemanden begrüßen, der eine Statusseite abonniert.
+- **Statusseite Abonnent** – jemanden begrüßen, der eine Statusseite abonniert.
 - **Rufbereitschafts-Richtlinie** – Änderungen am Dienstplan in ein anderes Personalsystem synchronisieren.
 
 Suchen Sie in der Auslöser-Palette nach dem Namen, um den gewünschten zu finden.

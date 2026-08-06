@@ -2,7 +2,7 @@
 
 OneUptime のインシデントが作成されるたびに [ServiceNow](https://www.servicenow.com) のインシデントを自動で開きます — ITSM と監視を連動させます。
 
-この連携は**アウトバウンド**です: OneUptime が ServiceNow の [Table API](https://docs.servicenow.com/bundle/utah-application-development/page/integrate/inbound-rest/concept/c_TableAPI.html) を呼び出します。**Incident → On Create** トリガーと **API コンポーネント**を持つ OneUptime の **[ワークフロー](/docs/workflows/index)** を使います。
+この連携は**アウトバウンド**です: OneUptime が ServiceNow の [Table API](https://docs.servicenow.com/bundle/utah-application-development/page/integrate/inbound-rest/concept/c_TableAPI.html) を呼び出します。**インシデント → On Create** トリガーと **API コンポーネント**を持つ OneUptime の **[ワークフロー](/docs/workflows/index)** を使います。
 
 ```text
 OneUptime Incident → On Create  ──►  API component (POST /api/now/table/incident)  ──►  ServiceNow incident
@@ -24,12 +24,12 @@ ServiceNow の Table API は **Basic 認証**を受け付けます。
    printf '%s' 'integration_user:password' | base64
    ```
 
-2. OneUptime で **Workflows → Global Variables → Create** に移動し、`SERVICENOW_AUTH` という名前にして base64 文字列を貼り付け、**Is Secret** をオンにします。
+2. OneUptime で **ワークフロー → グローバル変数 → 作成** に移動し、`SERVICENOW_AUTH` という名前にして base64 文字列を貼り付け、**Is Secret** をオンにします。
 
 ## ステップ 2 — ワークフローを作成する
 
-1. **Workflows → Create Workflow** を開き、`Incidents → ServiceNow` という名前にして **Builder** を開きます。
-2. **Incident** トリガーを **On Create** に設定して追加します。`Incident` にリネームします。
+1. **ワークフロー → ワークフローを作成** を開き、`Incidents → ServiceNow` という名前にして **ビルダー** を開きます。
+2. **インシデント** トリガーを **On Create** に設定して追加します。`Incident` にリネームします。
 3. トリガーに接続した **API** ブロックを追加します:
 
    - **Method**: `POST`
@@ -56,11 +56,11 @@ ServiceNow の Table API は **Basic 認証**を受け付けます。
 
    `correlation_id` は OneUptime のインシデントへのリンクを保持します — 後で解決ステップを追加する場合に便利です。ServiceNow の `urgency`/`impact` は `1` (高)、`2` (中)、`3` (低) を使います。
 
-4. **Save** して有効化し、テスト用インシデントを作成します。ワークフローのログに `201 Created` レスポンスが表示され、新しいレコードの `sys_id` と `number` (例: `INC0012345`) が返されます。
+4. **保存** して有効化し、テスト用インシデントを作成します。ワークフローのログに `201 Created` レスポンスが表示され、新しいレコードの `sys_id` と `number` (例: `INC0012345`) が返されます。
 
 ## ステップ 3 — OneUptime の解決時に解決する (オプション)
 
-1. **Incident → On Update** トリガーと、インシデントが解決済みかどうかをチェックする **Conditions** ブロックを持つ**2 つ目のワークフロー**を作成します。
+1. **インシデント → On Update** トリガーと、インシデントが解決済みかどうかをチェックする **条件** ブロックを持つ**2 つ目のワークフロー**を作成します。
 2. 正しい ServiceNow レコードを更新するには `sys_id` が必要です。ステップ 2 で `{{CreateRecord.response-body.result.sys_id}}` を読み取って **Update Incident** でラベルに書き込んで OneUptime インシデントに保存するか、`GET` で `/api/now/table/incident?sysparm_query=correlation_id=oneuptime-{{Incident._id}}` を呼び出してレコードを検索します。
 3. **API** ブロックを追加します: **Method** `PATCH`、**URL** `https://your-instance.service-now.com/api/now/table/incident/<sys_id>`、ボディ `{ "state": "6", "close_code": "Resolved by monitoring", "close_notes": "Resolved in OneUptime" }` (`state` `6` はデフォルトの ITIL ワークフローで「解決済み」を意味します)。
 

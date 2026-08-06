@@ -10,7 +10,7 @@ No hay ningún agente que instalar en el lado del dispositivo — cualquier cosa
 
 - Un dispositivo, gateway o collector que pueda enviar OTLP/HTTP a OneUptime
 - Conectividad de red desde el dispositivo/gateway hasta tu instancia de OneUptime
-- Un **Token de Ingesta de Telemetría de OneUptime** — crea uno desde _Project Settings → Telemetría y APM → Claves de Ingesta_ y copia el valor de `x-oneuptime-token`
+- Un **Token de Ingesta de Telemetría de OneUptime** — crea uno desde _Ajustes del proyecto → Telemetría y APM → Claves de Ingesta_ y copia el valor de `x-oneuptime-token`
 
 ## Cómo modela OneUptime el IoT
 
@@ -212,7 +212,7 @@ OneUptime reconoce los siguientes nombres de métricas `iot_*`. Cada datapoint d
 1. Confirma que tu dispositivo o gateway está exportando sin errores (revisa los logs del SDK/collector en busca de fallos de exportación y respuestas HTTP `401`/`403`).
 2. En el panel de OneUptime, abre la sección **IoT** — tu flota debería aparecer como `iot/<fleet>` en aproximadamente un minuto.
 3. Abre la pestaña **Devices** de la flota — cada `device.id` que enviaste debería aparecer listado con su última batería, señal, temperatura, CPU, memoria y estado activo/caído.
-4. Abre **Metrics** bajo la flota para graficar cualquiera de las series `iot_*` anteriores.
+4. Abre **Métricas** bajo la flota para graficar cualquiera de las series `iot_*` anteriores.
 
 ## Solución de problemas
 
@@ -230,7 +230,7 @@ OneUptime reconoce los siguientes nombres de métricas `iot_*`. Cada datapoint d
 
 ### HTTP 401 / 403 del exportador
 
-El token de ingesta es inválido, ha sido revocado o falta. Genera uno nuevo desde _Project Settings → Telemetría y APM → Claves de Ingesta_ y actualiza el encabezado `x-oneuptime-token`.
+El token de ingesta es inválido, ha sido revocado o falta. Genera uno nuevo desde _Ajustes del proyecto → Telemetría y APM → Claves de Ingesta_ y actualiza el encabezado `x-oneuptime-token`.
 
 ### Las métricas no se grafican
 

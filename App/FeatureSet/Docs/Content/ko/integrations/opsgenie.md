@@ -16,12 +16,12 @@ OneUptime Incident → On Create  ──►  API component (POST /v2/alerts)  �
 
 ## 1단계 — API 키 저장
 
-1. **Workflows → Global Variables → Create** 로 이동합니다.
+1. **워크플로 → 전역 변수 → 만들기** 로 이동합니다.
 2. 이름을 `OPSGENIE_KEY` 로 지정하고 API 키를 붙여넣고 **Is Secret** 를 켭니다.
 
 ## 2단계 — "알림 생성" 워크플로 구성
 
-1. **Workflows → Create Workflow** 를 열고, 이름을 `Incidents → Opsgenie` 로 지정하고 **Builder** 를 엽니다.
+1. **워크플로 → 워크플로 생성** 을 열고, 이름을 `Incidents → Opsgenie` 로 지정하고 **빌더** 를 엽니다.
 2. **Incident** 트리거를 **On Create** 로 설정해 추가합니다. 이름을 `Incident` 로 변경합니다.
 3. 트리거에 연결된 **API** 블록을 추가합니다:
 
@@ -70,7 +70,7 @@ Opsgenie 우선순위는 `P1`–`P5` 입니다. API 블록 앞에서 `{{Incident
 
 - **`401`/`403`** — 잘못된 키, 잘못된 리전 호스트, 또는 통합에 알림 생성 권한이 없습니다. **API** 통합 키와 일치하는 `api`/`api.eu` 호스트를 사용하고 있는지 확인하세요.
 - **Close가 `404` 반환** — 닫기 호출의 `alias` 가 생성 호출과 정확히 일치해야 하며 쿼리 문자열에 `identifierType=alias` 가 있어야 합니다.
-- **아무 일도 일어나지 않습니다** — 워크플로가 **Enabled** 상태인지 확인합니다.
+- **아무 일도 일어나지 않습니다** — 워크플로가 **활성화됨** 상태인지 확인합니다.
 
 ## 다음에 읽어 볼 내용
 

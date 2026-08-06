@@ -10,14 +10,14 @@
 - 透過 [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver) 收集 **systemd unit 狀態**（用於驅動主機的 **Systemd Units** 分頁）— 自 **v0.142.0** 起已內建於上游的 `otelcol-contrib` 建置中，並自 **v0.143.0** 起可實際使用（請參閱下方「Linux 服務（systemd units）」）
 - 透過 [`logstransformprocessor`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/logstransformprocessor) 包裝 tail 的 `log stream` 輸出來收集 **Apple Unified Log**（macOS）
 - 透過 [`windowseventlogreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowseventlogreceiver) 收集 **Windows 事件記錄**
-- 透過 [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver) 收集 **Windows 服務狀態**（用於驅動主機的 **Services** 分頁）— 自 **v0.155.0** 起已內建於上游的 `otelcol-contrib` 建置中（請參閱下方「Windows 服務（指標）」）
+- 透過 [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver) 收集 **Windows 服務狀態**（用於驅動主機的 **服務** 分頁）— 自 **v0.155.0** 起已內建於上游的 `otelcol-contrib` 建置中（請參閱下方「Windows 服務（指標）」）
 
 > **那 OneUptime Infrastructure Agent 呢？** 該 agent 是一個獨立、輕量的 Go daemon，專注於基本指標與 _Server / VM Monitor_ 功能（狀態、行程、警示）。此處描述的 OpenTelemetry Collector 是獨立的，當您想要將日誌（檔案日誌、journald、Windows 事件記錄）或更豐富的主機指標作為標準 OTLP 擷取時，它是合適的工具。兩者可以在同一台主機上執行而互不干擾。
 
 ## 先決條件
 
-- 一個 **OneUptime Telemetry Ingestion Token** — 從 _Project Settings → 遙測與 APM → 擷取金鑰_ 建立一個並複製 `x-oneuptime-token` 值。
-- **OpenTelemetry Collector Contrib** 發行版（`otelcol-contrib`）。預設的 `otelcol` 建置**不**包含像 `windowseventlogreceiver`、`journaldreceiver` 或 `hostmetrics` 額外功能的 receiver — 請務必使用 `contrib` 發行版。驅動 Windows **Services** 分頁的 alpha 階段 `windowsservicereceiver` 自 **v0.155.0** 起已內建於 `otelcol-contrib` 中，而驅動 Linux **Systemd Units** 分頁的 alpha 階段 `systemdreceiver` 則自 **v0.143.0** 起，因此請安裝目前的版本；請參閱下方「Windows 服務（指標）」與「Linux 服務（systemd units）」。
+- 一個 **OneUptime Telemetry Ingestion Token** — 從 _專案設定 → 遙測與 APM → 擷取金鑰_ 建立一個並複製 `x-oneuptime-token` 值。
+- **OpenTelemetry Collector Contrib** 發行版（`otelcol-contrib`）。預設的 `otelcol` 建置**不**包含像 `windowseventlogreceiver`、`journaldreceiver` 或 `hostmetrics` 額外功能的 receiver — 請務必使用 `contrib` 發行版。驅動 Windows **服務** 分頁的 alpha 階段 `windowsservicereceiver` 自 **v0.155.0** 起已內建於 `otelcol-contrib` 中，而驅動 Linux **Systemd Units** 分頁的 alpha 階段 `systemdreceiver` 則自 **v0.143.0** 起，因此請安裝目前的版本；請參閱下方「Windows 服務（指標）」與「Linux 服務（systemd units）」。
 - 主機上的 Root / Administrator 權限，以將 collector 安裝為服務並（在適用時）讀取具有權限限制的日誌來源。
 
 ## 步驟 1 — 安裝 OpenTelemetry Collector
@@ -69,7 +69,7 @@ sudo mkdir -p /etc/otelcol-contrib
 
 ### Windows
 
-在 Windows 上，請下載上游的 **`otelcol-contrib`** 版本 — 它內建了驅動主機 **Services** 分頁的 `windows_service` receiver（自 **v0.155.0** 起）。在**提升權限的** PowerShell 提示字元中：
+在 Windows 上，請下載上游的 **`otelcol-contrib`** 版本 — 它內建了驅動主機 **服務** 分頁的 `windows_service` receiver（自 **v0.155.0** 起）。在**提升權限的** PowerShell 提示字元中：
 
 ```powershell
 $VERSION = "0.156.0"                          # use v0.155.0 or later for the Services tab
@@ -83,7 +83,7 @@ tar -xf $tar -C $dest                          # tar.exe ships with Windows 10 1
 
 這會將 `otelcol-contrib.exe` 解壓縮到 `C:\Program Files\otelcol-contrib`。您將在步驟 2 中於同一資料夾建立 `config.yaml`，並在步驟 3 中註冊一個 Windows 服務。
 
-> 偏好使用原生安裝程式？OpenTelemetry 也在同一個 [releases 頁面](https://github.com/open-telemetry/opentelemetry-collector-releases/releases) 上發佈一個已簽署的 **`.msi`**（`otelcol-contrib_<version>_windows_x64.msi`），它會為您將 collector 註冊為 Windows 服務。如果您使用它，請將它指向步驟 2 的 `config.yaml`，並確保該服務以 `LocalSystem` 執行，讓 **Services** 分頁能夠讀取 Service Control Manager。
+> 偏好使用原生安裝程式？OpenTelemetry 也在同一個 [releases 頁面](https://github.com/open-telemetry/opentelemetry-collector-releases/releases) 上發佈一個已簽署的 **`.msi`**（`otelcol-contrib_<version>_windows_x64.msi`），它會為您將 collector 註冊為 Windows 服務。如果您使用它，請將它指向步驟 2 的 `config.yaml`，並確保該服務以 `LocalSystem` 執行，讓 **服務** 分頁能夠讀取 Service Control Manager。
 
 ## 步驟 2 — 設定 collector
 
@@ -168,7 +168,7 @@ receivers:
 
 `start_at: end` 表示從 collector 啟動的那一刻起的新行；改為 `beginning` 可在首次執行時回填。collector 會追蹤檔案偏移量，因此會在重新啟動之間正確地恢復。
 
-**將主機日誌堆疊追蹤轉換為 Exceptions。** OneUptime 會自動掃描 error 和 fatal 日誌行中的堆疊追蹤，並將其彙整到 **Exceptions**（Issues）檢視中，歸屬於此主機 — 不需要額外設定。為了讓分組效果良好，多行堆疊追蹤（Java、Python、.NET、Ruby）必須以**一筆**日誌記錄的形式抵達，而非每行一筆記錄。在 `filelog` receiver 上啟用多行重組，讓追蹤及其框架保持在一起：
+**將主機日誌堆疊追蹤轉換為 Exceptions。** OneUptime 會自動掃描 error 和 fatal 日誌行中的堆疊追蹤，並將其彙整到 **例外**（Issues）檢視中，歸屬於此主機 — 不需要額外設定。為了讓分組效果良好，多行堆疊追蹤（Java、Python、.NET、Ruby）必須以**一筆**日誌記錄的形式抵達，而非每行一筆記錄。在 `filelog` receiver 上啟用多行重組，讓追蹤及其框架保持在一起：
 
 ```yaml
 receivers:
@@ -204,7 +204,7 @@ collector 二進位檔必須能夠執行 `journalctl`（Debian / RPM 套件已�
 
 ### Linux 服務（systemd units、指標）
 
-主機 **Systemd Units** 分頁由 [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver)（設定類型 `systemd`）驅動，它會將 systemd unit 的作用狀態以指標形式回報 — 這是 Windows 上 **Services** 分頁在 Linux 的對應功能。
+主機 **Systemd Units** 分頁由 [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver)（設定類型 `systemd`）驅動，它會將 systemd unit 的作用狀態以指標形式回報 — 這是 Windows 上 **服務** 分頁在 Linux 的對應功能。
 
 **此 receiver 最早於 v0.142.0 隨附於上游的 `otelcol-contrib` 二進位檔中，而 v0.143.0 才是第一個值得執行的版本** — 在更早的版本上，加入 `systemd` 會在啟動時失敗並出現 `'receivers' unknown type: "systemd"`；而僅在 v0.142.0 上，它的 CPU 指標名為 `systemd.unit.cpu.time`，且會對每一個 unit 尋找 cgroup 統計資料，因而為每個非 `.service` 的 unit 記錄一則抓取錯誤。v0.143.0 已將該指標更名為 `systemd.service.cpu.time`，並將該查詢限制在服務上。請安裝目前的版本（步驟 1），然後在您的 `config.yaml` 中啟用它，並將它加入指標管線：
 
@@ -307,7 +307,7 @@ windowseventlog/iis:
 
 ### Windows 服務（指標）
 
-主機 **Services** 分頁由 [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver)（設定類型 `windows_service`）驅動，它會將 Windows 服務的執行狀態與啟動類型以指標形式回報。
+主機 **服務** 分頁由 [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver)（設定類型 `windows_service`）驅動，它會將 Windows 服務的執行狀態與啟動類型以指標形式回報。
 
 **此 receiver 自 v0.155.0 起隨附於上游的 `otelcol-contrib` 二進位檔中** — 在較早的版本上，加入 `windows_service` 會在啟動時失敗並出現 `'receivers' unknown type: "windows_service"`。請安裝目前的版本（步驟 1），然後在您的 `config.yaml` 中啟用它，並將它加入指標管線：
 
@@ -330,7 +330,7 @@ service:
 
 該 receiver 會為每個服務發出一個 `windows.service.status` gauge — 該整數是 Win32 服務狀態（`4` = 執行中，`1` = 已停止）— 並帶有 `name` 與 `startup_mode` 屬性。以 `LocalSystem`（`sc.exe` 的預設值）執行該 collector，讓它能夠讀取每個服務；任何無法開啟的服務都會被略過。此 receiver 處於 **alpha** 階段且**僅適用於 Windows**；已知問題包括可能使 collector 當機的抓取錯誤，以及某個服務的 `access denied` 會影響其他服務 — 如果遇到這些問題，請限制使用 `include_services`。
 
-> **`include_services` 沒有作用？** 此篩選器只能*縮小*集合的範圍，因此如果您列出了服務卻仍看到每一個，那麼編輯後的設定幾乎肯定尚未套用到執行中的 collector。編輯後請重新啟動服務（步驟 3）；確保 `include_services` 是一個已填入內容的清單，且與 `collection_interval` 縮排相同（而非保持註解狀態或留空）；並給 **Services** 分頁幾分鐘的時間，讓變更前回報的服務從其滾動視窗中淘汰。這些名稱是精確、區分大小寫的 Windows 服務 _key_ 名稱（例如 `Spooler`、`W3SVC`），您可以使用 `Get-Service | Select-Object Name` 列出它們。
+> **`include_services` 沒有作用？** 此篩選器只能*縮小*集合的範圍，因此如果您列出了服務卻仍看到每一個，那麼編輯後的設定幾乎肯定尚未套用到執行中的 collector。編輯後請重新啟動服務（步驟 3）；確保 `include_services` 是一個已填入內容的清單，且與 `collection_interval` 縮排相同（而非保持註解狀態或留空）；並給 **服務** 分頁幾分鐘的時間，讓變更前回報的服務從其滾動視窗中淘汰。這些名稱是精確、區分大小寫的 Windows 服務 _key_ 名稱（例如 `Spooler`、`W3SVC`），您可以使用 `Get-Service | Select-Object Name` 列出它們。
 
 ### 完整範例 — Linux 主機
 
@@ -602,10 +602,10 @@ sc.exe query "otelcol-contrib"
 1. 在主機上產生一些訊號：
    - **Linux / macOS：** `logger "hello from oneuptime"`（寫入 syslog / journald）。
    - **Windows：** 從提升權限的提示字元執行 `eventcreate /T INFORMATION /ID 999 /L APPLICATION /SO OneUptimeTest /D "hello from oneuptime"`。
-2. 在 OneUptime 儀表板中，開啟 **Products → 服務** 並選擇您設定的 `service.name`。
-3. 開啟 **Metrics** — 主機指標（CPU、記憶體、檔案系統等）應在一分鐘內出現。
-4. 開啟 **Logs** — 您的檔案日誌 / journald 項目 / Windows 事件記錄應正在串流進來。實用的可搜尋屬性包括 `log.file.name`、`systemd.unit`、`winlog.channel`、`winlog.event_id` 與 `winlog.provider.name`。
-5. 如果您啟用了 `systemd`（Linux）或 `windows_service`（Windows）receiver，請開啟 **Infrastructure → Hosts**，選擇該主機，並查看 **Systemd Units** / **Services** 分頁 — 每個被抓取的 unit 都應列出並顯示其目前的狀態。
+2. 在 OneUptime 儀表板中，開啟 **產品 → 服務** 並選擇您設定的 `service.name`。
+3. 開啟 **指標** — 主機指標（CPU、記憶體、檔案系統等）應在一分鐘內出現。
+4. 開啟 **日誌** — 您的檔案日誌 / journald 項目 / Windows 事件記錄應正在串流進來。實用的可搜尋屬性包括 `log.file.name`、`systemd.unit`、`winlog.channel`、`winlog.event_id` 與 `winlog.provider.name`。
+5. 如果您啟用了 `systemd`（Linux）或 `windows_service`（Windows）receiver，請開啟 **基礎設施 → 主機**，選擇該主機，並查看 **Systemd Units** / **服務** 分頁 — 每個被抓取的 unit 都應列出並顯示其目前的狀態。
 
 ## 減少收集的資料量
 
@@ -783,7 +783,7 @@ service:
       exporters: [otlphttp]
 ```
 
-> **正在編輯 OneUptime 為您產生的設定？** 上方的管線對應的是本頁面上的完整範例。來自儀表板（Hosts → Documentation）的設定，其命名方式並不相同：它的 processor 是 `resourcedetection` 與 `batch`（**沒有** `resource` processor），而它的 exporter 是 `otlphttp/oneuptime`。參照一個未被定義的 processor 會讓 collector 在啟動時停止，並出現 `references processor "resource" which is not configured`。請將 filter 加入既有的內容之中，而不是把這個區塊貼上去覆蓋它：
+> **正在編輯 OneUptime 為您產生的設定？** 上方的管線對應的是本頁面上的完整範例。來自儀表板（主機 → 文件）的設定，其命名方式並不相同：它的 processor 是 `resourcedetection` 與 `batch`（**沒有** `resource` processor），而它的 exporter 是 `otlphttp/oneuptime`。參照一個未被定義的 processor 會讓 collector 在啟動時停止，並出現 `references processor "resource" which is not configured`。請將 filter 加入既有的內容之中，而不是把這個區塊貼上去覆蓋它：
 >
 > ```yaml
 > service:
@@ -848,7 +848,7 @@ service:
 
 當您需要時，可使用範圍狹窄的 `filelog` 或 `journald` receiver 重新加回 `logs` 管線。
 
-> **留意您所刪減的內容。** 基於日誌的警示需要日誌抵達：如果您篩選掉某個嚴重性或某個頻道，以其為依據的 monitor 就會靜默。請精簡您不會採取行動的來源，而非某個 monitor 正在監看的來源。一次變更一個槓桿，並在 **Project Settings → Usage History** 下確認資料量下降（使用量以每日彙總，因此請給它一兩天的時間）後，再進行下一項。
+> **留意您所刪減的內容。** 基於日誌的警示需要日誌抵達：如果您篩選掉某個嚴重性或某個頻道，以其為依據的 monitor 就會靜默。請精簡您不會採取行動的來源，而非某個 monitor 正在監看的來源。一次變更一個槓桿，並在 **專案設定 → 使用歷程** 下確認資料量下降（使用量以每日彙總，因此請給它一兩天的時間）後，再進行下一項。
 
 ## 自架 OneUptime
 
@@ -879,7 +879,7 @@ OpenTelemetry Collector 遵循標準的 `HTTPS_PROXY` / `HTTP_PROXY` / `NO_PROXY
   - **Linux / macOS：** `journalctl -u otelcol-contrib -f`（Linux）或 `tail -f /var/log/otelcol-contrib.err.log`（macOS）。
   - **Windows：** 在 _Event Viewer → Windows Logs → Application_ 下尋找來源 `otelcol-contrib`。
   - 確認主機可以連線到 `https://oneuptime.com/otlp`（或您自架的端點）：從同一台機器執行 `curl -v https://oneuptime.com/otlp`。
-- **exporter 傳回 HTTP 401** — 擷取權杖無效或已撤銷。從 _Project Settings → 遙測與 APM → 擷取金鑰_ 產生一個新的。
+- **exporter 傳回 HTTP 401** — 擷取權杖無效或已撤銷。從 _專案設定 → 遙測與 APM → 擷取金鑰_ 產生一個新的。
 - **`Security` Windows 事件記錄傳回 access denied** — 該服務未以足夠的權限執行。在 `LocalSystem` 下重新建立它（`sc.exe create` 的預設值），或授予服務帳戶 _Manage auditing and security log_ 使用者權限。
 - **`journald` receiver 無法啟動** — 確保 `journalctl` 在 collector 的 `PATH` 上，且 `/var/log/journal` 存在（若不存在，請執行 `sudo systemd-tmpfiles --create --prefix /var/log/journal`）。
 - **`systemd` receiver 回報 D-Bus 連線錯誤** — collector 無法存取 system bus。請確認 `/run/dbus/system_bus_socket` 存在，且 collector 的使用者能夠開啟它；以該使用者身分執行 `systemctl list-units` 是最快的檢查方式。並不需要 root。在容器內執行的 collector 除非您將主機的 socket 以 bind mount 掛載進去，否則完全看不到任何 bus，因此此 receiver 建議採用原生安裝。

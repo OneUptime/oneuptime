@@ -21,18 +21,18 @@ OneUptime Incident → On Create  ──►  Telegram component  ──►  mess
 
 ## Stap 3 — Sla de geheimen op
 
-1. Ga in OneUptime naar **Workflows → Global Variables → Create**.
+1. Ga in OneUptime naar **Workflows → Globale variabelen → Aanmaken**.
 2. Maak `TELEGRAM_BOT_TOKEN` (geheim) en `TELEGRAM_CHAT_ID` aan.
 
 ## Stap 4 — Bouw de workflow
 
-1. Open **Workflows → Create Workflow**, geef het de naam `Incidents → Telegram`, en open de **Builder**.
+1. Open **Workflows → Workflow maken**, geef het de naam `Incidents → Telegram`, en open de **Bouwer**.
 2. Voeg een **Incident**-trigger toe ingesteld op **On Create**. Hernoem het naar `Incident`.
 3. Voeg een **Telegram**-component toe verbonden met de trigger:
    - **Bot token**: `{{variable.TELEGRAM_BOT_TOKEN}}`
    - **Chat ID**: `{{variable.TELEGRAM_CHAT_ID}}`
-   - **Message**: `🔴 New incident: {{Incident.title}}\n{{Incident.description}}`
-4. **Sla op**, schakel in en maak een testincident aan. Het bericht komt binnen in je chat.
+   - **Bericht**: `🔴 New incident: {{Incident.title}}\n{{Incident.description}}`
+4. **Opslaan**, schakel in en maak een testincident aan. Het bericht komt binnen in je chat.
 
 ## Alternatief: de API-component
 
@@ -46,7 +46,7 @@ Een **API**-blok werkt ook:
 ## Tips
 
 - De bot ziet alleen berichten nadat hij aan een groep is toegevoegd en **privacy mode** hem toestaat — als `getUpdates` leeg is, stuur de bot dan eerst een bericht, of schakel privacy mode uit via BotFather.
-- Gebruik **Conditions** om te filteren op severity vóór het sturen.
+- Gebruik **Voorwaarden** om te filteren op severity vóór het sturen.
 - Voeg `"parse_mode": "Markdown"` toe aan de API-body (of gebruik de opmaak van de component) voor vetgedrukte tekst en links.
 
 ## Waar verder lezen

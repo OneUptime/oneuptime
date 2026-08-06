@@ -25,17 +25,17 @@ Zabbix trigger fires  ──►  Webhook media type  ──►  OneUptime Workfl
 
 Fai questo prima, perché avrai bisogno dell'URL webhook che genera.
 
-1. Apri **Workflows → Create Workflow**. Chiamalo `Zabbix → Incidents` e apri la scheda **Builder**.
+1. Apri **Flussi di lavoro → Crea flusso di lavoro**. Chiamalo `Zabbix → Incidents` e apri la scheda **Costruttore**.
 2. Trascina un trigger **Webhook** sul canvas. Cliccalo e **copia l'URL univoco** che mostra. Tienilo al sicuro — chiunque lo possieda può avviare il workflow. Rinomina il blocco in `Zabbix` per una lettura più chiara delle variabili.
-3. Trascina un blocco **Conditions** sul canvas e collega l'output del trigger ad esso. Configura:
+3. Trascina un blocco **Condizioni** sul canvas e collega l'output del trigger ad esso. Configura:
    - **Left value**: `{{Zabbix.Request Body.status}}`
    - **Operator**: `==`
    - **Right value**: `1` _(Zabbix invia `1` per un problema, `0` per il ripristino)_
-4. Trascina un blocco **Create Incident** e collegalo all'output **Yes** del blocco **Conditions**. Compila:
-   - **Title**: `Zabbix: {{Zabbix.Request Body.name}}`
-   - **Description**: `Host: {{Zabbix.Request Body.host}}\nSeverity: {{Zabbix.Request Body.severity}}\nZabbix event: {{Zabbix.Request Body.event_id}}`
-   - **Severity**: scegli la severità dell'incidente OneUptime che preferisci (potrai raffinarla in seguito aggiungendo altri rami **Conditions** che mappano le severità Zabbix).
-5. Salva. Lascia **Enabled** _disattivato_ per ora — lo abiliterai dopo un test.
+4. Trascina un blocco **Crea incidente** e collegalo all'output **Sì** del blocco **Condizioni**. Compila:
+   - **Titolo**: `Zabbix: {{Zabbix.Request Body.name}}`
+   - **Descrizione**: `Host: {{Zabbix.Request Body.host}}\nSeverity: {{Zabbix.Request Body.severity}}\nZabbix event: {{Zabbix.Request Body.event_id}}`
+   - **Gravità**: scegli la severità dell'incidente OneUptime che preferisci (potrai raffinarla in seguito aggiungendo altri rami **Condizioni** che mappano le severità Zabbix).
+5. Salva. Lascia **Abilitato** _disattivato_ per ora — lo abiliterai dopo un test.
 
 > **Suggerimento:** Inserire il `event_id` di Zabbix nella descrizione (o in un'etichetta dell'incidente) ti permette di ritrovare l'incidente in seguito se vuoi risolverlo automaticamente al ripristino. Vedi [Risoluzione automatica](#risoluzione-automatica-opzionale).
 
@@ -114,10 +114,10 @@ Zabbix invia le notifiche _a un utente_. Creane uno dedicato in modo che l'integ
 
 ## Parte 3 — Testalo
 
-1. Torna al workflow OneUptime e attiva **Enabled**.
+1. Torna al workflow OneUptime e attiva **Abilitato**.
 2. In Zabbix, attiva un problema di test — ad esempio, abbassa temporaneamente la soglia di un trigger, o usa un item di test che passa allo stato di problema.
-3. Apri la scheda **Logs** del tuo workflow. Dovresti vedere un'esecuzione con il payload Zabbix, il blocco **Conditions** che prende il percorso **Yes** e l'incidente creato.
-4. Controlla **Incidents** in OneUptime — il tuo problema Zabbix è ora un incidente.
+3. Apri la scheda **Registri** del tuo workflow. Dovresti vedere un'esecuzione con il payload Zabbix, il blocco **Condizioni** che prende il percorso **Sì** e l'incidente creato.
+4. Controlla **Incidenti** in OneUptime — il tuo problema Zabbix è ora un incidente.
 
 Se non arriva nulla, vedi [Risoluzione dei problemi](#risoluzione-dei-problemi).
 
@@ -126,21 +126,21 @@ Se non arriva nulla, vedi [Risoluzione dei problemi](#risoluzione-dei-problemi).
 Il workflow principale sopra _apre_ gli incidenti. Per _chiuderli_ anche quando Zabbix si ripristina:
 
 1. Assicurati che la tua azione Zabbix abbia le **Recovery operations** configurate (Passaggio 3 sopra) in modo che vengano inviati anche gli eventi di ripristino. Al ripristino, `status` arriva come `0`.
-2. Nel workflow, aggiungi un secondo ramo **Conditions**: left `{{Zabbix.Request Body.status}}`, operatore `==`, right `0`.
-3. Dal suo output **Yes**, aggiungi un blocco **Find Incident** che cerca l'incidente aperto creato in precedenza — cerca per il `event_id` Zabbix che hai salvato nella descrizione o in un'etichetta.
+2. Nel workflow, aggiungi un secondo ramo **Condizioni**: left `{{Zabbix.Request Body.status}}`, operatore `==`, right `0`.
+3. Dal suo output **Sì**, aggiungi un blocco **Find Incident** che cerca l'incidente aperto creato in precedenza — cerca per il `event_id` Zabbix che hai salvato nella descrizione o in un'etichetta.
 4. Collegalo a un blocco **Update Incident** e sposta l'incidente nel tuo stato _risolto_.
 
 Poiché la risoluzione dipende da come modelli gli stati degli incidenti nel tuo progetto, mantieni il percorso di **creazione** come base affidabile e aggiungi il percorso di risoluzione una volta confermato che gli eventi fluiscono correttamente. Vedi [Componenti → Componenti per i dati di OneUptime](/docs/workflows/components#oneuptime-data-components).
 
 ## Mappatura delle severità Zabbix (opzionale)
 
-Le severità Zabbix (`Not classified`, `Information`, `Warning`, `Average`, `High`, `Disaster`) arrivano come `{{Zabbix.Request Body.severity}}`. Per mapparle alle severità degli incidenti OneUptime, aggiungi rami **Conditions** prima di **Create Incident** — ad esempio, instrada `Disaster` e `High` a un incidente "Critical" e tutto il resto a "Major". Crea un blocco **Create Incident** per ogni ramo.
+Le severità Zabbix (`Not classified`, `Information`, `Warning`, `Average`, `High`, `Disaster`) arrivano come `{{Zabbix.Request Body.severity}}`. Per mapparle alle severità degli incidenti OneUptime, aggiungi rami **Condizioni** prima di **Crea incidente** — ad esempio, instrada `Disaster` e `High` a un incidente "Critical" e tutto il resto a "Major". Crea un blocco **Crea incidente** per ogni ramo.
 
 ## Risoluzione dei problemi
 
 **Il workflow non viene mai eseguito.**
 
-- Conferma che l'interruttore **Enabled** del workflow sia attivo.
+- Conferma che l'interruttore **Abilitato** del workflow sia attivo.
 - Dal server Zabbix, verifica che possa raggiungere l'URL: `curl -i -X POST <workflow-url> -d '{}' -H 'Content-Type: application/json'`. Dovresti ricevere una risposta rapida.
 - Controlla **Reports → Action log** in Zabbix per gli errori di consegna.
 
@@ -151,7 +151,7 @@ Le severità Zabbix (`Not classified`, `Information`, `Warning`, `Average`, `Hig
 
 **L'incidente viene creato ma i campi sono vuoti.**
 
-- Apri la scheda **Logs** del workflow e ispeziona l'output del trigger. Conferma che i nomi dei campi sotto **Request Body** corrispondano a quelli che stai referenziando (`name`, `host`, `severity`, `status`, `event_id`).
+- Apri la scheda **Registri** del workflow e ispeziona l'output del trigger. Conferma che i nomi dei campi sotto **Corpo della Richiesta** corrispondano a quelli che stai referenziando (`name`, `host`, `severity`, `status`, `event_id`).
 - Un campo mancante viene risolto come stringa vuota anziché come errore — vedi [Variabili → Insidie](/docs/workflows/variables#gotchas).
 
 **Tutto si attiva due volte.**
@@ -168,5 +168,5 @@ Le severità Zabbix (`Not classified`, `Information`, `Warning`, `Average`, `Hig
 
 - [Panoramica delle integrazioni](/docs/integrations/index) — i pattern in entrata/uscita.
 - [Trigger Webhook](/docs/workflows/triggers#webhook) — come funziona l'URL di ricezione.
-- [Componenti](/docs/workflows/components) — **Conditions**, **Create Incident** e altro.
+- [Componenti](/docs/workflows/components) — **Condizioni**, **Crea incidente** e altro.
 - [Variabili](/docs/workflows/variables) — lettura del payload Zabbix nei blocchi successivi.

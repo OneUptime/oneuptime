@@ -15,17 +15,17 @@ Datadog monitor alerts  ──►  Webhook integration  ──►  OneUptime Web
 
 ## Stap 1 — Bouw de OneUptime-workflow
 
-1. Open **Workflows → Create Workflow**, geef het de naam `Datadog → Incidents`, en open de **Builder**.
+1. Open **Workflows → Workflow maken**, geef het de naam `Datadog → Incidents`, en open de **Bouwer**.
 2. Voeg een **Webhook**-trigger toe en **kopieer de URL**. Hernoem het blok naar `Datadog`.
-3. Voeg een **Conditions**-blok toe verbonden met de trigger:
+3. Voeg een **Voorwaarden**-blok toe verbonden met de trigger:
    - **Left**: `{{Datadog.Request Body.transition}}`
    - **Operator**: `==`
    - **Right**: `Triggered`
-4. Voeg vanuit **Yes** een **Create Incident**-blok toe:
-   - **Title**: `{{Datadog.Request Body.title}}`
-   - **Description**: `{{Datadog.Request Body.body}}\nHost: {{Datadog.Request Body.host}}\n{{Datadog.Request Body.link}}`
-   - **Severity**: kies er een.
-5. **Sla op** (laat uitgeschakeld totdat getest).
+4. Voeg vanuit **Ja** een **Incident maken**-blok toe:
+   - **Titel**: `{{Datadog.Request Body.title}}`
+   - **Beschrijving**: `{{Datadog.Request Body.body}}\nHost: {{Datadog.Request Body.host}}\n{{Datadog.Request Body.link}}`
+   - **Ernst**: kies er een.
+5. **Opslaan** (laat uitgeschakeld totdat getest).
 
 ## Stap 2 — Maak de Datadog-webhook aan
 
@@ -66,16 +66,16 @@ Hiermee worden zowel de alert als het herstel naar OneUptime gestuurd. (Om alles
 
 1. Schakel de workflow in.
 2. Gebruik vanuit een monitor **Test Notifications → Alert**, of laat een echte monitor afgaan.
-3. Controleer het tabblad **Logs** van de workflow en je lijst met **Incidents**.
+3. Controleer het tabblad **Logboeken** van de workflow en je lijst met **Incidenten**.
 
 ## Oplossen bij herstel (optioneel)
 
-`$ALERT_TRANSITION` is `Recovered` wanneer een monitor zich herstelt. Voeg een tweede **Conditions**-tak toe (`transition == Recovered`), zoek het bijbehorende incident (match op het `id` dat je hebt gestuurd), en verplaats het naar je opgeloste status met **Update Incident**.
+`$ALERT_TRANSITION` is `Recovered` wanneer een monitor zich herstelt. Voeg een tweede **Voorwaarden**-tak toe (`transition == Recovered`), zoek het bijbehorende incident (match op het `id` dat je hebt gestuurd), en verplaats het naar je opgeloste status met **Update Incident**.
 
 ## Probleemoplossing
 
-- **Er verschijnt geen run** — bevestig dat het bericht van de monitor `@webhook-oneuptime` bevat en dat de workflow **Enabled** is.
-- **Velden zijn leeg** — Datadog vervangt alleen sjabloonvariabelen die van toepassing zijn op het event. Bekijk de triggeruitvoer in het tabblad **Logs** en pas je webhook-payload aan.
+- **Er verschijnt geen run** — bevestig dat het bericht van de monitor `@webhook-oneuptime` bevat en dat de workflow **Ingeschakeld** is.
+- **Velden zijn leeg** — Datadog vervangt alleen sjabloonvariabelen die van toepassing zijn op het event. Bekijk de triggeruitvoer in het tabblad **Logboeken** en pas je webhook-payload aan.
 - **Dubbele incidenten** — een monitor die opnieuw alertt (renotify) stuurt meerdere `Triggered`-events; dedupliceer met een **Find Incident**-controle op het `id` vóór het aanmaken.
 
 ## Waar verder lezen

@@ -16,20 +16,20 @@ SSO 整合提供下列好處：
 1. **前往專案設定**
 
    - 進入您的 OneUptime 專案
-   - 導覽至 **Project Settings** > **安全性** > **SSO**
+   - 導覽至 **專案設定** > **安全性** > **SSO**
 
 2. **建立 SSO 設定**
 
    - 點選 **Create SSO**
-   - 為此 SSO 設定輸入一個 **Name**（例如「Keycloak SAML」或「Okta SAML」）
-   - 輸入來自您身分提供者的 **Sign On URL**
-   - 輸入來自您身分提供者的 **Issuer**（Entity ID）
-   - 貼上來自您身分提供者的 **Public Certificate**
+   - 為此 SSO 設定輸入一個 **名稱**（例如「Keycloak SAML」或「Okta SAML」）
+   - 輸入來自您身分提供者的 **登入 URL**
+   - 輸入來自您身分提供者的 **簽發者**（Entity ID）
+   - 貼上來自您身分提供者的 **公開憑證**
    - 選擇 **Signature Algorithm**（例如 `RSA-SHA-256`）
    - 選擇 **Digest Algorithm**（例如 `SHA256`）
 
 3. **取得 OneUptime SSO 中繼資料**
-   - 儲存後，點選 **View SSO Config** 按鈕
+   - 儲存後，點選 **檢視 SSO 設定** 按鈕
    - 複製 **Identifier (Entity ID)** — 在您的 IdP 設定中會用到此項
    - 複製 **Reply URL (Assertion Consumer Service URL)** — 在您的 IdP 設定中會用到此項
 
@@ -46,12 +46,12 @@ Keycloak 是熱門的開源身分與存取管理解決方案。請依照下列�
 ### 步驟 1：設定 OneUptime SSO
 
 1. 登入您的 OneUptime 儀表板
-2. 導覽至 **Project Settings** > **安全性** > **SSO**
+2. 導覽至 **專案設定** > **安全性** > **SSO**
 3. 點選 **Create SSO** 並填寫下列內容：
-   - **Name**：具描述性的名稱（例如 `my-project-oneuptime`）
-   - **Sign On URL**：`https://<your-keycloak-domain>/auth/realms/<your-realm>/protocol/saml`
-   - **Issuer**：`https://<your-keycloak-domain>/auth/realms/<your-realm>`
-   - **Certificate**：請參閱下方的[步驟 2](#步驟-2取得-keycloak-憑證)
+   - **名稱**：具描述性的名稱（例如 `my-project-oneuptime`）
+   - **登入 URL**：`https://<your-keycloak-domain>/auth/realms/<your-realm>/protocol/saml`
+   - **簽發者**：`https://<your-keycloak-domain>/auth/realms/<your-realm>`
+   - **憑證**：請參閱下方的[步驟 2](#步驟-2取得-keycloak-憑證)
    - **Signature Algorithm**：`RSA-SHA-256`
    - **Digest Algorithm**：`SHA256`
 4. 儲存此設定
@@ -74,7 +74,7 @@ MIICnzCCAYcCBgFyPZ8QFzANBgkqhkiG.......
 1. 在 Keycloak 中，導覽至您 realm 內的 **Clients**
 2. 建立新的用戶端，或編輯既有的用戶端
 3. 將 **Client Protocol** 設為 `saml`
-4. 將 **Client ID** 設為 OneUptime **View SSO Config** 中的 **Identifier (Entity ID)** 值
+4. 將 **Client ID** 設為 OneUptime **檢視 SSO 設定** 中的 **Identifier (Entity ID)** 值
 5. 將 **Valid Redirect URIs** 設為您的 OneUptime URL
 6. 將 **Root URL** 設為您的 OneUptime 基礎 URL
 7. 將 OneUptime 的 **Reply URL (Assertion Consumer Service URL)** 貼入 **Assertion Consumer Service POST Binding URL** 欄位
@@ -113,15 +113,15 @@ Microsoft Entra ID 是 Microsoft 以雲端為基礎的身分與存取管理服�
 ### 步驟 1：設定 OneUptime SSO
 
 1. 登入您的 OneUptime 儀表板
-2. 導覽至 **Project Settings** > **安全性** > **SSO**
+2. 導覽至 **專案設定** > **安全性** > **SSO**
 3. 點選 **Create SSO** 並填寫下列內容：
-   - **Name**：具描述性的名稱（例如 `Azure AD SAML`）
-   - **Sign On URL**：您將在[步驟 3](#步驟-3在-entra-id-中設定-saml-sso) 從 Entra ID 取得此項
-   - **Issuer**：您將在[步驟 3](#步驟-3在-entra-id-中設定-saml-sso) 從 Entra ID 取得此項
-   - **Certificate**：您將在[步驟 3](#步驟-3在-entra-id-中設定-saml-sso) 從 Entra ID 取得此項
+   - **名稱**：具描述性的名稱（例如 `Azure AD SAML`）
+   - **登入 URL**：您將在[步驟 3](#步驟-3在-entra-id-中設定-saml-sso) 從 Entra ID 取得此項
+   - **簽發者**：您將在[步驟 3](#步驟-3在-entra-id-中設定-saml-sso) 從 Entra ID 取得此項
+   - **憑證**：您將在[步驟 3](#步驟-3在-entra-id-中設定-saml-sso) 從 Entra ID 取得此項
    - **Signature Algorithm**：`RSA-SHA-256`
    - **Digest Algorithm**：`SHA256`
-4. 點選 **View SSO Config** 並複製 **Identifier (Entity ID)** 與 **Reply URL (Assertion Consumer Service URL)** — 您在 Entra ID 中會需要這些項目
+4. 點選 **檢視 SSO 設定** 並複製 **Identifier (Entity ID)** 與 **Reply URL (Assertion Consumer Service URL)** — 您在 Entra ID 中會需要這些項目
 
 ### 步驟 2：在 Microsoft Entra ID 中建立企業應用程式
 
@@ -138,15 +138,15 @@ Microsoft Entra ID 是 Microsoft 以雲端為基礎的身分與存取管理服�
 1. 在您新建立的企業應用程式中，前往 **Single sign-on**
 2. 選擇 **SAML** 作為單一登入方法
 3. 在 **Basic SAML Configuration** 中，點選 **Edit** 並設定：
-   - **Identifier (Entity ID)**：貼上 OneUptime **View SSO Config** 中的 **Identifier (Entity ID)**
-   - **Reply URL (Assertion Consumer Service URL)**：貼上 OneUptime **View SSO Config** 中的 **Reply URL**
+   - **Identifier (Entity ID)**：貼上 OneUptime **檢視 SSO 設定** 中的 **Identifier (Entity ID)**
+   - **Reply URL (Assertion Consumer Service URL)**：貼上 OneUptime **檢視 SSO 設定** 中的 **Reply URL**
 4. 點選 **Save**
 5. 在 **SAML Certificates** 區段中：
    - 下載 **Certificate (Base64)**
    - 在文字編輯器中開啟下載的憑證檔案並複製其內容
 6. 在 **Set up OneUptime** 區段中，複製：
-   - **Login URL** — 將此貼為 OneUptime 中的 **Sign On URL**
-   - **Azure AD Identifier** — 將此貼為 OneUptime 中的 **Issuer**
+   - **Login URL** — 將此貼為 OneUptime 中的 **登入 URL**
+   - **Azure AD Identifier** — 將此貼為 OneUptime 中的 **簽發者**
 7. 返回 OneUptime 並貼上憑證與 URL，然後儲存
 
 ### 步驟 4：設定使用者屬性與宣告
@@ -198,15 +198,15 @@ Okta 是廣為使用的身分平台，提供強大的 SAML SSO 能力。請依�
 ### 步驟 1：設定 OneUptime SSO
 
 1. 登入您的 OneUptime 儀表板
-2. 導覽至 **Project Settings** > **安全性** > **SSO**
+2. 導覽至 **專案設定** > **安全性** > **SSO**
 3. 點選 **Create SSO** 並填寫下列內容：
-   - **Name**：具描述性的名稱（例如 `Okta SAML`）
-   - **Sign On URL**：您將在[步驟 3](#步驟-3將-okta-saml-中繼資料複製到-oneuptime) 從 Okta 取得此項
-   - **Issuer**：您將在[步驟 3](#步驟-3將-okta-saml-中繼資料複製到-oneuptime) 從 Okta 取得此項
-   - **Certificate**：您將在[步驟 3](#步驟-3將-okta-saml-中繼資料複製到-oneuptime) 從 Okta 取得此項
+   - **名稱**：具描述性的名稱（例如 `Okta SAML`）
+   - **登入 URL**：您將在[步驟 3](#步驟-3將-okta-saml-中繼資料複製到-oneuptime) 從 Okta 取得此項
+   - **簽發者**：您將在[步驟 3](#步驟-3將-okta-saml-中繼資料複製到-oneuptime) 從 Okta 取得此項
+   - **憑證**：您將在[步驟 3](#步驟-3將-okta-saml-中繼資料複製到-oneuptime) 從 Okta 取得此項
    - **Signature Algorithm**：`RSA-SHA-256`
    - **Digest Algorithm**：`SHA256`
-4. 點選 **View SSO Config** 並複製 **Identifier (Entity ID)** 與 **Reply URL (Assertion Consumer Service URL)** — 您在 Okta 中會需要這些項目
+4. 點選 **檢視 SSO 設定** 並複製 **Identifier (Entity ID)** 與 **Reply URL (Assertion Consumer Service URL)** — 您在 Okta 中會需要這些項目
 
 ### 步驟 2：在 Okta 中建立 SAML 應用程式
 
@@ -216,8 +216,8 @@ Okta 是廣為使用的身分平台，提供強大的 SAML SSO 能力。請依�
 4. 選擇 **SAML 2.0** 並點選 **Next**
 5. 在 **App name** 輸入「OneUptime」並點選 **Next**
 6. 在 **SAML Settings** 區段中，設定：
-   - **Single sign-on URL**：貼上 OneUptime **View SSO Config** 中的 **Reply URL (Assertion Consumer Service URL)**
-   - **Audience URI (SP Entity ID)**：貼上 OneUptime **View SSO Config** 中的 **Identifier (Entity ID)**
+   - **Single sign-on URL**：貼上 OneUptime **檢視 SSO 設定** 中的 **Reply URL (Assertion Consumer Service URL)**
+   - **Audience URI (SP Entity ID)**：貼上 OneUptime **檢視 SSO 設定** 中的 **Identifier (Entity ID)**
    - **Name ID format**：選擇 `EmailAddress`
    - **Application username**：選擇 `Email`
 7. 點選 **Next**，接著選擇 **I'm an Okta customer adding an internal app** 並點選 **Finish**
@@ -227,8 +227,8 @@ Okta 是廣為使用的身分平台，提供強大的 SAML SSO 能力。請依�
 1. 在您的 Okta 應用程式中，前往 **Sign On** 分頁
 2. 在 **SAML Signing Certificates** 區段中，找出使用中的憑證並點選 **Actions** > **View IdP metadata**
 3. 從中繼資料 XML 中，或從 **Sign On** 分頁的詳細資訊中：
-   - 複製 **Sign On URL**（也稱為 **Identity Provider Single Sign-On URL**）— 將此貼為 OneUptime 中的 **Sign On URL**
-   - 複製 **Issuer**（也稱為 **Identity Provider Issuer**）— 將此貼為 OneUptime 中的 **Issuer**
+   - 複製 **登入 URL**（也稱為 **Identity Provider Single Sign-On URL**）— 將此貼為 OneUptime 中的 **登入 URL**
+   - 複製 **簽發者**（也稱為 **Identity Provider Issuer**）— 將此貼為 OneUptime 中的 **簽發者**
 4. 下載簽署憑證：
    - 在 **SAML Signing Certificates** 區段中，針對使用中的憑證點選 **Actions** > **Download certificate**
    - 在文字編輯器中開啟下載的 `.cert` 檔案並複製其內容
@@ -276,17 +276,17 @@ Okta 是廣為使用的身分平台，提供強大的 SAML SSO 能力。請依�
 
 OneUptime 的 SSO 實作採用 SAML 2.0 協定，應可與任何相容的身分提供者搭配運作。一般設定步驟如下：
 
-1. 在 OneUptime 中建立一個 SSO 設定，並從 **View SSO Config** 按鈕記下 **Identifier (Entity ID)** 與 **Reply URL (Assertion Consumer Service URL)**
+1. 在 OneUptime 中建立一個 SSO 設定，並從 **檢視 SSO 設定** 按鈕記下 **Identifier (Entity ID)** 與 **Reply URL (Assertion Consumer Service URL)**
 2. 在您的身分提供者中，使用下列項目建立一個 SAML 應用程式：
    - **Assertion Consumer Service URL / Reply URL**：來自 OneUptime SSO 設定
    - **Entity ID / Audience URI**：來自 OneUptime SSO 設定
    - **Name ID Format**：電子郵件地址
 3. 從您的身分提供者中，將下列項目複製到 OneUptime：
-   - **Sign On URL**（SSO 端點）
-   - **Issuer**（IdP 的 Entity ID）
-   - **Public Certificate**（X.509 簽署憑證）
+   - **登入 URL**（SSO 端點）
+   - **簽發者**（IdP 的 Entity ID）
+   - **公開憑證**（X.509 簽署憑證）
 4. 將 **Signature Algorithm** 設為 `RSA-SHA-256`，並將 **Digest Algorithm** 設為 `SHA256`
 
 ## 關於 SSO 與角色的注意事項
 
-OneUptime 目前不支援從您的身分提供者對應 SAML 角色。以角色為基礎的存取必須在 OneUptime 的 **Project Settings** > **SSO** 設定中個別設定，您可以在該處為 SSO 使用者指派預設角色。
+OneUptime 目前不支援從您的身分提供者對應 SAML 角色。以角色為基礎的存取必須在 OneUptime 的 **專案設定** > **SSO** 設定中個別設定，您可以在該處為 SSO 使用者指派預設角色。

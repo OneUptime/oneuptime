@@ -14,8 +14,8 @@ Inkomend verzoek-monitors bieden een unieke webhook-URL die uw diensten op een s
 
 ## Een Inkomend verzoek-monitor aanmaken
 
-1. Ga naar **Monitors** in het OneUptime-dashboard
-2. Klik op **Monitor aanmaken**
+1. Ga naar **Monitoren** in het OneUptime-dashboard
+2. Klik op **Monitor maken**
 3. Selecteer **Inkomend verzoek** als het monitortype
 4. Er wordt een **Geheime sleutel** en heartbeat-URL gegenereerd voor deze monitor
 5. Configureer uw dienst om verzoeken naar de heartbeat-URL te sturen

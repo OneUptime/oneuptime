@@ -14,9 +14,9 @@
 
 ## 建立日誌監控器
 
-1. 前往 OneUptime Dashboard 中的 **Monitors**
-2. 點選 **Create Monitor**
-3. 選擇 **Logs** 作為監控器類型
+1. 前往 OneUptime Dashboard 中的 **監測**
+2. 點選 **建立監測器**
+3. 選擇 **日誌** 作為監控器類型
 4. 選取要監控的遙測服務
 5. 視需要設定日誌篩選條件與條件
 
@@ -69,26 +69,26 @@
 #### 在 60 秒內出現超過 100 筆錯誤日誌時發出警示
 
 - **Severity Levels**：ERROR
-- **Time Window**：60 秒
+- **時間範圍**：60 秒
 - **Check On**：Log Count
-- **Filter Type**：Greater Than
-- **Value**：100
+- **篩選器類型**：Greater Than
+- **值**：100
 
 #### 在出現任何嚴重（fatal）日誌時發出警示
 
 - **Severity Levels**：FATAL
-- **Time Window**：60 秒
+- **時間範圍**：60 秒
 - **Check On**：Log Count
-- **Filter Type**：Greater Than
-- **Value**：0
+- **篩選器類型**：Greater Than
+- **值**：0
 
 #### 監控包含特定錯誤訊息的日誌
 
 - **Body**：`database connection timeout`
-- **Time Window**：300 秒
+- **時間範圍**：300 秒
 - **Check On**：Log Count
-- **Filter Type**：Greater Than
-- **Value**：5
+- **篩選器類型**：Greater Than
+- **值**：5
 
 ## 設定需求
 

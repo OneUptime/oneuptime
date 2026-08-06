@@ -54,7 +54,7 @@ service.name = '{{service}}'
 
 Når nedtrekkslisten er satt til `checkout`, filtrerer diagrammet til checkout-tjenesten. Når seeren bytter til `payments`, rendres diagrammet på nytt for payments.
 
-For **Telemetri-attributt**-variabler vet OneUptime hvilket attributt variabelen mapper til og bruker filteret på hver widget som bruker det samme attributtet — du trenger ikke redigere hver widget for hånd.
+For **Telemetry Attribute**-variabler vet OneUptime hvilket attributt variabelen mapper til og bruker filteret på hver widget som bruker det samme attributtet — du trenger ikke redigere hver widget for hånd.
 
 ## Tidsperiode
 
@@ -78,9 +78,9 @@ Auto-oppdatering er bra for en vegg-TV eller en live hendelsesvisning. La det v�
 
 Et tjeneste-malet dashbord har vanligvis:
 
-1. En `service`-variabel av typen **Telemetri-attributt** for `service.name`. Standard: den tjenesten du følger mest med på. Fler-valg av (slik at diagrammer alltid viser én om gangen).
+1. En `service`-variabel av typen **Telemetry Attribute** for `service.name`. Standard: den tjenesten du følger mest med på. Fler-valg av (slik at diagrammer alltid viser én om gangen).
 2. En `environment`-variabel av typen **Egendefinert liste**. Standard: `prod`.
-3. En `cluster`-variabel av typen **Telemetri-attributt** for `k8s.cluster.name`. Fler-valg på (slik at du kan sammenligne på tvers av klynger).
+3. En `cluster`-variabel av typen **Telemetry Attribute** for `k8s.cluster.name`. Fler-valg på (slik at du kan sammenligne på tvers av klynger).
 4. Widgets som refererer til disse variablene i filtrene sine.
 
 Resultatet: ett dashbord, hver tjeneste dekket, tre nedtrekkslister øverst.

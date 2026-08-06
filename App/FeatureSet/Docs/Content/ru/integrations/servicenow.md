@@ -24,11 +24,11 @@ Table API ServiceNow принимает **Basic auth**.
    printf '%s' 'integration_user:password' | base64
    ```
 
-2. В OneUptime перейдите в **Workflows → Global Variables → Create**, назовите переменную `SERVICENOW_AUTH`, вставьте строку base64 и включите **Is Secret**.
+2. В OneUptime перейдите в **Рабочие процессы → Глобальные переменные → Создать**, назовите переменную `SERVICENOW_AUTH`, вставьте строку base64 и включите **Is Secret**.
 
 ## Шаг 2 — Создайте рабочий процесс
 
-1. Откройте **Workflows → Create Workflow**, назовите его `Incidents → ServiceNow` и откройте **Builder**.
+1. Откройте **Рабочие процессы → Создать рабочий процесс**, назовите его `Incidents → ServiceNow` и откройте **Конструктор**.
 2. Добавьте триггер **Incident**, установив **On Create**. Переименуйте его в `Incident`.
 3. Добавьте блок **API**, соединённый с триггером:
 
@@ -60,7 +60,7 @@ Table API ServiceNow принимает **Basic auth**.
 
 ## Шаг 3 — Разрешение при разрешении в OneUptime (опционально)
 
-1. Создайте **второй** рабочий процесс с триггером **Incident → On Update** и блоком **Conditions**, проверяющим, что инцидент разрешён.
+1. Создайте **второй** рабочий процесс с триггером **Incident → On Update** и блоком **Условия**, проверяющим, что инцидент разрешён.
 2. Чтобы обновить нужную запись ServiceNow, вам потребуется её `sys_id`. Либо сохраните его в инциденте OneUptime на Шаге 2 (прочитайте `{{CreateRecord.response-body.result.sys_id}}` и запишите в метку через **Update Incident**), либо найдите запись через `GET` на `/api/now/table/incident?sysparm_query=correlation_id=oneuptime-{{Incident._id}}`.
 3. Добавьте блок **API**: **Method** `PATCH`, **URL** `https://your-instance.service-now.com/api/now/table/incident/<sys_id>`, тело `{ "state": "6", "close_code": "Resolved by monitoring", "close_notes": "Resolved in OneUptime" }` (`state` `6` = Resolved в стандартном ITIL-процессе).
 

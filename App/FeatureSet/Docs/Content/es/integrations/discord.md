@@ -15,18 +15,18 @@ OneUptime Incident → On Create  ──►  Discord component  ──►  messa
 
 ## Paso 2 — Guardar la URL del webhook (opcional pero recomendado)
 
-1. En OneUptime, ve a **Workflows → Global Variables → Create**.
+1. En OneUptime, ve a **Flujos de trabajo → Variables Globales → Crear**.
 2. Nómbrala `DISCORD_WEBHOOK_URL`, pega la URL y activa **Is Secret**.
 
 Guardarla en una variable te permite reutilizarla en varios workflows y rotarla en un solo lugar.
 
 ## Paso 3 — Construir el workflow
 
-1. Abre **Workflows → Create Workflow**, nómbralo `Incidents → Discord` y abre el **Builder**.
+1. Abre **Flujos de trabajo → Crear flujo de trabajo**, nómbralo `Incidents → Discord` y abre el **Constructor**.
 2. Añade un disparador **Incident** configurado en **On Create**. Renómbralo `Incident`.
 3. Añade un componente **Discord** conectado al disparador:
-   - **Webhook URL**: `{{variable.DISCORD_WEBHOOK_URL}}` (o pégala directamente).
-   - **Message**: `🔴 New incident: {{Incident.title}}\n{{Incident.description}}`
+   - **URL del webhook**: `{{variable.DISCORD_WEBHOOK_URL}}` (o pégala directamente).
+   - **Mensaje**: `🔴 New incident: {{Incident.title}}\n{{Incident.description}}`
 4. **Guarda**, habilita y crea un incidente de prueba. El mensaje aparece en tu canal.
 
 ## Alternativa: el componente API
@@ -42,7 +42,7 @@ Esto es útil si quieres usar los [embeds](https://discord.com/developers/docs/r
 
 ## Consejos
 
-- Usa **Conditions** para publicar solo en ciertas gravedades — ramifica sobre `{{Incident.incidentSeverity.name}}` antes del bloque Discord.
+- Usa **Condiciones** para publicar solo en ciertas gravedades — ramifica sobre `{{Incident.incidentSeverity.name}}` antes del bloque Discord.
 - Añade más workflows sobre **Incident → On Update** para publicar reconocimientos y resoluciones en el mismo canal.
 
 ## Dónde seguir leyendo

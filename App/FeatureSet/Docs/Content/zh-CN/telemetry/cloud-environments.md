@@ -70,9 +70,9 @@ service:
 
 环境概览将显示：
 
-- 每个运行中任务/实例的 **CPU** 和 **内存（Memory）**（来自 `container.cpu.utilization` / `container.memory.usage`），以及一份 **按 CPU 排序的 Top 实例** 列表。
+- 每个运行中任务/实例的 **CPU** 和 **内存（Memory）**（来自 `container.cpu.utilization` / `container.memory.usage`），以及一份 **按 CPU 排名的实例** 列表。
 - **实例（Instances）**—— 任务的实时计数。
-- 从你的追踪数据派生的 **请求数（Requests）** 和趋势图表。
+- 从你的追踪数据派生的 **请求（Requests）** 和趋势图表。
 - 完整的 **日志（Logs）**、**追踪（Traces）**、**指标（Metrics）** 和 **实例（Instances）** 标签页。
 
 同一批工作负载的按服务细分视图可在 **服务（Services）** 下查看。

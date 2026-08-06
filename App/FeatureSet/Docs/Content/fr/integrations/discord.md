@@ -15,14 +15,14 @@ OneUptime Incident → On Create  ──►  Discord component  ──►  messa
 
 ## Étape 2 — Stocker l'URL du webhook (optionnel mais recommandé)
 
-1. Dans OneUptime, allez dans **Workflows → Global Variables → Create**.
+1. Dans OneUptime, allez dans **Flux de travail → Variables globales → Créer**.
 2. Nommez-la `DISCORD_WEBHOOK_URL`, collez l'URL, et activez **Is Secret**.
 
 La stocker dans une variable vous permet de la réutiliser dans plusieurs workflows et de la faire tourner en un seul endroit.
 
 ## Étape 3 — Créer le workflow
 
-1. Ouvrez **Workflows → Create Workflow**, nommez-le `Incidents → Discord`, et ouvrez le **Builder**.
+1. Ouvrez **Flux de travail → Créer un flux de travail**, nommez-le `Incidents → Discord`, et ouvrez le **Constructeur**.
 2. Ajoutez un déclencheur **Incident** sur **On Create**. Renommez-le `Incident`.
 3. Ajoutez un composant **Discord** connecté au déclencheur :
    - **Webhook URL** : `{{variable.DISCORD_WEBHOOK_URL}}` (ou collez-la directement).

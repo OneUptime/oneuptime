@@ -14,7 +14,7 @@ Servermonitorer bruger en infrastrukturagent installeret på dine servere til at
 
 ## Oprettelse af en Servermonitor
 
-1. Gå til **Monitorer** i OneUptime-dashboardet
+1. Gå til **Overvågninger** i OneUptime-dashboardet
 2. Klik på **Opret monitor**
 3. Vælg **Server / VM** som monitortype
 4. En **Hemmelig nøgle** genereres til denne monitor – du skal bruge den til at konfigurere agenten

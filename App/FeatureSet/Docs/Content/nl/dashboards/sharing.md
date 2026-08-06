@@ -10,11 +10,11 @@ Binnen het project regelen eigenaren en labels wie wat ziet — zie [Configurati
 
 ## Publieke dashboards
 
-Onder **Dashboard → Settings** zet je **Public Dashboard** aan. Het dashboard heeft nu een tweede URL die geen login vereist. Deel hem met leveranciers, partners, klanten of plak hem in een openbare README.
+Onder **Dashboard → Instellingen** zet je **Public Dashboard** aan. Het dashboard heeft nu een tweede URL die geen login vereist. Deel hem met leveranciers, partners, klanten of plak hem in een openbare README.
 
 Een publiek dashboard:
 
-- Opent altijd in **View**-modus. Publieke bezoekers kunnen niet bewerken of het widget-palet zien.
+- Opent altijd in **Bekijken**-modus. Publieke bezoekers kunnen niet bewerken of het widget-palet zien.
 - Bevat de variabelen die je hebt toegevoegd. Bezoekers kiezen uit dezelfde dropdowns die je team gebruikt.
 - Gebruikt de **branding** die je in Settings hebt ingesteld — paginatitel, beschrijving, logo, favicon.
 
@@ -25,7 +25,7 @@ Behandel het inschakelen van een publiek dashboard als het publiceren van een we
 Om een wachtwoord op een publiek dashboard te zetten:
 
 1. Zet **Public Dashboard** aan.
-2. Zet **Master Password** aan.
+2. Zet **Hoofdwachtwoord** aan.
 3. Stel het wachtwoord in.
 
 Bezoekers zien een wachtwoordprompt voordat het dashboard verschijnt. Het wachtwoord wordt opgeslagen als een hash — we zien het echte wachtwoord nooit.
@@ -39,7 +39,7 @@ Voor strengere afscherming (aparte accounts per kijker, een audit trail van wie 
 
 ## IP-allowlist
 
-Op het **Scale**-plan kun je een publiek dashboard beperken tot een lijst met IP-adressen of -ranges. Configureer dit onder **Dashboard → Settings → IP Whitelist**.
+Op het **Scale**-plan kun je een publiek dashboard beperken tot een lijst met IP-adressen of -ranges. Configureer dit onder **Dashboard → Instellingen → IP-whitelist**.
 
 Gebruik dit wanneer:
 
@@ -54,7 +54,7 @@ Verzoeken vanaf elk ander IP worden afgewezen.
 Standaard wordt een publiek dashboard geserveerd op `oneuptime.com`. Om hem te hosten op je eigen subdomein zoals `dashboard.acme.com`:
 
 1. Voeg een CNAME-record toe op je DNS dat het subdomein laat verwijzen naar OneUptime's target.
-2. Voeg het domein toe onder **Dashboard → Settings → Custom Domains**.
+2. Voeg het domein toe onder **Dashboard → Instellingen → Aangepaste domeinen**.
 3. Verifieer het. OneUptime controleert het DNS-record voor je.
 4. Eenmaal geverifieerd is het dashboard bereikbaar op zowel je custom domain als de originele URL.
 
@@ -68,7 +68,7 @@ Je kunt meer dan één custom domain aan één dashboard koppelen als je dezelfd
 
 ## Branding
 
-Onder **Dashboard → Settings** kun je configureren:
+Onder **Dashboard → Instellingen** kun je configureren:
 
 - **Page title** — wat er in de browsertab en bovenaan de pagina verschijnt.
 - **Page description** — de beschrijving die zoekmachines en social previews gebruiken.

@@ -29,20 +29,20 @@ Veja [Widgets](/docs/dashboards/widgets) para a lista completa e o que cada um m
 | **Widget**             | Um bloco na página — um gráfico, um número, uma lista, um parágrafo.                                               |
 | **Variável**           | Um dropdown no topo que filtra todos os widgets de uma vez (cluster, serviço, cliente, ambiente).                  |
 | **Intervalo de tempo** | A janela de tempo usada por todos os gráficos e números. Defina uma vez no topo da página.                         |
-| **Atualização**        | Com que frequência os widgets reconsultam os dados. Desligado, a cada poucos segundos, a cada poucos minutos.      |
-| **Modo**               | Pode ser **Edição** (arrastar widgets pela página) ou **Visualização** (somente leitura, como os visitantes veem). |
+| **Atualizar**          | Com que frequência os widgets reconsultam os dados. Desligado, a cada poucos segundos, a cada poucos minutos.      |
+| **Modo**               | Pode ser **Editar** (arrastar widgets pela página) ou **Visualizar** (somente leitura, como os visitantes veem).   |
 
 ## Onde encontrar os painéis
 
-Abra **Dashboards** na navegação à esquerda.
+Abra **Painéis** na navegação à esquerda.
 
 | Página                     | O que você faz nela                                                                     |
 | -------------------------- | --------------------------------------------------------------------------------------- |
-| **Dashboards**             | Sua lista de painéis. Crie um novo, busque ou filtre por etiqueta.                      |
-| **Painel → Visualizar**    | O canvas. Alterne entre **Edição** e **Visualização** no cabeçalho.                     |
-| **Painel → Visão Geral**   | Descrição, donos e etiquetas.                                                           |
+| **Painéis**                | Sua lista de painéis. Crie um novo, busque ou filtre por etiqueta.                      |
+| **Painel → Visualizar**    | O canvas. Alterne entre **Editar** e **Visualizar** no cabeçalho.                       |
+| **Painel → Visão geral**   | Descrição, donos e etiquetas.                                                           |
 | **Painel → Configurações** | Compartilhamento público, senha, lista de IPs permitidos, domínio personalizado, marca. |
-| **Painel → Donos**         | Usuários e equipes com acesso explícito.                                                |
+| **Painel → Proprietários** | Usuários e equipes com acesso explícito.                                                |
 | **Painel → Excluir**       | Remove o painel.                                                                        |
 
 ## Construindo um painel
@@ -62,16 +62,16 @@ Objetivo: uma página de plantão para o serviço de checkout com latência, tax
 2. Adicione uma variável `service`. Defina o padrão como `checkout`.
 3. Adicione um widget de **Gráfico** com a latência P95, filtrado pela variável `service`.
 4. Ao lado, adicione um widget de **Valor** para taxa de erro, com aviso em 1% e crítico em 5%.
-5. Abaixo, adicione um widget de **Lista de Incidentes** para incidentes com a etiqueta `checkout`.
-6. Embaixo, um widget de **Fluxo de Logs** mostrando logs do mesmo serviço.
+5. Abaixo, adicione um widget de **Lista de incidentes** para incidentes com a etiqueta `checkout`.
+6. Embaixo, um widget de **Fluxo de registros** mostrando logs do mesmo serviço.
 7. Salve. Mude o dropdown para `payments` — o mesmo painel agora mostra o serviço de pagamentos.
 
 ## Como os painéis se encaixam no restante do OneUptime
 
 - **Monitores e telemetria** são as fontes de dados. Toda métrica, log e trace que você coleta pode ser consultada em um widget.
-- **Incidentes e alertas** aparecem nos widgets **Lista de Incidentes** e **Lista de Alertas**. Os painéis são somente leitura para esses — crie e atualize-os em outros lugares.
+- **Incidentes e alertas** aparecem nos widgets **Lista de incidentes** e **Lista de alertas**. Os painéis são somente leitura para esses — crie e atualize-os em outros lugares.
 - **Páginas de status** são para comunicação voltada ao cliente ("o sistema está no ar?"). Os painéis são para olhar como o sistema está se comportando em detalhes. Os dois funcionam juntos, não se substituem.
-- **Workflows** são como o OneUptime age. Painéis são como você lê o que está acontecendo.
+- **Fluxos de trabalho** são como o OneUptime age. Painéis são como você lê o que está acontecendo.
 
 ## O que ler em seguida
 

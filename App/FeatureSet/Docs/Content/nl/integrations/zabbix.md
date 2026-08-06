@@ -25,17 +25,17 @@ Zabbix trigger fires  ──►  Webhook media type  ──►  OneUptime Workfl
 
 Doe dit eerst, want je hebt de webhook-URL nodig die het genereert.
 
-1. Open **Workflows → Create Workflow**. Geef het de naam `Zabbix → Incidents` en open het tabblad **Builder**.
+1. Open **Workflows → Workflow maken**. Geef het de naam `Zabbix → Incidents` en open het tabblad **Bouwer**.
 2. Sleep een **Webhook**-trigger op het canvas. Klik erop en **kopieer de unieke URL** die verschijnt. Bewaar deze goed — iedereen die hem heeft kan de workflow starten. Hernoem het blok naar `Zabbix` zodat variabelen er netjes uitzien.
-3. Sleep een **Conditions**-blok op het canvas en verbind de uitvoer van de trigger ermee. Configureer:
+3. Sleep een **Voorwaarden**-blok op het canvas en verbind de uitvoer van de trigger ermee. Configureer:
    - **Left value**: `{{Zabbix.Request Body.status}}`
    - **Operator**: `==`
    - **Right value**: `1` _(Zabbix stuurt `1` voor een probleem, `0` voor herstel)_
-4. Sleep een **Create Incident**-blok en verbind het met de **Yes**-uitvoer van het Conditions-blok. Vul in:
-   - **Title**: `Zabbix: {{Zabbix.Request Body.name}}`
-   - **Description**: `Host: {{Zabbix.Request Body.host}}\nSeverity: {{Zabbix.Request Body.severity}}\nZabbix event: {{Zabbix.Request Body.event_id}}`
-   - **Severity**: kies de gewenste OneUptime-incidentseverity (je kunt dit later verfijnen met meer Conditions-takken die Zabbix-severities mappen).
-5. Sla op. Laat **Enabled** voorlopig _uit_ — je zet het aan na een test.
+4. Sleep een **Incident maken**-blok en verbind het met de **Ja**-uitvoer van het Voorwaarden-blok. Vul in:
+   - **Titel**: `Zabbix: {{Zabbix.Request Body.name}}`
+   - **Beschrijving**: `Host: {{Zabbix.Request Body.host}}\nSeverity: {{Zabbix.Request Body.severity}}\nZabbix event: {{Zabbix.Request Body.event_id}}`
+   - **Ernst**: kies de gewenste OneUptime-incidentseverity (je kunt dit later verfijnen met meer Conditions-takken die Zabbix-severities mappen).
+5. Sla op. Laat **Ingeschakeld** voorlopig _uit_ — je zet het aan na een test.
 
 > **Tip:** Door de Zabbix `event_id` in de beschrijving (of een incidentlabel) te zetten, kun je dit incident later terugvinden als je het automatisch wilt oplossen bij herstel. Zie [Automatisch oplossen](#automatisch-oplossen-optioneel).
 
@@ -114,10 +114,10 @@ Zabbix stuurt notificaties _naar een gebruiker_. Maak een aparte aan zodat de in
 
 ## Deel 3 — Test het
 
-1. Zet in de OneUptime-workflow **Enabled** aan.
+1. Zet in de OneUptime-workflow **Ingeschakeld** aan.
 2. Trigger in Zabbix een testprobleem — verlaag bijvoorbeeld tijdelijk een triggerdrempel, of gebruik een testitem dat naar een probleemstatus omslaat.
-3. Open het tabblad **Logs** van je workflow. Je ziet een run met de Zabbix-payload, het Conditions-blok dat het **Yes**-pad neemt, en het incident dat wordt aangemaakt.
-4. Controleer **Incidents** in OneUptime — je Zabbix-probleem is nu een incident.
+3. Open het tabblad **Logboeken** van je workflow. Je ziet een run met de Zabbix-payload, het Voorwaarden-blok dat het **Ja**-pad neemt, en het incident dat wordt aangemaakt.
+4. Controleer **Incidenten** in OneUptime — je Zabbix-probleem is nu een incident.
 
 Als er niets binnenkomt, zie [Probleemoplossing](#probleemoplossing).
 
@@ -126,21 +126,21 @@ Als er niets binnenkomt, zie [Probleemoplossing](#probleemoplossing).
 De bovenstaande basisworkflow _opent_ incidenten. Om ze ook te _sluiten_ wanneer Zabbix herstelt:
 
 1. Zorg dat je Zabbix-action **Recovery operations** heeft geconfigureerd (Stap 3 hierboven) zodat herstelgebeurtenissen ook worden verstuurd. Bij herstel komt `status` binnen als `0`.
-2. Voeg in de workflow een tweede **Conditions**-tak toe: links `{{Zabbix.Request Body.status}}`, operator `==`, rechts `0`.
-3. Voeg vanuit de **Yes**-uitvoer een **Find Incident**-blok toe dat het eerder aangemaakte open incident opzoekt — match op de Zabbix `event_id` die je in de beschrijving of een label hebt opgeslagen.
+2. Voeg in de workflow een tweede **Voorwaarden**-tak toe: links `{{Zabbix.Request Body.status}}`, operator `==`, rechts `0`.
+3. Voeg vanuit de **Ja**-uitvoer een **Find Incident**-blok toe dat het eerder aangemaakte open incident opzoekt — match op de Zabbix `event_id` die je in de beschrijving of een label hebt opgeslagen.
 4. Verbind dat met een **Update Incident**-blok en zet het incident op je _opgeloste_ status.
 
 Omdat oplossing afhangt van hoe je incidentstatussen in je project modelleert, houd je het **aanmaken**-pad als betrouwbare kern en voeg je het oplossen-pad toe zodra je hebt bevestigd dat events correct doorstromen. Zie [Componenten → OneUptime-datacomponenten](/docs/workflows/components#oneuptime-data-components).
 
 ## Zabbix-severities mappen (optioneel)
 
-Zabbix-severities (`Not classified`, `Information`, `Warning`, `Average`, `High`, `Disaster`) komen binnen als `{{Zabbix.Request Body.severity}}`. Om ze te mappen naar OneUptime-incidentseverities voeg je **Conditions**-takken toe vóór **Create Incident** — routeer bijvoorbeeld `Disaster` en `High` naar een "Kritiek"-incident en al het andere naar "Groot". Bouw één **Create Incident**-blok per tak.
+Zabbix-severities (`Not classified`, `Information`, `Warning`, `Average`, `High`, `Disaster`) komen binnen als `{{Zabbix.Request Body.severity}}`. Om ze te mappen naar OneUptime-incidentseverities voeg je **Voorwaarden**-takken toe vóór **Incident maken** — routeer bijvoorbeeld `Disaster` en `High` naar een "Kritiek"-incident en al het andere naar "Groot". Bouw één **Incident maken**-blok per tak.
 
 ## Probleemoplossing
 
 **De workflow draait nooit.**
 
-- Bevestig dat de schakelaar **Enabled** van de workflow aanstaat.
+- Bevestig dat de schakelaar **Ingeschakeld** van de workflow aanstaat.
 - Bevestig vanaf de Zabbix-server dat hij de URL kan bereiken: `curl -i -X POST <workflow-url> -d '{}' -H 'Content-Type: application/json'`. Je zou een snelle bevestiging moeten krijgen.
 - Controleer **Reports → Action log** in Zabbix op afleverfouten.
 
@@ -151,7 +151,7 @@ Zabbix-severities (`Not classified`, `Information`, `Warning`, `Average`, `High`
 
 **Het incident is aangemaakt maar velden zijn leeg.**
 
-- Open het tabblad **Logs** van de workflow en bekijk de triggeruitvoer. Bevestig dat de veldnamen onder **Request Body** overeenkomen met wat je verwijst (`name`, `host`, `severity`, `status`, `event_id`).
+- Open het tabblad **Logboeken** van de workflow en bekijk de triggeruitvoer. Bevestig dat de veldnamen onder **Verzoeklichaam** overeenkomen met wat je verwijst (`name`, `host`, `severity`, `status`, `event_id`).
 - Een ontbrekend veld levert een lege string op in plaats van een fout — zie [Variabelen → Valkuilen](/docs/workflows/variables#gotchas).
 
 **Alles vuurt twee keer.**

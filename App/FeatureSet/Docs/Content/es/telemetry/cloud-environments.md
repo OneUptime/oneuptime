@@ -8,7 +8,7 @@ Las máquinas virtuales puras (EC2, Compute Engine, Azure VM) siguen siendo **Ho
 
 ## Requisitos previos
 
-- Un **Token de ingesta de telemetría de OneUptime** — crea uno desde _Configuración del proyecto → Telemetría y APM → Claves de Ingesta_.
+- Un **Token de ingesta de telemetría de OneUptime** — crea uno desde _Ajustes del proyecto → Telemetría y APM → Claves de Ingesta_.
 - Un OpenTelemetry Collector o SDK ejecutándose dentro de tus cargas de trabajo o junto a ellas.
 
 ## Cómo identifica OneUptime un entorno
@@ -70,9 +70,9 @@ Si alojas OneUptime por tu cuenta, usa `https://YOUR-ONEUPTIME-HOST/otlp`.
 
 El resumen del entorno muestra:
 
-- **CPU** y **Memoria** por tarea/instancia en ejecución (a partir de `container.cpu.utilization` / `container.memory.usage`), además de una lista de **Instancias principales por CPU**.
+- **CPU** y **Memoria** por tarea/instancia en ejecución (a partir de `container.cpu.utilization` / `container.memory.usage`), además de una lista de **Principales instancias por CPU**.
 - **Instancias** — un recuento en vivo de las tareas.
 - **Solicitudes** y gráficos de tendencia derivados de tus trazas.
-- Pestañas completas de **Logs**, **Trazas**, **Métricas** e **Instancias**.
+- Pestañas completas de **Registros**, **Trazas**, **Métricas** e **Instancias**.
 
 El desglose por servicio para las mismas cargas de trabajo está disponible bajo **Servicios**.

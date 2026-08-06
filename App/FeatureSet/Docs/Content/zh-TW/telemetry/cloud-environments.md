@@ -8,7 +8,7 @@ OneUptime 將受管理的雲端運算歸類為**雲端環境**——AWS ECS / Fa
 
 ## 先決條件
 
-- 一組 **OneUptime 遙測擷取權杖（Telemetry Ingestion Token）**——可從 _Project Settings → 遙測與 APM → 擷取金鑰_ 建立。
+- 一組 **OneUptime 遙測擷取權杖（Telemetry Ingestion Token）**——可從 _專案設定 → 遙測與 APM → 擷取金鑰_ 建立。
 - 在你的工作負載中或與其並行執行的 OpenTelemetry Collector 或 SDK。
 
 ## OneUptime 如何識別環境
@@ -70,9 +70,9 @@ service:
 
 環境概觀會顯示：
 
-- 每個執行中任務 / 執行個體的 **CPU** 與**記憶體**（來自 `container.cpu.utilization` / `container.memory.usage`），以及一份 **Top instances by CPU**（依 CPU 排序的執行個體）清單。
+- 每個執行中任務 / 執行個體的 **CPU** 與**記憶體**（來自 `container.cpu.utilization` / `container.memory.usage`），以及一份 **依 CPU 排序的前幾名執行個體**清單。
 - **執行個體（Instances）**——任務的即時計數。
 - 由你的追蹤資料衍生的**請求（Requests）**與趨勢圖表。
-- 完整的**記錄（Logs）**、**追蹤（Traces）**、**指標（Metrics）**與**執行個體（Instances）**分頁。
+- 完整的**日誌（Logs）**、**追蹤（Traces）**、**指標（Metrics）**與**執行個體（Instances）**分頁。
 
 相同工作負載依服務的細項分析可在**服務（Services）**下取得。

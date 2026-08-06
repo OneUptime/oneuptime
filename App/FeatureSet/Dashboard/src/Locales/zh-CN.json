@@ -4135,6 +4135,7 @@
   "Processors transform spans as they flow through the pipeline. They run in order after the filter conditions match. Each processor modifies the span before it is stored.": "处理器在跨度流经管道时对其进行转换。它们在过滤条件匹配后按顺序运行。每个处理器在跨度存储前对其进行修改。",
   "Processors transform spans matched by this pipeline. They run in the order shown below. Drag to reorder.": "处理器对此管道匹配的跨度进行转换。它们按下方所示的顺序运行。拖动可重新排序。",
   "Product": "产品",
+  "Products": "产品",
   "Production API Health": "生产 API 健康状况",
   "Production cluster running in US East": "在美国东部运行的生产集群",
   "Production cluster running in US East region on EKS": "在美国东部区域 EKS 上运行的生产集群",

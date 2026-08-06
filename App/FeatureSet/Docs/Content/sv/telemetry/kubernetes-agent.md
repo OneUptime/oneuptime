@@ -11,7 +11,7 @@ Den här sidan är **installationsguiden**. För att konfigurera Kubernetes-moni
 - Ett körande Kubernetes-kluster (v1.23+)
 - `kubectl` konfigurerat för åtkomst till ditt kluster
 - `helm` v3 installerat
-- En **OneUptime API-nyckel** — skapa en från _Project Settings → API Keys_
+- En **OneUptime API-nyckel** — skapa en från _Projektinställningar → API-nycklar_
 
 ## Steg 1 — Lägg till OneUptime Helm-arkivet
 
@@ -164,7 +164,7 @@ Accepterar `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`. `WARN` behåller 
 
 Containerkörtider registrerar ingen allvarlighetsgrad på loggraden, så agenten tolkar själv fram en ur loggtexten (`[ERROR]`, `WARN:`, `level=info`, …).
 
-> **Kubernetes-händelser och resursspecifikationer filtreras aldrig av detta.** De anländer från Kubernetes-API:et utan någon egen allvarlighetsgrad, så en tröskel skulle radera hela flödet i stället för att tunna ut det — inklusive varningarna `FailedScheduling`, `BackOff` och `OOMKilling` som du helst av allt vill ha. De har låg volym och högt värde, så agenten levererar dem alltid. För att tunna ut dem, använd instrumentpanelens serversidiga **Logs → Settings → Drop Filters** i stället.
+> **Kubernetes-händelser och resursspecifikationer filtreras aldrig av detta.** De anländer från Kubernetes-API:et utan någon egen allvarlighetsgrad, så en tröskel skulle radera hela flödet i stället för att tunna ut det — inklusive varningarna `FailedScheduling`, `BackOff` och `OOMKilling` som du helst av allt vill ha. De har låg volym och högt värde, så agenten levererar dem alltid. För att tunna ut dem, använd instrumentpanelens serversidiga **Loggar → Inställningar → Drop-filter** i stället.
 
 **Vad som händer med en rad utan igenkännbar nivå beror på loggläget**, eftersom de två lägena har olika information tillgänglig:
 
@@ -247,7 +247,7 @@ Noteringar som kommer att bespara dig en incident:
 - **Flera kluster fungerar som standard.** Två agenter behåller samma spårning endast om de är överens om både `hashSeed` och `percentage`. Båda har samma standardvärde överallt, så en spårning som korsar två kluster överlever hel utan någon extra konfiguration. Ändra `hashSeed` endast för att med avsikt *avkorrelera* två samplingsnivåer — eftersom beslutet är en tröskel på samma hash är samma frö vid olika frekvenser nästlat, så en andra nivå plockar bara om de spårningar som den första redan behållit i stället för att dra oberoende.
 - **Pod-loggar samplas aldrig**, så med `ebpf.logToTraceCorrelation: true` bär varje loggpost fortfarande ett spårnings-ID medan endast `percentage` % av dessa spårningar behålls. Ungefär (100 − `percentage`) % av loggposterna kommer att visa en spårningslänk som leder till en återvändsgränd. Navigering spårning → loggar påverkas inte; endast loggar → spårning kan missa.
 
-> **Justera om dina span-baserade monitorer när du sätter detta.** Sampling minskar de spans som når OneUptime, så allt som räknar dem räknar mindre: en **Traces**-monitor på `Span Count` och en **Exceptions**-monitor på `Exception Count` kommer att se ungefär `percentage` % av gårdagens volym. En tröskel som ställts in på osamplad trafik slutar i tysthet att korsas — monitorn ger inget fel, den blir bara tyst. Dela de trösklarna med samma faktor när du sätter frekvensen; frekvensen gäller hela klustret, så det finns inget sätt att undanta en enskild tjänst från den. **Gruppering** av fel försämras värre än linjärt: ett vanligt undantag dyker fortfarande upp, men för ett sällsynt engångsfall är det mer sannolikt att det försvinner helt än att det dyker upp en tiondel så ofta.
+> **Justera om dina span-baserade monitorer när du sätter detta.** Sampling minskar de spans som når OneUptime, så allt som räknar dem räknar mindre: en **Spår**-monitor på `Span Count` och en **Undantag**-monitor på `Exception Count` kommer att se ungefär `percentage` % av gårdagens volym. En tröskel som ställts in på osamplad trafik slutar i tysthet att korsas — monitorn ger inget fel, den blir bara tyst. Dela de trösklarna med samma faktor när du sätter frekvensen; frekvensen gäller hela klustret, så det finns inget sätt att undanta en enskild tjänst från den. **Gruppering** av fel försämras värre än linjärt: ett vanligt undantag dyker fortfarande upp, men för ett sällsynt engångsfall är det mer sannolikt att det försvinner helt än att det dyker upp en tiondel så ofta.
 
 > **Varför det inte finns någon logg- eller måttsampling här.** Insamlarens samplare kan inte sampla mått alls. Den kan sampla loggar, men den hämtar sin slumpmässighet från spårnings-ID:t — och pod-loggar har inget. Varje post utan spårnings-ID hashas då till samma hink, så en loggfrekvens skulle inte tunna ut flödet: den skulle behålla allt eller radera allt beroende på fröet. I stället för att leverera en ratt som tyst raderar dina loggar erbjuder diagrammet ingen. Tunna ut loggar med [Filtrering efter loggallvarlighetsgrad](#filtrering-efter-loggallvarlighetsgrad) och [Namnrymdsfiltrering](#namnrymdsfiltrering), som är precisa med vad de tar bort.
 
@@ -444,7 +444,7 @@ Det finns tre sätt att skära ner volymen, och det är värt att veta vilket du
 - **Vid filterprocessorn** — datan samlas in och släpps sedan före export. `filters.logs.minSeverity`, `filters.metrics.*`, `namespaceFilters.rules` (`metrics`/`traces`). Något mer insamlar-CPU, men det fungerar tvärs över mottagare och kan uttrycka saker en mottagare inte kan.
 - **Vid samplaren** — datan samlas in och sedan behålls en representativ bråkdel. `sampling.traces.percentage`. Den udda i sammanhanget: de två ovan tar bort en hel *kategori* av telemetri, så det de släpper är borta ur varje spårning. Sampling behåller varje kategori och tunnar ut populationen, så det som överlever är fortfarande fullständigt och representativt.
 
-Alla tre är **oåterkalleliga**: det du släpper här når aldrig OneUptime, och alla tre kan få en monitor att tystna. De två första tystar en monitor genom att ta bort signalen den bevakar. Sampling är smalare: eBPF:s RED-mått beräknas innan samplaren körs, så måttbaserade monitorer förblir exakta — men monitorer som räknar *spans* (Traces på `Span Count`, Exceptions på `Exception Count`) ser proportionellt färre och behöver få sina trösklar omjusterade med samma faktor. Om du hellre vill bestämma senare kan OneUptime släppa data på serversidan i stället (**Logs → Settings → Drop Filters**, **Metrics → Settings → Pipeline Rules**) — det kostar fortfarande egress, men det är en inställning du kan ändra utan en omdistribution.
+Alla tre är **oåterkalleliga**: det du släpper här når aldrig OneUptime, och alla tre kan få en monitor att tystna. De två första tystar en monitor genom att ta bort signalen den bevakar. Sampling är smalare: eBPF:s RED-mått beräknas innan samplaren körs, så måttbaserade monitorer förblir exakta — men monitorer som räknar *spans* (Traces på `Span Count`, Exceptions på `Exception Count`) ser proportionellt färre och behöver få sina trösklar omjusterade med samma faktor. Om du hellre vill bestämma senare kan OneUptime släppa data på serversidan i stället (**Loggar → Inställningar → Drop-filter**, **Mått → Inställningar → Pipelineregler**) — det kostar fortfarande egress, men det är en inställning du kan ändra utan en omdistribution.
 
 ### Spak 1 — Pod-loggar är oftast den enskilt största källan
 
@@ -657,7 +657,7 @@ Begränsa mer vid behov: höj minSeverity till ERROR, lägg till metrics i en na
 
 ### Mät effekten
 
-Telemetrianvändning aggregeras per dag, så kontrollera trenden över en dag eller två under **Project Settings → Usage History** för att bekräfta minskningen — den ändras inte i samma ögonblick som du tillämpar en ändring. Ändra en spak i taget så att du kan tillskriva skillnaden — loggar av, sedan intervall upp, sedan eBPF trimmat — i stället för att vrida ner allt på en gång och förlora en monitor du faktiskt förlitade dig på.
+Telemetrianvändning aggregeras per dag, så kontrollera trenden över en dag eller två under **Projektinställningar → Användningshistorik** för att bekräfta minskningen — den ändras inte i samma ögonblick som du tillämpar en ändring. Ändra en spak i taget så att du kan tillskriva skillnaden — loggar av, sedan intervall upp, sedan eBPF trimmat — i stället för att vrida ner allt på en gång och förlora en monitor du faktiskt förlitade dig på.
 
 ## Felsökning
 
@@ -695,7 +695,7 @@ Den vanligaste anledningen — särskilt efter en ominstallation — är en **fe
    curl -i -H "x-oneuptime-token: <YOUR_API_KEY>" https://oneuptime.com/otlp/v1/validate
    ```
 
-   Om det returnerar `401` är nyckeln i din release felaktig eller återkallad. Kopiera en aktiv nyckel från _Project Settings → Telemetri och APM → Intagningsnycklar_ och distribuera om:
+   Om det returnerar `401` är nyckeln i din release felaktig eller återkallad. Kopiera en aktiv nyckel från _Projektinställningar → Telemetri och APM → Intagningsnycklar_ och distribuera om:
 
    ```bash
    helm upgrade kubernetes-agent oneuptime/kubernetes-agent \

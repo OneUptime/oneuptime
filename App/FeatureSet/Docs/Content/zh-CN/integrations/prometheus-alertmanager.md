@@ -16,16 +16,16 @@ Prometheus rule fires  ──►  Alertmanager webhook receiver  ──►  OneU
 
 ## 步骤 1——构建 OneUptime 工作流
 
-1. 打开 **Workflows → Create Workflow**，命名为 `Alertmanager → Incidents`，并打开 **Builder**。
+1. 打开 **工作流 → 创建工作流**，命名为 `Alertmanager → Incidents`，并打开 **生成器**。
 2. 添加 **Webhook** 触发器并**复制其 URL**。将模块重命名为 `Alertmanager`。
-3. 添加连接到触发器的 **Conditions** 模块：
+3. 添加连接到触发器的 **条件** 模块：
    - **Left**：`{{Alertmanager.Request Body.status}}`
    - **Operator**：`==`
    - **Right**：`firing`
-4. 从 **Yes** 出发，添加 **Create Incident** 模块：
-   - **Title**：`{{Alertmanager.Request Body.commonAnnotations.summary}}`
-   - **Description**：`{{Alertmanager.Request Body.commonAnnotations.description}}\nAlert: {{Alertmanager.Request Body.commonLabels.alertname}}`
-   - **Severity**：选择一个（或先对 `{{Alertmanager.Request Body.commonLabels.severity}}` 进行分支）。
+4. 从 **是** 出发，添加 **创建事件** 模块：
+   - **标题**：`{{Alertmanager.Request Body.commonAnnotations.summary}}`
+   - **描述**：`{{Alertmanager.Request Body.commonAnnotations.description}}\nAlert: {{Alertmanager.Request Body.commonLabels.alertname}}`
+   - **严重程度**：选择一个（或先对 `{{Alertmanager.Request Body.commonLabels.severity}}` 进行分支）。
 5. **保存**（测试前保持禁用状态）。
 
 > **关于分组告警。** Alertmanager 对告警进行分组，并发送一个 `alerts` **数组**。上面的 `commonLabels` 和 `commonAnnotations` 是该组中所有告警共有的字段——非常适合每次通知创建一个事件。如果你想**每个告警创建一个事件**，添加一个[Custom Code](/docs/workflows/components#custom-code)模块，循环遍历 `Request Body.alerts` 并为每个创建一个事件。通过路由中的 `group_by` 调整分组。
@@ -60,16 +60,16 @@ route:
    amtool alert add test_alert severity=warning --annotation=summary="Test from Alertmanager" --alertmanager.url=http://localhost:9093
    ```
 
-3. 检查工作流的 **Logs** 标签和你的**事件**列表。
+3. 检查工作流的 **日志** 标签和你的**事件**列表。
 
 ## 恢复时解决（可选）
 
-设置 `send_resolved: true` 后，Alertmanager 在告警清除时也会 POST，此时 `status: resolved`。添加第二个 **Conditions** 分支（`status == resolved`），找到匹配的事件（通过 `commonLabels.alertname` 匹配），并用 **Update Incident** 将其移至已解决状态。
+设置 `send_resolved: true` 后，Alertmanager 在告警清除时也会 POST，此时 `status: resolved`。添加第二个 **条件** 分支（`status == resolved`），找到匹配的事件（通过 `commonLabels.alertname` 匹配），并用 **Update Incident** 将其移至已解决状态。
 
 ## 故障排查
 
-- **没有运行记录出现**——确认 Alertmanager 可以访问该 URL（检查其日志中的投递错误），以及工作流已 **Enabled**。
-- **事件字段为空**——不同的规则设置了不同的注解。在 **Logs** 标签中检查触发器输出，引用实际存在的字段（`commonAnnotations` 与每个告警的 `annotations`）。
+- **没有运行记录出现**——确认 Alertmanager 可以访问该 URL（检查其日志中的投递错误），以及工作流处于 **已启用** 状态。
+- **事件字段为空**——不同的规则设置了不同的注解。在 **日志** 标签中检查触发器输出，引用实际存在的字段（`commonAnnotations` 与每个告警的 `annotations`）。
 - **事件过多**——增大 `group_by`/`group_interval`，让 Alertmanager 批量合并相关告警。
 
 ## 接下来读什么

@@ -16,12 +16,12 @@ OneUptime Incident → On Create  ──►  API component (POST /v2/alerts)  �
 
 ## 步驟 1 — 儲存 API key
 
-1. 前往 **Workflows → Global Variables → Create**。
+1. 前往 **工作流程 → 全域變數 → 建立**。
 2. 將其命名為 `OPSGENIE_KEY`，貼上 API key，並開啟 **Is Secret**。
 
 ## 步驟 2 — 建立「create alert」工作流程
 
-1. 開啟 **Workflows → Create Workflow**，將其命名為 `Incidents → Opsgenie`，並開啟 **Builder**。
+1. 開啟 **工作流程 → 建立工作流程**，將其命名為 `Incidents → Opsgenie`，並開啟 **建構器**。
 2. 新增一個設定為 **On Create** 的 **Incident** 觸發器。將其重新命名為 `Incident`。
 3. 新增一個連接到該觸發器的 **API** 區塊：
 
@@ -48,7 +48,7 @@ OneUptime Incident → On Create  ──►  API component (POST /v2/alerts)  �
 
    **`alias`** 會將此 Opsgenie 警報與該 OneUptime 事件繫結，讓你之後可以依 alias 將其關閉。請注意，Opsgenie 的驗證機制是字面字串 `GenieKey`，後接一個空格與你的金鑰。
 
-4. **Save**、啟用，並建立一個測試事件。工作流程記錄中出現 `202 Accepted` 回應即表示 Opsgenie 已將警報排入佇列。
+4. **儲存**、啟用，並建立一個測試事件。工作流程記錄中出現 `202 Accepted` 回應即表示 Opsgenie 已將警報排入佇列。
 
 ## 步驟 3 — 在 OneUptime 解決時關閉（建議）
 
@@ -70,7 +70,7 @@ Opsgenie 的優先順序為 `P1`–`P5`。在 API 區塊之前，以 **Condition
 
 - **`401`/`403`** — 金鑰錯誤、區域主機錯誤，或該整合缺乏建立警報的權限。確認你使用的是 **API** 整合金鑰，以及相符的 `api`/`api.eu` 主機。
 - **關閉時回傳 `404`** — 關閉呼叫上的 `alias` 必須與建立呼叫完全相符，且查詢字串中必須包含 `identifierType=alias`。
-- **沒有任何反應** — 確認該工作流程已 **Enabled**。
+- **沒有任何反應** — 確認該工作流程為 **已啟用**。
 
 ## 接下來該閱讀
 

@@ -10,11 +10,11 @@ All'interno del progetto, proprietari ed etichette controllano chi vede cosa —
 
 ## Dashboard pubbliche
 
-Sotto **Dashboard → Settings**, attiva **Public Dashboard**. La dashboard ora ha un secondo URL che non richiede l'accesso. Condividilo con fornitori, partner, clienti o incollalo in un README pubblico.
+Sotto **Dashboard → Impostazioni**, attiva **Public Dashboard**. La dashboard ora ha un secondo URL che non richiede l'accesso. Condividilo con fornitori, partner, clienti o incollalo in un README pubblico.
 
 Una dashboard pubblica:
 
-- Si apre sempre in modalita **View**. I visitatori pubblici non possono modificare ne vedere la palette dei widget.
+- Si apre sempre in modalita **Visualizza**. I visitatori pubblici non possono modificare ne vedere la palette dei widget.
 - Include le variabili che hai aggiunto. I visitatori scelgono dagli stessi menu a tendina che usa il tuo team.
 - Usa il **branding** impostato in Settings — titolo della pagina, descrizione, logo, favicon.
 
@@ -25,7 +25,7 @@ Tratta l'attivazione di una dashboard pubblica come la pubblicazione di una pagi
 Per mettere una password su una dashboard pubblica:
 
 1. Attiva **Public Dashboard**.
-2. Attiva **Master Password**.
+2. Attiva **Password principale**.
 3. Imposta la password.
 
 I visitatori vedono un prompt per la password prima che la dashboard appaia. La password e memorizzata come hash — non vediamo mai la password reale.
@@ -39,7 +39,7 @@ Per un controllo piu stringente (account separati per ogni visitatore, una tracc
 
 ## Allowlist di IP
 
-Sul piano **Scale**, puoi limitare una dashboard pubblica a un elenco di indirizzi IP o intervalli. Configuralo sotto **Dashboard → Settings → IP Whitelist**.
+Sul piano **Scale**, puoi limitare una dashboard pubblica a un elenco di indirizzi IP o intervalli. Configuralo sotto **Dashboard → Impostazioni → Whitelist IP**.
 
 Usalo quando:
 
@@ -54,7 +54,7 @@ Le richieste da qualsiasi altro IP vengono rifiutate.
 Out of the box, una dashboard pubblica viene servita su `oneuptime.com`. Per ospitarla sul tuo sottodominio come `dashboard.acme.com`:
 
 1. Aggiungi un record CNAME sul tuo DNS che punti il sottodominio al target di OneUptime.
-2. Sotto **Dashboard → Settings → Custom Domains**, aggiungi il dominio.
+2. Sotto **Dashboard → Impostazioni → Domini personalizzati**, aggiungi il dominio.
 3. Verificalo. OneUptime controlla il record DNS per te.
 4. Una volta verificata, la dashboard e raggiungibile sia sul tuo dominio personalizzato sia sull'URL originale.
 
@@ -68,7 +68,7 @@ Puoi associare piu di un dominio personalizzato a una singola dashboard se servi
 
 ## Branding
 
-Sotto **Dashboard → Settings**, puoi configurare:
+Sotto **Dashboard → Impostazioni**, puoi configurare:
 
 - **Titolo della pagina** — cosa appare nella scheda del browser e in cima alla pagina.
 - **Descrizione della pagina** — la descrizione utilizzata dai motori di ricerca e dalle anteprime social.

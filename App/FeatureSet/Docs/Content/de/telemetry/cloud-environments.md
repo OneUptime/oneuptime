@@ -8,7 +8,7 @@ Reine virtuelle Maschinen (EC2, Compute Engine, Azure VM) bleiben **Hosts**, und
 
 ## Voraussetzungen
 
-- Ein **OneUptime Telemetry Ingestion Token** — erstellen Sie eines unter _Project Settings → Telemetrie & APM → Ingestion-Schlüssel_.
+- Ein **OneUptime Telemetry Ingestion Token** — erstellen Sie eines unter _Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel_.
 - Ein OpenTelemetry Collector oder SDK, das in oder neben Ihren Workloads läuft.
 
 ## Wie OneUptime eine Umgebung identifiziert
@@ -18,7 +18,7 @@ Reine virtuelle Maschinen (EC2, Compute Engine, Azure VM) bleiben **Hosts**, und
 | `cloud.platform`      | **ja**       | Muss eine Managed-Compute-Plattform sein (z. B. `aws_ecs`, `gcp_cloud_run`, `azure_container_apps`) |
 | `cloud.account.id`    | nein         | Teil des Umgebungsschlüssels                                                                        |
 | `cloud.region`        | nein         | Teil des Umgebungsschlüssels                                                                        |
-| `service.instance.id` | nein         | Pro Task/Instanz unter **Instances** erfasst (mit Live-CPU / -Speicher)                             |
+| `service.instance.id` | nein         | Pro Task/Instanz unter **Instanzen** erfasst (mit Live-CPU / -Speicher)                             |
 
 Diese werden normalerweise automatisch durch die OpenTelemetry **Resource Detectors** befüllt.
 
@@ -70,9 +70,9 @@ Wenn Sie OneUptime selbst hosten, verwenden Sie `https://YOUR-ONEUPTIME-HOST/otl
 
 Die Umgebungsübersicht zeigt:
 
-- **CPU** und **Speicher** pro laufender Task/Instanz (aus `container.cpu.utilization` / `container.memory.usage`), plus eine Liste **Top instances by CPU**.
-- **Instances** — eine Live-Anzahl der Tasks.
-- **Requests** und Trenddiagramme, die aus Ihren Traces abgeleitet werden.
-- Vollständige Tabs für **Logs**, **Traces**, **Metrics** und **Instances**.
+- **CPU** und **Arbeitsspeicher** pro laufender Task/Instanz (aus `container.cpu.utilization` / `container.memory.usage`), plus eine Liste **Top-Instanzen nach CPU**.
+- **Instanzen** — eine Live-Anzahl der Tasks.
+- **Anfragen** und Trenddiagramme, die aus Ihren Traces abgeleitet werden.
+- Vollständige Tabs für **Protokolle**, **Traces**, **Metriken** und **Instanzen**.
 
-Eine Aufschlüsselung pro Service für dieselben Workloads ist unter **Services** verfügbar.
+Eine Aufschlüsselung pro Service für dieselben Workloads ist unter **Dienste** verfügbar.

@@ -37,11 +37,11 @@ De fleste tekstfelter aksepterer variabler — det er slik data flyter fra én b
 
 Den raskeste måten å bli kjent med lerretet på:
 
-1. Dra en **Manuell** trigger inn på lerretet.
-2. Dra en **Log**-komponent (under **Utils**) ved siden av. Koble triggeren til Log-komponenten.
+1. Dra en **Manual** trigger inn på lerretet.
+2. Dra en **Logg**-komponent (under **Utils**) ved siden av. Koble triggeren til Log-komponenten.
 3. I meldingsfeltet til Log-blokken, skriv `Hello from {{Manual.JSON.name}}`.
 4. Lagre og slå på arbeidsflyten.
-5. Klikk **Kjør manuelt**, lim inn `{ "name": "Ada" }` som input, og send inn.
+5. Klikk **Run Manually**, lim inn `{ "name": "Ada" }` som input, og send inn.
 6. Åpne **Logger**-fanen. Den siste kjøringen viser `Hello from Ada`.
 
 Den syklusen — dra, koble, konfigurere, kjøre, sjekke loggen — er hvordan du bygger hver arbeidsflyt.
@@ -50,7 +50,7 @@ Den syklusen — dra, koble, konfigurere, kjøre, sjekke loggen — er hvordan d
 
 Lerretet lagrer mens du arbeider. Det er ingen separat "publiser"-steg.
 
-Men en arbeidsflyt kjører faktisk bare når **Aktivert** er på i Innstillinger. Nye arbeidsflyter starter som deaktivert. Bruk denne bryteren som sikkerhetsnett — bygg den, test med **Kjør manuelt**, sjekk loggene, og slå den så på.
+Men en arbeidsflyt kjører faktisk bare når **Aktivert** er på i Innstillinger. Nye arbeidsflyter starter som deaktivert. Bruk denne bryteren som sikkerhetsnett — bygg den, test med **Run Manually**, sjekk loggene, og slå den så på.
 
 For å sette en arbeidsflyt på pause uten å slette den, slå **Aktivert** av. Kjøringer som allerede er i gang fullføres; ingen nye starter.
 

@@ -127,7 +127,7 @@ Für jede Art von Datensatz in OneUptime (Monitore, Vorfälle, Benachrichtigunge
 - **Erstellen** – einen neuen Datensatz anlegen.
 - **Aktualisieren** – einen Datensatz ändern.
 - **Löschen** – einen Datensatz entfernen.
-- **Zählen** – Datensätze zählen, die einem Filter entsprechen.
+- **Anzahl** – Datensätze zählen, die einem Filter entsprechen.
 
 So kann ein Workflow OneUptime-Daten lesen und ändern. Beispiel: Ein Webhook aus Ihrem CI-Tool kann **Vorfall erstellen** nutzen, um einen Vorfall mit den Fehlerdetails zu öffnen.
 

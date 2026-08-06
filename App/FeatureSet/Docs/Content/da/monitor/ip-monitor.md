@@ -13,7 +13,7 @@ IP-monitorer bekræfter, at en specifik IP-adresse er tilgængelig og responsiv.
 
 ## Oprettelse af en IP Monitor
 
-1. Gå til **Monitorer** i OneUptime-dashboardet
+1. Gå til **Overvågninger** i OneUptime-dashboardet
 2. Klik på **Opret monitor**
 3. Vælg **IP** som monitortype
 4. Indtast den IP-adresse, du vil overvåge

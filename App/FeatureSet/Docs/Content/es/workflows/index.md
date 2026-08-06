@@ -34,12 +34,12 @@ Construyes todo esto visualmente en un lienzo. La mayoría de los workflows no r
 
 ## Dónde encontrar los workflows en OneUptime
 
-Abre **Workflows** en la navegación lateral. Desde allí:
+Abre **Flujos de trabajo** en la navegación lateral. Desde allí:
 
-- **Workflows** — tu lista de workflows. Crea uno nuevo o abre uno existente.
+- **Flujos de Trabajo** — tu lista de workflows. Crea uno nuevo o abre uno existente.
 - **Pestaña Constructor** — el lienzo donde diseñas el workflow.
 - **Pestaña Registros** — cada ejecución de este workflow, con detalles.
-- **Pestaña Configuración** — nombre, descripción, propietarios, etiquetas, activar/desactivar.
+- **Pestaña Ajustes** — nombre, descripción, propietarios, etiquetas, activar/desactivar.
 - **Variables Globales** — valores compartidos entre todos tus workflows.
 - **Ejecuciones y Registros** — historial de ejecuciones de todos los workflows de tu proyecto.
 
@@ -49,7 +49,7 @@ Abre **Workflows** en la navegación lateral. Desde allí:
 2. **Elegir un disparador** — manual, programado, webhook o un evento de OneUptime.
 3. **Añadir componentes** — arrastra acciones al lienzo y conéctalas.
 4. **Probar** — haz clic en **Ejecutar Manualmente** y observa lo que ocurre en los registros.
-5. **Activarlo** — cambia el interruptor **Activado** en Configuración cuando estés listo.
+5. **Activarlo** — cambia el interruptor **Habilitado** en Configuración cuando estés listo.
 
 ## Un ejemplo rápido
 

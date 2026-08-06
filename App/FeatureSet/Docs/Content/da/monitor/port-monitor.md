@@ -13,7 +13,7 @@ Port-monitorer tester, om en specifik netværksport accepterer forbindelser. Det
 
 ## Oprettelse af en Port Monitor
 
-1. Gå til **Monitorer** i OneUptime-dashboardet
+1. Gå til **Overvågninger** i OneUptime-dashboardet
 2. Klik på **Opret monitor**
 3. Vælg **Port** som monitortype
 4. Indtast hostnavnet eller IP-adressen og portnummeret

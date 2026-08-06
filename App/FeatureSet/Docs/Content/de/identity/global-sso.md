@@ -21,8 +21,8 @@ Global SSO ist eine Funktion der **OneUptime Enterprise Edition** und ist nur au
 2. **Einen Provider erstellen**
 
    - Klicken Sie auf **Global SSO erstellen**.
-   - Für SAML: Geben Sie einen **Namen**, die **Sign On URL** und den **Issuer** von Ihrem Identity Provider ein und fügen Sie das **öffentliche Zertifikat** ein. Wählen Sie die **Signatur**- und **Digest**-Methoden (belassen Sie die Standardwerte — `RSA-SHA256` / `SHA256` —, wenn Sie unsicher sind).
-   - Für OIDC: Geben Sie die **Discovery URL**, den **Issuer**, die **Client ID**, das **Client Secret**, die **Scopes** (müssen `openid` enthalten) sowie die Namen der **E-Mail**-/**Name**-Claims ein.
+   - Für SAML: Geben Sie einen **Namen**, die **Anmelde-URL** und den **Aussteller** von Ihrem Identity Provider ein und fügen Sie das **Öffentliche Zertifikat** ein. Wählen Sie die **Signatur**- und **Digest**-Methoden (belassen Sie die Standardwerte — `RSA-SHA256` / `SHA256` —, wenn Sie unsicher sind).
+   - Für OIDC: Geben Sie die **Discovery-URL**, den **Aussteller**, die **Client-ID**, das **Client-Secret**, die **Geltungsbereiche** (müssen `openid` enthalten) sowie die Namen der **E-Mail**-/**Name**-Claims ein.
 
 3. **Die OneUptime-URLs in Ihren Identity Provider kopieren**
 

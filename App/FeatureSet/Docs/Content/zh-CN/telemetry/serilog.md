@@ -2,7 +2,7 @@
 
 ## 概述
 
-[Serilog](https://serilog.net) 是 .NET 中最流行的结构化日志库。OneUptime 使用官方的 [`Serilog.Sinks.OpenTelemetry`](https://github.com/serilog/serilog-sinks-opentelemetry) sink，通过 OpenTelemetry 协议（OTLP）接收 Serilog 日志。配置完成后，应用程序通过 Serilog 写入的每条日志事件都会被发送到 OneUptime，并在 **Products → 日志** 中变得可搜索，同时包含结构化属性、严重级别以及 trace/span 关联信息。
+[Serilog](https://serilog.net) 是 .NET 中最流行的结构化日志库。OneUptime 使用官方的 [`Serilog.Sinks.OpenTelemetry`](https://github.com/serilog/serilog-sinks-opentelemetry) sink，通过 OpenTelemetry 协议（OTLP）接收 Serilog 日志。配置完成后，应用程序通过 Serilog 写入的每条日志事件都会被发送到 OneUptime，并在 **产品 → 日志** 中变得可搜索，同时包含结构化属性、严重级别以及 trace/span 关联信息。
 
 无需安装任何 OneUptime 专用的包——该 sink 直接与 OneUptime 为所有 OpenTelemetry 数据提供的同一个 OTLP 端点通信。它适用于控制台应用、worker 服务、ASP.NET Core 应用以及任何运行在 .NET 上的程序。
 
@@ -12,13 +12,13 @@
 - **创建 OneUptime 项目** – 拥有账户后，从 OneUptime 仪表板创建一个项目。如果需要帮助，请通过 support@oneuptime.com 联系我们。
 - **创建遥测接收令牌（Telemetry Ingestion Token）** – 你需要一个令牌来对日志进行身份验证。
 
-注册 OneUptime 并创建项目后，点击导航栏中的 "Products"，然后点击 "Project Settings"。
+注册 OneUptime 并创建项目后，点击导航栏中的 "产品"，然后点击 "项目设置"。
 
-在 Telemetry Ingestion Key 页面，点击 "Create Ingestion Key" 来创建一个令牌。
+在 Telemetry Ingestion Key 页面，点击 "创建摄取密钥" 来创建一个令牌。
 
 ![Create Service](/docs/static/images/TelemetryIngestionKeys.png)
 
-创建令牌后，点击 "View" 来查看该令牌。
+创建令牌后，点击 "查看" 来查看该令牌。
 
 ![View Service](/docs/static/images/TelemetryIngestionKeyView.png)
 
@@ -197,7 +197,7 @@ Log.Information("Order {OrderId} placed by {CustomerId} for {Amount:C}",
 Log.Warning("Payment gateway slow: {LatencyMs}ms", latencyMs);
 ```
 
-每个命名属性（`OrderId`、`CustomerId`、`Amount`、`LatencyMs`）都会作为日志属性发送，因此你可以在 **Products → 日志** 浏览器中对它们进行筛选和搜索。
+每个命名属性（`OrderId`、`CustomerId`、`Amount`、`LatencyMs`）都会作为日志属性发送，因此你可以在 **产品 → 日志** 浏览器中对它们进行筛选和搜索。
 
 ## 异常
 
@@ -214,7 +214,7 @@ catch (Exception ex)
 }
 ```
 
-OneUptime 会检测这些属性，并自动将该错误归入 **Exceptions**（Issues）视图，按指纹分组并归属到正确的服务。由 trace 和日志同时报告的错误会合并为单个 issue。有关检测原理的详情，请参阅[从日志中提取异常](/docs/telemetry/open-telemetry)。
+OneUptime 会检测这些属性，并自动将该错误归入 **异常**（Issues）视图，按指纹分组并归属到正确的服务。由 trace 和日志同时报告的错误会合并为单个 issue。有关检测原理的详情，请参阅[从日志中提取异常](/docs/telemetry/open-telemetry)。
 
 ## Trace 关联
 
@@ -223,7 +223,7 @@ OneUptime 会检测这些属性，并自动将该错误归入 **Exceptions**（I
 ## 验证
 
 1. 运行你的应用程序并生成几条日志事件。
-2. 打开 OneUptime，前往 **Telemetry**，选择你的服务（`my-service`），然后打开 **Logs**。
+2. 打开 OneUptime，前往 **遥测**，选择你的服务（`my-service`），然后打开 **日志**。
 3. 你应该会在几秒钟内看到你的 Serilog 事件出现，并且它们的结构化属性可作为筛选条件使用。
 
 ## 故障排查

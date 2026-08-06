@@ -32,9 +32,9 @@ God til: at modtage data ind i OneUptime fra et andet værktøj — CI/CD-callba
 
 **Output**:
 
-- **Request Headers** — alle headers fra den indkommende anmodning.
+- **Anmodningsheadere** — alle headers fra den indkommende anmodning.
 - **Request Query Params** — den parsede querystreng.
-- **Request Body** — den parsede body (eller den rå tekst, hvis det ikke er JSON).
+- **Anmodningsbrødtekst** — den parsede body (eller den rå tekst, hvis det ikke er JSON).
 
 URL'en accepterer både `GET` og `POST`. Kalderen får en hurtig bekræftelse — selve workflowet kører i baggrunden.
 
@@ -50,15 +50,15 @@ Næsten alt i OneUptime — monitorer, hændelser, alarmer, planlagt vedligehold
 
 Sådan bygger du "når X sker i OneUptime, så gør Y" uden at skulle tjekke ting i en løkke.
 
-Hele posten sendes videre til den næste blok. For eksempel sender triggeren **Incident → On Create** den nye hændelse, så den næste blok kan læse dens titel, beskrivelse, alvorlighed og ethvert andet felt.
+Hele posten sendes videre til den næste blok. For eksempel sender triggeren **Hændelse → On Create** den nye hændelse, så den næste blok kan læse dens titel, beskrivelse, alvorlighed og ethvert andet felt.
 
 ### Events som teams bruger mest
 
-- **Incident** — reagér, når en hændelse åbnes, opdateres (bekræftes, løses) eller slettes.
-- **Alert** — samme tre for alarmer.
-- **Monitor** — reagér, når en monitor tilføjes, redigeres eller fjernes.
-- **Scheduled Maintenance** — annoncér automatisk et vedligeholdelsesvindue, når det planlægges.
-- **Status Page Subscriber** — byd nogen velkommen, der tilmelder sig en statusside.
+- **Hændelse** — reagér, når en hændelse åbnes, opdateres (bekræftes, løses) eller slettes.
+- **Advarsel** — samme tre for alarmer.
+- **Overvågning** — reagér, når en monitor tilføjes, redigeres eller fjernes.
+- **Planlagt vedligeholdelse** — annoncér automatisk et vedligeholdelsesvindue, når det planlægges.
+- **Statusside Abonnent** — byd nogen velkommen, der tilmelder sig en statusside.
 - **On-Call Duty Policy** — synkronisér vagtplansændringer til et andet roster-system.
 
 Søg i trigger-paletten efter navn for at finde den, du vil have.
@@ -68,7 +68,7 @@ Søg i trigger-paletten efter navn for at finde den, du vil have.
 | Hvis du vil…                             | Vælg                |
 | ---------------------------------------- | ------------------- |
 | Klikke på en knap for at køre workflowet | **Manual**          |
-| Køre på en gentagen tidsplan             | **Schedule**        |
+| Køre på en gentagen tidsplan             | **Tidsplan**        |
 | Lade et andet system skubbe data ind     | **Webhook**         |
 | Reagere på noget inde i OneUptime        | **OneUptime event** |
 

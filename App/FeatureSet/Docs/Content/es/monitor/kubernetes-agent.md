@@ -92,7 +92,7 @@ También puede desactivar por completo la recopilación de registros con `--set 
 
 El chart incluye un DaemonSet que ejecuta [OpenTelemetry eBPF Instrumentation (OBI)](https://opentelemetry.io/docs/zero-code/obi/) en cada nodo. OBI carga programas eBPF en el kernel de Linux y observa el tráfico a nivel de socket para reconstruir llamadas HTTP/HTTPS, gRPC y SQL/Redis desde cada pod del nodo — sin cambios de código, sin SDK, sin sidecar. El tráfico capturado se exporta como trazas OTLP y métricas de petición/latencia directamente a OneUptime.
 
-Después de instalar, sus servicios empiezan a aparecer bajo **Products → Trazas** y en el mapa de servicios en uno o dos minutos, con `k8s.cluster.name` establecido a su `clusterName` para que pueda filtrar por clúster.
+Después de instalar, sus servicios empiezan a aparecer bajo **Productos → Trazas** y en el mapa de servicios en uno o dos minutos, con `k8s.cluster.name` establecido a su `clusterName` para que pueda filtrar por clúster.
 
 ### Cuándo desactivarlo
 
@@ -163,7 +163,7 @@ kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=2
 
 ## Perfilado continuo de CPU (desactivado por defecto)
 
-Un DaemonSet separado ejecuta el [OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) — empaquetado como la imagen `otel/opentelemetry-collector-ebpf-profiler`. Muestrea pilas en-CPU a 19Hz a través de cada runtime soportado (Go, Java, .NET, Python, Ruby, Node.js, PHP, Perl, C/C++, Rust) y envía perfiles OTLP a OneUptime, donde aparecen bajo **Products → Perfiles de Rendimiento** y como gráficos de llamas enlazados desde spans de traza individuales.
+Un DaemonSet separado ejecuta el [OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) — empaquetado como la imagen `otel/opentelemetry-collector-ebpf-profiler`. Muestrea pilas en-CPU a 19Hz a través de cada runtime soportado (Go, Java, .NET, Python, Ruby, Node.js, PHP, Perl, C/C++, Rust) y envía perfiles OTLP a OneUptime, donde aparecen bajo **Productos → Perfiles de rendimiento** y como gráficos de llamas enlazados desde spans de traza individuales.
 
 El perfilado está **desactivado por defecto** — es más pesado que la auto-instrumentación de OBI (más CPU por nodo, mayor huella de memoria) y no todos los clústeres quieren gráficos de llamas siempre activos. Actívelo cuando desee una telemetría más rica: `--set profiling.enabled=true`.
 
@@ -206,7 +206,7 @@ El chart también puede recopilar:
 | ----------------------------------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `preset`                                  | (vacío — tratado como `standard`) | Vea la tabla anterior.                                                                                                                                                                             |
 | `oneuptime.url`                           | _(requerido)_                     | URL de su instancia de OneUptime.                                                                                                                                                                  |
-| `oneuptime.apiKey`                        | _(requerido)_                     | Clave de API del proyecto (Settings → API Keys).                                                                                                                                                   |
+| `oneuptime.apiKey`                        | _(requerido)_                     | Clave de API del proyecto (Ajustes → Claves API).                                                                                                                                                   |
 | `clusterName`                             | _(requerido)_                     | Nombre único para este clúster. Estampado como `k8s.cluster.name` en cada registro.                                                                                                                |
 | `namespaceFilters.rules`                  | Excluir kube-system de podLogs y ebpfDiscovery | Reglas include/exclude por ámbito para podLogs, ebpfDiscovery, metrics y traces. Los patrones admiten * y exclude siempre prevalece. |
 | `logs.enabled`                            | `true`                            | Activa o desactiva la recopilación de registros.                                                                                                                                                   |

@@ -15,7 +15,7 @@ I monitor profili contano e filtrano i dati di profiling corrispondenti a criter
 ## Creazione di un Monitor Profili
 
 1. Accedere a **Monitor** nel Dashboard di OneUptime
-2. Fare clic su **Crea Monitor**
+2. Fare clic su **Crea monitor**
 3. Selezionare **Profili** come tipo di monitor
 4. Selezionare i servizi di telemetria da monitorare
 5. Configurare i filtri dei profili e i criteri secondo necessità
@@ -55,9 +55,9 @@ Selezionare uno o più servizi da cui monitorare i profili. I servizi devono inv
 
 #### Avviso se nessun profilo ricevuto in 5 minuti
 
-- **Finestra Temporale**: 300 secondi
+- **Finestra temporale**: 300 secondi
 - **Controlla Su**: Conteggio Profilo
-- **Tipo Filtro**: Uguale a
+- **Tipo di filtro**: Uguale a
 - **Valore**: 0
 
 ## Requisiti di Configurazione

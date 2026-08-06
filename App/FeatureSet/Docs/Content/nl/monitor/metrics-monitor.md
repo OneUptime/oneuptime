@@ -14,9 +14,9 @@ Metrics-monitors bevragen en evalueren numerieke metrics van uw telemetriedienst
 
 ## Een Metrics Monitor aanmaken
 
-1. Ga naar **Monitors** in het OneUptime-dashboard
-2. Klik op **Monitor aanmaken**
-3. Selecteer **Metrics** als het monitortype
+1. Ga naar **Monitoren** in het OneUptime-dashboard
+2. Klik op **Monitor maken**
+3. Selecteer **Metrieken** als het monitortype
 4. Configureer metriekopvragen en optionele formules
 5. Selecteer de aggregatiestrategie
 6. Configureer monitoringcriteria naar wens

@@ -14,8 +14,8 @@
 
 ## 建立網站監測器
 
-1. 前往 OneUptime 儀表板中的 **Monitors**
-2. 點選 **Create Monitor**
+1. 前往 OneUptime 儀表板中的 **監測**
+2. 點選 **建立監測器**
 3. 選擇 **Website** 作為監測器類型
 4. 輸入您要監測的網站 URL
 5. 視需要設定監測條件
@@ -71,11 +71,11 @@ https://example.com/health?nocache={{random}}
 
 #### 用戶端憑證（mTLS）
 
-如果您的端點需要雙向 TLS 驗證，請啟用 **Use client certificate (mTLS)** 並提供：
+如果您的端點需要雙向 TLS 驗證，請啟用 **使用用戶端憑證（mTLS）** 並提供：
 
-- **Client Certificate (PEM)** — 要呈現的 PEM 編碼用戶端憑證。
-- **Client Private Key (PEM)** — 相符的 PEM 編碼私密金鑰。
-- **Client Private Key Passphrase** _(選用)_ — 僅在私密金鑰已加密時才需要。
+- **用戶端憑證 (PEM)** — 要呈現的 PEM 編碼用戶端憑證。
+- **用戶端私密金鑰 (PEM)** — 相符的 PEM 編碼私密金鑰。
+- **用戶端私密金鑰密碼短語** _(選用)_ — 僅在私密金鑰已加密時才需要。
 
 這相當於 curl 中 `--cert` 與 `--key` 旗標的 OneUptime 對應功能：
 
@@ -91,5 +91,5 @@ curl --cert client.crt --key client.key https://api.example.com/health
 
 - **回應狀態碼** - 檢查 HTTP 狀態碼是否符合預期值（例如 200、301）
 - **回應時間** - 監測回應時間是否超過閾值
-- **回應內容** - 檢查回應內容是否包含或符合特定內容
+- **回應內文** - 檢查回應內容是否包含或符合特定內容
 - **回應標頭** - 驗證特定回應標頭是否存在或符合預期值

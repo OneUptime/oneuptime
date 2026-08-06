@@ -14,9 +14,9 @@
 
 ## 建立網域監測
 
-1. 前往 OneUptime Dashboard 中的 **Monitors**
-2. 點選 **Create Monitor**
-3. 選擇 **Domain** 作為監測類型
+1. 前往 OneUptime Dashboard 中的 **監測**
+2. 點選 **建立監測器**
+3. 選擇 **網域** 作為監測類型
 4. 輸入您想要監測的網域名稱
 5. 依需要設定監測條件
 
@@ -74,19 +74,19 @@
 #### 若網域將於 30 天內到期則發出警示
 
 - **Check On**：Domain Expires In Days
-- **Filter Type**：Less Than
-- **Value**：30
+- **篩選器類型**：Less Than
+- **值**：30
 
 #### 若網域已到期則標示為離線
 
 - **Check On**：Domain Is Expired
-- **Filter Type**：True
+- **篩選器類型**：True
 
 #### 驗證名稱伺服器是否正確
 
 - **Check On**：Domain Name Server
-- **Filter Type**：Contains
-- **Value**：`ns1.example.com`
+- **篩選器類型**：Contains
+- **值**：`ns1.example.com`
 
 ## 最佳實務
 

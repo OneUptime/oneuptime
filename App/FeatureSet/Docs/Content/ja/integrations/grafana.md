@@ -16,17 +16,17 @@ Grafana alert rule fires  ──►  Webhook contact point  ──►  OneUptime
 
 ## ステップ 1 — OneUptime ワークフローを作成する
 
-1. **Workflows → Create Workflow** を開き、`Grafana → Incidents` という名前にして **Builder** を開きます。
+1. **ワークフロー → ワークフローを作成** を開き、`Grafana → Incidents` という名前にして **ビルダー** を開きます。
 2. **Webhook** トリガーを追加して **URL をコピー**します。ブロックを `Grafana` にリネームします。
-3. トリガーに接続した **Conditions** ブロックを追加します:
+3. トリガーに接続した **条件** ブロックを追加します:
    - **Left**: `{{Grafana.Request Body.status}}`
    - **Operator**: `==`
    - **Right**: `firing`
-4. **Yes** から **Create Incident** ブロックを追加します:
-   - **Title**: `{{Grafana.Request Body.title}}`
-   - **Description**: `{{Grafana.Request Body.message}}`
-   - **Severity**: 1 つ選びます (または先に `{{Grafana.Request Body.commonLabels.severity}}` で分岐します)。
-5. **Save** します (テストするまで無効のままにしておきます)。
+4. **はい** から **インシデントを作成** ブロックを追加します:
+   - **タイトル**: `{{Grafana.Request Body.title}}`
+   - **説明**: `{{Grafana.Request Body.message}}`
+   - **重大度**: 1 つ選びます (または先に `{{Grafana.Request Body.commonLabels.severity}}` で分岐します)。
+5. **保存** します (テストするまで無効のままにしておきます)。
 
 Grafana の Webhook ペイロードは Alertmanager の形式に従います — `status`、`alerts` 配列、`commonLabels`、`commonAnnotations` に加えて、便利なトップレベルの `title` と `message` フィールドが含まれます。
 
@@ -42,11 +42,11 @@ Grafana の Webhook ペイロードは Alertmanager の形式に従います —
 
 1. ワークフローを有効化します。
 2. コンタクトポイント画面で **Test** を使ってサンプル通知を送るか、実際のアラートルールを発火させます。
-3. ワークフローの **Logs** タブと **Incidents** リストを確認します。
+3. ワークフローの **ログ** タブと **インシデント** リストを確認します。
 
 ## 回復時に解決する (オプション)
 
-アラートがクリアされると、Grafana は `status: resolved` の別の通知を送ります。2 つ目の **Conditions** ブランチ (`status == resolved`) を追加し、マッチするインシデントを見つけて **Update Incident** で解決済み状態に変更します。
+アラートがクリアされると、Grafana は `status: resolved` の別の通知を送ります。2 つ目の **条件** ブランチ (`status == resolved`) を追加し、マッチするインシデントを見つけて **Update Incident** で解決済み状態に変更します。
 
 ## 補足
 
@@ -55,8 +55,8 @@ Grafana の Webhook ペイロードは Alertmanager の形式に従います —
 
 ## トラブルシューティング
 
-- **実行が表示されない** — Grafana が URL に到達できるか確認し (Grafana のサーバーログを確認)、ワークフローが **Enabled** であることを確認します。
-- **フィールドが空** — **Logs** タブでトリガーの出力を確認し、使用しているアラートのバージョンに存在するフィールドを参照します。
+- **実行が表示されない** — Grafana が URL に到達できるか確認し (Grafana のサーバーログを確認)、ワークフローが **有効** であることを確認します。
+- **フィールドが空** — **ログ** タブでトリガーの出力を確認し、使用しているアラートのバージョンに存在するフィールドを参照します。
 
 ## 次に読むべきページ
 

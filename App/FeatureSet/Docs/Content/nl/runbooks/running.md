@@ -44,4 +44,4 @@ Een runbook-uitvoering is een eenmalig, onveranderlijk record. Om opnieuw uit te
 
 ## Vroegere uitvoeringen vinden
 
-Elk runbook heeft een **Executions**-tabblad met al zijn runs, met filters voor status, datumbereik en bronentiteit. Op een incident, alert of gepland onderhoudsevent toont het **Runbooks**-tabblad de runs die aan die entiteit gekoppeld zijn.
+Elk runbook heeft een **Uitvoeringen**-tabblad met al zijn runs, met filters voor status, datumbereik en bronentiteit. Op een incident, alert of gepland onderhoudsevent toont het **Runbooks**-tabblad de runs die aan die entiteit gekoppeld zijn.

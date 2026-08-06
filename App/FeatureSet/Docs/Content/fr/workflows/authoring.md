@@ -1,6 +1,6 @@
 # Création d'un workflow
 
-Pour créer un workflow, ouvrez **Workflows → Create Workflow**, donnez-lui un nom et cliquez sur l'onglet **Builder**. Vous verrez un canevas vide où vous construirez votre automatisation.
+Pour créer un workflow, ouvrez **Flux de travail → Créer un flux de travail**, donnez-lui un nom et cliquez sur l'onglet **Constructeur**. Vous verrez un canevas vide où vous construirez votre automatisation.
 
 ## Le canevas
 
@@ -42,7 +42,7 @@ La manière la plus rapide de prendre en main le canevas :
 3. Dans le champ message du bloc Log, saisissez `Hello from {{Manual.JSON.name}}`.
 4. Enregistrez et activez le workflow.
 5. Cliquez sur **Run Manually**, collez `{ "name": "Ada" }` comme entrée et validez.
-6. Ouvrez l'onglet **Logs**. La dernière exécution affiche `Hello from Ada`.
+6. Ouvrez l'onglet **Journaux**. La dernière exécution affiche `Hello from Ada`.
 
 Ce cycle — glisser, relier, configurer, exécuter, vérifier le journal — est la façon dont vous construirez chaque workflow.
 
@@ -50,9 +50,9 @@ Ce cycle — glisser, relier, configurer, exécuter, vérifier le journal — es
 
 Le canevas s'enregistre au fil de votre travail. Il n'y a pas d'étape « publier » distincte.
 
-Mais un workflow ne s'exécute réellement que si **Enabled** est activé dans Settings. Les nouveaux workflows démarrent désactivés. Utilisez cet interrupteur comme filet de sécurité — construisez, testez avec **Run Manually**, vérifiez les journaux, puis activez-le.
+Mais un workflow ne s'exécute réellement que si **Activé** est activé dans Settings. Les nouveaux workflows démarrent désactivés. Utilisez cet interrupteur comme filet de sécurité — construisez, testez avec **Run Manually**, vérifiez les journaux, puis activez-le.
 
-Pour mettre un workflow en pause sans le supprimer, désactivez **Enabled**. Les exécutions déjà en cours se terminent ; aucune nouvelle ne démarre.
+Pour mettre un workflow en pause sans le supprimer, désactivez **Activé**. Les exécutions déjà en cours se terminent ; aucune nouvelle ne démarre.
 
 ## Mettre de l'ordre
 

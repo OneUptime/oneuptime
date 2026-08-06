@@ -10,7 +10,7 @@ Nutzen Sie diesen Schalter als „startbereit"-Schranke:
 
 1. Bauen Sie den Workflow.
 2. Klicken Sie mit einer realistischen Payload auf **Manuell ausführen**.
-3. Prüfen Sie die **Logs** – stellen Sie sicher, dass jeder Baustein dorthin geführt hat, wo Sie ihn erwartet haben.
+3. Prüfen Sie die **Protokolle** – stellen Sie sicher, dass jeder Baustein dorthin geführt hat, wo Sie ihn erwartet haben.
 4. Schalten Sie **Aktiviert** ein.
 
 Das Ausschalten eines Workflows stoppt keine bereits laufenden Ausführungen; es verhindert lediglich das Starten neuer.
@@ -18,9 +18,9 @@ Das Ausschalten eines Workflows stoppt keine bereits laufenden Ausführungen; es
 ## Eigentümer und Labels
 
 - **Eigentümer** – Benutzer und Teams, die als Eigentümer aufgeführt sind, erhalten Zugriff auf den Workflow und können sich für Benachrichtigungen bei Fehlern eintragen. Sie legen sie unter **Einstellungen → Eigentümer** fest.
-- **Labels** – Schlagworte zum Gruppieren von Workflows. In der Workflow-Liste können Sie nach Label filtern, was die Navigation in einem geschäftigen Projekt deutlich erleichtert. Praktisch, wenn Sie Workflows nach Team, Integration oder Umgebung organisieren.
-- **Label-Regeln** – unter **Workflows → Einstellungen → Label-Regeln** können Sie neuen Workflows automatisch Labels anhand von Namens- oder Beschreibungsmustern zuweisen.
-- **Eigentümer-Regeln** – unter **Workflows → Einstellungen → Eigentümer-Regeln** können Sie neuen Workflows automatisch Eigentümer zuweisen.
+- **Beschriftungen** – Schlagworte zum Gruppieren von Workflows. In der Workflow-Liste können Sie nach Label filtern, was die Navigation in einem geschäftigen Projekt deutlich erleichtert. Praktisch, wenn Sie Workflows nach Team, Integration oder Umgebung organisieren.
+- **Beschriftungsregeln** – unter **Arbeitsabläufe → Einstellungen → Beschriftungsregeln** können Sie neuen Workflows automatisch Labels anhand von Namens- oder Beschreibungsmustern zuweisen.
+- **Eigentümerregeln** – unter **Arbeitsabläufe → Einstellungen → Eigentümerregeln** können Sie neuen Workflows automatisch Eigentümer zuweisen.
 
 ## Geheimnisse
 
@@ -64,7 +64,7 @@ API- und andere HTTP-Bausteine stellen ihre Anfragen aus OneUptime heraus. Wenn 
 Workflows respektieren die rollenbasierte Zugriffskontrolle Ihres Projekts. Die relevanten Berechtigungen:
 
 - **Workflow erstellen / lesen / bearbeiten / löschen** – die Grundberechtigungen am Workflow selbst.
-- **Workflow ausführen** – wird benötigt, um **Manuell ausführen** anzuklicken oder einen Workflow per API auszulösen.
+- **Arbeitsablauf ausführen** – wird benötigt, um **Manuell ausführen** anzuklicken oder einen Workflow per API auszulösen.
 - **Workflow-Logs lesen** – wird benötigt, um Ausführungen einzusehen.
 - **Workflow-Variable lesen / erstellen / bearbeiten / löschen** – Kontrolle über die Liste der globalen Variablen.
 

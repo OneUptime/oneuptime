@@ -10,7 +10,7 @@ Den här sidan är **installationsguiden**. För att konfigurera Docker-monitore
 
 - Docker Engine 20.10+
 - Åtkomst till `/var/run/docker.sock` på värden
-- En **OneUptime Telemetry Ingestion Token** — skapa en från _Project Settings → Telemetri och APM → Intagningsnycklar_ och kopiera värdet
+- En **OneUptime Telemetry Ingestion Token** — skapa en från _Projektinställningar → Telemetri och APM → Intagningsnycklar_ och kopiera värdet
 
 ## Snabbstart (ett kommando)
 
@@ -67,7 +67,7 @@ docker compose up -d
 | Variabel                  | Obligatorisk | Beskrivning                                                                                                                             |
 | ------------------------- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
 | `ONEUPTIME_URL`           | Ja           | URL till din OneUptime-instans (till exempel `https://oneuptime.com` eller din självhostade värd)                                       |
-| `ONEUPTIME_SERVICE_TOKEN` | Ja           | Telemetry ingestion-token från _Project Settings → Telemetri och APM → Intagningsnycklar_                                                            |
+| `ONEUPTIME_SERVICE_TOKEN` | Ja           | Telemetry ingestion-token från _Projektinställningar → Telemetri och APM → Intagningsnycklar_                                                            |
 | `DOCKER_HOST_NAME`        | Nej          | Användarvänligt namn för den här värden. Standardvärdet är `docker-host`. Ange det till något stabilt per värd (t.ex. `prod-docker-01`) |
 
 ## Verifiera installationen

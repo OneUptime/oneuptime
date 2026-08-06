@@ -10,7 +10,7 @@ Pour ajouter un secret, veuillez aller dans le tableau de bord OneUptime -> Moni
 
 Vous pouvez sélectionner quels moniteurs ont accès au secret. Dans ce cas, nous avons ajouté le secret `ApiKey` et sélectionné des moniteurs pour y avoir accès.
 
-**Remarque importante** : Les secrets sont chiffrés et stockés de manière sécurisée. La valeur n'est plus jamais affichée après son enregistrement — ni dans le tableau, ni dans le formulaire d'édition, ni via l'API. Si vous perdez la valeur, vous devrez la récupérer à sa source et la saisir à nouveau. Pour faire tourner un secret, utilisez le bouton **Update Secret Value** sur sa ligne ; inutile de le supprimer et de le recréer.
+**Remarque importante** : Les secrets sont chiffrés et stockés de manière sécurisée. La valeur n'est plus jamais affichée après son enregistrement — ni dans le tableau, ni dans le formulaire d'édition, ni via l'API. Si vous perdez la valeur, vous devrez la récupérer à sa source et la saisir à nouveau. Pour faire tourner un secret, utilisez le bouton **Mettre à jour la valeur secrète** sur sa ligne ; inutile de le supprimer et de le recréer.
 
 ### Utiliser un secret
 

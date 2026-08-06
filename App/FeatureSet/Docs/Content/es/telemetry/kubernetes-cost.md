@@ -19,8 +19,8 @@ En aproximadamente una hora (la primera ventana horaria cerrada), obtienes:
 
 - Una **página de Costs por clúster** (_Kubernetes → tu clúster → Costs_): tendencia del gasto, gasto por namespace con desglose de cpu/memoria/almacenamiento, gasto por carga de trabajo, gasto ocioso y eficiencia.
 - Una **página de Costs a nivel de proyecto** (_Kubernetes → Costs_): el gasto de todos los clústeres del proyecto.
-- Una **plantilla de panel Kubernetes Cost** (_Dashboards → Create → Kubernetes Cost Dashboard_): tendencias del costo por hora de los nodos, costos unitarios de CPU/RAM, gasto en volúmenes persistentes y balanceadores de carga.
-- Métricas de costo sin procesar (`node_total_hourly_cost`, `pv_hourly_cost`, ...) en el **Metric Explorer**, utilizables en paneles personalizados y alertas de métricas.
+- Una **plantilla de panel Kubernetes Cost** (_Paneles → Crear → Kubernetes Cost Dashboard_): tendencias del costo por hora de los nodos, costos unitarios de CPU/RAM, gasto en volúmenes persistentes y balanceadores de carga.
+- Métricas de costo sin procesar (`node_total_hourly_cost`, `pv_hourly_cost`, ...) en el **Explorador de métricas**, utilizables en paneles personalizados y alertas de métricas.
 
 ## Cómo funciona
 

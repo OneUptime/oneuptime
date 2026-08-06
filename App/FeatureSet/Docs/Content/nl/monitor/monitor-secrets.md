@@ -10,7 +10,7 @@ Om een secret toe te voegen, ga naar OneUptime Dashboard -> Monitoren -> Instell
 
 U kunt selecteren welke monitors toegang hebben tot het secret. In dit geval hebben we het secret `ApiKey` toegevoegd en monitors geselecteerd die er toegang toe hebben.
 
-**Let op**: Secrets worden versleuteld en veilig opgeslagen. De waarde wordt na het opslaan nooit meer getoond — niet in de tabel, niet in het bewerkformulier en niet via de API. Als u de waarde kwijtraakt, moet u die opnieuw bij de bron ophalen en opnieuw instellen. Gebruik de knop **Update Secret Value** op de rij om een secret te roteren; verwijderen en opnieuw aanmaken is niet nodig.
+**Let op**: Secrets worden versleuteld en veilig opgeslagen. De waarde wordt na het opslaan nooit meer getoond — niet in de tabel, niet in het bewerkformulier en niet via de API. Als u de waarde kwijtraakt, moet u die opnieuw bij de bron ophalen en opnieuw instellen. Gebruik de knop **Geheime waarde bijwerken** op de rij om een secret te roteren; verwijderen en opnieuw aanmaken is niet nodig.
 
 ### Een secret gebruiken
 

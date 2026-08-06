@@ -89,7 +89,7 @@ For sensitive values, store the certificate and key as [Monitor Secrets](/docs/m
 
 Vous pouvez configurer des critères pour déterminer quand votre site Web est considéré comme en ligne, dégradé ou hors ligne en fonction de :
 
-- **Code de statut de réponse** — Vérifier si le code de statut HTTP correspond aux valeurs attendues (ex. : 200, 301)
+- **Code de statut de la réponse** — Vérifier si le code de statut HTTP correspond aux valeurs attendues (ex. : 200, 301)
 - **Temps de réponse** — Surveiller si le temps de réponse dépasse un seuil
 - **Corps de la réponse** — Vérifier si le corps de la réponse contient ou correspond à un contenu spécifique
 - **En-têtes de réponse** — Vérifier que des en-têtes de réponse spécifiques sont présents ou correspondent aux valeurs attendues

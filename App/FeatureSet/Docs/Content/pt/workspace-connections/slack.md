@@ -9,7 +9,7 @@
 
 2. **Conectar o Slack ao Projeto OneUptime**
 
-   - Navegue para **Project Settings** > **Slack** dentro do seu projeto OneUptime.
+   - Navegue para **Configurações do projeto** > **Slack** dentro do seu projeto OneUptime.
    - Siga os prompts para conectar sua conta do Slack ao projeto OneUptime.
 
 3. **Configurar Notificações de Incidentes**

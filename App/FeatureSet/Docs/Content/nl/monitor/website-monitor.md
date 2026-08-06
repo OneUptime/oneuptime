@@ -14,8 +14,8 @@ Website-monitors controleren uw webpagina's door HTTP-verzoeken te doen en de re
 
 ## Een Website Monitor aanmaken
 
-1. Ga naar **Monitors** in het OneUptime-dashboard
-2. Klik op **Monitor aanmaken**
+1. Ga naar **Monitoren** in het OneUptime-dashboard
+2. Klik op **Monitor maken**
 3. Selecteer **Website** als het monitortype
 4. Voer de website-URL in die u wilt bewaken
 5. Configureer monitoringcriteria naar wens
@@ -89,7 +89,7 @@ For sensitive values, store the certificate and key as [Monitor Secrets](/docs/m
 
 U kunt criteria configureren om te bepalen wanneer uw website als online, gedegradeerd of offline wordt beschouwd op basis van:
 
-- **Responsstatuscode** - Controleer of de HTTP-statuscode overeenkomt met verwachte waarden (bijv. 200, 301)
-- **Responstijd** - Bewaken of de responstijd een drempelwaarde overschrijdt
-- **Responslichaam** - Controleer of het responslichaam specifieke inhoud bevat of overeenkomt
-- **Responsheaders** - Verifieer of specifieke responsheaders aanwezig zijn of verwachte waarden hebben
+- **Reactiestatuscode** - Controleer of de HTTP-statuscode overeenkomt met verwachte waarden (bijv. 200, 301)
+- **Reactietijd** - Bewaken of de responstijd een drempelwaarde overschrijdt
+- **Antwoordlichaam** - Controleer of het responslichaam specifieke inhoud bevat of overeenkomt
+- **Reactieheaders** - Verifieer of specifieke responsheaders aanwezig zijn of verwachte waarden hebben

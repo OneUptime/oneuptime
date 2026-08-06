@@ -14,8 +14,8 @@ Docker-monitors gebruiken metrics en logboeken van uw hosts om inzicht te bieden
 
 ## Een Docker Monitor aanmaken
 
-1. Ga naar **Monitors** in het OneUptime-dashboard
-2. Klik op **Monitor aanmaken**
+1. Ga naar **Monitoren** in het OneUptime-dashboard
+2. Klik op **Monitor maken**
 3. Selecteer **Docker** als het monitortype
 4. Selecteer de te bewaken Docker-host en resourcebereik
 5. Configureer metriekopvragen en aggregatie

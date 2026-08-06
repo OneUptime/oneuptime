@@ -16,16 +16,16 @@ Prometheus rule fires  ──►  Alertmanager webhook receiver  ──►  OneU
 
 ## Schritt 1 — Den OneUptime-Workflow erstellen
 
-1. Öffnen Sie **Workflows → Create Workflow**, benennen Sie ihn `Alertmanager → Incidents`, und öffnen Sie den **Builder**.
+1. Öffnen Sie **Arbeitsabläufe → Workflow erstellen**, benennen Sie ihn `Alertmanager → Incidents`, und öffnen Sie den **Builder**.
 2. Fügen Sie einen **Webhook**-Auslöser hinzu und **kopieren Sie seine URL**. Benennen Sie den Block in `Alertmanager` um.
-3. Fügen Sie einen **Conditions**-Block verbunden mit dem Auslöser hinzu:
+3. Fügen Sie einen **Bedingungen**-Block verbunden mit dem Auslöser hinzu:
    - **Links**: `{{Alertmanager.Request Body.status}}`
    - **Operator**: `==`
    - **Rechts**: `firing`
-4. Fügen Sie von **Yes** aus einen **Create Incident**-Block hinzu:
-   - **Title**: `{{Alertmanager.Request Body.commonAnnotations.summary}}`
-   - **Description**: `{{Alertmanager.Request Body.commonAnnotations.description}}\nAlert: {{Alertmanager.Request Body.commonLabels.alertname}}`
-   - **Severity**: Wählen Sie einen (oder verzweigen Sie zuerst auf `{{Alertmanager.Request Body.commonLabels.severity}}`).
+4. Fügen Sie von **Ja** aus einen **Vorfall erstellen**-Block hinzu:
+   - **Titel**: `{{Alertmanager.Request Body.commonAnnotations.summary}}`
+   - **Beschreibung**: `{{Alertmanager.Request Body.commonAnnotations.description}}\nAlert: {{Alertmanager.Request Body.commonLabels.alertname}}`
+   - **Schweregrad**: Wählen Sie einen (oder verzweigen Sie zuerst auf `{{Alertmanager.Request Body.commonLabels.severity}}`).
 5. **Speichern** (lassen Sie es bis zum Test deaktiviert).
 
 > **Über gruppierte Alarme.** Alertmanager gruppiert Alarme und sendet ein `alerts`-**Array**. Die oben genannten `commonLabels` und `commonAnnotations` sind die Felder, die für die Gruppe gemeinsam sind – ideal für einen Vorfall pro Benachrichtigung. Wenn Sie **einen Vorfall pro Alarm** möchten, fügen Sie einen [Custom Code](/docs/workflows/components#custom-code)-Block hinzu, der über `Request Body.alerts` iteriert und für jeden einen Vorfall erstellt. Stellen Sie die Gruppierung mit `group_by` in Ihrer Route ein.
@@ -60,16 +60,16 @@ Laden Sie Alertmanager neu (`curl -X POST http://localhost:9093/-/reload` oder s
    amtool alert add test_alert severity=warning --annotation=summary="Test from Alertmanager" --alertmanager.url=http://localhost:9093
    ```
 
-3. Prüfen Sie den Tab **Logs** des Workflows und Ihre **Incidents**-Liste.
+3. Prüfen Sie den Tab **Protokolle** des Workflows und Ihre **Vorfälle**-Liste.
 
 ## Bei Wiederherstellung auflösen (optional)
 
-Mit `send_resolved: true` sendet Alertmanager auch einen POST, wenn ein Alarm sich auflöst, diesmal mit `status: resolved`. Fügen Sie einen zweiten **Conditions**-Zweig hinzu (`status == resolved`), suchen Sie den passenden Vorfall (gleichen Sie auf `commonLabels.alertname` ab), und bewegen Sie ihn mit **Update Incident** in Ihren aufgelösten Zustand.
+Mit `send_resolved: true` sendet Alertmanager auch einen POST, wenn ein Alarm sich auflöst, diesmal mit `status: resolved`. Fügen Sie einen zweiten **Bedingungen**-Zweig hinzu (`status == resolved`), suchen Sie den passenden Vorfall (gleichen Sie auf `commonLabels.alertname` ab), und bewegen Sie ihn mit **Update Incident** in Ihren aufgelösten Zustand.
 
 ## Fehlerbehebung
 
-- **Kein Lauf erscheint** — bestätigen Sie, dass Alertmanager die URL erreichen kann (prüfen Sie dessen Logs auf Zustellfehler) und dass der Workflow **Enabled** ist.
-- **Vorfallsfelder sind leer** — verschiedene Regeln setzen unterschiedliche Annotationen. Prüfen Sie die Trigger-Ausgabe im Tab **Logs** und referenzieren Sie Felder, die tatsächlich vorhanden sind (`commonAnnotations` vs. `annotations` pro Alarm).
+- **Kein Lauf erscheint** — bestätigen Sie, dass Alertmanager die URL erreichen kann (prüfen Sie dessen Logs auf Zustellfehler) und dass der Workflow **Aktiviert** ist.
+- **Vorfallsfelder sind leer** — verschiedene Regeln setzen unterschiedliche Annotationen. Prüfen Sie die Trigger-Ausgabe im Tab **Protokolle** und referenzieren Sie Felder, die tatsächlich vorhanden sind (`commonAnnotations` vs. `annotations` pro Alarm).
 - **Zu viele Vorfälle** — erhöhen Sie `group_by`/`group_interval`, damit Alertmanager verwandte Alarme zusammenfasst.
 
 ## Weiterführende Themen

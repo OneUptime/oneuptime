@@ -1,6 +1,6 @@
 # Criando um Workflow
 
-Para criar um workflow, abra **Workflows → Criar Workflow**, dê um nome a ele e clique na aba **Builder**. Você verá um canvas em branco onde vai construir a automação.
+Para criar um workflow, abra **Fluxos de trabalho → Criar fluxo de trabalho**, dê um nome a ele e clique na aba **Construtor**. Você verá um canvas em branco onde vai construir a automação.
 
 ## O canvas
 
@@ -38,11 +38,11 @@ A maioria dos campos de texto aceita variáveis — é assim que os dados fluem 
 A forma mais rápida de se familiarizar com o canvas:
 
 1. Arraste um gatilho **Manual** para o canvas.
-2. Arraste um componente **Log** (em **Utils**) ao lado dele. Conecte o gatilho ao componente Log.
+2. Arraste um componente **Registro** (em **Utils**) ao lado dele. Conecte o gatilho ao componente Log.
 3. No campo de mensagem do bloco Log, digite `Hello from {{Manual.JSON.name}}`.
 4. Salve e ative o workflow.
 5. Clique em **Executar Manualmente**, cole `{ "name": "Ada" }` como entrada e envie.
-6. Abra a aba **Logs**. A execução mais recente mostra `Hello from Ada`.
+6. Abra a aba **Registros**. A execução mais recente mostra `Hello from Ada`.
 
 Esse ciclo — arrastar, conectar, configurar, executar, verificar o log — é como você vai construir todos os workflows.
 
@@ -50,9 +50,9 @@ Esse ciclo — arrastar, conectar, configurar, executar, verificar o log — é 
 
 O canvas salva enquanto você trabalha. Não há um passo separado de "publicar".
 
-Mas um workflow só roda de verdade quando **Ativado** está ligado nas Configurações. Workflows novos começam desativados. Use esse interruptor como sua rede de segurança — construa, teste com **Executar Manualmente**, verifique os logs e então ative.
+Mas um workflow só roda de verdade quando **Habilitado** está ligado nas Configurações. Workflows novos começam desativados. Use esse interruptor como sua rede de segurança — construa, teste com **Executar Manualmente**, verifique os logs e então ative.
 
-Para pausar um workflow sem excluí-lo, desligue **Ativado**. Execuções já em andamento terminam; nenhuma nova começa.
+Para pausar um workflow sem excluí-lo, desligue **Habilitado**. Execuções já em andamento terminam; nenhuma nova começa.
 
 ## Organização
 

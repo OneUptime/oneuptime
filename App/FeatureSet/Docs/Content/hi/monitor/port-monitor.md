@@ -13,9 +13,9 @@ Port monitors test करते हैं कि एक specific network port co
 
 ## Port Monitor बनाना
 
-1. OneUptime Dashboard में **Monitors** पर जाएं
-2. **Create Monitor** पर क्लिक करें
-3. monitor type के रूप में **Port** चुनें
+1. OneUptime Dashboard में **मॉनिटर** पर जाएं
+2. **मॉनिटर बनाएं** पर क्लिक करें
+3. monitor type के रूप में **पोर्ट** चुनें
 4. hostname या IP address और port number दर्ज करें
 5. आवश्यकतानुसार monitoring criteria configure करें
 
@@ -59,7 +59,7 @@ monitor करने के लिए port number दर्ज करें (1�
 - **True** — condition true है
 - **False** — condition false है
 
-**Response Time** के लिए:
+**प्रतिक्रिया समय** के लिए:
 
 - **Greater Than** — Response time एक threshold से अधिक है
 - **Less Than** — Response time एक threshold से कम है
@@ -74,16 +74,16 @@ monitor करने के लिए port number दर्ज करें (1�
 #### Port closed होने पर offline mark करें
 
 - **Check On**: Is Online
-- **Filter Type**: False
+- **फ़िल्टर प्रकार**: False
 
 #### Connection time 500ms से अधिक होने पर Alert करें
 
 - **Check On**: Response Time (in ms)
-- **Filter Type**: Greater Than
-- **Value**: 500
+- **फ़िल्टर प्रकार**: Greater Than
+- **मान**: 500
 
 #### Connection slow होने पर degraded mark करें
 
 - **Check On**: Response Time (in ms)
-- **Filter Type**: Greater Than
-- **Value**: 200
+- **फ़िल्टर प्रकार**: Greater Than
+- **मान**: 200

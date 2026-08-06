@@ -141,7 +141,7 @@ Model Name: meta-llama/Llama-3.1-8B-Instruct
 API Key: (leave blank)
 ```
 
-> Consejo: Después de guardar, usa el botón **Test** en el proveedor para confirmar que la conexión, el nombre del modelo y la URL base son correctos.
+> Consejo: Después de guardar, usa el botón **Probar** en el proveedor para confirmar que la conexión, el nombre del modelo y la URL base son correctos.
 
 ### vLLM auto-alojado en Kubernetes (Helm)
 

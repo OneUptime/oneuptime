@@ -13,7 +13,7 @@ IP-monitorer verifierar att en specifik IP-adress är nåbar och svarar. Detta g
 
 ## Skapa en IP-monitor
 
-1. Gå till **Monitorer** i OneUptime-instrumentpanelen
+1. Gå till **Övervakare** i OneUptime-instrumentpanelen
 2. Klicka på **Skapa monitor**
 3. Välj **IP** som monitortyp
 4. Ange den IP-adress du vill övervaka

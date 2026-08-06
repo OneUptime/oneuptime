@@ -9,7 +9,7 @@
 
 2. **Koble Slack til OneUptime-prosjektet**
 
-   - Naviger til **Project Settings** > **Slack** innenfor OneUptime-prosjektet ditt.
+   - Naviger til **Prosjektinnstillinger** > **Slack** innenfor OneUptime-prosjektet ditt.
    - Følg instruksjonene for å koble Slack-kontoen din til OneUptime-prosjektet.
 
 3. **Konfigurer hendelsesvarsler**

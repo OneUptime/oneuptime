@@ -37,7 +37,7 @@ O OneUptime atualmente suporta os seguintes provedores de LLM:
 ### Passo 1: Navegar para as Configurações de Provedores de LLM
 
 1. Faça login no seu painel do OneUptime
-2. Vá para **Agentes de IA** > **Provedores de LLM**
+2. Vá para **Agentes de IA** > **Provedores LLM**
 3. Clique em **Criar Provedor de LLM** para adicionar um novo provedor
 
 ### Passo 2: Configurar Seu Provedor
@@ -46,10 +46,10 @@ Preencha os seguintes campos:
 
 - **Nome**: Um nome amigável para esta configuração de LLM (ex.: "OpenAI de Produção", "Ollama Local")
 - **Descrição** (opcional): Uma descrição para ajudar a identificar o propósito deste provedor
-- **Tipo de LLM**: Selecione o tipo de provedor (OpenAI, Azure OpenAI, Anthropic, Groq, Mistral, Ollama ou OpenAI Compatible)
+- **Provedor LLM**: Selecione o tipo de provedor (OpenAI, Azure OpenAI, Anthropic, Groq, Mistral, Ollama ou OpenAI Compatible)
 - **Chave de API**: Sua chave de API (obrigatória para OpenAI, Azure OpenAI, Anthropic, Groq e Mistral; opcional para Ollama e servidores compatíveis com OpenAI)
 - **Nome do Modelo**: O modelo específico a ser usado (ex.: `gpt-4o`, `claude-3-opus-20240229`, `llama2`)
-- **URL Base** (opcional): URL do endpoint de API personalizado (obrigatória para Azure OpenAI, Ollama e OpenAI Compatible; opcional para outros)
+- **URL base** (opcional): URL do endpoint de API personalizado (obrigatória para Azure OpenAI, Ollama e OpenAI Compatible; opcional para outros)
 
 ## Configuração Específica por Provedor
 
@@ -127,7 +127,7 @@ Use o provedor **OpenAI Compatible** para qualquer servidor que implemente a API
 
 1. Inicie seu servidor compatível com OpenAI e anote sua URL base (geralmente termina em `/v1`)
 2. Selecione **OpenAI Compatible** como o Tipo de LLM
-3. Insira a **URL Base** (obrigatória), ex.: `http://your-server:8000/v1`
+3. Insira a **URL base** (obrigatória), ex.: `http://your-server:8000/v1`
 4. Insira o **Nome do Modelo** (obrigatório) — deve corresponder a um modelo exposto pelo seu servidor
 5. Insira a **Chave de API** somente se o seu servidor exigir uma; deixe em branco para servidores sem autenticação
 
@@ -141,7 +141,7 @@ Nome do Modelo: meta-llama/Llama-3.1-8B-Instruct
 Chave de API: (deixe em branco)
 ```
 
-> Dica: Após salvar, use o botão **Test** no provedor para confirmar que a conexão, o nome do modelo e a URL base estão corretos.
+> Dica: Após salvar, use o botão **Testar** no provedor para confirmar que a conexão, o nome do modelo e a URL base estão corretos.
 
 ### vLLM Auto-Hospedado no Kubernetes (Helm)
 

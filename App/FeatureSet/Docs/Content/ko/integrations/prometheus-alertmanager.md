@@ -16,7 +16,7 @@ Prometheus rule fires  ──►  Alertmanager webhook receiver  ──►  OneU
 
 ## 1단계 — OneUptime 워크플로 구성
 
-1. **Workflows → Create Workflow** 를 열고, 이름을 `Alertmanager → Incidents` 로 지정하고 **Builder** 를 엽니다.
+1. **워크플로 → 워크플로 생성** 을 열고, 이름을 `Alertmanager → Incidents` 로 지정하고 **빌더** 를 엽니다.
 2. **Webhook** 트리거를 추가하고 **URL을 복사합니다**. 블록 이름을 `Alertmanager` 로 변경합니다.
 3. 트리거에 연결된 **Conditions** 블록을 추가합니다:
    - **Left**: `{{Alertmanager.Request Body.status}}`
@@ -60,7 +60,7 @@ Alertmanager를 다시 로드합니다(`curl -X POST http://localhost:9093/-/rel
    amtool alert add test_alert severity=warning --annotation=summary="Test from Alertmanager" --alertmanager.url=http://localhost:9093
    ```
 
-3. 워크플로의 **Logs** 탭과 **Incidents** 목록을 확인합니다.
+3. 워크플로의 **로그** 탭과 **인시던트** 목록을 확인합니다.
 
 ## 복구 시 해결 (선택 사항)
 
@@ -68,8 +68,8 @@ Alertmanager를 다시 로드합니다(`curl -X POST http://localhost:9093/-/rel
 
 ## 문제 해결
 
-- **실행이 나타나지 않습니다** — Alertmanager가 URL에 도달할 수 있는지 확인합니다(로그에서 전달 오류를 확인) 그리고 워크플로가 **Enabled** 상태인지 확인합니다.
-- **인시던트 필드가 비어 있습니다** — 규칙마다 다른 어노테이션을 설정합니다. **Logs** 탭에서 트리거 출력을 검사하고 실제로 존재하는 필드를 참조합니다(`commonAnnotations` vs 알림별 `annotations`).
+- **실행이 나타나지 않습니다** — Alertmanager가 URL에 도달할 수 있는지 확인합니다(로그에서 전달 오류를 확인) 그리고 워크플로가 **활성화됨** 상태인지 확인합니다.
+- **인시던트 필드가 비어 있습니다** — 규칙마다 다른 어노테이션을 설정합니다. **로그** 탭에서 트리거 출력을 검사하고 실제로 존재하는 필드를 참조합니다(`commonAnnotations` vs 알림별 `annotations`).
 - **인시던트가 너무 많습니다** — `group_by`/`group_interval` 을 늘려 Alertmanager가 관련 알림을 배치 처리하도록 합니다.
 
 ## 다음에 읽어 볼 내용

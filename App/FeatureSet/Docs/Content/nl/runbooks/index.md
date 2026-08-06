@@ -4,7 +4,7 @@ Runbooks zijn herbruikbare responsprocedures — geordende lijsten van handmatig
 
 ## In één oogopslag
 
-- **Top-level feature** in het OneUptime-dashboard onder **Products → Runbooks**.
+- **Top-level feature** in het OneUptime-dashboard onder **Producten → Runbooks**.
 - **Vijf staptypes**: Handmatige checklist, JavaScript (in sandbox) en Bash (beide draaien op een [Runbook-agent](/docs/runbooks/agents) in je eigen infrastructuur), HTTP-verzoek, en AI (analyseert incident- en stapcontext met de LLM-provider van je project).
 - **Drie triggerpaden**: regels die matchen op incidenten/alerts/gepland onderhoud, of een handmatige "Runbook uitvoeren"-knop op elk event.
 - **Snapshot-semantiek**: zodra een runbook start, worden zijn stappen naar de uitvoering gekopieerd. Het later bewerken van de template wijzigt nooit een lopende run.
@@ -38,7 +38,7 @@ Een paar termen komen telkens terug in de rest van de runbook-docs. Krijg deze e
 2. **(Optioneel) Een regel toevoegen** — Vertel OneUptime in de instellingen van Incidenten, Alerts of Gepland Onderhoud om dit runbook te starten zodra de titel of beschrijving van een event matcht met een regex.
 3. **Triggeren** — Of de regel gaat automatisch af bij het aanmaken van een passend event, of een responder klikt handmatig op **Runbook uitvoeren** op het event.
 4. **Uitvoeren** — Er wordt een nieuwe uitvoering aangemaakt met een snapshot van de stappen. Geautomatiseerde stappen draaien inline op de Runbook-worker; de uitvoering pauzeert bij elke handmatige stap totdat iemand hem afvinkt.
-5. **Auditeren** — De uitvoering blijft voor altijd op het **Runbooks**-tabblad van het event en op de **Executions**-lijst van het runbook staan. Output, fouten en timings per stap worden bewaard voor de post-mortem.
+5. **Auditeren** — De uitvoering blijft voor altijd op het **Runbooks**-tabblad van het event en op de **Uitvoeringen**-lijst van het runbook staan. Output, fouten en timings per stap worden bewaard voor de post-mortem.
 
 ## Wanneer welk staptype gebruiken
 
@@ -56,14 +56,14 @@ Je kunt alle vijf mixen in één runbook — de kracht van runbooks is dat je me
 
 ## Waar runbooks leven in het dashboard
 
-| Pagina                                                                    | Wat je daar doet                                                                                            |
-| ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| **Products → Runbooks**                                     | Runbook-templates doorbladeren, aanmaken en bewerken.                                                       |
-| **Het Steps-tabblad van een runbook**                                     | De staplijst schrijven en herordenen.                                                                       |
-| **Het Executions-tabblad van een runbook**                                | Elke run van dit runbook zien met statusfilters.                                                            |
-| **De "Nu uitvoeren"-knop van een runbook**                                | Een ad-hoc uitvoering starten die niet aan een event hangt.                                                 |
-| **Incidents / Alerts / Scheduled Maintenance → Settings → Runbook Rules** | De auto-trigger-regels per entiteitstype aanmaken.                                                          |
-| **Een incident / alert / onderhoudsmoment → Runbooks-tabblad**            | De uitvoeringen zien die aan dit event hangen, en klikken op **Runbook uitvoeren** voor een handmatige run. |
+| Pagina                                                                               | Wat je daar doet                                                                                            |
+| ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| **Producten → Runbooks**                                                             | Runbook-templates doorbladeren, aanmaken en bewerken.                                                       |
+| **Het Stappen-tabblad van een runbook**                                              | De staplijst schrijven en herordenen.                                                                       |
+| **Het Uitvoeringen-tabblad van een runbook**                                         | Elke run van dit runbook zien met statusfilters.                                                            |
+| **De "Nu uitvoeren"-knop van een runbook**                                           | Een ad-hoc uitvoering starten die niet aan een event hangt.                                                 |
+| **Incidenten / Waarschuwingen / Geplande onderhoud → Instellingen → Runbook-regels** | De auto-trigger-regels per entiteitstype aanmaken.                                                          |
+| **Een incident / alert / onderhoudsmoment → Runbooks-tabblad**                       | De uitvoeringen zien die aan dit event hangen, en klikken op **Runbook uitvoeren** voor een handmatige run. |
 
 ## Veelvoorkomende use cases
 
@@ -89,7 +89,7 @@ Stel dat je wilt dat elk incident met "db-primary" in de titel automatisch een v
 | 4   | Handmatig  | Verifieer dat writes nu naar de nieuwe primary gaan |
 | 5   | HTTP       | All-clear posten naar `#db-incidents` Slack         |
 
-**2. Voeg een regel toe.** Onder **Incidents → Settings → Runbook Rules** maak je aan:
+**2. Voeg een regel toe.** Onder **Incidenten → Instellingen → Runbook-regels** maak je aan:
 
 ```
 Title Pattern:  ^db-primary
@@ -99,7 +99,7 @@ Runbooks:       [DB primary failover]
 **3. Triggeren.** Een monitoralarm opent incident `INC-4821 · db-primary connection timeout`. De regel matcht, er wordt een uitvoering aangemaakt, en:
 
 - Stap 1 (JavaScript) draait meteen op de worker — zijn `return { lagMs: 412 }`-waarde wordt vastgelegd.
-- Stap 2 (Handmatig) pauzeert de run. De dienstdoende ziet een "Wacht op jou"-label op de incidentpagina, klikt op het dashboard en vinkt de stap af.
+- Stap 2 (Handmatig) pauzeert de run. De dienstdoende ziet een "Wacht op u"-label op de incidentpagina, klikt op het dashboard en vinkt de stap af.
 - Stap 3 (HTTP) draait zodra stap 2 is afgevinkt — de `POST`-responsbody wordt vastgelegd.
 - Stap 4 (Handmatig) pauzeert opnieuw.
 - Stap 5 (HTTP) draait en de uitvoering eindigt.
@@ -108,8 +108,8 @@ Runbooks:       [DB primary failover]
 
 ## Hoe runbooks samen werken met de rest van OneUptime
 
-- **Monitors** openen incidenten en alerts; **runbook-regels** zetten die events om in runbook-uitvoeringen. Samen vormen ze een gesloten lus: detecteren → triggeren → reageren → vastleggen.
-- **Workspace-verbindingen** (Slack, Microsoft Teams) zijn een natuurlijk doel voor runbook-HTTP-stappen — status-updates posten, kanalen informeren.
+- **Monitoren** openen incidenten en alerts; **runbook-regels** zetten die events om in runbook-uitvoeringen. Samen vormen ze een gesloten lus: detecteren → triggeren → reageren → vastleggen.
+- **Werkruimte-verbindingen** (Slack, Microsoft Teams) zijn een natuurlijk doel voor runbook-HTTP-stappen — status-updates posten, kanalen informeren.
 - **Statuspagina's** worden vaak als handmatige stap bijgewerkt in een klant-impacterend runbook.
 - **Piketroosters** bepalen wie gepaged wordt; runbooks bepalen wat die persoon doet zodra hij wakker is.
 

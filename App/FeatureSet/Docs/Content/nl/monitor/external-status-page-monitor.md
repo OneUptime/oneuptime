@@ -38,8 +38,8 @@ Bij instelling op **Automatisch** probeert OneUptime het formaat van de statuspa
 
 ## Een Externe statuspagina-monitor aanmaken
 
-1. Ga naar **Monitors** in het OneUptime-dashboard
-2. Klik op **Monitor aanmaken**
+1. Ga naar **Monitoren** in het OneUptime-dashboard
+2. Klik op **Monitor maken**
 3. Selecteer **Externe statuspagina** als het monitortype
 4. Voer de URL in van de statuspagina die u wilt bewaken
 5. Selecteer optioneel een specifiek providertype (of laat op **Automatisch**)
@@ -89,7 +89,7 @@ U kunt criteria configureren om te bepalen wanneer de externe dienst als operati
 - **Algehele status** – De algehele statusindicator van de statuspagina (bijv. `operational`, `degraded_performance`, `partial_outage`, `major_outage`)
 - **Componentstatus** – De status van de componenten binnen het bereik (met inachtneming van de filters op componentgroep / componentnaam)
 - **Actieve incidenten** – Het aantal momenteel actieve incidenten gerapporteerd op de statuspagina (beperkt tot de componentgroep / het component wanneer een filter is ingesteld)
-- **Responstijd** – Hoe lang het duurt om de statuspagina-gegevens op te halen
+- **Reactietijd** – Hoe lang het duurt om de statuspagina-gegevens op te halen
 
 ### Standaardcriteria
 

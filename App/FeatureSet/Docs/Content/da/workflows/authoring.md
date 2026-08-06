@@ -1,6 +1,6 @@
 # Opbygning af et workflow
 
-For at oprette et workflow åbner du **Workflows → Create Workflow**, giver det et navn og klikker dig ind på fanen **Builder**. Du ser et blankt lærred, hvor du bygger automatiseringen.
+For at oprette et workflow åbner du **Arbejdsgange → Opret arbejdsgang**, giver det et navn og klikker dig ind på fanen **Bygger**. Du ser et blankt lærred, hvor du bygger automatiseringen.
 
 ## Lærredet
 
@@ -10,12 +10,12 @@ Hvert workflow starter med én **trigger** i begyndelsen. Alt andet er en **komp
 
 ## Hvad der er på en blok
 
-| Felt         | Hvad det gør                                                                                                                                                |
-| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Title**    | Det navn, der vises på lærredet. Omdøb det for at gøre komplekse workflows lettere at læse.                                                                 |
-| **Settings** | Det, blokken har brug for til at udføre sit arbejde — en URL, en Slack-kanal, en beskedtekst osv. Påkrævede felter er markeret med en asterisk.             |
-| **Input**    | Prikken til venstre, hvor linjer kommer ind fra tidligere blokke.                                                                                           |
-| **Outputs**  | Prikkerne til højre, hvor linjer går ud til de næste blokke. Mange blokke har separate **success**- og **error**-output, så du kan håndtere begge tilfælde. |
+| Felt              | Hvad det gør                                                                                                                                                |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Titel**         | Det navn, der vises på lærredet. Omdøb det for at gøre komplekse workflows lettere at læse.                                                                 |
+| **Indstillinger** | Det, blokken har brug for til at udføre sit arbejde — en URL, en Slack-kanal, en beskedtekst osv. Påkrævede felter er markeret med en asterisk.             |
+| **Input**         | Prikken til venstre, hvor linjer kommer ind fra tidligere blokke.                                                                                           |
+| **Outputs**       | Prikkerne til højre, hvor linjer går ud til de næste blokke. Mange blokke har separate **success**- og **error**-output, så du kan håndtere begge tilfælde. |
 
 ## Forbind blokke
 
@@ -42,7 +42,7 @@ Den hurtigste måde at fornemme lærredet på:
 3. Skriv `Hello from {{Manual.JSON.name}}` i Log-blokkens beskedfelt.
 4. Gem og tænd for workflowet.
 5. Klik **Run Manually**, indsæt `{ "name": "Ada" }` som input, og indsend.
-6. Åbn fanen **Logs**. Den nyeste kørsel viser `Hello from Ada`.
+6. Åbn fanen **Protokoller**. Den nyeste kørsel viser `Hello from Ada`.
 
 Den cyklus — træk, forbind, konfigurér, kør, tjek loggen — er sådan, du bygger hvert workflow.
 
@@ -50,9 +50,9 @@ Den cyklus — træk, forbind, konfigurér, kør, tjek loggen — er sådan, du 
 
 Lærredet gemmer, mens du arbejder. Der er ikke noget separat "publicer"-skridt.
 
-Men et workflow kører kun rigtigt, når **Enabled** er slået til i Settings. Nye workflows starter deaktiverede. Brug den kontakt som dit sikkerhedsnet — byg det, test med **Run Manually**, tjek logfilerne, og tænd så for det.
+Men et workflow kører kun rigtigt, når **Aktiveret** er slået til i Settings. Nye workflows starter deaktiverede. Brug den kontakt som dit sikkerhedsnet — byg det, test med **Run Manually**, tjek logfilerne, og tænd så for det.
 
-For at sætte et workflow på pause uden at slette det skal du slå **Enabled** fra. Kørsler, der allerede er i gang, afsluttes; ingen nye starter.
+For at sætte et workflow på pause uden at slette det skal du slå **Aktiveret** fra. Kørsler, der allerede er i gang, afsluttes; ingen nye starter.
 
 ## Hold orden
 

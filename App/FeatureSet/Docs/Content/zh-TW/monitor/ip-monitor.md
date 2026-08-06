@@ -13,8 +13,8 @@ IP 監控會驗證特定 IP 位址是否可連線且能夠回應。這可讓您�
 
 ## 建立 IP 監控
 
-1. 前往 OneUptime Dashboard 中的 **Monitors**
-2. 點選 **Create Monitor**
+1. 前往 OneUptime Dashboard 中的 **監測**
+2. 點選 **建立監測器**
 3. 選擇 **IP** 作為監控類型
 4. 輸入您想要監控的 IP 位址
 5. 視需要設定監控條件
@@ -44,7 +44,7 @@ IP 監控會驗證特定 IP 位址是否可連線且能夠回應。這可讓您�
 - **True** — 條件為真
 - **False** — 條件為假
 
-對於 **Response Time**：
+對於 **回應時間**：
 
 - **Greater Than** — 回應時間超過某個閾值
 - **Less Than** — 回應時間低於某個閾值
@@ -59,10 +59,10 @@ IP 監控會驗證特定 IP 位址是否可連線且能夠回應。這可讓您�
 #### 若 IP 無法連線則標記為離線
 
 - **Check On**：Is Online
-- **Filter Type**：False
+- **篩選器類型**：False
 
 #### 若延遲超過 100ms 則發出警示
 
 - **Check On**：Response Time (in ms)
-- **Filter Type**：Greater Than
-- **Value**：100
+- **篩選器類型**：Greater Than
+- **值**：100

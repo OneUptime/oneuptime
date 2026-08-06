@@ -111,8 +111,8 @@ For sensitive values, store the certificate and key as [Monitor Secrets](/docs/m
 
 Vous pouvez configurer des critères pour déterminer quand votre API est considérée comme en ligne, dégradée ou hors ligne en fonction de :
 
-- **Code de statut de réponse** — Vérifiez si le code de statut HTTP correspond aux valeurs attendues (par ex., 200, 201)
+- **Code de statut de la réponse** — Vérifiez si le code de statut HTTP correspond aux valeurs attendues (par ex., 200, 201)
 - **Temps de réponse** — Surveillez si le temps de réponse dépasse un seuil
-- **Corps de réponse** — Vérifiez si le corps de réponse contient ou correspond à un contenu spécifique
+- **Corps de la réponse** — Vérifiez si le corps de réponse contient ou correspond à un contenu spécifique
 - **En-têtes de réponse** — Vérifiez que des en-têtes de réponse spécifiques sont présents ou correspondent aux valeurs attendues
 - **Expression JavaScript** — Écrivez des expressions personnalisées pour évaluer la réponse. Voir [Expressions JavaScript](/docs/monitor/javascript-expression) pour les détails.

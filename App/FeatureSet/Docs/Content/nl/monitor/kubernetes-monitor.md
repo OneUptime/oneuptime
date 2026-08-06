@@ -15,8 +15,8 @@ Kubernetes-monitors gebruiken metrics uit uw cluster om diepgaande zichtbaarheid
 
 ## Een Kubernetes-monitor aanmaken
 
-1. Ga naar **Monitors** in het OneUptime-dashboard
-2. Klik op **Create Monitor**
+1. Ga naar **Monitoren** in het OneUptime-dashboard
+2. Klik op **Monitor maken**
 3. Selecteer **Kubernetes** als het monitortype
 4. Selecteer het cluster en de resource-scope om te monitoren
 5. Configureer resource-filters en metric-queries
@@ -57,7 +57,7 @@ Versmal de scope met optionele filters:
 Configureer een of meer metric-queries om te evalueren. Elke query specificeert:
 
 - **Metric name** — De Kubernetes-metric om te bevragen
-- **Aggregation** — Hoe metric-waarden moeten worden geaggregeerd
+- **Aggregatie** — Hoe metric-waarden moeten worden geaggregeerd
 - **Filters** — Aanvullende filtering op basis van attributen
 
 U kunt ook **formules** maken die meerdere metric-queries combineren met behulp van wiskundige expressies.

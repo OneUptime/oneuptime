@@ -49,7 +49,7 @@ At køre en kundeleveret forespørgsel mod en produktionsdatabase er følsomt, s
 Opret en ny monitor og vælg **SQL Query** som monitortype, og udfyld derefter forbindelsesoplysningerne:
 
 - **Databasetype** — PostgreSQL, MySQL eller Microsoft SQL Server. Valg af en type indstiller standardporten.
-- **Host** — databasens host, der er tilgængelig fra proben (for eksempel `db.internal`).
+- **Vært** — databasens host, der er tilgængelig fra proben (for eksempel `db.internal`).
 - **Port** — databasens port.
 - **Databasenavn** — den database, forespørgslen skal køres mod.
 - **Brugernavn** — en skrivebeskyttet databasebruger med færrest mulige rettigheder.

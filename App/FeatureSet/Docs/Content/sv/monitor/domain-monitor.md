@@ -14,7 +14,7 @@ Domänmonitorer frågar WHOIS-data för dina domäner för att spåra registreri
 
 ## Skapa en domänmonitor
 
-1. Gå till **Monitorer** i OneUptime-instrumentpanelen
+1. Gå till **Övervakare** i OneUptime-instrumentpanelen
 2. Klicka på **Skapa monitor**
 3. Välj **Domän** som monitortyp
 4. Ange domännamnet du vill övervaka

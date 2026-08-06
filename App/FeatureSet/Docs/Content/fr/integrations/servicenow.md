@@ -24,11 +24,11 @@ L'API Table de ServiceNow accepte **Basic auth**.
    printf '%s' 'integration_user:password' | base64
    ```
 
-2. Dans OneUptime, allez dans **Workflows → Global Variables → Create**, nommez-la `SERVICENOW_AUTH`, collez la chaîne base64, et activez **Is Secret**.
+2. Dans OneUptime, allez dans **Flux de travail → Variables globales → Créer**, nommez-la `SERVICENOW_AUTH`, collez la chaîne base64, et activez **Is Secret**.
 
 ## Étape 2 — Créer le workflow
 
-1. Ouvrez **Workflows → Create Workflow**, nommez-le `Incidents → ServiceNow`, et ouvrez le **Builder**.
+1. Ouvrez **Flux de travail → Créer un flux de travail**, nommez-le `Incidents → ServiceNow`, et ouvrez le **Constructeur**.
 2. Ajoutez un déclencheur **Incident** sur **On Create**. Renommez-le `Incident`.
 3. Ajoutez un bloc **API** connecté au déclencheur :
 

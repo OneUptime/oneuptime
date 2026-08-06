@@ -12,10 +12,10 @@ This guide takes you from nothing to managed OneUptime resources in about 10 min
 The provider authenticates with a **project-scoped API key**. In the OneUptime dashboard:
 
 1. Select your project.
-2. Go to **Project Settings** > **API Keys**.
+2. Go to **प्रोजेक्ट सेटिंग्स** > **API कुंजियाँ**.
 3. Click **Create API Key**.
 4. Give it a name (for example `terraform`) and an expiry.
-5. Grant permissions. Terraform needs **Create**, **Read**, **Update (Edit)**, and **Delete** on every resource type you plan to manage — for this guide: Label, Monitor, and Status Page.
+5. Grant permissions. Terraform needs **बनाएँ**, **Read**, **Update (Edit)**, and **हटाएं** on every resource type you plan to manage — for this guide: Label, Monitor, and Status Page.
 6. Copy the generated key.
 
 > **Warning:** Do not use a user key or a self-hosted master API key. Master keys are not scoped to a project, and API calls made with them fail with `ProjectId required` errors. Only project API keys work with the Terraform provider.
@@ -98,9 +98,9 @@ Review the plan (3 resources to add) and confirm with `yes`. Apply completes in 
 
 In the OneUptime dashboard:
 
-- **Monitors** — the `Homepage` monitor is listed with the `critical` label.
-- **Status Pages** — `Internal Status` appears.
-- **Project Settings > Labels** — the `critical` label exists with the color you set.
+- **मॉनिटर** — the `Homepage` monitor is listed with the `critical` label.
+- **स्थिति पृष्ठ** — `Internal Status` appears.
+- **प्रोजेक्ट सेटिंग्स > लेबल** — the `critical` label exists with the color you set.
 
 Run `terraform plan` again: it reports `No changes.` Server-computed fields (slugs, current status, default monitoring steps) do not cause drift.
 

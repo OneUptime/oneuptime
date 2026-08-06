@@ -16,7 +16,7 @@ Non esiste più alcun flag d'ambiente `RUNBOOK_BASH_ENABLED`. Se i passi Bash o 
 ## Limiti di output e timeout
 
 - Output per passo: **50&nbsp;KB**. Output più grande viene troncato con un marcatore.
-- Timeout di esecuzione predefinito per passo: **30 secondi** per JavaScript, Bash e HTTP. Impostalo per singolo passo nella pagina **Passi** del runbook — lascia il campo vuoto per mantenere il valore predefinito.
+- Timeout di esecuzione predefinito per passo: **30 secondi** per JavaScript, Bash e HTTP. Impostalo per singolo passo nella pagina **Passaggi** del runbook — lascia il campo vuoto per mantenere il valore predefinito.
 - **Claim timeout** per passo per Bash e JavaScript: **2 minuti** — quanto il Worker aspetta che l'agente selezionato prenda il job prima di farlo fallire. Anche questo si imposta per singolo passo.
 - Entrambi i timeout accettano da **1 secondo a 1 ora**. Un valore fuori da questo intervallo viene riportato entro i limiti quando il passo viene eseguito, così una configurazione sbagliata non può né disabilitare il timeout né tenere occupato all'infinito uno slot del Worker.
 

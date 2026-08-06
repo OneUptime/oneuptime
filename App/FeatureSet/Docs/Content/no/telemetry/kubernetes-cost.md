@@ -19,8 +19,8 @@ I løpet av omtrent en time (det første lukkede timevinduet) får du:
 
 - En **kostnadsside per klynge** (_Kubernetes → din klynge → Costs_): forbrukstrend, forbruk per namespace med cpu/minne/lagring-fordeling, forbruk per arbeidslast, ledig forbruk og effektivitet.
 - En **kostnadsside på prosjektnivå** (_Kubernetes → Costs_): forbruk på tvers av hver klynge i prosjektet.
-- En **Kubernetes Cost dashbordmal** (_Dashboards → Create → Kubernetes Cost Dashboard_): trender for nodenes timekostnad, CPU/RAM-enhetskostnader, forbruk på persistente volumer og load balancere.
-- Rå kostnadsmetrikker (`node_total_hourly_cost`, `pv_hourly_cost`, ...) i **Metric Explorer**, som kan brukes i egendefinerte dashbord og metrikkvarsler.
+- En **Kubernetes Cost dashbordmal** (_Dashbord → Opprett → Kubernetes Cost Dashboard_): trender for nodenes timekostnad, CPU/RAM-enhetskostnader, forbruk på persistente volumer og load balancere.
+- Rå kostnadsmetrikker (`node_total_hourly_cost`, `pv_hourly_cost`, ...) i **Metrikkutforsker**, som kan brukes i egendefinerte dashbord og metrikkvarsler.
 
 ## Slik fungerer det
 

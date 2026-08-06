@@ -4,21 +4,21 @@ Hver gang et workflow kører, gemmer OneUptime en optegnelse over, hvad der sket
 
 ## Hvor du finder dem
 
-| Side                        | Hvad du ser                                                                        |
-| --------------------------- | ---------------------------------------------------------------------------------- |
-| **Workflows → Runs & Logs** | Hver kørsel fra hvert workflow i projektet. Filtrér efter workflow, status og tid. |
-| **Workflow → Logs-fane**    | Kun kørslerne af dette ene workflow.                                               |
-| **En enkelt kørsel**        | Én afvikling med outputtet fra hver blok.                                          |
+| Side                               | Hvad du ser                                                                        |
+| ---------------------------------- | ---------------------------------------------------------------------------------- |
+| **Arbejdsgange → Kørsler og logs** | Hver kørsel fra hvert workflow i projektet. Filtrér efter workflow, status og tid. |
+| **Arbejdsgang → Protokoller-fane** | Kun kørslerne af dette ene workflow.                                               |
+| **En enkelt kørsel**               | Én afvikling med outputtet fra hver blok.                                          |
 
 ## Kørselsstatusser
 
-| Status        | Hvad det betyder                                                                                                                             |
-| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Scheduled** | Triggeren udløstes, og kørslen er ved at starte. Tager normalt kun en brøkdel af et sekund.                                                  |
-| **Running**   | Workflowet er i gang. Langvarige blokke holder en kørsel i denne tilstand.                                                                   |
-| **Success**   | Hver blok, der kørte, afsluttede uden fejl. (At tage en **error**-gren med vilje tæller stadig som success — selve workflowet fejlede ikke.) |
-| **Error**     | En blok fejlede, og der var ingen **error**-sti forbundet til at håndtere den. Kørslen stoppede der.                                         |
-| **Timeout**   | Kørslen kørte længere end tilladt. Se [Konfiguration & sikkerhed](/docs/workflows/configuration).                                            |
+| Status       | Hvad det betyder                                                                                                                             |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Planlagt** | Triggeren udløstes, og kørslen er ved at starte. Tager normalt kun en brøkdel af et sekund.                                                  |
+| **Kører**    | Workflowet er i gang. Langvarige blokke holder en kørsel i denne tilstand.                                                                   |
+| **Succes**   | Hver blok, der kørte, afsluttede uden fejl. (At tage en **error**-gren med vilje tæller stadig som success — selve workflowet fejlede ikke.) |
+| **Fejl**     | En blok fejlede, og der var ingen **error**-sti forbundet til at håndtere den. Kørslen stoppede der.                                         |
+| **Timeout**  | Kørslen kørte længere end tilladt. Se [Konfiguration & sikkerhed](/docs/workflows/configuration).                                            |
 
 ## Læs en kørsel
 
@@ -39,14 +39,14 @@ De viste værdier er præcis, hvad blokken så — efter alle variabler blev udf
 3. For en webhook-trigger: bekræft at det andet system sender til den rigtige URL. De fleste værktøjer logger, når de sender en webhook — tjek der.
 4. For en tidsplan-trigger: bekræft at cron-udtrykket matcher det tidspunkt, du forventer.
 
-Hvis triggeren udløstes, men ingen kørsel dukker op, så tjek din kørselskvote under **Project Settings → Billing**.
+Hvis triggeren udløstes, men ingen kørsel dukker op, så tjek din kørselskvote under **Projektindstillinger → Fakturering**.
 
 ### "En senere blok kørte aldrig."
 
 En blok, der ikke kører, er som regel et koblingsproblem. Åbn lærredet og tjek:
 
 - Er den tidligere bloks output forbundet til denne bloks input?
-- Tog den tidligere blok et andet output, end du forventede (for eksempel **error** i stedet for **success**, eller **No** i stedet for **Yes**)? Kørselsdetaljen viser, hvilken sti der blev taget.
+- Tog den tidligere blok et andet output, end du forventede (for eksempel **error** i stedet for **success**, eller **Nej** i stedet for **Ja**)? Kørselsdetaljen viser, hvilken sti der blev taget.
 
 ### "En variabel kom igennem tom."
 

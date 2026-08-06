@@ -4,13 +4,13 @@
 
 Sobald Sie ein OneUptime-Konto erstellt haben, können Sie ein Telemetrie-Ingestion-Token erstellen, um Logs, Metriken und Traces aus Ihrer Anwendung zu importieren.
 
-Nachdem Sie sich bei OneUptime angemeldet und ein Projekt erstellt haben, klicken Sie in der Navigationsleiste auf „Products" und dann auf „Projekteinstellungen".
+Nachdem Sie sich bei OneUptime angemeldet und ein Projekt erstellt haben, klicken Sie in der Navigationsleiste auf „Produkte" und dann auf „Projekteinstellungen".
 
-Klicken Sie auf der Seite Telemetrie-Ingestion-Schlüssel auf „Ingestion-Schlüssel erstellen", um ein Token zu erstellen.
+Klicken Sie auf der Seite Telemetrie Aufnahme Key auf „Aufnahmeschlüssel erstellen", um ein Token zu erstellen.
 
 ![Service erstellen](/docs/static/images/TelemetryIngestionKeys.png)
 
-Sobald Sie ein Token erstellt haben, klicken Sie auf „Anzeigen", um das Token einzusehen.
+Sobald Sie ein Token erstellt haben, klicken Sie auf „Ansehen", um das Token einzusehen.
 
 ![Service anzeigen](/docs/static/images/TelemetryIngestionKeyView.png)
 

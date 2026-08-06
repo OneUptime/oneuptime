@@ -14,7 +14,7 @@ Servermonitorer använder en infrastrukturagent som installerats på dina servra
 
 ## Skapa en servermonitor
 
-1. Gå till **Monitorer** i OneUptime-instrumentpanelen
+1. Gå till **Övervakare** i OneUptime-instrumentpanelen
 2. Klicka på **Skapa monitor**
 3. Välj **Server/VM** som monitortyp
 4. En **Hemlig nyckel** kommer att genereras för den här monitorn – du behöver den för att konfigurera agenten
@@ -101,7 +101,7 @@ För varje monterad disk/volym:
 - **Använt diskutrymme** – Utrymme som för närvarande används
 - **Ledigt diskutrymme** – Tillgängligt ledigt utrymme
 - **Diskanvändningsprocent** – Diskutnyttjande som procentandel
-- **Disksökväg** – Diskens monteringssökväg
+- **Diskväg** – Diskens monteringssökväg
 
 ### Processer
 
@@ -156,7 +156,7 @@ För processkontroller:
 #### Varna när diskanvändningen överstiger 85%
 
 - **Kontrollera på**: Diskanvändningsprocent
-- **Disksökväg**: `/`
+- **Diskväg**: `/`
 - **Filtertyp**: Större än
 - **Värde**: 85
 

@@ -16,12 +16,12 @@ Global SSO è una funzionalità della **OneUptime Enterprise Edition** ed è dis
 
 1. **Apri l'Admin Dashboard**
 
-   - Accedi come master admin e apri **Admin** > **Settings** > **Global SSO** (per SAML) o **Global OIDC** (per OpenID Connect).
+   - Accedi come master admin e apri **Admin** > **Impostazioni** > **Global SSO** (per SAML) o **Global OIDC** (per OpenID Connect).
 
 2. **Crea un provider**
 
    - Clicca su **Create Global SSO**.
-   - Per SAML: inserisci un **Name**, il **Sign On URL** e l'**Issuer** dal tuo provider di identità, e incolla il **Public Certificate**. Scegli i metodi **Signature** e **Digest** (lascia i valori predefiniti — `RSA-SHA256` / `SHA256` — se hai dubbi).
+   - Per SAML: inserisci un **Nome**, il **Sign On URL** e l'**Issuer** dal tuo provider di identità, e incolla il **Public Certificate**. Scegli i metodi **Signature** e **Digest** (lascia i valori predefiniti — `RSA-SHA256` / `SHA256` — se hai dubbi).
    - Per OIDC: inserisci il **Discovery URL**, l'**Issuer**, il **Client ID**, il **Client Secret**, gli **Scopes** (devono includere `openid`) e i nomi delle attestazioni **email** / **name**.
 
 3. **Copia gli URL di OneUptime nel tuo provider di identità**
@@ -48,7 +48,7 @@ Se vuoi impedire qualsiasi creazione automatica di account anche quando i proget
 Configurare un provider globale non obbliga nessuno a usarlo; l'accesso con password continua a funzionare. Per richiedere l'SSO, usa i controlli **Require SSO for Login**:
 
 - **Per progetto:** un progetto può richiedere l'SSO e, facoltativamente, richiedere un provider _specifico_ (di progetto o globale).
-- **A livello di istanza:** **Admin** > **Settings** > **Authentication** dispone di un interruttore **Require SSO for Login** che forza l'SSO per ogni utente dell'intera istanza. I master admin restano esenti per non rischiare di rimanere bloccati fuori.
+- **A livello di istanza:** **Admin** > **Impostazioni** > **Autenticazione** dispone di un interruttore **Require SSO for Login** che forza l'SSO per ogni utente dell'intera istanza. I master admin restano esenti per non rischiare di rimanere bloccati fuori.
 
 ## Correlati
 

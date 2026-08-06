@@ -24,8 +24,8 @@ Project-SCIM stelt identiteitsproviders in staat teamleden binnen OneUptime-proj
 
 2. **SCIM-instellingen configureren**
 
-   - Schakel **Gebruikers automatisch inrichten** in om gebruikers automatisch toe te voegen wanneer ze zijn toegewezen in uw IdP
-   - Schakel **Gebruikers automatisch verwijderen** in om gebruikers automatisch te verwijderen wanneer ze zijn verwijderd in uw IdP
+   - Schakel **Gebruikers automatisch provisioneren** in om gebruikers automatisch toe te voegen wanneer ze zijn toegewezen in uw IdP
+   - Schakel **Gebruikers automatisch deprovisioneren** in om gebruikers automatisch te verwijderen wanneer ze zijn verwijderd in uw IdP
    - Selecteer de **Standaardteams** waartoe nieuwe gebruikers worden toegevoegd
    - Kopieer de **SCIM Basis-URL** en het **Bearer-token** voor uw IdP-configuratie
 
@@ -73,8 +73,8 @@ Statuspagina-SCIM stelt identiteitsproviders in staat abonnees van privé-status
 
 2. **SCIM-instellingen configureren**
 
-   - Schakel **Gebruikers automatisch inrichten** in om abonnees automatisch toe te voegen wanneer ze zijn toegewezen in uw IdP
-   - Schakel **Gebruikers automatisch verwijderen** in om abonnees automatisch te verwijderen wanneer ze zijn verwijderd in uw IdP
+   - Schakel **Gebruikers automatisch provisioneren** in om abonnees automatisch toe te voegen wanneer ze zijn toegewezen in uw IdP
+   - Schakel **Gebruikers automatisch deprovisioneren** in om abonnees automatisch te verwijderen wanneer ze zijn verwijderd in uw IdP
    - Kopieer de **SCIM Basis-URL** en het **Bearer-token** voor uw IdP-configuratie
 
 3. **Uw identiteitsprovider configureren**
@@ -121,10 +121,10 @@ Microsoft Entra ID biedt enterprise-grade identiteitsbeheer met robuuste SCIM-in
 3. Klik op **SCIM-configuratie aanmaken**
 4. Voer een beschrijvende naam in (bijv. "Microsoft Entra ID-inrichting")
 5. Configureer de volgende opties:
-   - **Gebruikers automatisch inrichten**: Inschakelen om gebruikers automatisch aan te maken
-   - **Gebruikers automatisch verwijderen**: Inschakelen om gebruikers automatisch te verwijderen
+   - **Gebruikers automatisch provisioneren**: Inschakelen om gebruikers automatisch aan te maken
+   - **Gebruikers automatisch deprovisioneren**: Inschakelen om gebruikers automatisch te verwijderen
    - **Standaardteams**: Selecteer teams waaraan nieuwe gebruikers worden toegevoegd
-   - **Groepen pushen inschakelen**: Inschakelen als u teamlidmaatschap wilt beheren via Entra ID-groepen
+   - **Push-groepen inschakelen**: Inschakelen als u teamlidmaatschap wilt beheren via Entra ID-groepen
 6. Sla de configuratie op
 7. Kopieer de **SCIM Basis-URL** en het **Bearer-token** - u heeft deze nodig voor Entra ID
 
@@ -169,7 +169,7 @@ Microsoft Entra ID biedt enterprise-grade identiteitsbeheer met robuuste SCIM-in
 
 #### Stap 5: Groepsinrichting configureren (optioneel)
 
-Als u **Groepen pushen** heeft ingeschakeld in OneUptime:
+Als u **Push-groepen** heeft ingeschakeld in OneUptime:
 
 1. Ga terug naar **Koppelingen**
 2. Klik op **Azure Active Directory-groepen inrichten**
@@ -223,10 +223,10 @@ Okta biedt flexibel identiteitsbeheer met uitstekende SCIM-ondersteuning. Volg d
 3. Klik op **SCIM-configuratie aanmaken**
 4. Voer een beschrijvende naam in (bijv. "Okta-inrichting")
 5. Configureer de volgende opties:
-   - **Gebruikers automatisch inrichten**: Inschakelen om gebruikers automatisch aan te maken
-   - **Gebruikers automatisch verwijderen**: Inschakelen om gebruikers automatisch te verwijderen
+   - **Gebruikers automatisch provisioneren**: Inschakelen om gebruikers automatisch aan te maken
+   - **Gebruikers automatisch deprovisioneren**: Inschakelen om gebruikers automatisch te verwijderen
    - **Standaardteams**: Selecteer teams waaraan nieuwe gebruikers worden toegevoegd
-   - **Groepen pushen inschakelen**: Inschakelen als u teamlidmaatschap wilt beheren via Okta-groepen
+   - **Push-groepen inschakelen**: Inschakelen als u teamlidmaatschap wilt beheren via Okta-groepen
 6. Sla de configuratie op
 7. Kopieer de **SCIM Basis-URL** en het **Bearer-token** - u heeft deze nodig voor Okta
 
@@ -303,7 +303,7 @@ Okta biedt flexibel identiteitsbeheer met uitstekende SCIM-ondersteuning. Volg d
 
 #### Stap 7: Groepen pushen configureren (optioneel)
 
-Als u **Groepen pushen** heeft ingeschakeld in OneUptime:
+Als u **Push-groepen** heeft ingeschakeld in OneUptime:
 
 1. Ga naar het tabblad **Groepen pushen**
 2. Klik op **+ Groepen pushen**
@@ -412,7 +412,7 @@ Wanneer SCIM probeert een gebruiker aan te maken die al bestaat (overeenkomend o
 ### Wat is het verschil tussen standaardteams en groepen pushen?
 
 - **Standaardteams**: Alle via SCIM ingerichte gebruikers worden toegevoegd aan dezelfde vooraf gedefinieerde teams
-- **Groepen pushen**: Teamlidmaatschap wordt beheerd door uw identiteitsprovider, waardoor verschillende gebruikers in verschillende teams kunnen zitten op basis van IdP-groepslidmaatschap
+- **Push-groepen**: Teamlidmaatschap wordt beheerd door uw identiteitsprovider, waardoor verschillende gebruikers in verschillende teams kunnen zitten op basis van IdP-groepslidmaatschap
 
 ### Hoe vaak vindt inrichtingssynchronisatie plaats?
 

@@ -10,14 +10,14 @@
 - 通过 [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver) 采集 **systemd 单元状态**（为主机的 **Systemd Units** 标签页提供数据）—— 从 **v0.142.0** 起已打包进上游的 `otelcol-contrib` 构建中，从 **v0.143.0** 起才真正可用（见下文“Linux 服务（systemd 单元）”）
 - 通过 [`logstransformprocessor`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/logstransformprocessor) 包装对 `log stream` 输出的 tail 来采集 **Apple Unified Log**（macOS）
 - 通过 [`windowseventlogreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowseventlogreceiver) 采集 **Windows 事件日志**
-- 通过 [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver) 采集 **Windows 服务状态**（为主机的 **Services** 标签页提供数据）—— 从 **v0.155.0** 起已打包进上游的 `otelcol-contrib` 构建中（见下文“Windows 服务（指标）”）
+- 通过 [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver) 采集 **Windows 服务状态**（为主机的 **服务** 标签页提供数据）—— 从 **v0.155.0** 起已打包进上游的 `otelcol-contrib` 构建中（见下文“Windows 服务（指标）”）
 
 > **那么 OneUptime 基础设施代理（Infrastructure Agent）呢？** 该代理是一个独立的、轻量级的 Go 守护进程，专注于基础指标和*服务器 / 虚拟机监控器（Server / VM Monitor）*功能（状态、进程、告警）。这里描述的 OpenTelemetry Collector 是独立的，当你希望将日志（文件日志、journald、Windows 事件日志）或更丰富的主机指标作为标准 OTLP 数据接入时，它是合适的工具。两者可以在同一台主机上运行而互不干扰。
 
 ## 前提条件
 
-- 一个 **OneUptime 遥测接入令牌（Telemetry Ingestion Token）**——从 _Project Settings → 遥测与 APM → 摄取密钥_ 创建一个，并复制 `x-oneuptime-token` 值。
-- **OpenTelemetry Collector Contrib** 发行版（`otelcol-contrib`）。默认的 `otelcol` 构建**不**包含诸如 `windowseventlogreceiver`、`journaldreceiver` 或 `hostmetrics` 附加项之类的接收器——请务必使用 `contrib` 发行版。为 Windows **Services** 标签页提供数据的 alpha 阶段 `windowsservicereceiver` 从 **v0.155.0** 起、为 Linux **Systemd Units** 标签页提供数据的 alpha 阶段 `systemdreceiver` 从 **v0.143.0** 起已打包进 `otelcol-contrib` 中，因此请安装较新的发布版；见下文“Windows 服务（指标）”和“Linux 服务（systemd 单元）”。
+- 一个 **OneUptime 遥测接入令牌（Telemetry Ingestion Token）**——从 _项目设置 → 遥测与 APM → 摄取密钥_ 创建一个，并复制 `x-oneuptime-token` 值。
+- **OpenTelemetry Collector Contrib** 发行版（`otelcol-contrib`）。默认的 `otelcol` 构建**不**包含诸如 `windowseventlogreceiver`、`journaldreceiver` 或 `hostmetrics` 附加项之类的接收器——请务必使用 `contrib` 发行版。为 Windows **服务** 标签页提供数据的 alpha 阶段 `windowsservicereceiver` 从 **v0.155.0** 起、为 Linux **Systemd Units** 标签页提供数据的 alpha 阶段 `systemdreceiver` 从 **v0.143.0** 起已打包进 `otelcol-contrib` 中，因此请安装较新的发布版；见下文“Windows 服务（指标）”和“Linux 服务（systemd 单元）”。
 - 主机上的 root / 管理员权限，用于将 collector 安装为服务，并（在适用的情况下）读取需要特权的日志源。
 
 ## 第 1 步——安装 OpenTelemetry Collector
@@ -69,7 +69,7 @@ sudo mkdir -p /etc/otelcol-contrib
 
 ### Windows
 
-在 Windows 上，请下载上游的 **`otelcol-contrib`** 发布版——它打包了为主机的 **Services** 标签页提供数据的 `windows_service` 接收器（从 **v0.155.0** 起）。在**提升权限的** PowerShell 提示符下：
+在 Windows 上，请下载上游的 **`otelcol-contrib`** 发布版——它打包了为主机的 **服务** 标签页提供数据的 `windows_service` 接收器（从 **v0.155.0** 起）。在**提升权限的** PowerShell 提示符下：
 
 ```powershell
 $VERSION = "0.156.0"                          # use v0.155.0 or later for the Services tab
@@ -83,7 +83,7 @@ tar -xf $tar -C $dest                          # tar.exe ships with Windows 10 1
 
 这会将 `otelcol-contrib.exe` 解压到 `C:\Program Files\otelcol-contrib`。你将在第 2 步中在同一文件夹里创建 `config.yaml`，并在第 3 步中注册一个 Windows 服务。
 
-> 更偏好原生安装程序？OpenTelemetry 还在同一个[发布页面](https://github.com/open-telemetry/opentelemetry-collector-releases/releases)上发布了一个已签名的 **`.msi`**（`otelcol-contrib_<version>_windows_x64.msi`），它会为你将 collector 注册为一个 Windows 服务。如果你使用它，请让它指向第 2 步中的 `config.yaml`，并确保该服务以 `LocalSystem` 身份运行，这样 **Services** 标签页才能读取服务控制管理器（Service Control Manager）。
+> 更偏好原生安装程序？OpenTelemetry 还在同一个[发布页面](https://github.com/open-telemetry/opentelemetry-collector-releases/releases)上发布了一个已签名的 **`.msi`**（`otelcol-contrib_<version>_windows_x64.msi`），它会为你将 collector 注册为一个 Windows 服务。如果你使用它，请让它指向第 2 步中的 `config.yaml`，并确保该服务以 `LocalSystem` 身份运行，这样 **服务** 标签页才能读取服务控制管理器（Service Control Manager）。
 
 ## 第 2 步——配置 collector
 
@@ -168,7 +168,7 @@ receivers:
 
 `start_at: end` 表示从 collector 启动那一刻起的新行；改为 `beginning` 可在首次运行时回填历史数据。collector 会跟踪文件偏移量，因此在重启后能够正确恢复。
 
-**将主机日志堆栈跟踪转换为异常（Exceptions）。** OneUptime 会自动扫描 error 和 fatal 日志行中的堆栈跟踪，并将它们汇总到归属于此主机的 **Exceptions**（Issues）视图中——无需额外配置。为了使其分组良好，多行堆栈跟踪（Java、Python、.NET、Ruby）必须作为**一条**日志记录到达，而不是每行一条记录。在 `filelog` 接收器上启用多行重组（multiline recombination），以便堆栈跟踪及其各帧保持在一起：
+**将主机日志堆栈跟踪转换为异常（Exceptions）。** OneUptime 会自动扫描 error 和 fatal 日志行中的堆栈跟踪，并将它们汇总到归属于此主机的 **异常**（Issues）视图中——无需额外配置。为了使其分组良好，多行堆栈跟踪（Java、Python、.NET、Ruby）必须作为**一条**日志记录到达，而不是每行一条记录。在 `filelog` 接收器上启用多行重组（multiline recombination），以便堆栈跟踪及其各帧保持在一起：
 
 ```yaml
 receivers:
@@ -204,7 +204,7 @@ collector 二进制文件必须能够执行 `journalctl`（Debian / RPM 软件�
 
 ### Linux 服务（systemd 单元、指标）
 
-主机的 **Systemd Units** 标签页由 [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver)（配置类型 `systemd`）提供数据，它以指标形式报告 systemd 单元的活动状态——即 Windows 上 **Services** 标签页在 Linux 上的对应物。
+主机的 **Systemd Units** 标签页由 [`systemdreceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/systemdreceiver)（配置类型 `systemd`）提供数据，它以指标形式报告 systemd 单元的活动状态——即 Windows 上 **服务** 标签页在 Linux 上的对应物。
 
 **该接收器最早随上游的 `otelcol-contrib` 二进制文件在 v0.142.0 中提供，但真正值得运行的第一个发布版是 v0.143.0**——在更早的发布版上，添加 `systemd` 会在启动时失败并报 `'receivers' unknown type: "systemd"`；而仅在 v0.142.0 上，它的 CPU 指标名为 `systemd.unit.cpu.time`，并且会为每一个单元查找 cgroup 统计信息，从而为每个非 `.service` 单元记录一条抓取错误。v0.143.0 将该指标改名为 `systemd.service.cpu.time`，并把这项查找限制在服务上。请安装一个较新的发布版（第 1 步），然后在你的 `config.yaml` 中启用它，并将它加入指标流水线：
 
@@ -307,7 +307,7 @@ windowseventlog/iis:
 
 ### Windows 服务（指标）
 
-主机的 **Services** 标签页由 [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver)（配置类型 `windows_service`）提供数据，它以指标形式报告 Windows 服务的运行状态和启动类型。
+主机的 **服务** 标签页由 [`windowsservicereceiver`](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/windowsservicereceiver)（配置类型 `windows_service`）提供数据，它以指标形式报告 Windows 服务的运行状态和启动类型。
 
 **从 v0.155.0 起，该接收器已随上游的 `otelcol-contrib` 二进制文件一起提供**——在更早的发布版上，添加 `windows_service` 会在启动时失败并报 `'receivers' unknown type: "windows_service"`。请安装一个较新的发布版（第 1 步），然后在你的 `config.yaml` 中启用它，并将它加入指标流水线：
 
@@ -330,7 +330,7 @@ service:
 
 该接收器为每个服务发出一个 `windows.service.status` 量规（gauge）——其整数值为 Win32 服务状态（`4` = 正在运行，`1` = 已停止）——并带有 `name` 和 `startup_mode` 属性。以 `LocalSystem` 身份运行该 collector（`sc.exe` 的默认设置），它便能读取每个服务；任何无法打开的服务都会被跳过。该接收器处于 **alpha** 阶段，且**仅支持 Windows**；已知问题包括一个可能导致 collector 崩溃的抓取错误，以及某一个服务上的 `access denied` 会影响到其他服务——如果遇到这些问题，请用 `include_services` 加以限制。
 
-> **`include_services` 不起作用？** 该过滤器只会*缩小*集合，所以如果你列出了一些服务却仍然看到每一个服务，那么编辑后的配置几乎肯定还没有到达正在运行的 collector。编辑后请重启该服务（第 3 步）；确保 `include_services` 是一个已填充内容的列表，且与 `collection_interval` 保持相同的缩进（不要将它注释掉或留空）；并给 **Services** 标签页几分钟时间，让在更改之前上报的服务从其滚动窗口中过期消失。这些名称是精确的、区分大小写的 Windows 服务_键_名称（例如 `Spooler`、`W3SVC`），你可以用 `Get-Service | Select-Object Name` 将它们列出。
+> **`include_services` 不起作用？** 该过滤器只会*缩小*集合，所以如果你列出了一些服务却仍然看到每一个服务，那么编辑后的配置几乎肯定还没有到达正在运行的 collector。编辑后请重启该服务（第 3 步）；确保 `include_services` 是一个已填充内容的列表，且与 `collection_interval` 保持相同的缩进（不要将它注释掉或留空）；并给 **服务** 标签页几分钟时间，让在更改之前上报的服务从其滚动窗口中过期消失。这些名称是精确的、区分大小写的 Windows 服务_键_名称（例如 `Spooler`、`W3SVC`），你可以用 `Get-Service | Select-Object Name` 将它们列出。
 
 ### 完整示例——Linux 主机
 
@@ -602,10 +602,10 @@ sc.exe query "otelcol-contrib"
 1. 在主机上产生一些信号：
    - **Linux / macOS：** `logger "hello from oneuptime"`（写入 syslog / journald）。
    - **Windows：** 从提升权限的提示符下执行 `eventcreate /T INFORMATION /ID 999 /L APPLICATION /SO OneUptimeTest /D "hello from oneuptime"`。
-2. 在 OneUptime 仪表板中，打开 **Products → 服务** 并选择你配置的 `service.name`。
-3. 打开 **Metrics**——主机指标（CPU、内存、文件系统等）应在一分钟内出现。
-4. 打开 **Logs**——你的文件日志 / journald 条目 / Windows 事件日志应正在流式传入。有用的可搜索属性包括 `log.file.name`、`systemd.unit`、`winlog.channel`、`winlog.event_id` 和 `winlog.provider.name`。
-5. 如果你启用了 `systemd`（Linux）或 `windows_service`（Windows）接收器，请打开 **Infrastructure → Hosts**，选择该主机，并查看 **Systemd Units** / **Services** 标签页——每一个被抓取的单元都应带着其当前状态列出。
+2. 在 OneUptime 仪表板中，打开 **产品 → 服务** 并选择你配置的 `service.name`。
+3. 打开 **指标**——主机指标（CPU、内存、文件系统等）应在一分钟内出现。
+4. 打开 **日志**——你的文件日志 / journald 条目 / Windows 事件日志应正在流式传入。有用的可搜索属性包括 `log.file.name`、`systemd.unit`、`winlog.channel`、`winlog.event_id` 和 `winlog.provider.name`。
+5. 如果你启用了 `systemd`（Linux）或 `windows_service`（Windows）接收器，请打开 **基础设施 → 主机**，选择该主机，并查看 **Systemd Units** / **服务** 标签页——每一个被抓取的单元都应带着其当前状态列出。
 
 ## 减少采集的数据量
 
@@ -848,7 +848,7 @@ service:
 
 当你需要时，再用一个范围狭窄的 `filelog` 或 `journald` 接收器把 `logs` 流水线加回来。
 
-> **注意你所削减的内容。** 基于日志的告警需要日志能够到达：如果你过滤掉某个严重性或某个通道，那么以它为依据的监控器就会陷入沉默。请削减你不采取行动的日志源，而不是监控器正在监视的那些。每次只改动一个杠杆，并在 **Project Settings → Usage History** 下确认数据量下降（用量按天聚合，因此请等待一两天）后再进行下一步。
+> **注意你所削减的内容。** 基于日志的告警需要日志能够到达：如果你过滤掉某个严重性或某个通道，那么以它为依据的监控器就会陷入沉默。请削减你不采取行动的日志源，而不是监控器正在监视的那些。每次只改动一个杠杆，并在 **项目设置 → 使用历史** 下确认数据量下降（用量按天聚合，因此请等待一两天）后再进行下一步。
 
 ## 自托管 OneUptime
 
@@ -879,7 +879,7 @@ OpenTelemetry Collector 遵循标准的 `HTTPS_PROXY` / `HTTP_PROXY` / `NO_PROXY
   - **Linux / macOS：** `journalctl -u otelcol-contrib -f`（Linux）或 `tail -f /var/log/otelcol-contrib.err.log`（macOS）。
   - **Windows：** 在 _Event Viewer → Windows Logs → Application_ 下查找来源为 `otelcol-contrib` 的条目。
   - 确认主机能够访问 `https://oneuptime.com/otlp`（或你的自托管端点）：从同一台机器执行 `curl -v https://oneuptime.com/otlp`。
-- **导出器返回 HTTP 401**——接入令牌无效或已被吊销。从 _Project Settings → 遥测与 APM → 摄取密钥_ 生成一个新令牌。
+- **导出器返回 HTTP 401**——接入令牌无效或已被吊销。从 _项目设置 → 遥测与 APM → 摄取密钥_ 生成一个新令牌。
 - **`Security` Windows 事件日志返回拒绝访问（access denied）**——该服务未以足够的权限运行。在 `LocalSystem` 身份下重新创建它（`sc.exe create` 的默认设置），或为服务账户授予 _Manage auditing and security log_ 用户权限。
 - **`journald` 接收器无法启动**——确保 `journalctl` 在 collector 的 `PATH` 中，并且 `/var/log/journal` 存在（如不存在，请运行 `sudo systemd-tmpfiles --create --prefix /var/log/journal`）。
 - **`systemd` 接收器报告 D-Bus 连接错误**——collector 无法访问系统总线。请确认 `/run/dbus/system_bus_socket` 存在，且 collector 所用的用户能够打开它；以该用户身份运行 `systemctl list-units` 是最快的检查方式。并不需要 root。运行在容器内的 collector 除非你把主机的套接字绑定挂载进去，否则根本看不到总线，因此这个接收器更适合原生安装。

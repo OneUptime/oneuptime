@@ -14,7 +14,7 @@ Undtagelsesmonitoer tæller og filtrerer undtagelser, der matcher specifikke kri
 
 ## Oprettelse af en Undtagelsesmonitor
 
-1. Gå til **Monitorer** i OneUptime-dashboardet
+1. Gå til **Overvågninger** i OneUptime-dashboardet
 2. Klik på **Opret monitor**
 3. Vælg **Undtagelser** som monitortype
 4. Vælg de telemetritjenester, der skal overvåges
@@ -72,7 +72,7 @@ Vælg én eller flere tjenester, der skal overvåges undtagelser fra. Tjenester 
 
 #### Overvåg undtagelser, der indeholder en specifik meddelelse
 
-- **Meddelelse**: `out of memory`
+- **Besked**: `out of memory`
 - **Tidsvindue**: 300 sekunder
 - **Kontroller på**: Undtagelsesantal
 - **Filtertype**: Større end

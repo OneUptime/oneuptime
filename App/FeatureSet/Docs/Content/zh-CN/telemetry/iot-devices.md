@@ -10,7 +10,7 @@ OneUptime 通过采集标准的 OpenTelemetry (OTLP) 指标来监控 IoT 设备�
 
 - 一台能够向 OneUptime 发送 OTLP/HTTP 的设备、网关或采集器
 - 设备/网关到你的 OneUptime 实例的网络可达性
-- 一个 **OneUptime 遥测采集令牌**——从 _Project Settings → 遥测与 APM → 摄取密钥_ 创建一个，并复制 `x-oneuptime-token` 的值
+- 一个 **OneUptime 遥测采集令牌**——从 _项目设置 → 遥测与 APM → 摄取密钥_ 创建一个，并复制 `x-oneuptime-token` 的值
 
 ## OneUptime 如何对 IoT 建模
 
@@ -212,7 +212,7 @@ OneUptime 识别以下 `iot_*` 指标名称。每个数据点都应带有 `devic
 1. 确认你的设备或网关导出时没有错误（检查 SDK/采集器日志中是否有导出失败以及 HTTP `401`/`403` 响应）。
 2. 在 OneUptime 仪表板中，打开 **IoT** 区域——你的机群应在大约一分钟内以 `iot/<fleet>` 的形式出现。
 3. 打开机群的 **Devices** 标签页——你发送的每个 `device.id` 都应被列出，并显示其最新的电量、信号、温度、CPU、内存和在线/离线状态。
-4. 打开机群下的 **Metrics**，绘制上述任意 `iot_*` 序列。
+4. 打开机群下的 **指标**，绘制上述任意 `iot_*` 序列。
 
 ## 故障排查
 
@@ -230,7 +230,7 @@ OneUptime 识别以下 `iot_*` 指标名称。每个数据点都应带有 `devic
 
 ### 导出器返回 HTTP 401 / 403
 
-采集令牌无效、已吊销或缺失。请从 _Project Settings → 遥测与 APM → 摄取密钥_ 生成一个新令牌，并更新 `x-oneuptime-token` 请求头。
+采集令牌无效、已吊销或缺失。请从 _项目设置 → 遥测与 APM → 摄取密钥_ 生成一个新令牌，并更新 `x-oneuptime-token` 请求头。
 
 ### 指标未绘制成图表
 

@@ -17,16 +17,16 @@ Project SCIM, identity providers को OneUptime projects के भीतर t
 
 ### Project SCIM सेट अप करना
 
-1. **Project Settings पर जाएं**
+1. **प्रोजेक्ट सेटिंग्स पर जाएं**
 
    - अपने OneUptime project पर जाएं
-   - **Project Settings** > **सुरक्षा** > **SCIM** पर जाएं
+   - **प्रोजेक्ट सेटिंग्स** > **सुरक्षा** > **SCIM** पर जाएं
 
 2. **SCIM Settings Configure करें**
 
-   - IdP में assign होने पर users स्वचालित रूप से जोड़ने के लिए **Auto Provision Users** सक्षम करें
-   - IdP में unassign होने पर users स्वचालित रूप से हटाने के लिए **Auto Deprovision Users** सक्षम करें
-   - **Default Teams** चुनें जिनमें नए users जोड़े जाने चाहिए
+   - IdP में assign होने पर users स्वचालित रूप से जोड़ने के लिए **उपयोगकर्ताओं को ऑटो प्रोविजन करें** सक्षम करें
+   - IdP में unassign होने पर users स्वचालित रूप से हटाने के लिए **उपयोगकर्ताओं को ऑटो डीप्रोविजन करें** सक्षम करें
+   - **डिफ़ॉल्ट टीमें** चुनें जिनमें नए users जोड़े जाने चाहिए
    - अपने IdP configuration के लिए **SCIM Base URL** और **Bearer Token** copy करें
 
 3. **अपना Identity Provider Configure करें**
@@ -69,12 +69,12 @@ Status Page SCIM, identity providers को private status pages के subscrib
 1. **Status Page Settings पर जाएं**
 
    - अपने OneUptime status page पर जाएं
-   - **Status Page Settings** > **सुरक्षा** > **SCIM** पर जाएं
+   - **स्थिति पृष्ठ** > **सुरक्षा** > **SCIM** पर जाएं
 
 2. **SCIM Settings Configure करें**
 
-   - IdP में assign होने पर subscribers स्वचालित रूप से जोड़ने के लिए **Auto Provision Users** सक्षम करें
-   - IdP में unassign होने पर subscribers स्वचालित रूप से हटाने के लिए **Auto Deprovision Users** सक्षम करें
+   - IdP में assign होने पर subscribers स्वचालित रूप से जोड़ने के लिए **उपयोगकर्ताओं को ऑटो प्रोविजन करें** सक्षम करें
+   - IdP में unassign होने पर subscribers स्वचालित रूप से हटाने के लिए **उपयोगकर्ताओं को ऑटो डीप्रोविजन करें** सक्षम करें
    - अपने IdP configuration के लिए **SCIM Base URL** और **Bearer Token** copy करें
 
 3. **अपना Identity Provider Configure करें**
@@ -117,14 +117,14 @@ Microsoft Entra ID robust SCIM provisioning capabilities के साथ enterp
 #### चरण 1: OneUptime से SCIM Configuration प्राप्त करें
 
 1. अपने OneUptime dashboard में लॉग इन करें
-2. **Project Settings** > **सुरक्षा** > **SCIM** पर जाएं
+2. **प्रोजेक्ट सेटिंग्स** > **सुरक्षा** > **SCIM** पर जाएं
 3. **Create SCIM Configuration** पर क्लिक करें
 4. एक friendly नाम दर्ज करें (जैसे "Microsoft Entra ID Provisioning")
 5. निम्नलिखित options configure करें:
-   - **Auto Provision Users**: users स्वचालित रूप से बनाने के लिए सक्षम करें
-   - **Auto Deprovision Users**: users स्वचालित रूप से हटाने के लिए सक्षम करें
-   - **Default Teams**: वे teams चुनें जिनमें नए users जोड़े जाने चाहिए
-   - **Enable Push Groups**: यदि आप Entra ID groups के माध्यम से team membership प्रबंधित करना चाहते हैं तो सक्षम करें
+   - **उपयोगकर्ताओं को ऑटो प्रोविजन करें**: users स्वचालित रूप से बनाने के लिए सक्षम करें
+   - **उपयोगकर्ताओं को ऑटो डीप्रोविजन करें**: users स्वचालित रूप से हटाने के लिए सक्षम करें
+   - **डिफ़ॉल्ट टीमें**: वे teams चुनें जिनमें नए users जोड़े जाने चाहिए
+   - **पुश समूह सक्षम करें**: यदि आप Entra ID groups के माध्यम से team membership प्रबंधित करना चाहते हैं तो सक्षम करें
 6. configuration सहेजें
 7. **SCIM Base URL** और **Bearer Token** copy करें - आपको Entra ID के लिए इनकी आवश्यकता होगी
 
@@ -169,7 +169,7 @@ Microsoft Entra ID robust SCIM provisioning capabilities के साथ enterp
 
 #### चरण 5: Group Provisioning Configure करें (वैकल्पिक)
 
-यदि आपने OneUptime में **Push Groups** सक्षम किया है:
+यदि आपने OneUptime में **Push समूह** सक्षम किया है:
 
 1. **Mappings** पर वापस जाएं
 2. **Provision Azure Active Directory Groups** पर क्लिक करें
@@ -219,14 +219,14 @@ Okta उत्कृष्ट SCIM support के साथ flexible identity ma
 #### चरण 1: OneUptime से SCIM Configuration प्राप्त करें
 
 1. अपने OneUptime dashboard में लॉग इन करें
-2. **Project Settings** > **सुरक्षा** > **SCIM** पर जाएं
+2. **प्रोजेक्ट सेटिंग्स** > **सुरक्षा** > **SCIM** पर जाएं
 3. **Create SCIM Configuration** पर क्लिक करें
 4. एक friendly नाम दर्ज करें (जैसे "Okta Provisioning")
 5. निम्नलिखित options configure करें:
-   - **Auto Provision Users**: users स्वचालित रूप से बनाने के लिए सक्षम करें
-   - **Auto Deprovision Users**: users स्वचालित रूप से हटाने के लिए सक्षम करें
-   - **Default Teams**: वे teams चुनें जिनमें नए users जोड़े जाने चाहिए
-   - **Enable Push Groups**: यदि आप Okta groups के माध्यम से team membership प्रबंधित करना चाहते हैं तो सक्षम करें
+   - **उपयोगकर्ताओं को ऑटो प्रोविजन करें**: users स्वचालित रूप से बनाने के लिए सक्षम करें
+   - **उपयोगकर्ताओं को ऑटो डीप्रोविजन करें**: users स्वचालित रूप से हटाने के लिए सक्षम करें
+   - **डिफ़ॉल्ट टीमें**: वे teams चुनें जिनमें नए users जोड़े जाने चाहिए
+   - **पुश समूह सक्षम करें**: यदि आप Okta groups के माध्यम से team membership प्रबंधित करना चाहते हैं तो सक्षम करें
 6. configuration सहेजें
 7. **SCIM Base URL** और **Bearer Token** copy करें - आपको Okta के लिए इनकी आवश्यकता होगी
 
@@ -303,13 +303,13 @@ Okta उत्कृष्ट SCIM support के साथ flexible identity ma
 
 #### चरण 7: Push Groups Configure करें (वैकल्पिक)
 
-यदि आपने OneUptime में **Push Groups** सक्षम किया है:
+यदि आपने OneUptime में **Push समूह** सक्षम किया है:
 
 1. **Push Groups** tab पर जाएं
 2. **+ Push Groups** पर क्लिक करें
 3. **Find groups by name** या **Find groups by rule** चुनें
 4. वे groups खोजें और चुनें जिन्हें आप push करना चाहते हैं
-5. **Save** पर क्लिक करें
+5. **सहेजें** पर क्लिक करें
 
 #### चरण 8: Users Assign करें
 
@@ -411,8 +411,8 @@ OneUptime का SCIM implementation, SCIM v2.0 specification का पाल�
 
 ### Default teams और push groups में क्या अंतर है?
 
-- **Default Teams**: SCIM के माध्यम से provisioned सभी users को एक ही predefined teams में जोड़ा जाता है
-- **Push Groups**: Team membership आपके identity provider द्वारा प्रबंधित होती है, जिससे IdP group membership के आधार पर अलग-अलग users अलग-अलग teams में हो सकते हैं
+- **डिफ़ॉल्ट टीमें**: SCIM के माध्यम से provisioned सभी users को एक ही predefined teams में जोड़ा जाता है
+- **Push समूह**: Team membership आपके identity provider द्वारा प्रबंधित होती है, जिससे IdP group membership के आधार पर अलग-अलग users अलग-अलग teams में हो सकते हैं
 
 ### Provisioning sync कितनी बार होता है?
 

@@ -16,17 +16,17 @@ Grafana alert rule fires  ──►  Webhook contact point  ──►  OneUptime
 
 ## Stap 1 — Bouw de OneUptime-workflow
 
-1. Open **Workflows → Create Workflow**, geef het de naam `Grafana → Incidents`, en open de **Builder**.
+1. Open **Workflows → Workflow maken**, geef het de naam `Grafana → Incidents`, en open de **Bouwer**.
 2. Voeg een **Webhook**-trigger toe en **kopieer de URL**. Hernoem het blok naar `Grafana`.
-3. Voeg een **Conditions**-blok toe verbonden met de trigger:
+3. Voeg een **Voorwaarden**-blok toe verbonden met de trigger:
    - **Left**: `{{Grafana.Request Body.status}}`
    - **Operator**: `==`
    - **Right**: `firing`
-4. Voeg vanuit **Yes** een **Create Incident**-blok toe:
-   - **Title**: `{{Grafana.Request Body.title}}`
-   - **Description**: `{{Grafana.Request Body.message}}`
-   - **Severity**: kies er een (of vertak op `{{Grafana.Request Body.commonLabels.severity}}`).
-5. **Sla op** (laat uitgeschakeld totdat getest).
+4. Voeg vanuit **Ja** een **Incident maken**-blok toe:
+   - **Titel**: `{{Grafana.Request Body.title}}`
+   - **Beschrijving**: `{{Grafana.Request Body.message}}`
+   - **Ernst**: kies er een (of vertak op `{{Grafana.Request Body.commonLabels.severity}}`).
+5. **Opslaan** (laat uitgeschakeld totdat getest).
 
 De webhook-payload van Grafana volgt de Alertmanager-vorm — hij bevat `status`, een `alerts`-array, `commonLabels` en `commonAnnotations`, plus handige velden `title` en `message` op het hoogste niveau.
 
@@ -42,11 +42,11 @@ De webhook-payload van Grafana volgt de Alertmanager-vorm — hij bevat `status`
 
 1. Schakel de workflow in.
 2. Gebruik in het contactpuntscherm **Test** om een voorbeeldnotificatie te sturen, of laat een echte alertregel afgaan.
-3. Controleer het tabblad **Logs** van de workflow en je lijst met **Incidents**.
+3. Controleer het tabblad **Logboeken** van de workflow en je lijst met **Incidenten**.
 
 ## Oplossen bij herstel (optioneel)
 
-Wanneer de alert wegvalt, stuurt Grafana een andere notificatie met `status: resolved`. Voeg een tweede **Conditions**-tak toe (`status == resolved`), zoek het bijbehorende incident, en verplaats het naar je opgeloste status met **Update Incident**.
+Wanneer de alert wegvalt, stuurt Grafana een andere notificatie met `status: resolved`. Voeg een tweede **Voorwaarden**-tak toe (`status == resolved`), zoek het bijbehorende incident, en verplaats het naar je opgeloste status met **Update Incident**.
 
 ## Opmerkingen
 
@@ -55,8 +55,8 @@ Wanneer de alert wegvalt, stuurt Grafana een andere notificatie met `status: res
 
 ## Probleemoplossing
 
-- **Er verschijnt geen run** — bevestig dat Grafana de URL kan bereiken (controleer Grafana's serverlogs) en dat de workflow **Enabled** is.
-- **Lege velden** — bekijk de triggeruitvoer in het tabblad **Logs**; verwijs naar velden die bestaan voor jouw alertingversie.
+- **Er verschijnt geen run** — bevestig dat Grafana de URL kan bereiken (controleer Grafana's serverlogs) en dat de workflow **Ingeschakeld** is.
+- **Lege velden** — bekijk de triggeruitvoer in het tabblad **Logboeken**; verwijs naar velden die bestaan voor jouw alertingversie.
 
 ## Waar verder lezen
 

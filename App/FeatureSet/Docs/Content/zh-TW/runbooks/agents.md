@@ -30,16 +30,16 @@ Runbook 代理程式將這一點反轉過來。Bash 與 JavaScript 步驟不會�
 
 ### 1. 建立代理程式記錄
 
-前往 **Settings → Runners** 並建立一個新的代理程式。填入：
+前往 **設定 → Runbook 代理程式** 並建立一個新的代理程式。填入：
 
 | 欄位            | 說明                                                                                                                                |
 | --------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| **Name**        | 一個易記的名稱，通常採用 `where-it-runs-and-what-it-can-do` 形式，例如 `prod-eu-west-1`。撰寫步驟時，下拉選單中顯示的就是這個名稱。 |
-| **Description** | 選填。用一句話描述這台主機能觸及哪些範圍。未來的你會感謝現在的你。                                                                  |
+| **名稱**        | 一個易記的名稱，通常採用 `where-it-runs-and-what-it-can-do` 形式，例如 `prod-eu-west-1`。撰寫步驟時，下拉選單中顯示的就是這個名稱。 |
+| **描述**        | 選填。用一句話描述這台主機能觸及哪些範圍。未來的你會感謝現在的你。                                                                  |
 
 ### 2. 複製安裝指令
 
-建立代理程式後，在其所在列點選 **Show setup instructions**。您會看到一個已預先填入此代理程式 ID 與金鑰的 `docker run` 指令。**請立即儲存這把金鑰**，您稍後可以重設它，但在關閉此對話框之後，就無法再次檢視相同的金鑰值。
+建立代理程式後，在其所在列點選 **顯示設定說明**。您會看到一個已預先填入此代理程式 ID 與金鑰的 `docker run` 指令。**請立即儲存這把金鑰**，您稍後可以重設它，但在關閉此對話框之後，就無法再次檢視相同的金鑰值。
 
 ### 3. 在基礎架構內的某台主機上執行它
 
@@ -58,7 +58,7 @@ docker run --name oneuptime-runner --restart unless-stopped \
 
 ### 4. 確認代理程式已連線
 
-回到 **Settings → Runners**。約在 60 秒內，該代理程式所在列應會切換為 `Connected`，並顯示一個最新的 **Last seen** 時間戳記。如果它仍維持在 `Disconnected`：
+回到 **設定 → Runbook 代理程式**。約在 60 秒內，該代理程式所在列應會切換為 `Connected`，並顯示一個最新的 **Last seen** 時間戳記。如果它仍維持在 `Disconnected`：
 
 - 檢查容器記錄（`docker logs oneuptime-runner`），看看是否有驗證錯誤或網路失敗。
 - 以 `curl` 確認該主機能連到您的 OneUptime URL。
@@ -83,10 +83,10 @@ docker run --name oneuptime-runner --restart unless-stopped \
 
 | 逾時                  | 預設值 | 控制的內容                                                                                                                                                                |
 | --------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Claim timeout**     | 2 分鐘 | Worker 等待所選代理程式認領該作業的時間長度。如果代理程式未能及時接手，該步驟會以 `TimedOut` 失敗，而 runbook 會繼續往下執行（或停止，視 **Continue on failure** 而定）。 |
+| **Claim timeout**     | 2 分鐘 | Worker 等待所選代理程式認領該作業的時間長度。如果代理程式未能及時接手，該步驟會以 `TimedOut` 失敗，而 runbook 會繼續往下執行（或停止，視 **失敗時繼續** 而定）。          |
 | **Execution timeout** | 30 秒  | 代理程式在終止指令碼之前，會讓它執行多久。（Bash 會收到 `SIGKILL`；JavaScript 的 isolate 會被拆除。）                                                                     |
 
-兩者都可依步驟個別設定。開啟 **Runbooks &rsaquo; 您的 runbook &rsaquo; Steps**，展開一個 Bash 或 JavaScript 步驟，並在指令碼下方設定 **Execution timeout** 與 **Claim timeout**（以秒為單位）。將欄位留空即會使用預設值。每個欄位皆可接受 1 秒到 1 小時；超出該範圍的值會在步驟執行時被限制在範圍內。
+兩者都可依步驟個別設定。開啟 **運行手冊 &rsaquo; 您的 runbook &rsaquo; 步驟**，展開一個 Bash 或 JavaScript 步驟，並在指令碼下方設定 **Execution timeout** 與 **Claim timeout**（以秒為單位）。將欄位留空即會使用預設值。每個欄位皆可接受 1 秒到 1 小時；超出該範圍的值會在步驟執行時被限制在範圍內。
 
 Worker 的整體等待時間區間為 `claim timeout + execution timeout + a few seconds`。請挑選符合該步驟的數值。
 

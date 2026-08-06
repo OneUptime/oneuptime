@@ -15,18 +15,18 @@ OneUptime Incident → On Create  ──►  Discord component  ──►  messa
 
 ## Schritt 2 — Die Webhook-URL speichern (optional, aber empfohlen)
 
-1. Gehen Sie in OneUptime zu **Workflows → Global Variables → Create**.
+1. Gehen Sie in OneUptime zu **Arbeitsabläufe → Globale Variablen → Erstellen**.
 2. Benennen Sie die Variable `DISCORD_WEBHOOK_URL`, fügen Sie die URL ein und aktivieren Sie **Is Secret**.
 
 Die Speicherung in einer Variablen ermöglicht es Ihnen, sie in mehreren Workflows wiederzuverwenden und an einer Stelle zu rotieren.
 
 ## Schritt 3 — Den Workflow erstellen
 
-1. Öffnen Sie **Workflows → Create Workflow**, benennen Sie ihn `Incidents → Discord`, und öffnen Sie den **Builder**.
-2. Fügen Sie einen **Incident**-Auslöser mit **On Create** hinzu. Benennen Sie ihn in `Incident` um.
+1. Öffnen Sie **Arbeitsabläufe → Workflow erstellen**, benennen Sie ihn `Incidents → Discord`, und öffnen Sie den **Builder**.
+2. Fügen Sie einen **Vorfall**-Auslöser mit **On Create** hinzu. Benennen Sie ihn in `Incident` um.
 3. Fügen Sie eine **Discord**-Komponente verbunden mit dem Auslöser hinzu:
-   - **Webhook URL**: `{{variable.DISCORD_WEBHOOK_URL}}` (oder direkt einfügen).
-   - **Message**: `🔴 New incident: {{Incident.title}}\n{{Incident.description}}`
+   - **Webhook-URL**: `{{variable.DISCORD_WEBHOOK_URL}}` (oder direkt einfügen).
+   - **Nachricht**: `🔴 New incident: {{Incident.title}}\n{{Incident.description}}`
 4. **Speichern**, aktivieren und einen Test-Vorfall erstellen. Die Nachricht erscheint in Ihrem Kanal.
 
 ## Alternative: die API-Komponente
@@ -42,8 +42,8 @@ Dies ist praktisch, wenn Sie Discords reichhaltigere [Embeds](https://discord.co
 
 ## Tipps
 
-- Verwenden Sie **Conditions**, um nur für bestimmte Schweregrade zu posten – verzweigen Sie auf `{{Incident.incidentSeverity.name}}` vor dem Discord-Block.
-- Fügen Sie weitere Workflows für **Incident → On Update** hinzu, um Bestätigungen und Auflösungen in denselben Kanal zu posten.
+- Verwenden Sie **Bedingungen**, um nur für bestimmte Schweregrade zu posten – verzweigen Sie auf `{{Incident.incidentSeverity.name}}` vor dem Discord-Block.
+- Fügen Sie weitere Workflows für **Vorfall → On Update** hinzu, um Bestätigungen und Auflösungen in denselben Kanal zu posten.
 
 ## Weiterführende Themen
 

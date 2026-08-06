@@ -15,18 +15,18 @@ OneUptime Incident → On Create  ──►  Discord component  ──►  messa
 
 ## Passaggio 2 — Salva l'URL del webhook (opzionale ma consigliato)
 
-1. In OneUptime, vai su **Workflows → Global Variables → Create**.
+1. In OneUptime, vai su **Flussi di lavoro → Variabili globali → Crea**.
 2. Chiamala `DISCORD_WEBHOOK_URL`, incolla l'URL e attiva **Is Secret**.
 
 Tenerlo in una variabile significa poterlo riutilizzare in più workflow e ruotarlo in un unico posto.
 
 ## Passaggio 3 — Crea il workflow
 
-1. Apri **Workflows → Create Workflow**, chiamalo `Incidents → Discord` e apri il **Builder**.
-2. Aggiungi un trigger **Incident** impostato su **On Create**. Rinominalo `Incident`.
+1. Apri **Flussi di lavoro → Crea flusso di lavoro**, chiamalo `Incidents → Discord` e apri il **Costruttore**.
+2. Aggiungi un trigger **Incidente** impostato su **On Create**. Rinominalo `Incident`.
 3. Aggiungi un componente **Discord** collegato al trigger:
-   - **Webhook URL**: `{{variable.DISCORD_WEBHOOK_URL}}` (o incollalo direttamente).
-   - **Message**: `🔴 New incident: {{Incident.title}}\n{{Incident.description}}`
+   - **URL del webhook**: `{{variable.DISCORD_WEBHOOK_URL}}` (o incollalo direttamente).
+   - **Messaggio**: `🔴 New incident: {{Incident.title}}\n{{Incident.description}}`
 4. **Salva**, abilita e crea un incidente di test. Il messaggio appare nel tuo canale.
 
 ## Alternativa: il componente API
@@ -42,8 +42,8 @@ Questo è utile se vuoi usare gli [embed](https://discord.com/developers/docs/re
 
 ## Suggerimenti
 
-- Usa **Conditions** per pubblicare solo per determinate severità — ramifica su `{{Incident.incidentSeverity.name}}` prima del blocco Discord.
-- Aggiungi altri workflow su **Incident → On Update** per pubblicare conferme e risoluzioni nello stesso canale.
+- Usa **Condizioni** per pubblicare solo per determinate severità — ramifica su `{{Incident.incidentSeverity.name}}` prima del blocco Discord.
+- Aggiungi altri workflow su **Incidente → On Update** per pubblicare conferme e risoluzioni nello stesso canale.
 
 ## Dove leggere poi
 

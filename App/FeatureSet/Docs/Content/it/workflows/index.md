@@ -34,14 +34,14 @@ Costruisci tutto questo visivamente su un canvas. Per la maggior parte dei workf
 
 ## Dove trovare i workflow in OneUptime
 
-Apri **Workflows** nel menu di navigazione a sinistra. Da li:
+Apri **Flussi di lavoro** nel menu di navigazione a sinistra. Da li:
 
-- **Workflows** — il tuo elenco di workflow. Crea un nuovo workflow o aprine uno esistente.
-- **Scheda Builder** — il canvas dove progetti il workflow.
-- **Scheda Logs** — ogni esecuzione di questo workflow, con i relativi dettagli.
-- **Scheda Settings** — nome, descrizione, proprietari, etichette, abilita/disabilita.
+- **Flussi di lavoro** — il tuo elenco di workflow. Crea un nuovo workflow o aprine uno esistente.
+- **Scheda Costruttore** — il canvas dove progetti il workflow.
+- **Scheda Registri** — ogni esecuzione di questo workflow, con i relativi dettagli.
+- **Scheda Impostazioni** — nome, descrizione, proprietari, etichette, abilita/disabilita.
 - **Variabili globali** — valori condivisi tra tutti i tuoi workflow.
-- **Esecuzioni e log** — cronologia delle esecuzioni di tutti i workflow del tuo progetto.
+- **Esecuzioni e registri** — cronologia delle esecuzioni di tutti i workflow del tuo progetto.
 
 ## Creare il primo workflow
 
@@ -49,16 +49,16 @@ Apri **Workflows** nel menu di navigazione a sinistra. Da li:
 2. **Scegli un trigger** — manuale, pianificato, webhook o un evento da OneUptime.
 3. **Aggiungi i componenti** — trascina le azioni sul canvas e collegale.
 4. **Testa** — clicca su **Run Manually** e osserva cosa accade nei log.
-5. **Attivalo** — sposta l'interruttore **Enabled** in Settings quando sei pronto.
+5. **Attivalo** — sposta l'interruttore **Abilitato** in Settings quando sei pronto.
 
 ## Un esempio rapido
 
 Supponi di voler pubblicare un messaggio su Slack ogni volta che viene creato un incidente critico:
 
 1. Crea un workflow chiamato "Incidenti critici su Slack."
-2. Scegli il trigger **Incident → On Create**.
-3. Aggiungi un blocco **Conditions**. Impostalo per verificare se il titolo dell'incidente contiene "Sev 1."
-4. Dal ramo **Yes**, aggiungi un blocco **Slack**. Scegli il canale e scrivi il messaggio.
+2. Scegli il trigger **Incidente → On Create**.
+3. Aggiungi un blocco **Condizioni**. Impostalo per verificare se il titolo dell'incidente contiene "Sev 1."
+4. Dal ramo **Sì**, aggiungi un blocco **Slack**. Scegli il canale e scrivi il messaggio.
 5. Attiva il workflow.
 
 La prossima volta che qualcuno apre un incidente con "Sev 1" nel titolo, Slack si illuminera.

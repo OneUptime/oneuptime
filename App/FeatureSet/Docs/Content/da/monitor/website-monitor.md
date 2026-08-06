@@ -14,7 +14,7 @@ Website-monitorer kontrollerer dine websider ved at sende HTTP-anmodninger og ev
 
 ## Oprettelse af en Website Monitor
 
-1. Gå til **Monitorer** i OneUptime-dashboardet
+1. Gå til **Overvågninger** i OneUptime-dashboardet
 2. Klik på **Opret monitor**
 3. Vælg **Website** som monitortype
 4. Indtast det websteds-URL, du vil overvåge
@@ -71,11 +71,11 @@ Enable this option to skip TLS certificate validation. Useful when the target se
 
 #### Client Certificate (mTLS)
 
-If your endpoint requires mutual TLS authentication, enable **Use client certificate (mTLS)** and provide:
+If your endpoint requires mutual TLS authentication, enable **Brug klientcertifikat (mTLS)** and provide:
 
-- **Client Certificate (PEM)** — the PEM-encoded client certificate to present.
-- **Client Private Key (PEM)** — the matching PEM-encoded private key.
-- **Client Private Key Passphrase** _(optional)_ — required only if the private key is encrypted.
+- **Klientcertifikat (PEM)** — the PEM-encoded client certificate to present.
+- **Privat klientnøgle (PEM)** — the matching PEM-encoded private key.
+- **Adgangsudtryk til privat klientnøgle** _(optional)_ — required only if the private key is encrypted.
 
 This is the OneUptime equivalent of the `--cert` and `--key` flags in curl:
 
@@ -91,5 +91,5 @@ Du kan konfigurere kriterier til at afgøre, hvornår dit websted betragtes som 
 
 - **Svarstatuskode** – Kontroller, om HTTP-statuskoden matcher forventede værdier (f.eks. 200, 301)
 - **Svartid** – Overvåg, om svartiden overskrider en grænseværdi
-- **Svarindhold** – Kontroller, om svarindholdet indeholder eller matcher specifikt indhold
-- **Svarheadere** – Bekræft, at specifikke svarheadere er til stede eller matcher forventede værdier
+- **Svarets brødtekst** – Kontroller, om svarindholdet indeholder eller matcher specifikt indhold
+- **Svar-headere** – Bekræft, at specifikke svarheadere er til stede eller matcher forventede værdier

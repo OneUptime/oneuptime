@@ -16,16 +16,16 @@ Prometheus rule fires  ──►  Alertmanager webhook receiver  ──►  OneU
 
 ## Trin 1 — Byg OneUptime-workflowet
 
-1. Åbn **Workflows → Create Workflow**, navngiv det `Alertmanager → Incidents`, og åbn **Builder**.
+1. Åbn **Arbejdsgange → Opret arbejdsgang**, navngiv det `Alertmanager → Incidents`, og åbn **Bygger**.
 2. Tilføj en **Webhook**-trigger og **kopiér dens URL**. Omdøb blokken til `Alertmanager`.
-3. Tilføj en **Conditions**-blok forbundet til triggeren:
+3. Tilføj en **Betingelser**-blok forbundet til triggeren:
    - **Left**: `{{Alertmanager.Request Body.status}}`
    - **Operator**: `==`
    - **Right**: `firing`
-4. Fra **Yes** tilføjer du en **Create Incident**-blok:
-   - **Title**: `{{Alertmanager.Request Body.commonAnnotations.summary}}`
-   - **Description**: `{{Alertmanager.Request Body.commonAnnotations.description}}\nAlert: {{Alertmanager.Request Body.commonLabels.alertname}}`
-   - **Severity**: vælg én (eller forgren på `{{Alertmanager.Request Body.commonLabels.severity}}` først).
+4. Fra **Ja** tilføjer du en **Opret hændelse**-blok:
+   - **Titel**: `{{Alertmanager.Request Body.commonAnnotations.summary}}`
+   - **Beskrivelse**: `{{Alertmanager.Request Body.commonAnnotations.description}}\nAlert: {{Alertmanager.Request Body.commonLabels.alertname}}`
+   - **Alvorlighed**: vælg én (eller forgren på `{{Alertmanager.Request Body.commonLabels.severity}}` først).
 5. **Gem** (lad det stå deaktiveret, indtil det er testet).
 
 > **Om grupperede alarmer.** Alertmanager grupperer alarmer og sender et `alerts`-**array**. `commonLabels` og `commonAnnotations` ovenfor er de felter, der deles på tværs af gruppen — perfekt til én hændelse per notifikation. Hvis du ønsker **én hændelse per alarm**, tilføj en [Custom Code](/docs/workflows/components#custom-code)-blok, der løber over `Request Body.alerts` og opretter en hændelse for hver. Juster grupperingen med `group_by` i din rute.
@@ -60,16 +60,16 @@ Genindlæs Alertmanager (`curl -X POST http://localhost:9093/-/reload` eller gen
    amtool alert add test_alert severity=warning --annotation=summary="Test from Alertmanager" --alertmanager.url=http://localhost:9093
    ```
 
-3. Tjek workflowets **Logs**-fane og din **Incidents**-liste.
+3. Tjek workflowets **Protokoller**-fane og din **Hændelser**-liste.
 
 ## Løsning ved genopretning (valgfrit)
 
-Med `send_resolved: true` POSTer Alertmanager også, når en alarm rydder, denne gang med `status: resolved`. Tilføj en anden **Conditions**-gren (`status == resolved`), find den matchende hændelse (match på `commonLabels.alertname`), og flyt den til din løste tilstand med **Update Incident**.
+Med `send_resolved: true` POSTer Alertmanager også, når en alarm rydder, denne gang med `status: resolved`. Tilføj en anden **Betingelser**-gren (`status == resolved`), find den matchende hændelse (match på `commonLabels.alertname`), og flyt den til din løste tilstand med **Update Incident**.
 
 ## Fejlfinding
 
-- **Ingen kørsel vises** — bekræft, at Alertmanager kan nå URL'en (tjek dens logfiler for leveringsfejl), og at workflowet er **Enabled**.
-- **Hændelsesfelter er tomme** — forskellige regler sætter forskellige annotationer. Inspicér trigger-outputtet i **Logs**-fanen og referer til felter, der faktisk eksisterer (`commonAnnotations` vs. per-alarm `annotations`).
+- **Ingen kørsel vises** — bekræft, at Alertmanager kan nå URL'en (tjek dens logfiler for leveringsfejl), og at workflowet er **Aktiveret**.
+- **Hændelsesfelter er tomme** — forskellige regler sætter forskellige annotationer. Inspicér trigger-outputtet i **Protokoller**-fanen og referer til felter, der faktisk eksisterer (`commonAnnotations` vs. per-alarm `annotations`).
 - **For mange hændelser** — øg `group_by`/`group_interval`, så Alertmanager samler relaterede alarmer.
 
 ## Læs videre

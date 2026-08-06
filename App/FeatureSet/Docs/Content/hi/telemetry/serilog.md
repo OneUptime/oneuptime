@@ -2,7 +2,7 @@
 
 ## अवलोकन
 
-[Serilog](https://serilog.net) .NET के लिए सबसे लोकप्रिय संरचित लॉगिंग लाइब्रेरी है। OneUptime आधिकारिक [`Serilog.Sinks.OpenTelemetry`](https://github.com/serilog/serilog-sinks-opentelemetry) sink का उपयोग करते हुए OpenTelemetry Protocol (OTLP) के माध्यम से Serilog लॉग ग्रहण करता है। एक बार कॉन्फ़िगर हो जाने के बाद, आपका एप्लिकेशन Serilog के माध्यम से जो भी लॉग इवेंट लिखता है, उसे OneUptime पर भेज दिया जाता है, जहाँ यह **Products → लॉग** में खोजने योग्य बन जाता है, जिसमें संरचित प्रॉपर्टीज़, गंभीरता, और trace/span सहसंबंध शामिल होते हैं।
+[Serilog](https://serilog.net) .NET के लिए सबसे लोकप्रिय संरचित लॉगिंग लाइब्रेरी है। OneUptime आधिकारिक [`Serilog.Sinks.OpenTelemetry`](https://github.com/serilog/serilog-sinks-opentelemetry) sink का उपयोग करते हुए OpenTelemetry Protocol (OTLP) के माध्यम से Serilog लॉग ग्रहण करता है। एक बार कॉन्फ़िगर हो जाने के बाद, आपका एप्लिकेशन Serilog के माध्यम से जो भी लॉग इवेंट लिखता है, उसे OneUptime पर भेज दिया जाता है, जहाँ यह **उत्पाद → लॉग्स** में खोजने योग्य बन जाता है, जिसमें संरचित प्रॉपर्टीज़, गंभीरता, और trace/span सहसंबंध शामिल होते हैं।
 
 इंस्टॉल करने के लिए कोई OneUptime-विशिष्ट पैकेज नहीं है — sink उसी OTLP एंडपॉइंट से बात करता है जिसे OneUptime सभी OpenTelemetry डेटा के लिए उजागर करता है। यह console ऐप्स, worker services, ASP.NET Core ऐप्स, और किसी भी अन्य चीज़ के लिए काम करता है जो .NET पर चलती है।
 
@@ -12,13 +12,13 @@
 - **OneUptime प्रोजेक्ट बनाएँ** – एक बार जब आपके पास खाता हो, तो OneUptime डैशबोर्ड से एक प्रोजेक्ट बनाएँ। यदि आपको सहायता की आवश्यकता हो, तो हमसे support@oneuptime.com पर संपर्क करें।
 - **Telemetry Ingestion Token बनाएँ** – अपने लॉग को प्रमाणित करने के लिए आपको एक टोकन की आवश्यकता होती है।
 
-OneUptime पर साइन अप करने और एक प्रोजेक्ट बनाने के बाद, नेविगेशन बार में "Products" पर क्लिक करें और "Project Settings" पर क्लिक करें।
+OneUptime पर साइन अप करने और एक प्रोजेक्ट बनाने के बाद, नेविगेशन बार में "उत्पाद" पर क्लिक करें और "प्रोजेक्ट सेटिंग्स" पर क्लिक करें।
 
-Telemetry Ingestion Key पृष्ठ पर, एक टोकन बनाने के लिए "Create Ingestion Key" पर क्लिक करें।
+Telemetry Ingestion Key पृष्ठ पर, एक टोकन बनाने के लिए "इन्जेशन कुंजी बनाएँ" पर क्लिक करें।
 
 ![Create Service](/docs/static/images/TelemetryIngestionKeys.png)
 
-एक बार जब आप एक टोकन बना लें, तो टोकन देखने के लिए "View" पर क्लिक करें।
+एक बार जब आप एक टोकन बना लें, तो टोकन देखने के लिए "देखें" पर क्लिक करें।
 
 ![View Service](/docs/static/images/TelemetryIngestionKeyView.png)
 
@@ -197,7 +197,7 @@ Log.Information("Order {OrderId} placed by {CustomerId} for {Amount:C}",
 Log.Warning("Payment gateway slow: {LatencyMs}ms", latencyMs);
 ```
 
-प्रत्येक नामित प्रॉपर्टी (`OrderId`, `CustomerId`, `Amount`, `LatencyMs`) को एक लॉग एट्रिब्यूट के रूप में भेजा जाता है, इसलिए आप **Products → लॉग** explorer में उन पर फ़िल्टर और खोज कर सकते हैं।
+प्रत्येक नामित प्रॉपर्टी (`OrderId`, `CustomerId`, `Amount`, `LatencyMs`) को एक लॉग एट्रिब्यूट के रूप में भेजा जाता है, इसलिए आप **उत्पाद → लॉग्स** explorer में उन पर फ़िल्टर और खोज कर सकते हैं।
 
 ## अपवाद (Exceptions)
 
@@ -214,7 +214,7 @@ catch (Exception ex)
 }
 ```
 
-OneUptime इन एट्रिब्यूट का पता लगाता है और त्रुटि को स्वचालित रूप से **Exceptions** (Issues) दृश्य में रोल कर देता है, जो fingerprint द्वारा समूहित और सही सेवा को आरोपित होता है। trace और log दोनों द्वारा रिपोर्ट की गई त्रुटि एक ही issue में संक्षिप्त हो जाती है। पता लगाना कैसे काम करता है, इस पर विवरण के लिए [Exceptions from logs](/docs/telemetry/open-telemetry) देखें।
+OneUptime इन एट्रिब्यूट का पता लगाता है और त्रुटि को स्वचालित रूप से **अपवाद** (Issues) दृश्य में रोल कर देता है, जो fingerprint द्वारा समूहित और सही सेवा को आरोपित होता है। trace और log दोनों द्वारा रिपोर्ट की गई त्रुटि एक ही issue में संक्षिप्त हो जाती है। पता लगाना कैसे काम करता है, इस पर विवरण के लिए [Exceptions from logs](/docs/telemetry/open-telemetry) देखें।
 
 ## Trace सहसंबंध
 
@@ -223,7 +223,7 @@ OneUptime इन एट्रिब्यूट का पता लगाता
 ## सत्यापित करें
 
 1. अपना एप्लिकेशन चलाएँ और कुछ लॉग इवेंट उत्पन्न करें।
-2. OneUptime खोलें, **Telemetry** पर जाएँ, अपनी सेवा (`my-service`) चुनें, और **Logs** खोलें।
+2. OneUptime खोलें, **टेलीमेट्री** पर जाएँ, अपनी सेवा (`my-service`) चुनें, और **लॉग** खोलें।
 3. आपको अपने Serilog इवेंट कुछ ही सेकंड के भीतर दिखाई देने चाहिए, जिनकी संरचित प्रॉपर्टीज़ फ़िल्टर के रूप में उपलब्ध हों।
 
 ## समस्या निवारण

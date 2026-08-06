@@ -15,18 +15,18 @@ OneUptime Incident → On Create  ──►  Discord component  ──►  messa
 
 ## Steg 2 — Spara webhook-URL:en (valfritt men rekommenderas)
 
-1. Gå i OneUptime till **Workflows → Global Variables → Create**.
+1. Gå i OneUptime till **Arbetsflöden → Globala variabler → Skapa**.
 2. Namnge det `DISCORD_WEBHOOK_URL`, klistra in URL:en och slå på **Is Secret**.
 
 Att ha den i en variabel gör att du kan återanvända den i flera arbetsflöden och rotera den på ett ställe.
 
 ## Steg 3 — Bygg arbetsflödet
 
-1. Öppna **Workflows → Create Workflow**, namnge det `Incidents → Discord` och öppna **Builder**.
+1. Öppna **Arbetsflöden → Skapa arbetsflöde**, namnge det `Incidents → Discord` och öppna **Byggare**.
 2. Lägg till en **Incident**-utlösare inställd på **On Create**. Byt namn till `Incident`.
 3. Lägg till en **Discord**-komponent kopplad till utlösaren:
-   - **Webhook URL**: `{{variable.DISCORD_WEBHOOK_URL}}` (eller klistra in den direkt).
-   - **Message**: `🔴 New incident: {{Incident.title}}\n{{Incident.description}}`
+   - **Webhook-URL**: `{{variable.DISCORD_WEBHOOK_URL}}` (eller klistra in den direkt).
+   - **Meddelande**: `🔴 New incident: {{Incident.title}}\n{{Incident.description}}`
 4. **Spara**, aktivera och skapa en testincident. Meddelandet visas i din kanal.
 
 ## Alternativ: API-komponenten
@@ -42,7 +42,7 @@ Det är praktiskt om du vill ha Discords rikare [embeds](https://discord.com/dev
 
 ## Tips
 
-- Använd **Conditions** för att bara posta för vissa allvarlighetsgrader — förgrena på `{{Incident.incidentSeverity.name}}` före Discord-blocket.
+- Använd **Villkor** för att bara posta för vissa allvarlighetsgrader — förgrena på `{{Incident.incidentSeverity.name}}` före Discord-blocket.
 - Lägg till fler arbetsflöden på **Incident → On Update** för att posta bekräftelser och lösningar till samma kanal.
 
 ## Läs vidare

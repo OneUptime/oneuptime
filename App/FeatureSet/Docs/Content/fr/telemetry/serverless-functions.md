@@ -8,7 +8,7 @@ Cela fonctionne pour AWS Lambda, Google Cloud Functions, Azure Functions, Cloudf
 
 ## Prérequis
 
-- Un **jeton d'ingestion de télémétrie OneUptime** — créez-en un depuis _Project Settings → Télémétrie & APM → Clés d'ingestion_ et copiez la valeur `x-oneuptime-token`.
+- Un **jeton d'ingestion de télémétrie OneUptime** — créez-en un depuis _Paramètres du projet → Télémétrie & APM → Clés d'ingestion_ et copiez la valeur `x-oneuptime-token`.
 - Le SDK OpenTelemetry (ou une couche d'auto-instrumentation) pour le langage de votre fonction.
 
 ## Comment OneUptime identifie une fonction
@@ -55,6 +55,6 @@ Dès que la fonction émet une span, un journal ou une métrique, elle apparaît
 
 - **Invocations**, **taux d'erreur** et **durée p95** — dérivés de vos traces, sur une plage de temps sélectionnable, avec des graphiques de tendance.
 - **Instances** — un décompte en temps réel des valeurs `faas.instance` observées.
-- Des onglets complets **Logs**, **Traces** et **Metrics** délimités à cette fonction.
+- Des onglets complets **Journaux**, **Traces** et **Métriques** délimités à cette fonction.
 
-Vous pouvez également appliquer automatiquement des libellés et des propriétaires via _Serverless → Settings → Label Rules / Owner Rules_.
+Vous pouvez également appliquer automatiquement des libellés et des propriétaires via _Serverless → Paramètres → Règles d'étiquettes / Règles de propriétaire_.

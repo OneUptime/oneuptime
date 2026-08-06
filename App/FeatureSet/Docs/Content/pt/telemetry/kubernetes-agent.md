@@ -11,7 +11,7 @@ Esta página é o **guia de instalação**. Para configurar monitores e alertas 
 - Um cluster Kubernetes em execução (v1.23+)
 - `kubectl` configurado para acessar seu cluster
 - `helm` v3 instalado
-- Uma **chave de API do OneUptime** — crie uma em _Project Settings → API Keys_
+- Uma **chave de API do OneUptime** — crie uma em _Configurações do projeto → Chaves de API_
 
 ## Passo 1 — Adicione o Repositório Helm do OneUptime
 
@@ -164,7 +164,7 @@ Aceita `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`. O `WARN` mantém WARN
 
 Os runtimes de contêiner não registram uma severidade na linha de log, então o próprio agente extrai uma do texto do log (`[ERROR]`, `WARN:`, `level=info`, …).
 
-> **Os eventos do Kubernetes e as especificações de recursos nunca são filtrados por isso.** Eles chegam da API do Kubernetes sem severidade própria, então um limiar apagaria o feed inteiro em vez de afiná-lo — incluindo os avisos `FailedScheduling`, `BackOff` e `OOMKilling` que você mais quer. Eles são de baixo volume e alto valor, então o agente sempre os envia. Para reduzi-los, use os **Logs → Settings → Drop Filters** do lado do servidor no dashboard.
+> **Os eventos do Kubernetes e as especificações de recursos nunca são filtrados por isso.** Eles chegam da API do Kubernetes sem severidade própria, então um limiar apagaria o feed inteiro em vez de afiná-lo — incluindo os avisos `FailedScheduling`, `BackOff` e `OOMKilling` que você mais quer. Eles são de baixo volume e alto valor, então o agente sempre os envia. Para reduzi-los, use os **Registros → Configurações → Filtros de descarte** do lado do servidor no dashboard.
 
 **O que acontece com uma linha sem nível reconhecível depende do modo de log**, porque os dois modos têm informações diferentes disponíveis:
 
@@ -247,7 +247,7 @@ Observações que vão lhe poupar um incidente:
 - **Multi-cluster funciona por padrão.** Dois agentes mantêm o mesmo trace apenas se concordarem tanto no `hashSeed` quanto no `percentage`. Ambos têm o mesmo padrão em todo lugar, então um trace que cruza dois clusters sobrevive inteiro sem nenhuma configuração extra. Altere o `hashSeed` apenas para *descorrelacionar* deliberadamente dois níveis de amostragem — como a decisão é um limiar sobre o mesmo hash, a mesma semente em taxas diferentes se aninha, então um segundo nível apenas volta a escolher os traces que o primeiro já havia mantido, em vez de sortear de forma independente.
 - **Os logs de pods nunca são amostrados**, então com `ebpf.logToTraceCorrelation: true` todo registro de log continua carregando um ID de trace, enquanto apenas `percentage`% desses traces são mantidos. Aproximadamente (100 − `percentage`)% dos registros de log vão exibir um link de trace que não leva a lugar nenhum. A navegação trace → logs não é afetada; apenas a de logs → trace pode falhar.
 
-> **Reajuste seus monitores baseados em spans ao definir isto.** A amostragem reduz os spans que chegam ao OneUptime, então tudo o que os conta passa a contar menos: um monitor **Traces** com o critério `Span Count` e um monitor **Exceptions** com o critério `Exception Count` verão aproximadamente `percentage`% do volume de ontem. Um limiar ajustado sobre tráfego não amostrado silenciosamente deixa de ser cruzado — o monitor não dá erro, ele apenas fica em silêncio. Divida esses limiares pelo mesmo fator ao definir a taxa; a taxa vale para todo o cluster, então não há como isentar um serviço individual dela. O **agrupamento** de erros se degrada de forma pior que linear: uma exceção comum ainda aparece, mas uma rara e isolada tem mais chance de sumir por completo do que de aparecer um décimo das vezes.
+> **Reajuste seus monitores baseados em spans ao definir isto.** A amostragem reduz os spans que chegam ao OneUptime, então tudo o que os conta passa a contar menos: um monitor **Traços** com o critério `Span Count` e um monitor **Exceções** com o critério `Exception Count` verão aproximadamente `percentage`% do volume de ontem. Um limiar ajustado sobre tráfego não amostrado silenciosamente deixa de ser cruzado — o monitor não dá erro, ele apenas fica em silêncio. Divida esses limiares pelo mesmo fator ao definir a taxa; a taxa vale para todo o cluster, então não há como isentar um serviço individual dela. O **agrupamento** de erros se degrada de forma pior que linear: uma exceção comum ainda aparece, mas uma rara e isolada tem mais chance de sumir por completo do que de aparecer um décimo das vezes.
 
 > **Por que não há amostragem de logs ou de métricas aqui.** O amostrador do coletor não consegue amostrar métricas de jeito nenhum. Ele consegue amostrar logs, mas tira sua aleatoriedade do ID do trace — e os logs de pods não têm um. Todo registro sem ID de trace então vai para o mesmo bucket no hash, de modo que uma taxa para logs não afinaria o feed: ela manteria tudo ou apagaria tudo, dependendo da semente. Em vez de entregar um botão que apaga os seus logs silenciosamente, o chart não oferece nenhum. Afine os logs com a [Filtragem por Severidade de Log](#filtragem-por-severidade-de-log) e a [Filtragem de Namespace](#filtragem-de-namespace), que são precisas sobre o que removem.
 
@@ -443,7 +443,7 @@ Há três maneiras de cortar volume, e vale a pena saber qual delas você está 
 - **No processador de filtro** — os dados são coletados e então descartados antes da exportação. O `filters.logs.minSeverity`, o `filters.metrics.*`, o `namespaceFilters.rules` (`metrics`/`traces`). Um pouco mais de CPU do coletor, mas funciona entre receptores e consegue expressar coisas que um receptor não consegue.
 - **No amostrador** — os dados são coletados e então uma fração representativa é mantida. O `sampling.traces.percentage`. É o diferente do grupo: os dois acima removem uma *categoria* inteira de telemetria, então o que eles descartam some de todos os traces. A amostragem mantém todas as categorias e afina a população, então o que sobrevive continua completo e representativo.
 
-As três são **irreversíveis**: o que você descarta aqui nunca chega ao OneUptime, e as três podem fazer um monitor ficar em silêncio. As duas primeiras silenciam um monitor removendo o sinal que ele observa. A amostragem é mais restrita: as métricas RED do eBPF são calculadas antes de o amostrador rodar, então os monitores baseados em métricas permanecem exatos — mas os monitores que contam *spans* (Traces com `Span Count`, Exceptions com `Exception Count`) veem proporcionalmente menos e precisam ter seus limiares reajustados pelo mesmo fator. Se você preferir decidir depois, o OneUptime pode descartar os dados no lado do servidor (**Logs → Settings → Drop Filters**, **Metrics → Settings → Pipeline Rules**) — isso ainda custa egresso, mas é uma configuração que você pode alterar sem um novo deploy.
+As três são **irreversíveis**: o que você descarta aqui nunca chega ao OneUptime, e as três podem fazer um monitor ficar em silêncio. As duas primeiras silenciam um monitor removendo o sinal que ele observa. A amostragem é mais restrita: as métricas RED do eBPF são calculadas antes de o amostrador rodar, então os monitores baseados em métricas permanecem exatos — mas os monitores que contam *spans* (Traces com `Span Count`, Exceptions com `Exception Count`) veem proporcionalmente menos e precisam ter seus limiares reajustados pelo mesmo fator. Se você preferir decidir depois, o OneUptime pode descartar os dados no lado do servidor (**Registros → Configurações → Filtros de descarte**, **Métricas → Configurações → Regras de pipeline**) — isso ainda custa egresso, mas é uma configuração que você pode alterar sem um novo deploy.
 
 ### Alavanca 1 — Logs de pods geralmente são a maior fonte isolada
 
@@ -656,7 +656,7 @@ Reduza ainda mais se necessário: aumente minSeverity para ERROR, adicione metri
 
 ### Meça o efeito
 
-O uso de telemetria é agregado por dia, então acompanhe a tendência ao longo de um ou dois dias em **Project Settings → Usage History** para confirmar a queda — ela não se moverá no instante em que você aplicar uma mudança. Altere uma alavanca por vez para conseguir atribuir a diferença — logs desativados, depois intervalo aumentado, depois eBPF reduzido — em vez de baixar tudo de uma vez e perder um monitor do qual você realmente dependia.
+O uso de telemetria é agregado por dia, então acompanhe a tendência ao longo de um ou dois dias em **Configurações do projeto → Histórico de uso** para confirmar a queda — ela não se moverá no instante em que você aplicar uma mudança. Altere uma alavanca por vez para conseguir atribuir a diferença — logs desativados, depois intervalo aumentado, depois eBPF reduzido — em vez de baixar tudo de uma vez e perder um monitor do qual você realmente dependia.
 
 ## Solução de Problemas
 
@@ -694,7 +694,7 @@ A razão mais comum — especialmente após uma reinstalação — é uma **chav
    curl -i -H "x-oneuptime-token: <YOUR_API_KEY>" https://oneuptime.com/otlp/v1/validate
    ```
 
-   Se retornar `401`, a chave no seu release está errada ou foi revogada. Copie uma chave ativa em _Project Settings → Telemetria e APM → Chaves de ingestão_ e reimplante:
+   Se retornar `401`, a chave no seu release está errada ou foi revogada. Copie uma chave ativa em _Configurações do projeto → Telemetria e APM → Chaves de ingestão_ e reimplante:
 
    ```bash
    helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
@@ -703,7 +703,7 @@ A razão mais comum — especialmente após uma reinstalação — é uma **chav
    ```
 
 4. Verifique se a sua URL do OneUptime está correta e se o seu cluster consegue alcançá-la pela rede.
-5. Se você alterou `clusterName` na reinstalação, o agente aparece como um **novo** cluster — a entrada antiga permanece "Disconnected" (isso é esperado; está obsoleta).
+5. Se você alterou `clusterName` na reinstalação, o agente aparece como um **novo** cluster — a entrada antiga permanece "Desconectado" (isso é esperado; está obsoleta).
 
 ### Nenhum log aparecendo (apenas no modo API)
 

@@ -38,8 +38,8 @@ OneUptime निम्नलिखित methods के माध्यम स�
 
 ## External Status Page Monitor बनाना
 
-1. OneUptime Dashboard में **Monitors** पर जाएं
-2. **Create Monitor** पर क्लिक करें
+1. OneUptime Dashboard में **मॉनिटर** पर जाएं
+2. **मॉनिटर बनाएं** पर क्लिक करें
 3. monitor type के रूप में **External Status Page** चुनें
 4. वह status page URL दर्ज करें जिसे आप monitor करना चाहते हैं
 5. वैकल्पिक रूप से एक specific provider type चुनें (या **Auto** के रूप में छोड़ दें)
@@ -86,16 +86,16 @@ status page से response के लिए प्रतीक्षा कर�
 आप criteria configure कर सकते हैं जो निम्न के आधार पर यह निर्धारित करे कि external service operational मानी जाए या down:
 
 - **Is Online** – status page reachable है और status data लौटा रही है
-- **Overall Status** – status page का overall status indicator (जैसे `operational`, `degraded_performance`, `partial_outage`, `major_outage`)
+- **समग्र स्थिति** – status page का overall status indicator (जैसे `operational`, `degraded_performance`, `partial_outage`, `major_outage`)
 - **Component Status** – scope में components की status (component group / component name filters का सम्मान करते हुए)
-- **Active Incidents** – status page पर report किए गए currently active incidents की संख्या (filter सेट होने पर component group / component तक scoped)
-- **Response Time** – status page data fetch करने में कितना समय लगता है
+- **सक्रिय घटनाएं** – status page पर report किए गए currently active incidents की संख्या (filter सेट होने पर component group / component तक scoped)
+- **प्रतिक्रिया समय** – status page data fetch करने में कितना समय लगता है
 
 ### Default Criteria
 
 डिफ़ॉल्ट रूप से, OneUptime criteria को उस आधार पर seed करता है जो किसी status page के लिए वास्तव में मायने रखता है — इसके active incidents और component health, न कि केवल reachability:
 
-- monitor को **Operational** चिह्नित किया जाता है जब scope में कोई active incidents नहीं होते।
+- monitor को **कार्यरत** चिह्नित किया जाता है जब scope में कोई active incidents नहीं होते।
 - monitor को **Down** चिह्नित किया जाता है (और एक incident बनाया जाता है) जब scope में कम से कम एक active incident होता है, या जब scope में कोई component `degraded_performance`, `partial_outage`, `major_outage`, या `full_outage` report करता है।
 
 चूँकि active incident count और component statuses component group / component name filters का सम्मान करते हैं, ये default criteria automatically केवल उन components को target करते हैं जिनकी आप परवाह करते हैं।

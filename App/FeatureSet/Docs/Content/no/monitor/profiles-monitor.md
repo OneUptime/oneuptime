@@ -14,9 +14,9 @@ Profiler-monitorer teller og filtrerer profileringsdata som samsvarer med spesif
 
 ## Opprette en profiler-monitor
 
-1. Gå til **Monitors** i OneUptime-dashbordet
-2. Klikk **Create Monitor**
-3. Velg **Profiles** som monitortype
+1. Gå til **Overvåkere** i OneUptime-dashbordet
+2. Klikk **Opprett monitor**
+3. Velg **Profiler** som monitortype
 4. Velg telemetritjenestene som skal overvåkes
 5. Konfigurer profilfiltre og kriterier etter behov
 
@@ -56,7 +56,7 @@ Velg én eller flere tjenester det skal overvåkes profiler fra. Tjenester må s
 #### Varsle hvis ingen profiler mottatt på 5 minutter
 
 - **Tidsvindu**: 300 sekunder
-- **Sjekk på**: Profile Count
+- **Check On**: Profile Count
 - **Filtertype**: Equal To
 - **Verdi**: 0
 

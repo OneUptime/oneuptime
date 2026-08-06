@@ -15,9 +15,9 @@ I monitor server usano un agente infrastrutturale installato sui propri server p
 ## Creazione di un Monitor Server
 
 1. Accedere a **Monitor** nel Dashboard di OneUptime
-2. Fare clic su **Crea Monitor**
+2. Fare clic su **Crea monitor**
 3. Selezionare **Server / VM** come tipo di monitor
-4. Verrà generata una **Chiave Segreta** per questo monitor — sarà necessaria per configurare l'agente
+4. Verrà generata una **Chiave segreta** per questo monitor — sarà necessaria per configurare l'agente
 5. Seguire le istruzioni di installazione per configurare l'agente sul server
 
 ## Installazione dell'Agente Infrastrutturale
@@ -88,7 +88,7 @@ L'agente raccoglie le seguenti metriche dal server:
 
 ### Memoria
 
-- **Memoria Totale** — Memoria totale disponibile
+- **Memoria totale** — Memoria totale disponibile
 - **Memoria Usata** — Memoria attualmente in uso
 - **Memoria Libera** — Memoria libera disponibile
 - **Percentuale Utilizzo Memoria** — Utilizzo della memoria come percentuale
@@ -101,7 +101,7 @@ Per ogni disco/volume montato:
 - **Spazio Disco Usato** — Spazio attualmente in uso
 - **Spazio Disco Libero** — Spazio libero disponibile
 - **Percentuale Utilizzo Disco** — Utilizzo del disco come percentuale
-- **Percorso Disco** — Percorso di montaggio del disco
+- **Percorso del disco** — Percorso di montaggio del disco
 
 ### Processi
 
@@ -145,31 +145,31 @@ Per i controlli dei processi:
 #### Considerare il server offline se l'agente smette di riportare
 
 - **Controlla Su**: È Online
-- **Tipo Filtro**: Falso
+- **Tipo di filtro**: Falso
 
 #### Avviso quando l'utilizzo della CPU supera il 90%
 
 - **Controlla Su**: Percentuale Utilizzo CPU
-- **Tipo Filtro**: Maggiore Di
+- **Tipo di filtro**: Maggiore Di
 - **Valore**: 90
 
 #### Avviso quando l'utilizzo del disco supera l'85%
 
 - **Controlla Su**: Percentuale Utilizzo Disco
-- **Percorso Disco**: `/`
-- **Tipo Filtro**: Maggiore Di
+- **Percorso del disco**: `/`
+- **Tipo di filtro**: Maggiore Di
 - **Valore**: 85
 
 #### Avviso quando l'utilizzo della memoria supera l'80%
 
 - **Controlla Su**: Percentuale Utilizzo Memoria
-- **Tipo Filtro**: Maggiore Di
+- **Tipo di filtro**: Maggiore Di
 - **Valore**: 80
 
 #### Avviso se un processo critico smette di funzionare
 
 - **Controlla Su**: Nome Processo Server
-- **Tipo Filtro**: Non È in Esecuzione
+- **Tipo di filtro**: Non È in Esecuzione
 - **Valore**: `nginx`
 
 ## Risoluzione dei Problemi

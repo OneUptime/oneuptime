@@ -32,9 +32,9 @@ Goed voor: data naar OneUptime ontvangen vanuit een andere tool — CI/CD-callba
 
 **Output**:
 
-- **Request Headers** — alle headers van het inkomende verzoek.
+- **Aanvraagheaders** — alle headers van het inkomende verzoek.
 - **Request Query Params** — de geparste query string.
-- **Request Body** — de geparste body (of de ruwe tekst als het geen JSON is).
+- **Verzoeklichaam** — de geparste body (of de ruwe tekst als het geen JSON is).
 
 De URL accepteert zowel `GET` als `POST`. De aanroeper krijgt een snelle bevestiging — de workflow zelf draait op de achtergrond.
 
@@ -55,10 +55,10 @@ De volledige record wordt aan het volgende blok doorgegeven. Bijvoorbeeld: de tr
 ### Events die teams het meest gebruiken
 
 - **Incident** — reageer wanneer een incident wordt geopend, gewijzigd (acknowledged, resolved) of verwijderd.
-- **Alert** — dezelfde drie voor alerts.
+- **Waarschuwing** — dezelfde drie voor alerts.
 - **Monitor** — reageer wanneer een monitor wordt toegevoegd, bewerkt of verwijderd.
-- **Scheduled Maintenance** — kondig automatisch een onderhoudsvenster aan zodra het is gepland.
-- **Status Page Subscriber** — verwelkom iemand die zich abonneert op een statuspagina.
+- **Geplande onderhoud** — kondig automatisch een onderhoudsvenster aan zodra het is gepland.
+- **Statuspagina Abonnee** — verwelkom iemand die zich abonneert op een statuspagina.
 - **On-Call Duty Policy** — synchroniseer wijzigingen in het rooster met een ander roostersysteem.
 
 Zoek in het trigger-palet op naam om de gewenste te vinden.
@@ -68,7 +68,7 @@ Zoek in het trigger-palet op naam om de gewenste te vinden.
 | Als je wilt...                                | Kies                |
 | --------------------------------------------- | ------------------- |
 | Op een knop drukken om de workflow te draaien | **Manual**          |
-| Op een herhalend schema draaien               | **Schedule**        |
+| Op een herhalend schema draaien               | **Schema**          |
 | Een ander systeem data laten doorgeven        | **Webhook**         |
 | Reageren op iets binnen OneUptime             | **OneUptime event** |
 

@@ -15,7 +15,7 @@ I monitor DNSSEC validano l'intera catena di fiducia dalla zona radice fino al t
 ## Creazione di un Monitor DNSSEC
 
 1. Vai su **Monitor** nella Dashboard di OneUptime
-2. Clicca su **Crea Monitor**
+2. Clicca su **Crea monitor**
 3. Seleziona **DNSSEC** come tipo di monitor
 4. Inserisci la zona (dominio) che vuoi validare
 5. Configura i resolver e i criteri di monitoraggio secondo necessità
@@ -70,28 +70,28 @@ Per **DNSSEC Signature Expires In Days**:
 #### Avvisa se la catena DNSSEC è interrotta
 
 - **Controlla Su**: DNSSEC Chain Is Valid
-- **Tipo di Filtro**: False
+- **Tipo di filtro**: False
 
 #### Avvisa prima della scadenza delle firme
 
 - **Controlla Su**: DNSSEC Signature Expires In Days
-- **Tipo di Filtro**: Less Than
+- **Tipo di filtro**: Less Than
 - **Valore**: 7
 
 #### Rileva DS mancante nella zona padre (delegazione interrotta)
 
 - **Controlla Su**: DNSSEC DS Record Exists At Parent
-- **Tipo di Filtro**: False
+- **Tipo di filtro**: False
 
 #### Rileva disaccordo tra resolver
 
 - **Controlla Su**: DNSSEC Resolver Consensus (AD Flag)
-- **Tipo di Filtro**: False
+- **Tipo di filtro**: False
 
 #### Rileva incoerenza tra nameserver
 
 - **Controlla Su**: DNSSEC Nameservers Are Consistent
-- **Tipo di Filtro**: False
+- **Tipo di filtro**: False
 
 ## Best Practice
 

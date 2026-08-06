@@ -85,7 +85,7 @@ Dado que estás auto-alojando OneUptime, necesitarás configurar tu propia cuent
 ## Paso 2: Configurar la configuración de llamadas/SMS en OneUptime
 
 1. Inicia sesión en tu panel de OneUptime
-2. Ve a **Configuración del proyecto** > **Notificaciones** > **Ajustes de Notificación**
+2. Ve a **Ajustes del proyecto** > **Notificaciones** > **Ajustes de Notificación**
 3. Haz clic en **Crear configuración personalizada de llamadas/SMS**
 4. Completa los siguientes campos:
    - **Nombre**: Un nombre descriptivo (por ejemplo, "Configuración de Twilio para producción")
@@ -97,7 +97,7 @@ Dado que estás auto-alojando OneUptime, necesitarás configurar tu propia cuent
 
 ## Paso 3: Crear una Política de llamadas entrantes
 
-1. Ve a **Guardia** > **Políticas de llamadas entrantes**
+1. Ve a **Guardia** > **Políticas de Llamadas Entrantes**
 2. Haz clic en **Crear política de llamadas entrantes**
 3. Completa los siguientes campos:
    - **Nombre**: Un nombre descriptivo (por ejemplo, "Línea de soporte")
@@ -157,12 +157,12 @@ flowchart LR
 Las reglas de escalada determinan cómo se enrutan las llamadas:
 
 1. Abre tu Política de llamadas entrantes
-2. Ve a la pestaña **Reglas de escalada**
+2. Ve a la pestaña **Reglas de Escalación**
 3. Haz clic en **Agregar regla de escalada**
 4. Configura la regla:
    - **Orden**: El orden de prioridad (los números menores se prueban primero)
    - **Escalar después de (segundos)**: Cuánto tiempo esperar antes de escalar
-   - **Horario de guardia**: Selecciona un horario para enrutar a quien esté de guardia
+   - **Programación de guardia**: Selecciona un horario para enrutar a quien esté de guardia
    - **Equipos**: Selecciona equipos específicos
    - **Usuarios**: Selecciona usuarios específicos
 5. Agrega reglas de escalada adicionales según sea necesario
@@ -189,11 +189,11 @@ flowchart TD
 Personaliza los mensajes que escuchan los llamantes:
 
 1. Abre tu Política de llamadas entrantes
-2. Ve a **Configuración**
+2. Ve a **Ajustes**
 3. Configura:
    - **Mensaje de bienvenida**: Reproducido cuando se responde la llamada
-   - **Mensaje sin respuesta**: Reproducido cuando fallan todas las reglas de escalada
-   - **Mensaje sin nadie disponible**: Reproducido cuando nadie está de guardia
+   - **Mensaje de sin respuesta**: Reproducido cuando fallan todas las reglas de escalada
+   - **Mensaje de nadie disponible**: Reproducido cuando nadie está de guardia
 
 ## Opciones de configuración
 
@@ -221,9 +221,9 @@ Personaliza los mensajes que escuchan los llamantes:
 
 Para ver el historial de llamadas entrantes:
 
-1. Ve a **Guardia** > **Políticas de llamadas entrantes**
+1. Ve a **Guardia** > **Políticas de Llamadas Entrantes**
 2. Haz clic en tu política
-3. Ve a la pestaña **Registros de llamadas**
+3. Ve a la pestaña **Registros de Llamadas**
 
 Los registros muestran:
 
@@ -237,7 +237,7 @@ Los registros muestran:
 
 Para que los usuarios puedan recibir llamadas entrantes, deben tener un número de teléfono verificado:
 
-1. Los usuarios van a **Configuración del usuario** > **Métodos de notificación**
+1. Los usuarios van a **Ajustes de usuario** > **Métodos de Notificación**
 2. Agregan un número de teléfono en **Números de llamadas entrantes**
 3. Verifican el número de teléfono mediante código SMS
 

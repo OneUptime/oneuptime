@@ -16,16 +16,16 @@ Grafana alert rule fires  ──►  Webhook contact point  ──►  OneUptime
 
 ## Schritt 1 — Den OneUptime-Workflow erstellen
 
-1. Öffnen Sie **Workflows → Create Workflow**, benennen Sie ihn `Grafana → Incidents`, und öffnen Sie den **Builder**.
+1. Öffnen Sie **Arbeitsabläufe → Workflow erstellen**, benennen Sie ihn `Grafana → Incidents`, und öffnen Sie den **Builder**.
 2. Fügen Sie einen **Webhook**-Auslöser hinzu und **kopieren Sie seine URL**. Benennen Sie den Block in `Grafana` um.
-3. Fügen Sie einen **Conditions**-Block verbunden mit dem Auslöser hinzu:
+3. Fügen Sie einen **Bedingungen**-Block verbunden mit dem Auslöser hinzu:
    - **Links**: `{{Grafana.Request Body.status}}`
    - **Operator**: `==`
    - **Rechts**: `firing`
-4. Fügen Sie von **Yes** aus einen **Create Incident**-Block hinzu:
-   - **Title**: `{{Grafana.Request Body.title}}`
-   - **Description**: `{{Grafana.Request Body.message}}`
-   - **Severity**: Wählen Sie einen (oder verzweigen Sie auf `{{Grafana.Request Body.commonLabels.severity}}`).
+4. Fügen Sie von **Ja** aus einen **Vorfall erstellen**-Block hinzu:
+   - **Titel**: `{{Grafana.Request Body.title}}`
+   - **Beschreibung**: `{{Grafana.Request Body.message}}`
+   - **Schweregrad**: Wählen Sie einen (oder verzweigen Sie auf `{{Grafana.Request Body.commonLabels.severity}}`).
 5. **Speichern** (lassen Sie es bis zum Test deaktiviert).
 
 Die Webhook-Payload von Grafana folgt der Alertmanager-Form – sie enthält `status`, ein `alerts`-Array, `commonLabels` und `commonAnnotations`, plus praktische Top-Level-Felder `title` und `message`.
@@ -42,11 +42,11 @@ Die Webhook-Payload von Grafana folgt der Alertmanager-Form – sie enthält `st
 
 1. Aktivieren Sie den Workflow.
 2. Verwenden Sie im Kontaktpunkt-Bildschirm **Test**, um eine Beispielbenachrichtigung zu senden, oder lassen Sie eine echte Alarmregel auslösen.
-3. Prüfen Sie den Tab **Logs** des Workflows und Ihre **Incidents**-Liste.
+3. Prüfen Sie den Tab **Protokolle** des Workflows und Ihre **Vorfälle**-Liste.
 
 ## Bei Wiederherstellung auflösen (optional)
 
-Wenn der Alarm sich auflöst, sendet Grafana eine weitere Benachrichtigung mit `status: resolved`. Fügen Sie einen zweiten **Conditions**-Zweig hinzu (`status == resolved`), suchen Sie den passenden Vorfall, und bewegen Sie ihn mit **Update Incident** in Ihren aufgelösten Zustand.
+Wenn der Alarm sich auflöst, sendet Grafana eine weitere Benachrichtigung mit `status: resolved`. Fügen Sie einen zweiten **Bedingungen**-Zweig hinzu (`status == resolved`), suchen Sie den passenden Vorfall, und bewegen Sie ihn mit **Update Incident** in Ihren aufgelösten Zustand.
 
 ## Hinweise
 
@@ -55,8 +55,8 @@ Wenn der Alarm sich auflöst, sendet Grafana eine weitere Benachrichtigung mit `
 
 ## Fehlerbehebung
 
-- **Kein Lauf erscheint** — bestätigen Sie, dass Grafana die URL erreichen kann (prüfen Sie Grafanas Server-Logs) und dass der Workflow **Enabled** ist.
-- **Leere Felder** — prüfen Sie die Trigger-Ausgabe im Tab **Logs**; referenzieren Sie Felder, die für Ihre Alarmierungsversion vorhanden sind.
+- **Kein Lauf erscheint** — bestätigen Sie, dass Grafana die URL erreichen kann (prüfen Sie Grafanas Server-Logs) und dass der Workflow **Aktiviert** ist.
+- **Leere Felder** — prüfen Sie die Trigger-Ausgabe im Tab **Protokolle**; referenzieren Sie Felder, die für Ihre Alarmierungsversion vorhanden sind.
 
 ## Weiterführende Themen
 

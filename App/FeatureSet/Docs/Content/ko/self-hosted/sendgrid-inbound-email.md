@@ -109,7 +109,7 @@ inboundEmail:
    - 예시: 이메일 제목에 "ALERT" 또는 "CRITICAL" 포함
 6. **알림 해결 기준** 구성 (알림을 해결하는 시점):
    - 예시: 이메일 제목에 "RESOLVED" 또는 "OK" 포함
-7. **생성**을 클릭합니다
+7. **만들기**를 클릭합니다
 
 생성 후 이 모니터에 대한 고유한 이메일 주소를 볼 수 있습니다 (예: `monitor-abc123def456@inbound.yourdomain.com`).
 

@@ -24,12 +24,12 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 
 ## 1단계 — 토큰 저장
 
-1. **Workflows → Global Variables → Create** 로 이동합니다.
+1. **워크플로 → 전역 변수 → 만들기** 로 이동합니다.
 2. 이름을 `GITHUB_TOKEN` 으로 지정하고 토큰을 붙여넣고 **Is Secret** 를 켭니다.
 
 ## 2단계 — 워크플로 구성
 
-1. **Workflows → Create Workflow** 를 열고, 이름을 `Incidents → GitHub Issues` 로 지정하고 **Builder** 를 엽니다.
+1. **워크플로 → 워크플로 생성** 을 열고, 이름을 `Incidents → GitHub Issues` 로 지정하고 **빌더** 를 엽니다.
 2. **Incident** 트리거를 **On Create** 로 설정해 추가합니다. 이름을 `Incident` 로 변경합니다.
 3. 트리거에 연결된 **API** 블록을 추가합니다:
 

@@ -15,8 +15,8 @@ Kubernetes-monitorer använder mätvärden från ditt kluster för att ge djup i
 
 ## Skapa en Kubernetes-monitor
 
-1. Gå till **Monitors** i OneUptime-dashboarden
-2. Klicka på **Create Monitor**
+1. Gå till **Övervakare** i OneUptime-dashboarden
+2. Klicka på **Skapa monitor**
 3. Välj **Kubernetes** som monitortyp
 4. Välj klustret och resursomfånget att övervaka
 5. Konfigurera resursfilter och metric-frågor

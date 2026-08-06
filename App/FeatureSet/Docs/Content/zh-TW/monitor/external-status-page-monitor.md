@@ -38,8 +38,8 @@ OneUptime 支援透過下列方法監控狀態頁面:
 
 ## 建立外部狀態頁面監控
 
-1. 前往 OneUptime 儀表板中的 **Monitors**
-2. 點選 **Create Monitor**
+1. 前往 OneUptime 儀表板中的 **監測**
+2. 點選 **建立監測器**
 3. 選擇 **External Status Page** 作為監控類型
 4. 輸入您想要監控的狀態頁面 URL
 5. 視需要選擇特定的供應商類型(或保留為 **Auto**)
@@ -86,16 +86,16 @@ OneUptime 支援透過下列方法監控狀態頁面:
 您可以根據下列項目設定條件,以判斷外部服務何時被視為上線或離線:
 
 - **Is Online** – 狀態頁面是否可達並回傳狀態資料
-- **Overall Status** – 狀態頁面的整體狀態指標(例如 `operational`、`degraded_performance`、`partial_outage`、`major_outage`)
+- **整體狀態** – 狀態頁面的整體狀態指標(例如 `operational`、`degraded_performance`、`partial_outage`、`major_outage`)
 - **Component Status** – 範圍內元件的狀態(會遵循元件群組/元件名稱篩選)
-- **Active Incidents** – 狀態頁面上目前回報的進行中事件數量(設定篩選時會限定於該元件群組/元件)
-- **Response Time** – 擷取狀態頁面資料所需的時間
+- **進行中事件** – 狀態頁面上目前回報的進行中事件數量(設定篩選時會限定於該元件群組/元件)
+- **回應時間** – 擷取狀態頁面資料所需的時間
 
 ### 預設條件
 
 依照預設,OneUptime 會根據狀態頁面真正重要的項目來建立條件 — 即其進行中的事件與元件健康狀況,而非僅僅是可達性:
 
-- 當範圍內沒有進行中的事件時,監控會標示為 **Operational**。
+- 當範圍內沒有進行中的事件時,監控會標示為 **運作中**。
 - 當範圍內至少有一個進行中的事件,或範圍內某個元件回報 `degraded_performance`、`partial_outage`、`major_outage` 或 `full_outage` 時,監控會標示為 **Down**(並建立一個事件)。
 
 由於進行中的事件數量與元件狀態會遵循元件群組/元件名稱篩選,這些預設條件會自動僅鎖定您所關心的元件。

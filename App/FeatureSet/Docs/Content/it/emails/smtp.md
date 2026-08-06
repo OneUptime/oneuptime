@@ -4,7 +4,7 @@ OneUptime supporta l'invio di email tramite server SMTP personalizzati con tre m
 
 - **Nome utente e Password** - Autenticazione SMTP tradizionale
 - **OAuth 2.0** - Autenticazione moderna per Microsoft 365 e Google Workspace
-- **Nessuna** - Per server relay che non richiedono autenticazione
+- **Nessuno** - Per server relay che non richiedono autenticazione
 
 Questa guida descrive come configurare l'autenticazione OAuth 2.0 per Microsoft 365 e Google Workspace.
 
@@ -24,12 +24,12 @@ Quando si configura SMTP con autenticazione OAuth in OneUptime, avrai bisogno di
 | **Hostname**               | Indirizzo del server SMTP                                                                  |
 | **Porta**                  | Porta SMTP (tipicamente 587 per STARTTLS o 465 per TLS implicito)                          |
 | **Nome utente**            | L'indirizzo email da cui inviare                                                           |
-| **Tipo di Autenticazione** | Seleziona "OAuth"                                                                          |
-| **Tipo di Provider OAuth** | Seleziona "Client Credentials" per Microsoft 365, o "JWT Bearer" per Google Workspace      |
+| **Tipo di autenticazione** | Seleziona "OAuth"                                                                          |
+| **Tipo di provider OAuth** | Seleziona "Client Credentials" per Microsoft 365, o "JWT Bearer" per Google Workspace      |
 | **Client ID**              | ID applicazione/client dal tuo provider OAuth (per Google: email dell'account di servizio) |
 | **Client Secret**          | Client secret dal tuo provider OAuth (per Google: chiave privata)                          |
 | **Token URL**              | URL dell'endpoint token OAuth                                                              |
-| **Scope**                  | Scope OAuth richiesti per l'accesso SMTP                                                   |
+| **Ambito**                 | Scope OAuth richiesti per l'accesso SMTP                                                   |
 
 ---
 
@@ -230,7 +230,7 @@ In OneUptime, crea o modifica una configurazione SMTP con queste impostazioni:
 
 ### Generale
 
-- **Testa la tua configurazione**: Usa il pulsante "Invia Email di Test" in OneUptime per verificare la tua configurazione
+- **Testa la tua configurazione**: Usa il pulsante "Invia e-mail di prova" in OneUptime per verificare la tua configurazione
 - **Controlla i log**: Rivedi i log di OneUptime per messaggi di errore dettagliati
 - **Cache dei token**: OneUptime memorizza nella cache i token OAuth e li rinnova automaticamente prima della scadenza
 

@@ -12,15 +12,15 @@
 
 ## 建立接收電子郵件監測器
 
-1. 在您的 OneUptime 儀表板中前往 **Monitors**
-2. 點選 **Create Monitor**
+1. 在您的 OneUptime 儀表板中前往 **監測**
+2. 點選 **建立監測器**
 3. 選擇 **Incoming Email** 作為監測器類型
 4. 設定監測器選項：
-   - **Name：** 為您的監測器取一個具描述性的名稱
-   - **Description：** 此監測器的用途
+   - **名稱：** 為您的監測器取一個具描述性的名稱
+   - **描述：** 此監測器的用途
 5. 設定您的 **Alert Creation Criteria**（建立警示的條件）
 6. 設定您的 **Alert Resolution Criteria**（解決警示的條件）
-7. 點選 **Create**
+7. 點選 **建立**
 
 建立完成後，您會在監測器詳細資料頁面上看到此監測器專屬的電子郵件地址。
 
@@ -42,8 +42,8 @@ monitor-{secret-key}@{inbound-domain}
 
 | 欄位               | 說明                       |
 | ------------------ | -------------------------- |
-| **Email Subject**  | 接收郵件的主旨列           |
-| **Email From**     | 寄件者的電子郵件地址       |
+| **電子郵件主旨**   | 接收郵件的主旨列           |
+| **寄件者電子郵件** | 寄件者的電子郵件地址       |
 | **Email Body**     | 郵件內文的純文字內容       |
 | **Email To**       | 收件者的電子郵件地址       |
 | **Email Received** | 以郵件接收時間為基礎的條件 |
@@ -56,7 +56,7 @@ monitor-{secret-key}@{inbound-domain}
 | ---------------- | ---------------------- | ------------------------------ |
 | **Contains**     | 欄位包含指定的文字     | Subject 包含 "CRITICAL"        |
 | **Not Contains** | 欄位不包含指定的文字   | Subject 不包含 "TEST"          |
-| **Equals**       | 欄位完全符合指定的文字 | From 等於 "alerts@service.com" |
+| **等於**         | 欄位完全符合指定的文字 | From 等於 "alerts@service.com" |
 | **Not Equals**   | 欄位不符合指定的文字   | Subject 不等於 "OK"            |
 | **Starts With**  | 欄位以指定的文字開頭   | Subject 以 "[ALERT]" 開頭      |
 | **Ends With**    | 欄位以指定的文字結尾   | Subject 以 "- Production" 結尾 |
@@ -90,12 +90,12 @@ monitor-{secret-key}@{inbound-domain}
 
 **Alert Creation Criteria：**
 
-- Email From **Equals** "monitoring@legacy-system.com"
+- Email From **等於** "monitoring@legacy-system.com"
 - 且 Email Subject **Contains** "Failed"
 
 **Alert Resolution Criteria：**
 
-- Email From **Equals** "monitoring@legacy-system.com"
+- Email From **等於** "monitoring@legacy-system.com"
 - 且 Email Subject **Contains** "Success"
 
 ### 範例 3：心跳監測器（無郵件 = 警示）
@@ -163,10 +163,10 @@ monitor-{secret-key}@{inbound-domain}
 
 監測器摘要會顯示：
 
-- **Last Email Received At：** 最近一封郵件的接收時間
-- **From：** 最後一封郵件的寄件者
-- **Subject：** 最後一封郵件的主旨列
-- **Email Headers：** 最後一封郵件的完整標頭（可展開）
+- **最近收到電子郵件時間：** 最近一封郵件的接收時間
+- **來自：** 最後一封郵件的寄件者
+- **主旨：** 最後一封郵件的主旨列
+- **電子郵件標頭：** 最後一封郵件的完整標頭（可展開）
 - **Email Body：** 最後一封郵件的內容（可展開）
 
 ## 自行託管設定

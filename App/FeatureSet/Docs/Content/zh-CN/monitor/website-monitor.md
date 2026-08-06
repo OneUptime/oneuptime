@@ -14,8 +14,8 @@
 
 ## 创建网站监控器
 
-1. 在 OneUptime 控制台中转到 **监控器**
-2. 点击 **创建监控器**
+1. 在 OneUptime 控制台中转到 **监视器**
+2. 点击 **创建监视器**
 3. 选择 **网站** 作为监控器类型
 4. 输入您要监控的网站 URL
 5. 根据需要配置监控标准
@@ -71,11 +71,11 @@ Enable this option to skip TLS certificate validation. Useful when the target se
 
 #### Client Certificate (mTLS)
 
-If your endpoint requires mutual TLS authentication, enable **Use client certificate (mTLS)** and provide:
+If your endpoint requires mutual TLS authentication, enable **使用客户端证书 (mTLS)** and provide:
 
-- **Client Certificate (PEM)** — the PEM-encoded client certificate to present.
-- **Client Private Key (PEM)** — the matching PEM-encoded private key.
-- **Client Private Key Passphrase** _(optional)_ — required only if the private key is encrypted.
+- **客户端证书 (PEM)** — the PEM-encoded client certificate to present.
+- **客户端私钥 (PEM)** — the matching PEM-encoded private key.
+- **客户端私钥密码** _(optional)_ — required only if the private key is encrypted.
 
 This is the OneUptime equivalent of the `--cert` and `--key` flags in curl:
 
@@ -91,5 +91,5 @@ For sensitive values, store the certificate and key as [Monitor Secrets](/docs/m
 
 - **响应状态码** - 检查 HTTP 状态码是否与预期值匹配（例如 200、301）
 - **响应时间** - 监控响应时间是否超过阈值
-- **响应体** - 检查响应体是否包含或匹配特定内容
-- **响应头** - 验证特定响应头是否存在或匹配预期值
+- **响应主体** - 检查响应体是否包含或匹配特定内容
+- **响应标头** - 验证特定响应头是否存在或匹配预期值

@@ -15,16 +15,16 @@ Datadog monitor alerts  ──►  Webhook integration  ──►  OneUptime Web
 
 ## Trin 1 — Byg OneUptime-workflowet
 
-1. Åbn **Workflows → Create Workflow**, navngiv det `Datadog → Incidents`, og åbn **Builder**.
+1. Åbn **Arbejdsgange → Opret arbejdsgang**, navngiv det `Datadog → Incidents`, og åbn **Bygger**.
 2. Tilføj en **Webhook**-trigger og **kopiér dens URL**. Omdøb blokken til `Datadog`.
-3. Tilføj en **Conditions**-blok forbundet til triggeren:
+3. Tilføj en **Betingelser**-blok forbundet til triggeren:
    - **Left**: `{{Datadog.Request Body.transition}}`
    - **Operator**: `==`
    - **Right**: `Triggered`
-4. Fra **Yes** tilføjer du en **Create Incident**-blok:
-   - **Title**: `{{Datadog.Request Body.title}}`
-   - **Description**: `{{Datadog.Request Body.body}}\nHost: {{Datadog.Request Body.host}}\n{{Datadog.Request Body.link}}`
-   - **Severity**: vælg én.
+4. Fra **Ja** tilføjer du en **Opret hændelse**-blok:
+   - **Titel**: `{{Datadog.Request Body.title}}`
+   - **Beskrivelse**: `{{Datadog.Request Body.body}}\nHost: {{Datadog.Request Body.host}}\n{{Datadog.Request Body.link}}`
+   - **Alvorlighed**: vælg én.
 5. **Gem** (lad det stå deaktiveret, indtil det er testet).
 
 ## Trin 2 — Opret Datadog-webhook'en
@@ -66,16 +66,16 @@ Dette sender både alarmen og genopretningen til OneUptime. (For at videresende 
 
 1. Aktivér workflowet.
 2. Fra en monitor, brug **Test Notifications → Alert**, eller lad en rigtig monitor udløse.
-3. Tjek workflowets **Logs**-fane og din **Incidents**-liste.
+3. Tjek workflowets **Protokoller**-fane og din **Hændelser**-liste.
 
 ## Løsning ved genopretning (valgfrit)
 
-`$ALERT_TRANSITION` er `Recovered`, når en monitor rydder. Tilføj en anden **Conditions**-gren (`transition == Recovered`), find den matchende hændelse (match på det `id`, du sendte), og flyt den til din løste tilstand med **Update Incident**.
+`$ALERT_TRANSITION` er `Recovered`, når en monitor rydder. Tilføj en anden **Betingelser**-gren (`transition == Recovered`), find den matchende hændelse (match på det `id`, du sendte), og flyt den til din løste tilstand med **Update Incident**.
 
 ## Fejlfinding
 
-- **Ingen kørsel vises** — bekræft, at monitorens besked inkluderer `@webhook-oneuptime`, og at workflowet er **Enabled**.
-- **Felter er tomme** — Datadog erstatter kun skabelonvariabler, der gælder for eventet. Inspicér trigger-outputtet i **Logs**-fanen og justér din webhook-payload.
+- **Ingen kørsel vises** — bekræft, at monitorens besked inkluderer `@webhook-oneuptime`, og at workflowet er **Aktiveret**.
+- **Felter er tomme** — Datadog erstatter kun skabelonvariabler, der gælder for eventet. Inspicér trigger-outputtet i **Protokoller**-fanen og justér din webhook-payload.
 - **Duplikerede hændelser** — en monitor, der re-alarmer (renotify), sender flere `Triggered`-events; dedupliker med en **Find Incident**-kontrol på `id`'et, før du opretter.
 
 ## Læs videre

@@ -26,14 +26,14 @@ Jira Cloud utilise **Basic auth** avec votre e-mail et votre jeton d'API, encod�
    printf '%s' 'you@example.com:your_api_token' | base64
    ```
 
-2. Dans OneUptime, allez dans **Workflows → Global Variables → Create**.
+2. Dans OneUptime, allez dans **Flux de travail → Variables globales → Créer**.
 3. Nommez-la `JIRA_AUTH`, collez la chaîne base64 comme valeur, et activez **Is Secret**.
 
 Vous pouvez maintenant utiliser `Basic {{variable.JIRA_AUTH}}` comme en-tête d'authentification et le jeton n'apparaît jamais dans le workflow ni dans ses journaux.
 
 ## Étape 2 — Créer le workflow
 
-1. Ouvrez **Workflows → Create Workflow**, nommez-le `Incidents → Jira`, et ouvrez le **Builder**.
+1. Ouvrez **Flux de travail → Créer un flux de travail**, nommez-le `Incidents → Jira`, et ouvrez le **Constructeur**.
 2. Faites glisser un déclencheur **Incident** sur le canevas et choisissez l'événement **On Create**. Renommez-le `Incident`.
 3. Faites glisser un bloc **API** et connectez le déclencheur à celui-ci. Configurez :
 
@@ -76,9 +76,9 @@ Vous pouvez maintenant utiliser `Basic {{variable.JIRA_AUTH}}` comme en-tête d'
 
 ## Étape 3 — Tester
 
-1. Activez **Enabled** dans le workflow.
+1. Activez **Activé** dans le workflow.
 2. Créez un incident de test dans OneUptime (ou déclenchez-en un depuis un monitor).
-3. Ouvrez l'onglet **Logs** du workflow. Le bloc **API** devrait afficher un statut `201` et un corps de réponse contenant la `key` du nouveau ticket (par exemple `OPS-1234`).
+3. Ouvrez l'onglet **Journaux** du workflow. Le bloc **API** devrait afficher un statut `201` et un corps de réponse contenant la `key` du nouveau ticket (par exemple `OPS-1234`).
 4. Vérifiez dans Jira — le ticket est là.
 
 Si le bloc API retourne une erreur, développez-le dans les journaux — la réponse de Jira explique exactement quel champ a été rejeté. Voir [Dépannage](#dépannage).

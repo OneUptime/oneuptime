@@ -2,7 +2,7 @@
 
 Åpne en [GitLab](https://gitlab.com)-sak automatisk når en OneUptime-hendelse opprettes — slik at ingeniøroppfølging lander i prosjektet som eier den berørte tjenesten.
 
-Denne integrasjonen er **utgående**: OneUptime kaller [GitLab REST API](https://docs.gitlab.com/ee/api/issues.html). Den bruker en OneUptime **[Arbeidsflyt](/docs/workflows/index)** med en **Incident → On Create**-trigger og en **API-komponent**. Den fungerer likt på GitLab.com og selvadministrert GitLab.
+Denne integrasjonen er **utgående**: OneUptime kaller [GitLab REST API](https://docs.gitlab.com/ee/api/issues.html). Den bruker en OneUptime **[Arbeidsflyt](/docs/workflows/index)** med en **Hendelse → On Create**-trigger og en **API-komponent**. Den fungerer likt på GitLab.com og selvadministrert GitLab.
 
 ```text
 OneUptime Incident → On Create  ──►  API component (POST /projects/{id}/issues)  ──►  GitLab issue
@@ -16,13 +16,13 @@ OneUptime Incident → On Create  ──►  API component (POST /projects/{id}/
 
 ## Steg 1 — Lagre tokenet
 
-1. Gå til **Workflows → Global Variables → Create**.
+1. Gå til **Arbeidsflyter → Globale variabler → Opprett**.
 2. Gi det navnet `GITLAB_TOKEN`, lim inn tokenet, og slå på **Is Secret**.
 
 ## Steg 2 — Bygg arbeidsflyten
 
-1. Åpne **Workflows → Create Workflow**, gi den navnet `Incidents → GitLab Issues`, og åpne **Builder**.
-2. Legg til en **Incident**-trigger satt til **On Create**. Gi den nytt navn `Incident`.
+1. Åpne **Arbeidsflyter → Opprett arbeidsflyt**, gi den navnet `Incidents → GitLab Issues`, og åpne **Bygger**.
+2. Legg til en **Hendelse**-trigger satt til **On Create**. Gi den nytt navn `Incident`.
 3. Legg til en **API**-blokk koblet til triggeren:
 
    - **Method**: `POST`

@@ -19,8 +19,8 @@ Inden for cirka en time (det første lukkede time-vindue) får du:
 
 - En **omkostningsside pr. cluster** (_Kubernetes → din cluster → Costs_): forbrugstendens, forbrug pr. namespace med cpu/hukommelse/lager-opdeling, forbrug pr. workload, ledigt forbrug og effektivitet.
 - En **omkostningsside på projektniveau** (_Kubernetes → Costs_): forbrug på tværs af hver cluster i projektet.
-- En **Kubernetes Cost dashboard-skabelon** (_Dashboards → Create → Kubernetes Cost Dashboard_): tendenser for nodernes timepris, CPU/RAM-enhedspriser, forbrug på persistent volumes og load balancers.
-- Rå omkostningsmetrikker (`node_total_hourly_cost`, `pv_hourly_cost`, ...) i **Metric Explorer**, brugbare i brugerdefinerede dashboards og metrik-advarsler.
+- En **Kubernetes Cost dashboard-skabelon** (_Dashboards → Opret → Kubernetes Cost Dashboard_): tendenser for nodernes timepris, CPU/RAM-enhedspriser, forbrug på persistent volumes og load balancers.
+- Rå omkostningsmetrikker (`node_total_hourly_cost`, `pv_hourly_cost`, ...) i **Måleudforsker**, brugbare i brugerdefinerede dashboards og metrik-advarsler.
 
 ## Sådan virker det
 

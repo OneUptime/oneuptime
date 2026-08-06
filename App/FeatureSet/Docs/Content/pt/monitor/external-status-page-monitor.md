@@ -38,8 +38,8 @@ Quando definido como **Auto**, o OneUptime tentará detectar o formato da págin
 
 ## Criando um Monitor de Página de Status Externa
 
-1. Vá para **Monitors** no Painel do OneUptime
-2. Clique em **Create Monitor**
+1. Vá para **Monitores** no Painel do OneUptime
+2. Clique em **Criar monitor**
 3. Selecione **External Status Page** como o tipo de monitor
 4. Insira a URL da página de status que deseja monitorar
 5. Opcionalmente selecione um tipo de provedor específico (ou deixe como **Auto**)
@@ -86,16 +86,16 @@ O número de vezes para tentar a requisição novamente se ela falhar. O padrão
 Você pode configurar critérios para determinar quando o serviço externo é considerado operacional ou offline com base em:
 
 - **Is Online** — Se a página de status está acessível e retornando dados de status
-- **Overall Status** — O indicador de status geral da página de status (ex.: `operational`, `degraded_performance`, `partial_outage`, `major_outage`)
+- **Status geral** — O indicador de status geral da página de status (ex.: `operational`, `degraded_performance`, `partial_outage`, `major_outage`)
 - **Component Status** — O status dos componentes dentro do escopo (respeitando os filtros de grupo de componentes / nome de componente)
-- **Active Incidents** — O número de incidentes atualmente ativos relatados na página de status (limitado ao grupo de componentes / componente quando um filtro está definido)
-- **Response Time** — Quanto tempo leva para buscar os dados da página de status
+- **Incidentes ativos** — O número de incidentes atualmente ativos relatados na página de status (limitado ao grupo de componentes / componente quando um filtro está definido)
+- **Tempo de resposta** — Quanto tempo leva para buscar os dados da página de status
 
 ### Critérios Padrão
 
 Por padrão, o OneUptime define critérios iniciais com base no que realmente importa para uma página de status — seus incidentes ativos e a saúde dos componentes, em vez de mera acessibilidade:
 
-- O monitor é marcado como **Operational** quando não há incidentes ativos dentro do escopo.
+- O monitor é marcado como **Operacional** quando não há incidentes ativos dentro do escopo.
 - O monitor é marcado como **Down** (e um incidente é criado) quando há pelo menos um incidente ativo dentro do escopo, ou quando um componente dentro do escopo relata `degraded_performance`, `partial_outage`, `major_outage` ou `full_outage`.
 
 Como a contagem de incidentes ativos e os status dos componentes respeitam os filtros de grupo de componentes / nome de componente, esses critérios padrão automaticamente focam apenas nos componentes que importam para você.

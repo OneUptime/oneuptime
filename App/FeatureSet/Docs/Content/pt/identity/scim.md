@@ -20,13 +20,13 @@ O SCIM de Projeto permite que provedores de identidade gerenciem membros de equi
 1. **Navegar para as Configurações do Projeto**
 
    - Vá para o seu projeto do OneUptime
-   - Navegue para **Project Settings** > **Segurança** > **SCIM**
+   - Navegue para **Configurações do projeto** > **Segurança** > **SCIM**
 
 2. **Configurar as Definições SCIM**
 
-   - Habilite **Auto Provision Users** para adicionar automaticamente usuários quando eles são atribuídos no seu IdP
-   - Habilite **Auto Deprovision Users** para remover automaticamente usuários quando eles são desatribuídos no seu IdP
-   - Selecione as **Default Teams** às quais os novos usuários devem ser adicionados
+   - Habilite **Provisionar usuários automaticamente** para adicionar automaticamente usuários quando eles são atribuídos no seu IdP
+   - Habilite **Desprovisionar usuários automaticamente** para remover automaticamente usuários quando eles são desatribuídos no seu IdP
+   - Selecione as **Equipes Padrão** às quais os novos usuários devem ser adicionados
    - Copie a **SCIM Base URL** e o **Bearer Token** para a configuração do seu IdP
 
 3. **Configurar Seu Provedor de Identidade**
@@ -69,12 +69,12 @@ O SCIM de Página de Status permite que provedores de identidade gerenciem assin
 1. **Navegar para as Configurações da Página de Status**
 
    - Vá para a sua página de status do OneUptime
-   - Navegue para **Status Page Settings** > **Segurança** > **SCIM**
+   - Navegue para **Página de status** > **Segurança** > **SCIM**
 
 2. **Configurar as Definições SCIM**
 
-   - Habilite **Auto Provision Users** para adicionar automaticamente assinantes quando eles são atribuídos no seu IdP
-   - Habilite **Auto Deprovision Users** para remover automaticamente assinantes quando eles são desatribuídos no seu IdP
+   - Habilite **Provisionar usuários automaticamente** para adicionar automaticamente assinantes quando eles são atribuídos no seu IdP
+   - Habilite **Desprovisionar usuários automaticamente** para remover automaticamente assinantes quando eles são desatribuídos no seu IdP
    - Copie a **SCIM Base URL** e o **Bearer Token** para a configuração do seu IdP
 
 3. **Configurar Seu Provedor de Identidade**
@@ -117,14 +117,14 @@ O Microsoft Entra ID fornece gerenciamento de identidade empresarial com recurso
 #### Passo 1: Obter Configuração SCIM do OneUptime
 
 1. Faça login no seu painel do OneUptime
-2. Navegue para **Project Settings** > **Segurança** > **SCIM**
+2. Navegue para **Configurações do projeto** > **Segurança** > **SCIM**
 3. Clique em **Create SCIM Configuration**
 4. Insira um nome amigável (ex.: "Microsoft Entra ID Provisioning")
 5. Configure as seguintes opções:
-   - **Auto Provision Users**: Habilite para criar usuários automaticamente
-   - **Auto Deprovision Users**: Habilite para remover usuários automaticamente
-   - **Default Teams**: Selecione equipes às quais novos usuários devem ser adicionados
-   - **Enable Push Groups**: Habilite se quiser gerenciar a adesão à equipe via grupos do Entra ID
+   - **Provisionar usuários automaticamente**: Habilite para criar usuários automaticamente
+   - **Desprovisionar usuários automaticamente**: Habilite para remover usuários automaticamente
+   - **Equipes Padrão**: Selecione equipes às quais novos usuários devem ser adicionados
+   - **Habilitar grupos de push**: Habilite se quiser gerenciar a adesão à equipe via grupos do Entra ID
 6. Salve a configuração
 7. Copie a **SCIM Base URL** e o **Bearer Token** — você precisará desses para o Entra ID
 
@@ -169,7 +169,7 @@ O Microsoft Entra ID fornece gerenciamento de identidade empresarial com recurso
 
 #### Passo 5: Configurar o Provisionamento de Grupos (Opcional)
 
-Se você habilitou **Push Groups** no OneUptime:
+Se você habilitou **Grupos de Push** no OneUptime:
 
 1. Volte para **Mappings**
 2. Clique em **Provision Azure Active Directory Groups**
@@ -219,14 +219,14 @@ O Okta fornece gerenciamento de identidade flexível com excelente suporte a SCI
 #### Passo 1: Obter Configuração SCIM do OneUptime
 
 1. Faça login no seu painel do OneUptime
-2. Navegue para **Project Settings** > **Segurança** > **SCIM**
+2. Navegue para **Configurações do projeto** > **Segurança** > **SCIM**
 3. Clique em **Create SCIM Configuration**
 4. Insira um nome amigável (ex.: "Okta Provisioning")
 5. Configure as seguintes opções:
-   - **Auto Provision Users**: Habilite para criar usuários automaticamente
-   - **Auto Deprovision Users**: Habilite para remover usuários automaticamente
-   - **Default Teams**: Selecione equipes às quais novos usuários devem ser adicionados
-   - **Enable Push Groups**: Habilite se quiser gerenciar a adesão à equipe via grupos do Okta
+   - **Provisionar usuários automaticamente**: Habilite para criar usuários automaticamente
+   - **Desprovisionar usuários automaticamente**: Habilite para remover usuários automaticamente
+   - **Equipes Padrão**: Selecione equipes às quais novos usuários devem ser adicionados
+   - **Habilitar grupos de push**: Habilite se quiser gerenciar a adesão à equipe via grupos do Okta
 6. Salve a configuração
 7. Copie a **SCIM Base URL** e o **Bearer Token** — você precisará desses para o Okta
 
@@ -303,7 +303,7 @@ O Okta fornece gerenciamento de identidade flexível com excelente suporte a SCI
 
 #### Passo 7: Configurar Push de Grupos (Opcional)
 
-Se você habilitou **Push Groups** no OneUptime:
+Se você habilitou **Grupos de Push** no OneUptime:
 
 1. Vá para a aba **Push Groups**
 2. Clique em **+ Push Groups**
@@ -411,8 +411,8 @@ Quando o SCIM tenta criar um usuário que já existe (correspondendo por email),
 
 ### Qual é a diferença entre equipes padrão e push de grupos?
 
-- **Default Teams**: Todos os usuários provisionados via SCIM são adicionados às mesmas equipes predefinidas
-- **Push Groups**: A adesão à equipe é gerenciada pelo seu provedor de identidade, permitindo que diferentes usuários estejam em diferentes equipes com base na adesão ao grupo do IdP
+- **Equipes Padrão**: Todos os usuários provisionados via SCIM são adicionados às mesmas equipes predefinidas
+- **Grupos de Push**: A adesão à equipe é gerenciada pelo seu provedor de identidade, permitindo que diferentes usuários estejam em diferentes equipes com base na adesão ao grupo do IdP
 
 ### Com que frequência ocorre a sincronização de provisionamento?
 

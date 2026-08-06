@@ -14,7 +14,7 @@ Cada integración mueve datos en una de dos direcciones (y muchas usan ambas).
 
 1. Construye un workflow que comience con un **[disparador Webhook](/docs/workflows/triggers#webhook)**. OneUptime te proporciona una URL única.
 2. En la otra herramienta, configura una acción de webhook o notificación que haga un POST a esa URL cuando ocurra algo.
-3. En el workflow, lee la carga útil entrante y usa un componente **Create Incident** (o Create Alert) para registrarla.
+3. En el workflow, lee la carga útil entrante y usa un componente **Crear incidente** (o Create Alert) para registrarla.
 
 ```text
 Zabbix / Prometheus / Grafana / Datadog  ──►  OneUptime Webhook trigger  ──►  Create Incident
@@ -57,7 +57,7 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 
 Nunca pegues una clave de API o un token directamente en un bloque. En su lugar:
 
-1. Ve a **Workflows → Global Variables**.
+1. Ve a **Flujos de trabajo → Variables Globales**.
 2. Crea una variable —por ejemplo `JIRA_AUTH`— y activa **Is Secret**.
 3. Referenciarla en cualquier lugar con `{{variable.JIRA_AUTH}}`.
 

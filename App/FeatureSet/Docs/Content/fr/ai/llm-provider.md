@@ -37,7 +37,7 @@ OneUptime prend actuellement en charge les fournisseurs LLM suivants :
 ### Étape 1 : Accéder aux paramètres des fournisseurs LLM
 
 1. Connectez-vous à votre tableau de bord OneUptime
-2. Accédez à **Agents IA** > **Fournisseurs LLM**
+2. Accédez à **Paramètres du projet** > **IA** > **Fournisseurs LLM**
 3. Cliquez sur **Créer un fournisseur LLM** pour ajouter un nouveau fournisseur
 
 ### Étape 2 : Configurer votre fournisseur
@@ -46,7 +46,7 @@ Remplissez les champs suivants :
 
 - **Nom** : Un nom convivial pour cette configuration LLM (par ex., « OpenAI de production », « Ollama local »)
 - **Description** (facultatif) : Une description pour identifier l'objectif de ce fournisseur
-- **Type de LLM** : Sélectionnez le type de fournisseur (OpenAI, Azure OpenAI, Anthropic, Groq, Mistral, Ollama ou OpenAI Compatible)
+- **Fournisseur LLM** : Sélectionnez le type de fournisseur (OpenAI, Azure OpenAI, Anthropic, Groq, Mistral, Ollama ou OpenAI Compatible)
 - **Clé API** : Votre clé API (requise pour OpenAI, Azure OpenAI, Anthropic, Groq et Mistral ; facultative pour Ollama et les serveurs compatibles OpenAI)
 - **Nom du modèle** : Le modèle spécifique à utiliser (par ex., `gpt-4o`, `claude-3-opus-20240229`, `llama2`)
 - **URL de base** (facultatif) : URL personnalisée du point de terminaison API (requise pour Azure OpenAI, Ollama et OpenAI Compatible ; facultative pour les autres)
@@ -141,7 +141,7 @@ Model Name: meta-llama/Llama-3.1-8B-Instruct
 API Key: (leave blank)
 ```
 
-> Astuce : Après l'enregistrement, utilisez le bouton **Test** sur le fournisseur pour confirmer que la connexion, le nom du modèle et l'URL de base sont corrects.
+> Astuce : Après l'enregistrement, utilisez le bouton **Tester** sur le fournisseur pour confirmer que la connexion, le nom du modèle et l'URL de base sont corrects.
 
 ### vLLM auto-hébergé sur Kubernetes (Helm)
 

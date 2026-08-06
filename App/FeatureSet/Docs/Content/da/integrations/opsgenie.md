@@ -2,7 +2,7 @@
 
 Opret en [Opsgenie](https://www.atlassian.com/software/opsgenie)-alarm, når en OneUptime-hændelse oprettes, og luk den, når OneUptime løser den.
 
-Denne integration er **udgående**: OneUptime kalder [Opsgenie Alert API](https://docs.opsgenie.com/docs/alert-api). Den bruger et OneUptime **[Workflow](/docs/workflows/index)** med en **Incident → On Create**-trigger og en **API-komponent**.
+Denne integration er **udgående**: OneUptime kalder [Opsgenie Alert API](https://docs.opsgenie.com/docs/alert-api). Den bruger et OneUptime **[Workflow](/docs/workflows/index)** med en **Hændelse → On Create**-trigger og en **API-komponent**.
 
 ```text
 OneUptime Incident → On Create  ──►  API component (POST /v2/alerts)  ──►  Opsgenie alert
@@ -16,13 +16,13 @@ OneUptime Incident → On Create  ──►  API component (POST /v2/alerts)  �
 
 ## Trin 1 — Gem API-nøglen
 
-1. Gå til **Workflows → Global Variables → Create**.
+1. Gå til **Arbejdsgange → Globale variabler → Opret**.
 2. Navngiv den `OPSGENIE_KEY`, indsæt API-nøglen, og slå **Is Secret** til.
 
 ## Trin 2 — Byg "opret alarm"-workflowet
 
-1. Åbn **Workflows → Create Workflow**, navngiv det `Incidents → Opsgenie`, og åbn **Builder**.
-2. Tilføj en **Incident**-trigger sat til **On Create**. Omdøb den til `Incident`.
+1. Åbn **Arbejdsgange → Opret arbejdsgang**, navngiv det `Incidents → Opsgenie`, og åbn **Bygger**.
+2. Tilføj en **Hændelse**-trigger sat til **On Create**. Omdøb den til `Incident`.
 3. Tilføj en **API**-blok forbundet til triggeren:
 
    - **Method**: `POST`
@@ -52,9 +52,9 @@ OneUptime Incident → On Create  ──►  API component (POST /v2/alerts)  �
 
 ## Trin 3 — Luk ved OneUptime-løsning (anbefalet)
 
-1. Opret et **andet** workflow ved navn `Close Opsgenie` med en **Incident → On Update**-trigger.
-2. Tilføj en **Conditions**-blok, der tjekker, om hændelsen nu er løst (forgren på `{{Incident.currentIncidentState.name}}`).
-3. Fra **Yes** tilføjer du en **API**-blok:
+1. Opret et **andet** workflow ved navn `Close Opsgenie` med en **Hændelse → On Update**-trigger.
+2. Tilføj en **Betingelser**-blok, der tjekker, om hændelsen nu er løst (forgren på `{{Incident.currentIncidentState.name}}`).
+3. Fra **Ja** tilføjer du en **API**-blok:
    - **Method**: `POST`
    - **URL**: `https://api.opsgenie.com/v2/alerts/oneuptime-{{Incident._id}}/close?identifierType=alias`
    - **Headers**: samme `Authorization: GenieKey {{variable.OPSGENIE_KEY}}`
@@ -64,13 +64,13 @@ Opsgenie slår alarmen op via alias og lukker den.
 
 ## Afbildning af prioriteter (valgfrit)
 
-Opsgenie-prioriteter går fra `P1`–`P5`. Afbild fra OneUptime-alvorligheder med **Conditions**-grene på `{{Incident.incidentSeverity.name}}` før API-blokken.
+Opsgenie-prioriteter går fra `P1`–`P5`. Afbild fra OneUptime-alvorligheder med **Betingelser**-grene på `{{Incident.incidentSeverity.name}}` før API-blokken.
 
 ## Fejlfinding
 
 - **`401`/`403`** — forkert nøgle, forkert regionsvært, eller integrationen mangler tilladelse til at oprette alarmer. Bekræft, at du bruger en **API**-integrationsnøgle og den tilsvarende `api`/`api.eu`-vært.
 - **Luk returnerer `404`** — `alias` i lukkekaldet skal matche oprettekaldet præcist, og `identifierType=alias` skal være i forespørgselsstrengen.
-- **Intet sker** — bekræft, at workflowet er **Enabled**.
+- **Intet sker** — bekræft, at workflowet er **Aktiveret**.
 
 ## Læs videre
 

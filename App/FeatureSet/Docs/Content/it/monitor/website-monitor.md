@@ -15,7 +15,7 @@ I monitor sito web verificano le pagine web effettuando richieste HTTP e valutan
 ## Creazione di un Monitor Sito Web
 
 1. Accedere a **Monitor** nel Dashboard di OneUptime
-2. Fare clic su **Crea Monitor**
+2. Fare clic su **Crea monitor**
 3. Selezionare **Sito Web** come tipo di monitor
 4. Inserire l'URL del sito web da monitorare
 5. Configurare i criteri di monitoraggio secondo necessità
@@ -71,11 +71,11 @@ Enable this option to skip TLS certificate validation. Useful when the target se
 
 #### Client Certificate (mTLS)
 
-If your endpoint requires mutual TLS authentication, enable **Use client certificate (mTLS)** and provide:
+If your endpoint requires mutual TLS authentication, enable **Usa certificato client (mTLS)** and provide:
 
-- **Client Certificate (PEM)** — the PEM-encoded client certificate to present.
-- **Client Private Key (PEM)** — the matching PEM-encoded private key.
-- **Client Private Key Passphrase** _(optional)_ — required only if the private key is encrypted.
+- **Certificato client (PEM)** — the PEM-encoded client certificate to present.
+- **Chiave privata client (PEM)** — the matching PEM-encoded private key.
+- **Passphrase della chiave privata client** _(optional)_ — required only if the private key is encrypted.
 
 This is the OneUptime equivalent of the `--cert` and `--key` flags in curl:
 
@@ -89,7 +89,7 @@ For sensitive values, store the certificate and key as [Monitor Secrets](/docs/m
 
 È possibile configurare criteri per determinare quando il sito web è considerato online, degradato o offline in base a:
 
-- **Codice di Stato della Risposta** - Verificare se il codice di stato HTTP corrisponde ai valori attesi (ad es. 200, 301)
-- **Tempo di Risposta** - Monitorare se il tempo di risposta supera una soglia
+- **Codice di stato della risposta** - Verificare se il codice di stato HTTP corrisponde ai valori attesi (ad es. 200, 301)
+- **Tempo di risposta** - Monitorare se il tempo di risposta supera una soglia
 - **Corpo della Risposta** - Verificare se il corpo della risposta contiene o corrisponde a contenuto specifico
-- **Intestazioni della Risposta** - Verificare che specifiche intestazioni di risposta siano presenti o corrispondano ai valori attesi
+- **Header della risposta** - Verificare che specifiche intestazioni di risposta siano presenti o corrispondano ai valori attesi

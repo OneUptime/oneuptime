@@ -4,23 +4,23 @@ Denne side dækker de indstillinger og sikkerhedsgrænser, der er værd at kende
 
 ## Tænd eller sluk for et workflow
 
-Hvert workflow har en **Enabled**-kontakt i **Settings**. Når den er slået fra, kører workflowet ikke — webhook-kald, planlagte tidspunkter og OneUptime-events bliver alle ignoreret. Nye workflows starter deaktiverede.
+Hvert workflow har en **Aktiveret**-kontakt i **Indstillinger**. Når den er slået fra, kører workflowet ikke — webhook-kald, planlagte tidspunkter og OneUptime-events bliver alle ignoreret. Nye workflows starter deaktiverede.
 
 Brug denne kontakt som din "klar til drift"-port:
 
 1. Byg workflowet.
 2. Klik **Run Manually** med en realistisk payload.
-3. Tjek **Logs** — sørg for, at hver blok gik, hvor du forventede.
-4. Slå **Enabled** til.
+3. Tjek **Protokoller** — sørg for, at hver blok gik, hvor du forventede.
+4. Slå **Aktiveret** til.
 
 At slå et workflow fra stopper ikke kørsler, der allerede er i gang; det stopper bare nye fra at starte.
 
 ## Ejere og labels
 
-- **Owners** — brugere og teams, der er angivet som ejere, får adgang til workflowet og kan tilmelde sig notifikationer, når det fejler. Sæt dem under **Settings → Owners**.
-- **Labels** — tags til gruppering af workflows. Workflow-listen lader dig filtrere efter label, hvilket gør et travlt projekt meget lettere at navigere. Nyttigt, når du har workflows organiseret efter team, integration eller miljø.
-- **Label rules** — under **Workflows → Settings → Label Rules** kan du automatisk anvende labels på nye workflows baseret på navne- eller beskrivelsesmønstre.
-- **Owner rules** — under **Workflows → Settings → Owner Rules** kan du automatisk tildele ejere til nye workflows.
+- **Ejere** — brugere og teams, der er angivet som ejere, får adgang til workflowet og kan tilmelde sig notifikationer, når det fejler. Sæt dem under **Indstillinger → Ejere**.
+- **Etiketter** — tags til gruppering af workflows. Workflow-listen lader dig filtrere efter label, hvilket gør et travlt projekt meget lettere at navigere. Nyttigt, når du har workflows organiseret efter team, integration eller miljø.
+- **Etiketregler** — under **Arbejdsgange → Indstillinger → Etiketregler** kan du automatisk anvende labels på nye workflows baseret på navne- eller beskrivelsesmønstre.
+- **Ejerregler** — under **Arbejdsgange → Indstillinger → Ejerregler** kan du automatisk tildele ejere til nye workflows.
 
 ## Hemmeligheder
 
@@ -52,7 +52,7 @@ Hvis du har et reelt behov for en lang kæde (såsom et job, der behandler ét e
 Webhook-triggere giver dig en unik URL. Enhver, der kender URL'en, kan ramme den. For at beskytte mod utilsigtede eller uønskede kaldere:
 
 - Behandl URL'en som en adgangskode. Del den ikke offentligt, og commit den ikke til et offentligt repo.
-- Til følsomme workflows: bed det kaldende system om at sende et delt token som en header (såsom `X-Webhook-Token`), og tjek det med en **Conditions**-blok, før du gør noget vigtigt. Gem det forventede token som en hemmelig variabel.
+- Til følsomme workflows: bed det kaldende system om at sende et delt token som en header (såsom `X-Webhook-Token`), og tjek det med en **Betingelser**-blok, før du gør noget vigtigt. Gem det forventede token som en hemmelig variabel.
 - Til meget følsomme workflows: foretræk en OneUptime event-trigger og et manuelt import-skridt frem for en offentlig webhook.
 
 ## Udgående netværksadgang
@@ -72,7 +72,7 @@ De fleste ingeniører bør have create/edit/read på workflows, men ikke på var
 
 ## Plan-grænser
 
-OneUptime Cloud begrænser antallet af kørsler pr. måned på mindre planer. Din aktuelle grænse vises under **Project Settings → Billing**. Når du når den, afvises nye triggere indtil næste faktureringscyklus. Selv-hostede installationer har ikke denne grænse.
+OneUptime Cloud begrænser antallet af kørsler pr. måned på mindre planer. Din aktuelle grænse vises under **Projektindstillinger → Fakturering**. Når du når den, afvises nye triggere indtil næste faktureringscyklus. Selv-hostede installationer har ikke denne grænse.
 
 ## Når workflows ikke er det rette værktøj
 

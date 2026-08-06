@@ -14,7 +14,7 @@ Em **Painel → Configurações**, ligue **Painel Público**. O painel agora tem
 
 Um painel público:
 
-- Sempre abre no modo **Visualização**. Visitantes públicos não podem editar nem ver a paleta de widgets.
+- Sempre abre no modo **Visualizar**. Visitantes públicos não podem editar nem ver a paleta de widgets.
 - Inclui as variáveis que você adicionou. Os visitantes escolhem nos mesmos dropdowns que sua equipe usa.
 - Usa a **marca** que você definiu nas Configurações — título da página, descrição, logotipo, favicon.
 
@@ -25,7 +25,7 @@ Trate ativar um painel público como publicar uma página web. Todo widget nele 
 Para colocar uma senha em um painel público:
 
 1. Ligue **Painel Público**.
-2. Ligue **Senha Mestra**.
+2. Ligue **Senha mestra**.
 3. Defina a senha.
 
 Os visitantes veem um prompt de senha antes do painel aparecer. A senha é armazenada como um hash — nunca vemos a senha real.
@@ -39,7 +39,7 @@ Para um controle mais forte (contas separadas por visualizador, um registro de a
 
 ## Lista de IPs permitidos
 
-No plano **Scale**, você pode restringir um painel público a uma lista de endereços ou faixas de IP. Configure em **Painel → Configurações → Lista de IPs Permitidos**.
+No plano **Scale**, você pode restringir um painel público a uma lista de endereços ou faixas de IP. Configure em **Painel → Configurações → Lista de permissões de IP**.
 
 Use isso quando:
 
@@ -54,7 +54,7 @@ Requisições de qualquer outro IP são rejeitadas.
 Por padrão, um painel público é servido em `oneuptime.com`. Para hospedá-lo no seu próprio subdomínio como `dashboard.acme.com`:
 
 1. Adicione um registro CNAME no seu DNS apontando o subdomínio para o destino do OneUptime.
-2. Em **Painel → Configurações → Domínios Personalizados**, adicione o domínio.
+2. Em **Painel → Configurações → Domínios personalizados**, adicione o domínio.
 3. Verifique-o. O OneUptime checa o registro DNS para você.
 4. Uma vez verificado, o painel fica acessível tanto no seu domínio personalizado quanto na URL original.
 

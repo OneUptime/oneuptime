@@ -14,8 +14,8 @@ DNS-monitors sturen opvragen naar DNS-servers voor specifieke recordtypen en eva
 
 ## Een DNS Monitor aanmaken
 
-1. Ga naar **Monitors** in het OneUptime-dashboard
-2. Klik op **Monitor aanmaken**
+1. Ga naar **Monitoren** in het OneUptime-dashboard
+2. Klik op **Monitor maken**
 3. Selecteer **DNS** als het monitortype
 4. Voer de domeinnaam en het te bevragen recordtype in
 5. Configureer monitoringcriteria naar wens

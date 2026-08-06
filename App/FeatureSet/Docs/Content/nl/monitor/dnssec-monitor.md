@@ -14,8 +14,8 @@ DNSSEC-monitors valideren de volledige vertrouwensketen vanaf de rootzone tot aa
 
 ## Een DNSSEC Monitor aanmaken
 
-1. Ga naar **Monitors** in het OneUptime-dashboard
-2. Klik op **Monitor aanmaken**
+1. Ga naar **Monitoren** in het OneUptime-dashboard
+2. Klik op **Monitor maken**
 3. Selecteer **DNSSEC** als het monitortype
 4. Voer de zone (domein) in die u wilt valideren
 5. Configureer resolvers en monitoringcriteria naar wens

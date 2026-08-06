@@ -15,18 +15,18 @@ OneUptime Incident → On Create  ──►  Discord component  ──►  messa
 
 ## Steg 2 — Lagre webhook-URL-en (valgfritt, men anbefalt)
 
-1. I OneUptime, gå til **Workflows → Global Variables → Create**.
+1. I OneUptime, gå til **Arbeidsflyter → Globale variabler → Opprett**.
 2. Gi den navnet `DISCORD_WEBHOOK_URL`, lim inn URL-en, og slå på **Is Secret**.
 
 Å holde den i en variabel betyr at du kan gjenbruke den på tvers av arbeidsflyter og rotere den på ett sted.
 
 ## Steg 3 — Bygg arbeidsflyten
 
-1. Åpne **Workflows → Create Workflow**, gi den navnet `Incidents → Discord`, og åpne **Builder**.
-2. Legg til en **Incident**-trigger satt til **On Create**. Gi den nytt navn `Incident`.
+1. Åpne **Arbeidsflyter → Opprett arbeidsflyt**, gi den navnet `Incidents → Discord`, og åpne **Bygger**.
+2. Legg til en **Hendelse**-trigger satt til **On Create**. Gi den nytt navn `Incident`.
 3. Legg til en **Discord**-komponent koblet til triggeren:
-   - **Webhook URL**: `{{variable.DISCORD_WEBHOOK_URL}}` (eller lim den inn direkte).
-   - **Message**: `🔴 New incident: {{Incident.title}}\n{{Incident.description}}`
+   - **Webhook-URL**: `{{variable.DISCORD_WEBHOOK_URL}}` (eller lim den inn direkte).
+   - **Melding**: `🔴 New incident: {{Incident.title}}\n{{Incident.description}}`
 4. **Lagre**, aktiver, og opprett en testhendelse. Meldingen vises i kanalen din.
 
 ## Alternativ: API-komponenten
@@ -42,8 +42,8 @@ Dette er hendig hvis du ønsker Discords rikere [embeds](https://discord.com/dev
 
 ## Tips
 
-- Bruk **Conditions** for å bare poste for bestemte alvorlighetsgrader — forgren på `{{Incident.incidentSeverity.name}}` før Discord-blokken.
-- Legg til flere arbeidsflyter på **Incident → On Update** for å poste bekreftelser og løsninger til den samme kanalen.
+- Bruk **Betingelser** for å bare poste for bestemte alvorlighetsgrader — forgren på `{{Incident.incidentSeverity.name}}` før Discord-blokken.
+- Legg til flere arbeidsflyter på **Hendelse → On Update** for å poste bekreftelser og løsninger til den samme kanalen.
 
 ## Hvor du leser videre
 

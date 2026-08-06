@@ -2,7 +2,7 @@
 
 जब भी OneUptime में एक incident बनाया जाए तो स्वचालित रूप से एक [Jira](https://www.atlassian.com/software/jira) issue खोलें — ताकि engineering work वहाँ track हो जहाँ आपके developers पहले से रहते हैं, incident के वापस link के साथ।
 
-यह इंटीग्रेशन **आउटबाउंड** है: OneUptime Jira के REST API को कॉल करता है। यह **Incident → On Create** trigger और **API component** के साथ OneUptime **[वर्कफ़्लो](/docs/workflows/index)** का उपयोग करता है। आप वैकल्पिक रूप से एक **inbound** path जोड़ सकते हैं ताकि Jira issue बंद करने पर OneUptime incident resolve हो।
+यह इंटीग्रेशन **आउटबाउंड** है: OneUptime Jira के REST API को कॉल करता है। यह **घटना → On Create** trigger और **API component** के साथ OneUptime **[वर्कफ़्लो](/docs/workflows/index)** का उपयोग करता है। आप वैकल्पिक रूप से एक **inbound** path जोड़ सकते हैं ताकि Jira issue बंद करने पर OneUptime incident resolve हो।
 
 ```text
 OneUptime Incident → On Create  ──►  API component (POST /rest/api/3/issue)  ──►  Jira issue
@@ -26,15 +26,15 @@ Jira Cloud आपके email और API token के साथ **Basic auth** �
    printf '%s' 'you@example.com:your_api_token' | base64
    ```
 
-2. OneUptime में, **Workflows → Global Variables → Create** पर जाएँ।
+2. OneUptime में, **वर्कफ़्लो → ग्लोबल वेरिएबल → बनाएँ** पर जाएँ।
 3. इसे `JIRA_AUTH` नाम दें, base64 string value के रूप में पेस्ट करें, और **Is Secret** चालू करें।
 
 अब आप auth header के रूप में `Basic {{variable.JIRA_AUTH}}` इस्तेमाल कर सकते हैं और token वर्कफ़्लो या उसके logs में कभी नहीं दिखेगा।
 
 ## चरण 2 — वर्कफ़्लो बनाएँ
 
-1. **Workflows → Create Workflow** खोलें, इसे `Incidents → Jira` नाम दें, और **Builder** खोलें।
-2. कैनवास पर एक **Incident** trigger खींचें और **On Create** event चुनें। इसे `Incident` नाम दें।
+1. **वर्कफ़्लो → वर्कफ़्लो बनाएं** खोलें, इसे `Incidents → Jira` नाम दें, और **बिल्डर** खोलें।
+2. कैनवास पर एक **घटना** trigger खींचें और **On Create** event चुनें। इसे `Incident` नाम दें।
 3. एक **API** ब्लॉक खींचें और trigger से जोड़ें। कॉन्फ़िगर करें:
 
    - **Method**: `POST`
@@ -76,9 +76,9 @@ Jira Cloud आपके email और API token के साथ **Basic auth** �
 
 ## चरण 3 — परीक्षण करें
 
-1. वर्कफ़्लो **Enabled** चालू करें।
+1. वर्कफ़्लो **सक्षम** चालू करें।
 2. OneUptime में एक test incident बनाएँ (या monitor से एक trigger करें)।
-3. वर्कफ़्लो का **Logs** tab खोलें। **API** ब्लॉक को `201` status और नई issue के `key` वाली response body दिखानी चाहिए (उदाहरण `OPS-1234`)।
+3. वर्कफ़्लो का **लॉग** tab खोलें। **API** ब्लॉक को `201` status और नई issue के `key` वाली response body दिखानी चाहिए (उदाहरण `OPS-1234`)।
 4. Jira जाँचें — issue वहाँ है।
 
 यदि API block error return करता है, तो इसे logs में expand करें — Jira की response बताती है कि उसने किस field को reject किया। [समस्या निवारण](#समस्या-निवारण) देखें।
@@ -96,7 +96,7 @@ Jira issue key को incident पर store करना उपयोगी ह�
 
 जब कोई Jira issue बंद करे तो OneUptime incident resolve करने के लिए, एक **inbound** वर्कफ़्लो जोड़ें:
 
-1. एक दूसरा वर्कफ़्लो बनाएँ जो **Webhook** trigger से शुरू हो और उसका URL कॉपी करें।
+1. एक दूसरा वर्कफ़्लो बनाएँ जो **वेबहुक** trigger से शुरू हो और उसका URL कॉपी करें।
 2. Jira में, **Project settings → Automation → Create rule** पर जाएँ:
 
    - **Trigger**: _Issue transitioned_ to **Done** (या _Issue resolved_)।
@@ -114,7 +114,7 @@ Jira issue key को incident पर store करना उपयोगी ह�
 
 API block की body में कुछ सामान्य बदलाव:
 
-- **Priority** — `fields` के अंदर `"priority": { "name": "High" }` जोड़ें। OneUptime severities को Jira priorities से map करने के लिए API block से पहले `{{Incident.incidentSeverity.name}}` पर **Conditions** से branch कर सकते हैं।
+- **Priority** — `fields` के अंदर `"priority": { "name": "High" }` जोड़ें। OneUptime severities को Jira priorities से map करने के लिए API block से पहले `{{Incident.incidentSeverity.name}}` पर **शर्तें** से branch कर सकते हैं।
 - **Labels** — `"labels": ["oneuptime", "incident"]` जोड़ें।
 - **Assignee** — `"assignee": { "id": "<accountId>" }` जोड़ें (Jira Cloud usernames की बजाय account IDs इस्तेमाल करता है)।
 - **Custom fields** — अपने Jira admin से field के ID का उपयोग करके `"customfield_XXXXX": "..."` जोड़ें।

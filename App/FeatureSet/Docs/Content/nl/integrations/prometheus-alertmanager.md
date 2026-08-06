@@ -16,17 +16,17 @@ Prometheus rule fires  ──►  Alertmanager webhook receiver  ──►  OneU
 
 ## Stap 1 — Bouw de OneUptime-workflow
 
-1. Open **Workflows → Create Workflow**, geef het de naam `Alertmanager → Incidents`, en open de **Builder**.
+1. Open **Workflows → Workflow maken**, geef het de naam `Alertmanager → Incidents`, en open de **Bouwer**.
 2. Voeg een **Webhook**-trigger toe en **kopieer de URL**. Hernoem het blok naar `Alertmanager`.
-3. Voeg een **Conditions**-blok toe verbonden met de trigger:
+3. Voeg een **Voorwaarden**-blok toe verbonden met de trigger:
    - **Left**: `{{Alertmanager.Request Body.status}}`
    - **Operator**: `==`
    - **Right**: `firing`
-4. Voeg vanuit **Yes** een **Create Incident**-blok toe:
-   - **Title**: `{{Alertmanager.Request Body.commonAnnotations.summary}}`
-   - **Description**: `{{Alertmanager.Request Body.commonAnnotations.description}}\nAlert: {{Alertmanager.Request Body.commonLabels.alertname}}`
-   - **Severity**: kies er een (of vertak eerst op `{{Alertmanager.Request Body.commonLabels.severity}}`).
-5. **Sla op** (laat uitgeschakeld totdat getest).
+4. Voeg vanuit **Ja** een **Incident maken**-blok toe:
+   - **Titel**: `{{Alertmanager.Request Body.commonAnnotations.summary}}`
+   - **Beschrijving**: `{{Alertmanager.Request Body.commonAnnotations.description}}\nAlert: {{Alertmanager.Request Body.commonLabels.alertname}}`
+   - **Ernst**: kies er een (of vertak eerst op `{{Alertmanager.Request Body.commonLabels.severity}}`).
+5. **Opslaan** (laat uitgeschakeld totdat getest).
 
 > **Over gegroepeerde alerts.** Alertmanager groepeert alerts en stuurt een `alerts`-**array**. De `commonLabels` en `commonAnnotations` hierboven zijn de velden die over de groep worden gedeeld — ideaal voor één incident per notificatie. Als je **één incident per alert** wilt, voeg je een [Custom Code](/docs/workflows/components#custom-code)-blok toe dat over `Request Body.alerts` loopt en voor elk een incident aanmaakt. Stel groepering in met `group_by` in je route.
 
@@ -60,16 +60,16 @@ Herlaad Alertmanager (`curl -X POST http://localhost:9093/-/reload` of herstart 
    amtool alert add test_alert severity=warning --annotation=summary="Test from Alertmanager" --alertmanager.url=http://localhost:9093
    ```
 
-3. Controleer het tabblad **Logs** van de workflow en je lijst met **Incidents**.
+3. Controleer het tabblad **Logboeken** van de workflow en je lijst met **Incidenten**.
 
 ## Oplossen bij herstel (optioneel)
 
-Met `send_resolved: true` POST Alertmanager ook wanneer een alert wegvalt, ditmaal met `status: resolved`. Voeg een tweede **Conditions**-tak toe (`status == resolved`), zoek het bijbehorende incident (match op `commonLabels.alertname`), en verplaats het naar je opgeloste status met **Update Incident**.
+Met `send_resolved: true` POST Alertmanager ook wanneer een alert wegvalt, ditmaal met `status: resolved`. Voeg een tweede **Voorwaarden**-tak toe (`status == resolved`), zoek het bijbehorende incident (match op `commonLabels.alertname`), en verplaats het naar je opgeloste status met **Update Incident**.
 
 ## Probleemoplossing
 
-- **Er verschijnt geen run** — bevestig dat Alertmanager de URL kan bereiken (controleer de logs ervan op afleverfouten) en dat de workflow **Enabled** is.
-- **Incidentvelden zijn leeg** — verschillende regels stellen verschillende annotaties in. Bekijk de triggeruitvoer in het tabblad **Logs** en verwijs naar velden die daadwerkelijk bestaan (`commonAnnotations` versus per-alert `annotations`).
+- **Er verschijnt geen run** — bevestig dat Alertmanager de URL kan bereiken (controleer de logs ervan op afleverfouten) en dat de workflow **Ingeschakeld** is.
+- **Incidentvelden zijn leeg** — verschillende regels stellen verschillende annotaties in. Bekijk de triggeruitvoer in het tabblad **Logboeken** en verwijs naar velden die daadwerkelijk bestaan (`commonAnnotations` versus per-alert `annotations`).
 - **Te veel incidenten** — verhoog `group_by`/`group_interval` zodat Alertmanager gerelateerde alerts groepeert.
 
 ## Waar verder lezen

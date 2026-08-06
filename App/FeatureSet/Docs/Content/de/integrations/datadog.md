@@ -15,16 +15,16 @@ Datadog monitor alerts  ──►  Webhook integration  ──►  OneUptime Web
 
 ## Schritt 1 — Den OneUptime-Workflow erstellen
 
-1. Öffnen Sie **Workflows → Create Workflow**, benennen Sie ihn `Datadog → Incidents`, und öffnen Sie den **Builder**.
+1. Öffnen Sie **Arbeitsabläufe → Workflow erstellen**, benennen Sie ihn `Datadog → Incidents`, und öffnen Sie den **Builder**.
 2. Fügen Sie einen **Webhook**-Auslöser hinzu und **kopieren Sie seine URL**. Benennen Sie den Block in `Datadog` um.
-3. Fügen Sie einen **Conditions**-Block verbunden mit dem Auslöser hinzu:
+3. Fügen Sie einen **Bedingungen**-Block verbunden mit dem Auslöser hinzu:
    - **Links**: `{{Datadog.Request Body.transition}}`
    - **Operator**: `==`
    - **Rechts**: `Triggered`
-4. Fügen Sie von **Yes** aus einen **Create Incident**-Block hinzu:
-   - **Title**: `{{Datadog.Request Body.title}}`
-   - **Description**: `{{Datadog.Request Body.body}}\nHost: {{Datadog.Request Body.host}}\n{{Datadog.Request Body.link}}`
-   - **Severity**: Wählen Sie einen.
+4. Fügen Sie von **Ja** aus einen **Vorfall erstellen**-Block hinzu:
+   - **Titel**: `{{Datadog.Request Body.title}}`
+   - **Beschreibung**: `{{Datadog.Request Body.body}}\nHost: {{Datadog.Request Body.host}}\n{{Datadog.Request Body.link}}`
+   - **Schweregrad**: Wählen Sie einen.
 5. **Speichern** (lassen Sie es bis zum Test deaktiviert).
 
 ## Schritt 2 — Den Datadog-Webhook erstellen
@@ -66,16 +66,16 @@ Damit werden sowohl der Alarm als auch die Wiederherstellung an OneUptime gesend
 
 1. Aktivieren Sie den Workflow.
 2. Verwenden Sie bei einem Monitor **Test Notifications → Alert**, oder lassen Sie einen echten Monitor auslösen.
-3. Prüfen Sie den Tab **Logs** des Workflows und Ihre **Incidents**-Liste.
+3. Prüfen Sie den Tab **Protokolle** des Workflows und Ihre **Vorfälle**-Liste.
 
 ## Bei Wiederherstellung auflösen (optional)
 
-`$ALERT_TRANSITION` ist `Recovered`, wenn ein Monitor sich normalisiert. Fügen Sie einen zweiten **Conditions**-Zweig hinzu (`transition == Recovered`), suchen Sie den passenden Vorfall (gleichen Sie auf der gesendeten `id` ab), und bewegen Sie ihn mit **Update Incident** in Ihren aufgelösten Zustand.
+`$ALERT_TRANSITION` ist `Recovered`, wenn ein Monitor sich normalisiert. Fügen Sie einen zweiten **Bedingungen**-Zweig hinzu (`transition == Recovered`), suchen Sie den passenden Vorfall (gleichen Sie auf der gesendeten `id` ab), und bewegen Sie ihn mit **Update Incident** in Ihren aufgelösten Zustand.
 
 ## Fehlerbehebung
 
-- **Kein Lauf erscheint** — bestätigen Sie, dass die Nachricht des Monitors `@webhook-oneuptime` enthält und der Workflow **Enabled** ist.
-- **Felder sind leer** — Datadog ersetzt nur Vorlagenvariablen, die für das Ereignis zutreffen. Prüfen Sie die Trigger-Ausgabe im Tab **Logs** und passen Sie Ihre Webhook-Payload an.
+- **Kein Lauf erscheint** — bestätigen Sie, dass die Nachricht des Monitors `@webhook-oneuptime` enthält und der Workflow **Aktiviert** ist.
+- **Felder sind leer** — Datadog ersetzt nur Vorlagenvariablen, die für das Ereignis zutreffen. Prüfen Sie die Trigger-Ausgabe im Tab **Protokolle** und passen Sie Ihre Webhook-Payload an.
 - **Doppelte Vorfälle** — ein Monitor, der erneut alarmiert (renotify), sendet mehrere `Triggered`-Ereignisse; deduplizieren Sie mit einer **Find Incident**-Prüfung auf der `id`, bevor Sie erstellen.
 
 ## Weiterführende Themen

@@ -14,7 +14,7 @@ Unter **Dashboard → Einstellungen** schalten Sie **Öffentliches Dashboard** e
 
 Ein öffentliches Dashboard:
 
-- Öffnet sich immer im Modus **Ansicht**. Öffentliche Besucher können nicht bearbeiten oder die Widget-Palette sehen.
+- Öffnet sich immer im Modus **Ansehen**. Öffentliche Besucher können nicht bearbeiten oder die Widget-Palette sehen.
 - Enthält die von Ihnen hinzugefügten Variablen. Besucher wählen aus denselben Dropdowns wie Ihr Team.
 - Verwendet das **Branding**, das Sie in den Einstellungen festgelegt haben – Seitentitel, Beschreibung, Logo, Favicon.
 
@@ -54,7 +54,7 @@ Anfragen von anderen IPs werden abgelehnt.
 Ab Werk wird ein öffentliches Dashboard auf `oneuptime.com` ausgeliefert. Um es auf Ihrer eigenen Subdomain wie `dashboard.acme.com` zu hosten:
 
 1. Fügen Sie in Ihrem DNS einen CNAME-Eintrag hinzu, der die Subdomain auf das Ziel von OneUptime zeigt.
-2. Fügen Sie die Domain unter **Dashboard → Einstellungen → Eigene Domains** hinzu.
+2. Fügen Sie die Domain unter **Dashboard → Einstellungen → Benutzerdefinierte Domains** hinzu.
 3. Verifizieren Sie sie. OneUptime prüft den DNS-Eintrag für Sie.
 4. Nach der Verifizierung ist das Dashboard sowohl unter Ihrer eigenen Domain als auch unter der ursprünglichen URL erreichbar.
 

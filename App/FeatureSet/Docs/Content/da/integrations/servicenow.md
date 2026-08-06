@@ -2,7 +2,7 @@
 
 Åbn automatisk en [ServiceNow](https://www.servicenow.com)-hændelse, når en OneUptime-hændelse oprettes — så ITSM og overvågning holder trit.
 
-Denne integration er **udgående**: OneUptime kalder ServiceNow [Table API](https://docs.servicenow.com/bundle/utah-application-development/page/integrate/inbound-rest/concept/c_TableAPI.html). Den bruger et OneUptime **[Workflow](/docs/workflows/index)** med en **Incident → On Create**-trigger og en **API-komponent**.
+Denne integration er **udgående**: OneUptime kalder ServiceNow [Table API](https://docs.servicenow.com/bundle/utah-application-development/page/integrate/inbound-rest/concept/c_TableAPI.html). Den bruger et OneUptime **[Workflow](/docs/workflows/index)** med en **Hændelse → On Create**-trigger og en **API-komponent**.
 
 ```text
 OneUptime Incident → On Create  ──►  API component (POST /api/now/table/incident)  ──►  ServiceNow incident
@@ -24,12 +24,12 @@ ServiceNows Table API accepterer **Basic auth**.
    printf '%s' 'integration_user:password' | base64
    ```
 
-2. I OneUptime, gå til **Workflows → Global Variables → Create**, navngiv den `SERVICENOW_AUTH`, indsæt base64-strengen, og slå **Is Secret** til.
+2. I OneUptime, gå til **Arbejdsgange → Globale variabler → Opret**, navngiv den `SERVICENOW_AUTH`, indsæt base64-strengen, og slå **Is Secret** til.
 
 ## Trin 2 — Byg workflowet
 
-1. Åbn **Workflows → Create Workflow**, navngiv det `Incidents → ServiceNow`, og åbn **Builder**.
-2. Tilføj en **Incident**-trigger sat til **On Create**. Omdøb den til `Incident`.
+1. Åbn **Arbejdsgange → Opret arbejdsgang**, navngiv det `Incidents → ServiceNow`, og åbn **Bygger**.
+2. Tilføj en **Hændelse**-trigger sat til **On Create**. Omdøb den til `Incident`.
 3. Tilføj en **API**-blok forbundet til triggeren:
 
    - **Method**: `POST`
@@ -60,7 +60,7 @@ ServiceNows Table API accepterer **Basic auth**.
 
 ## Trin 3 — Løs ved OneUptime-løsning (valgfrit)
 
-1. Opret et **andet** workflow med en **Incident → On Update**-trigger og en **Conditions**-blok, der tjekker, om hændelsen er løst.
+1. Opret et **andet** workflow med en **Hændelse → On Update**-trigger og en **Betingelser**-blok, der tjekker, om hændelsen er løst.
 2. For at opdatere den rette ServiceNow-post skal du bruge dens `sys_id`. Gem den enten på OneUptime-hændelsen i Trin 2 (læs `{{CreateRecord.response-body.result.sys_id}}` og skriv den til en label med **Update Incident**), eller slå posten op først med en `GET` på `/api/now/table/incident?sysparm_query=correlation_id=oneuptime-{{Incident._id}}`.
 3. Tilføj en **API**-blok: **Method** `PATCH`, **URL** `https://din-instans.service-now.com/api/now/table/incident/<sys_id>`, body `{ "state": "6", "close_code": "Resolved by monitoring", "close_notes": "Resolved in OneUptime" }` (`state` `6` = Resolved i standard ITIL-workflow'et).
 

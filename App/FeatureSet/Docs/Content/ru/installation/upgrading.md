@@ -21,8 +21,8 @@ images are no longer built or published — existing tags remain pullable,
 but they will never receive another update.
 
 A Runner is one installed container that can hold several **capabilities**,
-toggled per Runner in the dashboard: **Runs Runbooks** (on by default),
-**Runs AI Code Fixes** (off by default), and **Runs AI Remediation Commands** (off by
+toggled per Runner in the dashboard: **Выполняет сценарии** (on by default),
+**Выполняет ИИ-исправления кода** (off by default), and **Выполняет ИИ-команды устранения** (off by
 default). Capability changes are adopted on the Runner's next heartbeat —
 no restart needed. See [Runners](/docs/runbooks/agents) for how the
 component works day to day.
@@ -91,8 +91,8 @@ docker run --name oneuptime-runner --restart unless-stopped \
   -d oneuptime/runner:release
 ```
 
-(Or open the Runner in **Settings → Runners** and use **Show setup
-instructions** for a pre-filled command.)
+(Or open the Runner in **Настройки → Агенты runbook-ов** and use **Показать инструкции
+по настройке** for a pre-filled command.)
 
 If you tuned the agent with environment variables, rename them — the old
 names are **silently ignored** by the new image:
@@ -108,13 +108,13 @@ names are **silently ignored** by the new image:
 
 ### If you ran the standalone AI Agent
 
-The **Settings → AI → AI Agents** page is gone and the `oneuptime/ai-agent`
+The **Настройки → ИИ → Агенты ИИ** page is gone and the `oneuptime/ai-agent`
 image is no longer built. If you had installed an AI Agent container
 yourself, replace it with a Runner:
 
-1. Create a Runner under **Settings → Runners** and install it with the
-   command from **Show setup instructions**.
-2. Enable **Runs AI Code Fixes** on it. The change is picked up on the next
+1. Create a Runner under **Настройки → Агенты runbook-ов** and install it with the
+   command from **Показать инструкции по настройке**.
+2. Enable **Выполняет ИИ-исправления кода** on it. The change is picked up on the next
    heartbeat.
 
 Old AI Agent credentials still boot the new `oneuptime/runner` image
@@ -197,20 +197,20 @@ API automation that triggers runbooks needs `CreateRunbookExecution`.
 There are no redirects from the old URLs — update bookmarks and internal
 wiki links:
 
-| Page                    | Old location                             | New location                              |
-| ----------------------- | ---------------------------------------- | ----------------------------------------- |
-| Runners (was "Agents")  | Runbooks → Settings → Agents (`…/runbooks/settings/agents`) | Settings → Runners (`…/settings/runners`) |
-| Runner Credentials      | Runbooks → Settings → Credentials (`…/runbooks/settings/credentials`) | Settings → Runner Credentials (`…/settings/runner-credentials`) |
-| AI Agents               | Settings → AI → AI Agents (`…/settings/ai-agents`) | Removed — Runners with the **Runs AI Code Fixes** capability replace it |
+| Page                    | Old location                                                                         | New location                                                                       |
+| ----------------------- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
+| Runners (was "Agents")  | Сборники инструкций → Настройки → Агенты (`…/runbooks/settings/agents`)              | Настройки → Агенты runbook-ов (`…/settings/runners`)                               |
+| Runner Credentials      | Сборники инструкций → Настройки → Учётные данные (`…/runbooks/settings/credentials`) | Настройки → Runner Credentials (`…/settings/runner-credentials`)                   |
+| AI Agents               | Настройки → ИИ → Агенты ИИ (`…/settings/ai-agents`)                                  | Removed — Runners with the **Выполняет ИИ-исправления кода** capability replace it |
 
-Runbook Secrets stays where it was, under Runbooks → Settings → Secrets.
+Runbook Secrets stays where it was, under Сборники инструкций → Настройки → Секреты.
 
 ### New in 12, nothing to enable by accident
 
 v12 adds AI-composed remediation commands: the AI can propose a command
 plan and hand it to a Runner for execution. Everything about it is off by
 default and stays off until you opt in twice — the project-level **AI
-command execution** setting and the per-Runner **Runs AI Remediation Commands**
+command execution** setting and the per-Runner **Выполняет ИИ-команды устранения**
 capability must both be enabled, and only runbooks/rules you configure for
 it participate. Upgrading changes nothing here.
 

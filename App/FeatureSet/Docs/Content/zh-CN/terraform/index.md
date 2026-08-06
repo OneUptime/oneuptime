@@ -23,7 +23,7 @@ provider "oneuptime" {
 }
 ```
 
-The API key must be a **project API key** created in **Project Settings > API Keys** in the OneUptime dashboard. See the [Quick Start](/docs/terraform/quick-start) for the full walkthrough.
+The API key must be a **project API key** created in **项目设置 > API 密钥** in the OneUptime dashboard. See the [Quick Start](/docs/terraform/quick-start) for the full walkthrough.
 
 ## Documentation
 

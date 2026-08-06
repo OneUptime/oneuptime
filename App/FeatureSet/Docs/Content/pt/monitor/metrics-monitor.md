@@ -14,9 +14,9 @@ Os monitores de métricas consultam e avaliam métricas numéricas dos seus serv
 
 ## Criando um Monitor de Métricas
 
-1. Vá para **Monitors** no Painel do OneUptime
-2. Clique em **Create Monitor**
-3. Selecione **Metrics** como o tipo de monitor
+1. Vá para **Monitores** no Painel do OneUptime
+2. Clique em **Criar monitor**
+3. Selecione **Métricas** como o tipo de monitor
 4. Configure consultas de métricas e fórmulas opcionais
 5. Selecione a estratégia de agregação
 6. Configure os critérios de monitoramento conforme necessário
@@ -91,17 +91,17 @@ Escolha como agregar os valores de métricas para avaliação:
 
 - **Query a**: `http_requests_total` filtrado por `status=5xx`
 - **Query b**: `http_requests_total`
-- **Formula**: `a / b * 100`
+- **Fórmula**: `a / b * 100`
 - **Check On**: Metric Value
-- **Filter Type**: Greater Than
-- **Value**: 5
+- **Tipo de filtro**: Greater Than
+- **Valor**: 5
 
 #### Alertar se a profundidade da fila de requisições for alta
 
 - **Query**: `request_queue_size`, agregação: Maximum Value
 - **Check On**: Metric Value
-- **Filter Type**: Greater Than
-- **Value**: 1000
+- **Tipo de filtro**: Greater Than
+- **Valor**: 1000
 
 ## Requisitos de Configuração
 

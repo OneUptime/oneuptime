@@ -11,7 +11,7 @@ Esta página es la **guía de instalación**. Para configurar monitores y alerta
 - Un clúster de Kubernetes en ejecución (v1.23+)
 - `kubectl` configurado para acceder a tu clúster
 - `helm` v3 instalado
-- Una **clave de API de OneUptime** — crea una desde _Project Settings → API Keys_
+- Una **clave de API de OneUptime** — crea una desde _Ajustes del proyecto → Claves API_
 
 ## Paso 1 — Agregar el repositorio de Helm de OneUptime
 
@@ -164,7 +164,7 @@ Acepta `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`. `WARN` conserva WARN,
 
 Los runtimes de contenedores no registran una severidad en la línea de log, por lo que el agente extrae una del propio texto del log (`[ERROR]`, `WARN:`, `level=info`, …).
 
-> **Los eventos de Kubernetes y las especificaciones de recursos nunca se filtran con esto.** Llegan desde la API de Kubernetes sin una severidad propia, por lo que un umbral eliminaría el feed entero en lugar de adelgazarlo — incluidos los avisos de `FailedScheduling`, `BackOff` y `OOMKilling` que más te interesan. Son de bajo volumen y alto valor, así que el agente siempre los envía. Para adelgazarlos, usa en su lugar los **Logs → Settings → Drop Filters** del lado del servidor en el panel.
+> **Los eventos de Kubernetes y las especificaciones de recursos nunca se filtran con esto.** Llegan desde la API de Kubernetes sin una severidad propia, por lo que un umbral eliminaría el feed entero en lugar de adelgazarlo — incluidos los avisos de `FailedScheduling`, `BackOff` y `OOMKilling` que más te interesan. Son de bajo volumen y alto valor, así que el agente siempre los envía. Para adelgazarlos, usa en su lugar los **Registros → Ajustes → Filtros de Descarte** del lado del servidor en el panel.
 
 **Lo que ocurre con una línea sin un nivel reconocible depende del modo de logs**, porque los dos modos disponen de información distinta:
 
@@ -247,7 +247,7 @@ Notas que te ahorrarán un incidente:
 - **El multiclúster funciona de forma predeterminada.** Dos agentes conservan la misma traza solo si coinciden tanto en `hashSeed` como en `percentage`. Ambos tienen el mismo valor predeterminado en todas partes, así que una traza que cruza dos clústeres sobrevive entera sin ninguna configuración adicional. Cambia `hashSeed` solo para *descorrelacionar* deliberadamente dos niveles de muestreo — como la decisión es un umbral sobre el mismo hash, la misma semilla con tasas distintas se anida, por lo que un segundo nivel simplemente vuelve a elegir las trazas que el primero ya conservó en lugar de sortearlas de forma independiente.
 - **Los logs de pods nunca se muestrean**, así que con `ebpf.logToTraceCorrelation: true` cada registro de log sigue llevando un ID de traza mientras que solo se conserva el `percentage`% de esas trazas. Aproximadamente el (100 − `percentage`)% de los registros de log mostrará un enlace a una traza que no lleva a ninguna parte. La navegación de traza → logs no se ve afectada; solo la de logs → traza puede fallar.
 
-> **Reajusta tus monitores basados en spans cuando establezcas esto.** El muestreo reduce los spans que llegan a OneUptime, así que todo lo que los cuenta cuenta menos: un monitor **Traces** sobre `Span Count` y un monitor **Exceptions** sobre `Exception Count` verán aproximadamente el `percentage`% del volumen de ayer. Un umbral ajustado sobre tráfico sin muestrear deja de cruzarse en silencio — el monitor no da error, simplemente se queda callado. Divide esos umbrales por el mismo factor cuando establezcas la tasa; la tasa es de todo el clúster, así que no hay forma de eximir de ella a un servicio individual. La **agrupación** de errores se degrada peor que linealmente: una excepción común sigue apareciendo, pero una rara y puntual tiene más probabilidades de desaparecer por completo que de aparecer una décima parte de las veces.
+> **Reajusta tus monitores basados en spans cuando establezcas esto.** El muestreo reduce los spans que llegan a OneUptime, así que todo lo que los cuenta cuenta menos: un monitor **Trazas** sobre `Span Count` y un monitor **Excepciones** sobre `Exception Count` verán aproximadamente el `percentage`% del volumen de ayer. Un umbral ajustado sobre tráfico sin muestrear deja de cruzarse en silencio — el monitor no da error, simplemente se queda callado. Divide esos umbrales por el mismo factor cuando establezcas la tasa; la tasa es de todo el clúster, así que no hay forma de eximir de ella a un servicio individual. La **agrupación** de errores se degrada peor que linealmente: una excepción común sigue apareciendo, pero una rara y puntual tiene más probabilidades de desaparecer por completo que de aparecer una décima parte de las veces.
 
 > **Por qué aquí no hay muestreo de logs ni de métricas.** El muestreador del colector no puede muestrear métricas en absoluto. Sí puede muestrear logs, pero extrae su aleatoriedad del ID de traza — y los logs de pods no tienen uno. Cada registro sin ID de traza acaba entonces en el mismo bucket del hash, así que una tasa para logs no adelgazaría el feed: lo conservaría entero o lo eliminaría entero según la semilla. En lugar de ofrecer un control que elimine tus logs de forma silenciosa, el chart no ofrece ninguno. Adelgaza los logs con [Filtrado por severidad de logs](#filtrado-por-severidad-de-logs) y [Filtrado de namespaces](#filtrado-de-namespaces), que son precisos sobre lo que eliminan.
 
@@ -443,7 +443,7 @@ Hay tres formas de recortar el volumen, y vale la pena saber cuál estás usando
 - **En el procesador de filtro** — los datos se recopilan y luego se descartan antes de exportarse. `filters.logs.minSeverity`, `filters.metrics.*`, `namespaceFilters.rules` (`metrics`/`traces`). Consume algo más de CPU del colector, pero funciona en todos los receptores y puede expresar cosas que un receptor no puede.
 - **En el muestreador** — los datos se recopilan y luego se conserva una fracción representativa. `sampling.traces.percentage`. Es el caso atípico: los dos anteriores eliminan una *categoría* entera de telemetría, así que lo que descartan desaparece de todas las trazas. El muestreo conserva todas las categorías y adelgaza la población, por lo que lo que sobrevive sigue siendo completo y representativo.
 
-Las tres son **irreversibles**: lo que descartes aquí nunca llega a OneUptime, y las tres pueden dejar en silencio a un monitor. Las dos primeras silencian a un monitor eliminando la señal que vigila. El muestreo es más acotado: las métricas RED de eBPF se calculan antes de que se ejecute el muestreador, así que los monitores basados en métricas se mantienen exactos — pero los monitores que cuentan *spans* (**Traces** sobre `Span Count`, **Exceptions** sobre `Exception Count`) ven proporcionalmente menos y necesitan que reajustes sus umbrales por el mismo factor. Si prefieres decidirlo más tarde, OneUptime puede descartar los datos del lado del servidor (**Logs → Settings → Drop Filters**, **Metrics → Settings → Pipeline Rules**) — eso sigue costando egreso, pero es una opción que puedes cambiar sin volver a desplegar.
+Las tres son **irreversibles**: lo que descartes aquí nunca llega a OneUptime, y las tres pueden dejar en silencio a un monitor. Las dos primeras silencian a un monitor eliminando la señal que vigila. El muestreo es más acotado: las métricas RED de eBPF se calculan antes de que se ejecute el muestreador, así que los monitores basados en métricas se mantienen exactos — pero los monitores que cuentan *spans* (**Trazas** sobre `Span Count`, **Excepciones** sobre `Exception Count`) ven proporcionalmente menos y necesitan que reajustes sus umbrales por el mismo factor. Si prefieres decidirlo más tarde, OneUptime puede descartar los datos del lado del servidor (**Registros → Ajustes → Filtros de Descarte**, **Métricas → Ajustes → Reglas de Pipeline**) — eso sigue costando egreso, pero es una opción que puedes cambiar sin volver a desplegar.
 
 ### Palanca 1 — Los logs de pods suelen ser la mayor fuente
 
@@ -593,7 +593,7 @@ Eso es un recorte del 90% en el volumen de trazas a cambio de una pérdida más 
 
 Lo que cedes son sobre todo las trazas de ejemplo: cuando un monitor se dispara, tienes una décima parte de trazas que abrir. En un clúster que atiende miles de solicitudes idénticas por segundo, eso suele ser un buen trato — el span número cien de `/healthz` no te enseña nada que no te enseñara el primero. En un clúster tranquilo es un mal trato, porque puede que no tengas ningún ejemplo de la solicitud rara que falló.
 
-La excepción, y lo único que conviene comprobar antes de desplegar esto: los monitores que **cuentan spans** en lugar de métricas — **Traces** sobre `Span Count`, **Exceptions** sobre `Exception Count` — ven proporcionalmente menos, así que sus umbrales necesitan reajustarse por el mismo factor. Consulta [Muestreo de trazas](#muestreo-de-trazas).
+La excepción, y lo único que conviene comprobar antes de desplegar esto: los monitores que **cuentan spans** en lugar de métricas — **Trazas** sobre `Span Count`, **Excepciones** sobre `Exception Count` — ven proporcionalmente menos, así que sus umbrales necesitan reajustarse por el mismo factor. Consulta [Muestreo de trazas](#muestreo-de-trazas).
 
 Recurre a esto cuando las trazas de eBPF sean una parte grande de tu ingesta pero aun así quieras el mapa de servicios y las métricas RED intactos. Prefiere la Palanca 2 cuando quieras dejar de instrumentar algo por completo.
 
@@ -652,11 +652,11 @@ helm upgrade --install kubernetes-agent oneuptime/kubernetes-agent \
 
 Reduzca más si es necesario: suba minSeverity a ERROR, añada metrics a los ámbitos de una regla de espacio de nombres o configure ebpf.enabled=false si ya envía trazas desde SDK de OTel.
 
-> **Ten cuidado con lo que recortas.** Algunos monitores dependen de señales específicas: deshabilitar `cadvisor` elimina los monitores de OOM-kill y de throttling de CPU; deshabilitar `kubeletstats.volumeMetrics` elimina el monitor de poco espacio en disco de PVC; deshabilitar los logs elimina las alertas basadas en logs; y `sampling.traces.percentage` no elimina ningún monitor, pero reduce los basados en spans (**Traces** sobre `Span Count`, **Exceptions** sobre `Exception Count`), así que reajusta sus umbrales para que coincidan. Recorta las señales sobre las que no actúas, no las que un monitor está observando.
+> **Ten cuidado con lo que recortas.** Algunos monitores dependen de señales específicas: deshabilitar `cadvisor` elimina los monitores de OOM-kill y de throttling de CPU; deshabilitar `kubeletstats.volumeMetrics` elimina el monitor de poco espacio en disco de PVC; deshabilitar los logs elimina las alertas basadas en logs; y `sampling.traces.percentage` no elimina ningún monitor, pero reduce los basados en spans (**Trazas** sobre `Span Count`, **Excepciones** sobre `Exception Count`), así que reajusta sus umbrales para que coincidan. Recorta las señales sobre las que no actúas, no las que un monitor está observando.
 
 ### Mide el efecto
 
-El uso de telemetría se agrega por día, así que revisa la tendencia durante uno o dos días en **Project Settings → Usage History** para confirmar la reducción — no cambiará en el instante en que apliques un cambio. Cambia una palanca a la vez para que puedas atribuir la diferencia — logs desactivados, luego intervalo aumentado, luego eBPF recortado — en lugar de reducir todo a la vez y perder un monitor del que realmente dependías.
+El uso de telemetría se agrega por día, así que revisa la tendencia durante uno o dos días en **Ajustes del proyecto → Historial de Uso** para confirmar la reducción — no cambiará en el instante en que apliques un cambio. Cambia una palanca a la vez para que puedas atribuir la diferencia — logs desactivados, luego intervalo aumentado, luego eBPF recortado — en lugar de reducir todo a la vez y perder un monitor del que realmente dependías.
 
 ## Solución de problemas
 
@@ -694,7 +694,7 @@ La razón más común — especialmente después de una reinstalación — es un
    curl -i -H "x-oneuptime-token: <YOUR_API_KEY>" https://oneuptime.com/otlp/v1/validate
    ```
 
-   Si devuelve `401`, la clave en tu release es incorrecta o fue revocada. Copia una clave activa desde _Project Settings → Telemetría y APM → Claves de Ingesta_ y vuelve a desplegar:
+   Si devuelve `401`, la clave en tu release es incorrecta o fue revocada. Copia una clave activa desde _Ajustes del proyecto → Telemetría y APM → Claves de Ingesta_ y vuelve a desplegar:
 
    ```bash
    helm upgrade kubernetes-agent oneuptime/kubernetes-agent \

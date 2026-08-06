@@ -2,7 +2,7 @@
 
 जब OneUptime incident बनाया जाए तो स्वचालित रूप से एक [GitLab](https://gitlab.com) issue खोलें — ताकि engineering follow-up उस project में land हो जो affected service की मालिक है।
 
-यह इंटीग्रेशन **आउटबाउंड** है: OneUptime [GitLab REST API](https://docs.gitlab.com/ee/api/issues.html) को कॉल करता है। यह **Incident → On Create** trigger और **API component** के साथ OneUptime **[वर्कफ़्लो](/docs/workflows/index)** का उपयोग करता है। यह GitLab.com और self-managed GitLab दोनों पर एक ही तरह काम करता है।
+यह इंटीग्रेशन **आउटबाउंड** है: OneUptime [GitLab REST API](https://docs.gitlab.com/ee/api/issues.html) को कॉल करता है। यह **घटना → On Create** trigger और **API component** के साथ OneUptime **[वर्कफ़्लो](/docs/workflows/index)** का उपयोग करता है। यह GitLab.com और self-managed GitLab दोनों पर एक ही तरह काम करता है।
 
 ```text
 OneUptime Incident → On Create  ──►  API component (POST /projects/{id}/issues)  ──►  GitLab issue
@@ -16,13 +16,13 @@ OneUptime Incident → On Create  ──►  API component (POST /projects/{id}/
 
 ## चरण 1 — token store करें
 
-1. **Workflows → Global Variables → Create** पर जाएँ।
+1. **वर्कफ़्लो → ग्लोबल वेरिएबल → बनाएँ** पर जाएँ।
 2. इसे `GITLAB_TOKEN` नाम दें, token पेस्ट करें, और **Is Secret** चालू करें।
 
 ## चरण 2 — वर्कफ़्लो बनाएँ
 
-1. **Workflows → Create Workflow** खोलें, इसे `Incidents → GitLab Issues` नाम दें, और **Builder** खोलें।
-2. **On Create** पर सेट एक **Incident** trigger जोड़ें। इसे `Incident` नाम दें।
+1. **वर्कफ़्लो → वर्कफ़्लो बनाएं** खोलें, इसे `Incidents → GitLab Issues` नाम दें, और **बिल्डर** खोलें।
+2. **On Create** पर सेट एक **घटना** trigger जोड़ें। इसे `Incident` नाम दें।
 3. trigger से connected एक **API** ब्लॉक जोड़ें:
 
    - **Method**: `POST`

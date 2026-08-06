@@ -16,16 +16,16 @@ Prometheus rule fires  ──►  Alertmanager webhook receiver  ──►  OneU
 
 ## Steg 1 — Bygg OneUptime-arbetsflödet
 
-1. Öppna **Workflows → Create Workflow**, namnge det `Alertmanager → Incidents` och öppna **Builder**.
+1. Öppna **Arbetsflöden → Skapa arbetsflöde**, namnge det `Alertmanager → Incidents` och öppna **Byggare**.
 2. Lägg till en **Webhook**-utlösare och **kopiera dess URL**. Byt namn på blocket till `Alertmanager`.
-3. Lägg till ett **Conditions**-block kopplat till utlösaren:
+3. Lägg till ett **Villkor**-block kopplat till utlösaren:
    - **Left**: `{{Alertmanager.Request Body.status}}`
    - **Operator**: `==`
    - **Right**: `firing`
-4. Från **Yes**, lägg till ett **Create Incident**-block:
-   - **Title**: `{{Alertmanager.Request Body.commonAnnotations.summary}}`
-   - **Description**: `{{Alertmanager.Request Body.commonAnnotations.description}}\nAlert: {{Alertmanager.Request Body.commonLabels.alertname}}`
-   - **Severity**: välj en (eller förgrena på `{{Alertmanager.Request Body.commonLabels.severity}}` först).
+4. Från **Ja**, lägg till ett **Skapa incident**-block:
+   - **Titel**: `{{Alertmanager.Request Body.commonAnnotations.summary}}`
+   - **Beskrivning**: `{{Alertmanager.Request Body.commonAnnotations.description}}\nAlert: {{Alertmanager.Request Body.commonLabels.alertname}}`
+   - **Allvarlighetsgrad**: välj en (eller förgrena på `{{Alertmanager.Request Body.commonLabels.severity}}` först).
 5. **Spara** (lämna inaktiverat tills det testats).
 
 > **Om grupperade larm.** Alertmanager grupperar larm och skickar en `alerts`-**array**. `commonLabels` och `commonAnnotations` ovan är de fält som delas över gruppen — perfekt för en incident per notifiering. Om du vill ha **en incident per larm**, lägg till ett [Custom Code](/docs/workflows/components#custom-code)-block som itererar över `Request Body.alerts` och skapar en incident för var och en. Justera grupperingen med `group_by` i din route.
@@ -60,16 +60,16 @@ Ladda om Alertmanager (`curl -X POST http://localhost:9093/-/reload` eller start
    amtool alert add test_alert severity=warning --annotation=summary="Test from Alertmanager" --alertmanager.url=http://localhost:9093
    ```
 
-3. Kontrollera arbetsflödets flik **Logs** och din lista med **Incidents**.
+3. Kontrollera arbetsflödets flik **Loggar** och din lista med **Incidenter**.
 
 ## Lösning vid återhämtning (valfritt)
 
-Med `send_resolved: true` POSTar Alertmanager även när ett larm rensas, den här gången med `status: resolved`. Lägg till en andra **Conditions**-gren (`status == resolved`), hitta den matchande incidenten (matcha på `commonLabels.alertname`) och flytta den till ditt lösta tillstånd med **Update Incident**.
+Med `send_resolved: true` POSTar Alertmanager även när ett larm rensas, den här gången med `status: resolved`. Lägg till en andra **Villkor**-gren (`status == resolved`), hitta den matchande incidenten (matcha på `commonLabels.alertname`) och flytta den till ditt lösta tillstånd med **Update Incident**.
 
 ## Felsökning
 
-- **Ingen körning visas** — bekräfta att Alertmanager kan nå URL:en (kontrollera dess loggar för leveransfel) och att arbetsflödet är **Enabled**.
-- **Incidentfält är tomma** — olika regler sätter olika annotationer. Granska utlösarens utdata på fliken **Logs** och referera till fält som faktiskt finns (`commonAnnotations` kontra per-larm `annotations`).
+- **Ingen körning visas** — bekräfta att Alertmanager kan nå URL:en (kontrollera dess loggar för leveransfel) och att arbetsflödet är **Aktiverad**.
+- **Incidentfält är tomma** — olika regler sätter olika annotationer. Granska utlösarens utdata på fliken **Loggar** och referera till fält som faktiskt finns (`commonAnnotations` kontra per-larm `annotations`).
 - **För många incidenter** — öka `group_by`/`group_interval` så att Alertmanager buntar relaterade larm.
 
 ## Läs vidare

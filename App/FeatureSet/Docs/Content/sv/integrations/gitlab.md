@@ -16,12 +16,12 @@ OneUptime Incident → On Create  ──►  API component (POST /projects/{id}/
 
 ## Steg 1 — Spara token
 
-1. Gå till **Workflows → Global Variables → Create**.
+1. Gå till **Arbetsflöden → Globala variabler → Skapa**.
 2. Namnge det `GITLAB_TOKEN`, klistra in token och slå på **Is Secret**.
 
 ## Steg 2 — Bygg arbetsflödet
 
-1. Öppna **Workflows → Create Workflow**, namnge det `Incidents → GitLab Issues` och öppna **Builder**.
+1. Öppna **Arbetsflöden → Skapa arbetsflöde**, namnge det `Incidents → GitLab Issues` och öppna **Byggare**.
 2. Lägg till en **Incident**-utlösare inställd på **On Create**. Byt namn till `Incident`.
 3. Lägg till ett **API**-block kopplat till utlösaren:
 

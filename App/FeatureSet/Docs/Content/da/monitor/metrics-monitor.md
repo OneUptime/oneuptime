@@ -14,7 +14,7 @@ Metrisk monitorer forespørger og evaluerer numeriske metrikker fra dine telemet
 
 ## Oprettelse af en Metrisk Monitor
 
-1. Gå til **Monitorer** i OneUptime-dashboardet
+1. Gå til **Overvågninger** i OneUptime-dashboardet
 2. Klik på **Opret monitor**
 3. Vælg **Metrikker** som monitortype
 4. Konfigurer metriske forespørgsler og valgfrie formler

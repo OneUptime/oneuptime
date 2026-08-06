@@ -8,7 +8,7 @@ OneUptime 提供全面的 REST API，讓您能將監控、事件管理與狀態�
 
 ### 驗證
 
-所有 API 請求皆需使用 API 金鑰進行驗證。您可以從 OneUptime 儀表板的 Settings > API Keys 中產生 API 金鑰。
+所有 API 請求皆需使用 API 金鑰進行驗證。您可以從 OneUptime 儀表板的設定 > API 金鑰中產生 API 金鑰。
 
 ### API 參考
 

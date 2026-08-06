@@ -15,7 +15,7 @@ The provider block accepts two attributes:
 
 If no API key is available from either the provider block or the environment, the provider fails at configure time with an explicit error — before any plan or apply work happens.
 
-The key must be a **project API key** (Project Settings > API Keys), with Create/Read/Update/Delete permission on the resource types your configuration manages. Master keys and user keys do not work — see [Troubleshooting](/docs/terraform/troubleshooting).
+The key must be a **project API key** (项目设置 > API 密钥), with Create/Read/Update/Delete permission on the resource types your configuration manages. Master keys and user keys do not work — see [Troubleshooting](/docs/terraform/troubleshooting).
 
 ### Option 1: Environment variables (recommended)
 

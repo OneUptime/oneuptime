@@ -16,7 +16,7 @@ Global SSO는 **OneUptime Enterprise Edition** 기능이며 Enterprise Edition �
 
 1. **Admin Dashboard 열기**
 
-   - 마스터 관리자로 로그인한 후 **Admin** > **Settings** > **Global SSO**(SAML의 경우) 또는 **Global OIDC**(OpenID Connect의 경우)를 엽니다.
+   - 마스터 관리자로 로그인한 후 **Admin** > **설정** > **Global SSO**(SAML의 경우) 또는 **Global OIDC**(OpenID Connect의 경우)를 엽니다.
 
 2. **공급자 생성**
 
@@ -48,7 +48,7 @@ Global SSO는 **OneUptime Enterprise Edition** 기능이며 Enterprise Edition �
 전역 공급자를 구성한다고 해서 누군가에게 그것을 사용하도록 강제하지는 않습니다. 비밀번호 로그인은 여전히 작동합니다. SSO를 요구하려면 **Require SSO for Login** 컨트롤을 사용하십시오:
 
 - **프로젝트별:** 프로젝트는 SSO를 요구할 수 있으며, 선택적으로 _특정_ 공급자(프로젝트 또는 전역)를 요구할 수 있습니다.
-- **인스턴스 전체:** **Admin** > **Settings** > **Authentication**에는 인스턴스의 모든 사용자에게 SSO를 강제하는 **Require SSO for Login** 토글이 있습니다. 마스터 관리자는 잠기지 않도록 예외로 유지됩니다.
+- **인스턴스 전체:** **Admin** > **설정** > **인증**에는 인스턴스의 모든 사용자에게 SSO를 강제하는 **Require SSO for Login** 토글이 있습니다. 마스터 관리자는 잠기지 않도록 예외로 유지됩니다.
 
 ## 관련 항목
 

@@ -29,21 +29,21 @@ Zie [Widgets](/docs/dashboards/widgets) voor de volledige lijst en wat elk laat 
 | **Widget**      | Eén tegel op de pagina — een chart, een getal, een lijst, een alinea.                                   |
 | **Variabele**   | Een dropdown bovenaan die elke widget tegelijk filtert (cluster, service, klant, omgeving).             |
 | **Tijdsbereik** | Het tijdvenster dat elke chart en elk getal gebruikt. Eén keer bovenaan de pagina ingesteld.            |
-| **Refresh**     | Hoe vaak widgets de data opnieuw bevragen. Uit, elke paar seconden, elke paar minuten.                  |
-| **Modus**       | Ofwel **Edit** (widgets verslepen) of **View** (alleen lezen, zoals bezoekers het zien).                |
+| **Vernieuwen**  | Hoe vaak widgets de data opnieuw bevragen. Uit, elke paar seconden, elke paar minuten.                  |
+| **Modus**       | Ofwel **Bewerken** (widgets verslepen) of **Bekijken** (alleen lezen, zoals bezoekers het zien).        |
 
 ## Waar dashboards te vinden
 
 Open **Dashboards** in de linkernavigatie.
 
-| Pagina                   | Wat je daar doet                                                       |
-| ------------------------ | ---------------------------------------------------------------------- |
-| **Dashboards**           | Je lijst met dashboards. Maak een nieuwe aan, zoek of filter op label. |
-| **Dashboard → View**     | Het canvas. Wissel tussen **Edit** en **View** in de header.           |
-| **Dashboard → Overview** | Beschrijving, eigenaren en labels.                                     |
-| **Dashboard → Settings** | Publiek delen, wachtwoord, IP-allowlist, custom domain, branding.      |
-| **Dashboard → Owners**   | Gebruikers en teams met expliciete toegang.                            |
-| **Dashboard → Delete**   | Verwijder het dashboard.                                               |
+| Pagina                       | Wat je daar doet                                                       |
+| ---------------------------- | ---------------------------------------------------------------------- |
+| **Dashboards**               | Je lijst met dashboards. Maak een nieuwe aan, zoek of filter op label. |
+| **Dashboard → Bekijken**     | Het canvas. Wissel tussen **Bewerken** en **Bekijken** in de header.   |
+| **Dashboard → Overzicht**    | Beschrijving, eigenaren en labels.                                     |
+| **Dashboard → Instellingen** | Publiek delen, wachtwoord, IP-allowlist, custom domain, branding.      |
+| **Dashboard → Eigenaren**    | Gebruikers en teams met expliciete toegang.                            |
+| **Dashboard → Verwijderen**  | Verwijder het dashboard.                                               |
 
 ## Een dashboard bouwen
 
@@ -60,16 +60,16 @@ Doel: een oncall-pagina voor de checkout-service met latency, foutpercentage, op
 
 1. Maak een dashboard met de naam "Checkout on-call".
 2. Voeg een `service`-variabele toe. Standaardwaarde `checkout`.
-3. Voeg een **Chart**-widget toe met P95-latency, gefilterd op de `service`-variabele.
-4. Daarnaast een **Value**-widget voor foutpercentage, met warning op 1% en critical op 5%.
-5. Daaronder een **Incident List**-widget voor incidenten gelabeld `checkout`.
-6. Daaronder een **Log Stream**-widget die logs van dezelfde service toont.
+3. Voeg een **Grafiek**-widget toe met P95-latency, gefilterd op de `service`-variabele.
+4. Daarnaast een **Waarde**-widget voor foutpercentage, met warning op 1% en critical op 5%.
+5. Daaronder een **Incidentenlijst**-widget voor incidenten gelabeld `checkout`.
+6. Daaronder een **Logstroom**-widget die logs van dezelfde service toont.
 7. Sla op. Wissel de dropdown naar `payments` — hetzelfde dashboard toont nu de payments-service.
 
 ## Hoe dashboards passen bij de rest van OneUptime
 
 - **Monitors en telemetry** zijn de bronnen van data. Elke metric, log en trace die je verzamelt is queryable op een widget.
-- **Incidenten en alerts** verschijnen in **Incident List**- en **Alert List**-widgets. Dashboards zijn hier alleen-lezen — aanmaken en bijwerken doe je elders.
+- **Incidenten en alerts** verschijnen in **Incidentenlijst**- en **Waarschuwingslijst**-widgets. Dashboards zijn hier alleen-lezen — aanmaken en bijwerken doe je elders.
 - **Statuspagina's** zijn klantgerichte communicatie ("is het systeem up?"). Dashboards zijn om in detail te kijken hoe het systeem zich gedraagt. Ze werken samen, ze vervangen elkaar niet.
 - **Workflows** zijn hoe OneUptime actie onderneemt. Dashboards zijn hoe je leest wat er gebeurt.
 

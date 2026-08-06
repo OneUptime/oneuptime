@@ -10,11 +10,11 @@ Inden for projektet kontrollerer ejere og labels, hvem der ser hvad — se [Konf
 
 ## Offentlige dashboards
 
-Under **Dashboard → Settings** slår du **Public Dashboard** til. Dashboardet har nu en anden URL, der ikke kræver login. Del den med leverandører, partnere, kunder, eller indsæt den i en offentlig README.
+Under **Dashboard → Indstillinger** slår du **Public Dashboard** til. Dashboardet har nu en anden URL, der ikke kræver login. Del den med leverandører, partnere, kunder, eller indsæt den i en offentlig README.
 
 Et offentligt dashboard:
 
-- Åbner altid i **View**-tilstand. Offentlige besøgende kan ikke redigere eller se widget-paletten.
+- Åbner altid i **Vis**-tilstand. Offentlige besøgende kan ikke redigere eller se widget-paletten.
 - Inkluderer de variabler, du har tilføjet. Besøgende vælger fra de samme dropdowns, dit team bruger.
 - Bruger den **branding**, du sætter i Settings — sidens titel, beskrivelse, logo, favicon.
 
@@ -25,7 +25,7 @@ Behandl det at aktivere et offentligt dashboard som at publicere en webside. Hve
 For at sætte en adgangskode på et offentligt dashboard:
 
 1. Slå **Public Dashboard** til.
-2. Slå **Master Password** til.
+2. Slå **Hovedkodeord** til.
 3. Sæt adgangskoden.
 
 Besøgende ser en adgangskodeprompt, før dashboardet vises. Adgangskoden gemmes som en hash — vi ser aldrig den faktiske adgangskode.
@@ -39,7 +39,7 @@ For stærkere gating (separate konti pr. besøgende, en revisionsspor af hvem de
 
 ## IP-tilladelsesliste
 
-På **Scale**-planen kan du begrænse et offentligt dashboard til en liste af IP-adresser eller områder. Konfigurér det under **Dashboard → Settings → IP Whitelist**.
+På **Scale**-planen kan du begrænse et offentligt dashboard til en liste af IP-adresser eller områder. Konfigurér det under **Dashboard → Indstillinger → IP-hvidliste**.
 
 Brug dette, når:
 
@@ -54,7 +54,7 @@ Anmodninger fra enhver anden IP afvises.
 Fra start serveres et offentligt dashboard på `oneuptime.com`. For at hoste det på dit eget subdomæne såsom `dashboard.acme.com`:
 
 1. Tilføj en CNAME-record på din DNS, der peger subdomænet til OneUptimes mål.
-2. Under **Dashboard → Settings → Custom Domains** tilføjer du domænet.
+2. Under **Dashboard → Indstillinger → Brugerdefinerede domæner** tilføjer du domænet.
 3. Verificér det. OneUptime tjekker DNS-recorden for dig.
 4. Når det er verificeret, kan dashboardet nås både på dit brugerdefinerede domæne og den oprindelige URL.
 
@@ -68,10 +68,10 @@ Du kan knytte mere end ét brugerdefineret domæne til et enkelt dashboard, hvis
 
 ## Branding
 
-Under **Dashboard → Settings** kan du konfigurere:
+Under **Dashboard → Indstillinger** kan du konfigurere:
 
-- **Page title** — det der vises i browserfanen og i toppen af siden.
-- **Page description** — den beskrivelse, der bruges af søgemaskiner og sociale previews.
+- **Sidetitel** — det der vises i browserfanen og i toppen af siden.
+- **Sidebeskrivelse** — den beskrivelse, der bruges af søgemaskiner og sociale previews.
 - **Logo** — upload en PNG eller SVG, der vises i headeren.
 - **Favicon** — det lille ikon i browserfanen.
 

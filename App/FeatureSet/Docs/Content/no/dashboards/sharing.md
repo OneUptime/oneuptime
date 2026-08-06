@@ -10,7 +10,7 @@ Innenfor prosjektet kontrollerer eiere og etiketter hvem som ser hva — se [Kon
 
 ## Offentlige dashbord
 
-Under **Dashbord → Innstillinger**, vri på **Offentlig dashbord**. Dashbordet har nå en andre URL som ikke krever innlogging. Del den med leverandører, partnere, kunder, eller lim den inn i en offentlig README.
+Under **Dashbord → Innstillinger**, vri på **Public Dashboard**. Dashbordet har nå en andre URL som ikke krever innlogging. Del den med leverandører, partnere, kunder, eller lim den inn i en offentlig README.
 
 Et offentlig dashbord:
 
@@ -24,7 +24,7 @@ Behandle det å aktivere et offentlig dashbord som å publisere en nettside. Hve
 
 For å sette et passord på et offentlig dashbord:
 
-1. Slå på **Offentlig dashbord**.
+1. Slå på **Public Dashboard**.
 2. Slå på **Hovedpassord**.
 3. Sett passordet.
 
@@ -39,7 +39,7 @@ For sterkere beskyttelse (separate kontoer per seer, en revisjonslogg over hvem 
 
 ## IP-tillatelsesliste
 
-På **Scale**-planen kan du begrense et offentlig dashbord til en liste over IP-adresser eller områder. Konfigurer det under **Dashbord → Innstillinger → IP-tillatelsesliste**.
+På **Scale**-planen kan du begrense et offentlig dashbord til en liste over IP-adresser eller områder. Konfigurer det under **Dashbord → Innstillinger → IP-hviteliste**.
 
 Bruk dette når:
 

@@ -30,10 +30,10 @@ OneUptime MCP Server के साथ, AI assistants आपकी मदद क�
 - **Monitor Management**: monitors बनाएं और configure करें, उनकी status जांचें और status history की समीक्षा करें
 - **Incident Response**: incidents बनाएं, acknowledge और resolve करें, internal या public notes जोड़ें और resolution track करें
 - **Team Operations**: teams और on-call policies प्रबंधित करें
-- **Status Pages**: status pages प्रबंधित करें और announcements बनाएं
+- **स्थिति पृष्ठ**: status pages प्रबंधित करें और announcements बनाएं
 - **Alerting**: alerts को acknowledge और resolve करें, alert notes जोड़ें और alert states तथा severities प्रबंधित करें
-- **Scheduled Maintenance**: scheduled maintenance events बनाएं और प्रबंधित करें
-- **Telemetry**: logs, metrics, traces, exceptions और monitor logs query करें (read-only)
+- **अनुसूचित रखरखाव**: scheduled maintenance events बनाएं और प्रबंधित करें
+- **टेलीमेट्री**: logs, metrics, traces, exceptions और monitor logs query करें (read-only)
 
 ## आवश्यकताएं
 
@@ -44,7 +44,7 @@ OneUptime MCP Server के साथ, AI assistants आपकी मदद क�
 ## अपनी API Key प्राप्त करना
 
 1. अपने OneUptime instance में लॉग इन करें
-2. **Settings** → **API Keys** पर जाएं
+2. **सेटिंग्स** → **API कुंजियाँ** पर जाएं
 3. **Create API Key** पर क्लिक करें
 4. एक नाम दें (जैसे "MCP Server")
 5. अपने use case के लिए उचित permissions चुनें

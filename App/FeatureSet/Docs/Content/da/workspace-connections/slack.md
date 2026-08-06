@@ -14,7 +14,7 @@
 
 3. **Konfigurer incident-notifikationer**
 
-   - Når du har tilsluttet din Slack-konto, skal du gå til **Incidents-siden** > **Slack**.
+   - Når du har tilsluttet din Slack-konto, skal du gå til **Hændelser-siden** > **Slack**.
    - Tilføj regler for at sende incident-notifikationer til Slack. Du kan f.eks. oprette en regel, der opretter en ny Slack-kanal og inviterer incident-ejere, når et incident oprettes.
 
 4. **Konfigurer advarsels- og planlagt vedligeholdelsesnotifikationer**

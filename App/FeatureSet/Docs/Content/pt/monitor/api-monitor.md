@@ -15,8 +15,8 @@ Os monitores de API fazem requisições HTTP para seus endpoints e verificam as 
 
 ## Criando um Monitor de API
 
-1. Vá para **Monitors** no Painel do OneUptime
-2. Clique em **Create Monitor**
+1. Vá para **Monitores** no Painel do OneUptime
+2. Clique em **Criar monitor**
 3. Selecione **API** como o tipo de monitor
 4. Insira a URL da API e configure as definições da requisição
 5. Configure os critérios de monitoramento conforme necessário
@@ -93,11 +93,11 @@ Enable this option to skip TLS certificate validation. Useful when the target se
 
 #### Client Certificate (mTLS)
 
-If your endpoint requires mutual TLS authentication, enable **Use client certificate (mTLS)** and provide:
+If your endpoint requires mutual TLS authentication, enable **Usar certificado de cliente (mTLS)** and provide:
 
-- **Client Certificate (PEM)** — the PEM-encoded client certificate to present.
-- **Client Private Key (PEM)** — the matching PEM-encoded private key.
-- **Client Private Key Passphrase** _(optional)_ — required only if the private key is encrypted.
+- **Certificado do cliente (PEM)** — the PEM-encoded client certificate to present.
+- **Chave privada do cliente (PEM)** — the matching PEM-encoded private key.
+- **Senha da chave privada do cliente** _(optional)_ — required only if the private key is encrypted.
 
 This is the OneUptime equivalent of the `--cert` and `--key` flags in curl:
 
@@ -111,8 +111,8 @@ For sensitive values, store the certificate and key as [Monitor Secrets](/docs/m
 
 Você pode configurar critérios para determinar quando sua API é considerada online, degradada ou offline com base em:
 
-- **Código de Status de Resposta** - Verificar se o código de status HTTP corresponde aos valores esperados (ex.: 200, 201)
-- **Tempo de Resposta** - Monitorar se o tempo de resposta excede um limite
-- **Corpo de Resposta** - Verificar se o corpo de resposta contém ou corresponde a conteúdo específico
-- **Cabeçalhos de Resposta** - Verificar se cabeçalhos de resposta específicos estão presentes ou correspondem aos valores esperados
+- **Código de status da resposta** - Verificar se o código de status HTTP corresponde aos valores esperados (ex.: 200, 201)
+- **Tempo de resposta** - Monitorar se o tempo de resposta excede um limite
+- **Corpo da Resposta** - Verificar se o corpo de resposta contém ou corresponde a conteúdo específico
+- **Cabeçalhos da resposta** - Verificar se cabeçalhos de resposta específicos estão presentes ou correspondem aos valores esperados
 - **Expressão JavaScript** - Escreva expressões personalizadas para avaliar a resposta. Consulte [Expressões JavaScript](/docs/monitor/javascript-expression) para detalhes.

@@ -16,7 +16,7 @@ Domain-Monitore fragen WHOIS-Daten für Ihre Domains ab, um Registrierungsdetail
 
 1. Gehen Sie zu **Monitore** im OneUptime-Dashboard
 2. Klicken Sie auf **Monitor erstellen**
-3. Wählen Sie **Domain** als Monitortyp
+3. Wählen Sie **Domäne** als Monitortyp
 4. Geben Sie den zu überwachenden Domainnamen ein
 5. Konfigurieren Sie bei Bedarf Überwachungskriterien
 

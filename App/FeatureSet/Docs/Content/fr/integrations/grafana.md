@@ -16,7 +16,7 @@ Grafana alert rule fires  ──►  Webhook contact point  ──►  OneUptime
 
 ## Étape 1 — Créer le workflow OneUptime
 
-1. Ouvrez **Workflows → Create Workflow**, nommez-le `Grafana → Incidents`, et ouvrez le **Builder**.
+1. Ouvrez **Flux de travail → Créer un flux de travail**, nommez-le `Grafana → Incidents`, et ouvrez le **Constructeur**.
 2. Ajoutez un déclencheur **Webhook** et **copiez son URL**. Renommez le bloc `Grafana`.
 3. Ajoutez un bloc **Conditions** connecté au déclencheur :
    - **Left** : `{{Grafana.Request Body.status}}`
@@ -42,7 +42,7 @@ La charge utile webhook de Grafana suit la forme Alertmanager — elle inclut `s
 
 1. Activez le workflow.
 2. Dans l'écran du point de contact, utilisez **Test** pour envoyer un exemple de notification, ou laissez une vraie règle d'alerte se déclencher.
-3. Vérifiez l'onglet **Logs** du workflow et votre liste **Incidents**.
+3. Vérifiez l'onglet **Journaux** du workflow et votre liste **Incidents**.
 
 ## Résolution à la reprise (optionnel)
 
@@ -55,8 +55,8 @@ Lorsque l'alerte se résorbe, Grafana envoie une autre notification avec `status
 
 ## Dépannage
 
-- **Aucune exécution n'apparaît** — confirmez que Grafana peut atteindre l'URL (vérifiez les journaux serveur de Grafana) et que le workflow est **Enabled**.
-- **Champs vides** — inspectez la sortie du déclencheur dans l'onglet **Logs** ; référencez les champs qui existent pour votre version d'alertes.
+- **Aucune exécution n'apparaît** — confirmez que Grafana peut atteindre l'URL (vérifiez les journaux serveur de Grafana) et que le workflow est **Activé**.
+- **Champs vides** — inspectez la sortie du déclencheur dans l'onglet **Journaux** ; référencez les champs qui existent pour votre version d'alertes.
 
 ## Pour aller plus loin
 

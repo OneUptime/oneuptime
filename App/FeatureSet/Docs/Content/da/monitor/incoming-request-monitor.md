@@ -14,7 +14,7 @@ Indgående anmodningsmonitorer leverer en unik webhook-URL, som dine tjenester k
 
 ## Oprettelse af en Indgående Anmodningsmonitor
 
-1. Gå til **Monitorer** i OneUptime-dashboardet
+1. Gå til **Overvågninger** i OneUptime-dashboardet
 2. Klik på **Opret monitor**
 3. Vælg **Indgående anmodning** som monitortype
 4. En **Hemmelig nøgle** og hjerteslag-URL genereres til denne monitor
@@ -88,7 +88,7 @@ For **Indgående anmodning**:
 - **Modtaget inden for minutter** – Et hjerteslag er modtaget inden for det angivne antal minutter
 - **Ikke modtaget inden for minutter** – Intet hjerteslag er modtaget inden for det angivne antal minutter
 
-For **Anmodningsindhold**, **Anmodningsheader** og **Anmodningsheaderværdi**:
+For **Anmodningsbrødtekst**, **Anmodningsheader** og **Anmodningsheaderværdi**:
 
 - **Indeholder** – Værdien indeholder den angivne tekst
 - **Indeholder ikke** – Værdien indeholder ikke den angivne tekst

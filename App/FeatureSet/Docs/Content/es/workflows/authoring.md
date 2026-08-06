@@ -1,6 +1,6 @@
 # Crear un Workflow
 
-Para crear un workflow, abre **Workflows → Crear Workflow**, dale un nombre y haz clic en la pestaña **Constructor**. Verás un lienzo en blanco donde construirás la automatización.
+Para crear un workflow, abre **Flujos de trabajo → Crear flujo de trabajo**, dale un nombre y haz clic en la pestaña **Constructor**. Verás un lienzo en blanco donde construirás la automatización.
 
 ## El lienzo
 
@@ -38,7 +38,7 @@ La mayoría de los campos de texto aceptan variables: así es como fluyen los da
 La forma más rápida de familiarizarte con el lienzo:
 
 1. Arrastra un disparador **Manual** al lienzo.
-2. Arrastra un componente **Log** (en **Utils**) junto a él. Conecta el disparador al componente Log.
+2. Arrastra un componente **Registro** (en **Utils**) junto a él. Conecta el disparador al componente Log.
 3. En el campo de mensaje del bloque Log, escribe `Hello from {{Manual.JSON.name}}`.
 4. Guarda y activa el workflow.
 5. Haz clic en **Ejecutar Manualmente**, pega `{ "name": "Ada" }` como entrada y envía.
@@ -50,9 +50,9 @@ Ese ciclo —arrastrar, conectar, configurar, ejecutar, comprobar el registro—
 
 El lienzo se guarda mientras trabajas. No hay un paso separado de "publicar".
 
-Pero un workflow solo se ejecuta realmente cuando **Activado** está en marcha en Configuración. Los workflows nuevos comienzan desactivados. Usa ese interruptor como red de seguridad: constrúyelo, pruébalo con **Ejecutar Manualmente**, revisa los registros y luego actívalo.
+Pero un workflow solo se ejecuta realmente cuando **Habilitado** está en marcha en Configuración. Los workflows nuevos comienzan desactivados. Usa ese interruptor como red de seguridad: constrúyelo, pruébalo con **Ejecutar Manualmente**, revisa los registros y luego actívalo.
 
-Para pausar un workflow sin eliminarlo, desactiva **Activado**. Las ejecuciones que ya están en curso terminan; no se inician nuevas.
+Para pausar un workflow sin eliminarlo, desactiva **Habilitado**. Las ejecuciones que ya están en curso terminan; no se inician nuevas.
 
 ## Organización
 

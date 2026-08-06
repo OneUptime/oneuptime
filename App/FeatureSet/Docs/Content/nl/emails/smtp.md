@@ -25,9 +25,9 @@ Bij het configureren van SMTP met OAuth-authenticatie in OneUptime heeft u het v
 | **Poort**               | SMTP-poort (meestal 587 voor STARTTLS of 465 voor impliciete TLS)                        |
 | **Gebruikersnaam**      | Het e-mailadres om van te verzenden                                                      |
 | **Authenticatietype**   | Selecteer "OAuth"                                                                        |
-| **OAuth Provider Type** | Selecteer "Client Credentials" voor Microsoft 365, of "JWT Bearer" voor Google Workspace |
-| **Client ID**           | Applicatie/Client ID van uw OAuth-provider (voor Google: e-mailadres van serviceaccount) |
-| **Client Secret**       | Clientgeheim van uw OAuth-provider (voor Google: privésleutel)                           |
+| **OAuth-providertype**  | Selecteer "Client Credentials" voor Microsoft 365, of "JWT Bearer" voor Google Workspace |
+| **Client-ID**           | Applicatie/Client ID van uw OAuth-provider (voor Google: e-mailadres van serviceaccount) |
+| **Client-secret**       | Clientgeheim van uw OAuth-provider (voor Google: privésleutel)                           |
 | **Token URL**           | OAuth token-eindpunt-URL                                                                 |
 | **Bereik**              | Vereiste OAuth-bereik(en) voor SMTP-toegang                                              |
 

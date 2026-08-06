@@ -16,16 +16,16 @@ Prometheus rule fires  ──►  Alertmanager webhook receiver  ──►  OneU
 
 ## Paso 1 — Construir el workflow de OneUptime
 
-1. Abre **Workflows → Create Workflow**, nómbralo `Alertmanager → Incidents` y abre el **Builder**.
+1. Abre **Flujos de trabajo → Crear flujo de trabajo**, nómbralo `Alertmanager → Incidents` y abre el **Constructor**.
 2. Añade un disparador **Webhook** y **copia su URL**. Renombra el bloque como `Alertmanager`.
-3. Añade un bloque **Conditions** conectado al disparador:
+3. Añade un bloque **Condiciones** conectado al disparador:
    - **Izquierda**: `{{Alertmanager.Request Body.status}}`
    - **Operador**: `==`
    - **Derecha**: `firing`
-4. Desde **Yes**, añade un bloque **Create Incident**:
-   - **Title**: `{{Alertmanager.Request Body.commonAnnotations.summary}}`
-   - **Description**: `{{Alertmanager.Request Body.commonAnnotations.description}}\nAlert: {{Alertmanager.Request Body.commonLabels.alertname}}`
-   - **Severity**: elige una (o ramifica sobre `{{Alertmanager.Request Body.commonLabels.severity}}` primero).
+4. Desde **Sí**, añade un bloque **Crear incidente**:
+   - **Título**: `{{Alertmanager.Request Body.commonAnnotations.summary}}`
+   - **Descripción**: `{{Alertmanager.Request Body.commonAnnotations.description}}\nAlert: {{Alertmanager.Request Body.commonLabels.alertname}}`
+   - **Gravedad**: elige una (o ramifica sobre `{{Alertmanager.Request Body.commonLabels.severity}}` primero).
 5. **Guarda** (deja deshabilitado hasta probar).
 
 > **Sobre las alertas agrupadas.** Alertmanager agrupa las alertas y envía un **array** `alerts`. Los campos `commonLabels` y `commonAnnotations` de arriba son los campos compartidos en todo el grupo — perfectos para un incidente por notificación. Si quieres **un incidente por alerta**, añade un bloque [Custom Code](/docs/workflows/components#custom-code) que itere sobre `Request Body.alerts` y cree un incidente para cada uno. Ajusta el agrupamiento con `group_by` en tu ruta.
@@ -60,16 +60,16 @@ Recarga Alertmanager (`curl -X POST http://localhost:9093/-/reload` o reinícial
    amtool alert add test_alert severity=warning --annotation=summary="Test from Alertmanager" --alertmanager.url=http://localhost:9093
    ```
 
-3. Comprueba la pestaña **Logs** del workflow y tu lista de **Incidents**.
+3. Comprueba la pestaña **Registros** del workflow y tu lista de **Incidentes**.
 
 ## Resolver al recuperarse (opcional)
 
-Con `send_resolved: true`, Alertmanager también hace un POST cuando una alerta se despeja, esta vez con `status: resolved`. Añade una segunda rama **Conditions** (`status == resolved`), encuentra el incidente correspondiente (haz coincidir `commonLabels.alertname`) y muévelo a tu estado resuelto con **Update Incident**.
+Con `send_resolved: true`, Alertmanager también hace un POST cuando una alerta se despeja, esta vez con `status: resolved`. Añade una segunda rama **Condiciones** (`status == resolved`), encuentra el incidente correspondiente (haz coincidir `commonLabels.alertname`) y muévelo a tu estado resuelto con **Update Incident**.
 
 ## Solución de problemas
 
-- **No aparece ninguna ejecución** — confirma que Alertmanager puede llegar a la URL (comprueba sus registros en busca de errores de entrega) y que el workflow está **Enabled**.
-- **Los campos del incidente están vacíos** — distintas reglas establecen anotaciones diferentes. Inspecciona la salida del disparador en la pestaña **Logs** y referencia los campos que realmente existen (`commonAnnotations` frente a `annotations` por alerta).
+- **No aparece ninguna ejecución** — confirma que Alertmanager puede llegar a la URL (comprueba sus registros en busca de errores de entrega) y que el workflow está **Habilitado**.
+- **Los campos del incidente están vacíos** — distintas reglas establecen anotaciones diferentes. Inspecciona la salida del disparador en la pestaña **Registros** y referencia los campos que realmente existen (`commonAnnotations` frente a `annotations` por alerta).
 - **Demasiados incidentes** — aumenta `group_by`/`group_interval` para que Alertmanager agrupe las alertas relacionadas.
 
 ## Dónde seguir leyendo

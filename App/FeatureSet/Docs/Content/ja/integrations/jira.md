@@ -2,7 +2,7 @@
 
 OneUptime のインシデントが作成されるたびに [Jira](https://www.atlassian.com/software/jira) の課題を自動で開きます — 開発者がすでに使っている場所でエンジニアリング作業を追跡でき、インシデントへのリンクも保持されます。
 
-この連携は**アウトバウンド**です: OneUptime が Jira の REST API を呼び出します。**Incident → On Create** トリガーと **API コンポーネント**を持つ OneUptime の **[ワークフロー](/docs/workflows/index)** を使います。オプションで、Jira の課題をクローズしたときに OneUptime のインシデントを解決する**インバウンド**パスを追加することもできます。
+この連携は**アウトバウンド**です: OneUptime が Jira の REST API を呼び出します。**インシデント → On Create** トリガーと **API コンポーネント**を持つ OneUptime の **[ワークフロー](/docs/workflows/index)** を使います。オプションで、Jira の課題をクローズしたときに OneUptime のインシデントを解決する**インバウンド**パスを追加することもできます。
 
 ```text
 OneUptime Incident → On Create  ──►  API component (POST /rest/api/3/issue)  ──►  Jira issue
@@ -26,15 +26,15 @@ Jira Cloud はメールアドレスと API トークンを base64 エンコー�
    printf '%s' 'you@example.com:your_api_token' | base64
    ```
 
-2. OneUptime で **Workflows → Global Variables → Create** に移動します。
+2. OneUptime で **ワークフロー → グローバル変数 → 作成** に移動します。
 3. `JIRA_AUTH` という名前にして base64 文字列を値に貼り付け、**Is Secret** をオンにします。
 
 これで `Basic {{variable.JIRA_AUTH}}` を認証ヘッダーとして使えます。トークンはワークフローやそのログには絶対に表示されません。
 
 ## ステップ 2 — ワークフローを作成する
 
-1. **Workflows → Create Workflow** を開き、`Incidents → Jira` という名前にして **Builder** を開きます。
-2. **Incident** トリガーをキャンバスにドラッグして **On Create** イベントを選びます。`Incident` にリネームします。
+1. **ワークフロー → ワークフローを作成** を開き、`Incidents → Jira` という名前にして **ビルダー** を開きます。
+2. **インシデント** トリガーをキャンバスにドラッグして **On Create** イベントを選びます。`Incident` にリネームします。
 3. **API** ブロックをドラッグしてトリガーに接続します。次のように設定します:
 
    - **Method**: `POST`
@@ -72,13 +72,13 @@ Jira Cloud はメールアドレスと API トークンを base64 エンコー�
 
    `OPS` を実際のプロジェクトキーに、`Bug` をそのプロジェクトに存在する課題タイプに置き換えます。
 
-4. **Save** します。テストするまでワークフローを無効のままにしておきます。
+4. **保存** します。テストするまでワークフローを無効のままにしておきます。
 
 ## ステップ 3 — テストする
 
-1. ワークフローの **Enabled** をオンにします。
+1. ワークフローの **有効** をオンにします。
 2. OneUptime でテスト用インシデントを作成します (またはモニターからトリガーします)。
-3. ワークフローの **Logs** タブを開きます。**API** ブロックが `201` ステータスと新しい課題の `key` (例: `OPS-1234`) を含むレスポンスボディを表示するはずです。
+3. ワークフローの **ログ** タブを開きます。**API** ブロックが `201` ステータスと新しい課題の `key` (例: `OPS-1234`) を含むレスポンスボディを表示するはずです。
 4. Jira を確認します — 課題が作成されています。
 
 API ブロックがエラーを返した場合は、ログ内でそれを展開します — Jira のレスポンスに拒否されたフィールドの詳細が記載されています。[トラブルシューティング](#トラブルシューティング) を参照してください。
@@ -114,7 +114,7 @@ Jira の課題を誰かがクローズしたときに OneUptime のインシデ�
 
 API ブロックのボディへのよくある変更:
 
-- **優先度** — `fields` の中に `"priority": { "name": "High" }` を追加します。**Conditions** で `{{Incident.incidentSeverity.name}}` に分岐して OneUptime の重大度を Jira の優先度にマッピングできます。
+- **優先度** — `fields` の中に `"priority": { "name": "High" }` を追加します。**条件** で `{{Incident.incidentSeverity.name}}` に分岐して OneUptime の重大度を Jira の優先度にマッピングできます。
 - **ラベル** — `"labels": ["oneuptime", "incident"]` を追加します。
 - **担当者** — `"assignee": { "id": "<accountId>" }` を追加します (Jira Cloud はユーザー名ではなくアカウント ID を使います)。
 - **カスタムフィールド** — Jira 管理画面のフィールド ID を使って `"customfield_XXXXX": "..."` を追加します。

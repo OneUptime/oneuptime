@@ -2,7 +2,7 @@
 
 OneUptime のインシデントが作成されると自動的に [GitLab](https://gitlab.com) の Issue を開きます — 影響を受けるサービスを管理するプロジェクトで後続のエンジニアリング作業を追跡できます。
 
-この連携は**アウトバウンド**です: OneUptime が [GitLab REST API](https://docs.gitlab.com/ee/api/issues.html) を呼び出します。**Incident → On Create** トリガーと **API コンポーネント**を持つ OneUptime の **[ワークフロー](/docs/workflows/index)** を使います。GitLab.com とセルフマネージド GitLab の両方で同じように動作します。
+この連携は**アウトバウンド**です: OneUptime が [GitLab REST API](https://docs.gitlab.com/ee/api/issues.html) を呼び出します。**インシデント → On Create** トリガーと **API コンポーネント**を持つ OneUptime の **[ワークフロー](/docs/workflows/index)** を使います。GitLab.com とセルフマネージド GitLab の両方で同じように動作します。
 
 ```text
 OneUptime Incident → On Create  ──►  API component (POST /projects/{id}/issues)  ──►  GitLab issue
@@ -16,13 +16,13 @@ OneUptime Incident → On Create  ──►  API component (POST /projects/{id}/
 
 ## ステップ 1 — トークンを保存する
 
-1. **Workflows → Global Variables → Create** に移動します。
+1. **ワークフロー → グローバル変数 → 作成** に移動します。
 2. `GITLAB_TOKEN` という名前にして、トークンを貼り付け、**Is Secret** をオンにします。
 
 ## ステップ 2 — ワークフローを作成する
 
-1. **Workflows → Create Workflow** を開き、`Incidents → GitLab Issues` という名前にして **Builder** を開きます。
-2. **Incident** トリガーを **On Create** に設定して追加します。`Incident` にリネームします。
+1. **ワークフロー → ワークフローを作成** を開き、`Incidents → GitLab Issues` という名前にして **ビルダー** を開きます。
+2. **インシデント** トリガーを **On Create** に設定して追加します。`Incident` にリネームします。
 3. トリガーに接続した **API** ブロックを追加します:
 
    - **Method**: `POST`
@@ -44,7 +44,7 @@ OneUptime Incident → On Create  ──►  API component (POST /projects/{id}/
      }
      ```
 
-4. **Save** して有効化し、テスト用インシデントを作成します。ワークフローのログに `201 Created` が表示されれば Issue が作成されたことを意味し、レスポンスボディに `iid` と `web_url` が含まれます。
+4. **保存** して有効化し、テスト用インシデントを作成します。ワークフローのログに `201 Created` が表示されれば Issue が作成されたことを意味し、レスポンスボディに `iid` と `web_url` が含まれます。
 
 ## ヒント
 

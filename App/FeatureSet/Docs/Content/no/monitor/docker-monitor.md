@@ -14,8 +14,8 @@ Docker-monitorer bruker metrikker og logger fra vertene dine for å gi synlighet
 
 ## Opprette en Docker-monitor
 
-1. Gå til **Monitors** i OneUptime-dashbordet
-2. Klikk **Create Monitor**
+1. Gå til **Overvåkere** i OneUptime-dashbordet
+2. Klikk **Opprett monitor**
 3. Velg **Docker** som monitortype
 4. Velg Docker-verten og ressursomfanget som skal overvåkes
 5. Konfigurer metrikk-spørringer og aggregering
@@ -150,7 +150,7 @@ I tillegg til metrikker haler Docker-agenten alle containerens `*-json.log`-file
 - `body` – den rå logglinjen sendt av containerprosessen
 - `time` – Docker-daemonens tidsstempel for linjen
 
-Logger vises på Docker-vertens **Logs**-fane og på hver containers detaljside.
+Logger vises på Docker-vertens **Logger**-fane og på hver containers detaljside.
 
 ### Krav til loggdriver
 
@@ -160,7 +160,7 @@ Logger vises på Docker-vertens **Logs**-fane og på hver containers detaljside.
 - **`journald`**, **`syslog`**, **`fluentd`**, **`gelf`**, **`awslogs`**, **`splunk`**, osv. – sender logger til et eksternt mål; ingen fil å hale.
 - **`none`** – forkaster logger helt.
 
-Hvis noen av de ovennevnte er i bruk, vil du se metrikker på Docker-vertsiden, men **Logs**-fanen vil være tom (eller bare inneholde Docker-agentens egne logger).
+Hvis noen av de ovennevnte er i bruk, vil du se metrikker på Docker-vertsiden, men **Logger**-fanen vil være tom (eller bare inneholde Docker-agentens egne logger).
 
 **Sjekk en spesifikk containers loggdriver:**
 

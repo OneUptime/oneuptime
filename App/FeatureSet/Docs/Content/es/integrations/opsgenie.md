@@ -16,12 +16,12 @@ OneUptime Incident → On Create  ──►  API component (POST /v2/alerts)  �
 
 ## Paso 1 — Guardar la clave de API
 
-1. Ve a **Workflows → Global Variables → Create**.
+1. Ve a **Flujos de trabajo → Variables Globales → Crear**.
 2. Nómbrala `OPSGENIE_KEY`, pega la clave de API y activa **Is Secret**.
 
 ## Paso 2 — Construir el workflow de "crear alerta"
 
-1. Abre **Workflows → Create Workflow**, nómbralo `Incidents → Opsgenie` y abre el **Builder**.
+1. Abre **Flujos de trabajo → Crear flujo de trabajo**, nómbralo `Incidents → Opsgenie` y abre el **Constructor**.
 2. Añade un disparador **Incident** configurado en **On Create**. Renómbralo `Incident`.
 3. Añade un bloque **API** conectado al disparador:
 
@@ -53,8 +53,8 @@ OneUptime Incident → On Create  ──►  API component (POST /v2/alerts)  �
 ## Paso 3 — Cerrar al resolver en OneUptime (recomendado)
 
 1. Crea un **segundo** workflow llamado `Close Opsgenie` con un disparador **Incident → On Update**.
-2. Añade un bloque **Conditions** que compruebe que el incidente ya está resuelto (ramifica sobre `{{Incident.currentIncidentState.name}}`).
-3. Desde **Yes**, añade un bloque **API**:
+2. Añade un bloque **Condiciones** que compruebe que el incidente ya está resuelto (ramifica sobre `{{Incident.currentIncidentState.name}}`).
+3. Desde **Sí**, añade un bloque **API**:
    - **Method**: `POST`
    - **URL**: `https://api.opsgenie.com/v2/alerts/oneuptime-{{Incident._id}}/close?identifierType=alias`
    - **Headers**: el mismo `Authorization: GenieKey {{variable.OPSGENIE_KEY}}`
@@ -64,13 +64,13 @@ Opsgenie busca la alerta por alias y la cierra.
 
 ## Mapeo de prioridades (opcional)
 
-Las prioridades de Opsgenie van de `P1` a `P5`. Mapéalas desde las gravedades de OneUptime con ramas **Conditions** sobre `{{Incident.incidentSeverity.name}}` antes del bloque API.
+Las prioridades de Opsgenie van de `P1` a `P5`. Mapéalas desde las gravedades de OneUptime con ramas **Condiciones** sobre `{{Incident.incidentSeverity.name}}` antes del bloque API.
 
 ## Solución de problemas
 
 - **`401`/`403`** — clave incorrecta, host de región equivocado, o la integración no tiene permiso para crear alertas. Confirma que estás usando una clave de integración **API** y el host `api`/`api.eu` correspondiente.
 - **El cierre devuelve `404`** — el `alias` en la llamada de cierre debe coincidir exactamente con el de la llamada de creación, y `identifierType=alias` debe estar en la cadena de consulta.
-- **No ocurre nada** — confirma que el workflow está **Enabled**.
+- **No ocurre nada** — confirma que el workflow está **Habilitado**.
 
 ## Dónde seguir leyendo
 

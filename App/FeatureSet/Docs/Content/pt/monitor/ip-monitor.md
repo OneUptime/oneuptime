@@ -13,8 +13,8 @@ Os monitores de IP verificam se um endereço IP específico está acessível e r
 
 ## Criando um Monitor de IP
 
-1. Vá para **Monitors** no Painel do OneUptime
-2. Clique em **Create Monitor**
+1. Vá para **Monitores** no Painel do OneUptime
+2. Clique em **Criar monitor**
 3. Selecione **IP** como o tipo de monitor
 4. Insira o endereço IP que deseja monitorar
 5. Configure os critérios de monitoramento conforme necessário
@@ -44,7 +44,7 @@ Para **Is Online** e **Is Request Timeout**:
 - **True** — Condição é verdadeira
 - **False** — Condição é falsa
 
-Para **Response Time**:
+Para **Tempo de resposta**:
 
 - **Greater Than** — O tempo de resposta excede um limite
 - **Less Than** — O tempo de resposta está abaixo de um limite
@@ -59,10 +59,10 @@ Para **Response Time**:
 #### Marcar como offline se o IP estiver inacessível
 
 - **Check On**: Is Online
-- **Filter Type**: False
+- **Tipo de filtro**: False
 
 #### Alertar se a latência exceder 100ms
 
 - **Check On**: Response Time (in ms)
-- **Filter Type**: Greater Than
-- **Value**: 100
+- **Tipo de filtro**: Greater Than
+- **Valor**: 100

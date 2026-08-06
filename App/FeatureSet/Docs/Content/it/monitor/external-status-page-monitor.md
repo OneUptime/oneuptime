@@ -39,7 +39,7 @@ Quando è impostato su **Auto**, OneUptime tenta di rilevare automaticamente il 
 ## Creazione di un Monitor per Pagina di Stato Esterna
 
 1. Accedere a **Monitor** nel Dashboard di OneUptime
-2. Fare clic su **Crea Monitor**
+2. Fare clic su **Crea monitor**
 3. Selezionare **Pagina di Stato Esterna** come tipo di monitor
 4. Inserire l'URL della pagina di stato da monitorare
 5. Selezionare opzionalmente un tipo di provider specifico (o lasciare su **Auto**)
@@ -86,10 +86,10 @@ Il numero di volte in cui ripetere la richiesta in caso di errore. Il valore pre
 È possibile configurare criteri per determinare quando il servizio esterno è considerato online o offline in base a:
 
 - **È Online** – Se la pagina di stato è raggiungibile e restituisce dati sullo stato
-- **Stato Complessivo** – L'indicatore di stato generale della pagina (ad es. `operational`, `degraded_performance`, `partial_outage`, `major_outage`)
+- **Stato complessivo** – L'indicatore di stato generale della pagina (ad es. `operational`, `degraded_performance`, `partial_outage`, `major_outage`)
 - **Stato del Componente** – Lo stato dei componenti in ambito (rispettando i filtri per gruppo di componenti / nome componente)
-- **Incidenti Attivi** – Il numero di incidenti attualmente attivi segnalati nella pagina di stato (limitati al gruppo di componenti / componente quando è impostato un filtro)
-- **Tempo di Risposta** – Il tempo necessario per ottenere i dati dalla pagina di stato
+- **Incidenti attivi** – Il numero di incidenti attualmente attivi segnalati nella pagina di stato (limitati al gruppo di componenti / componente quando è impostato un filtro)
+- **Tempo di risposta** – Il tempo necessario per ottenere i dati dalla pagina di stato
 
 ### Criteri Predefiniti
 

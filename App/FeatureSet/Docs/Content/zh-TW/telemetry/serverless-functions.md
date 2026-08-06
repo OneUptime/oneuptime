@@ -8,7 +8,7 @@
 
 ## 先決條件
 
-- 一個 **OneUptime 遙測擷取權杖（Telemetry Ingestion Token）**——從 _Project Settings → 遙測與 APM → 擷取金鑰_ 建立一個，並複製 `x-oneuptime-token` 的值。
+- 一個 **OneUptime 遙測擷取權杖（Telemetry Ingestion Token）**——從 _專案設定 → 遙測與 APM → 擷取金鑰_ 建立一個，並複製 `x-oneuptime-token` 的值。
 - 對應您函式語言的 OpenTelemetry SDK（或自動檢測層）。
 
 ## OneUptime 如何識別函式
@@ -19,11 +19,11 @@ OneUptime 以 `faas.name` 資源屬性作為每個函式的鍵：
 | ------------------------------------------------------ | -------- | ----------------------------------------------------------- |
 | `faas.name`                                            | **是**   | 函式身分識別（例如 `checkout-handler`）                     |
 | `faas.version`                                         | 否       | 顯示於概觀頁                                                |
-| `faas.instance`                                        | 否       | 在 **Instances** 分頁中逐執行個體追蹤                       |
+| `faas.instance`                                        | 否       | 在 **執行個體** 分頁中逐執行個體追蹤                        |
 | `cloud.platform`                                       | 否       | `aws_lambda`、`gcp_cloud_functions`、`azure_functions`、... |
 | `cloud.provider` / `cloud.region` / `cloud.account.id` | 否       | 顯示於概觀頁                                                |
 
-> 同時設定了 `service.name` 的函式仍會一併出現在 **Services** 之下。**無伺服器函式（Serverless Functions）**檢視則是以 `faas.name` 為範圍、聚焦於 FaaS 的視角。
+> 同時設定了 `service.name` 的函式仍會一併出現在 **服務** 之下。**無伺服器函式（Serverless Functions）**檢視則是以 `faas.name` 為範圍、聚焦於 FaaS 的視角。
 
 ## 步驟 1 — 設定 OTLP 匯出器環境變數
 
@@ -55,6 +55,6 @@ OTEL_EXPORTER_OTLP_HEADERS=x-oneuptime-token=YOUR_TELEMETRY_INGESTION_TOKEN
 
 - **呼叫次數（Invocations）**、**錯誤率（error rate）**與 **p95 持續時間（p95 duration）**——從您的追蹤資料衍生而來，可選取時間範圍，並附有趨勢圖表。
 - **執行個體（Instances）**——所見 `faas.instance` 值的即時計數。
-- 以此函式為範圍的完整 **Logs**、**Traces** 與 **Metrics** 分頁。
+- 以此函式為範圍的完整 **日誌**、**追蹤** 與 **指標** 分頁。
 
-您也可以透過 _Serverless → Settings → Label Rules / Owner Rules_ 自動套用標籤與擁有者。
+您也可以透過 _無伺服器 → 設定 → 標籤規則 / 擁有者規則_ 自動套用標籤與擁有者。

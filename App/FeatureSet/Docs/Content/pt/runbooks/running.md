@@ -4,7 +4,7 @@ Existem três formas de criar uma execução de runbook:
 
 1. **Automaticamente via regra** — veja [Regras de runbook](/docs/runbooks/rules).
 2. **Manualmente na página do runbook** — clique **Executar agora** na visão geral do runbook. Sem vínculo a qualquer incidente, alerta ou manutenção.
-3. **Manualmente no feed de uma entidade** — clique **Executar runbook** em um incidente, alerta ou evento de manutenção programada. A execução fica vinculada a essa entidade.
+3. **Manualmente no feed de uma entidade** — clique **Executar Runbook** em um incidente, alerta ou evento de manutenção programada. A execução fica vinculada a essa entidade.
 
 ## A visão de execução
 

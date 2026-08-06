@@ -37,7 +37,7 @@ Posta uma mensagem em um canal do Slack.
 - **Canal** — o nome do canal. O bot precisa já estar nesse canal.
 - **Mensagem** — o texto a enviar. Aceita formatação do Slack.
 
-Primeiro conecte o Slack ao seu projeto em **Configurações do Projeto → Espaço de trabalho → Slack**. Veja [Conexão de Workspace do Slack](/docs/workspace-connections/slack).
+Primeiro conecte o Slack ao seu projeto em **Configurações do projeto → Espaço de trabalho → Slack**. Veja [Conexão de Workspace do Slack](/docs/workspace-connections/slack).
 
 ## Microsoft Teams
 
@@ -127,9 +127,9 @@ Para cada tipo de registro no OneUptime (monitores, incidentes, alertas, página
 - **Criar** — adiciona um novo registro.
 - **Atualizar** — altera um registro.
 - **Excluir** — remove um registro.
-- **Contar** — conta registros que correspondem a um filtro.
+- **Contagem** — conta registros que correspondem a um filtro.
 
-É assim que um workflow pode ler e alterar dados do OneUptime. Por exemplo: um webhook da sua ferramenta de CI pode usar **Criar Incidente** para abrir um incidente com os detalhes da falha.
+É assim que um workflow pode ler e alterar dados do OneUptime. Por exemplo: um webhook da sua ferramenta de CI pode usar **Criar incidente** para abrir um incidente com os detalhes da falha.
 
 ## Qual componente devo usar?
 

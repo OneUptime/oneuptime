@@ -19,8 +19,8 @@ Binnen ongeveer een uur (het eerste afgesloten uurvenster) krijg je:
 
 - Een **Costs-pagina per cluster** (_Kubernetes → je cluster → Costs_): uitgaventrend, uitgaven per namespace met cpu-/geheugen-/opslagverdeling, uitgaven per workload, ongebruikte uitgaven en efficiëntie.
 - Een **Costs-pagina op projectniveau** (_Kubernetes → Costs_): uitgaven over elk cluster in het project.
-- Een **Kubernetes Cost-dashboardsjabloon** (_Dashboards → Create → Kubernetes Cost Dashboard_): trends in uurlijkse nodekosten, CPU/RAM-eenheidskosten, uitgaven aan persistent volumes en load balancers.
-- Ruwe kostenmetrieken (`node_total_hourly_cost`, `pv_hourly_cost`, ...) in de **Metric Explorer**, bruikbaar in eigen dashboards en metriek-alerts.
+- Een **Kubernetes Cost-dashboardsjabloon** (_Dashboards → Aanmaken → Kubernetes Cost Dashboard_): trends in uurlijkse nodekosten, CPU/RAM-eenheidskosten, uitgaven aan persistent volumes en load balancers.
+- Ruwe kostenmetrieken (`node_total_hourly_cost`, `pv_hourly_cost`, ...) in de **Metriekverkenner**, bruikbaar in eigen dashboards en metriek-alerts.
 
 ## Hoe het werkt
 

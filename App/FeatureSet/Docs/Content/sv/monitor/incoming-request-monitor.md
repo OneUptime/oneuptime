@@ -14,7 +14,7 @@ Monitorer för inkommande förfrågningar tillhandahåller en unik webhook-URL s
 
 ## Skapa en monitor för inkommande förfrågningar
 
-1. Gå till **Monitorer** i OneUptime-instrumentpanelen
+1. Gå till **Övervakare** i OneUptime-instrumentpanelen
 2. Klicka på **Skapa monitor**
 3. Välj **Inkommande förfrågan** som monitortyp
 4. En **Hemlig nyckel** och hjärtslagURL kommer att genereras för den här monitorn
@@ -88,7 +88,7 @@ För **Inkommande förfrågan**:
 - **Mottagen inom minuter** – Ett hjärtslag togs emot inom det angivna antalet minuter
 - **Inte mottagen inom minuter** – Inget hjärtslag togs emot inom det angivna antalet minuter
 
-För **Förfrågningsinnehåll**, **Förfrågningshuvud** och **Förfrågningshuvudvärde**:
+För **Begärandekropp**, **Förfrågningshuvud** och **Förfrågningshuvudvärde**:
 
 - **Innehåller** – Värdet innehåller den angivna texten
 - **Innehåller inte** – Värdet innehåller inte den angivna texten

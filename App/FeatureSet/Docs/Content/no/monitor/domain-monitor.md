@@ -14,9 +14,9 @@ Domene-monitorer spør WHOIS-data for domenene dine for å spore registreringsde
 
 ## Opprette en domene-monitor
 
-1. Gå til **Monitors** i OneUptime-dashbordet
-2. Klikk **Create Monitor**
-3. Velg **Domain** som monitortype
+1. Gå til **Overvåkere** i OneUptime-dashbordet
+2. Klikk **Opprett monitor**
+3. Velg **Domene** som monitortype
 4. Skriv inn domenenavnet du ønsker å overvåke
 5. Konfigurer overvåkingskriterier etter behov
 
@@ -73,18 +73,18 @@ For **Domain Registrar**, **Domain Name Server** og **Domain Status Code**:
 
 #### Varsle hvis domenet utløper innen 30 dager
 
-- **Sjekk på**: Domain Expires In Days
+- **Check On**: Domain Expires In Days
 - **Filtertype**: Less Than
 - **Verdi**: 30
 
 #### Marker som utilgjengelig hvis domenet er utløpt
 
-- **Sjekk på**: Domain Is Expired
+- **Check On**: Domain Is Expired
 - **Filtertype**: True
 
 #### Verifiser at navneserverne er korrekte
 
-- **Sjekk på**: Domain Name Server
+- **Check On**: Domain Name Server
 - **Filtertype**: Contains
 - **Verdi**: `ns1.example.com`
 

@@ -13,8 +13,8 @@ Os monitores de ping testam a conectividade básica de rede enviando requisiçõ
 
 ## Criando um Monitor de Ping
 
-1. Vá para **Monitors** no Painel do OneUptime
-2. Clique em **Create Monitor**
+1. Vá para **Monitores** no Painel do OneUptime
+2. Clique em **Criar monitor**
 3. Selecione **Ping** como o tipo de monitor
 4. Insira o hostname ou endereço IP que deseja monitorar
 5. Configure os critérios de monitoramento conforme necessário
@@ -44,7 +44,7 @@ Para **Is Online** e **Is Request Timeout**:
 - **True** — Condição é verdadeira
 - **False** — Condição é falsa
 
-Para **Response Time**:
+Para **Tempo de resposta**:
 
 - **Greater Than** — O tempo de resposta excede um limite
 - **Less Than** — O tempo de resposta está abaixo de um limite
@@ -59,10 +59,10 @@ Para **Response Time**:
 #### Marcar como offline se o host estiver inacessível
 
 - **Check On**: Is Online
-- **Filter Type**: False
+- **Tipo de filtro**: False
 
 #### Alertar se o tempo de resposta exceder 200ms
 
 - **Check On**: Response Time (in ms)
-- **Filter Type**: Greater Than
-- **Value**: 200
+- **Tipo de filtro**: Greater Than
+- **Valor**: 200

@@ -8,10 +8,10 @@ Der findes to slags, og de deler samme syntaks.
 
 Projektomspændende værdier, du gemmer én gang og genbruger overalt. Tænk API-nøgler, URL'er, kanalnavne — alt, du ikke vil kopiere ind i ti forskellige workflows.
 
-Find dem under **Workflows → Global Variables**. Hver har:
+Find dem under **Arbejdsgange → Globale variabler**. Hver har:
 
-- **Name** — hvordan du refererer til den. Brug `UPPER_SNAKE_CASE`, så den skiller sig ud i dine blokke.
-- **Value** — selve værdien. Flere linjer virker også.
+- **Navn** — hvordan du refererer til den. Brug `UPPER_SNAKE_CASE`, så den skiller sig ud i dine blokke.
+- **Værdi** — selve værdien. Flere linjer virker også.
 - **Is Secret** — når slået til, skjules værdien i UI'et efter du gemmer, og er skjult fra kørselslogfiler.
 
 Brug en global variabel i ethvert workflow med:
@@ -37,7 +37,7 @@ Referér en tidligere bloks output sådan her:
 Eksempler:
 
 - Efter en **API**-blok ved navn `LookupUser` kører, kan du læse statuskoden som `{{LookupUser.response-status}}` og body som `{{LookupUser.response-body}}`.
-- Efter en **Incident → On Create**-trigger ved navn `Incident` kan du læse `{{Incident.title}}`, `{{Incident.description}}` og ethvert andet felt på hændelsen.
+- Efter en **Hændelse → On Create**-trigger ved navn `Incident` kan du læse `{{Incident.title}}`, `{{Incident.description}}` og ethvert andet felt på hændelsen.
 - Efter en **Custom Code**-blok ved navn `Transform` ligger den returnerede værdi på `{{Transform.value}}`.
 
 Lokale variabler eksisterer kun under den aktuelle kørsel. Hver ny kørsel starter på en frisk tavle.
@@ -63,8 +63,8 @@ Rene JSON-felter accepterer variabler inde i strengværdier, men du kan ikke bru
 En webhook ankommer med en body som `{ "service": "checkout", "status": "failed" }`. For at omdanne det til en OneUptime-hændelse:
 
 1. **Webhook**-trigger ved navn `CIWebhook`.
-2. **Conditions**-blok: venstre `{{CIWebhook.Request Body.status}}`, operator `==`, højre `failed`.
-3. Fra **Yes**-grenen en **Create Incident**-blok med:
+2. **Betingelser**-blok: venstre `{{CIWebhook.Request Body.status}}`, operator `==`, højre `failed`.
+3. Fra **Ja**-grenen en **Opret hændelse**-blok med:
    - Titel: `CI build failed: {{CIWebhook.Request Body.service}}`
    - Beskrivelse: `See {{CIWebhook.Request Body.url}} for the logs.`
 
@@ -90,7 +90,7 @@ Hvis `LookupOrder` fejler, udløses dens **error**-output i stedet for **success
 
 - **Omdøbning af en blok ødelægger referencer.** Hvis du omdøber en blok, så opdatér hvert sted, den bruges. I kørselsloggen dukker en uløst reference op som den bogstavelige tekst `{{BlockName.field}}`.
 - **Variabelnavne er case-sensitive.** `{{variable.MyKey}}` og `{{variable.mykey}}` er forskellige.
-- **Manglende felter bliver til tomme.** At referere et felt, der ikke findes, giver dig en tom streng, ikke en fejl. Praktisk — men det kan skjule bugs. Brug en **Conditions**-blok til at tjekke vigtige felter, før du fortsætter.
+- **Manglende felter bliver til tomme.** At referere et felt, der ikke findes, giver dig en tom streng, ikke en fejl. Praktisk — men det kan skjule bugs. Brug en **Betingelser**-blok til at tjekke vigtige felter, før du fortsætter.
 
 ## Læs videre
 

@@ -21,17 +21,17 @@ OneUptime Incident → On Create  ──►  Telegram component  ──►  mess
 
 ## 步骤 3——存储机密
 
-1. 在 OneUptime 中，前往 **Workflows → Global Variables → Create**。
+1. 在 OneUptime 中，前往 **工作流 → 全局变量 → 创建**。
 2. 创建 `TELEGRAM_BOT_TOKEN`（机密）和 `TELEGRAM_CHAT_ID`。
 
 ## 步骤 4——构建工作流
 
-1. 打开 **Workflows → Create Workflow**，命名为 `Incidents → Telegram`，并打开 **Builder**。
-2. 添加 **Incident** 触发器，设置为 **On Create**。重命名为 `Incident`。
+1. 打开 **工作流 → 创建工作流**，命名为 `Incidents → Telegram`，并打开 **生成器**。
+2. 添加 **事件** 触发器，设置为 **On Create**。重命名为 `Incident`。
 3. 添加连接到触发器的 **Telegram** 组件：
    - **Bot token**：`{{variable.TELEGRAM_BOT_TOKEN}}`
    - **Chat ID**：`{{variable.TELEGRAM_CHAT_ID}}`
-   - **Message**：`🔴 New incident: {{Incident.title}}\n{{Incident.description}}`
+   - **消息**：`🔴 New incident: {{Incident.title}}\n{{Incident.description}}`
 4. **保存**，启用，并创建一个测试事件。消息会出现在你的聊天中。
 
 ## 替代方案：API 组件
@@ -46,7 +46,7 @@ OneUptime Incident → On Create  ──►  Telegram component  ──►  mess
 ## 提示
 
 - 机器人只能在被添加到群组后才能看到消息，且**隐私模式**须允许它——如果 `getUpdates` 返回空，请先给机器人发一条消息，或通过 BotFather 关闭隐私模式。
-- 使用 **Conditions** 在发送前按严重程度过滤。
+- 使用 **条件** 在发送前按严重程度过滤。
 - 在 API 正文中添加 `"parse_mode": "Markdown"`（或使用组件的格式功能）以支持粗体和链接。
 
 ## 接下来读什么

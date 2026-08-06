@@ -85,19 +85,19 @@ Poiché si ospita OneUptime autonomamente, sarà necessario configurare il propr
 ## Fase 2: Configurare la Config Chiamata/SMS in OneUptime
 
 1. Accedere al Dashboard di OneUptime
-2. Accedere a **Impostazioni Progetto** > **Notifiche** > **Impostazioni notifiche**
+2. Accedere a **Impostazioni del progetto** > **Notifiche** > **Impostazioni notifiche**
 3. Fare clic su **Crea Config Chiamata/SMS Personalizzata**
 4. Compilare i seguenti campi:
    - **Nome**: Un nome descrittivo (ad es. "Config Twilio Produzione")
    - **Descrizione**: Descrizione opzionale
    - **Twilio Account SID**: Il proprio Twilio Account SID (inizia con `AC`)
    - **Twilio Auth Token**: Il proprio Twilio Auth Token
-   - **Numero Telefono Primario Twilio**: Un numero di telefono dal proprio account Twilio per le chiamate in uscita
+   - **Numero di telefono principale Twilio**: Un numero di telefono dal proprio account Twilio per le chiamate in uscita
 5. Fare clic su **Salva**
 
 ## Fase 3: Creare una Policy di Chiamata In Entrata
 
-1. Accedere a **Turno Di Guardia** > **Policy Chiamata In Entrata**
+1. Accedere a **Reperibilità** > **Policy chiamate in entrata**
 2. Fare clic su **Crea Policy Chiamata In Entrata**
 3. Compilare i seguenti campi:
    - **Nome**: Un nome descrittivo (ad es. "Hotline Supporto")
@@ -119,7 +119,7 @@ Esistono due opzioni per configurare un numero di telefono:
 
 Se si hanno già numeri di telefono nel proprio account Twilio:
 
-1. Nella scheda **Numero Telefono**, fare clic su **Usa Numero Esistente**
+1. Nella scheda **Numero di telefono**, fare clic su **Usa Numero Esistente**
 2. OneUptime recupererà tutti i numeri di telefono dall'account Twilio
 3. Selezionare il numero di telefono da usare
 4. Fare clic su **Usa Questo** per assegnarlo alla policy
@@ -130,7 +130,7 @@ Se si hanno già numeri di telefono nel proprio account Twilio:
 
 Per acquistare un nuovo numero di telefono direttamente da OneUptime:
 
-1. Nella scheda **Numero Telefono**, fare clic su **Acquista Nuovo Numero**
+1. Nella scheda **Numero di telefono**, fare clic su **Acquista Nuovo Numero**
 2. Selezionare un **Paese** dal menu a discesa
 3. Inserire opzionalmente un **Prefisso** (ad es. 02 per Milano)
 4. Inserire opzionalmente le cifre che il numero deve **Contenere**
@@ -157,12 +157,12 @@ flowchart LR
 Le regole di escalation determinano come vengono instradate le chiamate:
 
 1. Aprire la Policy di Chiamata In Entrata
-2. Accedere alla scheda **Regole Escalation**
+2. Accedere alla scheda **Regole di escalation**
 3. Fare clic su **Aggiungi Regola Escalation**
 4. Configurare la regola:
    - **Ordine**: L'ordine di priorità (i numeri più bassi vengono provati prima)
-   - **Escalation Dopo (secondi)**: Quanto tempo attendere prima di eseguire l'escalation
-   - **Pianificazione Di Guardia**: Selezionare una pianificazione per instradare a chi è di guardia
+   - **Escala dopo (secondi)**: Quanto tempo attendere prima di eseguire l'escalation
+   - **Pianificazione di reperibilità**: Selezionare una pianificazione per instradare a chi è di guardia
    - **Team**: Selezionare team specifici
    - **Utenti**: Selezionare utenti specifici
 5. Aggiungere ulteriori regole di escalation secondo necessità
@@ -191,9 +191,9 @@ Personalizzare i messaggi che i chiamanti sentono:
 1. Aprire la Policy di Chiamata In Entrata
 2. Accedere a **Impostazioni**
 3. Configurare:
-   - **Messaggio di Benvenuto**: Riprodotto quando la chiamata viene risposta
-   - **Messaggio Nessuna Risposta**: Riprodotto quando tutte le regole di escalation falliscono
-   - **Messaggio Nessuno Disponibile**: Riprodotto quando nessuno è di guardia
+   - **Messaggio di benvenuto**: Riprodotto quando la chiamata viene risposta
+   - **Messaggio di mancata risposta**: Riprodotto quando tutte le regole di escalation falliscono
+   - **Messaggio di nessuno disponibile**: Riprodotto quando nessuno è di guardia
 
 ## Opzioni di Configurazione
 
@@ -201,9 +201,9 @@ Personalizzare i messaggi che i chiamanti sentono:
 
 | Impostazione                      | Descrizione                                                | Predefinito                                                                  |
 | --------------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| Messaggio di Benvenuto            | Messaggio TTS riprodotto quando la chiamata viene risposta | "Attenda mentre la connettiamo all'ingegnere di guardia."                    |
-| Messaggio Nessuna Risposta        | Messaggio quando tutte le regole di escalation falliscono  | "Nessuno è disponibile. Si prega di riprovare più tardi."                    |
-| Messaggio Nessuno Disponibile     | Messaggio quando nessuno è di guardia                      | "Siamo spiacenti, ma nessun ingegnere di guardia è attualmente disponibile." |
+| Messaggio di Benvenuto            | Messaggio TTS riprodotto quando la chiamata viene risposta | "Attendi mentre ti mettiamo in contatto con il tecnico reperibile."          |
+| Messaggio Nessuna Risposta        | Messaggio quando tutte le regole di escalation falliscono  | "Nessuno è disponibile. Riprova più tardi."                                  |
+| Messaggio Nessuno Disponibile     | Messaggio quando nessuno è di guardia                      | "Siamo spiacenti, ma al momento non è disponibile alcun tecnico reperibile." |
 | Ripeti Policy Se Nessuno Risponde | Ricominciare dalla prima regola se tutte falliscono        | Disabilitato                                                                 |
 | Volte Ripetizione Policy          | Numero massimo di tentativi di ripetizione                 | 1                                                                            |
 
@@ -221,9 +221,9 @@ Personalizzare i messaggi che i chiamanti sentono:
 
 Per visualizzare la cronologia delle chiamate in entrata:
 
-1. Accedere a **Turno Di Guardia** > **Policy Chiamata In Entrata**
+1. Accedere a **Reperibilità** > **Policy chiamate in entrata**
 2. Fare clic sulla propria policy
-3. Accedere alla scheda **Log Chiamate**
+3. Accedere alla scheda **Registri chiamate**
 
 I log mostrano:
 
@@ -237,7 +237,7 @@ I log mostrano:
 
 Affinché gli utenti possano ricevere chiamate in entrata, devono avere un numero di telefono verificato:
 
-1. Gli utenti accedono a **Impostazioni Utente** > **Metodi di Notifica**
+1. Gli utenti accedono a **Impostazioni utente** > **Metodi di notifica**
 2. Aggiungono un numero di telefono sotto **Numeri Chiamata In Entrata**
 3. Verificano il numero di telefono tramite codice SMS
 
@@ -248,7 +248,7 @@ Solo gli utenti con numeri di telefono verificati possono essere chiamati attrav
 Se non si ha più bisogno di un numero di telefono:
 
 1. Aprire la Policy di Chiamata In Entrata
-2. Nella scheda **Numero Telefono**, fare clic su **Rilascia Numero**
+2. Nella scheda **Numero di telefono**, fare clic su **Rilascia numero**
 3. Confermare il rilascio
 
 > **Attenzione**: I numeri rilasciati vengono restituiti a Twilio e potrebbero non essere disponibili per il riacquisto.

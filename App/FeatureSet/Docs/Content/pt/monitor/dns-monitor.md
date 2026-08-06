@@ -14,8 +14,8 @@ Os monitores de DNS consultam servidores DNS para tipos de registro específicos
 
 ## Criando um Monitor de DNS
 
-1. Vá para **Monitors** no Painel do OneUptime
-2. Clique em **Create Monitor**
+1. Vá para **Monitores** no Painel do OneUptime
+2. Clique em **Criar monitor**
 3. Selecione **DNS** como o tipo de monitor
 4. Insira o nome do domínio e o tipo de registro para consultar
 5. Configure os critérios de monitoramento conforme necessário
@@ -92,21 +92,21 @@ Para **DNS Record Value**:
 #### Verificar se o DNS está resolvendo
 
 - **Check On**: DNS Is Online
-- **Filter Type**: True
+- **Tipo de filtro**: True
 
 #### Verificar se o registro A aponta para o IP correto
 
 - **Check On**: DNS Record Value
-- **Filter Type**: Equal To
-- **Value**: `93.184.216.34`
+- **Tipo de filtro**: Equal To
+- **Valor**: `93.184.216.34`
 
 #### Alertar se a resposta DNS for lenta
 
 - **Check On**: DNS Response Time (in ms)
-- **Filter Type**: Greater Than
-- **Value**: 500
+- **Tipo de filtro**: Greater Than
+- **Valor**: 500
 
 #### Verificar se o DNSSEC é válido
 
 - **Check On**: DNSSEC Is Valid
-- **Filter Type**: True
+- **Tipo de filtro**: True

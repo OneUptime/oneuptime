@@ -4,7 +4,7 @@ OneUptime stöder e-postsändning via anpassade SMTP-servrar med tre autentiseri
 
 - **Användarnamn och lösenord** – Traditionell SMTP-autentisering
 - **OAuth 2.0** – Modern autentisering för Microsoft 365 och Google Workspace
-- **Ingen** – För reläservrar som inte kräver autentisering
+- **Inga** – För reläservrar som inte kräver autentisering
 
 Den här guiden beskriver hur du konfigurerar OAuth 2.0-autentisering för Microsoft 365 och Google Workspace.
 
@@ -29,7 +29,7 @@ När du konfigurerar SMTP med OAuth-autentisering i OneUptime behöver du:
 | **Klient-ID**            | Program/Klient-ID från din OAuth-leverantör (för Google: tjänstkontots e-post)      |
 | **Klienthemlighet**      | Klienthemligheten från din OAuth-leverantör (för Google: privat nyckel)             |
 | **Token-URL**            | OAuth-tokens slutpunkts-URL                                                         |
-| **Scope**                | Obligatoriska OAuth-scope(n) för SMTP-åtkomst                                       |
+| **Omfattning**           | Obligatoriska OAuth-scope(n) för SMTP-åtkomst                                       |
 
 ---
 
@@ -230,7 +230,7 @@ I OneUptime, skapa eller redigera en SMTP-konfiguration med dessa inställningar
 
 ### Allmänt
 
-- **Testa din konfiguration**: Använd knappen "Skicka testmail" i OneUptime för att verifiera din konfiguration
+- **Testa din konfiguration**: Använd knappen "Skicka test-e-post" i OneUptime för att verifiera din konfiguration
 - **Kontrollera loggar**: Granska OneUptime-loggar för detaljerade felmeddelanden
 - **Token-caching**: OneUptime cachar OAuth-token och uppdaterar dem automatiskt innan de löper ut
 

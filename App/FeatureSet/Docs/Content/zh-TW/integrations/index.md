@@ -57,7 +57,7 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 
 絕對不要將 API 金鑰或權杖直接貼進區塊中。請改用以下方式：
 
-1. 前往 **Workflows → Global Variables**。
+1. 前往 **工作流程 → 全域變數**。
 2. 建立一個變數——例如 `JIRA_AUTH`——並開啟 **Is Secret**。
 3. 在任何地方以 `{{variable.JIRA_AUTH}}` 引用它。
 

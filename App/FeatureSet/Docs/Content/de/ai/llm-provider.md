@@ -141,7 +141,7 @@ Model Name: meta-llama/Llama-3.1-8B-Instruct
 API Key: (leave blank)
 ```
 
-> Tipp: Verwenden Sie nach dem Speichern die Schaltfläche **Test** beim Anbieter, um zu prüfen, ob Verbindung, Modellname und Basis-URL korrekt sind.
+> Tipp: Verwenden Sie nach dem Speichern die Schaltfläche **Testen** beim Anbieter, um zu prüfen, ob Verbindung, Modellname und Basis-URL korrekt sind.
 
 ### Selbst gehostetes vLLM auf Kubernetes (Helm)
 

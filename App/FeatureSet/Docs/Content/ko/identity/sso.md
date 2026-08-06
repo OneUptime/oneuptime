@@ -22,7 +22,7 @@ SSO 통합은 다음과 같은 이점을 제공합니다:
 
    - **SSO 생성**을 클릭합니다
    - SSO 구성의 **이름**을 입력합니다 (예: "Keycloak SAML" 또는 "Okta SAML")
-   - ID 공급자의 **로그온 URL**을 입력합니다
+   - ID 공급자의 **로그인 URL**을 입력합니다
    - ID 공급자의 **발급자** (엔티티 ID)를 입력합니다
    - ID 공급자의 **공개 인증서**를 붙여 넣습니다
    - **서명 알고리즘**을 선택합니다 (예: `RSA-SHA-256`)
@@ -49,7 +49,7 @@ Keycloak은 널리 사용되는 오픈 소스 ID 및 액세스 관리 솔루션�
 2. **프로젝트 설정** > **보안** > **SSO**로 이동합니다
 3. **SSO 생성**을 클릭하고 다음을 입력합니다:
    - **이름**: 설명적인 이름 (예: `my-project-oneuptime`)
-   - **로그온 URL**: `https://<your-keycloak-domain>/auth/realms/<your-realm>/protocol/saml`
+   - **로그인 URL**: `https://<your-keycloak-domain>/auth/realms/<your-realm>/protocol/saml`
    - **발급자**: `https://<your-keycloak-domain>/auth/realms/<your-realm>`
    - **인증서**: 아래 [2단계](#2단계-keycloak-인증서-가져오기)를 참조하십시오
    - **서명 알고리즘**: `RSA-SHA-256`
@@ -116,7 +116,7 @@ Microsoft Entra ID는 Microsoft의 클라우드 기반 ID 및 액세스 관리 �
 2. **프로젝트 설정** > **보안** > **SSO**로 이동합니다
 3. **SSO 생성**을 클릭하고 다음을 입력합니다:
    - **이름**: 설명적인 이름 (예: `Azure AD SAML`)
-   - **로그온 URL**: [3단계](#3단계-entra-id에서-saml-sso-구성)에서 Entra ID로부터 가져옵니다
+   - **로그인 URL**: [3단계](#3단계-entra-id에서-saml-sso-구성)에서 Entra ID로부터 가져옵니다
    - **발급자**: [3단계](#3단계-entra-id에서-saml-sso-구성)에서 Entra ID로부터 가져옵니다
    - **인증서**: [3단계](#3단계-entra-id에서-saml-sso-구성)에서 Entra ID로부터 가져옵니다
    - **서명 알고리즘**: `RSA-SHA-256`
@@ -145,7 +145,7 @@ Microsoft Entra ID는 Microsoft의 클라우드 기반 ID 및 액세스 관리 �
    - **인증서 (Base64)** 다운로드
    - 다운로드된 인증서 파일을 텍스트 편집기로 열고 내용 복사
 6. **OneUptime 설정** 섹션에서 다음을 복사합니다:
-   - **로그인 URL** — OneUptime의 **로그온 URL**로 붙여 넣기
+   - **로그인 URL** — OneUptime의 **로그인 URL**로 붙여 넣기
    - **Azure AD 식별자** — OneUptime의 **발급자**로 붙여 넣기
 7. OneUptime으로 돌아가 인증서와 URL을 붙여 넣고 저장합니다
 
@@ -201,7 +201,7 @@ Okta는 강력한 SAML SSO 기능을 제공하는 널리 사용되는 ID 플랫�
 2. **프로젝트 설정** > **보안** > **SSO**로 이동합니다
 3. **SSO 생성**을 클릭하고 다음을 입력합니다:
    - **이름**: 설명적인 이름 (예: `Okta SAML`)
-   - **로그온 URL**: [3단계](#3단계-okta-saml-메타데이터를-oneuptime에-복사)에서 Okta로부터 가져옵니다
+   - **로그인 URL**: [3단계](#3단계-okta-saml-메타데이터를-oneuptime에-복사)에서 Okta로부터 가져옵니다
    - **발급자**: [3단계](#3단계-okta-saml-메타데이터를-oneuptime에-복사)에서 Okta로부터 가져옵니다
    - **인증서**: [3단계](#3단계-okta-saml-메타데이터를-oneuptime에-복사)에서 Okta로부터 가져옵니다
    - **서명 알고리즘**: `RSA-SHA-256`
@@ -227,7 +227,7 @@ Okta는 강력한 SAML SSO 기능을 제공하는 널리 사용되는 ID 플랫�
 1. Okta 애플리케이션에서 **로그온** 탭으로 이동합니다
 2. **SAML 서명 인증서** 섹션에서 활성 인증서를 찾고 **작업** > **IdP 메타데이터 보기**를 클릭합니다
 3. 메타데이터 XML 또는 **로그온** 탭 세부 정보에서:
-   - **로그온 URL** (Identity Provider Single Sign-On URL이라고도 함)을 복사하여 OneUptime의 **로그온 URL**로 붙여 넣기
+   - **로그온 URL** (Identity Provider Single Sign-On URL이라고도 함)을 복사하여 OneUptime의 **로그인 URL**로 붙여 넣기
    - **발급자** (Identity Provider Issuer라고도 함)를 복사하여 OneUptime의 **발급자**로 붙여 넣기
 4. 서명 인증서 다운로드:
    - **SAML 서명 인증서** 섹션에서 활성 인증서에 대해 **작업** > **인증서 다운로드**를 클릭합니다
@@ -282,7 +282,7 @@ OneUptime의 SSO 구현은 SAML 2.0 프로토콜을 사용하며 호환 가능�
    - **엔티티 ID / 대상 URI**: OneUptime SSO 구성에서
    - **이름 ID 형식**: 이메일 주소
 3. ID 공급자에서 다음을 OneUptime에 복사합니다:
-   - **로그온 URL** (SSO 엔드포인트)
+   - **로그인 URL** (SSO 엔드포인트)
    - **발급자** (IdP의 엔티티 ID)
    - **공개 인증서** (X.509 서명 인증서)
 4. **서명 알고리즘**을 `RSA-SHA-256`으로, **다이제스트 알고리즘**을 `SHA256`으로 설정합니다

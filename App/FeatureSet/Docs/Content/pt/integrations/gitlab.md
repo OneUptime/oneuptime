@@ -2,7 +2,7 @@
 
 Abra um issue no [GitLab](https://gitlab.com) automaticamente quando um incidente do OneUptime for criado — para que o acompanhamento de engenharia fique no projeto que possui o serviço afetado.
 
-Esta integração é de **saída**: o OneUptime chama a [REST API do GitLab](https://docs.gitlab.com/ee/api/issues.html). Ela usa um **[Workflow](/docs/workflows/index)** do OneUptime com um gatilho **Incident → On Create** e um **componente API**. Funciona da mesma forma no GitLab.com e no GitLab auto-gerenciado.
+Esta integração é de **saída**: o OneUptime chama a [REST API do GitLab](https://docs.gitlab.com/ee/api/issues.html). Ela usa um **[Workflow](/docs/workflows/index)** do OneUptime com um gatilho **Incidente → On Create** e um **componente API**. Funciona da mesma forma no GitLab.com e no GitLab auto-gerenciado.
 
 ```text
 OneUptime Incident → On Create  ──►  API component (POST /projects/{id}/issues)  ──►  GitLab issue
@@ -16,13 +16,13 @@ OneUptime Incident → On Create  ──►  API component (POST /projects/{id}/
 
 ## Passo 1 — Armazene o token
 
-1. Vá em **Workflows → Global Variables → Create**.
+1. Vá em **Fluxos de trabalho → Variáveis globais → Criar**.
 2. Nomeie como `GITLAB_TOKEN`, cole o token e ative **Is Secret**.
 
 ## Passo 2 — Construa o workflow
 
-1. Abra **Workflows → Create Workflow**, nomeie-o `Incidents → GitLab Issues` e abra o **Builder**.
-2. Adicione um gatilho **Incident** definido como **On Create**. Renomeie-o para `Incident`.
+1. Abra **Fluxos de trabalho → Criar fluxo de trabalho**, nomeie-o `Incidents → GitLab Issues` e abra o **Construtor**.
+2. Adicione um gatilho **Incidente** definido como **On Create**. Renomeie-o para `Incident`.
 3. Adicione um bloco **API** conectado ao gatilho:
 
    - **Method**: `POST`
@@ -44,7 +44,7 @@ OneUptime Incident → On Create  ──►  API component (POST /projects/{id}/
      }
      ```
 
-4. **Salve**, ative e crie um incidente de teste. Um `201 Created` nos logs do workflow significa que o issue foi criado; o corpo da resposta contém seu `iid` e `web_url`.
+4. **Salvar**, ative e crie um incidente de teste. Um `201 Created` nos logs do workflow significa que o issue foi criado; o corpo da resposta contém seu `iid` e `web_url`.
 
 ## Dicas
 

@@ -2,7 +2,7 @@
 
 जब भी OneUptime incident बनाया जाए तो स्वचालित रूप से एक [ServiceNow](https://www.servicenow.com) incident खोलें — ताकि ITSM और monitoring synchronized रहें।
 
-यह इंटीग्रेशन **आउटबाउंड** है: OneUptime ServiceNow [Table API](https://docs.servicenow.com/bundle/utah-application-development/page/integrate/inbound-rest/concept/c_TableAPI.html) को कॉल करता है। यह **Incident → On Create** trigger और **API component** के साथ OneUptime **[वर्कफ़्लो](/docs/workflows/index)** का उपयोग करता है।
+यह इंटीग्रेशन **आउटबाउंड** है: OneUptime ServiceNow [Table API](https://docs.servicenow.com/bundle/utah-application-development/page/integrate/inbound-rest/concept/c_TableAPI.html) को कॉल करता है। यह **घटना → On Create** trigger और **API component** के साथ OneUptime **[वर्कफ़्लो](/docs/workflows/index)** का उपयोग करता है।
 
 ```text
 OneUptime Incident → On Create  ──►  API component (POST /api/now/table/incident)  ──►  ServiceNow incident
@@ -24,12 +24,12 @@ ServiceNow का Table API **Basic auth** accept करता है।
    printf '%s' 'integration_user:password' | base64
    ```
 
-2. OneUptime में, **Workflows → Global Variables → Create** पर जाएँ, इसे `SERVICENOW_AUTH` नाम दें, base64 string पेस्ट करें, और **Is Secret** चालू करें।
+2. OneUptime में, **वर्कफ़्लो → ग्लोबल वेरिएबल → बनाएँ** पर जाएँ, इसे `SERVICENOW_AUTH` नाम दें, base64 string पेस्ट करें, और **Is Secret** चालू करें।
 
 ## चरण 2 — वर्कफ़्लो बनाएँ
 
-1. **Workflows → Create Workflow** खोलें, इसे `Incidents → ServiceNow` नाम दें, और **Builder** खोलें।
-2. **On Create** पर सेट एक **Incident** trigger जोड़ें। इसे `Incident` नाम दें।
+1. **वर्कफ़्लो → वर्कफ़्लो बनाएं** खोलें, इसे `Incidents → ServiceNow` नाम दें, और **बिल्डर** खोलें।
+2. **On Create** पर सेट एक **घटना** trigger जोड़ें। इसे `Incident` नाम दें।
 3. trigger से connected एक **API** ब्लॉक जोड़ें:
 
    - **Method**: `POST`
@@ -60,7 +60,7 @@ ServiceNow का Table API **Basic auth** accept करता है।
 
 ## चरण 3 — OneUptime resolve पर resolve करें (वैकल्पिक)
 
-1. **Incident → On Update** trigger और एक **Conditions** ब्लॉक के साथ एक **दूसरा** वर्कफ़्लो बनाएँ जो जाँचे कि incident resolved है।
+1. **घटना → On Update** trigger और एक **शर्तें** ब्लॉक के साथ एक **दूसरा** वर्कफ़्लो बनाएँ जो जाँचे कि incident resolved है।
 2. सही ServiceNow record update करने के लिए आपको उसका `sys_id` चाहिए। या तो चरण 2 में OneUptime incident पर store करें (`{{CreateRecord.response-body.result.sys_id}}` पढ़ें और **Update Incident** के साथ label में लिखें), या `/api/now/table/incident?sysparm_query=correlation_id=oneuptime-{{Incident._id}}` पर `GET` से पहले record खोजें।
 3. एक **API** ब्लॉक जोड़ें: **Method** `PATCH`, **URL** `https://your-instance.service-now.com/api/now/table/incident/<sys_id>`, body `{ "state": "6", "close_code": "Resolved by monitoring", "close_notes": "Resolved in OneUptime" }` (`state` `6` = default ITIL workflow में Resolved)।
 

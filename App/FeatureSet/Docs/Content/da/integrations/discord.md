@@ -15,18 +15,18 @@ OneUptime Incident → On Create  ──►  Discord component  ──►  messa
 
 ## Trin 2 — Gem webhook-URL'en (valgfrit men anbefalet)
 
-1. I OneUptime, gå til **Workflows → Global Variables → Create**.
+1. I OneUptime, gå til **Arbejdsgange → Globale variabler → Opret**.
 2. Navngiv den `DISCORD_WEBHOOK_URL`, indsæt URL'en, og slå **Is Secret** til.
 
 At holde den i en variabel betyder, at du kan genbruge den på tværs af workflows og rotere den ét sted.
 
 ## Trin 3 — Byg workflowet
 
-1. Åbn **Workflows → Create Workflow**, navngiv det `Incidents → Discord`, og åbn **Builder**.
-2. Tilføj en **Incident**-trigger sat til **On Create**. Omdøb den til `Incident`.
+1. Åbn **Arbejdsgange → Opret arbejdsgang**, navngiv det `Incidents → Discord`, og åbn **Bygger**.
+2. Tilføj en **Hændelse**-trigger sat til **On Create**. Omdøb den til `Incident`.
 3. Tilføj en **Discord**-komponent forbundet til triggeren:
-   - **Webhook URL**: `{{variable.DISCORD_WEBHOOK_URL}}` (eller indsæt den direkte).
-   - **Message**: `🔴 New incident: {{Incident.title}}\n{{Incident.description}}`
+   - **Webhook-URL**: `{{variable.DISCORD_WEBHOOK_URL}}` (eller indsæt den direkte).
+   - **Besked**: `🔴 New incident: {{Incident.title}}\n{{Incident.description}}`
 4. **Gem**, aktivér, og opret en testhændelse. Beskeden vises i din kanal.
 
 ## Alternativ: API-komponenten
@@ -42,8 +42,8 @@ Dette er praktisk, hvis du ønsker Discords rigere [embeds](https://discord.com/
 
 ## Tips
 
-- Brug **Conditions** til kun at poste for bestemte alvorligheder — forgren på `{{Incident.incidentSeverity.name}}` før Discord-blokken.
-- Tilføj flere workflows på **Incident → On Update** for at poste bekræftelser og løsninger til den samme kanal.
+- Brug **Betingelser** til kun at poste for bestemte alvorligheder — forgren på `{{Incident.incidentSeverity.name}}` før Discord-blokken.
+- Tilføj flere workflows på **Hændelse → On Update** for at poste bekræftelser og løsninger til den samme kanal.
 
 ## Læs videre
 

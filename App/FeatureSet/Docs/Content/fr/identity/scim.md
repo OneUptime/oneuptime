@@ -24,8 +24,8 @@ Le SCIM de projet permet aux fournisseurs d'identité de gérer les membres d'é
 
 2. **Configurer les paramètres SCIM**
 
-   - Activez **Provisionnement automatique des utilisateurs** pour ajouter automatiquement les utilisateurs lorsqu'ils sont affectés dans votre IdP
-   - Activez **Déprovisionnement automatique des utilisateurs** pour supprimer automatiquement les utilisateurs lorsqu'ils sont désaffectés dans votre IdP
+   - Activez **Provisionner automatiquement les utilisateurs** pour ajouter automatiquement les utilisateurs lorsqu'ils sont affectés dans votre IdP
+   - Activez **Déprovisionner automatiquement les utilisateurs** pour supprimer automatiquement les utilisateurs lorsqu'ils sont désaffectés dans votre IdP
    - Sélectionnez les **Équipes par défaut** auxquelles les nouveaux utilisateurs doivent être ajoutés
    - Copiez l'**URL de base SCIM** et le **Jeton Bearer** pour la configuration de votre IdP
 
@@ -69,12 +69,12 @@ Le SCIM de page de statut permet aux fournisseurs d'identité de gérer les abon
 1. **Accéder aux paramètres de la page de statut**
 
    - Accédez à votre page de statut OneUptime
-   - Naviguez vers **Paramètres de la page de statut** > **Sécurité** > **SCIM**
+   - Naviguez vers **Page de statut** > **Sécurité** > **SCIM**
 
 2. **Configurer les paramètres SCIM**
 
-   - Activez **Provisionnement automatique des utilisateurs** pour ajouter automatiquement les abonnés lorsqu'ils sont affectés dans votre IdP
-   - Activez **Déprovisionnement automatique des utilisateurs** pour supprimer automatiquement les abonnés lorsqu'ils sont désaffectés dans votre IdP
+   - Activez **Provisionner automatiquement les utilisateurs** pour ajouter automatiquement les abonnés lorsqu'ils sont affectés dans votre IdP
+   - Activez **Déprovisionner automatiquement les utilisateurs** pour supprimer automatiquement les abonnés lorsqu'ils sont désaffectés dans votre IdP
    - Copiez l'**URL de base SCIM** et le **Jeton Bearer** pour la configuration de votre IdP
 
 3. **Configurer votre fournisseur d'identité**
@@ -121,10 +121,10 @@ Microsoft Entra ID fournit une gestion des identités de niveau entreprise avec 
 3. Cliquez sur **Créer une configuration SCIM**
 4. Saisissez un nom convivial (par ex., « Provisionnement Microsoft Entra ID »)
 5. Configurez les options suivantes :
-   - **Provisionnement automatique des utilisateurs** : Activez pour créer automatiquement les utilisateurs
-   - **Déprovisionnement automatique des utilisateurs** : Activez pour supprimer automatiquement les utilisateurs
+   - **Provisionner automatiquement les utilisateurs** : Activez pour créer automatiquement les utilisateurs
+   - **Déprovisionner automatiquement les utilisateurs** : Activez pour supprimer automatiquement les utilisateurs
    - **Équipes par défaut** : Sélectionnez les équipes auxquelles les nouveaux utilisateurs doivent être ajoutés
-   - **Activer la synchronisation des groupes** : Activez si vous souhaitez gérer l'appartenance aux équipes via les groupes Entra ID
+   - **Activer les groupes Push** : Activez si vous souhaitez gérer l'appartenance aux équipes via les groupes Entra ID
 6. Enregistrez la configuration
 7. Copiez l'**URL de base SCIM** et le **Jeton Bearer** — vous en aurez besoin pour Entra ID
 
@@ -169,7 +169,7 @@ Microsoft Entra ID fournit une gestion des identités de niveau entreprise avec 
 
 #### Étape 5 : Configurer le provisionnement des groupes (facultatif)
 
-Si vous avez activé la **Synchronisation des groupes** dans OneUptime :
+Si vous avez activé les **Groupes Push** dans OneUptime :
 
 1. Revenez à **Mappages**
 2. Cliquez sur **Provisionner les groupes Azure Active Directory**
@@ -223,10 +223,10 @@ Okta fournit une gestion des identités flexible avec un excellent support SCIM.
 3. Cliquez sur **Créer une configuration SCIM**
 4. Saisissez un nom convivial (par ex., « Provisionnement Okta »)
 5. Configurez les options suivantes :
-   - **Provisionnement automatique des utilisateurs** : Activez pour créer automatiquement les utilisateurs
-   - **Déprovisionnement automatique des utilisateurs** : Activez pour supprimer automatiquement les utilisateurs
+   - **Provisionner automatiquement les utilisateurs** : Activez pour créer automatiquement les utilisateurs
+   - **Déprovisionner automatiquement les utilisateurs** : Activez pour supprimer automatiquement les utilisateurs
    - **Équipes par défaut** : Sélectionnez les équipes auxquelles les nouveaux utilisateurs doivent être ajoutés
-   - **Activer la synchronisation des groupes** : Activez si vous souhaitez gérer l'appartenance aux équipes via les groupes Okta
+   - **Activer les groupes Push** : Activez si vous souhaitez gérer l'appartenance aux équipes via les groupes Okta
 6. Enregistrez la configuration
 7. Copiez l'**URL de base SCIM** et le **Jeton Bearer** — vous en aurez besoin pour Okta
 
@@ -299,7 +299,7 @@ Okta fournit une gestion des identités flexible avec un excellent support SCIM.
 
 #### Étape 7 : Configurer la synchronisation des groupes (facultatif)
 
-Si vous avez activé la **Synchronisation des groupes** dans OneUptime :
+Si vous avez activé les **Groupes Push** dans OneUptime :
 
 1. Accédez à l'onglet **Synchronisation des groupes**
 2. Cliquez sur **+ Synchroniser des groupes**
@@ -408,7 +408,7 @@ Lorsque SCIM tente de créer un utilisateur qui existe déjà (correspondance pa
 ### Quelle est la différence entre les équipes par défaut et la synchronisation des groupes ?
 
 - **Équipes par défaut** : Tous les utilisateurs provisionnés via SCIM sont ajoutés aux mêmes équipes prédéfinies
-- **Synchronisation des groupes** : L'appartenance aux équipes est gérée par votre fournisseur d'identité, permettant à différents utilisateurs d'appartenir à différentes équipes selon l'appartenance aux groupes IdP
+- **Groupes Push** : L'appartenance aux équipes est gérée par votre fournisseur d'identité, permettant à différents utilisateurs d'appartenir à différentes équipes selon l'appartenance aux groupes IdP
 
 ### À quelle fréquence la synchronisation du provisionnement se produit-elle ?
 

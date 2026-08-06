@@ -20,12 +20,12 @@ El SCIM de proyectos permite que los proveedores de identidad gestionen los miem
 1. **Navegar a la configuración del proyecto**
 
    - Ve a tu proyecto de OneUptime
-   - Navega a **Configuración del proyecto** > **Seguridad** > **SCIM**
+   - Navega a **Ajustes del proyecto** > **Seguridad** > **SCIM**
 
 2. **Configurar los ajustes SCIM**
 
-   - Habilita **Aprovisionamiento automático de usuarios** para agregar automáticamente usuarios cuando se les asigna en tu IdP
-   - Habilita **Desaprovisionamiento automático de usuarios** para eliminar automáticamente usuarios cuando se les desasigna en tu IdP
+   - Habilita **Aprovisionar usuarios automáticamente** para agregar automáticamente usuarios cuando se les asigna en tu IdP
+   - Habilita **Desaprovisionar usuarios automáticamente** para eliminar automáticamente usuarios cuando se les desasigna en tu IdP
    - Selecciona los **Equipos predeterminados** a los que se agregarán los nuevos usuarios
    - Copia la **URL base de SCIM** y el **Token de portador** para la configuración de tu IdP
 
@@ -69,12 +69,12 @@ El SCIM de páginas de estado permite que los proveedores de identidad gestionen
 1. **Navegar a la configuración de la página de estado**
 
    - Ve a tu página de estado de OneUptime
-   - Navega a **Configuración de página de estado** > **Seguridad** > **SCIM**
+   - Navega a **Página de estado** > **Seguridad** > **SCIM**
 
 2. **Configurar los ajustes SCIM**
 
-   - Habilita **Aprovisionamiento automático de usuarios** para agregar suscriptores automáticamente cuando se les asigna en tu IdP
-   - Habilita **Desaprovisionamiento automático de usuarios** para eliminar suscriptores automáticamente cuando se les desasigna en tu IdP
+   - Habilita **Aprovisionar usuarios automáticamente** para agregar suscriptores automáticamente cuando se les asigna en tu IdP
+   - Habilita **Desaprovisionar usuarios automáticamente** para eliminar suscriptores automáticamente cuando se les desasigna en tu IdP
    - Copia la **URL base de SCIM** y el **Token de portador** para la configuración de tu IdP
 
 3. **Configurar tu proveedor de identidad**
@@ -117,14 +117,14 @@ Microsoft Entra ID proporciona gestión de identidades empresarial con sólidas 
 #### Paso 1: Obtener la configuración SCIM de OneUptime
 
 1. Inicia sesión en tu panel de OneUptime
-2. Navega a **Configuración del proyecto** > **Seguridad** > **SCIM**
+2. Navega a **Ajustes del proyecto** > **Seguridad** > **SCIM**
 3. Haz clic en **Crear configuración SCIM**
 4. Ingresa un nombre descriptivo (por ejemplo, "Aprovisionamiento de Microsoft Entra ID")
 5. Configura las siguientes opciones:
-   - **Aprovisionamiento automático de usuarios**: Habilita para crear usuarios automáticamente
-   - **Desaprovisionamiento automático de usuarios**: Habilita para eliminar usuarios automáticamente
+   - **Aprovisionar usuarios automáticamente**: Habilita para crear usuarios automáticamente
+   - **Desaprovisionar usuarios automáticamente**: Habilita para eliminar usuarios automáticamente
    - **Equipos predeterminados**: Selecciona los equipos a los que se deben agregar los nuevos usuarios
-   - **Habilitar grupos de inserción**: Habilita si deseas gestionar la membresía del equipo a través de grupos de Entra ID
+   - **Habilitar grupos push**: Habilita si deseas gestionar la membresía del equipo a través de grupos de Entra ID
 6. Guarda la configuración
 7. Copia la **URL base de SCIM** y el **Token de portador** - los necesitarás para Entra ID
 
@@ -169,7 +169,7 @@ Microsoft Entra ID proporciona gestión de identidades empresarial con sólidas 
 
 #### Paso 5: Configurar el aprovisionamiento de grupos (opcional)
 
-Si habilitaste **Grupos de inserción** en OneUptime:
+Si habilitaste **Grupos de Push** en OneUptime:
 
 1. Vuelve a **Asignaciones**
 2. Haz clic en **Aprovisionar grupos de Azure Active Directory**
@@ -219,14 +219,14 @@ Okta proporciona una gestión de identidades flexible con excelente soporte SCIM
 #### Paso 1: Obtener la configuración SCIM de OneUptime
 
 1. Inicia sesión en tu panel de OneUptime
-2. Navega a **Configuración del proyecto** > **Seguridad** > **SCIM**
+2. Navega a **Ajustes del proyecto** > **Seguridad** > **SCIM**
 3. Haz clic en **Crear configuración SCIM**
 4. Ingresa un nombre descriptivo (por ejemplo, "Aprovisionamiento de Okta")
 5. Configura las siguientes opciones:
-   - **Aprovisionamiento automático de usuarios**: Habilita para crear usuarios automáticamente
-   - **Desaprovisionamiento automático de usuarios**: Habilita para eliminar usuarios automáticamente
+   - **Aprovisionar usuarios automáticamente**: Habilita para crear usuarios automáticamente
+   - **Desaprovisionar usuarios automáticamente**: Habilita para eliminar usuarios automáticamente
    - **Equipos predeterminados**: Selecciona los equipos a los que se deben agregar los nuevos usuarios
-   - **Habilitar grupos de inserción**: Habilita si deseas gestionar la membresía del equipo a través de grupos de Okta
+   - **Habilitar grupos push**: Habilita si deseas gestionar la membresía del equipo a través de grupos de Okta
 6. Guarda la configuración
 7. Copia la **URL base de SCIM** y el **Token de portador** - los necesitarás para Okta
 
@@ -303,7 +303,7 @@ Okta proporciona una gestión de identidades flexible con excelente soporte SCIM
 
 #### Paso 7: Configurar grupos de inserción (opcional)
 
-Si habilitaste **Grupos de inserción** en OneUptime:
+Si habilitaste **Grupos de Push** en OneUptime:
 
 1. Ve a la pestaña **Grupos de inserción**
 2. Haz clic en **+ Insertar grupos**
@@ -412,7 +412,7 @@ Cuando SCIM intenta crear un usuario que ya existe (coincidiendo por correo elec
 ### ¿Cuál es la diferencia entre equipos predeterminados y grupos de inserción?
 
 - **Equipos predeterminados**: Todos los usuarios aprovisionados mediante SCIM se agregan a los mismos equipos predefinidos
-- **Grupos de inserción**: La membresía del equipo es gestionada por tu proveedor de identidad, lo que permite que diferentes usuarios estén en diferentes equipos según la membresía en grupos del IdP
+- **Grupos de Push**: La membresía del equipo es gestionada por tu proveedor de identidad, lo que permite que diferentes usuarios estén en diferentes equipos según la membresía en grupos del IdP
 
 ### ¿Con qué frecuencia ocurre la sincronización del aprovisionamiento?
 

@@ -2,7 +2,7 @@
 
 Abra um issue no [GitHub](https://github.com) automaticamente quando um incidente do OneUptime for criado — para que o acompanhamento de engenharia seja rastreado no repositório que possui o serviço afetado.
 
-Esta integração é de **saída**: o OneUptime chama a [REST API do GitHub](https://docs.github.com/en/rest/issues/issues). Ela usa um **[Workflow](/docs/workflows/index)** do OneUptime com um gatilho **Incident → On Create** e um **componente API**.
+Esta integração é de **saída**: o OneUptime chama a [REST API do GitHub](https://docs.github.com/en/rest/issues/issues). Ela usa um **[Workflow](/docs/workflows/index)** do OneUptime com um gatilho **Incidente → On Create** e um **componente API**.
 
 > **Procurando a conexão mais profunda com o GitHub?** O OneUptime também tem uma integração nativa com o **GitHub App** para conectar repositórios de código (usada pelo agente de IA e recursos de código). Ela é configurada com variáveis de ambiente, não com workflows — veja [Integração com o GitHub (auto-hospedado)](/docs/self-hosted/github-integration). Esta página é especificamente sobre _criar issues a partir de incidentes_.
 
@@ -24,13 +24,13 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 
 ## Passo 1 — Armazene o token
 
-1. Vá em **Workflows → Global Variables → Create**.
+1. Vá em **Fluxos de trabalho → Variáveis globais → Criar**.
 2. Nomeie como `GITHUB_TOKEN`, cole o token e ative **Is Secret**.
 
 ## Passo 2 — Construa o workflow
 
-1. Abra **Workflows → Create Workflow**, nomeie-o `Incidents → GitHub Issues` e abra o **Builder**.
-2. Adicione um gatilho **Incident** definido como **On Create**. Renomeie-o para `Incident`.
+1. Abra **Fluxos de trabalho → Criar fluxo de trabalho**, nomeie-o `Incidents → GitHub Issues` e abra o **Construtor**.
+2. Adicione um gatilho **Incidente** definido como **On Create**. Renomeie-o para `Incident`.
 3. Adicione um bloco **API** conectado ao gatilho:
 
    - **Method**: `POST`
@@ -54,7 +54,7 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
      }
      ```
 
-4. **Salve**, ative e crie um incidente de teste. Um `201 Created` nos logs do workflow significa que o issue foi criado; o corpo da resposta contém seu `number` e `html_url`.
+4. **Salvar**, ative e crie um incidente de teste. Um `201 Created` nos logs do workflow significa que o issue foi criado; o corpo da resposta contém seu `number` e `html_url`.
 
 ## Dicas
 

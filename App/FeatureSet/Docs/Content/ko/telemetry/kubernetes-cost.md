@@ -19,8 +19,8 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 
 - **클러스터별 Costs 페이지** (_Kubernetes → 해당 클러스터 → Costs_): 지출 추세, cpu/메모리/스토리지로 나뉜 네임스페이스별 지출, 워크로드별 지출, 유휴 지출 및 효율.
 - **프로젝트 수준 Costs 페이지** (_Kubernetes → Costs_): 프로젝트 내 모든 클러스터에 걸친 지출.
-- **Kubernetes 비용 대시보드 템플릿** (_Dashboards → Create → Kubernetes Cost Dashboard_): 노드 시간당 비용 추세, CPU/RAM 단위 비용, 퍼시스턴트 볼륨 및 로드 밸런서 지출.
-- **Metric Explorer**의 원시 비용 메트릭(`node_total_hourly_cost`, `pv_hourly_cost`, ...) — 커스텀 대시보드와 메트릭 알림에 사용할 수 있습니다.
+- **Kubernetes 비용 대시보드 템플릿** (_대시보드 → 만들기 → Kubernetes Cost Dashboard_): 노드 시간당 비용 추세, CPU/RAM 단위 비용, 퍼시스턴트 볼륨 및 로드 밸런서 지출.
+- **메트릭 탐색기**의 원시 비용 메트릭(`node_total_hourly_cost`, `pv_hourly_cost`, ...) — 커스텀 대시보드와 메트릭 알림에 사용할 수 있습니다.
 
 ## 작동 방식
 

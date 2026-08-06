@@ -14,8 +14,8 @@ Docker monitors आपके hosts के metrics और logs का उपय�
 
 ## Docker Monitor बनाना
 
-1. OneUptime Dashboard में **Monitors** पर जाएं
-2. **Create Monitor** पर क्लिक करें
+1. OneUptime Dashboard में **मॉनिटर** पर जाएं
+2. **मॉनिटर बनाएं** पर क्लिक करें
 3. monitor type के रूप में **Docker** चुनें
 4. monitor करने के लिए Docker host और resource scope चुनें
 5. metric queries और aggregation configure करें
@@ -41,9 +41,9 @@ monitor करने के लिए Docker host चुनें। Hosts क�
 evaluate करने के लिए एक या अधिक metric queries configure करें। प्रत्येक query निर्दिष्ट करती है:
 
 - **Metric name** — query करने के लिए container metric
-- **Aggregation** — metric values को कैसे aggregate करें (Avg, Sum, Max, Min)
-- **Filters** — additional attribute-based filtering (जैसे container name, image, या host से)
-- **Group By** — वैकल्पिक रूप से `resource.container.name` से group करें ताकि प्रत्येक container को स्वतंत्र रूप से evaluate किया जाए
+- **एकत्रीकरण** — metric values को कैसे aggregate करें (Avg, Sum, Max, Min)
+- **फ़िल्टर** — additional attribute-based filtering (जैसे container name, image, या host से)
+- **इसके अनुसार समूहित करें** — वैकल्पिक रूप से `resource.container.name` से group करें ताकि प्रत्येक container को स्वतंत्र रूप से evaluate किया जाए
 
 आप **formulas** भी बना सकते हैं जो mathematical expressions का उपयोग करके कई metric queries को combine करती हैं।
 
@@ -150,7 +150,7 @@ Metrics के अलावा, Docker Agent OpenTelemetry filelog receiver क�
 - `body` — container process द्वारा emit की गई raw log line
 - `time` — line के लिए Docker daemon का timestamp
 
-Logs Docker host के **Logs** tab पर और प्रत्येक container की detail page पर दिखाई देते हैं।
+Logs Docker host के **लॉग** tab पर और प्रत्येक container की detail page पर दिखाई देते हैं।
 
 ### Log Driver Requirement
 
@@ -160,7 +160,7 @@ Logs Docker host के **Logs** tab पर और प्रत्येक cont
 - **`journald`**, **`syslog`**, **`fluentd`**, **`gelf`**, **`awslogs`**, **`splunk`**, आदि — logs को remote destination पर भेजते हैं; tail करने के लिए कोई फ़ाइल नहीं।
 - **`none`** — logs पूरी तरह discard करता है।
 
-यदि उपरोक्त में से कोई भी उपयोग में है, तो आपको Docker host page पर metrics दिखाई देंगे लेकिन **Logs** tab खाली होगा (या केवल Docker Agent के अपने logs होंगे)।
+यदि उपरोक्त में से कोई भी उपयोग में है, तो आपको Docker host page पर metrics दिखाई देंगे लेकिन **लॉग** tab खाली होगा (या केवल Docker Agent के अपने logs होंगे)।
 
 **एक specific container का log driver जांचें:**
 

@@ -2,7 +2,7 @@
 
 ## Aperçu
 
-[Serilog](https://serilog.net) est la bibliothèque de journalisation structurée la plus populaire pour .NET. OneUptime ingère les journaux Serilog via le protocole OpenTelemetry (OTLP) en utilisant le sink officiel [`Serilog.Sinks.OpenTelemetry`](https://github.com/serilog/serilog-sinks-opentelemetry). Une fois configuré, chaque événement de journal que votre application écrit via Serilog est expédié vers OneUptime où il devient consultable dans **Products → Journaux**, accompagné de ses propriétés structurées, de sa gravité et de la corrélation trace/span.
+[Serilog](https://serilog.net) est la bibliothèque de journalisation structurée la plus populaire pour .NET. OneUptime ingère les journaux Serilog via le protocole OpenTelemetry (OTLP) en utilisant le sink officiel [`Serilog.Sinks.OpenTelemetry`](https://github.com/serilog/serilog-sinks-opentelemetry). Une fois configuré, chaque événement de journal que votre application écrit via Serilog est expédié vers OneUptime où il devient consultable dans **Produits → Journaux**, accompagné de ses propriétés structurées, de sa gravité et de la corrélation trace/span.
 
 Il n'y a aucun package spécifique à OneUptime à installer — le sink communique avec le même point de terminaison OTLP que OneUptime expose pour toutes les données OpenTelemetry. Cela fonctionne pour les applications console, les services de travail (worker services), les applications ASP.NET Core et tout autre programme qui s'exécute sur .NET.
 
@@ -12,13 +12,13 @@ Il n'y a aucun package spécifique à OneUptime à installer — le sink communi
 - **Créez un projet OneUptime** – Une fois que vous avez un compte, créez un projet depuis le tableau de bord OneUptime. Si vous avez besoin d'aide, contactez-nous à support@oneuptime.com.
 - **Créez un jeton d'ingestion de télémétrie** – Vous avez besoin d'un jeton pour authentifier vos journaux.
 
-Après vous être inscrit à OneUptime et avoir créé un projet, cliquez sur « Products » dans la barre de navigation, puis sur « Project Settings ».
+Après vous être inscrit à OneUptime et avoir créé un projet, cliquez sur « Produits » dans la barre de navigation, puis sur « Paramètres du projet ».
 
-Sur la page Telemetry Ingestion Key, cliquez sur « Create Ingestion Key » pour créer un jeton.
+Sur la page Telemetry Ingestion Key, cliquez sur « Créer une clé d'ingestion » pour créer un jeton.
 
 ![Create Service](/docs/static/images/TelemetryIngestionKeys.png)
 
-Une fois que vous avez créé un jeton, cliquez sur « View » pour le consulter.
+Une fois que vous avez créé un jeton, cliquez sur « Voir » pour le consulter.
 
 ![View Service](/docs/static/images/TelemetryIngestionKeyView.png)
 
@@ -197,7 +197,7 @@ Log.Information("Order {OrderId} placed by {CustomerId} for {Amount:C}",
 Log.Warning("Payment gateway slow: {LatencyMs}ms", latencyMs);
 ```
 
-Chaque propriété nommée (`OrderId`, `CustomerId`, `Amount`, `LatencyMs`) est envoyée en tant qu'attribut de journal, ce qui vous permet de les filtrer et de les rechercher dans l'explorateur **Products → Journaux**.
+Chaque propriété nommée (`OrderId`, `CustomerId`, `Amount`, `LatencyMs`) est envoyée en tant qu'attribut de journal, ce qui vous permet de les filtrer et de les rechercher dans l'explorateur **Produits → Journaux**.
 
 ## Exceptions
 
@@ -223,7 +223,7 @@ Si votre application est également instrumentée avec le SDK OpenTelemetry .NET
 ## Vérifier
 
 1. Exécutez votre application et générez quelques événements de journal.
-2. Ouvrez OneUptime, allez dans **Telemetry**, sélectionnez votre service (`my-service`) et ouvrez **Logs**.
+2. Ouvrez OneUptime, allez dans **Télémétrie**, sélectionnez votre service (`my-service`) et ouvrez **Journaux**.
 3. Vos événements Serilog devraient apparaître en quelques secondes, avec leurs propriétés structurées disponibles en tant que filtres.
 
 ## Dépannage

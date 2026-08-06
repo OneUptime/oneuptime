@@ -14,10 +14,10 @@
 
 ## 建立伺服器監控
 
-1. 前往 OneUptime 儀表板中的 **Monitors**
-2. 點擊 **Create Monitor**
+1. 前往 OneUptime 儀表板中的 **監測**
+2. 點擊 **建立監測器**
 3. 選擇 **Server / VM** 作為監控類型
-4. 系統會為此監控產生一組 **Secret Key** — 您將需要它來設定代理程式
+4. 系統會為此監控產生一組 **密鑰金鑰** — 您將需要它來設定代理程式
 5. 依照安裝指示在您的伺服器上設定代理程式
 
 ## 安裝基礎設施代理程式
@@ -84,11 +84,11 @@ sudo oneuptime-infrastructure-agent configure --secret-key=YOUR_SECRET_KEY --one
 ### CPU
 
 - **CPU Usage Percent** — 整體 CPU 使用率（以百分比表示）
-- **CPU Cores** — CPU 核心數量
+- **CPU 核心** — CPU 核心數量
 
 ### 記憶體
 
-- **Total Memory** — 可用記憶體總量
+- **記憶體總量** — 可用記憶體總量
 - **Used Memory** — 目前使用中的記憶體
 - **Free Memory** — 可用的閒置記憶體
 - **Memory Usage Percent** — 記憶體使用率（以百分比表示）
@@ -101,7 +101,7 @@ sudo oneuptime-infrastructure-agent configure --secret-key=YOUR_SECRET_KEY --one
 - **Used Disk Space** — 目前使用中的空間
 - **Free Disk Space** — 可用的閒置空間
 - **Disk Usage Percent** — 磁碟使用率（以百分比表示）
-- **Disk Path** — 磁碟的掛載路徑
+- **磁碟路徑** — 磁碟的掛載路徑
 
 ### 處理程序
 
@@ -145,32 +145,32 @@ sudo oneuptime-infrastructure-agent configure --secret-key=YOUR_SECRET_KEY --one
 #### 當代理程式停止回報時將伺服器標示為離線
 
 - **Check On**: Is Online
-- **Filter Type**: False
+- **篩選器類型**: False
 
 #### 當 CPU 使用率超過 90% 時發出警示
 
 - **Check On**: CPU Usage Percent
-- **Filter Type**: Greater Than
-- **Value**: 90
+- **篩選器類型**: Greater Than
+- **值**: 90
 
 #### 當磁碟使用率超過 85% 時發出警示
 
 - **Check On**: Disk Usage Percent
-- **Disk Path**: `/`
-- **Filter Type**: Greater Than
-- **Value**: 85
+- **磁碟路徑**: `/`
+- **篩選器類型**: Greater Than
+- **值**: 85
 
 #### 當記憶體使用率超過 80% 時發出警示
 
 - **Check On**: Memory Usage Percent
-- **Filter Type**: Greater Than
-- **Value**: 80
+- **篩選器類型**: Greater Than
+- **值**: 80
 
 #### 當某個關鍵處理程序停止執行時發出警示
 
 - **Check On**: Server Process Name
-- **Filter Type**: Is Not Executing
-- **Value**: `nginx`
+- **篩選器類型**: Is Not Executing
+- **值**: `nginx`
 
 ## 疑難排解
 

@@ -24,11 +24,11 @@ ServiceNows Table API accepterar **Basic auth**.
    printf '%s' 'integration_user:password' | base64
    ```
 
-2. Gå i OneUptime till **Workflows → Global Variables → Create**, namnge det `SERVICENOW_AUTH`, klistra in base64-strängen och slå på **Is Secret**.
+2. Gå i OneUptime till **Arbetsflöden → Globala variabler → Skapa**, namnge det `SERVICENOW_AUTH`, klistra in base64-strängen och slå på **Is Secret**.
 
 ## Steg 2 — Bygg arbetsflödet
 
-1. Öppna **Workflows → Create Workflow**, namnge det `Incidents → ServiceNow` och öppna **Builder**.
+1. Öppna **Arbetsflöden → Skapa arbetsflöde**, namnge det `Incidents → ServiceNow` och öppna **Byggare**.
 2. Lägg till en **Incident**-utlösare inställd på **On Create**. Byt namn till `Incident`.
 3. Lägg till ett **API**-block kopplat till utlösaren:
 
@@ -60,7 +60,7 @@ ServiceNows Table API accepterar **Basic auth**.
 
 ## Steg 3 — Lös vid OneUptime-lösning (valfritt)
 
-1. Skapa ett **andra** arbetsflöde med en **Incident → On Update**-utlösare och ett **Conditions**-block som kontrollerar att incidenten är löst.
+1. Skapa ett **andra** arbetsflöde med en **Incident → On Update**-utlösare och ett **Villkor**-block som kontrollerar att incidenten är löst.
 2. För att uppdatera rätt ServiceNow-post behöver du dess `sys_id`. Antingen sparar du den på OneUptime-incidenten i Steg 2 (läs `{{CreateRecord.response-body.result.sys_id}}` och skriv den till en etikett med **Update Incident**), eller slår du upp posten först med en `GET` på `/api/now/table/incident?sysparm_query=correlation_id=oneuptime-{{Incident._id}}`.
 3. Lägg till ett **API**-block: **Method** `PATCH`, **URL** `https://your-instance.service-now.com/api/now/table/incident/<sys_id>`, body `{ "state": "6", "close_code": "Resolved by monitoring", "close_notes": "Resolved in OneUptime" }` (`state` `6` = Löst i det standardmässiga ITIL-arbetsflödet).
 

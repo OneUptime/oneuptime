@@ -14,7 +14,7 @@ Använd detta när ett externt system behöver _skapa eller uppdatera något i O
 
 1. Bygg ett arbetsflöde som börjar med en **[Webhook-utlösare](/docs/workflows/triggers#webhook)**. OneUptime ger dig en unik URL.
 2. Konfigurera en webhook / notifieringsåtgärd i det andra verktyget som POSTar till den URL:en när något händer.
-3. I arbetsflödet läser du den inkommande payload:en och använder en **Create Incident** (eller Create Alert)-komponent för att registrera den.
+3. I arbetsflödet läser du den inkommande payload:en och använder en **Skapa incident** (eller Skapa varning)-komponent för att registrera den.
 
 ```text
 Zabbix / Prometheus / Grafana / Datadog  ──►  OneUptime Webhook trigger  ──►  Create Incident
@@ -57,7 +57,7 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 
 Klistra aldrig in en API-nyckel eller token direkt i ett block. Gör så här i stället:
 
-1. Gå till **Workflows → Global Variables**.
+1. Gå till **Arbetsflöden → Globala variabler**.
 2. Skapa en variabel — till exempel `JIRA_AUTH` — och slå på **Is Secret**.
 3. Referera till den var som helst med `{{variable.JIRA_AUTH}}`.
 

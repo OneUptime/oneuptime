@@ -14,10 +14,10 @@ Server-monitorer bruker en infrastrukturagent installert på serverne dine for �
 
 ## Opprette en server-monitor
 
-1. Gå til **Monitors** i OneUptime-dashbordet
-2. Klikk **Create Monitor**
+1. Gå til **Overvåkere** i OneUptime-dashbordet
+2. Klikk **Opprett monitor**
 3. Velg **Server / VM** som monitortype
-4. En **hemmelig nøkkel** vil bli generert for denne monitoren – du trenger den for å konfigurere agenten
+4. En **Hemmelig nøkkel** vil bli generert for denne monitoren – du trenger den for å konfigurere agenten
 5. Følg installasjonsinstruksjonene for å sette opp agenten på serveren din
 
 ## Installere infrastrukturagenten
@@ -84,11 +84,11 @@ Agenten samler inn følgende målinger fra serveren:
 ### CPU
 
 - **CPU Usage Percent** – Samlet CPU-utnyttelse som prosent
-- **CPU Cores** – Antall CPU-kjerner
+- **CPU-kjerner** – Antall CPU-kjerner
 
 ### Minne
 
-- **Total Memory** – Totalt tilgjengelig minne
+- **Totalt minne** – Totalt tilgjengelig minne
 - **Used Memory** – Minne som er i bruk
 - **Free Memory** – Tilgjengelig ledige minne
 - **Memory Usage Percent** – Minneutnyttelse som prosent
@@ -101,7 +101,7 @@ For hvert montert disk/volum:
 - **Used Disk Space** – Plass som er i bruk
 - **Free Disk Space** – Tilgjengelig ledig plass
 - **Disk Usage Percent** – Diskutnyttelse som prosent
-- **Disk Path** – Monteringsstien til disken
+- **Diskbane** – Monteringsstien til disken
 
 ### Prosesser
 
@@ -144,31 +144,31 @@ For prosesskontroller:
 
 #### Marker server som utilgjengelig hvis agenten slutter å rapportere
 
-- **Sjekk på**: Is Online
+- **Check On**: Is Online
 - **Filtertype**: False
 
 #### Varsle når CPU-forbruk overskrider 90 %
 
-- **Sjekk på**: CPU Usage Percent
+- **Check On**: CPU Usage Percent
 - **Filtertype**: Greater Than
 - **Verdi**: 90
 
 #### Varsle når diskforbruk overskrider 85 %
 
-- **Sjekk på**: Disk Usage Percent
-- **Disksti**: `/`
+- **Check On**: Disk Usage Percent
+- **Diskbane**: `/`
 - **Filtertype**: Greater Than
 - **Verdi**: 85
 
 #### Varsle når minneforbruk overskrider 80 %
 
-- **Sjekk på**: Memory Usage Percent
+- **Check On**: Memory Usage Percent
 - **Filtertype**: Greater Than
 - **Verdi**: 80
 
 #### Varsle hvis en kritisk prosess slutter å kjøre
 
-- **Sjekk på**: Server Process Name
+- **Check On**: Server Process Name
 - **Filtertype**: Is Not Executing
 - **Verdi**: `nginx`
 

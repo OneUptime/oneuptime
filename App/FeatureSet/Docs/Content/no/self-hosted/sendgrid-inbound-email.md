@@ -100,16 +100,16 @@ inboundEmail:
 ### Trinn 6: Opprett en innkommende e-postmonitor
 
 1. Logg inn på OneUptime-dashbordet ditt
-2. Naviger til **Monitors** > **Create Monitor**
+2. Naviger til **Overvåkere** > **Opprett monitor**
 3. Velg **Incoming Email** som monitortype
 4. Konfigurer monitoren:
-   - **Name:** Gi monitoren et beskrivende navn
-   - **Description:** Beskriv hva monitoren er til for
+   - **Navn:** Gi monitoren et beskrivende navn
+   - **Beskrivelse:** Beskriv hva monitoren er til for
 5. Konfigurer **Alert Creation Criteria** (når du skal opprette et varsel):
    - Eksempel: E-postemne inneholder "ALERT" eller "CRITICAL"
 6. Konfigurer **Alert Resolution Criteria** (når du skal løse et varsel):
    - Eksempel: E-postemne inneholder "RESOLVED" eller "OK"
-7. Klikk **Create**
+7. Klikk **Opprett**
 
 Etter opprettelse vil du se den unike e-postadressen for denne monitoren (f.eks. `monitor-abc123def456@inbound.yourdomain.com`).
 
@@ -135,8 +135,8 @@ Når du konfigurerer innkommende e-postmonitoren, kan du opprette kriterier base
 
 | Felt               | Beskrivelse                        | Tilgjengelige filtre                                                                       |
 | ------------------ | ---------------------------------- | ------------------------------------------------------------------------------------------ |
-| **Email Subject**  | Emnelinjen i e-posten              | Contains, Not Contains, Equals, Not Equals, Starts With, Ends With, Is Empty, Is Not Empty |
-| **Email From**     | Avsenderens e-postadresse          | Contains, Not Contains, Equals, Not Equals, Starts With, Ends With, Is Empty, Is Not Empty |
+| **E-postemne**     | Emnelinjen i e-posten              | Contains, Not Contains, Equals, Not Equals, Starts With, Ends With, Is Empty, Is Not Empty |
+| **E-post fra**     | Avsenderens e-postadresse          | Contains, Not Contains, Equals, Not Equals, Starts With, Ends With, Is Empty, Is Not Empty |
 | **Email Body**     | Den rene tekstkroppen i e-posten   | Contains, Not Contains, Equals, Not Equals, Starts With, Ends With, Is Empty, Is Not Empty |
 | **Email To**       | Mottakerens e-postadresse          | Contains, Not Contains, Equals, Not Equals, Starts With, Ends With, Is Empty, Is Not Empty |
 | **Email Received** | Tid siden siste e-post ble mottatt | Received In Minutes, Not Received In Minutes                                               |

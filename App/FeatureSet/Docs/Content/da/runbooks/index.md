@@ -4,7 +4,7 @@ Runbooks er genbrugelige svarprocedurer — ordnede lister af manuelle eller aut
 
 ## I et hurtigt overblik
 
-- **Top-niveau funktion** i OneUptime-dashboardet under **Products → Runbooks**.
+- **Top-niveau funktion** i OneUptime-dashboardet under **Produkter → Runbooks**.
 - **Fem trintyper**: manuel tjekliste, JavaScript (sandkasse) og Bash (begge kører på en [Runbook-agent](/docs/runbooks/agents) i din egen infrastruktur), HTTP-anmodning og AI (analysér hændelses- og trin-kontekst med dit projekts LLM-udbyder).
 - **Tre udløsningsveje**: regler der matcher hændelser/alarmer/planlagt vedligehold, eller den manuelle knap "Kør runbook" på et hvilket som helst event.
 - **Snapshot-semantik**: når et runbook starter, kopieres dets trin ind på kørslen. At redigere skabelonen senere ændrer aldrig en igangværende kørsel.
@@ -35,7 +35,7 @@ Et par begreber går igen i resten af runbook-dokumentationen. Få styr på dem 
 ## Et runbook'ets livscyklus
 
 1. **Skriv** — Opret et runbook, bland manuelle, JavaScript-, HTTP-, Bash- og AI-trin. Gem.
-2. **(Valgfrit) Tilføj en regel** — Under indstillinger for Hændelser, Alarmer eller Planlagt vedligehold beder du OneUptime om at starte dette runbook, hver gang en hændelses titel eller beskrivelse matcher et regex.
+2. **(Valgfrit) Tilføj en regel** — Under indstillinger for Hændelser, Advarsler eller Planlagt vedligeholdelse beder du OneUptime om at starte dette runbook, hver gang en hændelses titel eller beskrivelse matcher et regex.
 3. **Udløs** — Enten udløses reglen automatisk, når en passende hændelse oprettes, eller en responder klikker manuelt **Kør runbook** på hændelsen.
 4. **Kør** — En ny kørsel oprettes med et snapshot af trinene. Automatiserede trin kører på Runbook-workeren; kørslen sættes på pause ved hvert manuelt trin, indtil nogen tikker det af.
 5. **Revider** — Kørslen bliver for altid på hændelsens **Runbooks**-fane og på runbook'ets kørselsliste. Output, fejl og tider per trin bevares til postmortem.
@@ -56,14 +56,14 @@ Du kan blande alle fem i ét runbook — runbooks' styrke er at flette menneskel
 
 ## Hvor runbooks bor i dashboardet
 
-| Side                                                                            | Hvad du laver der                                                                   |
-| ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| **Products → Runbooks**                                         | Gennemse, oprette og redigere runbook-skabeloner.                                   |
-| **Trin-fanen på et runbook**                                                    | Skrive og omarrangere triplisten.                                                   |
-| **Kørsler-fanen på et runbook**                                                 | Se hver kørsel af runbook'et med statusfiltre.                                      |
-| **"Kør nu"-knappen på et runbook**                                              | Starte en ad hoc-kørsel, der ikke er knyttet til en hændelse.                       |
-| **Hændelser / Alarmer / Planlagt vedligehold → Indstillinger → Runbook-regler** | Oprette de automatiske udløsningsregler per entitetstype.                           |
-| **En hændelse / alarm / vedligeholdshændelse → Runbooks-fanen**                 | Se kørsler knyttet til den hændelse og klikke **Kør runbook** for en manuel kørsel. |
+| Side                                                                                  | Hvad du laver der                                                                   |
+| ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| **Produkter → Runbooks**                                                              | Gennemse, oprette og redigere runbook-skabeloner.                                   |
+| **Trin-fanen på et runbook**                                                          | Skrive og omarrangere triplisten.                                                   |
+| **Udførelser-fanen på et runbook**                                                    | Se hver kørsel af runbook'et med statusfiltre.                                      |
+| **"Kør nu"-knappen på et runbook**                                                    | Starte en ad hoc-kørsel, der ikke er knyttet til en hændelse.                       |
+| **Hændelser / Advarsler / Planlagt vedligeholdelse → Indstillinger → Runbook-regler** | Oprette de automatiske udløsningsregler per entitetstype.                           |
+| **En hændelse / alarm / vedligeholdshændelse → Runbooks-fanen**                       | Se kørsler knyttet til den hændelse og klikke **Kør runbook** for en manuel kørsel. |
 
 ## Almindelige anvendelser
 
@@ -109,7 +109,7 @@ Runbooks:      [DB primary failover]
 ## Hvordan runbooks passer ind i resten af OneUptime
 
 - **Monitorer** åbner hændelser og alarmer; **runbook-regler** omsætter de events til runbook-kørsler. Tilsammen danner de en lukket sløjfe: opdag → udløs → reagér → registrer.
-- **Workspace-forbindelser** (Slack, Microsoft Teams) er et naturligt mål for HTTP-trin — slå statusopdateringer op, underret kanaler.
+- **Arbejdsområdeforbindelser** (Slack, Microsoft Teams) er et naturligt mål for HTTP-trin — slå statusopdateringer op, underret kanaler.
 - **Statussider** opdateres ofte som et manuelt trin i et kundepåvirkende runbook.
 - **Vagtplaner** afgør, hvem der bliver tilkaldt; runbooks afgør, hvad personen så gør.
 

@@ -14,8 +14,8 @@ SSL 憑證監控器會連接到您的 HTTPS 端點並檢查 SSL/TLS 憑證。這
 
 ## 建立 SSL 憑證監控器
 
-1. 在 OneUptime 儀表板中前往 **Monitors**
-2. 點選 **Create Monitor**
+1. 在 OneUptime 儀表板中前往 **監測**
+2. 點選 **建立監測器**
 3. 選取 **SSL Certificate** 作為監控器類型
 4. 輸入要檢查的 HTTPS 端點 URL
 5. 視需要設定監控條件
@@ -64,23 +64,23 @@ SSL 憑證監控器會連接到您的 HTTPS 端點並檢查 SSL/TLS 憑證。這
 #### 若憑證將於 30 天內到期則標記為降級
 
 - **Check On**：Expires In Days
-- **Filter Type**：Less Than
-- **Value**：30
+- **篩選器類型**：Less Than
+- **值**：30
 
 #### 若憑證已到期則標記為離線
 
 - **Check On**：Is Expired Certificate
-- **Filter Type**：True
+- **篩選器類型**：True
 
 #### 若憑證為自簽則發出警示
 
 - **Check On**：Is Self-Signed Certificate
-- **Filter Type**：True
+- **篩選器類型**：True
 
 #### 若憑證無效則標記為離線
 
 - **Check On**：Is Not A Valid Certificate
-- **Filter Type**：True
+- **篩選器類型**：True
 
 ## 最佳做法
 

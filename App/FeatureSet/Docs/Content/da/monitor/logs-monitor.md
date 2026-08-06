@@ -14,9 +14,9 @@ Log-monitorer søger og tæller logs, der matcher specifikke filtre over et tids
 
 ## Oprettelse af en Log-monitor
 
-1. Gå til **Monitorer** i OneUptime-dashboardet
+1. Gå til **Overvågninger** i OneUptime-dashboardet
 2. Klik på **Opret monitor**
-3. Vælg **Logs** som monitortype
+3. Vælg **Protokoller** som monitortype
 4. Vælg de telemetritjenester, der skal overvåges
 5. Konfigurer log-filtre og kriterier efter behov
 

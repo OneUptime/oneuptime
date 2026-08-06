@@ -12,7 +12,7 @@ Detta är ett kraftfullt sätt att integrera e-postbaserade varningssystem med O
 
 ## Skapa en monitor för inkommande e-post
 
-1. Navigera till **Monitorer** i din OneUptime-instrumentpanel
+1. Navigera till **Övervakare** i din OneUptime-instrumentpanel
 2. Klicka på **Skapa monitor**
 3. Välj **Inkommande e-post** som monitortyp
 4. Konfigurera monitorinställningarna:

@@ -13,8 +13,8 @@ Handmatige monitors zijn plaatshouders die u zelf bijwerkt. Dit is nuttig voor:
 
 ## Een Handmatige Monitor aanmaken
 
-1. Ga naar **Monitors** in het OneUptime-dashboard
-2. Klik op **Monitor aanmaken**
+1. Ga naar **Monitoren** in het OneUptime-dashboard
+2. Klik op **Monitor maken**
 3. Selecteer **Handmatig** als het monitortype
 4. Voer een naam en beschrijving in voor de monitor
 

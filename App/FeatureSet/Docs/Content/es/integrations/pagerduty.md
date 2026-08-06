@@ -17,12 +17,12 @@ OneUptime Incident → On Create  ──►  API component (POST /v2/enqueue)  �
 
 ## Paso 1 — Guardar la routing key
 
-1. Ve a **Workflows → Global Variables → Create**.
+1. Ve a **Flujos de trabajo → Variables Globales → Crear**.
 2. Nómbrala `PAGERDUTY_ROUTING_KEY`, pega la clave de integración y activa **Is Secret**.
 
 ## Paso 2 — Construir el workflow de "activación"
 
-1. Abre **Workflows → Create Workflow**, nómbralo `Incidents → PagerDuty` y abre el **Builder**.
+1. Abre **Flujos de trabajo → Crear flujo de trabajo**, nómbralo `Incidents → PagerDuty` y abre el **Constructor**.
 2. Añade un disparador **Incident** configurado en **On Create**. Renómbralo `Incident`.
 3. Añade un bloque **API** conectado al disparador:
 
@@ -54,8 +54,8 @@ OneUptime Incident → On Create  ──►  API component (POST /v2/enqueue)  �
 ## Paso 3 — Resolver al resolver en OneUptime (recomendado)
 
 1. ¿Añadir un segundo disparador **Incident** en el **mismo** workflow? No — un workflow tiene un solo disparador. En su lugar, crea un **segundo** workflow llamado `Resolve PagerDuty` con un disparador **Incident → On Update**.
-2. Añade un bloque **Conditions** para comprobar que el incidente ya está resuelto (ramifica sobre el estado del incidente `{{Incident.currentIncidentState.name}}` igual al nombre de tu estado resuelto).
-3. Desde **Yes**, añade un bloque **API** a PagerDuty con el **mismo `dedup_key`** y `event_action` configurado en `resolve`:
+2. Añade un bloque **Condiciones** para comprobar que el incidente ya está resuelto (ramifica sobre el estado del incidente `{{Incident.currentIncidentState.name}}` igual al nombre de tu estado resuelto).
+3. Desde **Sí**, añade un bloque **API** a PagerDuty con el **mismo `dedup_key`** y `event_action` configurado en `resolve`:
 
    ```json
    {
@@ -69,17 +69,17 @@ PagerDuty hace coincidir el `dedup_key` y cierra el incidente original.
 
 ## Mapeo de gravedades (opcional)
 
-El campo `severity` de PagerDuty acepta `critical`, `error`, `warning` o `info`. Para mapear desde las gravedades de OneUptime, añade ramas **Conditions** sobre `{{Incident.incidentSeverity.name}}` antes del bloque API y envía un cuerpo diferente desde cada una.
+El campo `severity` de PagerDuty acepta `critical`, `error`, `warning` o `info`. Para mapear desde las gravedades de OneUptime, añade ramas **Condiciones** sobre `{{Incident.incidentSeverity.name}}` antes del bloque API y envía un cuerpo diferente desde cada una.
 
 ## Entrante (opcional)
 
-Para hacer lo contrario — abrir un incidente de OneUptime desde un evento de PagerDuty — añade un workflow con disparador **Webhook** y apunta un [webhook V3](https://developer.pagerduty.com/docs/webhooks/v3-overview/) de PagerDuty (o una Events Orchestration) a su URL, luego usa **Create Incident**. Consulta el [patrón entrante](/docs/integrations/index#inbound-another-tool-sends-data-into-oneuptime).
+Para hacer lo contrario — abrir un incidente de OneUptime desde un evento de PagerDuty — añade un workflow con disparador **Webhook** y apunta un [webhook V3](https://developer.pagerduty.com/docs/webhooks/v3-overview/) de PagerDuty (o una Events Orchestration) a su URL, luego usa **Crear incidente**. Consulta el [patrón entrante](/docs/integrations/index#inbound-another-tool-sends-data-into-oneuptime).
 
 ## Solución de problemas
 
 - **`400` con `"invalid routing key"`** — la integración debe ser **Events API v2**, no la Events API v1 anterior ni otro tipo de integración. Vuelve a copiar la clave.
 - **El resolve no cierra nada** — el `dedup_key` en la llamada de resolución debe coincidir exactamente con el de la llamada de activación.
-- **Nada en los registros** — confirma que el workflow está **Enabled** y que el disparador es **On Create**.
+- **Nada en los registros** — confirma que el workflow está **Habilitado** y que el disparador es **On Create**.
 
 ## Dónde seguir leyendo
 

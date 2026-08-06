@@ -15,8 +15,8 @@ API 監控器會向您的端點發出 HTTP 請求並檢查回應。這讓您能�
 
 ## 建立 API 監控器
 
-1. 在 OneUptime 儀表板中前往 **Monitors**
-2. 點選 **Create Monitor**
+1. 在 OneUptime 儀表板中前往 **監測**
+2. 點選 **建立監測器**
 3. 選擇 **API** 作為監控器類型
 4. 輸入 API URL 並設定請求設定
 5. 視需要設定監控條件
@@ -93,11 +93,11 @@ OneUptime 預設會追蹤 HTTP 重新導向（301、302 等）。如果您想監
 
 #### 用戶端憑證（mTLS）
 
-如果您的端點需要雙向 TLS 驗證，請啟用 **Use client certificate (mTLS)** 並提供：
+如果您的端點需要雙向 TLS 驗證，請啟用 **使用用戶端憑證（mTLS）** 並提供：
 
-- **Client Certificate (PEM)** — 要提供的 PEM 編碼用戶端憑證。
-- **Client Private Key (PEM)** — 相符的 PEM 編碼私密金鑰。
-- **Client Private Key Passphrase** _（選填）_ — 僅在私密金鑰已加密時才需要。
+- **用戶端憑證 (PEM)** — 要提供的 PEM 編碼用戶端憑證。
+- **用戶端私密金鑰 (PEM)** — 相符的 PEM 編碼私密金鑰。
+- **用戶端私密金鑰密碼短語** _（選填）_ — 僅在私密金鑰已加密時才需要。
 
 這相當於 curl 中 `--cert` 與 `--key` 旗標的 OneUptime 對應功能：
 
@@ -113,6 +113,6 @@ curl --cert client.crt --key client.key https://api.example.com/health
 
 - **回應狀態碼** - 檢查 HTTP 狀態碼是否符合預期值（例如 200、201）
 - **回應時間** - 監控回應時間是否超過閾值
-- **回應主體** - 檢查回應主體是否包含或符合特定內容
+- **回應內文** - 檢查回應主體是否包含或符合特定內容
 - **回應標頭** - 驗證特定回應標頭是否存在或符合預期值
-- **JavaScript 運算式** - 撰寫自訂運算式來評估回應。詳情請參閱 [JavaScript 運算式](/docs/monitor/javascript-expression)。
+- **JavaScript Expression** - 撰寫自訂運算式來評估回應。詳情請參閱 [JavaScript 運算式](/docs/monitor/javascript-expression)。

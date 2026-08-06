@@ -38,8 +38,8 @@ Når det er satt til **Auto**, vil OneUptime forsøke å oppdage formatet til st
 
 ## Opprette en ekstern statussidemonitor
 
-1. Gå til **Monitors** i OneUptime-dashbordet
-2. Klikk **Create Monitor**
+1. Gå til **Overvåkere** i OneUptime-dashbordet
+2. Klikk **Opprett monitor**
 3. Velg **External Status Page** som monitortype
 4. Skriv inn URL-en til statussiden du ønsker å overvåke
 5. Velg eventuelt en spesifikk leverandørtype (eller la den stå som **Auto**)
@@ -86,16 +86,16 @@ Antall ganger forespørselen forsøkes på nytt hvis den mislykkes. Standard er 
 Du kan konfigurere kriterier for å bestemme når den eksterne tjenesten anses som tilgjengelig eller utilgjengelig basert på:
 
 - **Is Online** – Om statussiden er tilgjengelig og returnerer statusdata
-- **Overall Status** – Den overordnede statusindikatoren for statussiden (f.eks. `operational`, `degraded_performance`, `partial_outage`, `major_outage`)
+- **Samlet status** – Den overordnede statusindikatoren for statussiden (f.eks. `operational`, `degraded_performance`, `partial_outage`, `major_outage`)
 - **Component Status** – Status for komponentene innenfor omfanget (i samsvar med filtrene for komponentgruppe / komponentnavn)
-- **Active Incidents** – Antallet aktive hendelser som for øyeblikket er rapportert på statussiden (begrenset til komponentgruppen / komponenten når et filter er angitt)
-- **Response Time** – Hvor lang tid det tar å hente statussidedataene
+- **Aktive hendelser** – Antallet aktive hendelser som for øyeblikket er rapportert på statussiden (begrenset til komponentgruppen / komponenten når et filter er angitt)
+- **Svartid** – Hvor lang tid det tar å hente statussidedataene
 
 ### Standardkriterier
 
 Som standard oppretter OneUptime kriterier basert på det som faktisk betyr noe for en statusside — dens aktive hendelser og komponenthelse, snarere enn ren tilgjengelighet:
 
-- Monitoren merkes som **Operational** når det ikke finnes noen aktive hendelser innenfor omfanget.
+- Monitoren merkes som **I drift** når det ikke finnes noen aktive hendelser innenfor omfanget.
 - Monitoren merkes som **Down** (og en hendelse opprettes) når det finnes minst én aktiv hendelse innenfor omfanget, eller når en komponent innenfor omfanget rapporterer `degraded_performance`, `partial_outage`, `major_outage` eller `full_outage`.
 
 Fordi antallet aktive hendelser og komponentstatusene følger filtrene for komponentgruppe / komponentnavn, målretter disse standardkriteriene automatisk bare de komponentene du bryr deg om.

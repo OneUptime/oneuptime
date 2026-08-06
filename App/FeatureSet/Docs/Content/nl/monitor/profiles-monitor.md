@@ -14,8 +14,8 @@ Profielenmonitors tellen en filteren profileergegevens die aan specifieke criter
 
 ## Een Profielen Monitor aanmaken
 
-1. Ga naar **Monitors** in het OneUptime-dashboard
-2. Klik op **Monitor aanmaken**
+1. Ga naar **Monitoren** in het OneUptime-dashboard
+2. Klik op **Monitor maken**
 3. Selecteer **Profielen** als het monitortype
 4. Selecteer de te bewaken telemetriediensten
 5. Configureer profielfilters en criteria naar wens

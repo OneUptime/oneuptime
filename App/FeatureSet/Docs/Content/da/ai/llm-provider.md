@@ -37,7 +37,7 @@ OneUptime understøtter i øjeblikket følgende LLM-udbydere:
 ### Trin 1: Naviger til LLM-udbyderindstillinger
 
 1. Log ind på dit OneUptime-dashboard
-2. Gå til **AI Agenter** > **LLM-udbydere**
+2. Gå til **AI-agenter** > **LLM-udbydere**
 3. Klik på **Opret LLM-udbyder** for at tilføje en ny udbyder
 
 ### Trin 2: Konfigurer din udbyder
@@ -49,7 +49,7 @@ Udfyld følgende felter:
 - **LLM-type**: Vælg udbydertype (OpenAI, Azure OpenAI, Anthropic, Groq, Mistral, Ollama eller OpenAI Compatible)
 - **API-nøgle**: Din API-nøgle (påkrævet for OpenAI, Azure OpenAI, Anthropic, Groq og Mistral; valgfrit for Ollama og OpenAI-kompatible servere)
 - **Modelnavn**: Den specifikke model, der skal bruges (f.eks. `gpt-4o`, `claude-3-opus-20240229`, `llama2`)
-- **Base URL** (valgfrit): Brugerdefineret API-endpoint-URL (påkrævet for Azure OpenAI, Ollama og OpenAI Compatible; valgfrit for andre)
+- **Basis-URL** (valgfrit): Brugerdefineret API-endpoint-URL (påkrævet for Azure OpenAI, Ollama og OpenAI Compatible; valgfrit for andre)
 
 ## Udbyderspecifik konfiguration
 
@@ -127,7 +127,7 @@ Brug udbyderen **OpenAI Compatible** til enhver server, der implementerer OpenAI
 
 1. Start din OpenAI-kompatible server, og notér dens base-URL (den slutter som regel med `/v1`)
 2. Vælg **OpenAI Compatible** som LLM-type
-3. Indtast **Base URL** (påkrævet), f.eks. `http://your-server:8000/v1`
+3. Indtast **Basis-URL** (påkrævet), f.eks. `http://your-server:8000/v1`
 4. Indtast **Modelnavn** (påkrævet) — det skal matche en model, som din server tilbyder
 5. Indtast **API-nøgle** kun hvis din server kræver det; lad den stå tom for nøgleløse servere
 

@@ -15,9 +15,9 @@ I monitor per richieste in entrata forniscono un URL webhook univoco che i propr
 ## Creazione di un Monitor Richiesta In Entrata
 
 1. Accedere a **Monitor** nel Dashboard di OneUptime
-2. Fare clic su **Crea Monitor**
+2. Fare clic su **Crea monitor**
 3. Selezionare **Richiesta In Entrata** come tipo di monitor
-4. Verrà generata una **Chiave Segreta** e un URL heartbeat per questo monitor
+4. Verrà generata una **Chiave segreta** e un URL heartbeat per questo monitor
 5. Configurare il proprio servizio per inviare richieste all'URL heartbeat
 6. Configurare i criteri di monitoraggio secondo necessità
 
@@ -88,7 +88,7 @@ Per **Richiesta In Entrata**:
 - **Ricevuta In Minuti** — Un heartbeat è stato ricevuto entro il numero di minuti specificato
 - **Non Ricevuta In Minuti** — Nessun heartbeat ricevuto entro il numero di minuti specificato
 
-Per **Corpo Richiesta**, **Intestazione Richiesta** e **Valore Intestazione Richiesta**:
+Per **Corpo della Richiesta**, **Intestazione Richiesta** e **Valore Intestazione Richiesta**:
 
 - **Contiene** — Il valore contiene il testo specificato
 - **Non Contiene** — Il valore non contiene il testo specificato
@@ -98,13 +98,13 @@ Per **Corpo Richiesta**, **Intestazione Richiesta** e **Valore Intestazione Rich
 #### Considerare offline se nessun heartbeat in 10 minuti
 
 - **Controlla Su**: Richiesta In Entrata
-- **Tipo Filtro**: Non Ricevuta In Minuti
+- **Tipo di filtro**: Non Ricevuta In Minuti
 - **Valore**: 10
 
 #### Considerare degradato in base al contenuto del corpo della richiesta
 
 - **Controlla Su**: Corpo Richiesta
-- **Tipo Filtro**: Contiene
+- **Tipo di filtro**: Contiene
 - **Valore**: `"status": "degraded"`
 
 ## Buone Pratiche

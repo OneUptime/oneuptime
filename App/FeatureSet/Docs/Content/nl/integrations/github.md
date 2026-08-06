@@ -24,12 +24,12 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 
 ## Stap 1 — Sla het token op
 
-1. Ga naar **Workflows → Global Variables → Create**.
+1. Ga naar **Workflows → Globale variabelen → Aanmaken**.
 2. Geef het de naam `GITHUB_TOKEN`, plak het token, en zet **Is Secret** aan.
 
 ## Stap 2 — Bouw de workflow
 
-1. Open **Workflows → Create Workflow**, geef het de naam `Incidents → GitHub Issues`, en open de **Builder**.
+1. Open **Workflows → Workflow maken**, geef het de naam `Incidents → GitHub Issues`, en open de **Bouwer**.
 2. Voeg een **Incident**-trigger toe ingesteld op **On Create**. Hernoem het naar `Incident`.
 3. Voeg een **API**-blok toe verbonden met de trigger:
 
@@ -54,7 +54,7 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
      }
      ```
 
-4. **Sla op**, schakel in en maak een testincident aan. Een `201 Created` in de workflow-logs betekent dat de issue is aangemaakt; de responsebody bevat het `number` en de `html_url`.
+4. **Opslaan**, schakel in en maak een testincident aan. Een `201 Created` in de workflow-logs betekent dat de issue is aangemaakt; de responsebody bevat het `number` en de `html_url`.
 
 ## Tips
 

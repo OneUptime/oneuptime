@@ -14,10 +14,10 @@ Os monitores de servidor usam um agente de infraestrutura instalado nos seus ser
 
 ## Criando um Monitor de Servidor
 
-1. Vá para **Monitors** no Painel do OneUptime
-2. Clique em **Create Monitor**
+1. Vá para **Monitores** no Painel do OneUptime
+2. Clique em **Criar monitor**
 3. Selecione **Server / VM** como o tipo de monitor
-4. Uma **Secret Key** será gerada para este monitor — você precisará dela para configurar o agente
+4. Uma **Chave secreta** será gerada para este monitor — você precisará dela para configurar o agente
 5. Siga as instruções de instalação para configurar o agente no seu servidor
 
 ## Instalando o Agente de Infraestrutura
@@ -84,11 +84,11 @@ O agente coleta as seguintes métricas do seu servidor:
 ### CPU
 
 - **CPU Usage Percent** — Utilização geral de CPU como porcentagem
-- **CPU Cores** — Número de núcleos de CPU
+- **Núcleos de CPU** — Número de núcleos de CPU
 
 ### Memória
 
-- **Total Memory** — Memória total disponível
+- **Memória total** — Memória total disponível
 - **Used Memory** — Memória atualmente em uso
 - **Free Memory** — Memória livre disponível
 - **Memory Usage Percent** — Utilização de memória como porcentagem
@@ -101,7 +101,7 @@ Para cada disco/volume montado:
 - **Used Disk Space** — Espaço atualmente em uso
 - **Free Disk Space** — Espaço livre disponível
 - **Disk Usage Percent** — Utilização do disco como porcentagem
-- **Disk Path** — Caminho de montagem do disco
+- **Caminho do disco** — Caminho de montagem do disco
 
 ### Processos
 
@@ -145,32 +145,32 @@ Para verificações de processo:
 #### Marcar servidor como offline se o agente parar de relatar
 
 - **Check On**: Is Online
-- **Filter Type**: False
+- **Tipo de filtro**: False
 
 #### Alertar quando o uso de CPU exceder 90%
 
 - **Check On**: CPU Usage Percent
-- **Filter Type**: Greater Than
-- **Value**: 90
+- **Tipo de filtro**: Greater Than
+- **Valor**: 90
 
 #### Alertar quando o uso de disco exceder 85%
 
 - **Check On**: Disk Usage Percent
-- **Disk Path**: `/`
-- **Filter Type**: Greater Than
-- **Value**: 85
+- **Caminho do disco**: `/`
+- **Tipo de filtro**: Greater Than
+- **Valor**: 85
 
 #### Alertar quando o uso de memória exceder 80%
 
 - **Check On**: Memory Usage Percent
-- **Filter Type**: Greater Than
-- **Value**: 80
+- **Tipo de filtro**: Greater Than
+- **Valor**: 80
 
 #### Alertar se um processo crítico parar de executar
 
 - **Check On**: Server Process Name
-- **Filter Type**: Is Not Executing
-- **Value**: `nginx`
+- **Tipo de filtro**: Is Not Executing
+- **Valor**: `nginx`
 
 ## Solução de Problemas
 

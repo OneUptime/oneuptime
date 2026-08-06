@@ -15,19 +15,19 @@ OneUptime Incident → On Create  ──►  Discord component  ──►  messa
 
 ## ステップ 2 — Webhook URL を保存する (オプションだが推奨)
 
-1. OneUptime で **Workflows → Global Variables → Create** に移動します。
+1. OneUptime で **ワークフロー → グローバル変数 → 作成** に移動します。
 2. `DISCORD_WEBHOOK_URL` という名前にして URL を貼り付け、**Is Secret** をオンにします。
 
 変数に保存しておくと、複数のワークフローで再利用でき、1 か所でローテーションできます。
 
 ## ステップ 3 — ワークフローを作成する
 
-1. **Workflows → Create Workflow** を開き、`Incidents → Discord` という名前にして **Builder** を開きます。
-2. **Incident** トリガーを **On Create** に設定して追加します。`Incident` にリネームします。
+1. **ワークフロー → ワークフローを作成** を開き、`Incidents → Discord` という名前にして **ビルダー** を開きます。
+2. **インシデント** トリガーを **On Create** に設定して追加します。`Incident` にリネームします。
 3. トリガーに接続した **Discord** コンポーネントを追加します:
    - **Webhook URL**: `{{variable.DISCORD_WEBHOOK_URL}}` (または直接貼り付けます)。
-   - **Message**: `🔴 New incident: {{Incident.title}}\n{{Incident.description}}`
-4. **Save** して有効化し、テスト用インシデントを作成します。メッセージがチャンネルに表示されます。
+   - **メッセージ**: `🔴 New incident: {{Incident.title}}\n{{Incident.description}}`
+4. **保存** して有効化し、テスト用インシデントを作成します。メッセージがチャンネルに表示されます。
 
 ## 代替方法: API コンポーネント
 
@@ -42,8 +42,8 @@ Discord のリッチな [embeds](https://discord.com/developers/docs/resources/w
 
 ## ヒント
 
-- **Conditions** を使って特定の重大度のみ投稿する — Discord ブロックの前に `{{Incident.incidentSeverity.name}}` で分岐します。
-- **Incident → On Update** でさらにワークフローを追加して、同じチャンネルに確認や解決のメッセージを投稿します。
+- **条件** を使って特定の重大度のみ投稿する — Discord ブロックの前に `{{Incident.incidentSeverity.name}}` で分岐します。
+- **インシデント → On Update** でさらにワークフローを追加して、同じチャンネルに確認や解決のメッセージを投稿します。
 
 ## 次に読むべきページ
 

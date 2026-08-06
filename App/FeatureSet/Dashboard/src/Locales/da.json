@@ -4135,6 +4135,7 @@
   "Processors transform spans as they flow through the pipeline. They run in order after the filter conditions match. Each processor modifies the span before it is stored.": "Processorer transformerer spans, mens de strømmer gennem pipelinen. De kører i rækkefølge, når filterbetingelserne matcher. Hver processor ændrer spannet, før det gemmes.",
   "Processors transform spans matched by this pipeline. They run in the order shown below. Drag to reorder.": "Processorer transformerer spans, der matches af denne pipeline. De kører i den rækkefølge, der vises nedenfor. Træk for at ændre rækkefølgen.",
   "Product": "Produkt",
+  "Products": "Produkter",
   "Production API Health": "Produktions-API-sundhed",
   "Production cluster running in US East": "Produktions-cluster, der kører i US East",
   "Production cluster running in US East region on EKS": "Produktions-cluster, der kører i US East-regionen på EKS",

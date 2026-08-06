@@ -29,21 +29,21 @@ Se [Widgetar](/docs/dashboards/widgets) för hela listan och vad var och en visa
 | **Widget**          | En ruta på sidan — ett diagram, en siffra, en lista, ett stycke.                                        |
 | **Variabel**        | En rullgardinsmeny högst upp som filtrerar varje widget på en gång (kluster, tjänst, kund, miljö).      |
 | **Tidsintervall**   | Tidsfönstret som varje diagram och siffra använder. Ställs in en gång högst upp på sidan.               |
-| **Uppdatering**     | Hur ofta widgetar frågar om data. Av, var några sekund, var några minut.                                |
-| **Läge**            | Antingen **Edit** (dra runt widgetar) eller **View** (skrivskyddat, så som besökare ser det).           |
+| **Uppdatera**       | Hur ofta widgetar frågar om data. Av, var några sekund, var några minut.                                |
+| **Läge**            | Antingen **Redigera** (dra runt widgetar) eller **Visa** (skrivskyddat, så som besökare ser det).       |
 
 ## Var hittar du instrumentpaneler
 
-Öppna **Dashboards** i den vänstra navigeringen.
+Öppna **Instrumentpaneler** i den vänstra navigeringen.
 
-| Sida                     | Vad du gör där                                                                 |
-| ------------------------ | ------------------------------------------------------------------------------ |
-| **Dashboards**           | Din lista över instrumentpaneler. Skapa en ny, sök, eller filtrera på etikett. |
-| **Dashboard → View**     | Arbetsytan. Växla mellan **Edit** och **View** i sidhuvudet.                   |
-| **Dashboard → Overview** | Beskrivning, ägare och etiketter.                                              |
-| **Dashboard → Settings** | Offentlig delning, lösenord, IP-tillåtslista, anpassad domän, varumärke.       |
-| **Dashboard → Owners**   | Användare och team med explicit åtkomst.                                       |
-| **Dashboard → Delete**   | Ta bort instrumentpanelen.                                                     |
+| Sida                                | Vad du gör där                                                                 |
+| ----------------------------------- | ------------------------------------------------------------------------------ |
+| **Instrumentpaneler**               | Din lista över instrumentpaneler. Skapa en ny, sök, eller filtrera på etikett. |
+| **Instrumentpanel → Visa**          | Arbetsytan. Växla mellan **Redigera** och **Visa** i sidhuvudet.               |
+| **Instrumentpanel → Översikt**      | Beskrivning, ägare och etiketter.                                              |
+| **Instrumentpanel → Inställningar** | Offentlig delning, lösenord, IP-tillåtslista, anpassad domän, varumärke.       |
+| **Instrumentpanel → Ägare**         | Användare och team med explicit åtkomst.                                       |
+| **Instrumentpanel → Ta bort**       | Ta bort instrumentpanelen.                                                     |
 
 ## Bygga en instrumentpanel
 
@@ -51,7 +51,7 @@ Se [Widgetar](/docs/dashboards/widgets) för hela listan och vad var och en visa
 2. **Lägg till widgetar** — välj en widget-typ, konfigurera dess data, dra den dit du vill.
 3. **(Valfritt) Lägg till variabler** — till exempel en `service`-rullgardinsmeny så att samma instrumentpanel fungerar för varje tjänst.
 4. **Ställ in tidsintervallet** — standardvärden är bra; finjustera senare.
-5. **(Valfritt) Dela offentligt** — slå på växeln i Settings, lägg till ett lösenord eller IP-tillåtslista om det behövs.
+5. **(Valfritt) Dela offentligt** — slå på växeln i Inställningar, lägg till ett lösenord eller IP-tillåtslista om det behövs.
 6. **(Valfritt) Anpassad domän** — hosta instrumentpanelen på `status.your-domain.com`.
 
 ## Ett snabbt exempel
@@ -60,16 +60,16 @@ Mål: en jour-sida för checkout-tjänsten med latens, felfrekvens, öppna incid
 
 1. Skapa en instrumentpanel som heter "Checkout on-call."
 2. Lägg till en `service`-variabel. Sätt standardvärdet till `checkout`.
-3. Lägg till en **Chart**-widget med P95-latens, filtrerad efter `service`-variabeln.
-4. Bredvid den, lägg till en **Value**-widget för felfrekvens, med varning vid 1 % och kritisk vid 5 %.
-5. Nedanför, lägg till en **Incident List**-widget för incidenter taggade med `checkout`.
-6. Under det, en **Log Stream**-widget som visar loggar från samma tjänst.
+3. Lägg till en **Diagram**-widget med P95-latens, filtrerad efter `service`-variabeln.
+4. Bredvid den, lägg till en **Värde**-widget för felfrekvens, med varning vid 1 % och kritisk vid 5 %.
+5. Nedanför, lägg till en **Incidentlista**-widget för incidenter taggade med `checkout`.
+6. Under det, en **Loggström**-widget som visar loggar från samma tjänst.
 7. Spara. Byt rullgardinsmenyn till `payments` — samma instrumentpanel visar nu payments-tjänsten.
 
 ## Hur instrumentpaneler passar in med resten av OneUptime
 
 - **Monitorer och telemetri** är datakällorna. Varje mätvärde, logg och trace du samlar in kan frågas av en widget.
-- **Incidenter och larm** visas i widgetarna **Incident List** och **Alert List**. Instrumentpaneler är skrivskyddade för dessa — skapa och uppdatera dem på annat håll.
+- **Incidenter och larm** visas i widgetarna **Incidentlista** och **Larmlista**. Instrumentpaneler är skrivskyddade för dessa — skapa och uppdatera dem på annat håll.
 - **Statussidor** är kundvänd kommunikation ("är systemet uppe?"). Instrumentpaneler är till för att titta på i detalj hur systemet beter sig. De två fungerar tillsammans, de ersätter inte varandra.
 - **Arbetsflöden** är hur OneUptime vidtar åtgärder. Instrumentpaneler är hur du läser av vad som händer.
 

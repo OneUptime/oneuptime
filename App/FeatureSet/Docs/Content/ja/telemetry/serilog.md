@@ -2,7 +2,7 @@
 
 ## 概要
 
-[Serilog](https://serilog.net) は .NET 向けで最も人気のある構造化ロギングライブラリです。OneUptime は、公式の [`Serilog.Sinks.OpenTelemetry`](https://github.com/serilog/serilog-sinks-opentelemetry) シンクを使用して、OpenTelemetry Protocol (OTLP) 経由で Serilog ログを取り込みます。設定が完了すると、アプリケーションが Serilog を通じて書き込むすべてのログイベントが OneUptime に送信され、**Products → ログ** で検索可能になります。構造化されたプロパティ、重大度、トレース/スパンの相関も含まれます。
+[Serilog](https://serilog.net) は .NET 向けで最も人気のある構造化ロギングライブラリです。OneUptime は、公式の [`Serilog.Sinks.OpenTelemetry`](https://github.com/serilog/serilog-sinks-opentelemetry) シンクを使用して、OpenTelemetry Protocol (OTLP) 経由で Serilog ログを取り込みます。設定が完了すると、アプリケーションが Serilog を通じて書き込むすべてのログイベントが OneUptime に送信され、**製品 → ログ** で検索可能になります。構造化されたプロパティ、重大度、トレース/スパンの相関も含まれます。
 
 インストールが必要な OneUptime 固有のパッケージはありません。シンクは、OneUptime がすべての OpenTelemetry データ向けに公開しているのと同じ OTLP エンドポイントと通信します。これは、コンソールアプリ、ワーカーサービス、ASP.NET Core アプリ、その他 .NET 上で動作するあらゆるものに対して機能します。
 
@@ -12,13 +12,13 @@
 - **OneUptime プロジェクトを作成する** – アカウントを取得したら、OneUptime ダッシュボードからプロジェクトを作成します。サポートが必要な場合は、support@oneuptime.com までお問い合わせください。
 - **Telemetry Ingestion Token を作成する** – ログを認証するためにトークンが必要です。
 
-OneUptime にサインアップしてプロジェクトを作成したら、ナビゲーションバーの「Products」をクリックし、「Project Settings」をクリックします。
+OneUptime にサインアップしてプロジェクトを作成したら、ナビゲーションバーの「製品」をクリックし、「プロジェクト設定」をクリックします。
 
-Telemetry Ingestion Key ページで「Create Ingestion Key」をクリックしてトークンを作成します。
+Telemetry Ingestion Key ページで「取り込みキーを作成」をクリックしてトークンを作成します。
 
 ![Create Service](/docs/static/images/TelemetryIngestionKeys.png)
 
-トークンを作成したら、「View」をクリックしてトークンを表示します。
+トークンを作成したら、「表示」をクリックしてトークンを表示します。
 
 ![View Service](/docs/static/images/TelemetryIngestionKeyView.png)
 
@@ -197,7 +197,7 @@ Log.Information("Order {OrderId} placed by {CustomerId} for {Amount:C}",
 Log.Warning("Payment gateway slow: {LatencyMs}ms", latencyMs);
 ```
 
-名前付きの各プロパティ（`OrderId`、`CustomerId`、`Amount`、`LatencyMs`）はログ属性として送信されるため、**Products → ログ** エクスプローラーでそれらをフィルタリングおよび検索できます。
+名前付きの各プロパティ（`OrderId`、`CustomerId`、`Amount`、`LatencyMs`）はログ属性として送信されるため、**製品 → ログ** エクスプローラーでそれらをフィルタリングおよび検索できます。
 
 ## 例外
 
@@ -214,7 +214,7 @@ catch (Exception ex)
 }
 ```
 
-OneUptime はこれらの属性を検出し、エラーを **Exceptions**（Issues）ビューに自動的にまとめます。フィンガープリントごとにグループ化され、適切なサービスに紐付けられます。トレースとログの両方から報告されたエラーは、単一の Issue にまとめられます。検出の仕組みの詳細については、[ログからの例外](/docs/telemetry/open-telemetry)を参照してください。
+OneUptime はこれらの属性を検出し、エラーを **例外**（Issues）ビューに自動的にまとめます。フィンガープリントごとにグループ化され、適切なサービスに紐付けられます。トレースとログの両方から報告されたエラーは、単一の Issue にまとめられます。検出の仕組みの詳細については、[ログからの例外](/docs/telemetry/open-telemetry)を参照してください。
 
 ## トレースの相関
 
@@ -223,7 +223,7 @@ OneUptime はこれらの属性を検出し、エラーを **Exceptions**（Issu
 ## 検証
 
 1. アプリケーションを実行し、いくつかのログイベントを生成します。
-2. OneUptime を開き、**Telemetry** に移動して、サービス（`my-service`）を選択し、**Logs** を開きます。
+2. OneUptime を開き、**テレメトリ** に移動して、サービス（`my-service`）を選択し、**ログ** を開きます。
 3. 数秒以内に Serilog のイベントが表示され、その構造化プロパティがフィルターとして利用できるはずです。
 
 ## トラブルシューティング

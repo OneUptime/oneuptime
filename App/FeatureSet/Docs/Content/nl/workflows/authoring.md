@@ -1,6 +1,6 @@
 # Een workflow maken
 
-Om een workflow te maken, open je **Workflows → Create Workflow**, geef je hem een naam en klik je op het **Builder**-tabblad. Je ziet een leeg canvas waarop je de automatisering bouwt.
+Om een workflow te maken, open je **Workflows → Workflow maken**, geef je hem een naam en klik je op het **Bouwer**-tabblad. Je ziet een leeg canvas waarop je de automatisering bouwt.
 
 ## Het canvas
 
@@ -10,12 +10,12 @@ Elke workflow begint met één **trigger** aan het begin. Al het andere is een *
 
 ## Wat er op een blok staat
 
-| Veld         | Wat het doet                                                                                                                                                                         |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Titel**    | De naam die op het canvas wordt weergegeven. Hernoem hem om complexe workflows beter leesbaar te maken.                                                                              |
-| **Settings** | Wat het blok nodig heeft om zijn werk te doen — een URL, een Slack-kanaal, een berichttekst, enz. Verplichte velden zijn gemarkeerd met een asterisk.                                |
-| **Input**    | De stip aan de linkerkant waar lijnen binnenkomen van eerdere blokken.                                                                                                               |
-| **Outputs**  | De stippen aan de rechterkant waar lijnen vertrekken naar de volgende blokken. Veel blokken hebben aparte **success**- en **error**-outputs zodat je beide gevallen kunt afhandelen. |
+| Veld             | Wat het doet                                                                                                                                                                         |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Titel**        | De naam die op het canvas wordt weergegeven. Hernoem hem om complexe workflows beter leesbaar te maken.                                                                              |
+| **Instellingen** | Wat het blok nodig heeft om zijn werk te doen — een URL, een Slack-kanaal, een berichttekst, enz. Verplichte velden zijn gemarkeerd met een asterisk.                                |
+| **Input**        | De stip aan de linkerkant waar lijnen binnenkomen van eerdere blokken.                                                                                                               |
+| **Outputs**      | De stippen aan de rechterkant waar lijnen vertrekken naar de volgende blokken. Veel blokken hebben aparte **success**- en **error**-outputs zodat je beide gevallen kunt afhandelen. |
 
 ## Blokken verbinden
 
@@ -38,11 +38,11 @@ De meeste tekstvelden accepteren variabelen — zo stroomt data van het ene blok
 De snelste manier om een gevoel voor het canvas te krijgen:
 
 1. Sleep een **Manual**-trigger op het canvas.
-2. Sleep een **Log**-component (onder **Utils**) ernaast. Verbind de trigger met de Log-component.
+2. Sleep een **Logboek**-component (onder **Utils**) ernaast. Verbind de trigger met de Log-component.
 3. Typ in het berichtveld van het Log-blok `Hello from {{Manual.JSON.name}}`.
 4. Sla op en schakel de workflow in.
 5. Klik op **Run Manually**, plak `{ "name": "Ada" }` als input en verstuur.
-6. Open het **Logs**-tabblad. De nieuwste run laat `Hello from Ada` zien.
+6. Open het **Logboeken**-tabblad. De nieuwste run laat `Hello from Ada` zien.
 
 Die cyclus — slepen, verbinden, configureren, draaien, log controleren — is hoe je elke workflow bouwt.
 
@@ -50,9 +50,9 @@ Die cyclus — slepen, verbinden, configureren, draaien, log controleren — is 
 
 Het canvas slaat op terwijl je werkt. Er is geen aparte "publish"-stap.
 
-Maar een workflow draait pas echt wanneer **Enabled** aanstaat in Settings. Nieuwe workflows starten uitgeschakeld. Gebruik die schakelaar als je vangnet — bouw het, test met **Run Manually**, controleer de logs en zet hem dan aan.
+Maar een workflow draait pas echt wanneer **Ingeschakeld** aanstaat in Settings. Nieuwe workflows starten uitgeschakeld. Gebruik die schakelaar als je vangnet — bouw het, test met **Run Manually**, controleer de logs en zet hem dan aan.
 
-Om een workflow te pauzeren zonder hem te verwijderen, zet je **Enabled** uit. Runs die al bezig zijn worden afgerond; er starten geen nieuwe.
+Om een workflow te pauzeren zonder hem te verwijderen, zet je **Ingeschakeld** uit. Runs die al bezig zijn worden afgerond; er starten geen nieuwe.
 
 ## Opruimen
 

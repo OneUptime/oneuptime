@@ -6,7 +6,7 @@ Denne side dækker de indstillinger og adgangskontroller, der er værd at kende,
 
 Et dashboards **ejere** er brugere og teams, du har givet eksplicit adgang (oven på deres projektomspændende rolle).
 
-Under **Dashboard → Owners**:
+Under **Dashboard → Ejere**:
 
 - Tilføj en **bruger-ejer** for at give én person ekstra adgang til dette dashboard.
 - Tilføj en **team-ejer** for at give det samme til hvert medlem af et team.
@@ -15,7 +15,7 @@ Brug ejere, når den projektomspændende læse-rolle er for bred — for eksempe
 
 ## Labels
 
-Labels er tags til at organisere dashboards. Anvend dem under **Dashboard → Overview**.
+Labels er tags til at organisere dashboards. Anvend dem under **Dashboard → Oversigt**.
 
 Almindelige mønstre:
 
@@ -38,15 +38,15 @@ Dashboards fungerer sammen med dit projekts rollebaserede adgangskontrol. De rel
 
 Der er matchende tilladelser til dashboard-ejere og brugerdefinerede domæner, så du kan give "administrér ejere" uden at give "redigér dashboardet."
 
-Tildel disse på projektroller under **Products → Teams → Tilladelser**.
+Tildel disse på projektroller under **Produkter → Teams → Tilladelser**.
 
 ## Adgang til offentlige dashboards
 
 Når du gør et dashboard offentligt (se [Deling & offentlige dashboards](/docs/dashboards/sharing)), kontrollerer tre indstillinger, hvem der kan se det:
 
 1. **Public Dashboard**-kontakten — hvis slukket, returnerer den offentlige URL en 404.
-2. **Master Password** — hvis sat, indtaster besøgende en adgangskode, før dashboardet vises.
-3. **IP Whitelist** (Scale-planen) — hvis sat, afvises anmodninger fra andre IP'er.
+2. **Hovedkodeord** — hvis sat, indtaster besøgende en adgangskode, før dashboardet vises.
+3. **IP-hvidliste** (Scale-planen) — hvis sat, afvises anmodninger fra andre IP'er.
 
 Du kan kombinere enhver af disse. Den mest aflåste kombination er "Public til, adgangskode sat, IP-tilladelsesliste aktiv" — nyttig til partner-portaler, hvor du vil have alle tre lag.
 
@@ -62,7 +62,7 @@ Dette er det rigtige træk, når du vil forgrene en skabelon (såsom "vores vagt
 
 ## Sletning af et dashboard
 
-Under **Dashboard → Delete**. Dette kan ikke fortrydes — dashboardets layout og eventuelle brugerdefinerede domæner knyttet til det fjernes. Dine telemetridata påvirkes ikke.
+Under **Dashboard → Slet**. Dette kan ikke fortrydes — dashboardets layout og eventuelle brugerdefinerede domæner knyttet til det fjernes. Dine telemetridata påvirkes ikke.
 
 Hvis dashboardet er offentligt på et brugerdefineret domæne, holder URL'en op med at virke, så snart du sletter det. Flyt domænet til et andet dashboard først, hvis du vil holde URL'en i gang.
 

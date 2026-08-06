@@ -2,7 +2,7 @@
 
 Apri automaticamente un ticket [GitHub](https://github.com) quando viene creato un incidente OneUptime — in modo che il follow-up di engineering sia tracciato nel repository che gestisce il servizio interessato.
 
-Questa integrazione è **in uscita**: OneUptime chiama la [GitHub REST API](https://docs.github.com/en/rest/issues/issues). Utilizza un **[Workflow](/docs/workflows/index)** di OneUptime con un trigger **Incident → On Create** e un **componente API**.
+Questa integrazione è **in uscita**: OneUptime chiama la [GitHub REST API](https://docs.github.com/en/rest/issues/issues). Utilizza un **[Workflow](/docs/workflows/index)** di OneUptime con un trigger **Incidente → On Create** e un **componente API**.
 
 > **Stai cercando la connessione GitHub più approfondita?** OneUptime dispone anche di un'integrazione nativa **GitHub App** per collegare repository di codice (usata dall'agente AI e dalle funzionalità di codice). Questa viene configurata tramite variabili d'ambiente, non workflow — vedi [Integrazione GitHub (self-hosted)](/docs/self-hosted/github-integration). Questa pagina riguarda specificamente la _creazione di ticket dagli incidenti_.
 
@@ -24,13 +24,13 @@ OneUptime Incident → On Create  ──►  API component (POST /repos/{owner}/
 
 ## Passaggio 1 — Salva il token
 
-1. Vai su **Workflows → Global Variables → Create**.
+1. Vai su **Flussi di lavoro → Variabili globali → Crea**.
 2. Chiamala `GITHUB_TOKEN`, incolla il token e attiva **Is Secret**.
 
 ## Passaggio 2 — Crea il workflow
 
-1. Apri **Workflows → Create Workflow**, chiamalo `Incidents → GitHub Issues` e apri il **Builder**.
-2. Aggiungi un trigger **Incident** impostato su **On Create**. Rinominalo `Incident`.
+1. Apri **Flussi di lavoro → Crea flusso di lavoro**, chiamalo `Incidents → GitHub Issues` e apri il **Costruttore**.
+2. Aggiungi un trigger **Incidente** impostato su **On Create**. Rinominalo `Incident`.
 3. Aggiungi un blocco **API** collegato al trigger:
 
    - **Method**: `POST`

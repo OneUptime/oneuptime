@@ -13,8 +13,8 @@ Manual monitors placeholder हैं जिन्हें आप स्वय�
 
 ## Manual Monitor बनाना
 
-1. OneUptime Dashboard में **Monitors** पर जाएं
-2. **Create Monitor** पर क्लिक करें
+1. OneUptime Dashboard में **मॉनिटर** पर जाएं
+2. **मॉनिटर बनाएं** पर क्लिक करें
 3. monitor type के रूप में **Manual** चुनें
 4. monitor के लिए एक नाम और description दर्ज करें
 

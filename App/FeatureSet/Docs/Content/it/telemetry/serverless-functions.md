@@ -2,13 +2,13 @@
 
 ## Panoramica
 
-OneUptime riconosce automaticamente una **Funzione Serverless** nel momento in cui riceve dati OpenTelemetry contrassegnati con l'attributo di risorsa `faas.name`. Non c'è nulla da creare manualmente — strumenta la tua funzione con l'SDK OpenTelemetry per il tuo runtime, punta il suo exporter OTLP verso OneUptime e la funzione comparirà sotto **Serverless Functions** con le sue tracce, i log e le metriche.
+OneUptime riconosce automaticamente una **Funzione serverless** nel momento in cui riceve dati OpenTelemetry contrassegnati con l'attributo di risorsa `faas.name`. Non c'è nulla da creare manualmente — strumenta la tua funzione con l'SDK OpenTelemetry per il tuo runtime, punta il suo exporter OTLP verso OneUptime e la funzione comparirà sotto **Funzioni serverless** con le sue tracce, i log e le metriche.
 
 Funziona con AWS Lambda, Google Cloud Functions, Azure Functions, Cloudflare Workers o qualsiasi runtime FaaS in grado di emettere OpenTelemetry.
 
 ## Prerequisiti
 
-- Un **OneUptime Telemetry Ingestion Token** — creane uno da _Project Settings → Telemetria e APM → Chiavi di acquisizione_ e copia il valore `x-oneuptime-token`.
+- Un **OneUptime Telemetry Ingestion Token** — creane uno da _Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione_ e copia il valore `x-oneuptime-token`.
 - L'SDK OpenTelemetry (o un layer di auto-strumentazione) per il linguaggio della tua funzione.
 
 ## Come OneUptime identifica una funzione
@@ -19,11 +19,11 @@ OneUptime indicizza ogni funzione sull'attributo di risorsa `faas.name`:
 | ------------------------------------------------------ | ------------ | ----------------------------------------------------------- |
 | `faas.name`                                            | **sì**       | Identità della funzione (es. `checkout-handler`)            |
 | `faas.version`                                         | no           | Mostrato nella panoramica                                   |
-| `faas.instance`                                        | no           | Tracciato per-istanza sotto la scheda **Instances**         |
+| `faas.instance`                                        | no           | Tracciato per-istanza sotto la scheda **Istanze**           |
 | `cloud.platform`                                       | no           | `aws_lambda`, `gcp_cloud_functions`, `azure_functions`, ... |
 | `cloud.provider` / `cloud.region` / `cloud.account.id` | no           | Mostrato nella panoramica                                   |
 
-> Una funzione che imposta anche `service.name` compare comunque anche sotto **Services**. La vista **Serverless Functions** è la lente focalizzata su FaaS, delimitata da `faas.name`.
+> Una funzione che imposta anche `service.name` compare comunque anche sotto **Servizi**. La vista **Funzioni serverless** è la lente focalizzata su FaaS, delimitata da `faas.name`.
 
 ## Passo 1 — Imposta le variabili d'ambiente dell'exporter OTLP
 
@@ -51,10 +51,10 @@ Il layer imposta automaticamente `faas.name` dal nome della funzione e il resour
 
 ## Cosa ottieni
 
-Una volta che la funzione emette una span, un log o una metrica, compare sotto **Serverless Functions**. La panoramica mostra:
+Una volta che la funzione emette una span, un log o una metrica, compare sotto **Funzioni serverless**. La panoramica mostra:
 
-- **Invocations**, **error rate** e **p95 duration** — derivati dalle tue tracce, su un intervallo di tempo selezionabile, con grafici di tendenza.
-- **Instances** — un conteggio in tempo reale dei valori `faas.instance` osservati.
-- Schede complete **Logs**, **Traces** e **Metrics** delimitate a questa funzione.
+- **Invocazioni**, **error rate** e **durata p95** — derivati dalle tue tracce, su un intervallo di tempo selezionabile, con grafici di tendenza.
+- **Istanze** — un conteggio in tempo reale dei valori `faas.instance` osservati.
+- Schede complete **Registri**, **Tracce** e **Metriche** delimitate a questa funzione.
 
-Puoi anche applicare automaticamente etichette e proprietari tramite _Serverless → Settings → Label Rules / Owner Rules_.
+Puoi anche applicare automaticamente etichette e proprietari tramite _Serverless → Impostazioni → Regole etichette / Regole del proprietario_.

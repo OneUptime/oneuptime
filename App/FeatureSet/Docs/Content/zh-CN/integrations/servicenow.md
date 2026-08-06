@@ -24,12 +24,12 @@ ServiceNow 的 Table API 接受 **Basic 认证**。
    printf '%s' 'integration_user:password' | base64
    ```
 
-2. 在 OneUptime 中，前往 **Workflows → Global Variables → Create**，命名为 `SERVICENOW_AUTH`，粘贴 base64 字符串，并开启 **Is Secret**。
+2. 在 OneUptime 中，前往 **工作流 → 全局变量 → 创建**，命名为 `SERVICENOW_AUTH`，粘贴 base64 字符串，并开启 **Is Secret**。
 
 ## 步骤 2——构建工作流
 
-1. 打开 **Workflows → Create Workflow**，命名为 `Incidents → ServiceNow`，并打开 **Builder**。
-2. 添加 **Incident** 触发器，设置为 **On Create**。重命名为 `Incident`。
+1. 打开 **工作流 → 创建工作流**，命名为 `Incidents → ServiceNow`，并打开 **生成器**。
+2. 添加 **事件** 触发器，设置为 **On Create**。重命名为 `Incident`。
 3. 添加连接到触发器的 **API** 模块：
 
    - **Method**：`POST`
@@ -60,7 +60,7 @@ ServiceNow 的 Table API 接受 **Basic 认证**。
 
 ## 步骤 3——在 OneUptime 解决时解决（可选）
 
-1. 创建一个带有 **Incident → On Update** 触发器的**第二个**工作流，并添加 **Conditions** 模块检查事件是否已解决。
+1. 创建一个带有 **事件 → On Update** 触发器的**第二个**工作流，并添加 **条件** 模块检查事件是否已解决。
 2. 要更新正确的 ServiceNow 记录，你需要其 `sys_id`。可以在步骤 2 中将其存储到 OneUptime 事件上（读取 `{{CreateRecord.response-body.result.sys_id}}` 并用 **Update Incident** 写入标签），或者先通过 `GET` 请求 `/api/now/table/incident?sysparm_query=correlation_id=oneuptime-{{Incident._id}}` 查找记录。
 3. 添加 **API** 模块：**Method** `PATCH`，**URL** `https://your-instance.service-now.com/api/now/table/incident/<sys_id>`，正文 `{ "state": "6", "close_code": "Resolved by monitoring", "close_notes": "Resolved in OneUptime" }`（`state` `6` = 默认 ITIL 工作流中的 Resolved 状态）。
 

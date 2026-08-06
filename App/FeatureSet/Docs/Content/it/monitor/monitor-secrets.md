@@ -10,7 +10,7 @@ Per aggiungere un segreto, accedere a Dashboard OneUptime -> Monitor -> Impostaz
 
 È possibile selezionare quali monitor hanno accesso al segreto. In questo caso è stato aggiunto il segreto `ApiKey` e sono stati selezionati i monitor che vi possono accedere.
 
-**Nota importante**: I segreti sono crittografati e archiviati in modo sicuro. Il valore non viene più mostrato dopo il salvataggio: né nella tabella, né nel modulo di modifica, né tramite API. Se perdi il valore, dovrai recuperarlo dalla sua origine e reinserirlo. Per ruotare un segreto usa il pulsante **Update Secret Value** sulla sua riga; non serve eliminarlo e ricrearlo.
+**Nota importante**: I segreti sono crittografati e archiviati in modo sicuro. Il valore non viene più mostrato dopo il salvataggio: né nella tabella, né nel modulo di modifica, né tramite API. Se perdi il valore, dovrai recuperarlo dalla sua origine e reinserirlo. Per ruotare un segreto usa il pulsante **Aggiorna valore segreto** sulla sua riga; non serve eliminarlo e ricrearlo.
 
 ### Utilizzo di un Segreto
 

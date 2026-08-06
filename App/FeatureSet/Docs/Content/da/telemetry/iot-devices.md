@@ -15,7 +15,7 @@ Der er ingen proprietær agent at installere på enhedssiden. Denne side er **in
 
 - En enhed, gateway eller collector, der kan sende OTLP/HTTP til OneUptime
 - Netværksforbindelse fra enheden/gatewayen til din OneUptime-instans
-- Et **OneUptime Telemetry Ingestion Token** — opret et fra _Project Settings → Telemetri og APM → Indtagelsesnøgler_ og kopier `x-oneuptime-token`-værdien
+- Et **OneUptime Telemetry Ingestion Token** — opret et fra _Projektindstillinger → Telemetri og APM → Indtagelsesnøgler_ og kopier `x-oneuptime-token`-værdien
 
 ## Hvordan OneUptime modellerer IoT
 
@@ -214,7 +214,7 @@ OneUptime genkender følgende `iot_*` metriknavne. Hvert datapunkt bør bære `d
 1. Bekræft, at din enhed eller gateway eksporterer uden fejl (tjek SDK-/collector-logs for eksportfejl og HTTP `401`/`403`-svar).
 2. I OneUptime-dashboardet skal du åbne **IoT**-sektionen — din flåde bør vises som `iot/<fleet>` i løbet af cirka et minut.
 3. Åbn flådens **Devices**-fane — hvert `device.id`, du har sendt, bør være listet med dets seneste batteri, signal, temperatur, CPU, hukommelse og oppe/nede-status.
-4. Åbn **Metrics** under flåden for at tegne grafer over en hvilken som helst af `iot_*`-serierne ovenfor.
+4. Åbn **Metrikker** under flåden for at tegne grafer over en hvilken som helst af `iot_*`-serierne ovenfor.
 
 ## Fejlfinding
 
@@ -232,7 +232,7 @@ OneUptime genkender følgende `iot_*` metriknavne. Hvert datapunkt bør bære `d
 
 ### HTTP 401 / 403 fra eksportøren
 
-Indlæsningstokenet er ugyldigt, tilbagekaldt eller mangler. Generer et nyt fra _Project Settings → Telemetri og APM → Indtagelsesnøgler_ og opdater `x-oneuptime-token`-headeren.
+Indlæsningstokenet er ugyldigt, tilbagekaldt eller mangler. Generer et nyt fra _Projektindstillinger → Telemetri og APM → Indtagelsesnøgler_ og opdater `x-oneuptime-token`-headeren.
 
 ### Metrikker vises ikke i grafer
 

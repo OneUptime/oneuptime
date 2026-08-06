@@ -21,17 +21,17 @@ OneUptime Incident → On Create  ──►  Telegram component  ──►  mess
 
 ## चरण 3 — secrets store करें
 
-1. OneUptime में, **Workflows → Global Variables → Create** पर जाएँ।
+1. OneUptime में, **वर्कफ़्लो → ग्लोबल वेरिएबल → बनाएँ** पर जाएँ।
 2. `TELEGRAM_BOT_TOKEN` (secret) और `TELEGRAM_CHAT_ID` बनाएँ।
 
 ## चरण 4 — वर्कफ़्लो बनाएँ
 
-1. **Workflows → Create Workflow** खोलें, इसे `Incidents → Telegram` नाम दें, और **Builder** खोलें।
-2. **On Create** पर सेट एक **Incident** trigger जोड़ें। इसे `Incident` नाम दें।
+1. **वर्कफ़्लो → वर्कफ़्लो बनाएं** खोलें, इसे `Incidents → Telegram` नाम दें, और **बिल्डर** खोलें।
+2. **On Create** पर सेट एक **घटना** trigger जोड़ें। इसे `Incident` नाम दें।
 3. trigger से connected एक **Telegram** component जोड़ें:
    - **Bot token**: `{{variable.TELEGRAM_BOT_TOKEN}}`
    - **Chat ID**: `{{variable.TELEGRAM_CHAT_ID}}`
-   - **Message**: `🔴 New incident: {{Incident.title}}\n{{Incident.description}}`
+   - **संदेश**: `🔴 New incident: {{Incident.title}}\n{{Incident.description}}`
 4. **सहेजें**, enable करें, और एक test incident बनाएँ। Message आपके chat में पहुँचता है।
 
 ## वैकल्पिक: API component
@@ -46,7 +46,7 @@ OneUptime Incident → On Create  ──►  Telegram component  ──►  mess
 ## टिप्स
 
 - Bot messages केवल तब देखता है जब उसे group में जोड़ा गया हो और **privacy mode** उसे allow करे — यदि `getUpdates` खाली है, तो पहले bot को एक message भेजें, या BotFather से privacy mode disable करें।
-- भेजने से पहले severity से filter करने के लिए **Conditions** इस्तेमाल करें।
+- भेजने से पहले severity से filter करने के लिए **शर्तें** इस्तेमाल करें।
 - Bold और links के लिए API body में `"parse_mode": "Markdown"` जोड़ें (या component की formatting इस्तेमाल करें)।
 
 ## आगे क्या पढ़ें

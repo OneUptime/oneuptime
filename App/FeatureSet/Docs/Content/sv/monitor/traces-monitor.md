@@ -14,9 +14,9 @@ Spårningsmonitorer söker och räknar spans som matchar specifika filter. Detta
 
 ## Skapa en spårningsmonitor
 
-1. Gå till **Monitorer** i OneUptime-instrumentpanelen
+1. Gå till **Övervakare** i OneUptime-instrumentpanelen
 2. Klicka på **Skapa monitor**
-3. Välj **Spårningar** som monitortyp
+3. Välj **Spår** som monitortyp
 4. Välj de telemetritjänster att övervaka
 5. Konfigurera span-filter och kriterier efter behov
 

@@ -8,7 +8,7 @@
 
 ## 前置条件
 
-- 一个 **OneUptime 遥测采集令牌（Telemetry Ingestion Token）** —— 从 _Project Settings → 遥测与 APM → 摄取密钥_ 创建一个，并复制其中的 `x-oneuptime-token` 值。
+- 一个 **OneUptime 遥测采集令牌（Telemetry Ingestion Token）** —— 从 _项目设置 → 遥测与 APM → 摄取密钥_ 创建一个，并复制其中的 `x-oneuptime-token` 值。
 - 适合你的函数所用语言的 OpenTelemetry SDK（或自动监测埋点层）。
 
 ## OneUptime 如何识别一个函数
@@ -53,8 +53,8 @@ OTEL_EXPORTER_OTLP_HEADERS=x-oneuptime-token=YOUR_TELEMETRY_INGESTION_TOKEN
 
 一旦函数发出 span、日志或指标，它就会出现在 **无服务器函数（Serverless Functions）** 之下。概览会显示：
 
-- **调用次数（Invocations）**、**错误率（error rate）** 和 **p95 持续时间（p95 duration）** —— 根据你的追踪数据得出，可在可选择的时间范围内查看，并带有趋势图表。
+- **调用次数（Invocations）**、**错误率（error rate）** 和 **p95 时长（p95 duration）** —— 根据你的追踪数据得出，可在可选择的时间范围内查看，并带有趋势图表。
 - **实例（Instances）** —— 已观测到的 `faas.instance` 值的实时计数。
 - 限定到此函数范围的完整 **日志（Logs）**、**追踪（Traces）** 和 **指标（Metrics）** 选项卡。
 
-你还可以通过 _Serverless → Settings → Label Rules / Owner Rules_ 自动应用标签和负责人。
+你还可以通过 _无服务器 → 设置 → 标签规则 / 所有者规则_ 自动应用标签和负责人。

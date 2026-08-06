@@ -16,7 +16,7 @@ Prometheus rule fires  ──►  Alertmanager webhook receiver  ──►  OneU
 
 ## Étape 1 — Créer le workflow OneUptime
 
-1. Ouvrez **Workflows → Create Workflow**, nommez-le `Alertmanager → Incidents`, et ouvrez le **Builder**.
+1. Ouvrez **Flux de travail → Créer un flux de travail**, nommez-le `Alertmanager → Incidents`, et ouvrez le **Constructeur**.
 2. Ajoutez un déclencheur **Webhook** et **copiez son URL**. Renommez le bloc `Alertmanager`.
 3. Ajoutez un bloc **Conditions** connecté au déclencheur :
    - **Left** : `{{Alertmanager.Request Body.status}}`
@@ -60,7 +60,7 @@ Rechargez Alertmanager (`curl -X POST http://localhost:9093/-/reload` ou redéma
    amtool alert add test_alert severity=warning --annotation=summary="Test from Alertmanager" --alertmanager.url=http://localhost:9093
    ```
 
-3. Vérifiez l'onglet **Logs** du workflow et votre liste **Incidents**.
+3. Vérifiez l'onglet **Journaux** du workflow et votre liste **Incidents**.
 
 ## Résolution à la reprise (optionnel)
 
@@ -68,8 +68,8 @@ Avec `send_resolved: true`, Alertmanager POSTs également lorsqu'une alerte se r
 
 ## Dépannage
 
-- **Aucune exécution n'apparaît** — confirmez qu'Alertmanager peut atteindre l'URL (vérifiez ses journaux pour les erreurs de livraison) et que le workflow est **Enabled**.
-- **Les champs d'incident sont vides** — différentes règles définissent différentes annotations. Inspectez la sortie du déclencheur dans l'onglet **Logs** et référencez les champs qui existent réellement (`commonAnnotations` vs `annotations` par alerte).
+- **Aucune exécution n'apparaît** — confirmez qu'Alertmanager peut atteindre l'URL (vérifiez ses journaux pour les erreurs de livraison) et que le workflow est **Activé**.
+- **Les champs d'incident sont vides** — différentes règles définissent différentes annotations. Inspectez la sortie du déclencheur dans l'onglet **Journaux** et référencez les champs qui existent réellement (`commonAnnotations` vs `annotations` par alerte).
 - **Trop d'incidents** — augmentez `group_by`/`group_interval` pour qu'Alertmanager regroupe les alertes connexes.
 
 ## Pour aller plus loin

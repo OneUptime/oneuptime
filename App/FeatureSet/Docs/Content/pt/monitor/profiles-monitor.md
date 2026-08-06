@@ -14,9 +14,9 @@ Os monitores de perfis contam e filtram dados de criação de perfil que corresp
 
 ## Criando um Monitor de Perfis
 
-1. Vá para **Monitors** no Painel do OneUptime
-2. Clique em **Create Monitor**
-3. Selecione **Profiles** como o tipo de monitor
+1. Vá para **Monitores** no Painel do OneUptime
+2. Clique em **Criar monitor**
+3. Selecione **Perfis** como o tipo de monitor
 4. Selecione os serviços de telemetria para monitorar
 5. Configure filtros e critérios de perfil conforme necessário
 
@@ -55,10 +55,10 @@ Selecione um ou mais serviços para monitorar perfis. Os serviços devem estar e
 
 #### Alertar se nenhum perfil recebido em 5 minutos
 
-- **Time Window**: 300 segundos
+- **Janela de tempo**: 300 segundos
 - **Check On**: Profile Count
-- **Filter Type**: Equal To
-- **Value**: 0
+- **Tipo de filtro**: Equal To
+- **Valor**: 0
 
 ## Requisitos de Configuração
 

@@ -14,9 +14,9 @@ Exceptions monitors specific criteria से match करने वाले exc
 
 ## Exceptions Monitor बनाना
 
-1. OneUptime Dashboard में **Monitors** पर जाएं
-2. **Create Monitor** पर क्लिक करें
-3. monitor type के रूप में **Exceptions** चुनें
+1. OneUptime Dashboard में **मॉनिटर** पर जाएं
+2. **मॉनिटर बनाएं** पर क्लिक करें
+3. monitor type के रूप में **अपवाद** चुनें
 4. monitor करने के लिए telemetry services चुनें
 5. आवश्यकतानुसार exception filters और criteria configure करें
 
@@ -57,26 +57,26 @@ exceptions monitor करने के लिए एक या अधिक serv
 
 #### 60 seconds में 10 से अधिक exceptions पर Alert करें
 
-- **Time Window**: 60 seconds
+- **समय विंडो**: 60 seconds
 - **Check On**: Exception Count
-- **Filter Type**: Greater Than
-- **Value**: 10
+- **फ़िल्टर प्रकार**: Greater Than
+- **मान**: 10
 
 #### किसी भी NullPointerException पर Alert करें
 
-- **Exception Types**: `NullPointerException`
-- **Time Window**: 60 seconds
+- **अपवाद प्रकार**: `NullPointerException`
+- **समय विंडो**: 60 seconds
 - **Check On**: Exception Count
-- **Filter Type**: Greater Than
-- **Value**: 0
+- **फ़िल्टर प्रकार**: Greater Than
+- **मान**: 0
 
 #### एक specific message वाले exceptions monitor करें
 
-- **Message**: `out of memory`
-- **Time Window**: 300 seconds
+- **संदेश**: `out of memory`
+- **समय विंडो**: 300 seconds
 - **Check On**: Exception Count
-- **Filter Type**: Greater Than
-- **Value**: 0
+- **फ़िल्टर प्रकार**: Greater Than
+- **मान**: 0
 
 ## Setup Requirements
 
