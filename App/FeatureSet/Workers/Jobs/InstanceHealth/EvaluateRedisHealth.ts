@@ -14,7 +14,11 @@ import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import ObjectID from "Common/Types/ObjectID";
 import { EVERY_FIVE_MINUTE } from "Common/Utils/CronTime";
 import RunCron from "../../Utils/Cron";
-import { runWithInstanceHealthAdvisoryLock } from "./InstanceHealthLock";
+import {
+  runWithInstanceHealthLease,
+  INSTANCE_HEALTH_JOB_TIMEOUT_IN_MINUTES,
+  INSTANCE_HEALTH_LEASE_TTL_IN_SECONDS,
+} from "./InstanceHealthLock";
 import {
   bytesToReadable,
   evaluateInstanceHealthNotification,
@@ -485,9 +489,10 @@ export async function runEvaluateRedisHealthWithLock(): Promise<void> {
     return;
   }
 
-  await runWithInstanceHealthAdvisoryLock({
+  await runWithInstanceHealthLease({
     jobName: JOB_NAME,
     lockLabel: ADVISORY_LOCK_LABEL,
+    leaseTtlInSeconds: INSTANCE_HEALTH_LEASE_TTL_IN_SECONDS,
     run: evaluateRedisHealth,
   });
 }
@@ -497,7 +502,9 @@ RunCron(
   {
     schedule: EVERY_FIVE_MINUTE,
     runOnStartup: false,
-    timeoutInMS: OneUptimeDate.convertMinutesToMilliseconds(15),
+    timeoutInMS: OneUptimeDate.convertMinutesToMilliseconds(
+      INSTANCE_HEALTH_JOB_TIMEOUT_IN_MINUTES,
+    ),
   },
   async (): Promise<void> => {
     try {

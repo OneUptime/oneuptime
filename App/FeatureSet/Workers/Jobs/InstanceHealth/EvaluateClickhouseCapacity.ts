@@ -10,10 +10,11 @@ import {
   Host,
   IsEnterpriseEdition,
 } from "Common/Server/EnvironmentConfig";
-import PostgresDatabase, {
-  DatabaseQueryRunner,
-  DatabaseSource,
-} from "Common/Server/Infrastructure/PostgresDatabase";
+import {
+  runWithInstanceHealthLease,
+  INSTANCE_HEALTH_JOB_TIMEOUT_IN_MINUTES,
+  INSTANCE_HEALTH_LEASE_TTL_IN_SECONDS,
+} from "./InstanceHealthLock";
 import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
 import InstanceHealthLogService from "Common/Server/Services/InstanceHealthLogService";
 import MailService from "Common/Server/Services/MailService";
@@ -1158,62 +1159,24 @@ export async function evaluateClickhouseCapacity(): Promise<void> {
   });
 }
 
-function advisoryLockWasAcquired(rows: unknown): boolean {
-  if (!Array.isArray(rows) || rows.length === 0) {
-    return false;
-  }
-
-  const acquired: unknown = (rows[0] as { acquired?: unknown }).acquired;
-  return acquired === true || acquired === "t" || acquired === 1;
-}
-
 export async function runEvaluateClickhouseCapacityWithLock(): Promise<void> {
   if (!IsEnterpriseEdition) {
     return;
   }
 
-  const dataSource: DatabaseSource | null = PostgresDatabase.getDataSource();
-
-  if (!dataSource) {
-    logger.error(
-      `${JOB_NAME}: Skipping evaluation because Postgres is not connected.`,
-    );
-    return;
-  }
-
-  const queryRunner: DatabaseQueryRunner = dataSource.createQueryRunner();
-  await queryRunner.connect();
-
-  try {
-    await queryRunner.startTransaction();
-
-    const rows: unknown = await queryRunner.query(
-      "SELECT pg_try_advisory_xact_lock(hashtext($1)) AS acquired",
-      [ADVISORY_LOCK_LABEL],
-    );
-
-    if (!advisoryLockWasAcquired(rows)) {
-      await queryRunner.commitTransaction();
-      return;
-    }
-
-    await evaluateClickhouseCapacity();
-    await queryRunner.commitTransaction();
-  } catch (error) {
-    if (queryRunner.isTransactionActive) {
-      try {
-        await queryRunner.rollbackTransaction();
-      } catch (rollbackError) {
-        logger.error(
-          `${JOB_NAME}: Failed to roll back the advisory-lock transaction: ${getErrorMessage(rollbackError)}`,
-        );
-      }
-    }
-
-    throw error;
-  } finally {
-    await queryRunner.release();
-  }
+  /*
+   * This job used to carry its own copy of the advisory-lock helper. It was the
+   * worst offender for the pattern described in InstanceHealthLock.ts: the
+   * partition-drop loop issues `ON CLUSTER` DDL that blocks on distributed-DDL
+   * acknowledgement from every replica, so the lock-holder transaction stayed
+   * open for minutes at a time.
+   */
+  await runWithInstanceHealthLease({
+    jobName: JOB_NAME,
+    lockLabel: ADVISORY_LOCK_LABEL,
+    leaseTtlInSeconds: INSTANCE_HEALTH_LEASE_TTL_IN_SECONDS,
+    run: evaluateClickhouseCapacity,
+  });
 }
 
 RunCron(
@@ -1221,7 +1184,9 @@ RunCron(
   {
     schedule: EVERY_FIVE_MINUTE,
     runOnStartup: false,
-    timeoutInMS: OneUptimeDate.convertMinutesToMilliseconds(15),
+    timeoutInMS: OneUptimeDate.convertMinutesToMilliseconds(
+      INSTANCE_HEALTH_JOB_TIMEOUT_IN_MINUTES,
+    ),
   },
   async (): Promise<void> => {
     try {
