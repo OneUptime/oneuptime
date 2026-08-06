@@ -383,6 +383,17 @@ kubectl delete namespace oneuptime-agent
 | **TCP Stats** _(via eBPF)_                         | Node-level RTT, failed-connection, and retransmit counters                                                                             |
 | **Workload Costs** _(opt-in, `cost.enabled=true`)_ | Pre-priced spend per namespace/workload/pod with idle and efficiency, plus node/PV hourly cost metrics — see [Kubernetes Cost Observability](/docs/telemetry/kubernetes-cost) |
 
+### Mixed Windows / Linux clusters
+
+Every workload the chart ships is Linux-only — the collector, OBI, and cost-agent images have no `windows/amd64` build, the DaemonSets mount Linux host paths (`/var/log/pods`, `/proc`, `/sys`), and eBPF has no Windows equivalent. All of them therefore carry a `kubernetes.io/os: linux` node selector, so on a mixed-OS cluster the agent runs entirely on your Linux nodes.
+
+Your Windows nodes and the pods on them are still monitored, just from the cluster level rather than from the node:
+
+- **Collected** — node conditions, capacity and allocatable, pod counts, pod phase and restarts, deployment/replicaset state, and Kubernetes events (from the `k8s_cluster` receiver and, if enabled, kube-state-metrics — both of which read the API server and cover every node regardless of OS).
+- **Not collected** — per-node kubelet/cAdvisor and host-level metrics, pod logs, and eBPF traces from Windows nodes, because all three need an agent pod running on the node itself.
+
+To get logs and application telemetry out of Windows workloads, instrument them with an [OpenTelemetry SDK](/docs/telemetry/open-telemetry) pointed at your OneUptime OTLP endpoint.
+
 ## Application Traces & HTTP Metrics via eBPF (on by default)
 
 The chart runs a DaemonSet with [OpenTelemetry eBPF Instrumentation (OBI)](https://opentelemetry.io/docs/zero-code/obi/) on every node. It loads eBPF programs into the kernel and auto-captures HTTP/HTTPS, gRPC, and SQL/Redis traffic from every supported runtime (Go, .NET, Java, Node.js, Python, Ruby, Rust) — no SDK and no sidecar required. Traces and request metrics then flow through the in-cluster collector to OneUptime.
@@ -681,6 +692,43 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --reuse-values \
   --set preset=gke-autopilot   # or eks-fargate
 ```
+
+### Agent pods stuck in `ImagePullBackOff` (mixed Windows / Linux clusters)
+
+Symptom: the DaemonSets report far fewer available pods than scheduled, and the missing ones are all on Windows nodes.
+
+```
+Desired Number of Nodes Scheduled: 12
+Number of Nodes Scheduled with Available Pods: 4
+Pods Status:  4 Running / 8 Waiting / 0 Succeeded / 0 Failed
+```
+
+```bash
+# Confirm it: every stuck pod should land on a Windows node.
+kubectl get pods -n oneuptime-agent -o wide
+kubectl get nodes -L kubernetes.io/os
+```
+
+The agent's images are Linux-only, so a pull on a Windows node can never succeed — the registry is reachable, the manifest list simply has no `windows/amd64` entry. A DaemonSet with no node selector targets **every** node, and the agent's default blanket toleration (`operator: Exists`, there so it covers tainted Linux pools) also swallows the Windows OS taint that GKE applies and that AKS/EKS apply when configured. So nothing held the pods back.
+
+Chart **0.6.2** and later pin every workload with `kubernetes.io/os: linux`, which fixes this. Upgrade:
+
+```bash
+helm repo update
+helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reuse-values
+```
+
+The stuck pods are removed as the DaemonSets roll; nothing else changes, because those pods were never running. If you cannot upgrade yet, patch the selector onto the workloads directly — on earlier charts only the eBPF DaemonSet exposes a `nodeSelector` value, so a `helm --set` alone would leave the log collector stranded:
+
+```bash
+kubectl -n oneuptime-agent patch daemonset kubernetes-agent-ebpf --type=merge \
+  -p '{"spec":{"template":{"spec":{"nodeSelector":{"kubernetes.io/os":"linux"}}}}}'
+```
+
+Repeat for each of `kubernetes-agent-logs`, `kubernetes-agent-profiling` (if profiling is on), and any agent Deployment that landed on a Windows node. A later `helm upgrade` to 0.6.2+ makes the patches permanent.
+
+See [Mixed Windows / Linux clusters](#mixed-windows-linux-clusters) for what is and isn't collected from Windows nodes afterwards.
 
 ### Agent shows "Disconnected"
 

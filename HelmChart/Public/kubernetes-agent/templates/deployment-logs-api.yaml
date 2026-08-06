@@ -20,6 +20,9 @@ spec:
         component: log-collector
     spec:
       serviceAccountName: {{ include "kubernetes-agent.serviceAccountName" . }}
+      # Linux-only image — keep it off Windows nodes in a mixed-OS cluster.
+      nodeSelector:
+        {{- include "kubernetes-agent.nodeSelector" (dict) | nindent 8 }}
       # No privileged containers, no hostPath, no hostNetwork — GKE Autopilot
       # compatible. The tailer only needs the ServiceAccount's API access.
       securityContext:

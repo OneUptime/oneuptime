@@ -774,6 +774,13 @@ ebpf:
   # Exists) so the DaemonSet covers all nodes. To keep it OFF a tainted DB-only
   # pool — so it doesn't compete with or instrument the database tier — override
   # `tolerations` with a narrower list and/or set `nodeSelector` / `affinity`.
+  #
+  # Whatever you put in `nodeSelector`, the chart also adds
+  # `kubernetes.io/os: linux` to it — as it does for every workload it ships.
+  # That pin is not decorative: the blanket toleration above swallows the
+  # Windows OS taint too, so without it this DaemonSet places one
+  # permanently-ImagePullBackOff pod on each Windows node of a mixed-OS
+  # cluster. Setting `kubernetes.io/os` here yourself overrides the pin.
   nodeSelector: {}
   tolerations:
     - operator: Exists

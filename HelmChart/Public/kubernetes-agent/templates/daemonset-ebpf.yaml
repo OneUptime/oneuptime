@@ -20,10 +20,11 @@ spec:
     spec:
       serviceAccountName: {{ include "kubernetes-agent.serviceAccountName" . }}
       hostPID: true
-      {{- with .Values.ebpf.nodeSelector }}
+      # Always pinned to Linux nodes — OBI is an eBPF agent and there is no
+      # Windows build of the image. See the helper for why the toleration
+      # below cannot be relied on to keep it off Windows nodes.
       nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+        {{- include "kubernetes-agent.nodeSelector" (dict "extra" .Values.ebpf.nodeSelector) | nindent 8 }}
       {{- with .Values.ebpf.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}

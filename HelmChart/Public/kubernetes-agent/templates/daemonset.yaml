@@ -34,6 +34,11 @@ spec:
       # Lets the debug sidecar see the collector's processes (ps, /proc, strace).
       shareProcessNamespace: true
       {{- end }}
+      # The collector image is Linux-only and the host mounts below
+      # (/var/log/pods, /proc, /sys) are Linux paths, so this must never land
+      # on a Windows node — the toleration alone would let it.
+      nodeSelector:
+        {{- include "kubernetes-agent.nodeSelector" (dict) | nindent 8 }}
       tolerations:
         - operator: Exists
       containers:

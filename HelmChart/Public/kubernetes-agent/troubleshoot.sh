@@ -280,7 +280,20 @@ if [ -n "$PODS" ]; then
         *CreateContainerConfigError*|*CreateContainerError*)
           add_finding "Pod $pod has a config error (often a missing/renamed Secret or key). Verify the api-key Secret exists — see the Token section." ;;
         *ImagePull*|*ErrImage*)
-          add_finding "Pod $pod cannot pull its image (ImagePullBackOff). Check image registry access / airgap mirror." ;;
+          # On a mixed-OS cluster the overwhelmingly common cause is a
+          # Linux-only agent image scheduled onto a Windows node — the
+          # registry is reachable, the manifest list just has no
+          # windows/amd64 entry. Say so instead of sending people to audit
+          # their registry.
+          podnode=$(kubectl get pod "$pod" -n "$NS" -o jsonpath='{.spec.nodeName}' 2>/dev/null)
+          nodeos=""
+          [ -n "$podnode" ] && nodeos=$(kubectl get node "$podnode" \
+            -o jsonpath='{.metadata.labels.kubernetes\.io/os}' 2>/dev/null)
+          if [ "$nodeos" = "windows" ]; then
+            add_finding "Pod $pod is on Windows node '$podnode' — every agent image is Linux-only, so the pull can never succeed. Upgrade to a chart version that pins the workloads with 'kubernetes.io/os: linux', or add that nodeSelector yourself."
+          else
+            add_finding "Pod $pod cannot pull its image (ImagePullBackOff). Check image registry access / airgap mirror."
+          fi ;;
         *CrashLoop*)
           add_finding "Pod $pod is CrashLooping. Inspect: kubectl logs -n $NS $pod -c otel-collector --previous" ;;
         *)

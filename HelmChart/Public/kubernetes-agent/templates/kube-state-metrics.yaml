@@ -87,6 +87,9 @@ spec:
     spec:
       serviceAccountName: {{ include "kubernetes-agent.fullname" . }}-kube-state-metrics
       automountServiceAccountToken: true
+      # Linux-only image — keep it off Windows nodes in a mixed-OS cluster.
+      nodeSelector:
+        {{- include "kubernetes-agent.nodeSelector" (dict) | nindent 8 }}
       securityContext:
         runAsNonRoot: true
         runAsUser: 65534

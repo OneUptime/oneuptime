@@ -104,6 +104,9 @@ spec:
         checksum/config: {{ toYaml .Values.cost.prometheus | sha256sum | trunc 32 }}
     spec:
       serviceAccountName: {{ include "kubernetes-agent.serviceAccountName" . }}
+      # Linux-only image — keep it off Windows nodes in a mixed-OS cluster.
+      nodeSelector:
+        {{- include "kubernetes-agent.nodeSelector" (dict) | nindent 8 }}
       securityContext:
         runAsNonRoot: true
         runAsUser: 65534

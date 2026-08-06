@@ -22,6 +22,11 @@ spec:
     spec:
       serviceAccountName: {{ include "kubernetes-agent.serviceAccountName" . }}
       hostPID: true
+      # eBPF-based profiler: Linux-only image, Linux-only host mounts. The
+      # toleration below covers every taint, including the Windows OS taint,
+      # so the OS pin is what keeps this off Windows nodes.
+      nodeSelector:
+        {{- include "kubernetes-agent.nodeSelector" (dict) | nindent 8 }}
       tolerations:
         - operator: Exists
       containers:

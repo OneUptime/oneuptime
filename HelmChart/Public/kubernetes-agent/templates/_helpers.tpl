@@ -59,6 +59,39 @@ Service account name
 {{- end }}
 
 {{/*
+Node selector for every workload this chart ships.
+
+All of them are Linux-only, and not by accident: the collector, OBI and
+cost-agent images are published for linux/{amd64,arm64} with no windows/amd64
+variant in the manifest list, the DaemonSets mount Linux-only host paths
+(/var/log/pods, /proc, /sys, /sys/fs/bpf, /sys/kernel/{tracing,debug}), and
+eBPF has no Windows equivalent at all.
+
+DaemonSets are where this bites on a mixed-OS cluster. A DaemonSet with no
+nodeSelector targets EVERY node, and this chart's blanket `operator: Exists`
+toleration — there so the agent covers tainted Linux pools — also swallows the
+Windows OS taint that GKE applies and that AKS/EKS apply when configured. So
+the pods land on Windows nodes and sit in ImagePullBackOff forever, one per
+node, with the DaemonSet reporting far fewer available pods than scheduled.
+Deployments hit the same wall whenever the scheduler happens to pick a Windows
+node. `kubernetes.io/os: linux` is the standard fix, and it is a well-known
+label kubelet sets on every node.
+
+Callers pass their component's own nodeSelector (when it has one) as `extra`.
+Its keys WIN, so an operator who deliberately sets `kubernetes.io/os` keeps
+control. `merge` mutates its destination argument in place, hence the fresh
+`dict` — merging into .Values.<component>.nodeSelector directly would write
+the OS key back into the values tree and leak it into every later template.
+
+Usage:
+  nodeSelector:
+    {{`{{- include "kubernetes-agent.nodeSelector" (dict "extra" .Values.ebpf.nodeSelector) | nindent 8 }}`}}
+*/}}
+{{- define "kubernetes-agent.nodeSelector" -}}
+{{- toYaml (merge (dict) (.extra | default dict) (dict "kubernetes.io/os" "linux")) -}}
+{{- end -}}
+
+{{/*
 Build the OTEL_EBPF_METRICS_FEATURES env var value from .Values.ebpf.features
 toggles. Returns a comma-separated string of the OBI feature names that are
 currently enabled. Empty list -> empty string (OBI then exports no metrics).

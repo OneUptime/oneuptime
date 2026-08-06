@@ -25,6 +25,10 @@ spec:
       # Lets the debug sidecar see the collector's processes (ps, /proc, strace).
       shareProcessNamespace: true
       {{- end }}
+      # Linux-only image — without this the scheduler is free to place the
+      # collector on a Windows node in a mixed-OS cluster.
+      nodeSelector:
+        {{- include "kubernetes-agent.nodeSelector" (dict) | nindent 8 }}
       containers:
         - name: otel-collector
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"

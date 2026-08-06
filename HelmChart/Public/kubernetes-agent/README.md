@@ -409,6 +409,23 @@ When `ebpf.enabled` is also true (the default), the profiler correlates samples 
 - **`csi.*`** — auto-discovers pods labeled `app=csi-driver` (or `app.kubernetes.io/component=csi-driver`) and scrapes their `metrics` port. Most cloud-provider CSI drivers fit this convention.
 - **`coreDns.*`** — scrapes the cluster's CoreDNS service on `:9153/metrics`. Surfaces DNS query rate, latency, cache hit rate, and error counts — a common P99 latency culprit.
 
+### Node placement on mixed Windows and Linux clusters
+
+Every workload the chart ships is pinned to `kubernetes.io/os: linux`, because every one of them is Linux-only: no agent image has a `windows/amd64` build, the DaemonSets mount Linux host paths (`/var/log/pods`, `/proc`, `/sys`, `/sys/fs/bpf`), and eBPF has no Windows equivalent.
+
+Without that pin the DaemonSets place one pod per Windows node that can only ever sit in `ImagePullBackOff` — a DaemonSet with no node selector targets every node, and the chart's blanket `operator: Exists` toleration (there so the agent covers tainted Linux pools) swallows the Windows OS taint too.
+
+Anything you set in `ebpf.nodeSelector` is merged on top of the pin, so pool selectors keep working:
+
+```bash
+--set ebpf.nodeSelector.agentpool=observability
+# renders: {agentpool: observability, kubernetes.io/os: linux}
+```
+
+Setting `kubernetes.io/os` yourself overrides the pin — the chart assumes you mean it.
+
+Windows nodes stay visible through the cluster-level receivers (node conditions, capacity, pod phase and restarts, events, and kube-state-metrics if enabled). What you don't get from them is per-node kubelet/cAdvisor and host metrics, pod logs, and eBPF traces — all three need an agent pod on the node itself.
+
 ### eBPF auto-instrumentation (`ebpf.*`) — on by default
 
 The agent ships a DaemonSet running [OpenTelemetry eBPF Instrumentation (OBI)](https://opentelemetry.io/docs/zero-code/obi/) on every node. OBI loads eBPF programs into the kernel to capture HTTP/HTTPS, gRPC, and SQL/Redis calls from any process — Go, .NET, Java, Node.js, Python, Ruby, or Rust — with no code changes, no SDK, and no sidecar. Captured traffic is exported as OTLP traces (and request/latency metrics) directly to OneUptime, where it appears under **Telemetry → Traces** and the service map.
@@ -538,6 +555,30 @@ To validate a key by hand (`200` = valid, `401` = unknown/revoked):
 ```bash
 curl -i -H "x-oneuptime-token: <YOUR_API_KEY>" "$ONEUPTIME_URL/otlp/v1/validate"
 ```
+
+### Agent pods stuck in `ImagePullBackOff` on Windows nodes
+
+The DaemonSets report many more scheduled pods than available, and the stuck ones are all on Windows nodes:
+
+```
+Desired Number of Nodes Scheduled: 12
+Number of Nodes Scheduled with Available Pods: 4
+```
+
+```bash
+kubectl get pods -n oneuptime-kubernetes-agent -o wide
+kubectl get nodes -L kubernetes.io/os
+```
+
+The registry is fine — the agent images have no `windows/amd64` entry in their manifest list, so the pull can never succeed there. Chart **0.6.2+** pins every workload to `kubernetes.io/os: linux`; upgrading is the fix:
+
+```bash
+helm repo update
+helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-kubernetes-agent --reuse-values
+```
+
+Nothing is lost in the roll — those pods never ran. See [Node placement on mixed Windows and Linux clusters](#node-placement-on-mixed-windows-and-linux-clusters) for what Windows nodes still report afterwards.
 
 ### Application pods crash with SIGSEGV after enabling log ↔ trace correlation
 
