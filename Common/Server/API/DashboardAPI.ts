@@ -69,6 +69,7 @@ import NetworkSiteService from "../Services/NetworkSiteService";
 import SpanService from "../Services/SpanService";
 import LogService from "../Services/LogService";
 import DashboardComponentType from "../../Types/Dashboard/DashboardComponentType";
+import { DashboardVariableType } from "../../Types/Dashboard/DashboardVariable";
 import Includes from "../../Types/BaseDatabase/Includes";
 
 /*
@@ -994,6 +995,14 @@ export default class DashboardAPI extends BaseAPI<
      * the behaviour here scoped to the dashboard's owning projectId.
      * Authorization reuses DashboardService.hasReadAccess (public flag, IP
      * whitelist, master password) — never falls back to project-wide read.
+     *
+     * The requested attribute key is additionally allowlisted against the
+     * keys this dashboard's own variables bind to. Project scoping alone is
+     * not enough here: the underlying query is a SELECT DISTINCT over the
+     * attribute map of every log, span, metric and exception in the project,
+     * so an unrestricted key would let anyone holding a public dashboard id
+     * read `user.email`, `db.statement`, `http.url`, ... out of telemetry the
+     * dashboard never renders (GHSA-w332-x78m-vf3v).
      */
     this.router.post(
       `${new this.entityType()
@@ -1021,10 +1030,11 @@ export default class DashboardAPI extends BaseAPI<
             );
           }
 
-          const attributeKey: string | undefined =
-            req.body && (req.body["attributeKey"] as string);
+          const attributeKey: unknown = req.body
+            ? req.body["attributeKey"]
+            : undefined;
 
-          if (!attributeKey || !attributeKey.trim()) {
+          if (typeof attributeKey !== "string" || !attributeKey.trim()) {
             throw new BadDataException("attributeKey is required.");
           }
 
@@ -1048,6 +1058,7 @@ export default class DashboardAPI extends BaseAPI<
               select: {
                 _id: true,
                 projectId: true,
+                dashboardViewConfig: true,
               },
               props: {
                 isRoot: true,
@@ -1058,11 +1069,32 @@ export default class DashboardAPI extends BaseAPI<
             throw new NotFoundException("Dashboard not found");
           }
 
+          /*
+           * Only the attribute keys this dashboard's own variable dropdowns
+           * offer may be read. Variable interpolation only ever substitutes
+           * a variable's VALUE into a widget filter — never its key — so the
+           * stored view config is an exact allowlist. A dashboard with no
+           * telemetry-attribute variables has nothing to look up and is
+           * refused outright.
+           */
+          const requestedAttributeKey: string = attributeKey.trim();
+
+          const allowedAttributeKeys: Set<string> =
+            DashboardAPI.collectDashboardVariableAttributeKeys(
+              dashboard.dashboardViewConfig,
+            );
+
+          if (!allowedAttributeKeys.has(requestedAttributeKey)) {
+            throw new BadDataException(
+              "This attribute is not part of this dashboard.",
+            );
+          }
+
           const values: Array<string> =
             await TelemetryAttributeService.fetchAttributeValues({
               projectId: dashboard.projectId,
               telemetryType,
-              attributeKey: attributeKey.trim(),
+              attributeKey: requestedAttributeKey,
             });
 
           return Response.sendJsonObjectResponse(req, res, {
@@ -1276,6 +1308,66 @@ export default class DashboardAPI extends BaseAPI<
             throw new BadDataException(
               "This metric is not part of this dashboard.",
             );
+          }
+
+          /*
+           * Pinning the metric name is not enough on its own: a grouped
+           * aggregation echoes each group's key back in the result rows, so
+           * `groupByAttributeKeys: ["enduser.id"]` — or the blunter
+           * `groupBy: { attributes: true }`, which returns the WHOLE
+           * attribute map — turns an allowlisted metric into a reader for
+           * attribute values the widget never renders. Both grouping
+           * dimensions are therefore allowlisted against the stored view
+           * config as well; interpolation never rewrites either of them.
+           */
+          const allowedGroupByAttributeKeys: Set<string> =
+            DashboardAPI.collectDashboardGroupByAttributeKeys(
+              dashboard.dashboardViewConfig,
+            );
+          const requestedGroupByAttributeKeys: unknown =
+            aggregateBy.groupByAttributeKeys;
+
+          if (requestedGroupByAttributeKeys !== undefined) {
+            if (!Array.isArray(requestedGroupByAttributeKeys)) {
+              throw new BadDataException(
+                "groupByAttributeKeys must be an array of attribute keys.",
+              );
+            }
+
+            for (const requestedKey of requestedGroupByAttributeKeys) {
+              if (
+                typeof requestedKey !== "string" ||
+                !allowedGroupByAttributeKeys.has(requestedKey)
+              ) {
+                throw new BadDataException(
+                  "This attribute is not part of this dashboard.",
+                );
+              }
+            }
+          }
+
+          const allowedGroupByColumns: Set<string> =
+            DashboardAPI.collectDashboardGroupByColumns(
+              dashboard.dashboardViewConfig,
+            );
+          const requestedGroupBy: unknown = aggregateBy.groupBy;
+
+          if (requestedGroupBy !== undefined) {
+            if (
+              !requestedGroupBy ||
+              typeof requestedGroupBy !== "object" ||
+              Array.isArray(requestedGroupBy)
+            ) {
+              throw new BadDataException("groupBy must be an object.");
+            }
+
+            for (const requestedColumn of Object.keys(requestedGroupBy)) {
+              if (!allowedGroupByColumns.has(requestedColumn)) {
+                throw new BadDataException(
+                  "This grouping is not part of this dashboard.",
+                );
+              }
+            }
           }
 
           /*
@@ -1516,6 +1608,158 @@ export default class DashboardAPI extends BaseAPI<
     walk(dashboardViewConfig);
 
     return metricNames;
+  }
+
+  /*
+   * Walk a stored dashboard view config and collect every OpenTelemetry
+   * attribute key its variables bind to (a `Telemetry Attribute` variable
+   * carries the key its dropdown lists values for). Used as the allowlist
+   * for the public attribute-values endpoint, so an anonymous viewer can
+   * only read the values behind this dashboard's own variable pickers and
+   * not every attribute in the owning project.
+   */
+  private static collectDashboardVariableAttributeKeys(
+    dashboardViewConfig: unknown,
+  ): Set<string> {
+    const attributeKeys: Set<string> = new Set<string>();
+
+    const walk: (node: unknown) => void = (node: unknown): void => {
+      if (!node || typeof node !== "object") {
+        return;
+      }
+
+      if (Array.isArray(node)) {
+        for (const item of node) {
+          walk(item);
+        }
+        return;
+      }
+
+      const obj: Record<string, unknown> = node as Record<string, unknown>;
+
+      if (obj["type"] === DashboardVariableType.TelemetryAttribute) {
+        const attributeKey: unknown = obj["attributeKey"];
+
+        if (
+          typeof attributeKey === "string" &&
+          attributeKey.trim().length > 0
+        ) {
+          attributeKeys.add(attributeKey.trim());
+        }
+      }
+
+      for (const key of Object.keys(obj)) {
+        walk(obj[key]);
+      }
+    };
+
+    walk(dashboardViewConfig);
+
+    return attributeKeys;
+  }
+
+  /*
+   * Walk a stored dashboard view config and collect every OpenTelemetry
+   * attribute key its metric widgets group by — `groupByAttributeKeys`
+   * (chart / value / gauge / legacy table queries) and `groupByAttributes`
+   * (the table widget's richer per-key form). Used as the allowlist for the
+   * public metric-aggregate endpoint, whose grouped results echo each
+   * group's key values back to the caller.
+   */
+  private static collectDashboardGroupByAttributeKeys(
+    dashboardViewConfig: unknown,
+  ): Set<string> {
+    const attributeKeys: Set<string> = new Set<string>();
+
+    const addKey: (value: unknown) => void = (value: unknown): void => {
+      if (typeof value === "string" && value.length > 0) {
+        attributeKeys.add(value);
+      }
+    };
+
+    const walk: (node: unknown) => void = (node: unknown): void => {
+      if (!node || typeof node !== "object") {
+        return;
+      }
+
+      if (Array.isArray(node)) {
+        for (const item of node) {
+          walk(item);
+        }
+        return;
+      }
+
+      const obj: Record<string, unknown> = node as Record<string, unknown>;
+
+      const groupByAttributeKeys: unknown = obj["groupByAttributeKeys"];
+      if (Array.isArray(groupByAttributeKeys)) {
+        for (const key of groupByAttributeKeys) {
+          addKey(key);
+        }
+      }
+
+      const groupByAttributes: unknown = obj["groupByAttributes"];
+      if (Array.isArray(groupByAttributes)) {
+        for (const groupByAttribute of groupByAttributes) {
+          if (groupByAttribute && typeof groupByAttribute === "object") {
+            addKey((groupByAttribute as Record<string, unknown>)["key"]);
+          }
+        }
+      }
+
+      for (const key of Object.keys(obj)) {
+        walk(obj[key]);
+      }
+    };
+
+    walk(dashboardViewConfig);
+
+    return attributeKeys;
+  }
+
+  /*
+   * Walk a stored dashboard view config and collect every model column its
+   * widgets group by. Used as the allowlist for the public metric-aggregate
+   * endpoint: grouping echoes the grouped column back in every result row,
+   * so `groupBy: { attributes: true }` would hand an anonymous viewer the
+   * entire attribute map of an allowlisted metric.
+   */
+  private static collectDashboardGroupByColumns(
+    dashboardViewConfig: unknown,
+  ): Set<string> {
+    const groupByColumns: Set<string> = new Set<string>();
+
+    const walk: (node: unknown) => void = (node: unknown): void => {
+      if (!node || typeof node !== "object") {
+        return;
+      }
+
+      if (Array.isArray(node)) {
+        for (const item of node) {
+          walk(item);
+        }
+        return;
+      }
+
+      const obj: Record<string, unknown> = node as Record<string, unknown>;
+
+      const groupBy: unknown = obj["groupBy"];
+      if (groupBy && typeof groupBy === "object" && !Array.isArray(groupBy)) {
+        for (const column of Object.keys(groupBy as Record<string, unknown>)) {
+          if ((groupBy as Record<string, unknown>)[column]) {
+            groupByColumns.add(column);
+          }
+        }
+      }
+
+      for (const key of Object.keys(obj)) {
+        walk(obj[key]);
+      }
+    };
+
+    walk(dashboardViewConfig);
+
+    return groupByColumns;
   }
 
   /*
