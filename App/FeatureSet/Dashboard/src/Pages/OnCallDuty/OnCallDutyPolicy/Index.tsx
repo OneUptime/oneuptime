@@ -7,8 +7,10 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import OnCallDutyPolicyCustomField from "Common/Models/DatabaseModels/OnCallDutyPolicyCustomField";
 import ProjectUtil from "Common/UI/Utils/Project";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import OverviewCustomFields from "../../../Components/CustomFields/OverviewCustomFields";
 import OnCallDutyPolicyFeedElement from "../../../Components/OnCallPolicy/OnCallDutyPolicyFeed";
 import OnCallPolicySummary from "../../../Components/OnCallPolicy/OnCallPolicySummary";
 
@@ -119,6 +121,13 @@ const OnCallDutyPolicyView: FunctionComponent<
           ],
           modelId: modelId,
         }}
+      />
+
+      <OverviewCustomFields
+        modelId={modelId}
+        modelType={OnCallDutyPolicy}
+        customFieldType={OnCallDutyPolicyCustomField}
+        resourceName="On-Call Policy"
       />
 
       {/* At-a-glance overview of how this policy escalates. */}

@@ -1,15 +1,20 @@
+import OverviewCustomFields from "../../../Components/CustomFields/OverviewCustomFields";
 import PageComponentProps from "../../PageComponentProps";
 import URL from "Common/Types/API/URL";
+import ObjectID from "Common/Types/ObjectID";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import Team from "Common/Models/DatabaseModels/Team";
+import TeamCustomField from "Common/Models/DatabaseModels/TeamCustomField";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const TeamViewIndex: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
+  const modelId: ObjectID = Navigation.getLastParamAsObjectID();
+
   return (
     <Fragment>
       <CardModelDetail
@@ -67,8 +72,15 @@ const TeamViewIndex: FunctionComponent<
               title: "Description",
             },
           ],
-          modelId: Navigation.getLastParamAsObjectID(),
+          modelId: modelId,
         }}
+      />
+
+      <OverviewCustomFields
+        modelId={modelId}
+        modelType={Team}
+        customFieldType={TeamCustomField}
+        resourceName="Team"
       />
     </Fragment>
   );

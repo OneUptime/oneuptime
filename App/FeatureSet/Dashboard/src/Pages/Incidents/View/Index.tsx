@@ -76,6 +76,8 @@ import Log from "Common/Models/AnalyticsModels/Log";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import LiveDuration from "../../../Components/EventView/LiveDuration";
 import { getEventEndDateForCurrentState } from "../../../Utils/EventDuration";
+import OverviewCustomFields from "../../../Components/CustomFields/OverviewCustomFields";
+import IncidentCustomField from "Common/Models/DatabaseModels/IncidentCustomField";
 
 const IncidentView: FunctionComponent<
   PageComponentProps
@@ -748,6 +750,13 @@ const IncidentView: FunctionComponent<
               ],
               modelId: modelId,
             }}
+          />
+
+          <OverviewCustomFields
+            modelId={modelId}
+            modelType={Incident}
+            customFieldType={IncidentCustomField}
+            resourceName="Incident"
           />
 
           <CardModelDetail<Incident>

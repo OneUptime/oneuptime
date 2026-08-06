@@ -8,6 +8,8 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import Label from "Common/Models/DatabaseModels/Label";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import StatusPageCustomField from "Common/Models/DatabaseModels/StatusPageCustomField";
+import OverviewCustomFields from "../../../Components/CustomFields/OverviewCustomFields";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const StatusPageView: FunctionComponent<
@@ -119,6 +121,13 @@ const StatusPageView: FunctionComponent<
           ],
           modelId: modelId,
         }}
+      />
+
+      <OverviewCustomFields
+        modelId={modelId}
+        modelType={StatusPage}
+        customFieldType={StatusPageCustomField}
+        resourceName="Status Page"
       />
     </Fragment>
   );

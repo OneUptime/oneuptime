@@ -24,6 +24,8 @@ import AffectedResourcesPicker, {
   isAffectedResourcesPayload,
 } from "../../../Components/AffectedResources/AffectedResourcesPicker";
 import AffectedResourcesDisplay from "../../../Components/AffectedResources/AffectedResourcesDisplay";
+import OverviewCustomFields from "../../../Components/CustomFields/OverviewCustomFields";
+import ScheduledMaintenanceCustomField from "Common/Models/DatabaseModels/ScheduledMaintenanceCustomField";
 import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
@@ -514,6 +516,13 @@ const ScheduledMaintenanceView: FunctionComponent<
               ],
               modelId: modelId,
             }}
+          />
+
+          <OverviewCustomFields
+            modelId={modelId}
+            modelType={ScheduledMaintenance}
+            customFieldType={ScheduledMaintenanceCustomField}
+            resourceName="Scheduled Maintenance"
           />
 
           <CardModelDetail<ScheduledMaintenance>

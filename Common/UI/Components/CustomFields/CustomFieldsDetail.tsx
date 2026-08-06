@@ -51,14 +51,41 @@ export interface ComponentProps {
   customFieldType: DatabaseBaseModelType;
   projectId: ObjectID;
   name: string;
-  isEditable?: boolean;
+  isEditable?: boolean | undefined;
+  /*
+   * For call sites that mount this card unconditionally - the resource
+   * overview pages - where most projects have never defined a custom field.
+   *
+   * With this set the card renders NOTHING until it knows the project has at
+   * least one field of this type: no loader flash and no "no custom fields
+   * have been added" placeholder occupying a slot on a page the operator
+   * opened to look at something else.
+   *
+   * It also hides on a load failure, because reading the schema is gated on
+   * both a permission and a billing plan. Without that, every incident a
+   * project below the custom-fields plan opens would carry an error card it
+   * can do nothing about. The dedicated Custom Fields page mounts this same
+   * component WITHOUT the flag, so anyone who goes looking still sees the
+   * real reason.
+   */
+  hideIfEmpty?: boolean | undefined;
 }
 
 const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [schemaList, setSchemaList] = useState<Array<BaseModel>>([]);
-  const [error, setError] = useState<string>("");
+  /*
+   * Read failures and write failures are kept apart because hideIfEmpty
+   * treats them oppositely. Failing to READ the schema is something an
+   * overview page swallows - the project may simply not be on a plan that
+   * includes custom fields, and there is nothing the operator can do about it
+   * on an incident page. Failing to WRITE is the operator's own edit coming
+   * back rejected, and must be reported wherever it happens. Sharing one slot
+   * meant a rejected save made the whole card disappear.
+   */
+  const [loadError, setLoadError] = useState<string>("");
+  const [saveError, setSaveError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [model, setModel] = useState<BaseModel | null>(null);
   const [showModelForm, setShowModelForm] = useState<boolean>(false);
@@ -67,6 +94,7 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
     try {
       // load schema.
       setIsLoading(true);
+      setLoadError("");
 
       const schemaList: ListResult<BaseModel> =
         await ModelAPI.getList<BaseModel>({
@@ -99,7 +127,7 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
       setIsLoading(false);
     } catch (err) {
       setIsLoading(false);
-      setError(API.getFriendlyMessage(err));
+      setLoadError(API.getFriendlyMessage(err));
     }
   };
 
@@ -109,6 +137,7 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
     try {
       // load schema.
       setIsLoading(true);
+      setSaveError("");
       setShowModelForm(false);
 
       await ModelAPI.updateById({
@@ -122,7 +151,7 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
       await onLoad();
     } catch (err) {
       setIsLoading(false);
-      setError(API.getFriendlyMessage(err));
+      setSaveError(API.getFriendlyMessage(err));
     }
   };
 
@@ -132,12 +161,45 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
 
   const isEditable: boolean = props.isEditable !== false;
 
+  /*
+   * schemaList is empty both before the first load finishes and when the
+   * project genuinely has no fields of this type, which is exactly when an
+   * overview page should show nothing - so one check covers both.
+   *
+   * `!model` covers the record itself coming back empty. On a page that is
+   * plainly displaying that record, a card announcing "Item not found" is a
+   * contradiction; showing nothing is the honest version.
+   *
+   * Deliberately NOT saveError: a rejected save has to stay on screen, and it
+   * leaves schemaList and model intact, so the card keeps rendering.
+   */
+  if (
+    props.hideIfEmpty &&
+    (Boolean(loadError) || schemaList.length === 0 || !model)
+  ) {
+    return <></>;
+  }
+
+  /*
+   * There has to be something to edit before the button is worth offering:
+   * the modal reads its initial values off the record and its inputs off the
+   * schema, so opening it mid-load threw on a null record, and opening it
+   * with no fields defined produced a form with nothing in it.
+   *
+   * A failed LOAD needs no term of its own - it leaves schemaList empty and
+   * model null, which the checks below already cover. A failed SAVE must not
+   * take the button away, or the error message is telling the operator to
+   * retry something they can no longer reach.
+   */
+  const canEdit: boolean =
+    isEditable && !isLoading && schemaList.length > 0 && Boolean(model);
+
   return (
     <Card
       title={props.title}
       description={props.description}
       buttons={
-        isEditable
+        canEdit
           ? [
               {
                 title: "Edit Fields",
@@ -152,14 +214,26 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
       }
     >
       <div className="border-t border-gray-200 px-4 py-5 sm:px-6 -m-6 -mt-2">
-        {isLoading && !error && <ComponentLoader />}
-        {!isLoading && !error && schemaList.length === 0 && (
+        {isLoading && !loadError && <ComponentLoader />}
+        {!isLoading && !loadError && schemaList.length === 0 && (
           <ErrorMessage message="No custom fields have been added for this resource. You may add custom fields in Project Settings." />
         )}
-        {error && <ErrorMessage message={error} />}
-        {!model && <ErrorMessage message={"Item not found"} />}
+        {loadError && <ErrorMessage message={loadError} />}
+        {/*
+         * Above the values, which are still the ones on the record: the save
+         * did not happen, so what is on screen below is what is stored.
+         */}
+        {saveError && <ErrorMessage message={saveError} />}
+        {/*
+         * Only once the fetch has settled: model is null on the very first
+         * render too, and announcing "Item not found" while the request is
+         * still in flight reads as a broken record rather than a pending one.
+         */}
+        {!isLoading && !loadError && schemaList.length > 0 && !model && (
+          <ErrorMessage message={"Item not found"} />
+        )}
 
-        {!isLoading && !error && model && (
+        {!isLoading && !loadError && schemaList.length > 0 && model && (
           <Detail
             id={props.name}
             item={(model as any)["customFields"] || {}}
@@ -194,7 +268,7 @@ const CustomFieldsDetail: FunctionComponent<ComponentProps> = (
               await onSave(data).catch();
             }}
             formProps={{
-              initialValues: (model as any)["customFields"] || {},
+              initialValues: (model as any)?.["customFields"] || {},
               fields: schemaList.map((schemaItem: BaseModel) => {
                 const isDropdown: boolean =
                   (schemaItem as any).customFieldType ===

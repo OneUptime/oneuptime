@@ -73,6 +73,8 @@ import Span from "Common/Models/AnalyticsModels/Span";
 import Log from "Common/Models/AnalyticsModels/Log";
 import LiveDuration from "../../../Components/EventView/LiveDuration";
 import { getEventEndDateForCurrentState } from "../../../Utils/EventDuration";
+import OverviewCustomFields from "../../../Components/CustomFields/OverviewCustomFields";
+import AlertCustomField from "Common/Models/DatabaseModels/AlertCustomField";
 
 const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
@@ -758,6 +760,13 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               ],
               modelId: modelId,
             }}
+          />
+
+          <OverviewCustomFields
+            modelId={modelId}
+            modelType={Alert}
+            customFieldType={AlertCustomField}
+            resourceName="Alert"
           />
 
           <CardModelDetail<Alert>

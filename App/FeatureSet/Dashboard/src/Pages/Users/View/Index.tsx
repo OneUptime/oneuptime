@@ -1,4 +1,5 @@
 import ProjectUtil from "Common/UI/Utils/Project";
+import UserCustomFields from "../../../Components/CustomFields/UserCustomFields";
 import PageComponentProps from "../../PageComponentProps";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
@@ -153,6 +154,8 @@ const UserViewIndex: FunctionComponent<
           ]}
         />
       </Card>
+
+      <UserCustomFields userId={userId} hideIfEmpty={true} />
     </Fragment>
   );
 };

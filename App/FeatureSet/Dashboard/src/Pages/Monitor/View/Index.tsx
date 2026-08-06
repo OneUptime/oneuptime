@@ -38,8 +38,10 @@ import AnalyticsModelAPI, {
 } from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
+import OverviewCustomFields from "../../../Components/CustomFields/OverviewCustomFields";
 import Label from "Common/Models/DatabaseModels/Label";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import MonitorCustomField from "Common/Models/DatabaseModels/MonitorCustomField";
 import MonitorProbe, {
   MonitorStepProbeResponse,
 } from "Common/Models/DatabaseModels/MonitorProbe";
@@ -715,6 +717,13 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           ],
           modelId: modelId,
         }}
+      />
+
+      <OverviewCustomFields
+        modelId={modelId}
+        modelType={Monitor}
+        customFieldType={MonitorCustomField}
+        resourceName="Monitor"
       />
 
       {/* Heartbeat URL */}
