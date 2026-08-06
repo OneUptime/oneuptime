@@ -15,7 +15,8 @@ import CodeRepositoryModel from "../../../../Models/DatabaseModels/CodeRepositor
 import TelemetryException from "../../../../Models/DatabaseModels/TelemetryException";
 import CodeRepositoryType from "../../../../Types/CodeRepository/CodeRepositoryType";
 import ObjectID from "../../../../Types/ObjectID";
-import { describe, expect, test, afterEach } from "@jest/globals";
+import GitHubInstallationBinding from "../../../../Server/Utils/CodeRepository/GitHub/GitHubInstallationBinding";
+import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
 
 /*
  * The code tools are the bridge from a telemetry signal to the source that
@@ -86,6 +87,19 @@ function mockFileContent(content: string): void {
   });
 }
 
+/*
+ * findReadableRepositories now also proves each row's GitHub App installation
+ * belongs to the row's project (GHSA-xx95-gmcf-7q86), which is a database
+ * read. That guard has its own tests; here it would just be a Postgres
+ * connection these tool tests do not need, so treat every fixture row as
+ * bound.
+ */
+beforeEach(() => {
+  jest
+    .spyOn(GitHubInstallationBinding, "getBoundInstallationId")
+    .mockResolvedValue("12345");
+});
+
 afterEach(() => {
   jest.restoreAllMocks();
 });
@@ -116,6 +130,38 @@ describe("list_code_repositories", () => {
     expect(result.dataForLlm).toContain("readable");
     expect(result.dataForLlm).not.toContain("uninstalled");
     expect(result.dataForLlm).not.toContain("gitlab-repo");
+    expect(result.rowCount).toBe(1);
+  });
+
+  /*
+   * GHSA-xx95-gmcf-7q86. A row can be in this project and still name a GitHub
+   * App installation the project does not own — that combination used to be
+   * creatable, and these tools would then read, commit and open pull requests
+   * in another tenant's private repositories. Being in the project is not the
+   * same as owning the installation, so an unbound row must be invisible here
+   * exactly like an uninstalled one.
+   */
+  test("hides a repository whose installation is not bound to the project", async () => {
+    jest
+      .spyOn(GitHubInstallationBinding, "getBoundInstallationId")
+      .mockResolvedValue("12345");
+
+    mockRepositories([
+      buildRepository({ name: "our-repo", installationId: "12345" }),
+      buildRepository({
+        id: ObjectID.generate(),
+        name: "someone-elses-repo",
+        installationId: "99999999",
+      }),
+    ]);
+
+    const result: ToolExecutionResult = await ListCodeRepositoriesTool.execute(
+      {},
+      ctx,
+    );
+
+    expect(result.dataForLlm).toContain("our-repo");
+    expect(result.dataForLlm).not.toContain("someone-elses-repo");
     expect(result.rowCount).toBe(1);
   });
 

@@ -17,36 +17,39 @@ import {
   HomeClientUrl,
 } from "../EnvironmentConfig";
 import ObjectID from "../../Types/ObjectID";
-import GitHubUtil, {
-  GitHubRepository,
-  GitHubInstallationNotFoundError,
-} from "../Utils/CodeRepository/GitHub/GitHub";
+import GitHubUtil from "../Utils/CodeRepository/GitHub/GitHub";
 import CodeRepositoryService, {
   ImportReposFromInstallationResult,
 } from "../Services/CodeRepositoryService";
 import ProjectService from "../Services/ProjectService";
 import AccessTokenService from "../Services/AccessTokenService";
-import CodeRepository from "../../Models/DatabaseModels/CodeRepository";
 import Project from "../../Models/DatabaseModels/Project";
-import CodeRepositoryType from "../../Types/CodeRepository/CodeRepositoryType";
 import URL from "../../Types/API/URL";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import JSONWebToken from "../Utils/JsonWebToken";
-import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { UserTenantAccessPermission } from "../../Types/Permission";
 
 export default class GitHubAPI {
   /*
-   * Resolves the projects linked to a GitHub App installation. The
-   * installation ID is stored on the Project when the install callback runs
-   * (mirroring how the uninstall webhook resolves projects). As a fallback,
-   * also look at existing CodeRepository rows that carry the installation ID
-   * (e.g. if the ID was cleared from the project but repositories remain).
+   * Resolves the projects linked to a GitHub App installation.
+   *
+   * Project.gitHubAppInstallationId is the only source consulted, because it
+   * is the only one GitHub has vouched for — the install callback writes it
+   * after verifying the installer controls the installation, and the
+   * uninstall webhook clears it.
+   *
+   * This used to fall back to CodeRepository rows carrying the installation
+   * ID. That inverted the trust: a row is supposed to derive its right to an
+   * installation FROM its project, so letting a row nominate its project as a
+   * link target meant anyone who could write an installation ID onto a row in
+   * their own project would have that project treated as an owner of the
+   * installation — and every webhook would then import the victim's
+   * repositories into it.
    */
   private static async getProjectIdsForInstallation(
     installationId: string,
   ): Promise<Array<ObjectID>> {
-    const projectIds: Array<string> = [];
+    const projectIds: Array<ObjectID> = [];
 
     const projects: Array<Project> = await ProjectService.findBy({
       query: {
@@ -64,37 +67,11 @@ export default class GitHubAPI {
 
     for (const project of projects) {
       if (project.id) {
-        projectIds.push(project.id.toString());
+        projectIds.push(project.id);
       }
     }
 
-    const codeRepositories: Array<CodeRepository> =
-      await CodeRepositoryService.findBy({
-        query: {
-          gitHubAppInstallationId: installationId,
-        },
-        select: {
-          projectId: true,
-        },
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
-      });
-
-    for (const codeRepository of codeRepositories) {
-      if (
-        codeRepository.projectId &&
-        !projectIds.includes(codeRepository.projectId.toString())
-      ) {
-        projectIds.push(codeRepository.projectId.toString());
-      }
-    }
-
-    return projectIds.map((projectId: string) => {
-      return new ObjectID(projectId);
-    });
+    return projectIds;
   }
 
   // Imports all repositories in an installation into every project linked to it.
@@ -261,6 +238,62 @@ export default class GitHubAPI {
           }
 
           /*
+           * Prove the installation actually belongs to the person completing
+           * this redirect, before writing the binding everything downstream
+           * trusts.
+           *
+           * A valid `state` only says "this OneUptime user asked to install
+           * something for this project" — it says nothing about WHICH
+           * installation, and `installation_id` is an unauthenticated integer
+           * in a query string. Without this step anyone could start an install
+           * for their own project, then hand-edit the callback URL to a victim's
+           * installation ID: OneUptime would record their project as the owner
+           * of that installation, import the victim's private repositories into
+           * it, and mint write-scoped tokens for them on demand.
+           *
+           * The OAuth `code` is the missing proof. GitHub mints it for one
+           * GitHub account, it is single-use, and trading it in tells us which
+           * installations that account can actually administer.
+           */
+          const oauthCode: string | undefined = req.query["code"]?.toString();
+
+          if (!oauthCode) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(
+                'GitHub did not return an authorization code, so this installation could not be verified. Please enable "Request user authorization (OAuth) during installation" in the GitHub App settings and install again.',
+              ),
+            );
+          }
+
+          try {
+            await GitHubUtil.assertUserControlsInstallation({
+              oauthCode: oauthCode,
+              installationId: installationId,
+            });
+          } catch (verificationError) {
+            logger.error(
+              `GitHub Auth Callback: refusing to bind installation ${installationId} to project ${projectId} — could not verify the installing user controls it.`,
+              getLogAttributesFromRequest(req as OneUptimeRequest),
+            );
+            logger.error(
+              verificationError,
+              getLogAttributesFromRequest(req as OneUptimeRequest),
+            );
+
+            return Response.sendErrorResponse(
+              req,
+              res,
+              verificationError instanceof Error
+                ? new BadDataException(verificationError.message)
+                : new BadDataException(
+                    "Could not verify this GitHub App installation.",
+                  ),
+            );
+          }
+
+          /*
            * Store the installation ID in the project
            * This allows reuse when connecting additional repositories
            */
@@ -329,6 +362,7 @@ export default class GitHubAPI {
     // Initiate GitHub App installation
     router.get(
       "/github/auth/install",
+      UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse) => {
         try {
           if (!GitHubAppName) {
@@ -341,15 +375,53 @@ export default class GitHubAPI {
             );
           }
 
-          const projectId: string | undefined =
-            req.query["projectId"]?.toString();
-          const userId: string | undefined = req.query["userId"]?.toString();
+          const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
 
-          if (!projectId || !userId) {
+          /*
+           * The state this route signs is what the callback trusts to decide
+           * which project gets the installation, so it must only ever be
+           * issued to the logged-in user for a project they belong to. Taking
+           * the user id from a query parameter — as this route used to — let
+           * anyone mint a valid state for any (project, user) pair without
+           * even holding a session.
+           */
+          if (!oneuptimeRequest.userAuthorization) {
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Project ID and User ID are required"),
+              new NotAuthenticatedException(
+                "Authentication is required to install the GitHub App.",
+              ),
+            );
+          }
+
+          const projectId: string | undefined =
+            req.query["projectId"]?.toString();
+
+          if (!projectId) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException("Project ID is required"),
+            );
+          }
+
+          const userId: string =
+            oneuptimeRequest.userAuthorization.userId.toString();
+
+          const userTenantAccessPermission: UserTenantAccessPermission | null =
+            await AccessTokenService.getUserTenantAccessPermission(
+              new ObjectID(userId),
+              new ObjectID(projectId),
+            );
+
+          if (!userTenantAccessPermission) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new NotAuthorizedException(
+                "You do not have access to this project.",
+              ),
             );
           }
 
@@ -387,261 +459,25 @@ export default class GitHubAPI {
       },
     );
 
-    // List repositories for an installation
-    router.get(
-      "/github/repositories/:projectId/:installationId",
-      UserMiddleware.getUserMiddleware,
-      async (req: ExpressRequest, res: ExpressResponse) => {
-        try {
-          const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
-
-          // Require authentication
-          if (!oneuptimeRequest.userAuthorization) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new NotAuthenticatedException(
-                "Authentication is required to list repositories.",
-              ),
-            );
-          }
-
-          const projectId: string | undefined =
-            req.params["projectId"]?.toString();
-          const installationId: string | undefined =
-            req.params["installationId"]?.toString();
-
-          if (!projectId) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Project ID is required"),
-            );
-          }
-
-          if (!installationId) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Installation ID is required"),
-            );
-          }
-
-          // Verify user has access to this project
-          const userTenantAccessPermission: UserTenantAccessPermission | null =
-            await AccessTokenService.getUserTenantAccessPermission(
-              oneuptimeRequest.userAuthorization.userId,
-              new ObjectID(projectId),
-            );
-
-          if (!userTenantAccessPermission) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new NotAuthorizedException(
-                "You do not have access to this project.",
-              ),
-            );
-          }
-
-          const repositories: Array<GitHubRepository> =
-            await GitHubUtil.listRepositoriesForInstallation(installationId);
-
-          return Response.sendJsonObjectResponse(req, res, {
-            repositories: repositories as unknown,
-          } as JSONObject);
-        } catch (error) {
-          logger.error(
-            "GitHub List Repositories Error:",
-            getLogAttributesFromRequest(req as OneUptimeRequest),
-          );
-          logger.error(
-            error,
-            getLogAttributesFromRequest(req as OneUptimeRequest),
-          );
-
-          // Handle stale installation ID - clear it from the project and return specific error
-          if (error instanceof GitHubInstallationNotFoundError) {
-            const projectId: string | undefined =
-              req.params["projectId"]?.toString();
-
-            if (projectId) {
-              try {
-                // Clear the stale installation ID from the project
-                await ProjectService.updateOneById({
-                  id: new ObjectID(projectId),
-                  data: {
-                    gitHubAppInstallationId: null as unknown as string,
-                  },
-                  props: {
-                    isRoot: true,
-                  },
-                });
-
-                logger.info(
-                  `Cleared stale GitHub App installation ID from project ${projectId}`,
-                  getLogAttributesFromRequest(req as OneUptimeRequest),
-                );
-              } catch (clearError) {
-                logger.error(
-                  "Failed to clear stale installation ID from project:",
-                  getLogAttributesFromRequest(req as OneUptimeRequest),
-                );
-                logger.error(
-                  clearError,
-                  getLogAttributesFromRequest(req as OneUptimeRequest),
-                );
-              }
-            }
-
-            // Return the specific error so the frontend knows to prompt reinstallation
-            return Response.sendErrorResponse(req, res, error);
-          }
-
-          return Response.sendErrorResponse(
-            req,
-            res,
-            error instanceof Error
-              ? new BadDataException(error.message)
-              : new BadDataException("An error occurred"),
-          );
-        }
-      },
-    );
-
-    // Connect a repository to a project
-    router.post(
-      "/github/repository/connect",
-      UserMiddleware.getUserMiddleware,
-      async (req: ExpressRequest, res: ExpressResponse) => {
-        try {
-          const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
-
-          // Require authentication
-          if (!oneuptimeRequest.userAuthorization) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new NotAuthenticatedException(
-                "Authentication is required to connect a repository.",
-              ),
-            );
-          }
-
-          const body: JSONObject = req.body;
-
-          const projectId: string | undefined = body["projectId"]?.toString();
-          const installationId: string | undefined =
-            body["installationId"]?.toString();
-          const repositoryName: string | undefined =
-            body["repositoryName"]?.toString();
-          const organizationName: string | undefined =
-            body["organizationName"]?.toString();
-          const name: string | undefined = body["name"]?.toString();
-          const defaultBranch: string | undefined =
-            body["defaultBranch"]?.toString();
-          const repositoryUrl: string | undefined =
-            body["repositoryUrl"]?.toString();
-          const description: string | undefined =
-            body["description"]?.toString();
-
-          if (!projectId) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Project ID is required"),
-            );
-          }
-
-          if (!installationId) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Installation ID is required"),
-            );
-          }
-
-          // Verify user has access to this project
-          const userTenantAccessPermission: UserTenantAccessPermission | null =
-            await AccessTokenService.getUserTenantAccessPermission(
-              oneuptimeRequest.userAuthorization.userId,
-              new ObjectID(projectId),
-            );
-
-          if (!userTenantAccessPermission) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new NotAuthorizedException(
-                "You do not have access to this project.",
-              ),
-            );
-          }
-
-          if (!repositoryName) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Repository name is required"),
-            );
-          }
-
-          if (!organizationName) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Organization name is required"),
-            );
-          }
-
-          // Create the code repository record
-          const codeRepository: CodeRepository = new CodeRepository();
-          codeRepository.projectId = new ObjectID(projectId);
-          codeRepository.name = name || `${organizationName}/${repositoryName}`;
-          codeRepository.repositoryHostedAt = CodeRepositoryType.GitHub;
-          codeRepository.organizationName = organizationName;
-          codeRepository.repositoryName = repositoryName;
-          codeRepository.mainBranchName = defaultBranch || "main";
-          codeRepository.gitHubAppInstallationId = installationId;
-
-          if (repositoryUrl) {
-            codeRepository.repositoryUrl = URL.fromString(repositoryUrl);
-          }
-
-          if (description) {
-            codeRepository.description = description;
-          }
-
-          const createdRepository: CodeRepository =
-            await CodeRepositoryService.create({
-              data: codeRepository,
-              props: {
-                isRoot: true,
-              },
-            });
-
-          return Response.sendJsonObjectResponse(req, res, {
-            repository: BaseModel.toJSON(createdRepository, CodeRepository),
-          } as JSONObject);
-        } catch (error) {
-          logger.error(
-            "GitHub Connect Repository Error:",
-            getLogAttributesFromRequest(req as OneUptimeRequest),
-          );
-          logger.error(
-            error,
-            getLogAttributesFromRequest(req as OneUptimeRequest),
-          );
-          return Response.sendErrorResponse(
-            req,
-            res,
-            error instanceof Error
-              ? new BadDataException(error.message)
-              : new BadDataException("An error occurred"),
-          );
-        }
-      },
-    );
+    /*
+     * GET /github/repositories/:projectId/:installationId and
+     * POST /github/repository/connect used to live here. Both are gone.
+     *
+     * Both took an installation ID straight from the caller and checked only
+     * that the caller could access the project THEY had named — a comparison
+     * the caller controls both sides of, since anyone can create a project and
+     * own it. The listing route would then return any installation's private
+     * repository list (an enumeration oracle over a small integer space), and
+     * the connect route would persist the caller's installation ID onto a
+     * CodeRepository row, which is exactly the self-asserted binding the
+     * repository-token endpoint later minted a `ghs_` token from.
+     *
+     * Nothing called them: repositories are imported automatically by the
+     * install callback below and kept in sync by the installation webhooks, so
+     * the binding is always established by GitHub rather than asserted by a
+     * client. There is no supported way to name an installation ID over the
+     * API any more, and that is deliberate — see GitHubInstallationBinding.
+     */
 
     // GitHub webhook handler
     router.post(

@@ -649,13 +649,21 @@ export default class CodeRepository extends BaseModel {
   })
   public repositoryUrl?: URL = undefined;
 
-  // GitHub App specific fields
+  /*
+   * GitHub App specific fields.
+   *
+   * `create` is empty on purpose. This column decides which GitHub App
+   * installation a repository token is minted from, so a caller who could set
+   * it could name ANOTHER tenant's installation, put the row in a project they
+   * own, and pass every "is this row in your project?" check on the way to a
+   * live `ghs_` token. It is assigned server-side only — by the install
+   * callback and the installation webhooks, which write with `isRoot` after
+   * GitHub has confirmed the installation belongs to the project.
+   * CodeRepositoryService.onBeforeCreate/onBeforeUpdate enforce the same rule
+   * a second time, in case a future route writes as root.
+   */
   @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.CreateCodeRepository,
-    ],
+    create: [],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,

@@ -69,6 +69,7 @@ import ObjectID from "../../Types/ObjectID";
 import GitHubUtil, {
   GitHubInstallationToken,
 } from "../Utils/CodeRepository/GitHub/GitHub";
+import GitHubInstallationBinding from "../Utils/CodeRepository/GitHub/GitHubInstallationBinding";
 import CodeRepositoryType from "../../Types/CodeRepository/CodeRepositoryType";
 import URL from "../../Types/API/URL";
 import PullRequestState from "../../Types/CodeRepository/PullRequestState";
@@ -1162,6 +1163,36 @@ export default class AIAgentDataAPI {
               res,
               new BadDataException(
                 "No GitHub App installation ID found for this repository",
+              ),
+            );
+          }
+
+          /*
+           * The project check above proves the ROW is in the agent's project.
+           * It does not prove the INSTALLATION is — and those are different
+           * questions, because the row's installation ID is just a number
+           * stored on a record. Someone who could get an arbitrary
+           * installation ID onto a row in a project they own would otherwise
+           * pass every check to this point and be handed a live `ghs_` token
+           * for another tenant's repositories. So re-derive the binding from
+           * the project itself, right before minting.
+           */
+          if (
+            !codeRepository.projectId ||
+            !(await GitHubInstallationBinding.isInstallationBoundToProject({
+              projectId: codeRepository.projectId,
+              installationId: codeRepository.gitHubAppInstallationId,
+            }))
+          ) {
+            logger.error(
+              `Refusing to mint a GitHub token for code repository ${codeRepositoryId.toString()}: installation ${codeRepository.gitHubAppInstallationId} is not bound to project ${codeRepository.projectId?.toString()}.`,
+            );
+
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(
+                "This repository's GitHub App installation is not connected to its project. Please reconnect the GitHub App from Project Settings.",
               ),
             );
           }

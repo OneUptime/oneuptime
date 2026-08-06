@@ -20,7 +20,6 @@ import React, {
   useState,
 } from "react";
 import { env, HOME_URL } from "Common/UI/Config";
-import UserUtil from "Common/UI/Utils/User";
 import AIPlanGate from "../../Components/AI/AIPlanGate";
 import RepositoryConnectionStatus from "../../Components/CodeRepository/RepositoryConnectionStatus";
 import Card from "Common/UI/Components/Card/Card";
@@ -70,9 +69,12 @@ const CodeRepositoryPage: FunctionComponent<
      * Redirect to GitHub to install (or update) the GitHub App. Once
      * installed, all repositories in the installation are imported
      * automatically and kept in sync via webhooks.
+     *
+     * No userId is sent: the install route takes the user from the session
+     * cookie. It used to accept one here, which meant anyone could mint the
+     * signed state the callback trusts, for any user and project they named.
      */
-    const userId: ObjectID = UserUtil.getUserId();
-    const installUrl: string = `${HOME_URL.toString()}api/github/auth/install?projectId=${projectId.toString()}&userId=${userId.toString()}`;
+    const installUrl: string = `${HOME_URL.toString()}api/github/auth/install?projectId=${projectId.toString()}`;
     window.location.href = installUrl;
   };
 
