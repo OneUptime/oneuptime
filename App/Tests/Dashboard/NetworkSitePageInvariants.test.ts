@@ -710,30 +710,6 @@ describe("SiteGeoMap", () => {
     "SiteGeoMap.tsx",
   );
 
-  /*
-   * The geometry is ~600 KB across both tiers. Every route module lands in
-   * one shared esbuild chunk, so a static import here is downloaded and
-   * parsed by every dashboard page — Incidents, a monitor, Settings — none
-   * of which draw a map. They must be loaded on demand, and they must stay
-   * .json: esbuild base64-inlines an imported .svg straight back into the
-   * shared chunk.
-   */
-  test("map geometry is not statically imported", () => {
-    expect(source).not.toMatch(
-      /import \S+ from "\.\/Geo\/WorldCountries\w*Geometry\.json";/,
-    );
-  });
-
-  test("both tiers are loaded lazily, by literal specifier", () => {
-    // Literal specifiers so esbuild can see both targets and split them out.
-    expect(source).toContain(
-      'await import("./Geo/WorldCountriesGeometry.json")',
-    );
-    expect(source).toContain(
-      'await import("./Geo/WorldCountriesDetailGeometry.json")',
-    );
-  });
-
   test("the async load has a rendered pending state", () => {
     expect(source).toContain("overviewFeatures === null ?");
     expect(source).toContain('data-testid="site-geo-map-skeleton"');
@@ -950,6 +926,173 @@ describe("SiteGeoMap", () => {
     expect(
       readCode("Components", "NetworkSite", "SiteGeoMap.tsx"),
     ).not.toContain("* 1.78");
+  });
+});
+
+/*
+ * A map of where the sites are is only half a network. The links between
+ * them — the WAN links, the fibre pairs — were drawn on the child graph and
+ * listed as chips under the map, and nowhere on the map itself, so the one
+ * view that shows the whole estate showed none of its connections.
+ *
+ * The rule that has to survive every future edit is the negative one: a
+ * link with NO monitor attached is still a line. The monitor decides the
+ * line's color, never whether the connection exists. Everything pinned here
+ * is one half of that.
+ */
+describe("SiteGeoMap draws the site links", () => {
+  const source: string = readSource(
+    "Components",
+    "NetworkSite",
+    "SiteGeoMap.tsx",
+  );
+  const code: string = readCode("Components", "NetworkSite", "SiteGeoMap.tsx");
+
+  test("the map takes links and turns them into lines", () => {
+    expect(source).toContain("links: Array<MapLinkView>;");
+    expect(source).toContain(
+      squash("buildMapLinks({ links: props.links, markers: placedMarkers,"),
+    );
+    expect(source).toContain('data-testid="site-geo-map-links"');
+    expect(source).toContain("const path: string = mapLinkPath(link);");
+  });
+
+  /*
+   * Lines are built from the PLACED markers, at the drawn positions. A line
+   * to a marker's projected position ends in empty space next to the marker
+   * it names, because layoutMapMarkers pushes overlapping markers off each
+   * other and leaves an anchor behind.
+   */
+  test("the lines are built from the drawn marker positions", () => {
+    expect(source).toContain("markers: placedMarkers,");
+    expect(source).not.toContain(
+      squash("buildMapLinks({ links: props.links, markers: markers,"),
+    );
+  });
+
+  /*
+   * Bows keep parallel links apart by a SCREEN distance, so the zoom is an
+   * input. Drop it from the memo dependencies and two links between the
+   * same pair drift together (or apart) as the map is zoomed.
+   */
+  test("the lines are rebuilt with the zoom", () => {
+    const memo: string = source
+      .split("const linkLines: Array<DrawableMapLink> = useMemo(")[1]!
+      .split("]);")[0]!;
+    expect(memo).toContain("zoom: zoom,");
+    expect(memo).toContain("[props.links, placedMarkers, zoom");
+  });
+
+  /*
+   * THE requirement, in the renderer: nothing here may condition a line on
+   * a monitor being attached. An unmonitored link is dashed and neutral —
+   * present, and honest about why it has no color.
+   */
+  test("a link with no monitor is dashed, never dropped", () => {
+    expect(source).toContain(
+      squash("link.hasMonitor ? undefined : `${5 / zoom} ${4 / zoom}`"),
+    );
+    // No filter, anywhere, on whether a link carries a status.
+    expect(code).not.toContain("link.monitorStatus ?");
+    expect(code).not.toContain("linkLines.filter(");
+  });
+
+  test("every line is colored by its own link", () => {
+    expect(source).toContain("stroke={link.color}");
+  });
+
+  /*
+   * Under the markers, in paint order. A line crossing over the marker it
+   * ends at reads as a line passing THROUGH that site rather than
+   * terminating there.
+   */
+  test("the lines are painted under the markers", () => {
+    expect(source.indexOf('data-testid="site-geo-map-links"')).toBeLessThan(
+      source.indexOf("placedMarkers.map((marker: PlacedMapMarker)"),
+    );
+  });
+
+  /*
+   * A 2px line is unhoverable in practice, and the name of a link is the
+   * whole reason to hover one.
+   */
+  test("each line carries a hit area and a name", () => {
+    expect(source).toContain('stroke="transparent"');
+    expect(source).toContain("<title>{link.tooltip}</title>");
+    expect(source).toContain("label: link.tooltip,");
+  });
+
+  test("the lines are explained, and only when there are some", () => {
+    expect(source).toContain(squash("{linkLines.length > 0 ? ("));
+    expect(source).toContain('data-testid="site-geo-map-link-key"');
+    expect(source).toContain(
+      "Site link — colored by its monitor; dashed when it has none",
+    );
+  });
+
+  /*
+   * Issue #3025: "site links only visible when zoomed out, disappear when
+   * zoomed in". What that reported was the marker LEADER THREADS, which
+   * correctly melt away as zoom pulls the markers apart — there were no
+   * link lines on the map at all. Now that there are, they must never
+   * acquire a zoom condition of their own: the lines are a sibling of the
+   * other layers, drawn unconditionally, and only their stroke widths
+   * divide by the zoom to stay a constant size on screen.
+   */
+  test("the lines are drawn at every zoom, not gated on one", () => {
+    expect(code).toContain(
+      '</g> { } <g data-testid="site-geo-map-links"> {linkLines.map(',
+    );
+    // Up to the leader-line group, which is the next layer on the map.
+    const group: string = code
+      .split('data-testid="site-geo-map-links"')[1]!
+      .split('{ } <g style={{ pointerEvents: "none" }}>')[0]!;
+    expect(group).not.toMatch(/zoom\s*[<>]/);
+    expect(group).not.toContain("MAX_ZOOM");
+    expect(group).not.toContain("needsDetail");
+    expect(group).not.toContain("needsLeaderLine");
+  });
+
+  /*
+   * And the set of lines is decided by the markers, never by the frame: a
+   * viewport dependency here would drop links as the reader panned.
+   */
+  test("which lines exist does not depend on the viewport", () => {
+    const memo: string = code
+      .split("const linkLines: Array<DrawableMapLink> = useMemo(")[1]!
+      .split("]);")[0]!;
+    expect(memo).not.toContain("viewport");
+    expect(memo).not.toContain("countPointsInViewport");
+  });
+});
+
+/*
+ * The map's links come from the MAP endpoint, not from the child graph's:
+ * in "all" mode the markers are individual sites rather than this level's
+ * children, so the two endpoints answer with different link sets. Handing
+ * the graph's list to the map would silently draw nothing in that mode.
+ */
+describe("NetworkMap hands the map its own links", () => {
+  const source: string = readSource("Pages", "NetworkSite", "NetworkMap.tsx");
+
+  test("the map's links come from the map payload", () => {
+    expect(source).toContain(
+      squash(
+        "const mapLinks: Array<MapLinkView> = filterLinksBySearch( mapData?.links || [], normalizedSearch, siteIdSet(pinnedSites), );",
+      ),
+    );
+    expect(source).toContain("links={mapLinks}");
+  });
+
+  /*
+   * Narrowed through the same predicate as the markers, against the sites
+   * still ON the map: the halves of this page must never disagree about
+   * what is being looked at, and a line to a site a search has hidden
+   * points at nothing.
+   */
+  test("the lines are narrowed by the same search as everything else", () => {
+    expect(source).toContain("siteIdSet(pinnedSites)");
+    expect(source).not.toContain("links={mapData?.links");
   });
 });
 

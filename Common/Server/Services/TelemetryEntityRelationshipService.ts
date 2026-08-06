@@ -55,6 +55,7 @@ export class TelemetryEntityRelationshipService extends DatabaseService<Model> {
       },
       lastSeenAt: now,
       describe: `edge ${edge.fromEntityKey}-[${edge.relationshipType}]->${edge.toEntityKey}`,
+      rowFenceId: `${projectId.toString()}:${edge.fromEntityKey}:${edge.toEntityKey}:${edge.relationshipType}`,
       buildModel: () => {
         const model: Model = new Model();
         model.projectId = projectId;

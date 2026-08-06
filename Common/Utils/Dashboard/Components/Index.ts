@@ -27,6 +27,7 @@ import DashboardKubernetesStatefulSetListComponentUtil from "./DashboardKubernet
 import DashboardLogStreamComponentUtil from "./DashboardLogStreamComponent";
 import DashboardLogChartComponentUtil from "./DashboardLogChartComponent";
 import DashboardMonitorListComponentUtil from "./DashboardMonitorListComponent";
+import DashboardNetworkMapComponentUtil from "./DashboardNetworkMapComponent";
 import DashboardPodmanContainerListComponentUtil from "./DashboardPodmanContainerListComponent";
 import DashboardPodmanHostListComponentUtil from "./DashboardPodmanHostListComponent";
 import DashboardPodmanImageListComponentUtil from "./DashboardPodmanImageListComponent";
@@ -297,6 +298,12 @@ export default class DashboardComponentsUtil {
 
     if (dashboardComponentType === DashboardComponentType.CephPoolList) {
       return DashboardCephPoolListComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.NetworkMap) {
+      return DashboardNetworkMapComponentUtil.getComponentConfigArguments() as Array<
         ComponentArgument<DashboardBaseComponent>
       >;
     }

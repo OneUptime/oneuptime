@@ -137,6 +137,7 @@ export class TelemetryEntityService extends DatabaseService<Model> {
       },
       lastSeenAt: now,
       describe: `entity ${entity.entityType}/${entity.entityKey}`,
+      rowFenceId: `${projectId.toString()}:${entity.entityType}:${entity.entityKey}`,
       select: { descriptiveAttributes: true, labels: true, resourceId: true },
       buildUpdate: (existing: Model): QueryDeepPartialEntity<Model> => {
         const update: QueryDeepPartialEntity<Model> =

@@ -7,6 +7,7 @@ import TableAccessControl from "../../Types/Database/AccessControl/TableAccessCo
 import TableBillingAccessControl from "../../Types/Database/AccessControl/TableBillingAccessControl";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
+import { getBigIntDatabaseTransformer } from "../../Types/Database/BigIntColumnTransformer";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import TableColumn from "../../Types/Database/TableColumn";
@@ -436,26 +437,14 @@ export default class TraceDropFilter extends BaseModel {
     type: ColumnType.BigPositiveNumber,
     nullable: false,
     default: 0,
-    transformer: {
-      to: (value: number | null | undefined): string | null => {
-        if (value === null || value === undefined) {
-          return null;
-        }
-        return Math.trunc(value).toString();
-      },
-      /*
-       * Postgres bigint comes back from the driver as a string. The UI
-       * renders this as a number, so normalize here rather than making
-       * every reader remember.
-       */
-      from: (value: string | null | undefined): number | null => {
-        if (value === null || value === undefined) {
-          return null;
-        }
-        const parsed: number = parseInt(value, 10);
-        return isNaN(parsed) ? null : parsed;
-      },
-    },
+    /*
+     * Shared transformer, not an inline one: it has to preserve `undefined`
+     * so this NOT NULL column's DEFAULT 0 is what a create actually gets.
+     * An inline transformer that mapped `undefined` to `null` made every
+     * drop-filter insert fail the not-null constraint. See
+     * Types/Database/BigIntColumnTransformer.
+     */
+    transformer: getBigIntDatabaseTransformer(),
   })
   public droppedCount?: number = undefined;
 

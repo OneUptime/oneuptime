@@ -79,14 +79,25 @@ export default abstract class OtelIngestBaseService {
    * concurrent telemetry workers and many resources per batch, those
    * UPDATEs dominate Postgres pool occupancy and starve dashboard auth
    * queries. Fence each (scope, id) pair behind a short Redis TTL so
-   * we only re-run the maintenance work once per window. Race-safe is
-   * not required — two workers re-running updateLastSeen at the same
-   * instant is harmless; we just want to drop the steady-state cost.
+   * we only re-run the maintenance work once per window.
    *
-   * lastSeenAt staleness is bounded by this TTL, so every
-   * markDisconnected* threshold in the *Service classes must stay
-   * well above it (they use 15 minutes, 3x). A threshold at or near
-   * the TTL flaps healthy resources between connected and
+   * This fence MUST be race-safe. It used to be a read-then-write, on the
+   * reasoning that "two workers re-running updateLastSeen at the same instant
+   * is harmless". That held at two workers. At 100 pods and ~25K concurrent
+   * jobs it did not: every worker that read the absent key in the same instant
+   * proceeded, so a fence meant to admit one writer per window admitted all of
+   * them, and the resulting row-lock convoy on ~2,300 Service rows took
+   * production down (1,017 connections, 892 parked on locks, the tail waiting
+   * 3.7 hours). The claim below is a single atomic SET NX: exactly one caller
+   * wins regardless of how many arrive together.
+   *
+   * The TTL is jittered so a fleet-wide restart cannot re-synchronise every
+   * resource's window and rebuild the herd on a five-minute period.
+   *
+   * lastSeenAt staleness is bounded by this TTL (at most +25% from jitter, so
+   * 6.25 minutes), so every markDisconnected* threshold in the *Service
+   * classes must stay well above it (they use 15 minutes, still 2.4x). A
+   * threshold at or near the TTL flaps healthy resources between connected and
    * disconnected.
    */
   private static readonly MAINTENANCE_FENCE_NAMESPACE: string =
@@ -98,18 +109,16 @@ export default abstract class OtelIngestBaseService {
     id: string,
   ): Promise<boolean> {
     try {
-      const key: string = `${scope}:${id}`;
-      const seen: string | null = await GlobalCache.getString(
+      return await GlobalCache.setStringIfNotExists(
         this.MAINTENANCE_FENCE_NAMESPACE,
-        key,
+        `${scope}:${id}`,
+        "1",
+        {
+          expiresInSeconds: GlobalCache.withJitter(
+            this.MAINTENANCE_FENCE_TTL_SECONDS,
+          ),
+        },
       );
-      if (seen) {
-        return false;
-      }
-      await GlobalCache.setString(this.MAINTENANCE_FENCE_NAMESPACE, key, "1", {
-        expiresInSeconds: this.MAINTENANCE_FENCE_TTL_SECONDS,
-      });
-      return true;
     } catch {
       // If the cache is down, default to running the maintenance.
       return true;

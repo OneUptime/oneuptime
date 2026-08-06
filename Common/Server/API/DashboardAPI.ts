@@ -50,6 +50,7 @@ import PodmanResource from "../../Models/DatabaseModels/PodmanResource";
 import ProxmoxResource from "../../Models/DatabaseModels/ProxmoxResource";
 import CephResource from "../../Models/DatabaseModels/CephResource";
 import DockerSwarmResource from "../../Models/DatabaseModels/DockerSwarmResource";
+import NetworkSite from "../../Models/DatabaseModels/NetworkSite";
 import Span from "../../Models/AnalyticsModels/Span";
 import Log from "../../Models/AnalyticsModels/Log";
 import IncidentService from "../Services/IncidentService";
@@ -64,6 +65,7 @@ import PodmanResourceService from "../Services/PodmanResourceService";
 import ProxmoxResourceService from "../Services/ProxmoxResourceService";
 import CephResourceService from "../Services/CephResourceService";
 import DockerSwarmResourceService from "../Services/DockerSwarmResourceService";
+import NetworkSiteService from "../Services/NetworkSiteService";
 import SpanService from "../Services/SpanService";
 import LogService from "../Services/LogService";
 import DashboardComponentType from "../../Types/Dashboard/DashboardComponentType";
@@ -163,6 +165,43 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
       name: true,
       monitorType: true,
       currentMonitorStatus: { name: true, color: true },
+    },
+  },
+  "network-site": {
+    modelType: NetworkSite,
+    service: NetworkSiteService,
+    widgets: {
+      [DashboardComponentType.NetworkMap]: null,
+    },
+    /*
+     * The map filters by site type and by whether the rolled-up status is
+     * operational — nothing else. Notably NOT `parentSiteId` or
+     * `materializedPath`: the widget draws a flat set of pins rather than
+     * walking a hierarchy, so exposing the tree shape here would hand an
+     * anonymous viewer a structure the map never shows them.
+     */
+    allowedQueryKeys: [
+      "networkSiteTypeId",
+      "currentMonitorStatus",
+      "currentMonitorStatusId",
+    ],
+    select: {
+      _id: true,
+      name: true,
+      /*
+       * The type NAME comes from the networkSiteType relation. NetworkSite
+       * .siteType is the deprecated pre-lookup-table string and is dropped
+       * in a follow-up PR, so it must not be read from new code.
+       */
+      networkSiteType: { name: true },
+      latitude: true,
+      longitude: true,
+      currentMonitorStatus: {
+        name: true,
+        color: true,
+        priority: true,
+        isOperationalState: true,
+      },
     },
   },
   host: {

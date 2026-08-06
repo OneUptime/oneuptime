@@ -4,6 +4,7 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import logger, { LogAttributes } from "../Utils/Logger";
+import ProjectScopedReferenceValidator from "../Utils/Database/ProjectScopedReferenceValidator";
 import DatabaseService from "./DatabaseService";
 import MonitorService from "./MonitorService";
 import UserService from "./UserService";
@@ -190,6 +191,34 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
     if (!monitorStatusId) {
       throw new BadDataException("monitorStatusId is null");
     }
+
+    /*
+     * Every writer of this table funnels through here, so this is the one place
+     * that can turn issue #3039's failure mode into an answer. A monitorStatusId
+     * that does not exist (or belongs to another project) used to travel all the
+     * way to Postgres and come back as
+     *   insert or update on table "MonitorStatusTimeline" violates foreign key
+     *   constraint "FK_574feb4161c5216c2c7ee0faaf8"
+     * — an opaque 500 over the API, and a job that fails and retries forever in
+     * the probe worker. Reject it here instead, naming the id.
+     *
+     * The probe/telemetry ingest callers screen the id themselves before they
+     * get here (Utils/Monitor/MonitorStatusTimeline and Utils/Monitor/MonitorResource)
+     * so a monitor whose stored criteria already point at a deleted status skip
+     * the status change rather than failing their whole run. This check is the
+     * backstop for everything else, chiefly direct API writes.
+     */
+    await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
+      projectId: createBy.props.tenantId || createBy.data.projectId,
+      subject: "monitor status timeline",
+      references: [
+        {
+          modelName: "Monitor Status",
+          id: monitorStatusId,
+          service: MonitorStatusService,
+        },
+      ],
+    });
 
     const stateBeforeThis: MonitorStatusTimeline | null = await this.findOneBy({
       query: {

@@ -2,6 +2,15 @@ import { describe, expect, test } from "@jest/globals";
 import {
   BuildPinsResult,
   CLUSTER_CELL_SIZE,
+  DEFAULT_MAP_LINK_COLOR,
+  DrawableMapLink,
+  LinkableMarker,
+  MAP_LINK_PARALLEL_OFFSET,
+  buildMapLinks,
+  describeMapLink,
+  mapLinkColor,
+  mapLinkPath,
+  parallelLinkOffset,
   CONTAINER_COLLISION_FACTOR,
   CONTAINER_SIDE_FACTOR,
   ClusterColorKey,
@@ -40,7 +49,10 @@ import {
   unitRollupTone,
 } from "../../FeatureSet/Dashboard/src/Components/NetworkSite/SiteMapViewModel";
 import { MARKER_CLEARANCE } from "../../FeatureSet/Dashboard/src/Components/NetworkSite/Geo/MarkerLayout";
-import { MapSiteView } from "../../FeatureSet/Dashboard/src/Components/NetworkSite/SiteHierarchyTypes";
+import {
+  MapLinkView,
+  MapSiteView,
+} from "../../FeatureSet/Dashboard/src/Components/NetworkSite/SiteHierarchyTypes";
 import {
   ROBINSON_VIEW_BOX_HEIGHT,
   ROBINSON_VIEW_BOX_WIDTH,
@@ -1936,5 +1948,726 @@ describe("layoutMapMarkers", () => {
       }
     }
     expect(tooClose).toEqual([]);
+  });
+});
+
+/*
+ * ── Link lines ─────────────────────────────────────────────────────────
+ *
+ * A map of where the sites are is only half a network; the other half is
+ * what is connected to what. These pin the rules that decide which links
+ * become lines, and where those lines go.
+ *
+ * The load-bearing one is a negative: a link with NO monitor attached is
+ * still drawn. The monitor decides the line's COLOR — never whether the
+ * connection exists — so every "is it drawn" assertion below has an
+ * unmonitored twin.
+ */
+
+function linkRow(
+  overrides: Partial<MapLinkView> & { id: string },
+): MapLinkView {
+  return {
+    name: `Link ${overrides.id}`,
+    fromSiteId: "a",
+    toSiteId: "b",
+    monitorStatus: undefined,
+    ...overrides,
+  };
+}
+
+function linkMarker(
+  key: string,
+  x: number,
+  y: number,
+  ids: Array<string> = [key],
+): LinkableMarker {
+  return { key: key, x: x, y: y, ids: ids };
+}
+
+// Where a quadratic Bezier actually is, halfway along.
+function quadraticMidpoint(link: DrawableMapLink): { x: number; y: number } {
+  return {
+    x: 0.25 * link.x1 + 0.5 * link.controlX + 0.25 * link.x2,
+    y: 0.25 * link.y1 + 0.5 * link.controlY + 0.25 * link.y2,
+  };
+}
+
+describe("parallelLinkOffset", () => {
+  /*
+   * One link between two sites is the overwhelmingly common case, and
+   * bowing it would be decoration on the thing the map is actually for.
+   */
+  test("the first link between a pair is straight", () => {
+    expect(parallelLinkOffset(0)).toBe(0);
+  });
+
+  test("the rest alternate sides in widening steps", () => {
+    expect(parallelLinkOffset(1)).toBe(MAP_LINK_PARALLEL_OFFSET);
+    expect(parallelLinkOffset(2)).toBe(-MAP_LINK_PARALLEL_OFFSET);
+    expect(parallelLinkOffset(3)).toBe(2 * MAP_LINK_PARALLEL_OFFSET);
+    expect(parallelLinkOffset(4)).toBe(-2 * MAP_LINK_PARALLEL_OFFSET);
+    expect(parallelLinkOffset(5)).toBe(3 * MAP_LINK_PARALLEL_OFFSET);
+  });
+
+  test("a bundle stays symmetric about the line it belongs to", () => {
+    for (let index: number = 1; index < 12; index += 2) {
+      expect(parallelLinkOffset(index)).toBe(-parallelLinkOffset(index + 1));
+    }
+  });
+
+  test.each([
+    ["NaN", Number.NaN],
+    ["negative", -3],
+    ["infinite", Infinity],
+  ])(
+    "a %s index draws straight rather than off the map",
+    (_name: string, index: number) => {
+      expect(parallelLinkOffset(index)).toBe(0);
+    },
+  );
+});
+
+describe("mapLinkColor", () => {
+  test("a monitored link takes the color of its status", () => {
+    expect(
+      mapLinkColor({
+        monitorStatus: { color: "#ef4444" },
+      }),
+    ).toBe("#ef4444");
+  });
+
+  /*
+   * The requirement, stated as a color: no monitor is not no line. It is a
+   * line in the neutral.
+   */
+  test("a link with no monitor is drawn in the neutral", () => {
+    expect(mapLinkColor({ monitorStatus: undefined })).toBe(
+      DEFAULT_MAP_LINK_COLOR,
+    );
+    expect(mapLinkColor({})).toBe(DEFAULT_MAP_LINK_COLOR);
+  });
+
+  // A status row whose color was never set must not paint a line "undefined".
+  test("a status with no color of its own falls back to the neutral", () => {
+    expect(mapLinkColor({ monitorStatus: { color: undefined } })).toBe(
+      DEFAULT_MAP_LINK_COLOR,
+    );
+  });
+});
+
+describe("describeMapLink", () => {
+  test("a monitored link says what its monitor says", () => {
+    expect(
+      describeMapLink({
+        name: "DC1 to Midwest WAN",
+        monitorStatus: { name: "Degraded" },
+      }),
+    ).toBe("DC1 to Midwest WAN — Degraded");
+  });
+
+  /*
+   * "No monitor attached" rather than "No status": the line is grey because
+   * nothing is watching it, which is a different fact — and a fixable one —
+   * from a monitor that has not reported yet.
+   */
+  test("an unmonitored link says so instead of implying a problem", () => {
+    expect(describeMapLink({ name: "Dark fibre" })).toBe(
+      "Dark fibre — No monitor attached",
+    );
+  });
+
+  test("a nameless link still reads as a link", () => {
+    expect(describeMapLink({ name: "" })).toBe(
+      "Unnamed link — No monitor attached",
+    );
+  });
+});
+
+describe("buildMapLinks", () => {
+  test("draws a straight line between the two markers", () => {
+    const lines: Array<DrawableMapLink> = buildMapLinks({
+      links: [linkRow({ id: "l1", fromSiteId: "a", toSiteId: "b" })],
+      markers: [linkMarker("a", 100, 100), linkMarker("b", 300, 200)],
+      zoom: 1,
+    });
+
+    expect(lines).toHaveLength(1);
+    const line: DrawableMapLink = lines[0]!;
+    expect([line.x1, line.y1, line.x2, line.y2]).toEqual([100, 100, 300, 200]);
+    // No bow: the control point is the midpoint, so the path is a segment.
+    expect(line.controlX).toBe(200);
+    expect(line.controlY).toBe(150);
+    expect(line.midX).toBe(200);
+    expect(line.midY).toBe(150);
+    expect(mapLinkPath(line)).toBe("M 100 100 Q 200 150 300 200");
+  });
+
+  /*
+   * THE requirement. A link nobody has pointed a monitor at is still part
+   * of the network, so it is still a line — neutral, dashed, and honest
+   * about why.
+   */
+  test("a link with no monitor is drawn, in the neutral, marked unmonitored", () => {
+    const lines: Array<DrawableMapLink> = buildMapLinks({
+      links: [linkRow({ id: "l1", name: "Dark fibre" })],
+      markers: [linkMarker("a", 0, 0), linkMarker("b", 50, 0)],
+      zoom: 1,
+    });
+
+    expect(lines).toHaveLength(1);
+    expect(lines[0]!.hasMonitor).toBe(false);
+    expect(lines[0]!.color).toBe(DEFAULT_MAP_LINK_COLOR);
+    expect(lines[0]!.tooltip).toBe("Dark fibre — No monitor attached");
+  });
+
+  test("a monitored link is drawn in its status color and marked monitored", () => {
+    const lines: Array<DrawableMapLink> = buildMapLinks({
+      links: [
+        linkRow({
+          id: "l1",
+          name: "DC1 to DC2",
+          monitorStatus: { name: "Offline", color: "#ef4444", priority: 5 },
+        }),
+      ],
+      markers: [linkMarker("a", 0, 0), linkMarker("b", 50, 0)],
+      zoom: 1,
+    });
+
+    expect(lines[0]!.hasMonitor).toBe(true);
+    expect(lines[0]!.color).toBe("#ef4444");
+    expect(lines[0]!.tooltip).toBe("DC1 to DC2 — Offline");
+  });
+
+  /*
+   * Lines follow the markers a reader can SEE. layoutMapMarkers pushes
+   * markers off each other and leaves an anchor behind; a line drawn to the
+   * anchor would end in empty space next to the marker it names.
+   */
+  test("ends land on the drawn positions, not the projected ones", () => {
+    const lines: Array<DrawableMapLink> = buildMapLinks({
+      links: [linkRow({ id: "l1" })],
+      markers: [
+        { key: "a", ids: ["a"], x: 120, y: 90 },
+        { key: "b", ids: ["b"], x: 300, y: 90 },
+      ],
+      zoom: 1,
+    });
+    expect([lines[0]!.x1, lines[0]!.y1]).toEqual([120, 90]);
+    expect([lines[0]!.x2, lines[0]!.y2]).toEqual([300, 90]);
+  });
+
+  test("a link with an end that has no marker is not drawn", () => {
+    const lines: Array<DrawableMapLink> = buildMapLinks({
+      links: [
+        linkRow({ id: "l1", fromSiteId: "a", toSiteId: "elsewhere" }),
+        linkRow({ id: "l2", fromSiteId: "nowhere", toSiteId: "b" }),
+        linkRow({ id: "l3", fromSiteId: "a", toSiteId: "b" }),
+      ],
+      markers: [linkMarker("a", 0, 0), linkMarker("b", 50, 0)],
+      zoom: 1,
+    });
+    expect(
+      lines.map((line: DrawableMapLink): string => {
+        return line.id;
+      }),
+    ).toEqual(["l3"]);
+  });
+
+  /*
+   * In "all" mode a marker speaks for every site clustered into it, which
+   * is what lets a link between two clustered sites still be drawn between
+   * their clusters — and what makes a link INSIDE one cluster undrawable.
+   */
+  test("ends resolve through clustered markers", () => {
+    const lines: Array<DrawableMapLink> = buildMapLinks({
+      links: [linkRow({ id: "l1", fromSiteId: "s2", toSiteId: "s4" })],
+      markers: [
+        linkMarker("west", 10, 10, ["s1", "s2"]),
+        linkMarker("east", 90, 10, ["s3", "s4"]),
+      ],
+      zoom: 1,
+    });
+    expect(lines).toHaveLength(1);
+    expect([lines[0]!.x1, lines[0]!.x2]).toEqual([10, 90]);
+  });
+
+  test("a link whose ends share one marker is a dot, so it is dropped", () => {
+    const lines: Array<DrawableMapLink> = buildMapLinks({
+      links: [
+        linkRow({ id: "l1", fromSiteId: "s1", toSiteId: "s2" }),
+        linkRow({ id: "l2", fromSiteId: "s1", toSiteId: "s1" }),
+      ],
+      markers: [linkMarker("west", 10, 10, ["s1", "s2"])],
+      zoom: 1,
+    });
+    expect(lines).toEqual([]);
+  });
+
+  describe("parallel links between the same pair", () => {
+    const markers: Array<LinkableMarker> = [
+      linkMarker("a", 0, 0),
+      linkMarker("b", 200, 0),
+    ];
+
+    test("the first is straight and the rest bow to alternating sides", () => {
+      const lines: Array<DrawableMapLink> = buildMapLinks({
+        links: [
+          linkRow({ id: "l1" }),
+          linkRow({ id: "l2" }),
+          linkRow({ id: "l3" }),
+        ],
+        markers: markers,
+        zoom: 1,
+      });
+
+      expect(lines).toHaveLength(3);
+      // Horizontal segment, so the bow shows up entirely in y.
+      expect(lines[0]!.midY).toBe(0);
+      expect(lines[1]!.midY).toBe(MAP_LINK_PARALLEL_OFFSET);
+      expect(lines[2]!.midY).toBe(-MAP_LINK_PARALLEL_OFFSET);
+      for (const line of lines) {
+        expect(line.midX).toBe(100);
+      }
+    });
+
+    /*
+     * A→B and B→A are the same pair of markers. Bundling them separately
+     * would draw the second link straight, right on top of the first.
+     */
+    test("direction does not split a bundle in two", () => {
+      const lines: Array<DrawableMapLink> = buildMapLinks({
+        links: [
+          linkRow({ id: "l1", fromSiteId: "a", toSiteId: "b" }),
+          linkRow({ id: "l2", fromSiteId: "b", toSiteId: "a" }),
+        ],
+        markers: markers,
+        zoom: 1,
+      });
+      expect(lines[0]!.midY).toBe(0);
+      expect(Math.abs(lines[1]!.midY)).toBe(MAP_LINK_PARALLEL_OFFSET);
+    });
+
+    // Different pairs each start their own bundle, straight.
+    test("a different pair starts over", () => {
+      const lines: Array<DrawableMapLink> = buildMapLinks({
+        links: [
+          linkRow({ id: "l1", fromSiteId: "a", toSiteId: "b" }),
+          linkRow({ id: "l2", fromSiteId: "a", toSiteId: "c" }),
+        ],
+        markers: [...markers, linkMarker("c", 0, 200)],
+        zoom: 1,
+      });
+      expect(lines[0]!.midY).toBe(0);
+      expect(lines[1]!.midX).toBe(0);
+      expect(lines[1]!.midY).toBe(100);
+    });
+  });
+
+  test("the bow is perpendicular to the line it belongs to", () => {
+    const lines: Array<DrawableMapLink> = buildMapLinks({
+      links: [linkRow({ id: "l1" }), linkRow({ id: "l2" })],
+      markers: [linkMarker("a", 0, 0), linkMarker("b", 100, 100)],
+      zoom: 1,
+    });
+
+    const bowed: DrawableMapLink = lines[1]!;
+    const alongX: number = bowed.x2 - bowed.x1;
+    const alongY: number = bowed.y2 - bowed.y1;
+    const bowX: number = bowed.midX - (bowed.x1 + bowed.x2) / 2;
+    const bowY: number = bowed.midY - (bowed.y1 + bowed.y2) / 2;
+
+    expect(alongX * bowX + alongY * bowY).toBeCloseTo(0, 9);
+    expect(Math.hypot(bowX, bowY)).toBeCloseTo(MAP_LINK_PARALLEL_OFFSET, 9);
+  });
+
+  /*
+   * midX/midY anchor the hover label, so they have to be where the curve
+   * actually is — not where the control point is, which is twice as far out.
+   */
+  test("the reported middle is where the drawn curve passes", () => {
+    const lines: Array<DrawableMapLink> = buildMapLinks({
+      links: [linkRow({ id: "l1" }), linkRow({ id: "l2" })],
+      markers: [linkMarker("a", 20, 40), linkMarker("b", 260, 130)],
+      zoom: 1,
+    });
+
+    for (const line of lines) {
+      const middle: { x: number; y: number } = quadraticMidpoint(line);
+      expect(line.midX).toBeCloseTo(middle.x, 9);
+      expect(line.midY).toBeCloseTo(middle.y, 9);
+    }
+  });
+
+  /*
+   * The bow is a SCREEN distance, like every other piece of map furniture:
+   * zooming in must not inflate the gap between two parallel links until it
+   * reads as two different routes.
+   */
+  test("the bow stays the same size on screen at every zoom", () => {
+    const links: Array<MapLinkView> = [
+      linkRow({ id: "l1" }),
+      linkRow({ id: "l2" }),
+    ];
+    const markers: Array<LinkableMarker> = [
+      linkMarker("a", 0, 0),
+      linkMarker("b", 200, 0),
+    ];
+
+    const atZoomOne: Array<DrawableMapLink> = buildMapLinks({
+      links,
+      markers,
+      zoom: 1,
+    });
+    const atZoomFour: Array<DrawableMapLink> = buildMapLinks({
+      links,
+      markers,
+      zoom: 4,
+    });
+
+    expect(atZoomFour[1]!.midY).toBeCloseTo(atZoomOne[1]!.midY / 4, 9);
+    expect(atZoomFour[1]!.midY * 4).toBeCloseTo(MAP_LINK_PARALLEL_OFFSET, 9);
+  });
+
+  test.each([
+    ["NaN", Number.NaN],
+    ["zero", 0],
+    ["negative", -2],
+    ["infinite", Infinity],
+  ])(
+    "a %s zoom falls back to 1 rather than producing NaN geometry",
+    (_name: string, zoom: number) => {
+      const lines: Array<DrawableMapLink> = buildMapLinks({
+        links: [linkRow({ id: "l1" }), linkRow({ id: "l2" })],
+        markers: [linkMarker("a", 0, 0), linkMarker("b", 200, 0)],
+        zoom: zoom,
+      });
+      for (const line of lines) {
+        for (const value of [
+          line.x1,
+          line.y1,
+          line.x2,
+          line.y2,
+          line.controlX,
+          line.controlY,
+          line.midX,
+          line.midY,
+        ]) {
+          expect(Number.isFinite(value)).toBe(true);
+        }
+      }
+      expect(lines[1]!.midY).toBe(MAP_LINK_PARALLEL_OFFSET);
+    },
+  );
+
+  // Two markers on the same point have no direction to be perpendicular to.
+  test("markers on the same point still produce finite geometry", () => {
+    const lines: Array<DrawableMapLink> = buildMapLinks({
+      links: [linkRow({ id: "l1" }), linkRow({ id: "l2" })],
+      markers: [linkMarker("a", 40, 40), linkMarker("b", 40, 40)],
+      zoom: 1,
+    });
+    expect(lines).toHaveLength(2);
+    for (const line of lines) {
+      expect(Number.isFinite(line.midX)).toBe(true);
+      expect(Number.isFinite(line.midY)).toBe(true);
+    }
+    // And the bundle is still separated rather than stacked.
+    expect(lines[0]!.midY).not.toBe(lines[1]!.midY);
+  });
+
+  test("drawing order is payload order, and the inputs are left alone", () => {
+    const links: Array<MapLinkView> = [
+      linkRow({ id: "l3" }),
+      linkRow({ id: "l1" }),
+      linkRow({ id: "l2" }),
+    ];
+    const markers: Array<LinkableMarker> = [
+      linkMarker("a", 0, 0),
+      linkMarker("b", 200, 0),
+    ];
+    const before: string = JSON.stringify({ links, markers });
+
+    const lines: Array<DrawableMapLink> = buildMapLinks({
+      links,
+      markers,
+      zoom: 1,
+    });
+
+    expect(
+      lines.map((line: DrawableMapLink): string => {
+        return line.key;
+      }),
+    ).toEqual(["l3", "l1", "l2"]);
+    expect(JSON.stringify({ links, markers })).toBe(before);
+  });
+
+  test("no links, no markers, nothing to draw", () => {
+    expect(buildMapLinks({ links: [], markers: [], zoom: 1 })).toEqual([]);
+    expect(
+      buildMapLinks({
+        links: [linkRow({ id: "l1" })],
+        markers: [],
+        zoom: 1,
+      }),
+    ).toEqual([]);
+  });
+});
+
+describe("mapLinkPath", () => {
+  test("a quadratic through the control point", () => {
+    const lines: Array<DrawableMapLink> = buildMapLinks({
+      links: [linkRow({ id: "l1" }), linkRow({ id: "l2" })],
+      markers: [linkMarker("a", 0, 0), linkMarker("b", 100, 0)],
+      zoom: 1,
+    });
+    expect(mapLinkPath(lines[0]!)).toBe("M 0 0 Q 50 0 100 0");
+    expect(mapLinkPath(lines[1]!)).toBe(
+      `M 0 0 Q 50 ${2 * MAP_LINK_PARALLEL_OFFSET} 100 0`,
+    );
+  });
+});
+
+/*
+ * Regression: "site links only visible when zoomed out, disappear when
+ * zoomed in" (issue #3025).
+ *
+ * What that customer was seeing was never a link. The map drew no links at
+ * all; the lines in their zoomed-out screenshot are the LEADER THREADS that
+ * markers keep to their real spot when they have been nudged apart — and
+ * those correctly melt away as zoom separates the markers, taking the only
+ * lines on the map with them.
+ *
+ * So the fix is that the map draws real links, and these pin the property
+ * that makes it a fix: which links are drawn is a question about the
+ * MARKERS, never about the zoom. Zoom may change how far a bundle bows
+ * apart; it may never change what is on the map.
+ */
+describe("link lines survive every zoom level", () => {
+  const ZOOMS: Array<number> = [1, 2, 4, 8, 16, 32, 64];
+
+  function linkedSites(): Array<MapSiteView> {
+    return [
+      mapSite({
+        id: "cardac",
+        name: "CARDAC Datacenter",
+        latitude: 39.1,
+        longitude: -94.58,
+        isContainer: false,
+        isOperational: true,
+      }),
+      mapSite({
+        id: "corporate",
+        name: "Corporate Units",
+        latitude: 39.4,
+        longitude: -94.2,
+        totalUnits: 1014,
+        operationalUnits: 0,
+        childSiteCount: 1014,
+      }),
+      mapSite({
+        id: "franchise",
+        name: "Franchise Units",
+        latitude: 39.6,
+        longitude: -93.9,
+        totalUnits: 259,
+        operationalUnits: 0,
+        childSiteCount: 259,
+      }),
+    ];
+  }
+
+  const links: Array<MapLinkView> = [
+    linkRow({ id: "l1", fromSiteId: "cardac", toSiteId: "corporate" }),
+    linkRow({
+      id: "l2",
+      fromSiteId: "corporate",
+      toSiteId: "franchise",
+      monitorStatus: { name: "Operational", color: "#10b981", priority: 1 },
+    }),
+  ];
+
+  /*
+   * The whole point, end to end: markers laid out at each zoom (nudged apart
+   * when they collide, left alone once they do not), links built from those
+   * markers, and the same two lines on the map every time.
+   */
+  test("the same links are drawn at every zoom", () => {
+    const markers: Array<MapMarker> = buildMapMarkers({
+      sites: linkedSites(),
+      mode: "grouped",
+      cellSize: 0,
+    });
+
+    for (const zoom of ZOOMS) {
+      const placed: Array<PlacedMapMarker> = layoutMapMarkers(markers, zoom);
+      const lines: Array<DrawableMapLink> = buildMapLinks({
+        links: links,
+        markers: placed,
+        zoom: zoom,
+      });
+      expect(
+        lines.map((line: DrawableMapLink): string => {
+          return line.id;
+        }),
+      ).toEqual(["l1", "l2"]);
+    }
+  });
+
+  /*
+   * At low zoom these markers overlap and get pushed apart — the state the
+   * customer's screenshot was taken in. The lines have to follow them
+   * there, not stay behind at the projected positions.
+   */
+  test("lines follow the markers whether or not they were nudged apart", () => {
+    const markers: Array<MapMarker> = buildMapMarkers({
+      sites: linkedSites(),
+      mode: "grouped",
+      cellSize: 0,
+    });
+
+    const nudged: Array<PlacedMapMarker> = layoutMapMarkers(markers, 1);
+    expect(
+      nudged.some((marker: PlacedMapMarker): boolean => {
+        return marker.needsLeaderLine;
+      }),
+    ).toBe(true);
+
+    const roomy: Array<PlacedMapMarker> = layoutMapMarkers(markers, 64);
+    expect(
+      roomy.every((marker: PlacedMapMarker): boolean => {
+        return !marker.needsLeaderLine;
+      }),
+    ).toBe(true);
+
+    for (const placed of [nudged, roomy]) {
+      const byKey: Map<string, PlacedMapMarker> = new Map<
+        string,
+        PlacedMapMarker
+      >(
+        placed.map((marker: PlacedMapMarker): [string, PlacedMapMarker] => {
+          return [marker.key, marker];
+        }),
+      );
+      const lines: Array<DrawableMapLink> = buildMapLinks({
+        links: [links[0]!],
+        markers: placed,
+        zoom: placed === nudged ? 1 : 64,
+      });
+      expect(lines).toHaveLength(1);
+      expect(lines[0]!.x1).toBe(byKey.get("cardac")!.x);
+      expect(lines[0]!.y1).toBe(byKey.get("cardac")!.y);
+      expect(lines[0]!.x2).toBe(byKey.get("corporate")!.x);
+      expect(lines[0]!.y2).toBe(byKey.get("corporate")!.y);
+    }
+  });
+
+  test("zoom changes the bow, never the membership", () => {
+    const markers: Array<LinkableMarker> = [
+      { key: "a", ids: ["a"], x: 0, y: 0 },
+      { key: "b", ids: ["b"], x: 200, y: 0 },
+    ];
+    const pair: Array<MapLinkView> = [
+      linkRow({ id: "l1" }),
+      linkRow({ id: "l2" }),
+    ];
+
+    let previousBow: number = Infinity;
+    for (const zoom of ZOOMS) {
+      const lines: Array<DrawableMapLink> = buildMapLinks({
+        links: pair,
+        markers: markers,
+        zoom: zoom,
+      });
+      expect(lines).toHaveLength(2);
+      const bow: number = Math.abs(lines[1]!.midY);
+      expect(bow).toBeGreaterThan(0);
+      expect(bow).toBeLessThan(previousBow);
+      previousBow = bow;
+    }
+  });
+
+  /*
+   * The one honest exception, and it runs the other way: in "all" mode two
+   * sites close enough to share a clustered marker have no line between
+   * them, and zooming IN splits the cluster and reveals it. A link never
+   * disappears as you zoom in.
+   */
+  test("in all mode, zooming in can only add lines", () => {
+    const sites: Array<MapSiteView> = [
+      mapSite({
+        id: "s1",
+        latitude: 40.7,
+        longitude: -74,
+        isContainer: false,
+        isOperational: true,
+      }),
+      mapSite({
+        id: "s2",
+        latitude: 40.71,
+        longitude: -74.01,
+        isContainer: false,
+        isOperational: true,
+      }),
+    ];
+    const siteLinks: Array<MapLinkView> = [
+      linkRow({ id: "l1", fromSiteId: "s1", toSiteId: "s2" }),
+    ];
+
+    const clustered: Array<MapMarker> = buildMapMarkers({
+      sites: sites,
+      mode: "all",
+      cellSize: CLUSTER_CELL_SIZE,
+    });
+    expect(clustered).toHaveLength(1);
+    expect(
+      buildMapLinks({
+        links: siteLinks,
+        markers: layoutMapMarkers(clustered, 1),
+        zoom: 1,
+      }),
+    ).toEqual([]);
+
+    // Zoomed in far enough for the cell to split them, the line appears.
+    const split: Array<MapMarker> = buildMapMarkers({
+      sites: sites,
+      mode: "all",
+      cellSize: 0.01,
+    });
+    expect(split.length).toBeGreaterThan(1);
+    expect(
+      buildMapLinks({
+        links: siteLinks,
+        markers: layoutMapMarkers(split, 64),
+        zoom: 64,
+      }),
+    ).toHaveLength(1);
+  });
+
+  /*
+   * Grouped mode never clusters, so its link set cannot move at all: the
+   * markers are the level's children at every zoom.
+   */
+  test("grouped mode draws the same lines however the map is framed", () => {
+    const markers: Array<MapMarker> = buildMapMarkers({
+      sites: linkedSites(),
+      mode: "grouped",
+      cellSize: 0,
+    });
+    const drawn: Set<string> = new Set<string>();
+    for (const zoom of ZOOMS) {
+      drawn.add(
+        buildMapLinks({
+          links: links,
+          markers: layoutMapMarkers(markers, zoom),
+          zoom: zoom,
+        })
+          .map((line: DrawableMapLink): string => {
+            return line.id;
+          })
+          .join(","),
+      );
+    }
+    expect(Array.from(drawn)).toEqual(["l1,l2"]);
   });
 });

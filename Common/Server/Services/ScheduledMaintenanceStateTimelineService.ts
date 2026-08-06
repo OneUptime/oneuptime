@@ -26,6 +26,7 @@ import ScheduledMaintenanceStateTimeline from "../../Models/DatabaseModels/Sched
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import ScheduledMaintenanceFeedService from "./ScheduledMaintenanceFeedService";
 import { ScheduledMaintenanceFeedEventType } from "../../Models/DatabaseModels/ScheduledMaintenanceFeed";
+import ProjectScopedReferenceValidator from "../Utils/Database/ProjectScopedReferenceValidator";
 import logger, { LogAttributes } from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
@@ -121,6 +122,26 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
       if (!scheduledMaintenanceStateId) {
         throw new BadDataException("scheduledMaintenanceStateId is null");
       }
+
+      /*
+       * Same guard, same reason, as MonitorStatusTimelineService: an id that
+       * exists nowhere (or belongs to another project) used to reach Postgres
+       * and come back as a raw foreign key violation. The ordering check below
+       * does look the state up, but only when there IS a preceding row with an
+       * order, so the first timeline row for a scheduled maintenance event went
+       * through unchecked.
+       */
+      await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
+        projectId: createBy.props.tenantId || createBy.data.projectId,
+        subject: "scheduled maintenance state timeline",
+        references: [
+          {
+            modelName: "Scheduled Maintenance State",
+            id: scheduledMaintenanceStateId,
+            service: ScheduledMaintenanceStateService,
+          },
+        ],
+      });
 
       const stateBeforeThis: ScheduledMaintenanceStateTimeline | null =
         await this.findOneBy({

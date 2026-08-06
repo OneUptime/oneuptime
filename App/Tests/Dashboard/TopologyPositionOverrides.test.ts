@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import { TopologyPoint } from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/TopologyGraphUtil";
 import {
+  ArrangementPersistence,
   EMPTY_OVERRIDES,
   MAX_PERSISTED_KEY_LENGTH,
   MAX_PERSISTED_OVERRIDES,
@@ -9,6 +10,7 @@ import {
   PositionOverrides,
   TopologyLayoutMode,
   TopologyOverrideStorage,
+  createArrangementPersistence,
   mergePositionOverrides,
   parsePersistedOverrides,
   positionOverridesStorageKey,
@@ -140,6 +142,26 @@ const makeThrowingStorage: MakeThrowingStorageFunction =
 
 const STORAGE_KEY: string = "test.topology.positions";
 
+/*
+ * Every mode the layout switcher can select, in toolbar order. Force,
+ * tiered and radial shipped first; star and parent-child were added
+ * beside them without a version bump, so the list doubles as the record
+ * of which keys must already exist in the wild.
+ */
+const ALL_LAYOUT_MODES: Array<TopologyLayoutMode> = [
+  "force",
+  "tiered",
+  "radial",
+  "star",
+  "parentChild",
+];
+
+const LEGACY_LAYOUT_MODES: Array<TopologyLayoutMode> = [
+  "force",
+  "tiered",
+  "radial",
+];
+
 /* ------------------------------------------------------------------ */
 /* Constants                                                           */
 /* ------------------------------------------------------------------ */
@@ -219,6 +241,76 @@ describe("positionOverridesStorageKey", () => {
   test("the key is pure — repeated calls agree", () => {
     expect(positionOverridesStorageKey("p", "s", "force")).toBe(
       positionOverridesStorageKey("p", "s", "force"),
+    );
+  });
+
+  test("all five layout modes name their own key for one project and site", () => {
+    /*
+     * Star and parent-child are coordinate systems of their own — a hub
+     * placed at the origin in star mode means nothing in the tiered grid —
+     * so the two newer modes have to namespace their arrangements exactly
+     * the way the original three already do.
+     */
+    const keys: Set<string> = new Set<string>();
+    for (const layoutMode of ALL_LAYOUT_MODES) {
+      keys.add(positionOverridesStorageKey("proj-1", "site-9", layoutMode));
+    }
+    expect(keys.size).toBe(ALL_LAYOUT_MODES.length);
+    expect(Array.from(keys)).toEqual([
+      "oneuptime.networkTopology.positions.v1.proj-1.site-9.force",
+      "oneuptime.networkTopology.positions.v1.proj-1.site-9.tiered",
+      "oneuptime.networkTopology.positions.v1.proj-1.site-9.radial",
+      "oneuptime.networkTopology.positions.v1.proj-1.site-9.star",
+      "oneuptime.networkTopology.positions.v1.proj-1.site-9.parentChild",
+    ]);
+  });
+
+  test("star and parent-child differ from each other and from the older three", () => {
+    const starKey: string = positionOverridesStorageKey(
+      "proj-1",
+      "site-9",
+      "star",
+    );
+    const parentChildKey: string = positionOverridesStorageKey(
+      "proj-1",
+      "site-9",
+      "parentChild",
+    );
+    expect(starKey).not.toBe(parentChildKey);
+    for (const layoutMode of LEGACY_LAYOUT_MODES) {
+      const legacyKey: string = positionOverridesStorageKey(
+        "proj-1",
+        "site-9",
+        layoutMode,
+      );
+      expect(starKey).not.toBe(legacyKey);
+      expect(parentChildKey).not.toBe(legacyKey);
+    }
+    expect(starKey).toContain("star");
+    expect(parentChildKey).toContain("parentChild");
+    // The mode is the only segment that moved: everything else is shared.
+    expect(starKey).toContain("proj-1");
+    expect(starKey).toContain("site-9");
+    expect(parentChildKey).toContain(`v${String(PERSISTED_OVERRIDES_VERSION)}`);
+  });
+
+  test("the key stays pure for the two new modes as well", () => {
+    for (const layoutMode of ALL_LAYOUT_MODES) {
+      expect(positionOverridesStorageKey("proj-1", "site-9", layoutMode)).toBe(
+        positionOverridesStorageKey("proj-1", "site-9", layoutMode),
+      );
+      expect(positionOverridesStorageKey("proj-1", undefined, layoutMode)).toBe(
+        positionOverridesStorageKey("proj-1", undefined, layoutMode),
+      );
+    }
+  });
+
+  test("the site-less and project-less fallbacks apply to the new modes too", () => {
+    expect(positionOverridesStorageKey("proj-1", undefined, "star")).toBe(
+      "oneuptime.networkTopology.positions.v1.proj-1.project.star",
+    );
+    expect(positionOverridesStorageKey("", "site-9", "parentChild")).toBe(
+      "oneuptime.networkTopology.positions.v1.unknown.site-9.parentChild",
     );
   });
 });
@@ -1198,5 +1290,414 @@ describe("storage round trip", () => {
     expect(merged.size).toBe(2);
     expect(merged.get("core")).toEqual({ x: 500, y: -250 });
     expect(merged.get("switch-a")).toEqual({ x: 100, y: 100 });
+  });
+
+  test("an arrangement saved under one mode is invisible to the other four", () => {
+    /*
+     * The five modes put the same device in five different places, so a
+     * star hub coordinate leaking into the tiered map would fling that
+     * node off the grid the instant the operator switched views. Isolation
+     * is the whole reason the mode is in the key.
+     */
+    const storage: FakeStorage = makeFakeStorage();
+    const starKey: string = positionOverridesStorageKey(
+      "proj-1",
+      "site-9",
+      "star",
+    );
+    writePersistedOverrides(
+      storage,
+      starKey,
+      makeMap([["core", { x: 42, y: -17 }]]),
+    );
+
+    expect(readPersistedOverrides(storage, starKey).get("core")).toEqual({
+      x: 42,
+      y: -17,
+    });
+    for (const layoutMode of ALL_LAYOUT_MODES) {
+      if (layoutMode === "star") {
+        continue;
+      }
+      const otherKey: string = positionOverridesStorageKey(
+        "proj-1",
+        "site-9",
+        layoutMode,
+      );
+      expect(readPersistedOverrides(storage, otherKey).size).toBe(0);
+    }
+  });
+
+  test("each of the five modes keeps its own arrangement side by side", () => {
+    const storage: FakeStorage = makeFakeStorage();
+    /* One-based so no mode's coordinate is the -0 that JSON flattens to 0. */
+    for (let i: number = 0; i < ALL_LAYOUT_MODES.length; i++) {
+      const layoutMode: TopologyLayoutMode = ALL_LAYOUT_MODES[i]!;
+      writePersistedOverrides(
+        storage,
+        positionOverridesStorageKey("proj-1", "site-9", layoutMode),
+        makeMap([["core", { x: (i + 1) * 10, y: (i + 1) * -10 }]]),
+      );
+    }
+    expect(storage.data.size).toBe(ALL_LAYOUT_MODES.length);
+
+    for (let i: number = 0; i < ALL_LAYOUT_MODES.length; i++) {
+      const layoutMode: TopologyLayoutMode = ALL_LAYOUT_MODES[i]!;
+      const restored: PositionOverrides = readPersistedOverrides(
+        storage,
+        positionOverridesStorageKey("proj-1", "site-9", layoutMode),
+      );
+      expect(restored.size).toBe(1);
+      expect(restored.get("core")).toEqual({
+        x: (i + 1) * 10,
+        y: (i + 1) * -10,
+      });
+    }
+  });
+
+  test("arrangements saved before star and parent-child existed still load", () => {
+    /*
+     * Adding the two modes did not bump PERSISTED_OVERRIDES_VERSION, so
+     * every arrangement an operator saved beforehand has to survive the
+     * upgrade untouched. One key is spelled out literally: a rename of the
+     * prefix or of a mode would orphan those saved layouts silently — the
+     * map would simply come back unarranged, with nothing to show that a
+     * drag had ever been remembered.
+     */
+    const storage: FakeStorage = makeFakeStorage();
+    for (const layoutMode of LEGACY_LAYOUT_MODES) {
+      writePersistedOverrides(
+        storage,
+        positionOverridesStorageKey("proj-1", "site-9", layoutMode),
+        makeMap([
+          ["core", { x: 10, y: 20 }],
+          [`switch-${layoutMode}`, { x: 30.125, y: -40.5 }],
+        ]),
+      );
+    }
+
+    expect(
+      storage.data.has(
+        "oneuptime.networkTopology.positions.v1.proj-1.site-9.tiered",
+      ),
+    ).toBe(true);
+
+    for (const layoutMode of LEGACY_LAYOUT_MODES) {
+      const restored: PositionOverrides = readPersistedOverrides(
+        storage,
+        positionOverridesStorageKey("proj-1", "site-9", layoutMode),
+      );
+      expect(restored.size).toBe(2);
+      expect(restored.get("core")).toEqual({ x: 10, y: 20 });
+      expect(restored.get(`switch-${layoutMode}`)).toEqual({
+        x: 30.13,
+        y: -40.5,
+      });
+    }
+
+    // The new modes inherit nothing — they open on the computed layout.
+    expect(
+      readPersistedOverrides(
+        storage,
+        positionOverridesStorageKey("proj-1", "site-9", "star"),
+      ).size,
+    ).toBe(0);
+    expect(
+      readPersistedOverrides(
+        storage,
+        positionOverridesStorageKey("proj-1", "site-9", "parentChild"),
+      ).size,
+    ).toBe(0);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* The arrangement / key pairing                                       */
+/* ------------------------------------------------------------------ */
+
+/*
+ * NetworkTopologyLiveView's persistence hooks, replayed by hand.
+ *
+ * React is deliberately absent from App's resolution path (these modules
+ * are react-free so they can be tested in plain Node), so this
+ * transcribes the component's three effects rather than mounting it, in
+ * the order React actually runs them: the render phase first, then EVERY
+ * cleanup, then EVERY effect body. That order is the whole subject —
+ * switching layout mode re-renders with the incoming mode's key while
+ * state still holds the outgoing mode's coordinates, and the flush
+ * happens inside that window.
+ */
+interface TopologyViewSession {
+  /** A drag: new coordinates, same mode. */
+  drag: (overrides: PositionOverrides) => void;
+  /** The user clicks another layout pill. */
+  switchTo: (key: string) => void;
+  /** Navigating away. */
+  unmount: () => void;
+  /** The arrangement the graph is currently drawing. */
+  onScreen: () => PositionOverrides;
+}
+
+type MountViewFunction = (
+  storage: TopologyOverrideStorage,
+  initialKey: string,
+) => TopologyViewSession;
+
+const mountTopologyView: MountViewFunction = (
+  storage: TopologyOverrideStorage,
+  initialKey: string,
+): TopologyViewSession => {
+  const persistence: ArrangementPersistence = createArrangementPersistence(
+    storage,
+    initialKey,
+  );
+  let onScreen: PositionOverrides = EMPTY_OVERRIDES;
+
+  // Mount: render, then the load effect, then the re-render it causes.
+  persistence.hold(onScreen);
+  onScreen = persistence.adopt(initialKey);
+  persistence.hold(onScreen);
+
+  return {
+    drag: (overrides: PositionOverrides): void => {
+      onScreen = overrides;
+      persistence.hold(onScreen);
+    },
+    switchTo: (key: string): void => {
+      // Render: the key has advanced, the arrangement in state has not.
+      persistence.hold(onScreen);
+      // Cleanup of the flush effect, which runs before any effect body.
+      persistence.flush();
+      // Load effect body, then the re-render its state update causes.
+      onScreen = persistence.adopt(key);
+      persistence.hold(onScreen);
+    },
+    unmount: (): void => {
+      persistence.flush();
+    },
+    onScreen: (): PositionOverrides => {
+      return onScreen;
+    },
+  };
+};
+
+const TIERED_KEY: string = positionOverridesStorageKey(
+  "proj-1",
+  "site-9",
+  "tiered",
+);
+const STAR_KEY: string = positionOverridesStorageKey(
+  "proj-1",
+  "site-9",
+  "star",
+);
+const FORCE_KEY: string = positionOverridesStorageKey(
+  "proj-1",
+  "site-9",
+  "force",
+);
+
+describe("createArrangementPersistence — the key never leads the arrangement", () => {
+  test("holding new coordinates cannot move the key they will be filed under", () => {
+    const storage: FakeStorage = makeFakeStorage();
+    const persistence: ArrangementPersistence = createArrangementPersistence(
+      storage,
+      TIERED_KEY,
+    );
+    persistence.hold(makeMap([["core", { x: 4800, y: 3000 }]]));
+    expect(persistence.keyInUse()).toBe(TIERED_KEY);
+
+    persistence.flush();
+    expect(storage.data.has(STAR_KEY)).toBe(false);
+    expect(readPersistedOverrides(storage, TIERED_KEY).get("core")).toEqual({
+      x: 4800,
+      y: 3000,
+    });
+  });
+
+  test("adopting a key moves the key and the arrangement together", () => {
+    const storage: FakeStorage = makeFakeStorage();
+    writePersistedOverrides(
+      storage,
+      STAR_KEY,
+      makeMap([["core", { x: 12, y: 34 }]]),
+    );
+    const persistence: ArrangementPersistence = createArrangementPersistence(
+      storage,
+      TIERED_KEY,
+    );
+    persistence.hold(makeMap([["core", { x: 4800, y: 3000 }]]));
+
+    expect(persistence.adopt(STAR_KEY).get("core")).toEqual({ x: 12, y: 34 });
+    expect(persistence.keyInUse()).toBe(STAR_KEY);
+    expect(persistence.held().get("core")).toEqual({ x: 12, y: 34 });
+  });
+
+  test("a flush with nothing held clears only its own key", () => {
+    const storage: FakeStorage = makeFakeStorage();
+    writePersistedOverrides(
+      storage,
+      STAR_KEY,
+      makeMap([["core", { x: 12, y: 34 }]]),
+    );
+    const persistence: ArrangementPersistence = createArrangementPersistence(
+      storage,
+      TIERED_KEY,
+    );
+    persistence.hold(EMPTY_OVERRIDES);
+    persistence.flush();
+
+    expect(storage.removeCalls).toEqual([TIERED_KEY]);
+    expect(storage.data.has(STAR_KEY)).toBe(true);
+  });
+});
+
+describe("switching layout mode", () => {
+  test("a tiered arrangement is never written into the star entry", () => {
+    /*
+     * The failure this exists for: the tiered coordinate lands under the
+     * star key, the load that immediately follows reads it back, and the
+     * node is drawn at (4800, 3000) in a coordinate system it was never
+     * in — the off-screen fling the mode-keyed storage exists to prevent.
+     */
+    const storage: FakeStorage = makeFakeStorage();
+    writePersistedOverrides(
+      storage,
+      TIERED_KEY,
+      makeMap([["core", { x: 4800, y: 3000 }]]),
+    );
+    writePersistedOverrides(
+      storage,
+      STAR_KEY,
+      makeMap([["core", { x: 12, y: 34 }]]),
+    );
+
+    const view: TopologyViewSession = mountTopologyView(storage, TIERED_KEY);
+    expect(view.onScreen().get("core")).toEqual({ x: 4800, y: 3000 });
+
+    view.switchTo(STAR_KEY);
+    expect(view.onScreen().get("core")).toEqual({ x: 12, y: 34 });
+    expect(readPersistedOverrides(storage, STAR_KEY).get("core")).toEqual({
+      x: 12,
+      y: 34,
+    });
+    expect(readPersistedOverrides(storage, TIERED_KEY).get("core")).toEqual({
+      x: 4800,
+      y: 3000,
+    });
+  });
+
+  test("leaving a mode with no arrangement does not delete the next mode's", () => {
+    /*
+     * The same bug with an empty outgoing arrangement: the write becomes
+     * a removeItem, so the star arrangement the operator built earlier is
+     * silently deleted by the act of opening star mode.
+     */
+    const storage: FakeStorage = makeFakeStorage();
+    writePersistedOverrides(
+      storage,
+      STAR_KEY,
+      makeMap([["core", { x: 12, y: 34 }]]),
+    );
+
+    const view: TopologyViewSession = mountTopologyView(storage, TIERED_KEY);
+    expect(view.onScreen().size).toBe(0);
+
+    view.switchTo(STAR_KEY);
+    expect(storage.data.has(STAR_KEY)).toBe(true);
+    expect(view.onScreen().get("core")).toEqual({ x: 12, y: 34 });
+    expect(storage.removeCalls).toEqual([TIERED_KEY]);
+  });
+
+  test("a drag inside the debounce window is saved to the mode it happened in", () => {
+    /*
+     * Drag in force mode, switch to star before the 500ms write fires.
+     * The debounce is cancelled by the switch, so the flush is the only
+     * thing that saves the drag — and it has to save it under the FORCE
+     * key, not under whichever mode the user landed in.
+     */
+    const storage: FakeStorage = makeFakeStorage();
+    const view: TopologyViewSession = mountTopologyView(storage, FORCE_KEY);
+    view.drag(makeMap([["core", { x: 5000, y: 200 }]]));
+    view.switchTo(STAR_KEY);
+
+    expect(readPersistedOverrides(storage, FORCE_KEY).get("core")).toEqual({
+      x: 5000,
+      y: 200,
+    });
+    expect(readPersistedOverrides(storage, STAR_KEY).size).toBe(0);
+    expect(view.onScreen().size).toBe(0);
+  });
+
+  test("a round trip through another mode brings the arrangement back", () => {
+    const storage: FakeStorage = makeFakeStorage();
+    const view: TopologyViewSession = mountTopologyView(storage, TIERED_KEY);
+    view.drag(
+      makeMap([
+        ["core", { x: 120, y: 240 }],
+        ["switch-a", { x: 300, y: 480 }],
+      ]),
+    );
+
+    view.switchTo(STAR_KEY);
+    view.drag(makeMap([["core", { x: 12, y: 34 }]]));
+    view.switchTo(TIERED_KEY);
+
+    expect(view.onScreen().get("core")).toEqual({ x: 120, y: 240 });
+    expect(view.onScreen().get("switch-a")).toEqual({ x: 300, y: 480 });
+    expect(readPersistedOverrides(storage, STAR_KEY).get("core")).toEqual({
+      x: 12,
+      y: 34,
+    });
+  });
+
+  test("navigating away saves the mode that is actually on screen", () => {
+    const storage: FakeStorage = makeFakeStorage();
+    const view: TopologyViewSession = mountTopologyView(storage, TIERED_KEY);
+    view.switchTo(STAR_KEY);
+    view.drag(makeMap([["core", { x: 12, y: 34 }]]));
+    view.unmount();
+
+    expect(readPersistedOverrides(storage, STAR_KEY).get("core")).toEqual({
+      x: 12,
+      y: 34,
+    });
+    expect(storage.data.has(TIERED_KEY)).toBe(false);
+  });
+
+  test("switching sites is the same rule and keeps the two apart", () => {
+    const storage: FakeStorage = makeFakeStorage();
+    const siteNine: string = positionOverridesStorageKey(
+      "proj-1",
+      "site-9",
+      "tiered",
+    );
+    const siteTen: string = positionOverridesStorageKey(
+      "proj-1",
+      "site-10",
+      "tiered",
+    );
+    const view: TopologyViewSession = mountTopologyView(storage, siteNine);
+    view.drag(makeMap([["core", { x: 700, y: 100 }]]));
+    view.switchTo(siteTen);
+
+    expect(readPersistedOverrides(storage, siteNine).get("core")).toEqual({
+      x: 700,
+      y: 100,
+    });
+    expect(readPersistedOverrides(storage, siteTen).size).toBe(0);
+  });
+
+  test("storage that throws on every access never breaks a mode switch", () => {
+    const view: TopologyViewSession = mountTopologyView(
+      makeThrowingStorage(),
+      TIERED_KEY,
+    );
+    view.drag(makeMap([["core", { x: 1, y: 2 }]]));
+    expect(() => {
+      view.switchTo(STAR_KEY);
+      view.unmount();
+    }).not.toThrow();
+    expect(view.onScreen().size).toBe(0);
   });
 });

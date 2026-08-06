@@ -19,7 +19,12 @@ import { MAX_WORLD_COORDINATE, clampWorldPoint } from "./TopologyViewport";
 
 export type PositionOverrides = ReadonlyMap<string, TopologyPoint>;
 
-export type TopologyLayoutMode = "force" | "tiered" | "radial";
+export type TopologyLayoutMode =
+  | "force"
+  | "tiered"
+  | "radial"
+  | "star"
+  | "parentChild";
 
 export const PERSISTED_OVERRIDES_VERSION: number = 1;
 /*
@@ -46,12 +51,17 @@ export interface TopologyOverrideStorage {
 /**
  * Storage key for one arrangement.
  *
- * Keyed by layout mode because force, tiered and radial are different
- * coordinate systems — a position saved in tiered mode would fling the
- * node off-screen in force mode. Keyed by site because the node set and
- * the framing differ. The version appears in the key AND inside the
- * payload so a future format change is a clean miss rather than a
- * half-understood read.
+ * Keyed by layout mode because force, tiered, radial, star and
+ * parent-child are all different coordinate systems — a position saved in
+ * tiered mode would fling the node off-screen in force mode. Keyed by site
+ * because the node set and the framing differ. The version appears in the
+ * key AND inside the payload so a future format change is a clean miss
+ * rather than a half-understood read.
+ *
+ * Adding a mode therefore costs nothing here: the new mode simply names a
+ * key nobody has written yet and starts with an empty arrangement, and
+ * every arrangement saved under the older modes keeps its own key and
+ * stays valid.
  */
 export const positionOverridesStorageKey: (
   projectId: string,
@@ -353,6 +363,80 @@ export const writePersistedOverrides: (
   } catch {
     // Quota exhausted or storage disabled — persistence is best effort.
   }
+};
+
+/**
+ * The persistence side of one topology view: the arrangement currently on
+ * screen, the storage key it belongs to, and — the whole point — when
+ * each of those two is allowed to move.
+ *
+ * They do not move together, and that is what makes this worth a type of
+ * its own. Picking a new layout mode re-renders the view with the
+ * INCOMING mode's storage key while the arrangement in state is still the
+ * OUTGOING mode's coordinates, and the flush that saves the outgoing
+ * arrangement runs inside exactly that window. Pair the two up there and
+ * the write files tiered coordinates under the star key, the load that
+ * immediately follows reads them straight back, and the node is drawn at
+ * a position from a coordinate system it was never in — the off-screen
+ * fling the mode-keyed storage exists to prevent. Worse, the star
+ * arrangement the operator actually built is gone, overwritten by the
+ * mode they just left.
+ *
+ * So {@link ArrangementPersistence.hold} carries coordinates and never
+ * touches the key, {@link ArrangementPersistence.adopt} is the only thing
+ * that moves the key and it moves it together with the arrangement it
+ * just read from that key, and a flush is therefore always a write of an
+ * arrangement to the key it came from.
+ */
+export interface ArrangementPersistence {
+  /** The key the held arrangement belongs to. */
+  keyInUse: () => string;
+  /** The arrangement a flush would write. */
+  held: () => PositionOverrides;
+  /** The coordinates moved — a drag, a prune — but the mode did not. */
+  hold: (overrides: PositionOverrides) => void;
+  /**
+   * Switch to `key`: load its arrangement and make that the held one.
+   * Returns what was loaded so the caller can put it on screen.
+   */
+  adopt: (key: string) => PositionOverrides;
+  /** Write what is held, under the key it belongs to. */
+  flush: () => void;
+}
+
+export const createArrangementPersistence: (
+  storage: TopologyOverrideStorage | null | undefined,
+  key: string,
+) => ArrangementPersistence = (
+  storage: TopologyOverrideStorage | null | undefined,
+  key: string,
+): ArrangementPersistence => {
+  let heldKey: string = key;
+  let heldOverrides: PositionOverrides = EMPTY_OVERRIDES;
+
+  return {
+    keyInUse: (): string => {
+      return heldKey;
+    },
+    held: (): PositionOverrides => {
+      return heldOverrides;
+    },
+    hold: (overrides: PositionOverrides): void => {
+      heldOverrides = overrides;
+    },
+    adopt: (nextKey: string): PositionOverrides => {
+      const loaded: PositionOverrides = readPersistedOverrides(
+        storage,
+        nextKey,
+      );
+      heldKey = nextKey;
+      heldOverrides = loaded;
+      return loaded;
+    },
+    flush: (): void => {
+      writePersistedOverrides(storage, heldKey, heldOverrides);
+    },
+  };
 };
 
 export { MAX_WORLD_COORDINATE };

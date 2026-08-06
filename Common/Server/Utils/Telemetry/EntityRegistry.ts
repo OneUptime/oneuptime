@@ -14,6 +14,7 @@ import {
   deriveRelationships,
   EntityRelationshipEdge,
 } from "../../../Utils/Telemetry/EntityRelationship";
+import crypto from "crypto";
 
 /*
  * Shared entity-registry reconciliation machinery (phases 2 + 5 of the
@@ -87,25 +88,78 @@ export const REGISTRY_PROMOTED_TYPES: ReadonlySet<EntityType> =
  */
 const FENCE_NAMESPACE: string = "otel-maintenance-fence";
 const FENCE_SCOPE: string = "entity-reconcile";
+const ROW_FENCE_SCOPE: string = "entity-reconcile-row";
 const FENCE_TTL_SECONDS: number = 5 * 60; // 5 minutes
 
+/*
+ * Atomic claim. A read-then-write here admits every worker that reads the
+ * absent key in the same instant, which at ingest concurrency is all of them —
+ * the defect behind the row-lock convoy documented in
+ * DatabaseService.updateColumnsByIdIfUnlockedWithoutHooks. TTLs are jittered
+ * so a fleet-wide restart cannot re-synchronise the windows and rebuild the
+ * herd on a fixed period.
+ */
 async function shouldReconcile(fenceId: string): Promise<boolean> {
   try {
-    const key: string = `${FENCE_SCOPE}:${fenceId}`;
-    const seen: string | null = await GlobalCache.getString(
+    return await GlobalCache.setStringIfNotExists(
       FENCE_NAMESPACE,
-      key,
+      `${FENCE_SCOPE}:${hashFenceId(fenceId)}`,
+      "1",
+      { expiresInSeconds: GlobalCache.withJitter(FENCE_TTL_SECONDS) },
     );
-    if (seen) {
-      return false;
-    }
-    await GlobalCache.setString(FENCE_NAMESPACE, key, "1", {
-      expiresInSeconds: FENCE_TTL_SECONDS,
-    });
-    return true;
   } catch {
     // If the cache is down, default to running the reconcile.
     return true;
+  }
+}
+
+/*
+ * The set-level fence id concatenates every promoted entity key, so it is
+ * unbounded in length — a pod with many entities would otherwise produce a
+ * multi-kilobyte Redis key. Hashing keeps it fixed-width without changing which
+ * sets collide.
+ */
+function hashFenceId(fenceId: string): string {
+  return crypto.createHash("sha1").update(fenceId).digest("hex");
+}
+
+/*
+ * Per-ROW fence, sitting inside the set-level one.
+ *
+ * The set-level fence keys on (project + the whole promoted entity set), which
+ * in practice is unique per POD — a pod's own key is in the set. But the writes
+ * it gates are per ROW: the single TelemetryEntity row for a Kubernetes cluster
+ * takes one UPDATE per pod in that cluster per window, the namespace row one
+ * per pod in the namespace, and so on. Throttle granularity finer than write
+ * granularity means the throttle does not bound the writes at all, and the
+ * mismatch factor is the pod count — the same shape of defect as the Service
+ * heartbeat, one layer down.
+ *
+ * Claiming per row before the lookup also removes the redundant SELECT, not
+ * just the redundant UPDATE.
+ */
+async function shouldReconcileRow(rowFenceId: string): Promise<boolean> {
+  try {
+    return await GlobalCache.setStringIfNotExists(
+      FENCE_NAMESPACE,
+      `${ROW_FENCE_SCOPE}:${hashFenceId(rowFenceId)}`,
+      "1",
+      { expiresInSeconds: GlobalCache.withJitter(FENCE_TTL_SECONDS) },
+    );
+  } catch {
+    // If the cache is down, default to running the reconcile.
+    return true;
+  }
+}
+
+async function releaseRowFence(rowFenceId: string): Promise<void> {
+  try {
+    await GlobalCache.deleteKey(
+      FENCE_NAMESPACE,
+      `${ROW_FENCE_SCOPE}:${hashFenceId(rowFenceId)}`,
+    );
+  } catch {
+    // Best effort — losing the release costs one window of staleness.
   }
 }
 
@@ -119,20 +173,12 @@ export async function shouldWarnEntityBudgetOnce(data: {
   entityType: EntityType;
 }): Promise<boolean> {
   try {
-    const key: string = `entity-budget-warn:${data.projectId.toString()}:${
-      data.entityType
-    }`;
-    const seen: string | null = await GlobalCache.getString(
+    return await GlobalCache.setStringIfNotExists(
       FENCE_NAMESPACE,
-      key,
+      `entity-budget-warn:${data.projectId.toString()}:${data.entityType}`,
+      "1",
+      { expiresInSeconds: GlobalCache.withJitter(FENCE_TTL_SECONDS) },
     );
-    if (seen) {
-      return false;
-    }
-    await GlobalCache.setString(FENCE_NAMESPACE, key, "1", {
-      expiresInSeconds: FENCE_TTL_SECONDS,
-    });
-    return true;
   } catch {
     // If the cache is down, default to warning (visibility over silence).
     return true;
@@ -230,6 +276,13 @@ export async function reconcileByNaturalKey<
   lastSeenAt: Date;
   /** Human-readable row identity for log lines, e.g. "entity host/abc123". */
   describe: string;
+  /**
+   * Stable identity of the ROW being reconciled, e.g.
+   * `${projectId}:${entityType}:${entityKey}`. Claimed atomically before the
+   * lookup so one writer per row per window does the work — see
+   * shouldReconcileRow for why the set-level fence above is not enough.
+   */
+  rowFenceId: string;
   /** Extra columns to select on the existing row, for `buildUpdate` diffing. */
   select?: Select<TBaseModel> | undefined;
   /**
@@ -264,6 +317,10 @@ export async function reconcileByNaturalKey<
     } as unknown as QueryDeepPartialEntity<TBaseModel>;
   };
 
+  if (!(await shouldReconcileRow(data.rowFenceId))) {
+    return;
+  }
+
   const existing: TBaseModel | null = await data.service.findOneBy({
     query: data.query,
     select,
@@ -278,15 +335,32 @@ export async function reconcileByNaturalKey<
      * audit). buildBump returns only plain values — lastSeenAt plus, at most,
      * the descriptiveAttributes / labels JSON columns — which the primitive
      * persists via the driver transformer path. See ServiceService.updateLastSeen.
+     *
+     * SKIP LOCKED: a contended bump yields rather than queueing behind the
+     * writer that already holds the row. Registry rows for shared entities (a
+     * cluster, a namespace) are written by every pod that reports them, so
+     * this is exactly the hot-row shape that convoyed on Service.
      */
-    await data.service.updateColumnsByIdWithoutHooks({
-      id: existing.id!,
-      data: buildBump(existing),
-    });
+    const wrote: boolean =
+      await data.service.updateColumnsByIdIfUnlockedWithoutHooks({
+        id: existing.id!,
+        data: buildBump(existing),
+      });
+
+    if (!wrote) {
+      // Skipped under contention — re-open the window so the next batch retries.
+      await releaseRowFence(data.rowFenceId);
+    }
     return;
   }
 
   if (data.beforeCreate && !(await data.beforeCreate())) {
+    /*
+     * Over budget: release the row fence so the gate is re-evaluated next
+     * batch rather than being suppressed for a full window by a decision that
+     * wrote nothing.
+     */
+    await releaseRowFence(data.rowFenceId);
     return;
   }
 
@@ -312,12 +386,19 @@ export async function reconcileByNaturalKey<
       logger.debug(
         `EntityRegistry: create raced for ${data.describe} (concurrent insert); bumping lastSeenAt on the winning row.`,
       );
-      await data.service.updateColumnsByIdWithoutHooks({
+      await data.service.updateColumnsByIdIfUnlockedWithoutHooks({
         id: winner.id!,
         data: buildBump(winner),
       });
       return;
     }
+
+    /*
+     * The insert itself was invalid. Re-open the row window so the next batch
+     * retries rather than being silently suppressed for the TTL — a genuinely
+     * broken row should keep surfacing this warning, not go quiet.
+     */
+    await releaseRowFence(data.rowFenceId);
 
     logger.warn(`EntityRegistry: create failed for ${data.describe}:`);
     logger.warn(err as Error);

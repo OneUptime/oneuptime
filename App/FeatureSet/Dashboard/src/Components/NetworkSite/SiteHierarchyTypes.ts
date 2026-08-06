@@ -131,9 +131,26 @@ export interface MapUnplacedSiteView {
   isUnitLevel: boolean;
 }
 
+/*
+ * One link row of /network-site/map: a site link the map can draw as a
+ * LINE, because both of its ends have a marker on it.
+ *
+ * monitorStatus is optional by design. A link with no monitor attached is
+ * still part of the network's shape and is still drawn — the monitor only
+ * decides what color the line is.
+ */
+export interface MapLinkView {
+  id: string;
+  name: string;
+  fromSiteId: string;
+  toSiteId: string;
+  monitorStatus: SiteLinkStatusInfo | undefined;
+}
+
 export interface SiteMapResponse {
   mode: SiteMapMode;
   sites: Array<MapSiteView>;
+  links: Array<MapLinkView>;
   unplacedSites: Array<MapUnplacedSiteView>;
   isTruncated: boolean;
 }
@@ -249,6 +266,26 @@ const parseChildRow: (value: unknown) => SiteChildView | null = (
   };
 };
 
+/*
+ * A link's status, or undefined when no monitor is attached to it. The
+ * absent case is ordinary, not broken: most links in a fresh project have
+ * no monitor yet, and every consumer draws them in a neutral color rather
+ * than dropping them.
+ */
+const parseLinkStatus: (value: unknown) => SiteLinkStatusInfo | undefined = (
+  value: unknown,
+): SiteLinkStatusInfo | undefined => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+  const status: JSONObject = value as JSONObject;
+  return {
+    name: asString(status["name"], "Unknown"),
+    color: asOptionalString(status["color"]),
+    priority: asFiniteNumber(status["priority"], 0),
+  };
+};
+
 const parseLinkRow: (value: unknown) => SiteLinkView | null = (
   value: unknown,
 ): SiteLinkView | null => {
@@ -257,22 +294,36 @@ const parseLinkRow: (value: unknown) => SiteLinkView | null = (
   if (!id) {
     return null;
   }
-  const statusRow: unknown = row["monitorStatus"];
-  let monitorStatus: SiteLinkStatusInfo | undefined = undefined;
-  if (statusRow && typeof statusRow === "object" && !Array.isArray(statusRow)) {
-    const status: JSONObject = statusRow as JSONObject;
-    monitorStatus = {
-      name: asString(status["name"], "Unknown"),
-      color: asOptionalString(status["color"]),
-      priority: asFiniteNumber(status["priority"], 0),
-    };
-  }
   return {
     id: id,
     name: asString(row["name"], "Unnamed link"),
     fromSiteId: asOptionalString(row["fromSiteId"]),
     toSiteId: asOptionalString(row["toSiteId"]),
-    monitorStatus: monitorStatus,
+    monitorStatus: parseLinkStatus(row["monitorStatus"]),
+  };
+};
+
+/*
+ * The map's link rows are stricter than the children endpoint's: a line
+ * needs two ends, so a row missing either one is dropped here rather than
+ * carried through the view model as an undrawable half-link.
+ */
+const parseMapLinkRow: (value: unknown) => MapLinkView | null = (
+  value: unknown,
+): MapLinkView | null => {
+  const row: JSONObject = (value || {}) as JSONObject;
+  const id: string = asString(row["id"], "");
+  const fromSiteId: string = asString(row["fromSiteId"], "");
+  const toSiteId: string = asString(row["toSiteId"], "");
+  if (!id || !fromSiteId || !toSiteId) {
+    return null;
+  }
+  return {
+    id: id,
+    name: asString(row["name"], "Unnamed link"),
+    fromSiteId: fromSiteId,
+    toSiteId: toSiteId,
+    monitorStatus: parseLinkStatus(row["monitorStatus"]),
   };
 };
 
@@ -475,9 +526,19 @@ export const parseSiteMapResponse: (
     .filter((site: MapUnplacedSiteView | null): site is MapUnplacedSiteView => {
       return site !== null;
     });
+  /*
+   * A payload from a server that predates link lines has no links key at
+   * all, which narrows to an empty list — the map simply draws none.
+   */
+  const links: Array<MapLinkView> = asRows(data?.["links"])
+    .map(parseMapLinkRow)
+    .filter((link: MapLinkView | null): link is MapLinkView => {
+      return link !== null;
+    });
   return {
     mode: data?.["mode"] === "all" ? "all" : "grouped",
     sites: sites,
+    links: links,
     unplacedSites: unplacedSites,
     isTruncated: data?.["isTruncated"] === true,
   };

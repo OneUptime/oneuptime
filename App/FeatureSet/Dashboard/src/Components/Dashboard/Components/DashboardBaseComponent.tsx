@@ -45,6 +45,7 @@ import DashboardDockerSwarmNodeListComponentType from "Common/Types/Dashboard/Da
 import DashboardDockerSwarmServiceListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardDockerSwarmServiceListComponent";
 import DashboardCephOsdListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardCephOsdListComponent";
 import DashboardCephPoolListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardCephPoolListComponent";
+import DashboardNetworkMapComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardNetworkMapComponent";
 import DashboardHtmlComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardHtmlComponent";
 import DashboardBaseComponent from "Common/Types/Dashboard/DashboardComponents/DashboardBaseComponent";
 import DashboardChartComponent from "./DashboardChartComponent";
@@ -87,6 +88,7 @@ import DashboardDockerSwarmNodeListComponent from "./DashboardDockerSwarmNodeLis
 import DashboardDockerSwarmServiceListComponent from "./DashboardDockerSwarmServiceListComponent";
 import DashboardCephOsdListComponent from "./DashboardCephOsdListComponent";
 import DashboardCephPoolListComponent from "./DashboardCephPoolListComponent";
+import DashboardNetworkMapComponent from "./DashboardNetworkMapComponent";
 import DashboardHtmlComponent from "./DashboardHtmlComponent";
 import DefaultDashboardSize, {
   GetDashboardComponentHeightInDashboardUnits,
@@ -986,6 +988,14 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
             isEditMode={props.isEditMode}
             isSelected={props.isSelected}
             component={component as DashboardCephPoolListComponentType}
+          />
+        )}
+        {component.componentType === DashboardComponentType.NetworkMap && (
+          <DashboardNetworkMapComponent
+            {...props}
+            isEditMode={props.isEditMode}
+            isSelected={props.isSelected}
+            component={component as DashboardNetworkMapComponentType}
           />
         )}
         {component.componentType === DashboardComponentType.Html && (

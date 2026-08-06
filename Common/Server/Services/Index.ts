@@ -177,6 +177,7 @@ import StatusPageOwnerUserService from "./StatusPageOwnerUserService";
 import StatusPagePrivateUserService from "./StatusPagePrivateUserService";
 import StatusPagePrivateUserSessionService from "./StatusPagePrivateUserSessionService";
 import StatusPageResourceService from "./StatusPageResourceService";
+import StatusPageMonitorRuleService from "./StatusPageMonitorRuleService";
 // Status Page
 import StatusPageService from "./StatusPageService";
 import StatusPageSsoService from "./StatusPageSsoService";
@@ -438,6 +439,7 @@ const services: Array<BaseService> = [
   StatusPagePrivateUserService,
   StatusPagePrivateUserSessionService,
   StatusPageResourceService,
+  StatusPageMonitorRuleService,
   StatusPageService,
   StatusPageSsoService,
   StatusPageOidcService,

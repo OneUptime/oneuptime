@@ -3,6 +3,7 @@ import MonitorGroup from "./MonitorGroup";
 import Project from "./Project";
 import StatusPage from "./StatusPage";
 import StatusPageGroup from "./StatusPageGroup";
+import StatusPageMonitorRule from "./StatusPageMonitorRule";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
@@ -519,6 +520,78 @@ export default class StatusPageResource extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public statusPageGroupId?: ObjectID = undefined;
+
+  /*
+   * Set only on resources a StatusPageMonitorRule created. It is what lets the
+   * rule engine undo its own work without ever touching a resource a human
+   * added by hand, so it is deliberately not writable through the API - the
+   * engine sets it as root.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
+      Permission.ReadStatusPageResource,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "statusPageMonitorRuleId",
+    type: TableColumnType.Entity,
+    modelType: StatusPageMonitorRule,
+    title: "Status Page Monitor Rule",
+    description:
+      "Rule that added this resource to the status page, if it was added by a rule instead of by hand",
+  })
+  @ManyToOne(
+    () => {
+      return StatusPageMonitorRule;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "statusPageMonitorRuleId" })
+  public statusPageMonitorRule?: StatusPageMonitorRule = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
+      Permission.ReadStatusPageResource,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    title: "Status Page Monitor Rule ID",
+    description:
+      "ID of the rule that added this resource, if it was added by a rule instead of by hand",
+    example: "d0e1f2a3-b4c5-4678-9abc-def012345678",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public statusPageMonitorRuleId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [

@@ -10,6 +10,7 @@ import {
   DatabaseUsername,
   MaxPostgresConnections,
   PostgresConnectionAcquireTimeoutMs,
+  PostgresLockTimeoutMs,
   PostgresIdleInTransactionTimeoutMs,
   PostgresIdleSessionTimeoutMs,
   PostgresIdleTimeoutMs,
@@ -61,6 +62,21 @@ const dataSourceOptions: DataSourceOptions = {
     statement_timeout: PostgresStatementTimeoutMs,
     query_timeout: PostgresQueryTimeoutMs,
     idle_in_transaction_session_timeout: PostgresIdleInTransactionTimeoutMs,
+    /*
+     * Bound how long a statement WAITS for a lock, so contention on a hot row
+     * fails fast instead of forming a queue (see PostgresLockTimeoutMs).
+     *
+     * Excluded on the migration path, and that exclusion is load-bearing:
+     * App/Migrate.ts loads these same options and connects DIRECTLY to the
+     * backend (bypassing any pooler), where startup parameters really do take
+     * effect. A 3s lock_timeout there would abort ACCESS EXCLUSIVE DDL on any
+     * table with live traffic — only the two migrations that set their own
+     * `SET LOCAL lock_timeout` expect to fail that way; the rest must be free
+     * to wait.
+     */
+    ...(PostgresLockTimeoutMs > 0 && !RunDatabaseMigrationsOnBoot
+      ? { lock_timeout: PostgresLockTimeoutMs }
+      : {}),
     /*
      * Detect dead TCP peers (ungraceful client exit / network partition) so
      * orphaned server-side connections get torn down instead of lingering

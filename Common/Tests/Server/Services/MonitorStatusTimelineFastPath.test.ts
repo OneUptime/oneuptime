@@ -71,6 +71,29 @@ jest.mock("../../../Server/Utils/Logger", () => {
   };
 });
 
+/*
+ * Past the fast-path, the util screens the criteria's monitor status against
+ * the monitor's project before writing (issue #3039 — a status that no longer
+ * exists used to reach Postgres as a raw foreign key violation and fail the
+ * whole ingest run). That is a database round trip; answer "usable" here so
+ * these cases stay about the fast-path. The skip behaviour itself is pinned by
+ * Tests/Server/Utils/Monitor/MonitorStatusTimelineUnusableStatus.test.ts, which
+ * also asserts this lookup is NOT reached on the fast-path.
+ */
+jest.mock(
+  "../../../Server/Utils/Database/ProjectScopedReferenceValidator",
+  () => {
+    return {
+      __esModule: true,
+      default: {
+        isUsableInProject: () => {
+          return Promise.resolve(true);
+        },
+      },
+    };
+  },
+);
+
 import MonitorStatusTimelineUtil from "../../../Server/Utils/Monitor/MonitorStatusTimeline";
 import {
   MONITOR_STATUS_SAME_AS_PREVIOUS_ERROR_MESSAGE,

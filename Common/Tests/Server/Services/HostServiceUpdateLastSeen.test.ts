@@ -1,5 +1,6 @@
 import GlobalCache from "../../../Server/Infrastructure/GlobalCache";
 import HostService from "../../../Server/Services/HostService";
+import SingleFlight from "../../../Server/Utils/SingleFlight";
 import Host from "../../../Models/DatabaseModels/Host";
 import ObjectID from "../../../Types/ObjectID";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
@@ -50,24 +51,43 @@ type UpdateLastSeenExtra = Parameters<typeof HostService.updateLastSeen>[1];
 
 /** The argument to the hook-free UPDATE the service ultimately issues. */
 type ColumnWrite = Parameters<
-  typeof HostService.updateColumnsByIdWithoutHooks
+  typeof HostService.updateColumnsByIdIfUnlockedWithoutHooks
 >[0];
 
 let writes: Array<WriteCall> = [];
 let cache: Map<string, string> = new Map<string, string>();
 let deletedCacheKeys: Array<string> = [];
 
+/**
+ * A faithful in-memory Redis for the two atomic gate primitives: SET NX
+ * succeeds only on an absent key, compare-and-claim only on a differing
+ * value. Stubbing either to a constant would let this suite agree with a
+ * throttle that does not actually throttle — which is the bug that took
+ * production down.
+ */
 function mockCache(): void {
   jest
-    .spyOn(GlobalCache, "getString")
-    .mockImplementation(async (namespace: string, key: string) => {
-      return cache.get(`${namespace}:${key}`) ?? null;
-    });
-  jest
-    .spyOn(GlobalCache, "setString")
+    .spyOn(GlobalCache, "setStringIfNotExists")
     .mockImplementation(
       async (namespace: string, key: string, value: string) => {
-        cache.set(`${namespace}:${key}`, value);
+        const full: string = `${namespace}:${key}`;
+        if (cache.has(full)) {
+          return false;
+        }
+        cache.set(full, value);
+        return true;
+      },
+    );
+  jest
+    .spyOn(GlobalCache, "setStringIfChanged")
+    .mockImplementation(
+      async (namespace: string, key: string, value: string) => {
+        const full: string = `${namespace}:${key}`;
+        if (cache.get(full) === value) {
+          return false;
+        }
+        cache.set(full, value);
+        return true;
       },
     );
   jest
@@ -76,6 +96,18 @@ function mockCache(): void {
       deletedCacheKeys.push(`${namespace}:${key}`);
       cache.delete(`${namespace}:${key}`);
     });
+}
+
+/** Re-opens the liveness window, as its TTL would. */
+function expireLivenessWindow(): void {
+  cache.delete(`host-last-seen:${HOST_ID.toString()}`);
+  SingleFlight.clear();
+}
+
+/** Re-opens the enrichment rate-limit window, as its TTL would. */
+function expireEnrichmentWindow(): void {
+  cache.delete(`host-last-seen-write-window:${HOST_ID.toString()}`);
+  SingleFlight.clear();
 }
 
 function recordWrite(input: {
@@ -92,9 +124,11 @@ function recordWrite(input: {
 /** Records every hook-free UPDATE instead of issuing it. */
 function mockWritesSucceeding(): void {
   jest
-    .spyOn(HostService, "updateColumnsByIdWithoutHooks")
+    .spyOn(HostService, "updateColumnsByIdIfUnlockedWithoutHooks")
     .mockImplementation(async (input: ColumnWrite) => {
       recordWrite(input);
+      // The SKIP LOCKED primitive resolves true when the row was updated.
+      return true;
     });
 }
 
@@ -106,12 +140,13 @@ function mockEnrichedWriteFailing(
   message: string = `value too long for type character varying(100)`,
 ): void {
   jest
-    .spyOn(HostService, "updateColumnsByIdWithoutHooks")
+    .spyOn(HostService, "updateColumnsByIdIfUnlockedWithoutHooks")
     .mockImplementation(async (input: ColumnWrite) => {
       const data: Record<string, unknown> = recordWrite(input);
       if (Object.keys(data).length > 2) {
         throw new Error(message);
       }
+      return true;
     });
 }
 
@@ -160,7 +195,8 @@ function mockRealWritePath(): void {
           data: bound,
         });
         bound = {};
-        return [];
+        // One affected row: the SKIP LOCKED write reports success via RETURNING.
+        return [{ _id: String(params[params.length - 1]) }];
       },
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -176,11 +212,13 @@ describe("HostService.updateLastSeen", () => {
     writes = [];
     cache = new Map<string, string>();
     deletedCacheKeys = [];
+    SingleFlight.clear();
     mockCache();
   });
 
   afterEach(() => {
     jest.restoreAllMocks();
+    SingleFlight.clear();
   });
 
   describe("liveness columns", () => {
@@ -203,16 +241,117 @@ describe("HostService.updateLastSeen", () => {
 
     test("skips the write when the same metadata was written recently", async () => {
       await HostService.updateLastSeen(HOST_ID, { osType: "linux" });
+      SingleFlight.clear();
       await HostService.updateLastSeen(HOST_ID, { osType: "linux" });
 
       expect(writes).toHaveLength(1);
     });
 
-    test("writes again as soon as any metadata changes", async () => {
+    /*
+     * A changed attribute lands in the NEXT window, not on the very next
+     * batch. That narrows the old "writes again immediately" contract on
+     * purpose: change detection cannot tell a real update apart from a gauge
+     * that moves every scrape — both present as "it changed" — and only one
+     * of the two is bounded. Bounding both is what removes the convoy, and
+     * the cost is at most one window of staleness on a descriptive column.
+     * `lastSeenAt` is unaffected; it rides the separate liveness gate.
+     */
+    test("a metadata change lands in the next window", async () => {
       await HostService.updateLastSeen(HOST_ID, { osType: "linux" });
+      expireLivenessWindow();
+      expireEnrichmentWindow();
+
       await HostService.updateLastSeen(HOST_ID, { osType: "windows" });
 
       expect(writes).toHaveLength(2);
+      expect(lastWrite()["osType"]).toBe("windows");
+    });
+
+    test("a metadata change cannot write twice inside one window", async () => {
+      await HostService.updateLastSeen(HOST_ID, { osType: "linux" });
+      SingleFlight.clear();
+      await HostService.updateLastSeen(HOST_ID, { osType: "windows" });
+
+      expect(writes).toHaveLength(1);
+    });
+
+    /*
+     * Per-scrape gauges must NOT participate in the throttle fingerprint.
+     *
+     * cpuCores, totalMemoryBytes and processCount used to be hashed into it,
+     * and `system.processes.count` is partitioned by process.status and
+     * summed — so it changes on essentially every scrape. The fingerprint
+     * differed every time and the 60s window never engaged, for exactly the
+     * hosts producing the most batches. OneUptime's own install guide enables
+     * the processes scraper at a 30s interval, so every host following the
+     * documentation hit this.
+     *
+     * They are still WRITTEN (see below) — they just ride along on whatever
+     * write the throttle admits instead of forcing one.
+     */
+    test("a gauge-only change does not defeat the throttle", async () => {
+      await HostService.updateLastSeen(HOST_ID, {
+        osType: "linux",
+        cpuCores: 8,
+        totalMemoryBytes: 17179869184,
+        processCount: 412,
+      });
+      expireEnrichmentWindow();
+
+      await HostService.updateLastSeen(HOST_ID, {
+        osType: "linux",
+        cpuCores: 8,
+        totalMemoryBytes: 17179869184,
+        processCount: 413,
+      });
+
+      /*
+       * Both gates were re-opened, so the only thing that can suppress the
+       * second write is the fingerprint agreeing — which is the point: the
+       * gauges must not be part of it.
+       */
+      expect(writes).toHaveLength(1);
+    });
+
+    test("a churning process count over many scrapes still writes once", async () => {
+      for (let scrape: number = 0; scrape < 20; scrape++) {
+        expireEnrichmentWindow();
+        await HostService.updateLastSeen(HOST_ID, {
+          osType: "linux",
+          processCount: 400 + scrape,
+        });
+      }
+
+      expect(writes).toHaveLength(1);
+    });
+
+    test("a real metadata change alongside a churning gauge still writes", async () => {
+      await HostService.updateLastSeen(HOST_ID, {
+        osType: "linux",
+        processCount: 412,
+      });
+      expireLivenessWindow();
+      expireEnrichmentWindow();
+
+      await HostService.updateLastSeen(HOST_ID, {
+        osType: "windows",
+        processCount: 413,
+      });
+
+      expect(writes).toHaveLength(2);
+    });
+
+    test("the gauges are still written when a write happens", async () => {
+      await HostService.updateLastSeen(HOST_ID, {
+        osType: "linux",
+        cpuCores: 8,
+        totalMemoryBytes: 17179869184,
+        processCount: 412,
+      });
+
+      expect(lastWrite()["cpuCores"]).toBe(8);
+      expect(lastWrite()["totalMemoryBytes"]).toBe(17179869184);
+      expect(lastWrite()["processCount"]).toBe(412);
     });
   });
 
@@ -342,13 +481,22 @@ describe("HostService.updateLastSeen", () => {
       expect(lastWrite()["lastSeenAt"]).toBeInstanceOf(Date);
     });
 
-    test("busts the throttle cache so the next batch is not skipped", async () => {
+    /*
+     * The enrichment gates were claimed before the write that failed, so
+     * without releasing them the next batch would short-circuit and the retry
+     * would never happen. The liveness gate is deliberately NOT released: the
+     * fallback write below already refreshed lastSeenAt, so re-opening it
+     * would buy a second heartbeat inside one window for nothing.
+     */
+    test("busts the enrichment gates so the next batch is not skipped", async () => {
       await HostService.updateLastSeen(HOST_ID, {
         hostIpAddresses: HUGE_IP_LIST,
       });
 
-      expect(deletedCacheKeys).toHaveLength(1);
-      expect(deletedCacheKeys[0]).toContain(HOST_ID.toString());
+      expect(deletedCacheKeys).toEqual([
+        `host-last-seen-fingerprint:${HOST_ID.toString()}`,
+        `host-last-seen-write-window:${HOST_ID.toString()}`,
+      ]);
     });
 
     test("the next batch retries rather than short-circuiting on a cache hit", async () => {
@@ -383,7 +531,7 @@ describe("HostService.updateLastSeen", () => {
     test("surfaces a genuinely broken database instead of hiding it", async () => {
       // Both attempts fail — the caller must find out.
       jest
-        .spyOn(HostService, "updateColumnsByIdWithoutHooks")
+        .spyOn(HostService, "updateColumnsByIdIfUnlockedWithoutHooks")
         .mockRejectedValue(new Error("connection terminated"));
 
       await expect(

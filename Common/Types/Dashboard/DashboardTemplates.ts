@@ -11,6 +11,7 @@ import MetricsAggregationType from "../Metrics/MetricsAggregationType";
 import IncidentMetricType from "../Incident/IncidentMetricType";
 import AlertMetricType from "../Alerts/AlertMetricType";
 import MonitorMetricType from "../Monitor/MonitorMetricType";
+import MonitorType from "../Monitor/MonitorType";
 import MetricDashboardMetricType from "../Metrics/MetricDashboardMetricType";
 import { DashboardValueTrendDirection } from "./DashboardComponents/DashboardValueComponent";
 
@@ -39,6 +40,7 @@ export enum DashboardTemplateType {
   DockerSwarm = "DockerSwarm",
   Metrics = "Metrics",
   Rum = "Rum",
+  Network = "Network",
 }
 
 /*
@@ -163,6 +165,14 @@ export const DashboardTemplates: Array<DashboardTemplate> = [
     description:
       "Live node and service inventories with role/status, container CPU and memory trends, PID counts, and cluster logs.",
     icon: IconProp.Cube,
+    category: DashboardTemplateCategory.Infrastructure,
+  },
+  {
+    type: DashboardTemplateType.Network,
+    name: "Network Dashboard",
+    description:
+      "Your sites on the world map, SNMP interface throughput, utilization and errors, device reachability and round-trip latency, and the monitors watching them.",
+    icon: IconProp.Map,
     category: DashboardTemplateCategory.Infrastructure,
   },
 ];
@@ -792,6 +802,71 @@ function createCephPoolListComponent(data: {
     arguments: {
       title: data.title,
       maxRows: data.maxRows ?? 20,
+    },
+  };
+}
+
+function createNetworkMapComponent(data: {
+  title: string;
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+  maxSites?: number;
+  statusFilter?: string;
+  showLabels?: boolean;
+}): DashboardBaseComponent {
+  return {
+    _type: ObjectType.DashboardComponent,
+    componentType: DashboardComponentType.NetworkMap,
+    componentId: ObjectID.generate(),
+    topInDashboardUnits: data.top,
+    leftInDashboardUnits: data.left,
+    widthInDashboardUnits: data.width,
+    heightInDashboardUnits: data.height,
+    /*
+     * A map needs room in BOTH axes — the world is roughly 2:1, so a short
+     * tile letterboxes it into a strip. Same floor the widget's own default
+     * declares (Common/Utils/Dashboard/Components/DashboardNetworkMapComponent).
+     */
+    minHeightInDashboardUnits: 4,
+    minWidthInDashboardUnits: 4,
+    arguments: {
+      title: data.title,
+      maxSites: data.maxSites ?? 250,
+      viewMode: "map",
+      showLabels: data.showLabels ?? true,
+      statusFilter: data.statusFilter,
+    },
+  };
+}
+
+function createMonitorListComponent(data: {
+  title: string;
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+  maxRows?: number;
+  monitorTypes?: Array<string>;
+  statusFilter?: string;
+}): DashboardBaseComponent {
+  return {
+    _type: ObjectType.DashboardComponent,
+    componentType: DashboardComponentType.MonitorList,
+    componentId: ObjectID.generate(),
+    topInDashboardUnits: data.top,
+    leftInDashboardUnits: data.left,
+    widthInDashboardUnits: data.width,
+    heightInDashboardUnits: data.height,
+    minHeightInDashboardUnits: 3,
+    minWidthInDashboardUnits: 6,
+    arguments: {
+      title: data.title,
+      maxRows: data.maxRows ?? 25,
+      viewMode: "list",
+      monitorTypes: data.monitorTypes,
+      statusFilter: data.statusFilter,
     },
   };
 }
@@ -3411,6 +3486,326 @@ function createCephDashboardConfig(): DashboardViewConfig {
   };
 }
 
+function createNetworkDashboardConfig(): DashboardViewConfig {
+  /*
+   * Layout and metric notes:
+   *
+   * - The map reads the Postgres NetworkSite inventory rather than a metric
+   *   series, so its markers are true right now — the same reasoning the
+   *   Kubernetes / Ceph templates use for their inventory widgets.
+   *
+   * - EVERY metric widget here queries an `oneuptime.monitor.snmp.*` series,
+   *   and those are emitted by exactly one code path:
+   *   NetworkDeviceMetricUtil.saveWalkMetrics, off a network device walk.
+   *   That is deliberate and it is the constraint the rest of this template
+   *   is built around.
+   *
+   *   The obvious tiles to reach for — uptime, round-trip time, packet loss,
+   *   jitter — do NOT belong here, however much a network dashboard wants
+   *   them. `oneuptime.monitor.online` and `oneuptime.monitor.response.time`
+   *   are emitted by MonitorMetricUtil for EVERY probeable monitor in the
+   *   project, and packet loss and jitter come from Ping/IP monitors. A tile
+   *   titled "Round-trip Time" on a network dashboard that silently averages
+   *   every website check in the project is worse than no tile: it is a
+   *   number a reader will act on. Device reachability is on this dashboard
+   *   as the Network Device monitor list, which IS correctly scoped.
+   *
+   * - Because every series here comes from the device walk, every series
+   *   carries `deviceName`, and the per-interface ones also carry
+   *   `interfaceName` — so both template variables bind to something real on
+   *   every widget. Those keys are BARE, not `resource.`-prefixed; see
+   *   NetworkDeviceMetricUtil.buildDeviceMetricRow.
+   *
+   * - No widget aggregates with Sum. The interface series are already
+   *   per-second RATES, and the Value tile reduces across time buckets — so
+   *   a summed rate grows with the dashboard's time range rather than
+   *   describing the network. Max answers "how bad did it get", Avg answers
+   *   "what is normal"; both are range-independent.
+   *
+   * - For the same reason the in/out bit-rate charts are NOT
+   *   transformAsRate'd the way the Ceph template's cumulative
+   *   ceph_pool_*_bytes counters are. They are already rates; rate-of-a-rate
+   *   plots noise around zero.
+   */
+  const components: Array<DashboardBaseComponent> = [
+    // Row 0: Title
+    createTextComponent({
+      text: "Network Dashboard",
+      top: 0,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    /*
+     * Rows 1-5: where the network IS, next to how it is doing. The map is
+     * the subject and takes two thirds of the width; the column beside it
+     * is the numbers a reader checks without leaving the picture.
+     */
+    createNetworkMapComponent({
+      title: "Sites",
+      top: 1,
+      left: 0,
+      width: 8,
+      height: 5,
+      maxSites: 250,
+    }),
+    /*
+     * SnmpInterfaceOperStatus is emitted as 0/1 per interface, so Avg is the
+     * FRACTION of interfaces currently up — in [0, 1], not a percent.
+     * Labelled "(avg)" for the same reason the Monitor template labels its
+     * uptime tile that way rather than printing a misleading "%".
+     */
+    createValueComponent({
+      title: "Interfaces Up (avg)",
+      top: 1,
+      left: 8,
+      width: 4,
+      metricConfig: {
+        metricName: MonitorMetricType.SnmpInterfaceOperStatus,
+        aggregationType: MetricsAggregationType.Avg,
+      },
+      trendDirection: DashboardValueTrendDirection.HigherIsBetter,
+    }),
+    createValueComponent({
+      title: "Avg Interface Utilization",
+      top: 2,
+      left: 8,
+      width: 4,
+      metricConfig: {
+        metricName: MonitorMetricType.SnmpInterfaceUtilizationPercent,
+        aggregationType: MetricsAggregationType.Avg,
+      },
+      trendDirection: DashboardValueTrendDirection.HigherIsWorse,
+    }),
+    /*
+     * Max, not Sum: this is "how bad did the worst port get", which is what
+     * an operator acts on. Summing a per-second error rate across every
+     * interface and every time bucket produces a number that doubles when
+     * you widen the time picker.
+     */
+    createValueComponent({
+      title: "Worst Interface Errors/sec",
+      top: 3,
+      left: 8,
+      width: 4,
+      metricConfig: {
+        metricName: MonitorMetricType.SnmpInterfaceErrorsPerSecond,
+        aggregationType: MetricsAggregationType.Max,
+      },
+      trendDirection: DashboardValueTrendDirection.HigherIsWorse,
+    }),
+    createValueComponent({
+      title: "Peak Inbound",
+      top: 4,
+      left: 8,
+      width: 4,
+      metricConfig: {
+        metricName: MonitorMetricType.SnmpInterfaceInBitsPerSecond,
+        aggregationType: MetricsAggregationType.Max,
+      },
+    }),
+    createValueComponent({
+      title: "Peak Outbound",
+      top: 5,
+      left: 8,
+      width: 4,
+      metricConfig: {
+        metricName: MonitorMetricType.SnmpInterfaceOutBitsPerSecond,
+        aggregationType: MetricsAggregationType.Max,
+      },
+    }),
+
+    // Row 6: Section header
+    createTextComponent({
+      text: "Interface Throughput",
+      top: 6,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    /*
+     * Rows 7-9: throughput, split per interface. Grouping by
+     * `interfaceName` is what turns one flat line into one line per uplink,
+     * which is the only form in which "is a link saturated" is answerable —
+     * an ungrouped chart averages a saturated uplink with nine idle access
+     * ports and reports that everything is fine.
+     */
+    createChartComponent({
+      title: "Inbound by Interface",
+      chartType: DashboardChartType.Area,
+      top: 7,
+      left: 0,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: MonitorMetricType.SnmpInterfaceInBitsPerSecond,
+        aggregationType: MetricsAggregationType.Avg,
+        legend: "Inbound",
+        legendUnit: "bps",
+        groupByAttributeKeys: ["interfaceName"],
+      },
+    }),
+    createChartComponent({
+      title: "Outbound by Interface",
+      chartType: DashboardChartType.Area,
+      top: 7,
+      left: 6,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: MonitorMetricType.SnmpInterfaceOutBitsPerSecond,
+        aggregationType: MetricsAggregationType.Avg,
+        legend: "Outbound",
+        legendUnit: "bps",
+        groupByAttributeKeys: ["interfaceName"],
+      },
+    }),
+
+    // Row 10: Section header
+    createTextComponent({
+      text: "Utilization & Errors",
+      top: 10,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    /*
+     * Rows 11-13: the gauge an operator watches during an incident, the
+     * error-rate gauge that leads it, and the per-interface error breakdown
+     * that says WHICH port to look at.
+     */
+    createGaugeComponent({
+      title: "Peak Interface Utilization",
+      top: 11,
+      left: 0,
+      width: 3,
+      height: 3,
+      minValue: 0,
+      maxValue: 100,
+      warningThreshold: 70,
+      criticalThreshold: 90,
+      metricConfig: {
+        metricName: MonitorMetricType.SnmpInterfaceUtilizationPercent,
+        aggregationType: MetricsAggregationType.Max,
+      },
+    }),
+    createGaugeComponent({
+      title: "Interface Error Rate",
+      top: 11,
+      left: 3,
+      width: 3,
+      height: 3,
+      /*
+       * A healthy Ethernet port errors essentially never, so the scale is
+       * deliberately tight: a sustained one error per second is already a
+       * cable, duplex or optic problem worth a ticket, and five is a link
+       * on its way out. A 0-100 scale like the utilization gauge next to it
+       * would render every real fault as a flat line on the floor.
+       */
+      minValue: 0,
+      maxValue: 10,
+      warningThreshold: 1,
+      criticalThreshold: 5,
+      metricConfig: {
+        metricName: MonitorMetricType.SnmpInterfaceErrorsPerSecond,
+        aggregationType: MetricsAggregationType.Avg,
+      },
+    }),
+    createChartComponent({
+      title: "Interface Errors by Interface",
+      chartType: DashboardChartType.Bar,
+      top: 11,
+      left: 6,
+      width: 6,
+      height: 3,
+      metricConfig: {
+        metricName: MonitorMetricType.SnmpInterfaceErrorsPerSecond,
+        aggregationType: MetricsAggregationType.Avg,
+        legend: "Errors/sec",
+        groupByAttributeKeys: ["interfaceName"],
+      },
+    }),
+
+    // Row 14: Section header
+    createTextComponent({
+      text: "Devices & Monitors",
+      top: 14,
+      left: 0,
+      width: 12,
+      height: 1,
+      isBold: true,
+    }),
+
+    /*
+     * Rows 15-18: utilization per interface, beside the monitors that page
+     * somebody when a device stops answering. The list is pinned to Network
+     * Device monitors — an unfiltered monitor list on a network dashboard is
+     * just the Monitors page with fewer columns — and it is also this
+     * dashboard's reachability view, correctly scoped in a way a shared
+     * uptime metric could never be.
+     */
+    createChartComponent({
+      title: "Utilization by Interface",
+      chartType: DashboardChartType.Line,
+      top: 15,
+      left: 0,
+      width: 6,
+      height: 4,
+      metricConfig: {
+        metricName: MonitorMetricType.SnmpInterfaceUtilizationPercent,
+        aggregationType: MetricsAggregationType.Avg,
+        legend: "Utilization",
+        legendUnit: "%",
+        groupByAttributeKeys: ["interfaceName"],
+      },
+    }),
+    createMonitorListComponent({
+      title: "Network Device Monitors",
+      top: 15,
+      left: 6,
+      width: 6,
+      height: 4,
+      maxRows: 25,
+      monitorTypes: [MonitorType.NetworkDevice],
+    }),
+  ];
+
+  /*
+   * Network device metrics are stored with BARE attribute keys
+   * (`deviceName`, `interfaceName`) rather than the OTel `resource.` prefix
+   * — see NetworkDeviceMetricUtil.buildDeviceMetricRow — so the variables
+   * bind to the bare keys. Both are multi-select: comparing two uplinks, or
+   * two branch routers, is the normal use rather than the exception.
+   */
+  const variables: Array<DashboardVariable> = [
+    createTelemetryAttributeVariable({
+      name: "device",
+      label: "Device",
+      attributeKey: "deviceName",
+      isMultiSelect: true,
+    }),
+    createTelemetryAttributeVariable({
+      name: "interface",
+      label: "Interface",
+      attributeKey: "interfaceName",
+      isMultiSelect: true,
+    }),
+  ];
+
+  return {
+    _type: ObjectType.DashboardViewConfig,
+    components,
+    variables,
+    heightInDashboardUnits: Math.max(DashboardSize.heightInDashboardUnits, 19),
+  };
+}
+
 export function getTemplateConfig(
   type: DashboardTemplateType,
 ): DashboardViewConfig | null {
@@ -3437,6 +3832,8 @@ export function getTemplateConfig(
       return createMetricsDashboardConfig();
     case DashboardTemplateType.Rum:
       return createRumDashboardConfig();
+    case DashboardTemplateType.Network:
+      return createNetworkDashboardConfig();
     case DashboardTemplateType.Blank:
       return null;
   }

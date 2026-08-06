@@ -484,6 +484,12 @@ enum Permission {
   EditStatusPageLabelRule = "EditStatusPageLabelRule",
   ReadStatusPageLabelRule = "ReadStatusPageLabelRule",
 
+  // Status Page Monitor Rule Permissions
+  CreateStatusPageMonitorRule = "CreateStatusPageMonitorRule",
+  DeleteStatusPageMonitorRule = "DeleteStatusPageMonitorRule",
+  EditStatusPageMonitorRule = "EditStatusPageMonitorRule",
+  ReadStatusPageMonitorRule = "ReadStatusPageMonitorRule",
+
   // Host Owner Rule Permissions
   CreateHostOwnerRule = "CreateHostOwnerRule",
   DeleteHostOwnerRule = "DeleteHostOwnerRule",
@@ -11098,6 +11104,48 @@ export class PermissionHelper {
         title: "Read Status Page Label Rule",
         description:
           "This permission can read Status Page Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.StatusPage,
+      },
+
+      // Status Page Monitor Rule Permissions
+      {
+        permission: Permission.CreateStatusPageMonitorRule,
+        title: "Create Status Page Monitor Rule",
+        description:
+          "This permission can create Status Page Monitor Rules in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.StatusPage,
+      },
+      {
+        permission: Permission.DeleteStatusPageMonitorRule,
+        title: "Delete Status Page Monitor Rule",
+        description:
+          "This permission can delete Status Page Monitor Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.StatusPage,
+      },
+      {
+        permission: Permission.EditStatusPageMonitorRule,
+        title: "Edit Status Page Monitor Rule",
+        description:
+          "This permission can edit Status Page Monitor Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.StatusPage,
+      },
+      {
+        permission: Permission.ReadStatusPageMonitorRule,
+        title: "Read Status Page Monitor Rule",
+        description:
+          "This permission can read Status Page Monitor Rules of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

@@ -22,6 +22,7 @@ import {
   LIMIT_PER_PROJECT,
 } from "../../Types/Database/LimitMax";
 import PartialEntity from "../../Types/Database/PartialEntity";
+import { coerceNumericColumnsInJSON } from "../../Types/Database/NumericColumnValue";
 import BadDataException from "../../Types/Exception/BadDataException";
 import BadRequestException from "../../Types/Exception/BadRequestException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
@@ -418,8 +419,18 @@ export default class BaseAPI<
       );
     }
 
-    const item: PartialEntity<TBaseModel> = JSONFunctions.deserialize(
-      dataInBody as JSONObject,
+    /*
+     * Coerced the same way createItem's BaseModel.fromJSON coerces, so a
+     * PATCH and a POST agree on what a number column holds. The dashboard's
+     * number fields are `<input type="number">`, whose value is a string,
+     * and the save-time hooks read these values before Postgres would
+     * coerce them — a sample percentage of "10" was rejected as "not a
+     * number" on a form that had one filled in.
+     * github.com/OneUptime/oneuptime/issues/3027
+     */
+    const item: PartialEntity<TBaseModel> = coerceNumericColumnsInJSON(
+      JSONFunctions.deserialize(dataInBody as JSONObject),
+      new this.entityType(),
     ) as PartialEntity<TBaseModel>;
 
     delete (item as any)["_id"];

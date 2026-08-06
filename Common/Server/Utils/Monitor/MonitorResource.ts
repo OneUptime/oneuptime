@@ -50,6 +50,7 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
 import ExceptionMessages from "../../../Types/Exception/ExceptionMessages";
 import MonitorEvaluationSummary from "../../../Types/Monitor/MonitorEvaluationSummary";
 import MonitorStatusService from "../../Services/MonitorStatusService";
+import ProjectScopedReferenceValidator from "../Database/ProjectScopedReferenceValidator";
 import { ProbeConnectionStatus } from "../../../Models/DatabaseModels/Probe";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 
@@ -1063,48 +1064,74 @@ export default class MonitorResourceUtil {
            */
           let revertedToDefaultStatus: boolean = true;
 
-          try {
-            await MonitorStatusTimelineService.create({
-              data: monitorStatusTimeline,
-              props: {
-                isRoot: true,
-              },
+          /*
+           * The stored default status can be a status that no longer exists, or
+           * one from another project: monitorSteps is a JSON blob with no
+           * foreign key behind it, and before issue #3039 was fixed the API
+           * accepted any uuid for it. Writing it raised the
+           * "violates foreign key constraint" error from the probe/telemetry
+           * worker and failed the whole ingest run for this monitor, losing the
+           * monitor log and payload persisted below. Skip the revert and log,
+           * the same way the criteria path in Utils/Monitor/MonitorStatusTimeline
+           * does. New writes are rejected up front by
+           * MonitorStepsProjectValidator.
+           */
+          const isDefaultStatusUsable: boolean =
+            await ProjectScopedReferenceValidator.isUsableInProject({
+              projectId: monitor.projectId!,
+              id: monitorSteps.data.defaultMonitorStatusId,
+              service: MonitorStatusService,
             });
-            logger.debug(
-              `${dataToProcess.monitorId.toString()} - Monitor status updated to default.`,
+
+          if (!isDefaultStatusUsable) {
+            logger.error(
+              `${dataToProcess.monitorId.toString()} - The default monitor status ${monitorSteps.data.defaultMonitorStatusId.toString()} does not exist in project ${monitor.projectId?.toString()}. Skipping revert to default status. Please pick a default monitor status that exists in this project.`,
             );
-          } catch (err) {
-            /*
-             * Idempotent concurrency race (see MonitorStatusTimeline.ts): a
-             * concurrent result already moved the monitor to this default status,
-             * so onBeforeCreate's dedupe check throws this exact BadDataException.
-             * Treat as a no-op at debug level rather than failing the job. Match the
-             * exact message so unrelated BadDataExceptions still propagate.
-             */
-            if (
-              err instanceof BadDataException &&
-              err.message === MONITOR_STATUS_SAME_AS_PREVIOUS_ERROR_MESSAGE
-            ) {
+            revertedToDefaultStatus = false;
+          } else {
+            try {
+              await MonitorStatusTimelineService.create({
+                data: monitorStatusTimeline,
+                props: {
+                  isRoot: true,
+                },
+              });
               logger.debug(
-                `${dataToProcess.monitorId.toString()} - Monitor status already at default; skipping duplicate status timeline (concurrent race).`,
+                `${dataToProcess.monitorId.toString()} - Monitor status updated to default.`,
               );
-            } else if (
-              err instanceof ServerException &&
-              err.message === MONITOR_STATUS_TIMELINE_LOCK_ERROR_MESSAGE
-            ) {
+            } catch (err) {
               /*
-               * The per-monitor timeline mutex could not be acquired (fail-closed
-               * create, see MonitorStatusTimelineService). Skipping is recoverable:
-               * the next probe result re-evaluates the same criteria and recreates
-               * the revert-to-default, while failing here would abort the whole
-               * ingest run and lose the monitor log for this probe result.
+               * Idempotent concurrency race (see MonitorStatusTimeline.ts): a
+               * concurrent result already moved the monitor to this default status,
+               * so onBeforeCreate's dedupe check throws this exact BadDataException.
+               * Treat as a no-op at debug level rather than failing the job. Match the
+               * exact message so unrelated BadDataExceptions still propagate.
                */
-              logger.error(
-                `${dataToProcess.monitorId.toString()} - Could not acquire the monitor status timeline lock; skipping revert to default status. It will be retried on the next probe result.`,
-              );
-              revertedToDefaultStatus = false;
-            } else {
-              throw err;
+              if (
+                err instanceof BadDataException &&
+                err.message === MONITOR_STATUS_SAME_AS_PREVIOUS_ERROR_MESSAGE
+              ) {
+                logger.debug(
+                  `${dataToProcess.monitorId.toString()} - Monitor status already at default; skipping duplicate status timeline (concurrent race).`,
+                );
+              } else if (
+                err instanceof ServerException &&
+                err.message === MONITOR_STATUS_TIMELINE_LOCK_ERROR_MESSAGE
+              ) {
+                /*
+                 * The per-monitor timeline mutex could not be acquired (fail-closed
+                 * create, see MonitorStatusTimelineService). Skipping is recoverable:
+                 * the next probe result re-evaluates the same criteria and recreates
+                 * the revert-to-default, while failing here would abort the whole
+                 * ingest run and lose the monitor log for this probe result.
+                 */
+                logger.error(
+                  `${dataToProcess.monitorId.toString()} - Could not acquire the monitor status timeline lock; skipping revert to default status. It will be retried on the next probe result.`,
+                );
+                revertedToDefaultStatus = false;
+              } else {
+                throw err;
+              }
             }
           }
 

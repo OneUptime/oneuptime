@@ -325,6 +325,10 @@ import StatusPageLabelRuleService, {
   Service as StatusPageLabelRuleServiceType,
 } from "Common/Server/Services/StatusPageLabelRuleService";
 
+import StatusPageMonitorRuleService, {
+  Service as StatusPageMonitorRuleServiceType,
+} from "Common/Server/Services/StatusPageMonitorRuleService";
+
 import HostOwnerRuleService, {
   Service as HostOwnerRuleServiceType,
 } from "Common/Server/Services/HostOwnerRuleService";
@@ -1066,6 +1070,7 @@ import WorkflowOwnerRule from "Common/Models/DatabaseModels/WorkflowOwnerRule";
 import WorkflowLabelRule from "Common/Models/DatabaseModels/WorkflowLabelRule";
 import StatusPageOwnerRule from "Common/Models/DatabaseModels/StatusPageOwnerRule";
 import StatusPageLabelRule from "Common/Models/DatabaseModels/StatusPageLabelRule";
+import StatusPageMonitorRule from "Common/Models/DatabaseModels/StatusPageMonitorRule";
 import HostOwnerRule from "Common/Models/DatabaseModels/HostOwnerRule";
 import HostLabelRule from "Common/Models/DatabaseModels/HostLabelRule";
 import ServiceOwnerRule from "Common/Models/DatabaseModels/ServiceOwnerRule";
@@ -2321,6 +2326,14 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<StatusPageLabelRule, StatusPageLabelRuleServiceType>(
         StatusPageLabelRule,
         StatusPageLabelRuleService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<StatusPageMonitorRule, StatusPageMonitorRuleServiceType>(
+        StatusPageMonitorRule,
+        StatusPageMonitorRuleService,
       ).getRouter(),
     );
 
