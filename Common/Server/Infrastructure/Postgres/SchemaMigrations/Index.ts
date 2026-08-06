@@ -498,6 +498,7 @@ import { WidenInventoryResourceNameColumns1785930000000 } from "./1785930000000-
 import { AddStatusPageReportPeriod1785930709405 } from "./1785930709405-AddStatusPageReportPeriod";
 import { AddIncidentInvestigationGating1785790000000 } from "./1785790000000-AddIncidentInvestigationGating";
 import { AddRemediationVerification1785768089408 } from "./1785768089408-AddRemediationVerification";
+import { AddStatusPageMonitorRule1786005052769 } from "./1786005052769-AddStatusPageMonitorRule";
 
 export default [
   InitialMigration,
@@ -1000,4 +1001,5 @@ export default [
   IncreaseHostIpAddressesLength1785915638551,
   WidenInventoryResourceNameColumns1785930000000,
   AddStatusPageReportPeriod1785930709405,
+  AddStatusPageMonitorRule1786005052769,
 ];

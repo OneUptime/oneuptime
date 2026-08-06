@@ -5,7 +5,10 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import DatabaseService from "./DatabaseService";
 import ServiceLevelObjectiveMonitorRuleEngineService from "./ServiceLevelObjectiveMonitorRuleEngineService";
 import ServiceLevelObjectiveService from "./ServiceLevelObjectiveService";
+import StatusPageMonitorRuleEngineService from "./StatusPageMonitorRuleEngineService";
+import StatusPageMonitorRuleService from "./StatusPageMonitorRuleService";
 import ServiceLevelObjective from "../../Models/DatabaseModels/ServiceLevelObjective";
+import StatusPageMonitorRule from "../../Models/DatabaseModels/StatusPageMonitorRule";
 import BadDataException from "../../Types/Exception/BadDataException";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import ObjectID from "../../Types/ObjectID";
@@ -65,16 +68,17 @@ export class Service extends DatabaseService<Model> {
 
   /*
    * Deleting a label cascades its join rows away at the database level, so no
-   * service hook ever fires for the SLO label rules that referenced it. Those
-   * SLOs would keep the monitors the rule attached, with nothing left to
-   * explain why. Note the ids down while the label still exists, and re-run
-   * the (now smaller) rules once it is gone.
+   * service hook ever fires for the SLO label rules or status page monitor
+   * rules that referenced it. Those would keep the monitors the rule attached,
+   * with nothing left to explain why. Note the ids down while the label still
+   * exists, and re-run the (now smaller) rules once it is gone.
    */
   @CaptureSpan()
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
     let serviceLevelObjectiveIds: Array<ObjectID> = [];
+    let statusPageMonitorRuleIds: Array<ObjectID> = [];
 
     try {
       const labels: Array<Model> = await this.findBy({
@@ -120,10 +124,33 @@ export class Service extends DatabaseService<Model> {
           .filter((id: ObjectID | null): id is ObjectID => {
             return Boolean(id);
           });
+
+        const statusPageMonitorRules: Array<StatusPageMonitorRule> =
+          await StatusPageMonitorRuleService.findBy({
+            query: {
+              monitorLabels: labelIds,
+            },
+            select: {
+              _id: true,
+            },
+            limit: LIMIT_MAX,
+            skip: 0,
+            props: {
+              isRoot: true,
+            },
+          });
+
+        statusPageMonitorRuleIds = statusPageMonitorRules
+          .map((rule: StatusPageMonitorRule) => {
+            return rule.id;
+          })
+          .filter((id: ObjectID | null): id is ObjectID => {
+            return Boolean(id);
+          });
       }
     } catch (err) {
       logger.error(
-        `Error collecting SLO label rules affected by a label delete: ${err}`,
+        `Error collecting label rules affected by a label delete: ${err}`,
       );
     }
 
@@ -131,6 +158,7 @@ export class Service extends DatabaseService<Model> {
       deleteBy,
       carryForward: {
         serviceLevelObjectiveIds: serviceLevelObjectiveIds,
+        statusPageMonitorRuleIds: statusPageMonitorRuleIds,
       },
     };
   }
@@ -140,12 +168,16 @@ export class Service extends DatabaseService<Model> {
     onDelete: OnDelete<Model>,
     _itemIdsBeforeDelete: Array<ObjectID>,
   ): Promise<OnDelete<Model>> {
+    const carryForward: {
+      serviceLevelObjectiveIds?: Array<ObjectID>;
+      statusPageMonitorRuleIds?: Array<ObjectID>;
+    } | null = onDelete.carryForward as {
+      serviceLevelObjectiveIds?: Array<ObjectID>;
+      statusPageMonitorRuleIds?: Array<ObjectID>;
+    } | null;
+
     const serviceLevelObjectiveIds: Array<ObjectID> =
-      (
-        onDelete.carryForward as {
-          serviceLevelObjectiveIds?: Array<ObjectID>;
-        } | null
-      )?.serviceLevelObjectiveIds || [];
+      carryForward?.serviceLevelObjectiveIds || [];
 
     for (const serviceLevelObjectiveId of serviceLevelObjectiveIds) {
       try {
@@ -155,6 +187,21 @@ export class Service extends DatabaseService<Model> {
       } catch (err) {
         logger.error(
           `Error re-applying the monitor label rule for SLO ${serviceLevelObjectiveId.toString()} after a label delete: ${err}`,
+        );
+      }
+    }
+
+    const statusPageMonitorRuleIds: Array<ObjectID> =
+      carryForward?.statusPageMonitorRuleIds || [];
+
+    for (const statusPageMonitorRuleId of statusPageMonitorRuleIds) {
+      try {
+        await StatusPageMonitorRuleEngineService.syncResourcesForRule({
+          statusPageMonitorRuleId: statusPageMonitorRuleId,
+        });
+      } catch (err) {
+        logger.error(
+          `Error re-applying status page monitor rule ${statusPageMonitorRuleId.toString()} after a label delete: ${err}`,
         );
       }
     }

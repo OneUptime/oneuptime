@@ -561,6 +561,7 @@ export const StatusPagesRoutePath: Dictionary<string> = {
   [PageMap.STATUS_PAGE_VIEW_BRANDING]: `${RouteParams.ModelID}/branding`,
   [PageMap.STATUS_PAGE_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
   [PageMap.STATUS_PAGE_VIEW_GROUPS]: `${RouteParams.ModelID}/groups`,
+  [PageMap.STATUS_PAGE_VIEW_MONITOR_RULES]: `${RouteParams.ModelID}/monitor-rules`,
   [PageMap.STATUS_PAGE_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
   [PageMap.STATUS_PAGE_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
   [PageMap.STATUS_PAGE_VIEW_CUSTOM_FIELDS]: `${RouteParams.ModelID}/custom-fields`,
@@ -4125,6 +4126,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.STATUS_PAGE_VIEW_GROUPS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/status-pages/${
       StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_GROUPS]
+    }`,
+  ),
+
+  [PageMap.STATUS_PAGE_VIEW_MONITOR_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/status-pages/${
+      StatusPagesRoutePath[PageMap.STATUS_PAGE_VIEW_MONITOR_RULES]
     }`,
   ),
 

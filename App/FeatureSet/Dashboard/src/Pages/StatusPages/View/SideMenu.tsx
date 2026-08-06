@@ -78,6 +78,16 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Folder}
         />
+        <SideMenuItem
+          link={{
+            title: "Monitor Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.STATUS_PAGE_VIEW_MONITOR_RULES] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Filter}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Subscribers">
