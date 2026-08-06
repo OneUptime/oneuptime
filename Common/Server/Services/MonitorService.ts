@@ -405,27 +405,47 @@ export class Service extends DatabaseService<Model> {
       resolveReferenceId(updateBy.data.currentMonitorStatusId) ||
       resolveReferenceId(updateBy.data.currentMonitorStatus);
 
-    if (updateBy.data.monitorSteps || currentMonitorStatusId) {
+    if (updateBy.data.monitorSteps) {
       /*
-       * Root/API updates do not always carry a tenantId, so fall back to the
-       * project of each monitor the query actually matches.
+       * Validated per matched monitor rather than per distinct project, because
+       * the check needs that monitor's CURRENT monitorSteps: a reference id it
+       * already holds is exempt from the existence check, so an update never
+       * refuses a monitor that was stored broken before the guard existed. See
+       * MonitorStepsProjectValidator.
        */
+      const monitors: Array<Model> = await this.findBy({
+        query: updateBy.query,
+        select: {
+          projectId: true,
+          monitorSteps: true,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+      });
+
+      for (const monitor of monitors) {
+        await MonitorStepsProjectValidator.validateMonitorStepsBelongToProject({
+          monitorSteps: updateBy.data.monitorSteps as MonitorSteps | JSONObject,
+          /*
+           * Root/API updates do not always carry a tenantId, so fall back to
+           * the project of the monitor being updated.
+           */
+          projectId: updateBy.props.tenantId || monitor.projectId,
+          alreadyStoredMonitorSteps: monitor.monitorSteps,
+        });
+      }
+    }
+
+    if (currentMonitorStatusId) {
       const projectIds: Array<ObjectID> = updateBy.props.tenantId
         ? [updateBy.props.tenantId]
         : await this.getProjectIdsForUpdateQuery(updateBy);
 
       for (const projectId of projectIds) {
-        if (updateBy.data.monitorSteps) {
-          await MonitorStepsProjectValidator.validateMonitorStepsBelongToProject(
-            {
-              monitorSteps: updateBy.data.monitorSteps as
-                | MonitorSteps
-                | JSONObject,
-              projectId: projectId,
-            },
-          );
-        }
-
         await ProjectScopedReferenceValidator.validateReferencesBelongToProject(
           {
             projectId: projectId,

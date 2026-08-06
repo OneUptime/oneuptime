@@ -9,7 +9,9 @@ import MonitorStatusTimelineService, {
   MONITOR_STATUS_SAME_AS_PREVIOUS_ERROR_MESSAGE,
   MONITOR_STATUS_TIMELINE_LOCK_ERROR_MESSAGE,
 } from "../../Services/MonitorStatusTimelineService";
+import MonitorStatusService from "../../Services/MonitorStatusService";
 import ServerException from "../../../Types/Exception/ServerException";
+import ProjectScopedReferenceValidator from "../Database/ProjectScopedReferenceValidator";
 import logger, { LogAttributes } from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import DataToProcess from "./DataToProcess";
@@ -110,6 +112,40 @@ export default class MonitorStatusTimelineUtil {
 
       if (!monitorStatusId) {
         throw new BadDataException("Monitor status is not defined.");
+      }
+
+      /*
+       * The criteria can name a status that no longer exists, or that belongs to
+       * another project: monitorSteps is a JSON blob with no foreign key behind
+       * it, so deleting a monitor status does not rewrite the criteria that
+       * point at it, and before issue #3039 was fixed the API accepted any uuid
+       * here in the first place. Writing it anyway is what raised
+       *   insert or update on table "MonitorStatusTimeline" violates foreign key
+       *   constraint
+       * inside the probe/telemetry worker, failing the whole ingest run for this
+       * monitor - no status change, and no monitor log or payload persisted
+       * either, because those come after this. Skip the status change and log,
+       * the same way MonitorIncident and MonitorAlert handle an unusable
+       * severity. New writes are rejected up front by
+       * MonitorStepsProjectValidator, so this only ever fires for monitors saved
+       * before that guard existed.
+       */
+      const isMonitorStatusUsable: boolean =
+        await ProjectScopedReferenceValidator.isUsableInProject({
+          projectId: input.monitor.projectId!,
+          id: monitorStatusId,
+          service: MonitorStatusService,
+        });
+
+      if (!isMonitorStatusUsable) {
+        logger.error(
+          `${input.monitor.id?.toString()} - Criteria "${
+            input.criteriaInstance.data?.name
+          }" changes the monitor status to ${monitorStatusId.toString()}, which does not exist in project ${input.monitor.projectId?.toString()}. Skipping the status change. Please pick a monitor status that exists in this project.`,
+          monitorLogAttributes,
+        );
+
+        return null;
       }
 
       //change monitor status.

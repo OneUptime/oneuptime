@@ -19,6 +19,7 @@ import { JSONObject } from "../../Types/JSON";
 import AlertInternalNote from "../../Models/DatabaseModels/AlertInternalNote";
 import AlertInternalNoteService from "./AlertInternalNoteService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import ProjectScopedReferenceValidator from "../Utils/Database/ProjectScopedReferenceValidator";
 import logger, { LogAttributes } from "../Utils/Logger";
 import AlertFeedService from "./AlertFeedService";
 import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
@@ -117,6 +118,25 @@ export class Service extends DatabaseService<AlertStateTimeline> {
       if (!alertStateId) {
         throw new BadDataException("alertStateId is null");
       }
+
+      /*
+       * Same guard, same reason, as MonitorStatusTimelineService: an id that
+       * exists nowhere (or belongs to another project) used to reach Postgres
+       * and come back as a raw foreign key violation. The ordering check below
+       * does look the state up, but only when there IS a preceding row with an
+       * order, so the first timeline row for an alert went through unchecked.
+       */
+      await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
+        projectId: createBy.props.tenantId || createBy.data.projectId,
+        subject: "alert state timeline",
+        references: [
+          {
+            modelName: "Alert State",
+            id: alertStateId,
+            service: AlertStateService,
+          },
+        ],
+      });
 
       const stateBeforeThis: AlertStateTimeline | null = await this.findOneBy({
         query: {

@@ -1,8 +1,14 @@
 import DatabaseService from "./DatabaseService";
 import MonitorService from "./MonitorService";
+import CreateBy from "../Types/Database/CreateBy";
+import UpdateBy from "../Types/Database/UpdateBy";
+import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import MonitorStepsProjectValidator from "../Utils/Monitor/MonitorStepsProjectValidator";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../Types/Exception/BadDataException";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
+import { JSONObject } from "../../Types/JSON";
+import MonitorSteps from "../../Types/Monitor/MonitorSteps";
 import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import Model from "../../Models/DatabaseModels/MonitorTemplate";
@@ -35,6 +41,65 @@ const ALL_SYNCABLE_FIELDS: ReadonlyArray<SyncableTemplateField> = [
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * A template's monitorSteps embeds the same reference ids a monitor's does,
+   * and every one of them reaches a real monitor eventually — through "create
+   * monitor from template" and through syncLinkedMonitors, which pushes the
+   * blob onto every linked monitor. Validating it here is what makes the error
+   * land on the template the bad id was typed into, rather than on a monitor
+   * sync days later. Without this the template is the one place a dangling id
+   * can still enter the system.
+   */
+  @CaptureSpan()
+  protected override async onBeforeCreate(
+    createBy: CreateBy<Model>,
+  ): Promise<OnCreate<Model>> {
+    await MonitorStepsProjectValidator.validateMonitorStepsBelongToProject({
+      monitorSteps: createBy.data.monitorSteps,
+      projectId: createBy.props.tenantId || createBy.data.projectId,
+    });
+
+    return { createBy, carryForward: null };
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    if (!updateBy.data.monitorSteps) {
+      return { updateBy, carryForward: null };
+    }
+
+    /*
+     * Per matched template, so each is checked against its own project and its
+     * own currently-stored ids — see MonitorService.onBeforeUpdate for why the
+     * stored ids matter.
+     */
+    const templates: Array<Model> = await this.findBy({
+      query: updateBy.query,
+      select: {
+        projectId: true,
+        monitorSteps: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+        ignoreHooks: true,
+      },
+    });
+
+    for (const template of templates) {
+      await MonitorStepsProjectValidator.validateMonitorStepsBelongToProject({
+        monitorSteps: updateBy.data.monitorSteps as MonitorSteps | JSONObject,
+        projectId: updateBy.props.tenantId || template.projectId,
+        alreadyStoredMonitorSteps: template.monitorSteps,
+      });
+    }
+
+    return { updateBy, carryForward: null };
   }
 
   /**
