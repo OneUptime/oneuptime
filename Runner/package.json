@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/runner",
-  "version": "12.0.3",
+  "version": "12.0.4",
   "description": "OneUptime Runner — one self-hosted agent that executes runbook steps in your own infrastructure and, when enabled, opens AI code-fix pull requests in your repositories.",
   "repository": {
     "type": "git",
