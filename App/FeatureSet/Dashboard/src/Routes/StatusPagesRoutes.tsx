@@ -28,6 +28,7 @@ import StatusPagesViewHeaderStyle from "../Pages/StatusPages/View/HeaderStyle";
 import StatusPagesViewFooterStyle from "../Pages/StatusPages/View/FooterStyle";
 import StatusPagesViewNavBarStyle from "../Pages/StatusPages/View/NavBarStyle";
 import StatusPagesViewGroups from "../Pages/StatusPages/View/Groups";
+import StatusPagesViewMonitorRules from "../Pages/StatusPages/View/MonitorRules";
 import StatusPageViewSubscriberSettings from "../Pages/StatusPages/View/SubscriberSettings";
 import StatusPageViewCustomFields from "../Pages/StatusPages/View/CustomFields";
 import StatusPageViewSSO from "../Pages/StatusPages/View/SSO";
@@ -666,6 +667,20 @@ const StatusPagesRoutes: FunctionComponent<ComponentProps> = (
             <StatusPagesViewGroups
               {...props}
               pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW_GROUPS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.STATUS_PAGE_VIEW_MONITOR_RULES,
+          )}
+          element={
+            <StatusPagesViewMonitorRules
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.STATUS_PAGE_VIEW_MONITOR_RULES] as Route
+              }
             />
           }
         />

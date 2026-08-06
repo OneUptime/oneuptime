@@ -375,6 +375,7 @@ import MonitorOwnerRule from "./MonitorOwnerRule";
 import MonitorLabelRule from "./MonitorLabelRule";
 import StatusPageOwnerRule from "./StatusPageOwnerRule";
 import StatusPageLabelRule from "./StatusPageLabelRule";
+import StatusPageMonitorRule from "./StatusPageMonitorRule";
 import HostOwnerRule from "./HostOwnerRule";
 import HostLabelRule from "./HostLabelRule";
 import ServiceOwnerRule from "./ServiceOwnerRule";
@@ -559,6 +560,7 @@ const AllModelTypes: Array<{
   MonitorLabelRule,
   StatusPageOwnerRule,
   StatusPageLabelRule,
+  StatusPageMonitorRule,
   HostOwnerRule,
   HostLabelRule,
   ServiceOwnerRule,

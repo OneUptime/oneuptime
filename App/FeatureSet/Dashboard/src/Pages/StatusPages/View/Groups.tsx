@@ -132,7 +132,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         cardProps={{
           title: "Resource Groups",
           description:
-            "Here are different groups for your status page resources. Groups can be nested inside other groups, and each level shows the rolled up status and uptime of everything beneath it. Deleting a group also deletes its sub groups and the resources in them.",
+            "Here are different groups for your status page resources. Groups can be nested inside other groups, and each level shows the rolled up status and uptime of everything beneath it. Deleting a group also deletes its sub groups, the resources in them, and any monitor rules that add monitors to them.",
           buttons: [
             /*
              * OUTLINE, not NORMAL/PRIMARY: BaseModelTable promotes the first

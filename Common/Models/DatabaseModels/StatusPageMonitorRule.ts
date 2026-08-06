@@ -1,9 +1,7 @@
-import Monitor from "./Monitor";
-import MonitorGroup from "./MonitorGroup";
+import Label from "./Label";
 import Project from "./Project";
 import StatusPage from "./StatusPage";
 import StatusPageGroup from "./StatusPageGroup";
-import StatusPageMonitorRule from "./StatusPageMonitorRule";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
@@ -15,7 +13,6 @@ import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import EnableWorkflow from "../../Types/Database/EnableWorkflow";
-import SlugifyColumn from "../../Types/Database/SlugifyColumn";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
@@ -23,8 +20,16 @@ import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
-import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
+import {
+  Column,
+  Entity,
+  Index,
+  JoinColumn,
+  JoinTable,
+  ManyToMany,
+  ManyToOne,
+} from "typeorm";
 
 @EnableDocumentation()
 @CanAccessIfCanReadOn("statusPage")
@@ -36,7 +41,7 @@ import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
     Permission.ProjectMember,
     Permission.StatusPageAdmin,
     Permission.StatusPageMember,
-    Permission.CreateStatusPageResource,
+    Permission.CreateStatusPageMonitorRule,
   ],
   read: [
     Permission.ProjectOwner,
@@ -46,7 +51,7 @@ import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
     Permission.StatusPageAdmin,
     Permission.StatusPageMember,
     Permission.StatusPageViewer,
-    Permission.ReadStatusPageResource,
+    Permission.ReadStatusPageMonitorRule,
   ],
   delete: [
     Permission.ProjectOwner,
@@ -54,7 +59,7 @@ import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
     Permission.ProjectMember,
     Permission.StatusPageAdmin,
     Permission.StatusPageMember,
-    Permission.DeleteStatusPageResource,
+    Permission.DeleteStatusPageMonitorRule,
   ],
   update: [
     Permission.ProjectOwner,
@@ -62,8 +67,12 @@ import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
     Permission.ProjectMember,
     Permission.StatusPageAdmin,
     Permission.StatusPageMember,
-    Permission.EditStatusPageResource,
+    Permission.EditStatusPageMonitorRule,
   ],
+})
+@CrudApiEndpoint(new Route("/status-page-monitor-rule"))
+@Entity({
+  name: "StatusPageMonitorRule",
 })
 @EnableWorkflow({
   create: true,
@@ -71,19 +80,15 @@ import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
   update: true,
   read: true,
 })
-@CrudApiEndpoint(new Route("/status-page-resource"))
-@SlugifyColumn("name", "slug")
 @TableMetadata({
-  tableName: "StatusPageResource",
-  singularName: "Status Page Resource",
-  pluralName: "Status Page Resources",
-  icon: IconProp.AltGlobe,
-  tableDescription: "Add resources like monitors to your status page",
+  tableName: "StatusPageMonitorRule",
+  singularName: "Status Page Monitor Rule",
+  pluralName: "Status Page Monitor Rules",
+  icon: IconProp.Filter,
+  tableDescription:
+    "Configure rules that automatically add matching monitors to a status page group, instead of picking every monitor by hand",
 })
-@Entity({
-  name: "StatusPageResource",
-})
-export default class StatusPageResource extends BaseModel {
+export default class StatusPageMonitorRule extends BaseModel {
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -91,7 +96,7 @@ export default class StatusPageResource extends BaseModel {
       Permission.ProjectMember,
       Permission.StatusPageAdmin,
       Permission.StatusPageMember,
-      Permission.CreateStatusPageResource,
+      Permission.CreateStatusPageMonitorRule,
     ],
     read: [
       Permission.ProjectOwner,
@@ -101,7 +106,7 @@ export default class StatusPageResource extends BaseModel {
       Permission.StatusPageAdmin,
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
-      Permission.ReadStatusPageResource,
+      Permission.ReadStatusPageMonitorRule,
     ],
     update: [],
   })
@@ -133,7 +138,7 @@ export default class StatusPageResource extends BaseModel {
       Permission.ProjectMember,
       Permission.StatusPageAdmin,
       Permission.StatusPageMember,
-      Permission.CreateStatusPageResource,
+      Permission.CreateStatusPageMonitorRule,
     ],
     read: [
       Permission.ProjectOwner,
@@ -143,7 +148,7 @@ export default class StatusPageResource extends BaseModel {
       Permission.StatusPageAdmin,
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
-      Permission.ReadStatusPageResource,
+      Permission.ReadStatusPageMonitorRule,
     ],
     update: [],
   })
@@ -154,7 +159,6 @@ export default class StatusPageResource extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Project ID",
     description: "ID of your OneUptime Project in which this object belongs",
-    example: "5f8b9c0d-e1a2-4b3c-8d5e-6f7a8b9c0d1e",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -170,7 +174,7 @@ export default class StatusPageResource extends BaseModel {
       Permission.ProjectMember,
       Permission.StatusPageAdmin,
       Permission.StatusPageMember,
-      Permission.CreateStatusPageResource,
+      Permission.CreateStatusPageMonitorRule,
     ],
     read: [
       Permission.ProjectOwner,
@@ -180,7 +184,7 @@ export default class StatusPageResource extends BaseModel {
       Permission.StatusPageAdmin,
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
-      Permission.ReadStatusPageResource,
+      Permission.ReadStatusPageMonitorRule,
     ],
     update: [],
   })
@@ -189,8 +193,7 @@ export default class StatusPageResource extends BaseModel {
     type: TableColumnType.Entity,
     modelType: StatusPage,
     title: "Status Page",
-    description:
-      "Relation to Status Page Resource in which this object belongs",
+    description: "Status page this rule adds matching monitors to",
   })
   @ManyToOne(
     () => {
@@ -213,7 +216,7 @@ export default class StatusPageResource extends BaseModel {
       Permission.ProjectMember,
       Permission.StatusPageAdmin,
       Permission.StatusPageMember,
-      Permission.CreateStatusPageResource,
+      Permission.CreateStatusPageMonitorRule,
     ],
     read: [
       Permission.ProjectOwner,
@@ -223,7 +226,7 @@ export default class StatusPageResource extends BaseModel {
       Permission.StatusPageAdmin,
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
-      Permission.ReadStatusPageResource,
+      Permission.ReadStatusPageMonitorRule,
     ],
     update: [],
   })
@@ -231,9 +234,10 @@ export default class StatusPageResource extends BaseModel {
   @TableColumn({
     type: TableColumnType.ObjectID,
     required: true,
+    canReadOnRelationQuery: true,
     title: "Status Page ID",
-    description: "ID of your Status Page resource where this object belongs",
-    example: "f6a7b8c9-d0e1-2345-6789-abcdef012345",
+    description: "ID of the status page this rule adds matching monitors to",
+    example: "a1b2c3d4-e5f6-4789-abcd-ef0123456789",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -249,7 +253,7 @@ export default class StatusPageResource extends BaseModel {
       Permission.ProjectMember,
       Permission.StatusPageAdmin,
       Permission.StatusPageMember,
-      Permission.CreateStatusPageResource,
+      Permission.CreateStatusPageMonitorRule,
     ],
     read: [
       Permission.ProjectOwner,
@@ -259,7 +263,7 @@ export default class StatusPageResource extends BaseModel {
       Permission.StatusPageAdmin,
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
-      Permission.ReadStatusPageResource,
+      Permission.ReadStatusPageMonitorRule,
     ],
     update: [
       Permission.ProjectOwner,
@@ -267,72 +271,23 @@ export default class StatusPageResource extends BaseModel {
       Permission.ProjectMember,
       Permission.StatusPageAdmin,
       Permission.StatusPageMember,
-      Permission.EditStatusPageResource,
-    ],
-  })
-  @TableColumn({
-    manyToOneRelationColumn: "monitorId",
-    type: TableColumnType.Entity,
-    modelType: Monitor,
-    title: "Monitor",
-    description: "Relation to Monitor Resource in which this object belongs",
-  })
-  @ManyToOne(
-    () => {
-      return Monitor;
-    },
-    {
-      eager: false,
-      nullable: true,
-      onDelete: "CASCADE",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "monitorId" })
-  public monitor?: Monitor = undefined;
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.StatusPageAdmin,
-      Permission.StatusPageMember,
-      Permission.CreateStatusPageResource,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.StatusPageAdmin,
-      Permission.StatusPageMember,
-      Permission.StatusPageViewer,
-      Permission.ReadStatusPageResource,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.StatusPageAdmin,
-      Permission.StatusPageMember,
-      Permission.EditStatusPageResource,
+      Permission.EditStatusPageMonitorRule,
     ],
   })
   @Index()
   @TableColumn({
-    type: TableColumnType.ObjectID,
-    required: false,
-    title: "Monitor ID",
-    description: "Relation to Monitor ID Resource in which this object belongs",
-    example: "a7b8c9d0-e1f2-3456-789a-bcdef0123456",
+    required: true,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "Name",
+    description: "Name of this status page monitor rule",
   })
   @Column({
-    type: ColumnType.ObjectID,
-    nullable: true,
-    transformer: ObjectID.getDatabaseTransformer(),
+    nullable: false,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
   })
-  public monitorId?: ObjectID = undefined;
+  public name?: string = undefined;
 
   @ColumnAccessControl({
     create: [
@@ -341,7 +296,7 @@ export default class StatusPageResource extends BaseModel {
       Permission.ProjectMember,
       Permission.StatusPageAdmin,
       Permission.StatusPageMember,
-      Permission.CreateStatusPageResource,
+      Permission.CreateStatusPageMonitorRule,
     ],
     read: [
       Permission.ProjectOwner,
@@ -351,7 +306,7 @@ export default class StatusPageResource extends BaseModel {
       Permission.StatusPageAdmin,
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
-      Permission.ReadStatusPageResource,
+      Permission.ReadStatusPageMonitorRule,
     ],
     update: [
       Permission.ProjectOwner,
@@ -359,30 +314,21 @@ export default class StatusPageResource extends BaseModel {
       Permission.ProjectMember,
       Permission.StatusPageAdmin,
       Permission.StatusPageMember,
-      Permission.EditStatusPageResource,
+      Permission.EditStatusPageMonitorRule,
     ],
   })
   @TableColumn({
-    manyToOneRelationColumn: "monitorGroupId",
-    type: TableColumnType.Entity,
-    modelType: MonitorGroup,
-    title: "Monitor Group",
-    description:
-      "Relation to Monitor Group Resource in which this object belongs",
+    required: false,
+    type: TableColumnType.LongText,
+    title: "Description",
+    description: "Description of this status page monitor rule",
   })
-  @ManyToOne(
-    () => {
-      return MonitorGroup;
-    },
-    {
-      eager: false,
-      nullable: true,
-      onDelete: "CASCADE",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "monitorGroupId" })
-  public monitorGroup?: MonitorGroup = undefined;
+  @Column({
+    nullable: true,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+  })
+  public description?: string = undefined;
 
   @ColumnAccessControl({
     create: [
@@ -391,7 +337,7 @@ export default class StatusPageResource extends BaseModel {
       Permission.ProjectMember,
       Permission.StatusPageAdmin,
       Permission.StatusPageMember,
-      Permission.CreateStatusPageResource,
+      Permission.CreateStatusPageMonitorRule,
     ],
     read: [
       Permission.ProjectOwner,
@@ -401,7 +347,7 @@ export default class StatusPageResource extends BaseModel {
       Permission.StatusPageAdmin,
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
-      Permission.ReadStatusPageResource,
+      Permission.ReadStatusPageMonitorRule,
     ],
     update: [
       Permission.ProjectOwner,
@@ -409,24 +355,27 @@ export default class StatusPageResource extends BaseModel {
       Permission.ProjectMember,
       Permission.StatusPageAdmin,
       Permission.StatusPageMember,
-      Permission.EditStatusPageResource,
+      Permission.EditStatusPageMonitorRule,
     ],
   })
   @Index()
   @TableColumn({
-    type: TableColumnType.ObjectID,
-    required: false,
-    title: "Monitor Group ID",
+    required: true,
+    type: TableColumnType.Boolean,
+    title: "Is Enabled",
     description:
-      "Relation to Monitor Group ID Resource in which this object belongs",
-    example: "b8c9d0e1-f2a3-4567-89ab-cdef01234567",
+      "Whether this rule is enabled. A disabled rule removes the monitors it had added.",
+    defaultValue: true,
+    isDefaultValueColumn: true,
   })
   @Column({
-    type: ColumnType.ObjectID,
-    nullable: true,
-    transformer: ObjectID.getDatabaseTransformer(),
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: true,
   })
-  public monitorGroupId?: ObjectID = undefined;
+  public isEnabled?: boolean = undefined;
+
+  // Match Criteria
 
   @ColumnAccessControl({
     create: [
@@ -435,7 +384,7 @@ export default class StatusPageResource extends BaseModel {
       Permission.ProjectMember,
       Permission.StatusPageAdmin,
       Permission.StatusPageMember,
-      Permission.CreateStatusPageResource,
+      Permission.CreateStatusPageMonitorRule,
     ],
     read: [
       Permission.ProjectOwner,
@@ -445,7 +394,7 @@ export default class StatusPageResource extends BaseModel {
       Permission.StatusPageAdmin,
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
-      Permission.ReadStatusPageResource,
+      Permission.ReadStatusPageMonitorRule,
     ],
     update: [
       Permission.ProjectOwner,
@@ -453,7 +402,148 @@ export default class StatusPageResource extends BaseModel {
       Permission.ProjectMember,
       Permission.StatusPageAdmin,
       Permission.StatusPageMember,
-      Permission.EditStatusPageResource,
+      Permission.EditStatusPageMonitorRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: Label,
+    title: "Monitor Labels",
+    description:
+      "Only match monitors that carry at least one of these labels. Leave empty to skip the label filter.",
+  })
+  @ManyToMany(
+    () => {
+      return Label;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "StatusPageMonitorRuleMonitorLabel",
+    inverseJoinColumn: {
+      name: "labelId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "statusPageMonitorRuleId",
+      referencedColumnName: "_id",
+    },
+  })
+  public monitorLabels?: Array<Label> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.CreateStatusPageMonitorRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
+      Permission.ReadStatusPageMonitorRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.EditStatusPageMonitorRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    title: "Monitor Name Pattern",
+    description:
+      "Regex (case-insensitive) matched against the monitor name. Leave empty to skip the name filter. Use .* to match every monitor.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    nullable: true,
+    length: ColumnLength.LongText,
+  })
+  public monitorNamePattern?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.CreateStatusPageMonitorRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
+      Permission.ReadStatusPageMonitorRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.EditStatusPageMonitorRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    title: "Monitor Description Pattern",
+    description:
+      "Regex (case-insensitive) matched against the monitor description. Leave empty to skip the description filter.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    nullable: true,
+    length: ColumnLength.LongText,
+  })
+  public monitorDescriptionPattern?: string = undefined;
+
+  // Action: where matched monitors land, and how they are rendered.
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.CreateStatusPageMonitorRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
+      Permission.ReadStatusPageMonitorRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.EditStatusPageMonitorRule,
     ],
   })
   @TableColumn({
@@ -462,8 +552,15 @@ export default class StatusPageResource extends BaseModel {
     modelType: StatusPageGroup,
     title: "Status Page Group",
     description:
-      "Does this monitor belong to a status page group? If so - which one is it?",
+      "Group that matched monitors are added to. Leave empty to add them ungrouped.",
   })
+  /*
+   * CASCADE, matching StatusPageResource.statusPageGroup: deleting a group
+   * takes the rules that target it with it. SET NULL would leave the rule
+   * alive and pointing nowhere, and its next run would re-publish the same
+   * monitors as UNGROUPED on a public page - a louder failure than losing a
+   * rule whose destination the user just deleted. The Groups page says so.
+   */
   @ManyToOne(
     () => {
       return StatusPageGroup;
@@ -485,7 +582,7 @@ export default class StatusPageResource extends BaseModel {
       Permission.ProjectMember,
       Permission.StatusPageAdmin,
       Permission.StatusPageMember,
-      Permission.CreateStatusPageResource,
+      Permission.CreateStatusPageMonitorRule,
     ],
     read: [
       Permission.ProjectOwner,
@@ -495,7 +592,7 @@ export default class StatusPageResource extends BaseModel {
       Permission.StatusPageAdmin,
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
-      Permission.ReadStatusPageResource,
+      Permission.ReadStatusPageMonitorRule,
     ],
     update: [
       Permission.ProjectOwner,
@@ -503,15 +600,16 @@ export default class StatusPageResource extends BaseModel {
       Permission.ProjectMember,
       Permission.StatusPageAdmin,
       Permission.StatusPageMember,
-      Permission.EditStatusPageResource,
+      Permission.EditStatusPageMonitorRule,
     ],
   })
   @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
     required: false,
-    title: "Group ID",
-    description: "Does this monitor belong to a status page group?",
+    title: "Status Page Group ID",
+    description:
+      "ID of the group that matched monitors are added to. Empty means ungrouped.",
     example: "c9d0e1f2-a3b4-5678-9abc-def012345678",
   })
   @Column({
@@ -521,78 +619,6 @@ export default class StatusPageResource extends BaseModel {
   })
   public statusPageGroupId?: ObjectID = undefined;
 
-  /*
-   * Set only on resources a StatusPageMonitorRule created. It is what lets the
-   * rule engine undo its own work without ever touching a resource a human
-   * added by hand, so it is deliberately not writable through the API - the
-   * engine sets it as root.
-   */
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.StatusPageAdmin,
-      Permission.StatusPageMember,
-      Permission.StatusPageViewer,
-      Permission.ReadStatusPageResource,
-    ],
-    update: [],
-  })
-  @TableColumn({
-    manyToOneRelationColumn: "statusPageMonitorRuleId",
-    type: TableColumnType.Entity,
-    modelType: StatusPageMonitorRule,
-    title: "Status Page Monitor Rule",
-    description:
-      "Rule that added this resource to the status page, if it was added by a rule instead of by hand",
-  })
-  @ManyToOne(
-    () => {
-      return StatusPageMonitorRule;
-    },
-    {
-      eager: false,
-      nullable: true,
-      onDelete: "CASCADE",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "statusPageMonitorRuleId" })
-  public statusPageMonitorRule?: StatusPageMonitorRule = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.StatusPageAdmin,
-      Permission.StatusPageMember,
-      Permission.StatusPageViewer,
-      Permission.ReadStatusPageResource,
-    ],
-    update: [],
-  })
-  @Index()
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    required: false,
-    title: "Status Page Monitor Rule ID",
-    description:
-      "ID of the rule that added this resource, if it was added by a rule instead of by hand",
-    example: "d0e1f2a3-b4c5-4678-9abc-def012345678",
-  })
-  @Column({
-    type: ColumnType.ObjectID,
-    nullable: true,
-    transformer: ObjectID.getDatabaseTransformer(),
-  })
-  public statusPageMonitorRuleId?: ObjectID = undefined;
-
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -600,7 +626,7 @@ export default class StatusPageResource extends BaseModel {
       Permission.ProjectMember,
       Permission.StatusPageAdmin,
       Permission.StatusPageMember,
-      Permission.CreateStatusPageResource,
+      Permission.CreateStatusPageMonitorRule,
     ],
     read: [
       Permission.ProjectOwner,
@@ -610,7 +636,7 @@ export default class StatusPageResource extends BaseModel {
       Permission.StatusPageAdmin,
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
-      Permission.ReadStatusPageResource,
+      Permission.ReadStatusPageMonitorRule,
     ],
     update: [
       Permission.ProjectOwner,
@@ -618,139 +644,15 @@ export default class StatusPageResource extends BaseModel {
       Permission.ProjectMember,
       Permission.StatusPageAdmin,
       Permission.StatusPageMember,
-      Permission.EditStatusPageResource,
-    ],
-  })
-  @TableColumn({
-    required: true,
-    type: TableColumnType.ShortText,
-    title: "Display Name",
-    description: "Display name of the monitor on the Status Page",
-    example: "API Server",
-  })
-  @Column({
-    nullable: false,
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
-  })
-  public displayName?: string = undefined;
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.StatusPageAdmin,
-      Permission.StatusPageMember,
-      Permission.CreateStatusPageResource,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.StatusPageAdmin,
-      Permission.StatusPageMember,
-      Permission.StatusPageViewer,
-      Permission.ReadStatusPageResource,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.StatusPageAdmin,
-      Permission.StatusPageMember,
-      Permission.EditStatusPageResource,
-    ],
-  })
-  @TableColumn({
-    required: false,
-    type: TableColumnType.Markdown,
-    title: "Display Description",
-    description:
-      "Display description of the monitor on the Status Page. This is in markdown format.",
-    example: "Main API server handling all REST requests",
-  })
-  @Column({
-    nullable: true,
-    type: ColumnType.Markdown,
-  })
-  public displayDescription?: string = undefined;
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.StatusPageAdmin,
-      Permission.StatusPageMember,
-      Permission.CreateStatusPageResource,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.StatusPageAdmin,
-      Permission.StatusPageMember,
-      Permission.StatusPageViewer,
-      Permission.ReadStatusPageResource,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.StatusPageAdmin,
-      Permission.StatusPageMember,
-      Permission.EditStatusPageResource,
-    ],
-  })
-  @TableColumn({
-    required: false,
-    type: TableColumnType.LongText,
-    title: "Display Tooltip",
-    description: "Tooltip of the monitor on the Status Page",
-  })
-  @Column({
-    nullable: true,
-    type: ColumnType.LongText,
-    length: ColumnLength.LongText,
-  })
-  public displayTooltip?: string = undefined;
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.StatusPageAdmin,
-      Permission.StatusPageMember,
-      Permission.CreateStatusPageResource,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.StatusPageAdmin,
-      Permission.StatusPageMember,
-      Permission.StatusPageViewer,
-      Permission.ReadStatusPageResource,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.StatusPageAdmin,
-      Permission.StatusPageMember,
-      Permission.EditStatusPageResource,
+      Permission.EditStatusPageMonitorRule,
     ],
   })
   @TableColumn({
     isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
     title: "Show current status",
-    description: "Show current status like offline, operational or degraded.",
+    description:
+      "Show current status like offline, operational or degraded on the resources this rule adds.",
     defaultValue: true,
   })
   @Column({
@@ -766,7 +668,7 @@ export default class StatusPageResource extends BaseModel {
       Permission.ProjectMember,
       Permission.StatusPageAdmin,
       Permission.StatusPageMember,
-      Permission.CreateStatusPageResource,
+      Permission.CreateStatusPageMonitorRule,
     ],
     read: [
       Permission.ProjectOwner,
@@ -776,7 +678,7 @@ export default class StatusPageResource extends BaseModel {
       Permission.StatusPageAdmin,
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
-      Permission.ReadStatusPageResource,
+      Permission.ReadStatusPageMonitorRule,
     ],
     update: [
       Permission.ProjectOwner,
@@ -784,19 +686,20 @@ export default class StatusPageResource extends BaseModel {
       Permission.ProjectMember,
       Permission.StatusPageAdmin,
       Permission.StatusPageMember,
-      Permission.EditStatusPageResource,
+      Permission.EditStatusPageMonitorRule,
     ],
   })
   @TableColumn({
     isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
-    title: "Show Uptime Percent",
-    description: "Show uptime percent of this monitor for the last 90 days",
-    defaultValue: false,
+    title: "Show uptime percent",
+    description:
+      "Show uptime percent on the resources this rule adds to the status page.",
+    defaultValue: true,
   })
   @Column({
     type: ColumnType.Boolean,
-    default: false,
+    default: true,
   })
   public showUptimePercent?: boolean = undefined;
 
@@ -807,7 +710,7 @@ export default class StatusPageResource extends BaseModel {
       Permission.ProjectMember,
       Permission.StatusPageAdmin,
       Permission.StatusPageMember,
-      Permission.CreateStatusPageResource,
+      Permission.CreateStatusPageMonitorRule,
     ],
     read: [
       Permission.ProjectOwner,
@@ -817,7 +720,7 @@ export default class StatusPageResource extends BaseModel {
       Permission.StatusPageAdmin,
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
-      Permission.ReadStatusPageResource,
+      Permission.ReadStatusPageMonitorRule,
     ],
     update: [
       Permission.ProjectOwner,
@@ -825,7 +728,7 @@ export default class StatusPageResource extends BaseModel {
       Permission.ProjectMember,
       Permission.StatusPageAdmin,
       Permission.StatusPageMember,
-      Permission.EditStatusPageResource,
+      Permission.EditStatusPageMonitorRule,
     ],
   })
   @TableColumn({
@@ -833,7 +736,7 @@ export default class StatusPageResource extends BaseModel {
     title: "Uptime Percent Precision",
     required: false,
     description:
-      "Precision of uptime percent of this monitor for the last 90 days",
+      "Precision of the uptime percent shown on the resources this rule adds",
   })
   @Column({
     type: ColumnType.ShortText,
@@ -848,7 +751,7 @@ export default class StatusPageResource extends BaseModel {
       Permission.ProjectMember,
       Permission.StatusPageAdmin,
       Permission.StatusPageMember,
-      Permission.CreateStatusPageResource,
+      Permission.CreateStatusPageMonitorRule,
     ],
     read: [
       Permission.ProjectOwner,
@@ -858,7 +761,7 @@ export default class StatusPageResource extends BaseModel {
       Permission.StatusPageAdmin,
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
-      Permission.ReadStatusPageResource,
+      Permission.ReadStatusPageMonitorRule,
     ],
     update: [
       Permission.ProjectOwner,
@@ -866,14 +769,15 @@ export default class StatusPageResource extends BaseModel {
       Permission.ProjectMember,
       Permission.StatusPageAdmin,
       Permission.StatusPageMember,
-      Permission.EditStatusPageResource,
+      Permission.EditStatusPageMonitorRule,
     ],
   })
   @TableColumn({
     isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
     title: "Show History Chart",
-    description: "Show a 90 day uptime history of this monitor",
+    description:
+      "Show a 90 day uptime history on the resources this rule adds to the status page.",
     defaultValue: true,
   })
   @Column({
@@ -889,7 +793,7 @@ export default class StatusPageResource extends BaseModel {
       Permission.ProjectMember,
       Permission.StatusPageAdmin,
       Permission.StatusPageMember,
-      Permission.CreateStatusPageResource,
+      Permission.CreateStatusPageMonitorRule,
     ],
     read: [
       Permission.ProjectOwner,
@@ -899,7 +803,7 @@ export default class StatusPageResource extends BaseModel {
       Permission.StatusPageAdmin,
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
-      Permission.ReadStatusPageResource,
+      Permission.ReadStatusPageMonitorRule,
     ],
     update: [],
   })
@@ -932,7 +836,7 @@ export default class StatusPageResource extends BaseModel {
       Permission.ProjectMember,
       Permission.StatusPageAdmin,
       Permission.StatusPageMember,
-      Permission.CreateStatusPageResource,
+      Permission.CreateStatusPageMonitorRule,
     ],
     read: [
       Permission.ProjectOwner,
@@ -942,7 +846,7 @@ export default class StatusPageResource extends BaseModel {
       Permission.StatusPageAdmin,
       Permission.StatusPageMember,
       Permission.StatusPageViewer,
-      Permission.ReadStatusPageResource,
+      Permission.ReadStatusPageMonitorRule,
     ],
     update: [],
   })
@@ -951,7 +855,6 @@ export default class StatusPageResource extends BaseModel {
     title: "Created by User ID",
     description:
       "User ID who created this object (if this object was created by a User)",
-    example: "d0e1f2a3-b4c5-6789-abcd-ef0123456789",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -959,131 +862,6 @@ export default class StatusPageResource extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public createdByUserId?: ObjectID = undefined;
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.StatusPageAdmin,
-      Permission.StatusPageMember,
-      Permission.CreateStatusPageResource,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.StatusPageAdmin,
-      Permission.StatusPageMember,
-      Permission.StatusPageViewer,
-      Permission.ReadStatusPageResource,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.StatusPageAdmin,
-      Permission.StatusPageMember,
-      Permission.EditStatusPageResource,
-    ],
-  })
-  @TableColumn({
-    isDefaultValueColumn: false,
-    type: TableColumnType.Number,
-    title: "Order",
-    description: "Order / Priority of this resource",
-  })
-  @Column({
-    type: ColumnType.Number,
-  })
-  public order?: number = undefined;
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.StatusPageAdmin,
-      Permission.StatusPageMember,
-      Permission.CreateStatusPageResource,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.StatusPageAdmin,
-      Permission.StatusPageMember,
-      Permission.StatusPageViewer,
-      Permission.ReadStatusPageResource,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.StatusPageAdmin,
-      Permission.StatusPageMember,
-      Permission.EditStatusPageResource,
-    ],
-  })
-  @TableColumn({
-    type: TableColumnType.ShortText,
-    required: false,
-    title: "Row Axis Value",
-    description:
-      "Row this resource belongs to when its status page group is rendered as a grid. Should match one of the row axis values defined on the group.",
-    example: "API",
-  })
-  @Column({
-    nullable: true,
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
-  })
-  public rowAxisValue?: string = undefined;
-
-  @ColumnAccessControl({
-    create: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.StatusPageAdmin,
-      Permission.StatusPageMember,
-      Permission.CreateStatusPageResource,
-    ],
-    read: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.Viewer,
-      Permission.StatusPageAdmin,
-      Permission.StatusPageMember,
-      Permission.StatusPageViewer,
-      Permission.ReadStatusPageResource,
-    ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.StatusPageAdmin,
-      Permission.StatusPageMember,
-      Permission.EditStatusPageResource,
-    ],
-  })
-  @TableColumn({
-    type: TableColumnType.ShortText,
-    required: false,
-    title: "Column Axis Value",
-    description:
-      "Column this resource belongs to when its status page group is rendered as a grid. Should match one of the column axis values defined on the group.",
-    example: "US-East",
-  })
-  @Column({
-    nullable: true,
-    type: ColumnType.ShortText,
-    length: ColumnLength.ShortText,
-  })
-  public columnAxisValue?: string = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -1123,7 +901,6 @@ export default class StatusPageResource extends BaseModel {
     title: "Deleted by User ID",
     description:
       "User ID who deleted this object (if this object was deleted by a User)",
-    example: "e1f2a3b4-c5d6-789a-bcde-f01234567890",
   })
   @Column({
     type: ColumnType.ObjectID,
