@@ -6,6 +6,7 @@ import {
   RouteHandler,
 } from "./IdentityRouterTestUtil";
 import StatusPagePrivateUserService from "Common/Server/Services/StatusPagePrivateUserService";
+import PasswordHash from "Common/Server/Utils/PasswordHash";
 import { EncryptionSecret } from "Common/Server/EnvironmentConfig";
 import StatusPagePrivateUser from "Common/Models/DatabaseModels/StatusPagePrivateUser";
 import Email from "Common/Types/Email";
@@ -268,7 +269,9 @@ const storedPrivateUser: StoredPrivateUserFunction = async (data: {
   user.statusPageId = STATUS_PAGE_ID;
   user.projectId = ObjectID.generate();
   user.password = new HashedString(
-    await HashedString.hashValue(data.password, EncryptionSecret, data.salt),
+    data.salt
+      ? await PasswordHash.hash({ plainValue: data.password, salt: data.salt })
+      : await HashedString.hashValue(data.password, EncryptionSecret),
     true,
   );
 
@@ -342,7 +345,7 @@ describe("Status page POST /login — per-user salt", () => {
     mockLookup(
       await storedPrivateUser({
         password: "correct",
-        salt: HashedString.generateSalt(),
+        salt: PasswordHash.generateSalt(),
       }),
     );
 
@@ -356,7 +359,7 @@ describe("Status page POST /login — per-user salt", () => {
     mockLookup(
       await storedPrivateUser({
         password: "correct",
-        salt: HashedString.generateSalt(),
+        salt: PasswordHash.generateSalt(),
       }),
     );
 
@@ -377,7 +380,7 @@ describe("Status page POST /login — per-user salt", () => {
     mockLookup(
       await storedPrivateUser({
         password: "correct",
-        salt: HashedString.generateSalt(),
+        salt: PasswordHash.generateSalt(),
       }),
     );
 
@@ -393,7 +396,7 @@ describe("Status page POST /login — per-user salt", () => {
     mockLookup(
       await storedPrivateUser({
         password: "correct",
-        salt: HashedString.generateSalt(),
+        salt: PasswordHash.generateSalt(),
       }),
     );
 
@@ -419,7 +422,7 @@ describe("Status page POST /login — per-user salt", () => {
     mockLookup(
       await storedPrivateUser({
         password: "correct",
-        salt: HashedString.generateSalt(),
+        salt: PasswordHash.generateSalt(),
       }),
     );
     const wrongPassword: InvokeResult = await login("wrong");
@@ -432,7 +435,7 @@ describe("Status page POST /login — per-user salt", () => {
   it("does not echo the hash or the salt back in the response", async () => {
     const user: StatusPagePrivateUser = await storedPrivateUser({
       password: "correct",
-      salt: HashedString.generateSalt(),
+      salt: PasswordHash.generateSalt(),
     });
 
     mockLookup(user);
@@ -459,10 +462,9 @@ describe("Status page POST /login — per-user salt", () => {
     expect(write.data["passwordSalt"]).toMatch(/^[0-9a-f]{64}$/);
 
     await expect(
-      HashedString.verifyValue({
+      PasswordHash.verify({
         plainValue: "old",
-        hashedValue: write.data["password"] as string,
-        encryptionSecret: EncryptionSecret,
+        storedValue: write.data["password"] as string,
         salt: write.data["passwordSalt"] as string,
       }),
     ).resolves.toBe(true);
@@ -481,7 +483,7 @@ describe("Status page POST /login — per-user salt", () => {
     mockLookup(
       await storedPrivateUser({
         password: "correct",
-        salt: HashedString.generateSalt(),
+        salt: PasswordHash.generateSalt(),
       }),
     );
 
@@ -500,7 +502,7 @@ describe("Status page POST /login — per-user salt", () => {
     mockLookup(
       await storedPrivateUser({
         password: "correct",
-        salt: HashedString.generateSalt(),
+        salt: PasswordHash.generateSalt(),
       }),
     );
 

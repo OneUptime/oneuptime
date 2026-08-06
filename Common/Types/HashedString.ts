@@ -8,15 +8,25 @@ import CryptoJS from "crypto-js";
 import { FindOperator } from "typeorm";
 
 /*
- * Hashing scheme marker for salted hashes.
+ * SHA-256 hashing for values that are ALREADY high-entropy: session refresh
+ * tokens, email verification tokens, reset tokens, permission fingerprints.
+ * Those are random values the server minted, so there is nothing to guess and
+ * a fast hash is the right tool — it also keeps them searchable by hash,
+ * which is how they are looked up.
  *
- * Values hashed before per-user salts existed are `SHA256(secret + value)`.
- * Salted values are `SHA256("v2:" + salt + ":" + secret + ":" + value)`. The
- * scheme is NOT recorded in the digest itself (it is a bare hex SHA-256
- * either way) — the caller knows which one to use because the salted scheme
- * is exactly the case where a salt was stored alongside the hash. The prefix
- * and separators exist for domain separation: without them a crafted salt
- * could make a salted input collide with a legacy one.
+ * User passwords are NOT hashed here any more. A password is low-entropy and
+ * guessable, so it goes through scrypt in Common/Server/Utils/PasswordHash,
+ * which is deliberately slow and memory-hard. What remains in this class is
+ * the two SHA-256 schemes passwords used to be stored under, kept so those
+ * rows still verify (and are then upgraded) at their owner's next login:
+ *
+ *   no salt   `SHA256(secret + value)`, from before per-user salts existed.
+ *   salted    `SHA256("v2:" + salt + ":" + secret + ":" + value)`.
+ *
+ * Neither records its scheme in the digest — it is a bare hex SHA-256 either
+ * way — so they are told apart by whether the row carries a salt. The "v2"
+ * prefix and the separators exist for domain separation: without them a
+ * crafted salt could make a salted input collide with an unsalted one.
  */
 const SALTED_HASH_SCHEME_VERSION: string = "v2";
 
@@ -79,17 +89,21 @@ export default class HashedString extends DatabaseProperty {
   }
 
   /**
-   * A fresh, cryptographically random salt: 64 hex characters (two UUIDv4s
-   * worth of randomness, ~244 bits) — comfortably above the 128 bits
-   * recommended for a salt, and short enough to fit a ShortText column.
+   * Adopt an already-computed digest.
    *
-   * A salt is not a secret. Its job is to be UNIQUE per record, so that one
-   * precomputed table (or one cracked password) cannot be reused against any
-   * other record, and so that two accounts sharing a password do not share a
-   * stored hash.
+   * For hashes this class does not compute itself — user passwords go
+   * through scrypt in Common/Server/Utils/PasswordHash, which is server-only
+   * because this type is also bundled into the browser. The guard is the
+   * same one hashValue() carries: a value is hashed once and never re-hashed
+   * over the top of itself.
    */
-  public static generateSalt(): string {
-    return (UUID.generate() + UUID.generate()).replace(/-/g, "");
+  public setHashedValue(hashedValue: string): void {
+    if (this.isHashed) {
+      throw new BadOperationException("Value is already hashed");
+    }
+
+    this.isHashed = true;
+    this.value = hashedValue;
   }
 
   /**

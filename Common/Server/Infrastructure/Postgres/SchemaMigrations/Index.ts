@@ -500,6 +500,7 @@ import { AddIncidentInvestigationGating1785790000000 } from "./1785790000000-Add
 import { AddRemediationVerification1785768089408 } from "./1785768089408-AddRemediationVerification";
 import { AddStatusPageMonitorRule1786005052769 } from "./1786005052769-AddStatusPageMonitorRule";
 import { AddPerUserPasswordSalt1786018109307 } from "./1786018109307-AddPerUserPasswordSalt";
+import { WidenHashedStringColumnsForScrypt1786023262402 } from "./1786023262402-WidenHashedStringColumnsForScrypt";
 
 export default [
   InitialMigration,
@@ -1004,4 +1005,5 @@ export default [
   AddStatusPageReportPeriod1785930709405,
   AddStatusPageMonitorRule1786005052769,
   AddPerUserPasswordSalt1786018109307,
+  WidenHashedStringColumnsForScrypt1786023262402,
 ];

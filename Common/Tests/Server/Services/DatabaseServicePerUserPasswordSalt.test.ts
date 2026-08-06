@@ -3,6 +3,7 @@ import StatusPagePrivateUserService from "../../../Server/Services/StatusPagePri
 import DashboardService from "../../../Server/Services/DashboardService";
 import ColumnPermissions from "../../../Server/Types/Database/Permissions/ColumnPermission";
 import DatabaseRequestType from "../../../Server/Types/BaseDatabase/DatabaseRequestType";
+import PasswordHash from "../../../Server/Utils/PasswordHash";
 import { EncryptionSecret } from "../../../Server/EnvironmentConfig";
 import User from "../../../Models/DatabaseModels/User";
 import StatusPagePrivateUser from "../../../Models/DatabaseModels/StatusPagePrivateUser";
@@ -10,11 +11,13 @@ import Dashboard from "../../../Models/DatabaseModels/Dashboard";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import TableColumnType from "../../../Types/Database/TableColumnType";
+import ColumnLength from "../../../Types/Database/ColumnLength";
 import Email from "../../../Types/Email";
 import HashedString from "../../../Types/HashedString";
 import ObjectID from "../../../Types/ObjectID";
 import { JSONObject } from "../../../Types/JSON";
 import CryptoJS from "crypto-js";
+import crypto from "crypto";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
 /*
@@ -132,7 +135,7 @@ describe("Model metadata — the password columns declare their salt", () => {
 
     // ShortText — 100 characters. A generated salt is 64.
     expect(metadata.type).toBe(TableColumnType.ShortText);
-    expect(HashedString.generateSalt().length).toBeLessThanOrEqual(100);
+    expect(PasswordHash.generateSalt().length).toBeLessThanOrEqual(100);
   });
 });
 
@@ -149,10 +152,9 @@ describe("Create path — hash() mints a per-record salt", () => {
     expect(user.password!.toString()).not.toBe("my-password");
 
     await expect(
-      HashedString.verifyValue({
+      PasswordHash.verify({
         plainValue: "my-password",
-        hashedValue: user.password!.toString(),
-        encryptionSecret: EncryptionSecret,
+        storedValue: user.password!.toString(),
         salt: user.passwordSalt || null,
       }),
     ).resolves.toBe(true);
@@ -174,17 +176,47 @@ describe("Create path — hash() mints a per-record salt", () => {
     expect(first.password!.toString()).not.toBe(second.password!.toString());
   });
 
-  test("the stored hash is no longer the global-secret digest it used to be", async () => {
+  test("the write path produces a scrypt hash, not a SHA-256 digest", async () => {
+    /*
+     * A password column is a credential, and credentials go through the slow
+     * KDF. If this ever reverts to a bare digest, a leaked table becomes
+     * crackable at billions of guesses per second again.
+     */
     const user: User = new User();
     user.password = new HashedString("my-password");
 
     await hashUser(user);
 
-    const legacyDigest: string = CryptoJS.SHA256(
-      EncryptionSecret.toString() + "my-password",
-    ).toString();
+    expect(user.password!.toString()).toMatch(
+      /^scrypt\$N=\d+,r=\d+,p=\d+\$[0-9a-f]{64}$/,
+    );
+    expect(PasswordHash.needsUpgrade(user.password!.toString())).toBe(false);
 
-    expect(user.password!.toString()).not.toBe(legacyDigest);
+    // And specifically not either SHA-256 scheme it replaced.
+    expect(user.password!.toString()).not.toBe(
+      CryptoJS.SHA256(EncryptionSecret.toString() + "my-password").toString(),
+    );
+    expect(user.password!.toString()).not.toBe(
+      HashedString.computeHash(
+        "my-password",
+        EncryptionSecret,
+        user.passwordSalt,
+      ),
+    );
+  });
+
+  test("the hash it writes fits the column that stores it", async () => {
+    const user: User = new User();
+    user.password = new HashedString("my-password");
+
+    await hashUser(user);
+
+    expect(user.password!.toString().length).toBeLessThanOrEqual(
+      ColumnLength.HashedString,
+    );
+    expect((user.passwordSalt as string).length).toBeLessThanOrEqual(
+      ColumnLength.ShortText,
+    );
   });
 
   test("an already-hashed value is left alone and gets no new salt", async () => {
@@ -215,7 +247,7 @@ describe("Create path — hash() mints a per-record salt", () => {
     const user: User = new User();
     user.email = new Email("signup@example.com");
     user.password = new HashedString("digest", true);
-    user.passwordSalt = HashedString.generateSalt();
+    user.passwordSalt = PasswordHash.generateSalt();
 
     expect(() => {
       ColumnPermissions.checkDataColumnPermissions(
@@ -234,7 +266,7 @@ describe("Create path — hash() mints a per-record salt", () => {
      * no `computed` escape hatch.
      */
     const user: User = new User();
-    user.passwordSalt = HashedString.generateSalt();
+    user.passwordSalt = PasswordHash.generateSalt();
 
     expect(() => {
       ColumnPermissions.checkDataColumnPermissions(
@@ -258,10 +290,9 @@ describe("Update path — sanitizeCreateOrUpdate mints a per-record salt", () =>
     expect(data["passwordSalt"]).toMatch(/^[0-9a-f]{64}$/);
 
     await expect(
-      HashedString.verifyValue({
+      PasswordHash.verify({
         plainValue: "new-password",
-        hashedValue: data["password"] as string,
-        encryptionSecret: EncryptionSecret,
+        storedValue: data["password"] as string,
         salt: data["passwordSalt"] as string,
       }),
     ).resolves.toBe(true);
@@ -315,10 +346,9 @@ describe("Update path — sanitizeCreateOrUpdate mints a per-record salt", () =>
     expect(data["passwordSalt"]).toMatch(/^[0-9a-f]{64}$/);
 
     await expect(
-      HashedString.verifyValue({
+      PasswordHash.verify({
         plainValue: "sp-password",
-        hashedValue: data["password"] as string,
-        encryptionSecret: EncryptionSecret,
+        storedValue: data["password"] as string,
         salt: data["passwordSalt"] as string,
       }),
     ).resolves.toBe(true);
@@ -420,17 +450,17 @@ const spyOnUpgradeWrite: SpyOnUpgradeWriteFunction = (options?: {
 describe("verifyHashedColumnValue", () => {
   type BuildUserFunction = (data: {
     password: string;
-    salt: string | null;
+    salt: string;
   }) => Promise<User>;
 
   const buildUser: BuildUserFunction = async (data: {
     password: string;
-    salt: string | null;
+    salt: string;
   }): Promise<User> => {
     const user: User = new User();
     user._id = ObjectID.generate().toString();
     user.password = new HashedString(
-      await HashedString.hashValue(data.password, EncryptionSecret, data.salt),
+      await PasswordHash.hash({ plainValue: data.password, salt: data.salt }),
       true,
     );
 
@@ -442,7 +472,7 @@ describe("verifyHashedColumnValue", () => {
   };
 
   test("accepts the correct password for a salted user", async () => {
-    const salt: string = HashedString.generateSalt();
+    const salt: string = PasswordHash.generateSalt();
     const user: User = await buildUser({ password: "correct", salt });
     spyOnUpgradeWrite();
 
@@ -459,7 +489,7 @@ describe("verifyHashedColumnValue", () => {
   });
 
   test("rejects the wrong password for a salted user", async () => {
-    const salt: string = HashedString.generateSalt();
+    const salt: string = PasswordHash.generateSalt();
     const user: User = await buildUser({ password: "correct", salt });
     spyOnUpgradeWrite();
 
@@ -477,12 +507,12 @@ describe("verifyHashedColumnValue", () => {
   test("rejects one user's password against another user's salt", async () => {
     const user: User = await buildUser({
       password: "correct",
-      salt: HashedString.generateSalt(),
+      salt: PasswordHash.generateSalt(),
     });
     spyOnUpgradeWrite();
 
     // Same password, someone else's salt.
-    user.passwordSalt = HashedString.generateSalt();
+    user.passwordSalt = PasswordHash.generateSalt();
 
     await expect(
       UserService.verifyHashedColumnValue({
@@ -509,7 +539,7 @@ describe("verifyHashedColumnValue", () => {
   test("rejects an empty submitted password", async () => {
     const user: User = await buildUser({
       password: "correct",
-      salt: HashedString.generateSalt(),
+      salt: PasswordHash.generateSalt(),
     });
 
     await expect(
@@ -570,10 +600,9 @@ describe("verifyHashedColumnValue — transparent upgrade of legacy hashes", () 
 
     // The written hash verifies under the written salt.
     await expect(
-      HashedString.verifyValue({
+      PasswordHash.verify({
         plainValue: "old-password",
-        hashedValue: write.data["password"] as string,
-        encryptionSecret: EncryptionSecret,
+        storedValue: write.data["password"] as string,
         salt: write.data["passwordSalt"] as string,
       }),
     ).resolves.toBe(true);
@@ -651,6 +680,172 @@ describe("verifyHashedColumnValue — transparent upgrade of legacy hashes", () 
         plainValue: "old-password",
       }),
     ).resolves.toBe(true);
+  });
+
+  test("the upgrade lands a scrypt hash, not another SHA-256 one", async () => {
+    spyOnUpgradeWrite();
+    const user: User = await legacyUser("old-password");
+
+    await UserService.verifyHashedColumnValue({
+      item: user,
+      columnName: "password",
+      plainValue: "old-password",
+    });
+
+    expect(captured[0]!.data["password"]).toMatch(/^scrypt\$/);
+    expect(
+      PasswordHash.needsUpgrade(captured[0]!.data["password"] as string),
+    ).toBe(false);
+  });
+
+  test("a row still on the interim salted-SHA scheme logs in and is upgraded", async () => {
+    /*
+     * Between per-user salts landing and scrypt landing, passwords were
+     * `SHA256("v2:" + salt + ":" + secret + ":" + password)`. Those rows have
+     * a salt, so the old "upgrade when there is no salt" rule would have
+     * skipped them and left them on a fast hash forever.
+     */
+    spyOnUpgradeWrite();
+
+    const salt: string = PasswordHash.generateSalt();
+    const user: User = new User();
+    user._id = ObjectID.generate().toString();
+    user.password = new HashedString(
+      await HashedString.hashValue("interim-password", EncryptionSecret, salt),
+      true,
+    );
+    user.passwordSalt = salt;
+
+    await expect(
+      UserService.verifyHashedColumnValue({
+        item: user,
+        columnName: "password",
+        plainValue: "interim-password",
+      }),
+    ).resolves.toBe(true);
+
+    expect(captured).toHaveLength(1);
+    expect(captured[0]!.data["password"]).toMatch(/^scrypt\$/);
+    // A brand new salt, not the interim one it came in with.
+    expect(captured[0]!.data["passwordSalt"]).not.toBe(salt);
+  });
+
+  test("a scrypt hash at stale cost parameters logs in and is re-hashed at the current cost", async () => {
+    /*
+     * This is what makes raising the cost a one-line change: bump the
+     * parameters and every user migrates at their next login, with no reset
+     * and no migration. The hash below is a genuine scrypt hash at a cheaper
+     * N, built from Node primitives so it is a real artefact of the old cost
+     * rather than a forged prefix.
+     */
+    spyOnUpgradeWrite();
+
+    const salt: string = PasswordHash.generateSalt();
+
+    const cheapDigest: string = crypto
+      .scryptSync(
+        crypto
+          .createHmac("sha256", EncryptionSecret.toString())
+          .update("password", "utf8")
+          .digest(),
+        salt,
+        32,
+        { N: 1024, r: 8, p: 1, maxmem: 128 * 1024 * 8 * 2 },
+      )
+      .toString("hex");
+
+    const cheap: string = `scrypt$N=1024,r=8,p=1$${cheapDigest}`;
+
+    expect(PasswordHash.needsUpgrade(cheap)).toBe(true);
+
+    const user: User = new User();
+    user._id = ObjectID.generate().toString();
+    user.password = new HashedString(cheap, true);
+    user.passwordSalt = salt;
+
+    // The old hash still verifies, at the parameters recorded in it.
+    await expect(
+      UserService.verifyHashedColumnValue({
+        item: user,
+        columnName: "password",
+        plainValue: "password",
+      }),
+    ).resolves.toBe(true);
+
+    expect(captured).toHaveLength(1);
+
+    const rewritten: string = captured[0]!.data["password"] as string;
+
+    // ...and has been rewritten at today's cost, under a brand new salt.
+    expect(rewritten.startsWith(PasswordHash.getCurrentPrefix())).toBe(true);
+    expect(PasswordHash.needsUpgrade(rewritten)).toBe(false);
+    expect(captured[0]!.data["passwordSalt"]).not.toBe(salt);
+
+    await expect(
+      PasswordHash.verify({
+        plainValue: "password",
+        storedValue: rewritten,
+        salt: captured[0]!.data["passwordSalt"] as string,
+      }),
+    ).resolves.toBe(true);
+  });
+
+  test("a wrong password against a stale-cost hash is still rejected", async () => {
+    spyOnUpgradeWrite();
+
+    const salt: string = PasswordHash.generateSalt();
+    const cheapDigest: string = crypto
+      .scryptSync(
+        crypto
+          .createHmac("sha256", EncryptionSecret.toString())
+          .update("password", "utf8")
+          .digest(),
+        salt,
+        32,
+        { N: 1024, r: 8, p: 1, maxmem: 128 * 1024 * 8 * 2 },
+      )
+      .toString("hex");
+
+    const user: User = new User();
+    user._id = ObjectID.generate().toString();
+    user.password = new HashedString(
+      `scrypt$N=1024,r=8,p=1$${cheapDigest}`,
+      true,
+    );
+    user.passwordSalt = salt;
+
+    await expect(
+      UserService.verifyHashedColumnValue({
+        item: user,
+        columnName: "password",
+        plainValue: "guess",
+      }),
+    ).resolves.toBe(false);
+
+    expect(captured).toHaveLength(0);
+  });
+
+  test("a hash written at today's parameters is not re-hashed", async () => {
+    spyOnUpgradeWrite();
+
+    const salt: string = PasswordHash.generateSalt();
+    const user: User = new User();
+    user._id = ObjectID.generate().toString();
+    user.password = new HashedString(
+      await PasswordHash.hash({ plainValue: "current", salt: salt }),
+      true,
+    );
+    user.passwordSalt = salt;
+
+    await expect(
+      UserService.verifyHashedColumnValue({
+        item: user,
+        columnName: "password",
+        plainValue: "current",
+      }),
+    ).resolves.toBe(true);
+
+    expect(captured).toHaveLength(0);
   });
 
   test("a row with no id is verified but not upgraded", async () => {

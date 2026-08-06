@@ -4,63 +4,42 @@ import CryptoJS from "crypto-js";
 import { describe, expect, test } from "@jest/globals";
 
 /*
- * Per-user password salts.
+ * The two SHA-256 schemes that passwords used to be stored under.
  *
- * Before this, every password in the instance was `SHA256(EncryptionSecret +
- * password)`. One global secret meant: two accounts with the same password had
- * byte-identical rows (so a dump told you who shares a password, and cracking
- * one cracked all of them), and a single rainbow table built once against the
- * leaked secret covered the entire user table.
+ * Passwords are hashed with scrypt now (see PasswordHash) — this class no
+ * longer hashes any of them. What it still has to do, forever, is VERIFY the
+ * hashes that came before, because every one of those rows is a user who
+ * would otherwise be locked out at their next login:
  *
- * A per-user salt breaks all of that: the same password hashes differently for
- * every user, so an attacker's work does not amortize across accounts.
+ *   no salt   `SHA256(secret + password)`, from before per-user salts.
+ *   salted    `SHA256("v2:" + salt + ":" + secret + ":" + password)`.
  *
- * These tests pin the three properties the scheme has to keep:
- *   1. same input + different salt  -> different digest (the whole point),
+ * The salted branch is also what still hashes the high-entropy server-minted
+ * values that legitimately want a fast, searchable hash: session refresh
+ * tokens, reset tokens, permission fingerprints.
+ *
+ * These tests pin the three properties both schemes have to keep:
+ *   1. same input + different salt  -> different digest,
  *   2. same input + same salt       -> same digest (verification must work),
- *   3. the unsalted branch is byte-for-byte what it always was (every
- *      password written before this change still has to verify).
+ *   3. the unsalted branch is byte-for-byte what it always was.
  */
 
 const SECRET: ObjectID = new ObjectID("secret");
 
-describe("HashedString.generateSalt", () => {
-  test("returns 64 lowercase hex characters", () => {
-    const salt: string = HashedString.generateSalt();
+/*
+ * Salts are minted by PasswordHash (server-side) now that passwords go
+ * through scrypt. This class only still knows how to VERIFY the two SHA-256
+ * schemes that came before, so these tests supply their own salts rather than
+ * reaching across into a Server util.
+ */
+type SaltFunction = () => string;
 
-    expect(salt).toHaveLength(64);
-    expect(salt).toMatch(/^[0-9a-f]{64}$/);
-  });
+let saltCounter: number = 0;
 
-  test("fits inside the ShortText column that stores it", () => {
-    /*
-     * ColumnLength.ShortText is 100. A salt longer than that would be
-     * truncated on write and would then never verify again.
-     */
-    expect(HashedString.generateSalt().length).toBeLessThanOrEqual(100);
-  });
-
-  test("never repeats across a large sample", () => {
-    const salts: Set<string> = new Set<string>();
-
-    for (let i: number = 0; i < 5000; i++) {
-      salts.add(HashedString.generateSalt());
-    }
-
-    expect(salts.size).toBe(5000);
-  });
-
-  test("is not derived from the value being hashed", () => {
-    /*
-     * A salt derived from the password would be identical for identical
-     * passwords, which defeats the entire mechanism.
-     */
-    const first: string = HashedString.generateSalt();
-    const second: string = HashedString.generateSalt();
-
-    expect(first).not.toBe(second);
-  });
-});
+const makeSalt: SaltFunction = (): string => {
+  saltCounter++;
+  return saltCounter.toString(16).padStart(64, "0");
+};
 
 describe("HashedString salted hashing", () => {
   test("the same password under two different salts produces two different hashes", async () => {
@@ -69,12 +48,12 @@ describe("HashedString salted hashing", () => {
     const first: string = await HashedString.hashValue(
       password,
       SECRET,
-      HashedString.generateSalt(),
+      makeSalt(),
     );
     const second: string = await HashedString.hashValue(
       password,
       SECRET,
-      HashedString.generateSalt(),
+      makeSalt(),
     );
 
     expect(first).not.toBe(second);
@@ -84,11 +63,11 @@ describe("HashedString salted hashing", () => {
     const shared: string = "hunter2";
 
     const userA: { salt: string; hash: string } = {
-      salt: HashedString.generateSalt(),
+      salt: makeSalt(),
       hash: "",
     };
     const userB: { salt: string; hash: string } = {
-      salt: HashedString.generateSalt(),
+      salt: makeSalt(),
       hash: "",
     };
 
@@ -109,7 +88,7 @@ describe("HashedString salted hashing", () => {
   });
 
   test("the same password under the same salt is stable across calls", async () => {
-    const salt: string = HashedString.generateSalt();
+    const salt: string = makeSalt();
 
     const first: string = await HashedString.hashValue(
       "p4ssw0rd",
@@ -126,7 +105,7 @@ describe("HashedString salted hashing", () => {
   });
 
   test("different passwords under the same salt still differ", async () => {
-    const salt: string = HashedString.generateSalt();
+    const salt: string = makeSalt();
 
     expect(await HashedString.hashValue("password-a", SECRET, salt)).not.toBe(
       await HashedString.hashValue("password-b", SECRET, salt),
@@ -134,7 +113,7 @@ describe("HashedString salted hashing", () => {
   });
 
   test("the encryption secret still participates — same password and salt, different secret", async () => {
-    const salt: string = HashedString.generateSalt();
+    const salt: string = makeSalt();
 
     expect(
       await HashedString.hashValue("password", new ObjectID("one"), salt),
@@ -147,10 +126,10 @@ describe("HashedString salted hashing", () => {
     const hash: string = await HashedString.hashValue(
       "password",
       SECRET,
-      HashedString.generateSalt(),
+      makeSalt(),
     );
 
-    // ColumnLength.HashedString is 64 — a longer digest would not fit.
+    // A bare hex SHA-256 digest, which is all these two schemes ever wrote.
     expect(hash).toMatch(/^[0-9a-f]{64}$/);
   });
 
@@ -161,7 +140,7 @@ describe("HashedString salted hashing", () => {
      * could make a salted input collide with a legacy one, which would let a
      * legacy rainbow table reach salted rows.
      */
-    const salt: string = HashedString.generateSalt();
+    const salt: string = makeSalt();
 
     const salted: string = await HashedString.hashValue(
       "password",
@@ -189,9 +168,7 @@ describe("HashedString salted hashing", () => {
   });
 
   test("an empty value hashes to an empty string, salt or not", async () => {
-    expect(
-      await HashedString.hashValue("", SECRET, HashedString.generateSalt()),
-    ).toBe("");
+    expect(await HashedString.hashValue("", SECRET, makeSalt())).toBe("");
     expect(await HashedString.hashValue("", SECRET)).toBe("");
   });
 });
@@ -251,7 +228,7 @@ describe("HashedString legacy (pre-salt) compatibility", () => {
         plainValue: "legacy-password",
         hashedValue: legacyHash,
         encryptionSecret: SECRET,
-        salt: HashedString.generateSalt(),
+        salt: makeSalt(),
       }),
     ).resolves.toBe(false);
   });
@@ -260,7 +237,7 @@ describe("HashedString legacy (pre-salt) compatibility", () => {
     const salted: string = await HashedString.hashValue(
       "password",
       SECRET,
-      HashedString.generateSalt(),
+      makeSalt(),
     );
 
     await expect(
@@ -276,7 +253,7 @@ describe("HashedString legacy (pre-salt) compatibility", () => {
 
 describe("HashedString.verifyValue", () => {
   test("accepts the right password with the right salt", async () => {
-    const salt: string = HashedString.generateSalt();
+    const salt: string = makeSalt();
     const hash: string = await HashedString.hashValue(
       "right-password",
       SECRET,
@@ -294,7 +271,7 @@ describe("HashedString.verifyValue", () => {
   });
 
   test("rejects the wrong password", async () => {
-    const salt: string = HashedString.generateSalt();
+    const salt: string = makeSalt();
     const hash: string = await HashedString.hashValue(
       "right-password",
       SECRET,
@@ -312,7 +289,7 @@ describe("HashedString.verifyValue", () => {
   });
 
   test("rejects a password that only differs in case", async () => {
-    const salt: string = HashedString.generateSalt();
+    const salt: string = makeSalt();
     const hash: string = await HashedString.hashValue("Password", SECRET, salt);
 
     await expect(
@@ -335,7 +312,7 @@ describe("HashedString.verifyValue", () => {
         plainValue: "",
         hashedValue: "",
         encryptionSecret: SECRET,
-        salt: HashedString.generateSalt(),
+        salt: makeSalt(),
       }),
     ).resolves.toBe(false);
   });
@@ -346,7 +323,7 @@ describe("HashedString.verifyValue", () => {
         plainValue: "anything",
         hashedValue: "",
         encryptionSecret: SECRET,
-        salt: HashedString.generateSalt(),
+        salt: makeSalt(),
       }),
     ).resolves.toBe(false);
   });
@@ -355,7 +332,7 @@ describe("HashedString.verifyValue", () => {
     const hash: string = await HashedString.hashValue(
       "password",
       SECRET,
-      HashedString.generateSalt(),
+      makeSalt(),
     );
 
     await expect(
@@ -363,13 +340,13 @@ describe("HashedString.verifyValue", () => {
         plainValue: "password",
         hashedValue: hash,
         encryptionSecret: SECRET,
-        salt: HashedString.generateSalt(),
+        salt: makeSalt(),
       }),
     ).resolves.toBe(false);
   });
 
   test("rejects when the encryption secret is wrong", async () => {
-    const salt: string = HashedString.generateSalt();
+    const salt: string = makeSalt();
     const hash: string = await HashedString.hashValue(
       "password",
       new ObjectID("real-secret"),
@@ -436,7 +413,7 @@ describe("HashedString.isEqual — constant-time digest comparison", () => {
 describe("HashedString instance hashing with a salt", () => {
   test("marks itself hashed and replaces its value", async () => {
     const hashedString: HashedString = new HashedString("password");
-    const salt: string = HashedString.generateSalt();
+    const salt: string = makeSalt();
 
     expect(hashedString.isValueHashed()).toBe(false);
 
@@ -449,11 +426,11 @@ describe("HashedString instance hashing with a salt", () => {
 
   test("refuses to hash twice, so a salt can never be applied over a digest", async () => {
     const hashedString: HashedString = new HashedString("password");
-    await hashedString.hashValue(SECRET, HashedString.generateSalt());
+    await hashedString.hashValue(SECRET, makeSalt());
 
-    await expect(
-      hashedString.hashValue(SECRET, HashedString.generateSalt()),
-    ).rejects.toThrow("Value is already hashed");
+    await expect(hashedString.hashValue(SECRET, makeSalt())).rejects.toThrow(
+      "Value is already hashed",
+    );
   });
 
   test("a value read back from the database is already flagged hashed", async () => {
@@ -465,8 +442,32 @@ describe("HashedString instance hashing with a salt", () => {
     );
   });
 
+  test("setHashedValue adopts a digest computed elsewhere", () => {
+    /*
+     * How a scrypt hash, computed server-side by PasswordHash, gets onto the
+     * model this class represents.
+     */
+    const hashedString: HashedString = new HashedString("password");
+
+    hashedString.setHashedValue("scrypt$N=16384,r=8,p=1$" + "a".repeat(64));
+
+    expect(hashedString.isValueHashed()).toBe(true);
+    expect(hashedString.toString()).toBe(
+      "scrypt$N=16384,r=8,p=1$" + "a".repeat(64),
+    );
+  });
+
+  test("setHashedValue refuses to write over an existing digest", async () => {
+    const hashedString: HashedString = new HashedString("password");
+    await hashedString.hashValue(SECRET, makeSalt());
+
+    expect(() => {
+      hashedString.setHashedValue("something-else");
+    }).toThrow("Value is already hashed");
+  });
+
   test("computeHash matches what the instance method produces", async () => {
-    const salt: string = HashedString.generateSalt();
+    const salt: string = makeSalt();
 
     expect(HashedString.computeHash("password", SECRET, salt)).toBe(
       await HashedString.hashValue("password", SECRET, salt),

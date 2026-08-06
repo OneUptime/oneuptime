@@ -14,7 +14,7 @@ import {
 } from "Common/Server/Utils/Express";
 import ObjectID from "Common/Types/ObjectID";
 import HashedString from "Common/Types/HashedString";
-import { EncryptionSecret } from "Common/Server/EnvironmentConfig";
+import PasswordHash from "Common/Server/Utils/PasswordHash";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 
 const mockRouter: MockIdentityRouter = createMockIdentityRouter();
@@ -86,10 +86,9 @@ const privateUserVerifyHashedColumnValue: jest.Mock = jest.fn(
   async (...args: Array<unknown>): Promise<boolean> => {
     const input: VerifyInput = args[0] as VerifyInput;
 
-    return await HashedString.verifyValue({
+    return await PasswordHash.verify({
       plainValue: input.plainValue,
-      hashedValue: input.item.password?.toString() || "",
-      encryptionSecret: EncryptionSecret,
+      storedValue: input.item.password?.toString() || "",
       salt: input.item.passwordSalt || null,
     });
   },
@@ -493,7 +492,7 @@ describe("Status page /login - private user login bypass", () => {
    * vacuously. This proves the same probes do fire when a login genuinely succeeds.
    */
   it("issues a session when the credentials match a real user", async () => {
-    const salt: string = HashedString.generateSalt();
+    const salt: string = PasswordHash.generateSalt();
 
     privateUserFindOneBy.mockResolvedValue({
       id: new ObjectID("private-user-id"),
@@ -506,11 +505,10 @@ describe("Status page /login - private user login bypass", () => {
        * leaning on the query to have matched it.
        */
       password: new HashedString(
-        await HashedString.hashValue(
-          "correct-password",
-          EncryptionSecret,
-          salt,
-        ),
+        await PasswordHash.hash({
+          plainValue: "correct-password",
+          salt: salt,
+        }),
         true,
       ),
       passwordSalt: salt,

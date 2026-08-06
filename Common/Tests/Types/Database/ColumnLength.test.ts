@@ -42,7 +42,13 @@ describe("enum ColumnLength", () => {
   });
 
   test("ColumnLength.HashedString", () => {
-    expect(ColumnLength.HashedString).toEqual(64);
+    /*
+     * Not 64 (a bare SHA-256 digest) since user passwords became scrypt
+     * hashes that carry their own cost parameters: `scrypt$N=...,r=...,p=...$
+     * <64 hex>`, around 90 characters. Narrowing this back would truncate
+     * every password on write and lock the whole instance out.
+     */
+    expect(ColumnLength.HashedString).toEqual(255);
   });
 
   test("ColumnLength.Phone", () => {

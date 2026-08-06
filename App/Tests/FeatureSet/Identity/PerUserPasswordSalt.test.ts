@@ -6,6 +6,7 @@ import {
   RouteHandler,
 } from "./IdentityRouterTestUtil";
 import UserService from "Common/Server/Services/UserService";
+import PasswordHash from "Common/Server/Utils/PasswordHash";
 import { EncryptionSecret } from "Common/Server/EnvironmentConfig";
 import User from "Common/Models/DatabaseModels/User";
 import Email from "Common/Types/Email";
@@ -325,17 +326,53 @@ type StoredUserFunction = (data: {
   password: string;
   salt: string | null;
   email?: string;
+  scheme?: "scrypt" | "salted" | "legacy";
 }) => Promise<User>;
 
+type StoredHashFunction = (data: {
+  password: string;
+  salt: string | null;
+  scheme?: "scrypt" | "salted" | "legacy";
+}) => Promise<string>;
+
+const storedHash: StoredHashFunction = async (data: {
+  password: string;
+  salt: string | null;
+  scheme?: "scrypt" | "salted" | "legacy";
+}): Promise<string> => {
+  const scheme: string = data.scheme || (data.salt ? "scrypt" : "legacy");
+
+  if (scheme === "scrypt") {
+    return await PasswordHash.hash({
+      plainValue: data.password,
+      salt: data.salt as string,
+    });
+  }
+
+  return await HashedString.hashValue(
+    data.password,
+    EncryptionSecret,
+    scheme === "salted" ? data.salt : null,
+  );
+};
+
 /*
- * A user row as it would come back from Postgres: password already a digest,
- * salt column populated only when the row has been written since salts
- * existed.
+ * A user row as it would come back from Postgres.
+ *
+ * Three schemes are in circulation and all three have to log in:
+ *
+ *   scheme "scrypt"  what the write path produces today.
+ *   scheme "salted"  the interim `SHA256("v2:" + salt + ...)`, from the
+ *                    commit that added per-user salts but before scrypt.
+ *   scheme "legacy"  bare `SHA256(secret + password)`, from before salts.
+ *
+ * Defaults to scrypt when a salt is supplied and legacy when it is not.
  */
 const storedUser: StoredUserFunction = async (data: {
   password: string;
   salt: string | null;
   email?: string;
+  scheme?: "scrypt" | "salted" | "legacy";
 }): Promise<User> => {
   const user: User = new User();
   user._id = ObjectID.generate().toString();
@@ -344,7 +381,11 @@ const storedUser: StoredUserFunction = async (data: {
   user.isMasterAdmin = false;
   user.enableTwoFactorAuth = false;
   user.password = new HashedString(
-    await HashedString.hashValue(data.password, EncryptionSecret, data.salt),
+    await storedHash({
+      password: data.password,
+      salt: data.salt,
+      ...(data.scheme ? { scheme: data.scheme } : {}),
+    }),
     true,
   );
 
@@ -419,7 +460,7 @@ afterEach(() => {
 
 describe("POST /login — verifying against a per-user salt", () => {
   it("logs in with the correct password", async () => {
-    const salt: string = HashedString.generateSalt();
+    const salt: string = PasswordHash.generateSalt();
     const user: User = await storedUser({ password: "correct", salt });
 
     mockFindOneBy(user);
@@ -430,7 +471,7 @@ describe("POST /login — verifying against a per-user salt", () => {
   });
 
   it("rejects the wrong password", async () => {
-    const salt: string = HashedString.generateSalt();
+    const salt: string = PasswordHash.generateSalt();
     const user: User = await storedUser({ password: "correct", salt });
 
     mockFindOneBy(user);
@@ -445,7 +486,7 @@ describe("POST /login — verifying against a per-user salt", () => {
   });
 
   it("selects the salt column — without it the salted hash cannot be recomputed", async () => {
-    const salt: string = HashedString.generateSalt();
+    const salt: string = PasswordHash.generateSalt();
     const user: User = await storedUser({ password: "correct", salt });
 
     mockFindOneBy(user);
@@ -459,7 +500,7 @@ describe("POST /login — verifying against a per-user salt", () => {
   });
 
   it("no longer sends the password as a query predicate", async () => {
-    const salt: string = HashedString.generateSalt();
+    const salt: string = PasswordHash.generateSalt();
     const user: User = await storedUser({ password: "correct", salt });
 
     mockFindOneBy(user);
@@ -472,7 +513,7 @@ describe("POST /login — verifying against a per-user salt", () => {
   });
 
   it("does not echo the password hash or the salt back in the response", async () => {
-    const salt: string = HashedString.generateSalt();
+    const salt: string = PasswordHash.generateSalt();
     const user: User = await storedUser({ password: "correct", salt });
 
     mockFindOneBy(user);
@@ -493,12 +534,12 @@ describe("POST /login — verifying against a per-user salt", () => {
      */
     const alice: User = await storedUser({
       password: "shared-password",
-      salt: HashedString.generateSalt(),
+      salt: PasswordHash.generateSalt(),
       email: "alice@example.com",
     });
     const bob: User = await storedUser({
       password: "shared-password",
-      salt: HashedString.generateSalt(),
+      salt: PasswordHash.generateSalt(),
       email: "bob@example.com",
     });
 
@@ -545,7 +586,7 @@ describe("POST /login — verifying against a per-user salt", () => {
   });
 
   it("still refuses an unverified email before looking at the password", async () => {
-    const salt: string = HashedString.generateSalt();
+    const salt: string = PasswordHash.generateSalt();
     const user: User = await storedUser({ password: "correct", salt });
     user.isEmailVerified = false;
 
@@ -589,10 +630,9 @@ describe("POST /login — accounts whose hash predates per-user salts", () => {
     expect(write.data["passwordSalt"]).toMatch(/^[0-9a-f]{64}$/);
 
     await expect(
-      HashedString.verifyValue({
+      PasswordHash.verify({
         plainValue: "old-password",
-        hashedValue: write.data["password"] as string,
-        encryptionSecret: EncryptionSecret,
+        storedValue: write.data["password"] as string,
         salt: write.data["passwordSalt"] as string,
       }),
     ).resolves.toBe(true);
@@ -668,8 +708,61 @@ describe("POST /login — accounts whose hash predates per-user salts", () => {
     expect(loginSucceeded()).toBe(true);
   });
 
+  it("what the upgrade writes is a scrypt hash, not another fast digest", async () => {
+    const user: User = await storedUser({
+      password: "old-password",
+      salt: null,
+    });
+
+    mockFindOneBy(user);
+
+    await login({ email: "user@example.com", password: "old-password" });
+
+    expect(upgradeWrites[0]!.data["password"]).toMatch(/^scrypt\$/);
+    expect(
+      PasswordHash.needsUpgrade(upgradeWrites[0]!.data["password"] as string),
+    ).toBe(false);
+  });
+
+  it("an account on the interim salted-SHA scheme logs in and is upgraded to scrypt", async () => {
+    /*
+     * These rows HAVE a salt, so an upgrade rule keyed on "no salt" would
+     * skip them and leave them on a fast hash forever.
+     */
+    const salt: string = PasswordHash.generateSalt();
+    const user: User = await storedUser({
+      password: "interim-password",
+      salt: salt,
+      scheme: "salted",
+    });
+
+    mockFindOneBy(user);
+
+    await login({ email: "user@example.com", password: "interim-password" });
+
+    expect(loginSucceeded()).toBe(true);
+    expect(upgradeWrites).toHaveLength(1);
+    expect(upgradeWrites[0]!.data["password"]).toMatch(/^scrypt\$/);
+    expect(upgradeWrites[0]!.data["passwordSalt"]).not.toBe(salt);
+  });
+
+  it("a wrong password against an interim salted-SHA row is rejected and upgrades nothing", async () => {
+    const user: User = await storedUser({
+      password: "interim-password",
+      salt: PasswordHash.generateSalt(),
+      scheme: "salted",
+    });
+
+    mockFindOneBy(user);
+
+    await login({ email: "user@example.com", password: "guess" });
+
+    expect(sendErrorResponse).toHaveBeenCalled();
+    expect(upgradeWrites).toHaveLength(0);
+  });
+
   it("an already-salted account is never re-salted on login", async () => {
-    const salt: string = HashedString.generateSalt();
+    const salt: string = PasswordHash.generateSalt();
     const user: User = await storedUser({ password: "correct", salt });
 
     mockFindOneBy(user);
@@ -702,7 +795,7 @@ describe("POST /reset-password — the new password reaches the write path unhas
      */
     const user: User = await storedUser({
       password: "old-password",
-      salt: HashedString.generateSalt(),
+      salt: PasswordHash.generateSalt(),
     });
     user.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000);
 
@@ -722,7 +815,7 @@ describe("POST /reset-password — the new password reaches the write path unhas
   it("clears the reset token in the same write", async () => {
     const user: User = await storedUser({
       password: "old-password",
-      salt: HashedString.generateSalt(),
+      salt: PasswordHash.generateSalt(),
     });
     user.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000);
 
@@ -741,7 +834,7 @@ describe("POST /reset-password — the new password reaches the write path unhas
      */
     const user: User = await storedUser({
       password: "old-password",
-      salt: HashedString.generateSalt(),
+      salt: PasswordHash.generateSalt(),
     });
     user.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000);
 
@@ -759,7 +852,7 @@ describe("POST /reset-password — the new password reaches the write path unhas
   it("revokes sessions and mails the user, because this one IS a real change", async () => {
     const user: User = await storedUser({
       password: "old-password",
-      salt: HashedString.generateSalt(),
+      salt: PasswordHash.generateSalt(),
     });
     user.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000);
 
@@ -774,7 +867,7 @@ describe("POST /reset-password — the new password reaches the write path unhas
   it("writes nothing when the reset link has expired", async () => {
     const user: User = await storedUser({
       password: "old-password",
-      salt: HashedString.generateSalt(),
+      salt: PasswordHash.generateSalt(),
     });
     user.resetPasswordExpires = new Date(Date.now() - 60 * 60 * 1000);
 

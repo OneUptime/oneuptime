@@ -30,6 +30,7 @@ import UpdateByID from "../Types/Database/UpdateByID";
 import UpdateByIDAndFetch from "../Types/Database/UpdateByIDAndFetch";
 import UpdateOneBy from "../Types/Database/UpdateOneBy";
 import Encryption from "../Utils/Encryption";
+import PasswordHash from "../Utils/PasswordHash";
 import PostgresErrorTranslator from "../Utils/Database/PostgresErrorTranslator";
 import logger, { LogAttributes } from "../Utils/Logger";
 import BaseService from "./BaseService";
@@ -322,14 +323,21 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   /*
-   * Hash one HashedString column in place, minting a fresh per-record salt
-   * into the sibling column the model declares via `hashSaltColumn`.
+   * Hash one HashedString column in place.
+   *
+   * Declaring `hashSaltColumn` on a column is what marks it a CREDENTIAL —
+   * a low-entropy, human-chosen secret. Those go through scrypt (see
+   * PasswordHash): deliberately slow and memory-hard, with a fresh per-record
+   * salt minted into the sibling column named by the metadata.
+   *
+   * Columns without a salt column are high-entropy values the server itself
+   * generated — session refresh tokens and the like. They keep the fast
+   * SHA-256 hash, which is the right tool for them: there is nothing to guess,
+   * and they have to stay searchable by hash because that is how they are
+   * looked up.
    *
    * The salt is written onto the SAME payload as the hash, so the pair can
-   * never be persisted out of step with each other. Columns that declare no
-   * salt column (session refresh tokens, for instance — already
-   * high-entropy random values, where a salt buys nothing) keep hashing
-   * exactly as they did before.
+   * never be persisted out of step with each other.
    *
    * The salt column grants nobody create or update rights, so it has to get
    * past the column-permission check some other way on each path. On update
@@ -347,14 +355,20 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     const saltColumnName: string | undefined =
       this.model.getTableColumnMetadata(data.columnName)?.hashSaltColumn;
 
-    let salt: string | null = null;
-
-    if (saltColumnName) {
-      salt = HashedString.generateSalt();
-      (data.payload as any)[saltColumnName] = salt;
+    if (!saltColumnName) {
+      await data.columnValue.hashValue(EncryptionSecret);
+      return;
     }
 
-    await data.columnValue.hashValue(EncryptionSecret, salt);
+    const salt: string = PasswordHash.generateSalt();
+    (data.payload as any)[saltColumnName] = salt;
+
+    data.columnValue.setHashedValue(
+      await PasswordHash.hash({
+        plainValue: data.columnValue.toString(),
+        salt: salt,
+      }),
+    );
   }
 
   protected async hash(data: TBaseModel): Promise<TBaseModel> {
@@ -378,24 +392,32 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
   /*
    * Check a plaintext secret (a password) against a hashed column on a row
-   * that has already been read out of the database, and upgrade the stored
-   * hash in place when it predates per-user salts.
+   * that has already been read out of the database, and re-hash the stored
+   * value in place when it was not written by today's scheme.
    *
    * The row must have been selected with BOTH the hashed column and its salt
-   * column. Without the salt this cannot tell "this row has no salt" from
-   * "the salt was not selected", and would fall back to the legacy scheme
-   * and reject a perfectly good password.
+   * column. Without the salt a scrypt hash cannot be checked at all, and an
+   * older SHA-256 one would be checked against the wrong scheme — either way
+   * a perfectly good password gets rejected. PasswordHash.verify throws
+   * rather than silently returning false for the scrypt case, because a
+   * missing SELECT is a bug and must not look like a bad password.
    *
    * Why the caller cannot just query by the hash any more: with a per-user
    * salt the hash is not computable until the row's own salt is known, so
    * `WHERE password = <hash>` has nothing to bind. Read the row by its
    * identity (email, id) and verify here.
    *
-   * The upgrade is deliberately hook-free and leaves updatedAt alone: the
-   * user did not change their password, the server changed how it stores
-   * it. Firing the password-change hooks would revoke every session and mail
-   * the user about a change they did not make. A failed upgrade is logged
-   * and swallowed — a correct password must not be rejected because a
+   * THE UPGRADE. Anything that is not exactly what PasswordHash writes today
+   * is re-hashed once the password is known to be correct: the two SHA-256
+   * schemes that preceded scrypt, and any scrypt hash whose cost parameters
+   * have since been raised. That is what makes raising the cost a one-line
+   * change — users migrate as they log in, with no reset and no migration.
+   *
+   * The write is deliberately hook-free and leaves updatedAt alone: the user
+   * did not change their password, the server changed how it stores it.
+   * Firing the password-change hooks would revoke every session and mail the
+   * user about a change they did not make. A failed upgrade is logged and
+   * swallowed — a correct password must not be rejected because a
    * bookkeeping write lost a race.
    */
   @CaptureSpan()
@@ -419,10 +441,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       ? ((data.item as any)[saltColumnName] as string | undefined) || null
       : null;
 
-    const isValid: boolean = await HashedString.verifyValue({
+    const isValid: boolean = await PasswordHash.verify({
       plainValue: data.plainValue,
-      hashedValue: storedHash,
-      encryptionSecret: EncryptionSecret,
+      storedValue: storedHash,
       salt: salt,
     });
 
@@ -430,27 +451,30 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       return false;
     }
 
-    if (saltColumnName && !salt && data.item.id) {
+    if (
+      saltColumnName &&
+      data.item.id &&
+      PasswordHash.needsUpgrade(storedHash)
+    ) {
       try {
-        const newSalt: string = HashedString.generateSalt();
+        const newSalt: string = PasswordHash.generateSalt();
 
         await this.updateColumnsByIdWithoutHooks({
           id: data.item.id,
           data: {
-            [data.columnName]: await HashedString.hashValue(
-              data.plainValue,
-              EncryptionSecret,
-              newSalt,
-            ),
+            [data.columnName]: await PasswordHash.hash({
+              plainValue: data.plainValue,
+              salt: newSalt,
+            }),
             [saltColumnName]: newSalt,
           } as unknown as PartialEntity<TBaseModel>,
           skipUpdateDateColumn: true,
         });
       } catch (err) {
         /*
-         * `data.item` is deliberately left holding the legacy hash and no
-         * salt, so it stays an internally consistent pair whether or not the
-         * write above landed.
+         * `data.item` is deliberately left holding the old hash and old salt,
+         * so it stays an internally consistent pair whether or not the write
+         * above landed.
          */
         logger.error(err);
       }

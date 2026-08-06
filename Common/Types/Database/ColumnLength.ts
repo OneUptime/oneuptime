@@ -12,7 +12,15 @@ enum ColumnLength {
   Password = 500,
   ShortURL = 100,
   ShortText = 100,
-  HashedString = 64,
+  /*
+   * Wide enough for a self-describing password hash, not just a bare digest.
+   * User passwords are stored as `scrypt$N=...,r=...,p=...$<64 hex>` (~90
+   * characters) so the cost parameters travel with the hash and can be
+   * raised later without a migration. The columns that still store a plain
+   * SHA-256 digest — session refresh tokens, master passwords — simply do
+   * not use the extra room.
+   */
+  HashedString = 255,
   Phone = 30,
   OTP = 8,
 }
