@@ -8,7 +8,7 @@ Onbewerkte virtuele machines (EC2, Compute Engine, Azure VM) blijven **Hosts**, 
 
 ## Vereisten
 
-- Een **OneUptime Telemetry Ingestion Token** — maak er een aan via _Project Settings → Telemetry Ingestion Keys_.
+- Een **OneUptime Telemetry Ingestion Token** — maak er een aan via _Project Settings → Telemetrie & APM → Ingestiesleutels_.
 - Een OpenTelemetry Collector of SDK die in/naast je workloads draait.
 
 ## Hoe OneUptime een omgeving identificeert

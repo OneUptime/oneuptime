@@ -4,7 +4,7 @@ Runbooks are reusable response procedures — ordered lists of manual or automat
 
 ## At a glance
 
-- **Top-level feature** in the OneUptime dashboard under **Analytics & Automation → Runbooks**.
+- **Top-level feature** in the OneUptime dashboard under **Products → Runbooks**.
 - **Five step types**: Manual checklist, JavaScript (sandboxed) and Bash (both run on a [Runbook Agent](/docs/runbooks/agents) inside your own infrastructure), HTTP request, and AI (analyze incident and step context with your project's LLM provider).
 - **Three trigger paths**: rules that match incidents/alerts/scheduled maintenance, or a manual "Run Runbook" button on any event.
 - **Snapshot semantics**: when a runbook starts, its steps are copied onto the execution. Editing the template later never mutates an in-flight run.
@@ -58,7 +58,7 @@ You can mix all five in a single runbook — the strength of runbooks is interle
 
 | Page                                                                      | What you do there                                                                 |
 | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| **Analytics & Automation → Runbooks**                                     | Browse, create, and edit runbook templates.                                       |
+| **Products → Runbooks**                                                   | Browse, create, and edit runbook templates.                                       |
 | **A runbook's Steps tab**                                                 | Author and reorder the step list.                                                 |
 | **A runbook's Executions tab**                                            | See every run of this runbook with status filters.                                |
 | **A runbook's Run Now button**                                            | Kick off an ad-hoc execution not attached to any event.                           |

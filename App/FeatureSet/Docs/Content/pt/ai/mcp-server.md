@@ -44,7 +44,7 @@ Com o Servidor MCP do OneUptime, os assistentes de IA podem ajudá-lo a:
 ## Obtendo Sua Chave de API
 
 1. Faça login na sua instância do OneUptime
-2. Navegue para **Configurações** → **Chaves de API**
+2. Navegue para **Configurações do projeto** → **Chaves de API**
 3. Clique em **Criar Chave de API**
 4. Forneça um nome (ex.: "Servidor MCP")
 5. Selecione as permissões apropriadas para o seu caso de uso

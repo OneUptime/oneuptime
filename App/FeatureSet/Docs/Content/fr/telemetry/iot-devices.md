@@ -15,7 +15,7 @@ Il n'y a aucun agent propriétaire à installer côté appareil. Cette page est 
 
 - Un appareil, une passerelle ou un collector capable d'envoyer du OTLP/HTTP vers OneUptime
 - Une accessibilité réseau depuis l'appareil/la passerelle vers votre instance OneUptime
-- Un **jeton d'ingestion de télémétrie OneUptime** — créez-en un depuis _Project Settings → Telemetry Ingestion Keys_ et copiez la valeur `x-oneuptime-token`
+- Un **jeton d'ingestion de télémétrie OneUptime** — créez-en un depuis _Project Settings → Télémétrie & APM → Clés d'ingestion_ et copiez la valeur `x-oneuptime-token`
 
 ## Comment OneUptime modélise l'IoT
 
@@ -232,7 +232,7 @@ OneUptime reconnaît les noms de métriques `iot_*` suivants. Chaque point de do
 
 ### HTTP 401 / 403 depuis l'exportateur
 
-Le jeton d'ingestion est invalide, révoqué ou manquant. Générez-en un nouveau depuis _Project Settings → Telemetry Ingestion Keys_ et mettez à jour l'en-tête `x-oneuptime-token`.
+Le jeton d'ingestion est invalide, révoqué ou manquant. Générez-en un nouveau depuis _Project Settings → Télémétrie & APM → Clés d'ingestion_ et mettez à jour l'en-tête `x-oneuptime-token`.
 
 ### Les métriques ne se tracent pas
 

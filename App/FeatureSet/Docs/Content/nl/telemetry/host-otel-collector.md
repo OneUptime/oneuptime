@@ -16,7 +16,7 @@ Je kunt de **OpenTelemetry Collector** als service rechtstreeks op je Linux-, ma
 
 ## Vereisten
 
-- Een **OneUptime Telemetry Ingestion Token** — maak er een aan via _Project Settings → Telemetry Ingestion Keys_ en kopieer de waarde van `x-oneuptime-token`.
+- Een **OneUptime Telemetry Ingestion Token** — maak er een aan via _Project Settings → Telemetrie & APM → Ingestiesleutels_ en kopieer de waarde van `x-oneuptime-token`.
 - De **OpenTelemetry Collector Contrib**-distributie (`otelcol-contrib`). De standaard `otelcol`-build bevat **geen** receivers zoals `windowseventlogreceiver`, `journaldreceiver` of `hostmetrics`-extra's — zorg ervoor dat je de `contrib`-distributie gebruikt. De alpha `windowsservicereceiver` die het tabblad Windows **Services** voedt, is gebundeld in `otelcol-contrib` vanaf **v0.155.0**, en de alpha `systemdreceiver` die het tabblad Linux **Systemd Units** voedt vanaf **v0.143.0**, dus installeer een actuele release; zie "Windows Services (metrieken)" en "Linux Services (systemd-units)" hieronder.
 - Root / Administrator op de host om de collector als service te installeren en (waar van toepassing) bevoorrechte logbronnen te lezen.
 
@@ -602,7 +602,7 @@ De service draait standaard onder `LocalSystem`, dat de rechten heeft die nodig 
 1. Genereer wat signaal op de host:
    - **Linux / macOS:** `logger "hello from oneuptime"` (schrijft naar syslog / journald).
    - **Windows:** `eventcreate /T INFORMATION /ID 999 /L APPLICATION /SO OneUptimeTest /D "hello from oneuptime"` vanuit een verhoogde prompt.
-2. Open in het OneUptime-dashboard **Telemetry → Services** en kies de `service.name` die je hebt geconfigureerd.
+2. Open in het OneUptime-dashboard **Products → Services** en kies de `service.name` die je hebt geconfigureerd.
 3. Open **Metrics** — host-metrieken (CPU, geheugen, bestandssysteem, enz.) zouden binnen een minuut moeten verschijnen.
 4. Open **Logs** — je bestandslogs / journald-vermeldingen / Windows Event Logs zouden moeten binnenstromen. Nuttige doorzoekbare attributen zijn onder andere `log.file.name`, `systemd.unit`, `winlog.channel`, `winlog.event_id` en `winlog.provider.name`.
 5. Als je de `systemd`- (Linux) of `windows_service`-receiver (Windows) hebt ingeschakeld, open dan **Infrastructure → Hosts**, kies de host en controleer het tabblad **Systemd Units** / **Services** — elke gescrapete unit zou vermeld moeten staan met zijn huidige status.
@@ -879,7 +879,7 @@ De OpenTelemetry Collector respecteert de standaard omgevingsvariabelen `HTTPS_P
   - **Linux / macOS:** `journalctl -u otelcol-contrib -f` (Linux) of `tail -f /var/log/otelcol-contrib.err.log` (macOS).
   - **Windows:** kijk onder _Event Viewer → Windows Logs → Application_ voor de bron `otelcol-contrib`.
   - Bevestig dat de host `https://oneuptime.com/otlp` (of je zelf-gehoste endpoint) kan bereiken: `curl -v https://oneuptime.com/otlp` vanaf dezelfde machine.
-- **HTTP 401 van de exporter** — het ingestion-token is ongeldig of ingetrokken. Genereer een nieuw token via _Project Settings → Telemetry Ingestion Keys_.
+- **HTTP 401 van de exporter** — het ingestion-token is ongeldig of ingetrokken. Genereer een nieuw token via _Project Settings → Telemetrie & APM → Ingestiesleutels_.
 - **`Security` Windows Event Log geeft toegang geweigerd** — de service draait niet met voldoende rechten. Maak hem opnieuw aan onder `LocalSystem` (de standaard met `sc.exe create`) of verleen het serviceaccount het gebruikersrecht _Manage auditing and security log_.
 - **`journald`-receiver start niet** — zorg ervoor dat `journalctl` op de `PATH` van de collector staat en dat `/var/log/journal` bestaat (voer `sudo systemd-tmpfiles --create --prefix /var/log/journal` uit als dat niet zo is).
 - **`systemd`-receiver meldt een D-Bus-verbindingsfout** — de collector kan de systeembus niet bereiken. Controleer of `/run/dbus/system_bus_socket` bestaat en of de gebruiker van de collector hem kan openen; `systemctl list-units` als die gebruiker draaien is de snelste controle. Root is niet nodig. Een collector die binnen een container draait, ziet helemaal geen bus tenzij je de socket van de host bind-mount, dus kies voor deze receiver bij voorkeur een native installatie.

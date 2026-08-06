@@ -99,7 +99,7 @@ Per una query in stile `COUNT(*)`, il conteggio è disponibile sia come **Numero
 
 Affinché la password del database non venga mai archiviata in chiaro nel monitor, crea un [Segreto del Monitor](/docs/monitor/monitor-secrets) e fai riferimento ad esso dal campo Password:
 
-1. Vai su Dashboard di OneUptime → Impostazioni Progetto → Segreti del Monitor → Crea Segreto del Monitor.
+1. Vai su Dashboard di OneUptime → Monitor → Impostazioni → Segreti → Crea Segreto del Monitor.
 2. Crea un segreto (ad esempio `dbPassword`) e concedi a questo monitor l'accesso ad esso.
 3. Nel campo Password del monitor, inserisci `{{monitorSecrets.dbPassword}}`.
 

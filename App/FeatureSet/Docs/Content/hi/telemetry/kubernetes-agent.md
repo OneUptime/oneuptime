@@ -695,7 +695,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
    curl -i -H "x-oneuptime-token: <YOUR_API_KEY>" https://oneuptime.com/otlp/v1/validate
    ```
 
-   यदि यह `401` लौटाता है, तो आपके रिलीज़ में key गलत है या निरस्त कर दी गई थी। _Project Settings → Telemetry Ingestion Keys_ से एक live key कॉपी करें और पुनः-डिप्लॉय करें:
+   यदि यह `401` लौटाता है, तो आपके रिलीज़ में key गलत है या निरस्त कर दी गई थी। _Project Settings → टेलीमेट्री और APM → इंजेशन कुंजियाँ_ से एक live key कॉपी करें और पुनः-डिप्लॉय करें:
 
    ```bash
    helm upgrade kubernetes-agent oneuptime/kubernetes-agent \

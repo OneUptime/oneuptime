@@ -4,13 +4,13 @@ U kunt secrets gebruiken om gevoelige informatie op te slaan die u wilt gebruike
 
 ### Een secret toevoegen
 
-Om een secret toe te voegen, ga naar OneUptime Dashboard -> Projectinstellingen -> Monitor Secrets -> Monitor Secret aanmaken.
+Om een secret toe te voegen, ga naar OneUptime Dashboard -> Monitoren -> Instellingen -> Geheimen -> Monitor Secret aanmaken.
 
 ![Secret aanmaken](/docs/static/images/CreateMonitorSecret.png)
 
 U kunt selecteren welke monitors toegang hebben tot het secret. In dit geval hebben we het secret `ApiKey` toegevoegd en monitors geselecteerd die er toegang toe hebben.
 
-**Let op**: Secrets worden versleuteld en veilig opgeslagen. Als u het secret verliest, moet u een nieuw secret aanmaken. U kunt het secret na opslaan niet bekijken of bijwerken.
+**Let op**: Secrets worden versleuteld en veilig opgeslagen. De waarde wordt na het opslaan nooit meer getoond — niet in de tabel, niet in het bewerkformulier en niet via de API. Als u de waarde kwijtraakt, moet u die opnieuw bij de bron ophalen en opnieuw instellen. Gebruik de knop **Update Secret Value** op de rij om een secret te roteren; verwijderen en opnieuw aanmaken is niet nodig.
 
 ### Een secret gebruiken
 

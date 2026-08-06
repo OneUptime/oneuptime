@@ -34,7 +34,7 @@ Du finner den fullstendige listen over støttede kilder [her](https://docs.fluen
 - **Trinn 3: Opprett OneUptime-prosjekt** – Når du har kontoen, kan du opprette et prosjekt fra OneUptime-dashbordet. Hvis du trenger hjelp med å opprette et prosjekt eller har spørsmål, ta kontakt med oss på support@oneuptime.com
 - **Trinn 4: Opprett telemetriinnhentingstoken** – Når du har opprettet en OneUptime-konto, kan du opprette et telemetriinnhentingstoken for å hente inn logger, metrikker og spor fra applikasjonen din.
 
-Etter at du har registrert deg for OneUptime og opprettet et prosjekt, klikker du på "More" i navigasjonslinjen og klikker på "Project Settings".
+Etter at du har registrert deg for OneUptime og opprettet et prosjekt, klikker du på "Products" i navigasjonslinjen og klikker på "Project Settings".
 
 På siden for Telemetry Ingestion Key, klikk på "Create Ingestion Key" for å opprette et token.
 

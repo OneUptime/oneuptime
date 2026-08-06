@@ -4,7 +4,7 @@ Runbooks er genbrugelige svarprocedurer — ordnede lister af manuelle eller aut
 
 ## I et hurtigt overblik
 
-- **Top-niveau funktion** i OneUptime-dashboardet under **Analyse & Automatisering → Runbooks**.
+- **Top-niveau funktion** i OneUptime-dashboardet under **Products → Runbooks**.
 - **Fem trintyper**: manuel tjekliste, JavaScript (sandkasse) og Bash (begge kører på en [Runbook-agent](/docs/runbooks/agents) i din egen infrastruktur), HTTP-anmodning og AI (analysér hændelses- og trin-kontekst med dit projekts LLM-udbyder).
 - **Tre udløsningsveje**: regler der matcher hændelser/alarmer/planlagt vedligehold, eller den manuelle knap "Kør runbook" på et hvilket som helst event.
 - **Snapshot-semantik**: når et runbook starter, kopieres dets trin ind på kørslen. At redigere skabelonen senere ændrer aldrig en igangværende kørsel.
@@ -58,7 +58,7 @@ Du kan blande alle fem i ét runbook — runbooks' styrke er at flette menneskel
 
 | Side                                                                            | Hvad du laver der                                                                   |
 | ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| **Analyse & Automatisering → Runbooks**                                         | Gennemse, oprette og redigere runbook-skabeloner.                                   |
+| **Products → Runbooks**                                         | Gennemse, oprette og redigere runbook-skabeloner.                                   |
 | **Trin-fanen på et runbook**                                                    | Skrive og omarrangere triplisten.                                                   |
 | **Kørsler-fanen på et runbook**                                                 | Se hver kørsel af runbook'et med statusfiltre.                                      |
 | **"Kør nu"-knappen på et runbook**                                              | Starte en ad hoc-kørsel, der ikke er knyttet til en hændelse.                       |

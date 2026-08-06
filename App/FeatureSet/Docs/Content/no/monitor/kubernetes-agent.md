@@ -92,7 +92,7 @@ Du kan også deaktivere logginnsamling helt med `--set logs.enabled=false` og se
 
 Helm-kartet leveres med en DaemonSet som kjører [OpenTelemetry eBPF Instrumentation (OBI)](https://opentelemetry.io/docs/zero-code/obi/) på hver node. OBI laster eBPF-programmer inn i Linux-kjernen og overvåker trafikk på socket-nivå for å rekonstruere HTTP/HTTPS-, gRPC- og SQL/Redis-anrop fra hver pod på noden — ingen kodeendringer, ingen SDK, ingen sidecar. Fanget trafikk eksporteres som OTLP-sporinger og forespørsels-/latensmetrikker direkte til OneUptime.
 
-Etter installasjon begynner tjenestene dine å vises under **Telemetry → Traces** og tjenestekartet i løpet av et minutt eller to, med `k8s.cluster.name` satt til `clusterName` slik at du kan filtrere etter klynge.
+Etter installasjon begynner tjenestene dine å vises under **Products → Spor** og tjenestekartet i løpet av et minutt eller to, med `k8s.cluster.name` satt til `clusterName` slik at du kan filtrere etter klynge.
 
 ### Når du bør slå det av
 
@@ -163,7 +163,7 @@ kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=2
 
 ## Kontinuerlig CPU-profilering (deaktivert som standard)
 
-En separat DaemonSet kjører [OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) — pakket som bildet `otel/opentelemetry-collector-ebpf-profiler`. Den sampler on-CPU-stacker ved 19Hz på tvers av hver støttet kjøretid (Go, Java, .NET, Python, Ruby, Node.js, PHP, Perl, C/C++, Rust) og sender OTLP-profiler til OneUptime, hvor de vises under **Telemetry → Performance Profiles** og som flammegrafer lenket fra individuelle sporingsspans.
+En separat DaemonSet kjører [OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) — pakket som bildet `otel/opentelemetry-collector-ebpf-profiler`. Den sampler on-CPU-stacker ved 19Hz på tvers av hver støttet kjøretid (Go, Java, .NET, Python, Ruby, Node.js, PHP, Perl, C/C++, Rust) og sender OTLP-profiler til OneUptime, hvor de vises under **Products → Ytelsesprofiler** og som flammegrafer lenket fra individuelle sporingsspans.
 
 Profilering er **deaktivert som standard** — den er tyngre enn OBI auto-instrumenteringen (mer CPU per node, større minneavtrykk) og ikke alle klynger ønsker alltid-på-flammegrafer. Aktiver den når du ønsker rikere telemetri: `--set profiling.enabled=true`.
 

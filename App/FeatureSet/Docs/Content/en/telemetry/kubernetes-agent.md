@@ -696,7 +696,7 @@ The most common reason — especially after a reinstall — is a **wrong or revo
    curl -i -H "x-oneuptime-token: <YOUR_API_KEY>" https://oneuptime.com/otlp/v1/validate
    ```
 
-   If it returns `401`, the key in your release is wrong or was revoked. Copy a live key from _Project Settings → Telemetry Ingestion Keys_ and re-deploy:
+   If it returns `401`, the key in your release is wrong or was revoked. Copy a live key from _Project Settings → Telemetry & APM → Ingestion Keys_ and re-deploy:
 
    ```bash
    helm upgrade kubernetes-agent oneuptime/kubernetes-agent \

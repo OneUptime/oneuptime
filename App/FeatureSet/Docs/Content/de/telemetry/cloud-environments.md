@@ -8,7 +8,7 @@ Reine virtuelle Maschinen (EC2, Compute Engine, Azure VM) bleiben **Hosts**, und
 
 ## Voraussetzungen
 
-- Ein **OneUptime Telemetry Ingestion Token** — erstellen Sie eines unter _Project Settings → Telemetry Ingestion Keys_.
+- Ein **OneUptime Telemetry Ingestion Token** — erstellen Sie eines unter _Project Settings → Telemetrie & APM → Ingestion-Schlüssel_.
 - Ein OpenTelemetry Collector oder SDK, das in oder neben Ihren Workloads läuft.
 
 ## Wie OneUptime eine Umgebung identifiziert

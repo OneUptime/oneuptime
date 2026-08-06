@@ -22,7 +22,7 @@ return {
 
 #### シークレットの追加
 
-シークレットを追加するには、OneUptime Dashboard -> プロジェクト設定 -> モニターシークレット -> モニターシークレットの作成 に移動してください。
+シークレットを追加するには、OneUptime Dashboard -> モニター -> 設定 -> シークレット -> モニターシークレットの作成 に移動してください。
 
 ![シークレットの作成](/docs/static/images/CreateMonitorSecret.png)
 

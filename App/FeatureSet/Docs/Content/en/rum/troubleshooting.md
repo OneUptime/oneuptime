@@ -12,7 +12,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 ```
 
 - `200` with `"valid": true` — the token resolves to a project. Move on.
-- `401` — the token is missing, malformed, unknown or revoked. Create a new one in _Project Settings → Telemetry Ingestion Keys_.
+- `401` — the token is missing, malformed, unknown or revoked. Create a new one in _Project Settings → Telemetry & APM → Ingestion Keys_.
 
 The ingest endpoints answer `401` for a bad token, which is correct per the OTLP spec (non-retryable, so compliant SDKs log it rather than retry-storming) — but that log line is easy to miss in a browser console. This endpoint gives you a direct answer.
 

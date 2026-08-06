@@ -85,7 +85,7 @@ Poiché si ospita OneUptime autonomamente, sarà necessario configurare il propr
 ## Fase 2: Configurare la Config Chiamata/SMS in OneUptime
 
 1. Accedere al Dashboard di OneUptime
-2. Accedere a **Impostazioni Progetto** > **Chiamata & SMS** > **Config Chiamata/SMS Personalizzata**
+2. Accedere a **Impostazioni Progetto** > **Notifiche** > **Impostazioni notifiche**
 3. Fare clic su **Crea Config Chiamata/SMS Personalizzata**
 4. Compilare i seguenti campi:
    - **Nome**: Un nome descrittivo (ad es. "Config Twilio Produzione")

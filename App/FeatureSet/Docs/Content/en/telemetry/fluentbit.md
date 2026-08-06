@@ -34,7 +34,7 @@ You can find the full list of supported sources [here](https://docs.fluentbit.io
 - **Step 3: Create OneUptime Project** - Once you have the account, you can create a project from the OneUptime dashboard. If you need any help with creating a project or have any questions, please reach out to us at support@oneuptime.com
 - **Step 4: Create Telemetry Ingestion Token** - Once you have created a OneUptime account, you can create a telemetry ingestion token to ingest logs, metrics and traces from your application.
 
-After you sign up to OneUptime and create a project. Click on "More" in the Navigation bar and click on "Project Settings".
+After you sign up to OneUptime and create a project. Click on "Products" in the navigation bar and click on "Project Settings".
 
 On the Telemetry Ingestion Key page, click on "Create Ingestion Key" to create a token.
 

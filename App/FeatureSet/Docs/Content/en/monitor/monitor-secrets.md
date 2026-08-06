@@ -4,13 +4,13 @@ You can use secrets to store sensitive information that you want to use in your 
 
 ### Adding a secret
 
-To add a secret, please go to OneUptime Dashboard -> Project Settings -> Monitor Secrets -> Create Monitor Secret.
+To add a secret, please go to OneUptime Dashboard -> Monitors -> Settings -> Secrets -> Create Monitor Secret.
 
 ![Create Secret](/docs/static/images/CreateMonitorSecret.png)
 
 You can select which monitors have access to the secret. In this case we added `ApiKey` secret and selected monitors to have access to it.
 
-**Please note**: Secrets are encrypted and stored securely. If you lose the secret, you will need to create a new secret. You cannot view or update the secret after its saved.
+**Please note**: Secrets are encrypted and stored securely. The secret value is never shown again after it is saved — not in the table, not in the edit form, and not over the API. If you lose the value you will need to get it from wherever it came from and set it again. To rotate a secret, use the **Update Secret Value** button on its row; you do not need to delete and recreate it.
 
 ### Using a secret
 

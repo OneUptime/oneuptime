@@ -20,7 +20,7 @@ O SCIM de Projeto permite que provedores de identidade gerenciem membros de equi
 1. **Navegar para as Configurações do Projeto**
 
    - Vá para o seu projeto do OneUptime
-   - Navegue para **Project Settings** > **Team** > **SCIM**
+   - Navegue para **Project Settings** > **Segurança** > **SCIM**
 
 2. **Configurar as Definições SCIM**
 
@@ -69,7 +69,7 @@ O SCIM de Página de Status permite que provedores de identidade gerenciem assin
 1. **Navegar para as Configurações da Página de Status**
 
    - Vá para a sua página de status do OneUptime
-   - Navegue para **Status Page Settings** > **Private Users** > **SCIM**
+   - Navegue para **Status Page Settings** > **Segurança** > **SCIM**
 
 2. **Configurar as Definições SCIM**
 
@@ -117,7 +117,7 @@ O Microsoft Entra ID fornece gerenciamento de identidade empresarial com recurso
 #### Passo 1: Obter Configuração SCIM do OneUptime
 
 1. Faça login no seu painel do OneUptime
-2. Navegue para **Project Settings** > **Team** > **SCIM**
+2. Navegue para **Project Settings** > **Segurança** > **SCIM**
 3. Clique em **Create SCIM Configuration**
 4. Insira um nome amigável (ex.: "Microsoft Entra ID Provisioning")
 5. Configure as seguintes opções:
@@ -219,7 +219,7 @@ O Okta fornece gerenciamento de identidade flexível com excelente suporte a SCI
 #### Passo 1: Obter Configuração SCIM do OneUptime
 
 1. Faça login no seu painel do OneUptime
-2. Navegue para **Project Settings** > **Team** > **SCIM**
+2. Navegue para **Project Settings** > **Segurança** > **SCIM**
 3. Clique em **Create SCIM Configuration**
 4. Insira um nome amigável (ex.: "Okta Provisioning")
 5. Configure as seguintes opções:

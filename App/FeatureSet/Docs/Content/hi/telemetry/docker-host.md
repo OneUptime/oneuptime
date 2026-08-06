@@ -10,7 +10,7 @@ OneUptime Docker Agent एक पूर्व-निर्मित कंटे
 
 - Docker Engine 20.10+
 - होस्ट पर `/var/run/docker.sock` तक पहुँच
-- एक **OneUptime Telemetry Ingestion Token** — इसे _Project Settings → Telemetry Ingestion Keys_ से बनाएं और मान कॉपी करें
+- एक **OneUptime Telemetry Ingestion Token** — इसे _Project Settings → टेलीमेट्री और APM → इंजेशन कुंजियाँ_ से बनाएं और मान कॉपी करें
 
 ## त्वरित प्रारंभ (एक कमांड)
 
@@ -67,7 +67,7 @@ docker compose up -d
 | वेरिएबल                   | आवश्यक | विवरण                                                                                                                       |
 | ------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------- |
 | `ONEUPTIME_URL`           | हाँ    | आपका OneUptime इंस्टेंस URL (उदाहरण के लिए `https://oneuptime.com` या आपका स्वयं-होस्ट किया गया होस्ट)                      |
-| `ONEUPTIME_SERVICE_TOKEN` | हाँ    | _Project Settings → Telemetry Ingestion Keys_ से Telemetry ingestion token                                                  |
+| `ONEUPTIME_SERVICE_TOKEN` | हाँ    | _Project Settings → टेलीमेट्री और APM → इंजेशन कुंजियाँ_ से Telemetry ingestion token                                                  |
 | `DOCKER_HOST_NAME`        | नहीं   | इस होस्ट के लिए सुलभ नाम। डिफ़ॉल्ट रूप से `docker-host`। इसे प्रति होस्ट किसी स्थिर मान पर सेट करें (उदा. `prod-docker-01`) |
 
 ## इंस्टॉलेशन सत्यापित करें

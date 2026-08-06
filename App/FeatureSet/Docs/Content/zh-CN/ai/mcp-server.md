@@ -44,7 +44,7 @@ MCP 服务器与您的 OneUptime 实例一起托管，可通过 Streamable HTTP 
 ## 获取您的 API 密钥
 
 1. 登录您的 OneUptime 实例
-2. 导航至 **设置** → **API 密钥**
+2. 导航至 **项目设置** → **API 密钥**
 3. 点击 **创建 API 密钥**
 4. 提供名称（例如"MCP Server"）
 5. 选择适合您使用场景的权限

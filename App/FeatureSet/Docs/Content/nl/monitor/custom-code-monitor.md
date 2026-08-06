@@ -22,7 +22,7 @@ return {
 
 #### Een secret toevoegen
 
-Om een secret toe te voegen, ga naar OneUptime Dashboard -> Projectinstellingen -> Monitor Secrets -> Monitor Secret aanmaken.
+Om een secret toe te voegen, ga naar OneUptime Dashboard -> Monitoren -> Instellingen -> Geheimen -> Monitor Secret aanmaken.
 
 ![Secret aanmaken](/docs/static/images/CreateMonitorSecret.png)
 

@@ -4,7 +4,7 @@
 
 När du har skapat ett OneUptime-konto kan du skapa en telemetriintagningstoken för att mata in loggar, mätvärden och spårningar från din applikation.
 
-Efter att du registrerat dig på OneUptime och skapat ett projekt, klicka på "Mer" i navigeringsfältet och klicka på "Projektinställningar".
+Efter att du registrerat dig på OneUptime och skapat ett projekt, klicka på "Products" i navigeringsfältet och klicka på "Projektinställningar".
 
 På sidan Telemetriintagningsnyckel, klicka på "Skapa intagningsnyckel" för att skapa en token.
 

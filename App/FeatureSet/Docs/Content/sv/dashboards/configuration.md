@@ -38,7 +38,7 @@ Instrumentpaneler fungerar med ditt projekts rollbaserade åtkomstkontroll. De r
 
 Det finns matchande behörigheter för instrumentpanelägare och anpassade domäner, så att du kan ge "hantera ägare" utan att ge "redigera instrumentpanelen."
 
-Tilldela dessa på projektroller under **Project Settings → Teams & Roles**.
+Tilldela dessa på projektroller under **Products → Team → Behörigheter**.
 
 ## Åtkomst för offentliga instrumentpaneler
 

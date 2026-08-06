@@ -10,7 +10,7 @@ OneUptime IoT डिवाइसों के फ्लीट — सेंस�
 
 - एक डिवाइस, गेटवे या कलेक्टर जो OneUptime को OTLP/HTTP भेज सकता है
 - डिवाइस/गेटवे से आपके OneUptime इंस्टेंस तक नेटवर्क पहुँच
-- एक **OneUptime Telemetry Ingestion Token** — इसे _Project Settings → Telemetry Ingestion Keys_ से बनाएँ और `x-oneuptime-token` मान को कॉपी करें
+- एक **OneUptime Telemetry Ingestion Token** — इसे _Project Settings → टेलीमेट्री और APM → इंजेशन कुंजियाँ_ से बनाएँ और `x-oneuptime-token` मान को कॉपी करें
 
 ## OneUptime IoT को कैसे मॉडल करता है
 
@@ -227,7 +227,7 @@ OneUptime निम्नलिखित `iot_*` मेट्रिक नाम
 
 ### एक्सपोर्टर से HTTP 401 / 403
 
-इन्जेस्शन टोकन अमान्य, रद्द या गायब है। _Project Settings → Telemetry Ingestion Keys_ से एक नया बनाएँ और `x-oneuptime-token` हेडर अपडेट करें।
+इन्जेस्शन टोकन अमान्य, रद्द या गायब है। _Project Settings → टेलीमेट्री और APM → इंजेशन कुंजियाँ_ से एक नया बनाएँ और `x-oneuptime-token` हेडर अपडेट करें।
 
 ### मेट्रिक्स चार्ट नहीं हो रहे
 

@@ -37,7 +37,7 @@ Pubblica un messaggio in un canale Slack.
 - **Channel** — il nome del canale. Il bot deve essere gia presente in quel canale.
 - **Message** — il testo da inviare. Supporta la formattazione di Slack.
 
-Connetti prima Slack al tuo progetto da **Project Settings → Workspace Connections → Slack**. Vedi [Connessione del workspace Slack](/docs/workspace-connections/slack).
+Connetti prima Slack al tuo progetto da **Project Settings → Area di lavoro → Slack**. Vedi [Connessione del workspace Slack](/docs/workspace-connections/slack).
 
 ## Microsoft Teams
 

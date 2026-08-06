@@ -4,7 +4,7 @@ Runbooks zijn herbruikbare responsprocedures — geordende lijsten van handmatig
 
 ## In één oogopslag
 
-- **Top-level feature** in het OneUptime-dashboard onder **Analytics & Automation → Runbooks**.
+- **Top-level feature** in het OneUptime-dashboard onder **Products → Runbooks**.
 - **Vijf staptypes**: Handmatige checklist, JavaScript (in sandbox) en Bash (beide draaien op een [Runbook-agent](/docs/runbooks/agents) in je eigen infrastructuur), HTTP-verzoek, en AI (analyseert incident- en stapcontext met de LLM-provider van je project).
 - **Drie triggerpaden**: regels die matchen op incidenten/alerts/gepland onderhoud, of een handmatige "Runbook uitvoeren"-knop op elk event.
 - **Snapshot-semantiek**: zodra een runbook start, worden zijn stappen naar de uitvoering gekopieerd. Het later bewerken van de template wijzigt nooit een lopende run.
@@ -58,7 +58,7 @@ Je kunt alle vijf mixen in één runbook — de kracht van runbooks is dat je me
 
 | Pagina                                                                    | Wat je daar doet                                                                                            |
 | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| **Analytics & Automation → Runbooks**                                     | Runbook-templates doorbladeren, aanmaken en bewerken.                                                       |
+| **Products → Runbooks**                                     | Runbook-templates doorbladeren, aanmaken en bewerken.                                                       |
 | **Het Steps-tabblad van een runbook**                                     | De staplijst schrijven en herordenen.                                                                       |
 | **Het Executions-tabblad van een runbook**                                | Elke run van dit runbook zien met statusfilters.                                                            |
 | **De "Nu uitvoeren"-knop van een runbook**                                | Een ad-hoc uitvoering starten die niet aan een event hangt.                                                 |

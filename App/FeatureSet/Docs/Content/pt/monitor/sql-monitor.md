@@ -99,7 +99,7 @@ Para uma consulta do tipo `COUNT(*)`, a contagem está disponível tanto como **
 
 Para que a senha do banco de dados nunca seja armazenada em texto simples no monitor, crie um [Segredo de Monitor](/docs/monitor/monitor-secrets) e referencie-o a partir do campo Senha:
 
-1. Vá para Painel do OneUptime → Configurações do Projeto → Segredos de Monitor → Criar Segredo de Monitor.
+1. Vá para Painel do OneUptime → Monitores → Configurações → Segredos → Criar Segredo de Monitor.
 2. Crie um segredo (por exemplo `dbPassword`) e conceda a este monitor acesso a ele.
 3. No campo Senha do monitor, insira `{{monitorSecrets.dbPassword}}`.
 

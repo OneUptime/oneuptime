@@ -23,7 +23,7 @@ OneUptime stöder följande profiltyper:
 
 ### Steg 1 – Skapa en telemetriintagningstoken
 
-Efter att du registrerat dig på OneUptime och skapat ett projekt, klicka på "Mer" i navigeringsfältet och klicka på "Projektinställningar".
+Efter att du registrerat dig på OneUptime och skapat ett projekt, klicka på "Products" i navigeringsfältet och klicka på "Projektinställningar".
 
 På sidan Telemetriintagningsnyckel, klicka på "Skapa intagningsnyckel" för att skapa en token.
 

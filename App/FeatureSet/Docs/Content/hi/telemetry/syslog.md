@@ -6,7 +6,7 @@ OpenTelemetry Ingest service अब native Syslog payloads accept करती �
 
 ## पूर्व आवश्यकताएं
 
-- **Telemetry Ingestion Token** – _Project Settings → Telemetry Ingestion Keys_ से एक बनाएं और `x-oneuptime-token` value copy करें।
+- **Telemetry Ingestion Token** – _Project Settings → टेलीमेट्री और APM → इंजेशन कुंजियाँ_ से एक बनाएं और `x-oneuptime-token` value copy करें।
 - **Syslog forwarder** – HTTP POST requests भेजने में सक्षम कोई भी tool (उदाहरण के लिए `curl`, `rsyslog` `omhttp` के माध्यम से, या `syslog-ng` HTTP destination plugin के साथ)।
 - **Service name (वैकल्पिक)** – incoming logs को एक specific telemetry service के अंतर्गत group करने के लिए `x-oneuptime-service-name` header सेट करें।
 
@@ -98,7 +98,7 @@ OneUptime automatically प्रत्येक log entry में निम�
 - `syslog.structured.*` (flattened RFC5424 structured data)
 - `syslog.raw` (traceability के लिए original message)
 
-ये attributes Telemetry → Logs explorer के अंदर searchable बन जाते हैं।
+ये attributes **Products → लॉग** explorer के अंदर searchable बन जाते हैं।
 
 ## समस्या निवारण
 

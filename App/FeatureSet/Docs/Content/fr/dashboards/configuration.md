@@ -38,7 +38,7 @@ Les tableaux de bord fonctionnent avec le contrôle d'accès basé sur les rôle
 
 Il existe des permissions équivalentes pour les propriétaires de tableaux de bord et les domaines personnalisés, vous pouvez donc accorder « gérer les propriétaires » sans accorder « modifier le tableau de bord ».
 
-Attribuez ces permissions aux rôles de projet sous **Project Settings → Teams & Roles**.
+Attribuez ces permissions aux rôles de projet sous **Products → Équipes → Autorisations**.
 
 ## Accès aux tableaux de bord publics
 

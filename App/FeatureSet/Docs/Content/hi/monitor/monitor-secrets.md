@@ -4,13 +4,13 @@
 
 ### एक secret जोड़ना
 
-secret जोड़ने के लिए, कृपया OneUptime Dashboard -> Project Settings -> Monitor Secrets -> Create Monitor Secret पर जाएं।
+secret जोड़ने के लिए, कृपया OneUptime Dashboard -> मॉनिटर -> सेटिंग्स -> सीक्रेट -> Create Monitor Secret पर जाएं।
 
 ![Create Secret](/docs/static/images/CreateMonitorSecret.png)
 
 आप चुन सकते हैं कि कौन से monitors को secret तक पहुंच हो। इस मामले में हमने `ApiKey` secret जोड़ा और monitors को उस तक पहुंच देने के लिए चुना।
 
-**कृपया ध्यान दें**: Secrets encrypted और सुरक्षित रूप से stored होते हैं। यदि आप secret खो देते हैं, तो आपको एक नया secret बनाना होगा। Save होने के बाद आप secret देख या update नहीं कर सकते।
+**कृपया ध्यान दें**: Secrets encrypted और सुरक्षित रूप से stored होते हैं। Save होने के बाद secret value दोबारा कभी नहीं दिखाई जाती — न table में, न edit form में, और न ही API पर। यदि आप value खो देते हैं, तो उसे उसके स्रोत से लेकर दोबारा सेट करना होगा। Secret rotate करने के लिए उसकी row पर **Update Secret Value** बटन का उपयोग करें; उसे delete करके दोबारा बनाने की आवश्यकता नहीं है।
 
 ### एक secret का उपयोग
 

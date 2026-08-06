@@ -694,7 +694,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
    curl -i -H "x-oneuptime-token: <YOUR_API_KEY>" https://oneuptime.com/otlp/v1/validate
    ```
 
-   `401`을 반환하면 릴리스의 키가 잘못되었거나 취소된 것입니다. *Project Settings → Telemetry Ingestion Keys*에서 유효한 키를 복사하여 다시 배포하세요:
+   `401`을 반환하면 릴리스의 키가 잘못되었거나 취소된 것입니다. *Project Settings → 텔레메트리 및 APM → 수집 키*에서 유효한 키를 복사하여 다시 배포하세요:
 
    ```bash
    helm upgrade kubernetes-agent oneuptime/kubernetes-agent \

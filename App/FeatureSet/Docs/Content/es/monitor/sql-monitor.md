@@ -99,7 +99,7 @@ Para una consulta del estilo `COUNT(*)`, el recuento está disponible como **Rec
 
 Para que la contraseña de la base de datos nunca se almacene en texto plano en el monitor, crea un [Secreto de monitor](/docs/monitor/monitor-secrets) y haz referencia a él desde el campo Contraseña:
 
-1. Ve al Panel de OneUptime → Configuración del proyecto → Secretos de monitor → Crear secreto de monitor.
+1. Ve al Panel de OneUptime → Monitores → Ajustes → Secretos → Crear secreto de monitor.
 2. Crea un secreto (por ejemplo, `dbPassword`) y concede acceso a él a este monitor.
 3. En el campo Contraseña del monitor, introduce `{{monitorSecrets.dbPassword}}`.
 

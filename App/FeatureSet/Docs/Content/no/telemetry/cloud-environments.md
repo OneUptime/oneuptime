@@ -8,7 +8,7 @@ Rene virtuelle maskiner (EC2, Compute Engine, Azure VM) forblir **verter** (Host
 
 ## Forutsetninger
 
-- En **OneUptime Telemetry Ingestion Token** — opprett en fra _Project Settings → Telemetry Ingestion Keys_.
+- En **OneUptime Telemetry Ingestion Token** — opprett en fra _Project Settings → Telemetri og APM → Inntaksnøkler_.
 - En OpenTelemetry Collector eller SDK som kjorer i eller ved siden av arbeidsbelastningene dine.
 
 ## Hvordan OneUptime identifiserer et miljo

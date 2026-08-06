@@ -99,7 +99,7 @@ Bei einer Abfrage im Stil von `COUNT(*)` ist die Anzahl sowohl als **Zeilenanzah
 
 Damit das Datenbankpasswort niemals im Klartext im Monitor gespeichert wird, erstellen Sie ein [Monitor-Geheimnis](/docs/monitor/monitor-secrets) und referenzieren Sie es aus dem Feld „Passwort":
 
-1. Gehen Sie zum OneUptime-Dashboard → Projekteinstellungen → Monitor-Geheimnisse → Monitor-Geheimnis erstellen.
+1. Gehen Sie zum OneUptime-Dashboard → Monitore → Einstellungen → Geheimnisse → Monitor-Geheimnis erstellen.
 2. Erstellen Sie ein Geheimnis (zum Beispiel `dbPassword`) und gewähren Sie diesem Monitor Zugriff darauf.
 3. Geben Sie im Feld „Passwort" des Monitors `{{monitorSecrets.dbPassword}}` ein.
 

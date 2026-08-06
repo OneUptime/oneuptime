@@ -4,7 +4,7 @@ Runbooks sind wiederverwendbare Reaktionsverfahren — geordnete Listen aus manu
 
 ## Auf einen Blick
 
-- **Top-Level-Feature** im OneUptime-Dashboard unter **Analytics & Automation → Runbooks**.
+- **Top-Level-Feature** im OneUptime-Dashboard unter **Products → Runbooks**.
 - **Fünf Schritttypen**: Manuelle Checkliste, JavaScript (in Sandbox) und Bash (beide laufen auf einem [Runbook-Agent](/docs/runbooks/agents) in Ihrer eigenen Infrastruktur), HTTP-Anfrage und AI (analysiert Vorfall- und Schrittkontext mit dem LLM-Provider Ihres Projekts).
 - **Drei Auslösepfade**: Regeln, die auf Vorfälle/Warnmeldungen/geplante Wartung passen, oder ein manueller „Runbook ausführen"-Button auf jedem Ereignis.
 - **Snapshot-Semantik**: Wenn ein Runbook startet, werden seine Schritte auf die Ausführung kopiert. Späteres Bearbeiten der Vorlage verändert nie einen laufenden Ablauf.
@@ -58,7 +58,7 @@ Sie können alle fünf in einem einzigen Runbook mischen — die Stärke von Run
 
 | Seite                                                                     | Was Sie dort tun                                                                                                       |
 | ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| **Analytics & Automation → Runbooks**                                     | Runbook-Vorlagen durchsuchen, erstellen und bearbeiten.                                                                |
+| **Products → Runbooks**                                     | Runbook-Vorlagen durchsuchen, erstellen und bearbeiten.                                                                |
 | **Steps-Tab eines Runbooks**                                              | Schrittliste verfassen und sortieren.                                                                                  |
 | **Executions-Tab eines Runbooks**                                         | Jeden Lauf dieses Runbooks mit Statusfiltern sehen.                                                                    |
 | **„Jetzt ausführen"-Button eines Runbooks**                               | Eine Ad-hoc-Ausführung starten, die an kein Ereignis gekoppelt ist.                                                    |

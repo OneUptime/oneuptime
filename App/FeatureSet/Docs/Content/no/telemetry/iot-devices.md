@@ -10,7 +10,7 @@ Det finnes ingen agent å installere på enhetssiden — alt som kan snakke OTLP
 
 - En enhet, gateway eller collector som kan sende OTLP/HTTP til OneUptime
 - Nettverkstilgang fra enheten/gatewayen til din OneUptime-instans
-- En **OneUptime Telemetry Ingestion Token** — opprett en fra _Project Settings → Telemetry Ingestion Keys_ og kopier `x-oneuptime-token`-verdien
+- En **OneUptime Telemetry Ingestion Token** — opprett en fra _Project Settings → Telemetri og APM → Inntaksnøkler_ og kopier `x-oneuptime-token`-verdien
 
 ## Hvordan OneUptime modellerer IoT
 
@@ -230,7 +230,7 @@ OneUptime gjenkjenner følgende `iot_*`-metrikknavn. Hvert datapunkt bør bære 
 
 ### HTTP 401 / 403 fra eksportøren
 
-Ingestion-token er ugyldig, tilbakekalt eller mangler. Generer en ny fra _Project Settings → Telemetry Ingestion Keys_ og oppdater `x-oneuptime-token`-headeren.
+Ingestion-token er ugyldig, tilbakekalt eller mangler. Generer en ny fra _Project Settings → Telemetri og APM → Inntaksnøkler_ og oppdater `x-oneuptime-token`-headeren.
 
 ### Metrikker tegnes ikke i diagrammer
 

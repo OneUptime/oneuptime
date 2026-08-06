@@ -694,7 +694,7 @@ Den mest almindelige grund — især efter en geninstallation — er en **forker
    curl -i -H "x-oneuptime-token: <YOUR_API_KEY>" https://oneuptime.com/otlp/v1/validate
    ```
 
-   Hvis den returnerer `401`, er nøglen i din release forkert eller blev tilbagekaldt. Kopiér en aktiv nøgle fra _Project Settings → Telemetry Ingestion Keys_ og redeploy:
+   Hvis den returnerer `401`, er nøglen i din release forkert eller blev tilbagekaldt. Kopiér en aktiv nøgle fra _Project Settings → Telemetri og APM → Indtagelsesnøgler_ og redeploy:
 
    ```bash
    helm upgrade kubernetes-agent oneuptime/kubernetes-agent \

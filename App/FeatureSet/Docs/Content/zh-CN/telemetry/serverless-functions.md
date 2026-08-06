@@ -8,7 +8,7 @@
 
 ## 前置条件
 
-- 一个 **OneUptime 遥测采集令牌（Telemetry Ingestion Token）** —— 从 _Project Settings → Telemetry Ingestion Keys_ 创建一个，并复制其中的 `x-oneuptime-token` 值。
+- 一个 **OneUptime 遥测采集令牌（Telemetry Ingestion Token）** —— 从 _Project Settings → 遥测与 APM → 摄取密钥_ 创建一个，并复制其中的 `x-oneuptime-token` 值。
 - 适合你的函数所用语言的 OpenTelemetry SDK（或自动监测埋点层）。
 
 ## OneUptime 如何识别一个函数

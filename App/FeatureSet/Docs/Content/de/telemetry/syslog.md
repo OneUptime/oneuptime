@@ -6,7 +6,7 @@ Der OpenTelemetry Ingest-Dienst akzeptiert jetzt native Syslog-Payloads. Sie kö
 
 ## Voraussetzungen
 
-- **Telemetrie-Ingestion-Token** – erstellen Sie eines über _Projekteinstellungen → Telemetrie-Ingestion-Schlüssel_ und kopieren Sie den `x-oneuptime-token`-Wert.
+- **Telemetrie-Ingestion-Token** – erstellen Sie eines über _Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel_ und kopieren Sie den `x-oneuptime-token`-Wert.
 - **Syslog-Forwarder** – jedes Tool, das HTTP-POST-Anfragen senden kann (z. B. `curl`, `rsyslog` über `omhttp` oder `syslog-ng` mit dem HTTP-Ziel-Plugin).
 - **Dienstname (optional)** – setzen Sie den `x-oneuptime-service-name`-Header, um eingehende Logs einem bestimmten Telemetrie-Dienst zuzuordnen.
 

@@ -8,7 +8,7 @@ Le macchine virtuali pure (EC2, Compute Engine, Azure VM) rimangono **Host**, e 
 
 ## Prerequisiti
 
-- Un **Token di Ingestione Telemetria OneUptime** — creane uno da _Impostazioni Progetto → Chiavi di Ingestione Telemetria_.
+- Un **Token di Ingestione Telemetria OneUptime** — creane uno da _Impostazioni Progetto → Telemetria e APM → Chiavi di acquisizione_.
 - Un OpenTelemetry Collector o SDK in esecuzione all'interno o insieme ai tuoi carichi di lavoro.
 
 ## Come OneUptime identifica un ambiente

@@ -9,7 +9,7 @@ That default matters. It means a recording almost always exists for the sessions
 ## Prerequisites
 
 - A RUM application — create one from _Resources → Real User Monitoring_, or let one be auto-discovered from your telemetry. See [Real User Monitoring](/docs/rum/index).
-- A **Telemetry Ingestion Token** — _Project Settings → Telemetry Ingestion Keys_.
+- A **Telemetry Ingestion Token** — _Project Settings → Telemetry & APM → Ingestion Keys_.
 - Session Replay is **on by default**. Settings live in two places: per-application policy (masking, consent, sampling, retention) under _Real User Monitoring → your application → Session Replay_, and the project-wide master switch, installation test and targeted capture under _Real User Monitoring → Settings → Session Replay_.
 
 ## Install

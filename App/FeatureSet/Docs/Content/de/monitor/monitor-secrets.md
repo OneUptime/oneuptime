@@ -4,13 +4,13 @@ Sie können Geheimnisse verwenden, um sensible Informationen zu speichern, die S
 
 ### Ein Geheimnis hinzufügen
 
-Um ein Geheimnis hinzuzufügen, gehen Sie bitte zum OneUptime-Dashboard -> Projekteinstellungen -> Monitor-Geheimnisse -> Monitor-Geheimnis erstellen.
+Um ein Geheimnis hinzuzufügen, gehen Sie bitte zum OneUptime-Dashboard -> Monitore -> Einstellungen -> Geheimnisse -> Monitor-Geheimnis erstellen.
 
 ![Geheimnis erstellen](/docs/static/images/CreateMonitorSecret.png)
 
 Sie können auswählen, welche Monitore Zugriff auf das Geheimnis haben. In diesem Fall haben wir ein `ApiKey`-Geheimnis hinzugefügt und Monitore ausgewählt, die Zugriff darauf haben.
 
-**Bitte beachten**: Geheimnisse werden verschlüsselt und sicher gespeichert. Wenn Sie das Geheimnis verlieren, müssen Sie ein neues erstellen. Sie können das Geheimnis nach dem Speichern weder anzeigen noch aktualisieren.
+**Bitte beachten**: Geheimnisse werden verschlüsselt und sicher gespeichert. Der Wert wird nach dem Speichern nie wieder angezeigt — weder in der Tabelle noch im Bearbeitungsformular noch über die API. Wenn Sie den Wert verlieren, müssen Sie ihn erneut aus der Quelle holen und neu eintragen. Verwenden Sie zum Rotieren eines Geheimnisses die Schaltfläche **Update Secret Value** in der Zeile; Sie müssen es nicht löschen und neu anlegen.
 
 ### Ein Geheimnis verwenden
 

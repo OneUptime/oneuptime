@@ -19,7 +19,7 @@ The Network Devices product is made up of:
 
 ## Registering a Network Device
 
-1. Go to **Network Devices** in the OneUptime Dashboard
+1. Go to **Network** -> **Devices** in the OneUptime Dashboard
 2. Click **Create Network Device**
 3. Configure the device as described below
 
@@ -111,7 +111,7 @@ After the first successful poll, OneUptime reads the SNMPv2 system group and (wh
 
 Instead of registering devices one at a time, you can sweep a range of addresses:
 
-1. Go to **Network Devices** -> **Discovery**
+1. Go to **Network** -> **Discovery** -> **Discovery Scans**
 2. Click **Create Discovery Scan**
 3. Configure the scan:
 
@@ -287,7 +287,7 @@ renders as "Gi0/1 on core-switch-01 is down". See [Incident & Alert Templating](
 
 ## Network Topology
 
-Go to **Network Devices** -> **Topology** for a live map of your network, built from LLDP neighbor data collected during interface walks and complemented by CDP on Cisco estates. Managed devices are filled; unmanaged LLDP peers are hollow. Node color reflects device status, and clicking a managed device opens it.
+Go to **Network** -> **Network Map** -> **Topology** for a live map of your network, built from LLDP neighbor data collected during interface walks and complemented by CDP on Cisco estates. Managed devices are filled; unmanaged LLDP peers are hollow. Node color reflects device status, and clicking a managed device opens it.
 
 For the map to populate:
 

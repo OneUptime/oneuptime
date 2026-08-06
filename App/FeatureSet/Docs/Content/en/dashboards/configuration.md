@@ -38,7 +38,7 @@ Dashboards work with your project's role-based access control. The relevant perm
 
 There are matching permissions for dashboard owners and custom domains, so you can grant "manage owners" without granting "edit the dashboard."
 
-Assign these on project roles under **Project Settings → Teams & Roles**.
+Assign these on team permissions under **Products → Teams →** your team **→ Permissions**.
 
 ## Access for public dashboards
 

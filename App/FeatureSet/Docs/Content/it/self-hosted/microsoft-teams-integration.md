@@ -108,7 +108,7 @@ microsoftTeamsApp:
 
 ### Fase 7: Caricare il Manifesto App Teams
 
-1. Accedere alle **Impostazioni** del progetto > **Integrazioni** > **Microsoft Teams**
+1. Accedere alle **Impostazioni** del progetto > **Area di lavoro** > **Microsoft Teams**
 2. Scaricare il manifesto dell'app Teams da lì
 3. Accedere a Microsoft Teams, fare clic su "App" nella barra laterale
 4. In basso, fare clic su "Gestisci le tue app"

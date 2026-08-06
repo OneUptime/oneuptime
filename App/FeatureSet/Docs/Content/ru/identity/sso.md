@@ -16,7 +16,7 @@ OneUptime поддерживает единый вход (SSO) на основе
 1. **Перейдите в настройки проекта**
 
    - Откройте ваш проект OneUptime
-   - Перейдите в **Project Settings** > **Authentication** > **SSO**
+   - Перейдите в **Project Settings** > **Безопасность** > **SSO**
 
 2. **Создайте конфигурацию SSO**
 
@@ -46,7 +46,7 @@ Keycloak — популярное решение с открытым исход�
 ### Шаг 1: Настройка SSO в OneUptime
 
 1. Войдите в панель управления OneUptime
-2. Перейдите в **Project Settings** > **Authentication** > **SSO**
+2. Перейдите в **Project Settings** > **Безопасность** > **SSO**
 3. Нажмите **Create SSO** и заполните следующее:
    - **Name**: Описательное имя (например, `my-project-oneuptime`)
    - **Sign On URL**: `https://<your-keycloak-domain>/auth/realms/<your-realm>/protocol/saml`
@@ -113,7 +113,7 @@ Microsoft Entra ID — облачная служба управления удо
 ### Шаг 1: Настройка SSO в OneUptime
 
 1. Войдите в панель управления OneUptime
-2. Перейдите в **Project Settings** > **Authentication** > **SSO**
+2. Перейдите в **Project Settings** > **Безопасность** > **SSO**
 3. Нажмите **Create SSO** и заполните следующее:
    - **Name**: Описательное имя (например, `Azure AD SAML`)
    - **Sign On URL**: Получите из Entra ID на [шаге 3](#шаг-3-настройка-saml-sso-в-entra-id)
@@ -198,7 +198,7 @@ Okta — широко используемая платформа удостов
 ### Шаг 1: Настройка SSO в OneUptime
 
 1. Войдите в панель управления OneUptime
-2. Перейдите в **Project Settings** > **Authentication** > **SSO**
+2. Перейдите в **Project Settings** > **Безопасность** > **SSO**
 3. Нажмите **Create SSO** и заполните следующее:
    - **Name**: Описательное имя (например, `Okta SAML`)
    - **Sign On URL**: Получите из Okta на [шаге 3](#шаг-3-копирование-метаданных-okta-saml-в-oneuptime)

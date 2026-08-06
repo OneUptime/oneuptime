@@ -34,7 +34,7 @@ Die vollständige Liste der unterstützten Quellen finden Sie [hier](https://doc
 - **Schritt 3: OneUptime-Projekt erstellen** - Sobald Sie das Konto haben, können Sie ein Projekt über das OneUptime-Dashboard erstellen.
 - **Schritt 4: Telemetrie-Ingestion-Token erstellen** - Sobald Sie ein OneUptime-Konto erstellt haben, können Sie ein Telemetrie-Ingestion-Token erstellen.
 
-Nachdem Sie sich bei OneUptime angemeldet und ein Projekt erstellt haben, klicken Sie in der Navigationsleiste auf „Mehr" und dann auf „Projekteinstellungen".
+Nachdem Sie sich bei OneUptime angemeldet und ein Projekt erstellt haben, klicken Sie in der Navigationsleiste auf „Products" und dann auf „Projekteinstellungen".
 
 Klicken Sie auf der Seite Telemetrie-Ingestion-Schlüssel auf „Ingestion-Schlüssel erstellen", um ein Token zu erstellen.
 

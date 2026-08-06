@@ -8,7 +8,7 @@ Raw virtual machines (EC2, Compute Engine, Azure VM) remain **Hosts**, and Kuber
 
 ## Prerequisites
 
-- A **OneUptime Telemetry Ingestion Token** — create one from _Project Settings → Telemetry Ingestion Keys_.
+- A **OneUptime Telemetry Ingestion Token** — create one from _Project Settings → Telemetry & APM → Ingestion Keys_.
 - An OpenTelemetry Collector or SDK running in/alongside your workloads.
 
 ## How OneUptime identifies an environment

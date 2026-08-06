@@ -8,7 +8,7 @@ OneUptime किसी **Serverless Function** को उसी क्षण स
 
 ## पूर्वापेक्षाएं
 
-- एक **OneUptime Telemetry Ingestion Token** — इसे _Project Settings → Telemetry Ingestion Keys_ से बनाएं और `x-oneuptime-token` मान को कॉपी करें।
+- एक **OneUptime Telemetry Ingestion Token** — इसे _Project Settings → टेलीमेट्री और APM → इंजेशन कुंजियाँ_ से बनाएं और `x-oneuptime-token` मान को कॉपी करें।
 - आपके फंक्शन की भाषा के लिए OpenTelemetry SDK (या एक ऑटो-इंस्ट्रूमेंटेशन लेयर)।
 
 ## OneUptime किसी फंक्शन की पहचान कैसे करता है

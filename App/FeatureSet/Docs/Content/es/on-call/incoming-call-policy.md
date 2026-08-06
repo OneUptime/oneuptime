@@ -85,7 +85,7 @@ Dado que estás auto-alojando OneUptime, necesitarás configurar tu propia cuent
 ## Paso 2: Configurar la configuración de llamadas/SMS en OneUptime
 
 1. Inicia sesión en tu panel de OneUptime
-2. Ve a **Configuración del proyecto** > **Llamadas y SMS** > **Configuración personalizada de llamadas/SMS**
+2. Ve a **Configuración del proyecto** > **Notificaciones** > **Ajustes de Notificación**
 3. Haz clic en **Crear configuración personalizada de llamadas/SMS**
 4. Completa los siguientes campos:
    - **Nombre**: Un nombre descriptivo (por ejemplo, "Configuración de Twilio para producción")

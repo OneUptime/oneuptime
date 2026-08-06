@@ -4,13 +4,13 @@
 
 ### Aggiunta di un Segreto
 
-Per aggiungere un segreto, accedere a Dashboard OneUptime -> Impostazioni Progetto -> Segreti Monitor -> Crea Segreto Monitor.
+Per aggiungere un segreto, accedere a Dashboard OneUptime -> Monitor -> Impostazioni -> Segreti -> Crea Segreto Monitor.
 
 ![Crea Segreto](/docs/static/images/CreateMonitorSecret.png)
 
 È possibile selezionare quali monitor hanno accesso al segreto. In questo caso è stato aggiunto il segreto `ApiKey` e sono stati selezionati i monitor che vi possono accedere.
 
-**Nota importante**: I segreti sono crittografati e archiviati in modo sicuro. Se si perde il segreto, sarà necessario crearne uno nuovo. Non è possibile visualizzare o aggiornare il segreto dopo che è stato salvato.
+**Nota importante**: I segreti sono crittografati e archiviati in modo sicuro. Il valore non viene più mostrato dopo il salvataggio: né nella tabella, né nel modulo di modifica, né tramite API. Se perdi il valore, dovrai recuperarlo dalla sua origine e reinserirlo. Per ruotare un segreto usa il pulsante **Update Secret Value** sulla sua riga; non serve eliminarlo e ricrearlo.
 
 ### Utilizzo di un Segreto
 

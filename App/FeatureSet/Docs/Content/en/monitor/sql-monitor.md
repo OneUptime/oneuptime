@@ -111,7 +111,7 @@ For a `COUNT(*)` style query, the count is available both as **Row Count** (whic
 
 So the database password is never stored in plain text on the monitor, create a [Monitor Secret](/docs/monitor/monitor-secrets) and reference it from the Password field:
 
-1. Go to OneUptime Dashboard → Project Settings → Monitor Secrets → Create Monitor Secret.
+1. Go to OneUptime Dashboard → Monitors → Settings → Secrets → Create Monitor Secret.
 2. Create a secret (for example `dbPassword`) and grant this monitor access to it.
 3. In the Password field of the monitor, enter `{{monitorSecrets.dbPassword}}`.
 

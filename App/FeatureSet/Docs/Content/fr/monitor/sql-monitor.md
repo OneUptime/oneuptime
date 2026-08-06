@@ -99,7 +99,7 @@ Pour une requête de type `COUNT(*)`, le décompte est disponible à la fois en 
 
 Pour que le mot de passe de la base de données ne soit jamais stocké en clair sur le moniteur, créez un [Secret de moniteur](/docs/monitor/monitor-secrets) et référencez-le depuis le champ Mot de passe :
 
-1. Accédez au Tableau de bord OneUptime → Paramètres du projet → Secrets de moniteur → Créer un secret de moniteur.
+1. Accédez au Tableau de bord OneUptime → Moniteurs → Paramètres → Secrets → Créer un secret de moniteur.
 2. Créez un secret (par exemple `dbPassword`) et accordez à ce moniteur l'accès à celui-ci.
 3. Dans le champ Mot de passe du moniteur, saisissez `{{monitorSecrets.dbPassword}}`.
 

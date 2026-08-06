@@ -99,7 +99,7 @@ WHERE status = 'CANCELLED'
 
 데이터베이스 비밀번호가 모니터에 평문으로 저장되지 않도록, [모니터 시크릿](/docs/monitor/monitor-secrets)을 생성하고 비밀번호 필드에서 참조하십시오:
 
-1. OneUptime 대시보드 → 프로젝트 설정 → 모니터 시크릿 → 모니터 시크릿 생성으로 이동합니다.
+1. OneUptime 대시보드 → 모니터 → 설정 → 시크릿 → 모니터 시크릿 생성으로 이동합니다.
 2. 시크릿(예: `dbPassword`)을 생성하고 이 모니터에 접근 권한을 부여합니다.
 3. 모니터의 비밀번호 필드에 `{{monitorSecrets.dbPassword}}`를 입력합니다.
 

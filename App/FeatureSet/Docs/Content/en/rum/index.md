@@ -53,7 +53,7 @@ Once a batch is classified as RUM, the application's identity is its **`service.
 
 ## Getting started
 
-1. Create a **Telemetry Ingestion Token** in _Project Settings → Telemetry Ingestion Keys_.
+1. Create a **Telemetry Ingestion Token** in _Project Settings → Telemetry & APM → Ingestion Keys_.
 2. Instrument your app: [Browser Setup](/docs/rum/browser-setup) or [Mobile Setup](/docs/rum/mobile-setup).
 3. Load a page. The application appears under **Resources → Real User Monitoring** on its first batch of telemetry — you do not need to create it by hand.
 4. Optional: emit [Core Web Vitals](/docs/rum/web-vitals), and add [Session Replay](/docs/telemetry/session-replay).

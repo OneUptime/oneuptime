@@ -6,7 +6,7 @@ OpenTelemetry 数据摄取服务现在接受原生 Syslog 负载。您可以将�
 
 ## 前提条件
 
-- **遥测摄取令牌** – 从 _项目设置 → 遥测摄取密钥_ 创建一个，并复制 `x-oneuptime-token` 值。
+- **遥测摄取令牌** – 从 _项目设置 → 遥测与 APM → 摄取密钥_ 创建一个，并复制 `x-oneuptime-token` 值。
 - **Syslog 转发器** – 任何能够发送 HTTP POST 请求的工具（例如 `curl`、通过 `omhttp` 的 `rsyslog`，或使用 HTTP 目标插件的 `syslog-ng`）。
 - **服务名称（可选）** – 设置 `x-oneuptime-service-name` 请求头，将传入日志归类到特定遥测服务下。省略时，OneUptime 回退到 Syslog `APP-NAME`、主机名或 `Syslog`。
 

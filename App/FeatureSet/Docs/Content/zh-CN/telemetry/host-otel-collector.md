@@ -16,7 +16,7 @@
 
 ## 前提条件
 
-- 一个 **OneUptime 遥测接入令牌（Telemetry Ingestion Token）**——从 _Project Settings → Telemetry Ingestion Keys_ 创建一个，并复制 `x-oneuptime-token` 值。
+- 一个 **OneUptime 遥测接入令牌（Telemetry Ingestion Token）**——从 _Project Settings → 遥测与 APM → 摄取密钥_ 创建一个，并复制 `x-oneuptime-token` 值。
 - **OpenTelemetry Collector Contrib** 发行版（`otelcol-contrib`）。默认的 `otelcol` 构建**不**包含诸如 `windowseventlogreceiver`、`journaldreceiver` 或 `hostmetrics` 附加项之类的接收器——请务必使用 `contrib` 发行版。为 Windows **Services** 标签页提供数据的 alpha 阶段 `windowsservicereceiver` 从 **v0.155.0** 起、为 Linux **Systemd Units** 标签页提供数据的 alpha 阶段 `systemdreceiver` 从 **v0.143.0** 起已打包进 `otelcol-contrib` 中，因此请安装较新的发布版；见下文“Windows 服务（指标）”和“Linux 服务（systemd 单元）”。
 - 主机上的 root / 管理员权限，用于将 collector 安装为服务，并（在适用的情况下）读取需要特权的日志源。
 
@@ -602,7 +602,7 @@ sc.exe query "otelcol-contrib"
 1. 在主机上产生一些信号：
    - **Linux / macOS：** `logger "hello from oneuptime"`（写入 syslog / journald）。
    - **Windows：** 从提升权限的提示符下执行 `eventcreate /T INFORMATION /ID 999 /L APPLICATION /SO OneUptimeTest /D "hello from oneuptime"`。
-2. 在 OneUptime 仪表板中，打开 **Telemetry → Services** 并选择你配置的 `service.name`。
+2. 在 OneUptime 仪表板中，打开 **Products → 服务** 并选择你配置的 `service.name`。
 3. 打开 **Metrics**——主机指标（CPU、内存、文件系统等）应在一分钟内出现。
 4. 打开 **Logs**——你的文件日志 / journald 条目 / Windows 事件日志应正在流式传入。有用的可搜索属性包括 `log.file.name`、`systemd.unit`、`winlog.channel`、`winlog.event_id` 和 `winlog.provider.name`。
 5. 如果你启用了 `systemd`（Linux）或 `windows_service`（Windows）接收器，请打开 **Infrastructure → Hosts**，选择该主机，并查看 **Systemd Units** / **Services** 标签页——每一个被抓取的单元都应带着其当前状态列出。
@@ -879,7 +879,7 @@ OpenTelemetry Collector 遵循标准的 `HTTPS_PROXY` / `HTTP_PROXY` / `NO_PROXY
   - **Linux / macOS：** `journalctl -u otelcol-contrib -f`（Linux）或 `tail -f /var/log/otelcol-contrib.err.log`（macOS）。
   - **Windows：** 在 _Event Viewer → Windows Logs → Application_ 下查找来源为 `otelcol-contrib` 的条目。
   - 确认主机能够访问 `https://oneuptime.com/otlp`（或你的自托管端点）：从同一台机器执行 `curl -v https://oneuptime.com/otlp`。
-- **导出器返回 HTTP 401**——接入令牌无效或已被吊销。从 _Project Settings → Telemetry Ingestion Keys_ 生成一个新令牌。
+- **导出器返回 HTTP 401**——接入令牌无效或已被吊销。从 _Project Settings → 遥测与 APM → 摄取密钥_ 生成一个新令牌。
 - **`Security` Windows 事件日志返回拒绝访问（access denied）**——该服务未以足够的权限运行。在 `LocalSystem` 身份下重新创建它（`sc.exe create` 的默认设置），或为服务账户授予 _Manage auditing and security log_ 用户权限。
 - **`journald` 接收器无法启动**——确保 `journalctl` 在 collector 的 `PATH` 中，并且 `/var/log/journal` 存在（如不存在，请运行 `sudo systemd-tmpfiles --create --prefix /var/log/journal`）。
 - **`systemd` 接收器报告 D-Bus 连接错误**——collector 无法访问系统总线。请确认 `/run/dbus/system_bus_socket` 存在，且 collector 所用的用户能够打开它；以该用户身份运行 `systemctl list-units` 是最快的检查方式。并不需要 root。运行在容器内的 collector 除非你把主机的套接字绑定挂载进去，否则根本看不到总线，因此这个接收器更适合原生安装。

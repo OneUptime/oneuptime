@@ -34,7 +34,7 @@ Puedes encontrar la lista completa de fuentes compatibles [aquí](https://docs.f
 - **Paso 3: Crea un proyecto de OneUptime**: Una vez que tengas la cuenta, puedes crear un proyecto desde el panel de OneUptime. Si necesitas ayuda para crear un proyecto o tienes alguna pregunta, comunícate con nosotros en support@oneuptime.com
 - **Paso 4: Crea un token de ingesta de telemetría**: Una vez que hayas creado una cuenta de OneUptime, puedes crear un token de ingesta de telemetría para ingestar registros, métricas y trazas desde tu aplicación.
 
-Después de registrarte en OneUptime y crear un proyecto. Haz clic en "Más" en la barra de navegación y haz clic en "Configuración del proyecto".
+Después de registrarte en OneUptime y crear un proyecto. Haz clic en "Products" en la barra de navegación y haz clic en "Configuración del proyecto".
 
 En la página de Clave de ingesta de telemetría, haz clic en "Crear clave de ingesta" para crear un token.
 

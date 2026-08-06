@@ -20,7 +20,7 @@ Project-SCIM stelt identiteitsproviders in staat teamleden binnen OneUptime-proj
 1. **Navigeer naar Projectinstellingen**
 
    - Ga naar uw OneUptime-project
-   - Navigeer naar **Projectinstellingen** > **Team** > **SCIM**
+   - Navigeer naar **Projectinstellingen** > **Beveiliging** > **SCIM**
 
 2. **SCIM-instellingen configureren**
 
@@ -69,7 +69,7 @@ Statuspagina-SCIM stelt identiteitsproviders in staat abonnees van privé-status
 1. **Navigeer naar Statuspagina-instellingen**
 
    - Ga naar uw OneUptime-statuspagina
-   - Navigeer naar **Statuspagina-instellingen** > **Privégebruikers** > **SCIM**
+   - Navigeer naar **Statuspagina-instellingen** > **Beveiliging** > **SCIM**
 
 2. **SCIM-instellingen configureren**
 
@@ -117,7 +117,7 @@ Microsoft Entra ID biedt enterprise-grade identiteitsbeheer met robuuste SCIM-in
 #### Stap 1: SCIM-configuratie ophalen uit OneUptime
 
 1. Log in op uw OneUptime-dashboard
-2. Navigeer naar **Projectinstellingen** > **Team** > **SCIM**
+2. Navigeer naar **Projectinstellingen** > **Beveiliging** > **SCIM**
 3. Klik op **SCIM-configuratie aanmaken**
 4. Voer een beschrijvende naam in (bijv. "Microsoft Entra ID-inrichting")
 5. Configureer de volgende opties:
@@ -219,7 +219,7 @@ Okta biedt flexibel identiteitsbeheer met uitstekende SCIM-ondersteuning. Volg d
 #### Stap 1: SCIM-configuratie ophalen uit OneUptime
 
 1. Log in op uw OneUptime-dashboard
-2. Navigeer naar **Projectinstellingen** > **Team** > **SCIM**
+2. Navigeer naar **Projectinstellingen** > **Beveiliging** > **SCIM**
 3. Klik op **SCIM-configuratie aanmaken**
 4. Voer een beschrijvende naam in (bijv. "Okta-inrichting")
 5. Configureer de volgende opties:

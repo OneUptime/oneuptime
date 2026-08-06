@@ -44,7 +44,7 @@ With the OneUptime MCP Server, AI assistants can help you:
 ## Getting Your API Key
 
 1. Log in to your OneUptime instance
-2. Navigate to **Settings** → **API Keys**
+2. Navigate to **Project Settings** → **API Keys**
 3. Click **Create API Key**
 4. Provide a name (e.g., "MCP Server")
 5. Select the appropriate permissions for your use case

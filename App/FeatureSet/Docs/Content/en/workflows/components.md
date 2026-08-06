@@ -65,7 +65,7 @@ Post a message to a Slack channel.
 - **Channel** — the channel name. The bot must already be in that channel.
 - **Message** — the text to send. Supports Slack formatting.
 
-Connect Slack to your project first under **Project Settings → Workspace Connections → Slack**. See [Slack Workspace Connection](/docs/workspace-connections/slack).
+Connect Slack to your project first under **Project Settings → Workspace → Slack**. See [Slack Workspace Connection](/docs/workspace-connections/slack).
 
 ## Microsoft Teams
 

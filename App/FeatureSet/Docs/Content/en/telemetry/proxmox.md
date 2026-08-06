@@ -10,7 +10,7 @@ This page is the **installation guide**. For configuring Proxmox monitors and al
 
 - Docker Engine 20.10+ with the Docker Compose v2 plugin, on any machine that can reach your Proxmox VE API (port 8006)
 - A Proxmox VE API token with the **PVEAuditor** role (read-only)
-- A **OneUptime Telemetry Ingestion Token** — create one from _Project Settings → Telemetry Ingestion Keys_ and copy the value
+- A **OneUptime Telemetry Ingestion Token** — create one from _Project Settings → Telemetry & APM → Ingestion Keys_ and copy the value
 
 ### Create the Proxmox API Token
 
@@ -78,7 +78,7 @@ PVE_EXPORTER_URL=your-exporter-host:9221
 | Variable                            | Required              | Description                                                                                                                                                                                                   |
 | ----------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ONEUPTIME_URL`                     | Yes                   | Your OneUptime instance URL (for example `https://oneuptime.com` or your self-hosted host)                                                                                                                    |
-| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Yes                   | Telemetry ingestion token from _Project Settings → Telemetry Ingestion Keys_                                                                                                                                  |
+| `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Yes                   | Telemetry ingestion token from _Project Settings → Telemetry & APM → Ingestion Keys_                                                                                                                                  |
 | `PROXMOX_CLUSTER_NAME`              | Yes                   | Cluster identifier shown in OneUptime, stamped on every metric as the `proxmox.cluster.name` resource attribute. Keep it stable — changing it later registers a second cluster. Defaults to `proxmox-cluster` |
 | `PVE_HOST`                          | Yes                   | Proxmox VE API host (any node of the cluster) the exporter queries, e.g. `192.168.1.10`                                                                                                                       |
 | `PVE_EXPORTER_URL`                  | No                    | Address (`host:port`, no scheme) of prometheus-pve-exporter. Defaults to the bundled exporter (`pve-exporter:9221`)                                                                                           |

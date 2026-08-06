@@ -4,7 +4,7 @@
 
 Once you have created a OneUptime account, you can create a telemetry ingestion token to ingest logs, metrics and traces from your application.
 
-After you sign up to OneUptime and create a project. Click on "More" in the Navigation bar and click on "Project Settings".
+After you sign up to OneUptime and create a project. Click on "Products" in the navigation bar and click on "Project Settings".
 
 On the Telemetry Ingestion Key page, click on "Create Ingestion Key" to create a token.
 

@@ -8,7 +8,7 @@ OneUptime प्रबंधित क्लाउड कंप्यूट क�
 
 ## पूर्वापेक्षाएँ
 
-- एक **OneUptime Telemetry Ingestion Token** — इसे _Project Settings → Telemetry Ingestion Keys_ से बनाएँ।
+- एक **OneUptime Telemetry Ingestion Token** — इसे _Project Settings → टेलीमेट्री और APM → इंजेशन कुंजियाँ_ से बनाएँ।
 - आपके workloads में/के साथ चल रहा एक OpenTelemetry Collector या SDK।
 
 ## OneUptime किसी environment की पहचान कैसे करता है

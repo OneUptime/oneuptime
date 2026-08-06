@@ -85,7 +85,7 @@ sequenceDiagram
 ## 步驟 2：在 OneUptime 中設定 Call/SMS Config
 
 1. 登入您的 OneUptime 儀表板
-2. 前往 **Project Settings** > **Call & SMS** > **Custom Call/SMS Config**
+2. 前往 **Project Settings** > **通知** > **通知設定**
 3. 點選 **Create Custom Call/SMS Config**
 4. 填寫以下欄位：
    - **Name**：易於辨識的名稱（例如「Production Twilio Config」）

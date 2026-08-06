@@ -8,7 +8,7 @@ Rena virtuella maskiner (EC2, Compute Engine, Azure VM) förblir **Värdar**, oc
 
 ## Förutsättningar
 
-- En **OneUptime-token för telemetriinmatning** — skapa en från _Project Settings → Telemetry Ingestion Keys_.
+- En **OneUptime-token för telemetriinmatning** — skapa en från _Project Settings → Telemetri och APM → Intagningsnycklar_.
 - En OpenTelemetry Collector eller SDK som körs i eller bredvid dina arbetsbelastningar.
 
 ## Hur OneUptime identifierar en miljö

@@ -6,7 +6,7 @@ El servicio de Ingesta OpenTelemetry ahora acepta cargas útiles nativas de Sysl
 
 ## Prerrequisitos
 
-- **Token de ingesta de telemetría**: crea uno desde _Configuración del proyecto → Claves de ingesta de telemetría_ y copia el valor de `x-oneuptime-token`.
+- **Token de ingesta de telemetría**: crea uno desde _Configuración del proyecto → Telemetría y APM → Claves de Ingesta_ y copia el valor de `x-oneuptime-token`.
 - **Reenviador Syslog**: cualquier herramienta capaz de enviar solicitudes HTTP POST (por ejemplo, `curl`, `rsyslog` a través de `omhttp`, o `syslog-ng` con el complemento de destino HTTP).
 - **Nombre del servicio (opcional)**: establece el encabezado `x-oneuptime-service-name` para agrupar los registros entrantes en un servicio de telemetría específico. Cuando se omite, OneUptime recurre al `APP-NAME` de syslog, al nombre de host o a `Syslog`.
 

@@ -108,7 +108,7 @@ microsoftTeamsApp:
 
 ### Trin 7: Upload Teams App-manifest
 
-1. Gå til projekt-**Indstillinger** > **Integrationer** > **Microsoft Teams**
+1. Gå til projekt-**Indstillinger** > **Arbejdsområde** > **Microsoft Teams**
 2. Download Teams app-manifestet derfra
 3. Gå til Microsoft Teams, klik på "Apps" i sidebjælken
 4. Klik på "Administrer dine apps" nederst

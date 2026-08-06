@@ -4,13 +4,13 @@ Puedes usar secretos para almacenar información sensible que deseas usar en tus
 
 ### Agregar un secreto
 
-Para agregar un secreto, ve al Panel de OneUptime → Configuración del proyecto → Secretos de monitor → Crear secreto de monitor.
+Para agregar un secreto, ve al Panel de OneUptime → Monitores → Ajustes → Secretos → Crear secreto de monitor.
 
 ![Crear secreto](/docs/static/images/CreateMonitorSecret.png)
 
 Puedes seleccionar qué monitores tienen acceso al secreto. En este caso agregamos el secreto `ApiKey` y seleccionamos los monitores que tendrán acceso a él.
 
-**Ten en cuenta**: Los secretos están cifrados y almacenados de forma segura. Si pierdes el secreto, deberás crear uno nuevo. No puedes ver ni actualizar el secreto después de guardarlo.
+**Ten en cuenta**: Los secretos están cifrados y almacenados de forma segura. El valor nunca se vuelve a mostrar después de guardarlo: ni en la tabla, ni en el formulario de edición, ni a través de la API. Si pierdes el valor, tendrás que obtenerlo de su origen y volver a introducirlo. Para rotar un secreto, usa el botón **Update Secret Value** de su fila; no hace falta eliminarlo y volver a crearlo.
 
 ### Usar un secreto
 

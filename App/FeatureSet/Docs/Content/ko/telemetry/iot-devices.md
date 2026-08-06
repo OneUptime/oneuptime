@@ -15,7 +15,7 @@ OneUptime은 소수의 `iot_*` 메트릭을 수집하여 IoT 장치 플릿 — �
 
 - OneUptime으로 OTLP/HTTP를 전송할 수 있는 장치, 게이트웨이 또는 collector
 - 장치/게이트웨이에서 OneUptime 인스턴스로의 네트워크 도달성
-- **OneUptime 텔레메트리 수집 토큰** — _Project Settings → Telemetry Ingestion Keys_ 에서 하나 생성하고 `x-oneuptime-token` 값을 복사하세요
+- **OneUptime 텔레메트리 수집 토큰** — _Project Settings → 텔레메트리 및 APM → 수집 키_ 에서 하나 생성하고 `x-oneuptime-token` 값을 복사하세요
 
 ## OneUptime이 IoT를 모델링하는 방식
 
@@ -232,7 +232,7 @@ OneUptime은 다음 `iot_*` 메트릭 이름을 인식합니다. 각 데이터�
 
 ### 익스포터에서 HTTP 401 / 403 발생
 
-수집 토큰이 유효하지 않거나, 취소되었거나, 누락된 것입니다. _Project Settings → Telemetry Ingestion Keys_ 에서 새 토큰을 생성하고 `x-oneuptime-token` 헤더를 업데이트하세요.
+수집 토큰이 유효하지 않거나, 취소되었거나, 누락된 것입니다. _Project Settings → 텔레메트리 및 APM → 수집 키_ 에서 새 토큰을 생성하고 `x-oneuptime-token` 헤더를 업데이트하세요.
 
 ### 메트릭이 차트에 표시되지 않음
 

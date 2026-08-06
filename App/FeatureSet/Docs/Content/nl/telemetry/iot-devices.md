@@ -10,7 +10,7 @@ Er is geen agent die je aan de apparaatzijde hoeft te installeren — alles wat 
 
 - Een apparaat, gateway of collector die OTLP/HTTP naar OneUptime kan sturen
 - Netwerkbereikbaarheid van het apparaat/de gateway naar je OneUptime-instantie
-- Een **OneUptime Telemetry Ingestion Token** — maak er een aan via _Project Settings → Telemetry Ingestion Keys_ en kopieer de `x-oneuptime-token`-waarde
+- Een **OneUptime Telemetry Ingestion Token** — maak er een aan via _Project Settings → Telemetrie & APM → Ingestiesleutels_ en kopieer de `x-oneuptime-token`-waarde
 
 ## Hoe OneUptime IoT modelleert
 
@@ -230,7 +230,7 @@ OneUptime herkent de volgende `iot_*`-metricnamen. Elk datapunt moet het `device
 
 ### HTTP 401 / 403 van de exporter
 
-Het ingestietoken is ongeldig, ingetrokken of ontbreekt. Genereer een nieuw token via _Project Settings → Telemetry Ingestion Keys_ en werk de `x-oneuptime-token`-header bij.
+Het ingestietoken is ongeldig, ingetrokken of ontbreekt. Genereer een nieuw token via _Project Settings → Telemetrie & APM → Ingestiesleutels_ en werk de `x-oneuptime-token`-header bij.
 
 ### Metrics worden niet in grafieken weergegeven
 

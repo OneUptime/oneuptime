@@ -34,7 +34,7 @@ FluentBit 支援數百種資料來源，您可以將來自任何這些來源的�
 - **步驟 3：建立 OneUptime 專案** - 擁有帳戶後，您可以從 OneUptime 儀表板建立專案。如果您在建立專案時需要任何協助或有任何問題，請透過 support@oneuptime.com 與我們聯絡
 - **步驟 4：建立遙測擷取權杖** - 在您建立 OneUptime 帳戶後，您可以建立遙測擷取權杖，以從您的應用程式擷取記錄、指標與追蹤。
 
-在您註冊 OneUptime 並建立專案後。點按導覽列中的「More」，然後點按「Project Settings」。
+在您註冊 OneUptime 並建立專案後。點按導覽列中的「Products」，然後點按「Project Settings」。
 
 在 Telemetry Ingestion Key 頁面上，點按「Create Ingestion Key」以建立權杖。
 

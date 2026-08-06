@@ -89,7 +89,7 @@ microsoftTeamsApp:
 
 ### Schritt 7: Teams-App-Manifest hochladen
 
-1. Gehen Sie zu Projekteinstellungen > **Integrationen** > **Microsoft Teams**
+1. Gehen Sie zu Projekteinstellungen > **Arbeitsbereich** > **Microsoft Teams**
 2. Laden Sie das Teams-App-Manifest von dort herunter
 3. Gehen Sie zu Microsoft Teams, klicken Sie auf „Apps" in der Seitenleiste
 4. Klicken Sie am unteren Rand auf „Ihre Apps verwalten"

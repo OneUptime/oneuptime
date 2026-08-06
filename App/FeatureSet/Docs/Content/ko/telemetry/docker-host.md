@@ -10,7 +10,7 @@ OneUptime Docker Agent는 튜닝된 OpenTelemetry Collector 구성과 함께 제
 
 - Docker Engine 20.10+
 - 호스트의 `/var/run/docker.sock`에 대한 접근 권한
-- **OneUptime Telemetry Ingestion Token** — *Project Settings → Telemetry Ingestion Keys*에서 생성하고 값을 복사하세요
+- **OneUptime Telemetry Ingestion Token** — *Project Settings → 텔레메트리 및 APM → 수집 키*에서 생성하고 값을 복사하세요
 
 ## 빠른 시작 (단일 명령)
 
@@ -67,7 +67,7 @@ docker compose up -d
 | 변수                      | 필수   | 설명                                                                                                                |
 | ------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------- |
 | `ONEUPTIME_URL`           | 예     | OneUptime 인스턴스 URL (예: `https://oneuptime.com` 또는 자체 호스팅 호스트)                                        |
-| `ONEUPTIME_SERVICE_TOKEN` | 예     | *Project Settings → Telemetry Ingestion Keys*에서 발급한 텔레메트리 수집 토큰                                       |
+| `ONEUPTIME_SERVICE_TOKEN` | 예     | *Project Settings → 텔레메트리 및 APM → 수집 키*에서 발급한 텔레메트리 수집 토큰                                       |
 | `DOCKER_HOST_NAME`        | 아니오 | 이 호스트의 친숙한 이름. 기본값은 `docker-host`입니다. 호스트별로 안정적인 값으로 설정하세요 (예: `prod-docker-01`) |
 
 ## 설치 확인

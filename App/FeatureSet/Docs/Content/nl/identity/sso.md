@@ -16,7 +16,7 @@ SSO-integratie biedt de volgende voordelen:
 1. **Navigeer naar Projectinstellingen**
 
    - Ga naar uw OneUptime-project
-   - Navigeer naar **Projectinstellingen** > **Authenticatie** > **SSO**
+   - Navigeer naar **Projectinstellingen** > **Beveiliging** > **SSO**
 
 2. **SSO-configuratie aanmaken**
 
@@ -46,7 +46,7 @@ Keycloak is een populaire open-source oplossing voor identiteits- en toegangsbeh
 ### Stap 1: OneUptime SSO configureren
 
 1. Log in op uw OneUptime-dashboard
-2. Navigeer naar **Projectinstellingen** > **Authenticatie** > **SSO**
+2. Navigeer naar **Projectinstellingen** > **Beveiliging** > **SSO**
 3. Klik op **SSO aanmaken** en vul het volgende in:
    - **Naam**: Een beschrijvende naam (bijv. `my-project-oneuptime`)
    - **Sign On URL**: `https://<your-keycloak-domain>/auth/realms/<your-realm>/protocol/saml`
@@ -113,7 +113,7 @@ Microsoft Entra ID is de cloudgebaseerde identiteits- en toegangsbeheerservice v
 ### Stap 1: OneUptime SSO configureren
 
 1. Log in op uw OneUptime-dashboard
-2. Navigeer naar **Projectinstellingen** > **Authenticatie** > **SSO**
+2. Navigeer naar **Projectinstellingen** > **Beveiliging** > **SSO**
 3. Klik op **SSO aanmaken** en vul het volgende in:
    - **Naam**: Een beschrijvende naam (bijv. `Azure AD SAML`)
    - **Sign On URL**: U ontvangt dit van Entra ID in [Stap 3](#stap-3-saml-sso-configureren-in-entra-id)
@@ -198,7 +198,7 @@ Okta is een veelgebruikt identiteitsplatform dat robuuste SAML SSO-mogelijkheden
 ### Stap 1: OneUptime SSO configureren
 
 1. Log in op uw OneUptime-dashboard
-2. Navigeer naar **Projectinstellingen** > **Authenticatie** > **SSO**
+2. Navigeer naar **Projectinstellingen** > **Beveiliging** > **SSO**
 3. Klik op **SSO aanmaken** en vul het volgende in:
    - **Naam**: Een beschrijvende naam (bijv. `Okta SAML`)
    - **Sign On URL**: U ontvangt dit van Okta in [Stap 3](#stap-3-okta-saml-metagegevens-kopiëren-naar-oneuptime)

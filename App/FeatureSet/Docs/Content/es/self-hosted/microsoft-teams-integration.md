@@ -108,7 +108,7 @@ microsoftTeamsApp:
 
 ### Paso 7: Cargar el manifiesto de la aplicación de Teams
 
-1. Ve a **Configuración** del proyecto > **Integraciones** > **Microsoft Teams**
+1. Ve a **Configuración** del proyecto > **Espacio de trabajo** > **Microsoft Teams**
 2. Descarga el manifiesto de la aplicación de Teams desde allí
 3. Ve a Microsoft Teams, haz clic en "Aplicaciones" en la barra lateral
 4. En la parte inferior, haz clic en "Administrar tus aplicaciones"

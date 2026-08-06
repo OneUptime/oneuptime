@@ -108,7 +108,7 @@ microsoftTeamsApp:
 
 ### 7단계: Teams 앱 매니페스트 업로드
 
-1. 프로젝트 **설정** > **통합** > **Microsoft Teams**로 이동합니다
+1. 프로젝트 **설정** > **워크스페이스** > **Microsoft Teams**로 이동합니다
 2. 거기에서 Teams 앱 매니페스트를 다운로드합니다
 3. Microsoft Teams로 이동하여 사이드바에서 "앱"을 클릭합니다
 4. 하단에서 "앱 관리"를 클릭합니다

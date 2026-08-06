@@ -38,7 +38,7 @@ Le dashboard funzionano con il controllo accessi basato sui ruoli del tuo proget
 
 Esistono permessi corrispondenti per i proprietari della dashboard e i domini personalizzati, cosi puoi concedere "gestire i proprietari" senza concedere "modificare la dashboard."
 
-Assegnali sui ruoli del progetto sotto **Project Settings → Teams & Roles**.
+Assegnali sui ruoli del progetto sotto **Products → Team → Autorizzazioni**.
 
 ## Accesso per dashboard pubbliche
 

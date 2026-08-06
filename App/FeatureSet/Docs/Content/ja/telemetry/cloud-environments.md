@@ -8,7 +8,7 @@ OneUptime は、マネージドなクラウドコンピュートを **クラウ�
 
 ## 前提条件
 
-- **OneUptime Telemetry Ingestion Token** — _Project Settings → Telemetry Ingestion Keys_ から作成します。
+- **OneUptime Telemetry Ingestion Token** — _Project Settings → テレメトリと APM → 取り込みキー_ から作成します。
 - ワークロード内またはワークロードと併せて動作する OpenTelemetry Collector または SDK。
 
 ## OneUptime が環境を識別する仕組み

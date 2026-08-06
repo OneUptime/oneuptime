@@ -8,7 +8,7 @@ Dies funktioniert für AWS Lambda, Google Cloud Functions, Azure Functions, Clou
 
 ## Voraussetzungen
 
-- Ein **OneUptime Telemetry Ingestion Token** — erstellen Sie eines unter _Project Settings → Telemetry Ingestion Keys_ und kopieren Sie den Wert von `x-oneuptime-token`.
+- Ein **OneUptime Telemetry Ingestion Token** — erstellen Sie eines unter _Project Settings → Telemetrie & APM → Ingestion-Schlüssel_ und kopieren Sie den Wert von `x-oneuptime-token`.
 - Das OpenTelemetry SDK (oder eine Auto-Instrumentierungs-Schicht) für die Sprache Ihrer Funktion.
 
 ## Wie OneUptime eine Funktion identifiziert

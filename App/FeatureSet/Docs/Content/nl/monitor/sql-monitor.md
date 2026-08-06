@@ -99,7 +99,7 @@ Voor een query in `COUNT(*)`-stijl is de telling beschikbaar zowel als **Aantal 
 
 Zodat het databasewachtwoord nooit in platte tekst op de monitor wordt opgeslagen, maakt u een [Monitor Secret](/docs/monitor/monitor-secrets) aan en verwijst u ernaar vanuit het veld Wachtwoord:
 
-1. Ga naar OneUptime Dashboard → Projectinstellingen → Monitor Secrets → Monitor Secret aanmaken.
+1. Ga naar OneUptime Dashboard → Monitoren → Instellingen → Geheimen → Monitor Secret aanmaken.
 2. Maak een secret aan (bijvoorbeeld `dbPassword`) en verleen deze monitor er toegang toe.
 3. Voer in het veld Wachtwoord van de monitor `{{monitorSecrets.dbPassword}}` in.
 

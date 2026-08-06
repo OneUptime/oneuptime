@@ -694,7 +694,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
    curl -i -H "x-oneuptime-token: <YOUR_API_KEY>" https://oneuptime.com/otlp/v1/validate
    ```
 
-   `401` が返される場合、リリース内のキーが誤っているか失効しています。_Project Settings → Telemetry Ingestion Keys_ から有効なキーをコピーして再デプロイしてください。
+   `401` が返される場合、リリース内のキーが誤っているか失効しています。_Project Settings → テレメトリと APM → 取り込みキー_ から有効なキーをコピーして再デプロイしてください。
 
    ```bash
    helm upgrade kubernetes-agent oneuptime/kubernetes-agent \

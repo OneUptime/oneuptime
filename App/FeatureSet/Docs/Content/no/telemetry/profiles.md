@@ -23,7 +23,7 @@ OneUptime støtter følgende profiltyper:
 
 ### Trinn 1 – Opprett et telemetriinnhentingstoken
 
-Etter at du har registrert deg for OneUptime og opprettet et prosjekt, klikker du på "More" i navigasjonslinjen og klikker på "Project Settings".
+Etter at du har registrert deg for OneUptime og opprettet et prosjekt, klikker du på "Products" i navigasjonslinjen og klikker på "Project Settings".
 
 På siden for Telemetry Ingestion Key, klikk på "Create Ingestion Key" for å opprette et token.
 
@@ -177,7 +177,7 @@ Filtrer profiler etter type (cpu, wall, alloc_objects, alloc_space, goroutine, c
 
 Oppbevaring av profildata konfigureres per telemetritjeneste i OneUptime-prosjektinnstillingene. Standard oppbevaringsperiode er 15 dager. Data slettes automatisk etter at oppbevaringsperioden utløper.
 
-For å endre oppbevaringsperioden for en tjeneste, naviger til **Telemetry > Services > [Din tjeneste] > Settings** og oppdater dataoppberingsverdien.
+For å endre oppbevaringsperioden for en tjeneste, naviger til **Products > Tjenester > [Din tjeneste] > Settings** og oppdater dataoppberingsverdien.
 
 ## Trenger du hjelp?
 

@@ -22,7 +22,7 @@ return {
 
 #### Tilføjelse af en hemmelighed
 
-For at tilføje en hemmelighed skal du gå til OneUptime Dashboard -> Projektindstillinger -> Monitor Secrets -> Opret Monitor Secret.
+For at tilføje en hemmelighed skal du gå til OneUptime Dashboard -> Overvågninger -> Indstillinger -> Hemmeligheder -> Opret Monitor Secret.
 
 ![Opret hemmelighed](/docs/static/images/CreateMonitorSecret.png)
 

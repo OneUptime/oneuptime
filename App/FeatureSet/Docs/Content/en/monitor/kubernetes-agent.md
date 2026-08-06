@@ -132,7 +132,7 @@ You can also disable log collection entirely with `--set logs.enabled=false` and
 
 The chart ships a DaemonSet running [OpenTelemetry eBPF Instrumentation (OBI)](https://opentelemetry.io/docs/zero-code/obi/) on every node. OBI loads eBPF programs into the Linux kernel and watches socket-level traffic to reconstruct HTTP/HTTPS, gRPC, and SQL/Redis calls from every pod on the node — no code changes, no SDK, no sidecar. Captured traffic is exported as OTLP traces and request/latency metrics directly to OneUptime.
 
-After installing, your services start appearing under **Telemetry → Traces** and the service map within a minute or two, with `k8s.cluster.name` set to your `clusterName` so you can filter by cluster.
+After installing, your services start appearing under **Products → Traces** and the service map within a minute or two, with `k8s.cluster.name` set to your `clusterName` so you can filter by cluster.
 
 ### When to turn it off
 
@@ -250,7 +250,7 @@ kubectl logs -n oneuptime-kubernetes-agent -l component=ebpf-instrument --tail=2
 
 ## Continuous CPU profiling (off by default)
 
-A separate DaemonSet runs the [OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) — packaged as the `otel/opentelemetry-collector-ebpf-profiler` image. It samples on-CPU stacks at 19Hz across every supported runtime (Go, Java, .NET, Python, Ruby, Node.js, PHP, Perl, C/C++, Rust) and ships OTLP profiles to OneUptime, where they appear under **Telemetry → Performance Profiles** and as flame graphs linked from individual trace spans.
+A separate DaemonSet runs the [OpenTelemetry eBPF Profiler](https://github.com/open-telemetry/opentelemetry-ebpf-profiler) — packaged as the `otel/opentelemetry-collector-ebpf-profiler` image. It samples on-CPU stacks at 19Hz across every supported runtime (Go, Java, .NET, Python, Ruby, Node.js, PHP, Perl, C/C++, Rust) and ships OTLP profiles to OneUptime, where they appear under **Products → Performance Profiles** and as flame graphs linked from individual trace spans.
 
 Profiling is **off by default** — it's heavier than the OBI auto-instrumentation (more CPU per node, larger memory footprint) and not every cluster wants always-on flame graphs. Enable it when you want richer telemetry: `--set profiling.enabled=true`.
 

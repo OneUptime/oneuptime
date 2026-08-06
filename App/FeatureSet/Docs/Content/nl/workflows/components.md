@@ -37,7 +37,7 @@ Post een bericht in een Slack-kanaal.
 - **Channel** — de kanaalnaam. De bot moet al lid zijn van dat kanaal.
 - **Message** — de te versturen tekst. Ondersteunt Slack-opmaak.
 
-Koppel Slack eerst aan je project onder **Project Settings → Workspace Connections → Slack**. Zie [Slack Workspace Connection](/docs/workspace-connections/slack).
+Koppel Slack eerst aan je project onder **Project Settings → Werkruimte → Slack**. Zie [Slack Workspace Connection](/docs/workspace-connections/slack).
 
 ## Microsoft Teams
 

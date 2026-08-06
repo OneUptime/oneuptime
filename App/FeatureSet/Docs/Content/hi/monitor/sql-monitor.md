@@ -99,7 +99,7 @@ WHERE status = 'CANCELLED'
 
 ताकि database password कभी monitor पर plain text में store न हो, एक [Monitor Secret](/docs/monitor/monitor-secrets) बनाएँ और Password field से इसका reference दें:
 
-1. OneUptime Dashboard → Project Settings → Monitor Secrets → Create Monitor Secret पर जाएँ।
+1. OneUptime Dashboard → मॉनिटर → सेटिंग्स → सीक्रेट → Create Monitor Secret पर जाएँ।
 2. एक secret बनाएँ (उदाहरण के लिए `dbPassword`) और इस monitor को इस तक पहुँच प्रदान करें।
 3. monitor के Password field में `{{monitorSecrets.dbPassword}}` दर्ज करें।
 
