@@ -11,6 +11,7 @@ import IncidentService from "../../../Server/Services/IncidentService";
 import KubernetesResourceService from "../../../Server/Services/KubernetesResourceService";
 import LogService from "../../../Server/Services/LogService";
 import MonitorService from "../../../Server/Services/MonitorService";
+import NetworkSiteService from "../../../Server/Services/NetworkSiteService";
 import PodmanHostService from "../../../Server/Services/PodmanHostService";
 import PodmanResourceService from "../../../Server/Services/PodmanResourceService";
 import ProxmoxResourceService from "../../../Server/Services/ProxmoxResourceService";
@@ -140,6 +141,30 @@ const RESOURCE_CASES: Array<ResourceCase> = [
     selectColumn: "name",
     nonSelectColumn: "monitorSteps",
     selectKeys: ["_id", "name", "monitorType", "currentMonitorStatus"],
+  },
+  {
+    /*
+     * The Network Map draws a FLAT set of pins, so the hierarchy columns
+     * (parentSiteId, materializedPath, depth) are deliberately outside both
+     * the allowlist and the select — structure an anonymous viewer would be
+     * able to walk but the map never shows them.
+     */
+    resourceType: "network-site",
+    componentType: DashboardComponentType.NetworkMap,
+    service: NetworkSiteService,
+    kind: null,
+    allowedQueryKey: "networkSiteTypeId",
+    forbiddenQueryKey: "parentSiteId",
+    selectColumn: "name",
+    nonSelectColumn: "address",
+    selectKeys: [
+      "_id",
+      "name",
+      "networkSiteType",
+      "latitude",
+      "longitude",
+      "currentMonitorStatus",
+    ],
   },
   {
     resourceType: "host",
@@ -465,6 +490,7 @@ const ALL_SERVICES: Array<ListService> = [
   IncidentService,
   AlertService,
   MonitorService,
+  NetworkSiteService,
   HostService,
   KubernetesResourceService,
   DockerHostService,
