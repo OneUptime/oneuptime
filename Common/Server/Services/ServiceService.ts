@@ -13,6 +13,7 @@ import Model from "../../Models/DatabaseModels/Service";
 import Label from "../../Models/DatabaseModels/Label";
 import Project from "../../Models/DatabaseModels/Project";
 import GlobalCache from "../Infrastructure/GlobalCache";
+import SingleFlight from "../Utils/SingleFlight";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import crypto from "crypto";
@@ -21,6 +22,20 @@ const DEFAULT_TELEMETRY_RETENTION_IN_DAYS: number = 15;
 
 const LAST_SEEN_CACHE_NAMESPACE: string = "service-last-seen";
 const LAST_SEEN_THROTTLE_SECONDS: number = 60;
+
+/*
+ * Enrichment (the descriptive, collector-supplied columns) is gated
+ * separately from liveness — see the long note on updateLastSeen. The
+ * fingerprint key detects a genuine change; the write-window key bounds how
+ * often a service whose producers permanently disagree can act on one.
+ */
+const METADATA_FINGERPRINT_CACHE_NAMESPACE: string =
+  "service-metadata-fingerprint";
+const METADATA_FINGERPRINT_TTL_SECONDS: number = 60 * 60;
+
+const METADATA_WRITE_WINDOW_CACHE_NAMESPACE: string =
+  "service-metadata-write-window";
+const METADATA_WRITE_THROTTLE_SECONDS: number = 5 * 60;
 
 const LABELS_APPLIED_CACHE_NAMESPACE: string = "service-labels-applied";
 const LABELS_APPLIED_CACHE_TTL_SECONDS: number = 60;
@@ -119,10 +134,53 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * Refresh `lastSeenAt` for a service. Throttled per-service so the
-   * steady-state telemetry firehose (every metric/log/trace batch
-   * re-resolves the same serviceId) costs one in-memory cache lookup
-   * per batch instead of a DB write.
+   * Refresh `lastSeenAt` (and, occasionally, the descriptive columns) for a
+   * service. This is the single hottest UPDATE in the system: every
+   * metric/log/trace/profile batch re-resolves the same serviceId, and every
+   * OTLP resource inside a batch does it again.
+   *
+   * It is also the write that took production down, so the throttling here is
+   * deliberate in a way worth reading before changing.
+   *
+   * WHAT WENT WRONG. The throttle used to key on the serviceId but STORE a
+   * fingerprint of the metadata, and skip only when the stored fingerprint
+   * matched. That works when one producer owns a row. It collapses when two
+   * producers of the SAME row disagree, because `Service` is unique on
+   * (projectId, name) alone: the same service.name running in dev and prod
+   * inside one project is ONE row with two permanently disagreeing
+   * fingerprints. A writes fp_A, B reads fp_A, sees a mismatch, writes fp_B, A
+   * reads fp_B, sees a mismatch... forever. The same holds for active-active
+   * deployments differing in cloud.region or cloud.account.id, and transiently
+   * for every rolling deploy (service.version). For those rows the throttle
+   * admitted not one write per minute but one write per BATCH — and with the
+   * autoscaler at 100 pods (~25K concurrent jobs) that was thousands of
+   * simultaneous UPDATEs onto ~2,300 rows. Postgres queues row-lock waiters
+   * strictly, so they did not collide and retry, they lined up: 1,017 active
+   * connections, 892 parked on locks, the tail waiting 3.7 hours. The database
+   * was never short of capacity.
+   *
+   * The shape below separates the two things that were tangled together:
+   *
+   *   LIVENESS (`lastSeenAt`) is gated on key PRESENCE, never on metadata. One
+   *   heartbeat per service per window, full stop — no payload can bust it, so
+   *   disagreeing producers cannot flap it.
+   *
+   *   ENRICHMENT (the descriptive columns) is gated on TWO keys: a fingerprint
+   *   claim so a genuinely changed attribute still lands promptly, plus a
+   *   presence-only rate limiter so a permanently-flapping service costs one
+   *   enrichment write per rate-limit window instead of one per batch. The
+   *   fingerprint key alone does not fix flapping — a longer TTL just makes
+   *   each flap more expensive.
+   *
+   * Both claims are ATOMIC (SET NX / compare-and-claim in one round trip).
+   * The old read-then-write was check-then-act, and at this concurrency the
+   * losers of that race do not politely retry — they all proceed.
+   *
+   * Underneath both, the write itself is non-blocking (SKIP LOCKED), so a
+   * convoy cannot form even if every gate above fails open at once — which is
+   * exactly what a Redis outage does. That layering is what makes fail-open
+   * affordable here, and fail-open is required: a suppressed heartbeat strands
+   * a healthy service as "disconnected" while its telemetry keeps arriving.
    */
   @CaptureSpan()
   public async updateLastSeen(
@@ -140,90 +198,258 @@ export class Service extends DatabaseService<Model> {
       cloudAccountId?: string | undefined;
     },
   ): Promise<void> {
-    /*
-     * Throttle keyed on a fingerprint of the metadata so the steady-state
-     * firehose (the same serviceId re-resolved every batch) costs one
-     * in-memory cache lookup, but a changed attribute (e.g. a new
-     * service.version after a deploy) busts the cache and writes
-     * immediately. With no extras the fingerprint is constant, preserving
-     * the original "refresh lastSeenAt at most once per window" behaviour.
-     */
     const cacheKey: string = serviceId.toString();
-    const fingerprint: string = this.fingerprintLastSeenExtras(extra);
-    const cached: string | null = await GlobalCache.getString(
-      LAST_SEEN_CACHE_NAMESPACE,
-      cacheKey,
-    );
 
-    if (cached === fingerprint) {
+    /*
+     * Collapse duplicate concurrent callers inside THIS process first. One
+     * OTLP batch resolves the same service once per resource — the shipped
+     * host-metrics collector config produces hundreds per batch — and without
+     * this every one of them independently asks Redis the same question.
+     */
+    await SingleFlight.run(
+      `${LAST_SEEN_CACHE_NAMESPACE}:${cacheKey}:${this.fingerprintLastSeenExtras(
+        extra,
+      )}`,
+      async () => {
+        await this.writeLastSeen(serviceId, cacheKey, extra);
+      },
+    );
+  }
+
+  private async writeLastSeen(
+    serviceId: ObjectID,
+    cacheKey: string,
+    extra?: {
+      serviceVersion?: string | undefined;
+      deploymentEnvironment?: string | undefined;
+      serviceNamespace?: string | undefined;
+      runtimeName?: string | undefined;
+      runtimeVersion?: string | undefined;
+      telemetrySdkLanguage?: string | undefined;
+      cloudProvider?: string | undefined;
+      cloudPlatform?: string | undefined;
+      cloudRegion?: string | undefined;
+      cloudAccountId?: string | undefined;
+    },
+  ): Promise<void> {
+    const fingerprint: string = this.fingerprintLastSeenExtras(extra);
+
+    /*
+     * Liveness gate. Presence-only and jittered: a fleet-wide restart would
+     * otherwise re-synchronise every service's window and rebuild the herd on
+     * a one-minute period.
+     */
+    let writeLiveness: boolean = true;
+    try {
+      writeLiveness = await GlobalCache.setStringIfNotExists(
+        LAST_SEEN_CACHE_NAMESPACE,
+        cacheKey,
+        "1",
+        {
+          expiresInSeconds: GlobalCache.withJitter(LAST_SEEN_THROTTLE_SECONDS),
+        },
+      );
+    } catch {
+      /*
+       * Cache unavailable — fail OPEN and refresh liveness anyway. Suppressing
+       * the heartbeat during a Redis outage is how a healthy service gets
+       * shown as disconnected while its data keeps arriving (issue #3006's
+       * failure mode). Affordable only because the write below cannot queue.
+       */
+      writeLiveness = true;
+    }
+
+    /*
+     * Enrichment gate 1: has the payload actually changed? Compare-and-claim,
+     * so a deploy's new service.version is written promptly rather than
+     * waiting out a window.
+     */
+    let metadataChanged: boolean = false;
+    try {
+      metadataChanged = await GlobalCache.setStringIfChanged(
+        METADATA_FINGERPRINT_CACHE_NAMESPACE,
+        cacheKey,
+        fingerprint,
+        {
+          expiresInSeconds: GlobalCache.withJitter(
+            METADATA_FINGERPRINT_TTL_SECONDS,
+          ),
+        },
+      );
+    } catch {
+      /*
+       * Fail CLOSED for enrichment (unlike liveness). These columns are
+       * descriptive, not operational — nothing is mis-reported by writing them
+       * a little later, and letting a Redis outage open this gate would
+       * restore the per-batch write storm this method exists to prevent.
+       */
+      metadataChanged = false;
+    }
+
+    /*
+     * Enrichment gate 2: rate limiter. A service whose producers permanently
+     * disagree (dev + prod under one name, active-active regions) reports a
+     * "change" on every batch forever. Gate 1 cannot tell that apart from a
+     * real deploy, so this bounds it regardless.
+     */
+    let writeMetadata: boolean = false;
+    if (metadataChanged) {
+      try {
+        writeMetadata = await GlobalCache.setStringIfNotExists(
+          METADATA_WRITE_WINDOW_CACHE_NAMESPACE,
+          cacheKey,
+          "1",
+          {
+            expiresInSeconds: GlobalCache.withJitter(
+              METADATA_WRITE_THROTTLE_SECONDS,
+            ),
+          },
+        );
+      } catch {
+        writeMetadata = false;
+      }
+    }
+
+    if (!writeLiveness && !writeMetadata) {
+      // Nothing to say. Issue no statement at all.
       return;
     }
 
-    await GlobalCache.setString(
-      LAST_SEEN_CACHE_NAMESPACE,
-      cacheKey,
-      fingerprint,
-      {
-        expiresInSeconds: LAST_SEEN_THROTTLE_SECONDS,
-      },
-    );
-
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const data: any = {
+    const liveness: any = {
       lastSeenAt: OneUptimeDate.getCurrentDate(),
     };
 
-    if (extra?.serviceVersion) {
-      data.serviceVersion = extra.serviceVersion;
-    }
-    if (extra?.deploymentEnvironment) {
-      data.deploymentEnvironment = extra.deploymentEnvironment;
-    }
-    if (extra?.serviceNamespace) {
-      data.serviceNamespace = extra.serviceNamespace;
-    }
-    if (extra?.runtimeName) {
-      data.runtimeName = extra.runtimeName;
-    }
-    if (extra?.runtimeVersion) {
-      data.runtimeVersion = extra.runtimeVersion;
-    }
-    if (extra?.telemetrySdkLanguage) {
-      data.telemetrySdkLanguage = extra.telemetrySdkLanguage;
-    }
-    if (extra?.cloudProvider) {
-      data.cloudProvider = extra.cloudProvider;
-    }
-    if (extra?.cloudPlatform) {
-      data.cloudPlatform = extra.cloudPlatform;
-    }
-    if (extra?.cloudRegion) {
-      data.cloudRegion = extra.cloudRegion;
-    }
-    if (extra?.cloudAccountId) {
-      data.cloudAccountId = extra.cloudAccountId;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const metadata: any = {};
+
+    if (writeMetadata) {
+      if (extra?.serviceVersion) {
+        metadata.serviceVersion = extra.serviceVersion;
+      }
+      if (extra?.deploymentEnvironment) {
+        metadata.deploymentEnvironment = extra.deploymentEnvironment;
+      }
+      if (extra?.serviceNamespace) {
+        metadata.serviceNamespace = extra.serviceNamespace;
+      }
+      if (extra?.runtimeName) {
+        metadata.runtimeName = extra.runtimeName;
+      }
+      if (extra?.runtimeVersion) {
+        metadata.runtimeVersion = extra.runtimeVersion;
+      }
+      if (extra?.telemetrySdkLanguage) {
+        metadata.telemetrySdkLanguage = extra.telemetrySdkLanguage;
+      }
+      if (extra?.cloudProvider) {
+        metadata.cloudProvider = extra.cloudProvider;
+      }
+      if (extra?.cloudPlatform) {
+        metadata.cloudPlatform = extra.cloudPlatform;
+      }
+      if (extra?.cloudRegion) {
+        metadata.cloudRegion = extra.cloudRegion;
+      }
+      if (extra?.cloudAccountId) {
+        metadata.cloudAccountId = extra.cloudAccountId;
+      }
     }
 
+    const hasMetadata: boolean = Object.keys(metadata).length > 0;
+
     /*
-     * Heartbeat write. This is the single hottest UPDATE in the system —
-     * every telemetry batch for a service re-resolves the same serviceId —
-     * so it must NOT go through the full updateOneById pipeline (permission
-     * SELECT -> _findBy SELECT -> save() with `version = version + 1` ->
-     * workflow/realtime/audit hooks). That pipeline holds the Service row's
-     * write lock across several round trips and, when an event loop stalls
-     * mid-`save()` transaction, leaves it open as the head of a lock convoy
-     * that starves the Postgres connection pool. lastSeenAt is an internal
-     * liveness timestamp with no onBeforeUpdate/onUpdateSuccess hooks on this
-     * model (connected / disconnected status is derived from it at read
-     * time), so a bare single-statement UPDATE is both correct and far
-     * cheaper. This also intentionally drops the per-update workflow trigger
-     * Service's @EnableWorkflow({ update: true }) fired on every heartbeat —
-     * a liveness ping should not trigger user workflows.
+     * `lastSeenAt` rides along even on an enrichment-only write: refreshing it
+     * early is harmless (it is a liveness floor, not a sample), and splitting
+     * the two into separate statements would double the writes we just went to
+     * such lengths to halve.
      */
-    await this.updateColumnsByIdWithoutHooks({
-      id: serviceId,
-      data: data,
-    });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data: any = { ...liveness, ...metadata };
+
+    /*
+     * Heartbeat write. Deliberately NOT the full updateOneById pipeline
+     * (permission SELECT -> _findBy SELECT -> save() with `version = version +
+     * 1` -> workflow/realtime/audit hooks): that pipeline holds the row's
+     * write lock across several round trips inside an open transaction, which
+     * is precisely how a stalled event loop becomes the head of a lock convoy.
+     * It also intentionally drops the per-update workflow trigger that
+     * Service's @EnableWorkflow({ update: true }) fired on every heartbeat — a
+     * liveness ping should not trigger user workflows.
+     *
+     * And it is the SKIP LOCKED variant: contended writers yield instead of
+     * queueing, capping backends blocked on any one Service row at one.
+     */
+    let wrote: boolean = false;
+
+    try {
+      wrote = await this.updateColumnsByIdIfUnlockedWithoutHooks({
+        id: serviceId,
+        data: data,
+      });
+    } catch (err) {
+      /*
+       * Liveness must survive bad metadata. Every enrichment value is a
+       * collector-supplied resource attribute, so if one of them makes
+       * Postgres reject the statement it takes `lastSeenAt` down with it and
+       * the service silently stops looking alive. Retry with liveness only, so
+       * enrichment is what gets dropped, never the heartbeat. (Issue #3006 was
+       * this exact failure on Host.)
+       */
+      logger.warn(
+        `ServiceService.updateLastSeen: metadata write failed for service ${serviceId.toString()}, falling back to a liveness-only update: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+
+      await this.clearLastSeenGates(cacheKey, hasMetadata);
+
+      await this.updateColumnsByIdIfUnlockedWithoutHooks({
+        id: serviceId,
+        data: liveness,
+      });
+
+      return;
+    }
+
+    if (!wrote && hasMetadata) {
+      /*
+       * The row was locked, so this write was SKIPPED rather than applied. For
+       * liveness that is a non-event — whoever holds the lock is storing the
+       * same timestamp. Enrichment is different: the holder may be writing an
+       * older payload, and the gates we just claimed would suppress ours for
+       * the rest of the window. Release them so the next batch re-attempts.
+       *
+       * This cannot become a retry storm — each attempt is a non-blocking
+       * statement that returns immediately when contended.
+       */
+      await this.clearLastSeenGates(cacheKey, true);
+    }
+  }
+
+  /**
+   * Re-open the gates so the next batch retries. Liveness is only re-opened
+   * when there was no enrichment at stake; otherwise the enrichment gates are
+   * the ones that must not stay claimed after a write that never happened.
+   */
+  private async clearLastSeenGates(
+    cacheKey: string,
+    hadMetadata: boolean,
+  ): Promise<void> {
+    const namespaces: Array<string> = hadMetadata
+      ? [
+          METADATA_FINGERPRINT_CACHE_NAMESPACE,
+          METADATA_WRITE_WINDOW_CACHE_NAMESPACE,
+        ]
+      : [LAST_SEEN_CACHE_NAMESPACE];
+
+    for (const namespace of namespaces) {
+      try {
+        await GlobalCache.deleteKey(namespace, cacheKey);
+      } catch {
+        // Best effort — the retry below is what actually matters.
+      }
+    }
   }
 
   private fingerprintLastSeenExtras(extra?: {

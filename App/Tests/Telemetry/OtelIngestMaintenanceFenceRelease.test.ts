@@ -267,6 +267,28 @@ describe.each(FENCE_CASES)(
           return RESOURCE_ID;
         });
       jest.spyOn(GlobalCache, "setString").mockResolvedValue(undefined);
+
+      /*
+       * The fence claim is a single atomic SET NX now, not a read followed by
+       * a write. That change is the point: a read-then-write admits every
+       * worker that observes the absent key in the same instant, and at ingest
+       * concurrency that is all of them — the row-lock convoy that took
+       * production down. Modelled faithfully here (claim succeeds only when
+       * the key is absent) so this suite agrees with the real semantics rather
+       * than with a stub.
+       */
+      jest
+        .spyOn(GlobalCache, "setStringIfNotExists")
+        .mockImplementation(async (namespace: string, key: string) => {
+          if (namespace !== FENCE_NAMESPACE) {
+            return true;
+          }
+          if (heldFences.has(key)) {
+            return false;
+          }
+          heldFences.add(key);
+          return true;
+        });
       jest
         .spyOn(GlobalCache, "deleteKey")
         .mockImplementation(async (namespace: string, key: string) => {

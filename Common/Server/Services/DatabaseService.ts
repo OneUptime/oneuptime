@@ -2401,6 +2401,117 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
   }
 
   /*
+   * Same single-statement, hook-free, no-version-bump write as
+   * `updateColumnsByIdWithoutHooks`, except it YIELDS instead of queueing:
+   * if another transaction already holds the row's lock, this write is
+   * abandoned and the method returns false. It never waits.
+   *
+   * Why this exists. A single-statement UPDATE holds its row lock for a very
+   * short time, but "short" does not mean "safe" once the arrival rate on ONE
+   * row exceeds the service rate. Postgres queues lock waiters strictly, so
+   * every waiter pins a backend for the sum of everyone ahead of it — the
+   * classic convoy. In the outage this was written for, ~25K concurrent
+   * ingest jobs across 100 worker pods funnelled onto ~2,300 Service rows and
+   * produced 1,017 active connections with 892 of them parked on row locks;
+   * the tail had been waiting 3.7 hours. Nothing about that is fixable by
+   * making the statement faster, and no Postgres tier changes it: the queue
+   * is the bug.
+   *
+   * `FOR UPDATE SKIP LOCKED` inverts it. A contended writer does zero work
+   * and returns immediately, so the number of backends blocked on any single
+   * row is capped at ONE no matter how many workers arrive together. The
+   * convoy cannot form — and cannot form even if every upstream throttle
+   * fails open at once (Redis down, fence bug, cache flush). That is the
+   * point: this is the structural backstop underneath the throttles, not a
+   * second copy of them.
+   *
+   * Use ONLY where losing the write is harmless because a concurrent writer
+   * is writing the same thing — liveness timestamps and other idempotent
+   * bookkeeping, whose contended value is by construction the value the
+   * winner is already storing. It is the WRONG primitive for a write carrying
+   * information the winner does not have (a changed attribute); for those the
+   * caller must re-attempt, and `false` is the signal to do it. Returning a
+   * boolean rather than swallowing the skip is deliberate: a silent drop here
+   * would be indistinguishable from a successful write at the call site,
+   * which is exactly how a "reliable" heartbeat quietly stops beating.
+   *
+   * Returns true when the row was updated, false when it was locked (or no
+   * longer exists).
+   */
+  @CaptureSpan()
+  public async updateColumnsByIdIfUnlockedWithoutHooks(input: {
+    id: ObjectID;
+    data: PartialEntity<TBaseModel>;
+    skipUpdateDateColumn?: boolean;
+  }): Promise<boolean> {
+    if (!input.id) {
+      throw new BadDataException("id is required");
+    }
+
+    const repository: Repository<TBaseModel> = this.getRepository();
+    const metadata: EntityMetadata = repository.metadata;
+    const driver: Driver = repository.manager.connection.driver;
+
+    const setClauses: Array<string> = [];
+    const params: Array<unknown> = [];
+
+    // Clamp on a shallow COPY — see updateColumnsByIdWithoutHooks.
+    const data: ObjectLiteral = this.truncateStringColumnsToMaxLength({
+      ...(input.data as ObjectLiteral),
+    });
+
+    for (const [propertyName, value] of Object.entries(data)) {
+      const column: ColumnMetadata | undefined =
+        metadata.findColumnWithPropertyName(propertyName);
+      if (!column) {
+        throw new BadDataException(
+          `updateColumnsByIdIfUnlockedWithoutHooks: unknown column "${propertyName}" on "${metadata.tableName}"`,
+        );
+      }
+      if (typeof value === "function") {
+        throw new BadDataException(
+          `updateColumnsByIdIfUnlockedWithoutHooks: SQL-expression values are not supported (column "${propertyName}"); pass a literal value.`,
+        );
+      }
+      params.push(driver.preparePersistentValue(value, column));
+      setClauses.push(`"${column.databaseName}" = $${params.length}`);
+    }
+
+    if (setClauses.length === 0) {
+      return false;
+    }
+
+    if (metadata.updateDateColumn && !input.skipUpdateDateColumn) {
+      setClauses.push(
+        `"${metadata.updateDateColumn.databaseName}" = CURRENT_TIMESTAMP`,
+      );
+    }
+
+    const primaryColumnName: string =
+      metadata.primaryColumns[0]?.databaseName || "_id";
+    params.push(input.id.toString());
+
+    /*
+     * The lock is taken by the sub-SELECT and inherited by the UPDATE within
+     * the same implicit transaction, so the outer write never blocks either.
+     * RETURNING is how the affected-row count comes back: TypeORM's `query()`
+     * surfaces the driver's rows and a bare UPDATE returns none, so without it
+     * a skipped write is indistinguishable from an applied one.
+     */
+    const sql: string = `UPDATE "${metadata.tableName}" SET ${setClauses.join(
+      ", ",
+    )} WHERE "${primaryColumnName}" IN (SELECT "${primaryColumnName}" FROM "${
+      metadata.tableName
+    }" WHERE "${primaryColumnName}" = $${
+      params.length
+    } FOR UPDATE SKIP LOCKED) RETURNING "${primaryColumnName}"`;
+
+    const result: unknown = await repository.manager.query(sql, params);
+
+    return Array.isArray(result) && result.length > 0;
+  }
+
+  /*
    * Atomically add to numeric columns and set literal columns for one row,
    * in a SINGLE auto-committed UPDATE, with no hooks and no `version` bump.
    *

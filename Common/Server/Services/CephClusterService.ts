@@ -5,6 +5,7 @@ import Model from "../../Models/DatabaseModels/CephCluster";
 import Label from "../../Models/DatabaseModels/Label";
 import { OnCreate } from "../Types/Database/Hooks";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import ResourceHeartbeat from "../Utils/Telemetry/ResourceHeartbeat";
 import ObjectID from "../../Types/ObjectID";
 import QueryHelper from "../Types/Database/QueryHelper";
 import OneUptimeDate from "../../Types/Date";
@@ -181,7 +182,6 @@ export class Service extends DatabaseService<Model> {
       capacityUsedPercent?: number | undefined;
     },
   ): Promise<void> {
-    const cacheKey: string = clusterId.toString();
     const extrasFingerprint: string = crypto
       .createHash("sha1")
       .update(
@@ -200,34 +200,6 @@ export class Service extends DatabaseService<Model> {
       )
       .digest("hex");
 
-    let cached: string | null = null;
-    try {
-      cached = await GlobalCache.getString(LAST_SEEN_CACHE_NAMESPACE, cacheKey);
-    } catch {
-      /*
-       * Cache unavailable — fail open and refresh lastSeenAt anyway. A
-       * cache error must never skip the DB write below, otherwise the
-       * resource is wrongly marked "disconnected" while telemetry is
-       * still flowing. Mirrors shouldRunMaintenance's fail-open stance.
-       */
-      cached = null;
-    }
-
-    if (cached === extrasFingerprint) {
-      return; // same data was written recently
-    }
-
-    try {
-      await GlobalCache.setString(
-        LAST_SEEN_CACHE_NAMESPACE,
-        cacheKey,
-        extrasFingerprint,
-        { expiresInSeconds: LAST_SEEN_THROTTLE_SECONDS },
-      );
-    } catch {
-      // Best-effort throttle write; proceed with the DB update regardless.
-    }
-
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const liveness: any = {
       lastSeenAt: OneUptimeDate.getCurrentDate(),
@@ -235,91 +207,59 @@ export class Service extends DatabaseService<Model> {
     };
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const data: any = { ...liveness };
+    const metadata: any = {};
 
     if (extra?.cephVersion) {
-      data.cephVersion = extra.cephVersion;
+      metadata.cephVersion = extra.cephVersion;
     }
     if (extra?.fsid) {
-      data.fsid = extra.fsid;
+      metadata.fsid = extra.fsid;
     }
     if (extra?.agentVersion) {
-      data.agentVersion = extra.agentVersion;
+      metadata.agentVersion = extra.agentVersion;
     }
     /*
      * Counts and health: 0 is a legitimate value (healthStatus 0 = OK,
      * osdUpCount 0 = every OSD down) — gate on undefined, not falsiness.
      */
     if (extra?.monCount !== undefined) {
-      data.monCount = extra.monCount;
+      metadata.monCount = extra.monCount;
     }
     if (extra?.osdCount !== undefined) {
-      data.osdCount = extra.osdCount;
+      metadata.osdCount = extra.osdCount;
     }
     if (extra?.osdUpCount !== undefined) {
-      data.osdUpCount = extra.osdUpCount;
+      metadata.osdUpCount = extra.osdUpCount;
     }
     if (extra?.osdInCount !== undefined) {
-      data.osdInCount = extra.osdInCount;
+      metadata.osdInCount = extra.osdInCount;
     }
     if (extra?.poolCount !== undefined) {
-      data.poolCount = extra.poolCount;
+      metadata.poolCount = extra.poolCount;
     }
     if (extra?.healthStatus !== undefined) {
-      data.healthStatus = extra.healthStatus;
+      metadata.healthStatus = extra.healthStatus;
     }
     if (extra?.capacityUsedPercent !== undefined) {
-      data.capacityUsedPercent = extra.capacityUsedPercent;
+      metadata.capacityUsedPercent = extra.capacityUsedPercent;
     }
 
     /*
-     * Heartbeat write: a single-statement UPDATE with no hooks and no
-     * `version` bump, avoiding the hot-row Postgres lock convoy that the
-     * full updateOneById pipeline causes. See ServiceService.updateLastSeen.
-     *
-     * Collector-supplied strings are clamped to their declared column
-     * widths inside updateColumnsByIdWithoutHooks — see
-     * DatabaseService.truncateStringColumnsToMaxLength.
+     * One gated, non-blocking heartbeat write. The gates, the fail-open /
+     * fail-closed split and the liveness-only fallback all live in
+     * ResourceHeartbeat — see there for why this row's throttle used to
+     * provide no throttling at all.
      */
-    try {
-      await this.updateColumnsByIdWithoutHooks({
-        id: clusterId,
-        data: data,
-      });
-    } catch (err) {
-      /*
-       * Liveness must survive bad metadata. The enriched write carries
-       * `lastSeenAt` and `otelCollectorStatus` alongside optional,
-       * collector-supplied columns; if any one of them makes Postgres
-       * reject the statement, lastSeenAt silently stops advancing and
-       * markDisconnectedClusters flips a perfectly healthy Ceph cluster to
-       * "disconnected" 15 minutes later — with telemetry still arriving the
-       * whole time. That was issue #3006 on the Host path (a host.ip list
-       * longer than the then-varchar(500) column). Retry with liveness only
-       * so the enrichment is what gets dropped, never the heartbeat.
-       */
-      logger.warn(
-        `CephClusterService.updateLastSeen: metadata write failed for Ceph cluster ${clusterId.toString()}, falling back to a liveness-only update: ${
-          err instanceof Error ? err.message : String(err)
-        }`,
-      );
-
-      /*
-       * The throttle fingerprint was already stored, so without this the
-       * next batch would short-circuit on a cache hit and skip the retry
-       * for the rest of the window.
-       */
-      try {
-        await GlobalCache.deleteKey(LAST_SEEN_CACHE_NAMESPACE, cacheKey);
-      } catch {
-        // Best-effort; the fallback write below is what actually matters.
-      }
-
-      await this.updateColumnsByIdWithoutHooks({
-        id: clusterId,
-        data: liveness,
-      });
-    }
+    await ResourceHeartbeat.write({
+      service: this,
+      id: clusterId,
+      cacheNamespace: LAST_SEEN_CACHE_NAMESPACE,
+      throttleInSeconds: LAST_SEEN_THROTTLE_SECONDS,
+      liveness: liveness,
+      metadata: metadata,
+      fingerprint: extrasFingerprint,
+      describe: `ceph cluster ${clusterId.toString()}`,
+    });
   }
 
   /**
