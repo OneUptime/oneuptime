@@ -68,6 +68,16 @@ export interface ComponentProps {
   projectId: ObjectID | undefined;
   selectedTeamIds: Array<string>;
   onChange: (teamIds: Array<string>) => void;
+  /*
+   * Defaults to multi-select, which is what the SSO/OIDC attachment forms want
+   * ("provision users into these teams"). Set false where one team is the only
+   * meaningful answer - adding a user to a project creates one TeamMember, so
+   * the picker there must offer one team. `onChange` still reports an array in
+   * both modes, empty when nothing is selected.
+   */
+  isMultiSelect?: boolean | undefined;
+  placeholder?: string | undefined;
+  noProjectMessage?: string | undefined;
 }
 
 /*
@@ -134,10 +144,13 @@ const ProjectScopedTeamsPicker: FunctionComponent<ComponentProps> = (
     // Refetch only when the selected project changes.
   }, [projectIdString]);
 
+  const isMultiSelect: boolean = props.isMultiSelect !== false;
+
   if (!props.projectId) {
     return (
       <p className="text-sm text-gray-500">
-        Select a project first to choose its default teams.
+        {props.noProjectMessage ||
+          "Select a project first to choose its default teams."}
       </p>
     );
   }
@@ -166,10 +179,12 @@ const ProjectScopedTeamsPicker: FunctionComponent<ComponentProps> = (
 
   return (
     <Dropdown
-      isMultiSelect={true}
+      isMultiSelect={isMultiSelect}
       options={options}
-      value={selectedOptions}
-      placeholder="Select Teams"
+      value={isMultiSelect ? selectedOptions : selectedOptions[0]}
+      placeholder={
+        props.placeholder || (isMultiSelect ? "Select Teams" : "Select Team")
+      }
       onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
         const ids: Array<string> = Array.isArray(value)
           ? value.map((entry: DropdownValue) => {

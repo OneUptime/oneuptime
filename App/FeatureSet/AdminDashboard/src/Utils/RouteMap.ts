@@ -49,6 +49,9 @@ const RouteMap: Dictionary<Route> = {
 
   [PageMap.USERS]: new Route(`/admin/users`),
   [PageMap.USER_VIEW]: new Route(`/admin/users/${RouteParams.ModelID}`),
+  [PageMap.USER_PROJECTS]: new Route(
+    `/admin/users/${RouteParams.ModelID}/projects`,
+  ),
   [PageMap.USER_SETTINGS]: new Route(
     `/admin/users/${RouteParams.ModelID}/settings`,
   ),

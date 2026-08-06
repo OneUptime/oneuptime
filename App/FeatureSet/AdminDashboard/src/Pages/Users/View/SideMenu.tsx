@@ -34,6 +34,18 @@ const SideMenuComponent: FunctionComponent<SideMenuProps> = (
         />
         <SideMenuItem
           link={{
+            title: t("sideMenu.projects"),
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.USER_PROJECTS] as Route,
+              {
+                modelId: props.modelId,
+              },
+            ),
+          }}
+          icon={IconProp.Folder}
+        />
+        <SideMenuItem
+          link={{
             title: t("sideMenu.settings"),
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.USER_SETTINGS] as Route,
