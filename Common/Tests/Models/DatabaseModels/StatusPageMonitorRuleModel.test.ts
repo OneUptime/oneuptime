@@ -2,8 +2,13 @@ import Models from "../../../Models/DatabaseModels/Index";
 import StatusPageMonitorRule from "../../../Models/DatabaseModels/StatusPageMonitorRule";
 import StatusPageResource from "../../../Models/DatabaseModels/StatusPageResource";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Migrations from "../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
-import Permission from "../../../Types/Permission";
+import Permission, {
+  PermissionGroup,
+  PermissionHelper,
+  PermissionProps,
+} from "../../../Types/Permission";
 import { describe, expect, it } from "@jest/globals";
 
 /*
@@ -75,6 +80,51 @@ describe("StatusPageMonitorRule model", () => {
   it("does not let a plain viewer edit a rule", () => {
     expect(model.getUpdatePermissions()).not.toContain(Permission.Viewer);
   });
+
+  /*
+   * A saved rule must not be re-pointable at a different status page: the
+   * project-scope check runs on create, and letting statusPageId move
+   * afterwards would route a rule's monitors onto a page nobody re-validated.
+   * Create-only in the column ACL is what enforces it.
+   */
+  it("does not let a saved rule be re-pointed at another status page", () => {
+    const accessControl: Record<string, ColumnAccessControl> =
+      model.getColumnAccessControlForAllColumns();
+
+    expect(accessControl["statusPageId"]?.update).toEqual([]);
+    expect(accessControl["statusPageId"]?.create?.length).toBeGreaterThan(0);
+  });
+
+  it("lets the destination group be changed on a saved rule", () => {
+    const accessControl: Record<string, ColumnAccessControl> =
+      model.getColumnAccessControlForAllColumns();
+
+    expect(accessControl["statusPageGroupId"]?.update).toContain(
+      Permission.EditStatusPageMonitorRule,
+    );
+  });
+
+  it("is scoped by the status page it belongs to, like every other status page child", () => {
+    expect(model.canAccessIfCanReadOn).toBe("statusPage");
+  });
+});
+
+describe("Status page monitor rule migration", () => {
+  /*
+   * A migration that is not in this array never runs, so the table simply does
+   * not exist in a fresh database and the CI drift check fails. Cheaper to
+   * catch here than in the drift job.
+   */
+  it("is registered, so the table is actually created", () => {
+    // The array holds migration classes; `.name` is the class name.
+    const registeredNames: Array<string> = (
+      Migrations as unknown as Array<{ name: string }>
+    ).map((migration: { name: string }) => {
+      return migration.name;
+    });
+
+    expect(registeredNames).toContain("AddStatusPageMonitorRule1786005052769");
+  });
 });
 
 describe("StatusPageResource.statusPageMonitorRuleId - the ownership marker", () => {
@@ -110,14 +160,31 @@ describe("StatusPageResource.statusPageMonitorRuleId - the ownership marker", ()
 });
 
 describe("Status page monitor rule permissions", () => {
-  it("are described in the permission catalogue, so they can be granted to a role", () => {
-    for (const permission of [
-      Permission.CreateStatusPageMonitorRule,
-      Permission.ReadStatusPageMonitorRule,
-      Permission.EditStatusPageMonitorRule,
-      Permission.DeleteStatusPageMonitorRule,
-    ]) {
-      expect(Permission[permission as keyof typeof Permission]).toBeDefined();
-    }
-  });
+  const allProps: Array<PermissionProps> =
+    PermissionHelper.getAllPermissionProps();
+
+  /*
+   * A permission that is only in the enum cannot be granted: the roles UI is
+   * built from the catalogue, so an unlisted permission is one nobody can ever
+   * hold, and the feature is then unusable by anyone but a project admin.
+   */
+  it.each([
+    Permission.CreateStatusPageMonitorRule,
+    Permission.ReadStatusPageMonitorRule,
+    Permission.EditStatusPageMonitorRule,
+    Permission.DeleteStatusPageMonitorRule,
+  ])(
+    "describes %s in the catalogue so it can be granted",
+    (permission: Permission) => {
+      const props: PermissionProps | undefined = allProps.find(
+        (candidate: PermissionProps) => {
+          return candidate.permission === permission;
+        },
+      );
+
+      expect(props).toBeDefined();
+      expect(props!.isAssignableToTenant).toBe(true);
+      expect(props!.group).toBe(PermissionGroup.StatusPage);
+    },
+  );
 });

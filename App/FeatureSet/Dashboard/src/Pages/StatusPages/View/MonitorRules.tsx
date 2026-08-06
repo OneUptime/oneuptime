@@ -32,8 +32,10 @@ A monitor rule adds monitors to this status page for you. Instead of picking eve
 A monitor has to pass **all** the criteria you fill in. Criteria you leave empty are skipped.
 
 - **Monitor Labels** — matches a monitor carrying *any one* of the labels you select.
-- **Monitor Name Pattern** — case-insensitive regex matched against the monitor name.
-- **Monitor Description Pattern** — case-insensitive regex matched against the monitor description.
+- **Monitor Name Pattern** — matched against the monitor name.
+- **Monitor Description Pattern** — matched against the monitor description.
+
+Patterns take either syntax, the same as network device rules: a case-insensitive regular expression (\`^api-.*\`) or a \`*\` wildcard (\`*checkout*\`). A pattern that is neither — \`api-(01\` — is rejected when you save, rather than silently matching nothing.
 
 At least one criterion is required. Use \`.*\` as the name pattern if you really do want every monitor in the project.
 
@@ -238,10 +240,10 @@ const StatusPageMonitorRulesPage: FunctionComponent<PageComponentProps> = (
             stepId: "match-criteria",
             sectionTitle: "Match by Pattern",
             sectionDescription:
-              "Case-insensitive regex matched against the monitor name and description. Use .* to match every monitor.",
+              "Case-insensitive regex (^api-.*) or a * wildcard (*checkout*), matched against the monitor name and description. Use .* to match every monitor.",
             fieldType: FormFieldSchemaType.Text,
             required: false,
-            placeholder: "^api-.*",
+            placeholder: "^api-.* or *api*",
           },
           {
             field: { monitorDescriptionPattern: true },

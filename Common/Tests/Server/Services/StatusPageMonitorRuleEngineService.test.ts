@@ -42,6 +42,9 @@ const STATUS_PAGE_ID: ObjectID = new ObjectID(
   "33333333-3333-4333-8333-333333333333",
 );
 const GROUP_ID: ObjectID = new ObjectID("44444444-4444-4444-8444-444444444444");
+const OTHER_GROUP_ID: ObjectID = new ObjectID(
+  "45454545-4545-4545-8545-454545454545",
+);
 const RULE_ID: ObjectID = new ObjectID("11111111-1111-4111-8111-111111111111");
 const OTHER_RULE_ID: ObjectID = new ObjectID(
   "1a1a1a1a-1a1a-4a1a-8a1a-1a1a1a1a1a1a",
@@ -132,12 +135,22 @@ function fakeResource(fields: {
   id: ObjectID;
   monitorId: ObjectID;
   statusPageMonitorRuleId?: ObjectID | undefined;
+  statusPageGroupId?: ObjectID | undefined;
+  showCurrentStatus?: boolean | undefined;
+  showUptimePercent?: boolean | undefined;
+  showStatusHistoryChart?: boolean | undefined;
+  uptimePercentPrecision?: UptimePrecision | undefined;
 }): StatusPageResource {
   return {
     id: fields.id,
     _id: fields.id.toString(),
     monitorId: fields.monitorId,
     statusPageMonitorRuleId: fields.statusPageMonitorRuleId,
+    statusPageGroupId: fields.statusPageGroupId,
+    showCurrentStatus: fields.showCurrentStatus,
+    showUptimePercent: fields.showUptimePercent,
+    showStatusHistoryChart: fields.showStatusHistoryChart,
+    uptimePercentPrecision: fields.uptimePercentPrecision,
   } as unknown as StatusPageResource;
 }
 
@@ -288,6 +301,84 @@ describe("StatusPageMonitorRuleEngineService.doesMonitorMatchRule", () => {
       }),
     ).toBe(false);
   });
+
+  /*
+   * #2940. `*api*` throws "Nothing to repeat" as a regex, so a private regex
+   * test here would give the user a rule that silently matches nothing. The
+   * shared RulePatternMatchUtil falls back to a wildcard glob, which is what
+   * the sibling network device rules do and what people actually type.
+   */
+  it("matches a `*` wildcard glob, not just a regex", () => {
+    expect(
+      StatusPageMonitorRuleEngineService.doesMonitorMatchRule({
+        monitor: fakeMonitor(MONITOR_A_ID, { name: "prod-checkout-api" }),
+        rule: fakeRule({ monitorNamePattern: "*checkout*" }),
+      }),
+    ).toBe(true);
+  });
+
+  it("does not match a glob that the name fails", () => {
+    expect(
+      StatusPageMonitorRuleEngineService.doesMonitorMatchRule({
+        monitor: fakeMonitor(MONITOR_A_ID, { name: "prod-worker" }),
+        rule: fakeRule({ monitorNamePattern: "*checkout*" }),
+      }),
+    ).toBe(false);
+  });
+
+  it("matches a glob case-insensitively", () => {
+    expect(
+      StatusPageMonitorRuleEngineService.doesMonitorMatchRule({
+        monitor: fakeMonitor(MONITOR_A_ID, { name: "Prod-Checkout-API" }),
+        rule: fakeRule({ monitorNamePattern: "*checkout*" }),
+      }),
+    ).toBe(true);
+  });
+
+  /*
+   * The glob is anchored to the whole name, unlike the (unanchored) regex
+   * attempt - `*gateway` means "ends with gateway", not "contains it".
+   */
+  it("anchors a glob to the whole name", () => {
+    expect(
+      StatusPageMonitorRuleEngineService.doesMonitorMatchRule({
+        monitor: fakeMonitor(MONITOR_A_ID, { name: "prod-api-gateway" }),
+        rule: fakeRule({ monitorNamePattern: "*gateway" }),
+      }),
+    ).toBe(true);
+
+    expect(
+      StatusPageMonitorRuleEngineService.doesMonitorMatchRule({
+        monitor: fakeMonitor(MONITOR_A_ID, { name: "gateway-prod" }),
+        rule: fakeRule({ monitorNamePattern: "*gateway" }),
+      }),
+    ).toBe(false);
+  });
+
+  it("applies the glob fallback to the description pattern too", () => {
+    expect(
+      StatusPageMonitorRuleEngineService.doesMonitorMatchRule({
+        monitor: fakeMonitor(MONITOR_A_ID, {
+          description: "customer facing tier-1 service",
+        }),
+        rule: fakeRule({ monitorDescriptionPattern: "*tier-1*" }),
+      }),
+    ).toBe(true);
+  });
+
+  /*
+   * A pattern is a superset: anything that matched as a regex before still
+   * matches, and the glob only ever adds. `.*` must not start behaving like a
+   * literal glob.
+   */
+  it("still prefers regex semantics for a pattern that is valid as both", () => {
+    expect(
+      StatusPageMonitorRuleEngineService.doesMonitorMatchRule({
+        monitor: fakeMonitor(MONITOR_A_ID, { name: "anything" }),
+        rule: fakeRule({ monitorNamePattern: ".*" }),
+      }),
+    ).toBe(true);
+  });
 });
 
 describe("StatusPageMonitorRuleEngineService.syncResourcesForRule", () => {
@@ -296,6 +387,7 @@ describe("StatusPageMonitorRuleEngineService.syncResourcesForRule", () => {
   let resourceFindBySpy: jest.SpyInstance;
   let resourceCreateSpy: jest.SpyInstance;
   let resourceDeleteSpy: jest.SpyInstance;
+  let resourceUpdateSpy: jest.SpyInstance;
 
   beforeEach(() => {
     ruleFindOneByIdSpy = jest.spyOn(
@@ -311,6 +403,9 @@ describe("StatusPageMonitorRuleEngineService.syncResourcesForRule", () => {
       .mockResolvedValue(new StatusPageResource());
     resourceDeleteSpy = jest
       .spyOn(StatusPageResourceService, "deleteOneById")
+      .mockResolvedValue(1);
+    resourceUpdateSpy = jest
+      .spyOn(StatusPageResourceService, "updateOneById")
       .mockResolvedValue(1);
   });
 
@@ -588,6 +683,306 @@ describe("StatusPageMonitorRuleEngineService.syncResourcesForRule", () => {
     expect(resourceDeleteSpy).not.toHaveBeenCalled();
   });
 
+  /*
+   * Editing "Add Monitors To Group" has to move the monitors the rule already
+   * added. A rule that only applied its new group to monitors it adds in
+   * FUTURE would make the edit look like it silently did nothing — the user
+   * changed the one field the whole feature is about and the page did not
+   * move.
+   */
+  it("re-homes the resources it owns when the rule's group changes", async () => {
+    ruleFindOneByIdSpy.mockResolvedValue(
+      fakeRule({
+        monitorLabels: [LABEL_PRODUCTION_ID],
+        statusPageGroupId: OTHER_GROUP_ID,
+      }),
+    );
+    monitorFindBySpy.mockResolvedValue([
+      fakeMonitor(MONITOR_A_ID, { labels: [LABEL_PRODUCTION_ID] }),
+    ]);
+    resourceFindBySpy.mockResolvedValue([
+      fakeResource({
+        id: RESOURCE_A_ID,
+        monitorId: MONITOR_A_ID,
+        statusPageMonitorRuleId: RULE_ID,
+        statusPageGroupId: GROUP_ID,
+      }),
+    ]);
+
+    const result: StatusPageMonitorRuleSyncResult =
+      await StatusPageMonitorRuleEngineService.syncResourcesForRule({
+        statusPageMonitorRuleId: RULE_ID,
+      });
+
+    expect(resourceUpdateSpy).toHaveBeenCalledTimes(1);
+    const call: { id: ObjectID; data: { statusPageGroupId: ObjectID } } =
+      resourceUpdateSpy.mock.calls[0]![0] as {
+        id: ObjectID;
+        data: { statusPageGroupId: ObjectID };
+      };
+    expect(call.id).toEqual(RESOURCE_A_ID);
+    expect(call.data.statusPageGroupId).toEqual(OTHER_GROUP_ID);
+    expect(result.statusPageResourceIdsUpdated).toEqual([
+      RESOURCE_A_ID.toString(),
+    ]);
+  });
+
+  it("moves them back to ungrouped when the rule's group is cleared", async () => {
+    ruleFindOneByIdSpy.mockResolvedValue(
+      fakeRule({ monitorLabels: [LABEL_PRODUCTION_ID] }),
+    );
+    monitorFindBySpy.mockResolvedValue([
+      fakeMonitor(MONITOR_A_ID, { labels: [LABEL_PRODUCTION_ID] }),
+    ]);
+    resourceFindBySpy.mockResolvedValue([
+      fakeResource({
+        id: RESOURCE_A_ID,
+        monitorId: MONITOR_A_ID,
+        statusPageMonitorRuleId: RULE_ID,
+        statusPageGroupId: GROUP_ID,
+      }),
+    ]);
+
+    await StatusPageMonitorRuleEngineService.syncResourcesForRule({
+      statusPageMonitorRuleId: RULE_ID,
+    });
+
+    const call: { data: { statusPageGroupId: ObjectID | null } } =
+      resourceUpdateSpy.mock.calls[0]![0] as {
+        data: { statusPageGroupId: ObjectID | null };
+      };
+    expect(call.data.statusPageGroupId).toBeNull();
+  });
+
+  it("re-applies the rule's display options to the resources it owns", async () => {
+    ruleFindOneByIdSpy.mockResolvedValue(
+      fakeRule({
+        monitorLabels: [LABEL_PRODUCTION_ID],
+        showUptimePercent: false,
+        uptimePercentPrecision: UptimePrecision.TWO_DECIMAL,
+      }),
+    );
+    monitorFindBySpy.mockResolvedValue([
+      fakeMonitor(MONITOR_A_ID, { labels: [LABEL_PRODUCTION_ID] }),
+    ]);
+    resourceFindBySpy.mockResolvedValue([
+      fakeResource({
+        id: RESOURCE_A_ID,
+        monitorId: MONITOR_A_ID,
+        statusPageMonitorRuleId: RULE_ID,
+        showUptimePercent: true,
+        uptimePercentPrecision: UptimePrecision.ONE_DECIMAL,
+      }),
+    ]);
+
+    await StatusPageMonitorRuleEngineService.syncResourcesForRule({
+      statusPageMonitorRuleId: RULE_ID,
+    });
+
+    const call: {
+      data: {
+        showUptimePercent: boolean;
+        uptimePercentPrecision: UptimePrecision;
+      };
+    } = resourceUpdateSpy.mock.calls[0]![0] as {
+      data: {
+        showUptimePercent: boolean;
+        uptimePercentPrecision: UptimePrecision;
+      };
+    };
+    expect(call.data.showUptimePercent).toBe(false);
+    expect(call.data.uptimePercentPrecision).toBe(UptimePrecision.TWO_DECIMAL);
+  });
+
+  /*
+   * Re-running an unchanged rule is the common case (any monitor edit can
+   * trigger it), so it must not write.
+   */
+  it("writes nothing when the resources it owns already agree with the rule", async () => {
+    ruleFindOneByIdSpy.mockResolvedValue(
+      fakeRule({
+        monitorLabels: [LABEL_PRODUCTION_ID],
+        statusPageGroupId: GROUP_ID,
+      }),
+    );
+    monitorFindBySpy.mockResolvedValue([
+      fakeMonitor(MONITOR_A_ID, { labels: [LABEL_PRODUCTION_ID] }),
+    ]);
+    resourceFindBySpy.mockResolvedValue([
+      fakeResource({
+        id: RESOURCE_A_ID,
+        monitorId: MONITOR_A_ID,
+        statusPageMonitorRuleId: RULE_ID,
+        statusPageGroupId: GROUP_ID,
+        showCurrentStatus: true,
+        showUptimePercent: true,
+        showStatusHistoryChart: true,
+      }),
+    ]);
+
+    const result: StatusPageMonitorRuleSyncResult =
+      await StatusPageMonitorRuleEngineService.syncResourcesForRule({
+        statusPageMonitorRuleId: RULE_ID,
+      });
+
+    expect(resourceUpdateSpy).not.toHaveBeenCalled();
+    expect(result.statusPageResourceIdsUpdated).toEqual([]);
+  });
+
+  it("never re-homes a resource a human added, however far it has drifted", async () => {
+    ruleFindOneByIdSpy.mockResolvedValue(
+      fakeRule({
+        monitorLabels: [LABEL_PRODUCTION_ID],
+        statusPageGroupId: OTHER_GROUP_ID,
+      }),
+    );
+    monitorFindBySpy.mockResolvedValue([
+      fakeMonitor(MONITOR_A_ID, { labels: [LABEL_PRODUCTION_ID] }),
+    ]);
+    resourceFindBySpy.mockResolvedValue([
+      fakeResource({
+        id: RESOURCE_A_ID,
+        monitorId: MONITOR_A_ID,
+        statusPageGroupId: GROUP_ID,
+      }),
+    ]);
+
+    await StatusPageMonitorRuleEngineService.syncResourcesForRule({
+      statusPageMonitorRuleId: RULE_ID,
+    });
+
+    expect(resourceUpdateSpy).not.toHaveBeenCalled();
+  });
+
+  it("never re-homes a resource another rule owns", async () => {
+    ruleFindOneByIdSpy.mockResolvedValue(
+      fakeRule({
+        monitorLabels: [LABEL_PRODUCTION_ID],
+        statusPageGroupId: OTHER_GROUP_ID,
+      }),
+    );
+    monitorFindBySpy.mockResolvedValue([
+      fakeMonitor(MONITOR_A_ID, { labels: [LABEL_PRODUCTION_ID] }),
+    ]);
+    resourceFindBySpy.mockResolvedValue([
+      fakeResource({
+        id: RESOURCE_A_ID,
+        monitorId: MONITOR_A_ID,
+        statusPageMonitorRuleId: OTHER_RULE_ID,
+        statusPageGroupId: GROUP_ID,
+      }),
+    ]);
+
+    await StatusPageMonitorRuleEngineService.syncResourcesForRule({
+      statusPageMonitorRuleId: RULE_ID,
+    });
+
+    expect(resourceUpdateSpy).not.toHaveBeenCalled();
+  });
+
+  it("does not reconcile a resource whose monitor the rule has stopped claiming - it deletes it", async () => {
+    ruleFindOneByIdSpy.mockResolvedValue(
+      fakeRule({
+        monitorLabels: [LABEL_PRODUCTION_ID],
+        statusPageGroupId: OTHER_GROUP_ID,
+      }),
+    );
+    monitorFindBySpy.mockResolvedValue([]);
+    resourceFindBySpy.mockResolvedValue([
+      fakeResource({
+        id: RESOURCE_A_ID,
+        monitorId: MONITOR_A_ID,
+        statusPageMonitorRuleId: RULE_ID,
+        statusPageGroupId: GROUP_ID,
+      }),
+    ]);
+
+    await StatusPageMonitorRuleEngineService.syncResourcesForRule({
+      statusPageMonitorRuleId: RULE_ID,
+    });
+
+    expect(resourceUpdateSpy).not.toHaveBeenCalled();
+    expect(resourceDeleteSpy).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * Narrowing one rule must not take a monitor off the page that a different
+   * rule on the same page still claims. The rule-side pass only knows its own
+   * rule, so it hands each released monitor to the monitor-side pass, which
+   * consults every rule.
+   */
+  it("hands a released monitor to another rule that still claims it", async () => {
+    ruleFindOneByIdSpy.mockResolvedValue(
+      fakeRule({ monitorLabels: [LABEL_TIER1_ID] }),
+    );
+    monitorFindBySpy.mockResolvedValue([]);
+    resourceFindBySpy.mockResolvedValue([
+      fakeResource({
+        id: RESOURCE_A_ID,
+        monitorId: MONITOR_A_ID,
+        statusPageMonitorRuleId: RULE_ID,
+      }),
+    ]);
+
+    const syncRulesForMonitorSpy: jest.SpyInstance = jest
+      .spyOn(StatusPageMonitorRuleEngineService, "syncRulesForMonitor")
+      .mockResolvedValue([]);
+
+    await StatusPageMonitorRuleEngineService.syncResourcesForRule({
+      statusPageMonitorRuleId: RULE_ID,
+    });
+
+    expect(syncRulesForMonitorSpy).toHaveBeenCalledTimes(1);
+    const call: { monitorId: ObjectID } = syncRulesForMonitorSpy.mock
+      .calls[0]![0] as { monitorId: ObjectID };
+    expect(call.monitorId.toString()).toBe(MONITOR_A_ID.toString());
+  });
+
+  it("does not re-home monitors it did not release", async () => {
+    ruleFindOneByIdSpy.mockResolvedValue(
+      fakeRule({ monitorLabels: [LABEL_PRODUCTION_ID] }),
+    );
+    monitorFindBySpy.mockResolvedValue([
+      fakeMonitor(MONITOR_A_ID, { labels: [LABEL_PRODUCTION_ID] }),
+    ]);
+
+    const syncRulesForMonitorSpy: jest.SpyInstance = jest
+      .spyOn(StatusPageMonitorRuleEngineService, "syncRulesForMonitor")
+      .mockResolvedValue([]);
+
+    await StatusPageMonitorRuleEngineService.syncResourcesForRule({
+      statusPageMonitorRuleId: RULE_ID,
+    });
+
+    expect(syncRulesForMonitorSpy).not.toHaveBeenCalled();
+  });
+
+  it("still reports its own removal when the hand-off fails", async () => {
+    ruleFindOneByIdSpy.mockResolvedValue(
+      fakeRule({ monitorLabels: [LABEL_TIER1_ID] }),
+    );
+    monitorFindBySpy.mockResolvedValue([]);
+    resourceFindBySpy.mockResolvedValue([
+      fakeResource({
+        id: RESOURCE_A_ID,
+        monitorId: MONITOR_A_ID,
+        statusPageMonitorRuleId: RULE_ID,
+      }),
+    ]);
+    jest
+      .spyOn(StatusPageMonitorRuleEngineService, "syncRulesForMonitor")
+      .mockRejectedValue(new Error("db down"));
+
+    const result: StatusPageMonitorRuleSyncResult =
+      await StatusPageMonitorRuleEngineService.syncResourcesForRule({
+        statusPageMonitorRuleId: RULE_ID,
+      });
+
+    expect(result.statusPageResourceIdsRemoved).toEqual([
+      RESOURCE_A_ID.toString(),
+    ]);
+  });
+
   it("adds and removes in the same pass, so a re-pointed rule fully re-derives the page", async () => {
     ruleFindOneByIdSpy.mockResolvedValue(
       fakeRule({ monitorLabels: [LABEL_TIER1_ID] }),
@@ -699,6 +1094,8 @@ describe("StatusPageMonitorRuleEngineService.syncResourcesForRule", () => {
     expect(result).toEqual({
       monitorIdsAdded: [],
       statusPageResourceIdsRemoved: [],
+      statusPageResourceIdsUpdated: [],
+      monitorIdsReleased: [],
     });
     expect(resourceCreateSpy).not.toHaveBeenCalled();
     expect(resourceDeleteSpy).not.toHaveBeenCalled();
@@ -715,6 +1112,126 @@ describe("StatusPageMonitorRuleEngineService.syncResourcesForRule", () => {
     expect(monitorFindBySpy).not.toHaveBeenCalled();
     expect(result.monitorIdsAdded).toEqual([]);
   });
+
+  /*
+   * A rule can lose its last criterion without anyone editing it: its only
+   * criterion was a label, and deleting that label cascaded the join row away.
+   * The rule then claims nothing, and what it had added has to go — otherwise
+   * the page keeps monitors that no surviving configuration explains.
+   */
+  it("removes what it owns once it has been left with no criteria at all", async () => {
+    ruleFindOneByIdSpy.mockResolvedValue(fakeRule({}));
+    resourceFindBySpy.mockResolvedValue([
+      fakeResource({
+        id: RESOURCE_A_ID,
+        monitorId: MONITOR_A_ID,
+        statusPageMonitorRuleId: RULE_ID,
+      }),
+    ]);
+
+    const result: StatusPageMonitorRuleSyncResult =
+      await StatusPageMonitorRuleEngineService.syncResourcesForRule({
+        statusPageMonitorRuleId: RULE_ID,
+      });
+
+    expect(result.statusPageResourceIdsRemoved).toEqual([
+      RESOURCE_A_ID.toString(),
+    ]);
+  });
+
+  it("still spares manual resources when it has been left with no criteria", async () => {
+    ruleFindOneByIdSpy.mockResolvedValue(fakeRule({}));
+    resourceFindBySpy.mockResolvedValue([
+      fakeResource({ id: RESOURCE_A_ID, monitorId: MONITOR_A_ID }),
+    ]);
+
+    await StatusPageMonitorRuleEngineService.syncResourcesForRule({
+      statusPageMonitorRuleId: RULE_ID,
+    });
+
+    expect(resourceDeleteSpy).not.toHaveBeenCalled();
+  });
+
+  it("stamps the project and the status page on what it creates", async () => {
+    ruleFindOneByIdSpy.mockResolvedValue(
+      fakeRule({ monitorLabels: [LABEL_PRODUCTION_ID] }),
+    );
+    monitorFindBySpy.mockResolvedValue([
+      fakeMonitor(MONITOR_A_ID, { labels: [LABEL_PRODUCTION_ID] }),
+    ]);
+
+    await StatusPageMonitorRuleEngineService.syncResourcesForRule({
+      statusPageMonitorRuleId: RULE_ID,
+    });
+
+    const resource: StatusPageResource = createdResource(resourceCreateSpy);
+
+    expect(resource.projectId).toEqual(PROJECT_ID);
+    expect(resource.statusPageId).toEqual(STATUS_PAGE_ID);
+    expect(resource.monitorId).toEqual(MONITOR_A_ID);
+  });
+
+  it("defaults the display options to on when the rule sets none", async () => {
+    ruleFindOneByIdSpy.mockResolvedValue(
+      fakeRule({ monitorLabels: [LABEL_PRODUCTION_ID] }),
+    );
+    monitorFindBySpy.mockResolvedValue([
+      fakeMonitor(MONITOR_A_ID, { labels: [LABEL_PRODUCTION_ID] }),
+    ]);
+
+    await StatusPageMonitorRuleEngineService.syncResourcesForRule({
+      statusPageMonitorRuleId: RULE_ID,
+    });
+
+    const resource: StatusPageResource = createdResource(resourceCreateSpy);
+
+    expect(resource.showCurrentStatus).toBe(true);
+    expect(resource.showUptimePercent).toBe(true);
+    expect(resource.showStatusHistoryChart).toBe(true);
+    // Left unset rather than written as null, so the column default applies.
+    expect(resource.uptimePercentPrecision).toBeUndefined();
+  });
+
+  /*
+   * The label filter is the one criterion the database can evaluate, so it is
+   * pushed into the query. A pattern-only rule must not send an empty `labels`
+   * key, which would ask for monitors carrying no labels at all.
+   */
+  it("pushes the label filter into the monitor query when the rule names labels", async () => {
+    ruleFindOneByIdSpy.mockResolvedValue(
+      fakeRule({ monitorLabels: [LABEL_PRODUCTION_ID, LABEL_TIER1_ID] }),
+    );
+    monitorFindBySpy.mockResolvedValue([]);
+
+    await StatusPageMonitorRuleEngineService.syncResourcesForRule({
+      statusPageMonitorRuleId: RULE_ID,
+    });
+
+    const call: { query: { labels?: Array<ObjectID> } } = monitorFindBySpy.mock
+      .calls[0]![0] as { query: { labels?: Array<ObjectID> } };
+
+    expect(
+      (call.query.labels || []).map((id: ObjectID) => {
+        return id.toString();
+      }),
+    ).toEqual([LABEL_PRODUCTION_ID.toString(), LABEL_TIER1_ID.toString()]);
+  });
+
+  it("sends no labels key at all for a pattern-only rule", async () => {
+    ruleFindOneByIdSpy.mockResolvedValue(
+      fakeRule({ monitorNamePattern: "^api" }),
+    );
+    monitorFindBySpy.mockResolvedValue([]);
+
+    await StatusPageMonitorRuleEngineService.syncResourcesForRule({
+      statusPageMonitorRuleId: RULE_ID,
+    });
+
+    const call: { query: Record<string, unknown> } = monitorFindBySpy.mock
+      .calls[0]![0] as { query: Record<string, unknown> };
+
+    expect("labels" in call.query).toBe(false);
+  });
 });
 
 describe("StatusPageMonitorRuleEngineService.syncRulesForMonitor", () => {
@@ -723,6 +1240,7 @@ describe("StatusPageMonitorRuleEngineService.syncRulesForMonitor", () => {
   let resourceFindBySpy: jest.SpyInstance;
   let resourceCreateSpy: jest.SpyInstance;
   let resourceDeleteSpy: jest.SpyInstance;
+  let resourceUpdateSpy: jest.SpyInstance;
 
   beforeEach(() => {
     monitorFindOneByIdSpy = jest.spyOn(MonitorService, "findOneById");
@@ -736,10 +1254,142 @@ describe("StatusPageMonitorRuleEngineService.syncRulesForMonitor", () => {
     resourceDeleteSpy = jest
       .spyOn(StatusPageResourceService, "deleteOneById")
       .mockResolvedValue(1);
+    resourceUpdateSpy = jest
+      .spyOn(StatusPageResourceService, "updateOneById")
+      .mockResolvedValue(1);
   });
 
   afterEach(() => {
     jest.restoreAllMocks();
+  });
+
+  /*
+   * Reconciling belongs to the rule-side path only. Nothing about the rule
+   * moved here, so quietly reverting a per-resource tweak because somebody
+   * relabelled an unrelated monitor would be a surprise with no cause the
+   * user could see.
+   */
+  it("does not re-home drifted resources - only a rule edit does that", async () => {
+    monitorFindOneByIdSpy.mockResolvedValue(
+      fakeMonitor(MONITOR_A_ID, { labels: [LABEL_PRODUCTION_ID] }),
+    );
+    ruleFindBySpy.mockResolvedValue([
+      fakeRule({
+        monitorLabels: [LABEL_PRODUCTION_ID],
+        statusPageGroupId: OTHER_GROUP_ID,
+      }),
+    ]);
+    resourceFindBySpy.mockResolvedValue([
+      fakeResource({
+        id: RESOURCE_A_ID,
+        monitorId: MONITOR_A_ID,
+        statusPageMonitorRuleId: RULE_ID,
+        statusPageGroupId: GROUP_ID,
+      }),
+    ]);
+
+    await StatusPageMonitorRuleEngineService.syncRulesForMonitor({
+      monitorId: MONITOR_A_ID,
+    });
+
+    expect(resourceUpdateSpy).not.toHaveBeenCalled();
+  });
+
+  /*
+   * Two rules on one page can match the same monitor; only the first creates
+   * the resource, so the page shows it once. When the monitor stops matching
+   * the OWNING rule but still matches the other, the monitor must stay on the
+   * page — and must do so whichever order the rules come back in, because
+   * findBy gives no ordering guarantee.
+   *
+   * Interleaving adds and removes made this order-dependent: evaluate the
+   * still-matching rule first and it skips the add (the monitor is still on
+   * the page), then the owning rule deletes and the monitor silently
+   * disappears from a public status page.
+   */
+  it("keeps a monitor on the page when one rule releases it and another still claims it", async () => {
+    monitorFindOneByIdSpy.mockResolvedValue(
+      fakeMonitor(MONITOR_A_ID, { labels: [LABEL_TIER1_ID] }),
+    );
+
+    // RULE_ID owns the resource but no longer matches. OTHER_RULE_ID matches.
+    ruleFindBySpy.mockResolvedValue([
+      fakeRule({ monitorLabels: [LABEL_PRODUCTION_ID] }),
+      fakeRule({ id: OTHER_RULE_ID, monitorLabels: [LABEL_TIER1_ID] }),
+    ]);
+
+    /*
+     * The page as each pass reads it: the resource is there until the removal
+     * pass deletes it, and gone afterwards.
+     */
+    let isOnPage: boolean = true;
+    resourceFindBySpy.mockImplementation(() => {
+      return Promise.resolve(
+        isOnPage
+          ? [
+              fakeResource({
+                id: RESOURCE_A_ID,
+                monitorId: MONITOR_A_ID,
+                statusPageMonitorRuleId: RULE_ID,
+              }),
+            ]
+          : [],
+      );
+    });
+    resourceDeleteSpy.mockImplementation(() => {
+      isOnPage = false;
+      return Promise.resolve(1);
+    });
+
+    await StatusPageMonitorRuleEngineService.syncRulesForMonitor({
+      monitorId: MONITOR_A_ID,
+    });
+
+    expect(resourceDeleteSpy).toHaveBeenCalledTimes(1);
+    expect(resourceCreateSpy).toHaveBeenCalledTimes(1);
+    expect(createdResource(resourceCreateSpy).statusPageMonitorRuleId).toEqual(
+      OTHER_RULE_ID,
+    );
+  });
+
+  it("holds that guarantee whichever order the rules come back in", async () => {
+    monitorFindOneByIdSpy.mockResolvedValue(
+      fakeMonitor(MONITOR_A_ID, { labels: [LABEL_TIER1_ID] }),
+    );
+
+    // Same as above, with the still-matching rule evaluated FIRST.
+    ruleFindBySpy.mockResolvedValue([
+      fakeRule({ id: OTHER_RULE_ID, monitorLabels: [LABEL_TIER1_ID] }),
+      fakeRule({ monitorLabels: [LABEL_PRODUCTION_ID] }),
+    ]);
+
+    let isOnPage: boolean = true;
+    resourceFindBySpy.mockImplementation(() => {
+      return Promise.resolve(
+        isOnPage
+          ? [
+              fakeResource({
+                id: RESOURCE_A_ID,
+                monitorId: MONITOR_A_ID,
+                statusPageMonitorRuleId: RULE_ID,
+              }),
+            ]
+          : [],
+      );
+    });
+    resourceDeleteSpy.mockImplementation(() => {
+      isOnPage = false;
+      return Promise.resolve(1);
+    });
+
+    await StatusPageMonitorRuleEngineService.syncRulesForMonitor({
+      monitorId: MONITOR_A_ID,
+    });
+
+    expect(resourceCreateSpy).toHaveBeenCalledTimes(1);
+    expect(createdResource(resourceCreateSpy).statusPageMonitorRuleId).toEqual(
+      OTHER_RULE_ID,
+    );
   });
 
   it("adds the monitor to every status page whose rule it now matches", async () => {
@@ -925,6 +1575,64 @@ describe("StatusPageMonitorRuleEngineService.syncRulesForMonitor", () => {
       .calls[0]![0] as { query: { projectId: ObjectID } };
 
     expect(call.query.projectId).toEqual(PROJECT_ID);
+  });
+
+  /*
+   * Two rules on one page both wanting the same monitor is ordinary
+   * configuration (a broad rule and a narrow one). The page must list it once.
+   */
+  it("gives a monitor exactly one resource when two rules on the same page match it", async () => {
+    monitorFindOneByIdSpy.mockResolvedValue(
+      fakeMonitor(MONITOR_A_ID, {
+        labels: [LABEL_PRODUCTION_ID, LABEL_TIER1_ID],
+      }),
+    );
+    ruleFindBySpy.mockResolvedValue([
+      fakeRule({ monitorLabels: [LABEL_PRODUCTION_ID] }),
+      fakeRule({ id: OTHER_RULE_ID, monitorLabels: [LABEL_TIER1_ID] }),
+    ]);
+
+    // Once the first rule creates the resource, the page has it.
+    let created: Array<StatusPageResource> = [];
+    resourceFindBySpy.mockImplementation(() => {
+      return Promise.resolve(created);
+    });
+    resourceCreateSpy.mockImplementation(() => {
+      created = [
+        fakeResource({
+          id: RESOURCE_A_ID,
+          monitorId: MONITOR_A_ID,
+          statusPageMonitorRuleId: RULE_ID,
+        }),
+      ];
+      return Promise.resolve(new StatusPageResource());
+    });
+
+    await StatusPageMonitorRuleEngineService.syncRulesForMonitor({
+      monitorId: MONITOR_A_ID,
+    });
+
+    expect(resourceCreateSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("skips a rule row that came back without a status page", async () => {
+    monitorFindOneByIdSpy.mockResolvedValue(
+      fakeMonitor(MONITOR_A_ID, { labels: [LABEL_PRODUCTION_ID] }),
+    );
+    ruleFindBySpy.mockResolvedValue([
+      fakeRule({
+        statusPageId: null,
+        monitorLabels: [LABEL_PRODUCTION_ID],
+      }),
+    ]);
+
+    const results: Array<StatusPageMonitorRuleSyncResult> =
+      await StatusPageMonitorRuleEngineService.syncRulesForMonitor({
+        monitorId: MONITOR_A_ID,
+      });
+
+    expect(results).toEqual([]);
+    expect(resourceCreateSpy).not.toHaveBeenCalled();
   });
 
   it("does nothing when no project id can be resolved at all", async () => {

@@ -4,6 +4,8 @@ import StatusPageMonitorRule from "../../Models/DatabaseModels/StatusPageMonitor
 import StatusPageResource from "../../Models/DatabaseModels/StatusPageResource";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import ObjectID from "../../Types/ObjectID";
+import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
+import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import MonitorService from "./MonitorService";
@@ -17,10 +19,23 @@ import StatusPageResourceService from "./StatusPageResourceService";
 export interface StatusPageMonitorRuleSyncResult {
   monitorIdsAdded: Array<string>;
   statusPageResourceIdsRemoved: Array<string>;
+  statusPageResourceIdsUpdated: Array<string>;
+  /*
+   * The monitors whose resources this pass removed. Same event as
+   * statusPageResourceIdsRemoved, keyed by monitor instead of by resource,
+   * because the caller's next question is "does another rule still want this
+   * monitor" and that is asked by monitor id.
+   */
+  monitorIdsReleased: Array<string>;
 }
 
 function emptyResult(): StatusPageMonitorRuleSyncResult {
-  return { monitorIdsAdded: [], statusPageResourceIdsRemoved: [] };
+  return {
+    monitorIdsAdded: [],
+    statusPageResourceIdsRemoved: [],
+    statusPageResourceIdsUpdated: [],
+    monitorIdsReleased: [],
+  };
 }
 
 function toIdSet(
@@ -117,10 +132,43 @@ export class StatusPageMonitorRuleEngineServiceClass {
       ? await this.findMatchingMonitors({ rule: rule })
       : [];
 
-    return await this.writeMembership({
+    const result: StatusPageMonitorRuleSyncResult = await this.writeMembership({
       rule: rule,
       matchedMonitors: matchedMonitors,
+      /*
+       * This entry point runs because the rule itself changed, so it is the
+       * one that re-homes and re-styles the resources the rule already owns.
+       * The monitor-side path deliberately does not: nothing about the rule
+       * moved there, and reconciling on an unrelated monitor edit would
+       * silently revert per-resource tweaks at a surprising moment.
+       */
+      reconcileOwnedResources: true,
     });
+
+    /*
+     * A monitor this rule just released may still be claimed by another rule
+     * on the same page — narrowing this rule does not mean the monitor should
+     * vanish from the page. Re-running the monitor-side sync for each released
+     * monitor lets whichever other rule still wants it pick it up.
+     *
+     * Bounded: syncRulesForMonitor only calls writeMembership, never back into
+     * this method, so there is no cycle.
+     */
+    for (const monitorId of result.monitorIdsReleased) {
+      try {
+        await this.syncRulesForMonitor({
+          monitorId: new ObjectID(monitorId),
+          projectId: rule.projectId,
+        });
+      } catch (error) {
+        logger.error(
+          `Error re-homing monitor ${monitorId} after status page monitor rule ${rule.id.toString()} released it: ${error}`,
+          { projectId: rule.projectId.toString() } as LogAttributes,
+        );
+      }
+    }
+
+    return result;
   }
 
   /**
@@ -176,46 +224,64 @@ export class StatusPageMonitorRuleEngineServiceClass {
 
     const results: Array<StatusPageMonitorRuleSyncResult> = [];
 
-    for (const rule of rules) {
-      if (!rule.id || !rule.statusPageId) {
-        continue;
-      }
-
-      const doesMatch: boolean = this.doesMonitorMatchRule({
-        monitor: monitor,
-        rule: rule,
-      });
-
-      try {
-        const result: StatusPageMonitorRuleSyncResult =
-          await this.writeMembership({
-            rule: rule,
-            matchedMonitors: doesMatch ? [monitor] : [],
-            /*
-             * Only this monitor's membership is in question. Every other
-             * resource the rule owns is left exactly where it is.
-             */
-            restrictToMonitorId: monitor.id,
-          });
-
-        if (
-          result.monitorIdsAdded.length > 0 ||
-          result.statusPageResourceIdsRemoved.length > 0
-        ) {
-          results.push(result);
+    /*
+     * Two passes, removals before additions, and the order matters.
+     *
+     * Two rules on the same page can match the same monitor; only the first
+     * one to see it creates the resource, and the page shows it once. If the
+     * monitor then stops matching the OWNING rule but still matches the other,
+     * a single interleaved pass gives an order-dependent answer: evaluate the
+     * still-matching rule first and it skips the add (the monitor is still on
+     * the page), then the owning rule deletes — and the monitor silently
+     * disappears from a public page even though a rule still claims it.
+     *
+     * Draining the removals first means the addition pass sees the page as it
+     * will actually be, so whichever rule still claims the monitor picks it up.
+     */
+    for (const skipAdds of [true, false]) {
+      for (const rule of rules) {
+        if (!rule.id || !rule.statusPageId) {
+          continue;
         }
-      } catch (error) {
-        /*
-         * One rule failing must not stop the others: the monitor has already
-         * changed, and half a sync is better than none.
-         */
-        logger.error(
-          `Error syncing status page monitor rule ${rule.id.toString()} for monitor ${monitor.id.toString()}: ${error}`,
-          {
-            projectId: projectId.toString(),
-            monitorId: monitor.id.toString(),
-          } as LogAttributes,
-        );
+
+        const doesMatch: boolean = this.doesMonitorMatchRule({
+          monitor: monitor,
+          rule: rule,
+        });
+
+        try {
+          const result: StatusPageMonitorRuleSyncResult =
+            await this.writeMembership({
+              rule: rule,
+              matchedMonitors: doesMatch ? [monitor] : [],
+              /*
+               * Only this monitor's membership is in question. Every other
+               * resource the rule owns is left exactly where it is.
+               */
+              restrictToMonitorId: monitor.id,
+              skipAdds: skipAdds,
+              skipRemoves: !skipAdds,
+            });
+
+          if (
+            result.monitorIdsAdded.length > 0 ||
+            result.statusPageResourceIdsRemoved.length > 0
+          ) {
+            results.push(result);
+          }
+        } catch (error) {
+          /*
+           * One rule failing must not stop the others: the monitor has already
+           * changed, and half a sync is better than none.
+           */
+          logger.error(
+            `Error syncing status page monitor rule ${rule.id.toString()} for monitor ${monitor.id.toString()}: ${error}`,
+            {
+              projectId: projectId.toString(),
+              monitorId: monitor.id.toString(),
+            } as LogAttributes,
+          );
+        }
       }
     }
 
@@ -273,6 +339,12 @@ export class StatusPageMonitorRuleEngineServiceClass {
    * nothing — silently putting the entire project on a public status page is
    * not a reasonable reading of an empty form. Users who genuinely want that
    * write `.*` as the name pattern.
+   *
+   * Pattern matching goes through RulePatternMatchUtil, the same matcher the
+   * network device rules use, so a pattern means the same thing everywhere in
+   * the product: a case-insensitive regex, or a `*` wildcard glob. Rolling a
+   * private regex test here would have reintroduced #2940 — a user typing
+   * `*api*` (a glob, not a regex) gets a rule that silently matches nothing.
    */
   public doesMonitorMatchRule(data: {
     monitor: Monitor;
@@ -312,8 +384,7 @@ export class StatusPageMonitorRuleEngineServiceClass {
 
     if (hasNameCriteria) {
       if (
-        !monitor.name ||
-        !this.testRegex(rule.monitorNamePattern!, monitor.name, rule)
+        !RulePatternMatchUtil.matches(monitor.name, rule.monitorNamePattern)
       ) {
         return false;
       }
@@ -321,11 +392,9 @@ export class StatusPageMonitorRuleEngineServiceClass {
 
     if (hasDescriptionCriteria) {
       if (
-        !monitor.description ||
-        !this.testRegex(
-          rule.monitorDescriptionPattern!,
+        !RulePatternMatchUtil.matches(
           monitor.description,
-          rule,
+          rule.monitorDescriptionPattern,
         )
       ) {
         return false;
@@ -417,11 +486,18 @@ export class StatusPageMonitorRuleEngineServiceClass {
    * `restrictToMonitorId` narrows both halves to a single monitor, for the
    * monitor-side entry point where every other monitor's membership is
    * unchanged and re-deriving it would be wasted work.
+   *
+   * `reconcileOwnedResources` additionally drags resources the rule already
+   * owns back into line with the rule — see reconcileResource. Only the
+   * rule-side entry point asks for it.
    */
   private async writeMembership(data: {
     rule: StatusPageMonitorRule;
     matchedMonitors: Array<Monitor>;
     restrictToMonitorId?: ObjectID | undefined;
+    reconcileOwnedResources?: boolean | undefined;
+    skipAdds?: boolean | undefined;
+    skipRemoves?: boolean | undefined;
   }): Promise<StatusPageMonitorRuleSyncResult> {
     const { rule, matchedMonitors, restrictToMonitorId } = data;
 
@@ -438,6 +514,11 @@ export class StatusPageMonitorRuleEngineServiceClass {
           _id: true,
           monitorId: true,
           statusPageMonitorRuleId: true,
+          statusPageGroupId: true,
+          showCurrentStatus: true,
+          showUptimePercent: true,
+          uptimePercentPrecision: true,
+          showStatusHistoryChart: true,
         },
         limit: LIMIT_PER_PROJECT,
         skip: 0,
@@ -470,46 +551,86 @@ export class StatusPageMonitorRuleEngineServiceClass {
 
     const monitorIdsAdded: Array<string> = [];
     const statusPageResourceIdsRemoved: Array<string> = [];
-
-    // Add: matched monitors that are not on the page at all yet.
-    for (const monitor of matchedMonitors) {
-      const monitorId: string = monitor.id?.toString() || "";
-
-      if (!monitorId || monitorIdsOnPage.has(monitorId)) {
-        continue;
-      }
-
-      await this.createResource({ rule: rule, monitor: monitor });
-      monitorIdsAdded.push(monitorId);
-    }
+    const statusPageResourceIdsUpdated: Array<string> = [];
+    const monitorIdsReleased: Array<string> = [];
 
     // Remove: resources this rule owns whose monitor it no longer claims.
-    for (const [monitorId, resource] of ownedResourcesByMonitorId) {
-      if (matchedMonitorIds.has(monitorId)) {
-        continue;
+    if (!data.skipRemoves) {
+      for (const [monitorId, resource] of ownedResourcesByMonitorId) {
+        if (matchedMonitorIds.has(monitorId)) {
+          continue;
+        }
+
+        if (
+          restrictToMonitorId &&
+          restrictToMonitorId.toString() !== monitorId
+        ) {
+          continue;
+        }
+
+        if (!resource.id) {
+          continue;
+        }
+
+        await StatusPageResourceService.deleteOneById({
+          id: resource.id,
+          props: {
+            isRoot: true,
+          },
+        });
+
+        statusPageResourceIdsRemoved.push(resource.id.toString());
+        monitorIdsReleased.push(monitorId);
+        monitorIdsOnPage.delete(monitorId);
       }
-
-      if (restrictToMonitorId && restrictToMonitorId.toString() !== monitorId) {
-        continue;
-      }
-
-      if (!resource.id) {
-        continue;
-      }
-
-      await StatusPageResourceService.deleteOneById({
-        id: resource.id,
-        props: {
-          isRoot: true,
-        },
-      });
-
-      statusPageResourceIdsRemoved.push(resource.id.toString());
     }
 
-    if (monitorIdsAdded.length > 0 || statusPageResourceIdsRemoved.length > 0) {
+    /*
+     * Add: matched monitors that are not on the page at all yet.
+     *
+     * "Not on the page" and not merely "not owned by this rule" — a monitor a
+     * human already added, or that another rule added, must not get a second
+     * resource, because the public page would then list it twice.
+     */
+    if (!data.skipAdds) {
+      for (const monitor of matchedMonitors) {
+        const monitorId: string = monitor.id?.toString() || "";
+
+        if (!monitorId || monitorIdsOnPage.has(monitorId)) {
+          continue;
+        }
+
+        await this.createResource({ rule: rule, monitor: monitor });
+        monitorIdsAdded.push(monitorId);
+      }
+    }
+
+    /*
+     * Reconcile: resources the rule still owns and still claims are dragged
+     * back into line with the rule. Without this, editing "Add Monitors To
+     * Group" (or any display option) silently does nothing to the monitors the
+     * rule already added - it would only apply to ones it adds in future,
+     * which is not what changing a rule looks like it should do.
+     */
+    if (data.reconcileOwnedResources) {
+      for (const [monitorId, resource] of ownedResourcesByMonitorId) {
+        if (!matchedMonitorIds.has(monitorId) || !resource.id) {
+          continue;
+        }
+
+        if (await this.reconcileResource({ rule: rule, resource: resource })) {
+          statusPageResourceIdsUpdated.push(resource.id.toString());
+        }
+      }
+    }
+
+    if (
+      monitorIdsAdded.length > 0 ||
+      statusPageResourceIdsRemoved.length > 0 ||
+      statusPageResourceIdsUpdated.length > 0
+    ) {
       logger.debug(
-        `Status page monitor rule ${rule.id.toString()} synced status page ${rule.statusPageId.toString()}: +${monitorIdsAdded.length} / -${statusPageResourceIdsRemoved.length} resources`,
+        `Status page monitor rule ${rule.id.toString()} synced status page ${rule.statusPageId.toString()}: +${monitorIdsAdded.length} / -${statusPageResourceIdsRemoved.length} / ~${statusPageResourceIdsUpdated.length} resources`,
         { projectId: rule.projectId.toString() } as LogAttributes,
       );
     }
@@ -517,7 +638,73 @@ export class StatusPageMonitorRuleEngineServiceClass {
     return {
       monitorIdsAdded: monitorIdsAdded,
       statusPageResourceIdsRemoved: statusPageResourceIdsRemoved,
+      statusPageResourceIdsUpdated: statusPageResourceIdsUpdated,
+      monitorIdsReleased: monitorIdsReleased,
     };
+  }
+
+  /**
+   * Brings one rule-owned resource back into line with its rule, and reports
+   * whether anything actually changed.
+   *
+   * Only the fields the rule owns are considered — the group it places
+   * monitors in and the display options it sets. displayName is deliberately
+   * not among them: it is seeded from the monitor at creation time and then
+   * belongs to the status page, so renaming a monitor does not rewrite a
+   * display name someone may have polished for customers.
+   *
+   * Writes nothing when the resource already agrees, so re-running a rule that
+   * did not change costs a read and no writes.
+   */
+  private async reconcileResource(data: {
+    rule: StatusPageMonitorRule;
+    resource: StatusPageResource;
+  }): Promise<boolean> {
+    const { rule, resource } = data;
+
+    if (!resource.id) {
+      return false;
+    }
+
+    const desiredGroupId: string = rule.statusPageGroupId?.toString() || "";
+    const currentGroupId: string = resource.statusPageGroupId?.toString() || "";
+
+    const desired: {
+      statusPageGroupId: ObjectID | null;
+      showCurrentStatus: boolean;
+      showUptimePercent: boolean;
+      showStatusHistoryChart: boolean;
+      uptimePercentPrecision: UptimePrecision | null;
+    } = {
+      statusPageGroupId: rule.statusPageGroupId || null,
+      showCurrentStatus: rule.showCurrentStatus ?? true,
+      showUptimePercent: rule.showUptimePercent ?? true,
+      showStatusHistoryChart: rule.showStatusHistoryChart ?? true,
+      uptimePercentPrecision: rule.uptimePercentPrecision || null,
+    };
+
+    const isSame: boolean =
+      desiredGroupId === currentGroupId &&
+      desired.showCurrentStatus === (resource.showCurrentStatus ?? true) &&
+      desired.showUptimePercent === (resource.showUptimePercent ?? true) &&
+      desired.showStatusHistoryChart ===
+        (resource.showStatusHistoryChart ?? true) &&
+      desired.uptimePercentPrecision ===
+        (resource.uptimePercentPrecision || null);
+
+    if (isSame) {
+      return false;
+    }
+
+    await StatusPageResourceService.updateOneById({
+      id: resource.id,
+      data: desired as never,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return true;
   }
 
   private async createResource(data: {
@@ -559,22 +746,6 @@ export class StatusPageMonitorRuleEngineServiceClass {
         isRoot: true,
       },
     });
-  }
-
-  private testRegex(
-    pattern: string,
-    value: string,
-    rule: StatusPageMonitorRule,
-  ): boolean {
-    try {
-      const regex: RegExp = new RegExp(pattern, "i");
-      return regex.test(value);
-    } catch {
-      logger.warn(
-        `Invalid regex in status page monitor rule ${rule.id?.toString()}: ${pattern}`,
-      );
-      return false;
-    }
   }
 }
 

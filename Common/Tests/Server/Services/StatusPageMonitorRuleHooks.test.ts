@@ -7,8 +7,15 @@ import MonitorFeedService from "../../../Server/Services/MonitorFeedService";
 import MonitorService from "../../../Server/Services/MonitorService";
 import ServiceLevelObjectiveMonitorRuleEngineService from "../../../Server/Services/ServiceLevelObjectiveMonitorRuleEngineService";
 import ServiceLevelObjectiveService from "../../../Server/Services/ServiceLevelObjectiveService";
-import StatusPageMonitorRuleEngineService from "../../../Server/Services/StatusPageMonitorRuleEngineService";
+import StatusPageMonitorRuleEngineService, {
+  StatusPageMonitorRuleSyncResult,
+} from "../../../Server/Services/StatusPageMonitorRuleEngineService";
 import StatusPageMonitorRuleService from "../../../Server/Services/StatusPageMonitorRuleService";
+import StatusPageGroupService from "../../../Server/Services/StatusPageGroupService";
+import StatusPageResourceService from "../../../Server/Services/StatusPageResourceService";
+import StatusPageResource from "../../../Models/DatabaseModels/StatusPageResource";
+import ProjectScopedReferenceValidator from "../../../Server/Utils/Database/ProjectScopedReferenceValidator";
+import StatusPageGroup from "../../../Models/DatabaseModels/StatusPageGroup";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import DeleteBy from "../../../Server/Types/Database/DeleteBy";
 import {
@@ -58,6 +65,10 @@ const RULE_ID: ObjectID = new ObjectID("11111111-1111-4111-8111-111111111111");
 const OTHER_RULE_ID: ObjectID = new ObjectID(
   "1a1a1a1a-1a1a-4a1a-8a1a-1a1a1a1a1a1a",
 );
+const OTHER_STATUS_PAGE_ID: ObjectID = new ObjectID(
+  "34343434-3434-4434-8434-343434343434",
+);
+const GROUP_ID: ObjectID = new ObjectID("44444444-4444-4444-8444-444444444444");
 
 // Calls a protected hook without widening the service's public surface.
 function callHook(
@@ -124,6 +135,15 @@ function fakeMonitorRow(): Monitor {
 
 function fakeLabelRow(id: ObjectID): Label {
   return { id: id, _id: id.toString(), name: "Production" } as unknown as Label;
+}
+
+function emptySyncResult(): StatusPageMonitorRuleSyncResult {
+  return {
+    monitorIdsAdded: [],
+    statusPageResourceIdsRemoved: [],
+    statusPageResourceIdsUpdated: [],
+    monitorIdsReleased: [],
+  };
 }
 
 function fakeRuleRow(id: ObjectID): StatusPageMonitorRule {
@@ -280,10 +300,7 @@ describe("LabelService delete hooks - a deleted label must not strand resources"
   beforeEach(() => {
     syncResourcesForRuleSpy = jest
       .spyOn(StatusPageMonitorRuleEngineService, "syncResourcesForRule")
-      .mockResolvedValue({
-        monitorIdsAdded: [],
-        statusPageResourceIdsRemoved: [],
-      });
+      .mockResolvedValue(emptySyncResult());
 
     jest
       .spyOn(
@@ -302,6 +319,48 @@ describe("LabelService delete hooks - a deleted label must not strand resources"
 
   afterEach(() => {
     jest.restoreAllMocks();
+  });
+
+  /*
+   * The return is mocked, so the QUERY is what decides production behaviour:
+   * ask for the wrong thing and the hook re-runs the wrong rules (or none).
+   */
+  it("looks the rules up by the labels the delete actually matched", async () => {
+    await callHook(LabelService, "onBeforeDelete", {
+      query: { _id: LABEL_ID.toString() },
+      props: { isRoot: true },
+    });
+
+    const call: { query: { monitorLabels: Array<ObjectID> } } = ruleFindBySpy
+      .mock.calls[0]![0] as { query: { monitorLabels: Array<ObjectID> } };
+
+    expect(
+      call.query.monitorLabels.map((id: ObjectID) => {
+        return id.toString();
+      }),
+    ).toEqual([LABEL_ID.toString()]);
+  });
+
+  it("does not go looking for rules when the delete matched no labels", async () => {
+    jest.spyOn(LabelService, "findBy").mockResolvedValue([]);
+
+    await callHook(LabelService, "onBeforeDelete", {
+      query: { _id: LABEL_ID.toString() },
+      props: { isRoot: true },
+    });
+
+    expect(ruleFindBySpy).not.toHaveBeenCalled();
+  });
+
+  it("tolerates a label delete that carried nothing forward", async () => {
+    await expect(
+      callHook(LabelService, "onDeleteSuccess", {
+        deleteBy: {} as unknown as DeleteBy<Label>,
+        carryForward: null,
+      } as OnDelete<Label>),
+    ).resolves.toBeDefined();
+
+    expect(syncResourcesForRuleSpy).not.toHaveBeenCalled();
   });
 
   it("notes down the rules that used the label while it still exists", async () => {
@@ -367,6 +426,17 @@ describe("LabelService delete hooks - a deleted label must not strand resources"
 });
 
 describe("StatusPageMonitorRuleService.onBeforeCreate - refusing an ambiguous rule", () => {
+  beforeEach(() => {
+    // Reference scoping is exercised in its own describe below.
+    jest
+      .spyOn(
+        ProjectScopedReferenceValidator,
+        "validateReferencesBelongToProject",
+      )
+      .mockResolvedValue(undefined);
+    jest.spyOn(StatusPageGroupService, "findOneById").mockResolvedValue(null);
+  });
+
   afterEach(() => {
     jest.restoreAllMocks();
   });
@@ -461,7 +531,7 @@ describe("StatusPageMonitorRuleService.onBeforeCreate - refusing an ambiguous ru
     ).rejects.toThrow(BadDataException);
   });
 
-  it("rejects a description pattern that is not a valid regex", async () => {
+  it("rejects a description pattern that is neither a regex nor a glob", async () => {
     await expect(
       callHook(
         StatusPageMonitorRuleService,
@@ -469,10 +539,43 @@ describe("StatusPageMonitorRuleService.onBeforeCreate - refusing an ambiguous ru
         ruleCreate({
           statusPageId: STATUS_PAGE_ID,
           name: "Broken",
-          monitorDescriptionPattern: "*nope",
+          monitorDescriptionPattern: "tier-(1",
         }),
       ),
     ).rejects.toThrow(BadDataException);
+  });
+
+  /*
+   * #2940: `*api*` is not a valid regex ("Nothing to repeat"), but it is the
+   * syntax the sibling network device rules take and the one people reach for.
+   * Rejecting it - or accepting it and matching nothing - is the bug.
+   */
+  it("accepts a `*` wildcard glob, the other syntax rules take", async () => {
+    await expect(
+      callHook(
+        StatusPageMonitorRuleService,
+        "onBeforeCreate",
+        ruleCreate({
+          statusPageId: STATUS_PAGE_ID,
+          name: "Checkout",
+          monitorNamePattern: "*checkout*",
+        }),
+      ),
+    ).resolves.toBeDefined();
+  });
+
+  it("points at both accepted syntaxes when it rejects a pattern", async () => {
+    await expect(
+      callHook(
+        StatusPageMonitorRuleService,
+        "onBeforeCreate",
+        ruleCreate({
+          statusPageId: STATUS_PAGE_ID,
+          name: "Broken",
+          monitorNamePattern: "api-(01",
+        }),
+      ),
+    ).rejects.toThrow(/wildcard/);
   });
 });
 
@@ -480,17 +583,22 @@ describe("StatusPageMonitorRuleService write hooks - running the rule", () => {
   let syncResourcesForRuleSpy: jest.SpyInstance;
   let removeResourcesSpy: jest.SpyInstance;
   let ruleFindBySpy: jest.SpyInstance;
+  let syncRulesForMonitorSpy: jest.SpyInstance;
+  let resourceDeleteSpy: jest.SpyInstance;
 
   beforeEach(() => {
     syncResourcesForRuleSpy = jest
       .spyOn(StatusPageMonitorRuleEngineService, "syncResourcesForRule")
-      .mockResolvedValue({
-        monitorIdsAdded: [],
-        statusPageResourceIdsRemoved: [],
-      });
+      .mockResolvedValue(emptySyncResult());
     removeResourcesSpy = jest
       .spyOn(StatusPageMonitorRuleEngineService, "removeResourcesAddedByRule")
       .mockResolvedValue([]);
+    syncRulesForMonitorSpy = jest
+      .spyOn(StatusPageMonitorRuleEngineService, "syncRulesForMonitor")
+      .mockResolvedValue([]);
+    resourceDeleteSpy = jest
+      .spyOn(StatusPageResourceService, "deleteOneById")
+      .mockResolvedValue(1);
     ruleFindBySpy = jest
       .spyOn(StatusPageMonitorRuleService, "findBy")
       .mockResolvedValue([fakeRuleRow(RULE_ID)]);
@@ -650,16 +758,17 @@ describe("StatusPageMonitorRuleService write hooks - running the rule", () => {
     expect(ruleFindBySpy).not.toHaveBeenCalled();
   });
 
-  /*
-   * Deleting a rule has to undo it. The removal runs while the rule row still
-   * exists so it goes through StatusPageResourceService rather than through
-   * the foreign key's cascade.
-   */
-  it("removes the resources a rule added before the rule is deleted", async () => {
-    await callHook(StatusPageMonitorRuleService, "onBeforeDelete", {
-      query: { _id: RULE_ID.toString() },
-      props: { isRoot: true },
-    } as DeleteBy<StatusPageMonitorRule>);
+  // Deleting a rule has to undo it: the resources it added go with it.
+  it("removes the resources a rule added when the rule is deleted", async () => {
+    await callHook(
+      StatusPageMonitorRuleService,
+      "onDeleteSuccess",
+      {
+        deleteBy: {} as unknown as DeleteBy<StatusPageMonitorRule>,
+        carryForward: null,
+      },
+      [RULE_ID],
+    );
 
     expect(removeResourcesSpy).toHaveBeenCalledWith({
       statusPageMonitorRuleId: RULE_ID,
@@ -667,27 +776,437 @@ describe("StatusPageMonitorRuleService write hooks - running the rule", () => {
   });
 
   it("undoes every rule a bulk delete covers", async () => {
-    ruleFindBySpy.mockResolvedValue([
-      fakeRuleRow(RULE_ID),
-      fakeRuleRow(OTHER_RULE_ID),
-    ]);
-
-    await callHook(StatusPageMonitorRuleService, "onBeforeDelete", {
-      query: { statusPageId: STATUS_PAGE_ID },
-      props: { isRoot: true },
-    } as DeleteBy<StatusPageMonitorRule>);
+    await callHook(
+      StatusPageMonitorRuleService,
+      "onDeleteSuccess",
+      {
+        deleteBy: {} as unknown as DeleteBy<StatusPageMonitorRule>,
+        carryForward: null,
+      },
+      [RULE_ID, OTHER_RULE_ID],
+    );
 
     expect(removeResourcesSpy).toHaveBeenCalledTimes(2);
   });
 
-  it("still deletes the rule when the cleanup throws", async () => {
+  it("still reports the delete as done when the cleanup throws", async () => {
     removeResourcesSpy.mockRejectedValue(new Error("db down"));
 
     await expect(
-      callHook(StatusPageMonitorRuleService, "onBeforeDelete", {
-        query: { _id: RULE_ID.toString() },
-        props: { isRoot: true },
-      } as DeleteBy<StatusPageMonitorRule>),
+      callHook(
+        StatusPageMonitorRuleService,
+        "onDeleteSuccess",
+        {
+          deleteBy: {} as unknown as DeleteBy<StatusPageMonitorRule>,
+          carryForward: null,
+        },
+        [RULE_ID],
+      ),
     ).resolves.toBeDefined();
+  });
+
+  /*
+   * The security property behind doing the destructive work in
+   * onDeleteSuccess.
+   *
+   * DatabaseService runs onBeforeDelete BEFORE checkDeleteQueryPermission, so
+   * a hook there sees the caller's raw, un-tenant-scoped query. A destructive
+   * root-privileged pass over it would let anyone delete another project's
+   * status page resources just by naming that project's rule id - the
+   * permission check would then reject the rule delete, far too late.
+   *
+   * onBeforeDelete may therefore only READ, and only through the caller's own
+   * props. onDeleteSuccess is handed the ids that survived the permission
+   * check, which is where anything destructive belongs.
+   */
+  it("destroys nothing from onBeforeDelete, which runs before the permission check", async () => {
+    jest.spyOn(StatusPageResourceService, "findBy").mockResolvedValue([]);
+
+    await callHook(StatusPageMonitorRuleService, "onBeforeDelete", {
+      query: { _id: RULE_ID.toString() },
+      props: { isRoot: false, tenantId: PROJECT_ID },
+    } as unknown as DeleteBy<StatusPageMonitorRule>);
+
+    expect(removeResourcesSpy).not.toHaveBeenCalled();
+    expect(resourceDeleteSpy).not.toHaveBeenCalled();
+  });
+
+  it("reads the doomed rules through the caller's own props, never as root", async () => {
+    jest.spyOn(StatusPageResourceService, "findBy").mockResolvedValue([]);
+
+    await callHook(StatusPageMonitorRuleService, "onBeforeDelete", {
+      query: { _id: RULE_ID.toString() },
+      props: { isRoot: false, tenantId: PROJECT_ID },
+    } as unknown as DeleteBy<StatusPageMonitorRule>);
+
+    const call: { props: { isRoot?: boolean; tenantId?: ObjectID } } =
+      ruleFindBySpy.mock.calls[0]![0] as {
+        props: { isRoot?: boolean; tenantId?: ObjectID };
+      };
+
+    expect(call.props.isRoot).toBe(false);
+    expect(call.props.tenantId).toEqual(PROJECT_ID);
+  });
+
+  /*
+   * Deleting a rule and disabling one are the same intent, so they must leave
+   * the same page. Disabling routes through syncResourcesForRule, which offers
+   * each released monitor to the other rules; deleting has to do the same, or
+   * a monitor a sibling rule still claims silently drops off a public page.
+   *
+   * The monitor ids have to be captured BEFORE the delete: the foreign key is
+   * ON DELETE CASCADE, so by onDeleteSuccess the resources naming them are
+   * already gone.
+   */
+  it("notes down the monitors a doomed rule publishes, before the cascade takes them", async () => {
+    jest.spyOn(StatusPageResourceService, "findBy").mockResolvedValue([
+      {
+        monitorId: MONITOR_ID,
+      } as unknown as StatusPageResource,
+    ]);
+
+    const onDelete: OnDelete<StatusPageMonitorRule> = (await callHook(
+      StatusPageMonitorRuleService,
+      "onBeforeDelete",
+      {
+        query: { _id: RULE_ID.toString() },
+        props: { isRoot: false, tenantId: PROJECT_ID },
+      } as unknown as DeleteBy<StatusPageMonitorRule>,
+    )) as OnDelete<StatusPageMonitorRule>;
+
+    expect(
+      (
+        onDelete.carryForward as {
+          monitorIdsByRuleId: Record<string, Array<string>>;
+        }
+      ).monitorIdsByRuleId[RULE_ID.toString()],
+    ).toEqual([MONITOR_ID.toString()]);
+  });
+
+  it("offers those monitors to the surviving rules once the rule is gone", async () => {
+    await callHook(
+      StatusPageMonitorRuleService,
+      "onDeleteSuccess",
+      {
+        deleteBy: {
+          props: { tenantId: PROJECT_ID },
+        } as unknown as DeleteBy<StatusPageMonitorRule>,
+        carryForward: {
+          monitorIdsByRuleId: {
+            [RULE_ID.toString()]: [MONITOR_ID.toString()],
+          },
+        },
+      },
+      [RULE_ID],
+    );
+
+    expect(syncRulesForMonitorSpy).toHaveBeenCalledTimes(1);
+    const call: { monitorId: ObjectID } = syncRulesForMonitorSpy.mock
+      .calls[0]![0] as { monitorId: ObjectID };
+    expect(call.monitorId.toString()).toBe(MONITOR_ID.toString());
+  });
+
+  it("only re-homes monitors belonging to rules the delete actually removed", async () => {
+    await callHook(
+      StatusPageMonitorRuleService,
+      "onDeleteSuccess",
+      {
+        deleteBy: {
+          props: { tenantId: PROJECT_ID },
+        } as unknown as DeleteBy<StatusPageMonitorRule>,
+        carryForward: {
+          monitorIdsByRuleId: {
+            [RULE_ID.toString()]: [MONITOR_ID.toString()],
+            // A rule the permission check rejected; nothing was deleted for it.
+            [OTHER_RULE_ID.toString()]: [OTHER_MONITOR_ID.toString()],
+          },
+        },
+      },
+      [RULE_ID],
+    );
+
+    expect(syncRulesForMonitorSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("still finishes the delete when the re-homing throws", async () => {
+    syncRulesForMonitorSpy.mockRejectedValue(new Error("db down"));
+
+    await expect(
+      callHook(
+        StatusPageMonitorRuleService,
+        "onDeleteSuccess",
+        {
+          deleteBy: {
+            props: { tenantId: PROJECT_ID },
+          } as unknown as DeleteBy<StatusPageMonitorRule>,
+          carryForward: {
+            monitorIdsByRuleId: {
+              [RULE_ID.toString()]: [MONITOR_ID.toString()],
+            },
+          },
+        },
+        [RULE_ID],
+      ),
+    ).resolves.toBeDefined();
+  });
+
+  it("tolerates a delete that carried nothing forward", async () => {
+    await expect(
+      callHook(
+        StatusPageMonitorRuleService,
+        "onDeleteSuccess",
+        {
+          deleteBy: {} as unknown as DeleteBy<StatusPageMonitorRule>,
+          carryForward: null,
+        },
+        [RULE_ID],
+      ),
+    ).resolves.toBeDefined();
+
+    expect(syncRulesForMonitorSpy).not.toHaveBeenCalled();
+  });
+
+  it("still deletes the rule when noting the monitors down fails", async () => {
+    ruleFindBySpy.mockRejectedValue(new Error("db down"));
+
+    const onDelete: OnDelete<StatusPageMonitorRule> = (await callHook(
+      StatusPageMonitorRuleService,
+      "onBeforeDelete",
+      {
+        query: { _id: RULE_ID.toString() },
+        props: { isRoot: false, tenantId: PROJECT_ID },
+      } as unknown as DeleteBy<StatusPageMonitorRule>,
+    )) as OnDelete<StatusPageMonitorRule>;
+
+    expect(
+      (
+        onDelete.carryForward as {
+          monitorIdsByRuleId: Record<string, Array<string>>;
+        }
+      ).monitorIdsByRuleId,
+    ).toEqual({});
+  });
+});
+
+/*
+ * A rule decides what shows up on a PUBLIC page, so the two ids it carries -
+ * the status page it is for and the group it drops monitors into - are the
+ * ones worth checking. Neither is validated by the framework.
+ */
+describe("StatusPageMonitorRuleService - keeping a rule's references in scope", () => {
+  let validatorSpy: jest.SpyInstance;
+  let groupFindOneByIdSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    validatorSpy = jest
+      .spyOn(
+        ProjectScopedReferenceValidator,
+        "validateReferencesBelongToProject",
+      )
+      .mockResolvedValue(undefined);
+    groupFindOneByIdSpy = jest
+      .spyOn(StatusPageGroupService, "findOneById")
+      .mockResolvedValue(null);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("checks the status page and the group against the caller's project", async () => {
+    await callHook(
+      StatusPageMonitorRuleService,
+      "onBeforeCreate",
+      ruleCreate({
+        statusPageId: STATUS_PAGE_ID,
+        statusPageGroupId: GROUP_ID,
+        name: "Production",
+        monitorNamePattern: ".*",
+      }),
+    );
+
+    const call: {
+      projectId: ObjectID;
+      references: Array<{ modelName: string; id: unknown }>;
+    } = validatorSpy.mock.calls[0]![0] as {
+      projectId: ObjectID;
+      references: Array<{ modelName: string; id: unknown }>;
+    };
+
+    expect(call.projectId).toEqual(PROJECT_ID);
+    expect(
+      call.references.map((r: { modelName: string }) => {
+        return r.modelName;
+      }),
+    ).toEqual(["Status Page", "Status Page Group"]);
+  });
+
+  it("refuses a rule whose status page belongs to another project", async () => {
+    validatorSpy.mockRejectedValue(
+      new BadDataException("Status Page belongs to another project"),
+    );
+
+    await expect(
+      callHook(
+        StatusPageMonitorRuleService,
+        "onBeforeCreate",
+        ruleCreate({
+          statusPageId: STATUS_PAGE_ID,
+          name: "Cross tenant",
+          monitorNamePattern: ".*",
+        }),
+      ),
+    ).rejects.toThrow(BadDataException);
+  });
+
+  /*
+   * A group on a different status page renders nowhere: the page only draws
+   * its own groups. The rule would look configured and add nothing visible.
+   */
+  it("refuses a group that belongs to a different status page", async () => {
+    groupFindOneByIdSpy.mockResolvedValue({
+      id: GROUP_ID,
+      _id: GROUP_ID.toString(),
+      statusPageId: OTHER_STATUS_PAGE_ID,
+    } as unknown as StatusPageGroup);
+
+    await expect(
+      callHook(
+        StatusPageMonitorRuleService,
+        "onBeforeCreate",
+        ruleCreate({
+          statusPageId: STATUS_PAGE_ID,
+          statusPageGroupId: GROUP_ID,
+          name: "Wrong page",
+          monitorNamePattern: ".*",
+        }),
+      ),
+    ).rejects.toThrow(BadDataException);
+  });
+
+  it("accepts a group that belongs to the rule's own status page", async () => {
+    groupFindOneByIdSpy.mockResolvedValue({
+      id: GROUP_ID,
+      _id: GROUP_ID.toString(),
+      statusPageId: STATUS_PAGE_ID,
+    } as unknown as StatusPageGroup);
+
+    await expect(
+      callHook(
+        StatusPageMonitorRuleService,
+        "onBeforeCreate",
+        ruleCreate({
+          statusPageId: STATUS_PAGE_ID,
+          statusPageGroupId: GROUP_ID,
+          name: "Right page",
+          monitorNamePattern: ".*",
+        }),
+      ),
+    ).resolves.toBeDefined();
+  });
+
+  it("leaves a group id that matches no row to the foreign key to reject", async () => {
+    groupFindOneByIdSpy.mockResolvedValue(null);
+
+    await expect(
+      callHook(
+        StatusPageMonitorRuleService,
+        "onBeforeCreate",
+        ruleCreate({
+          statusPageId: STATUS_PAGE_ID,
+          statusPageGroupId: GROUP_ID,
+          name: "Dangling",
+          monitorNamePattern: ".*",
+        }),
+      ),
+    ).resolves.toBeDefined();
+  });
+
+  it("does not look up a group when the rule names none", async () => {
+    await callHook(
+      StatusPageMonitorRuleService,
+      "onBeforeCreate",
+      ruleCreate({
+        statusPageId: STATUS_PAGE_ID,
+        name: "Ungrouped",
+        monitorNamePattern: ".*",
+      }),
+    );
+
+    expect(groupFindOneByIdSpy).not.toHaveBeenCalled();
+  });
+
+  /*
+   * Re-pointing a saved rule at another group is an ordinary edit, so the same
+   * checks apply on the way through.
+   */
+  it("checks a re-pointed group on update, not only on create", async () => {
+    jest
+      .spyOn(StatusPageMonitorRuleService, "findBy")
+      .mockResolvedValue([fakeRuleRow(RULE_ID)]);
+    groupFindOneByIdSpy.mockResolvedValue({
+      id: GROUP_ID,
+      _id: GROUP_ID.toString(),
+      statusPageId: OTHER_STATUS_PAGE_ID,
+    } as unknown as StatusPageGroup);
+
+    await expect(
+      callHook(StatusPageMonitorRuleService, "onBeforeUpdate", {
+        query: { _id: RULE_ID.toString() },
+        data: { statusPageGroupId: GROUP_ID },
+        props: { isRoot: false, tenantId: PROJECT_ID },
+      }),
+    ).rejects.toThrow(BadDataException);
+  });
+
+  it("does not re-check the group on an edit that leaves it alone", async () => {
+    await callHook(StatusPageMonitorRuleService, "onBeforeUpdate", {
+      query: { _id: RULE_ID.toString() },
+      data: { isEnabled: false },
+      props: { isRoot: false, tenantId: PROJECT_ID },
+    });
+
+    expect(groupFindOneByIdSpy).not.toHaveBeenCalled();
+    expect(validatorSpy).not.toHaveBeenCalled();
+  });
+
+  /*
+   * onBeforeUpdate runs before DatabaseService applies the update query's
+   * permission check, so the query it sees is the caller's raw one. Pinning
+   * the tenant onto the validation read is what stops it becoming an oracle
+   * for another project's rules.
+   */
+  it("pins the caller's project onto the validation read", async () => {
+    const findBySpy: jest.SpyInstance = jest
+      .spyOn(StatusPageMonitorRuleService, "findBy")
+      .mockResolvedValue([fakeRuleRow(RULE_ID)]);
+
+    await callHook(StatusPageMonitorRuleService, "onBeforeUpdate", {
+      query: { _id: RULE_ID.toString() },
+      data: { monitorNamePattern: "^api" },
+      props: { isRoot: false, tenantId: PROJECT_ID },
+    });
+
+    const call: { query: { projectId?: ObjectID } } = findBySpy.mock
+      .calls[0]![0] as { query: { projectId?: ObjectID } };
+
+    expect(call.query.projectId).toEqual(PROJECT_ID);
+  });
+
+  it("leaves the query alone for a genuinely root caller, which carries no tenant", async () => {
+    const findBySpy: jest.SpyInstance = jest
+      .spyOn(StatusPageMonitorRuleService, "findBy")
+      .mockResolvedValue([fakeRuleRow(RULE_ID)]);
+
+    await callHook(StatusPageMonitorRuleService, "onBeforeUpdate", {
+      query: { _id: RULE_ID.toString() },
+      data: { monitorNamePattern: "^api" },
+      props: { isRoot: true },
+    });
+
+    const call: { query: { projectId?: ObjectID } } = findBySpy.mock
+      .calls[0]![0] as { query: { projectId?: ObjectID } };
+
+    expect(call.query.projectId).toBeUndefined();
   });
 });

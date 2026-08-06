@@ -554,6 +554,13 @@ export default class StatusPageMonitorRule extends BaseModel {
     description:
       "Group that matched monitors are added to. Leave empty to add them ungrouped.",
   })
+  /*
+   * CASCADE, matching StatusPageResource.statusPageGroup: deleting a group
+   * takes the rules that target it with it. SET NULL would leave the rule
+   * alive and pointing nowhere, and its next run would re-publish the same
+   * monitors as UNGROUPED on a public page - a louder failure than losing a
+   * rule whose destination the user just deleted. The Groups page says so.
+   */
   @ManyToOne(
     () => {
       return StatusPageGroup;
