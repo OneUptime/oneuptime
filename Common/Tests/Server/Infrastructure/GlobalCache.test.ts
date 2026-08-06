@@ -327,6 +327,134 @@ describe("GlobalCache.setStringIfChanged", () => {
  * again on a timer. Jitter breaks the alignment permanently: windows drift
  * apart after the first expiry and stay apart.
  */
+/*
+ * deleteKeyIfValue is the release half of a lease taken with
+ * setStringIfNotExists (see InstanceHealthLock). The comparison is the whole
+ * point: a plain DEL lets a holder that overran its TTL delete the lease a
+ * DIFFERENT worker has since legitimately acquired, which hands the same lease
+ * to a third worker and defeats the mutual exclusion entirely. These tests pin
+ * the atomicity and the compare, because neither is visible at the call site.
+ */
+describe("GlobalCache.deleteKeyIfValue", () => {
+  let client: MockClient;
+
+  beforeEach(() => {
+    client = {
+      set: jest.fn().mockResolvedValue("OK"),
+      expire: jest.fn().mockResolvedValue(1),
+      get: jest.fn(),
+      del: jest.fn().mockResolvedValue(1),
+      eval: jest.fn().mockResolvedValue(1),
+    };
+    (Redis.getClient as jest.Mock).mockReturnValue(client);
+    (Redis.isConnected as jest.Mock).mockReturnValue(true);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test("compares and deletes in ONE eval — never GET then DEL", async () => {
+    await GlobalCache.deleteKeyIfValue("ns", "key", "token-a");
+
+    expect(client.eval).toHaveBeenCalledTimes(1);
+    // A separate GET/DEL pair would reintroduce the race the script removes.
+    expect(client.get).not.toHaveBeenCalled();
+    expect(client.del).not.toHaveBeenCalled();
+  });
+
+  test("passes the key as KEYS[1] so it stays correct on Redis Cluster", async () => {
+    await GlobalCache.deleteKeyIfValue("ns", "key", "token-a");
+
+    const call: Array<unknown> = client.eval.mock.calls[0] as Array<unknown>;
+
+    // numkeys = 1, then the key itself, then the holder token as ARGV[1].
+    expect(call[1]).toBe(1);
+    expect(call[2]).toBe("ns-key");
+    expect(call[3]).toBe("token-a");
+
+    const script: string = call[0] as string;
+    expect(script).toContain("KEYS[1]");
+    expect(script).toContain("ARGV[1]");
+    // The key must never be interpolated into the script body.
+    expect(script).not.toContain("ns-key");
+  });
+
+  test("returns true when this holder's own value was deleted", async () => {
+    client.eval.mockResolvedValue(1);
+
+    await expect(
+      GlobalCache.deleteKeyIfValue("ns", "key", "token-a"),
+    ).resolves.toBe(true);
+  });
+
+  test("returns false when the key holds a DIFFERENT holder's token", async () => {
+    // Redis DEL never ran because the GET comparison failed.
+    client.eval.mockResolvedValue(0);
+
+    await expect(
+      GlobalCache.deleteKeyIfValue("ns", "key", "token-a"),
+    ).resolves.toBe(false);
+  });
+
+  test("returns false when the key has already expired", async () => {
+    client.eval.mockResolvedValue(0);
+
+    await expect(
+      GlobalCache.deleteKeyIfValue("ns", "key", "token-a"),
+    ).resolves.toBe(false);
+  });
+
+  test("treats any non-1 reply as 'did not delete'", async () => {
+    /*
+     * Losing a release is safe (the lease still expires on its own); wrongly
+     * reporting a release is not. Anything unexpected must fail closed.
+     */
+    for (const reply of [null, undefined, "1", 2, "OK", {}]) {
+      client.eval.mockResolvedValue(reply);
+
+      await expect(
+        GlobalCache.deleteKeyIfValue("ns", "key", "token-a"),
+      ).resolves.toBe(false);
+    }
+  });
+
+  test("throws when the cache is not connected", async () => {
+    (Redis.isConnected as jest.Mock).mockReturnValue(false);
+
+    await expect(
+      GlobalCache.deleteKeyIfValue("ns", "key", "token-a"),
+    ).rejects.toThrow(DatabaseNotConnectedException);
+    expect(client.eval).not.toHaveBeenCalled();
+  });
+
+  test("throws when there is no client at all", async () => {
+    (Redis.getClient as jest.Mock).mockReturnValue(null);
+
+    await expect(
+      GlobalCache.deleteKeyIfValue("ns", "key", "token-a"),
+    ).rejects.toThrow(DatabaseNotConnectedException);
+  });
+
+  test("namespaces the key exactly as the setters do", async () => {
+    /*
+     * Release must target the same key acquire created. If the two ever
+     * disagreed the lease would be unreleasable and every tick would block
+     * for a full TTL.
+     */
+    await GlobalCache.setStringIfNotExists("instance-health", "pg", "tok", {
+      expiresInSeconds: 60,
+    });
+    await GlobalCache.deleteKeyIfValue("instance-health", "pg", "tok");
+
+    const setKey: unknown = (client.set.mock.calls[0] as Array<unknown>)[0];
+    const evalKey: unknown = (client.eval.mock.calls[0] as Array<unknown>)[2];
+
+    expect(setKey).toBe("instance-health-pg");
+    expect(evalKey).toBe(setKey);
+  });
+});
+
 describe("GlobalCache.withJitter", () => {
   test("never returns less than the requested TTL", () => {
     for (let i: number = 0; i < 500; i++) {

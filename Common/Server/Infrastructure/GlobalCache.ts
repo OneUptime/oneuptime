@@ -291,6 +291,43 @@ export default abstract class GlobalCache {
     return Math.ceil(expiresInSeconds * (1 + Math.random() * 0.25));
   }
 
+  /*
+   * Atomic compare-and-delete: drop the key only if it still holds `value`.
+   * Returns true only when this caller's value was the one removed.
+   *
+   * This is the release half of a lease taken with `setStringIfNotExists`, and
+   * the comparison is what makes the release safe. A plain `deleteKey` is a
+   * check-then-act race in disguise: if the holder overruns its TTL the key
+   * expires, a second worker legitimately acquires the lease, and the first
+   * worker's release then deletes the SECOND worker's lease — handing the same
+   * lease to a third. Comparing the holder token collapses that into one
+   * atomic evaluation, so a late release is a no-op instead of a double-grant.
+   *
+   * The key is passed as KEYS[1] rather than inlined into the script body so
+   * the script stays correct on Redis Cluster, which routes by declared keys.
+   */
+  @CaptureSpan()
+  public static async deleteKeyIfValue(
+    namespace: string,
+    key: string,
+    value: string,
+  ): Promise<boolean> {
+    const client: ClientType | null = Redis.getClient();
+
+    if (!client || !Redis.isConnected()) {
+      throw new DatabaseNotConnectedException("Cache is not connected");
+    }
+
+    const result: unknown = await client.eval(
+      "if redis.call('GET', KEYS[1]) == ARGV[1] then return redis.call('DEL', KEYS[1]) else return 0 end",
+      1,
+      `${namespace}-${key}`,
+      value,
+    );
+
+    return result === 1;
+  }
+
   @CaptureSpan()
   public static async deleteKey(namespace: string, key: string): Promise<void> {
     const client: ClientType | null = Redis.getClient();

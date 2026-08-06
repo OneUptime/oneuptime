@@ -501,6 +501,8 @@ import { AddRemediationVerification1785768089408 } from "./1785768089408-AddReme
 import { AddStatusPageMonitorRule1786005052769 } from "./1786005052769-AddStatusPageMonitorRule";
 import { AddPerUserPasswordSalt1786018109307 } from "./1786018109307-AddPerUserPasswordSalt";
 import { WidenHashedStringColumnsForScrypt1786023262402 } from "./1786023262402-WidenHashedStringColumnsForScrypt";
+import { RestoreServiceLowerNameIndex1786100000000 } from "./1786100000000-RestoreServiceLowerNameIndex";
+import { RestoreDroppedUniqueIndexes1786200000000 } from "./1786200000000-RestoreDroppedUniqueIndexes";
 
 export default [
   InitialMigration,
@@ -1006,4 +1008,6 @@ export default [
   AddStatusPageMonitorRule1786005052769,
   AddPerUserPasswordSalt1786018109307,
   WidenHashedStringColumnsForScrypt1786023262402,
+  RestoreServiceLowerNameIndex1786100000000,
+  RestoreDroppedUniqueIndexes1786200000000,
 ];
