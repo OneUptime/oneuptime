@@ -89,6 +89,7 @@ const userUpdateOneBy: jest.Mock = jest.fn();
 const userUpdateOneById: jest.Mock = jest.fn();
 const userUpdateOneByIdAndFetch: jest.Mock = jest.fn();
 const userCreate: jest.Mock = jest.fn();
+const userCreateUserOnSignup: jest.Mock = jest.fn();
 const userCountBy: jest.Mock = jest.fn();
 
 jest.mock("Common/Server/Services/UserService", () => {
@@ -109,6 +110,9 @@ jest.mock("Common/Server/Services/UserService", () => {
       },
       create: (...args: Array<unknown>): unknown => {
         return userCreate(...args);
+      },
+      createUserOnSignup: (...args: Array<unknown>): unknown => {
+        return userCreateUserOnSignup(...args);
       },
       countBy: (...args: Array<unknown>): unknown => {
         return userCountBy(...args);
@@ -443,6 +447,7 @@ describe("Identity /signup - passwordless-account takeover via dropped email pre
     expect(userFindOneBy).not.toHaveBeenCalled();
     expect(userUpdateOneByIdAndFetch).not.toHaveBeenCalled();
     expect(userCreate).not.toHaveBeenCalled();
+    expect(userCreateUserOnSignup).not.toHaveBeenCalled();
     expect(result.nextError).toBeInstanceOf(BadDataException);
     expect((result.nextError as unknown as Exception).message).toBe(
       "Email is required.",
@@ -470,12 +475,12 @@ describe("Identity /signup - passwordless-account takeover via dropped email pre
 
   it("still looks the user up by the supplied email on the happy path", async () => {
     userFindOneBy.mockResolvedValue(null);
-    userCountBy.mockResolvedValue({
-      isZero: (): boolean => {
-        return false;
-      },
-    });
-    userCreate.mockResolvedValue(null);
+    /*
+     * The first-Master-Admin election (and the create that goes with it) now
+     * happens inside UserService, under an advisory lock -- see
+     * SignupMasterAdminElection.test.ts and GHSA-3qqq-hprx-g2jw.
+     */
+    userCreateUserOnSignup.mockResolvedValue(null);
 
     await invoke("/signup", {
       data: { email: "new-user@example.com", password: "hunter2" },

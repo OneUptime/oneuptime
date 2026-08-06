@@ -24,6 +24,9 @@ import URL from "../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import OneUptimeDate from "../../Types/Date";
+import PositiveNumber from "../../Types/PositiveNumber";
+import ProjectService from "./ProjectService";
+import PostgresAdvisoryLock from "../Utils/Database/PostgresAdvisoryLock";
 import Email from "../../Types/Email";
 import EmailTemplateType from "../../Types/Email/EmailTemplateType";
 import HashedString from "../../Types/HashedString";
@@ -44,6 +47,14 @@ import Name from "../../Types/Name";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import Timezone from "../../Types/Timezone";
 import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
+
+/*
+ * Names the advisory lock that serializes the first-Master-Admin election
+ * across every process talking to this database. Readable and namespaced so it
+ * is self-documenting in pg_locks and cannot collide with another lock.
+ */
+const FIRST_MASTER_ADMIN_ELECTION_LOCK_LABEL: string =
+  "oneuptime:first-master-admin-election";
 
 export class Service extends DatabaseService<Model> {
   /*
@@ -497,6 +508,112 @@ export class Service extends DatabaseService<Model> {
     }
 
     return onUpdate;
+  }
+
+  /**
+   * Creates a user who is signing themselves up, and decides — atomically —
+   * whether they are the instance's very first Master Admin.
+   *
+   * Every signup MUST come through here rather than calling `create` directly,
+   * because this method is the only place that is allowed to set
+   * `isMasterAdmin` on a self-service signup. It always assigns the column, so
+   * an `isMasterAdmin: true` smuggled into the request body is overwritten
+   * rather than honoured (signup creates with `isRoot: true`, which bypasses
+   * the column's empty `create: []` access control).
+   */
+  @CaptureSpan()
+  public async createUserOnSignup(data: {
+    user: Model;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Model> {
+    // Never inherited from the caller. Decided below, or not at all.
+    data.user.isMasterAdmin = false;
+
+    if (IsBillingEnabled) {
+      /*
+       * On the hosted service there is no first-user bootstrap: master admins
+       * are provisioned out of band, so there is nothing to elect and no reason
+       * to take a lock.
+       */
+      return await this.create({
+        data: data.user,
+        props: data.props,
+      });
+    }
+
+    /*
+     * Self-hosted: the first user to sign up bootstraps the instance as Master
+     * Admin. The eligibility check reads the User table and the create writes to
+     * it, which is a read-then-write and therefore not atomic on its own — two
+     * signups landing together both counted zero users and both became Master
+     * Admin (GHSA-3qqq-hprx-g2jw). Serialize the check and the insert
+     * instance-wide so the second request observes the first one's row.
+     *
+     * Note this deliberately covers the INSERT, not just the count: releasing
+     * the lock after the count would let the next holder count a table the
+     * winner had not written to yet, which is the same race with extra steps.
+     */
+    return await PostgresAdvisoryLock.runExclusively({
+      label: FIRST_MASTER_ADMIN_ELECTION_LOCK_LABEL,
+      work: async (): Promise<Model> => {
+        data.user.isMasterAdmin = await this.isInstanceAwaitingFirstUser();
+
+        return await this.create({
+          data: data.user,
+          props: data.props,
+        });
+      },
+    });
+  }
+
+  /**
+   * Is this a brand-new instance that nobody has ever signed up to — i.e. may
+   * the next user through the door take Master Admin?
+   *
+   * Only ever called while holding the first-master-admin advisory lock.
+   */
+  private async isInstanceAwaitingFirstUser(): Promise<boolean> {
+    const userCount: PositiveNumber = await this.countBy({
+      props: {
+        isRoot: true,
+      },
+      query: {},
+    });
+
+    if (!userCount.isZero()) {
+      return false;
+    }
+
+    /*
+     * Zero users, but projects exist: this is not a fresh install, it is an
+     * instance whose User table was emptied out from under it — a bad restore, a
+     * cleanup script, a cascade. Handing Master Admin to whoever signs up next
+     * would be a free promotion for a stranger, so refuse and make the operator
+     * grant it deliberately.
+     *
+     * This cannot fire on any supported path: a user who belongs to a project
+     * cannot be deleted (see onBeforeDelete), so "projects with no users at all"
+     * is only reachable by writing to the database directly. It does not get in
+     * the way of the ordinary recovery either — someone who signs up, has no
+     * projects yet, deletes their account and signs up again still bootstraps
+     * normally.
+     */
+    const projectCount: PositiveNumber = await ProjectService.countBy({
+      props: {
+        isRoot: true,
+      },
+      query: {},
+    });
+
+    if (!projectCount.isZero()) {
+      logger.warn(
+        "Refusing to grant Master Admin to a new signup: the User table is empty but this instance already has projects. Grant Master Admin explicitly instead.",
+      );
+
+      return false;
+    }
+
+    return true;
   }
 
   @CaptureSpan()

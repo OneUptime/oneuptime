@@ -16,7 +16,6 @@ import { JSONObject } from "Common/Types/JSON";
 import HashedString from "Common/Types/HashedString";
 import Name from "Common/Types/Name";
 import ObjectID from "Common/Types/ObjectID";
-import PositiveNumber from "Common/Types/PositiveNumber";
 import DatabaseConfig from "Common/Server/DatabaseConfig";
 import {
   AppVersion,
@@ -199,25 +198,19 @@ router.post(
        */
       CredentialGuard.assertPresent(partialUser.email, "Email");
 
-      if (IsBillingEnabled) {
-        //ALERT: Delete data.role so user don't accidently sign up as master-admin from the API.
-        partialUser.isMasterAdmin = false;
-        partialUser.isEmailVerified = false;
-      } else {
-        // IF its not a saas service then we will make the email verified.
+      /*
+       * ALERT: an isMasterAdmin smuggled into the request body must never
+       * survive — signup writes with isRoot, which bypasses the column's empty
+       * `create: []` access control. Whether this user is the instance's first
+       * Master Admin is not decided here: UserService.createUserOnSignup owns
+       * that call and makes it under a lock, because the check ("is the User
+       * table empty?") and the insert have to be atomic with respect to another
+       * signup arriving at the same moment.
+       */
+      partialUser.isMasterAdmin = false;
 
-        // check if there are more than one user and if there is then we will not make the user master admin.
-
-        const userCount: PositiveNumber = await UserService.countBy({
-          props: {
-            isRoot: true,
-          },
-          query: {},
-        });
-
-        partialUser.isMasterAdmin = userCount.isZero(); // if the user count is 0 then make the first user master admin.
-        partialUser.isEmailVerified = true;
-      }
+      // Outside the hosted service, there is no billing to gate the account on.
+      partialUser.isEmailVerified = !IsBillingEnabled;
 
       const alreadySavedUser: User | null = await UserService.findOneBy({
         query: { email: partialUser.email as Email },
@@ -266,8 +259,8 @@ router.post(
       } else {
         const user: User = partialUser;
 
-        savedUser = await UserService.create({
-          data: user,
+        savedUser = await UserService.createUserOnSignup({
+          user: user,
           props: {
             isRoot: true,
           },
