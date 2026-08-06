@@ -15,9 +15,10 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
  * One-shot migration runner. Runs the SAME schema + data migrations the app
  * normally runs on boot, but as a single dedicated process (a Helm
  * pre-upgrade / post-install Job) instead of on every replica. This is what
- * lets the runtime pods be gated off (RUN_DATABASE_MIGRATIONS_ON_BOOT=false)
- * so the data-migration session advisory lock never runs on a pooled
- * connection — making PgBouncer transaction-mode pooling safe.
+ * lets the runtime pods be gated off (RUN_DATABASE_MIGRATIONS_ON_BOOT=false),
+ * which keeps boot DDL off the pooled runtime connections and is now the ONLY
+ * thing standing between two replicas and a concurrently-run data migration —
+ * the runner itself no longer takes a lock (see Workers/Utils/DataMigration.ts).
  *
  * Connect to the backend DIRECTLY (the chart points this Job at the real
  * database, bypassing PgBouncer) so migrations never depend on the pooler.

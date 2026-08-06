@@ -1,7 +1,4 @@
 {{- if .Values.pgbouncer.enabled }}
-{{- if and (eq .Values.pgbouncer.poolMode "transaction") (not .Values.migrate.enabled) }}
-{{- fail "pgbouncer.poolMode=transaction requires migrate.enabled=true: in transaction mode the data-migration session advisory lock breaks unless migrations run in the dedicated Job instead of on the runtime pods. Set migrate.enabled=true, or use poolMode=session." }}
-{{- end }}
 {{- $isExternal := and (not .Values.postgresql.enabled) (not .Values.postgresOperator.cnpg.enabled) }}
 {{- $externalSsl := and $isExternal .Values.externalPostgres.ssl.enabled }}
 # =============================================================================
@@ -11,11 +8,10 @@
 # multiplexes their per-process node-postgres pools onto a smaller set of
 # server connections. Fronts WHICHEVER Postgres backend is active — the
 # built-in StatefulSet, the CloudNativePG operator, or an externalPostgres
-# (managed RDS / Cloud SQL / Neon / Azure). Runs in SESSION pool mode by
-# default, which is safe for everything OneUptime does, including the boot-time
-# schema migrations and the session-level advisory lock the data-migration
-# runner relies on. See HelmChart/Docs/Postgres.md for the rationale and for
-# why transaction mode would need the migration path moved off the pooler.
+# (managed RDS / Cloud SQL / Neon / Azure). Either pool mode is safe for
+# everything OneUptime does: runtime traffic uses no session-level Postgres
+# features, and the migration runners no longer take a session-level advisory
+# lock. See HelmChart/Docs/Postgres.md.
 # =============================================================================
 ---
 apiVersion: v1

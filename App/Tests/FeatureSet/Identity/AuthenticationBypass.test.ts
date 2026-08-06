@@ -477,7 +477,7 @@ describe("Identity /signup - passwordless-account takeover via dropped email pre
     userFindOneBy.mockResolvedValue(null);
     /*
      * The first-Master-Admin election (and the create that goes with it) now
-     * happens inside UserService, under an advisory lock -- see
+     * happens inside UserService, under a Redis mutex -- see
      * SignupMasterAdminElection.test.ts and GHSA-3qqq-hprx-g2jw.
      */
     userCreateUserOnSignup.mockResolvedValue(null);

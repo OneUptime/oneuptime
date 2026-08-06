@@ -302,10 +302,9 @@ const WorkersFeatureSet: FeatureSet = {
        * Postgres/ClickHouse data migrations are all owned by the dedicated
        * migrate Job whenever one is deployed. Helm sets
        * RUN_DATABASE_MIGRATIONS_ON_BOOT=false on runtime (app/worker) pods so the
-       * Job — not every replica — runs them (also required for PgBouncer
-       * transaction-mode pooling: the data-migration session advisory lock must
-       * not run on a pooled runtime connection). So gate ALL of it behind the
-       * same flag.
+       * Job — not every replica — runs them. That gate is also what serializes
+       * data migrations now that the runner takes no advisory lock of its own
+       * (see Utils/DataMigration.ts). So gate ALL of it behind the same flag.
        *
        * Why schema sync is gated too (not just data migrations): every analytics
        * DDL statement is `ON CLUSTER`. If each booting replica re-issues it, a

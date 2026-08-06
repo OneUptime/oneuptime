@@ -9,18 +9,31 @@ import {
 import logger from "Common/Server/Utils/Logger";
 import DataMigration from "Common/Models/DatabaseModels/DataMigration";
 import PostgresDatabase, {
-  DatabaseQueryRunner,
   DatabaseSource,
 } from "Common/Server/Infrastructure/PostgresDatabase";
 
 /*
- * A fixed, app-specific label for the Postgres session-level advisory lock
- * that serializes this data-migration runner across processes. hashtext() maps
- * it to the bigint key pg_advisory_lock expects; the readable string keeps the
- * lock self-documenting and unlikely to collide with other advisory locks.
+ * THIS RUNNER IS NOT SERIALIZED ACROSS PROCESSES.
+ *
+ * It used to hold a session-level Postgres advisory lock
+ * (`oneuptime:data-migration-runner`) for the whole loop. That lock is gone:
+ * under the default Helm deployment a single migrate Job (`migrate.enabled`,
+ * on by default) owns migrations and the runtime pods are gated off with
+ * RUN_DATABASE_MIGRATIONS_ON_BOOT=false, and one runner needs no mutex.
+ *
+ * The configurations that do start several runners at once are therefore
+ * unserialized, and two of them can both read a migration as "not executed"
+ * and both call migrate():
+ *
+ *   - docker-compose, where RUN_DATABASE_MIGRATIONS_ON_BOOT is left at its
+ *     default of true and both the app and worker containers call this on boot.
+ *   - `migrate.enabled: false` (the legacy boot-migration path), where every
+ *     replica of every deployment calls this on boot.
+ *
+ * So: WRITE MIGRATIONS THAT ARE SAFE TO RUN TWICE CONCURRENTLY. A migration
+ * that assumes it is the only one running is a bug in the migration — this
+ * runner will not catch it for you any more.
  */
-const DATA_MIGRATION_LOCK_LABEL: string = "oneuptime:data-migration-runner";
-
 const RunDatabaseMigrations: PromiseVoidFunction = async (): Promise<void> => {
   const dataSource: DatabaseSource | null = PostgresDatabase.getDataSource();
 
@@ -32,157 +45,124 @@ const RunDatabaseMigrations: PromiseVoidFunction = async (): Promise<void> => {
   }
 
   /*
-   * Serialize the whole migration loop across processes with a Postgres
-   * session-level advisory lock. Several replicas (and, with the api/worker
-   * split, several deployments) run this on boot; without a lock two pods can
-   * both read a migration as "not executed" and run migrate() twice. We pin a
-   * single connection via a dedicated QueryRunner because a session-level
-   * advisory lock belongs to the connection that took it — releasing the
-   * connection back to the pool does NOT drop the lock, so we unlock
-   * explicitly below. pg_advisory_lock blocks until the lock is free, so other
-   * pods wait their turn and then find every migration already executed; if the
-   * holder dies its session ends and Postgres releases the lock automatically.
-   */
-  const queryRunner: DatabaseQueryRunner = dataSource.createQueryRunner();
-  await queryRunner.connect();
-
-  /*
    * Records the first migration that threw. The runner deliberately stops
    * the chain at the first failure (see the `break` below), but it must
    * also SURFACE that failure to its callers: the dedicated migrate Job
    * (App/Migrate.ts) awaits this function and exits non-zero only if it
    * rejects. Without re-throwing, a failed data migration was swallowed
    * here, the Job exited 0, and the broken/blocked schema looked like a
-   * successful deploy. We re-throw AFTER releasing the advisory lock in
-   * the finally block so the lock is never leaked.
+   * successful deploy. We re-throw after the loop rather than from inside it
+   * so the chain always stops cleanly at the first failure.
    */
   let firstFailure: { name: string; error: unknown } | null = null;
 
-  try {
-    await queryRunner.query("SELECT pg_advisory_lock(hashtext($1))", [
-      DATA_MIGRATION_LOCK_LABEL,
-    ]);
-
-    for (const migration of DataMigrations) {
-      try {
-        // check if this migration has already been run
-        const existingMigration: DataMigration | null =
-          await DataMigrationService.findOneBy({
-            query: {
-              name: migration.name,
-              executed: true,
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-
-        if (existingMigration) {
-          logger.debug("Skipping Database Migration:" + migration.name, {
-            service: "workers",
-          });
-          continue;
-        }
-
-        /*
-         * Baseline legacy ClickHouse schema migrations: the analytics schema is
-         * always a cluster (Distributed over local ReplicatedMergeTree) and the
-         * boot schema-sync already builds it, so running these historical
-         * single-node DDL migrations against the Distributed / *Local tables
-         * would fail and halt the chain. Record them as executed without running
-         * them; the ConvertAnalyticsTablesToCluster migration handles any
-         * existing data.
-         */
-        if (!migration.runsInClusterMode()) {
-          logger.info(
-            "Baselining Database Migration on clustered ClickHouse (recorded without running): " +
-              migration.name,
-          );
-          const baselined: DataMigration = new DataMigration();
-          baselined.name = migration.name;
-          baselined.executed = true;
-          baselined.executedAt = OneUptimeDate.getCurrentDate();
-          await DataMigrationService.create({
-            data: baselined,
-            props: {
-              isRoot: true,
-            },
-          });
-          continue;
-        }
-
-        logger.debug("Running Database Migration:" + migration.name, {
-          service: "workers",
-        });
-
-        await migration.migrate();
-
-        logger.debug("Database Migration Complete:" + migration.name, {
-          service: "workers",
-        });
-
-        // add it to the database.
-        const dataMigration: DataMigration = new DataMigration();
-        dataMigration.name = migration.name;
-        dataMigration.executed = true;
-        dataMigration.executedAt = OneUptimeDate.getCurrentDate();
-
-        await DataMigrationService.create({
-          data: dataMigration,
+  for (const migration of DataMigrations) {
+    try {
+      // check if this migration has already been run
+      const existingMigration: DataMigration | null =
+        await DataMigrationService.findOneBy({
+          query: {
+            name: migration.name,
+            executed: true,
+          },
           props: {
             isRoot: true,
           },
         });
+
+      if (existingMigration) {
+        logger.debug("Skipping Database Migration:" + migration.name, {
+          service: "workers",
+        });
+        continue;
+      }
+
+      /*
+       * Baseline legacy ClickHouse schema migrations: the analytics schema is
+       * always a cluster (Distributed over local ReplicatedMergeTree) and the
+       * boot schema-sync already builds it, so running these historical
+       * single-node DDL migrations against the Distributed / *Local tables
+       * would fail and halt the chain. Record them as executed without running
+       * them; the ConvertAnalyticsTablesToCluster migration handles any
+       * existing data.
+       */
+      if (!migration.runsInClusterMode()) {
+        logger.info(
+          "Baselining Database Migration on clustered ClickHouse (recorded without running): " +
+            migration.name,
+        );
+        const baselined: DataMigration = new DataMigration();
+        baselined.name = migration.name;
+        baselined.executed = true;
+        baselined.executedAt = OneUptimeDate.getCurrentDate();
+        await DataMigrationService.create({
+          data: baselined,
+          props: {
+            isRoot: true,
+          },
+        });
+        continue;
+      }
+
+      logger.debug("Running Database Migration:" + migration.name, {
+        service: "workers",
+      });
+
+      await migration.migrate();
+
+      logger.debug("Database Migration Complete:" + migration.name, {
+        service: "workers",
+      });
+
+      // add it to the database.
+      const dataMigration: DataMigration = new DataMigration();
+      dataMigration.name = migration.name;
+      dataMigration.executed = true;
+      dataMigration.executedAt = OneUptimeDate.getCurrentDate();
+
+      await DataMigrationService.create({
+        data: dataMigration,
+        props: {
+          isRoot: true,
+        },
+      });
+    } catch (err) {
+      logger.error("Database Migration Failed:" + migration.name, {
+        service: "workers",
+      });
+      logger.error(err, { service: "workers" });
+
+      /*
+       * Persist the failure so the admin health page can explain why this
+       * (and every migration after it) is pending. Best-effort — the helper
+       * never throws — so it can't stop us from halting the chain below.
+       */
+      await recordMigrationFailure(dataSource, {
+        migrationName: migration.name,
+        migrationType: MigrationFailureType.DataMigration,
+        error: err,
+      });
+
+      logger.debug("Rolling back Database Migration:" + migration.name, {
+        service: "workers",
+      });
+
+      try {
+        await migration.rollback();
       } catch (err) {
-        logger.error("Database Migration Failed:" + migration.name, {
+        logger.error("Database Migration Rollback Failed:" + migration.name, {
           service: "workers",
         });
         logger.error(err, { service: "workers" });
-
-        /*
-         * Persist the failure so the admin health page can explain why this
-         * (and every migration after it) is pending. Best-effort — the helper
-         * never throws — so it can't stop us from halting the chain below.
-         */
-        await recordMigrationFailure(dataSource, {
-          migrationName: migration.name,
-          migrationType: MigrationFailureType.DataMigration,
-          error: err,
-        });
-
-        logger.debug("Rolling back Database Migration:" + migration.name, {
-          service: "workers",
-        });
-
-        try {
-          await migration.rollback();
-        } catch (err) {
-          logger.error("Database Migration Rollback Failed:" + migration.name, {
-            service: "workers",
-          });
-          logger.error(err, { service: "workers" });
-        }
-
-        firstFailure = { name: migration.name, error: err };
-        break; // Stop running migrations
       }
-    }
-  } finally {
-    // Release the advisory lock on the same connection that acquired it.
-    try {
-      await queryRunner.query("SELECT pg_advisory_unlock(hashtext($1))", [
-        DATA_MIGRATION_LOCK_LABEL,
-      ]);
-    } catch (err) {
-      logger.error("Failed to release data-migration advisory lock");
-      logger.error(err, { service: "workers" });
-    }
 
-    await queryRunner.release();
+      firstFailure = { name: migration.name, error: err };
+      break; // Stop running migrations
+    }
   }
 
   /*
-   * Propagate the failure now that the lock is released. The migrate Job's
+   * Propagate the failure now the chain has halted. The migrate Job's
    * .catch() turns this into process.exit(1), failing the Helm Job/hook so
    * the deploy surfaces the broken migration instead of silently shipping a
    * schema that is frozen at this migration. On runtime pods the on-boot

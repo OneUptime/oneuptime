@@ -13,9 +13,9 @@
 #
 # Runs schema + data migrations ONCE per release, in a single dedicated pod,
 # instead of on every app/worker/nginx replica on boot. The runtime pods are
-# then gated off (RUN_DATABASE_MIGRATIONS_ON_BOOT=false), so the data-migration
-# session advisory lock never runs on a pooled runtime connection — which is
-# what makes PgBouncer transaction-mode pooling safe.
+# then gated off (RUN_DATABASE_MIGRATIONS_ON_BOOT=false). Since the runners
+# take no advisory lock, this Job is what keeps two replicas from running the
+# same data migration concurrently — keep it enabled.
 #
 # Connects DIRECTLY to the backend (DirectPostgres) so migrations never depend
 # on the pooler. Blocking (hook) vs async is controlled by migrate.hook.

@@ -23,8 +23,8 @@ import { getErrorMessage } from "./InstanceHealthNotification";
  *   - The lock-holder connection issues exactly one statement and then sits
  *     `idle in transaction` for the duration, pinning a pooled backend. That is
  *     how a 19-minute idle-in-transaction session showed up in production, and
- *     it is why nothing outside the migration runners takes a Postgres advisory
- *     lock any more — cross-process critical sections use a Redis mutex
+ *     it is why nothing in this codebase takes a Postgres advisory lock any
+ *     more — cross-process critical sections use a Redis mutex
  *     (`Common/Server/Infrastructure/Semaphore.ts`) or, as here, a Redis lease.
  *
  *   - `idle_in_transaction_session_timeout` (60s by default — see

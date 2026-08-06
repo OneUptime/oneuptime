@@ -477,10 +477,14 @@ export const DisableQueueWorkers: boolean =
  * When "false", this process does NOT run schema or data migrations on boot.
  * Set on runtime pods (app/worker/nginx) when a dedicated one-shot migrate Job
  * (App/Migrate.ts) owns migrations instead, so the fleet's many replicas never
- * run them — which is what makes PgBouncer transaction-mode pooling safe (the
- * data-migration session advisory lock then only ever runs in the single Job).
+ * run them — which keeps boot DDL off pooled connections and, since the data
+ * migration runner no longer takes an advisory lock, is also what keeps two
+ * replicas from running the same migration concurrently.
+ *
  * Default true preserves the original self-migrating-on-boot behavior used by
- * docker-compose and any deploy that does not run the migrate Job.
+ * docker-compose and any deploy that does not run the migrate Job. Those
+ * deployments DO run several unserialized runners, so data migrations must be
+ * written to tolerate it (see Workers/Utils/DataMigration.ts).
  */
 export const RunDatabaseMigrationsOnBoot: boolean =
   process.env["RUN_DATABASE_MIGRATIONS_ON_BOOT"] !== "false";

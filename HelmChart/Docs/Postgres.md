@@ -324,17 +324,22 @@ _ignores_ them (does not forward them to the backend), so set
 `statement_timeout` on the backend if you need server-side enforcement — the
 app's client-side `query_timeout` still aborts slow queries.
 
-**The migration constraint (why transaction mode needs the Job).** OneUptime
-runs both its schema migrations (`migrationsRun`) **and** a data-migration runner
-on boot. The data-migration runner serializes across pods with a **session-level
-`pg_advisory_lock`** held across the whole run. Transaction pooling would route
-those statements to different backends, so the lock would lose its
-mutual-exclusion guarantee (and leak onto a pooled backend). The dedicated
-migration Job (`migrate.enabled`, on by default) removes that hazard by keeping
-migrations off the pooled runtime pods entirely — which is why transaction mode
-is safe and the default. If you instead run `migrate.enabled: false` (legacy
-boot migrations), you must use **session** mode so the advisory lock keeps
-working; the chart enforces this.
+**Pool mode and migrations are independent.** They did not used to be: the
+data-migration runner held a **session-level `pg_advisory_lock`** across its
+whole run, transaction pooling would have routed those statements to different
+backends, and the chart rejected `poolMode: transaction` unless
+`migrate.enabled: true`. That lock is gone, and so is that rejection — runtime
+traffic uses no session-level Postgres features either, so both pool modes are
+safe with either `migrate.enabled` setting.
+
+**What replaced it is an operational constraint, not a pooling one.** The
+migration runners are no longer serialized at all, so nothing stops two
+replicas running the same data migration concurrently except *not starting two
+of them*. That is exactly what the dedicated migration Job (`migrate.enabled`,
+on by default) does. Keep it enabled. With `migrate.enabled: false` — and under
+docker-compose, which has no Job — every replica of every deployment runs the
+migration loop on boot, unserialized, so data migrations must be written to
+tolerate being run twice at once.
 
 ### Transaction mode (real connection reduction)
 
@@ -360,10 +365,7 @@ pgbouncer:
 With `migrate.enabled: true` (the default), the app/worker/nginx pods are gated
 off (`RUN_DATABASE_MIGRATIONS_ON_BOOT=false`) and a Job (`App/Migrate.ts`) runs
 migrations once, connecting **directly** to the backend (bypassing PgBouncer).
-The data-migration advisory lock then only ever runs in that single Job, so it
-never lands on a pooled connection — which is what makes transaction mode safe.
-The chart **rejects `poolMode: transaction` unless `migrate.enabled: true`** to
-prevent the unsafe combination.
+Migrations therefore run exactly once per release, on an unpooled connection.
 
 Notes on the migration Job:
 
@@ -394,8 +396,8 @@ More on the migration Job:
   `helm template` the Job and `kubectl apply` it, or a CI stage) and keep the
   app deploy itself migration-free.
 - Set `migrate.enabled: false` to restore the legacy "every pod migrates on
-  boot" model (required if you keep `poolMode: session` and want boot
-  migrations). The advisory lock stays in the code — it still protects that boot
-  path, also used by docker-compose.
+  boot" model. Nothing serializes those runners any more, so every replica that
+  boots at the same time runs the migration loop at the same time. This is the
+  same path docker-compose uses.
 - Through the pooler the server-side `statement_timeout` GUC is dropped (as in
   session mode); the app's client-side `query_timeout` still applies.
