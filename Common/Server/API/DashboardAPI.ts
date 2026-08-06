@@ -1297,9 +1297,25 @@ export default class DashboardAPI extends BaseAPI<
             DashboardAPI.collectDashboardMetricNames(
               dashboard.dashboardViewConfig,
             );
-          const requestedMetricName: unknown = aggregateBy.query
-            ? (aggregateBy.query as Record<string, unknown>)["name"]
-            : undefined;
+
+          /*
+           * Read the query through an OWN-properties copy. JSON.parse turns a
+           * literal "__proto__" member into a real own key and
+           * JSONFunctions.deserialize copies it with `newVal[key] = ...`,
+           * which fires Object.prototype's __proto__ setter — so a plain
+           * `query["name"]` lookup walks the prototype chain and sees a name
+           * that a later own-properties spread would silently drop, leaving
+           * the aggregation with no metric predicate at all. The check and
+           * the object that reaches the database must read the same keys.
+           */
+          const requestedQuery: Record<string, unknown> =
+            aggregateBy.query &&
+            typeof aggregateBy.query === "object" &&
+            !Array.isArray(aggregateBy.query)
+              ? { ...(aggregateBy.query as Record<string, unknown>) }
+              : {};
+
+          const requestedMetricName: unknown = requestedQuery["name"];
 
           if (
             typeof requestedMetricName !== "string" ||
@@ -1327,7 +1343,15 @@ export default class DashboardAPI extends BaseAPI<
           const requestedGroupByAttributeKeys: unknown =
             aggregateBy.groupByAttributeKeys;
 
-          if (requestedGroupByAttributeKeys !== undefined) {
+          /*
+           * `null` means "not grouped" here: JSONFunctions.serialize drops
+           * undefined but preserves null, and both downstream sinks already
+           * treat a null grouping as absent.
+           */
+          if (
+            requestedGroupByAttributeKeys !== undefined &&
+            requestedGroupByAttributeKeys !== null
+          ) {
             if (!Array.isArray(requestedGroupByAttributeKeys)) {
               throw new BadDataException(
                 "groupByAttributeKeys must be an array of attribute keys.",
@@ -1352,9 +1376,8 @@ export default class DashboardAPI extends BaseAPI<
             );
           const requestedGroupBy: unknown = aggregateBy.groupBy;
 
-          if (requestedGroupBy !== undefined) {
+          if (requestedGroupBy !== undefined && requestedGroupBy !== null) {
             if (
-              !requestedGroupBy ||
               typeof requestedGroupBy !== "object" ||
               Array.isArray(requestedGroupBy)
             ) {
@@ -1368,17 +1391,92 @@ export default class DashboardAPI extends BaseAPI<
                 );
               }
             }
+
+            /*
+             * Hand the SQL builder the same keys this guard validated. The
+             * guard reads Object.keys but the GROUP BY builder walks the
+             * object with for...in, so an inherited key would otherwise
+             * reach the query without ever being checked.
+             */
+            aggregateBy.groupBy = {
+              ...(requestedGroupBy as Record<string, unknown>),
+            } as typeof aggregateBy.groupBy;
           }
 
           /*
-           * Security: never trust a client-supplied projectId on a public,
-           * unauthenticated endpoint. Pin the aggregation to the dashboard's
-           * project before it reaches the database service.
+           * The client never chooses what is aggregated over what: every
+           * widget aggregates `value` over `time`. Left open, an anonymous
+           * caller could aggregate `attributes` instead — `max(attributes)`
+           * returns the whole map and the row mapper passes non-numeric
+           * aggregates through untouched, handing back a full attribute map
+           * per time bucket.
            */
+          if (aggregateBy.aggregateColumnName !== "value") {
+            throw new BadDataException("Invalid aggregateColumnName.");
+          }
+
+          if (aggregateBy.aggregationTimestampColumnName !== "time") {
+            throw new BadDataException(
+              "Invalid aggregationTimestampColumnName.",
+            );
+          }
+
+          // Never let an anonymous caller choose an unbounded page.
+          aggregateBy.limit = Math.min(
+            Math.max(Number(aggregateBy.limit) || LIMIT_PER_PROJECT, 1),
+            LIMIT_PER_PROJECT,
+          );
+          aggregateBy.skip = Math.max(Number(aggregateBy.skip) || 0, 0);
+
+          /*
+           * Security: the client does not get to choose what is filtered on a
+           * public, unauthenticated endpoint. Rebuild the query from the
+           * fields the dashboard's own widgets legitimately send — the
+           * allowlisted metric name, the time window, and attribute filters
+           * on keys those widgets already filter by — and pin the project.
+           * Everything else the client sent is dropped rather than merged: a
+           * foreign projectId, a filter on an arbitrary attribute key used as
+           * a blind ILIKE oracle, a key smuggled in on the prototype
+           * (GHSA-w332-x78m-vf3v).
+           */
+          const allowedFilterAttributeKeys: Set<string> =
+            DashboardAPI.collectDashboardFilterAttributeKeys(
+              dashboard.dashboardViewConfig,
+            );
+
+          const sanitizedAttributes: Record<string, unknown> = {};
+          const requestedAttributes: unknown = requestedQuery["attributes"];
+
+          if (
+            requestedAttributes &&
+            typeof requestedAttributes === "object" &&
+            !Array.isArray(requestedAttributes)
+          ) {
+            for (const requestedAttributeKey of Object.keys(
+              requestedAttributes as Record<string, unknown>,
+            )) {
+              if (!allowedFilterAttributeKeys.has(requestedAttributeKey)) {
+                throw new BadDataException(
+                  "This attribute is not part of this dashboard.",
+                );
+              }
+
+              sanitizedAttributes[requestedAttributeKey] = (
+                requestedAttributes as Record<string, unknown>
+              )[requestedAttributeKey];
+            }
+          }
+
           aggregateBy.query = {
-            ...(aggregateBy.query || {}),
+            name: requestedMetricName,
+            ...(requestedQuery["time"] !== undefined
+              ? { time: requestedQuery["time"] }
+              : {}),
+            ...(Object.keys(sanitizedAttributes).length > 0
+              ? { attributes: sanitizedAttributes }
+              : {}),
             projectId: dashboard.projectId,
-          };
+          } as unknown as typeof aggregateBy.query;
 
           const aggregateResult: AggregatedResult =
             await MetricService.aggregateBy(aggregateBy);
@@ -1706,6 +1804,71 @@ export default class DashboardAPI extends BaseAPI<
           }
         }
       }
+
+      for (const key of Object.keys(obj)) {
+        walk(obj[key]);
+      }
+    };
+
+    walk(dashboardViewConfig);
+
+    return attributeKeys;
+  }
+
+  /*
+   * Attribute keys a public metric aggregation may FILTER on.
+   *
+   * Two sources, and both are needed:
+   *
+   * - Keys the widgets themselves persist — `filterData.attributes` on a
+   *   chart/value/gauge query, and the table widget's widget-level
+   *   `attributeFilters`.
+   * - Keys the dashboard's `Telemetry Attribute` variables bind to. The
+   *   shipped templates store `filterData: { metricName, aggegationType }`
+   *   and no attributes at all; the filter on e.g.
+   *   `resource.k8s.cluster.name` only appears once the viewer picks a value
+   *   and DashboardVariableInterpolation injects it at render time. An
+   *   allowlist built from stored filters alone would refuse every real
+   *   templated dashboard the moment its variable is used.
+   */
+  private static collectDashboardFilterAttributeKeys(
+    dashboardViewConfig: unknown,
+  ): Set<string> {
+    const attributeKeys: Set<string> =
+      DashboardAPI.collectDashboardVariableAttributeKeys(dashboardViewConfig);
+
+    const addKeysOf: (value: unknown) => void = (value: unknown): void => {
+      if (!value || typeof value !== "object" || Array.isArray(value)) {
+        return;
+      }
+
+      for (const key of Object.keys(value as Record<string, unknown>)) {
+        if (key.length > 0) {
+          attributeKeys.add(key);
+        }
+      }
+    };
+
+    const walk: (node: unknown) => void = (node: unknown): void => {
+      if (!node || typeof node !== "object") {
+        return;
+      }
+
+      if (Array.isArray(node)) {
+        for (const item of node) {
+          walk(item);
+        }
+        return;
+      }
+
+      const obj: Record<string, unknown> = node as Record<string, unknown>;
+
+      const filterData: unknown = obj["filterData"];
+      if (filterData && typeof filterData === "object") {
+        addKeysOf((filterData as Record<string, unknown>)["attributes"]);
+      }
+
+      addKeysOf(obj["attributeFilters"]);
 
       for (const key of Object.keys(obj)) {
         walk(obj[key]);

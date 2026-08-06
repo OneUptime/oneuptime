@@ -2,17 +2,22 @@ import Dashboard from "../../../Models/DatabaseModels/Dashboard";
 import DashboardAPI from "../../../Server/API/DashboardAPI";
 import DashboardService from "../../../Server/Services/DashboardService";
 import TelemetryAttributeService from "../../../Server/Services/TelemetryAttributeService";
+import { EncryptionSecret } from "../../../Server/EnvironmentConfig";
 import {
   ExpressRequest,
   ExpressResponse,
   NextFunction,
 } from "../../../Server/Utils/Express";
+import Response from "../../../Server/Utils/Response";
 import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
 import { DashboardVariableType } from "../../../Types/Dashboard/DashboardVariable";
 import DashboardViewConfig from "../../../Types/Dashboard/DashboardViewConfig";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import ForbiddenException from "../../../Types/Exception/ForbiddenException";
+import MasterPasswordRequiredException from "../../../Types/Exception/MasterPasswordRequiredException";
 import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
 import NotFoundException from "../../../Types/Exception/NotFoundException";
+import HashedString from "../../../Types/HashedString";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import TelemetryType from "../../../Types/Telemetry/TelemetryType";
@@ -57,6 +62,8 @@ const ATTRIBUTE_VALUES_ROUTE: string =
 
 const NOT_ON_DASHBOARD_MESSAGE: string =
   "This attribute is not part of this dashboard.";
+
+const MASTER_PASSWORD: string = "correct-horse-battery-staple";
 
 /*
  * The attribute keys the advisory's proof of concept reaches for: none of
@@ -157,21 +164,36 @@ describe("DashboardAPI public attribute-values", () => {
     });
   };
 
-  type CallRouteFunction = (body?: JSONObject) => Promise<void>;
+  interface RequestOptions {
+    cookies?: Record<string, string> | undefined;
+    headers?: Record<string, string> | undefined;
+    dashboardIdParam?: string | undefined;
+    socket?: JSONObject | undefined;
+    ips?: Array<string> | undefined;
+  }
+
+  type CallRouteFunction = (
+    body?: JSONObject,
+    options?: RequestOptions,
+  ) => Promise<void>;
 
   const callRoute: CallRouteFunction = async (
     body?: JSONObject,
+    options?: RequestOptions,
   ): Promise<void> => {
     const request: ExpressRequest = {
       params: {
-        dashboardId: dashboardId.toString(),
+        dashboardId:
+          options?.dashboardIdParam === undefined
+            ? dashboardId.toString()
+            : options.dashboardIdParam,
       },
       body: body === undefined ? {} : body,
       query: {},
-      cookies: {},
-      headers: {},
-      socket: {},
-      ips: [],
+      cookies: options?.cookies || {},
+      headers: options?.headers || {},
+      socket: options?.socket || {},
+      ips: options?.ips || [],
     } as unknown as ExpressRequest;
 
     await mockRouter
@@ -519,6 +541,142 @@ describe("DashboardAPI public attribute-values", () => {
     });
   });
 
+  /*
+   * The load-bearing line of the fix is `dashboardViewConfig: true` in the
+   * handler's select. A mock that ignores `select` would keep every test in
+   * this file green if that line were deleted — while taking down every real
+   * public dashboard — so these pin the projection itself.
+   */
+  describe("dashboard lookup", () => {
+    type GetHandlerLookupFunction = () => JSONObject;
+
+    const getHandlerLookup: GetHandlerLookupFunction = (): JSONObject => {
+      const calls: Array<Array<unknown>> = (
+        DashboardService.findOneById as jest.Mock
+      ).mock.calls as Array<Array<unknown>>;
+
+      /*
+       * hasReadAccess looks the dashboard up first with its own projection;
+       * the handler's is the one that asks for the view config.
+       */
+      const handlerCall: Array<unknown> | undefined = calls.find(
+        (call: Array<unknown>) => {
+          const select: JSONObject = (call[0] as JSONObject)[
+            "select"
+          ] as JSONObject;
+
+          return Boolean(select && select["dashboardViewConfig"]);
+        },
+      );
+
+      expect(handlerCall).toBeDefined();
+
+      return handlerCall![0] as JSONObject;
+    };
+
+    it("selects the view config, pinned to the path id, as root", async () => {
+      setAttributeVariables(["host.name"]);
+
+      await callRoute({ attributeKey: "host.name" });
+
+      const lookup: JSONObject = getHandlerLookup();
+
+      expect(lookup["select"]).toEqual({
+        _id: true,
+        projectId: true,
+        dashboardViewConfig: true,
+      });
+      expect(lookup["props"]).toEqual({ isRoot: true });
+      expect((lookup["id"] as ObjectID).toString()).toBe(
+        dashboardId.toString(),
+      );
+    });
+
+    it("refuses when the view config was not part of the projection", async () => {
+      /*
+       * A projection-aware mock: the handler only sees the columns it asked
+       * for, the way the real service behaves. Drop `dashboardViewConfig`
+       * from the handler's select and this test fails instead of silently
+       * allowlisting nothing.
+       */
+      const source: Dashboard = dashboard;
+
+      setAttributeVariables(["host.name"]);
+
+      jest
+        .spyOn(DashboardService, "findOneById")
+        .mockImplementation(async (data: any) => {
+          const projected: Dashboard = new Dashboard();
+
+          for (const column of Object.keys((data.select || {}) as JSONObject)) {
+            (projected as unknown as Record<string, unknown>)[column] = (
+              source as unknown as Record<string, unknown>
+            )[column];
+          }
+
+          projected.id = source.id;
+
+          return projected;
+        });
+
+      await callRoute({ attributeKey: "host.name" });
+
+      expect(nextFunction).not.toHaveBeenCalled();
+      expect(
+        TelemetryAttributeService.fetchAttributeValues,
+      ).toHaveBeenCalledTimes(1);
+    });
+
+    it("fails closed when the dashboard lookup throws", async () => {
+      jest
+        .spyOn(DashboardService, "findOneById")
+        .mockRejectedValue(new Error("connection reset"));
+
+      await callRoute({ attributeKey: "host.name" });
+
+      expect(getThrownError()).toBeInstanceOf(NotAuthenticatedException);
+      expectNothingRead();
+    });
+
+    /*
+     * ObjectID does not validate its input, so a malformed path id is not
+     * rejected up front — it simply matches no row. Pin that this stays
+     * fail-closed: an id-aware lookup means the caller gets "no access"
+     * and no telemetry is read, rather than the id being passed through to
+     * a query.
+     */
+    it("refuses a dashboardId that matches no dashboard, malformed or not", async () => {
+      setAttributeVariables(["host.name"]);
+
+      const realDashboard: Dashboard = dashboard;
+
+      jest
+        .spyOn(DashboardService, "findOneById")
+        .mockImplementation(async (data: any) => {
+          return data.id?.toString() === dashboardId.toString()
+            ? realDashboard
+            : null;
+        });
+
+      for (const badId of [
+        "not-an-object-id",
+        "' OR 1=1--",
+        "",
+        ObjectID.generate().toString(),
+      ]) {
+        jest.clearAllMocks();
+
+        await callRoute(
+          { attributeKey: "host.name" },
+          { dashboardIdParam: badId },
+        );
+
+        expect(getThrownError()).toBeInstanceOf(NotAuthenticatedException);
+        expectNothingRead();
+      }
+    });
+  });
+
   describe("authorization", () => {
     it("rejects a dashboard that is not public before reading anything", async () => {
       dashboard.isPublicDashboard = false;
@@ -530,6 +688,193 @@ describe("DashboardAPI public attribute-values", () => {
       expectNothingRead();
     });
 
+    it("refuses a password-protected dashboard with no cookie", async () => {
+      setAttributeVariables(["host.name"]);
+      dashboard.enableMasterPassword = true;
+      dashboard.masterPassword = new HashedString(
+        await HashedString.hashValue(MASTER_PASSWORD, EncryptionSecret),
+        true,
+      );
+
+      await callRoute({ attributeKey: "host.name" });
+
+      expect(getThrownError()).toBeInstanceOf(MasterPasswordRequiredException);
+      expectNothingRead();
+    });
+
+    it("serves an allowlisted key once the master-password cookie is presented", async () => {
+      setAttributeVariables(["host.name"]);
+      dashboard.enableMasterPassword = true;
+      dashboard.masterPassword = new HashedString(
+        await HashedString.hashValue(MASTER_PASSWORD, EncryptionSecret),
+        true,
+      );
+
+      /*
+       * Mint the cookie through the real unlock route rather than forging a
+       * JWT — hasValidMasterPasswordCookie does a genuine jwt.verify.
+       */
+      await mockRouter
+        .match("post", "/dashboard/master-password/:dashboardId")
+        .handlerFunction(
+          {
+            params: { dashboardId: dashboardId.toString() },
+            body: { password: MASTER_PASSWORD },
+            cookies: {},
+            headers: {},
+            socket: {},
+            ips: [],
+          } as unknown as ExpressRequest,
+          mockResponse,
+          nextFunction,
+        );
+
+      const cookieCall: Array<unknown> = (mockResponse.cookie as jest.Mock).mock
+        .calls[0] as Array<unknown>;
+
+      expect(cookieCall).toBeDefined();
+
+      await callRoute(
+        { attributeKey: "host.name" },
+        {
+          cookies: {
+            [cookieCall[0] as string]: cookieCall[1] as string,
+          },
+        },
+      );
+
+      expect(nextFunction).not.toHaveBeenCalled();
+      expect(getFetchArgs()["attributeKey"]).toBe("host.name");
+    });
+
+    it("fails closed when protection is enabled but no password was ever set", async () => {
+      setAttributeVariables(["host.name"]);
+      dashboard.enableMasterPassword = true;
+      delete dashboard.masterPassword;
+
+      await callRoute({ attributeKey: "host.name" });
+
+      expect(getThrownError()).toBeInstanceOf(MasterPasswordRequiredException);
+      expectNothingRead();
+    });
+
+    it("serves a whitelisted IP", async () => {
+      setAttributeVariables(["host.name"]);
+      dashboard.ipWhitelist = "10.0.0.0/8\n203.0.113.7";
+
+      await callRoute(
+        { attributeKey: "host.name" },
+        { headers: { "x-forwarded-for": "203.0.113.7" } },
+      );
+
+      expect(nextFunction).not.toHaveBeenCalled();
+      expect(getFetchArgs()["attributeKey"]).toBe("host.name");
+    });
+
+    it("refuses a blocked IP before reading any telemetry", async () => {
+      setAttributeVariables(["host.name"]);
+      dashboard.ipWhitelist = "10.0.0.0/8\n203.0.113.7";
+
+      await callRoute(
+        { attributeKey: "host.name" },
+        { headers: { "x-forwarded-for": "198.51.100.5" } },
+      );
+
+      expect(getThrownError()).toBeInstanceOf(ForbiddenException);
+      expectNothingRead();
+    });
+
+    it("refuses when the client IP cannot be determined at all", async () => {
+      setAttributeVariables(["host.name"]);
+      dashboard.ipWhitelist = "203.0.113.7";
+
+      await callRoute({ attributeKey: "host.name" });
+
+      expect(getThrownError()).toBeInstanceOf(ForbiddenException);
+      expectNothingRead();
+    });
+  });
+
+  describe("response", () => {
+    it("returns exactly the values the telemetry service found", async () => {
+      setAttributeVariables(["host.name"]);
+      jest
+        .spyOn(TelemetryAttributeService, "fetchAttributeValues")
+        .mockResolvedValue(["prod", "staging"]);
+
+      await callRoute({ attributeKey: "host.name" });
+
+      expect(Response.sendJsonObjectResponse).toHaveBeenCalledTimes(1);
+
+      const responseCall: Array<unknown> = (
+        Response.sendJsonObjectResponse as jest.Mock
+      ).mock.calls[0] as Array<unknown>;
+
+      expect(responseCall[2]).toEqual({ values: ["prod", "staging"] });
+    });
+
+    it("hands the telemetry service exactly three arguments", async () => {
+      setAttributeVariables(["host.name"]);
+
+      await callRoute({
+        attributeKey: "host.name",
+        searchText: "%",
+        metricName: "billing.revenue",
+        limit: 999999,
+        projectId: ObjectID.generate().toString(),
+        extra: 1,
+      });
+
+      expect(Object.keys(getFetchArgs()).sort()).toEqual([
+        "attributeKey",
+        "projectId",
+        "telemetryType",
+      ]);
+    });
+
+    it("sends no response at all when the key is refused", async () => {
+      setAttributeVariables(["host.name"]);
+
+      await callRoute({ attributeKey: "user.email" });
+
+      expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("normalization", () => {
+    it("matches attribute keys case-sensitively", async () => {
+      // ClickHouse map subscripts are case-sensitive; the allowlist must be too.
+      setAttributeVariables(["host.name"]);
+
+      for (const attributeKey of ["Host.Name", "HOST.NAME", "Host.name"]) {
+        jest.clearAllMocks();
+
+        await callRoute({ attributeKey: attributeKey });
+
+        expect(getThrownError()).toBeInstanceOf(BadDataException);
+        expectNothingRead();
+      }
+    });
+
+    it("does not treat a key that merely contains a configured key as configured", async () => {
+      setAttributeVariables(["host.name"]);
+
+      for (const attributeKey of [
+        "host.name.extra",
+        "prefix.host.name",
+        "host_name",
+      ]) {
+        jest.clearAllMocks();
+
+        await callRoute({ attributeKey: attributeKey });
+
+        expect(getThrownError()).toBeInstanceOf(BadDataException);
+        expectNothingRead();
+      }
+    });
+  });
+
+  describe("dashboard existence", () => {
     /*
      * A missing dashboard never reaches the attribute lookup: hasReadAccess
      * fails closed first, so the viewer is told they have no access rather
