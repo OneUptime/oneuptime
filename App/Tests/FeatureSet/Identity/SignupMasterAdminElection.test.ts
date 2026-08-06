@@ -26,8 +26,8 @@ import { beforeEach, describe, expect, it } from "@jest/globals";
  * A count read here and an insert issued later are two separate statements with
  * nothing between them, so two signups arriving together both read zero and both
  * became Master Admin. The decision now belongs to
- * UserService.createUserOnSignup, which makes it under an advisory lock that
- * also covers the insert (see
+ * UserService.createUserOnSignup, which makes it under a Redis mutex that also
+ * covers the insert (see
  * Common/Tests/Server/Services/UserServiceFirstMasterAdminElection.test.ts).
  *
  * What has to hold at THIS layer, and is what these tests pin:

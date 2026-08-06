@@ -30,19 +30,22 @@ import {
  * has a per-user toggle, and the instance-health jobs page through all of them),
  * so the reporter's suggested partial unique index is not available as a fix.
  *
- * The fix serializes the check and the insert together, instance-wide, with a
- * Postgres advisory lock.
+ * The fix serializes the check and the insert together, instance-wide, with the
+ * Redis mutex in Common/Server/Infrastructure/Semaphore.ts -- the same
+ * primitive every other cross-process critical section in this codebase uses.
+ * It was originally a Postgres advisory lock; the mutex holds no database
+ * connection and no open transaction, so serializing signups can no longer pin
+ * a pooled backend `idle in transaction`.
  *
- * WHAT THESE TESTS ACTUALLY EXERCISE: the real UserService.createUserOnSignup
- * and the real PostgresAdvisoryLock. Only the two edges are faked -- the rows
- * (countBy/create against an in-memory array) and the lock statement (an
- * in-process mutex standing in for pg_advisory_xact_lock). The fake lock has
- * the semantics that matter: exclusive, and released when the holder's
- * transaction ends.
+ * WHAT THESE TESTS ACTUALLY EXERCISE: the real UserService.createUserOnSignup.
+ * Only the two edges are faked -- the rows (countBy/create against an in-memory
+ * array) and Redis (an in-process mutex standing in for the redis-semaphore
+ * Mutex). The fake mutex has the semantics that matter: exclusive per key, and
+ * handed to the next waiter on release.
  *
- * The suite is kept honest by `withoutSerialization`, which runs the same race
- * with the lock statement neutered. That case asserts the vulnerable outcome --
- * two master admins -- so a harness that could not observe the bug in the first
+ * The suite is kept honest by `serializeLock = false`, which runs the same race
+ * with the mutex neutered. That case asserts the vulnerable outcome -- two
+ * master admins -- so a harness that could not observe the bug in the first
  * place fails loudly instead of passing vacuously.
  * ---------------------------------------------------------------------------
  */
@@ -56,7 +59,7 @@ import {
 interface LoadedModules {
   userService: any;
   projectService: any;
-  postgresDatabase: any;
+  semaphore: any;
   logger: any;
   User: any;
 }
@@ -78,8 +81,7 @@ const loadModules: LoadModulesFunction = (data: {
       userService: require("../../../Server/Services/UserService").default,
       projectService: require("../../../Server/Services/ProjectService")
         .default,
-      postgresDatabase:
-        require("../../../Server/Infrastructure/PostgresDatabase").default,
+      semaphore: require("../../../Server/Infrastructure/Semaphore").default,
       logger: require("../../../Server/Utils/Logger").default,
       User: require("../../../Models/DatabaseModels/User").default,
     };
@@ -97,37 +99,41 @@ const loadModules: LoadModulesFunction = (data: {
 };
 
 /*
- * Stands in for Postgres advisory locks: exclusive per label, FIFO, and handed
+ * Stands in for the redis-semaphore Mutex: exclusive per key, FIFO, and handed
  * straight to the next waiter on release so ownership is never ambiguous.
  */
-class FakeAdvisoryLocks {
+class FakeRedisMutexes {
   private held: Set<string> = new Set();
   private waiters: Map<string, Array<() => void>> = new Map();
 
-  public async acquire(label: string): Promise<void> {
-    if (!this.held.has(label)) {
-      this.held.add(label);
+  public async acquire(key: string): Promise<void> {
+    if (!this.held.has(key)) {
+      this.held.add(key);
       return;
     }
 
     await new Promise<void>((resolve: () => void) => {
-      const queue: Array<() => void> = this.waiters.get(label) || [];
+      const queue: Array<() => void> = this.waiters.get(key) || [];
       queue.push(resolve);
-      this.waiters.set(label, queue);
+      this.waiters.set(key, queue);
     });
   }
 
-  public release(label: string): void {
-    const queue: Array<() => void> | undefined = this.waiters.get(label);
+  public release(key: string): void {
+    const queue: Array<() => void> | undefined = this.waiters.get(key);
 
     if (queue && queue.length > 0) {
-      // Ownership transfers directly to the next waiter; the label stays held.
+      // Ownership transfers directly to the next waiter; the key stays held.
       const next: () => void = queue.shift()!;
       next();
       return;
     }
 
-    this.held.delete(label);
+    this.held.delete(key);
+  }
+
+  public isHeld(key: string): boolean {
+    return this.held.has(key);
   }
 }
 
@@ -137,7 +143,7 @@ type YieldToEventLoopFunction = () => Promise<void>;
  * A real countBy/create is a network round trip. Yielding here is what lets two
  * in-flight signups interleave at all -- without it the whole election would run
  * to completion inside one synchronous microtask burst and no race could exist
- * in the harness, lock or no lock.
+ * in the harness, mutex or no mutex.
  */
 const yieldToEventLoop: YieldToEventLoopFunction = (): Promise<void> => {
   return new Promise<void>((resolve: () => void) => {
@@ -145,19 +151,26 @@ const yieldToEventLoop: YieldToEventLoopFunction = (): Promise<void> => {
   });
 };
 
-const FIRST_MASTER_ADMIN_LOCK_LABEL: string =
-  "oneuptime:first-master-admin-election";
+/*
+ * The coordination protocol between replicas. Pinned literally rather than
+ * imported: a rename that silently changed the key would let two deploys of
+ * different versions elect two master admins, which is precisely the bug.
+ */
+const LOCK_NAMESPACE: string = "UserService.firstMasterAdminElection";
+const LOCK_KEY: string = "instance";
+const LOCK_TIMEOUT_MS: number = 10_000;
+const ACQUIRE_TIMEOUT_MS: number = 5_000;
 
 describe("UserService.createUserOnSignup -- first Master Admin election", () => {
   let selfHosted: LoadedModules;
   let hosted: LoadedModules;
 
-  let locks: FakeAdvisoryLocks;
+  let mutexes: FakeRedisMutexes;
   let userRows: Array<any>;
   let projectCount: number;
   let events: Array<string>;
-  let releasedRunners: number;
-  let serializeLockStatement: boolean;
+  let releases: number;
+  let serializeLock: boolean;
 
   beforeAll(() => {
     // Loading the module graph is expensive; do it once per deployment shape.
@@ -189,58 +202,32 @@ describe("UserService.createUserOnSignup -- first Master Admin election", () => 
   type WireUpFunction = (modules: LoadedModules) => void;
 
   const wireUp: WireUpFunction = (modules: LoadedModules): void => {
-    getJestSpyOn(modules.postgresDatabase, "getDataSource").mockReturnValue({
-      createQueryRunner: (): unknown => {
-        let heldLabel: string | null = null;
+    getJestSpyOn(modules.semaphore, "lock").mockImplementation(
+      async (data: any): Promise<any> => {
+        const key: string = `${data.namespace}-${data.key}`;
 
-        const runner: Record<string, unknown> = {
-          isTransactionActive: false,
-          connect: async (): Promise<void> => {
-            return undefined;
-          },
-          startTransaction: async (): Promise<void> => {
-            runner["isTransactionActive"] = true;
-          },
-          query: async (
-            sql: string,
-            params: Array<unknown>,
-          ): Promise<Array<unknown>> => {
-            if (
-              serializeLockStatement &&
-              sql.includes("pg_advisory_xact_lock")
-            ) {
-              heldLabel = String(params[0]);
-              await locks.acquire(heldLabel);
-              events.push("lock");
-            }
+        if (serializeLock) {
+          await mutexes.acquire(key);
+        }
 
-            return [];
-          },
-          endTransaction: (): void => {
-            runner["isTransactionActive"] = false;
+        events.push("lock");
 
-            if (heldLabel) {
-              locks.release(heldLabel);
-              events.push("unlock");
-              heldLabel = null;
-            }
-          },
-          commitTransaction: async (): Promise<void> => {
-            (runner["endTransaction"] as () => void)();
-          },
-          rollbackTransaction: async (): Promise<void> => {
-            (runner["endTransaction"] as () => void)();
-          },
-          release: async (): Promise<void> => {
-            releasedRunners++;
-            // A dropped connection ends the transaction, and with it the lock.
-            (runner["endTransaction"] as () => void)();
-          },
-        };
-
-        return runner;
+        // Stands in for the SemaphoreMutex handle the real lock() returns.
+        return { key };
       },
-    });
+    );
+
+    getJestSpyOn(modules.semaphore, "release").mockImplementation(
+      async (mutex: any): Promise<void> => {
+        releases++;
+
+        if (serializeLock) {
+          mutexes.release(mutex.key);
+        }
+
+        events.push("unlock");
+      },
+    );
 
     getJestSpyOn(modules.userService, "countBy").mockImplementation(
       async (): Promise<PositiveNumber> => {
@@ -279,12 +266,12 @@ describe("UserService.createUserOnSignup -- first Master Admin election", () => 
   beforeEach(() => {
     jest.restoreAllMocks();
 
-    locks = new FakeAdvisoryLocks();
+    mutexes = new FakeRedisMutexes();
     userRows = [];
     projectCount = 0;
     events = [];
-    releasedRunners = 0;
-    serializeLockStatement = true;
+    releases = 0;
+    serializeLock = true;
 
     wireUp(selfHosted);
     wireUp(hosted);
@@ -396,6 +383,20 @@ describe("UserService.createUserOnSignup -- first Master Admin election", () => 
       ]);
     });
 
+    test("takes the lock before it reads anything", async () => {
+      /*
+       * A check-then-lock ordering would be the same vulnerability: both
+       * racers would finish their COUNT before either took the mutex.
+       */
+      await selfHosted.userService.createUserOnSignup({
+        user: buildUser({ modules: selfHosted, email: "first@example.com" }),
+        props: { isRoot: true },
+      });
+
+      expect(events[0]).toBe("lock");
+      expect(events.indexOf("lock")).toBeLessThan(events.indexOf("countUsers"));
+    });
+
     test("passes the caller's props through to create", async () => {
       await selfHosted.userService.createUserOnSignup({
         user: buildUser({ modules: selfHosted, email: "first@example.com" }),
@@ -422,7 +423,37 @@ describe("UserService.createUserOnSignup -- first Master Admin election", () => 
 
       // A leaked lock would block every subsequent signup on the instance.
       expect(events).toContain("unlock");
-      expect(releasedRunners).toBe(1);
+      expect(releases).toBe(1);
+      expect(mutexes.isHeld(`${LOCK_NAMESPACE}-${LOCK_KEY}`)).toBe(false);
+    });
+
+    test("releases the lock when the eligibility read fails", async () => {
+      getJestSpyOn(selfHosted.userService, "countBy").mockImplementation(
+        async (): Promise<never> => {
+          throw new Error("count failed");
+        },
+      );
+
+      await expect(
+        selfHosted.userService.createUserOnSignup({
+          user: buildUser({ modules: selfHosted, email: "first@example.com" }),
+          props: { isRoot: true },
+        }),
+      ).rejects.toThrow("count failed");
+
+      expect(releases).toBe(1);
+      expect(mutexes.isHeld(`${LOCK_NAMESPACE}-${LOCK_KEY}`)).toBe(false);
+    });
+
+    test("releases the lock exactly once on the happy path", async () => {
+      await selfHosted.userService.createUserOnSignup({
+        user: buildUser({ modules: selfHosted, email: "first@example.com" }),
+        props: { isRoot: true },
+      });
+
+      // A double release would hand the lock to two waiters at once.
+      expect(releases).toBe(1);
+      expect(mutexes.isHeld(`${LOCK_NAMESPACE}-${LOCK_KEY}`)).toBe(false);
     });
 
     test("a signup that fails does not stop the next one from being elected", async () => {
@@ -448,6 +479,163 @@ describe("UserService.createUserOnSignup -- first Master Admin election", () => 
     });
   });
 
+  describe("how the mutex is taken", () => {
+    test("uses the expected key, namespace and timeouts", async () => {
+      await selfHosted.userService.createUserOnSignup({
+        user: buildUser({ modules: selfHosted, email: "first@example.com" }),
+        props: { isRoot: true },
+      });
+
+      expect(selfHosted.semaphore.lock).toHaveBeenCalledTimes(1);
+      expect((selfHosted.semaphore.lock as any).mock.calls[0][0]).toEqual({
+        key: LOCK_KEY,
+        namespace: LOCK_NAMESPACE,
+        lockTimeout: LOCK_TIMEOUT_MS,
+        acquireTimeout: ACQUIRE_TIMEOUT_MS,
+      });
+    });
+
+    test("bounds the wait rather than blocking the request indefinitely", async () => {
+      /*
+       * Signup is user-facing. redis-semaphore defaults acquireAttemptsLimit to
+       * Infinity, so an acquireTimeout is the only thing standing between a
+       * contended lock and a request that hangs until the client gives up.
+       */
+      await selfHosted.userService.createUserOnSignup({
+        user: buildUser({ modules: selfHosted, email: "first@example.com" }),
+        props: { isRoot: true },
+      });
+
+      const options: any = (selfHosted.semaphore.lock as any).mock.calls[0][0];
+
+      expect(options.acquireTimeout).toBeGreaterThan(0);
+      expect(options.acquireTimeout).toBeLessThanOrEqual(10_000);
+    });
+
+    test("gives the lock a crash bound longer than the wait it imposes", async () => {
+      /*
+       * lockTimeout is what frees the key when a holder is SIGKILLed mid
+       * election. It has to outlive the acquire wait, or a waiter would time
+       * out before a dead holder's key ever expired.
+       */
+      await selfHosted.userService.createUserOnSignup({
+        user: buildUser({ modules: selfHosted, email: "first@example.com" }),
+        props: { isRoot: true },
+      });
+
+      const options: any = (selfHosted.semaphore.lock as any).mock.calls[0][0];
+
+      expect(options.lockTimeout).toBeGreaterThan(options.acquireTimeout);
+    });
+  });
+
+  describe("when Redis will not cooperate", () => {
+    test("fails the signup instead of electing unserialized when the lock cannot be acquired", async () => {
+      /*
+       * The whole point. Falling back to an unlocked election on a Redis
+       * outage would reinstate GHSA-3qqq-hprx-g2jw exactly, and it would do so
+       * at the worst possible moment -- a fresh instance whose Redis is not up
+       * yet is precisely when the User table is empty.
+       */
+      getJestSpyOn(selfHosted.semaphore, "lock").mockImplementation(
+        async (): Promise<never> => {
+          throw new Error("Redis client is not connected");
+        },
+      );
+
+      await expect(
+        selfHosted.userService.createUserOnSignup({
+          user: buildUser({ modules: selfHosted, email: "first@example.com" }),
+          props: { isRoot: true },
+        }),
+      ).rejects.toThrow("Redis client is not connected");
+
+      expect(selfHosted.userService.create).not.toHaveBeenCalled();
+      expect(userRows).toHaveLength(0);
+    });
+
+    test("does not try to release a lock it never acquired", async () => {
+      getJestSpyOn(selfHosted.semaphore, "lock").mockImplementation(
+        async (): Promise<never> => {
+          throw new Error("acquire-timeout");
+        },
+      );
+
+      await expect(
+        selfHosted.userService.createUserOnSignup({
+          user: buildUser({ modules: selfHosted, email: "first@example.com" }),
+          props: { isRoot: true },
+        }),
+      ).rejects.toThrow("acquire-timeout");
+
+      // Releasing a mutex nobody holds can free somebody else's critical section.
+      expect(selfHosted.semaphore.release).not.toHaveBeenCalled();
+    });
+
+    test("logs why the signup was refused", async () => {
+      getJestSpyOn(selfHosted.semaphore, "lock").mockImplementation(
+        async (): Promise<never> => {
+          throw new Error("Redis client is not connected");
+        },
+      );
+
+      await expect(
+        selfHosted.userService.createUserOnSignup({
+          user: buildUser({ modules: selfHosted, email: "first@example.com" }),
+          props: { isRoot: true },
+        }),
+      ).rejects.toThrow();
+
+      /*
+       * "Signups 500 and nothing says why" is an outage nobody can diagnose.
+       */
+      expect(selfHosted.logger.error).toHaveBeenCalled();
+    });
+
+    test("a failed release does not mask a successful signup", async () => {
+      getJestSpyOn(selfHosted.semaphore, "release").mockImplementation(
+        async (): Promise<never> => {
+          throw new Error("redis closed");
+        },
+      );
+
+      const created: any = await selfHosted.userService.createUserOnSignup({
+        user: buildUser({ modules: selfHosted, email: "first@example.com" }),
+        props: { isRoot: true },
+      });
+
+      /*
+       * The row is already committed at this point. Throwing here would tell
+       * the caller their signup failed when it did not, and the lock expires on
+       * its own anyway.
+       */
+      expect(created.isMasterAdmin).toBe(true);
+      expect(selfHosted.logger.error).toHaveBeenCalled();
+    });
+
+    test("a failed release does not mask the real failure underneath it", async () => {
+      getJestSpyOn(selfHosted.userService, "create").mockImplementation(
+        async (): Promise<never> => {
+          throw new Error("insert failed");
+        },
+      );
+
+      getJestSpyOn(selfHosted.semaphore, "release").mockImplementation(
+        async (): Promise<never> => {
+          throw new Error("redis closed");
+        },
+      );
+
+      // The caller needs "insert failed", not a connection-management detail.
+      await expect(
+        selfHosted.userService.createUserOnSignup({
+          user: buildUser({ modules: selfHosted, email: "first@example.com" }),
+          props: { isRoot: true },
+        }),
+      ).rejects.toThrow("insert failed");
+    });
+  });
+
   describe("hosted (billing enabled)", () => {
     test("never elects a Master Admin", async () => {
       const created: any = await hosted.userService.createUserOnSignup({
@@ -470,13 +658,29 @@ describe("UserService.createUserOnSignup -- first Master Admin election", () => 
 
       /*
        * There is no first-user bootstrap on the hosted service, so there is
-       * nothing to serialize -- every signup paying for a lock round trip would
-       * be pure cost.
+       * nothing to serialize -- every signup paying for a Redis round trip
+       * would be pure cost, and a Redis blip would take signup down with it.
        */
       expect(events).toEqual(["create"]);
       expect(hosted.userService.countBy).not.toHaveBeenCalled();
       expect(hosted.projectService.countBy).not.toHaveBeenCalled();
-      expect(hosted.postgresDatabase.getDataSource).not.toHaveBeenCalled();
+      expect(hosted.semaphore.lock).not.toHaveBeenCalled();
+      expect(hosted.semaphore.release).not.toHaveBeenCalled();
+    });
+
+    test("signup survives a Redis outage", async () => {
+      getJestSpyOn(hosted.semaphore, "lock").mockImplementation(
+        async (): Promise<never> => {
+          throw new Error("Redis client is not connected");
+        },
+      );
+
+      const created: any = await hosted.userService.createUserOnSignup({
+        user: buildUser({ modules: hosted, email: "first@example.com" }),
+        props: { isRoot: true },
+      });
+
+      expect(created).toBeTruthy();
     });
   });
 
@@ -526,6 +730,45 @@ describe("UserService.createUserOnSignup -- first Master Admin election", () => 
       expect(userRows).toHaveLength(10);
     });
 
+    test("critical sections never interleave", async () => {
+      const signups: Array<Promise<any>> = [];
+
+      for (let index: number = 0; index < 5; index++) {
+        signups.push(
+          selfHosted.userService.createUserOnSignup({
+            user: buildUser({
+              modules: selfHosted,
+              email: `race${index}@example.com`,
+            }),
+            props: { isRoot: true },
+          }),
+        );
+      }
+
+      await Promise.all(signups);
+
+      /*
+       * "Exactly one master admin" can pass by luck of scheduling. This asserts
+       * the mechanism instead: the event stream has to be flat lock/unlock
+       * pairs, never a second lock while one is still open.
+       */
+      let depth: number = 0;
+
+      for (const event of events) {
+        if (event === "lock") {
+          depth++;
+          expect(depth).toBe(1);
+        }
+
+        if (event === "unlock") {
+          depth--;
+          expect(depth).toBe(0);
+        }
+      }
+
+      expect(depth).toBe(0);
+    });
+
     test("the loser of the race is created as an ordinary user, not rejected", async () => {
       const created: Array<any> = await Promise.all([
         selfHosted.userService.createUserOnSignup({
@@ -545,42 +788,7 @@ describe("UserService.createUserOnSignup -- first Master Admin election", () => 
       }
     });
 
-    test("every racer takes the same lock label", async () => {
-      const takenLabels: Array<unknown> = [];
-
-      getJestSpyOn(
-        selfHosted.postgresDatabase,
-        "getDataSource",
-      ).mockReturnValue({
-        createQueryRunner: (): unknown => {
-          return {
-            isTransactionActive: true,
-            connect: async (): Promise<void> => {
-              return undefined;
-            },
-            startTransaction: async (): Promise<void> => {
-              return undefined;
-            },
-            query: async (
-              _sql: string,
-              params: Array<unknown>,
-            ): Promise<Array<unknown>> => {
-              takenLabels.push(params[0]);
-              return [];
-            },
-            commitTransaction: async (): Promise<void> => {
-              return undefined;
-            },
-            rollbackTransaction: async (): Promise<void> => {
-              return undefined;
-            },
-            release: async (): Promise<void> => {
-              return undefined;
-            },
-          };
-        },
-      });
-
+    test("every racer takes the same key", async () => {
       await Promise.all([
         selfHosted.userService.createUserOnSignup({
           user: buildUser({ modules: selfHosted, email: "race1@example.com" }),
@@ -593,13 +801,59 @@ describe("UserService.createUserOnSignup -- first Master Admin election", () => 
       ]);
 
       /*
-       * Two callers taking two DIFFERENT labels exclude nobody. Pin the exact
-       * string: it is the entire coordination protocol between replicas.
+       * Two callers taking two DIFFERENT keys exclude nobody. Pin the exact
+       * strings: they are the entire coordination protocol between replicas.
        */
-      expect(takenLabels).toEqual([
-        FIRST_MASTER_ADMIN_LOCK_LABEL,
-        FIRST_MASTER_ADMIN_LOCK_LABEL,
+      const keys: Array<string> = (
+        selfHosted.semaphore.lock as any
+      ).mock.calls.map((call: Array<any>) => {
+        return `${call[0].namespace}-${call[0].key}`;
+      });
+
+      expect(keys).toEqual([
+        `${LOCK_NAMESPACE}-${LOCK_KEY}`,
+        `${LOCK_NAMESPACE}-${LOCK_KEY}`,
       ]);
+    });
+
+    test("a racer that fails mid-election still frees the lock for the rest", async () => {
+      getJestSpyOn(selfHosted.userService, "create").mockImplementationOnce(
+        async (): Promise<never> => {
+          throw new Error("insert failed");
+        },
+      );
+
+      const outcomes: Array<any> = await Promise.allSettled([
+        selfHosted.userService.createUserOnSignup({
+          user: buildUser({ modules: selfHosted, email: "race1@example.com" }),
+          props: { isRoot: true },
+        }),
+        selfHosted.userService.createUserOnSignup({
+          user: buildUser({ modules: selfHosted, email: "race2@example.com" }),
+          props: { isRoot: true },
+        }),
+        selfHosted.userService.createUserOnSignup({
+          user: buildUser({ modules: selfHosted, email: "race3@example.com" }),
+          props: { isRoot: true },
+        }),
+      ]);
+
+      const fulfilled: Array<any> = outcomes.filter((outcome: any) => {
+        return outcome.status === "fulfilled";
+      });
+
+      /*
+       * A leaked lock would deadlock the two survivors, and Promise.allSettled
+       * would never resolve -- the test would time out rather than fail.
+       */
+      expect(fulfilled).toHaveLength(2);
+      expect(mutexes.isHeld(`${LOCK_NAMESPACE}-${LOCK_KEY}`)).toBe(false);
+
+      const elected: Array<any> = fulfilled.filter((outcome: any) => {
+        return outcome.value.isMasterAdmin === true;
+      });
+
+      expect(elected).toHaveLength(1);
     });
 
     test("without serialization the same harness reproduces the vulnerability", async () => {
@@ -608,7 +862,7 @@ describe("UserService.createUserOnSignup -- first Master Admin election", () => 
        * starts producing one master admin, the harness has stopped being able
        * to observe the bug and every passing test above means nothing.
        */
-      serializeLockStatement = false;
+      serializeLock = false;
 
       const created: Array<any> = await Promise.all([
         selfHosted.userService.createUserOnSignup({

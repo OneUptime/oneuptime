@@ -26,7 +26,7 @@ import LIMIT_MAX from "../../Types/Database/LimitMax";
 import OneUptimeDate from "../../Types/Date";
 import PositiveNumber from "../../Types/PositiveNumber";
 import ProjectService from "./ProjectService";
-import PostgresAdvisoryLock from "../Utils/Database/PostgresAdvisoryLock";
+import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import Email from "../../Types/Email";
 import EmailTemplateType from "../../Types/Email/EmailTemplateType";
 import HashedString from "../../Types/HashedString";
@@ -49,12 +49,35 @@ import Timezone from "../../Types/Timezone";
 import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
 
 /*
- * Names the advisory lock that serializes the first-Master-Admin election
- * across every process talking to this database. Readable and namespaced so it
- * is self-documenting in pg_locks and cannot collide with another lock.
+ * Names the Redis mutex that serializes the first-Master-Admin election across
+ * every process on this instance. Namespaced the same way as the other
+ * cross-process mutexes in this codebase (see ProjectService's counter locks)
+ * so the key is self-documenting in Redis and cannot collide with another lock.
  */
-const FIRST_MASTER_ADMIN_ELECTION_LOCK_LABEL: string =
-  "oneuptime:first-master-admin-election";
+const FIRST_MASTER_ADMIN_ELECTION_LOCK_NAMESPACE: string =
+  "UserService.firstMasterAdminElection";
+const FIRST_MASTER_ADMIN_ELECTION_LOCK_KEY: string = "instance";
+
+/*
+ * How long the mutex survives without being refreshed. This is a crash bound,
+ * NOT a work budget: redis-semaphore refreshes an held lock every
+ * 0.8 * lockTimeout for as long as the holder is alive, so a slow COUNT+INSERT
+ * does not expire the lock out from under itself. It only matters when a holder
+ * dies mid-election (SIGKILL, eviction) — the lock then frees itself after this
+ * long instead of wedging every subsequent signup on the instance forever.
+ */
+const FIRST_MASTER_ADMIN_ELECTION_LOCK_TIMEOUT_MS: number = 10_000;
+
+/*
+ * How long a signup waits for the lock before giving up. Signup is a
+ * user-facing request, so the wait has to be bounded rather than indefinite —
+ * this replaces the bound that Postgres `lock_timeout` used to give us.
+ *
+ * Failing the signup is the correct outcome when it fires: refusing to serve
+ * one request is safe, serving it unserialized is exactly the bug this lock
+ * exists to prevent (GHSA-3qqq-hprx-g2jw).
+ */
+const FIRST_MASTER_ADMIN_ELECTION_ACQUIRE_TIMEOUT_MS: number = 5_000;
 
 export class Service extends DatabaseService<Model> {
   /*
@@ -549,28 +572,72 @@ export class Service extends DatabaseService<Model> {
      * Admin (GHSA-3qqq-hprx-g2jw). Serialize the check and the insert
      * instance-wide so the second request observes the first one's row.
      *
-     * Note this deliberately covers the INSERT, not just the count: releasing
-     * the lock after the count would let the next holder count a table the
-     * winner had not written to yet, which is the same race with extra steps.
+     * The mutex is the Redis one every other cross-process critical section in
+     * this codebase uses (Semaphore), not a Postgres advisory lock. It holds no
+     * database connection and no open transaction, so serializing signups
+     * cannot pin a pooled backend `idle in transaction`, and it is unaffected
+     * by how PgBouncer is pooling.
      */
-    return await PostgresAdvisoryLock.runExclusively({
-      label: FIRST_MASTER_ADMIN_ELECTION_LOCK_LABEL,
-      work: async (): Promise<Model> => {
-        data.user.isMasterAdmin = await this.isInstanceAwaitingFirstUser();
+    let mutex: SemaphoreMutex;
 
-        return await this.create({
-          data: data.user,
-          props: data.props,
-        });
-      },
-    });
+    try {
+      mutex = await Semaphore.lock({
+        key: FIRST_MASTER_ADMIN_ELECTION_LOCK_KEY,
+        namespace: FIRST_MASTER_ADMIN_ELECTION_LOCK_NAMESPACE,
+        lockTimeout: FIRST_MASTER_ADMIN_ELECTION_LOCK_TIMEOUT_MS,
+        acquireTimeout: FIRST_MASTER_ADMIN_ELECTION_ACQUIRE_TIMEOUT_MS,
+      });
+    } catch (err) {
+      /*
+       * Redis unreachable, or the lock stayed contended past the acquire
+       * timeout. Fail the signup rather than fall back to an unserialized
+       * election — the fallback is the vulnerability.
+       */
+      logger.error(
+        "Refusing to create a signup: could not acquire the first-Master-Admin election lock.",
+      );
+      logger.error(err);
+
+      throw err;
+    }
+
+    /*
+     * The critical section deliberately covers the INSERT, not just the count:
+     * releasing after the count would let the next holder count a table the
+     * winner had not written to yet, which is the same race with extra steps.
+     *
+     * `finally` so a failed create still frees the lock immediately instead of
+     * blocking every other signup until lockTimeout elapses.
+     */
+    try {
+      data.user.isMasterAdmin = await this.isInstanceAwaitingFirstUser();
+
+      return await this.create({
+        data: data.user,
+        props: data.props,
+      });
+    } finally {
+      try {
+        await Semaphore.release(mutex);
+      } catch (err) {
+        /*
+         * Best-effort and non-masking: an error here must not replace the
+         * outcome of the signup, and an unreleased lock still expires on its
+         * own after lockTimeout.
+         */
+        logger.error(
+          "Failed to release the first-Master-Admin election lock; it will expire on its own.",
+        );
+        logger.error(err);
+      }
+    }
   }
 
   /**
    * Is this a brand-new instance that nobody has ever signed up to — i.e. may
    * the next user through the door take Master Admin?
    *
-   * Only ever called while holding the first-master-admin advisory lock.
+   * Only ever called while holding the first-Master-Admin election mutex.
    */
   private async isInstanceAwaitingFirstUser(): Promise<boolean> {
     const userCount: PositiveNumber = await this.countBy({
