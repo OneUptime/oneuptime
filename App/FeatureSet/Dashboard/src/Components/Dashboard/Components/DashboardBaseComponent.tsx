@@ -1,52 +1,9 @@
 import React, {
+  ComponentType,
   FunctionComponent,
   ReactElement,
-  useEffect,
-  useRef,
   useState,
 } from "react";
-import DashboardTextComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardTextComponent";
-import DashboardClockComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardClockComponent";
-import DashboardChartComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardChartComponent";
-import DashboardValueComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardValueComponent";
-import DashboardTableComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardTableComponent";
-import DashboardGaugeComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardGaugeComponent";
-import DashboardLogStreamComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardLogStreamComponent";
-import DashboardLogChartComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardLogChartComponent";
-import DashboardTraceListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardTraceListComponent";
-import DashboardTraceChartComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardTraceChartComponent";
-import DashboardTraceTableComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardTraceTableComponent";
-import DashboardIncidentListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardIncidentListComponent";
-import DashboardAlertListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardAlertListComponent";
-import DashboardMonitorListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardMonitorListComponent";
-import DashboardSloComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardSloComponent";
-import DashboardKubernetesPodListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardKubernetesPodListComponent";
-import DashboardKubernetesNodeListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardKubernetesNodeListComponent";
-import DashboardKubernetesNamespaceListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardKubernetesNamespaceListComponent";
-import DashboardKubernetesDeploymentListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardKubernetesDeploymentListComponent";
-import DashboardKubernetesStatefulSetListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardKubernetesStatefulSetListComponent";
-import DashboardKubernetesDaemonSetListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardKubernetesDaemonSetListComponent";
-import DashboardKubernetesJobListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardKubernetesJobListComponent";
-import DashboardKubernetesCronJobListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardKubernetesCronJobListComponent";
-import DashboardDockerHostListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardDockerHostListComponent";
-import DashboardDockerContainerListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardDockerContainerListComponent";
-import DashboardDockerImageListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardDockerImageListComponent";
-import DashboardDockerNetworkListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardDockerNetworkListComponent";
-import DashboardDockerVolumeListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardDockerVolumeListComponent";
-import DashboardPodmanHostListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardPodmanHostListComponent";
-import DashboardPodmanContainerListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardPodmanContainerListComponent";
-import DashboardPodmanImageListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardPodmanImageListComponent";
-import DashboardPodmanNetworkListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardPodmanNetworkListComponent";
-import DashboardPodmanVolumeListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardPodmanVolumeListComponent";
-import DashboardHostListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardHostListComponent";
-import DashboardProxmoxNodeListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardProxmoxNodeListComponent";
-import DashboardProxmoxGuestListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardProxmoxGuestListComponent";
-import DashboardDockerSwarmNodeListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardDockerSwarmNodeListComponent";
-import DashboardDockerSwarmServiceListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardDockerSwarmServiceListComponent";
-import DashboardCephOsdListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardCephOsdListComponent";
-import DashboardCephPoolListComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardCephPoolListComponent";
-import DashboardNetworkMapComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardNetworkMapComponent";
-import DashboardHtmlComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardHtmlComponent";
 import DashboardBaseComponent from "Common/Types/Dashboard/DashboardComponents/DashboardBaseComponent";
 import DashboardChartComponent from "./DashboardChartComponent";
 import DashboardValueComponent from "./DashboardValueComponent";
@@ -90,13 +47,6 @@ import DashboardCephOsdListComponent from "./DashboardCephOsdListComponent";
 import DashboardCephPoolListComponent from "./DashboardCephPoolListComponent";
 import DashboardNetworkMapComponent from "./DashboardNetworkMapComponent";
 import DashboardHtmlComponent from "./DashboardHtmlComponent";
-import DefaultDashboardSize, {
-  GetDashboardComponentHeightInDashboardUnits,
-  GetDashboardComponentWidthInDashboardUnits,
-  GetDashboardUnitHeightInPx,
-  GetDashboardUnitWidthInPx,
-  SpaceBetweenUnitsInPx,
-} from "Common/Types/Dashboard/DashboardSize";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import DashboardViewConfig from "Common/Types/Dashboard/DashboardViewConfig";
 import ObjectID from "Common/Types/ObjectID";
@@ -104,6 +54,11 @@ import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentTyp
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
+import {
+  GridDndMode,
+  ResizeDirection,
+  getResizeCursor,
+} from "Common/UI/Utils/UseDashboardGridDnd";
 
 export interface DashboardBaseComponentProps {
   componentId: ObjectID;
@@ -127,330 +82,206 @@ export interface DashboardBaseComponentProps {
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   onClick: () => void;
+  /** Set while THIS widget is being dragged or resized. */
+  dndActiveMode: GridDndMode | null;
+  /** True while any widget on the board has an active gesture. */
+  isAnyGestureActive: boolean;
+  onMovePointerDown: (event: React.PointerEvent) => void;
+  onResizePointerDown: (
+    event: React.PointerEvent,
+    direction: ResizeDirection,
+  ) => void;
 }
 
-/*
- * ────────────────────────────────────────────────────────────
- * All mutable drag/resize state lives here, outside React.
- * Nothing in this struct triggers a re-render.
- * ────────────────────────────────────────────────────────────
+/**
+ * Which concrete widget renders for each component type. Every entry
+ * receives the full ComponentProps spread plus its own `component`.
  */
-interface DragSession {
-  mode: "move" | "resize-w" | "resize-h" | "resize-corner";
-  startMouseX: number;
-  startMouseY: number;
-  // Snapped values at the START of the gesture (dashboard units)
-  originTop: number;
-  originLeft: number;
-  originWidth: number;
-  originHeight: number;
-  // Live snapped values (updated every mousemove, used on commit)
-  liveTop: number;
-  liveLeft: number;
-  liveWidth: number;
-  liveHeight: number;
+const WIDGET_BY_TYPE: Partial<
+  Record<DashboardComponentType, ComponentType<any>>
+> = {
+  [DashboardComponentType.Text]: DashboardTextComponent,
+  [DashboardComponentType.Clock]: DashboardClockComponent,
+  [DashboardComponentType.Chart]: DashboardChartComponent,
+  [DashboardComponentType.Value]: DashboardValueComponent,
+  [DashboardComponentType.Table]: DashboardTableComponent,
+  [DashboardComponentType.Gauge]: DashboardGaugeComponent,
+  [DashboardComponentType.LogStream]: DashboardLogStreamComponent,
+  [DashboardComponentType.LogChart]: DashboardLogChartComponent,
+  [DashboardComponentType.TraceList]: DashboardTraceListComponent,
+  [DashboardComponentType.TraceChart]: DashboardTraceChartComponent,
+  [DashboardComponentType.TraceTable]: DashboardTraceTableComponent,
+  [DashboardComponentType.IncidentList]: DashboardIncidentListComponent,
+  [DashboardComponentType.AlertList]: DashboardAlertListComponent,
+  [DashboardComponentType.MonitorList]: DashboardMonitorListComponent,
+  [DashboardComponentType.Slo]: DashboardSloComponent,
+  [DashboardComponentType.KubernetesPodList]:
+    DashboardKubernetesPodListComponent,
+  [DashboardComponentType.KubernetesNodeList]:
+    DashboardKubernetesNodeListComponent,
+  [DashboardComponentType.KubernetesNamespaceList]:
+    DashboardKubernetesNamespaceListComponent,
+  [DashboardComponentType.KubernetesDeploymentList]:
+    DashboardKubernetesDeploymentListComponent,
+  [DashboardComponentType.KubernetesStatefulSetList]:
+    DashboardKubernetesStatefulSetListComponent,
+  [DashboardComponentType.KubernetesDaemonSetList]:
+    DashboardKubernetesDaemonSetListComponent,
+  [DashboardComponentType.KubernetesJobList]:
+    DashboardKubernetesJobListComponent,
+  [DashboardComponentType.KubernetesCronJobList]:
+    DashboardKubernetesCronJobListComponent,
+  [DashboardComponentType.DockerHostList]: DashboardDockerHostListComponent,
+  [DashboardComponentType.DockerContainerList]:
+    DashboardDockerContainerListComponent,
+  [DashboardComponentType.DockerImageList]: DashboardDockerImageListComponent,
+  [DashboardComponentType.DockerNetworkList]:
+    DashboardDockerNetworkListComponent,
+  [DashboardComponentType.DockerVolumeList]: DashboardDockerVolumeListComponent,
+  [DashboardComponentType.PodmanHostList]: DashboardPodmanHostListComponent,
+  [DashboardComponentType.PodmanContainerList]:
+    DashboardPodmanContainerListComponent,
+  [DashboardComponentType.PodmanImageList]: DashboardPodmanImageListComponent,
+  [DashboardComponentType.PodmanNetworkList]:
+    DashboardPodmanNetworkListComponent,
+  [DashboardComponentType.PodmanVolumeList]: DashboardPodmanVolumeListComponent,
+  [DashboardComponentType.HostList]: DashboardHostListComponent,
+  [DashboardComponentType.ProxmoxNodeList]: DashboardProxmoxNodeListComponent,
+  [DashboardComponentType.ProxmoxGuestList]: DashboardProxmoxGuestListComponent,
+  [DashboardComponentType.DockerSwarmNodeList]:
+    DashboardDockerSwarmNodeListComponent,
+  [DashboardComponentType.DockerSwarmServiceList]:
+    DashboardDockerSwarmServiceListComponent,
+  [DashboardComponentType.CephOsdList]: DashboardCephOsdListComponent,
+  [DashboardComponentType.CephPoolList]: DashboardCephPoolListComponent,
+  [DashboardComponentType.NetworkMap]: DashboardNetworkMapComponent,
+  [DashboardComponentType.Html]: DashboardHtmlComponent,
+};
+
+interface ResizeHandleSpec {
+  direction: ResizeDirection;
+  style: React.CSSProperties;
 }
+
+/**
+ * Hit areas for the eight resize handles. They hang slightly outside the
+ * card (the grid gap is 10px, so a 5px overhang never reaches a
+ * neighbour).
+ */
+const RESIZE_HANDLES: Array<ResizeHandleSpec> = [
+  {
+    direction: "n",
+    style: { top: "-4px", left: "14px", right: "14px", height: "8px" },
+  },
+  {
+    direction: "s",
+    style: { bottom: "-4px", left: "14px", right: "14px", height: "8px" },
+  },
+  {
+    direction: "e",
+    style: { right: "-4px", top: "14px", bottom: "14px", width: "8px" },
+  },
+  {
+    direction: "w",
+    style: { left: "-4px", top: "14px", bottom: "14px", width: "8px" },
+  },
+  {
+    direction: "ne",
+    style: { top: "-5px", right: "-5px", width: "14px", height: "14px" },
+  },
+  {
+    direction: "nw",
+    style: { top: "-5px", left: "-5px", width: "14px", height: "14px" },
+  },
+  {
+    direction: "se",
+    style: { bottom: "-5px", right: "-5px", width: "14px", height: "14px" },
+  },
+  {
+    direction: "sw",
+    style: { bottom: "-5px", left: "-5px", width: "14px", height: "14px" },
+  },
+];
 
 const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  // ── Derived data ──────────────────────────────────────────
   const component: DashboardBaseComponent =
     props.dashboardViewConfig.components.find((c: DashboardBaseComponent) => {
       return c.componentId.toString() === props.componentId.toString();
     }) as DashboardBaseComponent;
 
-  const widthOfComponent: number = component.widthInDashboardUnits;
-  const heightOfComponent: number = component.heightInDashboardUnits;
-
-  // ── Minimal React state (only for hover gating) ───────────
   const [isHovered, setIsHovered] = useState<boolean>(false);
-  const [isDragging, setIsDragging] = useState<boolean>(false);
 
-  // ── Refs ──────────────────────────────────────────────────
-  const elRef: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
-  const tooltipRef: React.RefObject<HTMLDivElement> =
-    useRef<HTMLDivElement>(null);
-  const sessionRef: React.MutableRefObject<DragSession | null> =
-    useRef<DragSession | null>(null);
-  const overlayRef: React.MutableRefObject<HTMLDivElement | null> =
-    useRef<HTMLDivElement | null>(null);
-  const latestProps: React.MutableRefObject<ComponentProps> =
-    useRef<ComponentProps>(props);
-  const latestComponent: React.MutableRefObject<DashboardBaseComponent> =
-    useRef<DashboardBaseComponent>(component);
-  latestProps.current = props;
-  latestComponent.current = component;
+  // Boolean() so a JS caller passing undefined reads as inactive, not active.
+  const isActive: boolean = Boolean(props.dndActiveMode);
+  const isMoving: boolean = props.dndActiveMode === "move";
 
-  // ── Core imperative handlers (stable — no deps) ──────────
-
-  function updateTooltip(session: DragSession): void {
-    if (!tooltipRef.current) {
-      return;
-    }
-    if (session.mode === "move") {
-      tooltipRef.current.textContent = `${session.liveLeft}, ${session.liveTop}`;
-    } else {
-      tooltipRef.current.textContent = `${session.liveWidth} \u00d7 ${session.liveHeight}`;
-    }
-  }
-
-  function onMouseMove(e: MouseEvent): void {
-    const s: DragSession | null = sessionRef.current;
-    if (!s) {
-      return;
-    }
-
-    const p: ComponentProps = latestProps.current;
-    const c: DashboardBaseComponent = latestComponent.current;
-    const uW: number = GetDashboardUnitWidthInPx(
-      p.totalCurrentDashboardWidthInPx,
-    );
-    const uH: number = GetDashboardUnitHeightInPx(
-      p.totalCurrentDashboardWidthInPx,
-    );
-    const g: number = SpaceBetweenUnitsInPx;
-
-    const dxPx: number = e.clientX - s.startMouseX;
-    const dyPx: number = e.clientY - s.startMouseY;
-
-    const el: HTMLDivElement | null = elRef.current;
-    if (!el) {
-      return;
-    }
-
-    if (s.mode === "move") {
-      el.style.transform = `translate(${dxPx}px, ${dyPx}px) scale(1.01)`;
-      el.style.zIndex = "100";
-
-      const dxUnits: number = Math.round(dxPx / uW);
-      const dyUnits: number = Math.round(dyPx / uH);
-
-      let newLeft: number = s.originLeft + dxUnits;
-      let newTop: number = s.originTop + dyUnits;
-      const maxLeft: number =
-        DefaultDashboardSize.widthInDashboardUnits - c.widthInDashboardUnits;
-      const maxTop: number =
-        p.dashboardViewConfig.heightInDashboardUnits - c.heightInDashboardUnits;
-      newLeft = Math.max(0, Math.min(newLeft, maxLeft));
-      newTop = Math.max(0, Math.min(newTop, maxTop));
-
-      s.liveLeft = newLeft;
-      s.liveTop = newTop;
-
-      updateTooltip(s);
-    } else {
-      const rect: DOMRect = el.getBoundingClientRect();
-
-      if (s.mode === "resize-w" || s.mode === "resize-corner") {
-        const wPx: number = Math.max(
-          uW,
-          e.pageX - (window.scrollX + rect.left),
-        );
-        let wUnits: number = GetDashboardComponentWidthInDashboardUnits(
-          p.totalCurrentDashboardWidthInPx,
-          wPx,
-        );
-        wUnits = Math.max(c.minWidthInDashboardUnits, wUnits);
-        wUnits = Math.min(DefaultDashboardSize.widthInDashboardUnits, wUnits);
-        s.liveWidth = wUnits;
-
-        const newWidthPx: number = uW * wUnits + g * (wUnits - 1);
-        el.style.width = `${newWidthPx}px`;
-      }
-
-      if (s.mode === "resize-h" || s.mode === "resize-corner") {
-        const hPx: number = Math.max(uH, e.pageY - (window.scrollY + rect.top));
-        let hUnits: number = GetDashboardComponentHeightInDashboardUnits(
-          p.totalCurrentDashboardWidthInPx,
-          hPx,
-        );
-        hUnits = Math.max(c.minHeightInDashboardUnits, hUnits);
-        s.liveHeight = hUnits;
-
-        const newHeightPx: number = uH * hUnits + g * (hUnits - 1);
-        el.style.height = `${newHeightPx}px`;
-      }
-
-      updateTooltip(s);
-    }
-  }
-
-  function removeOverlay(): void {
-    if (overlayRef.current) {
-      overlayRef.current.remove();
-      overlayRef.current = null;
-    }
-  }
-
-  function createOverlay(cursor: string): void {
-    removeOverlay();
-    const overlay: HTMLDivElement = document.createElement("div");
-    overlay.style.position = "fixed";
-    overlay.style.inset = "0";
-    overlay.style.zIndex = "9999";
-    overlay.style.cursor = cursor;
-    overlay.style.background = "transparent";
-    document.body.appendChild(overlay);
-    overlayRef.current = overlay;
-  }
-
-  function onMouseUp(): void {
-    window.removeEventListener("mousemove", onMouseMove);
-    window.removeEventListener("mouseup", onMouseUp);
-    document.body.style.cursor = "";
-    document.body.style.userSelect = "";
-    removeOverlay();
-
-    const s: DragSession | null = sessionRef.current;
-    const el: HTMLDivElement | null = elRef.current;
-
-    if (el) {
-      el.style.transform = "";
-      el.style.zIndex = "";
-      el.style.width = "";
-      el.style.height = "";
-    }
-
-    sessionRef.current = null;
-    setIsDragging(false);
-
-    if (!s) {
-      return;
-    }
-
-    const c: DashboardBaseComponent = latestComponent.current;
-    const p: ComponentProps = latestProps.current;
-
-    const updated: DashboardBaseComponent = { ...c };
-    let changed: boolean = false;
-
-    if (s.mode === "move") {
-      if (
-        s.liveTop !== c.topInDashboardUnits ||
-        s.liveLeft !== c.leftInDashboardUnits
-      ) {
-        updated.topInDashboardUnits = s.liveTop;
-        updated.leftInDashboardUnits = s.liveLeft;
-        changed = true;
-      }
-    } else {
-      if (s.liveWidth !== c.widthInDashboardUnits) {
-        updated.widthInDashboardUnits = s.liveWidth;
-        changed = true;
-      }
-      if (s.liveHeight !== c.heightInDashboardUnits) {
-        updated.heightInDashboardUnits = s.liveHeight;
-        changed = true;
-      }
-    }
-
-    if (changed) {
-      p.onComponentUpdate(updated);
-    }
-  }
-
-  useEffect(() => {
-    return () => {
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup", onMouseUp);
-      removeOverlay();
-    };
-  }, []);
-
-  // ── Start a drag / resize session ─────────────────────────
-  function startSession(e: React.MouseEvent, mode: DragSession["mode"]): void {
-    e.preventDefault();
-    e.stopPropagation();
-
-    const c: DashboardBaseComponent = latestComponent.current;
-
-    const session: DragSession = {
-      mode,
-      startMouseX: e.clientX,
-      startMouseY: e.clientY,
-      originTop: c.topInDashboardUnits,
-      originLeft: c.leftInDashboardUnits,
-      originWidth: c.widthInDashboardUnits,
-      originHeight: c.heightInDashboardUnits,
-      liveTop: c.topInDashboardUnits,
-      liveLeft: c.leftInDashboardUnits,
-      liveWidth: c.widthInDashboardUnits,
-      liveHeight: c.heightInDashboardUnits,
-    };
-
-    sessionRef.current = session;
-    setIsDragging(true);
-
-    updateTooltip(session);
-
-    window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mouseup", onMouseUp);
-
-    document.body.style.userSelect = "none";
-
-    let cursor: string = "grabbing";
-    if (mode === "resize-w") {
-      cursor = "ew-resize";
-    } else if (mode === "resize-h") {
-      cursor = "ns-resize";
-    } else if (mode === "resize-corner") {
-      cursor = "nwse-resize";
-    }
-
-    document.body.style.cursor = cursor;
-    createOverlay(cursor);
-  }
-
-  // ── Styling ───────────────────────────────────────────────
   const showHandles: boolean =
-    props.isEditMode && (props.isSelected || isHovered || isDragging);
+    props.isEditMode && (props.isSelected || isHovered || isActive);
+
+  // ── card styling ──────────────────────────────────────────────────────
 
   let borderClass: string = "border-gray-200";
   let extraClass: string = "";
 
-  if (isDragging) {
+  if (isActive) {
     borderClass = "border-blue-400";
-    extraClass = "ring-2 ring-blue-400/40 shadow-2xl";
+    extraClass = "ring-2 ring-blue-400/40";
   } else if (props.isSelected && props.isEditMode) {
     borderClass = "border-blue-400";
-    extraClass = "ring-2 ring-blue-100 shadow-lg z-10";
+    extraClass = "ring-2 ring-blue-100";
   } else if (props.isEditMode && isHovered) {
     borderClass = "border-blue-300";
-    extraClass = "shadow-md z-10 cursor-pointer";
-  } else if (props.isEditMode) {
-    extraClass =
-      "hover:border-blue-300 hover:shadow-md cursor-pointer transition-all duration-200";
-  } else {
-    extraClass = "hover:shadow-md transition-shadow duration-200";
   }
 
   const className: string = [
-    "relative rounded-xl bg-white border overflow-hidden",
+    "relative rounded-xl bg-white border overflow-hidden w-full h-full",
     borderClass,
     extraClass,
   ].join(" ");
 
-  // ── Render ────────────────────────────────────────────────
+  const cardShadow: string = isActive
+    ? "var(--ou-card-shadow-dragging, 0 20px 40px -8px rgba(59,130,246,0.18), 0 8px 16px -4px rgba(0,0,0,0.1))"
+    : props.isSelected && props.isEditMode
+      ? "var(--ou-card-shadow-selected, 0 4px 12px -2px rgba(59,130,246,0.12), 0 2px 4px -1px rgba(0,0,0,0.04))"
+      : "var(--ou-card-shadow, 0 2px 8px -2px rgba(0,0,0,0.08), 0 1px 4px -1px rgba(0,0,0,0.04))";
 
-  const getMoveHandle: GetReactElementFunction = (): ReactElement => {
+  // ── chrome ────────────────────────────────────────────────────────────
+
+  const getEditOverlay: GetReactElementFunction = (): ReactElement => {
+    if (!props.isEditMode) {
+      return <></>;
+    }
+    return (
+      <div
+        className="absolute inset-0 z-10"
+        style={{
+          cursor: isMoving ? "grabbing" : "grab",
+          touchAction: "none",
+        }}
+        onPointerDown={(event: React.PointerEvent) => {
+          props.onMovePointerDown(event);
+        }}
+      />
+    );
+  };
+
+  const getHeaderBar: GetReactElementFunction = (): ReactElement => {
     if (!showHandles) {
       return <></>;
     }
     return (
       <div
-        className="absolute top-0 left-0 right-0 z-20 flex items-center justify-center cursor-grab active:cursor-grabbing"
+        className="absolute top-0 left-0 right-0 z-20 flex items-center justify-center pointer-events-none"
         style={{
           height: "28px",
           background:
             "linear-gradient(180deg, rgba(59,130,246,0.08) 0%, rgba(59,130,246,0.02) 100%)",
           borderBottom: "1px solid rgba(59,130,246,0.12)",
         }}
-        onMouseDown={(e: React.MouseEvent) => {
-          startSession(e, "move");
-        }}
       >
-        <div className="flex items-center gap-0.5 opacity-40 hover:opacity-70 transition-opacity">
+        <div className="flex items-center gap-0.5 opacity-40">
           <svg width="20" height="10" viewBox="0 0 20 10" fill="none">
             <circle cx="4" cy="3" r="1.2" fill="#3b82f6" />
             <circle cx="10" cy="3" r="1.2" fill="#3b82f6" />
@@ -464,175 +295,150 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const getResizeWidthHandle: GetReactElementFunction = (): ReactElement => {
-    if (!showHandles) {
+  const getTypeBadge: GetReactElementFunction = (): ReactElement => {
+    if (!props.isEditMode || isActive || (!props.isSelected && !isHovered)) {
       return <></>;
     }
     return (
       <div
-        className="absolute z-20 group"
+        className="absolute z-20 pointer-events-none"
         style={{
-          top: "28px",
-          right: "-4px",
-          bottom: "4px",
-          width: "8px",
-          cursor: "ew-resize",
-        }}
-        onMouseDown={(e: React.MouseEvent) => {
-          startSession(e, "resize-w");
+          top: "32px",
+          right: "6px",
         }}
       >
-        <div
-          className="absolute top-1/2 right-0.5 w-1 rounded-full bg-blue-400 group-hover:bg-blue-500 transition-all duration-150"
+        <span
+          className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium capitalize"
           style={{
-            height: "32px",
-            transform: "translateY(-50%)",
-            opacity: props.isSelected ? 0.8 : 0.5,
+            background:
+              "color-mix(in srgb, var(--ou-surface-secondary, #f1f5f9) 90%, transparent)",
+            color: "var(--ou-text-muted, #64748b)",
           }}
-        />
+        >
+          {component.componentType}
+        </span>
       </div>
     );
   };
 
-  const getResizeHeightHandle: GetReactElementFunction = (): ReactElement => {
+  const getResizeHandles: GetReactElementFunction = (): ReactElement => {
     if (!showHandles) {
       return <></>;
     }
+
+    const accent: string = props.isSelected
+      ? "rgba(59,130,246,0.8)"
+      : "rgba(59,130,246,0.5)";
+
     return (
-      <div
-        className="absolute z-20 group"
-        style={{
-          bottom: "-4px",
-          left: "4px",
-          right: "12px",
-          height: "8px",
-          cursor: "ns-resize",
-        }}
-        onMouseDown={(e: React.MouseEvent) => {
-          startSession(e, "resize-h");
-        }}
-      >
-        <div
-          className="absolute bottom-0.5 left-1/2 h-1 rounded-full bg-blue-400 group-hover:bg-blue-500 transition-all duration-150"
-          style={{
-            width: "32px",
-            transform: "translateX(-50%)",
-            opacity: props.isSelected ? 0.8 : 0.5,
-          }}
-        />
-      </div>
+      <>
+        {RESIZE_HANDLES.map((handle: ResizeHandleSpec) => {
+          const isCorner: boolean = handle.direction.length === 2;
+          return (
+            <div
+              key={handle.direction}
+              className="absolute z-30"
+              style={{
+                ...handle.style,
+                cursor: getResizeCursor(handle.direction),
+                touchAction: "none",
+              }}
+              onPointerDown={(event: React.PointerEvent) => {
+                props.onResizePointerDown(event, handle.direction);
+              }}
+            >
+              {isCorner ? (
+                <div
+                  className="absolute"
+                  style={{
+                    width: "8px",
+                    height: "8px",
+                    ...(handle.direction.includes("s")
+                      ? { bottom: "3px" }
+                      : { top: "3px" }),
+                    ...(handle.direction.includes("e")
+                      ? { right: "3px" }
+                      : { left: "3px" }),
+                    borderRight: handle.direction.includes("e")
+                      ? `2px solid ${accent}`
+                      : undefined,
+                    borderLeft: handle.direction.includes("w")
+                      ? `2px solid ${accent}`
+                      : undefined,
+                    borderBottom: handle.direction.includes("s")
+                      ? `2px solid ${accent}`
+                      : undefined,
+                    borderTop: handle.direction.includes("n")
+                      ? `2px solid ${accent}`
+                      : undefined,
+                    borderRadius: "2px",
+                  }}
+                />
+              ) : (
+                <div
+                  className="absolute rounded-full"
+                  style={{
+                    background: accent,
+                    ...(handle.direction === "n" || handle.direction === "s"
+                      ? {
+                          width: "32px",
+                          height: "4px",
+                          left: "50%",
+                          transform: "translateX(-50%)",
+                          ...(handle.direction === "n"
+                            ? { top: "2px" }
+                            : { bottom: "2px" }),
+                        }
+                      : {
+                          width: "4px",
+                          height: "32px",
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          ...(handle.direction === "w"
+                            ? { left: "2px" }
+                            : { right: "2px" }),
+                        }),
+                  }}
+                />
+              )}
+            </div>
+          );
+        })}
+      </>
     );
   };
 
-  const getResizeCornerHandle: GetReactElementFunction = (): ReactElement => {
-    if (!showHandles) {
-      return <></>;
-    }
-    return (
-      <div
-        className="absolute z-30 group"
-        style={{
-          bottom: "-4px",
-          right: "-4px",
-          width: "16px",
-          height: "16px",
-          cursor: "nwse-resize",
-        }}
-        onMouseDown={(e: React.MouseEvent) => {
-          startSession(e, "resize-corner");
-        }}
-      >
-        <div
-          className="absolute bottom-1 right-1"
-          style={{
-            width: "8px",
-            height: "8px",
-            borderRight: `2px solid ${props.isSelected ? "rgba(59,130,246,0.8)" : "rgba(59,130,246,0.5)"}`,
-            borderBottom: `2px solid ${props.isSelected ? "rgba(59,130,246,0.8)" : "rgba(59,130,246,0.5)"}`,
-            borderRadius: "0 0 2px 0",
-          }}
-        />
-      </div>
-    );
-  };
+  // ── content ───────────────────────────────────────────────────────────
+
+  const Widget: ComponentType<any> | undefined =
+    WIDGET_BY_TYPE[component.componentType];
 
   return (
     <div
-      id={`dashboard-component-${props.componentId.toString()}`}
       className={className}
       style={{
-        gridColumn: `span ${widthOfComponent}`,
-        gridRow: `span ${heightOfComponent}`,
-        boxShadow: isDragging
-          ? "var(--ou-card-shadow-dragging, 0 20px 40px -8px rgba(59,130,246,0.15), 0 8px 16px -4px rgba(0,0,0,0.08))"
-          : props.isSelected && props.isEditMode
-            ? "var(--ou-card-shadow-selected, 0 4px 12px -2px rgba(59,130,246,0.12), 0 2px 4px -1px rgba(0,0,0,0.04))"
-            : "var(--ou-card-shadow, 0 2px 8px -2px rgba(0,0,0,0.08), 0 1px 4px -1px rgba(0,0,0,0.04))",
-        transition: isDragging
-          ? "none"
-          : "box-shadow 0.2s ease, border-color 0.2s ease",
+        boxShadow: cardShadow,
+        transform: isMoving ? "scale(1.02)" : "scale(1)",
+        transition: isActive
+          ? "transform 0.15s ease"
+          : "transform 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease",
       }}
-      ref={elRef}
-      onClick={(e: React.MouseEvent) => {
-        if (!isDragging) {
+      onClick={(event: React.MouseEvent) => {
+        event.stopPropagation();
+        if (!props.isEditMode) {
           props.onClick();
         }
-        e.stopPropagation();
       }}
       onMouseEnter={() => {
         setIsHovered(true);
       }}
       onMouseLeave={() => {
-        if (!isDragging) {
-          setIsHovered(false);
-        }
+        setIsHovered(false);
       }}
     >
-      {getMoveHandle()}
-
-      {/* Tooltip — updated imperatively via ref, never causes a render */}
-      <div
-        className="absolute z-50 pointer-events-none"
-        style={{
-          top: "-32px",
-          left: "50%",
-          transform: "translateX(-50%)",
-          display: isDragging ? "block" : "none",
-        }}
-      >
-        <div
-          ref={tooltipRef}
-          className="px-2 py-1 rounded-md text-xs font-mono font-medium text-white whitespace-nowrap"
-          style={{
-            background: "rgba(30, 41, 59, 0.9)",
-            backdropFilter: "blur(4px)",
-            boxShadow:
-              "var(--ou-card-shadow-hover, 0 2px 8px rgba(0,0,0,0.15))",
-          }}
-        />
-      </div>
-
-      {/* Component type badge */}
-      {props.isEditMode && (props.isSelected || isHovered) && !isDragging && (
-        <div
-          className="absolute z-10 pointer-events-none"
-          style={{
-            top: "32px",
-            right: "6px",
-          }}
-        >
-          <span
-            className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium capitalize"
-            style={{
-              background:
-                "color-mix(in srgb, var(--ou-surface-secondary, #f1f5f9) 90%, transparent)",
-              color: "var(--ou-text-muted, #64748b)",
-            }}
-          >
-            {component.componentType}
-          </span>
-        </div>
-      )}
+      {getEditOverlay()}
+      {getHeaderBar()}
+      {getTypeBadge()}
 
       {/* Component content — keep padding constant in edit mode so the move
           handle and resize handles overlay without resizing the child (which
@@ -643,374 +449,19 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
           padding: props.isEditMode ? "28px 12px 12px 12px" : "12px",
         }}
       >
-        {component.componentType === DashboardComponentType.Text && (
-          <DashboardTextComponent
+        {Widget ? (
+          <Widget
             {...props}
             isEditMode={props.isEditMode}
             isSelected={props.isSelected}
-            component={component as DashboardTextComponentType}
+            component={component}
           />
-        )}
-        {component.componentType === DashboardComponentType.Clock && (
-          <DashboardClockComponent
-            {...props}
-            isEditMode={props.isEditMode}
-            isSelected={props.isSelected}
-            component={component as DashboardClockComponentType}
-          />
-        )}
-        {component.componentType === DashboardComponentType.Chart && (
-          <DashboardChartComponent
-            {...props}
-            isEditMode={props.isEditMode}
-            isSelected={props.isSelected}
-            component={component as DashboardChartComponentType}
-          />
-        )}
-        {component.componentType === DashboardComponentType.Value && (
-          <DashboardValueComponent
-            {...props}
-            isSelected={props.isSelected}
-            isEditMode={props.isEditMode}
-            component={component as DashboardValueComponentType}
-          />
-        )}
-        {component.componentType === DashboardComponentType.Table && (
-          <DashboardTableComponent
-            {...props}
-            isEditMode={props.isEditMode}
-            isSelected={props.isSelected}
-            component={component as DashboardTableComponentType}
-          />
-        )}
-        {component.componentType === DashboardComponentType.Gauge && (
-          <DashboardGaugeComponent
-            {...props}
-            isEditMode={props.isEditMode}
-            isSelected={props.isSelected}
-            component={component as DashboardGaugeComponentType}
-          />
-        )}
-        {component.componentType === DashboardComponentType.LogStream && (
-          <DashboardLogStreamComponent
-            {...props}
-            isEditMode={props.isEditMode}
-            isSelected={props.isSelected}
-            component={component as DashboardLogStreamComponentType}
-          />
-        )}
-        {component.componentType === DashboardComponentType.LogChart && (
-          <DashboardLogChartComponent
-            {...props}
-            isEditMode={props.isEditMode}
-            isSelected={props.isSelected}
-            component={component as DashboardLogChartComponentType}
-          />
-        )}
-        {component.componentType === DashboardComponentType.TraceList && (
-          <DashboardTraceListComponent
-            {...props}
-            isEditMode={props.isEditMode}
-            isSelected={props.isSelected}
-            component={component as DashboardTraceListComponentType}
-          />
-        )}
-        {component.componentType === DashboardComponentType.TraceChart && (
-          <DashboardTraceChartComponent
-            {...props}
-            isEditMode={props.isEditMode}
-            isSelected={props.isSelected}
-            component={component as DashboardTraceChartComponentType}
-          />
-        )}
-        {component.componentType === DashboardComponentType.TraceTable && (
-          <DashboardTraceTableComponent
-            {...props}
-            isEditMode={props.isEditMode}
-            isSelected={props.isSelected}
-            component={component as DashboardTraceTableComponentType}
-          />
-        )}
-        {component.componentType === DashboardComponentType.IncidentList && (
-          <DashboardIncidentListComponent
-            {...props}
-            isEditMode={props.isEditMode}
-            isSelected={props.isSelected}
-            component={component as DashboardIncidentListComponentType}
-          />
-        )}
-        {component.componentType === DashboardComponentType.AlertList && (
-          <DashboardAlertListComponent
-            {...props}
-            isEditMode={props.isEditMode}
-            isSelected={props.isSelected}
-            component={component as DashboardAlertListComponentType}
-          />
-        )}
-        {component.componentType === DashboardComponentType.MonitorList && (
-          <DashboardMonitorListComponent
-            {...props}
-            isEditMode={props.isEditMode}
-            isSelected={props.isSelected}
-            component={component as DashboardMonitorListComponentType}
-          />
-        )}
-        {component.componentType === DashboardComponentType.Slo && (
-          <DashboardSloComponent
-            {...props}
-            isEditMode={props.isEditMode}
-            isSelected={props.isSelected}
-            component={component as DashboardSloComponentType}
-          />
-        )}
-        {component.componentType ===
-          DashboardComponentType.KubernetesPodList && (
-          <DashboardKubernetesPodListComponent
-            {...props}
-            isEditMode={props.isEditMode}
-            isSelected={props.isSelected}
-            component={component as DashboardKubernetesPodListComponentType}
-          />
-        )}
-        {component.componentType ===
-          DashboardComponentType.KubernetesNodeList && (
-          <DashboardKubernetesNodeListComponent
-            {...props}
-            isEditMode={props.isEditMode}
-            isSelected={props.isSelected}
-            component={component as DashboardKubernetesNodeListComponentType}
-          />
-        )}
-        {component.componentType ===
-          DashboardComponentType.KubernetesNamespaceList && (
-          <DashboardKubernetesNamespaceListComponent
-            {...props}
-            isEditMode={props.isEditMode}
-            isSelected={props.isSelected}
-            component={
-              component as DashboardKubernetesNamespaceListComponentType
-            }
-          />
-        )}
-        {component.componentType ===
-          DashboardComponentType.KubernetesDeploymentList && (
-          <DashboardKubernetesDeploymentListComponent
-            {...props}
-            isEditMode={props.isEditMode}
-            isSelected={props.isSelected}
-            component={
-              component as DashboardKubernetesDeploymentListComponentType
-            }
-          />
-        )}
-        {component.componentType ===
-          DashboardComponentType.KubernetesStatefulSetList && (
-          <DashboardKubernetesStatefulSetListComponent
-            {...props}
-            isEditMode={props.isEditMode}
-            isSelected={props.isSelected}
-            component={
-              component as DashboardKubernetesStatefulSetListComponentType
-            }
-          />
-        )}
-        {component.componentType ===
-          DashboardComponentType.KubernetesDaemonSetList && (
-          <DashboardKubernetesDaemonSetListComponent
-            {...props}
-            isEditMode={props.isEditMode}
-            isSelected={props.isSelected}
-            component={
-              component as DashboardKubernetesDaemonSetListComponentType
-            }
-          />
-        )}
-        {component.componentType ===
-          DashboardComponentType.KubernetesJobList && (
-          <DashboardKubernetesJobListComponent
-            {...props}
-            isEditMode={props.isEditMode}
-            isSelected={props.isSelected}
-            component={component as DashboardKubernetesJobListComponentType}
-          />
-        )}
-        {component.componentType ===
-          DashboardComponentType.KubernetesCronJobList && (
-          <DashboardKubernetesCronJobListComponent
-            {...props}
-            isEditMode={props.isEditMode}
-            isSelected={props.isSelected}
-            component={component as DashboardKubernetesCronJobListComponentType}
-          />
-        )}
-        {component.componentType === DashboardComponentType.DockerHostList && (
-          <DashboardDockerHostListComponent
-            {...props}
-            isEditMode={props.isEditMode}
-            isSelected={props.isSelected}
-            component={component as DashboardDockerHostListComponentType}
-          />
-        )}
-        {component.componentType ===
-          DashboardComponentType.DockerContainerList && (
-          <DashboardDockerContainerListComponent
-            {...props}
-            isEditMode={props.isEditMode}
-            isSelected={props.isSelected}
-            component={component as DashboardDockerContainerListComponentType}
-          />
-        )}
-        {component.componentType === DashboardComponentType.DockerImageList && (
-          <DashboardDockerImageListComponent
-            {...props}
-            isEditMode={props.isEditMode}
-            isSelected={props.isSelected}
-            component={component as DashboardDockerImageListComponentType}
-          />
-        )}
-        {component.componentType ===
-          DashboardComponentType.DockerNetworkList && (
-          <DashboardDockerNetworkListComponent
-            {...props}
-            isEditMode={props.isEditMode}
-            isSelected={props.isSelected}
-            component={component as DashboardDockerNetworkListComponentType}
-          />
-        )}
-        {component.componentType ===
-          DashboardComponentType.DockerVolumeList && (
-          <DashboardDockerVolumeListComponent
-            {...props}
-            isEditMode={props.isEditMode}
-            isSelected={props.isSelected}
-            component={component as DashboardDockerVolumeListComponentType}
-          />
-        )}
-        {component.componentType === DashboardComponentType.PodmanHostList && (
-          <DashboardPodmanHostListComponent
-            {...props}
-            isEditMode={props.isEditMode}
-            isSelected={props.isSelected}
-            component={component as DashboardPodmanHostListComponentType}
-          />
-        )}
-        {component.componentType ===
-          DashboardComponentType.PodmanContainerList && (
-          <DashboardPodmanContainerListComponent
-            {...props}
-            isEditMode={props.isEditMode}
-            isSelected={props.isSelected}
-            component={component as DashboardPodmanContainerListComponentType}
-          />
-        )}
-        {component.componentType === DashboardComponentType.PodmanImageList && (
-          <DashboardPodmanImageListComponent
-            {...props}
-            isEditMode={props.isEditMode}
-            isSelected={props.isSelected}
-            component={component as DashboardPodmanImageListComponentType}
-          />
-        )}
-        {component.componentType ===
-          DashboardComponentType.PodmanNetworkList && (
-          <DashboardPodmanNetworkListComponent
-            {...props}
-            isEditMode={props.isEditMode}
-            isSelected={props.isSelected}
-            component={component as DashboardPodmanNetworkListComponentType}
-          />
-        )}
-        {component.componentType ===
-          DashboardComponentType.PodmanVolumeList && (
-          <DashboardPodmanVolumeListComponent
-            {...props}
-            isEditMode={props.isEditMode}
-            isSelected={props.isSelected}
-            component={component as DashboardPodmanVolumeListComponentType}
-          />
-        )}
-        {component.componentType === DashboardComponentType.HostList && (
-          <DashboardHostListComponent
-            {...props}
-            isEditMode={props.isEditMode}
-            isSelected={props.isSelected}
-            component={component as DashboardHostListComponentType}
-          />
-        )}
-        {component.componentType === DashboardComponentType.ProxmoxNodeList && (
-          <DashboardProxmoxNodeListComponent
-            {...props}
-            isEditMode={props.isEditMode}
-            isSelected={props.isSelected}
-            component={component as DashboardProxmoxNodeListComponentType}
-          />
-        )}
-        {component.componentType ===
-          DashboardComponentType.ProxmoxGuestList && (
-          <DashboardProxmoxGuestListComponent
-            {...props}
-            isEditMode={props.isEditMode}
-            isSelected={props.isSelected}
-            component={component as DashboardProxmoxGuestListComponentType}
-          />
-        )}
-        {component.componentType ===
-          DashboardComponentType.DockerSwarmNodeList && (
-          <DashboardDockerSwarmNodeListComponent
-            {...props}
-            isEditMode={props.isEditMode}
-            isSelected={props.isSelected}
-            component={component as DashboardDockerSwarmNodeListComponentType}
-          />
-        )}
-        {component.componentType ===
-          DashboardComponentType.DockerSwarmServiceList && (
-          <DashboardDockerSwarmServiceListComponent
-            {...props}
-            isEditMode={props.isEditMode}
-            isSelected={props.isSelected}
-            component={
-              component as DashboardDockerSwarmServiceListComponentType
-            }
-          />
-        )}
-        {component.componentType === DashboardComponentType.CephOsdList && (
-          <DashboardCephOsdListComponent
-            {...props}
-            isEditMode={props.isEditMode}
-            isSelected={props.isSelected}
-            component={component as DashboardCephOsdListComponentType}
-          />
-        )}
-        {component.componentType === DashboardComponentType.CephPoolList && (
-          <DashboardCephPoolListComponent
-            {...props}
-            isEditMode={props.isEditMode}
-            isSelected={props.isSelected}
-            component={component as DashboardCephPoolListComponentType}
-          />
-        )}
-        {component.componentType === DashboardComponentType.NetworkMap && (
-          <DashboardNetworkMapComponent
-            {...props}
-            isEditMode={props.isEditMode}
-            isSelected={props.isSelected}
-            component={component as DashboardNetworkMapComponentType}
-          />
-        )}
-        {component.componentType === DashboardComponentType.Html && (
-          <DashboardHtmlComponent
-            {...props}
-            isEditMode={props.isEditMode}
-            isSelected={props.isSelected}
-            component={component as DashboardHtmlComponentType}
-          />
+        ) : (
+          <></>
         )}
       </div>
 
-      {getResizeWidthHandle()}
-      {getResizeHeightHandle()}
-      {getResizeCornerHandle()}
+      {getResizeHandles()}
     </div>
   );
 };
