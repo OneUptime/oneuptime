@@ -53,7 +53,10 @@ function resolveSeriesTitle(args: GetSeriesResolverArgs): ChartSeries {
   const { data, monitorType, monitorMetricType, probes } = args;
 
   const fallback: ChartSeries = {
-    title: MonitorMetricTypeUtil.getTitleByMonitorMetricType(monitorMetricType),
+    title: MonitorMetricTypeUtil.getTitleByMonitorMetricType(
+      monitorMetricType,
+      monitorType,
+    ),
   };
 
   if (!data) {
@@ -167,18 +170,19 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
           return {
             metricAliasData: {
               metricVariable: monitorMetricType,
-              title:
-                MonitorMetricTypeUtil.getTitleByMonitorMetricType(
-                  monitorMetricType,
-                ),
+              title: MonitorMetricTypeUtil.getTitleByMonitorMetricType(
+                monitorMetricType,
+                monitorType,
+              ),
               description:
                 MonitorMetricTypeUtil.getDescriptionByMonitorMetricType(
                   monitorMetricType,
+                  monitorType,
                 ),
-              legend:
-                MonitorMetricTypeUtil.getLegendByMonitorMetricType(
-                  monitorMetricType,
-                ),
+              legend: MonitorMetricTypeUtil.getLegendByMonitorMetricType(
+                monitorMetricType,
+                monitorType,
+              ),
               legendUnit:
                 MonitorMetricTypeUtil.getLegendUnitByMonitorMetricType(
                   monitorMetricType,

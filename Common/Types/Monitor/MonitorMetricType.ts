@@ -25,6 +25,14 @@ enum MonitorMetricType {
   DownloadTime = "oneuptime.monitor.http.download.time",
 
   /*
+   * Port-monitor connection phases. These intentionally use a Port-specific
+   * namespace instead of the HTTP phase metrics above: Port TCP timing can
+   * include automatic address-family fallback and has no HTTP request phase.
+   */
+  PortDnsLookupTime = "oneuptime.monitor.port.dns.lookup.time",
+  PortTcpConnectTime = "oneuptime.monitor.port.tcp.connect.time",
+
+  /*
    * Per-interface SNMP metrics. Emitted when interface monitoring is enabled
    * on an SNMP monitor; one series per interface (interfaceName attribute).
    */

@@ -51,12 +51,12 @@ The following monitor types support dynamic templating with their respective var
 
 ### Port Monitors
 
-| Variable           | Description                                       | Type      |
-| ------------------ | ------------------------------------------------- | --------- |
-| `isOnline`         | Whether the port is considered online/accessible. | `boolean` |
-| `responseTimeInMs` | The connection response time in milliseconds.     | `number`  |
-| `failureCause`     | The reason for failure if the port check failed.  | `string`  |
-| `isTimeout`        | Whether the port connection timed out.            | `boolean` |
+| Variable           | Description                                                             | Type      |
+| ------------------ | ----------------------------------------------------------------------- | --------- |
+| `isOnline`         | Whether the port is considered online/accessible.                       | `boolean` |
+| `responseTimeInMs` | Total connection time (DNS lookup plus TCP connection) in milliseconds. | `number`  |
+| `failureCause`     | The reason for failure if the port check failed.                        | `string`  |
+| `isTimeout`        | Whether the port connection timed out.                                  | `boolean` |
 
 ### IP Monitors
 
@@ -350,7 +350,7 @@ Ping failed for target: {{failureCause}} ({{responseTimeInMs}}ms)
 ```
 Port connectivity issue
 Target port status: {{isOnline}}
-Response time: {{responseTimeInMs}}ms
+Total connection time (DNS + TCP): {{responseTimeInMs}}ms
 Failure cause: {{failureCause}}
 ```
 

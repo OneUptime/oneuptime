@@ -4,11 +4,20 @@ import {
   AGENT_NAMESPACE,
   NAMESPACE_EXCLUDE,
   NAMESPACE_INCLUDE,
+  NODE_OS_INCLUDE,
 } from "./Config";
 import Logger from "./Logger";
 import NamespaceFilter from "./NamespaceFilter";
+import NodeOsFilter from "./NodeOsFilter";
 import OTLPBatcher from "./OTLPBatcher";
 import { LogStream, PodContext, StreamKey, makeStreamKey } from "./LogStream";
+
+/*
+ * Backoff before retrying a failed node-OS read. Pods on that node stay
+ * parked (no streams) until the read succeeds, so this only delays pickup
+ * on an unhealthy API — it never drops a pod.
+ */
+const NODE_OS_RETRY_MS: number = 30000;
 
 type PodState = {
   pod: k8s.V1Pod;
@@ -130,6 +139,18 @@ export class PodWatcher {
   private readonly coreApi: k8s.CoreV1Api;
   private readonly batcher: OTLPBatcher;
   private readonly pods: Map<string, PodState> = new Map();
+  private readonly nodeOsFilter: NodeOsFilter;
+  /*
+   * Pods seen before their node's OS is known, keyed node -> podUID -> pod.
+   * Handler code must stay synchronous (an await between a pod event and its
+   * stream bookkeeping lets a delete interleave, leaking a forever-
+   * reconnecting stream), so unknown-OS pods are parked here and re-processed
+   * from resolveNodeOs() once the lookup lands. handleDelete removes parked
+   * pods too, which is what closes that race.
+   */
+  private readonly parkedByNode: Map<string, Map<string, k8s.V1Pod>> =
+    new Map();
+  private readonly resolvingNodes: Set<string> = new Set();
   private informer: k8s.Informer<k8s.V1Pod> | null = null;
   private stopped: boolean = false;
 
@@ -137,6 +158,26 @@ export class PodWatcher {
     this.kubeConfig = kubeConfig;
     this.coreApi = kubeConfig.makeApiClient(k8s.CoreV1Api);
     this.batcher = batcher;
+    this.nodeOsFilter = new NodeOsFilter(
+      NODE_OS_INCLUDE,
+      async (nodeName: string): Promise<string> => {
+        try {
+          const res: { body: k8s.V1Node } =
+            await this.coreApi.readNode(nodeName);
+          return res.body.metadata?.labels?.["kubernetes.io/os"] || "";
+        } catch (err: unknown) {
+          /*
+           * NodeOsFilter swallows reader failures (returns unresolved), so
+           * this is the only place the cause gets recorded.
+           */
+          Logger.warn("failed to read node OS; will retry", {
+            node: nodeName,
+            error: err instanceof Error ? err.message : String(err),
+          });
+          throw err;
+        }
+      },
+    );
   }
 
   public async start(): Promise<void> {
@@ -186,6 +227,8 @@ export class PodWatcher {
       }
     }
     this.pods.clear();
+    this.parkedByNode.clear();
+    this.resolvingNodes.clear();
   }
 
   public activeStreamCount(): number {
@@ -215,6 +258,21 @@ export class PodWatcher {
     }
 
     const nodeName: string = pod.spec?.nodeName || "";
+    if (this.nodeOsFilter.isActive()) {
+      if (!nodeName) {
+        // Not scheduled yet — the update event on scheduling re-fires this.
+        return;
+      }
+      const verdict: string = this.nodeOsFilter.lookup(nodeName);
+      if (verdict === "denied") {
+        return;
+      }
+      if (verdict === "unknown") {
+        this.parkPod(nodeName, pod);
+        return;
+      }
+    }
+
     const labels: Record<string, string> = pod.metadata?.labels || {};
     const serviceName: string = deriveServiceName(pod, podName);
 
@@ -264,6 +322,21 @@ export class PodWatcher {
     if (!podUID) {
       return;
     }
+    /*
+     * Also drop the pod from the parked set, so a pod deleted while its
+     * node's OS was still resolving is never re-processed into live streams.
+     * An inner map that empties is removed with it: the retry loop in
+     * resolveNodeOs() keys on this map, and a node deleted from the cluster
+     * (scale-down takes the node and its pods together) 404s on readNode
+     * forever — a leftover empty entry would retry that read every 30s for
+     * the life of the process.
+     */
+    for (const [nodeName, parked] of this.parkedByNode.entries()) {
+      parked.delete(podUID);
+      if (parked.size === 0) {
+        this.parkedByNode.delete(nodeName);
+      }
+    }
     const state: PodState | undefined = this.pods.get(podUID);
     if (!state) {
       return;
@@ -273,5 +346,58 @@ export class PodWatcher {
       Logger.debug("stopped log stream", { key });
     }
     this.pods.delete(podUID);
+  }
+
+  private parkPod(nodeName: string, pod: k8s.V1Pod): void {
+    const podUID: string | undefined = pod.metadata?.uid;
+    if (!podUID) {
+      return;
+    }
+    let parked: Map<string, k8s.V1Pod> | undefined =
+      this.parkedByNode.get(nodeName);
+    if (!parked) {
+      parked = new Map();
+      this.parkedByNode.set(nodeName, parked);
+    }
+    // Keep the freshest pod object; container statuses evolve while parked.
+    parked.set(podUID, pod);
+    this.resolveNodeOs(nodeName);
+  }
+
+  private resolveNodeOs(nodeName: string): void {
+    if (this.resolvingNodes.has(nodeName)) {
+      return;
+    }
+    this.resolvingNodes.add(nodeName);
+    void this.nodeOsFilter.resolve(nodeName).then((resolved: boolean): void => {
+      if (this.stopped) {
+        return;
+      }
+      if (resolved) {
+        this.resolvingNodes.delete(nodeName);
+        const parked: Map<string, k8s.V1Pod> | undefined =
+          this.parkedByNode.get(nodeName);
+        this.parkedByNode.delete(nodeName);
+        if (parked) {
+          for (const pod of parked.values()) {
+            // Re-enters synchronously; lookup() now answers from the cache.
+            this.handleAddOrUpdate(pod);
+          }
+        }
+        return;
+      }
+      /*
+       * Node read failed (resolve() logged it). Hold resolvingNodes so new
+       * pod events keep parking instead of re-firing reads, and retry after
+       * a delay. unref() so a pending retry never holds the process open.
+       */
+      setTimeout((): void => {
+        this.resolvingNodes.delete(nodeName);
+        // Size check, not has(): only retry while pods actually wait.
+        if (!this.stopped && (this.parkedByNode.get(nodeName)?.size ?? 0) > 0) {
+          this.resolveNodeOs(nodeName);
+        }
+      }, NODE_OS_RETRY_MS).unref();
+    });
   }
 }

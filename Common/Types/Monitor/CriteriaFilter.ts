@@ -5,6 +5,8 @@ export enum CheckOn {
   ResponseTime = "Response Time (in ms)",
   PacketLossPercent = "Packet Loss (in %)",
   Jitter = "Jitter (in ms)",
+  PortDnsLookupTime = "Port DNS Lookup Time (in ms)",
+  PortTcpConnectTime = "Port TCP Connect Time (in ms)",
   ResponseStatusCode = "Response Status Code",
   ResponseHeader = "Response Header",
   ResponseHeaderValue = "Response Header Value",
@@ -399,6 +401,8 @@ export class CriteriaFilterUtil {
       checkOn === CheckOn.ResponseTime ||
       checkOn === CheckOn.PacketLossPercent ||
       checkOn === CheckOn.Jitter ||
+      checkOn === CheckOn.PortDnsLookupTime ||
+      checkOn === CheckOn.PortTcpConnectTime ||
       checkOn === CheckOn.DiskUsagePercent ||
       checkOn === CheckOn.CPUUsagePercent ||
       checkOn === CheckOn.MemoryUsagePercent ||

@@ -42,6 +42,8 @@ class MonitorMetricTypeUtil {
       case MonitorMetricType.TlsHandshakeTime:
       case MonitorMetricType.TimeToFirstByte:
       case MonitorMetricType.DownloadTime:
+      case MonitorMetricType.PortDnsLookupTime:
+      case MonitorMetricType.PortTcpConnectTime:
         return AggregationType.Avg;
       case MonitorMetricType.SnmpInterfaceOperStatus:
         return AggregationType.Min;
@@ -101,6 +103,10 @@ class MonitorMetricTypeUtil {
         return MonitorMetricType.PacketLossPercent;
       case CheckOn.Jitter:
         return MonitorMetricType.Jitter;
+      case CheckOn.PortDnsLookupTime:
+        return MonitorMetricType.PortDnsLookupTime;
+      case CheckOn.PortTcpConnectTime:
+        return MonitorMetricType.PortTcpConnectTime;
       case CheckOn.ResponseStatusCode:
         return MonitorMetricType.ResponseStatusCode;
       case CheckOn.IsOnline:
@@ -205,6 +211,16 @@ class MonitorMetricTypeUtil {
       ];
     }
 
+    if (monitorType === MonitorType.Port) {
+      return [
+        MonitorMetricType.IsOnline,
+        // Kept as the backwards-compatible total connection duration.
+        MonitorMetricType.ResponseTime,
+        MonitorMetricType.PortDnsLookupTime,
+        MonitorMetricType.PortTcpConnectTime,
+      ];
+    }
+
     if (monitorType === MonitorType.NetworkDevice) {
       return [
         MonitorMetricType.IsOnline,
@@ -218,7 +234,6 @@ class MonitorMetricTypeUtil {
     }
 
     if (
-      monitorType === MonitorType.Port ||
       monitorType === MonitorType.DNS ||
       monitorType === MonitorType.DNSSEC ||
       monitorType === MonitorType.Domain ||
@@ -344,7 +359,15 @@ class MonitorMetricTypeUtil {
 
   public static getTitleByMonitorMetricType(
     monitorMetricType: MonitorMetricType,
+    monitorType?: MonitorType | undefined,
   ): string {
+    if (
+      monitorType === MonitorType.Port &&
+      monitorMetricType === MonitorMetricType.ResponseTime
+    ) {
+      return "Total Connection Time (DNS + TCP)";
+    }
+
     switch (monitorMetricType) {
       case MonitorMetricType.ResponseTime:
         return "Response Time";
@@ -374,6 +397,10 @@ class MonitorMetricTypeUtil {
         return "Time to First Byte";
       case MonitorMetricType.DownloadTime:
         return "Download Time";
+      case MonitorMetricType.PortDnsLookupTime:
+        return "Port DNS Lookup Time";
+      case MonitorMetricType.PortTcpConnectTime:
+        return "Port TCP Connect Time";
       case MonitorMetricType.SnmpInterfaceOperStatus:
         return "Interface Status";
       case MonitorMetricType.SnmpInterfaceInBitsPerSecond:
@@ -439,13 +466,14 @@ class MonitorMetricTypeUtil {
 
   public static getLegendByMonitorMetricType(
     monitorMetricType: MonitorMetricType,
+    monitorType?: MonitorType | undefined,
   ): string {
     /*
      * Legend labels default to the title, which also matches the existing behavior
      * for every metric type. Keeping this as a separate function preserves the
      * option to diverge later (e.g. shorter legend labels for dense charts).
      */
-    return this.getTitleByMonitorMetricType(monitorMetricType);
+    return this.getTitleByMonitorMetricType(monitorMetricType, monitorType);
   }
 
   public static getLegendUnitByMonitorMetricType(
@@ -475,6 +503,8 @@ class MonitorMetricTypeUtil {
       case MonitorMetricType.TlsHandshakeTime:
       case MonitorMetricType.TimeToFirstByte:
       case MonitorMetricType.DownloadTime:
+      case MonitorMetricType.PortDnsLookupTime:
+      case MonitorMetricType.PortTcpConnectTime:
         return "ms";
       case MonitorMetricType.SnmpInterfaceOperStatus:
         return "";
@@ -525,7 +555,15 @@ class MonitorMetricTypeUtil {
 
   public static getDescriptionByMonitorMetricType(
     monitorMetricType: MonitorMetricType,
+    monitorType?: MonitorType | undefined,
   ): string {
+    if (
+      monitorType === MonitorType.Port &&
+      monitorMetricType === MonitorMetricType.ResponseTime
+    ) {
+      return "Total time spent resolving the hostname (when needed) and establishing the TCP connection.";
+    }
+
     switch (monitorMetricType) {
       case MonitorMetricType.ResponseTime:
         return "Response time is the time taken for a server to respond to a request. It is the sum of the time spent waiting to establish the connection, the time spent waiting for the request to be processed, and the time spent waiting for the response to be sent.";
@@ -555,6 +593,10 @@ class MonitorMetricTypeUtil {
         return "Time from the end of connection setup until the first byte of the response arrived — the server-side processing time.";
       case MonitorMetricType.DownloadTime:
         return "Time spent receiving the response body after the first byte arrived.";
+      case MonitorMetricType.PortDnsLookupTime:
+        return "Time from starting a Port check until its first TCP connection attempt. It is absent when the destination is already an IP address.";
+      case MonitorMetricType.PortTcpConnectTime:
+        return "Time from the first TCP connection attempt until a connection succeeds, including any automatic IPv6/IPv4 fallback attempts.";
       case MonitorMetricType.SnmpInterfaceOperStatus:
         return "Operational status of each interface: 1 when up, 0 when down. Interfaces that are administratively disabled also report 0.";
       case MonitorMetricType.SnmpInterfaceInBitsPerSecond:

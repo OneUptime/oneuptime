@@ -17,6 +17,7 @@ import CapturedMetric from "../../../Types/Monitor/CustomCodeMonitor/CapturedMet
 import HttpPhaseTimings from "../../../Types/Monitor/HttpPhaseTimings";
 import MonitorMetricType from "../../../Types/Monitor/MonitorMetricType";
 import PingMonitorResponse from "../../../Types/Monitor/PingMonitor/PingMonitorResponse";
+import PortMonitorTimings from "../../../Types/Monitor/PortMonitor/PortMonitorTimings";
 import SnmpInterface from "../../../Types/Monitor/SnmpMonitor/SnmpInterface";
 import { SnmpOidResponse } from "../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
@@ -1073,6 +1074,51 @@ export default class MonitorMetricUtil {
           metricName: MonitorMetricType.DownloadTime,
           value: httpTimings.downloadInMs,
           description: "Response download time for this monitor",
+        },
+      ];
+
+      for (const phaseMetric of phaseMetrics) {
+        await this.pushMonitorMetric({
+          projectId: data.projectId,
+          monitorId: data.monitorId,
+          monitorName: data.monitorName,
+          probeName: data.probeName,
+          metricName: phaseMetric.metricName,
+          value: phaseMetric.value,
+          description: phaseMetric.description,
+          unit: "ms",
+          extraAttributes: extraAttributes,
+          metricRows: metricRows,
+          metricNameServiceNameMap: metricNameServiceNameMap,
+        });
+      }
+    }
+
+    const portTimings: PortMonitorTimings | undefined = (
+      data.dataToProcess as ProbeMonitorResponse
+    ).portTimings;
+
+    if (portTimings) {
+      const extraAttributes: JSONObject = {
+        probeId: (
+          data.dataToProcess as ProbeMonitorResponse
+        ).probeId.toString(),
+      };
+
+      const phaseMetrics: Array<{
+        metricName: MonitorMetricType;
+        value: number | undefined;
+        description: string;
+      }> = [
+        {
+          metricName: MonitorMetricType.PortDnsLookupTime,
+          value: portTimings.dnsLookupInMs,
+          description: "DNS lookup time for this Port monitor",
+        },
+        {
+          metricName: MonitorMetricType.PortTcpConnectTime,
+          value: portTimings.tcpConnectInMs,
+          description: "TCP connect time for this Port monitor",
         },
       ];
 

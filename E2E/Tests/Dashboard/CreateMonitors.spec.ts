@@ -1,4 +1,4 @@
-import { Browser, Page, test, Locator } from "@playwright/test";
+import { Browser, expect, Locator, Page, test } from "@playwright/test";
 import Faker from "Common/Utils/Faker";
 import { IS_BILLING_ENABLED } from "../../Config";
 import { registerAndCreateProject } from "./Helpers/ProductOnboarding";
@@ -11,14 +11,15 @@ import {
   InfraMonitorRecipe,
   MonitorTypeRecipe,
 } from "./Helpers/Monitors";
+import { createItem, getItem, JSONish, toId } from "./Helpers/MonitorAlerting";
 
 /*
- * Monitor creation end-to-end coverage for every monitor type offered by the
- * dashboard "Create Monitor" form.
+ * Broad monitor creation end-to-end coverage across each wizard shape offered
+ * by the dashboard "Create Monitor" form.
  *
- * One project is created up front (serial mode + shared page) and every
- * monitor type is then created as its own test, so a failure is isolated to a
- * single type instead of failing the whole suite.
+ * One project is created up front (serial mode + shared page) and each
+ * representative monitor type is then created as its own test, so a failure
+ * is isolated to a single type instead of failing the whole suite.
  *
  * To run locally against a full stack:
  *
@@ -28,12 +29,12 @@ import {
 test.describe.configure({ mode: "serial" });
 
 const recipes: Array<MonitorTypeRecipe> = [
-  // Single-step: name + type only.
+  // Manual skips criteria and interval, then lands on the final Labels step.
   {
     label: "Manual",
     cardValue: "Manual",
     hasInterval: false,
-    singleStep: true,
+    skipsCriteria: true,
   },
   {
     /*
@@ -170,8 +171,8 @@ const recipes: Array<MonitorTypeRecipe> = [
    * The standalone "SNMP" monitor type was retired and replaced by the
    * "Network Device" monitor type, which references a registered
    * NetworkDevice resource (see MonitorType.NetworkDevice). There is no
-   * longer an SNMP card in the create form, so this recipe was removed —
-   * Network Device monitoring is covered by the NetworkDevice E2E flow.
+   * longer an SNMP card in the create form. Network Device creation needs a
+   * separately configured device and is outside this general recipe table.
    */
 
   // Code-based probeable types: fill the Monaco editor + interval.
@@ -267,12 +268,16 @@ const infraRecipes: Array<InfraMonitorRecipe> = [
 interface SharedContext {
   page: Page;
   projectId: string;
+  labelIds: Array<string>;
+  labelNames: Array<string>;
 }
 
-test.describe("Monitor Creation - All Types", () => {
+test.describe("Monitor Creation - Representative Types", () => {
   const ctx: SharedContext = {
     page: undefined as unknown as Page,
     projectId: "",
+    labelIds: [],
+    labelNames: [],
   };
 
   test.beforeAll(async ({ browser }: { browser: Browser }) => {
@@ -293,10 +298,73 @@ test.describe("Monitor Creation - All Types", () => {
        */
       preferredPlanName: IS_BILLING_ENABLED ? "Growth" : undefined,
     });
+
+    for (const color of ["#3b82f6", "#22c55e"]) {
+      const labelName: string = `E2E Monitor Label ${Faker.generateName().toString()}`;
+      const label: JSONish = await createItem({
+        page: ctx.page,
+        projectId: ctx.projectId,
+        path: "/api/label",
+        item: {
+          name: labelName,
+          projectId: ctx.projectId,
+          color: { _type: "Color", value: color },
+        },
+      });
+
+      const labelId: string = toId(label["_id"]);
+      expect(labelId, `seeded label "${labelName}" should have an id`).not.toBe(
+        "",
+      );
+      ctx.labelIds.push(labelId);
+      ctx.labelNames.push(labelName);
+    }
   });
 
   test.afterAll(async () => {
     await ctx.page.close();
+  });
+
+  test("should create a Manual monitor with multiple labels", async () => {
+    test.setTimeout(120000);
+
+    const monitorId: string = await createMonitor({
+      page: ctx.page,
+      projectId: ctx.projectId,
+      monitorName: `E2E Labelled Manual ${Faker.generateName().toString()}`,
+      recipe: recipes[0]!,
+      labelNames: ctx.labelNames,
+    });
+
+    expect(monitorId, "the labelled monitor should have an id").not.toBe("");
+
+    const monitor: JSONish = await getItem({
+      page: ctx.page,
+      projectId: ctx.projectId,
+      path: "/api/monitor",
+      id: monitorId,
+      select: {
+        _id: true,
+        labels: { _id: true, name: true },
+      },
+    });
+    const labels: Array<JSONish> =
+      (monitor["labels"] as Array<JSONish> | undefined) || [];
+
+    expect(
+      labels
+        .map((label: JSONish) => {
+          return toId(label["_id"]);
+        })
+        .sort(),
+    ).toEqual([...ctx.labelIds].sort());
+    expect(
+      labels
+        .map((label: JSONish) => {
+          return String(label["name"] || "");
+        })
+        .sort(),
+    ).toEqual([...ctx.labelNames].sort());
   });
 
   for (const recipe of recipes) {

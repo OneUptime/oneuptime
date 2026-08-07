@@ -341,6 +341,17 @@
           "enum": ["", "daemonset", "api", "disabled"],
           "description": "Advanced override. Leave empty to let 'preset' decide. daemonset: hostPath filelog DaemonSet. api: Kubernetes API log tailer Deployment (GKE Autopilot compatible). disabled: no log collection."
         },
+        "windowsPods": {
+          "type": "object",
+          "description": "Hybrid log collection for clusters with Windows node pools. Only meaningful in daemonset log mode.",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Run the API log tailer alongside the DaemonSet, restricted to pods on Windows nodes (which the Linux-only DaemonSet cannot reach). Linux pods keep node-local file tailing; the two collectors never ship the same line twice. Requires a tailer image no older than this chart's release — older images ignore NODE_OS_INCLUDE and tail every pod, duplicating Linux logs. No effect in api mode or when logs are disabled. Default: false"
+            }
+          },
+          "additionalProperties": false
+        },
         "resources": {
           "type": "object",
           "properties": {

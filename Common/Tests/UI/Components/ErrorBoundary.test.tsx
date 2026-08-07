@@ -6,8 +6,20 @@ import ErrorBoundary, {
   isChunkLoadError,
   markChunkLoadErrorReload,
 } from "../../../UI/Components/ErrorBoundary";
+import downloadFile from "../../../UI/Utils/DownloadFile";
+import { ErrorSupportBundle } from "../../../UI/Utils/ErrorSupportBundle";
 import { fireEvent, render, screen } from "@testing-library/react";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
+
+jest.mock("../../../UI/Utils/DownloadFile", () => {
+  return {
+    __esModule: true,
+    default: jest.fn(),
+  };
+});
+
+const downloadFileMock: jest.MockedFunction<typeof downloadFile> =
+  downloadFile as jest.MockedFunction<typeof downloadFile>;
 
 /*
  * The blank white screen users hit is React unmounting the entire tree when a
@@ -70,6 +82,7 @@ describe("ErrorBoundary", () => {
 
   beforeEach(() => {
     consoleErrorSpy.mockClear();
+    downloadFileMock.mockReset();
     window.sessionStorage.clear();
     mockReload();
   });
@@ -114,6 +127,18 @@ describe("ErrorBoundary", () => {
       );
 
       expect(reloadMock).not.toHaveBeenCalled();
+    });
+
+    test("does not show support-bundle controls when the page is healthy", () => {
+      render(
+        <ErrorBoundary>
+          <div>Child Component</div>
+        </ErrorBoundary>,
+      );
+
+      expect(
+        screen.queryByRole("button", { name: "Download support bundle" }),
+      ).toBeNull();
     });
   });
 
@@ -208,6 +233,20 @@ describe("ErrorBoundary", () => {
         screen.getByTestId("error-boundary-error-message").textContent,
       ).toContain("reading 'queryConfigs'");
     });
+
+    test("offers a support bundle and explains what it contains", () => {
+      render(
+        <ErrorBoundary>
+          <ThrowOnRender />
+        </ErrorBoundary>,
+      );
+
+      expect(
+        screen.queryByRole("button", { name: "Download support bundle" }),
+      ).not.toBeNull();
+      expect(screen.queryByText(/scrubbed page URL/)).not.toBeNull();
+      expect(screen.queryByText(/never reads cookies/)).not.toBeNull();
+    });
   });
 
   describe("reporting", () => {
@@ -222,6 +261,9 @@ describe("ErrorBoundary", () => {
 
       expect(onError).toHaveBeenCalledTimes(1);
       expect((onError.mock.calls[0]![0] as Error).message).toBe("Boom");
+      expect(onError.mock.calls[0]![1].componentStack).toContain(
+        "ThrowOnRender",
+      );
     });
 
     test("logs the error so it still reaches the console and RUM", () => {
@@ -290,6 +332,122 @@ describe("ErrorBoundary", () => {
       fireEvent.click(screen.getByTestId("error-boundary-reload"));
 
       expect(reloadMock).toHaveBeenCalledTimes(1);
+    });
+
+    test("downloads the caught error and React component stack", () => {
+      render(
+        <ErrorBoundary>
+          <ThrowOnRender message="Trace chart render exploded" />
+        </ErrorBoundary>,
+      );
+
+      fireEvent.click(
+        screen.getByTestId("error-boundary-download-support-bundle"),
+      );
+
+      expect(downloadFileMock).toHaveBeenCalledTimes(1);
+      expect(reloadMock).not.toHaveBeenCalled();
+      expect(screen.queryByTestId("error-boundary-fallback")).not.toBeNull();
+
+      const download: Parameters<typeof downloadFile>[0] =
+        downloadFileMock.mock.calls[0]![0];
+      const bundle: ErrorSupportBundle = JSON.parse(
+        download.content as string,
+      ) as ErrorSupportBundle;
+
+      expect(download.filename).toMatch(
+        /^oneuptime-error-support-bundle-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}\.json$/,
+      );
+      expect(download.mimeType).toBe("application/json;charset=utf-8;");
+      expect(bundle.error.message).toBe("Trace chart render exploded");
+      expect(bundle.error.stack).toContain("ThrowOnRender");
+      expect(bundle.react.component).toBe("ThrowOnRender");
+      expect(bundle.react.componentStack).toContain("ThrowOnRender");
+      expect(Date.parse(bundle.errorCapturedAt)).toBeLessThanOrEqual(
+        Date.parse(bundle.generatedAt),
+      );
+      expect(
+        screen.getByTestId("error-boundary-support-bundle-status").textContent,
+      ).toContain("Support bundle downloaded");
+    });
+
+    test("keeps component diagnostics when a component throws NaN", () => {
+      const ThrowNaN: FunctionComponent = (): ReactElement => {
+        throw Number.NaN;
+      };
+
+      render(
+        <ErrorBoundary>
+          <ThrowNaN />
+        </ErrorBoundary>,
+      );
+
+      fireEvent.click(
+        screen.getByTestId("error-boundary-download-support-bundle"),
+      );
+
+      const bundle: ErrorSupportBundle = JSON.parse(
+        downloadFileMock.mock.calls[0]![0].content as string,
+      ) as ErrorSupportBundle;
+
+      expect(bundle.error.message).toBe("NaN");
+      expect(bundle.react.componentStack).toContain("ThrowNaN");
+    });
+
+    test("shows a recoverable message if the browser blocks the download", () => {
+      downloadFileMock.mockImplementation(() => {
+        throw new Error("Downloads disabled");
+      });
+
+      render(
+        <ErrorBoundary>
+          <ThrowOnRender />
+        </ErrorBoundary>,
+      );
+
+      fireEvent.click(
+        screen.getByTestId("error-boundary-download-support-bundle"),
+      );
+
+      expect(
+        screen.getByTestId("error-boundary-support-bundle-status").textContent,
+      ).toContain("could not be downloaded");
+      expect(screen.queryByTestId("error-boundary-fallback")).not.toBeNull();
+      expect(reloadMock).not.toHaveBeenCalled();
+    });
+
+    test("downloads fresh diagnostics after recovering and crashing again", () => {
+      let errorMessage: string = "First render failure";
+
+      const ThrowsCurrentError: FunctionComponent = (): ReactElement => {
+        throw new Error(errorMessage);
+      };
+
+      render(
+        <ErrorBoundary>
+          <ThrowsCurrentError />
+        </ErrorBoundary>,
+      );
+
+      fireEvent.click(
+        screen.getByTestId("error-boundary-download-support-bundle"),
+      );
+      const firstBundle: ErrorSupportBundle = JSON.parse(
+        downloadFileMock.mock.calls[0]![0].content as string,
+      ) as ErrorSupportBundle;
+
+      errorMessage = "Second render failure";
+      fireEvent.click(screen.getByTestId("error-boundary-try-again"));
+      fireEvent.click(
+        screen.getByTestId("error-boundary-download-support-bundle"),
+      );
+      const secondBundle: ErrorSupportBundle = JSON.parse(
+        downloadFileMock.mock.calls[1]![0].content as string,
+      ) as ErrorSupportBundle;
+
+      expect(firstBundle.error.message).toBe("First render failure");
+      expect(secondBundle.error.message).toBe("Second render failure");
+      expect(secondBundle.react.componentStack).toContain("ThrowsCurrentError");
     });
 
     test("changing the resetKey clears the error (navigating away)", () => {

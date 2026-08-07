@@ -1,4 +1,12 @@
-import React, { FunctionComponent, ReactElement, ReactNode } from "react";
+import { downloadErrorSupportBundle } from "../Utils/ErrorSupportBundle";
+import React, {
+  ErrorInfo,
+  FunctionComponent,
+  ReactElement,
+  ReactNode,
+  useRef,
+  useState,
+} from "react";
 import {
   ErrorBoundary as NativeErrorBoundary,
   FallbackProps,
@@ -14,7 +22,22 @@ export interface ComponentProps {
    */
   resetKey?: string | undefined;
   /** Notified for every caught error. Used by tests and by callers that report. */
-  onError?: ((error: Error) => void) | undefined;
+  onError?: ((error: Error, errorInfo: ErrorInfo) => void) | undefined;
+}
+
+interface CapturedErrorDetails {
+  error: unknown;
+  componentStack: string | null;
+  digest: string | null;
+  capturedAt: string;
+}
+
+type GetCapturedErrorDetailsFunction = (
+  error: unknown,
+) => CapturedErrorDetails | null;
+
+interface FallbackComponentProps extends FallbackProps {
+  getCapturedErrorDetails?: GetCapturedErrorDetailsFunction | undefined;
 }
 
 /**
@@ -146,17 +169,45 @@ export const handleChunkLoadError: HandleChunkLoadErrorFunction = (
   return true;
 };
 
-export const Fallback: FunctionComponent<FallbackProps> = (
-  props: FallbackProps,
+export const Fallback: FunctionComponent<FallbackComponentProps> = (
+  props: FallbackComponentProps,
 ): ReactElement => {
+  const [supportBundleStatus, setSupportBundleStatus] = useState<string>("");
   const errorMessage: string =
     props.error && typeof props.error.message === "string"
       ? props.error.message
       : "";
 
+  type DownloadSupportBundleFunction = () => void;
+
+  const downloadSupportBundle: DownloadSupportBundleFunction = (): void => {
+    setSupportBundleStatus("");
+
+    try {
+      const capturedErrorDetails: CapturedErrorDetails | null =
+        props.getCapturedErrorDetails?.(props.error) || null;
+
+      downloadErrorSupportBundle({
+        error: props.error,
+        componentStack: capturedErrorDetails?.componentStack,
+        digest: capturedErrorDetails?.digest,
+        capturedAt: capturedErrorDetails?.capturedAt,
+      });
+
+      setSupportBundleStatus(
+        "Support bundle downloaded. Review it, then attach it when contacting OneUptime Support.",
+      );
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error("Unable to download the error support bundle:", error);
+      setSupportBundleStatus(
+        "The support bundle could not be downloaded. Please try again.",
+      );
+    }
+  };
+
   return (
     <div
-      role="alert"
       data-testid="error-boundary-fallback"
       style={{
         minHeight: "60vh",
@@ -170,8 +221,8 @@ export const Fallback: FunctionComponent<FallbackProps> = (
         textAlign: "center",
       }}
     >
-      <div style={{ maxWidth: "32rem" }}>
-        <div style={{ fontWeight: 600, marginBottom: "0.5rem" }}>
+      <div style={{ maxWidth: "40rem" }}>
+        <div role="alert" style={{ fontWeight: 600, marginBottom: "0.5rem" }}>
           An unexpected error has occurred. Please reload the page to continue
         </div>
         <div
@@ -189,6 +240,7 @@ export const Fallback: FunctionComponent<FallbackProps> = (
             display: "flex",
             gap: "0.75rem",
             justifyContent: "center",
+            flexWrap: "wrap",
           }}
         >
           <button
@@ -225,6 +277,45 @@ export const Fallback: FunctionComponent<FallbackProps> = (
           >
             Reload page
           </button>
+          <button
+            type="button"
+            data-testid="error-boundary-download-support-bundle"
+            onClick={downloadSupportBundle}
+            style={{
+              padding: "0.5rem 1rem",
+              borderRadius: "0.375rem",
+              border: "1px solid var(--ou-border-primary, #d1d5db)",
+              backgroundColor: "transparent",
+              color: "inherit",
+              cursor: "pointer",
+            }}
+          >
+            Download support bundle
+          </button>
+        </div>
+        <div
+          style={{
+            marginTop: "1rem",
+            fontSize: "0.75rem",
+            color: "var(--ou-text-secondary, #6b7280)",
+          }}
+        >
+          Download a local diagnostics file with the error stack, component
+          stack, scrubbed page URL, browser details, and OneUptime build. It
+          never reads cookies, saved browser data, or form contents. Review it
+          before sharing it with OneUptime Support.
+        </div>
+        <div
+          role="status"
+          data-testid="error-boundary-support-bundle-status"
+          style={{
+            minHeight: "1rem",
+            marginTop: "0.75rem",
+            fontSize: "0.75rem",
+            color: "var(--ou-text-secondary, #6b7280)",
+          }}
+        >
+          {supportBundleStatus}
         </div>
         {errorMessage ? (
           <div
@@ -249,9 +340,22 @@ export const Fallback: FunctionComponent<FallbackProps> = (
 const ErrorBoundary: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  type OnErrorFunction = (error: Error) => void;
+  const capturedErrorDetailsRef: React.MutableRefObject<CapturedErrorDetails | null> =
+    useRef<CapturedErrorDetails | null>(null);
 
-  const onError: OnErrorFunction = (error: Error): void => {
+  type OnErrorFunction = (error: Error, errorInfo: ErrorInfo) => void;
+
+  const onError: OnErrorFunction = (
+    error: Error,
+    errorInfo: ErrorInfo,
+  ): void => {
+    capturedErrorDetailsRef.current = {
+      error: error,
+      componentStack: errorInfo.componentStack || null,
+      digest: errorInfo.digest || null,
+      capturedAt: new Date().toISOString(),
+    };
+
     /*
      * Surface the error. Without this the only trace of a crash is the blank
      * screen itself, because the boundary swallows what React would otherwise
@@ -263,13 +367,36 @@ const ErrorBoundary: FunctionComponent<ComponentProps> = (
     // A stale bundle recovers by reloading, so do that instead of blaming the user.
     handleChunkLoadError(error);
 
-    props.onError?.(error);
+    props.onError?.(error, errorInfo);
+  };
+
+  const getCapturedErrorDetails: GetCapturedErrorDetailsFunction = (
+    error: unknown,
+  ): CapturedErrorDetails | null => {
+    if (
+      !capturedErrorDetailsRef.current ||
+      !Object.is(capturedErrorDetailsRef.current.error, error)
+    ) {
+      return null;
+    }
+
+    return capturedErrorDetailsRef.current;
   };
 
   return (
     <NativeErrorBoundary
-      FallbackComponent={Fallback}
+      fallbackRender={(fallbackProps: FallbackProps): ReactElement => {
+        return (
+          <Fallback
+            {...fallbackProps}
+            getCapturedErrorDetails={getCapturedErrorDetails}
+          />
+        );
+      }}
       onError={onError}
+      onReset={() => {
+        capturedErrorDetailsRef.current = null;
+      }}
       resetKeys={[props.resetKey]}
     >
       {props.children}

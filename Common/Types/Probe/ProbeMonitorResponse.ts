@@ -17,6 +17,7 @@ import ExternalStatusPageMonitorResponse from "../Monitor/ExternalStatusPageMoni
 import HttpPhaseTimings from "../Monitor/HttpPhaseTimings";
 import MonitorEvaluationSummary from "../Monitor/MonitorEvaluationSummary";
 import NetworkPathTrace from "../Monitor/NetworkMonitor/NetworkPathTrace";
+import PortMonitorTimings from "../Monitor/PortMonitor/PortMonitorTimings";
 import ObjectID from "../ObjectID";
 import Port from "../Port";
 import ProbeAttempt from "./ProbeAttempt";
@@ -58,6 +59,11 @@ export default interface ProbeMonitorResponse {
    * checks. Absent when the request went through a proxy.
    */
   httpTimings?: HttpPhaseTimings | undefined;
+  /*
+   * DNS / TCP / total connection timing for Port checks. DNS is absent for
+   * IP literals. Also present when Ping/IP checks use the Port fallback.
+   */
+  portTimings?: PortMonitorTimings | undefined;
   dnsResponse?: DnsMonitorResponse | undefined;
   domainResponse?: DomainMonitorResponse | undefined;
   dnssecResponse?: DnssecMonitorResponse | undefined;

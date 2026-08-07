@@ -384,6 +384,8 @@ export default class MonitorUtil {
         result.failureCause = response.failureCause;
         result.probeAttempts = response.probeAttempts;
         result.totalAttempts = response.totalAttempts;
+        result.portTimings = response.portTimings;
+        result.requestFailedDetails = response.requestFailedDetails;
       } else {
         const response: PingResponse | null = await PingMonitor.ping(
           monitorStep.data?.monitorDestination,
@@ -445,6 +447,8 @@ export default class MonitorUtil {
       result.isTimeout = response.isTimeout;
       result.probeAttempts = response.probeAttempts;
       result.totalAttempts = response.totalAttempts;
+      result.portTimings = response.portTimings;
+      result.requestFailedDetails = response.requestFailedDetails;
     }
 
     /*

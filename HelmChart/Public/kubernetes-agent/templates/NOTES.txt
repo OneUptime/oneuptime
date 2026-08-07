@@ -32,6 +32,9 @@ The agent is now collecting:
   - Pod logs via the Kubernetes API (log-tailer Deployment — works on GKE Autopilot, EKS Fargate, and any cluster that blocks hostPath)
 {{- else if eq $logMode "daemonset" }}
   - Pod logs from /var/log/pods (filelog DaemonSet)
+{{- if eq (include "kubernetes-agent.windowsPodLogsEnabled" .) "true" }}
+  - Pod logs from Windows nodes via the Kubernetes API (log-tailer Deployment, scoped to pods the Linux-only DaemonSet cannot reach)
+{{- end }}
 {{- end }}
 {{- end }}
 {{- if .Values.ebpf.enabled }}

@@ -342,6 +342,7 @@ After installing or upgrading, run `kubectl top pod -n oneuptime-kubernetes-agen
 | `sampling.traces.hashSeed` | `22` | Seed for the trace-ID hash. Collectors that must agree on which traces to keep need a matching `hashSeed` **and** `percentage` — the defaults already match, so multi-cluster traces survive whole. Change only to deliberately decorrelate two sampling tiers. |
 | `logs.enabled` | `true` | Turn pod log collection on or off. Metrics are unaffected — the node collector keeps running for kubelet / cAdvisor / host metrics and just stops reading pod logs. |
 | `logs.mode` | `""` *(derived from `preset`)* | Advanced override — `daemonset`, `api`, or `disabled`. Explicit value always wins over the preset. |
+| `logs.windowsPods.enabled` | `false` | Hybrid mode for mixed-OS clusters: run the API log tailer alongside the DaemonSet, restricted to pods on Windows nodes (which the Linux-only DaemonSet cannot reach). Linux pods keep node-local file tailing; no log line ships twice. Only meaningful in `daemonset` log mode. |
 | `ebpf.enabled` | `true` | Auto-capture HTTP/gRPC traces from every pod via OpenTelemetry eBPF Instrumentation. See section below. |
 | `profiling.enabled` | `false` | Continuous CPU flame graphs via OpenTelemetry eBPF Profiler — separate DaemonSet, samples stacks at 19Hz, no SDK needed. Off by default; opt in for more telemetry. |
 | `hostMetrics.enabled` | `true` | Per-node OS metrics (disk I/O, filesystem inodes, NIC errors, paging, load average) via the OTel `hostmetrics` receiver. |
@@ -541,7 +542,24 @@ curl -i -H "x-oneuptime-token: <YOUR_API_KEY>" "$ONEUPTIME_URL/otlp/v1/validate"
 
 ### Mixed-OS clusters (Windows node pools)
 
-All agent images are Linux-only, so every workload in the chart pins itself to Linux nodes with a `kubernetes.io/os: linux` nodeSelector. On clusters with Windows node pools (e.g. AKS), Windows nodes are simply not monitored — the DaemonSets skip them instead of sitting in `ImagePullBackOff` there. If you're upgrading from a chart version without the pin and see agent pods stuck in `ImagePullBackOff` on Windows nodes, `helm upgrade` to the current version; the stuck pods are removed automatically once the pin applies.
+All agent images are Linux-only, so every workload in the chart pins itself to Linux nodes with a `kubernetes.io/os: linux` nodeSelector. On clusters with Windows node pools (e.g. AKS), the DaemonSets skip Windows nodes instead of sitting in `ImagePullBackOff` there. If you're upgrading from a chart version without the pin and see agent pods stuck in `ImagePullBackOff` on Windows nodes, `helm upgrade` to the current version; the stuck pods are removed automatically once the pin applies.
+
+Cluster-level telemetry about Windows nodes and their pods (node conditions, pod phases, Kubernetes events, kube-state-metrics) still flows — it comes from the Kubernetes API, not from an agent on the node. What Windows nodes don't get is node-local collection: host OS metrics, kubelet/cAdvisor scrapes, eBPF traces, profiling — and, in the default `daemonset` log mode, pod logs.
+
+**To collect logs from pods on Windows nodes**, enable hybrid mode:
+
+```bash
+helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reuse-values \
+  --set logs.windowsPods.enabled=true
+```
+
+This runs the API log tailer alongside the DaemonSet, restricted to pods on Windows nodes — Linux pods keep the cheaper node-local file tailing, and the two collectors partition pods by node OS so no line ships twice.
+
+Two things to know when enabling hybrid mode:
+
+- **Tailer image version**: the Windows-only restriction lives in the tailer image (`NODE_OS_INCLUDE`), which ships with the same OneUptime release as this chart. An **older tailer image ignores it and tails every pod** — silently shipping every Linux pod's logs twice. If you pin `logs.api.image.tag`, use a version no older than this chart's release; if a node may have cached a stale `release` tag (the default `pullPolicy` is `IfNotPresent`), add `--set logs.api.image.pullPolicy=Always` for the upgrade.
+- **Severity filtering**: with `filters.logs.minSeverity` set, lines with no recognizable severity keyword are dropped on the DaemonSet path (it sees the stdout/stderr marker on disk and assigns INFO/ERROR fallbacks before filtering) but kept on the API path (the log API strips the marker, so the tailer errs toward keeping). Windows pods can therefore ship more keyword-less lines than Linux pods under a severity filter.
 
 ### Application pods crash with SIGSEGV after enabling log ↔ trace correlation
 

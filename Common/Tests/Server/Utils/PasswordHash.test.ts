@@ -463,6 +463,36 @@ describe("PasswordHash.verify — the schemes that came before", () => {
       }),
     ).resolves.toBe(false);
   });
+
+  test("a bare legacy hash with a stale salt still verifies during a rolling deployment", async () => {
+    /*
+     * An old pod knows nothing about the salt column. If it changes a
+     * password after a new pod has already put a salt on the row, it writes
+     * the original bare digest and leaves that salt behind. New code must try
+     * the bare legacy scheme after the salted legacy scheme fails, then the
+     * caller upgrades the row to scrypt.
+     */
+    const legacy: string = await HashedString.hashValue(
+      "rolling-password",
+      EncryptionSecret,
+    );
+
+    await expect(
+      PasswordHash.verify({
+        plainValue: "rolling-password",
+        storedValue: legacy,
+        salt: SALT,
+      }),
+    ).resolves.toBe(true);
+
+    await expect(
+      PasswordHash.verify({
+        plainValue: "wrong-password",
+        storedValue: legacy,
+        salt: SALT,
+      }),
+    ).resolves.toBe(false);
+  });
 });
 
 describe("PasswordHash.verify — malformed stored values", () => {

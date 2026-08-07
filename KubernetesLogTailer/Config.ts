@@ -68,6 +68,22 @@ export const NAMESPACE_EXCLUDE: Array<string> = parseList(
   optional("NAMESPACE_EXCLUDE", "kube-system"),
 );
 
+/*
+ * Restrict tailing to pods running on nodes whose `kubernetes.io/os` label is
+ * one of these comma-separated values (case-insensitive). Empty (the default)
+ * tails pods on every node.
+ *
+ * The chart's hybrid log mode sets this to "windows": the DaemonSet collector
+ * is pinned to Linux nodes (linux-only images), so this tailer runs alongside
+ * it carrying only the pods the DaemonSet cannot reach. The two collectors
+ * partition pods by node OS, so no log line is ever shipped twice.
+ */
+export const NODE_OS_INCLUDE: Array<string> = parseList(
+  optional("NODE_OS_INCLUDE", ""),
+).map((s: string): string => {
+  return s.toLowerCase();
+});
+
 export const AGENT_NAMESPACE: string = optional("AGENT_NAMESPACE", "");
 export const AGENT_LABEL_SELECTOR: string = optional(
   "AGENT_LABEL_SELECTOR",
