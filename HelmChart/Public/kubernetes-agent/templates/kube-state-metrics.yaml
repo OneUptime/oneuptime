@@ -87,6 +87,10 @@ spec:
     spec:
       serviceAccountName: {{ include "kubernetes-agent.fullname" . }}-kube-state-metrics
       automountServiceAccountToken: true
+      # Linux nodes only — the image is linux-only, and Windows pools
+      # (e.g. on AKS) are not tainted by default.
+      nodeSelector:
+        {{- include "kubernetes-agent.nodeSelector" (dict) | nindent 8 }}
       securityContext:
         runAsNonRoot: true
         runAsUser: 65534

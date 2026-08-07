@@ -23,6 +23,10 @@ spec:
         component: cost-agent
     spec:
       serviceAccountName: {{ include "kubernetes-agent.serviceAccountName" . }}
+      # Linux nodes only — the image is linux-only, and Windows pools
+      # (e.g. on AKS) are not tainted by default.
+      nodeSelector:
+        {{- include "kubernetes-agent.nodeSelector" (dict) | nindent 8 }}
       # No privileged containers, no hostPath, no hostNetwork — GKE Autopilot
       # compatible. The poller only talks HTTP to the cost engine's Service
       # and to OneUptime.

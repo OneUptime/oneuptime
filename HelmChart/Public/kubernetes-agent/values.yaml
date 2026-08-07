@@ -774,6 +774,9 @@ ebpf:
   # Exists) so the DaemonSet covers all nodes. To keep it OFF a tainted DB-only
   # pool — so it doesn't compete with or instrument the database tier — override
   # `tolerations` with a narrower list and/or set `nodeSelector` / `affinity`.
+  # `kubernetes.io/os: linux` is always merged into the nodeSelector (keys set
+  # here win on conflict) — eBPF needs a Linux kernel and the image is
+  # linux-only, so Windows nodes (e.g. AKS Windows pools) are never scheduled.
   nodeSelector: {}
   tolerations:
     - operator: Exists
