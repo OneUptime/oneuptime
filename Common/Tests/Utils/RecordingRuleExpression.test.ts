@@ -455,8 +455,10 @@ describe("RecordingRuleExpression", () => {
 
   describe("evaluate edge cases", () => {
     test("a binding inherited from Object.prototype is not a binding", () => {
-      // bindings["toString"] is a function, so the typeof guard must reject it
-      // rather than letting a prototype member leak into the result.
+      /*
+       * bindings["toString"] is a function, so the typeof guard must reject it
+       * rather than letting a prototype member leak into the result.
+       */
       const r: ParseResult = parseOk("toString");
       expect(evaluate(r.ast, {})).toBeNull();
     });
