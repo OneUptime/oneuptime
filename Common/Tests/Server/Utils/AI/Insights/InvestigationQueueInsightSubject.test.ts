@@ -8,6 +8,7 @@ import AIService from "../../../../../Server/Services/AIService";
 import ProjectService from "../../../../../Server/Services/ProjectService";
 import Project from "../../../../../Models/DatabaseModels/Project";
 import AIRun from "../../../../../Models/DatabaseModels/AIRun";
+import AIRunCodeFixRecommendation from "../../../../../Types/AI/AIRunCodeFixRecommendation";
 import AIRunStatus from "../../../../../Types/AI/AIRunStatus";
 import AIRunType from "../../../../../Types/AI/AIRunType";
 import ObjectID from "../../../../../Types/ObjectID";
@@ -76,6 +77,7 @@ describe("AIInvestigationQueue — insight subject", () => {
         data: expect.objectContaining({
           status: AIRunStatus.Queued,
           triggeredByAiInsightId: insightId,
+          codeFixRecommendation: AIRunCodeFixRecommendation.NotRecommended,
         }),
         props: expect.objectContaining({ isRoot: true }),
       }),

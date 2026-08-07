@@ -1,7 +1,8 @@
 /*
- * The JSON persisted on AIRun.taskContext for CodeFix recipes whose entire
- * working context is captured at trigger time rather than referenced by a
- * subject id (incident/alert) or a telemetry exception.
+ * The JSON persisted on AIRun.taskContext for tasks whose exact working
+ * context must survive until a worker claims them. Some recipes have no
+ * durable subject record; others, such as FixFromIncident, deliberately pin
+ * a snapshot instead of re-reading mutable subject state at execution time.
  *
  * First user: the FixPerformance recipe. Its evidence is computed
  * DETERMINISTICALLY from a trace's span tree when the user clicks "Fix
@@ -74,6 +75,16 @@ export interface PerformanceCodeLocation {
   lineNumber?: number | undefined;
 }
 
+/*
+ * The immutable investigation snapshot consumed by FixFromIncident. Both
+ * fields travel together: the run id proves which Recommended decision was
+ * gated, and the markdown is the exact posted analysis that decision covered.
+ */
+export interface InvestigationCodeFixTaskSnapshot {
+  investigationRunId: string;
+  investigationAnalysisMarkdown: string;
+}
+
 export interface CodeFixTaskContext {
   /*
    * FixFromIncident: the exact investigation whose published RootCause is
@@ -101,6 +112,43 @@ export interface CodeFixTaskContext {
    * name for repository resolution and PR wording).
    */
   telemetryServiceId?: string | undefined;
+}
+
+/*
+ * Canonical JSON shape persisted for a Recommended investigation. Unlike the
+ * normalized snapshot returned below, these names are the established
+ * AIRun.taskContext wire contract.
+ */
+export type InvestigationCodeFixTaskContext = CodeFixTaskContext & {
+  sourceInvestigationRunId: string;
+  sourceInvestigationAnalysisMarkdown: string;
+};
+
+/*
+ * Treat partial, empty and malformed JSON as no snapshot. The same validator
+ * is shared by the trigger, claim guard and task-details reader so none of
+ * those boundaries can silently fall back to a different investigation.
+ */
+export function getInvestigationCodeFixTaskSnapshot(
+  taskContext: CodeFixTaskContext | null | undefined,
+): InvestigationCodeFixTaskSnapshot | null {
+  const investigationRunId: unknown = taskContext?.sourceInvestigationRunId;
+  const investigationAnalysisMarkdown: unknown =
+    taskContext?.sourceInvestigationAnalysisMarkdown;
+
+  if (
+    typeof investigationRunId !== "string" ||
+    investigationRunId.trim().length === 0 ||
+    typeof investigationAnalysisMarkdown !== "string" ||
+    investigationAnalysisMarkdown.trim().length === 0
+  ) {
+    return null;
+  }
+
+  return {
+    investigationRunId,
+    investigationAnalysisMarkdown,
+  };
 }
 
 export default CodeFixTaskContext;

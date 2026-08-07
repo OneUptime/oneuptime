@@ -34,7 +34,9 @@ import CodeFixTaskType, {
   CodeFixTaskTypeHelper,
 } from "../../Types/AI/CodeFixTaskType";
 import CodeFixTaskContext, {
+  getInvestigationCodeFixTaskSnapshot,
   ImplicatedSpan,
+  InvestigationCodeFixTaskSnapshot,
   PerformanceCodeLocation,
   PerformanceFinding,
 } from "../../Types/AI/CodeFixTaskContext";
@@ -488,14 +490,12 @@ export default class AIAgentDataAPI {
      * The route name predates the newer recipes and is kept for agent
      * compatibility. Two context kinds are served:
      *
-     *  - Incident/alert-subject recipes (ImproveInstrumentation,
-     *    FixFromIncident): the investigation's posted analysis + subject
-     *    metadata + the repository resolved without a stack trace. The
-     *    analysis text comes from the subject's latest RootCause feed item:
-     *    the AI's postAnalysis is the only writer of RootCause feed
-     *    events, it writes them for BOTH subjects and BOTH confidence
-     *    outcomes (quiet mode only mutes the workspace ping), so the feed
-     *    item IS the investigation run's persisted output.
+     *  - Incident/alert-subject recipes: subject metadata + the repository
+     *    resolved without a stack trace. ImproveInstrumentation reads the
+     *    subject's latest RootCause feed item. FixFromIncident instead reads
+     *    the immutable investigation snapshot captured in AIRun.taskContext;
+     *    a later re-investigation must never replace the Recommended analysis
+     *    that authorized a code-fix task.
      *
      *  - Trace-evidence recipes (FixPerformance): the deterministic
      *    span-tree findings stored on AIRun.taskContext at trigger time
@@ -573,6 +573,10 @@ export default class AIAgentDataAPI {
             CodeFixTaskTypeHelper.fromDatabaseValue(run.codeFixTaskType);
           const contextKind: CodeFixContextKind =
             CodeFixTaskTypeHelper.getContextKind(taskType);
+          const investigationSnapshot: InvestigationCodeFixTaskSnapshot | null =
+            taskType === CodeFixTaskType.FixFromIncident
+              ? getInvestigationCodeFixTaskSnapshot(run.taskContext)
+              : null;
 
           if (
             run.runType !== AIRunType.CodeFix ||
@@ -583,6 +587,25 @@ export default class AIAgentDataAPI {
               res,
               new BadDataException(
                 "Task is not an incident/alert-subject or trace-evidence code-fix run (ImproveInstrumentation, FixFromIncident or FixPerformance)",
+              ),
+            );
+          }
+
+          /*
+           * FixFromIncident authorization covered one exact Recommended
+           * investigation. Never substitute the subject's current RootCause:
+           * a re-investigation may have posted a different, non-code analysis
+           * while this task waited in the queue.
+           */
+          if (
+            taskType === CodeFixTaskType.FixFromIncident &&
+            !investigationSnapshot
+          ) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(
+                "This fix-from-incident task has no complete pinned investigation analysis snapshot — it cannot be executed safely.",
               ),
             );
           }
@@ -857,19 +880,7 @@ export default class AIAgentDataAPI {
            */
           let serviceName: string | null = null;
           let analysisMarkdown: string | null =
-            run.taskContext?.sourceInvestigationAnalysisMarkdown?.trim() ||
-            null;
-          const sourceInvestigationRunIdString: string | undefined =
-            run.taskContext?.sourceInvestigationRunId;
-
-          if (sourceInvestigationRunIdString) {
-            ObjectID.validateUUID(sourceInvestigationRunIdString);
-          }
-
-          const sourceInvestigationRunId: ObjectID | undefined =
-            sourceInvestigationRunIdString
-              ? new ObjectID(sourceInvestigationRunIdString)
-              : undefined;
+            investigationSnapshot?.investigationAnalysisMarkdown || null;
 
           if (run.triggeredByIncidentId) {
             const incident: Incident | null = await IncidentService.findOneById(
@@ -905,12 +916,9 @@ export default class AIAgentDataAPI {
                 })
                 .filter(Boolean)[0] || null;
 
-            if (!analysisMarkdown) {
+            if (taskType !== CodeFixTaskType.FixFromIncident) {
               analysisMarkdown = await PostedRootCause.getForIncident(
                 run.triggeredByIncidentId,
-                sourceInvestigationRunId
-                  ? { aiRunId: sourceInvestigationRunId }
-                  : undefined,
               );
             }
           } else {
@@ -940,12 +948,9 @@ export default class AIAgentDataAPI {
             subjectTitle = alert.title || "Untitled alert";
             serviceName = alert.monitor?.name || null;
 
-            if (!analysisMarkdown) {
+            if (taskType !== CodeFixTaskType.FixFromIncident) {
               analysisMarkdown = await PostedRootCause.getForAlert(
                 run.triggeredByAlertId!,
-                sourceInvestigationRunId
-                  ? { aiRunId: sourceInvestigationRunId }
-                  : undefined,
               );
             }
           }

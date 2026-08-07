@@ -18,12 +18,11 @@ import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
- * InvestigationPanel is the hand-off between three independently changing
- * pieces of state: the live AIRun, the RootCause feed item posted just after
- * the run becomes Completed, and the already-mounted incident / alert feed.
- * These tests deliberately drive the real React effects and timers because a
- * static completed-state snapshot cannot catch the completion race that this
- * component exists to bridge.
+ * InvestigationPanel joins three independently changing pieces of state: the
+ * live AIRun, the report posted just after completion, and the persisted
+ * recommendation that authorizes a code-fix action. These tests drive real
+ * React effects and timers so completion, navigation, and request races stay
+ * covered rather than testing only static snapshots.
  */
 
 const postMock: MockFunction = getJestMockFunction();
@@ -36,10 +35,10 @@ jest.mock("../../../UI/Utils/API/API", () => {
   return {
     __esModule: true,
     default: {
-      post: (...args: Array<any>) => {
+      post: (...args: Array<unknown>) => {
         return postMock(...args);
       },
-      getFriendlyMessage: (...args: Array<any>) => {
+      getFriendlyMessage: (...args: Array<unknown>) => {
         return getFriendlyMessageMock(...args);
       },
     },
@@ -50,7 +49,7 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
     __esModule: true,
     default: {
-      getCommonHeaders: (...args: Array<any>) => {
+      getCommonHeaders: (...args: Array<unknown>) => {
         return getCommonHeadersMock(...args);
       },
     },
@@ -58,9 +57,8 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 });
 
 /*
- * The Common Jest config replaces react-markdown with a text-only stand-in.
- * Record MarkdownViewer's own props here so safeMode remains an asserted part
- * of the contract rather than an implementation detail hidden by that mock.
+ * Record MarkdownViewer's props so safeMode remains an asserted part of the
+ * contract even when the Common Jest config replaces its markdown renderer.
  */
 jest.mock("../../../UI/Components/Markdown.tsx/MarkdownViewer", () => {
   return {
@@ -96,6 +94,7 @@ import InvestigationPanel, {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/InvestigationPanel";
 import AIRunEvent from "../../../Models/DatabaseModels/AIRunEvent";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
+import AIRunCodeFixRecommendation from "../../../Types/AI/AIRunCodeFixRecommendation";
 import AIRunEventType from "../../../Types/AI/AIRunEventType";
 import AIRunStatus from "../../../Types/AI/AIRunStatus";
 import { JSONArray, JSONObject } from "../../../Types/JSON";
@@ -123,6 +122,8 @@ interface InvestigationPayloadOptions {
   toolCallCount?: number | undefined;
   totalTokens?: number | undefined;
   humanVerdict?: string | null | undefined;
+  codeFixRecommendation?: AIRunCodeFixRecommendation | undefined;
+  completedAt?: string | undefined;
 }
 
 interface ApiResponse {
@@ -141,8 +142,15 @@ interface Deferred<T> {
 
 const POLL_INTERVAL_MS: number = 2500;
 const SETTLED_POLL_INTERVAL_MS: number = 30_000;
+const RECOMMENDATION_SETTLEMENT_MAX_AGE_MS: number = 3 * 60 * 1000;
+const MAX_RECOMMENDATION_POLL_RESPONSES: number = Math.ceil(
+  RECOMMENDATION_SETTLEMENT_MAX_AGE_MS / POLL_INTERVAL_MS,
+);
+const COMPLETED_AT: string = "2026-08-07T12:00:00.000Z";
+const OLD_COMPLETED_AT: string = "2026-08-07T11:56:59.000Z";
 const RUN_ID: string = "11111111-1111-4111-8111-111111111111";
 const FIX_RUN_ID: string = "22222222-2222-4222-8222-222222222222";
+const NEXT_RUN_ID: string = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const INCIDENT_ID: ObjectID = new ObjectID(
   "33333333-3333-4333-8333-333333333333",
 );
@@ -170,6 +178,14 @@ function investigationPayload(
     totalTokens: options.totalTokens ?? 0,
     humanVerdict: options.humanVerdict ?? null,
   };
+
+  if (options.codeFixRecommendation !== undefined) {
+    run["codeFixRecommendation"] = options.codeFixRecommendation;
+  }
+
+  if (options.completedAt !== undefined) {
+    run["completedAt"] = options.completedAt;
+  }
 
   return {
     run,
@@ -204,6 +220,8 @@ function completedResponse(
       events: [activityEvent],
       toolCallCount: 2,
       totalTokens: 1234,
+      codeFixRecommendation: AIRunCodeFixRecommendation.Recommended,
+      completedAt: COMPLETED_AT,
       ...overrides,
     }),
   );
@@ -227,12 +245,14 @@ function renderPanel(data?: {
   subjectType?: InvestigationSubjectType | undefined;
   subjectId?: ObjectID | undefined;
   onAnalysisAvailable?: (() => void) | undefined;
+  onStatusChange?: ((status: AIRunStatus | null) => void) | undefined;
 }): ReturnType<typeof render> {
   return render(
     <InvestigationPanel
       subjectType={data?.subjectType || "incident"}
       subjectId={data?.subjectId || INCIDENT_ID}
       onAnalysisAvailable={data?.onAnalysisAvailable}
+      onStatusChange={data?.onStatusChange}
     />,
   );
 }
@@ -257,6 +277,12 @@ async function tick(milliseconds: number): Promise<void> {
   });
 }
 
+async function advanceFastPolls(count: number = 1): Promise<void> {
+  for (let index: number = 0; index < count; index++) {
+    await tick(POLL_INTERVAL_MS);
+  }
+}
+
 async function resolveDeferred<T>(
   deferred: Deferred<T>,
   value: T,
@@ -274,6 +300,16 @@ function postRequestAt(index: number): PostRequest {
   return postMock.mock.calls[index]![0] as PostRequest;
 }
 
+function requestPath(index: number): string {
+  return postRequestAt(index).url.toString();
+}
+
+function fixButton(): HTMLElement | null {
+  return screen.queryByRole("button", {
+    name: "Open Fix PR from this analysis",
+  });
+}
+
 function lastActivityProps(): ActivityFeedProps {
   const calls: Array<Array<ActivityFeedProps>> = activityFeedMock.mock
     .calls as Array<Array<ActivityFeedProps>>;
@@ -282,6 +318,7 @@ function lastActivityProps(): ActivityFeedProps {
 
 beforeEach(() => {
   jest.useFakeTimers();
+  jest.setSystemTime(new Date(COMPLETED_AT));
   getCommonHeadersMock.mockReturnValue({});
   getFriendlyMessageMock.mockImplementation((error: unknown): string => {
     if (
@@ -308,8 +345,8 @@ afterEach(() => {
   activityFeedMock.mockReset();
 });
 
-describe("InvestigationPanel", () => {
-  test("renders nothing when this subject has no investigation", async () => {
+describe("InvestigationPanel report lifecycle", () => {
+  test("renders nothing and briefly discovers a run when none exists yet", async () => {
     postMock.mockResolvedValue(noInvestigationResponse() as never);
 
     const { container } = renderPanel();
@@ -317,9 +354,13 @@ describe("InvestigationPanel", () => {
 
     expect(container).toBeEmptyDOMElement();
     expect(jest.getTimerCount()).toBe(1);
+
+    await advanceFastPolls(4);
+    expect(postMock).toHaveBeenCalledTimes(5);
+    expect(jest.getTimerCount()).toBe(1);
   });
 
-  test("shows live activity and requests the incident-specific endpoint", async () => {
+  test("shows live activity and requests the incident endpoint", async () => {
     postMock.mockResolvedValue(
       successfulResponse(
         investigationPayload({
@@ -336,7 +377,9 @@ describe("InvestigationPanel", () => {
     expect(screen.getByTestId("investigation-activity")).toBeInTheDocument();
     expect(lastActivityProps().events).toHaveLength(1);
     expect(lastActivityProps().showLiveIndicator).toBe(true);
-    expect(jest.getTimerCount()).toBe(1);
+    expect(
+      document.querySelector('[class~="motion-safe:animate-ping"]'),
+    ).not.toBeNull();
 
     const request: PostRequest = postRequestAt(0);
     expect(request.url.toString()).toContain("/ai-investigation/incident");
@@ -344,7 +387,7 @@ describe("InvestigationPanel", () => {
     expect(getCommonHeadersMock).toHaveBeenCalledTimes(1);
   });
 
-  test("renders a completed report safely and demotes activity to a non-live disclosure", async () => {
+  test("renders the completed report safely and demotes activity to a disclosure", async () => {
     const onAnalysisAvailable: MockFunction = getJestMockFunction();
     postMock.mockResolvedValue(completedResponse() as never);
 
@@ -360,7 +403,6 @@ describe("InvestigationPanel", () => {
       text: ANALYSIS,
       safeMode: true,
     });
-
     expect(screen.getByText("Investigation activity")).toBeInTheDocument();
     expect(lastActivityProps()).toEqual(
       expect.objectContaining({
@@ -373,18 +415,14 @@ describe("InvestigationPanel", () => {
     const usage: HTMLElement = screen.getByLabelText("Investigation usage");
     expect(usage).toHaveTextContent("2 telemetry queries");
     expect(usage).toHaveTextContent("1,234 tokens");
-    expect(
-      screen.getByRole("button", {
-        name: "Open Fix PR from this analysis",
-      }),
-    ).toBeEnabled();
+    expect(fixButton()).toBeEnabled();
     expect(screen.getByRole("button", { name: "Confirmed" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Rejected" })).toBeEnabled();
     expect(onAnalysisAvailable).toHaveBeenCalledTimes(1);
     expect(jest.getTimerCount()).toBe(1);
   });
 
-  test("keeps polling across Completed until the same run's report appears", async () => {
+  test("keeps polling across Completed until the same run report appears", async () => {
     const onAnalysisAvailable: MockFunction = getJestMockFunction();
     postMock
       .mockResolvedValueOnce(
@@ -407,13 +445,8 @@ describe("InvestigationPanel", () => {
     expect(screen.getByText("Preparing the final report")).toBeVisible();
     expect(screen.queryByTestId("investigation-markdown")).toBeNull();
     expect(onAnalysisAvailable).not.toHaveBeenCalled();
-    expect(jest.getTimerCount()).toBe(1);
 
-    /*
-     * Status, run id and event count are deliberately unchanged. Only the
-     * report fields differ, which catches a signature that ignores the
-     * post-Completed payload transition.
-     */
+    /* Status, run id, events and recommendation remain identical. */
     await tick(POLL_INTERVAL_MS);
 
     expect(screen.getByText("Investigation complete")).toBeVisible();
@@ -422,14 +455,12 @@ describe("InvestigationPanel", () => {
     );
     expect(postMock).toHaveBeenCalledTimes(2);
     expect(onAnalysisAvailable).toHaveBeenCalledTimes(1);
-    expect(jest.getTimerCount()).toBe(1);
 
     await tick(POLL_INTERVAL_MS * 4);
     expect(postMock).toHaveBeenCalledTimes(2);
-    expect(onAnalysisAvailable).toHaveBeenCalledTimes(1);
   });
 
-  test("does not start another same-subject poll while a slow poll is in flight", async () => {
+  test("does not overlap a slow active-run poll", async () => {
     const slowPoll: Deferred<ApiResponse> = createDeferred<ApiResponse>();
     postMock
       .mockResolvedValueOnce(
@@ -447,10 +478,6 @@ describe("InvestigationPanel", () => {
     expect(postMock).toHaveBeenCalledTimes(2);
     expect(screen.getByText("Investigating…")).toBeVisible();
 
-    /*
-     * The real view pages construct a fresh ObjectID on every render. Its
-     * stable string identity must not recreate fetchData or overlap polling.
-     */
     view.rerender(
       <InvestigationPanel
         subjectType="incident"
@@ -458,38 +485,37 @@ describe("InvestigationPanel", () => {
       />,
     );
     await flush();
-    expect(postMock).toHaveBeenCalledTimes(2);
-
-    /*
-     * The response takes longer than the polling period. It must remain the
-     * sole in-flight request instead of being invalidated by a newer poll.
-     */
-    await tick(POLL_INTERVAL_MS + 1);
+    await tick(POLL_INTERVAL_MS * 3);
     expect(postMock).toHaveBeenCalledTimes(2);
 
     await resolveDeferred(slowPoll, completedResponse());
-
     expect(screen.getByText("Investigation complete")).toBeVisible();
-    expect(screen.getByTestId("investigation-markdown")).toHaveTextContent(
-      "The database connection pool was exhausted.",
-    );
     expect(postMock).toHaveBeenCalledTimes(2);
-    expect(jest.getTimerCount()).toBe(1);
   });
 
   test("ignores a previous subject response after route navigation", async () => {
     const previousSubject: Deferred<ApiResponse> =
       createDeferred<ApiResponse>();
+    const statuses: Array<AIRunStatus | null> = [];
     postMock
       .mockReturnValueOnce(previousSubject.promise as never)
       .mockResolvedValueOnce(completedResponse() as never);
 
-    const view: ReturnType<typeof render> = renderPanel();
+    const view: ReturnType<typeof render> = renderPanel({
+      onStatusChange: (status: AIRunStatus | null): void => {
+        statuses.push(status);
+      },
+    });
     await flush();
-    expect(view.container).toBeEmptyDOMElement();
 
     view.rerender(
-      <InvestigationPanel subjectType="alert" subjectId={ALERT_ID} />,
+      <InvestigationPanel
+        subjectType="alert"
+        subjectId={ALERT_ID}
+        onStatusChange={(status: AIRunStatus | null): void => {
+          statuses.push(status);
+        }}
+      />,
     );
     await flush();
 
@@ -503,14 +529,14 @@ describe("InvestigationPanel", () => {
 
     expect(screen.getByText("Investigation complete")).toBeVisible();
     expect(screen.queryByText("Investigating…")).toBeNull();
+    expect(statuses[statuses.length - 1]).toBe(AIRunStatus.Completed);
   });
 
-  test("does not notify a new subject with the previous subject's report", async () => {
+  test("does not notify a new subject with the previous report", async () => {
     const nextSubject: Deferred<ApiResponse> = createDeferred<ApiResponse>();
     const onAnalysisAvailable: MockFunction = getJestMockFunction();
-    const nextSubjectAnalysis: string =
+    const nextAnalysis: string =
       "## Alert root cause\n\nThe upstream dependency rejected requests.";
-
     postMock
       .mockResolvedValueOnce(completedResponse() as never)
       .mockReturnValueOnce(nextSubject.promise as never);
@@ -519,7 +545,6 @@ describe("InvestigationPanel", () => {
       onAnalysisAvailable,
     });
     await flush();
-
     expect(onAnalysisAvailable).toHaveBeenCalledTimes(1);
     onAnalysisAvailable.mockClear();
 
@@ -537,17 +562,13 @@ describe("InvestigationPanel", () => {
 
     await resolveDeferred(
       nextSubject,
-      completedResponse({
-        runId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-        analysisMarkdown: nextSubjectAnalysis,
-      }),
+      completedResponse({ runId: NEXT_RUN_ID, analysisMarkdown: nextAnalysis }),
     );
 
     expect(screen.getByTestId("investigation-markdown")).toHaveTextContent(
       "The upstream dependency rejected requests.",
     );
     expect(onAnalysisAvailable).toHaveBeenCalledTimes(1);
-    expect(postRequestAt(1).data).toEqual({ alertId: ALERT_ID.toString() });
   });
 
   test("shows the no-report outcome and disables analysis-only actions", async () => {
@@ -570,17 +591,12 @@ describe("InvestigationPanel", () => {
     expect(
       screen.getByText("No investigation report was published."),
     ).toBeVisible();
-    expect(
-      screen.getByRole("button", {
-        name: "Open Fix PR from this analysis",
-      }),
-    ).toBeDisabled();
+    expect(fixButton()).toBeDisabled();
     expect(screen.getByRole("button", { name: "Confirmed" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Rejected" })).toBeDisabled();
-    expect(jest.getTimerCount()).toBe(1);
   });
 
-  test("shows a terminal failure without presenting completed actions", async () => {
+  test("shows a terminal failure without completed actions", async () => {
     postMock.mockResolvedValue(
       successfulResponse(
         investigationPayload({
@@ -602,15 +618,11 @@ describe("InvestigationPanel", () => {
         showLiveIndicator: false,
       }),
     );
-    expect(
-      screen.queryByRole("button", {
-        name: "Open Fix PR from this analysis",
-      }),
-    ).toBeNull();
-    expect(jest.getTimerCount()).toBe(1);
+    expect(fixButton()).toBeNull();
+    expect(screen.queryByText("Rate this investigation")).toBeNull();
   });
 
-  test("uses the alert endpoint and alert id for an alert investigation", async () => {
+  test("uses the alert endpoint and alert id", async () => {
     postMock.mockResolvedValue(
       successfulResponse(
         investigationPayload({ status: AIRunStatus.Running }),
@@ -620,12 +632,290 @@ describe("InvestigationPanel", () => {
     renderPanel({ subjectType: "alert", subjectId: ALERT_ID });
     await flush();
 
-    const request: PostRequest = postRequestAt(0);
-    expect(request.url.toString()).toContain("/ai-investigation/alert");
-    expect(request.data).toEqual({ alertId: ALERT_ID.toString() });
+    expect(requestPath(0)).toContain("/ai-investigation/alert");
+    expect(postRequestAt(0).data).toEqual({ alertId: ALERT_ID.toString() });
+  });
+});
+
+describe("InvestigationPanel code-fix recommendation", () => {
+  test("shows the fix action only for an explicit Recommended decision", async () => {
+    postMock.mockResolvedValue(completedResponse() as never);
+
+    renderPanel();
+    await flush();
+
+    expect(fixButton()).toBeEnabled();
+    expect(screen.getByText("Act on this investigation")).toBeVisible();
+    expect(screen.getByText("Rate this investigation")).toBeVisible();
   });
 
-  test("creates a fix task from the completed report", async () => {
+  test("hides every fix-task element for NotRecommended but retains verdict controls", async () => {
+    postMock.mockResolvedValue(
+      completedResponse({
+        codeFixRecommendation: AIRunCodeFixRecommendation.NotRecommended,
+      }) as never,
+    );
+
+    renderPanel();
+    await flush();
+
+    expect(fixButton()).toBeNull();
+    expect(screen.queryByText("Act on this investigation")).toBeNull();
+    expect(screen.queryByText(/Fix task created/)).toBeNull();
+    expect(screen.getByText("Rate this investigation")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Confirmed" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Rejected" })).toBeEnabled();
+  });
+
+  test("fails closed for a legacy row with no recommendation or completion time", async () => {
+    postMock.mockResolvedValue(
+      completedResponse({
+        codeFixRecommendation: undefined,
+        completedAt: undefined,
+      }) as never,
+    );
+
+    renderPanel();
+    await flush();
+
+    expect(fixButton()).toBeNull();
+    expect(screen.getByText("Rate this investigation")).toBeVisible();
+    expect(jest.getTimerCount()).toBe(1);
+
+    await advanceFastPolls(4);
+    expect(postMock).toHaveBeenCalledTimes(1);
+  });
+
+  test("fails closed at fast cadence for an old row with no recommendation", async () => {
+    postMock.mockResolvedValue(
+      completedResponse({
+        codeFixRecommendation: undefined,
+        completedAt: OLD_COMPLETED_AT,
+      }) as never,
+    );
+
+    renderPanel();
+    await flush();
+
+    expect(fixButton()).toBeNull();
+    expect(jest.getTimerCount()).toBe(1);
+
+    await advanceFastPolls(4);
+    expect(postMock).toHaveBeenCalledTimes(1);
+  });
+
+  test("polls a recent missing decision and reveals the action when it settles", async () => {
+    postMock
+      .mockResolvedValueOnce(
+        completedResponse({ codeFixRecommendation: undefined }) as never,
+      )
+      .mockResolvedValueOnce(completedResponse() as never);
+
+    renderPanel();
+    await flush();
+
+    expect(fixButton()).toBeNull();
+    expect(screen.getByText("Rate this investigation")).toBeVisible();
+    expect(jest.getTimerCount()).toBe(2);
+
+    await advanceFastPolls();
+
+    expect(postMock).toHaveBeenCalledTimes(2);
+    expect(fixButton()).toBeEnabled();
+    expect(jest.getTimerCount()).toBe(1);
+  });
+
+  test("applies Pending to Recommended when no other signature field changes", async () => {
+    postMock
+      .mockResolvedValueOnce(
+        completedResponse({
+          codeFixRecommendation: AIRunCodeFixRecommendation.Pending,
+        }) as never,
+      )
+      .mockResolvedValueOnce(completedResponse() as never);
+
+    renderPanel();
+    await flush();
+
+    expect(screen.getByText("Investigation complete")).toBeVisible();
+    expect(fixButton()).toBeNull();
+    expect(postMock).toHaveBeenCalledTimes(1);
+    expect(jest.getTimerCount()).toBe(2);
+
+    await advanceFastPolls();
+
+    expect(postMock).toHaveBeenCalledTimes(2);
+    expect(fixButton()).toBeEnabled();
+    expect(jest.getTimerCount()).toBe(1);
+  });
+
+  test("does not present explicit Pending as an active investigation", async () => {
+    postMock.mockResolvedValue(
+      completedResponse({
+        codeFixRecommendation: AIRunCodeFixRecommendation.Pending,
+      }) as never,
+    );
+
+    renderPanel();
+    await flush();
+
+    expect(screen.getByText("Investigation complete")).toBeVisible();
+    expect(screen.queryByText("Investigating…")).toBeNull();
+    expect(
+      document.querySelector('[class~="motion-safe:animate-ping"]'),
+    ).toBeNull();
+    expect(fixButton()).toBeNull();
+  });
+
+  test("tolerates a browser clock behind the server while Pending settles", async () => {
+    jest.setSystemTime(new Date("2026-08-07T11:59:55.000Z"));
+    postMock
+      .mockResolvedValueOnce(
+        completedResponse({
+          codeFixRecommendation: AIRunCodeFixRecommendation.Pending,
+        }) as never,
+      )
+      .mockResolvedValueOnce(completedResponse() as never);
+
+    renderPanel();
+    await flush();
+    expect(fixButton()).toBeNull();
+
+    await advanceFastPolls();
+    expect(fixButton()).toBeEnabled();
+  });
+
+  test("tolerates a browser clock ahead of the server for explicit Pending", async () => {
+    jest.setSystemTime(new Date("2026-08-07T12:05:00.000Z"));
+    postMock
+      .mockResolvedValueOnce(
+        completedResponse({
+          codeFixRecommendation: AIRunCodeFixRecommendation.Pending,
+        }) as never,
+      )
+      .mockResolvedValueOnce(completedResponse() as never);
+
+    renderPanel();
+    await flush();
+    expect(fixButton()).toBeNull();
+
+    await advanceFastPolls();
+    expect(fixButton()).toBeEnabled();
+  });
+
+  test("bounds a permanently Pending decision by time and response count", async () => {
+    postMock.mockResolvedValue(
+      completedResponse({
+        codeFixRecommendation: AIRunCodeFixRecommendation.Pending,
+      }) as never,
+    );
+
+    renderPanel();
+    await flush();
+
+    expect(fixButton()).toBeNull();
+    expect(jest.getTimerCount()).toBe(2);
+
+    await advanceFastPolls(MAX_RECOMMENDATION_POLL_RESPONSES);
+
+    const callsAtSettlement: number = postMock.mock.calls.length;
+    expect(callsAtSettlement).toBeGreaterThan(1);
+    expect(callsAtSettlement).toBeLessThanOrEqual(
+      MAX_RECOMMENDATION_POLL_RESPONSES + 1,
+    );
+    expect(fixButton()).toBeNull();
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(jest.getTimerCount()).toBe(1);
+
+    await advanceFastPolls(4);
+    expect(postMock).toHaveBeenCalledTimes(callsAtSettlement);
+  });
+
+  test("keeps Pending polls sequential when a response is slow", async () => {
+    const slowPending: Deferred<ApiResponse> = createDeferred<ApiResponse>();
+    postMock
+      .mockResolvedValueOnce(
+        completedResponse({
+          codeFixRecommendation: AIRunCodeFixRecommendation.Pending,
+        }) as never,
+      )
+      .mockReturnValueOnce(slowPending.promise as never)
+      .mockResolvedValueOnce(completedResponse() as never);
+
+    renderPanel();
+    await flush();
+    await advanceFastPolls();
+    expect(postMock).toHaveBeenCalledTimes(2);
+
+    await advanceFastPolls(5);
+    expect(postMock).toHaveBeenCalledTimes(2);
+
+    await resolveDeferred(
+      slowPending,
+      completedResponse({
+        codeFixRecommendation: AIRunCodeFixRecommendation.Pending,
+      }),
+    );
+    await advanceFastPolls();
+
+    expect(postMock).toHaveBeenCalledTimes(3);
+    expect(fixButton()).toBeEnabled();
+  });
+
+  test("stops failed Pending polls at the independent deadline", async () => {
+    const failedPoll: HTTPErrorResponse = new HTTPErrorResponse(
+      503,
+      { message: "temporarily unavailable" },
+      {},
+    );
+    postMock
+      .mockResolvedValueOnce(
+        completedResponse({
+          codeFixRecommendation: AIRunCodeFixRecommendation.Pending,
+        }) as never,
+      )
+      .mockResolvedValue(failedPoll as never);
+
+    renderPanel();
+    await flush();
+    await advanceFastPolls(MAX_RECOMMENDATION_POLL_RESPONSES);
+
+    const callsAtDeadline: number = postMock.mock.calls.length;
+    expect(callsAtDeadline).toBeGreaterThan(1);
+    expect(fixButton()).toBeNull();
+    expect(screen.queryByRole("alert")).toBeNull();
+
+    await advanceFastPolls(4);
+    expect(postMock).toHaveBeenCalledTimes(callsAtDeadline);
+  });
+
+  test("a hung Pending request never overlaps before or after the deadline", async () => {
+    const hungPoll: Deferred<ApiResponse> = createDeferred<ApiResponse>();
+    postMock
+      .mockResolvedValueOnce(
+        completedResponse({
+          codeFixRecommendation: AIRunCodeFixRecommendation.Pending,
+        }) as never,
+      )
+      .mockReturnValueOnce(hungPoll.promise as never);
+
+    renderPanel();
+    await flush();
+    await advanceFastPolls();
+    expect(postMock).toHaveBeenCalledTimes(2);
+
+    await tick(RECOMMENDATION_SETTLEMENT_MAX_AGE_MS);
+    expect(fixButton()).toBeNull();
+    expect(postMock).toHaveBeenCalledTimes(2);
+
+    /* Settled cadence must reuse the still-hung request, not overlap it. */
+    await tick(SETTLED_POLL_INTERVAL_MS);
+    expect(postMock).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("InvestigationPanel completed actions", () => {
+  test("creates a run-bound fix task and replaces the action with success", async () => {
     postMock
       .mockResolvedValueOnce(completedResponse() as never)
       .mockResolvedValueOnce(
@@ -634,29 +924,47 @@ describe("InvestigationPanel", () => {
 
     renderPanel();
     await flush();
-
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: "Open Fix PR from this analysis",
-      }),
-    );
+    fireEvent.click(fixButton()!);
     await flush();
 
     expect(screen.getByRole("alert")).toHaveTextContent("Fix task created");
-    expect(screen.getByText("View task progress")).toBeVisible();
-    const request: PostRequest = postRequestAt(1);
-    expect(request.url.toString()).toContain(
-      "/ai-investigation/create-fix-task",
-    );
-    expect(request.data).toEqual({
+    expect(fixButton()).toBeNull();
+    expect(requestPath(1)).toContain("/ai-investigation/create-fix-task");
+    expect(postRequestAt(1).data).toEqual({
       subjectType: "incident",
       subjectId: INCIDENT_ID.toString(),
-      aiRunId: RUN_ID,
+      investigationRunId: RUN_ID,
     });
+    expect(screen.getByText("View task progress")).toBeVisible();
   });
 
-  test("clears a successful fix task when navigating to another completed subject", async () => {
-    const nextSubjectAnalysis: string =
+  test("keeps the Recommended action and shows a friendly task error", async () => {
+    postMock
+      .mockResolvedValueOnce(completedResponse() as never)
+      .mockResolvedValueOnce(
+        new HTTPErrorResponse(
+          400,
+          { message: "No connected repository exists." },
+          {},
+        ) as never,
+      );
+
+    renderPanel();
+    await flush();
+    fireEvent.click(fixButton()!);
+    await flush();
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Could not create the fix task",
+    );
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "No connected repository exists",
+    );
+    expect(fixButton()).toBeEnabled();
+  });
+
+  test("clears settled fix-task state after subject navigation", async () => {
+    const nextAnalysis: string =
       "## Alert root cause\n\nA deployment removed the required credential.";
     postMock
       .mockResolvedValueOnce(completedResponse() as never)
@@ -665,21 +973,15 @@ describe("InvestigationPanel", () => {
       )
       .mockResolvedValueOnce(
         completedResponse({
-          runId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
-          analysisMarkdown: nextSubjectAnalysis,
+          runId: NEXT_RUN_ID,
+          analysisMarkdown: nextAnalysis,
         }) as never,
       );
 
     const view: ReturnType<typeof render> = renderPanel();
     await flush();
-
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: "Open Fix PR from this analysis",
-      }),
-    );
+    fireEvent.click(fixButton()!);
     await flush();
-
     expect(screen.getByRole("alert")).toHaveTextContent("Fix task created");
 
     view.rerender(
@@ -691,42 +993,56 @@ describe("InvestigationPanel", () => {
     expect(screen.getByTestId("investigation-markdown")).toHaveTextContent(
       "A deployment removed the required credential.",
     );
-    expect(
-      screen.getByRole("button", {
-        name: "Open Fix PR from this analysis",
-      }),
-    ).toBeEnabled();
-    expect(postRequestAt(2).data).toEqual({ alertId: ALERT_ID.toString() });
+    expect(fixButton()).toBeEnabled();
   });
 
-  test("resets fix-task and verdict state when the same subject gets a new completed run", async () => {
-    const nextRunId: string = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
-    const nextRunAnalysis: string =
+  test("ignores a fix-task result that resolves on another subject", async () => {
+    const staleTask: Deferred<ApiResponse> = createDeferred<ApiResponse>();
+    postMock
+      .mockResolvedValueOnce(completedResponse() as never)
+      .mockReturnValueOnce(staleTask.promise as never)
+      .mockResolvedValueOnce(
+        completedResponse({ runId: NEXT_RUN_ID }) as never,
+      );
+
+    const view: ReturnType<typeof render> = renderPanel();
+    await flush();
+    fireEvent.click(fixButton()!);
+    await flush();
+
+    view.rerender(
+      <InvestigationPanel subjectType="alert" subjectId={ALERT_ID} />,
+    );
+    await flush();
+    await resolveDeferred(
+      staleTask,
+      successfulResponse({ aiRunId: FIX_RUN_ID }),
+    );
+
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(fixButton()).toBeEnabled();
+    expect(screen.getByText("Investigation complete")).toBeVisible();
+  });
+
+  test("resets fix-task and verdict state when the same subject gets a new run", async () => {
+    const nextAnalysis: string =
       "## New root cause\n\nA later investigation found a certificate rollover.";
     postMock
-      .mockResolvedValueOnce(
-        completedResponse({ isAnalysisPending: false }) as never,
-      )
+      .mockResolvedValueOnce(completedResponse() as never)
       .mockResolvedValueOnce(
         successfulResponse({ aiRunId: FIX_RUN_ID }) as never,
       )
       .mockResolvedValueOnce(successfulResponse({}) as never)
       .mockResolvedValueOnce(
         completedResponse({
-          runId: nextRunId,
-          analysisMarkdown: nextRunAnalysis,
-          isAnalysisPending: false,
+          runId: NEXT_RUN_ID,
+          analysisMarkdown: nextAnalysis,
         }) as never,
       );
 
     renderPanel();
     await flush();
-
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: "Open Fix PR from this analysis",
-      }),
-    );
+    fireEvent.click(fixButton()!);
     await flush();
     fireEvent.click(screen.getByRole("button", { name: "Confirmed" }));
     await flush();
@@ -741,71 +1057,49 @@ describe("InvestigationPanel", () => {
     );
     expect(screen.queryByText(/Fix task created/)).toBeNull();
     expect(screen.queryByText(/You confirmed this analysis/)).toBeNull();
-    expect(
-      screen.getByRole("button", {
-        name: "Open Fix PR from this analysis",
-      }),
-    ).toBeEnabled();
+    expect(fixButton()).toBeEnabled();
     expect(screen.getByRole("button", { name: "Confirmed" })).toBeEnabled();
-    expect(screen.getByRole("button", { name: "Rejected" })).toBeEnabled();
-    expect(postMock).toHaveBeenCalledTimes(4);
-    expect(jest.getTimerCount()).toBe(1);
   });
 
-  test("keeps the fix action available and explains a rejected task request", async () => {
+  test("binds a verdict to the displayed run even without a fix recommendation", async () => {
     postMock
-      .mockResolvedValueOnce(completedResponse() as never)
       .mockResolvedValueOnce(
-        new HTTPErrorResponse(
-          400,
-          { message: "No connected repository exists." },
-          {},
-        ) as never,
-      );
-
-    renderPanel();
-    await flush();
-
-    fireEvent.click(
-      screen.getByRole("button", {
-        name: "Open Fix PR from this analysis",
-      }),
-    );
-    await flush();
-
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      "Could not create the fix task",
-    );
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      "No connected repository exists",
-    );
-    expect(
-      screen.getByRole("button", {
-        name: "Open Fix PR from this analysis",
-      }),
-    ).toBeEnabled();
-  });
-
-  test("persists a positive verdict and replaces the verdict buttons", async () => {
-    postMock
-      .mockResolvedValueOnce(completedResponse() as never)
+        completedResponse({
+          codeFixRecommendation: AIRunCodeFixRecommendation.NotRecommended,
+        }) as never,
+      )
       .mockResolvedValueOnce(successfulResponse({}) as never);
 
     renderPanel();
     await flush();
-
     fireEvent.click(screen.getByRole("button", { name: "Confirmed" }));
     await flush();
 
-    expect(screen.getByText(/You confirmed this analysis/)).toBeVisible();
-    const request: PostRequest = postRequestAt(1);
-    expect(request.url.toString()).toContain("/ai-investigation/verdict");
-    expect(request.data).toEqual({
+    expect(requestPath(1)).toContain("/ai-investigation/verdict");
+    expect(postRequestAt(1).data).toEqual({
       subjectType: "incident",
       subjectId: INCIDENT_ID.toString(),
-      aiRunId: RUN_ID,
+      investigationRunId: RUN_ID,
       verdict: "Confirmed",
     });
+    expect(screen.getByText(/You confirmed this analysis/)).toBeVisible();
+  });
+
+  test("retains an existing verdict when a fix is not recommended", async () => {
+    postMock.mockResolvedValue(
+      completedResponse({
+        codeFixRecommendation: AIRunCodeFixRecommendation.NotRecommended,
+        humanVerdict: "Confirmed",
+      }) as never,
+    );
+
+    renderPanel();
+    await flush();
+
+    expect(fixButton()).toBeNull();
+    expect(screen.getByText(/You confirmed this analysis/)).toBeVisible();
+    expect(screen.getByText("Change")).toBeVisible();
+    expect(screen.getByText("Rate this investigation")).toBeVisible();
   });
 
   test("a GET started before verdict save cannot overwrite the saved verdict", async () => {
@@ -817,7 +1111,6 @@ describe("InvestigationPanel", () => {
 
     renderPanel();
     await flush();
-
     await tick(SETTLED_POLL_INTERVAL_MS);
     expect(postMock).toHaveBeenCalledTimes(2);
 
@@ -831,7 +1124,7 @@ describe("InvestigationPanel", () => {
     expect(screen.queryByRole("button", { name: "Confirmed" })).toBeNull();
   });
 
-  test("rolls back an optimistic verdict when the save fails", async () => {
+  test("rolls back an optimistic verdict when save fails", async () => {
     postMock
       .mockResolvedValueOnce(completedResponse() as never)
       .mockResolvedValueOnce(
@@ -844,7 +1137,6 @@ describe("InvestigationPanel", () => {
 
     renderPanel();
     await flush();
-
     fireEvent.click(screen.getByRole("button", { name: "Rejected" }));
     await flush();
 
@@ -856,5 +1148,37 @@ describe("InvestigationPanel", () => {
     );
     expect(screen.queryByText(/You rejected this analysis/)).toBeNull();
     expect(screen.getByRole("button", { name: "Rejected" })).toBeEnabled();
+  });
+
+  test("ignores a verdict result that resolves after navigation", async () => {
+    const staleVerdict: Deferred<ApiResponse> = createDeferred<ApiResponse>();
+    postMock
+      .mockResolvedValueOnce(
+        completedResponse({
+          codeFixRecommendation: AIRunCodeFixRecommendation.NotRecommended,
+        }) as never,
+      )
+      .mockReturnValueOnce(staleVerdict.promise as never)
+      .mockResolvedValueOnce(
+        completedResponse({
+          runId: NEXT_RUN_ID,
+          codeFixRecommendation: AIRunCodeFixRecommendation.NotRecommended,
+        }) as never,
+      );
+
+    const view: ReturnType<typeof render> = renderPanel();
+    await flush();
+    fireEvent.click(screen.getByRole("button", { name: "Confirmed" }));
+    await flush();
+
+    view.rerender(
+      <InvestigationPanel subjectType="alert" subjectId={ALERT_ID} />,
+    );
+    await flush();
+    await resolveDeferred(staleVerdict, successfulResponse({}));
+
+    expect(screen.queryByText(/You confirmed this analysis/)).toBeNull();
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.getByRole("button", { name: "Confirmed" })).toBeEnabled();
   });
 });

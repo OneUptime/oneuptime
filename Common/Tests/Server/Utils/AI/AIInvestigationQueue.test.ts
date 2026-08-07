@@ -6,8 +6,14 @@ import AIAlertInvestigationRunner from "../../../../Server/Utils/AI/SRE/AlertInv
 import AIRunService from "../../../../Server/Services/AIRunService";
 import AIService from "../../../../Server/Services/AIService";
 import ProjectService from "../../../../Server/Services/ProjectService";
+import Semaphore from "../../../../Server/Infrastructure/Semaphore";
+import {
+  getInvestigationSubjectLockKey,
+  INVESTIGATION_SUBJECT_LOCK_NAMESPACE,
+} from "../../../../Server/Utils/AI/SRE/InvestigationSubjectLock";
 import Project from "../../../../Models/DatabaseModels/Project";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
+import AIRunCodeFixRecommendation from "../../../../Types/AI/AIRunCodeFixRecommendation";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import AIRunType from "../../../../Types/AI/AIRunType";
 import ObjectID from "../../../../Types/ObjectID";
@@ -49,6 +55,8 @@ function findOperatorSql(value: unknown): string {
 describe("AIInvestigationQueue", () => {
   beforeEach(() => {
     mockBudgetOk();
+    jest.spyOn(Semaphore, "lock").mockResolvedValue({} as never);
+    jest.spyOn(Semaphore, "release").mockResolvedValue();
     // No lane cap override => default of 3.
     jest
       .spyOn(ProjectService, "findOneById")
@@ -85,6 +93,7 @@ describe("AIInvestigationQueue", () => {
         data: expect.objectContaining({
           status: AIRunStatus.Queued,
           triggeredByIncidentId: incidentId,
+          codeFixRecommendation: AIRunCodeFixRecommendation.NotRecommended,
         }),
       }),
     );
@@ -92,6 +101,19 @@ describe("AIInvestigationQueue", () => {
       projectId,
       { incidentId, alertId: undefined },
     );
+    expect(Semaphore.lock).toHaveBeenCalledWith({
+      key: getInvestigationSubjectLockKey({ projectId, incidentId }),
+      namespace: INVESTIGATION_SUBJECT_LOCK_NAMESPACE,
+      lockTimeout: 30 * 1000,
+      acquireTimeout: 10 * 1000,
+    });
+    expect(Semaphore.release).toHaveBeenCalledTimes(1);
+    expect(create.mock.invocationCallOrder[0]).toBeGreaterThan(
+      (Semaphore.lock as unknown as jest.Mock).mock.invocationCallOrder[0]!,
+    );
+    expect(
+      (Semaphore.release as unknown as jest.Mock).mock.invocationCallOrder[0],
+    ).toBeGreaterThan(create.mock.invocationCallOrder[0]!);
     // The inline kick is detached; give the microtask a beat.
     await new Promise((resolve: (value: unknown) => void) => {
       setTimeout(resolve, 0);
@@ -103,6 +125,62 @@ describe("AIInvestigationQueue", () => {
         triggeredByIncidentId: incidentId,
       }),
     );
+    expect(processRun.mock.invocationCallOrder[0]).toBeGreaterThan(
+      (Semaphore.release as unknown as jest.Mock).mock.invocationCallOrder[0]!,
+    );
+  });
+
+  test("enqueue keeps an alert investigation NotRecommended until completion wins", async () => {
+    const projectId: ObjectID = ObjectID.generate();
+    const alertId: ObjectID = ObjectID.generate();
+
+    const create: jest.SpyInstance = jest
+      .spyOn(AIRunService, "create")
+      .mockResolvedValue({ id: ObjectID.generate() } as unknown as AIRun);
+    jest.spyOn(AIInvestigationQueue, "processRun").mockResolvedValue(undefined);
+
+    await AIInvestigationQueue.enqueue({
+      projectId,
+      subjectAlertId: alertId,
+    });
+
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          runType: AIRunType.Investigation,
+          triggeredByAlertId: alertId,
+          codeFixRecommendation: AIRunCodeFixRecommendation.NotRecommended,
+        }),
+      }),
+    );
+    expect(Semaphore.lock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        key: getInvestigationSubjectLockKey({ projectId, alertId }),
+        namespace: INVESTIGATION_SUBJECT_LOCK_NAMESPACE,
+      }),
+    );
+    expect(Semaphore.release).toHaveBeenCalledTimes(1);
+  });
+
+  test("a subject Investigation fails closed when the shared lock cannot be acquired", async () => {
+    (Semaphore.lock as unknown as jest.Mock).mockRejectedValue(
+      new Error("Redis unavailable"),
+    );
+    const create: jest.SpyInstance = jest.spyOn(AIRunService, "create");
+    const processRun: jest.SpyInstance = jest.spyOn(
+      AIInvestigationQueue,
+      "processRun",
+    );
+
+    const runId: ObjectID | null = await AIInvestigationQueue.enqueue({
+      projectId: ObjectID.generate(),
+      subjectIncidentId: ObjectID.generate(),
+    });
+
+    expect(runId).toBeNull();
+    expect(create).not.toHaveBeenCalled();
+    expect(Semaphore.release).not.toHaveBeenCalled();
+    expect(processRun).not.toHaveBeenCalled();
   });
 
   test("enqueue rejects a run carrying both subject types before any budget or write", async () => {

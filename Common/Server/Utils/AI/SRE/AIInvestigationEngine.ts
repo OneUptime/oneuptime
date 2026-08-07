@@ -6,6 +6,7 @@ import {
   AIRunEventResultSummary,
 } from "../../../../Types/AI/AIChatTypes";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
+import AIRunCodeFixRecommendation from "../../../../Types/AI/AIRunCodeFixRecommendation";
 import AIRunEventType from "../../../../Types/AI/AIRunEventType";
 import AIRunEvent from "../../../../Models/DatabaseModels/AIRunEvent";
 import Project from "../../../../Models/DatabaseModels/Project";
@@ -48,6 +49,12 @@ const MAX_LLM_CALLS: number = 8;
 const MAX_TOOL_CALLS: number = 12;
 const MAX_WALL_CLOCK_MS: number = 150 * 1000;
 const MAX_OUTPUT_TOKENS: number = 2000;
+
+/*
+ * Conditional recommendation persistence is idempotent, so transient
+ * database failures can be retried without risking a second decision.
+ */
+const CODE_FIX_RECOMMENDATION_PERSIST_ATTEMPTS: number = 3;
 
 /*
  * Failures a retry cannot fix within the run's usefulness window: missing/
@@ -111,6 +118,21 @@ export interface InvestigationRequest {
     confidence: ConfidenceSignal;
     result: ObservabilityAssistantResult;
   }) => Promise<void>;
+  /*
+   * Incident and alert RCA runs opt into a persisted code-fix decision.
+   * Other users of this engine (insight triage and remediation) omit it and
+   * remain NotRecommended throughout their lifecycle.
+   */
+  persistCodeFixRecommendation?: boolean | undefined;
+  /*
+   * Runs only after a Recommended decision and its exact analysis snapshot
+   * have been durably committed. Incident/alert runners use this for the
+   * optional automatic FixFromIncident lane; persistence failure means the
+   * callback is never invoked.
+   */
+  onCodeFixRecommended?:
+    | ((data: { analysisMarkdown: string }) => Promise<void>)
+    | undefined;
   /*
    * Optional: called exactly once when THIS attempt settles the run into a
    * terminal state — Completed (with or without an analysis, and even when
@@ -319,6 +341,11 @@ export default class AIInvestigationEngine {
           expectedAttemptCount: data.attemptCount,
           set: {
             status: AIRunStatus.Completed,
+            ...(request.persistCodeFixRecommendation === true
+              ? {
+                  codeFixRecommendation: AIRunCodeFixRecommendation.Pending,
+                }
+              : {}),
             completedAt: OneUptimeDate.getCurrentDate(),
             lastHeartbeatAt: OneUptimeDate.getCurrentDate(),
             llmCallCount: result.llmCallCount,
@@ -343,6 +370,13 @@ export default class AIInvestigationEngine {
         logger.debug(
           `AI: investigation (run ${aiRunId.toString()}) produced no analysis; nothing posted.`,
         );
+
+        if (request.persistCodeFixRecommendation === true) {
+          await this.finalizeCodeFixRecommendation({
+            aiRunId,
+            recommendation: AIRunCodeFixRecommendation.NotRecommended,
+          });
+        }
 
         /*
          * No analysis is still a settled run — the subject must not lose
@@ -385,18 +419,62 @@ export default class AIInvestigationEngine {
           ),
         });
 
+      /*
+       * Build the posted form exactly once. The same immutable string is
+       * handed to the subject feed, persisted with the recommendation, and
+       * supplied to the automatic fix trigger by the subject runner.
+       */
+      const investigationAnalysisMarkdown: string = this.buildBrandedMarkdown(
+        result,
+        analysis,
+      );
+
       await request.postAnalysis({
-        analysisMarkdown: this.buildBrandedMarkdown(result, analysis),
+        analysisMarkdown: investigationAnalysisMarkdown,
         confidence,
         result,
       });
 
       /*
+       * Only expose the manual Fix PR action after the cited analysis has
+       * actually been posted. The same structured, fail-closed decision also
+       * gates the automatic FixFromIncident lane in the subject runner.
+       */
+      if (request.persistCodeFixRecommendation === true) {
+        if (AIConfidenceSignal.isCodeFixRecommended(confidence)) {
+          const recommendationPersisted: boolean =
+            await this.finalizeCodeFixRecommendation({
+              aiRunId,
+              recommendation: AIRunCodeFixRecommendation.Recommended,
+              investigationAnalysisMarkdown,
+            });
+
+          if (recommendationPersisted && request.onCodeFixRecommended) {
+            try {
+              await request.onCodeFixRecommended({
+                analysisMarkdown: investigationAnalysisMarkdown,
+              });
+            } catch (error) {
+              logger.error(
+                `AI: post-recommendation follow-up failed for run ${aiRunId.toString()}: ${error}`,
+              );
+            }
+          }
+        } else {
+          await this.finalizeCodeFixRecommendation({
+            aiRunId,
+            recommendation: AIRunCodeFixRecommendation.NotRecommended,
+          });
+        }
+      }
+
+      /*
        * RunCompleted is the durable publication-settlement signal, not just
        * the earlier status CAS. The dashboard keeps polling a Completed run
        * until either the matching report exists or this final event proves
-       * that finalization ended without one. If confidence/postAnalysis
-       * throws, the catch path emits RunFailed instead.
+       * that finalization ended without one. Recommendation settlement and
+       * its post-persistence callback have finished before this event. If
+       * confidence/postAnalysis throws, the catch path emits RunFailed.
        */
       await this.emitEvent({
         projectId,
@@ -414,6 +492,18 @@ export default class AIInvestigationEngine {
     } catch (error) {
       const message: string =
         error instanceof Error ? error.message : String(error);
+
+      /*
+       * A failure after the Running -> Completed transition (classification
+       * or posting the RCA) must not strand the panel in Pending forever or
+       * offer a PR without a posted analysis. Fail closed.
+       */
+      if (settledAsCompleted && request.persistCodeFixRecommendation === true) {
+        await this.finalizeCodeFixRecommendation({
+          aiRunId,
+          recommendation: AIRunCodeFixRecommendation.NotRecommended,
+        });
+      }
 
       /*
        * Hand the failure to the queue's retry policy: transient errors
@@ -487,6 +577,78 @@ export default class AIInvestigationEngine {
         `AI: post-settlement follow-up failed for run ${aiRunId.toString()}: ${error}`,
       );
     }
+  }
+
+  /*
+   * Resolve the recommendation exactly once. Pending is written by the
+   * winning Completed CAS, so this conditional update cannot race a stale
+   * attempt or overwrite a decision another actor already settled. A
+   * Recommended decision carries the exact analysis snapshot it classified;
+   * manual and automatic fix tasks never have to re-read mutable feed state.
+   *
+   * Best-effort like the event trail: transient database errors are retried,
+   * but recommendation persistence never turns a completed investigation
+   * into a failed run. A zero-row update is safe (the row was already settled
+   * or removed) and is logged rather than retried.
+   */
+  private static async finalizeCodeFixRecommendation(
+    data:
+      | {
+          aiRunId: ObjectID;
+          recommendation: AIRunCodeFixRecommendation.Recommended;
+          investigationAnalysisMarkdown: string;
+        }
+      | {
+          aiRunId: ObjectID;
+          recommendation: AIRunCodeFixRecommendation.NotRecommended;
+        },
+  ): Promise<boolean> {
+    for (
+      let attempt: number = 1;
+      attempt <= CODE_FIX_RECOMMENDATION_PERSIST_ATTEMPTS;
+      attempt++
+    ) {
+      try {
+        const updatedCount: number =
+          await AIRunService.finalizeInvestigationCodeFixRecommendation(
+            data.recommendation === AIRunCodeFixRecommendation.Recommended
+              ? {
+                  aiRunId: data.aiRunId,
+                  recommendation: data.recommendation,
+                  taskContext: {
+                    sourceInvestigationRunId: data.aiRunId.toString(),
+                    sourceInvestigationAnalysisMarkdown:
+                      data.investigationAnalysisMarkdown,
+                  },
+                }
+              : {
+                  aiRunId: data.aiRunId,
+                  recommendation: data.recommendation,
+                },
+          );
+
+        if (updatedCount === 0) {
+          logger.warn(
+            `AI: code-fix recommendation for run ${data.aiRunId.toString()} was no longer Pending; leaving the existing decision unchanged.`,
+          );
+          return false;
+        }
+        return true;
+      } catch (error) {
+        if (attempt === CODE_FIX_RECOMMENDATION_PERSIST_ATTEMPTS) {
+          logger.error(
+            `AI: failed to persist code-fix recommendation for run ${data.aiRunId.toString()} after ${attempt} attempts: ${error}`,
+          );
+          return false;
+        }
+
+        logger.warn(
+          `AI: failed to persist code-fix recommendation for run ${data.aiRunId.toString()} (attempt ${attempt}/${CODE_FIX_RECOMMENDATION_PERSIST_ATTEMPTS}); retrying: ${error}`,
+        );
+      }
+    }
+
+    return false;
   }
 
   // Wrap the agent's analysis with AI branding + an evidence list.

@@ -3,12 +3,17 @@ import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import AIRunStatus from "../../Types/AI/AIRunStatus";
 import AIRunType from "../../Types/AI/AIRunType";
+import AIRunCodeFixRecommendation from "../../Types/AI/AIRunCodeFixRecommendation";
 import AIRunHumanVerdict from "../../Types/AI/AIRunHumanVerdict";
 import BadDataException from "../../Types/Exception/BadDataException";
 import CodeFixTaskType, {
   CodeFixContextKind,
   CodeFixTaskTypeHelper,
 } from "../../Types/AI/CodeFixTaskType";
+import {
+  getInvestigationCodeFixTaskSnapshot,
+  InvestigationCodeFixTaskContext,
+} from "../../Types/AI/CodeFixTaskContext";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import QueryHelper from "../Types/Database/QueryHelper";
 import CountBy from "../Types/Database/CountBy";
@@ -40,6 +45,7 @@ export interface AIRunTransitionSet {
   llmCallCount?: number | undefined;
   toolCallCount?: number | undefined;
   totalTokens?: number | undefined;
+  codeFixRecommendation?: AIRunCodeFixRecommendation | undefined;
   // The claiming agent's id as a string (ObjectID.toString()) — see above.
   aiAgentId?: string | undefined;
 }
@@ -89,6 +95,46 @@ export class Service extends DatabaseService<Model> {
     }
 
     const result: UpdateResult = await queryBuilder.execute();
+
+    return result.affected || 0;
+  }
+
+  /*
+   * Atomically settle the code-fix decision written as Pending by the
+   * winning investigation completion transition. The recommendation and
+   * immutable analysis snapshot are one database UPDATE guarded by both the
+   * run id and Pending state; a stale writer can never overwrite a decision
+   * another actor already settled.
+   */
+  @CaptureSpan()
+  public async finalizeInvestigationCodeFixRecommendation(
+    data:
+      | {
+          aiRunId: ObjectID;
+          recommendation: AIRunCodeFixRecommendation.Recommended;
+          taskContext: InvestigationCodeFixTaskContext;
+        }
+      | {
+          aiRunId: ObjectID;
+          recommendation: AIRunCodeFixRecommendation.NotRecommended;
+        },
+  ): Promise<number> {
+    const result: UpdateResult = await this.getRepository()
+      .createQueryBuilder()
+      .update(Model)
+      .set({
+        codeFixRecommendation: data.recommendation,
+        ...(data.recommendation === AIRunCodeFixRecommendation.Recommended
+          ? { taskContext: data.taskContext }
+          : {}),
+      } as QueryDeepPartialEntity<Model>)
+      .where('"_id" = :id', { id: data.aiRunId.toString() })
+      .andWhere('"status" = :status', { status: AIRunStatus.Completed })
+      .andWhere('"codeFixRecommendation" = :pending', {
+        pending: AIRunCodeFixRecommendation.Pending,
+      })
+      .andWhere('"deletedAt" IS NULL')
+      .execute();
 
     return result.affected || 0;
   }
@@ -200,10 +246,22 @@ export class Service extends DatabaseService<Model> {
           ? null
           : "Queued code-fix run has no telemetry exception to fix.";
       } else if (contextKind === CodeFixContextKind.IncidentOrAlertSubject) {
-        missingContextMessage =
-          run.triggeredByIncidentId || run.triggeredByAlertId
-            ? null
-            : "Queued code-fix run has no incident or alert subject.";
+        if (!run.triggeredByIncidentId && !run.triggeredByAlertId) {
+          missingContextMessage =
+            "Queued code-fix run has no incident or alert subject.";
+        } else if (
+          run.codeFixTaskType === CodeFixTaskType.FixFromIncident &&
+          !getInvestigationCodeFixTaskSnapshot(run.taskContext)
+        ) {
+          /*
+           * A subject alone is mutable context: a later investigation can post
+           * another RootCause before the worker starts. FixFromIncident must
+           * therefore carry the exact Recommended run + analysis it was
+           * authorized from. Contextless legacy rows fail closed.
+           */
+          missingContextMessage =
+            "Queued FixFromIncident run has no complete pinned investigation analysis snapshot.";
+        }
       } else if (
         run.codeFixTaskType === CodeFixTaskType.ImproveLogging ||
         run.codeFixTaskType === CodeFixTaskType.ImproveTracing

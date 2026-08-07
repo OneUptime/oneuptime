@@ -1,7 +1,13 @@
 import ObjectID from "../../../../Types/ObjectID";
 import AIRunType from "../../../../Types/AI/AIRunType";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
+import AIRunCodeFixRecommendation from "../../../../Types/AI/AIRunCodeFixRecommendation";
+import CodeFixTaskContext, {
+  getInvestigationCodeFixTaskSnapshot,
+  InvestigationCodeFixTaskSnapshot,
+} from "../../../../Types/AI/CodeFixTaskContext";
 import CodeFixTaskType from "../../../../Types/AI/CodeFixTaskType";
+import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import Project from "../../../../Models/DatabaseModels/Project";
@@ -18,22 +24,22 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  * capability, vision §4.8), in two forms:
  *
  * HUMAN-TRIGGERED: after an AI investigation posts a root-cause analysis on
- * an incident or alert, the user can click "Open Fix PR from this analysis"
- * on the investigation panel: the agent takes the posted analysis (the
- * RootCause feed item) as its entire context and opens a fix pull request.
- * No project opt-in flag is needed for this form: the human in the loop IS
- * the gate (G11 posture preserved). It runs inside a user-facing endpoint
- * (POST /ai-investigation/create-fix-task) and FAILS EARLY with a clear
- * message when a gate is not met.
+ * an incident or alert and records a Recommended code-fix decision, the user
+ * can click "Open Fix PR from this analysis" on the investigation panel: the
+ * agent takes the immutable stored copy of that posted analysis as its
+ * context and opens a fix pull request. No project opt-in flag is needed for
+ * this form, but the durable recommendation remains a server-side gate so a
+ * stale or forged client cannot turn a non-code investigation into a PR.
  *
  * AUTOMATIC: for projects that opted in through the subject lane's incident
  * or alert automatic-code-fix setting (default FALSE — G11 posture:
  * autonomous PR creation is opt-in only), an
- * investigation that ends with a POSITIVE confident classification (per the
- * structured G6 confidence signal, never the analysis prose) enqueues the
- * same FixFromIncident task with no human click. Like its
- * InstrumentationTaskTrigger sibling it is fire-and-forget inside the
- * investigation's postAnalysis and never throws. The PR still opens as a
+ * investigation that ends with a POSITIVE code-fix classification (per the
+ * structured G6 signal, never a regex over the analysis prose) enqueues the
+ * same FixFromIncident task with no human click. Confidence alone is not
+ * sufficient: operational and other non-code causes do not open PRs. Like its
+ * InstrumentationTaskTrigger sibling it runs only after the Recommended
+ * decision and snapshot are durable, and it never throws. The PR still opens as a
  * DRAFT and is always human-reviewed — the opt-in moves the human gate from
  * PR creation to PR review, never past it.
  */
@@ -64,8 +70,9 @@ export default class FixFromIncidentTaskTrigger {
    * incidentId/alertId is expected; userId is the clicking user
    * (attribution on the run).
    *
-   * Throws BadDataException naming the failed gate: no completed
-   * investigation, no GitHub-App repository, or a duplicate active run.
+   * Throws BadDataException naming the failed gate: no latest
+   * completed/recommended investigation, no GitHub-App repository, or a
+   * duplicate active run.
    */
   @CaptureSpan()
   public static async createFixTaskFromInvestigation(data: {
@@ -75,6 +82,12 @@ export default class FixFromIncidentTaskTrigger {
     alertId?: ObjectID | undefined;
     userId: ObjectID;
   }): Promise<AIRun> {
+    if (!data.investigationRunId) {
+      throw new BadDataException(
+        "An investigation run id is required to create a fix task.",
+      );
+    }
+
     if (Boolean(data.incidentId) === Boolean(data.alertId)) {
       throw new BadDataException(
         "Exactly one incident or alert subject is required to create a fix task.",
@@ -86,41 +99,116 @@ export default class FixFromIncidentTaskTrigger {
       : "alert";
 
     /*
-     * Gate 1: a COMPLETED investigation must exist for the subject — its
-     * posted analysis (the RootCause feed item) is the fix task's entire
-     * context. Without one the worker would have nothing to work from.
+     * Gate 1: inspect the LATEST investigation for the subject, matching the
+     * run shown by the dashboard panel. Its durable recommendation is the
+     * server-authored decision about whether a code fix is appropriate, and
+     * its taskContext carries the exact posted analysis that decision covered.
+     * An older Recommended run must never override a newer NotRecommended,
+     * Running or failed result.
      */
-    const completedInvestigation: AIRun | null = await AIRunService.findOneBy({
+    const latestInvestigation: AIRun | null = await AIRunService.findOneBy({
       query: {
-        _id: data.investigationRunId,
         projectId: data.projectId,
         runType: AIRunType.Investigation,
-        status: AIRunStatus.Completed,
         ...(data.incidentId
           ? { triggeredByIncidentId: data.incidentId }
           : { triggeredByAlertId: data.alertId! }),
       },
-      select: { _id: true, completedAt: true },
+      select: {
+        _id: true,
+        completedAt: true,
+        status: true,
+        codeFixRecommendation: true,
+        taskContext: true,
+      },
+      sort: { createdAt: SortOrder.Descending },
       props: { isRoot: true },
     });
 
-    if (!completedInvestigation) {
+    if (!latestInvestigation) {
       throw new BadDataException(
         `No completed AI investigation exists for this ${subjectLabel} — the fix task uses the investigation's posted analysis as its context. Wait for the investigation to complete, or enable AI investigations in the AI settings.`,
       );
     }
 
+    if (
+      latestInvestigation.id?.toString() !== data.investigationRunId.toString()
+    ) {
+      throw new BadDataException(
+        `A newer AI investigation is now available for this ${subjectLabel}. Refresh the page before creating a fix task.`,
+      );
+    }
+
+    if (latestInvestigation.status !== AIRunStatus.Completed) {
+      throw new BadDataException(
+        `The latest AI investigation for this ${subjectLabel} has not completed, so a fix task cannot be created from an older analysis. Wait for the latest investigation to complete successfully.`,
+      );
+    }
+
+    if (
+      latestInvestigation.codeFixRecommendation ===
+      AIRunCodeFixRecommendation.Pending
+    ) {
+      throw new BadDataException(
+        `The latest AI investigation for this ${subjectLabel} is still deciding whether a code fix is appropriate. Wait for that recommendation to finish before creating a fix task.`,
+      );
+    }
+
+    if (
+      latestInvestigation.codeFixRecommendation !==
+      AIRunCodeFixRecommendation.Recommended
+    ) {
+      throw new BadDataException(
+        `The latest AI investigation for this ${subjectLabel} did not recommend a code fix, so a fix pull request task cannot be created from it.`,
+      );
+    }
+
+    /*
+     * Gate the same immutable pair the worker will consume. A Recommended
+     * row without a complete snapshot (or whose snapshot names another run)
+     * is unsafe: looking up the subject's latest feed item would allow a
+     * later investigation to change the task after this authorization check.
+     */
+    const investigationSnapshot: InvestigationCodeFixTaskSnapshot | null =
+      getInvestigationCodeFixTaskSnapshot(latestInvestigation.taskContext);
+
+    if (
+      !latestInvestigation.id ||
+      !investigationSnapshot ||
+      investigationSnapshot.investigationRunId !==
+        latestInvestigation.id.toString()
+    ) {
+      throw new BadDataException(
+        `The latest AI investigation for this ${subjectLabel} has no complete stored analysis snapshot, so a fix task cannot be created safely. Run a new investigation and try again.`,
+      );
+    }
+
+    /*
+     * The feed item is the published report the user actually saw. Resolve
+     * it by the exact run association added to the feed model, then require
+     * it to match the durable recommendation snapshot. A missing or
+     * mismatched report fails closed instead of silently borrowing a newer
+     * subject-level RootCause.
+     */
     const analysisMarkdown: string | null =
       await PostedRootCause.getForInvestigation({
         incidentId: data.incidentId,
         alertId: data.alertId,
         aiRunId: data.investigationRunId,
-        runCompletedAt: completedInvestigation.completedAt,
+        runCompletedAt: latestInvestigation.completedAt,
       });
 
     if (!analysisMarkdown) {
       throw new BadDataException(
         `No posted investigation analysis exists for this ${subjectLabel} and investigation run. Refresh the page and wait for the report to finish publishing before creating a fix task.`,
+      );
+    }
+
+    if (
+      analysisMarkdown !== investigationSnapshot.investigationAnalysisMarkdown
+    ) {
+      throw new BadDataException(
+        `The posted investigation analysis for this ${subjectLabel} does not match its durable recommendation snapshot. Run a new investigation before creating a fix task.`,
       );
     }
 
@@ -169,9 +257,8 @@ export default class FixFromIncidentTaskTrigger {
    * The pure trigger decision for the AUTOMATIC form, separated from IO so
    * it can be tested directly: strict opt-in (default FALSE), a repository
    * the agent can actually open a PR against, and the per-subject dedupe
-   * guard. The caller has already established the confident-investigation
-   * prerequisite (this runs inside the investigation's postAnalysis, gated
-   * by AIConfidenceSignal.shouldAutoEnqueueCodeFixTask).
+   * guard. The caller has already established and durably persisted the
+   * code-fix-recommended investigation prerequisite.
    */
   public static shouldAutoEnqueueFixTask(
     input: AutoFixTaskGateInput,
@@ -234,14 +321,14 @@ export default class FixFromIncidentTaskTrigger {
 
   /*
    * The AUTOMATIC form: enqueue a FixFromIncident run for a subject whose
-   * investigation just posted a CONFIDENT analysis. Exactly one of
+   * latest investigation durably recommends a repository code fix. Exactly one of
    * incidentId/alertId is expected. NEVER throws — every failure is logged
-   * and swallowed, because this runs inside the investigation's
-   * postAnalysis and must not fail it. No userId: the run stays
+   * and swallowed, because this is a best-effort post-recommendation
+   * follow-up and must not fail the investigation. No userId: the run stays
    * system-authored.
    */
   @CaptureSpan()
-  public static async autoEnqueueFromConfidentInvestigation(data: {
+  public static async autoEnqueueFromRecommendedInvestigation(data: {
     projectId: ObjectID;
     investigationRunId: ObjectID;
     analysisMarkdown: string;
@@ -252,6 +339,20 @@ export default class FixFromIncidentTaskTrigger {
 
     try {
       if (Boolean(data.incidentId) === Boolean(data.alertId)) {
+        return;
+      }
+
+      const taskContext: CodeFixTaskContext = {
+        sourceInvestigationRunId: data.investigationRunId?.toString(),
+        sourceInvestigationAnalysisMarkdown: data.analysisMarkdown,
+      };
+      const investigationSnapshot: InvestigationCodeFixTaskSnapshot | null =
+        getInvestigationCodeFixTaskSnapshot(taskContext);
+
+      if (!investigationSnapshot) {
+        logger.error(
+          `AI: not auto-enqueueing fix task for project ${projectId.toString()} — the recommended investigation has no complete stored analysis snapshot.`,
+        );
         return;
       }
 
@@ -285,6 +386,51 @@ export default class FixFromIncidentTaskTrigger {
       if (!optInDecision.enqueue) {
         logger.debug(
           `AI: not auto-enqueueing fix task for project ${projectId.toString()} — ${optInDecision.reason}.`,
+        );
+        return;
+      }
+
+      /*
+       * Re-read the authoritative latest source after the engine has durably
+       * settled it. This prevents an older overlapping investigation from
+       * auto-authorizing a task after a newer run became authoritative, and
+       * guarantees a task is never claimable while its source is Pending.
+       */
+      const latestInvestigation: AIRun | null = await AIRunService.findOneBy({
+        query: {
+          projectId,
+          runType: AIRunType.Investigation,
+          ...(data.incidentId
+            ? { triggeredByIncidentId: data.incidentId }
+            : { triggeredByAlertId: data.alertId! }),
+        },
+        select: {
+          _id: true,
+          status: true,
+          codeFixRecommendation: true,
+          taskContext: true,
+        },
+        sort: { createdAt: SortOrder.Descending },
+        props: { isRoot: true },
+      });
+      const persistedSnapshot: InvestigationCodeFixTaskSnapshot | null =
+        getInvestigationCodeFixTaskSnapshot(latestInvestigation?.taskContext);
+
+      if (
+        !latestInvestigation?.id ||
+        latestInvestigation.id.toString() !==
+          data.investigationRunId.toString() ||
+        latestInvestigation.status !== AIRunStatus.Completed ||
+        latestInvestigation.codeFixRecommendation !==
+          AIRunCodeFixRecommendation.Recommended ||
+        !persistedSnapshot ||
+        persistedSnapshot.investigationRunId !==
+          data.investigationRunId.toString() ||
+        persistedSnapshot.investigationAnalysisMarkdown !==
+          investigationSnapshot.investigationAnalysisMarkdown
+      ) {
+        logger.debug(
+          `AI: not auto-enqueueing fix task for project ${projectId.toString()} — the source is no longer the latest durably Recommended investigation.`,
         );
         return;
       }

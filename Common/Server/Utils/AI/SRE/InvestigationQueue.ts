@@ -3,6 +3,7 @@ import OneUptimeDate from "../../../../Types/Date";
 import Query from "../../../../Types/BaseDatabase/Query";
 import AIRunType from "../../../../Types/AI/AIRunType";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
+import AIRunCodeFixRecommendation from "../../../../Types/AI/AIRunCodeFixRecommendation";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import Project from "../../../../Models/DatabaseModels/Project";
 import AIRunService from "../../../Services/AIRunService";
@@ -12,6 +13,7 @@ import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import InvestigationSubjectLock from "./InvestigationSubjectLock";
 
 /*
  * AI SRE — the durable investigation queue (Phase 2's first item; Q1
@@ -184,6 +186,13 @@ export default class AIInvestigationQueue {
     run.projectId = projectId;
     run.runType = runType;
     run.status = AIRunStatus.Queued;
+    /*
+     * Queued and Running rows must never advertise an unresolved code-fix
+     * decision. The engine atomically moves eligible incident/alert runs to
+     * Pending only when it wins the Running -> Completed transition; until
+     * then the fail-closed default is NotRecommended.
+     */
+    run.codeFixRecommendation = AIRunCodeFixRecommendation.NotRecommended;
 
     if (data.subjectIncidentId) {
       run.triggeredByIncidentId = data.subjectIncidentId;
@@ -204,10 +213,32 @@ export default class AIInvestigationQueue {
 
     let createdRun: AIRun;
     try {
-      createdRun = await AIRunService.create({
-        data: run,
-        props: { isRoot: true },
-      });
+      const createRun: () => Promise<AIRun> = async (): Promise<AIRun> => {
+        return AIRunService.create({
+          data: run,
+          props: { isRoot: true },
+        });
+      };
+
+      /*
+       * Linearize subject Investigation creation with FixFromIncident's
+       * final latest-source validation and INSERT. Whichever writer gets the
+       * shared lock first becomes authoritative: a fix inserted first is
+       * valid at that instant; an Investigation inserted first is observed by
+       * the fix gate and makes the stale request fail closed.
+       */
+      createdRun =
+        runType === AIRunType.Investigation &&
+        (data.subjectIncidentId || data.subjectAlertId)
+          ? await InvestigationSubjectLock.runExclusive(
+              {
+                projectId,
+                incidentId: data.subjectIncidentId,
+                alertId: data.subjectAlertId,
+              },
+              createRun,
+            )
+          : await createRun();
     } catch (error) {
       logger.error(`AI: failed to enqueue investigation run: ${error}`);
       return null;
@@ -302,6 +333,7 @@ export default class AIInvestigationQueue {
         fromStatus: AIRunStatus.Queued,
         set: {
           status: AIRunStatus.Cancelled,
+          codeFixRecommendation: AIRunCodeFixRecommendation.NotRecommended,
           completedAt: OneUptimeDate.getCurrentDate(),
           errorMessage: `Expired in the investigation queue after ${QUEUE_TTL_MINUTES} minutes — a first-pass analysis this late would no longer be useful. The project may have been at its concurrency cap or daily token budget.`,
         },
@@ -418,6 +450,7 @@ export default class AIInvestigationQueue {
         expectedAttemptCount: data.attemptCount,
         set: {
           status: AIRunStatus.Queued,
+          codeFixRecommendation: AIRunCodeFixRecommendation.NotRecommended,
           errorMessage: `Attempt ${data.attemptCount} failed and the run was requeued: ${truncatedMessage}`,
         },
       });
@@ -437,6 +470,7 @@ export default class AIInvestigationQueue {
       expectedAttemptCount: data.attemptCount,
       set: {
         status: AIRunStatus.Error,
+        codeFixRecommendation: AIRunCodeFixRecommendation.NotRecommended,
         completedAt: OneUptimeDate.getCurrentDate(),
         errorMessage: truncatedMessage,
       },
@@ -475,6 +509,7 @@ export default class AIInvestigationQueue {
         expectedLastHeartbeatAt: run.lastHeartbeatAt,
         set: {
           status: AIRunStatus.Queued,
+          codeFixRecommendation: AIRunCodeFixRecommendation.NotRecommended,
           errorMessage: `Attempt ${run.attemptCount} stopped reporting progress (the server processing it may have restarted) and the run was requeued.`,
         },
       });
@@ -491,6 +526,7 @@ export default class AIInvestigationQueue {
       expectedLastHeartbeatAt: run.lastHeartbeatAt,
       set: {
         status: AIRunStatus.Stale,
+        codeFixRecommendation: AIRunCodeFixRecommendation.NotRecommended,
         completedAt: OneUptimeDate.getCurrentDate(),
         errorMessage:
           "The run stopped reporting progress and was marked as stale after exhausting its retry attempts. The server processing it may have restarted.",

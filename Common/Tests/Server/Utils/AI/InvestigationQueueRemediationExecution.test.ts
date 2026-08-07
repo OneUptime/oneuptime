@@ -5,6 +5,7 @@ import AIService from "../../../../Server/Services/AIService";
 import ProjectService from "../../../../Server/Services/ProjectService";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import Project from "../../../../Models/DatabaseModels/Project";
+import AIRunCodeFixRecommendation from "../../../../Types/AI/AIRunCodeFixRecommendation";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import AIRunType from "../../../../Types/AI/AIRunType";
 import ObjectID from "../../../../Types/ObjectID";
@@ -96,6 +97,7 @@ describe("AIInvestigationQueue — RemediationExecution runs", () => {
           status: AIRunStatus.Queued,
           runType: AIRunType.RemediationExecution,
           triggeredByAutoRemediationSuggestionId: SUGGESTION_ID,
+          codeFixRecommendation: AIRunCodeFixRecommendation.NotRecommended,
           // Incident linkage stays set for the dashboard.
           triggeredByIncidentId: INCIDENT_ID,
         }),
@@ -131,6 +133,7 @@ describe("AIInvestigationQueue — RemediationExecution runs", () => {
         data: expect.objectContaining({
           runType: AIRunType.RemediationPlan,
           triggeredByAutoRemediationSuggestionId: SUGGESTION_ID,
+          codeFixRecommendation: AIRunCodeFixRecommendation.NotRecommended,
         }),
       }),
     );

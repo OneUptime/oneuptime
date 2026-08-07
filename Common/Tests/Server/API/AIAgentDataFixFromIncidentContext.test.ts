@@ -17,7 +17,9 @@ import AIRun from "../../../Models/DatabaseModels/AIRun";
 import Alert from "../../../Models/DatabaseModels/Alert";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import AIRunType from "../../../Types/AI/AIRunType";
+import CodeFixTaskContext from "../../../Types/AI/CodeFixTaskContext";
 import CodeFixTaskType from "../../../Types/AI/CodeFixTaskType";
+import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import { mockRouter } from "./Helpers";
@@ -27,8 +29,10 @@ import {
   beforeEach,
   describe,
   expect,
+  jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 jest.mock("../../../Server/Utils/Express", () => {
   return {
@@ -48,10 +52,25 @@ jest.mock("../../../Server/Utils/Response", () => {
   };
 });
 
-const TASK_DETAILS_ROUTE: string =
-  "/ai-agent-data/get-instrumentation-task-details";
+const DETAILS_ROUTE: string = "/ai-agent-data/get-instrumentation-task-details";
+const PINNED_ANALYSIS: string =
+  "## Pinned root cause\n\nA repository code change fixes regression A.";
 
-describe("FixFromIncident task-details investigation context", () => {
+function jsonResponse(): JSONObject | undefined {
+  const sendJson: jest.Mock =
+    Response.sendJsonObjectResponse as unknown as jest.Mock;
+
+  return sendJson.mock.calls[0]?.[2] as JSONObject | undefined;
+}
+
+function thrownError(): Error | undefined {
+  const sendError: jest.Mock =
+    Response.sendErrorResponse as unknown as jest.Mock;
+
+  return sendError.mock.calls[0]?.[2] as Error | undefined;
+}
+
+describe("FixFromIncident task-details investigation snapshot", () => {
   let projectId: ObjectID;
   let taskId: ObjectID;
 
@@ -62,7 +81,6 @@ describe("FixFromIncident task-details investigation context", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-
     projectId = ObjectID.generate();
     taskId = ObjectID.generate();
 
@@ -74,6 +92,9 @@ describe("FixFromIncident task-details investigation context", () => {
     jest
       .spyOn(CodeFixAgentAuth, "deniesAccessToProject")
       .mockReturnValue(false);
+    jest
+      .spyOn(CodeRepositoryService, "resolveRepositoryForException")
+      .mockResolvedValue(null);
   });
 
   afterEach(() => {
@@ -83,44 +104,25 @@ describe("FixFromIncident task-details investigation context", () => {
   function fixRun(data: {
     incidentId?: ObjectID | undefined;
     alertId?: ObjectID | undefined;
-    sourceInvestigationRunId?: ObjectID | undefined;
-    sourceInvestigationAnalysisMarkdown?: string | undefined;
+    taskContext?: CodeFixTaskContext | undefined;
+    taskType?: CodeFixTaskType | undefined;
   }): AIRun {
-    const run: AIRun = new AIRun();
-    run.id = taskId;
-    run.projectId = projectId;
-    run.runType = AIRunType.CodeFix;
-    run.codeFixTaskType = CodeFixTaskType.FixFromIncident;
+    return {
+      id: taskId,
+      projectId,
+      runType: AIRunType.CodeFix,
+      codeFixTaskType: data.taskType || CodeFixTaskType.FixFromIncident,
+      triggeredByIncidentId: data.incidentId,
+      triggeredByAlertId: data.alertId,
+      taskContext: data.taskContext,
+    } as unknown as AIRun;
+  }
 
-    if (data.incidentId) {
-      run.triggeredByIncidentId = data.incidentId;
-    }
-
-    if (data.alertId) {
-      run.triggeredByAlertId = data.alertId;
-    }
-
-    if (
-      data.sourceInvestigationRunId ||
-      data.sourceInvestigationAnalysisMarkdown
-    ) {
-      run.taskContext = {
-        ...(data.sourceInvestigationRunId
-          ? {
-              sourceInvestigationRunId:
-                data.sourceInvestigationRunId.toString(),
-            }
-          : {}),
-        ...(data.sourceInvestigationAnalysisMarkdown
-          ? {
-              sourceInvestigationAnalysisMarkdown:
-                data.sourceInvestigationAnalysisMarkdown,
-            }
-          : {}),
-      };
-    }
-
-    return run;
+  function snapshot(runId: ObjectID): CodeFixTaskContext {
+    return {
+      sourceInvestigationRunId: runId.toString(),
+      sourceInvestigationAnalysisMarkdown: PINNED_ANALYSIS,
+    };
   }
 
   async function callRoute(): Promise<void> {
@@ -138,162 +140,127 @@ describe("FixFromIncident task-details investigation context", () => {
     const next: NextFunction = jest.fn() as unknown as NextFunction;
 
     await mockRouter
-      .match("POST", TASK_DETAILS_ROUTE)
+      .match("POST", DETAILS_ROUTE)
       .handlerFunction(req, res, next);
   }
 
-  function jsonResponse(): JSONObject | undefined {
-    const sendJsonObjectResponse: jest.Mock =
-      Response.sendJsonObjectResponse as unknown as jest.Mock;
-
-    return sendJsonObjectResponse.mock.calls[0]?.[2] as JSONObject | undefined;
-  }
-
-  test("new incident task uses its frozen analysis without re-reading the feed", async () => {
+  test("incident task serves its frozen analysis without re-reading a newer report", async () => {
     const incidentId: ObjectID = ObjectID.generate();
-    const sourceInvestigationRunId: ObjectID = ObjectID.generate();
-    const frozenAnalysis: string = "# Frozen incident analysis";
-    jest.spyOn(AIRunService, "findOneById").mockResolvedValue(
-      fixRun({
-        incidentId,
-        sourceInvestigationRunId,
-        sourceInvestigationAnalysisMarkdown: frozenAnalysis,
-      }),
-    );
-
-    const incident: Incident = new Incident();
-    incident.title = "Database incident";
-    jest.spyOn(IncidentService, "findOneById").mockResolvedValue(incident);
-    const getForIncident: jest.SpyInstance = jest.spyOn(
-      PostedRootCause,
-      "getForIncident",
-    );
     jest
-      .spyOn(CodeRepositoryService, "resolveRepositoryForException")
-      .mockResolvedValue(null);
+      .spyOn(AIRunService, "findOneById")
+      .mockResolvedValue(
+        fixRun({ incidentId, taskContext: snapshot(ObjectID.generate()) }),
+      );
+    jest.spyOn(IncidentService, "findOneById").mockResolvedValue({
+      title: "Checkout failures",
+      monitors: [{ name: "checkout-api" }],
+    } as unknown as Incident);
+    const getForIncident: SpyInstance<typeof PostedRootCause.getForIncident> =
+      jest.spyOn(PostedRootCause, "getForIncident");
 
     await callRoute();
 
+    expect(thrownError()).toBeUndefined();
     expect(getForIncident).not.toHaveBeenCalled();
     expect(jsonResponse()).toEqual(
       expect.objectContaining({
         subjectType: "incident",
-        analysisMarkdown: frozenAnalysis,
+        analysisMarkdown: PINNED_ANALYSIS,
       }),
     );
   });
 
-  test("source-id-only incident task reads the exact investigation for upgrade compatibility", async () => {
-    const incidentId: ObjectID = ObjectID.generate();
-    const sourceInvestigationRunId: ObjectID = ObjectID.generate();
-    jest
-      .spyOn(AIRunService, "findOneById")
-      .mockResolvedValue(fixRun({ incidentId, sourceInvestigationRunId }));
-
-    const incident: Incident = new Incident();
-    incident.title = "Database incident";
-    jest.spyOn(IncidentService, "findOneById").mockResolvedValue(incident);
-    const getForIncident: jest.SpyInstance = jest
-      .spyOn(PostedRootCause, "getForIncident")
-      .mockResolvedValue(null);
-
-    await callRoute();
-
-    expect(getForIncident).toHaveBeenCalledWith(incidentId, {
-      aiRunId: sourceInvestigationRunId,
-    });
-  });
-
-  test("legacy incident task falls back to the unscoped subject analysis", async () => {
-    const incidentId: ObjectID = ObjectID.generate();
-    jest
-      .spyOn(AIRunService, "findOneById")
-      .mockResolvedValue(fixRun({ incidentId }));
-
-    const incident: Incident = new Incident();
-    incident.title = "Legacy incident";
-    jest.spyOn(IncidentService, "findOneById").mockResolvedValue(incident);
-    const getForIncident: jest.SpyInstance = jest
-      .spyOn(PostedRootCause, "getForIncident")
-      .mockResolvedValue(null);
-
-    await callRoute();
-
-    expect(getForIncident).toHaveBeenCalledTimes(1);
-    expect(getForIncident).toHaveBeenCalledWith(incidentId, undefined);
-  });
-
-  test("new alert task uses its frozen analysis without re-reading the feed", async () => {
+  test("alert task serves its frozen analysis without re-reading a newer report", async () => {
     const alertId: ObjectID = ObjectID.generate();
-    const sourceInvestigationRunId: ObjectID = ObjectID.generate();
-    const frozenAnalysis: string = "# Frozen alert analysis";
-    jest.spyOn(AIRunService, "findOneById").mockResolvedValue(
-      fixRun({
-        alertId,
-        sourceInvestigationRunId,
-        sourceInvestigationAnalysisMarkdown: frozenAnalysis,
-      }),
-    );
-
-    const alert: Alert = new Alert();
-    alert.title = "Latency alert";
-    jest.spyOn(AlertService, "findOneById").mockResolvedValue(alert);
-    const getForAlert: jest.SpyInstance = jest.spyOn(
-      PostedRootCause,
-      "getForAlert",
-    );
     jest
-      .spyOn(CodeRepositoryService, "resolveRepositoryForException")
-      .mockResolvedValue(null);
+      .spyOn(AIRunService, "findOneById")
+      .mockResolvedValue(
+        fixRun({ alertId, taskContext: snapshot(ObjectID.generate()) }),
+      );
+    jest.spyOn(AlertService, "findOneById").mockResolvedValue({
+      title: "Latency alert",
+      monitor: { name: "checkout-api" },
+    } as unknown as Alert);
+    const getForAlert: SpyInstance<typeof PostedRootCause.getForAlert> =
+      jest.spyOn(PostedRootCause, "getForAlert");
 
     await callRoute();
 
+    expect(thrownError()).toBeUndefined();
     expect(getForAlert).not.toHaveBeenCalled();
     expect(jsonResponse()).toEqual(
       expect.objectContaining({
         subjectType: "alert",
-        analysisMarkdown: frozenAnalysis,
+        analysisMarkdown: PINNED_ANALYSIS,
       }),
     );
   });
 
-  test("source-id-only alert task reads the exact investigation for upgrade compatibility", async () => {
-    const alertId: ObjectID = ObjectID.generate();
-    const sourceInvestigationRunId: ObjectID = ObjectID.generate();
-    jest
-      .spyOn(AIRunService, "findOneById")
-      .mockResolvedValue(fixRun({ alertId, sourceInvestigationRunId }));
+  test.each([
+    ["missing", undefined],
+    [
+      "missing analysis",
+      { sourceInvestigationRunId: ObjectID.generate().toString() },
+    ],
+    [
+      "missing run id",
+      { sourceInvestigationAnalysisMarkdown: PINNED_ANALYSIS },
+    ],
+  ] as Array<[string, CodeFixTaskContext | undefined]>)(
+    "%s incident snapshot fails closed without consulting any report",
+    async (_label: string, taskContext: CodeFixTaskContext | undefined) => {
+      const incidentId: ObjectID = ObjectID.generate();
+      jest
+        .spyOn(AIRunService, "findOneById")
+        .mockResolvedValue(fixRun({ incidentId, taskContext }));
+      const getForIncident: SpyInstance<typeof PostedRootCause.getForIncident> =
+        jest.spyOn(PostedRootCause, "getForIncident");
 
-    const alert: Alert = new Alert();
-    alert.title = "Latency alert";
-    jest.spyOn(AlertService, "findOneById").mockResolvedValue(alert);
-    const getForAlert: jest.SpyInstance = jest
-      .spyOn(PostedRootCause, "getForAlert")
-      .mockResolvedValue(null);
+      await callRoute();
 
-    await callRoute();
+      expect(jsonResponse()).toBeUndefined();
+      expect(getForIncident).not.toHaveBeenCalled();
+      expect(thrownError()).toBeInstanceOf(BadDataException);
+      expect(thrownError()?.message).toMatch(/pinned investigation analysis/i);
+    },
+  );
 
-    expect(getForAlert).toHaveBeenCalledWith(alertId, {
-      aiRunId: sourceInvestigationRunId,
-    });
-  });
-
-  test("legacy alert task falls back to the unscoped subject analysis", async () => {
+  test("a missing alert snapshot also fails closed without consulting any report", async () => {
     const alertId: ObjectID = ObjectID.generate();
     jest
       .spyOn(AIRunService, "findOneById")
       .mockResolvedValue(fixRun({ alertId }));
-
-    const alert: Alert = new Alert();
-    alert.title = "Legacy alert";
-    jest.spyOn(AlertService, "findOneById").mockResolvedValue(alert);
-    const getForAlert: jest.SpyInstance = jest
-      .spyOn(PostedRootCause, "getForAlert")
-      .mockResolvedValue(null);
+    const getForAlert: SpyInstance<typeof PostedRootCause.getForAlert> =
+      jest.spyOn(PostedRootCause, "getForAlert");
 
     await callRoute();
 
-    expect(getForAlert).toHaveBeenCalledTimes(1);
-    expect(getForAlert).toHaveBeenCalledWith(alertId, undefined);
+    expect(jsonResponse()).toBeUndefined();
+    expect(getForAlert).not.toHaveBeenCalled();
+    expect(thrownError()).toBeInstanceOf(BadDataException);
+  });
+
+  test("other subject recipes retain the latest posted-report lookup", async () => {
+    const incidentId: ObjectID = ObjectID.generate();
+    const latestAnalysis: string = "## Latest subject report";
+    jest.spyOn(AIRunService, "findOneById").mockResolvedValue(
+      fixRun({
+        incidentId,
+        taskType: CodeFixTaskType.ImproveInstrumentation,
+      }),
+    );
+    jest.spyOn(IncidentService, "findOneById").mockResolvedValue({
+      title: "Checkout failures",
+      monitors: [],
+    } as unknown as Incident);
+    const getForIncident: SpyInstance<typeof PostedRootCause.getForIncident> =
+      jest
+        .spyOn(PostedRootCause, "getForIncident")
+        .mockResolvedValue(latestAnalysis);
+
+    await callRoute();
+
+    expect(getForIncident).toHaveBeenCalledWith(incidentId);
+    expect(jsonResponse()?.["analysisMarkdown"]).toBe(latestAnalysis);
   });
 });

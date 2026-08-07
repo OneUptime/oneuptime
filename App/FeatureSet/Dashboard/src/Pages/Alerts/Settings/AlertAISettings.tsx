@@ -120,7 +120,7 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
             stepId: "fix-tasks",
             title: "Enable Automatic Alert Code Fixes",
             description:
-              "Open a draft fix pull request automatically when an alert investigation ends with a confident, evidenced root cause analysis — the automatic form of the 'Open Fix PR from this analysis' button. Requires a repository connected through the GitHub App and a Runner with the code-fix capability. Pull requests are always human-reviewed — nothing merges automatically.",
+              "Open a draft fix pull request automatically when an alert investigation ends with a confident, evidenced root cause analysis that recommends a repository code change — the automatic form of the 'Open Fix PR from this analysis' button. Operational, infrastructure, external, user-error and inconclusive findings do not open pull requests. Requires a repository connected through the GitHub App and a Runner with the code-fix capability. Pull requests are always human-reviewed — nothing merges automatically.",
             required: false,
             fieldType: FormFieldSchemaType.Toggle,
           },

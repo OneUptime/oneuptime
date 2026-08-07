@@ -3,17 +3,32 @@ import AIRunType from "../../../../Types/AI/AIRunType";
 import AIRunStatus, {
   AIRunStatusHelper,
 } from "../../../../Types/AI/AIRunStatus";
+import AIRunCodeFixRecommendation from "../../../../Types/AI/AIRunCodeFixRecommendation";
 import CodeFixTaskType from "../../../../Types/AI/CodeFixTaskType";
-import CodeFixTaskContext from "../../../../Types/AI/CodeFixTaskContext";
+import CodeFixTaskContext, {
+  getInvestigationCodeFixTaskSnapshot,
+  InvestigationCodeFixTaskSnapshot,
+} from "../../../../Types/AI/CodeFixTaskContext";
 import CodeRepositoryType from "../../../../Types/CodeRepository/CodeRepositoryType";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
+import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import AIRunService from "../../../Services/AIRunService";
 import CodeRepositoryService from "../../../Services/CodeRepositoryService";
 import FixRunBudget from "../CodeFix/FixRunBudget";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import InvestigationSubjectLock from "./InvestigationSubjectLock";
+
+interface SubjectCodeFixRunInput {
+  projectId: ObjectID;
+  taskType: CodeFixTaskType;
+  incidentId?: ObjectID | undefined;
+  alertId?: ObjectID | undefined;
+  userId?: ObjectID | undefined;
+  taskContext?: CodeFixTaskContext | undefined;
+}
 
 /*
  * Shared plumbing for the non-exception CodeFix recipes: the incident/alert
@@ -167,20 +182,55 @@ export default class SubjectCodeFixRun {
    * its never-throws wrapper as the backstop.
    */
   @CaptureSpan()
-  public static async enqueueSubjectCodeFixRun(data: {
-    projectId: ObjectID;
-    taskType: CodeFixTaskType;
-    incidentId?: ObjectID | undefined;
-    alertId?: ObjectID | undefined;
-    userId?: ObjectID | undefined;
-    taskContext?: CodeFixTaskContext | undefined;
-  }): Promise<AIRun> {
+  public static async enqueueSubjectCodeFixRun(
+    data: SubjectCodeFixRunInput,
+  ): Promise<AIRun> {
     if (data.incidentId && data.alertId) {
       throw new BadDataException(
         "A fix task cannot belong to both an incident and an alert.",
       );
     }
 
+    /*
+     * FixFromIncident has both human and automatic writers, and its source
+     * authorization depends on which Investigation is latest. Serialize the
+     * final dedupe + source revalidation + INSERT with Investigation enqueue
+     * for this subject. Redis is a correctness dependency: lock acquisition
+     * failure fails closed instead of falling back to a racy write.
+     */
+    if (data.taskType === CodeFixTaskType.FixFromIncident) {
+      return InvestigationSubjectLock.runExclusive(
+        {
+          projectId: data.projectId,
+          incidentId: data.incidentId,
+          alertId: data.alertId,
+        },
+        async (): Promise<AIRun> => {
+          const existingRun: AIRun | null =
+            await this.findNonTerminalRunForSubject({
+              taskType: data.taskType,
+              incidentId: data.incidentId,
+              alertId: data.alertId,
+            });
+
+          if (existingRun) {
+            throw new BadDataException(
+              "A fix pull request task is already queued or running for this subject.",
+            );
+          }
+
+          return this.createSubjectCodeFixRun(data, true);
+        },
+      );
+    }
+
+    return this.createSubjectCodeFixRun(data, false);
+  }
+
+  private static async createSubjectCodeFixRun(
+    data: SubjectCodeFixRunInput,
+    revalidateInvestigationSource: boolean,
+  ): Promise<AIRun> {
     await FixRunBudget.assertWithinBudget(data.projectId, {
       incidentId: data.incidentId,
       alertId: data.alertId,
@@ -206,9 +256,65 @@ export default class SubjectCodeFixRun {
       run.taskContext = data.taskContext;
     }
 
+    if (revalidateInvestigationSource) {
+      /* No awaited work may be added between this gate and the INSERT. */
+      await this.assertLatestRecommendedInvestigationSource(data);
+    }
+
     return AIRunService.create({
       data: run,
       props: { isRoot: true },
     });
+  }
+
+  private static async assertLatestRecommendedInvestigationSource(
+    data: SubjectCodeFixRunInput,
+  ): Promise<void> {
+    const requestedSnapshot: InvestigationCodeFixTaskSnapshot | null =
+      getInvestigationCodeFixTaskSnapshot(data.taskContext);
+
+    if (!requestedSnapshot) {
+      throw new BadDataException(
+        "A complete Recommended investigation snapshot is required to create a fix task.",
+      );
+    }
+
+    const latestInvestigation: AIRun | null = await AIRunService.findOneBy({
+      query: {
+        projectId: data.projectId,
+        runType: AIRunType.Investigation,
+        ...(data.incidentId
+          ? { triggeredByIncidentId: data.incidentId }
+          : { triggeredByAlertId: data.alertId! }),
+      },
+      select: {
+        _id: true,
+        status: true,
+        codeFixRecommendation: true,
+        taskContext: true,
+      },
+      sort: { createdAt: SortOrder.Descending },
+      props: { isRoot: true },
+    });
+    const persistedSnapshot: InvestigationCodeFixTaskSnapshot | null =
+      getInvestigationCodeFixTaskSnapshot(latestInvestigation?.taskContext);
+
+    if (
+      !latestInvestigation?.id ||
+      latestInvestigation.id.toString() !==
+        requestedSnapshot.investigationRunId ||
+      latestInvestigation.status !== AIRunStatus.Completed ||
+      latestInvestigation.codeFixRecommendation !==
+        AIRunCodeFixRecommendation.Recommended ||
+      !persistedSnapshot ||
+      persistedSnapshot.investigationRunId !==
+        requestedSnapshot.investigationRunId ||
+      persistedSnapshot.investigationAnalysisMarkdown !==
+        requestedSnapshot.investigationAnalysisMarkdown
+    ) {
+      throw new BadDataException(
+        "The source investigation is no longer the latest durably Recommended analysis. Refresh and try again.",
+      );
+    }
   }
 }
