@@ -118,9 +118,10 @@ describe("Network Map widget wiring", () => {
     );
 
     expect(source).toContain(
-      "component.componentType === DashboardComponentType.NetworkMap",
+      "[DashboardComponentType.NetworkMap]: DashboardNetworkMapComponent,",
     );
-    expect(source).toContain("<DashboardNetworkMapComponent");
+    // The registry is only reachable if the canvas still dispatches through it.
+    expect(source).toContain("WIDGET_BY_TYPE[component.componentType]");
   });
 
   test("the widget picker lists it under Network in Infrastructure", () => {
