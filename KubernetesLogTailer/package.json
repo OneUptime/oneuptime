@@ -11,7 +11,7 @@
     "start": "node --require ts-node/register Index.ts",
     "compile": "tsc",
     "dev": "npx nodemon",
-    "test": "npm run compile && node --test Tests/NamespaceFilter.test.js"
+    "test": "npm run compile && node --test Tests/NamespaceFilter.test.js Tests/NodeOsFilter.test.js Tests/PodWatcher.test.js"
   },
   "author": "OneUptime <hello@oneuptime.com> (https://oneuptime.com/)",
   "license": "Apache-2.0",

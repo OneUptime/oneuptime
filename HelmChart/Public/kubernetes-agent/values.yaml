@@ -367,6 +367,30 @@ logs:
   # "gke-autopilot" / "eks-fargate" -> api. Override explicitly if you know
   # what you want: "daemonset" | "api" | "disabled".
   mode: ""
+  # Hybrid mode for clusters with Windows node pools. The DaemonSet collector
+  # only runs on Linux nodes (its images are linux-only), so in daemonset log
+  # mode pods on Windows nodes get no log collection. Enabling this runs the
+  # API log tailer (configured under `api` below) ALONGSIDE the DaemonSet,
+  # restricted to pods on Windows nodes — Linux pods keep the cheap node-local
+  # file tailing, and the two collectors never ship the same line twice. No
+  # effect in api mode (the tailer already covers every pod) or when logs are
+  # disabled.
+  #
+  # Two caveats:
+  #   - The restriction lives in the tailer image (NODE_OS_INCLUDE), which
+  #     ships with the same OneUptime release as this chart. An OLDER tailer
+  #     image ignores it and tails EVERY pod — silently shipping every Linux
+  #     pod's logs twice. If `api.image.tag` pins a version, make sure it is
+  #     no older than this chart's release; if a node may have cached a stale
+  #     `release` tag, set `api.image.pullPolicy: Always` for the upgrade.
+  #   - `filters.logs.minSeverity` drops lines with NO recognizable severity
+  #     differently on the two paths: the DaemonSet sees the stdout/stderr
+  #     marker on disk and assigns INFO/ERROR fallbacks (then filters), while
+  #     the log API strips that marker, so the tailer errs toward KEEPING
+  #     unrecognizable lines. Under a severity filter, Windows pods can ship
+  #     more keyword-less lines than Linux pods.
+  windowsPods:
+    enabled: false
   # The OTel memory_limiter (templates/configmap-daemonset.yaml) and the
   # container's GOMEMLIMIT are derived from limits.memory — limit_mib is ≈80%
   # of it — so the limiter and Go GC always engage *before* the kernel

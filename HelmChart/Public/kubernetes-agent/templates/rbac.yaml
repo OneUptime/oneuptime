@@ -37,10 +37,10 @@ rules:
       - persistentvolumeclaims
       - persistentvolumes
     verbs: ["get", "list", "watch"]
-{{- if and .Values.logs.enabled (eq (include "kubernetes-agent.logMode" .) "api") }}
+{{- if eq (include "kubernetes-agent.logTailerEnabled" .) "true" }}
   # For API-mode log collection — stream pod logs via the Kubernetes API
   # (same permission `kubectl logs` needs). Only granted when the log tailer
-  # Deployment is enabled.
+  # Deployment is enabled (full api mode, or the Windows-only hybrid).
   - apiGroups: [""]
     resources:
       - pods/log

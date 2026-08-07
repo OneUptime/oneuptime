@@ -1,4 +1,5 @@
-{{- if and .Values.logs.enabled (eq (include "kubernetes-agent.logMode" .) "api") }}
+{{- $windowsOnly := eq (include "kubernetes-agent.windowsPodLogsEnabled" .) "true" }}
+{{- if eq (include "kubernetes-agent.logTailerEnabled" .) "true" }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -68,9 +69,19 @@ spec:
               value: {{ join "," $podLogInclude | quote }}
             - name: NAMESPACE_EXCLUDE
               value: {{ join "," $podLogExclude | quote }}
+            {{- if $windowsOnly }}
+            # Hybrid scope: daemonset mode already tails every Linux node's
+            # pods from disk, so this tailer carries ONLY pods on Windows
+            # nodes — without this, every Linux pod's logs would ship twice.
+            - name: NODE_OS_INCLUDE
+              value: "windows"
+            {{- end }}
             # This mode posts OTLP straight to OneUptime, so it never passes
             # through the collector's filter/telemetry processor. The tailer
-            # applies the same threshold itself — see KubernetesLogTailer/Config.ts.
+            # applies the same threshold VALUE itself (KubernetesLogTailer/
+            # Config.ts) — but lines with no recognizable severity are kept
+            # here, while the DaemonSet path assigns stdout/stderr fallback
+            # severities and filters them. See OTLPBatcher.ts for why.
             - name: MIN_SEVERITY
               value: {{ (((.Values.filters).logs).minSeverity) | default "" | quote }}
             - name: AGENT_NAMESPACE

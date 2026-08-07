@@ -270,6 +270,38 @@ daemonset
 {{- end }}
 
 {{/*
+Hybrid log collection for mixed-OS clusters. The DaemonSet collector is
+pinned to Linux nodes (its images are linux-only), so in daemonset log mode
+pods on Windows nodes have no log collection at all. When
+`logs.windowsPods.enabled` is set, the API log tailer runs ALONGSIDE the
+DaemonSet, restricted via NODE_OS_INCLUDE=windows to exactly the pods the
+DaemonSet cannot reach — the two collectors partition pods by node OS, so no
+log line ships twice. Only meaningful in daemonset mode: full api mode
+already tails every pod, and disabled mode collects nothing.
+Usage: {{- if eq (include "kubernetes-agent.windowsPodLogsEnabled" .) "true" }}
+*/}}
+{{- define "kubernetes-agent.windowsPodLogsEnabled" -}}
+{{- if and .Values.logs.enabled (((.Values.logs).windowsPods).enabled) (eq (include "kubernetes-agent.logMode" .) "daemonset") -}}
+true
+{{- else -}}
+false
+{{- end -}}
+{{- end -}}
+
+{{/*
+Whether the log-tailer Deployment exists at all — full api mode, or the
+Windows-only hybrid above. The pods/log RBAC grant is keyed on this same
+helper so the tailer and its permissions can never drift apart.
+*/}}
+{{- define "kubernetes-agent.logTailerEnabled" -}}
+{{- if and .Values.logs.enabled (or (eq (include "kubernetes-agent.logMode" .) "api") (eq (include "kubernetes-agent.windowsPodLogsEnabled" .) "true")) -}}
+true
+{{- else -}}
+false
+{{- end -}}
+{{- end -}}
+
+{{/*
 Platform capabilities, derived from the preset.
 
 hostPath is what separates the presets: GKE Autopilot and EKS Fargate reject it,
