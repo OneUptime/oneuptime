@@ -185,6 +185,21 @@ describe("ProjectUtil", () => {
 
       expect(ProjectUtil.getProjectIdFromUrl()).toBeNull();
     });
+
+    test.each([
+      ["the overview", `/status-page/${PROJECT_Y_ID}`],
+      [
+        "a nested subscribe page",
+        `/status-page/${PROJECT_Y_ID}/subscribe/email`,
+      ],
+    ])(
+      "does not mistake a status-page id for a project id on %s",
+      (_description: string, url: string) => {
+        setUrl(url);
+
+        expect(ProjectUtil.getProjectIdFromUrl()).toBeNull();
+      },
+    );
   });
 
   describe("getCurrentProjectId precedence", () => {
@@ -278,6 +293,22 @@ describe("ProjectUtil", () => {
       setUrl(`/dashboard/${PROJECT_Y_ID}/alerts`);
 
       expect(ProjectUtil.getCurrentProjectId()?.toString()).toBe(PROJECT_Y_ID);
+    });
+
+    test("a status-page preview does not override this tab's dashboard project", () => {
+      window.sessionStorage.setItem(
+        CURRENT_PROJECT_ID_STORAGE_KEY,
+        PROJECT_X_ID,
+      );
+      setUrl(`/status-page/${PROJECT_Y_ID}/subscribe/email`);
+
+      expect(ProjectUtil.getCurrentProjectId()?.toString()).toBe(PROJECT_X_ID);
+    });
+
+    test("a status-page preview is not project-scoped when no project is stored", () => {
+      setUrl(`/status-page/${PROJECT_Y_ID}/subscribe/email`);
+
+      expect(ProjectUtil.getCurrentProjectId()).toBeNull();
     });
   });
 

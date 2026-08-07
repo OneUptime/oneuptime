@@ -36,6 +36,17 @@ export interface RequestOptions extends BaseRequestOptions {
 }
 
 export default class ModelAPI {
+  /**
+   * The API client used for model requests.
+   *
+   * Most applications use the authenticated dashboard client. Public-facing
+   * applications can override this accessor so a model request cannot inherit
+   * dashboard logout and redirect behavior merely because it reuses ModelAPI.
+   */
+  protected static getApiClient(): typeof API {
+    return API;
+  }
+
   public static async create<TBaseModel extends BaseModel>(data: {
     model: TBaseModel;
     modelType: { new (): TBaseModel };
@@ -43,7 +54,7 @@ export default class ModelAPI {
   }): Promise<
     HTTPResponse<JSONObject | JSONArray | TBaseModel | Array<TBaseModel>>
   > {
-    return await ModelAPI.createOrUpdate({
+    return await this.createOrUpdate({
       model: data.model,
       modelType: data.modelType,
       formType: FormType.Create,
@@ -58,7 +69,7 @@ export default class ModelAPI {
   }): Promise<
     HTTPResponse<JSONObject | JSONArray | TBaseModel | Array<TBaseModel>>
   > {
-    return await ModelAPI.createOrUpdate({
+    return await this.createOrUpdate({
       model: data.model,
       modelType: data.modelType,
       formType: FormType.Update,
@@ -92,7 +103,7 @@ export default class ModelAPI {
 
     const result: HTTPResponse<
       JSONObject | JSONArray | TBaseModel | Array<TBaseModel>
-    > = await API.fetch<
+    > = await this.getApiClient().fetch<
       JSONObject | JSONArray | TBaseModel | Array<TBaseModel>
     >({
       method: HTTPMethod.PUT,
@@ -146,7 +157,7 @@ export default class ModelAPI {
     }
 
     const apiResult: HTTPErrorResponse | HTTPResponse<TBaseModel> =
-      await API.fetch<TBaseModel>({
+      await this.getApiClient().fetch<TBaseModel>({
         method: httpMethod,
         url: apiUrl,
         data: {
@@ -223,7 +234,7 @@ export default class ModelAPI {
     }
 
     const result: HTTPResponse<JSONArray> | HTTPErrorResponse =
-      await API.fetch<JSONArray>({
+      await this.getApiClient().fetch<JSONArray>({
         method: HTTPMethod.POST,
         url: apiUrl,
         data: {
@@ -296,7 +307,7 @@ export default class ModelAPI {
     }
 
     const result: HTTPResponse<JSONObject> | HTTPErrorResponse =
-      await API.fetch<JSONObject>({
+      await this.getApiClient().fetch<JSONObject>({
         method: HTTPMethod.POST,
         url: apiUrl,
         data: {
@@ -398,7 +409,7 @@ export default class ModelAPI {
     requestOptions?: RequestOptions | undefined;
   }): Promise<TBaseModel | null> {
     const result: HTTPResponse<TBaseModel> | HTTPErrorResponse =
-      await API.fetch<TBaseModel>({
+      await this.getApiClient().fetch<TBaseModel>({
         method: HTTPMethod.POST,
         url: data.apiUrl,
         data: {
@@ -447,7 +458,7 @@ export default class ModelAPI {
     }
 
     const result: HTTPResponse<TBaseModel> | HTTPErrorResponse =
-      await API.fetch<TBaseModel>({
+      await this.getApiClient().fetch<TBaseModel>({
         method: HTTPMethod.DELETE,
         url: apiUrl,
         headers: this.getCommonHeaders(data.requestOptions),

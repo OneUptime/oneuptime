@@ -5,6 +5,7 @@ import HTTPMethod from "Common/Types/API/HTTPMethod";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
+import APIException from "Common/Types/Exception/ApiException";
 import ObjectID from "Common/Types/ObjectID";
 import { JSONObject } from "Common/Types/JSON";
 import BaseAPI from "Common/UI/Utils/API/API";
@@ -26,6 +27,28 @@ export default class API extends BaseAPI {
       "status-page-id": statusPageId.toString(),
       tenantid: "",
     };
+  }
+
+  public static override handleError(
+    error: HTTPErrorResponse | APIException,
+  ): HTTPErrorResponse | APIException {
+    /*
+     * A public Status Page does not require an account session. An expired or
+     * otherwise unrelated dashboard cookie must therefore not turn a public
+     * request failure into either a dashboard logout or a Status Page login
+     * redirect. Callers can display the response as a local inline error.
+     *
+     * Private Status Pages retain the existing page-scoped login behavior.
+     */
+    if (
+      error instanceof HTTPErrorResponse &&
+      !StatusPageUtil.isPrivateStatusPage() &&
+      (error.statusCode === 401 || error.statusCode === 405)
+    ) {
+      return error;
+    }
+
+    return super.handleError(error);
   }
 
   public static override getLoginRoute(): Route {

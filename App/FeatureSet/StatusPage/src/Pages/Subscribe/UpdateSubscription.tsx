@@ -1,6 +1,7 @@
 import Page from "../../Components/Page/Page";
 import API from "../../Utils/API";
 import { STATUS_PAGE_API_URL } from "../../Utils/Config";
+import StatusPageModelAPI from "../../Utils/ModelAPI";
 import StatusPageUtil from "../../Utils/StatusPage";
 import { SubscribePageProps } from "./SubscribePageUtils";
 import URL from "Common/Types/API/URL";
@@ -30,7 +31,7 @@ import React, {
 import { useTranslation } from "react-i18next";
 
 const SubscribePage: FunctionComponent<SubscribePageProps> = (
-  _props: SubscribePageProps,
+  props: SubscribePageProps,
 ): ReactElement => {
   const { t } = useTranslation();
   const statusPageSubscriberId: string | undefined =
@@ -78,6 +79,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
             URL.fromString(STATUS_PAGE_API_URL.toString()).addRoute(
               `/resources/${statusPageId.toString()}`,
             ),
+            StatusPageModelAPI,
           );
 
         setCategoryCheckboxOptionsAndCategories(result);
@@ -89,10 +91,14 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
     };
 
   useEffect(() => {
+    if (!props.allowSubscribersToChooseResources) {
+      return;
+    }
+
     fetchCheckboxOptionsAndCategories().catch((error: Error) => {
       setError(error.message);
     });
-  }, []);
+  }, [props.allowSubscribersToChooseResources]);
 
   if (!statusPageId) {
     throw new BadDataException("Status Page ID is required");
@@ -155,59 +161,63 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
     },
   ];
 
-  fields.push({
-    field: {
-      isSubscribedToAllResources: true,
-    },
-    showEvenIfPermissionDoesNotExist: true,
-    title: t("subscribe.resources.all"),
-    description: t("subscribe.resources.allDescription"),
-    fieldType: FormFieldSchemaType.Checkbox,
-    required: false,
-    defaultValue: true,
-  });
+  if (props.allowSubscribersToChooseResources) {
+    fields.push({
+      field: {
+        isSubscribedToAllResources: true,
+      },
+      showEvenIfPermissionDoesNotExist: true,
+      title: t("subscribe.resources.all"),
+      description: t("subscribe.resources.allDescription"),
+      fieldType: FormFieldSchemaType.Checkbox,
+      required: false,
+      defaultValue: true,
+    });
 
-  fields.push({
-    field: {
-      statusPageResources: true,
-    },
-    showEvenIfPermissionDoesNotExist: true,
-    title: t("subscribe.resources.select"),
-    description: t("subscribe.resources.selectDescription"),
-    fieldType: FormFieldSchemaType.CategoryCheckbox,
-    required: false,
-    categoryCheckboxProps: categoryCheckboxOptionsAndCategories,
-    showIf: (model: FormValues<StatusPageSubscriber>) => {
-      return !model || !model.isSubscribedToAllResources;
-    },
-  });
+    fields.push({
+      field: {
+        statusPageResources: true,
+      },
+      showEvenIfPermissionDoesNotExist: true,
+      title: t("subscribe.resources.select"),
+      description: t("subscribe.resources.selectDescription"),
+      fieldType: FormFieldSchemaType.CategoryCheckbox,
+      required: false,
+      categoryCheckboxProps: categoryCheckboxOptionsAndCategories,
+      showIf: (model: FormValues<StatusPageSubscriber>) => {
+        return !model || !model.isSubscribedToAllResources;
+      },
+    });
+  }
 
-  fields.push({
-    field: {
-      isSubscribedToAllEventTypes: true,
-    },
-    showEvenIfPermissionDoesNotExist: true,
-    title: t("subscribe.eventTypes.all"),
-    description: t("subscribe.eventTypes.allDescription"),
-    fieldType: FormFieldSchemaType.Checkbox,
-    required: false,
-    defaultValue: true,
-  });
+  if (props.allowSubscribersToChooseEventTypes) {
+    fields.push({
+      field: {
+        isSubscribedToAllEventTypes: true,
+      },
+      showEvenIfPermissionDoesNotExist: true,
+      title: t("subscribe.eventTypes.all"),
+      description: t("subscribe.eventTypes.allDescription"),
+      fieldType: FormFieldSchemaType.Checkbox,
+      required: false,
+      defaultValue: true,
+    });
 
-  fields.push({
-    field: {
-      statusPageEventTypes: true,
-    },
-    showEvenIfPermissionDoesNotExist: true,
-    title: t("subscribe.eventTypes.select"),
-    description: t("subscribe.eventTypes.selectDescription"),
-    fieldType: FormFieldSchemaType.MultiSelectDropdown,
-    required: false,
-    dropdownOptions: SubscriberUtil.getDropdownPropsBasedOnEventTypes(),
-    showIf: (model: FormValues<StatusPageSubscriber>) => {
-      return !model || !model.isSubscribedToAllEventTypes;
-    },
-  });
+    fields.push({
+      field: {
+        statusPageEventTypes: true,
+      },
+      showEvenIfPermissionDoesNotExist: true,
+      title: t("subscribe.eventTypes.select"),
+      description: t("subscribe.eventTypes.selectDescription"),
+      fieldType: FormFieldSchemaType.MultiSelectDropdown,
+      required: false,
+      dropdownOptions: SubscriberUtil.getDropdownPropsBasedOnEventTypes(),
+      showIf: (model: FormValues<StatusPageSubscriber>) => {
+        return !model || !model.isSubscribedToAllEventTypes;
+      },
+    });
+  }
 
   fields.push({
     field: {
@@ -244,6 +254,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
                 >
                   <ModelForm<StatusPageSubscriber>
                     modelType={StatusPageSubscriber}
+                    modelAPI={StatusPageModelAPI}
                     id="email-form"
                     name="Status Page > Update Subscription"
                     fields={fields}

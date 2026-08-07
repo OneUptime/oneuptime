@@ -67,6 +67,10 @@ export default class ProjectUtil {
    * project id (`/dashboard`, `/dashboard/welcome`, ...).
    */
   public static getProjectIdFromUrl(): ObjectID | null {
+    if (Navigation.getFirstParam(1) !== "dashboard") {
+      return null;
+    }
+
     const projectId: string | undefined = Navigation.getFirstParam(2);
 
     if (!projectId || projectId.includes(":projectId")) {
