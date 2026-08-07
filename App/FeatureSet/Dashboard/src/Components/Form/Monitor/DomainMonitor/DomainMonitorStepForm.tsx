@@ -1,6 +1,12 @@
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import MonitorStepDomainMonitor from "Common/Types/Monitor/MonitorStepDomainMonitor";
+import DomainLookupMethod from "Common/Types/Monitor/DomainMonitor/DomainLookupMethod";
 import Input, { InputType } from "Common/UI/Components/Input/Input";
+import Dropdown, {
+  DropdownOption,
+  DropdownValue,
+} from "Common/UI/Components/Dropdown/Dropdown";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 
@@ -14,6 +20,9 @@ const DomainMonitorStepForm: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const [showAdvancedOptions, setShowAdvancedOptions] =
     useState<boolean>(false);
+
+  const lookupMethodOptions: Array<DropdownOption> =
+    DropdownUtil.getDropdownOptionsFromEnum(DomainLookupMethod);
 
   return (
     <div className="space-y-5">
@@ -30,6 +39,26 @@ const DomainMonitorStepForm: FunctionComponent<ComponentProps> = (
             props.onChange({
               ...props.monitorStepDomainMonitor,
               domainName: value,
+            });
+          }}
+        />
+      </div>
+
+      <div>
+        <FieldLabelElement
+          title="Lookup Method"
+          description="How registration data is read. Auto uses RDAP when the TLD publishes one and falls back to WHOIS. Some TLDs (such as .digital) have no working WHOIS server, and some (such as .io) have no RDAP service."
+          required={true}
+        />
+        <Dropdown
+          options={lookupMethodOptions}
+          initialValue={lookupMethodOptions.find((option: DropdownOption) => {
+            return option.value === props.monitorStepDomainMonitor.lookupMethod;
+          })}
+          onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+            props.onChange({
+              ...props.monitorStepDomainMonitor,
+              lookupMethod: value as DomainLookupMethod,
             });
           }}
         />
@@ -54,7 +83,7 @@ const DomainMonitorStepForm: FunctionComponent<ComponentProps> = (
           <div>
             <FieldLabelElement
               title="Timeout (ms)"
-              description="How long to wait for a WHOIS response before timing out"
+              description="How long to wait for the registration lookup to respond before timing out"
               required={false}
             />
             <Input

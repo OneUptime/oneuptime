@@ -8,6 +8,8 @@ import {
 import DomainMonitorResponse from "../../../../Types/Monitor/DomainMonitor/DomainMonitorResponse";
 import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import EvaluateOverTime from "./EvaluateOverTime";
+import logger from "../../Logger";
 
 export default class DomainMonitorCriteria {
   @CaptureSpan()
@@ -23,6 +25,60 @@ export default class DomainMonitorCriteria {
 
     const domainResponse: DomainMonitorResponse | undefined =
       dataToProcess.domainResponse;
+
+    let overTimeValue: Array<number | boolean> | number | boolean | undefined =
+      undefined;
+
+    if (
+      input.criteriaFilter.evaluateOverTime &&
+      input.criteriaFilter.evaluateOverTimeOptions
+    ) {
+      try {
+        overTimeValue = await EvaluateOverTime.getValueOverTime({
+          projectId: dataToProcess.projectId,
+          monitorId: input.dataToProcess.monitorId!,
+          evaluateOverTimeOptions: input.criteriaFilter.evaluateOverTimeOptions,
+          metricType: input.criteriaFilter.checkOn,
+        });
+
+        if (Array.isArray(overTimeValue) && overTimeValue.length === 0) {
+          overTimeValue = undefined;
+        }
+      } catch (err) {
+        logger.error(
+          `Error in getting over time value for ${input.criteriaFilter.checkOn}`,
+        );
+        logger.error(err);
+        overTimeValue = undefined;
+      }
+    }
+
+    /*
+     * Whether the registration lookup itself succeeded. Without this, a
+     * domain whose TLD has no working WHOIS or RDAP service produces a
+     * response with no expiry date, every Domain* filter below returns null,
+     * and the monitor silently keeps its previous status - which is what
+     * made an unsupported TLD look healthy.
+     */
+    if (input.criteriaFilter.checkOn === CheckOn.IsOnline) {
+      const currentIsOnline: boolean | Array<boolean> =
+        (overTimeValue as Array<boolean>) || dataToProcess.isOnline;
+
+      return CompareCriteria.compareCriteriaBoolean({
+        value: currentIsOnline,
+        criteriaFilter: input.criteriaFilter,
+      });
+    }
+
+    if (input.criteriaFilter.checkOn === CheckOn.IsRequestTimeout) {
+      const currentIsTimeout: boolean | Array<boolean> =
+        (overTimeValue as Array<boolean>) || dataToProcess.isTimeout;
+
+      return CompareCriteria.compareCriteriaBoolean({
+        value: currentIsTimeout,
+        criteriaFilter: input.criteriaFilter,
+      });
+    }
 
     // Check domain expires in days
     if (input.criteriaFilter.checkOn === CheckOn.DomainExpiresDaysIn) {

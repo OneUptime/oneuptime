@@ -39,6 +39,17 @@ const DomainMonitorView: FunctionComponent<ComponentProps> = (
     }
   };
 
+  /*
+   * The lookup's own reason for failing is the useful one - "the WHOIS server
+   * for .digital answered without any registration data" rather than a blank
+   * card. It is normally copied onto the envelope, but read both so a probe
+   * that only filled one of them still explains itself.
+   */
+  const failureCause: string =
+    props.probeMonitorResponse.failureCause?.toString() ||
+    domainResponse?.failureCause ||
+    "";
+
   const probeAttempts: Array<ProbeAttempt> =
     props.probeMonitorResponse.probeAttempts || [];
   const totalAttempts: number =
@@ -83,28 +94,34 @@ const DomainMonitorView: FunctionComponent<ComponentProps> = (
 
       <div className="flex space-x-3">
         <InfoCard
-          className="w-1/3 shadow-none border-2 border-gray-100"
+          className="w-1/4 shadow-none border-2 border-gray-100"
           title="Registrar"
           value={domainResponse?.registrar || "-"}
         />
         <InfoCard
-          className="w-1/3 shadow-none border-2 border-gray-100"
+          className="w-1/4 shadow-none border-2 border-gray-100"
           title="Created"
           value={formatDateText(domainResponse?.createdDate)}
         />
         <InfoCard
-          className="w-1/3 shadow-none border-2 border-gray-100"
+          className="w-1/4 shadow-none border-2 border-gray-100"
           title="DNSSEC"
           value={domainResponse?.dnssec || "-"}
         />
+        {/* With the Auto lookup method this varies by TLD, so it is worth showing. */}
+        <InfoCard
+          className="w-1/4 shadow-none border-2 border-gray-100"
+          title="Lookup Method"
+          value={domainResponse?.lookupMethod || "-"}
+        />
       </div>
 
-      {props.probeMonitorResponse.failureCause && (
+      {failureCause && (
         <div className="flex space-x-3">
           <InfoCard
             className="w-full shadow-none border-2 border-gray-100"
             title="Error"
-            value={props.probeMonitorResponse.failureCause?.toString() || "-"}
+            value={failureCause}
           />
         </div>
       )}
