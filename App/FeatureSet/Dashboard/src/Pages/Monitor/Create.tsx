@@ -745,6 +745,23 @@ const MonitorCreate: FunctionComponent<
 
                   placeholder: "Select Monitoring Interval",
                 },
+                {
+                  field: {
+                    labels: true,
+                  },
+                  title: "Labels",
+                  stepId: "labels",
+                  description:
+                    "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
+                  fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                  dropdownModal: {
+                    type: Label,
+                    labelField: "name",
+                    valueField: "_id",
+                  },
+                  required: false,
+                  placeholder: "Labels",
+                },
               ]}
               steps={[
                 {
@@ -772,6 +789,10 @@ const MonitorCreate: FunctionComponent<
                       values.monitorType as MonitorType,
                     );
                   },
+                },
+                {
+                  title: "Labels",
+                  id: "labels",
                 },
               ]}
               onBeforeCreate={async (item: Monitor): Promise<Monitor> => {
