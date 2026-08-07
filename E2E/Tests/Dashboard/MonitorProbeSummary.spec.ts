@@ -253,6 +253,11 @@ test.describe("Monitor summary probe picker", () => {
       .getByRole("option", { name: "Every 5 Minutes", exact: true })
       .click();
 
+    // Step 4: Labels is always the final step; leave it empty here.
+    await page.getByTestId(submitButtonTestId).click();
+    await expect(
+      page.getByRole("combobox", { name: "Labels", exact: true }),
+    ).toBeVisible({ timeout: 30000 });
     await page.getByTestId(submitButtonTestId).click();
 
     await page.waitForURL(

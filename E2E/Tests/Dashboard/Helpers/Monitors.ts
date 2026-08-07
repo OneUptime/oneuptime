@@ -14,6 +14,7 @@ import { gotoProjectPage } from "./ProductOnboarding";
  *                      pre-populated, so only the type-specific destination /
  *                      config fields need filling.
  *   3. interval      — monitoring interval Dropdown (only for probeable types)
+ *   4. labels        — optional monitor labels (always the final step)
  *
  * The submit button keeps the test id "Create Monitor" on every step; on a
  * non-final step its visible text is "Next".
@@ -30,10 +31,10 @@ export interface MonitorTypeRecipe {
   // true for probeable types that show the extra interval step.
   hasInterval: boolean;
   /*
-   * true for Manual + inbound documentation types that skip the criteria step
-   * entirely (single submit click creates the monitor).
+   * true for monitor types that skip criteria and interval. The always-visible
+   * Labels step still follows Monitor Info.
    */
-  singleStep?: boolean;
+  skipsCriteria?: boolean;
   /*
    * Fills the criteria step's required fields. Omit for types whose defaults
    * already satisfy validation (Manual, telemetry types, ...).
@@ -150,6 +151,42 @@ const selectMonitoringInterval: (data: {
 };
 
 /*
+ * Selects zero or more monitor labels on the wizard's final step. Waiting for
+ * the combobox even when no labels are requested makes every create recipe
+ * prove that the unconditional final step is reachable.
+ */
+const selectMonitorLabels: (data: {
+  page: Page;
+  labelNames?: Array<string> | undefined;
+}) => Promise<void> = async (data: {
+  page: Page;
+  labelNames?: Array<string> | undefined;
+}): Promise<void> => {
+  const combo: Locator = data.page
+    .locator(monitorCreateFormSelector)
+    .getByRole("combobox", { name: "Labels", exact: true });
+  await combo.waitFor({ state: "visible", timeout: 30000 });
+
+  for (const labelName of data.labelNames || []) {
+    await combo.click();
+    await combo.fill(labelName);
+    await data.page
+      .getByRole("option", { name: labelName, exact: true })
+      .click({ timeout: 30000 });
+    await expect(
+      data.page.getByRole("button", { name: `Remove ${labelName}` }),
+    ).toBeVisible({ timeout: 30000 });
+  }
+
+  /*
+   * EntityDropdown's multi-select menu stays open after a selection and can
+   * cover the submit button. A mousedown outside it closes only the dropdown.
+   */
+  await data.page.locator(monitorCreateFormSelector).dispatchEvent("mousedown");
+  await expect(data.page.getByTestId("entity-dropdown-menu")).toHaveCount(0);
+};
+
+/*
  * Waits for the criteria step to finish loading before it is submitted.
  *
  * The criteria step's MonitorSteps component fetches monitor statuses,
@@ -183,6 +220,7 @@ type CreateMonitorFunction = (data: {
   projectId: string;
   monitorName: string;
   recipe: MonitorTypeRecipe;
+  labelNames?: Array<string> | undefined;
 }) => Promise<string>;
 
 export const createMonitor: CreateMonitorFunction = async (data: {
@@ -190,6 +228,7 @@ export const createMonitor: CreateMonitorFunction = async (data: {
   projectId: string;
   monitorName: string;
   recipe: MonitorTypeRecipe;
+  labelNames?: Array<string> | undefined;
 }): Promise<string> => {
   const page: Page = data.page;
 
@@ -211,28 +250,27 @@ export const createMonitor: CreateMonitorFunction = async (data: {
   );
   await expect(card).toBeVisible({ timeout: 30000 });
   await card.click();
+  await page.getByTestId(submitButtonTestId).click();
 
-  if (data.recipe.singleStep) {
-    // The one submit both creates the monitor and navigates to it.
-    await clickCreateUntilMonitorView({ page, projectId: data.projectId });
-  } else {
-    // Advance to the criteria step, then wait for its async defaults.
-    await page.getByTestId(submitButtonTestId).click();
+  if (!data.recipe.skipsCriteria) {
+    // Wait for the criteria step's async defaults, then fill any required data.
     await waitForCriteriaStepReady({ page });
     if (data.recipe.fillCriteria) {
       await data.recipe.fillCriteria({ page });
     }
 
+    // Advance from Criteria to either Probes & Interval or Labels.
+    await page.getByTestId(submitButtonTestId).click();
+
     if (data.recipe.hasInterval) {
-      // Advance to the interval step, choose an interval, then create.
-      await page.getByTestId(submitButtonTestId).click();
+      // Choose an interval, then advance to the always-final Labels step.
       await selectMonitoringInterval({ page });
-      await clickCreateUntilMonitorView({ page, projectId: data.projectId });
-    } else {
-      // No interval step: this submit creates the monitor.
-      await clickCreateUntilMonitorView({ page, projectId: data.projectId });
+      await page.getByTestId(submitButtonTestId).click();
     }
   }
+
+  await selectMonitorLabels({ page, labelNames: data.labelNames });
+  await clickCreateUntilMonitorView({ page, projectId: data.projectId });
 
   const match: RegExpMatchArray | null = page.url().match(monitorIdInUrlRegex);
   return match ? match[1]! : "";
@@ -439,7 +477,9 @@ export const createInfraMonitor: CreateInfraMonitorFunction = async (data: {
     .click();
   await page.waitForTimeout(1500);
 
-  // This submit creates the infra monitor; retry it until it navigates.
+  // Advance from Criteria to Labels, then submit the final step.
+  await page.getByTestId(submitButtonTestId).click();
+  await selectMonitorLabels({ page });
   await clickCreateUntilMonitorView({ page, projectId: data.projectId });
 
   const match: RegExpMatchArray | null = page.url().match(monitorIdInUrlRegex);

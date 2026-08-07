@@ -39,15 +39,15 @@ import { createMonitor, MonitorTypeRecipe } from "./Helpers/Monitors";
 test.describe.configure({ mode: "serial" });
 
 /*
- * A Manual monitor is the cheapest monitor to create (single wizard step, no
- * criteria and no interval) and is enough for an SLO to reference — the SLO
- * only needs monitors to attach, it does not need them to have reported yet.
+ * A Manual monitor is the cheapest monitor to create (no criteria or interval)
+ * and is enough for an SLO to reference — the SLO only needs monitors to
+ * attach, it does not need them to have reported yet.
  */
 const manualMonitorRecipe: MonitorTypeRecipe = {
   label: "Manual",
   cardValue: "Manual",
   hasInterval: false,
-  singleStep: true,
+  skipsCriteria: true,
 };
 
 const uuidPattern: string =
