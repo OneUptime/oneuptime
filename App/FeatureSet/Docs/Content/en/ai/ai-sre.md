@@ -27,9 +27,9 @@ Autonomous investigations are **off by default**. To enable them:
    - Incidents: **Incidents > Settings > AI** — toggle *Automatically Investigate Incidents*.
    - Alerts: **Alerts > Settings > AI** — toggle *Automatically Investigate Alerts*.
 
-Incidents and alerts are opted in independently, so you can start with incidents only.
+Incidents and alerts are configured independently, so you can give each signal type its own concurrency cap, daily token budget, fix-task budget, and follow-up pull request policy. Changing an alert AI setting does not change the corresponding incident setting, or vice versa.
 
-One further setting builds on top of investigations: **Enable Automatic Code Fixes** (on the same AI settings pages, one project-wide toggle shared by incidents and alerts, off by default) lets a confident investigation open a draft fix pull request automatically — see **Automatic code fixes** below.
+One further setting builds on top of investigations: **Enable Automatic Code Fixes** (off by default on each signal type's AI settings page) lets a confident investigation open a draft fix pull request automatically — see **Automatic code fixes** below.
 
 ## Quiet mode
 
@@ -39,9 +39,9 @@ Whether an analysis counts as confident is decided by a server-verified signal, 
 
 ## Automatic code fixes
 
-For projects that opt in, a confident analysis can go one step further than notifying: it opens the fix. **Enable Automatic Code Fixes** (**Incidents > Settings > AI** or **Alerts > Settings > AI** — one project-wide setting shared by both, **off by default**) makes an investigation that ends with a confident, evidenced root cause analysis automatically queue the same fix task as the **Open Fix PR from this analysis** button on the investigation panel: an AI agent task that turns the posted analysis into a draft pull request.
+For projects that opt in, a confident analysis can go one step further than notifying: it opens the fix. **Enable Automatic Code Fixes** is configured independently under **Incidents > Settings > AI** and **Alerts > Settings > AI** (both are **off by default**). A signal type with this setting enabled automatically queues the same fix task as the **Open Fix PR from this analysis** button when one of its investigations ends with a confident, evidenced root cause analysis: an AI agent task that turns the posted analysis into a draft pull request.
 
-The trigger uses the same server-verified confidence signal as quiet mode, with the opposite fail direction: an investigation that gathered no server-verified evidence, or whose confidence check failed, never auto-opens a pull request — autonomous PR creation always fails toward doing nothing. Everything else matches the manual button: the pull request opens as a draft, needs a GitHub-App-connected repository and a Runner with the code-fix capability, counts against the project's daily fix-task budget and each repository's open-PR cap, and at most one fix task per incident or alert can be active at a time. The investigation itself stays read-only — the fix runs as a separate, fully-logged agent task. See [Fix Tasks](/docs/ai/ai-agent) for how fix pull requests work, including the build-and-test verification that runs before each pull request opens.
+The trigger uses the same server-verified confidence signal as quiet mode, with the opposite fail direction: an investigation that gathered no server-verified evidence, or whose confidence check failed, never auto-opens a pull request — autonomous PR creation always fails toward doing nothing. Everything else matches the manual button: the pull request opens as a draft, needs a GitHub-App-connected repository and a Runner with the code-fix capability, counts against that signal type's daily fix-task budget and each repository's open-PR cap, and at most one fix task per incident or alert can be active at a time. The investigation itself stays read-only — the fix runs as a separate, fully-logged agent task. See [Fix Tasks](/docs/ai/ai-agent) for how fix pull requests work, including the build-and-test verification that runs before each pull request opens.
 
 ## Auto-remediation waits for the analysis
 
@@ -60,9 +60,10 @@ Alert volume can be much higher than incident volume, so autonomous investigatio
 |---|---|---|
 | Severity floor (alerts) | Only alerts at or above a minimum severity are investigated. Default: the project's **top two severity tiers**. | Alerts > Settings > AI |
 | Re-investigation cooldown (alerts) | Repeat alerts from the same monitor within the cooldown are not re-investigated — the first analysis stands. Default **30 minutes**; set 0 to disable. | Alerts > Settings > AI |
-| Concurrency cap | How many investigations run at once per project. Default **3** (1–25); queued investigations wait for a free slot and expire after 30 minutes. | Incidents or Alerts > Settings > AI |
+| Concurrency cap | How many investigations of this signal type run at once. Incidents and alerts have separate pools. Default **3** per pool (1–25); queued investigations wait for a free slot and expire after 30 minutes. | Incidents or Alerts > Settings > AI |
 | Per-run budget | Each investigation is capped at 8 LLM calls, 12 tool calls, 150 seconds, and 2,000 output tokens. A completed investigation additionally spends one tiny confidence-classification call (20 output tokens max), metered and counted against the daily token limit. | Built in |
-| Daily token limit | Optional maximum tokens per UTC day across all autonomous investigations. When reached, new investigations are skipped until the next day — interactive AI chat is never blocked. Set **0** to pause autonomous investigations entirely. | Incidents or Alerts > Settings > AI |
+| Daily token limit | Optional maximum tokens per UTC day for autonomous AI work linked to this signal type, including investigations, remediation, and follow-up fix tasks. Incident and alert usage is counted separately. When one limit is reached, only that signal type's AI work is paused until the next day — interactive AI chat is never blocked. Set **0** to pause that lane. | Incidents or Alerts > Settings > AI |
+| Daily fix-task limit | Maximum incident- or alert-linked fix tasks created per UTC day. Each signal type has its own limit. Default **25**; set 0 to pause that lane's fix tasks. | Incidents or Alerts > Settings > AI |
 
 ## Trust and safety
 
@@ -92,9 +93,9 @@ What the detectors watch:
 
 Each finding becomes an **insight** in a quiet inbox — **AI > Insights** in the dashboard. Insights **never page anyone and never open incidents**; they wait until someone looks. A recurring finding refreshes its existing insight (last seen, occurrence count) instead of piling up duplicates, a finding you dismiss stays out of your inbox for 7 days, and each scan files at most 10 new insights per project.
 
-When an LLM provider is configured, each new insight also gets a **triage analysis**: a read-only, cited AI investigation — same engine, same audit trail, same per-run budget and daily token limit as autonomous investigations — that assesses the likely root cause, the blast radius, and the one next action worth taking. The result is saved to the insight page. Without a provider you still get the insights; you just skip the AI triage.
+When an LLM provider is configured, each new insight also gets a **triage analysis**: a read-only, cited AI investigation — same engine, same audit trail, and same per-run budget as autonomous investigations — that assesses the likely root cause, the blast radius, and the one next action worth taking. Insights use the separate **Daily Background AI Token Limit** under **Project Settings > AI > AI Guardrails**, so they cannot consume either the incident or alert budget. The result is saved to the insight page. Without a provider you still get the insights; you just skip the AI triage.
 
-Optionally, OneUptime AI can also open a **draft fix pull request** for the insight types with the strongest evidence: new and spiking exceptions (through the existing exception-fix pipeline) and trace latency regressions (grounded in the span evidence recorded on the insight). Error-log spikes and metric drift are never auto-fixed. Every automatic fix PR opens as a draft, counts against the project's daily fix-task budget and each repository's open-PR cap, and requires human review — auto-merge does not exist.
+Optionally, OneUptime AI can also open a **draft fix pull request** for the insight types with the strongest evidence: new and spiking exceptions (through the existing exception-fix pipeline) and trace latency regressions (grounded in the span evidence recorded on the insight). Error-log spikes and metric drift are never auto-fixed. Every automatic fix PR opens as a draft, counts against the **Daily Other AI Fix Task Limit** under **Project Settings > AI > AI Guardrails** and each repository's open-PR cap, and requires human review — auto-merge does not exist.
 
 Both settings are **off by default**, at **AI > Insights > Settings**:
 

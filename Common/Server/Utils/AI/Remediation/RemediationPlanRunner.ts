@@ -264,6 +264,8 @@ export default class RemediationPlanRunner {
       attemptCount,
       request: {
         feature: AI_REMEDIATION_PLANNING_FEATURE,
+        incidentId: suggestion!.incidentId,
+        alertId: suggestion!.alertId,
         contextSummary,
         postAnalysis: async (postData: {
           analysisMarkdown: string;

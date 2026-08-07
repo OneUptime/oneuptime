@@ -102,9 +102,12 @@ export default class CodeFixReadiness {
      * self-hosted too, where a project-owned provider makes the balance gate
      * moot and this becomes the ONLY thing that can kill a run.
      *
-     * A limit of 0 is a documented kill-switch ("pause AI entirely"), i.e.
-     * durable config — so without this a paused project would read "ready"
-     * forever while every run died at its first completion call.
+     * These readiness surfaces create subjectless exception/general tasks, so
+     * they use the "Other AI Workload" token lane. Incident/alert fix paths
+     * enforce their own lane when they are triggered and on every completion.
+     * A limit of 0 is a documented kill-switch for this lane, so without this
+     * a paused project would read "ready" forever while every subjectless run
+     * died at its first completion call.
      */
     const budget: AutonomousBudgetStatus =
       await AIService.getAutonomousDailyBudgetStatus(params.projectId);
@@ -116,8 +119,8 @@ export default class CodeFixReadiness {
         title: "LLM provider",
         detail:
           budget.limitInTokens !== null && budget.limitInTokens <= 0
-            ? "AI is paused for this project: the daily autonomous AI token limit is set to 0. Raise or unset it in the AI settings pages to let fix tasks run."
-            : `The daily autonomous AI token budget is exhausted (${budget.usedTokensToday.toLocaleString()} of ${budget.limitInTokens?.toLocaleString()} tokens used today). Fix tasks resume tomorrow (UTC) — raise or unset the limit in the AI settings pages.`,
+            ? "Other autonomous AI work is paused for this project: the daily background AI token limit is set to 0. Raise or unset it under Project Settings > AI > AI Guardrails to let subjectless fix tasks run."
+            : `The daily background AI token budget is exhausted (${budget.usedTokensToday.toLocaleString()} of ${budget.limitInTokens?.toLocaleString()} tokens used today). Subjectless fix tasks resume tomorrow (UTC) — raise or unset the limit under Project Settings > AI > AI Guardrails.`,
       };
     }
 

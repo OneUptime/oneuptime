@@ -1,5 +1,6 @@
 import ObjectID from "../../../../Types/ObjectID";
 import OneUptimeDate from "../../../../Types/Date";
+import Query from "../../../../Types/BaseDatabase/Query";
 import AIRunType from "../../../../Types/AI/AIRunType";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
@@ -47,11 +48,11 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
 export const MAX_INVESTIGATION_ATTEMPTS: number = 2;
 
 /*
- * G4 cost guardrail: at most this many investigations may be Running per
- * project at once (per-project override in
- * Project.aiMaxConcurrentInvestigations). Enforced at CLAIM time, so a storm
- * queues (bounded by dedupe + severity gates + this TTL) and drains at cap
- * rate instead of being dropped.
+ * G4 cost guardrail: at most this many investigations may be Running in an
+ * incident, alert or subjectless lane at once. Each lane has its own project
+ * override; subjectless work keeps Project.aiMaxConcurrentInvestigations.
+ * Enforced at CLAIM time, so a storm queues (bounded by dedupe + severity
+ * gates + this TTL) and drains at cap rate instead of being dropped.
  */
 export const DEFAULT_MAX_CONCURRENT_INVESTIGATIONS: number = 3;
 /*
@@ -62,7 +63,7 @@ const MIN_CONCURRENT_INVESTIGATIONS: number = 1;
 const MAX_CONCURRENT_INVESTIGATIONS: number = 25;
 
 /*
- * Lane priority. Two kinds of run share this queue and the per-project
+ * Lane priority. Two kinds of run share this queue and each subject lane's
  * concurrency cap above:
  *   - the INTERACTIVE lane (incident/alert RCA) — a human is waiting;
  *   - the PREVENTIVE lane (AI-insight triage, identified by
@@ -143,6 +144,13 @@ export default class AIInvestigationQueue {
   }): Promise<ObjectID | null> {
     const { projectId } = data;
 
+    if (data.subjectIncidentId && data.subjectAlertId) {
+      logger.error(
+        `AI: not enqueueing investigation for project ${projectId.toString()} — a run cannot belong to both an incident and an alert.`,
+      );
+      return null;
+    }
+
     /*
      * Budget quiet-skip at enqueue: when the daily budget is already
      * exhausted there is no point recording intent that the TTL would
@@ -150,7 +158,10 @@ export default class AIInvestigationQueue {
      */
     try {
       const budget: AutonomousBudgetStatus =
-        await AIService.getAutonomousDailyBudgetStatus(projectId);
+        await AIService.getAutonomousDailyBudgetStatus(projectId, {
+          incidentId: data.subjectIncidentId,
+          alertId: data.subjectAlertId,
+        });
 
       if (budget.exhausted) {
         logger.debug(
@@ -544,26 +555,50 @@ export default class AIInvestigationQueue {
    * errors.
    */
   private static async passesClaimGates(run: QueuedRunRef): Promise<boolean> {
-    // Per-project cap override, defaulting to 3 and clamped to [1, 25].
+    if (run.triggeredByIncidentId && run.triggeredByAlertId) {
+      logger.error(
+        `AI: leaving run ${run.id.toString()} queued — a run cannot belong to both an incident and an alert.`,
+      );
+      return false;
+    }
+
+    /*
+     * Each subject lane owns its own concurrency pool. Insight triage and any
+     * future subjectless queue work retain the legacy project-wide fallback.
+     */
     const project: Project | null = await ProjectService.findOneById({
       id: run.projectId,
-      select: { aiMaxConcurrentInvestigations: true },
+      select: {
+        aiMaxConcurrentInvestigations: true,
+        incidentAiMaxConcurrentInvestigations: true,
+        alertAiMaxConcurrentInvestigations: true,
+      },
       props: { isRoot: true },
     });
+
+    let configuredConcurrencyCap: number | undefined =
+      project?.aiMaxConcurrentInvestigations;
+
+    if (run.triggeredByIncidentId) {
+      configuredConcurrencyCap = project?.incidentAiMaxConcurrentInvestigations;
+    } else if (run.triggeredByAlertId) {
+      configuredConcurrencyCap = project?.alertAiMaxConcurrentInvestigations;
+    }
 
     const concurrencyCap: number = Math.min(
       MAX_CONCURRENT_INVESTIGATIONS,
       Math.max(
         MIN_CONCURRENT_INVESTIGATIONS,
-        project?.aiMaxConcurrentInvestigations ??
-          DEFAULT_MAX_CONCURRENT_INVESTIGATIONS,
+        configuredConcurrencyCap ?? DEFAULT_MAX_CONCURRENT_INVESTIGATIONS,
       ),
     );
 
+    const subjectLaneQuery: Query<AIRun> = this.getSubjectLaneQuery(run);
+
     /*
      * Investigations, remediation plans and remediation executions share
-     * the same per-project cap — all are short and storm-shaped on
-     * incident/alert creation, so one pool keeps the cost model simple.
+     * the cap inside their incident, alert or subjectless lane. Work in one
+     * lane never consumes another lane's concurrency slots.
      */
     const runningCount: number = (
       await AIRunService.countBy({
@@ -575,6 +610,7 @@ export default class AIInvestigationQueue {
             AIRunType.RemediationExecution,
           ]),
           status: AIRunStatus.Running,
+          ...subjectLaneQuery,
         },
         props: { isRoot: true },
       })
@@ -595,10 +631,10 @@ export default class AIInvestigationQueue {
      * kinds share ONE combined sub-cap, so together they always leave the
      * reserved slot reachable. Floored at 1 so a project running at the
      * minimum cap of 1 still drains its background work (slower, one at a
-     * time) instead of deadlocking the lane entirely — the interactive lane
-     * keeps its priority through the global cap check above, which a single
-     * running background run cannot outlast for long (both kinds are
-     * read-only and short).
+     * time) instead of deadlocking the lane entirely — foreground work keeps
+     * its priority through the lane cap check above, which a single running
+     * background run cannot outlast for long (both kinds are read-only and
+     * short).
      */
     const isBackgroundLane: boolean =
       Boolean(run.triggeredByAiInsightId) ||
@@ -622,6 +658,7 @@ export default class AIInvestigationQueue {
             runType: AIRunType.Investigation,
             status: AIRunStatus.Running,
             triggeredByAiInsightId: QueryHelper.notNull(),
+            ...subjectLaneQuery,
           },
           props: { isRoot: true },
         })
@@ -636,6 +673,7 @@ export default class AIInvestigationQueue {
               AIRunType.RemediationExecution,
             ]),
             status: AIRunStatus.Running,
+            ...subjectLaneQuery,
           },
           props: { isRoot: true },
         })
@@ -653,7 +691,10 @@ export default class AIInvestigationQueue {
     }
 
     const budget: AutonomousBudgetStatus =
-      await AIService.getAutonomousDailyBudgetStatus(run.projectId);
+      await AIService.getAutonomousDailyBudgetStatus(run.projectId, {
+        incidentId: run.triggeredByIncidentId,
+        alertId: run.triggeredByAlertId,
+      });
 
     if (budget.exhausted) {
       logger.debug(
@@ -663,6 +704,35 @@ export default class AIInvestigationQueue {
     }
 
     return true;
+  }
+
+  /*
+   * Scope queue counts to one independent lane. The concrete subject id is
+   * deliberately not compared: all incidents share the incident cap, all
+   * alerts share the alert cap, and subjectless work must have neither link.
+   */
+  private static getSubjectLaneQuery(run: {
+    triggeredByIncidentId?: ObjectID | undefined;
+    triggeredByAlertId?: ObjectID | undefined;
+  }): Query<AIRun> {
+    if (run.triggeredByIncidentId) {
+      return {
+        triggeredByIncidentId: QueryHelper.notNull(),
+        triggeredByAlertId: QueryHelper.isNull(),
+      };
+    }
+
+    if (run.triggeredByAlertId) {
+      return {
+        triggeredByIncidentId: QueryHelper.isNull(),
+        triggeredByAlertId: QueryHelper.notNull(),
+      };
+    }
+
+    return {
+      triggeredByIncidentId: QueryHelper.isNull(),
+      triggeredByAlertId: QueryHelper.isNull(),
+    };
   }
 
   /*

@@ -64,8 +64,9 @@ type UpdateSpy = jest.SpiedFunction<typeof AIRunService.updateOneBy>;
 function mockHappyDependencies(data?: {
   completionCalls?: number;
   outputTokens?: number;
+  run?: Partial<AIRun>;
 }): { executeSpy: ExecuteSpy; updateSpy: UpdateSpy } {
-  jest.spyOn(AIRunService, "findOneById").mockResolvedValue(fakeRun());
+  jest.spyOn(AIRunService, "findOneById").mockResolvedValue(fakeRun(data?.run));
   const updateSpy: UpdateSpy = jest
     .spyOn(AIRunService, "updateOneBy")
     .mockResolvedValue(1);
@@ -298,6 +299,63 @@ describe("CodeFixAgentCompletion.execute happy path", () => {
 
     expect(executeSpy.mock.calls[0]![0]!.maxTokens).toBe(
       MAX_TOKENS_PER_COMPLETION_CALL,
+    );
+  });
+
+  test("keeps a subject-linked fix completion in its autonomous budget lane", async () => {
+    const incidentId: ObjectID = ObjectID.generate();
+    const { executeSpy } = mockHappyDependencies({
+      run: { triggeredByIncidentId: incidentId },
+    });
+
+    await CodeFixAgentCompletion.execute({
+      aiAgentId: agentId,
+      aiRunId: runId,
+      messages,
+    });
+
+    expect(executeSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        incidentId,
+        alertId: undefined,
+      }),
+    );
+  });
+
+  test("keeps an alert-linked fix completion in the alert budget lane", async () => {
+    const alertId: ObjectID = ObjectID.generate();
+    const { executeSpy } = mockHappyDependencies({
+      run: { triggeredByAlertId: alertId },
+    });
+
+    await CodeFixAgentCompletion.execute({
+      aiAgentId: agentId,
+      aiRunId: runId,
+      messages,
+    });
+
+    expect(executeSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        incidentId: undefined,
+        alertId,
+      }),
+    );
+  });
+
+  test("keeps a general fix completion in the subjectless budget lane", async () => {
+    const { executeSpy } = mockHappyDependencies();
+
+    await CodeFixAgentCompletion.execute({
+      aiAgentId: agentId,
+      aiRunId: runId,
+      messages,
+    });
+
+    expect(executeSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        incidentId: undefined,
+        alertId: undefined,
+      }),
     );
   });
 

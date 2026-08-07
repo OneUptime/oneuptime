@@ -14,7 +14,7 @@ import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
  * The AUTOMATIC form of the FixFromIncident trigger: a CONFIDENT
  * investigation (per the structured G6 signal) enqueues a fix-PR CodeFix
  * run with no human click — but ONLY for projects that explicitly opted in
- * (Project.enableAutomaticCodeFixes, default FALSE — G11 posture), only
+ * for the investigation's incident or alert lane (both default FALSE — G11 posture), only
  * when a GitHub-App repo exists to open the PR against, at most one
  * non-terminal run per subject, and inside the daily fix-run budget. It
  * runs inside the investigation's postAnalysis, so it must NEVER throw,
@@ -30,12 +30,15 @@ const alertId: ObjectID = ObjectID.generate();
 
 function fakeProject(data?: {
   enableAi?: boolean;
-  enableAutomaticCodeFixes?: boolean;
+  enableAutomaticIncidentCodeFixes?: boolean;
+  enableAutomaticAlertCodeFixes?: boolean;
 }): Project {
   return {
     id: projectId,
     enableAi: data?.enableAi ?? true,
-    enableAutomaticCodeFixes: data?.enableAutomaticCodeFixes ?? true,
+    enableAutomaticIncidentCodeFixes:
+      data?.enableAutomaticIncidentCodeFixes ?? true,
+    enableAutomaticAlertCodeFixes: data?.enableAutomaticAlertCodeFixes ?? true,
   } as unknown as Project;
 }
 
@@ -48,6 +51,7 @@ describe("FixFromIncidentTaskTrigger.shouldAutoEnqueueFixTask", () => {
     const decision: AutoFixTaskGateDecision =
       FixFromIncidentTaskTrigger.shouldAutoEnqueueFixTask({
         project: null,
+        incidentId,
         hasConnectedRepository: true,
         existingRun: null,
       });
@@ -60,6 +64,7 @@ describe("FixFromIncidentTaskTrigger.shouldAutoEnqueueFixTask", () => {
     const decision: AutoFixTaskGateDecision =
       FixFromIncidentTaskTrigger.shouldAutoEnqueueFixTask({
         project: fakeProject({ enableAi: false }),
+        incidentId,
         hasConnectedRepository: true,
         existingRun: null,
       });
@@ -72,12 +77,13 @@ describe("FixFromIncidentTaskTrigger.shouldAutoEnqueueFixTask", () => {
     const project: Project = {
       id: projectId,
       enableAi: true,
-      // enableAutomaticCodeFixes deliberately absent.
+      // enableAutomaticIncidentCodeFixes deliberately absent.
     } as unknown as Project;
 
     const decision: AutoFixTaskGateDecision =
       FixFromIncidentTaskTrigger.shouldAutoEnqueueFixTask({
         project,
+        incidentId,
         hasConnectedRepository: true,
         existingRun: null,
       });
@@ -89,7 +95,8 @@ describe("FixFromIncidentTaskTrigger.shouldAutoEnqueueFixTask", () => {
   test("an explicit false flag never enqueues", () => {
     const decision: AutoFixTaskGateDecision =
       FixFromIncidentTaskTrigger.shouldAutoEnqueueFixTask({
-        project: fakeProject({ enableAutomaticCodeFixes: false }),
+        project: fakeProject({ enableAutomaticIncidentCodeFixes: false }),
+        incidentId,
         hasConnectedRepository: true,
         existingRun: null,
       });
@@ -98,10 +105,85 @@ describe("FixFromIncidentTaskTrigger.shouldAutoEnqueueFixTask", () => {
     expect(decision.reason).toMatch(/not opted in/);
   });
 
+  test("incident and alert opt-ins are independent: incident enabled does not enable alerts", () => {
+    const project: Project = fakeProject({
+      enableAutomaticIncidentCodeFixes: true,
+      enableAutomaticAlertCodeFixes: false,
+    });
+
+    expect(
+      FixFromIncidentTaskTrigger.shouldAutoEnqueueFixTask({
+        project,
+        incidentId,
+        hasConnectedRepository: true,
+        existingRun: null,
+      }).enqueue,
+    ).toBe(true);
+    expect(
+      FixFromIncidentTaskTrigger.shouldAutoEnqueueFixTask({
+        project,
+        alertId,
+        hasConnectedRepository: true,
+        existingRun: null,
+      }).enqueue,
+    ).toBe(false);
+  });
+
+  test("incident and alert opt-ins are independent: alert enabled does not enable incidents", () => {
+    const project: Project = fakeProject({
+      enableAutomaticIncidentCodeFixes: false,
+      enableAutomaticAlertCodeFixes: true,
+    });
+
+    expect(
+      FixFromIncidentTaskTrigger.shouldAutoEnqueueFixTask({
+        project,
+        incidentId,
+        hasConnectedRepository: true,
+        existingRun: null,
+      }).enqueue,
+    ).toBe(false);
+    expect(
+      FixFromIncidentTaskTrigger.shouldAutoEnqueueFixTask({
+        project,
+        alertId,
+        hasConnectedRepository: true,
+        existingRun: null,
+      }).enqueue,
+    ).toBe(true);
+  });
+
+  test("a subjectless gate decision is rejected instead of borrowing either opt-in", () => {
+    const decision: AutoFixTaskGateDecision =
+      FixFromIncidentTaskTrigger.shouldAutoEnqueueFixTask({
+        project: fakeProject(),
+        hasConnectedRepository: true,
+        existingRun: null,
+      });
+
+    expect(decision.enqueue).toBe(false);
+    expect(decision.reason).toMatch(/subject/);
+  });
+
+  test("a gate carrying both subject types is rejected instead of borrowing the incident opt-in", () => {
+    const decision: AutoFixTaskGateDecision =
+      FixFromIncidentTaskTrigger.shouldAutoEnqueueFixTask({
+        project: fakeProject(),
+        incidentId,
+        alertId,
+        hasConnectedRepository: true,
+        existingRun: null,
+      });
+
+    expect(decision.enqueue).toBe(false);
+    expect(decision.reason).toMatch(/exactly one/);
+  });
+
   test("does not enqueue without a GitHub-App-connected repository", () => {
     const decision: AutoFixTaskGateDecision =
       FixFromIncidentTaskTrigger.shouldAutoEnqueueFixTask({
         project: fakeProject(),
+        incidentId,
         hasConnectedRepository: false,
         existingRun: null,
       });
@@ -114,6 +196,7 @@ describe("FixFromIncidentTaskTrigger.shouldAutoEnqueueFixTask", () => {
     const decision: AutoFixTaskGateDecision =
       FixFromIncidentTaskTrigger.shouldAutoEnqueueFixTask({
         project: fakeProject(),
+        incidentId,
         hasConnectedRepository: true,
         existingRun: fakeRun(),
       });
@@ -126,6 +209,7 @@ describe("FixFromIncidentTaskTrigger.shouldAutoEnqueueFixTask", () => {
     const decision: AutoFixTaskGateDecision =
       FixFromIncidentTaskTrigger.shouldAutoEnqueueFixTask({
         project: fakeProject(),
+        incidentId,
         hasConnectedRepository: true,
         existingRun: null,
       });
@@ -186,10 +270,31 @@ describe("FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation", () 
     expect(enqueue).not.toHaveBeenCalled();
   });
 
+  test("a call carrying both subject types is an immediate no-op", async () => {
+    const findProject: jest.SpyInstance = jest.spyOn(
+      ProjectService,
+      "findOneById",
+    );
+
+    await FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation({
+      projectId,
+      incidentId,
+      alertId,
+    });
+
+    expect(findProject).not.toHaveBeenCalled();
+    expect(getBudgetStatus).not.toHaveBeenCalled();
+    expect(hasRepository).not.toHaveBeenCalled();
+    expect(findNonTerminalRun).not.toHaveBeenCalled();
+    expect(enqueue).not.toHaveBeenCalled();
+  });
+
   test("a not-opted-in project (default) skips cheaply: BEFORE the budget, repo and dedupe queries", async () => {
     jest
       .spyOn(ProjectService, "findOneById")
-      .mockResolvedValue(fakeProject({ enableAutomaticCodeFixes: false }));
+      .mockResolvedValue(
+        fakeProject({ enableAutomaticIncidentCodeFixes: false }),
+      );
 
     await FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation({
       projectId,
@@ -199,6 +304,24 @@ describe("FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation", () 
     expect(getBudgetStatus).not.toHaveBeenCalled();
     expect(hasRepository).not.toHaveBeenCalled();
     expect(findNonTerminalRun).not.toHaveBeenCalled();
+    expect(enqueue).not.toHaveBeenCalled();
+  });
+
+  test("the alert opt-in cannot enable an automatic incident code fix", async () => {
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue(
+      fakeProject({
+        enableAutomaticIncidentCodeFixes: false,
+        enableAutomaticAlertCodeFixes: true,
+      }),
+    );
+
+    await FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation({
+      projectId,
+      incidentId,
+    });
+
+    expect(getBudgetStatus).not.toHaveBeenCalled();
+    expect(hasRepository).not.toHaveBeenCalled();
     expect(enqueue).not.toHaveBeenCalled();
   });
 
@@ -221,6 +344,10 @@ describe("FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation", () 
     // Skipped before the repo/dedupe queries, and no run was enqueued.
     expect(hasRepository).not.toHaveBeenCalled();
     expect(enqueue).not.toHaveBeenCalled();
+    expect(getBudgetStatus).toHaveBeenCalledWith(projectId, {
+      incidentId,
+      alertId: undefined,
+    });
   });
 
   test("dedupe: a live FixFromIncident run for the same subject blocks the automatic enqueue", async () => {
@@ -243,11 +370,26 @@ describe("FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation", () 
   });
 
   test("happy path (incident): enqueues a FixFromIncident run for the incident with NO user attribution", async () => {
-    jest.spyOn(ProjectService, "findOneById").mockResolvedValue(fakeProject());
+    const findProject: jest.SpyInstance = jest
+      .spyOn(ProjectService, "findOneById")
+      .mockResolvedValue(fakeProject());
 
     await FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation({
       projectId,
       incidentId,
+    });
+
+    expect(findProject).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: {
+          enableAi: true,
+          enableAutomaticIncidentCodeFixes: true,
+        },
+      }),
+    );
+    expect(getBudgetStatus).toHaveBeenCalledWith(projectId, {
+      incidentId,
+      alertId: undefined,
     });
 
     expect(enqueue).toHaveBeenCalledTimes(1);
@@ -264,10 +406,25 @@ describe("FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation", () 
   });
 
   test("happy path (alert): the enqueue carries the alert subject", async () => {
-    jest.spyOn(ProjectService, "findOneById").mockResolvedValue(fakeProject());
+    const findProject: jest.SpyInstance = jest
+      .spyOn(ProjectService, "findOneById")
+      .mockResolvedValue(fakeProject());
 
     await FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation({
       projectId,
+      alertId,
+    });
+
+    expect(findProject).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: {
+          enableAi: true,
+          enableAutomaticAlertCodeFixes: true,
+        },
+      }),
+    );
+    expect(getBudgetStatus).toHaveBeenCalledWith(projectId, {
+      incidentId: undefined,
       alertId,
     });
 

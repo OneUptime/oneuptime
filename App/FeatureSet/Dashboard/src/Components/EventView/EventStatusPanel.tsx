@@ -48,6 +48,8 @@ export interface ComponentProps {
   onStateSelect?: ((stateId: string) => void) | undefined;
   moreMenuTitle?: string | undefined;
   isDisabled?: boolean | undefined;
+  /* Optional full-width context shown inside the titled header card. */
+  headerNotice?: ReactElement | undefined;
 }
 
 const EventStatusPanel: FunctionComponent<ComponentProps> = (
@@ -298,6 +300,9 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
             <div className="mt-3 flex flex-wrap items-center gap-2.5">
               {metaItems}
             </div>
+          )}
+          {props.headerNotice && (
+            <div className="mt-3">{props.headerNotice}</div>
           )}
         </div>
       ) : (

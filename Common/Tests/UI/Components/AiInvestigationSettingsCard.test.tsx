@@ -152,17 +152,17 @@ const renderCard: RenderCardFunction = (): void => {
           placeholder: "Every severity",
         },
         {
-          field: { aiMaxConcurrentInvestigations: true },
+          field: { incidentAiMaxConcurrentInvestigations: true },
           stepId: "limits",
-          title: "Max Concurrent Investigations",
+          title: "Max Concurrent Incident Investigations",
           required: false,
           fieldType: FormFieldSchemaType.Number,
           placeholder: "3",
         },
         {
-          field: { aiDailyFixTaskLimit: true },
+          field: { incidentAiDailyFixTaskLimit: true },
           stepId: "fix-tasks",
-          title: "Daily AI Fix Task Limit",
+          title: "Daily Incident AI Fix Task Limit",
           required: false,
           fieldType: FormFieldSchemaType.Number,
           placeholder: "25",
@@ -280,6 +280,6 @@ describe("AI investigation settings card", () => {
      * Only the first step's fields are on screen - which is the point of
      * steps, and proves stepId actually took rather than being ignored.
      */
-    expect(screen.queryByText("Daily AI Fix Task Limit")).toBeNull();
+    expect(screen.queryByText("Daily Incident AI Fix Task Limit")).toBeNull();
   });
 });

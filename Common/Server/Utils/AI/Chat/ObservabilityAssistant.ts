@@ -59,6 +59,9 @@ export interface ObservabilityAssistantStep {
 export interface ObservabilityAssistantRequest {
   projectId: ObjectID;
   userId?: ObjectID | undefined;
+  incidentId?: ObjectID | undefined;
+  alertId?: ObjectID | undefined;
+  aiRunId?: ObjectID | undefined;
   // The requesting user's real permission props — tools run under these.
   props: DatabaseCommonInteractionProps;
   question: string;
@@ -230,6 +233,9 @@ export default class ObservabilityAssistant {
       const response: AILogResponse = await AIService.executeWithLogging({
         projectId: request.projectId,
         userId: request.userId,
+        incidentId: request.incidentId,
+        alertId: request.alertId,
+        aiRunId: request.aiRunId,
         llmProviderId: request.llmProviderId,
         feature: request.feature,
         messages: messages,

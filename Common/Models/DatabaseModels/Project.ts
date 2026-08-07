@@ -1592,9 +1592,9 @@ export default class Project extends TenantModel {
     required: true,
     isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
-    title: "Enable Instrumentation Fix Tasks",
+    title: "Enable Incident Instrumentation Fix Tasks",
     description:
-      "When enabled, an AI investigation that ends inconclusive (telemetry was insufficient to determine a root cause) automatically queues an AI agent task that opens a pull request adding the missing instrumentation to the implicated code paths. Requires a repository connected through the GitHub App. Pull requests are always human-reviewed — nothing merges automatically.",
+      "When enabled, an incident AI investigation that ends inconclusive (telemetry was insufficient to determine a root cause) automatically queues an AI agent task that opens a pull request adding the missing instrumentation to the implicated code paths. Requires a repository connected through the GitHub App. Pull requests are always human-reviewed — nothing merges automatically.",
     defaultValue: false,
     example: true,
   })
@@ -1603,7 +1603,7 @@ export default class Project extends TenantModel {
     default: false,
     type: ColumnType.Boolean,
   })
-  public enableInstrumentationFixTasks?: boolean = undefined;
+  public enableIncidentInstrumentationFixTasks?: boolean = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -1622,9 +1622,9 @@ export default class Project extends TenantModel {
     required: true,
     isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
-    title: "Enable Automatic Code Fixes",
+    title: "Enable Alert Instrumentation Fix Tasks",
     description:
-      "When enabled, an AI investigation that ends with a confident, evidenced root cause analysis automatically queues an AI agent task that opens a draft fix pull request from that analysis — the automatic form of the 'Open Fix PR from this analysis' button. Requires a repository connected through the GitHub App and a Runner with the code-fix capability. Pull requests are always human-reviewed — nothing merges automatically.",
+      "When enabled, an alert AI investigation that ends inconclusive (telemetry was insufficient to determine a root cause) automatically queues an AI agent task that opens a pull request adding the missing instrumentation to the implicated code paths. Requires a repository connected through the GitHub App. Pull requests are always human-reviewed — nothing merges automatically.",
     defaultValue: false,
     example: true,
   })
@@ -1633,7 +1633,67 @@ export default class Project extends TenantModel {
     default: false,
     type: ColumnType.Boolean,
   })
-  public enableAutomaticCodeFixes?: boolean = undefined;
+  public enableAlertInstrumentationFixTasks?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Enable Automatic Incident Code Fixes",
+    description:
+      "When enabled, an incident AI investigation that ends with a confident, evidenced root cause analysis automatically queues an AI agent task that opens a draft fix pull request from that analysis — the automatic form of the 'Open Fix PR from this analysis' button. Requires a repository connected through the GitHub App and a Runner with the code-fix capability. Pull requests are always human-reviewed — nothing merges automatically.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public enableAutomaticIncidentCodeFixes?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Enable Automatic Alert Code Fixes",
+    description:
+      "When enabled, an alert AI investigation that ends with a confident, evidenced root cause analysis automatically queues an AI agent task that opens a draft fix pull request from that analysis — the automatic form of the 'Open Fix PR from this analysis' button. Requires a repository connected through the GitHub App and a Runner with the code-fix capability. Pull requests are always human-reviewed — nothing merges automatically.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public enableAutomaticAlertCodeFixes?: boolean = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -1806,7 +1866,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Number,
     title: "Daily Autonomous AI Token Limit",
     description:
-      "Maximum tokens per UTC day that autonomous AI investigations may consume for this project. When the limit is reached, new autonomous investigations are skipped until the next day — interactive AI chat is never blocked. Unset means no limit.",
+      "Fallback maximum tokens per UTC day for autonomous AI work that is not associated with an incident or alert. When the limit is reached, new autonomous work is skipped until the next day — interactive AI chat is never blocked. Unset means no limit.",
     example: 500000,
   })
   @Column({
@@ -1831,9 +1891,63 @@ export default class Project extends TenantModel {
   @TableColumn({
     required: false,
     type: TableColumnType.Number,
+    title: "Daily Incident AI Token Limit",
+    description:
+      "Maximum tokens per UTC day that autonomous incident-linked AI work may consume for this project, including investigations, remediation, and follow-up fix tasks. When the limit is reached, new incident-linked AI work is skipped until the next day — interactive AI chat is never blocked. Unset means no limit.",
+    example: 500000,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public incidentAiDailyAutonomousTokenLimit?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Daily Alert AI Token Limit",
+    description:
+      "Maximum tokens per UTC day that autonomous alert-linked AI work may consume for this project, including investigations, remediation, and follow-up fix tasks. When the limit is reached, new alert-linked AI work is skipped until the next day — interactive AI chat is never blocked. Unset means no limit.",
+    example: 500000,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public alertAiDailyAutonomousTokenLimit?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
     title: "Daily AI Fix Task Limit",
     description:
-      "Maximum AI fix tasks (agent runs that open pull requests) that may be created per UTC day for this project, across every fix recipe and trigger. Unset means the default of 25 per day; 0 pauses AI fix tasks entirely.",
+      "Fallback maximum AI fix tasks (agent runs that open pull requests) that may be created per UTC day for work not associated with an incident or alert, across every fix recipe and trigger. Unset means the default of 25 per day; 0 pauses these AI fix tasks entirely.",
     example: 25,
   })
   @Column({
@@ -1841,6 +1955,60 @@ export default class Project extends TenantModel {
     type: ColumnType.Number,
   })
   public aiDailyFixTaskLimit?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Daily Incident AI Fix Task Limit",
+    description:
+      "Maximum AI fix tasks derived from incidents that may be created per UTC day for this project. Unset means the default of 25 per day; 0 pauses incident AI fix tasks entirely.",
+    example: 25,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public incidentAiDailyFixTaskLimit?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Daily Alert AI Fix Task Limit",
+    description:
+      "Maximum AI fix tasks derived from alerts that may be created per UTC day for this project. Unset means the default of 25 per day; 0 pauses alert AI fix tasks entirely.",
+    example: 25,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public alertAiDailyFixTaskLimit?: number = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -1976,7 +2144,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Number,
     title: "Max Concurrent Investigations",
     description:
-      "How many AI investigations may run at the same time for this project, shared across incidents and alerts. Unset means the default of 3. Minimum 1 — pause investigations with the opt-in toggles or a daily token limit of 0 instead.",
+      "Fallback maximum number of non-incident and non-alert AI investigations that may run at the same time for this project. Unset means the default of 3. Minimum 1 — pause autonomous work with its opt-in toggle or a daily token limit of 0 instead.",
     example: 3,
   })
   @Column({
@@ -1984,6 +2152,60 @@ export default class Project extends TenantModel {
     type: ColumnType.Number,
   })
   public aiMaxConcurrentInvestigations?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Max Concurrent Incident Investigations",
+    description:
+      "How many incident AI investigations may run at the same time for this project. Unset means the default of 3. Minimum 1 — pause incident investigations with the opt-in toggle or a daily token limit of 0 instead.",
+    example: 3,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public incidentAiMaxConcurrentInvestigations?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "Max Concurrent Alert Investigations",
+    description:
+      "How many alert AI investigations may run at the same time for this project. Unset means the default of 3. Minimum 1 — pause alert investigations with the opt-in toggle or a daily token limit of 0 instead.",
+    example: 3,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public alertAiMaxConcurrentInvestigations?: number = undefined;
 
   @ColumnAccessControl({
     create: [],
