@@ -73,6 +73,8 @@ import RangeStartAndEndDateTime, {
 } from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
+import TelemetryQueryTimeRange from "Common/Utils/Telemetry/TelemetryQueryTimeRange";
+import TelemetryType from "Common/Types/Telemetry/TelemetryType";
 import { writeTelemetryViewerUrlState } from "../../Utils/TelemetryViewerUrlState";
 
 export interface ComponentProps {
@@ -340,15 +342,48 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     return readInitialUrlState(effectiveDefaultPageSize);
   }, [props.syncUrlState, effectiveDefaultPageSize]);
 
+  /*
+   * A caller that puts an explicit `time` window on logQuery is describing a
+   * moment, not a filter — the incident and alert pages pass the window the
+   * monitor actually evaluated over when it opened the event. Adopt it as the
+   * picker's value so the whole viewer (list, histogram, facets) is anchored
+   * there. Without this the viewer silently re-stamps its rolling default over
+   * the window, and an incident from last Tuesday renders the past hour of
+   * unrelated logs under the heading "Logs for this incident".
+   *
+   * Resolved as CUSTOM, so live polling and preset re-anchoring leave it alone.
+   * Null for every caller that passes no window (the resource log pages), which
+   * keeps the historical PAST_ONE_HOUR default for them.
+   */
+  const pinnedTimeRange: RangeStartAndEndDateTime | null = useMemo(() => {
+    return TelemetryQueryTimeRange.getPinnedRangeForQuery(
+      props.logQuery,
+      TelemetryType.Log,
+    );
+  }, [props.logQuery]);
+
+  /*
+   * Resolved once, on mount, and shared by the two states below so the log
+   * list and the picker cannot start out describing different windows. Held in
+   * state rather than a memo because it is a seed: later renders must not
+   * recompute it, or a caller rebuilding its query would keep yanking the user
+   * back to the pin. The props-sync effect below is what follows a genuinely
+   * new window.
+   */
+  const [initialTimeRange] = useState<RangeStartAndEndDateTime>(() => {
+    return (
+      pinnedTimeRange ||
+      initialUrlState?.timeRange || { range: TimeRange.PAST_ONE_HOUR }
+    );
+  });
+
   const [logs, setLogs] = useState<Array<Log>>([]);
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [filterOptions, setFilterOptions] = useState<Query<Log>>(() => {
     const base: Query<Log> = buildBaseQuery(props);
-    const initialRange: RangeStartAndEndDateTime =
-      initialUrlState?.timeRange || { range: TimeRange.PAST_ONE_HOUR };
     const defaultRange: InBetween<Date> =
-      RangeStartAndEndDateTimeUtil.getStartAndEndDate(initialRange);
+      RangeStartAndEndDateTimeUtil.getStartAndEndDate(initialTimeRange);
     (base as any).time = new InBetween<Date>(
       defaultRange.startValue,
       defaultRange.endValue,
@@ -407,14 +442,35 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   >(initialUrlState?.facetFilters || new Map());
 
   // Time range state — single source of truth for histogram, facets, and log query
-  const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>(
-    initialUrlState?.timeRange || { range: TimeRange.PAST_ONE_HOUR },
-  );
+  const [timeRange, setTimeRange] =
+    useState<RangeStartAndEndDateTime>(initialTimeRange);
 
   useEffect(() => {
     const base: Query<Log> = buildBaseQuery(props);
+
+    /*
+     * A new pinned window means the caller is describing a different moment
+     * (the incident page re-fetching), so follow it rather than re-stamping
+     * the window the user is currently looking at. With no pinned window this
+     * keeps the user's current picker value, as before.
+     */
+    const nextTimeRange: RangeStartAndEndDateTime =
+      pinnedTimeRange || timeRange;
+
+    /*
+     * Compare by value, not identity. A host that rebuilds its query object on
+     * every render hands us an equal-but-new window each time; setting state
+     * from it unconditionally would re-render, rebuild, and loop.
+     */
+    if (
+      pinnedTimeRange &&
+      !TelemetryQueryTimeRange.isSameRange(pinnedTimeRange, timeRange)
+    ) {
+      setTimeRange(pinnedTimeRange);
+    }
+
     const dateRange: InBetween<Date> =
-      RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
+      RangeStartAndEndDateTimeUtil.getStartAndEndDate(nextTimeRange);
     (base as any).time = new InBetween<Date>(
       dateRange.startValue,
       dateRange.endValue,
@@ -937,6 +993,16 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
 
     hasAppliedInitialSavedView.current = true;
 
+    /*
+     * A pinned window came from the host, not from the user browsing logs, and
+     * a saved view carries its own time range — auto-applying the project
+     * default here would move an incident's preview off the moment it is
+     * about. The user can still pick a saved view by hand.
+     */
+    if (pinnedTimeRange) {
+      return;
+    }
+
     const defaultSavedView: LogSavedView | undefined = savedViews.find(
       (savedView: LogSavedView) => {
         return Boolean(savedView.isDefault);
@@ -946,7 +1012,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     if (defaultSavedView) {
       applySavedView(defaultSavedView);
     }
-  }, [applySavedView, isSavedViewLoading, savedViews]);
+  }, [applySavedView, isSavedViewLoading, savedViews, pinnedTimeRange]);
 
   useEffect(() => {
     if (!selectedSavedViewId) {

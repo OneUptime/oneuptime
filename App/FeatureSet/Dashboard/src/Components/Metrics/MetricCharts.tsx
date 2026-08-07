@@ -50,6 +50,7 @@ import MetricUtil, {
   sanitizeAttributeFilters,
 } from "./Utils/Metrics";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
+import TelemetryQueryTimeRange from "Common/Utils/Telemetry/TelemetryQueryTimeRange";
 import Navigation from "Common/UI/Utils/Navigation";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
@@ -1239,14 +1240,17 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
    * re-runs only when the time window, metric set, or filters actually
    * change.
    */
-  const startMs: number | undefined =
-    props.metricViewData.startAndEndDate?.startValue instanceof Date
-      ? (props.metricViewData.startAndEndDate.startValue as Date).getTime()
-      : undefined;
-  const endMs: number | undefined =
-    props.metricViewData.startAndEndDate?.endValue instanceof Date
-      ? (props.metricViewData.startAndEndDate.endValue as Date).getTime()
-      : undefined;
+  /*
+   * Resolved through the shared coercion rather than `instanceof Date`: a
+   * window restored from a stored incident/alert snapshot holds ISO strings,
+   * and testing the class left startMs/endMs undefined there — which made the
+   * effect below bail, so exemplar drill-down dots never appeared on the one
+   * surface where jumping from a spike to the causing trace matters most.
+   */
+  const exemplarWindow: InBetween<Date> | null =
+    TelemetryQueryTimeRange.toDateWindow(props.metricViewData.startAndEndDate);
+  const startMs: number | undefined = exemplarWindow?.startValue.getTime();
+  const endMs: number | undefined = exemplarWindow?.endValue.getTime();
 
   interface ExemplarTarget {
     key: string;
