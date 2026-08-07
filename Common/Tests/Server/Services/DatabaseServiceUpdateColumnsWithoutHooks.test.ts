@@ -125,4 +125,58 @@ describe("DatabaseService.updateColumnsByIdWithoutHooks", () => {
       APPLICATION_ID.toString(),
     );
   });
+
+  it("adds null-safe compare-and-set guards for expected values", async () => {
+    const newValue: Date = new Date("2026-08-07T10:00:00.000Z");
+    const oldValue: Date = new Date("2026-08-07T09:00:00.000Z");
+
+    await service.updateColumnsByIdWithoutHooks({
+      id: APPLICATION_ID,
+      data: { lastSeenAt: newValue },
+      expectedData: {
+        sessionReplayLastChunkReceivedAt: oldValue,
+        sessionReplayBudgetExceededAt: null,
+      },
+      skipUpdateDateColumn: true,
+    });
+
+    expect(captured).toEqual([
+      {
+        sql:
+          `UPDATE "RumApplication" SET "lastSeenAt" = $1 ` +
+          `WHERE "_id" = $2 ` +
+          `AND "sessionReplayLastChunkReceivedAt" IS NOT DISTINCT FROM $3 ` +
+          `AND "sessionReplayBudgetExceededAt" IS NOT DISTINCT FROM $4`,
+        params: [newValue, APPLICATION_ID.toString(), oldValue, null],
+      },
+    ]);
+  });
+
+  it("rejects unknown compare-and-set columns before issuing SQL", async () => {
+    await expect(
+      service.updateColumnsByIdWithoutHooks({
+        id: APPLICATION_ID,
+        data: { lastSeenAt: new Date() },
+        expectedData: { notAColumn: "value" } as never,
+      }),
+    ).rejects.toThrow('unknown expected column "notAColumn"');
+
+    expect(captured).toHaveLength(0);
+  });
+
+  it("rejects SQL expressions in compare-and-set values", async () => {
+    await expect(
+      service.updateColumnsByIdWithoutHooks({
+        id: APPLICATION_ID,
+        data: { lastSeenAt: new Date() },
+        expectedData: {
+          sessionReplayLastChunkReceivedAt: (() => {
+            return "NOW()";
+          }) as never,
+        },
+      }),
+    ).rejects.toThrow("SQL-expression expected values are not supported");
+
+    expect(captured).toHaveLength(0);
+  });
 });

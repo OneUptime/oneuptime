@@ -241,9 +241,12 @@ export default class PasswordHash {
    *   salted SHA   `SHA256("v2:" + salt + ":" + secret + ":" + password)`.
    *   bare SHA     `SHA256(secret + password)`, from before salts existed.
    *
-   * The last two are told apart by whether the row has a salt, which is the
-   * same rule they were written under. Anything not carrying a recognised
-   * scheme prefix is one of them.
+   * Normally the last two are told apart by whether the row has a salt,
+   * which is the rule they were written under. During a rolling deployment,
+   * however, an old pod can write a bare SHA digest while leaving a new pod's
+   * salt behind. Anything without a recognised scheme prefix therefore tries
+   * the selected legacy scheme first and the bare scheme as a compatibility
+   * fallback.
    */
   public static async verify(data: {
     plainValue: string;
@@ -259,11 +262,32 @@ export default class PasswordHash {
     );
 
     if (!parsed) {
+      const matchesSelectedLegacyScheme: boolean =
+        await HashedString.verifyValue({
+          plainValue: data.plainValue,
+          hashedValue: data.storedValue,
+          encryptionSecret: EncryptionSecret,
+          salt: data.salt || null,
+        });
+
+      if (matchesSelectedLegacyScheme || !data.salt) {
+        return matchesSelectedLegacyScheme;
+      }
+
+      /*
+       * Rolling-deploy compatibility. A pod running the pre-salt write path
+       * can replace a password with the original bare SHA-256 digest while a
+       * salt written by a newer pod remains on the row. A bare digest carries
+       * no scheme marker, so trying only the salted-SHA construction would
+       * lock that resource out permanently. Fall back to the original scheme
+       * when a supplied salt does not match; the successful caller upgrades
+       * the row to scrypt immediately afterwards.
+       */
       return await HashedString.verifyValue({
         plainValue: data.plainValue,
         hashedValue: data.storedValue,
         encryptionSecret: EncryptionSecret,
-        salt: data.salt || null,
+        salt: null,
       });
     }
 

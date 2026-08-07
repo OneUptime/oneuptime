@@ -334,7 +334,8 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
    * generated — session refresh tokens and the like. They keep the fast
    * SHA-256 hash, which is the right tool for them: there is nothing to guess,
    * and they have to stay searchable by hash because that is how they are
-   * looked up.
+   * looked up. Every human-chosen credential, including dashboard and status
+   * page master passwords, declares a salt column and takes the scrypt path.
    *
    * The salt is written onto the SAME payload as the hash, so the pair can
    * never be persisted out of step with each other.
@@ -467,6 +468,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
               salt: newSalt,
             }),
             [saltColumnName]: newSalt,
+          } as unknown as PartialEntity<TBaseModel>,
+          expectedData: {
+            [data.columnName]: storedHash,
+            [saltColumnName]: salt,
           } as unknown as PartialEntity<TBaseModel>,
           skipUpdateDateColumn: true,
         });
@@ -2503,6 +2508,14 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     id: ObjectID;
     data: PartialEntity<TBaseModel>;
     /*
+     * Optional compare-and-set guard. Every supplied property is added to
+     * the WHERE clause with null-safe equality, so the update is skipped if
+     * another writer changed the row after the caller read it. Password-hash
+     * upgrades use this to avoid overwriting a concurrently changed
+     * credential with a re-hash of the old password.
+     */
+    expectedData?: PartialEntity<TBaseModel>;
+    /*
      * Leave `updatedAt` untouched. For passive bookkeeping writes (liveness
      * timestamps, ingest health markers) where consumers key change
      * detection off updatedAt - e.g. the session replay configEpoch - a
@@ -2576,9 +2589,37 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       metadata.primaryColumns[0]?.databaseName || "_id";
     params.push(input.id.toString());
 
+    const whereClauses: Array<string> = [
+      `"${primaryColumnName}" = $${params.length}`,
+    ];
+
+    for (const [propertyName, value] of Object.entries(
+      (input.expectedData || {}) as ObjectLiteral,
+    )) {
+      const column: ColumnMetadata | undefined =
+        metadata.findColumnWithPropertyName(propertyName);
+
+      if (!column) {
+        throw new BadDataException(
+          `updateColumnsByIdWithoutHooks: unknown expected column "${propertyName}" on "${metadata.tableName}"`,
+        );
+      }
+
+      if (typeof value === "function") {
+        throw new BadDataException(
+          `updateColumnsByIdWithoutHooks: SQL-expression expected values are not supported (column "${propertyName}"); pass a literal value.`,
+        );
+      }
+
+      params.push(driver.preparePersistentValue(value, column));
+      whereClauses.push(
+        `"${column.databaseName}" IS NOT DISTINCT FROM $${params.length}`,
+      );
+    }
+
     const sql: string = `UPDATE "${metadata.tableName}" SET ${setClauses.join(
       ", ",
-    )} WHERE "${primaryColumnName}" = $${params.length}`;
+    )} WHERE ${whereClauses.join(" AND ")}`;
 
     await repository.manager.query(sql, params);
   }

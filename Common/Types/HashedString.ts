@@ -24,9 +24,10 @@ import { FindOperator } from "typeorm";
  *   salted    `SHA256("v2:" + salt + ":" + secret + ":" + value)`.
  *
  * Neither records its scheme in the digest — it is a bare hex SHA-256 either
- * way — so they are told apart by whether the row carries a salt. The "v2"
- * prefix and the separators exist for domain separation: without them a
- * crafted salt could make a salted input collide with an unsalted one.
+ * way — so callers normally select the scheme by whether the row carries a
+ * salt. PasswordHash also has a bare-hash fallback for rolling deployments,
+ * where an old pod can write the original scheme while leaving a newer salt
+ * behind. The "v2" prefix and separators exist for domain separation.
  */
 const SALTED_HASH_SCHEME_VERSION: string = "v2";
 
