@@ -716,6 +716,8 @@ describe("StatusPageGroupNestingLayoutUtil", () => {
           showCurrentStatus: true,
           isCurrentlyDown: false,
           uptimePercent: 99.9,
+
+          resourceCountInSubtree: 1,
         }),
       ).toBe(StatusPageGroupRollupKind.UptimePercent);
     });
@@ -731,6 +733,8 @@ describe("StatusPageGroupNestingLayoutUtil", () => {
           showCurrentStatus: true,
           isCurrentlyDown: true,
           uptimePercent: 99.9,
+
+          resourceCountInSubtree: 1,
         }),
       ).toBe(StatusPageGroupRollupKind.CurrentStatus);
     });
@@ -746,6 +750,8 @@ describe("StatusPageGroupNestingLayoutUtil", () => {
           showCurrentStatus: true,
           isCurrentlyDown: false,
           uptimePercent: null,
+
+          resourceCountInSubtree: 1,
         }),
       ).toBe(StatusPageGroupRollupKind.None);
     });
@@ -757,6 +763,8 @@ describe("StatusPageGroupNestingLayoutUtil", () => {
           showCurrentStatus: true,
           isCurrentlyDown: false,
           uptimePercent: 100,
+
+          resourceCountInSubtree: 1,
         }),
       ).toBe(StatusPageGroupRollupKind.CurrentStatus);
     });
@@ -768,6 +776,8 @@ describe("StatusPageGroupNestingLayoutUtil", () => {
           showCurrentStatus: false,
           isCurrentlyDown: false,
           uptimePercent: 100,
+
+          resourceCountInSubtree: 1,
         }),
       ).toBe(StatusPageGroupRollupKind.None);
     });
@@ -779,6 +789,8 @@ describe("StatusPageGroupNestingLayoutUtil", () => {
           showCurrentStatus: false,
           isCurrentlyDown: true,
           uptimePercent: 99.9,
+
+          resourceCountInSubtree: 1,
         }),
       ).toBe(StatusPageGroupRollupKind.None);
     });
@@ -790,8 +802,48 @@ describe("StatusPageGroupNestingLayoutUtil", () => {
           showCurrentStatus: true,
           isCurrentlyDown: false,
           uptimePercent: 0,
+
+          resourceCountInSubtree: 1,
         }),
       ).toBe(StatusPageGroupRollupKind.UptimePercent);
+    });
+
+    /*
+     * A hierarchy is drawn while it is still being filled in, so groups with
+     * nothing under them yet are on the page. The rolled up status defaults to
+     * Operational when it finds no resources to look at, and publishing that
+     * would be telling visitors that a group containing no monitors is healthy.
+     */
+    test("a group with nothing under it shows no rollup, whatever it is configured for", () => {
+      for (const showUptimePercent of [true, false]) {
+        for (const showCurrentStatus of [true, false]) {
+          expect(
+            StatusPageGroupNestingLayoutUtil.getRollupKind({
+              showUptimePercent: showUptimePercent,
+              showCurrentStatus: showCurrentStatus,
+              isCurrentlyDown: false,
+              uptimePercent: null,
+              resourceCountInSubtree: 0,
+            }),
+          ).toBe(StatusPageGroupRollupKind.None);
+        }
+      }
+    });
+
+    /*
+     * The count is of the whole subtree, so a holder group whose own resource
+     * list is empty still reports for the monitors nested under it.
+     */
+    test("a holder group reports the resources nested below it", () => {
+      expect(
+        StatusPageGroupNestingLayoutUtil.getRollupKind({
+          showUptimePercent: false,
+          showCurrentStatus: true,
+          isCurrentlyDown: false,
+          uptimePercent: null,
+          resourceCountInSubtree: 12,
+        }),
+      ).toBe(StatusPageGroupRollupKind.CurrentStatus);
     });
   });
 
@@ -878,6 +930,140 @@ describe("StatusPageGroupNestingLayoutUtil", () => {
       ).toBe(true);
     });
   });
+
+  /*
+   * The overview page used to gate its whole resources-and-groups block on
+   * `statusPageResources.length > 0`. That made a status page carrying a fully
+   * built group hierarchy and no monitors render nothing at all: the operator
+   * created their groups, saw them listed in the dashboard, and got an empty
+   * public page until the first monitor was attached to one of them.
+   *
+   * Groups are content. These two gates are what says so, and they have to
+   * agree with each other - a page that renders its hierarchy must not also
+   * render an empty state above it saying there is nothing here.
+   */
+  describe("shouldRenderResourcesSection", () => {
+    test("renders for a page with groups and no resources at all", () => {
+      expect(
+        StatusPageGroupNestingLayoutUtil.shouldRenderResourcesSection({
+          statusPageResourceCount: 0,
+          statusPageGroupCount: 1,
+        }),
+      ).toBe(true);
+    });
+
+    /* The size the bug was reported at. */
+    test("renders for a large hierarchy with no resources", () => {
+      expect(
+        StatusPageGroupNestingLayoutUtil.shouldRenderResourcesSection({
+          statusPageResourceCount: 0,
+          statusPageGroupCount: 1506,
+        }),
+      ).toBe(true);
+    });
+
+    test("renders for a page with resources and no groups", () => {
+      expect(
+        StatusPageGroupNestingLayoutUtil.shouldRenderResourcesSection({
+          statusPageResourceCount: 3,
+          statusPageGroupCount: 0,
+        }),
+      ).toBe(true);
+    });
+
+    test("renders for a page with both", () => {
+      expect(
+        StatusPageGroupNestingLayoutUtil.shouldRenderResourcesSection({
+          statusPageResourceCount: 3,
+          statusPageGroupCount: 4,
+        }),
+      ).toBe(true);
+    });
+
+    test("renders nothing for a page with neither", () => {
+      expect(
+        StatusPageGroupNestingLayoutUtil.shouldRenderResourcesSection({
+          statusPageResourceCount: 0,
+          statusPageGroupCount: 0,
+        }),
+      ).toBe(false);
+    });
+  });
+
+  describe("shouldRenderOverviewEmptyState", () => {
+    type EmptyStateInput = Parameters<
+      typeof StatusPageGroupNestingLayoutUtil.shouldRenderOverviewEmptyState
+    >[0];
+
+    function emptyPage(overrides: Partial<EmptyStateInput> = {}): boolean {
+      return StatusPageGroupNestingLayoutUtil.shouldRenderOverviewEmptyState({
+        statusPageResourceCount: 0,
+        statusPageGroupCount: 0,
+        activeIncidentCount: 0,
+        activeEpisodeCount: 0,
+        activeScheduledMaintenanceCount: 0,
+        activeAnnouncementCount: 0,
+        ...overrides,
+      });
+    }
+
+    test("a page with nothing on it shows the empty state", () => {
+      expect(emptyPage()).toBe(true);
+    });
+
+    /*
+     * The half of the bug the visitor actually saw: 1506 groups on the page,
+     * and an "all clear, nothing to see" panel rendered instead of them.
+     */
+    test("a page with groups and no resources does not show the empty state", () => {
+      expect(emptyPage({ statusPageGroupCount: 1506 })).toBe(false);
+    });
+
+    test("a page with resources does not show the empty state", () => {
+      expect(emptyPage({ statusPageResourceCount: 1 })).toBe(false);
+    });
+
+    test.each([
+      ["an active incident", "activeIncidentCount"],
+      ["an active episode", "activeEpisodeCount"],
+      ["a scheduled maintenance event", "activeScheduledMaintenanceCount"],
+      ["an announcement", "activeAnnouncementCount"],
+    ])(
+      "%s suppresses the empty state on its own",
+      (_name: string, key: string) => {
+        expect(emptyPage({ [key]: 1 } as Partial<EmptyStateInput>)).toBe(false);
+      },
+    );
+
+    /*
+     * The two gates are read off the same two counts, and the page renders
+     * both of them. If they ever disagree the visitor sees an empty state
+     * stacked on top of the hierarchy it claims is not there, so the
+     * relationship is asserted over every combination rather than sampled.
+     */
+    test("never contradicts shouldRenderResourcesSection", () => {
+      const counts: Array<number> = [0, 1, 2, 1506];
+
+      for (const statusPageResourceCount of counts) {
+        for (const statusPageGroupCount of counts) {
+          const rendersSection: boolean =
+            StatusPageGroupNestingLayoutUtil.shouldRenderResourcesSection({
+              statusPageResourceCount: statusPageResourceCount,
+              statusPageGroupCount: statusPageGroupCount,
+            });
+
+          const rendersEmptyState: boolean = emptyPage({
+            statusPageResourceCount: statusPageResourceCount,
+            statusPageGroupCount: statusPageGroupCount,
+          });
+
+          expect(rendersSection && rendersEmptyState).toBe(false);
+          expect(rendersSection || rendersEmptyState).toBe(true);
+        }
+      }
+    });
+  });
+
   describe("shouldRenderTimeAxis", () => {
     const CHARTED: ObjectID = new ObjectID(
       "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",

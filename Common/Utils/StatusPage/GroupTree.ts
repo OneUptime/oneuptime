@@ -7,6 +7,34 @@ export interface StatusPageGroupTreeNode {
 }
 
 /*
+ * A parent -> children index over one list of groups, plus the id lookup that
+ * goes with it.
+ *
+ * Every helper here used to answer "who are this group's children?" by
+ * filtering the whole list, which made one walk of the tree cost O(groups) per
+ * node it touched. That is invisible at a dozen groups and is not invisible at
+ * fifteen hundred: a status page that size renders the same subtree walk once
+ * per group per render. Building the buckets once turns each of those lookups
+ * into a map read.
+ *
+ * Callers that walk the same list more than once (the status page overview
+ * renders a rollup per group; the uptime endpoint rolls up per group) should
+ * build one of these with buildIndex and hand it to every call. Callers that
+ * only ask one question can leave it out - each method builds its own, which
+ * still costs one pass over the list rather than one pass per node.
+ */
+export interface StatusPageGroupTreeIndex {
+  /*
+   * Keyed by StatusPageGroupTreeUtil.getParentId, so `null` is the bucket of
+   * groups with no usable parent pointer. A plain string key would collide
+   * with groups that carry no id of their own, which read as "" everywhere
+   * else in this class.
+   */
+  childrenByParentId: Map<string | null, Array<StatusPageGroup>>;
+  byId: Map<string, StatusPageGroup>;
+}
+
+/*
  * Status page groups form a tree: a group may be nested under another group
  * (Corporate Unit -> Region -> Market -> Site), and each level rolls up the
  * status and uptime of everything below it.
@@ -42,17 +70,69 @@ export default class StatusPageGroupTreeUtil {
     return parentId;
   }
 
+  /*
+   * One pass over the list. Siblings come out of each bucket in `order`, which
+   * is the same order filtering the whole list and sorting it produced -
+   * bucketing keeps the incoming order and the sort below is stable, so groups
+   * that share an order (or have none) keep their incoming position.
+   */
+  public static buildIndex(data: {
+    statusPageGroups: Array<StatusPageGroup>;
+  }): StatusPageGroupTreeIndex {
+    const childrenByParentId: Map<
+      string | null,
+      Array<StatusPageGroup>
+    > = new Map<string | null, Array<StatusPageGroup>>();
+
+    const byId: Map<string, StatusPageGroup> = new Map<
+      string,
+      StatusPageGroup
+    >();
+
+    for (const group of data.statusPageGroups) {
+      const groupId: string | undefined = group._id?.toString();
+
+      if (groupId) {
+        byId.set(groupId, group);
+      }
+
+      const parentId: string | null = this.getParentId(group);
+      const siblings: Array<StatusPageGroup> | undefined =
+        childrenByParentId.get(parentId);
+
+      if (siblings) {
+        siblings.push(group);
+      } else {
+        childrenByParentId.set(parentId, [group]);
+      }
+    }
+
+    for (const siblings of childrenByParentId.values()) {
+      this.sortByOrderInPlace(siblings);
+    }
+
+    return {
+      childrenByParentId: childrenByParentId,
+      byId: byId,
+    };
+  }
+
   public static getChildGroups(data: {
     statusPageGroupId: string | null;
     statusPageGroups: Array<StatusPageGroup>;
+    index?: StatusPageGroupTreeIndex | undefined;
   }): Array<StatusPageGroup> {
-    const children: Array<StatusPageGroup> = data.statusPageGroups.filter(
-      (group: StatusPageGroup) => {
-        return this.getParentId(group) === data.statusPageGroupId;
-      },
-    );
-
-    return this.sortByOrder(children);
+    /*
+     * A copy rather than the index's own bucket: this is public, and handing a
+     * caller the array the index is built on invites a mutation that would
+     * quietly corrupt every later lookup.
+     */
+    return [
+      ...this.getChildGroupsFromIndex({
+        statusPageGroupId: data.statusPageGroupId,
+        index: this.resolveIndex(data),
+      }),
+    ];
   }
 
   /*
@@ -61,13 +141,19 @@ export default class StatusPageGroupTreeUtil {
    */
   public static getRootGroups(data: {
     statusPageGroups: Array<StatusPageGroup>;
+    index?: StatusPageGroupTreeIndex | undefined;
   }): Array<StatusPageGroup> {
-    const idsInList: Set<string> = this.getIdSet(data.statusPageGroups);
+    const index: StatusPageGroupTreeIndex = this.resolveIndex(data);
 
+    /*
+     * A scan of the whole list rather than a concatenation of the orphan
+     * buckets, so roots that share an order (or have none) keep the relative
+     * position they arrived in.
+     */
     const roots: Array<StatusPageGroup> = data.statusPageGroups.filter(
       (group: StatusPageGroup) => {
         const parentId: string | null = this.getParentId(group);
-        return !parentId || !idsInList.has(parentId);
+        return !parentId || !index.byId.has(parentId);
       },
     );
 
@@ -81,7 +167,9 @@ export default class StatusPageGroupTreeUtil {
    */
   public static buildTree(data: {
     statusPageGroups: Array<StatusPageGroup>;
+    index?: StatusPageGroupTreeIndex | undefined;
   }): Array<StatusPageGroupTreeNode> {
+    const index: StatusPageGroupTreeIndex = this.resolveIndex(data);
     const visited: Set<string> = new Set<string>();
 
     const buildNode: (
@@ -94,16 +182,17 @@ export default class StatusPageGroupTreeUtil {
       const groupId: string = group._id?.toString() || "";
       visited.add(groupId);
 
-      const children: Array<StatusPageGroupTreeNode> = this.getChildGroups({
-        statusPageGroupId: groupId,
-        statusPageGroups: data.statusPageGroups,
-      })
-        .filter((child: StatusPageGroup) => {
-          return !visited.has(child._id?.toString() || "");
+      const children: Array<StatusPageGroupTreeNode> =
+        this.getChildGroupsFromIndex({
+          statusPageGroupId: groupId,
+          index: index,
         })
-        .map((child: StatusPageGroup) => {
-          return buildNode(child, depth + 1);
-        });
+          .filter((child: StatusPageGroup) => {
+            return !visited.has(child._id?.toString() || "");
+          })
+          .map((child: StatusPageGroup) => {
+            return buildNode(child, depth + 1);
+          });
 
       return {
         group: group,
@@ -114,6 +203,7 @@ export default class StatusPageGroupTreeUtil {
 
     const tree: Array<StatusPageGroupTreeNode> = this.getRootGroups({
       statusPageGroups: data.statusPageGroups,
+      index: index,
     }).map((root: StatusPageGroup) => {
       return buildNode(root, 0);
     });
@@ -137,15 +227,18 @@ export default class StatusPageGroupTreeUtil {
   public static getDescendantGroups(data: {
     statusPageGroup: StatusPageGroup;
     statusPageGroups: Array<StatusPageGroup>;
+    index?: StatusPageGroupTreeIndex | undefined;
   }): Array<StatusPageGroup> {
+    const index: StatusPageGroupTreeIndex = this.resolveIndex(data);
+
     const descendants: Array<StatusPageGroup> = [];
     const visited: Set<string> = new Set<string>([
       data.statusPageGroup._id?.toString() || "",
     ]);
 
-    let frontier: Array<StatusPageGroup> = this.getChildGroups({
+    let frontier: Array<StatusPageGroup> = this.getChildGroupsFromIndex({
       statusPageGroupId: data.statusPageGroup._id?.toString() || "",
-      statusPageGroups: data.statusPageGroups,
+      index: index,
     });
 
     while (frontier.length > 0) {
@@ -162,9 +255,9 @@ export default class StatusPageGroupTreeUtil {
         descendants.push(group);
 
         nextFrontier.push(
-          ...this.getChildGroups({
+          ...this.getChildGroupsFromIndex({
             statusPageGroupId: groupId,
-            statusPageGroups: data.statusPageGroups,
+            index: index,
           }),
         );
       }
@@ -182,12 +275,14 @@ export default class StatusPageGroupTreeUtil {
   public static getGroupAndDescendants(data: {
     statusPageGroup: StatusPageGroup;
     statusPageGroups: Array<StatusPageGroup>;
+    index?: StatusPageGroupTreeIndex | undefined;
   }): Array<StatusPageGroup> {
     return [
       data.statusPageGroup,
       ...this.getDescendantGroups({
         statusPageGroup: data.statusPageGroup,
         statusPageGroups: data.statusPageGroups,
+        index: data.index,
       }),
     ];
   }
@@ -198,10 +293,9 @@ export default class StatusPageGroupTreeUtil {
   public static getAncestorGroups(data: {
     statusPageGroup: StatusPageGroup;
     statusPageGroups: Array<StatusPageGroup>;
+    index?: StatusPageGroupTreeIndex | undefined;
   }): Array<StatusPageGroup> {
-    const byId: Map<string, StatusPageGroup> = this.getGroupsById(
-      data.statusPageGroups,
-    );
+    const byId: Map<string, StatusPageGroup> = this.resolveIndex(data).byId;
 
     const ancestors: Array<StatusPageGroup> = [];
     const visited: Set<string> = new Set<string>([
@@ -231,10 +325,12 @@ export default class StatusPageGroupTreeUtil {
   public static getDepth(data: {
     statusPageGroup: StatusPageGroup;
     statusPageGroups: Array<StatusPageGroup>;
+    index?: StatusPageGroupTreeIndex | undefined;
   }): number {
     return this.getAncestorGroups({
       statusPageGroup: data.statusPageGroup,
       statusPageGroups: data.statusPageGroups,
+      index: data.index,
     }).length;
   }
 
@@ -242,48 +338,39 @@ export default class StatusPageGroupTreeUtil {
     statusPageGroup: StatusPageGroup;
     possibleAncestorId: string;
     statusPageGroups: Array<StatusPageGroup>;
+    index?: StatusPageGroupTreeIndex | undefined;
   }): boolean {
     return this.getAncestorGroups({
       statusPageGroup: data.statusPageGroup,
       statusPageGroups: data.statusPageGroups,
+      index: data.index,
     }).some((ancestor: StatusPageGroup) => {
       return ancestor._id?.toString() === data.possibleAncestorId;
     });
   }
 
-  private static getGroupsById(
-    statusPageGroups: Array<StatusPageGroup>,
-  ): Map<string, StatusPageGroup> {
-    const byId: Map<string, StatusPageGroup> = new Map<
-      string,
-      StatusPageGroup
-    >();
-
-    for (const group of statusPageGroups) {
-      const groupId: string | undefined = group._id?.toString();
-
-      if (groupId) {
-        byId.set(groupId, group);
-      }
-    }
-
-    return byId;
+  private static resolveIndex(data: {
+    statusPageGroups: Array<StatusPageGroup>;
+    index?: StatusPageGroupTreeIndex | undefined;
+  }): StatusPageGroupTreeIndex {
+    return (
+      data.index ||
+      this.buildIndex({
+        statusPageGroups: data.statusPageGroups,
+      })
+    );
   }
 
-  private static getIdSet(
-    statusPageGroups: Array<StatusPageGroup>,
-  ): Set<string> {
-    const ids: Set<string> = new Set<string>();
-
-    for (const group of statusPageGroups) {
-      const groupId: string | undefined = group._id?.toString();
-
-      if (groupId) {
-        ids.add(groupId);
-      }
-    }
-
-    return ids;
+  /*
+   * The index's own bucket, not a copy. Internal callers below only ever read
+   * it or spread it, and a tree walk that copies every sibling list at every
+   * node is most of what this index exists to avoid.
+   */
+  private static getChildGroupsFromIndex(data: {
+    statusPageGroupId: string | null;
+    index: StatusPageGroupTreeIndex;
+  }): Array<StatusPageGroup> {
+    return data.index.childrenByParentId.get(data.statusPageGroupId) || [];
   }
 
   /*
@@ -293,15 +380,19 @@ export default class StatusPageGroupTreeUtil {
   private static sortByOrder(
     statusPageGroups: Array<StatusPageGroup>,
   ): Array<StatusPageGroup> {
-    return [...statusPageGroups].sort(
-      (a: StatusPageGroup, b: StatusPageGroup) => {
-        const orderA: number =
-          typeof a.order === "number" ? a.order : Number.MAX_SAFE_INTEGER;
-        const orderB: number =
-          typeof b.order === "number" ? b.order : Number.MAX_SAFE_INTEGER;
+    return this.sortByOrderInPlace([...statusPageGroups]);
+  }
 
-        return orderA - orderB;
-      },
-    );
+  private static sortByOrderInPlace(
+    statusPageGroups: Array<StatusPageGroup>,
+  ): Array<StatusPageGroup> {
+    return statusPageGroups.sort((a: StatusPageGroup, b: StatusPageGroup) => {
+      const orderA: number =
+        typeof a.order === "number" ? a.order : Number.MAX_SAFE_INTEGER;
+      const orderB: number =
+        typeof b.order === "number" ? b.order : Number.MAX_SAFE_INTEGER;
+
+      return orderA - orderB;
+    });
   }
 }
