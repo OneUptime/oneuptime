@@ -18,14 +18,22 @@ export default function downloadFile(data: {
         });
 
   const url: string = window.URL.createObjectURL(blob);
-  const anchor: HTMLAnchorElement = document.createElement("a");
-  anchor.href = url;
-  anchor.download = data.filename;
-  anchor.rel = "noopener";
-  document.body.appendChild(anchor);
-  anchor.click();
-  document.body.removeChild(anchor);
-  window.URL.revokeObjectURL(url);
+  let anchor: HTMLAnchorElement | null = null;
+
+  try {
+    anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = data.filename;
+    anchor.rel = "noopener";
+    document.body.appendChild(anchor);
+    anchor.click();
+  } finally {
+    if (anchor?.parentNode) {
+      anchor.parentNode.removeChild(anchor);
+    }
+
+    window.URL.revokeObjectURL(url);
+  }
 }
 
 /*
