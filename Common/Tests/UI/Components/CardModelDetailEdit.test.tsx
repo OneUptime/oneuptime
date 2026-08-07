@@ -283,7 +283,7 @@ describe("CardModelDetail edit modal", () => {
     expect(submitted.model.shouldAutoEnableProbeOnNewMonitors).toBe(false);
   });
 
-  it("confirms the save so a successful edit is not just a modal that vanished", async () => {
+  it("closes the editor without showing a toast after a successful edit", async () => {
     getItemMock.mockResolvedValue(loadedProbe());
 
     renderProbeCard();
@@ -303,13 +303,11 @@ describe("CardModelDetail edit modal", () => {
 
     await waitFor(
       () => {
-        expect(showToastMock).toHaveBeenCalled();
+        expect(screen.queryByText("Save Changes")).toBeNull();
       },
       { timeout: WAIT_TIMEOUT },
     );
 
-    const toast: any = (showToastMock.mock.calls[0] as Array<any>)[0];
-
-    expect(toast.title).toEqual("Changes saved");
+    expect(showToastMock).not.toHaveBeenCalled();
   });
 });

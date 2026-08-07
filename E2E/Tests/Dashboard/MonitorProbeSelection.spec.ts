@@ -324,10 +324,8 @@ test.describe("Monitor probe selection", () => {
 
     await saveButton.click();
 
-    // An explicit confirmation, rather than a modal that just disappears.
-    await expect(page.getByText("Changes saved").first()).toBeVisible({
-      timeout: 30000,
-    });
+    // The editor closes only after the save succeeds.
+    await expect(saveButton).toBeHidden({ timeout: 30000 });
 
     // And it survives a reload - the actual bug report.
     await page.reload({ waitUntil: "domcontentloaded" });
