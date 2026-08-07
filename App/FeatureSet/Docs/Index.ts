@@ -19,11 +19,12 @@ import Express, {
   ExpressStatic,
   NextFunction,
 } from "Common/Server/Utils/Express";
+import DocsPlaceholders from "./Utils/Placeholders";
 import Response from "Common/Server/Utils/Response";
 import LocalFile from "Common/Server/Utils/LocalFile";
 import logger from "Common/Server/Utils/Logger";
 import "ejs";
-import { IsBillingEnabled, IpWhitelist } from "Common/Server/EnvironmentConfig";
+import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 
 /*
  * Read a markdown file for the given language, falling back to English when
@@ -293,7 +294,11 @@ const DocsFeatureSet: FeatureSet = {
             res.status(404);
             return res.send("");
           }
-          return Response.sendMarkdownResponse(req, res, content);
+          return Response.sendMarkdownResponse(
+            req,
+            res,
+            DocsPlaceholders.render(content, lang),
+          );
         } catch (err) {
           logger.error(err);
           return next(err);
@@ -319,7 +324,11 @@ const DocsFeatureSet: FeatureSet = {
             res.status(404);
             return res.send("");
           }
-          return Response.sendMarkdownResponse(req, res, content);
+          return Response.sendMarkdownResponse(
+            req,
+            res,
+            DocsPlaceholders.render(content, DEFAULT_DOCS_LANGUAGE),
+          );
         } catch (err) {
           logger.error(err);
           return next(err);
@@ -375,22 +384,7 @@ const DocsFeatureSet: FeatureSet = {
            */
           contentInMarkdown = contentInMarkdown.split("\n").slice(1).join("\n");
 
-          if (contentInMarkdown.includes("{{IP_WHITELIST}}")) {
-            const ipList: string = IpWhitelist
-              ? IpWhitelist.split(",")
-                  .map((ip: string) => {
-                    return `- ${ip.trim()}`;
-                  })
-                  .filter((line: string) => {
-                    return line.length > 2;
-                  })
-                  .join("\n")
-              : "- No IP addresses configured.";
-            contentInMarkdown = contentInMarkdown.replace(
-              "{{IP_WHITELIST}}",
-              ipList,
-            );
-          }
+          contentInMarkdown = DocsPlaceholders.render(contentInMarkdown, lang);
 
           const renderedContent: string =
             await DocsRender.render(contentInMarkdown);
