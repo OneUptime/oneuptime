@@ -19,6 +19,7 @@ import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
+import { TelemetrySavedViewTimeRange } from "../../Types/Telemetry/TelemetrySavedViewState";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
@@ -429,6 +430,38 @@ export default class LogSavedView extends BaseModel {
     default: 100,
   })
   public pageSize?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+  })
+  @TableColumn({
+    title: "Time Range",
+    required: false,
+    type: TableColumnType.JSON,
+    canReadOnRelationQuery: true,
+    description:
+      "Time selection for this saved view — the rolling range token (e.g. Past 1 Hour), or an absolute window when the range is Custom.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public timeRange?: TelemetrySavedViewTimeRange = undefined;
 
   @ColumnAccessControl({
     create: [
