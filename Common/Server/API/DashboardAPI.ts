@@ -15,11 +15,9 @@ import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotFoundException from "../../Types/Exception/NotFoundException";
-import HashedString from "../../Types/HashedString";
 import ObjectID from "../../Types/ObjectID";
 import Dashboard from "../../Models/DatabaseModels/Dashboard";
 import DashboardDomain from "../../Models/DatabaseModels/DashboardDomain";
-import { EncryptionSecret } from "../EnvironmentConfig";
 import { DASHBOARD_MASTER_PASSWORD_INVALID_MESSAGE } from "../../Types/Dashboard/MasterPassword";
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
 import ForbiddenException from "../../Types/Exception/ForbiddenException";
@@ -1541,10 +1539,9 @@ export default class DashboardAPI extends BaseAPI<
             req.params["dashboardId"] as string,
           );
 
-          const password: string | undefined =
-            req.body && (req.body["password"] as string);
+          const password: unknown = req.body && req.body["password"];
 
-          if (!password) {
+          if (typeof password !== "string" || !password) {
             throw new BadDataException("Master password is required.");
           }
 
@@ -1556,6 +1553,7 @@ export default class DashboardAPI extends BaseAPI<
                 projectId: true,
                 enableMasterPassword: true,
                 masterPassword: true,
+                masterPasswordSalt: true,
                 isPublicDashboard: true,
               },
               props: {
@@ -1579,12 +1577,14 @@ export default class DashboardAPI extends BaseAPI<
             );
           }
 
-          const hashedInput: string = await HashedString.hashValue(
-            password,
-            EncryptionSecret,
-          );
+          const isMasterPasswordValid: boolean =
+            await DashboardService.verifyHashedColumnValue({
+              item: dashboard,
+              columnName: "masterPassword",
+              plainValue: password,
+            });
 
-          if (hashedInput !== dashboard.masterPassword.toString()) {
+          if (!isMasterPasswordValid) {
             throw new BadDataException(
               DASHBOARD_MASTER_PASSWORD_INVALID_MESSAGE,
             );

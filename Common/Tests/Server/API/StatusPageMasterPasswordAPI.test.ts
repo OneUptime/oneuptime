@@ -1,23 +1,19 @@
-import Dashboard from "../../../Models/DatabaseModels/Dashboard";
-import DashboardAPI from "../../../Server/API/DashboardAPI";
+import StatusPage from "../../../Models/DatabaseModels/StatusPage";
+import StatusPageAPI from "../../../Server/API/StatusPageAPI";
 import { EncryptionSecret } from "../../../Server/EnvironmentConfig";
-import DashboardService from "../../../Server/Services/DashboardService";
+import StatusPageService from "../../../Server/Services/StatusPageService";
 import CookieUtil from "../../../Server/Utils/Cookie";
-import PasswordHash from "../../../Server/Utils/PasswordHash";
 import {
   ExpressRequest,
   ExpressResponse,
   NextFunction,
 } from "../../../Server/Utils/Express";
+import PasswordHash from "../../../Server/Utils/PasswordHash";
 import Response from "../../../Server/Utils/Response";
-import {
-  DASHBOARD_MASTER_PASSWORD_INVALID_MESSAGE,
-  DASHBOARD_MASTER_PASSWORD_REQUIRED_MESSAGE,
-} from "../../../Types/Dashboard/MasterPassword";
 import BadDataException from "../../../Types/Exception/BadDataException";
-import MasterPasswordRequiredException from "../../../Types/Exception/MasterPasswordRequiredException";
 import HashedString from "../../../Types/HashedString";
 import ObjectID from "../../../Types/ObjectID";
+import { MASTER_PASSWORD_INVALID_MESSAGE } from "../../../Types/StatusPage/MasterPassword";
 import { mockRouter } from "./Helpers";
 import {
   afterEach,
@@ -26,6 +22,7 @@ import {
   describe,
   expect,
   it,
+  jest,
 } from "@jest/globals";
 
 jest.mock("../../../Server/Utils/Express", () => {
@@ -54,42 +51,42 @@ jest.mock("../../../Server/Utils/Response", () => {
   };
 });
 
-describe("DashboardAPI master password", () => {
+describe("StatusPageAPI master password", () => {
   const password: string = "correct horse battery staple";
 
-  let dashboardId: ObjectID;
-  let dashboard: Dashboard;
+  let statusPageId: ObjectID;
+  let statusPage: StatusPage;
   let mockRequest: ExpressRequest;
   let mockResponse: ExpressResponse;
   let nextFunction: NextFunction;
 
   beforeAll(() => {
     mockRouter.routes.length = 0;
-    new DashboardAPI();
+    new StatusPageAPI();
   });
 
   beforeEach(async () => {
     jest.clearAllMocks();
 
-    dashboardId = ObjectID.generate();
-    dashboard = new Dashboard();
-    dashboard.id = dashboardId;
-    dashboard.isPublicDashboard = true;
-    dashboard.enableMasterPassword = true;
-    dashboard.masterPasswordSalt = PasswordHash.generateSalt();
-    dashboard.masterPassword = new HashedString(
+    statusPageId = ObjectID.generate();
+    statusPage = new StatusPage();
+    statusPage.id = statusPageId;
+    statusPage.isPublicStatusPage = false;
+    statusPage.enableMasterPassword = true;
+    statusPage.masterPasswordSalt = PasswordHash.generateSalt();
+    statusPage.masterPassword = new HashedString(
       await PasswordHash.hash({
         plainValue: password,
-        salt: dashboard.masterPasswordSalt,
+        salt: statusPage.masterPasswordSalt,
       }),
       true,
     );
 
-    jest.spyOn(DashboardService, "findOneById").mockResolvedValue(dashboard);
+    jest.spyOn(StatusPageService, "findOneById").mockResolvedValue(statusPage);
 
     mockRequest = {
       params: {
-        dashboardId: dashboardId.toString(),
+        statusPageId: statusPageId.toString(),
       },
       body: {
         password,
@@ -114,39 +111,9 @@ describe("DashboardAPI master password", () => {
     jest.restoreAllMocks();
   });
 
-  it("denies a protected public dashboard when no master-password cookie is present", async () => {
-    const result: Awaited<ReturnType<typeof DashboardService.hasReadAccess>> =
-      await DashboardService.hasReadAccess({
-        dashboardId,
-        req: mockRequest,
-      });
-
-    expect(result.hasReadAccess).toBe(false);
-    expect(result.error).toBeInstanceOf(MasterPasswordRequiredException);
-    expect(result.error?.message).toBe(
-      DASHBOARD_MASTER_PASSWORD_REQUIRED_MESSAGE,
-    );
-  });
-
-  it("fails closed when master-password protection is enabled without a stored password", async () => {
-    delete dashboard.masterPassword;
-
-    const result: Awaited<ReturnType<typeof DashboardService.hasReadAccess>> =
-      await DashboardService.hasReadAccess({
-        dashboardId,
-        req: mockRequest,
-      });
-
-    expect(result.hasReadAccess).toBe(false);
-    expect(result.error).toBeInstanceOf(MasterPasswordRequiredException);
-    expect(result.error?.message).toBe(
-      DASHBOARD_MASTER_PASSWORD_REQUIRED_MESSAGE,
-    );
-  });
-
-  it("issues a dashboard-scoped cookie for the correct password and unlocks only that dashboard", async () => {
+  it("issues a status-page-scoped cookie for the correct current scrypt password", async () => {
     await mockRouter
-      .match("post", "/dashboard/master-password/:dashboardId")
+      .match("post", "/status-page/master-password/:statusPageId")
       .handlerFunction(mockRequest, mockResponse, nextFunction);
 
     expect(nextFunction).not.toHaveBeenCalled();
@@ -162,9 +129,8 @@ describe("DashboardAPI master password", () => {
     const cookieToken: string = cookieCall[1] as string;
 
     expect(cookieName).toBe(
-      CookieUtil.getDashboardMasterPasswordKey(dashboardId),
+      CookieUtil.getStatusPageMasterPasswordKey(statusPageId),
     );
-    expect(cookieToken).toEqual(expect.any(String));
 
     const unlockedRequest: ExpressRequest = {
       cookies: {
@@ -175,47 +141,21 @@ describe("DashboardAPI master password", () => {
       ips: [],
     } as unknown as ExpressRequest;
 
-    const unlockedResult: Awaited<
-      ReturnType<typeof DashboardService.hasReadAccess>
-    > = await DashboardService.hasReadAccess({
-      dashboardId,
-      req: unlockedRequest,
-    });
-
-    expect(unlockedResult.hasReadAccess).toBe(true);
-    expect(unlockedResult.error).toBeUndefined();
-
-    const otherDashboardId: ObjectID = ObjectID.generate();
-    const copiedCookieRequest: ExpressRequest = {
-      cookies: {
-        [CookieUtil.getDashboardMasterPasswordKey(otherDashboardId)]:
-          cookieToken,
-      },
-      headers: {},
-      socket: {},
-      ips: [],
-    } as unknown as ExpressRequest;
-
-    const isolatedResult: Awaited<
-      ReturnType<typeof DashboardService.hasReadAccess>
-    > = await DashboardService.hasReadAccess({
-      dashboardId: otherDashboardId,
-      req: copiedCookieRequest,
-    });
-
-    expect(isolatedResult.hasReadAccess).toBe(false);
-    expect(isolatedResult.error).toBeInstanceOf(
-      MasterPasswordRequiredException,
-    );
+    await expect(
+      StatusPageService.hasReadAccess({
+        statusPageId,
+        req: unlockedRequest,
+      }),
+    ).resolves.toEqual({ hasReadAccess: true });
   });
 
-  it("verifies a current scrypt password without rewriting it", async () => {
+  it("does not rewrite a hash already using current scrypt parameters", async () => {
     const updateSpy: ReturnType<typeof jest.spyOn> = jest
-      .spyOn(DashboardService, "updateColumnsByIdWithoutHooks")
+      .spyOn(StatusPageService, "updateColumnsByIdWithoutHooks")
       .mockResolvedValue(undefined);
 
     await mockRouter
-      .match("post", "/dashboard/master-password/:dashboardId")
+      .match("post", "/status-page/master-password/:statusPageId")
       .handlerFunction(mockRequest, mockResponse, nextFunction);
 
     expect(nextFunction).not.toHaveBeenCalled();
@@ -227,16 +167,15 @@ describe("DashboardAPI master password", () => {
     mockRequest.body["password"] = "incorrect password";
 
     await mockRouter
-      .match("post", "/dashboard/master-password/:dashboardId")
+      .match("post", "/status-page/master-password/:statusPageId")
       .handlerFunction(mockRequest, mockResponse, nextFunction);
 
     expect(nextFunction).toHaveBeenCalledTimes(1);
-
     const error: unknown = (nextFunction as jest.Mock).mock.calls[0]?.[0];
 
     expect(error).toBeInstanceOf(BadDataException);
     expect((error as BadDataException).message).toBe(
-      DASHBOARD_MASTER_PASSWORD_INVALID_MESSAGE,
+      MASTER_PASSWORD_INVALID_MESSAGE,
     );
     expect(mockResponse.cookie).not.toHaveBeenCalled();
     expect(Response.sendEmptySuccessResponse).not.toHaveBeenCalled();
@@ -248,12 +187,12 @@ describe("DashboardAPI master password", () => {
       (mockRequest.body as Record<string, unknown>)["password"] =
         invalidPassword;
       const verifySpy: ReturnType<typeof jest.spyOn> = jest.spyOn(
-        DashboardService,
+        StatusPageService,
         "verifyHashedColumnValue",
       );
 
       await mockRouter
-        .match("post", "/dashboard/master-password/:dashboardId")
+        .match("post", "/status-page/master-password/:statusPageId")
         .handlerFunction(mockRequest, mockResponse, nextFunction);
 
       expect(nextFunction).toHaveBeenCalledTimes(1);
@@ -264,16 +203,16 @@ describe("DashboardAPI master password", () => {
         "Master password is required.",
       );
       expect(verifySpy).not.toHaveBeenCalled();
-      expect(DashboardService.findOneById).not.toHaveBeenCalled();
+      expect(StatusPageService.findOneById).not.toHaveBeenCalled();
       expect(mockResponse.cookie).not.toHaveBeenCalled();
     },
   );
 
-  it("uses this dashboard's selected salt when checking the password", async () => {
-    dashboard.masterPasswordSalt = PasswordHash.generateSalt();
+  it("uses this status page's selected salt when checking the password", async () => {
+    statusPage.masterPasswordSalt = PasswordHash.generateSalt();
 
     await mockRouter
-      .match("post", "/dashboard/master-password/:dashboardId")
+      .match("post", "/status-page/master-password/:statusPageId")
       .handlerFunction(mockRequest, mockResponse, nextFunction);
 
     expect(nextFunction).toHaveBeenCalledTimes(1);
@@ -281,17 +220,17 @@ describe("DashboardAPI master password", () => {
 
     expect(error).toBeInstanceOf(BadDataException);
     expect((error as BadDataException).message).toBe(
-      DASHBOARD_MASTER_PASSWORD_INVALID_MESSAGE,
+      MASTER_PASSWORD_INVALID_MESSAGE,
     );
     expect(mockResponse.cookie).not.toHaveBeenCalled();
   });
 
   it("selects the salt needed for verification but never exposes either credential column", async () => {
     await mockRouter
-      .match("post", "/dashboard/master-password/:dashboardId")
+      .match("post", "/status-page/master-password/:statusPageId")
       .handlerFunction(mockRequest, mockResponse, nextFunction);
 
-    expect(DashboardService.findOneById).toHaveBeenCalledWith(
+    expect(StatusPageService.findOneById).toHaveBeenCalledWith(
       expect.objectContaining({
         select: expect.objectContaining({
           masterPassword: true,
@@ -314,26 +253,26 @@ describe("DashboardAPI master password", () => {
 
     expect(serializedCookieArguments).not.toContain(password);
     expect(serializedCookieArguments).not.toContain(
-      dashboard.masterPassword!.toString(),
+      statusPage.masterPassword!.toString(),
     );
     expect(serializedCookieArguments).not.toContain(
-      dashboard.masterPasswordSalt,
+      statusPage.masterPasswordSalt,
     );
   });
 
   it("accepts a legacy unsalted SHA-256 password and upgrades it to scrypt", async () => {
-    dashboard.masterPassword = new HashedString(
+    statusPage.masterPassword = new HashedString(
       await HashedString.hashValue(password, EncryptionSecret),
       true,
     );
-    delete dashboard.masterPasswordSalt;
+    delete statusPage.masterPasswordSalt;
 
     const updateSpy: ReturnType<typeof jest.spyOn> = jest
-      .spyOn(DashboardService, "updateColumnsByIdWithoutHooks")
+      .spyOn(StatusPageService, "updateColumnsByIdWithoutHooks")
       .mockResolvedValue(undefined);
 
     await mockRouter
-      .match("post", "/dashboard/master-password/:dashboardId")
+      .match("post", "/status-page/master-password/:statusPageId")
       .handlerFunction(mockRequest, mockResponse, nextFunction);
 
     expect(nextFunction).not.toHaveBeenCalled();
@@ -352,7 +291,7 @@ describe("DashboardAPI master password", () => {
       skipUpdateDateColumn?: boolean;
     };
 
-    expect(update.id.toString()).toBe(dashboardId.toString());
+    expect(update.id.toString()).toBe(statusPageId.toString());
     expect(update.skipUpdateDateColumn).toBe(true);
     expect(update.data["masterPassword"]).toEqual(
       expect.stringMatching(/^scrypt\$/),
@@ -361,7 +300,7 @@ describe("DashboardAPI master password", () => {
       expect.stringMatching(/^[0-9a-f]{64}$/),
     );
     expect(update.expectedData).toEqual({
-      masterPassword: dashboard.masterPassword!.toString(),
+      masterPassword: statusPage.masterPassword!.toString(),
       masterPasswordSalt: null,
     });
     await expect(
@@ -374,19 +313,19 @@ describe("DashboardAPI master password", () => {
   });
 
   it("does not upgrade a legacy hash when the password is wrong", async () => {
-    dashboard.masterPassword = new HashedString(
+    statusPage.masterPassword = new HashedString(
       await HashedString.hashValue(password, EncryptionSecret),
       true,
     );
-    delete dashboard.masterPasswordSalt;
+    delete statusPage.masterPasswordSalt;
     mockRequest.body["password"] = "incorrect password";
 
     const updateSpy: ReturnType<typeof jest.spyOn> = jest
-      .spyOn(DashboardService, "updateColumnsByIdWithoutHooks")
+      .spyOn(StatusPageService, "updateColumnsByIdWithoutHooks")
       .mockResolvedValue(undefined);
 
     await mockRouter
-      .match("post", "/dashboard/master-password/:dashboardId")
+      .match("post", "/status-page/master-password/:statusPageId")
       .handlerFunction(mockRequest, mockResponse, nextFunction);
 
     expect(nextFunction).toHaveBeenCalledTimes(1);

@@ -53,7 +53,6 @@ import JSONFunctions from "../../Types/JSONFunctions";
 import ObjectID from "../../Types/ObjectID";
 import Phone from "../../Types/Phone";
 import PositiveNumber from "../../Types/PositiveNumber";
-import HashedString from "../../Types/HashedString";
 import AcmeChallenge from "../../Models/DatabaseModels/AcmeChallenge";
 import Incident from "../../Models/DatabaseModels/Incident";
 import IncidentEpisode from "../../Models/DatabaseModels/IncidentEpisode";
@@ -102,7 +101,6 @@ import Hostname from "../../Types/API/Hostname";
 import Protocol from "../../Types/API/Protocol";
 import DatabaseConfig from "../DatabaseConfig";
 import CookieUtil from "../Utils/Cookie";
-import { EncryptionSecret } from "../EnvironmentConfig";
 import { StatusPageApiRoute } from "../../ServiceRoute";
 import ProjectSmtpConfigService from "../Services/ProjectSmtpConfigService";
 import ForbiddenException from "../../Types/Exception/ForbiddenException";
@@ -943,10 +941,9 @@ export default class StatusPageAPI extends BaseAPI<
             req.params["statusPageId"] as string,
           );
 
-          const password: string | undefined =
-            req.body && (req.body["password"] as string);
+          const password: unknown = req.body && req.body["password"];
 
-          if (!password) {
+          if (typeof password !== "string" || !password) {
             throw new BadDataException("Master password is required.");
           }
 
@@ -958,6 +955,7 @@ export default class StatusPageAPI extends BaseAPI<
                 projectId: true,
                 enableMasterPassword: true,
                 masterPassword: true,
+                masterPasswordSalt: true,
                 isPublicStatusPage: true,
               },
               props: {
@@ -981,12 +979,14 @@ export default class StatusPageAPI extends BaseAPI<
             );
           }
 
-          const hashedInput: string = await HashedString.hashValue(
-            password,
-            EncryptionSecret,
-          );
+          const isMasterPasswordValid: boolean =
+            await StatusPageService.verifyHashedColumnValue({
+              item: statusPage,
+              columnName: "masterPassword",
+              plainValue: password,
+            });
 
-          if (hashedInput !== statusPage.masterPassword.toString()) {
+          if (!isMasterPasswordValid) {
             throw new BadDataException(MASTER_PASSWORD_INVALID_MESSAGE);
           }
 

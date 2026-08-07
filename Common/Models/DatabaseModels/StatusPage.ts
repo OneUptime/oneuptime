@@ -1183,6 +1183,7 @@ export default class StatusPage extends BaseModel {
     description:
       "Password required to unlock a private status page. This value is stored as a secure hash.",
     hashed: true,
+    hashSaltColumn: "masterPasswordSalt",
     type: TableColumnType.HashedString,
     placeholder: "Enter a new master password",
   })
@@ -1193,6 +1194,33 @@ export default class StatusPage extends BaseModel {
     transformer: HashedString.getDatabaseTransformer(),
   })
   public masterPassword?: HashedString = undefined;
+
+  /*
+   * Per-status-page salt mixed into `masterPassword`. Written by the database
+   * write path on every master-password write and never exposed to API
+   * callers. Nullable so existing unsalted hashes can be verified and
+   * upgraded after a successful unlock.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    title: "Master Password Salt",
+    description:
+      "Per-status-page random salt mixed into this status page's master password hash.",
+    computed: true,
+    type: TableColumnType.ShortText,
+    hideColumnInDocumentation: true,
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    unique: false,
+    nullable: true,
+  })
+  public masterPasswordSalt?: string = undefined;
 
   @ColumnAccessControl({
     create: [

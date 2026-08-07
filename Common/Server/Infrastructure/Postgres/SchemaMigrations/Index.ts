@@ -506,6 +506,7 @@ import { RestoreServiceLowerNameIndex1786100000000 } from "./1786100000000-Resto
 import { MigrationName1786101798351 } from "./1786101798351-MigrationName";
 import { RestoreDroppedUniqueIndexes1786200000000 } from "./1786200000000-RestoreDroppedUniqueIndexes";
 import { QuarantineUnboundGitHubInstallations1786300000000 } from "./1786300000000-QuarantineUnboundGitHubInstallations";
+import { AddMasterPasswordSalt1786400000000 } from "./1786400000000-AddMasterPasswordSalt";
 
 export default [
   InitialMigration,
@@ -1016,4 +1017,5 @@ export default [
   RestoreDroppedUniqueIndexes1786200000000,
   QuarantineUnboundGitHubInstallations1786300000000,
   MigrationName1786101798351,
+  AddMasterPasswordSalt1786400000000,
 ];

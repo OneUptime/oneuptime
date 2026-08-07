@@ -1,13 +1,13 @@
 import UserService from "../../../Server/Services/UserService";
 import StatusPagePrivateUserService from "../../../Server/Services/StatusPagePrivateUserService";
-import DashboardService from "../../../Server/Services/DashboardService";
+import UserSessionService from "../../../Server/Services/UserSessionService";
 import ColumnPermissions from "../../../Server/Types/Database/Permissions/ColumnPermission";
 import DatabaseRequestType from "../../../Server/Types/BaseDatabase/DatabaseRequestType";
 import PasswordHash from "../../../Server/Utils/PasswordHash";
 import { EncryptionSecret } from "../../../Server/EnvironmentConfig";
 import User from "../../../Models/DatabaseModels/User";
 import StatusPagePrivateUser from "../../../Models/DatabaseModels/StatusPagePrivateUser";
-import Dashboard from "../../../Models/DatabaseModels/Dashboard";
+import UserSession from "../../../Models/DatabaseModels/UserSession";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import TableColumnType from "../../../Types/Database/TableColumnType";
@@ -33,8 +33,8 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
  *   - a salt column that forgets `computed: true` breaks every non-root
  *     create of a row carrying a password, because the create permission
  *     check runs AFTER hashing and would reject a column nobody may write;
- *   - a hashed column with no declared salt column (session refresh tokens,
- *     master passwords) must keep hashing exactly as it always did;
+ *   - a hashed column with no declared salt column (session refresh tokens)
+ *     must keep hashing exactly as it always did;
  *   - an update that does not touch the password must not touch the salt,
  *     or every password in the affected rows stops verifying.
  *
@@ -355,56 +355,57 @@ describe("Update path — sanitizeCreateOrUpdate mints a per-record salt", () =>
   });
 });
 
-describe("Hashed columns that declare no salt column are untouched", () => {
-  test("a dashboard master password still uses the legacy unsalted digest", async () => {
-    /*
-     * Dashboard.masterPassword is `hashed: true` with no hashSaltColumn — a
-     * shared secret, not a per-user credential. Every master password
-     * already stored has to keep verifying, so this digest must not move.
-     */
-    const dashboard: Dashboard = new Dashboard();
-    dashboard.masterPassword = new HashedString("master-password");
+describe("High-entropy hashed columns remain searchable", () => {
+  test("a session refresh token keeps the fast deterministic SHA-256 digest", async () => {
+    const data: JSONObject = (await (
+      UserSessionService as unknown as {
+        sanitizeCreateOrUpdate: SanitizeFunction;
+      }
+    ).sanitizeCreateOrUpdate(
+      {
+        refreshToken: new HashedString("server-generated-refresh-token"),
+      },
+      { isRoot: true },
+    )) as JSONObject;
 
-    await (
-      DashboardService as unknown as { hash: HashFunction<Dashboard> }
-    ).hash(dashboard);
-
-    expect(dashboard.masterPassword!.toString()).toBe(
+    expect(data["refreshToken"]).toBe(
       CryptoJS.SHA256(
-        EncryptionSecret.toString() + "master-password",
+        EncryptionSecret.toString() + "server-generated-refresh-token",
       ).toString(),
     );
   });
 
-  test("no stray salt column is invented for it", async () => {
-    const dashboard: Dashboard = new Dashboard();
-    dashboard.masterPassword = new HashedString("master-password");
-
-    await (
-      DashboardService as unknown as { hash: HashFunction<Dashboard> }
-    ).hash(dashboard);
-
-    expect(
-      new Dashboard().getTableColumnMetadata("masterPassword").hashSaltColumn,
-    ).toBeUndefined();
-    expect(
-      (dashboard as unknown as JSONObject)["passwordSalt"],
-    ).toBeUndefined();
-  });
-
-  test("a bare string is still allowed on an unsalted hashed column", async () => {
-    // The desync guard is scoped to salted columns only.
+  test("refresh tokens do not declare or invent a password salt", async () => {
     const data: JSONObject = (await (
-      DashboardService as unknown as {
+      UserSessionService as unknown as {
         sanitizeCreateOrUpdate: SanitizeFunction;
       }
     ).sanitizeCreateOrUpdate(
-      { masterPassword: "a-raw-digest" },
+      {
+        refreshToken: new HashedString("server-generated-refresh-token"),
+      },
+      { isRoot: true },
+    )) as JSONObject;
+
+    expect(
+      new UserSession().getTableColumnMetadata("refreshToken").hashSaltColumn,
+    ).toBeUndefined();
+    expect(data["refreshTokenSalt"]).toBeUndefined();
+  });
+
+  test("a pre-hashed refresh-token digest remains accepted on update", async () => {
+    const data: JSONObject = (await (
+      UserSessionService as unknown as {
+        sanitizeCreateOrUpdate: SanitizeFunction;
+      }
+    ).sanitizeCreateOrUpdate(
+      { refreshToken: "a-raw-digest" },
       { isRoot: true },
       true,
     )) as JSONObject;
 
-    expect(data["masterPassword"]).toBe("a-raw-digest");
+    expect(data["refreshToken"]).toBe("a-raw-digest");
+    expect(data["refreshTokenSalt"]).toBeUndefined();
   });
 });
 
@@ -415,6 +416,7 @@ describe("Hashed columns that declare no salt column are untouched", () => {
 type UpdateColumnsInput = {
   id: ObjectID;
   data: JSONObject;
+  expectedData?: JSONObject;
   skipUpdateDateColumn?: boolean;
 };
 
@@ -597,6 +599,10 @@ describe("verifyHashedColumnValue — transparent upgrade of legacy hashes", () 
 
     expect(write.id.toString()).toBe(user._id);
     expect(write.data["passwordSalt"]).toMatch(/^[0-9a-f]{64}$/);
+    expect(write.expectedData).toEqual({
+      password: user.password!.toString(),
+      passwordSalt: null,
+    });
 
     // The written hash verifies under the written salt.
     await expect(
@@ -726,6 +732,10 @@ describe("verifyHashedColumnValue — transparent upgrade of legacy hashes", () 
 
     expect(captured).toHaveLength(1);
     expect(captured[0]!.data["password"]).toMatch(/^scrypt\$/);
+    expect(captured[0]!.expectedData).toEqual({
+      password: user.password!.toString(),
+      passwordSalt: salt,
+    });
     // A brand new salt, not the interim one it came in with.
     expect(captured[0]!.data["passwordSalt"]).not.toBe(salt);
   });
