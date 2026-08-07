@@ -256,7 +256,8 @@ test.describe("Monitor summary probe picker", () => {
     // Step 4: Labels is always the final step; leave it empty here.
     await page.getByTestId(submitButtonTestId).click();
     await expect(
-      page.getByRole("combobox", { name: "Labels", exact: true }),
+      // "Labels (Optional)" is the rendered accessible name — match the prefix.
+      page.getByRole("combobox", { name: /^Labels\b/ }),
     ).toBeVisible({ timeout: 30000 });
     await page.getByTestId(submitButtonTestId).click();
 
