@@ -390,6 +390,21 @@ describe("RecordingRuleExpression", () => {
       expect(r.position).toBeUndefined();
     });
 
+    test("32 unary operators still parse", () => {
+      expect(parse(`${"-".repeat(32)}A`).ok).toBe(true);
+    });
+
+    test("33 unary operators are rejected, with no position", () => {
+      const r: ParseError = parseErr(`${"-".repeat(33)}A`);
+      expect(r.error).toBe("Expression nesting too deep");
+      expect(r.position).toBeUndefined();
+    });
+
+    test("parentheses and unary operators share the nesting limit", () => {
+      const input: string = `${"(".repeat(16)}${"-".repeat(17)}A${")".repeat(16)}`;
+      expect(parseErr(input).error).toBe("Expression nesting too deep");
+    });
+
     test("the limit is on nesting, not on expression length", () => {
       // 200 chained additions stay at depth 1 and must not trip the guard.
       let chain: string = "A";
@@ -454,13 +469,26 @@ describe("RecordingRuleExpression", () => {
   });
 
   describe("evaluate edge cases", () => {
-    test("a binding inherited from Object.prototype is not a binding", () => {
+    test("a non-number Object.prototype member is not a binding", () => {
       /*
        * bindings["toString"] is a function, so the typeof guard must reject it
        * rather than letting a prototype member leak into the result.
        */
       const r: ParseResult = parseOk("toString");
       expect(evaluate(r.ast, {})).toBeNull();
+    });
+
+    test("a numeric inherited property is not a binding", () => {
+      const bindings: Record<string, number> = Object.create({ inherited: 7 });
+      const r: ParseResult = parseOk("inherited");
+      expect(evaluate(r.ast, bindings)).toBeNull();
+    });
+
+    test("an own property on a null-prototype binding map is accepted", () => {
+      const bindings: Record<string, number> = Object.create(null);
+      bindings["A"] = 7;
+      const r: ParseResult = parseOk("A");
+      expect(evaluate(r.ast, bindings)).toBe(7);
     });
 
     test("0 / 0 is null rather than NaN", () => {

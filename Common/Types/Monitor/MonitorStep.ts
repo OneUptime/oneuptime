@@ -1144,8 +1144,17 @@ export default class MonitorStep extends DatabaseProperty {
       dnsMonitor: json["dnsMonitor"]
         ? (json["dnsMonitor"] as JSONObject)
         : undefined,
+      /*
+       * Normalized rather than passed through raw: steps saved before the
+       * lookupMethod option existed carry no such key, and the probe would
+       * otherwise receive a config that does not satisfy its own type.
+       */
       domainMonitor: json["domainMonitor"]
-        ? (json["domainMonitor"] as JSONObject)
+        ? MonitorStepDomainMonitorUtil.toJSON(
+            MonitorStepDomainMonitorUtil.fromJSON(
+              json["domainMonitor"] as JSONObject,
+            ),
+          )
         : undefined,
       dnssecMonitor: json["dnssecMonitor"]
         ? (json["dnssecMonitor"] as JSONObject)

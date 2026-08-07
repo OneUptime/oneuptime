@@ -501,6 +501,7 @@ import { AddRemediationVerification1785768089408 } from "./1785768089408-AddReme
 import { AddStatusPageMonitorRule1786005052769 } from "./1786005052769-AddStatusPageMonitorRule";
 import { AddPerUserPasswordSalt1786018109307 } from "./1786018109307-AddPerUserPasswordSalt";
 import { WidenHashedStringColumnsForScrypt1786023262402 } from "./1786023262402-WidenHashedStringColumnsForScrypt";
+import { AddTimeRangeToLogSavedView1786096660558 } from "./1786096660558-AddTimeRangeToLogSavedView";
 import { RestoreServiceLowerNameIndex1786100000000 } from "./1786100000000-RestoreServiceLowerNameIndex";
 import { RestoreDroppedUniqueIndexes1786200000000 } from "./1786200000000-RestoreDroppedUniqueIndexes";
 import { QuarantineUnboundGitHubInstallations1786300000000 } from "./1786300000000-QuarantineUnboundGitHubInstallations";
@@ -1009,6 +1010,7 @@ export default [
   AddStatusPageMonitorRule1786005052769,
   AddPerUserPasswordSalt1786018109307,
   WidenHashedStringColumnsForScrypt1786023262402,
+  AddTimeRangeToLogSavedView1786096660558,
   RestoreServiceLowerNameIndex1786100000000,
   RestoreDroppedUniqueIndexes1786200000000,
   QuarantineUnboundGitHubInstallations1786300000000,

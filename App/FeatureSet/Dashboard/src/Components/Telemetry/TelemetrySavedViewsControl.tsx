@@ -9,12 +9,7 @@ import React, {
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import SavedViewsDropdown from "Common/UI/Components/TelemetryViewer/components/SavedViewsDropdown";
 import { SavedViewOption } from "Common/UI/Components/TelemetryViewer/types";
-import TelemetrySavedViewState, {
-  TelemetrySavedViewTimeRange,
-} from "Common/Types/Telemetry/TelemetrySavedViewState";
-import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
-import TimeRange from "Common/Types/Time/TimeRange";
-import InBetween from "Common/Types/BaseDatabase/InBetween";
+import TelemetrySavedViewState from "Common/Types/Telemetry/TelemetrySavedViewState";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
@@ -47,55 +42,6 @@ export type TelemetrySavedViewModel = BaseModel & {
   isDefault?: boolean | undefined;
   query?: TelemetrySavedViewState | undefined;
 };
-
-/*
- * Serialize a time range into a JSON-friendly shape (ISO strings for custom
- * ranges). Shared by both viewers' captureCurrentState.
- */
-export function serializeTimeRange(
-  timeRange: RangeStartAndEndDateTime,
-): TelemetrySavedViewTimeRange {
-  const serialized: TelemetrySavedViewTimeRange = { range: timeRange.range };
-  if (timeRange.range === TimeRange.CUSTOM && timeRange.startAndEndDate) {
-    serialized.startValue = timeRange.startAndEndDate.startValue.toISOString();
-    serialized.endValue = timeRange.startAndEndDate.endValue.toISOString();
-  }
-  return serialized;
-}
-
-/*
- * Rebuild a RangeStartAndEndDateTime from saved state. Defensive: unknown or
- * malformed ranges fall back to the default (past one hour). Shared by both
- * viewers' applyState.
- */
-export function deserializeTimeRange(
-  saved: TelemetrySavedViewTimeRange | undefined,
-): RangeStartAndEndDateTime {
-  if (!saved || !saved.range) {
-    return { range: TimeRange.PAST_ONE_HOUR };
-  }
-
-  const knownRanges: Array<string> = Object.values(TimeRange);
-  if (!knownRanges.includes(saved.range)) {
-    return { range: TimeRange.PAST_ONE_HOUR };
-  }
-
-  const range: TimeRange = saved.range as TimeRange;
-
-  if (range === TimeRange.CUSTOM && saved.startValue && saved.endValue) {
-    const start: Date = new Date(saved.startValue);
-    const end: Date = new Date(saved.endValue);
-    if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
-      return {
-        range: range,
-        startAndEndDate: new InBetween<Date>(start, end),
-      };
-    }
-    return { range: TimeRange.PAST_ONE_HOUR };
-  }
-
-  return { range: range };
-}
 
 export interface ComponentProps<T extends TelemetrySavedViewModel> {
   // Concrete saved-view model class (MetricSavedView | TraceSavedView).

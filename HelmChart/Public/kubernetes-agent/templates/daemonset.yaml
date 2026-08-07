@@ -34,6 +34,11 @@ spec:
       # Lets the debug sidecar see the collector's processes (ps, /proc, strace).
       shareProcessNamespace: true
       {{- end }}
+      # Linux nodes only — the collector image is linux-only, and the
+      # blanket toleration below would otherwise land pods on Windows
+      # nodes in permanent ImagePullBackOff.
+      nodeSelector:
+        {{- include "kubernetes-agent.nodeSelector" (dict) | nindent 8 }}
       tolerations:
         - operator: Exists
       containers:

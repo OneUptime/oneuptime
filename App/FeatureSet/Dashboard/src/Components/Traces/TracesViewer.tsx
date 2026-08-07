@@ -53,10 +53,11 @@ import TimeRange from "Common/Types/Time/TimeRange";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import TraceRow from "./TraceRow";
 import SpanDetailsPanel from "./SpanDetailsPanel";
-import TelemetrySavedViewsControl, {
-  serializeTimeRange,
-  deserializeTimeRange,
-} from "../Telemetry/TelemetrySavedViewsControl";
+import TelemetrySavedViewsControl from "../Telemetry/TelemetrySavedViewsControl";
+import {
+  serializeSavedViewTimeRange,
+  deserializeSavedViewTimeRange,
+} from "Common/Utils/Telemetry/SavedViewTimeRange";
 import TraceSavedView from "Common/Models/DatabaseModels/TraceSavedView";
 import TelemetrySavedViewState from "Common/Types/Telemetry/TelemetrySavedViewState";
 import Search from "Common/Types/BaseDatabase/Search";
@@ -2124,7 +2125,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         filters: activeFilters.map((filter: ActiveFilter): [string, string] => {
           return [filter.facetKey, filter.value];
         }),
-        timeRange: serializeTimeRange(timeRange),
+        timeRange: serializeSavedViewTimeRange(timeRange),
         pageSize: pageSize,
         rootOnly: rootOnly,
       };
@@ -2148,7 +2149,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
           },
         ),
       );
-      setTimeRange(deserializeTimeRange(state.timeRange));
+      setTimeRange(deserializeSavedViewTimeRange(state.timeRange));
       if (state.pageSize) {
         setPageSize(state.pageSize);
       }

@@ -20,10 +20,12 @@ spec:
     spec:
       serviceAccountName: {{ include "kubernetes-agent.serviceAccountName" . }}
       hostPID: true
-      {{- with .Values.ebpf.nodeSelector }}
+      # kubernetes.io/os=linux is always merged in (user keys win): the
+      # image is linux-only and eBPF needs a Linux kernel, and the blanket
+      # toleration below would otherwise land pods on Windows nodes in
+      # permanent ImagePullBackOff.
       nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+        {{- include "kubernetes-agent.nodeSelector" .Values.ebpf.nodeSelector | nindent 8 }}
       {{- with .Values.ebpf.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}

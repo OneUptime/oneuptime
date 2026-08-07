@@ -146,6 +146,28 @@ describe("MonitorCriteriaInstance", () => {
         });
       expect(instance).toBeNull();
     });
+
+    /*
+     * A domain whose registration data cannot be read has no expiry date, so
+     * DomainIsExpired cannot decide anything. Requiring IsOnline as well is
+     * what stops an unreadable registration from being reported as healthy
+     * (issue #3046).
+     */
+    test("Domain monitor requires a successful lookup as well as a live registration", () => {
+      const instance: MonitorCriteriaInstance | null =
+        MonitorCriteriaInstance.getDefaultOnlineMonitorCriteriaInstance({
+          monitorType: MonitorType.Domain,
+          monitorStatusId,
+          monitorName: "identity.digital",
+        });
+
+      expect(instance?.data?.filterCondition).toBe(FilterCondition.All);
+      expect(instance?.data?.filters).toHaveLength(2);
+      expect(instance?.data?.filters[0]?.checkOn).toBe(CheckOn.IsOnline);
+      expect(instance?.data?.filters[0]?.filterType).toBe(FilterType.True);
+      expect(instance?.data?.filters[1]?.checkOn).toBe(CheckOn.DomainIsExpired);
+      expect(instance?.data?.filters[1]?.filterType).toBe(FilterType.False);
+    });
   });
 
   describe("getDefaultOfflineMonitorCriteriaInstance", () => {
@@ -180,6 +202,26 @@ describe("MonitorCriteriaInstance", () => {
         alertSeverityId.toString(),
       );
       expect(instance.data?.incidents[0]?.title).toContain("Edge");
+    });
+
+    test("Domain offline criteria fires on an expired registration or a failed lookup", () => {
+      const instance: MonitorCriteriaInstance =
+        MonitorCriteriaInstance.getDefaultOfflineMonitorCriteriaInstance({
+          monitorType: MonitorType.Domain,
+          monitorStatusId: new ObjectID("bbbbbbbbbbbbbbbbbbbbbbbb"),
+          incidentSeverityId: new ObjectID("cccccccccccccccccccccccc"),
+          alertSeverityId: new ObjectID("dddddddddddddddddddddddd"),
+          monitorName: "identity.digital",
+        });
+
+      expect(instance.data?.filterCondition).toBe(FilterCondition.Any);
+      expect(instance.data?.filters).toHaveLength(2);
+      expect(instance.data?.filters[0]?.checkOn).toBe(CheckOn.DomainIsExpired);
+      expect(instance.data?.filters[0]?.filterType).toBe(FilterType.True);
+      expect(instance.data?.filters[1]?.checkOn).toBe(CheckOn.IsOnline);
+      expect(instance.data?.filters[1]?.filterType).toBe(FilterType.False);
+      expect(instance.data?.createIncidents).toBe(true);
+      expect(instance.data?.incidents[0]?.title).toContain("identity.digital");
     });
   });
 

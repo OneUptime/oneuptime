@@ -2,6 +2,7 @@ import MonitorCriteriaElement from "./MonitorCriteria";
 import MonitorCriteria from "Common/Types/Monitor/MonitorCriteria";
 import MonitorStep, { MonitorStepType } from "Common/Types/Monitor/MonitorStep";
 import MonitorType from "Common/Types/Monitor/MonitorType";
+import DomainLookupMethod from "Common/Types/Monitor/DomainMonitor/DomainLookupMethod";
 import Detail from "Common/UI/Components/Detail/Detail";
 import Field from "Common/UI/Components/Detail/Field";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
@@ -331,12 +332,25 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
       {
         key: "domainMonitor",
         title: "Domain Name",
-        description: "The domain name being monitored via WHOIS.",
+        description: "The domain name whose registration is being monitored.",
         fieldType: FieldType.Element,
         placeholder: "No data entered",
         getElement: (item: MonitorStepType): ReactElement => {
           const domainMonitor: any = item.domainMonitor;
           return <p>{domainMonitor?.domainName || "-"}</p>;
+        },
+      },
+      {
+        key: "domainMonitor",
+        title: "Lookup Method",
+        description: "The protocol used to read domain registration data.",
+        fieldType: FieldType.Element,
+        placeholder: "No data entered",
+        getElement: (item: MonitorStepType): ReactElement => {
+          const domainMonitor: any = item.domainMonitor;
+          return (
+            <p>{domainMonitor?.lookupMethod || DomainLookupMethod.Auto}</p>
+          );
         },
       },
     ];

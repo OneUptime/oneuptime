@@ -23,6 +23,11 @@ import {
   buildLogsHistogramRequest,
   RESOURCE_FACET_KEYS,
 } from "./LogsHistogramRequest";
+import {
+  resolveLogSavedViewTimeRange,
+  withResolvedTime,
+} from "./LogSavedViewTimeRange";
+import { serializeSavedViewTimeRange } from "Common/Utils/Telemetry/SavedViewTimeRange";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
@@ -259,28 +264,6 @@ function buildFacetFiltersFromQuery(
   }
 
   return nextFilters;
-}
-
-function resolveSavedTimeRange(
-  query: Query<Log>,
-): RangeStartAndEndDateTime | undefined {
-  const timeFilter: unknown = (query as any).time;
-
-  if (!timeFilter || !(timeFilter instanceof InBetween)) {
-    return undefined;
-  }
-
-  const startTime: Date = new Date(timeFilter.startValue as string | Date);
-  const endTime: Date = new Date(timeFilter.endValue as string | Date);
-
-  if (Number.isNaN(startTime.getTime()) || Number.isNaN(endTime.getTime())) {
-    return undefined;
-  }
-
-  return {
-    range: TimeRange.CUSTOM,
-    startAndEndDate: new InBetween<Date>(startTime, endTime),
-  };
 }
 
 function buildBaseQuery(props: ComponentProps): Query<Log> {
@@ -629,6 +612,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           select: {
             name: true,
             query: true,
+            timeRange: true,
             columns: true,
             sortField: true,
             sortOrder: true,
@@ -888,16 +872,28 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       const savedQuery: Query<Log> = (JSONFunctions.deserialize(
         JSONFunctions.serialize(rawQuery),
       ) || {}) as Query<Log>;
-      const mergedQuery: Query<Log> = {
-        ...(savedQuery as unknown as JSONObject),
-        ...(baseQuery as unknown as JSONObject),
-      } as unknown as Query<Log>;
-      const nextTimeRange: RangeStartAndEndDateTime | undefined =
-        resolveSavedTimeRange(savedQuery);
 
-      if (nextTimeRange) {
-        setTimeRange(nextTimeRange);
-      }
+      /*
+       * The saved query's own `time` is whatever the range resolved to when the
+       * view was saved, so it is discarded and re-derived from the saved
+       * selection — otherwise a rolling range would come back as the frozen
+       * window it produced on the day it was saved.
+       */
+      const nextTimeRange: RangeStartAndEndDateTime =
+        resolveLogSavedViewTimeRange({
+          timeRange: savedView.timeRange,
+          query: savedQuery,
+        });
+
+      const mergedQuery: Query<Log> = withResolvedTime(
+        {
+          ...(savedQuery as unknown as JSONObject),
+          ...(baseQuery as unknown as JSONObject),
+        } as unknown as Query<Log>,
+        nextTimeRange,
+      );
+
+      setTimeRange(nextTimeRange);
 
       setAppliedFacetFilters(
         buildFacetFiltersFromQuery(mergedQuery, baseQuery),
@@ -1516,6 +1512,11 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           submitButtonText="Save View"
           onBeforeCreate={async (savedView: LogSavedView) => {
             savedView.query = filterOptions;
+            /*
+             * The selection, not the window it currently resolves to — a
+             * rolling range has to still be rolling when the view is applied.
+             */
+            savedView.timeRange = serializeSavedViewTimeRange(timeRange);
             savedView.columns = selectedColumns;
             savedView.sortField = sortField;
             savedView.sortOrder = sortOrder;
@@ -1753,6 +1754,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
                 id: selectedSavedView.id,
                 data: JSONFunctions.serialize({
                   query: filterOptions,
+                  timeRange: serializeSavedViewTimeRange(timeRange),
                   columns: selectedColumns,
                   sortField: sortField,
                   sortOrder: sortOrder,
