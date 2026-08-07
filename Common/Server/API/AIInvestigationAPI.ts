@@ -16,6 +16,8 @@ import Query from "../../Types/BaseDatabase/Query";
 import { JSONArray, JSONObject } from "../../Types/JSON";
 import AIRunType from "../../Types/AI/AIRunType";
 import AIRunHumanVerdict from "../../Types/AI/AIRunHumanVerdict";
+import AIRunStatus from "../../Types/AI/AIRunStatus";
+import AIRunEventType from "../../Types/AI/AIRunEventType";
 import AIRun from "../../Models/DatabaseModels/AIRun";
 import AIRunEvent from "../../Models/DatabaseModels/AIRunEvent";
 import Incident from "../../Models/DatabaseModels/Incident";
@@ -32,6 +34,7 @@ import SpanService from "../Services/SpanService";
 import FixFromIncidentTaskTrigger from "../Utils/AI/SRE/FixFromIncidentTaskTrigger";
 import FixPerformanceTaskTrigger from "../Utils/AI/SRE/FixPerformanceTaskTrigger";
 import TelemetryImprovementTaskTrigger from "../Utils/AI/SRE/TelemetryImprovementTaskTrigger";
+import PostedRootCause from "../Utils/AI/SRE/PostedRootCause";
 import CodeFixTaskType from "../../Types/AI/CodeFixTaskType";
 import { AnalyzableSpan } from "../Utils/AI/PerfEvidence/SpanTreeAnalyzer";
 
@@ -46,6 +49,69 @@ const router: ExpressRouter = Express.getRouter();
 const MAX_ANALYZED_TRACE_SPANS: number = 500;
 
 const MAX_EVENTS: number = 500;
+
+/*
+ * The run wins its Running -> Completed transition before it performs the
+ * confidence check and posts the RootCause feed item. A final RunCompleted or
+ * RunFailed event is emitted when that finalization settles; failures from
+ * retried attempts precede a later RunStarted. This upper bound is a crash
+ * failsafe and deliberately leaves ample margin above the bounded confidence
+ * classification deadline plus feed publication.
+ */
+export const ANALYSIS_FINALIZATION_TIMEOUT_MS: number = 10 * 60 * 1000;
+// Database/application clocks can differ briefly around the Completed write.
+export const ANALYSIS_COMPLETION_CLOCK_SKEW_MS: number = 60 * 1000;
+
+export function isAnalysisPendingForRun(data: {
+  run: AIRun;
+  events: Array<AIRunEvent>;
+  analysisMarkdown: string | null;
+  currentDate?: Date | undefined;
+}): boolean {
+  if (
+    data.run.status !== AIRunStatus.Completed ||
+    data.analysisMarkdown ||
+    !data.run.completedAt
+  ) {
+    return false;
+  }
+
+  /*
+   * A retried run retains RunFailed from earlier attempts. Only a settlement
+   * event emitted after the latest RunStarted belongs to the attempt that won
+   * the Completed transition; an older failure must not stop report polling.
+   * sendLatestInvestigation supplies events in sequence order.
+   */
+  let latestRunStartedIndex: number = -1;
+  data.events.forEach((event: AIRunEvent, index: number): void => {
+    if (event.eventType === AIRunEventType.RunStarted) {
+      latestRunStartedIndex = index;
+    }
+  });
+
+  const hasFinalizationEvent: boolean = data.events.some(
+    (event: AIRunEvent, index: number): boolean => {
+      return (
+        index > latestRunStartedIndex &&
+        (event.eventType === AIRunEventType.RunCompleted ||
+          event.eventType === AIRunEventType.RunFailed)
+      );
+    },
+  );
+
+  if (hasFinalizationEvent) {
+    return false;
+  }
+
+  const currentDate: Date = data.currentDate || new Date();
+  const millisecondsSinceCompletion: number =
+    currentDate.getTime() - data.run.completedAt.getTime();
+
+  return (
+    millisecondsSinceCompletion >= -ANALYSIS_COMPLETION_CLOCK_SKEW_MS &&
+    millisecondsSinceCompletion < ANALYSIS_FINALIZATION_TIMEOUT_MS
+  );
+}
 
 /*
  * Returns the latest AI investigation (the AIRun + its ordered
@@ -80,6 +146,10 @@ async function sendLatestInvestigation(
   req: ExpressRequest,
   res: ExpressResponse,
   runQuery: Query<AIRun>,
+  subject: {
+    incidentId?: ObjectID | undefined;
+    alertId?: ObjectID | undefined;
+  },
 ): Promise<void> {
   const runs: Array<AIRun> = await AIRunService.findBy({
     query: runQuery,
@@ -111,6 +181,8 @@ async function sendLatestInvestigation(
     Response.sendJsonObjectResponse(req, res, {
       run: null,
       events: [],
+      analysisMarkdown: null,
+      isAnalysisPending: false,
     });
     return;
   }
@@ -138,9 +210,32 @@ async function sendLatestInvestigation(
 
   const eventsJson: JSONArray = BaseModel.toJSONArray(events, AIRunEvent);
 
+  /*
+   * RootCause is the canonical persisted investigation result. The explicit
+   * aiRunId association is immune to application/database clock skew and to
+   * overlapping investigations posting out of order.
+   */
+  let analysisMarkdown: string | null = null;
+
+  if (run.status === AIRunStatus.Completed && run.completedAt) {
+    analysisMarkdown = await PostedRootCause.getForInvestigation({
+      ...subject,
+      aiRunId: run.id!,
+      runCompletedAt: run.completedAt,
+    });
+  }
+
+  const isAnalysisPending: boolean = isAnalysisPendingForRun({
+    run,
+    events,
+    analysisMarkdown,
+  });
+
   Response.sendJsonObjectResponse(req, res, {
     run: runJson || null,
     events: eventsJson,
+    analysisMarkdown,
+    isAnalysisPending,
   });
 }
 
@@ -178,10 +273,17 @@ router.post(
         );
       }
 
-      await sendLatestInvestigation(req, res, {
-        triggeredByIncidentId: incidentId,
-        runType: AIRunType.Investigation,
-      });
+      await sendLatestInvestigation(
+        req,
+        res,
+        {
+          triggeredByIncidentId: incidentId,
+          runType: AIRunType.Investigation,
+        },
+        {
+          incidentId,
+        },
+      );
       return;
     } catch (err) {
       next(err);
@@ -224,10 +326,17 @@ router.post(
         );
       }
 
-      await sendLatestInvestigation(req, res, {
-        triggeredByAlertId: alertId,
-        runType: AIRunType.Investigation,
-      });
+      await sendLatestInvestigation(
+        req,
+        res,
+        {
+          triggeredByAlertId: alertId,
+          runType: AIRunType.Investigation,
+        },
+        {
+          alertId,
+        },
+      );
       return;
     } catch (err) {
       next(err);
@@ -238,13 +347,13 @@ router.post(
 
 /*
  * Human verdict capture (Phase 2 measurement layer): one-click Confirm /
- * Reject on the investigation panel. Applies to the LATEST COMPLETED
- * investigation run for the subject; overwriting is allowed (a user may
+ * Reject on the investigation panel. Applies to the exact COMPLETED
+ * investigation run displayed to the user; overwriting is allowed (a user may
  * change their mind), and the request is rejected when no completed
  * investigation exists. The subject is access-checked under the USER's
  * permissions first (same idiom as the read routes above); the run itself is
  * written as root because investigation runs are system-authored.
- * Body: { subjectType: "incident" | "alert", subjectId,
+ * Body: { subjectType: "incident" | "alert", subjectId, aiRunId,
  * verdict: "Confirmed" | "Rejected" }. Response: { runId, verdict }.
  */
 router.post(
@@ -278,6 +387,17 @@ router.post(
 
       const subjectId: ObjectID = new ObjectID(subjectIdString);
 
+      const aiRunIdString: string | undefined = req.body["aiRunId"] as
+        | string
+        | undefined;
+
+      if (!aiRunIdString) {
+        throw new BadDataException("aiRunId is required.");
+      }
+
+      ObjectID.validateUUID(aiRunIdString);
+      const aiRunId: ObjectID = new ObjectID(aiRunIdString);
+
       const verdict: string | undefined = req.body["verdict"] as
         | string
         | undefined;
@@ -292,34 +412,42 @@ router.post(
       }
 
       // Access check under the USER's permissions (null when not allowed).
+      let projectId: ObjectID | undefined = undefined;
+
       if (subjectType === "incident") {
         const incident: Incident | null = await IncidentService.findOneById({
           id: subjectId,
-          select: { _id: true },
+          select: { _id: true, projectId: true },
           props,
         });
 
-        if (!incident) {
+        if (!incident || !incident.projectId) {
           throw new BadDataException(
             "Incident not found (or you do not have access to it).",
           );
         }
+
+        projectId = incident.projectId;
       } else {
         const alert: Alert | null = await AlertService.findOneById({
           id: subjectId,
-          select: { _id: true },
+          select: { _id: true, projectId: true },
           props,
         });
 
-        if (!alert) {
+        if (!alert || !alert.projectId) {
           throw new BadDataException(
             "Alert not found (or you do not have access to it).",
           );
         }
+
+        projectId = alert.projectId;
       }
 
       const result: { runId: ObjectID; verdict: AIRunHumanVerdict } =
-        await AIRunService.applyHumanVerdictToLatestInvestigation({
+        await AIRunService.applyHumanVerdictToInvestigation({
+          aiRunId,
+          projectId,
           ...(subjectType === "incident"
             ? { incidentId: subjectId }
             : { alertId: subjectId }),
@@ -346,7 +474,7 @@ router.post(
  * access-checked under the USER's permissions first (same idiom as the read
  * routes above); the trigger's gates (completed investigation, GitHub-App
  * repository, per-subject dedupe) fail early with a clear message.
- * Body: { subjectType: "incident" | "alert", subjectId }. Response:
+ * Body: { subjectType: "incident" | "alert", subjectId, aiRunId }. Response:
  * { aiRunId } — the Queued CodeFix run the agent worker will claim.
  */
 router.post(
@@ -379,6 +507,17 @@ router.post(
       }
 
       const subjectId: ObjectID = new ObjectID(subjectIdString);
+
+      const aiRunIdString: string | undefined = req.body["aiRunId"] as
+        | string
+        | undefined;
+
+      if (!aiRunIdString) {
+        throw new BadDataException("aiRunId is required.");
+      }
+
+      ObjectID.validateUUID(aiRunIdString);
+      const aiRunId: ObjectID = new ObjectID(aiRunIdString);
 
       // Access check under the USER's permissions (null when not allowed).
       let projectId: ObjectID | undefined = undefined;
@@ -419,6 +558,7 @@ router.post(
           ...(subjectType === "incident"
             ? { incidentId: subjectId }
             : { alertId: subjectId }),
+          investigationRunId: aiRunId,
           userId: props.userId!,
         });
 

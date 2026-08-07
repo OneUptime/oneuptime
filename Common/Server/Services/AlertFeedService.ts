@@ -84,6 +84,7 @@ export class Service extends DatabaseService<Model> {
     displayColor?: Color | undefined;
     userId?: ObjectID | undefined;
     postedAt?: Date | undefined;
+    aiRunId?: ObjectID | undefined;
     workspaceNotification?:
       | {
           notifyUserId?: ObjectID | undefined; // this is oneuptime user id.
@@ -125,6 +126,10 @@ export class Service extends DatabaseService<Model> {
       alertFeed.feedInfoInMarkdown = data.feedInfoInMarkdown;
       alertFeed.alertFeedEventType = data.alertFeedEventType;
       alertFeed.projectId = data.projectId;
+
+      if (data.aiRunId) {
+        alertFeed.aiRunId = data.aiRunId;
+      }
 
       if (!data.postedAt) {
         alertFeed.postedAt = OneUptimeDate.getCurrentDate();

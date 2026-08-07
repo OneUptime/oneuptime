@@ -21,6 +21,7 @@ import Button, {
 import Card from "Common/UI/Components/Card/Card";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
+import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -39,12 +40,15 @@ export interface ComponentProps {
   subjectType: InvestigationSubjectType;
   subjectId: ObjectID;
   onStatusChange?: ((status: AIRunStatus | null) => void) | undefined;
+  onAnalysisAvailable?: (() => void) | undefined;
 }
 
 const POLL_INTERVAL_MS: number = 2500;
+const SETTLED_POLL_INTERVAL_MS: number = 30_000;
 /*
  * A new incident can render before its asynchronous AI run has been enqueued.
- * Retry briefly so queued work appears without polling old incidents forever.
+ * Retry briefly so queued work appears immediately, then fall back to the
+ * quieter settled cadence supported by the completed-report API.
  */
 const MAX_DISCOVERY_POLLS: number = 4;
 
@@ -53,26 +57,44 @@ const MAX_DISCOVERY_POLLS: number = 4;
  * view pages. It shows the autonomous investigation narrating its steps in
  * real time (reusing ChatActivityFeed over the run's AIRunEvents) and its
  * status. Renders nothing until an investigation exists for the subject, so
- * it's invisible for projects that haven't enabled AI. The full cited
- * root cause lands in the subject's timeline below; this panel is the
- * reasoning trail.
+ * it's invisible for projects that haven't enabled AI. Once complete, the
+ * published report becomes the primary content and the reasoning trail moves
+ * into a quiet disclosure.
  */
 const InvestigationPanel: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const subjectType: InvestigationSubjectType = props.subjectType;
   const subjectIdString: string = props.subjectId.toString();
-  const subjectKey: string = `${props.subjectType}:${subjectIdString}`;
+  const subjectKey: string = `${subjectType}:${subjectIdString}`;
   const [runStatus, setRunStatus] = useState<AIRunStatus | null>(null);
+  const [runId, setRunId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [events, setEvents] = useState<Array<AIRunEvent>>([]);
+  const [analysisMarkdown, setAnalysisMarkdown] = useState<string | null>(null);
+  const [isAnalysisPending, setIsAnalysisPending] = useState<boolean>(false);
   const [stats, setStats] = useState<{
     toolCallCount: number;
     totalTokens: number;
   } | null>(null);
   const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(false);
+  const [loadedSubjectKey, setLoadedSubjectKey] = useState<string | null>(null);
+  const [supportsSettledPolling, setSupportsSettledPolling] =
+    useState<boolean>(false);
   const signatureRef: React.MutableRefObject<string> = useRef<string>("");
-  const requestGenerationRef: React.MutableRefObject<number> =
+  const latestFetchRequestRef: React.MutableRefObject<number> =
     useRef<number>(0);
+  const activeSubjectKeyRef: React.MutableRefObject<string> =
+    useRef<string>(subjectKey);
+  const activeRunIdRef: React.MutableRefObject<string | null> = useRef<
+    string | null
+  >(null);
+  const loadedSubjectKeyRef: React.MutableRefObject<string | null> = useRef<
+    string | null
+  >(null);
+  const notifiedAnalysisRef: React.MutableRefObject<Set<string>> = useRef<
+    Set<string>
+  >(new Set<string>());
   const previousSubjectKeyRef: React.MutableRefObject<string | null> = useRef<
     string | null
   >(null);
@@ -82,6 +104,12 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
     props.onStatusChange,
   );
   onStatusChangeRef.current = props.onStatusChange;
+
+  /*
+   * Update during render so a response from the previous route can never
+   * commit between this render and the next effect.
+   */
+  activeSubjectKeyRef.current = subjectKey;
 
   // "Open Fix PR from this analysis" (the FixFromIncident recipe) state.
   const [isCreatingFixTask, setIsCreatingFixTask] = useState<boolean>(false);
@@ -101,25 +129,80 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
   const isSavingVerdictRef: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
 
+  /*
+   * This component can survive route changes while the subject id changes.
+   * Clear subject-owned state before the next response arrives so actions,
+   * verdicts, and reports from the previous subject are never displayed on
+   * the new one. Incrementing the generation also invalidates any request
+   * that was already in flight for the old route.
+   */
+  useEffect(() => {
+    const isSubjectChange: boolean =
+      previousSubjectKeyRef.current !== null &&
+      previousSubjectKeyRef.current !== subjectKey;
+    previousSubjectKeyRef.current = subjectKey;
+
+    latestFetchRequestRef.current += 1;
+    signatureRef.current = "";
+    loadedSubjectKeyRef.current = null;
+    activeRunIdRef.current = null;
+    isSavingVerdictRef.current = false;
+
+    setRunStatus(null);
+    setRunId(null);
+    setErrorMessage(null);
+    setEvents([]);
+    setAnalysisMarkdown(null);
+    setIsAnalysisPending(false);
+    setStats(null);
+    setHasLoadedOnce(false);
+    setLoadedSubjectKey(null);
+    setSupportsSettledPolling(false);
+    setIsCreatingFixTask(false);
+    setFixTaskRunId(null);
+    setFixTaskError(null);
+    setHumanVerdict(null);
+    setIsSavingVerdict(false);
+    setVerdictError(null);
+    setIsChangingVerdict(false);
+
+    if (isSubjectChange) {
+      onStatusChangeRef.current?.(null);
+    }
+  }, [subjectKey]);
+
   const fetchData: () => Promise<void> =
     useCallback(async (): Promise<void> => {
-      const requestGeneration: number = requestGenerationRef.current;
+      const requestId: number = latestFetchRequestRef.current + 1;
+      latestFetchRequestRef.current = requestId;
+      const requestedSubjectKey: string = subjectKey;
+      const isLatestRequest: () => boolean = (): boolean => {
+        return (
+          requestId === latestFetchRequestRef.current &&
+          requestedSubjectKey === activeSubjectKeyRef.current
+        );
+      };
 
       try {
         const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
           await API.post<JSONObject>({
             url: URL.fromString(
-              APP_API_URL.toString() + `/ai-investigation/${props.subjectType}`,
+              APP_API_URL.toString() + `/ai-investigation/${subjectType}`,
             ),
-            data: { [`${props.subjectType}Id`]: subjectIdString },
+            data: { [`${subjectType}Id`]: subjectIdString },
             headers: ModelAPI.getCommonHeaders(),
           });
 
-        if (requestGeneration !== requestGenerationRef.current) {
+        if (!isLatestRequest()) {
           return;
         }
 
         if (response instanceof HTTPErrorResponse) {
+          if (loadedSubjectKeyRef.current !== requestedSubjectKey) {
+            setRunStatus(null);
+          }
+          loadedSubjectKeyRef.current = requestedSubjectKey;
+          setLoadedSubjectKey(requestedSubjectKey);
           setHasLoadedOnce(true);
           return;
         }
@@ -131,17 +214,61 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
 
         const status: AIRunStatus | null =
           (runJson?.["status"] as AIRunStatus | undefined) || null;
+        const nextRunId: string | null =
+          (runJson?.["_id"] as string | undefined) || null;
         const verdictFromServer: string | null =
           (runJson?.["humanVerdict"] as string | undefined) || null;
+        const analysisFromServer: string =
+          typeof data["analysisMarkdown"] === "string"
+            ? (data["analysisMarkdown"] as string).trim()
+            : "";
+        const nextAnalysisMarkdown: string | null = analysisFromServer || null;
+        const nextIsAnalysisPending: boolean =
+          data["isAnalysisPending"] === true;
+        const nextToolCallCount: number =
+          (runJson?.["toolCallCount"] as number | undefined) || 0;
+        const nextTotalTokens: number =
+          (runJson?.["totalTokens"] as number | undefined) || 0;
+        const nextErrorMessage: string | null =
+          (runJson?.["errorMessage"] as string | undefined) || null;
+        const nextSupportsSettledPolling: boolean =
+          Object.prototype.hasOwnProperty.call(data, "analysisMarkdown") ||
+          Object.prototype.hasOwnProperty.call(data, "isAnalysisPending");
 
-        // Skip re-render when nothing changed (status + event count + verdict).
-        const signature: string = `${status || "none"}:${eventsJson.length}:${verdictFromServer || "none"}`;
+        if (nextRunId !== activeRunIdRef.current) {
+          activeRunIdRef.current = nextRunId;
+          isSavingVerdictRef.current = false;
+          setIsCreatingFixTask(false);
+          setFixTaskRunId(null);
+          setFixTaskError(null);
+          setIsSavingVerdict(false);
+          setVerdictError(null);
+          setIsChangingVerdict(false);
+        }
+
+        /*
+         * The report can arrive after the run first becomes Completed, without
+         * changing the status or event count. Keep it in the signature so that
+         * completion race always produces a final render.
+         */
+        const signature: string = JSON.stringify([
+          status,
+          nextRunId,
+          eventsJson.length,
+          verdictFromServer,
+          nextErrorMessage,
+          nextToolCallCount,
+          nextTotalTokens,
+          nextAnalysisMarkdown,
+          nextIsAnalysisPending,
+        ]);
         if (signature !== signatureRef.current) {
           signatureRef.current = signature;
           setRunStatus(status);
-          setErrorMessage(
-            (runJson?.["errorMessage"] as string | undefined) || null,
-          );
+          setRunId(nextRunId);
+          setErrorMessage(nextErrorMessage);
+          setAnalysisMarkdown(nextAnalysisMarkdown);
+          setIsAnalysisPending(nextIsAnalysisPending);
           if (!isSavingVerdictRef.current) {
             setHumanVerdict(verdictFromServer);
           }
@@ -154,63 +281,43 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
           setStats(
             runJson
               ? {
-                  toolCallCount:
-                    (runJson["toolCallCount"] as number | undefined) || 0,
-                  totalTokens:
-                    (runJson["totalTokens"] as number | undefined) || 0,
+                  toolCallCount: nextToolCallCount,
+                  totalTokens: nextTotalTokens,
                 }
               : null,
           );
         }
 
+        loadedSubjectKeyRef.current = requestedSubjectKey;
+        setLoadedSubjectKey(requestedSubjectKey);
+        setSupportsSettledPolling(nextSupportsSettledPolling);
         setHasLoadedOnce(true);
       } catch {
-        // Best-effort panel — never surface an error here.
-        if (requestGeneration === requestGenerationRef.current) {
-          setHasLoadedOnce(true);
+        if (!isLatestRequest()) {
+          return;
         }
+
+        // Best-effort panel — never surface an error here.
+        if (loadedSubjectKeyRef.current !== requestedSubjectKey) {
+          setRunStatus(null);
+        }
+        loadedSubjectKeyRef.current = requestedSubjectKey;
+        setLoadedSubjectKey(requestedSubjectKey);
+        setHasLoadedOnce(true);
       }
-    }, [props.subjectType, subjectIdString]);
+    }, [subjectIdString, subjectKey, subjectType]);
 
   useEffect(() => {
-    const isSubjectChange: boolean =
-      previousSubjectKeyRef.current !== null &&
-      previousSubjectKeyRef.current !== subjectKey;
-    previousSubjectKeyRef.current = subjectKey;
-    requestGenerationRef.current += 1;
-    signatureRef.current = "";
-    setRunStatus(null);
-    setErrorMessage(null);
-    setEvents([]);
-    setStats(null);
-    setHasLoadedOnce(false);
-
-    if (isSubjectChange) {
-      onStatusChangeRef.current?.(null);
-      setIsCreatingFixTask(false);
-      setFixTaskRunId(null);
-      setFixTaskError(null);
-      setHumanVerdict(null);
-      setIsSavingVerdict(false);
-      setVerdictError(null);
-      setIsChangingVerdict(false);
-      isSavingVerdictRef.current = false;
-    }
-
     fetchData().catch(() => {
       // handled inside fetchData
     });
-
-    return () => {
-      requestGenerationRef.current += 1;
-    };
-  }, [fetchData, subjectKey]);
+  }, [fetchData]);
 
   useEffect(() => {
-    if (hasLoadedOnce) {
+    if (hasLoadedOnce && loadedSubjectKey === subjectKey) {
       onStatusChangeRef.current?.(runStatus);
     }
-  }, [hasLoadedOnce, runStatus]);
+  }, [hasLoadedOnce, loadedSubjectKey, runStatus, subjectKey]);
 
   /*
    * Human-triggered `code_fix`: enqueue a FixFromIncident task that takes
@@ -220,6 +327,14 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
    */
   const createFixTask: () => Promise<void> =
     useCallback(async (): Promise<void> => {
+      const requestedSubjectKey: string = subjectKey;
+      const requestedRunId: string | null = runId;
+
+      if (!requestedRunId) {
+        setFixTaskError("The investigation run could not be identified.");
+        return;
+      }
+
       setIsCreatingFixTask(true);
       setFixTaskError(null);
 
@@ -230,8 +345,9 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
               APP_API_URL.toString() + "/ai-investigation/create-fix-task",
             ),
             data: {
-              subjectType: props.subjectType,
-              subjectId: props.subjectId.toString(),
+              subjectType,
+              subjectId: subjectIdString,
+              aiRunId: requestedRunId,
             },
             headers: ModelAPI.getCommonHeaders(),
           });
@@ -240,17 +356,31 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
           throw response;
         }
 
+        if (
+          requestedSubjectKey !== activeSubjectKeyRef.current ||
+          requestedRunId !== activeRunIdRef.current
+        ) {
+          return;
+        }
+
         const aiRunId: string | undefined = (response.data as JSONObject)[
           "aiRunId"
         ] as string | undefined;
 
         setFixTaskRunId(aiRunId || null);
       } catch (err) {
+        if (
+          requestedSubjectKey !== activeSubjectKeyRef.current ||
+          requestedRunId !== activeRunIdRef.current
+        ) {
+          return;
+        }
+
         setFixTaskError(API.getFriendlyMessage(err));
       }
 
       setIsCreatingFixTask(false);
-    }, [props.subjectType, props.subjectId]);
+    }, [runId, subjectIdString, subjectKey, subjectType]);
 
   /*
    * Human verdict on a completed analysis ("Was this analysis correct?").
@@ -261,7 +391,14 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
   const submitVerdict: (verdict: InvestigationVerdict) => Promise<void> =
     useCallback(
       async (verdict: InvestigationVerdict): Promise<void> => {
+        const requestedSubjectKey: string = subjectKey;
+        const requestedRunId: string | null = runId;
         const previousVerdict: string | null = humanVerdict;
+
+        if (!requestedRunId) {
+          setVerdictError("The investigation run could not be identified.");
+          return;
+        }
 
         setIsSavingVerdict(true);
         isSavingVerdictRef.current = true;
@@ -276,8 +413,9 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
                 APP_API_URL.toString() + "/ai-investigation/verdict",
               ),
               data: {
-                subjectType: props.subjectType,
-                subjectId: props.subjectId.toString(),
+                subjectType,
+                subjectId: subjectIdString,
+                aiRunId: requestedRunId,
                 verdict: verdict,
               },
               headers: ModelAPI.getCommonHeaders(),
@@ -286,7 +424,27 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
           if (response instanceof HTTPErrorResponse) {
             throw response;
           }
+
+          if (
+            requestedSubjectKey !== activeSubjectKeyRef.current ||
+            requestedRunId !== activeRunIdRef.current
+          ) {
+            return;
+          }
+
+          /*
+           * Any GET that started before this mutation carries the old verdict.
+           * Invalidate it before releasing the optimistic-state guard.
+           */
+          latestFetchRequestRef.current += 1;
         } catch (err) {
+          if (
+            requestedSubjectKey !== activeSubjectKeyRef.current ||
+            requestedRunId !== activeRunIdRef.current
+          ) {
+            return;
+          }
+
           // Roll back the optimistic update.
           setHumanVerdict(previousVerdict);
           setVerdictError(API.getFriendlyMessage(err));
@@ -295,7 +453,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
         setIsSavingVerdict(false);
         isSavingVerdictRef.current = false;
       },
-      [props.subjectType, props.subjectId, humanVerdict],
+      [humanVerdict, runId, subjectIdString, subjectKey, subjectType],
     );
 
   const isRunning: boolean = runStatus === AIRunStatus.Running;
@@ -303,38 +461,72 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
   // Poll while the run can still make progress (queued runs get claimed).
   const isActive: boolean = isRunning || isQueued;
   const isDiscoveringRun: boolean = hasLoadedOnce && runStatus === null;
+  /*
+   * A run is marked Completed just before its report is posted to the feed.
+   * The server bounds this state, so this cannot poll forever after a failed
+   * or empty post-analysis step.
+   */
+  const shouldPoll: boolean = isActive || isAnalysisPending;
+  /*
+   * Keep a much quieter watch after settlement (and while no run exists), so
+   * a new investigation launched elsewhere appears without a page refresh.
+   * Active/finalizing runs and the first few no-run discovery checks retain
+   * the fast live cadence.
+   */
+  const nextPollDelayInMs: number | null = shouldPoll
+    ? POLL_INTERVAL_MS
+    : isDiscoveringRun
+      ? POLL_INTERVAL_MS
+      : hasLoadedOnce && supportsSettledPolling
+        ? SETTLED_POLL_INTERVAL_MS
+        : null;
 
   useEffect(() => {
-    if (!isActive && !isDiscoveringRun) {
+    if (nextPollDelayInMs === null) {
       return;
     }
 
-    let timeout: ReturnType<typeof setTimeout> | undefined;
     let isCancelled: boolean = false;
+    let timeout: ReturnType<typeof setTimeout> | undefined;
     let discoveryPollCount: number = 0;
 
-    const scheduleNextPoll: () => void = (): void => {
+    const pollAfterDelay: (delayInMs: number) => void = (
+      delayInMs: number,
+    ): void => {
       timeout = setTimeout(() => {
         fetchData()
-          .finally(() => {
-            if (isDiscoveringRun) {
-              discoveryPollCount += 1;
-            }
-
-            if (
-              !isCancelled &&
-              (!isDiscoveringRun || discoveryPollCount < MAX_DISCOVERY_POLLS)
-            ) {
-              scheduleNextPoll();
-            }
-          })
           .catch(() => {
             // handled inside fetchData
+          })
+          .finally(() => {
+            if (isCancelled) {
+              return;
+            }
+
+            if (isDiscoveringRun) {
+              discoveryPollCount += 1;
+
+              if (discoveryPollCount < MAX_DISCOVERY_POLLS) {
+                pollAfterDelay(POLL_INTERVAL_MS);
+                return;
+              }
+
+              if (supportsSettledPolling) {
+                pollAfterDelay(SETTLED_POLL_INTERVAL_MS);
+              }
+              return;
+            }
+
+            pollAfterDelay(nextPollDelayInMs);
           });
-      }, POLL_INTERVAL_MS);
+      }, delayInMs);
     };
 
-    scheduleNextPoll();
+    /*
+     * Schedule the next poll only after the previous response settles. Slow
+     * deployments therefore cannot invalidate every in-flight response.
+     */
+    pollAfterDelay(nextPollDelayInMs);
 
     return () => {
       isCancelled = true;
@@ -342,10 +534,42 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
         clearTimeout(timeout);
       }
     };
-  }, [isActive, isDiscoveringRun, fetchData]);
+  }, [fetchData, isDiscoveringRun, nextPollDelayInMs, supportsSettledPolling]);
+
+  /*
+   * The report's presence proves the matching RootCause feed item exists.
+   * Notify the host exactly once so an already-mounted incident/alert feed
+   * can refresh at the correct side of the completion race.
+   */
+  useEffect(() => {
+    if (
+      loadedSubjectKey !== subjectKey ||
+      runStatus !== AIRunStatus.Completed ||
+      !analysisMarkdown ||
+      !runId
+    ) {
+      return;
+    }
+
+    const notificationKey: string = `${subjectKey}:${runId}`;
+
+    if (notifiedAnalysisRef.current.has(notificationKey)) {
+      return;
+    }
+
+    notifiedAnalysisRef.current.add(notificationKey);
+    props.onAnalysisAvailable?.();
+  }, [
+    analysisMarkdown,
+    loadedSubjectKey,
+    props.onAnalysisAvailable,
+    runId,
+    runStatus,
+    subjectKey,
+  ]);
 
   // Nothing to show until an investigation exists for this subject.
-  if (!hasLoadedOnce || !runStatus) {
+  if (!hasLoadedOnce || loadedSubjectKey !== subjectKey || !runStatus) {
     return <></>;
   }
 
@@ -377,18 +601,40 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
     };
     isFailed = false;
   } else if (runStatus === AIRunStatus.Completed) {
-    statusMeta = {
-      text: "Investigation complete",
-      className: "text-green-600",
-      icon: IconProp.Check,
-    };
+    statusMeta = !supportsSettledPolling
+      ? {
+          text: "Investigation complete",
+          className: "text-green-600",
+          icon: IconProp.Check,
+        }
+      : isAnalysisPending
+        ? {
+            text: "Preparing investigation report…",
+            className: "text-indigo-600",
+            icon: IconProp.Sparkles,
+          }
+        : analysisMarkdown
+          ? {
+              text: "Investigation complete",
+              className: "text-green-600",
+              icon: IconProp.Check,
+            }
+          : {
+              text: "Investigation completed without a report",
+              className: "text-amber-600",
+              icon: IconProp.Info,
+            };
     isFailed = false;
   }
 
   return (
     <Card
       title="AI Investigation"
-      description={`OneUptime AI's live root-cause investigation for this ${props.subjectType}.`}
+      description={
+        runStatus === AIRunStatus.Completed
+          ? `OneUptime AI's root-cause report for this ${subjectType}.`
+          : `OneUptime AI's live root-cause investigation for this ${subjectType}.`
+      }
     >
       <div
         id={AI_INVESTIGATION_PANEL_ID}
@@ -402,7 +648,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
         >
           <Icon icon={statusMeta.icon} className="h-4 w-4" />
           <span>{statusMeta.text}</span>
-          {isActive ? (
+          {shouldPoll ? (
             <span className="ml-1 inline-block h-2 w-2 motion-safe:animate-ping rounded-full bg-indigo-500" />
           ) : (
             <></>
@@ -415,28 +661,128 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
           <></>
         )}
 
-        <div className="mt-3">
-          {events.length > 0 ? (
-            <ChatActivityFeed events={events} />
-          ) : (
-            <p className="text-sm text-gray-500">
-              {isActive
-                ? "Starting investigation…"
-                : "No investigation steps were recorded."}
-            </p>
-          )}
-        </div>
+        {runStatus === AIRunStatus.Completed ? (
+          <div className="mt-4">
+            {analysisMarkdown ? (
+              <section
+                aria-label="Investigation report"
+                className="overflow-hidden rounded-xl border border-indigo-100 bg-white shadow-sm"
+              >
+                <div className="flex items-start gap-3 border-b border-indigo-100 bg-indigo-50/60 px-5 py-4">
+                  <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-600">
+                    <Icon
+                      icon={IconProp.DocumentText}
+                      className="h-4.5 w-4.5 text-white"
+                    />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900">
+                      Investigation report
+                    </h3>
+                    <p className="mt-0.5 text-xs leading-5 text-gray-500">
+                      Root cause, supporting evidence, and recommended next
+                      steps from this investigation.
+                    </p>
+                  </div>
+                </div>
+                <div className="px-5 py-5 text-sm text-gray-700">
+                  <MarkdownViewer text={analysisMarkdown} safeMode={true} />
+                </div>
+              </section>
+            ) : isAnalysisPending ? (
+              <div
+                role="status"
+                className="flex items-center gap-3 rounded-xl border border-indigo-100 bg-indigo-50/50 px-5 py-4"
+              >
+                <span className="h-4 w-4 flex-shrink-0 animate-spin rounded-full border-2 border-indigo-200 border-t-indigo-600" />
+                <div>
+                  <p className="text-sm font-medium text-gray-800">
+                    Preparing the final report
+                  </p>
+                  <p className="mt-0.5 text-xs text-gray-500">
+                    The investigation is complete. OneUptime AI is organizing
+                    the findings and evidence.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-4">
+                <p className="text-sm font-medium text-amber-800">
+                  No investigation report was published.
+                </p>
+                <p className="mt-1 text-xs leading-5 text-amber-700">
+                  The run finished without a final analysis. Review the activity
+                  below for details.
+                </p>
+              </div>
+            )}
+
+            {events.length > 0 ? (
+              <details className="group mt-3 rounded-lg border border-gray-200 bg-gray-50/50">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-900">
+                  <span className="flex items-center gap-2">
+                    <Icon
+                      icon={IconProp.Activity}
+                      className="h-4 w-4 text-gray-400"
+                    />
+                    Investigation activity
+                    <span className="text-xs font-normal text-gray-400">
+                      {events.length} event{events.length === 1 ? "" : "s"}
+                    </span>
+                  </span>
+                  <Icon
+                    icon={IconProp.ChevronDown}
+                    className="h-4 w-4 text-gray-400 transition-transform group-open:rotate-180"
+                  />
+                </summary>
+                <div className="border-t border-gray-200 px-4 py-4">
+                  <ChatActivityFeed
+                    events={events}
+                    title="Completed activity"
+                    showLiveIndicator={false}
+                    maxVisibleSteps={10}
+                  />
+                </div>
+              </details>
+            ) : (
+              <></>
+            )}
+          </div>
+        ) : (
+          <div className="mt-3">
+            {events.length > 0 ? (
+              <ChatActivityFeed
+                events={events}
+                title={isFailed ? "Investigation activity" : undefined}
+                showLiveIndicator={!isFailed}
+              />
+            ) : (
+              <p className="text-sm text-gray-500">
+                {isActive
+                  ? "Starting investigation…"
+                  : "No investigation steps were recorded."}
+              </p>
+            )}
+          </div>
+        )}
 
         {!isRunning && stats ? (
-          <p className="mt-3 text-xs text-gray-400">
-            {stats.toolCallCount} quer
-            {stats.toolCallCount === 1 ? "y" : "ies"} across your telemetry
-            {stats.totalTokens > 0
-              ? ` · ${stats.totalTokens.toLocaleString()} tokens`
-              : ""}
-            . The full cited root cause is in the {props.subjectType} timeline
-            below.
-          </p>
+          <div
+            aria-label="Investigation usage"
+            className="mt-3 flex flex-wrap items-center gap-2 text-xs text-gray-500"
+          >
+            <span className="rounded-full bg-gray-100 px-2.5 py-1">
+              {stats.toolCallCount} telemetry quer
+              {stats.toolCallCount === 1 ? "y" : "ies"}
+            </span>
+            {stats.totalTokens > 0 ? (
+              <span className="rounded-full bg-gray-100 px-2.5 py-1">
+                {stats.totalTokens.toLocaleString()} tokens
+              </span>
+            ) : (
+              <></>
+            )}
+          </div>
         ) : (
           <></>
         )}
@@ -450,151 +796,165 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
           verdicts feed the AI's measured accuracy.
         */}
         {runStatus === AIRunStatus.Completed ? (
-          <div className="mt-4">
-            {fixTaskRunId ? (
-              <Alert
-                type={AlertType.SUCCESS}
-                strongTitle="Fix task created"
-                title={
-                  <span>
-                    AI will open a pull request from this analysis.{" "}
-                    <Link
-                      className="underline"
-                      to={RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.AI_AGENT_TASK_VIEW] as Route,
-                        { modelId: fixTaskRunId },
-                      )}
-                    >
-                      View task progress
-                    </Link>
-                    .
-                  </span>
-                }
-              />
-            ) : (
-              <>
-                {fixTaskError ? (
+          <div className="mt-5 border-t border-gray-200 pt-5">
+            <div className="grid gap-5 lg:grid-cols-2 lg:gap-6">
+              <div>
+                <p className="text-sm font-medium text-gray-800">
+                  Act on this investigation
+                </p>
+                <p className="mb-3 mt-1 text-xs leading-5 text-gray-500">
+                  Create a draft fix pull request with this report as context.
+                </p>
+                {fixTaskRunId ? (
+                  <Alert
+                    type={AlertType.SUCCESS}
+                    strongTitle="Fix task created"
+                    title={
+                      <span>
+                        AI will open a pull request from this analysis.{" "}
+                        <Link
+                          className="underline"
+                          to={RouteUtil.populateRouteParams(
+                            RouteMap[PageMap.AI_AGENT_TASK_VIEW] as Route,
+                            { modelId: fixTaskRunId },
+                          )}
+                        >
+                          View task progress
+                        </Link>
+                        .
+                      </span>
+                    }
+                  />
+                ) : (
+                  <>
+                    {fixTaskError ? (
+                      <div className="mb-3">
+                        <Alert
+                          type={AlertType.DANGER}
+                          strongTitle="Could not create the fix task"
+                          title={
+                            <span>
+                              {fixTaskError}{" "}
+                              <Link
+                                className="underline"
+                                to={RouteUtil.populateRouteParams(
+                                  RouteMap[PageMap.AI_AGENT_TASKS] as Route,
+                                )}
+                              >
+                                View AI tasks
+                              </Link>
+                              .
+                            </span>
+                          }
+                        />
+                      </div>
+                    ) : (
+                      <></>
+                    )}
+                    <Button
+                      title="Open Fix PR from this analysis"
+                      icon={IconProp.Code}
+                      buttonStyle={ButtonStyleType.OUTLINE}
+                      buttonSize={ButtonSize.Small}
+                      isLoading={isCreatingFixTask}
+                      disabled={!analysisMarkdown}
+                      onClick={() => {
+                        createFixTask().catch(() => {
+                          // handled inside createFixTask
+                        });
+                      }}
+                    />
+                  </>
+                )}
+              </div>
+
+              {/*
+                A quiet human verdict on the analysis. The server returns
+                `humanVerdict` on every investigation payload, so the state
+                survives polling refreshes; the buttons update optimistically.
+              */}
+              <div className="lg:border-l lg:border-gray-200 lg:pl-6">
+                <p className="text-sm font-medium text-gray-800">
+                  Rate this investigation
+                </p>
+                <p className="mb-3 mt-1 text-xs leading-5 text-gray-500">
+                  Your verdict helps measure OneUptime AI&apos;s public
+                  accuracy.
+                </p>
+                {verdictError ? (
                   <div className="mb-3">
                     <Alert
                       type={AlertType.DANGER}
-                      strongTitle="Could not create the fix task"
-                      title={
-                        <span>
-                          {fixTaskError}{" "}
-                          <Link
-                            className="underline"
-                            to={RouteUtil.populateRouteParams(
-                              RouteMap[PageMap.AI_AGENT_TASKS] as Route,
-                            )}
-                          >
-                            View AI tasks
-                          </Link>
-                          .
-                        </span>
-                      }
+                      strongTitle="Could not save your verdict"
+                      title={verdictError}
                     />
                   </div>
                 ) : (
                   <></>
                 )}
-                <Button
-                  title="Open Fix PR from this analysis"
-                  icon={IconProp.Code}
-                  buttonStyle={ButtonStyleType.OUTLINE}
-                  buttonSize={ButtonSize.Small}
-                  isLoading={isCreatingFixTask}
-                  onClick={() => {
-                    createFixTask().catch(() => {
-                      // handled inside createFixTask
-                    });
-                  }}
-                />
-              </>
-            )}
-
-            {/*
-              A quiet human verdict on the analysis. The server returns
-              `humanVerdict` on every investigation payload, so the state
-              survives polling refreshes; the buttons update optimistically.
-            */}
-            <div className="mt-4">
-              {verdictError ? (
-                <div className="mb-3">
-                  <Alert
-                    type={AlertType.DANGER}
-                    strongTitle="Could not save your verdict"
-                    title={verdictError}
-                  />
-                </div>
-              ) : (
-                <></>
-              )}
-              {humanVerdict && !isChangingVerdict ? (
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
-                      humanVerdict === "Confirmed"
-                        ? "bg-green-50 text-green-700"
-                        : "bg-gray-100 text-gray-600"
-                    }`}
-                  >
-                    <Icon
-                      icon={
+                {humanVerdict && !isChangingVerdict ? (
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
                         humanVerdict === "Confirmed"
-                          ? IconProp.Check
-                          : IconProp.Close
-                      }
-                      className="h-3 w-3"
-                    />
-                    <span>
-                      You{" "}
-                      {humanVerdict === "Confirmed" ? "confirmed" : "rejected"}{" "}
-                      this analysis
+                          ? "bg-green-50 text-green-700"
+                          : "bg-gray-100 text-gray-600"
+                      }`}
+                    >
+                      <Icon
+                        icon={
+                          humanVerdict === "Confirmed"
+                            ? IconProp.Check
+                            : IconProp.Close
+                        }
+                        className="h-3 w-3"
+                      />
+                      <span>
+                        You{" "}
+                        {humanVerdict === "Confirmed"
+                          ? "confirmed"
+                          : "rejected"}{" "}
+                        this analysis
+                      </span>
                     </span>
-                  </span>
-                  <Link
-                    className="cursor-pointer text-xs text-gray-400 underline"
-                    onClick={() => {
-                      setIsChangingVerdict(true);
-                    }}
-                  >
-                    Change
-                  </Link>
-                </div>
-              ) : (
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm text-gray-600">
-                    Was this analysis correct?
-                  </span>
-                  <Button
-                    title="Confirmed"
-                    icon={IconProp.Check}
-                    buttonStyle={ButtonStyleType.SUCCESS_OUTLINE}
-                    buttonSize={ButtonSize.Small}
-                    disabled={isSavingVerdict}
-                    onClick={() => {
-                      submitVerdict("Confirmed").catch(() => {
-                        // handled inside submitVerdict
-                      });
-                    }}
-                  />
-                  <Button
-                    title="Rejected"
-                    icon={IconProp.Close}
-                    buttonStyle={ButtonStyleType.HOVER_DANGER_OUTLINE}
-                    buttonSize={ButtonSize.Small}
-                    disabled={isSavingVerdict}
-                    onClick={() => {
-                      submitVerdict("Rejected").catch(() => {
-                        // handled inside submitVerdict
-                      });
-                    }}
-                  />
-                </div>
-              )}
-              <p className="mt-1.5 text-xs text-gray-400">
-                Verdicts train OneUptime AI&apos;s public accuracy score.
-              </p>
+                    <Link
+                      className="cursor-pointer text-xs text-gray-400 underline"
+                      onClick={() => {
+                        setIsChangingVerdict(true);
+                      }}
+                    >
+                      Change
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                      title="Confirmed"
+                      icon={IconProp.Check}
+                      buttonStyle={ButtonStyleType.SUCCESS_OUTLINE}
+                      buttonSize={ButtonSize.Small}
+                      disabled={isSavingVerdict || !analysisMarkdown}
+                      onClick={() => {
+                        submitVerdict("Confirmed").catch(() => {
+                          // handled inside submitVerdict
+                        });
+                      }}
+                    />
+                    <Button
+                      title="Rejected"
+                      icon={IconProp.Close}
+                      buttonStyle={ButtonStyleType.HOVER_DANGER_OUTLINE}
+                      buttonSize={ButtonSize.Small}
+                      disabled={isSavingVerdict || !analysisMarkdown}
+                      onClick={() => {
+                        submitVerdict("Rejected").catch(() => {
+                          // handled inside submitVerdict
+                        });
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         ) : (

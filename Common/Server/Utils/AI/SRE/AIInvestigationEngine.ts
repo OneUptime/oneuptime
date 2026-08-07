@@ -270,7 +270,7 @@ export default class AIInvestigationEngine {
        * EVERY step — a slow self-hosted LLM call can approach the sweeper's
        * timeout, so the heartbeat must be as frequent as we can make it.
        */
-      await this.touchHeartbeat(aiRunId);
+      await this.touchHeartbeat(aiRunId, data.attemptCount);
     };
 
     /*
@@ -316,6 +316,7 @@ export default class AIInvestigationEngine {
         {
           aiRunId,
           fromStatus: AIRunStatus.Running,
+          expectedAttemptCount: data.attemptCount,
           set: {
             status: AIRunStatus.Completed,
             completedAt: OneUptimeDate.getCurrentDate(),
@@ -336,13 +337,6 @@ export default class AIInvestigationEngine {
 
       settledAsCompleted = true;
 
-      await this.emitEvent({
-        projectId,
-        aiRunId,
-        sequence: sequence++,
-        eventType: AIRunEventType.RunCompleted,
-      });
-
       const analysis: string = (result.contentInMarkdown || "").trim();
 
       if (!analysis) {
@@ -354,6 +348,13 @@ export default class AIInvestigationEngine {
          * No analysis is still a settled run — the subject must not lose
          * its deferred remediation because the model had nothing to say.
          */
+        await this.emitEvent({
+          projectId,
+          aiRunId,
+          sequence: sequence++,
+          eventType: AIRunEventType.RunCompleted,
+        });
+
         await this.invokeOnSettled(request, aiRunId);
         return;
       }
@@ -390,6 +391,20 @@ export default class AIInvestigationEngine {
         result,
       });
 
+      /*
+       * RunCompleted is the durable publication-settlement signal, not just
+       * the earlier status CAS. The dashboard keeps polling a Completed run
+       * until either the matching report exists or this final event proves
+       * that finalization ended without one. If confidence/postAnalysis
+       * throws, the catch path emits RunFailed instead.
+       */
+      await this.emitEvent({
+        projectId,
+        aiRunId,
+        sequence: sequence++,
+        eventType: AIRunEventType.RunCompleted,
+      });
+
       logger.debug(
         `AI: investigation complete (run ${aiRunId.toString()}, confident=${confidence.confident} via ${confidence.source}, ${result.llmCallCount} LLM calls, ${result.toolCallCount} tools, ${result.totalTokens} tokens).`,
       );
@@ -399,13 +414,6 @@ export default class AIInvestigationEngine {
     } catch (error) {
       const message: string =
         error instanceof Error ? error.message : String(error);
-
-      await this.emitEvent({
-        projectId,
-        aiRunId,
-        sequence: sequence++,
-        eventType: AIRunEventType.RunFailed,
-      });
 
       /*
        * Hand the failure to the queue's retry policy: transient errors
@@ -434,7 +442,22 @@ export default class AIInvestigationEngine {
        * settled (the retry owns it), and "noop" without a won Completed
        * means another actor moved the run and owns settlement.
        */
-      if (settledAsCompleted || outcome === "finalized") {
+      const ownsTerminalOutcome: boolean =
+        settledAsCompleted || outcome === "finalized";
+
+      if (ownsTerminalOutcome) {
+        /*
+         * Emit terminal failure only after ownership is established. A stale
+         * or requeued attempt can finish after the retry's RunStarted; letting
+         * it append RunFailed would falsely look like the retry settled.
+         */
+        await this.emitEvent({
+          projectId,
+          aiRunId,
+          sequence: sequence++,
+          eventType: AIRunEventType.RunFailed,
+        });
+
         await this.invokeOnSettled(request, aiRunId);
       }
 
@@ -492,14 +515,19 @@ export default class AIInvestigationEngine {
   }
 
   // Refresh lastHeartbeatAt so a long-running investigation isn't swept as stale.
-  private static async touchHeartbeat(aiRunId: ObjectID): Promise<void> {
+  private static async touchHeartbeat(
+    aiRunId: ObjectID,
+    attemptCount: number,
+  ): Promise<void> {
     try {
-      await AIRunService.updateOneBy({
-        query: { _id: aiRunId.toString(), status: AIRunStatus.Running },
-        data: {
+      await AIRunService.attemptStatusTransition({
+        aiRunId,
+        fromStatus: AIRunStatus.Running,
+        expectedAttemptCount: attemptCount,
+        set: {
+          status: AIRunStatus.Running,
           lastHeartbeatAt: OneUptimeDate.getCurrentDate(),
-        } as never,
-        props: { isRoot: true },
+        },
       });
     } catch (error) {
       logger.error(`AI: heartbeat update failed: ${error}`);

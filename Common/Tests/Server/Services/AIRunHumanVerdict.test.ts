@@ -1,32 +1,30 @@
-import AIRunService from "../../../Server/Services/AIRunService";
 import AIRun from "../../../Models/DatabaseModels/AIRun";
-import AIRunType from "../../../Types/AI/AIRunType";
-import AIRunStatus from "../../../Types/AI/AIRunStatus";
+import AIRunService from "../../../Server/Services/AIRunService";
 import AIRunHumanVerdict from "../../../Types/AI/AIRunHumanVerdict";
+import AIRunStatus from "../../../Types/AI/AIRunStatus";
+import AIRunType from "../../../Types/AI/AIRunType";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
-import SortOrder from "../../../Types/BaseDatabase/SortOrder";
-import { describe, expect, test, afterEach } from "@jest/globals";
+import { afterEach, describe, expect, test } from "@jest/globals";
 
 /*
- * Human verdict capture (Phase 2 measurement layer): the one-click
- * Confirm / Reject on the investigation panel lands here, via
- * POST /ai-investigation/verdict → applyHumanVerdictToLatestInvestigation.
- * Contract under test: the verdict applies to the LATEST COMPLETED
- * investigation for the subject, rejects when none exists, stores
- * verdict + at + byUserId, and overwriting is allowed (a user may change
- * their mind — there is deliberately no "already has a verdict" guard).
+ * Human verdict capture: Confirm / Reject must update the exact completed
+ * investigation currently displayed by the client. The run, project, and
+ * subject ids are one combined database predicate so a stale or forged run id
+ * cannot put a verdict on another tenant's incident or alert investigation.
  */
 
 const incidentId: ObjectID = ObjectID.generate();
 const alertId: ObjectID = ObjectID.generate();
+const aiRunId: ObjectID = ObjectID.generate();
+const projectId: ObjectID = ObjectID.generate();
 const userId: ObjectID = ObjectID.generate();
 
-function fakeRun(): AIRun {
-  return { id: ObjectID.generate() } as unknown as AIRun;
+function fakeRun(id: ObjectID = aiRunId): AIRun {
+  return { id } as unknown as AIRun;
 }
 
-describe("AIRunService.applyHumanVerdictToLatestInvestigation", () => {
+describe("AIRunService.applyHumanVerdictToInvestigation", () => {
   afterEach(() => {
     jest.restoreAllMocks();
   });
@@ -35,7 +33,9 @@ describe("AIRunService.applyHumanVerdictToLatestInvestigation", () => {
     const findOneBy: jest.SpyInstance = jest.spyOn(AIRunService, "findOneBy");
 
     await expect(
-      AIRunService.applyHumanVerdictToLatestInvestigation({
+      AIRunService.applyHumanVerdictToInvestigation({
+        aiRunId,
+        projectId,
         verdict: AIRunHumanVerdict.Confirmed,
         verdictByUserId: userId,
       }),
@@ -44,7 +44,7 @@ describe("AIRunService.applyHumanVerdictToLatestInvestigation", () => {
     expect(findOneBy).not.toHaveBeenCalled();
   });
 
-  test("no completed investigation → reject with a clear message, nothing written", async () => {
+  test("an incident lookup requires the exact run, project, and subject", async () => {
     const findOneBy: jest.SpyInstance = jest
       .spyOn(AIRunService, "findOneBy")
       .mockResolvedValue(null);
@@ -54,58 +54,138 @@ describe("AIRunService.applyHumanVerdictToLatestInvestigation", () => {
     );
 
     await expect(
-      AIRunService.applyHumanVerdictToLatestInvestigation({
+      AIRunService.applyHumanVerdictToInvestigation({
+        aiRunId,
+        projectId,
         incidentId,
         verdict: AIRunHumanVerdict.Confirmed,
         verdictByUserId: userId,
       }),
-    ).rejects.toThrow(/No completed AI investigation/);
+    ).rejects.toThrow(/selected completed AI investigation does not exist/);
 
-    // The lookup must target the LATEST COMPLETED investigation.
+    expect(findOneBy).toHaveBeenCalledWith({
+      query: {
+        _id: aiRunId,
+        projectId,
+        runType: AIRunType.Investigation,
+        status: AIRunStatus.Completed,
+        triggeredByIncidentId: incidentId,
+      },
+      select: { _id: true },
+      props: { isRoot: true },
+    });
+    expect(updateOneById).not.toHaveBeenCalled();
+  });
+
+  test("a run id that does not belong to the requested incident is rejected without a write", async () => {
+    const requestedIncidentId: ObjectID = ObjectID.generate();
+    const findOneBy: jest.SpyInstance = jest
+      .spyOn(AIRunService, "findOneBy")
+      .mockResolvedValue(null);
+    const updateOneById: jest.SpyInstance = jest.spyOn(
+      AIRunService,
+      "updateOneById",
+    );
+
+    await expect(
+      AIRunService.applyHumanVerdictToInvestigation({
+        aiRunId,
+        projectId,
+        incidentId: requestedIncidentId,
+        verdict: AIRunHumanVerdict.Rejected,
+        verdictByUserId: userId,
+      }),
+    ).rejects.toThrow(BadDataException);
+
     expect(findOneBy).toHaveBeenCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({
-          runType: AIRunType.Investigation,
-          status: AIRunStatus.Completed,
-          triggeredByIncidentId: incidentId,
+          _id: aiRunId,
+          projectId,
+          triggeredByIncidentId: requestedIncidentId,
         }),
-        sort: expect.objectContaining({ createdAt: SortOrder.Descending }),
       }),
     );
     expect(updateOneById).not.toHaveBeenCalled();
   });
 
-  test("happy path (incident): stores verdict + at + byUserId on the run and returns {runId, verdict}", async () => {
+  test("a different run id for the requested incident is rejected without falling back to its latest run", async () => {
+    const requestedRunId: ObjectID = ObjectID.generate();
+    const findOneBy: jest.SpyInstance = jest
+      .spyOn(AIRunService, "findOneBy")
+      .mockResolvedValue(null);
+    const updateOneById: jest.SpyInstance = jest.spyOn(
+      AIRunService,
+      "updateOneById",
+    );
+
+    await expect(
+      AIRunService.applyHumanVerdictToInvestigation({
+        aiRunId: requestedRunId,
+        projectId,
+        incidentId,
+        verdict: AIRunHumanVerdict.Confirmed,
+        verdictByUserId: userId,
+      }),
+    ).rejects.toThrow(BadDataException);
+
+    expect(findOneBy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({
+          _id: requestedRunId,
+          projectId,
+          triggeredByIncidentId: incidentId,
+        }),
+      }),
+    );
+    expect(updateOneById).not.toHaveBeenCalled();
+  });
+
+  test("incident happy path stores verdict metadata on the exact selected run", async () => {
     const run: AIRun = fakeRun();
-    jest.spyOn(AIRunService, "findOneBy").mockResolvedValue(run);
+    const findOneBy: jest.SpyInstance = jest
+      .spyOn(AIRunService, "findOneBy")
+      .mockResolvedValue(run);
     const updateOneById: jest.SpyInstance = jest
       .spyOn(AIRunService, "updateOneById")
       .mockResolvedValue(undefined as never);
 
     const result: { runId: ObjectID; verdict: AIRunHumanVerdict } =
-      await AIRunService.applyHumanVerdictToLatestInvestigation({
+      await AIRunService.applyHumanVerdictToInvestigation({
+        aiRunId,
+        projectId,
         incidentId,
         verdict: AIRunHumanVerdict.Confirmed,
         verdictByUserId: userId,
       });
 
-    expect(result.runId).toBe(run.id);
-    expect(result.verdict).toBe(AIRunHumanVerdict.Confirmed);
-
-    expect(updateOneById).toHaveBeenCalledWith(
-      expect.objectContaining({
-        id: run.id,
-        data: expect.objectContaining({
-          humanVerdict: AIRunHumanVerdict.Confirmed,
-          humanVerdictAt: expect.any(Date),
-          humanVerdictByUserId: userId,
-        }),
-        props: expect.objectContaining({ isRoot: true }),
-      }),
-    );
+    expect(findOneBy).toHaveBeenCalledWith({
+      query: {
+        _id: aiRunId,
+        projectId,
+        runType: AIRunType.Investigation,
+        status: AIRunStatus.Completed,
+        triggeredByIncidentId: incidentId,
+      },
+      select: { _id: true },
+      props: { isRoot: true },
+    });
+    expect(result).toEqual({
+      runId: run.id,
+      verdict: AIRunHumanVerdict.Confirmed,
+    });
+    expect(updateOneById).toHaveBeenCalledWith({
+      id: run.id,
+      data: {
+        humanVerdict: AIRunHumanVerdict.Confirmed,
+        humanVerdictAt: expect.any(Date),
+        humanVerdictByUserId: userId,
+      },
+      props: { isRoot: true },
+    });
   });
 
-  test("happy path (alert): the lookup keys on triggeredByAlertId", async () => {
+  test("alert happy path scopes the exact run to the alert and never adds incident scope", async () => {
     const run: AIRun = fakeRun();
     const findOneBy: jest.SpyInstance = jest
       .spyOn(AIRunService, "findOneBy")
@@ -114,27 +194,30 @@ describe("AIRunService.applyHumanVerdictToLatestInvestigation", () => {
       .spyOn(AIRunService, "updateOneById")
       .mockResolvedValue(undefined as never);
 
-    await AIRunService.applyHumanVerdictToLatestInvestigation({
+    await AIRunService.applyHumanVerdictToInvestigation({
+      aiRunId,
+      projectId,
       alertId,
       verdict: AIRunHumanVerdict.Rejected,
       verdictByUserId: userId,
     });
 
-    expect(findOneBy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({
-          runType: AIRunType.Investigation,
-          status: AIRunStatus.Completed,
-          triggeredByAlertId: alertId,
-        }),
-      }),
-    );
+    expect(findOneBy).toHaveBeenCalledWith({
+      query: {
+        _id: aiRunId,
+        projectId,
+        runType: AIRunType.Investigation,
+        status: AIRunStatus.Completed,
+        triggeredByAlertId: alertId,
+      },
+      select: { _id: true },
+      props: { isRoot: true },
+    });
   });
 
-  test("idempotent overwrite: a run that already carries a verdict is simply re-written", async () => {
-    // The service deliberately does NOT guard on an existing verdict.
+  test("an existing verdict can be overwritten on that same exact run", async () => {
     const run: AIRun = {
-      id: ObjectID.generate(),
+      id: aiRunId,
       humanVerdict: AIRunHumanVerdict.Confirmed,
     } as unknown as AIRun;
     jest.spyOn(AIRunService, "findOneBy").mockResolvedValue(run);
@@ -143,7 +226,9 @@ describe("AIRunService.applyHumanVerdictToLatestInvestigation", () => {
       .mockResolvedValue(undefined as never);
 
     const result: { runId: ObjectID; verdict: AIRunHumanVerdict } =
-      await AIRunService.applyHumanVerdictToLatestInvestigation({
+      await AIRunService.applyHumanVerdictToInvestigation({
+        aiRunId,
+        projectId,
         incidentId,
         verdict: AIRunHumanVerdict.Rejected,
         verdictByUserId: userId,
@@ -152,6 +237,7 @@ describe("AIRunService.applyHumanVerdictToLatestInvestigation", () => {
     expect(result.verdict).toBe(AIRunHumanVerdict.Rejected);
     expect(updateOneById).toHaveBeenCalledWith(
       expect.objectContaining({
+        id: aiRunId,
         data: expect.objectContaining({
           humanVerdict: AIRunHumanVerdict.Rejected,
         }),

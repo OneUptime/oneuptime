@@ -73,6 +73,15 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
 export const CONFIDENCE_CLASSIFICATION_FEATURE: string =
   AI_CONFIDENCE_CLASSIFICATION_FEATURE;
 
+/*
+ * Classification is a one-token, best-effort control signal. Bound it to one
+ * provider attempt so report publication cannot inherit a provider's much
+ * longer retry budget; failures already degrade safely to classification-
+ * failed and the report is still published.
+ */
+export const CONFIDENCE_CLASSIFICATION_TIMEOUT_MS: number = 2 * 60 * 1000;
+export const CONFIDENCE_CLASSIFICATION_DEADLINE_MS: number = 5 * 60 * 1000;
+
 // Truncation cap keeps the classification call cheap and inside context limits.
 const MAX_ANALYSIS_CHARS: number = 8000;
 
@@ -261,41 +270,61 @@ export default class AIConfidenceSignal {
       return { confident: false, source: "deterministic-floor" };
     }
 
+    let deadlineTimer: ReturnType<typeof setTimeout> | undefined;
+
     try {
-      const response: AILogResponse = await AIService.executeWithLogging({
-        projectId: data.projectId,
-        feature: CONFIDENCE_CLASSIFICATION_FEATURE,
-        aiRunId: data.aiRunId,
-        incidentId: data.incidentId,
-        alertId: data.alertId,
-        // The verdict drives control flow; no prompt previews in LlmLog.
-        storeContentPreviews: false,
-        temperature: 0,
-        maxTokens: 20,
-        messages: [
-          {
-            role: "system",
-            content: [
-              "You judge an AI incident investigation's own analysis.",
-              "Does this analysis assert a specific root cause with supporting evidence, or is it inconclusive?",
-              "Reply with exactly one token and nothing else:",
-              "CONFIDENT — the analysis asserts a specific root cause with supporting evidence.",
-              "INCONCLUSIVE — the analysis could not determine a cause, or asserts one without supporting evidence.",
-            ].join("\n"),
-          },
-          {
-            role: "user",
-            content: [
-              "AI investigation analysis:",
-              '"""',
-              data.analysisMarkdown.substring(0, MAX_ANALYSIS_CHARS),
-              '"""',
-              "",
-              "One token only: CONFIDENT or INCONCLUSIVE.",
-            ].join("\n"),
-          },
-        ],
-      });
+      const classification: Promise<AILogResponse> =
+        AIService.executeWithLogging({
+          projectId: data.projectId,
+          feature: CONFIDENCE_CLASSIFICATION_FEATURE,
+          aiRunId: data.aiRunId,
+          incidentId: data.incidentId,
+          alertId: data.alertId,
+          // The verdict drives control flow; no prompt previews in LlmLog.
+          storeContentPreviews: false,
+          temperature: 0,
+          maxTokens: 20,
+          requestTimeoutInMs: CONFIDENCE_CLASSIFICATION_TIMEOUT_MS,
+          requestRetries: 0,
+          messages: [
+            {
+              role: "system",
+              content: [
+                "You judge an AI incident investigation's own analysis.",
+                "Does this analysis assert a specific root cause with supporting evidence, or is it inconclusive?",
+                "Reply with exactly one token and nothing else:",
+                "CONFIDENT — the analysis asserts a specific root cause with supporting evidence.",
+                "INCONCLUSIVE — the analysis could not determine a cause, or asserts one without supporting evidence.",
+              ].join("\n"),
+            },
+            {
+              role: "user",
+              content: [
+                "AI investigation analysis:",
+                '"""',
+                data.analysisMarkdown.substring(0, MAX_ANALYSIS_CHARS),
+                '"""',
+                "",
+                "One token only: CONFIDENT or INCONCLUSIVE.",
+              ].join("\n"),
+            },
+          ],
+        });
+      const deadline: Promise<never> = new Promise<never>(
+        (_resolve: (value: never) => void, reject: (error: Error) => void) => {
+          deadlineTimer = setTimeout(() => {
+            reject(
+              new Error(
+                `Confidence classification exceeded ${CONFIDENCE_CLASSIFICATION_DEADLINE_MS}ms.`,
+              ),
+            );
+          }, CONFIDENCE_CLASSIFICATION_DEADLINE_MS);
+        },
+      );
+      const response: AILogResponse = await Promise.race([
+        classification,
+        deadline,
+      ]);
 
       const verdict: boolean | null = this.parseClassificationToken(
         response.content,
@@ -314,6 +343,10 @@ export default class AIConfidenceSignal {
         `AI confidence: classification call failed for run ${data.aiRunId.toString()} — per-consumer fail directions apply: ${error}`,
       );
       return { confident: false, source: "classification-failed" };
+    } finally {
+      if (deadlineTimer) {
+        clearTimeout(deadlineTimer);
+      }
     }
   }
 }

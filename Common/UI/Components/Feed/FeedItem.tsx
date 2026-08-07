@@ -24,6 +24,7 @@ export interface FeedItemProps {
   itemDateTime: Date;
   icon: IconProp;
   color: Color;
+  safeMode?: boolean | undefined;
 }
 
 export interface ComponentProps extends FeedItemProps {
@@ -43,7 +44,10 @@ const FeedItem: FunctionComponent<ComponentProps> = (
           title={`More Information`}
           description={
             <div>
-              <MarkdownViewer text={props.moreTextInMarkdown || ""} />
+              <MarkdownViewer
+                text={props.moreTextInMarkdown || ""}
+                safeMode={props.safeMode === true}
+              />
             </div>
           }
           isLoading={false}
@@ -123,7 +127,10 @@ const FeedItem: FunctionComponent<ComponentProps> = (
               <div className="mt-2 text-sm text-gray-700">
                 {props.textInMarkdown && (
                   <div>
-                    <MarkdownViewer text={props.textInMarkdown} />
+                    <MarkdownViewer
+                      text={props.textInMarkdown}
+                      safeMode={props.safeMode === true}
+                    />
                   </div>
                 )}
                 {props.element && <div>{props.element}</div>}

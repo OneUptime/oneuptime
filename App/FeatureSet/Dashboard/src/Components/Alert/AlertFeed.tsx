@@ -1,4 +1,9 @@
-import React, { FunctionComponent, ReactElement, useEffect } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useRef,
+} from "react";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
 import Feed from "Common/UI/Components/Feed/Feed";
@@ -33,14 +38,22 @@ import RunbookPicker from "../Runbook/RunbookPicker";
 
 export interface ComponentProps {
   alertId: ObjectID;
+  refreshToken?: number | undefined;
 }
 
 const AlertFeedElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const alertIdString: string = props.alertId.toString();
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [error, setError] = React.useState<string | undefined>(undefined);
   const [feedItems, setFeedItems] = React.useState<FeedItemProps[]>([]);
+  const [loadedAlertId, setLoadedAlertId] = React.useState<string | null>(null);
+  const latestFetchRequestRef: React.MutableRefObject<number> =
+    useRef<number>(0);
+  const activeAlertIdRef: React.MutableRefObject<string> =
+    useRef<string>(alertIdString);
+  activeAlertIdRef.current = alertIdString;
   const [showOnCallPolicyModal, setShowOnCallPolicyModal] =
     React.useState<boolean>(false);
 
@@ -68,6 +81,13 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
     alertFeed: AlertFeed,
   ): FeedItemProps => {
     let icon: IconProp = IconProp.Circle;
+    const isAIInvestigation: boolean = Boolean(
+      alertFeed.alertFeedEventType === AlertFeedEventType.RootCause &&
+        (alertFeed.aiRunId ||
+          alertFeed.feedInfoInMarkdown?.includes(
+            "AI — Automated Root Cause Analysis",
+          )),
+    );
 
     if (alertFeed.alertFeedEventType === AlertFeedEventType.AlertCreated) {
       icon = IconProp.Alert;
@@ -115,7 +135,7 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
     }
 
     if (alertFeed.alertFeedEventType === AlertFeedEventType.RootCause) {
-      icon = IconProp.Cube;
+      icon = isAIInvestigation ? IconProp.Sparkles : IconProp.Cube;
     }
 
     if (alertFeed.alertFeedEventType === AlertFeedEventType.OwnerUserRemoved) {
@@ -158,10 +178,21 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
       itemDateTime: alertFeed.postedAt || alertFeed.createdAt!,
       color: alertFeed.displayColor || Gray500,
       icon: icon,
+      safeMode: isAIInvestigation,
     };
   };
 
   const fetchItems: PromiseVoidFunction = async (): Promise<void> => {
+    const requestId: number = latestFetchRequestRef.current + 1;
+    latestFetchRequestRef.current = requestId;
+    const requestedAlertId: string = alertIdString;
+    const isLatestRequest: () => boolean = (): boolean => {
+      return (
+        requestId === latestFetchRequestRef.current &&
+        requestedAlertId === activeAlertIdRef.current
+      );
+    };
+
     setError("");
     setIsLoading(true);
     try {
@@ -175,6 +206,7 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
           feedInfoInMarkdown: true,
           displayColor: true,
           createdAt: true,
+          aiRunId: true,
           user: {
             name: true,
             email: true,
@@ -190,12 +222,20 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
         limit: LIMIT_PER_PROJECT,
       });
 
-      setFeedItems(getFeedItemsFromAlertFeeds(alertFeeds.data));
+      if (isLatestRequest()) {
+        setFeedItems(getFeedItemsFromAlertFeeds(alertFeeds.data));
+        setLoadedAlertId(requestedAlertId);
+      }
     } catch (err: unknown) {
-      setError(API.getFriendlyMessage(err as Exception));
+      if (isLatestRequest()) {
+        setError(API.getFriendlyMessage(err as Exception));
+        setLoadedAlertId(requestedAlertId);
+      }
     }
 
-    setIsLoading(false);
+    if (isLatestRequest()) {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -206,7 +246,9 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
     fetchItems().catch((err: unknown) => {
       setError(API.getFriendlyMessage(err as Exception));
     });
-  }, [props.alertId]);
+  }, [alertIdString, props.refreshToken]);
+
+  const isCurrentFeedLoaded: boolean = loadedAlertId === alertIdString;
 
   return (
     <Card
@@ -264,9 +306,9 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
       ]}
     >
       <div>
-        {isLoading && <ComponentLoader />}
-        {error && <ErrorMessage message={error} />}
-        {!isLoading && !error && (
+        {(isLoading || !isCurrentFeedLoaded) && <ComponentLoader />}
+        {isCurrentFeedLoaded && error && <ErrorMessage message={error} />}
+        {isCurrentFeedLoaded && !isLoading && !error && (
           <Feed
             items={feedItems}
             noItemsMessage="Looks like there are no items in this feed for this alert."

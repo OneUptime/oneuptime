@@ -361,6 +361,7 @@ export default class AIIncidentInvestigationRunner {
           await IncidentFeedService.createIncidentFeedItem({
             incidentId,
             projectId,
+            aiRunId,
             incidentFeedEventType: IncidentFeedEventType.RootCause,
             displayColor: Blue500,
             feedInfoInMarkdown: postData.analysisMarkdown,
@@ -465,6 +466,8 @@ export default class AIIncidentInvestigationRunner {
               {
                 projectId,
                 incidentId,
+                investigationRunId: aiRunId,
+                analysisMarkdown: postData.analysisMarkdown,
               },
             );
           }

@@ -504,6 +504,7 @@ import { WidenHashedStringColumnsForScrypt1786023262402 } from "./1786023262402-
 import { AddTimeRangeToLogSavedView1786096660558 } from "./1786096660558-AddTimeRangeToLogSavedView";
 import { RestoreServiceLowerNameIndex1786100000000 } from "./1786100000000-RestoreServiceLowerNameIndex";
 import { MigrationName1786101798351 } from "./1786101798351-MigrationName";
+import { MigrationName1786105470826 } from "./1786105470826-MigrationName";
 import { RestoreDroppedUniqueIndexes1786200000000 } from "./1786200000000-RestoreDroppedUniqueIndexes";
 import { QuarantineUnboundGitHubInstallations1786300000000 } from "./1786300000000-QuarantineUnboundGitHubInstallations";
 import { AddMasterPasswordSalt1786400000000 } from "./1786400000000-AddMasterPasswordSalt";
@@ -1018,4 +1019,5 @@ export default [
   QuarantineUnboundGitHubInstallations1786300000000,
   MigrationName1786101798351,
   AddMasterPasswordSalt1786400000000,
+  MigrationName1786105470826,
 ];

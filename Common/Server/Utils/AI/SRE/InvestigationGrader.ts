@@ -146,6 +146,7 @@ export default class InvestigationGrader {
         select: {
           _id: true,
           autoGrade: true,
+          completedAt: true,
         },
         sort: { createdAt: SortOrder.Descending },
         props: { isRoot: true },
@@ -175,13 +176,16 @@ export default class InvestigationGrader {
       }
 
       /*
-       * The posted analysis: the latest RootCause feed item — the AI's
-       * postAnalysis is its only writer, and it is the only persisted copy
-       * of the analysis (the same source the fix recipes and the remediation
-       * planner read, through this one helper).
+       * The posted analysis owned by this exact run. A newer investigation or
+       * a human RootCause item may exist by resolution time; neither may be
+       * graded as though it came from the selected investigation.
        */
       const analysisMarkdown: string | null =
-        await PostedRootCause.getForIncident(incidentId);
+        await PostedRootCause.getForInvestigation({
+          incidentId,
+          aiRunId: run.id!,
+          runCompletedAt: run.completedAt,
+        });
 
       if (!analysisMarkdown) {
         logger.debug(

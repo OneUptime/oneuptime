@@ -84,6 +84,7 @@ export class Service extends DatabaseService<IncidentFeed> {
     displayColor?: Color | undefined;
     userId?: ObjectID | undefined;
     postedAt?: Date | undefined;
+    aiRunId?: ObjectID | undefined;
     // send notifificatin to slack and teams. This is optional
     workspaceNotification?:
       | {
@@ -130,6 +131,10 @@ export class Service extends DatabaseService<IncidentFeed> {
       incidentFeed.feedInfoInMarkdown = data.feedInfoInMarkdown;
       incidentFeed.incidentFeedEventType = data.incidentFeedEventType;
       incidentFeed.projectId = data.projectId;
+
+      if (data.aiRunId) {
+        incidentFeed.aiRunId = data.aiRunId;
+      }
 
       if (!data.postedAt) {
         incidentFeed.postedAt = OneUptimeDate.getCurrentDate();

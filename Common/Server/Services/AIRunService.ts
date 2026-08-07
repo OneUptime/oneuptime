@@ -52,8 +52,8 @@ export class Service extends DatabaseService<Model> {
   /*
    * A genuinely atomic status transition: one conditional UPDATE whose WHERE
    * carries the expected current status (and optionally the expected
-   * attemptCount). Returns the number of rows changed — 0 means another
-   * actor won the race.
+   * attemptCount / heartbeat snapshot). Returns the number of rows changed —
+   * 0 means another actor won the race or refreshed the heartbeat.
    *
    * This exists because updateOneBy is SELECT-then-save: two concurrent
    * callers can both observe the precondition and both write, so it cannot
@@ -65,6 +65,7 @@ export class Service extends DatabaseService<Model> {
     aiRunId: ObjectID;
     fromStatus: AIRunStatus;
     expectedAttemptCount?: number | undefined;
+    expectedLastHeartbeatAt?: Date | undefined;
     set: AIRunTransitionSet;
   }): Promise<number> {
     const queryBuilder: UpdateQueryBuilder<Model> = this.getRepository()
@@ -78,6 +79,12 @@ export class Service extends DatabaseService<Model> {
     if (data.expectedAttemptCount !== undefined) {
       queryBuilder.andWhere('"attemptCount" = :expectedAttemptCount', {
         expectedAttemptCount: data.expectedAttemptCount,
+      });
+    }
+
+    if (data.expectedLastHeartbeatAt !== undefined) {
+      queryBuilder.andWhere('"lastHeartbeatAt" = :expectedLastHeartbeatAt', {
+        expectedLastHeartbeatAt: data.expectedLastHeartbeatAt,
       });
     }
 
@@ -296,7 +303,7 @@ export class Service extends DatabaseService<Model> {
 
   /*
    * Measurement layer (Phase 2): record a human's one-click verdict
-   * (Confirmed / Rejected) on the LATEST COMPLETED investigation run for an
+   * (Confirmed / Rejected) on one exact COMPLETED investigation run for an
    * incident or alert. Overwriting an existing verdict is deliberate — a
    * user may change their mind; the verdict is per-run state, not an audit
    * trail. Throws when no completed investigation exists for the subject.
@@ -305,7 +312,9 @@ export class Service extends DatabaseService<Model> {
    * are system-authored, so the per-user privacy pin would hide them).
    */
   @CaptureSpan()
-  public async applyHumanVerdictToLatestInvestigation(data: {
+  public async applyHumanVerdictToInvestigation(data: {
+    aiRunId: ObjectID;
+    projectId: ObjectID;
     incidentId?: ObjectID | undefined;
     alertId?: ObjectID | undefined;
     verdict: AIRunHumanVerdict;
@@ -319,6 +328,8 @@ export class Service extends DatabaseService<Model> {
 
     const run: Model | null = await this.findOneBy({
       query: {
+        _id: data.aiRunId,
+        projectId: data.projectId,
         runType: AIRunType.Investigation,
         status: AIRunStatus.Completed,
         ...(data.incidentId
@@ -326,13 +337,12 @@ export class Service extends DatabaseService<Model> {
           : { triggeredByAlertId: data.alertId! }),
       },
       select: { _id: true },
-      sort: { createdAt: SortOrder.Descending },
       props: { isRoot: true },
     });
 
     if (!run || !run.id) {
       throw new BadDataException(
-        "No completed AI investigation exists for this subject yet — a verdict can only be recorded on a completed investigation.",
+        "The selected completed AI investigation does not exist for this subject — refresh the page before recording a verdict.",
       );
     }
 

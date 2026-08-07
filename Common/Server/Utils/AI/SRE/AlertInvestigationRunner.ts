@@ -179,6 +179,7 @@ export default class AIAlertInvestigationRunner {
           await AlertFeedService.createAlertFeedItem({
             alertId,
             projectId,
+            aiRunId,
             alertFeedEventType: AlertFeedEventType.RootCause,
             displayColor: Blue500,
             feedInfoInMarkdown: postData.analysisMarkdown,
@@ -239,6 +240,8 @@ export default class AIAlertInvestigationRunner {
               {
                 projectId,
                 alertId,
+                investigationRunId: aiRunId,
+                analysisMarkdown: postData.analysisMarkdown,
               },
             );
           }
