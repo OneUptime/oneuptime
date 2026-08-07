@@ -541,6 +541,7 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
     ],
   })
   @TableColumn({
+    computed: true,
     type: TableColumnType.VeryLongText,
     title: "Notification Status Message",
     description:

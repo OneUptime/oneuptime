@@ -695,6 +695,7 @@ export default class IncidentEpisodeStateTimeline extends BaseModel {
     update: [],
   })
   @TableColumn({
+    computed: true,
     type: TableColumnType.VeryLongText,
     title: "Subscriber Notification Status Message",
     description:

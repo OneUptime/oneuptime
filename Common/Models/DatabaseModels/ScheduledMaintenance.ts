@@ -1426,6 +1426,7 @@ export default class ScheduledMaintenance extends BaseModel {
     ],
   })
   @TableColumn({
+    computed: true,
     type: TableColumnType.VeryLongText,
     title: "Notification Status Message On Event Scheduled",
     description:
