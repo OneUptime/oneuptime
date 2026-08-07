@@ -248,6 +248,15 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
             },
             {
               field: {
+                phoneClaimName: true,
+              },
+              title: "Phone Claim Name",
+              fieldType: FormFieldSchemaType.Text,
+              required: false,
+              placeholder: "phone_number",
+            },
+            {
+              field: {
                 disableSignUpWithSso: true,
               },
               title: "Disable Sign Up with SSO",
@@ -319,6 +328,13 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
                   nameClaimName: true,
                 },
                 title: "Name Claim Name",
+                fieldType: FieldType.Text,
+              },
+              {
+                field: {
+                  phoneClaimName: true,
+                },
+                title: "Phone Claim Name",
                 fieldType: FieldType.Text,
               },
               {

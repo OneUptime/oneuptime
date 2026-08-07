@@ -505,6 +505,7 @@ import { AddTimeRangeToLogSavedView1786096660558 } from "./1786096660558-AddTime
 import { RestoreServiceLowerNameIndex1786100000000 } from "./1786100000000-RestoreServiceLowerNameIndex";
 import { RestoreDroppedUniqueIndexes1786200000000 } from "./1786200000000-RestoreDroppedUniqueIndexes";
 import { QuarantineUnboundGitHubInstallations1786300000000 } from "./1786300000000-QuarantineUnboundGitHubInstallations";
+import { AddPhoneClaimNameToOidc1786107524687 } from "./1786107524687-AddPhoneClaimNameToOidc";
 
 export default [
   InitialMigration,
@@ -1014,4 +1015,5 @@ export default [
   RestoreServiceLowerNameIndex1786100000000,
   RestoreDroppedUniqueIndexes1786200000000,
   QuarantineUnboundGitHubInstallations1786300000000,
+  AddPhoneClaimNameToOidc1786107524687,
 ];

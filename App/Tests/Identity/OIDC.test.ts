@@ -89,6 +89,7 @@ interface CallbackOverrides {
   callbackParams?: Record<string, string> | undefined;
   emailClaimName?: string | undefined;
   nameClaimName?: string | undefined;
+  phoneClaimName?: string | undefined;
 }
 
 /*
@@ -116,6 +117,7 @@ async function runCallback(
     },
     emailClaimName: overrides.emailClaimName ?? "email",
     nameClaimName: overrides.nameClaimName ?? "name",
+    phoneClaimName: overrides.phoneClaimName,
   });
 }
 
@@ -801,6 +803,56 @@ describe("OIDCUtil - claim extraction", () => {
     expect(result.email.toString()).toBe("sam.carter@example.com");
     expect(result.name?.toString()).toBe("Sam Carter");
   });
+
+  test("returns a null phone when no phoneClaimName is configured", async () => {
+    const idp: TestIdp = await startIdp({
+      idTokenClaims: {
+        nonce: NONCE,
+        email: "alice@example.com",
+        phone_number: "+15551234567",
+      },
+      omitUserInfoEndpoint: true,
+    });
+
+    const result: OidcCallbackResult = await runCallback(idp);
+
+    expect(result.phone).toBeNull();
+  });
+
+  test("reads the phone number from the configured claim name", async () => {
+    const idp: TestIdp = await startIdp({
+      idTokenClaims: {
+        nonce: NONCE,
+        email: "alice@example.com",
+        phone_number: "+15551234567",
+      },
+      omitUserInfoEndpoint: true,
+    });
+
+    const result: OidcCallbackResult = await runCallback(idp, {
+      phoneClaimName: "phone_number",
+    });
+
+    expect(result.phone?.toString()).toBe("+15551234567");
+  });
+
+  test("returns a null phone, without failing the login, when the claim is not in a format Phone accepts", async () => {
+    const idp: TestIdp = await startIdp({
+      idTokenClaims: {
+        nonce: NONCE,
+        email: "alice@example.com",
+        phone_number: "not-a-phone-number",
+      },
+      omitUserInfoEndpoint: true,
+    });
+
+    const result: OidcCallbackResult = await runCallback(idp, {
+      phoneClaimName: "phone_number",
+    });
+
+    expect(result.phone).toBeNull();
+    expect(result.email.toString()).toBe("alice@example.com");
+  });
 });
 
 describe("OIDCUtil - userinfo fallback", () => {
@@ -846,6 +898,22 @@ describe("OIDCUtil - userinfo fallback", () => {
 
     expect(result.email.toString()).toBe("bob@example.com");
     expect(result.name?.toString()).toBe("Bob Brown");
+  });
+
+  test("falls back to userinfo for the phone number when a phoneClaimName is configured", async () => {
+    const idp: TestIdp = await startIdp({
+      idTokenClaims: { nonce: NONCE, email: "alice@example.com" },
+      userInfo: {
+        sub: "00u1a2b3c4D5E6F7g8h9",
+        phone_number: "+15551234567",
+      },
+    });
+
+    const result: OidcCallbackResult = await runCallback(idp, {
+      phoneClaimName: "phone_number",
+    });
+
+    expect(result.phone?.toString()).toBe("+15551234567");
   });
 
   /*

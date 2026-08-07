@@ -221,6 +221,26 @@ export default class GlobalOIDC extends BaseModel {
     update: [],
   })
   @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Phone Claim Name",
+    description:
+      "Claim name in the ID token (or userinfo response) that contains the user's phone number. Optional - leave blank to skip syncing phone numbers. Synced into the user's company phone number, not into any verified call/SMS notification channel.",
+    example: "phone_number",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public phoneClaimName?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
     isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
     title: "Disable Sign Up with SSO",

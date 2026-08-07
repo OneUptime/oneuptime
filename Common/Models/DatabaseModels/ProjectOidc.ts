@@ -468,6 +468,38 @@ export default class ProjectOIDC extends BaseModel {
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
+      Permission.ReadProjectOIDC,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditProjectOIDC,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    description:
+      "Claim name in the ID token (or userinfo response) that contains the user's phone number. Optional - leave blank to skip syncing phone numbers. Synced into the user's company phone number, not into any verified call/SMS notification channel.",
+    example: "phone_number",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public phoneClaimName?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateProjectOIDC,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
       Permission.ProjectMember,
       Permission.Viewer,
       Permission.SettingsAdmin,
