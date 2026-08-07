@@ -1,4 +1,5 @@
 import SubjectCodeFixRun from "../../../../Server/Utils/AI/SRE/SubjectCodeFixRun";
+import FixRunBudget from "../../../../Server/Utils/AI/CodeFix/FixRunBudget";
 import AIRunService from "../../../../Server/Services/AIRunService";
 import QueryHelper from "../../../../Server/Types/Database/QueryHelper";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
@@ -119,6 +120,27 @@ describe("SubjectCodeFixRun dedupe guards", () => {
   });
 
   describe("findNonTerminalRunForSubject", () => {
+    test.each([
+      { label: "neither", input: {} },
+      { label: "both", input: { incidentId, alertId } },
+    ])(
+      "rejects $label subject type before querying",
+      async ({
+        input,
+      }: {
+        input: { incidentId?: ObjectID; alertId?: ObjectID };
+      }) => {
+        await expect(
+          SubjectCodeFixRun.findNonTerminalRunForSubject({
+            taskType: CodeFixTaskType.FixFromIncident,
+            ...input,
+          }),
+        ).rejects.toThrow(/Exactly one/);
+
+        expect(AIRunService.findOneBy).not.toHaveBeenCalled();
+      },
+    );
+
     test("a NoFixFound run does NOT block a new run for the same subject", async () => {
       storeRun(AIRunStatus.NoFixFound);
 
@@ -173,6 +195,28 @@ describe("SubjectCodeFixRun dedupe guards", () => {
       });
 
       expect(notIn).toHaveBeenCalledWith(AIRunStatusHelper.terminalStatuses());
+    });
+  });
+
+  describe("enqueueSubjectCodeFixRun", () => {
+    test("rejects a dual-subject run before the budget check or write", async () => {
+      const assertWithinBudget: jest.SpyInstance = jest.spyOn(
+        FixRunBudget,
+        "assertWithinBudget",
+      );
+      const create: jest.SpyInstance = jest.spyOn(AIRunService, "create");
+
+      await expect(
+        SubjectCodeFixRun.enqueueSubjectCodeFixRun({
+          projectId,
+          taskType: CodeFixTaskType.FixFromIncident,
+          incidentId,
+          alertId,
+        }),
+      ).rejects.toThrow(/both an incident and an alert/);
+
+      expect(assertWithinBudget).not.toHaveBeenCalled();
+      expect(create).not.toHaveBeenCalled();
     });
   });
 

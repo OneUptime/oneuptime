@@ -8,6 +8,7 @@ import AIRunService from "../../../../Server/Services/AIRunService";
 import IncidentService from "../../../../Server/Services/IncidentService";
 import IncidentSeverityService from "../../../../Server/Services/IncidentSeverityService";
 import ProjectService from "../../../../Server/Services/ProjectService";
+import QueryHelper from "../../../../Server/Types/Database/QueryHelper";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import IncidentSeverity from "../../../../Models/DatabaseModels/IncidentSeverity";
 import Project from "../../../../Models/DatabaseModels/Project";
@@ -275,6 +276,30 @@ describe("AIIncidentInvestigationRunner.shouldInvestigateIncident — dedupe win
     // Both monitors reach the query, not just the first.
     expect(JSON.stringify(query["monitorId"])).toContain(MONITOR_A.toString());
     expect(JSON.stringify(query["monitorId"])).toContain(MONITOR_B.toString());
+  });
+
+  test("the cooldown counts incident investigations only, so alert runs cannot suppress an incident", async () => {
+    const incidentSubjectFilter: Record<string, string> = {
+      operator: "incident-not-null",
+    };
+    const alertSubjectFilter: Record<string, string> = {
+      operator: "alert-null",
+    };
+    jest.spyOn(QueryHelper, "notNull").mockReturnValue(incidentSubjectFilter);
+    jest.spyOn(QueryHelper, "isNull").mockReturnValue(alertSubjectFilter);
+    jest
+      .spyOn(IncidentService, "findOneById")
+      .mockResolvedValue(fakeIncident({ monitorIds: [MONITOR_A] }));
+    mockProject({});
+    const countBy: jest.SpyInstance = mockRecentRunCount(0);
+
+    await gate();
+
+    const query: Record<string, unknown> = (
+      countBy.mock.calls[0]![0] as { query: Record<string, unknown> }
+    ).query;
+    expect(query["triggeredByIncidentId"]).toBe(incidentSubjectFilter);
+    expect(query["triggeredByAlertId"]).toBe(alertSubjectFilter);
   });
 
   test("an incident affecting no monitor skips the dedupe query entirely", async () => {

@@ -311,22 +311,27 @@ describe("AIInvestigationEngine.executeRun — the onSettled contract", () => {
     };
   }
 
-  function makeRequest(): InvestigationRequest {
+  function makeRequest(
+    overrides: Partial<InvestigationRequest> = {},
+  ): InvestigationRequest {
     return {
       feature: "Test Investigation",
       contextSummary: "# Subject",
       postAnalysis:
         postAnalysis as unknown as InvestigationRequest["postAnalysis"],
       onSettled: onSettled as unknown as InvestigationRequest["onSettled"],
+      ...overrides,
     };
   }
 
-  function executeRun(): Promise<void> {
+  function executeRun(
+    request: InvestigationRequest = makeRequest(),
+  ): Promise<void> {
     return AIInvestigationEngine.executeRun({
       aiRunId,
       projectId,
       attemptCount: 1,
-      request: makeRequest(),
+      request,
     });
   }
 
@@ -367,6 +372,37 @@ describe("AIInvestigationEngine.executeRun — the onSettled contract", () => {
     expect(postAnalysis).toHaveBeenCalledTimes(1);
     expect(onSettled).toHaveBeenCalledTimes(1);
     expect(callOrder).toEqual(["postAnalysis", "onSettled"]);
+  });
+
+  test("carries the subject lane through the assistant and confidence calls", async () => {
+    const incidentId: ObjectID = ObjectID.generate();
+    const answer: jest.SpyInstance = jest
+      .spyOn(ObservabilityAssistant, "answerQuestion")
+      .mockResolvedValue(makeResult());
+    const confidence: jest.SpyInstance = jest.spyOn(
+      AIConfidenceSignal,
+      "computeConfidenceSignal",
+    );
+    jest.spyOn(AIRunService, "attemptStatusTransition").mockResolvedValue(1);
+
+    await executeRun(makeRequest({ incidentId }));
+
+    expect(answer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectId,
+        aiRunId,
+        incidentId,
+        alertId: undefined,
+      }),
+    );
+    expect(confidence).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectId,
+        aiRunId,
+        incidentId,
+        alertId: undefined,
+      }),
+    );
   });
 
   test("an empty analysis still settles — but posts nothing", async () => {

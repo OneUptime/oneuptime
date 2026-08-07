@@ -26,9 +26,9 @@ enum CodeFixTaskType {
    * Add the observability an INCONCLUSIVE AI investigation was missing
    * (structured logs, spans, metric counters on the implicated code paths).
    * NOT user-triggerable from the exception page — it has its own automatic
-   * trigger: an inconclusive investigation on a project that opted in via
-   * Project.enableInstrumentationFixTasks (see Common/Server/Utils/AI/
-   * AI/InstrumentationTaskTrigger.ts). Its subject is the triggering
+   * trigger: an inconclusive investigation on a project that opted in through
+   * the incident/alert instrumentation fix setting (see Common/Server/Utils/
+   * AI/SRE/InstrumentationTaskTrigger.ts). Its subject is the triggering
    * incident/alert, NOT a telemetry exception.
    */
   ImproveInstrumentation = "ImproveInstrumentation",
