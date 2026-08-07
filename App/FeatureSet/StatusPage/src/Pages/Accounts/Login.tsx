@@ -1,5 +1,6 @@
 import { LOGIN_API_URL } from "../../Utils/ApiPaths";
 import LoginUtil from "../../Utils/Login";
+import StatusPageModelAPI from "../../Utils/ModelAPI";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import StatusPageUtil from "../../Utils/StatusPage";
@@ -124,6 +125,7 @@ const LoginPage: FunctionComponent<ComponentProps> = (
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
           <ModelForm<StatusPagePrivateUser>
             modelType={StatusPagePrivateUser}
+            modelAPI={StatusPageModelAPI}
             id="login-form"
             name="Status Page Login"
             fields={[

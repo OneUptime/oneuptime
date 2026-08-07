@@ -1,6 +1,7 @@
 import Page from "../../Components/Page/Page";
 import API from "../../Utils/API";
 import { STATUS_PAGE_API_URL } from "../../Utils/Config";
+import StatusPageModelAPI from "../../Utils/ModelAPI";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import StatusPageUtil from "../../Utils/StatusPage";
@@ -63,6 +64,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
             URL.fromString(STATUS_PAGE_API_URL.toString()).addRoute(
               `/resources/${id.toString()}`,
             ),
+            StatusPageModelAPI,
           );
 
         setCategoryCheckboxOptionsAndCategories(result);
@@ -74,10 +76,14 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
     };
 
   useEffect(() => {
+    if (!props.allowSubscribersToChooseResources) {
+      return;
+    }
+
     fetchCheckboxOptionsAndCategories().catch((error: Error) => {
       setError(error.message);
     });
-  }, []);
+  }, [props.allowSubscribersToChooseResources]);
 
   if (!id) {
     throw new BadDataException("Status Page ID is required");
@@ -162,6 +168,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
       return (
         <ModelForm<StatusPageSubscriber>
           modelType={StatusPageSubscriber}
+          modelAPI={StatusPageModelAPI}
           id="email-form"
           name="Status Page > Email Subscribe"
           fields={fields}
@@ -195,6 +202,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
       return (
         <ModelForm<StatusPageSubscriber>
           modelType={StatusPageSubscriber}
+          modelAPI={StatusPageModelAPI}
           id="email-form"
           name="Status Page > Mage Subscribe"
           fields={[
