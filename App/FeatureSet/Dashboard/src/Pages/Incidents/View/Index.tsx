@@ -30,6 +30,7 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useCallback,
   useEffect,
   useState,
 } from "react";
@@ -77,11 +78,18 @@ import LiveDuration from "../../../Components/EventView/LiveDuration";
 import { getEventEndDateForCurrentState } from "../../../Utils/EventDuration";
 import OverviewCustomFields from "../../../Components/CustomFields/OverviewCustomFields";
 import IncidentCustomField from "Common/Models/DatabaseModels/IncidentCustomField";
+import AIRunStatus from "Common/Types/AI/AIRunStatus";
+
+interface AIInvestigationStatusState {
+  subjectId: string;
+  status: AIRunStatus | null;
+}
 
 const IncidentView: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
+  const modelIdString: string = modelId.toString();
 
   const [incidentStateTimeline, setIncidentStateTimeline] = useState<
     IncidentStateTimeline[]
@@ -117,6 +125,35 @@ const IncidentView: FunctionComponent<
   const [severity, setSeverity] = useState<
     { name: string; color: Color } | undefined
   >(undefined);
+  const [aiInvestigationStatus, setAIInvestigationStatus] =
+    useState<AIInvestigationStatusState>({
+      subjectId: modelIdString,
+      status: null,
+    });
+  const currentAIInvestigationStatus: AIRunStatus | null =
+    aiInvestigationStatus.subjectId === modelIdString
+      ? aiInvestigationStatus.status
+      : null;
+  const onAIInvestigationStatusChange: (status: AIRunStatus | null) => void =
+    useCallback(
+      (status: AIRunStatus | null): void => {
+        setAIInvestigationStatus(
+          (
+            currentStatus: AIInvestigationStatusState,
+          ): AIInvestigationStatusState => {
+            if (
+              currentStatus.subjectId === modelIdString &&
+              currentStatus.status === status
+            ) {
+              return currentStatus;
+            }
+
+            return { subjectId: modelIdString, status: status };
+          },
+        );
+      },
+      [modelIdString],
+    );
 
   const fetchData: PromiseVoidFunction = async (): Promise<void> => {
     try {
@@ -425,6 +462,7 @@ const IncidentView: FunctionComponent<
           eventStartsAt={durationStartDate}
           severity={severity}
           isPrivate={isPrivate}
+          aiInvestigationStatus={currentAIInvestigationStatus}
           onActionComplete={async () => {
             await fetchData();
           }}
@@ -541,7 +579,11 @@ const IncidentView: FunctionComponent<
 
           <RemediationSuggestionCard incidentId={modelId} hideIfEmpty={true} />
 
-          <InvestigationPanel subjectType="incident" subjectId={modelId} />
+          <InvestigationPanel
+            subjectType="incident"
+            subjectId={modelId}
+            onStatusChange={onAIInvestigationStatusChange}
+          />
 
           <IncidentFeedElement incidentId={modelId} />
         </div>
