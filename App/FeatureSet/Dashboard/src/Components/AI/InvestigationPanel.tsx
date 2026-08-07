@@ -2,6 +2,7 @@ import ChatActivityFeed from "../AIChat/ChatActivityFeed";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import AIRunEvent from "Common/Models/DatabaseModels/AIRunEvent";
+import AIRunCodeFixRecommendation from "Common/Types/AI/AIRunCodeFixRecommendation";
 import AIRunStatus from "Common/Types/AI/AIRunStatus";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -51,9 +52,13 @@ const SETTLED_POLL_INTERVAL_MS: number = 30_000;
  * quieter settled cadence supported by the completed-report API.
  */
 const MAX_DISCOVERY_POLLS: number = 4;
+const RECOMMENDATION_SETTLEMENT_MAX_AGE_MS: number = 3 * 60 * 1000;
+const MAX_RECOMMENDATION_POLL_RESPONSES: number = Math.ceil(
+  RECOMMENDATION_SETTLEMENT_MAX_AGE_MS / POLL_INTERVAL_MS,
+);
 
 /*
- * the AI's live "watch it think" panel, shared by the incident and alert
+ * The AI's live "watch it think" panel, shared by the incident and alert
  * view pages. It shows the autonomous investigation narrating its steps in
  * real time (reusing ChatActivityFeed over the run's AIRunEvents) and its
  * status. Renders nothing until an investigation exists for the subject, so
@@ -104,6 +109,27 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
     props.onStatusChange,
   );
   onStatusChangeRef.current = props.onStatusChange;
+  const isMountedRef: React.MutableRefObject<boolean> = useRef<boolean>(true);
+  const inFlightFetchRef: React.MutableRefObject<{
+    subjectKey: string;
+    promise: Promise<void>;
+  } | null> = useRef<{
+    subjectKey: string;
+    promise: Promise<void>;
+  } | null>(null);
+  const unsettledPollRef: React.MutableRefObject<{
+    runId: string | null;
+    responseCount: number;
+    firstObservedAt: number | null;
+  }> = useRef<{
+    runId: string | null;
+    responseCount: number;
+    firstObservedAt: number | null;
+  }>({
+    runId: null,
+    responseCount: 0,
+    firstObservedAt: null,
+  });
 
   /*
    * Update during render so a response from the previous route can never
@@ -112,6 +138,12 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
   activeSubjectKeyRef.current = subjectKey;
 
   // "Open Fix PR from this analysis" (the FixFromIncident recipe) state.
+  const [codeFixRecommendation, setCodeFixRecommendation] =
+    useState<AIRunCodeFixRecommendation | null>(null);
+  const [
+    recommendationSettlementDeadlineAt,
+    setRecommendationSettlementDeadlineAt,
+  ] = useState<number | null>(null);
   const [isCreatingFixTask, setIsCreatingFixTask] = useState<boolean>(false);
   const [fixTaskRunId, setFixTaskRunId] = useState<string | null>(null);
   const [fixTaskError, setFixTaskError] = useState<string | null>(null);
@@ -128,6 +160,14 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
    */
   const isSavingVerdictRef: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   /*
    * This component can survive route changes while the subject id changes.
@@ -147,6 +187,11 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
     loadedSubjectKeyRef.current = null;
     activeRunIdRef.current = null;
     isSavingVerdictRef.current = false;
+    unsettledPollRef.current = {
+      runId: null,
+      responseCount: 0,
+      firstObservedAt: null,
+    };
 
     setRunStatus(null);
     setRunId(null);
@@ -158,6 +203,8 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
     setHasLoadedOnce(false);
     setLoadedSubjectKey(null);
     setSupportsSettledPolling(false);
+    setCodeFixRecommendation(null);
+    setRecommendationSettlementDeadlineAt(null);
     setIsCreatingFixTask(false);
     setFixTaskRunId(null);
     setFixTaskError(null);
@@ -178,6 +225,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
       const requestedSubjectKey: string = subjectKey;
       const isLatestRequest: () => boolean = (): boolean => {
         return (
+          isMountedRef.current &&
           requestId === latestFetchRequestRef.current &&
           requestedSubjectKey === activeSubjectKeyRef.current
         );
@@ -218,6 +266,14 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
           (runJson?.["_id"] as string | undefined) || null;
         const verdictFromServer: string | null =
           (runJson?.["humanVerdict"] as string | undefined) || null;
+        const rawRecommendationValue: unknown =
+          runJson?.["codeFixRecommendation"];
+        const rawCodeFixRecommendation: AIRunCodeFixRecommendation | null =
+          rawRecommendationValue === AIRunCodeFixRecommendation.Pending ||
+          rawRecommendationValue === AIRunCodeFixRecommendation.Recommended ||
+          rawRecommendationValue === AIRunCodeFixRecommendation.NotRecommended
+            ? rawRecommendationValue
+            : null;
         const analysisFromServer: string =
           typeof data["analysisMarkdown"] === "string"
             ? (data["analysisMarkdown"] as string).trim()
@@ -238,6 +294,11 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
         if (nextRunId !== activeRunIdRef.current) {
           activeRunIdRef.current = nextRunId;
           isSavingVerdictRef.current = false;
+          unsettledPollRef.current = {
+            runId: nextRunId,
+            responseCount: 0,
+            firstObservedAt: null,
+          };
           setIsCreatingFixTask(false);
           setFixTaskRunId(null);
           setFixTaskError(null);
@@ -246,10 +307,87 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
           setIsChangingVerdict(false);
         }
 
+        let codeFixRecommendationFromServer: AIRunCodeFixRecommendation | null =
+          rawCodeFixRecommendation;
+        let settlementDeadlineAtFromServer: number | null = null;
+
         /*
-         * The report can arrive after the run first becomes Completed, without
-         * changing the status or event count. Keep it in the signature so that
-         * completion race always produces a final render.
+         * Completed is persisted before the small code-fix classifier and
+         * analysis post finish. During that bounded settlement window,
+         * Pending (and a missing value from an older API replica) keeps the
+         * panel polling but never exposes the action. A crashed/mixed-version
+         * worker must not make every viewer poll forever, so both server age
+         * and a local response cap fail closed after three minutes.
+         */
+        if (
+          status === AIRunStatus.Completed &&
+          (rawCodeFixRecommendation === null ||
+            rawCodeFixRecommendation === AIRunCodeFixRecommendation.Pending)
+        ) {
+          const now: number = Date.now();
+          const completedAtValue: unknown = runJson?.["completedAt"];
+          const completedAtInMs: number =
+            typeof completedAtValue === "string"
+              ? Date.parse(completedAtValue)
+              : Number.NaN;
+          const pollState: {
+            runId: string | null;
+            responseCount: number;
+            firstObservedAt: number | null;
+          } = unsettledPollRef.current;
+          const firstObservedAt: number = pollState.firstObservedAt ?? now;
+          const localDeadlineAt: number =
+            firstObservedAt + RECOMMENDATION_SETTLEMENT_MAX_AGE_MS;
+          /*
+           * Use the server completion time only when it is not ahead of the
+           * browser. A client clock a few seconds behind must not suppress a
+           * valid Pending -> Recommended transition. The first-observed local
+           * deadline is always present, so failures and skew still terminate.
+           */
+          const serverDeadlineAt: number = Number.isFinite(completedAtInMs)
+            ? completedAtInMs <= now
+              ? completedAtInMs + RECOMMENDATION_SETTLEMENT_MAX_AGE_MS
+              : localDeadlineAt
+            : Number.NEGATIVE_INFINITY;
+          /*
+           * An explicit Pending value was authored by the upgraded server,
+           * so its first-observed local window is authoritative. This avoids
+           * a browser clock that is ahead of the server expiring a fresh
+           * recommendation immediately. A missing value can be a genuinely
+           * old legacy row, so retain the server-age cap for that case.
+           */
+          const settlementDeadlineAt: number =
+            rawCodeFixRecommendation === AIRunCodeFixRecommendation.Pending
+              ? localDeadlineAt
+              : Math.min(localDeadlineAt, serverDeadlineAt);
+          const withinResponseCap: boolean =
+            pollState.runId === nextRunId &&
+            pollState.responseCount < MAX_RECOMMENDATION_POLL_RESPONSES;
+          const withinAgeCap: boolean = now < settlementDeadlineAt;
+
+          if (withinAgeCap && withinResponseCap) {
+            codeFixRecommendationFromServer =
+              AIRunCodeFixRecommendation.Pending;
+            settlementDeadlineAtFromServer = settlementDeadlineAt;
+            unsettledPollRef.current = {
+              runId: nextRunId,
+              responseCount: pollState.responseCount + 1,
+              firstObservedAt,
+            };
+          } else {
+            codeFixRecommendationFromServer =
+              rawCodeFixRecommendation === AIRunCodeFixRecommendation.Pending
+                ? AIRunCodeFixRecommendation.NotRecommended
+                : null;
+          }
+        }
+
+        setRecommendationSettlementDeadlineAt(settlementDeadlineAtFromServer);
+
+        /*
+         * The report and recommendation can both arrive after the run first
+         * becomes Completed. Include them in the signature so either
+         * completion race produces the final render.
          */
         const signature: string = JSON.stringify([
           status,
@@ -261,11 +399,13 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
           nextTotalTokens,
           nextAnalysisMarkdown,
           nextIsAnalysisPending,
+          codeFixRecommendationFromServer,
         ]);
         if (signature !== signatureRef.current) {
           signatureRef.current = signature;
           setRunStatus(status);
           setRunId(nextRunId);
+          setCodeFixRecommendation(codeFixRecommendationFromServer);
           setErrorMessage(nextErrorMessage);
           setAnalysisMarkdown(nextAnalysisMarkdown);
           setIsAnalysisPending(nextIsAnalysisPending);
@@ -307,11 +447,37 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
       }
     }, [subjectIdString, subjectKey, subjectType]);
 
+  /*
+   * Effects can change cadence while a request is still unresolved (for
+   * example, when the recommendation deadline expires). Reuse that request
+   * for the same subject so an effect restart cannot overlap it. A route
+   * change is allowed to start the new subject immediately; stale-response
+   * guards keep the old subject from committing later.
+   */
+  const fetchDataSequentially: () => Promise<void> = useCallback(() => {
+    const inFlightFetch: {
+      subjectKey: string;
+      promise: Promise<void>;
+    } | null = inFlightFetchRef.current;
+
+    if (inFlightFetch?.subjectKey === subjectKey) {
+      return inFlightFetch.promise;
+    }
+
+    const promise: Promise<void> = fetchData().finally(() => {
+      if (inFlightFetchRef.current?.promise === promise) {
+        inFlightFetchRef.current = null;
+      }
+    });
+    inFlightFetchRef.current = { subjectKey, promise };
+    return promise;
+  }, [fetchData, subjectKey]);
+
   useEffect(() => {
-    fetchData().catch(() => {
+    fetchDataSequentially().catch(() => {
       // handled inside fetchData
     });
-  }, [fetchData]);
+  }, [fetchDataSequentially]);
 
   useEffect(() => {
     if (hasLoadedOnce && loadedSubjectKey === subjectKey) {
@@ -322,13 +488,20 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
   /*
    * Human-triggered `code_fix`: enqueue a FixFromIncident task that takes
    * the posted analysis as context and opens a fix pull request. The server
-   * gates (completed investigation, GitHub-App repository, one active run
-   * per subject) fail with a message shown inline.
+   * gates (recommended completed investigation, GitHub-App repository, one
+   * active run per subject) fail with a message shown inline.
    */
   const createFixTask: () => Promise<void> =
     useCallback(async (): Promise<void> => {
       const requestedSubjectKey: string = subjectKey;
       const requestedRunId: string | null = runId;
+      const isCurrentRun: () => boolean = (): boolean => {
+        return (
+          isMountedRef.current &&
+          requestedSubjectKey === activeSubjectKeyRef.current &&
+          requestedRunId === activeRunIdRef.current
+        );
+      };
 
       if (!requestedRunId) {
         setFixTaskError("The investigation run could not be identified.");
@@ -347,7 +520,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
             data: {
               subjectType,
               subjectId: subjectIdString,
-              aiRunId: requestedRunId,
+              investigationRunId: requestedRunId,
             },
             headers: ModelAPI.getCommonHeaders(),
           });
@@ -356,30 +529,25 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
           throw response;
         }
 
-        if (
-          requestedSubjectKey !== activeSubjectKeyRef.current ||
-          requestedRunId !== activeRunIdRef.current
-        ) {
+        if (!isCurrentRun()) {
           return;
         }
 
         const aiRunId: string | undefined = (response.data as JSONObject)[
           "aiRunId"
         ] as string | undefined;
-
         setFixTaskRunId(aiRunId || null);
       } catch (err) {
-        if (
-          requestedSubjectKey !== activeSubjectKeyRef.current ||
-          requestedRunId !== activeRunIdRef.current
-        ) {
+        if (!isCurrentRun()) {
           return;
         }
 
         setFixTaskError(API.getFriendlyMessage(err));
       }
 
-      setIsCreatingFixTask(false);
+      if (isCurrentRun()) {
+        setIsCreatingFixTask(false);
+      }
     }, [runId, subjectIdString, subjectKey, subjectType]);
 
   /*
@@ -394,6 +562,13 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
         const requestedSubjectKey: string = subjectKey;
         const requestedRunId: string | null = runId;
         const previousVerdict: string | null = humanVerdict;
+        const isCurrentRun: () => boolean = (): boolean => {
+          return (
+            isMountedRef.current &&
+            requestedSubjectKey === activeSubjectKeyRef.current &&
+            requestedRunId === activeRunIdRef.current
+          );
+        };
 
         if (!requestedRunId) {
           setVerdictError("The investigation run could not be identified.");
@@ -415,7 +590,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
               data: {
                 subjectType,
                 subjectId: subjectIdString,
-                aiRunId: requestedRunId,
+                investigationRunId: requestedRunId,
                 verdict: verdict,
               },
               headers: ModelAPI.getCommonHeaders(),
@@ -425,10 +600,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
             throw response;
           }
 
-          if (
-            requestedSubjectKey !== activeSubjectKeyRef.current ||
-            requestedRunId !== activeRunIdRef.current
-          ) {
+          if (!isCurrentRun()) {
             return;
           }
 
@@ -438,10 +610,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
            */
           latestFetchRequestRef.current += 1;
         } catch (err) {
-          if (
-            requestedSubjectKey !== activeSubjectKeyRef.current ||
-            requestedRunId !== activeRunIdRef.current
-          ) {
+          if (!isCurrentRun()) {
             return;
           }
 
@@ -450,8 +619,10 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
           setVerdictError(API.getFriendlyMessage(err));
         }
 
-        setIsSavingVerdict(false);
-        isSavingVerdictRef.current = false;
+        if (isCurrentRun()) {
+          setIsSavingVerdict(false);
+          isSavingVerdictRef.current = false;
+        }
       },
       [humanVerdict, runId, subjectIdString, subjectKey, subjectType],
     );
@@ -460,13 +631,22 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
   const isQueued: boolean = runStatus === AIRunStatus.Queued;
   // Poll while the run can still make progress (queued runs get claimed).
   const isActive: boolean = isRunning || isQueued;
-  const isDiscoveringRun: boolean = hasLoadedOnce && runStatus === null;
+  const isDiscoveringRun: boolean =
+    hasLoadedOnce && loadedSubjectKey === subjectKey && runStatus === null;
+  /*
+   * Pending is an explicit, bounded lifecycle state for a newly completed
+   * analysis whose code-fix classifier/post has not settled yet.
+   */
+  const isCodeFixRecommendationPending: boolean =
+    runStatus === AIRunStatus.Completed &&
+    codeFixRecommendation === AIRunCodeFixRecommendation.Pending;
   /*
    * A run is marked Completed just before its report is posted to the feed.
-   * The server bounds this state, so this cannot poll forever after a failed
-   * or empty post-analysis step.
+   * Both post-run states are bounded, so neither can poll forever after a
+   * failed or empty post-analysis step.
    */
-  const shouldPoll: boolean = isActive || isAnalysisPending;
+  const shouldPoll: boolean =
+    isActive || isAnalysisPending || isCodeFixRecommendationPending;
   /*
    * Keep a much quieter watch after settlement (and while no run exists), so
    * a new investigation launched elsewhere appears without a page refresh.
@@ -494,7 +674,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
       delayInMs: number,
     ): void => {
       timeout = setTimeout(() => {
-        fetchData()
+        fetchDataSequentially()
           .catch(() => {
             // handled inside fetchData
           })
@@ -534,7 +714,39 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
         clearTimeout(timeout);
       }
     };
-  }, [fetchData, isDiscoveringRun, nextPollDelayInMs, supportsSettledPolling]);
+  }, [
+    fetchDataSequentially,
+    isDiscoveringRun,
+    nextPollDelayInMs,
+    supportsSettledPolling,
+  ]);
+
+  /*
+   * The deadline is independent of HTTP success. It stops a Pending panel
+   * even when every request fails or one request never resolves; sequential
+   * polling above also guarantees that a slow request cannot create a request
+   * storm. Recommendation stays fail-closed and no error banner is shown.
+   */
+  useEffect(() => {
+    if (
+      !isCodeFixRecommendationPending ||
+      recommendationSettlementDeadlineAt === null
+    ) {
+      return;
+    }
+
+    const timeout: ReturnType<typeof setTimeout> = setTimeout(
+      () => {
+        setCodeFixRecommendation(AIRunCodeFixRecommendation.NotRecommended);
+        setRecommendationSettlementDeadlineAt(null);
+      },
+      Math.max(0, recommendationSettlementDeadlineAt - Date.now()),
+    );
+
+    return () => {
+      clearTimeout(timeout);
+    };
+  }, [isCodeFixRecommendationPending, recommendationSettlementDeadlineAt]);
 
   /*
    * The report's presence proves the matching RootCause feed item exists.
@@ -627,6 +839,9 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
     isFailed = false;
   }
 
+  const isCodeFixRecommended: boolean =
+    codeFixRecommendation === AIRunCodeFixRecommendation.Recommended;
+
   return (
     <Card
       title="AI Investigation"
@@ -648,7 +863,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
         >
           <Icon icon={statusMeta.icon} className="h-4 w-4" />
           <span>{statusMeta.text}</span>
-          {shouldPoll ? (
+          {isActive || isAnalysisPending ? (
             <span className="ml-1 inline-block h-2 w-2 motion-safe:animate-ping rounded-full bg-indigo-500" />
           ) : (
             <></>
@@ -788,92 +1003,106 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
         )}
 
         {/*
-          Two quiet actions under a completed analysis: hand the posted
-          root-cause analysis to the AI agent as context for a fix pull
-          request (the FixFromIncident recipe), and record a human verdict
-          on whether the analysis was correct. Human-triggered by design —
-          the user judges whether the analysis is worth a PR, and their
-          verdicts feed the AI's measured accuracy.
+          The server-authored recommendation decides whether a completed
+          investigation exposes the code-fix action. The human verdict remains
+          independent: it records whether the analysis was correct even when
+          no pull request is applicable.
         */}
         {runStatus === AIRunStatus.Completed ? (
           <div className="mt-5 border-t border-gray-200 pt-5">
-            <div className="grid gap-5 lg:grid-cols-2 lg:gap-6">
-              <div>
-                <p className="text-sm font-medium text-gray-800">
-                  Act on this investigation
-                </p>
-                <p className="mb-3 mt-1 text-xs leading-5 text-gray-500">
-                  Create a draft fix pull request with this report as context.
-                </p>
-                {fixTaskRunId ? (
-                  <Alert
-                    type={AlertType.SUCCESS}
-                    strongTitle="Fix task created"
-                    title={
-                      <span>
-                        AI will open a pull request from this analysis.{" "}
-                        <Link
-                          className="underline"
-                          to={RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.AI_AGENT_TASK_VIEW] as Route,
-                            { modelId: fixTaskRunId },
-                          )}
-                        >
-                          View task progress
-                        </Link>
-                        .
-                      </span>
-                    }
-                  />
-                ) : (
-                  <>
-                    {fixTaskError ? (
-                      <div className="mb-3">
-                        <Alert
-                          type={AlertType.DANGER}
-                          strongTitle="Could not create the fix task"
-                          title={
-                            <span>
-                              {fixTaskError}{" "}
-                              <Link
-                                className="underline"
-                                to={RouteUtil.populateRouteParams(
-                                  RouteMap[PageMap.AI_AGENT_TASKS] as Route,
-                                )}
-                              >
-                                View AI tasks
-                              </Link>
-                              .
-                            </span>
-                          }
-                        />
-                      </div>
-                    ) : (
-                      <></>
-                    )}
-                    <Button
-                      title="Open Fix PR from this analysis"
-                      icon={IconProp.Code}
-                      buttonStyle={ButtonStyleType.OUTLINE}
-                      buttonSize={ButtonSize.Small}
-                      isLoading={isCreatingFixTask}
-                      disabled={!analysisMarkdown}
-                      onClick={() => {
-                        createFixTask().catch(() => {
-                          // handled inside createFixTask
-                        });
-                      }}
+            <div
+              className={
+                isCodeFixRecommended
+                  ? "grid gap-5 lg:grid-cols-2 lg:gap-6"
+                  : "grid gap-5"
+              }
+            >
+              {isCodeFixRecommended ? (
+                <div>
+                  <p className="text-sm font-medium text-gray-800">
+                    Act on this investigation
+                  </p>
+                  <p className="mb-3 mt-1 text-xs leading-5 text-gray-500">
+                    Create a draft fix pull request with this report as context.
+                  </p>
+                  {fixTaskRunId ? (
+                    <Alert
+                      type={AlertType.SUCCESS}
+                      strongTitle="Fix task created"
+                      title={
+                        <span>
+                          AI will open a pull request from this analysis.{" "}
+                          <Link
+                            className="underline"
+                            to={RouteUtil.populateRouteParams(
+                              RouteMap[PageMap.AI_AGENT_TASK_VIEW] as Route,
+                              { modelId: fixTaskRunId },
+                            )}
+                          >
+                            View task progress
+                          </Link>
+                          .
+                        </span>
+                      }
                     />
-                  </>
-                )}
-              </div>
+                  ) : (
+                    <>
+                      {fixTaskError ? (
+                        <div className="mb-3">
+                          <Alert
+                            type={AlertType.DANGER}
+                            strongTitle="Could not create the fix task"
+                            title={
+                              <span>
+                                {fixTaskError}{" "}
+                                <Link
+                                  className="underline"
+                                  to={RouteUtil.populateRouteParams(
+                                    RouteMap[PageMap.AI_AGENT_TASKS] as Route,
+                                  )}
+                                >
+                                  View AI tasks
+                                </Link>
+                                .
+                              </span>
+                            }
+                          />
+                        </div>
+                      ) : (
+                        <></>
+                      )}
+                      <Button
+                        title="Open Fix PR from this analysis"
+                        icon={IconProp.Code}
+                        buttonStyle={ButtonStyleType.OUTLINE}
+                        buttonSize={ButtonSize.Small}
+                        isLoading={isCreatingFixTask}
+                        disabled={!analysisMarkdown}
+                        onClick={() => {
+                          createFixTask().catch(() => {
+                            // handled inside createFixTask
+                          });
+                        }}
+                      />
+                    </>
+                  )}
+                </div>
+              ) : (
+                <></>
+              )}
 
               {/*
                 A quiet human verdict on the analysis. The server returns
                 `humanVerdict` on every investigation payload, so the state
                 survives polling refreshes; the buttons update optimistically.
               */}
-              <div className="lg:border-l lg:border-gray-200 lg:pl-6">
+              <div
+                className={
+                  isCodeFixRecommended
+                    ? "lg:border-l lg:border-gray-200 lg:pl-6"
+                    : ""
+                }
+              >
                 <p className="text-sm font-medium text-gray-800">
                   Rate this investigation
                 </p>

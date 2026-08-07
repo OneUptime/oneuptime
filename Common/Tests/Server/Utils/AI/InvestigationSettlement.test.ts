@@ -16,6 +16,7 @@ import AIRunEvent from "../../../../Models/DatabaseModels/AIRunEvent";
 import AIRunEventType from "../../../../Types/AI/AIRunEventType";
 import AIRunType from "../../../../Types/AI/AIRunType";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
+import AIRunCodeFixRecommendation from "../../../../Types/AI/AIRunCodeFixRecommendation";
 import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
 import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
@@ -76,7 +77,10 @@ describe("AIInvestigationQueue.failOrRequeue — the settlement outcome", () => 
     expect(update).toHaveBeenCalledWith(
       expect.objectContaining({
         expectedAttemptCount: 1,
-        set: expect.objectContaining({ status: AIRunStatus.Queued }),
+        set: expect.objectContaining({
+          status: AIRunStatus.Queued,
+          codeFixRecommendation: AIRunCodeFixRecommendation.NotRecommended,
+        }),
       }),
     );
   });
@@ -116,7 +120,10 @@ describe("AIInvestigationQueue.failOrRequeue — the settlement outcome", () => 
     expect(update).toHaveBeenCalledWith(
       expect.objectContaining({
         expectedAttemptCount: 1,
-        set: expect.objectContaining({ status: AIRunStatus.Error }),
+        set: expect.objectContaining({
+          status: AIRunStatus.Error,
+          codeFixRecommendation: AIRunCodeFixRecommendation.NotRecommended,
+        }),
       }),
     );
   });
@@ -171,6 +178,15 @@ describe("AIInvestigationQueue.requeueOrMarkStale — the terminal-stale hand-of
       });
 
     expect(outcome).toBe("stale");
+    expect(AIRunService.attemptStatusTransition).toHaveBeenCalledWith(
+      expect.objectContaining({
+        expectedAttemptCount: MAX_INVESTIGATION_ATTEMPTS,
+        set: expect.objectContaining({
+          status: AIRunStatus.Stale,
+          codeFixRecommendation: AIRunCodeFixRecommendation.NotRecommended,
+        }),
+      }),
+    );
     expect(handoff).toHaveBeenCalledTimes(1);
     expect(handoff).toHaveBeenCalledWith(
       expect.objectContaining({ projectId, incidentId }),
@@ -200,6 +216,10 @@ describe("AIInvestigationQueue.requeueOrMarkStale — the terminal-stale hand-of
         aiRunId: runId,
         expectedAttemptCount: 1,
         expectedLastHeartbeatAt: staleHeartbeat,
+        set: expect.objectContaining({
+          status: AIRunStatus.Queued,
+          codeFixRecommendation: AIRunCodeFixRecommendation.NotRecommended,
+        }),
       }),
     );
     expect(handoff).not.toHaveBeenCalled();
@@ -285,7 +305,10 @@ describe("AIInvestigationQueue.processQueuedRuns — TTL expiry settles too", ()
 
     expect(update).toHaveBeenCalledWith(
       expect.objectContaining({
-        set: expect.objectContaining({ status: AIRunStatus.Cancelled }),
+        set: expect.objectContaining({
+          status: AIRunStatus.Cancelled,
+          codeFixRecommendation: AIRunCodeFixRecommendation.NotRecommended,
+        }),
       }),
     );
     expect(handoff).not.toHaveBeenCalled();
@@ -313,6 +336,7 @@ describe("AIInvestigationEngine.executeRun — the onSettled contract", () => {
   // Records call order so "after postAnalysis" is provable, not assumed.
   let callOrder: Array<string>;
   let postAnalysis: jest.Mock;
+  let onCodeFixRecommended: jest.Mock;
   let onSettled: jest.Mock;
 
   function makeResult(
@@ -334,8 +358,11 @@ describe("AIInvestigationEngine.executeRun — the onSettled contract", () => {
     return {
       feature: "Test Investigation",
       contextSummary: "# Subject",
+      persistCodeFixRecommendation: true,
       postAnalysis:
         postAnalysis as unknown as InvestigationRequest["postAnalysis"],
+      onCodeFixRecommended:
+        onCodeFixRecommended as unknown as InvestigationRequest["onCodeFixRecommended"],
       onSettled: onSettled as unknown as InvestigationRequest["onSettled"],
       ...overrides,
     };
@@ -364,6 +391,9 @@ describe("AIInvestigationEngine.executeRun — the onSettled contract", () => {
     postAnalysis = jest.fn(async (): Promise<void> => {
       callOrder.push("postAnalysis");
     });
+    onCodeFixRecommended = jest.fn(async (): Promise<void> => {
+      callOrder.push("autoEnqueue");
+    });
     onSettled = jest.fn(async (): Promise<void> => {
       callOrder.push("onSettled");
     });
@@ -377,7 +407,14 @@ describe("AIInvestigationEngine.executeRun — the onSettled contract", () => {
       .mockResolvedValue({} as unknown as AIRunEvent);
     jest
       .spyOn(AIConfidenceSignal, "computeConfidenceSignal")
-      .mockResolvedValue({ confident: true, source: "classification" });
+      .mockResolvedValue({
+        confident: true,
+        codeFixRecommended: true,
+        source: "classification",
+      });
+    jest
+      .spyOn(AIRunService, "finalizeInvestigationCodeFixRecommendation")
+      .mockResolvedValue(1);
   });
 
   afterEach(() => {
@@ -385,28 +422,180 @@ describe("AIInvestigationEngine.executeRun — the onSettled contract", () => {
     handoff.mockClear();
   });
 
-  test("a successful run settles AFTER the analysis was posted", async () => {
+  test("a successful run posts, atomically persists the snapshot, then auto-enqueues and settles", async () => {
     jest
       .spyOn(ObservabilityAssistant, "answerQuestion")
       .mockResolvedValue(makeResult());
-    jest.spyOn(AIRunService, "attemptStatusTransition").mockResolvedValue(1);
+    const complete: jest.SpyInstance = jest
+      .spyOn(AIRunService, "attemptStatusTransition")
+      .mockResolvedValue(1);
     postAnalysis.mockImplementation(async (): Promise<void> => {
       expect(emittedEventTypes()).not.toContain(AIRunEventType.RunCompleted);
       callOrder.push("postAnalysis");
     });
+    (
+      AIRunService.finalizeInvestigationCodeFixRecommendation as unknown as jest.Mock
+    ).mockImplementation(async (): Promise<number> => {
+      callOrder.push("persistRecommendation");
+      return 1;
+    });
+    (AIRunEventService.create as unknown as jest.Mock).mockImplementation(
+      async (data: { data: AIRunEvent }): Promise<AIRunEvent> => {
+        if (data.data.eventType === AIRunEventType.RunCompleted) {
+          callOrder.push("runCompleted");
+        }
+        return {} as AIRunEvent;
+      },
+    );
 
     await executeRun();
 
     expect(postAnalysis).toHaveBeenCalledTimes(1);
     expect(onSettled).toHaveBeenCalledTimes(1);
-    expect(callOrder).toEqual(["postAnalysis", "onSettled"]);
+    expect(callOrder).toEqual([
+      "postAnalysis",
+      "persistRecommendation",
+      "autoEnqueue",
+      "runCompleted",
+      "onSettled",
+    ]);
     expect(emittedEventTypes()).toContain(AIRunEventType.RunCompleted);
-    expect(AIRunService.attemptStatusTransition).toHaveBeenCalledWith(
+    expect(complete).toHaveBeenCalledWith(
       expect.objectContaining({
+        fromStatus: AIRunStatus.Running,
         expectedAttemptCount: 1,
-        set: expect.objectContaining({ status: AIRunStatus.Completed }),
+        set: expect.objectContaining({
+          status: AIRunStatus.Completed,
+          codeFixRecommendation: AIRunCodeFixRecommendation.Pending,
+        }),
       }),
     );
+
+    const postedAnalysisMarkdown: string = postAnalysis.mock.calls[0]![0]
+      .analysisMarkdown as string;
+    expect(
+      AIRunService.finalizeInvestigationCodeFixRecommendation,
+    ).toHaveBeenCalledWith({
+      aiRunId,
+      recommendation: AIRunCodeFixRecommendation.Recommended,
+      taskContext: {
+        sourceInvestigationRunId: aiRunId.toString(),
+        sourceInvestigationAnalysisMarkdown: postedAnalysisMarkdown,
+      },
+    });
+    expect(onCodeFixRecommended).toHaveBeenCalledWith({
+      analysisMarkdown: postedAnalysisMarkdown,
+    });
+    expect(postedAnalysisMarkdown).toContain(
+      "## 🧠 AI — Automated Root Cause Analysis",
+    );
+  });
+
+  test("a confident non-code analysis settles NotRecommended", async () => {
+    jest
+      .spyOn(ObservabilityAssistant, "answerQuestion")
+      .mockResolvedValue(makeResult());
+    jest.spyOn(AIRunService, "attemptStatusTransition").mockResolvedValue(1);
+    jest
+      .spyOn(AIConfidenceSignal, "computeConfidenceSignal")
+      .mockResolvedValue({
+        confident: true,
+        codeFixRecommended: false,
+        source: "classification",
+      });
+
+    await executeRun();
+
+    expect(postAnalysis).toHaveBeenCalledTimes(1);
+    expect(
+      AIRunService.finalizeInvestigationCodeFixRecommendation,
+    ).toHaveBeenCalledWith({
+      aiRunId,
+      recommendation: AIRunCodeFixRecommendation.NotRecommended,
+    });
+    expect(onCodeFixRecommended).not.toHaveBeenCalled();
+  });
+
+  test("an inconsistent positive field fails closed through the shared code-fix helper", async () => {
+    jest
+      .spyOn(ObservabilityAssistant, "answerQuestion")
+      .mockResolvedValue(makeResult());
+    jest.spyOn(AIRunService, "attemptStatusTransition").mockResolvedValue(1);
+    jest
+      .spyOn(AIConfidenceSignal, "computeConfidenceSignal")
+      .mockResolvedValue({
+        confident: false,
+        codeFixRecommended: true,
+        source: "classification",
+      });
+
+    await executeRun();
+
+    expect(
+      AIRunService.finalizeInvestigationCodeFixRecommendation,
+    ).toHaveBeenCalledWith({
+      aiRunId,
+      recommendation: AIRunCodeFixRecommendation.NotRecommended,
+    });
+    expect(onCodeFixRecommended).not.toHaveBeenCalled();
+  });
+
+  test("a transient recommendation write is retried up to a successful third attempt", async () => {
+    jest
+      .spyOn(ObservabilityAssistant, "answerQuestion")
+      .mockResolvedValue(makeResult());
+    jest.spyOn(AIRunService, "attemptStatusTransition").mockResolvedValue(1);
+    (
+      AIRunService.finalizeInvestigationCodeFixRecommendation as unknown as jest.Mock
+    )
+      .mockRejectedValueOnce(new Error("database unavailable"))
+      .mockRejectedValueOnce(new Error("connection reset"))
+      .mockResolvedValueOnce(1);
+
+    await executeRun();
+
+    expect(
+      AIRunService.finalizeInvestigationCodeFixRecommendation,
+    ).toHaveBeenCalledTimes(3);
+    expect(onCodeFixRecommended).toHaveBeenCalledTimes(1);
+    expect(onSettled).toHaveBeenCalledTimes(1);
+  });
+
+  test("a zero-row recommendation write is safe and is not retried", async () => {
+    jest
+      .spyOn(ObservabilityAssistant, "answerQuestion")
+      .mockResolvedValue(makeResult());
+    jest.spyOn(AIRunService, "attemptStatusTransition").mockResolvedValue(1);
+    (
+      AIRunService.finalizeInvestigationCodeFixRecommendation as unknown as jest.Mock
+    ).mockResolvedValue(0);
+
+    await executeRun();
+
+    expect(
+      AIRunService.finalizeInvestigationCodeFixRecommendation,
+    ).toHaveBeenCalledTimes(1);
+    expect(onCodeFixRecommended).not.toHaveBeenCalled();
+    expect(onSettled).toHaveBeenCalledTimes(1);
+  });
+
+  test("a non-incident engine consumer neither enters Pending nor persists a recommendation", async () => {
+    jest
+      .spyOn(ObservabilityAssistant, "answerQuestion")
+      .mockResolvedValue(makeResult());
+    const complete: jest.SpyInstance = jest
+      .spyOn(AIRunService, "attemptStatusTransition")
+      .mockResolvedValue(1);
+
+    await executeRun(makeRequest({ persistCodeFixRecommendation: undefined }));
+
+    const completedSet: Record<string, unknown> = complete.mock.calls[0]![0]
+      .set as Record<string, unknown>;
+    expect(completedSet["codeFixRecommendation"]).toBeUndefined();
+    expect(
+      AIRunService.finalizeInvestigationCodeFixRecommendation,
+    ).not.toHaveBeenCalled();
+    expect(postAnalysis).toHaveBeenCalledTimes(1);
   });
 
   test("carries the subject lane through the assistant and confidence calls", async () => {
@@ -456,6 +645,12 @@ describe("AIInvestigationEngine.executeRun — the onSettled contract", () => {
     expect(confidence).not.toHaveBeenCalled();
     expect(onSettled).toHaveBeenCalledTimes(1);
     expect(emittedEventTypes()).toContain(AIRunEventType.RunCompleted);
+    expect(
+      AIRunService.finalizeInvestigationCodeFixRecommendation,
+    ).toHaveBeenCalledWith({
+      aiRunId,
+      recommendation: AIRunCodeFixRecommendation.NotRecommended,
+    });
   });
 
   test("a lost Completed CAS neither posts nor settles — the winning attempt owns both", async () => {
@@ -468,6 +663,9 @@ describe("AIInvestigationEngine.executeRun — the onSettled contract", () => {
 
     expect(postAnalysis).not.toHaveBeenCalled();
     expect(onSettled).not.toHaveBeenCalled();
+    expect(
+      AIRunService.finalizeInvestigationCodeFixRecommendation,
+    ).not.toHaveBeenCalled();
   });
 
   test("an agent failure that failOrRequeue FINALIZED settles", async () => {
@@ -527,6 +725,13 @@ describe("AIInvestigationEngine.executeRun — the onSettled contract", () => {
     expect(onSettled).toHaveBeenCalledTimes(1);
     expect(emittedEventTypes()).not.toContain(AIRunEventType.RunCompleted);
     expect(emittedEventTypes()).toContain(AIRunEventType.RunFailed);
+    expect(
+      AIRunService.finalizeInvestigationCodeFixRecommendation,
+    ).toHaveBeenCalledWith({
+      aiRunId,
+      recommendation: AIRunCodeFixRecommendation.NotRecommended,
+    });
+    expect(onCodeFixRecommended).not.toHaveBeenCalled();
   });
 
   test("an onSettled failure never rejects executeRun", async () => {

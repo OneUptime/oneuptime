@@ -8,10 +8,9 @@ import ObjectID from "../../../Types/ObjectID";
 import { afterEach, describe, expect, test } from "@jest/globals";
 
 /*
- * Human verdict capture: Confirm / Reject must update the exact completed
- * investigation currently displayed by the client. The run, project, and
- * subject ids are one combined database predicate so a stale or forged run id
- * cannot put a verdict on another tenant's incident or alert investigation.
+ * Confirm / Reject updates the exact completed investigation displayed by
+ * the client. Run, project and subject are one database predicate, so a
+ * stale or forged id cannot attach a verdict to another report or tenant.
  */
 
 const incidentId: ObjectID = ObjectID.generate();
@@ -44,7 +43,7 @@ describe("AIRunService.applyHumanVerdictToInvestigation", () => {
     expect(findOneBy).not.toHaveBeenCalled();
   });
 
-  test("an incident lookup requires the exact run, project, and subject", async () => {
+  test("an incident lookup requires the exact completed run, project and subject", async () => {
     const findOneBy: jest.SpyInstance = jest
       .spyOn(AIRunService, "findOneBy")
       .mockResolvedValue(null);
@@ -77,7 +76,7 @@ describe("AIRunService.applyHumanVerdictToInvestigation", () => {
     expect(updateOneById).not.toHaveBeenCalled();
   });
 
-  test("a run id that does not belong to the requested incident is rejected without a write", async () => {
+  test("a run id from another incident is rejected without a write", async () => {
     const requestedIncidentId: ObjectID = ObjectID.generate();
     const findOneBy: jest.SpyInstance = jest
       .spyOn(AIRunService, "findOneBy")
@@ -109,7 +108,7 @@ describe("AIRunService.applyHumanVerdictToInvestigation", () => {
     expect(updateOneById).not.toHaveBeenCalled();
   });
 
-  test("a different run id for the requested incident is rejected without falling back to its latest run", async () => {
+  test("a different selected run id is never replaced by the subject's latest run", async () => {
     const requestedRunId: ObjectID = ObjectID.generate();
     const findOneBy: jest.SpyInstance = jest
       .spyOn(AIRunService, "findOneBy")
@@ -143,9 +142,7 @@ describe("AIRunService.applyHumanVerdictToInvestigation", () => {
 
   test("incident happy path stores verdict metadata on the exact selected run", async () => {
     const run: AIRun = fakeRun();
-    const findOneBy: jest.SpyInstance = jest
-      .spyOn(AIRunService, "findOneBy")
-      .mockResolvedValue(run);
+    jest.spyOn(AIRunService, "findOneBy").mockResolvedValue(run);
     const updateOneById: jest.SpyInstance = jest
       .spyOn(AIRunService, "updateOneById")
       .mockResolvedValue(undefined as never);
@@ -159,23 +156,12 @@ describe("AIRunService.applyHumanVerdictToInvestigation", () => {
         verdictByUserId: userId,
       });
 
-    expect(findOneBy).toHaveBeenCalledWith({
-      query: {
-        _id: aiRunId,
-        projectId,
-        runType: AIRunType.Investigation,
-        status: AIRunStatus.Completed,
-        triggeredByIncidentId: incidentId,
-      },
-      select: { _id: true },
-      props: { isRoot: true },
-    });
     expect(result).toEqual({
-      runId: run.id,
+      runId: aiRunId,
       verdict: AIRunHumanVerdict.Confirmed,
     });
     expect(updateOneById).toHaveBeenCalledWith({
-      id: run.id,
+      id: aiRunId,
       data: {
         humanVerdict: AIRunHumanVerdict.Confirmed,
         humanVerdictAt: expect.any(Date),
@@ -185,11 +171,8 @@ describe("AIRunService.applyHumanVerdictToInvestigation", () => {
     });
   });
 
-  test("alert happy path scopes the exact run to the alert and never adds incident scope", async () => {
-    const run: AIRun = fakeRun();
-    const findOneBy: jest.SpyInstance = jest
-      .spyOn(AIRunService, "findOneBy")
-      .mockResolvedValue(run);
+  test("alert happy path scopes the exact run to the alert", async () => {
+    jest.spyOn(AIRunService, "findOneBy").mockResolvedValue(fakeRun());
     jest
       .spyOn(AIRunService, "updateOneById")
       .mockResolvedValue(undefined as never);
@@ -202,7 +185,7 @@ describe("AIRunService.applyHumanVerdictToInvestigation", () => {
       verdictByUserId: userId,
     });
 
-    expect(findOneBy).toHaveBeenCalledWith({
+    expect(AIRunService.findOneBy).toHaveBeenCalledWith({
       query: {
         _id: aiRunId,
         projectId,

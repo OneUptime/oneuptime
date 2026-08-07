@@ -51,6 +51,37 @@ const MAX_ANALYZED_TRACE_SPANS: number = 500;
 const MAX_EVENTS: number = 500;
 
 /*
+ * `aiRunId` is the established dashboard API field. The investigation panel
+ * introduced the more explicit `investigationRunId` name while this feature
+ * was in flight, so accept either spelling without ever allowing two
+ * different ids in one request. Both names identify the exact displayed run.
+ */
+function getDisplayedInvestigationRunId(req: ExpressRequest): ObjectID {
+  const aiRunId: string =
+    typeof req.body["aiRunId"] === "string"
+      ? (req.body["aiRunId"] as string).trim()
+      : "";
+  const investigationRunId: string =
+    typeof req.body["investigationRunId"] === "string"
+      ? (req.body["investigationRunId"] as string).trim()
+      : "";
+
+  if (!aiRunId && !investigationRunId) {
+    throw new BadDataException("investigationRunId (or aiRunId) is required.");
+  }
+
+  if (aiRunId && investigationRunId && aiRunId !== investigationRunId) {
+    throw new BadDataException(
+      "aiRunId and investigationRunId must identify the same displayed investigation.",
+    );
+  }
+
+  const selectedRunId: string = investigationRunId || aiRunId;
+  ObjectID.validateUUID(selectedRunId);
+  return new ObjectID(selectedRunId);
+}
+
+/*
  * The run wins its Running -> Completed transition before it performs the
  * confidence check and posts the RootCause feed item. A final RunCompleted or
  * RunFailed event is emitted when that finalization settles; failures from
@@ -163,6 +194,7 @@ async function sendLatestInvestigation(
       toolCallCount: true,
       totalTokens: true,
       createdAt: true,
+      codeFixRecommendation: true,
       // Measurement layer: the panel renders verdict/grade state from these.
       humanVerdict: true,
       humanVerdictAt: true,
@@ -353,8 +385,10 @@ router.post(
  * investigation exists. The subject is access-checked under the USER's
  * permissions first (same idiom as the read routes above); the run itself is
  * written as root because investigation runs are system-authored.
- * Body: { subjectType: "incident" | "alert", subjectId, aiRunId,
- * verdict: "Confirmed" | "Rejected" }. Response: { runId, verdict }.
+ * Body: { subjectType: "incident" | "alert", subjectId,
+ * aiRunId (or its investigationRunId alias), verdict: "Confirmed" |
+ * "Rejected" }. The run id binds the mutation to the analysis currently
+ * displayed. Response: { runId, verdict }.
  */
 router.post(
   "/ai-investigation/verdict",
@@ -387,16 +421,7 @@ router.post(
 
       const subjectId: ObjectID = new ObjectID(subjectIdString);
 
-      const aiRunIdString: string | undefined = req.body["aiRunId"] as
-        | string
-        | undefined;
-
-      if (!aiRunIdString) {
-        throw new BadDataException("aiRunId is required.");
-      }
-
-      ObjectID.validateUUID(aiRunIdString);
-      const aiRunId: ObjectID = new ObjectID(aiRunIdString);
+      const investigationRunId: ObjectID = getDisplayedInvestigationRunId(req);
 
       const verdict: string | undefined = req.body["verdict"] as
         | string
@@ -446,7 +471,7 @@ router.post(
 
       const result: { runId: ObjectID; verdict: AIRunHumanVerdict } =
         await AIRunService.applyHumanVerdictToInvestigation({
-          aiRunId,
+          aiRunId: investigationRunId,
           projectId,
           ...(subjectType === "incident"
             ? { incidentId: subjectId }
@@ -474,7 +499,9 @@ router.post(
  * access-checked under the USER's permissions first (same idiom as the read
  * routes above); the trigger's gates (completed investigation, GitHub-App
  * repository, per-subject dedupe) fail early with a clear message.
- * Body: { subjectType: "incident" | "alert", subjectId, aiRunId }. Response:
+ * Body: { subjectType: "incident" | "alert", subjectId,
+ * aiRunId (or its investigationRunId alias) }. The run id rejects stale
+ * clicks instead of silently switching to a newer analysis. Response:
  * { aiRunId } — the Queued CodeFix run the agent worker will claim.
  */
 router.post(
@@ -508,16 +535,7 @@ router.post(
 
       const subjectId: ObjectID = new ObjectID(subjectIdString);
 
-      const aiRunIdString: string | undefined = req.body["aiRunId"] as
-        | string
-        | undefined;
-
-      if (!aiRunIdString) {
-        throw new BadDataException("aiRunId is required.");
-      }
-
-      ObjectID.validateUUID(aiRunIdString);
-      const aiRunId: ObjectID = new ObjectID(aiRunIdString);
+      const investigationRunId: ObjectID = getDisplayedInvestigationRunId(req);
 
       // Access check under the USER's permissions (null when not allowed).
       let projectId: ObjectID | undefined = undefined;
@@ -558,7 +576,7 @@ router.post(
           ...(subjectType === "incident"
             ? { incidentId: subjectId }
             : { alertId: subjectId }),
-          investigationRunId: aiRunId,
+          investigationRunId,
           userId: props.userId!,
         });
 

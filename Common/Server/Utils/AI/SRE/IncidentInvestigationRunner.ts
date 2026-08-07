@@ -353,6 +353,7 @@ export default class AIIncidentInvestigationRunner {
         feature: AI_INCIDENT_INVESTIGATION_FEATURE,
         incidentId,
         contextSummary,
+        persistCodeFixRecommendation: true,
         postAnalysis: async (postData: {
           analysisMarkdown: string;
           confidence: ConfidenceSignal;
@@ -446,31 +447,25 @@ export default class AIIncidentInvestigationRunner {
               },
             );
           }
-
-          /*
-           * The confident twin: a POSITIVE confident classification means
-           * the posted analysis asserts an evidenced root cause — for
-           * opted-in projects (the incident automatic-code-fix setting,
-           * default false), automatically queue the FixFromIncident task that
-           * opens a draft fix PR from this analysis (the automatic form
-           * of the "Open Fix PR from this analysis" button). Runs strictly
-           * AFTER the analysis is posted because the posted RootCause feed
-           * item IS the fix task's entire context, and the trigger never
-           * throws. Fail direction (G6): the deterministic floor and a
-           * failed classification never auto-open a PR.
-           */
-          if (
-            AIConfidenceSignal.shouldAutoEnqueueCodeFixTask(postData.confidence)
-          ) {
-            await FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation(
-              {
-                projectId,
-                incidentId,
-                investigationRunId: aiRunId,
-                analysisMarkdown: postData.analysisMarkdown,
-              },
-            );
-          }
+        },
+        /*
+         * The engine calls this only after it atomically persists Recommended
+         * with the exact posted analysis snapshot. That durable decision is
+         * the prerequisite for the optional automatic FixFromIncident task;
+         * the trigger then applies the incident lane's independent opt-in and
+         * remaining repository, budget and dedupe gates.
+         */
+        onCodeFixRecommended: async (data: {
+          analysisMarkdown: string;
+        }): Promise<void> => {
+          await FixFromIncidentTaskTrigger.autoEnqueueFromRecommendedInvestigation(
+            {
+              projectId,
+              investigationRunId: aiRunId,
+              analysisMarkdown: data.analysisMarkdown,
+              incidentId,
+            },
+          );
         },
         /*
          * RCA-first ordering: auto-remediation for this incident was

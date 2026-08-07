@@ -4,20 +4,28 @@ import FixFromIncidentTaskTrigger, {
 import SubjectCodeFixRun from "../../../../Server/Utils/AI/SRE/SubjectCodeFixRun";
 import FixRunBudget from "../../../../Server/Utils/AI/CodeFix/FixRunBudget";
 import ProjectService from "../../../../Server/Services/ProjectService";
+import AIRunService from "../../../../Server/Services/AIRunService";
+import Semaphore from "../../../../Server/Infrastructure/Semaphore";
+import {
+  getInvestigationSubjectLockKey,
+  INVESTIGATION_SUBJECT_LOCK_NAMESPACE,
+} from "../../../../Server/Utils/AI/SRE/InvestigationSubjectLock";
 import Project from "../../../../Models/DatabaseModels/Project";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import CodeFixTaskType from "../../../../Types/AI/CodeFixTaskType";
+import AIRunStatus from "../../../../Types/AI/AIRunStatus";
+import AIRunCodeFixRecommendation from "../../../../Types/AI/AIRunCodeFixRecommendation";
 import ObjectID from "../../../../Types/ObjectID";
 import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
 
 /*
- * The AUTOMATIC form of the FixFromIncident trigger: a CONFIDENT
+ * The AUTOMATIC form of the FixFromIncident trigger: a durably Recommended
  * investigation (per the structured G6 signal) enqueues a fix-PR CodeFix
  * run with no human click — but ONLY for projects that explicitly opted in
  * for the investigation's incident or alert lane (both default FALSE — G11 posture), only
  * when a GitHub-App repo exists to open the PR against, at most one
  * non-terminal run per subject, and inside the daily fix-run budget. It
- * runs inside the investigation's postAnalysis, so it must NEVER throw,
+ * runs as a post-recommendation follow-up, so it must NEVER throw,
  * and the run stays system-authored (no userId). Unlike its
  * human-triggered sibling (createFixTaskFromInvestigation, tested in
  * Tests/Server/Services/FixFromIncidentTaskTrigger.test.ts), every failed
@@ -29,6 +37,8 @@ const incidentId: ObjectID = ObjectID.generate();
 const alertId: ObjectID = ObjectID.generate();
 const investigationRunId: ObjectID = ObjectID.generate();
 const analysisMarkdown: string = "## Frozen automatic investigation report";
+const enqueueSubjectCodeFixRun: typeof SubjectCodeFixRun.enqueueSubjectCodeFixRun =
+  SubjectCodeFixRun.enqueueSubjectCodeFixRun.bind(SubjectCodeFixRun);
 
 function fakeProject(data?: {
   enableAi?: boolean;
@@ -46,6 +56,21 @@ function fakeProject(data?: {
 
 function fakeRun(): AIRun {
   return { id: ObjectID.generate() } as unknown as AIRun;
+}
+
+function persistedRecommendedInvestigation(
+  overrides: Partial<AIRun> = {},
+): AIRun {
+  return {
+    id: investigationRunId,
+    status: AIRunStatus.Completed,
+    codeFixRecommendation: AIRunCodeFixRecommendation.Recommended,
+    taskContext: {
+      sourceInvestigationRunId: investigationRunId.toString(),
+      sourceInvestigationAnalysisMarkdown: analysisMarkdown,
+    },
+    ...overrides,
+  } as unknown as AIRun;
 }
 
 describe("FixFromIncidentTaskTrigger.shouldAutoEnqueueFixTask", () => {
@@ -221,7 +246,7 @@ describe("FixFromIncidentTaskTrigger.shouldAutoEnqueueFixTask", () => {
   });
 });
 
-describe("FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation", () => {
+describe("FixFromIncidentTaskTrigger.autoEnqueueFromRecommendedInvestigation", () => {
   let getBudgetStatus: jest.SpyInstance;
   let hasRepository: jest.SpyInstance;
   let findNonTerminalRun: jest.SpyInstance;
@@ -249,6 +274,12 @@ describe("FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation", () 
     enqueue = jest
       .spyOn(SubjectCodeFixRun, "enqueueSubjectCodeFixRun")
       .mockResolvedValue(fakeRun());
+    jest.spyOn(FixRunBudget, "assertWithinBudget").mockResolvedValue();
+    jest.spyOn(Semaphore, "lock").mockResolvedValue({} as never);
+    jest.spyOn(Semaphore, "release").mockResolvedValue();
+    jest
+      .spyOn(AIRunService, "findOneBy")
+      .mockResolvedValue(persistedRecommendedInvestigation());
   });
 
   afterEach(() => {
@@ -261,7 +292,7 @@ describe("FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation", () 
       "findOneById",
     );
 
-    await FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation({
+    await FixFromIncidentTaskTrigger.autoEnqueueFromRecommendedInvestigation({
       projectId,
       investigationRunId,
       analysisMarkdown,
@@ -280,7 +311,7 @@ describe("FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation", () 
       "findOneById",
     );
 
-    await FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation({
+    await FixFromIncidentTaskTrigger.autoEnqueueFromRecommendedInvestigation({
       projectId,
       investigationRunId,
       analysisMarkdown,
@@ -295,6 +326,36 @@ describe("FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation", () 
     expect(enqueue).not.toHaveBeenCalled();
   });
 
+  test.each([
+    ["missing source run id", undefined, analysisMarkdown],
+    ["blank analysis", investigationRunId, "   "],
+  ] as Array<[string, ObjectID | undefined, string]>)(
+    "%s fails closed before project or gate IO",
+    async (
+      _label: string,
+      sourceRunId: ObjectID | undefined,
+      sourceAnalysis: string,
+    ) => {
+      const findProject: jest.SpyInstance = jest.spyOn(
+        ProjectService,
+        "findOneById",
+      );
+
+      await FixFromIncidentTaskTrigger.autoEnqueueFromRecommendedInvestigation({
+        projectId,
+        investigationRunId: sourceRunId as ObjectID,
+        analysisMarkdown: sourceAnalysis,
+        incidentId,
+      });
+
+      expect(findProject).not.toHaveBeenCalled();
+      expect(getBudgetStatus).not.toHaveBeenCalled();
+      expect(hasRepository).not.toHaveBeenCalled();
+      expect(findNonTerminalRun).not.toHaveBeenCalled();
+      expect(enqueue).not.toHaveBeenCalled();
+    },
+  );
+
   test("a not-opted-in project (default) skips cheaply: BEFORE the budget, repo and dedupe queries", async () => {
     jest
       .spyOn(ProjectService, "findOneById")
@@ -302,7 +363,7 @@ describe("FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation", () 
         fakeProject({ enableAutomaticIncidentCodeFixes: false }),
       );
 
-    await FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation({
+    await FixFromIncidentTaskTrigger.autoEnqueueFromRecommendedInvestigation({
       projectId,
       investigationRunId,
       analysisMarkdown,
@@ -323,7 +384,7 @@ describe("FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation", () 
       }),
     );
 
-    await FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation({
+    await FixFromIncidentTaskTrigger.autoEnqueueFromRecommendedInvestigation({
       projectId,
       investigationRunId,
       analysisMarkdown,
@@ -345,7 +406,7 @@ describe("FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation", () 
     });
 
     await expect(
-      FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation({
+      FixFromIncidentTaskTrigger.autoEnqueueFromRecommendedInvestigation({
         projectId,
         investigationRunId,
         analysisMarkdown,
@@ -362,11 +423,50 @@ describe("FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation", () 
     });
   });
 
+  test.each([
+    ["a newer investigation", { id: ObjectID.generate() }],
+    [
+      "a still-Pending source",
+      { codeFixRecommendation: AIRunCodeFixRecommendation.Pending },
+    ],
+    [
+      "a mismatched durable snapshot",
+      {
+        taskContext: {
+          sourceInvestigationRunId: investigationRunId.toString(),
+          sourceInvestigationAnalysisMarkdown: "different analysis",
+        },
+      },
+    ],
+  ] as Array<[string, Partial<AIRun>]>)(
+    "%s fails closed before budget, repository, dedupe, and enqueue IO",
+    async (_label: string, overrides: Partial<AIRun>) => {
+      jest
+        .spyOn(ProjectService, "findOneById")
+        .mockResolvedValue(fakeProject());
+      (AIRunService.findOneBy as unknown as jest.Mock).mockResolvedValue(
+        persistedRecommendedInvestigation(overrides),
+      );
+
+      await FixFromIncidentTaskTrigger.autoEnqueueFromRecommendedInvestigation({
+        projectId,
+        investigationRunId,
+        analysisMarkdown,
+        incidentId,
+      });
+
+      expect(getBudgetStatus).not.toHaveBeenCalled();
+      expect(hasRepository).not.toHaveBeenCalled();
+      expect(findNonTerminalRun).not.toHaveBeenCalled();
+      expect(enqueue).not.toHaveBeenCalled();
+    },
+  );
+
   test("dedupe: a live FixFromIncident run for the same subject blocks the automatic enqueue", async () => {
     jest.spyOn(ProjectService, "findOneById").mockResolvedValue(fakeProject());
     findNonTerminalRun.mockResolvedValue(fakeRun());
 
-    await FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation({
+    await FixFromIncidentTaskTrigger.autoEnqueueFromRecommendedInvestigation({
       projectId,
       investigationRunId,
       analysisMarkdown,
@@ -388,7 +488,7 @@ describe("FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation", () 
       .spyOn(ProjectService, "findOneById")
       .mockResolvedValue(fakeProject());
 
-    await FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation({
+    await FixFromIncidentTaskTrigger.autoEnqueueFromRecommendedInvestigation({
       projectId,
       investigationRunId,
       analysisMarkdown,
@@ -430,7 +530,7 @@ describe("FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation", () 
       .spyOn(ProjectService, "findOneById")
       .mockResolvedValue(fakeProject());
 
-    await FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation({
+    await FixFromIncidentTaskTrigger.autoEnqueueFromRecommendedInvestigation({
       projectId,
       investigationRunId,
       analysisMarkdown,
@@ -463,12 +563,50 @@ describe("FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation", () 
     expect(enqueue.mock.calls[0]![0]).not.toHaveProperty("userId");
   });
 
-  test("never throws — a failed enqueue must not fail the investigation's postAnalysis", async () => {
+  test("a newer Investigation appearing before the locked automatic insert is revalidated and blocks creation", async () => {
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue(fakeProject());
+    const newerRunId: ObjectID = ObjectID.generate();
+    (AIRunService.findOneBy as unknown as jest.Mock)
+      .mockReset()
+      .mockResolvedValueOnce(persistedRecommendedInvestigation())
+      .mockResolvedValueOnce(
+        persistedRecommendedInvestigation({
+          id: newerRunId,
+          codeFixRecommendation: AIRunCodeFixRecommendation.NotRecommended,
+          taskContext: {
+            sourceInvestigationRunId: newerRunId.toString(),
+            sourceInvestigationAnalysisMarkdown: "newer operational analysis",
+          },
+        }),
+      );
+    enqueue.mockImplementation(enqueueSubjectCodeFixRun);
+    const create: jest.SpyInstance = jest.spyOn(AIRunService, "create");
+
+    await expect(
+      FixFromIncidentTaskTrigger.autoEnqueueFromRecommendedInvestigation({
+        projectId,
+        investigationRunId,
+        analysisMarkdown,
+        incidentId,
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(Semaphore.lock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        key: getInvestigationSubjectLockKey({ projectId, incidentId }),
+        namespace: INVESTIGATION_SUBJECT_LOCK_NAMESPACE,
+      }),
+    );
+    expect(Semaphore.release).toHaveBeenCalledTimes(1);
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  test("never throws — a failed enqueue must not fail the completed investigation", async () => {
     jest.spyOn(ProjectService, "findOneById").mockResolvedValue(fakeProject());
     enqueue.mockRejectedValue(new Error("database is down"));
 
     await expect(
-      FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation({
+      FixFromIncidentTaskTrigger.autoEnqueueFromRecommendedInvestigation({
         projectId,
         investigationRunId,
         analysisMarkdown,

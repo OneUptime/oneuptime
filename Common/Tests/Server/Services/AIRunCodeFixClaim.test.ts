@@ -38,6 +38,14 @@ function fakeQueuedRun(data?: {
   } as unknown as AIRun;
 }
 
+function investigationTaskContext(): CodeFixTaskContext {
+  return {
+    sourceInvestigationRunId: ObjectID.generate().toString(),
+    sourceInvestigationAnalysisMarkdown:
+      "## Root cause\n\nA repository code change fixes this regression.",
+  };
+}
+
 describe("AIRunService.claimNextQueuedCodeFixRun", () => {
   afterEach(() => {
     jest.restoreAllMocks();
@@ -193,15 +201,16 @@ describe("AIRunService.claimNextQueuedCodeFixRun", () => {
   });
 
   /*
-   * FixFromIncident is the second incident/alert-subject recipe: enqueued
-   * by the user from the investigation panel, no telemetry exception — the
-   * same recipe grouping as ImproveInstrumentation in the guard.
+   * FixFromIncident is an incident/alert-subject recipe with one additional
+   * requirement: the exact Recommended investigation + analysis are pinned
+   * in taskContext so a later RootCause cannot change what the worker fixes.
    */
-  test("a FixFromIncident run without an exception but with an incident subject is claimed, not errored", async () => {
+  test("a FixFromIncident run with an incident and pinned investigation snapshot is claimed", async () => {
     const run: AIRun = fakeQueuedRun({
       exceptionId: null,
       codeFixTaskType: CodeFixTaskType.FixFromIncident,
       incidentId: ObjectID.generate(),
+      taskContext: investigationTaskContext(),
     });
 
     jest.spyOn(AIRunService, "findOneBy").mockResolvedValue(run);
@@ -219,11 +228,12 @@ describe("AIRunService.claimNextQueuedCodeFixRun", () => {
     expect(transition).toHaveBeenCalledTimes(1);
   });
 
-  test("a FixFromIncident run with an alert subject is claimed too", async () => {
+  test("a FixFromIncident run with an alert and pinned investigation snapshot is claimed too", async () => {
     const run: AIRun = fakeQueuedRun({
       exceptionId: null,
       codeFixTaskType: CodeFixTaskType.FixFromIncident,
       alertId: ObjectID.generate(),
+      taskContext: investigationTaskContext(),
     });
 
     jest.spyOn(AIRunService, "findOneBy").mockResolvedValue(run);
@@ -235,6 +245,50 @@ describe("AIRunService.claimNextQueuedCodeFixRun", () => {
 
     expect(claimed).toBe(run);
   });
+
+  test.each([
+    ["no", undefined],
+    ["a partial", { sourceInvestigationRunId: ObjectID.generate().toString() }],
+  ] as Array<[string, CodeFixTaskContext | undefined]>)(
+    "a FixFromIncident run with %s pinned snapshot is finalized as Error and skipped",
+    async (_label: string, taskContext: CodeFixTaskContext | undefined) => {
+      const brokenRun: AIRun = fakeQueuedRun({
+        exceptionId: null,
+        codeFixTaskType: CodeFixTaskType.FixFromIncident,
+        incidentId: ObjectID.generate(),
+        ...(taskContext ? { taskContext } : {}),
+      });
+      const goodRun: AIRun = fakeQueuedRun();
+
+      jest
+        .spyOn(AIRunService, "findOneBy")
+        .mockResolvedValueOnce(brokenRun)
+        .mockResolvedValueOnce(goodRun);
+      const transition: jest.SpyInstance = jest
+        .spyOn(AIRunService, "attemptStatusTransition")
+        .mockResolvedValue(1);
+
+      const claimed: AIRun | null =
+        await AIRunService.claimNextQueuedCodeFixRun({
+          aiAgentId: ObjectID.generate(),
+        });
+
+      expect(claimed).toBe(goodRun);
+      expect(transition).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          aiRunId: brokenRun.id,
+          fromStatus: AIRunStatus.Running,
+          set: expect.objectContaining({
+            status: AIRunStatus.Error,
+            errorMessage: expect.stringContaining(
+              "pinned investigation analysis snapshot",
+            ),
+          }),
+        }),
+      );
+    },
+  );
 
   test("a FixFromIncident run with NO subject at all is finalized as Error and skipped", async () => {
     const brokenRun: AIRun = fakeQueuedRun({

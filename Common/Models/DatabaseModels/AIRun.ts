@@ -21,6 +21,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import AIRunType from "../../Types/AI/AIRunType";
 import AIRunStatus from "../../Types/AI/AIRunStatus";
+import AIRunCodeFixRecommendation from "../../Types/AI/AIRunCodeFixRecommendation";
 import AIRunHumanVerdict from "../../Types/AI/AIRunHumanVerdict";
 import AIRunAutoGrade from "../../Types/AI/AIRunAutoGrade";
 import CodeFixTaskType from "../../Types/AI/CodeFixTaskType";
@@ -242,6 +243,42 @@ export default class AIRun extends BaseModel {
     default: AIRunStatus.Running,
   })
   public status?: AIRunStatus = undefined;
+
+  /*
+   * The server-authored decision that controls whether an incident/alert
+   * investigation may be turned into a FixFromIncident task. New subject
+   * investigations move to Pending in the atomic Completed transition; the
+   * investigation engine settles the value after its structured
+   * classification and analysis post. Other lifecycle paths and legacy rows
+   * default to NotRecommended so a missing decision never creates a PR.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: true,
+    type: TableColumnType.ShortText,
+    title: "Code Fix Recommendation",
+    description:
+      "For incident/alert investigations: whether the structured investigation outcome recommends opening a code-fix pull request.",
+    defaultValue: AIRunCodeFixRecommendation.NotRecommended,
+    isDefaultValueColumn: true,
+    canReadOnRelationQuery: true,
+  })
+  @Column({
+    nullable: false,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    default: AIRunCodeFixRecommendation.NotRecommended,
+  })
+  public codeFixRecommendation?: AIRunCodeFixRecommendation = undefined;
 
   @ColumnAccessControl({
     create: [],
@@ -803,7 +840,7 @@ export default class AIRun extends BaseModel {
     type: TableColumnType.JSON,
     title: "Task Context",
     description:
-      "Internal: trigger-time context for code-fix recipes without a subject row (e.g. FixPerformance trace evidence).",
+      "Internal: immutable trigger-time context for code-fix recipes, including pinned investigation analyses and FixPerformance trace evidence.",
   })
   @Column({
     nullable: true,

@@ -3,25 +3,28 @@ import PostedRootCause from "../../../Server/Utils/AI/SRE/PostedRootCause";
 import FixRunBudget from "../../../Server/Utils/AI/CodeFix/FixRunBudget";
 import CodeRepositoryService from "../../../Server/Services/CodeRepositoryService";
 import AIRunService from "../../../Server/Services/AIRunService";
+import Semaphore from "../../../Server/Infrastructure/Semaphore";
+import {
+  getInvestigationSubjectLockKey,
+  INVESTIGATION_SUBJECT_LOCK_NAMESPACE,
+} from "../../../Server/Utils/AI/SRE/InvestigationSubjectLock";
 import AIRun from "../../../Models/DatabaseModels/AIRun";
 import AIRunType from "../../../Types/AI/AIRunType";
 import AIRunStatus from "../../../Types/AI/AIRunStatus";
+import AIRunCodeFixRecommendation from "../../../Types/AI/AIRunCodeFixRecommendation";
+import CodeFixTaskContext from "../../../Types/AI/CodeFixTaskContext";
 import CodeFixTaskType from "../../../Types/AI/CodeFixTaskType";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
-import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
- * The FixFromIncident trigger: the user clicks "Open Fix PR from this
- * analysis" on the investigation panel after a AI investigation
- * completes, and the agent turns the posted analysis into a fix pull
- * request. Human-triggered — so there is no project opt-in flag; the gates
- * are: a COMPLETED investigation must exist for the subject (its analysis
- * is the task's entire context), a GitHub-App repository must exist for the
- * PR, and at most one non-terminal FixFromIncident run per subject.
- * Unlike the ImproveInstrumentation sibling this runs inside a user-facing
- * endpoint and must THROW clear messages, not swallow.
+ * The human FixFromIncident trigger is authorized by the exact investigation
+ * displayed in the panel. The latest subject run must be Completed and
+ * Recommended, its immutable snapshot must match its exact posted report,
+ * and repository/dedupe checks culminate in a lock-protected revalidation.
  */
 
 const projectId: ObjectID = ObjectID.generate();
@@ -30,19 +33,51 @@ const alertId: ObjectID = ObjectID.generate();
 const userId: ObjectID = ObjectID.generate();
 const investigationRunId: ObjectID = ObjectID.generate();
 const investigationCompletedAt: Date = new Date("2026-08-07T12:00:00.000Z");
-const analysisMarkdown: string = "## Exact investigation report";
+const analysisMarkdown: string =
+  "## Root cause\n\nA repository code change fixes this regression.";
 
-function fakeRun(): AIRun {
+function taskSnapshot(
+  id: ObjectID = investigationRunId,
+  analysis: string = analysisMarkdown,
+): CodeFixTaskContext {
   return {
-    id: ObjectID.generate(),
+    sourceInvestigationRunId: id.toString(),
+    sourceInvestigationAnalysisMarkdown: analysis,
+  };
+}
+
+function fakeRun(
+  recommendation: AIRunCodeFixRecommendation = AIRunCodeFixRecommendation.Recommended,
+  status: AIRunStatus = AIRunStatus.Completed,
+  taskContextOverride?: CodeFixTaskContext | null | undefined,
+  id: ObjectID = investigationRunId,
+): AIRun {
+  return {
+    id,
     completedAt: investigationCompletedAt,
+    codeFixRecommendation: recommendation,
+    status,
+    taskContext:
+      taskContextOverride === null
+        ? undefined
+        : taskContextOverride || taskSnapshot(id),
+  } as unknown as AIRun;
+}
+
+function fakeLegacyRunWithoutRecommendation(): AIRun {
+  return {
+    id: investigationRunId,
+    completedAt: investigationCompletedAt,
+    status: AIRunStatus.Completed,
+    taskContext: taskSnapshot(),
   } as unknown as AIRun;
 }
 
 describe("FixFromIncidentTaskTrigger.createFixTaskFromInvestigation", () => {
   beforeEach(() => {
-    // The daily fix-run budget has its own suite (FixRunBudget.test.ts).
     jest.spyOn(FixRunBudget, "assertWithinBudget").mockResolvedValue();
+    jest.spyOn(Semaphore, "lock").mockResolvedValue({} as never);
+    jest.spyOn(Semaphore, "release").mockResolvedValue();
     jest
       .spyOn(PostedRootCause, "getForInvestigation")
       .mockResolvedValue(analysisMarkdown);
@@ -72,9 +107,9 @@ describe("FixFromIncidentTaskTrigger.createFixTaskFromInvestigation", () => {
     await expect(
       FixFromIncidentTaskTrigger.createFixTaskFromInvestigation({
         projectId,
-        investigationRunId,
         incidentId,
         alertId,
+        investigationRunId,
         userId,
       }),
     ).rejects.toThrow(/Exactly one/);
@@ -82,8 +117,22 @@ describe("FixFromIncidentTaskTrigger.createFixTaskFromInvestigation", () => {
     expect(findOneBy).not.toHaveBeenCalled();
   });
 
-  test("no completed investigation → reject with a clear message, nothing enqueued", async () => {
-    // The completed-investigation lookup is the first query.
+  test("a missing investigation run id is rejected before any query", async () => {
+    const findOneBy: jest.SpyInstance = jest.spyOn(AIRunService, "findOneBy");
+
+    await expect(
+      FixFromIncidentTaskTrigger.createFixTaskFromInvestigation({
+        projectId,
+        incidentId,
+        investigationRunId: undefined as unknown as ObjectID,
+        userId,
+      }),
+    ).rejects.toThrow(/investigation run id is required/i);
+
+    expect(findOneBy).not.toHaveBeenCalled();
+  });
+
+  test("no investigation rejects before report, repository, or enqueue IO", async () => {
     const findOneBy: jest.SpyInstance = jest
       .spyOn(AIRunService, "findOneBy")
       .mockResolvedValue(null);
@@ -96,25 +145,176 @@ describe("FixFromIncidentTaskTrigger.createFixTaskFromInvestigation", () => {
     await expect(
       FixFromIncidentTaskTrigger.createFixTaskFromInvestigation({
         projectId,
-        investigationRunId,
         incidentId,
+        investigationRunId,
         userId,
       }),
     ).rejects.toThrow(/No completed AI investigation/);
 
     expect(findOneBy).toHaveBeenCalledWith(
       expect.objectContaining({
-        query: expect.objectContaining({
-          _id: investigationRunId,
+        query: {
           projectId,
           runType: AIRunType.Investigation,
-          status: AIRunStatus.Completed,
           triggeredByIncidentId: incidentId,
+        },
+        select: expect.objectContaining({
+          _id: true,
+          completedAt: true,
+          status: true,
+          codeFixRecommendation: true,
+          taskContext: true,
         }),
+        sort: { createdAt: SortOrder.Descending },
       }),
     );
+    expect(PostedRootCause.getForInvestigation).not.toHaveBeenCalled();
     expect(countBy).not.toHaveBeenCalled();
     expect(create).not.toHaveBeenCalled();
+  });
+
+  test.each([AIRunStatus.Running, AIRunStatus.Error])(
+    "latest %s investigation blocks an older Recommended result",
+    async (latestStatus: AIRunStatus) => {
+      jest
+        .spyOn(AIRunService, "findOneBy")
+        .mockResolvedValue(
+          fakeRun(AIRunCodeFixRecommendation.Recommended, latestStatus),
+        );
+      const create: jest.SpyInstance = jest.spyOn(AIRunService, "create");
+
+      await expect(
+        FixFromIncidentTaskTrigger.createFixTaskFromInvestigation({
+          projectId,
+          incidentId,
+          investigationRunId,
+          userId,
+        }),
+      ).rejects.toThrow(/latest AI investigation.*has not completed/i);
+
+      expect(PostedRootCause.getForInvestigation).not.toHaveBeenCalled();
+      expect(create).not.toHaveBeenCalled();
+    },
+  );
+
+  test("latest completed Pending investigation rejects until classification settles", async () => {
+    jest
+      .spyOn(AIRunService, "findOneBy")
+      .mockResolvedValue(fakeRun(AIRunCodeFixRecommendation.Pending));
+
+    await expect(
+      FixFromIncidentTaskTrigger.createFixTaskFromInvestigation({
+        projectId,
+        incidentId,
+        investigationRunId,
+        userId,
+      }),
+    ).rejects.toThrow(/still deciding/i);
+
+    expect(PostedRootCause.getForInvestigation).not.toHaveBeenCalled();
+  });
+
+  test("a stale displayed run id cannot borrow a newer Recommended analysis", async () => {
+    jest.spyOn(AIRunService, "findOneBy").mockResolvedValue(fakeRun());
+
+    await expect(
+      FixFromIncidentTaskTrigger.createFixTaskFromInvestigation({
+        projectId,
+        incidentId,
+        investigationRunId: ObjectID.generate(),
+        userId,
+      }),
+    ).rejects.toThrow(/newer AI investigation/i);
+
+    expect(PostedRootCause.getForInvestigation).not.toHaveBeenCalled();
+  });
+
+  test("latest NotRecommended result is authoritative over an older Recommended result", async () => {
+    jest
+      .spyOn(AIRunService, "findOneBy")
+      .mockResolvedValue(fakeRun(AIRunCodeFixRecommendation.NotRecommended));
+    const create: jest.SpyInstance = jest.spyOn(AIRunService, "create");
+
+    await expect(
+      FixFromIncidentTaskTrigger.createFixTaskFromInvestigation({
+        projectId,
+        incidentId,
+        investigationRunId,
+        userId,
+      }),
+    ).rejects.toThrow(/did not recommend a code fix/i);
+
+    expect(PostedRootCause.getForInvestigation).not.toHaveBeenCalled();
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  test("legacy completed investigation without a recommendation fails closed", async () => {
+    jest
+      .spyOn(AIRunService, "findOneBy")
+      .mockResolvedValue(fakeLegacyRunWithoutRecommendation());
+
+    await expect(
+      FixFromIncidentTaskTrigger.createFixTaskFromInvestigation({
+        projectId,
+        incidentId,
+        investigationRunId,
+        userId,
+      }),
+    ).rejects.toThrow(/did not recommend a code fix/i);
+  });
+
+  test.each([
+    ["missing", null],
+    [
+      "missing analysis",
+      { sourceInvestigationRunId: investigationRunId.toString() },
+    ],
+    [
+      "missing run id",
+      { sourceInvestigationAnalysisMarkdown: analysisMarkdown },
+    ],
+  ] as Array<[string, CodeFixTaskContext | null]>)(
+    "%s stored analysis snapshot fails closed before report and repository IO",
+    async (_label: string, taskContext: CodeFixTaskContext | null) => {
+      jest
+        .spyOn(AIRunService, "findOneBy")
+        .mockResolvedValue(fakeRun(undefined, undefined, taskContext));
+      const countBy: jest.SpyInstance = jest.spyOn(
+        CodeRepositoryService,
+        "countBy",
+      );
+
+      await expect(
+        FixFromIncidentTaskTrigger.createFixTaskFromInvestigation({
+          projectId,
+          incidentId,
+          investigationRunId,
+          userId,
+        }),
+      ).rejects.toThrow(/no complete stored analysis snapshot/i);
+
+      expect(PostedRootCause.getForInvestigation).not.toHaveBeenCalled();
+      expect(countBy).not.toHaveBeenCalled();
+    },
+  );
+
+  test("a snapshot naming a different investigation run fails closed", async () => {
+    jest
+      .spyOn(AIRunService, "findOneBy")
+      .mockResolvedValue(
+        fakeRun(undefined, undefined, taskSnapshot(ObjectID.generate())),
+      );
+
+    await expect(
+      FixFromIncidentTaskTrigger.createFixTaskFromInvestigation({
+        projectId,
+        incidentId,
+        investigationRunId,
+        userId,
+      }),
+    ).rejects.toThrow(/no complete stored analysis snapshot/i);
+
+    expect(PostedRootCause.getForInvestigation).not.toHaveBeenCalled();
   });
 
   test("the exact investigation must have a posted report before a task can be frozen", async () => {
@@ -126,13 +326,12 @@ describe("FixFromIncidentTaskTrigger.createFixTaskFromInvestigation", () => {
       CodeRepositoryService,
       "countBy",
     );
-    const create: jest.SpyInstance = jest.spyOn(AIRunService, "create");
 
     await expect(
       FixFromIncidentTaskTrigger.createFixTaskFromInvestigation({
         projectId,
-        investigationRunId,
         incidentId,
+        investigationRunId,
         userId,
       }),
     ).rejects.toThrow(/No posted investigation analysis/);
@@ -144,10 +343,25 @@ describe("FixFromIncidentTaskTrigger.createFixTaskFromInvestigation", () => {
       runCompletedAt: investigationCompletedAt,
     });
     expect(countBy).not.toHaveBeenCalled();
-    expect(create).not.toHaveBeenCalled();
   });
 
-  test("no GitHub-App repository → reject, nothing enqueued", async () => {
+  test("a posted report that differs from the Recommended snapshot fails closed", async () => {
+    jest.spyOn(AIRunService, "findOneBy").mockResolvedValue(fakeRun());
+    jest
+      .mocked(PostedRootCause.getForInvestigation)
+      .mockResolvedValueOnce("## Different report");
+
+    await expect(
+      FixFromIncidentTaskTrigger.createFixTaskFromInvestigation({
+        projectId,
+        incidentId,
+        investigationRunId,
+        userId,
+      }),
+    ).rejects.toThrow(/does not match its durable recommendation snapshot/i);
+  });
+
+  test("no GitHub-App repository rejects without enqueueing", async () => {
     jest.spyOn(AIRunService, "findOneBy").mockResolvedValue(fakeRun());
     jest
       .spyOn(CodeRepositoryService, "countBy")
@@ -157,8 +371,8 @@ describe("FixFromIncidentTaskTrigger.createFixTaskFromInvestigation", () => {
     await expect(
       FixFromIncidentTaskTrigger.createFixTaskFromInvestigation({
         projectId,
-        investigationRunId,
         incidentId,
+        investigationRunId,
         userId,
       }),
     ).rejects.toThrow(/GitHub/);
@@ -166,12 +380,10 @@ describe("FixFromIncidentTaskTrigger.createFixTaskFromInvestigation", () => {
     expect(create).not.toHaveBeenCalled();
   });
 
-  test("dedupe: a live FixFromIncident run for the same subject blocks a second one", async () => {
+  test("an existing live FixFromIncident run blocks a duplicate", async () => {
     jest
       .spyOn(AIRunService, "findOneBy")
-      // 1st: the completed investigation exists.
       .mockResolvedValueOnce(fakeRun())
-      // 2nd: a non-terminal FixFromIncident run already exists.
       .mockResolvedValueOnce(fakeRun());
     jest
       .spyOn(CodeRepositoryService, "countBy")
@@ -181,8 +393,8 @@ describe("FixFromIncidentTaskTrigger.createFixTaskFromInvestigation", () => {
     await expect(
       FixFromIncidentTaskTrigger.createFixTaskFromInvestigation({
         projectId,
-        investigationRunId,
         incidentId,
+        investigationRunId,
         userId,
       }),
     ).rejects.toThrow(/already queued or running/);
@@ -190,11 +402,72 @@ describe("FixFromIncidentTaskTrigger.createFixTaskFromInvestigation", () => {
     expect(create).not.toHaveBeenCalled();
   });
 
-  test("over the daily fix-run budget: the user-facing call REJECTS with the budget message, nothing enqueued", async () => {
+  test("the locked second dedupe check closes a concurrent enqueue race", async () => {
     jest
       .spyOn(AIRunService, "findOneBy")
-      .mockResolvedValueOnce(fakeRun()) // completed investigation
-      .mockResolvedValueOnce(null); // no duplicate run
+      .mockResolvedValueOnce(fakeRun())
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(fakeRun());
+    jest
+      .spyOn(CodeRepositoryService, "countBy")
+      .mockResolvedValue(new PositiveNumber(1));
+    const create: jest.SpyInstance = jest.spyOn(AIRunService, "create");
+
+    await expect(
+      FixFromIncidentTaskTrigger.createFixTaskFromInvestigation({
+        projectId,
+        incidentId,
+        investigationRunId,
+        userId,
+      }),
+    ).rejects.toThrow(/already queued or running/i);
+
+    expect(Semaphore.lock).toHaveBeenCalledWith({
+      key: getInvestigationSubjectLockKey({ projectId, incidentId }),
+      namespace: INVESTIGATION_SUBJECT_LOCK_NAMESPACE,
+      lockTimeout: 30 * 1000,
+      acquireTimeout: 10 * 1000,
+    });
+    expect(Semaphore.release).toHaveBeenCalledTimes(1);
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  test("a newer investigation inserted before locked revalidation fails closed", async () => {
+    const newerInvestigation: AIRun = fakeRun(
+      AIRunCodeFixRecommendation.NotRecommended,
+      AIRunStatus.Completed,
+      undefined,
+      ObjectID.generate(),
+    );
+    jest
+      .spyOn(AIRunService, "findOneBy")
+      .mockResolvedValueOnce(fakeRun())
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(newerInvestigation);
+    jest
+      .spyOn(CodeRepositoryService, "countBy")
+      .mockResolvedValue(new PositiveNumber(1));
+    const create: jest.SpyInstance = jest.spyOn(AIRunService, "create");
+
+    await expect(
+      FixFromIncidentTaskTrigger.createFixTaskFromInvestigation({
+        projectId,
+        incidentId,
+        investigationRunId,
+        userId,
+      }),
+    ).rejects.toThrow(/no longer the latest durably Recommended analysis/i);
+
+    expect(Semaphore.release).toHaveBeenCalledTimes(1);
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  test("over-budget user request rejects without enqueueing", async () => {
+    jest
+      .spyOn(AIRunService, "findOneBy")
+      .mockResolvedValueOnce(fakeRun())
+      .mockResolvedValue(null);
     jest
       .spyOn(CodeRepositoryService, "countBy")
       .mockResolvedValue(new PositiveNumber(1));
@@ -210,28 +483,27 @@ describe("FixFromIncidentTaskTrigger.createFixTaskFromInvestigation", () => {
     await expect(
       FixFromIncidentTaskTrigger.createFixTaskFromInvestigation({
         projectId,
-        investigationRunId,
         incidentId,
+        investigationRunId,
         userId,
       }),
     ).rejects.toThrow(/daily AI fix task limit/);
 
-    expect(FixRunBudget.assertWithinBudget).toHaveBeenCalledWith(projectId, {
-      incidentId,
-      alertId: undefined,
-    });
     expect(create).not.toHaveBeenCalled();
   });
 
-  test("happy path (incident): enqueues a Queued FixFromIncident run with user attribution", async () => {
+  test("latest Recommended incident report is frozen into the locked task", async () => {
+    const latestRecommended: AIRun = fakeRun();
     const findOneBy: jest.SpyInstance = jest
       .spyOn(AIRunService, "findOneBy")
-      .mockResolvedValueOnce(fakeRun()) // completed investigation
-      .mockResolvedValueOnce(null); // no duplicate run
+      .mockResolvedValueOnce(latestRecommended)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(latestRecommended);
     jest
       .spyOn(CodeRepositoryService, "countBy")
       .mockResolvedValue(new PositiveNumber(1));
-    const createdRun: AIRun = fakeRun();
+    const createdRun: AIRun = { id: ObjectID.generate() } as unknown as AIRun;
     const create: jest.SpyInstance = jest
       .spyOn(AIRunService, "create")
       .mockResolvedValue(createdRun);
@@ -239,97 +511,98 @@ describe("FixFromIncidentTaskTrigger.createFixTaskFromInvestigation", () => {
     const run: AIRun =
       await FixFromIncidentTaskTrigger.createFixTaskFromInvestigation({
         projectId,
-        investigationRunId,
         incidentId,
+        investigationRunId,
         userId,
       });
 
     expect(run).toBe(createdRun);
-    expect(FixRunBudget.assertWithinBudget).toHaveBeenCalledWith(projectId, {
+    expect(PostedRootCause.getForInvestigation).toHaveBeenCalledWith({
       incidentId,
       alertId: undefined,
+      aiRunId: investigationRunId,
+      runCompletedAt: investigationCompletedAt,
     });
-
-    // The dedupe guard queries per (subject, FixFromIncident).
     expect(findOneBy).toHaveBeenNthCalledWith(
-      2,
+      1,
       expect.objectContaining({
-        query: expect.objectContaining({
-          runType: AIRunType.CodeFix,
-          codeFixTaskType: CodeFixTaskType.FixFromIncident,
+        query: {
+          projectId,
+          runType: AIRunType.Investigation,
           triggeredByIncidentId: incidentId,
-        }),
+        },
+        sort: { createdAt: SortOrder.Descending },
       }),
     );
-
+    expect(findOneBy).toHaveBeenNthCalledWith(
+      4,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          projectId,
+          triggeredByIncidentId: incidentId,
+        }),
+        sort: { createdAt: SortOrder.Descending },
+      }),
+    );
+    expect(create.mock.invocationCallOrder[0]).toBeGreaterThan(
+      findOneBy.mock.invocationCallOrder[3]!,
+    );
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          projectId: projectId,
+          projectId,
           runType: AIRunType.CodeFix,
           codeFixTaskType: CodeFixTaskType.FixFromIncident,
           status: AIRunStatus.Queued,
           triggeredByIncidentId: incidentId,
+          userId,
           taskContext: {
             sourceInvestigationRunId: investigationRunId.toString(),
             sourceInvestigationAnalysisMarkdown: analysisMarkdown,
           },
-          // Attribution: the user who clicked the button.
-          userId: userId,
         }),
-        props: expect.objectContaining({ isRoot: true }),
+        props: { isRoot: true },
       }),
     );
   });
 
-  test("happy path (alert): the run carries triggeredByAlertId", async () => {
-    const findOneBy: jest.SpyInstance = jest
+  test("alert happy path preserves exact report association and alert subject", async () => {
+    const latestRecommended: AIRun = fakeRun();
+    jest
       .spyOn(AIRunService, "findOneBy")
-      .mockResolvedValueOnce(fakeRun())
-      .mockResolvedValueOnce(null);
+      .mockResolvedValueOnce(latestRecommended)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(latestRecommended);
     jest
       .spyOn(CodeRepositoryService, "countBy")
       .mockResolvedValue(new PositiveNumber(1));
     const create: jest.SpyInstance = jest
       .spyOn(AIRunService, "create")
-      .mockResolvedValue(fakeRun());
+      .mockResolvedValue({ id: ObjectID.generate() } as unknown as AIRun);
 
     await FixFromIncidentTaskTrigger.createFixTaskFromInvestigation({
       projectId,
-      investigationRunId,
       alertId,
+      investigationRunId,
       userId,
     });
 
-    expect(FixRunBudget.assertWithinBudget).toHaveBeenCalledWith(projectId, {
+    expect(PostedRootCause.getForInvestigation).toHaveBeenCalledWith({
       incidentId: undefined,
       alertId,
+      aiRunId: investigationRunId,
+      runCompletedAt: investigationCompletedAt,
     });
-
-    // The completed-investigation gate keys on the alert subject.
-    expect(findOneBy).toHaveBeenNthCalledWith(
-      1,
-      expect.objectContaining({
-        query: expect.objectContaining({
-          _id: investigationRunId,
-          projectId,
-          runType: AIRunType.Investigation,
-          status: AIRunStatus.Completed,
-          triggeredByAlertId: alertId,
-        }),
-      }),
-    );
-
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          codeFixTaskType: CodeFixTaskType.FixFromIncident,
           triggeredByAlertId: alertId,
+          userId,
           taskContext: {
             sourceInvestigationRunId: investigationRunId.toString(),
             sourceInvestigationAnalysisMarkdown: analysisMarkdown,
           },
-          userId: userId,
         }),
       }),
     );
