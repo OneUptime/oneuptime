@@ -72,10 +72,8 @@ spec:
       {{- if .Values.vllm.runtimeClassName }}
       runtimeClassName: {{ .Values.vllm.runtimeClassName }}
       {{- end }}
-      {{- with .Values.vllm.nodeSelector }}
       nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+        {{- include "oneuptime.nodeSelector" .Values.vllm.nodeSelector | nindent 8 }}
       {{- with .Values.vllm.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}

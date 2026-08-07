@@ -76,12 +76,9 @@ spec:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 
-  {{- if or $cnpg.nodeSelector $cnpg.tolerations $cnpg.affinity }}
   affinity:
-    {{- with $cnpg.nodeSelector }}
     nodeSelector:
-      {{- toYaml . | nindent 6 }}
-    {{- end }}
+      {{- include "oneuptime.nodeSelector" $cnpg.nodeSelector | nindent 6 }}
     {{- with $cnpg.tolerations }}
     tolerations:
       {{- toYaml . | nindent 6 }}
@@ -89,5 +86,4 @@ spec:
     {{- with $cnpg.affinity }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
-  {{- end }}
 {{- end }}

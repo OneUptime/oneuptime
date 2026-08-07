@@ -90,10 +90,8 @@ spec:
     podTemplates:
       - name: clickhouse-pod-template
         spec:
-          {{- with $altinity.nodeSelector }}
           nodeSelector:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
+            {{- include "oneuptime.nodeSelector" $altinity.nodeSelector | nindent 12 }}
           {{- with $altinity.affinity }}
           affinity:
             {{- toYaml . | nindent 12 }}
