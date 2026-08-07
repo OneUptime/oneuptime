@@ -21,6 +21,10 @@ spec:
         checksum/config: {{ include (print $.Template.BasePath "/configmap-deployment.yaml") . | sha256sum }}
     spec:
       serviceAccountName: {{ include "kubernetes-agent.serviceAccountName" . }}
+      # Linux nodes only — the collector image is linux-only, and Windows
+      # pools (e.g. on AKS) are not tainted by default.
+      nodeSelector:
+        {{- include "kubernetes-agent.nodeSelector" (dict) | nindent 8 }}
       {{- if and .Values.debug.enabled .Values.debug.shareProcessNamespace }}
       # Lets the debug sidecar see the collector's processes (ps, /proc, strace).
       shareProcessNamespace: true

@@ -539,6 +539,10 @@ To validate a key by hand (`200` = valid, `401` = unknown/revoked):
 curl -i -H "x-oneuptime-token: <YOUR_API_KEY>" "$ONEUPTIME_URL/otlp/v1/validate"
 ```
 
+### Mixed-OS clusters (Windows node pools)
+
+All agent images are Linux-only, so every workload in the chart pins itself to Linux nodes with a `kubernetes.io/os: linux` nodeSelector. On clusters with Windows node pools (e.g. AKS), Windows nodes are simply not monitored — the DaemonSets skip them instead of sitting in `ImagePullBackOff` there. If you're upgrading from a chart version without the pin and see agent pods stuck in `ImagePullBackOff` on Windows nodes, `helm upgrade` to the current version; the stuck pods are removed automatically once the pin applies.
+
 ### Application pods crash with SIGSEGV after enabling log ↔ trace correlation
 
 If you enabled `ebpf.logToTraceCorrelation` (off by default) and **.NET application pods start crashing with `Exit Code: 139`** (SIGSEGV) within seconds of the eBPF DaemonSet starting, the cause is almost always a conflict with an `LD_PRELOAD`-based APM agent in the same pods.

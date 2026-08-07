@@ -59,6 +59,32 @@ Service account name
 {{- end }}
 
 {{/*
+Pod nodeSelector with the Linux-only pin merged in.
+
+Every image this chart deploys — the OTel collectors, OBI, the profiler,
+OpenCost, Prometheus, kube-state-metrics, the cost and log agents — is built
+for linux only. On mixed-OS clusters (e.g. AKS with Windows node pools) an
+unpinned pod spec can be scheduled onto a Windows node, where the image pull
+can never succeed and the pod sits in ImagePullBackOff forever; the
+DaemonSets are guaranteed to hit this because they tolerate every taint.
+The kubelet labels every node with kubernetes.io/os (stable since
+Kubernetes 1.14), so requiring "linux" is always safe.
+
+Takes the workload's user-configured nodeSelector map (or an empty dict when
+the workload has no such knob). User-supplied keys win on conflict.
+
+Usage (the include is nindent-ed under the `nodeSelector:` key):
+  nodeSelector:
+    {{`{{- include "kubernetes-agent.nodeSelector" .Values.ebpf.nodeSelector | nindent 8 }}`}}
+*/}}
+{{- define "kubernetes-agent.nodeSelector" -}}
+{{- /* mergeOverwrite, not merge: sprig merge won't let a zero value ("")
+     in the user map displace the pin, breaking last-writer-wins. The
+     dest dict is a fresh literal, so .Values is never mutated. */ -}}
+{{- toYaml (mergeOverwrite (dict "kubernetes.io/os" "linux") (. | default dict)) -}}
+{{- end }}
+
+{{/*
 Build the OTEL_EBPF_METRICS_FEATURES env var value from .Values.ebpf.features
 toggles. Returns a comma-separated string of the OBI feature names that are
 currently enabled. Empty list -> empty string (OBI then exports no metrics).

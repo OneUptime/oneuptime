@@ -147,9 +147,13 @@ EOF
     raw=$(kubectl exec "$SIDECAR_POD" -n "$NS" -c debug -- sh -c "$snippet" 2>&1)
   else
     local pod="oub-curl-${RANDOM}"
+    # Pin to a Linux node — the curl image is linux-only, and on clusters
+    # with untainted Windows pools the probe could otherwise land there and
+    # report a launch failure instead of an egress verdict.
     raw=$(kubectl run "$pod" -n "$NS" --rm -i --restart=Never \
             --image="$CURL_IMAGE" \
             --labels="oneuptime-doctor=true" \
+            --overrides='{"apiVersion":"v1","spec":{"nodeSelector":{"kubernetes.io/os":"linux"}}}' \
             --command -- sh -c "$snippet" 2>&1)
   fi
 

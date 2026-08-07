@@ -756,7 +756,7 @@
         },
         "nodeSelector": {
           "type": "object",
-          "description": "nodeSelector for the eBPF agent DaemonSet pods."
+          "description": "nodeSelector for the eBPF agent DaemonSet pods. The chart always merges in `kubernetes.io/os: linux` (keys set here win on conflict) so agent pods never schedule onto Windows nodes."
         },
         "tolerations": {
           "type": "array",
