@@ -1818,6 +1818,13 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
               await ModelAPI.updateById({
                 modelType: LogSavedView,
                 id: selectedSavedView.id,
+                /*
+                 * Every value here is JSON data, but a Query and a
+                 * TelemetrySavedViewTimeRange are declared as interfaces, so
+                 * neither carries the index signature JSONObject requires and
+                 * a direct cast does not compile. Hopping through unknown is
+                 * what the rest of this file does with the same shapes.
+                 */
                 data: JSONFunctions.serialize({
                   query: filterOptions,
                   timeRange: serializeSavedViewTimeRange(timeRange),
@@ -1825,7 +1832,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
                   sortField: sortField,
                   sortOrder: sortOrder,
                   pageSize: pageSize,
-                } as JSONObject) as JSONObject,
+                } as unknown as JSONObject) as JSONObject,
               });
 
               await fetchSavedViews();
