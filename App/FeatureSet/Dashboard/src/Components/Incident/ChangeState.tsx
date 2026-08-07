@@ -235,7 +235,6 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
       label: "Acknowledge",
       icon: IconProp.Check,
       buttonStyle: ButtonStyleType.PRIMARY,
-      color: ackState.color || Black,
       id: "incident-acknowledge-btn",
     });
 
@@ -245,7 +244,6 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
         label: "Resolve",
         icon: IconProp.CheckCircle,
         buttonStyle: ButtonStyleType.OUTLINE,
-        color: resolvedState.color || Black,
         id: "incident-resolve-btn",
       });
     }
@@ -255,7 +253,6 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
       label: "Resolve",
       icon: IconProp.CheckCircle,
       buttonStyle: ButtonStyleType.PRIMARY,
-      color: resolvedState.color || Black,
       id: "incident-resolve-btn",
     });
   }
