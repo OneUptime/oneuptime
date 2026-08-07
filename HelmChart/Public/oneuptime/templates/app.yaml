@@ -60,13 +60,8 @@ spec:
       {{- if $.Values.tolerations }}
       tolerations: {{- $.Values.tolerations | toYaml | nindent 8 }}
       {{- end }}
-      {{- if $.Values.app.nodeSelector }}
       nodeSelector:
-        {{- toYaml $.Values.app.nodeSelector | nindent 8 }}
-      {{- else if $.Values.nodeSelector }}
-      nodeSelector:
-        {{- toYaml $.Values.nodeSelector | nindent 8 }}
-      {{- end }}
+        {{- include "oneuptime.nodeSelector" ($.Values.app.nodeSelector | default $.Values.nodeSelector) | nindent 8 }}
       containers:
         - image: {{ include "oneuptime.image" (dict "Values" $.Values "ServiceName" "app") }}
           name: {{ printf "%s-%s" $.Release.Name "app"  }}

@@ -100,10 +100,8 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.pgbouncer.nodeSelector }}
       nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+        {{- include "oneuptime.nodeSelector" .Values.pgbouncer.nodeSelector | nindent 8 }}
       {{- with .Values.pgbouncer.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}

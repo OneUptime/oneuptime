@@ -75,13 +75,8 @@ spec:
       {{- if $.Values.tolerations }}
       tolerations: {{- $.Values.tolerations | toYaml | nindent 8 }}
       {{- end }}
-      {{- if $.Values.nginx.nodeSelector }}
       nodeSelector:
-        {{- toYaml $.Values.nginx.nodeSelector | nindent 8 }}
-      {{- else if $.Values.nodeSelector }}
-      nodeSelector:
-        {{- toYaml $.Values.nodeSelector | nindent 8 }}
-      {{- end }}
+        {{- include "oneuptime.nodeSelector" ($.Values.nginx.nodeSelector | default $.Values.nodeSelector) | nindent 8 }}
       {{- if and $.Values.nginx.sysctlTuning $.Values.nginx.sysctlTuning.enabled }}
       # Widen the ephemeral source-port range and enable TIME_WAIT reuse so the
       # ingress never runs out of local ports while proxying the ingest and

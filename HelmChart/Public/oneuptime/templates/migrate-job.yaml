@@ -64,10 +64,8 @@ spec:
       imagePullSecrets:
         {{- toYaml .Values.imagePullSecrets | nindent 8 }}
       {{- end }}
-      {{- with .Values.migrate.nodeSelector | default .Values.nodeSelector }}
       nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+        {{- include "oneuptime.nodeSelector" (.Values.migrate.nodeSelector | default .Values.nodeSelector) | nindent 8 }}
       {{- with .Values.migrate.tolerations | default .Values.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}

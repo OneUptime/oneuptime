@@ -5,6 +5,8 @@ metadata:
   annotations:
     "helm.sh/hook": test
 spec:
+  nodeSelector:
+    {{- include "oneuptime.nodeSelector" (dict) | nindent 4 }}
   containers:
     - name: oneptime-test
       imagePullPolicy: {{ $.Values.image.pullPolicy }}
