@@ -368,6 +368,8 @@ export default class CriteriaFilterUtil {
     if (monitorType === MonitorType.Domain) {
       options = options.filter((i: DropdownOption) => {
         return (
+          i.value === CheckOn.IsOnline ||
+          i.value === CheckOn.IsRequestTimeout ||
           i.value === CheckOn.DomainExpiresDaysIn ||
           i.value === CheckOn.DomainRegistrar ||
           i.value === CheckOn.DomainNameServer ||

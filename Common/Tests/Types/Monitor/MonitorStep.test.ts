@@ -1,5 +1,6 @@
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorType from "../../../Types/Monitor/MonitorType";
+import DomainLookupMethod from "../../../Types/Monitor/DomainMonitor/DomainLookupMethod";
 import ObjectID from "../../../Types/ObjectID";
 import HTTPMethod from "../../../Types/API/HTTPMethod";
 import { JSONObject, ObjectType } from "../../../Types/JSON";
@@ -178,6 +179,43 @@ describe("MonitorStep", () => {
       const step: MonitorStep = MonitorStep.getDefaultMonitorStep(DEFAULT_ARG);
       const parsed: JSONObject = JSON.parse(step.toString()) as JSONObject;
       expect(parsed["_type"]).toBe(ObjectType.MonitorStep);
+    });
+
+    /*
+     * Domain monitors saved before the lookupMethod option existed carry no
+     * such key. fromJSON has to fill it in, because the probe reads the
+     * deserialized config directly and its type says the field is present.
+     */
+    function restoreWithDomainMonitor(domainMonitor: JSONObject): JSONObject {
+      const json: JSONObject =
+        MonitorStep.getDefaultMonitorStep(DEFAULT_ARG).toJSON();
+
+      (json["value"] as JSONObject)["domainMonitor"] = domainMonitor;
+
+      return MonitorStep.fromJSON(json).data
+        ?.domainMonitor as unknown as JSONObject;
+    }
+
+    test("fills in the domain monitor lookup method for a step saved without one", () => {
+      const domainMonitor: JSONObject = restoreWithDomainMonitor({
+        domainName: "identity.digital",
+        timeout: 10000,
+        retries: 3,
+      });
+
+      expect(domainMonitor["domainName"]).toBe("identity.digital");
+      expect(domainMonitor["lookupMethod"]).toBe(DomainLookupMethod.Auto);
+    });
+
+    test("preserves an explicitly chosen domain monitor lookup method", () => {
+      const domainMonitor: JSONObject = restoreWithDomainMonitor({
+        domainName: "identity.digital",
+        lookupMethod: DomainLookupMethod.WHOIS,
+        timeout: 10000,
+        retries: 3,
+      });
+
+      expect(domainMonitor["lookupMethod"]).toBe(DomainLookupMethod.WHOIS);
     });
   });
 });

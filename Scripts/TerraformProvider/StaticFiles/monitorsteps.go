@@ -899,7 +899,7 @@ func monitorStepsStepSchema() schema.NestedAttributeObject {
 		"profile_monitor":              "Raw JSON escape hatch for the Profiles monitor query config.",
 		"network_device_monitor":       "Raw JSON escape hatch for the Network Device monitor config (networkDeviceId).",
 		"dns_monitor":                  "Raw JSON escape hatch for the DNS monitor config (queryName, recordType, ...).",
-		"domain_monitor":               "Raw JSON escape hatch for the Domain monitor config (domainName).",
+		"domain_monitor":               "Raw JSON escape hatch for the Domain monitor config (domainName, lookupMethod, timeout, retries). lookupMethod is one of Auto, RDAP, WHOIS and defaults to Auto.",
 		"dnssec_monitor":               "Raw JSON escape hatch for the DNSSEC monitor config (domainName, resolvers).",
 		"sql_monitor":                  "Raw JSON escape hatch for the SQL Query monitor config (databaseType, host, port, databaseName, query, ...).",
 		"external_status_page_monitor": "Raw JSON escape hatch for the External Status Page monitor config (statusPageUrl, providerType).",

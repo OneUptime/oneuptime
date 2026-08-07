@@ -1,4 +1,5 @@
 import ProbeAttempt from "../../Probe/ProbeAttempt";
+import DomainLookupMethod from "./DomainLookupMethod";
 
 export default interface DomainMonitorResponse {
   isOnline: boolean;
@@ -16,4 +17,10 @@ export default interface DomainMonitorResponse {
   isTimeout?: boolean | undefined;
   probeAttempts?: Array<ProbeAttempt> | undefined;
   totalAttempts?: number | undefined;
+  /*
+   * Which protocol actually produced this record. With the Auto lookup
+   * method the answer varies by TLD, so it is worth surfacing rather than
+   * leaving the operator to guess.
+   */
+  lookupMethod?: DomainLookupMethod | undefined;
 }
