@@ -133,7 +133,7 @@ For numeric metrics (CPU, memory, disk):
 - **Less Than** — Value is below a threshold
 - **Greater Than or Equal To** — Value is at or above a threshold
 - **Less Than or Equal To** — Value is at or below a threshold
-- **Evaluate Over Time** — Evaluate using aggregation (Average, Sum, Maximum, Minimum, All Values, Any Value) over a time window
+- **Evaluate Over Time** — Evaluate using aggregation (Average, Sum, Maximum, Minimum, All Values, Any Value) over a time window. **All Values** and the aggregates (**Average/Sum/Maximum/Minimum**) only evaluate once the window is actually covered by data, so the criterion will not fire on a single result (a brand-new or just-restarted monitor waits until it has collected enough of the window). **Any Value** is the exception — a single matching result is enough. When the window has no data the criterion does not fire by default — configurable via `onNoDataPolicy` (Terraform/API).
 
 For process checks:
 
