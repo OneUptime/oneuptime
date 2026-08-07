@@ -201,9 +201,7 @@ const BulkUpdateForm: <T extends GenericObject>(
     let itemClassName: string = "";
     let iconClassName: string = "";
 
-    if (isDisabled) {
-      itemClassName = "opacity-50 cursor-not-allowed hover:bg-transparent";
-    } else if (isDanger) {
+    if (!isDisabled && isDanger) {
       itemClassName = "text-red-700 hover:text-red-800 hover:bg-red-50";
       iconClassName = "text-red-400 group-hover:text-red-500";
     }
@@ -215,6 +213,7 @@ const BulkUpdateForm: <T extends GenericObject>(
         icon={button.icon}
         className={itemClassName}
         iconClassName={iconClassName}
+        isDisabled={isDisabled}
         onClick={() => {
           triggerButtonClick(button);
         }}

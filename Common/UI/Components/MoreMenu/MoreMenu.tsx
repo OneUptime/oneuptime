@@ -5,7 +5,6 @@ import React, {
   useEffect,
   useId,
   useImperativeHandle,
-  useRef,
   useState,
 } from "react";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -23,7 +22,17 @@ export interface ComponentProps {
   triggerClassName?: string | undefined;
   menuIcon?: IconProp | undefined;
   text?: string | undefined;
+  isDisabled?: boolean | undefined;
 }
+
+const isMenuItemDisabled: (item: HTMLElement) => boolean = (
+  item: HTMLElement,
+): boolean => {
+  return (
+    item.getAttribute("aria-disabled") === "true" ||
+    (item instanceof HTMLButtonElement && item.disabled)
+  );
+};
 
 const MoreMenu: React.ForwardRefExoticComponent<
   ComponentProps & React.RefAttributes<unknown>
@@ -32,11 +41,53 @@ const MoreMenu: React.ForwardRefExoticComponent<
     const uniqueId: string = useId();
     const menuId: string = `menu-${uniqueId}`;
     const buttonId: string = `menu-button-${uniqueId}`;
+    const customTrigger: ReactElement | undefined =
+      props.elementToBeShownInsteadOfButton;
+    const isNativeButtonTrigger: boolean = Boolean(
+      customTrigger && customTrigger.type === "button",
+    );
     const { ref, isComponentVisible, setIsComponentVisible } =
       useComponentOutsideClick(false);
     const [focusedIndex, setFocusedIndex] = useState<number>(-1);
-    const menuItemRefs: React.MutableRefObject<(HTMLDivElement | null)[]> =
-      useRef<(HTMLDivElement | null)[]>([]);
+
+    /*
+     * Menu sections and dividers are valid top-level children, so the list of
+     * keyboard targets cannot be derived from props.children. Read the actual
+     * rendered menuitem descendants instead; this also supports arbitrarily
+     * nested sections while skipping non-action content.
+     */
+    const getMenuItems: () => Array<HTMLElement> =
+      useCallback((): Array<HTMLElement> => {
+        const menuElement: HTMLElement | null =
+          ref.current as HTMLElement | null;
+
+        if (!menuElement) {
+          return [];
+        }
+
+        /*
+         * Some established callers pass their own button as a menu child
+         * (usually wrapped for spacing) instead of MoreMenuItem. Promote that
+         * existing interactive element to a menuitem so it remains reachable
+         * by roving focus and participates in delegated dismissal. Explicit
+         * menuitems and anything nested inside one are left untouched.
+         */
+        Array.from(
+          menuElement.querySelectorAll<HTMLElement>(
+            'button, a[href], [role="button"]',
+          ),
+        ).forEach((item: HTMLElement) => {
+          if (!item.closest('[role="menuitem"]')) {
+            item.setAttribute("role", "menuitem");
+          }
+        });
+
+        return Array.from(
+          menuElement.querySelectorAll<HTMLElement>('[role="menuitem"]'),
+        ).filter((item: HTMLElement) => {
+          return !isMenuItemDisabled(item);
+        });
+      }, [ref]);
 
     useImperativeHandle(componentRef, () => {
       return {
@@ -64,19 +115,40 @@ const MoreMenu: React.ForwardRefExoticComponent<
     }, [isComponentVisible]);
 
     useEffect(() => {
-      if (focusedIndex >= 0 && menuItemRefs.current[focusedIndex]) {
-        menuItemRefs.current[focusedIndex]?.focus();
+      if (props.isDisabled && isComponentVisible) {
+        setIsComponentVisible(false);
       }
-    }, [focusedIndex]);
+    }, [props.isDisabled, isComponentVisible, setIsComponentVisible]);
+
+    useEffect(() => {
+      const menuItems: Array<HTMLElement> = getMenuItems();
+
+      menuItems.forEach((item: HTMLElement, index: number) => {
+        item.tabIndex = index === focusedIndex ? 0 : -1;
+      });
+
+      if (focusedIndex >= 0 && menuItems.length > 0) {
+        const safeFocusedIndex: number = Math.min(
+          focusedIndex,
+          menuItems.length - 1,
+        );
+
+        if (safeFocusedIndex !== focusedIndex) {
+          setFocusedIndex(safeFocusedIndex);
+        } else {
+          menuItems[safeFocusedIndex]?.focus();
+        }
+      }
+    }, [focusedIndex, getMenuItems, isComponentVisible, props.children]);
 
     const restoreFocusToTrigger: () => void = useCallback((): void => {
       /*
-       * Return focus to the trigger after the menu closes via Escape or item
-       * selection (WAI-ARIA menu-button pattern). Deferred to the next frame so
-       * the menu has unmounted, and only reclaimed if focus fell back to
-       * <body> — so we never steal focus that the activated item intentionally
-       * moved elsewhere (e.g. into a dialog it opened). Not called on
-       * outside-click dismissal, which should leave focus where the user clicked.
+       * Return focus after item selection (WAI-ARIA menu-button pattern).
+       * Deferred to the next frame so the menu has unmounted, and only reclaimed
+       * if focus fell back to <body> — so we never steal focus that the activated
+       * item intentionally moved elsewhere (e.g. into a dialog it opened). Escape
+       * has a separate unconditional path below; outside-click dismissal leaves
+       * focus where the user clicked.
        */
       requestAnimationFrame(() => {
         const activeElement: Element | null = document.activeElement;
@@ -86,49 +158,173 @@ const MoreMenu: React.ForwardRefExoticComponent<
       });
     }, [buttonId]);
 
+    const focusTrigger: () => void = useCallback((): void => {
+      document.getElementById(buttonId)?.focus();
+    }, [buttonId]);
+
     const handleKeyDown: (event: React.KeyboardEvent) => void = useCallback(
       (event: React.KeyboardEvent): void => {
         if (!isComponentVisible) {
           return;
         }
 
-        const itemCount: number = props.children.length;
+        if (event.key === "Escape") {
+          event.preventDefault();
+          setIsComponentVisible(false);
+          /*
+           * Escape always returns focus to the menu button. Do this immediately:
+           * a deferred callback can run before React unmounts the focused menu
+           * item and incorrectly decide that focus should be left alone.
+           */
+          focusTrigger();
+          return;
+        }
+
+        if (event.key === "Tab") {
+          setIsComponentVisible(false);
+          return;
+        }
+
+        const menuItems: Array<HTMLElement> = getMenuItems();
+        const itemCount: number = menuItems.length;
+
+        if (itemCount === 0) {
+          return;
+        }
+
+        const activeElement: Element | null = document.activeElement;
+        const activeIndex: number = menuItems.findIndex((item: HTMLElement) => {
+          return item === activeElement || item.contains(activeElement);
+        });
+        const currentIndex: number =
+          activeIndex >= 0
+            ? activeIndex
+            : focusedIndex >= 0 && focusedIndex < itemCount
+              ? focusedIndex
+              : 0;
+        const moveFocusToItem: (index: number) => void = (
+          index: number,
+        ): void => {
+          setFocusedIndex(index);
+          /*
+           * Move DOM focus in the same keyboard event as well as recording the
+           * roving index. React may batch consecutive keyboard events, so the
+           * next Enter/Space must target the newly selected item immediately.
+           */
+          menuItems[index]?.focus();
+        };
 
         switch (event.key) {
-          case "Escape":
-            event.preventDefault();
-            setIsComponentVisible(false);
-            restoreFocusToTrigger();
-            break;
           case "ArrowDown":
             event.preventDefault();
-            setFocusedIndex((prev: number) => {
-              return (prev + 1) % itemCount;
-            });
+            moveFocusToItem((currentIndex + 1) % itemCount);
             break;
           case "ArrowUp":
             event.preventDefault();
-            setFocusedIndex((prev: number) => {
-              return (prev - 1 + itemCount) % itemCount;
-            });
+            moveFocusToItem((currentIndex - 1 + itemCount) % itemCount);
             break;
           case "Home":
             event.preventDefault();
-            setFocusedIndex(0);
+            moveFocusToItem(0);
             break;
           case "End":
             event.preventDefault();
-            setFocusedIndex(itemCount - 1);
+            moveFocusToItem(itemCount - 1);
             break;
+          case "Enter":
+          case " ": {
+            const eventTarget: EventTarget = event.target;
+            const menuItem: HTMLElement | undefined = menuItems.find(
+              (item: HTMLElement) => {
+                return (
+                  eventTarget instanceof Node &&
+                  (item === eventTarget || item.contains(eventTarget))
+                );
+              },
+            );
+
+            if (menuItem) {
+              /*
+               * Prevent the native button activation from adding a second
+               * click, then use the exact focused item as the activation
+               * target. Its own handler runs once and the delegated menu click
+               * below closes the menu.
+               */
+              event.preventDefault();
+              menuItem.click();
+            }
+            break;
+          }
         }
       },
       [
+        focusedIndex,
+        focusTrigger,
+        getMenuItems,
         isComponentVisible,
-        props.children.length,
         setIsComponentVisible,
-        restoreFocusToTrigger,
       ],
     );
+
+    const handleMenuClick: (event: React.MouseEvent<HTMLDivElement>) => void = (
+      event: React.MouseEvent<HTMLDivElement>,
+    ): void => {
+      const eventTarget: EventTarget = event.target;
+
+      if (!(eventTarget instanceof Element)) {
+        return;
+      }
+
+      const menuItem: Element | null = eventTarget.closest('[role="menuitem"]');
+
+      if (
+        menuItem instanceof HTMLElement &&
+        event.currentTarget.contains(menuItem) &&
+        !isMenuItemDisabled(menuItem) &&
+        isComponentVisible
+      ) {
+        setIsComponentVisible(false);
+        restoreFocusToTrigger();
+      }
+    };
+
+    const getNativeButtonTrigger: () => ReactElement | null =
+      (): ReactElement | null => {
+        if (!customTrigger || !isNativeButtonTrigger) {
+          return null;
+        }
+
+        const trigger: ReactElement<
+          React.ButtonHTMLAttributes<HTMLButtonElement>
+        > = customTrigger as ReactElement<
+          React.ButtonHTMLAttributes<HTMLButtonElement>
+        >;
+        const isTriggerDisabled: boolean = Boolean(
+          props.isDisabled || trigger.props.disabled,
+        );
+
+        return React.cloneElement(trigger, {
+          id: buttonId,
+          type: trigger.props.type || "button",
+          className: [trigger.props.className, props.triggerClassName]
+            .filter(Boolean)
+            .join(" "),
+          disabled: isTriggerDisabled,
+          "aria-disabled": isTriggerDisabled,
+          "aria-label":
+            trigger.props["aria-label"] || props.text || "More options",
+          "aria-haspopup": "menu",
+          "aria-expanded": isComponentVisible,
+          "aria-controls": isComponentVisible ? menuId : undefined,
+          onClick: (event: React.MouseEvent<HTMLButtonElement>): void => {
+            trigger.props.onClick?.(event);
+
+            if (!event.defaultPrevented && !isTriggerDisabled) {
+              setIsComponentVisible(!isDropdownVisible);
+            }
+          },
+        });
+      };
 
     return (
       <div
@@ -141,6 +337,7 @@ const MoreMenu: React.ForwardRefExoticComponent<
             icon={props.menuIcon || IconProp.More}
             title={props.text || ""}
             buttonStyle={ButtonStyleType.OUTLINE}
+            disabled={props.isDisabled}
             onClick={() => {
               setIsComponentVisible(!isDropdownVisible);
             }}
@@ -151,51 +348,65 @@ const MoreMenu: React.ForwardRefExoticComponent<
           />
         )}
 
-        {props.elementToBeShownInsteadOfButton && (
-          <div
-            /*
-             * The id lets the menu's aria-labelledby resolve and lets focus
-             * return here on close. But the menu-button ARIA (haspopup/expanded/
-             * label) is only applied when a caller opts in with triggerClassName
-             * — callers that pass their own element (some already a real
-             * <button>) keep a bare wrapper to avoid layering redundant button
-             * semantics on top.
-             */
-            id={buttonId}
-            className={props.triggerClassName}
-            onClick={() => {
-              setIsComponentVisible(!isDropdownVisible);
-            }}
-            role="button"
-            tabIndex={0}
-            aria-label={
-              props.triggerClassName ? props.text || "More options" : undefined
-            }
-            aria-haspopup={props.triggerClassName ? "menu" : undefined}
-            aria-expanded={
-              props.triggerClassName ? isComponentVisible : undefined
-            }
-            aria-controls={
-              props.triggerClassName && isComponentVisible ? menuId : undefined
-            }
-            onKeyDown={(e: React.KeyboardEvent) => {
-              /*
-               * Only respond to the wrapper's own keys, never a focusable
-               * child's (e.g. an input inside a custom trigger), so typing
-               * isn't hijacked.
-               */
-              if (
-                (e.key === "Enter" || e.key === " ") &&
-                e.target === e.currentTarget
-              ) {
-                e.preventDefault();
+        {getNativeButtonTrigger()}
+
+        {props.elementToBeShownInsteadOfButton &&
+          !isNativeButtonTrigger &&
+          props.triggerClassName && (
+            <button
+              id={buttonId}
+              type="button"
+              className={props.triggerClassName}
+              disabled={props.isDisabled}
+              onClick={() => {
                 setIsComponentVisible(!isDropdownVisible);
-              }
-            }}
-          >
-            {props.elementToBeShownInsteadOfButton}
-          </div>
-        )}
+              }}
+              aria-label={props.text || "More options"}
+              aria-haspopup="menu"
+              aria-expanded={isComponentVisible}
+              aria-controls={isComponentVisible ? menuId : undefined}
+            >
+              {props.elementToBeShownInsteadOfButton}
+            </button>
+          )}
+
+        {props.elementToBeShownInsteadOfButton &&
+          !isNativeButtonTrigger &&
+          !props.triggerClassName && (
+            <div
+              /*
+               * Keep the legacy keyboard-operable wrapper for unstyled custom
+               * triggers. Many callers provide a visual <div>, not an interactive
+               * element, so dropping this role/tab stop would make their menu
+               * mouse-only. Styled custom triggers use the native button above.
+               */
+              id={buttonId}
+              role="button"
+              tabIndex={props.isDisabled ? -1 : 0}
+              aria-label={props.text || undefined}
+              aria-haspopup="menu"
+              aria-expanded={isComponentVisible}
+              aria-controls={isComponentVisible ? menuId : undefined}
+              aria-disabled={Boolean(props.isDisabled)}
+              onClick={() => {
+                if (!props.isDisabled) {
+                  setIsComponentVisible(!isDropdownVisible);
+                }
+              }}
+              onKeyDown={(event: React.KeyboardEvent<HTMLDivElement>) => {
+                if (
+                  !props.isDisabled &&
+                  event.target === event.currentTarget &&
+                  (event.key === "Enter" || event.key === " ")
+                ) {
+                  event.preventDefault();
+                  setIsComponentVisible(!isDropdownVisible);
+                }
+              }}
+            >
+              {props.elementToBeShownInsteadOfButton}
+            </div>
+          )}
 
         {isComponentVisible && (
           <div
@@ -205,36 +416,13 @@ const MoreMenu: React.ForwardRefExoticComponent<
             role="menu"
             aria-orientation="vertical"
             aria-labelledby={buttonId}
+            onClick={handleMenuClick}
           >
             {props.children.map((child: ReactElement, index: number) => {
               return (
-                <div
-                  key={index}
-                  ref={(el: HTMLDivElement | null) => {
-                    menuItemRefs.current[index] = el;
-                  }}
-                  role="menuitem"
-                  tabIndex={focusedIndex === index ? 0 : -1}
-                  onClick={() => {
-                    if (isComponentVisible) {
-                      setIsComponentVisible(false);
-                      restoreFocusToTrigger();
-                    }
-                  }}
-                  onKeyDown={(e: React.KeyboardEvent) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      setIsComponentVisible(false);
-                      // Trigger child click
-                      const clickEvent: MouseEvent = new MouseEvent("click", {
-                        bubbles: true,
-                      });
-                      e.currentTarget.dispatchEvent(clickEvent);
-                    }
-                  }}
-                >
+                <React.Fragment key={child.key || index}>
                   {child}
-                </div>
+                </React.Fragment>
               );
             })}
           </div>

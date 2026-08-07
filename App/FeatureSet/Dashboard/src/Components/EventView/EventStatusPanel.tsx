@@ -1,13 +1,14 @@
 import { Black, Red500 } from "Common/Types/BrandColors";
-import Color, { RGB } from "Common/Types/Color";
+import Color from "Common/Types/Color";
 import IconProp from "Common/Types/Icon/IconProp";
-import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
 import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import MoreMenuSection from "Common/UI/Components/MoreMenu/MoreMenuSection";
 import Pill from "Common/UI/Components/Pill/Pill";
 import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
+import useTranslateValue from "Common/UI/Utils/Translation";
 import React, { FunctionComponent, ReactElement } from "react";
 import LiveDuration from "./LiveDuration";
 
@@ -23,11 +24,6 @@ export interface EventStateAction {
   icon?: IconProp | undefined;
   buttonStyle: ButtonStyleType;
   id?: string | undefined;
-  /*
-   * The color of the state this action moves the event to. When set, the button
-   * is rendered in that color so it visually matches the state it belongs to.
-   */
-  color?: Color | undefined;
 }
 
 export interface ComponentProps {
@@ -59,6 +55,8 @@ export interface ComponentProps {
 const EventStatusPanel: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { translateString } = useTranslateValue();
+
   const currentState: EventStateItem | undefined = props.states.find(
     (state: EventStateItem) => {
       return state.id === props.currentStateId;
@@ -80,7 +78,7 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
           const isCurrent: boolean = index === currentStateIndex;
 
           return (
-            <div key={state.id} className="flex items-center">
+            <div key={`${state.id}-${index}`} className="flex items-center">
               {index > 0 && (
                 <div
                   className={`mx-2.5 h-px w-5 ${
@@ -118,119 +116,81 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * The overflow menu is for alternative transitions. Primary actions already
+   * have a prominent button, so repeating them under "More actions" adds noise
+   * and makes the menu look useful when it contains no additional choice.
+   */
+  const visibleActionStateIds: Set<string> = new Set(
+    props.actions.map((action: EventStateAction) => {
+      return action.stateId;
+    }),
+  );
+  const includedMenuStateIds: Set<string> = new Set();
+
   const statesForMenu: Array<EventStateItem> = props.states.filter(
-    (state: EventStateItem) => {
-      return state.id !== props.currentStateId;
+    (state: EventStateItem, stateIndex: number) => {
+      /*
+       * State timeline APIs only accept forward transitions. Hiding earlier
+       * states prevents the menu from offering a change the server will reject.
+       * If the current state is not in the supplied list, keep alternatives
+       * available rather than making the recovery menu disappear entirely.
+       */
+      const isForwardState: boolean =
+        currentStateIndex < 0 || stateIndex > currentStateIndex;
+      const shouldIncludeState: boolean =
+        isForwardState &&
+        state.id !== props.currentStateId &&
+        !visibleActionStateIds.has(state.id) &&
+        !includedMenuStateIds.has(state.id);
+
+      if (shouldIncludeState) {
+        includedMenuStateIds.add(state.id);
+      }
+
+      return shouldIncludeState;
     },
   );
 
   const getActionButton: (action: EventStateAction) => ReactElement = (
     action: EventStateAction,
   ): ReactElement => {
-    /*
-     * When the action carries the color of the state it moves the event to,
-     * render the button in that color instead of the generic button palette.
-     */
-    if (action.color) {
-      const isSolid: boolean = action.buttonStyle === ButtonStyleType.PRIMARY;
-      const colorString: string = action.color.toString();
-
-      /*
-       * State colors are stored as hex. Derive RGB so the button can build
-       * real hover / pressed shades and a matching focus ring instead of a
-       * flat opacity fade. Fall back to a dark gray if it can't be parsed.
-       */
-      let rgb: RGB = { red: 17, green: 24, blue: 39 };
-      try {
-        rgb = Color.colorToRgb(action.color);
-      } catch {
-        // A malformed color shouldn't break the button — keep the fallback.
-      }
-
-      const clamp: (n: number) => number = (n: number): number => {
-        return Math.max(0, Math.min(255, Math.round(n)));
-      };
-      // Multiply channels toward black to build hover/pressed shades.
-      const shade: (factor: number) => string = (factor: number): string => {
-        return `rgb(${clamp(rgb.red * factor)}, ${clamp(
-          rgb.green * factor,
-        )}, ${clamp(rgb.blue * factor)})`;
-      };
-      const alpha: (a: number) => string = (a: number): string => {
-        return `rgba(${rgb.red}, ${rgb.green}, ${rgb.blue}, ${a})`;
-      };
-
-      // shouldUseDarkText is true when the state color itself is light.
-      const isLightColor: boolean = Color.shouldUseDarkText(action.color);
-      // Keep the label legible on top of a solid fill.
-      const solidText: string = isLightColor ? "#111827" : "#ffffff";
-      /*
-       * On the white outline variant a very light state color would be nearly
-       * invisible, so darken it into a legible accent for the border and label.
-       */
-      const accent: string = isLightColor ? shade(0.55) : colorString;
-
-      const style: React.CSSProperties & Record<`--${string}`, string> = {
-        "--btn": colorString,
-        "--btn-hover": shade(0.9),
-        "--btn-active": shade(0.82),
-        "--btn-text": solidText,
-        "--btn-accent": accent,
-        "--btn-soft": alpha(0.1),
-        "--btn-soft-active": alpha(0.16),
-        "--btn-ring": alpha(0.4),
-        // Colored drop shadow so the hover "lift" feels tied to the button color.
-        "--btn-glow": alpha(0.45),
-      };
-
-      const baseClassName: string =
-        "inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-lg border px-3.5 py-2 text-sm font-semibold transition-all duration-150 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[color:var(--btn-ring)] active:translate-y-px disabled:pointer-events-none disabled:opacity-50";
-
-      /*
-       * Solid: filled state color with a faint inset top highlight for depth and
-       * a color-tinted hover glow. Outline: white with the accent border/text, a
-       * soft tint on hover. Both lift on hover and press down on active.
-       */
-      const variantClassName: string = isSolid
-        ? "[background-color:var(--btn)] [border-color:var(--btn)] [color:var(--btn-text)] [box-shadow:0_1px_2px_0_rgba(16,24,40,0.08),inset_0_1px_0_0_rgba(255,255,255,0.22)] hover:-translate-y-px hover:[background-color:var(--btn-hover)] hover:[border-color:var(--btn-hover)] hover:[box-shadow:0_10px_20px_-8px_var(--btn-glow),inset_0_1px_0_0_rgba(255,255,255,0.28)] active:[background-color:var(--btn-active)] active:[box-shadow:0_1px_2px_0_rgba(16,24,40,0.1)]"
-        : "bg-white [border-color:var(--btn-accent)] [color:var(--btn-accent)] [box-shadow:0_1px_2px_0_rgba(16,24,40,0.05)] hover:-translate-y-px hover:[background-color:var(--btn-soft)] hover:[box-shadow:0_8px_16px_-8px_var(--btn-glow)] active:[background-color:var(--btn-soft-active)] active:[box-shadow:0_1px_2px_0_rgba(16,24,40,0.05)]";
-
-      return (
-        <button
-          key={action.stateId}
-          id={action.id}
-          type="button"
-          disabled={props.isDisabled}
-          onClick={() => {
-            props.onActionClick(action.stateId);
-          }}
-          style={style}
-          className={`${baseClassName} ${variantClassName}`}
-        >
-          {action.icon && <Icon icon={action.icon} className="h-4 w-4" />}
-          {action.label}
-        </button>
-      );
-    }
+    const isPrimary: boolean = action.buttonStyle === ButtonStyleType.PRIMARY;
+    const translatedActionLabel: string =
+      translateString(action.label) || action.label;
+    const baseClassName: string =
+      "inline-flex h-9 min-w-[7rem] max-w-full flex-1 select-none items-center justify-center gap-2 whitespace-nowrap rounded-md border px-3.5 text-sm font-semibold shadow-sm transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 sm:max-w-64 sm:flex-none";
+    const variantClassName: string = isPrimary
+      ? "border-indigo-600 bg-indigo-600 text-white hover:border-indigo-700 hover:bg-indigo-700"
+      : "border-gray-300 bg-white text-gray-700 hover:border-gray-400 hover:bg-gray-50 hover:text-gray-900";
 
     return (
-      <Button
+      <button
         key={action.stateId}
         id={action.id}
-        title={action.label}
-        icon={action.icon}
-        buttonStyle={action.buttonStyle}
+        type="button"
+        title={translatedActionLabel}
         disabled={props.isDisabled}
         onClick={() => {
           props.onActionClick(action.stateId);
         }}
-      />
+        className={`${baseClassName} ${variantClassName}`}
+      >
+        {action.icon && (
+          <Icon icon={action.icon} className="h-4 w-4 shrink-0" />
+        )}
+        <span className="truncate">{translatedActionLabel}</span>
+      </button>
     );
   };
 
   // The action buttons + "change state" overflow menu, shared by both layouts.
   const actionsCluster: ReactElement = (
-    <div className="flex shrink-0 items-center gap-2">
+    <div
+      className="flex w-full flex-wrap items-center justify-end gap-2 md:w-auto"
+      role="group"
+      aria-label="Event actions"
+    >
       {props.actions.map((action: EventStateAction) => {
         return getActionButton(action);
       })}
@@ -238,9 +198,10 @@ const EventStatusPanel: FunctionComponent<ComponentProps> = (
         <MoreMenu
           text="More actions"
           elementToBeShownInsteadOfButton={
-            <Icon icon={IconProp.More} className="h-4 w-4" />
+            <Icon icon={IconProp.EllipsisHorizontal} className="h-4 w-4" />
           }
-          triggerClassName="inline-flex h-[38px] w-[38px] cursor-pointer items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-500 shadow-sm transition-all duration-150 ease-out hover:-translate-y-px hover:border-gray-400 hover:bg-gray-50 hover:text-gray-700 hover:shadow-md active:translate-y-px active:shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2"
+          triggerClassName="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-md border border-gray-300 bg-white text-gray-500 shadow-sm transition-colors duration-150 hover:border-gray-400 hover:bg-gray-50 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          isDisabled={props.isDisabled}
         >
           {[
             <MoreMenuSection

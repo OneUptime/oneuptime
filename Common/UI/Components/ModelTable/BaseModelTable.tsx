@@ -3707,7 +3707,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 b.onClick?.();
               }
             }}
-            className={b.disabled ? "opacity-40 pointer-events-none" : ""}
+            isDisabled={b.disabled}
           />
         );
       },
