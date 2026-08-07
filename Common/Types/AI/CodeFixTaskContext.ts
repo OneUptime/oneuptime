@@ -75,6 +75,18 @@ export interface PerformanceCodeLocation {
 }
 
 export interface CodeFixTaskContext {
+  /*
+   * FixFromIncident: the exact investigation whose published RootCause is
+   * the task's context. This prevents a later re-investigation from changing
+   * the report between the user's click and the worker claiming the task.
+   */
+  sourceInvestigationRunId?: string | undefined;
+  /*
+   * Snapshot of that run's published analysis. Fix tasks can wait in the
+   * queue, so reading the feed again when the worker claims the task would
+   * let a later re-investigation silently change the requested fix.
+   */
+  sourceInvestigationAnalysisMarkdown?: string | undefined;
   // FixPerformance: the analyzed trace.
   traceId?: string | undefined;
   // Best-effort service attribution resolved from the trace's spans.

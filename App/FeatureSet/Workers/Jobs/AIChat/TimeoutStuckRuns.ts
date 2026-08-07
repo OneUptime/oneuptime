@@ -49,6 +49,7 @@ RunCron(
         conversationId: true,
         runType: true,
         attemptCount: true,
+        lastHeartbeatAt: true,
         projectId: true,
         triggeredByIncidentId: true,
         triggeredByAlertId: true,
@@ -93,10 +94,11 @@ RunCron(
            * remediation (RCA-first ordering) must be released even when
            * the investigation died without retries left.
            */
-          const outcome: "requeued" | "stale" =
+          const outcome: "requeued" | "stale" | "noop" =
             await AIInvestigationQueue.requeueOrMarkStale({
               id: run.id!,
               attemptCount: run.attemptCount || 0,
+              lastHeartbeatAt: run.lastHeartbeatAt,
               runType: run.runType,
               projectId: run.projectId,
               triggeredByIncidentId: run.triggeredByIncidentId,

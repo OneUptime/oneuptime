@@ -1,4 +1,5 @@
 import FixFromIncidentTaskTrigger from "../../../Server/Utils/AI/SRE/FixFromIncidentTaskTrigger";
+import PostedRootCause from "../../../Server/Utils/AI/SRE/PostedRootCause";
 import FixRunBudget from "../../../Server/Utils/AI/CodeFix/FixRunBudget";
 import CodeRepositoryService from "../../../Server/Services/CodeRepositoryService";
 import AIRunService from "../../../Server/Services/AIRunService";
@@ -27,15 +28,24 @@ const projectId: ObjectID = ObjectID.generate();
 const incidentId: ObjectID = ObjectID.generate();
 const alertId: ObjectID = ObjectID.generate();
 const userId: ObjectID = ObjectID.generate();
+const investigationRunId: ObjectID = ObjectID.generate();
+const investigationCompletedAt: Date = new Date("2026-08-07T12:00:00.000Z");
+const analysisMarkdown: string = "## Exact investigation report";
 
 function fakeRun(): AIRun {
-  return { id: ObjectID.generate() } as unknown as AIRun;
+  return {
+    id: ObjectID.generate(),
+    completedAt: investigationCompletedAt,
+  } as unknown as AIRun;
 }
 
 describe("FixFromIncidentTaskTrigger.createFixTaskFromInvestigation", () => {
   beforeEach(() => {
     // The daily fix-run budget has its own suite (FixRunBudget.test.ts).
     jest.spyOn(FixRunBudget, "assertWithinBudget").mockResolvedValue();
+    jest
+      .spyOn(PostedRootCause, "getForInvestigation")
+      .mockResolvedValue(analysisMarkdown);
   });
 
   afterEach(() => {
@@ -48,6 +58,7 @@ describe("FixFromIncidentTaskTrigger.createFixTaskFromInvestigation", () => {
     await expect(
       FixFromIncidentTaskTrigger.createFixTaskFromInvestigation({
         projectId,
+        investigationRunId,
         userId,
       }),
     ).rejects.toThrow(BadDataException);
@@ -61,6 +72,7 @@ describe("FixFromIncidentTaskTrigger.createFixTaskFromInvestigation", () => {
     await expect(
       FixFromIncidentTaskTrigger.createFixTaskFromInvestigation({
         projectId,
+        investigationRunId,
         incidentId,
         alertId,
         userId,
@@ -84,6 +96,7 @@ describe("FixFromIncidentTaskTrigger.createFixTaskFromInvestigation", () => {
     await expect(
       FixFromIncidentTaskTrigger.createFixTaskFromInvestigation({
         projectId,
+        investigationRunId,
         incidentId,
         userId,
       }),
@@ -92,12 +105,44 @@ describe("FixFromIncidentTaskTrigger.createFixTaskFromInvestigation", () => {
     expect(findOneBy).toHaveBeenCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({
+          _id: investigationRunId,
+          projectId,
           runType: AIRunType.Investigation,
           status: AIRunStatus.Completed,
           triggeredByIncidentId: incidentId,
         }),
       }),
     );
+    expect(countBy).not.toHaveBeenCalled();
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  test("the exact investigation must have a posted report before a task can be frozen", async () => {
+    jest.spyOn(AIRunService, "findOneBy").mockResolvedValue(fakeRun());
+    jest
+      .mocked(PostedRootCause.getForInvestigation)
+      .mockResolvedValueOnce(null);
+    const countBy: jest.SpyInstance = jest.spyOn(
+      CodeRepositoryService,
+      "countBy",
+    );
+    const create: jest.SpyInstance = jest.spyOn(AIRunService, "create");
+
+    await expect(
+      FixFromIncidentTaskTrigger.createFixTaskFromInvestigation({
+        projectId,
+        investigationRunId,
+        incidentId,
+        userId,
+      }),
+    ).rejects.toThrow(/No posted investigation analysis/);
+
+    expect(PostedRootCause.getForInvestigation).toHaveBeenCalledWith({
+      incidentId,
+      alertId: undefined,
+      aiRunId: investigationRunId,
+      runCompletedAt: investigationCompletedAt,
+    });
     expect(countBy).not.toHaveBeenCalled();
     expect(create).not.toHaveBeenCalled();
   });
@@ -112,6 +157,7 @@ describe("FixFromIncidentTaskTrigger.createFixTaskFromInvestigation", () => {
     await expect(
       FixFromIncidentTaskTrigger.createFixTaskFromInvestigation({
         projectId,
+        investigationRunId,
         incidentId,
         userId,
       }),
@@ -135,6 +181,7 @@ describe("FixFromIncidentTaskTrigger.createFixTaskFromInvestigation", () => {
     await expect(
       FixFromIncidentTaskTrigger.createFixTaskFromInvestigation({
         projectId,
+        investigationRunId,
         incidentId,
         userId,
       }),
@@ -163,6 +210,7 @@ describe("FixFromIncidentTaskTrigger.createFixTaskFromInvestigation", () => {
     await expect(
       FixFromIncidentTaskTrigger.createFixTaskFromInvestigation({
         projectId,
+        investigationRunId,
         incidentId,
         userId,
       }),
@@ -191,6 +239,7 @@ describe("FixFromIncidentTaskTrigger.createFixTaskFromInvestigation", () => {
     const run: AIRun =
       await FixFromIncidentTaskTrigger.createFixTaskFromInvestigation({
         projectId,
+        investigationRunId,
         incidentId,
         userId,
       });
@@ -221,6 +270,10 @@ describe("FixFromIncidentTaskTrigger.createFixTaskFromInvestigation", () => {
           codeFixTaskType: CodeFixTaskType.FixFromIncident,
           status: AIRunStatus.Queued,
           triggeredByIncidentId: incidentId,
+          taskContext: {
+            sourceInvestigationRunId: investigationRunId.toString(),
+            sourceInvestigationAnalysisMarkdown: analysisMarkdown,
+          },
           // Attribution: the user who clicked the button.
           userId: userId,
         }),
@@ -243,6 +296,7 @@ describe("FixFromIncidentTaskTrigger.createFixTaskFromInvestigation", () => {
 
     await FixFromIncidentTaskTrigger.createFixTaskFromInvestigation({
       projectId,
+      investigationRunId,
       alertId,
       userId,
     });
@@ -257,6 +311,8 @@ describe("FixFromIncidentTaskTrigger.createFixTaskFromInvestigation", () => {
       1,
       expect.objectContaining({
         query: expect.objectContaining({
+          _id: investigationRunId,
+          projectId,
           runType: AIRunType.Investigation,
           status: AIRunStatus.Completed,
           triggeredByAlertId: alertId,
@@ -269,6 +325,10 @@ describe("FixFromIncidentTaskTrigger.createFixTaskFromInvestigation", () => {
         data: expect.objectContaining({
           codeFixTaskType: CodeFixTaskType.FixFromIncident,
           triggeredByAlertId: alertId,
+          taskContext: {
+            sourceInvestigationRunId: investigationRunId.toString(),
+            sourceInvestigationAnalysisMarkdown: analysisMarkdown,
+          },
           userId: userId,
         }),
       }),

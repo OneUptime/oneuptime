@@ -1,4 +1,9 @@
-import React, { FunctionComponent, ReactElement, useEffect } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useRef,
+} from "react";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
 import Feed from "Common/UI/Components/Feed/Feed";
@@ -35,14 +40,24 @@ import RunbookPicker from "../Runbook/RunbookPicker";
 
 export interface ComponentProps {
   incidentId: ObjectID;
+  refreshToken?: number | undefined;
 }
 
 const IncidentFeedElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const incidentIdString: string = props.incidentId.toString();
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [error, setError] = React.useState<string | undefined>(undefined);
   const [feedItems, setFeedItems] = React.useState<FeedItemProps[]>([]);
+  const [loadedIncidentId, setLoadedIncidentId] = React.useState<string | null>(
+    null,
+  );
+  const latestFetchRequestRef: React.MutableRefObject<number> =
+    useRef<number>(0);
+  const activeIncidentIdRef: React.MutableRefObject<string> =
+    useRef<string>(incidentIdString);
+  activeIncidentIdRef.current = incidentIdString;
   const [showOnCallPolicyModal, setShowOnCallPolicyModal] =
     React.useState<boolean>(false);
 
@@ -75,6 +90,13 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
     incidentFeed: IncidentFeed,
   ): FeedItemProps => {
     let icon: IconProp = IconProp.Circle;
+    const isAIInvestigation: boolean = Boolean(
+      incidentFeed.incidentFeedEventType === IncidentFeedEventType.RootCause &&
+        (incidentFeed.aiRunId ||
+          incidentFeed.feedInfoInMarkdown?.includes(
+            "AI — Automated Root Cause Analysis",
+          )),
+    );
 
     if (
       incidentFeed.incidentFeedEventType ===
@@ -154,7 +176,7 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
     if (
       incidentFeed.incidentFeedEventType === IncidentFeedEventType.RootCause
     ) {
-      icon = IconProp.Cube;
+      icon = isAIInvestigation ? IconProp.Sparkles : IconProp.Cube;
     }
 
     if (
@@ -213,10 +235,21 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
       itemDateTime: incidentFeed.postedAt || incidentFeed.createdAt!,
       color: incidentFeed.displayColor || Gray500,
       icon: icon,
+      safeMode: isAIInvestigation,
     };
   };
 
   const fetchItems: PromiseVoidFunction = async (): Promise<void> => {
+    const requestId: number = latestFetchRequestRef.current + 1;
+    latestFetchRequestRef.current = requestId;
+    const requestedIncidentId: string = incidentIdString;
+    const isLatestRequest: () => boolean = (): boolean => {
+      return (
+        requestId === latestFetchRequestRef.current &&
+        requestedIncidentId === activeIncidentIdRef.current
+      );
+    };
+
     setError("");
     setIsLoading(true);
     try {
@@ -230,6 +263,7 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
           feedInfoInMarkdown: true,
           displayColor: true,
           createdAt: true,
+          aiRunId: true,
           user: {
             name: true,
             email: true,
@@ -245,12 +279,20 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
         limit: LIMIT_PER_PROJECT,
       });
 
-      setFeedItems(getFeedItemsFromIncidentFeeds(incidentFeeds.data));
+      if (isLatestRequest()) {
+        setFeedItems(getFeedItemsFromIncidentFeeds(incidentFeeds.data));
+        setLoadedIncidentId(requestedIncidentId);
+      }
     } catch (err: unknown) {
-      setError(API.getFriendlyMessage(err as Exception));
+      if (isLatestRequest()) {
+        setError(API.getFriendlyMessage(err as Exception));
+        setLoadedIncidentId(requestedIncidentId);
+      }
     }
 
-    setIsLoading(false);
+    if (isLatestRequest()) {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -261,7 +303,9 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
     fetchItems().catch((err: unknown) => {
       setError(API.getFriendlyMessage(err as Exception));
     });
-  }, [props.incidentId]);
+  }, [incidentIdString, props.refreshToken]);
+
+  const isCurrentFeedLoaded: boolean = loadedIncidentId === incidentIdString;
 
   return (
     <Card
@@ -327,9 +371,9 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
       ]}
     >
       <div>
-        {isLoading && <ComponentLoader />}
-        {error && <ErrorMessage message={error} />}
-        {!isLoading && !error && (
+        {(isLoading || !isCurrentFeedLoaded) && <ComponentLoader />}
+        {isCurrentFeedLoaded && error && <ErrorMessage message={error} />}
+        {isCurrentFeedLoaded && !isLoading && !error && (
           <Feed
             items={feedItems}
             noItemsMessage="Looks like there are no items in this feed for this incident."

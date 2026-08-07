@@ -13,6 +13,7 @@ import AIRunService from "../../../../Server/Services/AIRunService";
 import AIRunEventService from "../../../../Server/Services/AIRunEventService";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import AIRunEvent from "../../../../Models/DatabaseModels/AIRunEvent";
+import AIRunEventType from "../../../../Types/AI/AIRunEventType";
 import AIRunType from "../../../../Types/AI/AIRunType";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import ObjectID from "../../../../Types/ObjectID";
@@ -74,6 +75,7 @@ describe("AIInvestigationQueue.failOrRequeue — the settlement outcome", () => 
     expect(update).toHaveBeenCalledTimes(1);
     expect(update).toHaveBeenCalledWith(
       expect.objectContaining({
+        expectedAttemptCount: 1,
         set: expect.objectContaining({ status: AIRunStatus.Queued }),
       }),
     );
@@ -113,6 +115,7 @@ describe("AIInvestigationQueue.failOrRequeue — the settlement outcome", () => 
     expect(outcome).toBe("finalized");
     expect(update).toHaveBeenCalledWith(
       expect.objectContaining({
+        expectedAttemptCount: 1,
         set: expect.objectContaining({ status: AIRunStatus.Error }),
       }),
     );
@@ -158,7 +161,7 @@ describe("AIInvestigationQueue.requeueOrMarkStale — the terminal-stale hand-of
     const incidentId: ObjectID = ObjectID.generate();
     jest.spyOn(AIRunService, "attemptStatusTransition").mockResolvedValue(1);
 
-    const outcome: "requeued" | "stale" =
+    const outcome: "requeued" | "stale" | "noop" =
       await AIInvestigationQueue.requeueOrMarkStale({
         id: ObjectID.generate(),
         attemptCount: MAX_INVESTIGATION_ATTEMPTS,
@@ -175,18 +178,30 @@ describe("AIInvestigationQueue.requeueOrMarkStale — the terminal-stale hand-of
   });
 
   test("a requeued stale run is NOT settled — the retry owns it", async () => {
-    jest.spyOn(AIRunService, "attemptStatusTransition").mockResolvedValue(1);
+    const transition: jest.SpyInstance = jest
+      .spyOn(AIRunService, "attemptStatusTransition")
+      .mockResolvedValue(1);
+    const staleHeartbeat: Date = new Date("2026-08-07T12:00:00.000Z");
+    const runId: ObjectID = ObjectID.generate();
 
-    const outcome: "requeued" | "stale" =
+    const outcome: "requeued" | "stale" | "noop" =
       await AIInvestigationQueue.requeueOrMarkStale({
-        id: ObjectID.generate(),
+        id: runId,
         attemptCount: 1,
+        lastHeartbeatAt: staleHeartbeat,
         runType: AIRunType.Investigation,
         projectId: ObjectID.generate(),
         triggeredByIncidentId: ObjectID.generate(),
       });
 
     expect(outcome).toBe("requeued");
+    expect(transition).toHaveBeenCalledWith(
+      expect.objectContaining({
+        aiRunId: runId,
+        expectedAttemptCount: 1,
+        expectedLastHeartbeatAt: staleHeartbeat,
+      }),
+    );
     expect(handoff).not.toHaveBeenCalled();
   });
 
@@ -208,14 +223,16 @@ describe("AIInvestigationQueue.requeueOrMarkStale — the terminal-stale hand-of
   test("a lost Stale transition does not hand off — the winning actor settles", async () => {
     jest.spyOn(AIRunService, "attemptStatusTransition").mockResolvedValue(0);
 
-    await AIInvestigationQueue.requeueOrMarkStale({
-      id: ObjectID.generate(),
-      attemptCount: MAX_INVESTIGATION_ATTEMPTS,
-      runType: AIRunType.Investigation,
-      projectId: ObjectID.generate(),
-      triggeredByIncidentId: ObjectID.generate(),
-    });
+    const outcome: "requeued" | "stale" | "noop" =
+      await AIInvestigationQueue.requeueOrMarkStale({
+        id: ObjectID.generate(),
+        attemptCount: MAX_INVESTIGATION_ATTEMPTS,
+        runType: AIRunType.Investigation,
+        projectId: ObjectID.generate(),
+        triggeredByIncidentId: ObjectID.generate(),
+      });
 
+    expect(outcome).toBe("noop");
     expect(handoff).not.toHaveBeenCalled();
   });
 });
@@ -335,6 +352,13 @@ describe("AIInvestigationEngine.executeRun — the onSettled contract", () => {
     });
   }
 
+  function emittedEventTypes(): Array<AIRunEventType> {
+    const create: jest.Mock = AIRunEventService.create as unknown as jest.Mock;
+    return create.mock.calls.map((call: Array<unknown>): AIRunEventType => {
+      return (call[0] as { data: AIRunEvent }).data.eventType!;
+    });
+  }
+
   beforeEach(() => {
     callOrder = [];
     postAnalysis = jest.fn(async (): Promise<void> => {
@@ -366,12 +390,23 @@ describe("AIInvestigationEngine.executeRun — the onSettled contract", () => {
       .spyOn(ObservabilityAssistant, "answerQuestion")
       .mockResolvedValue(makeResult());
     jest.spyOn(AIRunService, "attemptStatusTransition").mockResolvedValue(1);
+    postAnalysis.mockImplementation(async (): Promise<void> => {
+      expect(emittedEventTypes()).not.toContain(AIRunEventType.RunCompleted);
+      callOrder.push("postAnalysis");
+    });
 
     await executeRun();
 
     expect(postAnalysis).toHaveBeenCalledTimes(1);
     expect(onSettled).toHaveBeenCalledTimes(1);
     expect(callOrder).toEqual(["postAnalysis", "onSettled"]);
+    expect(emittedEventTypes()).toContain(AIRunEventType.RunCompleted);
+    expect(AIRunService.attemptStatusTransition).toHaveBeenCalledWith(
+      expect.objectContaining({
+        expectedAttemptCount: 1,
+        set: expect.objectContaining({ status: AIRunStatus.Completed }),
+      }),
+    );
   });
 
   test("carries the subject lane through the assistant and confidence calls", async () => {
@@ -420,6 +455,7 @@ describe("AIInvestigationEngine.executeRun — the onSettled contract", () => {
     expect(postAnalysis).not.toHaveBeenCalled();
     expect(confidence).not.toHaveBeenCalled();
     expect(onSettled).toHaveBeenCalledTimes(1);
+    expect(emittedEventTypes()).toContain(AIRunEventType.RunCompleted);
   });
 
   test("a lost Completed CAS neither posts nor settles — the winning attempt owns both", async () => {
@@ -446,6 +482,7 @@ describe("AIInvestigationEngine.executeRun — the onSettled contract", () => {
 
     expect(postAnalysis).not.toHaveBeenCalled();
     expect(onSettled).toHaveBeenCalledTimes(1);
+    expect(emittedEventTypes()).toContain(AIRunEventType.RunFailed);
   });
 
   test("an agent failure that was REQUEUED does not settle — the retry will", async () => {
@@ -459,6 +496,19 @@ describe("AIInvestigationEngine.executeRun — the onSettled contract", () => {
     await executeRun();
 
     expect(onSettled).not.toHaveBeenCalled();
+    expect(emittedEventTypes()).not.toContain(AIRunEventType.RunFailed);
+  });
+
+  test("a stale failing attempt that lost ownership emits no terminal event", async () => {
+    jest
+      .spyOn(ObservabilityAssistant, "answerQuestion")
+      .mockRejectedValue(new Error("stale attempt finished late"));
+    jest.spyOn(AIInvestigationQueue, "failOrRequeue").mockResolvedValue("noop");
+
+    await executeRun();
+
+    expect(onSettled).not.toHaveBeenCalled();
+    expect(emittedEventTypes()).not.toContain(AIRunEventType.RunFailed);
   });
 
   test("a postAnalysis failure after the WON Completed transition still settles", async () => {
@@ -475,6 +525,8 @@ describe("AIInvestigationEngine.executeRun — the onSettled contract", () => {
     await executeRun();
 
     expect(onSettled).toHaveBeenCalledTimes(1);
+    expect(emittedEventTypes()).not.toContain(AIRunEventType.RunCompleted);
+    expect(emittedEventTypes()).toContain(AIRunEventType.RunFailed);
   });
 
   test("an onSettled failure never rejects executeRun", async () => {

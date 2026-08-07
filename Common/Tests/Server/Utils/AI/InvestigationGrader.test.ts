@@ -1,13 +1,12 @@
 import InvestigationGrader from "../../../../Server/Utils/AI/SRE/InvestigationGrader";
+import PostedRootCause from "../../../../Server/Utils/AI/SRE/PostedRootCause";
 import AIRunService from "../../../../Server/Services/AIRunService";
 import IncidentService from "../../../../Server/Services/IncidentService";
-import IncidentFeedService from "../../../../Server/Services/IncidentFeedService";
 import AIService, {
   AILogResponse,
 } from "../../../../Server/Services/AIService";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import Incident from "../../../../Models/DatabaseModels/Incident";
-import IncidentFeed from "../../../../Models/DatabaseModels/IncidentFeed";
 import AIRunAutoGrade from "../../../../Types/AI/AIRunAutoGrade";
 import ObjectID from "../../../../Types/ObjectID";
 import { describe, expect, test, afterEach } from "@jest/globals";
@@ -24,17 +23,18 @@ import { describe, expect, test, afterEach } from "@jest/globals";
 
 const incidentId: ObjectID = ObjectID.generate();
 const projectId: ObjectID = ObjectID.generate();
+const runCompletedAt: Date = new Date("2026-08-07T12:00:00.000Z");
 
 function fakeRun(autoGrade?: AIRunAutoGrade): AIRun {
-  return { id: ObjectID.generate(), autoGrade } as unknown as AIRun;
+  return {
+    id: ObjectID.generate(),
+    autoGrade,
+    completedAt: runCompletedAt,
+  } as unknown as AIRun;
 }
 
 function fakeIncident(rootCause?: string | undefined): Incident {
   return { id: incidentId, rootCause } as unknown as Incident;
-}
-
-function fakeFeedItem(markdown: string): IncidentFeed {
-  return { feedInfoInMarkdown: markdown } as unknown as IncidentFeed;
 }
 
 function fakeLlmResponse(content: string): AILogResponse {
@@ -221,11 +221,14 @@ describe("InvestigationGrader.gradeInvestigationOnResolve", () => {
   });
 
   test("no posted analysis (no RootCause feed item) → no LLM call", async () => {
-    jest.spyOn(AIRunService, "findOneBy").mockResolvedValue(fakeRun());
+    const run: AIRun = fakeRun();
+    jest.spyOn(AIRunService, "findOneBy").mockResolvedValue(run);
     jest
       .spyOn(IncidentService, "findOneById")
       .mockResolvedValue(fakeIncident("db down"));
-    jest.spyOn(IncidentFeedService, "findOneBy").mockResolvedValue(null);
+    const getForInvestigation: jest.SpyInstance = jest
+      .spyOn(PostedRootCause, "getForInvestigation")
+      .mockResolvedValue(null);
     const executeWithLogging: jest.SpyInstance = jest.spyOn(
       AIService,
       "executeWithLogging",
@@ -236,7 +239,54 @@ describe("InvestigationGrader.gradeInvestigationOnResolve", () => {
       projectId,
     });
 
+    expect(getForInvestigation).toHaveBeenCalledWith({
+      incidentId,
+      aiRunId: run.id,
+      runCompletedAt,
+    });
     expect(executeWithLogging).not.toHaveBeenCalled();
+  });
+
+  test("reads the report associated with the selected completed run exactly", async () => {
+    const run: AIRun = fakeRun();
+    const selectedAnalysis: string =
+      "## Selected investigation\nThe selected run found pool exhaustion.";
+    jest.spyOn(AIRunService, "findOneBy").mockResolvedValue(run);
+    jest
+      .spyOn(IncidentService, "findOneById")
+      .mockResolvedValue(fakeIncident("The connection pool was exhausted."));
+    const getForInvestigation: jest.SpyInstance = jest
+      .spyOn(PostedRootCause, "getForInvestigation")
+      .mockResolvedValue(selectedAnalysis);
+    const executeWithLogging: jest.SpyInstance = jest
+      .spyOn(AIService, "executeWithLogging")
+      .mockResolvedValue(fakeLlmResponse("MATCH"));
+    jest
+      .spyOn(AIRunService, "updateOneById")
+      .mockResolvedValue(undefined as never);
+
+    await InvestigationGrader.gradeInvestigationOnResolve({
+      incidentId,
+      projectId,
+    });
+
+    expect(getForInvestigation).toHaveBeenCalledTimes(1);
+    expect(getForInvestigation).toHaveBeenCalledWith({
+      incidentId,
+      aiRunId: run.id,
+      runCompletedAt,
+    });
+    expect(executeWithLogging).toHaveBeenCalledWith(
+      expect.objectContaining({
+        aiRunId: run.id,
+        messages: expect.arrayContaining([
+          expect.objectContaining({
+            role: "user",
+            content: expect.stringContaining(selectedAnalysis),
+          }),
+        ]),
+      }),
+    );
   });
 
   test("happy path: one budgeted, preview-less LLM call; grade + timestamp stored on the run", async () => {
@@ -246,10 +296,8 @@ describe("InvestigationGrader.gradeInvestigationOnResolve", () => {
       .spyOn(IncidentService, "findOneById")
       .mockResolvedValue(fakeIncident("The connection pool was exhausted."));
     jest
-      .spyOn(IncidentFeedService, "findOneBy")
-      .mockResolvedValue(
-        fakeFeedItem("## Analysis\nThe db connection pool ran dry."),
-      );
+      .spyOn(PostedRootCause, "getForInvestigation")
+      .mockResolvedValue("## Analysis\nThe db connection pool ran dry.");
     const executeWithLogging: jest.SpyInstance = jest
       .spyOn(AIService, "executeWithLogging")
       .mockResolvedValue(fakeLlmResponse("MATCH"));
@@ -297,8 +345,8 @@ describe("InvestigationGrader.gradeInvestigationOnResolve", () => {
       .spyOn(IncidentService, "findOneById")
       .mockResolvedValue(fakeIncident("db down"));
     jest
-      .spyOn(IncidentFeedService, "findOneBy")
-      .mockResolvedValue(fakeFeedItem("Analysis text."));
+      .spyOn(PostedRootCause, "getForInvestigation")
+      .mockResolvedValue("Analysis text.");
     jest
       .spyOn(AIService, "executeWithLogging")
       .mockResolvedValue(fakeLlmResponse("Either MATCH or MISMATCH."));
@@ -321,8 +369,8 @@ describe("InvestigationGrader.gradeInvestigationOnResolve", () => {
       .spyOn(IncidentService, "findOneById")
       .mockResolvedValue(fakeIncident("db down"));
     jest
-      .spyOn(IncidentFeedService, "findOneBy")
-      .mockResolvedValue(fakeFeedItem("Analysis text."));
+      .spyOn(PostedRootCause, "getForInvestigation")
+      .mockResolvedValue("Analysis text.");
     jest
       .spyOn(AIService, "executeWithLogging")
       .mockRejectedValue(new Error("provider down"));

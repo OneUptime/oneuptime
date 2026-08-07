@@ -154,6 +154,14 @@ const IncidentView: FunctionComponent<
       },
       [modelIdString],
     );
+  const [feedRefreshToken, setFeedRefreshToken] = useState<number>(0);
+
+  const refreshFeedAfterAnalysisAvailable: () => void =
+    useCallback((): void => {
+      setFeedRefreshToken((currentToken: number): number => {
+        return currentToken + 1;
+      });
+    }, []);
 
   const fetchData: PromiseVoidFunction = async (): Promise<void> => {
     try {
@@ -583,9 +591,13 @@ const IncidentView: FunctionComponent<
             subjectType="incident"
             subjectId={modelId}
             onStatusChange={onAIInvestigationStatusChange}
+            onAnalysisAvailable={refreshFeedAfterAnalysisAvailable}
           />
 
-          <IncidentFeedElement incidentId={modelId} />
+          <IncidentFeedElement
+            incidentId={modelId}
+            refreshToken={feedRefreshToken}
+          />
         </div>
 
         <div className="min-w-0 xl:col-span-1">

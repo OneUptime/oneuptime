@@ -28,6 +28,7 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useCallback,
   useEffect,
   useState,
 } from "react";
@@ -112,6 +113,14 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [alertStartedAt, setAlertStartedAt] = useState<Date | undefined>(
     undefined,
   );
+  const [feedRefreshToken, setFeedRefreshToken] = useState<number>(0);
+
+  const refreshFeedAfterAnalysisAvailable: () => void =
+    useCallback((): void => {
+      setFeedRefreshToken((currentToken: number): number => {
+        return currentToken + 1;
+      });
+    }, []);
 
   const fetchData: PromiseVoidFunction = async (): Promise<void> => {
     try {
@@ -523,9 +532,13 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
           <RemediationSuggestionCard alertId={modelId} hideIfEmpty={true} />
 
-          <InvestigationPanel subjectType="alert" subjectId={modelId} />
+          <InvestigationPanel
+            subjectType="alert"
+            subjectId={modelId}
+            onAnalysisAvailable={refreshFeedAfterAnalysisAvailable}
+          />
 
-          <AlertFeedElement alertId={modelId} />
+          <AlertFeedElement alertId={modelId} refreshToken={feedRefreshToken} />
         </div>
 
         <div className="min-w-0 xl:col-span-1">

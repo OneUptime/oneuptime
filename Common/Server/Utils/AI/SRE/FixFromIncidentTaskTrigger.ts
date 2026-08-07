@@ -9,6 +9,7 @@ import AIRunService from "../../../Services/AIRunService";
 import ProjectService from "../../../Services/ProjectService";
 import FixRunBudget, { FixRunBudgetDecision } from "../CodeFix/FixRunBudget";
 import SubjectCodeFixRun from "./SubjectCodeFixRun";
+import PostedRootCause from "./PostedRootCause";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 
@@ -69,6 +70,7 @@ export default class FixFromIncidentTaskTrigger {
   @CaptureSpan()
   public static async createFixTaskFromInvestigation(data: {
     projectId: ObjectID;
+    investigationRunId: ObjectID;
     incidentId?: ObjectID | undefined;
     alertId?: ObjectID | undefined;
     userId: ObjectID;
@@ -90,19 +92,35 @@ export default class FixFromIncidentTaskTrigger {
      */
     const completedInvestigation: AIRun | null = await AIRunService.findOneBy({
       query: {
+        _id: data.investigationRunId,
+        projectId: data.projectId,
         runType: AIRunType.Investigation,
         status: AIRunStatus.Completed,
         ...(data.incidentId
           ? { triggeredByIncidentId: data.incidentId }
           : { triggeredByAlertId: data.alertId! }),
       },
-      select: { _id: true },
+      select: { _id: true, completedAt: true },
       props: { isRoot: true },
     });
 
     if (!completedInvestigation) {
       throw new BadDataException(
         `No completed AI investigation exists for this ${subjectLabel} — the fix task uses the investigation's posted analysis as its context. Wait for the investigation to complete, or enable AI investigations in the AI settings.`,
+      );
+    }
+
+    const analysisMarkdown: string | null =
+      await PostedRootCause.getForInvestigation({
+        incidentId: data.incidentId,
+        alertId: data.alertId,
+        aiRunId: data.investigationRunId,
+        runCompletedAt: completedInvestigation.completedAt,
+      });
+
+    if (!analysisMarkdown) {
+      throw new BadDataException(
+        `No posted investigation analysis exists for this ${subjectLabel} and investigation run. Refresh the page and wait for the report to finish publishing before creating a fix task.`,
       );
     }
 
@@ -140,6 +158,10 @@ export default class FixFromIncidentTaskTrigger {
       incidentId: data.incidentId,
       alertId: data.alertId,
       userId: data.userId,
+      taskContext: {
+        sourceInvestigationRunId: data.investigationRunId.toString(),
+        sourceInvestigationAnalysisMarkdown: analysisMarkdown,
+      },
     });
   }
 
@@ -221,6 +243,8 @@ export default class FixFromIncidentTaskTrigger {
   @CaptureSpan()
   public static async autoEnqueueFromConfidentInvestigation(data: {
     projectId: ObjectID;
+    investigationRunId: ObjectID;
+    analysisMarkdown: string;
     incidentId?: ObjectID | undefined;
     alertId?: ObjectID | undefined;
   }): Promise<void> {
@@ -322,6 +346,10 @@ export default class FixFromIncidentTaskTrigger {
           taskType: CodeFixTaskType.FixFromIncident,
           incidentId: data.incidentId,
           alertId: data.alertId,
+          taskContext: {
+            sourceInvestigationRunId: data.investigationRunId.toString(),
+            sourceInvestigationAnalysisMarkdown: data.analysisMarkdown,
+          },
         });
 
       logger.debug(

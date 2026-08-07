@@ -7,8 +7,7 @@ import AIRunService from "../Services/AIRunService";
 import AIRunEventService from "../Services/AIRunEventService";
 import IncidentService from "../Services/IncidentService";
 import AlertService from "../Services/AlertService";
-import IncidentFeedService from "../Services/IncidentFeedService";
-import AlertFeedService from "../Services/AlertFeedService";
+import PostedRootCause from "../Utils/AI/SRE/PostedRootCause";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -27,12 +26,6 @@ import AIAgentTaskPullRequest from "../../Models/DatabaseModels/AIAgentTaskPullR
 import AIRun from "../../Models/DatabaseModels/AIRun";
 import Incident from "../../Models/DatabaseModels/Incident";
 import Alert from "../../Models/DatabaseModels/Alert";
-import IncidentFeed, {
-  IncidentFeedEventType,
-} from "../../Models/DatabaseModels/IncidentFeed";
-import AlertFeed, {
-  AlertFeedEventType,
-} from "../../Models/DatabaseModels/AlertFeed";
 import AIRunEventType from "../../Types/AI/AIRunEventType";
 import AIRunType from "../../Types/AI/AIRunType";
 import FixVerificationStatus from "../../Types/AI/FixVerificationStatus";
@@ -62,7 +55,6 @@ import {
   LLMToolCall,
   LLMToolDefinition,
 } from "../Utils/LLM/LLMService";
-import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
@@ -864,7 +856,20 @@ export default class AIAgentDataAPI {
            * fine when the subject has no monitor.
            */
           let serviceName: string | null = null;
-          let analysisMarkdown: string | null = null;
+          let analysisMarkdown: string | null =
+            run.taskContext?.sourceInvestigationAnalysisMarkdown?.trim() ||
+            null;
+          const sourceInvestigationRunIdString: string | undefined =
+            run.taskContext?.sourceInvestigationRunId;
+
+          if (sourceInvestigationRunIdString) {
+            ObjectID.validateUUID(sourceInvestigationRunIdString);
+          }
+
+          const sourceInvestigationRunId: ObjectID | undefined =
+            sourceInvestigationRunIdString
+              ? new ObjectID(sourceInvestigationRunIdString)
+              : undefined;
 
           if (run.triggeredByIncidentId) {
             const incident: Incident | null = await IncidentService.findOneById(
@@ -900,24 +905,14 @@ export default class AIAgentDataAPI {
                 })
                 .filter(Boolean)[0] || null;
 
-            const feedItem: IncidentFeed | null =
-              await IncidentFeedService.findOneBy({
-                query: {
-                  incidentId: run.triggeredByIncidentId,
-                  incidentFeedEventType: IncidentFeedEventType.RootCause,
-                },
-                select: {
-                  feedInfoInMarkdown: true,
-                },
-                sort: {
-                  createdAt: SortOrder.Descending,
-                },
-                props: {
-                  isRoot: true,
-                },
-              });
-
-            analysisMarkdown = feedItem?.feedInfoInMarkdown || null;
+            if (!analysisMarkdown) {
+              analysisMarkdown = await PostedRootCause.getForIncident(
+                run.triggeredByIncidentId,
+                sourceInvestigationRunId
+                  ? { aiRunId: sourceInvestigationRunId }
+                  : undefined,
+              );
+            }
           } else {
             const alert: Alert | null = await AlertService.findOneById({
               id: run.triggeredByAlertId!,
@@ -945,25 +940,14 @@ export default class AIAgentDataAPI {
             subjectTitle = alert.title || "Untitled alert";
             serviceName = alert.monitor?.name || null;
 
-            const feedItem: AlertFeed | null = await AlertFeedService.findOneBy(
-              {
-                query: {
-                  alertId: run.triggeredByAlertId!,
-                  alertFeedEventType: AlertFeedEventType.RootCause,
-                },
-                select: {
-                  feedInfoInMarkdown: true,
-                },
-                sort: {
-                  createdAt: SortOrder.Descending,
-                },
-                props: {
-                  isRoot: true,
-                },
-              },
-            );
-
-            analysisMarkdown = feedItem?.feedInfoInMarkdown || null;
+            if (!analysisMarkdown) {
+              analysisMarkdown = await PostedRootCause.getForAlert(
+                run.triggeredByAlertId!,
+                sourceInvestigationRunId
+                  ? { aiRunId: sourceInvestigationRunId }
+                  : undefined,
+              );
+            }
           }
 
           if (!analysisMarkdown) {

@@ -1,4 +1,6 @@
 import AIConfidenceSignal, {
+  CONFIDENCE_CLASSIFICATION_DEADLINE_MS,
+  CONFIDENCE_CLASSIFICATION_TIMEOUT_MS,
   CONFIDENCE_CLASSIFICATION_FEATURE,
   ConfidenceSignal,
   EvidenceInput,
@@ -260,6 +262,7 @@ describe("AIConfidenceSignal.shouldAutoEnqueueCodeFixTask", () => {
 
 describe("AIConfidenceSignal.computeConfidenceSignal", () => {
   afterEach(() => {
+    jest.useRealTimers();
     jest.restoreAllMocks();
   });
 
@@ -319,6 +322,8 @@ describe("AIConfidenceSignal.computeConfidenceSignal", () => {
         storeContentPreviews: false,
         temperature: 0,
         maxTokens: 20,
+        requestTimeoutInMs: CONFIDENCE_CLASSIFICATION_TIMEOUT_MS,
+        requestRetries: 0,
       }),
     );
   });
@@ -337,6 +342,61 @@ describe("AIConfidenceSignal.computeConfidenceSignal", () => {
       });
 
     expect(signal).toEqual({ confident: false, source: "classification" });
+  });
+
+  test("a provider that never settles is bounded by the aggregate classification deadline", async () => {
+    jest.useFakeTimers();
+    jest
+      .spyOn(AIService, "executeWithLogging")
+      .mockReturnValue(new Promise<AILogResponse>(() => {}) as never);
+
+    const signal: Promise<ConfidenceSignal> =
+      AIConfidenceSignal.computeConfidenceSignal({
+        projectId,
+        aiRunId,
+        analysisMarkdown: "Evidence-backed analysis [C1].",
+        evidence: evidence({ citationCount: 1 }),
+      });
+
+    jest.advanceTimersByTime(CONFIDENCE_CLASSIFICATION_DEADLINE_MS);
+    await Promise.resolve();
+
+    await expect(signal).resolves.toEqual({
+      confident: false,
+      source: "classification-failed",
+    });
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
+  test("clears the aggregate deadline timer when the provider settles early", async () => {
+    jest.useFakeTimers();
+    const executeWithLogging: jest.SpyInstance = jest
+      .spyOn(AIService, "executeWithLogging")
+      .mockResolvedValue(fakeLlmResponse("CONFIDENT"));
+
+    await expect(
+      AIConfidenceSignal.computeConfidenceSignal({
+        projectId,
+        aiRunId,
+        analysisMarkdown: "Evidence-backed analysis [C1].",
+        evidence: evidence({ citationCount: 1 }),
+      }),
+    ).resolves.toEqual({ confident: true, source: "classification" });
+    expect(jest.getTimerCount()).toBe(0);
+
+    executeWithLogging.mockRejectedValue(new Error("provider unavailable"));
+    await expect(
+      AIConfidenceSignal.computeConfidenceSignal({
+        projectId,
+        aiRunId,
+        analysisMarkdown: "Evidence-backed analysis [C1].",
+        evidence: evidence({ citationCount: 1 }),
+      }),
+    ).resolves.toEqual({
+      confident: false,
+      source: "classification-failed",
+    });
+    expect(jest.getTimerCount()).toBe(0);
   });
 
   test("unparseable response (neither or both tokens) → classification-failed", async () => {

@@ -415,6 +415,7 @@ export default class AIInvestigationQueue {
       const requeued: number = await AIRunService.attemptStatusTransition({
         aiRunId: data.aiRunId,
         fromStatus: AIRunStatus.Running,
+        expectedAttemptCount: data.attemptCount,
         set: {
           status: AIRunStatus.Queued,
           errorMessage: `Attempt ${data.attemptCount} failed and the run was requeued: ${truncatedMessage}`,
@@ -433,6 +434,7 @@ export default class AIInvestigationQueue {
     const finalized: number = await AIRunService.attemptStatusTransition({
       aiRunId: data.aiRunId,
       fromStatus: AIRunStatus.Running,
+      expectedAttemptCount: data.attemptCount,
       set: {
         status: AIRunStatus.Error,
         completedAt: OneUptimeDate.getCurrentDate(),
@@ -459,15 +461,18 @@ export default class AIInvestigationQueue {
   public static async requeueOrMarkStale(run: {
     id: ObjectID;
     attemptCount: number;
+    lastHeartbeatAt?: Date | undefined;
     runType?: AIRunType | undefined;
     projectId?: ObjectID | undefined;
     triggeredByIncidentId?: ObjectID | undefined;
     triggeredByAlertId?: ObjectID | undefined;
-  }): Promise<"requeued" | "stale"> {
+  }): Promise<"requeued" | "stale" | "noop"> {
     if ((run.attemptCount || 0) < MAX_INVESTIGATION_ATTEMPTS) {
       const requeued: number = await AIRunService.attemptStatusTransition({
         aiRunId: run.id,
         fromStatus: AIRunStatus.Running,
+        expectedAttemptCount: run.attemptCount,
+        expectedLastHeartbeatAt: run.lastHeartbeatAt,
         set: {
           status: AIRunStatus.Queued,
           errorMessage: `Attempt ${run.attemptCount} stopped reporting progress (the server processing it may have restarted) and the run was requeued.`,
@@ -482,6 +487,8 @@ export default class AIInvestigationQueue {
     const staled: number = await AIRunService.attemptStatusTransition({
       aiRunId: run.id,
       fromStatus: AIRunStatus.Running,
+      expectedAttemptCount: run.attemptCount,
+      expectedLastHeartbeatAt: run.lastHeartbeatAt,
       set: {
         status: AIRunStatus.Stale,
         completedAt: OneUptimeDate.getCurrentDate(),
@@ -496,9 +503,10 @@ export default class AIInvestigationQueue {
      */
     if (staled > 0) {
       await this.handOffSettledInvestigationToRemediation(run);
+      return "stale";
     }
 
-    return "stale";
+    return "noop";
   }
 
   /*
@@ -779,6 +787,7 @@ export default class AIInvestigationQueue {
         await AIRunService.attemptStatusTransition({
           aiRunId: run.id,
           fromStatus: AIRunStatus.Running,
+          expectedAttemptCount: attempt,
           set: {
             status: AIRunStatus.Error,
             completedAt: OneUptimeDate.getCurrentDate(),
@@ -807,6 +816,7 @@ export default class AIInvestigationQueue {
         await AIRunService.attemptStatusTransition({
           aiRunId: run.id,
           fromStatus: AIRunStatus.Running,
+          expectedAttemptCount: attempt,
           set: {
             status: AIRunStatus.Error,
             completedAt: OneUptimeDate.getCurrentDate(),
@@ -887,6 +897,7 @@ export default class AIInvestigationQueue {
     await AIRunService.attemptStatusTransition({
       aiRunId: run.id,
       fromStatus: AIRunStatus.Running,
+      expectedAttemptCount: attempt,
       set: {
         status: AIRunStatus.Error,
         completedAt: OneUptimeDate.getCurrentDate(),

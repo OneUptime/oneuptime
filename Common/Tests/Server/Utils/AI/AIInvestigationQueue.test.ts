@@ -448,7 +448,7 @@ describe("AIInvestigationQueue", () => {
   test("a heartbeat-stale run requeues while attempts remain", async () => {
     jest.spyOn(AIRunService, "attemptStatusTransition").mockResolvedValue(1);
 
-    const outcome: "requeued" | "stale" =
+    const outcome: "requeued" | "stale" | "noop" =
       await AIInvestigationQueue.requeueOrMarkStale({
         id: ObjectID.generate(),
         attemptCount: 1,
@@ -462,7 +462,7 @@ describe("AIInvestigationQueue", () => {
       .spyOn(AIRunService, "attemptStatusTransition")
       .mockResolvedValue(1);
 
-    const outcome: "requeued" | "stale" =
+    const outcome: "requeued" | "stale" | "noop" =
       await AIInvestigationQueue.requeueOrMarkStale({
         id: ObjectID.generate(),
         attemptCount: MAX_INVESTIGATION_ATTEMPTS,

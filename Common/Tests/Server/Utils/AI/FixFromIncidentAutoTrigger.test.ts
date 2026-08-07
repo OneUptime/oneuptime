@@ -27,6 +27,8 @@ import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
 const projectId: ObjectID = ObjectID.generate();
 const incidentId: ObjectID = ObjectID.generate();
 const alertId: ObjectID = ObjectID.generate();
+const investigationRunId: ObjectID = ObjectID.generate();
+const analysisMarkdown: string = "## Frozen automatic investigation report";
 
 function fakeProject(data?: {
   enableAi?: boolean;
@@ -261,6 +263,8 @@ describe("FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation", () 
 
     await FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation({
       projectId,
+      investigationRunId,
+      analysisMarkdown,
     });
 
     expect(findProject).not.toHaveBeenCalled();
@@ -278,6 +282,8 @@ describe("FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation", () 
 
     await FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation({
       projectId,
+      investigationRunId,
+      analysisMarkdown,
       incidentId,
       alertId,
     });
@@ -298,6 +304,8 @@ describe("FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation", () 
 
     await FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation({
       projectId,
+      investigationRunId,
+      analysisMarkdown,
       incidentId,
     });
 
@@ -317,6 +325,8 @@ describe("FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation", () 
 
     await FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation({
       projectId,
+      investigationRunId,
+      analysisMarkdown,
       incidentId,
     });
 
@@ -337,6 +347,8 @@ describe("FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation", () 
     await expect(
       FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation({
         projectId,
+        investigationRunId,
+        analysisMarkdown,
         incidentId,
       }),
     ).resolves.toBeUndefined();
@@ -356,6 +368,8 @@ describe("FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation", () 
 
     await FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation({
       projectId,
+      investigationRunId,
+      analysisMarkdown,
       incidentId,
     });
 
@@ -376,6 +390,8 @@ describe("FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation", () 
 
     await FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation({
       projectId,
+      investigationRunId,
+      analysisMarkdown,
       incidentId,
     });
 
@@ -398,6 +414,10 @@ describe("FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation", () 
         projectId,
         taskType: CodeFixTaskType.FixFromIncident,
         incidentId,
+        taskContext: {
+          sourceInvestigationRunId: investigationRunId.toString(),
+          sourceInvestigationAnalysisMarkdown: analysisMarkdown,
+        },
       }),
     );
 
@@ -412,6 +432,8 @@ describe("FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation", () 
 
     await FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation({
       projectId,
+      investigationRunId,
+      analysisMarkdown,
       alertId,
     });
 
@@ -432,6 +454,10 @@ describe("FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation", () 
       expect.objectContaining({
         taskType: CodeFixTaskType.FixFromIncident,
         alertId,
+        taskContext: {
+          sourceInvestigationRunId: investigationRunId.toString(),
+          sourceInvestigationAnalysisMarkdown: analysisMarkdown,
+        },
       }),
     );
     expect(enqueue.mock.calls[0]![0]).not.toHaveProperty("userId");
@@ -444,6 +470,8 @@ describe("FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation", () 
     await expect(
       FixFromIncidentTaskTrigger.autoEnqueueFromConfidentInvestigation({
         projectId,
+        investigationRunId,
+        analysisMarkdown,
         incidentId,
       }),
     ).resolves.toBeUndefined();

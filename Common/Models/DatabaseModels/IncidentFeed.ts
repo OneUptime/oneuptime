@@ -93,6 +93,7 @@ export enum IncidentFeedEventType {
     "Log of the entire incident state change. This is a log of all the incident state changes, public notes, more etc.",
 })
 @Index(["incidentId", "postedAt"]) // Incident detail page: feed sorted by postedAt
+@Index(["incidentId", "aiRunId"]) // Exact AI investigation result lookup
 export default class IncidentFeed extends BaseModel {
   @ColumnAccessControl({
     create: [
@@ -252,6 +253,35 @@ export default class IncidentFeed extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public incidentId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadIncidentFeed,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "AI Run ID",
+    description:
+      "AI investigation run that produced this feed item when the event is a root cause.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public aiRunId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [
