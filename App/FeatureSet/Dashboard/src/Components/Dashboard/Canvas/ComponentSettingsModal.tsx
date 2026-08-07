@@ -169,14 +169,12 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
               {previewWidth > 0 && (
                 <div
                   style={{
-                    display: "grid",
-                    gridTemplateColumns: `repeat(${
-                      component.widthInDashboardUnits || 1
-                    }, 1fr)`,
-                    gridAutoRows: `${
-                      previewHeight / (component.heightInDashboardUnits || 1)
-                    }px`,
+                    /*
+                     * The card fills whatever box it is given, so size the
+                     * box to the preview area directly.
+                     */
                     width: `${previewWidth - 32}px`,
+                    height: `${previewHeight}px`,
                   }}
                 >
                   <DashboardBaseComponentElement
@@ -198,6 +196,10 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
                     dashboardViewConfig={props.dashboardViewConfig}
                     dashboardStartAndEndDate={props.dashboardStartAndEndDate}
                     metricTypes={props.metrics.metricTypes}
+                    dndActiveMode={null}
+                    isAnyGestureActive={false}
+                    onMovePointerDown={() => {}}
+                    onResizePointerDown={() => {}}
                   />
                 </div>
               )}

@@ -216,6 +216,8 @@ export default class AIIncidentInvestigationRunner {
             projectId,
             monitorId: QueryHelper.any(monitorIds),
             runType: AIRunType.Investigation,
+            triggeredByIncidentId: QueryHelper.notNull(),
+            triggeredByAlertId: QueryHelper.isNull(),
             createdAt: QueryHelper.greaterThan(windowStart),
           },
           props: { isRoot: true },
@@ -349,6 +351,7 @@ export default class AIIncidentInvestigationRunner {
       request: {
         // Persisted LlmLog label — owned by AIService (G4 budget list).
         feature: AI_INCIDENT_INVESTIGATION_FEATURE,
+        incidentId,
         contextSummary,
         postAnalysis: async (postData: {
           analysisMarkdown: string;
@@ -421,7 +424,7 @@ export default class AIIncidentInvestigationRunner {
 
           /*
            * Inconclusive means the telemetry was insufficient — for
-           * opted-in projects (Project.enableInstrumentationFixTasks,
+           * opted-in projects (the incident instrumentation-fix setting,
            * default false), queue an ImproveInstrumentation fix task that
            * opens a PR adding the missing observability. Runs strictly
            * AFTER the analysis is posted, and the trigger never throws, so
@@ -446,8 +449,8 @@ export default class AIIncidentInvestigationRunner {
           /*
            * The confident twin: a POSITIVE confident classification means
            * the posted analysis asserts an evidenced root cause — for
-           * opted-in projects (Project.enableAutomaticCodeFixes, default
-           * false), automatically queue the FixFromIncident task that
+           * opted-in projects (the incident automatic-code-fix setting,
+           * default false), automatically queue the FixFromIncident task that
            * opens a draft fix PR from this analysis (the automatic form
            * of the "Open Fix PR from this analysis" button). Runs strictly
            * AFTER the analysis is posted because the posted RootCause feed

@@ -463,11 +463,21 @@ export default class TemplateVariablesCatalog {
         return {
           title: "Domain",
           variables: [
-            { key: "isOnline", description: "True if WHOIS lookup succeeded." },
+            {
+              key: "isOnline",
+              description: "True if the registration lookup succeeded.",
+            },
             { key: "domainName", description: "Domain queried." },
+            {
+              key: "lookupMethod",
+              description: "Protocol that answered - RDAP or WHOIS.",
+            },
             { key: "registrar", description: "Registrar name." },
             { key: "createdDate", description: "Domain registration date." },
-            { key: "updatedDate", description: "Last WHOIS update." },
+            {
+              key: "updatedDate",
+              description: "Last change to the registration.",
+            },
             { key: "expiresDate", description: "Expiration date." },
             { key: "nameServers", description: "Array of nameservers." },
             { key: "domainStatus", description: "EPP status codes." },

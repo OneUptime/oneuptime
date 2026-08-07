@@ -30,6 +30,7 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useCallback,
   useEffect,
   useState,
 } from "react";
@@ -43,11 +44,10 @@ import { TelemetryQuery } from "Common/Types/Telemetry/TelemetryQuery";
 import MetricView from "../../../Components/Metrics/MetricView";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import MetricSeriesScope from "Common/Utils/Metrics/MetricSeriesScope";
+import TelemetryQueryTimeRange from "Common/Utils/Telemetry/TelemetryQueryTimeRange";
+import TelemetrySnapshotWindowAlert from "../../../Components/Telemetry/TelemetrySnapshotWindowAlert";
+import InBetween from "Common/Types/BaseDatabase/InBetween";
 import IconProp from "Common/Types/Icon/IconProp";
-import HeaderAlert, {
-  HeaderAlertType,
-} from "Common/UI/Components/HeaderAlert/HeaderAlert";
-import ColorSwatch from "Common/Types/ColorSwatch";
 import IncidentFeedElement from "../../../Components/Incident/IncidentFeed";
 import InvestigationPanel from "../../../Components/AI/InvestigationPanel";
 import EntityRunbooks from "../../../Components/Runbook/EntityRunbooks";
@@ -78,11 +78,18 @@ import LiveDuration from "../../../Components/EventView/LiveDuration";
 import { getEventEndDateForCurrentState } from "../../../Utils/EventDuration";
 import OverviewCustomFields from "../../../Components/CustomFields/OverviewCustomFields";
 import IncidentCustomField from "Common/Models/DatabaseModels/IncidentCustomField";
+import AIRunStatus from "Common/Types/AI/AIRunStatus";
+
+interface AIInvestigationStatusState {
+  subjectId: string;
+  status: AIRunStatus | null;
+}
 
 const IncidentView: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
+  const modelIdString: string = modelId.toString();
 
   const [incidentStateTimeline, setIncidentStateTimeline] = useState<
     IncidentStateTimeline[]
@@ -95,6 +102,13 @@ const IncidentView: FunctionComponent<
   const [telemetryQuery, setTelemetryQuery] = useState<TelemetryQuery | null>(
     null,
   );
+  /*
+   * The window the monitor evaluated over when it opened this incident. Every
+   * telemetry preview below is scoped to it, and each card shows it, so a
+   * snapshot from days ago can't be mistaken for a live view.
+   */
+  const [telemetrySnapshotWindow, setTelemetrySnapshotWindow] =
+    useState<InBetween<Date> | null>(null);
   /*
    * "host.name = prod-01" when a grouped metric monitor opened this
    * incident for one series. Empty for whole-monitor incidents.
@@ -111,6 +125,35 @@ const IncidentView: FunctionComponent<
   const [severity, setSeverity] = useState<
     { name: string; color: Color } | undefined
   >(undefined);
+  const [aiInvestigationStatus, setAIInvestigationStatus] =
+    useState<AIInvestigationStatusState>({
+      subjectId: modelIdString,
+      status: null,
+    });
+  const currentAIInvestigationStatus: AIRunStatus | null =
+    aiInvestigationStatus.subjectId === modelIdString
+      ? aiInvestigationStatus.status
+      : null;
+  const onAIInvestigationStatusChange: (status: AIRunStatus | null) => void =
+    useCallback(
+      (status: AIRunStatus | null): void => {
+        setAIInvestigationStatus(
+          (
+            currentStatus: AIInvestigationStatusState,
+          ): AIInvestigationStatusState => {
+            if (
+              currentStatus.subjectId === modelIdString &&
+              currentStatus.status === status
+            ) {
+              return currentStatus;
+            }
+
+            return { subjectId: modelIdString, status: status };
+          },
+        );
+      },
+      [modelIdString],
+    );
 
   const fetchData: PromiseVoidFunction = async (): Promise<void> => {
     try {
@@ -177,7 +220,20 @@ const IncidentView: FunctionComponent<
         telemetryQuery = JSONFunctions.deserialize(
           incident?.telemetryQuery as any,
         ) as any;
+
+        /*
+         * Rebuild the window's Date bounds. The stored blob round-trips
+         * through JSON, which leaves InBetween holding ISO strings even though
+         * its type says Date — and the metric chart gates bucket alignment and
+         * exemplar fetching on `instanceof Date`, so both stay switched off
+         * here until the bounds are real Dates again.
+         */
+        telemetryQuery = TelemetryQueryTimeRange.hydrate(telemetryQuery);
       }
+
+      setTelemetrySnapshotWindow(
+        TelemetryQueryTimeRange.getSnapshotWindow(telemetryQuery),
+      );
 
       /*
        * The stored telemetryQuery is the monitor's whole-evaluation view:
@@ -384,6 +440,18 @@ const IncidentView: FunctionComponent<
     getResolvedState()?._id?.toString(),
   );
 
+  /*
+   * Built once and shared by all four preview cards. Resolved to `undefined`
+   * rather than an element that renders nothing, because Card decides whether
+   * to lay out its right-hand column from the PRESENCE of rightElement — an
+   * element returning an empty fragment is still truthy, and would leave an
+   * empty block and a shifted title on incidents that stored no window.
+   */
+  const snapshotWindowAlert: ReactElement | undefined =
+    telemetrySnapshotWindow ? (
+      <TelemetrySnapshotWindowAlert window={telemetrySnapshotWindow} />
+    ) : undefined;
+
   return (
     <Fragment>
       <div className="mb-5">
@@ -394,6 +462,7 @@ const IncidentView: FunctionComponent<
           eventStartsAt={durationStartDate}
           severity={severity}
           isPrivate={isPrivate}
+          aiInvestigationStatus={currentAIInvestigationStatus}
           onActionComplete={async () => {
             await fetchData();
           }}
@@ -433,7 +502,11 @@ const IncidentView: FunctionComponent<
             telemetryQuery.telemetryType === TelemetryType.Log &&
             telemetryQuery.telemetryQuery && (
               <div>
-                <Card title={"Logs"} description={"Logs for this incident."}>
+                <Card
+                  title={"Logs"}
+                  description={"Logs for this incident."}
+                  rightElement={snapshotWindowAlert}
+                >
                   <DashboardLogsViewer
                     id="logs-preview"
                     logQuery={telemetryQuery.telemetryQuery as Query<Log>}
@@ -450,6 +523,9 @@ const IncidentView: FunctionComponent<
               <div>
                 <TraceTable
                   spanQuery={telemetryQuery.telemetryQuery as Query<Span>}
+                  rightElement={snapshotWindowAlert}
+                  // Pinned to the snapshot; a URL-restored filter must not replace it.
+                  disableUrlState={true}
                 />
               </div>
             )}
@@ -464,23 +540,7 @@ const IncidentView: FunctionComponent<
                     ? `Metrics related to this incident, scoped to the affected series (${seriesSummary}).`
                     : "Metrics related to this incident."
                 }
-                rightElement={
-                  telemetryQuery.metricViewData.startAndEndDate ? (
-                    <HeaderAlert
-                      icon={IconProp.Clock}
-                      onClick={() => {
-                        // do nothing!
-                      }}
-                      title={OneUptimeDate.getInBetweenDatesAsFormattedString(
-                        telemetryQuery.metricViewData.startAndEndDate,
-                      )}
-                      alertType={HeaderAlertType.INFO}
-                      colorSwatch={ColorSwatch.Blue}
-                    />
-                  ) : (
-                    <></>
-                  )
-                }
+                rightElement={snapshotWindowAlert}
               >
                 <MetricView
                   data={telemetryQuery.metricViewData}
@@ -505,6 +565,9 @@ const IncidentView: FunctionComponent<
                 query={
                   telemetryQuery.telemetryQuery as Query<ExceptionInstance>
                 }
+                rightElement={snapshotWindowAlert}
+                // Pinned to the snapshot; a URL-restored filter must not replace it.
+                disableUrlState={true}
               />
             )}
 
@@ -516,7 +579,11 @@ const IncidentView: FunctionComponent<
 
           <RemediationSuggestionCard incidentId={modelId} hideIfEmpty={true} />
 
-          <InvestigationPanel subjectType="incident" subjectId={modelId} />
+          <InvestigationPanel
+            subjectType="incident"
+            subjectId={modelId}
+            onStatusChange={onAIInvestigationStatusChange}
+          />
 
           <IncidentFeedElement incidentId={modelId} />
         </div>

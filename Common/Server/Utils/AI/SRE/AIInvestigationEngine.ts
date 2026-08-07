@@ -89,6 +89,12 @@ export type AISubjectType = "Incident" | "Alert";
 export interface InvestigationRequest {
   // Label recorded on LlmLog, e.g. "AI Incident Investigation".
   feature: string;
+  /*
+   * The subject lane used for per-incident / per-alert autonomous budgets.
+   * Insight triage is intentionally subjectless and leaves both unset.
+   */
+  incidentId?: ObjectID | undefined;
+  alertId?: ObjectID | undefined;
   // A compact markdown summary of the subject that seeds the investigation.
   contextSummary: string;
   /*
@@ -279,6 +285,9 @@ export default class AIInvestigationEngine {
       const result: ObservabilityAssistantResult =
         await ObservabilityAssistant.answerQuestion({
           projectId,
+          incidentId: request.incidentId,
+          alertId: request.alertId,
+          aiRunId,
           // System run — full read access to the project's telemetry.
           props: { isRoot: true },
           feature: request.feature,
@@ -367,6 +376,8 @@ export default class AIInvestigationEngine {
         await AIConfidenceSignal.computeConfidenceSignal({
           projectId,
           aiRunId,
+          incidentId: request.incidentId,
+          alertId: request.alertId,
           analysisMarkdown: analysis,
           evidence: AIConfidenceSignal.evidenceFromCitations(
             result.citations || [],

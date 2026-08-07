@@ -29,6 +29,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { AI_INVESTIGATION_PANEL_ID } from "./AIInvestigationStatus";
 
 export type InvestigationSubjectType = "incident" | "alert";
 
@@ -37,9 +38,15 @@ export type InvestigationVerdict = "Confirmed" | "Rejected";
 export interface ComponentProps {
   subjectType: InvestigationSubjectType;
   subjectId: ObjectID;
+  onStatusChange?: ((status: AIRunStatus | null) => void) | undefined;
 }
 
 const POLL_INTERVAL_MS: number = 2500;
+/*
+ * A new incident can render before its asynchronous AI run has been enqueued.
+ * Retry briefly so queued work appears without polling old incidents forever.
+ */
+const MAX_DISCOVERY_POLLS: number = 4;
 
 /*
  * the AI's live "watch it think" panel, shared by the incident and alert
@@ -53,7 +60,9 @@ const POLL_INTERVAL_MS: number = 2500;
 const InvestigationPanel: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [runStatus, setRunStatus] = useState<string | null>(null);
+  const subjectIdString: string = props.subjectId.toString();
+  const subjectKey: string = `${props.subjectType}:${subjectIdString}`;
+  const [runStatus, setRunStatus] = useState<AIRunStatus | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [events, setEvents] = useState<Array<AIRunEvent>>([]);
   const [stats, setStats] = useState<{
@@ -62,6 +71,17 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
   } | null>(null);
   const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(false);
   const signatureRef: React.MutableRefObject<string> = useRef<string>("");
+  const requestGenerationRef: React.MutableRefObject<number> =
+    useRef<number>(0);
+  const previousSubjectKeyRef: React.MutableRefObject<string | null> = useRef<
+    string | null
+  >(null);
+  const onStatusChangeRef: React.MutableRefObject<
+    ((status: AIRunStatus | null) => void) | undefined
+  > = useRef<((status: AIRunStatus | null) => void) | undefined>(
+    props.onStatusChange,
+  );
+  onStatusChangeRef.current = props.onStatusChange;
 
   // "Open Fix PR from this analysis" (the FixFromIncident recipe) state.
   const [isCreatingFixTask, setIsCreatingFixTask] = useState<boolean>(false);
@@ -83,15 +103,21 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
 
   const fetchData: () => Promise<void> =
     useCallback(async (): Promise<void> => {
+      const requestGeneration: number = requestGenerationRef.current;
+
       try {
         const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
           await API.post<JSONObject>({
             url: URL.fromString(
               APP_API_URL.toString() + `/ai-investigation/${props.subjectType}`,
             ),
-            data: { [`${props.subjectType}Id`]: props.subjectId.toString() },
+            data: { [`${props.subjectType}Id`]: subjectIdString },
             headers: ModelAPI.getCommonHeaders(),
           });
+
+        if (requestGeneration !== requestGenerationRef.current) {
+          return;
+        }
 
         if (response instanceof HTTPErrorResponse) {
           setHasLoadedOnce(true);
@@ -103,8 +129,8 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
           (data["run"] as JSONObject | null) || null;
         const eventsJson: JSONArray = (data["events"] as JSONArray) || [];
 
-        const status: string | null =
-          (runJson?.["status"] as string | undefined) || null;
+        const status: AIRunStatus | null =
+          (runJson?.["status"] as AIRunStatus | undefined) || null;
         const verdictFromServer: string | null =
           (runJson?.["humanVerdict"] as string | undefined) || null;
 
@@ -140,15 +166,51 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
         setHasLoadedOnce(true);
       } catch {
         // Best-effort panel — never surface an error here.
-        setHasLoadedOnce(true);
+        if (requestGeneration === requestGenerationRef.current) {
+          setHasLoadedOnce(true);
+        }
       }
-    }, [props.subjectType, props.subjectId]);
+    }, [props.subjectType, subjectIdString]);
 
   useEffect(() => {
+    const isSubjectChange: boolean =
+      previousSubjectKeyRef.current !== null &&
+      previousSubjectKeyRef.current !== subjectKey;
+    previousSubjectKeyRef.current = subjectKey;
+    requestGenerationRef.current += 1;
+    signatureRef.current = "";
+    setRunStatus(null);
+    setErrorMessage(null);
+    setEvents([]);
+    setStats(null);
+    setHasLoadedOnce(false);
+
+    if (isSubjectChange) {
+      onStatusChangeRef.current?.(null);
+      setIsCreatingFixTask(false);
+      setFixTaskRunId(null);
+      setFixTaskError(null);
+      setHumanVerdict(null);
+      setIsSavingVerdict(false);
+      setVerdictError(null);
+      setIsChangingVerdict(false);
+      isSavingVerdictRef.current = false;
+    }
+
     fetchData().catch(() => {
       // handled inside fetchData
     });
-  }, [fetchData]);
+
+    return () => {
+      requestGenerationRef.current += 1;
+    };
+  }, [fetchData, subjectKey]);
+
+  useEffect(() => {
+    if (hasLoadedOnce) {
+      onStatusChangeRef.current?.(runStatus);
+    }
+  }, [hasLoadedOnce, runStatus]);
 
   /*
    * Human-triggered `code_fix`: enqueue a FixFromIncident task that takes
@@ -240,22 +302,47 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
   const isQueued: boolean = runStatus === AIRunStatus.Queued;
   // Poll while the run can still make progress (queued runs get claimed).
   const isActive: boolean = isRunning || isQueued;
+  const isDiscoveringRun: boolean = hasLoadedOnce && runStatus === null;
 
   useEffect(() => {
-    if (!isActive) {
+    if (!isActive && !isDiscoveringRun) {
       return;
     }
 
-    const interval: ReturnType<typeof setInterval> = setInterval(() => {
-      fetchData().catch(() => {
-        // handled inside fetchData
-      });
-    }, POLL_INTERVAL_MS);
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    let isCancelled: boolean = false;
+    let discoveryPollCount: number = 0;
+
+    const scheduleNextPoll: () => void = (): void => {
+      timeout = setTimeout(() => {
+        fetchData()
+          .finally(() => {
+            if (isDiscoveringRun) {
+              discoveryPollCount += 1;
+            }
+
+            if (
+              !isCancelled &&
+              (!isDiscoveringRun || discoveryPollCount < MAX_DISCOVERY_POLLS)
+            ) {
+              scheduleNextPoll();
+            }
+          })
+          .catch(() => {
+            // handled inside fetchData
+          });
+      }, POLL_INTERVAL_MS);
+    };
+
+    scheduleNextPoll();
 
     return () => {
-      return clearInterval(interval);
+      isCancelled = true;
+      if (timeout) {
+        clearTimeout(timeout);
+      }
     };
-  }, [isActive, fetchData]);
+  }, [isActive, isDiscoveringRun, fetchData]);
 
   // Nothing to show until an investigation exists for this subject.
   if (!hasLoadedOnce || !runStatus) {
@@ -303,14 +390,20 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
       title="AI Investigation"
       description={`OneUptime AI's live root-cause investigation for this ${props.subjectType}.`}
     >
-      <div className="-mt-4">
+      <div
+        id={AI_INVESTIGATION_PANEL_ID}
+        tabIndex={-1}
+        role="region"
+        aria-label="AI Investigation"
+        className="-mt-4 scroll-mt-32 outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+      >
         <div
           className={`flex items-center gap-2 text-sm font-medium ${statusMeta.className}`}
         >
           <Icon icon={statusMeta.icon} className="h-4 w-4" />
           <span>{statusMeta.text}</span>
           {isActive ? (
-            <span className="ml-1 inline-block h-2 w-2 animate-ping rounded-full bg-indigo-500" />
+            <span className="ml-1 inline-block h-2 w-2 motion-safe:animate-ping rounded-full bg-indigo-500" />
           ) : (
             <></>
           )}

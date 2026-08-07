@@ -25,8 +25,9 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  * (POST /ai-investigation/create-fix-task) and FAILS EARLY with a clear
  * message when a gate is not met.
  *
- * AUTOMATIC: for projects that opted in (Project.enableAutomaticCodeFixes,
- * default FALSE — G11 posture: autonomous PR creation is opt-in only), an
+ * AUTOMATIC: for projects that opted in through the subject lane's incident
+ * or alert automatic-code-fix setting (default FALSE — G11 posture:
+ * autonomous PR creation is opt-in only), an
  * investigation that ends with a POSITIVE confident classification (per the
  * structured G6 confidence signal, never the analysis prose) enqueues the
  * same FixFromIncident task with no human click. Like its
@@ -37,8 +38,11 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  */
 
 export interface AutoFixTaskGateInput {
-  // The project row with enableAi + enableAutomaticCodeFixes selected.
+  // The project row with enableAi + the subject lane's opt-in selected.
   project: Project | null;
+  // Exactly one subject selects the incident or alert opt-in.
+  incidentId?: ObjectID | undefined;
+  alertId?: ObjectID | undefined;
   // Whether the project has at least one GitHub-App-connected repository.
   hasConnectedRepository: boolean;
   // A non-terminal FixFromIncident run for the same subject, if any.
@@ -69,9 +73,9 @@ export default class FixFromIncidentTaskTrigger {
     alertId?: ObjectID | undefined;
     userId: ObjectID;
   }): Promise<AIRun> {
-    if (!data.incidentId && !data.alertId) {
+    if (Boolean(data.incidentId) === Boolean(data.alertId)) {
       throw new BadDataException(
-        "An incident or alert subject is required to create a fix task.",
+        "Exactly one incident or alert subject is required to create a fix task.",
       );
     }
 
@@ -162,10 +166,21 @@ export default class FixFromIncidentTaskTrigger {
      * Strict opt-in — the column defaults to false, so unset/legacy rows
      * never enqueue. Autonomous PR creation must never be default-on.
      */
-    if (input.project.enableAutomaticCodeFixes !== true) {
+    if (Boolean(input.incidentId) === Boolean(input.alertId)) {
       return {
         enqueue: false,
-        reason: "project has not opted in to automatic code fixes",
+        reason: "exactly one incident or alert subject is required",
+      };
+    }
+
+    const automaticCodeFixesEnabled: boolean = input.incidentId
+      ? input.project.enableAutomaticIncidentCodeFixes === true
+      : input.project.enableAutomaticAlertCodeFixes === true;
+
+    if (!automaticCodeFixesEnabled) {
+      return {
+        enqueue: false,
+        reason: `project has not opted in to automatic ${input.incidentId ? "incident" : "alert"} code fixes`,
       };
     }
 
@@ -212,16 +227,21 @@ export default class FixFromIncidentTaskTrigger {
     const { projectId } = data;
 
     try {
-      if (!data.incidentId && !data.alertId) {
+      if (Boolean(data.incidentId) === Boolean(data.alertId)) {
         return;
       }
 
       const project: Project | null = await ProjectService.findOneById({
         id: projectId,
-        select: {
-          enableAi: true,
-          enableAutomaticCodeFixes: true,
-        },
+        select: data.incidentId
+          ? {
+              enableAi: true,
+              enableAutomaticIncidentCodeFixes: true,
+            }
+          : {
+              enableAi: true,
+              enableAutomaticAlertCodeFixes: true,
+            },
         props: { isRoot: true },
       });
 
@@ -232,6 +252,8 @@ export default class FixFromIncidentTaskTrigger {
       const optInDecision: AutoFixTaskGateDecision =
         this.shouldAutoEnqueueFixTask({
           project,
+          incidentId: data.incidentId,
+          alertId: data.alertId,
           hasConnectedRepository: true,
           existingRun: null,
         });
@@ -248,12 +270,23 @@ export default class FixFromIncidentTaskTrigger {
        * AUTOMATIC trigger, over-budget is a logged skip — never an error
        * thrown into the investigation.
        */
-      const budget: FixRunBudgetDecision =
-        await FixRunBudget.getBudgetStatus(projectId);
+      const budget: FixRunBudgetDecision = await FixRunBudget.getBudgetStatus(
+        projectId,
+        {
+          incidentId: data.incidentId,
+          alertId: data.alertId,
+        },
+      );
 
       if (!budget.allowed) {
         logger.debug(
-          `AI: not auto-enqueueing fix task for project ${projectId.toString()} — ${FixRunBudget.describeRejection(budget)}`,
+          `AI: not auto-enqueueing fix task for project ${projectId.toString()} — ${FixRunBudget.describeRejection(
+            budget,
+            {
+              incidentId: data.incidentId,
+              alertId: data.alertId,
+            },
+          )}`,
         );
         return;
       }
@@ -270,6 +303,8 @@ export default class FixFromIncidentTaskTrigger {
 
       const decision: AutoFixTaskGateDecision = this.shouldAutoEnqueueFixTask({
         project,
+        incidentId: data.incidentId,
+        alertId: data.alertId,
         hasConnectedRepository,
         existingRun,
       });

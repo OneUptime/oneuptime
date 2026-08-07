@@ -402,12 +402,24 @@ enum Permission {
   EditScheduledMaintenanceOwnerUser = "EditScheduledMaintenanceOwnerUser",
   ReadScheduledMaintenanceOwnerUser = "ReadScheduledMaintenanceOwnerUser",
 
-  CreateScheduledMaintenanceTemplateOwnerUser = "CreateScheduledMaintenanceOwnerUser",
+  /*
+   * The two Create members below shipped with the value of their non-template
+   * counterparts (2024-09-09, "Add new migration for ScheduledMaintenanceTemplate"),
+   * so `CreateScheduledMaintenanceTemplateOwnerUser === CreateScheduledMaintenanceOwnerUser`
+   * at runtime and the two capabilities were one permission wearing two names.
+   * Granting either conferred create on BOTH the template owner table and the
+   * real scheduled-maintenance owner table — and since owner rows drive the
+   * Owned permission scope, that widened access to events the holder did not
+   * own. Their Delete/Edit/Read siblings were always correct; only Create was
+   * mis-keyed. AddScheduledMaintenanceTemplateOwnerPermissions backfills the
+   * stored grants so no install loses access when these values changed.
+   */
+  CreateScheduledMaintenanceTemplateOwnerUser = "CreateScheduledMaintenanceTemplateOwnerUser",
   DeleteScheduledMaintenanceTemplateOwnerUser = "DeleteScheduledMaintenanceTemplateOwnerUser",
   EditScheduledMaintenanceTemplateOwnerUser = "EditScheduledMaintenanceTemplateOwnerUser",
   ReadScheduledMaintenanceTemplateOwnerUser = "ReadScheduledMaintenanceTemplateOwnerUser",
 
-  CreateScheduledMaintenanceTemplateOwnerTeam = "CreateScheduledMaintenanceOwnerTeam",
+  CreateScheduledMaintenanceTemplateOwnerTeam = "CreateScheduledMaintenanceTemplateOwnerTeam",
   DeleteScheduledMaintenanceTemplateOwnerTeam = "DeleteScheduledMaintenanceTemplateOwnerTeam",
   EditScheduledMaintenanceTemplateOwnerTeam = "EditScheduledMaintenanceTemplateOwnerTeam",
   ReadScheduledMaintenanceTemplateOwnerTeam = "ReadScheduledMaintenanceTemplateOwnerTeam",
@@ -3291,88 +3303,6 @@ export class PermissionHelper {
         permission: Permission.CreateStatusPageAnnouncement,
         title: "Create Status Page Announcement",
         description:
-          "This permission can create Status Page Announcement this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
-        isRolePermission: false,
-        group: PermissionGroup.StatusPage,
-      },
-      {
-        permission: Permission.DeleteStatusPageAnnouncement,
-        title: "Delete Status Page Announcement",
-        description:
-          "This permission can delete Status Page Announcement of this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
-        isRolePermission: false,
-        group: PermissionGroup.StatusPage,
-      },
-      {
-        permission: Permission.EditStatusPageAnnouncement,
-        title: "Edit Status Page Announcement",
-        description:
-          "This permission can edit Status Page Announcement of this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
-        isRolePermission: false,
-        group: PermissionGroup.StatusPage,
-      },
-      {
-        permission: Permission.ReadStatusPageAnnouncement,
-        title: "Read Status Page Announcement",
-        description:
-          "This permission can read Status Page Announcement of this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
-        isRolePermission: false,
-        group: PermissionGroup.StatusPage,
-      },
-
-      {
-        permission: Permission.CreateStatusPageAnnouncementTemplate,
-        title: "Create Status Page Announcement Template",
-        description:
-          "This permission can create Status Page Announcement Templates in this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
-        isRolePermission: false,
-        group: PermissionGroup.StatusPage,
-      },
-      {
-        permission: Permission.DeleteStatusPageAnnouncementTemplate,
-        title: "Delete Status Page Announcement Template",
-        description:
-          "This permission can delete Status Page Announcement Templates of this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
-        isRolePermission: false,
-        group: PermissionGroup.StatusPage,
-      },
-      {
-        permission: Permission.EditStatusPageAnnouncementTemplate,
-        title: "Edit Status Page Announcement Template",
-        description:
-          "This permission can edit Status Page Announcement Templates of this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
-        isRolePermission: false,
-        group: PermissionGroup.StatusPage,
-      },
-      {
-        permission: Permission.ReadStatusPageAnnouncementTemplate,
-        title: "Read Status Page Announcement Template",
-        description:
-          "This permission can read Status Page Announcement Templates of this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
-        isRolePermission: false,
-        group: PermissionGroup.StatusPage,
-      },
-
-      {
-        permission: Permission.CreateStatusPageAnnouncement,
-        title: "Create Status Page Announcement",
-        description:
           "This permission can create Status Page Announcements in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
@@ -4839,47 +4769,6 @@ export class PermissionHelper {
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.Settings,
-      },
-
-      {
-        permission: Permission.CreateStatusPageDomain,
-        title: "Create Status Page Domain",
-        description:
-          "This permission can create Status Page Domain in this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
-        isRolePermission: false,
-        group: PermissionGroup.StatusPage,
-      },
-      {
-        permission: Permission.DeleteStatusPageDomain,
-        title: "Delete Status Page Domain",
-        description:
-          "This permission can delete Status Page Domain in this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
-        isRolePermission: false,
-        group: PermissionGroup.StatusPage,
-      },
-      {
-        permission: Permission.EditStatusPageDomain,
-        title: "Edit Status Page Domain",
-        description:
-          "This permission can edit Status Page Domain in this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
-        isRolePermission: false,
-        group: PermissionGroup.StatusPage,
-      },
-      {
-        permission: Permission.ReadStatusPageDomain,
-        title: "Read Status Page Domain",
-        description:
-          "This permission can read Status Page Domain in this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
-        isRolePermission: false,
-        group: PermissionGroup.StatusPage,
       },
 
       {
@@ -10046,7 +9935,7 @@ export class PermissionHelper {
         permission: Permission.CreateScheduledMaintenanceTemplateOwnerUser,
         title: "Create Scheduled Maintenance Template User Owner",
         description:
-          "This permission can create Scheduled Maintenance Template User Owner this project.",
+          "This permission can create Scheduled Maintenance Template User Owner in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -10085,9 +9974,9 @@ export class PermissionHelper {
 
       {
         permission: Permission.CreateScheduledMaintenanceTemplateOwnerTeam,
-        title: "Create Scheduled Maintenance Template User Team",
+        title: "Create Scheduled Maintenance Template Team Owner",
         description:
-          "This permission can create Scheduled Maintenance Template User Owner this project.",
+          "This permission can create Scheduled Maintenance Template Team Owner in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -10095,9 +9984,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.DeleteScheduledMaintenanceTemplateOwnerTeam,
-        title: "Delete Scheduled Maintenance Template User Team",
+        title: "Delete Scheduled Maintenance Template Team Owner",
         description:
-          "This permission can delete Scheduled Maintenance Template User Owner of this project.",
+          "This permission can delete Scheduled Maintenance Template Team Owner of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -10105,9 +9994,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.EditScheduledMaintenanceTemplateOwnerTeam,
-        title: "Edit Scheduled Maintenance Template User Team",
+        title: "Edit Scheduled Maintenance Template Team Owner",
         description:
-          "This permission can edit Scheduled Maintenance Template User Owner of this project.",
+          "This permission can edit Scheduled Maintenance Template Team Owner of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -10115,9 +10004,9 @@ export class PermissionHelper {
       },
       {
         permission: Permission.ReadScheduledMaintenanceTemplateOwnerTeam,
-        title: "Read Scheduled Maintenance Template User Team",
+        title: "Read Scheduled Maintenance Template Team Owner",
         description:
-          "This permission can read Scheduled Maintenance Template User Owner of this project.",
+          "This permission can read Scheduled Maintenance Template Team Owner of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -10776,47 +10665,6 @@ export class PermissionHelper {
         isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.Incident,
-      },
-
-      {
-        permission: Permission.CreateStatusPageOwnerTeam,
-        title: "Create Status Page Team Owner",
-        description:
-          "This permission can create Status Page Team Owner this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
-        isRolePermission: false,
-        group: PermissionGroup.StatusPage,
-      },
-      {
-        permission: Permission.DeleteStatusPageOwnerTeam,
-        title: "Delete Status Page Team Owner",
-        description:
-          "This permission can delete Status Page Team Owner of this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
-        isRolePermission: false,
-        group: PermissionGroup.StatusPage,
-      },
-      {
-        permission: Permission.EditStatusPageOwnerTeam,
-        title: "Edit Status Page Team Owner",
-        description:
-          "This permission can edit Status Page Team Owner of this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
-        isRolePermission: false,
-        group: PermissionGroup.StatusPage,
-      },
-      {
-        permission: Permission.ReadStatusPageOwnerTeam,
-        title: "Read Status Page Team Owner",
-        description:
-          "This permission can read Status Page Team Owner of this project.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
-        isRolePermission: false,
-        group: PermissionGroup.StatusPage,
       },
 
       {

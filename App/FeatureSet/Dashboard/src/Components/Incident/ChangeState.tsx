@@ -30,6 +30,14 @@ import EventStatusPanel, {
 } from "../EventView/EventStatusPanel";
 import IncidentNoteTemplate from "Common/Models/DatabaseModels/IncidentNoteTemplate";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import AIRunStatus from "Common/Types/AI/AIRunStatus";
+import AIInvestigationHeaderStatus, {
+  AIInvestigationStatusLiveRegion,
+} from "../AI/AIInvestigationHeaderStatus";
+import {
+  isActiveAIInvestigationStatus,
+  scrollToAIInvestigationPanel,
+} from "../AI/AIInvestigationStatus";
 
 export interface ComponentProps {
   incidentId: ObjectID;
@@ -39,6 +47,7 @@ export interface ComponentProps {
   eventStartsAt?: Date | undefined;
   severity?: { name: string; color: Color } | undefined;
   isPrivate?: boolean | undefined;
+  aiInvestigationStatus?: AIRunStatus | null | undefined;
 }
 
 const ChangeIncidentState: FunctionComponent<ComponentProps> = (
@@ -319,6 +328,7 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
 
   return (
     <>
+      <AIInvestigationStatusLiveRegion status={props.aiInvestigationStatus} />
       <EventStatusPanel
         states={incidentStates.map((state: IncidentState): EventStateItem => {
           return {
@@ -338,6 +348,14 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
         actions={actions}
         onActionClick={openModalForState}
         onStateSelect={openModalForState}
+        headerNotice={
+          isActiveAIInvestigationStatus(props.aiInvestigationStatus) ? (
+            <AIInvestigationHeaderStatus
+              status={props.aiInvestigationStatus!}
+              onViewProgress={scrollToAIInvestigationPanel}
+            />
+          ) : undefined
+        }
       />
 
       {showModal && (

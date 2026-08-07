@@ -100,6 +100,7 @@ import AddRightSizingColumnsToKubernetesCostAllocation from "./AddRightSizingCol
 import MoveNetworkDeviceMonitorCollectionToDevices from "./MoveNetworkDeviceMonitorCollectionToDevices";
 import BackfillNetworkSiteTypes from "./BackfillNetworkSiteTypes";
 import AddSessionIdToTelemetryTables from "./AddSessionIdToTelemetryTables";
+import AddScheduledMaintenanceTemplateOwnerPermissions from "./AddScheduledMaintenanceTemplateOwnerPermissions";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -323,6 +324,14 @@ const DataMigrations: Array<DataMigrationBase> = [
    * because a throw here halts every migration after it.
    */
   new AddSessionIdToTelemetryTables(),
+  /*
+   * Backfills grants onto the two ScheduledMaintenanceTemplate owner Create
+   * permissions, whose enum values used to collide with their non-template
+   * counterparts. Copies rather than renames, so no existing grant changes
+   * meaning; block rows are copied too so a deliberate denial does not become
+   * silent access.
+   */
+  new AddScheduledMaintenanceTemplateOwnerPermissions(),
 ];
 
 export default DataMigrations;

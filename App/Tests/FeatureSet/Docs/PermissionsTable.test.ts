@@ -1,7 +1,6 @@
 import {
   PermissionPlaceholder,
   clearPermissionTableCaches,
-  dedupePermissions,
   getAssignablePermissionProps,
   getGranularPermissionCount,
   getGranularPermissionProps,
@@ -115,34 +114,13 @@ describe("Docs permission tables", () => {
     });
   });
 
-  describe("dedupePermissions", () => {
-    it("keeps the first entry when a permission is declared twice", () => {
-      const first: PermissionProps = {
-        permission: Permission.CreateStatusPageAnnouncement,
-        title: "First",
-        description: "First description.",
-        isAssignableToTenant: true,
-        isAccessControlPermission: false,
-        isRolePermission: false,
-        group: PermissionGroup.StatusPage,
-      };
-      const second: PermissionProps = { ...first, title: "Second" };
-
-      const deduped: Array<PermissionProps> = dedupePermissions([
-        first,
-        second,
-      ]);
-
-      expect(deduped.length).toBe(1);
-      expect(deduped[0]!.title).toBe("First");
-    });
-
-    it("matches PermissionHelper.getTitle, which also takes the first match", () => {
+  describe("the catalogue it reads", () => {
+    it("shows the same title and description the rest of the product shows", () => {
       /*
-       * Common/Types/Permission.ts genuinely declares some permissions twice.
-       * The docs must show the same title the rest of the product shows, and
-       * getTitle()/getDescription() both read the first match — so the
-       * deduped list has to agree with them for every permission.
+       * getTitle/getDescription take the first match. If a permission were ever
+       * listed twice with different text, the docs and the dashboard would
+       * disagree — Common/Tests/Types/Permission.test.ts forbids the duplicate
+       * outright, and this checks the docs read the same entry either way.
        */
       for (const prop of getAssignablePermissionProps()) {
         expect(prop.title).toBe(PermissionHelper.getTitle(prop.permission));
@@ -152,28 +130,14 @@ describe("Docs permission tables", () => {
       }
     });
 
-    it("preserves order and leaves a duplicate-free list untouched", () => {
-      const props: Array<PermissionProps> =
-        PermissionHelper.getRolePermissionProps();
+    it("lists every assignable permission exactly once", () => {
+      const keys: Array<string> = getAssignablePermissionProps().map(
+        (prop: PermissionProps) => {
+          return prop.permission.toString();
+        },
+      );
 
-      expect(dedupePermissions(props)).toEqual(props);
-    });
-
-    it("handles an empty list", () => {
-      expect(dedupePermissions([])).toEqual([]);
-    });
-
-    it("actually has work to do — the raw list contains duplicates", () => {
-      /*
-       * If this ever fails because the duplicates were cleaned up in
-       * Permission.ts, that is good news: delete this test. It exists so the
-       * dedupe above is never mistaken for dead code and removed while the
-       * duplicates are still there.
-       */
-      const raw: number = PermissionHelper.getTenantPermissionProps().length;
-      const deduped: number = getAssignablePermissionProps().length;
-
-      expect(deduped).toBeLessThanOrEqual(raw);
+      expect(new Set(keys).size).toBe(keys.length);
     });
   });
 

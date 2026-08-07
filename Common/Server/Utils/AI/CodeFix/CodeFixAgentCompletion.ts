@@ -130,6 +130,8 @@ export default class CodeFixAgentCompletion {
         runType: true,
         status: true,
         aiAgentId: true,
+        triggeredByIncidentId: true,
+        triggeredByAlertId: true,
       },
       props: {
         isRoot: true,
@@ -198,6 +200,8 @@ export default class CodeFixAgentCompletion {
       projectId: run.projectId,
       feature: AI_CODE_FIX_FEATURE,
       aiRunId: request.aiRunId,
+      incidentId: run.triggeredByIncidentId,
+      alertId: run.triggeredByAlertId,
       llmProviderId: llmProvider.id,
       messages: request.messages,
       tools: request.tools,

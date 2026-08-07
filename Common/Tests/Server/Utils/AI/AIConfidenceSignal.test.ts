@@ -286,6 +286,7 @@ describe("AIConfidenceSignal.computeConfidenceSignal", () => {
   });
 
   test("floor passes + CONFIDENT token → one budgeted, preview-less, temperature-0 call", async () => {
+    const incidentId: ObjectID = ObjectID.generate();
     const executeWithLogging: jest.SpyInstance = jest
       .spyOn(AIService, "executeWithLogging")
       .mockResolvedValue(fakeLlmResponse("CONFIDENT"));
@@ -294,6 +295,7 @@ describe("AIConfidenceSignal.computeConfidenceSignal", () => {
       await AIConfidenceSignal.computeConfidenceSignal({
         projectId,
         aiRunId,
+        incidentId,
         analysisMarkdown: "The connection pool ran dry [C1].",
         evidence: evidence({
           citationCount: 2,
@@ -309,6 +311,8 @@ describe("AIConfidenceSignal.computeConfidenceSignal", () => {
       expect.objectContaining({
         projectId,
         aiRunId,
+        incidentId,
+        alertId: undefined,
         // Budget coverage: must be an AUTONOMOUS_AI_FEATURES member.
         feature: CONFIDENCE_CLASSIFICATION_FEATURE,
         // The verdict drives control flow — no prompt previews in LlmLog.

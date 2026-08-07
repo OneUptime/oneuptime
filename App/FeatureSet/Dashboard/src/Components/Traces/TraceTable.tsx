@@ -44,6 +44,15 @@ export interface ComponentProps {
   spanQuery?: Query<Span> | undefined;
   isMinimalTable?: boolean | undefined;
   noItemsMessage?: string | undefined;
+  // Rendered in the card header, e.g. the snapshot window an incident is scoped to.
+  rightElement?: ReactElement | undefined;
+  /*
+   * Set by hosts that pin the query to a fixed window (incident / alert
+   * previews). Without it the table restores a "Seen At" filter from the URL
+   * on mount, which replaces the pinned window with an unrelated one and gives
+   * no sign it happened.
+   */
+  disableUrlState?: boolean | undefined;
   onFetchSuccess?:
     | ((data: Array<Span>, totalCount: number) => void)
     | undefined;
@@ -294,6 +303,7 @@ const TraceTable: FunctionComponent<ComponentProps> = (
       <div className="rounded">
         <AnalyticsModelTable<Span>
           userPreferencesKey="trace-table"
+          disableUrlState={props.disableUrlState}
           disablePagination={props.isMinimalTable}
           modelType={Span}
           id="traces-table"
@@ -310,6 +320,7 @@ const TraceTable: FunctionComponent<ComponentProps> = (
               : {
                   title: cardContent.title,
                   description: cardContent.description,
+                  rightElement: props.rightElement,
                 }
           }
           query={getQueryForActiveTab}

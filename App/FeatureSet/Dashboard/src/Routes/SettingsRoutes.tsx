@@ -55,6 +55,7 @@ import SettingsRunnerView from "../Pages/Settings/RunnerView";
 import SettingsRunnerCredentials from "../Pages/Settings/RunnerCredentials";
 
 import SettingsAICredits from "../Pages/Settings/AICredits";
+import SettingsAIGuardrails from "../Pages/Settings/AIGuardrails";
 
 import SettingsAILogs from "../Pages/Settings/AILogs";
 
@@ -173,6 +174,16 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
             <SettingsRunnerCredentials
               {...props}
               pageRoute={RouteMap[PageMap.SETTINGS_RUNNER_CREDENTIALS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_AI_GUARDRAILS)}
+          element={
+            <SettingsAIGuardrails
+              {...props}
+              pageRoute={RouteMap[PageMap.SETTINGS_AI_GUARDRAILS] as Route}
             />
           }
         />

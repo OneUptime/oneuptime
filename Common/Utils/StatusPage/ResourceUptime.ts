@@ -6,7 +6,7 @@ import StatusPageResource from "../../Models/DatabaseModels/StatusPageResource";
 import Dictionary from "../../Types/Dictionary";
 import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
 import StatusPageGroup from "../../Models/DatabaseModels/StatusPageGroup";
-import StatusPageGroupTreeUtil from "./GroupTree";
+import StatusPageGroupTreeUtil, { StatusPageGroupTreeIndex } from "./GroupTree";
 import UptimeUtil, { UptimeWindow } from "../Uptime/UptimeUtil";
 
 export default class StatusPageResourceUptimeUtil {
@@ -81,6 +81,12 @@ export default class StatusPageResourceUptimeUtil {
      * (or pass only this group) to look at the group's own resources.
      */
     allStatusPageGroups?: Array<StatusPageGroup> | undefined;
+    /*
+     * A prebuilt parent -> children index over allStatusPageGroups. Optional,
+     * and worth passing from any caller that asks this per group: without it
+     * every call re-buckets the whole group list.
+     */
+    statusPageGroupTreeIndex?: StatusPageGroupTreeIndex | undefined;
   }): MonitorStatus {
     let currentStatus: MonitorStatus = new MonitorStatus();
     currentStatus.name = "Operational";
@@ -91,6 +97,7 @@ export default class StatusPageResourceUptimeUtil {
         statusPageGroup: data.statusPageGroup,
         statusPageResources: data.statusPageResources,
         allStatusPageGroups: data.allStatusPageGroups,
+        statusPageGroupTreeIndex: data.statusPageGroupTreeIndex,
       });
 
     for (const resource of resourcesInGroup) {
@@ -187,6 +194,8 @@ export default class StatusPageResourceUptimeUtil {
      * makes each level of the hierarchy show a rolled up availability.
      */
     allStatusPageGroups?: Array<StatusPageGroup> | undefined;
+    /* See getCurrentStatusPageGroupStatus. */
+    statusPageGroupTreeIndex?: StatusPageGroupTreeIndex | undefined;
   }): number | null {
     if (!data.statusPageGroup.showUptimePercent) {
       return null;
@@ -197,6 +206,7 @@ export default class StatusPageResourceUptimeUtil {
         statusPageGroup: data.statusPageGroup,
         statusPageResources: data.statusPageResources,
         allStatusPageGroups: data.allStatusPageGroups,
+        statusPageGroupTreeIndex: data.statusPageGroupTreeIndex,
       });
 
     if (resourcesInGroup.length === 0) {
@@ -276,11 +286,24 @@ export default class StatusPageResourceUptimeUtil {
     statusPageGroup: StatusPageGroup;
     statusPageResources: Array<StatusPageResource>;
     allStatusPageGroups?: Array<StatusPageGroup> | undefined;
+    /* See getCurrentStatusPageGroupStatus. */
+    statusPageGroupTreeIndex?: StatusPageGroupTreeIndex | undefined;
   }): Array<StatusPageResource> {
+    const statusPageGroups: Array<StatusPageGroup> =
+      data.allStatusPageGroups || [data.statusPageGroup];
+
     const groupsToInclude: Array<StatusPageGroup> =
       StatusPageGroupTreeUtil.getGroupAndDescendants({
         statusPageGroup: data.statusPageGroup,
-        statusPageGroups: data.allStatusPageGroups || [data.statusPageGroup],
+        statusPageGroups: statusPageGroups,
+        /*
+         * An index built over a different list than the one in play would
+         * answer for the wrong hierarchy, and allStatusPageGroups is what the
+         * caller's index is built from.
+         */
+        index: data.allStatusPageGroups
+          ? data.statusPageGroupTreeIndex
+          : undefined,
       });
 
     const groupIds: Set<string> = new Set<string>(
@@ -320,6 +343,15 @@ export default class StatusPageResourceUptimeUtil {
     const allUptimePercent: Array<number> = [];
 
     /*
+     * One index for the whole descent below, rather than one re-bucketing of
+     * the group list per level and per reporting group.
+     */
+    const groupTreeIndex: StatusPageGroupTreeIndex =
+      StatusPageGroupTreeUtil.buildIndex({
+        statusPageGroups: data.resourceGroups,
+      });
+
+    /*
      * Calculate for groups first. Groups nest, and a group that reports uptime
      * already averages its whole subtree - so descend only until the first
      * reporting group on each branch, otherwise its children would be counted
@@ -341,6 +373,7 @@ export default class StatusPageResourceUptimeUtil {
               monitorsInGroup: data.monitorsInGroup,
               uptimeWindow: data.uptimeWindow,
               allStatusPageGroups: data.resourceGroups,
+              statusPageGroupTreeIndex: groupTreeIndex,
             });
 
           if (groupUptimePercent !== null) {
@@ -354,6 +387,7 @@ export default class StatusPageResourceUptimeUtil {
           StatusPageGroupTreeUtil.getChildGroups({
             statusPageGroupId: group._id?.toString() || "",
             statusPageGroups: data.resourceGroups,
+            index: groupTreeIndex,
           }),
         );
       }
@@ -362,6 +396,7 @@ export default class StatusPageResourceUptimeUtil {
     collectGroupUptime(
       StatusPageGroupTreeUtil.getRootGroups({
         statusPageGroups: data.resourceGroups,
+        index: groupTreeIndex,
       }),
     );
 

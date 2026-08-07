@@ -260,6 +260,8 @@ describe("RemediationPlanRunner.executePlan", () => {
         request: expect.objectContaining({
           // Persisted budget-ledger string — pinned as a literal on purpose.
           feature: "AI Remediation Planning",
+          incidentId: INCIDENT_ID,
+          alertId: undefined,
         }),
       }),
     );

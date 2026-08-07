@@ -23,6 +23,8 @@ spec:
       template:
         spec:
           serviceAccountName: cleanup-service-account
+          nodeSelector:
+            {{- include "oneuptime.nodeSelector" (dict) | nindent 12 }}
           containers:
           - name: cleanup
             image: bitnami/kubectl:latest
@@ -73,6 +75,8 @@ spec:
       template:
         spec:
           serviceAccountName: cleanup-service-account
+          nodeSelector:
+            {{- include "oneuptime.nodeSelector" (dict) | nindent 12 }}
           containers:
           - name: cleanup
             image: bitnami/kubectl:latest

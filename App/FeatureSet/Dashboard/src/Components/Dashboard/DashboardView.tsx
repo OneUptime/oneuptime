@@ -450,6 +450,14 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
           await fetchDashboardViewConfig();
         }}
         onEditClick={() => {
+          /*
+           * Heal any layout corruption (overlapping or out-of-bounds
+           * widgets saved by older builds) before editing starts, so
+           * every drag begins from a valid board.
+           */
+          setDashboardViewConfig(
+            DashboardViewConfigUtil.normalizeLayout(dashboardViewConfig),
+          );
           setDashboardMode(DashboardMode.Edit);
         }}
         autoRefreshInterval={autoRefreshInterval}

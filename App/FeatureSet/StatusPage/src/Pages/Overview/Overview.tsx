@@ -55,6 +55,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
@@ -63,6 +64,7 @@ import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
 import StatusPageGroupViewMode from "Common/Types/StatusPage/StatusPageGroupViewMode";
 import StatusPageResourceUptimeUtil from "Common/Utils/StatusPage/ResourceUptime";
 import StatusPageGroupTreeUtil, {
+  StatusPageGroupTreeIndex,
   StatusPageGroupTreeNode,
 } from "Common/Utils/StatusPage/GroupTree";
 import StatusPageGroupNestingLayoutUtil, {
@@ -200,6 +202,34 @@ const Overview: FunctionComponent<PageComponentProps> = (
   const [timelineIncidents, setTimelineIncidents] = useState<
     Array<UptimeBarTooltipIncident>
   >([]);
+
+  /*
+   * Every level of the hierarchy shows a reading rolled up from its whole
+   * subtree, so rendering the page walks the group tree once per group. Both
+   * the parent -> children index and the tree itself are therefore built once
+   * per payload instead of once per group per render - at the sizes real
+   * status pages reach (well over a thousand groups) rebuilding them inline is
+   * the difference between a render and a stall.
+   */
+  const groupTreeIndex: StatusPageGroupTreeIndex = useMemo(() => {
+    return StatusPageGroupTreeUtil.buildIndex({
+      statusPageGroups: resourceGroups,
+    });
+  }, [resourceGroups]);
+
+  /*
+   * buildTree rather than getRootGroups: a parent pointer written straight to
+   * the database can put a group in a cycle, and a cycle has no root, so
+   * walking down from the roots would drop those groups off the page
+   * entirely. buildTree promotes them to the top level instead - a group
+   * nobody can see is worse than a group in the wrong place.
+   */
+  const groupTree: Array<StatusPageGroupTreeNode> = useMemo(() => {
+    return StatusPageGroupTreeUtil.buildTree({
+      statusPageGroups: resourceGroups,
+      index: groupTreeIndex,
+    });
+  }, [resourceGroups, groupTreeIndex]);
 
   StatusPageUtil.checkIfUserHasLoggedIn();
 
@@ -451,6 +481,18 @@ const Overview: FunctionComponent<PageComponentProps> = (
   const getGroupRollup: GetGroupRollupFunction = (data: {
     group: StatusPageGroup;
   }): GroupRollup | null => {
+    /*
+     * Everything under this group, at any depth. A group with nothing under it
+     * reports no rollup at all - see getRollupKind.
+     */
+    const resourcesInSubtree: Array<StatusPageResource> =
+      StatusPageResourceUptimeUtil.getResourcesInStatusPageGroupAndDescendants({
+        statusPageGroup: data.group,
+        statusPageResources: statusPageResources,
+        allStatusPageGroups: resourceGroups,
+        statusPageGroupTreeIndex: groupTreeIndex,
+      });
+
     const currentStatus: MonitorStatus =
       StatusPageResourceUptimeUtil.getCurrentStatusPageGroupStatus({
         statusPageGroup: data.group,
@@ -459,6 +501,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
         monitorStatuses: monitorStatuses,
         monitorGroupCurrentStatuses: monitorGroupCurrentStatuses,
         allStatusPageGroups: resourceGroups,
+        statusPageGroupTreeIndex: groupTreeIndex,
       });
 
     const color: string = currentStatus?.color?.toString() || Green.toString();
@@ -485,6 +528,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             monitorsInGroup: monitorsInGroup,
             uptimeWindow: { startDate: startDate, endDate: endDate },
             allStatusPageGroups: resourceGroups,
+            statusPageGroupTreeIndex: groupTreeIndex,
           },
         )
       : null;
@@ -495,6 +539,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
         showCurrentStatus: Boolean(data.group.showCurrentStatus),
         isCurrentlyDown: isCurrentlyDown,
         uptimePercent: uptimePercent,
+        resourceCountInSubtree: resourcesInSubtree.length,
       });
 
     if (kind === StatusPageGroupRollupKind.UptimePercent) {
@@ -1475,7 +1520,15 @@ const Overview: FunctionComponent<PageComponentProps> = (
             )}
           </div>
 
-          {statusPageResources.length > 0 && (
+          {/*
+           * Groups on their own are enough to draw this block. Gating it on
+           * resources meant a page whose whole group hierarchy was built but
+           * whose first monitor had not been added yet rendered nothing.
+           */}
+          {StatusPageGroupNestingLayoutUtil.shouldRenderResourcesSection({
+            statusPageResourceCount: statusPageResources.length,
+            statusPageGroupCount: resourceGroups.length,
+          }) && (
             <div className="mt-5 mb-6 space-y-3 sm:space-y-5">
               {statusPageResources.filter((resources: StatusPageResource) => {
                 return !resources.statusPageGroupId;
@@ -1494,20 +1547,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
               ) : (
                 <></>
               )}
-              {/*
-               * buildTree rather than getRootGroups: a parent pointer written
-               * straight to the database can put a group in a cycle, and a
-               * cycle has no root, so walking down from the roots would drop
-               * those groups off the page entirely. buildTree promotes them to
-               * the top level instead - a group nobody can see is worse than a
-               * group in the wrong place.
-               */}
-              {resourceGroups.length > 0 &&
-                StatusPageGroupTreeUtil.buildTree({
-                  statusPageGroups: resourceGroups,
-                }).map((node: StatusPageGroupTreeNode) => {
-                  return renderResourceGroup({ node: node });
-                })}
+              {groupTree.map((node: StatusPageGroupTreeNode) => {
+                return renderResourceGroup({ node: node });
+              })}
             </div>
           )}
 
@@ -1595,12 +1637,15 @@ const Overview: FunctionComponent<PageComponentProps> = (
               </div>
             )}
 
-          {activeIncidentsInIncidentGroup.length === 0 &&
-            activeEpisodesInEpisodeGroup.length === 0 &&
-            activeScheduledMaintenanceEventsInScheduledMaintenanceGroup.length ===
-              0 &&
-            statusPageResources.length === 0 &&
-            activeAnnouncements.length === 0 &&
+          {StatusPageGroupNestingLayoutUtil.shouldRenderOverviewEmptyState({
+            statusPageResourceCount: statusPageResources.length,
+            statusPageGroupCount: resourceGroups.length,
+            activeIncidentCount: activeIncidentsInIncidentGroup.length,
+            activeEpisodeCount: activeEpisodesInEpisodeGroup.length,
+            activeScheduledMaintenanceCount:
+              activeScheduledMaintenanceEventsInScheduledMaintenanceGroup.length,
+            activeAnnouncementCount: activeAnnouncements.length,
+          }) &&
             !isLoading &&
             !error && (
               <EmptyState

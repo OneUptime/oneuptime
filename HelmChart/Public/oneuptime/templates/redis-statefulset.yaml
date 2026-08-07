@@ -26,10 +26,8 @@ spec:
         app.kubernetes.io/component: redis
         appname: oneuptime
     spec:
-      {{- with .Values.redis.master.nodeSelector }}
       nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+        {{- include "oneuptime.nodeSelector" .Values.redis.master.nodeSelector | nindent 8 }}
       {{- with .Values.redis.master.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}

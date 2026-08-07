@@ -547,6 +547,8 @@ describe("RemediationExecutionRunner.executeRemediation", () => {
       );
       // Persisted budget-ledger string — pinned as a literal on purpose.
       expect(request.get().feature).toBe("AI Remediation Execution");
+      expect(request.get().incidentId).toBe(INCIDENT_ID);
+      expect(request.get().alertId).toBeUndefined();
     });
 
     it("runs FullAuto with the execute tool and the allowlist in context when every condition holds", async () => {
@@ -859,6 +861,8 @@ describe("RemediationExecutionRunner.executeRemediation", () => {
         '<untrusted_context source="alert_text">',
       );
       expect(captured!.contextSummary).toContain("Disk almost full on db-1");
+      expect(captured!.incidentId).toBeUndefined();
+      expect(captured!.alertId).toBe(ALERT_ID);
       expect(incidentFeed).not.toHaveBeenCalled();
       expect(alertFeed).toHaveBeenCalledWith(
         expect.objectContaining({

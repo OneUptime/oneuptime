@@ -424,6 +424,7 @@ export default class MonitorTemplateUtil {
           nameServers: domainResponse?.nameServers,
           domainStatus: domainResponse?.domainStatus,
           dnssec: domainResponse?.dnssec,
+          lookupMethod: domainResponse?.lookupMethod,
         } as JSONObject;
       }
 

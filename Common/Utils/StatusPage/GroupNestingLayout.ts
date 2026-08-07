@@ -272,6 +272,57 @@ export default class StatusPageGroupNestingLayoutUtil {
   }
 
   /*
+   * Whether the overview page draws its resources-and-groups block at all.
+   *
+   * This was `statusPageResources.length > 0` written inline on the page, and
+   * it meant a status page carrying a fully built group hierarchy but no
+   * monitors yet rendered nothing at all: an operator who had just created
+   * their whole hierarchy saw an empty overview until the first monitor was
+   * attached to one of the groups. A group is content in its own right - the
+   * hierarchy is what a large status page is organised around, and it has to
+   * be visible while it is being filled in - so either resources or groups are
+   * enough to draw the block.
+   */
+  public static shouldRenderResourcesSection(data: {
+    statusPageResourceCount: number;
+    statusPageGroupCount: number;
+  }): boolean {
+    return data.statusPageResourceCount > 0 || data.statusPageGroupCount > 0;
+  }
+
+  /*
+   * The "all clear" empty state is the page's fallback for when there is
+   * nothing whatsoever to draw, so it has to agree with
+   * shouldRenderResourcesSection: a page with groups and no monitors renders
+   * its hierarchy, and an empty state stacked above that hierarchy would be
+   * telling the visitor the opposite of what is on the screen underneath it.
+   */
+  public static shouldRenderOverviewEmptyState(data: {
+    statusPageResourceCount: number;
+    statusPageGroupCount: number;
+    activeIncidentCount: number;
+    activeEpisodeCount: number;
+    activeScheduledMaintenanceCount: number;
+    activeAnnouncementCount: number;
+  }): boolean {
+    if (
+      this.shouldRenderResourcesSection({
+        statusPageResourceCount: data.statusPageResourceCount,
+        statusPageGroupCount: data.statusPageGroupCount,
+      })
+    ) {
+      return false;
+    }
+
+    return (
+      data.activeIncidentCount === 0 &&
+      data.activeEpisodeCount === 0 &&
+      data.activeScheduledMaintenanceCount === 0 &&
+      data.activeAnnouncementCount === 0
+    );
+  }
+
+  /*
    * Whether a group draws the time axis under its own resource list.
    *
    * Once per resource list rather than once per resource: every bar in one list
@@ -329,7 +380,25 @@ export default class StatusPageGroupNestingLayoutUtil {
     showCurrentStatus: boolean;
     isCurrentlyDown: boolean;
     uptimePercent: number | null;
+    /*
+     * How many resources the group's whole subtree contains. Zero means there
+     * is nothing under this group to report on.
+     */
+    resourceCountInSubtree: number;
   }): StatusPageGroupRollupKind {
+    /*
+     * A group with nothing under it has no reading to give - not an uptime
+     * percent and not a status. This did not use to come up, because a page
+     * with no resources rendered no groups at all; now that a hierarchy is
+     * drawn while it is still being filled in, it does. The rolled up status
+     * defaults to Operational when it finds nothing to look at, and a green
+     * "Operational" against a group that contains no monitors is a claim about
+     * availability the page has no basis for.
+     */
+    if (data.resourceCountInSubtree <= 0) {
+      return StatusPageGroupRollupKind.None;
+    }
+
     if (data.showUptimePercent && !data.isCurrentlyDown) {
       return data.uptimePercent === null
         ? StatusPageGroupRollupKind.None

@@ -57,38 +57,6 @@ export function toTableCell(text: string): string {
 }
 
 /*
- * getAllPermissionProps() contains a number of permissions declared twice
- * (the Status Page announcement/domain/owner-team families, and two
- * Scheduled Maintenance owner entries that appear to have been keyed to the
- * wrong enum member). Rendering those twice would put duplicate rows in the
- * reference — so collapse them here, keeping the FIRST occurrence.
- *
- * First-wins is not an arbitrary tie-break: PermissionHelper.getTitle() and
- * getDescription() both read `[0]` of their filtered matches, so the first
- * entry is what the rest of the product already shows for that permission.
- * Picking the last would make the docs disagree with the dashboard.
- */
-export function dedupePermissions(
-  permissions: Array<PermissionProps>,
-): Array<PermissionProps> {
-  const seen: Set<string> = new Set();
-  const unique: Array<PermissionProps> = [];
-
-  for (const permission of permissions) {
-    const key: string = permission.permission.toString();
-
-    if (seen.has(key)) {
-      continue;
-    }
-
-    seen.add(key);
-    unique.push(permission);
-  }
-
-  return unique;
-}
-
-/*
  * Groups the given permissions in first-seen order. PermissionGroup's
  * declaration order is not the order permissions are declared in, and the
  * dashboard's picker groups by first appearance — matching it keeps the docs
@@ -114,14 +82,21 @@ export function groupPermissions(
   return grouped;
 }
 
-// Every permission that can be granted to a team, each listed once.
+/*
+ * Every permission that can be granted to a team. This used to de-duplicate:
+ * getAllPermissionProps() listed sixteen permissions twice, so the reference
+ * rendered them twice. The duplicates are gone from Permission.ts and a test in
+ * Common/Tests/Types/Permission.test.ts now keeps them gone, so this reads the
+ * catalogue straight. Collapsing here as well would only hide the next
+ * duplicate from that test.
+ */
 export function getAssignablePermissionProps(): Array<PermissionProps> {
-  return dedupePermissions(PermissionHelper.getTenantPermissionProps());
+  return PermissionHelper.getTenantPermissionProps();
 }
 
 // Roles — the bundled Admin / Member / Viewer grants per product area.
 export function getRolePermissionProps(): Array<PermissionProps> {
-  return dedupePermissions(PermissionHelper.getRolePermissionProps());
+  return PermissionHelper.getRolePermissionProps();
 }
 
 // Permissions a team can be granted that are not one of the built-in roles.

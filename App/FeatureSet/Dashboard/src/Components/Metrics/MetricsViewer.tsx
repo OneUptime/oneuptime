@@ -49,10 +49,11 @@ import PageMap from "../../Utils/PageMap";
 import MetricRow from "./MetricRow";
 import { SparklinePoint } from "./MetricSparkline";
 import MetricUtil from "./Utils/Metrics";
-import TelemetrySavedViewsControl, {
-  serializeTimeRange,
-  deserializeTimeRange,
-} from "../Telemetry/TelemetrySavedViewsControl";
+import TelemetrySavedViewsControl from "../Telemetry/TelemetrySavedViewsControl";
+import {
+  serializeSavedViewTimeRange,
+  deserializeSavedViewTimeRange,
+} from "Common/Utils/Telemetry/SavedViewTimeRange";
 import useServiceNames from "../Telemetry/useServiceNames";
 import MetricSavedView from "Common/Models/DatabaseModels/MetricSavedView";
 import TelemetrySavedViewState from "Common/Types/Telemetry/TelemetrySavedViewState";
@@ -1309,7 +1310,7 @@ const MetricsViewer: FunctionComponent<Props> = (
         filters: activeFilters.map((filter: ActiveFilter): [string, string] => {
           return [filter.facetKey, filter.value];
         }),
-        timeRange: serializeTimeRange(timeRange),
+        timeRange: serializeSavedViewTimeRange(timeRange),
         pageSize: pageSize,
       };
     }, [submittedSearch, activeFilters, timeRange, pageSize]);
@@ -1332,7 +1333,7 @@ const MetricsViewer: FunctionComponent<Props> = (
           },
         ),
       );
-      setTimeRange(deserializeTimeRange(state.timeRange));
+      setTimeRange(deserializeSavedViewTimeRange(state.timeRange));
       if (state.pageSize) {
         setPageSize(state.pageSize);
       }

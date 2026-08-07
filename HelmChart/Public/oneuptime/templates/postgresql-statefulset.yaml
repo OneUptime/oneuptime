@@ -31,10 +31,8 @@ spec:
         checksum/postgresql-config: {{ include (print $.Template.BasePath "/postgresql-primary-configmap.yaml") . | sha256sum }}
         checksum/postgresql-hba: {{ include (print $.Template.BasePath "/postgresql-primary-hba-configmap.yaml") . | sha256sum }}
     spec:
-      {{- with .Values.postgresql.primary.nodeSelector }}
       nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+        {{- include "oneuptime.nodeSelector" .Values.postgresql.primary.nodeSelector | nindent 8 }}
       {{- with .Values.postgresql.primary.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}

@@ -4,6 +4,7 @@ import FixRunBudget, {
 } from "../../../../Server/Utils/AI/CodeFix/FixRunBudget";
 import ProjectService from "../../../../Server/Services/ProjectService";
 import AIRunService from "../../../../Server/Services/AIRunService";
+import QueryHelper from "../../../../Server/Types/Database/QueryHelper";
 import Project from "../../../../Models/DatabaseModels/Project";
 import AIRunType from "../../../../Types/AI/AIRunType";
 import BadDataException from "../../../../Types/Exception/BadDataException";
@@ -12,11 +13,11 @@ import PositiveNumber from "../../../../Types/PositiveNumber";
 import { describe, expect, test, afterEach } from "@jest/globals";
 
 /*
- * The per-project daily fix-run budget (G11 guardrail): every CodeFix
- * AIRun counts against Project.aiDailyFixTaskLimit per UTC day. Unlike the
- * token budget, an UNSET limit is NOT unlimited — fix runs open pull
+ * The per-project daily fix-run budget (G11 guardrail): incident, alert and
+ * subjectless CodeFix AIRuns each count only against their own lane. Unlike
+ * the token budget, an UNSET limit is NOT unlimited — fix runs open pull
  * requests on customer repositories, so the default cap applies. 0 pauses
- * fix tasks entirely (the same kill-switch semantics as the token budget).
+ * that lane entirely (the same kill-switch semantics as the token budget).
  */
 
 const projectId: ObjectID = ObjectID.generate();
@@ -92,23 +93,36 @@ describe("FixRunBudget.evaluate (pure decision)", () => {
 });
 
 describe("FixRunBudget.describeRejection", () => {
-  test("paused rejection names the setting and the 0 value", () => {
+  test("paused incident rejection names the incident setting and destination", () => {
+    const message: string = FixRunBudget.describeRejection(
+      FixRunBudget.evaluate({ configuredLimit: 0, runsToday: 0 }),
+      { incidentId: ObjectID.generate() },
+    );
+
+    expect(message).toMatch(/Daily Incident AI Fix Task Limit/);
+    expect(message).toMatch(/Incidents > Settings > AI/);
+    expect(message).toMatch(/0/);
+  });
+
+  test("over-budget alert rejection names the alert setting and destination", () => {
+    const message: string = FixRunBudget.describeRejection(
+      FixRunBudget.evaluate({ configuredLimit: 10, runsToday: 10 }),
+      { alertId: ObjectID.generate() },
+    );
+
+    expect(message).toMatch(/10 of 10/);
+    expect(message).toMatch(/Daily Alert AI Fix Task Limit/);
+    expect(message).toMatch(/Alerts > Settings > AI/);
+    expect(message).toMatch(new RegExp(String(DEFAULT_DAILY_FIX_RUN_LIMIT)));
+  });
+
+  test("subjectless rejection points to the always-visible AI Guardrails page", () => {
     const message: string = FixRunBudget.describeRejection(
       FixRunBudget.evaluate({ configuredLimit: 0, runsToday: 0 }),
     );
 
-    expect(message).toMatch(/Daily AI Fix Task Limit/);
-    expect(message).toMatch(/0/);
-  });
-
-  test("over-budget rejection names the counts, the setting and the default", () => {
-    const message: string = FixRunBudget.describeRejection(
-      FixRunBudget.evaluate({ configuredLimit: 10, runsToday: 10 }),
-    );
-
-    expect(message).toMatch(/10 of 10/);
-    expect(message).toMatch(/Daily AI Fix Task Limit/);
-    expect(message).toMatch(new RegExp(String(DEFAULT_DAILY_FIX_RUN_LIMIT)));
+    expect(message).toMatch(/Daily Other AI Fix Task Limit/);
+    expect(message).toMatch(/Project Settings > AI > AI Guardrails/);
   });
 });
 
@@ -117,12 +131,46 @@ describe("FixRunBudget.getBudgetStatus (IO wiring)", () => {
     jest.restoreAllMocks();
   });
 
-  test("counts the project's CodeFix runs created since UTC midnight", async () => {
-    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
-      id: projectId,
-      aiDailyFixTaskLimit: 10,
-    } as unknown as Project);
+  function mockSubjectOperators(): {
+    isNull: Record<string, string>;
+    notNull: Record<string, string>;
+  } {
+    const isNull: Record<string, string> = { operator: "is-null" };
+    const notNull: Record<string, string> = { operator: "not-null" };
 
+    jest.spyOn(QueryHelper, "isNull").mockReturnValue(isNull);
+    jest.spyOn(QueryHelper, "notNull").mockReturnValue(notNull);
+
+    return { isNull, notNull };
+  }
+
+  test("rejects a run carrying both subject types before reading project settings", async () => {
+    const findProject: jest.SpyInstance = jest.spyOn(
+      ProjectService,
+      "findOneById",
+    );
+
+    await expect(
+      FixRunBudget.getBudgetStatus(projectId, {
+        incidentId: ObjectID.generate(),
+        alertId: ObjectID.generate(),
+      }),
+    ).rejects.toThrow(/both an incident and an alert/);
+
+    expect(findProject).not.toHaveBeenCalled();
+  });
+
+  test("subjectless callers retain the fallback limit and count only subjectless CodeFix runs", async () => {
+    const operators: ReturnType<typeof mockSubjectOperators> =
+      mockSubjectOperators();
+    const findProject: jest.SpyInstance = jest
+      .spyOn(ProjectService, "findOneById")
+      .mockResolvedValue({
+        id: projectId,
+        aiDailyFixTaskLimit: 10,
+        incidentAiDailyFixTaskLimit: 1,
+        alertAiDailyFixTaskLimit: 2,
+      } as unknown as Project);
     const countBy: jest.SpyInstance = jest
       .spyOn(AIRunService, "countBy")
       .mockResolvedValue(new PositiveNumber(4));
@@ -136,44 +184,180 @@ describe("FixRunBudget.getBudgetStatus (IO wiring)", () => {
       paused: false,
       runsToday: 4,
     });
-
-    expect(countBy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({
-          projectId,
-          runType: AIRunType.CodeFix,
-          // createdAt >= UTC midnight rides in a QueryHelper find operator.
-          createdAt: expect.anything(),
-        }),
-        props: expect.objectContaining({ isRoot: true }),
-      }),
+    expect(findProject).toHaveBeenCalledWith(
+      expect.objectContaining({ select: { aiDailyFixTaskLimit: true } }),
     );
+
+    const query: Record<string, unknown> = (
+      countBy.mock.calls[0]![0] as { query: Record<string, unknown> }
+    ).query;
+    expect(query["projectId"]).toBe(projectId);
+    expect(query["runType"]).toBe(AIRunType.CodeFix);
+    expect(query["triggeredByIncidentId"]).toBe(operators.isNull);
+    expect(query["triggeredByAlertId"]).toBe(operators.isNull);
+    // createdAt >= UTC midnight rides in a QueryHelper find operator.
+    expect(query["createdAt"]).toBeDefined();
   });
 
-  test("a paused project (limit 0) short-circuits without the count query", async () => {
+  test("an explicitly empty subject from SubjectCodeFixRun also stays in the subjectless lane", async () => {
+    const operators: ReturnType<typeof mockSubjectOperators> =
+      mockSubjectOperators();
+    const findProject: jest.SpyInstance = jest
+      .spyOn(ProjectService, "findOneById")
+      .mockResolvedValue({
+        id: projectId,
+        aiDailyFixTaskLimit: 3,
+        incidentAiDailyFixTaskLimit: 0,
+        alertAiDailyFixTaskLimit: 0,
+      } as unknown as Project);
+    const countBy: jest.SpyInstance = jest
+      .spyOn(AIRunService, "countBy")
+      .mockResolvedValue(new PositiveNumber(2));
+
+    const decision: FixRunBudgetDecision = await FixRunBudget.getBudgetStatus(
+      projectId,
+      { incidentId: undefined, alertId: undefined },
+    );
+
+    expect(decision.limit).toBe(3);
+    expect(decision.allowed).toBe(true);
+    expect(findProject).toHaveBeenCalledWith(
+      expect.objectContaining({ select: { aiDailyFixTaskLimit: true } }),
+    );
+
+    const query: Record<string, unknown> = (
+      countBy.mock.calls[0]![0] as { query: Record<string, unknown> }
+    ).query;
+    expect(query["triggeredByIncidentId"]).toBe(operators.isNull);
+    expect(query["triggeredByAlertId"]).toBe(operators.isNull);
+  });
+
+  test("incident callers select the incident limit and count only incident CodeFix runs", async () => {
+    const operators: ReturnType<typeof mockSubjectOperators> =
+      mockSubjectOperators();
+    const findProject: jest.SpyInstance = jest
+      .spyOn(ProjectService, "findOneById")
+      .mockResolvedValue({
+        id: projectId,
+        aiDailyFixTaskLimit: 99,
+        incidentAiDailyFixTaskLimit: 5,
+        alertAiDailyFixTaskLimit: 1,
+      } as unknown as Project);
+    const countBy: jest.SpyInstance = jest
+      .spyOn(AIRunService, "countBy")
+      .mockResolvedValue(new PositiveNumber(4));
+
+    const decision: FixRunBudgetDecision = await FixRunBudget.getBudgetStatus(
+      projectId,
+      { incidentId: ObjectID.generate() },
+    );
+
+    expect(decision).toEqual({
+      allowed: true,
+      limit: 5,
+      paused: false,
+      runsToday: 4,
+    });
+    expect(findProject).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: { incidentAiDailyFixTaskLimit: true },
+      }),
+    );
+
+    const query: Record<string, unknown> = (
+      countBy.mock.calls[0]![0] as { query: Record<string, unknown> }
+    ).query;
+    expect(query["runType"]).toBe(AIRunType.CodeFix);
+    expect(query["triggeredByIncidentId"]).toBe(operators.notNull);
+    expect(query["triggeredByAlertId"]).toBe(operators.isNull);
+  });
+
+  test("alert callers select the alert limit and count only alert CodeFix runs", async () => {
+    const operators: ReturnType<typeof mockSubjectOperators> =
+      mockSubjectOperators();
+    const findProject: jest.SpyInstance = jest
+      .spyOn(ProjectService, "findOneById")
+      .mockResolvedValue({
+        id: projectId,
+        aiDailyFixTaskLimit: 99,
+        incidentAiDailyFixTaskLimit: 1,
+        alertAiDailyFixTaskLimit: 7,
+      } as unknown as Project);
+    const countBy: jest.SpyInstance = jest
+      .spyOn(AIRunService, "countBy")
+      .mockResolvedValue(new PositiveNumber(6));
+
+    const decision: FixRunBudgetDecision = await FixRunBudget.getBudgetStatus(
+      projectId,
+      { alertId: ObjectID.generate() },
+    );
+
+    expect(decision).toEqual({
+      allowed: true,
+      limit: 7,
+      paused: false,
+      runsToday: 6,
+    });
+    expect(findProject).toHaveBeenCalledWith(
+      expect.objectContaining({ select: { alertAiDailyFixTaskLimit: true } }),
+    );
+
+    const query: Record<string, unknown> = (
+      countBy.mock.calls[0]![0] as { query: Record<string, unknown> }
+    ).query;
+    expect(query["runType"]).toBe(AIRunType.CodeFix);
+    expect(query["triggeredByIncidentId"]).toBe(operators.isNull);
+    expect(query["triggeredByAlertId"]).toBe(operators.notNull);
+  });
+
+  test("pausing the incident lane short-circuits without counting another lane", async () => {
     jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
       id: projectId,
-      aiDailyFixTaskLimit: 0,
+      aiDailyFixTaskLimit: 50,
+      incidentAiDailyFixTaskLimit: 0,
+      alertAiDailyFixTaskLimit: 50,
     } as unknown as Project);
-
     const countBy: jest.SpyInstance = jest.spyOn(AIRunService, "countBy");
 
-    const decision: FixRunBudgetDecision =
-      await FixRunBudget.getBudgetStatus(projectId);
+    const decision: FixRunBudgetDecision = await FixRunBudget.getBudgetStatus(
+      projectId,
+      { incidentId: ObjectID.generate() },
+    );
 
     expect(decision.allowed).toBe(false);
     expect(decision.paused).toBe(true);
     expect(countBy).not.toHaveBeenCalled();
   });
 
-  test("a missing project row falls back to the default cap (fail-safe, not fail-open)", async () => {
+  test("pausing the alert lane short-circuits without counting another lane", async () => {
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      id: projectId,
+      aiDailyFixTaskLimit: 50,
+      incidentAiDailyFixTaskLimit: 50,
+      alertAiDailyFixTaskLimit: 0,
+    } as unknown as Project);
+    const countBy: jest.SpyInstance = jest.spyOn(AIRunService, "countBy");
+
+    const decision: FixRunBudgetDecision = await FixRunBudget.getBudgetStatus(
+      projectId,
+      { alertId: ObjectID.generate() },
+    );
+
+    expect(decision.allowed).toBe(false);
+    expect(decision.paused).toBe(true);
+    expect(countBy).not.toHaveBeenCalled();
+  });
+
+  test("a missing project row uses the default cap in the requested lane (fail-safe, not fail-open)", async () => {
     jest.spyOn(ProjectService, "findOneById").mockResolvedValue(null);
     jest
       .spyOn(AIRunService, "countBy")
       .mockResolvedValue(new PositiveNumber(DEFAULT_DAILY_FIX_RUN_LIMIT));
 
-    const decision: FixRunBudgetDecision =
-      await FixRunBudget.getBudgetStatus(projectId);
+    const decision: FixRunBudgetDecision = await FixRunBudget.getBudgetStatus(
+      projectId,
+      { alertId: ObjectID.generate() },
+    );
 
     expect(decision.limit).toBe(DEFAULT_DAILY_FIX_RUN_LIMIT);
     expect(decision.allowed).toBe(false);
@@ -199,7 +383,7 @@ describe("FixRunBudget.assertWithinBudget", () => {
     ).resolves.toBeUndefined();
   });
 
-  test("over budget throws a BadDataException naming the setting", async () => {
+  test("over budget throws a BadDataException naming the subjectless setting", async () => {
     jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
       id: projectId,
       aiDailyFixTaskLimit: 5,
@@ -212,7 +396,7 @@ describe("FixRunBudget.assertWithinBudget", () => {
       BadDataException,
     );
     await expect(FixRunBudget.assertWithinBudget(projectId)).rejects.toThrow(
-      /Daily AI Fix Task Limit/,
+      /Daily Other AI Fix Task Limit/,
     );
   });
 });

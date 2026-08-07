@@ -155,19 +155,32 @@ export const AI_REMEDIATION_EXECUTION_FEATURE: string =
  * (SQL `= ANY`, and an `.includes()` gate on the write path that no writer can
  * trip because no writer emits these strings any more).
  */
+const LEGACY_SENTINEL_INCIDENT_INVESTIGATION_FEATURE: string =
+  "Sentinel Incident Investigation";
+const LEGACY_SENTINEL_ALERT_INVESTIGATION_FEATURE: string =
+  "Sentinel Alert Investigation";
+const LEGACY_SENTINEL_INVESTIGATION_GRADING_FEATURE: string =
+  "Sentinel Investigation Grading";
+const LEGACY_SENTINEL_CONFIDENCE_CLASSIFICATION_FEATURE: string =
+  "Sentinel Confidence Classification";
+const LEGACY_SENTINEL_CODE_FIX_FEATURE: string = "Sentinel Code Fix";
+const LEGACY_SENTINEL_INSIGHT_TRIAGE_FEATURE: string =
+  "Sentinel Insight Triage";
+
 export const LEGACY_AUTONOMOUS_AI_FEATURES: Array<string> = [
-  "Sentinel Incident Investigation",
-  "Sentinel Alert Investigation",
-  "Sentinel Investigation Grading",
-  "Sentinel Confidence Classification",
-  "Sentinel Code Fix",
-  "Sentinel Insight Triage",
+  LEGACY_SENTINEL_INCIDENT_INVESTIGATION_FEATURE,
+  LEGACY_SENTINEL_ALERT_INVESTIGATION_FEATURE,
+  LEGACY_SENTINEL_INVESTIGATION_GRADING_FEATURE,
+  LEGACY_SENTINEL_CONFIDENCE_CLASSIFICATION_FEATURE,
+  LEGACY_SENTINEL_CODE_FIX_FEATURE,
+  LEGACY_SENTINEL_INSIGHT_TRIAGE_FEATURE,
 ];
 
 /*
- * Features that run WITHOUT a human in the loop. The per-project daily token
- * budget (Project.aiDailyAutonomousTokenLimit, G4) applies only to these —
- * interactive chat and explicitly user-triggered AI are never budget-blocked.
+ * Features that run WITHOUT a human in the loop. Incident-linked and
+ * alert-linked calls use their respective daily token limits; subjectless
+ * calls use Project.aiDailyAutonomousTokenLimit. Interactive chat and
+ * explicitly user-triggered AI are never budget-blocked.
  * Auto-postmortem is deliberately excluded for now: it is one call per
  * resolved incident, not storm-shaped; include it when it moves to the queue.
  *
@@ -188,7 +201,7 @@ export const AUTONOMOUS_AI_FEATURES: Array<string> = [
    * user-triggered, but the tool loop then runs unattended for up to ~40
    * calls — storm-shaped enough that the daily budget must cover it. The
    * per-run loop budgets (CodeFixAgentCompletion) cap a single run; this
-   * daily pool caps all of them together.
+   * daily subject lane caps all of them together.
    */
   AI_CODE_FIX_FEATURE,
   /*
@@ -215,7 +228,7 @@ export const AUTONOMOUS_AI_FEATURES: Array<string> = [
   /*
    * Auto-remediation command composition/execution
    * (RemediationExecutionRunner). Same trigger shape as planning, with a
-   * larger per-run tool budget — the daily pool must cover it.
+   * larger per-run tool budget — the daily subject lane must cover it.
    */
   AI_REMEDIATION_EXECUTION_FEATURE,
   /*
@@ -224,6 +237,23 @@ export const AUTONOMOUS_AI_FEATURES: Array<string> = [
    * before removing.
    */
   ...LEGACY_AUTONOMOUS_AI_FEATURES,
+];
+
+/*
+ * Before subject-lane accounting shipped, the main investigation calls did
+ * not persist incidentId/alertId (or aiRunId). Their feature label is the only
+ * durable lane signal left on those rows. Keep these lists so a deployment
+ * does not reset today's incident/alert spend or charge it to background work.
+ */
+const LEGACY_INCIDENT_LANE_FEATURES: Array<string> = [
+  AI_INCIDENT_INVESTIGATION_FEATURE,
+  AI_INVESTIGATION_GRADING_FEATURE,
+  LEGACY_SENTINEL_INCIDENT_INVESTIGATION_FEATURE,
+  LEGACY_SENTINEL_INVESTIGATION_GRADING_FEATURE,
+];
+const LEGACY_ALERT_LANE_FEATURES: Array<string> = [
+  AI_ALERT_INVESTIGATION_FEATURE,
+  LEGACY_SENTINEL_ALERT_INVESTIGATION_FEATURE,
 ];
 
 export interface AutonomousBudgetStatus {
@@ -237,10 +267,10 @@ export interface AILogRequest {
   projectId: ObjectID;
   userId?: ObjectID | undefined;
   feature: string; // e.g., "IncidentPostmortem", "IncidentNote"
-  incidentId?: ObjectID;
-  alertId?: ObjectID;
-  scheduledMaintenanceId?: ObjectID;
-  aiRunId?: ObjectID;
+  incidentId?: ObjectID | undefined;
+  alertId?: ObjectID | undefined;
+  scheduledMaintenanceId?: ObjectID | undefined;
+  aiRunId?: ObjectID | undefined;
   /*
    * When set, use this specific provider (validated against the project) rather
    * than the project default. Powers the in-chat provider/model switcher.
@@ -337,22 +367,39 @@ export class Service extends BaseService {
   }
 
   /*
-   * G4 daily budget: has this project consumed its daily autonomous-token
-   * allowance (UTC day)? Counts only AUTONOMOUS_AI_FEATURES tokens, so chat
-   * usage neither eats the autonomous budget nor is blocked by it.
+   * G4 daily budget: has this project consumed the selected subject lane's
+   * daily autonomous-token allowance (UTC day)? Counts only that lane's
+   * AUTONOMOUS_AI_FEATURES tokens, so chat usage neither eats the autonomous
+   * budget nor is blocked by it.
    */
   @CaptureSpan()
   public async getAutonomousDailyBudgetStatus(
     projectId: ObjectID,
+    subject?: {
+      incidentId?: ObjectID | undefined;
+      alertId?: ObjectID | undefined;
+    },
   ): Promise<AutonomousBudgetStatus> {
+    this.assertSingleSubject(subject);
+
     const project: Project | null = await ProjectService.findOneById({
       id: projectId,
-      select: { aiDailyAutonomousTokenLimit: true },
+      select: {
+        aiDailyAutonomousTokenLimit: true,
+        incidentAiDailyAutonomousTokenLimit: true,
+        alertAiDailyAutonomousTokenLimit: true,
+      },
       props: { isRoot: true },
     });
 
-    const limitInTokens: number | null =
+    let limitInTokens: number | null =
       project?.aiDailyAutonomousTokenLimit ?? null;
+
+    if (subject?.incidentId) {
+      limitInTokens = project?.incidentAiDailyAutonomousTokenLimit ?? null;
+    } else if (subject?.alertId) {
+      limitInTokens = project?.alertAiDailyAutonomousTokenLimit ?? null;
+    }
 
     if (limitInTokens === null) {
       return { exhausted: false, limitInTokens: null, usedTokensToday: 0 };
@@ -374,6 +421,10 @@ export class Service extends BaseService {
           "UTC",
         ),
         features: AUTONOMOUS_AI_FEATURES,
+        incidentId: subject?.incidentId,
+        alertId: subject?.alertId,
+        legacyIncidentFeatures: LEGACY_INCIDENT_LANE_FEATURES,
+        legacyAlertFeatures: LEGACY_ALERT_LANE_FEATURES,
       },
     );
 
@@ -388,6 +439,8 @@ export class Service extends BaseService {
   public async executeWithLogging(
     request: AILogRequest,
   ): Promise<AILogResponse> {
+    this.assertSingleSubject(request);
+
     const startTime: Date = new Date();
 
     // Get LLM provider for the project (honoring an explicit per-chat choice).
@@ -503,10 +556,18 @@ export class Service extends BaseService {
      */
     if (AUTONOMOUS_AI_FEATURES.includes(request.feature)) {
       const budget: AutonomousBudgetStatus =
-        await this.getAutonomousDailyBudgetStatus(request.projectId);
+        await this.getAutonomousDailyBudgetStatus(request.projectId, {
+          incidentId: request.incidentId,
+          alertId: request.alertId,
+        });
 
       if (budget.exhausted) {
-        const budgetMessage: string = `Daily autonomous AI token budget exhausted (${budget.usedTokensToday.toLocaleString()} of ${budget.limitInTokens?.toLocaleString()} tokens used today). Autonomous AI requests resume tomorrow (UTC) — raise or unset the limit in the AI settings pages.`;
+        const settingsLocation: string = request.incidentId
+          ? "Incidents > Settings > AI"
+          : request.alertId
+            ? "Alerts > Settings > AI"
+            : "Project Settings > AI > AI Guardrails";
+        const budgetMessage: string = `Daily autonomous AI token budget exhausted (${budget.usedTokensToday.toLocaleString()} of ${budget.limitInTokens?.toLocaleString()} tokens used today). Autonomous AI requests resume tomorrow (UTC) — raise or unset the limit under ${settingsLocation}.`;
 
         logEntry.status = LlmLogStatus.BudgetExceeded;
         logEntry.statusMessage = budgetMessage.substring(0, 490);
@@ -655,6 +716,17 @@ export class Service extends BaseService {
       }
 
       throw error;
+    }
+  }
+
+  private assertSingleSubject(subject?: {
+    incidentId?: ObjectID | undefined;
+    alertId?: ObjectID | undefined;
+  }): void {
+    if (subject?.incidentId && subject.alertId) {
+      throw new BadDataException(
+        "An AI request cannot belong to both an incident and an alert.",
+      );
     }
   }
 

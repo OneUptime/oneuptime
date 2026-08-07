@@ -321,6 +321,8 @@ export default class RemediationExecutionRunner {
       attemptCount,
       request: {
         feature: AI_REMEDIATION_EXECUTION_FEATURE,
+        incidentId: suggestion!.incidentId,
+        alertId: suggestion!.alertId,
         contextSummary,
         personaOverride:
           resolvedMode === "FullAuto" ? FULLAUTO_PERSONA : SUGGEST_PERSONA,

@@ -8,6 +8,10 @@ import JSONFunctions from "Common/Types/JSONFunctions";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import MetricSeriesScope from "Common/Utils/Metrics/MetricSeriesScope";
+import InBetween from "Common/Types/BaseDatabase/InBetween";
+import TelemetryQueryTimeRange from "Common/Utils/Telemetry/TelemetryQueryTimeRange";
+import TelemetryType from "Common/Types/Telemetry/TelemetryType";
+import { TelemetryQuery } from "Common/Types/Telemetry/TelemetryQuery";
 
 /*
  * A metric monitor grouped by an attribute (host.name, pod, device) opens
@@ -209,17 +213,23 @@ describe("the monitor-level metrics preview stays unscoped", () => {
  * are the fragile part of that round trip.
  */
 describe("the narrowing survives the stored-JSON round trip", () => {
+  const WINDOW_START: Date = new Date("2024-05-01T10:00:00.000Z");
+  const WINDOW_END: Date = new Date("2024-05-01T11:00:00.000Z");
+
   function buildStoredTelemetryQuery(input: {
     groupByAttributeKeys: Array<string>;
   }): JSONObject {
     const metricViewData: JSONObject = {
-      startAndEndDate: {
-        _type: "InBetween",
-        value: {
-          startValue: "2024-05-01T10:00:00.000Z",
-          endValue: "2024-05-01T11:00:00.000Z",
-        },
-      },
+      /*
+       * Built from a real InBetween and pushed through the worker's own
+       * serializer rather than hand-written. A previous hand-written fixture
+       * nested the bounds under `value:`, but InBetween.toJSON emits them
+       * FLAT — so it deserialized to `new InBetween(undefined, undefined)` and
+       * every assertion about the window below passed against an empty object.
+       */
+      startAndEndDate: JSONFunctions.anyObjectToJSONObject(
+        new InBetween<Date>(WINDOW_START, WINDOW_END),
+      ),
       queryConfigs: [
         {
           id: "query-1",
@@ -283,8 +293,54 @@ describe("the narrowing survives the stored-JSON round trip", () => {
     expect(getAttributes(scoped?.queryConfigs[0])).toEqual({
       "resource.host.name": "prod-01",
     });
-    // The window the monitor evaluated over must come through untouched.
+
+    /*
+     * The window the monitor evaluated over must come through untouched --
+     * asserted by VALUE, not just by reference. A reference check alone passes
+     * even when both sides are an empty InBetween, which is how this stopped
+     * checking anything.
+     */
     expect(scoped?.startAndEndDate).toBe(metricViewData.startAndEndDate);
+    expect(scoped?.startAndEndDate?.startValue).toBeDefined();
+    expect(new Date(scoped!.startAndEndDate!.startValue).getTime()).toBe(
+      WINDOW_START.getTime(),
+    );
+    expect(new Date(scoped!.startAndEndDate!.endValue).getTime()).toBe(
+      WINDOW_END.getTime(),
+    );
+  });
+
+  test("the restored window has string bounds until it is hydrated", () => {
+    /*
+     * Pins the trap that made the incident metric card silently lose bucket
+     * alignment and exemplar dots: the stored window comes back as a real
+     * InBetween whose bounds are ISO strings, so every downstream
+     * `instanceof Date` guard quietly did nothing. The pages now run
+     * TelemetryQueryTimeRange.hydrate to undo it.
+     */
+    const deserialized: JSONObject = JSONFunctions.deserialize(
+      buildStoredTelemetryQuery({ groupByAttributeKeys: [] }),
+    );
+
+    const restored: MetricViewData = deserialized[
+      "metricViewData"
+    ] as unknown as MetricViewData;
+
+    expect(restored.startAndEndDate).toBeInstanceOf(InBetween);
+    expect(restored.startAndEndDate!.startValue).not.toBeInstanceOf(Date);
+
+    const hydrated: TelemetryQuery | null = TelemetryQueryTimeRange.hydrate({
+      telemetryType: TelemetryType.Metric,
+      telemetryQuery: null,
+      metricViewData: restored,
+    });
+
+    expect(
+      hydrated!.metricViewData!.startAndEndDate!.startValue,
+    ).toBeInstanceOf(Date);
+    expect(
+      hydrated!.metricViewData!.startAndEndDate!.startValue.getTime(),
+    ).toBe(WINDOW_START.getTime());
   });
 
   test("an unset label round-trips through serialize/deserialize as IsNull", () => {

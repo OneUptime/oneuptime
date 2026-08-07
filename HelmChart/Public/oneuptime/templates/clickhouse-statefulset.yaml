@@ -37,10 +37,8 @@ spec:
         checksum/config: {{ include (print $.Template.BasePath "/clickhouse-configmap.yaml") . | sha256sum }}
     spec:
       serviceAccountName: {{ .Release.Name }}-clickhouse
-      {{- with .Values.clickhouse.nodeSelector }}
       nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+        {{- include "oneuptime.nodeSelector" .Values.clickhouse.nodeSelector | nindent 8 }}
       {{- with .Values.clickhouse.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}

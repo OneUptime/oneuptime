@@ -6,7 +6,7 @@
  *   expr    := term (('+' | '-') term)*
  *   term    := factor (('*' | '/') factor)*
  *   factor  := number | identifier | '(' expr ')' | '-' factor
- *   number  := digits ('.' digits)?
+ *   number  := digit+ ('.' digit*)?
  *   identifier := [A-Za-z_][A-Za-z0-9_]*
  *
  * Evaluation returns `null` when the result is not a finite real number —
@@ -123,7 +123,7 @@ export function parse(input: string): ParseResult | ParseError {
   }
 
   const tokens: Array<Token> = tokenized;
-  const state: { i: number; depth: number } = { i: 0, depth: 0 };
+  const state: { i: number } = { i: 0 };
   const identifiers: Set<string> = new Set();
 
   function peek(): Token | undefined {
@@ -134,23 +134,20 @@ export function parse(input: string): ParseResult | ParseError {
     return tokens[state.i++];
   }
 
-  function parseExpr(): Node | ParseError {
-    if (state.depth > MAX_DEPTH) {
+  function parseExpr(depth: number): Node | ParseError {
+    if (depth > MAX_DEPTH) {
       return { ok: false, error: "Expression nesting too deep" };
     }
-    state.depth++;
-    let left: Node | ParseError = parseTerm();
+    let left: Node | ParseError = parseTerm(depth);
     if ("ok" in left && left.ok === false) {
-      state.depth--;
       return left;
     }
     while (true) {
       const next: Token | undefined = peek();
       if (next?.type === "op" && (next.value === "+" || next.value === "-")) {
         advance();
-        const right: Node | ParseError = parseTerm();
+        const right: Node | ParseError = parseTerm(depth);
         if ("ok" in right && right.ok === false) {
-          state.depth--;
           return right;
         }
         left = {
@@ -163,12 +160,11 @@ export function parse(input: string): ParseResult | ParseError {
       }
       break;
     }
-    state.depth--;
     return left as Node;
   }
 
-  function parseTerm(): Node | ParseError {
-    let left: Node | ParseError = parseFactor();
+  function parseTerm(depth: number): Node | ParseError {
+    let left: Node | ParseError = parseFactor(depth);
     if ("ok" in left && left.ok === false) {
       return left;
     }
@@ -176,7 +172,7 @@ export function parse(input: string): ParseResult | ParseError {
       const next: Token | undefined = peek();
       if (next?.type === "op" && (next.value === "*" || next.value === "/")) {
         advance();
-        const right: Node | ParseError = parseFactor();
+        const right: Node | ParseError = parseFactor(depth);
         if ("ok" in right && right.ok === false) {
           return right;
         }
@@ -193,7 +189,10 @@ export function parse(input: string): ParseResult | ParseError {
     return left as Node;
   }
 
-  function parseFactor(): Node | ParseError {
+  function parseFactor(depth: number): Node | ParseError {
+    if (depth > MAX_DEPTH) {
+      return { ok: false, error: "Expression nesting too deep" };
+    }
     const tok: Token | undefined = peek();
     if (!tok) {
       return {
@@ -203,7 +202,7 @@ export function parse(input: string): ParseResult | ParseError {
     }
     if (tok.type === "op" && tok.value === "-") {
       advance();
-      const operand: Node | ParseError = parseFactor();
+      const operand: Node | ParseError = parseFactor(depth + 1);
       if ("ok" in operand && operand.ok === false) {
         return operand;
       }
@@ -228,7 +227,7 @@ export function parse(input: string): ParseResult | ParseError {
     }
     if (tok.type === "lparen") {
       advance();
-      const inner: Node | ParseError = parseExpr();
+      const inner: Node | ParseError = parseExpr(depth + 1);
       if ("ok" in inner && inner.ok === false) {
         return inner;
       }
@@ -249,7 +248,7 @@ export function parse(input: string): ParseResult | ParseError {
     };
   }
 
-  const ast: Node | ParseError = parseExpr();
+  const ast: Node | ParseError = parseExpr(0);
   if ("ok" in ast && ast.ok === false) {
     return ast;
   }
@@ -281,6 +280,9 @@ export function evaluate(
     case "num":
       return Number.isFinite(node.value) ? node.value : null;
     case "ident": {
+      if (!Object.prototype.hasOwnProperty.call(bindings, node.name)) {
+        return null;
+      }
       const v: number | undefined = bindings[node.name];
       if (typeof v !== "number" || !Number.isFinite(v)) {
         return null;

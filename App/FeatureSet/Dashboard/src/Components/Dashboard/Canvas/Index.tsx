@@ -1,18 +1,29 @@
-import React, { FunctionComponent, ReactElement } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import BlankCanvasElement from "./BlankCanvas";
 import DashboardViewConfig from "Common/Types/Dashboard/DashboardViewConfig";
 import DefaultDashboardSize, {
-  GetDashboardUnitWidthInPx,
   SpaceBetweenUnitsInPx,
 } from "Common/Types/Dashboard/DashboardSize";
 import DashboardBaseComponent from "Common/Types/Dashboard/DashboardComponents/DashboardBaseComponent";
-import BlankDashboardUnitElement from "./BlankDashboardUnit";
 import DashboardBaseComponentElement from "../Components/DashboardBaseComponent";
-import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import ComponentSettingsModal from "./ComponentSettingsModal";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import DashboardViewConfigUtil from "Common/Utils/Dashboard/DashboardViewConfig";
+import GridLayoutUtil, { GridRect } from "Common/Utils/Dashboard/GridLayout";
+import useDashboardGridDnd, {
+  DashboardGridDndResult,
+  GRID_ITEM_TRANSITION,
+  ResizeDirection,
+} from "Common/UI/Utils/UseDashboardGridDnd";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
@@ -34,152 +45,125 @@ export interface ComponentProps {
   variables?: Array<DashboardVariable> | undefined;
 }
 
+/** Extra empty rows kept below the lowest widget while editing. */
+const EDIT_MODE_BUFFER_ROWS: number = 4;
+
+/** Minimum rows the edit canvas shows, so an empty-ish board has room. */
+const EDIT_MODE_MIN_ROWS: number = 12;
+
 const DashboardCanvas: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const dashboardCanvasRef: React.RefObject<HTMLDivElement> =
-    React.useRef<HTMLDivElement>(null);
-
   const gap: number = SpaceBetweenUnitsInPx;
-  const unitSize: number = GetDashboardUnitWidthInPx(
-    props.currentTotalDashboardWidthInPx,
-  );
-
-  /**
-   * Width the canvas loses before its columns are laid out: the grid's own
-   * `padding: "8px"` below (16), plus the wrapper DashboardView puts around it
-   * — `mx-3` (24), `px-1` (8) and a 1px border (2).
-   * `currentTotalDashboardWidthInPx` is that wrapper's offsetWidth, not the
-   * grid's content width.
-   */
-  const canvasHorizontalInsetInPx: number = 50;
+  const columns: number = DefaultDashboardSize.widthInDashboardUnits;
 
   /*
-   * `gridAutoRows` below is an absolute px value, so a row really is unitSize
-   * tall and the height reported to each widget is exact. The columns are
-   * `1fr` INSIDE the inset above, though, so a real column is narrower than
-   * unitSize. Report the real one, or every widget that sizes itself by width
-   * lays out against horizontal space it does not have — 4.2px per unit, 12.5px
-   * on a default 3-wide widget.
+   * The positioner is the absolutely-positioned coordinate space widgets
+   * live in. Its real content width — measured, not guessed from the page
+   * width — is the source of truth for the unit size, so widgets get exact
+   * pixel dimensions.
    */
-  const columnSize: number = GetDashboardUnitWidthInPx(
-    props.currentTotalDashboardWidthInPx - canvasHorizontalInsetInPx,
-  );
+  const positionerRef: React.RefObject<HTMLDivElement> =
+    useRef<HTMLDivElement>(null);
+  const [measuredWidthInPx, setMeasuredWidthInPx] = useState<number>(0);
 
-  const renderComponents: GetReactElementFunction = (): ReactElement => {
-    const canvasHeight: number =
-      props.dashboardViewConfig.heightInDashboardUnits ||
-      DefaultDashboardSize.heightInDashboardUnits;
-
-    const canvasWidth: number = DefaultDashboardSize.widthInDashboardUnits;
-
-    const allComponents: Array<DashboardBaseComponent> =
-      props.dashboardViewConfig.components;
-
-    // Create a 2D array to represent the grid
-    const grid: Array<Array<DashboardBaseComponent | null>> = [];
-
-    // Fill the grid with null initially
-    for (let row: number = 0; row < canvasHeight; row++) {
-      grid[row] = new Array(canvasWidth).fill(null);
+  useLayoutEffect(() => {
+    const element: HTMLDivElement | null = positionerRef.current;
+    if (!element) {
+      return undefined;
     }
 
-    let maxHeightInDashboardUnits: number = 0;
+    setMeasuredWidthInPx(element.clientWidth);
 
-    // Place components in the grid
-    allComponents.forEach((component: DashboardBaseComponent) => {
-      const {
-        topInDashboardUnits,
-        leftInDashboardUnits,
-        widthInDashboardUnits,
-        heightInDashboardUnits,
-      } = component;
+    if (typeof ResizeObserver === "undefined") {
+      return undefined;
+    }
 
-      for (
-        let i: number = topInDashboardUnits;
-        i < topInDashboardUnits + heightInDashboardUnits;
-        i++
-      ) {
-        if (!grid[i]) {
-          grid[i] = new Array(canvasWidth).fill(null);
-        }
-
-        for (
-          let j: number = leftInDashboardUnits;
-          j < leftInDashboardUnits + widthInDashboardUnits;
-          j++
-        ) {
-          grid[i]![j] = component;
-        }
-
-        maxHeightInDashboardUnits = Math.max(
-          maxHeightInDashboardUnits,
-          topInDashboardUnits + heightInDashboardUnits,
-        );
-      }
+    const observer: ResizeObserver = new ResizeObserver(() => {
+      setMeasuredWidthInPx(element.clientWidth);
     });
+    observer.observe(element);
 
-    const renderedComponentsIds: Array<string> = [];
+    return () => {
+      observer.disconnect();
+    };
+  }, [props.dashboardViewConfig.components.length === 0]);
 
-    const renderedComponents: Array<ReactElement | null> = [];
+  const unitSizeInPx: number = Math.max(
+    (measuredWidthInPx - (columns - 1) * gap) / columns,
+    1,
+  );
+  const cellSizeInPx: number = unitSizeInPx + gap;
 
-    for (let i: number = 0; i < canvasHeight; i++) {
-      for (let j: number = 0; j < canvasWidth; j++) {
-        const component: DashboardBaseComponent | null | undefined =
-          grid[i]![j];
-
-        if (
-          component &&
-          !renderedComponentsIds.includes(component.componentId.toString())
-        ) {
-          renderedComponents.push(renderComponent(component.componentId));
-          renderedComponentsIds.push(component.componentId.toString());
-        }
-
-        if (!component) {
-          if (!props.isEditMode && i >= maxHeightInDashboardUnits) {
-            continue;
-          }
-
-          renderedComponents.push(
-            <BlankDashboardUnitElement
-              isEditMode={props.isEditMode}
-              key={`blank-unit-${i}-${j}`}
-              onClick={() => {
-                props.onComponentUnselected();
-              }}
-              id={`blank-unit-${i}-${j}`}
-            />,
-          );
-        }
-      }
-    }
-
-    const finalRenderedComponents: Array<ReactElement> =
-      renderedComponents.filter(
-        (component: ReactElement | null): component is ReactElement => {
-          return component !== null;
-        },
-      );
-
-    return (
-      <div
-        ref={dashboardCanvasRef}
-        style={{
-          display: "grid",
-          gridTemplateColumns: `repeat(${canvasWidth}, 1fr)`,
-          gap: `${gap}px`,
-          gridAutoRows: `${unitSize}px`,
-          borderRadius: "16px",
-          padding: "8px",
-        }}
-      >
-        {finalRenderedComponents}
-      </div>
-    );
+  type UnitsToSizePxFunction = (units: number) => number;
+  const unitsToSizePx: UnitsToSizePxFunction = (units: number): number => {
+    return units * unitSizeInPx + (units - 1) * gap;
   };
 
-  type RenderComponentFunction = (componentId: ObjectID) => ReactElement;
+  const components: Array<DashboardBaseComponent> =
+    props.dashboardViewConfig.components;
+
+  const committedRects: Array<GridRect> = useMemo(() => {
+    return GridLayoutUtil.fromDashboardComponents(components);
+  }, [components]);
+
+  const handleCommit: (rects: Array<GridRect>) => void = useCallback(
+    (rects: Array<GridRect>): void => {
+      const updatedComponents: Array<DashboardBaseComponent> =
+        GridLayoutUtil.applyRectsToComponents(
+          props.dashboardViewConfig.components,
+          rects,
+        );
+
+      props.onDashboardViewConfigChange({
+        ...props.dashboardViewConfig,
+        components: updatedComponents,
+        heightInDashboardUnits: Math.max(GridLayoutUtil.requiredRows(rects), 1),
+      });
+    },
+    [props.dashboardViewConfig, props.onDashboardViewConfigChange],
+  );
+
+  const handleItemClick: (id: string) => void = useCallback(
+    (id: string): void => {
+      props.onComponentSelected(new ObjectID(id));
+    },
+    [props.onComponentSelected],
+  );
+
+  const dnd: DashboardGridDndResult = useDashboardGridDnd({
+    items: committedRects,
+    metrics: {
+      unitSizeInPx,
+      gapInPx: gap,
+      columns,
+    },
+    isEnabled: props.isEditMode,
+    canvasRef: positionerRef,
+    onCommit: handleCommit,
+    onItemClick: handleItemClick,
+  });
+
+  const rectById: Map<string, GridRect> = useMemo(() => {
+    return new Map<string, GridRect>(
+      dnd.rects.map((rect: GridRect) => {
+        return [rect.id, rect];
+      }),
+    );
+  }, [dnd.rects]);
+
+  // ── canvas height ─────────────────────────────────────────────────────
+
+  const contentRows: number = Math.max(dnd.totalRows, 1);
+  const containerRows: number = props.isEditMode
+    ? Math.max(contentRows + EDIT_MODE_BUFFER_ROWS, EDIT_MODE_MIN_ROWS)
+    : contentRows;
+  const containerHeightInPx: number = Math.max(
+    containerRows * cellSizeInPx - gap,
+    0,
+  );
+
+  // ── modal helpers (unchanged behaviour) ───────────────────────────────
 
   type UpdateComponentFunction = (
     updatedComponent: DashboardBaseComponent,
@@ -202,10 +186,11 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
         },
       );
 
-    const updatedDashboardViewConfig: DashboardViewConfig = {
-      ...props.dashboardViewConfig,
-      components: [...updatedComponents],
-    };
+    const updatedDashboardViewConfig: DashboardViewConfig =
+      DashboardViewConfigUtil.normalizeLayout({
+        ...props.dashboardViewConfig,
+        components: [...updatedComponents],
+      });
 
     props.onDashboardViewConfigChange(
       JSONFunctions.deserializeValue(
@@ -214,72 +199,190 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
     );
   };
 
+  // ── rendering ─────────────────────────────────────────────────────────
+
+  type RenderComponentFunction = (
+    component: DashboardBaseComponent,
+  ) => ReactElement | null;
+
   const renderComponent: RenderComponentFunction = (
-    componentId: ObjectID,
-  ): ReactElement => {
-    const isSelected: boolean =
-      props.selectedComponentId?.toString() === componentId.toString();
+    component: DashboardBaseComponent,
+  ): ReactElement | null => {
+    const componentId: ObjectID = component.componentId;
+    const id: string = componentId.toString();
+    const rect: GridRect | undefined = rectById.get(id);
 
-    const component: DashboardBaseComponent | undefined =
-      props.dashboardViewConfig.components.find((c: DashboardBaseComponent) => {
-        return c.componentId.toString() === componentId.toString();
-      });
+    if (!rect) {
+      return null;
+    }
 
-    const w: number = component?.widthInDashboardUnits || 0;
-    const h: number = component?.heightInDashboardUnits || 0;
+    const isSelected: boolean = props.selectedComponentId?.toString() === id;
+    const isActive: boolean = dnd.activeId === id;
 
-    // Compute pixel dimensions for child component rendering (charts, etc.)
-    const widthOfComponentInPx: number = columnSize * w + gap * (w - 1);
-
-    const heightOfComponentInPx: number = unitSize * h + gap * (h - 1);
+    const widthInPx: number = unitsToSizePx(rect.width);
+    const heightInPx: number = unitsToSizePx(rect.height);
 
     return (
-      <DashboardBaseComponentElement
-        dashboardViewConfig={props.dashboardViewConfig}
-        isEditMode={props.isEditMode}
-        dashboardCanvasHeightInPx={
-          dashboardCanvasRef.current?.clientHeight || 0
-        }
-        dashboardComponentWidthInPx={widthOfComponentInPx}
-        dashboardComponentHeightInPx={heightOfComponentInPx}
-        metricTypes={props.metrics.metricTypes}
-        dashboardStartAndEndDate={props.dashboardStartAndEndDate}
-        dashboardCanvasWidthInPx={dashboardCanvasRef.current?.clientWidth || 0}
-        dashboardCanvasTopInPx={dashboardCanvasRef.current?.clientTop || 0}
-        dashboardCanvasLeftInPx={dashboardCanvasRef.current?.clientLeft || 0}
-        totalCurrentDashboardWidthInPx={props.currentTotalDashboardWidthInPx}
-        componentId={componentId}
-        key={componentId.toString()}
-        onComponentUpdate={(updatedComponent: DashboardBaseComponent) => {
-          updateComponent(updatedComponent);
+      <div
+        key={id}
+        id={`dashboard-component-${id}`}
+        ref={(element: HTMLDivElement | null) => {
+          dnd.registerItemElement(id, element);
         }}
-        isSelected={isSelected}
-        refreshTick={props.refreshTick}
-        variables={props.variables}
-        onClick={() => {
-          props.onComponentSelected(componentId);
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: `${widthInPx}px`,
+          height: `${heightInPx}px`,
+          transform: `translate(${rect.left * cellSizeInPx}px, ${
+            rect.top * cellSizeInPx
+          }px)`,
+          transition: isActive ? "none" : GRID_ITEM_TRANSITION,
+          zIndex: isSelected && !isActive ? 20 : undefined,
         }}
-      />
+      >
+        <DashboardBaseComponentElement
+          dashboardViewConfig={props.dashboardViewConfig}
+          isEditMode={props.isEditMode}
+          dashboardCanvasHeightInPx={containerHeightInPx}
+          dashboardComponentWidthInPx={widthInPx}
+          dashboardComponentHeightInPx={heightInPx}
+          metricTypes={props.metrics.metricTypes}
+          dashboardStartAndEndDate={props.dashboardStartAndEndDate}
+          dashboardCanvasWidthInPx={measuredWidthInPx}
+          dashboardCanvasTopInPx={0}
+          dashboardCanvasLeftInPx={0}
+          totalCurrentDashboardWidthInPx={props.currentTotalDashboardWidthInPx}
+          componentId={componentId}
+          key={id}
+          onComponentUpdate={(updatedComponent: DashboardBaseComponent) => {
+            updateComponent(updatedComponent);
+          }}
+          isSelected={isSelected}
+          refreshTick={props.refreshTick}
+          variables={props.variables}
+          onClick={() => {
+            props.onComponentSelected(componentId);
+          }}
+          dndActiveMode={isActive ? dnd.activeMode : null}
+          isAnyGestureActive={dnd.isGestureActive}
+          onMovePointerDown={(event: React.PointerEvent) => {
+            dnd.startMove(id, event);
+          }}
+          onResizePointerDown={(
+            event: React.PointerEvent,
+            direction: ResizeDirection,
+          ) => {
+            dnd.startResize(id, direction, event);
+          }}
+        />
+      </div>
     );
   };
+
+  type RenderPlaceholderFunction = () => ReactElement | null;
+
+  const renderPlaceholder: RenderPlaceholderFunction =
+    (): ReactElement | null => {
+      const rect: GridRect | null = dnd.placeholderRect;
+
+      if (!rect) {
+        return null;
+      }
+
+      const label: string =
+        dnd.activeMode === "resize"
+          ? `${rect.width} × ${rect.height}`
+          : `${rect.left + 1}, ${rect.top + 1}`;
+
+      return (
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: `${unitsToSizePx(rect.width)}px`,
+            height: `${unitsToSizePx(rect.height)}px`,
+            transform: `translate(${rect.left * cellSizeInPx}px, ${
+              rect.top * cellSizeInPx
+            }px)`,
+            transition:
+              "transform 0.15s ease, width 0.15s ease, height 0.15s ease",
+            borderRadius: "12px",
+            border: "2px dashed rgba(59, 130, 246, 0.55)",
+            background: "rgba(59, 130, 246, 0.08)",
+            zIndex: 5,
+            pointerEvents: "none",
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              top: "6px",
+              right: "8px",
+              padding: "2px 8px",
+              borderRadius: "6px",
+              fontSize: "11px",
+              fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+              fontWeight: 600,
+              color: "#ffffff",
+              background: "rgba(30, 41, 59, 0.85)",
+            }}
+          >
+            {label}
+          </div>
+        </div>
+      );
+    };
 
   if (
     !props.dashboardViewConfig ||
     props.dashboardViewConfig.components.length === 0
   ) {
-    return (
-      <BlankCanvasElement
-        totalCurrentDashboardWidthInPx={props.currentTotalDashboardWidthInPx}
-        isEditMode={props.isEditMode}
-        onClick={() => {}}
-        dashboardViewConfig={props.dashboardViewConfig}
-      />
-    );
+    return <BlankCanvasElement isEditMode={props.isEditMode} />;
   }
 
   return (
     <div>
-      {renderComponents()}
+      <div
+        style={{
+          padding: "8px",
+        }}
+      >
+        <div
+          ref={positionerRef}
+          onClick={(event: React.MouseEvent) => {
+            // Only clicks on the empty canvas itself unselect.
+            if (event.target === event.currentTarget) {
+              props.onComponentUnselected();
+            }
+          }}
+          style={{
+            position: "relative",
+            width: "100%",
+            height: `${containerHeightInPx}px`,
+            borderRadius: "12px",
+            transition: "height 0.22s cubic-bezier(0.2, 0, 0, 1)",
+            backgroundImage: props.isEditMode
+              ? "radial-gradient(circle, rgba(148, 163, 184, 0.4) 1.5px, transparent 1.5px)"
+              : undefined,
+            backgroundSize: props.isEditMode
+              ? `${cellSizeInPx}px ${cellSizeInPx}px`
+              : undefined,
+            backgroundPosition: props.isEditMode
+              ? `${-gap / 2 - unitSizeInPx / 2}px ${
+                  -gap / 2 - unitSizeInPx / 2
+                }px`
+              : undefined,
+          }}
+        >
+          {renderPlaceholder()}
+          {components.map((component: DashboardBaseComponent) => {
+            return renderComponent(component);
+          })}
+        </div>
+      </div>
       {props.selectedComponentId && props.isEditMode && (
         <ComponentSettingsModal
           title="Component Settings"
@@ -311,8 +414,8 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
           ) => {
             /*
              * Clone the component as-is but give it a brand-new id so it is
-             * treated as a separate widget. addComponentToDashboard places it
-             * on a fresh row at the bottom of the dashboard.
+             * treated as a separate widget. addComponentToDashboard places
+             * it at the first free spot that fits it.
              */
             const duplicatedComponent: DashboardBaseComponent = {
               ...componentToDuplicate,

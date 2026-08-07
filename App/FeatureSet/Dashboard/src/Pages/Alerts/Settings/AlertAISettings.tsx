@@ -80,58 +80,58 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
           },
           {
             field: {
-              aiMaxConcurrentInvestigations: true,
+              alertAiMaxConcurrentInvestigations: true,
             },
             stepId: "limits",
-            title: "Max Concurrent Investigations",
+            title: "Max Concurrent Alert Investigations",
             description:
-              "How many investigations may run at the same time, shared across incident and alert investigations for this project. Queued investigations wait for a free slot and expire after 30 minutes. Leave empty for the default of 3 (minimum 1, maximum 25).",
+              "How many alert investigations may run at the same time for this project. Queued alert investigations wait for a free slot and expire after 30 minutes. Leave empty for the default of 3 (minimum 1, maximum 25).",
             required: false,
             fieldType: FormFieldSchemaType.Number,
             placeholder: "3",
           },
           {
             field: {
-              aiDailyAutonomousTokenLimit: true,
+              alertAiDailyAutonomousTokenLimit: true,
             },
             stepId: "limits",
-            title: "Daily Autonomous Token Limit",
+            title: "Daily Alert AI Token Limit",
             description:
-              "Maximum tokens per day (UTC) that autonomous investigations may consume, shared across incident and alert investigations for this project. When reached, new investigations are skipped until the next day — interactive AI chat is never blocked. Leave empty for no limit; set 0 to pause autonomous investigations entirely.",
+              "Maximum tokens per day (UTC) for autonomous alert-linked AI work, including investigations, remediation, and follow-up fix tasks. When reached, new alert-linked AI work is skipped until the next day — interactive AI chat is never blocked. Leave empty for no limit; set 0 to pause autonomous alert AI work entirely.",
             required: false,
             fieldType: FormFieldSchemaType.Number,
             placeholder: "No limit",
           },
           {
             field: {
-              enableInstrumentationFixTasks: true,
+              enableAlertInstrumentationFixTasks: true,
             },
             stepId: "fix-tasks",
             title: "Instrumentation PRs From Inconclusive Investigations",
             description:
-              "Open instrumentation pull requests from inconclusive investigations (requires a connected GitHub repository). When an investigation cannot determine a root cause because telemetry was insufficient, OneUptime AI opens a pull request adding the missing logs, spans, and metrics to the implicated code paths — always human-reviewed, never auto-merged. This setting is shared between incident and alert investigations.",
+              "Open instrumentation pull requests from inconclusive alert investigations (requires a connected GitHub repository). When an alert investigation cannot determine a root cause because telemetry was insufficient, OneUptime AI opens a pull request adding the missing logs, spans, and metrics to the implicated code paths — always human-reviewed, never auto-merged.",
             required: false,
             fieldType: FormFieldSchemaType.Toggle,
           },
           {
             field: {
-              enableAutomaticCodeFixes: true,
+              enableAutomaticAlertCodeFixes: true,
             },
             stepId: "fix-tasks",
-            title: "Enable Automatic Code Fixes",
+            title: "Enable Automatic Alert Code Fixes",
             description:
-              "Open a draft fix pull request automatically when an investigation ends with a confident, evidenced root cause analysis — the automatic form of the 'Open Fix PR from this analysis' button. Requires a repository connected through the GitHub App and a Runner with the code-fix capability. Pull requests are always human-reviewed — nothing merges automatically. This setting is shared between incident and alert investigations.",
+              "Open a draft fix pull request automatically when an alert investigation ends with a confident, evidenced root cause analysis — the automatic form of the 'Open Fix PR from this analysis' button. Requires a repository connected through the GitHub App and a Runner with the code-fix capability. Pull requests are always human-reviewed — nothing merges automatically.",
             required: false,
             fieldType: FormFieldSchemaType.Toggle,
           },
           {
             field: {
-              aiDailyFixTaskLimit: true,
+              alertAiDailyFixTaskLimit: true,
             },
             stepId: "fix-tasks",
-            title: "Daily AI Fix Task Limit",
+            title: "Daily Alert AI Fix Task Limit",
             description:
-              "Maximum AI fix tasks (agent runs that open pull requests) that may be created per day (UTC) for this project, across every fix recipe — manual and automatic. Leave empty for the default of 25 per day; set 0 to pause AI fix tasks entirely.",
+              "Maximum alert AI fix tasks (agent runs that open pull requests) that may be created per day (UTC) for this project, across manual and automatic alert fix recipes. Leave empty for the default of 25 per day; set 0 to pause alert AI fix tasks entirely.",
             required: false,
             fieldType: FormFieldSchemaType.Number,
             placeholder: "25",
@@ -170,23 +170,23 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
             },
             {
               field: {
-                aiMaxConcurrentInvestigations: true,
+                alertAiMaxConcurrentInvestigations: true,
               },
-              title: "Max Concurrent Investigations",
+              title: "Max Concurrent Alert Investigations",
               placeholder: "Default (3)",
               fieldType: FieldType.Number,
             },
             {
               field: {
-                aiDailyAutonomousTokenLimit: true,
+                alertAiDailyAutonomousTokenLimit: true,
               },
-              title: "Daily Autonomous Token Limit",
+              title: "Daily Alert AI Token Limit",
               placeholder: "No limit",
               fieldType: FieldType.Number,
             },
             {
               field: {
-                enableInstrumentationFixTasks: true,
+                enableAlertInstrumentationFixTasks: true,
               },
               title: "Instrumentation PRs From Inconclusive Investigations",
               placeholder: "Disabled",
@@ -194,17 +194,17 @@ const AlertAISettings: FunctionComponent<ComponentProps> = (
             },
             {
               field: {
-                enableAutomaticCodeFixes: true,
+                enableAutomaticAlertCodeFixes: true,
               },
-              title: "Enable Automatic Code Fixes",
+              title: "Enable Automatic Alert Code Fixes",
               placeholder: "Disabled",
               fieldType: FieldType.Boolean,
             },
             {
               field: {
-                aiDailyFixTaskLimit: true,
+                alertAiDailyFixTaskLimit: true,
               },
-              title: "Daily AI Fix Task Limit",
+              title: "Daily Alert AI Fix Task Limit",
               placeholder: "Default (25)",
               fieldType: FieldType.Number,
             },

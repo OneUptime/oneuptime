@@ -660,6 +660,68 @@ describe("ResourceGroupSection", () => {
     });
   });
 
+  /*
+   * A status page whose hierarchy is built but whose monitors are not added
+   * yet. This used to be a page that rendered nothing at all; the section has
+   * to draw the structure on its own, because that structure is the only thing
+   * the operator has put there so far.
+   */
+  describe("a hierarchy with no resources anywhere in it", () => {
+    type RenderEmptyFunction = (depth: number) => ReactElement;
+
+    const renderEmpty: RenderEmptyFunction = (depth: number): ReactElement => {
+      return (
+        <ResourceGroupSection
+          depth={depth}
+          name={`Level ${depth}`}
+          isInitiallyExpanded={true}
+          subGroupCount={depth < 3 ? 1 : 0}
+          testId={`empty-level-${depth}`}
+          subGroupsElement={depth < 3 ? renderEmpty(depth + 1) : undefined}
+          hasOwnResources={false}
+        />
+      );
+    };
+
+    test("every level is still drawn, and named", () => {
+      render(renderEmpty(0));
+
+      for (let depth: number = 0; depth <= 3; depth++) {
+        expect(screen.getByTestId(`empty-level-${depth}`)).toBeInTheDocument();
+        expect(screen.getByText(`Level ${depth}`)).toBeInTheDocument();
+      }
+    });
+
+    test("each level is still a working disclosure control", () => {
+      render(renderEmpty(0));
+
+      const header: HTMLElement = screen
+        .getByTestId("empty-level-1")
+        .querySelector("[data-testid='status-page-group-header']")!;
+
+      expect(header.getAttribute("aria-expanded")).toBe("true");
+      expect(screen.getByTestId("empty-level-3")).toBeInTheDocument();
+
+      fireEvent.click(header);
+
+      expect(header.getAttribute("aria-expanded")).toBe("false");
+      expect(screen.queryByTestId("empty-level-3")).not.toBeInTheDocument();
+      expect(screen.getByTestId("empty-level-1")).toBeInTheDocument();
+    });
+
+    /*
+     * No resources means no rolled up reading to show. A group header with a
+     * number on it that came from nowhere is worse than a header without one.
+     */
+    test("no rollup is drawn when the caller has none to give", () => {
+      render(renderEmpty(0));
+
+      expect(
+        screen.queryByTestId("status-page-group-rollup"),
+      ).not.toBeInTheDocument();
+    });
+  });
+
   describe("test ids", () => {
     test("the caller can override the default", () => {
       renderSection({ testId: "my-group" });

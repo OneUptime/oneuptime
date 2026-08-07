@@ -156,10 +156,8 @@ spec:
         app.kubernetes.io/part-of: oneuptime
         app.kubernetes.io/managed-by: Helm
     spec:
-      {{- with $keeper.nodeSelector }}
       nodeSelector:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+        {{- include "oneuptime.nodeSelector" $keeper.nodeSelector | nindent 8 }}
       {{- if $keeper.affinity }}
       affinity:
         {{- toYaml $keeper.affinity | nindent 8 }}

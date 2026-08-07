@@ -9,6 +9,7 @@ import ProjectService from "../../../../Server/Services/ProjectService";
 import Project from "../../../../Models/DatabaseModels/Project";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import AIRunStatus from "../../../../Types/AI/AIRunStatus";
+import AIRunType from "../../../../Types/AI/AIRunType";
 import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
 import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
@@ -39,10 +40,16 @@ function mockBudgetOk(): void {
   });
 }
 
+function findOperatorSql(value: unknown): string {
+  const operator: { getSql?: ((alias: string) => string) | undefined } =
+    value as { getSql?: ((alias: string) => string) | undefined };
+  return operator.getSql?.("subject") || "";
+}
+
 describe("AIInvestigationQueue", () => {
   beforeEach(() => {
     mockBudgetOk();
-    // No per-project cap override => default of 3.
+    // No lane cap override => default of 3.
     jest
       .spyOn(ProjectService, "findOneById")
       .mockResolvedValue({ id: ObjectID.generate() } as unknown as Project);
@@ -81,6 +88,10 @@ describe("AIInvestigationQueue", () => {
         }),
       }),
     );
+    expect(AIService.getAutonomousDailyBudgetStatus).toHaveBeenCalledWith(
+      projectId,
+      { incidentId, alertId: undefined },
+    );
     // The inline kick is detached; give the microtask a beat.
     await new Promise((resolve: (value: unknown) => void) => {
       setTimeout(resolve, 0);
@@ -91,6 +102,61 @@ describe("AIInvestigationQueue", () => {
         attemptCount: 0,
         triggeredByIncidentId: incidentId,
       }),
+    );
+  });
+
+  test("enqueue rejects a run carrying both subject types before any budget or write", async () => {
+    const budget: jest.SpyInstance = jest.spyOn(
+      AIService,
+      "getAutonomousDailyBudgetStatus",
+    );
+    const create: jest.SpyInstance = jest.spyOn(AIRunService, "create");
+
+    const runId: ObjectID | null = await AIInvestigationQueue.enqueue({
+      projectId: ObjectID.generate(),
+      subjectIncidentId: ObjectID.generate(),
+      subjectAlertId: ObjectID.generate(),
+    });
+
+    expect(runId).toBeNull();
+    expect(budget).not.toHaveBeenCalled();
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  test("enqueue forwards the alert lane to the budget check", async () => {
+    const projectId: ObjectID = ObjectID.generate();
+    const alertId: ObjectID = ObjectID.generate();
+    jest.spyOn(AIRunService, "create").mockResolvedValue({
+      id: ObjectID.generate(),
+    } as unknown as AIRun);
+    jest.spyOn(AIInvestigationQueue, "processRun").mockResolvedValue(undefined);
+
+    await AIInvestigationQueue.enqueue({
+      projectId,
+      subjectAlertId: alertId,
+    });
+
+    expect(AIService.getAutonomousDailyBudgetStatus).toHaveBeenCalledWith(
+      projectId,
+      { incidentId: undefined, alertId },
+    );
+  });
+
+  test("enqueue leaves insight work in the legacy subjectless budget lane", async () => {
+    const projectId: ObjectID = ObjectID.generate();
+    jest.spyOn(AIRunService, "create").mockResolvedValue({
+      id: ObjectID.generate(),
+    } as unknown as AIRun);
+    jest.spyOn(AIInvestigationQueue, "processRun").mockResolvedValue(undefined);
+
+    await AIInvestigationQueue.enqueue({
+      projectId,
+      subjectAIInsightId: ObjectID.generate(),
+    });
+
+    expect(AIService.getAutonomousDailyBudgetStatus).toHaveBeenCalledWith(
+      projectId,
+      { incidentId: undefined, alertId: undefined },
     );
   });
 
@@ -111,8 +177,33 @@ describe("AIInvestigationQueue", () => {
     expect(execute).not.toHaveBeenCalled();
   });
 
+  test("a queued run carrying both subject types is never counted or claimed", async () => {
+    const findProject: jest.SpyInstance = jest.spyOn(
+      ProjectService,
+      "findOneById",
+    );
+    const countBy: jest.SpyInstance = jest.spyOn(AIRunService, "countBy");
+    const claim: jest.SpyInstance = jest.spyOn(
+      AIRunService,
+      "attemptStatusTransition",
+    );
+
+    await AIInvestigationQueue.processRun({
+      id: ObjectID.generate(),
+      projectId: ObjectID.generate(),
+      attemptCount: 0,
+      triggeredByIncidentId: ObjectID.generate(),
+      triggeredByAlertId: ObjectID.generate(),
+    });
+
+    expect(findProject).not.toHaveBeenCalled();
+    expect(countBy).not.toHaveBeenCalled();
+    expect(claim).not.toHaveBeenCalled();
+  });
+
   test("a won claim increments attemptCount and dispatches to the incident runner", async () => {
     const runId: ObjectID = ObjectID.generate();
+    const projectId: ObjectID = ObjectID.generate();
     const incidentId: ObjectID = ObjectID.generate();
     const claim: jest.SpyInstance = jest
       .spyOn(AIRunService, "attemptStatusTransition")
@@ -123,7 +214,7 @@ describe("AIInvestigationQueue", () => {
 
     await AIInvestigationQueue.processRun({
       id: runId,
-      projectId: ObjectID.generate(),
+      projectId,
       attemptCount: 0,
       triggeredByIncidentId: incidentId,
     });
@@ -147,9 +238,14 @@ describe("AIInvestigationQueue", () => {
         attemptCount: 1,
       }),
     );
+    expect(AIService.getAutonomousDailyBudgetStatus).toHaveBeenCalledWith(
+      projectId,
+      { incidentId, alertId: undefined },
+    );
   });
 
   test("a won claim dispatches alert runs to the alert runner", async () => {
+    const projectId: ObjectID = ObjectID.generate();
     const alertId: ObjectID = ObjectID.generate();
     jest.spyOn(AIRunService, "attemptStatusTransition").mockResolvedValue(1);
     const execute: jest.SpyInstance = jest
@@ -158,7 +254,7 @@ describe("AIInvestigationQueue", () => {
 
     await AIInvestigationQueue.processRun({
       id: ObjectID.generate(),
-      projectId: ObjectID.generate(),
+      projectId,
       attemptCount: 0,
       triggeredByAlertId: alertId,
     });
@@ -166,6 +262,120 @@ describe("AIInvestigationQueue", () => {
     expect(execute).toHaveBeenCalledWith(
       expect.objectContaining({ alertId, attemptCount: 1 }),
     );
+    expect(AIService.getAutonomousDailyBudgetStatus).toHaveBeenCalledWith(
+      projectId,
+      { incidentId: undefined, alertId },
+    );
+  });
+
+  test("an incident at its cap does not consume the alert lane's slots", async () => {
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      id: ObjectID.generate(),
+      aiMaxConcurrentInvestigations: 1,
+      incidentAiMaxConcurrentInvestigations: 1,
+      alertAiMaxConcurrentInvestigations: 2,
+    } as unknown as Project);
+    const count: jest.SpyInstance = jest
+      .spyOn(AIRunService, "countBy")
+      .mockResolvedValue(new PositiveNumber(1));
+    const claim: jest.SpyInstance = jest
+      .spyOn(AIRunService, "attemptStatusTransition")
+      .mockResolvedValue(0);
+
+    await AIInvestigationQueue.processRun({
+      id: ObjectID.generate(),
+      projectId: ObjectID.generate(),
+      attemptCount: 0,
+      triggeredByIncidentId: ObjectID.generate(),
+    });
+    expect(claim).not.toHaveBeenCalled();
+
+    await AIInvestigationQueue.processRun({
+      id: ObjectID.generate(),
+      projectId: ObjectID.generate(),
+      attemptCount: 0,
+      triggeredByAlertId: ObjectID.generate(),
+    });
+    expect(claim).toHaveBeenCalledTimes(1);
+
+    const incidentQuery: Record<string, unknown> = (
+      count.mock.calls[0]![0] as { query: Record<string, unknown> }
+    ).query;
+    expect(findOperatorSql(incidentQuery["triggeredByIncidentId"])).toContain(
+      "IS NOT NULL",
+    );
+    expect(findOperatorSql(incidentQuery["triggeredByAlertId"])).toContain(
+      "IS NULL",
+    );
+
+    const alertQuery: Record<string, unknown> = (
+      count.mock.calls[1]![0] as { query: Record<string, unknown> }
+    ).query;
+    expect(findOperatorSql(alertQuery["triggeredByIncidentId"])).toContain(
+      "IS NULL",
+    );
+    expect(findOperatorSql(alertQuery["triggeredByAlertId"])).toContain(
+      "IS NOT NULL",
+    );
+  });
+
+  test("subjectless insight work retains the legacy concurrency cap", async () => {
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      id: ObjectID.generate(),
+      aiMaxConcurrentInvestigations: 1,
+      incidentAiMaxConcurrentInvestigations: 10,
+      alertAiMaxConcurrentInvestigations: 10,
+    } as unknown as Project);
+    const count: jest.SpyInstance = jest
+      .spyOn(AIRunService, "countBy")
+      .mockResolvedValue(new PositiveNumber(1));
+    const claim: jest.SpyInstance = jest.spyOn(
+      AIRunService,
+      "attemptStatusTransition",
+    );
+
+    await AIInvestigationQueue.processRun({
+      id: ObjectID.generate(),
+      projectId: ObjectID.generate(),
+      attemptCount: 0,
+      triggeredByAiInsightId: ObjectID.generate(),
+    });
+
+    expect(claim).not.toHaveBeenCalled();
+    const query: Record<string, unknown> = (
+      count.mock.calls[0]![0] as { query: Record<string, unknown> }
+    ).query;
+    expect(findOperatorSql(query["triggeredByIncidentId"])).toContain(
+      "IS NULL",
+    );
+    expect(findOperatorSql(query["triggeredByAlertId"])).toContain("IS NULL");
+  });
+
+  test("background counts are isolated to the remediation subject lane", async () => {
+    const count: jest.SpyInstance = jest
+      .spyOn(AIRunService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0));
+    jest.spyOn(AIRunService, "attemptStatusTransition").mockResolvedValue(0);
+
+    await AIInvestigationQueue.processRun({
+      id: ObjectID.generate(),
+      projectId: ObjectID.generate(),
+      attemptCount: 0,
+      runType: AIRunType.RemediationPlan,
+      triggeredByIncidentId: ObjectID.generate(),
+      triggeredByAutoRemediationSuggestionId: ObjectID.generate(),
+    });
+
+    expect(count).toHaveBeenCalledTimes(3);
+    for (const call of count.mock.calls) {
+      const query: Record<string, unknown> = (
+        call[0] as { query: Record<string, unknown> }
+      ).query;
+      expect(findOperatorSql(query["triggeredByIncidentId"])).toContain(
+        "IS NOT NULL",
+      );
+      expect(findOperatorSql(query["triggeredByAlertId"])).toContain("IS NULL");
+    }
   });
 
   test("a transient failure on the first attempt requeues the run", async () => {

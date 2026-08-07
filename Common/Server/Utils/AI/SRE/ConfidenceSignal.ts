@@ -223,8 +223,8 @@ export default class AIConfidenceSignal {
 
   /*
    * Consumer decision: should a FixFromIncident code-fix task be enqueued
-   * automatically (projects opted in via Project.enableAutomaticCodeFixes —
-   * the trigger has its own gates)? Requires a POSITIVE confident verdict
+   * automatically (projects opt in through the independent incident or alert
+   * automatic-code-fix setting — the trigger has its own gates)? Requires a POSITIVE confident verdict
    * from the constrained classification: the analysis asserts a specific,
    * evidenced root cause worth turning into a fix PR. Fail directions:
    * the deterministic floor (no server-minted evidence) and
@@ -248,6 +248,8 @@ export default class AIConfidenceSignal {
   public static async computeConfidenceSignal(data: {
     projectId: ObjectID;
     aiRunId: ObjectID;
+    incidentId?: ObjectID | undefined;
+    alertId?: ObjectID | undefined;
     analysisMarkdown: string;
     evidence: EvidenceInput;
   }): Promise<ConfidenceSignal> {
@@ -264,6 +266,8 @@ export default class AIConfidenceSignal {
         projectId: data.projectId,
         feature: CONFIDENCE_CLASSIFICATION_FEATURE,
         aiRunId: data.aiRunId,
+        incidentId: data.incidentId,
+        alertId: data.alertId,
         // The verdict drives control flow; no prompt previews in LlmLog.
         storeContentPreviews: false,
         temperature: 0,

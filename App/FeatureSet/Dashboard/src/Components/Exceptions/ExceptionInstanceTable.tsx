@@ -18,6 +18,15 @@ export interface ComponentProps {
   title: string;
   description: string;
   query: Query<ExceptionInstance>;
+  // Rendered in the card header, e.g. the snapshot window an incident is scoped to.
+  rightElement?: ReactElement | undefined;
+  /*
+   * Set by hosts that pin the query to a fixed window (incident / alert
+   * previews). Without it the table restores a "Time" filter from the URL on
+   * mount, which replaces the pinned window with an unrelated one and gives no
+   * sign it happened.
+   */
+  disableUrlState?: boolean | undefined;
 }
 
 const ExceptionInstanceTable: FunctionComponent<ComponentProps> = (
@@ -49,9 +58,11 @@ const ExceptionInstanceTable: FunctionComponent<ComponentProps> = (
       isCreateable={false}
       isViewable={false}
       userPreferencesKey="exception-instance-table"
+      disableUrlState={props.disableUrlState}
       cardProps={{
         title: props.title,
         description: props.description,
+        rightElement: props.rightElement,
       }}
       query={computedQuery}
       sortBy="time"

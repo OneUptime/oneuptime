@@ -6,6 +6,7 @@ import AlertService from "../../../../Server/Services/AlertService";
 import AlertSeverityService from "../../../../Server/Services/AlertSeverityService";
 import ProjectService from "../../../../Server/Services/ProjectService";
 import AIRunService from "../../../../Server/Services/AIRunService";
+import QueryHelper from "../../../../Server/Types/Database/QueryHelper";
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import AlertSeverity from "../../../../Models/DatabaseModels/AlertSeverity";
 import Project from "../../../../Models/DatabaseModels/Project";
@@ -20,7 +21,7 @@ import { describe, expect, test, afterEach } from "@jest/globals";
  *     severity);
  *   - per-monitor dedupe window: a monitor already investigated within the
  *     window is not re-investigated;
- *   - per-project concurrency cap in the shared engine.
+ *   - an alert-specific concurrency cap in the shared engine.
  *
  * These tests mock the persistence layer (no Postgres) to lock in the gate
  * decisions and their fail directions: unknown severity PASSES the severity
@@ -217,6 +218,36 @@ describe("AIAlertInvestigationRunner.shouldInvestigateAlert", () => {
     );
   });
 
+  test("the cooldown counts alert investigations only, so incident runs cannot suppress an alert", async () => {
+    const monitorId: ObjectID = ObjectID.generate();
+    const alertSubjectFilter: Record<string, string> = {
+      operator: "alert-not-null",
+    };
+    const incidentSubjectFilter: Record<string, string> = {
+      operator: "incident-null",
+    };
+    jest.spyOn(QueryHelper, "notNull").mockReturnValue(alertSubjectFilter);
+    jest.spyOn(QueryHelper, "isNull").mockReturnValue(incidentSubjectFilter);
+    const countBy: jest.SpyInstance = jest.spyOn(AIRunService, "countBy");
+
+    mockGates({
+      alert: fakeAlert({ severityOrder: 1, monitorId }),
+      topTiers: fakeSeverities([1, 2]),
+      recentRunCount: 0,
+    });
+
+    await AIAlertInvestigationRunner.shouldInvestigateAlert({
+      alertId,
+      projectId,
+    });
+
+    const query: Record<string, unknown> = (
+      countBy.mock.calls[0]![0] as { query: Record<string, unknown> }
+    ).query;
+    expect(query["triggeredByAlertId"]).toBe(alertSubjectFilter);
+    expect(query["triggeredByIncidentId"]).toBe(incidentSubjectFilter);
+  });
+
   test("alerts without a monitor skip the dedupe check entirely", async () => {
     const countBy: jest.SpyInstance = jest.spyOn(AIRunService, "countBy");
 
@@ -299,7 +330,7 @@ describe("AIInvestigationQueue concurrency cap", () => {
     jest.restoreAllMocks();
   });
 
-  test("leaves the run queued when the per-project cap is reached", async () => {
+  test("leaves the run queued when the alert cap is reached", async () => {
     jest
       .spyOn(AIRunService, "countBy")
       .mockResolvedValue(new PositiveNumber(3));
@@ -335,10 +366,12 @@ describe("AIInvestigationQueue concurrency cap", () => {
     expect(claim).not.toHaveBeenCalled();
   });
 
-  test("a per-project cap override of 1 blocks the second concurrent run", async () => {
+  test("an alert cap override of 1 blocks the second concurrent alert run", async () => {
     jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
       id: ObjectID.generate(),
-      aiMaxConcurrentInvestigations: 1,
+      aiMaxConcurrentInvestigations: 10,
+      incidentAiMaxConcurrentInvestigations: 10,
+      alertAiMaxConcurrentInvestigations: 1,
     } as unknown as Project);
     jest
       .spyOn(AIRunService, "countBy")

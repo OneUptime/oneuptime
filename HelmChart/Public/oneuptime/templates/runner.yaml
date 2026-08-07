@@ -57,13 +57,8 @@ spec:
       {{- if $.Values.tolerations }}
       tolerations: {{- $.Values.tolerations | toYaml | nindent 8 }}
       {{- end }}
-      {{- if $.Values.runner.nodeSelector }}
       nodeSelector:
-        {{- toYaml $.Values.runner.nodeSelector | nindent 8 }}
-      {{- else if $.Values.nodeSelector }}
-      nodeSelector:
-        {{- toYaml $.Values.nodeSelector | nindent 8 }}
-      {{- end }}
+        {{- include "oneuptime.nodeSelector" ($.Values.runner.nodeSelector | default $.Values.nodeSelector) | nindent 8 }}
       containers:
         - image: {{ include "oneuptime.image" (dict "Values" $.Values "ServiceName" "runner") }}
           name: {{ printf "%s-%s" $.Release.Name "runner" }}

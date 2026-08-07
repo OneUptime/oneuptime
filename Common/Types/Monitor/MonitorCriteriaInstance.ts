@@ -505,6 +505,12 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         monitorStatusId: arg.monitorStatusId,
         filterCondition: FilterCondition.All,
         filters: [
+          // The registration lookup itself has to have worked.
+          {
+            checkOn: CheckOn.IsOnline,
+            filterType: FilterType.True,
+            value: undefined,
+          },
           {
             checkOn: CheckOn.DomainIsExpired,
             filterType: FilterType.False,
@@ -517,7 +523,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         changeMonitorStatus: true,
         createIncidents: false,
         name: `Check if ${arg.monitorName} is not expired`,
-        description: `This criteria checks if the ${arg.monitorName} domain registration is not expired`,
+        description: `This criteria checks if the ${arg.monitorName} domain registration was read successfully and is not expired`,
       };
 
       return monitorCriteriaInstance;
@@ -774,11 +780,22 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
             filterType: FilterType.True,
             value: undefined,
           },
+          /*
+           * Without this, a lookup that returns no registration data at all
+           * leaves every Domain* filter unable to decide, and the monitor
+           * keeps whatever status it had - so a domain whose registration
+           * data cannot be read looks exactly like a healthy one.
+           */
+          {
+            checkOn: CheckOn.IsOnline,
+            filterType: FilterType.False,
+            value: undefined,
+          },
         ],
         incidents: [
           {
-            title: `${arg.monitorName} domain is expired`,
-            description: `${arg.monitorName} domain registration has expired.`,
+            title: `${arg.monitorName} domain check failed`,
+            description: `${arg.monitorName} domain registration has expired, or its registration data could not be retrieved.`,
             incidentSeverityId: arg.incidentSeverityId,
             autoResolveIncident: true,
             id: ObjectID.generate().toString(),
@@ -790,16 +807,16 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
         createAlerts: false,
         alerts: [
           {
-            title: `${arg.monitorName} domain is expired`,
-            description: `${arg.monitorName} domain registration has expired.`,
+            title: `${arg.monitorName} domain check failed`,
+            description: `${arg.monitorName} domain registration has expired, or its registration data could not be retrieved.`,
             alertSeverityId: arg.alertSeverityId,
             autoResolveAlert: true,
             id: ObjectID.generate().toString(),
             onCallPolicyIds: [],
           },
         ],
-        name: `Check if ${arg.monitorName} domain is expired`,
-        description: `This criteria checks if the ${arg.monitorName} domain registration has expired`,
+        name: `Check if ${arg.monitorName} domain check failed`,
+        description: `This criteria checks if the ${arg.monitorName} domain registration has expired or could not be read`,
       };
     }
 
