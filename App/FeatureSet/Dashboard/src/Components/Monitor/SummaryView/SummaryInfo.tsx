@@ -2,6 +2,7 @@ import ServerMonitorResponse from "Common/Types/Monitor/ServerMonitor/ServerMoni
 import IncomingRequestMonitorView from "./IncomingRequestMonitorSummaryView";
 import IncomingEmailMonitorSummaryView from "./IncomingEmailMonitorSummaryView";
 import PingMonitorView from "./PingMonitorView";
+import PortMonitorView from "./PortMonitorView";
 import SSLCertificateMonitorView from "./SSLCertificateMonitorView";
 import ServerMonitorSummaryView from "./ServerMonitorView";
 import SyntheticMonitorView from "./SyntheticMonitorView";
@@ -89,11 +90,19 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
 
     if (
       props.monitorType === MonitorType.Ping ||
-      props.monitorType === MonitorType.IP ||
-      props.monitorType === MonitorType.Port
+      props.monitorType === MonitorType.IP
     ) {
       summaryComponent = (
         <PingMonitorView
+          probeMonitorResponse={probeMonitorResponse}
+          probeName={props.probeName}
+        />
+      );
+    }
+
+    if (props.monitorType === MonitorType.Port) {
+      summaryComponent = (
+        <PortMonitorView
           probeMonitorResponse={probeMonitorResponse}
           probeName={props.probeName}
         />

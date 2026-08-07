@@ -37,6 +37,16 @@ describe("getAggregationTypeByMonitorMetricType", () => {
         MonitorMetricType.IsOnline,
       ),
     ).toBe(AggregationType.Min);
+    expect(
+      MonitorMetricTypeUtil.getAggregationTypeByMonitorMetricType(
+        MonitorMetricType.PortDnsLookupTime,
+      ),
+    ).toBe(AggregationType.Avg);
+    expect(
+      MonitorMetricTypeUtil.getAggregationTypeByMonitorMetricType(
+        MonitorMetricType.PortTcpConnectTime,
+      ),
+    ).toBe(AggregationType.Avg);
   });
 
   test("cumulative byte/op counters aggregate with Max (latest-in-bucket)", () => {
@@ -70,6 +80,16 @@ describe("getMonitorMeticTypeByCheckOn", () => {
         CheckOn.CPUIoWaitPercent,
       ),
     ).toBe(MonitorMetricType.CPUTimeIoWaitPercent);
+    expect(
+      MonitorMetricTypeUtil.getMonitorMeticTypeByCheckOn(
+        CheckOn.PortDnsLookupTime,
+      ),
+    ).toBe(MonitorMetricType.PortDnsLookupTime);
+    expect(
+      MonitorMetricTypeUtil.getMonitorMeticTypeByCheckOn(
+        CheckOn.PortTcpConnectTime,
+      ),
+    ).toBe(MonitorMetricType.PortTcpConnectTime);
   });
 
   test("throws for a CheckOn without a metric mapping", () => {
@@ -113,6 +133,34 @@ describe("getMonitorMetricTypesByMonitorType", () => {
       );
     expect(ping).toContain(MonitorMetricType.PacketLossPercent);
     expect(ping).toContain(MonitorMetricType.Jitter);
+  });
+
+  test("Port exposes total connection time and its Port-specific phases", () => {
+    expect(
+      MonitorMetricTypeUtil.getMonitorMetricTypesByMonitorType(
+        MonitorType.Port,
+      ),
+    ).toEqual([
+      MonitorMetricType.IsOnline,
+      MonitorMetricType.ResponseTime,
+      MonitorMetricType.PortDnsLookupTime,
+      MonitorMetricType.PortTcpConnectTime,
+    ]);
+  });
+
+  test("Port phase metrics do not alias the HTTP phase metric names", () => {
+    expect(MonitorMetricType.PortDnsLookupTime).toBe(
+      "oneuptime.monitor.port.dns.lookup.time",
+    );
+    expect(MonitorMetricType.PortTcpConnectTime).toBe(
+      "oneuptime.monitor.port.tcp.connect.time",
+    );
+    expect(MonitorMetricType.PortDnsLookupTime).not.toBe(
+      MonitorMetricType.DnsLookupTime,
+    );
+    expect(MonitorMetricType.PortTcpConnectTime).not.toBe(
+      MonitorMetricType.TcpConnectTime,
+    );
   });
 
   test("a monitor type with no metrics returns an empty list", () => {
@@ -187,6 +235,75 @@ describe("display metadata", () => {
         MonitorMetricType.ResponseStatusCode,
       ),
     ).toBe("");
+    expect(
+      MonitorMetricTypeUtil.getLegendUnitByMonitorMetricType(
+        MonitorMetricType.PortDnsLookupTime,
+      ),
+    ).toBe("ms");
+    expect(
+      MonitorMetricTypeUtil.getLegendUnitByMonitorMetricType(
+        MonitorMetricType.PortTcpConnectTime,
+      ),
+    ).toBe("ms");
+  });
+
+  test("Port phase metrics have distinct user-facing metadata", () => {
+    expect(
+      MonitorMetricTypeUtil.getTitleByMonitorMetricType(
+        MonitorMetricType.PortDnsLookupTime,
+      ),
+    ).toBe("Port DNS Lookup Time");
+    expect(
+      MonitorMetricTypeUtil.getTitleByMonitorMetricType(
+        MonitorMetricType.PortTcpConnectTime,
+      ),
+    ).toBe("Port TCP Connect Time");
+    expect(
+      MonitorMetricTypeUtil.getDescriptionByMonitorMetricType(
+        MonitorMetricType.PortDnsLookupTime,
+      ),
+    ).toContain("IP address");
+    expect(
+      MonitorMetricTypeUtil.getDescriptionByMonitorMetricType(
+        MonitorMetricType.PortTcpConnectTime,
+      ),
+    ).toContain("IPv6/IPv4 fallback");
+  });
+
+  test("contextualizes the existing response-time metric for Port charts", () => {
+    expect(
+      MonitorMetricTypeUtil.getTitleByMonitorMetricType(
+        MonitorMetricType.ResponseTime,
+        MonitorType.Port,
+      ),
+    ).toBe("Total Connection Time (DNS + TCP)");
+    expect(
+      MonitorMetricTypeUtil.getLegendByMonitorMetricType(
+        MonitorMetricType.ResponseTime,
+        MonitorType.Port,
+      ),
+    ).toBe("Total Connection Time (DNS + TCP)");
+    expect(
+      MonitorMetricTypeUtil.getDescriptionByMonitorMetricType(
+        MonitorMetricType.ResponseTime,
+        MonitorType.Port,
+      ),
+    ).toContain("resolving the hostname");
+  });
+
+  test("keeps response-time metadata unchanged outside Port charts", () => {
+    expect(
+      MonitorMetricTypeUtil.getTitleByMonitorMetricType(
+        MonitorMetricType.ResponseTime,
+        MonitorType.Website,
+      ),
+    ).toBe("Response Time");
+    expect(
+      MonitorMetricTypeUtil.getDescriptionByMonitorMetricType(
+        MonitorMetricType.ResponseTime,
+        MonitorType.Website,
+      ),
+    ).toContain("server to respond to a request");
   });
 });
 
