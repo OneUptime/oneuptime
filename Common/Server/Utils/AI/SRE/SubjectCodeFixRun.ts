@@ -6,6 +6,7 @@ import AIRunStatus, {
 import CodeFixTaskType from "../../../../Types/AI/CodeFixTaskType";
 import CodeFixTaskContext from "../../../../Types/AI/CodeFixTaskContext";
 import CodeRepositoryType from "../../../../Types/CodeRepository/CodeRepositoryType";
+import BadDataException from "../../../../Types/Exception/BadDataException";
 import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import AIRunService from "../../../Services/AIRunService";
@@ -60,6 +61,12 @@ export default class SubjectCodeFixRun {
     incidentId?: ObjectID | undefined;
     alertId?: ObjectID | undefined;
   }): Promise<AIRun | null> {
+    if (Boolean(data.incidentId) === Boolean(data.alertId)) {
+      throw new BadDataException(
+        "Exactly one incident or alert subject is required to find an existing fix task.",
+      );
+    }
+
     return AIRunService.findOneBy({
       query: {
         runType: AIRunType.CodeFix,
@@ -168,7 +175,16 @@ export default class SubjectCodeFixRun {
     userId?: ObjectID | undefined;
     taskContext?: CodeFixTaskContext | undefined;
   }): Promise<AIRun> {
-    await FixRunBudget.assertWithinBudget(data.projectId);
+    if (data.incidentId && data.alertId) {
+      throw new BadDataException(
+        "A fix task cannot belong to both an incident and an alert.",
+      );
+    }
+
+    await FixRunBudget.assertWithinBudget(data.projectId, {
+      incidentId: data.incidentId,
+      alertId: data.alertId,
+    });
 
     const run: AIRun = new AIRun();
     run.projectId = data.projectId;

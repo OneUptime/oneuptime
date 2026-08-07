@@ -2,6 +2,7 @@ import DatabaseService from "./DatabaseService";
 import Model from "../../Models/DatabaseModels/LlmLog";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import ObjectID from "../../Types/ObjectID";
+import BadDataException from "../../Types/Exception/BadDataException";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<Model> {
@@ -22,15 +23,58 @@ export class Service extends DatabaseService<Model> {
     projectId: ObjectID;
     since: Date;
     features: Array<string>;
+    /*
+     * Subject ids select a lane, not one particular subject: passing an
+     * incident id counts every incident-associated log for the project, and
+     * passing an alert id counts every alert-associated log. With neither id,
+     * only genuinely subjectless work is counted. The caller already has the
+     * concrete id, so using it as the discriminator keeps this API aligned
+     * with AIService's request shape without introducing a second subject enum.
+     */
+    incidentId?: ObjectID | undefined;
+    alertId?: ObjectID | undefined;
+    /*
+     * Feature-only fallbacks for rows written before subject identity was
+     * propagated. Shared features are recovered through aiRunId below.
+     */
+    legacyIncidentFeatures?: Array<string> | undefined;
+    legacyAlertFeatures?: Array<string> | undefined;
   }): Promise<number> {
+    if (data.incidentId && data.alertId) {
+      throw new BadDataException(
+        "An LLM usage query cannot select both the incident and alert lanes.",
+      );
+    }
+
     if (data.features.length === 0) {
       return 0;
     }
 
+    const legacyIncidentFeatures: Array<string> =
+      data.legacyIncidentFeatures || [];
+    const legacyAlertFeatures: Array<string> = data.legacyAlertFeatures || [];
+
+    const incidentRunMembership: string = `EXISTS (SELECT 1 FROM "AIRun" AS "run" WHERE "run"."_id" = "log"."aiRunId" AND "run"."triggeredByIncidentId" IS NOT NULL AND "run"."triggeredByAlertId" IS NULL)`;
+    const alertRunMembership: string = `EXISTS (SELECT 1 FROM "AIRun" AS "run" WHERE "run"."_id" = "log"."aiRunId" AND "run"."triggeredByIncidentId" IS NULL AND "run"."triggeredByAlertId" IS NOT NULL)`;
+
+    let subjectClause: string = `AND "log"."incidentId" IS NULL AND "log"."alertId" IS NULL AND NOT ("log"."feature" = ANY($4)) AND NOT ("log"."feature" = ANY($5)) AND NOT (${incidentRunMembership}) AND NOT (${alertRunMembership})`;
+
+    if (data.incidentId) {
+      subjectClause = `AND (("log"."incidentId" IS NOT NULL AND "log"."alertId" IS NULL) OR ("log"."incidentId" IS NULL AND "log"."alertId" IS NULL AND (("log"."feature" = ANY($4)) OR ${incidentRunMembership})))`;
+    } else if (data.alertId) {
+      subjectClause = `AND (("log"."incidentId" IS NULL AND "log"."alertId" IS NOT NULL) OR ("log"."incidentId" IS NULL AND "log"."alertId" IS NULL AND (("log"."feature" = ANY($5)) OR ${alertRunMembership})))`;
+    }
+
     const rows: Array<{ total: string | number | null }> =
       await this.getRepository().manager.query(
-        `SELECT COALESCE(SUM("totalTokens"), 0) AS "total" FROM "LlmLog" WHERE "projectId" = $1 AND "createdAt" >= $2 AND "feature" = ANY($3) AND "deletedAt" IS NULL`,
-        [data.projectId.toString(), data.since, data.features],
+        `SELECT COALESCE(SUM("log"."totalTokens"), 0) AS "total" FROM "LlmLog" AS "log" WHERE "log"."projectId" = $1 AND "log"."createdAt" >= $2 AND "log"."feature" = ANY($3) ${subjectClause} AND "log"."deletedAt" IS NULL`,
+        [
+          data.projectId.toString(),
+          data.since,
+          data.features,
+          legacyIncidentFeatures,
+          legacyAlertFeatures,
+        ],
       );
 
     return Number(rows[0]?.total || 0);

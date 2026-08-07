@@ -55,6 +55,21 @@ describe("FixFromIncidentTaskTrigger.createFixTaskFromInvestigation", () => {
     expect(findOneBy).not.toHaveBeenCalled();
   });
 
+  test("a call carrying both subject types is rejected before any query", async () => {
+    const findOneBy: jest.SpyInstance = jest.spyOn(AIRunService, "findOneBy");
+
+    await expect(
+      FixFromIncidentTaskTrigger.createFixTaskFromInvestigation({
+        projectId,
+        incidentId,
+        alertId,
+        userId,
+      }),
+    ).rejects.toThrow(/Exactly one/);
+
+    expect(findOneBy).not.toHaveBeenCalled();
+  });
+
   test("no completed investigation → reject with a clear message, nothing enqueued", async () => {
     // The completed-investigation lookup is the first query.
     const findOneBy: jest.SpyInstance = jest
@@ -153,6 +168,10 @@ describe("FixFromIncidentTaskTrigger.createFixTaskFromInvestigation", () => {
       }),
     ).rejects.toThrow(/daily AI fix task limit/);
 
+    expect(FixRunBudget.assertWithinBudget).toHaveBeenCalledWith(projectId, {
+      incidentId,
+      alertId: undefined,
+    });
     expect(create).not.toHaveBeenCalled();
   });
 
@@ -177,6 +196,10 @@ describe("FixFromIncidentTaskTrigger.createFixTaskFromInvestigation", () => {
       });
 
     expect(run).toBe(createdRun);
+    expect(FixRunBudget.assertWithinBudget).toHaveBeenCalledWith(projectId, {
+      incidentId,
+      alertId: undefined,
+    });
 
     // The dedupe guard queries per (subject, FixFromIncident).
     expect(findOneBy).toHaveBeenNthCalledWith(
@@ -222,6 +245,11 @@ describe("FixFromIncidentTaskTrigger.createFixTaskFromInvestigation", () => {
       projectId,
       alertId,
       userId,
+    });
+
+    expect(FixRunBudget.assertWithinBudget).toHaveBeenCalledWith(projectId, {
+      incidentId: undefined,
+      alertId,
     });
 
     // The completed-investigation gate keys on the alert subject.

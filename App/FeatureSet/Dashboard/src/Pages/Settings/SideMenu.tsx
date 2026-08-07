@@ -124,6 +124,15 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           },
           icon: IconProp.Brain,
         },
+        {
+          link: {
+            title: "AI Guardrails",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_AI_GUARDRAILS] as Route,
+            ),
+          },
+          icon: IconProp.Settings,
+        },
         ...(BILLING_ENABLED
           ? [
               {

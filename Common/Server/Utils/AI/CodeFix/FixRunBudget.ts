@@ -11,13 +11,10 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
 /*
  * Per-project daily fix-run budget (Preventive-lane X guardrail, G11).
  *
- * Every CodeFix AIRun — regardless of recipe or trigger — counts against
- * one per-project daily cap: `Project.aiDailyFixTaskLimit` fix runs per UTC
- * day (null/unset = the default below, 0 = fix tasks paused — the same
- * semantics as `aiDailyAutonomousTokenLimit`). The cap bounds the blast
- * radius of ANY runaway trigger: a click-happy user, a buggy automation, or
- * a future auto-created-fix fan-out can never open more than the budget's
- * worth of agent runs (and therefore PRs) in a day.
+ * Every CodeFix AIRun counts against the daily cap for its lane: incident,
+ * alert, or subjectless. Incident and alert runs use their independent
+ * settings; recipes with neither subject retain `Project.aiDailyFixTaskLimit`
+ * as a fallback. Null/unset means the default below and 0 pauses that lane.
  *
  * Enforced centrally at BOTH creation paths:
  *   - TelemetryExceptionService.createCodeFixRunForException (the
@@ -42,6 +39,13 @@ export interface FixRunBudgetDecision {
   // CodeFix runs created since UTC midnight (0 when paused short-circuits).
   runsToday: number;
 }
+
+export interface FixRunBudgetSubject {
+  incidentId?: ObjectID | undefined;
+  alertId?: ObjectID | undefined;
+}
+
+type FixRunBudgetLane = "incident" | "alert" | "other";
 
 export default class FixRunBudget {
   /*
@@ -85,14 +89,27 @@ export default class FixRunBudget {
   @CaptureSpan()
   public static async getBudgetStatus(
     projectId: ObjectID,
+    subject?: FixRunBudgetSubject | undefined,
   ): Promise<FixRunBudgetDecision> {
+    const lane: FixRunBudgetLane = this.getLane(subject);
+
     const project: Project | null = await ProjectService.findOneById({
       id: projectId,
-      select: { aiDailyFixTaskLimit: true },
+      select:
+        lane === "incident"
+          ? { incidentAiDailyFixTaskLimit: true }
+          : lane === "alert"
+            ? { alertAiDailyFixTaskLimit: true }
+            : { aiDailyFixTaskLimit: true },
       props: { isRoot: true },
     });
 
-    const configuredLimit: number | null = project?.aiDailyFixTaskLimit ?? null;
+    const configuredLimit: number | null =
+      lane === "incident"
+        ? project?.incidentAiDailyFixTaskLimit ?? null
+        : lane === "alert"
+          ? project?.alertAiDailyFixTaskLimit ?? null
+          : project?.aiDailyFixTaskLimit ?? null;
 
     // Paused short-circuits the count query (mirrors the token budget).
     const pausedCheck: FixRunBudgetDecision = this.evaluate({
@@ -109,6 +126,20 @@ export default class FixRunBudget {
         query: {
           projectId,
           runType: AIRunType.CodeFix,
+          ...(lane === "incident"
+            ? {
+                triggeredByIncidentId: QueryHelper.notNull(),
+                triggeredByAlertId: QueryHelper.isNull(),
+              }
+            : lane === "alert"
+              ? {
+                  triggeredByIncidentId: QueryHelper.isNull(),
+                  triggeredByAlertId: QueryHelper.notNull(),
+                }
+              : {
+                  triggeredByIncidentId: QueryHelper.isNull(),
+                  triggeredByAlertId: QueryHelper.isNull(),
+                }),
           createdAt: QueryHelper.greaterThanEqualTo(
             OneUptimeDate.getStartOfDay(OneUptimeDate.getCurrentDate(), "UTC"),
           ),
@@ -120,13 +151,51 @@ export default class FixRunBudget {
     return this.evaluate({ configuredLimit, runsToday });
   }
 
-  // Human-readable rejection naming the cap and the setting that controls it.
-  public static describeRejection(decision: FixRunBudgetDecision): string {
-    if (decision.paused) {
-      return `AI fix tasks are paused for this project — the "Daily AI Fix Task Limit" is set to 0. Raise or unset the limit in the AI settings pages (Settings > Incidents/Alerts > AI) to resume.`;
+  private static getLane(
+    subject?: FixRunBudgetSubject | undefined,
+  ): FixRunBudgetLane {
+    if (subject?.incidentId && subject.alertId) {
+      throw new BadDataException(
+        "A fix task cannot belong to both an incident and an alert.",
+      );
     }
 
-    return `The project's daily AI fix task limit has been reached (${decision.runsToday} of ${decision.limit} fix tasks created today, UTC). New fix tasks can be created tomorrow — or raise the "Daily AI Fix Task Limit" in the AI settings pages (unset means the default of ${DEFAULT_DAILY_FIX_RUN_LIMIT}/day).`;
+    if (subject?.incidentId) {
+      return "incident";
+    }
+
+    if (subject?.alertId) {
+      return "alert";
+    }
+
+    return "other";
+  }
+
+  // Human-readable rejection naming the cap and the setting that controls it.
+  public static describeRejection(
+    decision: FixRunBudgetDecision,
+    subject?: FixRunBudgetSubject | undefined,
+  ): string {
+    const lane: FixRunBudgetLane = this.getLane(subject);
+    const settingTitle: string =
+      lane === "incident"
+        ? "Daily Incident AI Fix Task Limit"
+        : lane === "alert"
+          ? "Daily Alert AI Fix Task Limit"
+          : "Daily Other AI Fix Task Limit";
+    const settingsLocation: string =
+      lane === "incident"
+        ? "Incidents > Settings > AI"
+        : lane === "alert"
+          ? "Alerts > Settings > AI"
+          : "Project Settings > AI > AI Guardrails";
+    const laneLabel: string = lane === "other" ? "other AI" : `${lane} AI`;
+
+    if (decision.paused) {
+      return `${laneLabel} fix tasks are paused for this project — the "${settingTitle}" is set to 0. Raise or unset it under ${settingsLocation} to resume.`;
+    }
+
+    return `The project's ${laneLabel} fix task limit has been reached (${decision.runsToday} of ${decision.limit} fix tasks created today, UTC). New fix tasks can be created tomorrow — or raise the "${settingTitle}" under ${settingsLocation} (unset means the default of ${DEFAULT_DAILY_FIX_RUN_LIMIT}/day).`;
   }
 
   /*
@@ -135,14 +204,19 @@ export default class FixRunBudget {
    * a CodeFix AIRun row is written.
    */
   @CaptureSpan()
-  public static async assertWithinBudget(projectId: ObjectID): Promise<void> {
-    const decision: FixRunBudgetDecision =
-      await this.getBudgetStatus(projectId);
+  public static async assertWithinBudget(
+    projectId: ObjectID,
+    subject?: FixRunBudgetSubject | undefined,
+  ): Promise<void> {
+    const decision: FixRunBudgetDecision = await this.getBudgetStatus(
+      projectId,
+      subject,
+    );
 
     if (decision.allowed) {
       return;
     }
 
-    throw new BadDataException(this.describeRejection(decision));
+    throw new BadDataException(this.describeRejection(decision, subject));
   }
 }

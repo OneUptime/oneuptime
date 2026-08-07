@@ -15,8 +15,8 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  * confidence signal (ConfidenceSignal.ts), never the analysis prose — the
  * telemetry itself is the bug: the code paths involved were not observable
  * enough to diagnose. For projects that opted in
- * (Project.enableInstrumentationFixTasks, default FALSE — G11 posture:
- * autonomous PR creation is opt-in only), the inconclusive analysis becomes
+ * (the subject lane's incident/alert instrumentation setting, default FALSE
+ * — G11 posture: autonomous PR creation is opt-in only), the inconclusive analysis becomes
  * the input to a CodeFix AIRun (codeFixTaskType: ImproveInstrumentation)
  * that the agent worker turns into a pull request adding the missing
  * observability — so the NEXT investigation of a similar signal can reach a
@@ -28,8 +28,11 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  */
 
 export interface InstrumentationTaskGateInput {
-  // The project row with enableAi + enableInstrumentationFixTasks selected.
+  // The project row with enableAi + the subject lane's opt-in selected.
   project: Project | null;
+  // Exactly one subject selects the incident or alert opt-in.
+  incidentId?: ObjectID | undefined;
+  alertId?: ObjectID | undefined;
   // Whether the project has at least one GitHub-App-connected repository.
   hasConnectedRepository: boolean;
   // A non-terminal ImproveInstrumentation run for the same subject, if any.
@@ -63,10 +66,21 @@ export default class InstrumentationTaskTrigger {
      * Strict opt-in — the column defaults to false, so unset/legacy rows
      * never enqueue. Autonomous PR creation must never be default-on.
      */
-    if (input.project.enableInstrumentationFixTasks !== true) {
+    if (Boolean(input.incidentId) === Boolean(input.alertId)) {
       return {
         enqueue: false,
-        reason: "project has not opted in to instrumentation fix tasks",
+        reason: "exactly one incident or alert subject is required",
+      };
+    }
+
+    const instrumentationFixTasksEnabled: boolean = input.incidentId
+      ? input.project.enableIncidentInstrumentationFixTasks === true
+      : input.project.enableAlertInstrumentationFixTasks === true;
+
+    if (!instrumentationFixTasksEnabled) {
+      return {
+        enqueue: false,
+        reason: `project has not opted in to ${input.incidentId ? "incident" : "alert"} instrumentation fix tasks`,
       };
     }
 
@@ -112,16 +126,21 @@ export default class InstrumentationTaskTrigger {
     const { projectId } = data;
 
     try {
-      if (!data.incidentId && !data.alertId) {
+      if (Boolean(data.incidentId) === Boolean(data.alertId)) {
         return;
       }
 
       const project: Project | null = await ProjectService.findOneById({
         id: projectId,
-        select: {
-          enableAi: true,
-          enableInstrumentationFixTasks: true,
-        },
+        select: data.incidentId
+          ? {
+              enableAi: true,
+              enableIncidentInstrumentationFixTasks: true,
+            }
+          : {
+              enableAi: true,
+              enableAlertInstrumentationFixTasks: true,
+            },
         props: { isRoot: true },
       });
 
@@ -132,6 +151,8 @@ export default class InstrumentationTaskTrigger {
       const optInDecision: InstrumentationTaskGateDecision =
         this.shouldEnqueueInstrumentationTask({
           project,
+          incidentId: data.incidentId,
+          alertId: data.alertId,
           hasConnectedRepository: true,
           existingRun: null,
         });
@@ -150,12 +171,23 @@ export default class InstrumentationTaskTrigger {
        * throw the same rejection, but that lands in the catch below as an
        * error log; a budget skip is expected behavior, not a failure).
        */
-      const budget: FixRunBudgetDecision =
-        await FixRunBudget.getBudgetStatus(projectId);
+      const budget: FixRunBudgetDecision = await FixRunBudget.getBudgetStatus(
+        projectId,
+        {
+          incidentId: data.incidentId,
+          alertId: data.alertId,
+        },
+      );
 
       if (!budget.allowed) {
         logger.debug(
-          `AI: not enqueueing instrumentation task for project ${projectId.toString()} — ${FixRunBudget.describeRejection(budget)}`,
+          `AI: not enqueueing instrumentation task for project ${projectId.toString()} — ${FixRunBudget.describeRejection(
+            budget,
+            {
+              incidentId: data.incidentId,
+              alertId: data.alertId,
+            },
+          )}`,
         );
         return;
       }
@@ -177,6 +209,8 @@ export default class InstrumentationTaskTrigger {
       const decision: InstrumentationTaskGateDecision =
         this.shouldEnqueueInstrumentationTask({
           project,
+          incidentId: data.incidentId,
+          alertId: data.alertId,
           hasConnectedRepository,
           existingRun,
         });
