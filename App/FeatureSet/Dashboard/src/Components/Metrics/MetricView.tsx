@@ -37,6 +37,7 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import AggregationInterval from "Common/Types/BaseDatabase/AggregationInterval";
 import AggregationIntervalUtil from "Common/Types/BaseDatabase/AggregationIntervalUtil";
 import ObjectID from "Common/Types/ObjectID";
+import TelemetryQueryTimeRange from "Common/Utils/Telemetry/TelemetryQueryTimeRange";
 import ChartTimeReferenceLineProps from "Common/UI/Components/Charts/Types/TimeReferenceLineProps";
 import ChartReferenceRegionProps from "Common/UI/Components/Charts/Types/ReferenceRegionProps";
 
@@ -100,14 +101,18 @@ const getAlignedWindowForData: (data: MetricViewData) => {
   effectiveData: MetricViewData;
   aggregationInterval: AggregationInterval | undefined;
 } => {
-  const start: Date | undefined = data.startAndEndDate?.startValue as
-    | Date
-    | undefined;
-  const end: Date | undefined = data.startAndEndDate?.endValue as
-    | Date
-    | undefined;
+  /*
+   * Not `instanceof Date`: a window loaded from a stored incident/alert
+   * snapshot comes back as an InBetween holding ISO strings, because operator
+   * bounds are not tagged for rehydration on the JSON round trip. Testing the
+   * class directly made this whole function a no-op on exactly the pages that
+   * most need a stable, aligned window.
+   */
+  const window: InBetween<Date> | null = TelemetryQueryTimeRange.toDateWindow(
+    data.startAndEndDate,
+  );
 
-  if (!(start instanceof Date) || !(end instanceof Date)) {
+  if (!window) {
     return { effectiveData: data, aggregationInterval: undefined };
   }
 
@@ -116,8 +121,8 @@ const getAlignedWindowForData: (data: MetricViewData) => {
     endDate: Date;
     interval: AggregationInterval;
   } = AggregationIntervalUtil.getIntervalAlignedWindow({
-    startDate: start,
-    endDate: end,
+    startDate: window.startValue,
+    endDate: window.endValue,
   });
 
   return {
