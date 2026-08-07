@@ -88,6 +88,35 @@ export default class APIRequestCriteria {
       });
     }
 
+    if (
+      input.criteriaFilter.checkOn === CheckOn.PortDnsLookupTime ||
+      input.criteriaFilter.checkOn === CheckOn.PortTcpConnectTime
+    ) {
+      const portTimings: ProbeMonitorResponse["portTimings"] = (
+        input.dataToProcess as ProbeMonitorResponse
+      ).portTimings;
+
+      const currentValue: number | undefined =
+        input.criteriaFilter.checkOn === CheckOn.PortDnsLookupTime
+          ? portTimings?.dnsLookupInMs
+          : portTimings?.tcpConnectInMs;
+
+      const value: Array<number> | number | undefined =
+        (overTimeValue as Array<number> | number | undefined) ?? currentValue;
+
+      if (value === undefined) {
+        return null;
+      }
+
+      threshold = CompareCriteria.convertToNumber(threshold);
+
+      return CompareCriteria.compareCriteriaNumbers({
+        value: value,
+        threshold: threshold as number,
+        criteriaFilter: input.criteriaFilter,
+      });
+    }
+
     // check packet loss (Ping/IP monitors with multi-packet checks)
     if (input.criteriaFilter.checkOn === CheckOn.PacketLossPercent) {
       const packetLossPercent: number | undefined = (

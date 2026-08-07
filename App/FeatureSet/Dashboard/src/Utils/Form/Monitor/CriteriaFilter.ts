@@ -49,7 +49,9 @@ export default class CriteriaFilterUtil {
 
     const isMilliseconds: boolean =
       criteriaFilter?.checkOn === CheckOn.ResponseTime ||
-      criteriaFilter?.checkOn === CheckOn.Jitter;
+      criteriaFilter?.checkOn === CheckOn.Jitter ||
+      criteriaFilter?.checkOn === CheckOn.PortDnsLookupTime ||
+      criteriaFilter?.checkOn === CheckOn.PortTcpConnectTime;
 
     // check evaluation over time values.
     if (
@@ -205,13 +207,26 @@ export default class CriteriaFilterUtil {
     }
 
     if (monitorType === MonitorType.Port) {
-      options = options.filter((i: DropdownOption) => {
-        return (
-          i.value === CheckOn.IsOnline ||
-          i.value === CheckOn.ResponseTime ||
-          i.value === CheckOn.IsRequestTimeout
-        );
-      });
+      options = options
+        .filter((i: DropdownOption) => {
+          return (
+            i.value === CheckOn.IsOnline ||
+            i.value === CheckOn.ResponseTime ||
+            i.value === CheckOn.PortDnsLookupTime ||
+            i.value === CheckOn.PortTcpConnectTime ||
+            i.value === CheckOn.IsRequestTimeout
+          );
+        })
+        .map((i: DropdownOption) => {
+          if (i.value === CheckOn.ResponseTime) {
+            return {
+              ...i,
+              label: "Total Connection Time (DNS + TCP) (in ms)",
+            };
+          }
+
+          return i;
+        });
     }
 
     if (monitorType === MonitorType.Server) {
@@ -432,7 +447,9 @@ export default class CriteriaFilterUtil {
       checkOn === CheckOn.ResponseTime ||
       checkOn === CheckOn.ExecutionTime ||
       checkOn === CheckOn.PacketLossPercent ||
-      checkOn === CheckOn.Jitter
+      checkOn === CheckOn.Jitter ||
+      checkOn === CheckOn.PortDnsLookupTime ||
+      checkOn === CheckOn.PortTcpConnectTime
     ) {
       options = options.filter((i: DropdownOption) => {
         return (
@@ -961,6 +978,13 @@ export default class CriteriaFilterUtil {
 
     if (checkOn === CheckOn.ResponseTime) {
       return "5000";
+    }
+
+    if (
+      checkOn === CheckOn.PortDnsLookupTime ||
+      checkOn === CheckOn.PortTcpConnectTime
+    ) {
+      return "1000";
     }
 
     if (checkOn === CheckOn.PacketLossPercent) {

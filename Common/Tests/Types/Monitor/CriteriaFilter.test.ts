@@ -270,6 +270,8 @@ describe("CriteriaFilterUtil", () => {
     test.each([
       CheckOn.ResponseStatusCode,
       CheckOn.ResponseTime,
+      CheckOn.PortDnsLookupTime,
+      CheckOn.PortTcpConnectTime,
       CheckOn.CPUUsagePercent,
       CheckOn.MemoryUsagePercent,
       CheckOn.IsOnline,
@@ -290,6 +292,8 @@ describe("CriteriaFilterUtil", () => {
     test.each([
       CheckOn.ResponseStatusCode,
       CheckOn.ResponseTime,
+      CheckOn.PortDnsLookupTime,
+      CheckOn.PortTcpConnectTime,
       CheckOn.DiskUsagePercent,
       CheckOn.CPUUsagePercent,
       CheckOn.MemoryUsagePercent,

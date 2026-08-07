@@ -3,19 +3,21 @@ import Hostname from "Common/Types/API/Hostname";
 import URL from "Common/Types/API/URL";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import UnableToReachServer from "Common/Types/Exception/UnableToReachServer";
-import { PromiseRejectErrorFunction } from "Common/Types/FunctionTypes";
 import IPv4 from "Common/Types/IP/IPv4";
 import IPv6 from "Common/Types/IP/IPv6";
+import PortMonitorTimings from "Common/Types/Monitor/PortMonitor/PortMonitorTimings";
 import ObjectID from "Common/Types/ObjectID";
 import Port from "Common/Types/Port";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import ProbeAttempt from "Common/Types/Probe/ProbeAttempt";
+import RequestFailedDetails, {
+  RequestFailedPhase,
+} from "Common/Types/Probe/RequestFailedDetails";
 import Sleep from "Common/Types/Sleep";
 import logger from "Common/Server/Utils/Logger";
 import net from "net";
 import Register from "../../../Services/Register";
 
-// TODO - make sure it works for the IPV6
 export interface PortMonitorResponse {
   isOnline: boolean;
   responseTimeInMS?: PositiveNumber | undefined;
@@ -23,6 +25,8 @@ export interface PortMonitorResponse {
   isTimeout?: boolean | undefined;
   probeAttempts?: Array<ProbeAttempt> | undefined;
   totalAttempts?: number | undefined;
+  portTimings?: PortMonitorTimings | undefined;
+  requestFailedDetails?: RequestFailedDetails | undefined;
 }
 
 export interface PingOptions {
@@ -34,6 +38,157 @@ export interface PingOptions {
   attempts?: Array<ProbeAttempt> | undefined;
 }
 
+interface PortConnectionResult {
+  responseTimeInMS: PositiveNumber;
+  portTimings?: PortMonitorTimings | undefined;
+}
+
+interface ErrorWithCode extends Error {
+  code?: string | undefined;
+}
+
+interface StructuralAggregateError extends Error {
+  errors: Array<unknown>;
+}
+
+const durationInMilliseconds: (start: bigint, end: bigint) => number = (
+  start: bigint,
+  end: bigint,
+): number => {
+  return Math.max(0, Math.ceil(Number(end - start) / 1000000));
+};
+
+const normalizeError: (error: unknown) => Error = (error: unknown): Error => {
+  return error instanceof Error ? error : new Error(String(error));
+};
+
+const isStructuralAggregateError: (
+  error: unknown,
+) => error is StructuralAggregateError = (
+  error: unknown,
+): error is StructuralAggregateError => {
+  return (
+    error instanceof Error &&
+    error.name === "AggregateError" &&
+    Array.isArray((error as Partial<StructuralAggregateError>).errors)
+  );
+};
+
+const describeError: (error: unknown) => string = (error: unknown): string => {
+  if (!isStructuralAggregateError(error)) {
+    if (!(error instanceof Error)) {
+      return String(error);
+    }
+
+    const description: string = error.toString();
+    const errorCode: string | undefined = (error as ErrorWithCode).code;
+
+    return errorCode && !description.includes(errorCode)
+      ? `${description} (${errorCode})`
+      : description;
+  }
+
+  const attemptFailures: Array<string> = error.errors.map(
+    (attemptError: unknown): string => {
+      return describeError(attemptError);
+    },
+  );
+  const attemptFailureDescription: string = attemptFailures.length
+    ? ` Attempts: ${attemptFailures.join("; ")}`
+    : "";
+
+  return (
+    "Request failed with AggregateError (all connection attempts failed). " +
+    `${error.toString()}.${attemptFailureDescription}`
+  );
+};
+
+const getRepresentativeError: (error: unknown) => unknown = (
+  error: unknown,
+): unknown => {
+  if (isStructuralAggregateError(error) && error.errors.length > 0) {
+    return getRepresentativeError(error.errors[0]);
+  }
+
+  return error;
+};
+
+const getErrorCode: (error: unknown) => string | undefined = (
+  error: unknown,
+): string | undefined => {
+  return error instanceof Error ? (error as ErrorWithCode).code : undefined;
+};
+
+const getRequestFailedDetails: (error: unknown) => RequestFailedDetails = (
+  error: unknown,
+): RequestFailedDetails => {
+  const representativeError: unknown = getRepresentativeError(error);
+  const errorCode: string | undefined = getErrorCode(representativeError);
+  const rawErrorMessage: string = describeError(error);
+  const lowerMessage: string = describeError(representativeError).toLowerCase();
+
+  if (
+    errorCode === "ENOTFOUND" ||
+    errorCode === "EAI_AGAIN" ||
+    errorCode === "EAI_FAIL" ||
+    lowerMessage.includes("enotfound") ||
+    lowerMessage.includes("getaddrinfo")
+  ) {
+    return {
+      failedPhase: RequestFailedPhase.DNSResolution,
+      errorCode: errorCode || "ENOTFOUND",
+      errorDescription:
+        "DNS resolution failed before a TCP connection could be attempted.",
+      rawErrorMessage,
+    };
+  }
+
+  if (
+    error instanceof UnableToReachServer ||
+    errorCode === "ETIMEDOUT" ||
+    lowerMessage.includes("timeout") ||
+    lowerMessage.includes("timed out")
+  ) {
+    return {
+      failedPhase: RequestFailedPhase.RequestTimeout,
+      errorCode: errorCode || "TIMEOUT",
+      errorDescription:
+        "The DNS and TCP connection attempt did not finish before the deadline.",
+      rawErrorMessage,
+    };
+  }
+
+  const tcpErrorCodes: Set<string> = new Set([
+    "ECONNABORTED",
+    "ECONNREFUSED",
+    "ECONNRESET",
+    "EHOSTUNREACH",
+    "ENETDOWN",
+    "ENETUNREACH",
+    "EPIPE",
+  ]);
+
+  if (
+    (errorCode !== undefined && tcpErrorCodes.has(errorCode)) ||
+    lowerMessage.includes("connect")
+  ) {
+    return {
+      failedPhase: RequestFailedPhase.TCPConnection,
+      errorCode,
+      errorDescription:
+        "TCP connection establishment failed before the port could be reached.",
+      rawErrorMessage,
+    };
+  }
+
+  return {
+    failedPhase: RequestFailedPhase.NetworkError,
+    errorCode,
+    errorDescription: "The port check failed because of a network error.",
+    rawErrorMessage,
+  };
+};
+
 export default class PortMonitor {
   public static async ping(
     host: Hostname | IPv4 | IPv6 | URL,
@@ -44,7 +199,7 @@ export default class PortMonitor {
       pingOptions = {};
     }
 
-    if (pingOptions?.currentRetryCount === undefined) {
+    if (pingOptions.currentRetryCount === undefined) {
       pingOptions.currentRetryCount = 1;
     }
 
@@ -73,110 +228,216 @@ export default class PortMonitor {
       throw new BadDataException("Port is not specified");
     }
 
+    const portNumber: number = port.toNumber();
+    const timeout: number = pingOptions.timeout?.toNumber() || 5000;
+    const destinationIsIpAddress: boolean = net.isIP(hostAddress) !== 0;
+
+    /*
+     * Some cloud providers block outbound SMTP. Keep the existing narrow
+     * policy that treats a port-25 deadline as online when ICMP monitoring is
+     * unavailable. The policy method is async, so it must be resolved before
+     * the attempt starts; calling it as a boolean would never activate it.
+     */
+    const treatPort25TimeoutAsOnline: boolean =
+      portNumber === 25 && !(await Register.isPingMonitoringEnabled());
+
     logger.debug(
-      `Pinging host: ${pingOptions?.monitorId?.toString()}  ${hostAddress}:${port.toString()} - Retry: ${
-        pingOptions?.currentRetryCount
+      `Pinging host: ${pingOptions.monitorId?.toString()}  ${hostAddress}:${port.toString()} - Retry: ${
+        pingOptions.currentRetryCount
       }`,
     );
 
     const attemptedAt: Date = new Date();
+    const attemptStartedAtNs: bigint = process.hrtime.bigint();
+
     try {
-      // Ping a host with port
-
-      const promiseResult: Promise<PositiveNumber> = new Promise(
+      const connectionResult: PortConnectionResult = await new Promise(
         (
-          resolve: (responseTimeInMS: PositiveNumber) => void,
-          reject: PromiseRejectErrorFunction,
-        ) => {
-          const startTime: [number, number] = process.hrtime();
-
+          resolve: (result: PortConnectionResult) => void,
+          reject: (error: Error) => void,
+        ): void => {
           const socket: net.Socket = new net.Socket();
+          let firstSuccessfulLookupAtNs: bigint | undefined = undefined;
+          let firstConnectionAttemptAtNs: bigint | undefined = undefined;
+          let deadlineTimer: NodeJS.Timeout | undefined = undefined;
+          let hasSettled: boolean = false;
 
-          const timeout: number = pingOptions?.timeout?.toNumber() || 5000;
+          const removeListeners: () => void = (): void => {
+            socket.removeListener("lookup", onLookup);
+            socket.removeListener("connectionAttempt", onConnectionAttempt);
+            socket.removeListener("connect", onConnect);
+            socket.removeListener("error", onError);
+          };
 
-          socket.setTimeout(timeout);
+          const finish: () => void = (): void => {
+            if (deadlineTimer) {
+              clearTimeout(deadlineTimer);
+              deadlineTimer = undefined;
+            }
 
-          if (!port) {
-            throw new BadDataException("Port is not specified");
-          }
+            removeListeners();
+            socket.destroy();
+          };
 
-          let hasPromiseResolved: boolean = false;
+          const resolveOnce: (result: PortConnectionResult) => void = (
+            result: PortConnectionResult,
+          ): void => {
+            if (hasSettled) {
+              return;
+            }
 
-          socket.connect(port.toNumber(), hostAddress, () => {
-            const endTime: [number, number] = process.hrtime(startTime);
+            hasSettled = true;
+            finish();
+            resolve(result);
+          };
+
+          const rejectOnce: (error: Error) => void = (error: Error): void => {
+            if (hasSettled) {
+              return;
+            }
+
+            hasSettled = true;
+            finish();
+            reject(error);
+          };
+
+          const onConnectionAttempt: () => void = (): void => {
+            if (hasSettled || firstConnectionAttemptAtNs !== undefined) {
+              return;
+            }
+
+            firstConnectionAttemptAtNs = process.hrtime.bigint();
+          };
+
+          const onLookup: (error: Error | null) => void = (
+            error: Error | null,
+          ): void => {
+            if (
+              hasSettled ||
+              destinationIsIpAddress ||
+              error ||
+              firstSuccessfulLookupAtNs !== undefined
+            ) {
+              return;
+            }
+
+            /*
+             * Node can skip connectionAttempt when lookup returns only one
+             * address. Retain the first successful lookup as the TCP-start
+             * fallback, while allowing connectionAttempt to supersede it for
+             * multi-address family selection and fallback.
+             *
+             * A lookup error is intentionally left for the socket's error
+             * event to settle so the native error and code remain intact.
+             */
+            firstSuccessfulLookupAtNs = process.hrtime.bigint();
+          };
+
+          const onConnect: () => void = (): void => {
+            if (hasSettled) {
+              return;
+            }
+
+            const connectedAtNs: bigint = process.hrtime.bigint();
+            const totalConnectionInMs: number = durationInMilliseconds(
+              attemptStartedAtNs,
+              connectedAtNs,
+            );
+            const tcpStartedAtNs: bigint =
+              firstConnectionAttemptAtNs ??
+              firstSuccessfulLookupAtNs ??
+              attemptStartedAtNs;
+            const portTimings: PortMonitorTimings = {
+              tcpConnectInMs: durationInMilliseconds(
+                tcpStartedAtNs,
+                connectedAtNs,
+              ),
+              totalConnectionInMs,
+            };
+
+            const dnsCompletedAtNs: bigint | undefined =
+              firstConnectionAttemptAtNs ?? firstSuccessfulLookupAtNs;
+
+            if (!destinationIsIpAddress && dnsCompletedAtNs !== undefined) {
+              portTimings.dnsLookupInMs = durationInMilliseconds(
+                attemptStartedAtNs,
+                dnsCompletedAtNs,
+              );
+            }
+
             const responseTimeInMS: PositiveNumber = new PositiveNumber(
-              Math.ceil((endTime[0] * 1000000000 + endTime[1]) / 1000000),
+              totalConnectionInMs,
             );
 
             logger.debug(
-              `Pinging host ${pingOptions?.monitorId?.toString()} ${hostAddress}:${port!.toString()} success: Response Time ${responseTimeInMS} ms`,
+              `Pinging host ${pingOptions?.monitorId?.toString()} ${hostAddress}:${port.toString()} success: Response Time ${responseTimeInMS} ms`,
             );
 
-            socket.destroy(); // Close the connection after success
-            if (!hasPromiseResolved) {
-              resolve(responseTimeInMS);
-            }
+            resolveOnce({
+              responseTimeInMS,
+              portTimings,
+            });
+          };
 
-            hasPromiseResolved = true;
-            return;
-          });
+          const onError: (error: Error) => void = (error: Error): void => {
+            logger.debug(`Could not connect to: ${host}:${port}`);
+            rejectOnce(error);
+          };
 
-          socket.on("timeout", () => {
-            socket.destroy();
+          const onDeadline: () => void = (): void => {
             logger.debug("Ping timeout");
 
-            if (!hasPromiseResolved) {
-              /*
-               * this could mean port 25 is blocked by the cloud provider and is timing out but is actually online.
-               * so we will return isOnline as true
-               */
-              if (
-                !Register.isPingMonitoringEnabled() &&
-                port.toNumber() === 25
-              ) {
-                logger.debug(
-                  "Ping monitoring is disabled because this is deployed in the cloud",
-                );
-                resolve(new PositiveNumber(timeout));
-              } else {
-                reject(new UnableToReachServer("Ping timeout"));
-              }
+            if (treatPort25TimeoutAsOnline) {
+              logger.debug(
+                "Ping monitoring is disabled because this is deployed in the cloud",
+              );
+              resolveOnce({
+                responseTimeInMS: new PositiveNumber(timeout),
+              });
+              return;
             }
 
-            hasPromiseResolved = true;
-            return;
-          });
+            rejectOnce(new UnableToReachServer("Ping timeout"));
+          };
 
-          socket.on("error", (error: Error) => {
-            socket.destroy();
-            logger.debug("Could not connect to: " + host + ":" + port);
+          socket.on("lookup", onLookup);
+          socket.once("connectionAttempt", onConnectionAttempt);
+          socket.once("connect", onConnect);
+          socket.once("error", onError);
 
-            if (!hasPromiseResolved) {
-              reject(error);
-            }
+          /*
+           * This is an absolute attempt deadline, not an idle socket timer.
+           * It starts before connect() begins hostname resolution and covers
+           * DNS plus every address-family connection attempt together.
+           */
+          deadlineTimer = setTimeout(onDeadline, timeout);
 
-            hasPromiseResolved = true;
-            return;
-          });
+          try {
+            /*
+             * Let Node resolve the hostname and retain its automatic family
+             * selection/fallback. Pre-resolving and connecting to one address
+             * would lose that behavior.
+             */
+            socket.connect(portNumber, hostAddress);
+          } catch (error: unknown) {
+            rejectOnce(normalizeError(error));
+          }
         },
       );
 
-      const responseTimeInMS: PositiveNumber =
-        (await promiseResult) as PositiveNumber;
       const responseReceivedAt: Date = new Date();
 
-      pingOptions.attempts!.push({
+      pingOptions.attempts.push({
         attemptNumber: pingOptions.currentRetryCount,
         attemptedAt,
         responseReceivedAt,
-        responseTimeInMs: responseTimeInMS.toNumber(),
+        responseTimeInMs: connectionResult.responseTimeInMS.toNumber(),
         isOnline: true,
       });
 
       // if response time is greater than 10 seconds then give it one more try
-
       if (
-        responseTimeInMS.toNumber() > 10000 &&
+        connectionResult.responseTimeInMS.toNumber() > 10000 &&
         pingOptions.currentRetryCount < (pingOptions.retry || 5)
       ) {
         pingOptions.currentRetryCount++;
@@ -186,38 +447,33 @@ export default class PortMonitor {
 
       return {
         isOnline: true,
-        responseTimeInMS: responseTimeInMS,
+        responseTimeInMS: connectionResult.responseTimeInMS,
         failureCause: "",
         probeAttempts: pingOptions.attempts,
-        totalAttempts: pingOptions.attempts!.length,
+        totalAttempts: pingOptions.attempts.length,
+        portTimings: connectionResult.portTimings,
       };
-    } catch (err: unknown) {
+    } catch (error: unknown) {
+      const failedAtNs: bigint = process.hrtime.bigint();
+      const err: Error = normalizeError(error);
+      const failureCause: string = describeError(err);
+
       logger.debug(
-        `Pinging host ${pingOptions?.monitorId?.toString()} ${hostAddress}:${port.toString()} error: `,
+        `Pinging host ${pingOptions.monitorId?.toString()} ${hostAddress}:${port.toString()} error: `,
       );
-
       logger.debug(err);
-
-      if (!pingOptions) {
-        pingOptions = {};
-      }
-
-      if (!pingOptions.currentRetryCount) {
-        pingOptions.currentRetryCount = 0;
-      }
-
-      if (!pingOptions.attempts) {
-        pingOptions.attempts = [];
-      }
 
       const responseReceivedAt: Date = new Date();
       pingOptions.attempts.push({
         attemptNumber: pingOptions.currentRetryCount || 1,
         attemptedAt,
         responseReceivedAt,
-        responseTimeInMs: responseReceivedAt.getTime() - attemptedAt.getTime(),
+        responseTimeInMs: durationInMilliseconds(
+          attemptStartedAtNs,
+          failedAtNs,
+        ),
         isOnline: false,
-        failureCause: (err as any).toString(),
+        failureCause,
       });
 
       if (pingOptions.currentRetryCount < (pingOptions.retry || 5)) {
@@ -230,43 +486,24 @@ export default class PortMonitor {
       if (!pingOptions.isOnlineCheckRequest) {
         if (!(await OnlineCheck.canProbeMonitorPortMonitors())) {
           logger.error(
-            `PortMonitor Monitor - Probe is not online. Cannot ping ${pingOptions?.monitorId?.toString()} ${host.toString()} - ERROR: ${err}`,
+            `PortMonitor Monitor - Probe is not online. Cannot ping ${pingOptions.monitorId?.toString()} ${host.toString()} - ERROR: ${err}`,
           );
           return null;
         }
       }
 
+      const requestFailedDetails: RequestFailedDetails =
+        getRequestFailedDetails(err);
       const isTimeout: boolean =
-        err instanceof UnableToReachServer &&
-        (err as UnableToReachServer).message === "Ping timeout";
-
-      if (isTimeout) {
-        return {
-          isOnline: true,
-          failureCause: (err as any).toString(),
-          isTimeout: true,
-          probeAttempts: pingOptions.attempts,
-          totalAttempts: pingOptions.attempts.length,
-        };
-      }
-
-      // if AggregateError is thrown, it means that the request failed
-      if ((err as any).toString().includes("AggregateError")) {
-        return {
-          isOnline: false,
-          isTimeout: false,
-          failureCause:
-            "Request failed with AggregateError (all connection attempts failed). " +
-            (err as any).toString(),
-          probeAttempts: pingOptions.attempts,
-          totalAttempts: pingOptions.attempts.length,
-        };
-      }
+        (err instanceof UnableToReachServer &&
+          err.message === "Ping timeout") ||
+        requestFailedDetails.failedPhase === RequestFailedPhase.RequestTimeout;
 
       return {
         isOnline: false,
-        isTimeout: false,
-        failureCause: (err as any).toString(),
+        isTimeout,
+        failureCause,
+        requestFailedDetails,
         probeAttempts: pingOptions.attempts,
         totalAttempts: pingOptions.attempts.length,
       };
