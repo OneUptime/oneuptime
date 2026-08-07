@@ -141,9 +141,9 @@ describe("APIRequestCriteria Port connection phase timings", () => {
   });
 
   test("uses an evaluate-over-time aggregate instead of the current phase", async () => {
-    const overTimeSpy: jest.SpiedFunction<
-      typeof EvaluateOverTime.getValueOverTime
-    > = jest.spyOn(EvaluateOverTime, "getValueOverTime").mockResolvedValue(250);
+    const overTimeSpy: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(EvaluateOverTime, "getValueOverTime")
+      .mockResolvedValue(250);
 
     const response: ProbeMonitorResponse = buildResponse({
       dnsLookupInMs: 5,
