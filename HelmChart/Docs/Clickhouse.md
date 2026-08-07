@@ -233,3 +233,78 @@ keep the old `StatefulSet` running (`clickhouse.enabled: true`,
 `clickhouseOperator.altinity.enabled: false`) and copy data over with
 `clickhouse-backup` or `remoteSecure()`/`INSERT ... SELECT remote(...)` from the
 old service into the new CHI, then cut the app over by enabling the operator.
+
+#### Troubleshooting: migration fails with "Distributed DDL task ... is not finished on N of M hosts" (code 159, TIMEOUT_EXCEEDED)
+
+Every schema statement runs `ON CLUSTER`: the initiator enqueues the DDL in
+Keeper (`/clickhouse/<chi>/task_queue/ddl/query-NNNNNNNNNN`) and waits up to
+`distributed_ddl_task_timeout` (default 180s) for every host to confirm. Each
+host's DDLWorker processes that queue **sequentially**, so hosts that are
+healthy but backed up (a slow earlier DDL, heavy merges/mutations, hundreds of
+queued tasks) simply have not reached the task yet — that is exactly what
+`(0 of them are currently executing the task, 0 are inactive)` means. The task
+stays queued and every host executes it in the background. It can still be
+lost if a host lags too long: the queue cleaner evicts a task after
+`task_max_lifetime` (one week by default) **or** once it falls more than
+`max_tasks_in_queue` (default 1000) entries behind the newest — so a wedged
+host on a DDL-heavy cluster can permanently miss it. The end-of-run check
+below is what catches that.
+
+The migration runner sets `distributed_ddl_output_mode = null_status_on_timeout`
+(requires ClickHouse >= 21.4), so a slow host degrades to an unconfirmed (NULL)
+status instead of aborting the run, while a real DDL failure on any host that
+executed within the window still fails loudly. A host that times out and then
+fails in the background reports nothing to the client — which is why the migrate
+Job ends by checking `system.distributed_ddl_queue` and **logging a warning**
+with the unfinished-task count when the cluster has not converged. Watch the
+Job logs for that warning; a count that never drops means the queue is wedged.
+
+All schema DDL is idempotent (`IF NOT EXISTS` / `CREATE OR REPLACE`), so
+re-running the migrate Job is safe for the schema — but a re-run enqueues new
+tasks *behind* whatever is blocking the queue, and if a Distributed wrapper
+needs re-creating while ingestion is live, in-flight async inserts buffered
+against the old table UUID can error on flush (prefer a quiet window when
+wrappers are involved). On repeated timeouts diagnose the queue instead of
+just retrying:
+
+```sql
+-- Unfinished tasks per host; the OLDEST unfinished entry is the head-of-line blocker.
+SELECT entry, host, status, exception_code, exception_text, query_duration_ms
+FROM system.distributed_ddl_queue
+WHERE status != 'Finished'
+ORDER BY entry ASC;
+
+-- What every host is busy with (DDL waits for merges/mutations on the same
+-- table; system.merges/system.mutations alone only show the connected host).
+SELECT * FROM clusterAllReplicas('oneuptime', system.merges);
+SELECT * FROM clusterAllReplicas('oneuptime', system.mutations) WHERE NOT is_done;
+
+-- Every host must recognize itself in the cluster (is_local = 1 on its own row),
+-- and the cluster must not list dead/removed hosts the initiator waits on forever.
+SELECT host_name, host_address, is_local, errors_count
+FROM system.clusters
+WHERE cluster = 'oneuptime';
+```
+
+(The admin health endpoint surfaces the same signals under
+`clusterHealth.distributedDdlQueue`.)
+
+Remediation, in order of preference:
+
+1. **Wait, then re-run the migrate Job** — if the queue is merely slow, the
+   original task completes in the background and the re-run is a fast no-op.
+2. **Unblock the head of the queue** — wait out (or kill) the merge/mutation the
+   oldest task is stuck behind; if a host never picks up tasks, check that its
+   DDLWorker thread is alive (restart the server pod) and that `is_local` /
+   hostname resolution is correct.
+3. **Give confirmation more time** — set
+   `migrate.clickhouseDistributedDdlTaskTimeoutSeconds` (wired to the
+   `CLICKHOUSE_DISTRIBUTED_DDL_TASK_TIMEOUT_SECONDS` env var, default 180)
+   when you prefer the Job to block until every host confirms rather than
+   proceeding on background execution. Use a finite value: the app scales its
+   client-side socket ceiling along with it, but a negative ("wait forever")
+   value is still cut off by that ceiling (30-minute floor), failing with a
+   less useful socket timeout instead.
+4. **Manually clear a wedged task** (last resort) — run the stuck statement
+   directly on the lagging hosts *without* `ON CLUSTER`, then remove the task
+   znode with `clickhouse-keeper-client` so the queue advances.

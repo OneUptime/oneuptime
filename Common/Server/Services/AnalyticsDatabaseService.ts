@@ -34,6 +34,7 @@ import {
   TimeoutOverflowMode,
 } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
 import {
+  getDistributedDdlTaskTimeoutSeconds,
   getStorageTableName,
   onClusterClause,
 } from "../Utils/AnalyticsDatabase/ClusterConfig";
@@ -137,6 +138,34 @@ export const MigrationExecuteOptions: ClickhouseExecuteOptions = {
      * migration pool's 30-minute idle ceiling.
      */
     http_headers_progress_interval_ms: "10000",
+    /*
+     * ON CLUSTER DDL is queued in Keeper and executed by each host's DDLWorker
+     * sequentially, so on a busy or backlogged cluster a host can be healthy
+     * yet not reach the task within the wait window. The server default output
+     * mode (`throw`) turns that into TIMEOUT_EXCEEDED (code 159) and aborts
+     * the whole migrate run — even though the task stays queued and the hosts
+     * execute it in the background (until the DDL queue evicts it:
+     * task_max_lifetime, one week, or falling more than max_tasks_in_queue
+     * entries behind). `null_status_on_timeout` returns NULL for the hosts
+     * that haven't finished yet instead of throwing, while a real DDL failure
+     * on any host that did run it within the window still throws. Safe because
+     * every schema statement here is idempotent (IF NOT EXISTS / OR REPLACE)
+     * and, with the default `distributed_ddl.pool_size = 1`, later DDL queues
+     * strictly behind earlier DDL on each host. Migrate.ts additionally warns
+     * at end of run when the DDL queue still has unfinished tasks. Note these
+     * options are also reused by runtime ALTER ... DELETE mutations (session
+     * erasure / pin materialization); timeout-as-success is acceptable there
+     * too since a mutation is durable once enqueued. Requires ClickHouse >=
+     * 21.4 (older servers reject the setting as unknown).
+     */
+    distributed_ddl_output_mode: "null_status_on_timeout",
+    /*
+     * Int64 settings are typed as strings by @clickhouse/client. Read at
+     * module load; env is static for the life of the process. The migration
+     * pool's socket-idle ceiling scales with this value (ClickhouseConfig.ts)
+     * so a raised wait isn't killed client-side.
+     */
+    distributed_ddl_task_timeout: String(getDistributedDdlTaskTimeoutSeconds()),
   },
 };
 

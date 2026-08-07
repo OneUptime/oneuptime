@@ -1,4 +1,6 @@
-import AnalyticsDatabaseService from "../../../Server/Services/AnalyticsDatabaseService";
+import AnalyticsDatabaseService, {
+  MigrationExecuteOptions,
+} from "../../../Server/Services/AnalyticsDatabaseService";
 import {
   SQL,
   Statement,
@@ -928,6 +930,28 @@ describe("AnalyticsDatabaseService", () => {
         format: "JSON",
         query_params: undefined,
       });
+    });
+  });
+
+  describe("MigrationExecuteOptions", () => {
+    /*
+     * Guards the exact regression a customer hit: ON CLUSTER DDL running with
+     * the server-default `throw` output mode aborted the whole migrate Job
+     * with TIMEOUT_EXCEEDED (code 159) when 4 of 5 hosts had a backlogged
+     * DDL queue — even though the queued task completes in the background.
+     */
+    test("migration DDL never throws on distributed DDL confirmation timeout", () => {
+      expect(MigrationExecuteOptions.useMigrationConnection).toBe(true);
+      expect(
+        MigrationExecuteOptions.clickhouseSettings?.distributed_ddl_output_mode,
+      ).toBe("null_status_on_timeout");
+      // Int64 settings travel as strings; default mirrors the server's 180s.
+      expect(
+        String(
+          MigrationExecuteOptions.clickhouseSettings
+            ?.distributed_ddl_task_timeout,
+        ),
+      ).toMatch(/^-?\d+$/);
     });
   });
 });

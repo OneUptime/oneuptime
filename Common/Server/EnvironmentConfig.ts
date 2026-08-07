@@ -8,6 +8,7 @@ import {
   HomeRoute,
 } from "../ServiceRoute";
 import BillingConfig from "./BillingConfig";
+import { getDistributedDdlTaskTimeoutSeconds } from "./Utils/AnalyticsDatabase/ClusterConfig";
 import Protocol from "../Types/API/Protocol";
 import URL from "../Types/API/URL";
 import Route from "../Types/API/Route";
@@ -568,6 +569,21 @@ export const ClickhouseClusterName: string =
  */
 export const ClickhouseShardingKeyOverride: string =
   process.env["CLICKHOUSE_SHARDING_KEY"] || "";
+
+/*
+ * How long migration / schema-sync ON CLUSTER DDL waits for every host to
+ * report completion before giving up on confirmation (the statement itself
+ * stays queued and still executes on every host in the background). Default
+ * 180 — the ClickHouse server default. Raise this on clusters whose DDL queue
+ * drains slowly; the migration pool's socket-idle ceiling scales with it (see
+ * ClickhouseConfig.ts). 0 returns immediately (async); a negative value
+ * removes the server-side wait limit but the client still gives up at the
+ * migration pool's socket-idle ceiling (30-minute floor), so prefer a finite
+ * value. Mirrors the live reader getDistributedDdlTaskTimeoutSeconds() in
+ * ClusterConfig.ts, which is the single source of parsing truth.
+ */
+export const ClickhouseDistributedDdlTaskTimeoutSeconds: number =
+  getDistributedDdlTaskTimeoutSeconds();
 
 export const GitSha: string = process.env["GIT_SHA"] || "unknown";
 

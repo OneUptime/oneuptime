@@ -118,6 +118,11 @@ spec:
             {{- include "oneuptime.env.common" . | nindent 12 }}
             {{- /* DirectPostgres bypasses pgbouncer so migrations talk straight to the backend. RUN_DATABASE_MIGRATIONS_ON_BOOT is intentionally NOT set here, so it defaults true and this Job runs migrations. */ -}}
             {{- include "oneuptime.env.runtime" (dict "Values" $.Values "Release" $.Release "DirectPostgres" true "DatabaseMaxOpenConnections" $.Values.deployment.databaseMaxOpenConnections) | nindent 12 }}
+            {{- /* Explicit nil check (not `with`): 0 is a meaningful ClickHouse value (enqueue and return immediately) and must render. */ -}}
+            {{- if not (kindIs "invalid" .Values.migrate.clickhouseDistributedDdlTaskTimeoutSeconds) }}
+            - name: CLICKHOUSE_DISTRIBUTED_DDL_TASK_TIMEOUT_SECONDS
+              value: {{ .Values.migrate.clickhouseDistributedDdlTaskTimeoutSeconds | squote }}
+            {{- end }}
           {{- with .Values.migrate.resources }}
           resources:
             {{- toYaml . | nindent 12 }}

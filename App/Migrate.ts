@@ -73,6 +73,14 @@ const migrate: PromiseVoidFunction = async (): Promise<void> => {
   await RunDatabaseMigrations();
 
   /*
+   * ON CLUSTER DDL above is confirmed best-effort (null_status_on_timeout):
+   * a slow host degrades to background execution instead of failing the run.
+   * Loudly report anything still unfinished so a wedged DDL queue can't hide
+   * behind a green Job. Advisory only — never fails the migration.
+   */
+  await AnalyticsTableManagement.warnOnUnfinishedDistributedDdl();
+
+  /*
    * Startup migrations (run on every boot AND on every migrate Job) sync
    * env-driven state such as the GLOBAL_LLM_PROVIDER_* seeded provider, so a
    * deploy applies the desired state even before app pods restart. They are

@@ -1,5 +1,6 @@
 import DataMigrationBase from "./DataMigrationBase";
 import MetricBaselineService from "Common/Server/Services/MetricBaselineService";
+import { MigrationExecuteOptions } from "Common/Server/Services/AnalyticsDatabaseService";
 import logger from "Common/Server/Utils/Logger";
 
 /**
@@ -68,9 +69,11 @@ export default class RebuildMetricBaselineHourlyWithBFloat16Quantiles extends Da
        */
       await MetricBaselineService.execute(
         `DROP VIEW IF EXISTS MetricBaselineHourly_mv SYNC`,
+        MigrationExecuteOptions,
       );
       await MetricBaselineService.execute(
         MetricBaselineService.model.materializedViews[0]!.query,
+        MigrationExecuteOptions,
       );
       return;
     }
@@ -85,6 +88,7 @@ export default class RebuildMetricBaselineHourlyWithBFloat16Quantiles extends Da
      */
     await MetricBaselineService.execute(
       `DROP VIEW IF EXISTS MetricBaselineHourly_mv SYNC`,
+      MigrationExecuteOptions,
     );
     logger.info(
       "RebuildMetricBaselineHourlyWithBFloat16Quantiles: dropped MetricBaselineHourly_mv",
@@ -93,6 +97,7 @@ export default class RebuildMetricBaselineHourlyWithBFloat16Quantiles extends Da
     // 2. Drop the legacy-typed table (this is the accepted data loss).
     await MetricBaselineService.execute(
       `DROP TABLE IF EXISTS MetricBaselineHourly SYNC`,
+      MigrationExecuteOptions,
     );
     logger.info(
       "RebuildMetricBaselineHourlyWithBFloat16Quantiles: dropped MetricBaselineHourly",
@@ -101,9 +106,11 @@ export default class RebuildMetricBaselineHourlyWithBFloat16Quantiles extends Da
     // 3. Recreate table + MV from the updated model.
     await MetricBaselineService.execute(
       MetricBaselineService.statementGenerator.toTableCreateStatement(),
+      MigrationExecuteOptions,
     );
     await MetricBaselineService.execute(
       MetricBaselineService.model.materializedViews[0]!.query,
+      MigrationExecuteOptions,
     );
     logger.info(
       "RebuildMetricBaselineHourlyWithBFloat16Quantiles: recreated MetricBaselineHourly + MV with quantileBFloat16 states",
