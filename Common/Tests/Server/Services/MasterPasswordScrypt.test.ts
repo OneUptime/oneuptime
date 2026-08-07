@@ -15,7 +15,15 @@ import HashedString from "../../../Types/HashedString";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import CryptoJS from "crypto-js";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+/*
+ * `jest` is deliberately NOT imported from @jest/globals here. The value from
+ * that package is jest-mock's, whose spyOn returns SpyInstance<Fn>, while the
+ * `jest.SpiedFunction` used to annotate those spies below resolves to the
+ * global @types/jest namespace, where it means SpyInstance<ReturnType<Fn>,
+ * ArgsType<Fn>>. Mixing the two makes every annotated spy a type error. Every
+ * other suite in this tree uses the global jest for exactly this reason.
+ */
+import { afterEach, describe, expect, test } from "@jest/globals";
 
 /*
  * Dashboard and status-page master passwords are human-chosen credentials,
@@ -112,7 +120,18 @@ const setStoredMasterPassword: (
 ): void => {
   resource._id = ObjectID.generate().toString();
   resource.masterPassword = new HashedString(hash, true);
-  resource.masterPasswordSalt = salt;
+
+  /*
+   * Clear rather than assign undefined: exactOptionalPropertyTypes forbids
+   * writing undefined to an optional string, and these resources are shared
+   * across the test.each cases, so a salt left by an earlier case has to
+   * actually go away when this one asks for a legacy, saltless row.
+   */
+  if (salt === undefined) {
+    delete resource.masterPasswordSalt;
+  } else {
+    resource.masterPasswordSalt = salt;
+  }
 };
 
 const makeCurrentResource: (data: {

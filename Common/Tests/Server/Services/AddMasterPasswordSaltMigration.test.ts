@@ -246,7 +246,13 @@ describe("AddMasterPasswordSalt1786400000000 - identity and registration", () =>
     expect(migration.name).toBe("AddMasterPasswordSalt1786400000000");
   });
 
-  test("is registered exactly once and is the final migration", () => {
+  /*
+   * Registration is the invariant that matters — an unregistered migration
+   * never runs. Being LAST is not: it was true the day this landed and every
+   * migration added since has appended after it, so pinning it here would
+   * fail the next person's unrelated PR rather than catch a real defect.
+   */
+  test("is registered exactly once", () => {
     const occurrences: number = SchemaMigrations.filter(
       (migration: unknown) => {
         return migration === AddMasterPasswordSalt1786400000000;
@@ -254,9 +260,6 @@ describe("AddMasterPasswordSalt1786400000000 - identity and registration", () =>
     ).length;
 
     expect(occurrences).toBe(1);
-    expect(SchemaMigrations[SchemaMigrations.length - 1]).toBe(
-      AddMasterPasswordSalt1786400000000,
-    );
   });
 
   test("has a timestamp strictly after every previously registered migration", () => {
@@ -264,7 +267,7 @@ describe("AddMasterPasswordSalt1786400000000 - identity and registration", () =>
       AddMasterPasswordSalt1786400000000,
     );
 
-    expect(migrationIndex).toBe(SchemaMigrations.length - 1);
+    expect(migrationIndex).toBeGreaterThan(-1);
 
     for (const earlierMigration of SchemaMigrations.slice(0, migrationIndex)) {
       const earlierTimestamp: number | null = optionalTrailingTimestampFrom(
