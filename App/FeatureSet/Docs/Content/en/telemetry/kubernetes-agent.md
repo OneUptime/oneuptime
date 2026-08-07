@@ -176,6 +176,8 @@ Container runtimes do not record a severity on the log line, so the agent parses
 | `api` | Always **kept** | The Kubernetes `pods/log` API merges stdout and stderr into a single stream with no per-line marker. Rather than guess, the agent keeps the line. |
 
 > So `api` mode drops strictly less than `daemonset` mode. That is deliberate: a Python traceback or `npm ERR!` carries no severity keyword, and silently deleting it is exactly the failure a severity threshold is supposed to protect you from.
+>
+> In hybrid mode (`logs.windowsPods.enabled`) both rows apply at once, split by node OS: Linux pods follow the `daemonset` row, Windows pods the `api` row — so under a severity threshold, Windows pods can ship more keyword-less lines than Linux pods.
 
 Multi-line events are recombined **before** filtering in both modes, so a Java stack trace is judged on its first line and kept or dropped whole — you will never get a bare `ERROR` line with its frames stripped off.
 
@@ -282,6 +284,8 @@ Advanced users can override the preset's choice with `logs.mode`:
 > The one exception is the platform, not the mode: **EKS Fargate cannot schedule DaemonSets at all**, so there is no node collector there and node/pod/container metrics are unavailable. GKE Autopilot runs the node collector fine, but blocks `hostPath`, so it collects kubelet and cAdvisor metrics without the `hostmetrics` ones (disk I/O, inodes, NIC errors) that need to read the host's `/proc` and `/sys`.
 
 The explicit `logs.mode` always wins over the preset default. Use this if you know your cluster better than the preset does.
+
+On clusters with Windows node pools, `daemonset` mode covers only Linux nodes — every agent image is Linux-only, so the DaemonSet is pinned to them. Add `--set logs.windowsPods.enabled=true` to run the API log tailer alongside it, restricted to pods on Windows nodes: Linux pods keep node-local file tailing and the two collectors never ship the same line twice. This requires a `kubernetes-log-tailer` image at least as new as the chart — an older image ignores the restriction and duplicates Linux logs.
 
 ### Enable Control Plane Monitoring
 

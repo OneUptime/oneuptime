@@ -128,6 +128,23 @@ If hostPath works, use DaemonSet. Everywhere else, use API mode. The `preset` se
 
 You can also disable log collection entirely with `--set logs.enabled=false` and ship application logs via OpenTelemetry SDKs instead. See the [OpenTelemetry](/docs/telemetry/open-telemetry) docs.
 
+### Mixed-OS clusters (Windows node pools)
+
+Every agent image is Linux-only, so all agent workloads pin themselves to Linux nodes (`kubernetes.io/os: linux`) — Windows nodes never run an agent pod. Cluster-level telemetry about Windows nodes and their pods (node conditions, pod phases, Kubernetes events, kube-state-metrics) still flows, because it comes from the Kubernetes API. What Windows nodes lack is node-local collection: host metrics, kubelet/cAdvisor scrapes, eBPF traces, profiling — and, in `daemonset` log mode, pod logs.
+
+To also collect logs from pods on Windows nodes, enable hybrid mode:
+
+```bash
+helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-agent --reuse-values \
+  --set logs.windowsPods.enabled=true
+```
+
+This runs the API log tailer alongside the DaemonSet, restricted to pods on Windows nodes. Linux pods keep the cheaper node-local file tailing, and the two collectors partition pods by node OS so no log line ships twice. Two caveats:
+
+- **Tailer image version.** The Windows-only restriction lives in the `kubernetes-log-tailer` image; an older image ignores it and tails *every* pod, silently shipping every Linux pod's logs twice. Don't pin `logs.api.image.tag` older than the chart's release, and if a node may have cached a stale `release` image, add `--set logs.api.image.pullPolicy=Always` for the upgrade.
+- **Severity filtering.** With `filters.logs.minSeverity` set, lines with no recognisable severity are dropped on the DaemonSet path but kept on the API path — see [Filtering by Log Severity](/docs/telemetry/kubernetes-agent#filtering-by-log-severity). Windows pods can therefore ship more keyword-less lines than Linux pods.
+
 ## Application traces & HTTP requests via eBPF (on by default)
 
 The chart ships a DaemonSet running [OpenTelemetry eBPF Instrumentation (OBI)](https://opentelemetry.io/docs/zero-code/obi/) on every node. OBI loads eBPF programs into the Linux kernel and watches socket-level traffic to reconstruct HTTP/HTTPS, gRPC, and SQL/Redis calls from every pod on the node — no code changes, no SDK, no sidecar. Captured traffic is exported as OTLP traces and request/latency metrics directly to OneUptime.
@@ -299,6 +316,7 @@ The chart can also collect:
 | `namespaceFilters.rules`                  | Exclude `kube-system` from `podLogs` and `ebpfDiscovery` | Scoped include/exclude rules for `podLogs`, `ebpfDiscovery`, `metrics`, and `traces`. Namespace patterns support `*`; exclude always wins.                              |
 | `logs.enabled`                            | `true`                          | Turn log collection on or off.                                                                                                                                                                                 |
 | `logs.mode`                               | (derived from `preset`)         | `daemonset`, `api`, or `disabled`. Overrides the preset.                                                                                                                                                       |
+| `logs.windowsPods.enabled`                | `false`                         | Mixed-OS clusters: also tail pods on Windows nodes via the Kubernetes API while Linux nodes keep DaemonSet file tailing. See the mixed-OS section above.                                                        |
 | `logs.api.replicas`                       | `1`                             | Number of log-tailer Deployment replicas (only in API mode).                                                                                                                                                   |
 | `ebpf.enabled`                            | `true`                          | Auto-capture HTTP/gRPC traces from every pod via OpenTelemetry eBPF Instrumentation. See section above.                                                                                                        |
 | `profiling.enabled`                       | `false`                         | Continuous CPU flame graphs via the OpenTelemetry eBPF Profiler. Off by default; opt in for more telemetry. See section above.                                                                                 |
@@ -358,6 +376,10 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --reuse-values \
   --set preset=gke-autopilot   # or eks-fargate
 ```
+
+### Agent pods are stuck in `ImagePullBackOff` on Windows nodes
+
+Older chart versions scheduled the agent DaemonSets onto Windows nodes, where the Linux-only images can never be pulled. Current charts pin every workload to Linux nodes — run `helm upgrade` and the stuck pods are removed automatically. Windows nodes are skipped by design; to collect logs from pods running on them, see [Mixed-OS clusters](#mixed-os-clusters-windows-node-pools).
 
 ### No logs show up in OneUptime
 
