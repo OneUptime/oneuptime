@@ -6,12 +6,7 @@ import OneUptimeDate from "../../../Types/Date";
 import Dictionary from "../../../Types/Dictionary";
 import ObjectID from "../../../Types/ObjectID";
 import UptimeBarTooltipIncident from "../../../Types/Monitor/UptimeBarTooltipIncident";
-import React, {
-  FunctionComponent,
-  ReactElement,
-  useEffect,
-  useState,
-} from "react";
+import React, { FunctionComponent, ReactElement } from "react";
 import UptimeEvent from "../../../Utils/Uptime/Event";
 
 export type Event = UptimeEvent;
@@ -36,19 +31,153 @@ export interface ComponentProps {
   onIncidentClick?: ((incidentId: string) => void) | undefined;
 }
 
+export interface DayUptimeData {
+  color: Color;
+  hasEvents: boolean;
+  uptimePercent: number;
+  statusDurations: Array<StatusDuration>;
+}
+
+/**
+ * Summarize the monitoring coverage that actually overlaps one local calendar
+ * day. Timeline rows are half-open intervals: an event ending exactly at
+ * midnight belongs to the preceding day, while one starting at midnight
+ * belongs to the new day. Only positive-duration coverage is data.
+ */
+export function getDayUptimeData(data: {
+  date: Date;
+  events: Array<Event>;
+  defaultBarColor: Color;
+  barColorRules?: Array<BarChartRule> | undefined;
+  downtimeEventStatusIds?: Array<ObjectID> | undefined;
+  currentDate?: Date | undefined;
+}): DayUptimeData {
+  const startOfDay: Date = OneUptimeDate.getStartOfDay(data.date);
+  const endOfDayExclusive: Date = OneUptimeDate.getSomeDaysAfterDate(
+    startOfDay,
+    1,
+  );
+  const currentDate: Date = data.currentDate || OneUptimeDate.getCurrentDate();
+  const coverageEnd: Date =
+    endOfDayExclusive.getTime() <= currentDate.getTime()
+      ? endOfDayExclusive
+      : currentDate;
+
+  const secondsOfEvent: Dictionary<number> = {};
+  const eventColors: Dictionary<Color> = {};
+  const eventLabels: Dictionary<string> = {};
+  let highestPriority: number = Number.NEGATIVE_INFINITY;
+  let color: Color = data.defaultBarColor || Green;
+
+  for (const event of data.events) {
+    /*
+     * Positive half-open overlap: [event.start, event.end) intersects
+     * [startOfDay, min(endOfDay, now)). This avoids both midnight attribution
+     * bugs and zero-duration rows being presented as monitoring data.
+     */
+    if (
+      event.startDate.getTime() >= coverageEnd.getTime() ||
+      event.endDate.getTime() <= startOfDay.getTime()
+    ) {
+      continue;
+    }
+
+    const eventStart: Date =
+      event.startDate.getTime() >= startOfDay.getTime()
+        ? event.startDate
+        : startOfDay;
+    const eventEnd: Date =
+      event.endDate.getTime() <= coverageEnd.getTime()
+        ? event.endDate
+        : coverageEnd;
+    const seconds: number = OneUptimeDate.getSecondsBetweenDates(
+      eventStart,
+      eventEnd,
+    );
+
+    if (seconds <= 0) {
+      continue;
+    }
+
+    const eventStatusId: string = event.eventStatusId.toString();
+    secondsOfEvent[eventStatusId] =
+      (secondsOfEvent[eventStatusId] || 0) + seconds;
+    eventLabels[eventStatusId] = event.label;
+    eventColors[eventStatusId] = event.color;
+
+    if (highestPriority <= event.priority) {
+      highestPriority = event.priority;
+
+      if (!data.barColorRules || data.barColorRules.length === 0) {
+        color = event.color;
+      }
+    }
+  }
+
+  const downtimeStatusIds: Array<string> = (
+    data.downtimeEventStatusIds || []
+  ).map((id: ObjectID) => {
+    return id.toString();
+  });
+
+  let totalDowntimeInSeconds: number = 0;
+  let totalUptimeInSeconds: number = 0;
+  const statusDurations: Array<StatusDuration> = [];
+
+  for (const eventStatusId in secondsOfEvent) {
+    const seconds: number = secondsOfEvent[eventStatusId] || 0;
+    const isDowntime: boolean = downtimeStatusIds.includes(eventStatusId);
+
+    if (isDowntime) {
+      totalDowntimeInSeconds += seconds;
+    } else {
+      totalUptimeInSeconds += seconds;
+    }
+
+    statusDurations.push({
+      label: eventLabels[eventStatusId] || "Unknown",
+      seconds: seconds,
+      color: eventColors[eventStatusId] || data.defaultBarColor || Green,
+      isDowntime: isDowntime,
+    });
+  }
+
+  const totalObservedSeconds: number =
+    totalUptimeInSeconds + totalDowntimeInSeconds;
+  const hasEvents: boolean = totalObservedSeconds > 0;
+  const uptimePercent: number = hasEvents
+    ? (totalUptimeInSeconds / totalObservedSeconds) * 100
+    : 0;
+
+  /*
+   * A no-data day must keep the caller's explicit no-data color. In
+   * particular, a 0-second day must not flow through a 100%-uptime color rule
+   * and become green.
+   */
+  if (hasEvents) {
+    for (const rule of data.barColorRules || []) {
+      if (uptimePercent >= rule.uptimePercentGreaterThanOrEqualTo) {
+        color = rule.barColor;
+        break;
+      }
+    }
+  }
+
+  return {
+    color: color,
+    hasEvents: hasEvents,
+    uptimePercent: uptimePercent,
+    statusDurations: statusDurations,
+  };
+}
+
 const DayUptimeGraph: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [days, setDays] = useState<number>(0);
-
-  useEffect(() => {
-    setDays(
-      OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
-        props.startDate,
-        props.endDate,
-      ),
-    );
-  }, [props.startDate, props.endDate]);
+  const days: number = OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
+    props.startDate,
+    props.endDate,
+  );
 
   type GetIncidentsForDayFunction = (
     startOfDay: Date,
@@ -57,14 +186,17 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
 
   const getIncidentsForDay: GetIncidentsForDayFunction = (
     startOfDay: Date,
-    endOfDay: Date,
+    endOfDayExclusive: Date,
   ): Array<UptimeBarTooltipIncident> => {
     if (!props.incidents || props.incidents.length === 0) {
       return [];
     }
 
     return props.incidents.filter((incident: UptimeBarTooltipIncident) => {
-      return OneUptimeDate.isBetween(incident.declaredAt, startOfDay, endOfDay);
+      return (
+        incident.declaredAt.getTime() >= startOfDay.getTime() &&
+        incident.declaredAt.getTime() < endOfDayExclusive.getTime()
+      );
     });
   };
 
@@ -73,167 +205,34 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
   const getUptimeBar: GetUptimeBarFunction = (
     dayNumber: number,
   ): ReactElement => {
-    let color: Color = props.defaultBarColor || Green;
-
     const todaysDay: Date = OneUptimeDate.getSomeDaysAfterDate(
       props.startDate,
       dayNumber,
     );
 
     const startOfTheDay: Date = OneUptimeDate.getStartOfDay(todaysDay);
-    const endOfTheDay: Date = OneUptimeDate.getEndOfDay(todaysDay);
-
-    const todaysEvents: Array<Event> = props.events.filter((event: Event) => {
-      let doesEventBelongsToToday: boolean = false;
-
-      /// if the event starts or end today.
-      if (
-        OneUptimeDate.isBetween(event.startDate, startOfTheDay, endOfTheDay)
-      ) {
-        doesEventBelongsToToday = true;
-      }
-
-      if (OneUptimeDate.isBetween(event.endDate, startOfTheDay, endOfTheDay)) {
-        doesEventBelongsToToday = true;
-      }
-
-      // if the event is outside start or end day but overlaps the day completely.
-
-      if (
-        OneUptimeDate.isBetween(startOfTheDay, event.startDate, endOfTheDay) &&
-        OneUptimeDate.isBetween(endOfTheDay, startOfTheDay, event.endDate)
-      ) {
-        doesEventBelongsToToday = true;
-      }
-
-      return doesEventBelongsToToday;
+    const endOfTheDayExclusive: Date = OneUptimeDate.getSomeDaysAfterDate(
+      startOfTheDay,
+      1,
+    );
+    const dayData: DayUptimeData = getDayUptimeData({
+      date: todaysDay,
+      events: props.events,
+      defaultBarColor: props.defaultBarColor,
+      barColorRules: props.barColorRules,
+      downtimeEventStatusIds: props.downtimeEventStatusIds,
     });
-
-    const secondsOfEvent: Dictionary<number> = {};
-    const eventColors: Dictionary<Color> = {};
-
-    let currentPriority: number = 1;
-
-    const eventLabels: Dictionary<string> = {};
-
-    for (const event of todaysEvents) {
-      const startDate: Date = OneUptimeDate.getGreaterDate(
-        event.startDate,
-        startOfTheDay,
-      );
-
-      const endDate: Date = OneUptimeDate.getLesserDate(
-        event.endDate,
-        OneUptimeDate.getLesserDate(
-          OneUptimeDate.getCurrentDate(),
-          endOfTheDay,
-        ),
-      );
-
-      const seconds: number = OneUptimeDate.getSecondsBetweenDates(
-        startDate,
-        endDate,
-      );
-
-      if (!secondsOfEvent[event.eventStatusId.toString()]) {
-        secondsOfEvent[event.eventStatusId.toString()] = 0;
-      }
-
-      secondsOfEvent[event.eventStatusId.toString()]! += seconds;
-
-      eventLabels[event.eventStatusId.toString()] = event.label;
-      eventColors[event.eventStatusId.toString()] = event.color;
-
-      // set bar color.
-      if (currentPriority <= event.priority) {
-        currentPriority = event.priority;
-
-        // if there are no rules then use the color of the event.
-
-        if (!props.barColorRules || props.barColorRules.length === 0) {
-          color = event.color;
-        }
-      }
-    }
-
-    let hasEvents: boolean = false;
-
-    let totalDowntimeInSeconds: number = 0;
-
-    let totalUptimeInSeconds: number = 0;
-
-    const downtimeStatusIds: Array<string> = (
-      props.downtimeEventStatusIds || []
-    ).map((id: ObjectID) => {
-      return id.toString();
-    });
-
-    for (const key in secondsOfEvent) {
-      hasEvents = true;
-
-      const eventStatusId: string = key;
-
-      const isDowntimeEvent: boolean =
-        downtimeStatusIds.includes(eventStatusId);
-
-      if (isDowntimeEvent) {
-        const secondsOfDowntime: number = secondsOfEvent[key] || 0;
-        totalDowntimeInSeconds += secondsOfDowntime;
-      } else {
-        totalUptimeInSeconds += secondsOfEvent[key] || 0;
-      }
-    }
-
-    // now check bar rules and finalize the color of the bar
-
-    const uptimePercentForTheDay: number =
-      totalUptimeInSeconds + totalDowntimeInSeconds > 0
-        ? (totalUptimeInSeconds /
-            (totalDowntimeInSeconds + totalUptimeInSeconds)) *
-          100
-        : 100;
-
-    for (const rules of props.barColorRules || []) {
-      if (uptimePercentForTheDay >= rules.uptimePercentGreaterThanOrEqualTo) {
-        color = rules.barColor;
-        break;
-      }
-    }
-
-    if (todaysEvents.length === 1 && !hasEvents) {
-      hasEvents = true;
-    }
-
-    if (todaysEvents.length === 1) {
-      hasEvents = true;
-    }
-
-    if (todaysEvents.length === 0) {
-      hasEvents = false;
-      color = props.defaultBarColor || Green;
-    }
 
     // Get incidents for this day
     const dayIncidents: Array<UptimeBarTooltipIncident> = getIncidentsForDay(
       startOfTheDay,
-      endOfTheDay,
+      endOfTheDayExclusive,
     );
 
     let className: string = "h-20 w-20";
 
     if (props.height) {
       className = "w-20 h-" + props.height;
-    }
-
-    // Build status durations for tooltip
-    const statusDurations: Array<StatusDuration> = [];
-    for (const key in secondsOfEvent) {
-      statusDurations.push({
-        label: eventLabels[key] || "Unknown",
-        seconds: secondsOfEvent[key] || 0,
-        color: eventColors[key] || props.defaultBarColor || Green,
-        isDowntime: downtimeStatusIds.includes(key),
-      });
     }
 
     const hasDayIncidents: boolean = dayIncidents.length > 0;
@@ -245,18 +244,22 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
         richContent={
           <UptimeBarTooltip
             date={todaysDay}
-            uptimePercent={uptimePercentForTheDay}
-            hasEvents={hasEvents}
-            statusDurations={statusDurations}
+            uptimePercent={dayData.uptimePercent}
+            hasEvents={dayData.hasEvents}
+            statusDurations={dayData.statusDurations}
             incidents={dayIncidents}
             onIncidentClick={props.onIncidentClick}
           />
         }
       >
         <div
+          data-testid="day-uptime-bar"
+          data-date={startOfTheDay.toISOString()}
+          data-has-data={dayData.hasEvents.toString()}
+          data-uptime-percent={dayData.uptimePercent.toString()}
           className={`${className}${isClickable ? " cursor-pointer hover:opacity-80" : ""}`}
           style={{
-            backgroundColor: color.toString(),
+            backgroundColor: dayData.color.toString(),
           }}
           onClick={
             isClickable

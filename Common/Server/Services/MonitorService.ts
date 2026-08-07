@@ -31,6 +31,7 @@ import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCom
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
+import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject, JSONValue } from "../../Types/JSON";
 import MonitorType, {
@@ -63,6 +64,7 @@ import NotificationSettingEventType from "../../Types/NotificationSetting/Notifi
 import Query from "../Types/Database/Query";
 import DeleteBy from "../Types/Database/DeleteBy";
 import UpdateBy from "../Types/Database/UpdateBy";
+import UpdateOneBy from "../Types/Database/UpdateOneBy";
 import StatusPageResourceService from "./StatusPageResourceService";
 import Label from "../../Models/DatabaseModels/Label";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -87,6 +89,9 @@ import ExceptionMessages from "../../Types/Exception/ExceptionMessages";
 import Project from "../../Models/DatabaseModels/Project";
 import { createWhatsAppMessageFromTemplate } from "../Utils/WhatsAppTemplateUtil";
 import { WhatsAppMessagePayload } from "../../Types/WhatsApp/WhatsAppMessage";
+import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
+
+const ACTIVE_MONITORING_TRANSITION_LOCK_NAMESPACE: string = "Monitor.update";
 
 export interface MonitorDestinationInfo {
   monitorDestination: string;
@@ -94,9 +99,133 @@ export interface MonitorDestinationInfo {
   monitorType: string;
 }
 
+interface MonitorUpdateCarryForward {
+  activeMonitoringTimelineTransitionAt: Date;
+  activeMonitoringPreviousStateByMonitorId: Dictionary<MonitorActiveMonitoringPreviousState>;
+}
+
+interface MonitorActiveMonitoringPreviousState {
+  currentMonitorStatusId?: ObjectID | undefined;
+  projectId?: ObjectID | undefined;
+  stateUpdatedAt: Date;
+  wasDisabled: boolean;
+}
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * A monitor flag write and its timeline boundary are two database writes.
+   * Serialize the complete operation per monitor across pods so rapid disable -> enable
+   * requests cannot commit both flags first and then run their timeline hooks
+   * out of order (which would erase the no-data gap). This lock is deliberately
+   * separate from the per-monitor timeline-writer lock: onUpdateSuccess acquires
+   * that lock while these are held, whereas ordinary timeline creates never
+   * acquire the monitor-update transition locks.
+   *
+   * Candidate IDs are resolved first, sorted, and the update query is narrowed
+   * to exactly that snapshot. Sorted acquisition prevents bulk-update
+   * deadlocks; narrowing prevents a changing query from updating an unlocked
+   * row. Independent monitors and tenants remain fully parallel.
+   */
+  @CaptureSpan()
+  public override async updateOneBy(
+    updateOneBy: UpdateOneBy<Model>,
+  ): Promise<number> {
+    if (typeof updateOneBy.data.disableActiveMonitoring !== "boolean") {
+      return await super.updateOneBy(updateOneBy);
+    }
+
+    return await this.runWithActiveMonitoringTransitionLocks({
+      updateBy: { ...updateOneBy, limit: 1, skip: 0 },
+      operation: async (scopedUpdateBy: UpdateBy<Model>): Promise<number> => {
+        return await super.updateOneBy(scopedUpdateBy);
+      },
+    });
+  }
+
+  @CaptureSpan()
+  public override async updateBy(updateBy: UpdateBy<Model>): Promise<number> {
+    if (typeof updateBy.data.disableActiveMonitoring !== "boolean") {
+      return await super.updateBy(updateBy);
+    }
+
+    return await this.runWithActiveMonitoringTransitionLocks({
+      updateBy: updateBy,
+      operation: async (scopedUpdateBy: UpdateBy<Model>): Promise<number> => {
+        return await super.updateBy(scopedUpdateBy);
+      },
+    });
+  }
+
+  private async runWithActiveMonitoringTransitionLocks(data: {
+    updateBy: UpdateBy<Model>;
+    operation: (scopedUpdateBy: UpdateBy<Model>) => Promise<number>;
+  }): Promise<number> {
+    const monitorsToUpdate: Array<Model> = await this.findBy({
+      query: data.updateBy.query,
+      select: {
+        _id: true,
+      },
+      limit: data.updateBy.limit,
+      skip: data.updateBy.skip,
+      props: {
+        ...data.updateBy.props,
+        ignoreHooks: true,
+      },
+    });
+    const monitorIds: Array<ObjectID> = Array.from(
+      new Map<string, ObjectID>(
+        monitorsToUpdate
+          .filter((monitor: Model): boolean => {
+            return Boolean(monitor.id);
+          })
+          .map((monitor: Model): [string, ObjectID] => {
+            return [monitor.id!.toString(), monitor.id!];
+          }),
+      ).values(),
+    ).sort((first: ObjectID, second: ObjectID): number => {
+      return first.toString().localeCompare(second.toString());
+    });
+
+    if (monitorIds.length === 0) {
+      return 0;
+    }
+
+    const mutexes: Array<SemaphoreMutex> = [];
+
+    try {
+      for (const monitorId of monitorIds) {
+        mutexes.push(
+          await Semaphore.lock({
+            key: monitorId.toString(),
+            namespace: ACTIVE_MONITORING_TRANSITION_LOCK_NAMESPACE,
+          }),
+        );
+      }
+
+      const scopedUpdateBy: UpdateBy<Model> = {
+        ...data.updateBy,
+        query: {
+          ...data.updateBy.query,
+          _id: QueryHelper.any(monitorIds),
+        },
+        limit: monitorIds.length,
+        skip: 0,
+      };
+
+      return await data.operation(scopedUpdateBy);
+    } finally {
+      for (const mutex of mutexes.reverse()) {
+        try {
+          await Semaphore.release(mutex);
+        } catch (error) {
+          logger.error(error);
+        }
+      }
+    }
   }
 
   public getMonitorDestinationInfo(monitor: Model): MonitorDestinationInfo {
@@ -462,7 +591,55 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
-    return { updateBy, carryForward: null };
+    let carryForward: MonitorUpdateCarryForward | null = null;
+
+    if (typeof updateBy.data.disableActiveMonitoring === "boolean") {
+      const transitionAt: Date = OneUptimeDate.getCurrentDate();
+      const monitorsBeforeUpdate: Array<Model> = await this.findBy({
+        query: updateBy.query,
+        select: {
+          _id: true,
+          projectId: true,
+          currentMonitorStatusId: true,
+          disableActiveMonitoring: true,
+          updatedAt: true,
+        },
+        limit: updateBy.limit,
+        skip: updateBy.skip,
+        props: {
+          ...updateBy.props,
+          ignoreHooks: true,
+        },
+      });
+      const previousStateByMonitorId: MonitorUpdateCarryForward["activeMonitoringPreviousStateByMonitorId"] =
+        {};
+
+      for (const monitor of monitorsBeforeUpdate) {
+        if (!monitor.id) {
+          continue;
+        }
+
+        previousStateByMonitorId[monitor.id.toString()] = {
+          currentMonitorStatusId: monitor.currentMonitorStatusId,
+          projectId: monitor.projectId,
+          /*
+           * On a same-value retry, updatedAt is the timestamp of the earlier
+           * flag commit whose timeline hook failed. Retaining it lets the retry
+           * repair the original boundary instead of starting the no-data gap at
+           * the later retry time.
+           */
+          stateUpdatedAt: monitor.updatedAt || transitionAt,
+          wasDisabled: monitor.disableActiveMonitoring === true,
+        };
+      }
+
+      carryForward = {
+        activeMonitoringTimelineTransitionAt: transitionAt,
+        activeMonitoringPreviousStateByMonitorId: previousStateByMonitorId,
+      };
+    }
+
+    return { updateBy, carryForward };
   }
 
   private async getProjectIdsForUpdateQuery(
@@ -497,6 +674,16 @@ export class Service extends DatabaseService<Model> {
     onUpdate: OnUpdate<Model>,
     updatedItemIds: ObjectID[],
   ): Promise<OnUpdate<Model>> {
+    const isEnablingWithExplicitStatusChange: boolean = Boolean(
+      onUpdate.updateBy.data.disableActiveMonitoring === false &&
+        onUpdate.updateBy.data.currentMonitorStatusId &&
+        onUpdate.updateBy.props.tenantId,
+    );
+
+    if (!isEnablingWithExplicitStatusChange) {
+      await this.updateActiveMonitoringTimeline(onUpdate, updatedItemIds);
+    }
+
     if (
       onUpdate.updateBy.data.currentMonitorStatusId &&
       onUpdate.updateBy.props.tenantId
@@ -512,6 +699,18 @@ export class Service extends DatabaseService<Model> {
           isRoot: true,
         },
       );
+    }
+
+    /*
+     * On a combined enable + explicit status update, let the ordinary status
+     * create run first so it retains its feed item and owner notification. The
+     * active-monitoring reconciliation then sees that open row and becomes an
+     * idempotent no-op. Disable + status updates keep the opposite order so the
+     * true disable boundary is persisted before the disabled status write is
+     * collapsed to zero duration.
+     */
+    if (isEnablingWithExplicitStatusChange) {
+      await this.updateActiveMonitoringTimeline(onUpdate, updatedItemIds);
     }
 
     if (updatedItemIds.length > 0) {
@@ -697,6 +896,87 @@ export class Service extends DatabaseService<Model> {
     }
 
     return onUpdate;
+  }
+
+  /**
+   * Direct monitor disablement is a pause in observation, not an Operational
+   * (or Offline) status that should be extended indefinitely. Persist the
+   * enabled/disabled boundary as a gap in MonitorStatusTimeline. Incident and
+   * scheduled-maintenance suppression flags are intentionally excluded: those
+   * flows can carry an explicitly declared status for their duration.
+   */
+  private async updateActiveMonitoringTimeline(
+    onUpdate: OnUpdate<Model>,
+    updatedItemIds: Array<ObjectID>,
+  ): Promise<void> {
+    if (typeof onUpdate.updateBy.data.disableActiveMonitoring !== "boolean") {
+      return;
+    }
+
+    const carryForward: MonitorUpdateCarryForward | null =
+      onUpdate.carryForward as MonitorUpdateCarryForward | null;
+    const transitionAt: Date | undefined =
+      carryForward?.activeMonitoringTimelineTransitionAt;
+    const isDisabled: boolean =
+      onUpdate.updateBy.data.disableActiveMonitoring === true;
+
+    if (!transitionAt) {
+      return;
+    }
+
+    /*
+     * DatabaseService supplies the exact IDs it actually updated after
+     * permission filtering, skip, and limit have been applied. Reconcile every
+     * one, including same-value writes: if a prior post-update hook failed after
+     * the monitor row committed, retrying `disabled = true` must repair the
+     * still-open interval instead of treating the request as a no-op.
+     *
+     * The reconciler reads the live monitor flag while holding the same mutex as
+     * status timeline writers. If a newer opposite state has already won, it
+     * reconstructs this committed transition and that live transition in order
+     * under the same lock. This also covers opposite writes from old pods that
+     * do not yet run the new hook during a rolling deployment.
+     */
+    for (const monitorId of updatedItemIds) {
+      const previousState: MonitorActiveMonitoringPreviousState | undefined =
+        carryForward?.activeMonitoringPreviousStateByMonitorId[
+          monitorId.toString()
+        ];
+
+      /*
+       * Re-establish the state that was committed before this update, using
+       * that row's persisted updatedAt. This is normally an idempotent no-op.
+       * It becomes the durable recovery path when the previous request saved
+       * the flag but its post-save timeline hook failed:
+       *
+       * - previously disabled: shorten the old interval at the original
+       *   disable commit before opening the new enabled interval;
+       * - previously enabled: recreate a missing enabled interval at the
+       *   original enable commit before closing it for the new disable.
+       */
+      if (previousState?.wasDisabled) {
+        await MonitorStatusTimelineService.pauseActiveMonitoring({
+          monitorId: monitorId,
+          pausedAt: previousState.stateUpdatedAt,
+        });
+      } else if (
+        previousState?.projectId &&
+        previousState.currentMonitorStatusId
+      ) {
+        await MonitorStatusTimelineService.resumeActiveMonitoring({
+          monitorId: monitorId,
+          projectId: previousState.projectId,
+          monitorStatusId: previousState.currentMonitorStatusId,
+          resumedAt: previousState.stateUpdatedAt,
+        });
+      }
+
+      await MonitorStatusTimelineService.reconcileActiveMonitoring({
+        monitorId: monitorId,
+        expectedDisableActiveMonitoring: isDisabled,
+        reconciledAt: transitionAt,
+      });
+    }
   }
 
   public getEnabledMonitorQuery(): Query<Model> {
@@ -959,6 +1239,16 @@ ${createdItem.description?.trim() || "No description provided."}
       })
       .then(async () => {
         try {
+          /*
+           * A monitor created with direct active monitoring disabled has not
+           * produced monitoring data yet. Seeding an open Operational row here
+           * would paint its entire history green until it is enabled. The
+           * enable transition opens the first interval at that point instead.
+           */
+          if (createdItem.disableActiveMonitoring) {
+            return Promise.resolve();
+          }
+
           return await this.changeMonitorStatus(
             createdItem.projectId!,
             [createdItem.id!],
