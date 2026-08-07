@@ -162,9 +162,16 @@ const selectMonitorLabels: (data: {
   page: Page;
   labelNames?: Array<string> | undefined;
 }): Promise<void> => {
+  /*
+   * Anchored prefix, not an exact match: Labels is an optional field, and
+   * FieldLabel renders "(Optional)" inside the very <label> the combobox is
+   * aria-labelledby, so its accessible name is "Labels (Optional)". Anchoring
+   * still keeps this from matching some other combobox that merely ends in
+   * "Labels", and it keeps working if the field ever becomes required.
+   */
   const combo: Locator = data.page
     .locator(monitorCreateFormSelector)
-    .getByRole("combobox", { name: "Labels", exact: true });
+    .getByRole("combobox", { name: /^Labels\b/ });
   await combo.waitFor({ state: "visible", timeout: 30000 });
 
   for (const labelName of data.labelNames || []) {
