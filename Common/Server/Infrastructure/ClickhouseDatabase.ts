@@ -87,7 +87,7 @@ export default class ClickhouseDatabase {
             }
 
             logger.debug(
-              `Clickhouse Database Connected: ${dataSourceOptions.host?.toString()}`,
+              `Clickhouse Database Connected: ${dataSourceOptions.url?.toString()}`,
             );
 
             return clickhouseClient;

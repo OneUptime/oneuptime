@@ -8,6 +8,7 @@ import {
   adaptTableSettingsForStorage,
   applyClusterToMaterializedViewQuery,
   getClickhouseClusterName,
+  getDistributedDdlTaskTimeoutSeconds,
   getDistributedEngine,
   getStorageEngine,
   getStorageTableName,
@@ -33,6 +34,8 @@ import MetricBaselineHourly from "../../../../Models/AnalyticsModels/MetricBasel
 
 const CLUSTER_ENV_KEY: string = "CLICKHOUSE_CLUSTER_NAME";
 const SHARDING_ENV_KEY: string = "CLICKHOUSE_SHARDING_KEY";
+const DDL_TIMEOUT_ENV_KEY: string =
+  "CLICKHOUSE_DISTRIBUTED_DDL_TASK_TIMEOUT_SECONDS";
 
 /*
  * Flatten a Statement into a single string (raw SQL + serialized identifier
@@ -49,6 +52,8 @@ function fullText(statement: Statement | string): string {
 describe("ClickHouse cluster-aware schema (always-on)", () => {
   const originalCluster: string | undefined = process.env[CLUSTER_ENV_KEY];
   const originalSharding: string | undefined = process.env[SHARDING_ENV_KEY];
+  const originalDdlTimeout: string | undefined =
+    process.env[DDL_TIMEOUT_ENV_KEY];
 
   afterEach(() => {
     if (originalCluster === undefined) {
@@ -60,6 +65,11 @@ describe("ClickHouse cluster-aware schema (always-on)", () => {
       delete process.env[SHARDING_ENV_KEY];
     } else {
       process.env[SHARDING_ENV_KEY] = originalSharding;
+    }
+    if (originalDdlTimeout === undefined) {
+      delete process.env[DDL_TIMEOUT_ENV_KEY];
+    } else {
+      process.env[DDL_TIMEOUT_ENV_KEY] = originalDdlTimeout;
     }
   });
 
@@ -99,6 +109,26 @@ describe("ClickHouse cluster-aware schema (always-on)", () => {
       ).toBe(
         "ttl_only_drop_parts = 1, replicated_deduplication_window = 10000",
       );
+    });
+
+    test("distributed DDL task timeout: default 180, overridable, garbage-safe", () => {
+      delete process.env[DDL_TIMEOUT_ENV_KEY];
+      expect(getDistributedDdlTaskTimeoutSeconds()).toBe(180);
+
+      process.env[DDL_TIMEOUT_ENV_KEY] = "1800";
+      expect(getDistributedDdlTaskTimeoutSeconds()).toBe(1800);
+
+      // ClickHouse semantics pass through: 0 = async, negative = no server cap.
+      process.env[DDL_TIMEOUT_ENV_KEY] = "0";
+      expect(getDistributedDdlTaskTimeoutSeconds()).toBe(0);
+      process.env[DDL_TIMEOUT_ENV_KEY] = "-1";
+      expect(getDistributedDdlTaskTimeoutSeconds()).toBe(-1);
+
+      // Garbage and whitespace fall back to the default.
+      process.env[DDL_TIMEOUT_ENV_KEY] = "not-a-number";
+      expect(getDistributedDdlTaskTimeoutSeconds()).toBe(180);
+      process.env[DDL_TIMEOUT_ENV_KEY] = "   ";
+      expect(getDistributedDdlTaskTimeoutSeconds()).toBe(180);
     });
 
     test("distributed engine: model key, with global override winning", () => {

@@ -13,6 +13,7 @@ import {
   MaxClickhouseIngestConnections,
   ShouldClickhouseSslEnable,
 } from "../EnvironmentConfig";
+import { getDistributedDdlTaskTimeoutSeconds } from "../Utils/AnalyticsDatabase/ClusterConfig";
 import Hostname from "../../Types/API/Hostname";
 
 export type ClickHouseClientConfigOptions = NodeClickHouseClientConfigOptions;
@@ -114,10 +115,23 @@ export const ingestDataSourceOptions: ClickHouseClientConfigOptions = {
  * additionally carry send_progress_in_http_headers (see MigrationExecuteOptions
  * in AnalyticsDatabaseService) so the socket stays non-idle, and a server-side
  * SETTINGS max_execution_time so ClickHouse remains the authoritative cap.
+ *
+ * The ON CLUSTER confirmation wait (distributed_ddl_task_timeout) streams zero
+ * bytes while pending, so this idle ceiling is the effective upper bound on any
+ * DDL confirmation wait. When CLICKHOUSE_DISTRIBUTED_DDL_TASK_TIMEOUT_SECONDS
+ * is raised past the 30-minute floor, scale the ceiling with it (plus slack)
+ * so the longer wait isn't killed client-side. A negative (infinite) DDL
+ * timeout is still bounded by the 30-minute floor — the client must not hang
+ * forever on a dead socket.
  */
+const migrationRequestTimeoutInMs: number = Math.max(
+  30 * 60 * 1000, // 30-minute floor
+  (getDistributedDdlTaskTimeoutSeconds() + 120) * 1000,
+);
+
 export const migrationDataSourceOptions: ClickHouseClientConfigOptions = {
   ...options,
-  request_timeout: 30 * 60 * 1000, // 30 minutes
+  request_timeout: migrationRequestTimeoutInMs,
 };
 
 export const testDataSourceOptions: ClickHouseClientConfigOptions =

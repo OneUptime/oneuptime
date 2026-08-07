@@ -83,6 +83,67 @@ export default class AnalyticsTableManagement {
   }
 
   /**
+   * Best-effort end-of-run convergence check. ON CLUSTER DDL runs with
+   * `distributed_ddl_output_mode = null_status_on_timeout`, so a statement can
+   * return before every host executed it — the task stays in the Keeper queue
+   * and each host applies it in the background. That makes a green run mean
+   * "enqueued everywhere, confirmed where possible", NOT "the whole cluster
+   * converged". Surface any still-unfinished distributed DDL loudly here so a
+   * wedged DDL queue (stuck DDLWorker, host-identity mismatch, dead host in
+   * the cluster config) cannot hide behind a successful migrate run.
+   * Diagnosis + remediation: HelmChart/Docs/Clickhouse.md, "Distributed DDL
+   * task ... is not finished on N of M hosts".
+   */
+  public static async warnOnUnfinishedDistributedDdl(): Promise<void> {
+    const service: AnalyticsDatabaseService<AnalyticsBaseModel> | undefined =
+      AnalyticsServices[0];
+    if (!service) {
+      return;
+    }
+
+    try {
+      const result: Results = await service.executeQuery(
+        `SELECT entry, host, status FROM system.distributed_ddl_queue WHERE status != 'Finished' ORDER BY entry ASC LIMIT 200`,
+        MigrationExecuteOptions,
+      );
+      const response: DbJSONResponse = await result.json<{
+        data?: Array<JSONObject>;
+      }>();
+      const rows: Array<JSONObject> = (response.data ||
+        []) as Array<JSONObject>;
+
+      if (rows.length === 0) {
+        logger.debug(
+          "Distributed DDL queue fully drained — schema DDL confirmed on every host.",
+        );
+        return;
+      }
+
+      const entries: Set<string> = new Set<string>(
+        rows.map((row: JSONObject) => {
+          return String(row["entry"]);
+        }),
+      );
+      const hosts: Set<string> = new Set<string>(
+        rows.map((row: JSONObject) => {
+          return String(row["host"]);
+        }),
+      );
+      logger.warn({
+        message: `ClickHouse distributed DDL queue still has ${entries.size} unfinished task(s) across ${hosts.size} host(s) after schema sync. The queued DDL will keep executing in the background; until it drains, some hosts may lag the new schema. If this count does not go down, the DDL queue is wedged — see HelmChart/Docs/Clickhouse.md ("Distributed DDL task ... is not finished on N of M hosts") for diagnosis and remediation.`,
+        unfinishedTasks: entries.size,
+        affectedHosts: [...hosts].slice(0, 10),
+        oldestEntry: rows[0] ? String(rows[0]["entry"]) : "",
+      });
+    } catch {
+      // system.distributed_ddl_queue may be unavailable; the check is advisory.
+      logger.debug(
+        "Could not read system.distributed_ddl_queue for the post-migration convergence check.",
+      );
+    }
+  }
+
+  /**
    * Ensure the app-facing `<tableName>` is the `Distributed` wrapper over the
    * local `<tableName>Local` storage table.
    *
@@ -188,10 +249,12 @@ export default class AnalyticsTableManagement {
 
   /**
    * True when <tableName> already exists as a Distributed wrapper that matches
-   * the model — same Distributed(...) engine AND the same columns as its local
-   * storage table (the wrapper is created `AS <local>`). Lets
-   * reconcileDistributedTable skip a needless CREATE OR REPLACE (which churns
-   * the table UUID and races async inserts).
+   * the model — same Distributed(...) engine, the same columns as its local
+   * storage table (the wrapper is created `AS <local>`), AND both contain
+   * every model column (so a read served by a replica still catching up on
+   * queued DDL can't fake an "up to date"). Lets reconcileDistributedTable
+   * skip a needless CREATE OR REPLACE (which churns the table UUID and races
+   * async inserts).
    *
    * CONSERVATIVE: any read failure, missing table, or ambiguity returns false,
    * so the caller falls back to the original always-re-sync behavior rather
@@ -243,6 +306,25 @@ export default class AnalyticsTableManagement {
       }
       for (const [name, type] of localColumns) {
         if (distributedColumns.get(name) !== type) {
+          return false;
+        }
+      }
+
+      /*
+       * 3. Both views must also contain every MODEL column. The two reads
+       * above are load-balanced across the cluster, and ON CLUSTER DDL
+       * confirmation is best-effort (null_status_on_timeout): right after an
+       * ADD COLUMN the reads can land on a replica whose queued ADD hasn't
+       * applied yet, so wrapper and local match each OTHER while both lag the
+       * model — which would wrongly skip the re-sync until a later boot. A
+       * model column missing from either view means the view is stale or the
+       * schema genuinely drifted; re-sync in both cases.
+       */
+      for (const column of service.model.tableColumns) {
+        if (
+          !localColumns.has(column.key) ||
+          !distributedColumns.has(column.key)
+        ) {
           return false;
         }
       }

@@ -27,6 +27,8 @@ import AnalyticsTableEngine from "../../../Types/AnalyticsDatabase/AnalyticsTabl
 export const DEFAULT_CLICKHOUSE_CLUSTER_NAME: string = "oneuptime";
 export const DEFAULT_CLICKHOUSE_SHARDING_KEY: string = "cityHash64(projectId)";
 export const DEFAULT_CLICKHOUSE_DATABASE: string = "oneuptime";
+// Matches the ClickHouse server default for distributed_ddl_task_timeout.
+export const DEFAULT_DISTRIBUTED_DDL_TASK_TIMEOUT_SECONDS: number = 180;
 
 // Suffix appended to a model's tableName to name its local (data) table.
 export const LOCAL_TABLE_SUFFIX: string = "Local";
@@ -47,6 +49,28 @@ export function getClickhouseShardingKeyOverride(): string {
 
 export function getClickhouseDatabaseName(): string {
   return process.env["CLICKHOUSE_DATABASE"] || DEFAULT_CLICKHOUSE_DATABASE;
+}
+
+/*
+ * How long the initiator of an ON CLUSTER DDL statement waits for every host
+ * to report completion (CLICKHOUSE_DISTRIBUTED_DDL_TASK_TIMEOUT_SECONDS,
+ * default 180 — the ClickHouse server default). ClickHouse semantics: 0
+ * enqueues the task and returns immediately; a negative value removes the
+ * server-side wait limit, but the confirmation wait streams zero bytes, so
+ * the client still gives up at the migration pool's socket-idle ceiling
+ * (30-minute floor, scaled up with this value — see ClickhouseConfig.ts).
+ * Prefer a finite value. Raising it helps on clusters whose DDL queue drains
+ * slowly (each host's DDLWorker processes the queue sequentially by default,
+ * so one slow task delays all later ones).
+ */
+export function getDistributedDdlTaskTimeoutSeconds(): number {
+  const raw: string = (
+    process.env["CLICKHOUSE_DISTRIBUTED_DDL_TASK_TIMEOUT_SECONDS"] || ""
+  ).trim();
+  const parsed: number = parseInt(raw, 10);
+  return Number.isFinite(parsed)
+    ? parsed
+    : DEFAULT_DISTRIBUTED_DDL_TASK_TIMEOUT_SECONDS;
 }
 
 /*

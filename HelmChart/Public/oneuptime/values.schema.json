@@ -840,6 +840,12 @@
                         "null"
                     ]
                 },
+                "clickhouseDistributedDdlTaskTimeoutSeconds": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ]
+                },
                 "resources": {
                     "type": "object"
                 },

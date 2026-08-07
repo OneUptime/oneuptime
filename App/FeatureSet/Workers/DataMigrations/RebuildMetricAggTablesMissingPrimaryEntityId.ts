@@ -1,6 +1,8 @@
 import DataMigrationBase from "./DataMigrationBase";
 import ClickHouseMigrationUtil from "./ClickHouseMigrationUtil";
-import AnalyticsDatabaseService from "Common/Server/Services/AnalyticsDatabaseService";
+import AnalyticsDatabaseService, {
+  MigrationExecuteOptions,
+} from "Common/Server/Services/AnalyticsDatabaseService";
 import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import MetricItemAggMV1mService from "Common/Server/Services/MetricItemAggMV1mService";
 import MetricBaselineService from "Common/Server/Services/MetricBaselineService";
@@ -114,16 +116,23 @@ export default class RebuildMetricAggTablesMissingPrimaryEntityId extends DataMi
     for (const materializedView of materializedViews) {
       await service.execute(
         `DROP VIEW IF EXISTS ${materializedView.name} SYNC`,
+        MigrationExecuteOptions,
       );
     }
 
     // 2. Drop the drifted table (this is the accepted data loss).
-    await service.execute(`DROP TABLE IF EXISTS ${tableName} SYNC`);
+    await service.execute(
+      `DROP TABLE IF EXISTS ${tableName} SYNC`,
+      MigrationExecuteOptions,
+    );
 
     // 3. Recreate table + MV(s) from the current model (key-correct).
-    await service.execute(service.statementGenerator.toTableCreateStatement());
+    await service.execute(
+      service.statementGenerator.toTableCreateStatement(),
+      MigrationExecuteOptions,
+    );
     for (const materializedView of materializedViews) {
-      await service.execute(materializedView.query);
+      await service.execute(materializedView.query, MigrationExecuteOptions);
     }
 
     logger.info(
