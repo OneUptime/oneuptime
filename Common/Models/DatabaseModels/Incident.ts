@@ -1715,6 +1715,7 @@ export default class Incident extends BaseModel {
     ],
   })
   @TableColumn({
+    computed: true,
     type: TableColumnType.VeryLongText,
     title: "Notification Status Message",
     description:
@@ -1802,6 +1803,7 @@ export default class Incident extends BaseModel {
     ],
   })
   @TableColumn({
+    computed: true,
     type: TableColumnType.VeryLongText,
     title: "Notification Status Message on Postmortem Published",
     description:
