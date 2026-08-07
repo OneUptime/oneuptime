@@ -19,7 +19,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import Label from "Common/Models/DatabaseModels/Label";
 import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
 import StatusPageMonitorRule from "Common/Models/DatabaseModels/StatusPageMonitorRule";
-import StatusPageGroupTreeUtil from "Common/Utils/StatusPage/GroupTree";
+import { toStatusPageGroupDropdownOptions } from "../../../Utils/StatusPageGroupDropdown";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 const monitorRuleDocumentation: string = `
@@ -85,22 +85,8 @@ const StatusPageMonitorRulesPage: FunctionComponent<PageComponentProps> = (
         requestOptions: {},
       });
 
-    const allGroups: Array<StatusPageGroup> = listResult.data;
-
-    return allGroups.map((group: StatusPageGroup) => {
-      const path: Array<string> = StatusPageGroupTreeUtil.getAncestorGroups({
-        statusPageGroup: group,
-        statusPageGroups: allGroups,
-      })
-        .reverse()
-        .map((ancestor: StatusPageGroup) => {
-          return ancestor.name || "";
-        });
-
-      return {
-        value: group._id?.toString() || "",
-        label: [...path, group.name || ""].join(" › "),
-      };
+    return toStatusPageGroupDropdownOptions({
+      statusPageGroups: listResult.data,
     });
   };
 

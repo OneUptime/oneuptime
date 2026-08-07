@@ -11,7 +11,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
-import StatusPageGroupTreeUtil from "Common/Utils/StatusPage/GroupTree";
+import { toStatusPageGroupDropdownOptions } from "../../../Utils/StatusPageGroupDropdown";
 import React, {
   Fragment,
   FunctionComponent,
@@ -46,8 +46,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
   /*
    * Groups nest, so the parent picker has to show where each candidate sits in
    * the tree - two groups can easily be called "Region 1000" at different
-   * levels. Options are labelled with their full path and fetched every time
-   * the form opens, so a group added a moment ago is immediately selectable.
+   * levels. Options are labelled with their full path, in the order the status
+   * page renders them, and fetched every time the form opens so a group added a
+   * moment ago is immediately selectable.
    *
    * Whether the chosen parent is actually legal (not the group itself, not one
    * of its own sub groups, not past the nesting limit) is decided by
@@ -78,22 +79,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         requestOptions: {},
       });
 
-    const allGroups: Array<StatusPageGroup> = listResult.data;
-
-    return allGroups.map((group: StatusPageGroup) => {
-      const path: Array<string> = StatusPageGroupTreeUtil.getAncestorGroups({
-        statusPageGroup: group,
-        statusPageGroups: allGroups,
-      })
-        .reverse()
-        .map((ancestor: StatusPageGroup) => {
-          return ancestor.name || "";
-        });
-
-      return {
-        value: group._id?.toString() || "",
-        label: [...path, group.name || ""].join(" › "),
-      };
+    return toStatusPageGroupDropdownOptions({
+      statusPageGroups: listResult.data,
     });
   };
 

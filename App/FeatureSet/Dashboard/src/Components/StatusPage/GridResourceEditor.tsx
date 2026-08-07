@@ -45,6 +45,19 @@ export interface ComponentProps {
   canCreateStatusPageResource: boolean;
   baseFormFields: Array<ModelField<StatusPageResource>>;
   formSteps: Array<{ title: string; id: string }>;
+  /*
+   * The group's ancestors and its own name - "Corporate › Region 1000". Groups
+   * nest and two of them at different levels very often share a name, so the
+   * Resources tab titles every section with its path. Falls back to the
+   * group's own name.
+   */
+  groupPathLabel?: string | undefined;
+  /*
+   * Set by a caller that can close this editor back down to a header, which is
+   * what keeps a status page with a thousand groups from mounting a thousand
+   * editors. Omitted, no collapse control is shown.
+   */
+  onCollapse?: (() => void) | undefined;
 }
 
 type ParseAxisValuesFunction = (raw?: string | null) => Array<string>;
@@ -292,41 +305,53 @@ const GridResourceEditor: FunctionComponent<ComponentProps> = (
     setIsDeleting(false);
   };
 
-  const cardTitle: string = `${group.name || ""} - Status Page Resources`;
+  const cardTitle: string = `${
+    props.groupPathLabel || group.name || ""
+  } - Status Page Resources`;
   const cardDescription: string = isGrid
     ? "Click a cell to add a monitor at that row × column intersection."
     : "Resources that will be shown on the page";
 
   const hasGridAxes: boolean = rowValues.length > 0 && columnValues.length > 0;
-  const cardButtons: Array<CardButtonSchema | ReactElement> =
-    props.canCreateStatusPageResource && hasGridAxes
-      ? [
-          {
-            title: "Create Status Page Resource",
-            icon: IconProp.Add,
-            buttonStyle: ButtonStyleType.NORMAL,
-            onClick: () => {
-              openCreateForCell(null, null);
-            },
-          },
-          <MoreMenu
-            key="status-page-grid-resource-more-menu"
-            menuIcon={IconProp.EllipsisHorizontal}
-            text=""
-          >
-            {[
-              <MoreMenuItem
-                key="add-multiple-monitors"
-                text="Add Multiple Monitors"
-                icon={IconProp.Add}
-                onClick={() => {
-                  setShowBulkAddModal(true);
-                }}
-              />,
-            ]}
-          </MoreMenu>,
-        ]
-      : [];
+  const cardButtons: Array<CardButtonSchema | ReactElement> = [];
+
+  if (props.canCreateStatusPageResource && hasGridAxes) {
+    cardButtons.push(
+      {
+        title: "Create Status Page Resource",
+        icon: IconProp.Add,
+        buttonStyle: ButtonStyleType.NORMAL,
+        onClick: () => {
+          openCreateForCell(null, null);
+        },
+      },
+      <MoreMenu
+        key="status-page-grid-resource-more-menu"
+        menuIcon={IconProp.EllipsisHorizontal}
+        text=""
+      >
+        {[
+          <MoreMenuItem
+            key="add-multiple-monitors"
+            text="Add Multiple Monitors"
+            icon={IconProp.Add}
+            onClick={() => {
+              setShowBulkAddModal(true);
+            }}
+          />,
+        ]}
+      </MoreMenu>,
+    );
+  }
+
+  if (props.onCollapse) {
+    cardButtons.push({
+      title: "Hide",
+      icon: IconProp.ChevronUp,
+      buttonStyle: ButtonStyleType.OUTLINE,
+      onClick: props.onCollapse,
+    });
+  }
 
   if (rowValues.length === 0 || columnValues.length === 0) {
     return (

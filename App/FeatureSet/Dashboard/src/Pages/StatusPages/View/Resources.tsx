@@ -4,20 +4,27 @@ import BulkAddStatusPageMonitorsModal from "../../../Components/StatusPage/BulkA
 import GridResourceEditor from "../../../Components/StatusPage/GridResourceEditor";
 import { getStatusPageResourceAdvancedFields } from "../../../Components/StatusPage/StatusPageResourceFormFields";
 import PageComponentProps from "../../PageComponentProps";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
+import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import Icon from "Common/UI/Components/Icon/Icon";
+import Input from "Common/UI/Components/Input/Input";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Columns from "Common/UI/Components/ModelTable/Column";
 import Filter from "Common/UI/Components/ModelFilter/Filter";
+import Pagination from "Common/UI/Components/Pagination/Pagination";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import API from "Common/UI/Utils/API/API";
@@ -28,15 +35,23 @@ import User from "Common/UI/Utils/User";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorGroup from "Common/Models/DatabaseModels/MonitorGroup";
 import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
-import StatusPageGroupTreeUtil, {
-  StatusPageGroupTreeNode,
-} from "Common/Utils/StatusPage/GroupTree";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
+import {
+  STATUS_PAGE_GROUP_SECTIONS_PER_PAGE,
+  StatusPageGroupSection,
+  StatusPageGroupSectionPage,
+  buildStatusPageGroupSections,
+  filterStatusPageGroupSections,
+  getStatusPageGroupSectionPage,
+  isStatusPageGroupSectionExpanded,
+  shouldExpandStatusPageGroupSectionsByDefault,
+} from "../../../Utils/StatusPageGroupSections";
 import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 import StatusPageGroupViewMode from "Common/Types/StatusPage/StatusPageGroupViewMode";
@@ -63,6 +78,20 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     null,
   );
   const [bulkAddRefreshCounter, setBulkAddRefreshCounter] = useState<number>(0);
+
+  /*
+   * Which slice of the groups is on screen, and which of those sections the
+   * user has opened or closed by hand. Everything about why the page is
+   * windowed at all is in Utils/StatusPageGroupSections - the short version is
+   * that each open section is a resource table, and each resource table is two
+   * requests, so a status page with a thousand groups cannot render them all.
+   */
+  const [groupSearchText, setGroupSearchText] = useState<string>("");
+  const [groupSectionPageNumber, setGroupSectionPageNumber] =
+    useState<number>(1);
+  const [expandedGroupIdOverrides, setExpandedGroupIdOverrides] = useState<
+    Record<string, boolean>
+  >({});
 
   const permissions: Array<Permission> | null =
     PermissionUtil.getAllPermissions();
@@ -222,64 +251,100 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     ...getStatusPageResourceAdvancedFields(),
   ]);
 
-  type GetModelTableFunction = (
-    statusPageGroup: StatusPageGroup | null,
-  ) => ReactElement;
-
   /*
-   * Groups can be nested, and two groups at different levels can share a name.
-   * Show the full path so it is obvious which "Region 1000" a table belongs to.
+   * Every group, in the order the status page renders them (a parent directly
+   * above the groups nested under it) and labelled with its full path, because
+   * two groups at different levels can easily share a name. One tree walk does
+   * both for all of them.
    */
-  /*
-   * A parent's table should sit directly above the tables of the groups nested
-   * under it, the same order the public status page renders them in - a flat
-   * sort by `order` would scatter children away from their parent.
-   */
-  type GetGroupsInTreeOrderFunction = () => Array<StatusPageGroup>;
+  const allGroupSections: Array<StatusPageGroupSection> = useMemo(() => {
+    return buildStatusPageGroupSections({ statusPageGroups: groups });
+  }, [groups]);
 
-  const getGroupsInTreeOrder: GetGroupsInTreeOrderFunction =
-    (): Array<StatusPageGroup> => {
-      const flattened: Array<StatusPageGroup> = [];
+  const isGroupSectionExpandedByDefault: boolean =
+    shouldExpandStatusPageGroupSectionsByDefault({
+      totalSectionCount: allGroupSections.length,
+      pageSize: STATUS_PAGE_GROUP_SECTIONS_PER_PAGE,
+    });
 
-      const visit: (nodes: Array<StatusPageGroupTreeNode>) => void = (
-        nodes: Array<StatusPageGroupTreeNode>,
-      ): void => {
-        for (const node of nodes) {
-          flattened.push(node.group);
-          visit(node.children);
-        }
-      };
+  const matchingGroupSections: Array<StatusPageGroupSection> = useMemo(() => {
+    return filterStatusPageGroupSections({
+      sections: allGroupSections,
+      searchText: groupSearchText,
+    });
+  }, [allGroupSections, groupSearchText]);
 
-      visit(StatusPageGroupTreeUtil.buildTree({ statusPageGroups: groups }));
+  const groupSectionPage: StatusPageGroupSectionPage =
+    getStatusPageGroupSectionPage({
+      sections: matchingGroupSections,
+      pageNumber: groupSectionPageNumber,
+      pageSize: STATUS_PAGE_GROUP_SECTIONS_PER_PAGE,
+    });
 
-      return flattened;
-    };
+  type SetGroupSectionExpandedFunction = (
+    groupId: string,
+    isExpanded: boolean,
+  ) => void;
 
-  type GetGroupPathFunction = (statusPageGroup: StatusPageGroup) => string;
-
-  const getGroupPath: GetGroupPathFunction = (
-    statusPageGroup: StatusPageGroup,
-  ): string => {
-    const ancestorNames: Array<string> =
-      StatusPageGroupTreeUtil.getAncestorGroups({
-        statusPageGroup: statusPageGroup,
-        statusPageGroups: groups,
-      })
-        .reverse()
-        .map((ancestor: StatusPageGroup) => {
-          return ancestor.name || "";
-        });
-
-    return [...ancestorNames, statusPageGroup.name || ""].join(" › ");
+  const setGroupSectionExpanded: SetGroupSectionExpandedFunction = (
+    groupId: string,
+    isExpanded: boolean,
+  ): void => {
+    setExpandedGroupIdOverrides((overrides: Record<string, boolean>) => {
+      return { ...overrides, [groupId]: isExpanded };
+    });
   };
 
+  type GetResourceTableCardButtonsFunction = (
+    section: StatusPageGroupSection | null,
+  ) => Array<CardButtonSchema>;
+
+  const getResourceTableCardButtons: GetResourceTableCardButtonsFunction = (
+    section: StatusPageGroupSection | null,
+  ): Array<CardButtonSchema> => {
+    const buttons: Array<CardButtonSchema> = [];
+
+    if (canCreateStatusPageResource) {
+      buttons.push({
+        title: "Add Multiple Monitors",
+        buttonStyle: ButtonStyleType.OUTLINE,
+        icon: IconProp.Add,
+        onClick: () => {
+          setBulkAddTarget({
+            statusPageGroupId: section?.group.id || null,
+          });
+        },
+      });
+    }
+
+    /*
+     * Only group sections collapse. The ungrouped table is the one table this
+     * page always shows, and there is nothing above it to collapse into.
+     */
+    if (section) {
+      buttons.push({
+        title: "Hide",
+        buttonStyle: ButtonStyleType.OUTLINE,
+        icon: IconProp.ChevronUp,
+        onClick: () => {
+          setGroupSectionExpanded(section.groupId, false);
+        },
+      });
+    }
+
+    return buttons;
+  };
+
+  type GetModelTableFunction = (
+    section: StatusPageGroupSection | null,
+  ) => ReactElement;
+
   const getModelTable: GetModelTableFunction = (
-    statusPageGroup: StatusPageGroup | null,
+    section: StatusPageGroupSection | null,
   ): ReactElement => {
+    const statusPageGroup: StatusPageGroup | null = section?.group || null;
     const statusPageGroupId: ObjectID | null = statusPageGroup?.id || null;
-    const statusPageGroupName: string | null = statusPageGroup
-      ? getGroupPath(statusPageGroup)
-      : null;
+    const statusPageGroupName: string | null = section?.pathLabel || null;
 
     const tableColumns: Array<Columns<StatusPageResource>> = [
       {
@@ -406,18 +471,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 : ""
           }Status Page Resources`,
           description: "Resources that will be shown on the page",
-          buttons: canCreateStatusPageResource
-            ? [
-                {
-                  title: "Add Multiple Monitors",
-                  buttonStyle: ButtonStyleType.OUTLINE,
-                  icon: IconProp.Add,
-                  onClick: () => {
-                    setBulkAddTarget({ statusPageGroupId });
-                  },
-                },
-              ]
-            : [],
+          buttons: getResourceTableCardButtons(section),
         }}
         noItemsMessage={
           "No status page resources created for this status page."
@@ -449,6 +503,155 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     );
   };
 
+  type GetGroupSectionFunction = (
+    section: StatusPageGroupSection,
+  ) => ReactElement;
+
+  /*
+   * A closed section. This is the whole point of the windowing: it renders a
+   * header and nothing else, so the group's resource table - and the list and
+   * count requests that table fires the instant it mounts - does not exist
+   * until someone asks for it.
+   */
+  const getCollapsedGroupSection: GetGroupSectionFunction = (
+    section: StatusPageGroupSection,
+  ): ReactElement => {
+    const expand: () => void = (): void => {
+      setGroupSectionExpanded(section.groupId, true);
+    };
+
+    /*
+     * The whole row is clickable for convenience, but the button inside it is
+     * the real control - it is what a keyboard reaches and what a screen
+     * reader announces, so the row itself stays a plain div rather than
+     * nesting one control inside another.
+     */
+    return (
+      <div
+        className="mb-5 bg-white border border-gray-200 rounded-xl shadow-sm px-5 md:px-6 py-4 flex items-center justify-between cursor-pointer hover:bg-gray-50"
+        onClick={expand}
+      >
+        <div className="flex items-center min-w-0">
+          <Icon
+            icon={IconProp.ChevronRight}
+            className="w-4 h-4 text-gray-500 mr-3 flex-shrink-0"
+          />
+          <div className="min-w-0">
+            <h2 className="text-lg font-semibold leading-6 text-gray-900 truncate">
+              {section.pathLabel}
+            </h2>
+            <p className="mt-1 text-sm text-gray-500 hidden md:block">
+              Resources that will be shown on the page
+            </p>
+          </div>
+        </div>
+        <div className="ml-4 flex-shrink-0">
+          <Button
+            title="Show Resources"
+            buttonStyle={ButtonStyleType.OUTLINE}
+            buttonSize={ButtonSize.Small}
+            icon={IconProp.ChevronDown}
+            onClick={expand}
+          />
+        </div>
+      </div>
+    );
+  };
+
+  const getGroupSection: GetGroupSectionFunction = (
+    section: StatusPageGroupSection,
+  ): ReactElement => {
+    const isExpanded: boolean = isStatusPageGroupSectionExpanded({
+      groupId: section.groupId,
+      expandedOverrides: expandedGroupIdOverrides,
+      isExpandedByDefault: isGroupSectionExpandedByDefault,
+    });
+
+    if (!isExpanded) {
+      return getCollapsedGroupSection(section);
+    }
+
+    if (section.group.viewMode === StatusPageGroupViewMode.Grid) {
+      return (
+        <GridResourceEditor
+          group={section.group}
+          groupPathLabel={section.pathLabel}
+          statusPageId={modelId}
+          projectId={new ObjectID(props.currentProject!._id!)}
+          currentProject={props.currentProject!}
+          canCreateStatusPageResource={canCreateStatusPageResource}
+          baseFormFields={formFields}
+          formSteps={[
+            { title: "Monitor Details", id: "monitor-details" },
+            { title: "Advanced", id: "advanced" },
+          ]}
+          onCollapse={() => {
+            setGroupSectionExpanded(section.groupId, false);
+          }}
+        />
+      );
+    }
+
+    return getModelTable(section);
+  };
+
+  /*
+   * Only shown once the groups outgrow a single page. Below that the tab looks
+   * exactly like it always has: every group open, no controls above them.
+   */
+  const getGroupSectionToolbar: GetReactElementFunction = (): ReactElement => {
+    if (allGroupSections.length <= STATUS_PAGE_GROUP_SECTIONS_PER_PAGE) {
+      return <></>;
+    }
+
+    return (
+      <div className="mb-5">
+        <Input
+          value={groupSearchText}
+          placeholder="Search groups by name or path..."
+          dataTestId="status-page-group-section-search"
+          onChange={(value: string) => {
+            setGroupSearchText(value);
+            setGroupSectionPageNumber(1);
+          }}
+        />
+        <p className="mt-2 text-sm text-gray-500">
+          {`This status page has ${allGroupSections.length.toLocaleString()} groups${
+            groupSearchText.trim()
+              ? `, ${matchingGroupSections.length.toLocaleString()} matching your search`
+              : ""
+          }. Open a group to load its resources.`}
+        </p>
+      </div>
+    );
+  };
+
+  const getGroupSectionPagination: GetReactElementFunction =
+    (): ReactElement => {
+      if (groupSectionPage.totalPageCount <= 1) {
+        return <></>;
+      }
+
+      return (
+        <div className="mb-5 bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+          <Pagination
+            currentPageNumber={groupSectionPage.pageNumber}
+            totalItemsCount={groupSectionPage.totalSectionCount}
+            itemsOnPage={groupSectionPage.pageSize}
+            itemsOnCurrentPage={groupSectionPage.sections.length}
+            isLoading={false}
+            isError={false}
+            singularLabel="group"
+            pluralLabel="groups"
+            dataTestId="status-page-group-section-pagination"
+            onNavigateToPage={(pageNumber: number) => {
+              setGroupSectionPageNumber(pageNumber);
+            }}
+          />
+        </div>
+      );
+    };
+
   return (
     <Fragment>
       <>
@@ -458,27 +661,30 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
 
         {!isLoading && !error ? getModelTable(null) : <></>}
 
-        {!isLoading && !error && groups && groups.length > 0 ? (
-          getGroupsInTreeOrder().map((group: StatusPageGroup) => {
-            if (group.viewMode === StatusPageGroupViewMode.Grid) {
-              return (
-                <GridResourceEditor
-                  key={group.id?.toString() || ""}
-                  group={group}
-                  statusPageId={modelId}
-                  projectId={new ObjectID(props.currentProject!._id!)}
-                  currentProject={props.currentProject!}
-                  canCreateStatusPageResource={canCreateStatusPageResource}
-                  baseFormFields={formFields}
-                  formSteps={[
-                    { title: "Monitor Details", id: "monitor-details" },
-                    { title: "Advanced", id: "advanced" },
-                  ]}
-                />
-              );
-            }
-            return getModelTable(group);
-          })
+        {!isLoading && !error && allGroupSections.length > 0 ? (
+          <>
+            {getGroupSectionToolbar()}
+
+            {groupSectionPage.sections.map(
+              (section: StatusPageGroupSection) => {
+                return (
+                  <Fragment key={section.groupId}>
+                    {getGroupSection(section)}
+                  </Fragment>
+                );
+              },
+            )}
+
+            {groupSectionPage.sections.length === 0 ? (
+              <div className="mb-5 bg-white border border-gray-200 rounded-xl shadow-sm px-5 md:px-6 py-6 text-sm text-gray-500">
+                No groups match your search.
+              </div>
+            ) : (
+              <></>
+            )}
+
+            {getGroupSectionPagination()}
+          </>
         ) : (
           <></>
         )}
