@@ -85,7 +85,9 @@ import StatusPageOIDC from "../../Models/DatabaseModels/StatusPageOidc";
 import StatusPageSubscriber from "../../Models/DatabaseModels/StatusPageSubscriber";
 import StatusPageEventType from "../../Types/StatusPage/StatusPageEventType";
 import StatusPageResourceUptimeUtil from "../../Utils/StatusPage/ResourceUptime";
-import StatusPageGroupTreeUtil from "../../Utils/StatusPage/GroupTree";
+import StatusPageGroupTreeUtil, {
+  StatusPageGroupTreeIndex,
+} from "../../Utils/StatusPage/GroupTree";
 import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
 import { Green } from "../../Types/BrandColors";
 import UptimeUtil, { UptimeWindow } from "../../Utils/Uptime/UptimeUtil";
@@ -1407,19 +1409,35 @@ export default class StatusPageAPI extends BaseAPI<
           const resourceUptimesByGroupId: Dictionary<Array<ResourceUptime>> =
             {};
 
+          /*
+           * Keyed the same way, so the loop below can look a group's uptime up
+           * instead of scanning the whole list for it. A status page can carry
+           * well over a thousand groups, and a scan per group is a scan of the
+           * whole list per group.
+           */
+          const groupUptimeByGroupId: Dictionary<StatusPageGroupUptime> = {};
+
           for (const groupUptime of groupUptimes) {
-            resourceUptimesByGroupId[
-              groupUptime.statusPageGroupId?.toString() || ""
-            ] = groupUptime.statusPageResourceUptimes;
+            const groupId: string =
+              groupUptime.statusPageGroupId?.toString() || "";
+
+            resourceUptimesByGroupId[groupId] =
+              groupUptime.statusPageResourceUptimes;
+            groupUptimeByGroupId[groupId] = groupUptime;
           }
+
+          /*
+           * One index for every subtree walk below, rather than one
+           * re-bucketing of the group list per group.
+           */
+          const statusPageGroupTreeIndex: StatusPageGroupTreeIndex =
+            StatusPageGroupTreeUtil.buildIndex({
+              statusPageGroups: statusPageGroups,
+            });
 
           for (const group of statusPageGroups) {
             const groupUptime: StatusPageGroupUptime | undefined =
-              groupUptimes.find((item: StatusPageGroupUptime) => {
-                return (
-                  item.statusPageGroupId?.toString() === group.id?.toString()
-                );
-              });
+              groupUptimeByGroupId[group.id?.toString() || ""];
 
             if (!groupUptime) {
               continue;
@@ -1429,6 +1447,7 @@ export default class StatusPageAPI extends BaseAPI<
               StatusPageGroupTreeUtil.getGroupAndDescendants({
                 statusPageGroup: group,
                 statusPageGroups: statusPageGroups,
+                index: statusPageGroupTreeIndex,
               }).flatMap((groupInSubtree: StatusPageGroup) => {
                 return (
                   resourceUptimesByGroupId[
