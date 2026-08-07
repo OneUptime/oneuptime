@@ -1,6 +1,7 @@
 import URL from "Common/Types/API/URL";
 import Email from "Common/Types/Email";
 import Name from "Common/Types/Name";
+import Phone from "Common/Types/Phone";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import { JSONObject } from "Common/Types/JSON";
 import { Issuer, Client, generators, TokenSet } from "openid-client";
@@ -16,6 +17,7 @@ export interface OidcClientConfig {
 export interface OidcCallbackResult {
   email: Email;
   name: Name | null;
+  phone: Phone | null;
   issuer: string;
   rawClaims: JSONObject;
 }
@@ -78,6 +80,7 @@ export default class OIDCUtil {
     callbackParams: Record<string, string>;
     emailClaimName: string;
     nameClaimName: string;
+    phoneClaimName?: string | undefined;
   }): Promise<OidcCallbackResult> {
     const tokenSet: TokenSet = await data.client.callback(
       data.redirectUri.toString(),
@@ -99,9 +102,12 @@ export default class OIDCUtil {
 
     let emailValue: unknown = claims[data.emailClaimName];
     let nameValue: unknown = claims[data.nameClaimName];
+    let phoneValue: unknown = data.phoneClaimName
+      ? claims[data.phoneClaimName]
+      : undefined;
 
-    // If email/name not in ID token claims, fall back to userinfo endpoint.
-    if (!emailValue || !nameValue) {
+    // If email/name/phone not in ID token claims, fall back to userinfo endpoint.
+    if (!emailValue || !nameValue || (data.phoneClaimName && !phoneValue)) {
       try {
         const userInfo: JSONObject = (await data.client.userinfo(
           tokenSet.access_token!,
@@ -113,6 +119,10 @@ export default class OIDCUtil {
 
         if (!nameValue) {
           nameValue = userInfo[data.nameClaimName];
+        }
+
+        if (data.phoneClaimName && !phoneValue) {
+          phoneValue = userInfo[data.phoneClaimName];
         }
       } catch {
         // userinfo failure is non-fatal if claims already present in ID token
@@ -132,9 +142,23 @@ export default class OIDCUtil {
       name = new Name(nameValue);
     }
 
+    let phone: Phone | null = null;
+    if (phoneValue && typeof phoneValue === "string") {
+      try {
+        phone = new Phone(phoneValue);
+      } catch {
+        /*
+         * Claim present but not in a format Phone accepts. Non-fatal: skip syncing
+         * rather than failing the whole login over an optional field.
+         */
+        phone = null;
+      }
+    }
+
     return {
       email,
       name,
+      phone,
       issuer: claims["iss"] as string,
       rawClaims: claims,
     };

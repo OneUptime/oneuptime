@@ -380,6 +380,7 @@ const handleOidcCallback: HandleOidcCallbackFunction = async (
         scopes: true,
         emailClaimName: true,
         nameClaimName: true,
+        phoneClaimName: true,
         teams: { _id: true },
       },
       props: { isRoot: true },
@@ -437,6 +438,7 @@ const handleOidcCallback: HandleOidcCallbackFunction = async (
         callbackParams,
         emailClaimName: projectOidc.emailClaimName || "email",
         nameClaimName: projectOidc.nameClaimName || "name",
+        phoneClaimName: projectOidc.phoneClaimName || undefined,
       });
     } catch (err: unknown) {
       logger.error(err, getLogAttributesFromRequest(req as RequestLike));
@@ -463,6 +465,7 @@ const handleOidcCallback: HandleOidcCallbackFunction = async (
         isEmailVerified: true,
         profilePictureId: true,
         timezone: true,
+        companyPhoneNumber: true,
       },
       props: { isRoot: true },
     });
@@ -536,6 +539,25 @@ const handleOidcCallback: HandleOidcCallbackFunction = async (
     const projectId: ObjectID = new ObjectID(req.params["projectId"] as string);
 
     alreadySavedUser.email = result.email;
+
+    /*
+     * Phone claim is optional and only synced when the admin configured a
+     * phoneClaimName. Written to companyPhoneNumber (general contact info),
+     * never to the verified call/SMS on-call channels - those require their
+     * own explicit verification step and must not be bypassed by an IdP claim.
+     */
+    if (
+      result.phone &&
+      result.phone.toString() !==
+        alreadySavedUser.companyPhoneNumber?.toString()
+    ) {
+      await UserService.updateOneById({
+        id: alreadySavedUser.id!,
+        data: { companyPhoneNumber: result.phone },
+        props: { isRoot: true },
+      });
+      alreadySavedUser.companyPhoneNumber = result.phone;
+    }
 
     await AccessTokenService.refreshUserAllPermissions(alreadySavedUser.id!);
 
