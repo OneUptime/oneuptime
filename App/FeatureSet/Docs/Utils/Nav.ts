@@ -132,6 +132,19 @@ const DocsNav: NavGroup[] = [
     ],
   },
   {
+    title: "Users & Permissions",
+    links: [
+      {
+        title: "Users, Teams & Permissions",
+        url: "/docs/permissions/index",
+      },
+      {
+        title: "Permission Reference",
+        url: "/docs/permissions/reference",
+      },
+    ],
+  },
+  {
     title: "Terraform Provider",
     links: [
       {

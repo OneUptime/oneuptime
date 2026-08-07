@@ -21,12 +21,17 @@ export default class StatusPageUtil {
   public static async getCategoryCheckboxPropsBasedOnResources(
     statusPageId: ObjectID,
     overrideRequestUrl?: URL,
+    modelAPI: typeof ModelAPI = ModelAPI,
   ): Promise<CategoryCheckboxOptionsAndCategories> {
     const categories: Array<CheckboxCategory> = [];
     const options: Array<CategoryCheckboxOption> = [];
 
     let resources: Array<StatusPageResource> =
-      await StatusPageUtil.getResources(statusPageId, overrideRequestUrl);
+      await StatusPageUtil.getResources(
+        statusPageId,
+        overrideRequestUrl,
+        modelAPI,
+      );
 
     let resourceGroups: Array<StatusPageGroup> = resources
       .map((resource: StatusPageResource) => {
@@ -90,9 +95,10 @@ export default class StatusPageUtil {
   public static async getResources(
     statusPageId: ObjectID,
     overrideRequestUrl?: URL,
+    modelAPI: typeof ModelAPI = ModelAPI,
   ): Promise<Array<StatusPageResource>> {
     const resources: ListResult<StatusPageResource> =
-      await ModelAPI.getList<StatusPageResource>({
+      await modelAPI.getList<StatusPageResource>({
         modelType: StatusPageResource,
         query: {
           statusPageId: statusPageId,

@@ -2,10 +2,14 @@ import {
   APIRequestContext,
   Browser,
   BrowserContext,
+  Cookie,
+  Locator,
   Page,
+  Response,
   expect,
   test,
 } from "@playwright/test";
+import CookieName from "Common/Types/CookieName";
 import Faker from "Common/Utils/Faker";
 import { IS_BILLING_ENABLED } from "../../Config";
 import { registerAndCreateProject } from "./Helpers/ProductOnboarding";
@@ -330,6 +334,170 @@ test.describe("public status page", () => {
     } finally {
       await visitorContext.close();
     }
+  });
+
+  test("should keep the dashboard session when an authenticated user opens Subscribe", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.setTimeout(600000);
+
+    const unique: string = Faker.generateName().toString().replace(/\s/g, "-");
+
+    const projectId: string = await registerAndCreateProject({
+      page,
+      projectNamePrefix: "Status Page Subscribe E2E",
+    });
+
+    const defaults: ProjectDefaults = await getProjectDefaults({
+      page,
+      projectId,
+    });
+
+    const monitor: JSONish = await createItem({
+      page,
+      projectId,
+      path: "/api/monitor",
+      item: {
+        name: `subscribe-monitor-${unique}`,
+        description: "Manual monitor backing the Subscribe regression test.",
+        projectId,
+        monitorType: "Manual",
+        currentMonitorStatusId: defaults.operationalMonitorStatusId,
+      },
+    });
+
+    const monitorId: string = toId(monitor["_id"]);
+    expect(monitorId, "monitor should have been created").not.toBe("");
+
+    const statusPage: JSONish = await createItem({
+      page,
+      projectId,
+      path: "/api/status-page",
+      item: {
+        name: `Subscribe Status Page ${unique}`,
+        description: "Created by the authenticated Subscribe regression test.",
+        projectId,
+        pageTitle: `Subscribe Status Page ${unique}`,
+        isPublicStatusPage: true,
+        enableEmailSubscribers: true,
+        showSubscriberPageOnStatusPage: true,
+        allowSubscribersToChooseResources: true,
+      },
+    });
+
+    const statusPageId: string = toId(statusPage["_id"]);
+    expect(statusPageId, "status page should have been created").not.toBe("");
+
+    const resourceDisplayName: string = `Subscribe Resource ${unique}`;
+
+    await createItem({
+      page,
+      projectId,
+      path: "/api/status-page-resource",
+      item: {
+        projectId,
+        statusPageId,
+        monitorId,
+        displayName: resourceDisplayName,
+        displayDescription: "Selectable resource for the Subscribe form.",
+        showStatusHistoryChart: false,
+        showCurrentStatus: true,
+        order: 1,
+      },
+    });
+
+    const dashboardLoginCookieBefore: Cookie | undefined = (
+      await page.context().cookies()
+    ).find((cookie: Cookie) => {
+      return cookie.name === CookieName.Token;
+    });
+    expect(
+      dashboardLoginCookieBefore?.value,
+      "registration should establish the dashboard login cookie",
+    ).toBeTruthy();
+
+    const dashboardUserEmailBefore: string | null = await page.evaluate(() => {
+      return window.localStorage.getItem("user_email");
+    });
+    expect(
+      dashboardUserEmailBefore,
+      "registration should establish the dashboard login state in local storage",
+    ).not.toBeNull();
+
+    await waitForStatusPageToRender({ page, statusPageId });
+
+    const storedStatusPageIdBeforeSubscribe: string | null =
+      await page.evaluate(() => {
+        return window.localStorage.getItem("statusPageId");
+      });
+    expect(
+      storedStatusPageIdBeforeSubscribe || "",
+      "the rendered status page should persist its ID before navigation",
+    ).toContain(statusPageId);
+
+    const resourcesResponsePromise: Promise<Response> = page.waitForResponse(
+      (response: Response) => {
+        return (
+          response.request().method() === "POST" &&
+          response.url().includes(`/status-page-api/resources/${statusPageId}`)
+        );
+      },
+      { timeout: 120000 },
+    );
+
+    await page.locator("#subscribe-nav-bar-item").click();
+
+    const resourcesResponse: Response = await resourcesResponsePromise;
+    expect(
+      resourcesResponse.status(),
+      "the Status Page resource request should succeed for a dashboard user",
+    ).toBe(200);
+
+    const resourceRequestHeaders: Record<string, string> =
+      await resourcesResponse.request().allHeaders();
+    expect(resourceRequestHeaders["status-page-id"]).toBe(statusPageId);
+    expect(resourceRequestHeaders["tenantid"]).toBe("");
+    expect(await resourcesResponse.text()).toContain(resourceDisplayName);
+
+    await expect(page).toHaveURL(
+      buildUrl(`/status-page/${statusPageId}/subscribe/email`),
+      { timeout: 120000 },
+    );
+
+    const emailForm: Locator = page.locator("#email-form").first();
+    await expect(emailForm).toBeVisible({ timeout: 120000 });
+    await expect(emailForm.locator('input[type="email"]')).toBeVisible();
+
+    const dashboardLoginCookieAfter: Cookie | undefined = (
+      await page.context().cookies()
+    ).find((cookie: Cookie) => {
+      return cookie.name === CookieName.Token;
+    });
+    expect(
+      dashboardLoginCookieAfter?.value,
+      "opening Subscribe must not clear the dashboard login cookie",
+    ).toBeTruthy();
+
+    const browserStateAfterSubscribe: {
+      dashboardUserEmail: string | null;
+      statusPageId: string | null;
+    } = await page.evaluate(() => {
+      return {
+        dashboardUserEmail: window.localStorage.getItem("user_email"),
+        statusPageId: window.localStorage.getItem("statusPageId"),
+      };
+    });
+
+    expect(
+      browserStateAfterSubscribe.dashboardUserEmail,
+      "opening Subscribe must not clear the dashboard login state",
+    ).toBe(dashboardUserEmailBefore);
+    expect(
+      browserStateAfterSubscribe.statusPageId,
+      "opening Subscribe must not clear or replace the status page ID",
+    ).toBe(storedStatusPageIdBeforeSubscribe);
   });
 
   test("should not expose a private status page to an anonymous visitor", async ({

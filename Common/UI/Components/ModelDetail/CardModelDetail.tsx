@@ -12,8 +12,6 @@ import Fields from "../Forms/Types/Fields";
 import { FormStep } from "../Forms/Types/FormStep";
 import { ModalWidth } from "../Modal/Modal";
 import ModelFormModal from "../ModelFormModal/ModelFormModal";
-import { ToastType } from "../Toast/Toast";
-import { ShowToastNotification } from "../Toast/ToastInit";
 import ModelDetail, { ComponentProps as ModeDetailProps } from "./ModelDetail";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -167,16 +165,6 @@ const CardModelDetail: <TBaseModel extends BaseModel>(
           onSuccess={(item: TBaseModel) => {
             setShowModal(false);
             setRefresher(!refresher);
-            /*
-             * The modal just disappears otherwise, which reads as "nothing
-             * happened" - especially on cards that do not display every field
-             * the edit form exposes.
-             */
-            ShowToastNotification({
-              title: "Changes saved",
-              description: `${model.singularName || "Item"} updated successfully.`,
-              type: ToastType.SUCCESS,
-            });
             if (props.onSaveSuccess) {
               props.onSaveSuccess(item);
             }

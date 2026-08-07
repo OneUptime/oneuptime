@@ -1,6 +1,7 @@
 import Page from "../../Components/Page/Page";
 import API from "../../Utils/API";
 import { STATUS_PAGE_API_URL } from "../../Utils/Config";
+import StatusPageModelAPI from "../../Utils/ModelAPI";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import StatusPageUtil from "../../Utils/StatusPage";
@@ -66,6 +67,7 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
             URL.fromString(STATUS_PAGE_API_URL.toString()).addRoute(
               `/resources/${id.toString()}`,
             ),
+            StatusPageModelAPI,
           );
 
         setCategoryCheckboxOptionsAndCategories(result);
@@ -77,10 +79,14 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
     };
 
   useEffect(() => {
+    if (!props.allowSubscribersToChooseResources) {
+      return;
+    }
+
     fetchCheckboxOptionsAndCategories().catch((error: Error) => {
       setError(error.message);
     });
-  }, []);
+  }, [props.allowSubscribersToChooseResources]);
 
   if (!id) {
     throw new BadDataException("Status Page ID is required");
@@ -170,6 +176,7 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
       return (
         <ModelForm<StatusPageSubscriber>
           modelType={StatusPageSubscriber}
+          modelAPI={StatusPageModelAPI}
           id="slack-form"
           name="Status Page > Slack Subscribe"
           fields={fields}
@@ -203,6 +210,7 @@ const SubscribePage: FunctionComponent<ComponentProps> = (
       return (
         <ModelForm<StatusPageSubscriber>
           modelType={StatusPageSubscriber}
+          modelAPI={StatusPageModelAPI}
           id="slack-manage-form"
           name="Status Page > Manage Slack Subscription"
           fields={[

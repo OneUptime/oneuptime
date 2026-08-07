@@ -1,5 +1,6 @@
 import { ContentPath } from "./Config";
 import DocsNav from "./Nav";
+import DocsPlaceholders from "./Placeholders";
 import { DEFAULT_DOCS_LANGUAGE } from "./I18n";
 import DatabaseConfig from "Common/Server/DatabaseConfig";
 import LocalFile from "Common/Server/Utils/LocalFile";
@@ -53,7 +54,15 @@ async function readEnglishMarkdown(pagePath: string): Promise<string | null> {
 
   for (const candidate of candidates) {
     if (await LocalFile.doesFileExist(candidate)) {
-      return LocalFile.read(candidate);
+      /*
+       * Fill in server-rendered placeholders (permission tables, IP
+       * allow-list) so an LLM reading this file gets the same content a
+       * human reading the page does, rather than a literal `{{TOKEN}}`.
+       */
+      return DocsPlaceholders.render(
+        await LocalFile.read(candidate),
+        DEFAULT_DOCS_LANGUAGE,
+      );
     }
   }
   return null;
