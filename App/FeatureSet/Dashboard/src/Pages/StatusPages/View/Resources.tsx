@@ -29,6 +29,7 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorGroup from "Common/Models/DatabaseModels/MonitorGroup";
 import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
 import StatusPageGroupTreeUtil, {
+  StatusPageGroupTreeIndex,
   StatusPageGroupTreeNode,
 } from "Common/Utils/StatusPage/GroupTree";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
@@ -37,6 +38,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 import StatusPageGroupViewMode from "Common/Types/StatusPage/StatusPageGroupViewMode";
@@ -57,6 +59,14 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
   const [groups, setGroups] = useState<Array<StatusPageGroup>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+
+  /*
+   * One index for the whole render. The tree helpers below build their own
+   * when none is passed, which is once per group and therefore quadratic.
+   */
+  const groupTreeIndex: StatusPageGroupTreeIndex = useMemo(() => {
+    return StatusPageGroupTreeUtil.buildIndex({ statusPageGroups: groups });
+  }, [groups]);
 
   const [addMonitorGroup, setAddMonitorGroup] = useState<boolean>(false);
   const [bulkAddTarget, setBulkAddTarget] = useState<BulkAddTarget | null>(
@@ -250,7 +260,12 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         }
       };
 
-      visit(StatusPageGroupTreeUtil.buildTree({ statusPageGroups: groups }));
+      visit(
+        StatusPageGroupTreeUtil.buildTree({
+          statusPageGroups: groups,
+          index: groupTreeIndex,
+        }),
+      );
 
       return flattened;
     };
@@ -264,6 +279,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
       StatusPageGroupTreeUtil.getAncestorGroups({
         statusPageGroup: statusPageGroup,
         statusPageGroups: groups,
+        index: groupTreeIndex,
       })
         .reverse()
         .map((ancestor: StatusPageGroup) => {
