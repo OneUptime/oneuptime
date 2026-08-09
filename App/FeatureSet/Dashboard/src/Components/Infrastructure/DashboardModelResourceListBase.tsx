@@ -36,6 +36,7 @@ export interface DashboardModelResourceListBaseProps<
   TBaseModel extends BaseModel,
 > {
   modelType: { new (): TBaseModel };
+  componentId: ObjectID;
   /*
    * Resource-type identifier for the public-dashboard list endpoint
    * (DashboardResourceList.getRequestOptions). Must be registered in
@@ -119,6 +120,10 @@ const DashboardModelResourceListBase: <TBaseModel extends BaseModel>(
           modelType: props.modelType,
           requestOptions: DashboardResourceList.getRequestOptions(
             props.publicResourceType,
+            {
+              componentId: props.componentId,
+              variables: props.variables,
+            },
           ),
           query: queryWithVariables,
           limit: props.maxRows,
@@ -136,6 +141,7 @@ const DashboardModelResourceListBase: <TBaseModel extends BaseModel>(
     setIsLoading(false);
   }, [
     props.modelType,
+    props.componentId,
     props.publicResourceType,
     props.maxRows,
     queryKey,

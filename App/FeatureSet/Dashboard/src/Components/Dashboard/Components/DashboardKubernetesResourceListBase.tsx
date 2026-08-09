@@ -16,6 +16,7 @@ import Includes from "Common/Types/BaseDatabase/Includes";
 import Select from "Common/Types/BaseDatabase/Select";
 import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
 import { AttributeToColumnMap } from "Common/Utils/Dashboard/ModelQueryVariableInterpolation";
+import ObjectID from "Common/Types/ObjectID";
 
 /*
  * Thin Kubernetes wrapper around the shared, model-class-driven
@@ -27,6 +28,7 @@ import { AttributeToColumnMap } from "Common/Utils/Dashboard/ModelQueryVariableI
  * those props into the generic query / select / sort contract.
  */
 export interface KubernetesResourceListBaseProps {
+  componentId: ObjectID;
   title?: string | undefined;
   pluralLabel: string;
   emptyMessage: string;
@@ -114,6 +116,7 @@ const DashboardKubernetesResourceListBase: FunctionComponent<
   return (
     <DashboardModelResourceListBase<KubernetesResource>
       modelType={KubernetesResource}
+      componentId={props.componentId}
       publicResourceType="kubernetes-resource"
       title={props.title}
       pluralLabel={props.pluralLabel}

@@ -327,6 +327,7 @@ const DashboardCephOsdListComponentElement: FunctionComponent<
   return (
     <DashboardModelResourceListBase<CephResource>
       modelType={CephResource}
+      componentId={props.componentId}
       publicResourceType="ceph-resource"
       title={args.title}
       pluralLabel="OSDs"

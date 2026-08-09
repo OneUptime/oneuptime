@@ -94,8 +94,13 @@ const DashboardDockerImageListComponentElement: FunctionComponent<
       const listResult: ListResult<DockerResource> =
         await ModelAPI.getList<DockerResource>({
           modelType: DockerResource,
-          requestOptions:
-            DashboardResourceList.getRequestOptions("docker-image"),
+          requestOptions: DashboardResourceList.getRequestOptions(
+            "docker-image",
+            {
+              componentId: props.componentId,
+              variables: props.variables,
+            },
+          ),
           query: query,
           limit: maxRows,
           skip: 0,
@@ -120,7 +125,13 @@ const DashboardDockerImageListComponentElement: FunctionComponent<
     }
 
     setIsLoading(false);
-  }, [maxRows, dockerHostIdsKey, nameSearchKey, props.variables]);
+  }, [
+    maxRows,
+    dockerHostIdsKey,
+    nameSearchKey,
+    props.variables,
+    props.componentId,
+  ]);
 
   useEffect(() => {
     fetchImages();

@@ -99,6 +99,7 @@ const DashboardKubernetesStatefulSetListComponentElement: FunctionComponent<
 
   return (
     <DashboardKubernetesResourceListBase
+      componentId={props.componentId}
       title={args.title}
       pluralLabel="statefulsets"
       emptyMessage="No stateful sets found"

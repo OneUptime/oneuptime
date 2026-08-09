@@ -99,6 +99,7 @@ const DashboardKubernetesJobListComponentElement: FunctionComponent<
 
   return (
     <DashboardKubernetesResourceListBase
+      componentId={props.componentId}
       title={args.title}
       pluralLabel="jobs"
       emptyMessage="No jobs found"

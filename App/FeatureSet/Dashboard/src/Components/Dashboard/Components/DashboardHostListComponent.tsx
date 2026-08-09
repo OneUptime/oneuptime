@@ -148,7 +148,10 @@ const DashboardHostListComponentElement: FunctionComponent<ComponentProps> = (
 
       const listResult: ListResult<Host> = await ModelAPI.getList<Host>({
         modelType: Host,
-        requestOptions: DashboardResourceList.getRequestOptions("host"),
+        requestOptions: DashboardResourceList.getRequestOptions("host", {
+          componentId: props.componentId,
+          variables: props.variables,
+        }),
         query: query,
         limit: maxRows,
         skip: 0,
@@ -175,7 +178,7 @@ const DashboardHostListComponentElement: FunctionComponent<ComponentProps> = (
     }
 
     setIsLoading(false);
-  }, [maxRows, statusFilter, osTypeFilter, props.variables]);
+  }, [maxRows, statusFilter, osTypeFilter, props.variables, props.componentId]);
 
   useEffect(() => {
     fetchHosts();

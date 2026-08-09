@@ -99,6 +99,7 @@ const DashboardKubernetesCronJobListComponentElement: FunctionComponent<
 
   return (
     <DashboardKubernetesResourceListBase
+      componentId={props.componentId}
       title={args.title}
       pluralLabel="cronjobs"
       emptyMessage="No cron jobs found"
