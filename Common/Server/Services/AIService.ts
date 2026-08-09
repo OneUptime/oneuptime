@@ -578,7 +578,7 @@ export class Service extends BaseService {
 
       if (budget.exhausted) {
         const settingsLocation: string = request.incidentId
-          ? "Incidents > Settings > AI"
+          ? "Incidents > AI > Investigation"
           : request.alertId
             ? "Alerts > AI > Investigation"
             : "Project Settings > AI > AI Guardrails";

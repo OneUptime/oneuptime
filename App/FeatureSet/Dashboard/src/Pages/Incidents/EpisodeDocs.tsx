@@ -93,7 +93,7 @@ const IncidentEpisodeDocs: FunctionComponent<
     {
       title: "Navigate to Grouping Rules",
       description:
-        "Go to Incidents > Settings > Grouping Rules to configure how incidents are automatically grouped.",
+        "Go to Incidents > Rules > Grouping Rules to configure how incidents are automatically grouped.",
     },
     {
       title: "Create a Grouping Rule",

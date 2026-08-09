@@ -56,14 +56,14 @@ Sie können alle fünf in einem einzigen Runbook mischen — die Stärke von Run
 
 ## Wo Runbooks im Dashboard leben
 
-| Seite                                                                                                     | Was Sie dort tun                                                                                                       |
-| --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| **Produkte → Runbooks**                                                                                   | Runbook-Vorlagen durchsuchen, erstellen und bearbeiten.                                                                |
-| **Schritte-Tab eines Runbooks**                                                                           | Schrittliste verfassen und sortieren.                                                                                  |
-| **Ausführungen-Tab eines Runbooks**                                                                       | Jeden Lauf dieses Runbooks mit Statusfiltern sehen.                                                                    |
-| **„Jetzt ausführen"-Button eines Runbooks**                                                               | Eine Ad-hoc-Ausführung starten, die an kein Ereignis gekoppelt ist.                                                    |
-| **Vorfälle / Geplante Wartung → Einstellungen → Runbook-Regeln**, **Warnungen → Regeln → Runbook-Regeln** | Auto-Trigger-Regeln pro Entitätstyp erstellen.                                                                         |
-| **Vorfall / Warnmeldung / Wartungsereignis → Runbooks-Tab**                                               | Ausführungen sehen, die an dieses Ereignis angehängt sind, und **Runbook ausführen** für einen manuellen Lauf klicken. |
+| Seite                                                                 | Was Sie dort tun                                                                                                       |
+| --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| **Produkte → Runbooks**                                               | Runbook-Vorlagen durchsuchen, erstellen und bearbeiten.                                                                |
+| **Schritte-Tab eines Runbooks**                                       | Schrittliste verfassen und sortieren.                                                                                  |
+| **Ausführungen-Tab eines Runbooks**                                   | Jeden Lauf dieses Runbooks mit Statusfiltern sehen.                                                                    |
+| **„Jetzt ausführen"-Button eines Runbooks**                           | Eine Ad-hoc-Ausführung starten, die an kein Ereignis gekoppelt ist.                                                    |
+| **Vorfälle / Warnungen / Geplante Wartung → Regeln → Runbook-Regeln** | Auto-Trigger-Regeln pro Entitätstyp erstellen.                                                                         |
+| **Vorfall / Warnmeldung / Wartungsereignis → Runbooks-Tab**           | Ausführungen sehen, die an dieses Ereignis angehängt sind, und **Runbook ausführen** für einen manuellen Lauf klicken. |
 
 ## Häufige Anwendungsfälle
 
@@ -89,7 +89,7 @@ Angenommen, Sie möchten, dass jeder Vorfall mit „db-primary" im Titel automat
 | 4   | Manuell    | Bestätigen, dass Writes nun an den neuen Primary gehen |
 | 5   | HTTP       | Entwarnung an `#db-incidents` Slack posten             |
 
-**2. Regel hinzufügen.** Unter **Vorfälle → Einstellungen → Runbook-Regeln** erstellen Sie:
+**2. Regel hinzufügen.** Unter **Vorfälle → Regeln → Runbook-Regeln** erstellen Sie:
 
 ```
 Title Pattern:  ^db-primary

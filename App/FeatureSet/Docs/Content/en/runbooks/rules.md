@@ -1,10 +1,10 @@
 # Runbook Rules
 
-Runbook rules attach runbooks automatically when an **incident**, **alert**, or **scheduled maintenance event** is created. They're managed from each entity's own menu:
+Runbook rules attach runbooks automatically when an **incident**, **alert**, or **scheduled maintenance event** is created. They're managed from each entity's Rules menu:
 
-- Incidents → Settings → **Runbook Rules**
+- Incidents → Rules → **Runbook Rules**
 - Alerts → Rules → **Runbook Rules**
-- Scheduled Maintenance → Settings → **Runbook Rules**
+- Scheduled Maintenance → Rules → **Runbook Rules**
 
 All three pages edit the same underlying rule model — they're just filtered to show only rules for that entity type.
 
