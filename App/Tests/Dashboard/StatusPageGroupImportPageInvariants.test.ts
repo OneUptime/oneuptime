@@ -59,27 +59,47 @@ const GROUPS_PAGE: Array<string> = [
   "Groups.tsx",
 ];
 
-describe("the Groups table owns the CSV import", () => {
+describe("the Groups page owns the CSV import", () => {
   const source: string = readSource(...GROUPS_PAGE);
+  const code: string = readCode(...GROUPS_PAGE);
 
-  test("the table offers an Import from CSV card button", () => {
-    expect(source).toContain(squash('title: "Import from CSV",'));
+  test("the page offers an Import from CSV action", () => {
+    expect(source).toContain(squash('text="Import from CSV"'));
     expect(source).toContain("setShowImportModal(true);");
   });
 
   /*
-   * BaseModelTable promotes the first NORMAL/PRIMARY-styled button to the
-   * header slot and hides the rest behind the ⋯ menu. An OUTLINE style is
-   * what keeps this one in the overflow, next to Refresh and Filter, instead
-   * of competing with "Create Status Page Group".
+   * The page's own header slot belongs to "Create Group". A bulk import lives
+   * in the ⋯ overflow next to the other page-wide actions — the same place
+   * every other bulk import in the product lives — which here means a
+   * MoreMenuItem inside the card's MoreMenu rather than a CardButtonSchema.
    */
-  test("it is styled so it stays in the overflow menu", () => {
-    const buttonBlock: string = source
-      .split('title: "Import from CSV",')[1]!
-      .split("} as CardButtonSchema")[0]!;
-    expect(buttonBlock).toContain("buttonStyle: ButtonStyleType.OUTLINE,");
-    expect(buttonBlock).not.toContain("ButtonStyleType.NORMAL");
-    expect(buttonBlock).not.toContain("ButtonStyleType.PRIMARY");
+  test("it stays in the overflow menu, not in the header slot", () => {
+    const menuBlock: string = code
+      .split("const menuItems: Array<ReactElement> = [];")[1]!
+      .split("const buttons: Array<CardButtonSchema | ReactElement>")[0]!;
+
+    expect(menuBlock).toContain(squash('<MoreMenuItem key="import-from-csv"'));
+    expect(menuBlock).toContain("icon={IconProp.Upload}");
+
+    const cardButtonBlock: string = code.split(
+      "const buttons: Array<CardButtonSchema | ReactElement>",
+    )[1]!;
+
+    expect(cardButtonBlock).not.toContain("Import from CSV");
+    expect(cardButtonBlock).toContain(squash('title: "Create Group",'));
+  });
+
+  /*
+   * Importing is a create. A viewer who cannot create groups being offered a
+   * bulk create is an action that can only ever fail.
+   */
+  test("it is only offered to someone who can create groups", () => {
+    const menuBlock: string = code
+      .split("const menuItems: Array<ReactElement> = [];")[1]!
+      .split('<MoreMenuItem key="refresh"')[0]!;
+
+    expect(menuBlock).toContain("if (canCreate) {");
   });
 
   test("the modal is rendered from the page", () => {
@@ -98,20 +118,16 @@ describe("the Groups table owns the CSV import", () => {
   });
 
   /*
-   * The import creates rows the table is already showing a page of. Without
-   * the toggle reaching it, the user closes the modal onto a table that does
-   * not contain what they just imported.
+   * The import creates groups the page is already drawing a hierarchy of.
+   * Without a refetch reaching it, the user closes the modal onto a tree that
+   * does not contain what they just imported.
    */
-  test("a completed import refreshes the table behind the modal", () => {
-    const completeBody: string = source
+  test("a completed import refetches the hierarchy behind the modal", () => {
+    const completeBody: string = code
       .split("onImportComplete={() => {")[1]!
       .split("}}")[0]!;
-    expect(completeBody).toContain("setRefreshToggle(Date.now().toString());");
-    expect(source).toContain(
-      squash(
-        "<ModelTable<StatusPageGroup> modelType={StatusPageGroup} refreshToggle={refreshToggle}",
-      ),
-    );
+
+    expect(completeBody).toContain("fetchGroups()");
   });
 });
 
