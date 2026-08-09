@@ -481,6 +481,30 @@ const navigatorRowByName: NavigatorRowByNameFunction = (
   return found;
 };
 
+type WaitForSettledFunction = () => Promise<void>;
+
+/*
+ * Nothing on this page is loading any more: not the groups, not the counts, and
+ * not the selected group's resources. The pane mounts only once the initial
+ * selection is chosen, and then fetches, so "the navigator has rows" is several
+ * commits short of "the page is ready to be asserted against".
+ */
+const waitForSettled: WaitForSettledFunction = async (): Promise<void> => {
+  await waitFor(
+    () => {
+      expect(screen.queryAllByTestId("component-loader").length).toBe(0);
+    },
+    /*
+     * Longer than the default second: this suite renders hierarchies of
+     * fifteen hundred groups, and a machine busy with the rest of the test run
+     * takes its time over them.
+     */
+    { timeout: 15000 },
+  );
+
+  await flushEffects();
+};
+
 type WaitForExplorerFunction = () => Promise<void>;
 
 /*
@@ -489,21 +513,30 @@ type WaitForExplorerFunction = () => Promise<void>;
  * the pane mount and fetch. Every test starts from the settled page.
  */
 const waitForExplorer: WaitForExplorerFunction = async (): Promise<void> => {
-  await waitFor(() => {
-    expect(navigatorRows().length).toBeGreaterThan(0);
-  });
+  await waitFor(
+    () => {
+      expect(navigatorRows().length).toBeGreaterThan(0);
+    },
+    { timeout: 15000 },
+  );
 
-  await flushEffects();
+  await waitForSettled();
 };
 
-type SelectGroupFunction = (name: string) => void;
+type SelectGroupFunction = (name: string) => Promise<void>;
 
-const selectGroup: SelectGroupFunction = (name: string): void => {
+/*
+ * Selecting remounts the pane on the new group, which then fetches, so every
+ * selection is followed by waiting for that fetch to land.
+ */
+const selectGroup: SelectGroupFunction = async (name: string): Promise<void> => {
   fireEvent.click(
     within(navigatorRowByName(name)).getByTestId(
       "status-page-resource-navigator-select",
     ),
   );
+
+  await waitForSettled();
 };
 
 describe("Status Page > Resources", () => {
@@ -541,7 +574,12 @@ describe("Status Page > Resources", () => {
       expect(scopedResourceCalls(calls).length).toBe(1);
       /* Groups, the one pass for the counts, and the selection. */
       expect(calls.length).toBe(3);
-    });
+      /*
+       * Rendering fifteen hundred groups in jsdom is legitimately slower than
+       * jest's five second default. The number this test exists to hold is the
+       * request count, not the clock.
+       */
+    }, 60000);
 
     test("draws the hierarchy in the navigator", async () => {
       setUpApi({ groups: buildHierarchy() });
@@ -608,11 +646,9 @@ describe("Status Page > Resources", () => {
 
       renderPage();
 
-      await waitFor(() => {
-        expect(screen.getByText("Only Monitor")).toBeInTheDocument();
-      });
+      await waitForSettled();
 
-      await flushEffects();
+      expect(screen.getByText("Only Monitor")).toBeInTheDocument();
 
       expect(
         screen.queryByTestId("status-page-resource-navigator"),
@@ -643,14 +679,9 @@ describe("Status Page > Resources", () => {
 
       const before: number = scopedResourceCalls(calls).length;
 
-      selectGroup("Market 1001");
+      await selectGroup("Market 1001");
 
-      await waitFor(() => {
-        expect(screen.getByText("Market Monitor")).toBeInTheDocument();
-      });
-
-      await flushEffects();
-
+      expect(screen.getByText("Market Monitor")).toBeInTheDocument();
       expect(scopedResourceCalls(calls).length).toBe(before + 1);
       expect(selectedGroupIds(calls).slice(-1)).toEqual([MARKET_ID]);
     });
@@ -703,8 +734,7 @@ describe("Status Page > Resources", () => {
 
       await waitForExplorer();
 
-      selectGroup("Market 1001");
-      await flushEffects();
+      await selectGroup("Market 1001");
 
       const breadcrumb: HTMLElement = screen.getByTestId(
         "status-page-resource-panel-breadcrumb",
@@ -721,7 +751,7 @@ describe("Status Page > Resources", () => {
       ).toEqual(["Corporate", "Region 1000"]);
 
       fireEvent.click(steps[0]!);
-      await flushEffects();
+      await waitForSettled();
 
       expect(
         screen.getByTestId("status-page-resource-panel-title").textContent,
@@ -841,11 +871,9 @@ describe("Status Page > Resources", () => {
 
       renderPage();
 
-      await waitFor(() => {
-        expect(screen.getByText("High Node Disk Usage")).toBeInTheDocument();
-      });
+      await waitForExplorer();
 
-      await flushEffects();
+      expect(screen.getByText("High Node Disk Usage")).toBeInTheDocument();
 
       expect(
         screen.queryAllByTestId("status-page-resource-row").length,
@@ -869,8 +897,7 @@ describe("Status Page > Resources", () => {
 
       await waitForExplorer();
 
-      selectGroup("Market 1001");
-      await flushEffects();
+      await selectGroup("Market 1001");
 
       expect(screen.getByText("No monitors here yet")).toBeInTheDocument();
       expect(
@@ -889,11 +916,9 @@ describe("Status Page > Resources", () => {
 
       renderPage();
 
-      await waitFor(() => {
-        expect(screen.getByText("Database")).toBeInTheDocument();
-      });
+      await waitForExplorer();
 
-      await flushEffects();
+      expect(screen.getByText("Database")).toBeInTheDocument();
 
       fireEvent.change(
         screen.getByTestId("status-page-resource-panel-search"),
@@ -929,8 +954,7 @@ describe("Status Page > Resources", () => {
 
       await waitForExplorer();
 
-      selectGroup("Grid Group");
-      await flushEffects();
+      await selectGroup("Grid Group");
 
       expect(
         screen.getByTestId("status-page-resource-grid"),
@@ -957,11 +981,9 @@ describe("Status Page > Resources", () => {
 
       renderPage();
 
-      await waitFor(() => {
-        expect(screen.getByText("Second")).toBeInTheDocument();
-      });
+      await waitForExplorer();
 
-      await flushEffects();
+      expect(screen.getByText("Second")).toBeInTheDocument();
 
       const secondRow: HTMLElement = screen
         .queryAllByTestId("status-page-resource-row")
@@ -995,11 +1017,9 @@ describe("Status Page > Resources", () => {
 
       renderPage();
 
-      await waitFor(() => {
-        expect(screen.getByText("Doomed")).toBeInTheDocument();
-      });
+      await waitForExplorer();
 
-      await flushEffects();
+      expect(screen.getByText("Doomed")).toBeInTheDocument();
 
       const before: number = scopedResourceCalls(calls).length;
 
@@ -1019,9 +1039,10 @@ describe("Status Page > Resources", () => {
         expect(mockDeleteItem).toHaveBeenCalled();
       });
 
-      await flushEffects();
-
-      expect(scopedResourceCalls(calls).length).toBe(before + 1);
+      /* The group reloads itself rather than the page re-reading everything. */
+      await waitFor(() => {
+        expect(scopedResourceCalls(calls).length).toBe(before + 1);
+      });
     });
 
     test("the add button opens the resource form for the selected group", async () => {
@@ -1034,8 +1055,7 @@ describe("Status Page > Resources", () => {
 
       await waitForExplorer();
 
-      selectGroup("Market 1001");
-      await flushEffects();
+      await selectGroup("Market 1001");
 
       fireEvent.click(screen.getByTestId("status-page-resource-panel-add"));
       await flushEffects();
@@ -1065,8 +1085,7 @@ describe("Status Page > Resources", () => {
 
       expect(screen.getByTestId("model-form-modal")).toBeInTheDocument();
 
-      selectGroup("Market 1001");
-      await flushEffects();
+      await selectGroup("Market 1001");
 
       expect(screen.queryByTestId("model-form-modal")).not.toBeInTheDocument();
     });
@@ -1086,8 +1105,7 @@ describe("Status Page > Resources", () => {
 
       await waitForExplorer();
 
-      selectGroup("Market 1001");
-      await flushEffects();
+      await selectGroup("Market 1001");
 
       expect(
         within(navigatorRowByName("Market 1001")).getByTestId(

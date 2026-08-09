@@ -97,6 +97,16 @@ export interface StatusPageGroupHierarchyRow {
   canMoveDown: boolean;
 }
 
+/*
+ * One level of the hierarchy: every group that shares a parent, and where each
+ * of them sits in that level. Worked out once per parent by getRows so that a
+ * fifteen hundred group level is not re-derived for every one of its rows.
+ */
+interface SiblingLevel {
+  siblings: Array<StatusPageGroup>;
+  positionById: Map<string, number>;
+}
+
 export interface StatusPageGroupHierarchySummary {
   totalCount: number;
   topLevelCount: number;
@@ -190,6 +200,67 @@ export default class StatusPageGroupHierarchyViewUtil {
 
     const rows: Array<StatusPageGroupHierarchyRow> = [];
 
+    /*
+     * Where each group sits among its siblings, worked out once per parent
+     * rather than once per row.
+     *
+     * Without it, a status page whose groups are all at the top level asks for
+     * the same fifteen hundred long sibling list fifteen hundred times and
+     * scans it each time - two and a quarter million comparisons and fifteen
+     * hundred copies of the array, which is seconds of work on every keystroke
+     * and every group opened.
+     */
+    const siblingsByParentKey: Map<string, SiblingLevel> = new Map<
+      string,
+      SiblingLevel
+    >();
+
+    type GetSiblingLevelFunction = (
+      statusPageGroup: StatusPageGroup,
+    ) => SiblingLevel;
+
+    const getSiblingLevel: GetSiblingLevelFunction = (
+      statusPageGroup: StatusPageGroup,
+    ): SiblingLevel => {
+      const parentId: string | null =
+        StatusPageGroupTreeUtil.getParentId(statusPageGroup);
+
+      /*
+       * The same key getSiblingGroups resolves to: a group whose parent is not
+       * on this status page is a root, and its siblings are the other roots.
+       */
+      const parentKey: string =
+        parentId && index.byId.has(parentId) ? parentId : "";
+
+      const cached: SiblingLevel | undefined =
+        siblingsByParentKey.get(parentKey);
+
+      if (cached) {
+        return cached;
+      }
+
+      const siblings: Array<StatusPageGroup> = this.getSiblingGroups({
+        statusPageGroup: statusPageGroup,
+        statusPageGroups: data.statusPageGroups,
+        index: index,
+      });
+
+      const positionById: Map<string, number> = new Map<string, number>();
+
+      siblings.forEach((sibling: StatusPageGroup, position: number): void => {
+        positionById.set(this.getGroupId(sibling), position);
+      });
+
+      const level: SiblingLevel = {
+        siblings: siblings,
+        positionById: positionById,
+      };
+
+      siblingsByParentKey.set(parentKey, level);
+
+      return level;
+    };
+
     type WalkFunction = (
       nodes: Array<StatusPageGroupTreeNode>,
       ancestorRails: Array<boolean>,
@@ -238,6 +309,7 @@ export default class StatusPageGroupHierarchyViewUtil {
             statusPageGroup: node.group,
             statusPageGroups: data.statusPageGroups,
             index: index,
+            siblingLevel: getSiblingLevel(node.group),
           });
 
           rows.push({
@@ -737,18 +809,32 @@ export default class StatusPageGroupHierarchyViewUtil {
     statusPageGroup: StatusPageGroup;
     statusPageGroups: Array<StatusPageGroup>;
     index: StatusPageGroupTreeIndex;
+    /*
+     * This group's whole sibling level, when the caller has already worked it
+     * out - which it has whenever it is drawing more than one row of it. See
+     * getRows.
+     */
+    siblingLevel?: SiblingLevel | undefined;
   }): { previousSiblingId: string | null; nextSiblingId: string | null } {
-    const siblings: Array<StatusPageGroup> = this.getSiblingGroups({
-      statusPageGroup: data.statusPageGroup,
-      statusPageGroups: data.statusPageGroups,
-      index: data.index,
-    });
+    const siblings: Array<StatusPageGroup> =
+      data.siblingLevel?.siblings ||
+      this.getSiblingGroups({
+        statusPageGroup: data.statusPageGroup,
+        statusPageGroups: data.statusPageGroups,
+        index: data.index,
+      });
 
     const groupId: string = this.getGroupId(data.statusPageGroup);
 
-    const position: number = siblings.findIndex((sibling: StatusPageGroup) => {
-      return this.getGroupId(sibling) === groupId;
-    });
+    const cachedPosition: number | undefined =
+      data.siblingLevel?.positionById.get(groupId);
+
+    const position: number =
+      cachedPosition === undefined
+        ? siblings.findIndex((sibling: StatusPageGroup) => {
+            return this.getGroupId(sibling) === groupId;
+          })
+        : cachedPosition;
 
     if (position < 0) {
       return { previousSiblingId: null, nextSiblingId: null };
