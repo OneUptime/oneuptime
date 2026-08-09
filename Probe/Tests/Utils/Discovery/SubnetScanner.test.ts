@@ -541,18 +541,202 @@ describe("SubnetScanner ping-only host recording", () => {
     expect(result.discoveredHosts).toEqual([]);
   });
 
-  it("does not record ping-dead hosts at all", async () => {
+  /*
+   * The ICMP-silent hosts are re-probed (see the fallback tests below), but a
+   * host that answered neither ICMP nor SNMP is still not a discovery: there
+   * is no evidence anything is at that address.
+   */
+  it("does not record hosts that answered neither ICMP nor SNMP", async () => {
     jest.spyOn(SubnetScanner, "isHostAliveByPing").mockResolvedValue(false);
-    // eslint-disable-next-line @typescript-eslint/typedef
-    const probeSpy = jest
-      .spyOn(SnmpMonitor, "probeSystemInfo")
-      .mockResolvedValue(null);
+    jest.spyOn(SnmpMonitor, "probeSystemInfo").mockResolvedValue(null);
 
     const result: Awaited<ReturnType<typeof SubnetScanner.scan>> =
       await SubnetScanner.scan({ cidr: TINY_CIDR });
 
     expect(result.discoveredHosts).toEqual([]);
-    expect(probeSpy).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * The regression this suite exists for.
+ *
+ * Gating SNMP on an ICMP reply is only an optimisation, and it silently
+ * deletes an entire subnet's worth of devices when echo is filtered — the
+ * normal configuration for a firewalled management VLAN, where UDP/161 is
+ * open to the NMS and ICMP is not. The symptom is a scan that reports
+ * "Completed, 0 of 254 hosts" on one VLAN while an adjacent VLAN that permits
+ * echo scans perfectly, with nothing anywhere to say why.
+ */
+describe("SubnetScanner ICMP-filtered subnet fallback", () => {
+  // A /29 sweeps six hosts: 10.0.0.1 .. 10.0.0.6.
+  const SMALL_CIDR: string = "10.0.0.0/29";
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("SNMP-probes ICMP-silent hosts when the ICMP-alive ones yield no SNMP responder", async () => {
+    const probed: Array<string> = [];
+
+    jest.spyOn(SubnetScanner, "isHostAliveByPing").mockResolvedValue(false);
+    jest
+      .spyOn(SnmpMonitor, "probeSystemInfo")
+      .mockImplementation(async (config: MonitorStepSnmpMonitor) => {
+        probed.push(config.hostname || "");
+        // Only this one device speaks SNMP; ICMP is filtered for all of them.
+        if (config.hostname === "10.0.0.4") {
+          return { sysName: "core-sw1", sysDescr: "Cisco IOS" };
+        }
+        return null;
+      });
+
+    const result: Awaited<ReturnType<typeof SubnetScanner.scan>> =
+      await SubnetScanner.scan({ cidr: SMALL_CIDR });
+
+    // Every address was SNMP-probed despite answering no ping at all.
+    expect([...probed].sort()).toEqual([
+      "10.0.0.1",
+      "10.0.0.2",
+      "10.0.0.3",
+      "10.0.0.4",
+      "10.0.0.5",
+      "10.0.0.6",
+    ]);
+    // The device that used to be invisible is now discovered.
+    expect(result.discoveredHosts).toEqual([
+      {
+        ipAddress: "10.0.0.4",
+        sysName: "core-sw1",
+        sysDescr: "Cisco IOS",
+        snmpReachable: true,
+      },
+    ]);
+    expect(result.respondedToPingCount).toBe(0);
+    expect(result.icmpFilteredFallbackHostCount).toBe(6);
+  });
+
+  it("keeps the fast path when the ICMP-alive hosts do answer SNMP", async () => {
+    const probed: Array<string> = [];
+
+    jest
+      .spyOn(SubnetScanner, "isHostAliveByPing")
+      .mockImplementation(async (host: string) => {
+        return host === "10.0.0.2";
+      });
+    jest
+      .spyOn(SnmpMonitor, "probeSystemInfo")
+      .mockImplementation(async (config: MonitorStepSnmpMonitor) => {
+        probed.push(config.hostname || "");
+        return { sysName: "sw1" };
+      });
+
+    const result: Awaited<ReturnType<typeof SubnetScanner.scan>> =
+      await SubnetScanner.scan({ cidr: SMALL_CIDR });
+
+    // One SNMP responder is enough: the other five keep their skipped 2s.
+    expect(probed).toEqual(["10.0.0.2"]);
+    expect(result.icmpFilteredFallbackHostCount).toBe(0);
+  });
+
+  it("does not re-probe hosts the first pass already covered", async () => {
+    const probed: Array<string> = [];
+
+    // Pre-sweep broken: the first pass already probes every host.
+    jest
+      .spyOn(SubnetScanner, "isHostAliveByPing")
+      .mockRejectedValue(new Error("ICMP sockets require elevated privileges"));
+    jest
+      .spyOn(SnmpMonitor, "probeSystemInfo")
+      .mockImplementation(async (config: MonitorStepSnmpMonitor) => {
+        probed.push(config.hostname || "");
+        return null;
+      });
+
+    const result: Awaited<ReturnType<typeof SubnetScanner.scan>> =
+      await SubnetScanner.scan({ cidr: SMALL_CIDR });
+
+    expect(probed).toHaveLength(6);
+    expect(new Set(probed).size).toBe(6);
+    expect(result.icmpFilteredFallbackHostCount).toBe(0);
+  });
+});
+
+/*
+ * "Returned null" used to cover both "nothing is at this address" (a timeout)
+ * and "the agent refused these credentials" (an auth failure). One credential
+ * set is applied to the whole sweep, so a single wrong v3 key blanks every
+ * host — and the scan reported a clean zero with no way to tell that apart
+ * from an empty subnet.
+ */
+describe("SubnetScanner SNMP error reporting", () => {
+  const TINY_CIDR: string = "10.0.0.0/31";
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function mockSnmpFailingWith(message: string): void {
+    jest
+      .spyOn(SnmpMonitor, "probeSystemInfo")
+      .mockImplementation(
+        async (
+          _config: MonitorStepSnmpMonitor,
+          onError?: ((error: unknown) => void) | undefined,
+        ) => {
+          onError?.(new Error(message));
+          return null;
+        },
+      );
+  }
+
+  it("counts and names the SNMP error hosts answered with", async () => {
+    jest.spyOn(SubnetScanner, "isHostAliveByPing").mockResolvedValue(true);
+    mockSnmpFailingWith("Authentication failure");
+
+    const result: Awaited<ReturnType<typeof SubnetScanner.scan>> =
+      await SubnetScanner.scan({ cidr: TINY_CIDR });
+
+    expect(result.snmpErrorHostCount).toBe(2);
+    expect(result.mostCommonSnmpError).toBe("Authentication failure");
+  });
+
+  it("ignores timeouts — an empty address is not a diagnosis", async () => {
+    jest.spyOn(SubnetScanner, "isHostAliveByPing").mockResolvedValue(true);
+    mockSnmpFailingWith("Request timed out");
+
+    const result: Awaited<ReturnType<typeof SubnetScanner.scan>> =
+      await SubnetScanner.scan({ cidr: TINY_CIDR });
+
+    expect(result.snmpErrorHostCount).toBe(0);
+    expect(result.mostCommonSnmpError).toBeUndefined();
+  });
+
+  it("reports the most frequent error when hosts fail in different ways", async () => {
+    jest.spyOn(SubnetScanner, "isHostAliveByPing").mockResolvedValue(true);
+    jest
+      .spyOn(SnmpMonitor, "probeSystemInfo")
+      .mockImplementation(
+        async (
+          config: MonitorStepSnmpMonitor,
+          onError?: ((error: unknown) => void) | undefined,
+        ) => {
+          onError?.(
+            new Error(
+              config.hostname === "10.0.0.1"
+                ? "connect ECONNREFUSED"
+                : "Unknown user name",
+            ),
+          );
+          return null;
+        },
+      );
+
+    const result: Awaited<ReturnType<typeof SubnetScanner.scan>> =
+      await SubnetScanner.scan({ cidr: "10.0.0.0/29" });
+
+    expect(result.snmpErrorHostCount).toBe(6);
+    // Five of six hosts, versus one ECONNREFUSED.
+    expect(result.mostCommonSnmpError).toBe("Unknown user name");
   });
 
   it("a throwing SNMP probe records the ping-alive host as SNMP-unreachable", async () => {

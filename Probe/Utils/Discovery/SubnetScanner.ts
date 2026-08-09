@@ -40,12 +40,36 @@ export interface SubnetScanResult {
    */
   discoveredHosts: Array<DiscoveredHost>;
   scannedHostCount: number;
+  // The UDP port every host was probed on, so the summary can name it.
+  scannedPort: number;
   /*
    * Hosts that answered the ICMP pre-sweep. undefined when the pre-sweep
    * could not run (e.g. no ping binary / ICMP privileges) and every host was
    * SNMP-probed directly, so a partial count is never reported as a real one.
    */
   respondedToPingCount?: number | undefined;
+  /*
+   * Hosts whose SNMP probe failed with something OTHER than a timeout — an
+   * authentication failure, an unknown v3 user, a refused port, no route.
+   * A timeout is the ordinary "nothing at this address" answer and is not
+   * counted; everything else is evidence the operator can act on, and used
+   * to be swallowed by a debug-level log inside a sweep that then reported
+   * a clean zero.
+   */
+  snmpErrorHostCount: number;
+  /*
+   * The most frequent of those errors, verbatim, so the scan can say
+   * "0 answered SNMP ... most common error: Authentication failure" instead
+   * of leaving the operator to guess between a wrong credential, a blocked
+   * port and an empty subnet.
+   */
+  mostCommonSnmpError?: string | undefined;
+  /*
+   * How many ICMP-silent hosts were SNMP-probed anyway because the pre-sweep
+   * produced no SNMP responders at all. Non-zero means the sweep hit the
+   * ICMP-filtered-subnet path described in scan().
+   */
+  icmpFilteredFallbackHostCount: number;
 }
 
 // Sweeping the whole subnet at once would exhaust sockets; probe in waves.
@@ -57,6 +81,13 @@ const CONCURRENCY: number = 32;
  * the cost the pre-sweep exists to avoid.
  */
 const PING_TIMEOUT_IN_SECONDS: number = 1;
+
+/*
+ * How much of an SNMP error message is kept for the scan's status summary.
+ * See describeSnmpError — the summary lands in a varchar(500) column, so the
+ * quoted error has to leave room for the rest of the sentence.
+ */
+const SNMP_ERROR_EXCERPT_LENGTH: number = 120;
 
 export default class SubnetScanner {
   public static async scan(
@@ -86,109 +117,178 @@ export default class SubnetScanner {
       throw new Error("Scan target expands to no addresses: " + config.cidr);
     }
 
-    const discoveredHosts: Array<DiscoveredHost> = [];
-    let cursor: number = 0;
-
     /*
-     * ICMP pre-sweep state, shared across workers. Best-effort: the first
-     * infrastructure failure (ping binary missing, ICMP socket privileges —
-     * an error, not a clean "host down") flips the flag and every remaining
-     * host is SNMP-probed directly, exactly as before the pre-sweep existed.
+     * ICMP pre-sweep state. Best-effort: the first infrastructure failure
+     * (ping binary missing, ICMP socket privileges — an error, not a clean
+     * "host down") flips the flag and every host is SNMP-probed directly,
+     * exactly as before the pre-sweep existed.
      */
     let isPingSweepAvailable: boolean = true;
-    let respondedToPingCount: number = 0;
+    const pingAliveHosts: Set<string> = new Set<string>();
 
-    const worker: () => Promise<void> = async (): Promise<void> => {
-      while (cursor < hosts.length) {
-        const host: string = hosts[cursor++]!;
-
-        /*
-         * Per-host, so a host confirmed alive by ICMP stays known-alive
-         * even if the pre-sweep breaks for a later host on this worker.
-         */
-        let isAliveByPing: boolean = false;
-
-        if (isPingSweepAvailable) {
-          try {
-            isAliveByPing = await SubnetScanner.isHostAliveByPing(host);
-          } catch (pingErr) {
-            /*
-             * A rejection means pinging itself failed (a dead host resolves
-             * cleanly with alive=false). Disable the pre-sweep for the rest
-             * of the scan and fall through to SNMP for this host too.
-             */
-            isPingSweepAvailable = false;
-            logger.warn(
-              "Discovery ICMP pre-sweep unavailable (" +
-                pingErr +
-                "). Falling back to SNMP-probing every host.",
-            );
-          }
-
-          if (isPingSweepAvailable) {
-            if (!isAliveByPing) {
-              // Host did not answer ICMP — skip the 2s SNMP timeout.
-              continue;
-            }
-            respondedToPingCount++;
-          }
+    // Phase 1 — ICMP pre-sweep across the whole target.
+    await SubnetScanner.runConcurrently(
+      hosts,
+      async (host: string): Promise<void> => {
+        if (!isPingSweepAvailable) {
+          return;
         }
-
-        const snmpConfig: MonitorStepSnmpMonitor = {
-          /*
-           * Parse, don't cast: the stored version is the dropdown key
-           * ("V1"/"V2c"/"V3") while SnmpMonitor branches on the enum value
-           * ("1"/"2c"/"3"). A bare cast leaves "V3" unequal to SnmpVersion.V3,
-           * so the session would silently downgrade to v2c. parse() normalizes
-           * both spellings (and defaults to V2c when unset).
-           */
-          snmpVersion: SnmpVersionUtil.parse(config.snmpVersion),
-          hostname: host,
-          port: config.snmpPort || 161,
-          communityString: config.snmpCommunityString || "public",
-          snmpV3Auth: config.snmpV3Auth,
-          oids: [],
-          timeout: 2000,
-          retries: 0,
-        };
-
-        let systemInfo: {
-          sysDescr?: string | undefined;
-          sysName?: string | undefined;
-        } | null = null;
 
         try {
-          systemInfo = await SnmpMonitor.probeSystemInfo(snmpConfig);
-        } catch (err) {
-          logger.debug("Discovery probe error for " + host + ": " + err);
-        }
-
-        if (systemInfo) {
-          discoveredHosts.push({
-            ipAddress: host,
-            sysName: systemInfo.sysName,
-            sysDescr: systemInfo.sysDescr,
-            snmpReachable: true,
-          });
-        } else if (isAliveByPing) {
+          if (await SubnetScanner.isHostAliveByPing(host)) {
+            pingAliveHosts.add(host);
+          }
+        } catch (pingErr) {
           /*
-           * Answered ICMP but not SNMP: a real host without (readable)
-           * SNMP. Record it instead of discarding it — the scan's job is
-           * to surface what is on the subnet, not only what is manageable.
+           * A rejection means pinging itself failed (a dead host resolves
+           * cleanly with alive=false). Disable the pre-sweep for the rest of
+           * the scan; hosts already confirmed alive stay known-alive.
            */
-          discoveredHosts.push({
-            ipAddress: host,
-            snmpReachable: false,
-          });
+          isPingSweepAvailable = false;
+          logger.warn(
+            "Discovery ICMP pre-sweep unavailable (" +
+              pingErr +
+              "). Falling back to SNMP-probing every host.",
+          );
         }
+      },
+    );
+
+    // Phase 2 — SNMP probe, plus the phase 3 fallback below.
+    const snmpPort: number = config.snmpPort || 161;
+    const discoveredHosts: Array<DiscoveredHost> = [];
+    const probedHosts: Set<string> = new Set<string>();
+    const snmpErrorCounts: Map<string, number> = new Map<string, number>();
+    let snmpResponderCount: number = 0;
+    let snmpErrorHostCount: number = 0;
+
+    const probeHost: (host: string) => Promise<void> = async (
+      host: string,
+    ): Promise<void> => {
+      probedHosts.add(host);
+
+      const snmpConfig: MonitorStepSnmpMonitor = {
+        /*
+         * Parse, don't cast: the stored version is the dropdown key
+         * ("V1"/"V2c"/"V3") while SnmpMonitor branches on the enum value
+         * ("1"/"2c"/"3"). A bare cast leaves "V3" unequal to SnmpVersion.V3,
+         * so the session would silently downgrade to v2c. parse() normalizes
+         * both spellings (and defaults to V2c when unset).
+         */
+        snmpVersion: SnmpVersionUtil.parse(config.snmpVersion),
+        hostname: host,
+        port: snmpPort,
+        communityString: config.snmpCommunityString || "public",
+        snmpV3Auth: config.snmpV3Auth,
+        oids: [],
+        timeout: 2000,
+        retries: 0,
+      };
+
+      let systemInfo: {
+        sysDescr?: string | undefined;
+        sysName?: string | undefined;
+      } | null = null;
+
+      /*
+       * Anything the SNMP layer failed with that is NOT a timeout. A timeout
+       * is the ordinary answer for an empty address; an auth failure, an
+       * unknown v3 user, a refused port or an unreachable network is a
+       * diagnosis, and reporting nothing but "0 found" for a whole subnet of
+       * them is what makes this class of misconfiguration unfindable.
+       *
+       * Held on an object rather than in a bare `let` so the assignment made
+       * inside the callback below is not erased by control-flow narrowing.
+       */
+      const probeFailure: { message?: string | undefined } = {};
+
+      try {
+        systemInfo = await SnmpMonitor.probeSystemInfo(
+          snmpConfig,
+          (probeError: unknown) => {
+            probeFailure.message = SubnetScanner.describeSnmpError(probeError);
+          },
+        );
+      } catch (err) {
+        logger.debug("Discovery probe error for " + host + ": " + err);
+        probeFailure.message = SubnetScanner.describeSnmpError(err);
+      }
+
+      if (systemInfo) {
+        snmpResponderCount++;
+        discoveredHosts.push({
+          ipAddress: host,
+          sysName: systemInfo.sysName,
+          sysDescr: systemInfo.sysDescr,
+          snmpReachable: true,
+        });
+        return;
+      }
+
+      const snmpError: string | undefined = probeFailure.message;
+
+      if (snmpError) {
+        snmpErrorHostCount++;
+        snmpErrorCounts.set(
+          snmpError,
+          (snmpErrorCounts.get(snmpError) || 0) + 1,
+        );
+      }
+
+      if (pingAliveHosts.has(host)) {
+        /*
+         * Answered ICMP but not SNMP: a real host without (readable) SNMP.
+         * Record it instead of discarding it — the scan's job is to surface
+         * what is on the subnet, not only what is manageable. Hosts that never
+         * answered ICMP are NOT recorded: without that evidence "no SNMP
+         * answer" cannot be told apart from "no host", and every dead address
+         * would become a phantom endpoint.
+         */
+        discoveredHosts.push({
+          ipAddress: host,
+          snmpReachable: false,
+        });
       }
     };
 
-    const workers: Array<Promise<void>> = [];
-    for (let i: number = 0; i < Math.min(CONCURRENCY, hosts.length); i++) {
-      workers.push(worker());
+    const firstPassHosts: Array<string> = isPingSweepAvailable
+      ? hosts.filter((host: string) => {
+          return pingAliveHosts.has(host);
+        })
+      : hosts;
+
+    await SubnetScanner.runConcurrently(firstPassHosts, probeHost);
+
+    /*
+     * Phase 3 — the ICMP gate must never be able to silence a subnet.
+     *
+     * Skipping SNMP for ICMP-silent hosts is only an optimisation, and it is
+     * wrong exactly where it matters most: management VLANs behind a firewall
+     * routinely drop echo while permitting UDP/161 from the NMS, and Windows
+     * hosts block echo by default. On such a segment every host looks dead,
+     * every SNMP probe is skipped, and the scan reports a confident "0 of 254"
+     * that is indistinguishable from an empty subnet — while an adjacent VLAN
+     * that happens to permit echo scans perfectly.
+     *
+     * So when the gated pass finds NO SNMP responder at all, re-probe the
+     * hosts it skipped. The cost lands only on scans that would otherwise have
+     * returned nothing, and it buys back the entire ICMP-filtered case.
+     */
+    let icmpFilteredFallbackHostCount: number = 0;
+
+    if (isPingSweepAvailable && snmpResponderCount === 0) {
+      const skippedHosts: Array<string> = hosts.filter((host: string) => {
+        return !probedHosts.has(host);
+      });
+
+      if (skippedHosts.length > 0) {
+        icmpFilteredFallbackHostCount = skippedHosts.length;
+        logger.warn(
+          `Discovery sweep of ${config.cidr} found no SNMP responder among the ${firstPassHosts.length} host(s) that answered ICMP. Re-probing the ${skippedHosts.length} ICMP-silent host(s) over SNMP in case ICMP is filtered on this network.`,
+        );
+        await SubnetScanner.runConcurrently(skippedHosts, probeHost);
+      }
     }
-    await Promise.all(workers);
 
     discoveredHosts.sort((a: DiscoveredHost, b: DiscoveredHost) => {
       return (
@@ -201,15 +301,96 @@ export default class SubnetScanner {
       discoveredHosts: discoveredHosts,
       // Full sweep size — hosts skipped by the ICMP gate still count as scanned.
       scannedHostCount: hosts.length,
+      scannedPort: snmpPort,
       /*
        * Only meaningful when the pre-sweep ran for the whole scan. If it was
        * disabled partway through, the count covers an unknown subset of the
        * subnet, so report nothing rather than a misleading number.
        */
       respondedToPingCount: isPingSweepAvailable
-        ? respondedToPingCount
+        ? pingAliveHosts.size
         : undefined,
+      snmpErrorHostCount: snmpErrorHostCount,
+      mostCommonSnmpError: SubnetScanner.getMostCommonError(snmpErrorCounts),
+      icmpFilteredFallbackHostCount: icmpFilteredFallbackHostCount,
     };
+  }
+
+  /*
+   * Runs `work` over `items` with at most CONCURRENCY in flight. Sweeping a
+   * whole subnet at once would exhaust sockets (and, for the ICMP pass, fork a
+   * ping process per address), so probe in waves.
+   */
+  private static async runConcurrently(
+    items: Array<string>,
+    work: (item: string) => Promise<void>,
+  ): Promise<void> {
+    let cursor: number = 0;
+
+    const worker: () => Promise<void> = async (): Promise<void> => {
+      while (cursor < items.length) {
+        await work(items[cursor++]!);
+      }
+    };
+
+    const workers: Array<Promise<void>> = [];
+    for (let i: number = 0; i < Math.min(CONCURRENCY, items.length); i++) {
+      workers.push(worker());
+    }
+
+    await Promise.all(workers);
+  }
+
+  /*
+   * Turns an SNMP probe failure into a line worth showing the operator, or
+   * undefined when it carries no information.
+   *
+   * Timeouts are dropped: in a subnet sweep most addresses are empty and
+   * answer nothing, so counting those would drown the signal. What survives —
+   * "Authentication failure", "Unknown user name", "Unsupported security
+   * level", EHOSTUNREACH, ECONNREFUSED — each means the probe got somewhere
+   * and was turned away, which is precisely what a scan reporting zero hosts
+   * needs to say.
+   */
+  private static describeSnmpError(error: unknown): string | undefined {
+    const message: string = (
+      (error as Error | undefined)?.message || String(error ?? "")
+    ).trim();
+
+    if (!message) {
+      return undefined;
+    }
+
+    const lowerCased: string = message.toLowerCase();
+    if (lowerCased.includes("timeout") || lowerCased.includes("timed out")) {
+      return undefined;
+    }
+
+    /*
+     * Bounded: this is quoted into the scan's statusMessage, which is a
+     * varchar(500). The interesting part of every SNMP error ("Authentication
+     * failure", "Unknown user name", "connect ECONNREFUSED 10.0.0.1:161") is
+     * at the front, so a head excerpt loses nothing that matters.
+     */
+    return message.length > SNMP_ERROR_EXCERPT_LENGTH
+      ? message.substring(0, SNMP_ERROR_EXCERPT_LENGTH)
+      : message;
+  }
+
+  private static getMostCommonError(
+    errorCounts: Map<string, number>,
+  ): string | undefined {
+    let mostCommon: string | undefined = undefined;
+    let highestCount: number = 0;
+
+    for (const [message, count] of errorCounts) {
+      if (count > highestCount) {
+        mostCommon = message;
+        highestCount = count;
+      }
+    }
+
+    return mostCommon;
   }
 
   /*

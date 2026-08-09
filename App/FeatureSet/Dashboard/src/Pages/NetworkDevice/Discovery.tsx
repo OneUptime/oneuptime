@@ -30,6 +30,10 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import ScanTargetUtil from "Common/Utils/NetworkDiscovery/ScanTargetUtil";
 import { getSnmpConfigFormFields } from "./SnmpConfigFormFields";
 import { isImportableDiscoveredHost } from "../../Components/NetworkDevice/DiscoveryImportEligibility";
+import {
+  DiscoveryScanOutcome,
+  summarizeDiscoveryScan,
+} from "../../Components/NetworkDevice/DiscoveryScanOutcome";
 import React, {
   Fragment,
   FunctionComponent,
@@ -457,12 +461,37 @@ const NetworkDeviceDiscovery: FunctionComponent<
                 return <span className="text-sm text-gray-400">—</span>;
               }
 
+              /*
+               * The count is SNMP responders only, so "0 of 254" on its own
+               * reads as "there is nothing on this subnet" even when the sweep
+               * found live hosts that simply did not answer SNMP. Both extra
+               * lines below exist to keep a zero from being mistaken for an
+               * empty network: the ping-only tally, and the probe's own
+               * explanation of the sweep — which was already being stored and
+               * fetched, and was simply never rendered anywhere.
+               */
+              const outcome: DiscoveryScanOutcome =
+                summarizeDiscoveryScan(item);
+
               return (
-                <span className="text-sm text-gray-900">
-                  {`${item.respondedHostCount} of ${
-                    item.scannedHostCount ?? "?"
-                  } hosts`}
-                </span>
+                <div>
+                  <div className="text-sm text-gray-900">
+                    {outcome.respondedHostSummary}
+                  </div>
+                  {outcome.pingOnlyHostCount > 0 && (
+                    <div className="text-xs text-gray-500">
+                      {`+ ${outcome.pingOnlyHostCount} alive without SNMP`}
+                    </div>
+                  )}
+                  {outcome.explanation && (
+                    <div
+                      className="text-xs text-gray-500 mt-1 max-w-md"
+                      title={outcome.explanation}
+                    >
+                      {outcome.explanation}
+                    </div>
+                  )}
+                </div>
               );
             },
           },
@@ -556,7 +585,14 @@ const NetworkDeviceDiscovery: FunctionComponent<
           title="Review Discovered Devices"
           description={`Hosts that responded in ${
             scanToReview.cidr || "the scanned address range"
-          }. Select the ones you want to import as Network Devices — hosts without SNMP cannot be imported.`}
+          }. Select the ones you want to import as Network Devices — hosts without SNMP cannot be imported.${
+            /*
+             * The probe's summary of the sweep. Most valuable precisely when
+             * this list is empty, which is the one case where the operator
+             * otherwise has nothing at all to go on.
+             */
+            scanToReview.statusMessage ? ` ${scanToReview.statusMessage}` : ""
+          }`}
           modalWidth={ModalWidth.Medium}
           isLoading={isImporting}
           error={importError || undefined}
