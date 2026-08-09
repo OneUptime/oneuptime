@@ -36,9 +36,18 @@ const InsightFactsList: FunctionComponent<ComponentProps> = (
               </span>
               {fact.label}
             </dt>
+            {/*
+             * Fall back to the value itself so a truncated Service or Metric
+             * name is still readable on hover — only the timestamps carry an
+             * explicit title, and without this fallback the clipped text had
+             * no way back.
+             */}
             <dd
               className="min-w-0 truncate text-right text-sm font-medium text-gray-900"
-              title={fact.title}
+              title={
+                fact.title ??
+                (typeof fact.value === "string" ? fact.value : undefined)
+              }
             >
               {fact.value}
             </dd>
