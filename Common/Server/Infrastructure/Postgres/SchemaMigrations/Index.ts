@@ -510,6 +510,7 @@ import { QuarantineUnboundGitHubInstallations1786300000000 } from "./17863000000
 import { AddMasterPasswordSalt1786400000000 } from "./1786400000000-AddMasterPasswordSalt";
 import { AddInvestigationCodeFixRecommendation1786500000000 } from "./1786500000000-AddInvestigationCodeFixRecommendation";
 import { AddInvestigationAnalysisTldr1786600000000 } from "./1786600000000-AddInvestigationAnalysisTldr";
+import { DropProjectCallSMSConfigCredentialUniques1786700000000 } from "./1786700000000-DropProjectCallSMSConfigCredentialUniques";
 
 export default [
   InitialMigration,
@@ -1024,4 +1025,5 @@ export default [
   MigrationName1786105470826,
   AddInvestigationCodeFixRecommendation1786500000000,
   AddInvestigationAnalysisTldr1786600000000,
+  DropProjectCallSMSConfigCredentialUniques1786700000000,
 ];
