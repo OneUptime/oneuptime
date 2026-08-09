@@ -34,6 +34,7 @@ import "./Process";
 import Response from "./Response";
 import SpanUtil from "./Telemetry/SpanUtil";
 import TelemetryContext from "./Telemetry/TelemetryContext";
+import mountVendorAssets from "./VendorAssets";
 import { api } from "@opentelemetry/sdk-node";
 import StatusCode from "../../Types/API/StatusCode";
 import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
@@ -302,6 +303,13 @@ const init: InitFunction = async (
     appName,
     statusOptions: data.statusOptions,
   });
+
+  /*
+   * Ahead of the frontend static mounts and every catch-all below them, so a
+   * service that answers "/*" with its index page cannot swallow a request for
+   * a stylesheet.
+   */
+  mountVendorAssets(app);
 
   if (isFrontendApp) {
     app.use(ExpressStatic("/usr/src/app/public"));

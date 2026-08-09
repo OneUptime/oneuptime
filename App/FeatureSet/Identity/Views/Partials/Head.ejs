@@ -30,9 +30,10 @@
         width: auto;
     }
 </style>
-<link rel="preload" href="https://cdn.tailwindcss.com" as="script">
-<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preload" href="/oneuptime-assets/tailwind/tailwind-3.4.5.js" as="script">
+<script src="/oneuptime-assets/tailwind/tailwind-3.4.5.js"></script>
 
+<% if(typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false){ %>
 <!-- Google Tag Manager -->
 <script>(function (w, d, s, l, i) {
         w[l] = w[l] || []; w[l].push({
@@ -43,6 +44,7 @@
                 'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
     })(window, document, 'script', 'dataLayer', 'GTM-PKQD5WH');</script>
 <!-- End Google Tag Manager -->
+<% } %>
 
 
 

@@ -106,6 +106,14 @@ const DashboardFallbackRoutePrefixesToSkip: Array<string> = [
   "/file",
   "/docs",
   "/reference",
+  /*
+   * The vendored browser libraries (Common/Server/Utils/VendorAssets.ts).
+   * That mount terminates its own prefix with a 404, so this is belt and
+   * braces - but a stylesheet answered with the dashboard's index page at
+   * HTTP 200 is a failure nothing logs, and this list is where that class of
+   * mistake is meant to be caught.
+   */
+  "/oneuptime-assets",
   "/worker",
   "/.well-known",
   "/l",
@@ -123,6 +131,8 @@ const StatusPageDomainFallbackRoutePrefixesToSkip: Array<string> = [
   "/status-page-oidc-api",
   "/status-page-identity-api",
   "/public-dashboard-api",
+  /* Same reservation as the dashboard list above. */
+  "/oneuptime-assets",
   "/.well-known",
   "/rss",
   "/llms.txt",
