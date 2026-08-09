@@ -16,9 +16,14 @@ const MoreMenuItem: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   return (
+    /*
+     * A button shrink-wraps its content whatever its display type, so the width
+     * has to be set explicitly or the hover background stops at the end of the
+     * label instead of spanning the menu. 100% less the mx-1 on either side.
+     */
     <button
       type="button"
-      className={`group mx-1 flex items-center rounded-md px-3 py-2 text-left text-sm text-gray-700 transition-colors duration-100 enabled:cursor-pointer enabled:hover:bg-indigo-50 enabled:hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-50 ${props.className || ""}`}
+      className={`group mx-1 flex w-[calc(100%-0.5rem)] items-center rounded-md px-3 py-2 text-left text-sm text-gray-700 transition-colors duration-100 enabled:cursor-pointer enabled:hover:bg-indigo-50 enabled:hover:text-gray-900 disabled:cursor-not-allowed disabled:opacity-50 ${props.className || ""}`}
       role="menuitem"
       tabIndex={-1}
       disabled={props.isDisabled}
