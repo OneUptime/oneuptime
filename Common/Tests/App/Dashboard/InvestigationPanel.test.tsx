@@ -117,6 +117,7 @@ interface InvestigationPayloadOptions {
   runId?: string | undefined;
   events?: JSONArray | undefined;
   analysisMarkdown?: string | null | undefined;
+  analysisTldr?: string | null | undefined;
   isAnalysisPending?: boolean | undefined;
   errorMessage?: string | null | undefined;
   toolCallCount?: number | undefined;
@@ -158,6 +159,8 @@ const ALERT_ID: ObjectID = new ObjectID("44444444-4444-4444-8444-444444444444");
 const EVENT_ID: string = "55555555-5555-4555-8555-555555555555";
 const ANALYSIS: string =
   "## Root cause\n\nThe database connection pool was exhausted.";
+const TLDR: string =
+  "Checkout is returning 500s because the database connection pool is exhausted.";
 
 const activityEvent: JSONObject = {
   _id: EVENT_ID,
@@ -191,6 +194,7 @@ function investigationPayload(
     run,
     events: options.events || [],
     analysisMarkdown: options.analysisMarkdown ?? null,
+    analysisTldr: options.analysisTldr ?? null,
     isAnalysisPending: options.isAnalysisPending === true,
   };
 }
@@ -205,6 +209,7 @@ function noInvestigationResponse(): ApiResponse {
       run: null,
       events: [],
       analysisMarkdown: null,
+      analysisTldr: null,
       isAnalysisPending: false,
     },
   };
@@ -634,6 +639,249 @@ describe("InvestigationPanel report lifecycle", () => {
 
     expect(requestPath(0)).toContain("/ai-investigation/alert");
     expect(postRequestAt(0).data).toEqual({ alertId: ALERT_ID.toString() });
+  });
+});
+
+/*
+ * The TL;DR is the first thing on the card, and it is AI prose about the
+ * report below it. So it must never appear without that report, must never be
+ * rendered as markdown, and must be dropped the instant the panel changes
+ * subject — a summary of the previous incident is worse than no summary.
+ */
+describe("InvestigationPanel TL;DR", () => {
+  function markdownTexts(): Array<string> {
+    return (
+      markdownViewerMock.mock.calls as Array<Array<MarkdownViewerProps>>
+    ).map((call: Array<MarkdownViewerProps>): string => {
+      return call[0]!.text;
+    });
+  }
+
+  test("leads the completed card with the AI summary, as plain text above the report", async () => {
+    postMock.mockResolvedValue(
+      completedResponse({ analysisTldr: TLDR }) as never,
+    );
+
+    renderPanel();
+    await flush();
+
+    const summary: HTMLElement = screen.getByLabelText("Investigation summary");
+    expect(summary).toHaveTextContent("TL;DR");
+    expect(summary).toHaveTextContent(TLDR);
+
+    // The summary is never routed through the markdown renderer.
+    expect(markdownTexts().length).toBeGreaterThan(0);
+    expect(
+      markdownTexts().every((text: string): boolean => {
+        return text === ANALYSIS;
+      }),
+    ).toBe(true);
+
+    // It sits above the report it summarizes.
+    const report: HTMLElement = screen.getByLabelText("Investigation report");
+    expect(
+      summary.compareDocumentPosition(report) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("omits the block for a run that has no stored summary", async () => {
+    postMock.mockResolvedValue(completedResponse() as never);
+
+    renderPanel();
+    await flush();
+
+    expect(screen.getByLabelText("Investigation report")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Investigation summary")).toBeNull();
+    expect(screen.queryByText("TL;DR")).toBeNull();
+  });
+
+  test("omits a blank summary rather than rendering an empty banner", async () => {
+    postMock.mockResolvedValue(
+      completedResponse({ analysisTldr: "   \n  " }) as never,
+    );
+
+    renderPanel();
+    await flush();
+
+    expect(screen.queryByLabelText("Investigation summary")).toBeNull();
+  });
+
+  test("never shows a summary before the report it describes is published", async () => {
+    postMock.mockResolvedValue(
+      completedResponse({
+        analysisMarkdown: null,
+        analysisTldr: TLDR,
+        isAnalysisPending: true,
+      }) as never,
+    );
+
+    renderPanel();
+    await flush();
+
+    expect(screen.queryByLabelText("Investigation summary")).toBeNull();
+    expect(screen.queryByText(TLDR)).toBeNull();
+    expect(screen.getByText("Preparing the final report")).toBeVisible();
+  });
+
+  test("appears on the poll that publishes the report", async () => {
+    postMock
+      .mockResolvedValueOnce(
+        completedResponse({
+          analysisMarkdown: null,
+          analysisTldr: null,
+          isAnalysisPending: true,
+        }) as never,
+      )
+      .mockResolvedValue(completedResponse({ analysisTldr: TLDR }) as never);
+
+    renderPanel();
+    await flush();
+    expect(screen.queryByLabelText("Investigation summary")).toBeNull();
+
+    await advanceFastPolls();
+
+    expect(screen.getByLabelText("Investigation summary")).toHaveTextContent(
+      TLDR,
+    );
+  });
+
+  test("is not shown for a run that never completed", async () => {
+    postMock.mockResolvedValue(
+      successfulResponse(
+        investigationPayload({
+          status: AIRunStatus.Error,
+          analysisTldr: TLDR,
+          errorMessage: "The provider timed out.",
+        }),
+      ) as never,
+    );
+
+    renderPanel();
+    await flush();
+
+    expect(screen.queryByLabelText("Investigation summary")).toBeNull();
+    expect(screen.getByText("The provider timed out.")).toBeVisible();
+  });
+
+  test("drops the previous subject's summary the moment the subject changes", async () => {
+    const nextSubject: Deferred<ApiResponse> = createDeferred<ApiResponse>();
+    postMock
+      .mockResolvedValueOnce(completedResponse({ analysisTldr: TLDR }) as never)
+      .mockReturnValueOnce(nextSubject.promise as never);
+
+    const view: ReturnType<typeof render> = renderPanel();
+    await flush();
+    expect(screen.getByLabelText("Investigation summary")).toBeInTheDocument();
+
+    view.rerender(
+      <InvestigationPanel subjectType="alert" subjectId={ALERT_ID} />,
+    );
+    await flush();
+
+    expect(screen.queryByLabelText("Investigation summary")).toBeNull();
+
+    await resolveDeferred(
+      nextSubject,
+      completedResponse({
+        runId: NEXT_RUN_ID,
+        analysisTldr: "The alert cleared on its own after the pod restarted.",
+      }),
+    );
+
+    expect(screen.getByLabelText("Investigation summary")).toHaveTextContent(
+      "The alert cleared on its own after the pod restarted.",
+    );
+  });
+});
+
+/*
+ * The verdict prompt is a single question with two answers, so both choices
+ * live in one labelled group; once answered it collapses to the recorded
+ * verdict plus a way back. These tests pin that shape — the earlier suites
+ * cover the request/optimistic-state contract behind it.
+ */
+describe("InvestigationPanel verdict control", () => {
+  function verdictGroup(): HTMLElement | null {
+    return screen.queryByRole("group", { name: "Rate this investigation" });
+  }
+
+  test("offers both verdicts inside one labelled group", async () => {
+    postMock.mockResolvedValue(completedResponse() as never);
+
+    renderPanel();
+    await flush();
+
+    const group: HTMLElement = verdictGroup()!;
+    expect(group).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Confirmed" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Rejected" }),
+    ).toBeInTheDocument();
+    expect(group).toContainElement(
+      screen.getByRole("button", { name: "Confirmed" }),
+    );
+    expect(group).toContainElement(
+      screen.getByRole("button", { name: "Rejected" }),
+    );
+  });
+
+  test("collapses to the recorded verdict and back again through Change", async () => {
+    postMock
+      .mockResolvedValueOnce(completedResponse() as never)
+      .mockResolvedValueOnce(successfulResponse({}) as never);
+
+    renderPanel();
+    await flush();
+    fireEvent.click(screen.getByRole("button", { name: "Rejected" }));
+    await flush();
+
+    expect(verdictGroup()).toBeNull();
+    expect(screen.getByText(/You rejected this analysis/)).toBeVisible();
+
+    fireEvent.click(screen.getByRole("button", { name: "Change" }));
+
+    expect(verdictGroup()).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Confirmed" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Rejected" })).toBeEnabled();
+    // Reopening the prompt must not itself save anything.
+    expect(postMock).toHaveBeenCalledTimes(2);
+  });
+
+  test("locks both choices while a verdict is saving", async () => {
+    const save: Deferred<ApiResponse> = createDeferred<ApiResponse>();
+    postMock
+      .mockResolvedValueOnce(completedResponse() as never)
+      .mockReturnValueOnce(save.promise as never);
+
+    renderPanel();
+    await flush();
+    fireEvent.click(screen.getByRole("button", { name: "Confirmed" }));
+    await flush();
+
+    // Optimistic: the pill replaces the prompt immediately.
+    expect(screen.getByText(/You confirmed this analysis/)).toBeVisible();
+
+    fireEvent.click(screen.getByRole("button", { name: "Change" }));
+    expect(screen.getByRole("button", { name: "Confirmed" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Rejected" })).toBeDisabled();
+
+    await resolveDeferred(save, successfulResponse({}));
+
+    expect(screen.getByRole("button", { name: "Confirmed" })).toBeEnabled();
+  });
+
+  test("shows the run status as a badge in the card header", async () => {
+    postMock.mockResolvedValue(completedResponse() as never);
+
+    renderPanel();
+    await flush();
+
+    expect(screen.getByLabelText("Investigation status")).toHaveTextContent(
+      "Investigation complete",
+    );
   });
 });
 

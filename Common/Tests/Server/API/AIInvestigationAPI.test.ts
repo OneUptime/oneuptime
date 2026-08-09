@@ -69,6 +69,7 @@ function investigationRun(data: {
   status: AIRunStatus;
   createdAt?: Date | undefined;
   completedAt?: Date | undefined;
+  analysisTldr?: string | undefined;
 }): AIRun {
   const run: AIRun = new AIRun(
     new ObjectID("eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee"),
@@ -79,6 +80,9 @@ function investigationRun(data: {
   }
   if (data.completedAt) {
     run.completedAt = data.completedAt;
+  }
+  if (data.analysisTldr !== undefined) {
+    run.analysisTldr = data.analysisTldr;
   }
   return run;
 }
@@ -154,6 +158,7 @@ describe("AIInvestigationAPI latest-investigation payload", () => {
       run: null,
       events: [],
       analysisMarkdown: null,
+      analysisTldr: null,
       isAnalysisPending: false,
     });
     expect(PostedRootCause.getForInvestigation).not.toHaveBeenCalled();
@@ -211,6 +216,114 @@ describe("AIInvestigationAPI latest-investigation payload", () => {
       }),
     );
   });
+
+  /*
+   * The TL;DR summarizes the report, so the payload must never carry one
+   * without the report it describes — a reader would otherwise see a claim
+   * with nothing to check it against.
+   */
+  it("returns the stored TL;DR alongside a published report", async () => {
+    await callIncidentRoute({
+      run: investigationRun({
+        status: AIRunStatus.Completed,
+        createdAt: new Date("2026-08-07T09:55:00.000Z"),
+        completedAt: new Date("2026-08-07T10:00:00.000Z"),
+        analysisTldr: "The checkout API is failing on an exhausted pool.",
+      }),
+      analysisMarkdown: "## Current investigation\nPool exhausted.",
+    });
+
+    expect(sentPayload()).toEqual(
+      expect.objectContaining({
+        analysisTldr: "The checkout API is failing on an exhausted pool.",
+      }),
+    );
+  });
+
+  it("selects the TL;DR column so a live panel can render it", async () => {
+    await callIncidentRoute({
+      run: investigationRun({
+        status: AIRunStatus.Completed,
+        createdAt: new Date("2026-08-07T09:55:00.000Z"),
+        completedAt: new Date("2026-08-07T10:00:00.000Z"),
+      }),
+      analysisMarkdown: "## Current investigation\nPool exhausted.",
+    });
+
+    expect(AIRunService.findBy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({ analysisTldr: true }),
+      }),
+    );
+  });
+
+  it("withholds the TL;DR while the report is still being published", async () => {
+    await callIncidentRoute({
+      run: investigationRun({
+        status: AIRunStatus.Completed,
+        createdAt: new Date("2026-08-07T10:00:00.000Z"),
+        completedAt: new Date(Date.now() - 1000),
+        analysisTldr: "The checkout API is failing on an exhausted pool.",
+      }),
+    });
+
+    expect(sentPayload()).toEqual(
+      expect.objectContaining({
+        analysisMarkdown: null,
+        analysisTldr: null,
+        isAnalysisPending: true,
+      }),
+    );
+  });
+
+  it("normalizes a blank stored TL;DR to null so the panel has one empty shape", async () => {
+    await callIncidentRoute({
+      run: investigationRun({
+        status: AIRunStatus.Completed,
+        createdAt: new Date("2026-08-07T09:55:00.000Z"),
+        completedAt: new Date("2026-08-07T10:00:00.000Z"),
+        analysisTldr: "   \n  ",
+      }),
+      analysisMarkdown: "## Current investigation\nPool exhausted.",
+    });
+
+    expect(sentPayload()).toEqual(
+      expect.objectContaining({ analysisTldr: null }),
+    );
+  });
+
+  it("reports no TL;DR for a legacy run that predates the column", async () => {
+    await callIncidentRoute({
+      run: investigationRun({
+        status: AIRunStatus.Completed,
+        createdAt: new Date("2026-08-07T09:55:00.000Z"),
+        completedAt: new Date("2026-08-07T10:00:00.000Z"),
+      }),
+      analysisMarkdown: "## Current investigation\nPool exhausted.",
+    });
+
+    expect(sentPayload()).toEqual(
+      expect.objectContaining({ analysisTldr: null }),
+    );
+  });
+
+  it.each([AIRunStatus.Running, AIRunStatus.Error])(
+    "never reports a TL;DR for a %s run",
+    async (status: AIRunStatus) => {
+      await callIncidentRoute({
+        run: investigationRun({
+          status,
+          createdAt: new Date("2026-08-07T09:55:00.000Z"),
+          completedAt: new Date("2026-08-07T10:00:00.000Z"),
+          analysisTldr: "The checkout API is failing on an exhausted pool.",
+        }),
+      });
+
+      expect(sentPayload()).toEqual(
+        expect.objectContaining({ analysisTldr: null }),
+      );
+    },
+  );
 
   it("returns a branded pre-migration report through the null-associated legacy path", async () => {
     const run: AIRun = investigationRun({

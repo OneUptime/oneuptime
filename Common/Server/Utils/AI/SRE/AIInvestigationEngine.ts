@@ -17,6 +17,7 @@ import ProjectService from "../../../Services/ProjectService";
 import LlmProviderService from "../../../Services/LlmProviderService";
 import AIInvestigationQueue from "./InvestigationQueue";
 import AIConfidenceSignal, { ConfidenceSignal } from "./ConfidenceSignal";
+import InvestigationTldr from "./InvestigationTldr";
 import ObservabilityAssistant, {
   ObservabilityAssistantExtraTool,
   ObservabilityAssistantResult,
@@ -124,6 +125,13 @@ export interface InvestigationRequest {
    * remain NotRecommended throughout their lifecycle.
    */
   persistCodeFixRecommendation?: boolean | undefined;
+  /*
+   * Incident and alert RCA runs opt into the AI-written TL;DR that the
+   * dashboard panel shows above the report. Display-only and best-effort:
+   * a failed generation leaves the run without one and changes nothing else.
+   * Engine users with no panel (insight triage, remediation) omit it.
+   */
+  persistAnalysisTldr?: boolean | undefined;
   /*
    * Runs only after a Recommended decision and its exact analysis snapshot
    * have been durably committed. Incident/alert runners use this for the
@@ -407,17 +415,49 @@ export default class AIInvestigationEngine {
        * the WON Completed transition also means a falsely-requeued duplicate
        * attempt can never double-spend it.
        */
-      const confidence: ConfidenceSignal =
-        await AIConfidenceSignal.computeConfidenceSignal({
-          projectId,
-          aiRunId,
-          incidentId: request.incidentId,
-          alertId: request.alertId,
-          analysisMarkdown: analysis,
-          evidence: AIConfidenceSignal.evidenceFromCitations(
-            result.citations || [],
-          ),
-        });
+      /*
+       * The display-only TL;DR (see InvestigationTldr) runs CONCURRENTLY with
+       * the classification: both are post-loop calls over the same analysis,
+       * so serializing them would add their latencies to the delay before the
+       * RCA reaches the on-call engineer. Neither call throws — the TL;DR
+       * degrades to null and the report is published regardless.
+       */
+      const [confidence, analysisTldr]: [ConfidenceSignal, string | null] =
+        await Promise.all([
+          AIConfidenceSignal.computeConfidenceSignal({
+            projectId,
+            aiRunId,
+            incidentId: request.incidentId,
+            alertId: request.alertId,
+            analysisMarkdown: analysis,
+            evidence: AIConfidenceSignal.evidenceFromCitations(
+              result.citations || [],
+            ),
+          }),
+          request.persistAnalysisTldr === true
+            ? InvestigationTldr.generateTldr({
+                projectId,
+                aiRunId,
+                incidentId: request.incidentId,
+                alertId: request.alertId,
+                /*
+                 * Summarize the model's own analysis, not the branded form —
+                 * the branding wrapper is boilerplate plus an evidence list,
+                 * and a summary of it would waste the TL;DR on both.
+                 */
+                analysisMarkdown: analysis,
+              })
+            : Promise.resolve(null),
+        ]);
+
+      /*
+       * Persist the TL;DR BEFORE the report is posted, so the panel can never
+       * render the report for a beat without its summary. Best-effort: a
+       * write failure is logged and the report still posts.
+       */
+      if (analysisTldr) {
+        await this.persistAnalysisTldr({ aiRunId, analysisTldr });
+      }
 
       /*
        * Build the posted form exactly once. The same immutable string is
@@ -575,6 +615,32 @@ export default class AIInvestigationEngine {
     } catch (error) {
       logger.error(
         `AI: post-settlement follow-up failed for run ${aiRunId.toString()}: ${error}`,
+      );
+    }
+  }
+
+  /*
+   * Store the display-only TL;DR on the run. Unlike the code-fix decision
+   * this authorizes nothing, so it is not retried: a failed write (or a run
+   * that is no longer Completed) simply leaves the panel showing the report
+   * with no summary above it.
+   */
+  private static async persistAnalysisTldr(data: {
+    aiRunId: ObjectID;
+    analysisTldr: string;
+  }): Promise<void> {
+    try {
+      const updatedCount: number =
+        await AIRunService.setInvestigationAnalysisTldr(data);
+
+      if (updatedCount === 0) {
+        logger.warn(
+          `AI: could not store the TL;DR for run ${data.aiRunId.toString()} — it was no longer Completed.`,
+        );
+      }
+    } catch (error) {
+      logger.error(
+        `AI: failed to store the TL;DR for run ${data.aiRunId.toString()}: ${error}`,
       );
     }
   }

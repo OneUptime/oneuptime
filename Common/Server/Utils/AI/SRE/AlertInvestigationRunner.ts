@@ -172,6 +172,7 @@ export default class AIAlertInvestigationRunner {
         alertId,
         contextSummary,
         persistCodeFixRecommendation: true,
+        persistAnalysisTldr: true,
         postAnalysis: async (postData: {
           analysisMarkdown: string;
           confidence: ConfidenceSignal;

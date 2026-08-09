@@ -195,6 +195,8 @@ async function sendLatestInvestigation(
       totalTokens: true,
       createdAt: true,
       codeFixRecommendation: true,
+      // The AI-written summary the panel shows above the report.
+      analysisTldr: true,
       // Measurement layer: the panel renders verdict/grade state from these.
       humanVerdict: true,
       humanVerdictAt: true,
@@ -214,6 +216,7 @@ async function sendLatestInvestigation(
       run: null,
       events: [],
       analysisMarkdown: null,
+      analysisTldr: null,
       isAnalysisPending: false,
     });
     return;
@@ -263,10 +266,22 @@ async function sendLatestInvestigation(
     analysisMarkdown,
   });
 
+  /*
+   * The TL;DR summarizes the report, so it is only meaningful alongside one.
+   * A run whose report is still settling (or which never published one) must
+   * not show a summary of something the reader cannot yet see, and the
+   * trimmed empty string is normalized to null so the panel has exactly one
+   * "no TL;DR" shape to render.
+   */
+  const analysisTldr: string | null = analysisMarkdown
+    ? (run.analysisTldr || "").trim() || null
+    : null;
+
   Response.sendJsonObjectResponse(req, res, {
     run: runJson || null,
     events: eventsJson,
     analysisMarkdown,
+    analysisTldr,
     isAnalysisPending,
   });
 }

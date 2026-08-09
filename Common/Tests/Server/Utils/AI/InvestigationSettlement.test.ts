@@ -6,6 +6,7 @@ import AIInvestigationEngine, {
 } from "../../../../Server/Utils/AI/SRE/AIInvestigationEngine";
 import RemediationHandoff from "../../../../Server/Utils/AI/SRE/RemediationHandoff";
 import AIConfidenceSignal from "../../../../Server/Utils/AI/SRE/ConfidenceSignal";
+import InvestigationTldr from "../../../../Server/Utils/AI/SRE/InvestigationTldr";
 import ObservabilityAssistant, {
   ObservabilityAssistantResult,
 } from "../../../../Server/Utils/AI/Chat/ObservabilityAssistant";
@@ -753,4 +754,238 @@ describe("AIInvestigationEngine.executeRun — the onSettled contract", () => {
     // The swallowed settlement failure never re-enters the retry policy.
     expect(failOrRequeue).not.toHaveBeenCalled();
   });
+});
+
+/*
+ * The investigation TL;DR (see InvestigationTldr) is display-only: opted-in
+ * subject runs get one, it is stored before the report is posted so the panel
+ * never renders a report without its summary, and NO failure of it — a
+ * degraded null, a failed write — may delay or fail the run.
+ */
+describe("AIInvestigationEngine.executeRun — the investigation TL;DR", () => {
+  const aiRunId: ObjectID = ObjectID.generate();
+  const projectId: ObjectID = ObjectID.generate();
+  const TLDR: string = "Checkout is failing on an exhausted connection pool.";
+
+  let callOrder: Array<string>;
+  let postAnalysis: jest.Mock;
+
+  function makeRequest(
+    overrides: Partial<InvestigationRequest> = {},
+  ): InvestigationRequest {
+    return {
+      feature: "Test Investigation",
+      contextSummary: "# Subject",
+      persistCodeFixRecommendation: true,
+      persistAnalysisTldr: true,
+      postAnalysis:
+        postAnalysis as unknown as InvestigationRequest["postAnalysis"],
+      ...overrides,
+    };
+  }
+
+  function executeRun(
+    request: InvestigationRequest = makeRequest(),
+  ): Promise<void> {
+    return AIInvestigationEngine.executeRun({
+      aiRunId,
+      projectId,
+      attemptCount: 1,
+      request,
+    });
+  }
+
+  beforeEach(() => {
+    callOrder = [];
+    postAnalysis = jest.fn(async (): Promise<void> => {
+      callOrder.push("postAnalysis");
+    });
+
+    jest
+      .spyOn(AIRunEventService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0));
+    jest
+      .spyOn(AIRunEventService, "create")
+      .mockResolvedValue({} as unknown as AIRunEvent);
+    jest.spyOn(AIRunService, "attemptStatusTransition").mockResolvedValue(1);
+    jest
+      .spyOn(AIRunService, "finalizeInvestigationCodeFixRecommendation")
+      .mockResolvedValue(1);
+    jest
+      .spyOn(AIConfidenceSignal, "computeConfidenceSignal")
+      .mockResolvedValue({
+        confident: true,
+        codeFixRecommended: false,
+        source: "classification",
+      });
+    jest.spyOn(ObservabilityAssistant, "answerQuestion").mockResolvedValue({
+      contentInMarkdown: "**Summary** — the connection pool ran dry.",
+      citations: [],
+      totalTokens: 100,
+      llmCallCount: 2,
+      toolCallCount: 3,
+    } as ObservabilityAssistantResult);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+    handoff.mockClear();
+  });
+
+  test("an opted-in run stores the summary BEFORE the report is posted", async () => {
+    jest.spyOn(InvestigationTldr, "generateTldr").mockResolvedValue(TLDR);
+    const store: jest.SpyInstance = jest
+      .spyOn(AIRunService, "setInvestigationAnalysisTldr")
+      .mockImplementation(async (): Promise<number> => {
+        callOrder.push("storeTldr");
+        return 1;
+      });
+
+    await executeRun();
+
+    expect(store).toHaveBeenCalledWith({ aiRunId, analysisTldr: TLDR });
+    expect(callOrder).toEqual(["storeTldr", "postAnalysis"]);
+  });
+
+  test("summarizes the model's own analysis, not the branded wrapper", async () => {
+    const generate: jest.SpyInstance = jest
+      .spyOn(InvestigationTldr, "generateTldr")
+      .mockResolvedValue(TLDR);
+    jest
+      .spyOn(AIRunService, "setInvestigationAnalysisTldr")
+      .mockResolvedValue(1);
+
+    await executeRun(makeRequest({ incidentId: ObjectID.generate() }));
+
+    const summarized: string = (
+      generate.mock.calls[0]![0] as { analysisMarkdown: string }
+    ).analysisMarkdown;
+
+    expect(summarized).toBe("**Summary** — the connection pool ran dry.");
+    expect(summarized).not.toContain("Automated Root Cause Analysis");
+    expect(summarized).not.toContain("Evidence checked");
+  });
+
+  test("runs concurrently with the confidence classification, not after it", async () => {
+    /*
+     * The classification only resolves once the TL;DR call has started. If
+     * the engine awaited them in sequence this test would never settle, so
+     * passing IS the proof that both are in flight together.
+     */
+    let releaseClassification: () => void = (): void => {};
+    const classificationStarted: Promise<void> = new Promise<void>(
+      (resolve: () => void) => {
+        releaseClassification = resolve;
+      },
+    );
+
+    jest
+      .spyOn(InvestigationTldr, "generateTldr")
+      .mockImplementation(async (): Promise<string | null> => {
+        releaseClassification();
+        return TLDR;
+      });
+    (
+      AIConfidenceSignal.computeConfidenceSignal as unknown as jest.Mock
+    ).mockImplementation(async () => {
+      await classificationStarted;
+      return {
+        confident: true,
+        codeFixRecommended: false,
+        source: "classification",
+      };
+    });
+    jest
+      .spyOn(AIRunService, "setInvestigationAnalysisTldr")
+      .mockResolvedValue(1);
+
+    await executeRun();
+
+    expect(postAnalysis).toHaveBeenCalledTimes(1);
+    expect(InvestigationTldr.generateTldr).toHaveBeenCalledTimes(1);
+  });
+
+  test("a degraded (null) summary writes nothing and still publishes the report", async () => {
+    jest.spyOn(InvestigationTldr, "generateTldr").mockResolvedValue(null);
+    const store: jest.SpyInstance = jest.spyOn(
+      AIRunService,
+      "setInvestigationAnalysisTldr",
+    );
+
+    await executeRun();
+
+    expect(store).not.toHaveBeenCalled();
+    expect(postAnalysis).toHaveBeenCalledTimes(1);
+    expect(emittedTypes()).toContain(AIRunEventType.RunCompleted);
+  });
+
+  test("a failed TL;DR write never fails the run", async () => {
+    jest.spyOn(InvestigationTldr, "generateTldr").mockResolvedValue(TLDR);
+    jest
+      .spyOn(AIRunService, "setInvestigationAnalysisTldr")
+      .mockRejectedValue(new Error("database unavailable"));
+
+    await expect(executeRun()).resolves.toBeUndefined();
+
+    expect(postAnalysis).toHaveBeenCalledTimes(1);
+    expect(emittedTypes()).toContain(AIRunEventType.RunCompleted);
+    expect(emittedTypes()).not.toContain(AIRunEventType.RunFailed);
+  });
+
+  test("a run whose row is no longer Completed is logged, not retried or failed", async () => {
+    jest.spyOn(InvestigationTldr, "generateTldr").mockResolvedValue(TLDR);
+    const store: jest.SpyInstance = jest
+      .spyOn(AIRunService, "setInvestigationAnalysisTldr")
+      .mockResolvedValue(0);
+
+    await expect(executeRun()).resolves.toBeUndefined();
+
+    expect(store).toHaveBeenCalledTimes(1);
+    expect(postAnalysis).toHaveBeenCalledTimes(1);
+  });
+
+  test("an engine user without the opt-in never spends the call", async () => {
+    const generate: jest.SpyInstance = jest.spyOn(
+      InvestigationTldr,
+      "generateTldr",
+    );
+    const store: jest.SpyInstance = jest.spyOn(
+      AIRunService,
+      "setInvestigationAnalysisTldr",
+    );
+
+    await executeRun(makeRequest({ persistAnalysisTldr: undefined }));
+
+    expect(generate).not.toHaveBeenCalled();
+    expect(store).not.toHaveBeenCalled();
+    expect(postAnalysis).toHaveBeenCalledTimes(1);
+  });
+
+  test("a run that produced no analysis never spends the call", async () => {
+    (
+      ObservabilityAssistant.answerQuestion as unknown as jest.Mock
+    ).mockResolvedValue({
+      contentInMarkdown: "   ",
+      citations: [],
+      totalTokens: 0,
+      llmCallCount: 1,
+      toolCallCount: 0,
+    });
+    const generate: jest.SpyInstance = jest.spyOn(
+      InvestigationTldr,
+      "generateTldr",
+    );
+
+    await executeRun();
+
+    expect(generate).not.toHaveBeenCalled();
+    expect(postAnalysis).not.toHaveBeenCalled();
+  });
+
+  function emittedTypes(): Array<AIRunEventType> {
+    const create: jest.Mock = AIRunEventService.create as unknown as jest.Mock;
+    return create.mock.calls.map((call: Array<unknown>): AIRunEventType => {
+      return (call[0] as { data: AIRunEvent }).data.eventType!;
+    });
+  }
 });

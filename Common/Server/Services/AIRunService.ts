@@ -100,6 +100,33 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * Persist the AI-written TL;DR of a completed investigation's analysis.
+   * Display-only, so this is a plain conditional UPDATE rather than a claim:
+   * it is scoped to the run that produced the analysis and to the Completed
+   * state, so a stale attempt that lost the completion race (and therefore
+   * never posts a report) cannot label the run either. Returns the number of
+   * rows changed — 0 means the run was no longer Completed or was removed.
+   */
+  @CaptureSpan()
+  public async setInvestigationAnalysisTldr(data: {
+    aiRunId: ObjectID;
+    analysisTldr: string;
+  }): Promise<number> {
+    const result: UpdateResult = await this.getRepository()
+      .createQueryBuilder()
+      .update(Model)
+      .set({
+        analysisTldr: data.analysisTldr,
+      } as QueryDeepPartialEntity<Model>)
+      .where('"_id" = :id', { id: data.aiRunId.toString() })
+      .andWhere('"status" = :status', { status: AIRunStatus.Completed })
+      .andWhere('"deletedAt" IS NULL')
+      .execute();
+
+    return result.affected || 0;
+  }
+
+  /*
    * Atomically settle the code-fix decision written as Pending by the
    * winning investigation completion transition. The recommendation and
    * immutable analysis snapshot are one database UPDATE guarded by both the

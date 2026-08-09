@@ -509,6 +509,7 @@ import { RestoreDroppedUniqueIndexes1786200000000 } from "./1786200000000-Restor
 import { QuarantineUnboundGitHubInstallations1786300000000 } from "./1786300000000-QuarantineUnboundGitHubInstallations";
 import { AddMasterPasswordSalt1786400000000 } from "./1786400000000-AddMasterPasswordSalt";
 import { AddInvestigationCodeFixRecommendation1786500000000 } from "./1786500000000-AddInvestigationCodeFixRecommendation";
+import { AddInvestigationAnalysisTldr1786600000000 } from "./1786600000000-AddInvestigationAnalysisTldr";
 
 export default [
   InitialMigration,
@@ -1022,4 +1023,5 @@ export default [
   AddMasterPasswordSalt1786400000000,
   MigrationName1786105470826,
   AddInvestigationCodeFixRecommendation1786500000000,
+  AddInvestigationAnalysisTldr1786600000000,
 ];
