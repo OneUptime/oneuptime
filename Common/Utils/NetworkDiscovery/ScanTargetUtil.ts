@@ -63,12 +63,14 @@ export class ScanTargetUtil {
    *
    * The number is a wall-clock budget, not a memory one. SubnetScanner runs 32
    * workers; a dead host costs ~1s (the ICMP pre-sweep timeout), or ~2s when
-   * the pre-sweep is unavailable and every host is SNMP-probed directly. At
-   * this ceiling that is ~17 minutes with the pre-sweep and ~34 minutes
-   * without — both comfortably inside the 2-hour window after which the server
-   * declares an In Progress scan abandoned (Workers/Jobs/
-   * NetworkDeviceDiscovery/RequeueRecurringScans.ts) and safely above the
-   * 15-minute minimum rescan interval for recurring scans.
+   * every host is SNMP-probed directly. At this ceiling that is ~17 minutes
+   * for a sweep the ICMP gate resolves, ~34 minutes when the pre-sweep is
+   * unavailable, and ~51 minutes in the worst case — an ICMP pass that finds
+   * no SNMP responder, so every address is re-probed over SNMP as well (see
+   * the ICMP-filtered fallback in SubnetScanner.scan). All three sit inside
+   * the 2-hour window after which the server declares an In Progress scan
+   * abandoned (Workers/Jobs/NetworkDeviceDiscovery/RequeueRecurringScans.ts)
+   * and above the 15-minute minimum rescan interval for recurring scans.
    *
    * It is also still a real abuse guard: a /17 in CIDR terms. Anything larger
    * (a /16 sweep, an unbounded 10.*.*.* octet range) is rejected at write time

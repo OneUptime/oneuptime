@@ -664,6 +664,51 @@ describe("POST /probe/discovery-scan/result", () => {
     );
   });
 
+  /*
+   * statusMessage is a varchar(500). Postgres rejects an over-long value
+   * rather than truncating it, and that rejection would fail this write —
+   * losing the sweep's results and leaving a finished scan In Progress until
+   * the stale-scan reaper notices. Clip instead.
+   */
+  test("an over-long status message is clipped instead of failing the write", async () => {
+    scanService.findOneBy.mockResolvedValue(makeFoundScan() as never);
+
+    await callResultEndpoint(
+      makeRequest({
+        probeId,
+        body: {
+          scanId: scanId.toString(),
+          statusMessage: "S".repeat(900),
+          discoveredDevices: [],
+        },
+      }),
+    );
+
+    const message: string = lastUpdateData()["statusMessage"] as string;
+    expect(message).toHaveLength(500);
+    // Still the probe's message, just shorter.
+    expect(message.startsWith("SSS")).toBe(true);
+  });
+
+  test("a message that fits is stored verbatim", async () => {
+    scanService.findOneBy.mockResolvedValue(makeFoundScan() as never);
+
+    await callResultEndpoint(
+      makeRequest({
+        probeId,
+        body: {
+          scanId: scanId.toString(),
+          statusMessage: "Swept 254 hosts: 12 answered ICMP ping.",
+          discoveredDevices: [],
+        },
+      }),
+    );
+
+    expect(lastUpdateData()["statusMessage"]).toBe(
+      "Swept 254 hosts: 12 answered ICMP ping.",
+    );
+  });
+
   test("a one-time scan gets no nextScanAt", async () => {
     scanService.findOneBy.mockResolvedValue(makeFoundScan() as never);
 

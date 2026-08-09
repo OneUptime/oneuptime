@@ -31,6 +31,17 @@ const router: ExpressRouter = Express.getRouter();
 const MINIMUM_RESCAN_INTERVAL_IN_MINUTES: number = 15;
 
 /*
+ * NetworkDeviceDiscoveryScan.statusMessage is a varchar(500). The probe's
+ * summary now carries diagnostics (the ICMP-filtered fallback, the most common
+ * SNMP error verbatim) and the clamp note below is appended on top of it, so
+ * the combined string is no longer trivially short. An over-long value does
+ * not truncate in Postgres — it throws, which would fail this whole write and
+ * leave a finished scan sitting In Progress until the reaper picks it up. Cut
+ * it here instead: a clipped explanation beats a lost result.
+ */
+const MAX_STATUS_MESSAGE_LENGTH: number = 500;
+
+/*
  * Hands the requesting probe its pending subnet-discovery scans and marks
  * them In Progress so they aren't claimed twice. The probe executes each
  * scan locally (it's inside the target network) and reports back below.
@@ -292,6 +303,17 @@ router.post(
 
         completed["nextScanAt"] =
           OneUptimeDate.getSomeMinutesAfter(intervalInMinutes);
+      }
+
+      // Last stop before the write — every append above has happened by now.
+      const statusMessage: string | undefined = completed["statusMessage"] as
+        | string
+        | undefined;
+      if (statusMessage && statusMessage.length > MAX_STATUS_MESSAGE_LENGTH) {
+        completed["statusMessage"] = statusMessage.substring(
+          0,
+          MAX_STATUS_MESSAGE_LENGTH,
+        );
       }
 
       await NetworkDeviceDiscoveryScanService.updateOneById({

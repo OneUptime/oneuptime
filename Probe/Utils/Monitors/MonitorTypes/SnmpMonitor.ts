@@ -423,15 +423,39 @@ export default class SnmpMonitor {
    * Single-host system-group probe used by subnet discovery. Returns null
    * when the host does not answer SNMP within the timeout — the normal
    * case for most addresses in a swept subnet, so no retries and no logs.
+   *
+   * `onError` exists because "returned null" covers two very different
+   * things: an address with nothing on it (a timeout) and an address whose
+   * agent actively refused us (bad v3 credentials, unknown user, wrong
+   * security level, refused port). Collapsing both into null is what let a
+   * whole subnet of credential rejections be reported as a clean "0 hosts
+   * found". The callback hands the caller the failure it would otherwise
+   * never see; the return value is unchanged, so callers that do not care
+   * keep the old behaviour.
    */
   public static async probeSystemInfo(
     config: MonitorStepSnmpMonitor,
+    onError?: ((error: unknown) => void) | undefined,
   ): Promise<SnmpSystemInfo | null> {
-    const session: snmp.Session = SnmpMonitor.createSnmpSession(config, {});
+    let session: snmp.Session;
+
+    try {
+      session = SnmpMonitor.createSnmpSession(config, {});
+    } catch (err) {
+      /*
+       * Session construction itself throws for an unusable configuration —
+       * v3 selected with no username, an unrecognized auth/priv protocol.
+       * That is a scan-wide misconfiguration, not a quiet host, so it must
+       * reach onError rather than look like one more silent address.
+       */
+      onError?.(err);
+      return null;
+    }
 
     try {
       return await SnmpMonitor.readSystemInfo(session);
-    } catch {
+    } catch (err) {
+      onError?.(err);
       return null;
     } finally {
       session.close();

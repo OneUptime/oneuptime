@@ -1,0 +1,99 @@
+import NetworkDeviceDiscoveryScan, {
+  DiscoveredNetworkDevice,
+} from "Common/Models/DatabaseModels/NetworkDeviceDiscoveryScan";
+
+/*
+ * Pure, react-free reading of "what did this discovery scan actually find".
+ *
+ * The Discovery page used to render one number, respondedHostCount, as
+ * "N of M hosts". That number counts SNMP responders ONLY, so a sweep of a
+ * live subnet where nothing answered SNMP rendered as "0 of 254 hosts" —
+ * visually identical to a sweep of empty address space, and identical again
+ * to a subnet the probe cannot route to. Operators had no way to tell the
+ * three apart, and the probe's own explanation of the sweep (statusMessage)
+ * was fetched by the page and then never rendered at all.
+ *
+ * The rules for turning a scan row into something an operator can act on live
+ * here rather than inside the component so they can be imported (and
+ * unit-tested) in a plain Node/TypeScript environment, same as
+ * DiscoveryImportEligibility and DeviceStatusUtil.
+ */
+
+export interface DiscoveryScanOutcome {
+  /*
+   * "12 of 254 hosts", or null when the scan has not reported yet (Pending /
+   * In Progress) and there is nothing honest to show.
+   */
+  respondedHostSummary: string | null;
+  /*
+   * Hosts the sweep found alive that did not answer SNMP. Shown alongside the
+   * responder count so a zero is never mistaken for an empty network.
+   */
+  pingOnlyHostCount: number;
+  /*
+   * The probe's account of the sweep — which cases it hit (ICMP filtered,
+   * credentials rejected, nothing reachable at all) and what to check. Null
+   * when the probe sent none, e.g. rows written by an older probe.
+   */
+  explanation: string | null;
+}
+
+/*
+ * The scan's discovered hosts, defensively. The column is jsonb written from
+ * the probe's payload, so a row from a future/older probe (or a hand-edited
+ * one) can hold anything; treat a non-array as no results rather than letting
+ * the page throw while rendering a table cell.
+ */
+export function getDiscoveredHosts(
+  scan: NetworkDeviceDiscoveryScan | null | undefined,
+): Array<DiscoveredNetworkDevice> {
+  const raw: unknown = scan?.discoveredDevices;
+
+  if (!raw || !Array.isArray(raw)) {
+    return [];
+  }
+
+  return raw as Array<DiscoveredNetworkDevice>;
+}
+
+/**
+ * Hosts that answered ICMP but not SNMP.
+ *
+ * Only an EXPLICIT snmpReachable === false counts, matching
+ * isImportableDiscoveredHost: scans stored before the field existed carry
+ * undefined and every host on them answered SNMP, so legacy rows must not be
+ * retroactively reported as ping-only.
+ */
+export function countPingOnlyHosts(
+  scan: NetworkDeviceDiscoveryScan | null | undefined,
+): number {
+  return getDiscoveredHosts(scan).filter((host: DiscoveredNetworkDevice) => {
+    return host.snmpReachable === false;
+  }).length;
+}
+
+/**
+ * Everything the scans list needs to render one row's result cell.
+ *
+ * A scan that has not reported yet gets a null summary rather than "0 of ?
+ * hosts": zero responders is a finding, and claiming it before the probe has
+ * answered is the same false negative in a different place.
+ */
+export function summarizeDiscoveryScan(
+  scan: NetworkDeviceDiscoveryScan | null | undefined,
+): DiscoveryScanOutcome {
+  const respondedHostCount: number | undefined | null =
+    scan?.respondedHostCount;
+
+  const hasReported: boolean =
+    respondedHostCount !== undefined && respondedHostCount !== null;
+
+  return {
+    respondedHostSummary: hasReported
+      ? `${respondedHostCount} of ${scan?.scannedHostCount ?? "?"} hosts`
+      : null,
+    pingOnlyHostCount: countPingOnlyHosts(scan),
+    // Empty string is "no explanation", not an explanation.
+    explanation: scan?.statusMessage || null,
+  };
+}
