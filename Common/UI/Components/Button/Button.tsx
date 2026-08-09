@@ -49,7 +49,7 @@ export interface ComponentProps {
   iconSize?: undefined | SizeProp;
   buttonStyle?: undefined | ButtonStyleType;
   buttonSize?: ButtonSize | undefined;
-  dataTestId?: string;
+  dataTestId?: string | undefined;
   className?: string | undefined;
   tooltip?: string | undefined;
   ariaLabel?: string | undefined;

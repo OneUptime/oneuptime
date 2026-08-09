@@ -22,6 +22,15 @@ export interface ComponentProps {
   triggerClassName?: string | undefined;
   menuIcon?: IconProp | undefined;
   text?: string | undefined;
+  /*
+   * The trigger's accessible name, separately from `text`. The default trigger
+   * renders `text` as a visible label beside the icon, so an icon-only overflow
+   * menu has to pass `text=""` — which would otherwise leave every one of them
+   * called "More options" and tell a screen reader user nothing about which
+   * thing the menu belongs to.
+   */
+  ariaLabel?: string | undefined;
+  dataTestId?: string | undefined;
   isDisabled?: boolean | undefined;
 }
 
@@ -312,7 +321,10 @@ const MoreMenu: React.ForwardRefExoticComponent<
           disabled: isTriggerDisabled,
           "aria-disabled": isTriggerDisabled,
           "aria-label":
-            trigger.props["aria-label"] || props.text || "More options",
+            trigger.props["aria-label"] ||
+            props.ariaLabel ||
+            props.text ||
+            "More options",
           "aria-haspopup": "menu",
           "aria-expanded": isComponentVisible,
           "aria-controls": isComponentVisible ? menuId : undefined,
@@ -338,10 +350,11 @@ const MoreMenu: React.ForwardRefExoticComponent<
             title={props.text || ""}
             buttonStyle={ButtonStyleType.OUTLINE}
             disabled={props.isDisabled}
+            dataTestId={props.dataTestId}
             onClick={() => {
               setIsComponentVisible(!isDropdownVisible);
             }}
-            ariaLabel={props.text || "More options"}
+            ariaLabel={props.ariaLabel || props.text || "More options"}
             ariaExpanded={isComponentVisible}
             ariaHaspopup="menu"
             ariaControls={isComponentVisible ? menuId : undefined}
@@ -358,10 +371,11 @@ const MoreMenu: React.ForwardRefExoticComponent<
               type="button"
               className={props.triggerClassName}
               disabled={props.isDisabled}
+              data-testid={props.dataTestId}
               onClick={() => {
                 setIsComponentVisible(!isDropdownVisible);
               }}
-              aria-label={props.text || "More options"}
+              aria-label={props.ariaLabel || props.text || "More options"}
               aria-haspopup="menu"
               aria-expanded={isComponentVisible}
               aria-controls={isComponentVisible ? menuId : undefined}
@@ -383,7 +397,8 @@ const MoreMenu: React.ForwardRefExoticComponent<
               id={buttonId}
               role="button"
               tabIndex={props.isDisabled ? -1 : 0}
-              aria-label={props.text || undefined}
+              data-testid={props.dataTestId}
+              aria-label={props.ariaLabel || props.text || undefined}
               aria-haspopup="menu"
               aria-expanded={isComponentVisible}
               aria-controls={isComponentVisible ? menuId : undefined}
