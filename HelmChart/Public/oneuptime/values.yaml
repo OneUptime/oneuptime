@@ -1568,8 +1568,13 @@ worker:
     enabled: false
     minReplicas: 1
     maxReplicas: 100
-    # Scale up when combined queue size (worker + workflow + telemetry + runbook) exceeds this threshold
-    queueSizeThreshold: 10
+    # /metrics/queue-size reports the GLOBAL queue total (worker + workflow +
+    # telemetry + runbook) and KEDA reads it as an AverageValue, so desired
+    # replicas = queueTotal / this value — it is a divisor over the fleet-wide
+    # total, not a per-pod trip point. The total counts delayed jobs, and every
+    # cron repeatable holds one, so it never falls to zero: set this high enough
+    # that the idle floor alone cannot pin the fleet at maxReplicas.
+    queueSizeThreshold: 25
     # Scale up when average CPU utilization exceeds this percentage (0 to disable).
     # If enabled, worker.resources.requests.cpu must also be set.
     targetCPUUtilizationPercentage: 0
