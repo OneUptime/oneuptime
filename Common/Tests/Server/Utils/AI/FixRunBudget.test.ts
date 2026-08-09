@@ -100,7 +100,7 @@ describe("FixRunBudget.describeRejection", () => {
     );
 
     expect(message).toMatch(/Daily Incident AI Fix Task Limit/);
-    expect(message).toMatch(/Incidents > Settings > AI/);
+    expect(message).toMatch(/Incidents > AI > Investigation/);
     expect(message).toMatch(/0/);
   });
 

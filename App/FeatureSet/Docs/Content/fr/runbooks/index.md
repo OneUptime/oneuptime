@@ -56,14 +56,14 @@ Vous pouvez mélanger les cinq types dans un même runbook — la force des runb
 
 ## Où vivent les runbooks dans le tableau de bord
 
-| Page                                                                                                             | Ce que vous y faites                                                                                       |
-| ---------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| **Produits → Runbooks**                                                                                          | Parcourir, créer et modifier les modèles de runbook.                                                       |
-| **Onglet Étapes d'un runbook**                                                                                   | Rédiger et réorganiser la liste d'étapes.                                                                  |
-| **Onglet Exécutions d'un runbook**                                                                               | Voir chaque exécution de ce runbook avec des filtres par statut.                                           |
-| **Bouton « Exécuter maintenant » d'un runbook**                                                                  | Lancer une exécution ad hoc qui n'est attachée à aucun événement.                                          |
-| **Incidents / Maintenance planifiée → Paramètres → Règles de runbook**, **Alertes → Règles → Règles de runbook** | Créer les règles de déclenchement automatique par type d'entité.                                           |
-| **Un incident / alerte / événement de maintenance → Onglet Runbooks**                                            | Voir les exécutions attachées à cet événement et cliquer **Exécuter le Runbook** pour un lancement manuel. |
+| Page                                                                         | Ce que vous y faites                                                                                       |
+| ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| **Produits → Runbooks**                                                      | Parcourir, créer et modifier les modèles de runbook.                                                       |
+| **Onglet Étapes d'un runbook**                                               | Rédiger et réorganiser la liste d'étapes.                                                                  |
+| **Onglet Exécutions d'un runbook**                                           | Voir chaque exécution de ce runbook avec des filtres par statut.                                           |
+| **Bouton « Exécuter maintenant » d'un runbook**                              | Lancer une exécution ad hoc qui n'est attachée à aucun événement.                                          |
+| **Incidents / Alertes / Maintenance planifiée → Règles → Règles de runbook** | Créer les règles de déclenchement automatique par type d'entité.                                           |
+| **Un incident / alerte / événement de maintenance → Onglet Runbooks**        | Voir les exécutions attachées à cet événement et cliquer **Exécuter le Runbook** pour un lancement manuel. |
 
 ## Cas d'usage courants
 

@@ -2672,7 +2672,7 @@
   "Global Probes help you monitor external resources from different locations around the world.": "グローバルプローブは世界中のさまざまな場所から外部リソースを監視するのに役立ちます。",
   "Global Probes on New Monitors": "新しいモニターのグローバルプローブ",
   "Go to Alerts > Rules > Grouping Rules to configure how alerts are automatically grouped.": "アラートが自動的にグループ化される方法を設定するには、アラート > ルール > グループ化ルール に移動してください。",
-  "Go to Incidents > Settings > Grouping Rules to configure how incidents are automatically grouped.": "インシデントが自動的にグループ化される方法を設定するには、インシデント > 設定 > グループ化ルールに移動してください。",
+  "Go to Incidents > Rules > Grouping Rules to configure how incidents are automatically grouped.": "インシデントが自動的にグループ化される方法を設定するには、インシデント > ルール > グループ化ルールに移動してください。",
   "Go to Project Settings > Call & SMS > Custom Call/SMS Config and add your Twilio credentials (Account SID and Auth Token).": "プロジェクト設定 > 通話 & SMS > カスタム通話/SMS設定に移動し、Twilioの認証情報（Account SIDとAuth Token）を追加してください。",
   "Go to Settings": "設定に移動",
   "Google Authenticator": "Google Authenticator",

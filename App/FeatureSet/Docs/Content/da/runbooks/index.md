@@ -56,14 +56,14 @@ Du kan blande alle fem i ét runbook — runbooks' styrke er at flette menneskel
 
 ## Hvor runbooks bor i dashboardet
 
-| Side                                                                                                               | Hvad du laver der                                                                   |
-| ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
-| **Produkter → Runbooks**                                                                                           | Gennemse, oprette og redigere runbook-skabeloner.                                   |
-| **Trin-fanen på et runbook**                                                                                       | Skrive og omarrangere triplisten.                                                   |
-| **Udførelser-fanen på et runbook**                                                                                 | Se hver kørsel af runbook'et med statusfiltre.                                      |
-| **"Kør nu"-knappen på et runbook**                                                                                 | Starte en ad hoc-kørsel, der ikke er knyttet til en hændelse.                       |
-| **Hændelser / Planlagt vedligeholdelse → Indstillinger → Runbook-regler**, **Advarsler → Regler → Runbook-regler** | Oprette de automatiske udløsningsregler per entitetstype.                           |
-| **En hændelse / alarm / vedligeholdshændelse → Runbooks-fanen**                                                    | Se kørsler knyttet til den hændelse og klikke **Kør runbook** for en manuel kørsel. |
+| Side                                                                           | Hvad du laver der                                                                   |
+| ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
+| **Produkter → Runbooks**                                                       | Gennemse, oprette og redigere runbook-skabeloner.                                   |
+| **Trin-fanen på et runbook**                                                   | Skrive og omarrangere triplisten.                                                   |
+| **Udførelser-fanen på et runbook**                                             | Se hver kørsel af runbook'et med statusfiltre.                                      |
+| **"Kør nu"-knappen på et runbook**                                             | Starte en ad hoc-kørsel, der ikke er knyttet til en hændelse.                       |
+| **Hændelser / Advarsler / Planlagt vedligeholdelse → Regler → Runbook-regler** | Oprette de automatiske udløsningsregler per entitetstype.                           |
+| **En hændelse / alarm / vedligeholdshændelse → Runbooks-fanen**                | Se kørsler knyttet til den hændelse og klikke **Kør runbook** for en manuel kørsel. |
 
 ## Almindelige anvendelser
 
@@ -89,7 +89,7 @@ Antag, at du vil have hver hændelse med "db-primary" i titlen til automatisk at
 | 4   | Manuel     | Verificér at skrivninger går til den nye primary |
 | 5   | HTTP       | Post "alt klart" i Slack `#db-incidents`         |
 
-**2. Tilføj en regel.** Under **Hændelser → Indstillinger → Runbook-regler** opretter du:
+**2. Tilføj en regel.** Under **Hændelser → Regler → Runbook-regler** opretter du:
 
 ```
 Titelmønster:  ^db-primary

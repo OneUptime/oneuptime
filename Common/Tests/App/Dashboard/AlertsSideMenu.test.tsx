@@ -7,7 +7,7 @@ import {
   test,
 } from "@jest/globals";
 import "@testing-library/jest-dom";
-import { act, cleanup, fireEvent, render } from "@testing-library/react";
+import { cleanup, fireEvent } from "@testing-library/react";
 import * as React from "react";
 
 /*
@@ -22,10 +22,11 @@ import * as React from "react";
  * actually registered under. The last test in "coverage" is the important one:
  * it pins the full set of settings pages that were reachable before the move,
  * so a page can be re-sectioned freely but never lost.
- *
- * ModelAPI.count backs the two badge entries ("Active Alerts", "Active
- * Episodes"); it is stubbed so the menu renders without a server. The counts
- * themselves are CountModelSideMenuItem's concern, not this file's.
+ */
+/*
+ * ModelAPI.count backs the badge entries. Stubbed inline rather than through
+ * the shared harness because jest.mock is hoisted above the imports — a helper
+ * imported from another module is not initialised yet when it runs.
  */
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
@@ -40,145 +41,28 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 
 import AlertsSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Alerts/SideMenu";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
-import RouteMap, {
-  RouteUtil,
-} from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
-import Route from "../../../Types/API/Route";
-import Navigation from "../../../UI/Utils/Navigation";
-import { Location } from "react-router-dom";
+import {
+  DESKTOP_WIDTH,
+  MOBILE_WIDTH,
+  MenuLink,
+  PROJECT_ID,
+  goTo,
+  hrefsInMenu,
+  iconCountIn,
+  isExpanded,
+  linksIn,
+  mobileSummaryText,
+  renderMenu,
+  routeFor,
+  sectionBody,
+  sectionTitlesInOrder,
+  sectionToggle,
+  setViewportWidth,
+  titlesInMenu,
+} from "./SideMenuHarness";
 
-/*
- * Project ids are UUIDs; ProjectUtil rejects anything else, leaving the
- * menu's hrefs stuck on the literal ":projectId" placeholder.
- */
-const PROJECT_ID: string = "8f2a1b3c-4d5e-4f60-9a7b-1c2d3e4f5a6b";
-
-const DESKTOP_WIDTH: number = 1280;
-const MOBILE_WIDTH: number = 375;
-
-// The href the menu must produce for a page, from the app's own route table.
-function routeFor(pageMapKey: string): string {
-  return RouteUtil.populateRouteParams(
-    RouteMap[pageMapKey] as Route,
-  ).toString();
-}
-
-/*
- * Two sources of truth to keep in step: the menu items read window.location
- * (through RouteUtil/ProjectUtil) while active-item detection reads the
- * react-router Location that the app normally pushes into Navigation.
- */
-function goTo(path: string): void {
-  window.history.pushState({}, "", path);
-  Navigation.setLocation({
-    pathname: path,
-    search: "",
-    hash: "",
-    state: null,
-    key: "test",
-  } as Location);
-}
-
-function setViewportWidth(width: number): void {
-  Object.defineProperty(window, "innerWidth", {
-    configurable: true,
-    writable: true,
-    value: width,
-  });
-}
-
-function headings(): Array<HTMLElement> {
-  return Array.from(document.querySelectorAll("h6"));
-}
-
-function sectionTitlesInOrder(): Array<string> {
-  return headings().map((heading: HTMLElement): string => {
-    return heading.textContent?.trim() ?? "";
-  });
-}
-
-function sectionRoot(title: string): HTMLElement {
-  const heading: HTMLElement | undefined = headings().find(
-    (candidate: HTMLElement): boolean => {
-      return candidate.textContent?.trim() === title;
-    },
-  );
-
-  if (!heading) {
-    throw new Error(
-      `No side-menu section titled "${title}". Sections rendered: ${sectionTitlesInOrder().join(", ")}`,
-    );
-  }
-
-  const root: HTMLElement | null = heading.closest("div.mb-2");
-
-  if (!root) {
-    throw new Error(`Section "${title}" is not wrapped in a section element.`);
-  }
-
-  return root;
-}
-
-function sectionToggle(title: string): HTMLElement {
-  const toggle: HTMLElement | null = sectionRoot(title).querySelector("button");
-
-  if (!toggle) {
-    throw new Error(`Section "${title}" has no collapse toggle.`);
-  }
-
-  return toggle;
-}
-
-// The element SideMenuSection collapses — it stays mounted, so "hidden" is a class.
-function sectionBody(title: string): HTMLElement {
-  const body: Element | null = sectionToggle(title).nextElementSibling;
-
-  if (!body) {
-    throw new Error(`Section "${title}" has no content element.`);
-  }
-
-  return body as HTMLElement;
-}
-
-function isExpanded(title: string): boolean {
-  return sectionToggle(title).getAttribute("aria-expanded") === "true";
-}
-
-interface MenuLink {
-  title: string;
-  href: string;
-}
-
-function linksIn(title: string): Array<MenuLink> {
-  return Array.from(sectionRoot(title).querySelectorAll("a")).map(
-    (anchor: HTMLAnchorElement): MenuLink => {
-      return {
-        title: (
-          anchor.querySelector("span.truncate")?.textContent ??
-          anchor.textContent ??
-          ""
-        ).trim(),
-        href: anchor.getAttribute("href") ?? "",
-      };
-    },
-  );
-}
-
-function allLinks(): Array<MenuLink> {
-  return sectionTitlesInOrder().flatMap((title: string): Array<MenuLink> => {
-    return linksIn(title);
-  });
-}
-
-/*
- * Awaited so the badge counts settle inside act() — CountModelSideMenuItem
- * sets state when its (stubbed) count resolves, and an unawaited render
- * leaves that update outside the test.
- */
-async function renderMenu(): Promise<void> {
-  await act(async () => {
-    render(<AlertsSideMenu />);
-  });
+async function renderAlertsMenu(): Promise<void> {
+  await renderMenu(<AlertsSideMenu />);
 }
 
 describe("Alerts side menu", () => {
@@ -193,7 +77,7 @@ describe("Alerts side menu", () => {
 
   describe("sections", () => {
     test("renders the six product sections in order", async () => {
-      await renderMenu();
+      await renderAlertsMenu();
 
       expect(sectionTitlesInOrder()).toEqual([
         "Alerts",
@@ -206,7 +90,7 @@ describe("Alerts side menu", () => {
     });
 
     test("the day-to-day sections are expanded and the configuration sections are collapsed", async () => {
-      await renderMenu();
+      await renderAlertsMenu();
 
       expect(isExpanded("Alerts")).toBe(true);
       expect(isExpanded("Episodes")).toBe(true);
@@ -217,14 +101,11 @@ describe("Alerts side menu", () => {
     });
 
     test("the alert, episode and workspace sections are unchanged by the move", async () => {
-      await renderMenu();
+      await renderAlertsMenu();
 
       expect(linksIn("Alerts")).toEqual([
         { title: "All Alerts", href: routeFor(PageMap.ALERTS) },
-        {
-          title: "Active Alerts",
-          href: routeFor(PageMap.UNRESOLVED_ALERTS),
-        },
+        { title: "Active Alerts", href: routeFor(PageMap.UNRESOLVED_ALERTS) },
       ]);
 
       expect(linksIn("Episodes")).toEqual([
@@ -233,10 +114,7 @@ describe("Alerts side menu", () => {
           title: "Active Episodes",
           href: routeFor(PageMap.UNRESOLVED_ALERT_EPISODES),
         },
-        {
-          title: "Documentation",
-          href: routeFor(PageMap.ALERT_EPISODE_DOCS),
-        },
+        { title: "Documentation", href: routeFor(PageMap.ALERT_EPISODE_DOCS) },
       ]);
 
       expect(linksIn("Workspace")).toEqual([
@@ -254,13 +132,10 @@ describe("Alerts side menu", () => {
 
   describe("AI section", () => {
     test("holds exactly Investigation and Remediation, pointing at the AI and auto-remediation pages", async () => {
-      await renderMenu();
+      await renderAlertsMenu();
 
       expect(linksIn("AI")).toEqual([
-        {
-          title: "Investigation",
-          href: routeFor(PageMap.ALERTS_SETTINGS_AI),
-        },
+        { title: "Investigation", href: routeFor(PageMap.ALERTS_SETTINGS_AI) },
         {
           title: "Remediation",
           href: routeFor(PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES),
@@ -269,7 +144,7 @@ describe("Alerts side menu", () => {
     });
 
     test("is visible without expanding anything", async () => {
-      await renderMenu();
+      await renderAlertsMenu();
 
       expect(isExpanded("AI")).toBe(true);
       expect(sectionBody("AI").className).toContain("opacity-100");
@@ -277,24 +152,15 @@ describe("Alerts side menu", () => {
     });
 
     test("both entries carry an icon", async () => {
-      await renderMenu();
+      await renderAlertsMenu();
 
-      const icons: Array<Element | null> = Array.from(
-        sectionRoot("AI").querySelectorAll("a"),
-      ).map((anchor: HTMLAnchorElement): Element | null => {
-        return anchor.querySelector("svg");
-      });
-
-      expect(icons).toHaveLength(2);
-      icons.forEach((icon: Element | null) => {
-        expect(icon).not.toBeNull();
-      });
+      expect(iconCountIn("AI")).toBe(2);
     });
   });
 
   describe("Rules section", () => {
     test("holds every alert rule page", async () => {
-      await renderMenu();
+      await renderAlertsMenu();
 
       expect(linksIn("Rules")).toEqual([
         {
@@ -329,7 +195,7 @@ describe("Alerts side menu", () => {
     });
 
     test("starts collapsed", async () => {
-      await renderMenu();
+      await renderAlertsMenu();
 
       expect(isExpanded("Rules")).toBe(false);
       expect(sectionBody("Rules").className).toContain("max-h-0");
@@ -337,7 +203,7 @@ describe("Alerts side menu", () => {
     });
 
     test("expands on click and collapses again", async () => {
-      await renderMenu();
+      await renderAlertsMenu();
 
       fireEvent.click(sectionToggle("Rules"));
 
@@ -358,7 +224,7 @@ describe("Alerts side menu", () => {
      * unreachable for anything that is not a mouse.
      */
     test("its links stay reachable while collapsed", async () => {
-      await renderMenu();
+      await renderAlertsMenu();
 
       expect(isExpanded("Rules")).toBe(false);
       expect(linksIn("Rules")).toHaveLength(7);
@@ -367,7 +233,7 @@ describe("Alerts side menu", () => {
 
   describe("Settings section", () => {
     test("keeps only the settings pages that are neither AI nor rules", async () => {
-      await renderMenu();
+      await renderAlertsMenu();
 
       expect(linksIn("Settings")).toEqual([
         {
@@ -394,7 +260,7 @@ describe("Alerts side menu", () => {
     });
 
     test("no longer links to the AI or auto-remediation pages", async () => {
-      await renderMenu();
+      await renderAlertsMenu();
 
       const settingsHrefs: Array<string> = linksIn("Settings").map(
         (link: MenuLink): string => {
@@ -409,15 +275,13 @@ describe("Alerts side menu", () => {
     });
 
     test("no longer holds any rule page", async () => {
-      await renderMenu();
+      await renderAlertsMenu();
 
-      const ruleEntries: Array<MenuLink> = linksIn("Settings").filter(
-        (link: MenuLink): boolean => {
+      expect(
+        linksIn("Settings").filter((link: MenuLink): boolean => {
           return link.title.endsWith("Rules");
-        },
-      );
-
-      expect(ruleEntries).toEqual([]);
+        }),
+      ).toEqual([]);
     });
   });
 
@@ -444,11 +308,9 @@ describe("Alerts side menu", () => {
     ];
 
     test("every settings page reachable before the move is still reachable", async () => {
-      await renderMenu();
+      await renderAlertsMenu();
 
-      const hrefs: Array<string> = allLinks().map((link: MenuLink): string => {
-        return link.href;
-      });
+      const hrefs: Array<string> = hrefsInMenu();
 
       SETTINGS_PAGES_BEFORE_THE_MOVE.forEach((pageMapKey: string) => {
         expect(hrefs).toContain(routeFor(pageMapKey));
@@ -456,33 +318,31 @@ describe("Alerts side menu", () => {
     });
 
     test("no page is listed in two places", async () => {
-      await renderMenu();
+      await renderAlertsMenu();
 
-      const hrefs: Array<string> = allLinks().map((link: MenuLink): string => {
-        return link.href;
-      });
+      const hrefs: Array<string> = hrefsInMenu();
 
       expect(hrefs).toEqual(Array.from(new Set(hrefs)));
     });
 
     test("no title is used twice", async () => {
-      await renderMenu();
+      await renderAlertsMenu();
 
-      const titles: Array<string> = allLinks().map((link: MenuLink): string => {
-        return link.title;
-      });
+      const titles: Array<string> = titlesInMenu();
 
       expect(titles).toEqual(Array.from(new Set(titles)));
     });
 
     test("every link resolves to a fully populated route", async () => {
-      await renderMenu();
+      await renderAlertsMenu();
 
-      allLinks().forEach((link: MenuLink) => {
-        expect(link.href).toContain(`/dashboard/${PROJECT_ID}/alerts`);
-        expect(link.href).not.toContain(":");
-        expect(link.title).not.toBe("");
-      });
+      linksIn("Rules")
+        .concat(linksIn("AI"), linksIn("Settings"), linksIn("Alerts"))
+        .forEach((link: MenuLink) => {
+          expect(link.href).toContain(`/dashboard/${PROJECT_ID}/alerts`);
+          expect(link.href).not.toContain(":");
+          expect(link.title).not.toBe("");
+        });
     });
   });
 
@@ -498,42 +358,30 @@ describe("Alerts side menu", () => {
 
     test("names the AI section on the investigation page", async () => {
       goTo(`/dashboard/${PROJECT_ID}/alerts/settings/ai`);
-      await renderMenu();
+      await renderAlertsMenu();
 
-      expect(
-        document.querySelector('[data-testid="mobile-sidemenu-toggle"]')
-          ?.textContent,
-      ).toContain("AI / Investigation");
+      expect(mobileSummaryText()).toContain("AI / Investigation");
     });
 
     test("names the AI section on the remediation page", async () => {
       goTo(`/dashboard/${PROJECT_ID}/alerts/settings/auto-remediation-rules`);
-      await renderMenu();
+      await renderAlertsMenu();
 
-      expect(
-        document.querySelector('[data-testid="mobile-sidemenu-toggle"]')
-          ?.textContent,
-      ).toContain("AI / Remediation");
+      expect(mobileSummaryText()).toContain("AI / Remediation");
     });
 
     test("names the Rules section on a rule page", async () => {
       goTo(`/dashboard/${PROJECT_ID}/alerts/settings/grouping-rules`);
-      await renderMenu();
+      await renderAlertsMenu();
 
-      expect(
-        document.querySelector('[data-testid="mobile-sidemenu-toggle"]')
-          ?.textContent,
-      ).toContain("Rules / Grouping Rules");
+      expect(mobileSummaryText()).toContain("Rules / Grouping Rules");
     });
 
     test("still names the Settings section on a settings page", async () => {
       goTo(`/dashboard/${PROJECT_ID}/alerts/settings/state`);
-      await renderMenu();
+      await renderAlertsMenu();
 
-      expect(
-        document.querySelector('[data-testid="mobile-sidemenu-toggle"]')
-          ?.textContent,
-      ).toContain("Settings / Alert State");
+      expect(mobileSummaryText()).toContain("Settings / Alert State");
     });
   });
 });

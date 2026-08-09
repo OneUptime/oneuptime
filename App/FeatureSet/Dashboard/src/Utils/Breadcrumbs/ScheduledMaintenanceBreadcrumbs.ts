@@ -137,6 +137,28 @@ export function getScheduleMaintenanceBreadcrumbs(
       PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_CUSTOM_FIELDS,
       ["Project", "Scheduled Maintenance", "Settings", "Custom Fields"],
     ),
+
+    /*
+     * Rules is its own side-menu section, not a group of lines under Settings,
+     * so the trail has to name the section the page actually lives in —
+     * otherwise the header says "Settings" while the menu highlights "Rules".
+     */
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_OWNER_RULES,
+      ["Project", "Scheduled Maintenance", "Rules", "Owner Rules"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_RUNBOOK_RULES,
+      ["Project", "Scheduled Maintenance", "Rules", "Runbook Rules"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_LABEL_RULES,
+      ["Project", "Scheduled Maintenance", "Rules", "Label Rules"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_REMINDER_RULES,
+      ["Project", "Scheduled Maintenance", "Rules", "Reminder Rules"],
+    ),
   };
   return breadcrumpLinksMap[path];
 }

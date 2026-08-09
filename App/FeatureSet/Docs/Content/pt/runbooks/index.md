@@ -56,14 +56,14 @@ Você pode misturar os cinco num único runbook — a força dos runbooks está 
 
 ## Onde os runbooks ficam no painel
 
-| Página                                                                                                               | O que você faz lá                                                                                |
-| -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| **Produtos → Runbooks**                                                                                              | Navegar, criar e editar modelos de runbook.                                                      |
-| **Aba Passos de um runbook**                                                                                         | Escrever e reordenar a lista de passos.                                                          |
-| **Aba Execuções de um runbook**                                                                                      | Ver cada execução desse runbook com filtros de status.                                           |
-| **Botão "Executar agora" de um runbook**                                                                             | Disparar uma execução ad hoc sem vínculo com nenhum evento.                                      |
-| **Incidentes / Manutenção programada → Configurações → Regras de runbook**, **Alertas → Regras → Regras de runbook** | Criar as regras de auto-disparo por tipo de entidade.                                            |
-| **Um incidente / alerta / evento de manutenção → aba Runbooks**                                                      | Ver as execuções vinculadas a esse evento e clicar **Executar Runbook** para uma corrida manual. |
+| Página                                                                        | O que você faz lá                                                                                |
+| ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| **Produtos → Runbooks**                                                       | Navegar, criar e editar modelos de runbook.                                                      |
+| **Aba Passos de um runbook**                                                  | Escrever e reordenar a lista de passos.                                                          |
+| **Aba Execuções de um runbook**                                               | Ver cada execução desse runbook com filtros de status.                                           |
+| **Botão "Executar agora" de um runbook**                                      | Disparar uma execução ad hoc sem vínculo com nenhum evento.                                      |
+| **Incidentes / Alertas / Manutenção programada → Regras → Regras de runbook** | Criar as regras de auto-disparo por tipo de entidade.                                            |
+| **Um incidente / alerta / evento de manutenção → aba Runbooks**               | Ver as execuções vinculadas a esse evento e clicar **Executar Runbook** para uma corrida manual. |
 
 ## Casos de uso comuns
 

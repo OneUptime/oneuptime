@@ -163,6 +163,72 @@ export function getIncidentsBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Custom Fields",
     ]),
+
+    /*
+     * AI and Rules are their own side-menu sections, not lines under Settings,
+     * so the trail has to name the section the page actually lives in —
+     * otherwise the header says "Settings" while the menu highlights "Rules".
+     */
+    ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_SETTINGS_AI, [
+      "Project",
+      "Incidents",
+      "AI",
+      "Investigation",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES,
+      ["Project", "Incidents", "AI", "Remediation"],
+    ),
+
+    // Incident Rules
+    ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_SETTINGS_GROUPING_RULES, [
+      "Project",
+      "Incidents",
+      "Rules",
+      "Grouping Rules",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_SETTINGS_ON_CALL_RULES, [
+      "Project",
+      "Incidents",
+      "Rules",
+      "On-Call Rules",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_SETTINGS_OWNER_RULES, [
+      "Project",
+      "Incidents",
+      "Rules",
+      "Owner Rules",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_SETTINGS_RUNBOOK_RULES, [
+      "Project",
+      "Incidents",
+      "Rules",
+      "Runbook Rules",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_SETTINGS_PRIVACY_RULES, [
+      "Project",
+      "Incidents",
+      "Rules",
+      "Privacy Rules",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_SETTINGS_LABEL_RULES, [
+      "Project",
+      "Incidents",
+      "Rules",
+      "Label Rules",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_SETTINGS_SLA_RULES, [
+      "Project",
+      "Incidents",
+      "Rules",
+      "SLA Rules",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.INCIDENTS_SETTINGS_REMINDER_RULES, [
+      "Project",
+      "Incidents",
+      "Rules",
+      "Reminder Rules",
+    ]),
   };
   return breadcrumpLinksMap[path];
 }
