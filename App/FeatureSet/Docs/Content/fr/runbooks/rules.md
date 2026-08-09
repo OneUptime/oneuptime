@@ -1,9 +1,9 @@
 # Règles de runbook
 
-Les règles de runbook attachent automatiquement des runbooks lorsqu'un **incident**, une **alerte** ou un **événement de maintenance planifiée** est créé. Elles se gèrent depuis le menu Paramètres de chaque entité :
+Les règles de runbook attachent automatiquement des runbooks lorsqu'un **incident**, une **alerte** ou un **événement de maintenance planifiée** est créé. Elles se gèrent depuis le menu propre à chaque entité :
 
 - Incidents → Paramètres → **Règles de runbook**
-- Alertes → Paramètres → **Règles de runbook**
+- Alertes → Règles → **Règles de runbook**
 - Maintenance planifiée → Paramètres → **Règles de runbook**
 
 Les trois pages éditent le même modèle de règle sous-jacent — elles sont simplement filtrées pour ne montrer que les règles du type d'entité concerné.

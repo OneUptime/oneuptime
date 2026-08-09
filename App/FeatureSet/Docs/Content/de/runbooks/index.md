@@ -27,7 +27,7 @@ Ein paar Begriffe tauchen in den restlichen Runbook-Docs immer wieder auf. Klär
 | Begriff           | Bedeutung                                                                                                                                                                                                                                                       |
 | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Runbook**       | Die Vorlage. Eine benannte, wiederverwendbare Prozedur mit einer geordneten Schrittliste und einem `isEnabled`-Flag.                                                                                                                                            |
-| **Schritt**       | Ein Eintrag in einem Runbook. Hat einen Typ (Manuell / JavaScript / HTTP / Bash / AI), einen Titel, eine Beschreibung und typspezifische Konfiguration.                                                                                                              |
+| **Schritt**       | Ein Eintrag in einem Runbook. Hat einen Typ (Manuell / JavaScript / HTTP / Bash / AI), einen Titel, eine Beschreibung und typspezifische Konfiguration.                                                                                                         |
 | **Runbook-Regel** | Ein Muster, das eines oder mehrere Runbooks automatisch an Vorfälle, Warnmeldungen oder geplante Wartungsereignisse anhängt, wenn deren Titel oder Beschreibung einem Regex entspricht.                                                                         |
 | **Ausführung**    | Ein Lauf eines Runbooks. Wird erstellt, wenn eine Regel feuert, jemand „Runbook ausführen" auf einem Ereignis klickt oder jemand „Jetzt ausführen" auf dem Runbook selbst klickt. Enthält einen Snapshot der Schritte und den Status / die Ausgabe pro Schritt. |
 | **Snapshot**      | Die eingefrorene Kopie der Runbook-Schritte, die auf jeder Ausführung lebt. Damit können Sie die Vorlage später bearbeiten, ohne die Historie umzuschreiben.                                                                                                    |
@@ -56,14 +56,14 @@ Sie können alle fünf in einem einzigen Runbook mischen — die Stärke von Run
 
 ## Wo Runbooks im Dashboard leben
 
-| Seite                                                                        | Was Sie dort tun                                                                                                       |
-| ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| **Produkte → Runbooks**                                                      | Runbook-Vorlagen durchsuchen, erstellen und bearbeiten.                                                                |
-| **Schritte-Tab eines Runbooks**                                              | Schrittliste verfassen und sortieren.                                                                                  |
-| **Ausführungen-Tab eines Runbooks**                                          | Jeden Lauf dieses Runbooks mit Statusfiltern sehen.                                                                    |
-| **„Jetzt ausführen"-Button eines Runbooks**                                  | Eine Ad-hoc-Ausführung starten, die an kein Ereignis gekoppelt ist.                                                    |
-| **Vorfälle / Warnungen / Geplante Wartung → Einstellungen → Runbook-Regeln** | Auto-Trigger-Regeln pro Entitätstyp erstellen.                                                                         |
-| **Vorfall / Warnmeldung / Wartungsereignis → Runbooks-Tab**                  | Ausführungen sehen, die an dieses Ereignis angehängt sind, und **Runbook ausführen** für einen manuellen Lauf klicken. |
+| Seite                                                                                                     | Was Sie dort tun                                                                                                       |
+| --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| **Produkte → Runbooks**                                                                                   | Runbook-Vorlagen durchsuchen, erstellen und bearbeiten.                                                                |
+| **Schritte-Tab eines Runbooks**                                                                           | Schrittliste verfassen und sortieren.                                                                                  |
+| **Ausführungen-Tab eines Runbooks**                                                                       | Jeden Lauf dieses Runbooks mit Statusfiltern sehen.                                                                    |
+| **„Jetzt ausführen"-Button eines Runbooks**                                                               | Eine Ad-hoc-Ausführung starten, die an kein Ereignis gekoppelt ist.                                                    |
+| **Vorfälle / Geplante Wartung → Einstellungen → Runbook-Regeln**, **Warnungen → Regeln → Runbook-Regeln** | Auto-Trigger-Regeln pro Entitätstyp erstellen.                                                                         |
+| **Vorfall / Warnmeldung / Wartungsereignis → Runbooks-Tab**                                               | Ausführungen sehen, die an dieses Ereignis angehängt sind, und **Runbook ausführen** für einen manuellen Lauf klicken. |
 
 ## Häufige Anwendungsfälle
 

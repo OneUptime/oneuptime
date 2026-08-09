@@ -27,7 +27,7 @@ Et par begreber går igen i resten af runbook-dokumentationen. Få styr på dem 
 | Begreb            | Betydning                                                                                                                                                                                                                      |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Runbook**       | Skabelonen. En navngiven, genbrugelig procedure med en ordnet liste af trin og et `isEnabled`-flag.                                                                                                                            |
-| **Trin**          | Ét punkt i et runbook. Har en type (Manuel / JavaScript / HTTP / Bash / AI), en titel, en beskrivelse og typespecifik konfiguration.                                                                                                |
+| **Trin**          | Ét punkt i et runbook. Har en type (Manuel / JavaScript / HTTP / Bash / AI), en titel, en beskrivelse og typespecifik konfiguration.                                                                                           |
 | **Runbook-regel** | Et mønster, der automatisk knytter et eller flere runbooks til hændelser, alarmer eller planlagt vedligehold, når titel eller beskrivelse matcher et regex.                                                                    |
 | **Kørsel**        | Én afvikling af et runbook. Oprettes, når en regel udløses, når nogen klikker "Kør runbook" på en hændelse, eller når nogen klikker "Kør nu" på selve runbook'et. Indeholder et snapshot af trinene og status/output per trin. |
 | **Snapshot**      | Den fastfrosne kopi af runbook'ets trin, som lever på hver kørsel. Lader dig redigere skabelonen senere uden at omskrive historikken.                                                                                          |
@@ -44,26 +44,26 @@ Et par begreber går igen i resten af runbook-dokumentationen. Få styr på dem 
 
 En hurtig beslutningsguide. Detaljerne findes i [Skriv et runbook](/docs/runbooks/authoring).
 
-| Trintype           | Brug det når…                                                                                                                                                                                                                      | Eksempel                                                                |
-| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| **Manuel**         | Et menneske skal verificere noget, foretage en vurdering eller udføre en handling, OneUptime ikke kan observere.                                                                                                                   | "Bekræft trafik til sekundær region i load balancer-dashboardet."       |
-| **JavaScript**     | Du har brug for en lille, afgrænset beregning — forespørge en konfigurationstjeneste, transformere en payload, køre logik før næste trin. Kører i sandkasse på en [Runbook-agent](/docs/runbooks/agents) i din egen infrastruktur. | Beregn nuværende replikalag og afgør, om du skal fortsætte.             |
-| **HTTP-anmodning** | Du kalder en eksisterende API — dit eget admin-endpoint, en cloud-udbyder, PagerDuty, Slack.                                                                                                                                       | `POST` til din failover-orchestrator.                                   |
-| **Bash**           | Du skal køre shell-kommandoer på din egen infrastruktur — genstarte en service, køre `kubectl`, kalde et deploy-script. Kræver en [Runbook-agent](/docs/runbooks/agents) installeret i dit miljø.                                  | Genstart en service, `kubectl rollout restart`, kør et recovery-script. |
+| Trintype           | Brug det når…                                                                                                                                                                                                                      | Eksempel                                                                     |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| **Manuel**         | Et menneske skal verificere noget, foretage en vurdering eller udføre en handling, OneUptime ikke kan observere.                                                                                                                   | "Bekræft trafik til sekundær region i load balancer-dashboardet."            |
+| **JavaScript**     | Du har brug for en lille, afgrænset beregning — forespørge en konfigurationstjeneste, transformere en payload, køre logik før næste trin. Kører i sandkasse på en [Runbook-agent](/docs/runbooks/agents) i din egen infrastruktur. | Beregn nuværende replikalag og afgør, om du skal fortsætte.                  |
+| **HTTP-anmodning** | Du kalder en eksisterende API — dit eget admin-endpoint, en cloud-udbyder, PagerDuty, Slack.                                                                                                                                       | `POST` til din failover-orchestrator.                                        |
+| **Bash**           | Du skal køre shell-kommandoer på din egen infrastruktur — genstarte en service, køre `kubectl`, kalde et deploy-script. Kræver en [Runbook-agent](/docs/runbooks/agents) installeret i dit miljø.                                  | Genstart en service, `kubectl rollout restart`, kør et recovery-script.      |
 | **AI**             | Du vil have en analyse, opsummering eller vurdering midt i kørslen — ræsonnement over den udløsende hændelse og tidligere trins output via dit projekts LLM-udbyder.                                                               | "Gennemgå diagnostikken ovenfor — er det sikkert at fortsætte med failover?" |
 
 Du kan blande alle fem i ét runbook — runbooks' styrke er at flette menneskelig verifikation med automatisering og AI-analyse.
 
 ## Hvor runbooks bor i dashboardet
 
-| Side                                                                                  | Hvad du laver der                                                                   |
-| ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| **Produkter → Runbooks**                                                              | Gennemse, oprette og redigere runbook-skabeloner.                                   |
-| **Trin-fanen på et runbook**                                                          | Skrive og omarrangere triplisten.                                                   |
-| **Udførelser-fanen på et runbook**                                                    | Se hver kørsel af runbook'et med statusfiltre.                                      |
-| **"Kør nu"-knappen på et runbook**                                                    | Starte en ad hoc-kørsel, der ikke er knyttet til en hændelse.                       |
-| **Hændelser / Advarsler / Planlagt vedligeholdelse → Indstillinger → Runbook-regler** | Oprette de automatiske udløsningsregler per entitetstype.                           |
-| **En hændelse / alarm / vedligeholdshændelse → Runbooks-fanen**                       | Se kørsler knyttet til den hændelse og klikke **Kør runbook** for en manuel kørsel. |
+| Side                                                                                                               | Hvad du laver der                                                                   |
+| ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
+| **Produkter → Runbooks**                                                                                           | Gennemse, oprette og redigere runbook-skabeloner.                                   |
+| **Trin-fanen på et runbook**                                                                                       | Skrive og omarrangere triplisten.                                                   |
+| **Udførelser-fanen på et runbook**                                                                                 | Se hver kørsel af runbook'et med statusfiltre.                                      |
+| **"Kør nu"-knappen på et runbook**                                                                                 | Starte en ad hoc-kørsel, der ikke er knyttet til en hændelse.                       |
+| **Hændelser / Planlagt vedligeholdelse → Indstillinger → Runbook-regler**, **Advarsler → Regler → Runbook-regler** | Oprette de automatiske udløsningsregler per entitetstype.                           |
+| **En hændelse / alarm / vedligeholdshændelse → Runbooks-fanen**                                                    | Se kørsler knyttet til den hændelse og klikke **Kør runbook** for en manuel kørsel. |
 
 ## Almindelige anvendelser
 

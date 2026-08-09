@@ -112,7 +112,7 @@ describe("FixRunBudget.describeRejection", () => {
 
     expect(message).toMatch(/10 of 10/);
     expect(message).toMatch(/Daily Alert AI Fix Task Limit/);
-    expect(message).toMatch(/Alerts > Settings > AI/);
+    expect(message).toMatch(/Alerts > AI > Investigation/);
     expect(message).toMatch(new RegExp(String(DEFAULT_DAILY_FIX_RUN_LIMIT)));
   });
 

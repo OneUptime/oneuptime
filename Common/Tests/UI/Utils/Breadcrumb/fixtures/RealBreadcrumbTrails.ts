@@ -166,13 +166,28 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   },
   {
     getter: "getAlertsBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/alerts/settings/ai",
+    titles: ["Project", "Alerts", "AI", "Investigation"],
+  },
+  {
+    getter: "getAlertsBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/alerts/settings/auto-remediation-rules",
+    titles: ["Project", "Alerts", "AI", "Remediation"],
+  },
+  {
+    getter: "getAlertsBreadcrumbs",
     pagePattern: "/dashboard/:projectId/alerts/settings/custom-fields",
     titles: ["Project", "Alerts", "Settings", "Custom Fields"],
   },
   {
     getter: "getAlertsBreadcrumbs",
     pagePattern: "/dashboard/:projectId/alerts/settings/grouping-rules",
-    titles: ["Project", "Alerts", "Settings", "Grouping Rules"],
+    titles: ["Project", "Alerts", "Rules", "Grouping Rules"],
+  },
+  {
+    getter: "getAlertsBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/alerts/settings/label-rules",
+    titles: ["Project", "Alerts", "Rules", "Label Rules"],
   },
   {
     getter: "getAlertsBreadcrumbs",
@@ -189,6 +204,31 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
       "Note Templates",
       "View Template",
     ],
+  },
+  {
+    getter: "getAlertsBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/alerts/settings/on-call-rules",
+    titles: ["Project", "Alerts", "Rules", "On-Call Rules"],
+  },
+  {
+    getter: "getAlertsBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/alerts/settings/owner-rules",
+    titles: ["Project", "Alerts", "Rules", "Owner Rules"],
+  },
+  {
+    getter: "getAlertsBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/alerts/settings/privacy-rules",
+    titles: ["Project", "Alerts", "Rules", "Privacy Rules"],
+  },
+  {
+    getter: "getAlertsBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/alerts/settings/reminder-rules",
+    titles: ["Project", "Alerts", "Rules", "Reminder Rules"],
+  },
+  {
+    getter: "getAlertsBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/alerts/settings/runbook-rules",
+    titles: ["Project", "Alerts", "Rules", "Runbook Rules"],
   },
   {
     getter: "getAlertsBreadcrumbs",

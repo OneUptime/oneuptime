@@ -76,6 +76,7 @@ const realRoutePatterns: Array<string> = [
   "/dashboard/:projectId/alerts/settings/note-templates/:id",
   "/dashboard/:projectId/alerts/settings/custom-fields",
   "/dashboard/:projectId/alerts/settings/grouping-rules",
+  "/dashboard/:projectId/alerts/settings/auto-remediation-rules",
   "/dashboard/:projectId/alerts/settings/on-call-rules",
   "/dashboard/:projectId/alerts/settings/owner-rules",
   "/dashboard/:projectId/alerts/settings/runbook-rules",

@@ -107,11 +107,65 @@ export function getAlertsBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Custom Fields",
     ]),
+
+    /*
+     * AI and Rules are their own side-menu sections, not lines under Settings,
+     * so the trail has to name the section the page actually lives in —
+     * otherwise the header says "Settings" while the menu highlights "Rules".
+     */
+    ...BuildBreadcrumbLinksByTitles(PageMap.ALERTS_SETTINGS_AI, [
+      "Project",
+      "Alerts",
+      "AI",
+      "Investigation",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.ALERTS_SETTINGS_AUTO_REMEDIATION_RULES,
+      ["Project", "Alerts", "AI", "Remediation"],
+    ),
+
+    // Alert Rules
     ...BuildBreadcrumbLinksByTitles(PageMap.ALERTS_SETTINGS_GROUPING_RULES, [
       "Project",
       "Alerts",
-      "Settings",
+      "Rules",
       "Grouping Rules",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ALERTS_SETTINGS_ON_CALL_RULES, [
+      "Project",
+      "Alerts",
+      "Rules",
+      "On-Call Rules",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ALERTS_SETTINGS_OWNER_RULES, [
+      "Project",
+      "Alerts",
+      "Rules",
+      "Owner Rules",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ALERTS_SETTINGS_RUNBOOK_RULES, [
+      "Project",
+      "Alerts",
+      "Rules",
+      "Runbook Rules",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ALERTS_SETTINGS_PRIVACY_RULES, [
+      "Project",
+      "Alerts",
+      "Rules",
+      "Privacy Rules",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ALERTS_SETTINGS_LABEL_RULES, [
+      "Project",
+      "Alerts",
+      "Rules",
+      "Label Rules",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ALERTS_SETTINGS_REMINDER_RULES, [
+      "Project",
+      "Alerts",
+      "Rules",
+      "Reminder Rules",
     ]),
 
     // Episodes

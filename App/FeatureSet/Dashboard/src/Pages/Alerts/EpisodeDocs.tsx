@@ -93,7 +93,7 @@ const AlertEpisodeDocs: FunctionComponent<
     {
       title: "Navigate to Grouping Rules",
       description:
-        "Go to Alerts > Settings > Grouping Rules to configure how alerts are automatically grouped.",
+        "Go to Alerts > Rules > Grouping Rules to configure how alerts are automatically grouped.",
     },
     {
       title: "Create a Grouping Rule",

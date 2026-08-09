@@ -24,13 +24,13 @@ Incidenthantering är ofta skillnaden mellan en blixt på en minut och ett flert
 
 Några termer återkommer i resten av runbook-dokumenten. Få ordning på dessa först:
 
-| Term              | Betydelse                                                                                                                                                                                                         |
-| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Runbook**       | Mallen. En namngiven, återanvändbar procedur med en ordnad steglista och en `isEnabled`-flagga.                                                                                                                   |
-| **Steg**          | Ett objekt i ett runbook. Har en typ (Manuell / JavaScript / HTTP / Bash / AI), en titel, en beskrivning och typspecifik konfiguration.                                                                                |
-| **Runbook-regel** | Ett mönster som automatiskt kopplar ett eller flera runbooks till incidenter, larm eller planerade underhåll när deras titel eller beskrivning matchar en regex.                                                  |
+| Term              | Betydelse                                                                                                                                                                                                          |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Runbook**       | Mallen. En namngiven, återanvändbar procedur med en ordnad steglista och en `isEnabled`-flagga.                                                                                                                    |
+| **Steg**          | Ett objekt i ett runbook. Har en typ (Manuell / JavaScript / HTTP / Bash / AI), en titel, en beskrivning och typspecifik konfiguration.                                                                            |
+| **Runbook-regel** | Ett mönster som automatiskt kopplar ett eller flera runbooks till incidenter, larm eller planerade underhåll när deras titel eller beskrivning matchar en regex.                                                   |
 | **Körning**       | En körning av ett runbook. Skapas när en regel utlöses, någon klickar "Kör Runbook" på ett event, eller någon klickar "Run Now" på själva runbooket. Innehåller ett snapshot av stegen och status/utdata per steg. |
-| **Snapshot**      | Den frysta kopian av runbookets steg som lever på varje körning. Låter dig redigera mallen senare utan att skriva om historien.                                                                                   |
+| **Snapshot**      | Den frysta kopian av runbookets steg som lever på varje körning. Låter dig redigera mallen senare utan att skriva om historien.                                                                                    |
 
 ## Ett runbooks livscykel
 
@@ -56,14 +56,14 @@ Du kan blanda alla fem i ett enda runbook — runbooks styrka är att varva män
 
 ## Var runbooks bor i dashboarden
 
-| Sida                                                                               | Vad du gör där                                                                            |
-| ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| **Produkter → Runbooks**                                                           | Bläddra, skapa och redigera runbook-mallar.                                               |
-| **Ett runbooks Steg-flik**                                                         | Författa och omordna steglistan.                                                          |
-| **Ett runbooks Körningar-flik**                                                    | Se varje körning av detta runbook med statusfilter.                                       |
-| **Ett runbooks "Run Now"-knapp**                                                   | Starta en ad hoc-körning som inte är kopplad till något event.                            |
-| **Incidenter / Varningar / Schemalagt underhåll → Inställningar → Runbook-regler** | Skapa auto-triggerreglerna per entitetstyp.                                               |
-| **En incident / ett larm / ett underhåll → Runbooks-flik**                         | Se körningar kopplade till detta event och klicka **Kör Runbook** för en manuell körning. |
+| Sida                                                                                                            | Vad du gör där                                                                            |
+| --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| **Produkter → Runbooks**                                                                                        | Bläddra, skapa och redigera runbook-mallar.                                               |
+| **Ett runbooks Steg-flik**                                                                                      | Författa och omordna steglistan.                                                          |
+| **Ett runbooks Körningar-flik**                                                                                 | Se varje körning av detta runbook med statusfilter.                                       |
+| **Ett runbooks "Run Now"-knapp**                                                                                | Starta en ad hoc-körning som inte är kopplad till något event.                            |
+| **Incidenter / Schemalagt underhåll → Inställningar → Runbook-regler**, **Varningar → Regler → Runbook-regler** | Skapa auto-triggerreglerna per entitetstyp.                                               |
+| **En incident / ett larm / ett underhåll → Runbooks-flik**                                                      | Se körningar kopplade till detta event och klicka **Kör Runbook** för en manuell körning. |
 
 ## Vanliga användningsfall
 

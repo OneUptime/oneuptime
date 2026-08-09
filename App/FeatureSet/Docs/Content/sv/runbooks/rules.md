@@ -1,9 +1,9 @@
 # Runbook-regler
 
-Runbook-regler kopplar runbooks automatiskt när en **incident**, ett **larm** eller en **planerad underhållshändelse** skapas. De hanteras från Inställningar-menyn på varje entitet:
+Runbook-regler kopplar runbooks automatiskt när en **incident**, ett **larm** eller en **planerad underhållshändelse** skapas. De hanteras från menyn på varje entitet:
 
 - Incidenter → Inställningar → **Runbook-regler**
-- Varningar → Inställningar → **Runbook-regler**
+- Varningar → Regler → **Runbook-regler**
 - Schemalagt underhåll → Inställningar → **Runbook-regler**
 
 Alla tre sidorna redigerar samma underliggande regelmodell — de är bara filtrerade för att visa endast regler för den entitetstypen.

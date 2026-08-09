@@ -565,7 +565,7 @@ export class Service extends BaseService {
         const settingsLocation: string = request.incidentId
           ? "Incidents > Settings > AI"
           : request.alertId
-            ? "Alerts > Settings > AI"
+            ? "Alerts > AI > Investigation"
             : "Project Settings > AI > AI Guardrails";
         const budgetMessage: string = `Daily autonomous AI token budget exhausted (${budget.usedTokensToday.toLocaleString()} of ${budget.limitInTokens?.toLocaleString()} tokens used today). Autonomous AI requests resume tomorrow (UTC) — raise or unset the limit under ${settingsLocation}.`;
 

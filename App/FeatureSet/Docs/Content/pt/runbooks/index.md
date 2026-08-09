@@ -27,7 +27,7 @@ Alguns termos aparecem o tempo todo no restante da documentação de runbooks. V
 | Termo                | Significado                                                                                                                                                                                                                            |
 | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Runbook**          | O modelo. Um procedimento nomeado e reutilizável com uma lista ordenada de passos e uma flag `isEnabled`.                                                                                                                              |
-| **Passo**            | Um item dentro de um runbook. Tem tipo (Manual / JavaScript / HTTP / Bash / AI), título, descrição e configuração específica do tipo.                                                                                                       |
+| **Passo**            | Um item dentro de um runbook. Tem tipo (Manual / JavaScript / HTTP / Bash / AI), título, descrição e configuração específica do tipo.                                                                                                  |
 | **Regra de runbook** | Um padrão que anexa automaticamente um ou mais runbooks a incidentes, alertas ou eventos de manutenção quando o título ou descrição casam com uma regex.                                                                               |
 | **Execução**         | Uma corrida de um runbook. Criada quando uma regra dispara, quando alguém clica "Executar Runbook" em um evento, ou quando alguém clica "Executar agora" no próprio runbook. Contém um snapshot dos passos e o status/saída por passo. |
 | **Snapshot**         | A cópia congelada dos passos do runbook que mora em cada execução. Permite editar o modelo depois sem reescrever o histórico.                                                                                                          |
@@ -56,14 +56,14 @@ Você pode misturar os cinco num único runbook — a força dos runbooks está 
 
 ## Onde os runbooks ficam no painel
 
-| Página                                                                               | O que você faz lá                                                                                |
-| ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
-| **Produtos → Runbooks**                                                              | Navegar, criar e editar modelos de runbook.                                                      |
-| **Aba Passos de um runbook**                                                         | Escrever e reordenar a lista de passos.                                                          |
-| **Aba Execuções de um runbook**                                                      | Ver cada execução desse runbook com filtros de status.                                           |
-| **Botão "Executar agora" de um runbook**                                             | Disparar uma execução ad hoc sem vínculo com nenhum evento.                                      |
-| **Incidentes / Alertas / Manutenção programada → Configurações → Regras de runbook** | Criar as regras de auto-disparo por tipo de entidade.                                            |
-| **Um incidente / alerta / evento de manutenção → aba Runbooks**                      | Ver as execuções vinculadas a esse evento e clicar **Executar Runbook** para uma corrida manual. |
+| Página                                                                                                               | O que você faz lá                                                                                |
+| -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| **Produtos → Runbooks**                                                                                              | Navegar, criar e editar modelos de runbook.                                                      |
+| **Aba Passos de um runbook**                                                                                         | Escrever e reordenar a lista de passos.                                                          |
+| **Aba Execuções de um runbook**                                                                                      | Ver cada execução desse runbook com filtros de status.                                           |
+| **Botão "Executar agora" de um runbook**                                                                             | Disparar uma execução ad hoc sem vínculo com nenhum evento.                                      |
+| **Incidentes / Manutenção programada → Configurações → Regras de runbook**, **Alertas → Regras → Regras de runbook** | Criar as regras de auto-disparo por tipo de entidade.                                            |
+| **Um incidente / alerta / evento de manutenção → aba Runbooks**                                                      | Ver as execuções vinculadas a esse evento e clicar **Executar Runbook** para uma corrida manual. |
 
 ## Casos de uso comuns
 

@@ -2671,7 +2671,7 @@
   "Global Probes": "Sondas globais",
   "Global Probes help you monitor external resources from different locations around the world.": "As sondas globais ajudam você a monitorar recursos externos de diferentes locais ao redor do mundo.",
   "Global Probes on New Monitors": "Sondas globais em novos monitores",
-  "Go to Alerts > Settings > Grouping Rules to configure how alerts are automatically grouped.": "Vá para Alertas > Configurações > Regras de agrupamento para configurar como os alertas são agrupados automaticamente.",
+  "Go to Alerts > Rules > Grouping Rules to configure how alerts are automatically grouped.": "Vá para Alertas > Regras > Regras de agrupamento para configurar como os alertas são agrupados automaticamente.",
   "Go to Incidents > Settings > Grouping Rules to configure how incidents are automatically grouped.": "Vá para Incidentes > Configurações > Regras de Agrupamento para configurar como os incidentes são agrupados automaticamente.",
   "Go to Project Settings > Call & SMS > Custom Call/SMS Config and add your Twilio credentials (Account SID and Auth Token).": "Vá para Configurações do Projeto > Chamada e SMS > Configuração Personalizada de Chamada/SMS e adicione suas credenciais do Twilio (Account SID e Auth Token).",
   "Go to Settings": "Ir para Configurações",

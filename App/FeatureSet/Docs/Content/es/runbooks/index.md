@@ -27,7 +27,7 @@ Algunos términos se repiten en el resto de la documentación de runbooks. Aclar
 | Término              | Significado                                                                                                                                                                                                                                       |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Runbook**          | La plantilla. Un procedimiento nombrado y reutilizable con una lista ordenada de pasos y un flag `isEnabled`.                                                                                                                                     |
-| **Paso**             | Un elemento de un runbook. Tiene un tipo (Manual / JavaScript / HTTP / Bash / AI), un título, una descripción y configuración específica al tipo.                                                                                                      |
+| **Paso**             | Un elemento de un runbook. Tiene un tipo (Manual / JavaScript / HTTP / Bash / AI), un título, una descripción y configuración específica al tipo.                                                                                                 |
 | **Regla de runbook** | Un patrón que adjunta automáticamente uno o más runbooks a incidentes, alertas o mantenimientos programados cuando su título o descripción coincide con un regex.                                                                                 |
 | **Ejecución**        | Una corrida de un runbook. Se crea cuando una regla se dispara, cuando alguien pulsa "Ejecutar runbook" en un evento, o cuando alguien pulsa "Ejecutar ahora" en el runbook mismo. Contiene un snapshot de los pasos y el estado/salida por paso. |
 | **Snapshot**         | La copia congelada de los pasos del runbook que vive en cada ejecución. Permite editar la plantilla después sin reescribir la historia.                                                                                                           |
@@ -56,14 +56,14 @@ Puedes mezclar los cinco en un mismo runbook — la fuerza de los runbooks está
 
 ## Dónde viven los runbooks en el panel
 
-| Página                                                                                  | Qué haces ahí                                                                                      |
-| --------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| **Productos → Runbooks**                                                | Navegar, crear y editar plantillas de runbook.                                                     |
-| **Pestaña Pasos de un runbook**                                                         | Redactar y reordenar la lista de pasos.                                                            |
-| **Pestaña Ejecuciones de un runbook**                                                   | Ver cada ejecución de ese runbook con filtros de estado.                                           |
-| **Botón "Ejecutar ahora" de un runbook**                                                | Lanzar una ejecución ad hoc no vinculada a ningún evento.                                          |
-| **Incidentes / Alertas / Mantenimiento programado → Ajustes → Reglas de runbook**       | Crear reglas de auto-disparo por tipo de entidad.                                                  |
-| **Un incidente / alerta / mantenimiento → pestaña Runbooks**                            | Ver las ejecuciones vinculadas a ese evento y pulsar **Ejecutar runbook** para una corrida manual. |
+| Página                                                                                                            | Qué haces ahí                                                                                      |
+| ----------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| **Productos → Runbooks**                                                                                          | Navegar, crear y editar plantillas de runbook.                                                     |
+| **Pestaña Pasos de un runbook**                                                                                   | Redactar y reordenar la lista de pasos.                                                            |
+| **Pestaña Ejecuciones de un runbook**                                                                             | Ver cada ejecución de ese runbook con filtros de estado.                                           |
+| **Botón "Ejecutar ahora" de un runbook**                                                                          | Lanzar una ejecución ad hoc no vinculada a ningún evento.                                          |
+| **Incidentes / Mantenimiento programado → Ajustes → Reglas de runbook**, **Alertas → Reglas → Reglas de runbook** | Crear reglas de auto-disparo por tipo de entidad.                                                  |
+| **Un incidente / alerta / mantenimiento → pestaña Runbooks**                                                      | Ver las ejecuciones vinculadas a ese evento y pulsar **Ejecutar runbook** para una corrida manual. |
 
 ## Casos de uso comunes
 

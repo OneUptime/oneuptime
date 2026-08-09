@@ -187,7 +187,7 @@ export default class FixRunBudget {
       lane === "incident"
         ? "Incidents > Settings > AI"
         : lane === "alert"
-          ? "Alerts > Settings > AI"
+          ? "Alerts > AI > Investigation"
           : "Project Settings > AI > AI Guardrails";
     const laneLabel: string = lane === "other" ? "other AI" : `${lane} AI`;
 
