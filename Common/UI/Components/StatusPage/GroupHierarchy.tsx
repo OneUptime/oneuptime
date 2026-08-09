@@ -1,7 +1,7 @@
-import Button, { ButtonSize, ButtonStyleType } from "../Button/Button";
 import Icon from "../Icon/Icon";
 import MoreMenu from "../MoreMenu/MoreMenu";
 import MoreMenuItem from "../MoreMenu/MoreMenuItem";
+import Tooltip from "../Tooltip/Tooltip";
 import IconProp from "../../../Types/Icon/IconProp";
 import StatusPageGroup from "../../../Models/DatabaseModels/StatusPageGroup";
 import StatusPageGroupViewMode from "../../../Types/StatusPage/StatusPageGroupViewMode";
@@ -65,6 +65,50 @@ const CONNECTOR_OFFSET_CLASS_NAME: string = "top-[18px]";
  */
 const INDENT_COLUMN_CLASS_NAME: string = "relative w-5 flex-shrink-0";
 const RAIL_CLASS_NAME: string = "absolute inset-y-0 left-2.5 w-px bg-gray-200";
+
+/*
+ * Every control on the right of a row is the same square with the same glyph
+ * size, hover and focus ring, because they read as one cluster and any drift
+ * between them is visible at a glance.
+ *
+ * They are native buttons rather than <Button buttonStyle={ICON} />: the
+ * overflow trigger has to be one - MoreMenu only enhances a custom trigger in
+ * place when it already is a native button - and ButtonStyleType.ICON cannot be
+ * talked into matching it from a className, because its padding, its 20px glyph
+ * and its indigo-500 offset focus ring are all baked into the style, and its
+ * own text-gray-600 beats an appended text-gray-400 (Tailwind orders utilities
+ * in the stylesheet, not in the class attribute).
+ */
+const ROW_ACTION_CLASS_NAME: string =
+  "flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 disabled:pointer-events-none disabled:opacity-40";
+
+interface RowActionButtonProps {
+  icon: IconProp;
+  tooltip: string;
+  ariaLabel: string;
+  dataTestId: string;
+  isDisabled: boolean;
+  onClick: () => void;
+}
+
+const RowActionButton: FunctionComponent<RowActionButtonProps> = (
+  props: RowActionButtonProps,
+): ReactElement => {
+  return (
+    <Tooltip text={props.tooltip}>
+      <button
+        type="button"
+        aria-label={props.ariaLabel}
+        data-testid={props.dataTestId}
+        disabled={props.isDisabled}
+        className={ROW_ACTION_CLASS_NAME}
+        onClick={props.onClick}
+      >
+        <Icon icon={props.icon} className="h-4 w-4" />
+      </button>
+    </Tooltip>
+  );
+};
 
 const GroupHierarchy: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -314,20 +358,16 @@ const GroupHierarchy: FunctionComponent<ComponentProps> = (
      */
     return (
       <div
-        className="-my-1 ml-auto flex flex-shrink-0 items-center gap-0.5 pl-2"
+        className="-my-1 ml-auto flex flex-shrink-0 items-center gap-1 pl-2"
         data-testid="status-page-group-hierarchy-actions"
       >
         {props.isCreateable && props.onAddSubGroup ? (
-          <Button
-            buttonSize={ButtonSize.Small}
-            buttonStyle={ButtonStyleType.ICON}
+          <RowActionButton
             icon={IconProp.FolderPlus}
-            title=""
             tooltip="Add a sub group inside this group"
             ariaLabel={`Add a sub group inside ${row.name || "this group"}`}
             dataTestId="status-page-group-hierarchy-add-sub-group"
-            disabled={isBusy}
-            className="text-gray-400 hover:bg-gray-200 hover:text-gray-700"
+            isDisabled={isBusy}
             onClick={() => {
               props.onAddSubGroup?.(row.statusPageGroup);
             }}
@@ -337,16 +377,12 @@ const GroupHierarchy: FunctionComponent<ComponentProps> = (
         )}
 
         {props.isEditable && props.onEdit ? (
-          <Button
-            buttonSize={ButtonSize.Small}
-            buttonStyle={ButtonStyleType.ICON}
+          <RowActionButton
             icon={IconProp.Edit}
-            title=""
             tooltip="Edit this group"
             ariaLabel={`Edit ${row.name || "this group"}`}
             dataTestId="status-page-group-hierarchy-edit"
-            disabled={isBusy}
-            className="text-gray-400 hover:bg-gray-200 hover:text-gray-700"
+            isDisabled={isBusy}
             onClick={() => {
               props.onEdit?.(row.statusPageGroup);
             }}
@@ -357,17 +393,15 @@ const GroupHierarchy: FunctionComponent<ComponentProps> = (
 
         {menuItems.length > 0 ? (
           <MoreMenu
-            text={`More actions for ${row.name || "this group"}`}
-            menuIcon={IconProp.More}
+            ariaLabel={`More actions for ${row.name || "this group"}`}
             isDisabled={isBusy}
             elementToBeShownInsteadOfButton={
               <button
                 type="button"
-                aria-label={`More actions for ${row.name || "this group"}`}
                 data-testid="status-page-group-hierarchy-more"
-                className="flex h-7 w-7 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                className={ROW_ACTION_CLASS_NAME}
               >
-                <Icon icon={IconProp.More} className="h-4 w-4" />
+                <Icon icon={IconProp.EllipsisHorizontal} className="h-4 w-4" />
               </button>
             }
           >
@@ -401,9 +435,9 @@ const GroupHierarchy: FunctionComponent<ComponentProps> = (
         data-group-id={row.id}
         data-search-match={row.isSearchMatch ? "true" : "false"}
         /*
-         * The row's own padding, against the container's negative margin, is
-         * what lets a hover highlight reach past the content column while the
-         * tree itself stays on the card's grid.
+         * The row's own padding is what lets a hover highlight reach past the
+         * content column, out to the padding of whatever panel the caller has
+         * put the tree in.
          */
         className={`group relative flex items-stretch rounded-lg px-2 transition-colors hover:bg-gray-50 ${
           isBusy ? "opacity-60" : ""
@@ -472,7 +506,6 @@ const GroupHierarchy: FunctionComponent<ComponentProps> = (
       role="tree"
       aria-label={props.ariaLabel || "Status page group hierarchy"}
       data-testid="status-page-group-hierarchy"
-      className="-mx-2"
     >
       {props.rows.map((row: StatusPageGroupHierarchyRow) => {
         return renderRow(row);

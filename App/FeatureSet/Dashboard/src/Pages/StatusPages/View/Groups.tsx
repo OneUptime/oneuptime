@@ -40,7 +40,10 @@ import React, {
 } from "react";
 import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
 import StatusPageGroupViewMode from "Common/Types/StatusPage/StatusPageGroupViewMode";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
@@ -212,6 +215,19 @@ const StatusPageGroups: FunctionComponent<PageComponentProps> = (
     StatusPageGroupHierarchyViewUtil.getSummary({
       statusPageGroups: statusPageGroups,
     });
+
+  /*
+   * Whether "Expand All" still has anything to open. A status page with no
+   * nesting at all, or one that is already fully unfolded, would otherwise
+   * offer a button that does nothing when clicked.
+   */
+  const canExpandMore: boolean = Array.from(
+    StatusPageGroupHierarchyViewUtil.getExpandableGroupIds({
+      statusPageGroups: statusPageGroups,
+    }),
+  ).some((statusPageGroupId: string) => {
+    return !expandedGroupIds.has(statusPageGroupId);
+  });
 
   type ToggleExpandFunction = (statusPageGroupId: string) => void;
 
@@ -590,28 +606,48 @@ const StatusPageGroups: FunctionComponent<PageComponentProps> = (
     );
 
     /*
-     * An icon-only trigger, styled to sit flush with the Card's own buttons.
-     * MoreMenu's default trigger renders its `text` as a visible label, which
-     * would put "More group actions" across the header next to "Create Group".
+     * The search decides what the card is showing, so it belongs with the
+     * card's own controls rather than floating above the tree - the same slot
+     * a ModelTable puts its search in.
      */
-    const buttons: Array<CardButtonSchema | ReactElement> = [
-      <MoreMenu
-        key="status-page-groups-actions"
-        text="More group actions"
-        elementToBeShownInsteadOfButton={
-          <button
-            type="button"
-            aria-label="More group actions"
-            data-testid="status-page-groups-actions"
-            className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
-          >
-            <Icon icon={IconProp.More} className="h-4 w-4 text-gray-500" />
-          </button>
-        }
+    const searchElement: ReactElement = (
+      <div
+        key="status-page-groups-search-slot"
+        className="relative w-full sm:w-52 lg:w-64"
       >
-        {menuItems}
-      </MoreMenu>,
-    ];
+        {/* Placeholders are not accessible names, and this input has no visible label. */}
+        <label
+          htmlFor="status-page-groups-search-input"
+          id="status-page-groups-search-label"
+          className="sr-only"
+        >
+          Search groups by name
+        </label>
+        <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+          <Icon icon={IconProp.Search} className="h-4 w-4" />
+        </span>
+        <Input
+          id="status-page-groups-search-input"
+          ariaLabelledby="status-page-groups-search-label"
+          type={InputType.TEXT}
+          placeholder="Search groups..."
+          value={searchText}
+          dataTestId="status-page-groups-search"
+          outerDivClassName="relative w-full"
+          className="block w-full rounded-md border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm placeholder-gray-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          onChange={(value: string) => {
+            setSearchText(value);
+          }}
+        />
+      </div>
+    );
+
+    const buttons: Array<CardButtonSchema | ReactElement> = [];
+
+    /* Nothing to search on a status page that has no groups yet. */
+    if (statusPageGroups.length > 0) {
+      buttons.push(searchElement);
+    }
 
     if (canCreate) {
       buttons.push({
@@ -625,6 +661,24 @@ const StatusPageGroups: FunctionComponent<PageComponentProps> = (
         },
       } as CardButtonSchema);
     }
+
+    /*
+     * MoreMenu's own trigger, rather than one styled by hand: the overflow menu
+     * on every other card in the product is this button, and a bordered pill
+     * with a circled-ellipsis glyph was the one thing in this header that
+     * belonged to no other page.
+     */
+    buttons.push(
+      <MoreMenu
+        key="status-page-groups-actions"
+        menuIcon={IconProp.EllipsisHorizontal}
+        text=""
+        ariaLabel="More group actions"
+        dataTestId="status-page-groups-actions"
+      >
+        {menuItems}
+      </MoreMenu>,
+    );
 
     return buttons;
   };
@@ -699,49 +753,38 @@ const StatusPageGroups: FunctionComponent<PageComponentProps> = (
 
     return (
       <div className="space-y-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="relative w-full sm:max-w-xs">
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-              <Icon icon={IconProp.Search} className="h-4 w-4 text-gray-400" />
-            </div>
-            <Input
-              type={InputType.TEXT}
-              placeholder="Search groups..."
-              value={searchText}
-              dataTestId="status-page-groups-search"
-              outerDivClassName="relative w-full"
-              className="block w-full rounded-md border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-              onChange={(value: string) => {
-                setSearchText(value);
-              }}
-            />
-          </div>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span
+            className="text-xs text-gray-500 tabular-nums"
+            data-testid="status-page-groups-summary"
+          >
+            {getSummaryLabel()}
+          </span>
 
-          <div className="flex items-center gap-2">
-            <span
-              className="text-xs text-gray-500 tabular-nums"
-              data-testid="status-page-groups-summary"
-            >
-              {getSummaryLabel()}
-            </span>
-            <button
-              type="button"
-              data-testid="status-page-groups-expand-all"
-              className="inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-md border border-gray-200 bg-white px-2.5 text-xs font-medium text-gray-600 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+          {/*
+           * ButtonStyleType.NORMAL carries an md:ml-3 of its own, which fights
+           * this row's gap. Scoping the override to the container is how
+           * BaseModelTable settles the same argument in its header.
+           */}
+          <div className="flex flex-wrap items-center gap-2 [&_button]:md:ml-0">
+            <Button
+              title="Expand All"
+              icon={IconProp.ChevronDown}
+              buttonSize={ButtonSize.Small}
+              buttonStyle={ButtonStyleType.NORMAL}
+              disabled={!canExpandMore}
+              dataTestId="status-page-groups-expand-all"
               onClick={expandAll}
-            >
-              <Icon icon={IconProp.ChevronDown} className="h-3.5 w-3.5" />
-              Expand all
-            </button>
-            <button
-              type="button"
-              data-testid="status-page-groups-collapse-all"
-              className="inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-md border border-gray-200 bg-white px-2.5 text-xs font-medium text-gray-600 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+            />
+            <Button
+              title="Collapse All"
+              icon={IconProp.ChevronRight}
+              buttonSize={ButtonSize.Small}
+              buttonStyle={ButtonStyleType.NORMAL}
+              disabled={expandedGroupIds.size === 0}
+              dataTestId="status-page-groups-collapse-all"
               onClick={collapseAll}
-            >
-              <Icon icon={IconProp.ChevronRight} className="h-3.5 w-3.5" />
-              Collapse all
-            </button>
+            />
           </div>
         </div>
 
@@ -761,7 +804,15 @@ const StatusPageGroups: FunctionComponent<PageComponentProps> = (
             />
           </div>
         ) : (
-          <div className="border-t border-gray-100 pt-2">
+          /*
+           * An inset panel, the way every comparable card in the product frames
+           * its rows. Deliberately not overflow-hidden: a row's overflow menu is
+           * absolutely positioned inside this box and would be clipped by it.
+           */
+          <div
+            className="rounded-xl border border-gray-200 bg-white p-2"
+            data-testid="status-page-groups-tree"
+          >
             <GroupHierarchy
               rows={rows}
               busyGroupId={busyGroupId}
