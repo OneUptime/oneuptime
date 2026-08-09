@@ -89,6 +89,15 @@ export const AI_CONFIDENCE_CLASSIFICATION_FEATURE: string =
   "AI Confidence Classification";
 
 /*
+ * The LlmLog feature name for the investigation TL;DR (InvestigationTldr) —
+ * one constrained call per completed investigation that has an analysis,
+ * outside the per-run caps but inside this daily budget. A budget rejection
+ * (or any other failure) simply leaves the run without a TL;DR; the report
+ * is still published and the panel omits the block.
+ */
+export const AI_INVESTIGATION_TLDR_FEATURE: string = "AI Investigation TLDR";
+
+/*
  * The LlmLog feature name for server-mediated code-fix agent completions
  * (B4 Tier 0) — the in-house coding agent's tool loop routes every LLM call
  * through /ai-agent-data/llm-completion, which executes under this feature.
@@ -196,6 +205,12 @@ export const AUTONOMOUS_AI_FEATURES: Array<string> = [
   AI_INVESTIGATION_GRADING_FEATURE,
   // One constrained call per completed investigation (ConfidenceSignal).
   AI_CONFIDENCE_CLASSIFICATION_FEATURE,
+  /*
+   * One constrained call per completed investigation that produced an
+   * analysis (InvestigationTldr) — same storm shape as the classification
+   * above, so the same daily budget must cover it.
+   */
+  AI_INVESTIGATION_TLDR_FEATURE,
   /*
    * Server-mediated code-fix agent completions (B4 Tier 0). Fix runs are
    * user-triggered, but the tool loop then runs unattended for up to ~40
@@ -565,7 +580,7 @@ export class Service extends BaseService {
         const settingsLocation: string = request.incidentId
           ? "Incidents > Settings > AI"
           : request.alertId
-            ? "Alerts > Settings > AI"
+            ? "Alerts > AI > Investigation"
             : "Project Settings > AI > AI Guardrails";
         const budgetMessage: string = `Daily autonomous AI token budget exhausted (${budget.usedTokensToday.toLocaleString()} of ${budget.limitInTokens?.toLocaleString()} tokens used today). Autonomous AI requests resume tomorrow (UTC) — raise or unset the limit under ${settingsLocation}.`;
 

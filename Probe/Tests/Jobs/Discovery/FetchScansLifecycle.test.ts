@@ -216,6 +216,98 @@ describe("runScan — a successful sweep", () => {
     );
   });
 
+  /*
+   * A sweep that finds nothing is the hardest discovery outcome to debug: an
+   * empty subnet, an unroutable one, one where ICMP is filtered, and one full
+   * of devices rejecting the scan's credentials all render as "0 of N hosts".
+   * The status message is the only place those are told apart, so its content
+   * is asserted rather than left to chance.
+   */
+  test("says so when the ICMP gate was overridden because nothing answered SNMP", async () => {
+    scanSpy.mockResolvedValue(
+      makeScanResult({
+        discoveredHosts: [],
+        respondedToPingCount: 3,
+        icmpFilteredFallbackHostCount: 251,
+      }) as never,
+    );
+
+    await runScan(makeScan());
+
+    const message: string = fetchCalls()[0]!.body["statusMessage"] as string;
+    expect(message).toContain("251 ICMP-silent hosts were probed over SNMP");
+    expect(message).toContain("ICMP is likely filtered");
+  });
+
+  test("names the SNMP error when hosts answered but rejected the credentials", async () => {
+    scanSpy.mockResolvedValue(
+      makeScanResult({
+        discoveredHosts: [],
+        snmpErrorHostCount: 7,
+        mostCommonSnmpError: "Authentication failure",
+      }) as never,
+    );
+
+    await runScan(makeScan());
+
+    const message: string = fetchCalls()[0]!.body["statusMessage"] as string;
+    expect(message).toContain("7 host(s) replied with an SNMP error");
+    expect(message).toContain("Authentication failure");
+  });
+
+  test("tells the operator what to check when nothing answered at all", async () => {
+    scanSpy.mockResolvedValue(
+      makeScanResult({
+        discoveredHosts: [],
+        respondedToPingCount: 0,
+        snmpErrorHostCount: 0,
+        scannedPort: 161,
+      }) as never,
+    );
+
+    await runScan(makeScan());
+
+    const message: string = fetchCalls()[0]!.body["statusMessage"] as string;
+    expect(message).toContain("Nothing answered SNMP on port 161");
+    expect(message).toContain("UDP/161");
+    expect(message).toContain("SNMP ACL");
+  });
+
+  /*
+   * statusMessage is a varchar(500) and Postgres throws rather than truncates,
+   * which would fail the result write and strand a finished scan In Progress.
+   * The server clips defensively too, but the probe must not rely on that.
+   */
+  test("the summary stays within the statusMessage column even at its worst", async () => {
+    scanSpy.mockResolvedValue(
+      makeScanResult({
+        discoveredHosts: [],
+        scannedHostCount: 32768,
+        respondedToPingCount: 32768,
+        icmpFilteredFallbackHostCount: 32768,
+        snmpErrorHostCount: 32768,
+        mostCommonSnmpError: "E".repeat(120),
+      }) as never,
+    );
+
+    await runScan(makeScan());
+
+    const message: string = fetchCalls()[0]!.body["statusMessage"] as string;
+    expect(message.length).toBeLessThanOrEqual(500);
+  });
+
+  test("a sweep that found devices stays a one-line summary", async () => {
+    scanSpy.mockResolvedValue(
+      makeScanResult({ snmpErrorHostCount: 0 }) as never,
+    );
+
+    await runScan(makeScan());
+
+    expect(fetchCalls()[0]!.body["statusMessage"]).toBe(
+      "Swept 254 hosts: 12 answered ICMP ping, 1 answered SNMP.",
+    );
+  });
+
   test("builds v3 credentials from the scan's flattened snmpV3 columns", async () => {
     await runScan(
       makeScan({

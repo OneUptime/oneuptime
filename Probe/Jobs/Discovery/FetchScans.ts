@@ -2,7 +2,7 @@ import { PROBE_INGEST_URL } from "../../Config";
 import ProbeAPIRequest from "../../Utils/ProbeAPIRequest";
 import SubnetScanner, {
   DiscoveredHost,
-  SubnetScanResult,
+  type SubnetScanResult,
 } from "../../Utils/Discovery/SubnetScanner";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -86,6 +86,72 @@ export function buildSnmpV3Auth(
     privProtocol: SnmpPrivProtocolUtil.parse(scan.snmpV3PrivProtocol),
     privKey: scan.snmpV3PrivKey || undefined,
   };
+}
+
+/*
+ * The operator-facing summary of one sweep.
+ *
+ * Exported for tests: every "the scan found nothing" support case is decided
+ * by whether this sentence names the reason, so its content is asserted
+ * rather than left to chance.
+ */
+export function buildScanStatusMessage(
+  scanResult: SubnetScanResult,
+  snmpResponderCount: number,
+): string {
+  const parts: Array<string> = [];
+
+  if (scanResult.respondedToPingCount !== undefined) {
+    parts.push(
+      `Swept ${scanResult.scannedHostCount} hosts: ` +
+        `${scanResult.respondedToPingCount} answered ICMP ping, ` +
+        `${snmpResponderCount} answered SNMP.`,
+    );
+  } else {
+    parts.push(
+      `Swept ${scanResult.scannedHostCount} hosts via SNMP ` +
+        `(ICMP pre-sweep unavailable on this probe): ` +
+        `${snmpResponderCount} answered SNMP.`,
+    );
+  }
+
+  /*
+   * Say so when the ICMP gate was overridden. Otherwise the scan looks like
+   * it took the fast path, and the operator has no hint that echo is being
+   * dropped on the segment they are scanning.
+   */
+  if ((scanResult.icmpFilteredFallbackHostCount || 0) > 0) {
+    parts.push(
+      `No host answered SNMP among those that replied to ICMP, so all ` +
+        `${scanResult.icmpFilteredFallbackHostCount} ICMP-silent hosts were probed over SNMP as well ` +
+        `(ICMP is likely filtered on this network).`,
+    );
+  }
+
+  /*
+   * The actionable half. A device that returns "Authentication failure" is
+   * reachable and speaking SNMP — the scan's credentials are simply wrong for
+   * it, which is a completely different fix from "the probe cannot see this
+   * subnet", and until now both showed up as an empty result.
+   */
+  const snmpErrorHostCount: number = scanResult.snmpErrorHostCount || 0;
+
+  if (snmpErrorHostCount > 0 && scanResult.mostCommonSnmpError) {
+    parts.push(
+      `${snmpErrorHostCount} host(s) replied with an SNMP error rather than silence; ` +
+        `most common: ${scanResult.mostCommonSnmpError}`,
+    );
+  }
+
+  if (snmpResponderCount === 0 && snmpErrorHostCount === 0) {
+    const port: number = scanResult.scannedPort || 161;
+    parts.push(
+      `Nothing answered SNMP on port ${port}. Check that this probe can reach the range, ` +
+        `that UDP/${port} is permitted to it, and that the devices' SNMP ACL allows the probe's IP address.`,
+    );
+  }
+
+  return parts.join(" ");
 }
 
 /*
@@ -217,18 +283,20 @@ export async function runScan(scan: NetworkDeviceDiscoveryScan): Promise<void> {
   ).length;
 
   /*
-   * The scan model has no column for the ICMP pre-sweep count, so it rides
+   * The scan model has no column for the sweep's diagnostics, so they ride
    * along in statusMessage (which the ingest endpoint already accepts)
-   * instead of a payload field the server would silently drop.
+   * instead of payload fields the server would silently drop.
+   *
+   * This is the only explanation an operator gets for a scan that found
+   * nothing, so it has to distinguish the cases that look identical in the
+   * "0 of 254 hosts" column: an empty subnet, a subnet the probe cannot
+   * reach, a subnet where ICMP is filtered, and a subnet full of devices
+   * that rejected the scan's credentials.
    */
-  const statusMessage: string =
-    scanResult.respondedToPingCount !== undefined
-      ? `Swept ${scanResult.scannedHostCount} hosts: ` +
-        `${scanResult.respondedToPingCount} answered ICMP ping, ` +
-        `${snmpResponderCount} answered SNMP.`
-      : `Swept ${scanResult.scannedHostCount} hosts via SNMP ` +
-        `(ICMP pre-sweep unavailable on this probe): ` +
-        `${snmpResponderCount} answered SNMP.`;
+  const statusMessage: string = buildScanStatusMessage(
+    scanResult,
+    snmpResponderCount,
+  );
 
   /*
    * The RESULT UPLOAD failing must NOT trigger the success:false report

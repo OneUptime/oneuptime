@@ -15,6 +15,14 @@ export interface ComponentProps {
   showLiveIndicator?: boolean | undefined;
   // How many trailing steps to show. Defaults to 7 (chat-panel sizing).
   maxVisibleSteps?: number | undefined;
+  /*
+   * Render only the steps — no assistant avatar, bubble, or title row. Use it
+   * when the host already provides that framing (the AI investigation panel
+   * puts the feed inside its own titled section); leaving the chrome on there
+   * would stack a bordered bubble inside a bordered panel and repeat the
+   * heading. Defaults to false, so the chat panel is unchanged.
+   */
+  hideChrome?: boolean | undefined;
 }
 
 interface ActivityStep {
@@ -157,6 +165,19 @@ function buildSteps(events: Array<AIRunEvent>): Array<ActivityStep> {
 }
 
 /*
+ * Whether these events will actually draw any steps. Several event types
+ * (RunCompleted, RunFailed, and the completion halves of LLM/tool calls)
+ * only close a step that an earlier event opened, so a non-empty event list
+ * can still render nothing — a run whose RunStarted failed to persist and
+ * then failed outright is one real example. A host that frames the feed in
+ * its own titled panel must ask this instead of counting raw events, or it
+ * draws an empty box. Exported so the predicate has exactly one owner.
+ */
+export function hasRenderableActivity(events: Array<AIRunEvent>): boolean {
+  return buildSteps(events).length > 0;
+}
+
+/*
  * The live "investigating…" feed: renders the run's real tool activity so
  * the user watches actual queries execute instead of a generic spinner.
  */
@@ -286,6 +307,35 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
     );
   };
 
+  const stepList: ReactElement =
+    visibleSteps.length > 0 ? (
+      <div className="space-y-1.5">
+        {hiddenStepCount > 0 && (
+          <div className="text-[11px] text-gray-400">
+            + {hiddenStepCount} earlier{" "}
+            {hiddenStepCount === 1 ? "step" : "steps"}
+          </div>
+        )}
+        {visibleSteps.map((step: ActivityStep) => {
+          return (
+            <div key={step.key} className="flex items-center gap-2 text-xs">
+              {renderStepIcon(step)}
+              {renderStepText(step)}
+              {step.detail && (
+                <span className="text-gray-400">· {step.detail}</span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    ) : (
+      <></>
+    );
+
+  if (props.hideChrome) {
+    return stepList;
+  }
+
   return (
     <div className="flex gap-3.5">
       <div className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-gray-900">
@@ -309,27 +359,8 @@ const ChatActivityFeed: FunctionComponent<ComponentProps> = (
           </div>
 
           {visibleSteps.length > 0 && (
-            <div className="mt-3 space-y-1.5 border-t border-gray-200/70 pt-3">
-              {hiddenStepCount > 0 && (
-                <div className="text-[11px] text-gray-400">
-                  + {hiddenStepCount} earlier{" "}
-                  {hiddenStepCount === 1 ? "step" : "steps"}
-                </div>
-              )}
-              {visibleSteps.map((step: ActivityStep) => {
-                return (
-                  <div
-                    key={step.key}
-                    className="flex items-center gap-2 text-xs"
-                  >
-                    {renderStepIcon(step)}
-                    {renderStepText(step)}
-                    {step.detail && (
-                      <span className="text-gray-400">· {step.detail}</span>
-                    )}
-                  </div>
-                );
-              })}
+            <div className="mt-3 border-t border-gray-200/70 pt-3">
+              {stepList}
             </div>
           )}
         </div>

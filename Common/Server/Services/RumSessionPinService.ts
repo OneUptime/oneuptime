@@ -6,36 +6,22 @@ import OneUptimeDate from "../../Types/Date";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
+import PostgresErrorTranslator from "../Utils/Database/PostgresErrorTranslator";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-
-/* Postgres unique_violation. https://www.postgresql.org/docs/current/errcodes-appendix.html */
-const UNIQUE_VIOLATION: string = "23505";
 
 type IsUniqueViolationFunction = (error: unknown) => boolean;
 
 /*
- * TypeORM wraps driver failures in QueryFailedError, which hoists the pg
- * fields onto itself but also keeps the original under `driverError`.
- * Check both rather than assuming which one carries the code.
+ * Detection lives in PostgresErrorTranslator because DatabaseService.create
+ * runs every failure through it before rethrowing, so what lands in the catch
+ * below is a BadDataException carrying the SQLSTATE — not the raw
+ * QueryFailedError. A local `code === "23505"` check would silently stop
+ * matching and take the race recovery with it.
  */
 const isUniqueViolation: IsUniqueViolationFunction = (
   error: unknown,
 ): boolean => {
-  if (!error || typeof error !== "object") {
-    return false;
-  }
-
-  if ((error as { code?: string | undefined }).code === UNIQUE_VIOLATION) {
-    return true;
-  }
-
-  const driverError: unknown = (error as { driverError?: unknown }).driverError;
-
-  return Boolean(
-    driverError &&
-      typeof driverError === "object" &&
-      (driverError as { code?: string | undefined }).code === UNIQUE_VIOLATION,
-  );
+  return PostgresErrorTranslator.isUniqueViolation(error);
 };
 
 /*

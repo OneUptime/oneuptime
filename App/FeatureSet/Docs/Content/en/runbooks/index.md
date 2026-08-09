@@ -27,7 +27,7 @@ A few terms recur across the rest of the runbook docs. Get these straight first:
 | Term             | Meaning                                                                                                                                                                                                             |
 | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Runbook**      | The template. A named, reusable procedure with an ordered list of steps and an `isEnabled` flag.                                                                                                                    |
-| **Step**         | One item in a runbook. Has a type (Manual / JavaScript / HTTP / Bash / AI), a title, a description, and type-specific config.                                                                                            |
+| **Step**         | One item in a runbook. Has a type (Manual / JavaScript / HTTP / Bash / AI), a title, a description, and type-specific config.                                                                                       |
 | **Runbook Rule** | A pattern that auto-attaches one or more runbooks to incidents, alerts, or scheduled maintenance events when their title or description matches a regex.                                                            |
 | **Execution**    | One run of a runbook. Created when a rule fires, when someone clicks "Run Runbook" on an event, or when someone clicks "Run Now" on the runbook itself. Holds a snapshot of the steps and per-step status / output. |
 | **Snapshot**     | The frozen copy of the runbook's steps that lives on each execution. Lets you edit the template later without rewriting history.                                                                                    |
@@ -56,14 +56,14 @@ You can mix all five in a single runbook — the strength of runbooks is interle
 
 ## Where runbooks live in the dashboard
 
-| Page                                                                      | What you do there                                                                 |
-| ------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| **Products → Runbooks**                                                   | Browse, create, and edit runbook templates.                                       |
-| **A runbook's Steps tab**                                                 | Author and reorder the step list.                                                 |
-| **A runbook's Executions tab**                                            | See every run of this runbook with status filters.                                |
-| **A runbook's Run Now button**                                            | Kick off an ad-hoc execution not attached to any event.                           |
-| **Incidents / Alerts / Scheduled Maintenance → Settings → Runbook Rules** | Create the auto-trigger rules per entity type.                                    |
-| **An incident / alert / maintenance event → Runbooks tab**                | See executions attached to this event and click **Run Runbook** for a manual run. |
+| Page                                                                                                 | What you do there                                                                 |
+| ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| **Products → Runbooks**                                                                              | Browse, create, and edit runbook templates.                                       |
+| **A runbook's Steps tab**                                                                            | Author and reorder the step list.                                                 |
+| **A runbook's Executions tab**                                                                       | See every run of this runbook with status filters.                                |
+| **A runbook's Run Now button**                                                                       | Kick off an ad-hoc execution not attached to any event.                           |
+| **Incidents / Scheduled Maintenance → Settings → Runbook Rules**, **Alerts → Rules → Runbook Rules** | Create the auto-trigger rules per entity type.                                    |
+| **An incident / alert / maintenance event → Runbooks tab**                                           | See executions attached to this event and click **Run Runbook** for a manual run. |
 
 ## Common use cases
 

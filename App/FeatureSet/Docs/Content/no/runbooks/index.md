@@ -27,7 +27,7 @@ Noen begreper går igjen i resten av runbook-dokumentasjonen. Få oversikten fø
 | Begrep            | Betydning                                                                                                                                                                                                                        |
 | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Runbook**       | Malen. En navngitt, gjenbrukbar prosedyre med en ordnet liste over trinn og et `isEnabled`-flagg.                                                                                                                                |
-| **Trinn**         | Ett element i et runbook. Har en type (Manuell / JavaScript / HTTP / Bash / AI), en tittel, en beskrivelse og typespesifikk konfigurasjon.                                                                                            |
+| **Trinn**         | Ett element i et runbook. Har en type (Manuell / JavaScript / HTTP / Bash / AI), en tittel, en beskrivelse og typespesifikk konfigurasjon.                                                                                       |
 | **Runbook-regel** | Et mønster som automatisk knytter ett eller flere runbooks til hendelser, varsler eller planlagt vedlikehold når tittel eller beskrivelse matcher et regex.                                                                      |
 | **Kjøring**       | Én avvikling av et runbook. Opprettes når en regel utløses, når noen klikker "Kjør runbook" på en hendelse, eller når noen klikker "Kjør nå" på selve runbook'et. Inneholder et snapshot av trinnene og status/output per trinn. |
 | **Snapshot**      | Den fryste kopien av runbook'ets trinn som lever på hver kjøring. Lar deg redigere malen senere uten å skrive om historikken.                                                                                                    |
@@ -56,14 +56,14 @@ Du kan blande alle fem i ett runbook — runbookens styrke er å flette menneske
 
 ## Hvor runbooks bor i dashbordet
 
-| Side                                                                            | Hva du gjør der                                                                           |
-| ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| **Produkter → Runbooks**                                        | Bla, opprette og redigere runbook-maler.                                                  |
-| **Trinn-fanen på et runbook**                                                   | Skrive og omorganisere trinnlisten.                                                       |
-| **Kjøringer-fanen på et runbook**                                               | Se hver kjøring av dette runbook'et med statusfiltre.                                     |
-| **"Kjør nå"-knappen på et runbook**                                             | Starte en ad hoc-kjøring som ikke er knyttet til en hendelse.                             |
-| **Hendelser / Varsler / Planlagt vedlikehold → Innstillinger → Runbook-regler** | Opprette automatiske utløsningsregler per entitetstype.                                   |
-| **En hendelse / varsel / vedlikeholdshendelse → Runbooks-fane**                 | Se kjøringer knyttet til den hendelsen og klikke **Kjør runbook** for en manuell kjøring. |
+| Side                                                                                                         | Hva du gjør der                                                                           |
+| ------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
+| **Produkter → Runbooks**                                                                                     | Bla, opprette og redigere runbook-maler.                                                  |
+| **Trinn-fanen på et runbook**                                                                                | Skrive og omorganisere trinnlisten.                                                       |
+| **Kjøringer-fanen på et runbook**                                                                            | Se hver kjøring av dette runbook'et med statusfiltre.                                     |
+| **"Kjør nå"-knappen på et runbook**                                                                          | Starte en ad hoc-kjøring som ikke er knyttet til en hendelse.                             |
+| **Hendelser / Planlagt vedlikehold → Innstillinger → Runbook-regler**, **Varsler → Regler → Runbook-regler** | Opprette automatiske utløsningsregler per entitetstype.                                   |
+| **En hendelse / varsel / vedlikeholdshendelse → Runbooks-fane**                                              | Se kjøringer knyttet til den hendelsen og klikke **Kjør runbook** for en manuell kjøring. |
 
 ## Vanlige bruksmønstre
 

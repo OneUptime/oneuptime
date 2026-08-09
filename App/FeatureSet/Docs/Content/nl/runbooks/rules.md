@@ -1,9 +1,9 @@
 # Runbook-regels
 
-Runbook-regels koppelen runbooks automatisch zodra een **incident**, **alert** of **gepland onderhoudsevent** wordt aangemaakt. Ze worden beheerd vanuit het Settings-menu van elke entiteit:
+Runbook-regels koppelen runbooks automatisch zodra een **incident**, **alert** of **gepland onderhoudsevent** wordt aangemaakt. Ze worden beheerd vanuit het menu van elke entiteit:
 
 - Incidenten → Instellingen → **Runbook-regels**
-- Waarschuwingen → Instellingen → **Runbook-regels**
+- Waarschuwingen → Regels → **Runbook-regels**
 - Geplande onderhoud → Instellingen → **Runbook-regels**
 
 Alle drie de pagina's bewerken hetzelfde onderliggende regelmodel — ze zijn alleen gefilterd om enkel regels voor dat entiteitstype te tonen.

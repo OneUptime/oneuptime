@@ -7,28 +7,24 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import StatusPageGroupViewMode from "Common/Types/StatusPage/StatusPageGroupViewMode";
 import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
-import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { ModelField, FormType } from "Common/UI/Components/Forms/ModelForm";
+import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import Icon, { ThickProp } from "Common/UI/Components/Icon/Icon";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
-import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
-import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
-import Project from "Common/Models/DatabaseModels/Project";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -41,10 +37,16 @@ export interface ComponentProps {
   group: StatusPageGroup;
   statusPageId: ObjectID;
   projectId: ObjectID;
-  currentProject: Project;
   canCreateStatusPageResource: boolean;
   baseFormFields: Array<ModelField<StatusPageResource>>;
-  formSteps: Array<{ title: string; id: string }>;
+  formSteps: Array<FormStep<StatusPageResource>>;
+  /*
+   * How many resources this group turned out to hold, reported on every fetch.
+   * The tree above uses it to keep the count on this group's collapsed row
+   * honest without re-reading every resource on the status page.
+   */
+  onResourceCountLoaded?: ((count: number) => void) | undefined;
+  testId?: string | undefined;
 }
 
 type ParseAxisValuesFunction = (raw?: string | null) => Array<string>;
@@ -65,14 +67,22 @@ const parseAxisValues: ParseAxisValuesFunction = (
     });
 };
 
+/*
+ * A group whose view mode is Grid, edited as the matrix it renders as on the
+ * public status page: one column per column axis value, one row per row axis
+ * value, and every cell a place to drop monitors into.
+ *
+ * Like the list panel next to it, this is mounted only while its row in the
+ * Resources tree is open - it fetches on mount, and a status page with fifteen
+ * hundred groups cannot afford to have every one of those fetches happen at
+ * once (issue #3042).
+ */
 const GridResourceEditor: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const { group, statusPageId, projectId, currentProject, baseFormFields } =
-    props;
+  const { group, statusPageId, projectId, baseFormFields } = props;
 
   const groupId: ObjectID | undefined = group.id || undefined;
-  const isGrid: boolean = group.viewMode === StatusPageGroupViewMode.Grid;
 
   const rowValues: Array<string> = useMemo((): Array<string> => {
     return parseAxisValues(group.rowAxisValues);
@@ -145,6 +155,10 @@ const GridResourceEditor: FunctionComponent<ComponentProps> = (
         });
 
       setResources(listResult.data);
+
+      if (props.onResourceCountLoaded) {
+        props.onResourceCountLoaded(listResult.data.length);
+      }
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
@@ -158,9 +172,22 @@ const GridResourceEditor: FunctionComponent<ComponentProps> = (
     });
   }, [groupId?.toString()]);
 
+  type ReloadFunction = () => void;
+
+  const reload: ReloadFunction = (): void => {
+    fetchResources().catch((err: Error) => {
+      setError(API.getFriendlyMessage(err));
+    });
+  };
+
   type ResourcesByCell = Map<string, Array<StatusPageResource>>;
   type CellKey = (row: string, col: string) => string;
 
+  /*
+   * A NUL separator rather than a space or a dash: axis values are free text,
+   * so any separator an operator could type would let ("A B", "C") and
+   * ("A", "B C") collapse into the same cell.
+   */
   const cellKey: CellKey = (row: string, col: string): string => {
     return `${row}\u0000${col}`;
   };
@@ -251,11 +278,11 @@ const GridResourceEditor: FunctionComponent<ComponentProps> = (
   ) => Promise<StatusPageResource> = (
     item: StatusPageResource,
   ): Promise<StatusPageResource> => {
-    if (!currentProject || !currentProject._id) {
+    if (!projectId) {
       throw new BadDataException("Project ID cannot be null");
     }
     item.statusPageId = statusPageId;
-    item.projectId = new ObjectID(currentProject._id);
+    item.projectId = projectId;
     if (groupId) {
       item.statusPageGroupId = groupId;
     }
@@ -292,58 +319,59 @@ const GridResourceEditor: FunctionComponent<ComponentProps> = (
     setIsDeleting(false);
   };
 
-  const cardTitle: string = `${group.name || ""} - Status Page Resources`;
-  const cardDescription: string = isGrid
-    ? "Click a cell to add a monitor at that row × column intersection."
-    : "Resources that will be shown on the page";
-
   const hasGridAxes: boolean = rowValues.length > 0 && columnValues.length > 0;
-  const cardButtons: Array<CardButtonSchema | ReactElement> =
-    props.canCreateStatusPageResource && hasGridAxes
-      ? [
-          {
-            title: "Create Status Page Resource",
-            icon: IconProp.Add,
-            buttonStyle: ButtonStyleType.NORMAL,
-            onClick: () => {
-              openCreateForCell(null, null);
-            },
-          },
-          <MoreMenu
-            key="status-page-grid-resource-more-menu"
-            menuIcon={IconProp.EllipsisHorizontal}
-            text=""
-          >
-            {[
-              <MoreMenuItem
-                key="add-multiple-monitors"
-                text="Add Multiple Monitors"
+
+  type GetToolbarFunction = () => ReactElement;
+
+  const getToolbar: GetToolbarFunction = (): ReactElement => {
+    return (
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-4 py-2.5">
+        <p className="text-xs text-gray-500">
+          {hasGridAxes
+            ? `Click any cell to add a monitor at that ${rowLabel.toLowerCase()} × ${columnLabel.toLowerCase()} intersection.`
+            : "This group is set to grid view but has no axes yet."}
+        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          {props.canCreateStatusPageResource && hasGridAxes ? (
+            <>
+              <Button
+                title="Add Monitor"
                 icon={IconProp.Add}
+                buttonSize={ButtonSize.Small}
+                buttonStyle={ButtonStyleType.PRIMARY}
+                dataTestId="add-resource-to-grid"
+                onClick={() => {
+                  openCreateForCell(null, null);
+                }}
+              />
+              <Button
+                title="Add Multiple"
+                icon={IconProp.Add}
+                buttonSize={ButtonSize.Small}
+                buttonStyle={ButtonStyleType.OUTLINE}
+                dataTestId="bulk-add-resources-to-grid"
                 onClick={() => {
                   setShowBulkAddModal(true);
                 }}
-              />,
-            ]}
-          </MoreMenu>,
-        ]
-      : [];
-
-  if (rowValues.length === 0 || columnValues.length === 0) {
-    return (
-      <Card
-        title={cardTitle}
-        description={cardDescription}
-        buttons={cardButtons}
-      >
-        <div className="p-6 text-center border border-dashed border-gray-300 rounded-md text-sm text-gray-600">
-          Define <span className="font-medium">{rowLabel.toLowerCase()}</span>{" "}
-          values and{" "}
-          <span className="font-medium">{columnLabel.toLowerCase()}</span>{" "}
-          values on this group before adding resources to the grid.
+              />
+            </>
+          ) : (
+            <></>
+          )}
+          <Button
+            title="Refresh"
+            icon={IconProp.Refresh}
+            buttonSize={ButtonSize.Small}
+            buttonStyle={ButtonStyleType.OUTLINE}
+            dataTestId="refresh-grid-resources"
+            onClick={() => {
+              reload();
+            }}
+          />
         </div>
-      </Card>
+      </div>
     );
-  }
+  };
 
   type RenderCellFunction = (
     rowValue: string,
@@ -358,15 +386,16 @@ const GridResourceEditor: FunctionComponent<ComponentProps> = (
       resourcesByCell.get(cellKey(rowValue, columnValue)) || [];
 
     return (
-      <div className="flex flex-col gap-2 min-h-[3.5rem]">
+      <div className="flex min-h-[3.25rem] flex-col gap-1.5">
         {list.map((resource: StatusPageResource) => {
           return (
             <div
               key={resource.id?.toString()}
-              className="group flex items-center justify-between gap-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-md px-2 py-1.5 text-xs"
+              className="group flex items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs shadow-sm transition-shadow hover:shadow"
+              data-testid="grid-resource-cell-item"
             >
               <div className="min-w-0 flex-1">
-                <div className="font-medium text-gray-900 truncate">
+                <div className="truncate font-medium text-gray-900">
                   {resource.monitor ? (
                     <MonitorElement
                       monitor={resource.monitor}
@@ -382,35 +411,35 @@ const GridResourceEditor: FunctionComponent<ComponentProps> = (
                   )}
                 </div>
                 {resource.displayName ? (
-                  <div className="text-gray-500 text-[11px] truncate">
+                  <div className="truncate text-[11px] text-gray-500">
                     {resource.displayName}
                   </div>
                 ) : null}
               </div>
-              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="flex items-center gap-1 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
                 <button
                   type="button"
                   title="Edit"
                   aria-label="Edit resource"
-                  className="p-1 rounded hover:bg-gray-200 text-gray-500 hover:text-gray-800"
+                  className="rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-800"
                   onClick={() => {
                     if (resource.id) {
                       setEditResourceId(resource.id);
                     }
                   }}
                 >
-                  <Icon icon={IconProp.Edit} className="w-3.5 h-3.5" />
+                  <Icon icon={IconProp.Edit} className="h-3.5 w-3.5" />
                 </button>
                 <button
                   type="button"
                   title="Delete"
                   aria-label="Delete resource"
-                  className="p-1 rounded hover:bg-red-100 text-gray-500 hover:text-red-600"
+                  className="rounded p-1 text-gray-500 hover:bg-red-50 hover:text-red-600"
                   onClick={() => {
                     setDeleteResource(resource);
                   }}
                 >
-                  <Icon icon={IconProp.Trash} className="w-3.5 h-3.5" />
+                  <Icon icon={IconProp.Trash} className="h-3.5 w-3.5" />
                 </button>
               </div>
             </div>
@@ -418,17 +447,19 @@ const GridResourceEditor: FunctionComponent<ComponentProps> = (
         })}
         <button
           type="button"
+          aria-label={`Add monitor to ${rowValue} and ${columnValue}`}
+          data-testid="grid-cell-add-monitor"
           onClick={() => {
             openCreateForCell(rowValue, columnValue);
           }}
-          className="flex items-center justify-center gap-1 text-xs text-gray-500 hover:text-indigo-600 border border-dashed border-gray-300 hover:border-indigo-400 rounded-md py-1.5 transition-colors"
+          className="flex items-center justify-center gap-1 rounded-lg border border-dashed border-gray-300 py-1.5 text-xs text-gray-500 transition-colors hover:border-indigo-400 hover:bg-indigo-50/60 hover:text-indigo-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300"
         >
           <Icon
             icon={IconProp.Add}
-            className="w-3.5 h-3.5"
+            className="h-3.5 w-3.5"
             thick={ThickProp.Thick}
           />
-          <span>Add monitor</span>
+          <span>{list.length > 0 ? "Add" : "Add monitor"}</span>
         </button>
       </div>
     );
@@ -447,138 +478,171 @@ const GridResourceEditor: FunctionComponent<ComponentProps> = (
       return v;
     }, [createModalState.rowValue, createModalState.columnValue]);
 
-  return (
-    <>
-      <Card
-        title={cardTitle}
-        description={cardDescription}
-        buttons={cardButtons}
-      >
-        <>
-          {isLoading ? (
-            <ComponentLoader />
-          ) : error ? (
-            <ErrorMessage message={error} />
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full border-separate border-spacing-0">
-                <thead>
-                  <tr>
-                    <th className="sticky left-0 z-10 bg-white border-b border-r border-gray-200 px-3 py-2 text-left text-xs font-semibold text-gray-700">
-                      {rowLabel}
+  type GetBodyFunction = () => ReactElement;
+
+  const getBody: GetBodyFunction = (): ReactElement => {
+    if (!hasGridAxes) {
+      return (
+        <div className="px-4 py-6">
+          <div className="rounded-lg border border-dashed border-gray-300 p-6 text-center text-sm text-gray-600">
+            Define <span className="font-medium">{rowLabel.toLowerCase()}</span>{" "}
+            values and{" "}
+            <span className="font-medium">{columnLabel.toLowerCase()}</span>{" "}
+            values on this group before adding resources to the grid. You can
+            set them on the Groups tab.
+          </div>
+        </div>
+      );
+    }
+
+    if (isLoading) {
+      return <ComponentLoader />;
+    }
+
+    if (error) {
+      return <ErrorMessage message={error} />;
+    }
+
+    return (
+      <>
+        <div className="overflow-x-auto px-4 py-3">
+          <table className="min-w-full border-separate border-spacing-0">
+            <thead>
+              <tr>
+                <th className="sticky left-0 z-10 rounded-tl-lg border-b border-r border-gray-200 bg-gray-50 px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                  {rowLabel}
+                </th>
+                {columnValues.map((col: string) => {
+                  return (
+                    <th
+                      key={col}
+                      className="min-w-[13rem] border-b border-gray-200 bg-gray-50 px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-500"
+                    >
+                      {col}
+                    </th>
+                  );
+                })}
+              </tr>
+            </thead>
+            <tbody>
+              {rowValues.map((row: string) => {
+                return (
+                  <tr key={row}>
+                    <th className="sticky left-0 z-10 border-b border-r border-gray-200 bg-white px-3 py-3 text-left align-top text-xs font-semibold text-gray-800">
+                      {row}
                     </th>
                     {columnValues.map((col: string) => {
                       return (
-                        <th
+                        <td
                           key={col}
-                          className="border-b border-gray-200 px-3 py-2 text-left text-xs font-semibold text-gray-700 min-w-[12rem]"
+                          className="border-b border-gray-200 px-2 py-2 align-top"
                         >
-                          {col}
-                        </th>
+                          {renderCell(row, col)}
+                        </td>
                       );
                     })}
                   </tr>
-                </thead>
-                <tbody>
-                  {rowValues.map((row: string) => {
-                    return (
-                      <tr key={row}>
-                        <th className="sticky left-0 z-10 bg-white border-b border-r border-gray-200 px-3 py-3 text-left text-xs font-semibold text-gray-800 align-top">
-                          {row}
-                        </th>
-                        {columnValues.map((col: string) => {
-                          return (
-                            <td
-                              key={col}
-                              className="border-b border-gray-200 px-2 py-2 align-top"
-                            >
-                              {renderCell(row, col)}
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
 
-          {!isLoading && !error && orphanResources.length > 0 ? (
-            <div className="mt-6 border-t border-gray-200 pt-4">
-              <div className="text-xs font-semibold text-amber-700 mb-2">
-                Unassigned resources ({orphanResources.length})
-              </div>
-              <div className="text-xs text-gray-500 mb-3">
-                These resources do not match a defined {rowLabel.toLowerCase()}{" "}
-                or {columnLabel.toLowerCase()}. Edit them to place them on the
-                grid.
-              </div>
-              <div className="flex flex-col gap-2">
-                {orphanResources.map((resource: StatusPageResource) => {
-                  return (
-                    <div
-                      key={resource.id?.toString()}
-                      className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-md px-3 py-2 text-xs"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <div className="font-medium text-gray-900">
-                          {resource.monitor ? (
-                            <MonitorElement
-                              monitor={resource.monitor}
-                              showIcon={false}
-                            />
-                          ) : resource.monitorGroup ? (
-                            <MonitorGroupElement
-                              monitorGroup={resource.monitorGroup}
-                              showIcon={false}
-                            />
-                          ) : (
-                            <span>Unknown</span>
-                          )}
-                        </div>
-                        <div className="text-gray-600">
-                          {rowLabel}: {resource.rowAxisValue || "—"} ·{" "}
-                          {columnLabel}: {resource.columnAxisValue || "—"}
-                        </div>
+        {orphanResources.length > 0 ? (
+          <div className="border-t border-gray-100 px-4 py-4">
+            <div className="mb-2 text-xs font-semibold text-amber-700">
+              Unassigned resources ({orphanResources.length})
+            </div>
+            <div className="mb-3 text-xs text-gray-500">
+              These resources do not match a defined {rowLabel.toLowerCase()} or{" "}
+              {columnLabel.toLowerCase()}. Edit them to place them on the grid.
+            </div>
+            <div className="flex flex-col gap-2">
+              {orphanResources.map((resource: StatusPageResource) => {
+                return (
+                  <div
+                    key={resource.id?.toString()}
+                    className="flex items-center justify-between rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium text-gray-900">
+                        {resource.monitor ? (
+                          <MonitorElement
+                            monitor={resource.monitor}
+                            showIcon={false}
+                          />
+                        ) : resource.monitorGroup ? (
+                          <MonitorGroupElement
+                            monitorGroup={resource.monitorGroup}
+                            showIcon={false}
+                          />
+                        ) : (
+                          /*
+                           * A resource whose monitor was deleted still has to
+                           * be identifiable - its display name is the only
+                           * handle left on it, and this list exists to be
+                           * acted on.
+                           */
+                          <span>{resource.displayName || "Unknown"}</span>
+                        )}
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          title="Edit"
-                          icon={IconProp.Edit}
-                          buttonSize={ButtonSize.Small}
-                          buttonStyle={ButtonStyleType.NORMAL}
-                          onClick={() => {
-                            if (resource.id) {
-                              setEditResourceId(resource.id);
-                            }
-                          }}
-                        />
-                        <Button
-                          title="Delete"
-                          icon={IconProp.Trash}
-                          buttonSize={ButtonSize.Small}
-                          buttonStyle={ButtonStyleType.DANGER_OUTLINE}
-                          onClick={() => {
-                            setDeleteResource(resource);
-                          }}
-                        />
+                      <div className="text-gray-600">
+                        {rowLabel}: {resource.rowAxisValue || "—"} ·{" "}
+                        {columnLabel}: {resource.columnAxisValue || "—"}
                       </div>
                     </div>
-                  );
-                })}
-              </div>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        title="Edit"
+                        icon={IconProp.Edit}
+                        buttonSize={ButtonSize.Small}
+                        buttonStyle={ButtonStyleType.NORMAL}
+                        onClick={() => {
+                          if (resource.id) {
+                            setEditResourceId(resource.id);
+                          }
+                        }}
+                      />
+                      <Button
+                        title="Delete"
+                        icon={IconProp.Trash}
+                        buttonSize={ButtonSize.Small}
+                        buttonStyle={ButtonStyleType.DANGER_OUTLINE}
+                        onClick={() => {
+                          setDeleteResource(resource);
+                        }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          ) : null}
-        </>
-      </Card>
+          </div>
+        ) : null}
+      </>
+    );
+  };
+
+  return (
+    /*
+     * The same surface a Card draws, because the list panel next to this one
+     * is a Card and the two sit in identical rows of the same tree - a grid
+     * group that looked like a different kind of thing would be reporting a
+     * difference that is not there.
+     */
+    <div
+      className="mb-5 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
+      data-testid={props.testId || "status-page-resource-grid-panel"}
+    >
+      {getToolbar()}
+      {getBody()}
 
       {createModalState.isOpen ? (
         <ModelFormModal<StatusPageResource>
           modelType={StatusPageResource}
           name="Status Page > Resources"
-          title="Create Status Page Resource"
-          description="Add a monitor to this cell of the grid."
+          title="Add Monitor to Grid"
+          description="Pick the monitor to show in this cell of the grid."
           modalWidth={ModalWidth.Medium}
           initialValues={initialValuesForCreate}
           onBeforeCreate={onBeforeCreate}
@@ -592,9 +656,7 @@ const GridResourceEditor: FunctionComponent<ComponentProps> = (
           onClose={closeCreateModal}
           onSuccess={() => {
             closeCreateModal();
-            fetchResources().catch((err: Error) => {
-              setError(API.getFriendlyMessage(err));
-            });
+            reload();
           }}
         />
       ) : null}
@@ -619,9 +681,7 @@ const GridResourceEditor: FunctionComponent<ComponentProps> = (
           }}
           onSuccess={() => {
             setEditResourceId(null);
-            fetchResources().catch((err: Error) => {
-              setError(API.getFriendlyMessage(err));
-            });
+            reload();
           }}
         />
       ) : null}
@@ -661,13 +721,11 @@ const GridResourceEditor: FunctionComponent<ComponentProps> = (
             setShowBulkAddModal(false);
           }}
           onComplete={() => {
-            fetchResources().catch((err: Error) => {
-              setError(API.getFriendlyMessage(err));
-            });
+            reload();
           }}
         />
       ) : null}
-    </>
+    </div>
   );
 };
 

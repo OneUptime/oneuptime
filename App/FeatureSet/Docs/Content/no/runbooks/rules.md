@@ -1,23 +1,23 @@
 # Runbook-regler
 
-Runbook-regler kobler automatisk runbooks til når en **hendelse**, et **varsel** eller en **planlagt vedlikeholdshendelse** opprettes. De styres fra Innstillinger-menyen på hver entitet:
+Runbook-regler kobler automatisk runbooks til når en **hendelse**, et **varsel** eller en **planlagt vedlikeholdshendelse** opprettes. De styres fra menyen på hver entitet:
 
 - Hendelser → Innstillinger → **Runbook-regler**
-- Varsler → Innstillinger → **Runbook-regler**
+- Varsler → Regler → **Runbook-regler**
 - Planlagt vedlikehold → Innstillinger → **Runbook-regler**
 
 Alle tre sider redigerer samme underliggende regelmodell — de er bare filtrert til kun å vise regler for den aktuelle entitetstypen.
 
 ## Anatomien til en regel
 
-| Felt                         | Hensikt                                                                                       |
-| ---------------------------- | --------------------------------------------------------------------------------------------- |
-| **Navn**                     | Kort, leselig etikett. Vises i revisjonslogger.                                               |
-| **Beskrivelse**              | Valgfri kontekst til kolleger.                                                                |
-| **Aktivert**                 | Bryter for å pause en regel uten å slette den.                                                |
-| **Tittelmønster**            | Regex uten bokstavssensitivitet mot entitetens tittel. Tom = enhver tittel matcher.           |
-| **Beskrivelsesmønster**      | Regex uten bokstavssensitivitet mot entitetens beskrivelse. Tom = enhver beskrivelse matcher. |
-| **Runbooks å starte**        | Ett eller flere runbooks som lanseres når regelen utløses.                                    |
+| Felt                    | Hensikt                                                                                       |
+| ----------------------- | --------------------------------------------------------------------------------------------- |
+| **Navn**                | Kort, leselig etikett. Vises i revisjonslogger.                                               |
+| **Beskrivelse**         | Valgfri kontekst til kolleger.                                                                |
+| **Aktivert**            | Bryter for å pause en regel uten å slette den.                                                |
+| **Tittelmønster**       | Regex uten bokstavssensitivitet mot entitetens tittel. Tom = enhver tittel matcher.           |
+| **Beskrivelsesmønster** | Regex uten bokstavssensitivitet mot entitetens beskrivelse. Tom = enhver beskrivelse matcher. |
+| **Runbooks å starte**   | Ett eller flere runbooks som lanseres når regelen utløses.                                    |
 
 ## Match-semantikk
 

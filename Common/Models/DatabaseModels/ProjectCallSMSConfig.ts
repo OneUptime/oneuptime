@@ -413,11 +413,18 @@ export default class ProjectCallSMSConfig extends BaseModel {
     description: "Account SID for your Twilio Account",
     example: "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
   })
+  /*
+   * NOT unique. One Twilio account legitimately backs more than one config —
+   * a project splitting SMS and Voice across two numbers on the same account,
+   * or two projects on a shared instance using the same account. A global
+   * UNIQUE here made the second such config fail with a bare 500 (issue #3020),
+   * across the tenant boundary as well as within a project.
+   */
   @Column({
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
     nullable: true,
-    unique: true,
+    unique: false,
   })
   public twilioAccountSID?: string = undefined;
 
@@ -449,11 +456,12 @@ export default class ProjectCallSMSConfig extends BaseModel {
     description: "Auth Token for your Twilio Account",
     example: "your-twilio-auth-token",
   })
+  /* NOT unique, for the same reason as twilioAccountSID above. */
   @Column({
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
     nullable: true,
-    unique: true,
+    unique: false,
   })
   public twilioAuthToken?: string = undefined;
 

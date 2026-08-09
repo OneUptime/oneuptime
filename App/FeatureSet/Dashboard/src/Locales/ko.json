@@ -2671,7 +2671,7 @@
   "Global Probes": "글로벌 프로브",
   "Global Probes help you monitor external resources from different locations around the world.": "글로벌 프로브는 전 세계의 다양한 위치에서 외부 리소스를 모니터링하는 데 도움이 됩니다.",
   "Global Probes on New Monitors": "새 모니터의 글로벌 프로브",
-  "Go to Alerts > Settings > Grouping Rules to configure how alerts are automatically grouped.": "경고가 자동으로 그룹화되는 방식을 구성하려면 경고 > 설정 > 그룹화 규칙으로 이동하세요.",
+  "Go to Alerts > Rules > Grouping Rules to configure how alerts are automatically grouped.": "경고가 자동으로 그룹화되는 방식을 구성하려면 경고 > 규칙 > 그룹화 규칙으로 이동하세요.",
   "Go to Incidents > Settings > Grouping Rules to configure how incidents are automatically grouped.": "인시던트가 자동으로 그룹화되는 방식을 구성하려면 인시던트 > 설정 > 그룹화 규칙으로 이동하세요.",
   "Go to Project Settings > Call & SMS > Custom Call/SMS Config and add your Twilio credentials (Account SID and Auth Token).": "프로젝트 설정 > 통화 및 SMS > 사용자 지정 통화/SMS 구성으로 이동하여 Twilio 자격 증명(Account SID 및 Auth Token)을 추가하세요.",
   "Go to Settings": "설정으로 이동",

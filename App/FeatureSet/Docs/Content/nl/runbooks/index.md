@@ -27,7 +27,7 @@ Een paar termen komen telkens terug in de rest van de runbook-docs. Krijg deze e
 | Term              | Betekenis                                                                                                                                                                                                                                      |
 | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Runbook**       | De template. Een benoemde, herbruikbare procedure met een geordende staplijst en een `isEnabled`-vlag.                                                                                                                                         |
-| **Stap**          | Eén item in een runbook. Heeft een type (Handmatig / JavaScript / HTTP / Bash / AI), een titel, een beschrijving en typespecifieke configuratie.                                                                                                    |
+| **Stap**          | Eén item in een runbook. Heeft een type (Handmatig / JavaScript / HTTP / Bash / AI), een titel, een beschrijving en typespecifieke configuratie.                                                                                               |
 | **Runbook-regel** | Een patroon dat één of meer runbooks automatisch koppelt aan incidenten, alerts of geplande onderhoudsmomenten wanneer hun titel of beschrijving matcht met een regex.                                                                         |
 | **Uitvoering**    | Eén run van een runbook. Wordt aangemaakt wanneer een regel afgaat, iemand op "Runbook uitvoeren" klikt op een event, of iemand op "Nu uitvoeren" klikt op het runbook zelf. Bevat een snapshot van de stappen en de status / output per stap. |
 | **Snapshot**      | De bevroren kopie van de stappen van het runbook die op elke uitvoering leeft. Hiermee kun je de template later bewerken zonder de geschiedenis te herschrijven.                                                                               |
@@ -56,14 +56,14 @@ Je kunt alle vijf mixen in één runbook — de kracht van runbooks is dat je me
 
 ## Waar runbooks leven in het dashboard
 
-| Pagina                                                                               | Wat je daar doet                                                                                            |
-| ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
-| **Producten → Runbooks**                                                             | Runbook-templates doorbladeren, aanmaken en bewerken.                                                       |
-| **Het Stappen-tabblad van een runbook**                                              | De staplijst schrijven en herordenen.                                                                       |
-| **Het Uitvoeringen-tabblad van een runbook**                                         | Elke run van dit runbook zien met statusfilters.                                                            |
-| **De "Nu uitvoeren"-knop van een runbook**                                           | Een ad-hoc uitvoering starten die niet aan een event hangt.                                                 |
-| **Incidenten / Waarschuwingen / Geplande onderhoud → Instellingen → Runbook-regels** | De auto-trigger-regels per entiteitstype aanmaken.                                                          |
-| **Een incident / alert / onderhoudsmoment → Runbooks-tabblad**                       | De uitvoeringen zien die aan dit event hangen, en klikken op **Runbook uitvoeren** voor een handmatige run. |
+| Pagina                                                                                                            | Wat je daar doet                                                                                            |
+| ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| **Producten → Runbooks**                                                                                          | Runbook-templates doorbladeren, aanmaken en bewerken.                                                       |
+| **Het Stappen-tabblad van een runbook**                                                                           | De staplijst schrijven en herordenen.                                                                       |
+| **Het Uitvoeringen-tabblad van een runbook**                                                                      | Elke run van dit runbook zien met statusfilters.                                                            |
+| **De "Nu uitvoeren"-knop van een runbook**                                                                        | Een ad-hoc uitvoering starten die niet aan een event hangt.                                                 |
+| **Incidenten / Geplande onderhoud → Instellingen → Runbook-regels**, **Waarschuwingen → Regels → Runbook-regels** | De auto-trigger-regels per entiteitstype aanmaken.                                                          |
+| **Een incident / alert / onderhoudsmoment → Runbooks-tabblad**                                                    | De uitvoeringen zien die aan dit event hangen, en klikken op **Runbook uitvoeren** voor een handmatige run. |
 
 ## Veelvoorkomende use cases
 

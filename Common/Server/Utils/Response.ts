@@ -24,6 +24,7 @@ import ListData from "../../Types/ListData";
 import PositiveNumber from "../../Types/PositiveNumber";
 import Route from "../../Types/API/Route";
 import CaptureSpan from "./Telemetry/CaptureSpan";
+import { IsBillingEnabled } from "../EnvironmentConfig";
 
 export default class Response {
   @CaptureSpan()
@@ -94,7 +95,17 @@ export default class Response {
   ): void {
     const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
 
-    oneUptimeResponse.render(path, vars);
+    /*
+     * Analytics is opt-in per render, and off unless this is the hosted
+     * product. A self-hosted install has no reason to load Google Tag Manager
+     * from googletagmanager.com, and an air-gapped one cannot - it would just
+     * be another request left hanging. Same default the frontend index pages
+     * already use; passing the flag explicitly still wins.
+     */
+    oneUptimeResponse.render(path, {
+      enableGoogleTagManager: IsBillingEnabled,
+      ...vars,
+    });
   }
 
   @CaptureSpan()

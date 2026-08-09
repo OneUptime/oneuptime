@@ -100,6 +100,40 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * Persist the AI-written TL;DR of a completed investigation's analysis.
+   * Display-only, so this is a plain conditional UPDATE rather than a claim,
+   * but it is still write-once: scoped to the run, to the Completed state,
+   * and to a row that has no summary yet.
+   *
+   * The IS NULL guard is what makes the invariant structural rather than
+   * incidental. A stale attempt — one that lost the Completed CAS because the
+   * sweeper falsely requeued it — is kept out today only by statement order
+   * in the engine, and by then the WINNER has already written both the report
+   * and its summary, so a status-only guard would happily let the loser
+   * overwrite a summary that describes a different analysis. Returns the rows
+   * changed; 0 means the run moved on, was removed, or is already summarized.
+   */
+  @CaptureSpan()
+  public async setInvestigationAnalysisTldr(data: {
+    aiRunId: ObjectID;
+    analysisTldr: string;
+  }): Promise<number> {
+    const result: UpdateResult = await this.getRepository()
+      .createQueryBuilder()
+      .update(Model)
+      .set({
+        analysisTldr: data.analysisTldr,
+      } as QueryDeepPartialEntity<Model>)
+      .where('"_id" = :id', { id: data.aiRunId.toString() })
+      .andWhere('"status" = :status', { status: AIRunStatus.Completed })
+      .andWhere('"analysisTldr" IS NULL')
+      .andWhere('"deletedAt" IS NULL')
+      .execute();
+
+    return result.affected || 0;
+  }
+
+  /*
    * Atomically settle the code-fix decision written as Pending by the
    * winning investigation completion transition. The recommendation and
    * immutable analysis snapshot are one database UPDATE guarded by both the

@@ -1,4 +1,6 @@
-import ChatActivityFeed from "../AIChat/ChatActivityFeed";
+import ChatActivityFeed, {
+  hasRenderableActivity,
+} from "../AIChat/ChatActivityFeed";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import AIRunEvent from "Common/Models/DatabaseModels/AIRunEvent";
@@ -20,6 +22,7 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
+import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
@@ -77,6 +80,12 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [events, setEvents] = useState<Array<AIRunEvent>>([]);
   const [analysisMarkdown, setAnalysisMarkdown] = useState<string | null>(null);
+  /*
+   * The AI-written one-liner shown above the report. Purely a summary of the
+   * report below it, so the panel treats it as decoration: it is rendered as
+   * plain text (never markdown) and its absence changes nothing else.
+   */
+  const [analysisTldr, setAnalysisTldr] = useState<string | null>(null);
   const [isAnalysisPending, setIsAnalysisPending] = useState<boolean>(false);
   const [stats, setStats] = useState<{
     toolCallCount: number;
@@ -198,6 +207,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
     setErrorMessage(null);
     setEvents([]);
     setAnalysisMarkdown(null);
+    setAnalysisTldr(null);
     setIsAnalysisPending(false);
     setStats(null);
     setHasLoadedOnce(false);
@@ -279,6 +289,18 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
             ? (data["analysisMarkdown"] as string).trim()
             : "";
         const nextAnalysisMarkdown: string | null = analysisFromServer || null;
+        /*
+         * Only meaningful next to the report it summarizes — an API replica
+         * that predates the TL;DR simply omits the field. Rendered as text,
+         * so no markdown/HTML from it can reach the DOM.
+         */
+        const tldrFromServer: string =
+          typeof data["analysisTldr"] === "string"
+            ? (data["analysisTldr"] as string).trim()
+            : "";
+        const nextAnalysisTldr: string | null = nextAnalysisMarkdown
+          ? tldrFromServer || null
+          : null;
         const nextIsAnalysisPending: boolean =
           data["isAnalysisPending"] === true;
         const nextToolCallCount: number =
@@ -398,6 +420,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
           nextToolCallCount,
           nextTotalTokens,
           nextAnalysisMarkdown,
+          nextAnalysisTldr,
           nextIsAnalysisPending,
           codeFixRecommendationFromServer,
         ]);
@@ -408,6 +431,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
           setCodeFixRecommendation(codeFixRecommendationFromServer);
           setErrorMessage(nextErrorMessage);
           setAnalysisMarkdown(nextAnalysisMarkdown);
+          setAnalysisTldr(nextAnalysisTldr);
           setIsAnalysisPending(nextIsAnalysisPending);
           if (!isSavingVerdictRef.current) {
             setHumanVerdict(verdictFromServer);
@@ -787,13 +811,18 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
 
   interface StatusMeta {
     text: string;
+    /*
+     * Pill classes for the header badge. The status used to be a bare line of
+     * coloured text at the top of the body; as a badge in the card header it
+     * reads at a glance and gives the body back to the findings.
+     */
     className: string;
     icon: IconProp;
   }
 
   let statusMeta: StatusMeta = {
     text: "Investigation did not finish",
-    className: "text-red-600",
+    className: "bg-red-50 text-red-700 ring-red-200",
     icon: IconProp.Alert,
   };
   let isFailed: boolean = true;
@@ -801,14 +830,14 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
   if (runStatus === AIRunStatus.Running) {
     statusMeta = {
       text: "Investigating…",
-      className: "text-indigo-600",
+      className: "bg-indigo-50 text-indigo-700 ring-indigo-200",
       icon: IconProp.Sparkles,
     };
     isFailed = false;
   } else if (runStatus === AIRunStatus.Queued) {
     statusMeta = {
       text: "Queued — waiting for a worker…",
-      className: "text-indigo-600",
+      className: "bg-indigo-50 text-indigo-700 ring-indigo-200",
       icon: IconProp.Sparkles,
     };
     isFailed = false;
@@ -816,24 +845,24 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
     statusMeta = !supportsSettledPolling
       ? {
           text: "Investigation complete",
-          className: "text-green-600",
+          className: "bg-green-50 text-green-700 ring-green-200",
           icon: IconProp.Check,
         }
       : isAnalysisPending
         ? {
             text: "Preparing investigation report…",
-            className: "text-indigo-600",
+            className: "bg-indigo-50 text-indigo-700 ring-indigo-200",
             icon: IconProp.Sparkles,
           }
         : analysisMarkdown
           ? {
               text: "Investigation complete",
-              className: "text-green-600",
+              className: "bg-green-50 text-green-700 ring-green-200",
               icon: IconProp.Check,
             }
           : {
               text: "Investigation completed without a report",
-              className: "text-amber-600",
+              className: "bg-amber-50 text-amber-800 ring-amber-200",
               icon: IconProp.Info,
             };
     isFailed = false;
@@ -841,6 +870,78 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
 
   const isCodeFixRecommended: boolean =
     codeFixRecommendation === AIRunCodeFixRecommendation.Recommended;
+  const isVerdictLocked: boolean = isSavingVerdict || !analysisMarkdown;
+  const isConfirmed: boolean = humanVerdict === "Confirmed";
+  /*
+   * Ask the feed whether it will draw anything rather than counting events:
+   * several event types only close a step an earlier event opened, so a run
+   * can carry events yet render no steps, and a raw count would frame an
+   * empty box (or advertise a disclosure that opens onto nothing).
+   */
+  const hasActivity: boolean = hasRenderableActivity(events);
+
+  const statusBadge: ReactElement = (
+    <span
+      aria-label="Investigation status"
+      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${statusMeta.className}`}
+    >
+      <Icon icon={statusMeta.icon} className="h-3.5 w-3.5" />
+      <span>{statusMeta.text}</span>
+      {isActive || isAnalysisPending ? (
+        <span className="relative ml-0.5 flex h-2 w-2">
+          <span className="absolute inline-flex h-full w-full motion-safe:animate-ping rounded-full bg-indigo-400 opacity-75" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-indigo-500" />
+        </span>
+      ) : (
+        <></>
+      )}
+    </span>
+  );
+
+  /*
+   * One meta strip for both outcomes: what the run actually cost, plus the
+   * read-only guarantee. Responders ask "did this thing touch anything?"
+   * before they trust it, so the answer belongs on the card, not only in the
+   * report's own footer prose.
+   *
+   * Gated on isActive, not isRunning: a QUEUED run has a stats object whose
+   * counts are all zero, so the strip would tell a reader that the AI ran
+   * zero queries and changed nothing — a past-tense report on work that has
+   * not begun, sitting directly under "waiting for a worker".
+   */
+  const usageStrip: ReactElement =
+    !isActive && stats ? (
+      <div
+        aria-label="Investigation usage"
+        className="flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-lg bg-gray-50 px-4 py-2.5 text-xs text-gray-500 ring-1 ring-inset ring-gray-200"
+      >
+        <span className="inline-flex items-center gap-1.5">
+          <Icon
+            icon={IconProp.Database}
+            className="h-3.5 w-3.5 text-gray-400"
+          />
+          {stats.toolCallCount} telemetry quer
+          {stats.toolCallCount === 1 ? "y" : "ies"}
+        </span>
+        {stats.totalTokens > 0 ? (
+          <span className="inline-flex items-center gap-1.5">
+            <Icon icon={IconProp.Bolt} className="h-3.5 w-3.5 text-gray-400" />
+            {stats.totalTokens.toLocaleString()} tokens
+          </span>
+        ) : (
+          <></>
+        )}
+        <span className="inline-flex items-center gap-1.5 sm:ml-auto">
+          <Icon
+            icon={IconProp.ShieldCheck}
+            className="h-3.5 w-3.5 text-gray-400"
+          />
+          Read-only — nothing in your systems was changed
+        </span>
+      </div>
+    ) : (
+      <></>
+    );
 
   return (
     <Card
@@ -850,64 +951,118 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
           ? `OneUptime AI's root-cause report for this ${subjectType}.`
           : `OneUptime AI's live root-cause investigation for this ${subjectType}.`
       }
+      rightElement={statusBadge}
     >
       <div
         id={AI_INVESTIGATION_PANEL_ID}
         tabIndex={-1}
         role="region"
         aria-label="AI Investigation"
-        className="-mt-4 scroll-mt-32 outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+        className="-mt-2 scroll-mt-32 space-y-4 outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
       >
-        <div
-          className={`flex items-center gap-2 text-sm font-medium ${statusMeta.className}`}
-        >
-          <Icon icon={statusMeta.icon} className="h-4 w-4" />
-          <span>{statusMeta.text}</span>
-          {isActive || isAnalysisPending ? (
-            <span className="ml-1 inline-block h-2 w-2 motion-safe:animate-ping rounded-full bg-indigo-500" />
-          ) : (
-            <></>
-          )}
-        </div>
-
         {isFailed && errorMessage ? (
-          <p className="mt-1 text-xs text-red-500">{errorMessage}</p>
+          <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-5 py-4">
+            <Icon
+              icon={IconProp.Alert}
+              className="mt-0.5 h-4 w-4 flex-shrink-0 text-red-500"
+            />
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-red-800">
+                The investigation stopped before it could report.
+              </p>
+              <p className="mt-1 break-words text-xs leading-5 text-red-700">
+                {errorMessage}
+              </p>
+            </div>
+          </div>
         ) : (
           <></>
         )}
 
         {runStatus === AIRunStatus.Completed ? (
-          <div className="mt-4">
-            {analysisMarkdown ? (
+          <>
+            {/*
+              The TL;DR is the first thing a paged engineer reads, so it leads
+              the card. It is AI-written prose ABOUT the report directly below
+              it — rendered as plain text, never markdown, and simply absent
+              for older runs or when its bounded generation call failed.
+            */}
+            {analysisTldr ? (
               <section
-                aria-label="Investigation report"
-                className="overflow-hidden rounded-xl border border-indigo-100 bg-white shadow-sm"
+                aria-label="Investigation summary"
+                className="overflow-hidden rounded-xl border border-indigo-200 bg-gradient-to-br from-indigo-50 via-indigo-50/40 to-white px-5 py-4 shadow-sm"
               >
-                <div className="flex items-start gap-3 border-b border-indigo-100 bg-indigo-50/60 px-5 py-4">
-                  <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-600">
+                <div className="flex items-start gap-3">
+                  <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-600 shadow-sm">
                     <Icon
-                      icon={IconProp.DocumentText}
-                      className="h-4.5 w-4.5 text-white"
+                      icon={IconProp.Sparkles}
+                      className="h-4 w-4 text-white"
                     />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-semibold text-gray-900">
-                      Investigation report
-                    </h3>
-                    <p className="mt-0.5 text-xs leading-5 text-gray-500">
-                      Root cause, supporting evidence, and recommended next
-                      steps from this investigation.
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold uppercase tracking-wider text-indigo-600">
+                      TL;DR
+                    </p>
+                    <p className="mt-1 text-[15px] font-medium leading-6 text-gray-900">
+                      {analysisTldr}
                     </p>
                   </div>
                 </div>
-                <div className="px-5 py-5 text-sm text-gray-700">
+              </section>
+            ) : (
+              <></>
+            )}
+
+            {analysisMarkdown ? (
+              <section
+                aria-label="Investigation report"
+                className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3 border-b border-gray-200 bg-gray-50/80 px-5 py-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-gray-900">
+                      <Icon
+                        icon={IconProp.DocumentText}
+                        className="h-4 w-4 text-white"
+                      />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-900">
+                        Investigation report
+                      </h3>
+                      <p className="mt-0.5 text-xs leading-5 text-gray-500">
+                        Root cause, supporting evidence, and recommended next
+                        steps from this investigation.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-xs font-medium text-gray-500 ring-1 ring-inset ring-gray-200">
+                      <Icon icon={IconProp.Sparkles} className="h-3 w-3" />
+                      AI generated
+                    </span>
+                    {/*
+                      Responders paste the RCA into a channel or a postmortem
+                      long before they act on it — make that one click rather
+                      than a fiddly selection over a long rendered document.
+                    */}
+                    <CopyTextButton
+                      textToBeCopied={analysisMarkdown}
+                      size="sm"
+                      variant="ghost"
+                      label="Copy report"
+                      copiedLabel="Report copied"
+                    />
+                  </div>
+                </div>
+                <div className="px-5 py-5 text-sm leading-6 text-gray-700">
                   <MarkdownViewer text={analysisMarkdown} safeMode={true} />
                 </div>
               </section>
             ) : isAnalysisPending ? (
               <div
                 role="status"
-                className="flex items-center gap-3 rounded-xl border border-indigo-100 bg-indigo-50/50 px-5 py-4"
+                className="flex items-center gap-3 rounded-xl border border-indigo-200 bg-indigo-50/50 px-5 py-4"
               >
                 <span className="h-4 w-4 flex-shrink-0 animate-spin rounded-full border-2 border-indigo-200 border-t-indigo-600" />
                 <div>
@@ -921,27 +1076,33 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
                 </div>
               </div>
             ) : (
-              <div className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-4">
-                <p className="text-sm font-medium text-amber-800">
-                  No investigation report was published.
-                </p>
-                <p className="mt-1 text-xs leading-5 text-amber-700">
-                  The run finished without a final analysis. Review the activity
-                  below for details.
-                </p>
+              <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4">
+                <Icon
+                  icon={IconProp.Info}
+                  className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600"
+                />
+                <div>
+                  <p className="text-sm font-medium text-amber-800">
+                    No investigation report was published.
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-amber-700">
+                    The run finished without a final analysis. Review the
+                    activity below for details.
+                  </p>
+                </div>
               </div>
             )}
 
-            {events.length > 0 ? (
-              <details className="group mt-3 rounded-lg border border-gray-200 bg-gray-50/50">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-medium text-gray-600 hover:text-gray-900">
+            {hasActivity ? (
+              <details className="group rounded-xl border border-gray-200 bg-gray-50/50">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-xl px-4 py-3 text-sm font-medium text-gray-600 hover:bg-gray-100/70 hover:text-gray-900">
                   <span className="flex items-center gap-2">
                     <Icon
                       icon={IconProp.Activity}
                       className="h-4 w-4 text-gray-400"
                     />
                     Investigation activity
-                    <span className="text-xs font-normal text-gray-400">
+                    <span className="rounded-full bg-white px-2 py-0.5 text-xs font-normal text-gray-500 ring-1 ring-inset ring-gray-200">
                       {events.length} event{events.length === 1 ? "" : "s"}
                     </span>
                   </span>
@@ -951,9 +1112,13 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
                   />
                 </summary>
                 <div className="border-t border-gray-200 px-4 py-4">
+                  {/*
+                    The disclosure's own summary row already names this
+                    section, so the feed drops its bubble and heading here.
+                  */}
                   <ChatActivityFeed
                     events={events}
-                    title="Completed activity"
+                    hideChrome={true}
                     showLiveIndicator={false}
                     maxVisibleSteps={10}
                   />
@@ -962,45 +1127,85 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
             ) : (
               <></>
             )}
-          </div>
+          </>
         ) : (
-          <div className="mt-3">
-            {events.length > 0 ? (
-              <ChatActivityFeed
-                events={events}
-                title={isFailed ? "Investigation activity" : undefined}
-                showLiveIndicator={!isFailed}
-              />
-            ) : (
-              <p className="text-sm text-gray-500">
-                {isActive
-                  ? "Starting investigation…"
-                  : "No investigation steps were recorded."}
-              </p>
-            )}
-          </div>
-        )}
-
-        {!isRunning && stats ? (
-          <div
-            aria-label="Investigation usage"
-            className="mt-3 flex flex-wrap items-center gap-2 text-xs text-gray-500"
+          /*
+           *Before the report exists the reasoning trail IS the content, so it
+           *gets the same framed treatment the report gets later: a header
+           *that says what is happening in plain words, a progress hairline
+           *while the run can still move, and the steps inside. Without the
+           *frame this state read as a bare list floating under the title.
+           */
+          <section
+            aria-label={
+              isFailed ? "Investigation activity" : "Live investigation"
+            }
+            className={`overflow-hidden rounded-xl border bg-white shadow-sm ${
+              isFailed ? "border-gray-200" : "border-indigo-200"
+            }`}
           >
-            <span className="rounded-full bg-gray-100 px-2.5 py-1">
-              {stats.toolCallCount} telemetry quer
-              {stats.toolCallCount === 1 ? "y" : "ies"}
-            </span>
-            {stats.totalTokens > 0 ? (
-              <span className="rounded-full bg-gray-100 px-2.5 py-1">
-                {stats.totalTokens.toLocaleString()} tokens
-              </span>
+            <div
+              className={`flex items-start gap-3 border-b px-5 py-4 ${
+                isFailed
+                  ? "border-gray-200 bg-gray-50/80"
+                  : "border-indigo-100 bg-indigo-50/60"
+              }`}
+            >
+              <div
+                className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg ${
+                  isFailed ? "bg-gray-900" : "bg-indigo-600"
+                }`}
+              >
+                <Icon
+                  icon={isFailed ? IconProp.Activity : IconProp.Sparkles}
+                  className="h-4 w-4 text-white"
+                />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-sm font-semibold text-gray-900">
+                  {isFailed
+                    ? "What the investigation got through"
+                    : "OneUptime AI is investigating"}
+                </h3>
+                <p className="mt-0.5 text-xs leading-5 text-gray-500">
+                  {isFailed
+                    ? "The steps this run completed before it stopped."
+                    : isQueued
+                      ? "Waiting for a worker to pick this up. Steps appear here the moment it starts."
+                      : "Reading this project's own telemetry and narrating every step. Read-only — nothing is changed."}
+                </p>
+              </div>
+            </div>
+            {isActive ? (
+              <div
+                aria-hidden="true"
+                className="h-0.5 w-full overflow-hidden bg-indigo-100"
+              >
+                <div className="h-full w-1/3 motion-safe:animate-pulse bg-indigo-500" />
+              </div>
             ) : (
               <></>
             )}
-          </div>
-        ) : (
-          <></>
+            <div className="px-5 py-4">
+              {hasActivity ? (
+                <ChatActivityFeed
+                  events={events}
+                  hideChrome={true}
+                  showLiveIndicator={false}
+                  maxVisibleSteps={10}
+                />
+              ) : (
+                <p className="text-sm text-gray-500">
+                  {isActive
+                    ? "Starting investigation…"
+                    : "No investigation steps were recorded."}
+                </p>
+              )}
+            </div>
+          </section>
         )}
+
+        {usageStrip}
 
         {/*
           The server-authored recommendation decides whether a completed
@@ -1009,7 +1214,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
           no pull request is applicable.
         */}
         {runStatus === AIRunStatus.Completed ? (
-          <div className="mt-5 border-t border-gray-200 pt-5">
+          <div className="rounded-xl border border-gray-200 bg-gray-50/70 p-4 sm:p-5">
             <div
               className={
                 isCodeFixRecommended
@@ -1019,7 +1224,11 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
             >
               {isCodeFixRecommended ? (
                 <div>
-                  <p className="text-sm font-medium text-gray-800">
+                  <p className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                    <Icon
+                      icon={IconProp.Code}
+                      className="h-4 w-4 text-gray-400"
+                    />
                     Act on this investigation
                   </p>
                   <p className="mb-3 mt-1 text-xs leading-5 text-gray-500">
@@ -1095,6 +1304,9 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
                 A quiet human verdict on the analysis. The server returns
                 `humanVerdict` on every investigation payload, so the state
                 survives polling refreshes; the buttons update optimistically.
+                The two choices sit in one segmented control so they read as a
+                single question with two answers rather than two unrelated
+                actions, and the prompt collapses to a pill once answered.
               */}
               <div
                 className={
@@ -1103,15 +1315,93 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
                     : ""
                 }
               >
-                <p className="text-sm font-medium text-gray-800">
-                  Rate this investigation
-                </p>
-                <p className="mb-3 mt-1 text-xs leading-5 text-gray-500">
-                  Your verdict helps measure OneUptime AI&apos;s public
-                  accuracy.
-                </p>
+                <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+                  <div className="min-w-0">
+                    <p className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                      <Icon
+                        icon={IconProp.Star}
+                        className="h-4 w-4 text-gray-400"
+                      />
+                      Rate this investigation
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-gray-500">
+                      Your verdict helps measure OneUptime AI&apos;s public
+                      accuracy.
+                    </p>
+                  </div>
+
+                  <div className="flex-shrink-0">
+                    {humanVerdict && !isChangingVerdict ? (
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ring-1 ring-inset ${
+                            isConfirmed
+                              ? "bg-green-50 text-green-700 ring-green-200"
+                              : "bg-rose-50 text-rose-700 ring-rose-200"
+                          }`}
+                        >
+                          <Icon
+                            icon={isConfirmed ? IconProp.Check : IconProp.Close}
+                            className="h-3.5 w-3.5"
+                          />
+                          <span>
+                            You {isConfirmed ? "confirmed" : "rejected"} this
+                            analysis
+                          </span>
+                        </span>
+                        <button
+                          type="button"
+                          className="rounded-md px-2 py-1 text-xs font-medium text-gray-500 underline-offset-2 hover:bg-gray-100 hover:text-gray-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                          onClick={() => {
+                            setIsChangingVerdict(true);
+                          }}
+                        >
+                          Change
+                        </button>
+                      </div>
+                    ) : (
+                      <div
+                        role="group"
+                        aria-label="Rate this investigation"
+                        className="inline-flex items-center rounded-lg border border-gray-300 bg-white p-1 shadow-sm"
+                      >
+                        <button
+                          type="button"
+                          disabled={isVerdictLocked}
+                          className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-green-50 hover:text-green-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-gray-600"
+                          onClick={() => {
+                            submitVerdict("Confirmed").catch(() => {
+                              // handled inside submitVerdict
+                            });
+                          }}
+                        >
+                          <Icon icon={IconProp.Check} className="h-4 w-4" />
+                          Confirmed
+                        </button>
+                        <span
+                          aria-hidden="true"
+                          className="mx-0.5 h-5 w-px flex-shrink-0 bg-gray-200"
+                        />
+                        <button
+                          type="button"
+                          disabled={isVerdictLocked}
+                          className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-rose-50 hover:text-rose-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-gray-600"
+                          onClick={() => {
+                            submitVerdict("Rejected").catch(() => {
+                              // handled inside submitVerdict
+                            });
+                          }}
+                        >
+                          <Icon icon={IconProp.Close} className="h-4 w-4" />
+                          Rejected
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 {verdictError ? (
-                  <div className="mb-3">
+                  <div className="mt-3">
                     <Alert
                       type={AlertType.DANGER}
                       strongTitle="Could not save your verdict"
@@ -1120,68 +1410,6 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
                   </div>
                 ) : (
                   <></>
-                )}
-                {humanVerdict && !isChangingVerdict ? (
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
-                        humanVerdict === "Confirmed"
-                          ? "bg-green-50 text-green-700"
-                          : "bg-gray-100 text-gray-600"
-                      }`}
-                    >
-                      <Icon
-                        icon={
-                          humanVerdict === "Confirmed"
-                            ? IconProp.Check
-                            : IconProp.Close
-                        }
-                        className="h-3 w-3"
-                      />
-                      <span>
-                        You{" "}
-                        {humanVerdict === "Confirmed"
-                          ? "confirmed"
-                          : "rejected"}{" "}
-                        this analysis
-                      </span>
-                    </span>
-                    <Link
-                      className="cursor-pointer text-xs text-gray-400 underline"
-                      onClick={() => {
-                        setIsChangingVerdict(true);
-                      }}
-                    >
-                      Change
-                    </Link>
-                  </div>
-                ) : (
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Button
-                      title="Confirmed"
-                      icon={IconProp.Check}
-                      buttonStyle={ButtonStyleType.SUCCESS_OUTLINE}
-                      buttonSize={ButtonSize.Small}
-                      disabled={isSavingVerdict || !analysisMarkdown}
-                      onClick={() => {
-                        submitVerdict("Confirmed").catch(() => {
-                          // handled inside submitVerdict
-                        });
-                      }}
-                    />
-                    <Button
-                      title="Rejected"
-                      icon={IconProp.Close}
-                      buttonStyle={ButtonStyleType.HOVER_DANGER_OUTLINE}
-                      buttonSize={ButtonSize.Small}
-                      disabled={isSavingVerdict || !analysisMarkdown}
-                      onClick={() => {
-                        submitVerdict("Rejected").catch(() => {
-                          // handled inside submitVerdict
-                        });
-                      }}
-                    />
-                  </div>
                 )}
               </div>
             </div>

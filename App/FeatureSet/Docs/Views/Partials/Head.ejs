@@ -27,9 +27,6 @@
     src: url('/docs/static/fonts/JetBrainsMono-Medium.woff2') format('woff2');
   }
 </style>
-<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
-<link rel="preconnect" href="https://cdn.tailwindcss.com" crossorigin>
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <!-- Critical CSS to prevent CLS - these layout rules render immediately before any external resources -->
 <style>
     /* Reserve structural layout space to prevent CLS */
@@ -47,9 +44,9 @@
     /* Sidebar nav fixed width to prevent reflow */
     nav[aria-label="Documentation navigation"] { width: 16rem; flex: 0 0 16rem; }
 </style>
-<!-- Tailwind CDN - load synchronously before compiled CSS so both are ready at first paint -->
-<link rel="preload" href="https://cdn.tailwindcss.com" as="script">
-<script src="https://cdn.tailwindcss.com"></script>
+<!-- Tailwind, served from this install - load synchronously before compiled CSS so both are ready at first paint -->
+<link rel="preload" href="/oneuptime-assets/tailwind/tailwind-3.4.5.js" as="script">
+<script src="/oneuptime-assets/tailwind/tailwind-3.4.5.js"></script>
 <script>
     tailwind.config = {
         theme: {
@@ -73,8 +70,8 @@
 <meta name="keywords" content="OneUptime, documentation, monitoring, observability, alerts, incidents, status page, open source">
 <link rel="icon" href="/favicon.ico" type="image/x-icon" sizes="16x16">
 <meta name="next-size-adjust">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css" crossorigin>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" crossorigin></script>
+<link rel="stylesheet" href="/oneuptime-assets/highlight/styles/vs2015.min.css">
+<script src="/oneuptime-assets/highlight/highlight.min.js"></script>
 <script>
     // Language display names
     var langNames = {
@@ -146,13 +143,20 @@
 
     // Lazy-load language packs, highlight, then add headers
     document.addEventListener('DOMContentLoaded', function(){
+        /*
+         * Every value here must have a matching file in
+         * Common/Server/Static/Vendor/highlight/languages. hcl/terraform used to
+         * be listed and never worked - highlight.js has no such grammar, so the
+         * fetch 404'd against the CDN too and highlightAll() fell back to
+         * auto-detection, which is exactly what happens now that it is gone.
+         */
         var langMap = {
             'dockerfile':'dockerfile','yaml':'yaml','yml':'yaml','bash':'bash','shell':'bash','sh':'bash',
             'typescript':'typescript','ts':'typescript','go':'go','python':'python','py':'python',
             'json':'json','ruby':'ruby','rb':'ruby','java':'java','css':'css','sql':'sql',
             'rust':'rust','graphql':'graphql','javascript':'javascript','js':'javascript',
             'xml':'xml','html':'xml','markup':'xml','cpp':'cpp','csharp':'csharp','php':'php',
-            'powershell':'powershell','hcl':'hcl','terraform':'hcl'
+            'powershell':'powershell'
         };
         var needed = {};
         document.querySelectorAll('pre code[class*="language-"]').forEach(function(el){
@@ -170,7 +174,7 @@
         var loaded = 0;
         langs.forEach(function(lang){
             var s = document.createElement('script');
-            s.src = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/' + lang + '.min.js';
+            s.src = '/oneuptime-assets/highlight/languages/' + lang + '.min.js';
             s.async = false;
             s.onload = s.onerror = function(){
                 loaded++;
@@ -181,7 +185,7 @@
     });
 </script>
 <script type="module">
-    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    import mermaid from '/oneuptime-assets/mermaid/mermaid.esm.min.mjs';
     mermaid.initialize({ startOnLoad: true, theme: 'default' });
 </script>
 

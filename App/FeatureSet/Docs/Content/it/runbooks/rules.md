@@ -1,9 +1,9 @@
 # Regole di runbook
 
-Le regole di runbook collegano automaticamente i runbook quando viene creato un **incidente**, un **allarme** o un **evento di manutenzione programmata**. Si gestiscono dal menu Impostazioni di ciascuna entità:
+Le regole di runbook collegano automaticamente i runbook quando viene creato un **incidente**, un **allarme** o un **evento di manutenzione programmata**. Si gestiscono dal menu di ciascuna entità:
 
 - Incidenti → Impostazioni → **Regole di runbook**
-- Avvisi → Impostazioni → **Regole di runbook**
+- Avvisi → Regole → **Regole di runbook**
 - Manutenzione programmata → Impostazioni → **Regole di runbook**
 
 Le tre pagine modificano lo stesso modello di regole sottostante — sono solo filtrate per mostrare le regole di quel tipo di entità.
