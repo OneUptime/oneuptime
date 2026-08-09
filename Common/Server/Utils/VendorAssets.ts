@@ -73,18 +73,38 @@ export function getMermaidDistPath(): string | null {
 const MERMAID_SERVABLE_EXTENSIONS: Array<string> = [".js", ".mjs"];
 
 /*
- * A year. Every path under here names a version, either in the filename
- * (tailwind-3.4.5.js) or by way of the pinned package that produced it, so a
- * stale cache entry cannot serve the wrong thing.
+ * A year, for paths that cannot change meaning: tailwind and highlight name
+ * their version in the filename, and mermaid's chunks are content-hashed.
  */
-const CACHE_MAX_AGE_MILLISECONDS: number = 365 * 24 * 60 * 60 * 1000;
+const IMMUTABLE_CACHE_MAX_AGE_MILLISECONDS: number = 365 * 24 * 60 * 60 * 1000;
+
+/*
+ * An hour, for mermaid's two entrypoints. Those names are stable while
+ * everything they import is content-hashed, so a year-old cached copy of
+ * mermaid.esm.min.mjs would go on asking for chunk filenames that a mermaid
+ * upgrade has already deleted - and the diagrams would stay broken, for that
+ * one visitor, until the cache entry aged out.
+ */
+const REVALIDATE_CACHE_MAX_AGE_MILLISECONDS: number = 60 * 60 * 1000;
+
+/* Where mermaid puts the hashed chunks, relative to its own mount. */
+const MERMAID_CHUNK_PREFIX: string = "/chunks/";
 
 export type MountVendorAssetsFunction = (app: ExpressApplication) => void;
 
 const mountVendorAssets: MountVendorAssetsFunction = (
   app: ExpressApplication,
 ): void => {
-  if (!fs.existsSync(VendorAssetsPath)) {
+  if (fs.existsSync(VendorAssetsPath)) {
+    app.use(
+      VendorAssetsRoute,
+      ExpressStatic(VendorAssetsPath, {
+        maxAge: IMMUTABLE_CACHE_MAX_AGE_MILLISECONDS,
+        index: false,
+        redirect: false,
+      }) as RequestHandler,
+    );
+  } else {
     /*
      * Nothing to serve is worth shouting about: every page that references
      * these paths is about to render without its stylesheet.
@@ -92,42 +112,54 @@ const mountVendorAssets: MountVendorAssetsFunction = (
     logger.error(
       `Vendored browser assets are missing at ${VendorAssetsPath}. Server-rendered pages will render unstyled.`,
     );
-    return;
   }
-
-  app.use(
-    VendorAssetsRoute,
-    ExpressStatic(VendorAssetsPath, {
-      maxAge: CACHE_MAX_AGE_MILLISECONDS,
-      index: false,
-      redirect: false,
-    }) as RequestHandler,
-  );
 
   const mermaidDistPath: string | null = getMermaidDistPath();
 
-  if (!mermaidDistPath) {
-    return;
+  if (mermaidDistPath) {
+    const serveImmutable: RequestHandler = ExpressStatic(mermaidDistPath, {
+      maxAge: IMMUTABLE_CACHE_MAX_AGE_MILLISECONDS,
+      index: false,
+      redirect: false,
+    }) as RequestHandler;
+
+    const serveRevalidating: RequestHandler = ExpressStatic(mermaidDistPath, {
+      maxAge: REVALIDATE_CACHE_MAX_AGE_MILLISECONDS,
+      index: false,
+      redirect: false,
+    }) as RequestHandler;
+
+    app.use(
+      `${VendorAssetsRoute}/mermaid`,
+      (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        const extension: string = path.extname(req.path).toLowerCase();
+
+        if (!MERMAID_SERVABLE_EXTENSIONS.includes(extension)) {
+          return next();
+        }
+
+        /* Express has already stripped the mount path, so this is "/chunks/...". */
+        if (req.path.startsWith(MERMAID_CHUNK_PREFIX)) {
+          return serveImmutable(req, res, next);
+        }
+
+        return serveRevalidating(req, res, next);
+      },
+    );
   }
 
-  const mermaidStaticHandler: RequestHandler = ExpressStatic(mermaidDistPath, {
-    maxAge: CACHE_MAX_AGE_MILLISECONDS,
-    index: false,
-    redirect: false,
-  }) as RequestHandler;
-
-  app.use(
-    `${VendorAssetsRoute}/mermaid`,
-    (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
-      const extension: string = path.extname(req.path).toLowerCase();
-
-      if (!MERMAID_SERVABLE_EXTENSIONS.includes(extension)) {
-        return next();
-      }
-
-      return mermaidStaticHandler(req, res, next);
-    },
-  );
+  /*
+   * Terminates the prefix. Registered unconditionally, and last, because the
+   * alternative is worse than a 404: express static falls through on a miss,
+   * and the next thing to see the request is the frontend catch-all, which
+   * answers with the dashboard's index page - HTTP 200, Content-Type
+   * text/html. A <script> handed HTML fires onload, not onerror, so the docs'
+   * lazy grammar loader would count it as loaded and highlight nothing, with
+   * no error anywhere. Better to say plainly that the asset is not here.
+   */
+  app.use(VendorAssetsRoute, (_req: ExpressRequest, res: ExpressResponse) => {
+    res.status(404).send("Not found");
+  });
 };
 
 export default mountVendorAssets;

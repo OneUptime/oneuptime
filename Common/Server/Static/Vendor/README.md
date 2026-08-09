@@ -8,9 +8,10 @@ https://github.com/OneUptime/oneuptime/issues/2570.
 
 Every service mounts this directory read-only at `/oneuptime-assets` (see
 `Common/Server/Utils/VendorAssets.ts`). Reference the files from a view by that
-absolute path, never by a CDN URL - `Common/Tests/Server/Utils/OfflineAssets.test.ts`
-fails the build on a CDN URL in any `.ejs` under `Common/Server/Views`,
-`App/FeatureSet/*/{Views,views}` or `Home/Views`.
+absolute path, never by a CDN URL -
+`Common/Tests/Server/Utils/OfflineAssetHygiene.test.ts` fails the build on a CDN
+URL in any `.ejs` under `Common/Server/Views`, `App/FeatureSet/*/{Views,views}`
+or `Home/Views`.
 
 ## Contents
 

@@ -1,4 +1,11 @@
-import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
+import {
+  afterAll,
+  beforeAll,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import childProcess from "child_process";
 import fs from "fs";
 import path from "path";
@@ -6,10 +13,13 @@ import http, { IncomingMessage, Server, createServer } from "http";
 import { AddressInfo } from "net";
 import { createExpressApp } from "../../../Server/Utils/Express";
 import mountVendorAssets, {
+  MountVendorAssetsFunction,
   VendorAssetsPath,
   VendorAssetsRoute,
   getMermaidDistPath,
 } from "../../../Server/Utils/VendorAssets";
+
+type GenericSendBody = (body: string) => void;
 
 /*
  * These run against a real Express app on a real socket rather than against a
@@ -48,7 +58,7 @@ describe("vendored browser assets", () => {
      * the asset mount answers first rather than falling through to an index
      * page - a 200 full of HTML is the failure mode that looks like success.
      */
-    app.get("/*", (_request: unknown, response: { send: GenericSend }) => {
+    app.get("/*", (_request: unknown, response: { send: GenericSendBody }) => {
       return response.send(INDEX_PAGE);
     });
 
@@ -68,8 +78,6 @@ describe("vendored browser assets", () => {
       });
     });
   });
-
-  type GenericSend = (body: string) => void;
 
   type GetAsset = (urlPath: string) => Promise<AssetResponse>;
 
@@ -403,8 +411,7 @@ describe("vendored browser assets", () => {
     test("does not serve the type definitions, sourcemaps or docs beside it", async () => {
       /*
        * dist/ is 65 MB of build outputs for every module format mermaid
-       * publishes. The browser asks for two of them; the rest falls through to
-       * the catch-all rather than being handed out.
+       * publishes. The browser asks for two of them; the rest is refused.
        */
       for (const notCode of [
         "mermaid.d.ts",
@@ -415,40 +422,199 @@ describe("vendored browser assets", () => {
           `/oneuptime-assets/mermaid/${notCode}`,
         );
 
-        expect([notCode, asset.text]).toEqual([notCode, INDEX_PAGE]);
+        expect([notCode, asset.status]).toEqual([notCode, 404]);
       }
     });
   });
 
   describe("caching", () => {
-    test("marks assets immutable enough to survive a page-to-page navigation", async () => {
+    test("marks the version-named assets immutable", async () => {
       const asset: AssetResponse = await getAsset(
         "/oneuptime-assets/tailwind/tailwind-3.4.5.js",
       );
 
       expect(asset.cacheControl).toContain("max-age=31536000");
     });
-  });
 
-  describe("directory listing", () => {
-    test("is off", async () => {
-      const asset: AssetResponse = await getAsset(
-        "/oneuptime-assets/highlight/languages/",
+    test("keeps the year on mermaid's content-hashed chunks", async () => {
+      const chunkDirectory: string = path.join(
+        getMermaidDistPath() as string,
+        "chunks",
+        "mermaid.esm.min",
       );
 
-      /* Falls through to the catch-all instead of enumerating the directory. */
-      expect(asset.text).toBe(INDEX_PAGE);
+      const chunk: string = fs
+        .readdirSync(chunkDirectory)
+        .find((file: string): boolean => {
+          return file.endsWith(".mjs");
+        }) as string;
+
+      const asset: AssetResponse = await getAsset(
+        `/oneuptime-assets/mermaid/chunks/mermaid.esm.min/${chunk}`,
+      );
+
+      expect(asset.status).toBe(200);
+      expect(asset.cacheControl).toContain("max-age=31536000");
+    });
+
+    test("does not give mermaid's stable entrypoints a year", async () => {
+      /*
+       * mermaid.esm.min.mjs keeps its name across releases while every chunk it
+       * imports is content-hashed. Cached for a year, a visitor who came back
+       * after a mermaid bump would keep replaying an entrypoint that asks for
+       * chunk filenames the upgrade deleted - and every docs diagram would stay
+       * broken for that one person until the entry aged out.
+       */
+      for (const entrypoint of ["mermaid.esm.min.mjs", "mermaid.min.js"]) {
+        const asset: AssetResponse = await getAsset(
+          `/oneuptime-assets/mermaid/${entrypoint}`,
+        );
+
+        expect([entrypoint, asset.status]).toEqual([entrypoint, 200]);
+        expect([
+          entrypoint,
+          asset.cacheControl.includes("max-age=31536000"),
+        ]).toEqual([entrypoint, false]);
+        expect([entrypoint, asset.cacheControl]).toEqual([
+          entrypoint,
+          "public, max-age=3600",
+        ]);
+      }
     });
   });
 
-  describe("a path that does not exist", () => {
-    test("falls through rather than erroring", async () => {
+  describe("anything the mount does not have", () => {
+    /*
+     * These three all used to fall through to whatever was registered next.
+     * In the App container that is the dashboard's SPA catch-all, which answers
+     * HTTP 200 with text/html - so a missing stylesheet came back as a page, a
+     * <script> handed HTML fired onload rather than onerror, and the docs' lazy
+     * grammar loader counted it as a success. A 404 is the whole point.
+     */
+    test("a grammar that was never vendored is a 404, not the index page", async () => {
       const asset: AssetResponse = await getAsset(
         "/oneuptime-assets/highlight/languages/no-such-grammar.min.js",
       );
 
-      expect(asset.text).toBe(INDEX_PAGE);
+      expect(asset.status).toBe(404);
+      expect(asset.text).not.toBe(INDEX_PAGE);
     });
+
+    test("a directory is a 404 rather than a listing or the index page", async () => {
+      const asset: AssetResponse = await getAsset(
+        "/oneuptime-assets/highlight/languages/",
+      );
+
+      expect(asset.status).toBe(404);
+      expect(asset.text).not.toBe(INDEX_PAGE);
+    });
+
+    test("the bare mount point is a 404", async () => {
+      const asset: AssetResponse = await getAsset("/oneuptime-assets/");
+
+      expect(asset.status).toBe(404);
+      expect(asset.text).not.toBe(INDEX_PAGE);
+    });
+
+    test("a path that escapes the vendor directory is refused", async () => {
+      const asset: AssetResponse = await getAsset(
+        "/oneuptime-assets/../../package.json",
+      );
+
+      expect(asset.text).not.toContain("@oneuptime/common");
+    });
+  });
+});
+
+describe("when the vendored directory is missing from the image", () => {
+  /*
+   * The failure this guards is subtle: the early return that used to sit here
+   * skipped the terminating 404 along with the static mount, so a build that
+   * shipped without Common/Server/Static/Vendor answered every asset request
+   * with the dashboard's index page at HTTP 200 - and looked, from the outside,
+   * like it was working.
+   */
+  let server: Server;
+  let port: number;
+
+  beforeAll(async () => {
+    jest.resetModules();
+
+    jest.doMock("fs", () => {
+      const actual: typeof fs = jest.requireActual("fs") as typeof fs;
+
+      return {
+        ...actual,
+        existsSync: (candidate: string): boolean => {
+          if (candidate === VendorAssetsPath) {
+            return false;
+          }
+
+          return actual.existsSync(candidate);
+        },
+      };
+    });
+
+    /*
+     * Re-imported after doMock so the module evaluates against the stubbed fs.
+     * A dynamic import, not the static one at the top of the file - that
+     * instance was built before the mock existed and still sees the real
+     * directory.
+     */
+    const mountWithoutVendorDirectory: MountVendorAssetsFunction = (
+      (await import("../../../Server/Utils/VendorAssets")) as {
+        default: MountVendorAssetsFunction;
+      }
+    ).default;
+
+    const app: ReturnType<typeof createExpressApp> = createExpressApp();
+
+    mountWithoutVendorDirectory(app);
+
+    app.get("/*", (_request: unknown, response: { send: GenericSendBody }) => {
+      return response.send(INDEX_PAGE);
+    });
+
+    server = createServer(app);
+
+    await new Promise<void>((resolve: () => void) => {
+      server.listen(0, "127.0.0.1", resolve);
+    });
+
+    port = (server.address() as AddressInfo).port;
+  });
+
+  afterAll(async () => {
+    jest.dontMock("fs");
+    jest.resetModules();
+
+    await new Promise<void>((resolve: () => void) => {
+      server.close(() => {
+        resolve();
+      });
+    });
+  });
+
+  test("still refuses the request rather than handing back a page", async () => {
+    const status: number = await new Promise<number>(
+      (resolve: (value: number) => void, reject: (reason: Error) => void) => {
+        const request: http.ClientRequest = http.get(
+          {
+            host: "127.0.0.1",
+            port,
+            path: "/oneuptime-assets/tailwind/tailwind-3.4.5.js",
+          },
+          (message: IncomingMessage) => {
+            message.resume();
+            resolve(message.statusCode || 0);
+          },
+        );
+
+        request.on("error", reject);
+      },
+    );
+
+    expect(status).toBe(404);
   });
 });
 

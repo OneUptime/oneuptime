@@ -436,4 +436,7 @@ module.exports = {
   createCSSPlugin,
   createFileLoaderPlugin,
   readEnvFile,
+  // Exported so Common/Tests can run it, rather than assert on its source.
+  copyTailwindAsset,
+  TAILWIND_FILENAME,
 };

@@ -47,18 +47,33 @@ interface ViewRoot {
  * in an href is a protocol-relative URL, not a comment, and it is precisely
  * the form this test has to keep catching.
  */
+const COMMENT_SYNTAXES: Array<RegExp> = [
+  /<!--[\s\S]*?-->/g,
+  /<%#[\s\S]*?%>/g,
+  /\/\*[\s\S]*?\*\//g,
+  /^[ \t]*\/\/.*$/gm,
+];
+
 function stripComments(source: string): string {
   /*
-   * codeql[js/incomplete-multi-character-sanitization] - this is not a
-   * sanitizer. Nothing it returns is rendered, served or evaluated: the result
-   * is matched against a list of hostnames and thrown away. A leftover "<!--"
-   * would at worst make this test scan a comment it meant to skip.
+   * Repeated until the text stops changing, rather than one pass per syntax.
+   * A single pass leaves the opener behind on overlapping comments
+   * ("<!--<!-- x -->" keeps a "<!--"), and removing a block comment can
+   * uncover a line comment that was inside it. Cheap here - these files are a
+   * few KB and it converges in two passes.
    */
-  return source
-    .replace(/<!--[\s\S]*?-->/g, "")
-    .replace(/<%#[\s\S]*?%>/g, "")
-    .replace(/\/\*[\s\S]*?\*\//g, "")
-    .replace(/^[ \t]*\/\/.*$/gm, "");
+  let previous: string = "";
+  let current: string = source;
+
+  while (current !== previous) {
+    previous = current;
+
+    for (const syntax of COMMENT_SYNTAXES) {
+      current = current.replace(syntax, "");
+    }
+  }
+
+  return current;
 }
 
 function collectViewFiles(directory: string): Array<ViewFile> {
