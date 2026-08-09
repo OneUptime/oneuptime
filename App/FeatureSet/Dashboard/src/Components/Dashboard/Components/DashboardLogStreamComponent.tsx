@@ -160,7 +160,10 @@ const DashboardLogStreamComponentElement: FunctionComponent<ComponentProps> = (
         sort: {
           time: SortOrder.Descending,
         },
-        requestOptions: DashboardResourceList.getRequestOptions("log"),
+        requestOptions: DashboardResourceList.getRequestOptions("log", {
+          componentId: props.componentId,
+          variables: props.variables,
+        }),
       });
 
       setLogs(listResult.data);
@@ -177,6 +180,7 @@ const DashboardLogStreamComponentElement: FunctionComponent<ComponentProps> = (
     attributeFilterQuery,
     maxRows,
     props.variables,
+    props.componentId,
   ]);
 
   useEffect(() => {

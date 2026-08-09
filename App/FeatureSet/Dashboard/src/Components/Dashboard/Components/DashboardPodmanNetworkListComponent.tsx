@@ -75,8 +75,13 @@ const DashboardPodmanNetworkListComponentElement: FunctionComponent<
       const listResult: ListResult<PodmanResource> =
         await ModelAPI.getList<PodmanResource>({
           modelType: PodmanResource,
-          requestOptions:
-            DashboardResourceList.getRequestOptions("podman-network"),
+          requestOptions: DashboardResourceList.getRequestOptions(
+            "podman-network",
+            {
+              componentId: props.componentId,
+              variables: props.variables,
+            },
+          ),
           query: query,
           limit: maxRows,
           skip: 0,
@@ -101,7 +106,7 @@ const DashboardPodmanNetworkListComponentElement: FunctionComponent<
     }
 
     setIsLoading(false);
-  }, [maxRows, podmanHostIdsKey]);
+  }, [maxRows, podmanHostIdsKey, props.componentId, props.variables]);
 
   useEffect(() => {
     fetchNetworks();

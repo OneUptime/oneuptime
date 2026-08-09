@@ -243,6 +243,7 @@ const DashboardProxmoxNodeListComponentElement: FunctionComponent<
   return (
     <DashboardModelResourceListBase<ProxmoxResource>
       modelType={ProxmoxResource}
+      componentId={props.componentId}
       publicResourceType="proxmox-resource"
       title={args.title}
       pluralLabel="nodes"

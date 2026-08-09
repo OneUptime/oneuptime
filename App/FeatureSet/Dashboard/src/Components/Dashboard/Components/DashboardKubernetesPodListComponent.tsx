@@ -166,6 +166,7 @@ const DashboardKubernetesPodListComponentElement: FunctionComponent<
 
   return (
     <DashboardKubernetesResourceListBase
+      componentId={props.componentId}
       title={args.title}
       pluralLabel="pods"
       emptyMessage="No pods found"

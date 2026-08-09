@@ -99,6 +99,7 @@ const DashboardKubernetesDeploymentListComponentElement: FunctionComponent<
 
   return (
     <DashboardKubernetesResourceListBase
+      componentId={props.componentId}
       title={args.title}
       pluralLabel="deployments"
       emptyMessage="No deployments found"

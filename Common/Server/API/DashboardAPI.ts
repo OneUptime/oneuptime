@@ -68,26 +68,24 @@ import SpanService from "../Services/SpanService";
 import LogService from "../Services/LogService";
 import DashboardComponentType from "../../Types/Dashboard/DashboardComponentType";
 import { DashboardVariableType } from "../../Types/Dashboard/DashboardVariable";
-import Includes from "../../Types/BaseDatabase/Includes";
+import PublicDashboardResourceListPolicy, {
+  PublicDashboardResourceListPolicyResult,
+} from "../Utils/Dashboard/PublicDashboardResourceListPolicy";
+import { applyIncidentSelfPrivacyFilter } from "../Utils/Incident/IncidentPrivacyFilter";
+import { applyAlertSelfPrivacyFilter } from "../Utils/Alert/AlertPrivacyFilter";
 
 /*
  * Registry of the non-metric widgets a public dashboard may render.
  *
- * Nothing on this endpoint is taken from the client except a narrow set of
- * filter values:
- *
- * - `select` is the FIXED set of columns the corresponding widget displays,
- *   so an anonymous viewer can only ever read these columns.
  * - `widgets` lists the dashboard widgets that render this resource, mapped
  *   to the `kind` each one shows (null when the model is not partitioned by
  *   kind). The dashboard must actually contain one of these widgets before
  *   the endpoint will serve the resource at all, and the query is pinned to
  *   the kinds those widgets render. Adding a widget to a public dashboard is
  *   therefore the owner's explicit — and only — opt-in to exposing this data.
- * - `allowedQueryKeys` is the set of columns the widget legitimately filters
- *   on. Every other key in the client-supplied query is dropped, so a public
- *   viewer cannot turn the endpoint into a generic query API over columns the
- *   widget never exposes.
+ * Query, select, sort and pagination policy are rebuilt from the exact stored
+ * widget by PublicDashboardResourceListPolicy. Client copies of those fields
+ * are never authoritative on this unauthenticated route.
  */
 interface PublicDashboardResourceConfig {
   modelType: { new (): BaseModel | AnalyticsDataModel };
@@ -95,11 +93,7 @@ interface PublicDashboardResourceConfig {
     findBy: (findBy: any) => Promise<Array<BaseModel | AnalyticsDataModel>>;
   };
   widgets: Partial<Record<DashboardComponentType, string | null>>;
-  allowedQueryKeys: Array<string>;
-  select: JSONObject;
 }
-
-const DEFAULT_DASHBOARD_RESOURCE_LIMIT: number = 100;
 
 const PUBLIC_DASHBOARD_RESOURCES: Record<
   string,
@@ -111,40 +105,12 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
     widgets: {
       [DashboardComponentType.IncidentList]: null,
     },
-    allowedQueryKeys: [
-      "currentIncidentState",
-      "currentIncidentStateId",
-      "incidentSeverityId",
-      "monitors",
-      "labels",
-    ],
-    select: {
-      _id: true,
-      title: true,
-      createdAt: true,
-      currentIncidentState: { name: true, color: true },
-      incidentSeverity: { name: true, color: true },
-    },
   },
   alert: {
     modelType: Alert,
     service: AlertService,
     widgets: {
       [DashboardComponentType.AlertList]: null,
-    },
-    allowedQueryKeys: [
-      "currentAlertState",
-      "currentAlertStateId",
-      "alertSeverityId",
-      "monitorId",
-      "labels",
-    ],
-    select: {
-      _id: true,
-      title: true,
-      createdAt: true,
-      currentAlertState: { name: true, color: true },
-      alertSeverity: { name: true, color: true },
     },
   },
   monitor: {
@@ -153,18 +119,6 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
     widgets: {
       [DashboardComponentType.MonitorList]: null,
     },
-    allowedQueryKeys: [
-      "currentMonitorStatus",
-      "currentMonitorStatusId",
-      "monitorType",
-      "labels",
-    ],
-    select: {
-      _id: true,
-      name: true,
-      monitorType: true,
-      currentMonitorStatus: { name: true, color: true },
-    },
   },
   "network-site": {
     modelType: NetworkSite,
@@ -172,59 +126,12 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
     widgets: {
       [DashboardComponentType.NetworkMap]: null,
     },
-    /*
-     * The map filters by site type and by whether the rolled-up status is
-     * operational — nothing else. Notably NOT `parentSiteId` or
-     * `materializedPath`: the widget draws a flat set of pins rather than
-     * walking a hierarchy, so exposing the tree shape here would hand an
-     * anonymous viewer a structure the map never shows them.
-     */
-    allowedQueryKeys: [
-      "networkSiteTypeId",
-      "currentMonitorStatus",
-      "currentMonitorStatusId",
-    ],
-    select: {
-      _id: true,
-      name: true,
-      /*
-       * The type NAME comes from the networkSiteType relation. NetworkSite
-       * .siteType is the deprecated pre-lookup-table string and is dropped
-       * in a follow-up PR, so it must not be read from new code.
-       */
-      networkSiteType: { name: true },
-      latitude: true,
-      longitude: true,
-      currentMonitorStatus: {
-        name: true,
-        color: true,
-        priority: true,
-        isOperationalState: true,
-      },
-    },
   },
   host: {
     modelType: Host,
     service: HostService,
     widgets: {
       [DashboardComponentType.HostList]: null,
-    },
-    allowedQueryKeys: [
-      "name",
-      "hostIdentifier",
-      "otelCollectorStatus",
-      "osType",
-    ],
-    select: {
-      _id: true,
-      name: true,
-      hostIdentifier: true,
-      otelCollectorStatus: true,
-      osType: true,
-      osVersion: true,
-      cpuCores: true,
-      totalMemoryBytes: true,
-      lastSeenAt: true,
     },
   },
   "kubernetes-resource": {
@@ -240,50 +147,12 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
       [DashboardComponentType.KubernetesJobList]: "Job",
       [DashboardComponentType.KubernetesCronJobList]: "CronJob",
     },
-    allowedQueryKeys: [
-      "kubernetesClusterId",
-      "namespaceKey",
-      "name",
-      "phase",
-      "isReady",
-    ],
-    select: {
-      _id: true,
-      name: true,
-      namespaceKey: true,
-      kind: true,
-      phase: true,
-      isReady: true,
-      hasMemoryPressure: true,
-      hasDiskPressure: true,
-      hasPidPressure: true,
-      containerCount: true,
-      latestCpuPercent: true,
-      latestMemoryBytes: true,
-      controllerDeploymentName: true,
-      controllerCronJobName: true,
-      resourceCreationTimestamp: true,
-      lastSeenAt: true,
-      kubernetesClusterId: true,
-      kubernetesCluster: { name: true },
-    },
   },
   "docker-host": {
     modelType: DockerHost,
     service: DockerHostService,
     widgets: {
       [DashboardComponentType.DockerHostList]: null,
-    },
-    allowedQueryKeys: ["name", "otelCollectorStatus"],
-    select: {
-      _id: true,
-      name: true,
-      otelCollectorStatus: true,
-      containersRunning: true,
-      containersStopped: true,
-      containersPaused: true,
-      osType: true,
-      osVersion: true,
     },
   },
   "docker-container": {
@@ -292,31 +161,12 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
     widgets: {
       [DashboardComponentType.DockerContainerList]: "Container",
     },
-    allowedQueryKeys: ["dockerHostId", "name", "imageName"],
-    select: {
-      _id: true,
-      name: true,
-      imageName: true,
-      state: true,
-      latestCpuPercent: true,
-      latestMemoryBytes: true,
-      dockerHostId: true,
-      dockerHost: { name: true },
-    },
   },
   "docker-image": {
     modelType: DockerResource,
     service: DockerResourceService,
     widgets: {
       [DashboardComponentType.DockerImageList]: "Image",
-    },
-    allowedQueryKeys: ["dockerHostId", "name"],
-    select: {
-      _id: true,
-      name: true,
-      containerId: true,
-      dockerHostId: true,
-      dockerHost: { name: true },
     },
   },
   "docker-network": {
@@ -325,28 +175,12 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
     widgets: {
       [DashboardComponentType.DockerNetworkList]: "Network",
     },
-    allowedQueryKeys: ["dockerHostId"],
-    select: {
-      _id: true,
-      name: true,
-      state: true,
-      dockerHostId: true,
-      dockerHost: { name: true },
-    },
   },
   "docker-volume": {
     modelType: DockerResource,
     service: DockerResourceService,
     widgets: {
       [DashboardComponentType.DockerVolumeList]: "Volume",
-    },
-    allowedQueryKeys: ["dockerHostId"],
-    select: {
-      _id: true,
-      name: true,
-      state: true,
-      dockerHostId: true,
-      dockerHost: { name: true },
     },
   },
   "podman-host": {
@@ -355,34 +189,12 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
     widgets: {
       [DashboardComponentType.PodmanHostList]: null,
     },
-    allowedQueryKeys: ["name", "otelCollectorStatus"],
-    select: {
-      _id: true,
-      name: true,
-      otelCollectorStatus: true,
-      containersRunning: true,
-      containersStopped: true,
-      containersPaused: true,
-      osType: true,
-      osVersion: true,
-    },
   },
   "podman-container": {
     modelType: PodmanResource,
     service: PodmanResourceService,
     widgets: {
       [DashboardComponentType.PodmanContainerList]: "Container",
-    },
-    allowedQueryKeys: ["podmanHostId", "name", "imageName"],
-    select: {
-      _id: true,
-      name: true,
-      imageName: true,
-      state: true,
-      latestCpuPercent: true,
-      latestMemoryBytes: true,
-      podmanHostId: true,
-      podmanHost: { name: true },
     },
   },
   "podman-image": {
@@ -391,14 +203,6 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
     widgets: {
       [DashboardComponentType.PodmanImageList]: "Image",
     },
-    allowedQueryKeys: ["podmanHostId", "name"],
-    select: {
-      _id: true,
-      name: true,
-      containerId: true,
-      podmanHostId: true,
-      podmanHost: { name: true },
-    },
   },
   "podman-network": {
     modelType: PodmanResource,
@@ -406,28 +210,12 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
     widgets: {
       [DashboardComponentType.PodmanNetworkList]: "Network",
     },
-    allowedQueryKeys: ["podmanHostId"],
-    select: {
-      _id: true,
-      name: true,
-      state: true,
-      podmanHostId: true,
-      podmanHost: { name: true },
-    },
   },
   "podman-volume": {
     modelType: PodmanResource,
     service: PodmanResourceService,
     widgets: {
       [DashboardComponentType.PodmanVolumeList]: "Volume",
-    },
-    allowedQueryKeys: ["podmanHostId"],
-    select: {
-      _id: true,
-      name: true,
-      state: true,
-      podmanHostId: true,
-      podmanHost: { name: true },
     },
   },
   "proxmox-resource": {
@@ -437,23 +225,6 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
       [DashboardComponentType.ProxmoxNodeList]: "Node",
       [DashboardComponentType.ProxmoxGuestList]: "Guest",
     },
-    allowedQueryKeys: ["proxmoxClusterId", "guestType", "isUp", "name"],
-    select: {
-      _id: true,
-      name: true,
-      externalId: true,
-      kind: true,
-      vmid: true,
-      guestType: true,
-      parentNodeName: true,
-      isUp: true,
-      haState: true,
-      latestCpuPercent: true,
-      latestMemoryPercent: true,
-      lastSeenAt: true,
-      proxmoxClusterId: true,
-      proxmoxCluster: { name: true },
-    },
   },
   "ceph-resource": {
     modelType: CephResource,
@@ -461,25 +232,6 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
     widgets: {
       [DashboardComponentType.CephOsdList]: "Osd",
       [DashboardComponentType.CephPoolList]: "Pool",
-    },
-    allowedQueryKeys: ["cephClusterId", "isUp", "isIn", "externalId"],
-    select: {
-      _id: true,
-      name: true,
-      externalId: true,
-      kind: true,
-      hostname: true,
-      deviceClass: true,
-      isUp: true,
-      isIn: true,
-      statBytes: true,
-      statBytesUsed: true,
-      storedBytes: true,
-      maxAvailBytes: true,
-      objects: true,
-      lastSeenAt: true,
-      cephClusterId: true,
-      cephCluster: { name: true },
     },
   },
   "docker-swarm-resource": {
@@ -489,30 +241,6 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
       [DashboardComponentType.DockerSwarmNodeList]: "Node",
       [DashboardComponentType.DockerSwarmServiceList]: "Service",
     },
-    allowedQueryKeys: [
-      "dockerSwarmClusterId",
-      "role",
-      "serviceMode",
-      "isReady",
-    ],
-    select: {
-      _id: true,
-      name: true,
-      externalId: true,
-      kind: true,
-      role: true,
-      state: true,
-      serviceMode: true,
-      desiredReplicas: true,
-      runningReplicas: true,
-      image: true,
-      isReady: true,
-      latestCpuPercent: true,
-      latestMemoryPercent: true,
-      lastSeenAt: true,
-      dockerSwarmClusterId: true,
-      dockerSwarmCluster: { name: true },
-    },
   },
   span: {
     modelType: Span,
@@ -520,33 +248,12 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
     widgets: {
       [DashboardComponentType.TraceList]: null,
     },
-    allowedQueryKeys: ["startTime", "statusCode"],
-    select: {
-      startTime: true,
-      name: true,
-      statusCode: true,
-      durationUnixNano: true,
-      traceId: true,
-      spanId: true,
-      kind: true,
-      primaryEntityId: true,
-    },
   },
   log: {
     modelType: Log,
     service: LogService,
     widgets: {
       [DashboardComponentType.LogStream]: null,
-    },
-    allowedQueryKeys: ["time", "severityText", "body", "attributes"],
-    select: {
-      time: true,
-      severityText: true,
-      body: true,
-      primaryEntityId: true,
-      traceId: true,
-      spanId: true,
-      attributes: true,
     },
   },
 };
@@ -1494,8 +1201,8 @@ export default class DashboardAPI extends BaseAPI<
      * Public resource lists for non-metric dashboard widgets (incident /
      * alert / monitor / trace / log / kubernetes / docker / host lists).
      *
-     * Each widget renders a fixed set of columns; the server pins the select
-     * to exactly those columns (see PUBLIC_DASHBOARD_RESOURCES) and forces the
+     * Each widget renders a fixed set of columns; the server-owned widget
+     * policy pins the select to exactly those columns and forces the
      * project scope to the dashboard's project, so a public viewer can only
      * read the data the widget was built to show, for this dashboard's
      * project. Authorization reuses DashboardService.hasReadAccess.
@@ -1926,119 +1633,130 @@ export default class DashboardAPI extends BaseAPI<
   }
 
   /*
-   * Walk a stored dashboard view config and collect every widget type it
-   * renders. Used to build an allowlist for the public resource-list
-   * endpoint so an anonymous viewer can only read the resources this
-   * dashboard was actually built to show — a dashboard with a monitor list
-   * on it must not double as a project-wide log or incident reader.
+   * Read only the real, top-level dashboard components. Recursively scanning
+   * arbitrary widget arguments would let a nested object carrying a
+   * `componentType` masquerade as a widget and become an authorization input.
    */
-  private static collectDashboardComponentTypes(
+  private static collectDashboardWidgets(
     dashboardViewConfig: unknown,
-  ): Set<string> {
-    const componentTypes: Set<string> = new Set<string>();
+  ): Array<JSONObject> {
+    if (
+      !dashboardViewConfig ||
+      typeof dashboardViewConfig !== "object" ||
+      Array.isArray(dashboardViewConfig)
+    ) {
+      return [];
+    }
 
-    const walk: (node: unknown) => void = (node: unknown): void => {
-      if (!node || typeof node !== "object") {
-        return;
+    const components: unknown = (
+      dashboardViewConfig as Record<string, unknown>
+    )["components"];
+
+    if (!Array.isArray(components)) {
+      return [];
+    }
+
+    return components.filter((component: unknown): component is JSONObject => {
+      return Boolean(
+        component && typeof component === "object" && !Array.isArray(component),
+      );
+    });
+  }
+
+  private static readDashboardWidgetComponentId(
+    widget: JSONObject,
+  ): string | null {
+    const componentId: unknown = widget["componentId"];
+
+    if (componentId instanceof ObjectID) {
+      return componentId.toString();
+    }
+
+    if (typeof componentId === "string" && componentId.length > 0) {
+      return componentId;
+    }
+
+    if (
+      componentId &&
+      typeof componentId === "object" &&
+      !Array.isArray(componentId)
+    ) {
+      const value: unknown = (componentId as Record<string, unknown>)["value"];
+
+      if (typeof value === "string" && value.length > 0) {
+        return value;
       }
+    }
 
-      if (Array.isArray(node)) {
-        for (const item of node) {
-          walk(item);
-        }
-        return;
-      }
-
-      const obj: Record<string, unknown> = node as Record<string, unknown>;
-
-      const componentType: unknown = obj["componentType"];
-      if (typeof componentType === "string" && componentType.length > 0) {
-        componentTypes.add(componentType);
-      }
-
-      for (const key of Object.keys(obj)) {
-        walk(obj[key]);
-      }
-    };
-
-    walk(dashboardViewConfig);
-
-    return componentTypes;
+    return null;
   }
 
   /*
-   * Reduce a client-supplied query to the filter keys the widget is allowed
-   * to narrow by. Anything else the client sends — a foreign projectId, a
-   * filter on a column the widget never renders, an operator on a secret
-   * column used as a blind oracle — is dropped rather than merged.
+   * Select the exact stored widget whose policy will be executed. A legacy
+   * caller may omit componentId only when there is exactly one matching
+   * widget, so two differently-filtered widgets are never conflated.
    */
-  private static sanitizePublicResourceQuery(data: {
-    query: unknown;
-    allowedQueryKeys: Array<string>;
+  private static selectPublicResourceWidget(data: {
+    dashboardViewConfig: unknown;
+    config: PublicDashboardResourceConfig;
+    requestedComponentId: unknown;
   }): JSONObject {
-    const { query, allowedQueryKeys } = data;
+    const matchingWidgets: Array<JSONObject> =
+      DashboardAPI.collectDashboardWidgets(data.dashboardViewConfig).filter(
+        (widget: JSONObject): boolean => {
+          const componentType: unknown = widget["componentType"];
 
-    const sanitized: Record<string, unknown> = {};
+          return (
+            typeof componentType === "string" &&
+            Object.prototype.hasOwnProperty.call(
+              data.config.widgets,
+              componentType,
+            )
+          );
+        },
+      );
 
-    if (!query || typeof query !== "object" || Array.isArray(query)) {
-      return sanitized as JSONObject;
+    if (matchingWidgets.length === 0) {
+      throw new BadDataException(
+        "This resource is not part of this dashboard.",
+      );
     }
 
-    const queryObject: Record<string, unknown> = query as Record<
-      string,
-      unknown
-    >;
-
-    for (const key of allowedQueryKeys) {
-      if (
-        Object.prototype.hasOwnProperty.call(queryObject, key) &&
-        queryObject[key] !== undefined
-      ) {
-        sanitized[key] = queryObject[key];
-      }
-    }
-
-    return sanitized as JSONObject;
-  }
-
-  /*
-   * Reduce a client-supplied sort to the columns the widget already renders
-   * (the registry's fixed select). Sorting by a column the viewer cannot see
-   * would otherwise order rows by a hidden value and leak it.
-   */
-  private static sanitizePublicResourceSort(data: {
-    sort: unknown;
-    select: JSONObject;
-  }): JSONObject {
-    const { sort, select } = data;
-
-    const sanitized: JSONObject = {};
-
-    if (!sort || typeof sort !== "object" || Array.isArray(sort)) {
-      return sanitized;
-    }
-
-    const sortObject: Record<string, unknown> = sort as Record<string, unknown>;
-
-    for (const key of Object.keys(sortObject)) {
-      // Only scalar columns of the fixed select are sortable.
-      if (select[key] !== true) {
-        continue;
+    if (
+      data.requestedComponentId === undefined ||
+      data.requestedComponentId === null
+    ) {
+      if (matchingWidgets.length === 1) {
+        return matchingWidgets[0] as JSONObject;
       }
 
-      const order: unknown = sortObject[key];
-
-      if (
-        typeof order === "string" &&
-        order.toUpperCase() === SortOrder.Descending
-      ) {
-        sanitized[key] = SortOrder.Descending;
-      } else {
-        sanitized[key] = SortOrder.Ascending;
-      }
+      throw new BadDataException(
+        "A componentId is required to read this resource from this dashboard.",
+      );
     }
 
-    return sanitized;
+    if (typeof data.requestedComponentId !== "string") {
+      throw new BadDataException("componentId must be a string UUID.");
+    }
+
+    ObjectID.validateUUID(data.requestedComponentId);
+
+    const selectedWidget: JSONObject | undefined = matchingWidgets.find(
+      (widget: JSONObject): boolean => {
+        return (
+          DashboardAPI.readDashboardWidgetComponentId(widget) ===
+          data.requestedComponentId
+        );
+      },
+    );
+
+    if (!selectedWidget) {
+      throw new BadDataException(
+        "This resource is not part of this dashboard.",
+      );
+    }
+
+    return selectedWidget;
   }
 
   /*
@@ -2087,117 +1805,66 @@ export default class DashboardAPI extends BaseAPI<
       throw new NotFoundException("Dashboard not found");
     }
 
-    /*
-     * Security: the dashboard must actually contain a widget that renders
-     * this resource. Without this check, knowing any public dashboard ID
-     * would be enough to read every resource type in its project — the
-     * dashboard's own widgets are the owner's opt-in, so they are the
-     * allowlist.
-     */
-    const dashboardComponentTypes: Set<string> =
-      DashboardAPI.collectDashboardComponentTypes(
-        dashboard.dashboardViewConfig,
-      );
+    const widget: JSONObject = DashboardAPI.selectPublicResourceWidget({
+      dashboardViewConfig: dashboard.dashboardViewConfig,
+      config,
+      requestedComponentId: req.body ? req.body["componentId"] : undefined,
+    });
 
-    const presentWidgets: Array<string> = Object.keys(config.widgets).filter(
-      (componentType: string) => {
-        return dashboardComponentTypes.has(componentType);
-      },
-    );
-
-    if (presentWidgets.length === 0) {
-      throw new BadDataException(
-        "This resource is not part of this dashboard.",
-      );
-    }
-
-    const clientQuery: JSONObject =
+    const requestedQuery: JSONObject =
       req.body && req.body["query"]
         ? (JSONFunctions.deserialize(
             req.body["query"] as JSONObject,
           ) as JSONObject)
         : {};
 
-    const query: JSONObject = DashboardAPI.sanitizePublicResourceQuery({
-      query: clientQuery,
-      allowedQueryKeys: config.allowedQueryKeys,
-    });
-
-    /*
-     * Security: pin to the dashboard's project; never trust a client-supplied
-     * projectId on a public, unauthenticated endpoint.
-     */
-    (query as Record<string, unknown>)["projectId"] = dashboard.projectId;
-
-    /*
-     * Models that pack several resource kinds into one table (Kubernetes,
-     * Docker, Podman, Proxmox, Ceph, Swarm) are constrained to the kinds the
-     * dashboard's widgets render, so a "volumes" widget cannot be used to
-     * list containers. A widget may pick one of those kinds; anything else is
-     * rejected, and a request that names no kind gets all of them.
-     */
-    const allowedKinds: Array<string> = presentWidgets
-      .map((componentType: string) => {
-        return config.widgets[componentType as DashboardComponentType];
-      })
-      .filter((kind: string | null | undefined): kind is string => {
-        return Boolean(kind);
+    const policy: PublicDashboardResourceListPolicyResult =
+      PublicDashboardResourceListPolicy.build({
+        widget,
+        dashboardViewConfig: dashboard.dashboardViewConfig,
+        requestedVariables: req.body ? req.body["variables"] : undefined,
+        requestedQuery,
       });
 
-    if (allowedKinds.length > 0) {
-      const requestedKind: unknown = (clientQuery as Record<string, unknown>)[
-        "kind"
-      ];
+    const requestedResourceType: string = req.params["resourceType"] as string;
 
-      if (requestedKind !== undefined && requestedKind !== null) {
-        if (
-          typeof requestedKind !== "string" ||
-          !allowedKinds.includes(requestedKind)
-        ) {
-          throw new BadDataException(
-            "This resource is not part of this dashboard.",
-          );
-        }
-
-        (query as Record<string, unknown>)["kind"] = requestedKind;
-      } else if (allowedKinds.length === 1) {
-        (query as Record<string, unknown>)["kind"] = allowedKinds[0];
-      } else {
-        (query as Record<string, unknown>)["kind"] = new Includes(allowedKinds);
-      }
+    if (policy.resourceType !== requestedResourceType) {
+      throw new BadDataException(
+        "This resource is not part of this dashboard.",
+      );
     }
 
-    const sort: JSONObject = DashboardAPI.sanitizePublicResourceSort({
-      sort:
-        req.body && req.body["sort"]
-          ? JSONFunctions.deserialize(req.body["sort"] as JSONObject)
-          : {},
-      select: config.select,
-    });
+    let query: JSONObject = {
+      ...policy.query,
+    };
 
-    const requestedLimit: number = req.query["limit"]
-      ? parseInt(req.query["limit"] as string, 10)
-      : DEFAULT_DASHBOARD_RESOURCE_LIMIT;
-    const limit: number = Math.min(
-      Number.isFinite(requestedLimit) && requestedLimit > 0
-        ? requestedLimit
-        : DEFAULT_DASHBOARD_RESOURCE_LIMIT,
-      LIMIT_PER_PROJECT,
-    );
+    /*
+     * IncidentService and AlertService normally apply privacy in their
+     * onBeforeFind hooks. The root read below intentionally bypasses those
+     * hooks' user context, so apply the anonymous form explicitly first:
+     * public dashboards may show public rows, never private tenant rows.
+     */
+    if (requestedResourceType === "incident") {
+      query = applyIncidentSelfPrivacyFilter(query, {});
+    } else if (requestedResourceType === "alert") {
+      query = applyAlertSelfPrivacyFilter(query, {});
+    }
 
-    const requestedSkip: number = req.query["skip"]
-      ? parseInt(req.query["skip"] as string, 10)
-      : 0;
-    const skip: number =
-      Number.isFinite(requestedSkip) && requestedSkip > 0 ? requestedSkip : 0;
+    /*
+     * Project scope is the final query invariant. Neither the request nor a
+     * future policy builder may redirect this root read to another project.
+     * Resource kind, where applicable, comes solely from the selected
+     * widget's policy query.
+     */
+    query["projectId"] = dashboard.projectId;
 
     const list: Array<BaseModel | AnalyticsDataModel> =
       await config.service.findBy({
         query: query,
-        select: config.select,
-        sort: sort,
-        limit: limit,
-        skip: skip,
+        select: policy.select,
+        sort: policy.sort,
+        limit: policy.limit,
+        skip: 0,
         props: {
           isRoot: true,
         },

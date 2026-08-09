@@ -123,7 +123,10 @@ const DashboardAlertListComponentElement: FunctionComponent<ComponentProps> = (
 
       const listResult: ListResult<Alert> = await ModelAPI.getList<Alert>({
         modelType: Alert,
-        requestOptions: DashboardResourceList.getRequestOptions("alert"),
+        requestOptions: DashboardResourceList.getRequestOptions("alert", {
+          componentId: props.componentId,
+          variables: props.variables,
+        }),
         query: query,
         limit: maxRows,
         skip: 0,
@@ -159,6 +162,8 @@ const DashboardAlertListComponentElement: FunctionComponent<ComponentProps> = (
     stateIdsKey,
     monitorIdsKey,
     labelIdsKey,
+    props.componentId,
+    props.variables,
   ]);
 
   useEffect(() => {

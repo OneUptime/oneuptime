@@ -98,8 +98,13 @@ const DashboardDockerHostListComponentElement: FunctionComponent<
       const listResult: ListResult<DockerHost> =
         await ModelAPI.getList<DockerHost>({
           modelType: DockerHost,
-          requestOptions:
-            DashboardResourceList.getRequestOptions("docker-host"),
+          requestOptions: DashboardResourceList.getRequestOptions(
+            "docker-host",
+            {
+              componentId: props.componentId,
+              variables: props.variables,
+            },
+          ),
           query: query,
           limit: maxRows,
           skip: 0,
@@ -125,7 +130,7 @@ const DashboardDockerHostListComponentElement: FunctionComponent<
     }
 
     setIsLoading(false);
-  }, [maxRows, statusFilter, props.variables]);
+  }, [maxRows, statusFilter, props.variables, props.componentId]);
 
   useEffect(() => {
     fetchHosts();

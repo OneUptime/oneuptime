@@ -124,6 +124,7 @@ const DashboardKubernetesNamespaceListComponentElement: FunctionComponent<
 
   return (
     <DashboardKubernetesResourceListBase
+      componentId={props.componentId}
       title={args.title}
       pluralLabel="namespaces"
       emptyMessage="No namespaces found"

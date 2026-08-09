@@ -292,6 +292,7 @@ export default class ModelAPI {
         method: HTTPMethod.POST,
         url: apiUrl,
         data: {
+          ...(requestOptions?.additionalRequestBody || {}),
           query: JSONFunctions.serialize(query as JSONObject),
           select: JSONFunctions.serialize(select as JSONObject),
           sort: JSONFunctions.serialize(sort as JSONObject),

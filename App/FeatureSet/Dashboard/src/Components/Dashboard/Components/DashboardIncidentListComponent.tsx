@@ -124,7 +124,10 @@ const DashboardIncidentListComponentElement: FunctionComponent<
       const listResult: ListResult<Incident> = await ModelAPI.getList<Incident>(
         {
           modelType: Incident,
-          requestOptions: DashboardResourceList.getRequestOptions("incident"),
+          requestOptions: DashboardResourceList.getRequestOptions("incident", {
+            componentId: props.componentId,
+            variables: props.variables,
+          }),
           query: query,
           limit: maxRows,
           skip: 0,
@@ -161,6 +164,8 @@ const DashboardIncidentListComponentElement: FunctionComponent<
     stateIdsKey,
     monitorIdsKey,
     labelIdsKey,
+    props.componentId,
+    props.variables,
   ]);
 
   useEffect(() => {
