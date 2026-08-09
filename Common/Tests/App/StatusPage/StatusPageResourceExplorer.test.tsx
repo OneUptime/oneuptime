@@ -395,7 +395,10 @@ const scopedResourceCalls: ScopedResourceCallsFunction = (
   calls: Array<GetListCall>,
 ): Array<GetListCall> => {
   return resourceCalls(calls).filter((call: GetListCall) => {
-    return Object.prototype.hasOwnProperty.call(call.query, "statusPageGroupId");
+    return Object.prototype.hasOwnProperty.call(
+      call.query,
+      "statusPageGroupId",
+    );
   });
 };
 
@@ -529,7 +532,9 @@ type SelectGroupFunction = (name: string) => Promise<void>;
  * Selecting remounts the pane on the new group, which then fetches, so every
  * selection is followed by waiting for that fetch to land.
  */
-const selectGroup: SelectGroupFunction = async (name: string): Promise<void> => {
+const selectGroup: SelectGroupFunction = async (
+  name: string,
+): Promise<void> => {
   fireEvent.click(
     within(navigatorRowByName(name)).getByTestId(
       "status-page-resource-navigator-select",
@@ -875,9 +880,9 @@ describe("Status Page > Resources", () => {
 
       expect(screen.getByText("High Node Disk Usage")).toBeInTheDocument();
 
-      expect(
-        screen.queryAllByTestId("status-page-resource-row").length,
-      ).toBe(2);
+      expect(screen.queryAllByTestId("status-page-resource-row").length).toBe(
+        2,
+      );
 
       const displayNames: Array<HTMLElement> = screen.queryAllByTestId(
         "status-page-resource-row-display-name",
@@ -929,9 +934,9 @@ describe("Status Page > Resources", () => {
 
       await flushEffects();
 
-      expect(
-        screen.queryAllByTestId("status-page-resource-row").length,
-      ).toBe(1);
+      expect(screen.queryAllByTestId("status-page-resource-row").length).toBe(
+        1,
+      );
       expect(screen.getByText("Database")).toBeInTheDocument();
     });
 

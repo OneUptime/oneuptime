@@ -127,7 +127,12 @@ type BuildHierarchyFunction = () => Array<StatusPageGroup>;
 const buildHierarchy: BuildHierarchyFunction = (): Array<StatusPageGroup> => {
   return [
     makeGroup({ id: CORPORATE, name: "Corporate", order: 1 }),
-    makeGroup({ id: REGION, name: "Region 1000", parentId: CORPORATE, order: 2 }),
+    makeGroup({
+      id: REGION,
+      name: "Region 1000",
+      parentId: CORPORATE,
+      order: 2,
+    }),
     makeGroup({ id: MARKET, name: "Market 1001", parentId: REGION, order: 3 }),
     makeGroup({ id: PLATFORM, name: "Platform", order: 4 }),
   ];
@@ -457,12 +462,11 @@ describe("StatusPageResourceExplorerUtil", () => {
 
   describe("revealing a selection", () => {
     test("returns every ancestor of the selected group", () => {
-      const ids: Set<string> = StatusPageResourceExplorerUtil.getGroupIdsToReveal(
-        {
+      const ids: Set<string> =
+        StatusPageResourceExplorerUtil.getGroupIdsToReveal({
           statusPageGroups: buildHierarchy(),
           statusPageGroupId: MARKET,
-        },
-      );
+        });
 
       expect(ids.has(REGION)).toBe(true);
       expect(ids.has(CORPORATE)).toBe(true);
@@ -500,9 +504,9 @@ describe("StatusPageResourceExplorerUtil", () => {
       expect(
         StatusPageResourceExplorerUtil.canExpandAll({ groupCount: 10 }),
       ).toBe(true);
-      expect(StatusPageResourceExplorerUtil.canExpandAll({ groupCount: 0 })).toBe(
-        false,
-      );
+      expect(
+        StatusPageResourceExplorerUtil.canExpandAll({ groupCount: 0 }),
+      ).toBe(false);
       expect(
         StatusPageResourceExplorerUtil.canExpandAll({
           groupCount:
@@ -594,7 +598,6 @@ describe("StatusPageResourceExplorerUtil", () => {
         }).type,
       ).toBe(StatusPageResourceSelectionType.Ungrouped);
     });
-
   });
 
   describe("naming a resource", () => {
@@ -835,7 +838,10 @@ describe("StatusPageResourceExplorerUtil", () => {
 
   describe("labels", () => {
     test("says nothing at all while the counts cannot be trusted", () => {
-      const incomplete: StatusPageResourceCountIndex = buildCountIndex([], 5000);
+      const incomplete: StatusPageResourceCountIndex = buildCountIndex(
+        [],
+        5000,
+      );
 
       expect(
         StatusPageResourceExplorerUtil.getNavigatorCountLabel({
