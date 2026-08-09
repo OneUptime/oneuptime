@@ -14,8 +14,8 @@
 <link rel="dns-prefetch" href="//avatars.githubusercontent.com">
 <!-- DNS prefetch for deferred analytics -->
 <link rel="dns-prefetch" href="//eu.posthog.com">
-<!-- Preload Tailwind CDN to reduce FOUC/CLS -->
-<link rel="preload" href="https://cdn.tailwindcss.com" as="script">
+<!-- Preload Tailwind to reduce FOUC/CLS -->
+<link rel="preload" href="/oneuptime-assets/tailwind/tailwind-3.4.5.js" as="script">
 <link rel="preload" href="https://fonts.googleapis.com/css2?family=Geist:ital,wght@0,400..800;1,400..800&display=swap" as="style">
 
 <!-- Google Fonts - Geist (Vercel's typeface), roman + italic, weights 400-800 -->
@@ -140,8 +140,8 @@
     .logo-item img { max-height: 36px; max-width: 140px; }
 </style>
 
-<!-- Tailwind CSS (render-critical) -->
-<script src="https://cdn.tailwindcss.com"></script>
+<!-- Tailwind CSS (render-critical), served from this install rather than cdn.tailwindcss.com -->
+<script src="/oneuptime-assets/tailwind/tailwind-3.4.5.js"></script>
 
 <% if(typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false){ %>
 <!-- Google Tag Manager -->

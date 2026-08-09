@@ -4,7 +4,16 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import CheckoutForm from "./BillingPaymentMethodForm";
 import { Elements } from "@stripe/react-stripe-js";
-import { Stripe, loadStripe } from "@stripe/stripe-js";
+import { Stripe } from "@stripe/stripe-js";
+/*
+ * The default entrypoint injects a <script src="https://js.stripe.com/v3">
+ * the moment the module is imported - not when loadStripe is called. This page
+ * is part of the dashboard bundle, so that request went out on every page load
+ * of every install, including the self-hosted ones that have billing turned
+ * off and the air-gapped ones with no route to Stripe at all. /pure defers the
+ * injection to the first loadStripe call, which is guarded below.
+ */
+import { loadStripe } from "@stripe/stripe-js/pure";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
@@ -123,9 +132,15 @@ const Settings: FunctionComponent<ComponentProps> = (
     };
 
   useAsyncEffect(async () => {
-    setIsModalLoading(true);
-    setStripe(await loadStripe(BILLING_PUBLIC_KEY));
-    setIsModalLoading(false);
+    /*
+     * Nothing on this page can talk to Stripe when billing is off, so there is
+     * no reason to reach for js.stripe.com and hang until it times out.
+     */
+    if (BILLING_ENABLED) {
+      setIsModalLoading(true);
+      setStripe(await loadStripe(BILLING_PUBLIC_KEY));
+      setIsModalLoading(false);
+    }
 
     setIsLoading(true);
 

@@ -29,12 +29,13 @@ import React, {
 import ProjectUtil from "Common/UI/Utils/Project";
 import Project from "Common/Models/DatabaseModels/Project";
 import SubscriptionStatus from "Common/Types/Billing/SubscriptionStatus";
-import {
-  PaymentIntentResult,
-  Stripe,
-  StripeError,
-  loadStripe,
-} from "@stripe/stripe-js";
+import { PaymentIntentResult, Stripe, StripeError } from "@stripe/stripe-js";
+/*
+ * /pure, not the default entrypoint - see Billing.tsx. Importing the default
+ * one fetches https://js.stripe.com/v3 at import time, which on an air-gapped
+ * install is a request that never comes back.
+ */
+import { loadStripe } from "@stripe/stripe-js/pure";
 import BillingPaymentMethod from "Common/Models/DatabaseModels/BillingPaymentMethod";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ListResult from "Common/Types/BaseDatabase/ListResult";

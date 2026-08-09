@@ -75,8 +75,8 @@
         </script>
 
         <!-- Syntax highlighting with highlight.js - using VS Code dark theme -->
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css">
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+        <link rel="stylesheet" href="/oneuptime-assets/highlight/styles/vs2015.min.css">
+        <script src="/oneuptime-assets/highlight/highlight.min.js"></script>
         <script>
             // Lazy-load only the language packs actually used on this page
             document.addEventListener('DOMContentLoaded', function(){
@@ -104,7 +104,7 @@
                 if(langs.length === 0){ hljs.highlightAll(); return; }
                 langs.forEach(function(lang){
                     var s = document.createElement('script');
-                    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/' + lang + '.min.js';
+                    s.src = '/oneuptime-assets/highlight/languages/' + lang + '.min.js';
                     s.async = false;
                     s.onload = s.onerror = function(){
                         loaded++;
@@ -1190,7 +1190,7 @@
                         if(mermaidCodeBlocks.length){
                             // Dynamically load Mermaid only if needed to avoid extra payload on pages without diagrams
                             const script = document.createElement('script');
-                            script.src = 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js';
+                            script.src = '/oneuptime-assets/mermaid/mermaid.min.js';
                             script.async = true;
                             script.onload = () => {
                                 if(!window.mermaid){ return; }
