@@ -20,6 +20,7 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
+import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/MarkdownViewer";
@@ -888,6 +889,46 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
     </span>
   );
 
+  /*
+   * One meta strip for both outcomes: what the run actually cost, plus the
+   * read-only guarantee. Responders ask "did this thing touch anything?"
+   * before they trust it, so the answer belongs on the card, not only in the
+   * report's own footer prose.
+   */
+  const usageStrip: ReactElement =
+    !isRunning && stats ? (
+      <div
+        aria-label="Investigation usage"
+        className="flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-lg bg-gray-50 px-4 py-2.5 text-xs text-gray-500 ring-1 ring-inset ring-gray-200"
+      >
+        <span className="inline-flex items-center gap-1.5">
+          <Icon
+            icon={IconProp.Database}
+            className="h-3.5 w-3.5 text-gray-400"
+          />
+          {stats.toolCallCount} telemetry quer
+          {stats.toolCallCount === 1 ? "y" : "ies"}
+        </span>
+        {stats.totalTokens > 0 ? (
+          <span className="inline-flex items-center gap-1.5">
+            <Icon icon={IconProp.Bolt} className="h-3.5 w-3.5 text-gray-400" />
+            {stats.totalTokens.toLocaleString()} tokens
+          </span>
+        ) : (
+          <></>
+        )}
+        <span className="inline-flex items-center gap-1.5 sm:ml-auto">
+          <Icon
+            icon={IconProp.ShieldCheck}
+            className="h-3.5 w-3.5 text-gray-400"
+          />
+          Read-only — nothing in your systems was changed
+        </span>
+      </div>
+    ) : (
+      <></>
+    );
+
   return (
     <Card
       title="AI Investigation"
@@ -906,12 +947,19 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
         className="-mt-2 scroll-mt-32 space-y-4 outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
       >
         {isFailed && errorMessage ? (
-          <div className="flex items-start gap-2.5 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
+          <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-5 py-4">
             <Icon
               icon={IconProp.Alert}
               className="mt-0.5 h-4 w-4 flex-shrink-0 text-red-500"
             />
-            <p className="text-xs leading-5 text-red-700">{errorMessage}</p>
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-red-800">
+                The investigation stopped before it could report.
+              </p>
+              <p className="mt-1 break-words text-xs leading-5 text-red-700">
+                {errorMessage}
+              </p>
+            </div>
           </div>
         ) : (
           <></>
@@ -974,19 +1022,33 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
                       </p>
                     </div>
                   </div>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-xs font-medium text-gray-500 ring-1 ring-inset ring-gray-200">
-                    <Icon icon={IconProp.Sparkles} className="h-3 w-3" />
-                    AI generated
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-xs font-medium text-gray-500 ring-1 ring-inset ring-gray-200">
+                      <Icon icon={IconProp.Sparkles} className="h-3 w-3" />
+                      AI generated
+                    </span>
+                    {/*
+                      Responders paste the RCA into a channel or a postmortem
+                      long before they act on it — make that one click rather
+                      than a fiddly selection over a long rendered document.
+                    */}
+                    <CopyTextButton
+                      textToBeCopied={analysisMarkdown}
+                      size="sm"
+                      variant="ghost"
+                      label="Copy report"
+                      copiedLabel="Report copied"
+                    />
+                  </div>
                 </div>
-                <div className="px-5 py-5 text-sm text-gray-700">
+                <div className="px-5 py-5 text-sm leading-6 text-gray-700">
                   <MarkdownViewer text={analysisMarkdown} safeMode={true} />
                 </div>
               </section>
             ) : isAnalysisPending ? (
               <div
                 role="status"
-                className="flex items-center gap-3 rounded-xl border border-indigo-100 bg-indigo-50/50 px-5 py-4"
+                className="flex items-center gap-3 rounded-xl border border-indigo-200 bg-indigo-50/50 px-5 py-4"
               >
                 <span className="h-4 w-4 flex-shrink-0 animate-spin rounded-full border-2 border-indigo-200 border-t-indigo-600" />
                 <div>
@@ -1036,9 +1098,13 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
                   />
                 </summary>
                 <div className="border-t border-gray-200 px-4 py-4">
+                  {/*
+                    The disclosure's own summary row already names this
+                    section, so the feed drops its bubble and heading here.
+                  */}
                   <ChatActivityFeed
                     events={events}
-                    title="Completed activity"
+                    hideChrome={true}
                     showLiveIndicator={false}
                     maxVisibleSteps={10}
                   />
@@ -1049,51 +1115,83 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
             )}
           </>
         ) : (
-          <div>
-            {events.length > 0 ? (
-              <ChatActivityFeed
-                events={events}
-                title={isFailed ? "Investigation activity" : undefined}
-                showLiveIndicator={!isFailed}
-              />
-            ) : (
-              <p className="text-sm text-gray-500">
-                {isActive
-                  ? "Starting investigation…"
-                  : "No investigation steps were recorded."}
-              </p>
-            )}
-          </div>
-        )}
-
-        {!isRunning && stats ? (
-          <div
-            aria-label="Investigation usage"
-            className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-gray-500"
+          /*
+           *Before the report exists the reasoning trail IS the content, so it
+           *gets the same framed treatment the report gets later: a header
+           *that says what is happening in plain words, a progress hairline
+           *while the run can still move, and the steps inside. Without the
+           *frame this state read as a bare list floating under the title.
+           */
+          <section
+            aria-label={
+              isFailed ? "Investigation activity" : "Live investigation"
+            }
+            className={`overflow-hidden rounded-xl border bg-white shadow-sm ${
+              isFailed ? "border-gray-200" : "border-indigo-200"
+            }`}
           >
-            <span className="inline-flex items-center gap-1.5">
-              <Icon
-                icon={IconProp.Database}
-                className="h-3.5 w-3.5 text-gray-400"
-              />
-              {stats.toolCallCount} telemetry quer
-              {stats.toolCallCount === 1 ? "y" : "ies"}
-            </span>
-            {stats.totalTokens > 0 ? (
-              <span className="inline-flex items-center gap-1.5">
+            <div
+              className={`flex items-start gap-3 border-b px-5 py-4 ${
+                isFailed
+                  ? "border-gray-200 bg-gray-50/80"
+                  : "border-indigo-100 bg-indigo-50/60"
+              }`}
+            >
+              <div
+                className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg ${
+                  isFailed ? "bg-gray-900" : "bg-indigo-600"
+                }`}
+              >
                 <Icon
-                  icon={IconProp.Bolt}
-                  className="h-3.5 w-3.5 text-gray-400"
+                  icon={isFailed ? IconProp.Activity : IconProp.Sparkles}
+                  className="h-4 w-4 text-white"
                 />
-                {stats.totalTokens.toLocaleString()} tokens
-              </span>
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-sm font-semibold text-gray-900">
+                  {isFailed
+                    ? "What the investigation got through"
+                    : "OneUptime AI is investigating"}
+                </h3>
+                <p className="mt-0.5 text-xs leading-5 text-gray-500">
+                  {isFailed
+                    ? "The steps this run completed before it stopped."
+                    : isQueued
+                      ? "Waiting for a worker to pick this up. Steps appear here the moment it starts."
+                      : "Reading this project's own telemetry and narrating every step. Read-only — nothing is changed."}
+                </p>
+              </div>
+            </div>
+            {isActive ? (
+              <div
+                aria-hidden="true"
+                className="h-0.5 w-full overflow-hidden bg-indigo-100"
+              >
+                <div className="h-full w-1/3 motion-safe:animate-pulse bg-indigo-500" />
+              </div>
             ) : (
               <></>
             )}
-          </div>
-        ) : (
-          <></>
+            <div className="px-5 py-4">
+              {events.length > 0 ? (
+                <ChatActivityFeed
+                  events={events}
+                  hideChrome={true}
+                  showLiveIndicator={false}
+                  maxVisibleSteps={10}
+                />
+              ) : (
+                <p className="text-sm text-gray-500">
+                  {isActive
+                    ? "Starting investigation…"
+                    : "No investigation steps were recorded."}
+                </p>
+              )}
+            </div>
+          </section>
         )}
+
+        {usageStrip}
 
         {/*
           The server-authored recommendation decides whether a completed

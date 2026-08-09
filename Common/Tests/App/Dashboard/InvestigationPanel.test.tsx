@@ -110,6 +110,7 @@ interface ActivityFeedProps {
   title?: string | undefined;
   showLiveIndicator?: boolean | undefined;
   maxVisibleSteps?: number | undefined;
+  hideChrome?: boolean | undefined;
 }
 
 interface InvestigationPayloadOptions {
@@ -381,7 +382,12 @@ describe("InvestigationPanel report lifecycle", () => {
     expect(screen.getByText("Investigating…")).toBeInTheDocument();
     expect(screen.getByTestId("investigation-activity")).toBeInTheDocument();
     expect(lastActivityProps().events).toHaveLength(1);
-    expect(lastActivityProps().showLiveIndicator).toBe(true);
+    /*
+     * The panel frames the feed itself, so the feed drops its own bubble and
+     * heading — the "Investigating…" wording must appear exactly once.
+     */
+    expect(lastActivityProps().hideChrome).toBe(true);
+    expect(screen.getAllByText("Investigating…")).toHaveLength(1);
     expect(
       document.querySelector('[class~="motion-safe:animate-ping"]'),
     ).not.toBeNull();
@@ -411,7 +417,7 @@ describe("InvestigationPanel report lifecycle", () => {
     expect(screen.getByText("Investigation activity")).toBeInTheDocument();
     expect(lastActivityProps()).toEqual(
       expect.objectContaining({
-        title: "Completed activity",
+        hideChrome: true,
         showLiveIndicator: false,
         maxVisibleSteps: 10,
       }),
@@ -420,6 +426,9 @@ describe("InvestigationPanel report lifecycle", () => {
     const usage: HTMLElement = screen.getByLabelText("Investigation usage");
     expect(usage).toHaveTextContent("2 telemetry queries");
     expect(usage).toHaveTextContent("1,234 tokens");
+    expect(usage).toHaveTextContent(
+      "Read-only — nothing in your systems was changed",
+    );
     expect(fixButton()).toBeEnabled();
     expect(screen.getByRole("button", { name: "Confirmed" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Rejected" })).toBeEnabled();
@@ -617,9 +626,15 @@ describe("InvestigationPanel report lifecycle", () => {
 
     expect(screen.getByText("Investigation did not finish")).toBeVisible();
     expect(screen.getByText("The model provider timed out.")).toBeVisible();
+    expect(
+      screen.getByText("The investigation stopped before it could report."),
+    ).toBeVisible();
+    expect(
+      screen.getByText("What the investigation got through"),
+    ).toBeVisible();
     expect(lastActivityProps()).toEqual(
       expect.objectContaining({
-        title: "Investigation activity",
+        hideChrome: true,
         showLiveIndicator: false,
       }),
     );
@@ -639,6 +654,91 @@ describe("InvestigationPanel report lifecycle", () => {
 
     expect(requestPath(0)).toContain("/ai-investigation/alert");
     expect(postRequestAt(0).data).toEqual({ alertId: ALERT_ID.toString() });
+  });
+});
+
+/*
+ * Every state of the card has to stand on its own: a responder can land on it
+ * while the run is queued, live, failed, or finished. These tests pin the
+ * framing and the plain-language explanation each state owes the reader.
+ */
+describe("InvestigationPanel card states", () => {
+  test("frames the live run and says what it is doing and that it cannot change anything", async () => {
+    postMock.mockResolvedValue(
+      successfulResponse(
+        investigationPayload({
+          status: AIRunStatus.Running,
+          events: [activityEvent],
+        }),
+      ) as never,
+    );
+
+    renderPanel();
+    await flush();
+
+    const live: HTMLElement = screen.getByLabelText("Live investigation");
+    expect(live).toHaveTextContent("OneUptime AI is investigating");
+    expect(live).toHaveTextContent("Read-only — nothing is changed");
+    expect(live).toContainElement(screen.getByTestId("investigation-activity"));
+  });
+
+  test("explains the wait while the run is only queued", async () => {
+    postMock.mockResolvedValue(
+      successfulResponse(
+        investigationPayload({ status: AIRunStatus.Queued }),
+      ) as never,
+    );
+
+    renderPanel();
+    await flush();
+
+    expect(screen.getByLabelText("Live investigation")).toHaveTextContent(
+      "Waiting for a worker to pick this up",
+    );
+    expect(screen.getByText("Starting investigation…")).toBeVisible();
+  });
+
+  test("puts a copy control on the report so it can be pasted elsewhere", async () => {
+    postMock.mockResolvedValue(completedResponse() as never);
+
+    renderPanel();
+    await flush();
+
+    const report: HTMLElement = screen.getByLabelText("Investigation report");
+    expect(report).toHaveTextContent("AI generated");
+    expect(report).toContainElement(
+      screen.getByRole("button", { name: "Copy report" }),
+    );
+  });
+
+  test("shows no usage strip while the run is still moving", async () => {
+    postMock.mockResolvedValue(
+      successfulResponse(
+        investigationPayload({
+          status: AIRunStatus.Running,
+          toolCallCount: 2,
+          totalTokens: 900,
+        }),
+      ) as never,
+    );
+
+    renderPanel();
+    await flush();
+
+    expect(screen.queryByLabelText("Investigation usage")).toBeNull();
+  });
+
+  test("reports a single query without pluralising it", async () => {
+    postMock.mockResolvedValue(
+      completedResponse({ toolCallCount: 1, totalTokens: 0 }) as never,
+    );
+
+    renderPanel();
+    await flush();
+
+    const usage: HTMLElement = screen.getByLabelText("Investigation usage");
+    expect(usage).toHaveTextContent("1 telemetry query");
+    expect(usage).not.toHaveTextContent("tokens");
   });
 });
 

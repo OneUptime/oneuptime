@@ -404,9 +404,7 @@ describe("deleting a group", () => {
       "const getParentGroupOptions:",
     );
 
-    expect(deleteBody).toContain(
-      "await ModelAPI.deleteItem<StatusPageGroup>(",
-    );
+    expect(deleteBody).toContain("await ModelAPI.deleteItem<StatusPageGroup>(");
     expect(deleteBody).toContain("id: groupToDelete.id,");
     expect(deleteBody).toContain("await fetchGroups();");
   });
