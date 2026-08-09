@@ -446,6 +446,19 @@ export default class AIInvestigationEngine {
                  * and a summary of it would waste the TL;DR on both.
                  */
                 analysisMarkdown: analysis,
+              }).catch((error: unknown): null => {
+                /*
+                 * generateTldr is total by construction, but it sits in a
+                 * Promise.all inside the main try: a rejection would land in
+                 * the catch below AFTER the Completed transition was won, so
+                 * the run would be failed and the report never posted at all
+                 * — a cosmetic line of text destroying the whole RCA. Belt
+                 * and braces, because the blast radius is that asymmetric.
+                 */
+                logger.error(
+                  `AI: TL;DR generation threw for run ${aiRunId.toString()}; publishing the report without one: ${error}`,
+                );
+                return null;
               })
             : Promise.resolve(null),
         ]);

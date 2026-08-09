@@ -240,6 +240,80 @@ describe("AIInvestigationAPI latest-investigation payload", () => {
     );
   });
 
+  /*
+   * The column is selected, so it also travels inside the serialized run.
+   * Both copies must obey the same gate — otherwise a client reading
+   * run.analysisTldr shows a summary of a report the payload does not carry.
+   */
+  it("applies the report gate to the serialized run as well as the top-level field", async () => {
+    await callIncidentRoute({
+      run: investigationRun({
+        status: AIRunStatus.Completed,
+        createdAt: new Date("2026-08-07T10:00:00.000Z"),
+        completedAt: new Date(Date.now() - 1000),
+        analysisTldr: "The checkout API is failing on an exhausted pool.",
+      }),
+    });
+
+    const payload: JSONObject = sentPayload();
+    expect(payload["analysisTldr"]).toBeNull();
+    expect((payload["run"] as JSONObject)["analysisTldr"]).toBeNull();
+  });
+
+  it("carries the same TL;DR in the run and at the top level once the report exists", async () => {
+    await callIncidentRoute({
+      run: investigationRun({
+        status: AIRunStatus.Completed,
+        createdAt: new Date("2026-08-07T09:55:00.000Z"),
+        completedAt: new Date("2026-08-07T10:00:00.000Z"),
+        analysisTldr: "The checkout API is failing on an exhausted pool.",
+      }),
+      analysisMarkdown: "## Current investigation\nPool exhausted.",
+    });
+
+    const payload: JSONObject = sentPayload();
+    expect(payload["analysisTldr"]).toBe(
+      "The checkout API is failing on an exhausted pool.",
+    );
+    expect((payload["run"] as JSONObject)["analysisTldr"]).toBe(
+      payload["analysisTldr"],
+    );
+  });
+
+  it("normalizes the run's blank TL;DR to null too", async () => {
+    await callIncidentRoute({
+      run: investigationRun({
+        status: AIRunStatus.Completed,
+        createdAt: new Date("2026-08-07T09:55:00.000Z"),
+        completedAt: new Date("2026-08-07T10:00:00.000Z"),
+        analysisTldr: "   ",
+      }),
+      analysisMarkdown: "## Current investigation\nPool exhausted.",
+    });
+
+    expect((sentPayload()["run"] as JSONObject)["analysisTldr"]).toBeNull();
+  });
+
+  /*
+   * The route always returns the LATEST run, while the report is bound to
+   * that run's id. A re-investigation therefore replaces both — and must not
+   * leave the previous run's summary on screen describing an analysis the
+   * payload no longer carries.
+   */
+  it("never shows a previous run's summary once a new run supersedes it", async () => {
+    await callIncidentRoute({
+      run: investigationRun({
+        status: AIRunStatus.Running,
+        createdAt: new Date("2026-08-07T11:00:00.000Z"),
+      }),
+    });
+
+    const payload: JSONObject = sentPayload();
+    expect(payload["analysisMarkdown"]).toBeNull();
+    expect(payload["analysisTldr"]).toBeNull();
+    expect((payload["run"] as JSONObject)["analysisTldr"]).toBeNull();
+  });
+
   it("selects the TL;DR column so a live panel can render it", async () => {
     await callIncidentRoute({
       run: investigationRun({

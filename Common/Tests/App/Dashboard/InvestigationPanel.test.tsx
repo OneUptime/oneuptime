@@ -74,6 +74,15 @@ jest.mock("../../../UI/Components/Markdown.tsx/MarkdownViewer", () => {
   };
 });
 
+/*
+ * The feed owns the "will this draw any steps?" predicate, because several
+ * event types only close a step an earlier event opened. The panel asks it
+ * instead of counting raw events, so the mock has to answer too — and
+ * hasRenderableActivityMock lets a test make the two disagree, which is the
+ * case that used to render an empty framed box.
+ */
+const hasRenderableActivityMock: MockFunction = getJestMockFunction();
+
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/ChatActivityFeed",
   () => {
@@ -84,6 +93,9 @@ jest.mock(
         return React.createElement("div", {
           "data-testid": "investigation-activity",
         });
+      },
+      hasRenderableActivity: (events: Array<AIRunEvent>): boolean => {
+        return hasRenderableActivityMock(events) as boolean;
       },
     };
   },
@@ -326,6 +338,15 @@ beforeEach(() => {
   jest.useFakeTimers();
   jest.setSystemTime(new Date(COMPLETED_AT));
   getCommonHeadersMock.mockReturnValue({});
+  /*
+   * Default to the real component's behaviour for the ordinary event shapes
+   * these tests use: every step-opening event draws a step.
+   */
+  hasRenderableActivityMock.mockImplementation(
+    (events: Array<AIRunEvent>): boolean => {
+      return events.length > 0;
+    },
+  );
   getFriendlyMessageMock.mockImplementation((error: unknown): string => {
     if (
       typeof error === "object" &&
@@ -349,6 +370,7 @@ afterEach(() => {
   getCommonHeadersMock.mockReset();
   markdownViewerMock.mockReset();
   activityFeedMock.mockReset();
+  hasRenderableActivityMock.mockReset();
 });
 
 describe("InvestigationPanel report lifecycle", () => {
@@ -711,13 +733,50 @@ describe("InvestigationPanel card states", () => {
     );
   });
 
-  test("shows no usage strip while the run is still moving", async () => {
+  /*
+   * A queued run carries a stats object whose counts are all zero, so an
+   * ungated strip would tell the reader the AI ran zero queries and changed
+   * nothing — a past-tense report on work that has not started, directly
+   * under "waiting for a worker".
+   */
+  test.each([AIRunStatus.Running, AIRunStatus.Queued])(
+    "shows no usage strip while a %s run has not produced anything yet",
+    async (status: AIRunStatus) => {
+      postMock.mockResolvedValue(
+        successfulResponse(
+          investigationPayload({
+            status,
+            toolCallCount: 0,
+            totalTokens: 0,
+          }),
+        ) as never,
+      );
+
+      renderPanel();
+      await flush();
+
+      expect(screen.queryByLabelText("Investigation usage")).toBeNull();
+      expect(
+        screen.queryByText(/nothing in your systems was changed/),
+      ).toBeNull();
+    },
+  );
+
+  /*
+   * Events and rendered steps are not the same thing: RunFailed and the
+   * completion halves of tool/LLM calls only close a step an earlier event
+   * opened. A run whose RunStarted failed to persist and then failed outright
+   * carries one event and draws nothing, and counting raw events would frame
+   * an empty panel instead of saying what happened.
+   */
+  test("explains an empty trail instead of framing a blank panel", async () => {
+    hasRenderableActivityMock.mockReturnValue(false);
     postMock.mockResolvedValue(
       successfulResponse(
         investigationPayload({
-          status: AIRunStatus.Running,
-          toolCallCount: 2,
-          totalTokens: 900,
+          status: AIRunStatus.Error,
+          errorMessage: "The provider timed out.",
+          events: [activityEvent],
         }),
       ) as never,
     );
@@ -725,7 +784,21 @@ describe("InvestigationPanel card states", () => {
     renderPanel();
     await flush();
 
-    expect(screen.queryByLabelText("Investigation usage")).toBeNull();
+    expect(screen.queryByTestId("investigation-activity")).toBeNull();
+    expect(
+      screen.getByText("No investigation steps were recorded."),
+    ).toBeVisible();
+  });
+
+  test("hides the completed activity disclosure when no step would render", async () => {
+    hasRenderableActivityMock.mockReturnValue(false);
+    postMock.mockResolvedValue(completedResponse() as never);
+
+    renderPanel();
+    await flush();
+
+    expect(screen.getByLabelText("Investigation report")).toBeInTheDocument();
+    expect(screen.queryByText("Investigation activity")).toBeNull();
   });
 
   test("reports a single query without pluralising it", async () => {
@@ -862,6 +935,96 @@ describe("InvestigationPanel TL;DR", () => {
 
     expect(screen.queryByLabelText("Investigation summary")).toBeNull();
     expect(screen.getByText("The provider timed out.")).toBeVisible();
+  });
+
+  /*
+   * The report is recomputed from the feed on every poll, so it can vanish
+   * (a deleted feed item) while the run stays Completed. The summary must go
+   * with it — a summary of a report the reader cannot see is worse than none.
+   * Cadence matters: a settled Recommended run polls at the SETTLED interval,
+   * so advancing by the fast interval would make this pass vacuously.
+   */
+  test("drops the summary if the report it describes disappears on a later poll", async () => {
+    postMock
+      .mockResolvedValueOnce(completedResponse({ analysisTldr: TLDR }) as never)
+      .mockResolvedValue(
+        completedResponse({
+          analysisMarkdown: null,
+          analysisTldr: TLDR,
+        }) as never,
+      );
+
+    renderPanel();
+    await flush();
+    expect(screen.getByLabelText("Investigation summary")).toHaveTextContent(
+      TLDR,
+    );
+
+    await tick(SETTLED_POLL_INTERVAL_MS);
+
+    expect(postMock).toHaveBeenCalledTimes(2);
+    expect(screen.queryByLabelText("Investigation summary")).toBeNull();
+    expect(screen.queryByText(TLDR)).toBeNull();
+  });
+
+  /*
+   * "Never attributed to the wrong run" — the same subject can be
+   * re-investigated, and the previous run's summary must not survive onto the
+   * new run's report.
+   */
+  test("does not carry a summary over to a new run on the same subject", async () => {
+    const nextAnalysis: string = "## Root cause\n\nA second, different cause.";
+    postMock
+      .mockResolvedValueOnce(completedResponse({ analysisTldr: TLDR }) as never)
+      .mockResolvedValue(
+        completedResponse({
+          runId: NEXT_RUN_ID,
+          analysisMarkdown: nextAnalysis,
+          analysisTldr: null,
+        }) as never,
+      );
+
+    renderPanel();
+    await flush();
+    expect(screen.getByLabelText("Investigation summary")).toBeInTheDocument();
+
+    await tick(SETTLED_POLL_INTERVAL_MS);
+
+    expect(screen.queryByLabelText("Investigation summary")).toBeNull();
+    expect(screen.queryByText(TLDR)).toBeNull();
+    expect(screen.getByTestId("investigation-markdown")).toHaveTextContent(
+      "A second, different cause.",
+    );
+  });
+
+  /*
+   * The module's threat model is "the worst a prompt injection achieves is a
+   * misleading sentence". That holds only while the summary is rendered as
+   * inert text — never as markdown, never as HTML.
+   */
+  test("renders hostile summary content inertly, as text", async () => {
+    const hostile: string =
+      '<img src=x onerror="window.__pwned = true"> **bold** [link](https://evil.example)';
+    postMock.mockResolvedValue(
+      completedResponse({ analysisTldr: hostile }) as never,
+    );
+
+    renderPanel();
+    await flush();
+
+    const summary: HTMLElement = screen.getByLabelText("Investigation summary");
+    expect(summary).toHaveTextContent(hostile);
+    expect(summary.querySelector("img")).toBeNull();
+    expect(summary.querySelector("a")).toBeNull();
+    expect(
+      (window as unknown as { __pwned?: boolean }).__pwned,
+    ).toBeUndefined();
+    // The summary never reaches the markdown renderer.
+    expect(
+      markdownTexts().every((text: string): boolean => {
+        return text === ANALYSIS;
+      }),
+    ).toBe(true);
   });
 
   test("drops the previous subject's summary the moment the subject changes", async () => {

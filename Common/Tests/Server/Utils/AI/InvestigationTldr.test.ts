@@ -3,12 +3,21 @@ import InvestigationTldr, {
   INVESTIGATION_TLDR_FEATURE,
   INVESTIGATION_TLDR_TIMEOUT_MS,
   MAX_TLDR_CHARS,
+  MAX_TLDR_COMPLETION_TOKENS,
+  MIN_TLDR_CHARS,
 } from "../../../../Server/Utils/AI/SRE/InvestigationTldr";
 import AIService, {
   AILogResponse,
   AUTONOMOUS_AI_FEATURES,
 } from "../../../../Server/Services/AIService";
+import AIRun from "../../../../Models/DatabaseModels/AIRun";
+import ColumnLength from "../../../../Types/Database/ColumnLength";
+import TableColumnType from "../../../../Types/Database/TableColumnType";
+import { getTableColumn } from "../../../../Types/Database/TableColumn";
+import { AddInvestigationAnalysisTldr1786600000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1786600000000-AddInvestigationAnalysisTldr";
+import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import ObjectID from "../../../../Types/ObjectID";
+import { QueryRunner } from "typeorm";
 import { afterEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -156,6 +165,163 @@ describe("InvestigationTldr.sanitizeTldr", () => {
     expect(sanitized!.endsWith("…")).toBe(true);
   });
 
+  /*
+   * substring() counts UTF-16 code units, so a naive cut can land between the
+   * halves of a surrogate pair. The orphan is not representable in UTF-8:
+   * Postgres rejects the write outright ("invalid byte sequence for encoding
+   * UTF8"), so the summary is lost, and any browser that did receive it draws
+   * a replacement glyph. Emoji are common in model prose, so this is reachable
+   * rather than theoretical.
+   */
+  test("never leaves half a surrogate pair when the cap lands inside an emoji", () => {
+    const LONE_SURROGATE_RE: RegExp =
+      /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?:^|[^\uD800-\uDBFF])[\uDC00-\uDFFF]/;
+
+    /*
+     * Sweep the boundary: at some offset the cap falls exactly between the
+     * emoji's two code units, which is the case that used to break.
+     */
+    for (let padding: number = 300; padding <= MAX_TLDR_CHARS + 4; padding++) {
+      const sanitized: string | null = InvestigationTldr.sanitizeTldr(
+        `${"a".repeat(padding)}🔥${"b".repeat(60)}`,
+      );
+
+      expect(sanitized).not.toBeNull();
+      expect(sanitized!.length).toBeLessThanOrEqual(MAX_TLDR_CHARS);
+      expect(LONE_SURROGATE_RE.test(sanitized!)).toBe(false);
+      // A lone surrogate cannot round-trip through UTF-8 encoding.
+      expect(Buffer.from(sanitized!, "utf8").toString("utf8")).toBe(sanitized);
+    }
+  });
+
+  test("keeps whole astral characters that fit inside the cap", () => {
+    const withEmoji: string = `Checkout is on fire 🔥 — the pool is exhausted.`;
+
+    expect(InvestigationTldr.sanitizeTldr(withEmoji)).toBe(withEmoji);
+  });
+
+  /*
+   * The identifiers in a summary are the part an engineer copies into a
+   * search box, so flattening markdown must not eat them. Underscore and
+   * tilde are ordinary characters in SRE prose; only their PAIRED
+   * delimiter forms are markdown.
+   */
+  test("keeps snake_case identifiers intact", () => {
+    expect(
+      InvestigationTldr.sanitizeTldr(
+        "p99 for http_request_duration_seconds tripled on order_service.",
+      ),
+    ).toBe("p99 for http_request_duration_seconds tripled on order_service.");
+    expect(
+      InvestigationTldr.sanitizeTldr(
+        "The user_service_db replica lagged, so checkout_latency_seconds rose.",
+      ),
+    ).toBe(
+      "The user_service_db replica lagged, so checkout_latency_seconds rose.",
+    );
+  });
+
+  /*
+   * A lone tilde means "approximately". Deleting it would have the sanitizer
+   * manufacture precision the analysis never claimed — the one thing the
+   * module promises it will never do.
+   */
+  test("keeps approximation markers, which are not strikethrough", () => {
+    expect(
+      InvestigationTldr.sanitizeTldr(
+        "Latency rose to ~2s for ~40% of checkout requests after the deploy.",
+      ),
+    ).toBe(
+      "Latency rose to ~2s for ~40% of checkout requests after the deploy.",
+    );
+  });
+
+  test("still flattens the paired emphasis and strikethrough forms", () => {
+    expect(
+      InvestigationTldr.sanitizeTldr(
+        "~~Latency~~ __throughput__ collapsed on the _checkout_ path at 14:02.",
+      ),
+    ).toBe("Latency throughput collapsed on the checkout path at 14:02.");
+  });
+
+  /*
+   * Block markers stack in real model output. Each strip only matches at the
+   * start of a line, so one pass leaves the inner marker for the panel to
+   * render verbatim — the exact "stray marker looks broken" case.
+   */
+  test("removes stacked block markers rather than leaving the inner one", () => {
+    expect(
+      InvestigationTldr.sanitizeTldr(
+        "> ## The pool is exhausted and checkout is returning 500s.",
+      ),
+    ).toBe("The pool is exhausted and checkout is returning 500s.");
+    expect(
+      InvestigationTldr.sanitizeTldr(
+        "  - ## Root cause: connection pool exhaustion in the checkout path.",
+      ),
+    ).toBe("Root cause: connection pool exhaustion in the checkout path.");
+    expect(
+      InvestigationTldr.sanitizeTldr(
+        "- - The checkout API is failing because the pool is exhausted.",
+      ),
+    ).toBe("The checkout API is failing because the pool is exhausted.");
+  });
+
+  test("no sanitized summary ever begins with a leftover markdown marker", () => {
+    const inputs: Array<string> = [
+      "> ## The pool is exhausted and checkout is returning 500s now.",
+      "### 1. The pool is exhausted and checkout is returning 500s now.",
+      "* > The pool is exhausted and checkout is returning 500s right now.",
+      "1) - The pool is exhausted and checkout is returning 500s right now.",
+    ];
+
+    for (const input of inputs) {
+      const sanitized: string | null = InvestigationTldr.sanitizeTldr(input);
+
+      expect(sanitized).not.toBeNull();
+      expect(sanitized).toMatch(/^[A-Za-z]/);
+      expect(sanitized).not.toContain("##");
+    }
+  });
+
+  /*
+   * The floor was previously checked only against the pre-truncation text, so
+   * a long input whose first space sits early collapsed to a few characters
+   * and was still persisted and displayed.
+   */
+  test("applies the length floor to the truncated result, not just the input", () => {
+    expect(
+      InvestigationTldr.sanitizeTldr(`${"a".repeat(18)}... ${"b".repeat(400)}`),
+    ).toBeNull();
+    expect(
+      InvestigationTldr.sanitizeTldr(
+        `Broken. ${". ".repeat(12)}${"c".repeat(400)}`,
+      ),
+    ).toBeNull();
+  });
+
+  test("every non-null result sits inside the documented length band", () => {
+    const inputs: Array<string> = [
+      REAL_TLDR,
+      `TL;DR: ${REAL_TLDR}`,
+      `${"word ".repeat(200)}tail`,
+      "x".repeat(MAX_TLDR_CHARS * 3),
+      `**${"pool exhaustion ".repeat(60)}**`,
+      `${"a".repeat(318)}🔥${"b".repeat(60)}`,
+    ];
+
+    for (const input of inputs) {
+      const sanitized: string | null = InvestigationTldr.sanitizeTldr(input);
+
+      if (sanitized === null) {
+        continue;
+      }
+
+      expect(sanitized.length).toBeGreaterThanOrEqual(MIN_TLDR_CHARS);
+      expect(sanitized.length).toBeLessThanOrEqual(MAX_TLDR_CHARS);
+    }
+  });
+
   test("markdown is flattened BEFORE the cap, so no summary can exceed it", () => {
     const sanitized: string | null = InvestigationTldr.sanitizeTldr(
       `**${"pool exhaustion ".repeat(60)}**`,
@@ -163,6 +329,70 @@ describe("InvestigationTldr.sanitizeTldr", () => {
 
     expect(sanitized!.length).toBeLessThanOrEqual(MAX_TLDR_CHARS);
     expect(sanitized).not.toContain("*");
+  });
+});
+
+/*
+ * Three numbers have to move together or the feature breaks silently: the
+ * sanitizer's cap, the entity's column width, and the migration's DDL. Every
+ * other cap assertion in this file is written in terms of MAX_TLDR_CHARS, so
+ * raising the constant alone would keep the suite green while production
+ * started emitting values the column cannot hold — and the engine swallows
+ * that write failure, so the feature would just stop persisting. These
+ * assertions use literals on purpose.
+ */
+describe("the TL;DR width chain: sanitizer, entity and migration", () => {
+  test("the sanitizer's cap fits inside the persisted column", () => {
+    expect(MAX_TLDR_CHARS).toBeLessThan(500);
+    expect(ColumnLength.LongText).toBe(500);
+    expect(MAX_TLDR_CHARS).toBeLessThan(ColumnLength.LongText);
+  });
+
+  test("no sanitized value can exceed the column, whatever the input", () => {
+    const sanitized: string | null = InvestigationTldr.sanitizeTldr(
+      "x ".repeat(5000),
+    );
+
+    expect(sanitized).not.toBeNull();
+    expect(sanitized!.length).toBeLessThan(500);
+  });
+
+  test("the entity column is the width the sanitizer assumes", () => {
+    const column: { type?: TableColumnType | undefined } = getTableColumn(
+      new AIRun(),
+      "analysisTldr",
+    );
+
+    expect(column.type).toBe(TableColumnType.LongText);
+  });
+
+  test("the migration creates exactly that width, and drops it cleanly", async () => {
+    const statements: Array<string> = [];
+    const queryRunner: QueryRunner = {
+      query: async (sql: string): Promise<void> => {
+        statements.push(sql);
+      },
+    } as unknown as QueryRunner;
+
+    const migration: AddInvestigationAnalysisTldr1786600000000 =
+      new AddInvestigationAnalysisTldr1786600000000();
+
+    await migration.up(queryRunner);
+    expect(statements).toEqual([
+      'ALTER TABLE "AIRun" ADD "analysisTldr" character varying(500)',
+    ]);
+
+    statements.length = 0;
+    await migration.down(queryRunner);
+    expect(statements).toEqual([
+      'ALTER TABLE "AIRun" DROP COLUMN "analysisTldr"',
+    ]);
+  });
+
+  test("the migration is registered, or it never runs on deploy", () => {
+    expect(SchemaMigrations).toContain(
+      AddInvestigationAnalysisTldr1786600000000,
+    );
   });
 });
 
@@ -197,7 +427,7 @@ describe("InvestigationTldr.generateTldr", () => {
         feature: INVESTIGATION_TLDR_FEATURE,
         storeContentPreviews: false,
         temperature: 0,
-        maxTokens: 120,
+        maxTokens: MAX_TLDR_COMPLETION_TOKENS,
         requestTimeoutInMs: INVESTIGATION_TLDR_TIMEOUT_MS,
         requestRetries: 0,
         protectRequestParameters: true,
@@ -207,6 +437,18 @@ describe("InvestigationTldr.generateTldr", () => {
 
   test("the feature label is inside the daily autonomous budget", () => {
     expect(AUTONOMOUS_AI_FEATURES).toContain(INVESTIGATION_TLDR_FEATURE);
+  });
+
+  /*
+   * The completion cap must never bind before the character cap. If it does,
+   * the model stops mid-clause, the fragment is under MAX_TLDR_CHARS so
+   * nothing ellipsizes it, and a half-sentence renders as a finished summary.
+   * Even at a pessimistic ~1.5 characters per token this leaves headroom.
+   */
+  test("the token budget cannot bind before the character cap does", () => {
+    expect(MAX_TLDR_COMPLETION_TOKENS).toBeGreaterThanOrEqual(
+      MAX_TLDR_CHARS / 2,
+    );
   });
 
   test("an empty analysis spends nothing at all", async () => {

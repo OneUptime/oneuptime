@@ -58,10 +58,23 @@ const MAX_ANALYSIS_CHARS: number = 8000;
 export const MAX_TLDR_CHARS: number = 320;
 
 /*
- * Below this a "summary" is noise ("Unknown.", "N/A") rather than something
- * worth giving the top of the card to.
+ * The completion cap must never be the binding constraint on a summary the
+ * prompt already limits to MAX_TLDR_CHARS characters. If the model stops
+ * because it ran out of tokens rather than because it finished, the fragment
+ * is under the character cap, so nothing downstream ellipsizes it and a
+ * half-sentence renders as a finished TL;DR. Identifier-dense SRE prose runs
+ * well under three characters per token, and reasoning models spend part of
+ * this budget before emitting anything, so keep a wide margin over the
+ * character cap rather than a tight one.
  */
-const MIN_TLDR_CHARS: number = 20;
+export const MAX_TLDR_COMPLETION_TOKENS: number = 300;
+
+/*
+ * Below this a "summary" is noise ("Unknown.", "N/A") rather than something
+ * worth giving the top of the card to. Exported so tests can assert the floor
+ * against the same number the sanitizer enforces.
+ */
+export const MIN_TLDR_CHARS: number = 20;
 
 /*
  * A model asked for one sentence still likes to prefix a label. Strip a
@@ -76,9 +89,27 @@ const LEADING_LABEL_LINE_RE: RegExp =
 const LEADING_LABEL_RE: RegExp =
   /^\s*(?:\*{0,2})(tl[;,]?\s?dr|summary)(?:\*{0,2})\s*[:\-–—]\s*/i;
 
-// Markdown inline syntax that must not reach a plain-text renderer.
+/*
+ * Markdown inline syntax that must not reach a plain-text renderer.
+ *
+ * Asterisks and backticks are stripped wherever they appear — in incident
+ * prose they are practically always emphasis or code fencing. Underscore and
+ * tilde are NOT, and deleting them everywhere corrupts the most useful part
+ * of a TL;DR:
+ *   - "http_request_duration_seconds" becomes "httprequestdurationseconds",
+ *     destroying exactly the identifier an engineer would paste into a search;
+ *   - a single "~" means "approximately", so dropping it turns "~40% of
+ *     requests" into "40% of requests" — the sanitizer inventing precision
+ *     the analysis never claimed.
+ * So those two are only removed in genuine paired-delimiter position: the
+ * opening mark must follow a non-word character (or start of string) and the
+ * closing mark must be followed by one (or end of string).
+ */
 const MARKDOWN_LINK_RE: RegExp = /\[([^\]]*)\]\([^)]*\)/g;
-const MARKDOWN_EMPHASIS_RE: RegExp = /[*_`~]+/g;
+const MARKDOWN_STAR_OR_CODE_RE: RegExp = /[*`]+/g;
+const MARKDOWN_UNDERSCORE_EMPHASIS_RE: RegExp =
+  /(^|[^\w])_{1,2}([^_]+?)_{1,2}(?=[^\w]|$)/g;
+const MARKDOWN_STRIKETHROUGH_RE: RegExp = /~~([^~]+?)~~/g;
 const MARKDOWN_HEADING_RE: RegExp = /^\s{0,3}#{1,6}\s*/gm;
 const MARKDOWN_QUOTE_OR_BULLET_RE: RegExp = /^\s{0,3}(?:[>\-+*]|\d+[.)])\s+/gm;
 const WHITESPACE_RE: RegExp = /\s+/g;
@@ -116,11 +147,26 @@ export default class InvestigationTldr {
       withoutLabelLines = withoutLabelLines.replace(LEADING_LABEL_LINE_RE, "");
     }
 
-    let text: string = withoutLabelLines
-      .replace(MARKDOWN_HEADING_RE, "")
-      .replace(MARKDOWN_QUOTE_OR_BULLET_RE, "")
+    /*
+     * Block markers can stack ("> ## cause", "- - cause"), and each pass only
+     * matches at the very start of a line, so a single pass leaves the inner
+     * marker behind for the panel to render verbatim. Repeat to a fixed point
+     * — the same idiom as the label loop above.
+     */
+    let withoutBlockMarkers: string = withoutLabelLines;
+    let previousBlockMarkers: string = "";
+    while (withoutBlockMarkers !== previousBlockMarkers) {
+      previousBlockMarkers = withoutBlockMarkers;
+      withoutBlockMarkers = withoutBlockMarkers
+        .replace(MARKDOWN_HEADING_RE, "")
+        .replace(MARKDOWN_QUOTE_OR_BULLET_RE, "");
+    }
+
+    let text: string = withoutBlockMarkers
       .replace(MARKDOWN_LINK_RE, "$1")
-      .replace(MARKDOWN_EMPHASIS_RE, "")
+      .replace(MARKDOWN_STRIKETHROUGH_RE, "$1")
+      .replace(MARKDOWN_UNDERSCORE_EMPHASIS_RE, "$1$2")
+      .replace(MARKDOWN_STAR_OR_CODE_RE, "")
       .replace(WHITESPACE_RE, " ")
       .trim();
 
@@ -147,14 +193,53 @@ export default class InvestigationTldr {
      * lands mid-word. A single pathological "word" longer than the cap falls
      * back to a hard cut.
      */
-    const hardCut: string = text.substring(0, MAX_TLDR_CHARS - 1);
+    const hardCut: string = this.cutWithoutSplittingCharacters(
+      text,
+      MAX_TLDR_CHARS - 1,
+    );
     const lastSpaceIndex: number = hardCut.lastIndexOf(" ");
     const truncated: string =
       lastSpaceIndex > MIN_TLDR_CHARS
         ? hardCut.substring(0, lastSpaceIndex)
         : hardCut;
+    const trimmed: string = truncated.replace(/[\s.,;:]+$/, "");
 
-    return `${truncated.replace(/[\s.,;:]+$/, "")}…`;
+    /*
+     * The floor above was checked against the PRE-truncation text. Cutting at
+     * the first space and then stripping trailing punctuation can leave far
+     * less than that — "aaa... " followed by 400 characters collapses to a
+     * three-letter fragment. Re-check, so the floor means what it says on the
+     * value that is actually persisted and displayed.
+     */
+    if (trimmed.length < MIN_TLDR_CHARS) {
+      return null;
+    }
+
+    return `${trimmed}…`;
+  }
+
+  /*
+   * substring() counts UTF-16 code units, so cutting at a fixed length can
+   * land between the two halves of a surrogate pair — an emoji or any
+   * astral-plane character. The leftover lone surrogate is not representable
+   * in UTF-8, so Postgres rejects the whole write ("invalid byte sequence for
+   * encoding UTF8") and the summary is silently lost, while a browser that
+   * did receive it would draw a replacement glyph. Drop the orphaned half.
+   */
+  private static cutWithoutSplittingCharacters(
+    text: string,
+    maxLength: number,
+  ): string {
+    if (text.length <= maxLength) {
+      return text;
+    }
+
+    const cut: string = text.substring(0, maxLength);
+    const lastCode: number = cut.charCodeAt(cut.length - 1);
+    const isOrphanedHighSurrogate: boolean =
+      lastCode >= 0xd800 && lastCode <= 0xdbff;
+
+    return isOrphanedHighSurrogate ? cut.substring(0, cut.length - 1) : cut;
   }
 
   /*
@@ -200,7 +285,7 @@ export default class InvestigationTldr {
           // The output is displayed verbatim; no prompt previews in LlmLog.
           storeContentPreviews: false,
           temperature: 0,
-          maxTokens: 120,
+          maxTokens: MAX_TLDR_COMPLETION_TOKENS,
           requestTimeoutInMs: INVESTIGATION_TLDR_TIMEOUT_MS,
           requestRetries: 0,
           protectRequestParameters: true,

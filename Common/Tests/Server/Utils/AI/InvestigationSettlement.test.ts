@@ -944,6 +944,63 @@ describe("AIInvestigationEngine.executeRun — the investigation TL;DR", () => {
     expect(postAnalysis).toHaveBeenCalledTimes(1);
   });
 
+  /*
+   * The blast radius here is wildly asymmetric. generateTldr sits in a
+   * Promise.all inside the main try, AFTER the Completed transition is won:
+   * a rejection would fall to the catch, finalize the run NotRecommended and
+   * emit RunFailed, so the RCA would never be posted at all — a cosmetic line
+   * of text destroying the entire investigation output.
+   */
+  test("a throwing TL;DR call still publishes the report and settles the run", async () => {
+    jest
+      .spyOn(InvestigationTldr, "generateTldr")
+      .mockRejectedValue(new Error("summarizer exploded"));
+    const store: jest.SpyInstance = jest.spyOn(
+      AIRunService,
+      "setInvestigationAnalysisTldr",
+    );
+    const onSettled: jest.Mock = jest.fn(async (): Promise<void> => {});
+
+    await expect(
+      executeRun(
+        makeRequest({
+          onSettled: onSettled as unknown as InvestigationRequest["onSettled"],
+        }),
+      ),
+    ).resolves.toBeUndefined();
+
+    expect(postAnalysis).toHaveBeenCalledTimes(1);
+    expect(store).not.toHaveBeenCalled();
+    expect(onSettled).toHaveBeenCalledTimes(1);
+    expect(emittedTypes()).toContain(AIRunEventType.RunCompleted);
+    expect(emittedTypes()).not.toContain(AIRunEventType.RunFailed);
+  });
+
+  /*
+   * A stale attempt — one the sweeper falsely requeued — loses the Completed
+   * CAS and must not spend a TL;DR call or label a run whose report belongs
+   * to the winning attempt.
+   */
+  test("an attempt that lost the Completed race neither spends nor writes a TL;DR", async () => {
+    (
+      AIRunService.attemptStatusTransition as unknown as jest.Mock
+    ).mockResolvedValue(0);
+    const generate: jest.SpyInstance = jest.spyOn(
+      InvestigationTldr,
+      "generateTldr",
+    );
+    const store: jest.SpyInstance = jest.spyOn(
+      AIRunService,
+      "setInvestigationAnalysisTldr",
+    );
+
+    await expect(executeRun()).resolves.toBeUndefined();
+
+    expect(generate).not.toHaveBeenCalled();
+    expect(store).not.toHaveBeenCalled();
+    expect(postAnalysis).not.toHaveBeenCalled();
+  });
+
   test("an engine user without the opt-in never spends the call", async () => {
     const generate: jest.SpyInstance = jest.spyOn(
       InvestigationTldr,

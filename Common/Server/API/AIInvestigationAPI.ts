@@ -277,6 +277,16 @@ async function sendLatestInvestigation(
     ? (run.analysisTldr || "").trim() || null
     : null;
 
+  /*
+   * The selected column also travels inside the serialized run, so the gate
+   * above has to be applied there too — otherwise a client reading
+   * run.analysisTldr would show a summary of a report the payload does not
+   * carry. One field, one rule: the summary exists only next to its report.
+   */
+  if (runJson) {
+    runJson["analysisTldr"] = analysisTldr;
+  }
+
   Response.sendJsonObjectResponse(req, res, {
     run: runJson || null,
     events: eventsJson,

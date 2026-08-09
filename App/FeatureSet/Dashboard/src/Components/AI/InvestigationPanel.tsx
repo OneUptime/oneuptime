@@ -1,4 +1,6 @@
-import ChatActivityFeed from "../AIChat/ChatActivityFeed";
+import ChatActivityFeed, {
+  hasRenderableActivity,
+} from "../AIChat/ChatActivityFeed";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import AIRunEvent from "Common/Models/DatabaseModels/AIRunEvent";
@@ -870,6 +872,13 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
     codeFixRecommendation === AIRunCodeFixRecommendation.Recommended;
   const isVerdictLocked: boolean = isSavingVerdict || !analysisMarkdown;
   const isConfirmed: boolean = humanVerdict === "Confirmed";
+  /*
+   * Ask the feed whether it will draw anything rather than counting events:
+   * several event types only close a step an earlier event opened, so a run
+   * can carry events yet render no steps, and a raw count would frame an
+   * empty box (or advertise a disclosure that opens onto nothing).
+   */
+  const hasActivity: boolean = hasRenderableActivity(events);
 
   const statusBadge: ReactElement = (
     <span
@@ -894,9 +903,14 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
    * read-only guarantee. Responders ask "did this thing touch anything?"
    * before they trust it, so the answer belongs on the card, not only in the
    * report's own footer prose.
+   *
+   * Gated on isActive, not isRunning: a QUEUED run has a stats object whose
+   * counts are all zero, so the strip would tell a reader that the AI ran
+   * zero queries and changed nothing — a past-tense report on work that has
+   * not begun, sitting directly under "waiting for a worker".
    */
   const usageStrip: ReactElement =
-    !isRunning && stats ? (
+    !isActive && stats ? (
       <div
         aria-label="Investigation usage"
         className="flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-lg bg-gray-50 px-4 py-2.5 text-xs text-gray-500 ring-1 ring-inset ring-gray-200"
@@ -1079,7 +1093,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
               </div>
             )}
 
-            {events.length > 0 ? (
+            {hasActivity ? (
               <details className="group rounded-xl border border-gray-200 bg-gray-50/50">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-xl px-4 py-3 text-sm font-medium text-gray-600 hover:bg-gray-100/70 hover:text-gray-900">
                   <span className="flex items-center gap-2">
@@ -1173,7 +1187,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
               <></>
             )}
             <div className="px-5 py-4">
-              {events.length > 0 ? (
+              {hasActivity ? (
                 <ChatActivityFeed
                   events={events}
                   hideChrome={true}

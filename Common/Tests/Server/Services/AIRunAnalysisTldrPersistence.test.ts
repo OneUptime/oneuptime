@@ -90,6 +90,52 @@ describe("AIRunService.setInvestigationAnalysisTldr", () => {
     });
   });
 
+  /*
+   * A display-only writer must not be able to touch anything else. This is
+   * the only thing standing between "set one varchar" and an UPDATE that
+   * silently rewrites status or the code-fix decision on a settled run.
+   */
+  test("writes that column and nothing else", async () => {
+    const { recorded } = mockUpdateQueryBuilder({ affected: 1 });
+
+    await AIRunService.setInvestigationAnalysisTldr({
+      aiRunId: ObjectID.generate(),
+      analysisTldr: "Summary of the outage.",
+    });
+
+    expect(Object.keys(recorded.set || {})).toEqual(["analysisTldr"]);
+  });
+
+  /*
+   * Write-once. A stale attempt that lost the Completed CAS is kept out today
+   * only by statement order in the engine — and by the time it could run, the
+   * WINNER has already written both the report and its summary, so a
+   * status-only guard would let the loser overwrite a summary describing a
+   * different analysis.
+   */
+  test("refuses to overwrite a summary that already exists", async () => {
+    const aiRunId: ObjectID = ObjectID.generate();
+    const { recorded } = mockUpdateQueryBuilder({ affected: 1 });
+
+    await AIRunService.setInvestigationAnalysisTldr({
+      aiRunId,
+      analysisTldr: "Summary of the outage.",
+    });
+
+    expect(whereClauses(recorded)).toContain('"analysisTldr" IS NULL');
+  });
+
+  test("reports zero when another writer already summarized the run", async () => {
+    mockUpdateQueryBuilder({ affected: 0 });
+
+    await expect(
+      AIRunService.setInvestigationAnalysisTldr({
+        aiRunId: ObjectID.generate(),
+        analysisTldr: "A second, conflicting summary.",
+      }),
+    ).resolves.toBe(0);
+  });
+
   test("reports zero when the run is no longer Completed", async () => {
     mockUpdateQueryBuilder({ affected: 0 });
 

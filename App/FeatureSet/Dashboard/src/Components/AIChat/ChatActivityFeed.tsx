@@ -165,6 +165,19 @@ function buildSteps(events: Array<AIRunEvent>): Array<ActivityStep> {
 }
 
 /*
+ * Whether these events will actually draw any steps. Several event types
+ * (RunCompleted, RunFailed, and the completion halves of LLM/tool calls)
+ * only close a step that an earlier event opened, so a non-empty event list
+ * can still render nothing — a run whose RunStarted failed to persist and
+ * then failed outright is one real example. A host that frames the feed in
+ * its own titled panel must ask this instead of counting raw events, or it
+ * draws an empty box. Exported so the predicate has exactly one owner.
+ */
+export function hasRenderableActivity(events: Array<AIRunEvent>): boolean {
+  return buildSteps(events).length > 0;
+}
+
+/*
  * The live "investigating…" feed: renders the run's real tool activity so
  * the user watches actual queries execute instead of a generic spinner.
  */
