@@ -8,7 +8,12 @@ import {
   getSeverityElement,
   getSeverityTileClasses,
   getStatusElement,
-} from "../Insights";
+  getStatusLabel,
+} from "../../../Components/AIInsights/InsightPresentation";
+import InsightFactsList, {
+  InsightFact,
+} from "../../../Components/AIInsights/InsightFactsList";
+import InsightPanel from "../../../Components/AIInsights/InsightPanel";
 import ChatActivityFeed from "../../../Components/AIChat/ChatActivityFeed";
 import AIRun from "Common/Models/DatabaseModels/AIRun";
 import AIRunEvent from "Common/Models/DatabaseModels/AIRunEvent";
@@ -31,7 +36,6 @@ import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
-import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -318,6 +322,11 @@ const AIInsightViewPage: FunctionComponent<
   );
   const isConfirmed: boolean = humanVerdict === AIInsightHumanVerdict.Confirmed;
 
+  /*
+   * The triage strip: a tinted panel rather than a bare colored line, so a
+   * run that is still working, one that finished and one that died are
+   * distinguishable at a glance and not just by reading the sentence.
+   */
   interface TriageStatusMeta {
     text: string;
     className: string;
@@ -326,7 +335,7 @@ const AIInsightViewPage: FunctionComponent<
 
   let triageStatusMeta: TriageStatusMeta = {
     text: "Triage did not finish",
-    className: "text-red-600",
+    className: "border-red-100 bg-red-50 text-red-700",
     icon: IconProp.Alert,
   };
   let isTriageFailed: boolean = true;
@@ -334,37 +343,30 @@ const AIInsightViewPage: FunctionComponent<
   if (triageRun?.status === AIRunStatus.Running) {
     triageStatusMeta = {
       text: "Triaging…",
-      className: "text-indigo-600",
+      className: "border-indigo-100 bg-indigo-50 text-indigo-700",
       icon: IconProp.Sparkles,
     };
     isTriageFailed = false;
   } else if (triageRun?.status === AIRunStatus.Queued) {
     triageStatusMeta = {
       text: "Queued — waiting for a worker…",
-      className: "text-indigo-600",
+      className: "border-indigo-100 bg-indigo-50 text-indigo-700",
       icon: IconProp.Sparkles,
     };
     isTriageFailed = false;
   } else if (triageRun?.status === AIRunStatus.Completed) {
     triageStatusMeta = {
       text: "Triage complete",
-      className: "text-green-600",
+      className: "border-green-100 bg-green-50 text-green-700",
       icon: IconProp.Check,
     };
     isTriageFailed = false;
   }
 
-  interface OverviewMetaItem {
-    label: string;
-    icon: IconProp;
-    value: string;
-    title?: string | undefined;
-  }
-
-  const metaItems: Array<OverviewMetaItem> = [];
+  const facts: Array<InsightFact> = [];
 
   if (insight.serviceName) {
-    metaItems.push({
+    facts.push({
       label: "Service",
       icon: IconProp.Cube,
       value: insight.serviceName,
@@ -372,32 +374,14 @@ const AIInsightViewPage: FunctionComponent<
   }
 
   if (insight.metricName) {
-    metaItems.push({
+    facts.push({
       label: "Metric",
       icon: IconProp.ChartBar,
       value: insight.metricName,
     });
   }
 
-  if (insight.firstSeenAt) {
-    metaItems.push({
-      label: "First Seen",
-      icon: IconProp.Clock,
-      value: OneUptimeDate.fromNow(insight.firstSeenAt),
-      title: OneUptimeDate.getDateAsLocalFormattedString(insight.firstSeenAt),
-    });
-  }
-
-  if (insight.lastSeenAt) {
-    metaItems.push({
-      label: "Last Seen",
-      icon: IconProp.Clock,
-      value: OneUptimeDate.fromNow(insight.lastSeenAt),
-      title: OneUptimeDate.getDateAsLocalFormattedString(insight.lastSeenAt),
-    });
-  }
-
-  metaItems.push({
+  facts.push({
     label: "Detections",
     icon: IconProp.Refresh,
     value:
@@ -406,15 +390,33 @@ const AIInsightViewPage: FunctionComponent<
         : `${insight.occurrenceCount || 0} times`,
   });
 
+  if (insight.firstSeenAt) {
+    facts.push({
+      label: "First seen",
+      icon: IconProp.Clock,
+      value: OneUptimeDate.fromNow(insight.firstSeenAt),
+      title: OneUptimeDate.getDateAsLocalFormattedString(insight.firstSeenAt),
+    });
+  }
+
+  if (insight.lastSeenAt) {
+    facts.push({
+      label: "Last seen",
+      icon: IconProp.Clock,
+      value: OneUptimeDate.fromNow(insight.lastSeenAt),
+      title: OneUptimeDate.getDateAsLocalFormattedString(insight.lastSeenAt),
+    });
+  }
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Overview: what was found, where it stands, and the one-click actions. */}
-      <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
+      <section className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
         <div className="px-5 py-6 md:px-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="flex min-w-0 items-start gap-4">
-              <div
-                className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg ${getSeverityTileClasses(
+              <span
+                className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl ${getSeverityTileClasses(
                   insight.severity,
                 )}`}
               >
@@ -422,17 +424,17 @@ const AIInsightViewPage: FunctionComponent<
                   icon={getInsightTypeIcon(insight.insightType)}
                   className="h-6 w-6"
                 />
-              </div>
+              </span>
               <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-1.5">
+                <h2 className="text-lg font-semibold leading-6 text-gray-900">
+                  {insight.title}
+                </h2>
+                <div className="mt-2 flex flex-wrap items-center gap-1.5">
                   {getInsightTypeElement(insight.insightType)}
                   {getSeverityElement(insight.severity)}
                   {getStatusElement(status || undefined)}
                   {getHumanVerdictElement(humanVerdict)}
                 </div>
-                <h2 className="mt-2 text-base font-semibold leading-6 text-gray-900">
-                  {insight.title}
-                </h2>
               </div>
             </div>
 
@@ -491,143 +493,151 @@ const AIInsightViewPage: FunctionComponent<
           ) : (
             <></>
           )}
+        </div>
 
-          <dl className="mt-5 grid grid-cols-2 gap-4 border-t border-gray-100 pt-5 sm:grid-cols-3 lg:grid-cols-5">
-            {metaItems.map((item: OverviewMetaItem, index: number) => {
-              return (
-                <div key={index} className="min-w-0">
-                  <dt className="flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-gray-400">
-                    <Icon icon={item.icon} className="h-3.5 w-3.5" />
-                    {item.label}
-                  </dt>
-                  <dd
-                    className="mt-1 truncate text-sm text-gray-900"
-                    title={item.title || item.value}
-                  >
-                    {item.value}
-                  </dd>
-                </div>
-              );
-            })}
-          </dl>
+        {/*
+         * A closed insight loses its action buttons, which on its own reads
+         * as a page that failed to render them — say why instead.
+         */}
+        <p className="border-t border-gray-100 bg-gray-50 px-5 py-3 text-xs text-gray-500 md:px-6">
+          {isTerminal
+            ? `This insight is closed as ${getStatusLabel(
+                status || undefined,
+              )}. Detectors never reopen a closed insight — a new occurrence files a new one.`
+            : "Confirm or dismiss to record whether this insight was worth surfacing — verdicts measure each detector's precision. Resolve it once it has been handled."}
+        </p>
+      </section>
 
-          {!isTerminal ? (
-            <p className="mt-4 text-xs text-gray-400">
-              Confirm or dismiss to record whether this insight was worth
-              surfacing — verdicts measure each detector&apos;s precision.
-              Resolve it once it has been handled.
-            </p>
+      {/*
+       * Two columns from xl up: the evidence and the AI's reasoning are prose
+       * and want a readable measure, not the full width of a 27" display,
+       * and the facts read better as a scannable rail beside them.
+       */}
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
+        <div className="min-w-0 space-y-5 xl:col-span-2">
+          <InsightPanel
+            title="Evidence"
+            icon={IconProp.ClipboardDocumentCheck}
+            description="The deterministic evidence behind this insight — real counts, baselines and multipliers written by the detector at detect time. Not AI output."
+          >
+            {insight.detailMarkdown ? (
+              /*
+               * safeMode is mandatory here: the detectors interpolate raw
+               * telemetry into this markdown (NewExceptionDetector and
+               * ExceptionSpikeDetector push `exception.message` in verbatim,
+               * not even fenced), and an exception message is
+               * attacker-influenceable — anything that reaches an
+               * instrumented service can shape it. Without safeMode a message
+               * carrying `![](https://attacker/p.png)` becomes a zero-click
+               * tracking beacon that fires in a privileged member's browser,
+               * and `[click](https://attacker/…)` becomes a phishing link
+               * wearing our chrome. safeMode neutralizes links, images and
+               * mermaid on the PARSED tree, so no CommonMark syntax trick can
+               * smuggle either past the parser.
+               */
+              <MarkdownViewer text={insight.detailMarkdown} safeMode={true} />
+            ) : (
+              <p className="text-sm text-gray-500">No evidence was recorded.</p>
+            )}
+          </InsightPanel>
+
+          {triageRun || insight.triageSummaryMarkdown ? (
+            <InsightPanel
+              title="AI Triage"
+              icon={IconProp.Sparkles}
+              description="A budgeted, read-only AI analysis of this insight — probable root cause, blast radius and suggested action, with citations."
+            >
+              <div className="space-y-3">
+                {insight.triageSummaryMarkdown ? (
+                  /*
+                   * safeMode is mandatory here too: this summary is LLM output
+                   * produced from a prompt that embeds the insight's detail
+                   * markdown and the telemetry behind it, so it is
+                   * prompt-injectable — the model can be talked into emitting
+                   * an image or link the attacker chose. Same defense the AI
+                   * chat uses for the same reason
+                   * (Components/AIChat/SafeChatMarkdown).
+                   */
+                  <MarkdownViewer
+                    text={insight.triageSummaryMarkdown}
+                    safeMode={true}
+                  />
+                ) : (
+                  <div>
+                    <div
+                      className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium ${triageStatusMeta.className}`}
+                    >
+                      <span className="flex-shrink-0">
+                        <Icon
+                          icon={triageStatusMeta.icon}
+                          className="h-4 w-4"
+                        />
+                      </span>
+                      <span>{triageStatusMeta.text}</span>
+                      {isTriageActive ? (
+                        <span className="ml-auto inline-block h-2 w-2 animate-ping rounded-full bg-indigo-500" />
+                      ) : (
+                        <></>
+                      )}
+                    </div>
+                    {isTriageFailed && triageRun?.errorMessage ? (
+                      <p className="mt-2 text-xs text-red-500">
+                        {triageRun.errorMessage}
+                      </p>
+                    ) : (
+                      <></>
+                    )}
+                  </div>
+                )}
+
+                {triageEvents.length > 0 ? (
+                  <ChatActivityFeed
+                    events={triageEvents}
+                    title={isTriageActive ? "Triaging…" : "Activity"}
+                    showLiveIndicator={isTriageActive}
+                    maxVisibleSteps={MAX_VISIBLE_STEPS}
+                  />
+                ) : (
+                  <></>
+                )}
+              </div>
+            </InsightPanel>
+          ) : (
+            <></>
+          )}
+        </div>
+
+        <div className="min-w-0 space-y-5">
+          <InsightPanel title="Details" icon={IconProp.List}>
+            <InsightFactsList facts={facts} />
+          </InsightPanel>
+
+          {insight.fixAiRunId ? (
+            <InsightPanel
+              title="Fix Task"
+              icon={IconProp.Code}
+              description="OneUptime AI queued an agent task for this insight. Fix pull requests are always drafts and always human-reviewed."
+            >
+              {/*
+               * A real anchor (not a Button) so cmd/ctrl-click, middle-click
+               * and "open in new tab" work — Link always sets href.
+               */}
+              <Link
+                to={RouteUtil.populateRouteParams(
+                  RouteMap[PageMap.AI_AGENT_TASK_VIEW] as Route,
+                  { modelId: insight.fixAiRunId },
+                )}
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-500"
+              >
+                <span>View the fix task and pull request</span>
+                <Icon icon={IconProp.ArrowRight} className="h-4 w-4" />
+              </Link>
+            </InsightPanel>
           ) : (
             <></>
           )}
         </div>
       </div>
-
-      <Card
-        title="Evidence"
-        description="The deterministic evidence behind this insight — real counts, baselines and multipliers written by the detector at detect time. Not AI output."
-      >
-        {insight.detailMarkdown ? (
-          /*
-           * safeMode is mandatory here: the detectors interpolate raw
-           * telemetry into this markdown (NewExceptionDetector and
-           * ExceptionSpikeDetector push `exception.message` in verbatim, not
-           * even fenced), and an exception message is attacker-influenceable
-           * — anything that reaches an instrumented service can shape it.
-           * Without safeMode a message carrying `![](https://attacker/p.png)`
-           * becomes a zero-click tracking beacon that fires in a privileged
-           * member's browser, and `[click](https://attacker/…)` becomes a
-           * phishing link wearing our chrome. safeMode neutralizes links,
-           * images and mermaid on the PARSED tree, so no CommonMark syntax
-           * trick can smuggle either past the parser.
-           */
-          <MarkdownViewer text={insight.detailMarkdown} safeMode={true} />
-        ) : (
-          <p className="text-sm text-gray-500">No evidence was recorded.</p>
-        )}
-      </Card>
-
-      {triageRun || insight.triageSummaryMarkdown ? (
-        <Card
-          title="AI Triage"
-          description="A budgeted, read-only AI analysis of this insight — probable root cause, blast radius and suggested action, with citations."
-        >
-          <div className="space-y-3">
-            {insight.triageSummaryMarkdown ? (
-              /*
-               * safeMode is mandatory here too: this summary is LLM output
-               * produced from a prompt that embeds the insight's detail
-               * markdown and the telemetry behind it, so it is
-               * prompt-injectable — the model can be talked into emitting an
-               * image or link the attacker chose. Same defense the AI chat
-               * uses for the same reason (Components/AIChat/SafeChatMarkdown).
-               */
-              <MarkdownViewer
-                text={insight.triageSummaryMarkdown}
-                safeMode={true}
-              />
-            ) : (
-              <div>
-                <div
-                  className={`flex items-center gap-2 text-sm font-medium ${triageStatusMeta.className}`}
-                >
-                  <Icon icon={triageStatusMeta.icon} className="h-4 w-4" />
-                  <span>{triageStatusMeta.text}</span>
-                  {isTriageActive ? (
-                    <span className="ml-1 inline-block h-2 w-2 animate-ping rounded-full bg-indigo-500" />
-                  ) : (
-                    <></>
-                  )}
-                </div>
-                {isTriageFailed && triageRun?.errorMessage ? (
-                  <p className="mt-1 text-xs text-red-500">
-                    {triageRun.errorMessage}
-                  </p>
-                ) : (
-                  <></>
-                )}
-              </div>
-            )}
-
-            {triageEvents.length > 0 ? (
-              <ChatActivityFeed
-                events={triageEvents}
-                title={isTriageActive ? "Triaging…" : "Activity"}
-                showLiveIndicator={isTriageActive}
-                maxVisibleSteps={MAX_VISIBLE_STEPS}
-              />
-            ) : (
-              <></>
-            )}
-          </div>
-        </Card>
-      ) : (
-        <></>
-      )}
-
-      {insight.fixAiRunId ? (
-        <Card
-          title="Fix Task"
-          description="OneUptime AI queued an agent task for this insight. Fix pull requests are always drafts and always human-reviewed."
-        >
-          {/*
-           * A real anchor (not a Button) so cmd/ctrl-click, middle-click
-           * and "open in new tab" work — Link always sets href.
-           */}
-          <Link
-            to={RouteUtil.populateRouteParams(
-              RouteMap[PageMap.AI_AGENT_TASK_VIEW] as Route,
-              { modelId: insight.fixAiRunId },
-            )}
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-500"
-          >
-            <span>View the fix task and pull request</span>
-            <Icon icon={IconProp.ArrowRight} className="h-4 w-4" />
-          </Link>
-        </Card>
-      ) : (
-        <></>
-      )}
     </div>
   );
 };

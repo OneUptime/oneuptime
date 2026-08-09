@@ -13,9 +13,7 @@ import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Query from "Common/Types/BaseDatabase/Query";
 import Search from "Common/Types/BaseDatabase/Search";
-import OneUptimeDate from "Common/Types/Date";
 import AIInsight from "Common/Models/DatabaseModels/AIInsight";
-import AIInsightHumanVerdict from "Common/Types/AI/AIInsightHumanVerdict";
 import AIInsightSeverity from "Common/Types/AI/AIInsightSeverity";
 import AIInsightStatus from "Common/Types/AI/AIInsightStatus";
 import AIInsightType from "Common/Types/AI/AIInsightType";
@@ -24,237 +22,81 @@ import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import FilterButtons, {
-  FilterButtonOption,
-} from "Common/UI/Components/FilterButtons/FilterButtons";
 import Icon from "Common/UI/Components/Icon/Icon";
-import Input from "Common/UI/Components/Input/Input";
-import Link from "Common/UI/Components/Link/Link";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import AIPlanGate from "../../Components/AI/AIPlanGate";
-
-// Human labels for the wire-contract enum values (e.g. "NewException").
-const INSIGHT_TYPE_LABELS: Record<AIInsightType, string> = {
-  [AIInsightType.NewException]: "New Exception",
-  [AIInsightType.ExceptionSpike]: "Exception Spike",
-  [AIInsightType.ErrorLogSpike]: "Error Log Spike",
-  [AIInsightType.TraceLatencyRegression]: "Latency Regression",
-  [AIInsightType.MetricDrift]: "Metric Drift",
-};
-
-// Human labels for the wire-contract status values (e.g. "ActionRequired").
-const STATUS_LABELS: Record<AIInsightStatus, string> = {
-  [AIInsightStatus.Detected]: "Detected",
-  [AIInsightStatus.ActionRequired]: "Needs Attention",
-  [AIInsightStatus.FixOpened]: "Fix Opened",
-  [AIInsightStatus.Resolved]: "Resolved",
-  [AIInsightStatus.Dismissed]: "Dismissed",
-};
-
-const SEVERITY_BADGE_CLASSES: Record<AIInsightSeverity, string> = {
-  [AIInsightSeverity.High]: "bg-red-50 text-red-700 ring-red-600/20",
-  [AIInsightSeverity.Medium]: "bg-amber-50 text-amber-700 ring-amber-600/20",
-  [AIInsightSeverity.Low]: "bg-blue-50 text-blue-700 ring-blue-600/20",
-};
-
-const SEVERITY_DOT_CLASSES: Record<AIInsightSeverity, string> = {
-  [AIInsightSeverity.High]: "bg-red-500",
-  [AIInsightSeverity.Medium]: "bg-amber-500",
-  [AIInsightSeverity.Low]: "bg-blue-500",
-};
-
-// The severity-tinted icon tile shown on each insight card.
-const SEVERITY_TILE_CLASSES: Record<AIInsightSeverity, string> = {
-  [AIInsightSeverity.High]: "bg-red-50 text-red-600",
-  [AIInsightSeverity.Medium]: "bg-amber-50 text-amber-600",
-  [AIInsightSeverity.Low]: "bg-blue-50 text-blue-600",
-};
-
-/*
- * ActionRequired is the attention state, FixOpened means the AI agent is on
- * it, the terminal human states are calm (green/gray), and Detected — a
- * transient state the scanner routes out of in the same tick — stays gray.
- */
-const STATUS_BADGE_CLASSES: Record<AIInsightStatus, string> = {
-  [AIInsightStatus.Detected]: "bg-gray-100 text-gray-600 ring-gray-500/20",
-  [AIInsightStatus.ActionRequired]:
-    "bg-orange-50 text-orange-700 ring-orange-600/20",
-  [AIInsightStatus.FixOpened]:
-    "bg-purple-50 text-purple-700 ring-purple-600/20",
-  [AIInsightStatus.Resolved]: "bg-green-50 text-green-700 ring-green-600/20",
-  [AIInsightStatus.Dismissed]: "bg-gray-100 text-gray-600 ring-gray-500/20",
-};
-
-const STATUS_DOT_CLASSES: Record<AIInsightStatus, string> = {
-  [AIInsightStatus.Detected]: "bg-gray-400",
-  [AIInsightStatus.ActionRequired]: "bg-orange-500",
-  [AIInsightStatus.FixOpened]: "bg-purple-500",
-  [AIInsightStatus.Resolved]: "bg-green-500",
-  [AIInsightStatus.Dismissed]: "bg-gray-400",
-};
-
-// Each detector gets its own glyph so a card is recognizable at a glance.
-const INSIGHT_TYPE_ICONS: Record<AIInsightType, IconProp> = {
-  [AIInsightType.NewException]: IconProp.Bug,
-  [AIInsightType.ExceptionSpike]: IconProp.Fire,
-  [AIInsightType.ErrorLogSpike]: IconProp.Logs,
-  [AIInsightType.TraceLatencyRegression]: IconProp.Clock,
-  [AIInsightType.MetricDrift]: IconProp.ArrowTrendingUp,
-};
-
-export function getInsightTypeLabel(
-  insightType: AIInsightType | undefined,
-): string {
-  if (!insightType) {
-    return "-";
-  }
-  return INSIGHT_TYPE_LABELS[insightType] || insightType;
-}
-
-export function getStatusLabel(status: AIInsightStatus | undefined): string {
-  if (!status) {
-    return "-";
-  }
-  return STATUS_LABELS[status] || status;
-}
-
-export function getInsightTypeIcon(
-  insightType: AIInsightType | undefined,
-): IconProp {
-  if (!insightType) {
-    return IconProp.LightBulb;
-  }
-  return INSIGHT_TYPE_ICONS[insightType] || IconProp.LightBulb;
-}
-
-export function getSeverityTileClasses(
-  severity: AIInsightSeverity | undefined,
-): string {
-  if (!severity) {
-    return "bg-gray-100 text-gray-500";
-  }
-  return SEVERITY_TILE_CLASSES[severity] || "bg-gray-100 text-gray-500";
-}
-
-export function getInsightTypeElement(
-  insightType: AIInsightType | undefined,
-): ReactElement {
-  if (!insightType) {
-    return <></>;
-  }
-  return (
-    <span className="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-inset ring-indigo-600/20">
-      {getInsightTypeLabel(insightType)}
-    </span>
-  );
-}
-
-export function getSeverityElement(
-  severity: AIInsightSeverity | undefined,
-): ReactElement {
-  if (!severity) {
-    return <></>;
-  }
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${
-        SEVERITY_BADGE_CLASSES[severity] ||
-        "bg-gray-100 text-gray-600 ring-gray-500/20"
-      }`}
-    >
-      <span
-        className={`h-1.5 w-1.5 rounded-full ${
-          SEVERITY_DOT_CLASSES[severity] || "bg-gray-400"
-        }`}
-      />
-      {severity}
-    </span>
-  );
-}
-
-export function getStatusElement(
-  status: AIInsightStatus | undefined,
-): ReactElement {
-  if (!status) {
-    return <></>;
-  }
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${
-        STATUS_BADGE_CLASSES[status] ||
-        "bg-gray-100 text-gray-600 ring-gray-500/20"
-      }`}
-    >
-      <span
-        className={`h-1.5 w-1.5 rounded-full ${
-          STATUS_DOT_CLASSES[status] || "bg-gray-400"
-        }`}
-      />
-      {getStatusLabel(status)}
-    </span>
-  );
-}
-
-export function getHumanVerdictElement(
-  verdict: AIInsightHumanVerdict | undefined | null,
-): ReactElement {
-  if (verdict === AIInsightHumanVerdict.Confirmed) {
-    return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
-        <Icon icon={IconProp.Check} className="h-3 w-3" />
-        Confirmed
-      </span>
-    );
-  }
-  if (verdict === AIInsightHumanVerdict.Dismissed) {
-    return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/20">
-        <Icon icon={IconProp.Close} className="h-3 w-3" />
-        Dismissed
-      </span>
-    );
-  }
-  return <></>;
-}
+import InsightFilterBar, {
+  InsightFilterOption,
+} from "../../Components/AIInsights/InsightFilterBar";
+import InsightListItem from "../../Components/AIInsights/InsightListItem";
+import InsightListSkeleton from "../../Components/AIInsights/InsightListSkeleton";
+import InsightStatusSummary, {
+  InsightStatusBucket,
+} from "../../Components/AIInsights/InsightStatusSummary";
+import {
+  INSIGHT_TYPE_LABELS,
+  STATUS_LABELS,
+  getStatusDotClasses,
+} from "../../Components/AIInsights/InsightPresentation";
 
 const INSIGHTS_PER_PAGE: number = 20;
 
+const SKELETON_ROW_COUNT: number = 6;
+
 const ALL_FILTER_VALUE: string = "All";
 
-const STATUS_FILTER_OPTIONS: Array<FilterButtonOption> = [
-  { label: "All", value: ALL_FILTER_VALUE },
+interface StatusSummaryDefinition {
+  label: string;
+  value: string;
+  dotClassName: string;
+}
+
+/*
+ * The lifecycle states worth their own tile. Detected is deliberately absent:
+ * the scanner routes every insight out of it in the same tick, so a tile for
+ * it would read zero forever (those rows are still in the All total).
+ */
+const STATUS_SUMMARY_DEFINITIONS: Array<StatusSummaryDefinition> = [
+  {
+    label: "All insights",
+    value: ALL_FILTER_VALUE,
+    dotClassName: "bg-indigo-500",
+  },
   {
     label: STATUS_LABELS[AIInsightStatus.ActionRequired],
     value: AIInsightStatus.ActionRequired,
+    dotClassName: getStatusDotClasses(AIInsightStatus.ActionRequired),
   },
   {
     label: STATUS_LABELS[AIInsightStatus.FixOpened],
     value: AIInsightStatus.FixOpened,
+    dotClassName: getStatusDotClasses(AIInsightStatus.FixOpened),
   },
   {
     label: STATUS_LABELS[AIInsightStatus.Resolved],
     value: AIInsightStatus.Resolved,
+    dotClassName: getStatusDotClasses(AIInsightStatus.Resolved),
   },
   {
     label: STATUS_LABELS[AIInsightStatus.Dismissed],
     value: AIInsightStatus.Dismissed,
+    dotClassName: getStatusDotClasses(AIInsightStatus.Dismissed),
   },
 ];
 
-const SEVERITY_FILTER_OPTIONS: Array<FilterButtonOption> = [
-  { label: "Any Severity", value: ALL_FILTER_VALUE },
-  { label: "High", value: AIInsightSeverity.High },
-  { label: "Medium", value: AIInsightSeverity.Medium },
-  { label: "Low", value: AIInsightSeverity.Low },
+const SEVERITY_FILTER_OPTIONS: Array<InsightFilterOption> = [
+  { label: "Any severity", value: ALL_FILTER_VALUE },
+  { label: "High severity", value: AIInsightSeverity.High },
+  { label: "Medium severity", value: AIInsightSeverity.Medium },
+  { label: "Low severity", value: AIInsightSeverity.Low },
 ];
 
-const TYPE_FILTER_OPTIONS: Array<FilterButtonOption> = [
-  { label: "All Types", value: ALL_FILTER_VALUE },
+const TYPE_FILTER_OPTIONS: Array<InsightFilterOption> = [
+  { label: "All types", value: ALL_FILTER_VALUE },
   ...Object.values(AIInsightType).map((insightType: AIInsightType) => {
     return {
       label: INSIGHT_TYPE_LABELS[insightType],
@@ -286,10 +128,10 @@ const readFilterParam: ReadFilterParamFunction = (
 };
 
 /*
- * The AI insights inbox, rendered as cards instead of a table: each finding
- * reads like an inbox item — severity-tinted detector icon, badges, title
- * and the freshness/occurrence meta — with status and severity chip filters
- * and a title search on top.
+ * The AI insights inbox: a triage strip of per-status counts (which is also
+ * the status filter), one search/type/severity toolbar, and a single aligned
+ * list where every finding reads as title-first with its status, detection
+ * count and freshness in fixed right-hand columns.
  */
 const AIInsightsPage: FunctionComponent<
   PageComponentProps
@@ -305,9 +147,20 @@ const AIInsightsPage: FunctionComponent<
   const [error, setError] = useState<string | null>(null);
   /*
    * Append failures get their own inline error so a transient blip on Load
-   * More never unmounts the cards that already loaded.
+   * More never unmounts the rows that already loaded.
    */
   const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
+
+  /*
+   * Per-status totals for the triage strip. null means "no numbers to show" —
+   * the counts are a nicety, so a failed count request quietly renders an
+   * em dash instead of taking the page down with it.
+   */
+  const [statusCounts, setStatusCounts] = useState<Record<
+    string,
+    number
+  > | null>(null);
+  const [isLoadingCounts, setIsLoadingCounts] = useState<boolean>(true);
 
   const [statusFilter, setStatusFilter] = useState<string>(() => {
     return readFilterParam("status", Object.values(AIInsightStatus));
@@ -353,6 +206,49 @@ const AIInsightsPage: FunctionComponent<
       debouncedSearchText,
   );
 
+  type ClearFiltersFunction = () => void;
+
+  const clearFilters: ClearFiltersFunction = (): void => {
+    setStatusFilter(ALL_FILTER_VALUE);
+    setSeverityFilter(ALL_FILTER_VALUE);
+    setTypeFilter(ALL_FILTER_VALUE);
+    setSearchText("");
+    setDebouncedSearchText("");
+  };
+
+  /*
+   * Everything except status, which the caller supplies — the triage strip
+   * needs the same query once per status bucket.
+   */
+  type BuildQueryFunction = (status: string | null) => Query<AIInsight>;
+
+  const buildQuery: BuildQueryFunction = useCallback(
+    (status: string | null): Query<AIInsight> => {
+      const query: Query<AIInsight> = {};
+
+      if (status) {
+        (query as Record<string, unknown>)["status"] = status;
+      }
+
+      if (severityFilter !== ALL_FILTER_VALUE) {
+        (query as Record<string, unknown>)["severity"] = severityFilter;
+      }
+
+      if (typeFilter !== ALL_FILTER_VALUE) {
+        (query as Record<string, unknown>)["insightType"] = typeFilter;
+      }
+
+      if (debouncedSearchText) {
+        (query as Record<string, unknown>)["title"] = new Search(
+          debouncedSearchText,
+        );
+      }
+
+      return query;
+    },
+    [severityFilter, typeFilter, debouncedSearchText],
+  );
+
   /*
    * Guards against out-of-order responses: a Load More issued just before a
    * filter change could otherwise land after the filter's fresh page and
@@ -360,6 +256,7 @@ const AIInsightsPage: FunctionComponent<
    * a ticket; only the latest ticket may write state.
    */
   const fetchGenerationRef: React.MutableRefObject<number> = useRef<number>(0);
+  const countGenerationRef: React.MutableRefObject<number> = useRef<number>(0);
 
   const fetchInsights: (options: {
     skip: number;
@@ -375,30 +272,12 @@ const AIInsightsPage: FunctionComponent<
       }
 
       try {
-        const query: Query<AIInsight> = {};
-
-        if (statusFilter !== ALL_FILTER_VALUE) {
-          (query as Record<string, unknown>)["status"] = statusFilter;
-        }
-
-        if (severityFilter !== ALL_FILTER_VALUE) {
-          (query as Record<string, unknown>)["severity"] = severityFilter;
-        }
-
-        if (typeFilter !== ALL_FILTER_VALUE) {
-          (query as Record<string, unknown>)["insightType"] = typeFilter;
-        }
-
-        if (debouncedSearchText) {
-          (query as Record<string, unknown>)["title"] = new Search(
-            debouncedSearchText,
-          );
-        }
-
         const result: ListResult<AIInsight> = await ModelAPI.getList<AIInsight>(
           {
             modelType: AIInsight,
-            query: query,
+            query: buildQuery(
+              statusFilter === ALL_FILTER_VALUE ? null : statusFilter,
+            ),
             limit: INSIGHTS_PER_PAGE,
             skip: options.skip,
             select: {
@@ -433,7 +312,7 @@ const AIInsightsPage: FunctionComponent<
            * De-duplicate by id: the list is offset-paginated on lastSeenAt,
            * which the scanner bumps on every re-detection, so a row already
            * on screen can slide back into the appended window. Without this
-           * the same card renders twice (with a duplicate React key).
+           * the same row renders twice (with a duplicate React key).
            */
           const seenIds: Set<string> = new Set(
             current.map((item: AIInsight) => {
@@ -464,8 +343,51 @@ const AIInsightsPage: FunctionComponent<
         }
       }
     },
-    [statusFilter, severityFilter, typeFilter, debouncedSearchText],
+    [buildQuery, statusFilter],
   );
+
+  const fetchStatusCounts: () => Promise<void> =
+    useCallback(async (): Promise<void> => {
+      const generation: number = ++countGenerationRef.current;
+      setIsLoadingCounts(true);
+
+      try {
+        const counts: Array<number> = await Promise.all(
+          STATUS_SUMMARY_DEFINITIONS.map(
+            (definition: StatusSummaryDefinition) => {
+              return ModelAPI.count<AIInsight>({
+                modelType: AIInsight,
+                query: buildQuery(
+                  definition.value === ALL_FILTER_VALUE
+                    ? null
+                    : definition.value,
+                ),
+              });
+            },
+          ),
+        );
+
+        if (generation !== countGenerationRef.current) {
+          return;
+        }
+
+        const nextCounts: Record<string, number> = {};
+        STATUS_SUMMARY_DEFINITIONS.forEach(
+          (definition: StatusSummaryDefinition, index: number) => {
+            nextCounts[definition.value] = counts[index] || 0;
+          },
+        );
+        setStatusCounts(nextCounts);
+      } catch {
+        if (generation === countGenerationRef.current) {
+          setStatusCounts(null);
+        }
+      } finally {
+        if (generation === countGenerationRef.current) {
+          setIsLoadingCounts(false);
+        }
+      }
+    }, [buildQuery]);
 
   useEffect(() => {
     fetchInsights({ skip: 0, append: false }).catch(() => {
@@ -473,84 +395,46 @@ const AIInsightsPage: FunctionComponent<
     });
   }, [fetchInsights]);
 
-  type GetInsightCardFunction = (item: AIInsight) => ReactElement;
+  // Counts do not depend on the status filter — that is what they label.
+  useEffect(() => {
+    fetchStatusCounts().catch(() => {
+      // handled inside fetchStatusCounts
+    });
+  }, [fetchStatusCounts]);
 
-  const getInsightCard: GetInsightCardFunction = (
-    item: AIInsight,
-  ): ReactElement => {
-    const viewRoute: Route = RouteUtil.populateRouteParams(
-      RouteMap[PageMap.AI_INSIGHT_VIEW] as Route,
-      { modelId: item.id! },
-    );
+  type RefreshFunction = () => void;
 
+  const refresh: RefreshFunction = (): void => {
+    fetchInsights({ skip: 0, append: false }).catch(() => {
+      // handled inside fetchInsights
+    });
+    fetchStatusCounts().catch(() => {
+      // handled inside fetchStatusCounts
+    });
+  };
+
+  const statusBuckets: Array<InsightStatusBucket> =
+    STATUS_SUMMARY_DEFINITIONS.map((definition: StatusSummaryDefinition) => {
+      return {
+        label: definition.label,
+        value: definition.value,
+        dotClassName: definition.dotClassName,
+        count: statusCounts ? statusCounts[definition.value] ?? null : null,
+      };
+    });
+
+  type GetListHeaderFunction = () => ReactElement;
+
+  // The column labels the wide layout's right-hand columns line up under.
+  const getListHeader: GetListHeaderFunction = (): ReactElement => {
     return (
-      <Link
-        key={item.id?.toString()}
-        to={viewRoute}
-        className="group block rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-      >
-        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-all duration-150 group-hover:border-indigo-300 group-hover:shadow-md sm:p-5">
-          <div className="flex items-start gap-4">
-            <div
-              className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg ${getSeverityTileClasses(
-                item.severity,
-              )}`}
-            >
-              <Icon
-                icon={getInsightTypeIcon(item.insightType)}
-                className="h-5 w-5"
-              />
-            </div>
-
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-1.5">
-                {getInsightTypeElement(item.insightType)}
-                {getSeverityElement(item.severity)}
-                {getStatusElement(item.status)}
-                {getHumanVerdictElement(item.humanVerdict)}
-              </div>
-
-              <h3 className="mt-2 truncate text-sm font-semibold text-gray-900 group-hover:text-indigo-600">
-                {item.title}
-              </h3>
-
-              <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
-                {item.serviceName ? (
-                  <span className="inline-flex items-center gap-1">
-                    <Icon icon={IconProp.Cube} className="h-3.5 w-3.5" />
-                    {item.serviceName}
-                  </span>
-                ) : (
-                  <></>
-                )}
-                {item.lastSeenAt ? (
-                  <span className="inline-flex items-center gap-1">
-                    <Icon icon={IconProp.Clock} className="h-3.5 w-3.5" />
-                    Last seen {OneUptimeDate.fromNow(item.lastSeenAt)}
-                  </span>
-                ) : (
-                  <></>
-                )}
-                {item.occurrenceCount ? (
-                  <span className="inline-flex items-center gap-1">
-                    <Icon icon={IconProp.Refresh} className="h-3.5 w-3.5" />
-                    {item.occurrenceCount === 1
-                      ? "Detected once"
-                      : `Detected ${item.occurrenceCount} times`}
-                  </span>
-                ) : (
-                  <></>
-                )}
-              </div>
-            </div>
-
-            <Icon
-              icon={IconProp.ChevronRight}
-              className="mt-1 h-5 w-5 flex-shrink-0 text-gray-300 transition-colors group-hover:text-indigo-500"
-            />
-          </div>
-        </div>
-      </Link>
+      <div className="hidden items-center gap-4 border-b border-gray-100 bg-gray-50 px-4 py-2.5 text-xs font-medium uppercase tracking-wide text-gray-400 lg:flex">
+        <span className="flex-1">Insight</span>
+        <span className="w-32 flex-shrink-0">Status</span>
+        <span className="w-24 flex-shrink-0 text-right">Detections</span>
+        <span className="w-36 flex-shrink-0 text-right">Last seen</span>
+        <span className="w-5 flex-shrink-0" />
+      </div>
     );
   };
 
@@ -559,20 +443,16 @@ const AIInsightsPage: FunctionComponent<
   const getContent: GetContentFunction = (): ReactElement => {
     // Full-page error only when there is nothing loaded to keep on screen.
     if (error && insights.length === 0) {
-      return (
-        <ErrorMessage
-          message={error}
-          onRefreshClick={() => {
-            fetchInsights({ skip: 0, append: false }).catch(() => {
-              // handled inside fetchInsights
-            });
-          }}
-        />
-      );
+      return <ErrorMessage message={error} onRefreshClick={refresh} />;
     }
 
     if (isLoading) {
-      return <ComponentLoader />;
+      return (
+        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+          {getListHeader()}
+          <InsightListSkeleton rowCount={SKELETON_ROW_COUNT} />
+        </div>
+      );
     }
 
     if (insights.length === 0 && !hasActiveFilters) {
@@ -604,29 +484,36 @@ const AIInsightsPage: FunctionComponent<
       );
     }
 
+    /*
+     * The no-match state stays inside the list frame (rather than using the
+     * tall shared EmptyState) so the filters above it do not jump when the
+     * result set empties out.
+     */
     if (insights.length === 0) {
       return (
-        <EmptyState
-          id="ai-insights-no-match"
-          icon={IconProp.Search}
-          showSolidBackground={true}
-          title="No insights match your filters"
-          description="Try changing the status or severity filters, or clearing your search."
-          footer={
-            <Button
-              title="Clear Filters"
-              icon={IconProp.Close}
-              buttonStyle={ButtonStyleType.OUTLINE}
-              onClick={() => {
-                setStatusFilter(ALL_FILTER_VALUE);
-                setSeverityFilter(ALL_FILTER_VALUE);
-                setTypeFilter(ALL_FILTER_VALUE);
-                setSearchText("");
-                setDebouncedSearchText("");
-              }}
-            />
-          }
-        />
+        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+          <div className="flex flex-col items-center px-6 py-16 text-center">
+            <span className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-400">
+              <Icon icon={IconProp.Search} className="h-6 w-6" />
+            </span>
+            <h3 className="mt-4 text-sm font-semibold text-gray-900">
+              No insights match your filters
+            </h3>
+            <p className="mt-1 max-w-sm text-sm text-gray-500">
+              Try a different status or severity, or clear your search to see
+              everything OneUptime AI has found.
+            </p>
+            <div className="mt-5">
+              <Button
+                title="Clear Filters"
+                icon={IconProp.Close}
+                buttonStyle={ButtonStyleType.OUTLINE}
+                buttonSize={ButtonSize.Small}
+                onClick={clearFilters}
+              />
+            </div>
+          </div>
+        </div>
       );
     }
 
@@ -640,51 +527,65 @@ const AIInsightsPage: FunctionComponent<
           <></>
         )}
 
-        {insights.map((item: AIInsight) => {
-          return getInsightCard(item);
-        })}
+        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+          {getListHeader()}
 
-        <div className="flex flex-col items-center gap-2 pt-2">
-          {loadMoreError ? (
-            <p className="text-sm text-red-500">
-              Could not load more insights: {loadMoreError}
+          <ul className="divide-y divide-gray-100">
+            {insights.map((item: AIInsight) => {
+              return (
+                <InsightListItem key={item.id?.toString()} insight={item} />
+              );
+            })}
+          </ul>
+
+          <div className="flex flex-col items-center justify-between gap-3 border-t border-gray-100 bg-gray-50 px-4 py-3 sm:flex-row">
+            <p className="text-xs text-gray-500">
+              Showing{" "}
+              <span className="font-medium text-gray-700">
+                {insights.length}
+              </span>{" "}
+              of <span className="font-medium text-gray-700">{totalCount}</span>{" "}
+              {totalCount === 1 ? "insight" : "insights"}
             </p>
-          ) : (
-            <></>
-          )}
-          {insights.length < totalCount ? (
-            <Button
-              title="Load More"
-              icon={IconProp.ChevronDown}
-              buttonStyle={ButtonStyleType.OUTLINE}
-              buttonSize={ButtonSize.Small}
-              isLoading={isLoadingMore}
-              onClick={() => {
-                fetchInsights({ skip: insights.length, append: true }).catch(
-                  () => {
-                    // handled inside fetchInsights
-                  },
-                );
-              }}
-            />
-          ) : (
-            <></>
-          )}
-          <p className="text-xs text-gray-400">
-            Showing {insights.length} of {totalCount}{" "}
-            {totalCount === 1 ? "insight" : "insights"}
-          </p>
+
+            {insights.length < totalCount ? (
+              <Button
+                title="Load More"
+                icon={IconProp.ChevronDown}
+                buttonStyle={ButtonStyleType.OUTLINE}
+                buttonSize={ButtonSize.Small}
+                isLoading={isLoadingMore}
+                onClick={() => {
+                  fetchInsights({ skip: insights.length, append: true }).catch(
+                    () => {
+                      // handled inside fetchInsights
+                    },
+                  );
+                }}
+              />
+            ) : (
+              <></>
+            )}
+          </div>
         </div>
+
+        {loadMoreError ? (
+          <p className="text-center text-sm text-red-500">
+            Could not load more insights: {loadMoreError}
+          </p>
+        ) : (
+          <></>
+        )}
       </div>
     );
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <AIPlanGate />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <p className="max-w-2xl text-sm text-gray-500">
+        <p className="max-w-3xl text-sm leading-6 text-gray-500">
           Proactive findings from OneUptime AI&apos;s deterministic telemetry
           sensors — new or spiking exceptions, error-log spikes, latency
           regressions and metric drift. Insights never page and never open
@@ -696,11 +597,7 @@ const AIInsightsPage: FunctionComponent<
             icon={IconProp.Refresh}
             buttonStyle={ButtonStyleType.OUTLINE}
             buttonSize={ButtonSize.Small}
-            onClick={() => {
-              fetchInsights({ skip: 0, append: false }).catch(() => {
-                // handled inside fetchInsights
-              });
-            }}
+            onClick={refresh}
           />
           <Button
             title="Settings"
@@ -714,45 +611,26 @@ const AIInsightsPage: FunctionComponent<
         </div>
       </div>
 
-      <div className="space-y-2">
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-          <FilterButtons
-            className="flex-wrap"
-            options={STATUS_FILTER_OPTIONS}
-            selectedValue={statusFilter}
-            onSelect={(value: string) => {
-              setStatusFilter(value);
-            }}
-          />
-          <div className="w-full sm:w-64">
-            <Input
-              placeholder="Search insights..."
-              value={searchText}
-              onChange={(value: string) => {
-                setSearchText(value);
-              }}
-            />
-          </div>
-        </div>
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-          <FilterButtons
-            className="flex-wrap"
-            options={TYPE_FILTER_OPTIONS}
-            selectedValue={typeFilter}
-            onSelect={(value: string) => {
-              setTypeFilter(value);
-            }}
-          />
-          <FilterButtons
-            className="flex-wrap"
-            options={SEVERITY_FILTER_OPTIONS}
-            selectedValue={severityFilter}
-            onSelect={(value: string) => {
-              setSeverityFilter(value);
-            }}
-          />
-        </div>
-      </div>
+      <InsightStatusSummary
+        buckets={statusBuckets}
+        selectedValue={statusFilter}
+        isLoading={isLoadingCounts}
+        onSelect={setStatusFilter}
+      />
+
+      <InsightFilterBar
+        searchText={searchText}
+        onSearchTextChange={setSearchText}
+        typeOptions={TYPE_FILTER_OPTIONS}
+        typeValue={typeFilter}
+        onTypeChange={setTypeFilter}
+        severityOptions={SEVERITY_FILTER_OPTIONS}
+        severityValue={severityFilter}
+        onSeverityChange={setSeverityFilter}
+        unfilteredValue={ALL_FILTER_VALUE}
+        hasActiveFilters={hasActiveFilters}
+        onClearFilters={clearFilters}
+      />
 
       {getContent()}
     </div>
