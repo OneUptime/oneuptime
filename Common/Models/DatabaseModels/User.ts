@@ -6,6 +6,7 @@ import JobRole from "../../Types/Company/JobRole";
 import AllowAccessIfSubscriptionIsUnpaid from "../../Types/Database/AccessControl/AllowAccessIfSubscriptionIsUnpaid";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
+import AllowUserQueryWithoutTenant from "../../Types/Database/AllowUserQueryWithoutTenant";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
@@ -48,6 +49,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   icon: IconProp.User,
   tableDescription: "A signed up or invited OneUptime user.",
 })
+@AllowUserQueryWithoutTenant(true)
 @CurrentUserCanAccessRecordBy("_id")
 class User extends UserModel {
   @ColumnAccessControl({

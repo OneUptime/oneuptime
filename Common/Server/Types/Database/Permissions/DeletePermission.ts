@@ -34,6 +34,8 @@ export default class DeletePermission {
     query: Query<TBaseModel>,
     props: DatabaseCommonInteractionProps,
   ): Promise<Query<TBaseModel>> {
+    query = { ...query };
+
     if (props.isRoot || props.isMasterAdmin) {
       query = await PermissionUtil.addTenantScopeToQueryAsRoot(
         modelType,
