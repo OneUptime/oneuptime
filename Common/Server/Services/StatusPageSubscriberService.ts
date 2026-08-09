@@ -37,6 +37,7 @@ import NumberUtil from "../../Utils/Number";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import StatusPageSubscriberWebhookUtil from "../Utils/StatusPageSubscriberWebhook";
+import { validateWebhookTargetIsSafe } from "../Utils/WebhookTargetSafety";
 import StatusPageSubscriberNotificationTemplateService, {
   Service as StatusPageSubscriberNotificationTemplateServiceClass,
 } from "./StatusPageSubscriberNotificationTemplateService";
@@ -71,6 +72,10 @@ export class Service extends DatabaseService<Model> {
         statusPageId: data.data.statusPageId?.toString(),
       } as LogAttributes);
       throw new BadDataException("Project ID is required.");
+    }
+
+    if (data.data.subscriberWebhook) {
+      await validateWebhookTargetIsSafe(data.data.subscriberWebhook.toString());
     }
 
     const projectId: ObjectID = data.data.projectId;

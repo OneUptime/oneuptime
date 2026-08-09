@@ -20,6 +20,8 @@ import axios, {
   AxiosStatic,
   Method,
 } from "axios";
+import http from "http";
+import https from "https";
 
 const DEFAULT_HEADERS: Headers = {
   "Access-Control-Allow-Origin": "*",
@@ -505,6 +507,40 @@ describe("API instance properties", () => {
 });
 
 describe("API.fetch with options", () => {
+  test("should apply guarded network request options", async () => {
+    mockedAxios.mockResolvedValueOnce(
+      createAxiosResponse({ data: responseData }),
+    );
+
+    const httpAgent: http.Agent = new http.Agent();
+    const httpsAgent: https.Agent = new https.Agent();
+
+    await API.fetch({
+      method: HTTPMethod.POST,
+      url: new URL(Protocol.HTTPS, "webhook.example", new Route("events")),
+      data: requestData,
+      options: {
+        timeout: 10_000,
+        doNotFollowRedirects: true,
+        doNotUseProxy: true,
+        httpAgent,
+        httpsAgent,
+      },
+    });
+
+    expect(mockedAxios).toHaveBeenLastCalledWith({
+      method: "POST",
+      url: "https://webhook.example/events",
+      headers: DEFAULT_HEADERS,
+      data: requestData,
+      timeout: 10_000,
+      maxRedirects: 0,
+      proxy: false,
+      httpAgent,
+      httpsAgent,
+    });
+  });
+
   test("should make request with query parameters", async () => {
     mockedAxios.mockResolvedValueOnce(
       createAxiosResponse({ data: responseData }),

@@ -53,6 +53,7 @@ export interface RequestOptions {
   exponentialBackoff?: boolean | undefined;
   timeout?: number | undefined;
   doNotFollowRedirects?: boolean | undefined;
+  doNotUseProxy?: boolean | undefined;
   // Per-request proxy agent support (Probe supplies these instead of mutating global axios defaults)
   httpAgent?: HttpAgent | undefined;
   httpsAgent?: HttpsAgent | undefined;
@@ -440,6 +441,10 @@ export default class API {
 
           if (options?.doNotFollowRedirects) {
             axiosOptions.maxRedirects = 0;
+          }
+
+          if (options?.doNotUseProxy) {
+            axiosOptions.proxy = false;
           }
 
           // Attach proxy agents per request if provided (avoids global side-effects)

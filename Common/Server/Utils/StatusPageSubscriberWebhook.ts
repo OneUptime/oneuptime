@@ -4,6 +4,13 @@ import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../Types/API/HTTPResponse";
 import { JSONObject } from "../../Types/JSON";
 import logger from "./Logger";
+import {
+  createSafeWebhookRequestAgents,
+  SafeWebhookRequestAgents,
+  validateWebhookTargetIsSafe,
+} from "./WebhookTargetSafety";
+
+const WEBHOOK_REQUEST_TIMEOUT_MS: number = 10_000;
 
 export interface StatusPageWebhookPayload extends JSONObject {
   eventType: string;
@@ -21,6 +28,10 @@ export default class StatusPageSubscriberWebhookUtil {
   }): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> {
     logger.debug("Sending status page subscriber webhook notification.");
 
+    await validateWebhookTargetIsSafe(data.webhookUrl.toString());
+    const safeRequestAgents: SafeWebhookRequestAgents =
+      createSafeWebhookRequestAgents();
+
     const apiResult: HTTPResponse<JSONObject> | HTTPErrorResponse =
       await API.post({
         url: data.webhookUrl,
@@ -28,6 +39,11 @@ export default class StatusPageSubscriberWebhookUtil {
         options: {
           retries: 3,
           exponentialBackoff: true,
+          timeout: WEBHOOK_REQUEST_TIMEOUT_MS,
+          doNotFollowRedirects: true,
+          doNotUseProxy: true,
+          httpAgent: safeRequestAgents.httpAgent,
+          httpsAgent: safeRequestAgents.httpsAgent,
         },
       });
 
