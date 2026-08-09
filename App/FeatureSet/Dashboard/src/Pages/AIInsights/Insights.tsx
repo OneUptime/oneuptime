@@ -425,10 +425,16 @@ const AIInsightsPage: FunctionComponent<
 
   type GetListHeaderFunction = () => ReactElement;
 
-  // The column labels the wide layout's right-hand columns line up under.
+  /*
+   * The column labels the wide layout's right-hand columns line up under.
+   * Gated at xl, in step with InsightListItem and InsightListSkeleton — at lg
+   * the page's 15rem side menu leaves the title column too narrow to hold a
+   * title, and the three gates must flip together or the header desyncs from
+   * the rows it labels.
+   */
   const getListHeader: GetListHeaderFunction = (): ReactElement => {
     return (
-      <div className="hidden items-center gap-4 border-b border-gray-100 bg-gray-50 px-4 py-2.5 text-xs font-medium uppercase tracking-wide text-gray-400 lg:flex">
+      <div className="hidden items-center gap-4 border-b border-gray-100 bg-gray-50 px-4 py-2.5 text-xs font-medium uppercase tracking-wide text-gray-400 xl:flex">
         <span className="flex-1">Insight</span>
         <span className="w-32 flex-shrink-0">Status</span>
         <span className="w-24 flex-shrink-0 text-right">Detections</span>
@@ -446,9 +452,20 @@ const AIInsightsPage: FunctionComponent<
       return <ErrorMessage message={error} onRefreshClick={refresh} />;
     }
 
+    /*
+     * role="status" replaces what the old ComponentLoader announced: every
+     * tile click and every debounced keystroke swaps the whole list, and the
+     * skeleton itself is aria-hidden, so without this a screen reader user
+     * would get no word that anything was happening (WCAG 4.1.3).
+     */
     if (isLoading) {
       return (
-        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+        <div
+          role="status"
+          aria-live="polite"
+          className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
+        >
+          <span className="sr-only">Loading insights…</span>
           {getListHeader()}
           <InsightListSkeleton rowCount={SKELETON_ROW_COUNT} />
         </div>
