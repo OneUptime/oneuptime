@@ -201,6 +201,42 @@ function copyMonacoAssets(outdir) {
   fs.cpSync(source, destination, { recursive: true });
 }
 
+// Tailwind's Play CDN build, copied out of Common the same way.
+//
+// It used to be committed once per frontend - five byte-identical copies of a
+// 684 KB minified file, each one its own set of code-scanning alerts to
+// triage. The server-rendered pages (docs, the API reference, the on-call and
+// SSO message views) needed a copy too, and adding a sixth is not a thing
+// worth doing. Common/Server/Static/Vendor is now the only copy in the tree:
+// the services mount it at /oneuptime-assets, and the frontends get it copied
+// in here, at the path their index.ejs already asks for.
+//
+// The filename carries the version, so it stays in the URL - changing it would
+// mean editing five index.ejs files to match, and getting one wrong is an
+// unstyled page.
+const TAILWIND_FILENAME = "tailwind-3.4.5.js";
+
+function copyTailwindAsset(outdir) {
+  const source = path.resolve(
+    __dirname,
+    "..",
+    "Server",
+    "Static",
+    "Vendor",
+    "tailwind",
+    TAILWIND_FILENAME,
+  );
+
+  const destination = path.resolve(
+    path.dirname(outdir),
+    "assets/js",
+    TAILWIND_FILENAME,
+  );
+
+  fs.mkdirSync(path.dirname(destination), { recursive: true });
+  fs.copyFileSync(source, destination);
+}
+
 // Read environment variables from .env file
 function readEnvFile(pathToFile) {
   if (!fs.existsSync(pathToFile)) {
@@ -346,6 +382,9 @@ async function build(config, serviceName) {
     copyMonacoAssets(config.outdir);
     console.log(`📦 Copied Monaco assets for ${serviceName}`);
 
+    copyTailwindAsset(config.outdir);
+    console.log(`📦 Copied Tailwind for ${serviceName}`);
+
     if (isAnalyze && result.metafile) {
       const analyzeText = await esbuild.analyzeMetafile(result.metafile);
       console.log(`\n📊 Bundle analysis for ${serviceName}:`);
@@ -378,6 +417,9 @@ async function watch(config, serviceName) {
     // inspect. context.watch() does the initial build on its own.
     copyMonacoAssets(config.outdir);
     console.log(`📦 Copied Monaco assets for ${serviceName}`);
+
+    copyTailwindAsset(config.outdir);
+    console.log(`📦 Copied Tailwind for ${serviceName}`);
 
     await context.watch();
     console.log(`👀 Watching ${serviceName} for changes...`);

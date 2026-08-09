@@ -14,6 +14,9 @@ node_modules
 # Monaco runtime, copied from node_modules at build time
 **/public/assets/monaco/
 
+# Tailwind, copied from Common/Server/Static/Vendor at build time
+**/public/assets/js/tailwind-3.4.5.js
+
 .idea
 # testing
 **/coverage

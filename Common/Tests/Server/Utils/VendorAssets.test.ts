@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
+import childProcess from "child_process";
 import fs from "fs";
 import path from "path";
 import http, { IncomingMessage, Server, createServer } from "http";
@@ -30,6 +31,8 @@ interface AssetResponse {
 }
 
 const INDEX_PAGE: string = "<html>index</html>";
+
+const REPOSITORY_ROOT: string = path.resolve(__dirname, "..", "..", "..", "..");
 
 describe("vendored browser assets", () => {
   let server: Server;
@@ -133,56 +136,88 @@ describe("vendored browser assets", () => {
       expect(asset.body.byteLength).toBeGreaterThan(100000);
     });
 
-    test("is byte-identical to the copy each frontend already ships", () => {
+    test("is the only copy in the tree", () => {
       /*
-       * The five SPAs vendored this file long before the server-rendered pages
-       * did. Two builds of Tailwind on one deployment would mean a class that
+       * Each of the five frontends used to commit its own byte-identical copy
+       * of this 684 KB file. They now get it copied in at build time from the
+       * one here, so a committed copy reappearing means someone has re-created
+       * the drift - two builds of Tailwind on one deployment, where a class
        * renders in the dashboard and silently does nothing in the docs.
+       *
+       * Checked against git rather than the filesystem, because the build
+       * output is expected to be sitting there in a working tree that has run
+       * one; it is gitignored.
        */
-      const vendored: Buffer = fs.readFileSync(
-        path.join(VendorAssetsPath, "tailwind", "tailwind-3.4.5.js"),
+      const tracked: string = childProcess
+        .execFileSync("git", ["ls-files", "--", "*tailwind-3.4.5.js"], {
+          cwd: REPOSITORY_ROOT,
+          encoding: "utf8",
+        })
+        .trim();
+
+      expect(tracked.split("\n").filter(Boolean)).toEqual([
+        "Common/Server/Static/Vendor/tailwind/tailwind-3.4.5.js",
+      ]);
+    });
+  });
+
+  describe("the frontend build's copy of tailwind", () => {
+    /*
+     * The SPAs keep loading it from their own origin - /dashboard/assets/js/...
+     * - rather than through the shared mount. Their index.ejs is unchanged and
+     * their URLs are unchanged; only where the bytes come from moved. Anything
+     * else would have meant editing five index.ejs files and betting the
+     * product's entire styling on getting all five right.
+     */
+    const esbuildConfig: string = fs.readFileSync(
+      path.resolve(__dirname, "..", "..", "..", "UI", "esbuild-config.js"),
+      "utf8",
+    );
+
+    test("runs for every service, on both build and watch", () => {
+      /* Once in build(), once in watch(), plus the definition. */
+      expect(esbuildConfig.match(/copyTailwindAsset\(/g)?.length).toBe(3);
+    });
+
+    test("reads it from the one vendored copy", () => {
+      expect(esbuildConfig).toContain('"Static"');
+      expect(esbuildConfig).toContain('"Vendor"');
+      expect(esbuildConfig).toContain(
+        'TAILWIND_FILENAME = "tailwind-3.4.5.js"',
       );
+    });
 
-      const appRoot: string = path.resolve(
-        __dirname,
-        "..",
-        "..",
-        "..",
-        "..",
-        "App",
-      );
+    test("writes it to the path each index.ejs asks for", () => {
+      expect(esbuildConfig).toContain('"assets/js"');
 
-      let compared: number = 0;
+      const appRoot: string = path.join(REPOSITORY_ROOT, "App", "FeatureSet");
 
-      for (const service of [
-        "Dashboard",
-        "Accounts",
-        "AdminDashboard",
-        "StatusPage",
-        "PublicDashboard",
+      for (const [service, routePrefix] of [
+        ["Dashboard", "dashboard"],
+        ["Accounts", "accounts"],
+        ["AdminDashboard", "admin"],
+        ["StatusPage", "status-page"],
+        ["PublicDashboard", "public-dashboard"],
       ]) {
-        const frontendCopy: string = path.join(
-          appRoot,
-          "FeatureSet",
-          service,
-          "public",
-          "assets",
-          "js",
-          "tailwind-3.4.5.js",
+        const indexView: string = fs.readFileSync(
+          path.join(appRoot, service as string, "views", "index.ejs"),
+          "utf8",
         );
 
-        if (!fs.existsSync(frontendCopy)) {
-          continue;
-        }
-
-        compared++;
         expect([
           service,
-          fs.readFileSync(frontendCopy).equals(vendored),
+          indexView.includes(`/${routePrefix}/assets/js/tailwind-3.4.5.js`),
         ]).toEqual([service, true]);
       }
+    });
 
-      expect(compared).toBe(5);
+    test("is gitignored, so the build output cannot be committed back", () => {
+      const gitignore: string = fs.readFileSync(
+        path.join(REPOSITORY_ROOT, ".gitignore"),
+        "utf8",
+      );
+
+      expect(gitignore).toContain("**/public/assets/js/tailwind-3.4.5.js");
     });
   });
 

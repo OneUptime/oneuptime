@@ -16,9 +16,19 @@ fails the build on a CDN URL in any `.ejs` under `Common/Server/Views`,
 
 | Path                       | Source                                                      |
 | -------------------------- | ----------------------------------------------------------- |
-| `tailwind/tailwind-3.4.5.js` | Tailwind Play CDN build 3.4.5, byte-identical to the copy each SPA already ships in `public/assets/js/` |
+| `tailwind/tailwind-3.4.5.js` | Tailwind Play CDN build 3.4.5                              |
 | `highlight/`               | highlight.js 11.11.1, from cdnjs                             |
 | `fonts/InterVariable.woff2` | Inter variable font, byte-identical to the copies under `App/FeatureSet/{Docs,APIReference}/Static/fonts/` |
+
+The Tailwind file is the **only** copy in the tree. The five frontends used to
+commit one each; `Common/UI/esbuild-config.js` now copies this one into each
+`public/assets/js/` at build time, next to where it already copies Monaco, and
+the built copies are gitignored. Their `index.ejs` still loads it from their own
+prefix (`/dashboard/assets/js/...`) rather than through `/oneuptime-assets` - the
+URLs did not change, only where the bytes come from.
+
+Renaming it means editing five `index.ejs` files to match, so the version stays
+in the filename and `TAILWIND_FILENAME` in the esbuild config.
 
 Mermaid is not vendored here. It is already a dependency of `Common`, so
 `VendorAssets.ts` serves `node_modules/mermaid/dist` at
