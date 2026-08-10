@@ -18,6 +18,11 @@ import DashboardValueComponentType, {
 } from "Common/Types/Dashboard/DashboardComponents/DashboardValueComponent";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
+import DataSourceQueryConfig from "Common/Types/DataSource/DataSourceQueryConfig";
+import DataSourceQueryUtil from "../../../Utils/DataSourceQuery";
+import DataSourceQueryText from "Common/Utils/DataSource/DataSourceQueryText";
+import { isPublicDashboard } from "../Utils/PublicDashboardContext";
+import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -224,6 +229,34 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
   const rawMetricQueryConfig: MetricQueryConfigData | undefined =
     props.component.arguments.metricQueryConfig;
 
+  /*
+   * External Data Source binding. When set, it replaces the OneUptime
+   * metric fetch entirely — everything downstream (aggregation, trend,
+   * sparkline, thresholds) consumes the same AggregatedResult shape.
+   */
+  const rawDataSourceQueryConfig: DataSourceQueryConfig | undefined =
+    props.component.arguments.dataSourceQueryConfig;
+  const dataSourceQueryConfig: DataSourceQueryConfig | undefined =
+    rawDataSourceQueryConfig?.dataSourceId && rawDataSourceQueryConfig?.query
+      ? rawDataSourceQueryConfig
+      : undefined;
+
+  /*
+   * Latest external config + variables in a ref so the stable fetch
+   * callback can read them without new deps (mirrors metricViewDataRef).
+   */
+  const externalFetchRef: React.MutableRefObject<{
+    dataSourceQueryConfig: DataSourceQueryConfig | undefined;
+    variables: Array<DashboardVariable> | undefined;
+  }> = useRef({
+    dataSourceQueryConfig: dataSourceQueryConfig,
+    variables: props.variables,
+  });
+  externalFetchRef.current = {
+    dataSourceQueryConfig: dataSourceQueryConfig,
+    variables: props.variables,
+  };
+
   const metricQueryConfig: MetricQueryConfigData | undefined = useMemo(() => {
     if (!rawMetricQueryConfig) {
       return undefined;
@@ -259,11 +292,64 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
     useRef<MetricViewData>(metricViewData);
   metricViewDataRef.current = metricViewData;
 
+  // Monotonic id of the newest fetch — see the staleness guards below.
+  const fetchSequenceRef: React.MutableRefObject<number> = useRef(0);
+
   const fetchAggregatedResults: () => Promise<void> = useCallback(async () => {
     const data: MetricViewData = metricViewDataRef.current;
+    /*
+     * Staleness guard: refresh ticks and config edits can overlap slow
+     * requests — only the NEWEST fetch may write state, or an old
+     * response would overwrite a newer result (and clear a newer error).
+     */
+    const fetchId: number = ++fetchSequenceRef.current;
     setIsLoading(true);
 
     if (!data.startAndEndDate?.startValue || !data.startAndEndDate?.endValue) {
+      setIsLoading(false);
+      return;
+    }
+
+    /*
+     * External Data Source path — takes precedence over the OneUptime
+     * metric query and skips its guards.
+     */
+    const externalConfig: DataSourceQueryConfig | undefined =
+      externalFetchRef.current.dataSourceQueryConfig;
+    if (externalConfig) {
+      if (isPublicDashboard()) {
+        setError(
+          "External data sources are not available on public dashboards.",
+        );
+        setIsLoading(false);
+        return;
+      }
+
+      setAggregationType(AggregationType.Avg);
+
+      try {
+        const interpolatedQuery: string = DataSourceQueryText.applyVariables(
+          externalConfig.query,
+          externalFetchRef.current.variables,
+        );
+        const result: AggregatedResult =
+          await DataSourceQueryUtil.fetchTimeSeries({
+            queryConfig: { ...externalConfig, query: interpolatedQuery },
+            startDate: data.startAndEndDate.startValue,
+            endDate: data.startAndEndDate.endValue,
+          });
+        if (fetchId !== fetchSequenceRef.current) {
+          return;
+        }
+        setMetricResults([result]);
+        setError("");
+      } catch (err: unknown) {
+        if (fetchId !== fetchSequenceRef.current) {
+          return;
+        }
+        setError(API.getFriendlyErrorMessage(err as Error));
+      }
+
       setIsLoading(false);
       return;
     }
@@ -294,9 +380,15 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
         metricViewData: data,
       });
 
+      if (fetchId !== fetchSequenceRef.current) {
+        return;
+      }
       setMetricResults(results);
       setError("");
     } catch (err: unknown) {
+      if (fetchId !== fetchSequenceRef.current) {
+        return;
+      }
       setError(API.getFriendlyErrorMessage(err as Error));
     }
 
@@ -308,6 +400,8 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
   }, [
     startAndEndDate,
     metricQueryConfig,
+    dataSourceQueryConfig,
+    props.variables,
     props.refreshTick,
     fetchAggregatedResults,
   ]);
@@ -377,13 +471,15 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
     );
   }
 
-  // Show setup state if no metric configured
+  // Show setup state if neither a metric nor an external data source is configured
   if (
-    !props.component.arguments.metricQueryConfig ||
-    !props.component.arguments.metricQueryConfig.metricQueryData?.filterData ||
-    Object.keys(
-      props.component.arguments.metricQueryConfig.metricQueryData.filterData,
-    ).length === 0
+    !dataSourceQueryConfig &&
+    (!props.component.arguments.metricQueryConfig ||
+      !props.component.arguments.metricQueryConfig.metricQueryData
+        ?.filterData ||
+      Object.keys(
+        props.component.arguments.metricQueryConfig.metricQueryData.filterData,
+      ).length === 0)
   ) {
     return (
       <div className="flex flex-col items-center justify-center w-full h-full gap-1.5 overflow-hidden">
@@ -497,14 +593,22 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
     },
   );
 
-  const metricName: string =
-    props.component.arguments.metricQueryConfig?.metricQueryData.filterData.metricName?.toString() ||
-    "";
+  /*
+   * When the widget reads an external Data Source, any leftover
+   * metricQueryConfig from before the switch must NOT contribute a metric
+   * name or unit — a stale "Celsius" or ".utilization" name would rescale
+   * and mis-suffix the external value. External values are unitless here.
+   */
+  const metricName: string = dataSourceQueryConfig
+    ? ""
+    : props.component.arguments.metricQueryConfig?.metricQueryData.filterData.metricName?.toString() ||
+      "";
 
-  const rawUnit: string =
-    props.metricTypes?.find((item: MetricType) => {
-      return item.name?.toString() === metricName;
-    })?.unit || "";
+  const rawUnit: string = dataSourceQueryConfig
+    ? ""
+    : props.metricTypes?.find((item: MetricType) => {
+        return item.name?.toString() === metricName;
+      })?.unit || "";
 
   /*
    * Run the raw aggregate through ValueFormatter so bytes scale to

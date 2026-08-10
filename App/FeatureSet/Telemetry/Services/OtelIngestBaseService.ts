@@ -32,6 +32,7 @@ import LabelService from "Common/Server/Services/LabelService";
 import { extractOneuptimeLabelNames } from "Common/Server/Utils/Telemetry/OneuptimeLabel";
 import logger from "Common/Server/Utils/Logger";
 import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
+import InProcessMemo from "Common/Server/Utils/InProcessMemo";
 import OTelIngestService, {
   ScalarEntityKeys,
   TelemetryServiceMetadata,
@@ -104,14 +105,55 @@ export default abstract class OtelIngestBaseService {
     "otel-maintenance-fence";
   private static readonly MAINTENANCE_FENCE_TTL_SECONDS: number = 5 * 60; // 5 minutes
 
+  /*
+   * L1 short-circuit for the fence above. The SET NX claim is atomic but it
+   * is still one Redis round trip PER DISCOVERED RESOURCE PER RESOURCE
+   * BLOCK, serialized — a hostmetrics payload with hundreds of
+   * ResourceMetrics pays hundreds of round trips per job even when the
+   * fence has been held for minutes. Once this process has SEEN the fence
+   * refused for a (scope, id), that refusal stays true for the rest of the
+   * fence window, so re-asking Redis every block buys nothing.
+   *
+   * ONLY the negative outcome ("fence already held — do not run") is
+   * memoed, never the positive. A cached positive would tell this pod "you
+   * hold the fence, run the maintenance" for work a COMPETING pod may have
+   * armed-and-failed in the meantime (releaseMaintenanceFences deletes the
+   * Redis key precisely so the next attempt anywhere retries immediately) —
+   * suppressing a retry another pod is entitled to. A cached negative
+   * merely delays THIS pod's next claim attempt by at most the memo TTL,
+   * which the 5-minute fence window (and the 15-minute markDisconnected*
+   * thresholds sized against it) already tolerates.
+   *
+   * 30 seconds = min(60s, MAINTENANCE_FENCE_TTL_SECONDS / 10): a released
+   * fence is retried by this pod within 30s (other pods immediately), and
+   * lastSeenAt staleness grows by at most 30s over the fence TTL's own
+   * bound. clearMaintenanceFence deletes the local entry too, so a release
+   * this process performs is visible to itself immediately.
+   */
+  private static readonly MAINTENANCE_FENCE_NEGATIVE_MEMO_TTL_SECONDS: number = 30; // min(60s, MAINTENANCE_FENCE_TTL_SECONDS / 10)
+  private static readonly maintenanceFenceNegativeMemo: InProcessMemo<boolean> =
+    new InProcessMemo<boolean>({
+      ttlInMs:
+        OtelIngestBaseService.MAINTENANCE_FENCE_NEGATIVE_MEMO_TTL_SECONDS *
+        1000,
+      maxEntries: 10_000,
+    });
+
   protected static async shouldRunMaintenance(
     scope: string,
     id: string,
   ): Promise<boolean> {
+    const fenceKey: string = `${scope}:${id}`;
+
+    // L1: a recently observed refusal. Zero network cost.
+    if (this.maintenanceFenceNegativeMemo.get(fenceKey)) {
+      return false;
+    }
+
     try {
-      return await GlobalCache.setStringIfNotExists(
+      const acquired: boolean = await GlobalCache.setStringIfNotExists(
         this.MAINTENANCE_FENCE_NAMESPACE,
-        `${scope}:${id}`,
+        fenceKey,
         "1",
         {
           expiresInSeconds: GlobalCache.withJitter(
@@ -119,6 +161,16 @@ export default abstract class OtelIngestBaseService {
           ),
         },
       );
+
+      /*
+       * Cache ONLY the refusal — see the memo comment above for why a
+       * cached positive would be unsafe under a competing pod's release.
+       */
+      if (!acquired) {
+        this.maintenanceFenceNegativeMemo.set(fenceKey, true);
+      }
+
+      return acquired;
     } catch {
       // If the cache is down, default to running the maintenance.
       return true;
@@ -141,6 +193,13 @@ export default abstract class OtelIngestBaseService {
     scope: string,
     id: string,
   ): Promise<void> {
+    /*
+     * Drop the local negative memo first so this process retries on its
+     * very next batch — without this, a fence released here (because the
+     * gated work failed) would still look "held" to this pod for up to the
+     * memo TTL even though the Redis key is gone.
+     */
+    this.maintenanceFenceNegativeMemo.delete(`${scope}:${id}`);
     try {
       await GlobalCache.deleteKey(
         this.MAINTENANCE_FENCE_NAMESPACE,
@@ -182,6 +241,99 @@ export default abstract class OtelIngestBaseService {
   }
 
   /*
+   * L1 in-process memo in front of the per-entity-type Redis id caches
+   * (host-id, docker-host-id, k8s-cluster-id, …). Every autoDiscover*
+   * method resolves "(projectId, natural key) -> Postgres row id" through
+   * GlobalCache, which is a pure Redis client with no in-process layer —
+   * so one discovered entity per resource block per job is one serialized
+   * Redis GET, and a hostmetrics payload with hundreds of ResourceMetrics
+   * pays hundreds of GETs per job for ids that have not changed in days.
+   * This memo collapses the steady state to zero network round trips; on a
+   * miss the existing Redis path (and, under it, the findOrCreate*
+   * Postgres path) runs unchanged and populates the memo.
+   *
+   * Shared across all eleven namespaces — the L1 key is prefixed with the
+   * Redis namespace, so entries cannot collide across entity types — with
+   * one bound and one TTL, instead of eleven per-method copies.
+   *
+   * Staleness: no code path invalidates these Redis keys on entity
+   * deletion (the namespaces are referenced nowhere else), so a deleted
+   * entity already keeps resolving from Redis for up to the 24-hour L2
+   * TTL. The 60-second L1 adds at most one more minute on top of that
+   * existing day-long window, which is negligible; it is kept this short
+   * anyway so the memo never becomes the layer a future L2 invalidation
+   * has to know about.
+   */
+  private static readonly entityIdL1Memo: InProcessMemo<string> =
+    new InProcessMemo<string>({
+      ttlInMs: 60 * 1000,
+      maxEntries: 10_000,
+    });
+
+  /**
+   * Read a discovered entity id through L1 -> L2 (Redis). Returns null when
+   * neither layer has it — the caller then runs its findOrCreate* path and
+   * stores the result via setEntityIdInCaches. Redis errors propagate
+   * exactly as GlobalCache.getString's always have (each autoDiscover*
+   * catch block turns them into a skipped discovery), EXCEPT when the L1
+   * already holds the id — an L1 hit never touches the network, so a
+   * recently resolved entity keeps resolving through a Redis outage.
+   */
+  private static async getEntityIdFromCaches(
+    namespace: string,
+    cacheKey: string,
+  ): Promise<string | null> {
+    const l1Key: string = `${namespace}:${cacheKey}`;
+
+    // L1: in-process memo. Zero network cost.
+    const memoedId: string | undefined = this.entityIdL1Memo.get(l1Key);
+    if (memoedId !== undefined) {
+      return memoedId;
+    }
+
+    // L2: Redis. Single round-trip; shared across workers.
+    const cachedId: string | null = await GlobalCache.getString(
+      namespace,
+      cacheKey,
+    );
+
+    if (cachedId) {
+      this.entityIdL1Memo.set(l1Key, cachedId);
+    }
+
+    return cachedId;
+  }
+
+  /**
+   * Store a freshly resolved entity id in both layers. The L1 write happens
+   * first so a Redis outage (setString throws, surfacing to the caller's
+   * catch block exactly as before) still leaves this process able to serve
+   * the id for the L1 TTL.
+   */
+  private static async setEntityIdInCaches(
+    namespace: string,
+    cacheKey: string,
+    entityIdStr: string,
+    redisExpiresInSeconds: number,
+  ): Promise<void> {
+    this.entityIdL1Memo.set(`${namespace}:${cacheKey}`, entityIdStr);
+    await GlobalCache.setString(namespace, cacheKey, entityIdStr, {
+      expiresInSeconds: redisExpiresInSeconds,
+    });
+  }
+
+  /**
+   * Drop every in-process L1 memo (entity ids + fence refusals). For tests
+   * only — suites that reuse one resource id across cases need a way to
+   * simulate the TTLs expiring, the same way they already clear their fake
+   * Redis maps between cases.
+   */
+  public static clearInProcessMemos(): void {
+    this.entityIdL1Memo.clear();
+    this.maintenanceFenceNegativeMemo.clear();
+  }
+
+  /*
    * Resolves a real (user-facing) service name from OTel resource
    * attributes. Returns null when the batch is host- / docker-host-
    * level telemetry that should be routed to the matching Host or
@@ -195,7 +347,6 @@ export default abstract class OtelIngestBaseService {
    * the caller tags those with the projectId under ServiceType.Unknown
    * rather than synthesising a shared "Unknown Service" Service row.
    */
-  @CaptureSpan()
   protected static async getServiceNameFromAttributes(
     req: ExpressRequest,
     attributes: JSONArray,
@@ -649,7 +800,6 @@ export default abstract class OtelIngestBaseService {
     });
   }
 
-  @CaptureSpan()
   private static async getDockerServiceName(
     req: ExpressRequest,
     attributes: JSONArray,
@@ -731,7 +881,6 @@ export default abstract class OtelIngestBaseService {
     return null;
   }
 
-  @CaptureSpan()
   private static async getPodmanServiceName(
     req: ExpressRequest,
     attributes: JSONArray,
@@ -897,7 +1046,6 @@ export default abstract class OtelIngestBaseService {
     return match[1];
   }
 
-  @CaptureSpan()
   protected static getClusterNameFromAttributes(
     attributes: JSONArray,
   ): string | null {
@@ -943,7 +1091,7 @@ export default abstract class OtelIngestBaseService {
       }
 
       const cacheKey: string = `${data.projectId.toString()}:${clusterName}`;
-      clusterIdStr = await GlobalCache.getString(
+      clusterIdStr = await this.getEntityIdFromCaches(
         this.CLUSTER_ID_CACHE_NAMESPACE,
         cacheKey,
       );
@@ -957,11 +1105,11 @@ export default abstract class OtelIngestBaseService {
 
         if (cluster._id) {
           clusterIdStr = cluster._id.toString();
-          await GlobalCache.setString(
+          await this.setEntityIdInCaches(
             this.CLUSTER_ID_CACHE_NAMESPACE,
             cacheKey,
             clusterIdStr,
-            { expiresInSeconds: this.CLUSTER_ID_CACHE_EXPIRY_SECONDS },
+            this.CLUSTER_ID_CACHE_EXPIRY_SECONDS,
           );
         }
       }
@@ -1011,7 +1159,6 @@ export default abstract class OtelIngestBaseService {
    * per-cluster inside `attachLabels` so steady-state ingest with
    * unchanged labels costs one in-memory cache lookup.
    */
-  @CaptureSpan()
   protected static async promoteOneuptimeLabelsToCluster(data: {
     projectId: ObjectID;
     kubernetesClusterId: ObjectID;
@@ -1050,7 +1197,6 @@ export default abstract class OtelIngestBaseService {
    * resource attribute (no upstream semconv exists) stamped by the
    * Proxmox Agent collector config from the PROXMOX_CLUSTER_NAME env.
    */
-  @CaptureSpan()
   protected static getProxmoxClusterNameFromAttributes(
     attributes: JSONArray,
   ): string | null {
@@ -1081,7 +1227,7 @@ export default abstract class OtelIngestBaseService {
       }
 
       const cacheKey: string = `${data.projectId.toString()}:${clusterName}`;
-      let clusterIdStr: string | null = await GlobalCache.getString(
+      let clusterIdStr: string | null = await this.getEntityIdFromCaches(
         this.PROXMOX_CLUSTER_ID_CACHE_NAMESPACE,
         cacheKey,
       );
@@ -1095,11 +1241,11 @@ export default abstract class OtelIngestBaseService {
 
         if (cluster._id) {
           clusterIdStr = cluster._id.toString();
-          await GlobalCache.setString(
+          await this.setEntityIdInCaches(
             this.PROXMOX_CLUSTER_ID_CACHE_NAMESPACE,
             cacheKey,
             clusterIdStr,
-            { expiresInSeconds: this.PROXMOX_CLUSTER_ID_CACHE_EXPIRY_SECONDS },
+            this.PROXMOX_CLUSTER_ID_CACHE_EXPIRY_SECONDS,
           );
         }
       }
@@ -1146,7 +1292,6 @@ export default abstract class OtelIngestBaseService {
    * Throttled per-cluster inside `attachLabels` so steady-state
    * ingest with unchanged labels costs one in-memory cache lookup.
    */
-  @CaptureSpan()
   protected static async promoteOneuptimeLabelsToProxmoxCluster(data: {
     projectId: ObjectID;
     proxmoxClusterId: ObjectID;
@@ -1187,7 +1332,6 @@ export default abstract class OtelIngestBaseService {
    * OTEL_RESOURCE_ATTRIBUTES). Some flattened forms prefix resource
    * attributes with `resource.`, so accept that alias too.
    */
-  @CaptureSpan()
   protected static getIoTFleetNameFromAttributes(
     attributes: JSONArray,
   ): string | null {
@@ -1221,7 +1365,7 @@ export default abstract class OtelIngestBaseService {
       }
 
       const cacheKey: string = `${data.projectId.toString()}:${fleetName}`;
-      let fleetIdStr: string | null = await GlobalCache.getString(
+      let fleetIdStr: string | null = await this.getEntityIdFromCaches(
         this.IOT_FLEET_ID_CACHE_NAMESPACE,
         cacheKey,
       );
@@ -1235,11 +1379,11 @@ export default abstract class OtelIngestBaseService {
         if (fleet && fleet.id) {
           const newFleetIdStr: string = fleet.id.toString();
           fleetIdStr = newFleetIdStr;
-          await GlobalCache.setString(
+          await this.setEntityIdInCaches(
             this.IOT_FLEET_ID_CACHE_NAMESPACE,
             cacheKey,
             newFleetIdStr,
-            { expiresInSeconds: this.IOT_FLEET_ID_CACHE_EXPIRY_SECONDS },
+            this.IOT_FLEET_ID_CACHE_EXPIRY_SECONDS,
           );
         }
       }
@@ -1286,7 +1430,6 @@ export default abstract class OtelIngestBaseService {
    * per-fleet inside `attachLabels` so steady-state ingest with
    * unchanged labels costs one in-memory cache lookup.
    */
-  @CaptureSpan()
   protected static async promoteOneuptimeLabelsToIoTFleet(data: {
     projectId: ObjectID;
     iotFleetId: ObjectID;
@@ -1326,7 +1469,6 @@ export default abstract class OtelIngestBaseService {
    * stamped by the Docker Swarm Agent collector config from the
    * DOCKER_SWARM_CLUSTER_NAME env.
    */
-  @CaptureSpan()
   protected static getDockerSwarmClusterNameFromAttributes(
     attributes: JSONArray,
   ): string | null {
@@ -1357,7 +1499,7 @@ export default abstract class OtelIngestBaseService {
       }
 
       const cacheKey: string = `${data.projectId.toString()}:${clusterName}`;
-      let clusterIdStr: string | null = await GlobalCache.getString(
+      let clusterIdStr: string | null = await this.getEntityIdFromCaches(
         this.DOCKER_SWARM_CLUSTER_ID_CACHE_NAMESPACE,
         cacheKey,
       );
@@ -1371,14 +1513,11 @@ export default abstract class OtelIngestBaseService {
 
         if (cluster._id) {
           clusterIdStr = cluster._id.toString();
-          await GlobalCache.setString(
+          await this.setEntityIdInCaches(
             this.DOCKER_SWARM_CLUSTER_ID_CACHE_NAMESPACE,
             cacheKey,
             clusterIdStr,
-            {
-              expiresInSeconds:
-                this.DOCKER_SWARM_CLUSTER_ID_CACHE_EXPIRY_SECONDS,
-            },
+            this.DOCKER_SWARM_CLUSTER_ID_CACHE_EXPIRY_SECONDS,
           );
         }
       }
@@ -1424,7 +1563,6 @@ export default abstract class OtelIngestBaseService {
    * project labels and attach them to the discovered Docker Swarm
    * cluster. Mirrors the Proxmox cluster label promotion.
    */
-  @CaptureSpan()
   protected static async promoteOneuptimeLabelsToDockerSwarmCluster(data: {
     projectId: ObjectID;
     dockerSwarmClusterId: ObjectID;
@@ -1463,7 +1601,6 @@ export default abstract class OtelIngestBaseService {
    * resource attribute (no upstream semconv exists) stamped by the
    * Ceph Agent collector config from the CEPH_CLUSTER_NAME env.
    */
-  @CaptureSpan()
   protected static getCephClusterNameFromAttributes(
     attributes: JSONArray,
   ): string | null {
@@ -1495,7 +1632,7 @@ export default abstract class OtelIngestBaseService {
       }
 
       const cacheKey: string = `${data.projectId.toString()}:${clusterName}`;
-      let clusterIdStr: string | null = await GlobalCache.getString(
+      let clusterIdStr: string | null = await this.getEntityIdFromCaches(
         this.CEPH_CLUSTER_ID_CACHE_NAMESPACE,
         cacheKey,
       );
@@ -1509,11 +1646,11 @@ export default abstract class OtelIngestBaseService {
 
         if (cluster._id) {
           clusterIdStr = cluster._id.toString();
-          await GlobalCache.setString(
+          await this.setEntityIdInCaches(
             this.CEPH_CLUSTER_ID_CACHE_NAMESPACE,
             cacheKey,
             clusterIdStr,
-            { expiresInSeconds: this.CEPH_CLUSTER_ID_CACHE_EXPIRY_SECONDS },
+            this.CEPH_CLUSTER_ID_CACHE_EXPIRY_SECONDS,
           );
         }
       }
@@ -1566,7 +1703,6 @@ export default abstract class OtelIngestBaseService {
    * per-cluster inside `attachLabels` so steady-state ingest with
    * unchanged labels costs one in-memory cache lookup.
    */
-  @CaptureSpan()
   protected static async promoteOneuptimeLabelsToCephCluster(data: {
     projectId: ObjectID;
     cephClusterId: ObjectID;
@@ -1665,7 +1801,7 @@ export default abstract class OtelIngestBaseService {
       }
 
       const cacheKey: string = `${data.projectId.toString()}:${functionIdentifier}`;
-      let functionIdStr: string | null = await GlobalCache.getString(
+      let functionIdStr: string | null = await this.getEntityIdFromCaches(
         this.SERVERLESS_FUNCTION_ID_CACHE_NAMESPACE,
         cacheKey,
       );
@@ -1679,14 +1815,11 @@ export default abstract class OtelIngestBaseService {
 
         if (serverlessFunction._id) {
           functionIdStr = serverlessFunction._id.toString();
-          await GlobalCache.setString(
+          await this.setEntityIdInCaches(
             this.SERVERLESS_FUNCTION_ID_CACHE_NAMESPACE,
             cacheKey,
             functionIdStr,
-            {
-              expiresInSeconds:
-                this.SERVERLESS_FUNCTION_ID_CACHE_EXPIRY_SECONDS,
-            },
+            this.SERVERLESS_FUNCTION_ID_CACHE_EXPIRY_SECONDS,
           );
         }
       }
@@ -1772,7 +1905,6 @@ export default abstract class OtelIngestBaseService {
     }
   }
 
-  @CaptureSpan()
   protected static async promoteOneuptimeLabelsToServerlessFunction(data: {
     projectId: ObjectID;
     serverlessFunctionId: ObjectID;
@@ -1904,7 +2036,7 @@ export default abstract class OtelIngestBaseService {
       const name: string = nameParts.join(" · ");
 
       const cacheKey: string = `${data.projectId.toString()}:${resourceIdentifier}`;
-      let resourceIdStr: string | null = await GlobalCache.getString(
+      let resourceIdStr: string | null = await this.getEntityIdFromCaches(
         this.CLOUD_RESOURCE_ID_CACHE_NAMESPACE,
         cacheKey,
       );
@@ -1922,11 +2054,11 @@ export default abstract class OtelIngestBaseService {
           });
         if (cloudResource._id) {
           resourceIdStr = cloudResource._id.toString();
-          await GlobalCache.setString(
+          await this.setEntityIdInCaches(
             this.CLOUD_RESOURCE_ID_CACHE_NAMESPACE,
             cacheKey,
             resourceIdStr,
-            { expiresInSeconds: this.CLOUD_RESOURCE_ID_CACHE_EXPIRY_SECONDS },
+            this.CLOUD_RESOURCE_ID_CACHE_EXPIRY_SECONDS,
           );
         }
       }
@@ -1983,7 +2115,6 @@ export default abstract class OtelIngestBaseService {
     }
   }
 
-  @CaptureSpan()
   protected static async promoteOneuptimeLabelsToCloudResource(data: {
     projectId: ObjectID;
     cloudResourceId: ObjectID;
@@ -2080,7 +2211,7 @@ export default abstract class OtelIngestBaseService {
       }
 
       const cacheKey: string = `${data.projectId.toString()}:${appIdentifier}`;
-      let appIdStr: string | null = await GlobalCache.getString(
+      let appIdStr: string | null = await this.getEntityIdFromCaches(
         this.RUM_APPLICATION_ID_CACHE_NAMESPACE,
         cacheKey,
       );
@@ -2093,11 +2224,11 @@ export default abstract class OtelIngestBaseService {
           });
         if (rumApplication._id) {
           appIdStr = rumApplication._id.toString();
-          await GlobalCache.setString(
+          await this.setEntityIdInCaches(
             this.RUM_APPLICATION_ID_CACHE_NAMESPACE,
             cacheKey,
             appIdStr,
-            { expiresInSeconds: this.RUM_APPLICATION_ID_CACHE_EXPIRY_SECONDS },
+            this.RUM_APPLICATION_ID_CACHE_EXPIRY_SECONDS,
           );
         }
       }
@@ -2160,7 +2291,6 @@ export default abstract class OtelIngestBaseService {
     }
   }
 
-  @CaptureSpan()
   protected static async promoteOneuptimeLabelsToRumApplication(data: {
     projectId: ObjectID;
     rumApplicationId: ObjectID;
@@ -2194,7 +2324,6 @@ export default abstract class OtelIngestBaseService {
     }
   }
 
-  @CaptureSpan()
   protected static getHostNameFromAttributes(
     attributes: JSONArray,
   ): string | null {
@@ -2277,7 +2406,6 @@ export default abstract class OtelIngestBaseService {
     }
   }
 
-  @CaptureSpan()
   protected static getStringAttribute(
     attributes: JSONArray,
     key: string,
@@ -2306,7 +2434,6 @@ export default abstract class OtelIngestBaseService {
    * Falls back to a single stringValue if the attribute uses that
    * shape (some SDKs flatten single-element arrays to a string).
    */
-  @CaptureSpan()
   protected static getStringArrayAttribute(
     attributes: JSONArray,
     key: string,
@@ -2341,7 +2468,6 @@ export default abstract class OtelIngestBaseService {
     return [];
   }
 
-  @CaptureSpan()
   protected static isDockerRuntime(attributes: JSONArray): boolean {
     for (const attribute of attributes) {
       if (
@@ -2355,7 +2481,6 @@ export default abstract class OtelIngestBaseService {
     return false;
   }
 
-  @CaptureSpan()
   protected static isPodmanRuntime(attributes: JSONArray): boolean {
     for (const attribute of attributes) {
       if (
@@ -2378,7 +2503,6 @@ export default abstract class OtelIngestBaseService {
    * auto-detecting hostname inside a pod don't create phantom
    * per-pod services.
    */
-  @CaptureSpan()
   protected static hasHostResourceSignal(attributes: JSONArray): boolean {
     return Boolean(
       this.getStringAttribute(attributes, "os.type") ||
@@ -2429,7 +2553,7 @@ export default abstract class OtelIngestBaseService {
         this.getStringAttribute(data.attributes, "os.version");
 
       const cacheKey: string = `${data.projectId.toString()}:${hostName}`;
-      let hostIdStr: string | null = await GlobalCache.getString(
+      let hostIdStr: string | null = await this.getEntityIdFromCaches(
         this.DOCKER_HOST_ID_CACHE_NAMESPACE,
         cacheKey,
       );
@@ -2443,11 +2567,11 @@ export default abstract class OtelIngestBaseService {
 
         if (host._id) {
           hostIdStr = host._id.toString();
-          await GlobalCache.setString(
+          await this.setEntityIdInCaches(
             this.DOCKER_HOST_ID_CACHE_NAMESPACE,
             cacheKey,
             hostIdStr,
-            { expiresInSeconds: this.DOCKER_HOST_ID_CACHE_EXPIRY_SECONDS },
+            this.DOCKER_HOST_ID_CACHE_EXPIRY_SECONDS,
           );
         }
       }
@@ -2496,7 +2620,6 @@ export default abstract class OtelIngestBaseService {
    * inside `attachLabels` so steady-state ingest with unchanged
    * labels costs one in-memory cache lookup.
    */
-  @CaptureSpan()
   protected static async promoteOneuptimeLabelsToDockerHost(data: {
     projectId: ObjectID;
     dockerHostId: ObjectID;
@@ -2562,7 +2685,7 @@ export default abstract class OtelIngestBaseService {
         this.getStringAttribute(data.attributes, "os.version");
 
       const cacheKey: string = `${data.projectId.toString()}:${hostName}`;
-      let hostIdStr: string | null = await GlobalCache.getString(
+      let hostIdStr: string | null = await this.getEntityIdFromCaches(
         this.PODMAN_HOST_ID_CACHE_NAMESPACE,
         cacheKey,
       );
@@ -2576,11 +2699,11 @@ export default abstract class OtelIngestBaseService {
 
         if (host._id) {
           hostIdStr = host._id.toString();
-          await GlobalCache.setString(
+          await this.setEntityIdInCaches(
             this.PODMAN_HOST_ID_CACHE_NAMESPACE,
             cacheKey,
             hostIdStr,
-            { expiresInSeconds: this.PODMAN_HOST_ID_CACHE_EXPIRY_SECONDS },
+            this.PODMAN_HOST_ID_CACHE_EXPIRY_SECONDS,
           );
         }
       }
@@ -2629,7 +2752,6 @@ export default abstract class OtelIngestBaseService {
    * inside `attachLabels` so steady-state ingest with unchanged
    * labels costs one in-memory cache lookup.
    */
-  @CaptureSpan()
   protected static async promoteOneuptimeLabelsToPodmanHost(data: {
     projectId: ObjectID;
     podmanHostId: ObjectID;
@@ -2810,7 +2932,7 @@ export default abstract class OtelIngestBaseService {
       }
 
       const cacheKey: string = `${data.projectId.toString()}:${hostName}`;
-      let hostIdStr: string | null = await GlobalCache.getString(
+      let hostIdStr: string | null = await this.getEntityIdFromCaches(
         this.HOST_ID_CACHE_NAMESPACE,
         cacheKey,
       );
@@ -2823,11 +2945,11 @@ export default abstract class OtelIngestBaseService {
 
         if (host._id) {
           hostIdStr = host._id.toString();
-          await GlobalCache.setString(
+          await this.setEntityIdInCaches(
             this.HOST_ID_CACHE_NAMESPACE,
             cacheKey,
             hostIdStr,
-            { expiresInSeconds: this.HOST_ID_CACHE_EXPIRY_SECONDS },
+            this.HOST_ID_CACHE_EXPIRY_SECONDS,
           );
         }
       }
@@ -3168,7 +3290,6 @@ export default abstract class OtelIngestBaseService {
     return any ? sum : null;
   }
 
-  @CaptureSpan()
   protected static getServiceNameFromHeaders(
     req: ExpressRequest,
     defaultName: string = "Unknown Service",

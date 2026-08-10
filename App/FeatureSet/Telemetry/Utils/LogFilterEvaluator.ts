@@ -446,13 +446,28 @@ function evaluateExpr(logRow: JSONObject, expr: FilterExpression): boolean {
         case "!=":
           return fieldVal !== comp.value;
         case "LIKE": {
-          const raw: string = String(comp.value);
           /*
-           * The UI labels this operator "contains", so a value without any
-           * `%` wildcard means substring match — not exact match. Only honor
-           * SQL LIKE semantics (`%` -> .*, `_` -> .) when the user explicitly
-           * uses `%` in the pattern.
+           * Use the forms compileExpr attached at filter-load time — this
+           * case runs once per record per rule, and rebuilding the RegExp
+           * (three escape passes + construction) per record is exactly the
+           * cost the two-stage compile design exists to avoid.
            */
+          if (comp.likeSubstring !== undefined) {
+            return fieldVal.toLowerCase().includes(comp.likeSubstring);
+          }
+          if (comp.likeRegex) {
+            return comp.likeRegex.test(fieldVal);
+          }
+
+          /*
+           * Uncompiled AST (the legacy evaluateFilter path, which parses a
+           * raw query string per call): mirror compileExpr's semantics
+           * inline. The UI labels this operator "contains", so a value
+           * without any `%` wildcard means substring match — not exact
+           * match. Only honor SQL LIKE semantics (`%` -> .*, `_` -> .) when
+           * the user explicitly uses `%` in the pattern.
+           */
+          const raw: string = String(comp.value);
           if (!raw.includes("%")) {
             return fieldVal.toLowerCase().includes(raw.toLowerCase());
           }

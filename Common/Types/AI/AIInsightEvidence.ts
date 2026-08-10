@@ -30,6 +30,12 @@ export interface ExceptionInsightEvidence {
   spikeMultiplier?: number | undefined;
   // Lifetime occurrence count of the exception.
   totalOccurrenceCount?: number | undefined;
+  /*
+   * How many distinct TelemetryException groups (i.e. stack-trace variants of
+   * the same type + normalized message) this finding rolls up. 1 for the
+   * ordinary case; higher when one throw site surfaces on several call paths.
+   */
+  distinctExceptionGroupCount?: number | undefined;
   // ISO-8601 — when the exception was first ever seen.
   firstSeenAt?: string | undefined;
 }

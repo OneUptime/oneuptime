@@ -3,6 +3,13 @@ import ConfirmModal, {
   ComponentProps,
 } from "../../../UI/Components/Modal/ConfirmModal";
 import { describe, expect, it, jest, beforeEach } from "@jest/globals";
+/*
+ * The main entry, not "/extend-expect": the latter no longer ships type
+ * declarations. Without this import the jest-dom matchers below have no types
+ * of their own, and the suite only compiled when it happened to share a
+ * program with a file that did import them.
+ */
+import "@testing-library/jest-dom";
 import { fireEvent, render, screen } from "@testing-library/react";
 import React from "react";
 

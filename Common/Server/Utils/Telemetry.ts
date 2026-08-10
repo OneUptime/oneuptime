@@ -87,6 +87,13 @@ export enum SpanStatusCode {
   ERROR = 2,
 }
 
+/*
+ * Tells a descriptive error `code` ("ECONNREFUSED") from one that is really a
+ * status number in disguise (an HTTP status, a Postgres SQLSTATE). See
+ * Telemetry.getExceptionTypeName.
+ */
+const NUMERIC_ONLY_REGEX: RegExp = /^\d+$/;
+
 export default class Telemetry {
   public static sdk: opentelemetry.NodeSDK | null = null;
 
@@ -101,6 +108,20 @@ export default class Telemetry {
   public static metricReader: PeriodicExportingMetricReader | undefined;
 
   public static serviceName: string | null = null;
+
+  /*
+   * True only when init() installed a real OTLP span exporter. @CaptureSpan
+   * consults this to skip span creation entirely on deployments that never
+   * export traces — without an exporter the spans go nowhere, but the wrapper
+   * would still pay attribute flattening, span allocation, and an
+   * AsyncLocalStorage context switch on every decorated call, which includes
+   * hot ingest paths that run millions of times per minute.
+   */
+  private static spanExportEnabled: boolean = false;
+
+  public static isSpanExportEnabled(): boolean {
+    return this.spanExportEnabled;
+  }
 
   public static getHeaders(): Dictionary<string> {
     if (!process.env["OPENTELEMETRY_EXPORTER_OTLP_HEADERS"]) {
@@ -192,6 +213,7 @@ export default class Telemetry {
           headers: headers,
           compression: CompressionAlgorithm.GZIP,
         }) as unknown as SpanExporter;
+        this.spanExportEnabled = true;
       }
 
       if (this.getOltpMetricsEndpoint() && hasHeaders) {
@@ -546,7 +568,36 @@ export default class Telemetry {
        * empty "Error" status.
        */
       span.setAttributes(exceptionAttributes);
-      span.recordException(exception as SpanException);
+
+      /*
+       * A NORMALIZED {name, message, stack} is handed to recordException
+       * rather than the raw thrown value, because the OTel SDK reads
+       * `exception.code` BEFORE `exception.name` when deciding
+       * `exception.type` (sdk-trace-base Span.recordException). OneUptime's
+       * Exception base class exposes an HTTP STATUS as `code`
+       * (NotAuthenticatedException = 401, BadDataException = 400,
+       * ServerException = 500 — see Types/Exception/ExceptionCode), so every
+       * exception this platform raises was being typed "401"/"400"/"500".
+       *
+       * That type is the exception event's identity downstream: it is hashed
+       * into the TelemetryException group fingerprint and it is what the
+       * Issues list and the AI insight titles show. A whole service's worth of
+       * unrelated failures collapsed into "401", telling nobody anything.
+       *
+       * The payload is built from the attributes getExceptionAttributes has
+       * already extracted, which means it inherits their truncation (4k
+       * message, 8k stack) and their crash-safety — a hostile thrown value is
+       * read exactly once, defensively, rather than twice.
+       */
+      span.recordException({
+        name: (exceptionAttributes["exception.type"] as string) || "Error",
+        message: (exceptionAttributes["exception.message"] as string) || "",
+        ...(exceptionAttributes["exception.stacktrace"]
+          ? {
+              stack: exceptionAttributes["exception.stacktrace"] as string,
+            }
+          : {}),
+      } as SpanException);
       span.setStatus({
         code: SpanStatusCode.ERROR,
         message:
@@ -588,8 +639,7 @@ export default class Telemetry {
       }
 
       if (exception instanceof Error) {
-        attributes["exception.type"] =
-          exception.name || exception.constructor?.name || "Error";
+        attributes["exception.type"] = this.getExceptionTypeName(exception);
         attributes["exception.message"] = this.truncate(
           exception.message || "",
           4000,
@@ -659,6 +709,57 @@ export default class Telemetry {
     }
 
     return attributes;
+  }
+
+  /*
+   * The most specific type name available for a thrown Error, in the order a
+   * human would want to read it in the Issues list.
+   *
+   * `name` is checked first but "Error" is rejected: an Error subclass that
+   * never assigns `this.name` inherits the generic "Error" from
+   * Error.prototype, and OneUptime's own Exception base does exactly that —
+   * so `name` alone reports "Error" for NotAuthenticatedException,
+   * BadDataException and every other one of them.
+   *
+   * A `code` is only used when it is a NON-NUMERIC string. That keeps the
+   * genuinely descriptive Node system codes (ECONNREFUSED, ENOTFOUND) while
+   * rejecting numeric ones — HTTP statuses on OneUptime's Exception and
+   * Postgres SQLSTATEs ("23505"), for which the constructor name
+   * (QueryFailedError) says far more. The numeric code is not lost — it keeps
+   * its own `exception.code` attribute.
+   *
+   * Never throws: it runs on the universal error path and the thrown value
+   * can be a Proxy or carry throwing getters.
+   */
+  private static getExceptionTypeName(exception: Error): string {
+    try {
+      const name: unknown = exception.name;
+      if (typeof name === "string" && name.trim() !== "" && name !== "Error") {
+        return name;
+      }
+
+      const code: unknown = (exception as { code?: unknown }).code;
+      if (
+        typeof code === "string" &&
+        code.trim() !== "" &&
+        !NUMERIC_ONLY_REGEX.test(code.trim())
+      ) {
+        return code.trim();
+      }
+
+      const constructorName: unknown = exception.constructor?.name;
+      if (
+        typeof constructorName === "string" &&
+        constructorName.trim() !== "" &&
+        constructorName !== "Object"
+      ) {
+        return constructorName;
+      }
+    } catch {
+      // Fall through to the generic name below.
+    }
+
+    return "Error";
   }
 
   private static truncate(value: string, maxLength: number): string {

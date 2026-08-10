@@ -175,10 +175,14 @@ export const MigrationExecuteOptions: ClickhouseExecuteOptions = {
  * TelemetryFanInWriter can consume deterministic tokens without an import
  * cycle. Re-exported here for existing callers.
  *
- * HTTP-path inserts run outside the context and are always fire-and-forget
- * (wait_for_async_insert=0) — flush waiting, when opted into via
- * TELEMETRY_WAIT_FOR_ASYNC_INSERT, is only affordable off the request
- * thread and therefore only applies to tokened (queue-job) inserts.
+ * The ack mode is independent of tokening: TELEMETRY_WAIT_FOR_ASYNC_INSERT
+ * (shouldWaitForAsyncInsert below) is applied to EVERY insertJsonRows call,
+ * with or without a dedup token. Whether a telemetry queue job's writes
+ * carry per-job tokens from this context is a separate policy decided in
+ * the worker: the high-volume signals (traces/logs/metrics) run untokened
+ * so the fan-in writer can merge them into cross-job INSERTs under minted
+ * per-batch tokens — see shouldUseInsertDedup in
+ * App/FeatureSet/Telemetry/Jobs/TelemetryIngest/ProcessTelemetry.ts.
  */
 export {
   runWithInsertDedup,

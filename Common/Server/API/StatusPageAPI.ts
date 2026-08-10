@@ -3853,9 +3853,19 @@ export default class StatusPageAPI extends BaseAPI<
         `Updating existing subscriber with ID: ${subscriberId} for status page with ID: ${objectId}`,
         getLogAttributesFromRequest(req as any),
       );
+      /*
+       * Scope the lookup to the status page in the route. This endpoint only
+       * checks read access on that status page, so without the statusPageId
+       * clause anyone holding a subscriber UUID could pass any status page they
+       * can read and edit a subscriber belonging to a different — possibly
+       * private — status page. A subscriber on another page must be
+       * indistinguishable from one that does not exist, so that the shared
+       * "Subscriber not found" below cannot be used to probe for valid UUIDs.
+       */
       statusPageSubscriber = await StatusPageSubscriberService.findOneBy({
         query: {
           _id: subscriberId.toString(),
+          statusPageId: objectId,
         },
         props: {
           isRoot: true,
@@ -3864,7 +3874,7 @@ export default class StatusPageAPI extends BaseAPI<
 
       if (!statusPageSubscriber) {
         logger.debug(
-          `Subscriber not found with ID: ${subscriberId}`,
+          `Subscriber not found with ID: ${subscriberId} on status page with ID: ${objectId}`,
           getLogAttributesFromRequest(req as any),
         );
         throw new BadDataException("Subscriber not found");

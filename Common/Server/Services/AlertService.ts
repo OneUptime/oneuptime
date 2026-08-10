@@ -39,6 +39,7 @@ import { IsBillingEnabled } from "../EnvironmentConfig";
 import logger, { LogAttributes } from "../Utils/Logger";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import TelemetryUtil from "../Utils/Telemetry/Telemetry";
+import MetricResourceAttributeUtil from "../../Utils/Metrics/MetricResourceAttributeUtil";
 import MutableMetricService from "./MutableMetricService";
 import GlobalConfigService from "./GlobalConfigService";
 import GlobalConfig from "../../Models/DatabaseModels/GlobalConfig";
@@ -1616,6 +1617,16 @@ ${alertSeverity.name}
           _id: true,
           name: true,
         },
+        /*
+         * A project's own taxonomy. Both become metric attributes below so
+         * dashboards can group MTTA/MTTR by the dimensions the project
+         * actually thinks in.
+         */
+        labels: {
+          _id: true,
+          name: true,
+        },
+        customFields: true,
       },
       props: {
         isRoot: true,
@@ -1692,6 +1703,29 @@ ${alertSeverity.name}
         metricRetentionDays,
       );
 
+      /*
+       * Dimensions shared by every alert metric. Built once so all four
+       * metrics below record the identical attribute set — a dashboard that
+       * groups by oneuptime.label.product must not find the dimension on
+       * AlertCount but missing from TimeToResolve.
+       */
+      const baseMetricAttributes: JSONObject = {
+        alertId: data.alertId.toString(),
+        projectId: alert.projectId.toString(),
+        monitorId: alert.monitor?._id?.toString(),
+        monitorName: alert.monitor?.name?.toString(),
+        alertSeverityId: alert.alertSeverity?._id?.toString(),
+        alertSeverityName: alert.alertSeverity?.name?.toString(),
+        /*
+         * oneuptime.label.* / oneuptime.customField.* — namespaced, so they can
+         * never collide with the unprefixed dimensions above.
+         */
+        ...MetricResourceAttributeUtil.getResourceAttributes({
+          labels: alert.labels,
+          customFields: alert.customFields,
+        }),
+      };
+
       // now we need to create new metrics for this alert - TimeToAcknowledge, TimeToResolve, AlertCount, AlertDuration
       const alertStartsAt: Date =
         firstAlertStateTimeline?.startsAt ||
@@ -1714,14 +1748,7 @@ ${alertSeverity.name}
       alertCountMetric.name = AlertMetricType.AlertCount;
       alertCountMetric.metricPointId = AlertMetricType.AlertCount;
       alertCountMetric.value = 1;
-      alertCountMetric.attributes = {
-        alertId: data.alertId.toString(),
-        projectId: alert.projectId.toString(),
-        monitorId: alert.monitor?._id?.toString(),
-        monitorName: alert.monitor?.name?.toString(),
-        alertSeverityId: alert.alertSeverity?._id?.toString(),
-        alertSeverityName: alert.alertSeverity?.name?.toString(),
-      };
+      alertCountMetric.attributes = { ...baseMetricAttributes };
       alertCountMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
         alertCountMetric.attributes,
       );
@@ -1768,14 +1795,7 @@ ${alertSeverity.name}
             ackAlertStateTimeline?.startsAt || OneUptimeDate.getCurrentDate(),
             alertStartsAt,
           );
-          timeToAcknowledgeMetric.attributes = {
-            alertId: data.alertId.toString(),
-            projectId: alert.projectId.toString(),
-            monitorId: alert.monitor?._id?.toString(),
-            monitorName: alert.monitor?.name?.toString(),
-            alertSeverityId: alert.alertSeverity?._id?.toString(),
-            alertSeverityName: alert.alertSeverity?.name?.toString(),
-          };
+          timeToAcknowledgeMetric.attributes = { ...baseMetricAttributes };
           timeToAcknowledgeMetric.attributeKeys =
             TelemetryUtil.getAttributeKeys(timeToAcknowledgeMetric.attributes);
 
@@ -1825,14 +1845,7 @@ ${alertSeverity.name}
             OneUptimeDate.getCurrentDate(),
           alertStartsAt,
         );
-        timeToResolveMetric.attributes = {
-          alertId: data.alertId.toString(),
-          projectId: alert.projectId.toString(),
-          monitorId: alert.monitor?._id?.toString(),
-          monitorName: alert.monitor?.name?.toString(),
-          alertSeverityId: alert.alertSeverity?._id?.toString(),
-          alertSeverityName: alert.alertSeverity?.name?.toString(),
-        };
+        timeToResolveMetric.attributes = { ...baseMetricAttributes };
         timeToResolveMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
           timeToResolveMetric.attributes,
         );
@@ -1872,14 +1885,7 @@ ${alertSeverity.name}
           alertEndsAt,
           alertStartsAt,
         );
-        alertDurationMetric.attributes = {
-          alertId: data.alertId.toString(),
-          projectId: alert.projectId.toString(),
-          monitorId: alert.monitor?._id?.toString(),
-          monitorName: alert.monitor?.name?.toString(),
-          alertSeverityId: alert.alertSeverity?._id?.toString(),
-          alertSeverityName: alert.alertSeverity?.name?.toString(),
-        };
+        alertDurationMetric.attributes = { ...baseMetricAttributes };
         alertDurationMetric.attributeKeys = TelemetryUtil.getAttributeKeys(
           alertDurationMetric.attributes,
         );

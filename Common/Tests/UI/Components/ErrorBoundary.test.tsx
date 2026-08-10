@@ -222,6 +222,18 @@ describe("ErrorBoundary", () => {
       expect(screen.queryByRole("alert")).not.toBeNull();
     });
 
+    test("leads with a plain-language heading", () => {
+      render(
+        <ErrorBoundary>
+          <ThrowOnRender />
+        </ErrorBoundary>,
+      );
+
+      expect(
+        screen.queryByRole("heading", { name: "Something went wrong" }),
+      ).not.toBeNull();
+    });
+
     test("shows the underlying error message for support", () => {
       render(
         <ErrorBoundary>
@@ -232,6 +244,26 @@ describe("ErrorBoundary", () => {
       expect(
         screen.getByTestId("error-boundary-error-message").textContent,
       ).toContain("reading 'queryConfigs'");
+    });
+
+    /*
+     * The stack-shaped message is for support, not for the person who just hit
+     * the error. It stays in the DOM (so it can be read and copied) but behind
+     * a closed disclosure so the recovery actions lead.
+     */
+    test("keeps the raw error message behind a closed disclosure", () => {
+      render(
+        <ErrorBoundary>
+          <ThrowOnRender message="Cannot read properties of undefined (reading 'queryConfigs')" />
+        </ErrorBoundary>,
+      );
+
+      const disclosure: HTMLDetailsElement | null = screen
+        .getByTestId("error-boundary-error-message")
+        .closest("details");
+
+      expect(disclosure).not.toBeNull();
+      expect(disclosure!.open).toBe(false);
     });
 
     test("offers a support bundle and explains what it contains", () => {
@@ -246,6 +278,27 @@ describe("ErrorBoundary", () => {
       ).not.toBeNull();
       expect(screen.queryByText(/scrubbed page URL/)).not.toBeNull();
       expect(screen.queryByText(/never reads cookies/)).not.toBeNull();
+    });
+
+    /*
+     * A downloaded bundle is only useful if the user knows where to send it,
+     * so the address is on the fallback rather than a page they have to find.
+     */
+    test("says where to send the support bundle", () => {
+      render(
+        <ErrorBoundary>
+          <ThrowOnRender />
+        </ErrorBoundary>,
+      );
+
+      const supportEmailLink: HTMLAnchorElement = screen.getByTestId(
+        "error-boundary-support-email",
+      ) as HTMLAnchorElement;
+
+      expect(supportEmailLink.textContent).toBe("support@oneuptime.com");
+      expect(supportEmailLink.getAttribute("href")).toBe(
+        "mailto:support@oneuptime.com",
+      );
     });
   });
 

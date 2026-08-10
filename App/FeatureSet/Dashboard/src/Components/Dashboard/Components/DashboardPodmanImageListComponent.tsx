@@ -94,8 +94,13 @@ const DashboardPodmanImageListComponentElement: FunctionComponent<
       const listResult: ListResult<PodmanResource> =
         await ModelAPI.getList<PodmanResource>({
           modelType: PodmanResource,
-          requestOptions:
-            DashboardResourceList.getRequestOptions("podman-image"),
+          requestOptions: DashboardResourceList.getRequestOptions(
+            "podman-image",
+            {
+              componentId: props.componentId,
+              variables: props.variables,
+            },
+          ),
           query: query,
           limit: maxRows,
           skip: 0,
@@ -120,7 +125,13 @@ const DashboardPodmanImageListComponentElement: FunctionComponent<
     }
 
     setIsLoading(false);
-  }, [maxRows, podmanHostIdsKey, nameSearchKey, props.variables]);
+  }, [
+    maxRows,
+    podmanHostIdsKey,
+    nameSearchKey,
+    props.variables,
+    props.componentId,
+  ]);
 
   useEffect(() => {
     fetchImages();

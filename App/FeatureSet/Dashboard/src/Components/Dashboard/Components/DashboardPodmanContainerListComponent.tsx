@@ -150,8 +150,13 @@ const DashboardPodmanContainerListComponentElement: FunctionComponent<
       const listResult: ListResult<PodmanResource> =
         await ModelAPI.getList<PodmanResource>({
           modelType: PodmanResource,
-          requestOptions:
-            DashboardResourceList.getRequestOptions("podman-container"),
+          requestOptions: DashboardResourceList.getRequestOptions(
+            "podman-container",
+            {
+              componentId: props.componentId,
+              variables: props.variables,
+            },
+          ),
           query: query,
           limit: maxRows,
           skip: 0,
@@ -179,7 +184,13 @@ const DashboardPodmanContainerListComponentElement: FunctionComponent<
     }
 
     setIsLoading(false);
-  }, [maxRows, podmanHostIdsKey, imageNameKey, props.variables]);
+  }, [
+    maxRows,
+    podmanHostIdsKey,
+    imageNameKey,
+    props.variables,
+    props.componentId,
+  ]);
 
   useEffect(() => {
     fetchContainers();

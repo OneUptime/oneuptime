@@ -511,6 +511,7 @@ import { AddMasterPasswordSalt1786400000000 } from "./1786400000000-AddMasterPas
 import { AddInvestigationCodeFixRecommendation1786500000000 } from "./1786500000000-AddInvestigationCodeFixRecommendation";
 import { AddInvestigationAnalysisTldr1786600000000 } from "./1786600000000-AddInvestigationAnalysisTldr";
 import { DropProjectCallSMSConfigCredentialUniques1786700000000 } from "./1786700000000-DropProjectCallSMSConfigCredentialUniques";
+import { AddDataSourceTable1786303472848 } from "./1786303472848-AddDataSourceTable";
 
 export default [
   InitialMigration,
@@ -1026,4 +1027,5 @@ export default [
   AddInvestigationCodeFixRecommendation1786500000000,
   AddInvestigationAnalysisTldr1786600000000,
   DropProjectCallSMSConfigCredentialUniques1786700000000,
+  AddDataSourceTable1786303472848,
 ];

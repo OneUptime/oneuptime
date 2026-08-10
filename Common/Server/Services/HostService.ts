@@ -11,6 +11,7 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import OneUptimeDate from "../../Types/Date";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import GlobalCache from "../Infrastructure/GlobalCache";
+import InProcessMemo from "../Utils/InProcessMemo";
 import logger, { LogAttributes } from "../Utils/Logger";
 import { canonicalizeEntityValue } from "../../Utils/Telemetry/EntityKey";
 import crypto from "crypto";
@@ -20,6 +21,46 @@ const LAST_SEEN_THROTTLE_SECONDS: number = 60;
 
 const LABELS_APPLIED_CACHE_NAMESPACE: string = "host-labels-applied";
 const LABELS_APPLIED_CACHE_TTL_SECONDS: number = 60;
+
+/*
+ * What `findOrCreateByHostIdentifier` memoizes: the resolved row's id plus
+ * the identifier it converged to. A flat shape rather than the Model itself
+ * so a memo hit hands every caller a FRESH Model instance — the resolving
+ * call and a memoed call must not share one mutable entity object.
+ */
+interface HostResolution {
+  hostIdStr: string;
+  hostIdentifier: string;
+}
+
+/*
+ * Per-process memo for `(projectId, canonical hostIdentifier) -> Host`.
+ *
+ * `findOrCreateByHostIdentifier` ran an unconditional Postgres SELECT per
+ * call, and the metrics ingest path calls it once per unique host per job
+ * (the host-enrichment aggregation loop) on top of `autoDiscoverHost`'s
+ * Redis-cache misses — for a fleet of workers chewing hostmetrics batches
+ * that is a steady stream of identical case-insensitive lookups for rows
+ * that change never. Same L1 shape as the service-resolution memo in
+ * OpenTelemetryIngestService: 60-second TTL, bounded because host
+ * identifiers arrive from collector-controlled resource attributes.
+ *
+ * ONLY positive resolutions (the host exists / was just created) are
+ * memoized, and only on success. There is deliberately no negative
+ * caching: the miss path must keep falling through to the create, so a
+ * create that loses a concurrent race still throws its unique-violation
+ * into the existing catch-and-refetch handling unchanged. Staleness is a
+ * non-issue for the id itself (ids are immutable); a deleted host keeps
+ * resolving for up to the TTL, which the 24-hour host-id Redis cache in
+ * OtelIngestBaseService already dwarfs.
+ */
+const HOST_RESOLUTION_MEMO_TTL_IN_MS: number = 60 * 1000;
+const HOST_RESOLUTION_MEMO_MAX_ENTRIES: number = 10_000;
+const hostResolutionInProcessMemo: InProcessMemo<HostResolution> =
+  new InProcessMemo<HostResolution>({
+    ttlInMs: HOST_RESOLUTION_MEMO_TTL_IN_MS,
+    maxEntries: HOST_RESOLUTION_MEMO_MAX_ENTRIES,
+  });
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -74,6 +115,24 @@ export class Service extends DatabaseService<Model> {
      * we repeat it here so the method is correct for any caller.
      */
     const hostIdentifier: string = canonicalizeEntityValue(data.hostIdentifier);
+
+    /*
+     * L1: in-process memo. The canonical identifier is the memo key, so
+     * every casing of one host collapses onto the entry the previous batch
+     * wrote — the same folding the SQL predicate below performs. A hit
+     * skips the SELECT (and the already-converged identifier write) that
+     * the resolving call performed within the last minute.
+     */
+    const memoKey: string = `${data.projectId.toString()}:${hostIdentifier}`;
+    const memoedResolution: HostResolution | undefined =
+      hostResolutionInProcessMemo.get(memoKey);
+    if (memoedResolution) {
+      const memoedHost: Model = new Model();
+      memoedHost._id = memoedResolution.hostIdStr;
+      memoedHost.projectId = data.projectId;
+      memoedHost.hostIdentifier = memoedResolution.hostIdentifier;
+      return memoedHost;
+    }
 
     /*
      * Look up case-insensitively. The unique guard on name/hostIdentifier
@@ -131,6 +190,18 @@ export class Service extends DatabaseService<Model> {
         }
       }
 
+      /*
+       * Memoize the identifier the row ACTUALLY holds (post-convergence,
+       * or the legacy casing when the best-effort update failed) so a memo
+       * hit returns exactly what a repeated lookup would have.
+       */
+      if (existingHost._id) {
+        hostResolutionInProcessMemo.set(memoKey, {
+          hostIdStr: existingHost._id.toString(),
+          hostIdentifier: existingHost.hostIdentifier || hostIdentifier,
+        });
+      }
+
       return existingHost;
     }
 
@@ -148,6 +219,13 @@ export class Service extends DatabaseService<Model> {
           isRoot: true,
         },
       });
+
+      if (createdHost._id) {
+        hostResolutionInProcessMemo.set(memoKey, {
+          hostIdStr: createdHost._id.toString(),
+          hostIdentifier: hostIdentifier,
+        });
+      }
 
       return createdHost;
     } catch {
@@ -173,6 +251,20 @@ export class Service extends DatabaseService<Model> {
       });
 
       if (reFetchedHost) {
+        /*
+         * The refetch after a lost create race emits the same SELECT as
+         * the cold lookup, and a first-contact stampede on a brand-new
+         * host is exactly when this branch runs hot — memoize it like the
+         * other two resolution paths (mirrors the service-resolution
+         * cache's create-race handling).
+         */
+        if (reFetchedHost._id) {
+          hostResolutionInProcessMemo.set(memoKey, {
+            hostIdStr: reFetchedHost._id.toString(),
+            hostIdentifier: reFetchedHost.hostIdentifier || hostIdentifier,
+          });
+        }
+
         return reFetchedHost;
       }
 

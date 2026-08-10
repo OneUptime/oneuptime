@@ -164,7 +164,10 @@ const DashboardTraceListComponentElement: FunctionComponent<ComponentProps> = (
           sort: {
             startTime: SortOrder.Descending,
           },
-          requestOptions: DashboardResourceList.getRequestOptions("span"),
+          requestOptions: DashboardResourceList.getRequestOptions("span", {
+            componentId: props.componentId,
+            variables: props.variables,
+          }),
         });
 
       setSpans(listResult.data);
@@ -174,7 +177,13 @@ const DashboardTraceListComponentElement: FunctionComponent<ComponentProps> = (
     }
 
     setIsLoading(false);
-  }, [props.dashboardStartAndEndDate, statusFilter, maxRows]);
+  }, [
+    props.dashboardStartAndEndDate,
+    statusFilter,
+    maxRows,
+    props.componentId,
+    props.variables,
+  ]);
 
   useEffect(() => {
     fetchTraces();

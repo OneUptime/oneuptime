@@ -208,8 +208,13 @@ describe("ExceptionSpikeDetector.detect (IO wiring)", () => {
       `exception-spike:${exceptionId.toString()}`,
     );
     expect(candidate.severity).toBe(AIInsightSeverity.High);
+    /*
+     * Type AND message: the type alone collides across findings (a service
+     * whose instrumentation types every failure by HTTP status renders a wall
+     * of identical rows).
+     */
     expect(candidate.title).toBe(
-      "Exception spike: ConnectionError at 50.0x normal rate in payments",
+      "Exception spike: ConnectionError: connection reset by peer at 50.0x normal rate in payments",
     );
     expect(candidate.evidence.exception).toEqual(
       expect.objectContaining({

@@ -32,6 +32,13 @@ export default class BasePermission {
     props: DatabaseCommonInteractionProps,
     type: DatabaseRequestType,
   ): Promise<CheckPermissionBaseInterface<TBaseModel>> {
+    /*
+     * Permission checks add predicates and QueryUtil serializes values in
+     * place. Callers such as BaseAPI intentionally reuse the original query
+     * for list and count, so work on a fresh top-level object.
+     */
+    query = { ...query };
+
     const model: BaseModel = new modelType();
 
     if (props.isRoot || props.isMasterAdmin) {

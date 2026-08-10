@@ -1,3 +1,23 @@
+/*
+ * PasswordHash carries a pre-existing TS5.9 diagnostic that fails any suite
+ * whose runtime require graph reaches it (DatabaseService, the base class
+ * of every concrete service, imports it). Nothing password-related is under
+ * test here, so the module is replaced WITH A FACTORY — an automock would
+ * still require (and type-check) the real file.
+ */
+jest.mock("Common/Server/Utils/PasswordHash", () => {
+  return {
+    __esModule: true,
+    default: {
+      hash: jest.fn(),
+      verify: jest.fn(),
+      generateSalt: jest.fn(),
+      needsUpgrade: jest.fn(),
+      applyPepper: jest.fn(),
+    },
+  };
+});
+
 import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
 import OtelIngestBaseService from "../../FeatureSet/Telemetry/Services/OtelIngestBaseService";
 import {
@@ -43,6 +63,16 @@ describe("OtelIngestBaseService.shouldRunMaintenance", () => {
 
   beforeEach(() => {
     cache = new Map<string, string>();
+
+    /*
+     * The fence carries an in-process negative memo now (a refusal seen
+     * once is not re-asked for 30s). This suite reuses one (scope, id)
+     * across tests, so simulate that memo's TTL expiring between cases the
+     * same way the fresh `cache` map simulates the Redis TTL expiring. The
+     * memo's own behaviour is pinned in
+     * OtelIngestMaintenanceFenceNegativeMemo.test.ts.
+     */
+    OtelIngestBaseService.clearInProcessMemos();
 
     jest
       .spyOn(GlobalCache, "setStringIfNotExists")

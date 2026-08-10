@@ -4,6 +4,9 @@ import {
   PublicDashboardContext,
 } from "./PublicDashboardContext";
 import URL from "Common/Types/API/URL";
+import ObjectID from "Common/Types/ObjectID";
+import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
+import { JSONArray, JSONObject } from "Common/Types/JSON";
 
 /*
  * Resource-type identifiers understood by the public
@@ -35,6 +38,12 @@ export type DashboardResourceType =
 
 export interface DashboardResourceRequestOptions {
   overrideRequestUrl: URL;
+  additionalRequestBody?: JSONObject | undefined;
+}
+
+export interface DashboardWidgetContext {
+  componentId: ObjectID;
+  variables?: Array<DashboardVariable> | undefined;
 }
 
 export default class DashboardResourceList {
@@ -57,6 +66,7 @@ export default class DashboardResourceList {
    */
   public static getRequestOptions(
     resourceType: DashboardResourceType,
+    widgetContext?: DashboardWidgetContext | undefined,
   ): DashboardResourceRequestOptions | undefined {
     const context: PublicDashboardContext | null = getPublicDashboardContext();
     if (!context) {
@@ -71,6 +81,30 @@ export default class DashboardResourceList {
       return undefined;
     }
 
-    return { overrideRequestUrl: url };
+    if (!widgetContext) {
+      return { overrideRequestUrl: url };
+    }
+
+    return {
+      overrideRequestUrl: url,
+      additionalRequestBody: {
+        componentId: widgetContext.componentId.toString(),
+        /*
+         * Send selections only. The public endpoint resolves each id against
+         * the dashboard's stored variables, including its trusted type and
+         * attribute key. An explicit empty string means All; null means the
+         * viewer did not provide a selection, so a stored default may apply.
+         */
+        variables: (widgetContext.variables || []).map(
+          (variable: DashboardVariable): JSONObject => {
+            return {
+              id: variable.id,
+              selectedValue: variable.selectedValue ?? null,
+              selectedValues: variable.selectedValues || [],
+            };
+          },
+        ) as JSONArray,
+      },
+    };
   }
 }

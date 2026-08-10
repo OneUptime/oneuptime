@@ -104,7 +104,10 @@ const DashboardMonitorListComponentElement: FunctionComponent<
 
       const listResult: ListResult<Monitor> = await ModelAPI.getList<Monitor>({
         modelType: Monitor,
-        requestOptions: DashboardResourceList.getRequestOptions("monitor"),
+        requestOptions: DashboardResourceList.getRequestOptions("monitor", {
+          componentId: props.componentId,
+          variables: props.variables,
+        }),
         query: query,
         limit: maxRows,
         skip: 0,
@@ -135,6 +138,8 @@ const DashboardMonitorListComponentElement: FunctionComponent<
     monitorStatusIdsKey,
     monitorTypesKey,
     labelIdsKey,
+    props.componentId,
+    props.variables,
   ]);
 
   useEffect(() => {

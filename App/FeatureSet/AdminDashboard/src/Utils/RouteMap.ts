@@ -15,6 +15,7 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.HEALTH_REDIS]: new Route(`/admin/health/redis`),
   [PageMap.HEALTH_QUERY]: new Route(`/admin/health/query`),
   [PageMap.HEALTH_LOGS]: new Route(`/admin/health/logs`),
+  [PageMap.HEALTH_TELEMETRY]: new Route(`/admin/health/telemetry`),
   [PageMap.HEALTH_PROBES]: new Route(`/admin/health/probes`),
   [PageMap.HEALTH_MIGRATIONS]: new Route(`/admin/health/migrations`),
   [PageMap.HEALTH_SUPPORT_BUNDLE]: new Route(`/admin/health/support-bundle`),
@@ -51,6 +52,9 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.USER_VIEW]: new Route(`/admin/users/${RouteParams.ModelID}`),
   [PageMap.USER_PROJECTS]: new Route(
     `/admin/users/${RouteParams.ModelID}/projects`,
+  ),
+  [PageMap.USER_AUTHENTICATION]: new Route(
+    `/admin/users/${RouteParams.ModelID}/authentication`,
   ),
   [PageMap.USER_SETTINGS]: new Route(
     `/admin/users/${RouteParams.ModelID}/settings`,

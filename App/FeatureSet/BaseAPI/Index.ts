@@ -42,6 +42,7 @@ import AIAgentTaskPullRequestAPI from "Common/Server/API/AIAgentTaskPullRequestA
 import AIAgentDataAPI from "Common/Server/API/AIAgentDataAPI";
 import CodeFixRunAPI from "Common/Server/API/CodeFixRunAPI";
 import LlmProviderAPI from "Common/Server/API/LlmProviderAPI";
+import DataSourceAPI from "Common/Server/API/DataSourceAPI";
 import ProjectAPI from "Common/Server/API/ProjectAPI";
 import ProjectSsoAPI from "Common/Server/API/ProjectSSO";
 import ProjectOidcAPI from "Common/Server/API/ProjectOIDC";
@@ -4374,6 +4375,11 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new LlmProviderAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new DataSourceAPI().getRouter(),
     );
 
     app.use(

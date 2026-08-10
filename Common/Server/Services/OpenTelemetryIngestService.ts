@@ -41,6 +41,7 @@ import CloudResourceService from "./CloudResourceService";
 import RumApplicationService from "./RumApplicationService";
 import IoTFleetService from "./IoTFleetService";
 import GlobalCache from "../Infrastructure/GlobalCache";
+import InProcessMemo from "../Utils/InProcessMemo";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import EntityType from "../../Types/Telemetry/EntityType";
 import { ExtractedEntity } from "../Utils/Telemetry/TelemetryEntity";
@@ -227,6 +228,44 @@ const SERVICE_RESOLUTION_CACHE_NAMESPACE: string = "service-resolution";
 const SERVICE_RESOLUTION_CACHE_TTL_SECONDS: number = 5 * 60;
 const serviceResolutionInProcessCache: Map<string, CachedServiceResolution> =
   new Map();
+
+/*
+ * Per-resource retention overrides for non-Service telemetry (Host,
+ * DockerHost, KubernetesCluster, …), as read by `getResourceRetention`.
+ */
+interface ResourceRetention {
+  retainTelemetryDataForDays: number | null;
+  telemetryRetentionConfig: TelemetryRetentionConfig | null;
+}
+
+/*
+ * Per-process memo for `(entityType, entityId) -> retention override`,
+ * mirroring the service-resolution memo above but with no Redis layer —
+ * the lookup underneath is a single-row findOneById by primary key, so the
+ * only cost worth removing is the per-resource-block Postgres round trip,
+ * and a Redis GET would cost the same round trip it saves.
+ *
+ * This memo is what actually removes those round trips. The signal
+ * services' per-batch `serviceDictionary` cannot: all three populate it
+ * AFTER `resolveTelemetryResource` returns and never consult it before
+ * calling in, so every resource block of every batch reached this lookup
+ * uncached — for hostmetrics payloads that is one Postgres SELECT per
+ * ResourceMetrics entry per job, fleet-wide.
+ *
+ * Staleness: a user editing a resource's retention settings is picked up
+ * within the 60-second TTL, which is acceptable — retention is applied at
+ * row-stamp time, so a minute of new rows carrying the previous retention
+ * matches the lag the project-retention cache above already accepts (and
+ * that one tolerates five minutes). Bounded at 10k entries because entity
+ * ids arrive from collector-controlled payloads.
+ */
+const RESOURCE_RETENTION_MEMO_TTL_IN_MS: number = 60 * 1000;
+const RESOURCE_RETENTION_MEMO_MAX_ENTRIES: number = 10_000;
+const resourceRetentionInProcessMemo: InProcessMemo<ResourceRetention> =
+  new InProcessMemo<ResourceRetention>({
+    ttlInMs: RESOURCE_RETENTION_MEMO_TTL_IN_MS,
+    maxEntries: RESOURCE_RETENTION_MEMO_MAX_ENTRIES,
+  });
 
 export default class OTelIngestService {
   /*
@@ -817,13 +856,8 @@ export default class OTelIngestService {
     const projectContext: ProjectRetentionContext =
       await this.getProjectRetentionContext(data.projectId);
 
-    const resourceRetention: {
-      retainTelemetryDataForDays: number | null;
-      telemetryRetentionConfig: TelemetryRetentionConfig | null;
-    } = await this.getResourceRetention(
-      data.resourceId,
-      data.primaryEntityType,
-    );
+    const resourceRetention: ResourceRetention =
+      await this.getResourceRetention(data.resourceId, data.primaryEntityType);
 
     return {
       serviceName: data.serviceName,
@@ -840,203 +874,240 @@ export default class OTelIngestService {
   }
 
   /*
-   * Look up per-resource retention overrides for non-Service telemetry.
-   * One small SELECT per batch — the caller caches the resulting
-   * TelemetryServiceMetadata under `serviceDictionary[serviceName]`
-   * so steady-state ingest skips this lookup after the first row.
+   * Look up per-resource retention overrides for non-Service telemetry,
+   * memoized per (entityType, entityId) for 60 seconds.
+   *
+   * The memo lives HERE, in the callee, because no caller caches this. An
+   * earlier comment claimed the signal services cache the resulting
+   * TelemetryServiceMetadata under `serviceDictionary[serviceName]` — they
+   * do store it there, but only AFTER `resolveTelemetryResource` has
+   * already run, and none of the three (logs / traces / metrics) reads the
+   * dictionary before calling in. Every resource block therefore reached
+   * this lookup uncached: one Postgres findOneById per ResourceMetrics /
+   * ResourceLogs / ResourceSpans entry per job. A retention edit made in
+   * the UI propagates to newly stamped rows within the memo TTL (60s),
+   * which is acceptable — see the memo declaration for the full staleness
+   * rationale.
+   *
+   * Lookup errors are NOT memoized: a transient Postgres failure falls
+   * back to "no override" for this call only, and the next resource block
+   * retries — the same per-call fallback behaviour as before the memo.
    */
   @CaptureSpan()
   private static async getResourceRetention(
     resourceId: ObjectID,
     primaryEntityType: ServiceType,
-  ): Promise<{
-    retainTelemetryDataForDays: number | null;
-    telemetryRetentionConfig: TelemetryRetentionConfig | null;
-  }> {
+  ): Promise<ResourceRetention> {
+    const memoKey: string = `${primaryEntityType}:${resourceId.toString()}`;
+
+    // L1: in-process memo. Zero network cost.
+    const memoedRetention: ResourceRetention | undefined =
+      resourceRetentionInProcessMemo.get(memoKey);
+    if (memoedRetention) {
+      return memoedRetention;
+    }
+
     try {
-      if (primaryEntityType === ServiceType.Host) {
-        const host: Host | null = await HostService.findOneById({
-          id: resourceId,
-          select: {
-            retainTelemetryDataForDays: true,
-            telemetryRetentionConfig: true,
-          },
-          props: { isRoot: true },
-        });
-        return {
-          retainTelemetryDataForDays: host?.retainTelemetryDataForDays ?? null,
-          telemetryRetentionConfig: host?.telemetryRetentionConfig ?? null,
-        };
-      }
-      if (primaryEntityType === ServiceType.DockerHost) {
-        const dockerHost: DockerHost | null =
-          await DockerHostService.findOneById({
-            id: resourceId,
-            select: {
-              retainTelemetryDataForDays: true,
-              telemetryRetentionConfig: true,
-            },
-            props: { isRoot: true },
-          });
-        return {
-          retainTelemetryDataForDays:
-            dockerHost?.retainTelemetryDataForDays ?? null,
-          telemetryRetentionConfig:
-            dockerHost?.telemetryRetentionConfig ?? null,
-        };
-      }
-      if (primaryEntityType === ServiceType.PodmanHost) {
-        const podmanHost: PodmanHost | null =
-          await PodmanHostService.findOneById({
-            id: resourceId,
-            select: {
-              retainTelemetryDataForDays: true,
-              telemetryRetentionConfig: true,
-            },
-            props: { isRoot: true },
-          });
-        return {
-          retainTelemetryDataForDays:
-            podmanHost?.retainTelemetryDataForDays ?? null,
-          telemetryRetentionConfig:
-            podmanHost?.telemetryRetentionConfig ?? null,
-        };
-      }
-      if (primaryEntityType === ServiceType.KubernetesCluster) {
-        const cluster: KubernetesCluster | null =
-          await KubernetesClusterService.findOneById({
-            id: resourceId,
-            select: {
-              retainTelemetryDataForDays: true,
-              telemetryRetentionConfig: true,
-            },
-            props: { isRoot: true },
-          });
-        return {
-          retainTelemetryDataForDays:
-            cluster?.retainTelemetryDataForDays ?? null,
-          telemetryRetentionConfig: cluster?.telemetryRetentionConfig ?? null,
-        };
-      }
-      if (primaryEntityType === ServiceType.ProxmoxCluster) {
-        const cluster: ProxmoxCluster | null =
-          await ProxmoxClusterService.findOneById({
-            id: resourceId,
-            select: {
-              retainTelemetryDataForDays: true,
-              telemetryRetentionConfig: true,
-            },
-            props: { isRoot: true },
-          });
-        return {
-          retainTelemetryDataForDays:
-            cluster?.retainTelemetryDataForDays ?? null,
-          telemetryRetentionConfig: cluster?.telemetryRetentionConfig ?? null,
-        };
-      }
-      if (primaryEntityType === ServiceType.IoTDevice) {
-        const fleet: IoTFleet | null = await IoTFleetService.findOneById({
-          id: resourceId,
-          select: {
-            retainTelemetryDataForDays: true,
-            telemetryRetentionConfig: true,
-          },
-          props: { isRoot: true },
-        });
-        return {
-          retainTelemetryDataForDays: fleet?.retainTelemetryDataForDays ?? null,
-          telemetryRetentionConfig: fleet?.telemetryRetentionConfig ?? null,
-        };
-      }
-      if (primaryEntityType === ServiceType.CephCluster) {
-        const cluster: CephCluster | null =
-          await CephClusterService.findOneById({
-            id: resourceId,
-            select: {
-              retainTelemetryDataForDays: true,
-              telemetryRetentionConfig: true,
-            },
-            props: { isRoot: true },
-          });
-        return {
-          retainTelemetryDataForDays:
-            cluster?.retainTelemetryDataForDays ?? null,
-          telemetryRetentionConfig: cluster?.telemetryRetentionConfig ?? null,
-        };
-      }
-      if (primaryEntityType === ServiceType.DockerSwarmCluster) {
-        const cluster: DockerSwarmCluster | null =
-          await DockerSwarmClusterService.findOneById({
-            id: resourceId,
-            select: {
-              retainTelemetryDataForDays: true,
-              telemetryRetentionConfig: true,
-            },
-            props: { isRoot: true },
-          });
-        return {
-          retainTelemetryDataForDays:
-            cluster?.retainTelemetryDataForDays ?? null,
-          telemetryRetentionConfig: cluster?.telemetryRetentionConfig ?? null,
-        };
-      }
-      if (primaryEntityType === ServiceType.ServerlessFunction) {
-        const serverlessFunction: ServerlessFunction | null =
-          await ServerlessFunctionService.findOneById({
-            id: resourceId,
-            select: {
-              retainTelemetryDataForDays: true,
-              telemetryRetentionConfig: true,
-            },
-            props: { isRoot: true },
-          });
-        return {
-          retainTelemetryDataForDays:
-            serverlessFunction?.retainTelemetryDataForDays ?? null,
-          telemetryRetentionConfig:
-            serverlessFunction?.telemetryRetentionConfig ?? null,
-        };
-      }
-      if (primaryEntityType === ServiceType.CloudResource) {
-        const cloudResource: CloudResource | null =
-          await CloudResourceService.findOneById({
-            id: resourceId,
-            select: {
-              retainTelemetryDataForDays: true,
-              telemetryRetentionConfig: true,
-            },
-            props: { isRoot: true },
-          });
-        return {
-          retainTelemetryDataForDays:
-            cloudResource?.retainTelemetryDataForDays ?? null,
-          telemetryRetentionConfig:
-            cloudResource?.telemetryRetentionConfig ?? null,
-        };
-      }
-      if (primaryEntityType === ServiceType.RealUserMonitor) {
-        const rumApplication: RumApplication | null =
-          await RumApplicationService.findOneById({
-            id: resourceId,
-            select: {
-              retainTelemetryDataForDays: true,
-              telemetryRetentionConfig: true,
-            },
-            props: { isRoot: true },
-          });
-        return {
-          retainTelemetryDataForDays:
-            rumApplication?.retainTelemetryDataForDays ?? null,
-          telemetryRetentionConfig:
-            rumApplication?.telemetryRetentionConfig ?? null,
-        };
-      }
+      const retention: ResourceRetention = await this.findResourceRetention(
+        resourceId,
+        primaryEntityType,
+      );
+      resourceRetentionInProcessMemo.set(memoKey, retention);
+      return retention;
     } catch (err) {
       logger.warn(
         `Per-resource retention lookup failed for ${primaryEntityType} ${resourceId.toString()}: ${
           err instanceof Error ? err.message : String(err)
         }`,
       );
+    }
+    return {
+      retainTelemetryDataForDays: null,
+      telemetryRetentionConfig: null,
+    };
+  }
+
+  /*
+   * The uncached per-entity-type lookup underneath getResourceRetention.
+   * Entity types that carry no retention override (Monitor, Unknown) fall
+   * through to the "no override" default — that result is memoized too,
+   * since re-deriving it is what the memo exists to avoid.
+   */
+  private static async findResourceRetention(
+    resourceId: ObjectID,
+    primaryEntityType: ServiceType,
+  ): Promise<ResourceRetention> {
+    if (primaryEntityType === ServiceType.Host) {
+      const host: Host | null = await HostService.findOneById({
+        id: resourceId,
+        select: {
+          retainTelemetryDataForDays: true,
+          telemetryRetentionConfig: true,
+        },
+        props: { isRoot: true },
+      });
+      return {
+        retainTelemetryDataForDays: host?.retainTelemetryDataForDays ?? null,
+        telemetryRetentionConfig: host?.telemetryRetentionConfig ?? null,
+      };
+    }
+    if (primaryEntityType === ServiceType.DockerHost) {
+      const dockerHost: DockerHost | null = await DockerHostService.findOneById(
+        {
+          id: resourceId,
+          select: {
+            retainTelemetryDataForDays: true,
+            telemetryRetentionConfig: true,
+          },
+          props: { isRoot: true },
+        },
+      );
+      return {
+        retainTelemetryDataForDays:
+          dockerHost?.retainTelemetryDataForDays ?? null,
+        telemetryRetentionConfig: dockerHost?.telemetryRetentionConfig ?? null,
+      };
+    }
+    if (primaryEntityType === ServiceType.PodmanHost) {
+      const podmanHost: PodmanHost | null = await PodmanHostService.findOneById(
+        {
+          id: resourceId,
+          select: {
+            retainTelemetryDataForDays: true,
+            telemetryRetentionConfig: true,
+          },
+          props: { isRoot: true },
+        },
+      );
+      return {
+        retainTelemetryDataForDays:
+          podmanHost?.retainTelemetryDataForDays ?? null,
+        telemetryRetentionConfig: podmanHost?.telemetryRetentionConfig ?? null,
+      };
+    }
+    if (primaryEntityType === ServiceType.KubernetesCluster) {
+      const cluster: KubernetesCluster | null =
+        await KubernetesClusterService.findOneById({
+          id: resourceId,
+          select: {
+            retainTelemetryDataForDays: true,
+            telemetryRetentionConfig: true,
+          },
+          props: { isRoot: true },
+        });
+      return {
+        retainTelemetryDataForDays: cluster?.retainTelemetryDataForDays ?? null,
+        telemetryRetentionConfig: cluster?.telemetryRetentionConfig ?? null,
+      };
+    }
+    if (primaryEntityType === ServiceType.ProxmoxCluster) {
+      const cluster: ProxmoxCluster | null =
+        await ProxmoxClusterService.findOneById({
+          id: resourceId,
+          select: {
+            retainTelemetryDataForDays: true,
+            telemetryRetentionConfig: true,
+          },
+          props: { isRoot: true },
+        });
+      return {
+        retainTelemetryDataForDays: cluster?.retainTelemetryDataForDays ?? null,
+        telemetryRetentionConfig: cluster?.telemetryRetentionConfig ?? null,
+      };
+    }
+    if (primaryEntityType === ServiceType.IoTDevice) {
+      const fleet: IoTFleet | null = await IoTFleetService.findOneById({
+        id: resourceId,
+        select: {
+          retainTelemetryDataForDays: true,
+          telemetryRetentionConfig: true,
+        },
+        props: { isRoot: true },
+      });
+      return {
+        retainTelemetryDataForDays: fleet?.retainTelemetryDataForDays ?? null,
+        telemetryRetentionConfig: fleet?.telemetryRetentionConfig ?? null,
+      };
+    }
+    if (primaryEntityType === ServiceType.CephCluster) {
+      const cluster: CephCluster | null = await CephClusterService.findOneById({
+        id: resourceId,
+        select: {
+          retainTelemetryDataForDays: true,
+          telemetryRetentionConfig: true,
+        },
+        props: { isRoot: true },
+      });
+      return {
+        retainTelemetryDataForDays: cluster?.retainTelemetryDataForDays ?? null,
+        telemetryRetentionConfig: cluster?.telemetryRetentionConfig ?? null,
+      };
+    }
+    if (primaryEntityType === ServiceType.DockerSwarmCluster) {
+      const cluster: DockerSwarmCluster | null =
+        await DockerSwarmClusterService.findOneById({
+          id: resourceId,
+          select: {
+            retainTelemetryDataForDays: true,
+            telemetryRetentionConfig: true,
+          },
+          props: { isRoot: true },
+        });
+      return {
+        retainTelemetryDataForDays: cluster?.retainTelemetryDataForDays ?? null,
+        telemetryRetentionConfig: cluster?.telemetryRetentionConfig ?? null,
+      };
+    }
+    if (primaryEntityType === ServiceType.ServerlessFunction) {
+      const serverlessFunction: ServerlessFunction | null =
+        await ServerlessFunctionService.findOneById({
+          id: resourceId,
+          select: {
+            retainTelemetryDataForDays: true,
+            telemetryRetentionConfig: true,
+          },
+          props: { isRoot: true },
+        });
+      return {
+        retainTelemetryDataForDays:
+          serverlessFunction?.retainTelemetryDataForDays ?? null,
+        telemetryRetentionConfig:
+          serverlessFunction?.telemetryRetentionConfig ?? null,
+      };
+    }
+    if (primaryEntityType === ServiceType.CloudResource) {
+      const cloudResource: CloudResource | null =
+        await CloudResourceService.findOneById({
+          id: resourceId,
+          select: {
+            retainTelemetryDataForDays: true,
+            telemetryRetentionConfig: true,
+          },
+          props: { isRoot: true },
+        });
+      return {
+        retainTelemetryDataForDays:
+          cloudResource?.retainTelemetryDataForDays ?? null,
+        telemetryRetentionConfig:
+          cloudResource?.telemetryRetentionConfig ?? null,
+      };
+    }
+    if (primaryEntityType === ServiceType.RealUserMonitor) {
+      const rumApplication: RumApplication | null =
+        await RumApplicationService.findOneById({
+          id: resourceId,
+          select: {
+            retainTelemetryDataForDays: true,
+            telemetryRetentionConfig: true,
+          },
+          props: { isRoot: true },
+        });
+      return {
+        retainTelemetryDataForDays:
+          rumApplication?.retainTelemetryDataForDays ?? null,
+        telemetryRetentionConfig:
+          rumApplication?.telemetryRetentionConfig ?? null,
+      };
     }
     return {
       retainTelemetryDataForDays: null,

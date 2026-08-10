@@ -157,9 +157,16 @@ describe("Network Map widget data access", () => {
   });
 
   test("the public dashboard proxy reads the relation too", () => {
-    const api: string = readCommon("Server", "API", "DashboardAPI.ts");
+    const policy: string = readCommon(
+      "Server",
+      "Utils",
+      "Dashboard",
+      "PublicDashboardResourceListPolicy.ts",
+    );
     const entry: string =
-      api.split('"network-site": {')[1]?.split("}, host:")[0] || "";
+      policy
+        .split("case DashboardComponentType.NetworkMap:")[1]
+        ?.split("case DashboardComponentType.HostList:")[0] || "";
 
     expect(entry.length).toBeGreaterThan(0);
     expect(entry).toContain("networkSiteType: { name: true }");
@@ -220,8 +227,11 @@ describe("Network Map widget data access", () => {
    * registry. A mismatch is a runtime "Unsupported dashboard resource type".
    */
   test("routes through the public-dashboard resource proxy under a registered key", () => {
-    expect(readApp(...WIDGET)).toContain(
-      'DashboardResourceList.getRequestOptions("network-site")',
+    const widget: string = readApp(...WIDGET);
+
+    expect(widget).toContain("DashboardResourceList.getRequestOptions(");
+    expect(widget).toContain(
+      '"network-site", { componentId: props.componentId, variables: props.variables, }',
     );
     expect(
       readApp("Components", "Dashboard", "Utils", "DashboardResourceList.ts"),
@@ -242,19 +252,25 @@ describe("Network Map widget data access", () => {
   });
 
   /*
-   * allowedQueryKeys is the allowlist that stops the public endpoint from
-   * becoming a generic query API. The map draws a FLAT set of pins, so the
-   * tree shape (parentSiteId / materializedPath / depth) must not be
-   * filterable by an anonymous viewer — it is structure the map never shows.
+   * The server rebuilds the query from the exact stored Network Map widget.
+   * The map draws a FLAT set of pins, so the tree shape (parentSiteId /
+   * materializedPath / depth) must not enter that server-owned policy — it is
+   * structure the map never shows.
    */
   test("the public endpoint exposes no filter the map does not use", () => {
-    const api: string = readCommon("Server", "API", "DashboardAPI.ts");
-    const entry: string =
-      api.split('"network-site": {')[1]?.split("}, host:")[0] || "";
-
-    expect(entry).toContain(
-      'allowedQueryKeys: [ "networkSiteTypeId", "currentMonitorStatus", "currentMonitorStatusId", ]',
+    const policy: string = readCommon(
+      "Server",
+      "Utils",
+      "Dashboard",
+      "PublicDashboardResourceListPolicy.ts",
     );
+    const entry: string =
+      policy
+        .split("private static buildNetworkMapPolicy(")[1]
+        ?.split("private static buildHostPolicy(")[0] || "";
+
+    expect(entry).toContain('queryKey: "networkSiteTypeId"');
+    expect(entry).toContain('query["currentMonitorStatus"]');
 
     for (const forbidden of [
       "parentSiteId",
@@ -272,9 +288,16 @@ describe("Network Map widget data access", () => {
    * address or a description on a site is business data the map never draws.
    */
   test("the public select is limited to what the map actually paints", () => {
-    const api: string = readCommon("Server", "API", "DashboardAPI.ts");
+    const policy: string = readCommon(
+      "Server",
+      "Utils",
+      "Dashboard",
+      "PublicDashboardResourceListPolicy.ts",
+    );
     const entry: string =
-      api.split('"network-site": {')[1]?.split("}, host:")[0] || "";
+      policy
+        .split("case DashboardComponentType.NetworkMap:")[1]
+        ?.split("case DashboardComponentType.HostList:")[0] || "";
 
     for (const forbidden of [
       "address:",

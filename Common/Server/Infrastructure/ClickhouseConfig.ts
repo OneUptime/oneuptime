@@ -23,6 +23,52 @@ const hostProtocol: string = ClickHouseIsHostHttps ? "https" : "http";
 const clickhouseHost: Hostname = ClickhouseHost || new Hostname("clickhouse");
 const clickhousePort: string = (ClickhousePort || 8123).toString();
 
+/*
+ * How long the client keeps an idle pooled HTTP socket alive before
+ * destroying it (keep_alive.idle_socket_ttl). @clickhouse/client enables
+ * keep-alive by default but expires idle sockets after only 2500ms, while
+ * the telemetry fan-in writer's flush window (TELEMETRY_FANIN_MAX_WAIT_MS,
+ * see TelemetryFanInWriter.ts) defaults to 5000ms — so under sub-saturation
+ * ingest load every pooled socket was destroyed between flushes and every
+ * flush paid TCP (+TLS) connection setup again. The default here is bounded
+ * on both sides:
+ *
+ *   - ABOVE the 5000ms fan-in flush window, so the socket a flush opened is
+ *     still alive when the next flush fires and gets reused instead of
+ *     being re-established;
+ *   - BELOW the ClickHouse server's keep_alive_timeout of 10s (the bundled
+ *     Clickhouse/config.xml pins <keep_alive_timeout>10</keep_alive_timeout>,
+ *     which is also the server default since 23.11), so the CLIENT always
+ *     retires an idle socket before the SERVER does. Operators who lower
+ *     the server's keep_alive_timeout below this TTL must lower
+ *     CLICKHOUSE_KEEP_ALIVE_IDLE_SOCKET_TTL_MS along with it (keeping it a
+ *     fair bit under the server value) — otherwise the client reuses
+ *     sockets the server has already closed and requests fail with
+ *     ECONNRESET.
+ *
+ * The value must be a positive number of milliseconds; unset, non-numeric,
+ * zero and negative values all fall back to the default. Zero is rejected
+ * deliberately: the client treats 0 as "disable idle-socket reaping
+ * entirely", which reintroduces the server-closes-first ECONNRESET failure
+ * mode this TTL exists to prevent.
+ */
+const DEFAULT_KEEP_ALIVE_IDLE_SOCKET_TTL_MS: number = 8000;
+
+const keepAliveIdleSocketTtlRawValue: string = (
+  process.env["CLICKHOUSE_KEEP_ALIVE_IDLE_SOCKET_TTL_MS"] || ""
+).trim();
+
+const keepAliveIdleSocketTtlParsedValue: number = parseInt(
+  keepAliveIdleSocketTtlRawValue,
+  10,
+);
+
+const keepAliveIdleSocketTtlInMs: number =
+  Number.isFinite(keepAliveIdleSocketTtlParsedValue) &&
+  keepAliveIdleSocketTtlParsedValue > 0
+    ? keepAliveIdleSocketTtlParsedValue
+    : DEFAULT_KEEP_ALIVE_IDLE_SOCKET_TTL_MS;
+
 const options: ClickHouseClientConfigOptions = {
   url: `${hostProtocol}://${clickhouseHost.toString()}:${clickhousePort}`,
   username: ClickhouseUsername,
@@ -71,6 +117,19 @@ const options: ClickHouseClientConfigOptions = {
   compression: {
     request: true,
     response: true,
+  },
+  /*
+   * Reuse pooled sockets across fan-in flush windows — see the note on
+   * keepAliveIdleSocketTtlInMs above for both bounds on the TTL and the
+   * operator warning about the server's keep_alive_timeout. `enabled: true`
+   * restates the client default explicitly so the pairing with
+   * idle_socket_ttl is visible here rather than implied. This lives on the
+   * shared `options` object, so every pool derived from it (query, ingest,
+   * migration, test) gets the same keep-alive behavior.
+   */
+  keep_alive: {
+    enabled: true,
+    idle_socket_ttl: keepAliveIdleSocketTtlInMs,
   },
 };
 

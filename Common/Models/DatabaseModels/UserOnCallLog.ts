@@ -18,6 +18,7 @@ import CanAccessIfCanReadOn from "../../Types/Database/CanAccessIfCanReadOn";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
+import CurrentUserCanAccessRecordBy from "../../Types/Database/CurrentUserCanAccessRecordBy";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
@@ -36,6 +37,7 @@ import Alert from "./Alert";
 
 @EnableDocumentation()
 @CanAccessIfCanReadOn("onCallDutyPolicy")
+@CurrentUserCanAccessRecordBy("userId")
 @TenantColumn("projectId")
 @TableBillingAccessControl({
   create: PlanType.Growth,

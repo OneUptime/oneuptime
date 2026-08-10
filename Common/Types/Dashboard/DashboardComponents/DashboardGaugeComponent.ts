@@ -1,3 +1,4 @@
+import DataSourceQueryConfig from "../../DataSource/DataSourceQueryConfig";
 import MetricQueryConfigData from "../../Metrics/MetricQueryConfigData";
 import ObjectID from "../../ObjectID";
 import DashboardComponentType from "../DashboardComponentType";
@@ -8,6 +9,11 @@ export default interface DashboardGaugeComponent extends BaseComponent {
   componentId: ObjectID;
   arguments: {
     metricQueryConfig?: MetricQueryConfigData | undefined;
+    /*
+     * External Data Source query. When set, the widget renders it INSTEAD
+     * of metricQueryConfig. Not available on public dashboards.
+     */
+    dataSourceQueryConfig?: DataSourceQueryConfig | undefined;
     gaugeTitle?: string | undefined;
     minValue?: number | undefined;
     maxValue?: number | undefined;

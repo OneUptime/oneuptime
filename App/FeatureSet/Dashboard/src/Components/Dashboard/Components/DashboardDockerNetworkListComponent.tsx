@@ -75,8 +75,13 @@ const DashboardDockerNetworkListComponentElement: FunctionComponent<
       const listResult: ListResult<DockerResource> =
         await ModelAPI.getList<DockerResource>({
           modelType: DockerResource,
-          requestOptions:
-            DashboardResourceList.getRequestOptions("docker-network"),
+          requestOptions: DashboardResourceList.getRequestOptions(
+            "docker-network",
+            {
+              componentId: props.componentId,
+              variables: props.variables,
+            },
+          ),
           query: query,
           limit: maxRows,
           skip: 0,
@@ -101,7 +106,7 @@ const DashboardDockerNetworkListComponentElement: FunctionComponent<
     }
 
     setIsLoading(false);
-  }, [maxRows, dockerHostIdsKey]);
+  }, [maxRows, dockerHostIdsKey, props.componentId, props.variables]);
 
   useEffect(() => {
     fetchNetworks();

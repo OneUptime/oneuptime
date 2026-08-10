@@ -165,18 +165,15 @@ const ResourceGrid: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * A grid with no axes has no cells to draw, and nothing useful to say that
+   * the caller has not already said: the pane that mounts this owns the "this
+   * group has no rows or columns yet" notice, because it is the thing that can
+   * offer the button which fixes it. Two boxes explaining the same emptiness is
+   * worse than one.
+   */
   if (props.rowValues.length === 0 || props.columnValues.length === 0) {
-    return (
-      <div
-        className="rounded-lg border border-dashed border-gray-300 p-6 text-center text-sm text-gray-600"
-        data-testid="status-page-resource-grid-no-axes"
-      >
-        This group is laid out as a grid, but it has no axes yet. Set its{" "}
-        <span className="font-medium">{props.rowLabel.toLowerCase()}</span> and{" "}
-        <span className="font-medium">{props.columnLabel.toLowerCase()}</span>{" "}
-        values on the Groups tab, then come back to fill the cells in.
-      </div>
-    );
+    return <span data-testid="status-page-resource-grid-no-axes" />;
   }
 
   return (

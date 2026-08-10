@@ -84,12 +84,22 @@ jest.mock("Common/UI/Utils/Permission", () => {
   };
 });
 
+/*
+ * Permissions come from two places: the model's own checks against the
+ * permission list, and master admin. The permission list is mocked empty, so
+ * this switch is what a test flips to look at the page as a viewer who may
+ * read a status page but not restructure it.
+ */
+const mockIsMasterAdmin: jest.MockedFunction<any> = jest.fn(() => {
+  return true;
+});
+
 jest.mock("Common/UI/Utils/User", () => {
   return {
     __esModule: true,
     default: {
       isMasterAdmin: () => {
-        return true;
+        return mockIsMasterAdmin();
       },
       getUserId: () => {
         return null;
@@ -133,10 +143,19 @@ jest.mock("Common/UI/Utils/Project", () => {
  * options. Nothing in this suite is about the form's contents - only about
  * which modal a button opens - so it is reduced to its title.
  */
+const mockModelFormModalProps: Array<any> = [];
+
 jest.mock("Common/UI/Components/ModelFormModal/ModelFormModal", () => {
   return {
     __esModule: true,
     default: (props: { title: string }) => {
+      /*
+       * Recorded so a test can drive the callbacks a real submit would fire -
+       * which is the only way to reach what the page does AFTER a group is
+       * written, and that is the half of the merge worth proving.
+       */
+      mockModelFormModalProps.push(props);
+
       return React.createElement(
         "div",
         { "data-testid": "model-form-modal" },
@@ -181,21 +200,25 @@ interface GetListCall {
   query: Record<string, any>;
 }
 
-type MakeGroupFunction = (data: {
+interface MakeGroupData {
   id: string;
   name: string;
   parentId?: string | undefined;
   order?: number | undefined;
   viewMode?: StatusPageGroupViewMode | undefined;
-}) => StatusPageGroup;
+  /*
+   * The three settings that change what a visitor sees and are otherwise only
+   * visible three steps into the group form. The pane header is the only place
+   * they surface now, so a fixture has to be able to carry them.
+   */
+  description?: string | undefined;
+  isExpandedByDefault?: boolean | undefined;
+  showUptimePercent?: boolean | undefined;
+}
 
-const makeGroup: MakeGroupFunction = (data: {
-  id: string;
-  name: string;
-  parentId?: string | undefined;
-  order?: number | undefined;
-  viewMode?: StatusPageGroupViewMode | undefined;
-}): StatusPageGroup => {
+type MakeGroupFunction = (data: MakeGroupData) => StatusPageGroup;
+
+const makeGroup: MakeGroupFunction = (data: MakeGroupData): StatusPageGroup => {
   const group: StatusPageGroup = new StatusPageGroup();
   group._id = data.id;
   group.name = data.name;
@@ -207,6 +230,18 @@ const makeGroup: MakeGroupFunction = (data: {
 
   if (data.viewMode) {
     group.viewMode = data.viewMode;
+  }
+
+  if (data.description !== undefined) {
+    group.description = data.description;
+  }
+
+  if (data.isExpandedByDefault !== undefined) {
+    group.isExpandedByDefault = data.isExpandedByDefault;
+  }
+
+  if (data.showUptimePercent !== undefined) {
+    group.showUptimePercent = data.showUptimePercent;
   }
 
   return group;
@@ -317,8 +352,14 @@ const setUpApi: SetUpApiFunction = (data: {
     calls.push({ modelType: callData.modelType, query: callData.query || {} });
 
     if (callData.modelType === StatusPageGroup) {
+      /*
+       * A fresh array every time, the way a real response is. Handing back the
+       * identical instance the page is already holding makes setGroups a no-op
+       * that React drops, so a test that mutated the fixture would be reading
+       * its own mutation rather than proving the page re-read anything.
+       */
       return {
-        data: data.groups,
+        data: [...data.groups],
         count: data.groups.length,
         skip: 0,
         limit: data.groups.length,
@@ -332,7 +373,7 @@ const setUpApi: SetUpApiFunction = (data: {
 
     if (!isGroupScoped) {
       return {
-        data: resources,
+        data: [...resources],
         count:
           data.resourceTotalCount === undefined
             ? resources.length
@@ -371,6 +412,16 @@ const setUpApi: SetUpApiFunction = (data: {
   });
 
   return calls;
+};
+
+type GroupCallsFunction = (calls: Array<GetListCall>) => Array<GetListCall>;
+
+const groupCalls: GroupCallsFunction = (
+  calls: Array<GetListCall>,
+): Array<GetListCall> => {
+  return calls.filter((call: GetListCall) => {
+    return call.modelType === StatusPageGroup;
+  });
 };
 
 type ResourceCallsFunction = (calls: Array<GetListCall>) => Array<GetListCall>;
@@ -544,9 +595,49 @@ const selectGroup: SelectGroupFunction = async (
   await waitForSettled();
 };
 
+/* The id a group created during a test comes back with. */
+const NEW_GROUP_ID: string = "0198c8ec-2a1d-7f0c-9e75-384194163099";
+
+type LastFormModalFunction = () => any;
+
+/*
+ * The form that is currently open. Only one is ever mounted, so the last props
+ * recorded are its props.
+ */
+const lastFormModal: LastFormModalFunction = (): any => {
+  const props: any =
+    mockModelFormModalProps[mockModelFormModalProps.length - 1];
+
+  if (!props) {
+    throw new Error("No form modal is open");
+  }
+
+  return props;
+};
+
+type OpenRowMenuFunction = (name: string) => Promise<void>;
+
+/*
+ * A navigator row's overflow menu. The cluster it lives in is revealed on hover
+ * in a browser and is always in the DOM in jsdom, so the click is enough.
+ */
+const openRowMenu: OpenRowMenuFunction = async (
+  name: string,
+): Promise<void> => {
+  fireEvent.click(
+    within(navigatorRowByName(name)).getByTestId(
+      "status-page-resource-navigator-more",
+    ),
+  );
+
+  await flushEffects();
+};
+
 describe("Status Page > Resources", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockIsMasterAdmin.mockReturnValue(true);
+    mockModelFormModalProps.length = 0;
     window.localStorage.clear();
   });
 
@@ -612,7 +703,7 @@ describe("Status Page > Resources", () => {
 
       expect(
         screen.getByTestId("status-page-resource-panel-title").textContent,
-      ).toBe("Uncategorized");
+      ).toBe("Top of page");
       expect(selectedGroupIds(calls)).toEqual(["ungrouped"]);
       expect(screen.getByText("Loose Monitor")).toBeInTheDocument();
     });
@@ -1175,6 +1266,593 @@ describe("Status Page > Resources", () => {
       expect(
         resourceCalls(calls).length - scopedResourceCalls(calls).length,
       ).toBe(unscopedCallsBefore);
+    });
+  });
+
+  /*
+   * The half of this page that used to be Status Page > Groups. Every one of
+   * these was previously reachable only by leaving the page you were working
+   * on, doing the thing on another page, and coming back to it.
+   */
+  describe("changing the hierarchy without leaving the page", () => {
+    test("a group is created from the page header, and the pane opens on it", async () => {
+      const groups: Array<StatusPageGroup> = buildHierarchy();
+      const calls: Array<GetListCall> = setUpApi({ groups: groups });
+
+      renderPage();
+
+      await waitForExplorer();
+
+      const groupReadsBefore: number = groupCalls(calls).length;
+
+      fireEvent.click(screen.getByText("New Group"));
+      await flushEffects();
+
+      expect(screen.getByTestId("model-form-modal").textContent).toBe(
+        "Create New Status Page Group",
+      );
+
+      const created: StatusPageGroup = makeGroup({
+        id: NEW_GROUP_ID,
+        name: "Brand New",
+        order: 6,
+      });
+
+      /*
+       * The refetch has to come back holding it, or the pane would open on a
+       * group the page does not know about.
+       */
+      groups.push(created);
+
+      await act(async () => {
+        await lastFormModal().onSuccess(created);
+      });
+
+      await waitForSettled();
+
+      expect(screen.queryByTestId("model-form-modal")).not.toBeInTheDocument();
+      expect(groupCalls(calls).length).toBe(groupReadsBefore + 1);
+
+      /* The hierarchy on screen is the one that was re-read, not the old one. */
+      expect(findNavigatorRow("Brand New")).toBeDefined();
+
+      /*
+       * A group is created in order to put monitors in it, so the next thing
+       * the operator wants is already on screen.
+       */
+      expect(
+        screen.getByTestId("status-page-resource-panel-title").textContent,
+      ).toBe("Brand New");
+      expect(selectedGroupIds(calls).slice(-1)).toEqual([NEW_GROUP_ID]);
+    });
+
+    /*
+     * The parent picker offers every group the API would accept, including ones
+     * whose rows are not currently drawn - so a group can be created several
+     * levels inside a collapsed branch. Opening only its immediate parent
+     * leaves it exactly as invisible as opening nothing.
+     */
+    test("a group created inside a collapsed branch is revealed all the way down", async () => {
+      const groups: Array<StatusPageGroup> = buildHierarchy();
+
+      setUpApi({ groups: groups });
+
+      renderPage();
+
+      await waitForExplorer();
+
+      /*
+       * Closing the root takes its whole subtree off screen, so the group is
+       * about to be created somewhere nobody can see.
+       */
+      fireEvent.click(
+        within(navigatorRowByName("Corporate")).getByTestId(
+          "status-page-resource-navigator-disclosure",
+        ),
+      );
+      await flushEffects();
+
+      expect(findNavigatorRow("Region 1000")).toBeUndefined();
+      expect(findNavigatorRow("Market 1001")).toBeUndefined();
+
+      fireEvent.click(screen.getByText("New Group"));
+      await flushEffects();
+
+      const nested: StatusPageGroup = makeGroup({
+        id: NEW_GROUP_ID,
+        name: "Deep Child",
+        parentId: MARKET_ID,
+        order: 9,
+      });
+
+      groups.push(nested);
+
+      await act(async () => {
+        await lastFormModal().onSuccess(nested);
+      });
+
+      await waitForSettled();
+
+      expect(findNavigatorRow("Corporate")).toBeDefined();
+      expect(findNavigatorRow("Region 1000")).toBeDefined();
+      expect(findNavigatorRow("Market 1001")).toBeDefined();
+      expect(findNavigatorRow("Deep Child")).toBeDefined();
+    });
+
+    /*
+     * The parent is the group whose row was clicked. Without it pre-filled,
+     * "add a sub group" is the create form with extra steps.
+     */
+    test("a sub group is created from the row of its parent, already nested", async () => {
+      setUpApi({ groups: buildHierarchy() });
+
+      renderPage();
+
+      await waitForExplorer();
+
+      fireEvent.click(
+        within(navigatorRowByName("Region 1000")).getByTestId(
+          "status-page-resource-navigator-add-sub-group",
+        ),
+      );
+      await flushEffects();
+
+      expect(screen.getByTestId("model-form-modal")).toBeInTheDocument();
+      expect(lastFormModal().initialValues).toEqual({
+        parentStatusPageGroup: REGION_ID,
+      });
+    });
+
+    test("a group is edited from its own row, in update mode", async () => {
+      setUpApi({ groups: buildHierarchy() });
+
+      renderPage();
+
+      await waitForExplorer();
+
+      await openRowMenu("Market 1001");
+
+      fireEvent.click(screen.getByText("Edit group"));
+      await flushEffects();
+
+      expect(screen.getByTestId("model-form-modal").textContent).toBe(
+        "Edit Status Page Group",
+      );
+      expect(lastFormModal().modelIdToEdit.toString()).toBe(MARKET_ID);
+    });
+
+    /*
+     * Re-reading the hierarchy after a group write must not blank the page: a
+     * loader in place of the whole card would unmount the pane, which would
+     * then re-read the selected group's resources for no reason at all.
+     */
+    test("re-reading the hierarchy leaves the pane where it was", async () => {
+      const calls: Array<GetListCall> = setUpApi({
+        groups: buildHierarchy(),
+        resources: [
+          makeResource({
+            id: "market",
+            groupId: MARKET_ID,
+            monitorName: "Market Monitor",
+          }),
+        ],
+      });
+
+      renderPage();
+
+      await waitForExplorer();
+
+      await selectGroup("Market 1001");
+
+      const scopedBefore: number = scopedResourceCalls(calls).length;
+
+      await openRowMenu("Corporate");
+
+      fireEvent.click(screen.getByText("Edit group"));
+      await flushEffects();
+
+      await act(async () => {
+        await lastFormModal().onSuccess(
+          makeGroup({ id: CORPORATE_ID, name: "Corporate", order: 1 }),
+        );
+      });
+
+      await waitForSettled();
+
+      expect(
+        screen.getByTestId("status-page-resource-panel-title").textContent,
+      ).toBe("Market 1001");
+      expect(screen.getByText("Market Monitor")).toBeInTheDocument();
+      expect(scopedResourceCalls(calls).length).toBe(scopedBefore);
+    });
+
+    /*
+     * `order` is one flat sequence across the whole status page and the service
+     * renumbers everything between the two rows, so the write is "take the
+     * place of the sibling above you" rather than an index.
+     */
+    test("moving a group writes the neighbouring sibling's order", async () => {
+      setUpApi({
+        groups: [
+          makeGroup({ id: CORPORATE_ID, name: "Corporate", order: 1 }),
+          makeGroup({ id: GRID_ID, name: "Second", order: 7 }),
+        ],
+      });
+
+      renderPage();
+
+      await waitForExplorer();
+
+      await openRowMenu("Second");
+
+      fireEvent.click(screen.getByText("Move up"));
+
+      await waitFor(() => {
+        expect(mockUpdateById).toHaveBeenCalled();
+      });
+
+      const update: any = mockUpdateById.mock.calls[0]![0];
+
+      expect(update.id.toString()).toBe(GRID_ID);
+      expect(update.data).toEqual({ order: 1 });
+    });
+
+    /*
+     * Deleting a group takes its sub groups, the resources in them, and any
+     * monitor rules pointing at them. Nothing on the row says so, so the
+     * confirmation has to - and a pane still aimed at the deleted branch would
+     * sit there fetching something that no longer exists.
+     */
+    test("deleting the selected group says what goes with it, then moves the pane out", async () => {
+      const groups: Array<StatusPageGroup> = buildHierarchy();
+
+      setUpApi({
+        groups: groups,
+        resources: [makeResource({ id: "loose", monitorName: "Loose" })],
+      });
+
+      renderPage();
+
+      await waitForExplorer();
+
+      await selectGroup("Region 1000");
+
+      await openRowMenu("Region 1000");
+
+      fireEvent.click(screen.getByText("Delete group"));
+      await flushEffects();
+
+      const confirmation: string =
+        screen.getByTestId("confirm-modal-description").textContent || "";
+
+      expect(confirmation).toContain("1 group nested inside it");
+      expect(confirmation).toContain("monitor rules");
+      expect(confirmation).toContain("This cannot be undone.");
+
+      /* What the refetch will return: the branch is gone. */
+      groups.splice(
+        0,
+        groups.length,
+        makeGroup({ id: CORPORATE_ID, name: "Corporate", order: 1 }),
+      );
+
+      fireEvent.click(screen.getByText("Delete"));
+
+      await waitFor(() => {
+        expect(mockDeleteItem).toHaveBeenCalled();
+      });
+
+      await waitForSettled();
+
+      expect(
+        screen.getByTestId("status-page-resource-panel-title").textContent,
+      ).toBe("Top of page");
+
+      /* And the branch really is gone from the tree, not just from the pane. */
+      expect(findNavigatorRow("Region 1000")).toBeUndefined();
+      expect(findNavigatorRow("Market 1001")).toBeUndefined();
+    });
+
+    /*
+     * The cascade moves numbers nobody counted - every resource in the deleted
+     * group and in every group under it - so this is the one write on the page
+     * where the badges have to be read again rather than adjusted.
+     */
+    test("a group delete re-reads the counts it could not have worked out", async () => {
+      const groups: Array<StatusPageGroup> = buildHierarchy();
+      const calls: Array<GetListCall> = setUpApi({
+        groups: groups,
+        resources: [
+          makeResource({
+            id: "market",
+            groupId: MARKET_ID,
+            monitorName: "Market Monitor",
+          }),
+        ],
+      });
+
+      renderPage();
+
+      await waitForExplorer();
+
+      const unscopedBefore: number =
+        resourceCalls(calls).length - scopedResourceCalls(calls).length;
+
+      await openRowMenu("Market 1001");
+
+      fireEvent.click(screen.getByText("Delete group"));
+      await flushEffects();
+
+      fireEvent.click(screen.getByText("Delete"));
+
+      await waitFor(() => {
+        expect(mockDeleteItem).toHaveBeenCalled();
+      });
+
+      await waitForSettled();
+
+      expect(
+        resourceCalls(calls).length - scopedResourceCalls(calls).length,
+      ).toBe(unscopedBefore + 1);
+    });
+
+    /*
+     * The pane names exactly one group, and on a touch screen it is the only
+     * place a group can be acted on - there is no hover to reveal a row's
+     * cluster.
+     */
+    test("the pane offers the selected group's own actions too", async () => {
+      setUpApi({ groups: buildHierarchy() });
+
+      renderPage();
+
+      await waitForExplorer();
+
+      await selectGroup("Market 1001");
+
+      fireEvent.click(screen.getByTestId("status-page-resource-panel-more"));
+      await flushEffects();
+
+      const labels: Array<string> = within(screen.getByRole("menu"))
+        .getAllByRole("menuitem")
+        .map((item: HTMLElement) => {
+          return item.textContent || "";
+        });
+
+      /*
+       * Everything the tree's hover-revealed row cluster offers, because a
+       * touch screen has no hover and this menu is the only way in.
+       */
+      expect(labels).toEqual([
+        "Add multiple monitors",
+        "Edit this group",
+        "Add a sub group",
+        "Move group up",
+        "Move group down",
+        "Show group ID",
+        "Refresh",
+        "Delete this group",
+      ]);
+    });
+
+    /*
+     * Offered but disabled rather than absent: a menu whose contents change
+     * shape from group to group is a menu you have to read every time.
+     */
+    test("a move with no sibling that way is offered but disabled", async () => {
+      setUpApi({ groups: buildHierarchy() });
+
+      renderPage();
+
+      await waitForExplorer();
+
+      await selectGroup("Region 1000");
+
+      fireEvent.click(screen.getByTestId("status-page-resource-panel-more"));
+      await flushEffects();
+
+      const menu: HTMLElement = screen.getByRole("menu");
+
+      /* The only group at its level, so neither direction is available. */
+      expect(
+        within(menu).getByText("Move group up").closest("button"),
+      ).toBeDisabled();
+      expect(
+        within(menu).getByText("Move group down").closest("button"),
+      ).toBeDisabled();
+    });
+
+    /*
+     * The ungrouped bucket is a real place on a status page but it is not a
+     * group, so nothing that acts on a group is offered while it is selected.
+     */
+    test("the ungrouped bucket is not offered group actions", async () => {
+      setUpApi({
+        groups: buildHierarchy(),
+        resources: [makeResource({ id: "loose", monitorName: "Loose" })],
+      });
+
+      renderPage();
+
+      await waitForExplorer();
+
+      expect(
+        screen.getByTestId("status-page-resource-panel-title").textContent,
+      ).toBe("Top of page");
+
+      fireEvent.click(screen.getByTestId("status-page-resource-panel-more"));
+      await flushEffects();
+
+      const labels: Array<string> = within(screen.getByRole("menu"))
+        .getAllByRole("menuitem")
+        .map((item: HTMLElement) => {
+          return item.textContent || "";
+        });
+
+      expect(labels).toEqual([
+        "Add multiple monitors",
+        "Create a group",
+        "Refresh",
+      ]);
+    });
+
+    /*
+     * The pane is the whole group-management surface on a touch screen, so its
+     * menu has to be gated exactly as the tree's row actions are. Everything
+     * here would otherwise be an action that can only ever fail at the API.
+     */
+    test("a viewer who may not change the hierarchy is offered none of it", async () => {
+      mockIsMasterAdmin.mockReturnValue(false);
+
+      setUpApi({ groups: buildHierarchy() });
+
+      renderPage();
+
+      await waitForExplorer();
+
+      await selectGroup("Market 1001");
+
+      /* The hierarchy is still there to get around in, and still selectable. */
+      expect(navigatorRows().length).toBeGreaterThan(0);
+      expect(
+        screen.queryAllByTestId("status-page-resource-navigator-add-sub-group")
+          .length,
+      ).toBe(0);
+
+      await openRowMenu("Market 1001");
+
+      /* Reading an id is not a write, so it survives; nothing else does. */
+      expect(
+        within(screen.getByRole("menu"))
+          .getAllByRole("menuitem")
+          .map((item: HTMLElement) => {
+            return item.textContent || "";
+          }),
+      ).toEqual(["Show ID"]);
+
+      fireEvent.keyDown(screen.getByRole("menu"), { key: "Escape" });
+      await flushEffects();
+
+      fireEvent.click(screen.getByTestId("status-page-resource-panel-more"));
+      await flushEffects();
+
+      const labels: Array<string> = within(screen.getByRole("menu"))
+        .getAllByRole("menuitem")
+        .map((item: HTMLElement) => {
+          return item.textContent || "";
+        });
+
+      expect(labels).toEqual(["Show group ID", "Refresh"]);
+    });
+  });
+
+  /*
+   * The settings that change what a visitor sees. They live three steps into
+   * the group form, and the old Groups page badged them on every row; the pane
+   * header is the only place they surface now, so this is the only thing
+   * standing between an operator and a group that is quietly published
+   * collapsed.
+   */
+  describe("what the pane says about the group itself", () => {
+    const GROUP_WITH_SETTINGS: string = "0198c8ec-2a1d-7f0c-9e75-384194163020";
+    const PLAIN_GROUP: string = "0198c8ec-2a1d-7f0c-9e75-384194163021";
+
+    type SetUpSettingsFunction = () => void;
+
+    const setUpSettings: SetUpSettingsFunction = (): void => {
+      setUpApi({
+        groups: [
+          makeGroup({
+            id: GROUP_WITH_SETTINGS,
+            name: "Published Quietly",
+            order: 1,
+            description: "Only the on-call team looks at this one.",
+            isExpandedByDefault: false,
+            showUptimePercent: true,
+          }),
+          makeGroup({ id: PLAIN_GROUP, name: "Plain", order: 2 }),
+        ],
+      });
+    };
+
+    test("a group that is published collapsed, with uptime, and has a description says all three", async () => {
+      setUpSettings();
+
+      renderPage();
+
+      await waitForExplorer();
+
+      await selectGroup("Published Quietly");
+
+      expect(
+        screen.getByTestId("status-page-resource-panel-collapsed-by-default"),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByTestId("status-page-resource-panel-uptime"),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByTestId("status-page-resource-panel-description")
+          .textContent,
+      ).toBe("Only the on-call team looks at this one.");
+    });
+
+    test("a group with none of them says none of them", async () => {
+      setUpSettings();
+
+      renderPage();
+
+      await waitForExplorer();
+
+      await selectGroup("Plain");
+
+      expect(
+        screen.queryByTestId("status-page-resource-panel-collapsed-by-default"),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("status-page-resource-panel-uptime"),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("status-page-resource-panel-description"),
+      ).not.toBeInTheDocument();
+    });
+
+    /*
+     * A grid group with no axes has nowhere to put a resource - the public page
+     * drops anything whose axis values are not among the group's own - so the
+     * add button is withdrawn. On its own that reads as a broken screen, so the
+     * pane has to say why and hand over the control that fixes it.
+     */
+    test("a grid group with no axes explains itself and offers the way out", async () => {
+      const grid: StatusPageGroup = makeGroup({
+        id: GRID_ID,
+        name: "Matrix",
+        order: 1,
+        viewMode: StatusPageGroupViewMode.Grid,
+      });
+
+      setUpApi({ groups: [grid] });
+
+      renderPage();
+
+      await waitForExplorer();
+
+      await selectGroup("Matrix");
+
+      expect(
+        screen.getByTestId("status-page-resource-panel-grid-setup").textContent,
+      ).toContain("no rows or columns");
+      expect(
+        screen.queryByTestId("status-page-resource-panel-add"),
+      ).not.toBeInTheDocument();
+
+      fireEvent.click(
+        screen.getByTestId("status-page-resource-panel-grid-setup-edit"),
+      );
+      await flushEffects();
+
+      expect(screen.getByTestId("model-form-modal").textContent).toBe(
+        "Edit Status Page Group",
+      );
     });
   });
 });

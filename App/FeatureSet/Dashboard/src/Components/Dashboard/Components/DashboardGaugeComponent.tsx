@@ -16,6 +16,11 @@ import API from "Common/UI/Utils/API/API";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
+import DataSourceQueryConfig from "Common/Types/DataSource/DataSourceQueryConfig";
+import DataSourceQueryUtil from "../../../Utils/DataSourceQuery";
+import DataSourceQueryText from "Common/Utils/DataSource/DataSourceQueryText";
+import { isPublicDashboard } from "../Utils/PublicDashboardContext";
+import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
 import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInterpolation";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
@@ -80,6 +85,30 @@ const DashboardGaugeComponentElement: FunctionComponent<ComponentProps> = (
   }, [rawMetricQueryConfig, props.variables]);
 
   /*
+   * External Data Source binding. When set, it replaces the OneUptime
+   * metric fetch entirely — the gauge's aggregation/threshold pipeline
+   * consumes the same AggregatedResult shape either way.
+   */
+  const rawDataSourceQueryConfig: DataSourceQueryConfig | undefined =
+    props.component.arguments.dataSourceQueryConfig;
+  const dataSourceQueryConfig: DataSourceQueryConfig | undefined =
+    rawDataSourceQueryConfig?.dataSourceId && rawDataSourceQueryConfig?.query
+      ? rawDataSourceQueryConfig
+      : undefined;
+
+  const externalFetchRef: React.MutableRefObject<{
+    dataSourceQueryConfig: DataSourceQueryConfig | undefined;
+    variables: Array<DashboardVariable> | undefined;
+  }> = useRef({
+    dataSourceQueryConfig: dataSourceQueryConfig,
+    variables: props.variables,
+  });
+  externalFetchRef.current = {
+    dataSourceQueryConfig: dataSourceQueryConfig,
+    variables: props.variables,
+  };
+
+  /*
    * refreshTick is a dep so each auto-refresh re-resolves the relative
    * range ("Past 1 hour") to a fresh concrete window; without it the
    * window is frozen at mount and every refresh re-queries stale data.
@@ -104,11 +133,64 @@ const DashboardGaugeComponentElement: FunctionComponent<ComponentProps> = (
     useRef<MetricViewData>(metricViewData);
   metricViewDataRef.current = metricViewData;
 
+  // Monotonic id of the newest fetch — see the staleness guards below.
+  const fetchSequenceRef: React.MutableRefObject<number> = useRef(0);
+
   const fetchAggregatedResults: () => Promise<void> = useCallback(async () => {
     const data: MetricViewData = metricViewDataRef.current;
+    /*
+     * Staleness guard: refresh ticks and config edits can overlap slow
+     * requests — only the NEWEST fetch may write state, or an old
+     * response would overwrite a newer result (and clear a newer error).
+     */
+    const fetchId: number = ++fetchSequenceRef.current;
     setIsLoading(true);
 
     if (!data.startAndEndDate?.startValue || !data.startAndEndDate?.endValue) {
+      setIsLoading(false);
+      return;
+    }
+
+    /*
+     * External Data Source path — takes precedence over the OneUptime
+     * metric query and skips its guards.
+     */
+    const externalConfig: DataSourceQueryConfig | undefined =
+      externalFetchRef.current.dataSourceQueryConfig;
+    if (externalConfig) {
+      if (isPublicDashboard()) {
+        setError(
+          "External data sources are not available on public dashboards.",
+        );
+        setIsLoading(false);
+        return;
+      }
+
+      setAggregationType(AggregationType.Avg);
+
+      try {
+        const interpolatedQuery: string = DataSourceQueryText.applyVariables(
+          externalConfig.query,
+          externalFetchRef.current.variables,
+        );
+        const result: AggregatedResult =
+          await DataSourceQueryUtil.fetchTimeSeries({
+            queryConfig: { ...externalConfig, query: interpolatedQuery },
+            startDate: data.startAndEndDate.startValue,
+            endDate: data.startAndEndDate.endValue,
+          });
+        if (fetchId !== fetchSequenceRef.current) {
+          return;
+        }
+        setMetricResults([result]);
+        setError("");
+      } catch (err: unknown) {
+        if (fetchId !== fetchSequenceRef.current) {
+          return;
+        }
+        setError(API.getFriendlyErrorMessage(err as Error));
+      }
+
       setIsLoading(false);
       return;
     }
@@ -143,9 +225,15 @@ const DashboardGaugeComponentElement: FunctionComponent<ComponentProps> = (
         metricViewData: data,
       });
 
+      if (fetchId !== fetchSequenceRef.current) {
+        return;
+      }
       setMetricResults(results);
       setError("");
     } catch (err: unknown) {
+      if (fetchId !== fetchSequenceRef.current) {
+        return;
+      }
       setError(API.getFriendlyErrorMessage(err as Error));
     }
 
@@ -157,6 +245,8 @@ const DashboardGaugeComponentElement: FunctionComponent<ComponentProps> = (
   }, [
     startAndEndDate,
     metricQueryConfig,
+    dataSourceQueryConfig,
+    props.variables,
     props.refreshTick,
     fetchAggregatedResults,
   ]);
@@ -202,13 +292,15 @@ const DashboardGaugeComponentElement: FunctionComponent<ComponentProps> = (
     );
   }
 
-  // Show setup state if no metric configured
+  // Show setup state if neither a metric nor an external data source is configured
   if (
-    !props.component.arguments.metricQueryConfig ||
-    !props.component.arguments.metricQueryConfig.metricQueryData?.filterData ||
-    Object.keys(
-      props.component.arguments.metricQueryConfig.metricQueryData.filterData,
-    ).length === 0
+    !dataSourceQueryConfig &&
+    (!props.component.arguments.metricQueryConfig ||
+      !props.component.arguments.metricQueryConfig.metricQueryData
+        ?.filterData ||
+      Object.keys(
+        props.component.arguments.metricQueryConfig.metricQueryData.filterData,
+      ).length === 0)
   ) {
     return (
       <div className="flex flex-col items-center justify-center w-full h-full gap-1.5">
@@ -341,13 +433,21 @@ const DashboardGaugeComponentElement: FunctionComponent<ComponentProps> = (
     }
   }
 
-  const metricName: string =
-    props.component.arguments.metricQueryConfig?.metricQueryData.filterData.metricName?.toString() ||
-    "";
-  const rawUnit: string =
-    props.metricTypes?.find((item: MetricType) => {
-      return item.name?.toString() === metricName;
-    })?.unit || "";
+  /*
+   * External Data Source mode: ignore any leftover metricQueryConfig from
+   * before the switch — a stale metric name/unit would trigger the
+   * fraction-percent rescale (x100) on arc, thresholds and the centre
+   * display. External values are unitless here.
+   */
+  const metricName: string = dataSourceQueryConfig
+    ? ""
+    : props.component.arguments.metricQueryConfig?.metricQueryData.filterData.metricName?.toString() ||
+      "";
+  const rawUnit: string = dataSourceQueryConfig
+    ? ""
+    : props.metricTypes?.find((item: MetricType) => {
+        return item.name?.toString() === metricName;
+      })?.unit || "";
 
   /*
    * OTel ratio metrics (unit "1" + `.utilization`/`.ratio`/`.fraction`/

@@ -75,8 +75,13 @@ const DashboardDockerVolumeListComponentElement: FunctionComponent<
       const listResult: ListResult<DockerResource> =
         await ModelAPI.getList<DockerResource>({
           modelType: DockerResource,
-          requestOptions:
-            DashboardResourceList.getRequestOptions("docker-volume"),
+          requestOptions: DashboardResourceList.getRequestOptions(
+            "docker-volume",
+            {
+              componentId: props.componentId,
+              variables: props.variables,
+            },
+          ),
           query: query,
           limit: maxRows,
           skip: 0,
@@ -101,7 +106,7 @@ const DashboardDockerVolumeListComponentElement: FunctionComponent<
     }
 
     setIsLoading(false);
-  }, [maxRows, dockerHostIdsKey]);
+  }, [maxRows, dockerHostIdsKey, props.componentId, props.variables]);
 
   useEffect(() => {
     fetchVolumes();

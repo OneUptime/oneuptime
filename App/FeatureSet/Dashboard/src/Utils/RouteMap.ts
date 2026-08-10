@@ -538,6 +538,8 @@ export const DashboardsRoutePath: Dictionary<string> = {
   [PageMap.DASHBOARD_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
   [PageMap.DASHBOARDS_SETTINGS_OWNER_RULES]: "settings/owner-rules",
   [PageMap.DASHBOARDS_SETTINGS_LABEL_RULES]: "settings/label-rules",
+  [PageMap.DASHBOARDS_SETTINGS_DATA_SOURCES]: "settings/data-sources",
+  [PageMap.DASHBOARDS_SETTINGS_DATA_SOURCE_VIEW]: `settings/data-sources/${RouteParams.ModelID}`,
 };
 
 export const StatusPagesRoutePath: Dictionary<string> = {
@@ -4057,6 +4059,16 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.DASHBOARDS_SETTINGS_LABEL_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/dashboards/${
       DashboardsRoutePath[PageMap.DASHBOARDS_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+  [PageMap.DASHBOARDS_SETTINGS_DATA_SOURCES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/dashboards/${
+      DashboardsRoutePath[PageMap.DASHBOARDS_SETTINGS_DATA_SOURCES]
+    }`,
+  ),
+  [PageMap.DASHBOARDS_SETTINGS_DATA_SOURCE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/dashboards/${
+      DashboardsRoutePath[PageMap.DASHBOARDS_SETTINGS_DATA_SOURCE_VIEW]
     }`,
   ),
 

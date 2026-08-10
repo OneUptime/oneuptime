@@ -150,8 +150,13 @@ const DashboardDockerContainerListComponentElement: FunctionComponent<
       const listResult: ListResult<DockerResource> =
         await ModelAPI.getList<DockerResource>({
           modelType: DockerResource,
-          requestOptions:
-            DashboardResourceList.getRequestOptions("docker-container"),
+          requestOptions: DashboardResourceList.getRequestOptions(
+            "docker-container",
+            {
+              componentId: props.componentId,
+              variables: props.variables,
+            },
+          ),
           query: query,
           limit: maxRows,
           skip: 0,
@@ -179,7 +184,13 @@ const DashboardDockerContainerListComponentElement: FunctionComponent<
     }
 
     setIsLoading(false);
-  }, [maxRows, dockerHostIdsKey, imageNameKey, props.variables]);
+  }, [
+    maxRows,
+    dockerHostIdsKey,
+    imageNameKey,
+    props.variables,
+    props.componentId,
+  ]);
 
   useEffect(() => {
     fetchContainers();

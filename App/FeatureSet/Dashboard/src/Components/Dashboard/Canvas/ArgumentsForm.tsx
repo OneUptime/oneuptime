@@ -49,6 +49,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import EntityFilterDropdown from "./EntityFilterDropdown";
 import TraceChartQueryEditor from "./TraceChartQueryEditor";
 import LogChartQueryEditor from "./LogChartQueryEditor";
+import DataSourceQueryEditor from "./DataSourceQueryEditor";
 import MetricUtil from "../../Metrics/Utils/Metrics";
 import API from "Common/UI/Utils/API/API";
 
@@ -1255,6 +1256,22 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
           </div>
         );
       })}
+
+      {/*
+       * Chart/Value/Gauge/Table widgets can alternatively bind to an
+       * external Data Source (Prometheus, SQL, ClickHouse, Loki,
+       * Elasticsearch, REST). The editor writes through commitComponent
+       * directly, like the other bespoke editors below.
+       */}
+      {(componentType === DashboardComponentType.Chart ||
+        componentType === DashboardComponentType.Value ||
+        componentType === DashboardComponentType.Gauge ||
+        componentType === DashboardComponentType.Table) && (
+        <DataSourceQueryEditor
+          component={component}
+          onChange={commitComponent}
+        />
+      )}
 
       {/*
        * Trace charts render a bespoke, structured Query section (key/value

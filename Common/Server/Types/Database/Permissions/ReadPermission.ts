@@ -29,6 +29,9 @@ export default class ReadPermission {
     select: Select<TBaseModel> | null,
     props: DatabaseCommonInteractionProps,
   ): Promise<CheckReadPermissionType<TBaseModel>> {
+    // Block and base permission checks both add predicates to the query.
+    query = { ...query };
+
     // check block permission first.
     await this.checkReadBlockPermission(modelType, query, props);
 

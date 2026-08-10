@@ -1,3 +1,4 @@
+import DataSourceQueryConfig from "../../DataSource/DataSourceQueryConfig";
 import MetricFormulaConfigData from "../../Metrics/MetricFormulaConfigData";
 import MetricQueryConfigData from "../../Metrics/MetricQueryConfigData";
 import MetricsAggregationType from "../../Metrics/MetricsAggregationType";
@@ -63,6 +64,12 @@ export default interface DashboardTableComponent extends BaseComponent {
   componentType: DashboardComponentType.Table;
   componentId: ObjectID;
   arguments: {
+    /*
+     * External Data Source query (returns rows, not time series). When
+     * set, the table renders those rows INSTEAD of the metric columns
+     * below. Not available on public dashboards.
+     */
+    dataSourceQueryConfig?: DataSourceQueryConfig | undefined;
     // New shape: columns + widget-level group-by.
     columns?: Array<TableColumn> | undefined;
     // New shape — attribute + optional custom header. Source of truth.

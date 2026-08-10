@@ -228,6 +228,72 @@ const PRODUCT_TYPE_BY_TELEMETRY_TYPE: Partial<
 };
 
 /*
+ * The complete set of request headers that worker-side telemetry code
+ * reads back off a queued job's `requestHeaders`. Everything stored on a
+ * job is JSON-serialized into Redis PER JOB (and surfaces verbatim in
+ * failed-job listings), so the enqueue path must project the incoming
+ * headers down to exactly this set instead of copying the whole header
+ * object — which would ship the raw ingestion token (x-oneuptime-token)
+ * plus cookies / user-agent noise into Redis on every export.
+ *
+ * How this set was derived (re-verify when adding a consumer):
+ *   - OtelIngestBaseService reads `x-oneuptime-service-name` as the
+ *     service-name fallback (getServiceNameFromAttributes and
+ *     getServiceNameFromHeaders) — the ONLY header any worker case
+ *     reads from `jobData.requestHeaders` today.
+ *   - SyslogIngestService / FluentLogsIngestService / the Common
+ *     OpenTelemetryIngestService read no headers at all from the
+ *     reconstructed request.
+ *   - `content-type` / `content-encoding` are consumed at ENQUEUE time
+ *     into `bodyFormat` / `bodyEncoding` (see addTelemetryIngestJob) and
+ *     the worker decodes via those fields, never via headers — so they
+ *     deliberately do not appear here.
+ */
+export const WORKER_CONSUMED_REQUEST_HEADERS: ReadonlyArray<string> = [
+  "x-oneuptime-service-name",
+];
+
+/*
+ * Project an incoming header map (Express `req.headers`, or the gRPC
+ * metadata map flattened to strings) down to the worker-consumed
+ * whitelist above. Keys are matched and emitted lowercased — Express and
+ * grpc-js both lowercase header/metadata names already, but internal
+ * producers (Pyroscope conversion, tests) build these objects by hand.
+ * Values pass through UNCHANGED: `req.headers` can legally hold string
+ * arrays and the worker's reader (getServiceNameFromHeaders) accepts
+ * both shapes, exactly as it did when the whole header object was
+ * carried verbatim.
+ */
+export function pickWorkerConsumedRequestHeaders(
+  headers: Record<string, string | Array<string> | undefined>,
+): Record<string, string> {
+  const projectedHeaders: Record<string, string> = {};
+
+  for (const headerName in headers) {
+    const lowercasedHeaderName: string = headerName.toLowerCase();
+
+    if (!WORKER_CONSUMED_REQUEST_HEADERS.includes(lowercasedHeaderName)) {
+      continue;
+    }
+
+    const headerValue: string | Array<string> | undefined = headers[headerName];
+
+    if (headerValue === undefined) {
+      continue;
+    }
+
+    /*
+     * The cast mirrors the previous `req.headers as Record<string,
+     * string>` at the enqueue site: array values survive as arrays at
+     * runtime and the worker-side reader handles them.
+     */
+    projectedHeaders[lowercasedHeaderName] = headerValue as string;
+  }
+
+  return projectedHeaders;
+}
+
+/*
  * JSON.stringify replacer that rewrites binary values to base64
  * strings. The gRPC entry point hands us proto-loader output where
  * `bytes` fields (traceId / spanId / profileId / ...) are Buffers;
@@ -236,11 +302,53 @@ const PRODUCT_TYPE_BY_TELEMETRY_TYPE: Partial<
  * protobufjs' `.toJSON()` (the deferred-decode path) emits base64
  * for bytes fields, so converting here keeps both producer paths
  * byte-for-byte compatible for the worker.
+ *
+ * Exported for tests. Must be a `function` (not an arrow function):
+ * JSON.stringify invokes the replacer with `this` bound to the object
+ * or array holding the property, which is what lets us reach the
+ * pre-toJSON value below.
  */
-function binaryToBase64Replacer(_key: string, value: unknown): unknown {
+export function binaryToBase64Replacer(
+  this: unknown,
+  key: string,
+  value: unknown,
+): unknown {
   /*
-   * Buffer.prototype.toJSON runs before the replacer, so Buffers
-   * arrive here already reshaped as { type: "Buffer", data: [...] }.
+   * JSON.stringify calls Buffer.prototype.toJSON BEFORE the replacer,
+   * so by the time `value` arrives a Buffer has already been reshaped
+   * into { type: "Buffer", data: [one JS number per byte] }. The
+   * ORIGINAL value is still reachable as this[key], so detect binary
+   * there and emit base64 straight from the original bytes. That skips
+   * ever touching the per-byte number array — previously every
+   * traceId / spanId was reshaped into that array and then
+   * re-materialized into a second Buffer just to emit the same base64.
+   */
+  const originalValue: unknown = (this as Record<string, unknown>)?.[key];
+
+  if (Buffer.isBuffer(originalValue)) {
+    return originalValue.toString("base64");
+  }
+
+  /*
+   * Plain Uint8Arrays have no toJSON (so `value` here IS the original)
+   * and would serialize as index maps. Wrap as a zero-copy Buffer VIEW
+   * over the same memory to emit base64 — Buffer.from(u8) would copy.
+   */
+  if (originalValue instanceof Uint8Array) {
+    return Buffer.from(
+      originalValue.buffer,
+      originalValue.byteOffset,
+      originalValue.byteLength,
+    ).toString("base64");
+  }
+
+  /*
+   * Legacy fallback, kept for exact behavior parity: a producer-supplied
+   * PLAIN object already shaped like Buffer JSON ({ type: "Buffer",
+   * data: [...] }) was converted to base64 by the previous
+   * implementation even though it never was a real Buffer. Real Buffers
+   * never reach this check — they returned above — so this costs the
+   * hot path nothing.
    */
   if (
     value &&
@@ -253,9 +361,20 @@ function binaryToBase64Replacer(_key: string, value: unknown): unknown {
     );
   }
 
-  // Plain Uint8Arrays have no toJSON and would serialize as index maps.
+  /*
+   * Second half of the parity fallback: a value can also REACH here as a
+   * Uint8Array/Buffer without the holder having held one — when a custom
+   * toJSON on the original returned binary (JSON.stringify calls toJSON
+   * once and does not re-invoke it on the result). The legacy replacer
+   * base64'd that too. Ordinary Buffers / Uint8Arrays never get here —
+   * they matched `originalValue` above.
+   */
   if (value instanceof Uint8Array) {
-    return Buffer.from(value).toString("base64");
+    return Buffer.from(
+      value.buffer,
+      value.byteOffset,
+      value.byteLength,
+    ).toString("base64");
   }
 
   return value;
@@ -270,7 +389,18 @@ export default class TelemetryQueueService {
       const jobData: TelemetryIngestJobData = {
         type,
         projectId: req.projectId.toString(),
-        requestHeaders: req.headers as Record<string, string>,
+        /*
+         * Whitelist projection, NOT the raw header object: the job data
+         * is JSON-serialized into Redis per job, and the raw headers
+         * carry the ingestion token (x-oneuptime-token) — which would
+         * otherwise sit in Redis and surface in failed-job listings —
+         * plus cookies / user-agent noise the worker never reads. The
+         * content-type / content-encoding reads further down use
+         * `req.headers` directly, so they are unaffected by this.
+         */
+        requestHeaders: pickWorkerConsumedRequestHeaders(
+          req.headers as Record<string, string | Array<string> | undefined>,
+        ),
         ingestionTimestamp: OneUptimeDate.getCurrentDate(),
       };
 
@@ -860,6 +990,19 @@ export default class TelemetryQueueService {
 
   public static async getQueueSize(): Promise<number> {
     return Queue.getQueueSize(QueueName.Telemetry);
+  }
+
+  /*
+   * Telemetry queue BACKLOG (waiting + delayed) for autoscaling signals.
+   * Active jobs are excluded on purpose: telemetry jobs park in the active
+   * state for the fan-in writer's flush window while awaiting their
+   * ClickHouse ack, so counting them makes a scaler read busy-but-healthy
+   * capacity as demand — see Queue.getQueueBacklogSize. getQueueSize above
+   * stays active-inclusive for the ingest backpressure checks, where
+   * in-flight work genuinely counts against capacity.
+   */
+  public static async getQueueBacklogSize(): Promise<number> {
+    return Queue.getQueueBacklogSize(QueueName.Telemetry);
   }
 
   public static async getQueueStats(): Promise<{
