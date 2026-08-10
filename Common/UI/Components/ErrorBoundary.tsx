@@ -169,10 +169,386 @@ export const handleChunkLoadError: HandleChunkLoadErrorFunction = (
   return true;
 };
 
+/*
+ * The fallback is styled with its own stylesheet rather than with the app's
+ * Tailwind classes on purpose. One of the failures this boundary exists to
+ * catch is a stale bundle whose CSS chunk 404s, and an error screen that
+ * depends on the very stylesheet that failed is an unstyled error screen. The
+ * tokens below read the shared theme variables when they are present (so the
+ * card matches the dashboard, light or dark) and fall back to the same literal
+ * values the design system uses when they are not.
+ */
+const ERROR_BOUNDARY_CSS: string = `
+.oneuptime-error-boundary {
+  --oueb-canvas: var(--ou-background-primary, #f9fafb);
+  --oueb-surface: var(--ou-surface-primary, #ffffff);
+  --oueb-surface-muted: var(--ou-surface-secondary, #f9fafb);
+  --oueb-border: var(--ou-border-default, #e5e7eb);
+  --oueb-border-subtle: var(--ou-border-subtle, #f3f4f6);
+  --oueb-text: var(--ou-text-primary, #111827);
+  --oueb-text-secondary: var(--ou-text-secondary, #4b5563);
+  --oueb-text-muted: var(--ou-text-muted, #6b7280);
+  --oueb-accent: #4f46e5;
+  --oueb-accent-hover: #4338ca;
+  --oueb-accent-ring: rgb(79 70 229 / 45%);
+  --oueb-danger-surface: #fef2f2;
+  --oueb-danger-border: #fee2e2;
+  --oueb-danger-icon: #dc2626;
+  --oueb-success-text: var(--ou-success-text, #166534);
+  --oueb-danger-text: var(--ou-danger-text, #b91c1c);
+  --oueb-shadow: var(--ou-card-shadow, 0 1px 3px rgb(15 23 42 / 8%));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 60vh;
+  padding: 3rem 1.5rem;
+  background-color: var(--oueb-canvas);
+  color: var(--oueb-text);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+html.dark .oneuptime-error-boundary {
+  --oueb-accent: #6366f1;
+  --oueb-accent-hover: #818cf8;
+  --oueb-accent-ring: rgb(129 140 248 / 55%);
+  --oueb-danger-surface: rgb(153 27 27 / 22%);
+  --oueb-danger-border: rgb(248 113 113 / 24%);
+  --oueb-danger-icon: #fca5a5;
+}
+
+.oneuptime-error-boundary *,
+.oneuptime-error-boundary *::before,
+.oneuptime-error-boundary *::after {
+  box-sizing: border-box;
+}
+
+.oueb-card {
+  width: 100%;
+  max-width: 34rem;
+  padding: 2rem;
+  border: 1px solid var(--oueb-border);
+  border-radius: 1rem;
+  background-color: var(--oueb-surface);
+  box-shadow: var(--oueb-shadow);
+  animation: oueb-enter 260ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes oueb-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+.oueb-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 1px solid var(--oueb-danger-border);
+  border-radius: 0.75rem;
+  background-color: var(--oueb-danger-surface);
+  color: var(--oueb-danger-icon);
+}
+
+.oueb-badge svg {
+  width: 1.375rem;
+  height: 1.375rem;
+}
+
+.oueb-title {
+  margin: 1.25rem 0 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.5rem;
+  letter-spacing: -0.01em;
+  color: var(--oueb-text);
+}
+
+.oueb-message {
+  margin: 0.375rem 0 0;
+  font-size: 0.875rem;
+  line-height: 1.375rem;
+  color: var(--oueb-text-muted);
+}
+
+.oueb-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.oueb-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5625rem 1rem;
+  border: 1px solid transparent;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease, box-shadow 120ms ease;
+}
+
+.oueb-button svg {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+}
+
+.oueb-button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--oueb-surface), 0 0 0 4px var(--oueb-accent-ring);
+}
+
+.oueb-button-primary {
+  background-color: var(--oueb-accent);
+  color: #ffffff;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 10%);
+}
+
+.oueb-button-primary:hover {
+  background-color: var(--oueb-accent-hover);
+}
+
+.oueb-button-secondary {
+  border-color: var(--oueb-border);
+  background-color: var(--oueb-surface);
+  color: var(--oueb-text-secondary);
+  box-shadow: 0 1px 2px rgb(15 23 42 / 5%);
+}
+
+.oueb-button-secondary:hover {
+  background-color: var(--oueb-surface-muted);
+  color: var(--oueb-text);
+}
+
+.oueb-button-ghost {
+  padding: 0.4375rem 0.75rem;
+  background-color: transparent;
+  color: var(--oueb-accent);
+}
+
+.oueb-button-ghost:hover {
+  background-color: var(--oueb-surface-muted);
+}
+
+.oueb-support {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--oueb-border-subtle);
+}
+
+.oueb-support-title {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--oueb-text-secondary);
+}
+
+.oueb-support-text {
+  margin: 0.375rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.125rem;
+  color: var(--oueb-text-muted);
+}
+
+.oueb-support-actions {
+  display: flex;
+  align-items: center;
+  margin-top: 0.75rem;
+  margin-left: -0.75rem;
+}
+
+.oueb-support-email {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin: 0.5rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.125rem;
+  color: var(--oueb-text-muted);
+}
+
+.oueb-support-email svg {
+  width: 0.875rem;
+  height: 0.875rem;
+  flex-shrink: 0;
+}
+
+.oueb-link {
+  border-radius: 0.25rem;
+  color: var(--oueb-accent);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.oueb-link:hover {
+  text-decoration: underline;
+}
+
+.oueb-link:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--oueb-surface), 0 0 0 4px var(--oueb-accent-ring);
+}
+
+.oueb-status {
+  margin-top: 0.75rem;
+  font-size: 0.75rem;
+  line-height: 1.125rem;
+  color: var(--oueb-text-muted);
+}
+
+.oueb-status:empty {
+  display: none;
+}
+
+.oueb-status-success {
+  color: var(--oueb-success-text);
+}
+
+.oueb-status-error {
+  color: var(--oueb-danger-text);
+}
+
+.oueb-details {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--oueb-border-subtle);
+}
+
+.oueb-details summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--oueb-text-muted);
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.oueb-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.oueb-details summary:hover {
+  color: var(--oueb-text-secondary);
+}
+
+.oueb-details summary:focus-visible {
+  outline: none;
+  color: var(--oueb-text);
+  text-decoration: underline;
+}
+
+.oueb-details summary svg {
+  width: 0.875rem;
+  height: 0.875rem;
+  transition: transform 150ms ease;
+}
+
+.oueb-details[open] summary svg {
+  transform: rotate(90deg);
+}
+
+.oueb-error-message {
+  margin: 0.75rem 0 0;
+  padding: 0.75rem;
+  max-height: 10rem;
+  overflow: auto;
+  border: 1px solid var(--oueb-border-subtle);
+  border-radius: 0.5rem;
+  background-color: var(--oueb-surface-muted);
+  color: var(--oueb-text-secondary);
+  font-family: "Courier Prime", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.75rem;
+  line-height: 1.125rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+@media (max-width: 30rem) {
+  .oneuptime-error-boundary {
+    padding: 2rem 1rem;
+  }
+
+  .oueb-card {
+    padding: 1.5rem;
+  }
+
+  .oueb-actions .oueb-button {
+    flex: 1 1 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .oueb-card {
+    animation: none;
+  }
+
+  .oueb-details summary svg,
+  .oueb-button {
+    transition: none;
+  }
+}
+`;
+
+type SupportBundleStatusType = "success" | "error";
+
+interface SupportBundleStatus {
+  message: string;
+  type: SupportBundleStatusType;
+}
+
+type GetIconFunction = (path: string) => ReactElement;
+
+/* Heroicons outline paths, inlined so the fallback needs no icon bundle. */
+const getIcon: GetIconFunction = (path: string): ReactElement => {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d={path} />
+    </svg>
+  );
+};
+
+const ALERT_ICON_PATH: string =
+  "M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z";
+
+const RELOAD_ICON_PATH: string =
+  "M16.023 9.348h4.992V4.356m0 4.992-3.181-3.183a8.25 8.25 0 0 0-13.803 3.7M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7";
+
+const DOWNLOAD_ICON_PATH: string =
+  "M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3";
+
+const MAIL_ICON_PATH: string =
+  "M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75";
+
+const CHEVRON_ICON_PATH: string = "m8.25 4.5 7.5 7.5-7.5 7.5";
+
+/** Where a reviewed support bundle should be sent. */
+export const SUPPORT_EMAIL: string = "support@oneuptime.com";
+
 export const Fallback: FunctionComponent<FallbackComponentProps> = (
   props: FallbackComponentProps,
 ): ReactElement => {
-  const [supportBundleStatus, setSupportBundleStatus] = useState<string>("");
+  const [supportBundleStatus, setSupportBundleStatus] =
+    useState<SupportBundleStatus | null>(null);
   const errorMessage: string =
     props.error && typeof props.error.message === "string"
       ? props.error.message
@@ -181,7 +557,7 @@ export const Fallback: FunctionComponent<FallbackComponentProps> = (
   type DownloadSupportBundleFunction = () => void;
 
   const downloadSupportBundle: DownloadSupportBundleFunction = (): void => {
-    setSupportBundleStatus("");
+    setSupportBundleStatus(null);
 
     try {
       const capturedErrorDetails: CapturedErrorDetails | null =
@@ -194,141 +570,116 @@ export const Fallback: FunctionComponent<FallbackComponentProps> = (
         capturedAt: capturedErrorDetails?.capturedAt,
       });
 
-      setSupportBundleStatus(
-        "Support bundle downloaded. Review it, then attach it when contacting OneUptime Support.",
-      );
+      setSupportBundleStatus({
+        type: "success",
+        message:
+          "Support bundle downloaded. Review it, then attach it to your email.",
+      });
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error("Unable to download the error support bundle:", error);
-      setSupportBundleStatus(
-        "The support bundle could not be downloaded. Please try again.",
-      );
+      setSupportBundleStatus({
+        type: "error",
+        message:
+          "The support bundle could not be downloaded. Please try again.",
+      });
     }
   };
 
   return (
     <div
       data-testid="error-boundary-fallback"
-      style={{
-        minHeight: "60vh",
-        width: "100%",
-        padding: "2rem",
-        backgroundColor: "var(--ou-background-primary, #fdfdfd)",
-        color: "var(--ou-text-primary, #111827)",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        textAlign: "center",
-      }}
+      className="oneuptime-error-boundary"
     >
-      <div style={{ maxWidth: "40rem" }}>
-        <div role="alert" style={{ fontWeight: 600, marginBottom: "0.5rem" }}>
-          An unexpected error has occurred. Please reload the page to continue
+      <style>{ERROR_BOUNDARY_CSS}</style>
+      <div className="oueb-card">
+        <div className="oueb-badge">{getIcon(ALERT_ICON_PATH)}</div>
+        <div role="alert">
+          <h1 className="oueb-title">Something went wrong</h1>
+          <p className="oueb-message">
+            An unexpected error has occurred. Please reload the page to continue
+          </p>
         </div>
-        <div
-          style={{
-            fontSize: "0.875rem",
-            color: "var(--ou-text-secondary, #6b7280)",
-            marginBottom: "1.25rem",
-          }}
-        >
-          The rest of the app is still working. You can retry this page or
-          reload to start fresh.
-        </div>
-        <div
-          style={{
-            display: "flex",
-            gap: "0.75rem",
-            justifyContent: "center",
-            flexWrap: "wrap",
-          }}
-        >
-          <button
-            type="button"
-            data-testid="error-boundary-try-again"
-            onClick={() => {
-              props.resetErrorBoundary();
-            }}
-            style={{
-              padding: "0.5rem 1rem",
-              borderRadius: "0.375rem",
-              border: "1px solid var(--ou-border-primary, #d1d5db)",
-              backgroundColor: "transparent",
-              color: "inherit",
-              cursor: "pointer",
-            }}
-          >
-            Try again
-          </button>
+        <div className="oueb-actions">
           <button
             type="button"
             data-testid="error-boundary-reload"
+            className="oueb-button oueb-button-primary"
             onClick={() => {
               reloadPage();
             }}
-            style={{
-              padding: "0.5rem 1rem",
-              borderRadius: "0.375rem",
-              border: "1px solid transparent",
-              backgroundColor: "var(--ou-brand-primary, #4f46e5)",
-              color: "#ffffff",
-              cursor: "pointer",
-            }}
           >
+            {getIcon(RELOAD_ICON_PATH)}
             Reload page
           </button>
           <button
             type="button"
-            data-testid="error-boundary-download-support-bundle"
-            onClick={downloadSupportBundle}
-            style={{
-              padding: "0.5rem 1rem",
-              borderRadius: "0.375rem",
-              border: "1px solid var(--ou-border-primary, #d1d5db)",
-              backgroundColor: "transparent",
-              color: "inherit",
-              cursor: "pointer",
+            data-testid="error-boundary-try-again"
+            className="oueb-button oueb-button-secondary"
+            onClick={() => {
+              props.resetErrorBoundary();
             }}
           >
-            Download support bundle
+            Try again
           </button>
         </div>
-        <div
-          style={{
-            marginTop: "1rem",
-            fontSize: "0.75rem",
-            color: "var(--ou-text-secondary, #6b7280)",
-          }}
-        >
-          Download a local diagnostics file with the error stack, component
-          stack, scrubbed page URL, browser details, and OneUptime build. It
-          never reads cookies, saved browser data, or form contents. Review it
-          before sharing it with OneUptime Support.
-        </div>
-        <div
-          role="status"
-          data-testid="error-boundary-support-bundle-status"
-          style={{
-            minHeight: "1rem",
-            marginTop: "0.75rem",
-            fontSize: "0.75rem",
-            color: "var(--ou-text-secondary, #6b7280)",
-          }}
-        >
-          {supportBundleStatus}
+        <div className="oueb-support">
+          <p className="oueb-support-title">Still stuck?</p>
+          <p className="oueb-support-text">
+            Download a local diagnostics file with the error stack, component
+            stack, scrubbed page URL, browser details, and OneUptime build. It
+            never reads cookies, saved browser data, or form contents. Review it
+            before sharing it with OneUptime Support.
+          </p>
+          <div className="oueb-support-actions">
+            <button
+              type="button"
+              data-testid="error-boundary-download-support-bundle"
+              className="oueb-button oueb-button-ghost"
+              onClick={downloadSupportBundle}
+            >
+              {getIcon(DOWNLOAD_ICON_PATH)}
+              Download support bundle
+            </button>
+          </div>
+          <p className="oueb-support-email">
+            {getIcon(MAIL_ICON_PATH)}
+            <span>
+              Send it to{" "}
+              <a
+                className="oueb-link"
+                data-testid="error-boundary-support-email"
+                href={`mailto:${SUPPORT_EMAIL}`}
+              >
+                {SUPPORT_EMAIL}
+              </a>
+            </span>
+          </p>
+          <div
+            role="status"
+            data-testid="error-boundary-support-bundle-status"
+            className={`oueb-status ${
+              supportBundleStatus
+                ? `oueb-status-${supportBundleStatus.type}`
+                : ""
+            }`}
+          >
+            {supportBundleStatus?.message || ""}
+          </div>
         </div>
         {errorMessage ? (
-          <div
-            data-testid="error-boundary-error-message"
-            style={{
-              marginTop: "1.25rem",
-              fontSize: "0.75rem",
-              color: "var(--ou-text-secondary, #6b7280)",
-              wordBreak: "break-word",
-            }}
-          >
-            {errorMessage}
-          </div>
+          <details className="oueb-details">
+            <summary>
+              {getIcon(CHEVRON_ICON_PATH)}
+              Error details
+            </summary>
+            <pre
+              data-testid="error-boundary-error-message"
+              className="oueb-error-message"
+            >
+              {errorMessage}
+            </pre>
+          </details>
         ) : (
           <></>
         )}
