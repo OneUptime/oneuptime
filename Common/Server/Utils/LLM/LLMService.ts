@@ -1495,8 +1495,13 @@ export default class LLMService {
     config: LLMProviderConfig;
     request: LLMCompletionRequest;
   }): BedrockRequestTarget {
-    const modelName: string =
-      data.config.modelName || "anthropic.claude-3-5-sonnet-20240620-v1:0";
+    const modelName: string | undefined = data.config.modelName?.trim();
+
+    if (!modelName) {
+      throw new BadDataException(
+        "Model Name is required for AWS Bedrock. Use any Bedrock Converse-compatible model ID, inference profile ID, or ARN.",
+      );
+    }
 
     const additionalParams: JSONObject | undefined =
       data.request.additionalParams;

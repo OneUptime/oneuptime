@@ -257,7 +257,7 @@ export default class LlmProvider extends BaseModel {
     type: TableColumnType.ShortText,
     title: "Model Name",
     description:
-      "The name of the model to use (e.g., gpt-4, claude-3-opus, anthropic.claude-3-5-sonnet-20240620-v1:0, llama2).",
+      "The name of the model to use. For AWS Bedrock, use any Converse-compatible Bedrock model ID, inference profile ID, or ARN.",
   })
   @Column({
     nullable: true,

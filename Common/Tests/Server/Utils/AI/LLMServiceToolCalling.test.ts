@@ -210,7 +210,7 @@ describe("LLMService tool calling — AWS Bedrock", () => {
         llmType: LlmType.Bedrock,
         apiKey: "AKIATEST:secret",
         baseUrl: "https://bedrock-runtime.us-west-2.amazonaws.com",
-        modelName: "anthropic.claude-3-5-sonnet-20240620-v1:0",
+        modelName: "meta.llama3-1-70b-instruct-v1:0",
       },
       messages: [
         { role: "system", content: "be helpful" },
@@ -226,10 +226,14 @@ describe("LLMService tool calling — AWS Bedrock", () => {
       maxTokens: 1024,
     });
 
-    const request: { data: JSONObject; headers: Record<string, string> } = spy
-      .mock.calls[0]![0] as {
+    const request: {
       data: JSONObject;
       headers: Record<string, string>;
+      url: unknown;
+    } = spy.mock.calls[0]![0] as {
+      data: JSONObject;
+      headers: Record<string, string>;
+      url: unknown;
     };
 
     expect(request.data["system"]).toHaveLength(1);
@@ -242,12 +246,28 @@ describe("LLMService tool calling — AWS Bedrock", () => {
     );
     expect(request.headers["Authorization"]).toContain("/us-west-2/bedrock/");
     expect(request.headers["X-Amz-Date"]).toBeDefined();
+    expect(String(request.url)).toContain(
+      encodeURIComponent("meta.llama3-1-70b-instruct-v1:0"),
+    );
 
     expect(response.content).toBe("checking");
     expect(response.stopReason).toBe("tool_use");
     expect(response.toolCalls).toHaveLength(1);
     expect(response.toolCalls![0]!.arguments).toEqual({ metricName: "cpu" });
     expect(response.usage!.totalTokens).toBe(30);
+  });
+
+  test("requires callers to choose the Bedrock model id", async () => {
+    await expect(
+      LLMService.getCompletion({
+        llmProviderConfig: {
+          llmType: LlmType.Bedrock,
+          apiKey: "AKIATEST:secret",
+          baseUrl: "https://bedrock-runtime.us-west-2.amazonaws.com",
+        },
+        messages: [{ role: "user", content: "hello" }],
+      }),
+    ).rejects.toThrow("Model Name is required for AWS Bedrock");
   });
 });
 
