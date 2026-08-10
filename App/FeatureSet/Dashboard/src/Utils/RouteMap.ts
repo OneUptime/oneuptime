@@ -538,6 +538,8 @@ export const DashboardsRoutePath: Dictionary<string> = {
   [PageMap.DASHBOARD_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
   [PageMap.DASHBOARDS_SETTINGS_OWNER_RULES]: "settings/owner-rules",
   [PageMap.DASHBOARDS_SETTINGS_LABEL_RULES]: "settings/label-rules",
+  [PageMap.DASHBOARDS_SETTINGS_DATA_SOURCES]: "settings/data-sources",
+  [PageMap.DASHBOARDS_SETTINGS_DATA_SOURCE_VIEW]: `settings/data-sources/${RouteParams.ModelID}`,
 };
 
 export const StatusPagesRoutePath: Dictionary<string> = {
@@ -776,8 +778,6 @@ export const SettingsRoutePath: Dictionary<string> = {
   [PageMap.SETTINGS_MOBILE_APPS]: "mobile-apps",
   [PageMap.SETTINGS_AI_LLM_PROVIDERS]: "llm-providers",
   [PageMap.SETTINGS_AI_LLM_PROVIDER_VIEW]: `llm-providers/${RouteParams.ModelID}`,
-  [PageMap.SETTINGS_DATA_SOURCES]: "data-sources",
-  [PageMap.SETTINGS_DATA_SOURCE_VIEW]: `data-sources/${RouteParams.ModelID}`,
   [PageMap.SETTINGS_AI_GUARDRAILS]: "ai-guardrails",
   [PageMap.SETTINGS_RUNNERS]: "runners",
   [PageMap.SETTINGS_RUNNER_VIEW]: `runners/${RouteParams.ModelID}`,
@@ -4061,6 +4061,16 @@ const RouteMap: Dictionary<Route> = {
       DashboardsRoutePath[PageMap.DASHBOARDS_SETTINGS_LABEL_RULES]
     }`,
   ),
+  [PageMap.DASHBOARDS_SETTINGS_DATA_SOURCES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/dashboards/${
+      DashboardsRoutePath[PageMap.DASHBOARDS_SETTINGS_DATA_SOURCES]
+    }`,
+  ),
+  [PageMap.DASHBOARDS_SETTINGS_DATA_SOURCE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/dashboards/${
+      DashboardsRoutePath[PageMap.DASHBOARDS_SETTINGS_DATA_SOURCE_VIEW]
+    }`,
+  ),
 
   // Status Pages
 
@@ -5012,18 +5022,6 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_AI_LLM_PROVIDER_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/settings/${
       SettingsRoutePath[PageMap.SETTINGS_AI_LLM_PROVIDER_VIEW]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_DATA_SOURCES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_DATA_SOURCES]
-    }`,
-  ),
-
-  [PageMap.SETTINGS_DATA_SOURCE_VIEW]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/settings/${
-      SettingsRoutePath[PageMap.SETTINGS_DATA_SOURCE_VIEW]
     }`,
   ),
 
