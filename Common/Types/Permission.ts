@@ -130,6 +130,13 @@ enum Permission {
   ReadDashboard = "ReadDashboard",
   EditDashboard = "EditDashboard",
 
+  // Data Sources (external systems dashboards can query)
+
+  CreateDataSource = "CreateDataSource",
+  DeleteDataSource = "DeleteDataSource",
+  ReadDataSource = "ReadDataSource",
+  EditDataSource = "EditDataSource",
+
   // Dashboard Domains
   CreateDashboardDomain = "CreateDashboardDomain",
   DeleteDashboardDomain = "DeleteDashboardDomain",
@@ -2494,6 +2501,45 @@ export class PermissionHelper {
         description: "This permission can read Dashboards of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+
+      // Data Sources.
+
+      {
+        permission: Permission.CreateDataSource,
+        title: "Create Data Source",
+        description: "This permission can create Data Sources of this project",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.DeleteDataSource,
+        title: "Delete Data Source",
+        description: "This permission can delete Data Sources of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.EditDataSource,
+        title: "Edit Data Source",
+        description: "This permission can edit Data Sources of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.ReadDataSource,
+        title: "Read Data Source",
+        description: "This permission can read Data Sources of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
         isRolePermission: false,
         group: PermissionGroup.Settings,
       },

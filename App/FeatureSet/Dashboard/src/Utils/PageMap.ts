@@ -907,6 +907,10 @@ enum PageMap {
   SETTINGS_AI_LOGS = "SETTINGS_AI_LOGS",
   SETTINGS_MCP_SERVER = "SETTINGS_MCP_SERVER",
 
+  // Dashboard data sources (external systems dashboards can chart)
+  SETTINGS_DATA_SOURCES = "SETTINGS_DATA_SOURCES",
+  SETTINGS_DATA_SOURCE_VIEW = "SETTINGS_DATA_SOURCE_VIEW",
+
   /*
    * Runners execute both runbook steps and AI code fixes, so they are project
    * infrastructure rather than a runbook detail — which is where they used to

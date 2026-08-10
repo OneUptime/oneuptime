@@ -44,6 +44,17 @@ export function getSettingsBreadcrumbs(path: string): Array<Link> | undefined {
       "LLM Providers",
       "View Provider",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_DATA_SOURCES, [
+      "Project",
+      "Settings",
+      "Data Sources",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_DATA_SOURCE_VIEW, [
+      "Project",
+      "Settings",
+      "Data Sources",
+      "View Data Source",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.SETTINGS_RUNNERS, [
       "Project",
       "Settings",

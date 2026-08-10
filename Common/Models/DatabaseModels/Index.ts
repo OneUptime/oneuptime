@@ -189,6 +189,7 @@ import AIRunEvent from "./AIRunEvent";
 import AIInsight from "./AIInsight";
 import LlmProvider from "./LlmProvider";
 import LlmLog from "./LlmLog";
+import DataSource from "./DataSource";
 import Project from "./Project";
 import ProjectCallSMSConfig from "./ProjectCallSMSConfig";
 import ProjectUserProfile from "./ProjectUserProfile";
@@ -763,6 +764,8 @@ const AllModelTypes: Array<{
 
   LlmProvider,
   LlmLog,
+
+  DataSource,
 
   UserSession,
   UserTotpAuth,
