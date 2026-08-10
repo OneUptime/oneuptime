@@ -267,9 +267,7 @@ export class Service extends DatabaseService<Model> {
           _id: true,
           email: true,
         },
-        props: {
-          isRoot: true,
-        },
+        props: updateBy.props,
         limit: LIMIT_MAX,
         skip: 0,
       });
@@ -286,9 +284,7 @@ export class Service extends DatabaseService<Model> {
           _id: true,
           email: true,
         },
-        props: {
-          isRoot: true,
-        },
+        props: updateBy.props,
         limit: LIMIT_MAX,
         skip: 0,
       });
@@ -343,9 +339,7 @@ export class Service extends DatabaseService<Model> {
       select: {
         _id: true,
       },
-      props: {
-        isRoot: true,
-      },
+      props: deleteBy.props,
       limit: LIMIT_MAX,
       skip: 0,
     });

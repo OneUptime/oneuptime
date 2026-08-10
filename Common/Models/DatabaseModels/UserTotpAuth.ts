@@ -4,6 +4,7 @@ import Route from "../../Types/API/Route";
 import AllowAccessIfSubscriptionIsUnpaid from "../../Types/Database/AccessControl/AllowAccessIfSubscriptionIsUnpaid";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
+import AllowUserQueryWithoutTenant from "../../Types/Database/AllowUserQueryWithoutTenant";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
@@ -38,6 +39,7 @@ import { Column, Entity, JoinColumn, ManyToOne } from "typeorm";
   icon: IconProp.ShieldCheck,
   tableDescription: "TOTP Authentication for users",
 })
+@AllowUserQueryWithoutTenant(true)
 @CurrentUserCanAccessRecordBy("userId")
 class UserTotpAuth extends BaseModel {
   @ColumnAccessControl({
@@ -98,7 +100,7 @@ class UserTotpAuth extends BaseModel {
   @ColumnAccessControl({
     create: [Permission.CurrentUser],
     read: [Permission.CurrentUser],
-    update: [Permission.CurrentUser],
+    update: [],
   })
   @TableColumn({
     type: TableColumnType.Boolean,
@@ -163,9 +165,9 @@ class UserTotpAuth extends BaseModel {
   public deletedByUserId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [Permission.CurrentUser],
+    create: [],
     read: [Permission.CurrentUser],
-    update: [Permission.CurrentUser],
+    update: [],
   })
   @TableColumn({
     manyToOneRelationColumn: "userId",
@@ -191,7 +193,7 @@ class UserTotpAuth extends BaseModel {
   @ColumnAccessControl({
     create: [Permission.CurrentUser],
     read: [Permission.CurrentUser],
-    update: [Permission.CurrentUser],
+    update: [],
   })
   @TableColumn({
     type: TableColumnType.ObjectID,

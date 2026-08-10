@@ -4,6 +4,7 @@ import Route from "../../Types/API/Route";
 import AllowAccessIfSubscriptionIsUnpaid from "../../Types/Database/AccessControl/AllowAccessIfSubscriptionIsUnpaid";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
+import AllowUserQueryWithoutTenant from "../../Types/Database/AllowUserQueryWithoutTenant";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
@@ -41,6 +42,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   tableDescription:
     "Active user sessions with refresh tokens and device metadata for enhanced authentication security.",
 })
+@AllowUserQueryWithoutTenant(true)
 @CurrentUserCanAccessRecordBy("userId")
 class UserSession extends BaseModel {
   @ColumnAccessControl({
