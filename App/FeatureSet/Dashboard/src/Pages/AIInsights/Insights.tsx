@@ -292,8 +292,18 @@ const AIInsightsPage: FunctionComponent<
               lastSeenAt: true,
               occurrenceCount: true,
             },
+            /*
+             * The id is a tiebreaker, not decoration: the scanner stamps ONE
+             * lastSeenAt per project scan, so every live insight in a project
+             * carries the same timestamp to the millisecond. Ordering by a
+             * column that is tied across the whole page leaves Postgres free
+             * to return the rows in a different order per request, and offset
+             * pagination over a reshuffling order silently SKIPS rows — the
+             * de-dupe below only catches the opposite case (a row repeating).
+             */
             sort: {
               lastSeenAt: SortOrder.Descending,
+              _id: SortOrder.Descending,
             },
           },
         );
