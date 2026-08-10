@@ -5,9 +5,29 @@
  * (and its ts-jest compile surface) into the suite.
  */
 jest.mock("Common/Server/Services/DatabaseService", () => {
+  /*
+   * Service constructors touch a little base-class API before any database
+   * work happens, so the stub has to answer it. `hardDeleteItemsOlderThanInDays`
+   * is the one that bites: ~100 services call it from their constructor, but
+   * only `if (IsBillingEnabled)` — which is off in a plain local checkout and
+   * ON in CI (Common/test-setup.sh writes BILLING_ENABLED=true). A bare
+   * `class {}` therefore passes locally and dies in CI the moment this test's
+   * import graph reaches one of those services, with a suite-level
+   * "hardDeleteItemsOlderThanInDays is not a function" and no failing test to
+   * point at. Anything genuinely used by the code under test belongs in the
+   * test's own mocks, not here.
+   */
   return {
     __esModule: true,
-    default: class DatabaseServiceStub {},
+    default: class DatabaseServiceStub {
+      public hardDeleteItemsOlderThanInDays(): void {
+        // no-op: retention config, nothing for a pure unit test to do.
+      }
+
+      public setDoNotAllowDelete(): void {
+        // no-op: delete-permission config, same.
+      }
+    },
   };
 });
 
