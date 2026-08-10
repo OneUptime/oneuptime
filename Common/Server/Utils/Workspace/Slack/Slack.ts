@@ -2282,6 +2282,11 @@ export default class SlackUtil extends WorkspaceBase {
         options: {
           retries: 3,
           exponentialBackoff: true,
+          /*
+           * The host is pinned to hooks.slack.com, but do not let a redirect
+           * from it bounce this request to an internal address.
+           */
+          doNotFollowRedirects: true,
         },
       });
 

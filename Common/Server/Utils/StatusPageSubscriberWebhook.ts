@@ -4,6 +4,7 @@ import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../Types/API/HTTPResponse";
 import { JSONObject } from "../../Types/JSON";
 import logger from "./Logger";
+import SSRFProtection from "./SSRFProtection";
 
 export interface StatusPageWebhookPayload extends JSONObject {
   eventType: string;
@@ -21,6 +22,30 @@ export default class StatusPageSubscriberWebhookUtil {
   }): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> {
     logger.debug("Sending status page subscriber webhook notification.");
 
+    /*
+     * The subscriber webhook target is attacker-controllable: any unauthenticated
+     * visitor can register a subscriber with an arbitrary webhook URL on a public
+     * status page. Validate it against the SSRF blocklist before every send (not
+     * just at create time) so previously-stored URLs and DNS-rebinding cannot make
+     * the server reach internal services or the cloud metadata endpoint.
+     */
+    try {
+      await SSRFProtection.validateWebhookTargetIsSafe(data.webhookUrl);
+    } catch (err) {
+      logger.warn(
+        "Refusing to send status page subscriber webhook: unsafe URL.",
+      );
+      logger.warn(err);
+      return new HTTPErrorResponse(
+        400,
+        {
+          message:
+            err instanceof Error ? err.message : "Webhook URL is not allowed.",
+        },
+        {},
+      );
+    }
+
     const apiResult: HTTPResponse<JSONObject> | HTTPErrorResponse =
       await API.post({
         url: data.webhookUrl,
@@ -28,6 +53,11 @@ export default class StatusPageSubscriberWebhookUtil {
         options: {
           retries: 3,
           exponentialBackoff: true,
+          /*
+           * Do not follow redirects: a validated public host could otherwise
+           * 3xx-redirect the server to an internal address, bypassing the check.
+           */
+          doNotFollowRedirects: true,
         },
       });
 
