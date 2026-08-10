@@ -1,0 +1,325 @@
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import DashboardBaseComponent from "Common/Types/Dashboard/DashboardComponents/DashboardBaseComponent";
+import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
+import DataSourceQueryConfig from "Common/Types/DataSource/DataSourceQueryConfig";
+import DataSourceModel from "Common/Models/DatabaseModels/DataSource";
+import DataSourceType, {
+  DataSourceTypeProps,
+  DataSourceTypeUtil,
+} from "Common/Types/DataSource/DataSourceType";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ProjectUtil from "Common/UI/Utils/Project";
+import API from "Common/UI/Utils/API/API";
+import ObjectID from "Common/Types/ObjectID";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import CollapsibleSection from "Common/UI/Components/CollapsibleSection/CollapsibleSection";
+import Dropdown, {
+  DropdownOption,
+  DropdownValue,
+} from "Common/UI/Components/Dropdown/Dropdown";
+import TextArea from "Common/UI/Components/TextArea/TextArea";
+import Input from "Common/UI/Components/Input/Input";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
+import IconProp from "Common/Types/Icon/IconProp";
+
+export interface ComponentProps {
+  component: DashboardBaseComponent;
+  onChange: (component: DashboardBaseComponent) => void;
+}
+
+/*
+ * Bespoke editor for binding a widget to an EXTERNAL Data Source. Writes
+ * straight through onChange/commitComponent (NOT through a BasicForm) so
+ * section-form snapshot re-emits can't clobber it — the same contract the
+ * TableColumnsEditor uses.
+ *
+ * Chart widgets hold an ARRAY of queries (arguments.dataSourceQueryConfigs);
+ * Value/Gauge/Table hold a single query (arguments.dataSourceQueryConfig).
+ * Setting a query switches the widget to external mode; clearing it
+ * returns the widget to OneUptime metrics.
+ */
+const DataSourceQueryEditor: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
+  const [dataSources, setDataSources] = useState<Array<DataSourceModel>>([]);
+  const [loadError, setLoadError] = useState<string>("");
+
+  useEffect(() => {
+    let isMounted: boolean = true;
+
+    const loadDataSources: () => Promise<void> = async (): Promise<void> => {
+      try {
+        const result: ListResult<DataSourceModel> =
+          await ModelAPI.getList<DataSourceModel>({
+            modelType: DataSourceModel,
+            query: {
+              projectId: ProjectUtil.getCurrentProjectId()!,
+            },
+            select: {
+              _id: true,
+              name: true,
+              dataSourceType: true,
+            },
+            sort: {
+              name: SortOrder.Ascending,
+            },
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+          });
+        if (isMounted) {
+          setDataSources(result.data);
+          setLoadError("");
+        }
+      } catch (err: unknown) {
+        if (isMounted) {
+          setLoadError(API.getFriendlyErrorMessage(err as Error));
+        }
+      }
+    };
+
+    loadDataSources().catch(() => {
+      // surfaced via loadError state.
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const isChart: boolean =
+    props.component.componentType === DashboardComponentType.Chart;
+  const isTable: boolean =
+    props.component.componentType === DashboardComponentType.Table;
+
+  const componentArguments: Record<string, unknown> = (props.component
+    .arguments || {}) as Record<string, unknown>;
+
+  const queryConfigs: Array<DataSourceQueryConfig> = useMemo(() => {
+    if (isChart) {
+      return (
+        (componentArguments[
+          "dataSourceQueryConfigs"
+        ] as Array<DataSourceQueryConfig>) || []
+      );
+    }
+    const single: DataSourceQueryConfig | undefined = componentArguments[
+      "dataSourceQueryConfig"
+    ] as DataSourceQueryConfig | undefined;
+    return single ? [single] : [];
+  }, [componentArguments, isChart]);
+
+  const dropdownOptions: Array<DropdownOption> = useMemo(() => {
+    return dataSources.map((dataSource: DataSourceModel) => {
+      return {
+        value: dataSource._id?.toString() || "",
+        label: `${dataSource.name || "Unnamed"} (${
+          dataSource.dataSourceType || "Unknown"
+        })`,
+      };
+    });
+  }, [dataSources]);
+
+  const writeConfigs: (next: Array<DataSourceQueryConfig>) => void = (
+    next: Array<DataSourceQueryConfig>,
+  ): void => {
+    const nextArguments: Record<string, unknown> = {
+      ...componentArguments,
+    };
+
+    if (isChart) {
+      if (next.length > 0) {
+        nextArguments["dataSourceQueryConfigs"] = next;
+      } else {
+        delete nextArguments["dataSourceQueryConfigs"];
+      }
+    } else if (next.length > 0 && next[0]) {
+      nextArguments["dataSourceQueryConfig"] = next[0];
+    } else {
+      delete nextArguments["dataSourceQueryConfig"];
+    }
+
+    props.onChange({
+      ...props.component,
+      arguments: nextArguments,
+    } as DashboardBaseComponent);
+  };
+
+  const getTypeOfDataSource: (
+    dataSourceId: string,
+  ) => DataSourceType | undefined = (
+    dataSourceId: string,
+  ): DataSourceType | undefined => {
+    const matched: DataSourceModel | undefined = dataSources.find(
+      (dataSource: DataSourceModel) => {
+        return dataSource._id?.toString() === dataSourceId;
+      },
+    );
+    return matched?.dataSourceType;
+  };
+
+  const renderQueryCard: (
+    config: DataSourceQueryConfig,
+    index: number,
+  ) => ReactElement = (
+    config: DataSourceQueryConfig,
+    index: number,
+  ): ReactElement => {
+    const selectedType: DataSourceType | undefined = getTypeOfDataSource(
+      config.dataSourceId,
+    );
+    const typeProps: DataSourceTypeProps | undefined = selectedType
+      ? DataSourceTypeUtil.getProps(selectedType)
+      : undefined;
+
+    const updateConfig: (partial: Partial<DataSourceQueryConfig>) => void = (
+      partial: Partial<DataSourceQueryConfig>,
+    ): void => {
+      const next: Array<DataSourceQueryConfig> = [...queryConfigs];
+      next[index] = { ...config, ...partial };
+      writeConfigs(next);
+    };
+
+    return (
+      <div
+        key={config.id || index}
+        className="rounded-md border border-gray-200 p-3 mb-3 bg-gray-50/50"
+      >
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-xs font-medium text-gray-600">
+            {isChart ? `Query ${index + 1}` : "Query"}
+          </p>
+          <Button
+            title="Remove"
+            buttonStyle={ButtonStyleType.DANGER_OUTLINE}
+            buttonSize={ButtonSize.Small}
+            icon={IconProp.Trash}
+            onClick={() => {
+              const next: Array<DataSourceQueryConfig> = queryConfigs.filter(
+                (_item: DataSourceQueryConfig, itemIndex: number) => {
+                  return itemIndex !== index;
+                },
+              );
+              writeConfigs(next);
+            }}
+          />
+        </div>
+
+        <p className="text-xs text-gray-500 mb-1">Data Source</p>
+        <Dropdown
+          value={dropdownOptions.find((option: DropdownOption) => {
+            return option.value === config.dataSourceId;
+          })}
+          options={dropdownOptions}
+          placeholder="Select a data source"
+          onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+            updateConfig({
+              dataSourceId: value ? value.toString() : "",
+            });
+          }}
+        />
+
+        <p className="text-xs text-gray-500 mt-3 mb-1">
+          Query{typeProps ? ` (${typeProps.queryLanguageTitle})` : ""}
+        </p>
+        <TextArea
+          initialValue={config.query || ""}
+          placeholder={typeProps?.queryPlaceholder || "Enter your query"}
+          onChange={(value: string) => {
+            updateConfig({ query: value });
+          }}
+        />
+        {selectedType && DataSourceTypeUtil.isDatabaseType(selectedType) && (
+          <p className="mt-1 text-xs text-gray-400">
+            {isTable
+              ? "Any read-only query works — rows render as-is."
+              : "Return a time column (time/timestamp) and a numeric value column; extra columns become series labels."}{" "}
+            Time macros: $__startTime, $__endTime, $__startTimeMs, $__endTimeMs,
+            $__rangeSeconds (UTC). Dashboard variables: {"{{variableName}}"}.
+          </p>
+        )}
+        {selectedType && !DataSourceTypeUtil.isDatabaseType(selectedType) && (
+          <p className="mt-1 text-xs text-gray-400">
+            Dashboard variables interpolate with {"{{variableName}}"}.
+          </p>
+        )}
+
+        {!isTable && (
+          <>
+            <p className="text-xs text-gray-500 mt-3 mb-1">Legend (optional)</p>
+            <Input
+              value={config.legend || ""}
+              placeholder="e.g. {{instance}} — errors"
+              onChange={(value: string) => {
+                updateConfig({ legend: value || undefined });
+              }}
+            />
+          </>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className="mt-3">
+      <CollapsibleSection
+        title="External Data Source"
+        description={
+          isTable
+            ? "Render rows from a connected external system (Prometheus, SQL, ClickHouse, Loki, Elasticsearch, REST) instead of OneUptime metrics."
+            : "Chart data from a connected external system (Prometheus, SQL, ClickHouse, Loki, Elasticsearch, REST) instead of OneUptime metrics."
+        }
+        variant="bordered"
+        defaultCollapsed={queryConfigs.length === 0}
+      >
+        <div>
+          {loadError && <p className="text-xs text-red-500">{loadError}</p>}
+          {!loadError && dataSources.length === 0 && (
+            <p className="text-xs text-gray-400">
+              No data sources connected yet. Add one under Project Settings →
+              Data Sources.
+            </p>
+          )}
+          {queryConfigs.map(
+            (config: DataSourceQueryConfig, index: number): ReactElement => {
+              return renderQueryCard(config, index);
+            },
+          )}
+          {dataSources.length > 0 && (isChart || queryConfigs.length === 0) && (
+            <Button
+              title={
+                queryConfigs.length === 0
+                  ? "Use External Data Source"
+                  : "Add Query"
+              }
+              buttonStyle={ButtonStyleType.OUTLINE}
+              buttonSize={ButtonSize.Small}
+              icon={IconProp.Add}
+              onClick={() => {
+                writeConfigs([
+                  ...queryConfigs,
+                  {
+                    id: ObjectID.generate().toString(),
+                    dataSourceId: "",
+                    query: "",
+                  },
+                ]);
+              }}
+            />
+          )}
+        </div>
+      </CollapsibleSection>
+    </div>
+  );
+};
+
+export default DataSourceQueryEditor;

@@ -80,6 +80,20 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
       ],
     },
     {
+      title: "Dashboards",
+      items: [
+        {
+          link: {
+            title: "Data Sources",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_DATA_SOURCES] as Route,
+            ),
+          },
+          icon: IconProp.Database,
+        },
+      ],
+    },
+    {
       title: "Notifications",
       items: [
         {
