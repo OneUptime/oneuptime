@@ -8,9 +8,44 @@ import { describe, expect, it, test } from "@jest/globals";
  * the whole suite is skipped before a single assertion runs.
  */
 import "@testing-library/jest-dom";
-import { fireEvent, render } from "@testing-library/react";
+import { act, fireEvent, render, RenderResult } from "@testing-library/react";
 import React from "react";
 import getJestMockFunction, { MockFunction } from "../../../Tests/MockType";
+
+/*
+ * The panel mounts closed and opens on the next animation frame, so anything
+ * asserting the settled look has to let that frame run first.
+ */
+type FlushEntranceFrameFunction = () => Promise<void>;
+
+const flushEntranceFrame: FlushEntranceFrameFunction =
+  async (): Promise<void> => {
+    await act(async () => {
+      await new Promise<void>((resolve: () => void) => {
+        requestAnimationFrame(() => {
+          resolve();
+        });
+      });
+    });
+  };
+
+/*
+ * The backdrop a user actually clicks is the layer the panel is centred in,
+ * not the tinted sheet behind it, which is inert.
+ */
+type GetBackdropLayerFunction = (panel: HTMLElement) => HTMLElement;
+
+const getBackdropLayer: GetBackdropLayerFunction = (
+  panel: HTMLElement,
+): HTMLElement => {
+  return panel.parentElement!;
+};
+
+type GetHeaderFunction = (title: HTMLElement) => HTMLElement;
+
+const getHeader: GetHeaderFunction = (title: HTMLElement): HTMLElement => {
+  return title.parentElement!.parentElement!;
+};
 
 describe("Modal", () => {
   test("renders the modal with the title and description", () => {
@@ -452,5 +487,250 @@ describe("Modal", () => {
     );
 
     expect(getByTestId("right-element")).toBeInTheDocument();
+  });
+
+  it("fades and lifts the panel in from a closed state", async () => {
+    const { getByTestId } = render(
+      <Modal title="Entrance Modal">
+        <div>Modal content</div>
+      </Modal>,
+    );
+
+    const panel: HTMLElement = getByTestId("modal");
+    const backdrop: HTMLElement = getByTestId("modal-backdrop");
+
+    expect(panel).toHaveClass("opacity-0", "translate-y-6", "sm:scale-95");
+    expect(backdrop).toHaveClass("opacity-0");
+
+    await flushEntranceFrame();
+
+    expect(panel).toHaveClass("opacity-100");
+    expect(backdrop).toHaveClass("opacity-100");
+  });
+
+  /*
+   * A `scale-100` left behind after the entrance would make the panel the
+   * containing block for `position: fixed`, and a modal opened from inside
+   * this one would then be laid out against the panel instead of the viewport.
+   */
+  it("leaves no transform on the panel once it has settled", async () => {
+    const { getByTestId } = render(
+      <Modal title="Settled Modal">
+        <div>Modal content</div>
+      </Modal>,
+    );
+
+    await flushEntranceFrame();
+
+    expect(getByTestId("modal").className).not.toMatch(
+      /(^|\s)(sm:)?(scale|translate)-/,
+    );
+  });
+
+  it("closes on a click that both starts and ends on the backdrop", () => {
+    const onCloseMock: MockFunction = getJestMockFunction();
+    const { getByTestId } = render(
+      <Modal title="Dismissable Modal" onClose={onCloseMock}>
+        <div>Modal content</div>
+      </Modal>,
+    );
+
+    const backdropLayer: HTMLElement = getBackdropLayer(getByTestId("modal"));
+
+    fireEvent.mouseDown(backdropLayer);
+    fireEvent.click(backdropLayer);
+
+    expect(onCloseMock).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * Selecting text in the body and releasing past the edge of the panel is a
+   * drag, not a dismissal. Closing on it is the fastest way to lose a
+   * half-filled form.
+   */
+  it("stays open when a drag that started inside the panel ends on the backdrop", () => {
+    const onCloseMock: MockFunction = getJestMockFunction();
+    const { getByText, getByTestId } = render(
+      <Modal title="Drag Modal" onClose={onCloseMock}>
+        <div>Modal content</div>
+      </Modal>,
+    );
+
+    fireEvent.mouseDown(getByText("Modal content"));
+    fireEvent.click(getBackdropLayer(getByTestId("modal")));
+
+    expect(onCloseMock).not.toHaveBeenCalled();
+  });
+
+  it("stays open on a backdrop click when backdrop dismissal is disabled", () => {
+    const onCloseMock: MockFunction = getJestMockFunction();
+    const { getByTestId } = render(
+      <Modal
+        title="Sticky Modal"
+        onClose={onCloseMock}
+        disableCloseOnBackdropClick={true}
+      >
+        <div>Modal content</div>
+      </Modal>,
+    );
+
+    const backdropLayer: HTMLElement = getBackdropLayer(getByTestId("modal"));
+
+    fireEvent.mouseDown(backdropLayer);
+    fireEvent.click(backdropLayer);
+
+    expect(onCloseMock).not.toHaveBeenCalled();
+    // The close button is still the way out.
+    fireEvent.click(getByTestId("close-button"));
+    expect(onCloseMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("ignores a backdrop click on a modal that is not the topmost one", () => {
+    const onParentCloseMock: MockFunction = getJestMockFunction();
+    const onChildCloseMock: MockFunction = getJestMockFunction();
+
+    const NestedModalFixture: React.FunctionComponent =
+      (): React.ReactElement => {
+        const [isChildOpen, setIsChildOpen] = React.useState<boolean>(false);
+
+        return (
+          <Modal title="Parent Modal" onClose={onParentCloseMock}>
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsChildOpen(true);
+                }}
+              >
+                Open child
+              </button>
+              {isChildOpen && (
+                <Modal title="Child Modal" onClose={onChildCloseMock}>
+                  <div>Child content</div>
+                </Modal>
+              )}
+            </>
+          </Modal>
+        );
+      };
+
+    const { getAllByTestId, getByRole } = render(<NestedModalFixture />);
+
+    fireEvent.click(getByRole("button", { name: "Open child" }));
+
+    const [parentPanel, childPanel] = getAllByTestId("modal") as [
+      HTMLElement,
+      HTMLElement,
+    ];
+    const parentBackdropLayer: HTMLElement = getBackdropLayer(parentPanel);
+
+    fireEvent.mouseDown(parentBackdropLayer);
+    fireEvent.click(parentBackdropLayer);
+
+    expect(onParentCloseMock).not.toHaveBeenCalled();
+    expect(onChildCloseMock).not.toHaveBeenCalled();
+
+    const childBackdropLayer: HTMLElement = getBackdropLayer(childPanel);
+
+    fireEvent.mouseDown(childBackdropLayer);
+    fireEvent.click(childBackdropLayer);
+
+    expect(onChildCloseMock).toHaveBeenCalledTimes(1);
+    expect(onParentCloseMock).not.toHaveBeenCalled();
+  });
+
+  it("locks page scrolling for as long as any modal is open", () => {
+    document.body.style.overflow = "auto";
+
+    const parent: RenderResult = render(
+      <Modal title="First Modal">
+        <div>Modal content</div>
+      </Modal>,
+    );
+
+    expect(document.body.style.overflow).toBe("hidden");
+
+    const child: RenderResult = render(
+      <Modal title="Second Modal">
+        <div>Modal content</div>
+      </Modal>,
+    );
+
+    child.unmount();
+
+    // The first modal is still up, so scrolling must not come back yet.
+    expect(document.body.style.overflow).toBe("hidden");
+
+    parent.unmount();
+
+    expect(document.body.style.overflow).toBe("auto");
+
+    document.body.style.overflow = "";
+  });
+
+  it("shows a scroll shadow only on the side that content is hidden", () => {
+    const { getByTestId } = render(
+      <Modal title="Tall Modal" onSubmit={getJestMockFunction()}>
+        <div>Modal content</div>
+      </Modal>,
+    );
+
+    const content: HTMLElement = getByTestId("modal-content");
+    const header: HTMLElement = getHeader(getByTestId("modal-title"));
+    const footer: HTMLElement = getByTestId("modal-footer");
+
+    /*
+     * jsdom lays nothing out, so the body is given a size that overflows its
+     * container by hand.
+     */
+    Object.defineProperty(content, "scrollHeight", {
+      configurable: true,
+      value: 600,
+    });
+    Object.defineProperty(content, "clientHeight", {
+      configurable: true,
+      value: 200,
+    });
+    Object.defineProperty(content, "scrollTop", {
+      configurable: true,
+      value: 0,
+    });
+
+    fireEvent.scroll(content);
+
+    expect(header.className).not.toMatch(/shadow-\[/);
+    expect(footer.className).toMatch(/shadow-\[0_-6px/);
+
+    Object.defineProperty(content, "scrollTop", {
+      configurable: true,
+      value: 400,
+    });
+
+    fireEvent.scroll(content);
+
+    expect(header.className).toMatch(/shadow-\[0_6px/);
+    expect(footer.className).not.toMatch(/shadow-\[/);
+  });
+
+  /*
+   * The close button used to be positioned over the header, so a title long
+   * enough to reach the right edge ran underneath it.
+   */
+  it("lays the close button out beside the title rather than over it", () => {
+    const { getByTestId } = render(
+      <Modal
+        title="A title long enough to reach the right edge of the header"
+        onClose={getJestMockFunction()}
+      >
+        <div>Modal content</div>
+      </Modal>,
+    );
+
+    const title: HTMLElement = getByTestId("modal-title");
+    const closeButton: HTMLElement = getByTestId("close-button");
+
+    expect(closeButton).not.toHaveClass("absolute");
+    expect(closeButton.parentElement).toBe(getHeader(title));
+    expect(title.parentElement).not.toHaveClass("pr-9");
   });
 });
