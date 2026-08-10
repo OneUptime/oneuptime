@@ -68,10 +68,6 @@ const DataSourcesPage: FunctionComponent<
     setIsTesting(false);
   };
 
-  const selectedTypeTitle: string | null = selectedDataSourceType
-    ? DataSourceTypeUtil.getProps(selectedDataSourceType).title
-    : null;
-
   return (
     <Fragment>
       <>
@@ -143,11 +139,14 @@ const DataSourcesPage: FunctionComponent<
           isEditable={false}
           isViewable={true}
           isCreateable={true}
-          singularName={
-            selectedTypeTitle
-              ? `${selectedTypeTitle} Data Source`
-              : "Data Source"
-          }
+          /*
+           * Deliberately NOT derived from the picked type: singularName feeds
+           * the header button, row view buttons and delete confirmations as
+           * well as the create modal, so a type-specific value renames the
+           * whole table for as long as the modal is open. The picker is what
+           * tells the user which type they chose.
+           */
+          singularName="Data Source"
           createEditModalWidth={ModalWidth.Large}
           onCreateClick={() => {
             setShowTypeSelectModal(true);

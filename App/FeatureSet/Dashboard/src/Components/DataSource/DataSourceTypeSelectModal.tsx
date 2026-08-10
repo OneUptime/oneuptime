@@ -75,17 +75,28 @@ const DataSourceTypeSelectModal: FunctionComponent<ComponentProps> = (
       modalWidth={ModalWidth.Large}
     >
       <div>
-        <Input
-          autoFocus={true}
-          placeholder="Search data source types..."
-          value={searchText}
-          onChange={(value: string) => {
-            setSearchText(value);
-          }}
-          dataTestId="data-source-type-search"
-        />
+        {/*
+         * The modal body is already the scroll container, so this must not
+         * open a second one -- a nested box would cap the list well short of
+         * the room the modal has spare and stop the body's scroll shadows
+         * from ever appearing. Sticking the search to the top of that body
+         * keeps it reachable through a long list without nesting a scroller.
+         * The negative margins let its background cover the body's padding
+         * so rows do not show through the gutters as they scroll under it.
+         */}
+        <div className="sticky -top-5 z-10 -mx-5 -mt-5 bg-white px-5 pb-4 pt-5 sm:-mx-6 sm:px-6">
+          <Input
+            autoFocus={true}
+            placeholder="Search data source types..."
+            value={searchText}
+            onChange={(value: string) => {
+              setSearchText(value);
+            }}
+            dataTestId="data-source-type-search"
+          />
+        </div>
 
-        <div className="mt-6 max-h-96 overflow-y-auto space-y-6">
+        <div className="space-y-6">
           {matchingTypes.length === 0 ? (
             <div className="text-center py-10">
               <Icon
