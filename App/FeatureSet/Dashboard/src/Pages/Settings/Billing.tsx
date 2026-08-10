@@ -47,6 +47,10 @@ import {
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import BaseAPI from "Common/UI/Utils/API/API";
 import UiAnalytics from "Common/UI/Utils/Analytics";
+import {
+  RevenueEventName,
+  RevenueFunnelStage,
+} from "Common/Types/Analytics/RevenueEvent";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import BillingPaymentMethod from "Common/Models/DatabaseModels/BillingPaymentMethod";
@@ -300,24 +304,32 @@ const Settings: FunctionComponent<ComponentProps> = (
           newPlanOrder > oldPlanOrder
         ) {
           // GA4/Google Ads friendly conversion event.
-          UiAnalytics.capture("subscription_upgraded", {
-            plan: newPlan?.getName() || "",
-            ...(newMonthlyAmountInUSD !== null
-              ? {
-                  value: newMonthlyAmountInUSD * seats,
-                  currency: "USD",
-                }
-              : {}),
-            is_paid_conversion: oldMonthlyAmountInUSD === 0 && newPlanIsPaid,
-          });
+          UiAnalytics.captureRevenueEvent(
+            RevenueEventName.SubscriptionUpgraded,
+            {
+              funnel_stage: RevenueFunnelStage.Revenue,
+              plan: newPlan?.getName() || "",
+              ...(newMonthlyAmountInUSD !== null
+                ? {
+                    value: newMonthlyAmountInUSD * seats,
+                    currency: "USD",
+                  }
+                : {}),
+              is_paid_conversion: oldMonthlyAmountInUSD === 0 && newPlanIsPaid,
+            },
+          );
         } else if (
           oldPlanOrder !== null &&
           newPlanOrder !== null &&
           newPlanOrder < oldPlanOrder
         ) {
-          UiAnalytics.capture("subscription_downgraded", {
-            plan: newPlan?.getName() || "",
-          });
+          UiAnalytics.captureRevenueEvent(
+            RevenueEventName.SubscriptionDowngraded,
+            {
+              funnel_stage: RevenueFunnelStage.Revenue,
+              plan: newPlan?.getName() || "",
+            },
+          );
         }
 
         setCurrentPlanId(newPlanId);

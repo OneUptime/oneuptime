@@ -3,6 +3,10 @@ import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import Dictionary from "Common/Types/Dictionary";
 import { JSONObject } from "Common/Types/JSON";
+import {
+  RevenueEventName,
+  RevenueFunnelStage,
+} from "Common/Types/Analytics/RevenueEvent";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import ModelForm, {
   FormType,
@@ -30,7 +34,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import UserUtil from "Common/UI/Utils/User";
 import Reseller from "Common/Models/DatabaseModels/Reseller";
 import User from "Common/Models/DatabaseModels/User";
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import useAsyncEffect from "use-async-effect";
 import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
@@ -40,6 +44,9 @@ const RegisterPage: () => JSX.Element = () => {
   const apiUrl: URL = SIGNUP_API_URL;
 
   const [initialValues, setInitialValues] = React.useState<JSONObject>({});
+
+  const hasCapturedSignupStart: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
 
   const [error, setError] = useState<string>("");
 
@@ -332,6 +339,13 @@ const RegisterPage: () => JSX.Element = () => {
               item: User,
               miscDataProps: JSONObject,
             ): Promise<User> => {
+              if (!hasCapturedSignupStart.current) {
+                UiAnalytics.captureRevenueEvent(
+                  RevenueEventName.SignupStarted,
+                  { funnel_stage: RevenueFunnelStage.Signup },
+                );
+                hasCapturedSignupStart.current = true;
+              }
               if (isCaptchaEnabled) {
                 const captchaToken: string | undefined = (
                   miscDataProps["captchaToken"] as string | undefined
@@ -396,7 +410,10 @@ const RegisterPage: () => JSX.Element = () => {
               if (value && value.email) {
                 UiAnalytics.userAuth(value.email);
                 UiAnalytics.capture("accounts/register");
-                UiAnalytics.capture("sign_up");
+                UiAnalytics.captureRevenueEvent(
+                  RevenueEventName.SignupCompleted,
+                  { funnel_stage: RevenueFunnelStage.Signup },
+                );
               }
 
               LoginUtil.login({

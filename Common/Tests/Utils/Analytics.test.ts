@@ -3,6 +3,11 @@ import { JSONObject } from "../../Types/JSON";
 import Analytics from "../../Utils/Analytics";
 import { describe, expect, it } from "@jest/globals";
 import posthog from "posthog-js";
+import {
+  REVENUE_EVENT_SCHEMA_VERSION,
+  RevenueEventName,
+  RevenueFunnelStage,
+} from "../../Types/Analytics/RevenueEvent";
 
 jest.mock("posthog-js", () => {
   return {
@@ -75,6 +80,24 @@ describe("Analytics Class", () => {
 
     analytics.capture(eventName, data);
     expect(posthog.capture).toHaveBeenCalledWith(eventName, data);
+  });
+
+  it("should capture a versioned revenue event", () => {
+    const analytics: Analytics = new Analytics(apiHost, apiKey);
+
+    analytics.captureRevenueEvent(RevenueEventName.WorkspaceCreated, {
+      funnel_stage: RevenueFunnelStage.Activation,
+      project_id: "project-123",
+    });
+
+    expect(posthog.capture).toHaveBeenCalledWith(
+      RevenueEventName.WorkspaceCreated,
+      {
+        funnel_stage: RevenueFunnelStage.Activation,
+        project_id: "project-123",
+        event_schema_version: REVENUE_EVENT_SCHEMA_VERSION,
+      },
+    );
   });
 
   it("should not capture an event if not initialized", () => {
