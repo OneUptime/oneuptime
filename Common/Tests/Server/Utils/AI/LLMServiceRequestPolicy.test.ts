@@ -62,6 +62,21 @@ const providerCases: Array<ProviderCase> = [
     defaultTimeoutInMs: 120_000,
   },
   {
+    name: "AWS Bedrock",
+    config: {
+      llmType: LlmType.Bedrock,
+      apiKey: "AKIATEST:secret",
+      baseUrl: "https://bedrock-runtime.us-east-1.amazonaws.com",
+      modelName: "anthropic.claude-3-5-sonnet-20240620-v1:0",
+    },
+    response: {
+      output: { message: { content: [{ text: "ok" }] } },
+      stopReason: "end_turn",
+      usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+    },
+    defaultTimeoutInMs: 120_000,
+  },
+  {
     name: "Ollama",
     config: {
       llmType: LlmType.Ollama,

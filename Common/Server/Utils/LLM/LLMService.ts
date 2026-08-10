@@ -7,6 +7,7 @@ import JSONFunctions from "../../../Types/JSONFunctions";
 import API from "../../../Utils/API";
 import LlmType from "../../../Types/LLM/LlmType";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import crypto from "crypto";
 import logger, { LogAttributes } from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 
@@ -84,6 +85,18 @@ export interface LLMProviderConfig {
   apiKey?: string;
   baseUrl?: string;
   modelName?: string;
+}
+
+interface BedrockCredentials {
+  accessKeyId: string;
+  secretAccessKey: string;
+  sessionToken?: string | undefined;
+}
+
+interface BedrockRequestTarget {
+  endpoint: string;
+  region: string;
+  modelName: string;
 }
 
 /**
@@ -298,6 +311,8 @@ export default class LLMService {
         return await this.getAzureOpenAICompletion(config, request);
       case LlmType.Anthropic:
         return await this.getAnthropicCompletion(config, request);
+      case LlmType.Bedrock:
+        return await this.getBedrockCompletion(config, request);
       case LlmType.Ollama:
         return await this.getOllamaCompletion(config, request);
       default:
@@ -1305,6 +1320,452 @@ export default class LLMService {
     };
   }
 
+  private static getBedrockCredentials(
+    config: LLMProviderConfig,
+  ): BedrockCredentials {
+    const configuredCredentials: string | undefined = config.apiKey?.trim();
+
+    if (configuredCredentials) {
+      const parts: Array<string> = configuredCredentials.split(":");
+      const accessKeyId: string | undefined = parts[0];
+      const secretAccessKey: string | undefined = parts[1];
+      const sessionToken: string | undefined =
+        parts.length > 2 ? parts.slice(2).join(":") : undefined;
+
+      if (!accessKeyId || !secretAccessKey) {
+        throw new BadDataException(
+          "AWS Bedrock API key must be accessKeyId:secretAccessKey[:sessionToken]",
+        );
+      }
+
+      return {
+        accessKeyId: accessKeyId,
+        secretAccessKey: secretAccessKey,
+        sessionToken: sessionToken || undefined,
+      };
+    }
+
+    const accessKeyId: string | undefined = process.env["AWS_ACCESS_KEY_ID"];
+    const secretAccessKey: string | undefined =
+      process.env["AWS_SECRET_ACCESS_KEY"];
+
+    if (!accessKeyId || !secretAccessKey) {
+      throw new BadDataException(
+        "AWS Bedrock credentials are required. Set the encrypted API Key to accessKeyId:secretAccessKey[:sessionToken], or provide AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY in the runtime environment.",
+      );
+    }
+
+    return {
+      accessKeyId: accessKeyId,
+      secretAccessKey: secretAccessKey,
+      sessionToken: process.env["AWS_SESSION_TOKEN"] || undefined,
+    };
+  }
+
+  private static getBedrockRequestTarget(data: {
+    config: LLMProviderConfig;
+    request: LLMCompletionRequest;
+  }): BedrockRequestTarget {
+    const modelName: string =
+      data.config.modelName || "anthropic.claude-3-5-sonnet-20240620-v1:0";
+
+    const additionalParams: JSONObject | undefined =
+      data.request.additionalParams;
+    const regionOverride: unknown = additionalParams?.["region"];
+    let region: string =
+      (typeof regionOverride === "string" && regionOverride.trim()) ||
+      process.env["AWS_REGION"] ||
+      process.env["AWS_DEFAULT_REGION"] ||
+      "us-east-1";
+
+    let endpoint: string = `https://bedrock-runtime.${region}.amazonaws.com`;
+    const configuredBaseUrl: string | undefined = data.config.baseUrl?.trim();
+
+    if (configuredBaseUrl) {
+      endpoint = configuredBaseUrl.replace(/\/+$/, "");
+
+      const host: string = new globalThis.URL(endpoint).host;
+      const regionMatch: RegExpMatchArray | null = host.match(
+        /^bedrock-runtime[.-]([a-z0-9-]+)\.amazonaws\.com(?:\.cn)?$/i,
+      );
+
+      if (regionMatch?.[1]) {
+        region = regionMatch[1];
+      }
+    }
+
+    return {
+      endpoint: endpoint,
+      region: region,
+      modelName: modelName,
+    };
+  }
+
+  private static toBedrockMessages(messages: Array<LLMMessage>): {
+    system: Array<JSONObject>;
+    messages: Array<JSONObject>;
+  } {
+    const system: Array<JSONObject> = [];
+    const bedrockMessages: Array<JSONObject> = [];
+
+    const appendMessage: (role: string, content: Array<JSONObject>) => void = (
+      role: string,
+      content: Array<JSONObject>,
+    ): void => {
+      if (content.length === 0) {
+        return;
+      }
+
+      const previousMessage: JSONObject | undefined =
+        bedrockMessages[bedrockMessages.length - 1];
+
+      if (
+        previousMessage &&
+        previousMessage["role"] === role &&
+        Array.isArray(previousMessage["content"])
+      ) {
+        (previousMessage["content"] as Array<JSONObject>).push(...content);
+        return;
+      }
+
+      bedrockMessages.push({
+        role: role,
+        content: content,
+      });
+    };
+
+    for (const message of messages) {
+      if (message.role === "system") {
+        if (message.content) {
+          system.push({ text: message.content });
+        }
+        continue;
+      }
+
+      if (message.role === "tool") {
+        appendMessage("user", [
+          {
+            toolResult: {
+              toolUseId: message.toolCallId || "",
+              content: [{ text: message.content }],
+            },
+          },
+        ]);
+        continue;
+      }
+
+      const content: Array<JSONObject> = [];
+
+      if (message.content) {
+        content.push({ text: message.content });
+      }
+
+      if (message.role === "assistant" && message.toolCalls?.length) {
+        for (const toolCall of message.toolCalls) {
+          content.push({
+            toolUse: {
+              toolUseId: toolCall.id,
+              name: toolCall.name,
+              input: toolCall.arguments,
+            },
+          });
+        }
+      }
+
+      appendMessage(message.role, content);
+    }
+
+    return {
+      system: system,
+      messages: bedrockMessages,
+    };
+  }
+
+  private static buildBedrockRequestBody(
+    request: LLMCompletionRequest,
+  ): JSONObject {
+    const convertedMessages: {
+      system: Array<JSONObject>;
+      messages: Array<JSONObject>;
+    } = this.toBedrockMessages(request.messages);
+
+    const inferenceConfig: JSONObject = {
+      temperature: request.temperature ?? 0.7,
+    };
+
+    if (request.maxTokens) {
+      inferenceConfig["maxTokens"] = request.maxTokens;
+    }
+
+    const requestData: JSONObject = {
+      messages: convertedMessages.messages,
+      inferenceConfig: inferenceConfig,
+    };
+
+    if (convertedMessages.system.length > 0) {
+      requestData["system"] = convertedMessages.system;
+    }
+
+    if (request.tools && request.tools.length > 0) {
+      requestData["toolConfig"] = {
+        tools: request.tools.map((tool: LLMToolDefinition) => {
+          return {
+            toolSpec: {
+              name: tool.name,
+              description: tool.description,
+              inputSchema: {
+                json: tool.inputSchema,
+              },
+            },
+          };
+        }),
+      };
+    }
+
+    const additionalParams: JSONObject | undefined = request.additionalParams;
+
+    const configuredInferenceConfig: unknown =
+      additionalParams?.["inferenceConfig"];
+    if (
+      configuredInferenceConfig &&
+      typeof configuredInferenceConfig === "object" &&
+      !Array.isArray(configuredInferenceConfig)
+    ) {
+      Object.assign(
+        requestData["inferenceConfig"] as JSONObject,
+        configuredInferenceConfig as JSONObject,
+      );
+    }
+
+    const additionalModelRequestFields: unknown =
+      additionalParams?.["additionalModelRequestFields"];
+    if (
+      additionalModelRequestFields &&
+      typeof additionalModelRequestFields === "object" &&
+      !Array.isArray(additionalModelRequestFields)
+    ) {
+      requestData["additionalModelRequestFields"] =
+        additionalModelRequestFields as JSONObject;
+    }
+
+    return requestData;
+  }
+
+  private static sha256Hex(value: string): string {
+    return crypto.createHash("sha256").update(value, "utf8").digest("hex");
+  }
+
+  private static hmacSha256(key: crypto.BinaryLike, value: string): Buffer {
+    return crypto.createHmac("sha256", key).update(value, "utf8").digest();
+  }
+  private static bufferAsBinaryLike(buffer: Buffer): crypto.BinaryLike {
+    // Node accepts Buffer; this cast avoids @types/node's Buffer/Uint8Array mismatch.
+    return buffer as unknown as crypto.BinaryLike;
+  }
+
+  private static getBedrockSignatureHeaders(data: {
+    credentials: BedrockCredentials;
+    method: string;
+    requestUrl: string;
+    region: string;
+    body: string;
+  }): Headers {
+    const now: Date = new Date();
+    const amzDate: string = now.toISOString().replace(/[:-]|\.\d{3}/g, "");
+    const dateStamp: string = amzDate.slice(0, 8);
+    const url: globalThis.URL = new globalThis.URL(data.requestUrl);
+    const payloadHash: string = this.sha256Hex(data.body);
+
+    const canonicalHeaderValues: Record<string, string> = {
+      "content-type": "application/json",
+      host: url.host,
+      "x-amz-content-sha256": payloadHash,
+      "x-amz-date": amzDate,
+    };
+
+    if (data.credentials.sessionToken) {
+      canonicalHeaderValues["x-amz-security-token"] =
+        data.credentials.sessionToken;
+    }
+
+    const signedHeaderNames: Array<string> = Object.keys(
+      canonicalHeaderValues,
+    ).sort();
+    const canonicalHeaders: string = signedHeaderNames
+      .map((name: string) => {
+        return `${name}:${canonicalHeaderValues[name]!.trim()}\n`;
+      })
+      .join("");
+    const signedHeaders: string = signedHeaderNames.join(";");
+    const canonicalRequest: string = [
+      data.method,
+      url.pathname,
+      url.searchParams.toString(),
+      canonicalHeaders,
+      signedHeaders,
+      payloadHash,
+    ].join("\n");
+    const credentialScope: string = `${dateStamp}/${data.region}/bedrock/aws4_request`;
+    const stringToSign: string = [
+      "AWS4-HMAC-SHA256",
+      amzDate,
+      credentialScope,
+      this.sha256Hex(canonicalRequest),
+    ].join("\n");
+
+    const dateKey: Buffer = this.hmacSha256(
+      `AWS4${data.credentials.secretAccessKey}`,
+      dateStamp,
+    );
+    const regionKey: Buffer = this.hmacSha256(
+      this.bufferAsBinaryLike(dateKey),
+      data.region,
+    );
+    const serviceKey: Buffer = this.hmacSha256(
+      this.bufferAsBinaryLike(regionKey),
+      "bedrock",
+    );
+    const signingKey: Buffer = this.hmacSha256(
+      this.bufferAsBinaryLike(serviceKey),
+      "aws4_request",
+    );
+    const signature: string = crypto
+      .createHmac("sha256", this.bufferAsBinaryLike(signingKey))
+      .update(stringToSign, "utf8")
+      .digest("hex");
+
+    return {
+      "Content-Type": "application/json",
+      Host: url.host,
+      "X-Amz-Content-Sha256": payloadHash,
+      "X-Amz-Date": amzDate,
+      ...(data.credentials.sessionToken
+        ? { "X-Amz-Security-Token": data.credentials.sessionToken }
+        : {}),
+      Authorization: `AWS4-HMAC-SHA256 Credential=${data.credentials.accessKeyId}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`,
+    };
+  }
+
+  private static parseBedrockResponse(
+    jsonData: JSONObject,
+  ): LLMCompletionResponse {
+    const output: JSONObject | undefined = jsonData["output"] as
+      | JSONObject
+      | undefined;
+    const message: JSONObject | undefined = output?.["message"] as
+      | JSONObject
+      | undefined;
+    const content: Array<JSONObject> | undefined = message?.["content"] as
+      | Array<JSONObject>
+      | undefined;
+
+    if (!content || content.length === 0) {
+      throw new BadDataException("No response from AWS Bedrock");
+    }
+
+    const textContent: string = content
+      .filter((block: JSONObject) => {
+        return typeof block["text"] === "string";
+      })
+      .map((block: JSONObject) => {
+        return block["text"] as string;
+      })
+      .join("");
+
+    const toolCalls: Array<LLMToolCall> = content
+      .filter((block: JSONObject) => {
+        return Boolean(block["toolUse"]);
+      })
+      .map((block: JSONObject, index: number) => {
+        const toolUse: JSONObject = block["toolUse"] as JSONObject;
+        const input: unknown = toolUse["input"];
+
+        return {
+          id: (toolUse["toolUseId"] as string) || `tool_call_${index}`,
+          name: (toolUse["name"] as string) || "",
+          arguments:
+            input && typeof input === "object" && !Array.isArray(input)
+              ? (input as JSONObject)
+              : {},
+        };
+      });
+
+    if (!textContent && toolCalls.length === 0) {
+      throw new BadDataException("No text content in AWS Bedrock response");
+    }
+
+    const usage: JSONObject | undefined = jsonData["usage"] as
+      | JSONObject
+      | undefined;
+    const promptTokens: number = (usage?.["inputTokens"] as number) || 0;
+    const completionTokens: number = (usage?.["outputTokens"] as number) || 0;
+
+    return {
+      content: textContent,
+      toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
+      stopReason: jsonData["stopReason"] === "tool_use" ? "tool_use" : "stop",
+      usage: usage
+        ? {
+            promptTokens: promptTokens,
+            completionTokens: completionTokens,
+            totalTokens:
+              (usage["totalTokens"] as number) ||
+              promptTokens + completionTokens,
+          }
+        : undefined,
+    };
+  }
+
+  @CaptureSpan()
+  private static async getBedrockCompletion(
+    config: LLMProviderConfig,
+    request: LLMCompletionRequest,
+  ): Promise<LLMCompletionResponse> {
+    const target: BedrockRequestTarget = this.getBedrockRequestTarget({
+      config: config,
+      request: request,
+    });
+    const credentials: BedrockCredentials = this.getBedrockCredentials(config);
+    const body: JSONObject = this.buildBedrockRequestBody(request);
+    const bodyString: string = JSON.stringify(body);
+    const requestUrl: string = `${target.endpoint}/model/${encodeURIComponent(
+      target.modelName,
+    )}/converse`;
+
+    const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+      await API.post<JSONObject>({
+        url: URL.fromString(requestUrl),
+        data: body,
+        headers: this.getBedrockSignatureHeaders({
+          credentials: credentials,
+          method: "POST",
+          requestUrl: requestUrl,
+          region: target.region,
+          body: bodyString,
+        }),
+        options: {
+          retries: request.requestRetries ?? 2,
+          exponentialBackoff: true,
+          timeout: request.requestTimeoutInMs ?? 120000,
+        },
+      });
+
+    const bedrockLogAttributes: LogAttributes = {
+      llmType: config.llmType,
+      modelName: target.modelName,
+    };
+
+    if (response instanceof HTTPErrorResponse) {
+      this.throwProviderHTTPError({
+        providerName: "AWS Bedrock",
+        response,
+        logAttributes: bedrockLogAttributes,
+        includeProviderErrorDetails: request.includeProviderErrorDetails,
+      });
+    }
+
+    return this.parseBedrockResponse(response.jsonData as JSONObject);
+  }
   /*
    * Ollama native /api/chat. Deliberately NOT routed through the
    * OpenAI-compatible branch: Ollama deployments are keyless by design and

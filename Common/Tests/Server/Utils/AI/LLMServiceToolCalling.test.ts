@@ -184,6 +184,73 @@ describe("LLMService tool calling — Anthropic", () => {
   });
 });
 
+describe("LLMService tool calling — AWS Bedrock", () => {
+  test("signs Converse requests and parses toolUse blocks", async () => {
+    const spy: PostSpy = mockPostResponse({
+      output: {
+        message: {
+          content: [
+            { text: "checking" },
+            {
+              toolUse: {
+                toolUseId: "toolu_1",
+                name: "query_metrics",
+                input: { metricName: "cpu" },
+              },
+            },
+          ],
+        },
+      },
+      stopReason: "tool_use",
+      usage: { inputTokens: 20, outputTokens: 10, totalTokens: 30 },
+    });
+
+    const response: LLMCompletionResponse = await LLMService.getCompletion({
+      llmProviderConfig: {
+        llmType: LlmType.Bedrock,
+        apiKey: "AKIATEST:secret",
+        baseUrl: "https://bedrock-runtime.us-west-2.amazonaws.com",
+        modelName: "anthropic.claude-3-5-sonnet-20240620-v1:0",
+      },
+      messages: [
+        { role: "system", content: "be helpful" },
+        { role: "user", content: "cpu usage?" },
+      ],
+      tools: [
+        {
+          name: "query_metrics",
+          description: "query metrics",
+          inputSchema: { type: "object", properties: {} },
+        },
+      ],
+      maxTokens: 1024,
+    });
+
+    const request: { data: JSONObject; headers: Record<string, string> } = spy
+      .mock.calls[0]![0] as {
+      data: JSONObject;
+      headers: Record<string, string>;
+    };
+
+    expect(request.data["system"]).toHaveLength(1);
+    expect((request.data["inferenceConfig"] as JSONObject)["maxTokens"]).toBe(
+      1024,
+    );
+    expect((request.data["toolConfig"] as JSONObject)["tools"]).toHaveLength(1);
+    expect(request.headers["Authorization"]).toContain(
+      "Credential=AKIATEST/20",
+    );
+    expect(request.headers["Authorization"]).toContain("/us-west-2/bedrock/");
+    expect(request.headers["X-Amz-Date"]).toBeDefined();
+
+    expect(response.content).toBe("checking");
+    expect(response.stopReason).toBe("tool_use");
+    expect(response.toolCalls).toHaveLength(1);
+    expect(response.toolCalls![0]!.arguments).toEqual({ metricName: "cpu" });
+    expect(response.usage!.totalTokens).toBe(30);
+  });
+});
+
 describe("LLMService tool calling — Ollama", () => {
   test("works without an API key and parses object tool arguments", async () => {
     const spy: PostSpy = mockPostResponse({

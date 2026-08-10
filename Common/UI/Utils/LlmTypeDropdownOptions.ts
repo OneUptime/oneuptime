@@ -28,6 +28,10 @@ const LlmTypeDropdownOptions: Array<DropdownOption> = [
     value: LlmType.Mistral,
   },
   {
+    label: "AWS Bedrock",
+    value: LlmType.Bedrock,
+  },
+  {
     label: "Ollama",
     value: LlmType.Ollama,
   },

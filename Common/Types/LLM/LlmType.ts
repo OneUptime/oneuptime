@@ -5,6 +5,7 @@ enum LlmType {
   Groq = "Groq",
   Mistral = "Mistral",
   Ollama = "Ollama",
+  Bedrock = "Bedrock",
   /*
    * Generic OpenAI-compatible servers (vLLM, LocalAI, LM Studio, text-gen-webui,
    * etc.) that speak the OpenAI /chat/completions wire format but are typically

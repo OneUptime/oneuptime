@@ -191,7 +191,7 @@ export default class LlmProvider extends BaseModel {
     type: TableColumnType.ShortText,
     title: "LLM Type",
     description:
-      "The type of LLM provider (OpenAI, Azure OpenAI, Anthropic, Groq, Mistral, Ollama, OpenAICompatible, etc.)",
+      "The type of LLM provider (OpenAI, Azure OpenAI, Anthropic, AWS Bedrock, Groq, Mistral, Ollama, OpenAICompatible, etc.)",
   })
   @Column({
     nullable: false,
@@ -224,7 +224,7 @@ export default class LlmProvider extends BaseModel {
     type: TableColumnType.LongText,
     title: "API Key",
     description:
-      "The API key for the LLM provider. Required for OpenAI, Azure OpenAI, Anthropic, Groq, and Mistral.",
+      "The API key for the LLM provider. Required for OpenAI, Azure OpenAI, Anthropic, Groq, and Mistral. For AWS Bedrock, use accessKeyId:secretAccessKey[:sessionToken], or leave blank to use AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY from the runtime environment.",
     encrypted: true,
   })
   @Column({
@@ -257,7 +257,7 @@ export default class LlmProvider extends BaseModel {
     type: TableColumnType.ShortText,
     title: "Model Name",
     description:
-      "The name of the model to use (e.g., gpt-4, claude-3-opus, llama2).",
+      "The name of the model to use (e.g., gpt-4, claude-3-opus, anthropic.claude-3-5-sonnet-20240620-v1:0, llama2).",
   })
   @Column({
     nullable: true,
@@ -290,7 +290,7 @@ export default class LlmProvider extends BaseModel {
     type: TableColumnType.ShortURL,
     title: "Base URL",
     description:
-      "The base URL for the LLM API. Required for Azure OpenAI and Ollama, optional for others.",
+      "The base URL for the LLM API. Required for Azure OpenAI and Ollama, optional for others. For AWS Bedrock, use a Bedrock Runtime endpoint to choose a region.",
   })
   @Column({
     nullable: true,
