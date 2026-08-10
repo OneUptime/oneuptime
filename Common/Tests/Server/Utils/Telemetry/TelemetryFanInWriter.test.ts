@@ -840,7 +840,7 @@ describe("TelemetryFanInWriter", () => {
     test("mixed tokened/untokened batch: tokened submissions insert individually under their tokens, the untokened remainder merges under one minted token", async () => {
       const target: TestTarget = makeTarget();
       const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
-        makeOptions({ maxBatchRows: 6, maxWaitMs: 60_000 }),
+        makeOptions({ maxBatchRows: 8, maxWaitMs: 60_000 }),
       );
 
       const tokenedFirst: FanInSubmitResult = await runWithInsertDedup(
@@ -849,28 +849,40 @@ describe("TelemetryFanInWriter", () => {
           return writer.submit(target, makeRows(2));
         },
       );
-      const untokened: FanInSubmitResult = await writer.submit(
+      /*
+       * TWO untokened submissions, not one: merging a single-element group is
+       * indistinguishable from inserting it alone, so one would make the
+       * "merges" half of this assertion vacuous — a regression to
+       * one-statement-per-submission would still produce the same call count.
+       */
+      const untokenedFirst: FanInSubmitResult = await writer.submit(
         target,
         makeRows(2, 2),
       );
-      // Reaching maxBatchRows (6) cuts and dispatches the batch.
+      const untokenedSecond: FanInSubmitResult = await writer.submit(
+        target,
+        makeRows(2, 4),
+      );
+      // Reaching maxBatchRows (8) cuts and dispatches the batch.
       const tokenedSecond: FanInSubmitResult = await runWithInsertDedup(
         "job-b",
         () => {
-          return writer.submit(target, makeRows(2, 4));
+          return writer.submit(target, makeRows(2, 6));
         },
       );
 
       await Promise.all([
         tokenedFirst.flushed,
-        untokened.flushed,
+        untokenedFirst.flushed,
+        untokenedSecond.flushed,
         tokenedSecond.flushed,
       ]);
 
       /*
-       * Three statements: each tokened submission alone under its
-       * deterministic per-job token (in batch order), then the untokened
-       * remainder merged under a minted fanin: token.
+       * Exactly three statements for four submissions: each tokened
+       * submission alone under its deterministic per-job token (in batch
+       * order), then BOTH untokened submissions collapsed into one statement
+       * under a single minted fanin: token.
        */
       expect(target.insertJsonRows).toHaveBeenCalledTimes(3);
 
@@ -878,13 +890,13 @@ describe("TelemetryFanInWriter", () => {
       expect(rowSeqs(callRows(target, 0))).toEqual([0, 1]);
 
       expect(callOptions(target, 1).dedupToken).toBe("job-b:TestTable:0");
-      expect(rowSeqs(callRows(target, 1))).toEqual([4, 5]);
+      expect(rowSeqs(callRows(target, 1))).toEqual([6, 7]);
 
       expect(callOptions(target, 2).dedupToken).toMatch(/^fanin:TestTable:/);
-      expect(rowSeqs(callRows(target, 2))).toEqual([2, 3]);
+      expect(rowSeqs(callRows(target, 2))).toEqual([2, 3, 4, 5]);
     });
 
-    test("mixed batch failure isolation: the merged untokened statement failing rejects only the untokened submissions; tokened ones in the same batch still succeed", async () => {
+    test("mixed batch failure isolation: the merged untokened statement failing rejects ALL its submissions with one shared error; tokened ones in the same batch still succeed", async () => {
       const target: TestTarget = makeTarget({
         impl: async (
           _rows: Array<JSONObject>,
@@ -897,7 +909,7 @@ describe("TelemetryFanInWriter", () => {
         },
       });
       const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
-        makeOptions({ maxBatchRows: 4, maxWaitMs: 60_000 }),
+        makeOptions({ maxBatchRows: 6, maxWaitMs: 60_000 }),
       );
 
       const tokened: FanInSubmitResult = await runWithInsertDedup(
@@ -906,17 +918,43 @@ describe("TelemetryFanInWriter", () => {
           return writer.submit(target, makeRows(2));
         },
       );
-      const untokened: FanInSubmitResult = await writer.submit(
+      const untokenedFirst: FanInSubmitResult = await writer.submit(
         target,
         makeRows(2, 2),
+      );
+      const untokenedSecond: FanInSubmitResult = await writer.submit(
+        target,
+        makeRows(2, 4),
       );
 
       // The tokened submission's ack resolves even though its batch-mate failed.
       await tokened.flushed;
 
-      const err: Error = await captureRejection(untokened.flushed);
-      expect(err).toBeInstanceOf(FanInInsertError);
-      expect(err.message).toContain("merged statement rejected");
+      const errFirst: Error = await captureRejection(untokenedFirst.flushed);
+      const errSecond: Error = await captureRejection(untokenedSecond.flushed);
+
+      expect(errFirst).toBeInstanceOf(FanInInsertError);
+      expect(errFirst.message).toContain("merged statement rejected");
+      expect(errFirst.message).toContain("after 1 attempt(s)");
+      /*
+       * The SAME error instance reaches both untokened acks — that identity
+       * is what proves they shared one merged statement rather than each
+       * failing its own.
+       */
+      expect(errSecond).toBe(errFirst);
+
+      // Two statements: the tokened one (ok) and the merged untokened one (failed).
+      expect(target.insertJsonRows).toHaveBeenCalledTimes(2);
+      expect(callOptions(target, 0).dedupToken).toBe("job-a:TestTable:0");
+      expect(callOptions(target, 1).dedupToken).toMatch(/^fanin:TestTable:/);
+      expect(rowSeqs(callRows(target, 1))).toEqual([2, 3, 4, 5]);
+
+      // Failure still drains the writer's accounting.
+      expect(writer.getStats()).toEqual({
+        bufferedRows: 0,
+        pendingRows: 0,
+        activeInserts: 0,
+      });
     });
   });
 });
