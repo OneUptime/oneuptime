@@ -12,8 +12,10 @@ import PositiveNumber from "../../Types/PositiveNumber";
 import TeamMembersByProject, {
   UserProjectMembership,
 } from "../../Utils/TeamMembersByProject";
+import Email from "../../Types/Email";
 import MasterAdminAuthorization from "../Middleware/MasterAdminAuthorization";
 import TeamMemberService from "../Services/TeamMemberService";
+import UserAuthenticationStatus from "../../Types/UserAuthenticationStatus";
 import UserService, {
   Service as UserServiceType,
 } from "../Services/UserService";
@@ -184,6 +186,123 @@ export default class UserAPI extends BaseAPI<User, UserServiceType> {
 
           return Response.sendJsonObjectResponse(req, res, {
             numberOfMembershipsDeleted: numberOfMembershipsDeleted,
+          });
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+
+    /*
+     * How one user can sign in, for Admin Dashboard > User > Authentication.
+     *
+     * A dedicated endpoint rather than extra columns on the CRUD read, because
+     * the interesting fact -- "does this account have a password at all?" --
+     * cannot be answered from the CRUD API without shipping the password
+     * column itself. A master admin bypasses column read permissions, so
+     * selecting `password` in the browser would put every user's scrypt digest
+     * in a page's network tab. The booleans below are derived server-side and
+     * nothing secret crosses the wire.
+     */
+    this.router.get(
+      `${new this.entityType().getCrudApiPath()?.toString()}/:userId/authentication-status`,
+      MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const userId: ObjectID = UserAPI.getUserIdFromParams(req);
+
+          const status: UserAuthenticationStatus =
+            await UserService.getAuthenticationStatus(userId);
+
+          /*
+           * Whether an account has a password is exactly the sort of answer a
+           * shared cache must not keep -- and it changes the moment either
+           * action below is used.
+           */
+          Response.setNoCacheHeaders(res);
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            status as unknown as JSONObject,
+          );
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+
+    /*
+     * Set a user's password on their behalf.
+     *
+     * Master-admin only, and deliberately its own route rather than a PUT to
+     * /user/:id with a password in it. That generic write would work -- a
+     * master admin bypasses the password column's `update: [CurrentUser]` ACL
+     * -- but nothing about the URL would say so, the password policy could not
+     * be enforced, and the payload would have to be a hand-serialized
+     * HashedString. Here the gate is a middleware anyone can grep for, and the
+     * body is a plain string.
+     *
+     * Session revocation and the "Password Changed." email happen in
+     * UserService's update hook, not here, so they cannot be forgotten by a
+     * caller and cannot fire twice.
+     */
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/:userId/set-password`,
+      MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const userId: ObjectID = UserAPI.getUserIdFromParams(req);
+
+          const password: unknown = req.body?.["password"];
+
+          /*
+           * Type-checked rather than cast. `as string` on a JSON body is a
+           * lie the moment somebody posts {"password": {...}} or a number, and
+           * the value flows into the hasher.
+           */
+          if (typeof password !== "string") {
+            throw new BadDataException("Password is required");
+          }
+
+          await UserService.setPassword({
+            userId: userId,
+            password: password,
+          });
+
+          return Response.sendEmptySuccessResponse(req, res);
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+
+    /*
+     * Email the user a link that lets them choose their own password.
+     *
+     * The counterpart to setting one for them: it never puts the operator in
+     * possession of the user's credentials, which is the better default when
+     * the point is simply to get somebody back into a locked-out account. The
+     * link is the same one /forgot-password sends, redeemed by the same page.
+     */
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/:userId/send-password-reset-link`,
+      MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const userId: ObjectID = UserAPI.getUserIdFromParams(req);
+
+          const email: Email = await UserService.sendPasswordResetLink({
+            userId: userId,
+          });
+
+          /*
+           * Echoed back so the page can say where the link went. The caller is
+           * a master admin who can already read this user's email through the
+           * CRUD API, so this discloses nothing new.
+           */
+          return Response.sendJsonObjectResponse(req, res, {
+            email: email.toString(),
           });
         } catch (err) {
           return next(err);
