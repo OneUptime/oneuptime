@@ -601,32 +601,12 @@ const AIInsightsPage: FunctionComponent<
     <div className="space-y-5">
       <AIPlanGate />
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <p className="max-w-3xl text-sm leading-6 text-gray-500">
-          Proactive findings from OneUptime AI&apos;s deterministic telemetry
-          sensors — new or spiking exceptions, error-log spikes, latency
-          regressions and metric drift. Insights never page and never open
-          incidents.
-        </p>
-        <div className="flex flex-shrink-0 items-center gap-2">
-          <Button
-            title="Refresh"
-            icon={IconProp.Refresh}
-            buttonStyle={ButtonStyleType.OUTLINE}
-            buttonSize={ButtonSize.Small}
-            onClick={refresh}
-          />
-          <Button
-            title="Settings"
-            icon={IconProp.Settings}
-            buttonStyle={ButtonStyleType.OUTLINE}
-            buttonSize={ButtonSize.Small}
-            onClick={() => {
-              Navigation.navigate(settingsRoute);
-            }}
-          />
-        </div>
-      </div>
+      <p className="max-w-3xl text-sm leading-6 text-gray-500">
+        Proactive findings from OneUptime AI&apos;s deterministic telemetry
+        sensors — new or spiking exceptions, error-log spikes, latency
+        regressions and metric drift. Insights never page and never open
+        incidents.
+      </p>
 
       <InsightStatusSummary
         buckets={statusBuckets}
