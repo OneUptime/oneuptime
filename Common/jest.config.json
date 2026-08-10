@@ -27,6 +27,7 @@
     "^react-dom$": "<rootDir>/node_modules/react-dom",
     "^react-dom/(.*)$": "<rootDir>/node_modules/react-dom/$1",
     "^react-router-dom$": "<rootDir>/node_modules/react-router-dom",
+    "^react-i18next$": "<rootDir>/node_modules/react-i18next",
     "^react-markdown$": "<rootDir>/Tests/__mocks__/react-markdown.js",
     "^remark-gfm$": "<rootDir>/Tests/__mocks__/remark-gfm.js",
     "^react-syntax-highlighter$": "<rootDir>/Tests/__mocks__/react-syntax-highlighter.js",

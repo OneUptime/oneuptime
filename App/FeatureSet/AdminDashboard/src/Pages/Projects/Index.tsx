@@ -362,6 +362,13 @@ const Projects: FunctionComponent = (): ReactElement => {
         filters={[
           {
             field: {
+              _id: true,
+            },
+            title: "Project ID",
+            type: FieldType.ObjectID,
+          },
+          {
+            field: {
               name: true,
             },
             title: "Name",
