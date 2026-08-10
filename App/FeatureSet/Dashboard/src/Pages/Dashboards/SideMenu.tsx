@@ -45,6 +45,15 @@ const DashboardsSideMenu: () => ReactElement = (): ReactElement => {
           },
           icon: IconProp.Tag,
         },
+        {
+          link: {
+            title: "Data Sources",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.DASHBOARDS_SETTINGS_DATA_SOURCES] as Route,
+            ),
+          },
+          icon: IconProp.Database,
+        },
       ],
     },
   ];

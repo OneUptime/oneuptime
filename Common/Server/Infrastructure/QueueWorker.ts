@@ -16,6 +16,7 @@ import Telemetry, {
 } from "../Utils/Telemetry";
 import Redis from "./Redis";
 import GracefulShutdown, { ShutdownPriority } from "../Utils/GracefulShutdown";
+import logger from "../Utils/Logger";
 
 export default class QueueWorker {
   @CaptureSpan()
@@ -118,6 +119,22 @@ export default class QueueWorker {
       ...(options.maxStalledCount !== undefined
         ? { maxStalledCount: options.maxStalledCount }
         : {}),
+    });
+
+    /*
+     * Always log job failures to the container log, independent of telemetry
+     * configuration. Error visibility used to ride on @CaptureSpan's
+     * exception path, but the decorator is a passthrough when no span
+     * exporter is installed — without this listener a job that throws on
+     * such a deployment lands in the Redis failed set with no log line.
+     */
+    worker.on("failed", (job: QueueJob | undefined, error: Error) => {
+      logger.error(
+        `Queue job failed: ${queueName}/${job?.name || "unknown"} (job ${
+          job?.id ?? "unknown"
+        })`,
+      );
+      logger.error(error);
     });
 
     /*

@@ -451,7 +451,6 @@ export default class TelemetryUtil {
     };
   }
 
-  @CaptureSpan()
   public static getAttributes(data: {
     prefixKeysWithString: string;
     items: JSONArray;

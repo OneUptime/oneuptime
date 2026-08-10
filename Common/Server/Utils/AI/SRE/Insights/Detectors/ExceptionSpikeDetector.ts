@@ -15,6 +15,10 @@ import ServiceService from "../../../../../Services/ServiceService";
 import QueryHelper from "../../../../../Types/Database/QueryHelper";
 import { sanitizeExceptionMessage } from "../../../../Telemetry/ExceptionSanitizer";
 import {
+  EXCEPTION_LABEL_MESSAGE_MAX_LENGTH,
+  buildExceptionLabel,
+} from "./ExceptionIdentity";
+import {
   InsightCandidate,
   InsightDetector,
   InsightScanContext,
@@ -65,7 +69,8 @@ export const EXCEPTION_SPIKE_HIGH_SEVERITY_MULTIPLIER: number = 10;
 export const EXCEPTION_SPIKE_CANDIDATE_LIMIT: number = 25;
 
 // Titles must stay scannable in a list — truncate long exception messages.
-export const EXCEPTION_SPIKE_TITLE_MESSAGE_MAX_LENGTH: number = 80;
+export const EXCEPTION_SPIKE_TITLE_MESSAGE_MAX_LENGTH: number =
+  EXCEPTION_LABEL_MESSAGE_MAX_LENGTH;
 
 export interface ExceptionSpikeDecision {
   isSpike: boolean;
@@ -114,27 +119,32 @@ export default class ExceptionSpikeDetector implements InsightDetector {
   }
 
   /*
-   * Human label for the exception: the type when present, else the first
-   * EXCEPTION_SPIKE_TITLE_MESSAGE_MAX_LENGTH characters of the message.
+   * Human label for the exception: the type AND the message, because either
+   * one alone collides across findings (see ExceptionIdentity).
    */
   public static buildExceptionLabel(
     exceptionType: string | undefined,
     message: string | undefined,
   ): string {
-    if (exceptionType && exceptionType.trim().length > 0) {
-      return exceptionType.trim();
-    }
-    const trimmedMessage: string = (message || "").trim();
-    if (trimmedMessage.length === 0) {
-      return "Unknown exception";
-    }
-    if (trimmedMessage.length <= EXCEPTION_SPIKE_TITLE_MESSAGE_MAX_LENGTH) {
-      return trimmedMessage;
-    }
-    return `${trimmedMessage.slice(0, EXCEPTION_SPIKE_TITLE_MESSAGE_MAX_LENGTH)}…`;
+    return buildExceptionLabel(
+      exceptionType,
+      message,
+      EXCEPTION_SPIKE_TITLE_MESSAGE_MAX_LENGTH,
+    );
   }
 
-  // Stable dedupe key, keyed on the exception GROUP id (ingest dedupe unit).
+  /*
+   * Stable dedupe key, keyed on the exception GROUP id (ingest dedupe unit).
+   *
+   * DELIBERATELY NOT the failure-mode key NewExceptionDetector files under.
+   * That detector's evidence is a Postgres column it can simply add up across
+   * the groups of one failure mode; a spike is a RATE, measured per ingest
+   * fingerprint in ClickHouse. Rolling several fingerprints into one insight
+   * would mean summing their windows and re-deciding the spike on the total —
+   * which changes what counts as a spike, not just how many rows it files.
+   * The title carries the type, the message and the multiplier, so sibling
+   * groups read as distinct rows rather than as copies.
+   */
   public static buildFingerprint(telemetryExceptionId: string): string {
     return `exception-spike:${telemetryExceptionId}`;
   }

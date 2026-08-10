@@ -56,6 +56,7 @@ import { MetricPointType } from "../../Models/AnalyticsModels/Metric";
 import ServiceType from "../../Types/Telemetry/ServiceType";
 import OneUptimeDate from "../../Types/Date";
 import TelemetryUtil from "../Utils/Telemetry/Telemetry";
+import MetricResourceAttributeUtil from "../../Utils/Metrics/MetricResourceAttributeUtil";
 import logger, { LogAttributes } from "../Utils/Logger";
 import ProductAnalytics from "../Utils/ProductAnalytics";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
@@ -2063,6 +2064,18 @@ ${incident.remediationNotes || "No remediation notes provided."}
 
             // only emit if the incident has been resolved
             if (resolvedTimeline && resolvedTimeline.startsAt) {
+              /*
+               * Same dimension set as every other incident metric — including
+               * oneuptime.label.* / oneuptime.customField.* — so a dashboard
+               * grouped by a label does not silently lose this series.
+               */
+              const {
+                baseMetricAttributes,
+              }: { baseMetricAttributes: JSONObject } =
+                await this.getIncidentMetricContext({
+                  incidentId: incidentId,
+                });
+
               const postmortemMetric: MutableMetric = new MutableMetric();
               postmortemMetric.projectId = projectId;
               postmortemMetric.primaryEntityId = incidentId;
@@ -2076,6 +2089,7 @@ ${incident.remediationNotes || "No remediation notes provided."}
                 resolvedTimeline.startsAt,
               );
               postmortemMetric.attributes = {
+                ...baseMetricAttributes,
                 incidentId: incidentId.toString(),
                 projectId: projectId.toString(),
               };
@@ -2356,6 +2370,18 @@ ${incidentSeverity.name}
 
             // emit severity change metric
             try {
+              /*
+               * Same dimension set as every other incident metric — including
+               * oneuptime.label.* / oneuptime.customField.* — so "severity
+               * churn by product" is answerable from the metric store.
+               */
+              const {
+                baseMetricAttributes,
+              }: { baseMetricAttributes: JSONObject } =
+                await this.getIncidentMetricContext({
+                  incidentId: incidentId,
+                });
+
               const severityChangeMetric: MutableMetric = new MutableMetric();
               severityChangeMetric.projectId = projectId;
               severityChangeMetric.primaryEntityId = incidentId;
@@ -2364,6 +2390,7 @@ ${incidentSeverity.name}
               severityChangeMetric.metricPointId = `severity-change:${ObjectID.generate().toString()}`;
               severityChangeMetric.value = 1;
               severityChangeMetric.attributes = {
+                ...baseMetricAttributes,
                 incidentId: incidentId.toString(),
                 projectId: projectId.toString(),
                 newIncidentSeverityId: incidentSeverity._id?.toString() || "",
@@ -3008,6 +3035,16 @@ ${incidentSeverity.name}
           _id: true,
           name: true,
         },
+        /*
+         * A project's own taxonomy. Both become metric attributes below so
+         * dashboards can group MTTA/MTTR by the dimensions the project
+         * actually thinks in.
+         */
+        labels: {
+          _id: true,
+          name: true,
+        },
+        customFields: true,
       },
       props: {
         isRoot: true,
@@ -3121,6 +3158,14 @@ ${incidentSeverity.name}
       ownerUserNames: ownerUserNames.join(", "),
       ownerTeamIds: ownerTeamIds.join(", "),
       ownerTeamNames: ownerTeamNames.join(", "),
+      /*
+       * oneuptime.label.* / oneuptime.customField.* — namespaced, so they can
+       * never collide with the unprefixed dimensions above.
+       */
+      ...MetricResourceAttributeUtil.getResourceAttributes({
+        labels: incident.labels,
+        customFields: incident.customFields,
+      }),
     };
 
     return { incident, baseMetricAttributes };

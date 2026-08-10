@@ -1,6 +1,7 @@
 import InsightStore, {
   DISMISSED_COOLDOWN_DAYS,
   MAX_NEW_INSIGHTS_PER_PROJECT_PER_SCAN,
+  RESOLVED_COOLDOWN_HOURS,
   UpsertCandidatesResult,
 } from "../../../../../Server/Utils/AI/SRE/Insights/InsightStore";
 import { InsightCandidate } from "../../../../../Server/Utils/AI/SRE/Insights/Types";
@@ -46,12 +47,14 @@ function fakeExisting(overrides?: {
   status?: AIInsightStatus;
   occurrenceCount?: number;
   humanVerdictAt?: Date | undefined;
+  lastSeenAt?: Date | undefined;
 }): AIInsight {
   return {
     id: ObjectID.generate(),
     status: overrides?.status ?? AIInsightStatus.Detected,
     occurrenceCount: overrides?.occurrenceCount ?? 2,
     humanVerdictAt: overrides?.humanVerdictAt,
+    lastSeenAt: overrides?.lastSeenAt,
   } as unknown as AIInsight;
 }
 
@@ -166,7 +169,7 @@ describe("InsightStore.upsertCandidates — dedupe matrix", () => {
     [AIInsightStatus.ActionRequired],
     [AIInsightStatus.FixOpened],
   ])(
-    "existing %s insight → REFRESH: lastSeenAt, occurrenceCount+1, evidence/detail/severity updated — and status is NEVER touched",
+    "existing %s insight → REFRESH: lastSeenAt, occurrenceCount+1, title/evidence/detail/severity updated — and status is NEVER touched",
     async (status: AIInsightStatus) => {
       const existing: AIInsight = fakeExisting({
         status,
@@ -179,7 +182,17 @@ describe("InsightStore.upsertCandidates — dedupe matrix", () => {
       const result: UpsertCandidatesResult =
         await InsightStore.upsertCandidates({
           projectId,
-          candidates: [makeCandidate({ severity: AIInsightSeverity.High })],
+          candidates: [
+            makeCandidate({
+              severity: AIInsightSeverity.High,
+              /*
+               * Detectors put live numbers in the title (a spike multiplier,
+               * a latency factor). A title frozen at creation would show
+               * "5.2x" next to a High severity and a 12x detail body.
+               */
+              title: "New exception: NullPointerException in checkout (12.0x)",
+            }),
+          ],
           now,
         });
 
@@ -195,6 +208,7 @@ describe("InsightStore.upsertCandidates — dedupe matrix", () => {
             lastSeenAt: now,
             occurrenceCount: 5,
             severity: AIInsightSeverity.High,
+            title: "New exception: NullPointerException in checkout (12.0x)",
             detailMarkdown: "**3 occurrences** in the last 24 hours.",
             evidence: { exception: { recentOccurrenceCount: 3 } },
           }),
@@ -317,8 +331,65 @@ describe("InsightStore.upsertCandidates — dedupe matrix", () => {
     expect(result.suppressed).toBe(1);
   });
 
-  test("existing Resolved insight → CREATE new: a resolved issue that reappears is a regression", async () => {
-    mockFindOneBy(fakeExisting({ status: AIInsightStatus.Resolved }));
+  /*
+   * Resolve has to stick. Detectors emit on a standing condition, not on an
+   * event — NewException re-emits an unchanged candidate on all ~96 ticks of
+   * its 24h window — so without a cooldown a resolved insight was re-filed
+   * byte-identical 15 minutes later, with its own triage run, every time.
+   */
+  test("existing Resolved insight within the cooldown → suppress, not a byte-identical re-file", async () => {
+    mockFindOneBy(
+      fakeExisting({
+        status: AIInsightStatus.Resolved,
+        humanVerdictAt: new Date(now.getTime() - 15 * 60 * 1000),
+      }),
+    );
+    const create: jest.SpyInstance = mockCreate();
+    const update: jest.SpyInstance = mockUpdateOneById();
+
+    const result: UpsertCandidatesResult = await InsightStore.upsertCandidates({
+      projectId,
+      candidates: [makeCandidate()],
+      now,
+    });
+
+    expect(create).not.toHaveBeenCalled();
+    expect(update).not.toHaveBeenCalled();
+    expect(result.suppressed).toBe(1);
+    expect(result.created).toHaveLength(0);
+    expect(result.refreshed).toBe(0);
+  });
+
+  test("resolve cooldown boundary: exactly RESOLVED_COOLDOWN_HOURS old still suppresses (inclusive)", async () => {
+    mockFindOneBy(
+      fakeExisting({
+        status: AIInsightStatus.Resolved,
+        humanVerdictAt: new Date(
+          now.getTime() - RESOLVED_COOLDOWN_HOURS * 60 * 60 * 1000,
+        ),
+      }),
+    );
+    const create: jest.SpyInstance = mockCreate();
+
+    const result: UpsertCandidatesResult = await InsightStore.upsertCandidates({
+      projectId,
+      candidates: [makeCandidate()],
+      now,
+    });
+
+    expect(create).not.toHaveBeenCalled();
+    expect(result.suppressed).toBe(1);
+  });
+
+  test("resolved past the cooldown → CREATE new: a resolved issue that comes back IS a regression", async () => {
+    mockFindOneBy(
+      fakeExisting({
+        status: AIInsightStatus.Resolved,
+        humanVerdictAt: new Date(
+          now.getTime() - (RESOLVED_COOLDOWN_HOURS * 60 * 60 * 1000 + 1),
+        ),
+      }),
+    );
     const create: jest.SpyInstance = mockCreate();
     const update: jest.SpyInstance = mockUpdateOneById();
 
@@ -332,6 +403,52 @@ describe("InsightStore.upsertCandidates — dedupe matrix", () => {
     expect(update).not.toHaveBeenCalled();
     expect(result.created).toHaveLength(1);
     expect(result.refreshed).toBe(0);
+  });
+
+  /*
+   * resolveInsight leaves an existing verdict alone, so a Confirm-then-Resolve
+   * leaves humanVerdictAt pinned to the CONFIRM. lastSeenAt is the honest
+   * fallback: refreshes stop the instant a row goes terminal, so it is the
+   * last tick before the human closed it — never later than the close.
+   */
+  test("no verdict timestamp: the cooldown falls back to lastSeenAt", async () => {
+    mockFindOneBy(
+      fakeExisting({
+        status: AIInsightStatus.Resolved,
+        humanVerdictAt: undefined,
+        lastSeenAt: new Date(now.getTime() - 60 * 60 * 1000),
+      }),
+    );
+    const create: jest.SpyInstance = mockCreate();
+
+    const result: UpsertCandidatesResult = await InsightStore.upsertCandidates({
+      projectId,
+      candidates: [makeCandidate()],
+      now,
+    });
+
+    expect(create).not.toHaveBeenCalled();
+    expect(result.suppressed).toBe(1);
+  });
+
+  test("an undateable terminal row suppresses — never re-file what we cannot date", async () => {
+    mockFindOneBy(
+      fakeExisting({
+        status: AIInsightStatus.Resolved,
+        humanVerdictAt: undefined,
+        lastSeenAt: undefined,
+      }),
+    );
+    const create: jest.SpyInstance = mockCreate();
+
+    const result: UpsertCandidatesResult = await InsightStore.upsertCandidates({
+      projectId,
+      candidates: [makeCandidate()],
+      now,
+    });
+
+    expect(create).not.toHaveBeenCalled();
+    expect(result.suppressed).toBe(1);
   });
 });
 

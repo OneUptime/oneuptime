@@ -195,7 +195,6 @@ export default abstract class OtelIngestBaseService {
    * the caller tags those with the projectId under ServiceType.Unknown
    * rather than synthesising a shared "Unknown Service" Service row.
    */
-  @CaptureSpan()
   protected static async getServiceNameFromAttributes(
     req: ExpressRequest,
     attributes: JSONArray,
@@ -649,7 +648,6 @@ export default abstract class OtelIngestBaseService {
     });
   }
 
-  @CaptureSpan()
   private static async getDockerServiceName(
     req: ExpressRequest,
     attributes: JSONArray,
@@ -731,7 +729,6 @@ export default abstract class OtelIngestBaseService {
     return null;
   }
 
-  @CaptureSpan()
   private static async getPodmanServiceName(
     req: ExpressRequest,
     attributes: JSONArray,
@@ -897,7 +894,6 @@ export default abstract class OtelIngestBaseService {
     return match[1];
   }
 
-  @CaptureSpan()
   protected static getClusterNameFromAttributes(
     attributes: JSONArray,
   ): string | null {
@@ -1011,7 +1007,6 @@ export default abstract class OtelIngestBaseService {
    * per-cluster inside `attachLabels` so steady-state ingest with
    * unchanged labels costs one in-memory cache lookup.
    */
-  @CaptureSpan()
   protected static async promoteOneuptimeLabelsToCluster(data: {
     projectId: ObjectID;
     kubernetesClusterId: ObjectID;
@@ -1050,7 +1045,6 @@ export default abstract class OtelIngestBaseService {
    * resource attribute (no upstream semconv exists) stamped by the
    * Proxmox Agent collector config from the PROXMOX_CLUSTER_NAME env.
    */
-  @CaptureSpan()
   protected static getProxmoxClusterNameFromAttributes(
     attributes: JSONArray,
   ): string | null {
@@ -1146,7 +1140,6 @@ export default abstract class OtelIngestBaseService {
    * Throttled per-cluster inside `attachLabels` so steady-state
    * ingest with unchanged labels costs one in-memory cache lookup.
    */
-  @CaptureSpan()
   protected static async promoteOneuptimeLabelsToProxmoxCluster(data: {
     projectId: ObjectID;
     proxmoxClusterId: ObjectID;
@@ -1187,7 +1180,6 @@ export default abstract class OtelIngestBaseService {
    * OTEL_RESOURCE_ATTRIBUTES). Some flattened forms prefix resource
    * attributes with `resource.`, so accept that alias too.
    */
-  @CaptureSpan()
   protected static getIoTFleetNameFromAttributes(
     attributes: JSONArray,
   ): string | null {
@@ -1286,7 +1278,6 @@ export default abstract class OtelIngestBaseService {
    * per-fleet inside `attachLabels` so steady-state ingest with
    * unchanged labels costs one in-memory cache lookup.
    */
-  @CaptureSpan()
   protected static async promoteOneuptimeLabelsToIoTFleet(data: {
     projectId: ObjectID;
     iotFleetId: ObjectID;
@@ -1326,7 +1317,6 @@ export default abstract class OtelIngestBaseService {
    * stamped by the Docker Swarm Agent collector config from the
    * DOCKER_SWARM_CLUSTER_NAME env.
    */
-  @CaptureSpan()
   protected static getDockerSwarmClusterNameFromAttributes(
     attributes: JSONArray,
   ): string | null {
@@ -1424,7 +1414,6 @@ export default abstract class OtelIngestBaseService {
    * project labels and attach them to the discovered Docker Swarm
    * cluster. Mirrors the Proxmox cluster label promotion.
    */
-  @CaptureSpan()
   protected static async promoteOneuptimeLabelsToDockerSwarmCluster(data: {
     projectId: ObjectID;
     dockerSwarmClusterId: ObjectID;
@@ -1463,7 +1452,6 @@ export default abstract class OtelIngestBaseService {
    * resource attribute (no upstream semconv exists) stamped by the
    * Ceph Agent collector config from the CEPH_CLUSTER_NAME env.
    */
-  @CaptureSpan()
   protected static getCephClusterNameFromAttributes(
     attributes: JSONArray,
   ): string | null {
@@ -1566,7 +1554,6 @@ export default abstract class OtelIngestBaseService {
    * per-cluster inside `attachLabels` so steady-state ingest with
    * unchanged labels costs one in-memory cache lookup.
    */
-  @CaptureSpan()
   protected static async promoteOneuptimeLabelsToCephCluster(data: {
     projectId: ObjectID;
     cephClusterId: ObjectID;
@@ -1772,7 +1759,6 @@ export default abstract class OtelIngestBaseService {
     }
   }
 
-  @CaptureSpan()
   protected static async promoteOneuptimeLabelsToServerlessFunction(data: {
     projectId: ObjectID;
     serverlessFunctionId: ObjectID;
@@ -1983,7 +1969,6 @@ export default abstract class OtelIngestBaseService {
     }
   }
 
-  @CaptureSpan()
   protected static async promoteOneuptimeLabelsToCloudResource(data: {
     projectId: ObjectID;
     cloudResourceId: ObjectID;
@@ -2160,7 +2145,6 @@ export default abstract class OtelIngestBaseService {
     }
   }
 
-  @CaptureSpan()
   protected static async promoteOneuptimeLabelsToRumApplication(data: {
     projectId: ObjectID;
     rumApplicationId: ObjectID;
@@ -2194,7 +2178,6 @@ export default abstract class OtelIngestBaseService {
     }
   }
 
-  @CaptureSpan()
   protected static getHostNameFromAttributes(
     attributes: JSONArray,
   ): string | null {
@@ -2277,7 +2260,6 @@ export default abstract class OtelIngestBaseService {
     }
   }
 
-  @CaptureSpan()
   protected static getStringAttribute(
     attributes: JSONArray,
     key: string,
@@ -2306,7 +2288,6 @@ export default abstract class OtelIngestBaseService {
    * Falls back to a single stringValue if the attribute uses that
    * shape (some SDKs flatten single-element arrays to a string).
    */
-  @CaptureSpan()
   protected static getStringArrayAttribute(
     attributes: JSONArray,
     key: string,
@@ -2341,7 +2322,6 @@ export default abstract class OtelIngestBaseService {
     return [];
   }
 
-  @CaptureSpan()
   protected static isDockerRuntime(attributes: JSONArray): boolean {
     for (const attribute of attributes) {
       if (
@@ -2355,7 +2335,6 @@ export default abstract class OtelIngestBaseService {
     return false;
   }
 
-  @CaptureSpan()
   protected static isPodmanRuntime(attributes: JSONArray): boolean {
     for (const attribute of attributes) {
       if (
@@ -2378,7 +2357,6 @@ export default abstract class OtelIngestBaseService {
    * auto-detecting hostname inside a pod don't create phantom
    * per-pod services.
    */
-  @CaptureSpan()
   protected static hasHostResourceSignal(attributes: JSONArray): boolean {
     return Boolean(
       this.getStringAttribute(attributes, "os.type") ||
@@ -2496,7 +2474,6 @@ export default abstract class OtelIngestBaseService {
    * inside `attachLabels` so steady-state ingest with unchanged
    * labels costs one in-memory cache lookup.
    */
-  @CaptureSpan()
   protected static async promoteOneuptimeLabelsToDockerHost(data: {
     projectId: ObjectID;
     dockerHostId: ObjectID;
@@ -2629,7 +2606,6 @@ export default abstract class OtelIngestBaseService {
    * inside `attachLabels` so steady-state ingest with unchanged
    * labels costs one in-memory cache lookup.
    */
-  @CaptureSpan()
   protected static async promoteOneuptimeLabelsToPodmanHost(data: {
     projectId: ObjectID;
     podmanHostId: ObjectID;
@@ -3168,7 +3144,6 @@ export default abstract class OtelIngestBaseService {
     return any ? sum : null;
   }
 
-  @CaptureSpan()
   protected static getServiceNameFromHeaders(
     req: ExpressRequest,
     defaultName: string = "Unknown Service",

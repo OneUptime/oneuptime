@@ -47,15 +47,16 @@
      * NOT in the Common Test CI job, which installs Common alone. The result
      * was a suite that passed locally and failed in CI.
      *
-     * "react-router-dom" is here for the same reason, one level out: those
-     * same Dashboard sources import it, and unlike "react" it is not covered
-     * by anything the type checker can already reach from Common. Node
-     * resolution walks up from the importing FILE, so from
-     * App/FeatureSet/Dashboard/src/... it only ever looks in App's and the
-     * repo root's node_modules - never in Common's, which in the Common Test
-     * CI job is the only one installed. Common's jest moduleNameMapper
-     * already maps this specifier to this same directory at runtime; this is
-     * the type checker's half of that.
+     * "react-router-dom" and "react-i18next" are here for the same reason,
+     * one level out: those same App sources import them, and unlike "react"
+     * they are not covered by anything the type checker can already reach from
+     * Common. Node resolution walks up from the importing FILE, so from
+     * App/FeatureSet/<app>/src/... it only ever looks in App's and the repo
+     * root's node_modules - never in Common's, which is the only one installed
+     * in the Common Test CI job AND, for react-i18next, the only place it is
+     * installed at all. Common's jest moduleNameMapper already maps these
+     * specifiers to this same directory at runtime; this is the type checker's
+     * half of that.
      *
      * Deliberately `paths` WITHOUT `baseUrl` (supported since TS 4.4, and
      * paths here are relative to this file). Setting baseUrl would change how
@@ -64,7 +65,8 @@
      */
     "paths": {
       "Common/*": ["./*"],
-      "react-router-dom": ["./node_modules/react-router-dom"]
+      "react-router-dom": ["./node_modules/react-router-dom"],
+      "react-i18next": ["./node_modules/react-i18next"]
     },
     // "rootDirs": [],                                   /* Allow multiple folders to be treated as one when resolving modules. */
     "typeRoots": [

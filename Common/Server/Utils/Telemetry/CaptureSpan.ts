@@ -38,35 +38,47 @@ function CaptureSpan(data?: {
       data?.name || `${className}.${propertyKey}`;
 
     descriptor.value = function (...args: any[]) {
-      if (DisableTelemetry) {
+      /*
+       * Skip the span machinery entirely when telemetry is disabled OR no
+       * span exporter is installed. Without an exporter the span is never
+       * shipped anywhere, but creating it still costs attribute flattening,
+       * a span allocation, and an AsyncLocalStorage context transition —
+       * decorated methods sit on ingest hot paths that run millions of
+       * times per minute, so this must be a plain method call there.
+       */
+      if (DisableTelemetry || !Telemetry.isSpanExportEnabled()) {
         return originalMethod.apply(this, args);
       }
 
-      let functionArguments: JSONObject = {};
+      /*
+       * Only pay for attribute flattening when there is something to
+       * flatten — the overwhelmingly common bare @CaptureSpan() form has
+       * neither captured arguments nor static attributes.
+       */
+      let spanAttributes: { [key: string]: any } | undefined = undefined;
 
-      if (data?.captureArguments) {
-        functionArguments = args.reduce(
-          (acc: { [key: string]: any }, arg: any, index: number) => {
-            acc[`arg${index}`] = arg;
-            return acc;
-          },
-          {},
-        );
-      }
+      if (data?.captureArguments || data?.attributes) {
+        let functionArguments: JSONObject = {};
 
-      const spanAttributes: { [key: string]: any } =
-        JSONFunctions.flattenObject({
+        if (data?.captureArguments) {
+          functionArguments = args.reduce(
+            (acc: { [key: string]: any }, arg: any, index: number) => {
+              acc[`arg${index}`] = arg;
+              return acc;
+            },
+            {},
+          );
+        }
+
+        spanAttributes = JSONFunctions.flattenObject({
           ...functionArguments,
           ...data?.attributes,
         }) as { [key: string]: any };
+      }
 
       return Telemetry.startActiveSpan({
         name: name,
-        options: {
-          attributes: {
-            ...spanAttributes,
-          },
-        },
+        options: spanAttributes ? { attributes: spanAttributes } : {},
         fn: (span: Span) => {
           let result: any = null;
           try {

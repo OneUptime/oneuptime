@@ -226,6 +226,13 @@ const Users: FunctionComponent = (): ReactElement => {
         filters={[
           {
             field: {
+              _id: true,
+            },
+            title: "User ID",
+            type: FieldType.ObjectID,
+          },
+          {
+            field: {
               name: true,
             },
             title: "Full Name",

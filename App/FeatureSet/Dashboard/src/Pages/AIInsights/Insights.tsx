@@ -292,8 +292,18 @@ const AIInsightsPage: FunctionComponent<
               lastSeenAt: true,
               occurrenceCount: true,
             },
+            /*
+             * The id is a tiebreaker, not decoration: the scanner stamps ONE
+             * lastSeenAt per project scan, so every live insight in a project
+             * carries the same timestamp to the millisecond. Ordering by a
+             * column that is tied across the whole page leaves Postgres free
+             * to return the rows in a different order per request, and offset
+             * pagination over a reshuffling order silently SKIPS rows — the
+             * de-dupe below only catches the opposite case (a row repeating).
+             */
             sort: {
               lastSeenAt: SortOrder.Descending,
+              _id: SortOrder.Descending,
             },
           },
         );
@@ -601,32 +611,12 @@ const AIInsightsPage: FunctionComponent<
     <div className="space-y-5">
       <AIPlanGate />
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <p className="max-w-3xl text-sm leading-6 text-gray-500">
-          Proactive findings from OneUptime AI&apos;s deterministic telemetry
-          sensors — new or spiking exceptions, error-log spikes, latency
-          regressions and metric drift. Insights never page and never open
-          incidents.
-        </p>
-        <div className="flex flex-shrink-0 items-center gap-2">
-          <Button
-            title="Refresh"
-            icon={IconProp.Refresh}
-            buttonStyle={ButtonStyleType.OUTLINE}
-            buttonSize={ButtonSize.Small}
-            onClick={refresh}
-          />
-          <Button
-            title="Settings"
-            icon={IconProp.Settings}
-            buttonStyle={ButtonStyleType.OUTLINE}
-            buttonSize={ButtonSize.Small}
-            onClick={() => {
-              Navigation.navigate(settingsRoute);
-            }}
-          />
-        </div>
-      </div>
+      <p className="max-w-3xl text-sm leading-6 text-gray-500">
+        Proactive findings from OneUptime AI&apos;s deterministic telemetry
+        sensors — new or spiking exceptions, error-log spikes, latency
+        regressions and metric drift. Insights never page and never open
+        incidents.
+      </p>
 
       <InsightStatusSummary
         buckets={statusBuckets}

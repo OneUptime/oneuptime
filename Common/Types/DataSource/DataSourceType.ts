@@ -18,10 +18,32 @@ enum DataSourceType {
 
 export default DataSourceType;
 
+/*
+ * What a type is used for, so the type picker can group hundreds of
+ * connectors into a handful of sections. Enum values are the section
+ * headings; DataSourceTypeCategories below fixes the display order.
+ */
+export enum DataSourceTypeCategory {
+  Metrics = "Metrics",
+  Logs = "Logs",
+  Databases = "Databases",
+  Search = "Search",
+  Api = "APIs",
+}
+
+export const DataSourceTypeCategories: Array<DataSourceTypeCategory> = [
+  DataSourceTypeCategory.Metrics,
+  DataSourceTypeCategory.Logs,
+  DataSourceTypeCategory.Databases,
+  DataSourceTypeCategory.Search,
+  DataSourceTypeCategory.Api,
+];
+
 export interface DataSourceTypeProps {
   dataSourceType: DataSourceType;
   title: string;
   description: string;
+  category: DataSourceTypeCategory;
   queryLanguageTitle: string;
   queryPlaceholder: string;
 }
@@ -68,6 +90,12 @@ export class DataSourceTypeUtil {
     ].includes(dataSourceType);
   }
 
+  public static getCategory(
+    dataSourceType: DataSourceType,
+  ): DataSourceTypeCategory {
+    return DataSourceTypeUtil.getProps(dataSourceType).category;
+  }
+
   /** Default port used to seed the settings form for database sources. */
   public static getDefaultPort(dataSourceType: DataSourceType): number | null {
     switch (dataSourceType) {
@@ -92,6 +120,7 @@ export class DataSourceTypeUtil {
           title: "Prometheus",
           description:
             "Query a Prometheus-compatible API (Prometheus, Thanos, Cortex, Mimir, VictoriaMetrics) with PromQL.",
+          category: DataSourceTypeCategory.Metrics,
           queryLanguageTitle: "PromQL",
           queryPlaceholder: 'rate(http_requests_total{job="api"}[5m])',
         };
@@ -101,6 +130,7 @@ export class DataSourceTypeUtil {
           title: "PostgreSQL",
           description:
             "Run read-only SQL against a PostgreSQL-compatible database (PostgreSQL, TimescaleDB, CockroachDB).",
+          category: DataSourceTypeCategory.Databases,
           queryLanguageTitle: "SQL",
           queryPlaceholder:
             "SELECT created_at AS time, COUNT(*) AS value FROM orders WHERE created_at BETWEEN $__startTime AND $__endTime GROUP BY 1 ORDER BY 1",
@@ -110,6 +140,7 @@ export class DataSourceTypeUtil {
           dataSourceType,
           title: "MySQL",
           description: "Run read-only SQL against a MySQL or MariaDB database.",
+          category: DataSourceTypeCategory.Databases,
           queryLanguageTitle: "SQL",
           queryPlaceholder:
             "SELECT created_at AS time, COUNT(*) AS value FROM orders WHERE created_at BETWEEN $__startTime AND $__endTime GROUP BY 1 ORDER BY 1",
@@ -120,6 +151,7 @@ export class DataSourceTypeUtil {
           title: "Microsoft SQL Server",
           description:
             "Run read-only SQL against a Microsoft SQL Server or Azure SQL database.",
+          category: DataSourceTypeCategory.Databases,
           queryLanguageTitle: "T-SQL",
           queryPlaceholder:
             "SELECT created_at AS time, COUNT(*) AS value FROM orders WHERE created_at BETWEEN $__startTime AND $__endTime GROUP BY created_at ORDER BY created_at",
@@ -130,6 +162,7 @@ export class DataSourceTypeUtil {
           title: "ClickHouse",
           description:
             "Run read-only SQL against a ClickHouse database over its HTTP interface.",
+          category: DataSourceTypeCategory.Databases,
           queryLanguageTitle: "SQL",
           queryPlaceholder:
             "SELECT toStartOfMinute(timestamp) AS time, count() AS value FROM events WHERE timestamp BETWEEN $__startTime AND $__endTime GROUP BY time ORDER BY time",
@@ -140,6 +173,7 @@ export class DataSourceTypeUtil {
           title: "Grafana Loki",
           description:
             "Query a Grafana Loki log aggregation endpoint with LogQL metric queries.",
+          category: DataSourceTypeCategory.Logs,
           queryLanguageTitle: "LogQL",
           queryPlaceholder: 'sum(rate({app="api"} |= "error" [5m]))',
         };
@@ -149,6 +183,7 @@ export class DataSourceTypeUtil {
           title: "Elasticsearch",
           description:
             "Query an Elasticsearch or OpenSearch cluster with Query DSL (date-histogram aggregations for charts).",
+          category: DataSourceTypeCategory.Search,
           queryLanguageTitle: "Query DSL (JSON)",
           queryPlaceholder:
             '{ "query": { "match_all": {} }, "aggs": { "over_time": { "date_histogram": { "field": "@timestamp", "fixed_interval": "1m" }, "aggs": { "value": { "value_count": { "field": "_id" } } } } } }',
@@ -159,6 +194,7 @@ export class DataSourceTypeUtil {
           title: "REST API",
           description:
             "Fetch JSON from any HTTP(S) API and map fields into time series or tables.",
+          category: DataSourceTypeCategory.Api,
           queryLanguageTitle: "Request (JSON)",
           queryPlaceholder:
             '{ "path": "/api/stats", "method": "GET", "rowsPath": "data.items", "timestampField": "time", "valueField": "count" }',
@@ -168,6 +204,7 @@ export class DataSourceTypeUtil {
           dataSourceType,
           title: dataSourceType,
           description: "",
+          category: DataSourceTypeCategory.Api,
           queryLanguageTitle: "Query",
           queryPlaceholder: "",
         };

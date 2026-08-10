@@ -8,6 +8,7 @@ import HealthClickhouse from "./Pages/Health/Clickhouse";
 import HealthRedis from "./Pages/Health/Redis";
 import HealthQueryConsole from "./Pages/Health/QueryConsole";
 import HealthLogs from "./Pages/Health/Logs";
+import HealthTelemetry from "./Pages/Health/Telemetry";
 import HealthProbes from "./Pages/Health/Probes";
 import HealthMigrations from "./Pages/Health/Migrations";
 import HealthSupportBundle from "./Pages/Health/Support";
@@ -125,6 +126,11 @@ const App: () => JSX.Element = () => {
         <PageRoute
           path={RouteMap[PageMap.HEALTH_LOGS]?.toString() || ""}
           element={<HealthLogs />}
+        />
+
+        <PageRoute
+          path={RouteMap[PageMap.HEALTH_TELEMETRY]?.toString() || ""}
+          element={<HealthTelemetry />}
         />
 
         <PageRoute

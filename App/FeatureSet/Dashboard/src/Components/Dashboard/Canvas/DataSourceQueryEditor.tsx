@@ -285,8 +285,8 @@ const DataSourceQueryEditor: FunctionComponent<ComponentProps> = (
           {loadError && <p className="text-xs text-red-500">{loadError}</p>}
           {!loadError && dataSources.length === 0 && (
             <p className="text-xs text-gray-400">
-              No data sources connected yet. Add one under Project Settings →
-              Data Sources.
+              No data sources connected yet. Add one under Dashboards → Settings
+              → Data Sources.
             </p>
           )}
           {queryConfigs.map(

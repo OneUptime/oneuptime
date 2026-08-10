@@ -1,5 +1,5 @@
 import ProjectUtil from "Common/UI/Utils/Project";
-import PageComponentProps from "../PageComponentProps";
+import PageComponentProps from "../../PageComponentProps";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import Card from "Common/UI/Components/Card/Card";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -8,6 +8,7 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import TestDataSource, {
   DataSourceTestResult,
@@ -17,7 +18,7 @@ import DataSource from "Common/Models/DatabaseModels/DataSource";
 import DataSourceType, {
   DataSourceTypeUtil,
 } from "Common/Types/DataSource/DataSourceType";
-import DataSourceTypeUIUtil from "../../Utils/DataSourceType";
+import DataSourceTypeSelectModal from "../../../Components/DataSource/DataSourceTypeSelectModal";
 import React, {
   Fragment,
   FunctionComponent,
@@ -34,6 +35,17 @@ const DataSourcesPage: FunctionComponent<
   const [isTesting, setIsTesting] = useState<boolean>(false);
   const [testError, setTestError] = useState<string>("");
   const [testMessage, setTestMessage] = useState<string>("");
+
+  /*
+   * Creating a data source is a two-step flow: pick the type from a
+   * searchable list first (there will be many types), then fill in the
+   * connection details for just that type.
+   */
+  const [showTypeSelectModal, setShowTypeSelectModal] =
+    useState<boolean>(false);
+  const [showCreateForm, setShowCreateForm] = useState<boolean>(false);
+  const [selectedDataSourceType, setSelectedDataSourceType] =
+    useState<DataSourceType | null>(null);
 
   const runTest: (item: DataSource) => Promise<void> = async (
     item: DataSource,
@@ -119,7 +131,7 @@ const DataSourcesPage: FunctionComponent<
           }}
           id="data-sources-table"
           userPreferencesKey={"settings-data-sources-table"}
-          name="Settings > Data Sources"
+          name="Dashboards > Settings > Data Sources"
           saveFilterProps={{
             tableId: "settings-data-sources-table",
           }}
@@ -127,6 +139,30 @@ const DataSourcesPage: FunctionComponent<
           isEditable={false}
           isViewable={true}
           isCreateable={true}
+          /*
+           * Deliberately NOT derived from the picked type: singularName feeds
+           * the header button, row view buttons and delete confirmations as
+           * well as the create modal, so a type-specific value renames the
+           * whole table for as long as the modal is open. The picker is what
+           * tells the user which type they chose.
+           */
+          singularName="Data Source"
+          createEditModalWidth={ModalWidth.Large}
+          onCreateClick={() => {
+            setShowTypeSelectModal(true);
+          }}
+          showCreateForm={showCreateForm}
+          createInitialValues={
+            selectedDataSourceType
+              ? ({
+                  dataSourceType: selectedDataSourceType,
+                } as FormValues<DataSource>)
+              : undefined
+          }
+          onCreateEditModalClose={() => {
+            setShowCreateForm(false);
+            setSelectedDataSourceType(null);
+          }}
           actionButtons={[
             {
               title: "Test",
@@ -205,14 +241,19 @@ const DataSourcesPage: FunctionComponent<
               },
               title: "Data Source Type",
               stepId: "basic-info",
-              description:
-                "The kind of external system to connect. The type is a create-time choice — create a new data source to use a different type.",
-              fieldType: FormFieldSchemaType.CardSelect,
-              required: true,
+              fieldType: FormFieldSchemaType.Text,
+              required: false,
+              /*
+               * Never rendered: the type is picked in the type-select modal
+               * before this form opens and arrives here through
+               * createInitialValues. The field still has to be declared so
+               * the value is submitted — and so the conditional fields below
+               * can branch on it.
+               */
               showEvenIfPermissionDoesNotExist: true,
-              doNotShowWhenEditing: true,
-              cardSelectOptions:
-                DataSourceTypeUIUtil.dataSourceTypesAsCardSelectOptions(),
+              showIf: (): boolean => {
+                return false;
+              },
             },
             {
               field: {
@@ -396,6 +437,19 @@ const DataSourcesPage: FunctionComponent<
             },
           ]}
         />
+
+        {showTypeSelectModal ? (
+          <DataSourceTypeSelectModal
+            onClose={() => {
+              setShowTypeSelectModal(false);
+            }}
+            onSelect={(dataSourceType: DataSourceType) => {
+              setSelectedDataSourceType(dataSourceType);
+              setShowTypeSelectModal(false);
+              setShowCreateForm(true);
+            }}
+          />
+        ) : null}
 
         {showTestModal ? (
           <ConfirmModal
