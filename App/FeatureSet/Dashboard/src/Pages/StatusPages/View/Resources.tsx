@@ -1185,7 +1185,7 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
             value={searchText}
             dataTestId="status-page-resource-group-search"
             outerDivClassName="relative w-full"
-            className="block w-full rounded-md border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className="block w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
             onChange={(value: string) => {
               setSearchText(value);
               setNavigatorRowLimit(
@@ -1252,7 +1252,7 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
         />
 
         <div
-          className="mt-4 border-t border-gray-100 pt-3 text-xs text-gray-500 tabular-nums"
+          className="mt-4 border-t border-gray-200 pt-3 text-xs text-gray-500 tabular-nums"
           data-testid="status-page-resource-stats"
         >
           {groups.length.toLocaleString()}{" "}
@@ -1569,23 +1569,38 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
     return (
       <Card
         title="Resources"
-        description="Everything visitors see on this status page. Pick a group on the left to edit what is in it; drag a monitor to change the order."
+        description="Everything visitors see on this status page. Pick a group on the left to edit what is in it."
         buttons={getCardButtons()}
+        /*
+         * The workspace runs to the edges of the card rather than sitting in a
+         * box inside its padding: the two panes are what this screen is, so the
+         * line between them is a full height divider and the hierarchy gets a
+         * ground of its own to sit on. The negative margins undo the padding
+         * the card puts around its body - it has no prop for an edge to edge
+         * one - and lg:min-h keeps the divider a divider on a status page whose
+         * selected group holds two monitors.
+         */
+        bodyClassName="mt-5 -mb-6 -mx-5 border-t border-gray-200 md:-mx-6"
       >
-        <div className="lg:grid lg:grid-cols-[18rem_1fr] lg:gap-6">
+        <div className="lg:grid lg:min-h-[30rem] lg:grid-cols-[17rem_minmax(0,1fr)] xl:grid-cols-[19rem_minmax(0,1fr)]">
           <aside
             className={`${
               isPaneOpenOnMobile ? "hidden" : "block"
-            } lg:block lg:border-r lg:border-gray-100 lg:pr-5`}
+            } rounded-b-xl bg-gray-50 px-5 py-5 lg:block lg:rounded-br-none lg:border-r lg:border-gray-200 md:px-6`}
             data-testid="status-page-resource-navigator-pane"
           >
-            {getNavigator()}
+            {/*
+             * The hierarchy follows the page down a long list of resources; the
+             * pane it belongs to is the scroll container, so a status page with
+             * a thousand groups still scrolls in one place.
+             */}
+            <div className="lg:sticky lg:top-4">{getNavigator()}</div>
           </aside>
 
           <section
             className={`${
               isPaneOpenOnMobile ? "block" : "hidden"
-            } lg:block lg:min-w-0`}
+            } px-5 py-5 lg:block lg:min-w-0 md:px-6`}
             data-testid="status-page-resource-detail-pane"
           >
             {getPanel(() => {

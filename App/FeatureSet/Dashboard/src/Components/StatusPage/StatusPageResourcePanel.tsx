@@ -13,7 +13,6 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { FormType, ModelField } from "Common/UI/Components/Forms/ModelForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -541,6 +540,13 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
         : "All resources"
       : props.statusPageGroup?.name || "Untitled group";
 
+  const titleIcon: IconProp =
+    props.selection.type === StatusPageResourceSelectionType.Ungrouped
+      ? IconProp.List
+      : isGrid
+        ? IconProp.Grid
+        : IconProp.Folder;
+
   type GetResourceElementFunction = (
     statusPageResource: StatusPageResource,
   ) => ReactElement;
@@ -791,16 +797,16 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
       props.selection.type === StatusPageResourceSelectionType.Ungrouped &&
       props.hasGroups
     ) {
-      subtitleParts.push("in no group, so visitors see these first");
+      subtitleParts.push("visitors see these first, above every group");
     }
 
     return (
-      <div className="flex flex-col gap-3 border-b border-gray-100 pb-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-4 pb-5 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           {props.onBack ? (
             <button
               type="button"
-              className="mb-1 inline-flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-700 lg:hidden"
+              className="mb-2 inline-flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-700 lg:hidden"
               data-testid="status-page-resource-panel-back"
               onClick={props.onBack}
             >
@@ -811,69 +817,121 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
             <></>
           )}
 
-          {props.breadcrumbSteps.length > 0 ? (
-            <nav
-              className="flex min-w-0 flex-wrap items-center gap-1 text-xs text-gray-400"
-              aria-label="Group path"
-              data-testid="status-page-resource-panel-breadcrumb"
+          <div className="flex min-w-0 items-start gap-3">
+            {/*
+             * Which kind of place this is, in a glyph: the ungrouped bucket, a
+             * plain group, or one laid out as a grid. It is the same icon the
+             * navigator draws beside the row that was clicked, so the two
+             * halves of the screen visibly agree about where the operator is.
+             */}
+            <span
+              className="mt-0.5 hidden h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-500 sm:flex"
+              aria-hidden="true"
             >
-              {props.breadcrumbSteps.map(
-                (step: StatusPageResourceBreadcrumbStep, index: number) => {
-                  return (
-                    <Fragment key={step.id}>
-                      {index > 0 ? <span aria-hidden="true">›</span> : <></>}
-                      <button
-                        type="button"
-                        className="max-w-[12rem] truncate rounded hover:text-indigo-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-                        data-testid="status-page-resource-panel-breadcrumb-step"
-                        onClick={() => {
-                          props.onBreadcrumbClick(step.id);
-                        }}
-                      >
-                        {step.name}
-                      </button>
-                    </Fragment>
-                  );
-                },
+              <Icon icon={titleIcon} className="h-5 w-5" />
+            </span>
+
+            <div className="min-w-0">
+              {/*
+               * Where the group sits, above its name and indented to line up
+               * with it - a path reads as a path when it is over the thing it
+               * leads to, not out in the margin beside its icon.
+               */}
+              {props.breadcrumbSteps.length > 0 ? (
+                <nav
+                  className="mb-0.5 flex min-w-0 flex-wrap items-center gap-1 text-xs text-gray-400"
+                  aria-label="Group path"
+                  data-testid="status-page-resource-panel-breadcrumb"
+                >
+                  {props.breadcrumbSteps.map(
+                    (step: StatusPageResourceBreadcrumbStep, index: number) => {
+                      return (
+                        <Fragment key={step.id}>
+                          {index > 0 ? (
+                            <span aria-hidden="true">›</span>
+                          ) : (
+                            <></>
+                          )}
+                          <button
+                            type="button"
+                            className="max-w-[12rem] truncate rounded hover:text-indigo-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                            data-testid="status-page-resource-panel-breadcrumb-step"
+                            onClick={() => {
+                              props.onBreadcrumbClick(step.id);
+                            }}
+                          >
+                            {step.name}
+                          </button>
+                        </Fragment>
+                      );
+                    },
+                  )}
+                  <span aria-hidden="true">›</span>
+                </nav>
+              ) : (
+                <></>
               )}
-              <span aria-hidden="true">›</span>
-            </nav>
-          ) : (
-            <></>
-          )}
 
-          <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <h2
-              className="truncate text-base font-semibold text-gray-900"
-              data-testid="status-page-resource-panel-title"
-              title={title}
-            >
-              {title}
-            </h2>
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                <h2
+                  className="truncate text-lg font-semibold text-gray-900"
+                  data-testid="status-page-resource-panel-title"
+                  title={title}
+                >
+                  {title}
+                </h2>
 
-            {getChips()}
+                {getChips()}
+              </div>
+
+              <p
+                className="mt-1 text-sm text-gray-500"
+                data-testid="status-page-resource-panel-subtitle"
+              >
+                {subtitleParts.join(" · ")}
+              </p>
+
+              {isGroupSelected && props.statusPageGroup?.description ? (
+                <p
+                  className="mt-1 max-w-2xl text-sm text-gray-500"
+                  data-testid="status-page-resource-panel-description"
+                >
+                  {props.statusPageGroup.description}
+                </p>
+              ) : (
+                <></>
+              )}
+            </div>
           </div>
-
-          <p
-            className="mt-0.5 text-xs text-gray-500"
-            data-testid="status-page-resource-panel-subtitle"
-          >
-            {subtitleParts.join(" · ")}
-          </p>
-
-          {isGroupSelected && props.statusPageGroup?.description ? (
-            <p
-              className="mt-1 max-w-2xl text-xs text-gray-500"
-              data-testid="status-page-resource-panel-description"
-            >
-              {props.statusPageGroup.description}
-            </p>
-          ) : (
-            <></>
-          )}
         </div>
 
-        <div className="flex flex-shrink-0 flex-wrap items-center gap-2">
+        {/*
+         * The buttons are the modal-footer variety - full width until md, so a
+         * dialog stacks them - and this is a toolbar, where two of them stacked
+         * across the pane is not a toolbar at all.
+         */}
+        <div className="flex flex-shrink-0 flex-wrap items-center justify-end gap-2 [&_button]:w-auto [&_button]:md:ml-0">
+          {/*
+           * Editing the group is the second thing anybody does to it, after
+           * putting monitors in it - everything a visitor sees about a group
+           * other than its monitors is behind this one button. It used to be a
+           * line in the overflow menu, beside "Delete this group"; it is still
+           * there, for the same reason every other group action is, but it does
+           * not have to be found to be used.
+           */}
+          {isGroupSelected && props.canEditGroup ? (
+            <Button
+              title="Edit Group"
+              icon={IconProp.Edit}
+              buttonSize={ButtonSize.Small}
+              buttonStyle={ButtonStyleType.NORMAL}
+              dataTestId="status-page-resource-panel-edit-group"
+              onClick={props.onEditGroup}
+            />
+          ) : (
+            <></>
+          )}
+
           {canAddToSelection ? (
             <Fragment>
               <Button
@@ -927,13 +985,13 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
 
     return (
       <div
-        className="mt-4 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5"
+        className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5"
         data-testid="status-page-resource-panel-sub-groups"
       >
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
           Sub groups
         </p>
-        <div className="mt-1.5 flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-1.5">
           {props.subGroups.map((subGroup: StatusPageGroup) => {
             const subGroupId: string = subGroup._id?.toString() || "";
 
@@ -980,7 +1038,7 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
 
     return (
       <div
-        className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5"
+        className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3"
         data-testid="status-page-resource-panel-grid-setup"
       >
         <p className="text-xs font-medium text-amber-900">
@@ -1023,18 +1081,18 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
     }
 
     return (
-      <div className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-2 pb-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative w-full sm:max-w-xs">
           <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
             <Icon icon={IconProp.Search} className="h-4 w-4 text-gray-400" />
           </div>
           <Input
             type={InputType.TEXT}
-            placeholder="Search resources..."
+            placeholder={`Search in ${title}...`}
             value={searchText}
             dataTestId="status-page-resource-panel-search"
             outerDivClassName="relative w-full"
-            className="block w-full rounded-md border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className="block w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
             onChange={(value: string) => {
               setSearchText(value);
             }}
@@ -1055,11 +1113,27 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
              * allowed to write the wrong order.
              */}
             {props.canEdit && !isGrid
-              ? " · reordering is off while filtering"
+              ? " · drag to reorder is off while filtering"
               : ""}
           </span>
         ) : (
-          <></>
+          <>
+            {/*
+             * The order is the order visitors see, and a grip on a row is not
+             * much of a sentence. Said once, beside the list, and only where a
+             * drag would actually do something.
+             */}
+            {props.canEdit && !isGrid && filteredResources.length > 1 ? (
+              <span
+                className="hidden text-xs text-gray-400 sm:inline"
+                data-testid="status-page-resource-panel-reorder-hint"
+              >
+                Drag a row to change the order visitors see
+              </span>
+            ) : (
+              <></>
+            )}
+          </>
         )}
       </div>
     );
@@ -1067,73 +1141,102 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
 
   type GetEmptyStateFunction = () => ReactElement;
 
+  /*
+   * Written out rather than handed to EmptyState, which pads itself by 13rem
+   * top and bottom for a page it owns the whole of. Inside a pane it left a
+   * hole the height of a screen, and the page had been pulling it back with
+   * negative margins deeper than the padding it was cancelling.
+   */
   const getEmptyState: GetEmptyStateFunction = (): ReactElement => {
-    if (isFiltering) {
-      return (
-        <div className="-my-32">
-          <EmptyState
-            id="status-page-resources-no-match"
-            icon={IconProp.Search}
-            title="No resources match your search"
-            description={
-              <span className="mx-auto block max-w-md">
-                {`Nothing in ${title} matches “${searchText}”.`}
-              </span>
-            }
-          />
-        </div>
-      );
-    }
+    const isNoMatch: boolean = isFiltering;
 
     return (
-      <div className="-my-32">
-        <EmptyState
-          id="status-page-resources-empty"
-          icon={IconProp.Alert}
-          title="No monitors here yet"
-          description={
-            <span className="mx-auto block max-w-md">
-              {canAddToSelection
-                ? `Add a monitor to ${title} and visitors will see its status here.`
-                : `Nothing has been added to ${title} yet.`}
-            </span>
-          }
-          footer={
-            <div className="flex flex-wrap items-center justify-center gap-2">
-              {canAddToSelection ? (
-                <Button
-                  title="Add Monitor"
-                  icon={IconProp.Add}
-                  buttonStyle={ButtonStyleType.PRIMARY}
-                  dataTestId="status-page-resource-panel-empty-add"
-                  onClick={() => {
-                    openCreate(null, null);
-                  }}
-                />
-              ) : (
-                <></>
-              )}
+      <div
+        id={
+          isNoMatch
+            ? "status-page-resources-no-match"
+            : "status-page-resources-empty"
+        }
+        className="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-6 py-12 text-center"
+        data-testid="status-page-resource-panel-empty"
+      >
+        <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-white text-gray-400 shadow-sm">
+          <Icon
+            icon={isNoMatch ? IconProp.Search : IconProp.Add}
+            className="h-6 w-6"
+          />
+        </span>
 
-              {/*
-               * Only where a group is the obvious next thing: a status page
-               * with nothing on it yet. Offering it beside every empty group
-               * would be suggesting more structure to somebody who has not
-               * filled the structure they have.
-               */}
-              {props.canCreateGroup && !props.hasGroups ? (
-                <Button
-                  title="Create a Group"
-                  icon={IconProp.FolderPlus}
-                  buttonStyle={ButtonStyleType.OUTLINE}
-                  dataTestId="status-page-resource-panel-empty-create-group"
-                  onClick={props.onCreateGroup}
-                />
-              ) : (
-                <></>
-              )}
-            </div>
-          }
-        />
+        <h3 className="mt-4 text-sm font-semibold text-gray-900">
+          {isNoMatch
+            ? "No resources match your search"
+            : "No monitors here yet"}
+        </h3>
+
+        <p className="mx-auto mt-1 max-w-md text-sm text-gray-500">
+          {isNoMatch
+            ? `Nothing in ${title} matches “${searchText}”.`
+            : canAddToSelection
+              ? `Add a monitor to ${title} and visitors will see its status here.`
+              : `Nothing has been added to ${title} yet.`}
+        </p>
+
+        {isNoMatch ? (
+          <></>
+        ) : (
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-2 [&_button]:md:ml-0">
+            {canAddToSelection ? (
+              <Button
+                title="Add Monitor"
+                icon={IconProp.Add}
+                buttonStyle={ButtonStyleType.PRIMARY}
+                dataTestId="status-page-resource-panel-empty-add"
+                onClick={() => {
+                  openCreate(null, null);
+                }}
+              />
+            ) : (
+              <></>
+            )}
+
+            {/*
+             * Adding a screenful at once is a setup move, and an empty group is
+             * exactly when it is worth making: it is otherwise only reachable
+             * from the overflow menu.
+             */}
+            {canAddToSelection ? (
+              <Button
+                title="Add Multiple"
+                icon={IconProp.List}
+                buttonStyle={ButtonStyleType.NORMAL}
+                dataTestId="status-page-resource-panel-empty-bulk-add"
+                onClick={() => {
+                  setIsBulkAddModalOpen(true);
+                }}
+              />
+            ) : (
+              <></>
+            )}
+
+            {/*
+             * Only where a group is the obvious next thing: a status page
+             * with nothing on it yet. Offering it beside every empty group
+             * would be suggesting more structure to somebody who has not
+             * filled the structure they have.
+             */}
+            {props.canCreateGroup && !props.hasGroups ? (
+              <Button
+                title="Create a Group"
+                icon={IconProp.FolderPlus}
+                buttonStyle={ButtonStyleType.NORMAL}
+                dataTestId="status-page-resource-panel-empty-create-group"
+                onClick={props.onCreateGroup}
+              />
+            ) : (
+              <></>
+            )}
+          </div>
+        )}
       </div>
     );
   };
@@ -1220,7 +1323,7 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
        */}
       {!isLoading && totalResourceCount > statusPageResources.length ? (
         <div
-          className="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800"
+          className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
           data-testid="status-page-resource-panel-truncated"
         >
           Showing the first {statusPageResources.length.toLocaleString()} of{" "}

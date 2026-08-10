@@ -84,8 +84,8 @@ export interface ComponentProps {
  */
 const INDENT_COLUMN_CLASS_NAME: string = "relative w-5 flex-shrink-0";
 const RAIL_CLASS_NAME: string = "absolute inset-y-0 left-2.5 w-px bg-gray-200";
-/* The vertical centre of a row: py-1.5 (6px) plus half of its 20px line. */
-const CONNECTOR_OFFSET_CLASS_NAME: string = "top-4";
+/* The vertical centre of a row: py-2 (8px) plus half of its 20px line. */
+const CONNECTOR_OFFSET_CLASS_NAME: string = "top-[1.125rem]";
 
 /*
  * Every control in a row's hover cluster is the same square with the same glyph
@@ -111,6 +111,18 @@ const ResourceGroupNavigator: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const isUngroupedSelected: boolean =
     props.selection.type === StatusPageResourceSelectionType.Ungrouped;
+
+  /*
+   * Whether a row has anything to act on it with. Every one of these is a
+   * property of the screen rather than of a row, so it is worked out once - and
+   * the count needs to know, because it is drawn where the cluster lands.
+   */
+  const hasRowActions: boolean = Boolean(
+    (props.isCreateable && props.onAddSubGroup) ||
+      (props.isEditable && (props.onEditGroup || props.onMoveGroupUp)) ||
+      props.onShowGroupId ||
+      (props.isDeleteable && props.onDeleteGroup),
+  );
 
   const treeRef: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(
     null,
@@ -268,7 +280,7 @@ const ResourceGroupNavigator: FunctionComponent<ComponentProps> = (
         >
           <span
             className={`absolute left-2.5 top-0 w-px bg-gray-200 ${
-              row.isLastVisibleSibling ? "h-4" : "bottom-0"
+              row.isLastVisibleSibling ? "h-[1.125rem]" : "bottom-0"
             }`}
           />
           <span
@@ -325,10 +337,12 @@ const ResourceGroupNavigator: FunctionComponent<ComponentProps> = (
 
   type RenderCountFunction = (
     row: StatusPageResourceNavigatorRow,
+    isSelected: boolean,
   ) => ReactElement;
 
   const renderCount: RenderCountFunction = (
     row: StatusPageResourceNavigatorRow,
+    isSelected: boolean,
   ): ReactElement => {
     const label: string | null =
       StatusPageResourceExplorerUtil.getNavigatorCountLabel({
@@ -342,8 +356,30 @@ const ResourceGroupNavigator: FunctionComponent<ComponentProps> = (
 
     return (
       <span
-        className={`flex-shrink-0 text-[11px] tabular-nums ${
-          row.ownResourceCount === 0 ? "text-gray-300" : "text-gray-400"
+        /*
+         * A pill rather than loose digits: a bare number at the end of a name
+         * reads as part of the name, which on a status page full of "Region
+         * 1000" and "Market 1001" is not a theoretical problem.
+         *
+         * It gives the row up to the action cluster, which is drawn over this
+         * end of the row - `invisible` rather than `hidden` so the name is
+         * truncated to the same width either way and cannot reflow under the
+         * pointer. The cluster's own background cannot be relied on to cover
+         * it: the dark theme maps indigo-50 to a translucent fill, and the
+         * digits read straight through it.
+         */
+        className={`flex-shrink-0 rounded-full px-1.5 py-0.5 text-[11px] font-medium tabular-nums ${
+          hasRowActions
+            ? "group-hover/nav-row:invisible group-focus-within/nav-row:invisible"
+            : ""
+        } ${
+          isSelected
+            ? hasRowActions
+              ? "invisible"
+              : "bg-indigo-100 text-indigo-700"
+            : row.ownResourceCount === 0
+              ? "bg-gray-100 text-gray-400"
+              : "bg-gray-100 text-gray-500"
         }`}
         title={StatusPageResourceExplorerUtil.getNavigatorCountTooltip({
           row: row,
@@ -548,7 +584,7 @@ const ResourceGroupNavigator: FunctionComponent<ComponentProps> = (
          * a cell" - so the row says which it is, in its glyph and here.
          */
         data-view-mode={row.viewMode || StatusPageGroupViewMode.List}
-        className={`group/nav-row relative flex items-stretch rounded-md transition-colors ${
+        className={`group/nav-row relative flex items-stretch rounded-lg transition-colors ${
           isSelected
             ? "bg-indigo-50"
             : "hover:bg-gray-100 focus-within:bg-gray-100"
@@ -562,7 +598,7 @@ const ResourceGroupNavigator: FunctionComponent<ComponentProps> = (
           <button
             type="button"
             data-testid="status-page-resource-navigator-select"
-            className={`flex min-w-0 flex-1 items-center gap-2 rounded-md py-1.5 pl-1 pr-2 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
+            className={`flex min-w-0 flex-1 items-center gap-2 rounded-lg py-2 pl-1 pr-2 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
               isSelected ? "text-indigo-700" : "text-gray-700"
             }`}
             onClick={() => {
@@ -605,7 +641,7 @@ const ResourceGroupNavigator: FunctionComponent<ComponentProps> = (
               {row.name || "Untitled group"}
             </span>
 
-            {renderCount(row)}
+            {renderCount(row, isSelected)}
           </button>
         </div>
 
@@ -629,7 +665,7 @@ const ResourceGroupNavigator: FunctionComponent<ComponentProps> = (
         data-testid="status-page-resource-navigator-ungrouped"
         title="Resources that are not in any group. Visitors see these first, above every group."
         aria-current={isUngroupedSelected ? "true" : undefined}
-        className={`flex w-full items-center gap-2 rounded-md py-1.5 pl-1.5 pr-2 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
+        className={`flex w-full items-center gap-2 rounded-lg py-2 pl-2 pr-2 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
           isUngroupedSelected
             ? "bg-indigo-50 text-indigo-700"
             : "text-gray-700 hover:bg-gray-100"
@@ -656,10 +692,12 @@ const ResourceGroupNavigator: FunctionComponent<ComponentProps> = (
         </span>
         {props.countIndex.isComplete ? (
           <span
-            className={`flex-shrink-0 text-[11px] tabular-nums ${
-              props.countIndex.ungroupedCount === 0
-                ? "text-gray-300"
-                : "text-gray-400"
+            className={`flex-shrink-0 rounded-full px-1.5 py-0.5 text-[11px] font-medium tabular-nums ${
+              isUngroupedSelected
+                ? "bg-indigo-100 text-indigo-700"
+                : props.countIndex.ungroupedCount === 0
+                  ? "bg-gray-100 text-gray-400"
+                  : "bg-gray-100 text-gray-500"
             }`}
             title={`${props.countIndex.ungroupedCount.toLocaleString()} ${
               props.countIndex.ungroupedCount === 1 ? "resource" : "resources"
@@ -681,7 +719,7 @@ const ResourceGroupNavigator: FunctionComponent<ComponentProps> = (
     if (props.rows.length === 0) {
       return (
         <p
-          className="px-1.5 py-3 text-xs text-gray-500"
+          className="rounded-lg border border-dashed border-gray-300 px-3 py-3 text-xs text-gray-500"
           role="status"
           data-testid="status-page-resource-navigator-empty"
         >
@@ -709,7 +747,7 @@ const ResourceGroupNavigator: FunctionComponent<ComponentProps> = (
 
         {props.hiddenRowCount > 0 ? (
           <div
-            className="px-1 pt-2"
+            className="px-1 pt-2 [&_button]:md:ml-0"
             data-testid="status-page-resource-navigator-show-more"
           >
             <Button
@@ -719,7 +757,7 @@ const ResourceGroupNavigator: FunctionComponent<ComponentProps> = (
               ).toLocaleString()} more of ${props.hiddenRowCount.toLocaleString()}`}
               icon={IconProp.ChevronDown}
               buttonSize={ButtonSize.Small}
-              buttonStyle={ButtonStyleType.OUTLINE}
+              buttonStyle={ButtonStyleType.NORMAL}
               onClick={props.onShowMore}
             />
           </div>
@@ -734,13 +772,13 @@ const ResourceGroupNavigator: FunctionComponent<ComponentProps> = (
     <div data-testid="status-page-resource-navigator">
       {renderUngroupedRow()}
 
-      <div className="mt-3 border-t border-gray-100 pt-3">
+      <div className="mt-3 border-t border-gray-200 pt-3">
         {/*
          * The section header is where a new group belongs: beside the list it
          * will join, rather than in a page header two panes away from it.
          */}
         <div className="flex items-center justify-between gap-2 px-1.5 pb-1.5">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
             Groups
           </p>
 
