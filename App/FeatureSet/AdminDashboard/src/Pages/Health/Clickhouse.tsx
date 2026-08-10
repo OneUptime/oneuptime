@@ -3,7 +3,6 @@ import RouteMap from "../../Utils/RouteMap";
 import ClickhouseCapacity from "./ClickhouseCapacity";
 import ClickhouseCapacitySettings from "./ClickhouseCapacitySettings";
 import ClickhouseCluster from "./ClickhouseCluster";
-import ClickhouseTelemetryIngestion from "./ClickhouseTelemetryIngestion";
 import HealthPage from "./HealthPage";
 import Route from "Common/Types/API/Route";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -17,9 +16,13 @@ const HealthClickhouse: FunctionComponent = (): ReactElement => {
       enterpriseFeatureName="ClickHouse cluster health"
       enterpriseFeatureDescription="Shard reachability, the distributed-DDL queue, replica and replication-queue state and the Keeper connection for the ClickHouse backing this instance."
     >
+      {/*
+       * Telemetry ingestion moved to Diagnostics > Telemetry, where it sits
+       * beside the per-project breakdown. This page stays about the datastore
+       * itself: capacity, shards and replication.
+       */}
       <ClickhouseCapacity />
       <ClickhouseCluster />
-      <ClickhouseTelemetryIngestion />
       <ClickhouseCapacitySettings />
     </HealthPage>
   );
