@@ -1,5 +1,6 @@
 import DatabaseConfig from "../DatabaseConfig";
 import {
+  EncryptionSecret,
   IsBillingEnabled,
   NotificationSlackWebhookOnCreateUser,
 } from "../EnvironmentConfig";
@@ -18,9 +19,12 @@ import UserNotificationSettingService from "./UserNotificationSettingService";
 import UserSessionService from "./UserSessionService";
 import { AccountsRoute } from "../../ServiceRoute";
 import Hostname from "../../Types/API/Hostname";
+import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
+import HTTPResponse from "../../Types/API/HTTPResponse";
 import Protocol from "../../Types/API/Protocol";
 import Route from "../../Types/API/Route";
 import URL from "../../Types/API/URL";
+import EmptyResponseData from "../../Types/API/EmptyResponse";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import OneUptimeDate from "../../Types/Date";
@@ -43,6 +47,9 @@ import UserTotpAuthService from "./UserTotpAuthService";
 import UserWebAuthn from "../../Models/DatabaseModels/UserWebAuthn";
 import UserWebAuthnService from "./UserWebAuthnService";
 import BadDataException from "../../Types/Exception/BadDataException";
+import NotFoundException from "../../Types/Exception/NotFoundException";
+import { getPasswordValidationError } from "../../Types/Password";
+import UserAuthenticationStatus from "../../Types/UserAuthenticationStatus";
 import Name from "../../Types/Name";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import Timezone from "../../Types/Timezone";
@@ -717,6 +724,276 @@ export class Service extends DatabaseService<Model> {
       data: user,
       props: props,
     });
+  }
+
+  /**
+   * How this user authenticates today, for an operator looking at their
+   * account. Runs as root because the caller is a master admin acting outside
+   * of any project, and is authorized by the route's middleware rather than by
+   * tenant permissions.
+   *
+   * Throws NotFoundException rather than returning null so that every caller
+   * reports "no such user" the same way instead of each inventing its own.
+   */
+  @CaptureSpan()
+  public async getAuthenticationStatus(
+    userId: ObjectID,
+  ): Promise<UserAuthenticationStatus> {
+    const user: Model | null = await this.findOneBy({
+      query: {
+        _id: userId,
+      },
+      select: {
+        _id: true,
+        password: true,
+        isEmailVerified: true,
+        enableTwoFactorAuth: true,
+        resetPasswordToken: true,
+        resetPasswordExpires: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException("User not found.");
+    }
+
+    /*
+     * An expired token is not a pending link: the row keeps the token until
+     * something overwrites it, so "the column is set" on its own would report
+     * a link that /reset-password would refuse.
+     */
+    const hasPendingPasswordResetLink: boolean = Boolean(
+      user.resetPasswordToken &&
+        user.resetPasswordExpires &&
+        !OneUptimeDate.hasExpired(user.resetPasswordExpires),
+    );
+
+    return {
+      hasPassword: Boolean(user.password),
+      isEmailVerified: Boolean(user.isEmailVerified),
+      isTwoFactorAuthEnabled: Boolean(user.enableTwoFactorAuth),
+      hasPendingPasswordResetLink: hasPendingPasswordResetLink,
+    };
+  }
+
+  /**
+   * Set one user's password on their behalf. Used by the master-admin route
+   * behind Admin Dashboard > User > Authentication.
+   *
+   * Three things make this safe to expose:
+   *
+   *  - the plaintext is handed to the write path as an UNHASHED HashedString,
+   *    which is what makes `sanitizeCreateOrUpdate` mint a fresh per-user salt
+   *    and run scrypt over it. Pre-hashing here, or passing a bare string,
+   *    would be rejected by that same code (see DatabaseService's salted-column
+   *    guard) precisely because it would strand the row's salt;
+   *  - any outstanding reset link is invalidated in the SAME statement. A link
+   *    mailed before the admin intervened must not still be able to change the
+   *    password afterwards;
+   *  - session revocation and the "Password Changed." email are NOT done here.
+   *    `onUpdateSuccess` already does both for any update that carries a
+   *    password, and doing it again would send the user two identical emails.
+   */
+  @CaptureSpan()
+  public async setPassword(data: {
+    userId: ObjectID;
+    password: string;
+  }): Promise<void> {
+    const validationError: string | null = getPasswordValidationError(
+      data.password,
+    );
+
+    if (validationError) {
+      throw new BadDataException(validationError);
+    }
+
+    const user: Model | null = await this.findOneBy({
+      query: {
+        _id: data.userId,
+      },
+      select: {
+        _id: true,
+        email: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException("User not found.");
+    }
+
+    await this.updateOneById({
+      id: user.id!,
+      data: {
+        password: new HashedString(data.password),
+        resetPasswordToken: null!,
+        resetPasswordExpires: null!,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    logger.info(
+      `Password set by a master admin for user: ${user.id!.toString()}`,
+    );
+  }
+
+  /**
+   * Mint a fresh password-reset link for a user and email it to them.
+   *
+   * Produces exactly the link the public /forgot-password endpoint produces --
+   * same token minting, same hashed-at-rest storage, same 24 hour expiry, same
+   * /accounts/reset-password/<token> shape -- so the link an operator sends
+   * from the Admin Dashboard is redeemed by the ordinary reset-password page
+   * with no second code path behind it. Identity's /forgot-password keeps its
+   * own copy of this because it differs around the edges (it finds the user by
+   * a typed email, refuses accounts with no password, and answers success
+   * without waiting for the mail); if either changes the token scheme, both
+   * must move together.
+   *
+   * Only the SHA-256 of the token is stored. The token itself exists just long
+   * enough to be put in the email, so a leaked database row cannot be replayed
+   * as a reset link. It is hashed unsalted on purpose: /reset-password looks
+   * the row up BY that hash, which a per-row salt would make impossible, and a
+   * generated ObjectID has enough entropy that there is nothing to guess.
+   */
+  @CaptureSpan()
+  public async sendPasswordResetLink(data: {
+    userId: ObjectID;
+  }): Promise<Email> {
+    const user: Model | null = await this.findOneBy({
+      query: {
+        _id: data.userId,
+      },
+      select: {
+        _id: true,
+        email: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException("User not found.");
+    }
+
+    /*
+     * `email` is a NOT NULL column, so this is unreachable through the
+     * database -- it is here because the alternative is a non-null assertion
+     * on the address we are about to mail a password-reset link to, and being
+     * wrong about that would send the link somewhere unintended.
+     */
+    if (!user.email) {
+      throw new BadDataException(
+        "This user has no email address, so a password reset link cannot be sent to them.",
+      );
+    }
+
+    const token: string = ObjectID.generate().toString();
+
+    const hashedToken: string = await HashedString.hashValue(
+      token,
+      EncryptionSecret,
+    );
+
+    await this.updateOneById({
+      id: data.userId,
+      data: {
+        resetPasswordToken: hashedToken,
+        resetPasswordExpires: OneUptimeDate.getOneDayAfter(),
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const host: Hostname = await DatabaseConfig.getHost();
+    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+
+    const tokenVerifyUrl: string = new URL(
+      httpProtocol,
+      host,
+      new Route(AccountsRoute.toString()).addRoute("/reset-password/" + token),
+    ).toString();
+
+    /*
+     * Awaited, unlike most MailService calls in this file. The caller is a
+     * human who just pressed "send password reset link" and needs to be told
+     * if the instance cannot send mail -- reporting success and dropping the
+     * email would leave them waiting for a link that is never coming.
+     */
+    try {
+      const mailResponse: HTTPResponse<EmptyResponseData> =
+        await MailService.sendMail({
+          toEmail: user.email,
+          subject: "Password Reset Request for OneUptime",
+          templateType: EmailTemplateType.ForgotPassword,
+          vars: {
+            homeURL: new URL(httpProtocol, host).toString(),
+            tokenVerifyUrl: tokenVerifyUrl,
+          },
+        });
+
+      /*
+       * Awaiting is not enough on its own. MailService.sendMail is an HTTP
+       * call to the notification service, and the API client only REJECTS
+       * when no response came back at all (connection refused, timeout). A
+       * response that says no -- 400 "Global SMTP Config not found" on an
+       * instance with no mail set up, an auth failure, a rejected recipient --
+       * arrives as a RESOLVED HTTPErrorResponse, which type-checks as an
+       * HTTPResponse and would sail straight past a bare try/catch.
+       *
+       * That is the common failure, not the exotic one, so it has to be
+       * turned back into a throw for the rollback below to mean anything.
+       */
+      if (mailResponse instanceof HTTPErrorResponse) {
+        throw new BadDataException(
+          `Could not send the password reset email: ${mailResponse.message}`,
+        );
+      }
+    } catch (err) {
+      /*
+       * The token was written before the send, so a failed send would
+       * otherwise leave a live 24 hour link on the row that nobody ever
+       * received -- and the Authentication page would then report "reset link
+       * pending" directly underneath the error saying it could not be sent.
+       * Take it back off so the record matches what the operator was told.
+       *
+       * Best-effort, and it never masks the mail failure: that is the error
+       * worth reporting, and an orphaned token expires on its own anyway.
+       */
+      await this.updateOneById({
+        id: data.userId,
+        data: {
+          resetPasswordToken: null!,
+          resetPasswordExpires: null!,
+        },
+        props: {
+          isRoot: true,
+        },
+      }).catch((clearError: Error) => {
+        logger.error(
+          `Failed to clear the unsent password reset token for user ${data.userId.toString()}; it will expire on its own.`,
+        );
+        logger.error(clearError);
+      });
+
+      throw err;
+    }
+
+    logger.info(
+      `Password reset link sent by a master admin to user: ${data.userId.toString()}`,
+    );
+
+    // Returned so the caller can tell the operator where the link went.
+    return user.email;
   }
 
   public async getTimezoneForUser(userId: ObjectID): Promise<Timezone | null> {

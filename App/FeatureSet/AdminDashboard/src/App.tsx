@@ -50,6 +50,7 @@ import {
 import UserView from "./Pages/Users/View/Index";
 import UserDelete from "./Pages/Users/View/Delete";
 import UserProjects from "./Pages/Users/View/Projects";
+import UserAuthentication from "./Pages/Users/View/Authentication";
 import UserSettings from "./Pages/Users/View/Settings";
 import ProjectView from "./Pages/Projects/View/Index";
 import ProjectSubscription from "./Pages/Projects/View/Subscription";
@@ -169,6 +170,11 @@ const App: () => JSX.Element = () => {
         <PageRoute
           path={RouteMap[PageMap.USER_PROJECTS]?.toString() || ""}
           element={<UserProjects />}
+        />
+
+        <PageRoute
+          path={RouteMap[PageMap.USER_AUTHENTICATION]?.toString() || ""}
+          element={<UserAuthentication />}
         />
 
         <PageRoute
