@@ -26,8 +26,12 @@ const router: ExpressRouter = Express.getRouter();
  * Human-action endpoints for the AI insights inbox. Insight rows are
  * server-authored (empty create/update table permissions) — humans act on
  * them only through these routes: a one-click Confirm / Dismiss verdict
- * (the G11 precision measurement), Resolve, and the live triage panel
- * read. Each route access-checks the insight under the USER's permissions
+ * (the G11 precision measurement), Resolve, Reopen (the undo for both
+ * terminal states), and the live triage panel read. Every human action an
+ * insight can reach must be reversible from here, or a misclick is
+ * permanent — a dismissal in particular also suppresses the fingerprint
+ * for the InsightStore cooldown.
+ * Each route access-checks the insight under the USER's permissions
  * first (project membership + the AIInsight read ACL), then the
  * service performs the root read/write — the AIInvestigationAPI idiom.
  */
@@ -82,9 +86,10 @@ async function findAccessibleInsight(
  * One-click human verdict (the G11 precision measurement — confirm/dismiss
  * rates per insight type gate future automation). Overwriting an existing
  * verdict is allowed: the latest verdict wins. Dismissed also closes the
- * insight; Confirmed leaves its status untouched.
+ * insight; Confirmed leaves its status untouched unless the insight was
+ * closed AS Dismissed, in which case it is reopened — see the service.
  * Body: { insightId, verdict: "Confirmed" | "Dismissed" }.
- * Response: { insightId, verdict }.
+ * Response: { insightId, verdict, status }.
  */
 router.post(
   "/ai-insight/verdict",
@@ -115,6 +120,7 @@ router.post(
       const result: {
         insightId: ObjectID;
         verdict: AIInsightHumanVerdict;
+        status: AIInsightStatus | null;
       } = await AIInsightService.applyHumanVerdict({
         insightId: insight.id!,
         verdict: verdict as AIInsightHumanVerdict,
@@ -124,6 +130,7 @@ router.post(
       Response.sendJsonObjectResponse(req, res, {
         insightId: result.insightId.toString(),
         verdict: result.verdict,
+        status: result.status,
       });
       return;
     } catch (err) {
@@ -155,6 +162,42 @@ router.post(
         await AIInsightService.resolveInsight({
           insightId: insight.id!,
           byUserId: props.userId!,
+        });
+
+      Response.sendJsonObjectResponse(req, res, {
+        insightId: result.insightId.toString(),
+        status: result.status,
+      });
+      return;
+    } catch (err) {
+      next(err);
+      return;
+    }
+  },
+);
+
+/*
+ * Undo a terminal action: puts a Resolved or Dismissed insight back in the
+ * open queue and clears the human verdict that closed it. Reopening an
+ * already-open insight is a no-op that reports the current status.
+ * Body: { insightId }. Response: { insightId, status }.
+ */
+router.post(
+  "/ai-insight/reopen",
+  UserMiddleware.getUserMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const props: DatabaseCommonInteractionProps = await getLoggedInProps(req);
+
+      const insight: AIInsight = await findAccessibleInsight(req, props);
+
+      const result: { insightId: ObjectID; status: AIInsightStatus } =
+        await AIInsightService.reopenInsight({
+          insightId: insight.id!,
         });
 
       Response.sendJsonObjectResponse(req, res, {
