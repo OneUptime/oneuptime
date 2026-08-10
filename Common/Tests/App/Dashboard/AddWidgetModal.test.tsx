@@ -321,7 +321,11 @@ describe("AddWidgetModal", () => {
 
       typeSearch("gauge");
 
-      expect(getVisibleWidgetTypes()).toEqual([DashboardComponentType.Gauge]);
+      // Both gauge widgets: the metrics one and the external Data Source one.
+      expect(getVisibleWidgetTypes()).toEqual([
+        DashboardComponentType.Gauge,
+        DashboardComponentType.DataSourceGauge,
+      ]);
     });
 
     test("announces how many widgets matched", () => {
@@ -330,7 +334,7 @@ describe("AddWidgetModal", () => {
       typeSearch("gauge");
 
       expect(screen.getByTestId("add-widget-result-count")).toHaveTextContent(
-        "1 widget matches",
+        "2 widgets match",
       );
 
       typeSearch("docker");
@@ -347,7 +351,10 @@ describe("AddWidgetModal", () => {
 
       typeSearch("GAUGE");
 
-      expect(getVisibleWidgetTypes()).toEqual([DashboardComponentType.Gauge]);
+      expect(getVisibleWidgetTypes()).toEqual([
+        DashboardComponentType.Gauge,
+        DashboardComponentType.DataSourceGauge,
+      ]);
     });
 
     test("finds widgets by keywords that are not shown on the card", () => {

@@ -383,12 +383,17 @@ describe("WidgetCatalog", () => {
     test("drops categories that have no matching widgets", () => {
       const result: Array<WidgetCatalogCategory> = searchWidgetCatalog("gauge");
 
+      /*
+       * Both gauge widgets match — the metrics one and the external Data
+       * Source one — and every other category drops out entirely.
+       */
       expect(
         result.map((category: WidgetCatalogCategory) => {
           return category.name;
         }),
-      ).toEqual(["Metrics"]);
+      ).toEqual(["Metrics", "External Data Sources"]);
       expect(result[0]?.items).toHaveLength(1);
+      expect(result[1]?.items).toHaveLength(1);
     });
 
     test("does not mutate the source catalog", () => {

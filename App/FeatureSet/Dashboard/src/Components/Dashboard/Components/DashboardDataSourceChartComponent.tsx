@@ -7,7 +7,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import DashboardChartComponent from "Common/Types/Dashboard/DashboardComponents/DashboardChartComponent";
+import DashboardDataSourceChartComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardDataSourceChartComponent";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import MetricCharts from "../../Metrics/MetricCharts";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
@@ -26,9 +26,12 @@ import DataSourceQueryUtil from "../../../Utils/DataSourceQuery";
 import DataSourceQueryText from "Common/Utils/DataSource/DataSourceQueryText";
 import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
 import { isPublicDashboard } from "../Utils/PublicDashboardContext";
+import { getConfiguredDataSourceQueries } from "../Utils/DataSourceWidget";
+import DataSourceWidgetPlaceholder from "./DataSourceWidgetPlaceholder";
+import JSONFunctions from "Common/Types/JSONFunctions";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
-  component: DashboardChartComponent;
+  component: DashboardDataSourceChartComponentType;
 }
 
 /*
@@ -53,12 +56,8 @@ const DashboardDataSourceChartComponent: FunctionComponent<ComponentProps> = (
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const queryConfigs: Array<DataSourceQueryConfig> = useMemo(() => {
-    return (props.component.arguments.dataSourceQueryConfigs || []).filter(
-      (config: DataSourceQueryConfig) => {
-        return Boolean(config.dataSourceId && config.query);
-      },
-    );
-  }, [props.component.arguments.dataSourceQueryConfigs]);
+    return getConfiguredDataSourceQueries(props.component.arguments.queries);
+  }, [props.component.arguments.queries]);
 
   const startAndEndDate: ReturnType<
     typeof RangeStartAndEndDateTimeUtil.getStartAndEndDate
@@ -110,8 +109,14 @@ const DashboardDataSourceChartComponent: FunctionComponent<ComponentProps> = (
       return;
     }
 
+    /*
+     * Nothing to run yet. Not an error — the widget is seeded with a blank
+     * query card, so this is simply the state every new chart starts in.
+     * The setup prompt below says so; an error tile would read as a failure
+     * the user caused.
+     */
     if (state.queryConfigs.length === 0) {
-      setError("Please configure a data source query.");
+      setError("");
       setIsLoading(false);
       return;
     }
@@ -236,15 +241,28 @@ const DashboardDataSourceChartComponent: FunctionComponent<ComponentProps> = (
   }, [queryConfigs, results, startAndEndDate, getMetricChartType]);
 
   if (isPublicDashboard()) {
+    return <DataSourceWidgetPlaceholder icon={IconProp.ChartBar} />;
+  }
+
+  /*
+   * Before any query is filled in. This outranks the error branch below for
+   * the same reason it does on the other three widgets: a chart with no
+   * queries left has nothing to be wrong about, and the fetch that would
+   * clear a previous error is the one the missing query stops from running.
+   */
+  if (queryConfigs.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center w-full h-full gap-2">
-        <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center">
-          <div className="h-5 w-5 text-gray-300">
-            <Icon icon={IconProp.Database} />
+      <div className="flex flex-col items-center justify-center w-full h-full gap-1.5">
+        <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center">
+          <div className="h-5 w-5 text-indigo-300">
+            <Icon icon={IconProp.ChartBar} />
           </div>
         </div>
-        <p className="text-xs text-gray-400 text-center max-w-48">
-          External data sources are not available on public dashboards.
+        <p className="text-xs font-medium text-gray-500">
+          {props.component.arguments.chartTitle?.trim() || "Data Source Chart"}
+        </p>
+        <p className="text-xs text-gray-400 text-center">
+          Click to configure a query
         </p>
       </div>
     );
@@ -323,4 +341,34 @@ const DashboardDataSourceChartComponent: FunctionComponent<ComponentProps> = (
   );
 };
 
-export default DashboardDataSourceChartComponent;
+function arePropsEqual(prev: ComponentProps, next: ComponentProps): boolean {
+  if (
+    prev.componentId.toString() !== next.componentId.toString() ||
+    prev.refreshTick !== next.refreshTick ||
+    prev.isEditMode !== next.isEditMode ||
+    prev.isSelected !== next.isSelected ||
+    prev.dashboardComponentWidthInPx !== next.dashboardComponentWidthInPx ||
+    prev.dashboardComponentHeightInPx !== next.dashboardComponentHeightInPx
+  ) {
+    return false;
+  }
+
+  if (
+    !JSONFunctions.deepEqual(
+      prev.dashboardStartAndEndDate,
+      next.dashboardStartAndEndDate,
+    )
+  ) {
+    return false;
+  }
+
+  if (
+    !JSONFunctions.deepEqual(prev.component.arguments, next.component.arguments)
+  ) {
+    return false;
+  }
+
+  return JSONFunctions.deepEqual(prev.variables, next.variables);
+}
+
+export default React.memo(DashboardDataSourceChartComponent, arePropsEqual);

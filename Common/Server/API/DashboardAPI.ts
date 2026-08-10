@@ -22,6 +22,8 @@ import { DASHBOARD_MASTER_PASSWORD_INVALID_MESSAGE } from "../../Types/Dashboard
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
 import ForbiddenException from "../../Types/Exception/ForbiddenException";
 import JSONFunctions from "../../Types/JSONFunctions";
+import DashboardViewConfig from "../../Types/Dashboard/DashboardViewConfig";
+import PublicDashboardViewConfig from "../Utils/Dashboard/PublicDashboardViewConfig";
 import TelemetryAttributeService from "../Services/TelemetryAttributeService";
 import TelemetryType from "../../Types/Telemetry/TelemetryType";
 import { JSONObject } from "../../Types/JSON";
@@ -470,24 +472,25 @@ export default class DashboardAPI extends BaseAPI<
         /*
          * Everything below is derived from columns the public /metadata and
          * /view-config endpoints already serve to anonymous viewers — the
-         * overview only reshapes them into a single GET-able document.
+         * overview only reshapes them into a single GET-able document, and
+         * applies the same external-Data-Source strip /view-config does.
          */
+        const publicViewConfig: DashboardViewConfig | null =
+          PublicDashboardViewConfig.sanitize(dashboard.dashboardViewConfig);
+
         return Response.sendJsonObjectResponse(req, res, {
           _id: dashboard._id?.toString() || "",
           name: dashboard.name || "Dashboard",
           description: dashboard.description || "",
           pageTitle: dashboard.pageTitle || "",
           pageDescription: dashboard.pageDescription || "",
-          components: DashboardAPI.buildPublicComponentSummaries(
-            dashboard.dashboardViewConfig,
-          ),
+          components:
+            DashboardAPI.buildPublicComponentSummaries(publicViewConfig),
           metricsUsed: Array.from(
-            DashboardAPI.collectDashboardMetricNames(
-              dashboard.dashboardViewConfig,
-            ),
+            DashboardAPI.collectDashboardMetricNames(publicViewConfig),
           ).sort(),
-          dashboardViewConfig: dashboard.dashboardViewConfig
-            ? JSONFunctions.serialize(dashboard.dashboardViewConfig as any)
+          dashboardViewConfig: publicViewConfig
+            ? JSONFunctions.serialize(publicViewConfig as any)
             : null,
         });
       } catch (err) {
@@ -673,6 +676,9 @@ export default class DashboardAPI extends BaseAPI<
             throw new NotFoundException("Dashboard not found");
           }
 
+          const publicViewConfig: DashboardViewConfig | null =
+            PublicDashboardViewConfig.sanitize(dashboard.dashboardViewConfig);
+
           return Response.sendJsonObjectResponse(req, res, {
             _id: dashboard._id?.toString() || "",
             name: dashboard.name || "Dashboard",
@@ -682,8 +688,19 @@ export default class DashboardAPI extends BaseAPI<
             logoFile: DashboardAPI.getFileAsBase64JSONObject(
               dashboard.logoFile,
             ),
-            dashboardViewConfig: dashboard.dashboardViewConfig
-              ? JSONFunctions.serialize(dashboard.dashboardViewConfig as any)
+            /*
+             * External Data Source widgets are stripped: they cannot render
+             * for an anonymous viewer, and their config IS the query — raw
+             * SQL / PromQL naming internal tables, jobs, and instances.
+             *
+             * The null stays null. JSONFunctions.serialize(null) returns
+             * `{}`, and the public page falls back to a default config only
+             * on a FALSY value — an empty object is truthy, so it would sail
+             * through and the canvas would read `.components.length` off
+             * undefined.
+             */
+            dashboardViewConfig: publicViewConfig
+              ? JSONFunctions.serialize(publicViewConfig as any)
               : null,
           });
         } catch (err) {

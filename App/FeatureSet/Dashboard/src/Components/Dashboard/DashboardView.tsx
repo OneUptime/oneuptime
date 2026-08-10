@@ -23,6 +23,10 @@ import DashboardTextComponentUtil from "Common/Utils/Dashboard/Components/Dashbo
 import DashboardClockComponentUtil from "Common/Utils/Dashboard/Components/DashboardClockComponent";
 import DashboardTableComponentUtil from "Common/Utils/Dashboard/Components/DashboardTableComponent";
 import DashboardGaugeComponentUtil from "Common/Utils/Dashboard/Components/DashboardGaugeComponent";
+import DashboardDataSourceChartComponentUtil from "Common/Utils/Dashboard/Components/DashboardDataSourceChartComponent";
+import DashboardDataSourceValueComponentUtil from "Common/Utils/Dashboard/Components/DashboardDataSourceValueComponent";
+import DashboardDataSourceGaugeComponentUtil from "Common/Utils/Dashboard/Components/DashboardDataSourceGaugeComponent";
+import DashboardDataSourceTableComponentUtil from "Common/Utils/Dashboard/Components/DashboardDataSourceTableComponent";
 import DashboardLogStreamComponentUtil from "Common/Utils/Dashboard/Components/DashboardLogStreamComponent";
 import DashboardLogChartComponentUtil from "Common/Utils/Dashboard/Components/DashboardLogChartComponent";
 import DashboardTraceListComponentUtil from "Common/Utils/Dashboard/Components/DashboardTraceListComponent";
@@ -557,6 +561,26 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
 
           if (componentType === DashboardComponentType.Gauge) {
             newComponent = DashboardGaugeComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.DataSourceChart) {
+            newComponent =
+              DashboardDataSourceChartComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.DataSourceValue) {
+            newComponent =
+              DashboardDataSourceValueComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.DataSourceGauge) {
+            newComponent =
+              DashboardDataSourceGaugeComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.DataSourceTable) {
+            newComponent =
+              DashboardDataSourceTableComponentUtil.getDefaultComponent();
           }
 
           if (componentType === DashboardComponentType.LogStream) {

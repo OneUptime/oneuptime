@@ -26,41 +26,20 @@ import DashboardChartType from "Common/Types/Dashboard/Chart/ChartType";
 import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInterpolation";
 import ExplorerLink from "../../Metrics/Utils/ExplorerLink";
 import { isPublicDashboard } from "../Utils/PublicDashboardContext";
-import DataSourceQueryConfig from "Common/Types/DataSource/DataSourceQueryConfig";
-import DashboardDataSourceChartComponent from "./DashboardDataSourceChartComponent";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardChartComponent;
 }
 
 /*
- * Chart widgets bound to an external Data Source render through a
- * dedicated component (its own fetch path + synthetic chart config);
- * everything else takes the OneUptime-metrics implementation below. The
- * branch lives in a wrapper so each implementation keeps its own hooks.
+ * Time-series chart over a OneUptime METRIC query. Charting an external
+ * Data Source is a separate widget type (DashboardDataSourceChartComponent)
+ * with its own query editor, so nothing here has to branch on where the
+ * data came from.
  */
 const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const hasDataSourceQueries: boolean = Boolean(
-    props.component.arguments.dataSourceQueryConfigs &&
-      props.component.arguments.dataSourceQueryConfigs.some(
-        (config: DataSourceQueryConfig) => {
-          return Boolean(config.dataSourceId && config.query);
-        },
-      ),
-  );
-
-  if (hasDataSourceQueries) {
-    return <DashboardDataSourceChartComponent {...props} />;
-  }
-
-  return <DashboardMetricChartComponentElement {...props} />;
-};
-
-const DashboardMetricChartComponentElement: FunctionComponent<
-  ComponentProps
-> = (props: ComponentProps): ReactElement => {
   const [metricResults, setMetricResults] = useState<Array<AggregatedResult>>(
     [],
   );

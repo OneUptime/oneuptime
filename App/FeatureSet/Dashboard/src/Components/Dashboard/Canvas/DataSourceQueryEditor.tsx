@@ -38,15 +38,16 @@ export interface ComponentProps {
 }
 
 /*
- * Bespoke editor for binding a widget to an EXTERNAL Data Source. Writes
- * straight through onChange/commitComponent (NOT through a BasicForm) so
- * section-form snapshot re-emits can't clobber it — the same contract the
+ * Query editor for the four external Data Source widgets. Writes straight
+ * through onChange/commitComponent (NOT through a BasicForm) so section-form
+ * snapshot re-emits can't clobber it — the same contract the
  * TableColumnsEditor uses.
  *
- * Chart widgets hold an ARRAY of queries (arguments.dataSourceQueryConfigs);
- * Value/Gauge/Table hold a single query (arguments.dataSourceQueryConfig).
- * Setting a query switches the widget to external mode; clearing it
- * returns the widget to OneUptime metrics.
+ * The Data Source Chart holds an ARRAY of queries (arguments.queries) so
+ * several series can be overlaid; Value/Gauge/Table hold a single query
+ * (arguments.query). These widget types exist only to read external data,
+ * so the query is the primary configuration, not an alternative mode of
+ * some other widget.
  */
 const DataSourceQueryEditor: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -96,10 +97,12 @@ const DataSourceQueryEditor: FunctionComponent<ComponentProps> = (
     };
   }, []);
 
+  // Only the chart widget overlays several queries on one visualization.
   const isChart: boolean =
-    props.component.componentType === DashboardComponentType.Chart;
+    props.component.componentType === DashboardComponentType.DataSourceChart;
+  // Tables consume ROWS, not time series — the copy and fields differ.
   const isTable: boolean =
-    props.component.componentType === DashboardComponentType.Table;
+    props.component.componentType === DashboardComponentType.DataSourceTable;
 
   const componentArguments: Record<string, unknown> = (props.component
     .arguments || {}) as Record<string, unknown>;
@@ -107,13 +110,11 @@ const DataSourceQueryEditor: FunctionComponent<ComponentProps> = (
   const queryConfigs: Array<DataSourceQueryConfig> = useMemo(() => {
     if (isChart) {
       return (
-        (componentArguments[
-          "dataSourceQueryConfigs"
-        ] as Array<DataSourceQueryConfig>) || []
+        (componentArguments["queries"] as Array<DataSourceQueryConfig>) || []
       );
     }
     const single: DataSourceQueryConfig | undefined = componentArguments[
-      "dataSourceQueryConfig"
+      "query"
     ] as DataSourceQueryConfig | undefined;
     return single ? [single] : [];
   }, [componentArguments, isChart]);
@@ -138,14 +139,14 @@ const DataSourceQueryEditor: FunctionComponent<ComponentProps> = (
 
     if (isChart) {
       if (next.length > 0) {
-        nextArguments["dataSourceQueryConfigs"] = next;
+        nextArguments["queries"] = next;
       } else {
-        delete nextArguments["dataSourceQueryConfigs"];
+        delete nextArguments["queries"];
       }
     } else if (next.length > 0 && next[0]) {
-      nextArguments["dataSourceQueryConfig"] = next[0];
+      nextArguments["query"] = next[0];
     } else {
-      delete nextArguments["dataSourceQueryConfig"];
+      delete nextArguments["query"];
     }
 
     props.onChange({
@@ -272,14 +273,19 @@ const DataSourceQueryEditor: FunctionComponent<ComponentProps> = (
   return (
     <div className="mt-3">
       <CollapsibleSection
-        title="External Data Source"
+        title="Query"
         description={
           isTable
-            ? "Render rows from a connected external system (Prometheus, SQL, ClickHouse, Loki, Elasticsearch, REST) instead of OneUptime metrics."
-            : "Chart data from a connected external system (Prometheus, SQL, ClickHouse, Loki, Elasticsearch, REST) instead of OneUptime metrics."
+            ? "Rows to render, from a connected external system (Prometheus, SQL, ClickHouse, Loki, Elasticsearch, REST)."
+            : "Data to visualize, from a connected external system (Prometheus, SQL, ClickHouse, Loki, Elasticsearch, REST)."
         }
         variant="bordered"
-        defaultCollapsed={queryConfigs.length === 0}
+        /*
+         * Never collapsed: on these widget types the query IS the widget,
+         * so hiding it behind a disclosure would hide the only setting that
+         * makes the widget show anything.
+         */
+        defaultCollapsed={false}
       >
         <div>
           {loadError && <p className="text-xs text-red-500">{loadError}</p>}
@@ -296,11 +302,7 @@ const DataSourceQueryEditor: FunctionComponent<ComponentProps> = (
           )}
           {dataSources.length > 0 && (isChart || queryConfigs.length === 0) && (
             <Button
-              title={
-                queryConfigs.length === 0
-                  ? "Use External Data Source"
-                  : "Add Query"
-              }
+              title="Add Query"
               buttonStyle={ButtonStyleType.OUTLINE}
               buttonSize={ButtonSize.Small}
               icon={IconProp.Add}

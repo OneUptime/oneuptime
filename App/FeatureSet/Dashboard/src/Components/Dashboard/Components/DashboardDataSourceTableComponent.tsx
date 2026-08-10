@@ -7,7 +7,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import DashboardTableComponent from "Common/Types/Dashboard/DashboardComponents/DashboardTableComponent";
+import DashboardDataSourceTableComponentType from "Common/Types/Dashboard/DashboardComponents/DashboardDataSourceTableComponent";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import DataSourceTableResult, {
   DataSourceTableColumn,
@@ -18,14 +18,17 @@ import DataSourceQueryUtil from "../../../Utils/DataSourceQuery";
 import DataSourceQueryText from "Common/Utils/DataSource/DataSourceQueryText";
 import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
 import { isPublicDashboard } from "../Utils/PublicDashboardContext";
+import { isDataSourceQueryConfigured } from "../Utils/DataSourceWidget";
+import DataSourceWidgetPlaceholder from "./DataSourceWidgetPlaceholder";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
 import API from "Common/UI/Utils/API/API";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
+import JSONFunctions from "Common/Types/JSONFunctions";
 import { JSONValue } from "Common/Types/JSON";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
-  component: DashboardTableComponent;
+  component: DashboardDataSourceTableComponentType;
 }
 
 type SortDirection = "asc" | "desc";
@@ -45,8 +48,14 @@ const DashboardDataSourceTableComponent: FunctionComponent<ComponentProps> = (
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
-  const queryConfig: DataSourceQueryConfig | undefined =
-    props.component.arguments.dataSourceQueryConfig;
+  const rawQueryConfig: DataSourceQueryConfig | undefined =
+    props.component.arguments.query;
+
+  const isConfigured: boolean = isDataSourceQueryConfigured(rawQueryConfig);
+
+  const queryConfig: DataSourceQueryConfig | undefined = isConfigured
+    ? rawQueryConfig
+    : undefined;
 
   const startAndEndDate: ReturnType<
     typeof RangeStartAndEndDateTimeUtil.getStartAndEndDate
@@ -87,13 +96,7 @@ const DashboardDataSourceTableComponent: FunctionComponent<ComponentProps> = (
     const fetchId: number = ++fetchSequenceRef.current;
     setIsLoading(true);
 
-    if (
-      !state.queryConfig ||
-      !state.queryConfig.dataSourceId ||
-      !state.queryConfig.query ||
-      !state.startDate ||
-      !state.endDate
-    ) {
+    if (!state.queryConfig || !state.startDate || !state.endDate) {
       setIsLoading(false);
       return;
     }
@@ -180,6 +183,19 @@ const DashboardDataSourceTableComponent: FunctionComponent<ComponentProps> = (
     );
   }, [result, sortKey, sortDirection]);
 
+  /*
+   * The widget's own row cap, applied AFTER sorting so "top 10 by this
+   * column" means what it says. The connector's cap already ran server-side
+   * — this only trims what gets drawn.
+   */
+  const visibleRows: Array<{ [key: string]: JSONValue }> = useMemo(() => {
+    const maxRows: number | undefined = props.component.arguments.maxRows;
+    if (maxRows === undefined || maxRows === null || maxRows <= 0) {
+      return sortedRows;
+    }
+    return sortedRows.slice(0, maxRows);
+  }, [sortedRows, props.component.arguments.maxRows]);
+
   const formatCell: (
     value: JSONValue,
     column: DataSourceTableColumn,
@@ -212,15 +228,22 @@ const DashboardDataSourceTableComponent: FunctionComponent<ComponentProps> = (
     props.component.arguments.tableDescription;
 
   if (isPublicDashboard()) {
+    return <DataSourceWidgetPlaceholder icon={IconProp.TableCells} />;
+  }
+
+  if (!isConfigured) {
     return (
-      <div className="flex flex-col items-center justify-center w-full h-full gap-2">
-        <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center">
-          <div className="h-5 w-5 text-gray-300">
-            <Icon icon={IconProp.Database} />
+      <div className="flex flex-col items-center justify-center w-full h-full gap-1.5">
+        <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center">
+          <div className="h-5 w-5 text-indigo-300">
+            <Icon icon={IconProp.TableCells} />
           </div>
         </div>
-        <p className="text-xs text-gray-400 text-center max-w-48">
-          External data sources are not available on public dashboards.
+        <p className="text-xs font-medium text-gray-500">
+          {title || "Data Source Table"}
+        </p>
+        <p className="text-xs text-gray-400 text-center">
+          Click to configure a query
         </p>
       </div>
     );
@@ -279,8 +302,10 @@ const DashboardDataSourceTableComponent: FunctionComponent<ComponentProps> = (
           )}
         </div>
         <span className="text-xs text-gray-400 tabular-nums whitespace-nowrap">
-          {sortedRows.length} {sortedRows.length === 1 ? "row" : "rows"}
-          {result?.truncated ? " (truncated)" : ""}
+          {visibleRows.length} {visibleRows.length === 1 ? "row" : "rows"}
+          {result?.truncated || visibleRows.length < sortedRows.length
+            ? " (truncated)"
+            : ""}
         </span>
       </div>
       {columns.length === 0 ? (
@@ -318,7 +343,7 @@ const DashboardDataSourceTableComponent: FunctionComponent<ComponentProps> = (
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {sortedRows.map(
+              {visibleRows.map(
                 (
                   row: { [key: string]: JSONValue },
                   rowIndex: number,
@@ -353,4 +378,34 @@ const DashboardDataSourceTableComponent: FunctionComponent<ComponentProps> = (
   );
 };
 
-export default DashboardDataSourceTableComponent;
+function arePropsEqual(prev: ComponentProps, next: ComponentProps): boolean {
+  if (
+    prev.componentId.toString() !== next.componentId.toString() ||
+    prev.refreshTick !== next.refreshTick ||
+    prev.isEditMode !== next.isEditMode ||
+    prev.isSelected !== next.isSelected ||
+    prev.dashboardComponentWidthInPx !== next.dashboardComponentWidthInPx ||
+    prev.dashboardComponentHeightInPx !== next.dashboardComponentHeightInPx
+  ) {
+    return false;
+  }
+
+  if (
+    !JSONFunctions.deepEqual(
+      prev.dashboardStartAndEndDate,
+      next.dashboardStartAndEndDate,
+    )
+  ) {
+    return false;
+  }
+
+  if (
+    !JSONFunctions.deepEqual(prev.component.arguments, next.component.arguments)
+  ) {
+    return false;
+  }
+
+  return JSONFunctions.deepEqual(prev.variables, next.variables);
+}
+
+export default React.memo(DashboardDataSourceTableComponent, arePropsEqual);

@@ -14,8 +14,6 @@ import DashboardTableComponent, {
   TableReduce,
 } from "Common/Types/Dashboard/DashboardComponents/DashboardTableComponent";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
-import DataSourceQueryConfig from "Common/Types/DataSource/DataSourceQueryConfig";
-import DashboardDataSourceTableComponent from "./DashboardDataSourceTableComponent";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
@@ -71,27 +69,14 @@ interface ResolvedQueryData {
 }
 
 /*
- * Table widgets bound to an external Data Source render through a
- * dedicated component (rows straight from /data-source/query); everything
- * else takes the metric-columns implementation below. The branch lives in
- * a wrapper so each implementation keeps its own hooks.
+ * Tabular view of OneUptime METRIC columns and formulas. Rendering rows
+ * from an external Data Source is a separate widget type
+ * (DashboardDataSourceTableComponent), so nothing here has to branch on
+ * where the rows came from.
  */
 const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const externalQueryConfig: DataSourceQueryConfig | undefined =
-    props.component.arguments.dataSourceQueryConfig;
-
-  if (externalQueryConfig?.dataSourceId && externalQueryConfig?.query) {
-    return <DashboardDataSourceTableComponent {...props} />;
-  }
-
-  return <DashboardMetricTableComponentElement {...props} />;
-};
-
-const DashboardMetricTableComponentElement: FunctionComponent<
-  ComponentProps
-> = (props: ComponentProps): ReactElement => {
   const [metricResults, setMetricResults] = useState<Array<AggregatedResult>>(
     [],
   );

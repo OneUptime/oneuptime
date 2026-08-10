@@ -14,9 +14,10 @@ import DataSourceQueryConfig, {
 
 /*
  * Client for the authenticated /data-source/query endpoint. Used by the
- * chart/value/gauge/table widgets when a widget is bound to an external
- * Data Source. NEVER called on public dashboards — the public API has no
- * data-source surface, and widgets render a placeholder there instead.
+ * four Data Source widgets (chart, value, gauge, table) — the widget types
+ * that exist to read external systems. NEVER called on public dashboards:
+ * the public API has no data-source surface, the widgets are stripped from
+ * the config served there, and the renderers draw a placeholder anyway.
  */
 export default class DataSourceQueryUtil {
   private static async execute(data: {

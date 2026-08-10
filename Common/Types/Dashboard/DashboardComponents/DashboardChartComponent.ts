@@ -1,4 +1,3 @@
-import DataSourceQueryConfig from "../../DataSource/DataSourceQueryConfig";
 import MetricFormulaConfigData from "../../Metrics/MetricFormulaConfigData";
 import MetricQueryConfigData from "../../Metrics/MetricQueryConfigData";
 import ObjectID from "../../ObjectID";
@@ -13,12 +12,6 @@ export default interface DashboardChartComponent extends BaseComponent {
     metricQueryConfig?: MetricQueryConfigData | undefined;
     metricQueryConfigs?: Array<MetricQueryConfigData> | undefined;
     metricFormulaConfigs?: Array<MetricFormulaConfigData> | undefined;
-    /*
-     * External Data Source queries (PromQL / SQL / LogQL / ES DSL / REST).
-     * When non-empty, the chart renders these INSTEAD of the OneUptime
-     * metric queries above. Not available on public dashboards.
-     */
-    dataSourceQueryConfigs?: Array<DataSourceQueryConfig> | undefined;
     chartTitle?: string | undefined;
     chartDescription?: string | undefined;
     chartType?: DashboardChartType | undefined;
