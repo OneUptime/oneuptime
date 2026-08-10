@@ -8,6 +8,7 @@ import API from "../../../Utils/API";
 import LlmType from "../../../Types/LLM/LlmType";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import crypto from "crypto";
+import fs from "fs/promises";
 import logger, { LogAttributes } from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 
@@ -91,6 +92,11 @@ interface BedrockCredentials {
   accessKeyId: string;
   secretAccessKey: string;
   sessionToken?: string | undefined;
+}
+
+interface BedrockWebIdentityCredentialsCacheEntry {
+  credentials: BedrockCredentials;
+  expiresAt: number;
 }
 
 interface BedrockRequestTarget {
@@ -221,6 +227,14 @@ export default class LLMService {
   private static readonly MAX_ADAPTATION_CACHE_ENTRIES: number = 500;
 
   private static readonly ADAPTATION_CACHE_TTL_IN_MS: number = 60 * 60 * 1000;
+
+  private static readonly BEDROCK_WEB_IDENTITY_CREDENTIAL_REFRESH_WINDOW_IN_MS: number =
+    5 * 60 * 1000;
+
+  private static readonly bedrockWebIdentityCredentialsCache: Map<
+    string,
+    BedrockWebIdentityCredentialsCacheEntry
+  > = new Map();
 
   private static getAdaptationCacheKey(
     config: LLMProviderConfig,
@@ -1320,9 +1334,117 @@ export default class LLMService {
     };
   }
 
-  private static getBedrockCredentials(
+  private static decodeXmlText(value: string): string {
+    return value
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"')
+      .replace(/&apos;/g, "'")
+      .replace(/&amp;/g, "&");
+  }
+
+  private static getXmlText(xml: string, tagName: string): string | undefined {
+    const match: RegExpMatchArray | null = xml.match(
+      new RegExp(`<${tagName}>([\\s\\S]*?)</${tagName}>`),
+    );
+
+    return match?.[1] ? this.decodeXmlText(match[1]) : undefined;
+  }
+
+  private static async getBedrockWebIdentityCredentials(
+    region: string,
+  ): Promise<BedrockCredentials | undefined> {
+    const roleArn: string | undefined = process.env["AWS_ROLE_ARN"];
+    const tokenFile: string | undefined =
+      process.env["AWS_WEB_IDENTITY_TOKEN_FILE"];
+
+    if (!roleArn || !tokenFile) {
+      return undefined;
+    }
+
+    const sessionName: string =
+      process.env["AWS_ROLE_SESSION_NAME"] ||
+      `oneuptime-bedrock-${process.pid}`;
+    const cacheKey: string = `${roleArn}|${tokenFile}|${sessionName}|${region}`;
+    const cached: BedrockWebIdentityCredentialsCacheEntry | undefined =
+      this.bedrockWebIdentityCredentialsCache.get(cacheKey);
+
+    if (
+      cached &&
+      cached.expiresAt - Date.now() >
+        this.BEDROCK_WEB_IDENTITY_CREDENTIAL_REFRESH_WINDOW_IN_MS
+    ) {
+      return cached.credentials;
+    }
+
+    const webIdentityToken: string = (
+      await fs.readFile(tokenFile, "utf8")
+    ).trim();
+    const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+      await API.post<JSONObject>({
+        url: URL.fromString(`https://sts.${region}.amazonaws.com/`),
+        data: {
+          Action: "AssumeRoleWithWebIdentity",
+          Version: "2011-06-15",
+          RoleArn: roleArn,
+          RoleSessionName: sessionName,
+          WebIdentityToken: webIdentityToken,
+        },
+        headers: {
+          Accept: "application/xml",
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        options: {
+          retries: 2,
+          exponentialBackoff: true,
+          timeout: 120000,
+        },
+      });
+
+    if (response instanceof HTTPErrorResponse) {
+      this.throwProviderHTTPError({
+        providerName: "AWS STS",
+        response,
+        logAttributes: { llmType: LlmType.Bedrock },
+      });
+    }
+
+    const xml: string = String(response.jsonData);
+    const accessKeyId: string | undefined = this.getXmlText(xml, "AccessKeyId");
+    const secretAccessKey: string | undefined = this.getXmlText(
+      xml,
+      "SecretAccessKey",
+    );
+    const sessionToken: string | undefined = this.getXmlText(
+      xml,
+      "SessionToken",
+    );
+    const expiration: string | undefined = this.getXmlText(xml, "Expiration");
+
+    if (!accessKeyId || !secretAccessKey || !sessionToken || !expiration) {
+      throw new BadDataException(
+        "AWS STS AssumeRoleWithWebIdentity response did not include temporary credentials.",
+      );
+    }
+
+    const credentials: BedrockCredentials = {
+      accessKeyId: accessKeyId,
+      secretAccessKey: secretAccessKey,
+      sessionToken: sessionToken,
+    };
+
+    this.bedrockWebIdentityCredentialsCache.set(cacheKey, {
+      credentials: credentials,
+      expiresAt: new Date(expiration).getTime(),
+    });
+
+    return credentials;
+  }
+
+  private static async getBedrockCredentials(
     config: LLMProviderConfig,
-  ): BedrockCredentials {
+    region: string,
+  ): Promise<BedrockCredentials> {
     const configuredCredentials: string | undefined = config.apiKey?.trim();
 
     if (configuredCredentials) {
@@ -1350,8 +1472,15 @@ export default class LLMService {
       process.env["AWS_SECRET_ACCESS_KEY"];
 
     if (!accessKeyId || !secretAccessKey) {
+      const webIdentityCredentials: BedrockCredentials | undefined =
+        await this.getBedrockWebIdentityCredentials(region);
+
+      if (webIdentityCredentials) {
+        return webIdentityCredentials;
+      }
+
       throw new BadDataException(
-        "AWS Bedrock credentials are required. Set the encrypted API Key to accessKeyId:secretAccessKey[:sessionToken], or provide AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY in the runtime environment.",
+        "AWS Bedrock credentials are required. Set the encrypted API Key to accessKeyId:secretAccessKey[:sessionToken], provide AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY, or configure AWS_ROLE_ARN and AWS_WEB_IDENTITY_TOKEN_FILE for IRSA.",
       );
     }
 
@@ -1725,7 +1854,10 @@ export default class LLMService {
       config: config,
       request: request,
     });
-    const credentials: BedrockCredentials = this.getBedrockCredentials(config);
+    const credentials: BedrockCredentials = await this.getBedrockCredentials(
+      config,
+      target.region,
+    );
     const body: JSONObject = this.buildBedrockRequestBody(request);
     const bodyString: string = JSON.stringify(body);
     const requestUrl: string = `${target.endpoint}/model/${encodeURIComponent(

@@ -224,7 +224,7 @@ export default class LlmProvider extends BaseModel {
     type: TableColumnType.LongText,
     title: "API Key",
     description:
-      "The API key for the LLM provider. Required for OpenAI, Azure OpenAI, Anthropic, Groq, and Mistral. For AWS Bedrock, use accessKeyId:secretAccessKey[:sessionToken], or leave blank to use AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY from the runtime environment.",
+      "The API key for the LLM provider. Required for OpenAI, Azure OpenAI, Anthropic, Groq, and Mistral. For AWS Bedrock, use accessKeyId:secretAccessKey[:sessionToken], or leave blank to use AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY or IRSA web identity credentials from the runtime environment.",
     encrypted: true,
   })
   @Column({

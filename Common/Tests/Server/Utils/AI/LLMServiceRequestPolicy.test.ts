@@ -7,6 +7,7 @@ import LlmType from "../../../../Types/LLM/LlmType";
 import LLMService, {
   LLMProviderConfig,
 } from "../../../../Server/Utils/LLM/LLMService";
+import fs from "fs/promises";
 import { afterEach, describe, expect, test } from "@jest/globals";
 
 type PostSpy = ReturnType<typeof jest.spyOn>;
@@ -149,6 +150,91 @@ describe("LLMService request timeout and retry policy", () => {
       );
     },
   );
+
+  test("AWS Bedrock uses IRSA web identity credentials when no static key is configured", async () => {
+    const savedEnv: Record<string, string | undefined> = {
+      AWS_ACCESS_KEY_ID: process.env["AWS_ACCESS_KEY_ID"],
+      AWS_SECRET_ACCESS_KEY: process.env["AWS_SECRET_ACCESS_KEY"],
+      AWS_SESSION_TOKEN: process.env["AWS_SESSION_TOKEN"],
+      AWS_ROLE_ARN: process.env["AWS_ROLE_ARN"],
+      AWS_WEB_IDENTITY_TOKEN_FILE: process.env["AWS_WEB_IDENTITY_TOKEN_FILE"],
+      AWS_ROLE_SESSION_NAME: process.env["AWS_ROLE_SESSION_NAME"],
+    };
+
+    delete process.env["AWS_ACCESS_KEY_ID"];
+    delete process.env["AWS_SECRET_ACCESS_KEY"];
+    delete process.env["AWS_SESSION_TOKEN"];
+    process.env["AWS_ROLE_ARN"] =
+      "arn:aws:iam::123456789012:role/OneUptimeBedrockServiceAccount";
+    process.env["AWS_WEB_IDENTITY_TOKEN_FILE"] =
+      "/var/run/secrets/eks.amazonaws.com/serviceaccount/token";
+    process.env["AWS_ROLE_SESSION_NAME"] = "oneuptime-test";
+
+    jest.spyOn(fs, "readFile").mockResolvedValue("web-identity-token");
+
+    const postSpy: PostSpy = jest
+      .spyOn(API, "post")
+      .mockResolvedValueOnce({
+        jsonData: `
+          <AssumeRoleWithWebIdentityResponse>
+            <AssumeRoleWithWebIdentityResult>
+              <Credentials>
+                <AccessKeyId>ASIATEMP</AccessKeyId>
+                <SecretAccessKey>temp-secret</SecretAccessKey>
+                <SessionToken>temp-token</SessionToken>
+                <Expiration>2099-01-01T00:00:00Z</Expiration>
+              </Credentials>
+            </AssumeRoleWithWebIdentityResult>
+          </AssumeRoleWithWebIdentityResponse>
+        `,
+      } as unknown as HTTPResponse<JSONObject>)
+      .mockResolvedValueOnce({
+        jsonData: providerCases[3]!.response,
+      } as unknown as HTTPResponse<JSONObject>) as PostSpy;
+
+    try {
+      await LLMService.getCompletion({
+        llmProviderConfig: {
+          llmType: LlmType.Bedrock,
+          baseUrl: "https://bedrock-runtime.ap-northeast-2.amazonaws.com",
+          modelName: "anthropic.claude-3-5-sonnet-20240620-v1:0",
+        },
+        messages: [{ role: "user", content: "hello" }],
+      });
+
+      expect(postSpy).toHaveBeenCalledTimes(2);
+      expect(postSpy.mock.calls[0]![0]).toEqual(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            Action: "AssumeRoleWithWebIdentity",
+            RoleArn:
+              "arn:aws:iam::123456789012:role/OneUptimeBedrockServiceAccount",
+            RoleSessionName: "oneuptime-test",
+            WebIdentityToken: "web-identity-token",
+          }),
+          headers: expect.objectContaining({
+            "Content-Type": "application/x-www-form-urlencoded",
+          }),
+        }),
+      );
+      expect(postSpy.mock.calls[1]![0]).toEqual(
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            "X-Amz-Security-Token": "temp-token",
+            Authorization: expect.stringContaining("Credential=ASIATEMP/"),
+          }),
+        }),
+      );
+    } finally {
+      for (const [key, value] of Object.entries(savedEnv)) {
+        if (value === undefined) {
+          delete process.env[key];
+        } else {
+          process.env[key] = value;
+        }
+      }
+    }
+  });
 
   test("protected OpenAI-compatible requests cannot have workflow-owned fields overridden", async () => {
     const postSpy: PostSpy = mockPost(providerCases[0]!.response);
