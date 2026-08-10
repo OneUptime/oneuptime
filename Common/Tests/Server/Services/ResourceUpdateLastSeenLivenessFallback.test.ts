@@ -1,3 +1,23 @@
+/*
+ * PasswordHash carries a pre-existing TS5.9 diagnostic that fails any suite
+ * whose runtime require graph reaches it (DatabaseService, the base class of
+ * every concrete service, imports it). Nothing password-related is under
+ * test here, so the module is replaced WITH A FACTORY — an automock would
+ * still require (and type-check) the real file.
+ */
+jest.mock("../../../Server/Utils/PasswordHash", () => {
+  return {
+    __esModule: true,
+    default: {
+      hash: jest.fn(),
+      verify: jest.fn(),
+      generateSalt: jest.fn(),
+      needsUpgrade: jest.fn(),
+      applyPepper: jest.fn(),
+    },
+  };
+});
+
 import CephClusterService from "../../../Server/Services/CephClusterService";
 import CloudResourceService from "../../../Server/Services/CloudResourceService";
 import DockerHostService from "../../../Server/Services/DockerHostService";
@@ -10,6 +30,7 @@ import PodmanHostService from "../../../Server/Services/PodmanHostService";
 import ProxmoxClusterService from "../../../Server/Services/ProxmoxClusterService";
 import RumApplicationService from "../../../Server/Services/RumApplicationService";
 import ServerlessFunctionService from "../../../Server/Services/ServerlessFunctionService";
+import ResourceHeartbeat from "../../../Server/Utils/Telemetry/ResourceHeartbeat";
 import SingleFlight from "../../../Server/Utils/SingleFlight";
 import ObjectID from "../../../Types/ObjectID";
 import {
@@ -304,10 +325,15 @@ describe.each(SERVICE_CASES)(
       return writes[writes.length - 1]!.data;
     }
 
-    /** Re-opens the liveness window without touching the enrichment gates. */
+    /**
+     * Re-opens the liveness window without touching the enrichment gates.
+     * The in-process recent-heartbeat memo is capped at the liveness
+     * window, so its entries have expired by then too.
+     */
     function expireLivenessWindow(): void {
       cache.delete(`${namespace}:${RESOURCE_ID.toString()}`);
       SingleFlight.clear();
+      ResourceHeartbeat.clearRecentHeartbeatMemo();
     }
 
     beforeEach(() => {
@@ -316,12 +342,21 @@ describe.each(SERVICE_CASES)(
       deletedCacheKeys = [];
       writeLands = true;
       SingleFlight.clear();
+      /*
+       * Each case reuses one RESOURCE_ID across tests, so the settled-
+       * heartbeat memo from a previous test must be treated as expired —
+       * exactly as the fresh `cache` map treats the Redis TTLs. The memo's
+       * own behaviour is pinned in
+       * Utils/Telemetry/ResourceHeartbeatL1Memo.test.ts.
+       */
+      ResourceHeartbeat.clearRecentHeartbeatMemo();
       mockCache();
     });
 
     afterEach(() => {
       jest.restoreAllMocks();
       SingleFlight.clear();
+      ResourceHeartbeat.clearRecentHeartbeatMemo();
     });
 
     describe("liveness columns", () => {

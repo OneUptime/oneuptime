@@ -1,5 +1,26 @@
+/*
+ * PasswordHash carries a pre-existing TS5.9 diagnostic that fails any suite
+ * whose runtime require graph reaches it (DatabaseService, the base class of
+ * every concrete service, imports it). Nothing password-related is under
+ * test here, so the module is replaced WITH A FACTORY — an automock would
+ * still require (and type-check) the real file.
+ */
+jest.mock("../../../Server/Utils/PasswordHash", () => {
+  return {
+    __esModule: true,
+    default: {
+      hash: jest.fn(),
+      verify: jest.fn(),
+      generateSalt: jest.fn(),
+      needsUpgrade: jest.fn(),
+      applyPepper: jest.fn(),
+    },
+  };
+});
+
 import GlobalCache from "../../../Server/Infrastructure/GlobalCache";
 import HostService from "../../../Server/Services/HostService";
+import ResourceHeartbeat from "../../../Server/Utils/Telemetry/ResourceHeartbeat";
 import SingleFlight from "../../../Server/Utils/SingleFlight";
 import Host from "../../../Models/DatabaseModels/Host";
 import ObjectID from "../../../Types/ObjectID";
@@ -98,16 +119,26 @@ function mockCache(): void {
     });
 }
 
-/** Re-opens the liveness window, as its TTL would. */
+/**
+ * Re-opens the liveness window, as its TTL would. The in-process
+ * recent-heartbeat memo is capped at this same window, so its entries have
+ * expired by then too.
+ */
 function expireLivenessWindow(): void {
   cache.delete(`host-last-seen:${HOST_ID.toString()}`);
   SingleFlight.clear();
+  ResourceHeartbeat.clearRecentHeartbeatMemo();
 }
 
-/** Re-opens the enrichment rate-limit window, as its TTL would. */
+/**
+ * Re-opens the enrichment rate-limit window, as its TTL would. Host's
+ * enrichment window equals its liveness window, so by the time it has
+ * elapsed the recent-heartbeat memo has expired as well.
+ */
 function expireEnrichmentWindow(): void {
   cache.delete(`host-last-seen-write-window:${HOST_ID.toString()}`);
   SingleFlight.clear();
+  ResourceHeartbeat.clearRecentHeartbeatMemo();
 }
 
 function recordWrite(input: {
@@ -213,12 +244,20 @@ describe("HostService.updateLastSeen", () => {
     cache = new Map<string, string>();
     deletedCacheKeys = [];
     SingleFlight.clear();
+    /*
+     * This suite reuses one HOST_ID across tests, so the settled-heartbeat
+     * memo from a previous test must be treated as expired — exactly as the
+     * fresh `cache` map treats the Redis TTLs. The memo's own behaviour is
+     * pinned in Utils/Telemetry/ResourceHeartbeatL1Memo.test.ts.
+     */
+    ResourceHeartbeat.clearRecentHeartbeatMemo();
     mockCache();
   });
 
   afterEach(() => {
     jest.restoreAllMocks();
     SingleFlight.clear();
+    ResourceHeartbeat.clearRecentHeartbeatMemo();
   });
 
   describe("liveness columns", () => {

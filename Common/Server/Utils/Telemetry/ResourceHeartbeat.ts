@@ -3,6 +3,7 @@ import QueryDeepPartialEntity from "../../../Types/Database/PartialEntity";
 import ObjectID from "../../../Types/ObjectID";
 import DatabaseService from "../../Services/DatabaseService";
 import GlobalCache from "../../Infrastructure/GlobalCache";
+import InProcessMemo from "../InProcessMemo";
 import SingleFlight from "../SingleFlight";
 import logger from "../Logger";
 
@@ -116,10 +117,55 @@ function writeWindowNamespace(cacheNamespace: string): string {
 }
 
 export default class ResourceHeartbeat {
+  /*
+   * Time-based L1 over the whole gate cascade. SingleFlight collapses
+   * CONCURRENT duplicates, but sequential batches — the next job for the
+   * same host arriving a second later — each still paid 1-3 Redis round
+   * trips (liveness SET NX, fingerprint compare-and-claim, rate-limit
+   * SET NX) to be told "nothing to do". Once THIS process has settled a
+   * heartbeat for a (resource, fingerprint), that answer holds for the
+   * rest of the window, so re-asking Redis per batch buys nothing.
+   *
+   * The memo key includes the FINGERPRINT, so a genuinely changed payload
+   * bypasses the memo and reaches the compare-and-claim gate as promptly
+   * as it did before — the L1 only ever suppresses re-asking a question
+   * whose inputs are identical.
+   *
+   * Entries live for min(60s, the caller's liveness window, pre-jitter).
+   * Within that span the Redis liveness key this process (or another pod)
+   * claimed cannot have expired yet (its jittered TTL is >= the window),
+   * so a skipped probe would have been refused anyway. The one real trade
+   * is cross-pod lastSeen PRECISION: when a DIFFERENT pod's claim expires
+   * mid-window, this pod would previously have won the reopened gate on
+   * its next batch, and now reacts up to one memo TTL later (any other pod
+   * still reacts immediately). That delay is bounded by the existing
+   * window — the same staleness the jittered TTL already permits — and
+   * sits far inside the 15-minute markDisconnected* thresholds.
+   *
+   * Outcomes that must retry are NEVER memoized: a failed or lock-skipped
+   * metadata write (those release their Redis gates precisely so the next
+   * batch retries) and any outcome where a gate probe threw (a Redis
+   * outage must keep failing open per batch, not once per memo TTL).
+   */
+  private static readonly recentHeartbeatMemo: InProcessMemo<boolean> =
+    new InProcessMemo<boolean>({
+      ttlInMs: 60 * 1000,
+      maxEntries: 10_000,
+    });
+
   public static async write<TBaseModel extends BaseModel>(
     input: ResourceHeartbeatWrite<TBaseModel>,
   ): Promise<void> {
     const cacheKey: string = input.id.toString();
+    const memoKey: string = `${input.cacheNamespace}:${cacheKey}:${input.fingerprint}`;
+
+    /*
+     * L1: this process already settled this exact heartbeat within the
+     * window. Zero network cost, no gates touched.
+     */
+    if (this.recentHeartbeatMemo.get(memoKey)) {
+      return;
+    }
 
     /*
      * Collapse duplicate concurrent callers inside THIS process first. One
@@ -128,18 +174,41 @@ export default class ResourceHeartbeat {
      * and without this every one of them independently asks Redis the same
      * question and throws the answer away.
      */
-    await SingleFlight.run(
-      `${input.cacheNamespace}:${cacheKey}:${input.fingerprint}`,
-      async () => {
-        await this.writeOnce(input, cacheKey);
-      },
-    );
+    await SingleFlight.run(memoKey, async () => {
+      await this.writeOnce(input, cacheKey, memoKey);
+    });
+  }
+
+  /**
+   * Drop the recent-heartbeat memo. For tests only — suites that reuse one
+   * resource id across cases simulate the memo TTL expiring with this, the
+   * same way they already clear their fake Redis maps and SingleFlight.
+   */
+  public static clearRecentHeartbeatMemo(): void {
+    this.recentHeartbeatMemo.clear();
   }
 
   private static async writeOnce<TBaseModel extends BaseModel>(
     input: ResourceHeartbeatWrite<TBaseModel>,
     cacheKey: string,
+    memoKey: string,
   ): Promise<void> {
+    /*
+     * Whether every Redis gate we consulted actually answered. A probe that
+     * THREW fell back to a hardcoded outcome (open for liveness, closed for
+     * enrichment) — that outcome is a per-batch policy, not a fact about the
+     * window, so it must never be memoized into the L1.
+     */
+    let gatesAnswered: boolean = true;
+
+    /*
+     * The memo must expire no later than the PRE-JITTER window, because that
+     * is the earliest instant the Redis liveness key claimed alongside it
+     * could expire — and never later than the 60-second norm.
+     */
+    const memoTtlInMs: number =
+      Math.min(60, Math.max(input.throttleInSeconds, 0)) * 1000;
+
     /*
      * Liveness gate. Presence-only and jittered: a fleet-wide restart would
      * otherwise re-synchronise every resource's window and rebuild the herd on
@@ -163,6 +232,7 @@ export default class ResourceHeartbeat {
        * the write below cannot queue.
        */
       writeLiveness = true;
+      gatesAnswered = false;
     }
 
     const hasMetadata: boolean =
@@ -194,6 +264,7 @@ export default class ResourceHeartbeat {
          * write storm this exists to prevent.
          */
         metadataChanged = false;
+        gatesAnswered = false;
       }
     }
 
@@ -218,11 +289,19 @@ export default class ResourceHeartbeat {
         );
       } catch {
         writeMetadata = false;
+        gatesAnswered = false;
       }
     }
 
     if (!writeLiveness && !writeMetadata) {
-      // Nothing to say. Issue no statement at all.
+      /*
+       * Nothing to say. Issue no statement at all — and remember that for
+       * the memo TTL, since every gate answered and the same inputs can
+       * only produce the same silence for the rest of the window.
+       */
+      if (gatesAnswered) {
+        this.recentHeartbeatMemo.set(memoKey, true, memoTtlInMs);
+      }
       return;
     }
 
@@ -283,6 +362,19 @@ export default class ResourceHeartbeat {
        * statement that returns immediately when contended.
        */
       await this.releaseGates(input.cacheNamespace, cacheKey, true);
+      return;
+    }
+
+    /*
+     * The write LANDED: nothing is left for this exact input to do this
+     * window, so remember that. Memoized only when every gate genuinely
+     * answered (an outage outcome is per-batch policy, never a fact) and
+     * NOT for the liveness-only lock-skip above `wrote === false` — that
+     * case is rare, already free of gate churn next batch, and memoizing
+     * a write we did not perform is a subtlety not worth carrying.
+     */
+    if (wrote && gatesAnswered) {
+      this.recentHeartbeatMemo.set(memoKey, true, memoTtlInMs);
     }
   }
 

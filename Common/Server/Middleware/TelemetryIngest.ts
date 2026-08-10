@@ -73,16 +73,21 @@ export default class TelemetryIngest {
         );
 
       if (!projectId) {
+        /*
+         * The token value itself is deliberately NOT logged: ingestion
+         * keys are secrets, and a mistyped-but-nearly-valid token in a
+         * log line is a credential leak. The request attributes give
+         * operators enough to correlate with the sender.
+         */
         logger.error(
-          "Invalid service token: " + oneuptimeToken,
+          "Invalid service token.",
           getLogAttributesFromRequest(req as any),
         );
 
         /*
          * 401 is deliberate (see the missing-token branch above): a
          * silent 200 drops the payload while the client believes the
-         * export succeeded. The token value is logged server-side but
-         * intentionally not echoed back in the response body.
+         * export succeeded.
          */
         return Response.sendErrorResponse(
           req,

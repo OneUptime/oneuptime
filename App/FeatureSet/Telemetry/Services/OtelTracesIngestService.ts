@@ -517,6 +517,20 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                 continue;
               }
 
+              /*
+               * The scope envelope is invariant for every span under this
+               * scopeSpan, so its `scope.`-prefixed key map is built once
+               * here instead of once per span. Merged LAST into each span's
+               * attribute map below, which preserves the historical
+               * precedence: scope keys overwrite resource and span
+               * attributes on collision.
+               */
+              const prefixedScopeAttributes: Dictionary<
+                AttributeType | Array<AttributeType>
+              > = TelemetryUtil.getPrefixedScopeAttributes(
+                scopeSpan["scope"] as JSONObject | undefined,
+              );
+
               let spanCounter: number = 0;
               for (const span of spans) {
                 try {
@@ -525,29 +539,27 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                   }
                   spanCounter++;
 
+                  /*
+                   * One fresh attribute map per span (downstream scrub /
+                   * pipeline transforms mutate it, so spans must never share
+                   * one). A single Object.assign with ordered sources
+                   * reproduces the historical spread + per-span scope loop
+                   * exactly — same key-collision winners (resource < span
+                   * attributes < scope.*) and same key insertion order —
+                   * while the scope prefixing now happens once per scopeSpan
+                   * (see above) instead of per span.
+                   */
                   const spanAttributes: Dictionary<
                     AttributeType | Array<AttributeType>
-                  > = {
-                    ...resourceAttributes,
-                    ...TelemetryUtil.getAttributes({
+                  > = Object.assign(
+                    {},
+                    resourceAttributes,
+                    TelemetryUtil.getAttributes({
                       items: (span["attributes"] as JSONArray) || [],
                       prefixKeysWithString: "",
                     }),
-                  };
-
-                  if (
-                    scopeSpan["scope"] &&
-                    Object.keys(scopeSpan["scope"]).length > 0
-                  ) {
-                    const scopeAttributes: JSONObject = scopeSpan[
-                      "scope"
-                    ] as JSONObject;
-                    for (const key of Object.keys(scopeAttributes)) {
-                      spanAttributes[`scope.${key}`] = scopeAttributes[
-                        key
-                      ] as AttributeType;
-                    }
-                  }
+                    prefixedScopeAttributes,
+                  );
 
                   /*
                    * Stored as a ClickHouse Array column and only read
@@ -649,40 +661,58 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                   const llmFields: LlmSpanFields =
                     LlmSpanUtil.extract(spanAttributes);
 
-                  let spanRow: JSONObject = this.buildSpanRow({
-                    projectId: projectId,
-                    primaryEntityId: primaryEntityId,
-                    attributes: spanAttributes,
-                    attributeKeys: attributeKeys,
-                    traceId: traceId,
-                    spanId: spanId,
-                    parentSpanId: parentSpanId,
-                    traceState: traceState,
-                    statusCode: statusCode,
-                    statusMessage: statusMessage,
-                    name: spanName,
-                    kind: spanKind,
-                    startTime: startTime,
-                    endTime: endTime,
-                    durationUnixNano: durationUnixNano,
-                    events: spanEvents,
-                    links: spanLinks,
-                    hasException: hasException,
-                    isRootSpan: !parentSpanId || parentSpanId === "",
-                    llmFields: llmFields,
-                    serviceMetadata: serviceDictionary[serviceName]!,
-                  });
+                  const spanEvaluationRow: JSONObject =
+                    this.buildSpanEvaluationRow({
+                      projectId: projectId,
+                      primaryEntityId: primaryEntityId,
+                      attributes: spanAttributes,
+                      attributeKeys: attributeKeys,
+                      traceId: traceId,
+                      spanId: spanId,
+                      parentSpanId: parentSpanId,
+                      traceState: traceState,
+                      statusCode: statusCode,
+                      statusMessage: statusMessage,
+                      name: spanName,
+                      kind: spanKind,
+                      startTime: startTime,
+                      endTime: endTime,
+                      durationUnixNano: durationUnixNano,
+                      events: spanEvents,
+                      links: spanLinks,
+                      hasException: hasException,
+                      isRootSpan: !parentSpanId || parentSpanId === "",
+                      llmFields: llmFields,
+                      serviceMetadata: serviceDictionary[serviceName]!,
+                    });
 
                   /*
                    * Apply trace pipeline: drop filter -> scrub -> pipeline.
                    * Order matches logs: a dropped span never reaches scrub/pipeline.
+                   *
+                   * The drop filter evaluates the span row BEFORE the three
+                   * ingest-generated fields (_id, createdAt, retentionDate)
+                   * are stamped on — finalizeSpanRow below adds them only
+                   * for spans that survive, so a dropped span never pays for
+                   * _id generation or retention resolution. Every field a
+                   * filter can meaningfully target (names, ids, attributes,
+                   * timings, status, ...) is present at evaluation time.
                    */
                   if (
                     dropFilters.length > 0 &&
-                    TraceDropFilterService.shouldDropSpan(spanRow, dropFilters)
+                    TraceDropFilterService.shouldDropSpan(
+                      spanEvaluationRow,
+                      dropFilters,
+                    )
                   ) {
                     continue;
                   }
+
+                  let spanRow: JSONObject = this.finalizeSpanRow({
+                    evaluationRow: spanEvaluationRow,
+                    statusCode: statusCode,
+                    serviceMetadata: serviceDictionary[serviceName]!,
+                  });
 
                   if (scrubRules.length > 0) {
                     spanRow = TraceScrubRuleService.scrubSpan(
@@ -1194,7 +1224,15 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
     return "";
   }
 
-  private static buildSpanRow(data: {
+  /*
+   * The drop-filter-visible slice of a span row: every column of the full
+   * row EXCEPT the three ingest-generated stamps (_id, createdAt,
+   * retentionDate), in the full row's exact field order. The drop filter
+   * runs against this object; finalizeSpanRow prepends/appends the three
+   * stamps only for spans that survive it, so a dropped span never pays for
+   * ObjectID generation, the ingestion stamp or retention resolution.
+   */
+  private static buildSpanEvaluationRow(data: {
     projectId: ObjectID;
     primaryEntityId: ObjectID;
     attributes: Dictionary<AttributeType | Array<AttributeType>>;
@@ -1217,18 +1255,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
     llmFields: LlmSpanFields;
     serviceMetadata: TelemetryServiceMetadata;
   }): JSONObject {
-    const ingestionStamp: IngestionStamp = getIngestionStamp();
-    const retentionDays: number = resolveTelemetryRetentionInDays({
-      pillar: "traces",
-      bucketKey: data.statusCode,
-      serviceConfig: data.serviceMetadata.serviceRetentionConfig,
-      serviceRetentionInDays: data.serviceMetadata.serviceRetentionInDays,
-      projectConfig: data.serviceMetadata.projectRetentionConfig,
-      projectRetentionInDays: data.serviceMetadata.projectRetentionInDays,
-    });
     return {
-      _id: ObjectID.generateTimeOrdered().toString(),
-      createdAt: ingestionStamp.db,
       projectId: data.projectId.toString(),
       primaryEntityId: data.primaryEntityId.toString(),
       primaryEntityType: data.serviceMetadata.primaryEntityType,
@@ -1266,6 +1293,34 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       llmOutputTokens: data.llmFields.llmOutputTokens,
       llmTotalTokens: data.llmFields.llmTotalTokens,
       llmCost: data.llmFields.llmCost,
+    };
+  }
+
+  /*
+   * Stamp the ingest-generated fields onto a span that survived the drop
+   * filter. The spread keeps the historical field order byte-identical:
+   * _id and createdAt led the old one-shot row literal, retentionDate
+   * closed it, and the evaluation row carries everything in between in the
+   * original sequence.
+   */
+  private static finalizeSpanRow(data: {
+    evaluationRow: JSONObject;
+    statusCode: SpanStatus;
+    serviceMetadata: TelemetryServiceMetadata;
+  }): JSONObject {
+    const ingestionStamp: IngestionStamp = getIngestionStamp();
+    const retentionDays: number = resolveTelemetryRetentionInDays({
+      pillar: "traces",
+      bucketKey: data.statusCode,
+      serviceConfig: data.serviceMetadata.serviceRetentionConfig,
+      serviceRetentionInDays: data.serviceMetadata.serviceRetentionInDays,
+      projectConfig: data.serviceMetadata.projectRetentionConfig,
+      projectRetentionInDays: data.serviceMetadata.projectRetentionInDays,
+    });
+    return {
+      _id: ObjectID.generateTimeOrdered().toString(),
+      createdAt: ingestionStamp.db,
+      ...data.evaluationRow,
       retentionDate: getRetentionDateDb(ingestionStamp, retentionDays),
     };
   }

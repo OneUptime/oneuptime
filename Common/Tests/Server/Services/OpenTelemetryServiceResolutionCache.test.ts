@@ -59,6 +59,25 @@ jest.mock("../../../Server/Infrastructure/GlobalCache");
 jest.mock("../../../Server/Services/ServiceService");
 jest.mock("../../../Server/Services/ProjectService");
 jest.mock("../../../Server/Services/LabelService");
+/*
+ * PasswordHash carries a pre-existing TS5.9 diagnostic that fails any suite
+ * whose runtime require graph reaches it (DatabaseService, the base class of
+ * every concrete service, imports it). Nothing password-related is under
+ * test here, so the module is replaced WITH A FACTORY — an automock would
+ * still require (and type-check) the real file.
+ */
+jest.mock("../../../Server/Utils/PasswordHash", () => {
+  return {
+    __esModule: true,
+    default: {
+      hash: jest.fn(),
+      verify: jest.fn(),
+      generateSalt: jest.fn(),
+      needsUpgrade: jest.fn(),
+      applyPepper: jest.fn(),
+    },
+  };
+});
 jest.mock("../../../Server/Utils/Telemetry/EntityRegistry", () => {
   return {
     __esModule: true,
