@@ -40,6 +40,11 @@ import MetricPipelineRuleService, {
 } from "./MetricPipelineRuleService";
 import OneUptimeDate from "Common/Types/Date";
 import { resolveTelemetryRetentionInDays } from "Common/Types/Telemetry/TelemetryRetentionConfig";
+import {
+  IngestionStamp,
+  getIngestionStamp,
+  getRetentionDateDb,
+} from "Common/Server/Utils/Telemetry/IngestionTimestamp";
 import MetricService from "Common/Server/Services/MetricService";
 import Text from "Common/Types/Text";
 import KubernetesResourceService, {
@@ -109,7 +114,6 @@ import TelemetryFanInWriter, {
 
 type MetricTimestamp = {
   nano: string;
-  iso: string;
   db: string;
   date: Date;
 };
@@ -3112,9 +3116,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     isMonotonic?: boolean;
     serviceMetadata: TelemetryServiceMetadata;
   }): JSONObject {
-    const ingestionDate: Date = OneUptimeDate.getCurrentDate();
-    const ingestionTimestamp: string =
-      OneUptimeDate.toClickhouseDateTime(ingestionDate);
+    const ingestionStamp: IngestionStamp = getIngestionStamp();
 
     const timeFields: MetricTimestamp = this.safeParseUnixNano(
       data.datapoint["timeUnixNano"] as string | number | undefined,
@@ -3267,14 +3269,10 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       projectConfig: data.serviceMetadata.projectRetentionConfig,
       projectRetentionInDays: data.serviceMetadata.projectRetentionInDays,
     });
-    const retentionDate: Date = OneUptimeDate.addRemoveDays(
-      ingestionDate,
-      retentionDays,
-    );
 
     const row: JSONObject = {
       _id: ObjectID.generateTimeOrdered().toString(),
-      createdAt: ingestionTimestamp,
+      createdAt: ingestionStamp.db,
       projectId: data.projectId.toString(),
       primaryEntityId: data.primaryEntityId.toString(),
       primaryEntityType: data.serviceMetadata.primaryEntityType,
@@ -3315,7 +3313,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       summaryValues: summaryValues,
       traceId: exemplarTraceAndSpanIds.traceId,
       spanId: exemplarTraceAndSpanIds.spanId,
-      retentionDate: OneUptimeDate.toClickhouseDateTime(retentionDate),
+      retentionDate: getRetentionDateDb(ingestionStamp, retentionDays),
     };
 
     if (startTimeFields) {
@@ -3409,7 +3407,13 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     value: string | number | undefined,
     context: string,
   ): MetricTimestamp {
-    let numericValue: number = OneUptimeDate.getCurrentDateAsUnixNano();
+    /*
+     * The current-time fallback is derived lazily: this runs per datapoint,
+     * and the common case (a valid timeUnixNano on the datapoint) used to
+     * pay a Date allocation + unix-nano conversion that was immediately
+     * overwritten.
+     */
+    let numericValue: number | null = null;
 
     if (value !== undefined && value !== null) {
       try {
@@ -3429,17 +3433,19 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         logger.warn(
           `Error processing ${context}: ${error instanceof Error ? error.message : String(error)}, using current time`,
         );
-        numericValue = OneUptimeDate.getCurrentDateAsUnixNano();
+        numericValue = null;
       }
     }
 
+    if (numericValue === null) {
+      numericValue = OneUptimeDate.getCurrentDateAsUnixNano();
+    }
+
     const date: Date = OneUptimeDate.fromUnixNano(numericValue);
-    const iso: string = OneUptimeDate.toString(date);
     const db: string = OneUptimeDate.toClickhouseDateTime(date);
 
     return {
       nano: Math.trunc(numericValue).toString(),
-      iso: iso,
       db: db,
       date: date,
     };

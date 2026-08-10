@@ -862,6 +862,19 @@ export default class TelemetryQueueService {
     return Queue.getQueueSize(QueueName.Telemetry);
   }
 
+  /*
+   * Telemetry queue BACKLOG (waiting + delayed) for autoscaling signals.
+   * Active jobs are excluded on purpose: telemetry jobs park in the active
+   * state for the fan-in writer's flush window while awaiting their
+   * ClickHouse ack, so counting them makes a scaler read busy-but-healthy
+   * capacity as demand — see Queue.getQueueBacklogSize. getQueueSize above
+   * stays active-inclusive for the ingest backpressure checks, where
+   * in-flight work genuinely counts against capacity.
+   */
+  public static async getQueueBacklogSize(): Promise<number> {
+    return Queue.getQueueBacklogSize(QueueName.Telemetry);
+  }
+
   public static async getQueueStats(): Promise<{
     waiting: number;
     active: number;
