@@ -1,11 +1,4 @@
-import {
-  afterEach,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
  * End-to-end proof of the batched-inserts architecture at the WORKER
@@ -25,9 +18,15 @@ import {
  *   (merged-statement failure rejects every job in the batch and leaves
  *   every staged body in Redis for the BullMQ retry to re-read).
  *
- * Job bodies are delivered through the mocked OtelPayloadDecoder keyed by
- * bodyKey — the same seam the real worker uses to fetch the staged OTLP
- * payload from Redis.
+ * Job bodies are delivered through a decodeFromQueue spy keyed by bodyKey —
+ * the same seam the real worker uses to fetch the staged OTLP payload from
+ * Redis.
+ *
+ * Every merge assertion here is pinned by a statement COUNT, deliberately:
+ * asserting only that rows landed, or only that jobs rejected, would pass
+ * just as well under the old one-INSERT-per-job behavior, i.e. it would not
+ * test the change at all. Verified by mutation — reverting the policy in
+ * ProcessTelemetry.ts fails every substantive test in this file.
  */
 
 let capturedHandler: ((job: unknown) => Promise<void>) | null = null;
@@ -102,6 +101,12 @@ import "../../FeatureSet/Telemetry/Jobs/TelemetryIngest/ProcessTelemetry";
 import OtelPayloadDecoder from "../../FeatureSet/Telemetry/Utils/OtelPayloadDecoder";
 import OtelTracesIngestService from "../../FeatureSet/Telemetry/Services/OtelTracesIngestService";
 import OtelLogsIngestService from "../../FeatureSet/Telemetry/Services/OtelLogsIngestService";
+import OtelMetricsIngestService from "../../FeatureSet/Telemetry/Services/OtelMetricsIngestService";
+import MetricPipelineRuleService, {
+  MetricRulesForProject,
+} from "../../FeatureSet/Telemetry/Services/MetricPipelineRuleService";
+import MetricService from "Common/Server/Services/MetricService";
+import TelemetryUtil from "Common/Server/Utils/Telemetry/Telemetry";
 import TraceDropFilterService from "../../FeatureSet/Telemetry/Services/TraceDropFilterService";
 import TraceScrubRuleService from "../../FeatureSet/Telemetry/Services/TraceScrubRuleService";
 import TracePipelineService from "../../FeatureSet/Telemetry/Services/TracePipelineService";
@@ -195,6 +200,48 @@ function setupIngestMocks(): void {
     .mockResolvedValue(undefined);
 }
 
+/*
+ * Metrics-path setup: the metrics service has its own auto-discovery
+ * surface (IoT fleet), pipeline-rule loader and MetricType catalog
+ * write-back, all Postgres-backed. submitMetricsBuffer and the fan-in
+ * writer run for REAL — that is the wiring under test.
+ */
+function setupMetricsIngestMocks(): void {
+  const service: Record<string, any> = OtelMetricsIngestService as unknown as {
+    [key: string]: any;
+  };
+
+  jest.spyOn(service, "runBatchHostEnrichment").mockResolvedValue(undefined);
+
+  for (const method of [
+    ...AUTO_DISCOVERY_METHODS_RETURNING_NULL,
+    "autoDiscoverIoTFleet",
+  ]) {
+    jest.spyOn(service, method).mockResolvedValue(null);
+  }
+
+  jest.spyOn(service, "resolveTelemetryResource").mockResolvedValue({
+    serviceName: SERVICE_NAME,
+    primaryEntityId: SERVICE_ID,
+    primaryEntityType: ServiceType.OpenTelemetry,
+    dataRententionInDays: 15,
+    serviceRetentionConfig: null,
+    serviceRetentionInDays: null,
+    projectRetentionConfig: null,
+    projectRetentionInDays: 15,
+  });
+
+  const noRules: MetricRulesForProject = {
+    projectRules: [],
+    rulesByServiceId: new Map(),
+  };
+  jest.spyOn(MetricPipelineRuleService, "loadRules").mockResolvedValue(noRules);
+
+  jest
+    .spyOn(TelemetryUtil, "indexMetricNameServiceNameMap")
+    .mockResolvedValue(undefined as any);
+}
+
 function makeSpan(name: string): JSONObject {
   const nowNano: string = `${Date.now()}000000`;
   return {
@@ -257,8 +304,8 @@ function logsBody(logBodies: Array<string>): JSONObject {
 let jobCounter: number = 0;
 
 function otelJob(data: {
-  type: "traces" | "logs";
-  productType: "Traces" | "Logs";
+  type: "traces" | "logs" | "metrics";
+  productType: "Traces" | "Logs" | "Metrics";
   bodyKey: string;
   body: JSONObject;
 }): unknown {
@@ -277,6 +324,56 @@ function otelJob(data: {
       requestHeaders: {},
     },
   };
+}
+
+/*
+ * No host.name in the resource attributes on purpose: it would add a
+ * synthetic heartbeat row and pull the (mocked-away) host enrichment in.
+ */
+function metricsBody(metricNames: Array<string>): JSONObject {
+  return {
+    resourceMetrics: [
+      {
+        resource: {
+          attributes: [
+            { key: "service.name", value: { stringValue: SERVICE_NAME } },
+          ],
+        },
+        scopeMetrics: [
+          {
+            metrics: metricNames.map((name: string, index: number) => {
+              return {
+                name: name,
+                description: "test sum",
+                unit: "1",
+                sum: {
+                  aggregationTemporality: 2,
+                  isMonotonic: true,
+                  dataPoints: [
+                    {
+                      asInt: index + 1,
+                      startTimeUnixNano: `${Date.now() - 60_000}000000`,
+                      timeUnixNano: `${Date.now()}000000`,
+                      attributes: [],
+                    },
+                  ],
+                },
+              };
+            }),
+          },
+        ],
+      },
+    ],
+  };
+}
+
+function metricsJob(bodyKey: string, metricNames: Array<string>): unknown {
+  return otelJob({
+    type: "metrics",
+    productType: "Metrics",
+    bodyKey,
+    body: metricsBody(metricNames),
+  });
 }
 
 function tracesJob(bodyKey: string, spanNames: Array<string>): unknown {
@@ -318,20 +415,35 @@ describe("ProcessTelemetry handler — batched ClickHouse inserts end to end", (
   let spanInsertSpy: jest.SpyInstance;
   let logInsertSpy: jest.SpyInstance;
 
-  beforeAll(() => {
-    /*
-     * Real shared writer, tiny time-flush window: all jobs submitted within
-     * ~30ms share one flush, exactly the production path (where the window
-     * is 5s). maxBatchRows stays far above every payload here so flushes
-     * are timer-driven, never size-driven.
-     */
+  /*
+   * Batch cuts here are SIZE-driven, never timer-driven, and that is
+   * deliberate: a wall-clock window would make every "one statement"
+   * assertion depend on all N job handlers reaching submit() before a timer
+   * fires, while each is doing real work (decode await, full OTLP walk, row
+   * building, several awaited service calls). On a loaded CI runner a later
+   * job slips into a second batch and the assertion fails on correct code.
+   *
+   * So each test sets maxBatchRows (per table where two tables are in play)
+   * to EXACTLY the row total it submits: the final submit then trips
+   * cutAndDispatch deterministically, regardless of machine speed or
+   * event-loop turn boundaries. maxWaitMs stays long enough to never be the
+   * thing that cuts — if a regression loses rows, the test fails an
+   * assertion rather than passing on a timer flush.
+   */
+  const NEVER_TIME_FLUSH_MS: number = 60_000;
+
+  function configureWriter(data: {
+    maxBatchRows: number;
+    maxBatchRowsByTable?: Record<string, number>;
+  }): void {
     TelemetryFanInWriter.configure({
-      maxWaitMs: 30,
-      maxBatchRows: 10_000,
+      maxWaitMs: NEVER_TIME_FLUSH_MS,
+      maxBatchRows: data.maxBatchRows,
+      maxBatchRowsByTable: data.maxBatchRowsByTable ?? {},
       retryBaseDelayMs: 1,
       retryMaxDelayMs: 5,
     });
-  });
+  }
 
   beforeEach(() => {
     for (const key of Object.keys(bodiesByKey)) {
@@ -360,6 +472,9 @@ describe("ProcessTelemetry handler — batched ClickHouse inserts end to end", (
   });
 
   test("three concurrent trace jobs collapse into ONE INSERT statement carrying all rows under one minted token", async () => {
+    // 3 jobs x 5 spans: the 15th row cuts the batch.
+    configureWriter({ maxBatchRows: 15 });
+
     const jobs: Array<unknown> = [
       tracesJob("telemetry:body:b1", ["j1s1", "j1s2", "j1s3", "j1s4", "j1s5"]),
       tracesJob("telemetry:body:b2", ["j2s1", "j2s2", "j2s3", "j2s4", "j2s5"]),
@@ -404,6 +519,12 @@ describe("ProcessTelemetry handler — batched ClickHouse inserts end to end", (
   });
 
   test("traces and logs jobs in the same window produce one statement per table", async () => {
+    // Per-table cuts: 2 trace jobs x 2 spans = 4 span rows; 2+1 = 3 log rows.
+    configureWriter({
+      maxBatchRows: 10_000,
+      maxBatchRowsByTable: { SpanItemV3: 4, LogItemV3: 3 },
+    });
+
     const jobs: Array<unknown> = [
       tracesJob("telemetry:body:t1", ["t1s1", "t1s2"]),
       tracesJob("telemetry:body:t2", ["t2s1", "t2s2"]),
@@ -423,10 +544,46 @@ describe("ProcessTelemetry handler — batched ClickHouse inserts end to end", (
     expect(logInsertSpy).toHaveBeenCalledTimes(1);
     expect(rowsAcrossCalls(logInsertSpy)).toHaveLength(3);
 
+    // Traces and logs must not share a statement even though they share a window.
+    expect(
+      (spanInsertSpy.mock.calls[0]![1] as { dedupToken?: string } | undefined)
+        ?.dedupToken,
+    ).toMatch(/^fanin:SpanItemV3:/);
+    expect(
+      (logInsertSpy.mock.calls[0]![1] as { dedupToken?: string } | undefined)
+        ?.dedupToken,
+    ).toMatch(/^fanin:LogItemV3:/);
+
     expect(deleteBody).toHaveBeenCalledTimes(4);
   });
 
-  test("a non-retryable merged-statement failure rejects EVERY job in the batch and leaves every staged body for the BullMQ retry", async () => {
+  test("consecutive flush windows get DIFFERENT minted tokens, so ClickHouse never dedups a later batch away", async () => {
+    configureWriter({ maxBatchRows: 2 });
+
+    await capturedHandler!(tracesJob("telemetry:body:w1", ["w1s1", "w1s2"]));
+    await capturedHandler!(tracesJob("telemetry:body:w2", ["w2s1", "w2s2"]));
+
+    expect(spanInsertSpy).toHaveBeenCalledTimes(2);
+
+    const tokenFirst: string | undefined = (
+      spanInsertSpy.mock.calls[0]![1] as { dedupToken?: string } | undefined
+    )?.dedupToken;
+    const tokenSecond: string | undefined = (
+      spanInsertSpy.mock.calls[1]![1] as { dedupToken?: string } | undefined
+    )?.dedupToken;
+
+    expect(tokenFirst).toMatch(/^fanin:SpanItemV3:/);
+    expect(tokenSecond).toMatch(/^fanin:SpanItemV3:/);
+    /*
+     * A reused minted token would make ClickHouse's content-hash dedup drop
+     * the entire second batch — silent, total loss of that window's rows.
+     */
+    expect(tokenSecond).not.toBe(tokenFirst);
+  });
+
+  test("a non-retryable failure of the ONE merged statement rejects EVERY job in the batch and leaves every staged body for the BullMQ retry", async () => {
+    configureWriter({ maxBatchRows: 3 });
+
     spanInsertSpy.mockRejectedValue(
       new Error("Code: 60. Table does not exist"),
     );
@@ -444,6 +601,20 @@ describe("ProcessTelemetry handler — batched ClickHouse inserts end to end", (
         }),
       );
 
+    /*
+     * Pin the premise of the test: ONE merged statement carrying all three
+     * jobs' rows is what failed. Without this the assertions below hold
+     * equally for three independent per-job statements, i.e. the test would
+     * pass under a full revert of the batching change.
+     */
+    expect(spanInsertSpy).toHaveBeenCalledTimes(1);
+    expect(rowsAcrossCalls(spanInsertSpy)).toHaveLength(3);
+    expect(
+      (spanInsertSpy.mock.calls[0]![1] as { dedupToken?: string } | undefined)
+        ?.dedupToken,
+    ).toMatch(/^fanin:SpanItemV3:/);
+
+    // That single failure fans out to every job sharing the statement.
     for (const outcome of outcomes) {
       expect(outcome.status).toBe("rejected");
     }
@@ -452,10 +623,29 @@ describe("ProcessTelemetry handler — batched ClickHouse inserts end to end", (
     expect(deleteBody).not.toHaveBeenCalled();
   });
 
-  test("a retryable failure is retried inside the writer with the SAME minted token and stays invisible to the jobs", async () => {
-    spanInsertSpy
-      .mockRejectedValueOnce(retryableClickHouseError())
-      .mockResolvedValue(undefined);
+  test("a retryable failure is retried inside the writer with the SAME minted token and rows, and stays invisible to the jobs", async () => {
+    configureWriter({ maxBatchRows: 3 });
+
+    /*
+     * Snapshot the rows AS SEEN on each attempt. Comparing
+     * mock.calls[0][0] to mock.calls[1][0] directly would be a tautology:
+     * insertGroupWithRetry builds the merged array once and passes the same
+     * reference to every attempt, so the two recorded arguments are the
+     * same object.
+     */
+    const seen: Array<Array<JSONObject>> = [];
+    spanInsertSpy.mockImplementation(
+      async (rows: Array<JSONObject>): Promise<void> => {
+        seen.push(
+          rows.map((row: JSONObject) => {
+            return { ...row };
+          }),
+        );
+        if (seen.length === 1) {
+          throw retryableClickHouseError();
+        }
+      },
+    );
 
     const jobs: Array<unknown> = [
       tracesJob("telemetry:body:r1", ["r1s1", "r1s2"]),
@@ -471,13 +661,9 @@ describe("ProcessTelemetry handler — batched ClickHouse inserts end to end", (
 
     // Two attempts of the same merged statement: same rows, same token.
     expect(spanInsertSpy).toHaveBeenCalledTimes(2);
-
-    const firstRows: Array<JSONObject> = spanInsertSpy.mock
-      .calls[0]![0] as Array<JSONObject>;
-    const secondRows: Array<JSONObject> = spanInsertSpy.mock
-      .calls[1]![0] as Array<JSONObject>;
-    expect(secondRows).toEqual(firstRows);
-    expect(firstRows).toHaveLength(3);
+    expect(seen).toHaveLength(2);
+    expect(seen[0]).toHaveLength(3);
+    expect(seen[1]).toEqual(seen[0]);
 
     const firstToken: string | undefined = (
       spanInsertSpy.mock.calls[0]![1] as { dedupToken?: string } | undefined
@@ -489,5 +675,88 @@ describe("ProcessTelemetry handler — batched ClickHouse inserts end to end", (
     expect(secondToken).toBe(firstToken);
 
     expect(deleteBody).toHaveBeenCalledTimes(2);
+  });
+});
+
+/*
+ * Metrics is the third signal the change moves out of the dedup scope, and
+ * it reaches ClickHouse through its own submitMetricsBuffer path with
+ * metrics-only settings — so it needs its own end-to-end case rather than
+ * riding on the traces coverage above.
+ */
+describe("ProcessTelemetry handler — metrics jobs batch through the writer too", () => {
+  let metricInsertSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    for (const key of Object.keys(bodiesByKey)) {
+      delete bodiesByKey[key];
+    }
+    deleteBody.mockClear();
+    jest
+      .spyOn(OtelPayloadDecoder, "decodeFromQueue")
+      .mockImplementation(async (args: { bodyKey: string }): Promise<any> => {
+        return (bodiesByKey[args.bodyKey] ?? {}) as any;
+      });
+    setupMetricsIngestMocks();
+    metricInsertSpy = jest
+      .spyOn(MetricService, "insertJsonRows")
+      .mockResolvedValue(undefined);
+  });
+
+  afterEach(async () => {
+    await TelemetryFanInWriter.flushAll();
+    jest.restoreAllMocks();
+  });
+
+  test("three metric jobs collapse into ONE INSERT under one minted token, carrying the metrics-only ClickHouse settings", async () => {
+    // 3 jobs x 2 single-datapoint metrics = 6 rows.
+    TelemetryFanInWriter.configure({
+      maxWaitMs: 60_000,
+      maxBatchRows: 6,
+      maxBatchRowsByTable: {},
+      retryBaseDelayMs: 1,
+      retryMaxDelayMs: 5,
+    });
+
+    const jobs: Array<unknown> = [
+      metricsJob("telemetry:body:m1", ["m1.a", "m1.b"]),
+      metricsJob("telemetry:body:m2", ["m2.a", "m2.b"]),
+      metricsJob("telemetry:body:m3", ["m3.a", "m3.b"]),
+    ];
+
+    await Promise.all(
+      jobs.map((job: unknown) => {
+        return capturedHandler!(job);
+      }),
+    );
+
+    expect(metricInsertSpy).toHaveBeenCalledTimes(1);
+
+    const rows: Array<JSONObject> = rowsAcrossCalls(metricInsertSpy);
+    expect(rows).toHaveLength(6);
+    const names: Set<unknown> = new Set(
+      rows.map((row: JSONObject) => {
+        return row["name"];
+      }),
+    );
+    for (const name of ["m1.a", "m1.b", "m2.a", "m2.b", "m3.a", "m3.b"]) {
+      expect(names).toContain(name);
+    }
+
+    const options: { dedupToken?: string; clickhouseSettings?: JSONObject } =
+      metricInsertSpy.mock.calls[0]![1] as {
+        dedupToken?: string;
+        clickhouseSettings?: JSONObject;
+      };
+    expect(options?.dedupToken).toMatch(/^fanin:/);
+    /*
+     * Merging must not drop the metrics-only settings that make the ack mean
+     * "flushed through the Distributed table".
+     */
+    expect(options?.clickhouseSettings).toEqual({
+      distributed_foreground_insert: 1,
+    });
+
+    expect(deleteBody).toHaveBeenCalledTimes(3);
   });
 });
