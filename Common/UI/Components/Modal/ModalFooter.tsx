@@ -13,6 +13,7 @@ export interface ComponentProps {
   disableSubmitButton?: undefined | boolean;
   closeButtonText?: undefined | string;
   leftFooterElement?: ReactElement | undefined;
+  hasContentHiddenBelow?: boolean | undefined;
 }
 
 const ModalFooter: FunctionComponent<ComponentProps> = (
@@ -24,7 +25,11 @@ const ModalFooter: FunctionComponent<ComponentProps> = (
 
   return (
     <div
-      className="flex shrink-0 flex-col gap-3 rounded-b-2xl border-t border-gray-100 bg-gray-50/70 px-5 py-3 sm:flex-row sm:items-center sm:justify-between sm:rounded-b-xl sm:px-6"
+      className={`relative z-10 flex shrink-0 flex-col gap-3 rounded-b-2xl border-t border-gray-100 bg-gray-50/70 px-5 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 transition-shadow duration-200 sm:flex-row sm:items-center sm:justify-between sm:rounded-b-xl sm:px-6 sm:pb-3 ${
+        props.hasContentHiddenBelow
+          ? "shadow-[0_-6px_10px_-10px_var(--ou-modal-scroll-shadow,rgb(15_23_42_/_0.35))]"
+          : ""
+      }`}
       data-testid="modal-footer"
     >
       {props.leftFooterElement ? (

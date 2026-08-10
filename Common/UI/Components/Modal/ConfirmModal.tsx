@@ -46,9 +46,14 @@ const ConfirmModal: FunctionComponent<ComponentProps> = (
       }
       error={props.error}
     >
+      {/*
+       * The modal body is already the scroll container. A second one here gave
+       * a long confirmation two nested scrollbars, and the inner one clipped
+       * the text well short of the space the modal had spare.
+       */}
       <div
         data-testid="confirm-modal-description"
-        className="max-h-96 overflow-y-auto whitespace-pre-wrap break-words pr-1 text-sm leading-6 text-gray-600"
+        className="whitespace-pre-wrap break-words text-sm leading-6 text-gray-600"
       >
         {translatedDescription}
       </div>

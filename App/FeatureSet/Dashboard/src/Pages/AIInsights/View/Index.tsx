@@ -59,14 +59,33 @@ const POLL_INTERVAL_MS: number = 5000;
 // The server caps the triage event trail at 500 — show all of it.
 const MAX_VISIBLE_STEPS: number = 500;
 
-type InsightAction = "confirm" | "dismiss" | "resolve";
+type InsightAction = "confirm" | "dismiss" | "resolve" | "reopen";
+
+const ACTION_ROUTES: Record<InsightAction, string> = {
+  confirm: "/ai-insight/verdict",
+  dismiss: "/ai-insight/verdict",
+  resolve: "/ai-insight/resolve",
+  reopen: "/ai-insight/reopen",
+};
+
+/*
+ * Button paints its own disabled state as `disabled ? "hover:bg-green-50"
+ * : ""` — i.e. a disabled OUTLINE/SUCCESS_OUTLINE button is pixel-identical
+ * to an enabled one, and the browser silently swallows the click. That is
+ * indistinguishable from a broken button, which is exactly how a disabled
+ * Confirm reads. These four carry the dashboard's usual disabled styling so
+ * a button that cannot act says so before it is pressed.
+ */
+const DISABLED_ACTION_CLASS: string =
+  "disabled:cursor-not-allowed disabled:opacity-50";
 
 /*
  * The insight detail: the deterministic evidence (detail markdown written
  * by the detector), the live AI triage panel (same glass-box ChatActivityFeed
  * the AI investigations use), a link to the fix task when one was
- * queued, and the one-click human actions (confirm/dismiss/resolve) that
- * feed the AI's measured per-detector precision.
+ * queued, and the one-click human actions (confirm/dismiss/resolve/reopen)
+ * that feed the AI's measured per-detector precision. Every one of those
+ * actions is reversible from this page — including after the insight closes.
  */
 const AIInsightViewPage: FunctionComponent<
   PageComponentProps
@@ -241,11 +260,27 @@ const AIInsightViewPage: FunctionComponent<
   }, [isTriageActive, fetchInsight]);
 
   /*
+   * The open state a reopened insight returns to — kept in step with
+   * AIInsightService.getReopenStatus so the optimistic pill matches what the
+   * server writes. FixOpened when an AI fix task is attached to the insight,
+   * ActionRequired otherwise.
+   */
+  const reopenStatus: AIInsightStatus = insight?.fixAiRunId
+    ? AIInsightStatus.FixOpened
+    : AIInsightStatus.ActionRequired;
+
+  /*
    * The one-click human actions. Optimistic — the pills update immediately;
-   * a failed POST rolls status/verdict back and shows the error inline.
-   * Confirm records the verdict and leaves the status; Dismiss also closes
-   * the insight; Resolve closes it as handled (implying Confirmed when no
-   * verdict was recorded — the server does the same).
+   * a failed POST rolls status/verdict back and shows the error inline, and
+   * a successful one refetches so the server's copy (which owns the rules
+   * below) is what stays on screen.
+   *
+   * Confirm records the verdict and leaves the status, EXCEPT on an insight
+   * closed as Dismissed: "this was real" contradicts "closed as noise", so
+   * confirming reopens it. Dismiss records the verdict and closes it.
+   * Resolve closes it as handled (implying Confirmed when no verdict was
+   * recorded). Reopen undoes either terminal state and clears the verdict.
+   * Every one of these is reversible — that is the point of Reopen.
    */
   const performAction: (action: InsightAction) => Promise<void> = useCallback(
     async (action: InsightAction): Promise<void> => {
@@ -258,33 +293,41 @@ const AIInsightViewPage: FunctionComponent<
 
       if (action === "confirm") {
         setHumanVerdict(AIInsightHumanVerdict.Confirmed);
+        if (previousStatus === AIInsightStatus.Dismissed) {
+          setStatus(reopenStatus);
+        }
       } else if (action === "dismiss") {
         setHumanVerdict(AIInsightHumanVerdict.Dismissed);
         setStatus(AIInsightStatus.Dismissed);
-      } else {
+      } else if (action === "resolve") {
         setStatus(AIInsightStatus.Resolved);
         if (!previousVerdict) {
           setHumanVerdict(AIInsightHumanVerdict.Confirmed);
         }
+      } else {
+        setStatus(reopenStatus);
+        setHumanVerdict(null);
       }
 
+      let didSave: boolean = false;
+
       try {
-        const routePath: string =
-          action === "resolve" ? "/ai-insight/resolve" : "/ai-insight/verdict";
         const payload: JSONObject =
-          action === "resolve"
-            ? { insightId: modelId.toString() }
-            : {
+          action === "confirm" || action === "dismiss"
+            ? {
                 insightId: modelId.toString(),
                 verdict:
                   action === "confirm"
                     ? AIInsightHumanVerdict.Confirmed
                     : AIInsightHumanVerdict.Dismissed,
-              };
+              }
+            : { insightId: modelId.toString() };
 
         const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
           await API.post<JSONObject>({
-            url: URL.fromString(APP_API_URL.toString()).addRoute(routePath),
+            url: URL.fromString(APP_API_URL.toString()).addRoute(
+              ACTION_ROUTES[action],
+            ),
             data: payload,
             headers: ModelAPI.getCommonHeaders(),
           });
@@ -292,6 +335,8 @@ const AIInsightViewPage: FunctionComponent<
         if (response instanceof HTTPErrorResponse) {
           throw response;
         }
+
+        didSave = true;
       } catch (err) {
         // Roll back the optimistic update.
         setStatus(previousStatus);
@@ -301,8 +346,18 @@ const AIInsightViewPage: FunctionComponent<
 
       setIsSavingAction(false);
       isSavingActionRef.current = false;
+
+      /*
+       * Reconcile with the server. The optimistic branches above duplicate
+       * server-side rules, so anything they get wrong would otherwise sit on
+       * screen until the next navigation. The ref is already cleared, so
+       * this refetch is allowed to overwrite status/verdict.
+       */
+      if (didSave) {
+        await fetchInsight();
+      }
     },
-    [status, humanVerdict, modelId],
+    [status, humanVerdict, modelId, reopenStatus, fetchInsight],
   );
 
   if (!hasLoadedOnce) {
@@ -320,7 +375,21 @@ const AIInsightViewPage: FunctionComponent<
   const isTerminal: boolean = Boolean(
     status && AIInsightStatusHelper.isTerminalStatus(status),
   );
-  const isConfirmed: boolean = humanVerdict === AIInsightHumanVerdict.Confirmed;
+  const isDismissed: boolean = status === AIInsightStatus.Dismissed;
+
+  /*
+   * A button is disabled only when pressing it would change nothing — never
+   * merely because the insight is closed. Confirm still has work to do on a
+   * dismissed insight (it reopens it) even when the verdict is already
+   * Confirmed, and Dismiss still has work to do on a Resolved one that was
+   * dismissed earlier. Getting this wrong is what made Confirm look broken:
+   * a disabled button in this design keeps its enabled styling, so a click
+   * that the browser drops is indistinguishable from one that did nothing.
+   */
+  const isConfirmNoOp: boolean =
+    humanVerdict === AIInsightHumanVerdict.Confirmed && !isDismissed;
+  const isDismissNoOp: boolean =
+    humanVerdict === AIInsightHumanVerdict.Dismissed && isDismissed;
 
   /*
    * The triage strip: a tinted panel rather than a bare colored line, so a
@@ -438,48 +507,80 @@ const AIInsightViewPage: FunctionComponent<
               </div>
             </div>
 
-            {!isTerminal ? (
-              <div className="flex flex-shrink-0 flex-wrap items-center gap-2">
+            {/*
+             * The actions stay on the page after the insight closes. Hiding
+             * them was the whole bug: a dismissal is a one-click terminal
+             * state that ALSO suppresses the fingerprint for the store's
+             * cooldown, and with the bar gone a misclick was unrecoverable
+             * from the UI. Reopen replaces Resolve once the insight closes —
+             * "close as handled" has nothing left to do on a closed insight,
+             * while the verdict stays changeable in both directions.
+             */}
+            <div className="flex flex-shrink-0 flex-wrap items-center gap-2">
+              <Button
+                title="Confirm"
+                icon={IconProp.Check}
+                buttonStyle={ButtonStyleType.SUCCESS_OUTLINE}
+                buttonSize={ButtonSize.Small}
+                className={DISABLED_ACTION_CLASS}
+                disabled={isSavingAction || isConfirmNoOp}
+                tooltip={
+                  isDismissed
+                    ? "This finding was real — records a Confirmed verdict and puts the insight back in the queue."
+                    : "Records that this finding was real and worth surfacing."
+                }
+                onClick={() => {
+                  performAction("confirm").catch(() => {
+                    // handled inside performAction
+                  });
+                }}
+              />
+              <Button
+                title="Dismiss"
+                icon={IconProp.Close}
+                buttonStyle={ButtonStyleType.HOVER_DANGER_OUTLINE}
+                buttonSize={ButtonSize.Small}
+                className={DISABLED_ACTION_CLASS}
+                disabled={isSavingAction || isDismissNoOp}
+                tooltip="Records a Dismissed verdict and closes the insight as noise."
+                onClick={() => {
+                  performAction("dismiss").catch(() => {
+                    // handled inside performAction
+                  });
+                }}
+              />
+              {isTerminal ? (
                 <Button
-                  title="Confirm"
-                  icon={IconProp.Check}
-                  buttonStyle={ButtonStyleType.SUCCESS_OUTLINE}
+                  title="Reopen"
+                  icon={IconProp.Refresh}
+                  buttonStyle={ButtonStyleType.OUTLINE}
                   buttonSize={ButtonSize.Small}
-                  disabled={isSavingAction || isConfirmed}
-                  onClick={() => {
-                    performAction("confirm").catch(() => {
-                      // handled inside performAction
-                    });
-                  }}
-                />
-                <Button
-                  title="Dismiss"
-                  icon={IconProp.Close}
-                  buttonStyle={ButtonStyleType.HOVER_DANGER_OUTLINE}
-                  buttonSize={ButtonSize.Small}
+                  className={DISABLED_ACTION_CLASS}
                   disabled={isSavingAction}
+                  tooltip="Undo: puts the insight back in the queue and clears the verdict."
                   onClick={() => {
-                    performAction("dismiss").catch(() => {
+                    performAction("reopen").catch(() => {
                       // handled inside performAction
                     });
                   }}
                 />
+              ) : (
                 <Button
                   title="Resolve"
                   icon={IconProp.CheckCircle}
                   buttonStyle={ButtonStyleType.OUTLINE}
                   buttonSize={ButtonSize.Small}
+                  className={DISABLED_ACTION_CLASS}
                   disabled={isSavingAction}
+                  tooltip="Closes the insight as handled."
                   onClick={() => {
                     performAction("resolve").catch(() => {
                       // handled inside performAction
                     });
                   }}
                 />
-              </div>
-            ) : (
-              <></>
-            )}
+              )}
+            </div>
           </div>
 
           {actionError ? (
@@ -496,14 +597,14 @@ const AIInsightViewPage: FunctionComponent<
         </div>
 
         {/*
-         * A closed insight loses its action buttons, which on its own reads
-         * as a page that failed to render them — say why instead.
+         * Says what a closed insight means and — the part that was missing —
+         * that it is not a dead end.
          */}
         <p className="border-t border-gray-100 bg-gray-50 px-5 py-3 text-xs text-gray-500 md:px-6">
           {isTerminal
             ? `This insight is closed as ${getStatusLabel(
                 status || undefined,
-              )}. Detectors never reopen a closed insight — a new occurrence files a new one.`
+              )}. No detector will reopen it — a new occurrence files a new insight — but you can reopen it here, or change the verdict, at any time.`
             : "Confirm or dismiss to record whether this insight was worth surfacing — verdicts measure each detector's precision. Resolve it once it has been handled."}
         </p>
       </section>
