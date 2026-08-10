@@ -1421,6 +1421,11 @@ app:
   workerConcurrency: 100
   # Max concurrent telemetry ingestion jobs processed by each pod
   telemetryConcurrency: 100
+  # Worker-thread pool for OTel payload decode (gunzip + protobuf decode) so
+  # large payloads no longer serialize on the pod's single event loop.
+  # 0 = disabled (decode inline, the historical behavior). When enabling,
+  # raise the pod's CPU request/limit to cover the extra threads.
+  telemetryDecodeThreads: 0
   # Fan-in telemetry writer (per pod). Batches all telemetry ClickHouse inserts
   # into a handful of large INSERTs so pods can scale horizontally without
   # exploding ClickHouse insert concurrency. Defaults match the code
@@ -1522,6 +1527,11 @@ worker:
   # Max concurrent telemetry ingestion jobs processed by each worker pod.
   # This is the telemetry hot path; tune it together with pod CPU/memory.
   telemetryConcurrency: 100
+  # Worker-thread pool for OTel payload decode (gunzip + protobuf decode) so
+  # large payloads no longer serialize on the pod's single event loop.
+  # 0 = disabled (decode inline, the historical behavior). When enabling,
+  # raise the pod's CPU request/limit to cover the extra threads.
+  telemetryDecodeThreads: 0
   # Fan-in telemetry writer (per pod). Batches all telemetry ClickHouse inserts
   # into a handful of large INSERTs so worker replicas can scale horizontally
   # without exploding ClickHouse insert concurrency. Defaults match the code

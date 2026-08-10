@@ -124,6 +124,13 @@ spec:
               value: {{ $.Values.app.enableProfiling | quote }}
             - name: TELEMETRY_CONCURRENCY
               value: {{ $.Values.app.telemetryConcurrency | default 100 | squote }}
+            # Worker-thread pool for OTel payload decode (0 = disabled/inline,
+            # the code default — see App/FeatureSet/Telemetry/Config.ts).
+            # Mirrored on the worker deployment; this copy matters on the
+            # default topology (worker.enabled=false), where the app pods
+            # consume the telemetry queue and therefore run the decode.
+            - name: TELEMETRY_DECODE_THREADS
+              value: {{ $.Values.app.telemetryDecodeThreads | default 0 | squote }}
             # Fan-in telemetry writer knobs (defaults match the code —
             # Common/Server/Utils/Telemetry/TelemetryFanInWriter.ts). Fleet-wide
             # ClickHouse insert concurrency is replicas x maxConcurrentInserts.

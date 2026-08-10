@@ -1,13 +1,16 @@
-import protobuf from "protobufjs";
-import path from "path";
-import zlib from "zlib";
-import { promisify } from "util";
 import { JSONObject } from "Common/Types/JSON";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
 import TelemetryEntity, {
   ResourceEntityRef,
 } from "Common/Server/Utils/Telemetry/TelemetryEntity";
 import TelemetryBodyStore from "./TelemetryBodyStore";
+import OtelDecode, {
+  OtelPayloadEncoding,
+  OtelPayloadFormat,
+  gunzipAsync,
+} from "./OtelDecode";
+import DecodeThreadPool from "./DecodeThreadPool";
+import { TELEMETRY_DECODE_MIN_PAYLOAD_BYTES } from "../Config";
 
 /*
  * Shared OTel protobuf decoders. We previously decoded payloads inside
@@ -16,72 +19,17 @@ import TelemetryBodyStore from "./TelemetryBodyStore";
  * spent 50-150ms of unbroken sync CPU on protobuf decode + toJSON).
  * Decoding now happens in the BullMQ worker — both sides import this
  * module so the proto definitions only load once per process.
+ *
+ * The decode implementation itself (proto roots, gunzip, decode +
+ * toJSON) lives in OtelDecode.ts so the decode worker threads can
+ * import it without dragging in TelemetryBodyStore/Redis; this module
+ * keeps the queue-facing orchestration (body fetch + pool-vs-inline
+ * routing) and re-exports the decode module's public surface so
+ * existing importers are unaffected.
  */
 
-const PROTO_DIR: string = path.resolve(
-  __dirname,
-  "..",
-  "ProtoFiles",
-  "OTel",
-  "v1",
-);
-
-const LogsProto: protobuf.Root = protobuf.loadSync(
-  path.join(PROTO_DIR, "logs.proto"),
-);
-const TracesProto: protobuf.Root = protobuf.loadSync(
-  path.join(PROTO_DIR, "traces.proto"),
-);
-const MetricsProto: protobuf.Root = protobuf.loadSync(
-  path.join(PROTO_DIR, "metrics.proto"),
-);
-const ProfilesProto: protobuf.Root = protobuf.loadSync(
-  path.join(PROTO_DIR, "profiles.proto"),
-);
-
-const LogsData: protobuf.Type = LogsProto.lookupType("LogsData");
-const TracesData: protobuf.Type = TracesProto.lookupType("TracesData");
-const MetricsData: protobuf.Type = MetricsProto.lookupType("MetricsData");
-const ProfilesData: protobuf.Type = ProfilesProto.lookupType("ProfilesData");
-
-/*
- * `zlib.gunzip` accepts a Node Buffer directly (Buffer IS a Uint8Array
- * subclass at runtime), so the raw payload Buffer read from Redis is passed
- * straight through — wrapping it in `new Uint8Array(raw)` first would
- * allocate and memcpy the entire payload (tens of MB for large batches)
- * per job for no behavioural difference. The `as unknown as` cast is
- * forced by TypeScript 5.7+ generic typed arrays: our pinned @types/node
- * declares `Buffer.slice()` in a way that no longer structurally matches
- * the lib `Uint8Array`, so `Buffer` fails to assign to `zlib.InputType`
- * at the type level even though it is valid at runtime (same workaround
- * as the promisified gunzip in SessionReplayIngestService).
- */
-export const gunzipAsync: (buffer: Buffer | Uint8Array) => Promise<Buffer> =
-  promisify(zlib.gunzip) as unknown as (
-    buffer: Buffer | Uint8Array,
-  ) => Promise<Buffer>;
-
-export enum OtelPayloadFormat {
-  Protobuf = "protobuf",
-  Json = "json",
-}
-
-export type OtelPayloadEncoding = "gzip" | "none";
-
-function protoTypeForProduct(productType: ProductType): protobuf.Type | null {
-  switch (productType) {
-    case ProductType.Traces:
-      return TracesData;
-    case ProductType.Logs:
-      return LogsData;
-    case ProductType.Metrics:
-      return MetricsData;
-    case ProductType.Profiles:
-      return ProfilesData;
-    default:
-      return null;
-  }
-}
+export { gunzipAsync, OtelPayloadFormat };
+export type { OtelPayloadEncoding };
 
 export default class OtelPayloadDecoder {
   /*
@@ -98,6 +46,17 @@ export default class OtelPayloadDecoder {
    * consumer treats an empty `resourceLogs` / `resourceSpans`
    * / `resourceMetrics` as "nothing to ingest" and skips the
    * batch, which is the correct behaviour for a lost body.
+   *
+   * The Redis read stays HERE on the main thread (the ioredis client
+   * is not shareable across threads); only the CPU-bound decode is
+   * routed. Routing: when the decode thread pool is enabled AND
+   * accepting AND the raw payload is at least
+   * TELEMETRY_DECODE_MIN_PAYLOAD_BYTES, the decode runs on a pool
+   * thread; otherwise it runs inline via OtelDecode.decodeBody — the
+   * SAME implementation the threads execute, so the two paths cannot
+   * drift. With the default TELEMETRY_DECODE_THREADS=0 every payload
+   * takes the inline path, which is byte-for-byte the pre-pool
+   * behavior.
    */
   public static async decodeFromQueue(input: {
     productType: ProductType;
@@ -109,47 +68,37 @@ export default class OtelPayloadDecoder {
       throw new Error("OtelPayloadDecoder: bodyKey is required");
     }
 
-    let raw: Buffer | null = await TelemetryBodyStore.readBody(input.bodyKey);
+    const raw: Buffer | null = await TelemetryBodyStore.readBody(input.bodyKey);
     if (!raw) {
       // Body expired (TTL) before the worker got to it — nothing to decode.
       return {} as JSONObject;
     }
 
-    if (input.encoding === "gzip") {
-      raw = await gunzipAsync(raw);
+    if (
+      DecodeThreadPool.isAvailable() &&
+      raw.length >= TELEMETRY_DECODE_MIN_PAYLOAD_BYTES
+    ) {
+      /*
+       * Pool path. A pool rejection (thread death, shutdown races) is
+       * deliberately NOT caught here: the pool's errors are retryable
+       * by the BullMQ job layer, and the retry re-evaluates
+       * isAvailable() — a pool that marked itself unhealthy in the
+       * meantime routes the retry inline.
+       */
+      return DecodeThreadPool.decode({
+        productType: input.productType,
+        format: input.format,
+        encoding: input.encoding,
+        body: raw,
+      });
     }
 
-    if (input.format === OtelPayloadFormat.Json) {
-      return JSON.parse(raw.toString("utf-8")) as JSONObject;
-    }
-
-    const protoType: protobuf.Type | null = protoTypeForProduct(
-      input.productType,
-    );
-    if (!protoType) {
-      throw new Error(
-        `OtelPayloadDecoder: no proto type for product ${input.productType}`,
-      );
-    }
-
-    /*
-     * Mirror the previous middleware behavior: decode the protobuf
-     * message and then `.toJSON()` it into a plain JS object that
-     * downstream code already consumes (resourceSpans / resourceLogs
-     * / resourceMetrics / resourceProfiles).
-     *
-     * The Buffer is handed to `decode` as-is: protobufjs' `Reader.create`
-     * has a dedicated Buffer fast path (BufferReader), so copying the
-     * payload into a fresh Uint8Array first would only add an extra
-     * full-payload allocation + memcpy per job. The `as unknown as`
-     * cast is type-level only — Buffer IS a Uint8Array at runtime, but
-     * our pinned @types/node predates TypeScript 5.7's generic typed
-     * arrays and no longer structurally satisfies the lib `Uint8Array`.
-     */
-    const message: protobuf.Message<Record<string, unknown>> = protoType.decode(
-      raw as unknown as Uint8Array,
-    );
-    return message.toJSON() as JSONObject;
+    return OtelDecode.decodeBody({
+      productType: input.productType,
+      format: input.format,
+      encoding: input.encoding,
+      body: raw,
+    });
   }
 
   /**

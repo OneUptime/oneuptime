@@ -30,6 +30,71 @@ const parseBatchSize: ParseBatchSizeFunction = (
   return parsed;
 };
 
+/*
+ * Like parseBatchSize, but 0 is a VALID value rather than "fall back to
+ * the default". Needed for knobs where 0 is a meaningful setting —
+ * TELEMETRY_DECODE_THREADS uses 0 for "pool disabled" (which is also
+ * its default), so the strictly-positive parser above would make the
+ * feature impossible to turn off explicitly.
+ */
+type ParseNonNegativeSizeFunction = (
+  envKey: string,
+  defaultValue: number,
+) => number;
+
+const parseNonNegativeSize: ParseNonNegativeSizeFunction = (
+  envKey: string,
+  defaultValue: number,
+): number => {
+  const value: string | undefined = process.env[envKey];
+
+  if (!value) {
+    return defaultValue;
+  }
+
+  const parsed: number = parseInt(value, 10);
+
+  if (isNaN(parsed) || parsed < 0) {
+    return defaultValue;
+  }
+
+  return parsed;
+};
+
+/*
+ * Size of the worker-thread pool that runs gunzip + protobuf decode +
+ * toJSON for OTel ingest payloads off the main event loop (see
+ * Utils/DecodeThreadPool.ts).
+ *
+ * Defaults to 0 = DISABLED: with 0 threads the pool never starts and
+ * OtelPayloadDecoder decodes inline on the main thread — exactly the
+ * pre-pool behavior. The feature is opt-in per deployment because
+ * worker threads cost real memory (each thread is a full V8 isolate
+ * with its own ts-node + protobufjs load) and only pay off on pods that
+ * actually see large payloads.
+ */
+export const TELEMETRY_DECODE_THREADS: number = parseNonNegativeSize(
+  "TELEMETRY_DECODE_THREADS",
+  0,
+);
+
+/*
+ * Payloads smaller than this (in raw bytes, as stored — i.e. still
+ * compressed when the sender gzipped) are decoded inline even when the
+ * pool is enabled: below roughly this size the fixed cost of the
+ * thread handoff (one payload memcpy on the main thread + structured
+ * clone of the decoded JSON on the way back + scheduling latency)
+ * exceeds the decode CPU we would be moving off-loop. 8 KiB is a
+ * judgment default, not a measured constant — it is env-overridable so
+ * deployments can tune the crossover for their traffic shape. 0 means
+ * "no minimum, route everything to the pool" (useful for testing),
+ * which is why this uses the 0-permitting parser.
+ */
+export const TELEMETRY_DECODE_MIN_PAYLOAD_BYTES: number = parseNonNegativeSize(
+  "TELEMETRY_DECODE_MIN_PAYLOAD_BYTES",
+  8192,
+);
+
 export const TELEMETRY_LOG_FLUSH_BATCH_SIZE: number = parseBatchSize(
   "TELEMETRY_LOG_FLUSH_BATCH_SIZE",
   1000,
