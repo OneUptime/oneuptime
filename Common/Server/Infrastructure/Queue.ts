@@ -560,6 +560,32 @@ export default class Queue {
     return waitingCount + activeCount + delayedCount;
   }
 
+  /*
+   * Backlog = jobs still waiting for a worker (waiting + delayed), for
+   * autoscaling signals. ACTIVE jobs are deliberately excluded: they are
+   * already being served, so to a scaler they are capacity, not demand.
+   * Telemetry jobs in particular sit in the active state for the fan-in
+   * writer's full flush window (up to TELEMETRY_FANIN_MAX_WAIT_MS) while
+   * awaiting their ClickHouse ack, so a fleet scaled on an active-inclusive
+   * count converges on pod count = job rate x ack latency — every new pod
+   * just parks more jobs without shortening the flush window. Scaling on
+   * waiting + delayed only breaks that feedback loop. getQueueSize above
+   * keeps the active-inclusive sum for ingest backpressure checks, where
+   * in-flight work genuinely counts against capacity.
+   */
+  @CaptureSpan()
+  public static async getQueueBacklogSize(
+    queueName: QueueName,
+  ): Promise<number> {
+    const queue: BullQueue = this.getQueue(queueName);
+    const [waitingCount, delayedCount]: [number, number] = await Promise.all([
+      queue.getWaitingCount(),
+      queue.getDelayedCount(),
+    ]);
+
+    return waitingCount + delayedCount;
+  }
+
   @CaptureSpan()
   public static async getQueueStats(queueName: QueueName): Promise<{
     waiting: number;

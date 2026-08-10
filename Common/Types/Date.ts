@@ -476,7 +476,12 @@ export default class OneUptimeDate {
   }
 
   public static getCurrentDate(): Date {
-    return moment().toDate();
+    /*
+     * Not moment().toDate(): this is called on per-record telemetry ingest
+     * paths, and a moment wrapper allocation per call is pure overhead for
+     * what is exactly `new Date()`.
+     */
+    return new Date();
   }
 
   public static fromNow(date: Date): string {
@@ -2078,9 +2083,33 @@ export default class OneUptimeDate {
     return date;
   }
 
+  /*
+   * Hand-rolled UTC "YYYY-MM-DD HH:mm:ss" formatter. The two Clickhouse
+   * formatters below run several times per ingested log / span / metric
+   * datapoint — millions of calls per minute on a busy worker — and a
+   * moment() wrapper plus format-token parsing per call is roughly an order
+   * of magnitude more expensive than reading the UTC fields directly.
+   * Output is byte-identical to moment's, including the "Invalid date"
+   * sentinel for NaN dates.
+   */
+  private static formatUtcClickhouseDateTime(date: Date): string {
+    if (Number.isNaN(date.getTime())) {
+      return "Invalid date";
+    }
+
+    const year: string = String(date.getUTCFullYear()).padStart(4, "0");
+    const month: string = String(date.getUTCMonth() + 1).padStart(2, "0");
+    const day: string = String(date.getUTCDate()).padStart(2, "0");
+    const hours: string = String(date.getUTCHours()).padStart(2, "0");
+    const minutes: string = String(date.getUTCMinutes()).padStart(2, "0");
+    const seconds: string = String(date.getUTCSeconds()).padStart(2, "0");
+
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  }
+
   public static toClickhouseDateTime(date: Date | string): string {
     const parsedDate: Date = this.fromString(date);
-    return moment(parsedDate).utc().format("YYYY-MM-DD HH:mm:ss");
+    return this.formatUtcClickhouseDateTime(parsedDate);
   }
 
   public static toClickhouseDateTime64(
@@ -2088,7 +2117,7 @@ export default class OneUptimeDate {
     nanoTimestamp?: number,
   ): string {
     const parsedDate: Date = this.fromString(date);
-    const base: string = moment(parsedDate).utc().format("YYYY-MM-DD HH:mm:ss");
+    const base: string = this.formatUtcClickhouseDateTime(parsedDate);
 
     let nanoFraction: string;
 

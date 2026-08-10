@@ -26,6 +26,43 @@ const CACHE_TTL_MS: number = 60 * 1000; // 60 seconds
 const ruleCache: Map<string, CacheEntry> = new Map();
 
 /*
+ * Compiled-regex memo for MatchesRegex / DoesNotMatchRegex filters.
+ * applyRules runs per metric ROW, and RegExp construction (plus a warn log
+ * for invalid patterns) per row is exactly the per-record cost the 60s rule
+ * cache exists to avoid. Patterns are compiled once per process; an invalid
+ * pattern is stored as null and warned about once, not per datapoint. The
+ * size cap only guards against a pathological churn of distinct patterns —
+ * normal deployments hold one entry per configured regex rule.
+ */
+const REGEX_MEMO_MAX_ENTRIES: number = 1000;
+const compiledRegexByPattern: Map<string, RegExp | null> = new Map();
+
+function getCompiledRegex(pattern: string, ruleId: string): RegExp | null {
+  let regex: RegExp | null | undefined = compiledRegexByPattern.get(pattern);
+
+  if (regex === undefined) {
+    if (compiledRegexByPattern.size >= REGEX_MEMO_MAX_ENTRIES) {
+      compiledRegexByPattern.clear();
+    }
+
+    try {
+      regex = new RegExp(pattern);
+    } catch (err) {
+      logger.warn(
+        `Invalid regex "${pattern}" (first seen on MetricPipelineRule ${ruleId}; warned once per pattern — every rule using it treats the filter as non-matching): ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+      regex = null;
+    }
+
+    compiledRegexByPattern.set(pattern, regex);
+  }
+
+  return regex;
+}
+
+/*
  * Treat the metric row's attributes as a loose JSONObject. The ingest pipeline
  * builds rows with `attributes: JSONObject` and `attributeKeys: string[]`.
  */
@@ -114,18 +151,32 @@ export default class MetricPipelineRuleService {
 
     let current: MutableMetricRow | null = row;
 
+    /*
+     * Attribute-key bookkeeping is deferred: rule evaluation only reads the
+     * attributes map itself, never attributeKeys, so mutating rules mark the
+     * row dirty and the sorted key list is rebuilt ONCE after all rules ran
+     * instead of once per mutating rule per row.
+     */
+    const state: { attributeKeysDirty: boolean } = {
+      attributeKeysDirty: false,
+    };
+
     for (const rule of serviceRules) {
-      current = this.applyOne(current!, rule);
+      current = this.applyOne(current!, rule, state);
       if (current === null) {
         return null;
       }
     }
 
     for (const rule of rules.projectRules) {
-      current = this.applyOne(current!, rule);
+      current = this.applyOne(current!, rule, state);
       if (current === null) {
         return null;
       }
+    }
+
+    if (state.attributeKeysDirty && current) {
+      current.attributeKeys = Object.keys(this.getAttributes(current)).sort();
     }
 
     return current;
@@ -134,6 +185,7 @@ export default class MetricPipelineRuleService {
   private static applyOne(
     row: MutableMetricRow,
     rule: MetricPipelineRule,
+    state: { attributeKeysDirty: boolean },
   ): MutableMetricRow | null {
     const matched: boolean = this.matches(row, rule);
 
@@ -184,7 +236,7 @@ export default class MetricPipelineRuleService {
           attrs[to] = attrs[from] as JSONValue;
           delete attrs[from];
           row.attributes = attrs;
-          row.attributeKeys = Object.keys(attrs).sort();
+          state.attributeKeysDirty = true;
         }
         return row;
       }
@@ -197,7 +249,7 @@ export default class MetricPipelineRuleService {
         const attrs: JSONObject = this.getAttributes(row);
         attrs[key] = rule.addAttributeValue ?? "";
         row.attributes = attrs;
-        row.attributeKeys = Object.keys(attrs).sort();
+        state.attributeKeysDirty = true;
         return row;
       }
 
@@ -210,7 +262,7 @@ export default class MetricPipelineRuleService {
         if (Object.prototype.hasOwnProperty.call(attrs, key)) {
           delete attrs[key];
           row.attributes = attrs;
-          row.attributeKeys = Object.keys(attrs).sort();
+          state.attributeKeysDirty = true;
         }
         return row;
       }
@@ -376,21 +428,19 @@ export default class MetricPipelineRuleService {
         return actual.endsWith(expectedValue);
       case MetricPipelineRuleFilterConditionType.MatchesRegex:
       case MetricPipelineRuleFilterConditionType.DoesNotMatchRegex: {
-        try {
-          const re: RegExp = new RegExp(expectedValue);
-          const matched: boolean = re.test(actual);
-          return conditionType ===
-            MetricPipelineRuleFilterConditionType.MatchesRegex
-            ? matched
-            : !matched;
-        } catch (err) {
-          logger.warn(
-            `Invalid regex on MetricPipelineRule ${String(rule._id)}: ${
-              err instanceof Error ? err.message : String(err)
-            }`,
-          );
+        const re: RegExp | null = getCompiledRegex(
+          expectedValue,
+          String(rule._id),
+        );
+        if (!re) {
+          // Invalid pattern — warned once when first compiled.
           return false;
         }
+        const matched: boolean = re.test(actual);
+        return conditionType ===
+          MetricPipelineRuleFilterConditionType.MatchesRegex
+          ? matched
+          : !matched;
       }
       default:
         return false;
@@ -407,8 +457,9 @@ export default class MetricPipelineRuleService {
     return fresh;
   }
 
-  // Testing helper — clears the in-memory cache.
+  // Testing helper — clears the in-memory caches.
   public static clearCache(): void {
     ruleCache.clear();
+    compiledRegexByPattern.clear();
   }
 }

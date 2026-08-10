@@ -8,6 +8,11 @@ import EventLoop from "Common/Server/Utils/EventLoop";
 import OtelPayloadDecoder from "../Utils/OtelPayloadDecoder";
 import OneUptimeDate from "Common/Types/Date";
 import { resolveTelemetryRetentionInDays } from "Common/Types/Telemetry/TelemetryRetentionConfig";
+import {
+  IngestionStamp,
+  getIngestionStamp,
+  getRetentionDateDb,
+} from "Common/Server/Utils/Telemetry/IngestionTimestamp";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import {
   ExpressRequest,
@@ -1212,9 +1217,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
     llmFields: LlmSpanFields;
     serviceMetadata: TelemetryServiceMetadata;
   }): JSONObject {
-    const ingestionDate: Date = OneUptimeDate.getCurrentDate();
-    const ingestionTimestamp: string =
-      OneUptimeDate.toClickhouseDateTime(ingestionDate);
+    const ingestionStamp: IngestionStamp = getIngestionStamp();
     const retentionDays: number = resolveTelemetryRetentionInDays({
       pillar: "traces",
       bucketKey: data.statusCode,
@@ -1223,13 +1226,9 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       projectConfig: data.serviceMetadata.projectRetentionConfig,
       projectRetentionInDays: data.serviceMetadata.projectRetentionInDays,
     });
-    const retentionDate: Date = OneUptimeDate.addRemoveDays(
-      ingestionDate,
-      retentionDays,
-    );
     return {
       _id: ObjectID.generateTimeOrdered().toString(),
-      createdAt: ingestionTimestamp,
+      createdAt: ingestionStamp.db,
       projectId: data.projectId.toString(),
       primaryEntityId: data.primaryEntityId.toString(),
       primaryEntityType: data.serviceMetadata.primaryEntityType,
@@ -1267,14 +1266,12 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       llmOutputTokens: data.llmFields.llmOutputTokens,
       llmTotalTokens: data.llmFields.llmTotalTokens,
       llmCost: data.llmFields.llmCost,
-      retentionDate: OneUptimeDate.toClickhouseDateTime(retentionDate),
+      retentionDate: getRetentionDateDb(ingestionStamp, retentionDays),
     };
   }
 
   private static buildExceptionRow(data: ExceptionEventPayload): JSONObject {
-    const ingestionDate: Date = OneUptimeDate.getCurrentDate();
-    const ingestionTimestamp: string =
-      OneUptimeDate.toClickhouseDateTime(ingestionDate);
+    const ingestionStamp: IngestionStamp = getIngestionStamp();
     const retentionDays: number = resolveTelemetryRetentionInDays({
       pillar: "traces",
       bucketKey: data.spanStatusCode,
@@ -1283,15 +1280,11 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       projectConfig: data.serviceMetadata.projectRetentionConfig,
       projectRetentionInDays: data.serviceMetadata.projectRetentionInDays,
     });
-    const retentionDate: Date = OneUptimeDate.addRemoveDays(
-      ingestionDate,
-      retentionDays,
-    );
     const attributes: JSONObject = data.attributes || {};
 
     return {
       _id: ObjectID.generateTimeOrdered().toString(),
-      createdAt: ingestionTimestamp,
+      createdAt: ingestionStamp.db,
       projectId: data.projectId.toString(),
       primaryEntityId: data.primaryEntityId.toString(),
       primaryEntityType: data.serviceMetadata.primaryEntityType,
@@ -1317,7 +1310,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       parsedFrames: data.parsedFrames || "[]",
       attributes: attributes,
       attributeKeys: TelemetryUtil.getAttributeKeys(attributes),
-      retentionDate: OneUptimeDate.toClickhouseDateTime(retentionDate),
+      retentionDate: getRetentionDateDb(ingestionStamp, retentionDays),
     };
   }
 

@@ -109,6 +109,20 @@ export default class Telemetry {
 
   public static serviceName: string | null = null;
 
+  /*
+   * True only when init() installed a real OTLP span exporter. @CaptureSpan
+   * consults this to skip span creation entirely on deployments that never
+   * export traces — without an exporter the spans go nowhere, but the wrapper
+   * would still pay attribute flattening, span allocation, and an
+   * AsyncLocalStorage context switch on every decorated call, which includes
+   * hot ingest paths that run millions of times per minute.
+   */
+  private static spanExportEnabled: boolean = false;
+
+  public static isSpanExportEnabled(): boolean {
+    return this.spanExportEnabled;
+  }
+
   public static getHeaders(): Dictionary<string> {
     if (!process.env["OPENTELEMETRY_EXPORTER_OTLP_HEADERS"]) {
       return {};
@@ -199,6 +213,7 @@ export default class Telemetry {
           headers: headers,
           compression: CompressionAlgorithm.GZIP,
         }) as unknown as SpanExporter;
+        this.spanExportEnabled = true;
       }
 
       if (this.getOltpMetricsEndpoint() && hasHeaders) {

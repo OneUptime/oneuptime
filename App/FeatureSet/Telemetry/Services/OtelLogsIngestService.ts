@@ -19,6 +19,11 @@ import Dictionary from "Common/Types/Dictionary";
 import ObjectID from "Common/Types/ObjectID";
 import LogSeverity from "Common/Types/Log/LogSeverity";
 import { resolveTelemetryRetentionInDays } from "Common/Types/Telemetry/TelemetryRetentionConfig";
+import {
+  IngestionStamp,
+  getIngestionStamp,
+  getRetentionDateDb,
+} from "Common/Server/Utils/Telemetry/IngestionTimestamp";
 import TelemetryUtil, {
   AttributeType,
 } from "Common/Server/Utils/Telemetry/Telemetry";
@@ -600,9 +605,14 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                   const primaryEntityId: ObjectID =
                     serviceDictionary[serviceName]!.primaryEntityId!;
 
-                  let timeUnixNanoNumeric: number =
-                    OneUptimeDate.getCurrentDateAsUnixNano();
-                  let timeDate: Date = OneUptimeDate.getCurrentDate();
+                  /*
+                   * Assigned in every branch below — no eager current-time
+                   * pair here, since records normally carry their own
+                   * timeUnixNano and the fallback is only for records that
+                   * do not.
+                   */
+                  let timeUnixNanoNumeric: number;
+                  let timeDate: Date;
 
                   if (log["timeUnixNano"]) {
                     try {
@@ -892,9 +902,8 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
 
                   const logFlags: number = (log["flags"] as number) || 0;
 
-                  const ingestionDate: Date = OneUptimeDate.getCurrentDate();
-                  const ingestionTimestamp: string =
-                    OneUptimeDate.toClickhouseDateTime(ingestionDate);
+                  const ingestionStamp: IngestionStamp = getIngestionStamp();
+                  const ingestionTimestamp: string = ingestionStamp.db;
                   const logTimestamp: string =
                     OneUptimeDate.toClickhouseDateTime64(
                       timeDate,
@@ -915,8 +924,8 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                         serviceMetadata.projectRetentionInDays,
                     },
                   );
-                  const retentionDate: Date = OneUptimeDate.addRemoveDays(
-                    ingestionDate,
+                  const retentionDateDb: string = getRetentionDateDb(
+                    ingestionStamp,
                     retentionDays,
                   );
 
@@ -948,8 +957,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                       Math.trunc(observedTimeUnixNano).toString(),
                     droppedAttributesCount: droppedAttributesCount,
                     flags: logFlags,
-                    retentionDate:
-                      OneUptimeDate.toClickhouseDateTime(retentionDate),
+                    retentionDate: retentionDateDb,
                   };
 
                   // Drop filter check (before pipeline processing)
@@ -997,7 +1005,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                         severityText,
                         timeDate,
                         timeUnixNano: timeUnixNanoNumeric,
-                        retentionDate,
+                        retentionDateDb,
                         dbExceptions,
                         pendingExceptionUpserts,
                       });
@@ -1362,7 +1370,8 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
     severityText: LogSeverity;
     timeDate: Date;
     timeUnixNano: number;
-    retentionDate: Date;
+    /** Already-formatted ClickHouse DateTime string of the log row's retention date. */
+    retentionDateDb: string;
     dbExceptions: Array<JSONObject>;
     pendingExceptionUpserts: Array<TelemetryExceptionPayload>;
   }): void {
@@ -1406,9 +1415,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
     const environment: string =
       (finalAttributes["resource.deployment.environment"] as string) || "";
 
-    const ingestionTimestamp: string = OneUptimeDate.toClickhouseDateTime(
-      OneUptimeDate.getCurrentDate(),
-    );
+    const ingestionTimestamp: string = getIngestionStamp().db;
     const exceptionAttributes: JSONObject = {
       "exception.source": "log",
       "log.severityText": String(data.severityText),
@@ -1439,7 +1446,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
       parsedFrames: extracted.parsedFrames || "[]",
       attributes: exceptionAttributes,
       attributeKeys: TelemetryUtil.getAttributeKeys(exceptionAttributes),
-      retentionDate: OneUptimeDate.toClickhouseDateTime(data.retentionDate),
+      retentionDate: data.retentionDateDb,
     });
 
     data.pendingExceptionUpserts.push({
