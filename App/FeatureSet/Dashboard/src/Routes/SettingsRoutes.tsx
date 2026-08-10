@@ -50,9 +50,6 @@ import SettingsLlmProviders from "../Pages/Settings/LlmProviders";
 
 import SettingsLlmProviderView from "../Pages/Settings/LlmProviderView";
 
-import SettingsDataSources from "../Pages/Settings/DataSources";
-import SettingsDataSourceView from "../Pages/Settings/DataSourceView";
-
 import SettingsRunners from "../Pages/Settings/Runners";
 import SettingsRunnerView from "../Pages/Settings/RunnerView";
 import SettingsRunnerCredentials from "../Pages/Settings/RunnerCredentials";
@@ -145,29 +142,6 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.SETTINGS_AI_LLM_PROVIDER_VIEW] as Route
               }
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(PageMap.SETTINGS_DATA_SOURCES)}
-          element={
-            <SettingsDataSources
-              {...props}
-              pageRoute={RouteMap[PageMap.SETTINGS_DATA_SOURCES] as Route}
-            />
-          }
-        />
-
-        <PageRoute
-          path={RouteUtil.getLastPathForKey(
-            PageMap.SETTINGS_DATA_SOURCE_VIEW,
-            2,
-          )}
-          element={
-            <SettingsDataSourceView
-              {...props}
-              pageRoute={RouteMap[PageMap.SETTINGS_DATA_SOURCE_VIEW] as Route}
             />
           }
         />

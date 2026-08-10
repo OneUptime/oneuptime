@@ -1,9 +1,7 @@
 import DataSourceType, {
-  DataSourceTypeProps,
   DataSourceTypeUtil,
 } from "Common/Types/DataSource/DataSourceType";
 import IconProp from "Common/Types/Icon/IconProp";
-import { CardSelectOption } from "Common/UI/Components/CardSelect/CardSelect";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 
 export default class DataSourceTypeUIUtil {
@@ -26,22 +24,6 @@ export default class DataSourceTypeUIUtil {
       default:
         return IconProp.Database;
     }
-  }
-
-  public static dataSourceTypesAsCardSelectOptions(): Array<CardSelectOption> {
-    return DataSourceTypeUtil.getAllDataSourceTypes().map(
-      (dataSourceType: DataSourceType): CardSelectOption => {
-        const typeProps: DataSourceTypeProps =
-          DataSourceTypeUtil.getProps(dataSourceType);
-
-        return {
-          value: dataSourceType,
-          title: typeProps.title,
-          description: typeProps.description,
-          icon: DataSourceTypeUIUtil.getIcon(dataSourceType),
-        };
-      },
-    );
   }
 
   public static dataSourceTypesAsDropdownOptions(): Array<DropdownOption> {

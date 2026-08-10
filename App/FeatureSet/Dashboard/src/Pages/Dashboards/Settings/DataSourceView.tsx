@@ -1,6 +1,6 @@
-import PageMap from "../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import PageComponentProps from "../PageComponentProps";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import PageComponentProps from "../../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -338,7 +338,7 @@ const DataSourceView: FunctionComponent<PageComponentProps> = (
         onDeleteSuccess={() => {
           Navigation.navigate(
             RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_DATA_SOURCES] as Route,
+              RouteMap[PageMap.DASHBOARDS_SETTINGS_DATA_SOURCES] as Route,
               { modelId },
             ),
           );
