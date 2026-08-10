@@ -828,6 +828,96 @@ describe("TelemetryFanInWriter", () => {
       expect(target.insertJsonRows).toHaveBeenCalledTimes(1);
       expect(callOptions(target, 0).clickhouseSettings).toBe(settingsFirst);
     });
+
+    /*
+     * The production shape after the batched-inserts change: one table can
+     * receive tokened submissions (low-volume signals like syslog, still
+     * inside runWithInsertDedup) and untokened ones (traces/logs/metrics)
+     * in the same flush window. Tokened submissions must keep per-job
+     * statement granularity; the untokened remainder must collapse into
+     * one minted-token statement.
+     */
+    test("mixed tokened/untokened batch: tokened submissions insert individually under their tokens, the untokened remainder merges under one minted token", async () => {
+      const target: TestTarget = makeTarget();
+      const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
+        makeOptions({ maxBatchRows: 6, maxWaitMs: 60_000 }),
+      );
+
+      const tokenedFirst: FanInSubmitResult = await runWithInsertDedup(
+        "job-a",
+        () => {
+          return writer.submit(target, makeRows(2));
+        },
+      );
+      const untokened: FanInSubmitResult = await writer.submit(
+        target,
+        makeRows(2, 2),
+      );
+      // Reaching maxBatchRows (6) cuts and dispatches the batch.
+      const tokenedSecond: FanInSubmitResult = await runWithInsertDedup(
+        "job-b",
+        () => {
+          return writer.submit(target, makeRows(2, 4));
+        },
+      );
+
+      await Promise.all([
+        tokenedFirst.flushed,
+        untokened.flushed,
+        tokenedSecond.flushed,
+      ]);
+
+      /*
+       * Three statements: each tokened submission alone under its
+       * deterministic per-job token (in batch order), then the untokened
+       * remainder merged under a minted fanin: token.
+       */
+      expect(target.insertJsonRows).toHaveBeenCalledTimes(3);
+
+      expect(callOptions(target, 0).dedupToken).toBe("job-a:TestTable:0");
+      expect(rowSeqs(callRows(target, 0))).toEqual([0, 1]);
+
+      expect(callOptions(target, 1).dedupToken).toBe("job-b:TestTable:0");
+      expect(rowSeqs(callRows(target, 1))).toEqual([4, 5]);
+
+      expect(callOptions(target, 2).dedupToken).toMatch(/^fanin:TestTable:/);
+      expect(rowSeqs(callRows(target, 2))).toEqual([2, 3]);
+    });
+
+    test("mixed batch failure isolation: the merged untokened statement failing rejects only the untokened submissions; tokened ones in the same batch still succeed", async () => {
+      const target: TestTarget = makeTarget({
+        impl: async (
+          _rows: Array<JSONObject>,
+          options?: InsertRowsOptions,
+        ): Promise<void> => {
+          if (options?.dedupToken?.startsWith("fanin:")) {
+            // Non-retryable: plain error with no recognized code/message.
+            throw new Error("merged statement rejected");
+          }
+        },
+      });
+      const writer: TelemetryFanInWriter = new TelemetryFanInWriter(
+        makeOptions({ maxBatchRows: 4, maxWaitMs: 60_000 }),
+      );
+
+      const tokened: FanInSubmitResult = await runWithInsertDedup(
+        "job-a",
+        () => {
+          return writer.submit(target, makeRows(2));
+        },
+      );
+      const untokened: FanInSubmitResult = await writer.submit(
+        target,
+        makeRows(2, 2),
+      );
+
+      // The tokened submission's ack resolves even though its batch-mate failed.
+      await tokened.flushed;
+
+      const err: Error = await captureRejection(untokened.flushed);
+      expect(err).toBeInstanceOf(FanInInsertError);
+      expect(err.message).toContain("merged statement rejected");
+    });
   });
 });
 
