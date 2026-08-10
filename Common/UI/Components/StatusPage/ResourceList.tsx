@@ -182,7 +182,7 @@ const ResourceList: FunctionComponent<ComponentProps> = (
 
         <MoreMenu
           text={`More actions for ${name}`}
-          menuIcon={IconProp.More}
+          menuIcon={IconProp.EllipsisHorizontal}
           isDisabled={isBusy}
           elementToBeShownInsteadOfButton={
             <button
@@ -191,7 +191,7 @@ const ResourceList: FunctionComponent<ComponentProps> = (
               data-testid="status-page-resource-row-more"
               className="flex h-7 w-7 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
             >
-              <Icon icon={IconProp.More} className="h-4 w-4" />
+              <Icon icon={IconProp.EllipsisHorizontal} className="h-5 w-5" />
             </button>
           }
         >

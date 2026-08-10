@@ -499,21 +499,6 @@ describe("StatusPageResourceExplorerUtil", () => {
         }),
       ).toEqual([CORPORATE, REGION, MARKET, PLATFORM]);
     });
-
-    test("is withdrawn once opening everything would fill the navigator", () => {
-      expect(
-        StatusPageResourceExplorerUtil.canExpandAll({ groupCount: 10 }),
-      ).toBe(true);
-      expect(
-        StatusPageResourceExplorerUtil.canExpandAll({ groupCount: 0 }),
-      ).toBe(false);
-      expect(
-        StatusPageResourceExplorerUtil.canExpandAll({
-          groupCount:
-            StatusPageResourceExplorerUtil.MaxGroupsToExpandAtOnce + 1,
-        }),
-      ).toBe(false);
-    });
   });
 
   describe("the breadcrumb", () => {

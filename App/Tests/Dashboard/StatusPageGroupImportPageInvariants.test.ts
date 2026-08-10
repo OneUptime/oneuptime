@@ -52,42 +52,46 @@ const MODAL: Array<string> = [
   "StatusPage",
   "ImportGroupsFromCsvModal.tsx",
 ];
-const GROUPS_PAGE: Array<string> = [
+/*
+ * The Groups page was merged into Resources, and the CSV import went with it —
+ * it is a bulk create of groups, and groups now live here.
+ */
+const RESOURCES_PAGE: Array<string> = [
   "Pages",
   "StatusPages",
   "View",
-  "Groups.tsx",
+  "Resources.tsx",
 ];
 
-describe("the Groups page owns the CSV import", () => {
-  const source: string = readSource(...GROUPS_PAGE);
-  const code: string = readCode(...GROUPS_PAGE);
+describe("the Resources page owns the CSV import", () => {
+  const source: string = readSource(...RESOURCES_PAGE);
+  const code: string = readCode(...RESOURCES_PAGE);
 
   test("the page offers an Import from CSV action", () => {
-    expect(source).toContain(squash('text="Import from CSV"'));
-    expect(source).toContain("setShowImportModal(true);");
+    expect(source).toContain(squash('text="Import groups from CSV"'));
+    expect(source).toContain("setIsImportModalOpen(true);");
   });
 
   /*
-   * The page's own header slot belongs to "Create Group". A bulk import lives
-   * in the ⋯ overflow next to the other page-wide actions — the same place
-   * every other bulk import in the product lives — which here means a
-   * MoreMenuItem inside the card's MoreMenu rather than a CardButtonSchema.
+   * The page's own header slot belongs to "New Group". A bulk import lives in
+   * the ⋯ overflow next to the other page-wide actions — the same place every
+   * other bulk import in the product lives — which here means a MoreMenuItem
+   * inside the card's MoreMenu rather than a CardButtonSchema.
    */
   test("it stays in the overflow menu, not in the header slot", () => {
     const menuBlock: string = code
       .split("const menuItems: Array<ReactElement> = [];")[1]!
-      .split("const buttons: Array<CardButtonSchema | ReactElement>")[0]!;
+      .split("buttons.push( <MoreMenu")[0]!;
 
     expect(menuBlock).toContain(squash('<MoreMenuItem key="import-from-csv"'));
     expect(menuBlock).toContain("icon={IconProp.Upload}");
 
-    const cardButtonBlock: string = code.split(
-      "const buttons: Array<CardButtonSchema | ReactElement>",
-    )[1]!;
+    const cardButtonBlock: string = code
+      .split("const buttons: Array<CardButtonSchema | ReactElement> = [];")[1]!
+      .split("const menuItems: Array<ReactElement> = [];")[0]!;
 
-    expect(cardButtonBlock).not.toContain("Import from CSV");
-    expect(cardButtonBlock).toContain(squash('title: "Create Group",'));
+    expect(cardButtonBlock).not.toContain("Import groups from CSV");
+    expect(cardButtonBlock).toContain(squash('title: "New Group",'));
   });
 
   /*
@@ -99,12 +103,12 @@ describe("the Groups page owns the CSV import", () => {
       .split("const menuItems: Array<ReactElement> = [];")[1]!
       .split('<MoreMenuItem key="refresh"')[0]!;
 
-    expect(menuBlock).toContain("if (canCreate) {");
+    expect(menuBlock).toContain("if (canCreateGroup) {");
   });
 
   test("the modal is rendered from the page", () => {
     expect(source).toContain("<ImportGroupsFromCsvModal");
-    expect(source).toContain("setShowImportModal(false);");
+    expect(source).toContain("setIsImportModalOpen(false);");
   });
 
   /*
@@ -114,7 +118,7 @@ describe("the Groups page owns the CSV import", () => {
    */
   test("the modal is told which status page and project to import into", () => {
     expect(source).toContain("statusPageId={modelId}");
-    expect(source).toContain("projectId={ProjectUtil.getCurrentProjectId()!}");
+    expect(source).toContain("projectId={projectId}");
   });
 
   /*
@@ -127,7 +131,7 @@ describe("the Groups page owns the CSV import", () => {
       .split("onImportComplete={() => {")[1]!
       .split("}}")[0]!;
 
-    expect(completeBody).toContain("fetchGroups()");
+    expect(completeBody).toContain("reloadGroups()");
   });
 });
 

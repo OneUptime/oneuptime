@@ -10,22 +10,24 @@ import StatusPageGroupTreeUtil, {
 } from "./GroupTree";
 
 /*
- * The model behind the Resources tab: the screen where an operator puts
- * monitors into the group hierarchy they built on the Groups tab.
+ * The model behind the Resources tab: the one screen where an operator both
+ * builds a status page's group hierarchy and puts monitors into it.
  *
  * That screen used to be a tree of group rows, and opening a row mounted a
  * whole ModelTable - card, title, description, create button, overflow menu,
  * checkbox column, pagination footer - inside it. Nesting a table's worth of
  * chrome inside a row of another tree made a simple question ("what is in this
  * group, and how do I add to it?") read as a stack of half-collapsed
- * dashboards, and it only got worse the deeper the group sat.
+ * dashboards, and it only got worse the deeper the group sat. The groups
+ * themselves were managed on a second page entirely, so building a status page
+ * meant navigating back and forth between the two halves of one job.
  *
- * So the screen is an explorer now: the hierarchy on the left, the contents of
- * exactly one selected group on the right. That is the shape every operator
- * already knows from a file browser, and it has a property the old tab could
- * not have - one group is loaded at a time, whatever the hierarchy costs, which
- * is what keeps a fifteen hundred group status page from firing fifteen hundred
- * requests the moment the tab opens (issue #3042).
+ * So the screen is an explorer now: the hierarchy on the left - to navigate and
+ * to edit - and the contents of exactly one selected group on the right. That
+ * is the shape every operator already knows from a file browser, and it has a
+ * property the old tab could not have - one group is loaded at a time, whatever
+ * the hierarchy costs, which is what keeps a fifteen hundred group status page
+ * from firing fifteen hundred requests the moment the tab opens (issue #3042).
  *
  * Everything here is the part of that explorer worth pinning down without a
  * renderer: what the navigator draws, which counts each row is allowed to
@@ -98,6 +100,15 @@ export interface StatusPageResourceNavigatorRow {
   isExpanded: boolean;
 
   /*
+   * Whether the group has a real neighbour to swap places with. The navigator
+   * is where groups are reordered now, and `order` is a property of the
+   * hierarchy rather than of the current search - so these read the group's
+   * actual siblings, not the rows that happen to be on screen.
+   */
+  canMoveUp: boolean;
+  canMoveDown: boolean;
+
+  /*
    * False for a row that is only on screen to give a match its place in the
    * hierarchy. Those rows are context, and are drawn as context.
    */
@@ -167,14 +178,6 @@ export default class StatusPageResourceExplorerUtil {
    * stays scrollable and the DOM stays bounded, without a second request.
    */
   public static readonly ResourceRowsPerPage: number = 100;
-
-  /*
-   * "Expand all" opens every group in the navigator. That costs nothing but a
-   * re-render - no group's resources are fetched until it is selected - but a
-   * navigator with fifteen hundred rows in it is not a navigator, so the offer
-   * is withdrawn past the point where the result would be usable.
-   */
-  public static readonly MaxGroupsToExpandAtOnce: number = 200;
 
   /* ------------------------------------------------------------------ */
   /* Counts                                                              */
@@ -350,9 +353,9 @@ export default class StatusPageResourceExplorerUtil {
    * The rows the navigator draws, in tree order, with collapsed subtrees
    * already gone and the counts already attached.
    *
-   * The hierarchy itself - rails, expansion, what a search reveals - is the
-   * same one the Groups tab draws, from the same util, so a group sits in the
-   * same place in both and a search finds it the same way.
+   * The hierarchy itself - rails, expansion, what a search reveals - comes from
+   * StatusPageGroupHierarchyViewUtil, which is also what the public status page
+   * lays its groups out from, so a group sits where the operator put it.
    */
   public static getNavigatorRows(data: {
     statusPageGroups: Array<StatusPageGroup>;
@@ -398,6 +401,8 @@ export default class StatusPageResourceExplorerUtil {
           subGroupCount: row.subGroupCount,
           hasVisibleSubGroups: row.hasVisibleSubGroups,
           isExpanded: row.isExpanded,
+          canMoveUp: row.canMoveUp,
+          canMoveDown: row.canMoveDown,
           isSearchMatch: row.isSearchMatch,
           ownResourceCount: this.getOwnResourceCount({
             statusPageGroup: row.statusPageGroup,
@@ -493,12 +498,6 @@ export default class StatusPageResourceExplorerUtil {
     );
 
     return ids;
-  }
-
-  public static canExpandAll(data: { groupCount: number }): boolean {
-    return (
-      data.groupCount > 0 && data.groupCount <= this.MaxGroupsToExpandAtOnce
-    );
   }
 
   /*
@@ -733,9 +732,10 @@ export default class StatusPageResourceExplorerUtil {
    * Which resources land in which cell of a grid group, and which land nowhere
    * because their axis values are not among the group's own.
    *
-   * The orphans matter: an axis value renamed on the Groups tab strands every
-   * resource that referenced it, and a grid that silently drew fewer cells than
-   * it has resources would hide monitors an operator believes are published.
+   * The orphans matter: an axis value renamed on the group's own form strands
+   * every resource that referenced it, and a grid that silently drew fewer
+   * cells than it has resources would hide monitors an operator believes are
+   * published.
    */
   public static buildGridModel(data: {
     statusPageResources: Array<StatusPageResource>;

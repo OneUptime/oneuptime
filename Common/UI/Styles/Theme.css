@@ -210,6 +210,12 @@ html.dark :is(
     [class~="active:bg-gray-100"]
   ):hover,
 html.dark [class~="active:bg-gray-100"]:active,
+/*
+ * A row that gives its keyboard focus the same ground its hover gets. Without
+ * this token the light utility survives into the dark theme and paints a
+ * near-white bar across whatever it is on - see the status page group tree.
+ */
+html.dark [class~="focus-within:bg-gray-100"]:focus-within,
 html.dark [class~="disabled:bg-gray-100"]:disabled {
   background-color: var(--ou-surface-tertiary) !important;
 }
