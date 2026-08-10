@@ -138,6 +138,18 @@ export default class MonitorResourceUtil {
         _id: true,
         name: true,
         minimumProbeAgreement: true,
+        /*
+         * Recorded as oneuptime.label.* / oneuptime.customField.* attributes on
+         * every monitor metric this result produces, so response time and
+         * uptime are groupable by a project's own taxonomy. Selected here
+         * rather than re-read inside MonitorMetricUtil: this is the hottest
+         * Postgres path in the product and it already loads the monitor.
+         */
+        labels: {
+          _id: true,
+          name: true,
+        },
+        customFields: true,
       },
       props: {
         isRoot: true,
@@ -480,6 +492,8 @@ export default class MonitorResourceUtil {
           dataToProcess: dataToProcess,
           probeName: probeName || undefined,
           monitorName: monitorName || undefined,
+          monitorLabels: monitor.labels || undefined,
+          monitorCustomFields: monitor.customFields || undefined,
         });
       } catch (err) {
         logger.error("Unable to save metrics");
