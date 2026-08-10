@@ -68,6 +68,69 @@ async function resolveOtelBody(
 }
 
 /*
+ * Which telemetry types run their job inside a runWithInsertDedup scope —
+ * and why the high-volume OTLP signals (traces / logs / metrics) do NOT.
+ *
+ * Inside the scope, every fan-in submission captures a deterministic
+ * "<jobId>:<table>:<chunk>" token and TelemetryFanInWriter inserts each
+ * tokened submission INDIVIDUALLY — one ClickHouse statement per submission.
+ * That preserves per-job retry idempotence (a retry re-issues byte-identical
+ * statements that content-hash dedup drops), but it also pins the statement
+ * rate to the job arrival rate: cross-job batching never merges
+ * differently-tokened rows, so at high trace/log/metric volume ClickHouse
+ * saturates on per-statement overhead (gunzip + parse + async-insert
+ * bookkeeping per statement) while the merged-insert machinery sits unused.
+ *
+ * So the high-volume signals — the reason the fan-in writer exists — run
+ * OUTSIDE the scope: their submissions are untokened, and the writer merges
+ * a whole flush window into ONE INSERT per table under a minted per-batch
+ * token (still stable across the writer's own retries, so transient-failure
+ * retries of the SAME batch never double-write).
+ *
+ * The accepted trade: a job that fails AFTER one of its merged inserts was
+ * accepted (multi-table job failing on a later table, stalled-job recovery
+ * after acks) re-processes into a differently-composed batch that content
+ * hashing cannot dedup, so those rows can land twice. Per-job tokens were
+ * never honored for async inserts anyway (ClickHouse #52018 — see the
+ * comment in Common/Server/Services/AnalyticsDatabaseService.ts); what
+ * actually deduped retries was content hashing of solo-statement bodies,
+ * which is precisely the one-statement-per-job pattern that saturates
+ * ClickHouse.
+ *
+ * Profiles / syslog / fluent-logs / Kubernetes-cost stay tokened: their
+ * statement rate is negligible, so their retry idempotence costs nothing
+ * to keep.
+ *
+ * The probe / server-monitor / incoming-request types are excluded
+ * deliberately: their inserts go through shared cross-job buffers
+ * (MonitorLogUtil / monitor metrics), where a flushed batch can mix
+ * rows from several jobs — a retry would then reuse a token for a
+ * differently-composed block and ClickHouse would drop it (tokens
+ * dedup by token, not content), losing other jobs' rows.
+ *
+ * SessionReplay is excluded for a different reason again, and must
+ * stay excluded: TelemetryFanInWriter.dispatchInsert inserts TOKENED
+ * submissions individually, one statement each, so adding replay here
+ * would produce one INSERT per chunk on the fattest table in the
+ * system. Untokened submissions merge into one batch per flush window
+ * instead. Replay gets its idempotency from the chunk table being a
+ * ReplacingMergeTree keyed on (projectId, sessionId, tabId,
+ * chunkIndex) plus LIMIT 1 BY chunkIndex at read time, so a
+ * re-delivered chunk collapses at merge rather than double-writing.
+ */
+const INSERT_DEDUP_TYPES: Array<TelemetryType> = [
+  TelemetryType.Profiles,
+  TelemetryType.Syslog,
+  TelemetryType.FluentLogs,
+  TelemetryType.KubernetesCostIngest,
+];
+
+// Exported for tests.
+export function shouldUseInsertDedup(telemetryType: TelemetryType): boolean {
+  return INSERT_DEDUP_TYPES.includes(telemetryType);
+}
+
+/*
  * Per-pod cap on how many replay jobs may be DECODING AND SCRUBBING at once.
  *
  * What this does deliver: a bound on concurrent gunzip + rrweb-tree walking,
@@ -142,45 +205,13 @@ if (DisableQueueWorkers) {
         job.data as TelemetryIngestJobData;
 
       /*
-       * For the telemetry signal types, every ClickHouse write carries a
-       * deterministic insert_deduplication_token derived from the BullMQ
-       * job id (stable across stalled-job recoveries and attempts-based
-       * retries), so a retry that re-processes the same payload is
-       * deduplicated server-side instead of double-writing rows. The
-       * services route rows through TelemetryFanInWriter, which captures
-       * the token from this ambient scope AT SUBMIT TIME and inserts each
-       * tokened submission individually under it — cross-job batching
-       * never merges differently-tokened rows, precisely so this guarantee
-       * survives. See runWithInsertDedup / nextInsertDedupToken in
-       * Common/Server/Utils/AnalyticsDatabase/InsertDedupContext and the
-       * dispatch logic in TelemetryFanInWriter.
-       *
-       * The probe / server-monitor / incoming-request types are excluded
-       * deliberately: their inserts go through shared cross-job buffers
-       * (MonitorLogUtil / monitor metrics), where a flushed batch can mix
-       * rows from several jobs — a retry would then reuse a token for a
-       * differently-composed block and ClickHouse would drop it (tokens
-       * dedup by token, not content), losing other jobs' rows.
-       *
-       * SessionReplay is excluded for a different reason again, and must
-       * stay excluded: TelemetryFanInWriter.dispatchInsert inserts TOKENED
-       * submissions individually, one statement each, so adding replay here
-       * would produce one INSERT per chunk on the fattest table in the
-       * system. Untokened submissions merge into one batch per flush window
-       * instead. Replay gets its idempotency from the chunk table being a
-       * ReplacingMergeTree keyed on (projectId, sessionId, tabId,
-       * chunkIndex) plus LIMIT 1 BY chunkIndex at read time, so a
-       * re-delivered chunk collapses at merge rather than double-writing.
+       * Whether this job's ClickHouse writes carry deterministic per-job
+       * insert_deduplication_tokens (inserted one statement per submission)
+       * or stay untokened so TelemetryFanInWriter merges them into fat
+       * cross-job INSERTs — see the policy comment on shouldUseInsertDedup
+       * above.
        */
-      const useInsertDedup: boolean = [
-        TelemetryType.Logs,
-        TelemetryType.Traces,
-        TelemetryType.Metrics,
-        TelemetryType.Profiles,
-        TelemetryType.Syslog,
-        TelemetryType.FluentLogs,
-        TelemetryType.KubernetesCostIngest,
-      ].includes(jobData.type);
+      const useInsertDedup: boolean = shouldUseInsertDedup(jobData.type);
 
       const dedupTokenBase: string = String(
         job.id ?? jobData.bodyKey ?? job.name,

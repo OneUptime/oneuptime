@@ -2,8 +2,13 @@ import { AsyncLocalStorage } from "async_hooks";
 
 /**
  * Ambient context that makes ClickHouse inserts idempotent across queue
- * retries. The telemetry queue worker wraps each job in
- * `runWithInsertDedup(jobId, ...)`; token consumers then derive
+ * retries. The telemetry queue worker wraps ELIGIBLE jobs in
+ * `runWithInsertDedup(jobId, ...)` — the low-volume fan-in types only; the
+ * high-volume OTLP signals (traces/logs/metrics) deliberately run outside
+ * the scope so the fan-in writer can merge their submissions into cross-job
+ * INSERTs; see shouldUseInsertDedup in
+ * App/FeatureSet/Telemetry/Jobs/TelemetryIngest/ProcessTelemetry.ts. Token
+ * consumers then derive
  * `insert_deduplication_token = "<tokenBase>:<table>:<chunkIndex>"`, so a
  * stalled-job recovery or attempts-based retry that re-processes the same
  * payload re-issues byte-identical tokens and ClickHouse drops the duplicate
