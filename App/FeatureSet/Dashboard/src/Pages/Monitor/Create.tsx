@@ -66,6 +66,11 @@ import NetworkDeviceAlertPackUtil from "Common/Types/Monitor/SnmpMonitor/Network
 import Probe from "Common/Models/DatabaseModels/Probe";
 import Project from "Common/Models/DatabaseModels/Project";
 import ProjectUtil from "Common/UI/Utils/Project";
+import UiAnalytics from "Common/UI/Utils/Analytics";
+import {
+  RevenueEventName,
+  RevenueFunnelStage,
+} from "Common/Types/Analytics/RevenueEvent";
 import ProbeUtil from "../../Utils/Probe";
 import MonitorProbeSelectionUtil from "Common/Utils/Monitor/MonitorProbeSelectionUtil";
 
@@ -802,6 +807,16 @@ const MonitorCreate: FunctionComponent<
                 return item;
               }}
               onSuccess={(createdItem: Monitor) => {
+                UiAnalytics.captureRevenueEvent(
+                  RevenueEventName.MonitorCreated,
+                  {
+                    funnel_stage: RevenueFunnelStage.Activation,
+                    project_id:
+                      ProjectUtil.getCurrentProjectId()?.toString() || "",
+                    monitor_id: createdItem.id?.toString() || "",
+                    monitor_type: createdItem.monitorType || "",
+                  },
+                );
                 Navigation.navigate(
                   RouteUtil.populateRouteParams(
                     RouteUtil.populateRouteParams(
