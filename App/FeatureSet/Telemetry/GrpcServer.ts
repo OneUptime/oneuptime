@@ -5,13 +5,13 @@ import logger from "Common/Server/Utils/Logger";
 import ObjectID from "Common/Types/ObjectID";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
 import TelemetryIngestionKeyService from "Common/Server/Services/TelemetryIngestionKeyService";
-import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
 import { TelemetryRequest } from "Common/Server/Middleware/TelemetryIngest";
 import TelemetryIngestionDisabled from "Common/Server/Middleware/TelemetryIngestionDisabled";
 import TracesQueueService from "./Services/Queue/TracesQueueService";
 import LogsQueueService from "./Services/Queue/LogsQueueService";
 import MetricsQueueService from "./Services/Queue/MetricsQueueService";
 import ProfilesQueueService from "./Services/Queue/ProfilesQueueService";
+import { pickWorkerConsumedRequestHeaders } from "./Services/Queue/TelemetryQueueService";
 
 const GRPC_PORT: number = 4317;
 
@@ -27,7 +27,8 @@ interface GrpcCall {
   metadata: grpc.Metadata;
 }
 
-async function authenticateRequest(
+// Exported for tests.
+export async function authenticateRequest(
   metadata: grpc.Metadata,
 ): Promise<ObjectID | null> {
   const tokenValues: grpc.MetadataValue[] = metadata.get("x-oneuptime-token");
@@ -55,41 +56,65 @@ async function authenticateRequest(
     return null;
   }
 
-  const token: TelemetryIngestionKey | null =
-    await TelemetryIngestionKeyService.findOneBy({
-      query: {
-        secretKey: new ObjectID(oneuptimeToken),
-      },
-      select: {
-        projectId: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+  /*
+   * Resolve the token through the shared in-process TTL cache
+   * (TelemetryIngestionKeyService.getProjectIdFromSecretKey) instead of
+   * hitting Postgres with a findOneBy per RPC. OTLP exporters send an
+   * Export call every schedule tick per signal per process, so an
+   * uncached lookup here was one database round trip per exported batch.
+   * The HTTP ingest middleware (TelemetryIngest.isAuthorizedServiceMiddleware)
+   * already resolves through the same cache, so both entry points share
+   * staleness behavior: at most 60s for a revoked key, 10s for a retried
+   * invalid one. Callers only need the projectId, which is exactly what
+   * the cached resolver returns (null for unknown / malformed / revoked
+   * tokens — same as the previous no-row result).
+   */
+  const projectId: ObjectID | null =
+    await TelemetryIngestionKeyService.getProjectIdFromSecretKey(
+      oneuptimeToken,
+    );
 
-  if (!token || !token.projectId) {
-    logger.error("gRPC: Invalid service token: " + oneuptimeToken, {
+  if (!projectId) {
+    /*
+     * Deliberately do NOT log the presented token: it is a secret (or a
+     * typo away from someone else's secret) and log lines routinely land
+     * in third-party sinks. Log only that authentication failed.
+     */
+    logger.error("gRPC: Invalid service token.", {
       service: "telemetry",
     });
     return null;
   }
 
-  return token.projectId as ObjectID;
+  return projectId;
 }
 
-function buildTelemetryRequest(
+// Exported for tests.
+export function buildTelemetryRequest(
   body: Record<string, unknown>,
   metadata: grpc.Metadata,
   projectId: ObjectID,
   productType: ProductType,
 ): TelemetryRequest {
-  const headers: Record<string, string> = {};
   const metadataMap: { [key: string]: grpc.MetadataValue } = metadata.getMap();
 
+  const rawHeaders: Record<string, string> = {};
   for (const key in metadataMap) {
-    headers[key] = metadataMap[key]!.toString();
+    rawHeaders[key] = metadataMap[key]!.toString();
   }
+
+  /*
+   * Project the metadata map down to only the headers worker-side code
+   * actually consumes. The full map carries the raw ingestion token
+   * (x-oneuptime-token / x-oneuptime-service-token / ...), and everything
+   * placed on `headers` here is copied into the BullMQ job payload by
+   * TelemetryQueueService and serialized into Redis per job — where it
+   * would be visible in failed-job listings. The whitelist lives next to
+   * the enqueue path so both the HTTP and gRPC producers share one
+   * definition of "what the worker reads".
+   */
+  const headers: Record<string, string> =
+    pickWorkerConsumedRequestHeaders(rawHeaders);
 
   const req: Partial<TelemetryRequest> = {
     body: body,
@@ -147,52 +172,60 @@ async function handleExport(
   }
 }
 
+/*
+ * One shared option set for all four OTLP service definitions, exported so
+ * a test can pin it — these options are load-bearing and a silent edit
+ * would pass the whole suite otherwise:
+ *
+ * - `defaults: false`: with `defaults: true`, every decoded OTLP object
+ *   carried explicit zero values for all UNSET fields —
+ *   droppedAttributesCount: 0, flags: 0, empty arrays, "0" longs,
+ *   zero-value enum names — and all of that got JSON.stringify'd into the
+ *   Redis-backed job payload for every single export. The worker must
+ *   tolerate the omitted form anyway: the HTTP OTLP/JSON path and the
+ *   deferred protobuf decode (protobufjs' `.toJSON()` in
+ *   OtelPayloadDecoder) both OMIT defaults, and the ingest services read
+ *   these fields with fallbacks (`|| 0`, optional access, `Array.isArray`
+ *   guards). Omitting defaults here just makes the gRPC producer emit the
+ *   same lean shape as every other producer.
+ * - `longs: String`: uint64 fields (timeUnixNano ~1.7e18) exceed
+ *   Number.MAX_SAFE_INTEGER; the ingest services parse them from
+ *   string|number. A Long object here would JSON.stringify as
+ *   {low, high, unsigned} and corrupt every timestamp.
+ * - `enums: String` / `keepCase: false` / `oneofs: true`: match the shape
+ *   protobufjs `.toJSON()` produces on the HTTP protobuf path, so worker
+ *   code sees one shape regardless of producer.
+ */
+export const OTLP_PROTO_LOADER_OPTIONS: protoLoader.Options = {
+  keepCase: false,
+  longs: String,
+  enums: String,
+  defaults: false,
+  oneofs: true,
+  includeDirs: [PROTO_DIR],
+};
+
 export function startGrpcServer(): void {
   const traceServiceDef: protoLoader.PackageDefinition = protoLoader.loadSync(
     path.join(PROTO_DIR, "trace_service.proto"),
-    {
-      keepCase: false,
-      longs: String,
-      enums: String,
-      defaults: true,
-      oneofs: true,
-      includeDirs: [PROTO_DIR],
-    },
+    OTLP_PROTO_LOADER_OPTIONS,
   );
 
   const logsServiceDef: protoLoader.PackageDefinition = protoLoader.loadSync(
     path.join(PROTO_DIR, "logs_service.proto"),
-    {
-      keepCase: false,
-      longs: String,
-      enums: String,
-      defaults: true,
-      oneofs: true,
-      includeDirs: [PROTO_DIR],
-    },
+    OTLP_PROTO_LOADER_OPTIONS,
   );
 
   const metricsServiceDef: protoLoader.PackageDefinition = protoLoader.loadSync(
     path.join(PROTO_DIR, "metrics_service.proto"),
-    {
-      keepCase: false,
-      longs: String,
-      enums: String,
-      defaults: true,
-      oneofs: true,
-      includeDirs: [PROTO_DIR],
-    },
+    OTLP_PROTO_LOADER_OPTIONS,
   );
 
   const profilesServiceDef: protoLoader.PackageDefinition =
-    protoLoader.loadSync(path.join(PROTO_DIR, "profiles_service.proto"), {
-      keepCase: false,
-      longs: String,
-      enums: String,
-      defaults: true,
-      oneofs: true,
-      includeDirs: [PROTO_DIR],
-    });
+    protoLoader.loadSync(
+      path.join(PROTO_DIR, "profiles_service.proto"),
+      OTLP_PROTO_LOADER_OPTIONS,
+    );
 
   const traceProto: grpc.GrpcObject =
     grpc.loadPackageDefinition(traceServiceDef);

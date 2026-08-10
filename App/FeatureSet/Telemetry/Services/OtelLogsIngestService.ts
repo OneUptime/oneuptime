@@ -319,6 +319,12 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
 
       // Load pipelines, drop filters, and scrub rules once per batch
       const projectId: ObjectID = (req as TelemetryRequest).projectId;
+      /*
+       * Stamped verbatim onto every row. Serialized once per batch instead
+       * of per record — ObjectID.toString() on the hot row-build path was
+       * pure repeated work.
+       */
+      const projectIdString: string = projectId.toString();
       let loadedPipelines: Array<LoadedPipeline> = [];
       let loadedDropFilters: Array<LoadedLogDropFilter> = [];
       let loadedScrubRules: Awaited<
@@ -486,6 +492,14 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
 
           serviceDictionary[serviceName] = serviceMetadata;
 
+          /*
+           * Loop-invariant row stamps, resolved once per resource instead
+           * of once per record: every record below carries the same
+           * primary entity, and its ObjectID serialization never changes.
+           */
+          const primaryEntityId: ObjectID = serviceMetadata.primaryEntityId!;
+          const primaryEntityIdString: string = primaryEntityId.toString();
+
           const stampHostName: string | null =
             OtelIngestBaseService.getStringAttribute(
               resourceAttributes_raw,
@@ -555,6 +569,20 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                 continue;
               }
 
+              /*
+               * The scope envelope is invariant for every record under this
+               * scopeLog, so its `scope.`-prefixed key map is built once
+               * here instead of once per log record. Merged LAST into each
+               * record's attribute map below, which preserves the historical
+               * precedence: scope keys overwrite resource and record
+               * attributes on collision.
+               */
+              const prefixedScopeAttributes: Dictionary<
+                AttributeType | Array<AttributeType>
+              > = TelemetryUtil.getPrefixedScopeAttributes(
+                scopeLog["scope"] as JSONObject | undefined,
+              );
+
               let logRecordCounter: number = 0;
               for (const log of logRecords) {
                 try {
@@ -563,29 +591,27 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                   }
                   logRecordCounter++;
 
+                  /*
+                   * One fresh attribute map per record (downstream scrub /
+                   * pipeline transforms mutate it, so records must never
+                   * share one). A single Object.assign with ordered sources
+                   * reproduces the historical spread + per-record scope loop
+                   * exactly — same key-collision winners (resource < record
+                   * attributes < scope.*) and same key insertion order —
+                   * while the scope prefixing now happens once per scopeLog
+                   * (see above) instead of per record.
+                   */
                   const attributesObject: Dictionary<
                     AttributeType | Array<AttributeType>
-                  > = {
-                    ...resourceAttributes,
-                    ...TelemetryUtil.getAttributes({
+                  > = Object.assign(
+                    {},
+                    resourceAttributes,
+                    TelemetryUtil.getAttributes({
                       items: (log["attributes"] as JSONArray) || [],
                       prefixKeysWithString: "",
                     }),
-                  };
-
-                  if (
-                    scopeLog["scope"] &&
-                    Object.keys(scopeLog["scope"]).length > 0
-                  ) {
-                    const scopeAttributes: JSONObject = scopeLog[
-                      "scope"
-                    ] as JSONObject;
-                    for (const key of Object.keys(scopeAttributes)) {
-                      attributesObject[`scope.${key}`] = scopeAttributes[
-                        key
-                      ] as AttributeType;
-                    }
-                  }
+                    prefixedScopeAttributes,
+                  );
 
                   /*
                    * `attributeKeys` is stored as a ClickHouse Array column
@@ -599,11 +625,6 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                    */
                   const attributeKeys: Array<string> =
                     Object.keys(attributesObject);
-
-                  const projectId: ObjectID = (req as TelemetryRequest)
-                    .projectId;
-                  const primaryEntityId: ObjectID =
-                    serviceDictionary[serviceName]!.primaryEntityId!;
 
                   /*
                    * Assigned in every branch below — no eager current-time
@@ -902,38 +923,28 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
 
                   const logFlags: number = (log["flags"] as number) || 0;
 
-                  const ingestionStamp: IngestionStamp = getIngestionStamp();
-                  const ingestionTimestamp: string = ingestionStamp.db;
                   const logTimestamp: string =
                     OneUptimeDate.toClickhouseDateTime64(
                       timeDate,
                       timeUnixNanoNumeric,
                     );
 
-                  const serviceMetadata: TelemetryServiceMetadata =
-                    serviceDictionary[serviceName]!;
-                  const retentionDays: number = resolveTelemetryRetentionInDays(
-                    {
-                      pillar: "logs",
-                      bucketKey: severityText,
-                      serviceConfig: serviceMetadata.serviceRetentionConfig,
-                      serviceRetentionInDays:
-                        serviceMetadata.serviceRetentionInDays,
-                      projectConfig: serviceMetadata.projectRetentionConfig,
-                      projectRetentionInDays:
-                        serviceMetadata.projectRetentionInDays,
-                    },
-                  );
-                  const retentionDateDb: string = getRetentionDateDb(
-                    ingestionStamp,
-                    retentionDays,
-                  );
-
-                  let logRow: JSONObject = {
-                    _id: ObjectID.generateTimeOrdered().toString(),
-                    createdAt: ingestionTimestamp,
-                    projectId: projectId.toString(),
-                    primaryEntityId: primaryEntityId.toString(),
+                  /*
+                   * The drop-filter-visible slice of the log row: every
+                   * column of the full row EXCEPT the three
+                   * ingest-generated stamps (_id, createdAt,
+                   * retentionDate), in the full row's exact field order.
+                   * The drop filter runs against this object; the stamps
+                   * are added only for records that survive it, so a
+                   * dropped record never pays for ObjectID generation, the
+                   * ingestion stamp or retention resolution. Every field a
+                   * filter can meaningfully target (severity, body,
+                   * attributes, trace/span/session ids, timings, ...) is
+                   * present at evaluation time.
+                   */
+                  const logEvaluationRow: JSONObject = {
+                    projectId: projectIdString,
+                    primaryEntityId: primaryEntityIdString,
                     primaryEntityType: serviceMetadata.primaryEntityType,
                     entityKeys: serviceMetadata.entityKeys || [],
                     ...getScalarEntityKeyColumns(serviceMetadata),
@@ -957,19 +968,52 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                       Math.trunc(observedTimeUnixNano).toString(),
                     droppedAttributesCount: droppedAttributesCount,
                     flags: logFlags,
-                    retentionDate: retentionDateDb,
                   };
 
                   // Drop filter check (before pipeline processing)
                   if (
                     loadedDropFilters.length > 0 &&
                     LogDropFilterService.shouldDropLog(
-                      logRow,
+                      logEvaluationRow,
                       loadedDropFilters,
                     )
                   ) {
                     continue;
                   }
+
+                  /*
+                   * The record survived the drop filter — now stamp the
+                   * ingest-generated fields. The spread keeps the
+                   * historical field order byte-identical: _id and
+                   * createdAt led the old one-shot row literal,
+                   * retentionDate closed it, and the evaluation row
+                   * carries everything in between in the original
+                   * sequence.
+                   */
+                  const ingestionStamp: IngestionStamp = getIngestionStamp();
+                  const retentionDays: number = resolveTelemetryRetentionInDays(
+                    {
+                      pillar: "logs",
+                      bucketKey: severityText,
+                      serviceConfig: serviceMetadata.serviceRetentionConfig,
+                      serviceRetentionInDays:
+                        serviceMetadata.serviceRetentionInDays,
+                      projectConfig: serviceMetadata.projectRetentionConfig,
+                      projectRetentionInDays:
+                        serviceMetadata.projectRetentionInDays,
+                    },
+                  );
+                  const retentionDateDb: string = getRetentionDateDb(
+                    ingestionStamp,
+                    retentionDays,
+                  );
+
+                  let logRow: JSONObject = {
+                    _id: ObjectID.generateTimeOrdered().toString(),
+                    createdAt: ingestionStamp.db,
+                    ...logEvaluationRow,
+                    retentionDate: retentionDateDb,
+                  };
 
                   // Sensitive data scrubbing
                   if (loadedScrubRules.length > 0) {

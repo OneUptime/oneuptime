@@ -654,4 +654,116 @@ export default class TelemetryUtil {
 
     return Object.keys(attributes).sort();
   }
+
+  /*
+   * OTLP scope attributes, prefixed for row storage. The three OTel ingest
+   * services stamp every key of the scope envelope onto the row's attribute
+   * map under a `scope.` prefix. The scope object is invariant for every
+   * record/span/datapoint inside its scopeLogs/scopeSpans/scopeMetrics
+   * envelope, so callers build this map ONCE per scope and merge it per row
+   * — instead of re-deriving the prefixed key strings for every row, which
+   * was a visible per-record cost on large batches.
+   *
+   * A missing/empty scope returns an empty map, which merges to a no-op —
+   * exactly what the previous inline `if (scope && keys.length > 0)` guard
+   * produced.
+   */
+  public static getPrefixedScopeAttributes(
+    scope: JSONObject | undefined | null,
+  ): Dictionary<AttributeType | Array<AttributeType>> {
+    const prefixedScopeAttributes: Dictionary<
+      AttributeType | Array<AttributeType>
+    > = {};
+
+    if (!scope || typeof scope !== "object") {
+      return prefixedScopeAttributes;
+    }
+
+    for (const key of Object.keys(scope)) {
+      prefixedScopeAttributes[`scope.${key}`] = scope[key] as AttributeType;
+    }
+
+    return prefixedScopeAttributes;
+  }
+
+  /*
+   * Sorted attribute-key union for rows whose attribute map is "large
+   * invariant base + few per-row keys" (metric datapoints). Produces exactly
+   * `Object.keys(mergedAttributes).sort()` — same elements, same order —
+   * without re-sorting the full key set per row:
+   *
+   *   - `sortedBaseAttributeKeys` is the base map's key list, sorted once by
+   *     the caller (per metric, not per datapoint);
+   *   - `additionalAttributeKeys` is the per-row key list (typically 0-5
+   *     keys), sorted here at its own tiny cost;
+   *   - a linear two-pointer merge then yields the sorted, de-duplicated
+   *     union.
+   *
+   * Order equivalence holds because Array.prototype.sort's default
+   * comparator orders strings by UTF-16 code units, and the `<` / `>`
+   * relational operators used in the merge apply the same code-unit
+   * comparison — so merging two lists sorted by that comparator gives the
+   * same sequence a full sort of the union would.
+   *
+   * Precondition: each input list is duplicate-free (both come from
+   * Object.keys, whose output cannot repeat a key). Duplicates ACROSS the
+   * two lists (a per-row key overriding a base key) collapse to one entry,
+   * matching Object.keys on the merged map.
+   */
+  public static mergeAttributeKeysWithSortedBase(data: {
+    sortedBaseAttributeKeys: Array<string>;
+    additionalAttributeKeys: Array<string>;
+  }): Array<string> {
+    const { sortedBaseAttributeKeys, additionalAttributeKeys } = data;
+
+    /*
+     * Always return a fresh array: rows must never share an attributeKeys
+     * reference, because downstream pipeline rules replace a row's key list
+     * independently of its siblings.
+     */
+    if (additionalAttributeKeys.length === 0) {
+      return sortedBaseAttributeKeys.slice();
+    }
+
+    const sortedAdditionalKeys: Array<string> = additionalAttributeKeys
+      .slice()
+      .sort();
+
+    const mergedKeys: Array<string> = [];
+    let baseIndex: number = 0;
+    let additionalIndex: number = 0;
+
+    while (
+      baseIndex < sortedBaseAttributeKeys.length &&
+      additionalIndex < sortedAdditionalKeys.length
+    ) {
+      const baseKey: string = sortedBaseAttributeKeys[baseIndex]!;
+      const additionalKey: string = sortedAdditionalKeys[additionalIndex]!;
+
+      if (baseKey < additionalKey) {
+        mergedKeys.push(baseKey);
+        baseIndex++;
+      } else if (baseKey > additionalKey) {
+        mergedKeys.push(additionalKey);
+        additionalIndex++;
+      } else {
+        // Same key in base and per-row attributes — the map holds it once.
+        mergedKeys.push(baseKey);
+        baseIndex++;
+        additionalIndex++;
+      }
+    }
+
+    while (baseIndex < sortedBaseAttributeKeys.length) {
+      mergedKeys.push(sortedBaseAttributeKeys[baseIndex]!);
+      baseIndex++;
+    }
+
+    while (additionalIndex < sortedAdditionalKeys.length) {
+      mergedKeys.push(sortedAdditionalKeys[additionalIndex]!);
+      additionalIndex++;
+    }
+
+    return mergedKeys;
+  }
 }

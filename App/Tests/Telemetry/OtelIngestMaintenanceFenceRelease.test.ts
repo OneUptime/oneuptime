@@ -19,6 +19,26 @@ jest.mock("Common/Server/Infrastructure/Queue", () => {
   };
 });
 
+/*
+ * PasswordHash carries a pre-existing TS5.9 diagnostic that fails any suite
+ * whose runtime require graph reaches it (DatabaseService, the base class
+ * of every concrete service, imports it). Nothing password-related is under
+ * test here, so the module is replaced WITH A FACTORY — an automock would
+ * still require (and type-check) the real file.
+ */
+jest.mock("Common/Server/Utils/PasswordHash", () => {
+  return {
+    __esModule: true,
+    default: {
+      hash: jest.fn(),
+      verify: jest.fn(),
+      generateSalt: jest.fn(),
+      needsUpgrade: jest.fn(),
+      applyPepper: jest.fn(),
+    },
+  };
+});
+
 import OtelIngestBaseService from "../../FeatureSet/Telemetry/Services/OtelIngestBaseService";
 import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
 import CephClusterService from "Common/Server/Services/CephClusterService";
@@ -251,6 +271,16 @@ describe.each(FENCE_CASES)(
     beforeEach(() => {
       deletedKeys = [];
       heldFences = new Set<string>();
+
+      /*
+       * The base service memoizes fence refusals and resolved entity ids
+       * in-process now. This suite reuses one RESOURCE_ID across tests, so
+       * simulate those memos' TTLs expiring between cases exactly as
+       * `heldFences` is reset to simulate the Redis fence TTL expiring —
+       * otherwise the refusal one test observes would suppress the
+       * maintenance a later test expects to arm.
+       */
+      OtelIngestBaseService.clearInProcessMemos();
 
       /*
        * Every resource-id cache is primed, so findOrCreate* never runs and
