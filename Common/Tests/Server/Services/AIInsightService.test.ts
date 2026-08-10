@@ -219,6 +219,31 @@ describe("AIInsightService.resolveInsight", () => {
     expect(Object.keys(updateArg.data)).toEqual(["status"]);
     expect(updateArg.data["status"]).toBe(AIInsightStatus.Resolved);
   });
+
+  /*
+   * The store's re-file cooldown is keyed on the CURRENT terminal status, so
+   * flipping a Dismissed insight to Resolved would silently trade a
+   * dismissal's 7-day quiet for a resolve's 24-hour one — a finding a human
+   * called noise would come back. The dashboard hides the action on terminal
+   * insights; this closes the API path.
+   */
+  test.each([[AIInsightStatus.Dismissed], [AIInsightStatus.Resolved]])(
+    "an already-%s insight cannot be resolved again — nothing is written",
+    async (status: AIInsightStatus) => {
+      jest
+        .spyOn(AIInsightService, "findOneById")
+        .mockResolvedValue(fakeInsight({ status }));
+      const updateOneById: jest.SpyInstance = jest
+        .spyOn(AIInsightService, "updateOneById")
+        .mockResolvedValue(undefined as never);
+
+      await expect(
+        AIInsightService.resolveInsight({ insightId, byUserId: userId }),
+      ).rejects.toThrow(BadDataException);
+
+      expect(updateOneById).not.toHaveBeenCalled();
+    },
+  );
 });
 
 describe("AIInsightService.getLatestTriageRunWithEvents", () => {

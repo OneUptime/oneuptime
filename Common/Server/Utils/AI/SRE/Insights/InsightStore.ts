@@ -33,10 +33,29 @@ export const MAX_NEW_INSIGHTS_PER_PROJECT_PER_SCAN: number = 10;
  * G11 noise posture: a human dismissal is the strongest precision signal we
  * have, so a finding with the same fingerprint stays suppressed for this
  * many days after the dismissal instead of reappearing on the next tick.
- * After the cooldown (or after a Resolved insight's signal returns) a fresh
- * insight is warranted — a resolved issue that reappears is a regression.
  */
 export const DISMISSED_COOLDOWN_DAYS: number = 7;
+
+/*
+ * The same idea for the other human terminal state, with a much shorter
+ * clock: a resolved issue that comes back IS a regression worth re-filing,
+ * but it has to actually come back first.
+ *
+ * WITHOUT THIS, RESOLVE DID NOT STICK. Detectors emit on a standing
+ * condition, not on an event — NewException re-emits an unchanged candidate
+ * on all ~96 ticks of the 24h window after the exception's firstSeenAt, and
+ * resolving an insight changes nothing the detector looks at. So a Resolved
+ * row (terminal, therefore never refreshed) fell straight through to CREATE
+ * and a byte-identical insight reappeared within 15 minutes, complete with
+ * its own triage LLM run. Resolving again just minted another one.
+ *
+ * 24 hours is chosen to cover NEW_EXCEPTION_LOOKBACK_HOURS: it outlasts the
+ * window in which a NewException candidate is re-emitted from the same
+ * evidence, so that finding stays closed, while the standing-condition
+ * detectors (spikes, drift) can still re-file a day later if their signal
+ * genuinely returns.
+ */
+export const RESOLVED_COOLDOWN_HOURS: number = 24;
 
 /*
  * Column-safety clamps: DatabaseService validates string columns against the
@@ -74,8 +93,8 @@ export default class InsightStore {
    *   - none                          → CREATE (subject to the per-scan cap)
    *   - non-terminal                  → REFRESH (never touches status)
    *   - Dismissed within the cooldown → suppress
-   *   - Dismissed past the cooldown,
-   *     or Resolved                   → CREATE (regression / recurrence)
+   *   - Resolved within the cooldown  → suppress
+   *   - either, past its cooldown     → CREATE (regression / recurrence)
    * All access is root-props: the scanner is a system actor with explicit
    * projectId scoping, not a per-user ACL consumer.
    */
@@ -129,6 +148,8 @@ export default class InsightStore {
             status: true,
             occurrenceCount: true,
             humanVerdictAt: true,
+            // The cooldown fallback when no verdict was ever stamped.
+            lastSeenAt: true,
           },
           sort: { createdAt: SortOrder.Descending },
           props: { isRoot: true },
@@ -152,6 +173,17 @@ export default class InsightStore {
               lastSeenAt: data.now,
               occurrenceCount: (existing.occurrenceCount || 1) + 1,
               severity: candidate.severity,
+              /*
+               * The title is refreshed with the rest of the picture, not
+               * frozen at creation. Detectors put live numbers in it (a spike
+               * multiplier, a latency factor) and the label itself sharpens as
+               * more of the failure is observed — a row left showing "at 5.2x"
+               * beside a High severity and a 12x detail body reads as a bug.
+               */
+              title: this.clampToColumn(
+                candidate.title,
+                INSIGHT_TITLE_MAX_LENGTH,
+              ),
               detailMarkdown: candidate.detailMarkdown,
               evidence: candidate.evidence,
             },
@@ -162,27 +194,53 @@ export default class InsightStore {
           continue;
         }
 
-        if (existing && existing.status === AIInsightStatus.Dismissed) {
+        if (
+          existing &&
+          existing.status &&
+          AIInsightStatusHelper.isTerminalStatus(existing.status)
+        ) {
           /*
-           * Cooldown is measured from the human's dismissal, inclusive at the
-           * boundary (exactly DISMISSED_COOLDOWN_DAYS old still suppresses).
-           * A Dismissed row without a verdict timestamp cannot prove the
-           * cooldown elapsed, so it suppresses too — when in doubt, stay
-           * quiet (G11 noise posture).
+           * Both human terminal states get a cooldown, measured from the
+           * human's action and inclusive at the boundary (a cooldown exactly
+           * elapsed still suppresses). They differ only in length: a
+           * dismissal says "this is not worth my time" (7 days), a resolve
+           * says "handled" (24 hours — long enough that the detector stops
+           * re-emitting the very evidence the human just closed).
            */
-          const cooldownMs: number = OneUptimeDate.getMillisecondsInDays(
-            DISMISSED_COOLDOWN_DAYS,
-          );
+          const isDismissed: boolean =
+            existing.status === AIInsightStatus.Dismissed;
 
-          const withinCooldown: boolean = existing.humanVerdictAt
-            ? data.now.getTime() -
-                OneUptimeDate.fromString(existing.humanVerdictAt).getTime() <=
-              cooldownMs
+          const cooldownMs: number = isDismissed
+            ? OneUptimeDate.getMillisecondsInDays(DISMISSED_COOLDOWN_DAYS)
+            : OneUptimeDate.getMillisecondsInHours(RESOLVED_COOLDOWN_HOURS);
+
+          /*
+           * humanVerdictAt is the moment the human acted. It can be missing
+           * (defensive) and, on a Confirm-then-Resolve, it holds the CONFIRM
+           * time — resolveInsight leaves an existing verdict alone. lastSeenAt
+           * is the fallback: refreshes stop the moment a row goes terminal, so
+           * it is pinned to the last tick before the human closed it, which is
+           * never later than the close. Neither available → suppress; a
+           * terminal row we cannot date must not be re-filed every 15 minutes
+           * (G11 noise posture: when in doubt, stay quiet).
+           */
+          const closedAt: Date | undefined = existing.humanVerdictAt
+            ? OneUptimeDate.fromString(existing.humanVerdictAt)
+            : existing.lastSeenAt
+              ? OneUptimeDate.fromString(existing.lastSeenAt)
+              : undefined;
+
+          const withinCooldown: boolean = closedAt
+            ? data.now.getTime() - closedAt.getTime() <= cooldownMs
             : true;
 
           if (withinCooldown) {
             logger.debug(
-              `AI Insights: suppressing candidate ${fingerprint} for project ${data.projectId.toString()} — dismissed by a human within the last ${DISMISSED_COOLDOWN_DAYS} days.`,
+              `AI Insights: suppressing candidate ${fingerprint} for project ${data.projectId.toString()} — ${
+                isDismissed
+                  ? `dismissed by a human within the last ${DISMISSED_COOLDOWN_DAYS} days`
+                  : `resolved by a human within the last ${RESOLVED_COOLDOWN_HOURS} hours`
+              }.`,
             );
 
             result.suppressed++;

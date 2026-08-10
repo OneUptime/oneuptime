@@ -8,7 +8,9 @@ import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import BadDataException from "../../Types/Exception/BadDataException";
-import AIInsightStatus from "../../Types/AI/AIInsightStatus";
+import AIInsightStatus, {
+  AIInsightStatusHelper,
+} from "../../Types/AI/AIInsightStatus";
 import AIInsightHumanVerdict from "../../Types/AI/AIInsightHumanVerdict";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
@@ -79,12 +81,29 @@ export class Service extends DatabaseService<AIInsight> {
   }): Promise<{ insightId: ObjectID; status: AIInsightStatus }> {
     const insight: AIInsight | null = await this.findOneById({
       id: data.insightId,
-      select: { _id: true, humanVerdict: true },
+      select: { _id: true, humanVerdict: true, status: true },
       props: { isRoot: true },
     });
 
     if (!insight || !insight.id) {
       throw new BadDataException("AI insight not found.");
+    }
+
+    /*
+     * Closing an already-closed insight is a no-op the caller should know
+     * about — and resolving a DISMISSED one is actively harmful: the store's
+     * re-file cooldown is keyed on the current terminal status, so the flip
+     * would silently trade a dismissal's 7-day quiet for a resolve's 24-hour
+     * one and let a finding a human called noise come back. The dashboard
+     * hides both actions on terminal insights; this closes the API path.
+     */
+    if (
+      insight.status &&
+      AIInsightStatusHelper.isTerminalStatus(insight.status)
+    ) {
+      throw new BadDataException(
+        `This AI insight is already ${insight.status.toLowerCase()} and cannot be resolved again.`,
+      );
     }
 
     await this.updateOneById({
