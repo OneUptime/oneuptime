@@ -1,4 +1,4 @@
-import { describe, expect, test, beforeEach } from "@jest/globals";
+import { afterEach, describe, expect, test, beforeEach } from "@jest/globals";
 
 /*
  * Coverage for the per-job insert-dedup policy on the telemetry worker:
@@ -60,24 +60,6 @@ jest.mock("../../FeatureSet/Telemetry/Utils/TelemetryBodyStore", () => {
   };
 });
 
-/*
- * Keep the real module (its enums are imported elsewhere in the graph) but
- * stub the decode so no real Redis/protobuf is needed.
- */
-jest.mock("../../FeatureSet/Telemetry/Utils/OtelPayloadDecoder", () => {
-  const actual: Record<string, unknown> = jest.requireActual(
-    "../../FeatureSet/Telemetry/Utils/OtelPayloadDecoder",
-  );
-  return {
-    __esModule: true,
-    ...actual,
-    default: {
-      ...(actual["default"] as Record<string, unknown>),
-      decodeFromQueue: jest.fn().mockResolvedValue({ resourceSpans: [] }),
-    },
-  };
-});
-
 jest.mock(
   "isolated-vm",
   () => {
@@ -114,6 +96,7 @@ jest.mock(
 // Importing the module registers the worker via the mocked QueueWorker.
 import { shouldUseInsertDedup } from "../../FeatureSet/Telemetry/Jobs/TelemetryIngest/ProcessTelemetry";
 import { TelemetryType } from "../../FeatureSet/Telemetry/Services/Queue/TelemetryQueueService";
+import OtelPayloadDecoder from "../../FeatureSet/Telemetry/Utils/OtelPayloadDecoder";
 import { nextInsertDedupToken } from "Common/Server/Services/AnalyticsDatabaseService";
 
 const PROJECT_ID: string = "11111111-1111-1111-1111-111111111111";
@@ -188,6 +171,23 @@ describe("shouldUseInsertDedup — per-type policy matrix", () => {
       expect(shouldUseInsertDedup(type)).toBe(false);
     }
   });
+
+  /*
+   * Guards the matrix itself: a telemetry type added later must be placed
+   * in one of the three lists above deliberately, rather than silently
+   * inheriting the untokened default because nobody thought about whether
+   * its inserts can be merged.
+   */
+  test("the matrix is exhaustive over TelemetryType — a newly added type must be classified explicitly", () => {
+    const classified: Array<TelemetryType> = [
+      ...HIGH_VOLUME,
+      ...ALWAYS_ON,
+      ...NEVER_ON,
+    ];
+    const allTypes: Array<TelemetryType> = Object.values(TelemetryType);
+
+    expect([...classified].sort()).toEqual([...allTypes].sort());
+  });
 });
 
 describe("ProcessTelemetry handler — dedup scope wiring", () => {
@@ -195,6 +195,13 @@ describe("ProcessTelemetry handler — dedup scope wiring", () => {
     processTracesFromQueue.mockReset();
     processSyslogFromQueue.mockReset();
     deleteBody.mockClear();
+    jest
+      .spyOn(OtelPayloadDecoder, "decodeFromQueue")
+      .mockResolvedValue({ resourceSpans: [] } as any);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   test("the worker handler was registered/captured", () => {
