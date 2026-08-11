@@ -95,6 +95,98 @@ describe("curation", () => {
   });
 });
 
+describe("opentofu", () => {
+  test("a registry guide page is generated", () => {
+    const guide: string = fs.readFileSync(
+      path.join(outputDir, "docs/guides/opentofu.md"),
+      "utf-8",
+    );
+    // The registry only renders a guide when the frontmatter names it.
+    expect(guide).toContain('subcategory: "Guides"');
+    expect(guide).toContain("page_title:");
+    expect(guide).toContain("tofu init");
+  });
+
+  test("the guide keeps the registry hostname out of the source address", () => {
+    const guide: string = fs.readFileSync(
+      path.join(outputDir, "docs/guides/opentofu.md"),
+      "utf-8",
+    );
+    /*
+     * A hostname-qualified source pins config to one registry and breaks the
+     * other engine — the whole point of the guide is to not do that.
+     */
+    expect(guide).toContain('source  = "oneuptime/oneuptime"');
+    expect(guide).not.toContain(
+      'source  = "registry.terraform.io/oneuptime/oneuptime"',
+    );
+  });
+
+  test("the provider index links to the guide", () => {
+    const indexDoc: string = fs.readFileSync(
+      path.join(outputDir, "docs/index.md"),
+      "utf-8",
+    );
+    expect(indexDoc).toContain("./guides/opentofu");
+  });
+});
+
+describe("shipped modules", () => {
+  /*
+   * The module source address is published in the OneUptime docs, in the
+   * generated README and in the OpenTofu guide. If generation stops emitting
+   * modules/, every one of those links 404s on the next release.
+   */
+  test("the reusable module is copied into the provider tree", () => {
+    const moduleDir: string = path.join(
+      outputDir,
+      "modules/monitoring-and-incident-response",
+    );
+    for (const file of [
+      "main.tf",
+      "variables.tf",
+      "outputs.tf",
+      "versions.tf",
+      "README.md",
+    ]) {
+      expect(fs.existsSync(path.join(moduleDir, file))).toBe(true);
+    }
+  });
+
+  test("the copied module declares the provider without a registry hostname", () => {
+    const versions: string = fs.readFileSync(
+      path.join(
+        outputDir,
+        "modules/monitoring-and-incident-response/versions.tf",
+      ),
+      "utf-8",
+    );
+    expect(versions).toContain('source  = "oneuptime/oneuptime"');
+    /*
+     * Assert on source lines only. The file's comments legitimately name both
+     * registry hostnames while explaining why the address omits them.
+     */
+    const sourceLine: RegExp = /^\s*source\s*=/;
+    const sourceLines: Array<string> = versions
+      .split("\n")
+      .filter((line: string) => {
+        return sourceLine.test(line);
+      });
+    expect(sourceLines.length).toBeGreaterThan(0);
+    for (const line of sourceLines) {
+      expect(line).not.toMatch(/registry\.(terraform\.io|opentofu\.org)/);
+    }
+  });
+
+  test("the README points at the module", () => {
+    const readme: string = fs.readFileSync(
+      path.join(outputDir, "README.md"),
+      "utf-8",
+    );
+    expect(readme).toContain("modules/monitoring-and-incident-response");
+  });
+});
+
 describe("import docs", () => {
   test("importable resources document the import command", () => {
     expect(monitorDoc).toContain(

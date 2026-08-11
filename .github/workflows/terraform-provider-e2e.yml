@@ -24,7 +24,9 @@ on:
 jobs:
   terraform-e2e-tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    # Raised from 120 when the OpenTofu pass was added: the suite now runs twice
+    # against one stack, so test time roughly doubles while bring-up does not.
+    timeout-minutes: 180
     env:
       CI_PIPELINE_ID: ${{ github.run_number }}
       APP_TAG: latest
@@ -136,11 +138,21 @@ jobs:
           go-version: 'stable'
           cache: true
 
+      # Both engines are installed because the suite runs end to end twice, once
+      # each. The wrappers are disabled on both: they replace the binary with a
+      # script that buffers stdout for step outputs, which breaks the runner's
+      # command substitution and `plan -detailed-exitcode` handling.
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: "1.9.8"
           terraform_wrapper: false
+
+      - name: Setup OpenTofu
+        uses: opentofu/setup-opentofu@v2
+        with:
+          tofu_version: "1.12.5"
+          tofu_wrapper: false
 
       # Dependencies are installed and the provider is generated BEFORE the
       # OneUptime services stack starts: generation loads the whole codebase
@@ -183,6 +195,26 @@ jobs:
           ./E2E/Terraform/e2e-tests/scripts/setup-test-account.sh
 
       - name: Run Terraform E2E tests
+        env:
+          TF_CLI: terraform
+        run: ./E2E/Terraform/e2e-tests/scripts/run-tests.sh
+
+      # The identical fixtures, re-run against OpenTofu. This is the gate behind
+      # OneUptime's OpenTofu support claim: the provider is published to the
+      # OpenTofu Registry, so `tofu` has to stay a tested path and not an
+      # assumption inherited from Terraform compatibility.
+      #
+      # It reuses the stack and test project the Terraform run just used rather
+      # than getting its own job. Bring-up (disk cleanup, npm install, provider
+      # generation, docker compose, account setup) dominates this job's runtime,
+      # and duplicating all of it to re-run the same fixtures would roughly
+      # double CI cost for no extra coverage. Re-running against a used project
+      # is safe because every test destroys what it created and the runner fails
+      # the build if deletion cannot be verified — a leak cannot silently carry
+      # over into this run.
+      - name: Run OpenTofu E2E tests
+        env:
+          TF_CLI: tofu
         run: ./E2E/Terraform/e2e-tests/scripts/run-tests.sh
 
       # Coverage ratchet: the suite must exercise at least as many provider

@@ -2,7 +2,7 @@
 
 The OneUptime Terraform provider manages OneUptime resources — monitors, status pages, teams, labels, on-call policies, incidents, probes, and more — as declarative infrastructure-as-code. It works against both OneUptime Cloud and self-hosted OneUptime installations.
 
-The provider is published on the Terraform Registry: [registry.terraform.io/providers/oneuptime/oneuptime](https://registry.terraform.io/providers/oneuptime/oneuptime).
+The provider is published on the Terraform Registry: [registry.terraform.io/providers/oneuptime/oneuptime](https://registry.terraform.io/providers/oneuptime/oneuptime), and on the OpenTofu Registry: [search.opentofu.org/provider/oneuptime/oneuptime](https://search.opentofu.org/provider/oneuptime/oneuptime/latest). **[OpenTofu](/docs/terraform/opentofu) is supported and tested** — the end-to-end suite runs against both engines on every change.
 
 ## Minimal configuration
 
@@ -37,6 +37,7 @@ The API key must be a **project API key** created in **Project Settings > API Ke
 | [Troubleshooting](/docs/terraform/troubleshooting) | Symptom-to-fix reference for the most common errors |
 | [Self-Hosted Setup](/docs/terraform/self-hosted) | Instance URLs, version selection, air-gapped mirroring, TLS |
 | [Registry Usage](/docs/terraform/registry) | How provider versions are published and how to choose one |
+| [OpenTofu](/docs/terraform/opentofu) | Using the provider with `tofu`, and the handful of differences that matter |
 
 ## What the provider manages
 

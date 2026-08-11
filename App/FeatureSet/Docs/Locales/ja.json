@@ -92,6 +92,7 @@
     "Self-Hosted Setup": "セルフホスト セットアップ",
     "Examples": "例",
     "Registry Usage": "レジストリの使用",
+    "OpenTofu": "OpenTofu",
     "Authentication": "認証",
     "Resource Operations": "リソース操作",
     "Output Formats": "出力形式",
