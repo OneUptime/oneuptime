@@ -11,6 +11,14 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import Model from "../../Models/DatabaseModels/MonitorStatus";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+/*
+ * Statically imported despite the MonitorService <-> MonitorStatusService
+ * cycle: both modules reference each other only from method bodies (never at
+ * module-init time), so the default binding is always resolved by the time
+ * these methods run. A dynamic import() cannot be used here - the App build's
+ * TypeScript module target rejects it (TS1323).
+ */
+import MonitorService from "./MonitorService";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -129,10 +137,6 @@ export class Service extends DatabaseService<Model> {
     if (byProject.size === 0) {
       return;
     }
-
-    const MonitorService: (typeof import("./MonitorService"))["default"] = (
-      await import("./MonitorService")
-    ).default;
 
     for (const { projectId, statusIds } of byProject.values()) {
       const deletedSet: Set<string> = new Set(
