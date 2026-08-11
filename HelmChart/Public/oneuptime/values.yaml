@@ -45,7 +45,9 @@ encryptionSecret:
 ipWhitelist:
 
 # External Secrets
-# You need to leave blank oneuptimeSecret, encryptionSecret, and registerProbeKey to use this section
+# You need to leave blank oneuptimeSecret, encryptionSecret, and registerProbeKey to use this section.
+# Anything configured here is read straight from your own Secret: the chart does NOT
+# write a copy of it into the chart-managed `<release>-secrets` Secret.
 externalSecrets:
   oneuptimeSecret:
     existingSecret:

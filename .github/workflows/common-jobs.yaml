@@ -27,7 +27,27 @@ jobs:
         run: |
           helm lint ./HelmChart/Public/oneuptime
           helm lint ./HelmChart/Public/kubernetes-agent
-          
+
+  helm-unit-test:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+      - name: Install Helm
+        run: |
+          curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+      - name: Install helm-unittest plugin
+        run: |
+          helm plugin install https://github.com/helm-unittest/helm-unittest --version v0.5.1
+      - name: Run Helm Chart unit tests
+        run: npm run test-helm-chart
+      - name: Show how to run these locally
+        if: ${{ failure() }}
+        run: echo "Install the plugin with 'helm plugin install https://github.com/helm-unittest/helm-unittest' and run 'npm run test-helm-chart'."
+
+
   js-lint:
     runs-on: ubuntu-latest
     env:

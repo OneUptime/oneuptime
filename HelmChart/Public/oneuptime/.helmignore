@@ -21,3 +21,6 @@
 .idea/
 *.tmproj
 .vscode/
+
+# Chart unit tests (helm-unittest) - not needed inside the packaged chart.
+tests/

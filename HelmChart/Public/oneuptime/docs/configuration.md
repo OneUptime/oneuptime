@@ -20,6 +20,51 @@ up-to-date list see [`values.yaml`](../values.yaml).
 | `nodeEnvironment`  | Node environment. Leave as `production` unless doing local development.                          | `production`    |    |
 | `logLevel`         | One of `INFO`, `WARN`, `ERROR`, `DEBUG`.                                                         | `INFO`          |    |
 
+## Application secrets
+
+`ONEUPTIME_SECRET`, `ENCRYPTION_SECRET` and `REGISTER_PROBE_KEY` can be supplied
+in three ways, in this order of precedence:
+
+1. Inline, via `oneuptimeSecret` / `encryptionSecret` / `registerProbeKey`.
+2. From a Kubernetes Secret you manage yourself, via the `externalSecrets`
+   block below. Leave the inline values blank when you use this.
+3. Not at all — the chart then generates a random 32-character value into its
+   own `<release>-secrets` Secret on install and keeps it across upgrades.
+
+| Parameter                                              | Description                                                       | Default |
+|--------------------------------------------------------|-------------------------------------------------------------------|---------|
+| `externalSecrets.oneuptimeSecret.existingSecret.name`  | Name of an existing Secret holding `ONEUPTIME_SECRET`.             | `nil`   |
+| `externalSecrets.oneuptimeSecret.existingSecret.passwordKey` | Key inside that Secret.                                      | `nil`   |
+| `externalSecrets.encryptionSecret.existingSecret.name` | Name of an existing Secret holding `ENCRYPTION_SECRET`.            | `nil`   |
+| `externalSecrets.encryptionSecret.existingSecret.passwordKey` | Key inside that Secret.                                     | `nil`   |
+| `externalSecrets.registerProbeKey.existingSecret.name` | Name of an existing Secret holding `REGISTER_PROBE_KEY`.           | `nil`   |
+| `externalSecrets.registerProbeKey.existingSecret.passwordKey` | Key inside that Secret.                                     | `nil`   |
+
+Keys served by `externalSecrets` are not written into the chart-managed
+`<release>-secrets` Secret at all — pods read them straight from your Secret, so
+`helm diff` no longer reports them as changing on every render. If you were
+already using `externalSecrets`, the first upgrade after this change drops the
+unused copies from `<release>-secrets`; nothing reads them, so the removal is
+safe.
+
+Example:
+
+```yaml
+externalSecrets:
+  oneuptimeSecret:
+    existingSecret:
+      name: one-uptime
+      passwordKey: one-uptime-secret
+  encryptionSecret:
+    existingSecret:
+      name: one-uptime
+      passwordKey: encryption-secret
+  registerProbeKey:
+    existingSecret:
+      name: one-uptime
+      passwordKey: register-probe-key
+```
+
 ## Networking & ingress
 
 | Parameter                    | Description                                                          | Default        |
