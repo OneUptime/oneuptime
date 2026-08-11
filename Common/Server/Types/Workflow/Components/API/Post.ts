@@ -38,7 +38,7 @@ export default class ApiPost extends ComponentCode {
     options: RunOptions,
   ): Promise<RunReturnType> {
     const result: { args: JSONObject; successPort: Port; errorPort: Port } =
-      ApiComponentUtils.sanitizeArgs(this.getMetadata(), args, options);
+      await ApiComponentUtils.sanitizeArgs(this.getMetadata(), args, options);
 
     let apiResult: HTTPResponse<JSONObject> | HTTPErrorResponse | null = null;
 
@@ -77,6 +77,7 @@ export default class ApiPost extends ComponentCode {
         url: args["url"] as URL,
         data: args["request-body"] as JSONObject,
         headers: args["request-headers"] as Dictionary<string>,
+        options: ApiComponentUtils.requestOptions,
       });
 
       logger.debug("API Post Component is done.", workflowLogAttributes);

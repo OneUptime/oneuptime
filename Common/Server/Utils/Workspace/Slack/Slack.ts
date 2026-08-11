@@ -33,12 +33,24 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../Types/ObjectID";
 import WorkspaceProjectAuthTokenService from "../../../Services/WorkspaceProjectAuthTokenService";
+import SSRFProtection from "../../SSRFProtection";
 
 export default class SlackUtil extends WorkspaceBase {
   public static isValidSlackIncomingWebhookUrl(
-    incomingWebhookUrl: URL,
+    incomingWebhookUrl: URL | string,
   ): boolean {
-    // check if the URL starts with https://hooks.slack.com/services/
+    /*
+     * Host AND path prefix. The host check is what stops SSRF; the "/services/"
+     * prefix is what makes this tighter than a bare domain pin. Both are read
+     * off the WHATWG parser via getBareHostname, so a "#"/"?" in the string
+     * cannot make an attacker host look like a Slack one.
+     */
+    if (
+      SSRFProtection.getBareHostname(incomingWebhookUrl) !== "hooks.slack.com"
+    ) {
+      return false;
+    }
+
     return incomingWebhookUrl
       .toString()
       .startsWith("https://hooks.slack.com/services/");
@@ -2264,6 +2276,17 @@ export default class SlackUtil extends WorkspaceBase {
       {} as LogAttributes,
     );
     logger.debug(data, {} as LogAttributes);
+
+    /*
+     * Enforced at the sink, not only at the callers: this URL reaches here from
+     * workflow arguments and from status page subscribers, and a caller that
+     * forgets the pin is an SSRF from the API server.
+     */
+    if (!SlackUtil.isValidSlackIncomingWebhookUrl(data.url)) {
+      throw new BadDataException(
+        "Slack Webhook URL must start with https://hooks.slack.com/services/",
+      );
+    }
 
     const apiResult: HTTPResponse<JSONObject> | HTTPErrorResponse | null =
       await API.post({

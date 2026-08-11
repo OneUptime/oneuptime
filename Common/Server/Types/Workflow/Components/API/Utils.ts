@@ -3,14 +3,27 @@ import HTTPErrorResponse from "../../../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../../../Types/API/HTTPResponse";
 import URL from "../../../../../Types/API/URL";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
+import Exception from "../../../../../Types/Exception/Exception";
 import { JSONObject } from "../../../../../Types/JSON";
 import JSONFunctions from "../../../../../Types/JSONFunctions";
 import ComponentMetadata, {
   Port,
 } from "../../../../../Types/Workflow/Component";
+import { RequestOptions } from "../../../../../Utils/API";
+import SSRFProtection from "../../../../Utils/SSRFProtection";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
 
 export class ApiComponentUtils {
+  /*
+   * Every API component sends its request with these. Redirects MUST stay off:
+   * sanitizeArgs validates the URL before the request is dispatched, and a
+   * validated public host that answers 302 -> http://169.254.169.254/ would
+   * otherwise walk the server straight past that check.
+   */
+  public static readonly requestOptions: RequestOptions = {
+    doNotFollowRedirects: true,
+  };
+
   @CaptureSpan()
   public static getReturnValues(
     response: HTTPResponse<JSONObject> | HTTPErrorResponse,
@@ -33,11 +46,11 @@ export class ApiComponentUtils {
   }
 
   @CaptureSpan()
-  public static sanitizeArgs(
+  public static async sanitizeArgs(
     metadata: ComponentMetadata,
     args: JSONObject,
     options: RunOptions,
-  ): { args: JSONObject; successPort: Port; errorPort: Port } {
+  ): Promise<{ args: JSONObject; successPort: Port; errorPort: Port }> {
     const successPort: Port | undefined = metadata.outPorts.find((p: Port) => {
       return p.id === "success";
     });
@@ -75,6 +88,32 @@ export class ApiComponentUtils {
 
     if (args["url"] && typeof args["url"] !== "string") {
       throw options.onError(new BadDataException("URL is not type of string"));
+    }
+
+    /*
+     * The URL is authored by whoever built the workflow - i.e. any member of
+     * any project - and the request goes out from the server, which sits
+     * inside the cluster and next to the cloud metadata endpoint. Without this
+     * check the API components are an authenticated request proxy into the
+     * private network: GET http://169.254.169.254/latest/meta-data/iam/... and
+     * the credentials come back in the component's "response-body" return
+     * value, in plain sight in the workflow log. Resolve and blocklist the
+     * target the same way outbound webhooks already do.
+     *
+     * Validate the RAW string, before URL.fromString - that parser defaults an
+     * unrecognized scheme to https, so "file:///etc/passwd" would reach the
+     * check already rewritten as host "file".
+     */
+    try {
+      await SSRFProtection.validateWebhookTargetIsSafe(args["url"] as string);
+    } catch (err) {
+      throw options.onError(
+        new BadDataException(
+          err instanceof Exception
+            ? err.message
+            : "URL points to an address that is not allowed.",
+        ),
+      );
     }
 
     args["url"] = URL.fromString(args["url"] as string);
