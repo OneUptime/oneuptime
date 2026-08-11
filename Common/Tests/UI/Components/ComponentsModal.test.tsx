@@ -1,6 +1,12 @@
 import ComponentsModal from "../../../UI/Components/Workflow/ComponentsModal";
 import { describe, expect, it } from "@jest/globals";
-import "@testing-library/jest-dom/extend-expect";
+/*
+ * The main entry, not "/extend-expect": the latter no longer ships type
+ * declarations, so every jest-dom matcher in this file fails to typecheck and
+ * the whole suite is skipped before a single assertion runs. This suite is one
+ * of only two that exercise SideOver, so it has to actually run.
+ */
+import "@testing-library/jest-dom";
 import { fireEvent, render, screen } from "@testing-library/react";
 import IconProp from "../../../Types/Icon/IconProp";
 import ComponentMetadata, {

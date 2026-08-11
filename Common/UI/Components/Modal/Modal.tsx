@@ -7,6 +7,7 @@ import ModalFooter from "./ModalFooter";
 import { VeryLightGray } from "../../../Types/BrandColors";
 import IconProp from "../../../Types/Icon/IconProp";
 import useTranslateValue from "../../Utils/Translation";
+import { lockPageScroll, unlockPageScroll } from "../../Utils/PageScrollLock";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -22,52 +23,6 @@ export enum ModalWidth {
   Medium,
   Large,
 }
-
-/*
- * The page behind a modal must not scroll, and nested modals share a single
- * lock: a counter, rather than a boolean, is what stops the inner modal from
- * handing scrolling back while its parent is still open.
- */
-let openModalCount: number = 0;
-let bodyOverflowBeforeLock: string = "";
-let bodyPaddingRightBeforeLock: string = "";
-
-type PageScrollLockFunction = () => void;
-
-const lockPageScroll: PageScrollLockFunction = (): void => {
-  openModalCount++;
-
-  if (openModalCount > 1 || typeof document === "undefined") {
-    return;
-  }
-
-  bodyOverflowBeforeLock = document.body.style.overflow;
-  bodyPaddingRightBeforeLock = document.body.style.paddingRight;
-
-  /*
-   * Hiding the scrollbar reclaims its width, so the page underneath would
-   * jump sideways by exactly that much. Pad it back to hold everything still.
-   */
-  const scrollbarWidth: number =
-    window.innerWidth - document.documentElement.clientWidth;
-
-  if (scrollbarWidth > 0) {
-    document.body.style.paddingRight = `${scrollbarWidth}px`;
-  }
-
-  document.body.style.overflow = "hidden";
-};
-
-const unlockPageScroll: PageScrollLockFunction = (): void => {
-  openModalCount = Math.max(0, openModalCount - 1);
-
-  if (openModalCount > 0 || typeof document === "undefined") {
-    return;
-  }
-
-  document.body.style.overflow = bodyOverflowBeforeLock;
-  document.body.style.paddingRight = bodyPaddingRightBeforeLock;
-};
 
 export interface ComponentProps {
   title: string;
@@ -346,7 +301,32 @@ const Modal: FunctionComponent<ComponentProps> = (
   ): boolean => {
     const modal: HTMLDivElement | null = modalRef.current;
 
-    return modal !== null && !modal.contains(event.target as Node);
+    if (modal === null) {
+      return false;
+    }
+
+    const target: Node = event.target as Node;
+
+    /*
+     * Dropdown menus inside the body (AutocompleteTextInput, OperatorSelector,
+     * ColorPicker, IconPicker, react-select) portal themselves to document.body
+     * so a scroll container cannot clip them. React dispatches events through
+     * the *React* tree rather than the DOM tree, so picking one of those
+     * options still bubbles into this handler even though the pointer never
+     * touched the backdrop — and because the option is not a DOM descendant of
+     * the panel, the containment check below read it as a click outside and
+     * dismissed the dialog, discarding whatever the user had filled in.
+     *
+     * A press only counts as a backdrop press when it physically landed inside
+     * the backdrop element this handler is attached to. That is a DOM question,
+     * and `contains` is true of the element itself, so a press directly on this
+     * layer or on the flex box it centres the panel in still dismisses.
+     */
+    if (!event.currentTarget.contains(target)) {
+      return false;
+    }
+
+    return !modal.contains(target);
   };
 
   const onBackdropMouseDown: BackdropPressHandler = (
