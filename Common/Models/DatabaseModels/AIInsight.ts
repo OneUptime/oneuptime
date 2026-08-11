@@ -572,7 +572,7 @@ export default class AIInsight extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Fix AI Run ID",
     description:
-      "The AI agent fix task queued for this insight (a CodeFix AIRun that opens a draft pull request).",
+      "The AI agent fix task queued for this insight (a CodeFix AIRun that opens a pull request, ready for review).",
   })
   @Column({
     type: ColumnType.ObjectID,

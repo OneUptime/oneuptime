@@ -140,3 +140,38 @@ describe("buildObservabilityChatSystemPrompt with page context", () => {
     expect(prompt).toContain("Cite your sources.");
   });
 });
+
+/*
+ * open_code_pull_request now opens the PR ready for review rather than as a
+ * draft. The system prompt describes that tool to the model in its own words,
+ * so a stale sentence here makes the model tell the user it filed a draft and
+ * that they should go mark it ready — for a PR that already is.
+ *
+ * What must stay is the part that was never about the draft flag: this is a
+ * proposal off the default branch that a human reviews and merges.
+ */
+describe("buildObservabilityChatSystemPrompt — how it describes code changes", () => {
+  const prompt: string = buildObservabilityChatSystemPrompt({
+    currentTime: new Date("2026-07-16T00:00:00Z"),
+    permissionMode: AIChatPermissionMode.AskForApproval,
+  });
+
+  test("does not tell the model the pull request is a draft", () => {
+    expect(prompt.toLowerCase()).not.toContain("draft pull request");
+  });
+
+  test("says the pull request opens ready for review", () => {
+    expect(prompt).toContain("ready for review");
+  });
+
+  test("still says the change goes off the default branch for a human", () => {
+    expect(prompt).toContain("off the default branch");
+    expect(prompt).toContain("for a human to review");
+  });
+
+  test("still prefers open_code_pull_request over committing to a branch", () => {
+    expect(prompt).toContain(
+      "open_code_pull_request is the right tool almost always",
+    );
+  });
+});

@@ -42,9 +42,9 @@ const AIInsightsSettings: FunctionComponent<ComponentProps> = (
             field: {
               enableInsightFixTasks: true,
             },
-            title: "Automatically open draft fix PRs from insights",
+            title: "Automatically open fix PRs from insights",
             description:
-              "When enabled, insights the AI triage classifies as code faults automatically queue an AI agent task that opens a draft pull request with a proposed fix. Insights triaged as user errors, expected denials or infrastructure conditions never get automatic PRs. Honors the daily fix task budget and per-repository open-PR caps. Pull requests are always human-reviewed — nothing merges automatically.",
+              "When enabled, insights the AI triage classifies as code faults automatically queue an AI agent task that opens a pull request with a proposed fix, ready for review. Insights triaged as user errors, expected denials or infrastructure conditions never get automatic PRs. Honors the daily fix task budget and per-repository open-PR caps. Pull requests are always human-reviewed — nothing merges automatically.",
             required: false,
             fieldType: FormFieldSchemaType.Toggle,
           },
@@ -75,7 +75,7 @@ const AIInsightsSettings: FunctionComponent<ComponentProps> = (
               field: {
                 enableInsightFixTasks: true,
               },
-              title: "Automatically open draft fix PRs from insights",
+              title: "Automatically open fix PRs from insights",
               placeholder: "Disabled",
               fieldType: FieldType.Boolean,
             },

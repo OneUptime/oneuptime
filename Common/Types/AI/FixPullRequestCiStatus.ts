@@ -3,7 +3,7 @@ import CodeFixTaskType from "./CodeFixTaskType";
 /*
  * The rolled-up CI conclusion recorded on an AI fix pull request
  * (AIAgentTaskPullRequest.ciStatus) — B4 Tier 1: verification via the
- * customer's OWN CI on the draft PRs. We read check-run conclusions through
+ * customer's OWN CI on the fix PRs. We read check-run conclusions through
  * the GitHub App; we never re-run or gate the customer's CI.
  *
  * G9 honesty rule: only Green and ExpectedFailureObserved ever count as

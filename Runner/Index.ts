@@ -45,7 +45,7 @@ const APP_NAME: string = "runner";
  * the systems being operated on never leave their network.
  *
  * Code-fix capability: claims AI code-fix runs, works in the project's code
- * repository and opens draft pull requests. Opt-in, because it needs a
+ * repository and opens pull requests for review. Opt-in, because it needs a
  * connected repository and writes to it.
  *
  * Both loops share one registration, one credential and one heartbeat.

@@ -20,7 +20,7 @@ import React, { FunctionComponent, ReactElement } from "react";
  * "Improve logging / tracing with AI" — the service-scoped instrumentation
  * recipes (ImproveLogging / ImproveTracing). One quiet ActionCard: click,
  * the server gates it (budget, GitHub-App repository, per-service dedupe),
- * and a draft PR task is queued. Rejections surface inline — the button
+ * and a PR task is queued. Rejections surface inline — the button
  * never pretends.
  */
 
@@ -79,8 +79,8 @@ const TelemetryImprovementCard: FunctionComponent<ComponentProps> = (
         title={
           <span>
             AI will audit this service&apos;s{" "}
-            {isLogging ? "logging" : "tracing"} and open a draft pull request
-            with the improvements.{" "}
+            {isLogging ? "logging" : "tracing"} and open a pull request with the
+            improvements, ready for review.{" "}
             <Link
               className="underline"
               to={RouteUtil.populateRouteParams(
@@ -119,8 +119,8 @@ const TelemetryImprovementCard: FunctionComponent<ComponentProps> = (
         }
         description={
           isLogging
-            ? "AI will audit this service's logging and open a draft Pull Request that parameterizes messages (user data out of log text), fixes severity levels, records exceptions structurally, adds trace correlation, and cuts noise — without changing behavior."
-            : "AI will audit this service's tracing and open a draft Pull Request that adds spans on uninstrumented operations, fixes span naming and status/exception semantics, stamps semantic-convention attributes, and propagates context across async boundaries — without changing behavior."
+            ? "AI will audit this service's logging and open a Pull Request, ready for review, that parameterizes messages (user data out of log text), fixes severity levels, records exceptions structurally, adds trace correlation, and cuts noise — without changing behavior."
+            : "AI will audit this service's tracing and open a Pull Request, ready for review, that adds spans on uninstrumented operations, fixes span naming and status/exception semantics, stamps semantic-convention attributes, and propagates context across async boundaries — without changing behavior."
         }
         actions={[
           {

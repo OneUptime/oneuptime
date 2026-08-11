@@ -19,9 +19,9 @@ The OpenCode CLI shell-out is replaced by an in-house tool-loop agent whose comp
 
 Workspace tool surface: `read_file`, `write_file`, `list_directory`, `search` (path-guarded to the workspace, same escape checks as `WorkspaceManager`), and `run_command` (workspace-cwd, timeout-capped). `run_command` retains the status-quo risk OpenCode already had — a repo's own build scripts run in the worker container. Tier 2 is what removes that risk class; until then the worker container's posture (no mounted secrets beyond its agent key, per-task ephemeral workspace) is unchanged, and the risk is documented rather than pretended away.
 
-### Tier 1 — **shipped 2026-07-13**: verify via the customer's own CI on draft PRs
+### Tier 1 — **shipped 2026-07-13**: verify via the customer's own CI on fix PRs
 
-No sandbox at all. Fix PRs are already drafts; the repository's own CI runs them. We poll check runs through the GitHub App (the `SyncPullRequestStates` pattern) and record the conclusion on the PR row (`ciStatus`). Surfaces:
+No sandbox at all. Fix PRs open ready for review and the repository's own CI runs them. We poll check runs through the GitHub App (the `SyncPullRequestStates` pattern) and record the conclusion on the PR row (`ciStatus`). Surfaces:
 
 - **Verified-green rate** beside the acceptance rate in the outcomes card — merged is good, merged-and-CI-green is better.
 - **Regression-test SHOULD-FAIL check**: for `WriteRegressionTest` PRs, a failing test job on the PR is the *expected* outcome — reported as `ExpectedFailureObserved` rather than red. Closes the honesty gap deterministically — with the honest caveat that check-run granularity cannot tell WHICH job failed (a repo whose lint breaks on the PR also reads as expected-failure); job-level discrimination via check names is the tracked refinement.
@@ -31,7 +31,7 @@ Limits, stated: repos without CI verify nothing (recorded as `NoCiConfigured`, p
 
 ### Tier 2 (later): ephemeral sandbox for verify-before-PR
 
-For running builds/tests *before* a PR exists (and for the Preventive lane's auto-created fixes, where a draft PR per candidate is too noisy):
+For running builds/tests *before* a PR exists (and for the Preventive lane's auto-created fixes, where a PR per candidate is too noisy):
 
 - **Isolation:** one Kubernetes Job per verification, from a dedicated runner image; `runtimeClass: gvisor` on cloud; plain runc acceptable self-host (operator's own code); no service account token, no secrets mounted; the workspace arrives as a content-addressed tarball, results leave as a JSON verdict + logs tail.
 - **Network:** default-deny egress NetworkPolicy; allowlist = package registries via a caching proxy. Air-gapped installs point the proxy at their mirror or run `network: none` with vendored deps (verification degrades to build-only when deps can't resolve — reported, not hidden).

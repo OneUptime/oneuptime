@@ -35,7 +35,7 @@ import GitHubInstallationBinding from "Common/Server/Utils/CodeRepository/GitHub
  * closed-unmerged ratio of agent PRs is the precision baseline that gates
  * any future fix automation (roadmap gate G11), and the CI conclusion is the
  * verified-green half of it — merged is good, merged-and-CI-green is better.
- * We READ the customer's own CI on the draft PRs; we never re-run or gate it.
+ * We READ the customer's own CI on the fix PRs; we never re-run or gate it.
  */
 
 /*
