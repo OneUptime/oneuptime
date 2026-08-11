@@ -65,6 +65,23 @@ export default class SendMessageToChannel extends ComponentCode {
       );
     }
 
+    /*
+     * Pin the target to Slack's own incoming-webhook endpoint. Without this the
+     * component POSTs from the API server to any URL a workflow author types -
+     * the SSRF reported as GHSA-v5xh-rw9h-77fv against the API components.
+     */
+    if (
+      !SlackUtil.isValidSlackIncomingWebhookUrl(
+        args["webhook-url"]?.toString() as string,
+      )
+    ) {
+      throw options.onError(
+        new BadDataException(
+          "Slack Webhook URL must start with https://hooks.slack.com/services/",
+        ),
+      );
+    }
+
     args["webhook-url"] = URL.fromString(
       args["webhook-url"]?.toString() as string,
     );

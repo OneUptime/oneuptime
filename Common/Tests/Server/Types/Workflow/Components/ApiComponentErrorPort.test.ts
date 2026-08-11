@@ -15,7 +15,8 @@ import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import ComponentID from "../../../../../Types/Workflow/ComponentID";
 import API from "../../../../../Utils/API";
-import { beforeEach, describe, expect, test } from "@jest/globals";
+import { afterAll, beforeEach, describe, expect, test } from "@jest/globals";
+import dns from "dns";
 
 /*
  * The default export of Utils/API is the only thing these components talk to,
@@ -141,8 +142,25 @@ const apiComponents: Array<[string, ApiMethodName, ComponentFactory, string]> =
     ],
   ];
 
+/*
+ * sanitizeArgs now runs the URL through SSRFProtection, which resolves the
+ * hostname. Pin the lookup to a public address so these tests stay offline and
+ * deterministic - what they are about is port routing, not the blocklist.
+ */
+const lookupSpy: jest.SpiedFunction<
+  (
+    hostname: string,
+    options: { all: true },
+  ) => Promise<Array<{ address: string; family: number }>>
+> = jest.spyOn(dns.promises, "lookup") as never;
+
 beforeEach(() => {
   jest.clearAllMocks();
+  lookupSpy.mockResolvedValue([{ address: "93.184.216.34", family: 4 }]);
+});
+
+afterAll(() => {
+  jest.restoreAllMocks();
 });
 
 describe.each(apiComponents)(
@@ -219,10 +237,12 @@ describe.each(apiComponents)(
         url: URL;
         data: JSONObject;
         headers: JSONObject;
+        options: { doNotFollowRedirects?: boolean };
       } = getApiMock(apiMethodName).mock.calls[0]![0] as {
         url: URL;
         data: JSONObject;
         headers: JSONObject;
+        options: { doNotFollowRedirects?: boolean };
       };
       expect(request.url.toString()).toBe(TEST_URL);
       expect(request.data).toEqual({
@@ -230,6 +250,11 @@ describe.each(apiComponents)(
         name: "Airflow-Token",
       });
       expect(request.headers).toEqual({ apikey: "a-project-api-key" });
+      /*
+       * Redirects have to stay off, or the SSRF check sanitizeArgs just did is
+       * worth nothing: a public host can 302 the server to an internal one.
+       */
+      expect(request.options.doNotFollowRedirects).toBe(true);
     });
 
     test("routes a thrown transport error to the error port with an error message", async () => {

@@ -119,7 +119,7 @@ const MICROSOFT_TEAMS_MAX_PAGES: number = 500;
  * issued on outlook.office.com / outlook.office365.com, and per-tenant ones on
  * <tenant>.webhook.office.com — all covered by these two registrable domains.
  */
-const MICROSOFT_TEAMS_WEBHOOK_DOMAINS: Array<string> = [
+export const MICROSOFT_TEAMS_WEBHOOK_DOMAINS: Array<string> = [
   "office.com",
   "office365.com",
 ];
@@ -703,6 +703,17 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
   }): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> {
     logger.debug("Sending message to Teams channel via incoming webhook:");
     logger.debug(data);
+
+    /*
+     * Enforced at the sink, not only at the callers: this URL reaches here from
+     * workflow arguments and from status page subscribers, and a caller that
+     * forgets the pin is an SSRF from the API server.
+     */
+    if (!MicrosoftTeamsUtil.isValidMicrosoftTeamsIncomingWebhookUrl(data.url)) {
+      throw new BadDataException(
+        `Microsoft Teams Webhook URL must be an https URL on ${MICROSOFT_TEAMS_WEBHOOK_DOMAINS.join(" or ")}.`,
+      );
+    }
 
     // Build a structured MessageCard from markdown for better rendering in Teams
     const payload: JSONObject = this.buildMessageCardFromMarkdown(data.text);

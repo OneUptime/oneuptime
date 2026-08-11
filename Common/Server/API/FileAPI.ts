@@ -32,6 +32,17 @@ const isAuthenticatedRequest: (req: ExpressRequest) => boolean = (
   }
 };
 
+/*
+ * isPublic is a real boolean column, but this stays deliberately strict.
+ * It was created as a varchar, so every row held the STRING 'true'/'false'
+ * — and 'false' is truthy, which silently disabled both gates below. Treat
+ * anything that is not exactly `true` as private so a loose value can never
+ * re-open them.
+ */
+const isFilePublic: (file: File) => boolean = (file: File): boolean => {
+  return (file.isPublic as unknown) === true;
+};
+
 export default class FileAPI extends BaseAPI<File, FileServiceType> {
   public constructor() {
     super(File, FileService);
@@ -85,7 +96,7 @@ export default class FileAPI extends BaseAPI<File, FileServiceType> {
           );
         }
 
-        if (!file.isPublic && !isAuthenticatedRequest(req)) {
+        if (!isFilePublic(file) && !isAuthenticatedRequest(req)) {
           return Response.sendErrorResponse(
             req,
             res,
@@ -123,7 +134,7 @@ export default class FileAPI extends BaseAPI<File, FileServiceType> {
           },
         });
 
-        if (!file || !file.file || !file.fileType || !file.isPublic) {
+        if (!file || !file.file || !file.fileType || !isFilePublic(file)) {
           return Response.sendErrorResponse(
             req,
             res,
