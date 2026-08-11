@@ -1210,7 +1210,14 @@ jobs:
           set -euo pipefail
           # Fail fast: a bad or missing key must stop the job here, not
           # mid-publish inside GoReleaser after the release is half-created.
-          printf '%s' "$GPG_PRIVATE_KEY" > private.key
+          #
+          # %b, not %s: the stored secret carries LITERAL backslash-n
+          # sequences rather than real newlines, so %s writes a single-line
+          # file and gpg answers "no valid OpenPGP data found". The
+          # helm-chart-deploy job feeds the same secret through `echo`, which
+          # is why that job imports the key and this one did not. %b expands
+          # the escapes; a key that already has real newlines is unaffected.
+          printf '%b\n' "$GPG_PRIVATE_KEY" > private.key
           if ! gpg --batch --import private.key; then
             rm -f private.key
             echo "::error::Failed to import GPG private key (GPG_PRIVATE_KEY secret). Aborting before any publish step."
