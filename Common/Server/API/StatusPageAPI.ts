@@ -786,9 +786,9 @@ export default class StatusPageAPI extends BaseAPI<
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          const objectId: ObjectID = new ObjectID(
-            req.params["statusPageId"] as string,
-          );
+          const statusPageIdParam: string = req.params["statusPageId"] as string;
+          ObjectID.validateUUID(statusPageIdParam);
+          const objectId: ObjectID = new ObjectID(statusPageIdParam);
 
           const select: Select<StatusPage> = {
             _id: true,
