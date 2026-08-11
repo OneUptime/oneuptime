@@ -159,9 +159,28 @@ export default class URL extends DatabaseProperty {
     if (url.startsWith("mailto:")) {
       protocol = Protocol.MAIL;
       url = url.replace("mailto:", "");
+
+      /*
+       * Hand the bare address to the constructor so it is recognised as an
+       * Email. Routing it through Hostname instead would ask a host validator
+       * to accept an email address — and "?subject=..." along with it.
+       */
+      const address: string = url.split("?")[0] || "";
+      const mailQueryString: string = url.split("?")[1] || "";
+
+      return new URL(protocol, address, undefined, mailQueryString);
     }
 
-    const hostname: Hostname = new Hostname(url.split("/")[0] || "");
+    /*
+     * The authority ends at the first "/", "?" or "#". Splitting on "/" alone
+     * left the query and fragment glued to the host for URLs with no path
+     * ("https://host?token=x" parsed to a host of "host?token=x"), which both
+     * round-tripped wrong and handed anything that later interpolated the
+     * host a way to smuggle a path.
+     */
+    const authority: string = (url.split("/")[0] || "").split(/[?#]/)[0] || "";
+
+    const hostname: Hostname = new Hostname(authority);
 
     let route: Route | undefined;
 
