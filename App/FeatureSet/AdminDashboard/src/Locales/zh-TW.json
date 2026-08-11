@@ -184,7 +184,7 @@
       "noTeams": "無團隊",
       "addToProject": "加入專案",
       "addToProjectTitle": "將使用者加入專案",
-      "addToProjectDescription": "選擇一個專案及其中一個團隊。在使用者接受邀請之前，將以待處理成員的身分加入該團隊。",
+      "addToProjectDescription": "選擇一個專案及其中一個團隊。除非你代其接受邀請，否則在使用者接受邀請之前，將以待處理成員的身分加入該團隊。",
       "addToProjectSubmit": "加入專案",
       "removeFromProject": "從專案中移除",
       "removeFromTeam": "從團隊中移除",
@@ -208,6 +208,8 @@
       "fieldTeam": "團隊",
       "fieldTeamDescription": "該專案中您要將此使用者加入的團隊。",
       "fieldTeamPlaceholder": "選擇團隊",
+      "fieldAutoAccept": "自動接受邀請",
+      "fieldAutoAcceptDescription": "立即將該使用者新增為成員，而不是等待其接受邀請。只有主要管理員可以這樣做——在你代其他人設定專案時使用。",
       "selectProjectFirst": "請先選擇專案，才能選擇其中的團隊。"
     },
     "projects": {

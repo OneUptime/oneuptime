@@ -184,7 +184,7 @@
       "noTeams": "チームなし",
       "addToProject": "プロジェクトに追加",
       "addToProjectTitle": "ユーザーをプロジェクトに追加",
-      "addToProjectDescription": "プロジェクトとそのチームの1つを選択してください。ユーザーは招待を承諾するまで、保留中のメンバーとしてそのチームに追加されます。",
+      "addToProjectDescription": "プロジェクトとそのチームの1つを選択してください。あなたが代わりに承諾しない限り、ユーザーは招待を承諾するまで保留中のメンバーとしてそのチームに追加されます。",
       "addToProjectSubmit": "プロジェクトに追加",
       "removeFromProject": "プロジェクトから削除",
       "removeFromTeam": "チームから削除",
@@ -208,6 +208,8 @@
       "fieldTeam": "チーム",
       "fieldTeamDescription": "そのプロジェクト内で、このユーザーを追加するチームです。",
       "fieldTeamPlaceholder": "チームを選択",
+      "fieldAutoAccept": "招待を自動的に承諾する",
+      "fieldAutoAcceptDescription": "承諾を待たずに、このユーザーをすぐにメンバーとして追加します。これはマスター管理者のみが実行できます。他のユーザーに代わってプロジェクトを設定する場合に使用してください。",
       "selectProjectFirst": "先にプロジェクトを選択すると、そのチームを選べます。"
     },
     "projects": {

@@ -184,7 +184,7 @@
       "noTeams": "No teams",
       "addToProject": "Add to Project",
       "addToProjectTitle": "Add User to Project",
-      "addToProjectDescription": "Pick a project and one of its teams. The user is added to that team as a pending member until they accept.",
+      "addToProjectDescription": "Pick a project and one of its teams. The user is added to that team as a pending member until they accept, unless you accept the invitation for them.",
       "addToProjectSubmit": "Add to Project",
       "removeFromProject": "Remove from Project",
       "removeFromTeam": "Remove from Team",
@@ -208,6 +208,8 @@
       "fieldTeam": "Team",
       "fieldTeamDescription": "The team in that project you would like to add this user to.",
       "fieldTeamPlaceholder": "Select Team",
+      "fieldAutoAccept": "Accept the invitation automatically",
+      "fieldAutoAcceptDescription": "Add this user as a member right away instead of leaving them as invited until they accept. Only a master admin can do this - use it when you are setting a project up on someone's behalf.",
       "selectProjectFirst": "Select a project first to choose one of its teams."
     },
     "projects": {

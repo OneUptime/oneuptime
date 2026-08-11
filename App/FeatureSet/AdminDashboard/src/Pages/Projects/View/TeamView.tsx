@@ -204,6 +204,17 @@ const ProjectTeamView: FunctionComponent = (): ReactElement => {
                 );
               },
             },
+            {
+              field: {
+                hasAcceptedInvitation: true,
+              },
+              title: "Accept the invitation automatically",
+              description:
+                "Add this user as a member right away instead of leaving them as invited until they accept. Only a master admin can do this - use it when you are setting a project up on someone's behalf.",
+              fieldType: FormFieldSchemaType.Checkbox,
+              required: false,
+              defaultValue: false,
+            },
           ]}
           showRefreshButton={true}
           deleteButtonText="Remove Member"
