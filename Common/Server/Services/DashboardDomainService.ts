@@ -1,18 +1,17 @@
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
-import { OnCreate, OnDelete } from "../Types/Database/Hooks";
+import UpdateBy from "../Types/Database/UpdateBy";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import GreenlockUtil from "../Utils/Greenlock/Greenlock";
 import logger, { LogAttributes } from "../Utils/Logger";
 import DatabaseService from "./DatabaseService";
 import DomainService from "./DomainService";
 import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../Types/API/HTTPResponse";
-import URL from "../../Types/API/URL";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
-import API from "../../Utils/API";
 import AcmeCertificate from "../../Models/DatabaseModels/AcmeCertificate";
 import DomainModel from "../../Models/DatabaseModels/Domain";
 import DashboardDomain from "../../Models/DatabaseModels/DashboardDomain";
@@ -22,9 +21,58 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { DashboardCNameRecord } from "../EnvironmentConfig";
 import Domain from "../Types/Domain";
 
+const DASHBOARD_DOMAIN_EGRESS_LABEL: string = "Dashboard domain";
+
 export class Service extends DatabaseService<DashboardDomain> {
   public constructor() {
     super(DashboardDomain);
+  }
+
+  /*
+   * Normalize a submitted subdomain and reject anything that is not a plain
+   * DNS label chain.
+   *
+   * fullDomain is built as `${subdomain}.${baseDomain}` and then interpolated
+   * into "https://" + fullDomain + "/dashboard-api/..." — and URL parsing
+   * treats everything before the first "/" as the host. Without this check a
+   * subdomain of "169.254.169.254/latest/meta-data/#" hands an attacker the
+   * host, the port and the path of a request the certificate cron then makes
+   * unattended, every 15 minutes, from inside the cluster.
+   */
+  private static normalizeAndValidateSubdomain(
+    subdomain: string | undefined,
+  ): string {
+    const normalized: string = subdomain?.trim().toLowerCase() || "";
+
+    // "@" is the documented way to ask for the root domain.
+    if (normalized === "" || normalized === "@") {
+      return "";
+    }
+
+    if (!Domain.isValidSubdomain(normalized)) {
+      throw new BadDataException(
+        `Subdomain ${normalized} is not valid. Use a plain subdomain such as "dashboard" — schemes, ports, paths and "/" are not allowed.`,
+      );
+    }
+
+    return normalized;
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<DashboardDomain>,
+  ): Promise<OnUpdate<DashboardDomain>> {
+    /*
+     * Create-time validation alone leaves the value editable afterwards —
+     * subdomain is ProjectMember-updatable.
+     */
+    if (updateBy.data.subdomain !== undefined) {
+      updateBy.data.subdomain = Service.normalizeAndValidateSubdomain(
+        updateBy.data.subdomain as string,
+      );
+    }
+
+    return { updateBy, carryForward: null };
   }
 
   @CaptureSpan()
@@ -48,14 +96,11 @@ export class Service extends DatabaseService<DashboardDomain> {
       );
     }
 
-    let normalizedSubdomain: string =
-      createBy.data.subdomain?.trim().toLowerCase() || "";
+    createBy.data.subdomain = Service.normalizeAndValidateSubdomain(
+      createBy.data.subdomain,
+    );
 
-    if (normalizedSubdomain === "@") {
-      normalizedSubdomain = "";
-    }
-
-    createBy.data.subdomain = normalizedSubdomain;
+    const normalizedSubdomain: string = createBy.data.subdomain;
 
     if (domain) {
       const baseDomain: string =
@@ -230,13 +275,13 @@ export class Service extends DatabaseService<DashboardDomain> {
   ): Promise<boolean> {
     try {
       const result: HTTPErrorResponse | HTTPResponse<JSONObject> =
-        await API.get({
-          url: URL.fromString(
+        await Domain.getForDomainVerification({
+          url:
             "https://" +
-              fulldomain +
-              "/dashboard-api/cname-verification/" +
-              token,
-          ),
+            fulldomain +
+            "/dashboard-api/cname-verification/" +
+            token,
+          targetLabel: DASHBOARD_DOMAIN_EGRESS_LABEL,
         });
 
       if (result.isFailure()) {
@@ -317,13 +362,13 @@ export class Service extends DatabaseService<DashboardDomain> {
 
       try {
         const result: HTTPErrorResponse | HTTPResponse<JSONObject> =
-          await API.get({
-            url: URL.fromString(
+          await Domain.getForDomainVerification({
+            url:
               "http://" +
-                fullDomain +
-                "/dashboard-api/cname-verification/" +
-                token,
-            ),
+              fullDomain +
+              "/dashboard-api/cname-verification/" +
+              token,
+            targetLabel: DASHBOARD_DOMAIN_EGRESS_LABEL,
           });
 
         logger.debug("CNAME verification result", {
@@ -348,13 +393,13 @@ export class Service extends DatabaseService<DashboardDomain> {
 
       try {
         const resultHttps: HTTPErrorResponse | HTTPResponse<JSONObject> =
-          await API.get({
-            url: URL.fromString(
+          await Domain.getForDomainVerification({
+            url:
               "https://" +
-                fullDomain +
-                "/dashboard-api/cname-verification/" +
-                token,
-            ),
+              fullDomain +
+              "/dashboard-api/cname-verification/" +
+              token,
+            targetLabel: DASHBOARD_DOMAIN_EGRESS_LABEL,
           });
 
         logger.debug("CNAME verification result for https", {
