@@ -158,10 +158,12 @@ export default class MonitorResourceUtil {
          * reason as labels: this query already loads the monitor on the
          * hottest path, and both lists are empty for the overwhelming
          * majority of monitors, in which case suppression costs nothing.
+         * Ids only — names are fetched by the suppression util's own
+         * parents query, so selecting them here would just duplicate the
+         * joined row payload on every evaluation.
          */
         dependsOnMonitors: {
           _id: true,
-          name: true,
         },
         suppressAlertsWhenParentMonitorStatuses: {
           _id: true,

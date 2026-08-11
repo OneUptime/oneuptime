@@ -2,38 +2,27 @@ import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import ObjectID from "../../../Types/ObjectID";
+import MonitorDependencyRule, {
+  DependencySuppressionResult,
+  ParentMonitorStatusRef,
+  SuppressingParent,
+} from "../../../Utils/Monitor/MonitorDependencyRule";
 import MonitorService from "../../Services/MonitorService";
 import QueryHelper from "../../Types/Database/QueryHelper";
+import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 
 /*
- * A parent monitor whose current status matches this monitor's suppression
- * rule. statusName is carried for the evaluation-summary message ("parent
- * monitor 'Router' is Offline").
+ * Re-exported so server-side callers (and the existing tests) keep a
+ * single import site; the rule itself lives in
+ * Common/Utils/Monitor/MonitorDependencyRule so the dashboard can share
+ * it without importing server modules.
  */
-export interface SuppressingParent {
-  monitorId: string;
-  monitorName: string;
-  statusName: string;
-}
-
-export interface DependencySuppressionResult {
-  isSuppressed: boolean;
-  suppressingParents: Array<SuppressingParent>;
-}
-
-/*
- * The status facts about one parent monitor that the pure decision step
- * needs. Split from the Monitor model so the decision can be unit tested
- * without a database.
- */
-export interface ParentMonitorStatusRef {
-  monitorId: string;
-  monitorName: string;
-  statusId: string | undefined;
-  statusName: string | undefined;
-  isOfflineState: boolean;
-}
+export type {
+  DependencySuppressionResult,
+  ParentMonitorStatusRef,
+  SuppressingParent,
+};
 
 /*
  * Alert-dependency suppression (the per-monitor counterpart of the
@@ -49,7 +38,9 @@ export interface ParentMonitorStatusRef {
  *
  * Which parent statuses suppress: the monitor's
  * `suppressAlertsWhenParentMonitorStatuses` list when configured,
- * otherwise any status flagged `isOfflineState`.
+ * otherwise any status flagged `isOfflineState`. The decision itself is
+ * MonitorDependencyRule.getSuppressingParents, shared with the dashboard
+ * banner.
  */
 export default class MonitorDependencySuppression {
   /*
@@ -64,15 +55,28 @@ export default class MonitorDependencySuppression {
   public static async getDependencySuppression(input: {
     monitor: Monitor;
   }): Promise<DependencySuppressionResult> {
+    const monitorId: string = (
+      input.monitor.id ||
+      input.monitor._id ||
+      ""
+    ).toString();
+
     const parentIds: Array<ObjectID> = (input.monitor.dependsOnMonitors || [])
       .map((parent: Monitor) => {
-        return parent.id || parent._id;
+        return (parent.id || parent._id)?.toString() || "";
       })
-      .filter((id: ObjectID | string | undefined): id is ObjectID | string => {
-        return Boolean(id);
+      .filter((id: string) => {
+        /*
+         * A self-edge should never exist (validation rejects it, uuids
+         * compared case-insensitively), but if one was persisted through
+         * an older payload shape it must not let a monitor suppress its
+         * own offline alerts — that would silence exactly the outage the
+         * monitor exists to report.
+         */
+        return id.length > 0 && id.toLowerCase() !== monitorId.toLowerCase();
       })
-      .map((id: ObjectID | string) => {
-        return new ObjectID(id.toString());
+      .map((id: string) => {
+        return new ObjectID(id);
       });
 
     if (parentIds.length === 0) {
@@ -91,6 +95,13 @@ export default class MonitorDependencySuppression {
           name: true,
           isOfflineState: true,
         },
+        /*
+         * The parents' own parent ids, for the runtime mutual-cycle guard
+         * below. Selected here so the guard costs no extra query.
+         */
+        dependsOnMonitors: {
+          _id: true,
+        },
       },
       skip: 0,
       limit: LIMIT_PER_PROJECT,
@@ -99,17 +110,49 @@ export default class MonitorDependencySuppression {
       },
     });
 
-    const parentRefs: Array<ParentMonitorStatusRef> = parents.map(
-      (parent: Monitor) => {
-        return {
-          monitorId: parent.id?.toString() || "",
-          monitorName: parent.name || "Unnamed monitor",
-          statusId: parent.currentMonitorStatus?.id?.toString(),
-          statusName: parent.currentMonitorStatus?.name,
-          isOfflineState: Boolean(parent.currentMonitorStatus?.isOfflineState),
-        };
-      },
-    );
+    const parentRefs: Array<ParentMonitorStatusRef> = [];
+
+    for (const parent of parents) {
+      /*
+       * Runtime mutual-cycle guard: write-time validation walks the graph
+       * before persisting, but two concurrent updates can each pass
+       * validation and jointly commit a cycle (A depends on B, B depends
+       * on A). If that cycle suppressed, a shared outage would take both
+       * monitors offline and page NOBODY. Fail open instead: a parent
+       * that itself depends on this monitor is ignored for suppression,
+       * so a raced-in cycle degrades to normal (noisy) paging rather than
+       * a silent blackout.
+       */
+      const isMutualCycle: boolean = (parent.dependsOnMonitors || []).some(
+        (grandParent: Monitor) => {
+          const grandParentId: string = (
+            grandParent.id ||
+            grandParent._id ||
+            ""
+          ).toString();
+
+          return (
+            grandParentId.length > 0 &&
+            grandParentId.toLowerCase() === monitorId.toLowerCase()
+          );
+        },
+      );
+
+      if (isMutualCycle) {
+        logger.warn(
+          `${monitorId} - Monitor dependency cycle detected at evaluation time with parent ${parent.id?.toString()} ("${parent.name}"). The parent is ignored for suppression so alerts still fire. Remove one side of the cycle.`,
+        );
+        continue;
+      }
+
+      parentRefs.push({
+        monitorId: parent.id?.toString() || "",
+        monitorName: parent.name || "Unnamed monitor",
+        statusId: parent.currentMonitorStatus?.id?.toString(),
+        statusName: parent.currentMonitorStatus?.name,
+        isOfflineState: Boolean(parent.currentMonitorStatus?.isOfflineState),
+      });
+    }
 
     const configuredSuppressionStatusIds: Set<string> = new Set<string>(
       (input.monitor.suppressAlertsWhenParentMonitorStatuses || [])
@@ -133,56 +176,17 @@ export default class MonitorDependencySuppression {
     };
   }
 
-  /*
-   * Pure decision step, split from the query so it can be unit tested
-   * without a database. A parent suppresses when its current status is in
-   * the configured status list; with no list configured, when its current
-   * status is flagged offline. A parent with no current status never
-   * suppresses (a never-evaluated parent must not silence its children).
-   */
+  // Delegates kept so callers and tests have one server-side entry point.
   public static getSuppressingParents(input: {
     parents: Array<ParentMonitorStatusRef>;
     configuredSuppressionStatusIds: Set<string>;
   }): Array<SuppressingParent> {
-    const suppressing: Array<SuppressingParent> = [];
-
-    for (const parent of input.parents) {
-      const matchesRule: boolean =
-        input.configuredSuppressionStatusIds.size > 0
-          ? Boolean(
-              parent.statusId &&
-                input.configuredSuppressionStatusIds.has(parent.statusId),
-            )
-          : parent.isOfflineState;
-
-      if (matchesRule) {
-        suppressing.push({
-          monitorId: parent.monitorId,
-          monitorName: parent.monitorName,
-          statusName: parent.statusName || "Offline",
-        });
-      }
-    }
-
-    return suppressing;
+    return MonitorDependencyRule.getSuppressingParents(input);
   }
 
-  /*
-   * One human sentence naming the suppressing parents, shared by the
-   * alert and incident skip events so both read identically in the
-   * evaluation log.
-   */
   public static buildSuppressionReason(
     suppressingParents: Array<SuppressingParent>,
   ): string {
-    const parts: Array<string> = suppressingParents.map(
-      (parent: SuppressingParent) => {
-        return `"${parent.monitorName}" is ${parent.statusName}`;
-      },
-    );
-
-    const plural: boolean = parts.length > 1;
-
-    return `parent monitor${plural ? "s" : ""} ${parts.join(", ")}`;
+    return MonitorDependencyRule.buildSuppressionReason(suppressingParents);
   }
 }

@@ -24,9 +24,11 @@ import MonitorDependencySuppression, {
   SuppressingParent,
 } from "../../../../Server/Utils/Monitor/MonitorDependencySuppression";
 import MonitorService from "../../../../Server/Services/MonitorService";
+import logger from "../../../../Server/Utils/Logger";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import MonitorStatus from "../../../../Models/DatabaseModels/MonitorStatus";
 import ObjectID from "../../../../Types/ObjectID";
+import MonitorDependencyRule from "../../../../Utils/Monitor/MonitorDependencyRule";
 import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
 import { afterEach, describe, expect, test } from "@jest/globals";
 
@@ -50,6 +52,7 @@ type SpyLike = {
 const PARENT_A_ID: string = "11111111-1111-4111-8111-111111111111";
 const PARENT_B_ID: string = "22222222-2222-4222-8222-222222222222";
 const PARENT_C_ID: string = "33333333-3333-4333-8333-333333333333";
+const CHILD_ID: string = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
 const STATUS_OFFLINE_ID: string = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const STATUS_DEGRADED_ID: string = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const STATUS_OPERATIONAL_ID: string = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
@@ -100,12 +103,15 @@ type MakeParentRow = (input: {
   id: string;
   name?: string | undefined;
   currentMonitorStatus?: MonitorStatus | undefined;
+  // The parent's OWN parent ids, as the mutual-cycle guard reads them.
+  dependsOnMonitorIds?: Array<string> | undefined;
 }) => Monitor;
 
 const makeParentRow: MakeParentRow = (input: {
   id: string;
   name?: string | undefined;
   currentMonitorStatus?: MonitorStatus | undefined;
+  dependsOnMonitorIds?: Array<string> | undefined;
 }): Monitor => {
   const parent: Monitor = new Monitor();
   parent.id = new ObjectID(input.id);
@@ -114,6 +120,15 @@ const makeParentRow: MakeParentRow = (input: {
   }
   if (input.currentMonitorStatus !== undefined) {
     parent.currentMonitorStatus = input.currentMonitorStatus;
+  }
+  if (input.dependsOnMonitorIds !== undefined) {
+    parent.dependsOnMonitors = input.dependsOnMonitorIds.map(
+      (grandParentId: string) => {
+        const stub: Monitor = new Monitor();
+        stub.id = new ObjectID(grandParentId);
+        return stub;
+      },
+    );
   }
   return parent;
 };
@@ -451,6 +466,13 @@ describe("MonitorDependencySuppression.getDependencySuppression", () => {
         name: true,
         isOfflineState: true,
       },
+      /*
+       * The parents' own parent ids ride along for the runtime
+       * mutual-cycle guard, so the guard costs no extra query.
+       */
+      dependsOnMonitors: {
+        _id: true,
+      },
     });
     expect(callArg.limit).toBe(LIMIT_PER_PROJECT);
     expect(callArg.skip).toBe(0);
@@ -577,5 +599,213 @@ describe("MonitorDependencySuppression.getDependencySuppression", () => {
         statusName: "Offline",
       },
     ]);
+  });
+
+  describe("self-parent guard: a persisted self-edge must never suppress the monitor's own alerts", () => {
+    test("a monitor whose only dependency entry is ITSELF causes no query and no suppression", async () => {
+      const findBySpy: SpyLike = spyOnFindBy([]);
+
+      const monitor: Monitor = new Monitor();
+      monitor.id = new ObjectID(CHILD_ID);
+      monitor.dependsOnMonitors = [makeParentStub(CHILD_ID)];
+
+      const result: DependencySuppressionResult =
+        await MonitorDependencySuppression.getDependencySuppression({
+          monitor,
+        });
+
+      expect(result).toEqual({ isSuppressed: false, suppressingParents: [] });
+      expect(findBySpy.mock.calls.length).toBe(0);
+    });
+
+    test("an UPPERCASE self-edge is dropped too (uuids compare case-insensitively)", async () => {
+      const findBySpy: SpyLike = spyOnFindBy([]);
+
+      const monitor: Monitor = new Monitor();
+      monitor.id = new ObjectID(CHILD_ID);
+      monitor.dependsOnMonitors = [makeParentStub(CHILD_ID.toUpperCase())];
+
+      const result: DependencySuppressionResult =
+        await MonitorDependencySuppression.getDependencySuppression({
+          monitor,
+        });
+
+      expect(result).toEqual({ isSuppressed: false, suppressingParents: [] });
+      expect(findBySpy.mock.calls.length).toBe(0);
+    });
+  });
+
+  describe("runtime mutual-cycle guard: a raced-in cycle fails open (pages) rather than silently suppressing", () => {
+    function spyOnLoggerWarn(): SpyLike {
+      return jest
+        .spyOn(logger, "warn")
+        .mockImplementation((): void => {}) as unknown as SpyLike;
+    }
+
+    test("an offline parent that itself depends on this monitor is ignored and a warning is logged", async () => {
+      const warnSpy: SpyLike = spyOnLoggerWarn();
+
+      spyOnFindBy([
+        makeParentRow({
+          id: PARENT_A_ID,
+          name: "Router",
+          currentMonitorStatus: makeStatus({
+            id: STATUS_OFFLINE_ID,
+            name: "Offline",
+            isOfflineState: true,
+          }),
+          // The parent points back at the monitor: a committed cycle.
+          dependsOnMonitorIds: [CHILD_ID],
+        }),
+      ]);
+
+      const monitor: Monitor = new Monitor();
+      monitor.id = new ObjectID(CHILD_ID);
+      monitor.dependsOnMonitors = [makeParentStub(PARENT_A_ID)];
+
+      const result: DependencySuppressionResult =
+        await MonitorDependencySuppression.getDependencySuppression({
+          monitor,
+        });
+
+      expect(result).toEqual({ isSuppressed: false, suppressingParents: [] });
+      expect(warnSpy.mock.calls.length).toBe(1);
+      expect(String(warnSpy.mock.calls[0]![0])).toContain("cycle");
+      expect(String(warnSpy.mock.calls[0]![0])).toContain(PARENT_A_ID);
+    });
+
+    test("the guard is case-insensitive: the parent's back-edge may carry an UPPERCASE id", async () => {
+      const warnSpy: SpyLike = spyOnLoggerWarn();
+
+      spyOnFindBy([
+        makeParentRow({
+          id: PARENT_A_ID,
+          name: "Router",
+          currentMonitorStatus: makeStatus({
+            id: STATUS_OFFLINE_ID,
+            name: "Offline",
+            isOfflineState: true,
+          }),
+          dependsOnMonitorIds: [CHILD_ID.toUpperCase()],
+        }),
+      ]);
+
+      const monitor: Monitor = new Monitor();
+      monitor.id = new ObjectID(CHILD_ID);
+      monitor.dependsOnMonitors = [makeParentStub(PARENT_A_ID)];
+
+      const result: DependencySuppressionResult =
+        await MonitorDependencySuppression.getDependencySuppression({
+          monitor,
+        });
+
+      expect(result).toEqual({ isSuppressed: false, suppressingParents: [] });
+      expect(warnSpy.mock.calls.length).toBe(1);
+    });
+
+    test("only the cycling parent is ignored: a second, non-cycling offline parent still suppresses", async () => {
+      const warnSpy: SpyLike = spyOnLoggerWarn();
+
+      spyOnFindBy([
+        // P: offline but in a mutual cycle with the monitor — ignored.
+        makeParentRow({
+          id: PARENT_A_ID,
+          name: "Router",
+          currentMonitorStatus: makeStatus({
+            id: STATUS_OFFLINE_ID,
+            name: "Offline",
+            isOfflineState: true,
+          }),
+          dependsOnMonitorIds: [CHILD_ID],
+        }),
+        // Q: offline with no back-edge — suppresses as usual.
+        makeParentRow({
+          id: PARENT_B_ID,
+          name: "Load Balancer",
+          currentMonitorStatus: makeStatus({
+            id: STATUS_OFFLINE_ID,
+            name: "Offline",
+            isOfflineState: true,
+          }),
+          dependsOnMonitorIds: [],
+        }),
+      ]);
+
+      const monitor: Monitor = new Monitor();
+      monitor.id = new ObjectID(CHILD_ID);
+      monitor.dependsOnMonitors = [
+        makeParentStub(PARENT_A_ID),
+        makeParentStub(PARENT_B_ID),
+      ];
+
+      const result: DependencySuppressionResult =
+        await MonitorDependencySuppression.getDependencySuppression({
+          monitor,
+        });
+
+      expect(result.isSuppressed).toBe(true);
+      expect(result.suppressingParents).toEqual([
+        {
+          monitorId: PARENT_B_ID,
+          monitorName: "Load Balancer",
+          statusName: "Offline",
+        },
+      ]);
+      expect(warnSpy.mock.calls.length).toBe(1);
+    });
+  });
+});
+
+/*
+ * The decision now lives in Common/Utils/Monitor/MonitorDependencyRule so
+ * the dashboard can import it without the server module graph; the server
+ * statics exercised above are thin delegates. One smoke check pins that
+ * the shared module itself exports the same behavior.
+ */
+describe("MonitorDependencyRule (shared pure module)", () => {
+  test("getSuppressingParents and buildSuppressionReason match the server-side delegates", () => {
+    const parents: Array<ParentMonitorStatusRef> = [
+      makeParentRef({
+        monitorId: PARENT_A_ID,
+        monitorName: "Router",
+        statusId: STATUS_OFFLINE_ID,
+        statusName: "Offline",
+        isOfflineState: true,
+      }),
+      makeParentRef({
+        monitorId: PARENT_B_ID,
+        monitorName: "Load Balancer",
+        statusId: STATUS_OPERATIONAL_ID,
+        statusName: "Operational",
+        isOfflineState: false,
+      }),
+    ];
+
+    const fromRule: Array<SuppressingParent> =
+      MonitorDependencyRule.getSuppressingParents({
+        parents,
+        configuredSuppressionStatusIds: new Set<string>(),
+      });
+
+    expect(fromRule).toEqual(
+      MonitorDependencySuppression.getSuppressingParents({
+        parents,
+        configuredSuppressionStatusIds: new Set<string>(),
+      }),
+    );
+    expect(fromRule).toEqual([
+      {
+        monitorId: PARENT_A_ID,
+        monitorName: "Router",
+        statusName: "Offline",
+      },
+    ]);
+
+    expect(MonitorDependencyRule.buildSuppressionReason(fromRule)).toBe(
+      MonitorDependencySuppression.buildSuppressionReason(fromRule),
+    );
+    expect(MonitorDependencyRule.buildSuppressionReason(fromRule)).toBe(
+      'parent monitor "Router" is Offline',
+    );
   });
 });

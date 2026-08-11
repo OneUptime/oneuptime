@@ -469,10 +469,13 @@ export class Service extends DatabaseService<Model> {
       updateBy.data.suppressAlertsWhenParentMonitorStatuses !== undefined
     ) {
       /*
-       * Validated per matched monitor (same shape as the monitorSteps check
-       * above) because self-dependency and cycle detection need each
-       * monitor's own id, and root/API updates do not always carry a
-       * tenantId.
+       * The matched monitors' own ids (self/cycle checks) and projects
+       * (parent scoping) are needed; root/API updates do not always carry
+       * a tenantId. Validation itself is hoisted: the proposed lists are
+       * identical for every matched monitor, so existence/project checks
+       * run once per distinct project and the cycle walk runs once for
+       * all targets — not once per monitor (a bulk update could match
+       * thousands).
        */
       const monitorsToValidate: Array<Model> = await this.findBy({
         query: updateBy.query,
@@ -488,19 +491,17 @@ export class Service extends DatabaseService<Model> {
         },
       });
 
-      for (const monitor of monitorsToValidate) {
-        await this.validateDependencyConfiguration({
-          monitorId: monitor.id || null,
-          projectId: updateBy.props.tenantId || monitor.projectId || null,
-          proposedParents: updateBy.data.dependsOnMonitors as unknown as
-            | Array<Model>
-            | undefined,
-          proposedSuppressionStatuses: updateBy.data
-            .suppressAlertsWhenParentMonitorStatuses as unknown as
-            | Array<MonitorStatus>
-            | undefined,
-        });
-      }
+      await this.validateDependencyConfiguration({
+        targets: monitorsToValidate.map((monitor: Model) => {
+          return {
+            monitorId: monitor.id || null,
+            projectId: updateBy.props.tenantId || monitor.projectId || null,
+          };
+        }),
+        proposedParents: updateBy.data.dependsOnMonitors,
+        proposedSuppressionStatuses:
+          updateBy.data.suppressAlertsWhenParentMonitorStatuses,
+      });
     }
 
     return { updateBy, carryForward: null };
@@ -508,103 +509,155 @@ export class Service extends DatabaseService<Model> {
 
   /*
    * Guards for the alert-dependency configuration. `undefined` means "not
-   * part of this write" and validates nothing; an empty array (clearing the
-   * config) is always valid.
+   * part of this write" and validates nothing; null or an empty array
+   * (clearing the config) is always valid. The proposed lists arrive in
+   * whatever shape the API produced — relation objects, ObjectIDs, or
+   * bare uuid strings (which DatabaseService.sanitizeCreateOrUpdate only
+   * converts to entities AFTER this hook has run) — so extraction goes
+   * through resolveReferenceId, and every id comparison is normalized to
+   * lower case because Postgres matches uuids case-insensitively while
+   * ObjectID preserves the caller's casing.
    */
   public async validateDependencyConfiguration(input: {
-    /** null on create — a new monitor cannot be part of a cycle yet. */
-    monitorId: ObjectID | null;
-    projectId: ObjectID | null;
-    proposedParents: Array<Model> | undefined;
-    proposedSuppressionStatuses: Array<MonitorStatus> | undefined;
+    /**
+     * The monitors this write applies to. monitorId is null on create —
+     * a new monitor cannot be part of a cycle yet.
+     */
+    targets: Array<{
+      monitorId: ObjectID | null;
+      projectId: ObjectID | null;
+    }>;
+    proposedParents: unknown;
+    proposedSuppressionStatuses: unknown;
   }): Promise<void> {
+    const distinctProjectIds: Array<ObjectID> = [];
+    const seenProjectIds: Set<string> = new Set<string>();
+
+    for (const target of input.targets) {
+      const key: string | undefined = target.projectId
+        ?.toString()
+        .trim()
+        .toLowerCase();
+
+      if (key && !seenProjectIds.has(key)) {
+        seenProjectIds.add(key);
+        distinctProjectIds.push(target.projectId!);
+      }
+    }
+
     if (input.proposedParents !== undefined) {
       const parentIds: Array<ObjectID> = this.extractRelationIds(
         input.proposedParents,
       );
 
-      if (
-        input.monitorId &&
-        parentIds.some((parentId: ObjectID) => {
-          return parentId.toString() === input.monitorId!.toString();
-        })
-      ) {
-        throw new BadDataException("A monitor cannot depend on itself.");
-      }
-
       if (parentIds.length > 0) {
-        const parents: Array<Model> = await this.findBy({
-          query: {
-            _id: QueryHelper.any(parentIds),
-          },
-          select: {
-            _id: true,
-            projectId: true,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          props: {
-            isRoot: true,
-          },
-        });
+        const parentIdSet: Set<string> = new Set<string>(
+          parentIds.map((id: ObjectID) => {
+            return id.toString();
+          }),
+        );
 
-        if (parents.length !== parentIds.length) {
-          throw new BadDataException(
-            "One or more monitors in Depends On Monitors do not exist.",
-          );
-        }
+        for (const target of input.targets) {
+          const targetKey: string | undefined = target.monitorId
+            ?.toString()
+            .trim()
+            .toLowerCase();
 
-        if (input.projectId) {
-          for (const parent of parents) {
-            if (parent.projectId?.toString() !== input.projectId.toString()) {
-              throw new BadDataException(
-                "Monitors in Depends On Monitors must belong to the same project.",
-              );
-            }
+          if (targetKey && parentIdSet.has(targetKey)) {
+            throw new BadDataException("A monitor cannot depend on itself.");
           }
         }
 
-        if (input.monitorId) {
+        /*
+         * Existence + same-project via the house validator (which owns
+         * the case normalization and message wording). Once per distinct
+         * project: parents must belong to every matched monitor's
+         * project, so a cross-project bulk update correctly fails.
+         */
+        for (const projectId of distinctProjectIds) {
+          await ProjectScopedReferenceValidator.validateReferencesBelongToProject(
+            {
+              projectId: projectId,
+              subject: "monitor",
+              references: parentIds.map((parentId: ObjectID) => {
+                return {
+                  modelName: "Monitor",
+                  id: parentId,
+                  service: this,
+                };
+              }),
+            },
+          );
+        }
+
+        const targetMonitorIds: Array<ObjectID> = input.targets
+          .map((target: { monitorId: ObjectID | null }) => {
+            return target.monitorId;
+          })
+          .filter((monitorId: ObjectID | null): monitorId is ObjectID => {
+            return Boolean(monitorId);
+          });
+
+        if (targetMonitorIds.length > 0) {
           await this.throwIfDependencyCycle({
-            monitorId: input.monitorId,
+            targetMonitorIds,
             proposedParentIds: parentIds,
           });
         }
       }
     }
 
-    if (input.proposedSuppressionStatuses !== undefined && input.projectId) {
+    if (input.proposedSuppressionStatuses !== undefined) {
       const statusIds: Array<ObjectID> = this.extractRelationIds(
         input.proposedSuppressionStatuses,
       );
 
-      await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
-        projectId: input.projectId,
-        subject: "monitor",
-        references: statusIds.map((statusId: ObjectID) => {
-          return {
-            modelName: "Monitor Status",
-            id: statusId,
-            service: MonitorStatusService,
-          };
-        }),
-      });
+      if (statusIds.length > 0) {
+        for (const projectId of distinctProjectIds) {
+          await ProjectScopedReferenceValidator.validateReferencesBelongToProject(
+            {
+              projectId: projectId,
+              subject: "monitor",
+              references: statusIds.map((statusId: ObjectID) => {
+                return {
+                  modelName: "Monitor Status",
+                  id: statusId,
+                  service: MonitorStatusService,
+                };
+              }),
+            },
+          );
+        }
+      }
     }
   }
 
   /*
    * Walk the dependency graph upward from the proposed parents; reaching
-   * the monitor being updated means the write would close a cycle, which
+   * any monitor being updated means the write would close a cycle, which
    * would make suppression self-referential (A suppressed because of B,
-   * B suppressed because of A) and must be rejected. The visited set
-   * bounds the walk even if a cycle already exists among ancestors, and
-   * the depth cap keeps the check cheap on degenerate graphs.
+   * B suppressed because of A) and must be rejected. One BFS covers every
+   * target of a bulk update. The visited set bounds the walk even if a
+   * cycle already exists among ancestors, and the depth cap keeps the
+   * check cheap on degenerate graphs.
+   *
+   * This validates committed state, so two updates racing each other can
+   * still jointly commit a cycle this walk could not see; the runtime
+   * mutual-cycle guard in MonitorDependencySuppression fails open (pages
+   * instead of suppressing) if that ever happens.
    */
   private async throwIfDependencyCycle(input: {
-    monitorId: ObjectID;
+    targetMonitorIds: Array<ObjectID>;
     proposedParentIds: Array<ObjectID>;
   }): Promise<void> {
     const maxDepth: number = 32;
+
+    const targetIdSet: Set<string> = new Set<string>(
+      input.targetMonitorIds.map((monitorId: ObjectID) => {
+        return monitorId.toString().trim().toLowerCase();
+      }),
+    );
+
     const visited: Set<string> = new Set<string>();
     let frontier: Array<ObjectID> = [...input.proposedParentIds];
 
@@ -615,7 +668,7 @@ export class Service extends DatabaseService<Model> {
 
       if (
         frontier.some((id: ObjectID) => {
-          return id.toString() === input.monitorId.toString();
+          return targetIdSet.has(id.toString().trim().toLowerCase());
         })
       ) {
         throw new BadDataException(
@@ -624,7 +677,7 @@ export class Service extends DatabaseService<Model> {
       }
 
       for (const id of frontier) {
-        visited.add(id.toString());
+        visited.add(id.toString().trim().toLowerCase());
       }
 
       const rows: Array<Model> = await this.findBy({
@@ -643,6 +696,18 @@ export class Service extends DatabaseService<Model> {
           isRoot: true,
         },
       });
+
+      /*
+       * Fail CLOSED on truncation: a frontier level wider than the query
+       * limit means ancestors were dropped and a real cycle routed
+       * through the remainder would be admitted. Refuse instead — the
+       * sibling existence check fails closed the same way.
+       */
+      if (rows.length >= LIMIT_PER_PROJECT) {
+        throw new BadDataException(
+          "This dependency graph is too large to verify for cycles. Please reduce the number of monitors sharing one dependency level.",
+        );
+      }
 
       const next: Array<ObjectID> = [];
 
@@ -667,14 +732,29 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
-  private extractRelationIds(
-    relationArray: Array<{ id?: ObjectID | null; _id?: string | undefined }>,
-  ): Array<ObjectID> {
+  /*
+   * Ids arrive as relation objects ({_id}), ObjectIDs, or bare uuid
+   * strings depending on which API path produced the payload —
+   * resolveReferenceId handles all three (reading only ._id/.id here
+   * silently missed the bare-string shape, which DatabaseService
+   * persists). Returned ids are normalized to lower case so every
+   * comparison downstream matches the way Postgres matches uuids. null /
+   * non-array input (explicit null is TypeORM's clear-all for relation
+   * columns) yields an empty list: nothing to validate.
+   */
+  private extractRelationIds(relationArray: unknown): Array<ObjectID> {
+    if (!Array.isArray(relationArray)) {
+      return [];
+    }
+
     const ids: Array<ObjectID> = [];
     const seen: Set<string> = new Set<string>();
 
     for (const item of relationArray) {
-      const rawId: string | undefined = (item.id || item._id)?.toString();
+      const rawId: string | undefined = resolveReferenceId(item)
+        ?.toString()
+        .trim()
+        .toLowerCase();
 
       if (rawId && !seen.has(rawId)) {
         seen.add(rawId);
@@ -1000,15 +1080,16 @@ export class Service extends DatabaseService<Model> {
     });
 
     await this.validateDependencyConfiguration({
-      monitorId: null, // a new monitor cannot be part of a cycle yet
-      projectId: createBy.props.tenantId,
-      proposedParents: createBy.data.dependsOnMonitors as unknown as
-        | Array<Model>
-        | undefined,
-      proposedSuppressionStatuses: createBy.data
-        .suppressAlertsWhenParentMonitorStatuses as unknown as
-        | Array<MonitorStatus>
-        | undefined,
+      // A new monitor cannot be part of a cycle yet, hence monitorId null.
+      targets: [
+        {
+          monitorId: null,
+          projectId: createBy.props.tenantId,
+        },
+      ],
+      proposedParents: createBy.data.dependsOnMonitors,
+      proposedSuppressionStatuses:
+        createBy.data.suppressAlertsWhenParentMonitorStatuses,
     });
 
     /*
