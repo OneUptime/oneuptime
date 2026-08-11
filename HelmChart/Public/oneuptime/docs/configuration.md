@@ -20,6 +20,76 @@ up-to-date list see [`values.yaml`](../values.yaml).
 | `nodeEnvironment`  | Node environment. Leave as `production` unless doing local development.                          | `production`    |    |
 | `logLevel`         | One of `INFO`, `WARN`, `ERROR`, `DEBUG`.                                                         | `INFO`          |    |
 
+## Application secrets
+
+`ONEUPTIME_SECRET`, `ENCRYPTION_SECRET` and `REGISTER_PROBE_KEY` can be supplied
+in three ways, in this order of precedence:
+
+1. Inline, via `oneuptimeSecret` / `encryptionSecret` / `registerProbeKey`.
+2. From a Kubernetes Secret you manage yourself, via the `externalSecrets`
+   block below. Leave the inline values blank when you use this.
+3. Not at all — the chart then generates a random 32-character value into its
+   own `<release>-secrets` Secret on install and keeps it across upgrades.
+
+| Parameter                                              | Description                                                       | Default |
+|--------------------------------------------------------|-------------------------------------------------------------------|---------|
+| `externalSecrets.oneuptimeSecret.existingSecret.name`  | Name of an existing Secret holding `ONEUPTIME_SECRET`.             | `nil`   |
+| `externalSecrets.oneuptimeSecret.existingSecret.passwordKey` | Key inside that Secret.                                      | `nil`   |
+| `externalSecrets.encryptionSecret.existingSecret.name` | Name of an existing Secret holding `ENCRYPTION_SECRET`.            | `nil`   |
+| `externalSecrets.encryptionSecret.existingSecret.passwordKey` | Key inside that Secret.                                     | `nil`   |
+| `externalSecrets.registerProbeKey.existingSecret.name` | Name of an existing Secret holding `REGISTER_PROBE_KEY`.           | `nil`   |
+| `externalSecrets.registerProbeKey.existingSecret.passwordKey` | Key inside that Secret.                                     | `nil`   |
+
+Keys served by `externalSecrets` are not written into the chart-managed
+`<release>-secrets` Secret at all — pods read them straight from your Secret, so
+`helm diff` no longer reports them as changing on every render.
+
+If you were already using `externalSecrets` before this change, the copies the
+chart used to generate stay behind in the live `<release>-secrets` Secret: Helm
+patches the `stringData` field, and the API server has already folded the old
+values into `data`, so dropping a key from the template does not delete it from
+the object. Nothing reads them, so leaving them is harmless. To clear them out:
+
+```
+kubectl patch secret <release>-secrets -n <namespace> --type=json \
+  -p '[{"op":"remove","path":"/data/oneuptime-secret"},
+       {"op":"remove","path":"/data/encryption-secret"},
+       {"op":"remove","path":"/data/register-probe-key"}]'
+```
+
+Remove only the keys you actually serve via `externalSecrets`. Deleting them is
+not free: if you later drop the `externalSecrets` block, the chart generates a
+brand-new value for any key that is no longer in `<release>-secrets`, and a new
+`ENCRYPTION_SECRET` means existing encrypted data can no longer be read. Leaving
+the old copies in place is the safer default — an install that adopted
+`externalSecrets` after running on chart-managed secrets had to copy its
+`ENCRYPTION_SECRET` into its own Secret to keep its data readable, so the
+retained copy is the same value and switching back picks it up again.
+
+If your install used `externalSecrets` from day one, the retained copies are
+values no pod ever read, and neither keeping nor deleting them gives you a
+working fallback. Switch back by copying the real values out of your own Secret
+first — set them inline as `oneuptimeSecret` / `encryptionSecret` /
+`registerProbeKey`, or write them into `<release>-secrets` yourself.
+
+Example:
+
+```yaml
+externalSecrets:
+  oneuptimeSecret:
+    existingSecret:
+      name: one-uptime
+      passwordKey: one-uptime-secret
+  encryptionSecret:
+    existingSecret:
+      name: one-uptime
+      passwordKey: encryption-secret
+  registerProbeKey:
+    existingSecret:
+      name: one-uptime
+      passwordKey: register-probe-key
+```
+
 ## Networking & ingress
 
 | Parameter                    | Description                                                          | Default        |

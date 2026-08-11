@@ -1,0 +1,39 @@
+# Guards templates/tests/test.yaml — the `helm test` hook Pod.
+#
+# It lives under templates/tests/, which is one base-name match away from the
+# chart-root tests/ directory this file sits in. .helmignore excludes the latter
+# with an ANCHORED `/tests/`; an unanchored `tests/` matches by base name at any
+# depth and silently drops the hook Pod from every render and every packaged
+# chart. helm-unittest loads the chart through the same ignore rules, so this
+# suite stops resolving its template the moment that happens.
+suite: helm test hook
+templates:
+  - templates/tests/test.yaml
+release:
+  name: oneuptime
+  namespace: oneuptime
+tests:
+  - it: renders the helm test hook pod
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Pod
+      - equal:
+          path: metadata.name
+          value: oneuptime-test
+      - equal:
+          path: metadata.annotations["helm.sh/hook"]
+          value: test
+      - equal:
+          path: spec.restartPolicy
+          value: Never
+
+  - it: points the status check at the configured host
+    set:
+      host: status.example.com
+      httpProtocol: https
+    asserts:
+      - matchRegex:
+          path: spec.containers[0].args[1]
+          pattern: "https://status\\.example\\.com"
