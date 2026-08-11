@@ -4,6 +4,7 @@ import URL from "../../../../Types/API/URL";
 import { JSONObject } from "../../../../Types/JSON";
 import LlmType from "../../../../Types/LLM/LlmType";
 import LLMService from "../../../../Server/Utils/LLM/LLMService";
+import DataSourceEgressGuard from "../../../../Server/Utils/DataSource/EgressGuard";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
 /*
@@ -14,7 +15,27 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
  * we hand to URL.fromString for a range of configured base URLs.
  */
 
+/*
+ * These tests are about URL shaping, not egress policy: the hosts below are
+ * deliberately unresolvable placeholders. Stub the SSRF guard so no DNS is
+ * attempted — LLMService now validates and pins every provider URL before
+ * posting, which is covered by LLMServiceEgressGuard.test.ts.
+ */
+function mockEgressGuardAllows(): void {
+  jest
+    .spyOn(DataSourceEgressGuard, "assertUrlAllowedAndPin")
+    .mockImplementation((urlString: string) => {
+      return Promise.resolve({
+        url: new globalThis.URL(urlString),
+        addresses: [{ address: "93.184.216.34", family: 4 }],
+        httpAgent: undefined as never,
+        httpsAgent: undefined as never,
+      });
+    });
+}
+
 function mockPostSuccess(): void {
+  mockEgressGuardAllows();
   jest.spyOn(API, "post").mockResolvedValue({
     jsonData: {
       choices: [{ message: { content: "ok" } }],
