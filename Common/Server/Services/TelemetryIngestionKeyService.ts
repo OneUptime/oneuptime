@@ -83,13 +83,15 @@ export class Service extends DatabaseService<Model> {
       return cached === null ? null : new ObjectID(cached);
     }
 
-    let secretKeyObjectId: ObjectID;
-    try {
-      secretKeyObjectId = new ObjectID(secretKey);
-    } catch {
+    // ObjectID constructor does not validate UUID format, so check explicitly
+    // to prevent passing invalid values to Postgres (which would throw
+    // "invalid input syntax for type uuid").
+    if (!ObjectID.isValidUUID(secretKey)) {
       this.projectIdCache.set(cacheKey, null, NEGATIVE_TTL_MS);
       return null;
     }
+
+    const secretKeyObjectId: ObjectID = new ObjectID(secretKey);
 
     const token: Model | null = await this.findOneBy({
       query: { secretKey: secretKeyObjectId },
