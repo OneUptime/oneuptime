@@ -14,6 +14,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import File from "../../Models/DatabaseModels/File";
 import FileAttachmentMarkdownUtil from "../Utils/FileAttachmentMarkdownUtil";
+import { syncIsPublicForMarkdownImages } from "../Utils/InlineImageAccessTokenSync";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -116,6 +117,17 @@ export class Service extends DatabaseService<Model> {
     const userId: ObjectID | null | undefined =
       createdItem.createdByUserId || createdItem.createdByUser?.id;
 
+    /*
+     * A public note is always rendered on the status page, so any inline
+     * image the markdown editor uploaded as private must flip to public
+     * for anonymous status page viewers to be able to render it.
+     */
+    await syncIsPublicForMarkdownImages(
+      createdItem.note,
+      true,
+      `incident public note ${createdItem.id?.toString()}`,
+    );
+
     const incidentId: ObjectID = createdItem.incidentId!;
     const projectId: ObjectID = createdItem.projectId!;
     const incidentNumberResult: {
@@ -186,6 +198,12 @@ ${(createdItem.note || "") + attachmentsMarkdown}
 
       for (const updatedItem of updatedItems) {
         const incident: Incident = updatedItem.incident!;
+
+        await syncIsPublicForMarkdownImages(
+          updatedItem.note,
+          true,
+          `incident public note ${updatedItem.id?.toString()}`,
+        );
 
         const attachmentsMarkdown: string = await this.getAttachmentsMarkdown(
           updatedItem.id!,
