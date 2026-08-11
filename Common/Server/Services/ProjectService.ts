@@ -39,6 +39,8 @@ import SubscriptionPlan, {
   PlanType,
 } from "../../Types/Billing/SubscriptionPlan";
 import SubscriptionStatus from "../../Types/Billing/SubscriptionStatus";
+import ProjectBalanceType from "../../Types/Billing/ProjectBalanceType";
+import BalanceAdjustmentType from "../../Types/Billing/BalanceAdjustmentType";
 import {
   Black,
   Blue500,
@@ -96,6 +98,24 @@ export interface CurrentPlan {
   plan: PlanType | null;
   isSubscriptionUnpaid: boolean;
 }
+
+export interface ProjectBalanceAdjustmentResult {
+  previousBalanceInUSDCents: number;
+  newBalanceInUSDCents: number;
+}
+
+// The project columns that hold a prepaid balance, in cents.
+export type ProjectBalanceColumnName =
+  | "smsOrCallCurrentBalanceInUSDCents"
+  | "aiCurrentBalanceInUSDCents";
+
+/*
+ * Ceiling on a single manual adjustment. Staff type dollars and the column
+ * stores cents, so the classic slip is a factor of 100 - this turns that into
+ * a rejected form instead of a five-figure credit nobody notices until the
+ * month closes. Larger corrections are still possible, just not in one click.
+ */
+export const MAX_BALANCE_ADJUSTMENT_IN_USD_CENTS: number = 10_000 * 100;
 
 export class ProjectService extends DatabaseService<Model> {
   /*
@@ -2494,6 +2514,225 @@ These are no longer recorded against the project and have to be cancelled by han
       columnName: "aiCurrentBalanceInUSDCents",
       value: data.amountInUSDCents,
     });
+  }
+
+  /*
+   * Manually correct one of a project's prepaid balances. Master-admin only -
+   * this hands out (or claws back) paid service without a payment, so the API
+   * in front of it sits behind the master admin middleware.
+   *
+   * Add and Deduct go through a single atomic `col = col + delta` statement,
+   * because SMS sends and AI runs are deducting from the same column
+   * concurrently: a read-then-write here would silently swallow whichever
+   * charge landed in between. Set is an absolute assignment and has no such
+   * guarantee by construction - it is last-writer-wins, which is what "make it
+   * read exactly this" means.
+   *
+   * The write is hookless. Project's update hooks only react to session
+   * replay, SSO and billing-detail fields, so none of them have anything to do
+   * for a balance change, and skipping them keeps the whole adjustment in one
+   * statement.
+   */
+  @CaptureSpan()
+  public async adjustBalance(data: {
+    projectId: ObjectID;
+    balanceType: ProjectBalanceType;
+    adjustmentType: BalanceAdjustmentType;
+    amountInUSDCents: number;
+    reason: string;
+    adjustedByUserId?: ObjectID | undefined;
+  }): Promise<ProjectBalanceAdjustmentResult> {
+    if (!IsBillingEnabled) {
+      throw new BadDataException("Billing is not enabled for this server");
+    }
+
+    if (
+      typeof data.amountInUSDCents !== "number" ||
+      !Number.isFinite(data.amountInUSDCents)
+    ) {
+      throw new BadDataException("Adjustment amount is not a valid number");
+    }
+
+    /*
+     * A fractional cent cannot be stored, and rounding it here would make the
+     * balance disagree with the amount the audit log records.
+     */
+    if (!Number.isInteger(data.amountInUSDCents)) {
+      throw new BadDataException(
+        "Adjustment amount must be a whole number of cents",
+      );
+    }
+
+    if (data.amountInUSDCents < 0) {
+      throw new BadDataException("Adjustment amount cannot be negative");
+    }
+
+    /*
+     * Adding or deducting nothing is a no-op that would still write an audit
+     * line. Setting to zero is a real instruction, so it is allowed.
+     */
+    if (
+      data.adjustmentType !== BalanceAdjustmentType.Set &&
+      data.amountInUSDCents === 0
+    ) {
+      throw new BadDataException("Adjustment amount must be greater than zero");
+    }
+
+    if (data.amountInUSDCents > MAX_BALANCE_ADJUSTMENT_IN_USD_CENTS) {
+      throw new BadDataException(
+        `Adjustment amount cannot be more than ${
+          MAX_BALANCE_ADJUSTMENT_IN_USD_CENTS / 100
+        } USD in a single adjustment`,
+      );
+    }
+
+    const reason: string = (data.reason || "").trim();
+
+    if (!reason) {
+      throw new BadDataException("A reason is required to adjust the balance");
+    }
+
+    const balanceColumnName: ProjectBalanceColumnName =
+      ProjectService.getBalanceColumnName(data.balanceType);
+
+    const project: Model | null = await this.findOneById({
+      id: data.projectId,
+      select: {
+        _id: true,
+        [balanceColumnName]: true,
+      } as Select<Model>,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!project) {
+      throw new BadDataException("Project not found");
+    }
+
+    const previousBalanceInUSDCents: number = project[balanceColumnName] || 0;
+
+    let newBalanceInUSDCents: number = previousBalanceInUSDCents;
+
+    if (data.adjustmentType === BalanceAdjustmentType.Add) {
+      newBalanceInUSDCents = previousBalanceInUSDCents + data.amountInUSDCents;
+    }
+
+    if (data.adjustmentType === BalanceAdjustmentType.Deduct) {
+      newBalanceInUSDCents = previousBalanceInUSDCents - data.amountInUSDCents;
+
+      /*
+       * Usage is allowed to overdraw a balance (the charge is taken, the next
+       * request is refused), but a manual deduction pushing a customer into
+       * the red is a mistake every time - so refuse rather than reproduce a
+       * typo as a negative balance the customer then has to pay off.
+       */
+      if (newBalanceInUSDCents < 0) {
+        throw new BadDataException(
+          `Cannot deduct ${data.amountInUSDCents / 100} USD - the balance is only ${
+            previousBalanceInUSDCents / 100
+          } USD`,
+        );
+      }
+    }
+
+    if (data.adjustmentType === BalanceAdjustmentType.Set) {
+      newBalanceInUSDCents = data.amountInUSDCents;
+    }
+
+    /*
+     * Topping a project back up has to clear the "we already told the owners"
+     * latches, exactly as a paid recharge does. Leaving them set means the
+     * next genuine low balance passes in silence, because the flags say the
+     * owners were warned - about the shortfall this adjustment just fixed.
+     */
+    const set: QueryDeepPartialEntity<Model> =
+      newBalanceInUSDCents > previousBalanceInUSDCents
+        ? ProjectService.getBalanceNotificationFlagResets(data.balanceType)
+        : {};
+
+    if (data.adjustmentType === BalanceAdjustmentType.Set) {
+      await this.atomicAddToColumnsByIdWithoutHooks({
+        id: data.projectId,
+        add: {},
+        set: {
+          ...set,
+          [balanceColumnName]: newBalanceInUSDCents,
+        } as QueryDeepPartialEntity<Model>,
+      });
+    } else {
+      const delta: number =
+        data.adjustmentType === BalanceAdjustmentType.Add
+          ? data.amountInUSDCents
+          : -data.amountInUSDCents;
+
+      await this.atomicAddToColumnsByIdWithoutHooks({
+        id: data.projectId,
+        add: {
+          [balanceColumnName]: delta,
+        } as Partial<Record<keyof Model, number>>,
+        set: set,
+      });
+    }
+
+    /*
+     * The audit trail for moving money. There is no generic admin-action
+     * table, so the acting master admin and their stated reason go in the log
+     * line - the same shape extendTrial uses.
+     */
+    logger.info(
+      `${data.balanceType} balance for project ${data.projectId.toString()} adjusted (${
+        data.adjustmentType
+      } ${data.amountInUSDCents} cents) from ${previousBalanceInUSDCents} to ${newBalanceInUSDCents} cents by master admin ${
+        data.adjustedByUserId?.toString() || "unknown"
+      }. Reason: ${reason}`,
+    );
+
+    return {
+      previousBalanceInUSDCents: previousBalanceInUSDCents,
+      newBalanceInUSDCents: newBalanceInUSDCents,
+    };
+  }
+
+  private static getBalanceColumnName(
+    balanceType: ProjectBalanceType,
+  ): ProjectBalanceColumnName {
+    if (balanceType === ProjectBalanceType.SmsOrCall) {
+      return "smsOrCallCurrentBalanceInUSDCents";
+    }
+
+    if (balanceType === ProjectBalanceType.AI) {
+      return "aiCurrentBalanceInUSDCents";
+    }
+
+    throw new BadDataException(`Invalid balance type: ${balanceType}`);
+  }
+
+  /*
+   * The "owners have been notified" latches that belong to each balance. They
+   * are reset whenever that balance goes up, which is what the paid recharge
+   * paths in NotificationService and AIBillingService do too.
+   */
+  private static getBalanceNotificationFlagResets(
+    balanceType: ProjectBalanceType,
+  ): QueryDeepPartialEntity<Model> {
+    if (balanceType === ProjectBalanceType.SmsOrCall) {
+      return {
+        lowCallAndSMSBalanceNotificationSentToOwners: false,
+        failedCallAndSMSBalanceChargeNotificationSentToOwners: false,
+        notEnabledSmsOrCallNotificationSentToOwners: false,
+      };
+    }
+
+    if (balanceType === ProjectBalanceType.AI) {
+      return {
+        lowAiBalanceNotificationSentToOwners: false,
+        failedAiBalanceChargeNotificationSentToOwners: false,
+        notEnabledAiNotificationSentToOwners: false,
+      };
+    }
+
+    throw new BadDataException(`Invalid balance type: ${balanceType}`);
   }
 
   @CaptureSpan()

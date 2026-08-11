@@ -3,6 +3,7 @@ import MasterAdminAuthorization from "../Middleware/MasterAdminAuthorization";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import ProjectService, {
   ProjectService as ProjectServiceType,
+  ProjectBalanceAdjustmentResult,
 } from "../Services/ProjectService";
 import ResellerService from "../Services/ResellerService";
 import TeamMemberService from "../Services/TeamMemberService";
@@ -28,6 +29,8 @@ import TeamMember from "../../Models/DatabaseModels/TeamMember";
 import BadDataException from "../../Types/Exception/BadDataException";
 import OneUptimeDate from "../../Types/Date";
 import Permission, { UserPermission } from "../../Types/Permission";
+import ProjectBalanceType from "../../Types/Billing/ProjectBalanceType";
+import BalanceAdjustmentType from "../../Types/Billing/BalanceAdjustmentType";
 import ObjectID from "../../Types/ObjectID";
 import { JSONObject, JSONValue } from "../../Types/JSON";
 
@@ -206,6 +209,140 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
           });
 
           return Response.sendEmptySuccessResponse(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    /*
+     * Manually corrects a project's SMS/Call or AI balance. Master-admin only,
+     * for the same reason extend-trial is: it hands out (or claws back) paid
+     * service with no payment behind it, so project-level billing permissions
+     * must not reach it - only OneUptime staff acting from the Admin
+     * Dashboard.
+     */
+    this.router.put(
+      `${new this.entityType().getCrudApiPath()?.toString()}/:id/adjust-balance`,
+      MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          if (!IsBillingEnabled) {
+            throw new BadDataException(
+              "Billing is not enabled for this server",
+            );
+          }
+
+          const projectId: ObjectID = new ObjectID(req.params["id"] as string);
+
+          const body: JSONObject = (req.body as JSONObject) || {};
+          const data: JSONObject = (body["data"] as JSONObject) || {};
+
+          const balanceTypeValue: JSONValue = data["balanceType"];
+          const adjustmentTypeValue: JSONValue = data["adjustmentType"];
+          const amountInUSDValue: JSONValue = data["amountInUSD"];
+          const reasonValue: JSONValue = data["reason"];
+
+          if (
+            !balanceTypeValue ||
+            typeof balanceTypeValue !== "string" ||
+            !Object.values(ProjectBalanceType).includes(
+              balanceTypeValue as ProjectBalanceType,
+            )
+          ) {
+            throw new BadDataException(
+              `Balance type must be one of: ${Object.values(
+                ProjectBalanceType,
+              ).join(", ")}`,
+            );
+          }
+
+          if (
+            !adjustmentTypeValue ||
+            typeof adjustmentTypeValue !== "string" ||
+            !Object.values(BalanceAdjustmentType).includes(
+              adjustmentTypeValue as BalanceAdjustmentType,
+            )
+          ) {
+            throw new BadDataException(
+              `Adjustment type must be one of: ${Object.values(
+                BalanceAdjustmentType,
+              ).join(", ")}`,
+            );
+          }
+
+          /*
+           * The form posts dollars because that is what staff think in, but
+           * the column is cents. A JSON body can carry a numeric string, so
+           * accept both and reject anything that does not parse - Number("")
+           * and Number([]) are 0, which would otherwise read as a real
+           * "set to zero" instruction.
+           */
+          if (
+            typeof amountInUSDValue !== "number" &&
+            typeof amountInUSDValue !== "string"
+          ) {
+            throw new BadDataException("Amount is not a valid number");
+          }
+
+          const amountInUSD: number =
+            typeof amountInUSDValue === "number"
+              ? amountInUSDValue
+              : Number(amountInUSDValue.trim());
+
+          if (
+            !Number.isFinite(amountInUSD) ||
+            (typeof amountInUSDValue === "string" &&
+              amountInUSDValue.trim() === "")
+          ) {
+            throw new BadDataException("Amount is not a valid number");
+          }
+
+          if (typeof reasonValue !== "string" || !reasonValue.trim()) {
+            throw new BadDataException(
+              "A reason is required to adjust the balance",
+            );
+          }
+
+          /*
+           * Dollars carry at most two decimal places, and floating point
+           * multiplication does not (20.15 * 100 is 2014.9999...). Round to
+           * the nearest cent so the stored amount is the one that was typed.
+           */
+          const amountInUSDCents: number = Math.round(amountInUSD * 100);
+
+          /*
+           * The master admin middleware verifies the token but does not put
+           * the decoded payload on the request, so read it again here - who
+           * moved the balance is the only audit trail this action has.
+           */
+          let adjustedByUserId: ObjectID | undefined = undefined;
+
+          try {
+            const accessToken: string | undefined =
+              UserMiddleware.getAccessTokenFromExpressRequest(req);
+
+            if (accessToken) {
+              adjustedByUserId = JSONWebToken.decode(accessToken).userId;
+            }
+          } catch {
+            // Only used for the log line - never block the adjustment on it.
+          }
+
+          const result: ProjectBalanceAdjustmentResult =
+            await ProjectService.adjustBalance({
+              projectId: projectId,
+              balanceType: balanceTypeValue as ProjectBalanceType,
+              adjustmentType: adjustmentTypeValue as BalanceAdjustmentType,
+              amountInUSDCents: amountInUSDCents,
+              reason: reasonValue,
+              adjustedByUserId: adjustedByUserId,
+            });
+
+          return Response.sendJsonObjectResponse(req, res, {
+            previousBalanceInUSDCents: result.previousBalanceInUSDCents,
+            newBalanceInUSDCents: result.newBalanceInUSDCents,
+          });
         } catch (err) {
           next(err);
         }

@@ -7,6 +7,8 @@ import URL from "Common/Types/API/URL";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import SubscriptionStatus from "Common/Types/Billing/SubscriptionStatus";
+import ProjectBalanceType from "Common/Types/Billing/ProjectBalanceType";
+import BalanceAdjustmentType from "Common/Types/Billing/BalanceAdjustmentType";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
@@ -14,6 +16,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Project from "Common/Models/DatabaseModels/Project";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import ModelPage from "Common/UI/Components/Page/ModelPage";
@@ -36,6 +39,13 @@ import { useTranslation } from "react-i18next";
  */
 const MAX_TRIAL_LENGTH_IN_DAYS: number = 730;
 
+/*
+ * Mirrors MAX_BALANCE_ADJUSTMENT_IN_USD_CENTS on the server, for the same
+ * reason the trial length is mirrored: catch the fat-fingered amount in the
+ * form rather than in the API response.
+ */
+const MAX_BALANCE_ADJUSTMENT_IN_USD: number = 10000;
+
 const ProjectSubscription: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
 
@@ -55,6 +65,9 @@ const ProjectSubscription: FunctionComponent = (): ReactElement => {
   const [showExtendTrialModal, setShowExtendTrialModal] =
     useState<boolean>(false);
   const [isExtending, setIsExtending] = useState<boolean>(false);
+  const [showAdjustBalanceModal, setShowAdjustBalanceModal] =
+    useState<boolean>(false);
+  const [isAdjustingBalance, setIsAdjustingBalance] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState<string>("");
   const [refresher, setRefresher] = useState<boolean>(false);
@@ -171,6 +184,197 @@ const ProjectSubscription: FunctionComponent = (): ReactElement => {
     }
 
     await extendTrial(trialEndsAt);
+  };
+
+  const adjustBalanceApiUrl: URL = URL.fromString(APP_API_URL.toString())
+    .addRoute(projectCrudRoute!)
+    .addRoute(`/${modelId.toString()}/adjust-balance`);
+
+  const balanceTypeOptions: Array<DropdownOption> = [
+    {
+      label: t("pages.projectSubscription.balanceTypeSmsOrCall"),
+      value: ProjectBalanceType.SmsOrCall,
+    },
+    {
+      label: t("pages.projectSubscription.balanceTypeAi"),
+      value: ProjectBalanceType.AI,
+    },
+  ];
+
+  const adjustmentTypeOptions: Array<DropdownOption> = [
+    {
+      label: t("pages.projectSubscription.adjustmentTypeAdd"),
+      value: BalanceAdjustmentType.Add,
+    },
+    {
+      label: t("pages.projectSubscription.adjustmentTypeDeduct"),
+      value: BalanceAdjustmentType.Deduct,
+    },
+    {
+      label: t("pages.projectSubscription.adjustmentTypeSet"),
+      value: BalanceAdjustmentType.Set,
+    },
+  ];
+
+  type AdjustBalanceFunction = (values: {
+    balanceType: ProjectBalanceType;
+    adjustmentType: BalanceAdjustmentType;
+    amountInUSD: number;
+    reason: string;
+  }) => Promise<void>;
+
+  const adjustBalance: AdjustBalanceFunction = async (values: {
+    balanceType: ProjectBalanceType;
+    adjustmentType: BalanceAdjustmentType;
+    amountInUSD: number;
+    reason: string;
+  }): Promise<void> => {
+    setIsAdjustingBalance(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.put({
+          url: adjustBalanceApiUrl,
+          data: {
+            data: {
+              balanceType: values.balanceType,
+              adjustmentType: values.adjustmentType,
+              amountInUSD: values.amountInUSD,
+              reason: values.reason,
+            },
+          },
+        });
+
+      if (response instanceof HTTPErrorResponse) {
+        throw response;
+      }
+
+      if (response.isFailure()) {
+        throw new Error(t("pages.projectSubscription.adjustFailure"));
+      }
+
+      const newBalanceInUSDCents: number = Number(
+        (response.data as JSONObject)["newBalanceInUSDCents"] ?? 0,
+      );
+
+      setSuccess(
+        t("pages.projectSubscription.adjustSuccess", {
+          balance: (newBalanceInUSDCents / 100).toFixed(2),
+        }),
+      );
+
+      setShowAdjustBalanceModal(false);
+
+      // Pull the project back down so the card shows the balance we just wrote.
+      setRefresher(!refresher);
+    } catch (err) {
+      setError(API.getFriendlyMessage(err));
+    } finally {
+      setIsAdjustingBalance(false);
+    }
+  };
+
+  type OnAdjustBalanceSubmitFunction = (values: JSONObject) => Promise<void>;
+
+  /*
+   * Same split as the extend-trial form above: the schema can only say a
+   * field is present, so everything about what the numbers MEAN is checked
+   * here, and a failure only sets the error - the modal stays open with what
+   * the admin typed still in it.
+   */
+  const onAdjustBalanceSubmit: OnAdjustBalanceSubmitFunction = async (
+    values: JSONObject,
+  ): Promise<void> => {
+    const balanceType: string = String(values["balanceType"] || "").trim();
+
+    if (
+      !Object.values(ProjectBalanceType).includes(
+        balanceType as ProjectBalanceType,
+      )
+    ) {
+      setError(t("pages.projectSubscription.balanceTypeRequired"));
+      return;
+    }
+
+    const adjustmentType: string = String(
+      values["adjustmentType"] || "",
+    ).trim();
+
+    if (
+      !Object.values(BalanceAdjustmentType).includes(
+        adjustmentType as BalanceAdjustmentType,
+      )
+    ) {
+      setError(t("pages.projectSubscription.adjustmentTypeRequired"));
+      return;
+    }
+
+    const amountValue: string = String(values["amountInUSD"] ?? "").trim();
+
+    if (!amountValue) {
+      setError(t("pages.projectSubscription.amountRequired"));
+      return;
+    }
+
+    const amountInUSD: number = Number(amountValue);
+
+    if (!isFinite(amountInUSD)) {
+      setError(t("pages.projectSubscription.amountInvalid"));
+      return;
+    }
+
+    if (amountInUSD < 0) {
+      setError(t("pages.projectSubscription.amountNegative"));
+      return;
+    }
+
+    /*
+     * Adding or deducting nothing is a no-op; setting to zero is a real
+     * instruction, so only the relative adjustments require a positive amount.
+     */
+    if (amountInUSD === 0 && adjustmentType !== BalanceAdjustmentType.Set) {
+      setError(t("pages.projectSubscription.amountNotPositive"));
+      return;
+    }
+
+    if (amountInUSD > MAX_BALANCE_ADJUSTMENT_IN_USD) {
+      setError(
+        t("pages.projectSubscription.amountTooLarge", {
+          max: MAX_BALANCE_ADJUSTMENT_IN_USD,
+        }),
+      );
+      return;
+    }
+
+    /*
+     * Cents are the storage unit, so a third decimal place has nowhere to go.
+     * Reject it rather than rounding silently - the admin should see the
+     * number they are actually applying. The tolerance is there because
+     * 20.15 * 100 is 2014.9999999999998 in binary floating point, which is a
+     * representation artefact and not a fraction of a cent.
+     */
+    const amountInUSDCents: number = amountInUSD * 100;
+
+    if (Math.abs(amountInUSDCents - Math.round(amountInUSDCents)) > 1e-6) {
+      setError(t("pages.projectSubscription.amountTooPrecise"));
+      return;
+    }
+
+    const reason: string = String(values["reason"] || "").trim();
+
+    if (!reason) {
+      setError(t("pages.projectSubscription.reasonRequired"));
+      return;
+    }
+
+    await adjustBalance({
+      balanceType: balanceType as ProjectBalanceType,
+      adjustmentType: adjustmentType as BalanceAdjustmentType,
+      amountInUSD: amountInUSD,
+      reason: reason,
+    });
   };
 
   const breadcrumbLinks: Array<{ title: string; to: Route }> = [
@@ -342,6 +546,147 @@ const ProjectSubscription: FunctionComponent = (): ReactElement => {
             modelId: modelId,
           }}
         />
+
+        {/*
+         * Prepaid balances live next to the subscription because they are the
+         * other half of what the customer owes: the plan is invoiced, these
+         * are drawn down. Staff correct them here when a charge was wrong or
+         * a credit was promised out of band.
+         */}
+        <CardModelDetail<Project>
+          name="Project Balances"
+          modelAPI={AdminModelAPI}
+          refresher={refresher}
+          cardProps={{
+            title: t("pages.projectSubscription.balancesCardTitle"),
+            description: t("pages.projectSubscription.balancesCardDescription"),
+            buttons: [
+              {
+                title: t("pages.projectSubscription.adjustBalanceTitle"),
+                icon: IconProp.Billing,
+                onClick: () => {
+                  setError("");
+                  setSuccess("");
+                  setShowAdjustBalanceModal(true);
+                },
+              },
+            ],
+          }}
+          isEditable={false}
+          modelDetailProps={{
+            modelType: Project,
+            id: "model-detail-project-balances",
+            refresher: refresher,
+            fields: [
+              {
+                field: {
+                  smsOrCallCurrentBalanceInUSDCents: true,
+                },
+                title: t("pages.projectSubscription.fieldSmsOrCallBalance"),
+                description: t(
+                  "pages.projectSubscription.fieldSmsOrCallBalanceDescription",
+                ),
+                fieldType: FieldType.USDCents,
+                placeholder: "0 USD",
+              },
+              {
+                field: {
+                  aiCurrentBalanceInUSDCents: true,
+                },
+                title: t("pages.projectSubscription.fieldAiBalance"),
+                description: t(
+                  "pages.projectSubscription.fieldAiBalanceDescription",
+                ),
+                fieldType: FieldType.USDCents,
+                placeholder: "0 USD",
+              },
+            ],
+            modelId: modelId,
+          }}
+        />
+
+        {showAdjustBalanceModal ? (
+          <BasicFormModal
+            title={t("pages.projectSubscription.adjustBalanceTitle")}
+            description={t(
+              "pages.projectSubscription.adjustBalanceDescription",
+            )}
+            isLoading={isAdjustingBalance}
+            submitButtonText={t(
+              "pages.projectSubscription.adjustBalanceSubmitButton",
+            )}
+            onClose={() => {
+              setShowAdjustBalanceModal(false);
+              setError("");
+            }}
+            onSubmit={onAdjustBalanceSubmit}
+            formProps={{
+              id: "adjust-balance-form",
+              name: "Adjust Balance",
+              // See the note on the extend-trial form: one error, on the form.
+              error: error,
+              initialValues: {
+                balanceType: ProjectBalanceType.SmsOrCall,
+                adjustmentType: BalanceAdjustmentType.Add,
+                amountInUSD: "",
+                reason: "",
+              },
+              fields: [
+                {
+                  field: {
+                    balanceType: true,
+                  },
+                  title: t("pages.projectSubscription.balanceTypeLabel"),
+                  description: t(
+                    "pages.projectSubscription.balanceTypeDescription",
+                  ),
+                  required: true,
+                  fieldType: FormFieldSchemaType.Dropdown,
+                  dropdownOptions: balanceTypeOptions,
+                },
+                {
+                  field: {
+                    adjustmentType: true,
+                  },
+                  title: t("pages.projectSubscription.adjustmentTypeLabel"),
+                  description: t(
+                    "pages.projectSubscription.adjustmentTypeDescription",
+                  ),
+                  required: true,
+                  fieldType: FormFieldSchemaType.Dropdown,
+                  dropdownOptions: adjustmentTypeOptions,
+                },
+                {
+                  field: {
+                    amountInUSD: true,
+                  },
+                  title: t("pages.projectSubscription.amountLabel"),
+                  description: t(
+                    "pages.projectSubscription.amountDescription",
+                    {
+                      max: MAX_BALANCE_ADJUSTMENT_IN_USD,
+                    },
+                  ),
+                  required: true,
+                  fieldType: FormFieldSchemaType.Number,
+                  placeholder: "20",
+                },
+                {
+                  field: {
+                    reason: true,
+                  },
+                  title: t("pages.projectSubscription.reasonLabel"),
+                  description: t("pages.projectSubscription.reasonDescription"),
+                  required: true,
+                  fieldType: FormFieldSchemaType.Text,
+                  placeholder: t("pages.projectSubscription.reasonPlaceholder"),
+                },
+              ],
+            }}
+          />
+        ) : (
+          <></>
+        )}
 
         {showExtendTrialModal ? (
           /*
