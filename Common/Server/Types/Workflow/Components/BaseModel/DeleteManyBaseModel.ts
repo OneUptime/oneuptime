@@ -12,6 +12,8 @@ import ComponentMetadata, {
   Port,
 } from "../../../../../Types/Workflow/Component";
 import BaseModelComponents from "../../../../../Types/Workflow/Components/BaseModel";
+import { normalizeModelKeys } from "./ModelArguments";
+import logComponentError from "./LogComponentError";
 
 export default class DeleteManyBaseModel<
   TBaseModel extends BaseModel,
@@ -114,22 +116,26 @@ export default class DeleteManyBaseModel<
         args["limit"] = LIMIT_PER_PROJECT;
       }
 
+      const query: Query<TBaseModel> = JSONFunctions.deserialize(
+        normalizeModelKeys(
+          args["query"] as JSONObject,
+          this.modelService.getModel(),
+        ),
+      ) as Query<TBaseModel>;
+
+      /*
+       * The tenant column goes on the deserialized query, not on args["query"]
+       * - JSONFunctions.deserialize returns a new object, so anything written
+       * to args after it runs never reaches the database.
+       */
       if (this.modelService.getModel().getTenantColumn()) {
-        (args["query"] as JSONObject)[
+        (query as JSONObject)[
           this.modelService.getModel().getTenantColumn() as string
         ] = options.projectId;
       }
 
-      let query: Query<TBaseModel> = args["query"] as Query<TBaseModel>;
-
-      if (query) {
-        query = JSONFunctions.deserialize(
-          args["query"] as JSONObject,
-        ) as Query<TBaseModel>;
-      }
-
-      await this.modelService.deleteBy({
-        query: query || {},
+      const itemsDeleted: number = await this.modelService.deleteBy({
+        query: query,
         limit: new PositiveNumber(args["limit"] as number),
         skip: new PositiveNumber(args["skip"] as number),
         props: {
@@ -138,13 +144,25 @@ export default class DeleteManyBaseModel<
         },
       });
 
+      options.log(
+        `Deleted ${itemsDeleted} ${
+          this.modelService.getModel().singularName || "record"
+        }(s).`,
+      );
+
       return {
-        returnValues: {},
+        returnValues: {
+          "items-deleted": itemsDeleted,
+        },
         executePort: successPort,
       };
     } catch (err: any) {
-      options.log("Error running component");
-      options.log(err.message ? err.message : JSON.stringify(err, null, 2));
+      logComponentError({
+        error: err,
+        model: this.modelService?.getModel() || null,
+        log: options.log,
+      });
+
       return {
         returnValues: {},
         executePort: errorPort,

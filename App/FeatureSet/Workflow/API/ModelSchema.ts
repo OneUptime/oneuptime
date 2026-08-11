@@ -5,7 +5,7 @@ import {
   getTableColumns,
 } from "Common/Types/Database/TableColumn";
 import { ColumnAccessControl } from "Common/Types/BaseDatabase/AccessControl";
-import { getColumnAccessControl } from "Common/Types/Database/AccessControl/ColumnAccessControl";
+import Dictionary from "Common/Types/Dictionary";
 import TableColumnType from "Common/Types/Database/TableColumnType";
 import Permission from "Common/Types/Permission";
 import Entities from "Common/Models/DatabaseModels/Index";
@@ -85,6 +85,20 @@ const describeColumns: (
   const columns: { [key: string]: TableColumnMetadata } =
     getTableColumns(modelInstance);
 
+  /*
+   * The standalone getColumnAccessControl reads only the @ColumnAccessControl
+   * decorator. The primary key and the timestamp columns carry no decorator -
+   * the model injects their ACLs from its own record-level permissions - so
+   * reading the decorator alone hid "_id" from the picker, which is exactly
+   * the column builders most need to find (see issue #3132).
+   *
+   * Built once per model: the model's per-column accessor rebuilds this whole
+   * dictionary on every call, which would make describing a model quadratic in
+   * its column count, and describeColumns recurses into every relation.
+   */
+  const accessControlByColumn: Dictionary<ColumnAccessControl> =
+    modelInstance.getColumnAccessControlForAllColumns();
+
   const descriptors: Array<ColumnDescriptor> = [];
 
   for (const columnId of Object.keys(columns)) {
@@ -93,10 +107,8 @@ const describeColumns: (
       continue;
     }
 
-    const acl: ColumnAccessControl | undefined = getColumnAccessControl(
-      modelInstance,
-      columnId,
-    );
+    const acl: ColumnAccessControl | undefined =
+      accessControlByColumn[columnId];
 
     if (!hasReadAccess(acl)) {
       continue;
