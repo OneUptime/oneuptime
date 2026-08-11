@@ -1489,6 +1489,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         _id: deleteById.id.toString(),
       } as any,
       deletedByUser: deleteById.deletedByUser,
+      deletionReason: deleteById.deletionReason,
       props: deleteById.props,
     });
   }

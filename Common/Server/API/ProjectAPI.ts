@@ -18,6 +18,7 @@ import {
 import JSONWebToken from "../Utils/JsonWebToken";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
+import CommonAPI from "./CommonAPI";
 import BillingService from "../Services/BillingService";
 import Errors from "../Utils/Errors";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
@@ -33,6 +34,12 @@ import ProjectBalanceType from "../../Types/Billing/ProjectBalanceType";
 import BalanceAdjustmentType from "../../Types/Billing/BalanceAdjustmentType";
 import ObjectID from "../../Types/ObjectID";
 import { JSONObject, JSONValue } from "../../Types/JSON";
+
+/*
+ * The reason is free text a customer types into the delete confirmation. The
+ * column is unbounded text, so the cap is here.
+ */
+export const MAX_DELETION_REASON_LENGTH: number = 5000;
 
 export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
   public constructor() {
@@ -131,6 +138,76 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
           await ProjectService.changePlan({
             projectId: projectId,
             paymentProviderPlanId: paymentProviderPlanId,
+          });
+
+          return Response.sendEmptySuccessResponse(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    /*
+     * Deletes a project, carrying the reason the customer gave for deleting it.
+     * The plain DELETE /project/:id route still works and still records the
+     * deletion - this one exists only because a DELETE has nowhere to put the
+     * answer to "why are you deleting this project?".
+     *
+     * The delete itself goes through deleteOneById with the caller's own props,
+     * so ModelPermission enforces ProjectOwner / DeleteProject exactly as it
+     * does on the plain route.
+     */
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/:id/delete-project`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const idParam: string = req.params["id"] as string;
+          ObjectID.validateUUID(idParam);
+          const projectId: ObjectID = new ObjectID(idParam);
+
+          /*
+           * Same guard as change-plan: permissions are resolved for the
+           * authenticated tenant, so the project in the URL has to be that
+           * tenant or permissions on one project would authorize deleting
+           * another.
+           */
+          const tenantId: ObjectID | null = this.getTenantId(req);
+
+          if (!tenantId || tenantId.toString() !== projectId.toString()) {
+            throw new BadDataException(
+              "Project ID in the URL does not match the project the request is authenticated for",
+            );
+          }
+
+          const body: JSONObject = (req.body as JSONObject) || {};
+          const data: JSONObject = (body["data"] as JSONObject) || {};
+          const deletionReasonValue: JSONValue = data["deletionReason"];
+
+          let deletionReason: string | undefined = undefined;
+
+          if (typeof deletionReasonValue === "string") {
+            /*
+             * Free text from a form field. Bound what a client can store, and
+             * drop NUL bytes: Postgres rejects them in a text column, and the
+             * write that fails here is the audit record of a project that has
+             * already been deleted - there is no second chance at it.
+             */
+            const cleaned: string = deletionReasonValue
+              // eslint-disable-next-line no-control-regex
+              .replace(/\u0000/g, "")
+              .trim()
+              .substring(0, MAX_DELETION_REASON_LENGTH);
+
+            if (cleaned) {
+              deletionReason = cleaned;
+            }
+          }
+
+          await ProjectService.deleteOneById({
+            id: projectId,
+            deletionReason: deletionReason,
+            props: await CommonAPI.getDatabaseCommonInteractionProps(req),
           });
 
           return Response.sendEmptySuccessResponse(req, res);

@@ -514,6 +514,7 @@ import { DropProjectCallSMSConfigCredentialUniques1786700000000 } from "./178670
 import { AddDataSourceTable1786303472848 } from "./1786303472848-AddDataSourceTable";
 import { MigrationName1786446545142 } from "./1786446545142-MigrationName";
 import { AddMonitorDependency1786449497966 } from "./1786449497966-AddMonitorDependency";
+import { AddDeletedProjectTable1786461136170 } from "./1786461136170-AddDeletedProjectTable";
 
 export default [
   InitialMigration,
@@ -1032,4 +1033,5 @@ export default [
   AddDataSourceTable1786303472848,
   MigrationName1786446545142,
   AddMonitorDependency1786449497966,
+  AddDeletedProjectTable1786461136170,
 ];

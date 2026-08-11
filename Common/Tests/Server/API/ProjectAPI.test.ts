@@ -1,4 +1,6 @@
-import ProjectAPI from "../../../Server/API/ProjectAPI";
+import ProjectAPI, {
+  MAX_DELETION_REASON_LENGTH,
+} from "../../../Server/API/ProjectAPI";
 import MasterAdminAuthorization from "../../../Server/Middleware/MasterAdminAuthorization";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
 import JSONWebToken from "../../../Server/Utils/JsonWebToken";
@@ -484,6 +486,302 @@ describe("ProjectAPI", () => {
         .handlerFunction(mockRequest, mockResponse, nextFunction);
 
       expect(nextFunction).toHaveBeenCalledWith(serviceError);
+      expect(Response.sendEmptySuccessResponse).not.toHaveBeenCalled();
+    });
+  });
+
+  /*
+   * The delete confirmation in the dashboard asks why the customer is leaving,
+   * and a DELETE has nowhere to put the answer. This route is the same delete
+   * with a body - so the interesting cases are the ones where the body could
+   * be used to reach a project the caller is not authenticated for, or to
+   * store something the column was never sized for.
+   */
+  describe("POST /project/:id/delete-project", () => {
+    const tenantMismatchError: BadDataException = new BadDataException(
+      "Project ID in the URL does not match the project the request is authenticated for",
+    );
+
+    beforeEach(() => {
+      ProjectService.deleteOneById = jest.fn().mockResolvedValue(1);
+      /*
+       * getDatabaseCommonInteractionProps asks for the plan of the
+       * authenticated tenant when billing is on.
+       */
+      ProjectService.getCurrentPlan = jest.fn().mockResolvedValue({
+        plan: null,
+        isSubscriptionUnpaid: false,
+      });
+      mockRequest.headers = {};
+
+      /*
+       * Response is module-mocked once for the whole file, so its call log
+       * carries over from the suites above.
+       */
+      (Response.sendEmptySuccessResponse as jest.Mock).mockClear();
+    });
+
+    it("deletes the authenticated tenant's own project", async () => {
+      const projectId: ObjectID = ObjectID.generate();
+
+      mockRequest.params = { id: projectId.toString() };
+      mockRequest.tenantId = projectId;
+      mockRequest.body = { data: { deletionReason: "We built our own" } };
+
+      await mockRouter
+        .match("post", "/project/:id/delete-project")
+        .handlerFunction(mockRequest, mockResponse, nextFunction);
+
+      expect(nextFunction).not.toHaveBeenCalled();
+      expect(ProjectService.deleteOneById).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: projectId,
+          deletionReason: "We built our own",
+        }),
+      );
+      expect(Response.sendEmptySuccessResponse).toHaveBeenCalledWith(
+        mockRequest,
+        mockResponse,
+      );
+    });
+
+    /*
+     * Permissions are resolved for the authenticated tenant, so without this
+     * guard being an owner of one project would authorize deleting another.
+     */
+    it("refuses to delete a project the request is not authenticated for", async () => {
+      const victimProjectId: ObjectID = ObjectID.generate();
+      const attackerProjectId: ObjectID = ObjectID.generate();
+
+      mockRequest.params = { id: victimProjectId.toString() };
+      mockRequest.tenantId = attackerProjectId;
+      mockRequest.body = { data: { deletionReason: "not mine to delete" } };
+
+      await mockRouter
+        .match("post", "/project/:id/delete-project")
+        .handlerFunction(mockRequest, mockResponse, nextFunction);
+
+      expect(nextFunction).toHaveBeenCalledWith(tenantMismatchError);
+      expect(ProjectService.deleteOneById).not.toHaveBeenCalled();
+    });
+
+    it("refuses when the request has no authenticated tenant", async () => {
+      const projectId: ObjectID = ObjectID.generate();
+
+      mockRequest.params = { id: projectId.toString() };
+      delete mockRequest.tenantId;
+      mockRequest.body = { data: { deletionReason: "anything" } };
+
+      await mockRouter
+        .match("post", "/project/:id/delete-project")
+        .handlerFunction(mockRequest, mockResponse, nextFunction);
+
+      expect(nextFunction).toHaveBeenCalledWith(tenantMismatchError);
+      expect(ProjectService.deleteOneById).not.toHaveBeenCalled();
+    });
+
+    it("rejects an id that is not a project id", async () => {
+      mockRequest.params = { id: "not-a-uuid" };
+      mockRequest.tenantId = ObjectID.generate();
+      mockRequest.body = { data: {} };
+
+      await mockRouter
+        .match("post", "/project/:id/delete-project")
+        .handlerFunction(mockRequest, mockResponse, nextFunction);
+
+      expect(nextFunction).toHaveBeenCalled();
+      expect(ProjectService.deleteOneById).not.toHaveBeenCalled();
+    });
+
+    /*
+     * The reason is optional: a customer who does not want to answer must
+     * still be able to delete their project.
+     */
+    it("deletes without a reason when none was given", async () => {
+      const projectId: ObjectID = ObjectID.generate();
+
+      mockRequest.params = { id: projectId.toString() };
+      mockRequest.tenantId = projectId;
+      mockRequest.body = {};
+
+      await mockRouter
+        .match("post", "/project/:id/delete-project")
+        .handlerFunction(mockRequest, mockResponse, nextFunction);
+
+      expect(nextFunction).not.toHaveBeenCalled();
+      expect(ProjectService.deleteOneById).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: projectId,
+          deletionReason: undefined,
+        }),
+      );
+    });
+
+    it("treats a blank reason as no reason", async () => {
+      const projectId: ObjectID = ObjectID.generate();
+
+      mockRequest.params = { id: projectId.toString() };
+      mockRequest.tenantId = projectId;
+      mockRequest.body = { data: { deletionReason: "   " } };
+
+      await mockRouter
+        .match("post", "/project/:id/delete-project")
+        .handlerFunction(mockRequest, mockResponse, nextFunction);
+
+      expect(ProjectService.deleteOneById).toHaveBeenCalledWith(
+        expect.objectContaining({ deletionReason: undefined }),
+      );
+    });
+
+    it("ignores a reason that is not text", async () => {
+      const projectId: ObjectID = ObjectID.generate();
+
+      mockRequest.params = { id: projectId.toString() };
+      mockRequest.tenantId = projectId;
+      mockRequest.body = { data: { deletionReason: { $ne: null } } };
+
+      await mockRouter
+        .match("post", "/project/:id/delete-project")
+        .handlerFunction(mockRequest, mockResponse, nextFunction);
+
+      expect(nextFunction).not.toHaveBeenCalled();
+      expect(ProjectService.deleteOneById).toHaveBeenCalledWith(
+        expect.objectContaining({ deletionReason: undefined }),
+      );
+    });
+
+    /*
+     * Postgres rejects NUL bytes in a text column. The insert that would fail
+     * is the audit record of a project that has already been deleted, and
+     * there is no second chance at writing it - so they are dropped here.
+     */
+    it("strips NUL bytes the database would reject", async () => {
+      const projectId: ObjectID = ObjectID.generate();
+
+      mockRequest.params = { id: projectId.toString() };
+      mockRequest.tenantId = projectId;
+      mockRequest.body = {
+        data: { deletionReason: "too\u0000 expensive\u0000" },
+      };
+
+      await mockRouter
+        .match("post", "/project/:id/delete-project")
+        .handlerFunction(mockRequest, mockResponse, nextFunction);
+
+      expect(ProjectService.deleteOneById).toHaveBeenCalledWith(
+        expect.objectContaining({ deletionReason: "too expensive" }),
+      );
+    });
+
+    it("treats a reason that is only NUL bytes as no reason", async () => {
+      const projectId: ObjectID = ObjectID.generate();
+
+      mockRequest.params = { id: projectId.toString() };
+      mockRequest.tenantId = projectId;
+      mockRequest.body = { data: { deletionReason: "\u0000\u0000" } };
+
+      await mockRouter
+        .match("post", "/project/:id/delete-project")
+        .handlerFunction(mockRequest, mockResponse, nextFunction);
+
+      expect(nextFunction).not.toHaveBeenCalled();
+      expect(ProjectService.deleteOneById).toHaveBeenCalledWith(
+        expect.objectContaining({ deletionReason: undefined }),
+      );
+    });
+
+    it("trims the reason before storing it", async () => {
+      const projectId: ObjectID = ObjectID.generate();
+
+      mockRequest.params = { id: projectId.toString() };
+      mockRequest.tenantId = projectId;
+      mockRequest.body = { data: { deletionReason: "  too expensive  " } };
+
+      await mockRouter
+        .match("post", "/project/:id/delete-project")
+        .handlerFunction(mockRequest, mockResponse, nextFunction);
+
+      expect(ProjectService.deleteOneById).toHaveBeenCalledWith(
+        expect.objectContaining({ deletionReason: "too expensive" }),
+      );
+    });
+
+    /*
+     * The column is unbounded text and the field is free text from a browser,
+     * so the only thing standing between a client and an arbitrarily large
+     * row is this cap.
+     */
+    it("caps how much free text a client can store", async () => {
+      const projectId: ObjectID = ObjectID.generate();
+
+      mockRequest.params = { id: projectId.toString() };
+      mockRequest.tenantId = projectId;
+      mockRequest.body = {
+        data: { deletionReason: "a".repeat(MAX_DELETION_REASON_LENGTH + 500) },
+      };
+
+      await mockRouter
+        .match("post", "/project/:id/delete-project")
+        .handlerFunction(mockRequest, mockResponse, nextFunction);
+
+      const call: { deletionReason?: string } = (
+        ProjectService.deleteOneById as unknown as {
+          mock: { calls: Array<Array<{ deletionReason?: string }>> };
+        }
+      ).mock.calls[0]![0]!;
+
+      expect(call.deletionReason).toHaveLength(MAX_DELETION_REASON_LENGTH);
+    });
+
+    /*
+     * The delete goes through the ordinary permission-checked path with the
+     * caller's own props - the reason must not turn this into a privileged
+     * delete.
+     */
+    it("deletes as the caller, not as root", async () => {
+      const projectId: ObjectID = ObjectID.generate();
+      const userId: ObjectID = ObjectID.generate();
+
+      mockRequest.params = { id: projectId.toString() };
+      mockRequest.tenantId = projectId;
+      mockRequest.userAuthorization = { userId: userId } as JSONWebTokenData;
+      mockRequest.body = { data: { deletionReason: "done with it" } };
+
+      await mockRouter
+        .match("post", "/project/:id/delete-project")
+        .handlerFunction(mockRequest, mockResponse, nextFunction);
+
+      const call: { props: { isRoot?: boolean; userId?: ObjectID } } = (
+        ProjectService.deleteOneById as unknown as {
+          mock: {
+            calls: Array<
+              Array<{ props: { isRoot?: boolean; userId?: ObjectID } }>
+            >;
+          };
+        }
+      ).mock.calls[0]![0]!;
+
+      expect(call.props.isRoot).toBeFalsy();
+      expect(call.props.userId).toBe(userId);
+    });
+
+    it("forwards a refused delete to next instead of reporting success", async () => {
+      const projectId: ObjectID = ObjectID.generate();
+      const notAllowed: BadDataException = new BadDataException(
+        "Delete on Project is not allowed",
+      );
+
+      ProjectService.deleteOneById = jest.fn().mockRejectedValue(notAllowed);
+
+      mockRequest.params = { id: projectId.toString() };
+      mockRequest.tenantId = projectId;
+      mockRequest.body = { data: { deletionReason: "nope" } };
+
+      await mockRouter
+        .match("post", "/project/:id/delete-project")
+        .handlerFunction(mockRequest, mockResponse, nextFunction);
+
+      expect(nextFunction).toHaveBeenCalledWith(notAllowed);
       expect(Response.sendEmptySuccessResponse).not.toHaveBeenCalled();
     });
   });
