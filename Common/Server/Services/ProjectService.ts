@@ -20,6 +20,7 @@ import SessionReplayGateCacheStore from "../Utils/SessionReplay/SessionReplayGat
 import AccessTokenService from "./AccessTokenService";
 import BillingService from "./BillingService";
 import DatabaseService from "./DatabaseService";
+import DeletedProjectService from "./DeletedProjectService";
 import IncidentSeverityService from "./IncidentSeverityService";
 import IncidentStateService from "./IncidentStateService";
 import IncidentRoleService from "./IncidentRoleService";
@@ -2095,6 +2096,12 @@ These are no longer recorded against the project and have to be cancelled by han
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
+    /*
+     * Everything onDeleteSuccess needs has to be read here: projects are hard
+     * deleted, so by the time that hook runs there is nothing left to query.
+     * The extra columns beyond the billing ones are the snapshot that goes
+     * into DeletedProject for customer outreach.
+     */
     const projects: Array<Model> = await this.findBy({
       query: deleteBy.query,
       props: {
@@ -2107,11 +2114,24 @@ These are no longer recorded against the project and have to be cancelled by han
         paymentProviderSubscriptionId: true,
         paymentProviderMeteredSubscriptionId: true,
         name: true,
+        slug: true,
         createdAt: true,
         planName: true,
+        paymentProviderPlanId: true,
+        paymentProviderCustomerId: true,
+        paymentProviderSubscriptionStatus: true,
+        paymentProviderSubscriptionSeats: true,
+        trialEndsAt: true,
+        currentActiveMonitorsCount: true,
+        isBlocked: true,
+        createdByUserId: true,
         createdByUser: {
           name: true,
           email: true,
+          companyName: true,
+          companyPhoneNumber: true,
+          companySize: true,
+          jobRole: true,
         },
       },
     });
@@ -2122,8 +2142,45 @@ These are no longer recorded against the project and have to be cancelled by han
   @CaptureSpan()
   protected override async onDeleteSuccess(
     onDelete: OnDelete<Model>,
-    _itemIdsBeforeDelete: ObjectID[],
+    itemIdsBeforeDelete: ObjectID[],
   ): Promise<OnDelete<Model>> {
+    /*
+     * Record the deleted project first. Everything else in this hook can throw
+     * - Stripe in particular - and the customer we would want to follow up
+     * with is exactly the one whose deletion hit an error.
+     *
+     * Only the projects that were really deleted are recorded: onBeforeDelete
+     * snapshots everything the query matched, which is a superset once
+     * permissions narrow the delete.
+     */
+    const deletedProjectIds: Set<string> = new Set<string>(
+      itemIdsBeforeDelete.map((id: ObjectID) => {
+        return id.toString();
+      }),
+    );
+
+    for (const project of onDelete.carryForward) {
+      if (project.id && !deletedProjectIds.has(project.id.toString())) {
+        continue;
+      }
+
+      try {
+        await DeletedProjectService.logProjectDeletion({
+          project: project,
+          deletedByUserId:
+            onDelete.deleteBy.deletedByUser?.id ||
+            onDelete.deleteBy.props.userId,
+          deletionReason: onDelete.deleteBy.deletionReason,
+        });
+      } catch (err) {
+        /*
+         * The project is already gone. Failing the request now would tell the
+         * customer their delete did not work when it did.
+         */
+        logger.error(err);
+      }
+    }
+
     if (NotificationSlackWebhookOnDeleteProject) {
       for (const project of onDelete.carryForward) {
         let subscriptionStatus: SubscriptionStatus | null = null;

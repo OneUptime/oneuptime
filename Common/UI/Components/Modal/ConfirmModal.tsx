@@ -15,6 +15,8 @@ export interface ComponentProps {
   isLoading?: boolean;
   error?: string | undefined;
   disableSubmitButton?: boolean | undefined;
+  // Rendered under the description - for confirmations that also ask something.
+  children?: ReactElement | undefined;
 }
 
 const ConfirmModal: FunctionComponent<ComponentProps> = (
@@ -51,11 +53,14 @@ const ConfirmModal: FunctionComponent<ComponentProps> = (
        * a long confirmation two nested scrollbars, and the inner one clipped
        * the text well short of the space the modal had spare.
        */}
-      <div
-        data-testid="confirm-modal-description"
-        className="whitespace-pre-wrap break-words text-sm leading-6 text-gray-600"
-      >
-        {translatedDescription}
+      <div>
+        <div
+          data-testid="confirm-modal-description"
+          className="whitespace-pre-wrap break-words text-sm leading-6 text-gray-600"
+        >
+          {translatedDescription}
+        </div>
+        {props.children ? <div className="mt-4">{props.children}</div> : <></>}
       </div>
     </Modal>
   );

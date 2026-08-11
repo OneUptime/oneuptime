@@ -424,6 +424,7 @@ import ProjectSCIM from "./ProjectSCIM";
 import ProjectSCIMLog from "./ProjectSCIMLog";
 import StatusPageSCIMLog from "./StatusPageSCIMLog";
 import MarketingConversion from "./MarketingConversion";
+import DeletedProject from "./DeletedProject";
 
 const AllModelTypes: Array<{
   new (): BaseModel;
@@ -869,6 +870,7 @@ const AllModelTypes: Array<{
   RumSessionErasureRequest,
   RumSessionPin,
   MarketingConversion,
+  DeletedProject,
 ];
 
 const modelTypeMap: { [key: string]: { new (): BaseModel } } = {};
