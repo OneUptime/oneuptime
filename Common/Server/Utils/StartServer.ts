@@ -127,6 +127,14 @@ const setDefaultHeaders: RequestHandler = (
 
   res.header("Access-Control-Expose-Headers", CORS_EXPOSED_HEADERS.join(", "));
 
+  /*
+   * Content sniffing turns "the server declared a boring type" into "the
+   * browser guessed an interesting one", which is how an upload becomes a
+   * document. nginx sets this on the static app locations but not on /api or
+   * /file, so set it here for everything the app itself serves.
+   */
+  res.header("X-Content-Type-Options", "nosniff");
+
   next();
 };
 
