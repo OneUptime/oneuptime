@@ -42,10 +42,35 @@ in three ways, in this order of precedence:
 
 Keys served by `externalSecrets` are not written into the chart-managed
 `<release>-secrets` Secret at all — pods read them straight from your Secret, so
-`helm diff` no longer reports them as changing on every render. If you were
-already using `externalSecrets`, the first upgrade after this change drops the
-unused copies from `<release>-secrets`; nothing reads them, so the removal is
-safe.
+`helm diff` no longer reports them as changing on every render.
+
+If you were already using `externalSecrets` before this change, the copies the
+chart used to generate stay behind in the live `<release>-secrets` Secret: Helm
+patches the `stringData` field, and the API server has already folded the old
+values into `data`, so dropping a key from the template does not delete it from
+the object. Nothing reads them, so leaving them is harmless. To clear them out:
+
+```
+kubectl patch secret <release>-secrets -n <namespace> --type=json \
+  -p '[{"op":"remove","path":"/data/oneuptime-secret"},
+       {"op":"remove","path":"/data/encryption-secret"},
+       {"op":"remove","path":"/data/register-probe-key"}]'
+```
+
+Remove only the keys you actually serve via `externalSecrets`. Deleting them is
+not free: if you later drop the `externalSecrets` block, the chart generates a
+brand-new value for any key that is no longer in `<release>-secrets`, and a new
+`ENCRYPTION_SECRET` means existing encrypted data can no longer be read. Leaving
+the old copies in place is the safer default — an install that adopted
+`externalSecrets` after running on chart-managed secrets had to copy its
+`ENCRYPTION_SECRET` into its own Secret to keep its data readable, so the
+retained copy is the same value and switching back picks it up again.
+
+If your install used `externalSecrets` from day one, the retained copies are
+values no pod ever read, and neither keeping nor deleting them gives you a
+working fallback. Switch back by copying the real values out of your own Secret
+first — set them inline as `oneuptimeSecret` / `encryptionSecret` /
+`registerProbeKey`, or write them into `<release>-secrets` yourself.
 
 Example:
 

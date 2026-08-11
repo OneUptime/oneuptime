@@ -13,8 +13,15 @@ helm plugin install https://github.com/helm-unittest/helm-unittest
 npm run test-helm-chart
 ```
 
-`HelmChart/Tests/index.sh` is the separate end-to-end job: it spins up a KinD
-cluster, installs the chart for real and waits for every pod to become ready.
+Two suites need a real API server and live in `HelmChart/Tests` instead:
+
+- `secrets-lifecycle.sh` — installs and upgrades the chart on a throwaway KinD
+  cluster to cover the `lookup` recovery path in `templates/secrets.yaml`
+  (an upgrade must not rotate a secret it already generated), which renders
+  empty and so cannot be asserted on without a cluster. It pulls no images and
+  also runs on every PR.
+- `index.sh` — the full end-to-end job: installs the chart for real and waits
+  for every pod to become ready.
 
 ## Database migration guides
 

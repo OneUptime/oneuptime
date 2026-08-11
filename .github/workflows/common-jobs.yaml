@@ -47,6 +47,23 @@ jobs:
         if: ${{ failure() }}
         run: echo "Install the plugin with 'helm plugin install https://github.com/helm-unittest/helm-unittest' and run 'npm run test-helm-chart'."
 
+  helm-secrets-lifecycle-test:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+      - name: Install Helm
+        run: |
+          curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+      # Installs and upgrades the chart for real on a KinD cluster to cover the
+      # `lookup` recovery path in templates/secrets.yaml, which renders empty
+      # (and so cannot be asserted on) without an API server. No images are
+      # pulled: the release is installed without --wait and without hooks.
+      - name: Run Helm Chart secret lifecycle tests
+        run: bash ./HelmChart/Tests/secrets-lifecycle.sh
+
 
   js-lint:
     runs-on: ubuntu-latest
