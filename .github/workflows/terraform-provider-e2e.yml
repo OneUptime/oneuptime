@@ -126,6 +126,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # Hermetic checks of the harness itself (engine dispatch, fixture and
+      # workflow contracts) against fake terraform/tofu binaries. Placed
+      # immediately after checkout and before every expensive step — npm
+      # install, provider generation, the Docker stack — so a harness
+      # regression fails in seconds instead of after a stack bring-up. Needs no
+      # Node, Go, Docker or network.
+      - name: Harness self-test
+        run: ./E2E/Terraform/e2e-tests/scripts/self-test.sh
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:

@@ -15,6 +15,7 @@ e2e-tests/
 │   ├── lib.sh                # Shared library with common test utilities
 │   ├── coverage-report.sh    # Resource-type coverage report + ratchet gate
 │   ├── coverage-baseline.txt # Minimum number of tested resource types
+│   ├── self-test.sh          # Hermetic checks of the harness itself
 │   └── cleanup.sh            # Cleans up test artifacts and state files
 └── tests/
     ├── 01-label/             # Label resource tests
@@ -73,6 +74,20 @@ Rather than parameterising ~200 call sites, `lib.sh` defines `terraform` as an e
 - **The function is exported with `export -f`, so scripts must be `#!/bin/bash`.** A `sh` or `zsh` verify script would not inherit it and would run the real `terraform` binary regardless of `TF_CLI`.
 
 The runner prints the engine and its version in its header, and the summary is labelled with it, so a CI log always says which engine a failure came from.
+
+### Harness self-test
+
+`scripts/self-test.sh` checks the harness itself — the plumbing that decides *which* engine runs, as opposed to the provider behaviour the suite asserts:
+
+```bash
+./scripts/self-test.sh
+```
+
+It is hermetic and takes about a second: no network, no Docker, no OneUptime stack, and no real `terraform`/`tofu` binary. Engine dispatch is exercised against fakes on `PATH`; the rest are static contract checks over the fixtures, the runner, and the workflow. CI runs it immediately after checkout so a harness regression fails in seconds rather than after a stack bring-up.
+
+It covers, among others: dispatch reaching a spawned `verify.sh` that does not source `lib.sh`; `TF_CLI=terraform` not recursing into the shell function; `restore_terraformrc` never deleting a config it did not create; every verify script being `#!/bin/bash`; no fixture naming a binary or a registry host; and the workflow invoking the suite exactly twice with both wrappers disabled.
+
+Add a check whenever you add a harness mechanism, and make sure it actually fails when that mechanism is broken — every check here was verified by breaking the thing it guards and confirming the suite went red.
 
 ## Test Flow
 
