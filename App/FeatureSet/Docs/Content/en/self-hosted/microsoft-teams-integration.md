@@ -15,11 +15,13 @@ To integrate Microsoft Teams with your self-hosted OneUptime instance, you need 
 2. Navigate to "App registrations" and click "New registration"
 3. Fill out the registration form:
    - **Name:** oneuptime
-   - **Supported account types:** Accounts in any organizational directory (Any Microsoft Entra ID tenant - Multitenant)
+   - **Supported account types:** Accounts in this organizational directory only (Single tenant)
    - **Redirect URI:** Web - `https://your-oneuptime-domain.com/api/microsoft-teams/auth`
    - Please also add: `https://your-oneuptime-domain.com/api/microsoft-teams/admin-consent/callback`
 4. Click "Register"
 5. Note down the "Application (client) ID" - you'll need this later
+
+**Why single tenant:** a self-hosted OneUptime instance serves one organization, and its bot is registered against the single tenant you set in `MICROSOFT_TEAMS_APP_TENANT_ID` (Step 5). Registering the app as multitenant does not extend that, and it introduces a failure mode: guest / B2B users whose Microsoft home tenant differs from yours will reach the bot with their own tenant id, which OneUptime cannot map to your project. If you already registered a multitenant app it will keep working — just make sure `MICROSOFT_TEAMS_APP_TENANT_ID` is your own tenant, and expect guest accounts to need an account in your tenant to use the bot.
 
 ### Step 2: Configure App Permissions
 
@@ -101,7 +103,7 @@ If you are using Kubernetes with Helm, add these to your `values.yaml` file:
 microsoftTeamsApp:
   clientId: YOUR_TEAMS_APP_CLIENT_ID
   clientSecret: YOUR_TEAMS_APP_CLIENT_SECRET
-   tenantId: YOUR_MICROSOFT_TENANT_ID
+  tenantId: YOUR_MICROSOFT_TENANT_ID
 ```
 
 **Important:** Restart your OneUptime server after adding these environment variables so they take effect.
@@ -116,6 +118,21 @@ microsoftTeamsApp:
 6. Select "Upload for me or my teams"
 7. Upload the manifest zip file you downloaded earlier
 
+### Step 8: Add OneUptime to Each Team (Required)
+
+Uploading the manifest installs the app for **you**. It does **not** give the bot access to any team's channels. Microsoft only accepts messages into a team the app has been added to, so you must do this for every team you want notifications in:
+
+1. In Microsoft Teams, click the "..." next to the **team name** (not the channel name)
+2. Choose **Manage team** > **Apps** > **More apps**
+3. Find **OneUptime** and click **Add**
+
+Notes:
+
+- Installing OneUptime for yourself, or adding it to a chat, is a **different** installation. Neither one lets it post to a team's channels.
+- **Private channels** need the app installed into the channel itself: open the channel > "..." > **Manage channel** > **Apps** > **Add an app**. A team-level install does not cover private channels.
+- **Shared channels** cannot receive notifications at all — Microsoft Teams does not support bots in shared channels. OneUptime hides them from the channel picker.
+- If **Manage team > Apps > More apps** is empty or greyed out, your Teams app setup policy is blocking custom apps. Fix this in the Teams admin center under **Teams apps > Manage apps** and **Setup policies**.
+
 ## Troubleshooting
 
 If you encounter issues:
@@ -126,6 +143,32 @@ If you encounter issues:
 - Make sure the bot messaging endpoint is accessible from the internet
 - Verify that the bot is properly configured with the Teams channel
 - Check that the Teams app manifest has been uploaded successfully
+
+### "The OneUptime app is not installed in the Microsoft Teams team ..."
+
+The app was never added to that team (or, for a private channel, to that channel). Complete **Step 8** above. This is the most common cause of a failed test notification — OneUptime can list every channel in your tenant using Graph application permissions, but it can only *post* to teams the app is a member of.
+
+### "Sorry, I couldn't find your project configuration"
+
+The Microsoft tenant the bot activity came from is not the tenant connected to any OneUptime project. Check the tenant id in your server logs:
+
+```
+grep "Project auth not found for tenant ID" <your app logs>
+```
+
+Compare it with the tenant stored for the project:
+
+```sql
+SELECT "projectId", "workspaceProjectId"
+FROM "WorkspaceProjectAuthToken"
+WHERE "workspaceType" = 'MicrosoftTeams';
+```
+
+If they differ, the user messaging the bot is signed in to a different Microsoft tenant (commonly a guest / B2B account whose home tenant is not yours). Have them use an account in the connected tenant, or @mention the bot inside a channel of the connected team instead of a 1:1 chat.
+
+### "This Microsoft 365 organization is connected to more than one OneUptime project"
+
+Two or more OneUptime projects have connected the same Microsoft tenant. A bot message only carries a tenant id, so OneUptime cannot tell which project you mean and refuses rather than guessing. Disconnect Microsoft Teams from all but one project.
 
 ## Support
 

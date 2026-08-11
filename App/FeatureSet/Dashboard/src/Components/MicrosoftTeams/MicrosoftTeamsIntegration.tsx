@@ -574,9 +574,15 @@ Pre-requisite:
    - Select the downloaded zip file
 3. **Install the app:**
    - Find "OneUptime" in your apps
-   - Click "Add" to install it for your team
+   - Click "Add" to install it for yourself
    - Grant the necessary permissions
-4. Once the app is installed, you can create workspace notification rules in OneUptime to send messages to your teams.
+4. **Add OneUptime to every team you want notifications in — this step is required.**
+   - In Microsoft Teams, click the "..." next to the **team name** (not the channel)
+   - Choose **Manage team → Apps → More apps**, find OneUptime and click **Add**
+   - Installing OneUptime for yourself or adding it to a chat does **not** let it post to that team's channels
+   - For a **private** channel, also open the channel → "..." → **Manage channel → Apps → Add an app**. A team install does not cover private channels
+   - Microsoft Teams does not allow bots in **shared** channels, so those cannot receive notifications
+5. Once the app is added to the team, you can create workspace notification rules in OneUptime to send messages to its channels.
 
 The zip file contains the app manifest and required icons for Teams installation.
               `}
@@ -623,9 +629,13 @@ The zip file contains the app manifest and required icons for Teams installation
 1. **Click the button above** to open the OneUptime app in the Microsoft Teams Store
 2. **Install the app:**
    - Click "Add" to install it for yourself
-   - Or click "Add to a team" to install it for your entire team
    - Grant the necessary permissions
-3. Once the app is installed, you can create workspace notification rules in OneUptime to send messages to your teams.
+3. **Add OneUptime to every team you want notifications in — this step is required.**
+   - Use **"Add to a team"** in the store dialog, or in Microsoft Teams click the "..." next to the **team name** (not the channel) and choose **Manage team → Apps → More apps**
+   - Installing OneUptime for yourself or adding it to a chat does **not** let it post to that team's channels
+   - For a **private** channel, also open the channel → "..." → **Manage channel → Apps → Add an app**. A team install does not cover private channels
+   - Microsoft Teams does not allow bots in **shared** channels, so those cannot receive notifications
+4. Once the app is added to the team, you can create workspace notification rules in OneUptime to send messages to its channels.
 
 ##### Alternative Installation:
 

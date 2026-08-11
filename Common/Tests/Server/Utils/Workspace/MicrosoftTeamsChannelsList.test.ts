@@ -136,6 +136,8 @@ describe("MicrosoftTeamsUtil.getAllWorkspaceChannels", () => {
       id: "19:general@thread.tacv2",
       name: "General",
       workspaceType: WorkspaceType.MicrosoftTeams,
+      teamId: TEAM_ID,
+      membershipType: undefined,
     });
   });
 

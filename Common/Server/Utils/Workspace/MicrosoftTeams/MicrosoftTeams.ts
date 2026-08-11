@@ -34,6 +34,7 @@ import SSRFProtection from "../../SSRFProtection";
 import WorkspaceProjectAuthToken, {
   MicrosoftTeamsChat,
   MicrosoftTeamsChatType,
+  MicrosoftTeamsInstalledTeam,
   MicrosoftTeamsMiscData,
 } from "../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import Incident from "../../../../Models/DatabaseModels/Incident";
@@ -110,6 +111,29 @@ import { AIChatCitation } from "../../../../Types/AI/AIChatTypes";
 
 // Microsoft Teams apps should always be single-tenant
 const MICROSOFT_TEAMS_APP_TYPE: string = "SingleTenant";
+
+/*
+ * Outcome of mapping a Microsoft tenant id to a OneUptime project.
+ *
+ * projectAuth is null both when nothing matched and when the tenant is
+ * connected to several projects — isAmbiguous distinguishes the two so callers
+ * can give the right remedy.
+ */
+export interface MicrosoftTeamsTenantResolution {
+  projectAuth: WorkspaceProjectAuthToken | null;
+  isAmbiguous: boolean;
+  candidateProjectIds: Array<ObjectID>;
+}
+
+/*
+ * Microsoft's wording when the Bot Framework refuses a proactive post because
+ * the app is not a member of the target conversation. Matched case-insensitively
+ * so we can replace it with something the admin can act on.
+ */
+const MICROSOFT_TEAMS_ROSTER_ERROR_FRAGMENTS: Array<string> = [
+  "not part of the conversation roster",
+  "bot is not part of the conversation",
+];
 
 // Maximum number of pages to fetch when paginating teams
 const MICROSOFT_TEAMS_MAX_PAGES: number = 500;
@@ -1083,6 +1107,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           name: displayName,
           workspaceType: WorkspaceType.MicrosoftTeams,
           teamId: data.teamId,
+          membershipType: channelData["membershipType"] as string | undefined,
         };
         logger.debug(`Channel match found: ${JSON.stringify(foundChannel)}`);
         return foundChannel;
@@ -1153,6 +1178,17 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       `Channel names: ${JSON.stringify(data.workspaceMessagePayload.channelNames)}`,
     );
 
+    /*
+     * Declared before destination resolution so that a destination we cannot
+     * even resolve is reported as an error. Silently skipping it made a
+     * typo'd or deleted channel look like a successful send.
+     */
+    const workspaceMessageResponse: WorkspaceSendMessageResponse = {
+      threads: [],
+      workspaceType: WorkspaceType.MicrosoftTeams,
+      errors: [],
+    };
+
     // Resolve channel names
     for (const channelName of data.workspaceMessagePayload.channelNames) {
       logger.debug(`Attempting to resolve channel name: ${channelName}`);
@@ -1178,6 +1214,15 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         workspaceChannelsToPostTo.push(channel);
       } else {
         logger.warn(`Channel not found: ${channelName}`);
+        workspaceMessageResponse.errors!.push({
+          channel: {
+            id: "",
+            name: channelName,
+            workspaceType: WorkspaceType.MicrosoftTeams,
+            teamId: data.workspaceMessagePayload.teamId,
+          },
+          error: `Channel "${channelName}" was not found in this Microsoft Teams team. It may have been renamed or deleted.`,
+        });
       }
     }
 
@@ -1215,6 +1260,15 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           },
         );
         logger.error(err);
+        workspaceMessageResponse.errors!.push({
+          channel: {
+            id: channelId,
+            name: channelId,
+            workspaceType: WorkspaceType.MicrosoftTeams,
+            teamId: data.workspaceMessagePayload.teamId,
+          },
+          error: err instanceof Error ? err.message : String(err),
+        });
       }
     }
 
@@ -1223,12 +1277,6 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       `Total channels to post to: ${workspaceChannelsToPostTo.length}`,
     );
     logger.debug(`Channels: ${JSON.stringify(workspaceChannelsToPostTo)}`);
-
-    const workspaceMessageResponse: WorkspaceSendMessageResponse = {
-      threads: [],
-      workspaceType: WorkspaceType.MicrosoftTeams,
-      errors: [],
-    };
 
     for (const channel of workspaceChannelsToPostTo) {
       try {
@@ -1419,6 +1467,43 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 
       logger.debug(`Using bot ID: ${miscData.botId}`);
 
+      /*
+       * Bots cannot post to shared channels at all, so fail with the reason
+       * rather than letting Microsoft reject the send with a generic error.
+       */
+      if (data.workspaceChannel.membershipType === "shared") {
+        throw new BadDataException(
+          `"${data.workspaceChannel.name}" is a shared channel, and Microsoft Teams does not allow bots to post in shared channels. Please pick a standard or private channel instead.`,
+        );
+      }
+
+      /*
+       * Preflight: refuse before calling the Bot Framework when we know the
+       * app was never installed into this team. Channels are discovered with
+       * tenant-wide Graph application permissions, which see every team
+       * regardless of installation — so reaching this point proves nothing
+       * about whether we can actually post.
+       *
+       * installedTeams is only populated from install events, so an empty map
+       * means "we have not observed any installs" (for example on a workspace
+       * connected before this shipped), not "nothing is installed". Only
+       * enforce once we have at least one record, and let the Bot Framework
+       * error be translated below otherwise.
+       */
+      const installedTeams: Record<string, MicrosoftTeamsInstalledTeam> =
+        miscData.installedTeams || {};
+      const installedTeam: MicrosoftTeamsInstalledTeam | undefined =
+        installedTeams[data.teamId];
+
+      if (Object.keys(installedTeams).length > 0 && !installedTeam) {
+        throw new BadDataException(
+          this.getBotNotInTeamMessage({
+            channelName: data.workspaceChannel.name,
+            membershipType: data.workspaceChannel.membershipType,
+          }),
+        );
+      }
+
       // Get Bot Framework adapter
       const adapter: CloudAdapter = this.getBotAdapter();
 
@@ -1436,7 +1521,13 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           tenantId: tenantId,
         },
         channelId: "msteams",
-        serviceUrl: "https://smba.trafficmanager.net/teams/",
+        /*
+         * Fallback is the commercial-cloud global endpoint; the serviceUrl
+         * captured from the install event is preferred (required for GCC/DoD),
+         * matching what sendAdaptiveCardToChat already does.
+         */
+        serviceUrl:
+          installedTeam?.serviceUrl || "https://smba.trafficmanager.net/teams/",
       };
 
       logger.debug(
@@ -1483,8 +1574,57 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         teamId: data.teamId,
       });
       logger.error(error);
+
+      /*
+       * Microsoft's roster rejection is meaningless to an admin ("The bot is
+       * not part of the conversation roster"). Replace it with the action that
+       * actually fixes it.
+       */
+      if (this.isBotNotInConversationRosterError(error)) {
+        throw new BadDataException(
+          this.getBotNotInTeamMessage({
+            channelName: data.workspaceChannel.name,
+            membershipType: data.workspaceChannel.membershipType,
+          }),
+        );
+      }
+
       throw error;
     }
+  }
+
+  /*
+   * True when an error is Microsoft's "bot is not in this conversation"
+   * rejection from a proactive Bot Framework send.
+   */
+  public static isBotNotInConversationRosterError(error: unknown): boolean {
+    const message: string = (
+      error instanceof Error ? error.message : String(error || "")
+    ).toLowerCase();
+
+    if (!message) {
+      return false;
+    }
+
+    return MICROSOFT_TEAMS_ROSTER_ERROR_FRAGMENTS.some((fragment: string) => {
+      return message.includes(fragment);
+    });
+  }
+
+  /*
+   * Actionable replacement for the roster error. Private channels need the app
+   * installed into the channel itself; a parent-team install does not cover
+   * them, so the two cases get different instructions.
+   */
+  public static getBotNotInTeamMessage(data: {
+    channelName: string;
+    membershipType?: string | undefined;
+  }): string {
+    if (data.membershipType === "private") {
+      return `The OneUptime app is not installed in the private channel "${data.channelName}". In Microsoft Teams, open the channel, click the "..." menu, then Manage channel > Apps > Add an app, and add OneUptime. Installing OneUptime in the parent team does not cover private channels.`;
+    }
+
+    return `The OneUptime app is not installed in the Microsoft Teams team that owns "${data.channelName}". In Microsoft Teams, click the "..." next to the team name, then Manage team > Apps > More apps, and add OneUptime. Installing OneUptime for yourself or in a chat is not the same as adding it to the team.`;
   }
 
   /*
@@ -1700,6 +1840,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         name: channelData["displayName"] as string,
         workspaceType: WorkspaceType.MicrosoftTeams,
         teamId: data.teamId,
+        membershipType: channelData["membershipType"] as string | undefined,
       };
 
       logger.debug(`Channel info retrieved: ${JSON.stringify(channel)}`);
@@ -1914,10 +2055,27 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     const channelsDict: Dictionary<WorkspaceChannel> = {};
 
     for (const channelData of channelsArray) {
+      const membershipType: string | undefined = channelData[
+        "membershipType"
+      ] as string | undefined;
+
+      /*
+       * Microsoft Teams does not support bots in shared channels, so offering
+       * one as a notification destination can only ever produce a failed send.
+       */
+      if (membershipType === "shared") {
+        logger.debug(
+          `Skipping shared channel ${channelData["displayName"]} — Teams does not support bots in shared channels.`,
+        );
+        continue;
+      }
+
       const channel: WorkspaceChannel = {
         id: channelData["id"] as string,
         name: channelData["displayName"] as string,
         workspaceType: WorkspaceType.MicrosoftTeams,
+        teamId: data.teamId,
+        membershipType: membershipType,
       };
       channelsDict[channel.id] = channel;
     }
@@ -2174,6 +2332,19 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       });
     }
 
+    /*
+     * Same backfill for team installs. Teams the app was added to before we
+     * started recording installs fire no new install event, so an @mention in
+     * any channel of that team is the recovery path that makes proactive
+     * channel notifications work again.
+     */
+    if (messageConversationType === "channel") {
+      await this.captureTeamFromBotActivity({
+        activity: data.activity,
+        turnContext: data.turnContext,
+      });
+    }
+
     // If this is actually an Adaptive Card submit wrapped as a message, route to invoke handler
     if (
       (possibleActionValue["action"] as string) ||
@@ -2222,32 +2393,22 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     }
 
     // Get project auth by tenant ID
-    const projectAuth: WorkspaceProjectAuthToken | null =
-      await WorkspaceProjectAuthTokenService.findOneBy({
-        query: {
-          workspaceType: WorkspaceType.MicrosoftTeams,
-          workspaceProjectId: tenantId,
-        },
-        select: {
-          projectId: true,
-          workspaceProjectId: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-    if (!projectAuth || !projectAuth.projectId) {
-      logger.error("Project auth not found for tenant ID: " + tenantId, {
+    const tenantResolution: MicrosoftTeamsTenantResolution =
+      await this.resolveProjectByTenantId({
         tenantId: tenantId,
       });
+
+    if (
+      !tenantResolution.projectAuth ||
+      !tenantResolution.projectAuth.projectId
+    ) {
       await data.turnContext.sendActivity(
-        "Sorry, I couldn't find your project configuration. Please try again later.",
+        this.getTenantResolutionFailureMessage(tenantResolution),
       );
       return;
     }
 
-    const projectId: ObjectID = projectAuth.projectId;
+    const projectId: ObjectID = tenantResolution.projectAuth.projectId;
     logger.debug(
       `Found project ID: ${projectId.toString()} for tenant ID: ${tenantId}`,
     );
@@ -3286,34 +3447,22 @@ All monitoring checks are passing normally.`;
         return;
       }
 
-      const projectAuth: WorkspaceProjectAuthToken | null =
-        await WorkspaceProjectAuthTokenService.findOneBy({
-          query: {
-            workspaceType: WorkspaceType.MicrosoftTeams,
-            workspaceProjectId: tenantId,
-          },
-          select: {
-            projectId: true,
-            authToken: true,
-            workspaceProjectId: true,
-          },
-          props: { isRoot: true },
+      const tenantResolution: MicrosoftTeamsTenantResolution =
+        await this.resolveProjectByTenantId({
+          tenantId: tenantId,
         });
 
-      if (!projectAuth || !projectAuth.projectId) {
-        logger.error(
-          "Project auth not found for invoke activity tenant: " + tenantId,
-          {
-            tenantId: tenantId,
-          },
-        );
+      if (
+        !tenantResolution.projectAuth ||
+        !tenantResolution.projectAuth.projectId
+      ) {
         await data.turnContext.sendActivity(
-          "Sorry, I couldn't find your project configuration.",
+          this.getTenantResolutionFailureMessage(tenantResolution),
         );
         return;
       }
 
-      const projectId: ObjectID = projectAuth.projectId;
+      const projectId: ObjectID = tenantResolution.projectAuth.projectId;
       const fromObj: JSONObject = ((data.activity["from"] as JSONObject) ||
         {}) as JSONObject;
       const teamsUserId: string | undefined =
@@ -3502,12 +3651,19 @@ All monitoring checks are passing normally.`;
         activity: data.activity,
         turnContext: data.turnContext,
       });
+      await this.captureTeamFromBotActivity({
+        activity: data.activity,
+        turnContext: data.turnContext,
+      });
       await this.sendWelcomeAdaptiveCard(data.turnContext);
     }
 
     if (botWasRemoved) {
       logger.debug("OneUptime bot was removed from a Teams conversation");
       await this.removeChatFromBotActivity({
+        activity: data.activity,
+      });
+      await this.removeTeamFromBotActivity({
         activity: data.activity,
       });
     }
@@ -3539,12 +3695,138 @@ All monitoring checks are passing normally.`;
         activity: data.activity,
         turnContext: data.turnContext,
       });
+      await this.captureTeamFromBotActivity({
+        activity: data.activity,
+        turnContext: data.turnContext,
+      });
     } else if (action === "remove" || action === "remove-upgrade") {
       logger.debug("OneUptime bot was uninstalled");
       await this.removeChatFromBotActivity({
         activity: data.activity,
       });
+      await this.removeTeamFromBotActivity({
+        activity: data.activity,
+      });
     }
+  }
+
+  /*
+   * Resolve the OneUptime project that owns a Microsoft tenant.
+   *
+   * Bot activities carry a tenant id and nothing else, so the tenant is the
+   * only key we can resolve a project by. A tenant may legitimately be
+   * connected to more than one OneUptime project (saveChatToProjectAuthTokens
+   * fans out for exactly that reason), and when that happens the tenant alone
+   * does NOT identify a project.
+   *
+   * Previously this was a bare findOneBy, which silently returned whichever
+   * row sorted first and served that project's incidents, alerts and AI
+   * assistant answers to anyone in the tenant — including users with no access
+   * to it. The bot's message path performs no per-user authorization, so
+   * picking arbitrarily is a cross-project disclosure. Refuse instead.
+   */
+  @CaptureSpan()
+  public static async resolveProjectByTenantId(data: {
+    tenantId: string;
+  }): Promise<MicrosoftTeamsTenantResolution> {
+    const projectAuths: Array<WorkspaceProjectAuthToken> =
+      await WorkspaceProjectAuthTokenService.findBy({
+        query: {
+          workspaceType: WorkspaceType.MicrosoftTeams,
+          workspaceProjectId: data.tenantId,
+        },
+        select: {
+          projectId: true,
+          authToken: true,
+          workspaceProjectId: true,
+          miscData: true,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    /*
+     * Ambiguity is about distinct PROJECTS, not rows. Two rows pointing at the
+     * same project are a data-integrity wart, not a question we cannot answer,
+     * so collapse them rather than refusing to serve that tenant forever.
+     */
+    const seenProjectIds: Set<string> = new Set<string>();
+    const usableProjectAuths: Array<WorkspaceProjectAuthToken> = [];
+
+    for (const projectAuth of projectAuths) {
+      if (!projectAuth.projectId) {
+        continue;
+      }
+
+      const projectIdString: string = projectAuth.projectId.toString();
+
+      if (seenProjectIds.has(projectIdString)) {
+        continue;
+      }
+
+      seenProjectIds.add(projectIdString);
+      usableProjectAuths.push(projectAuth);
+    }
+
+    if (usableProjectAuths.length === 0) {
+      logger.error("Project auth not found for tenant ID: " + data.tenantId, {
+        tenantId: data.tenantId,
+      });
+      return {
+        projectAuth: null,
+        isAmbiguous: false,
+        candidateProjectIds: [],
+      };
+    }
+
+    if (usableProjectAuths.length > 1) {
+      const candidateProjectIds: Array<ObjectID> = usableProjectAuths.map(
+        (projectAuth: WorkspaceProjectAuthToken) => {
+          return projectAuth.projectId!;
+        },
+      );
+
+      logger.error(
+        `Microsoft tenant ${data.tenantId} is connected to ${usableProjectAuths.length} OneUptime projects. Refusing to guess which one this bot activity belongs to.`,
+        {
+          tenantId: data.tenantId,
+          projectIds: candidateProjectIds
+            .map((projectId: ObjectID) => {
+              return projectId.toString();
+            })
+            .join(", "),
+        },
+      );
+
+      return {
+        projectAuth: null,
+        isAmbiguous: true,
+        candidateProjectIds: candidateProjectIds,
+      };
+    }
+
+    return {
+      projectAuth: usableProjectAuths[0]!,
+      isAmbiguous: false,
+      candidateProjectIds: [usableProjectAuths[0]!.projectId!],
+    };
+  }
+
+  /*
+   * User-facing text for a failed tenant resolution. The two cases need
+   * different remedies, so they must not share a message.
+   */
+  public static getTenantResolutionFailureMessage(
+    resolution: MicrosoftTeamsTenantResolution,
+  ): string {
+    if (resolution.isAmbiguous) {
+      return "This Microsoft 365 organization is connected to more than one OneUptime project, so I can't tell which one you mean. Please ask your OneUptime admin to disconnect Microsoft Teams from all but one project.";
+    }
+
+    return "Sorry, I couldn't find your project configuration. This usually means the Microsoft 365 organization you're messaging me from isn't the one connected to OneUptime. Please ask your OneUptime admin to check the Microsoft Teams integration in Project Settings.";
   }
 
   /*
@@ -3938,6 +4220,214 @@ All monitoring checks are passing normally.`;
 
     return (
       (projectAuth.miscData as MicrosoftTeamsMiscData).availableChats || {}
+    );
+  }
+
+  /*
+   * Record that the OneUptime app was installed into a team.
+   *
+   * Team installs arrive as conversationUpdate / installationUpdate activities
+   * whose conversation is a channel. captureChatFromBotActivity drops those
+   * (channels are not chats), so before this existed we threw away the only
+   * signal that tells us a proactive channel post will be accepted.
+   */
+  @CaptureSpan()
+  public static async captureTeamFromBotActivity(data: {
+    activity: JSONObject;
+    turnContext: TurnContext;
+  }): Promise<void> {
+    try {
+      const channelData: JSONObject =
+        (data.activity["channelData"] as JSONObject) || {};
+
+      const team: JSONObject | undefined = channelData["team"] as
+        | JSONObject
+        | undefined;
+
+      const teamId: string = (team?.["id"] as string) || "";
+
+      if (!teamId) {
+        // Not a team-scoped activity (personal or group chat). Nothing to do.
+        return;
+      }
+
+      const tenantId: string =
+        ((channelData["tenant"] as JSONObject)?.["id"] as string) || "";
+
+      if (!tenantId) {
+        logger.debug("No tenant id found on team activity. Skipping.");
+        return;
+      }
+
+      const installedTeam: MicrosoftTeamsInstalledTeam = {
+        id: teamId,
+        name: (team?.["name"] as string) || undefined,
+        serviceUrl:
+          (data.activity["serviceUrl"] as string) ||
+          data.turnContext.activity.serviceUrl ||
+          undefined,
+        addedAt: OneUptimeDate.getCurrentDate().toISOString(),
+      };
+
+      await this.saveTeamToProjectAuthTokens({
+        tenantId: tenantId,
+        team: installedTeam,
+      });
+
+      logger.debug(
+        `Captured Microsoft Teams team install ${teamId} for tenant ${tenantId}`,
+      );
+    } catch (err) {
+      logger.error("Error capturing Microsoft Teams team from bot activity:");
+      logger.error(err);
+    }
+  }
+
+  @CaptureSpan()
+  public static async removeTeamFromBotActivity(data: {
+    activity: JSONObject;
+  }): Promise<void> {
+    try {
+      const channelData: JSONObject =
+        (data.activity["channelData"] as JSONObject) || {};
+
+      const teamId: string =
+        ((channelData["team"] as JSONObject)?.["id"] as string) || "";
+      const tenantId: string =
+        ((channelData["tenant"] as JSONObject)?.["id"] as string) || "";
+
+      if (!teamId || !tenantId) {
+        return;
+      }
+
+      await this.removeTeamFromProjectAuthTokens({
+        tenantId: tenantId,
+        teamId: teamId,
+      });
+
+      logger.debug(
+        `Removed Microsoft Teams team install ${teamId} for tenant ${tenantId}`,
+      );
+    } catch (err) {
+      logger.error("Error removing Microsoft Teams team from bot activity:");
+      logger.error(err);
+    }
+  }
+
+  @CaptureSpan()
+  public static async saveTeamToProjectAuthTokens(data: {
+    tenantId: string;
+    team: MicrosoftTeamsInstalledTeam;
+  }): Promise<void> {
+    /*
+     * Same fan-out reasoning as saveChatToProjectAuthTokens: the install event
+     * does not say which project it belongs to, so record it on every project
+     * connected to this tenant.
+     */
+    const projectAuths: Array<WorkspaceProjectAuthToken> =
+      await WorkspaceProjectAuthTokenService.findBy({
+        query: {
+          workspaceType: WorkspaceType.MicrosoftTeams,
+          workspaceProjectId: data.tenantId,
+        },
+        select: {
+          _id: true,
+          miscData: true,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    for (const projectAuth of projectAuths) {
+      const miscData: MicrosoftTeamsMiscData = {
+        ...((projectAuth.miscData as MicrosoftTeamsMiscData) || {}),
+      } as MicrosoftTeamsMiscData;
+
+      miscData.installedTeams = {
+        ...(miscData.installedTeams || {}),
+        [data.team.id]: data.team,
+      };
+
+      await WorkspaceProjectAuthTokenService.updateOneById({
+        id: projectAuth.id!,
+        data: {
+          miscData: miscData,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+  }
+
+  @CaptureSpan()
+  public static async removeTeamFromProjectAuthTokens(data: {
+    tenantId: string;
+    teamId: string;
+  }): Promise<void> {
+    const projectAuths: Array<WorkspaceProjectAuthToken> =
+      await WorkspaceProjectAuthTokenService.findBy({
+        query: {
+          workspaceType: WorkspaceType.MicrosoftTeams,
+          workspaceProjectId: data.tenantId,
+        },
+        select: {
+          _id: true,
+          miscData: true,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    for (const projectAuth of projectAuths) {
+      const miscData: MicrosoftTeamsMiscData = {
+        ...((projectAuth.miscData as MicrosoftTeamsMiscData) || {}),
+      } as MicrosoftTeamsMiscData;
+
+      if (!miscData.installedTeams || !miscData.installedTeams[data.teamId]) {
+        continue;
+      }
+
+      const installedTeams: Record<string, MicrosoftTeamsInstalledTeam> = {
+        ...miscData.installedTeams,
+      };
+      delete installedTeams[data.teamId];
+      miscData.installedTeams = installedTeams;
+
+      await WorkspaceProjectAuthTokenService.updateOneById({
+        id: projectAuth.id!,
+        data: {
+          miscData: miscData,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+  }
+
+  @CaptureSpan()
+  public static async getInstalledTeamsForProject(data: {
+    projectId: ObjectID;
+  }): Promise<Record<string, MicrosoftTeamsInstalledTeam>> {
+    const projectAuth: WorkspaceProjectAuthToken | null =
+      await WorkspaceProjectAuthTokenService.getProjectAuth({
+        projectId: data.projectId,
+        workspaceType: WorkspaceType.MicrosoftTeams,
+      });
+
+    if (!projectAuth || !projectAuth.miscData) {
+      return {};
+    }
+
+    return (
+      (projectAuth.miscData as MicrosoftTeamsMiscData).installedTeams || {}
     );
   }
 
@@ -4375,7 +4865,12 @@ All monitoring checks are passing normally.`;
               id: t["id"] as string,
               name: (t["displayName"] as string) || "Unnamed Team",
             };
-            acc[team.name] = team;
+            /*
+             * Keyed by id, not display name — Teams allows duplicate team
+             * names, and keying by name silently collapsed them so only the
+             * last one of each name was selectable.
+             */
+            acc[team.id] = team;
             return acc;
           },
           {} as Record<string, { id: string; name: string }>,
