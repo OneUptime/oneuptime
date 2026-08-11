@@ -54,6 +54,10 @@ import {
   serializeSavedViewTimeRange,
   deserializeSavedViewTimeRange,
 } from "Common/Utils/Telemetry/SavedViewTimeRange";
+import {
+  readSavedViewFilters,
+  SavedViewFilterTuple,
+} from "Common/Utils/Telemetry/SavedViewFilters";
 import useServiceNames from "../Telemetry/useServiceNames";
 import MetricSavedView from "Common/Models/DatabaseModels/MetricSavedView";
 import TelemetrySavedViewState from "Common/Types/Telemetry/TelemetrySavedViewState";
@@ -1322,8 +1326,8 @@ const MetricsViewer: FunctionComponent<Props> = (
       setSearchValue(nextSearch);
       setSubmittedSearch(nextSearch);
       setActiveFilters(
-        (state.filters || []).map(
-          ([facetKey, value]: [string, string]): ActiveFilter => {
+        readSavedViewFilters(state.filters).map(
+          ([facetKey, value]: SavedViewFilterTuple): ActiveFilter => {
             return {
               facetKey: facetKey,
               value: value,

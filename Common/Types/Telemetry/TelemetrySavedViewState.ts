@@ -19,7 +19,15 @@ export interface TelemetrySavedViewTimeRange {
 export default interface TelemetrySavedViewState {
   // Submitted search string from the explorer search bar.
   search?: string | undefined;
-  // Active facet filters as [facetKey, value] tuples.
+  /*
+   * Active facet filters as [facetKey, value] tuples.
+   *
+   * Read these with readSavedViewFilters (Common/Utils/Telemetry/
+   * SavedViewFilters) rather than destructuring them. Rows written before
+   * JSONFunctions.serializeValue learned to preserve nested arrays hold
+   * { "0": facetKey, "1": value } instead, and destructuring one of those
+   * throws — which is what this type asserting otherwise once cost us.
+   */
   filters?: Array<[string, string]> | undefined;
   // Selected time range.
   timeRange?: TelemetrySavedViewTimeRange | undefined;
