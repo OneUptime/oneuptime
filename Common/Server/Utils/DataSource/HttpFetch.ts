@@ -1,5 +1,3 @@
-import http from "http";
-import https from "https";
 import axios, { AxiosRequestConfig, AxiosResponse } from "axios";
 import API from "../../../Utils/API";
 import Dictionary from "../../../Types/Dictionary";
@@ -8,10 +6,7 @@ import {
   DATA_SOURCE_MAX_RESPONSE_SIZE_IN_BYTES,
   DATA_SOURCE_QUERY_TIMEOUT_IN_MS,
 } from "../../../Types/DataSource/DataSourceLimits";
-import DataSourceEgressGuard, {
-  EgressGuardOptions,
-  ResolvedAddress,
-} from "./EgressGuard";
+import DataSourceEgressGuard, { EgressGuardOptions } from "./EgressGuard";
 import { DataSourceConnectionSettings } from "./Types";
 
 /*
@@ -54,12 +49,6 @@ export interface DataSourceHttpResponse {
   bodyJson: unknown;
 }
 
-type LookupCallback = (
-  error: NodeJS.ErrnoException | null,
-  address: string | Array<{ address: string; family: number }>,
-  family?: number,
-) => void;
-
 export default class DataSourceHttpFetch {
   /*
    * Standard auth headers for a data source: Bearer token wins, else HTTP
@@ -92,44 +81,16 @@ export default class DataSourceHttpFetch {
   public static async fetch(
     request: DataSourceHttpRequest,
   ): Promise<DataSourceHttpResponse> {
-    const { url, addresses } = await DataSourceEgressGuard.assertUrlAllowed(
-      request.url,
-      request.egressOptions,
-    );
-
     /*
      * Pin the validated addresses: whatever getaddrinfo said at validation
      * time is what the socket dials, even if DNS answers differently a
      * millisecond later.
      */
-    const pinnedLookup: (
-      hostname: string,
-      options: { all?: boolean },
-      callback: LookupCallback,
-    ) => void = (
-      _hostname: string,
-      options: { all?: boolean },
-      callback: LookupCallback,
-    ): void => {
-      const first: ResolvedAddress = addresses[0]!;
-      if (options && options.all) {
-        callback(
-          null,
-          addresses.map((resolved: ResolvedAddress) => {
-            return { address: resolved.address, family: resolved.family };
-          }),
-        );
-        return;
-      }
-      callback(null, first.address, first.family);
-    };
-
-    const httpAgent: http.Agent = new http.Agent({
-      lookup: pinnedLookup as never,
-    });
-    const httpsAgent: https.Agent = new https.Agent({
-      lookup: pinnedLookup as never,
-    });
+    const { url, httpAgent, httpsAgent } =
+      await DataSourceEgressGuard.assertUrlAllowedAndPin(
+        request.url,
+        request.egressOptions,
+      );
 
     const headers: Dictionary<string> = { ...(request.headers || {}) };
 

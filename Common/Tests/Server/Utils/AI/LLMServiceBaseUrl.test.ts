@@ -4,6 +4,7 @@ import URL from "../../../../Types/API/URL";
 import { JSONObject } from "../../../../Types/JSON";
 import LlmType from "../../../../Types/LLM/LlmType";
 import LLMService from "../../../../Server/Utils/LLM/LLMService";
+import stubLLMEgressGuard from "./StubLLMEgressGuard";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
 /*
@@ -15,6 +16,8 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
  */
 
 function mockPostSuccess(): void {
+  // Placeholder hosts; egress policy is covered by LLMServiceEgressGuard.test.ts.
+  stubLLMEgressGuard();
   jest.spyOn(API, "post").mockResolvedValue({
     jsonData: {
       choices: [{ message: { content: "ok" } }],

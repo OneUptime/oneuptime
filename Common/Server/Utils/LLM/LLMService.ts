@@ -4,11 +4,12 @@ import Headers from "../../../Types/API/Headers";
 import URL from "../../../Types/API/URL";
 import { JSONArray, JSONObject } from "../../../Types/JSON";
 import JSONFunctions from "../../../Types/JSONFunctions";
-import API from "../../../Utils/API";
+import API, { RequestOptions } from "../../../Utils/API";
 import LlmType from "../../../Types/LLM/LlmType";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import logger, { LogAttributes } from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+import DataSourceEgressGuard from "../DataSource/EgressGuard";
 
 export interface LLMToolDefinition {
   name: string;
@@ -653,6 +654,38 @@ export default class LLMService {
    * the offending parameter in the 400 — one parameter per response, hence the
    * loop.
    */
+  /*
+   * Request options for a call to a tenant-configured LLM endpoint.
+   *
+   * LlmProvider.baseUrl is writable by any project member while reading the
+   * apiKey is Owner/Admin-only, so an unguarded request lets a member repoint
+   * a provider at a host they control and collect the decrypted key out of the
+   * auth header — and, because provider error bodies are reflected back
+   * through the LLM provider API, use the same lever as a blind-free read
+   * primitive against the internal network.
+   *
+   * The address the guard checked is pinned into the socket, and redirects are
+   * refused: pinning covers only the validated host, so a 3xx would walk
+   * around it. Private ranges stay reachable on self-hosted installs, because
+   * a self-hosted Ollama on 10.x is the documented deployment.
+   */
+  private static async buildGuardedRequestOptions(
+    requestUrl: string,
+    options: RequestOptions,
+  ): Promise<RequestOptions> {
+    const { httpAgent, httpsAgent } =
+      await DataSourceEgressGuard.assertUrlAllowedAndPin(requestUrl, {
+        targetLabel: "LLM provider",
+      });
+
+    return {
+      ...options,
+      doNotFollowRedirects: true,
+      httpAgent,
+      httpsAgent,
+    };
+  }
+
   private static async postOpenAIChatCompletion(data: {
     requestUrl: string;
     headers: Headers;
@@ -674,6 +707,18 @@ export default class LLMService {
      */
     const attemptedTokenLimitParams: Set<TokenLimitParam> = new Set();
 
+    /*
+     * Validated once, before the first request: the adaptation loop below
+     * re-posts to the same URL, so re-resolving per attempt would only add
+     * DNS round trips (and a rebind window between them).
+     */
+    const requestOptions: RequestOptions =
+      await this.buildGuardedRequestOptions(data.requestUrl, {
+        retries: data.request.requestRetries ?? 2,
+        exponentialBackoff: true,
+        timeout: data.request.requestTimeoutInMs ?? 120000,
+      });
+
     const post: () => Promise<
       HTTPResponse<JSONObject> | HTTPErrorResponse
     > = (): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> => {
@@ -693,11 +738,7 @@ export default class LLMService {
         url: URL.fromString(data.requestUrl),
         data: body,
         headers: data.headers,
-        options: {
-          retries: data.request.requestRetries ?? 2,
-          exponentialBackoff: true,
-          timeout: data.request.requestTimeoutInMs ?? 120000,
-        },
+        options: requestOptions,
       });
     };
 
@@ -1214,20 +1255,22 @@ export default class LLMService {
       requestData["tools"] = anthropicTools;
     }
 
+    const anthropicRequestUrl: string = `${baseUrl}/messages`;
+
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.post<JSONObject>({
-        url: URL.fromString(`${baseUrl}/messages`),
+        url: URL.fromString(anthropicRequestUrl),
         data: requestData,
         headers: {
           "x-api-key": config.apiKey,
           "anthropic-version": "2023-06-01",
           "Content-Type": "application/json",
         },
-        options: {
+        options: await this.buildGuardedRequestOptions(anthropicRequestUrl, {
           retries: request.requestRetries ?? 2,
           exponentialBackoff: true,
           timeout: request.requestTimeoutInMs ?? 120000,
-        },
+        }),
       });
 
     const anthropicLogAttributes: LogAttributes = {
@@ -1355,18 +1398,20 @@ export default class LLMService {
       requestData["tools"] = this.toOpenAITools(request.tools);
     }
 
+    const ollamaRequestUrl: string = `${config.baseUrl}/api/chat`;
+
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.post<JSONObject>({
-        url: URL.fromString(`${config.baseUrl}/api/chat`),
+        url: URL.fromString(ollamaRequestUrl),
         data: requestData,
         headers: {
           "Content-Type": "application/json",
         },
-        options: {
+        options: await this.buildGuardedRequestOptions(ollamaRequestUrl, {
           retries: request.requestRetries ?? 2,
           exponentialBackoff: true,
           timeout: request.requestTimeoutInMs ?? 300000, // Ollama may be slower
-        },
+        }),
       });
 
     const ollamaLogAttributes: LogAttributes = {

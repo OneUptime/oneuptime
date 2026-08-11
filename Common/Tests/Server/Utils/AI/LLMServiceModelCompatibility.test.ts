@@ -1,4 +1,5 @@
 import API from "../../../../Utils/API";
+import stubLLMEgressGuard from "./StubLLMEgressGuard";
 import logger from "../../../../Server/Utils/Logger";
 import HTTPErrorResponse from "../../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../../Types/API/HTTPResponse";
@@ -90,6 +91,8 @@ function bodyOf(spy: PostSpy, callIndex: number): JSONObject {
 }
 
 beforeEach(() => {
+  // These hosts are placeholders; the SSRF guard is covered elsewhere.
+  stubLLMEgressGuard();
   LLMService.clearRequestAdaptationCache();
   jest.spyOn(logger, "debug").mockImplementation((): void => {});
   jest.spyOn(logger, "error").mockImplementation((): void => {});

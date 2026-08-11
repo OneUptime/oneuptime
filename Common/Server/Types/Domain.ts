@@ -4,8 +4,49 @@ import { PromiseRejectErrorFunction } from "../../Types/FunctionTypes";
 import dns from "dns";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import BadDataException from "../../Types/Exception/BadDataException";
+import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
+import HTTPResponse from "../../Types/API/HTTPResponse";
+import { JSONObject } from "../../Types/JSON";
+import URL from "../../Types/API/URL";
+import API from "../../Utils/API";
+import DataSourceEgressGuard from "../Utils/DataSource/EgressGuard";
 
 export default class Domain extends DomainCommon {
+  /*
+   * GET a domain-verification URL built from a tenant-supplied domain.
+   *
+   * Both the status page and the dashboard build these URLs by interpolating
+   * a customer domain into a string, and the certificate cron re-fetches them
+   * unattended every 15 minutes — so the target has to be validated on every
+   * call, not just when the row was written. The address that was validated
+   * is pinned into the socket, and redirects are refused so a 3xx cannot
+   * bounce the request to a host that was never checked. (The callers try
+   * http first and https second, so the ordinary http→https redirect a
+   * customer proxy emits is still covered by the https attempt.)
+   *
+   * Private ranges stay reachable on self-hosted installs, where a status page
+   * domain legitimately resolves inside the corporate network.
+   */
+  @CaptureSpan()
+  public static async getForDomainVerification(data: {
+    url: string;
+    targetLabel: string;
+  }): Promise<HTTPErrorResponse | HTTPResponse<JSONObject>> {
+    const { httpAgent, httpsAgent } =
+      await DataSourceEgressGuard.assertUrlAllowedAndPin(data.url, {
+        targetLabel: data.targetLabel,
+      });
+
+    return API.get<JSONObject>({
+      url: URL.fromString(data.url),
+      options: {
+        doNotFollowRedirects: true,
+        httpAgent,
+        httpsAgent,
+      },
+    });
+  }
+
   @CaptureSpan()
   public static getCnameRecords(data: { domain: string }): Promise<string[]> {
     return new Promise(
