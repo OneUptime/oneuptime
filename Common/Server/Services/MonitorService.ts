@@ -3,6 +3,8 @@ import {
   AllowedActiveMonitorCountInFreePlan,
   IsBillingEnabled,
 } from "../EnvironmentConfig";
+import { UpdateResult } from "typeorm";
+import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity";
 import { ActiveMonitoringMeteredPlan } from "../Types/Billing/MeteredPlan/AllMeteredPlans";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
@@ -2262,6 +2264,53 @@ ${createdItem.description?.trim() || "No description provided."}
     }
 
     return monitor.name || "";
+  }
+
+  /**
+   * Repoints the currentMonitorStatusId of ALREADY SOFT-DELETED monitor rows
+   * away from monitor statuses that are about to be hard-deleted.
+   *
+   * A soft-deleted monitor keeps its physical row - and therefore its
+   * currentMonitorStatusId foreign key, which is ON DELETE NO ACTION - so a
+   * status that a since-deleted monitor last pointed at cannot be removed
+   * until that dangling reference is cleared. This surfaced as an intermittent
+   * "Monitor records still reference it" failure when Terraform destroyed a
+   * fixture that deleted its monitors and then the custom statuses those
+   * monitors had adopted.
+   *
+   * Only soft-deleted rows are touched: deleting a status that a LIVE monitor
+   * is currently in still surfaces the referential-integrity guard, so a user
+   * is never silently robbed of a monitor's visible status. Returns the number
+   * of dead rows repointed.
+   */
+  @CaptureSpan()
+  public async repointDeletedMonitorsAwayFromStatuses(data: {
+    fromMonitorStatusIds: Array<ObjectID>;
+    toMonitorStatusId: ObjectID;
+    projectId: ObjectID;
+  }): Promise<number> {
+    if (data.fromMonitorStatusIds.length === 0) {
+      return 0;
+    }
+
+    const result: UpdateResult = await this.getRepository()
+      .createQueryBuilder()
+      .update(Model)
+      .set({
+        currentMonitorStatusId: data.toMonitorStatusId.toString(),
+      } as unknown as QueryDeepPartialEntity<Model>)
+      .where('"projectId" = :projectId', {
+        projectId: data.projectId.toString(),
+      })
+      .andWhere('"deletedAt" IS NOT NULL')
+      .andWhere('"currentMonitorStatusId" IN (:...fromIds)', {
+        fromIds: data.fromMonitorStatusIds.map((id: ObjectID) => {
+          return id.toString();
+        }),
+      })
+      .execute();
+
+    return result.affected || 0;
   }
 }
 export default new Service();
