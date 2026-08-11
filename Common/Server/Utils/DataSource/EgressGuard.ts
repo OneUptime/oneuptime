@@ -1,16 +1,27 @@
 import dns from "dns";
+import http from "http";
+import https from "https";
 import net from "net";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { IsBillingEnabled } from "../../EnvironmentConfig";
 
 /*
- * SSRF egress guard for external Data Source connections.
+ * SSRF egress guard for outbound connections whose target is chosen by a
+ * tenant.
  *
- * Data Sources let project members point OneUptime at arbitrary
- * hosts — which would otherwise turn the API server into an authenticated
- * request proxy into whatever network it runs in (cloud metadata endpoints,
- * internal services, sibling tenants' infrastructure). Every connector must
- * validate its target through this guard before opening a socket.
+ * It started life guarding external Data Source connections — hence the
+ * file's home — but the same policy now covers every sink where a project
+ * member picks the host and a self-hosted install may legitimately point at
+ * something internal: LLM providers (self-hosted Ollama/vLLM), SMTP OAuth
+ * token endpoints, status page / dashboard domain verification, OIDC
+ * discovery and Runbook HTTP steps. Sinks that can only ever be third-party
+ * SaaS (Slack, Teams, subscriber webhooks) use SSRFProtection instead, which
+ * blocks private ranges unconditionally.
+ *
+ * Without a guard these turn the API server into an authenticated request
+ * proxy into whatever network it runs in (cloud metadata endpoints, internal
+ * services, sibling tenants' infrastructure). Every caller must validate its
+ * target through this guard before opening a socket.
  *
  * Policy:
  *  - ALWAYS blocked, in every deployment: loopback, link-local (cloud
@@ -51,7 +62,37 @@ export interface EgressGuardOptions {
   blockPrivateAddresses?: boolean | undefined;
   // Test seam for DNS. Undefined ⇒ dns.promises.lookup with a timeout.
   resolveFunction?: EgressResolveFunction | undefined;
+  /*
+   * Noun used in error messages so a rejection names the thing the user was
+   * actually configuring ("LLM provider host ... is not allowed"). Defaults
+   * to "Data source".
+   */
+  targetLabel?: string | undefined;
 }
+
+export interface PinnedAgents {
+  httpAgent: http.Agent;
+  httpsAgent: https.Agent;
+}
+
+/*
+ * dns.lookup's shape, as http.Agent / net.Socket call it. Declared locally
+ * rather than pulled from @types/node because the real declaration is a heavy
+ * overload set and every consumer here uses exactly this one shape.
+ */
+export type EgressLookupCallback = (
+  error: NodeJS.ErrnoException | null,
+  address: string | Array<{ address: string; family: number }>,
+  family?: number,
+) => void;
+
+export type EgressLookupFunction = (
+  hostname: string,
+  options: { all?: boolean | undefined; family?: number | undefined },
+  callback: EgressLookupCallback,
+) => void;
+
+const DEFAULT_TARGET_LABEL: string = "Data source";
 
 export interface AddressVerdict {
   blocked: boolean;
@@ -352,8 +393,10 @@ export default class DataSourceEgressGuard {
     hostname: string,
     options?: EgressGuardOptions,
   ): Promise<Array<ResolvedAddress>> {
+    const label: string = options?.targetLabel || DEFAULT_TARGET_LABEL;
+
     if (!hostname) {
-      throw new BadDataException("Data source host is required.");
+      throw new BadDataException(`${label} host is required.`);
     }
 
     // Literal [::1] style hosts arrive with brackets from URL parsing.
@@ -363,7 +406,7 @@ export default class DataSourceEgressGuard {
       const verdict: AddressVerdict = this.checkAddress(bareHostname, options);
       if (verdict.blocked) {
         throw new BadDataException(
-          `Data source host ${bareHostname} is not allowed: ${verdict.reason}.`,
+          `${label} host ${bareHostname} is not allowed: ${verdict.reason}.`,
         );
       }
       return [{ address: bareHostname, family: net.isIP(bareHostname) }];
@@ -380,7 +423,7 @@ export default class DataSourceEgressGuard {
       addresses = await resolveFunction(bareHostname);
     } catch (error) {
       throw new BadDataException(
-        `Could not resolve data source host ${bareHostname}: ${
+        `Could not resolve ${label.toLowerCase()} host ${bareHostname}: ${
           error instanceof Error ? error.message : String(error)
         }`,
       );
@@ -388,7 +431,7 @@ export default class DataSourceEgressGuard {
 
     if (addresses.length === 0) {
       throw new BadDataException(
-        `Could not resolve data source host ${bareHostname}.`,
+        `Could not resolve ${label.toLowerCase()} host ${bareHostname}.`,
       );
     }
 
@@ -399,7 +442,7 @@ export default class DataSourceEgressGuard {
       );
       if (verdict.blocked) {
         throw new BadDataException(
-          `Data source host ${bareHostname} resolves to ${resolved.address}, which is not allowed: ${verdict.reason}.`,
+          `${label} host ${bareHostname} resolves to ${resolved.address}, which is not allowed: ${verdict.reason}.`,
         );
       }
     }
@@ -416,20 +459,24 @@ export default class DataSourceEgressGuard {
     urlString: string,
     options?: EgressGuardOptions,
   ): Promise<{ url: URL; addresses: Array<ResolvedAddress> }> {
+    const label: string = options?.targetLabel || DEFAULT_TARGET_LABEL;
+
     if (!urlString) {
-      throw new BadDataException("Data source URL is required.");
+      throw new BadDataException(`${label} URL is required.`);
     }
 
     let url: URL;
     try {
       url = new URL(urlString);
     } catch {
-      throw new BadDataException(`Invalid data source URL: ${urlString}`);
+      throw new BadDataException(
+        `Invalid ${label.toLowerCase()} URL: ${urlString}`,
+      );
     }
 
     if (url.protocol !== "http:" && url.protocol !== "https:") {
       throw new BadDataException(
-        `Data source URL must use http or https (got ${url.protocol.replace(
+        `${label} URL must use http or https (got ${url.protocol.replace(
           ":",
           "",
         )}).`,
@@ -442,5 +489,111 @@ export default class DataSourceEgressGuard {
     );
 
     return { url, addresses };
+  }
+
+  /*
+   * A dns.lookup-shaped function that always answers with the already
+   * validated addresses. Handing this to an http(s).Agent makes the address
+   * that was checked the address that gets dialed, closing the DNS-rebind
+   * window between validation and connect. TLS still verifies against the
+   * original hostname because SNI is taken from the URL, not from here.
+   */
+  public static createPinnedLookup(
+    addresses: Array<ResolvedAddress>,
+  ): EgressLookupFunction {
+    return (
+      _hostname: string,
+      lookupOptions: { all?: boolean | undefined },
+      callback: EgressLookupCallback,
+    ): void => {
+      if (lookupOptions && lookupOptions.all) {
+        callback(
+          null,
+          addresses.map((resolved: ResolvedAddress) => {
+            return { address: resolved.address, family: resolved.family };
+          }),
+        );
+        return;
+      }
+
+      const first: ResolvedAddress = addresses[0]!;
+      callback(null, first.address, first.family);
+    };
+  }
+
+  // http/https agent pair that dials only the given validated addresses.
+  public static createPinnedAgents(
+    addresses: Array<ResolvedAddress>,
+  ): PinnedAgents {
+    const lookup: EgressLookupFunction = this.createPinnedLookup(addresses);
+
+    return {
+      httpAgent: new http.Agent({ lookup: lookup as never }),
+      httpsAgent: new https.Agent({ lookup: lookup as never }),
+    };
+  }
+
+  /*
+   * Validate a URL and return agents pinned to what it resolved to — the
+   * one-call form for HTTP callers. Pair with maxRedirects 0 /
+   * doNotFollowRedirects: pinning only covers the host that was validated, so
+   * a 3xx to an unvalidated host would otherwise walk straight around it.
+   */
+  public static async assertUrlAllowedAndPin(
+    urlString: string,
+    options?: EgressGuardOptions,
+  ): Promise<{ url: URL; addresses: Array<ResolvedAddress> } & PinnedAgents> {
+    const { url, addresses } = await this.assertUrlAllowed(urlString, options);
+
+    return { url, addresses, ...this.createPinnedAgents(addresses) };
+  }
+
+  /*
+   * A dns.lookup-shaped function that validates every hostname it is asked
+   * about and then answers with the addresses it just checked.
+   *
+   * For libraries that build their own request URLs from documents they
+   * fetched (openid-client adopts token_endpoint/userinfo_endpoint/jwks_uri
+   * from the discovery document), pre-validating the one URL we know about
+   * fixes nothing. Installing this as the library's lookup puts the guard on
+   * every socket the library opens, whichever URL it decided to call.
+   */
+  public static createGuardedLookup(
+    options?: EgressGuardOptions,
+  ): EgressLookupFunction {
+    return (
+      hostname: string,
+      lookupOptions: { all?: boolean | undefined; family?: number | undefined },
+      callback: EgressLookupCallback,
+    ): void => {
+      this.assertHostnameAllowed(hostname, options)
+        .then((addresses: Array<ResolvedAddress>) => {
+          const wantedFamily: number | undefined =
+            lookupOptions && lookupOptions.family
+              ? lookupOptions.family
+              : undefined;
+
+          const usable: Array<ResolvedAddress> =
+            wantedFamily === 4 || wantedFamily === 6
+              ? addresses.filter((resolved: ResolvedAddress) => {
+                  return resolved.family === wantedFamily;
+                })
+              : addresses;
+
+          if (usable.length === 0) {
+            const error: NodeJS.ErrnoException = new Error(
+              `No IPv${wantedFamily} address for ${hostname}`,
+            );
+            error.code = "ENOTFOUND";
+            callback(error, "");
+            return;
+          }
+
+          this.createPinnedLookup(usable)(hostname, lookupOptions, callback);
+        })
+        .catch((error: Error) => {
+          callback(error as NodeJS.ErrnoException, "");
+        });
+    };
   }
 }
