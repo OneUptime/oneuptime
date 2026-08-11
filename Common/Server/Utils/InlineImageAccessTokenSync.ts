@@ -81,3 +81,26 @@ export const setIsPublicForMarkdownImages: (
     }
   }
 };
+
+/*
+ * Best-effort variant used by the publish paths (public notes,
+ * announcements). Failing to flip an inline image must never fail the
+ * write the user actually asked for, so errors are logged and swallowed.
+ */
+export const syncIsPublicForMarkdownImages: (
+  markdown: string | null | undefined,
+  isPublic: boolean,
+  context: string,
+) => Promise<void> = async (
+  markdown: string | null | undefined,
+  isPublic: boolean,
+  context: string,
+): Promise<void> => {
+  try {
+    await setIsPublicForMarkdownImages(markdown, isPublic);
+  } catch (err) {
+    logger.error(
+      `Failed to sync inline image visibility for ${context}: ${String(err)}`,
+    );
+  }
+};

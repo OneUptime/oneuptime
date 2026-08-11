@@ -6,7 +6,9 @@ import UpdateBy from "../Types/Database/UpdateBy";
 import DatabaseService from "./DatabaseService";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import File from "../../Models/DatabaseModels/File";
+import ObjectID from "../../Types/ObjectID";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import logger from "../Utils/Logger";
 import crypto from "crypto";
 
 const generateImageAccessToken: () => string = (): string => {
@@ -54,6 +56,40 @@ export class Service extends DatabaseService<File> {
     }
 
     return { deleteBy, carryForward: null };
+  }
+
+  /*
+   * Marks a file as anonymously readable. Uploads from the file picker
+   * arrive private, so attaching one as an intentionally public asset
+   * (probe icon, AI agent icon) is the point at which it becomes public
+   * — those are served by the id-based image route, which serves only
+   * public files. Best-effort: a visibility sync failure must never fail
+   * the write the user actually asked for.
+   */
+  @CaptureSpan()
+  public async makeFilePublic(
+    fileId: ObjectID | undefined | null,
+  ): Promise<void> {
+    if (!fileId) {
+      return;
+    }
+
+    try {
+      await this.updateOneById({
+        id: fileId,
+        data: {
+          isPublic: true,
+        },
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+      });
+    } catch (err) {
+      logger.error(
+        `Failed to mark file ${fileId.toString()} public: ${String(err)}`,
+      );
+    }
   }
 
   @CaptureSpan()
