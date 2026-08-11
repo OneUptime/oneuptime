@@ -156,6 +156,24 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
     });
   }
 
+  /*
+   * Manual monitors never traverse the evaluation pipeline, so dependency
+   * suppression can never act on them — offering the page would configure
+   * a promise the product cannot keep.
+   */
+  if (!isManualMonitor) {
+    configurationItems.push({
+      link: {
+        title: "Dependencies",
+        to: RouteUtil.populateRouteParams(
+          RouteMap[PageMap.MONITOR_VIEW_DEPENDENCIES] as Route,
+          { modelId: props.modelId },
+        ),
+      },
+      icon: IconProp.Link,
+    });
+  }
+
   if (isProbeableMonitor) {
     configurationItems.push({
       link: {

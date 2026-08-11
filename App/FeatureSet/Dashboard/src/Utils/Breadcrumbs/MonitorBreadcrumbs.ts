@@ -48,6 +48,12 @@ export function getMonitorBreadcrumbs(path: string): Array<Link> | undefined {
       "View Monitor",
       "Criteria",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.MONITOR_VIEW_DEPENDENCIES, [
+      "Project",
+      "Monitors",
+      "View Monitor",
+      "Dependencies",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.MONITOR_VIEW_METRICS, [
       "Project",
       "Monitors",

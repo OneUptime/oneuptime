@@ -1,4 +1,5 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
+import DependencySuppressionWarning from "../../../Components/Monitor/DependencySuppressionWarning";
 import DisabledWarning from "../../../Components/Monitor/DisabledWarning";
 import IncomingMonitorLink from "../../../Components/Monitor/IncomingRequestMonitor/IncomingMonitorLink";
 import IncomingEmailMonitorLink from "../../../Components/Monitor/IncomingEmailMonitor/IncomingEmailMonitorLink";
@@ -551,6 +552,8 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
       )}
 
       <DisabledWarning monitorId={modelId} />
+
+      <DependencySuppressionWarning monitorId={modelId} />
 
       {/* Monitor View  */}
       <CardModelDetail<Monitor>

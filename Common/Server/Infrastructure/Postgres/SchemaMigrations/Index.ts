@@ -513,6 +513,7 @@ import { AddInvestigationAnalysisTldr1786600000000 } from "./1786600000000-AddIn
 import { DropProjectCallSMSConfigCredentialUniques1786700000000 } from "./1786700000000-DropProjectCallSMSConfigCredentialUniques";
 import { AddDataSourceTable1786303472848 } from "./1786303472848-AddDataSourceTable";
 import { MigrationName1786446545142 } from "./1786446545142-MigrationName";
+import { AddMonitorDependency1786449497966 } from "./1786449497966-AddMonitorDependency";
 
 export default [
   InitialMigration,
@@ -1030,4 +1031,5 @@ export default [
   DropProjectCallSMSConfigCredentialUniques1786700000000,
   AddDataSourceTable1786303472848,
   MigrationName1786446545142,
+  AddMonitorDependency1786449497966,
 ];
