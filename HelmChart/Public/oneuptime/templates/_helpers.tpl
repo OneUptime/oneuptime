@@ -1213,9 +1213,17 @@ spec:
 {{/*
 KEDA ScaledObject template for metric-based autoscaling
 Usage: include "oneuptime.kedaScaledObject" (dict "ServiceName" "service-name" "Release" .Release "Values" .Values "MetricsConfig" {...})
+
+This helper emits TWO objects (a ScaledObject and a TriggerAuthentication) and is
+included back to back, once per enabled tier. Both objects therefore MUST open
+with their own `---`: Helm's manifest splitter only breaks documents on a `---`
+line, so without the leading separator each TriggerAuthentication would be glued
+into the same YAML document as the next include's ScaledObject, and on decode the
+later duplicate top-level keys win — silently dropping the earlier object.
 */}}
 {{- define "oneuptime.kedaScaledObject" }}
 {{- if and .Values.keda.enabled .MetricsConfig.enabled (not .DisableAutoscaler) }}
+---
 apiVersion: keda.sh/v1alpha1
 kind: ScaledObject
 metadata:
