@@ -1,5 +1,7 @@
 import ObjectID from "../../Types/ObjectID";
-import WorkspaceType from "../../Types/Workspace/WorkspaceType";
+import WorkspaceType, {
+  getWorkspaceTypeDisplayName,
+} from "../../Types/Workspace/WorkspaceType";
 import DatabaseService from "./DatabaseService";
 import Model, {
   WorkspaceMiscData,
@@ -7,6 +9,7 @@ import Model, {
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import logger from "../Utils/Logger";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -112,11 +115,44 @@ export class Service extends DatabaseService<Model> {
       },
       select: {
         _id: true,
+        workspaceProjectId: true,
       },
       props: {
         isRoot: true,
       },
     });
+
+    /*
+     * A project stores exactly one workspace (one Microsoft tenant / one Slack
+     * team). Re-running the connect flow from a DIFFERENT workspace used to
+     * silently repoint the project, which breaks every existing notification
+     * rule and orphans the bot conversations captured under the old workspace —
+     * with no error and nothing in the logs.
+     *
+     * Refuse instead, and tell the admin to disconnect first if the change is
+     * deliberate.
+     */
+    if (
+      projectAuth &&
+      projectAuth.workspaceProjectId &&
+      projectAuth.workspaceProjectId !== data.workspaceProjectId
+    ) {
+      logger.error(
+        `Refusing to repoint ${data.workspaceType} for project ${data.projectId.toString()} from workspace ${projectAuth.workspaceProjectId} to ${data.workspaceProjectId}.`,
+        {
+          projectId: data.projectId.toString(),
+          workspaceType: data.workspaceType,
+        },
+      );
+
+      const workspaceName: string = getWorkspaceTypeDisplayName(
+        data.workspaceType,
+      );
+
+      throw new BadDataException(
+        `This OneUptime project is already connected to a different ${workspaceName} workspace. Disconnect the existing ${workspaceName} connection in Project Settings before connecting a new one.`,
+      );
+    }
 
     if (!projectAuth) {
       projectAuth = new Model();

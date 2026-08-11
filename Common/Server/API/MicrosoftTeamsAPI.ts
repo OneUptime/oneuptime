@@ -799,7 +799,12 @@ export default class MicrosoftTeamsAPI {
                     id: t["id"] as string,
                     name: (t["displayName"] as string) || "Unnamed Team",
                   };
-                  acc[team.name] = team;
+                  /*
+                   * Keyed by id, not display name — Teams allows duplicate
+                   * team names, and keying by name silently collapsed them so
+                   * only the last one of each name was selectable.
+                   */
+                  acc[team.id] = team;
                   return acc;
                 },
                 {} as Record<string, MicrosoftTeamsTeam>,
