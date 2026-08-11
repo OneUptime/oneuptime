@@ -43,6 +43,22 @@ export class FileGenerator {
     }
   }
 
+  /*
+   * Copy a checked-in directory tree verbatim into the generated provider.
+   * Used for hand-written HCL (the reusable modules), which is reviewed and
+   * validated as real .tf files in the main repo rather than assembled from
+   * TypeScript template literals.
+   *
+   * The destination is cleared first so a file deleted from the source does
+   * not survive in the generated output.
+   */
+  public copyDirectory(sourceDir: string, targetDir: string): void {
+    const fullTarget: string = path.join(this.outputDir, targetDir);
+    fs.rmSync(fullTarget, { recursive: true, force: true });
+    fs.mkdirSync(fullTarget, { recursive: true });
+    fs.cpSync(sourceDir, fullTarget, { recursive: true });
+  }
+
   public readTemplateFile(templatePath: string): string {
     return fs.readFileSync(templatePath, "utf-8");
   }

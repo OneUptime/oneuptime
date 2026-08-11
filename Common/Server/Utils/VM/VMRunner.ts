@@ -10,6 +10,7 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
 import Dictionary from "../../../Types/Dictionary";
 import GenericObject from "../../../Types/GenericObject";
 import vm, { Context } from "vm";
+import SSRFProtection from "../SSRFProtection";
 
 /**
  * Symbol used to retrieve the real (unwrapped) target from a sandbox proxy.
@@ -356,6 +357,49 @@ function unwrapProxy<T>(value: T): T {
 }
 
 export default class VMRunner {
+  /*
+   * Works out which URL the sandbox's axios call will actually dial, so the
+   * SSRF check and the request agree on the destination. axios accepts the
+   * target three different ways - a positional url, config.url on a
+   * `request()` call, and a relative url resolved against config.baseURL - and
+   * a check that only looked at the positional argument would miss two of them.
+   *
+   * Anything that does not end up an absolute http(s) URL is rejected rather
+   * than guessed at.
+   */
+  private static resolveEffectiveRequestUrl(data: {
+    method: string;
+    url: string;
+    config?: JSONObject | undefined;
+  }): string {
+    const baseUrl: string =
+      typeof data.config?.["baseURL"] === "string"
+        ? (data.config["baseURL"] as string)
+        : "";
+
+    let target: string = data.url || "";
+
+    if (data.method === "request" || !target) {
+      const configUrl: unknown = data.config?.["url"];
+      target = typeof configUrl === "string" ? configUrl : target;
+    }
+
+    let absolute: string = target;
+
+    if (!/^https?:\/\//i.test(absolute)) {
+      if (!baseUrl) {
+        throw new Error("Request URL must be an absolute http or https URL.");
+      }
+      absolute = `${baseUrl.replace(/\/+$/, "")}/${absolute.replace(/^\/+/, "")}`;
+    }
+
+    if (!/^https?:\/\//i.test(absolute)) {
+      throw new Error("Request URL must be an absolute http or https URL.");
+    }
+
+    return absolute;
+  }
+
   @CaptureSpan()
   public static async runCodeInNodeVM(data: {
     code: string;
@@ -730,7 +774,7 @@ export default class VMRunner {
             hasBody && arg1 ? (JSON.parse(arg1) as JSONObject) : undefined;
 
           const configStr: string | undefined = hasBody ? arg2 : arg1;
-          const config: JSONObject | undefined = configStr
+          let config: JSONObject | undefined = configStr
             ? (JSON.parse(configStr) as JSONObject)
             : undefined;
 
@@ -782,6 +826,47 @@ export default class VMRunner {
             }
             return plain;
           };
+
+          /*
+           * SSRF guard (GHSA-v5xh-rw9h-77fv).
+           *
+           * This bridge hands the host process's real axios to code the user
+           * wrote - the Custom JavaScript workflow component documents "you can
+           * use axios module" - so without a check here it is a strictly more
+           * capable version of the hole that was reported against the API
+           * components: arbitrary method, headers and body against the internal
+           * network, with the full response marshalled back into the sandbox
+           * and on into the workflow log.
+           *
+           * It has to live on THIS side of the isolate boundary. The
+           * sandbox-side axios shim is attacker-editable - user code can simply
+           * redefine it - so a check there guards nothing.
+           */
+          const effectiveUrl: string = VMRunner.resolveEffectiveRequestUrl({
+            method,
+            url,
+            config,
+          });
+
+          await SSRFProtection.validateWebhookTargetIsSafe(effectiveUrl);
+
+          /*
+           * The URL that was just validated has to be the URL that gets
+           * dialled. Each of these would otherwise steer the connection
+           * somewhere else entirely, past the check above:
+           *   proxy      - sends the request to an arbitrary host:port
+           *   socketPath - connects to a unix socket (/var/run/docker.sock)
+           *   transport / adapter - replaces the transport wholesale
+           * and a redirect would let a validated public host nominate an
+           * internal one on the second hop.
+           */
+          const safeConfig: JSONObject = config || {};
+          delete safeConfig["proxy"];
+          delete safeConfig["socketPath"];
+          delete safeConfig["transport"];
+          delete safeConfig["adapter"];
+          safeConfig["maxRedirects"] = 0;
+          config = safeConfig;
 
           try {
             let response: AxiosResponse;

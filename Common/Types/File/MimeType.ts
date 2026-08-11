@@ -8,6 +8,17 @@ enum MimeType {
   svg = "image/svg+xml",
   gif = "image/gif",
   webp = "image/webp",
+  /*
+   * Raster formats a browser or an API client can legitimately report but the
+   * file picker never names. Listed so those uploads are not rejected outright
+   * now that FileService validates fileType against this enum, and so rows
+   * written before the picker normalised types are still servable.
+   */
+  ico = "image/x-icon",
+  bmp = "image/bmp",
+  tiff = "image/tiff",
+  avif = "image/avif",
+  heic = "image/heic",
   pdf = "application/pdf",
   doc = "application/msword",
   docx = "application/vnd.openxmlformats-officedocument.wordprocessingml.document",

@@ -9,7 +9,8 @@ PROVIDER_DIR="$TEST_DIR/../../../Terraform/terraform-provider-oneuptime"
 source "$TEST_DIR/test-env.sh"
 source "$SCRIPT_DIR/lib.sh"
 
-echo "=== Running Terraform E2E Tests ==="
+echo "=== Running Provider E2E Tests ==="
+echo "Engine:        $TF_CLI ($(tf_cli_version))"
 echo "OneUptime URL: $ONEUPTIME_URL"
 
 # Build and install provider locally
@@ -19,10 +20,12 @@ cd "$PROVIDER_DIR"
 go mod tidy
 go build -o terraform-provider-oneuptime
 
-# Install provider
+# Install provider. The install path is keyed by the engine's default registry
+# host so a Terraform run and an OpenTofu run of the same checkout never share
+# (or stale-read) each other's binary.
 OS=$(go env GOOS)
 ARCH=$(go env GOARCH)
-INSTALL_DIR="$HOME/.terraform.d/plugins/registry.terraform.io/oneuptime/oneuptime/1.0.0/${OS}_${ARCH}"
+INSTALL_DIR="$HOME/.terraform.d/plugins/$(tf_registry_host)/oneuptime/oneuptime/1.0.0/${OS}_${ARCH}"
 mkdir -p "$INSTALL_DIR"
 cp terraform-provider-oneuptime "$INSTALL_DIR/"
 
@@ -30,9 +33,13 @@ cp terraform-provider-oneuptime "$INSTALL_DIR/"
 # `terraform init` after dev_overrides is configured can silently no-op
 # (Terraform prints "Skip terraform init when using provider development
 # overrides"), leaving the lock file empty and breaking subsequent tests.
+#
+# The provider is fetched from whichever registry the selected engine defaults
+# to (registry.terraform.io or registry.opentofu.org), so the download is kept
+# per-engine and the copy into each test below stays host-agnostic.
 echo ""
 echo "=== Downloading Random Provider ==="
-RANDOM_PROVIDER_DIR="/tmp/tf-random-provider"
+RANDOM_PROVIDER_DIR="/tmp/tf-random-provider-$TF_CLI"
 rm -rf "$RANDOM_PROVIDER_DIR"
 mkdir -p "$RANDOM_PROVIDER_DIR"
 cat > "$RANDOM_PROVIDER_DIR/main.tf" << 'TFEOF'
@@ -45,8 +52,15 @@ terraform {
   }
 }
 TFEOF
-# Use an empty CLI config so the user's dev_overrides cannot interfere.
-(cd "$RANDOM_PROVIDER_DIR" && TF_CLI_CONFIG_FILE=/dev/null terraform init -input=false -upgrade)
+# Use an empty CLI config so the user's dev_overrides cannot interfere. It is a
+# real file rather than /dev/null because OpenTofu expects the path handed to
+# TF_CLI_CONFIG_FILE to be a regular *.tfrc file.
+: > "$RANDOM_PROVIDER_DIR/empty.tfrc"
+(
+    cd "$RANDOM_PROVIDER_DIR"
+    export TF_CLI_CONFIG_FILE="$RANDOM_PROVIDER_DIR/empty.tfrc"
+    terraform init -input=false -upgrade
+)
 
 if [ ! -s "$RANDOM_PROVIDER_DIR/.terraform.lock.hcl" ] || \
    ! grep -q "hashicorp/random" "$RANDOM_PROVIDER_DIR/.terraform.lock.hcl"; then
@@ -55,18 +69,16 @@ if [ ! -s "$RANDOM_PROVIDER_DIR/.terraform.lock.hcl" ] || \
 fi
 echo "Random provider downloaded"
 
-# Back up any pre-existing ~/.terraformrc so a local developer's CLI config
-# survives a test run. Do not clobber an existing backup — that would replace
-# the user's real file with our generated one after a crashed previous run.
-TERRAFORMRC_BACKUP="$HOME/.terraformrc.oneuptime-e2e-backup"
-if [ -f "$HOME/.terraformrc" ] && [ ! -f "$TERRAFORMRC_BACKUP" ]; then
-    cp "$HOME/.terraformrc" "$TERRAFORMRC_BACKUP"
-    echo "Backed up existing ~/.terraformrc to $TERRAFORMRC_BACKUP"
-fi
-
-# Create Terraform CLI override config (after the pre-download so the
-# dev_override doesn't interfere with registry resolution above).
-cat > "$HOME/.terraformrc" << EOF
+# Write the dev_overrides CLI config to a harness-owned file and point the
+# engine at it. Both Terraform and OpenTofu honour TF_CLI_CONFIG_FILE, so one
+# file covers both and neither ~/.terraformrc nor ~/.tofurc is ever touched —
+# a developer's own CLI config cannot be clobbered by a crashed run.
+#
+# This comes after the pre-download so the dev_override doesn't interfere with
+# registry resolution above.
+CLI_CONFIG_DIR=$(mktemp -d)
+export TF_CLI_CONFIG_FILE="$CLI_CONFIG_DIR/oneuptime-e2e.tfrc"
+cat > "$TF_CLI_CONFIG_FILE" << EOF
 provider_installation {
   dev_overrides {
     "oneuptime/oneuptime" = "$INSTALL_DIR"
@@ -76,6 +88,7 @@ provider_installation {
 EOF
 
 echo "Provider installed to: $INSTALL_DIR"
+echo "CLI config: $TF_CLI_CONFIG_FILE"
 
 # The update phase stashes update.tf (so the initial apply only sees main.tf)
 # and copies it over main.tf. Track the in-flight test so an unexpected exit
@@ -99,6 +112,12 @@ restore_current_fixture() {
 
 on_exit() {
     restore_current_fixture
+    # Guarded: an unset CLI_CONFIG_DIR would make this `rm -rf ""`. It is always
+    # set before the trap is installed today; the guard keeps that true if the
+    # setup above is ever reordered.
+    if [ -n "${CLI_CONFIG_DIR:-}" ]; then
+        rm -rf "$CLI_CONFIG_DIR"
+    fi
     restore_terraformrc
 }
 trap on_exit EXIT
@@ -377,11 +396,15 @@ for test_name in "${TEST_DIRS[@]}"; do
     # still queries the registry for available versions and fails. So we plant
     # the pre-downloaded random provider and lock file directly into the
     # test's .terraform directory.
+    # The whole providers/ tree is copied rather than a single registry host's
+    # subtree: Terraform resolves hashicorp/random against registry.terraform.io
+    # and OpenTofu against registry.opentofu.org, and the lock file planted
+    # alongside it must agree with whichever one the engine wrote.
     echo "  [init]"
     if grep -q "hashicorp/random" "$test_path"/*.tf 2>/dev/null || \
        { [ "$has_update" -eq 1 ] && grep -q "hashicorp/random" "$CURRENT_STASH_DIR/update.tf" 2>/dev/null; }; then
-        mkdir -p "$test_path/.terraform/providers/registry.terraform.io"
-        cp -r "$RANDOM_PROVIDER_DIR/.terraform/providers/registry.terraform.io/hashicorp" "$test_path/.terraform/providers/registry.terraform.io/"
+        mkdir -p "$test_path/.terraform"
+        cp -r "$RANDOM_PROVIDER_DIR/.terraform/providers" "$test_path/.terraform/"
         cp "$RANDOM_PROVIDER_DIR/.terraform.lock.hcl" "$test_path/.terraform.lock.hcl"
     fi
 
@@ -548,7 +571,7 @@ done
 # Summary
 echo ""
 echo "=========================================="
-echo "Test Summary"
+echo "Test Summary ($TF_CLI)"
 echo "=========================================="
 echo "Passed: ${#PASSED[@]}"
 for t in "${PASSED[@]}"; do echo "  ✓ $t"; done
@@ -570,4 +593,4 @@ if ! "$SCRIPT_DIR/coverage-report.sh" \
 fi
 
 echo ""
-echo "All tests passed!"
+echo "All tests passed against $TF_CLI!"

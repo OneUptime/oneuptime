@@ -1,6 +1,47 @@
 #!/bin/bash
-# Common library functions for Terraform E2E tests
+# Common library functions for Terraform / OpenTofu E2E tests
 # Source this file in verify.sh scripts: source "$(dirname "$0")/../../scripts/lib.sh"
+
+#######################################
+# Engine selection (Terraform / OpenTofu)
+#######################################
+
+# The same fixtures run unchanged against both engines — that identity is the
+# compatibility claim the suite exists to prove, so nothing under tests/ may
+# name a specific binary. TF_CLI selects it ("terraform" or "tofu") and
+# defaults to terraform, so an unset environment behaves exactly as before.
+#
+# `terraform` is defined here as a function that dispatches to $TF_CLI instead
+# of rewriting the ~200 `terraform ...` call sites in run-tests.sh and the
+# per-test verify.sh scripts. `command` skips function lookup, so the
+# TF_CLI=terraform case reaches the real binary rather than recursing. The
+# function is exported because the runner spawns each verify.sh as its own bash
+# process — including the ones that do not source this file.
+: "${TF_CLI:=terraform}"
+export TF_CLI
+
+terraform() {
+    command "$TF_CLI" "$@"
+}
+export -f terraform
+
+# The default provider registry each engine resolves bare `namespace/name`
+# source addresses against. Used to keep the two engines' locally installed
+# provider binaries in separate directories.
+tf_registry_host() {
+    if [ "$TF_CLI" = "tofu" ]; then
+        echo "registry.opentofu.org"
+    else
+        echo "registry.terraform.io"
+    fi
+}
+export -f tf_registry_host
+
+# First line of `<engine> version`, for the run header. A failure here means the
+# selected binary is missing, so surface that instead of an empty string.
+tf_cli_version() {
+    command "$TF_CLI" version 2>/dev/null | head -1 || echo "$TF_CLI (version unavailable)"
+}
 
 #######################################
 # Helper Functions
@@ -88,18 +129,17 @@ verify_resource_exists() {
     return 0
 }
 
-# Restore the user's ~/.terraformrc after a test run.
-# run-tests.sh backs up any pre-existing file before writing its dev_overrides
-# config. If no backup exists, the file (when it carries our dev_overrides
-# marker) was created by the harness and is removed; a user-authored file
-# without the marker is left untouched.
+# Legacy healing only. The harness no longer touches ~/.terraformrc — it writes
+# its dev_overrides to a temp file and points TF_CLI_CONFIG_FILE at it, which
+# both Terraform and OpenTofu honour. This restores a backup left behind by a
+# crashed run from before that change. It deliberately never deletes
+# ~/.terraformrc: without a backup we cannot tell a stale harness file from a
+# developer's own dev_overrides for this provider.
 restore_terraformrc() {
     local backup="$HOME/.terraformrc.oneuptime-e2e-backup"
     if [ -f "$backup" ]; then
         mv "$backup" "$HOME/.terraformrc"
-        echo "Restored original ~/.terraformrc from backup"
-    elif [ -f "$HOME/.terraformrc" ] && grep -q 'oneuptime/oneuptime' "$HOME/.terraformrc" 2>/dev/null; then
-        rm -f "$HOME/.terraformrc"
+        echo "Restored original ~/.terraformrc from a pre-TF_CLI_CONFIG_FILE run"
     fi
 }
 
@@ -158,6 +198,7 @@ export -f api_get_resource
 export -f verify_resource_exists
 export -f restore_terraformrc
 export -f validate_field
+export -f tf_cli_version
 export -f print_header
 export -f print_passed
 export -f print_failed

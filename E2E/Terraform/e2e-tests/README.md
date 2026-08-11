@@ -1,6 +1,8 @@
-# Terraform Provider E2E Tests
+# Terraform / OpenTofu Provider E2E Tests
 
-End-to-end tests for the OneUptime Terraform Provider. These tests validate that the generated Terraform provider works correctly against a running OneUptime instance.
+End-to-end tests for the OneUptime Terraform Provider. These tests validate that the generated provider works correctly against a running OneUptime instance.
+
+The suite runs against **both Terraform and OpenTofu**. The provider is published to both registries, so `tofu` has to be a tested path rather than an assumption inherited from Terraform compatibility. The fixtures are identical between the two runs — that identity *is* the compatibility claim, so nothing under `tests/` may name a specific binary.
 
 ## Directory Structure
 
@@ -13,6 +15,7 @@ e2e-tests/
 │   ├── lib.sh                # Shared library with common test utilities
 │   ├── coverage-report.sh    # Resource-type coverage report + ratchet gate
 │   ├── coverage-baseline.txt # Minimum number of tested resource types
+│   ├── self-test.sh          # Hermetic checks of the harness itself
 │   └── cleanup.sh            # Cleans up test artifacts and state files
 └── tests/
     ├── 01-label/             # Label resource tests
@@ -51,12 +54,40 @@ If you already have OneUptime running locally:
 # Set up test account and API key
 ./scripts/setup-test-account.sh
 
-# Run the Terraform tests
+# Run the tests (Terraform by default)
 ./scripts/run-tests.sh
+
+# Run the same fixtures against OpenTofu
+TF_CLI=tofu ./scripts/run-tests.sh
 
 # Clean up after testing
 ./scripts/cleanup.sh
 ```
+
+### Choosing the engine
+
+`TF_CLI` selects the binary the runner drives — `terraform` (the default) or `tofu`. `index.sh` runs Terraform first and then OpenTofu, skipping the OpenTofu pass with a message when `tofu` is not installed; CI always has both and always runs both.
+
+Rather than parameterising ~200 call sites, `lib.sh` defines `terraform` as an exported shell function that dispatches to `$TF_CLI`. That is why fixtures and `verify.sh` scripts keep saying `terraform` and still exercise whichever engine is selected. Two consequences worth knowing:
+
+- **Write `terraform ...` in verify scripts, never `tofu ...`.** A hard-coded binary silently tests only one engine.
+- **The function is exported with `export -f`, so scripts must be `#!/bin/bash`.** A `sh` or `zsh` verify script would not inherit it and would run the real `terraform` binary regardless of `TF_CLI`.
+
+The runner prints the engine and its version in its header, and the summary is labelled with it, so a CI log always says which engine a failure came from.
+
+### Harness self-test
+
+`scripts/self-test.sh` checks the harness itself — the plumbing that decides *which* engine runs, as opposed to the provider behaviour the suite asserts:
+
+```bash
+./scripts/self-test.sh
+```
+
+It is hermetic and takes about a second: no network, no Docker, no OneUptime stack, and no real `terraform`/`tofu` binary. Engine dispatch is exercised against fakes on `PATH`; the rest are static contract checks over the fixtures, the runner, and the workflow. CI runs it immediately after checkout so a harness regression fails in seconds rather than after a stack bring-up.
+
+It covers, among others: dispatch reaching a spawned `verify.sh` that does not source `lib.sh`; `TF_CLI=terraform` not recursing into the shell function; `restore_terraformrc` never deleting a config it did not create; every verify script being `#!/bin/bash`; no fixture naming a binary or a registry host; and the workflow invoking the suite exactly twice with both wrappers disabled.
+
+Add a check whenever you add a harness mechanism, and make sure it actually fails when that mechanism is broken — every check here was verified by breaking the thing it guards and confirming the suite went red.
 
 ## Test Flow
 
@@ -169,11 +200,13 @@ removed from the provider, and should be called out in the PR description.
 
 The following environment variables are used:
 
-| Variable            | Default            | Description                |
-| ------------------- | ------------------ | -------------------------- |
-| `ONEUPTIME_URL`     | `http://localhost` | OneUptime instance URL     |
-| `TF_VAR_api_key`    | (generated)        | API key for authentication |
-| `TF_VAR_project_id` | (generated)        | Project ID for resources   |
+| Variable            | Default            | Description                                      |
+| ------------------- | ------------------ | ------------------------------------------------ |
+| `ONEUPTIME_URL`     | `http://localhost` | OneUptime instance URL                           |
+| `TF_CLI`            | `terraform`        | Engine to drive: `terraform` or `tofu`           |
+| `TF_VAR_api_key`    | (generated)        | API key for authentication                       |
+| `TF_VAR_project_id` | (generated)        | Project ID for resources                         |
+| `TEST_FILTER`       | (unset)            | egrep pattern to run a subset of tests locally   |
 
 ## CI/CD
 
@@ -184,15 +217,25 @@ Tests run automatically via GitHub Actions on:
 - Manual workflow dispatch
 - `workflow_call` from other workflows (the release pipeline uses this workflow as a gate)
 
-The workflow pins Terraform to 1.9.8, runs `go vet` / `go test` on the
-generated provider, and runs the test suite exactly once (only the flaky
-services bring-up step is retried).
+The workflow pins Terraform to 1.9.8 and OpenTofu to 1.12.5, runs `go vet` /
+`go test` on the generated provider, then runs the suite twice — once per
+engine — against a single stack. Neither run is retried; only the flaky
+services bring-up step is.
+
+Both runs share one stack and one test project rather than getting a job
+each. Bring-up (disk cleanup, npm install, provider generation, docker
+compose, account setup) dominates this job's runtime, so a second job would
+roughly double CI cost for no extra coverage. Re-running against an
+already-used project is safe because every test destroys what it created and
+the runner fails the build when deletion cannot be verified — a leak from the
+first run cannot silently carry into the second.
 
 See `.github/workflows/terraform-provider-e2e.yml` for the workflow configuration.
 
 ## Local Development Notes
 
-- `run-tests.sh` writes a dev_overrides config to `~/.terraformrc`. A pre-existing file is backed up to `~/.terraformrc.oneuptime-e2e-backup` and restored on exit (and by `cleanup.sh`).
+- `run-tests.sh` writes its dev_overrides config to a temp file and points `TF_CLI_CONFIG_FILE` at it. Both engines honour that variable, so one file covers both and neither `~/.terraformrc` nor `~/.tofurc` is touched — your own CLI config cannot be clobbered by a crashed run. (`cleanup.sh` still restores a `~/.terraformrc.oneuptime-e2e-backup` left behind by a run from before this change.)
+- The provider binary is installed under `~/.terraform.d/plugins/<registry host>/oneuptime/...`, keyed by engine, so the two runs cannot read each other's build.
 - Session cookies are written to a temp file, never into the repo.
 
 ## Adding New Tests

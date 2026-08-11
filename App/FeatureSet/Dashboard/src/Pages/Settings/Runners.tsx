@@ -114,7 +114,7 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title: "Runs AI Code Fixes",
             stepId: "capabilities",
             description:
-              "Let this Runner work in the code repositories connected to this project and open draft pull requests. Off by default; it needs a connected repository. The Runner picks this up on its next heartbeat — no restart needed.",
+              "Let this Runner work in the code repositories connected to this project and open pull requests for review. Off by default; it needs a connected repository. The Runner picks this up on its next heartbeat — no restart needed.",
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
             defaultValue: false,

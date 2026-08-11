@@ -15,8 +15,9 @@ import logger from "Common/Server/Utils/Logger";
  * server-enforced LLM budget), and the commands re-run after each repair.
  *
  * The loop never blocks the pull request: a fix that still fails
- * verification opens as a clearly-labeled draft PR — the work is preserved
- * and the human reviewer decides. Repositories with no commands configured
+ * verification still opens a PR, with the failure labeled in its body — the
+ * work is preserved and the human reviewer decides. Repositories with no
+ * commands configured
  * are Skipped, stated honestly on the PR instead of implying a green build.
  *
  * Trust model: the commands are operator-authored repository configuration

@@ -58,7 +58,20 @@ cd "$TEST_DIR"
 # Step 6: Run E2E tests (includes standard tests and CRUD tests with API validation)
 echo ""
 echo "=== Step 6: Running Terraform E2E Tests ==="
-"$SCRIPT_DIR/run-tests.sh"
+TF_CLI=terraform "$SCRIPT_DIR/run-tests.sh"
+
+# Step 7: Re-run the same fixtures against OpenTofu, as CI does. Skipped when
+# tofu isn't installed so this script still works on a machine that only has
+# Terraform — CI always has both, so the gate is never silently lost there.
+echo ""
+if command -v tofu > /dev/null 2>&1; then
+    echo "=== Step 7: Running OpenTofu E2E Tests ==="
+    TF_CLI=tofu "$SCRIPT_DIR/run-tests.sh"
+else
+    echo "=== Step 7: Skipping OpenTofu E2E Tests ==="
+    echo "tofu not found on PATH — install it from https://opentofu.org/docs/intro/install/"
+    echo "to run the same fixtures against OpenTofu locally (CI always runs both)."
+fi
 
 echo ""
 echo "=========================================="

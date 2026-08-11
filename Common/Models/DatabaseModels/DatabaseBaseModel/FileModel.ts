@@ -98,14 +98,13 @@ export default class FileModel extends BaseModel {
   @TableColumn({
     required: true,
     isDefaultValueColumn: true,
-    type: TableColumnType.Slug,
+    type: TableColumnType.Boolean,
     canReadOnRelationQuery: true,
   })
   @Column({
     nullable: false,
     default: true,
-    type: ColumnType.Slug,
-    length: ColumnLength.Slug,
+    type: ColumnType.Boolean,
   })
   public isPublic?: boolean = undefined;
 

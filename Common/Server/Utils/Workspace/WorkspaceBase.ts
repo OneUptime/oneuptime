@@ -43,6 +43,12 @@ export interface WorkspaceChannel {
   name: string;
   workspaceType: WorkspaceType;
   teamId?: string; // Required for Microsoft Teams
+  /*
+   * Microsoft Teams only: "standard" | "private" | "shared". Bots cannot post
+   * to shared channels at all, and a private channel needs the app installed
+   * into that channel specifically rather than into the parent team.
+   */
+  membershipType?: string | undefined;
 }
 
 export default class WorkspaceBase {

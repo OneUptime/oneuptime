@@ -27,6 +27,25 @@ import PushNotificationLog from "../../Models/DatabaseModels/PushNotificationLog
 import PushNotificationLogService from "./PushNotificationLogService";
 import PushStatus from "../../Types/PushNotification/PushStatus";
 
+/*
+ * The push services the browsers actually use. A Web Push subscription is a
+ * JSON blob supplied by the client and stored verbatim in UserPush.deviceToken;
+ * web-push then dials whatever host:port its "endpoint" names. Nothing else is
+ * a legitimate destination, so this is an allowlist rather than a blocklist —
+ * there is no self-hosted deployment of a browser push service to accommodate.
+ *
+ * Matching is on the registrable host (exact, or a subdomain) and https only,
+ * which covers the real endpoints: updates.push.services.mozilla.com,
+ * web.push.apple.com, and the regional *.notify.windows.com hosts.
+ */
+const ALLOWED_WEB_PUSH_HOSTS: Array<string> = [
+  "push.services.mozilla.com",
+  "fcm.googleapis.com",
+  "android.googleapis.com",
+  "notify.windows.com",
+  "push.apple.com",
+];
+
 export interface PushNotificationOptions {
   projectId?: ObjectID | undefined;
   isSensitive?: boolean;
@@ -267,6 +286,54 @@ export default class PushNotificationService {
     }
   }
 
+  /*
+   * Refuse to hand web-push an endpoint that is not one of the browser push
+   * services. The subscription JSON is client-supplied, so without this the
+   * endpoint is a free choice of host and port for a POST the server makes
+   * with its own credentials — the usual internal-service and metadata
+   * targets included.
+   */
+  public static assertWebPushEndpointIsAllowed(endpoint: unknown): void {
+    if (!endpoint || typeof endpoint !== "string") {
+      throw new Error(
+        "Web push subscription is missing its endpoint and cannot be delivered.",
+      );
+    }
+
+    /*
+     * Parsed with the WHATWG parser deliberately: that is the parser web-push
+     * itself uses, so what is checked here is exactly what gets dialed. Going
+     * through OneUptime's URL type instead would introduce a differential —
+     * it reads "https://push.apple.com:80@evil.com/" as host push.apple.com,
+     * while WHATWG (correctly) reads userinfo push.apple.com:80 and host
+     * evil.com.
+     */
+    let parsed: globalThis.URL;
+    try {
+      parsed = new globalThis.URL(endpoint);
+    } catch {
+      throw new Error("Web push subscription endpoint is not a valid URL.");
+    }
+
+    if (parsed.protocol !== "https:") {
+      throw new Error("Web push subscription endpoint must use https.");
+    }
+
+    const host: string = parsed.hostname.toLowerCase();
+
+    const isAllowed: boolean = ALLOWED_WEB_PUSH_HOSTS.some(
+      (allowedHost: string) => {
+        return host === allowedHost || host.endsWith(`.${allowedHost}`);
+      },
+    );
+
+    if (!isAllowed) {
+      throw new Error(
+        `Web push subscription endpoint ${host} is not a recognised browser push service and will not be contacted.`,
+      );
+    }
+  }
+
   private static async sendWebPushNotification(
     deviceToken: string,
     message: PushNotificationMessage,
@@ -306,6 +373,10 @@ export default class PushNotificationService {
         logger.error(`Failed to parse device token: ${parseError}`);
         throw new Error(`Invalid device token format: ${parseError}`);
       }
+
+      PushNotificationService.assertWebPushEndpointIsAllowed(
+        subscriptionObject?.endpoint,
+      );
 
       const result: webpush.SendResult = await webpush.sendNotification(
         subscriptionObject,

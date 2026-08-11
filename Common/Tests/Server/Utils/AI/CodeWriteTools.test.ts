@@ -214,10 +214,20 @@ describe("open_code_pull_request", () => {
     } as never);
   }
 
-  test("opens a DRAFT pull request and says it is not merged", async () => {
+  /*
+   * The PR opens READY FOR REVIEW, not as a draft. A draft reaches no
+   * reviewer, no CODEOWNERS rule and no review automation, so drafting by
+   * default hid the agent's output where nobody was asked to look.
+   *
+   * Read this as a VISIBILITY change only. The safety boundary is the branch
+   * policy asserted above (never the default branch, never a protected one)
+   * plus the fact that nothing is merged automatically — and the model must
+   * keep saying so, which is what the dataForLlm assertions pin.
+   */
+  test("opens the pull request ready for review, not as a draft", async () => {
     mockHappyPath();
 
-    const result: ToolExecutionResult = await OpenCodePullRequestTool.execute(
+    await OpenCodePullRequestTool.execute(
       { title: "Fix charge", description: "why", changes: CHANGES },
       ctx,
     );
@@ -225,11 +235,48 @@ describe("open_code_pull_request", () => {
     const prCall: { isDraft: boolean } = (
       GitHubUtil.createPullRequestWithToken as unknown as jest.Mock
     ).mock.calls[0][0];
-    expect(prCall.isDraft).toBe(true);
+    expect(prCall.isDraft).toBe(false);
+  });
 
-    expect(result.dataForLlm).toContain("DRAFT");
+  test("tells the model the PR is open, unmerged, and needs review", async () => {
+    mockHappyPath();
+
+    const result: ToolExecutionResult = await OpenCodePullRequestTool.execute(
+      { title: "Fix charge", description: "why", changes: CHANGES },
+      ctx,
+    );
+
+    expect(result.dataForLlm).toContain("ready for review");
     expect(result.dataForLlm).toContain("NOT merged");
+    expect(result.dataForLlm).toContain("needs their review");
     expect(result.dataForLlm).toContain("/pull/7");
+  });
+
+  /*
+   * The tool result is read back by the model and paraphrased to the user. If
+   * it still called the PR a draft, the model would tell the user to go mark
+   * it ready — an instruction for a state the PR is no longer in.
+   */
+  test("never describes the pull request as a draft to the model", async () => {
+    mockHappyPath();
+
+    const result: ToolExecutionResult = await OpenCodePullRequestTool.execute(
+      { title: "Fix charge", description: "why", changes: CHANGES },
+      ctx,
+    );
+
+    expect(result.dataForLlm.toLowerCase()).not.toContain("draft");
+    expect((result.citationLabel || "").toLowerCase()).not.toContain("draft");
+  });
+
+  test("the tool description no longer promises a draft", () => {
+    expect(OpenCodePullRequestTool.description.toLowerCase()).not.toContain(
+      "draft",
+    );
+    expect(OpenCodePullRequestTool.description).toContain("ready for review");
+    expect(OpenCodePullRequestTool.description).toContain(
+      "never writes to the default branch",
+    );
   });
 
   /*
@@ -473,7 +520,7 @@ describe("permission-mode gating", () => {
   test("the approval card names the action concretely", () => {
     expect(
       OpenCodePullRequestTool.buildActionTitle!({ title: "Fix charge bug" }),
-    ).toBe("Open draft pull request: Fix charge bug");
+    ).toBe("Open pull request: Fix charge bug");
 
     expect(
       CommitCodeToBranchTool.buildActionTitle!({

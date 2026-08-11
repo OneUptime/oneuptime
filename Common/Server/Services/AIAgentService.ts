@@ -15,6 +15,7 @@ import AIAgentOwnerTeamService from "./AIAgentOwnerTeamService";
 import TeamMemberService from "./TeamMemberService";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ProjectService from "./ProjectService";
+import FileService from "./FileService";
 import Dictionary from "../../Types/Dictionary";
 import OneUptimeDate from "../../Types/Date";
 import UserNotificationSettingService from "./UserNotificationSettingService";
@@ -172,6 +173,21 @@ export class Service extends DatabaseService<Model> {
     }
 
     return { createBy: createBy, carryForward: [] };
+  }
+
+  /*
+   * An AI agent icon is rendered by the id-based image route, which
+   * serves only public files. The file picker uploads it private, so
+   * attaching it to an agent is the point at which it becomes public.
+   */
+  @CaptureSpan()
+  protected override async onCreateSuccess(
+    _onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): Promise<Model> {
+    await FileService.makeFilePublic(createdItem.iconFileId);
+
+    return createdItem;
   }
 
   @CaptureSpan()
@@ -339,6 +355,10 @@ export class Service extends DatabaseService<Model> {
     onUpdate: OnUpdate<Model>,
     _updatedItemIds: Array<ObjectID>,
   ): Promise<OnUpdate<Model>> {
+    await FileService.makeFilePublic(
+      onUpdate.updateBy.data.iconFileId as ObjectID | undefined,
+    );
+
     if (
       onUpdate.carryForward &&
       onUpdate.carryForward.aiAgentsToNotifyOwners.length > 0

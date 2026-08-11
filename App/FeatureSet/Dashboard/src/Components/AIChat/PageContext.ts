@@ -531,7 +531,7 @@ export default class PageContextUtil {
             icon: IconProp.Wrench,
             title: "Propose a fix",
             question:
-              "Propose a code fix for this exception as a draft pull request.",
+              "Propose a code fix for this exception as a pull request.",
           },
         ];
       case AIChatPageContextType.IncidentsList:

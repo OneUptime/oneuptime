@@ -1426,8 +1426,14 @@ export default class GitHubUtil extends HostedCodeRepository {
    * sibling of the instance-method createPullRequest, which authenticates from
    * a clone's own token.
    *
-   * Opened as a DRAFT by default; GitHub answers 422 for repositories whose
-   * plan lacks drafts, and we retry as non-draft rather than losing the work.
+   * Opened READY FOR REVIEW by default: a draft never reaches reviewers,
+   * CODEOWNERS or review automation, which buried the work instead of
+   * surfacing it. Human review is still mandatory — the safety boundary is
+   * that we only ever write to a fresh branch and never merge anything.
+   *
+   * Pass isDraft: true to open a draft instead; GitHub answers 422 for
+   * repositories whose plan lacks drafts, and we then retry ready-for-review
+   * rather than losing the work.
    */
   @CaptureSpan()
   public static async createPullRequestWithToken(data: {
@@ -1450,7 +1456,7 @@ export default class GitHubUtil extends HostedCodeRepository {
       `https://api.github.com/repos/${data.organizationName}/${data.repositoryName}/pulls`,
     );
 
-    const wantsDraft: boolean = data.isDraft !== false;
+    const wantsDraft: boolean = data.isDraft === true;
 
     let result: HTTPErrorResponse | HTTPResponse<JSONObject> = await API.post({
       url: url,
@@ -1464,13 +1470,19 @@ export default class GitHubUtil extends HostedCodeRepository {
       headers: headers,
     });
 
+    /*
+     * Only retry when GitHub refused the DRAFT state specifically. A 422 is
+     * also how it reports "a pull request already exists for this branch" and
+     * an invalid head — retrying those just fails a second time and hides the
+     * real message behind a misleading one.
+     */
     if (
       result instanceof HTTPErrorResponse &&
       wantsDraft &&
-      result.statusCode === 422
+      GitHubUtil.isDraftNotSupportedError(result)
     ) {
       logger.debug(
-        `GitHub rejected the draft pull request for ${data.organizationName}/${data.repositoryName}; retrying as non-draft.`,
+        `GitHub rejected the draft pull request for ${data.organizationName}/${data.repositoryName}; retrying as ready-for-review.`,
       );
 
       result = await API.post({
@@ -1480,6 +1492,7 @@ export default class GitHubUtil extends HostedCodeRepository {
           head: data.headBranchName,
           title: data.title,
           body: data.body,
+          draft: false,
         },
         headers: headers,
       });
@@ -1497,6 +1510,31 @@ export default class GitHubUtil extends HostedCodeRepository {
       organizationName: data.organizationName,
       repositoryName: data.repositoryName,
     });
+  }
+
+  /*
+   * True when a failed create-PR response is GitHub refusing the DRAFT state
+   * specifically — an HTTP 422 whose message or errors name drafts, e.g.
+   * "Draft pull requests are not supported in this repository."
+   *
+   * Every other 422 (a pull request already exists for this branch, an
+   * invalid head, a validation failure) must NOT trigger the ready-for-review
+   * retry: the retry would fail identically and the caller would be handed the
+   * second error, which no longer describes the real problem.
+   */
+  public static isDraftNotSupportedError(response: HTTPErrorResponse): boolean {
+    if (response.statusCode !== 422) {
+      return false;
+    }
+
+    const errorData: JSONObject = (response.data as JSONObject) || {};
+
+    const textParts: Array<string> = [
+      (errorData["message"] as string) || "",
+      JSON.stringify(errorData["errors"] || ""),
+    ];
+
+    return textParts.join(" ").toLowerCase().includes("draft");
   }
 
   /*

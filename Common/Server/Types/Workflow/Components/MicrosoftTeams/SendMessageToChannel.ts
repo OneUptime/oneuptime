@@ -1,4 +1,6 @@
 import ComponentCode, { RunOptions, RunReturnType } from "../../ComponentCode";
+import IncomingWebhookUtils from "../IncomingWebhookUtils";
+import { MICROSOFT_TEAMS_WEBHOOK_DOMAINS } from "../../../../Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import HTTPErrorResponse from "../../../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../../../Types/API/HTTPResponse";
 import URL from "../../../../../Types/API/URL";
@@ -60,15 +62,12 @@ export default class SendMessageToChannel extends ComponentCode {
       );
     }
 
-    if (!args["webhook-url"]) {
-      throw options.onError(
-        new BadDataException("Microsoft teams Webhook URL not found"),
-      );
-    }
-
-    args["webhook-url"] = URL.fromString(
-      args["webhook-url"]?.toString() as string,
-    );
+    args["webhook-url"] = IncomingWebhookUtils.getPinnedWebhookUrl({
+      args,
+      options,
+      allowedDomains: MICROSOFT_TEAMS_WEBHOOK_DOMAINS,
+      vendorName: "Microsoft Teams",
+    });
 
     let apiResult: HTTPResponse<JSONObject> | HTTPErrorResponse | null = null;
 
@@ -99,6 +98,13 @@ export default class SendMessageToChannel extends ComponentCode {
               },
             },
           ],
+        },
+        /*
+         * The host is pinned above; following a redirect would hand the
+         * destination back to whoever controls that host.
+         */
+        options: {
+          doNotFollowRedirects: true,
         },
       });
 

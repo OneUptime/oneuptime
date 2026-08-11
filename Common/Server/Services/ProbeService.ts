@@ -29,6 +29,7 @@ import DatabaseConfig from "../DatabaseConfig";
 import URL from "../../Types/API/URL";
 import UpdateBy from "../Types/Database/UpdateBy";
 import MonitorService from "./MonitorService";
+import FileService from "./FileService";
 import PushNotificationMessage from "../../Types/PushNotification/PushNotificationMessage";
 import PushNotificationUtil from "../Utils/PushNotificationUtil";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -436,6 +437,21 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * A probe icon is rendered by the id-based image route, which serves
+   * only public files. The file picker uploads it private, so attaching
+   * it to a probe is the point at which it becomes public.
+   */
+  @CaptureSpan()
+  protected override async onCreateSuccess(
+    _onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): Promise<Model> {
+    await FileService.makeFilePublic(createdItem.iconFileId);
+
+    return createdItem;
+  }
+
+  /*
    * Only global probes and probes belonging to this project may be attached to
    * that project's monitors. Probe ids reach the server from the browser - the
    * monitor create form and the Monitor > Probes table both post them - so
@@ -625,6 +641,10 @@ export class Service extends DatabaseService<Model> {
     if (onUpdate.updateBy.data.key !== undefined) {
       await this.invalidateProbeAuthCache(updatedItemIds);
     }
+
+    await FileService.makeFilePublic(
+      onUpdate.updateBy.data.iconFileId as ObjectID | undefined,
+    );
 
     if (
       onUpdate.carryForward &&

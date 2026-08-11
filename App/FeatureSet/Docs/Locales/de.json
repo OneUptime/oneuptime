@@ -92,6 +92,7 @@
     "Self-Hosted Setup": "Selbst gehostete Einrichtung",
     "Examples": "Beispiele",
     "Registry Usage": "Registry-Verwendung",
+    "OpenTofu": "OpenTofu",
     "Authentication": "Authentifizierung",
     "Resource Operations": "Ressourcenoperationen",
     "Output Formats": "Ausgabeformate",

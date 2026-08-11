@@ -2,6 +2,26 @@ import { TerraformProviderConfig, OpenAPISpec } from "./Types";
 import { FileGenerator } from "./FileGenerator";
 import { StringUtils } from "./StringUtils";
 import { OpenAPIParser } from "./OpenAPIParser";
+import path from "path";
+import fs from "fs";
+
+/*
+ * Hand-written HCL modules shipped alongside the generated provider. They are
+ * real .tf files in the main repo — reviewed, `terraform fmt`-ed and validated
+ * against the provider schema there — and copied verbatim into the published
+ * provider repository so `source = "github.com/OneUptime/
+ * terraform-provider-oneuptime//modules/<name>"` resolves without cloning the
+ * OneUptime monorepo.
+ */
+const MODULES_SOURCE_DIR: string = path.join(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "Examples",
+  "opentofu",
+  "modules",
+);
 
 export class DocumentationGenerator {
   private config: TerraformProviderConfig;
@@ -83,6 +103,8 @@ export class DocumentationGenerator {
     await this.generateResourceDocs();
     await this.generateDataSourceDocs();
     await this.generateExamples();
+    await this.generateOpenTofuGuide();
+    this.copyModules();
     await this.generateReadme();
   }
 
@@ -134,9 +156,131 @@ ${DocumentationGenerator.START_HERE.map(
 ).join("\n")}
 
 Every resource has a matching data source of the same name for looking up existing items by \`id\` or \`name\`.
+
+## OpenTofu
+
+This provider is published to the OpenTofu Registry as well, and its end-to-end suite runs against both engines on every change. Configuration is identical — see the [OpenTofu guide](./guides/opentofu).
+
+## Reusable modules
+
+Hand-written modules ship in the repository under \`modules/\`, for setups that would otherwise be copy-pasted per service:
+
+- [\`monitoring-and-incident-response\`](https://github.com/OneUptime/terraform-provider-${this.config.providerName}/tree/master/modules/monitoring-and-incident-response) — HTTP monitors, an on-call rotation paged when they fail, and a status page listing them.
 `;
 
     await this.fileGenerator.writeFileInDir("docs", "index.md", providerDoc);
+  }
+
+  /*
+   * Registry "Guides" page for OpenTofu. Both registries render docs/guides/*.md
+   * as a Guides section keyed off the frontmatter `page_title`, which is what
+   * makes OneUptime's OpenTofu support visible on the provider's registry page
+   * rather than only in the OneUptime docs site.
+   */
+  private async generateOpenTofuGuide(): Promise<void> {
+    const majorVersion: string =
+      this.config.providerVersion.split(".")[0] || "1";
+    const guide: string = `---
+page_title: "Using the ${StringUtils.capitalize(this.config.providerName)} provider with OpenTofu"
+subcategory: "Guides"
+description: |-
+  The ${StringUtils.capitalize(this.config.providerName)} provider is published to the OpenTofu Registry and tested against OpenTofu on every change.
+---
+
+# Using the ${StringUtils.capitalize(this.config.providerName)} provider with OpenTofu
+
+This provider works with [OpenTofu](https://opentofu.org) as well as Terraform, and is published to both registries. OpenTofu is a tested path, not an assumption inherited from Terraform compatibility: the provider's end-to-end suite runs the same fixtures against both engines on every pull request, and a break under \`tofu\` fails the build.
+
+## Usage
+
+Nothing in your configuration changes — declare the provider as usual and drive it with \`tofu\`:
+
+\`\`\`terraform
+terraform {
+  required_providers {
+    ${this.config.providerName} = {
+      source  = "oneuptime/${this.config.providerName}"
+      version = "~> ${majorVersion}.0"
+    }
+  }
+}
+
+provider "${this.config.providerName}" {
+  # api_key is read from ${StringUtils.toConstantCase(this.config.providerName)}_API_KEY.
+}
+\`\`\`
+
+\`\`\`shell
+export ${StringUtils.toConstantCase(this.config.providerName)}_API_KEY="your-project-api-key"
+tofu init
+tofu plan
+tofu apply
+\`\`\`
+
+## Keep the registry hostname out of the source address
+
+\`source = "oneuptime/${this.config.providerName}"\` carries no hostname, so each engine resolves it against its own default registry — \`registry.opentofu.org\` under OpenTofu, \`registry.terraform.io\` under Terraform. The provider is published to both, so one address covers both engines.
+
+Writing \`source = "registry.terraform.io/oneuptime/${this.config.providerName}"\` pins the configuration to the Terraform Registry and breaks it under OpenTofu in registry-restricted environments.
+
+## Differences worth knowing
+
+| Topic | Behaviour |
+|-------|-----------|
+| The \`terraform\` block | Stays \`terraform\`. It is a language keyword, not a reference to the Terraform CLI. |
+| \`.tf\` vs \`.tofu\` files | \`.tf\` works under both. OpenTofu also reads \`.tofu\` files and ignores any \`.tf\` file with a \`.tofu\` sibling. |
+| \`required_version\` | OpenTofu's version series starts at 1.6.0, so a \`>= 1.5.0\` constraint written for Terraform is always satisfied. |
+| Lock files | Both write \`.terraform.lock.hcl\`, but it records the registry it resolved against — one engine's lock file does not satisfy the other. |
+| State files | Identical format and filenames; state moves between engines without conversion. |
+| Variables | OpenTofu reads \`TF_VAR_*\` as well as \`TOFU_VAR_*\`. |
+
+## Reusable modules
+
+This repository ships hand-written modules under [\`modules/\`](https://github.com/OneUptime/terraform-provider-${this.config.providerName}/tree/master/modules). They are engine-agnostic HCL and work under Terraform too.
+
+\`\`\`terraform
+module "storefront" {
+  source = "github.com/OneUptime/terraform-provider-${this.config.providerName}//modules/monitoring-and-incident-response?ref=v${this.config.providerVersion}"
+
+  service_name          = "storefront"
+  status_page_is_public = true
+
+  monitors = {
+    homepage = { url = "https://example.com" }
+    api      = { url = "https://api.example.com/health", expected_status_code = "204" }
+  }
+}
+\`\`\`
+
+Pin \`ref\` to a published tag: this repository is regenerated on every release, so an unpinned source tracks whatever was published last.
+
+## More
+
+- OpenTofu guide: [oneuptime.com/docs/terraform/opentofu](https://oneuptime.com/docs/terraform/opentofu)
+- Runnable examples: [\`Examples/opentofu/\`](https://github.com/OneUptime/oneuptime/tree/master/Examples/opentofu) in the main OneUptime repository
+- Issues, including documentation issues: [github.com/OneUptime/oneuptime/issues](https://github.com/OneUptime/oneuptime/issues)
+`;
+
+    await this.fileGenerator.writeFileInDir(
+      "docs/guides",
+      "opentofu.md",
+      guide,
+    );
+  }
+
+  /*
+   * Copy the checked-in HCL modules into the generated provider. Missing
+   * sources are a hard failure rather than a silent skip: the module source
+   * address is published in the OneUptime docs and in the guide above, so a
+   * release that quietly dropped modules/ would break those links.
+   */
+  private copyModules(): void {
+    if (!fs.existsSync(MODULES_SOURCE_DIR)) {
+      throw new Error(
+        `Module source directory not found: ${MODULES_SOURCE_DIR}. The generated provider publishes these as modules/, and the docs link to that path.`,
+      );
+    }
+    this.fileGenerator.copyDirectory(MODULES_SOURCE_DIR, "modules");
   }
 
   private async generateResourceDocs(): Promise<void> {
@@ -561,7 +705,7 @@ ${this.spec.info.description || `Terraform provider for ${StringUtils.capitalize
 
 ## Requirements
 
-- [Terraform](https://www.terraform.io/downloads.html) >= 1.0
+- [Terraform](https://www.terraform.io/downloads.html) >= 1.0 **or** [OpenTofu](https://opentofu.org/docs/intro/install/) >= 1.6
 - [Go](https://golang.org/doc/install) >= 1.21
 
 ## Building The Provider
@@ -594,6 +738,25 @@ provider "${this.config.providerName}" {
   api_key       = var.${this.config.providerName}_api_key
 }
 \`\`\`
+
+The source address carries no registry hostname on purpose: OpenTofu resolves it against \`registry.opentofu.org\` and Terraform against \`registry.terraform.io\`, and the provider is published to both. Drive it with \`tofu\` or \`terraform\` — see [docs/guides/opentofu.md](./docs/guides/opentofu.md).
+
+## Reusable Modules
+
+[\`modules/\`](./modules) holds hand-written, engine-agnostic HCL modules:
+
+- [\`monitoring-and-incident-response\`](./modules/monitoring-and-incident-response) — HTTP monitors for a service, an on-call rotation paged when they fail, and a status page listing them.
+
+\`\`\`terraform
+module "storefront" {
+  source = "github.com/OneUptime/terraform-provider-${this.config.providerName}//modules/monitoring-and-incident-response?ref=v${this.config.providerVersion}"
+
+  service_name = "storefront"
+  monitors     = { homepage = { url = "https://example.com" } }
+}
+\`\`\`
+
+Pin \`ref\` to a published tag — this repository is regenerated on every release.
 
 ## Developing the Provider
 

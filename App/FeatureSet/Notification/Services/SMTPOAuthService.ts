@@ -5,6 +5,7 @@ import { JSONObject } from "Common/Types/JSON";
 import URL from "Common/Types/API/URL";
 import OAuthProviderType from "Common/Types/Email/OAuthProviderType";
 import JSONWebToken from "Common/Server/Utils/JsonWebToken";
+import DataSourceEgressGuard from "Common/Server/Utils/DataSource/EgressGuard";
 
 interface OAuthTokenResponse {
   access_token: string;
@@ -118,6 +119,22 @@ export default class SMTPOAuthService {
     url: string,
     options: RequestInit,
   ): Promise<Response> {
+    /*
+     * tokenUrl comes straight off ProjectSmtpConfig, which any project member
+     * can write, and this request carries the OAuth client_id/client_secret in
+     * its body. The response — status and body — is echoed back through
+     * POST /api/notification/smtp-config/test, so an unvalidated target is a
+     * credential exfiltration channel and a read-capable probe of the internal
+     * network at the same time.
+     *
+     * A self-hosted install may legitimately run its identity provider inside
+     * its own network, so this is the egress guard rather than the flat
+     * private-range ban.
+     */
+    await DataSourceEgressGuard.assertUrlAllowed(url, {
+      targetLabel: "OAuth token URL",
+    });
+
     const controller: AbortController = new AbortController();
     const timeoutId: ReturnType<typeof setTimeout> = setTimeout(() => {
       controller.abort();
@@ -126,6 +143,12 @@ export default class SMTPOAuthService {
     try {
       const response: Response = await fetch(url, {
         ...options,
+        /*
+         * node's fetch follows redirects by default, which would let a
+         * validated host 3xx the credentials on to one that was never
+         * checked. "manual" surfaces the 3xx as a response instead.
+         */
+        redirect: "manual",
         signal: controller.signal,
       });
       return response;
