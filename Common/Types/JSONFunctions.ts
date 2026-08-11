@@ -297,6 +297,21 @@ export default class JSONFunctions {
       Object.keys(ObjectType).includes((val as JSONObject)["_type"] as string)
     ) {
       return val;
+    } else if (Array.isArray(val)) {
+      /*
+       * This has to be checked before the plain-object branch below: arrays are
+       * typeof "object", so falling through to serialize() would walk them by
+       * key and hand back { "0": ..., "1": ... } instead of an array. That
+       * silently corrupts every nested array persisted into a JSON column —
+       * e.g. the [facetKey, value] filter tuples of a telemetry saved view.
+       */
+      const arr: Array<JSONValue> = [];
+
+      for (const v of val) {
+        arr.push(this.serializeValue(v));
+      }
+
+      return arr;
     } else if (typeof val === Typeof.Object) {
       return this.serialize(val as JSONObject);
     }

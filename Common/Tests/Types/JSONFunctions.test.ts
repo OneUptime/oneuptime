@@ -1,4 +1,4 @@
-import { JSONArray, JSONObject, ObjectType } from "../../Types/JSON";
+import { JSONArray, JSONObject, JSONValue, ObjectType } from "../../Types/JSON";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import JSONFunctions from "../../Types/JSONFunctions";
 
@@ -350,6 +350,208 @@ describe("JSONFunctions Class", () => {
     });
   });
 
+  /*
+   * serializeValue used to have no Array.isArray branch. Arrays are typeof
+   * "object", so anything nested deeper than one level fell through to
+   * serialize(), which walks with `for (const key in val)` and returned
+   * { "0": ..., "1": ... } in place of the array. Only the OUTERMOST array was
+   * safe, because serialize() special-cases an array-valued key — which is
+   * exactly why this went unnoticed: `{ a: [1, 2] }` looked fine.
+   *
+   * Everything stored deeper than that was silently rewritten on its way into
+   * a JSON column, and the object that came back out was no longer iterable.
+   * These tests pin the array shape at every depth.
+   */
+  describe("Nested arrays survive serialization", () => {
+    test("Serializes an array of tuples without collapsing the tuples into objects", () => {
+      const serialized: JSONObject = JSONFunctions.serialize({
+        filters: [
+          ["service", "api"],
+          ["status", "error"],
+        ],
+      });
+
+      expect(serialized).toEqual({
+        filters: [
+          ["service", "api"],
+          ["status", "error"],
+        ],
+      });
+    });
+
+    test("Every element of a serialized array of tuples is still an array", () => {
+      const serialized: JSONObject = JSONFunctions.serialize({
+        filters: [["service", "api"]],
+      });
+
+      const filters: JSONArray = serialized["filters"] as JSONArray;
+
+      expect(Array.isArray(filters)).toBe(true);
+      expect(Array.isArray(filters[0])).toBe(true);
+    });
+
+    test("A serialized tuple is still destructurable, which is how callers read it", () => {
+      const serialized: JSONObject = JSONFunctions.serialize({
+        filters: [["service", "api"]],
+      });
+
+      const filters: JSONArray = serialized["filters"] as JSONArray;
+
+      // This threw "(destructured parameter) is not iterable" before the fix.
+      const read: Array<string> = (
+        filters as unknown as Array<[string, string]>
+      ).map(([facetKey, value]: [string, string]): string => {
+        return `${facetKey}:${value}`;
+      });
+
+      expect(read).toEqual(["service:api"]);
+    });
+
+    test("Serializes arrays nested three and four levels deep", () => {
+      expect(JSONFunctions.serialize({ deep: [[[1, 2]]] })).toEqual({
+        deep: [[[1, 2]]],
+      });
+      expect(JSONFunctions.serialize({ deeper: [[[["x"]]]] })).toEqual({
+        deeper: [[[["x"]]]],
+      });
+    });
+
+    test("Serializes an array held by an object that itself sits inside an array", () => {
+      expect(
+        JSONFunctions.serialize({
+          queries: [{ groupBy: ["host", "region"] }, { groupBy: [] }],
+        }),
+      ).toEqual({
+        queries: [{ groupBy: ["host", "region"] }, { groupBy: [] }],
+      });
+    });
+
+    test("Keeps empty arrays at every depth as arrays", () => {
+      const serialized: JSONObject = JSONFunctions.serialize({
+        outer: [],
+        nested: [[]],
+      });
+
+      expect(serialized["outer"]).toEqual([]);
+      expect(Array.isArray(serialized["nested"])).toBe(true);
+      expect((serialized["nested"] as JSONArray)[0]).toEqual([]);
+    });
+
+    test("Keeps null and empty-string elements inside a nested array", () => {
+      expect(JSONFunctions.serialize({ rows: [[null, ""]] })).toEqual({
+        rows: [[null, ""]],
+      });
+    });
+
+    test("Still tags a Date held inside a nested array", () => {
+      const serialized: JSONObject = JSONFunctions.serialize({
+        rows: [[new Date("2023-01-01T00:00:00.000Z")]],
+      });
+
+      const rows: JSONArray = serialized["rows"] as JSONArray;
+      const inner: JSONArray = rows[0] as unknown as JSONArray;
+      const when: JSONObject = inner[0] as JSONObject;
+
+      expect(Array.isArray(rows)).toBe(true);
+      expect(Array.isArray(inner)).toBe(true);
+      expect(when["_type"]).toBe(ObjectType.DateTime);
+    });
+
+    test("Still tags a Buffer held inside a nested array rather than treating it as an array", () => {
+      const serialized: JSONObject = JSONFunctions.serialize({
+        rows: [[Buffer.from([1, 2, 3])]],
+      });
+
+      const inner: JSONArray = (
+        serialized["rows"] as JSONArray
+      )[0] as unknown as JSONArray;
+      const payload: JSONObject = inner[0] as JSONObject;
+
+      expect(Array.isArray(inner)).toBe(true);
+      expect(payload["_type"]).toBe(ObjectType.Buffer);
+    });
+
+    test("A Buffer inside a nested array rebuilds into a Buffer", () => {
+      const roundTripped: JSONObject = JSONFunctions.deserialize(
+        JSON.parse(
+          JSON.stringify(
+            JSONFunctions.serialize({ rows: [[Buffer.from([1, 2, 3])]] }),
+          ),
+        ),
+      );
+
+      const inner: JSONArray = (
+        roundTripped["rows"] as JSONArray
+      )[0] as unknown as JSONArray;
+
+      expect(Buffer.isBuffer(inner[0])).toBe(true);
+      expect(inner[0]).toEqual(Buffer.from([1, 2, 3]));
+    });
+
+    test("A typed array is tagged as a Buffer, never walked as an array", () => {
+      /*
+       * ArrayBuffer.isView is checked before the array branch, and it has to
+       * stay that way: a Uint8Array is not array-literal data and walking it
+       * element by element would lose the Buffer tag deserialize looks for.
+       */
+      const serialized: JSONObject = JSONFunctions.serialize({
+        payload: new Uint8Array([1, 2, 3]),
+      });
+
+      const payload: JSONObject = serialized["payload"] as JSONObject;
+
+      expect(Array.isArray(payload)).toBe(false);
+      expect(payload["_type"]).toBe(ObjectType.Buffer);
+    });
+
+    test("serializeValue returns an array when handed one directly", () => {
+      /*
+       * The path LocalStorage/SessionStorage/Cookie take — they serialize the
+       * caller's value itself, with no wrapper object, so a flat array reaches
+       * serializeValue and used to come back as { "0": ..., "1": ... }.
+       */
+      const serialized: JSONValue = JSONFunctions.serializeValue([
+        "service",
+        "api",
+      ]);
+
+      expect(Array.isArray(serialized)).toBe(true);
+      expect(serialized).toEqual(["service", "api"]);
+    });
+
+    test("A flat top-level array survives a serializeValue round trip", () => {
+      const original: JSONValue = ["time", "body", "severityText"];
+
+      const roundTripped: JSONValue = JSONFunctions.deserializeValue(
+        JSON.parse(
+          JSON.stringify(JSONFunctions.serializeValue(original)),
+        ) as JSONValue,
+      );
+
+      expect(Array.isArray(roundTripped)).toBe(true);
+      expect(roundTripped).toEqual(original);
+    });
+
+    test("serializeValue and deserializeValue agree on array-ness", () => {
+      const input: JSONValue = [["a", "b"], ["c"], []];
+
+      expect(JSONFunctions.serializeValue(input)).toEqual(input);
+      expect(JSONFunctions.deserializeValue(input)).toEqual(input);
+    });
+
+    test("A numeric-keyed object is still serialized as an object", () => {
+      // The corrupted shape itself must not be mistaken for an array.
+      const serialized: JSONObject = JSONFunctions.serialize({
+        legacy: [{ "0": "service", "1": "api" }],
+      });
+
+      const legacy: JSONArray = serialized["legacy"] as JSONArray;
+
+      expect(Array.isArray(legacy[0])).toBe(false);
+      expect(legacy[0]).toEqual({ "0": "service", "1": "api" });
+    });
+  });
+
   describe("serialize and deserialize round trip", () => {
     test("A plain object survives a serialize -> JSON -> deserialize round trip", () => {
       const original: JSONObject = {
@@ -362,6 +564,55 @@ describe("JSONFunctions Class", () => {
         JSON.parse(JSON.stringify(JSONFunctions.serialize(original))),
       );
       expect(roundTripped).toEqual(original);
+    });
+
+    test("A saved telemetry view survives the round trip it is stored through", () => {
+      /*
+       * The exact shape TelemetrySavedViewState puts in the `query` JSON
+       * column of TraceSavedView / MetricSavedView.
+       */
+      const original: JSONObject = {
+        search: "status:error",
+        filters: [
+          ["primaryEntityId", "6512f1a0a1b2c3d4e5f60718"],
+          ["attributes.http.method", "GET"],
+        ],
+        timeRange: { range: "Past one hour" },
+        pageSize: 50,
+        rootOnly: false,
+      };
+
+      const roundTripped: JSONObject = JSONFunctions.deserialize(
+        JSON.parse(JSON.stringify(JSONFunctions.serialize(original))),
+      );
+
+      expect(roundTripped).toEqual(original);
+    });
+
+    test("Arrays nested at any depth survive the round trip", () => {
+      const original: JSONObject = {
+        tuples: [
+          ["a", "b"],
+          ["c", "d"],
+        ],
+        deep: [[[1, 2]]],
+        mixed: [{ groupBy: ["host"] }, ["x", ["y"]]],
+        empty: [[]],
+      };
+
+      const roundTripped: JSONObject = JSONFunctions.deserialize(
+        JSON.parse(JSON.stringify(JSONFunctions.serialize(original))),
+      );
+
+      expect(roundTripped).toEqual(original);
+    });
+
+    test("serializeArray keeps nested arrays inside each object", () => {
+      const input: JSONArray = [{ filters: [["a", "b"]] }];
+
+      expect(JSONFunctions.serializeArray(input)).toEqual([
+        { filters: [["a", "b"]] },
+      ]);
     });
   });
 });
