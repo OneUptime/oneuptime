@@ -811,6 +811,9 @@ import ProjectSmtpConfigService, {
 import PromoCodeService, {
   Service as PromoCodeServiceType,
 } from "Common/Server/Services/PromoCodeService";
+import DeletedProjectService, {
+  Service as DeletedProjectServiceType,
+} from "Common/Server/Services/DeletedProjectService";
 import CodeRepositoryService, {
   Service as CodeRepositoryServiceType,
 } from "Common/Server/Services/CodeRepositoryService";
@@ -1215,6 +1218,7 @@ import ProjectCallSMSConfig from "Common/Models/DatabaseModels/ProjectCallSMSCon
 import ProjectSmtpConfig from "Common/Models/DatabaseModels/ProjectSmtpConfig";
 import ProjectUserProfile from "Common/Models/DatabaseModels/ProjectUserProfile";
 import PromoCode from "Common/Models/DatabaseModels/PromoCode";
+import DeletedProject from "Common/Models/DatabaseModels/DeletedProject";
 import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
 import Reseller from "Common/Models/DatabaseModels/Reseller";
 import ScheduledMaintenanceCustomField from "Common/Models/DatabaseModels/ScheduledMaintenanceCustomField";
@@ -4491,6 +4495,18 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<PromoCode, PromoCodeServiceType>(
         PromoCode,
         PromoCodeService,
+      ).getRouter(),
+    );
+
+    /*
+     * Read/list of deleted projects for customer outreach
+     * (empty table ACLs — master admin only).
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<DeletedProject, DeletedProjectServiceType>(
+        DeletedProject,
+        DeletedProjectService,
       ).getRouter(),
     );
 

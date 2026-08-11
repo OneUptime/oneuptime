@@ -14,6 +14,17 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   modelId: ObjectID;
   modelAPI?: typeof ModelAPI | undefined;
   onDeleteSuccess: () => void;
+  /*
+   * Extra content for the confirmation modal - a field to fill in before
+   * confirming, for example. State for it belongs to the caller.
+   */
+  confirmationContent?: ReactElement | undefined;
+  /*
+   * Replaces the delete request itself, for models whose delete needs more
+   * than an id (see confirmationContent). Throwing surfaces the error in the
+   * same dialog the default request uses.
+   */
+  onDelete?: (() => Promise<void>) | undefined;
 }
 
 const ModelDelete: <TBaseModel extends BaseModel>(
@@ -30,12 +41,16 @@ const ModelDelete: <TBaseModel extends BaseModel>(
   const deleteItem: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
     try {
-      const modelAPI: typeof ModelAPI = props.modelAPI || ModelAPI;
+      if (props.onDelete) {
+        await props.onDelete();
+      } else {
+        const modelAPI: typeof ModelAPI = props.modelAPI || ModelAPI;
 
-      await modelAPI.deleteItem<TBaseModel>({
-        modelType: props.modelType,
-        id: props.modelId,
-      });
+        await modelAPI.deleteItem<TBaseModel>({
+          modelType: props.modelType,
+          id: props.modelId,
+        });
+      }
       props.onDeleteSuccess?.();
     } catch (err) {
       setError(API.getFriendlyMessage(err));
@@ -76,7 +91,9 @@ const ModelDelete: <TBaseModel extends BaseModel>(
           }}
           submitButtonText={`Delete ${model.singularName}`}
           submitButtonType={ButtonStyleType.DANGER}
-        />
+        >
+          {props.confirmationContent}
+        </ConfirmModal>
       ) : (
         <></>
       )}
