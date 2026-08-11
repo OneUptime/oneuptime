@@ -22,8 +22,12 @@ import {
  * direct coverage; these tests pin them without a database.
  */
 
-const PROJECT_ID: ObjectID = new ObjectID("11111111-1111-4111-8111-111111111111");
-const STATUS_ID: ObjectID = new ObjectID("22222222-2222-4222-8222-222222222222");
+const PROJECT_ID: ObjectID = new ObjectID(
+  "11111111-1111-4111-8111-111111111111",
+);
+const STATUS_ID: ObjectID = new ObjectID(
+  "22222222-2222-4222-8222-222222222222",
+);
 
 describe("MonitorStatusService.onBeforeCreate", () => {
   let rearrangeMock: MockFunction;
@@ -94,7 +98,7 @@ describe("MonitorStatusService.onBeforeCreate", () => {
 
     expect(rearrangeMock).toHaveBeenCalledTimes(1);
     const args: Array<unknown> = rearrangeMock.mock.calls[0]!;
-    expect((args[0] as number)).toBe(5);
+    expect(args[0] as number).toBe(5);
     expect((args[1] as ObjectID).toString()).toBe(PROJECT_ID.toString());
     // The third argument requests an upward shift to open the insert slot.
     expect(args[2]).toBe(true);

@@ -28,8 +28,12 @@ import {
  * when no valid fallback survives" edge, all without a database.
  */
 
-const PROJECT_A: ObjectID = new ObjectID("11111111-1111-4111-8111-111111111111");
-const PROJECT_B: ObjectID = new ObjectID("bbbbbbbb-1111-4111-8111-111111111111");
+const PROJECT_A: ObjectID = new ObjectID(
+  "11111111-1111-4111-8111-111111111111",
+);
+const PROJECT_B: ObjectID = new ObjectID(
+  "bbbbbbbb-1111-4111-8111-111111111111",
+);
 
 const DELETED_OPERATIONAL_A: ObjectID = new ObjectID(
   "22222222-2222-4222-8222-222222222222",
@@ -102,8 +106,10 @@ describe("MonitorStatusService delete reference cleanup", () => {
       >;
 
       if (query["isOperationalState"] === true) {
-        // Ordered by priority ascending: the deleted one appears too, but the
-        // seeded default is the first that is NOT being deleted.
+        /*
+         * Ordered by priority ascending: the deleted one appears too, but the
+         * seeded default is the first that is NOT being deleted.
+         */
         return Promise.resolve([
           makeStatus(DELETED_OPERATIONAL_A, PROJECT_A, true),
           makeStatus(SEEDED_OPERATIONAL_A, PROJECT_A, true),
@@ -130,9 +136,11 @@ describe("MonitorStatusService delete reference cleanup", () => {
     };
 
     expect(arg.projectId.toString()).toBe(PROJECT_A.toString());
-    expect(arg.fromMonitorStatusIds.map((i: ObjectID) => i.toString())).toEqual(
-      [DELETED_OPERATIONAL_A.toString()],
-    );
+    expect(
+      arg.fromMonitorStatusIds.map((i: ObjectID) => {
+        return i.toString();
+      }),
+    ).toEqual([DELETED_OPERATIONAL_A.toString()]);
     // Must NOT reassign to the status being deleted.
     expect(arg.toMonitorStatusId.toString()).not.toBe(
       DELETED_OPERATIONAL_A.toString(),
@@ -171,15 +179,20 @@ describe("MonitorStatusService delete reference cleanup", () => {
         return c[0]!;
       })
       .find((c: FindBy<MonitorStatus>) => {
-        return (c.query as { isOperationalState?: boolean }).isOperationalState === true;
+        return (
+          (c.query as { isOperationalState?: boolean }).isOperationalState ===
+          true
+        );
       });
 
     expect(operationalCall).toBeDefined();
     expect(
-      (operationalCall!.query as { projectId?: ObjectID }).projectId?.toString(),
+      (
+        operationalCall!.query as { projectId?: ObjectID }
+      ).projectId?.toString(),
     ).toBe(PROJECT_A.toString());
-    const sort: Partial<Record<string, SortOrder>> =
-      operationalCall!.sort as Partial<Record<string, SortOrder>>;
+    const sort: Partial<Record<string, SortOrder>> = operationalCall!
+      .sort as Partial<Record<string, SortOrder>>;
     expect(sort["priority"]).toBe(SortOrder.Ascending);
   });
 
@@ -313,8 +326,10 @@ describe("MonitorService.repointDeletedMonitorsAwayFromStatuses", () => {
   });
 
   test("is a no-op (no DB access) when there are no source statuses", async () => {
-    // getRepository throws without a DB connection; an empty source list must
-    // short-circuit before touching it.
+    /*
+     * getRepository throws without a DB connection; an empty source list must
+     * short-circuit before touching it.
+     */
     const getRepositorySpy: MockFunction = getJestMockFunction();
     jest
       .spyOn(
