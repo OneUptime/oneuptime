@@ -85,6 +85,7 @@ export default class FileAPI extends BaseAPI<File, FileServiceType> {
             file: true,
             fileType: true,
             isPublic: true,
+            name: true,
           },
         });
 
@@ -131,6 +132,7 @@ export default class FileAPI extends BaseAPI<File, FileServiceType> {
             file: true,
             fileType: true,
             isPublic: true,
+            name: true,
           },
         });
 
