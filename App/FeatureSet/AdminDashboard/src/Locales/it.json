@@ -184,7 +184,7 @@
       "noTeams": "Nessun team",
       "addToProject": "Aggiungi al progetto",
       "addToProjectTitle": "Aggiungi utente al progetto",
-      "addToProjectDescription": "Scegli un progetto e uno dei suoi team. L'utente viene aggiunto a quel team come membro in sospeso finché non accetta.",
+      "addToProjectDescription": "Scegli un progetto e uno dei suoi team. L'utente viene aggiunto a quel team come membro in sospeso finché non accetta, a meno che tu non accetti l'invito al posto suo.",
       "addToProjectSubmit": "Aggiungi al progetto",
       "removeFromProject": "Rimuovi dal progetto",
       "removeFromTeam": "Rimuovi dal team",
@@ -208,6 +208,8 @@
       "fieldTeam": "Team",
       "fieldTeamDescription": "Il team di quel progetto a cui vuoi aggiungere questo utente.",
       "fieldTeamPlaceholder": "Seleziona team",
+      "fieldAutoAccept": "Accetta automaticamente l'invito",
+      "fieldAutoAcceptDescription": "Aggiungi subito questo utente come membro invece di lasciarlo come invitato finché non accetta. Solo un amministratore master può farlo: usalo quando configuri un progetto per conto di qualcun altro.",
       "selectProjectFirst": "Seleziona prima un progetto per scegliere uno dei suoi team."
     },
     "projects": {

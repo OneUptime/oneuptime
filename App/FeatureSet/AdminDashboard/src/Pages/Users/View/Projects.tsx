@@ -551,6 +551,19 @@ const UserProjects: FunctionComponent = (): ReactElement => {
                     );
                   },
                 },
+                {
+                  field: {
+                    hasAcceptedInvitation: true,
+                  },
+                  stepId: "team",
+                  title: t("pages.userProjects.fieldAutoAccept"),
+                  description: t(
+                    "pages.userProjects.fieldAutoAcceptDescription",
+                  ),
+                  fieldType: FormFieldSchemaType.Checkbox,
+                  required: false,
+                  defaultValue: false,
+                },
               ],
               formType: FormType.Create,
             }}

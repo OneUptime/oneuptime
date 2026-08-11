@@ -184,7 +184,7 @@
       "noTeams": "Ingen teams",
       "addToProject": "Føj til projekt",
       "addToProjectTitle": "Føj bruger til projekt",
-      "addToProjectDescription": "Vælg et projekt og et af dets teams. Brugeren føjes til teamet som afventende medlem, indtil invitationen accepteres.",
+      "addToProjectDescription": "Vælg et projekt og et af dets teams. Brugeren føjes til teamet som afventende medlem, indtil invitationen accepteres — medmindre du accepterer den på brugerens vegne.",
       "addToProjectSubmit": "Føj til projekt",
       "removeFromProject": "Fjern fra projekt",
       "removeFromTeam": "Fjern fra team",
@@ -208,6 +208,8 @@
       "fieldTeam": "Team",
       "fieldTeamDescription": "Det team i projektet, du vil føje denne bruger til.",
       "fieldTeamPlaceholder": "Vælg team",
+      "fieldAutoAccept": "Accepter invitationen automatisk",
+      "fieldAutoAcceptDescription": "Tilføj brugeren som medlem med det samme i stedet for at lade vedkommende stå som inviteret, indtil invitationen accepteres. Kun en masteradministrator kan gøre dette — brug det, når du opsætter et projekt på en andens vegne.",
       "selectProjectFirst": "Vælg først et projekt for at vælge et af dets teams."
     },
     "projects": {

@@ -184,7 +184,7 @@
       "noTeams": "Ingen team",
       "addToProject": "Legg til i prosjekt",
       "addToProjectTitle": "Legg bruker til i prosjekt",
-      "addToProjectDescription": "Velg et prosjekt og et av teamene. Brukeren legges til i teamet som ventende medlem til invitasjonen godtas.",
+      "addToProjectDescription": "Velg et prosjekt og et av teamene. Brukeren legges til i teamet som ventende medlem til invitasjonen godtas — med mindre du godtar den på vegne av brukeren.",
       "addToProjectSubmit": "Legg til i prosjekt",
       "removeFromProject": "Fjern fra prosjekt",
       "removeFromTeam": "Fjern fra team",
@@ -208,6 +208,8 @@
       "fieldTeam": "Team",
       "fieldTeamDescription": "Teamet i det prosjektet du vil legge denne brukeren til i.",
       "fieldTeamPlaceholder": "Velg team",
+      "fieldAutoAccept": "Godta invitasjonen automatisk",
+      "fieldAutoAcceptDescription": "Legg til brukeren som medlem med én gang i stedet for å la vedkommende stå som invitert til invitasjonen godtas. Bare en hovedadministrator kan gjøre dette — bruk det når du setter opp et prosjekt på vegne av noen andre.",
       "selectProjectFirst": "Velg et prosjekt først for å velge et av teamene."
     },
     "projects": {

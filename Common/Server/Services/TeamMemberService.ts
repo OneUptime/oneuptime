@@ -120,8 +120,38 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
       }
     }
 
-    if (!createBy.props.isRoot) {
+    /*
+     * Only internal writes (isRoot) and a master admin acting from the Admin
+     * Dashboard may create a membership that is already accepted - that is the
+     * "accept the invitation automatically" checkbox on the admin invite forms.
+     *
+     * Everyone else invites, and the invited person accepts for themselves. A
+     * project admin who could accept on someone's behalf would be able to pull
+     * an account into their project - and into whatever the team's permissions
+     * grant - without that person ever agreeing to it.
+     */
+    const canCreateAcceptedInvitation: boolean = Boolean(
+      createBy.props.isRoot || createBy.props.isMasterAdmin,
+    );
+
+    if (!canCreateAcceptedInvitation) {
       createBy.data.hasAcceptedInvitation = false;
+    }
+
+    const isInvitationAcceptedOnCreate: boolean = Boolean(
+      createBy.data.hasAcceptedInvitation,
+    );
+
+    /*
+     * The acceptance timestamp is stamped here rather than taken from the
+     * request, so it can never disagree with hasAcceptedInvitation - a row that
+     * says "Member" with no accepted-at date, or an accepted-at date on a row
+     * that is still only invited.
+     */
+    if (isInvitationAcceptedOnCreate) {
+      createBy.data.invitationAcceptedAt = OneUptimeDate.getCurrentDate();
+    } else {
+      delete createBy.data.invitationAcceptedAt;
     }
 
     if (createBy.miscDataProps && createBy.miscDataProps["email"]) {
@@ -221,10 +251,18 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
                 .addQueryParam("email", email.toString(), true)
                 .toString(),
               isNewUser: isNewUser.toString(),
+              /*
+               * An auto-accepted member has nothing left to accept, so the
+               * template drops the "sign in to accept your invitation" framing
+               * and tells them they are already in.
+               */
+              isInvitationAccepted: isInvitationAcceptedOnCreate.toString(),
               projectName: project.name!,
               homeUrl: new URL(httpProtocol, host).toString(),
             },
-            subject: "You have been invited to " + project.name,
+            subject: isInvitationAcceptedOnCreate
+              ? "You have been added to " + project.name
+              : "You have been invited to " + project.name,
           },
           {
             projectId: createBy.data.projectId!,
@@ -283,6 +321,65 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
     );
   }
 
+  /*
+   * The per-project notification defaults a member gets the moment their
+   * membership becomes accepted, whether that happened by them accepting the
+   * invitation or by a master admin accepting it for them on create. Without
+   * these, an auto-accepted member is a member who is never notified about
+   * anything.
+   *
+   * Skipped for an unverified email: UserService adds the defaults for every
+   * accepted membership once the address is verified.
+   *
+   * Best effort. Both helpers below are idempotent, and by the time either
+   * caller runs, the membership row is already committed - failing the write
+   * that created it would report "invite failed" for a member who exists.
+   */
+  @CaptureSpan()
+  private async addDefaultNotificationSettingsAndRules(data: {
+    userId: ObjectID;
+    projectId: ObjectID;
+    user?: User | undefined;
+  }): Promise<void> {
+    try {
+      const user: User | null =
+        data.user ||
+        (await UserService.findOneById({
+          id: data.userId,
+          select: {
+            email: true,
+            isEmailVerified: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        }));
+
+      if (!user || !user.isEmailVerified || !user.email) {
+        return;
+      }
+
+      await UserNotificationSettingService.addDefaultNotificationSettingsForUser(
+        data.userId,
+        data.projectId,
+      );
+
+      await UserNotificationRuleService.addDefaultNotificationRuleForUser(
+        data.projectId,
+        data.userId,
+        user.email,
+      );
+    } catch (err) {
+      logger.error(
+        err as Error,
+        {
+          projectId: data.projectId.toString(),
+          userId: data.userId.toString(),
+        } as LogAttributes,
+      );
+    }
+  }
+
   @CaptureSpan()
   protected override async onCreateSuccess(
     onCreate: OnCreate<TeamMember>,
@@ -296,6 +393,18 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
     await this.updateSubscriptionSeatsByUniqueTeamMembersInProject(
       onCreate.createBy.data.projectId!,
     );
+
+    /*
+     * A membership created already accepted never goes through the
+     * accept-invitation update, so it would otherwise miss the defaults that
+     * hook adds.
+     */
+    if (createdItem.hasAcceptedInvitation) {
+      await this.addDefaultNotificationSettingsAndRules({
+        userId: onCreate.createBy.data.userId!,
+        projectId: onCreate.createBy.data.projectId!,
+      });
+    }
 
     // Activation event for marketing funnels, attributed to the inviter.
     ProductAnalytics.captureForUser({
@@ -339,16 +448,12 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
     for (const item of items) {
       await this.refreshTokens(item.userId!, item.projectId!);
 
-      if (updateBy.data.hasAcceptedInvitation && item.user?.isEmailVerified) {
-        await UserNotificationSettingService.addDefaultNotificationSettingsForUser(
-          item.userId!,
-          item.projectId!,
-        );
-        await UserNotificationRuleService.addDefaultNotificationRuleForUser(
-          item.projectId!,
-          item.userId!,
-          item.user?.email as Email,
-        );
+      if (updateBy.data.hasAcceptedInvitation) {
+        await this.addDefaultNotificationSettingsAndRules({
+          userId: item.userId!,
+          projectId: item.projectId!,
+          user: item.user,
+        });
       }
     }
 

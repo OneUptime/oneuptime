@@ -184,7 +184,7 @@
       "noTeams": "无团队",
       "addToProject": "添加到项目",
       "addToProjectTitle": "将用户添加到项目",
-      "addToProjectDescription": "选择一个项目及其一个团队。在用户接受邀请之前，将以待处理成员的身份加入该团队。",
+      "addToProjectDescription": "选择一个项目及其一个团队。除非你代其接受邀请，否则在用户接受邀请之前，将以待处理成员的身份加入该团队。",
       "addToProjectSubmit": "添加到项目",
       "removeFromProject": "从项目中移除",
       "removeFromTeam": "从团队中移除",
@@ -208,6 +208,8 @@
       "fieldTeam": "团队",
       "fieldTeamDescription": "该项目中您要将此用户添加到的团队。",
       "fieldTeamPlaceholder": "选择团队",
+      "fieldAutoAccept": "自动接受邀请",
+      "fieldAutoAcceptDescription": "立即将该用户添加为成员，而不是等待其接受邀请。只有主管理员可以这样做——在你代其他人设置项目时使用。",
       "selectProjectFirst": "请先选择项目，然后再选择其中的团队。"
     },
     "projects": {
