@@ -22,6 +22,8 @@ import logger, {
 import Response from "Common/Server/Utils/Response";
 import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
 import ProjectSmtpConfig from "Common/Models/DatabaseModels/ProjectSmtpConfig";
+import CommonAPI from "Common/Server/API/CommonAPI";
+import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -36,6 +38,21 @@ router.post(
       const smtpConfigId: ObjectID = new ObjectID(
         body["smtpConfigId"] as string,
       );
+
+      /*
+       * The lookup below runs as root so it can read the SMTP secrets, which
+       * means the id in the body is otherwise honoured whoever it belongs to:
+       * any authenticated user could name another project's config id and have
+       * the server connect to that project's mail server (and, with a
+       * hostile-but-valid config, learn whether it works). Establish which
+       * project the caller is authorized for first, then confirm the config
+       * they named is actually in it.
+       */
+      const props: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      const projectId: ObjectID =
+        CommonAPI.assertAuthenticatedProjectMember(props);
 
       const config: ProjectSmtpConfig | null =
         await ProjectSMTPConfigService.findOneById({
@@ -72,6 +89,11 @@ router.post(
           ),
         );
       }
+
+      CommonAPI.assertResourceBelongsToProject({
+        resourceProjectId: config.projectId,
+        projectId: projectId,
+      });
 
       const toEmail: Email = new Email(body["toEmail"] as string);
 
