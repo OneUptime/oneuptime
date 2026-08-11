@@ -54,8 +54,10 @@ export default class OtelPayloadDecoder {
    * TELEMETRY_DECODE_MIN_PAYLOAD_BYTES, the decode runs on a pool
    * thread; otherwise it runs inline via OtelDecode.decodeBody — the
    * SAME implementation the threads execute, so the two paths cannot
-   * drift. With the default TELEMETRY_DECODE_THREADS=0 every payload
-   * takes the inline path, which is byte-for-byte the pre-pool
+   * drift. The pool is enabled by default with an adaptive, cgroup-
+   * aware thread count (see Config.ts); when TELEMETRY_DECODE_THREADS
+   * resolves to 0 (a 1-effective-CPU pod, or an explicit 0) every
+   * payload takes the inline path, which is byte-for-byte the pre-pool
    * behavior.
    */
   public static async decodeFromQueue(input: {

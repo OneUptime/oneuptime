@@ -3,13 +3,21 @@ import { describe, expect, test, afterEach } from "@jest/globals";
 /*
  * decodeFromQueue routing: pool-vs-inline decision making, with
  * TelemetryBodyStore mocked (in-memory) and the REAL DecodeThreadPool
- * module spied on — no actual threads are spawned here (the default
- * TELEMETRY_DECODE_THREADS=0 keeps the singleton unconstructed, and
- * the pool-path test stubs decode() with an inline delegate).
+ * module spied on — no actual threads are spawned here: every test
+ * that could reach the pool either stubs decode() with an inline
+ * delegate or mocks isAvailable() to false. (That mocking is REQUIRED
+ * now, not a convenience: the pool is ENABLED BY DEFAULT with an
+ * adaptive thread count, so on a multi-CPU test machine an unmocked
+ * isAvailable() is true and a call-through decode() would spawn real
+ * threads.)
  *
  * What is pinned:
- *   - pool disabled (the DEFAULT — this suite runs with no decode env
- *     vars set) => inline decode, pool never touched;
+ *   - the DEFAULT contract: with no decode env vars set, TELEMETRY_
+ *     DECODE_THREADS resolves adaptively (clamp(effectiveCpus-1, 0, 4),
+ *     cgroup-aware) and isEnabled() follows it — enabled whenever the
+ *     adaptive count is > 0;
+ *   - pool unavailable (resolved to 0 threads / unhealthy / cooldown)
+ *     => inline decode, pool's decode never touched;
  *   - pool available but payload below TELEMETRY_DECODE_MIN_PAYLOAD_
  *     BYTES => inline;
  *   - pool available and payload at/above the threshold => pool;
@@ -38,7 +46,11 @@ import OtelDecode from "../../FeatureSet/Telemetry/Utils/OtelDecode";
 import DecodeThreadPool, {
   DecodeInput,
 } from "../../FeatureSet/Telemetry/Utils/DecodeThreadPool";
-import { TELEMETRY_DECODE_MIN_PAYLOAD_BYTES } from "../../FeatureSet/Telemetry/Config";
+import {
+  TELEMETRY_DECODE_MIN_PAYLOAD_BYTES,
+  TELEMETRY_DECODE_THREADS,
+} from "../../FeatureSet/Telemetry/Config";
+import CpuCount from "Common/Server/Utils/CpuCount";
 import { JSONObject } from "Common/Types/JSON";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
 
@@ -112,12 +124,32 @@ function makeJsonBodyOfExactSize(totalBytes: number): Buffer {
 }
 
 describe("OtelPayloadDecoder.decodeFromQueue — pool/inline routing", () => {
-  test("this suite runs with the pool DISABLED by default (TELEMETRY_DECODE_THREADS=0)", () => {
-    expect(DecodeThreadPool.isEnabled()).toBe(false);
-    expect(DecodeThreadPool.isAvailable()).toBe(false);
+  test("DEFAULT contract: unset env resolves adaptively (clamp(effectiveCpus-1, 0, 4)) and isEnabled() follows it", () => {
+    /*
+     * This suite imports the REAL Config (no isolated reload), so the
+     * adaptive-equality half only holds when the machine running the
+     * tests has not exported an explicit TELEMETRY_DECODE_THREADS —
+     * which is the case for `npm test` (config.env sets none). The
+     * isEnabled()-follows-the-resolved-value half holds either way.
+     */
+    if (process.env["TELEMETRY_DECODE_THREADS"] === undefined) {
+      const adaptiveExpected: number = Math.min(
+        4,
+        Math.max(0, CpuCount.getEffectiveCpuCount() - 1),
+      );
+      expect(TELEMETRY_DECODE_THREADS).toBe(adaptiveExpected);
+    }
+    expect(DecodeThreadPool.isEnabled()).toBe(TELEMETRY_DECODE_THREADS > 0);
   });
 
-  test("pool disabled: a large payload decodes inline and the pool is never touched", async () => {
+  test("pool unavailable (resolved to 0 threads, or unhealthy): a large payload decodes inline and the pool's decode is never touched", async () => {
+    /*
+     * isAvailable() is pinned false explicitly: with the default now
+     * adaptive, its natural value here depends on the test machine's
+     * CPU count. False is what a 1-effective-CPU pod (or an explicit
+     * TELEMETRY_DECODE_THREADS=0) resolves to.
+     */
+    spyOnStatic(DecodeThreadPool, "isAvailable").mockReturnValue(false);
     const decodeSpy: SpyLike = spyOnStatic(DecodeThreadPool, "decode");
     const largeBody: Buffer = makeJsonBodyOfExactSize(
       TELEMETRY_DECODE_MIN_PAYLOAD_BYTES + 1000,

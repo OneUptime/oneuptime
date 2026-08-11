@@ -2623,6 +2623,13 @@
                 "telemetryConcurrency": {
                     "type": "integer"
                 },
+                "telemetryDecodeThreads": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ],
+                    "minimum": 0
+                },
                 "telemetryFanInMaxBatchRows": {
                     "type": "integer",
                     "minimum": 1
@@ -2811,6 +2818,13 @@
                 },
                 "telemetryConcurrency": {
                     "type": "integer"
+                },
+                "telemetryDecodeThreads": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ],
+                    "minimum": 0
                 },
                 "telemetryFanInMaxBatchRows": {
                     "type": "integer",

@@ -24,9 +24,13 @@ import { TELEMETRY_DECODE_THREADS } from "../Config";
  * CPU onto worker_threads so the main loop only pays a memcpy + message
  * hop per payload.
  *
- * SHIPPED DISABLED: TELEMETRY_DECODE_THREADS defaults to 0, in which
- * case this pool never starts a thread and decodeFromQueue takes the
- * inline path — byte-for-byte the pre-pool behavior.
+ * ENABLED BY DEFAULT, ADAPTIVELY SIZED: TELEMETRY_DECODE_THREADS
+ * defaults to clamp(effectiveCpuCount - 1, 0, 4), cgroup-aware — see
+ * Config.ts for the full sizing table and rationale. On a 1-effective-
+ * CPU pod (or with an explicit TELEMETRY_DECODE_THREADS=0, the hard-off
+ * switch) that resolves to 0: the pool never starts a thread and
+ * decodeFromQueue takes the inline path — byte-for-byte the pre-pool
+ * behavior.
  *
  * Runtime/loading model: the app runs through ts-node in BOTH dev and
  * prod (nodemon dev exec and the prod `npm start` both `-r ts-node/
@@ -621,10 +625,11 @@ export class TelemetryDecodeThreadPool {
 /*
  * Process-wide facade: the lazy singleton that production code
  * (OtelPayloadDecoder.decodeFromQueue) talks to. Sized by
- * TELEMETRY_DECODE_THREADS; with the default of 0 the singleton is
- * never constructed and no thread ever starts. Tests construct
- * TelemetryDecodeThreadPool instances directly instead, so they control
- * pool size without touching env/Config.
+ * TELEMETRY_DECODE_THREADS (adaptive by default — see Config.ts); when
+ * that resolves to 0 (a 1-effective-CPU pod, or an explicit 0) the
+ * singleton is never constructed and no thread ever starts. Tests
+ * construct TelemetryDecodeThreadPool instances directly instead, so
+ * they control pool size without touching env/Config.
  */
 export default class DecodeThreadPool {
   private static instance: TelemetryDecodeThreadPool | null = null;
@@ -652,7 +657,7 @@ export default class DecodeThreadPool {
     if (!this.isEnabled()) {
       return Promise.reject(
         buildRetryableError(
-          "pool is disabled (TELEMETRY_DECODE_THREADS=0); caller should have routed inline",
+          "pool is disabled (TELEMETRY_DECODE_THREADS resolved to 0); caller should have routed inline",
         ),
       );
     }

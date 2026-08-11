@@ -1423,9 +1423,15 @@ app:
   telemetryConcurrency: 100
   # Worker-thread pool for OTel payload decode (gunzip + protobuf decode) so
   # large payloads no longer serialize on the pod's single event loop.
-  # 0 = disabled (decode inline, the historical behavior). When enabling,
-  # raise the pod's CPU request/limit to cover the extra threads.
-  telemetryDecodeThreads: 0
+  # LEAVE UNSET (the default) for the adaptive size: the code picks
+  # clamp(effectiveCpus - 1, 0, 4), where effectiveCpus honours the pod's
+  # cgroup CPU limit — a 1-CPU pod runs 0 threads (inline decode, the
+  # historical behavior) and larger pods always keep one core free for the
+  # event loop. Threads spawn lazily on the first large payload, so idle
+  # deployments pay nothing. Set 0 to hard-disable the pool, or a positive
+  # count to pin the size (each thread is a full V8 isolate — budget memory
+  # accordingly), e.g.:
+  # telemetryDecodeThreads: 2
   # Fan-in telemetry writer (per pod). Batches all telemetry ClickHouse inserts
   # into a handful of large INSERTs so pods can scale horizontally without
   # exploding ClickHouse insert concurrency. Defaults match the code
@@ -1529,9 +1535,15 @@ worker:
   telemetryConcurrency: 100
   # Worker-thread pool for OTel payload decode (gunzip + protobuf decode) so
   # large payloads no longer serialize on the pod's single event loop.
-  # 0 = disabled (decode inline, the historical behavior). When enabling,
-  # raise the pod's CPU request/limit to cover the extra threads.
-  telemetryDecodeThreads: 0
+  # LEAVE UNSET (the default) for the adaptive size: the code picks
+  # clamp(effectiveCpus - 1, 0, 4), where effectiveCpus honours the pod's
+  # cgroup CPU limit — a 1-CPU pod runs 0 threads (inline decode, the
+  # historical behavior) and larger pods always keep one core free for the
+  # event loop. Threads spawn lazily on the first large payload, so idle
+  # deployments pay nothing. Set 0 to hard-disable the pool, or a positive
+  # count to pin the size (each thread is a full V8 isolate — budget memory
+  # accordingly), e.g.:
+  # telemetryDecodeThreads: 2
   # Fan-in telemetry writer (per pod). Batches all telemetry ClickHouse inserts
   # into a handful of large INSERTs so worker replicas can scale horizontally
   # without exploding ClickHouse insert concurrency. Defaults match the code
