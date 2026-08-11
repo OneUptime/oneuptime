@@ -102,7 +102,12 @@ function runBashLocally(data: {
 /*
  * JavaScript runs inside the same isolated-vm sandbox the server used to use,
  * but now on the agent's machine rather than on the OneUptime Worker. The
- * sandbox blocks fs/network/process access and is killed at the timeout.
+ * isolate has no fs or process access and is killed at the timeout.
+ *
+ * It is NOT a network sandbox: the host deliberately bridges an HTTP client
+ * into the isolate, so a script can reach anything the agent's machine can
+ * reach. Run agents where you would run any other operator-authored automation
+ * — the trust boundary is the Runbook author, not the isolate.
  */
 async function runJavaScriptLocally(data: {
   script: string;
