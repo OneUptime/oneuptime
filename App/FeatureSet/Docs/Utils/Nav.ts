@@ -183,6 +183,10 @@ const DocsNav: NavGroup[] = [
         title: "Registry Usage",
         url: "/docs/terraform/registry",
       },
+      {
+        title: "OpenTofu",
+        url: "/docs/terraform/opentofu",
+      },
     ],
   },
   {

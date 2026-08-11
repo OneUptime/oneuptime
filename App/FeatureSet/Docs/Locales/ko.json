@@ -92,6 +92,7 @@
     "Self-Hosted Setup": "자체 호스팅 설정",
     "Examples": "예제",
     "Registry Usage": "레지스트리 사용",
+    "OpenTofu": "OpenTofu",
     "Authentication": "인증",
     "Resource Operations": "리소스 작업",
     "Output Formats": "출력 형식",

@@ -92,6 +92,7 @@
     "Self-Hosted Setup": "Selv-hostet opsætning",
     "Examples": "Eksempler",
     "Registry Usage": "Registerbrug",
+    "OpenTofu": "OpenTofu",
     "Authentication": "Godkendelse",
     "Resource Operations": "Ressourceoperationer",
     "Output Formats": "Outputformater",
