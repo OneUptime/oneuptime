@@ -204,6 +204,16 @@ const OIDCPage: FunctionComponent<PageComponentProps> = (
               defaultValue: "name",
             },
             {
+              field: { phoneClaimName: true },
+              title: "Phone Claim Name",
+              fieldType: FormFieldSchemaType.Text,
+              required: false,
+              description:
+                "Name of the ID token / userinfo claim that contains the user's phone number. Optional - leave blank to skip syncing phone numbers.",
+              placeholder: "phone_number",
+              stepId: "more",
+            },
+            {
               field: { isEnabled: true },
               description:
                 "You can test this first, before enabling it. To test, please save the config.",

@@ -251,6 +251,19 @@ const Settings: FunctionComponent = (): ReactElement => {
           },
           {
             field: {
+              phoneClaimName: true,
+            },
+            title: "Phone Claim Name",
+            description:
+              "Claim name in the ID token (or userinfo response) that contains the user's phone number. Optional - leave blank to skip syncing phone numbers.",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+            placeholder: "phone_number",
+            stepId: "claims",
+            disableSpellCheck: true,
+          },
+          {
+            field: {
               disableSignUpWithSso: true,
             },
             title: "Disable Sign Up with SSO",

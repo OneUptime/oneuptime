@@ -512,6 +512,7 @@ import { AddInvestigationCodeFixRecommendation1786500000000 } from "./1786500000
 import { AddInvestigationAnalysisTldr1786600000000 } from "./1786600000000-AddInvestigationAnalysisTldr";
 import { DropProjectCallSMSConfigCredentialUniques1786700000000 } from "./1786700000000-DropProjectCallSMSConfigCredentialUniques";
 import { AddDataSourceTable1786303472848 } from "./1786303472848-AddDataSourceTable";
+import { AddPhoneClaimNameToOidc1786107524687 } from "./1786107524687-AddPhoneClaimNameToOidc";
 
 export default [
   InitialMigration,
@@ -1028,4 +1029,5 @@ export default [
   AddInvestigationAnalysisTldr1786600000000,
   DropProjectCallSMSConfigCredentialUniques1786700000000,
   AddDataSourceTable1786303472848,
+  AddPhoneClaimNameToOidc1786107524687,
 ];
