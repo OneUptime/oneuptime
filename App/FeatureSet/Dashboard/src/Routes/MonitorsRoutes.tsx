@@ -27,6 +27,7 @@ import MonitorViewDelete from "../Pages/Monitor/View/Delete";
 import MonitorViewLogs from "../Pages/Monitor/View/Logs";
 
 import MonitorViewCriteria from "../Pages/Monitor/View/Criteria";
+import MonitorViewDependencies from "../Pages/Monitor/View/Dependencies";
 import MonitorViewStatusTimeline from "../Pages/Monitor/View/StatusTimeline";
 import MonitorViewSlos from "../Pages/Monitor/View/Slos";
 import MonitorIncidents from "../Pages/Monitor/View/Incidents";
@@ -316,6 +317,16 @@ const MonitorRoutes: FunctionComponent<ComponentProps> = (
             <MonitorViewCriteria
               {...props}
               pageRoute={RouteMap[PageMap.MONITOR_VIEW_CRITERIA] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.MONITOR_VIEW_DEPENDENCIES)}
+          element={
+            <MonitorViewDependencies
+              {...props}
+              pageRoute={RouteMap[PageMap.MONITOR_VIEW_DEPENDENCIES] as Route}
             />
           }
         />

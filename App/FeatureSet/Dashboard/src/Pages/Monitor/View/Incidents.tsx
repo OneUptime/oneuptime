@@ -1,5 +1,6 @@
 import Includes from "Common/Types/BaseDatabase/Includes";
 import IncidentsTable from "../../../Components/Incident/IncidentsTable";
+import DependencySuppressionWarning from "../../../Components/Monitor/DependencySuppressionWarning";
 import DisabledWarning from "../../../Components/Monitor/DisabledWarning";
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
@@ -25,6 +26,7 @@ const MonitorIncidents: FunctionComponent<
   return (
     <Fragment>
       <DisabledWarning monitorId={modelId} />
+      <DependencySuppressionWarning monitorId={modelId} />
       <IncidentsTable query={query} />
     </Fragment>
   );

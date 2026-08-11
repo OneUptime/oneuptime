@@ -156,6 +156,17 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
     });
   }
 
+  configurationItems.push({
+    link: {
+      title: "Dependencies",
+      to: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.MONITOR_VIEW_DEPENDENCIES] as Route,
+        { modelId: props.modelId },
+      ),
+    },
+    icon: IconProp.Link,
+  });
+
   if (isProbeableMonitor) {
     configurationItems.push({
       link: {

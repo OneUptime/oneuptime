@@ -36,6 +36,9 @@ import MonitorClusterContextUtil, {
   MonitorClusterContext,
 } from "./MonitorClusterContext";
 import MonitorTemplateUtil from "./MonitorTemplateUtil";
+import MonitorDependencySuppression, {
+  DependencySuppressionResult,
+} from "./MonitorDependencySuppression";
 import { JSONObject } from "../../../Types/JSON";
 import OneUptimeDate from "../../../Types/Date";
 import MonitorEvaluationSummary from "../../../Types/Monitor/MonitorEvaluationSummary";
@@ -241,6 +244,14 @@ export default class MonitorAlert {
      */
     suppressedSeriesFingerprints?: Set<string> | undefined;
     /**
+     * Alert-dependency suppression: when set and isSuppressed, a parent
+     * monitor this monitor depends on is currently in a suppressing
+     * status, so ALL alert creation for this evaluation is skipped. Only
+     * creation — already-open alerts still follow the normal resolve
+     * path above. See MonitorDependencySuppression.
+     */
+    dependencySuppression?: DependencySuppressionResult | undefined;
+    /**
      * Event-driven monitors (incoming-request / webhook fan-out) must not
      * use the metric snapshot model where a series absent from this tick's
      * breaching set is auto-resolved — a single webhook only describes the
@@ -285,6 +296,35 @@ export default class MonitorAlert {
       });
 
     if (!input.criteriaInstance.data?.createAlerts) {
+      return;
+    }
+
+    /*
+     * Alert-dependency suppression: a parent monitor is in a suppressing
+     * status (offline by default), so skip creating any alert for this
+     * evaluation. Placed after the open-alert resolve pass above on
+     * purpose — an alert raised before the parent went down must still
+     * resolve normally; only new creation is silenced.
+     */
+    if (input.dependencySuppression?.isSuppressed) {
+      const suppressionReason: string =
+        MonitorDependencySuppression.buildSuppressionReason(
+          input.dependencySuppression.suppressingParents,
+        );
+
+      logger.debug(
+        `${input.monitor.id?.toString()} - Skipping alert creation: ${suppressionReason}.`,
+        alertLogAttributes,
+      );
+
+      input.evaluationSummary?.events.push({
+        type: "alert-skipped",
+        title: "Alert suppressed by monitor dependency",
+        message: `Skipped creating alerts because ${suppressionReason}. This monitor's status still updates normally; open alerts still auto-resolve.`,
+        relatedCriteriaId: input.criteriaInstance.data?.id,
+        at: OneUptimeDate.getCurrentDate(),
+      });
+
       return;
     }
 

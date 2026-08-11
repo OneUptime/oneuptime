@@ -464,7 +464,225 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
+    if (
+      updateBy.data.dependsOnMonitors !== undefined ||
+      updateBy.data.suppressAlertsWhenParentMonitorStatuses !== undefined
+    ) {
+      /*
+       * Validated per matched monitor (same shape as the monitorSteps check
+       * above) because self-dependency and cycle detection need each
+       * monitor's own id, and root/API updates do not always carry a
+       * tenantId.
+       */
+      const monitorsToValidate: Array<Model> = await this.findBy({
+        query: updateBy.query,
+        select: {
+          _id: true,
+          projectId: true,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+          ignoreHooks: true,
+        },
+      });
+
+      for (const monitor of monitorsToValidate) {
+        await this.validateDependencyConfiguration({
+          monitorId: monitor.id || null,
+          projectId: updateBy.props.tenantId || monitor.projectId || null,
+          proposedParents: updateBy.data.dependsOnMonitors as unknown as
+            | Array<Model>
+            | undefined,
+          proposedSuppressionStatuses: updateBy.data
+            .suppressAlertsWhenParentMonitorStatuses as unknown as
+            | Array<MonitorStatus>
+            | undefined,
+        });
+      }
+    }
+
     return { updateBy, carryForward: null };
+  }
+
+  /*
+   * Guards for the alert-dependency configuration. `undefined` means "not
+   * part of this write" and validates nothing; an empty array (clearing the
+   * config) is always valid.
+   */
+  public async validateDependencyConfiguration(input: {
+    /** null on create — a new monitor cannot be part of a cycle yet. */
+    monitorId: ObjectID | null;
+    projectId: ObjectID | null;
+    proposedParents: Array<Model> | undefined;
+    proposedSuppressionStatuses: Array<MonitorStatus> | undefined;
+  }): Promise<void> {
+    if (input.proposedParents !== undefined) {
+      const parentIds: Array<ObjectID> = this.extractRelationIds(
+        input.proposedParents,
+      );
+
+      if (
+        input.monitorId &&
+        parentIds.some((parentId: ObjectID) => {
+          return parentId.toString() === input.monitorId!.toString();
+        })
+      ) {
+        throw new BadDataException("A monitor cannot depend on itself.");
+      }
+
+      if (parentIds.length > 0) {
+        const parents: Array<Model> = await this.findBy({
+          query: {
+            _id: QueryHelper.any(parentIds),
+          },
+          select: {
+            _id: true,
+            projectId: true,
+          },
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          props: {
+            isRoot: true,
+          },
+        });
+
+        if (parents.length !== parentIds.length) {
+          throw new BadDataException(
+            "One or more monitors in Depends On Monitors do not exist.",
+          );
+        }
+
+        if (input.projectId) {
+          for (const parent of parents) {
+            if (parent.projectId?.toString() !== input.projectId.toString()) {
+              throw new BadDataException(
+                "Monitors in Depends On Monitors must belong to the same project.",
+              );
+            }
+          }
+        }
+
+        if (input.monitorId) {
+          await this.throwIfDependencyCycle({
+            monitorId: input.monitorId,
+            proposedParentIds: parentIds,
+          });
+        }
+      }
+    }
+
+    if (input.proposedSuppressionStatuses !== undefined && input.projectId) {
+      const statusIds: Array<ObjectID> = this.extractRelationIds(
+        input.proposedSuppressionStatuses,
+      );
+
+      await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
+        projectId: input.projectId,
+        subject: "monitor",
+        references: statusIds.map((statusId: ObjectID) => {
+          return {
+            modelName: "Monitor Status",
+            id: statusId,
+            service: MonitorStatusService,
+          };
+        }),
+      });
+    }
+  }
+
+  /*
+   * Walk the dependency graph upward from the proposed parents; reaching
+   * the monitor being updated means the write would close a cycle, which
+   * would make suppression self-referential (A suppressed because of B,
+   * B suppressed because of A) and must be rejected. The visited set
+   * bounds the walk even if a cycle already exists among ancestors, and
+   * the depth cap keeps the check cheap on degenerate graphs.
+   */
+  private async throwIfDependencyCycle(input: {
+    monitorId: ObjectID;
+    proposedParentIds: Array<ObjectID>;
+  }): Promise<void> {
+    const maxDepth: number = 32;
+    const visited: Set<string> = new Set<string>();
+    let frontier: Array<ObjectID> = [...input.proposedParentIds];
+
+    for (let depth: number = 0; depth < maxDepth; depth++) {
+      if (frontier.length === 0) {
+        return;
+      }
+
+      if (
+        frontier.some((id: ObjectID) => {
+          return id.toString() === input.monitorId.toString();
+        })
+      ) {
+        throw new BadDataException(
+          "This dependency would create a cycle: one of the selected monitors (or a monitor it depends on) already depends on this monitor.",
+        );
+      }
+
+      for (const id of frontier) {
+        visited.add(id.toString());
+      }
+
+      const rows: Array<Model> = await this.findBy({
+        query: {
+          _id: QueryHelper.any(frontier),
+        },
+        select: {
+          _id: true,
+          dependsOnMonitors: {
+            _id: true,
+          },
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      const next: Array<ObjectID> = [];
+
+      for (const row of rows) {
+        for (const grandParentId of this.extractRelationIds(
+          row.dependsOnMonitors || [],
+        )) {
+          if (!visited.has(grandParentId.toString())) {
+            next.push(grandParentId);
+            visited.add(grandParentId.toString());
+          }
+        }
+      }
+
+      frontier = next;
+    }
+
+    if (frontier.length > 0) {
+      throw new BadDataException(
+        `Monitor dependency chains deeper than ${maxDepth} levels are not supported.`,
+      );
+    }
+  }
+
+  private extractRelationIds(
+    relationArray: Array<{ id?: ObjectID | null; _id?: string | undefined }>,
+  ): Array<ObjectID> {
+    const ids: Array<ObjectID> = [];
+    const seen: Set<string> = new Set<string>();
+
+    for (const item of relationArray) {
+      const rawId: string | undefined = (item.id || item._id)?.toString();
+
+      if (rawId && !seen.has(rawId)) {
+        seen.add(rawId);
+        ids.push(new ObjectID(rawId));
+      }
+    }
+
+    return ids;
   }
 
   private async getProjectIdsForUpdateQuery(
@@ -779,6 +997,18 @@ export class Service extends DatabaseService<Model> {
     await MonitorStepsProjectValidator.validateMonitorStepsBelongToProject({
       monitorSteps: createBy.data.monitorSteps,
       projectId: createBy.props.tenantId,
+    });
+
+    await this.validateDependencyConfiguration({
+      monitorId: null, // a new monitor cannot be part of a cycle yet
+      projectId: createBy.props.tenantId,
+      proposedParents: createBy.data.dependsOnMonitors as unknown as
+        | Array<Model>
+        | undefined,
+      proposedSuppressionStatuses: createBy.data
+        .suppressAlertsWhenParentMonitorStatuses as unknown as
+        | Array<MonitorStatus>
+        | undefined,
     });
 
     /*
