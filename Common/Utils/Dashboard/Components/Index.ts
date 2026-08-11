@@ -7,6 +7,10 @@ import DashboardCephOsdListComponentUtil from "./DashboardCephOsdListComponent";
 import DashboardCephPoolListComponentUtil from "./DashboardCephPoolListComponent";
 import DashboardChartComponentUtil from "./DashboardChartComponent";
 import DashboardClockComponentUtil from "./DashboardClockComponent";
+import DashboardDataSourceChartComponentUtil from "./DashboardDataSourceChartComponent";
+import DashboardDataSourceGaugeComponentUtil from "./DashboardDataSourceGaugeComponent";
+import DashboardDataSourceTableComponentUtil from "./DashboardDataSourceTableComponent";
+import DashboardDataSourceValueComponentUtil from "./DashboardDataSourceValueComponent";
 import DashboardDockerContainerListComponentUtil from "./DashboardDockerContainerListComponent";
 import DashboardDockerHostListComponentUtil from "./DashboardDockerHostListComponent";
 import DashboardDockerImageListComponentUtil from "./DashboardDockerImageListComponent";
@@ -81,6 +85,30 @@ export default class DashboardComponentsUtil {
 
     if (dashboardComponentType === DashboardComponentType.Gauge) {
       return DashboardGaugeComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.DataSourceChart) {
+      return DashboardDataSourceChartComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.DataSourceValue) {
+      return DashboardDataSourceValueComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.DataSourceGauge) {
+      return DashboardDataSourceGaugeComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.DataSourceTable) {
+      return DashboardDataSourceTableComponentUtil.getComponentConfigArguments() as Array<
         ComponentArgument<DashboardBaseComponent>
       >;
     }

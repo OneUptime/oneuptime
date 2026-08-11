@@ -11,6 +11,10 @@ import DashboardTextComponent from "./DashboardTextComponent";
 import DashboardClockComponent from "./DashboardClockComponent";
 import DashboardTableComponent from "./DashboardTableComponent";
 import DashboardGaugeComponent from "./DashboardGaugeComponent";
+import DashboardDataSourceChartComponent from "./DashboardDataSourceChartComponent";
+import DashboardDataSourceValueComponent from "./DashboardDataSourceValueComponent";
+import DashboardDataSourceGaugeComponent from "./DashboardDataSourceGaugeComponent";
+import DashboardDataSourceTableComponent from "./DashboardDataSourceTableComponent";
 import DashboardSloComponent from "./DashboardSloComponent";
 import DashboardLogStreamComponent from "./DashboardLogStreamComponent";
 import DashboardLogChartComponent from "./DashboardLogChartComponent";
@@ -106,6 +110,10 @@ const WIDGET_BY_TYPE: Partial<
   [DashboardComponentType.Value]: DashboardValueComponent,
   [DashboardComponentType.Table]: DashboardTableComponent,
   [DashboardComponentType.Gauge]: DashboardGaugeComponent,
+  [DashboardComponentType.DataSourceChart]: DashboardDataSourceChartComponent,
+  [DashboardComponentType.DataSourceValue]: DashboardDataSourceValueComponent,
+  [DashboardComponentType.DataSourceGauge]: DashboardDataSourceGaugeComponent,
+  [DashboardComponentType.DataSourceTable]: DashboardDataSourceTableComponent,
   [DashboardComponentType.LogStream]: DashboardLogStreamComponent,
   [DashboardComponentType.LogChart]: DashboardLogChartComponent,
   [DashboardComponentType.TraceList]: DashboardTraceListComponent,

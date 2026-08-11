@@ -56,14 +56,14 @@ Je kunt alle vijf mixen in één runbook — de kracht van runbooks is dat je me
 
 ## Waar runbooks leven in het dashboard
 
-| Pagina                                                                                                            | Wat je daar doet                                                                                            |
-| ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| **Producten → Runbooks**                                                                                          | Runbook-templates doorbladeren, aanmaken en bewerken.                                                       |
-| **Het Stappen-tabblad van een runbook**                                                                           | De staplijst schrijven en herordenen.                                                                       |
-| **Het Uitvoeringen-tabblad van een runbook**                                                                      | Elke run van dit runbook zien met statusfilters.                                                            |
-| **De "Nu uitvoeren"-knop van een runbook**                                                                        | Een ad-hoc uitvoering starten die niet aan een event hangt.                                                 |
-| **Incidenten / Geplande onderhoud → Instellingen → Runbook-regels**, **Waarschuwingen → Regels → Runbook-regels** | De auto-trigger-regels per entiteitstype aanmaken.                                                          |
-| **Een incident / alert / onderhoudsmoment → Runbooks-tabblad**                                                    | De uitvoeringen zien die aan dit event hangen, en klikken op **Runbook uitvoeren** voor een handmatige run. |
+| Pagina                                                                         | Wat je daar doet                                                                                            |
+| ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| **Producten → Runbooks**                                                       | Runbook-templates doorbladeren, aanmaken en bewerken.                                                       |
+| **Het Stappen-tabblad van een runbook**                                        | De staplijst schrijven en herordenen.                                                                       |
+| **Het Uitvoeringen-tabblad van een runbook**                                   | Elke run van dit runbook zien met statusfilters.                                                            |
+| **De "Nu uitvoeren"-knop van een runbook**                                     | Een ad-hoc uitvoering starten die niet aan een event hangt.                                                 |
+| **Incidenten / Waarschuwingen / Geplande onderhoud → Regels → Runbook-regels** | De auto-trigger-regels per entiteitstype aanmaken.                                                          |
+| **Een incident / alert / onderhoudsmoment → Runbooks-tabblad**                 | De uitvoeringen zien die aan dit event hangen, en klikken op **Runbook uitvoeren** voor een handmatige run. |
 
 ## Veelvoorkomende use cases
 
@@ -89,7 +89,7 @@ Stel dat je wilt dat elk incident met "db-primary" in de titel automatisch een v
 | 4   | Handmatig  | Verifieer dat writes nu naar de nieuwe primary gaan |
 | 5   | HTTP       | All-clear posten naar `#db-incidents` Slack         |
 
-**2. Voeg een regel toe.** Onder **Incidenten → Instellingen → Runbook-regels** maak je aan:
+**2. Voeg een regel toe.** Onder **Incidenten → Regels → Runbook-regels** maak je aan:
 
 ```
 Title Pattern:  ^db-primary

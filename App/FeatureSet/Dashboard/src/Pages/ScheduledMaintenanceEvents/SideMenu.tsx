@@ -77,6 +77,62 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         },
       ],
     },
+    /*
+     * Every "when an event looks like X, do Y" page lives here. Collapsed by
+     * default because these are set up once and rarely revisited. Scheduled
+     * maintenance has no AI section to go with it — unlike incidents and
+     * alerts, nothing here is investigated or auto-remediated.
+     */
+    {
+      title: "Rules",
+      defaultCollapsed: true,
+      items: [
+        {
+          link: {
+            title: "Owner Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_OWNER_RULES
+              ] as Route,
+            ),
+          },
+          icon: IconProp.User,
+        },
+        {
+          link: {
+            title: "Runbook Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_RUNBOOK_RULES
+              ] as Route,
+            ),
+          },
+          icon: IconProp.BookOpen,
+        },
+        {
+          link: {
+            title: "Label Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_LABEL_RULES
+              ] as Route,
+            ),
+          },
+          icon: IconProp.Tag,
+        },
+        {
+          link: {
+            title: "Reminder Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_REMINDER_RULES
+              ] as Route,
+            ),
+          },
+          icon: IconProp.Bell,
+        },
+      ],
+    },
     {
       title: "Settings",
       defaultCollapsed: true,
@@ -124,50 +180,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             ),
           },
           icon: IconProp.TableCells,
-        },
-        {
-          link: {
-            title: "Owner Rules",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[
-                PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_OWNER_RULES
-              ] as Route,
-            ),
-          },
-          icon: IconProp.User,
-        },
-        {
-          link: {
-            title: "Runbook Rules",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[
-                PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_RUNBOOK_RULES
-              ] as Route,
-            ),
-          },
-          icon: IconProp.BookOpen,
-        },
-        {
-          link: {
-            title: "Label Rules",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[
-                PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_LABEL_RULES
-              ] as Route,
-            ),
-          },
-          icon: IconProp.Tag,
-        },
-        {
-          link: {
-            title: "Reminder Rules",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[
-                PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_REMINDER_RULES
-              ] as Route,
-            ),
-          },
-          icon: IconProp.Bell,
         },
         {
           link: {

@@ -237,6 +237,13 @@ const HealthOverview: FunctionComponent = (): ReactElement => {
       route: route(PageMap.HEALTH_LOGS),
     },
     {
+      title: "Telemetry",
+      description:
+        "Log, metric and trace ingestion rate — per signal and per project.",
+      icon: IconProp.ChartBar,
+      route: route(PageMap.HEALTH_TELEMETRY),
+    },
+    {
       title: "Global Probes",
       description: "Connectivity and status of the global monitoring probes.",
       icon: IconProp.Signal,

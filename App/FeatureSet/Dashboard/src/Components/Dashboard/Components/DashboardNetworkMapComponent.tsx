@@ -200,8 +200,13 @@ const DashboardNetworkMapComponentElement: FunctionComponent<ComponentProps> = (
       const listResult: ListResult<NetworkSite> =
         await ModelAPI.getList<NetworkSite>({
           modelType: NetworkSite,
-          requestOptions:
-            DashboardResourceList.getRequestOptions("network-site"),
+          requestOptions: DashboardResourceList.getRequestOptions(
+            "network-site",
+            {
+              componentId: props.componentId,
+              variables: props.variables,
+            },
+          ),
           query: query,
           /*
            * One MORE than the cap, on purpose. Asking for exactly the cap
@@ -247,7 +252,13 @@ const DashboardNetworkMapComponentElement: FunctionComponent<ComponentProps> = (
     }
 
     setIsLoading(false);
-  }, [maxSites, statusFilter, networkSiteTypeIdsKey]);
+  }, [
+    maxSites,
+    statusFilter,
+    networkSiteTypeIdsKey,
+    props.componentId,
+    props.variables,
+  ]);
 
   useEffect(() => {
     fetchSites();

@@ -177,6 +177,7 @@ const DashboardKubernetesNodeListComponentElement: FunctionComponent<
 
   return (
     <DashboardKubernetesResourceListBase
+      componentId={props.componentId}
       title={args.title}
       pluralLabel="nodes"
       emptyMessage="No nodes found"

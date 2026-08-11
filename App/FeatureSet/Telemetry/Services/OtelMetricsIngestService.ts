@@ -40,6 +40,11 @@ import MetricPipelineRuleService, {
 } from "./MetricPipelineRuleService";
 import OneUptimeDate from "Common/Types/Date";
 import { resolveTelemetryRetentionInDays } from "Common/Types/Telemetry/TelemetryRetentionConfig";
+import {
+  IngestionStamp,
+  getIngestionStamp,
+  getRetentionDateDb,
+} from "Common/Server/Utils/Telemetry/IngestionTimestamp";
 import MetricService from "Common/Server/Services/MetricService";
 import Text from "Common/Types/Text";
 import KubernetesResourceService, {
@@ -109,7 +114,6 @@ import TelemetryFanInWriter, {
 
 type MetricTimestamp = {
   nano: string;
-  iso: string;
   db: string;
   date: Date;
 };
@@ -1117,6 +1121,20 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                 continue;
               }
 
+              /*
+               * The scope envelope is invariant for every metric (and
+               * datapoint) under this scopeMetric, so its `scope.`-prefixed
+               * key map is built once here instead of once per metric.
+               * Merged LAST into each metric's attribute map below, which
+               * preserves the historical precedence: scope keys overwrite
+               * resource and metric attributes on collision.
+               */
+              const prefixedScopeAttributes: Dictionary<
+                AttributeType | Array<AttributeType>
+              > = TelemetryUtil.getPrefixedScopeAttributes(
+                scopeMetric["scope"] as JSONObject | undefined,
+              );
+
               let metricCounter: number = 0;
               for (const metric of metrics) {
                 try {
@@ -1174,29 +1192,28 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                     }
                   }
 
+                  /*
+                   * The per-metric invariant attribute base: every datapoint
+                   * of this metric copies it once (in buildMetricRow /
+                   * buildMetricEvaluationRow) and layers its own few
+                   * datapoint attributes on top. A single Object.assign with
+                   * ordered sources reproduces the historical spread + scope
+                   * loop exactly — same key-collision winners (resource <
+                   * metric attributes < scope.*) and same key insertion
+                   * order — while the scope prefixing itself now happens
+                   * once per scopeMetric (see above) instead of per metric.
+                   */
                   const metricAttributes: Dictionary<
                     AttributeType | Array<AttributeType>
-                  > = {
-                    ...resourceAttributes,
-                    ...TelemetryUtil.getAttributes({
+                  > = Object.assign(
+                    {},
+                    resourceAttributes,
+                    TelemetryUtil.getAttributes({
                       items: (metric["attributes"] as JSONArray) || [],
                       prefixKeysWithString: "",
                     }),
-                  };
-
-                  if (
-                    scopeMetric["scope"] &&
-                    Object.keys(scopeMetric["scope"]).length > 0
-                  ) {
-                    const scopeAttributes: JSONObject = scopeMetric[
-                      "scope"
-                    ] as JSONObject;
-                    for (const key of Object.keys(scopeAttributes)) {
-                      metricAttributes[`scope.${key}`] = scopeAttributes[
-                        key
-                      ] as AttributeType;
-                    }
-                  }
+                    prefixedScopeAttributes,
+                  );
 
                   /*
                    * Detect which of the five OTLP metric data shapes this
@@ -1257,6 +1274,25 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                           : metric["exponentialHistogram"]
                             ? MetricPointType.ExponentialHistogram
                             : MetricPointType.Summary;
+
+                    /*
+                     * Sorted once per metric, not per datapoint. Every
+                     * datapoint's stored `attributeKeys` used to be
+                     * `Object.keys(attributes).sort()` over the FULL merged
+                     * map — an O(N log N) sort of ~100 keys repeated for
+                     * every datapoint even though only the handful of
+                     * datapoint-level keys vary. Each datapoint now merges
+                     * its own (tiny, sorted) key list into this pre-sorted
+                     * base (see TelemetryUtil.mergeAttributeKeysWithSortedBase),
+                     * which provably yields the identical sorted key list.
+                     * Metrics keeps the sorted order — unlike the logs/traces
+                     * attributeKeys columns, the metric pipeline rule engine
+                     * rebuilds this list SORTED after attribute-mutating
+                     * rules, so an unsorted initial list would make
+                     * rule-touched and untouched rows disagree on order.
+                     */
+                    const sortedBaseAttributeKeys: Array<string> =
+                      Object.keys(metricAttributes).sort();
 
                     let datapointCounter: number = 0;
                     for (const datapoint of dataPoints) {
@@ -1387,20 +1423,26 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                           });
                         }
 
-                        const metricRow: JSONObject = this.buildMetricRow({
-                          datapoint: datapoint as JSONObject,
-                          baseAttributes: metricAttributes,
-                          projectId: projectId,
-                          primaryEntityId: serviceMetadata.primaryEntityId!,
-                          serviceName: serviceName,
-                          metricName: metricName,
-                          metricPointType: metricPointType,
-                          aggregationTemporality: aggregationTemporality,
-                          serviceMetadata: serviceMetadata,
-                          ...(typeof isMonotonic === "boolean"
-                            ? { isMonotonic: isMonotonic }
-                            : {}),
-                        });
+                        /*
+                         * Build ONLY the fields the pipeline rule engine can
+                         * observe: `name`, `attributes`, `attributeKeys`.
+                         * MetricPipelineRuleService provably reads and
+                         * writes nothing else (its filters check MetricName
+                         * or Attribute; its transforms touch name /
+                         * attributes / attributeKeys), so the expensive
+                         * remainder of the row — timestamp parsing, value /
+                         * histogram-bucket / summary-quantile / exemplar
+                         * decoding, _id generation and retention resolution
+                         * — is deferred to completeMetricRow below and never
+                         * runs for a datapoint the rules drop.
+                         */
+                        const evaluationRow: JSONObject =
+                          this.buildMetricEvaluationRow({
+                            datapoint: datapoint as JSONObject,
+                            baseAttributes: metricAttributes,
+                            sortedBaseAttributeKeys: sortedBaseAttributeKeys,
+                            metricName: metricName,
+                          });
 
                         /*
                          * Apply user-defined pipeline rules (filter/drop/
@@ -1409,11 +1451,11 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                          */
                         const transformed: JSONObject | null = pipelineRules
                           ? MetricPipelineRuleService.applyRules(
-                              metricRow,
+                              evaluationRow,
                               serviceMetadata.primaryEntityId,
                               pipelineRules,
                             )
-                          : metricRow;
+                          : evaluationRow;
 
                         if (transformed === null) {
                           continue;
@@ -1441,7 +1483,29 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                           });
                         }
 
-                        dbMetrics.push(transformed);
+                        /*
+                         * The datapoint survived the rules — now pay for the
+                         * full row. The transformed evaluation row carries
+                         * the (possibly renamed) name and (possibly mutated)
+                         * attributes/attributeKeys; completeMetricRow slots
+                         * them into the same field positions the one-shot
+                         * builder always used, so kept rows are
+                         * indistinguishable from the pre-split output.
+                         */
+                        const metricRow: JSONObject = this.completeMetricRow({
+                          evaluationRow: transformed,
+                          datapoint: datapoint as JSONObject,
+                          projectId: projectId,
+                          primaryEntityId: serviceMetadata.primaryEntityId!,
+                          metricPointType: metricPointType,
+                          aggregationTemporality: aggregationTemporality,
+                          serviceMetadata: serviceMetadata,
+                          ...(typeof isMonotonic === "boolean"
+                            ? { isMonotonic: isMonotonic }
+                            : {}),
+                        });
+
+                        dbMetrics.push(metricRow);
                         totalMetricsProcessed++;
 
                         if (
@@ -3100,21 +3164,85 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     }
   }
 
-  private static buildMetricRow(data: {
+  /*
+   * The pipeline-rule-visible slice of a metric row: `name`, `attributes`,
+   * `attributeKeys` — the only fields MetricPipelineRuleService reads or
+   * writes. Built per datapoint BEFORE the rules run; completeMetricRow
+   * below assembles the rest of the row only for datapoints the rules kept,
+   * so a dropped datapoint never pays for timestamp parsing, bucket/quantile
+   * decoding, exemplar extraction, _id generation or retention resolution.
+   */
+  private static buildMetricEvaluationRow(data: {
     datapoint: JSONObject;
     baseAttributes: Dictionary<AttributeType | Array<AttributeType>>;
+    /*
+     * The base map's keys, pre-sorted once per metric by the caller.
+     * When present, per-datapoint attributeKeys is a linear sorted-merge
+     * instead of a full O(N log N) re-sort — with provably identical
+     * output (see TelemetryUtil.mergeAttributeKeysWithSortedBase). When
+     * absent (heartbeat path), the historical full sort runs.
+     */
+    sortedBaseAttributeKeys?: Array<string> | undefined;
+    metricName: string;
+  }): JSONObject {
+    /*
+     * Each datapoint gets its OWN attribute map — pipeline rules mutate
+     * attributes in place, so sharing the base map (or any row's map)
+     * across datapoints would let one row's transform corrupt its
+     * siblings. One Object.assign copy per row is the floor.
+     */
+    let attributes: Dictionary<AttributeType | Array<AttributeType>>;
+    let attributeKeys: Array<string>;
+
+    if (data.datapoint["attributes"]) {
+      const datapointAttributes: Dictionary<
+        AttributeType | Array<AttributeType>
+      > = TelemetryUtil.getAttributes({
+        items: (data.datapoint["attributes"] as JSONArray) || [],
+        prefixKeysWithString: "",
+      });
+
+      attributes = Object.assign({}, data.baseAttributes, datapointAttributes);
+
+      attributeKeys = data.sortedBaseAttributeKeys
+        ? TelemetryUtil.mergeAttributeKeysWithSortedBase({
+            sortedBaseAttributeKeys: data.sortedBaseAttributeKeys,
+            additionalAttributeKeys: Object.keys(datapointAttributes),
+          })
+        : TelemetryUtil.getAttributeKeys(attributes);
+    } else {
+      attributes = Object.assign({}, data.baseAttributes);
+
+      attributeKeys = data.sortedBaseAttributeKeys
+        ? data.sortedBaseAttributeKeys.slice()
+        : TelemetryUtil.getAttributeKeys(attributes);
+    }
+
+    return {
+      name: data.metricName,
+      attributes: attributes,
+      attributeKeys: attributeKeys,
+    };
+  }
+
+  /*
+   * Assemble the full metric row for a datapoint that survived the pipeline
+   * rules. `evaluationRow` is the (possibly transformed) output of
+   * buildMetricEvaluationRow / applyRules; its name / attributes /
+   * attributeKeys land in the exact field positions the pre-split builder
+   * used, so kept rows keep byte-identical shape and key order.
+   */
+  private static completeMetricRow(data: {
+    evaluationRow: JSONObject;
+    datapoint: JSONObject;
     projectId: ObjectID;
     primaryEntityId: ObjectID;
-    serviceName: string;
-    metricName: string;
     metricPointType: MetricPointType;
     aggregationTemporality?: OtelAggregationTemporality;
     isMonotonic?: boolean;
     serviceMetadata: TelemetryServiceMetadata;
   }): JSONObject {
-    const ingestionDate: Date = OneUptimeDate.getCurrentDate();
-    const ingestionTimestamp: string =
-      OneUptimeDate.toClickhouseDateTime(ingestionDate);
+    const ingestionStamp: IngestionStamp = getIngestionStamp();
 
     const timeFields: MetricTimestamp = this.safeParseUnixNano(
       data.datapoint["timeUnixNano"] as string | number | undefined,
@@ -3131,23 +3259,6 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           "metric datapoint startTimeUnixNano",
         )
       : null;
-
-    const attributes: Dictionary<AttributeType | Array<AttributeType>> = {
-      ...data.baseAttributes,
-    };
-
-    if (data.datapoint["attributes"]) {
-      Object.assign(
-        attributes,
-        TelemetryUtil.getAttributes({
-          items: (data.datapoint["attributes"] as JSONArray) || [],
-          prefixKeysWithString: "",
-        }),
-      );
-    }
-
-    const attributeKeys: Array<string> =
-      TelemetryUtil.getAttributeKeys(attributes);
 
     const valueFromInt: number | null = this.toNumberOrNull(
       data.datapoint["asInt"],
@@ -3267,20 +3378,16 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       projectConfig: data.serviceMetadata.projectRetentionConfig,
       projectRetentionInDays: data.serviceMetadata.projectRetentionInDays,
     });
-    const retentionDate: Date = OneUptimeDate.addRemoveDays(
-      ingestionDate,
-      retentionDays,
-    );
 
     const row: JSONObject = {
       _id: ObjectID.generateTimeOrdered().toString(),
-      createdAt: ingestionTimestamp,
+      createdAt: ingestionStamp.db,
       projectId: data.projectId.toString(),
       primaryEntityId: data.primaryEntityId.toString(),
       primaryEntityType: data.serviceMetadata.primaryEntityType,
       entityKeys: data.serviceMetadata.entityKeys || [],
       ...getScalarEntityKeyColumns(data.serviceMetadata),
-      name: data.metricName,
+      name: data.evaluationRow["name"] as string,
       time: timeFields.db,
       timeUnixNano: timeFields.nano,
       metricPointType: data.metricPointType,
@@ -3289,8 +3396,10 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       ),
       isMonotonic:
         data.isMonotonic === undefined ? null : Boolean(data.isMonotonic),
-      attributes: attributes,
-      attributeKeys: attributeKeys,
+      attributes: data.evaluationRow["attributes"] as Dictionary<
+        AttributeType | Array<AttributeType>
+      >,
+      attributeKeys: data.evaluationRow["attributeKeys"] as Array<string>,
       value:
         valueFromInt !== null
           ? valueFromInt
@@ -3315,7 +3424,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       summaryValues: summaryValues,
       traceId: exemplarTraceAndSpanIds.traceId,
       spanId: exemplarTraceAndSpanIds.spanId,
-      retentionDate: OneUptimeDate.toClickhouseDateTime(retentionDate),
+      retentionDate: getRetentionDateDb(ingestionStamp, retentionDays),
     };
 
     if (startTimeFields) {
@@ -3327,6 +3436,48 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     }
 
     return row;
+  }
+
+  /*
+   * One-shot builder retained for callers that bypass the pipeline rules
+   * (the synthetic host heartbeat). Behaviorally identical to the historical
+   * monolithic buildMetricRow: it is exactly the evaluation half composed
+   * with the completion half, with no rule application in between.
+   */
+  private static buildMetricRow(data: {
+    datapoint: JSONObject;
+    baseAttributes: Dictionary<AttributeType | Array<AttributeType>>;
+    sortedBaseAttributeKeys?: Array<string> | undefined;
+    projectId: ObjectID;
+    primaryEntityId: ObjectID;
+    serviceName: string;
+    metricName: string;
+    metricPointType: MetricPointType;
+    aggregationTemporality?: OtelAggregationTemporality;
+    isMonotonic?: boolean;
+    serviceMetadata: TelemetryServiceMetadata;
+  }): JSONObject {
+    const evaluationRow: JSONObject = this.buildMetricEvaluationRow({
+      datapoint: data.datapoint,
+      baseAttributes: data.baseAttributes,
+      sortedBaseAttributeKeys: data.sortedBaseAttributeKeys,
+      metricName: data.metricName,
+    });
+
+    return this.completeMetricRow({
+      evaluationRow: evaluationRow,
+      datapoint: data.datapoint,
+      projectId: data.projectId,
+      primaryEntityId: data.primaryEntityId,
+      metricPointType: data.metricPointType,
+      serviceMetadata: data.serviceMetadata,
+      ...(data.aggregationTemporality !== undefined
+        ? { aggregationTemporality: data.aggregationTemporality }
+        : {}),
+      ...(typeof data.isMonotonic === "boolean"
+        ? { isMonotonic: data.isMonotonic }
+        : {}),
+    });
   }
 
   /*
@@ -3409,7 +3560,13 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
     value: string | number | undefined,
     context: string,
   ): MetricTimestamp {
-    let numericValue: number = OneUptimeDate.getCurrentDateAsUnixNano();
+    /*
+     * The current-time fallback is derived lazily: this runs per datapoint,
+     * and the common case (a valid timeUnixNano on the datapoint) used to
+     * pay a Date allocation + unix-nano conversion that was immediately
+     * overwritten.
+     */
+    let numericValue: number | null = null;
 
     if (value !== undefined && value !== null) {
       try {
@@ -3429,17 +3586,19 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         logger.warn(
           `Error processing ${context}: ${error instanceof Error ? error.message : String(error)}, using current time`,
         );
-        numericValue = OneUptimeDate.getCurrentDateAsUnixNano();
+        numericValue = null;
       }
     }
 
+    if (numericValue === null) {
+      numericValue = OneUptimeDate.getCurrentDateAsUnixNano();
+    }
+
     const date: Date = OneUptimeDate.fromUnixNano(numericValue);
-    const iso: string = OneUptimeDate.toString(date);
     const db: string = OneUptimeDate.toClickhouseDateTime(date);
 
     return {
       nano: Math.trunc(numericValue).toString(),
-      iso: iso,
       db: db,
       date: date,
     };

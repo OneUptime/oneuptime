@@ -31,6 +31,10 @@ import DashboardSettingsOwnerRules from "../Pages/Dashboards/Settings/OwnerRules
 
 import DashboardSettingsLabelRules from "../Pages/Dashboards/Settings/LabelRules";
 
+import DashboardSettingsDataSources from "../Pages/Dashboards/Settings/DataSources";
+
+import DashboardSettingsDataSourceView from "../Pages/Dashboards/Settings/DataSourceView";
+
 const DashboardsRoutes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -70,6 +74,35 @@ const DashboardsRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.DASHBOARDS_SETTINGS_LABEL_RULES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            DashboardsRoutePath[PageMap.DASHBOARDS_SETTINGS_DATA_SOURCES] || ""
+          }
+          element={
+            <DashboardSettingsDataSources
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.DASHBOARDS_SETTINGS_DATA_SOURCES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            DashboardsRoutePath[PageMap.DASHBOARDS_SETTINGS_DATA_SOURCE_VIEW] ||
+            ""
+          }
+          element={
+            <DashboardSettingsDataSourceView
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.DASHBOARDS_SETTINGS_DATA_SOURCE_VIEW] as Route
               }
             />
           }

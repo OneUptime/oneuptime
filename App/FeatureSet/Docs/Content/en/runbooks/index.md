@@ -56,14 +56,14 @@ You can mix all five in a single runbook — the strength of runbooks is interle
 
 ## Where runbooks live in the dashboard
 
-| Page                                                                                                 | What you do there                                                                 |
-| ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| **Products → Runbooks**                                                                              | Browse, create, and edit runbook templates.                                       |
-| **A runbook's Steps tab**                                                                            | Author and reorder the step list.                                                 |
-| **A runbook's Executions tab**                                                                       | See every run of this runbook with status filters.                                |
-| **A runbook's Run Now button**                                                                       | Kick off an ad-hoc execution not attached to any event.                           |
-| **Incidents / Scheduled Maintenance → Settings → Runbook Rules**, **Alerts → Rules → Runbook Rules** | Create the auto-trigger rules per entity type.                                    |
-| **An incident / alert / maintenance event → Runbooks tab**                                           | See executions attached to this event and click **Run Runbook** for a manual run. |
+| Page                                                                   | What you do there                                                                 |
+| ---------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| **Products → Runbooks**                                                | Browse, create, and edit runbook templates.                                       |
+| **A runbook's Steps tab**                                              | Author and reorder the step list.                                                 |
+| **A runbook's Executions tab**                                         | See every run of this runbook with status filters.                                |
+| **A runbook's Run Now button**                                         | Kick off an ad-hoc execution not attached to any event.                           |
+| **Incidents / Alerts / Scheduled Maintenance → Rules → Runbook Rules** | Create the auto-trigger rules per entity type.                                    |
+| **An incident / alert / maintenance event → Runbooks tab**             | See executions attached to this event and click **Run Runbook** for a manual run. |
 
 ## Common use cases
 
@@ -89,7 +89,7 @@ Suppose you want every incident with "db-primary" in the title to kick off a fiv
 | 4   | Manual     | Verify writes are now going to the new primary |
 | 5   | HTTP       | Post all-clear to `#db-incidents` Slack        |
 
-**2. Add a rule.** Under **Incidents → Settings → Runbook Rules**, create:
+**2. Add a rule.** Under **Incidents → Rules → Runbook Rules**, create:
 
 ```
 Title Pattern:  ^db-primary

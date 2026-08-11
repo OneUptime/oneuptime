@@ -164,6 +164,7 @@ const realRoutePatterns: Array<string> = [
   "/dashboard/:projectId/incidents/settings/postmortem-templates/:id",
   "/dashboard/:projectId/incidents/settings/custom-fields",
   "/dashboard/:projectId/incidents/settings/grouping-rules",
+  "/dashboard/:projectId/incidents/settings/auto-remediation-rules",
   "/dashboard/:projectId/incidents/settings/on-call-rules",
   "/dashboard/:projectId/incidents/settings/owner-rules",
   "/dashboard/:projectId/incidents/settings/runbook-rules",

@@ -30,6 +30,7 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../Types/ObjectID";
 import WorkspaceProjectAuthTokenService from "../../../Services/WorkspaceProjectAuthTokenService";
+import SSRFProtection from "../../SSRFProtection";
 import WorkspaceProjectAuthToken, {
   MicrosoftTeamsChat,
   MicrosoftTeamsChatType,
@@ -112,6 +113,16 @@ const MICROSOFT_TEAMS_APP_TYPE: string = "SingleTenant";
 
 // Maximum number of pages to fetch when paginating teams
 const MICROSOFT_TEAMS_MAX_PAGES: number = 500;
+
+/*
+ * Hosts that may receive a Teams incoming webhook. Connector webhooks are
+ * issued on outlook.office.com / outlook.office365.com, and per-tenant ones on
+ * <tenant>.webhook.office.com — all covered by these two registrable domains.
+ */
+const MICROSOFT_TEAMS_WEBHOOK_DOMAINS: Array<string> = [
+  "office.com",
+  "office365.com",
+];
 
 export default class MicrosoftTeamsUtil extends WorkspaceBase {
   private static cachedAdapter: CloudAdapter | null = null;
@@ -700,6 +711,13 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       await API.post({
         url: data.url,
         data: payload,
+        options: {
+          /*
+           * The host is pinned to Microsoft, but do not let a redirect from it
+           * bounce this request to an internal address.
+           */
+          doNotFollowRedirects: true,
+        },
       });
 
     if (!apiResult) {
@@ -730,11 +748,16 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
   public static isValidMicrosoftTeamsIncomingWebhookUrl(
     incomingWebhookUrl: URL,
   ): boolean {
-    // Check if the URL contains outlook.office.com or office.com webhook pattern
-    const urlString: string = incomingWebhookUrl.toString();
-    return (
-      urlString.includes("outlook.office.com") ||
-      urlString.includes("office.com")
+    /*
+     * Pin on the URL's HOST, not on a substring of the whole URL. Subscribers
+     * (including unauthenticated ones on a public status page) supply this
+     * value and the server POSTs to it, so a substring check was satisfied by
+     * an attacker-controlled path or query — `http://169.254.169.254/?x=office.com`
+     * passed and turned this into an SSRF into the cloud metadata endpoint.
+     */
+    return SSRFProtection.isUrlOnAllowedDomain(
+      incomingWebhookUrl,
+      MICROSOFT_TEAMS_WEBHOOK_DOMAINS,
     );
   }
 

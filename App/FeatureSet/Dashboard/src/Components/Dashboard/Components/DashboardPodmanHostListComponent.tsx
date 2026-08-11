@@ -98,8 +98,13 @@ const DashboardPodmanHostListComponentElement: FunctionComponent<
       const listResult: ListResult<PodmanHost> =
         await ModelAPI.getList<PodmanHost>({
           modelType: PodmanHost,
-          requestOptions:
-            DashboardResourceList.getRequestOptions("podman-host"),
+          requestOptions: DashboardResourceList.getRequestOptions(
+            "podman-host",
+            {
+              componentId: props.componentId,
+              variables: props.variables,
+            },
+          ),
           query: query,
           limit: maxRows,
           skip: 0,
@@ -125,7 +130,7 @@ const DashboardPodmanHostListComponentElement: FunctionComponent<
     }
 
     setIsLoading(false);
-  }, [maxRows, statusFilter, props.variables]);
+  }, [maxRows, statusFilter, props.variables, props.componentId]);
 
   useEffect(() => {
     fetchHosts();

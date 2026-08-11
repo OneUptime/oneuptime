@@ -44,6 +44,13 @@
   --ou-shadow-sm: 0 1px 3px rgb(15 23 42 / 8%);
   --ou-shadow-md: 0 8px 20px -6px rgb(15 23 42 / 18%);
   --ou-shadow-lg: 0 18px 40px -12px rgb(15 23 42 / 24%);
+  /*
+   * The colour a scrolled modal's header and footer cast over the body. Only
+   * the colour lives here: the geometry stays in the component, which repeats
+   * this value as its own fallback so the shadow survives in the apps that do
+   * not load this file.
+   */
+  --ou-modal-scroll-shadow: rgb(15 23 42 / 35%);
 }
 
 html.dark {
@@ -89,6 +96,11 @@ html.dark {
     0 0 0 1px rgb(148 163 184 / 10%);
   --ou-shadow-lg: 0 24px 52px -14px rgb(0 0 0 / 64%),
     0 0 0 1px rgb(148 163 184 / 12%);
+  /*
+   * Near-black at 35% is all but invisible against a dark surface, and the
+   * scroll shadow is the only thing that says a modal body has more content.
+   */
+  --ou-modal-scroll-shadow: rgb(0 0 0 / 85%);
 }
 
 html.dark,
@@ -210,6 +222,12 @@ html.dark :is(
     [class~="active:bg-gray-100"]
   ):hover,
 html.dark [class~="active:bg-gray-100"]:active,
+/*
+ * A row that gives its keyboard focus the same ground its hover gets. Without
+ * this token the light utility survives into the dark theme and paints a
+ * near-white bar across whatever it is on - see the status page group tree.
+ */
+html.dark [class~="focus-within:bg-gray-100"]:focus-within,
 html.dark [class~="disabled:bg-gray-100"]:disabled {
   background-color: var(--ou-surface-tertiary) !important;
 }

@@ -31,6 +31,12 @@ export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardChartComponent;
 }
 
+/*
+ * Time-series chart over a OneUptime METRIC query. Charting an external
+ * Data Source is a separate widget type (DashboardDataSourceChartComponent)
+ * with its own query editor, so nothing here has to branch on where the
+ * data came from.
+ */
 const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {

@@ -25,11 +25,7 @@ import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import PaymentRequiredException from "Common/Types/Exception/PaymentRequiredException";
 import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
-import {
-  getClickhouseClusterName,
-  getStorageTableName,
-} from "Common/Server/Utils/AnalyticsDatabase/ClusterConfig";
-import AnalyticsTableName from "Common/Types/AnalyticsDatabase/AnalyticsTableName";
+import { getClickhouseClusterName } from "Common/Server/Utils/AnalyticsDatabase/ClusterConfig";
 import {
   getClickhouseDiskSnapshots,
   getClickhouseLocalTableSizes,
@@ -41,6 +37,18 @@ import {
   getRedisInfoSnapshot,
   RedisInfoSnapshot,
 } from "Common/Server/Utils/InstanceHealth/RedisHealth";
+import {
+  attachProjectNames,
+  getTelemetryIngestionByProject,
+  getTelemetryIngestionBySignal,
+  MAX_PROJECTS_PER_SIGNAL,
+  TelemetryProjectIngestion,
+  TelemetryProjectIngestionResult,
+} from "Common/Server/Utils/InstanceHealth/TelemetryIngestion";
+import ProjectService from "Common/Server/Services/ProjectService";
+import Project from "Common/Models/DatabaseModels/Project";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
+import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 
 const router: ExpressRouter = Express.getRouter();
@@ -2684,183 +2692,76 @@ async function getClickhouseDiagnostics(): Promise<JSONObject> {
 }
 
 /*
- * The three telemetry signals OneUptime ingests into ClickHouse and the
- * event-time column each table is partitioned + primary-key ordered on. We count
- * ingestion on THIS column (never `createdAt`) precisely because it is the
- * partition key (toYYYYMMDD) and the leading primary-key column: ClickHouse can
- * prune to the last day's partitions and use the primary index, so the count
- * stays cheap even on multi-billion-row tables. `createdAt` — the true write
- * time — is unindexed and unpartitioned here, so filtering on it would force a
- * full-table scan; for a live pipeline event-time and write-time agree to within
- * seconds, and the only divergence (historical backfill) is not what a
- * "current ingestion rate" view is meant to show.
- */
-const TELEMETRY_INGESTION_TABLES: Array<{
-  telemetryType: string;
-  table: AnalyticsTableName;
-  timeColumn: string;
-}> = [
-  { telemetryType: "Logs", table: AnalyticsTableName.Log, timeColumn: "time" },
-  {
-    telemetryType: "Metrics",
-    table: AnalyticsTableName.Metric,
-    timeColumn: "time",
-  },
-  {
-    telemetryType: "Traces",
-    table: AnalyticsTableName.Span,
-    timeColumn: "startTime",
-  },
-];
-
-/*
- * Telemetry ingestion rate for the dashboard. For each telemetry table it counts
- * the rows whose event time falls in the last minute, the last hour and the last
- * day — so an operator can see how fast telemetry is flowing into ClickHouse and
- * spot a stall or a flood at a glance. Every window is bounded by the same
- * `WHERE eventTime >= now() - INTERVAL 1 DAY AND eventTime <= now()` so the scan
- * only ever touches the last day's partitions; the smaller windows are picked
- * out with countIf. The upper `<= now()` bound stops a future-dated event from
- * inflating the counts. Each table is probed independently so a missing table
- * (e.g. an instance that only ingests logs) degrades gracefully. Alongside the
- * counts it reports each table's total ACTUAL (uncompressed) data volume read
- * from system.parts metadata — the real data size, not the compressed
- * bytes_on_disk. No row data is read — only counts and size metadata. Enterprise
- * Edition + master-admin gated at the route.
+ * Telemetry ingestion rate for the dashboard, by signal: how many log, metric
+ * and trace rows landed in ClickHouse over the last minute, hour and day, plus
+ * each signal's actual (uncompressed) footprint. The probe itself lives in
+ * Common/Server/Utils/InstanceHealth/TelemetryIngestion so the by-signal and
+ * by-project views cannot drift apart on which tables and event-time columns
+ * count as "telemetry". Enterprise Edition + master-admin gated at the route.
  */
 async function getClickhouseTelemetryIngestion(): Promise<JSONObject> {
-  const result: JSONObject = {
-    connected: false,
-    tables: [],
-  };
+  return (await getTelemetryIngestionBySignal()) as unknown as JSONObject;
+}
 
-  try {
-    const client: ReturnType<typeof ClickhouseAppInstance.getDataSource> =
-      ClickhouseAppInstance.getDataSource();
+/*
+ * The same three windows split per tenant, for the Telemetry diagnostics page.
+ * ClickHouse only knows tenants by id, so the project names are resolved here
+ * against Postgres — in ONE query over exactly the ids that reported ingestion,
+ * never a full project listing. A project deleted while its telemetry is still
+ * inside the retention window resolves to no name and is labelled by id, so it
+ * still shows up against the volume it is still responsible for.
+ */
+async function getClickhouseTelemetryIngestionByProject(): Promise<JSONObject> {
+  const ingestion: TelemetryProjectIngestionResult =
+    await getTelemetryIngestionByProject();
 
-    if (!client) {
-      return result;
-    }
+  const projectIds: Array<string> = ingestion.projects.map(
+    (project: TelemetryProjectIngestion): string => {
+      return project.projectId;
+    },
+  );
 
-    result["connected"] = true;
+  const namesByProjectId: Map<string, string> = new Map<string, string>();
 
-    /*
-     * Total ACTUAL (uncompressed) data volume per telemetry table, read from
-     * system.parts metadata — this is the real data size, not the compressed
-     * bytes_on_disk. It is a metadata aggregate (no data scan), so it stays cheap
-     * regardless of table size. Guarded independently so a failure here never
-     * drops the ingestion counts below.
-     *
-     * Two cluster subtleties are handled here:
-     *
-     *   1. The app-facing table names (LogItemV3, …) are Distributed wrappers,
-     *      which hold NO parts of their own — the rows live in the per-shard local
-     *      storage tables (`<tableName>Local`). So we filter system.parts on the
-     *      *Local names (and key the size map by them); the Distributed names would
-     *      match nothing and leave every "Actual size" cell blank.
-     *
-     *   2. system.parts is node-local, so a plain read would only size the
-     *      connected node's shard. We read it through
-     *      `cluster(<name>, system.parts)` which — like the Distributed read path
-     *      the ingestion counts use — hits ONE replica per shard, so
-     *      sum(...) GROUP BY table totals every shard exactly once (no replica
-     *      double-counting; clusterAllReplicas would overcount by the replication
-     *      factor). On a single-node "cluster of one" this equals reading
-     *      system.parts directly.
-     */
-    const uncompressedBytesByStorageTable: Map<string, number | null> =
-      new Map();
+  if (projectIds.length > 0) {
     try {
-      const databaseLiteral: string = ClickhouseDatabaseName.replace(
-        /'/g,
-        "''",
-      );
-      const clusterNameLiteral: string = getClickhouseClusterName().replace(
-        /'/g,
-        "''",
-      );
-      const storageTableListLiteral: string = TELEMETRY_INGESTION_TABLES.map(
-        (spec: { table: AnalyticsTableName }): string => {
-          return `'${getStorageTableName(String(spec.table)).replace(/'/g, "''")}'`;
+      const projects: Array<Project> = await ProjectService.findBy({
+        query: {
+          _id: QueryHelper.any(projectIds),
         },
-      ).join(", ");
+        select: {
+          _id: true,
+          name: true,
+        },
+        skip: 0,
+        limit: LIMIT_MAX,
+        props: {
+          isRoot: true,
+        },
+      });
 
-      const sizesResult: ClickhouseJsonResult = (await (
-        await client.query({
-          query:
-            "SELECT table, sum(data_uncompressed_bytes) AS uncompressed_bytes " +
-            `FROM cluster('${clusterNameLiteral}', system.parts) ` +
-            `WHERE active AND database = '${databaseLiteral}' AND table IN (${storageTableListLiteral}) ` +
-            "GROUP BY table" +
-            CH_DIAG_QUERY_SETTINGS,
-          format: "JSON",
-        })
-      ).json()) as ClickhouseJsonResult;
-
-      for (const row of sizesResult.data || []) {
-        uncompressedBytesByStorageTable.set(
-          String(row["table"]),
-          toNumberOrNull(row["uncompressed_bytes"]),
-        );
+      for (const project of projects) {
+        if (project.id && project.name) {
+          namesByProjectId.set(project.id.toString(), project.name);
+        }
       }
     } catch (err) {
-      logger.debug("AdminHealth: telemetry uncompressed-size query failed");
-      logger.debug(err);
+      /*
+       * Names are a nicety; the volumes are the point. A Postgres hiccup leaves
+       * every row labelled by project id rather than failing the whole page.
+       */
+      logger.error("AdminHealth: failed to resolve telemetry project names");
+      logger.error(err);
     }
-
-    const tables: JSONArray = [];
-
-    for (const spec of TELEMETRY_INGESTION_TABLES) {
-      const entry: JSONObject = {
-        telemetryType: spec.telemetryType,
-        table: spec.table,
-        lastMinute: null,
-        lastHour: null,
-        lastDay: null,
-        uncompressedBytes:
-          uncompressedBytesByStorageTable.get(
-            getStorageTableName(spec.table),
-          ) ?? null,
-        available: false,
-      };
-
-      try {
-        const ingestionResult: ClickhouseJsonResult = (await (
-          await client.query({
-            query:
-              "SELECT " +
-              `countIf(${spec.timeColumn} >= now() - INTERVAL 1 MINUTE) AS last_minute, ` +
-              `countIf(${spec.timeColumn} >= now() - INTERVAL 1 HOUR) AS last_hour, ` +
-              "count() AS last_day " +
-              `FROM \`${ClickhouseDatabaseName}\`.\`${spec.table}\` ` +
-              `WHERE ${spec.timeColumn} >= now() - INTERVAL 1 DAY AND ${spec.timeColumn} <= now()` +
-              CH_DIAG_QUERY_SETTINGS,
-            format: "JSON",
-          })
-        ).json()) as ClickhouseJsonResult;
-
-        const row: JSONObject = ingestionResult.data?.[0] || {};
-        entry["lastMinute"] = toNumberOrNull(row["last_minute"]);
-        entry["lastHour"] = toNumberOrNull(row["last_hour"]);
-        entry["lastDay"] = toNumberOrNull(row["last_day"]);
-        entry["available"] = true;
-      } catch (err) {
-        logger.debug(
-          `AdminHealth: telemetry ingestion query failed for ${spec.table}`,
-        );
-        logger.debug(err);
-      }
-
-      tables.push(entry);
-    }
-
-    result["tables"] = tables;
-  } catch (err) {
-    logger.error("AdminHealth: failed to read ClickHouse telemetry ingestion");
-    logger.error(err);
   }
 
-  return result;
+  return {
+    connected: ingestion.connected,
+    truncated: ingestion.truncated,
+    maxProjectsPerSignal: MAX_PROJECTS_PER_SIGNAL,
+    signals: ingestion.signals,
+    projects: attachProjectNames(ingestion.projects, namesByProjectId),
+  } as unknown as JSONObject;
 }
 
 /*
@@ -3651,6 +3552,38 @@ router.get(
       }
 
       const data: JSONObject = await getClickhouseTelemetryIngestion();
+      return Response.sendJsonObjectResponse(req, res, data);
+    } catch (err) {
+      return next(err);
+    }
+  },
+);
+
+/*
+ * Telemetry ingestion split by project, for the Telemetry diagnostics page:
+ * which tenants are sending logs, metrics and traces, and how much of each over
+ * the last minute, hour and day. Counts and project names only — no telemetry
+ * row data. Same Enterprise Edition + master-admin gate as the by-signal
+ * endpoint above.
+ */
+router.get(
+  "/clickhouse-telemetry-ingestion-by-project",
+  MasterAdminAuthorization.isAuthorizedMasterAdminOrMasterApiKeyMiddleware,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      if (!IsEnterpriseEdition) {
+        throw new PaymentRequiredException(
+          "The OneUptime Health dashboard is only available on the OneUptime Enterprise Edition. " +
+            "Please switch to the Enterprise Edition build to enable this feature. " +
+            "See https://oneuptime.com/enterprise/overview for details.",
+        );
+      }
+
+      const data: JSONObject = await getClickhouseTelemetryIngestionByProject();
       return Response.sendJsonObjectResponse(req, res, data);
     } catch (err) {
       return next(err);

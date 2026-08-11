@@ -91,6 +91,15 @@ const HealthSideMenu: () => JSX.Element = (): ReactElement => {
         />
         <SideMenuItem
           link={{
+            title: "Telemetry",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.HEALTH_TELEMETRY] as Route,
+            ),
+          }}
+          icon={IconProp.ChartBar}
+        />
+        <SideMenuItem
+          link={{
             title: "Global Probes",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.HEALTH_PROBES] as Route,

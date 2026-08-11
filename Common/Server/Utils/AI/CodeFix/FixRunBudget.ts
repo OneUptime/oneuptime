@@ -185,7 +185,7 @@ export default class FixRunBudget {
           : "Daily Other AI Fix Task Limit";
     const settingsLocation: string =
       lane === "incident"
-        ? "Incidents > Settings > AI"
+        ? "Incidents > AI > Investigation"
         : lane === "alert"
           ? "Alerts > AI > Investigation"
           : "Project Settings > AI > AI Guardrails";

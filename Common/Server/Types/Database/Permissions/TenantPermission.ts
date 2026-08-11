@@ -45,6 +45,40 @@ export default class TenantPermission {
       );
     }
 
+    const isAccessGrantedOnlyByCurrentUser: boolean =
+      TenantPermission.isAccessGrantedOnlyByCurrentUser(modelType, props, type);
+    const userColumn: string | null = model.getUserColumn();
+
+    /*
+     * CurrentUser is an auto-granted permission, not a tenant-wide role. A
+     * query operation that relies on it must declare an ownership column so
+     * the permission can be converted into a row predicate.
+     */
+    if (
+      isAccessGrantedOnlyByCurrentUser &&
+      type !== DatabaseRequestType.Create &&
+      !userColumn
+    ) {
+      throw new NotAuthorizedException(
+        `Current user scope is not configured for ${model.singularName}.`,
+      );
+    }
+
+    const shouldScopeQueryByCurrentUser: boolean =
+      isAccessGrantedOnlyByCurrentUser && Boolean(userColumn);
+
+    /*
+     * API keys and other non-user callers can carry the auto-granted
+     * CurrentUser permission without having a userId. Such a grant can never
+     * be converted into an ownership filter, so reject it instead of running
+     * the caller's query without a user scope.
+     */
+    if (shouldScopeQueryByCurrentUser && !props.userId) {
+      throw new NotAuthorizedException(
+        `A user session is required to ${type} ${model.singularName}.`,
+      );
+    }
+
     // If this model has a tenantColumn, and request has tenantId, and is multiTenantQuery null then add tenantId to query.
     if (tenantColumn && props.tenantId && !props.isMultiTenantRequest) {
       (query as any)[tenantColumn] = props.tenantId;
@@ -56,13 +90,12 @@ export default class TenantPermission {
        * row in the project (CVE-class issue when CurrentUser appears in a
        * model's delete/update list alongside admin permissions).
        */
-      if (
-        TenantPermission.shouldScopeQueryByCurrentUser(modelType, props, type)
-      ) {
-        const userColumn: string | null = model.getUserColumn();
-        if (userColumn) {
-          (query as any)[userColumn] = props.userId;
-        }
+      if (shouldScopeQueryByCurrentUser) {
+        TenantPermission.addCurrentUserScopeToQuery(
+          model,
+          query,
+          props.userId as ObjectID,
+        );
       }
     }
     // if model allows user query without tenant, and user column is present, and userId is present, then add userId to query.
@@ -71,7 +104,7 @@ export default class TenantPermission {
       model.getUserColumn() &&
       props.userId
     ) {
-      (query as any)[model.getUserColumn() as string] = props.userId;
+      TenantPermission.addCurrentUserScopeToQuery(model, query, props.userId);
     } else if (
       tenantColumn &&
       props.userGlobalAccessPermission &&
@@ -114,6 +147,7 @@ export default class TenantPermission {
       }
 
       let lastException: Error | null = null;
+      const queryForEachProject: Query<TBaseModel> = { ...query };
 
       for (const projectId of projectIDs) {
         if (!props.userId) {
@@ -124,7 +158,7 @@ export default class TenantPermission {
           const checkBasePermissions: CheckPermissionBaseInterface<TBaseModel> =
             await BasePermission.checkPermissions(
               modelType,
-              query,
+              { ...queryForEachProject },
               select,
               {
                 ...props,
@@ -154,7 +188,64 @@ export default class TenantPermission {
       return queries as any;
     }
 
+    /*
+     * A model that relies on CurrentUser must resolve that permission to the
+     * requester's exact ownership column. This catches missing decorators and
+     * prevents a future model misconfiguration from silently becoming an
+     * instance-wide query.
+     */
+    if (shouldScopeQueryByCurrentUser) {
+      const scopedUserId: unknown = (query as any)[userColumn as string];
+
+      if (
+        !TenantPermission.isExactUserScope(scopedUserId) ||
+        scopedUserId.toString() !== (props.userId as ObjectID).toString()
+      ) {
+        throw new NotAuthorizedException(
+          `Current user scope could not be applied to ${model.singularName}.`,
+        );
+      }
+    }
+
     return query;
+  }
+
+  /**
+   * Add the authenticated user's ownership predicate without redirecting an
+   * operation that explicitly targeted another user. Rejecting a conflict is
+   * important because service hooks run before the final permission check;
+   * silently replacing the target would let a hook inspect one row and the
+   * database operation mutate a different one.
+   */
+  private static addCurrentUserScopeToQuery<TBaseModel extends BaseModel>(
+    model: BaseModel,
+    query: Query<TBaseModel>,
+    userId: ObjectID,
+  ): void {
+    const userColumn: string = model.getUserColumn() as string;
+    const existingUserScope: unknown = (query as any)[userColumn];
+
+    if (
+      existingUserScope !== undefined &&
+      (!TenantPermission.isExactUserScope(existingUserScope) ||
+        existingUserScope.toString() !== userId.toString())
+    ) {
+      throw new NotAuthorizedException(
+        `You do not have permission to access another user's ${model.singularName}.`,
+      );
+    }
+
+    (query as any)[userColumn] = userId;
+  }
+
+  /**
+   * Ownership filters must be exact scalar ids. Query operators such as
+   * NotEqual stringify to their wrapped id as well, so comparing only their
+   * string value would allow a broad hook query to masquerade as an exact
+   * current-user predicate.
+   */
+  private static isExactUserScope(value: unknown): value is string | ObjectID {
+    return typeof value === "string" || value instanceof ObjectID;
   }
 
   /**
@@ -162,17 +253,11 @@ export default class TenantPermission {
    * check for this op is Permission.CurrentUser. In that case the query must
    * be restricted to rows the user owns (via the model's user column).
    */
-  private static shouldScopeQueryByCurrentUser<TBaseModel extends BaseModel>(
+  private static isAccessGrantedOnlyByCurrentUser<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
     props: DatabaseCommonInteractionProps,
     type: DatabaseRequestType,
   ): boolean {
-    const model: BaseModel = new modelType();
-
-    if (!model.getUserColumn() || !props.userId) {
-      return false;
-    }
-
     const modelPermissions: Array<Permission> =
       TablePermission.getTablePermission(modelType, type);
 

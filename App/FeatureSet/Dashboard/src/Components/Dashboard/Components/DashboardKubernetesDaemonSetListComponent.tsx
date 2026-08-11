@@ -99,6 +99,7 @@ const DashboardKubernetesDaemonSetListComponentElement: FunctionComponent<
 
   return (
     <DashboardKubernetesResourceListBase
+      componentId={props.componentId}
       title={args.title}
       pluralLabel="daemonsets"
       emptyMessage="No daemon sets found"

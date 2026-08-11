@@ -2672,7 +2672,7 @@
   "Global Probes help you monitor external resources from different locations around the world.": "全局探针可帮助您从世界各地的不同位置监控外部资源。",
   "Global Probes on New Monitors": "新监视器上的全局探测器",
   "Go to Alerts > Rules > Grouping Rules to configure how alerts are automatically grouped.": "前往 警报 > 规则 > 分组规则 以配置警报的自动分组方式。",
-  "Go to Incidents > Settings > Grouping Rules to configure how incidents are automatically grouped.": "前往 事件 > 设置 > 分组规则，配置事件的自动分组方式。",
+  "Go to Incidents > Rules > Grouping Rules to configure how incidents are automatically grouped.": "前往 事件 > 规则 > 分组规则，配置事件的自动分组方式。",
   "Go to Project Settings > Call & SMS > Custom Call/SMS Config and add your Twilio credentials (Account SID and Auth Token).": "前往 项目设置 > 通话与短信 > 自定义通话/短信配置，添加您的 Twilio 凭据（Account SID 和 Auth Token）。",
   "Go to Settings": "前往设置",
   "Google Authenticator": "Google Authenticator",

@@ -74,6 +74,55 @@ describe("Telemetry.getExceptionAttributes", () => {
     expect(typeof attributes["exception.stacktrace"]).toBe("string");
   });
 
+  /*
+   * exception.type is the exception's identity downstream: it is hashed into
+   * the TelemetryException group fingerprint and it is what the Issues list
+   * and the AI insight titles show. An Error subclass that never assigns
+   * `this.name` inherits the generic "Error" from Error.prototype — which is
+   * every exception OneUptime raises — so the constructor name is the one
+   * that carries information.
+   */
+  test("a subclass that never sets `name` is typed by its constructor, not 'Error'", () => {
+    class NotAuthenticatedException extends Error {
+      public code: number = 401;
+    }
+
+    const attributes: ExceptionAttributes = getAttributes(
+      new NotAuthenticatedException("Authenticated user is needed"),
+    );
+
+    expect(attributes["exception.type"]).toBe("NotAuthenticatedException");
+  });
+
+  test("an explicit name still wins over the constructor", () => {
+    const error: Error = new Error("boom");
+    error.name = "ValidationError";
+
+    expect(getAttributes(error)["exception.type"]).toBe("ValidationError");
+  });
+
+  /*
+   * Node system errors carry a descriptive string code; HTTP statuses and
+   * Postgres SQLSTATEs carry a numeric one that says less than the class.
+   */
+  test("a descriptive string code is used, a numeric one is not", () => {
+    const systemError: Error = Object.assign(new Error("connect failed"), {
+      code: "ECONNREFUSED",
+    });
+    expect(getAttributes(systemError)["exception.type"]).toBe("ECONNREFUSED");
+
+    class ServerException extends Error {
+      public code: number = 500;
+    }
+    expect(getAttributes(new ServerException("boom"))["exception.type"]).toBe(
+      "ServerException",
+    );
+    // The numeric code is not lost — it keeps its own attribute.
+    expect(getAttributes(new ServerException("boom"))["exception.code"]).toBe(
+      "500",
+    );
+  });
+
   test("handles a thrown string", () => {
     const attributes: ExceptionAttributes = getAttributes("kaboom");
 
@@ -227,6 +276,44 @@ describe("Telemetry.recordExceptionMarkSpanAsErrorAndEndSpan", () => {
     expect(state.status?.code).toBe(SpanStatusCode.ERROR);
     expect(state.status?.message).toBe("kaboom");
     expect((state.attributes || {})["exception.message"]).toBe("kaboom");
+  });
+
+  /*
+   * THE REGRESSION THIS GUARDS. The OTel SDK reads `exception.code` BEFORE
+   * `exception.name` when it derives the exception event's `exception.type`,
+   * and OneUptime's Exception base exposes an HTTP STATUS as `code`. Handing
+   * the raw thrown value to recordException therefore typed every exception
+   * this platform raises "401"/"400"/"500" — which is hashed into the
+   * TelemetryException group fingerprint and rendered as the AI insight
+   * title, collapsing a service's unrelated failures into one indistinct row.
+   * A normalized {name, message, stack} has no `code` for the SDK to prefer.
+   */
+  test("records a normalized exception so the SDK cannot type it by an HTTP status", () => {
+    class NotAuthenticatedException extends Error {
+      public code: number = 401;
+    }
+
+    const state: FakeSpanState = {
+      attributes: null,
+      status: null,
+      recorded: null,
+      ended: 0,
+    };
+
+    Telemetry.recordExceptionMarkSpanAsErrorAndEndSpan({
+      span: makeFakeSpan(state),
+      exception: new NotAuthenticatedException("needs an API key"),
+    });
+
+    const recorded: Record<string, unknown> = state.recorded as Record<
+      string,
+      unknown
+    >;
+
+    expect(recorded["code"]).toBeUndefined();
+    expect(recorded["name"]).toBe("NotAuthenticatedException");
+    expect(recorded["message"]).toBe("needs an API key");
+    expect(typeof recorded["stack"]).toBe("string");
   });
 
   test("still ends and flags the span even if a span write throws", () => {

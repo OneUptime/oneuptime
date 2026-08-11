@@ -1,6 +1,11 @@
 import Email from "../Types/Email";
 import { JSONObject } from "../Types/JSON";
 import posthog from "posthog-js";
+import {
+  REVENUE_EVENT_SCHEMA_VERSION,
+  RevenueEventName,
+  RevenueEventProperties,
+} from "../Types/Analytics/RevenueEvent";
 
 export default class Analytics {
   private _isInitialized: boolean = false;
@@ -30,6 +35,16 @@ export default class Analytics {
       return;
     }
     posthog.reset();
+  }
+
+  public captureRevenueEvent(
+    eventName: RevenueEventName,
+    data: RevenueEventProperties,
+  ): void {
+    this.capture(eventName, {
+      ...data,
+      event_schema_version: REVENUE_EVENT_SCHEMA_VERSION,
+    });
   }
 
   public capture(eventName: string, data?: JSONObject): void {

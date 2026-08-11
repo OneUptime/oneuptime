@@ -845,8 +845,29 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   },
   {
     getter: "getIncidentsBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/incidents/settings/ai",
+    titles: ["Project", "Incidents", "AI", "Investigation"],
+  },
+  {
+    getter: "getIncidentsBreadcrumbs",
+    pagePattern:
+      "/dashboard/:projectId/incidents/settings/auto-remediation-rules",
+    titles: ["Project", "Incidents", "AI", "Remediation"],
+  },
+  {
+    getter: "getIncidentsBreadcrumbs",
     pagePattern: "/dashboard/:projectId/incidents/settings/custom-fields",
     titles: ["Project", "Incidents", "Settings", "Custom Fields"],
+  },
+  {
+    getter: "getIncidentsBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/incidents/settings/grouping-rules",
+    titles: ["Project", "Incidents", "Rules", "Grouping Rules"],
+  },
+  {
+    getter: "getIncidentsBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/incidents/settings/label-rules",
+    titles: ["Project", "Incidents", "Rules", "Label Rules"],
   },
   {
     getter: "getIncidentsBreadcrumbs",
@@ -863,6 +884,16 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
       "Note Templates",
       "View Template",
     ],
+  },
+  {
+    getter: "getIncidentsBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/incidents/settings/on-call-rules",
+    titles: ["Project", "Incidents", "Rules", "On-Call Rules"],
+  },
+  {
+    getter: "getIncidentsBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/incidents/settings/owner-rules",
+    titles: ["Project", "Incidents", "Rules", "Owner Rules"],
   },
   {
     getter: "getIncidentsBreadcrumbs",
@@ -884,8 +915,28 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   },
   {
     getter: "getIncidentsBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/incidents/settings/privacy-rules",
+    titles: ["Project", "Incidents", "Rules", "Privacy Rules"],
+  },
+  {
+    getter: "getIncidentsBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/incidents/settings/reminder-rules",
+    titles: ["Project", "Incidents", "Rules", "Reminder Rules"],
+  },
+  {
+    getter: "getIncidentsBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/incidents/settings/runbook-rules",
+    titles: ["Project", "Incidents", "Rules", "Runbook Rules"],
+  },
+  {
+    getter: "getIncidentsBreadcrumbs",
     pagePattern: "/dashboard/:projectId/incidents/settings/severity",
     titles: ["Project", "Incidents", "Settings", "Incident Severity"],
+  },
+  {
+    getter: "getIncidentsBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/incidents/settings/sla-rules",
+    titles: ["Project", "Incidents", "Rules", "SLA Rules"],
   },
   {
     getter: "getIncidentsBreadcrumbs",
@@ -2098,8 +2149,32 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   {
     getter: "getScheduleMaintenanceBreadcrumbs",
     pagePattern:
+      "/dashboard/:projectId/scheduled-maintenance-events/settings/label-rules",
+    titles: ["Project", "Scheduled Maintenance", "Rules", "Label Rules"],
+  },
+  {
+    getter: "getScheduleMaintenanceBreadcrumbs",
+    pagePattern:
       "/dashboard/:projectId/scheduled-maintenance-events/settings/note-templates",
     titles: ["Project", "Scheduled Maintenance", "Settings", "Note Templates"],
+  },
+  {
+    getter: "getScheduleMaintenanceBreadcrumbs",
+    pagePattern:
+      "/dashboard/:projectId/scheduled-maintenance-events/settings/owner-rules",
+    titles: ["Project", "Scheduled Maintenance", "Rules", "Owner Rules"],
+  },
+  {
+    getter: "getScheduleMaintenanceBreadcrumbs",
+    pagePattern:
+      "/dashboard/:projectId/scheduled-maintenance-events/settings/reminder-rules",
+    titles: ["Project", "Scheduled Maintenance", "Rules", "Reminder Rules"],
+  },
+  {
+    getter: "getScheduleMaintenanceBreadcrumbs",
+    pagePattern:
+      "/dashboard/:projectId/scheduled-maintenance-events/settings/runbook-rules",
+    titles: ["Project", "Scheduled Maintenance", "Rules", "Runbook Rules"],
   },
   {
     getter: "getScheduleMaintenanceBreadcrumbs",

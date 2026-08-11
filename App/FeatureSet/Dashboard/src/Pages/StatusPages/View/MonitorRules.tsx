@@ -167,9 +167,7 @@ const StatusPageMonitorRulesPage: FunctionComponent<PageComponentProps> = (
             title: "Adds Monitors To",
             type: FieldType.Text,
             getElement: (item: StatusPageMonitorRule): ReactElement => {
-              return (
-                <span>{item.statusPageGroup?.name || "Uncategorized"}</span>
-              );
+              return <span>{item.statusPageGroup?.name || "Top of page"}</span>;
             },
           },
           {

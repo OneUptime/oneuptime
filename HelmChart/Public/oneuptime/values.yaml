@@ -1478,7 +1478,7 @@ app:
     enabled: false
     minReplicas: 1
     maxReplicas: 100
-    # Scale up when combined queue size (worker + workflow + telemetry + runbook) exceeds this threshold
+    # Scale up when combined queue backlog (waiting + delayed jobs across worker + workflow + telemetry + runbook) exceeds this threshold
     queueSizeThreshold: 10
     # Scale up when average CPU utilization exceeds this percentage (0 to disable).
     # If enabled, app.resources.requests.cpu must also be set.
@@ -1568,8 +1568,18 @@ worker:
     enabled: false
     minReplicas: 1
     maxReplicas: 100
-    # Scale up when combined queue size (worker + workflow + telemetry + runbook) exceeds this threshold
-    queueSizeThreshold: 10
+    # /metrics/queue-size reports the GLOBAL queue backlog (waiting + delayed
+    # jobs across worker + workflow + telemetry + runbook) and KEDA reads it as
+    # an AverageValue, so desired replicas = backlog / this value — it is a
+    # divisor over the fleet-wide total, not a per-pod trip point. ACTIVE jobs
+    # are deliberately not counted: they are already being served, and telemetry
+    # jobs park in the active state for the fan-in writer's flush window while
+    # awaiting their ClickHouse ack, so counting them made the scaler read
+    # busy-but-healthy capacity as demand and overscale. The backlog still
+    # counts delayed jobs, and every cron repeatable holds one, so it never
+    # falls to zero: set this high enough that the idle floor alone cannot pin
+    # the fleet at maxReplicas.
+    queueSizeThreshold: 25
     # Scale up when average CPU utilization exceeds this percentage (0 to disable).
     # If enabled, worker.resources.requests.cpu must also be set.
     targetCPUUtilizationPercentage: 0

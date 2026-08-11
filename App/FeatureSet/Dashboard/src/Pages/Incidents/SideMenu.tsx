@@ -88,6 +88,38 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         },
       ],
     },
+    /*
+     * AI is its own destination rather than a line inside Settings: both pages
+     * under it configure autonomous work that runs against every incident, and
+     * burying them under a collapsed Settings section is how they went
+     * unnoticed. Investigation is the analysis half, Remediation the acting
+     * half.
+     */
+    {
+      title: "AI",
+      items: [
+        {
+          link: {
+            title: "Investigation",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENTS_SETTINGS_AI] as Route,
+            ),
+          },
+          icon: IconProp.Sparkles,
+        },
+        {
+          link: {
+            title: "Remediation",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[
+                PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES
+              ] as Route,
+            ),
+          },
+          icon: IconProp.Bolt,
+        },
+      ],
+    },
     {
       title: "Workspace",
       items: [
@@ -113,19 +145,93 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         },
       ],
     },
+    /*
+     * Every "when an incident looks like X, do Y" page lives here. Collapsed by
+     * default because these are set up once and rarely revisited, and left
+     * expanded they pushed Settings off the bottom of the menu card.
+     */
     {
-      title: "Settings",
+      title: "Rules",
       defaultCollapsed: true,
       items: [
         {
           link: {
-            title: "AI",
+            title: "Grouping Rules",
             to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.INCIDENTS_SETTINGS_AI] as Route,
+              RouteMap[PageMap.INCIDENTS_SETTINGS_GROUPING_RULES] as Route,
             ),
           },
-          icon: IconProp.Sparkles,
+          icon: IconProp.Filter,
         },
+        {
+          link: {
+            title: "On-Call Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENTS_SETTINGS_ON_CALL_RULES] as Route,
+            ),
+          },
+          icon: IconProp.Call,
+        },
+        {
+          link: {
+            title: "Owner Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENTS_SETTINGS_OWNER_RULES] as Route,
+            ),
+          },
+          icon: IconProp.User,
+        },
+        {
+          link: {
+            title: "Runbook Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENTS_SETTINGS_RUNBOOK_RULES] as Route,
+            ),
+          },
+          icon: IconProp.BookOpen,
+        },
+        {
+          link: {
+            title: "Privacy Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENTS_SETTINGS_PRIVACY_RULES] as Route,
+            ),
+          },
+          icon: IconProp.Lock,
+        },
+        {
+          link: {
+            title: "Label Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENTS_SETTINGS_LABEL_RULES] as Route,
+            ),
+          },
+          icon: IconProp.Tag,
+        },
+        {
+          link: {
+            title: "SLA Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENTS_SETTINGS_SLA_RULES] as Route,
+            ),
+          },
+          icon: IconProp.Clock,
+        },
+        {
+          link: {
+            title: "Reminder Rules",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.INCIDENTS_SETTINGS_REMINDER_RULES] as Route,
+            ),
+          },
+          icon: IconProp.Bell,
+        },
+      ],
+    },
+    {
+      title: "Settings",
+      defaultCollapsed: true,
+      items: [
         {
           link: {
             title: "Incident State",
@@ -181,89 +287,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             ),
           },
           icon: IconProp.TableCells,
-        },
-        {
-          link: {
-            title: "Grouping Rules",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.INCIDENTS_SETTINGS_GROUPING_RULES] as Route,
-            ),
-          },
-          icon: IconProp.Filter,
-        },
-        {
-          link: {
-            title: "On-Call Rules",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.INCIDENTS_SETTINGS_ON_CALL_RULES] as Route,
-            ),
-          },
-          icon: IconProp.Call,
-        },
-        {
-          link: {
-            title: "Owner Rules",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.INCIDENTS_SETTINGS_OWNER_RULES] as Route,
-            ),
-          },
-          icon: IconProp.User,
-        },
-        {
-          link: {
-            title: "Runbook Rules",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.INCIDENTS_SETTINGS_RUNBOOK_RULES] as Route,
-            ),
-          },
-          icon: IconProp.BookOpen,
-        },
-        {
-          link: {
-            title: "Auto Remediation",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[
-                PageMap.INCIDENTS_SETTINGS_AUTO_REMEDIATION_RULES
-              ] as Route,
-            ),
-          },
-          icon: IconProp.Bolt,
-        },
-        {
-          link: {
-            title: "Privacy Rules",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.INCIDENTS_SETTINGS_PRIVACY_RULES] as Route,
-            ),
-          },
-          icon: IconProp.Lock,
-        },
-        {
-          link: {
-            title: "Label Rules",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.INCIDENTS_SETTINGS_LABEL_RULES] as Route,
-            ),
-          },
-          icon: IconProp.Tag,
-        },
-        {
-          link: {
-            title: "SLA Rules",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.INCIDENTS_SETTINGS_SLA_RULES] as Route,
-            ),
-          },
-          icon: IconProp.Clock,
-        },
-        {
-          link: {
-            title: "Reminder Rules",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.INCIDENTS_SETTINGS_REMINDER_RULES] as Route,
-            ),
-          },
-          icon: IconProp.Bell,
         },
         {
           link: {

@@ -301,6 +301,7 @@ const DashboardDockerSwarmServiceListComponentElement: FunctionComponent<
   return (
     <DashboardModelResourceListBase<DockerSwarmResource>
       modelType={DockerSwarmResource}
+      componentId={props.componentId}
       publicResourceType="docker-swarm-resource"
       title={args.title}
       pluralLabel="services"

@@ -56,14 +56,14 @@ Du kan blanda alla fem i ett enda runbook — runbooks styrka är att varva män
 
 ## Var runbooks bor i dashboarden
 
-| Sida                                                                                                            | Vad du gör där                                                                            |
-| --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| **Produkter → Runbooks**                                                                                        | Bläddra, skapa och redigera runbook-mallar.                                               |
-| **Ett runbooks Steg-flik**                                                                                      | Författa och omordna steglistan.                                                          |
-| **Ett runbooks Körningar-flik**                                                                                 | Se varje körning av detta runbook med statusfilter.                                       |
-| **Ett runbooks "Run Now"-knapp**                                                                                | Starta en ad hoc-körning som inte är kopplad till något event.                            |
-| **Incidenter / Schemalagt underhåll → Inställningar → Runbook-regler**, **Varningar → Regler → Runbook-regler** | Skapa auto-triggerreglerna per entitetstyp.                                               |
-| **En incident / ett larm / ett underhåll → Runbooks-flik**                                                      | Se körningar kopplade till detta event och klicka **Kör Runbook** för en manuell körning. |
+| Sida                                                                        | Vad du gör där                                                                            |
+| --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| **Produkter → Runbooks**                                                    | Bläddra, skapa och redigera runbook-mallar.                                               |
+| **Ett runbooks Steg-flik**                                                  | Författa och omordna steglistan.                                                          |
+| **Ett runbooks Körningar-flik**                                             | Se varje körning av detta runbook med statusfilter.                                       |
+| **Ett runbooks "Run Now"-knapp**                                            | Starta en ad hoc-körning som inte är kopplad till något event.                            |
+| **Incidenter / Varningar / Schemalagt underhåll → Regler → Runbook-regler** | Skapa auto-triggerreglerna per entitetstyp.                                               |
+| **En incident / ett larm / ett underhåll → Runbooks-flik**                  | Se körningar kopplade till detta event och klicka **Kör Runbook** för en manuell körning. |
 
 ## Vanliga användningsfall
 
@@ -89,7 +89,7 @@ Anta att du vill att varje incident med "db-primary" i titeln automatiskt sparka
 | 4   | Manuell    | Verifiera att skrivningar nu går till nya primary |
 | 5   | HTTP       | Posta klart-meddelande till `#db-incidents` Slack |
 
-**2. Lägg till en regel.** Under **Incidenter → Inställningar → Runbook-regler**, skapa:
+**2. Lägg till en regel.** Under **Incidenter → Regler → Runbook-regler**, skapa:
 
 ```
 Title Pattern:  ^db-primary

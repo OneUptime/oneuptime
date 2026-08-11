@@ -68,6 +68,12 @@ interface ResolvedQueryData {
   valueColumns: Array<ValueColumn>;
 }
 
+/*
+ * Tabular view of OneUptime METRIC columns and formulas. Rendering rows
+ * from an external Data Source is a separate widget type
+ * (DashboardDataSourceTableComponent), so nothing here has to branch on
+ * where the rows came from.
+ */
 const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {

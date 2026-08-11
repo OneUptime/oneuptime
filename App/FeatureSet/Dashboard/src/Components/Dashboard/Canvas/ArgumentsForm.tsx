@@ -19,7 +19,9 @@ import ComponentInputTypeToFormFieldType from "./ComponentInputTypeToFormFieldTy
 import BasicForm, { FormProps } from "Common/UI/Components/Forms/BasicForm";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
+import DashboardComponentType, {
+  isDataSourceComponentType,
+} from "Common/Types/Dashboard/DashboardComponentType";
 import DashboardChartType from "Common/Types/Dashboard/Chart/ChartType";
 import MetricQueryConfig from "../../Metrics/MetricQueryConfig";
 import MetricFormulaConfig from "../../Metrics/MetricFormulaConfig";
@@ -49,6 +51,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import EntityFilterDropdown from "./EntityFilterDropdown";
 import TraceChartQueryEditor from "./TraceChartQueryEditor";
 import LogChartQueryEditor from "./LogChartQueryEditor";
+import DataSourceQueryEditor from "./DataSourceQueryEditor";
 import MetricUtil from "../../Metrics/Utils/Metrics";
 import API from "Common/UI/Utils/API/API";
 
@@ -281,6 +284,12 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
   };
 
   const componentType: DashboardComponentType = component.componentType;
+
+  /*
+   * The four external Data Source widgets get the bespoke query editor
+   * instead of any metric/telemetry query UI.
+   */
+  const isDataSourceWidget: boolean = isDataSourceComponentType(componentType);
   const componentArguments: Array<ComponentArgument<DashboardBaseComponent>> =
     DashboardComponentsUtil.getComponentSettingsArguments(componentType);
 
@@ -1228,6 +1237,20 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
         <ErrorMessage message={"This component does not take any arguments."} />
       )}
       {renderTableDataSection()}
+
+      {/*
+       * The external Data Source widgets lead with their query — it is the
+       * whole point of the widget type, so it goes ABOVE the display
+       * sections rather than after them. The editor writes through
+       * commitComponent directly, like the other bespoke editors below.
+       */}
+      {isDataSourceWidget && (
+        <DataSourceQueryEditor
+          component={component}
+          onChange={commitComponent}
+        />
+      )}
+
       {sectionGroups.map((sectionGroup: SectionGroup, index: number) => {
         const isFirstSection: boolean = index === 0;
         const shouldCollapse: boolean =

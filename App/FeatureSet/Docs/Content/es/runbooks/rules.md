@@ -1,10 +1,10 @@
 # Reglas de runbook
 
-Las reglas de runbook adjuntan runbooks automáticamente cuando se crea un **incidente**, una **alerta** o un **evento de mantenimiento programado**. Se gestionan desde el menú de cada entidad:
+Las reglas de runbook adjuntan runbooks automáticamente cuando se crea un **incidente**, una **alerta** o un **evento de mantenimiento programado**. Se gestionan desde el menú Reglas de cada entidad:
 
-- Incidentes → Ajustes → **Reglas de runbook**
+- Incidentes → Reglas → **Reglas de runbook**
 - Alertas → Reglas → **Reglas de runbook**
-- Mantenimiento programado → Ajustes → **Reglas de runbook**
+- Mantenimiento programado → Reglas → **Reglas de runbook**
 
 Las tres páginas editan el mismo modelo subyacente de reglas — simplemente están filtradas para mostrar solo las reglas de ese tipo de entidad.
 

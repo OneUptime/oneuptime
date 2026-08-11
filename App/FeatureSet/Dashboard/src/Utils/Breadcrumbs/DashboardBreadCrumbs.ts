@@ -57,6 +57,16 @@ export function getDashboardBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Label Rules",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.DASHBOARDS_SETTINGS_DATA_SOURCES, [
+      "Project",
+      "Dashboards",
+      "Settings",
+      "Data Sources",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.DASHBOARDS_SETTINGS_DATA_SOURCE_VIEW,
+      ["Project", "Dashboards", "Settings", "Data Sources", "View Data Source"],
+    ),
   };
   return breadcrumpLinksMap[path];
 }

@@ -2672,7 +2672,7 @@
   "Global Probes help you monitor external resources from different locations around the world.": "Глобальные зонды помогают вам отслеживать внешние ресурсы из разных мест по всему миру.",
   "Global Probes on New Monitors": "Глобальные зонды на новых мониторах",
   "Go to Alerts > Rules > Grouping Rules to configure how alerts are automatically grouped.": "Перейдите в Оповещения > Правила > Правила группировки, чтобы настроить, как оповещения группируются автоматически.",
-  "Go to Incidents > Settings > Grouping Rules to configure how incidents are automatically grouped.": "Перейдите в Инциденты > Настройки > Правила группировки, чтобы настроить автоматическую группировку инцидентов.",
+  "Go to Incidents > Rules > Grouping Rules to configure how incidents are automatically grouped.": "Перейдите в Инциденты > Правила > Правила группировки, чтобы настроить автоматическую группировку инцидентов.",
   "Go to Project Settings > Call & SMS > Custom Call/SMS Config and add your Twilio credentials (Account SID and Auth Token).": "Перейдите в Настройки проекта > Звонки и SMS > Пользовательская конфигурация звонков/SMS и добавьте свои учётные данные Twilio (Account SID и Auth Token).",
   "Go to Settings": "Перейти к настройкам",
   "Google Authenticator": "Google Authenticator",

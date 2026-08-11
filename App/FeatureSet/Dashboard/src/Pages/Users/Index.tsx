@@ -46,6 +46,11 @@ import Search from "Common/Types/BaseDatabase/Search";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Query from "Common/Types/BaseDatabase/Query";
 import ObjectID from "Common/Types/ObjectID";
+import UiAnalytics from "Common/UI/Utils/Analytics";
+import {
+  RevenueEventName,
+  RevenueFunnelStage,
+} from "Common/Types/Analytics/RevenueEvent";
 
 const Users: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -398,6 +403,14 @@ const Users: FunctionComponent<PageComponentProps> = (
           submitButtonText="Invite"
           onSuccess={(teamMember: TeamMember | null) => {
             if (teamMember) {
+              UiAnalytics.captureRevenueEvent(
+                RevenueEventName.TeammateInvited,
+                {
+                  funnel_stage: RevenueFunnelStage.Collaboration,
+                  project_id:
+                    ProjectUtil.getCurrentProjectId()?.toString() || "",
+                },
+              );
               const userId: string =
                 teamMember.user?.id?.toString() ||
                 teamMember.userId?.toString() ||

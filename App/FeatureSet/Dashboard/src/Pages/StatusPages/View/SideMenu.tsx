@@ -55,6 +55,12 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
         />
       </SideMenuSection>
 
+      {/*
+       * One entry, not two. Groups used to have a page of their own beside this
+       * one; the hierarchy and the monitors inside it are now the same screen,
+       * so splitting them in the menu would be sending people to two halves of
+       * something that no longer has halves.
+       */}
       <SideMenuSection title="Resources">
         <SideMenuItem
           link={{
@@ -67,16 +73,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.AltGlobe}
-        />
-        <SideMenuItem
-          link={{
-            title: "Groups",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.STATUS_PAGE_VIEW_GROUPS] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.Folder}
         />
       </SideMenuSection>
 

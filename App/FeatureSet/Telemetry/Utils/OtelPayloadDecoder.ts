@@ -44,9 +44,22 @@ const TracesData: protobuf.Type = TracesProto.lookupType("TracesData");
 const MetricsData: protobuf.Type = MetricsProto.lookupType("MetricsData");
 const ProfilesData: protobuf.Type = ProfilesProto.lookupType("ProfilesData");
 
-export const gunzipAsync: (buffer: Uint8Array) => Promise<Buffer> = promisify(
-  zlib.gunzip,
-);
+/*
+ * `zlib.gunzip` accepts a Node Buffer directly (Buffer IS a Uint8Array
+ * subclass at runtime), so the raw payload Buffer read from Redis is passed
+ * straight through — wrapping it in `new Uint8Array(raw)` first would
+ * allocate and memcpy the entire payload (tens of MB for large batches)
+ * per job for no behavioural difference. The `as unknown as` cast is
+ * forced by TypeScript 5.7+ generic typed arrays: our pinned @types/node
+ * declares `Buffer.slice()` in a way that no longer structurally matches
+ * the lib `Uint8Array`, so `Buffer` fails to assign to `zlib.InputType`
+ * at the type level even though it is valid at runtime (same workaround
+ * as the promisified gunzip in SessionReplayIngestService).
+ */
+export const gunzipAsync: (buffer: Buffer | Uint8Array) => Promise<Buffer> =
+  promisify(zlib.gunzip) as unknown as (
+    buffer: Buffer | Uint8Array,
+  ) => Promise<Buffer>;
 
 export enum OtelPayloadFormat {
   Protobuf = "protobuf",
@@ -103,7 +116,7 @@ export default class OtelPayloadDecoder {
     }
 
     if (input.encoding === "gzip") {
-      raw = await gunzipAsync(new Uint8Array(raw));
+      raw = await gunzipAsync(raw);
     }
 
     if (input.format === OtelPayloadFormat.Json) {
@@ -124,9 +137,17 @@ export default class OtelPayloadDecoder {
      * message and then `.toJSON()` it into a plain JS object that
      * downstream code already consumes (resourceSpans / resourceLogs
      * / resourceMetrics / resourceProfiles).
+     *
+     * The Buffer is handed to `decode` as-is: protobufjs' `Reader.create`
+     * has a dedicated Buffer fast path (BufferReader), so copying the
+     * payload into a fresh Uint8Array first would only add an extra
+     * full-payload allocation + memcpy per job. The `as unknown as`
+     * cast is type-level only — Buffer IS a Uint8Array at runtime, but
+     * our pinned @types/node predates TypeScript 5.7's generic typed
+     * arrays and no longer structurally satisfies the lib `Uint8Array`.
      */
     const message: protobuf.Message<Record<string, unknown>> = protoType.decode(
-      new Uint8Array(raw),
+      raw as unknown as Uint8Array,
     );
     return message.toJSON() as JSONObject;
   }

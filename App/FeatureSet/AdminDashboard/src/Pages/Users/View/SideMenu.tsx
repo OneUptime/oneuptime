@@ -46,6 +46,18 @@ const SideMenuComponent: FunctionComponent<SideMenuProps> = (
         />
         <SideMenuItem
           link={{
+            title: t("sideMenu.authentication"),
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.USER_AUTHENTICATION] as Route,
+              {
+                modelId: props.modelId,
+              },
+            ),
+          }}
+          icon={IconProp.Lock}
+        />
+        <SideMenuItem
+          link={{
             title: t("sideMenu.settings"),
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.USER_SETTINGS] as Route,

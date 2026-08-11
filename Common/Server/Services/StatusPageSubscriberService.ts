@@ -37,6 +37,7 @@ import NumberUtil from "../../Utils/Number";
 import SlackUtil from "../Utils/Workspace/Slack/Slack";
 import MicrosoftTeamsUtil from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import StatusPageSubscriberWebhookUtil from "../Utils/StatusPageSubscriberWebhook";
+import SSRFProtection from "../Utils/SSRFProtection";
 import StatusPageSubscriberNotificationTemplateService, {
   Service as StatusPageSubscriberNotificationTemplateServiceClass,
 } from "./StatusPageSubscriberNotificationTemplateService";
@@ -333,6 +334,18 @@ export class Service extends DatabaseService<Model> {
           "Invalid Microsoft Teams Incoming Webhook URL.",
         );
       }
+    }
+
+    /*
+     * Validate the generic subscriber webhook URL if provided. Subscriber
+     * creation is publicly accessible (Permission.Public), so an unauthenticated
+     * user can supply this URL. Reject targets that point at private, loopback,
+     * link-local, or cloud metadata addresses to prevent SSRF.
+     */
+    if (data.data.subscriberWebhook) {
+      await SSRFProtection.validateWebhookTargetIsSafe(
+        data.data.subscriberWebhook,
+      );
     }
 
     data.data.subscriptionConfirmationToken = NumberUtil.getRandomNumber(

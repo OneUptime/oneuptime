@@ -1,6 +1,7 @@
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import TelemetryUtil from "../Telemetry/Telemetry";
+import MetricResourceAttributeUtil from "../../../Utils/Metrics/MetricResourceAttributeUtil";
 import MetricService from "../../Services/MetricService";
 import GlobalConfigService from "../../Services/GlobalConfigService";
 import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
@@ -8,6 +9,7 @@ import DataToProcess from "./DataToProcess";
 import { MetricPointType } from "../../../Models/AnalyticsModels/Metric";
 import ServiceType from "../../../Types/Telemetry/ServiceType";
 import MetricType from "../../../Models/DatabaseModels/MetricType";
+import Label from "../../../Models/DatabaseModels/Label";
 import BasicInfrastructureMetrics, {
   NetworkInterfaceMetrics,
 } from "../../../Types/Infrastructure/BasicMetrics";
@@ -234,6 +236,47 @@ export default class MonitorMetricUtil {
     data.metricNameServiceNameMap[data.metricName] = metricType;
   }
 
+  /**
+   * Stamp every metric row produced by one monitor check with the monitor's
+   * label and custom field attributes.
+   *
+   * Done as a single pass over the finished rows rather than threaded through
+   * the ~30 emission sites below: every metric from one check describes the
+   * same monitor, so there is nothing per-metric to decide, and one pass is
+   * far easier to keep correct than thirty call sites.
+   *
+   * Resource attributes are merged LAST. Custom code monitors let a user
+   * supply their own attribute names, and those must not be able to shadow the
+   * oneuptime.* namespace.
+   */
+  public static applyResourceAttributesToMetricRows(data: {
+    metricRows: Array<JSONObject>;
+    labels?: Array<Label> | undefined;
+    customFields?: JSONObject | undefined;
+  }): void {
+    const resourceAttributes: JSONObject =
+      MetricResourceAttributeUtil.getResourceAttributes({
+        labels: data.labels,
+        customFields: data.customFields,
+      });
+
+    if (Object.keys(resourceAttributes).length === 0) {
+      // Nothing to stamp; leave the rows (and their attributeKeys) untouched.
+      return;
+    }
+
+    for (const metricRow of data.metricRows) {
+      const attributes: JSONObject =
+        MetricResourceAttributeUtil.mergeResourceAttributes(
+          (metricRow["attributes"] as JSONObject) || {},
+          resourceAttributes,
+        );
+
+      metricRow["attributes"] = attributes;
+      metricRow["attributeKeys"] = TelemetryUtil.getAttributeKeys(attributes);
+    }
+  }
+
   @CaptureSpan()
   public static async saveMonitorMetrics(data: {
     monitorId: ObjectID;
@@ -241,6 +284,15 @@ export default class MonitorMetricUtil {
     dataToProcess: DataToProcess;
     probeName: string | undefined;
     monitorName: string | undefined;
+    /*
+     * The monitor's own taxonomy, passed in by the caller which has already
+     * loaded the monitor — this is the hottest Postgres path in the product,
+     * so nothing here re-reads it. Both are optional: callers that do not
+     * select them simply record no oneuptime.label.* / oneuptime.customField.*
+     * attributes.
+     */
+    monitorLabels?: Array<Label> | undefined;
+    monitorCustomFields?: JSONObject | undefined;
   }): Promise<void> {
     if (!data.monitorId) {
       return;
@@ -1339,6 +1391,12 @@ export default class MonitorMetricUtil {
 
       metricNameServiceNameMap[prefixedName] = metricType;
     }
+
+    this.applyResourceAttributesToMetricRows({
+      metricRows: metricRows,
+      labels: data.monitorLabels,
+      customFields: data.monitorCustomFields,
+    });
 
     if (metricRows.length > 0) {
       await MetricService.insertJsonRows(metricRows);

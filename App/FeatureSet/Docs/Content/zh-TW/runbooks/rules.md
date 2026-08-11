@@ -1,10 +1,10 @@
 # Runbook 規則
 
-當建立**事件 (incident)**、**警示 (alert)** 或**排程維護事件 (scheduled maintenance event)** 時，Runbook 規則會自動附加 runbook。這些規則於各實體各自的選單中進行管理：
+當建立**事件 (incident)**、**警示 (alert)** 或**排程維護事件 (scheduled maintenance event)** 時，Runbook 規則會自動附加 runbook。這些規則於各實體的「規則」選單中進行管理：
 
-- 事件 → 設定 → **Runbook 規則**
+- 事件 → 規則 → **Runbook 規則**
 - 警示 → 規則 → **Runbook 規則**
-- 排定維護 → 設定 → **Runbook 規則**
+- 排定維護 → 規則 → **Runbook 規則**
 
 這三個頁面所編輯的是相同的底層規則模型，只是經過篩選，僅顯示該實體類型的規則。
 

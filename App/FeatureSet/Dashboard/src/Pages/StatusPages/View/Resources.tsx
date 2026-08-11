@@ -1,32 +1,37 @@
-import GridResourceEditor from "../../../Components/StatusPage/GridResourceEditor";
-import ResourceGroupRow from "../../../Components/StatusPage/ResourceGroupRow";
-import StatusPageResourceListPanel from "../../../Components/StatusPage/StatusPageResourceListPanel";
+import AxisValuesInput from "../../../Components/StatusPage/AxisValuesInput";
+import ImportGroupsFromCsvModal from "../../../Components/StatusPage/ImportGroupsFromCsvModal";
+import StatusPageResourcePanel from "../../../Components/StatusPage/StatusPageResourcePanel";
 import { getStatusPageResourceAdvancedFields } from "../../../Components/StatusPage/StatusPageResourceFormFields";
-import PageMap from "../../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
-import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import BadDataException from "Common/Types/Exception/BadDataException";
+import { PromiseVoidFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
 import StatusPageGroupViewMode from "Common/Types/StatusPage/StatusPageGroupViewMode";
-import Button, {
-  ButtonSize,
-  ButtonStyleType,
-} from "Common/UI/Components/Button/Button";
-import Card from "Common/UI/Components/Card/Card";
+import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import { ModelField } from "Common/UI/Components/Forms/ModelForm";
+import { FormType, ModelField } from "Common/UI/Components/Forms/ModelForm";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import Icon from "Common/UI/Components/Icon/Icon";
-import Input from "Common/UI/Components/Input/Input";
+import Input, { InputType } from "Common/UI/Components/Input/Input";
 import Link from "Common/UI/Components/Link/Link";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
+import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
+import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
+import ResourceGroupNavigator from "Common/UI/Components/StatusPage/ResourceGroupNavigator";
 import API from "Common/UI/Utils/API/API";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
 import MarkdownUtil from "Common/UI/Utils/Markdown";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -40,12 +45,13 @@ import StatusPageGroupHierarchyViewUtil from "Common/Utils/StatusPage/GroupHiera
 import StatusPageGroupTreeUtil, {
   StatusPageGroupTreeIndex,
 } from "Common/Utils/StatusPage/GroupTree";
-import StatusPageResourceEditorTreeUtil, {
-  StatusPageGroupSearchMatch,
-  StatusPageGroupSearchResult,
+import StatusPageResourceExplorerUtil, {
+  StatusPageResourceBreadcrumbStep,
   StatusPageResourceCountIndex,
-  StatusPageResourceEditorNode,
-} from "Common/Utils/StatusPage/ResourceEditorTree";
+  StatusPageResourceNavigatorResult,
+  StatusPageResourceSelection,
+  StatusPageResourceSelectionType,
+} from "Common/Utils/StatusPage/ResourceExplorer";
 import React, {
   Fragment,
   FunctionComponent,
@@ -66,24 +72,55 @@ const FORM_STEPS: Array<FormStep<StatusPageResource>> = [
   },
 ];
 
+const GROUP_FORM_STEPS: Array<FormStep<StatusPageGroup>> = [
+  {
+    title: "Group Details",
+    id: "group-details",
+  },
+  {
+    title: "Layout",
+    id: "layout",
+  },
+  {
+    title: "Advanced",
+    id: "advanced",
+  },
+];
+
 /*
- * The Resources tab: where monitors are attached to a status page, and to the
- * group hierarchy the operator built on the Groups tab.
+ * One level of children is open on arrival - enough to show that the hierarchy
+ * nests, without unfolding a thousand-group status page into a wall of names.
+ */
+const AUTO_EXPAND_DEPTH: number = 1;
+
+enum GroupFormMode {
+  Create = "Create",
+  Edit = "Edit",
+}
+
+/*
+ * Status Page > Resources: one screen for everything a status page shows.
  *
- * It used to render one resource table per group, eagerly. A ModelTable fetches
- * the moment it mounts, so a status page with fifteen hundred groups opened
- * fifteen hundred tables and fired fifteen hundred list requests at once - a
- * gigabyte of browser memory and then a network error (issue #3042).
+ * Two things used to be two pages. "Groups" drew the hierarchy and was where a
+ * section was created, renamed, nested, reordered and deleted; "Resources" drew
+ * the monitors inside a group and was where they were added and ordered. They
+ * are halves of one job - build a section, then fill it - and splitting them
+ * across two links made building a status page a loop of navigating between
+ * them, with a "Manage Groups" button in the middle of it whose only purpose
+ * was to leave.
  *
- * So the tab is a tree now, and the tree is closed. A closed group renders one
- * row and nothing else: not its resources, not its sub groups, no request.
+ * So there is one screen. The hierarchy is on the left, as somewhere to go and
+ * as the thing being built: a row selects a group, its chevron opens the sub
+ * groups, and the cluster that appears on it acts on the group. One group's
+ * contents are on the right, as a list you can drag into order, under a header
+ * that names the group and carries everything that acts on it.
  *
- * Loading the tab costs three requests whatever the hierarchy size: the groups,
- * one pass over the resources to work out the counts each row shows, and the
- * Uncategorized bucket, which is the one section that opens by default. After
- * that it is one request per group the operator actually opens - and those
- * groups keep the counts up to date themselves as they are edited, so nothing
- * ever re-reads the whole status page again.
+ * The property the explorer was built for survives, and now covers both jobs:
+ * exactly one group's resources are loaded at a time. Opening the page costs
+ * two requests whatever the hierarchy size - the groups, and one pass over the
+ * resources for the counts the navigator shows - plus one for whichever group
+ * is selected. Nothing about a fifteen hundred group status page can make that
+ * number grow (issue #3042).
  */
 const StatusPageResources: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -96,42 +133,100 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
   const [error, setError] = useState<string>("");
 
   const [countIndex, setCountIndex] = useState<StatusPageResourceCountIndex>(
-    StatusPageResourceEditorTreeUtil.getEmptyResourceCountIndex(),
+    StatusPageResourceExplorerUtil.getEmptyResourceCountIndex(),
   );
+  const [hasCountIndexLoaded, setHasCountIndexLoaded] =
+    useState<boolean>(false);
+
+  const [selection, setSelection] = useState<StatusPageResourceSelection>({
+    type: StatusPageResourceSelectionType.Ungrouped,
+    statusPageGroupId: null,
+  });
+  const [hasChosenInitialSelection, setHasChosenInitialSelection] =
+    useState<boolean>(false);
 
   const [expandedGroupIds, setExpandedGroupIds] = useState<Set<string>>(
     new Set<string>(),
   );
-  /*
-   * Search results are a different view of the same groups, so they get their
-   * own expansion state. Sharing one set would mean that typing a character
-   * unmounts every open group and immediately remounts whichever of them
-   * matched - a burst of one list request per open group, per keystroke.
-   */
-  const [expandedSearchGroupIds, setExpandedSearchGroupIds] = useState<
-    Set<string>
-  >(new Set<string>());
-  const [isUngroupedExpanded, setIsUngroupedExpanded] = useState<boolean>(true);
-  /*
-   * How many sibling rows each level of the tree is currently drawing, keyed by
-   * the parent group's id ("" for the top level). See getTreeNodes.
-   */
-  const [visibleRowCountByLevel, setVisibleRowCountByLevel] = useState<
-    Record<string, number>
-  >({});
-  const [searchText, setSearchText] = useState<string>("");
-  const [addMonitorGroup, setAddMonitorGroup] = useState<boolean>(false);
+  const [hasAppliedDefaultExpansion, setHasAppliedDefaultExpansion] =
+    useState<boolean>(false);
 
-  const permissions: Array<Permission> | null =
-    PermissionUtil.getAllPermissions();
-  const canCreateStatusPageResource: boolean = Boolean(
-    User.isMasterAdmin() ||
-      (permissions &&
-        new StatusPageResource().hasCreatePermissions(permissions)),
+  const [searchText, setSearchText] = useState<string>("");
+  const [navigatorRowLimit, setNavigatorRowLimit] = useState<number>(
+    StatusPageResourceExplorerUtil.MaxNavigatorRows,
   );
 
-  const fetchGroups: PromiseVoidFunction = async (): Promise<void> => {
+  /*
+   * Below lg the navigator and the pane cannot sit beside each other, so only
+   * one of them is on screen and selecting a group moves between them.
+   */
+  const [isPaneOpenOnMobile, setIsPaneOpenOnMobile] = useState<boolean>(false);
+
+  const [addMonitorGroup, setAddMonitorGroup] = useState<boolean>(false);
+
+  /* Managing the hierarchy itself, which used to be a page of its own. */
+  const [groupFormMode, setGroupFormMode] = useState<GroupFormMode | null>(
+    null,
+  );
+  const [groupIdToEdit, setGroupIdToEdit] = useState<ObjectID | null>(null);
+  const [parentGroupIdForCreate, setParentGroupIdForCreate] = useState<
+    string | null
+  >(null);
+
+  const [groupToDelete, setGroupToDelete] = useState<StatusPageGroup | null>(
+    null,
+  );
+  const [isDeletingGroup, setIsDeletingGroup] = useState<boolean>(false);
+  const [deleteGroupError, setDeleteGroupError] = useState<string>("");
+
+  const [groupToShowIdFor, setGroupToShowIdFor] =
+    useState<StatusPageGroup | null>(null);
+
+  const [isImportModalOpen, setIsImportModalOpen] = useState<boolean>(false);
+
+  /* The group whose reorder is in flight. See moveGroup. */
+  const [busyGroupId, setBusyGroupId] = useState<string | null>(null);
+  const [groupActionError, setGroupActionError] = useState<string>("");
+
+  const permissions: Array<Permission> = PermissionUtil.getAllPermissions();
+  const resourceModel: StatusPageResource = new StatusPageResource();
+  const groupModel: StatusPageGroup = new StatusPageGroup();
+  const isMasterAdmin: boolean = User.isMasterAdmin();
+
+  /*
+   * The list and the tree are hand rolled, so the permission checks ModelTable
+   * used to make on the page's behalf have to be made here - and separately for
+   * the two models, because a viewer may well be allowed to add a monitor to a
+   * status page without being allowed to restructure it.
+   */
+  const canCreate: boolean =
+    isMasterAdmin || resourceModel.hasCreatePermissions(permissions);
+  const canEdit: boolean =
+    isMasterAdmin || resourceModel.hasUpdatePermissions(permissions);
+  const canDelete: boolean =
+    isMasterAdmin || resourceModel.hasDeletePermissions(permissions);
+
+  const canCreateGroup: boolean =
+    isMasterAdmin || groupModel.hasCreatePermissions(permissions);
+  const canEditGroup: boolean =
+    isMasterAdmin || groupModel.hasUpdatePermissions(permissions);
+  const canDeleteGroup: boolean =
+    isMasterAdmin || groupModel.hasDeletePermissions(permissions);
+
+  type FetchGroupsFunction = () => Promise<Array<StatusPageGroup>>;
+
+  /*
+   * Resolves with the hierarchy it read, not just with void. Anything that has
+   * to act on the group list immediately after a write - revealing a group that
+   * did not exist a moment ago, for instance - cannot use the `groups` state:
+   * the callback doing it was created in an earlier render and closes over the
+   * list from before the write.
+   */
+  const fetchGroups: FetchGroupsFunction = async (): Promise<
+    Array<StatusPageGroup>
+  > => {
     setError("");
+    setGroupActionError("");
     setIsLoading(true);
 
     try {
@@ -145,10 +240,13 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
           limit: LIMIT_PER_PROJECT,
           skip: 0,
           select: {
-            name: true,
             _id: true,
+            name: true,
+            description: true,
             order: true,
             parentStatusPageGroupId: true,
+            isExpandedByDefault: true,
+            showUptimePercent: true,
             viewMode: true,
             rowAxisLabel: true,
             columnAxisLabel: true,
@@ -162,18 +260,23 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
         });
 
       setGroups(listResult.data);
+      setIsLoading(false);
+
+      return listResult.data;
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
 
     setIsLoading(false);
+
+    return [];
   };
 
   /*
    * One request that reads every resource's group id and nothing else, so the
-   * tree can say "40 resources" on a row without opening it. A count request
-   * per group would be the same stampede in a cheaper disguise, and the server
-   * has no group-by endpoint to ask instead.
+   * navigator can say how many resources sit in a group without opening it. A
+   * count request per group would be the same stampede in a cheaper disguise,
+   * and the server has no group-by endpoint to ask instead.
    *
    * It fails quietly: the counts are decoration, and losing them must not take
    * the page with it.
@@ -198,53 +301,223 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
         });
 
       setCountIndex(
-        StatusPageResourceEditorTreeUtil.buildResourceCountIndex({
+        StatusPageResourceExplorerUtil.buildResourceCountIndex({
           statusPageResources: listResult.data,
           totalCount: listResult.count,
         }),
       );
     } catch {
-      // The tree still renders; it just renders without the count badges.
+      /* The explorer still works; it just works without the count badges. */
       setCountIndex(
-        StatusPageResourceEditorTreeUtil.getEmptyResourceCountIndex(),
+        StatusPageResourceExplorerUtil.getEmptyResourceCountIndex(),
       );
     }
+
+    setHasCountIndexLoaded(true);
+  };
+
+  const reloadGroups: VoidFunction = (): void => {
+    fetchGroups().catch((err: Error) => {
+      setError(API.getFriendlyMessage(err));
+      setIsLoading(false);
+    });
   };
 
   useEffect(() => {
-    fetchGroups().catch((err: Error) => {
-      setError(API.getFriendlyMessage(err));
-    });
-  }, []);
+    reloadGroups();
 
-  useEffect(() => {
     fetchResourceCounts().catch(() => {
       setCountIndex(
-        StatusPageResourceEditorTreeUtil.getEmptyResourceCountIndex(),
+        StatusPageResourceExplorerUtil.getEmptyResourceCountIndex(),
       );
+      setHasCountIndexLoaded(true);
     });
   }, []);
 
-  type OnGroupResourceCountLoadedFunction = (
+  const groupIndex: StatusPageGroupTreeIndex =
+    useMemo((): StatusPageGroupTreeIndex => {
+      return StatusPageGroupTreeUtil.buildIndex({ statusPageGroups: groups });
+    }, [groups]);
+
+  /*
+   * Keyed on "have we done this yet" rather than on the group list, so the
+   * default expansion is applied to the first page of data that arrives and
+   * never again - a refetch must not re-collapse the branch the operator was
+   * working in.
+   */
+  useEffect(() => {
+    if (hasAppliedDefaultExpansion || groups.length === 0) {
+      return;
+    }
+
+    setExpandedGroupIds(
+      StatusPageGroupHierarchyViewUtil.getDefaultExpandedGroupIds({
+        statusPageGroups: groups,
+        maxAutoExpandDepth: AUTO_EXPAND_DEPTH,
+      }),
+    );
+    setHasAppliedDefaultExpansion(true);
+  }, [groups, hasAppliedDefaultExpansion]);
+
+  /*
+   * The pane has to open on something, and which something depends on numbers
+   * that arrive after the first render - so it is chosen once, when both the
+   * groups and the counts are in.
+   *
+   * Nothing below waits on anything else, but the pane waits on this: mounting
+   * it on a placeholder selection and then moving it would read one group's
+   * resources only to throw them away and read another's.
+   */
+  useEffect(() => {
+    if (hasChosenInitialSelection || isLoading || !hasCountIndexLoaded) {
+      return;
+    }
+
+    setSelection(
+      StatusPageResourceExplorerUtil.getInitialSelection({
+        statusPageGroups: groups,
+        countIndex: countIndex,
+      }),
+    );
+    setHasChosenInitialSelection(true);
+  }, [isLoading, hasCountIndexLoaded, hasChosenInitialSelection]);
+
+  const navigatorResult: StatusPageResourceNavigatorResult =
+    useMemo((): StatusPageResourceNavigatorResult => {
+      return StatusPageResourceExplorerUtil.getNavigatorRows({
+        statusPageGroups: groups,
+        countIndex: countIndex,
+        expandedGroupIds: expandedGroupIds,
+        searchText: searchText,
+        maxRows: navigatorRowLimit,
+        index: groupIndex,
+      });
+    }, [
+      groups,
+      countIndex,
+      expandedGroupIds,
+      searchText,
+      navigatorRowLimit,
+      groupIndex,
+    ]);
+
+  const selectedGroup: StatusPageGroup | undefined = useMemo(():
+    | StatusPageGroup
+    | undefined => {
+    if (selection.type !== StatusPageResourceSelectionType.Group) {
+      return undefined;
+    }
+
+    return groups.find((group: StatusPageGroup): boolean => {
+      return group._id?.toString() === selection.statusPageGroupId;
+    });
+  }, [groups, selection]);
+
+  const selectedGroupSubGroups: Array<StatusPageGroup> =
+    useMemo((): Array<StatusPageGroup> => {
+      if (!selection.statusPageGroupId) {
+        return [];
+      }
+
+      return StatusPageGroupTreeUtil.getChildGroups({
+        statusPageGroupId: selection.statusPageGroupId,
+        statusPageGroups: groups,
+        index: groupIndex,
+      });
+    }, [selection.statusPageGroupId, groups, groupIndex]);
+
+  const breadcrumbSteps: Array<StatusPageResourceBreadcrumbStep> =
+    useMemo((): Array<StatusPageResourceBreadcrumbStep> => {
+      if (!selectedGroup) {
+        return [];
+      }
+
+      return StatusPageResourceExplorerUtil.getBreadcrumbSteps({
+        statusPageGroup: selectedGroup,
+        statusPageGroups: groups,
+        index: groupIndex,
+      });
+    }, [selectedGroup, groups, groupIndex]);
+
+  type SelectFunction = (nextSelection: StatusPageResourceSelection) => void;
+
+  const select: SelectFunction = (
+    nextSelection: StatusPageResourceSelection,
+  ): void => {
+    setSelection(nextSelection);
+    setHasChosenInitialSelection(true);
+    setIsPaneOpenOnMobile(true);
+
+    /*
+     * A group reached from a breadcrumb, or created inside a collapsed branch,
+     * has to be somewhere the navigator can show it - otherwise the pane and
+     * the tree beside it disagree about where the operator is.
+     */
+    setExpandedGroupIds((current: Set<string>) => {
+      const toReveal: Set<string> =
+        StatusPageResourceExplorerUtil.getGroupIdsToReveal({
+          statusPageGroups: groups,
+          statusPageGroupId: nextSelection.statusPageGroupId,
+          index: groupIndex,
+        });
+
+      if (toReveal.size === 0) {
+        return current;
+      }
+
+      return new Set<string>([...current, ...toReveal]);
+    });
+  };
+
+  type SelectGroupFunction = (statusPageGroupId: string) => void;
+
+  const selectGroup: SelectGroupFunction = (
+    statusPageGroupId: string,
+  ): void => {
+    select({
+      type: StatusPageResourceSelectionType.Group,
+      statusPageGroupId: statusPageGroupId,
+    });
+  };
+
+  type ToggleGroupFunction = (statusPageGroupId: string) => void;
+
+  const toggleGroup: ToggleGroupFunction = (
+    statusPageGroupId: string,
+  ): void => {
+    setExpandedGroupIds((current: Set<string>) => {
+      const next: Set<string> = new Set<string>(current);
+
+      if (next.has(statusPageGroupId)) {
+        next.delete(statusPageGroupId);
+      } else {
+        next.add(statusPageGroupId);
+      }
+
+      return next;
+    });
+  };
+
+  type OnResourceCountLoadedFunction = (
     statusPageGroupId: string | null,
     count: number,
   ) => void;
 
   /*
-   * An open group reporting its own size, which is the only number that can
-   * have changed while it was open.
+   * The selected group reporting its own size, which is the only number that
+   * can have changed while it was on screen.
    *
    * The alternative - re-reading every resource on the status page after every
-   * create, delete and bulk delete - is a megabyte or so of JSON per edit on a
+   * create, delete and bulk add - is a megabyte or so of JSON per edit on a
    * page with ten thousand resources, and it races with itself if two edits
    * land close together.
    */
-  const onGroupResourceCountLoaded: OnGroupResourceCountLoadedFunction = (
+  const onResourceCountLoaded: OnResourceCountLoadedFunction = (
     statusPageGroupId: string | null,
     count: number,
   ): void => {
     setCountIndex((current: StatusPageResourceCountIndex) => {
-      return StatusPageResourceEditorTreeUtil.withGroupResourceCount({
+      return StatusPageResourceExplorerUtil.withGroupResourceCount({
         countIndex: current,
         statusPageGroupId: statusPageGroupId,
         count: count,
@@ -252,57 +525,448 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
     });
   };
 
-  const groupIndex: StatusPageGroupTreeIndex =
-    useMemo((): StatusPageGroupTreeIndex => {
-      return StatusPageGroupTreeUtil.buildIndex({ statusPageGroups: groups });
-    }, [groups]);
+  /* ------------------------------------------------------------------ */
+  /* Writing to the hierarchy                                            */
+  /* ------------------------------------------------------------------ */
 
-  const tree: Array<StatusPageResourceEditorNode> =
-    useMemo((): Array<StatusPageResourceEditorNode> => {
-      return StatusPageResourceEditorTreeUtil.buildTree({
+  type OpenCreateGroupFunction = (
+    parentStatusPageGroupId: string | null,
+  ) => void;
+
+  const openCreateGroup: OpenCreateGroupFunction = (
+    parentStatusPageGroupId: string | null,
+  ): void => {
+    setGroupActionError("");
+    setParentGroupIdForCreate(parentStatusPageGroupId);
+    setGroupIdToEdit(null);
+    setGroupFormMode(GroupFormMode.Create);
+  };
+
+  type OpenEditGroupFunction = (statusPageGroup: StatusPageGroup) => void;
+
+  const openEditGroup: OpenEditGroupFunction = (
+    statusPageGroup: StatusPageGroup,
+  ): void => {
+    setGroupActionError("");
+    setParentGroupIdForCreate(null);
+    setGroupIdToEdit(new ObjectID(statusPageGroup._id?.toString() || ""));
+    setGroupFormMode(GroupFormMode.Edit);
+  };
+
+  const closeGroupForm: VoidFunction = (): void => {
+    setGroupFormMode(null);
+    setGroupIdToEdit(null);
+    setParentGroupIdForCreate(null);
+  };
+
+  type MoveGroupFunction = (
+    statusPageGroup: StatusPageGroup,
+    direction: "up" | "down",
+  ) => Promise<void>;
+
+  /*
+   * Reordering writes the neighbouring sibling's `order` onto this group and
+   * lets StatusPageGroupService renumber everything between the two - the only
+   * write the service knows how to rebalance.
+   */
+  const moveGroup: MoveGroupFunction = async (
+    statusPageGroup: StatusPageGroup,
+    direction: "up" | "down",
+  ): Promise<void> => {
+    const statusPageGroupId: string = statusPageGroup._id?.toString() || "";
+
+    const targetOrder: number | null =
+      StatusPageGroupHierarchyViewUtil.getReorderTargetOrder({
         statusPageGroups: groups,
-        countIndex: countIndex,
+        statusPageGroupId: statusPageGroupId,
+        direction: direction,
         index: groupIndex,
       });
-    }, [groups, countIndex, groupIndex]);
 
-  const searchResult: StatusPageGroupSearchResult =
-    useMemo((): StatusPageGroupSearchResult => {
-      return StatusPageResourceEditorTreeUtil.searchGroups({
-        statusPageGroups: groups,
-        searchText: searchText,
-        index: groupIndex,
+    if (targetOrder === null) {
+      return;
+    }
+
+    setBusyGroupId(statusPageGroupId);
+    setGroupActionError("");
+
+    try {
+      await ModelAPI.updateById<StatusPageGroup>({
+        modelType: StatusPageGroup,
+        id: new ObjectID(statusPageGroupId),
+        data: {
+          order: targetOrder,
+        },
       });
-    }, [groups, searchText, groupIndex]);
 
-  const isSearching: boolean = searchText.trim().length > 0;
+      await fetchGroups();
+    } catch (err) {
+      setGroupActionError(API.getFriendlyMessage(err));
+    }
 
-  /* Which set a row reads and writes depends on which view it is drawn in. */
-  const openGroupIds: Set<string> = isSearching
-    ? expandedSearchGroupIds
-    : expandedGroupIds;
+    setBusyGroupId(null);
+  };
 
-  type ToggleGroupFunction = (groupId: string) => void;
+  type RunMoveGroupFunction = (
+    statusPageGroup: StatusPageGroup,
+    direction: "up" | "down",
+  ) => void;
 
-  const toggleGroup: ToggleGroupFunction = (groupId: string): void => {
-    const setOpenGroupIds: React.Dispatch<React.SetStateAction<Set<string>>> =
-      isSearching ? setExpandedSearchGroupIds : setExpandedGroupIds;
-
-    setOpenGroupIds((current: Set<string>) => {
-      const next: Set<string> = new Set<string>(current);
-
-      if (next.has(groupId)) {
-        next.delete(groupId);
-      } else {
-        next.add(groupId);
-      }
-
-      return next;
+  const runMoveGroup: RunMoveGroupFunction = (
+    statusPageGroup: StatusPageGroup,
+    direction: "up" | "down",
+  ): void => {
+    moveGroup(statusPageGroup, direction).catch((err: Error) => {
+      setGroupActionError(API.getFriendlyMessage(err));
+      setBusyGroupId(null);
     });
   };
 
+  /*
+   * Whether the selected group has a real sibling to swap places with, in
+   * either direction. Asked of the hierarchy rather than of the rows on screen:
+   * `order` is a property of the hierarchy, not of whatever the operator has
+   * typed into the search box, so a move must always mean the same thing.
+   */
+  const canMoveSelectedGroup: { up: boolean; down: boolean } = useMemo((): {
+    up: boolean;
+    down: boolean;
+  } => {
+    if (!selection.statusPageGroupId) {
+      return { up: false, down: false };
+    }
+
+    type CanMoveFunction = (direction: "up" | "down") => boolean;
+
+    const canMove: CanMoveFunction = (direction: "up" | "down"): boolean => {
+      return (
+        StatusPageGroupHierarchyViewUtil.getReorderTargetOrder({
+          statusPageGroups: groups,
+          statusPageGroupId: selection.statusPageGroupId || "",
+          direction: direction,
+          index: groupIndex,
+        }) !== null
+      );
+    };
+
+    return { up: canMove("up"), down: canMove("down") };
+  }, [selection.statusPageGroupId, groups, groupIndex]);
+
+  const deleteGroup: PromiseVoidFunction = async (): Promise<void> => {
+    if (!groupToDelete || !groupToDelete.id) {
+      return;
+    }
+
+    setIsDeletingGroup(true);
+    setDeleteGroupError("");
+
+    /*
+     * Worked out before the write, while the group is still in the hierarchy:
+     * the cascade takes its sub groups with it, and a pane still pointed at one
+     * of them would sit there fetching a group that no longer exists.
+     */
+    const removedGroupIds: Set<string> = new Set<string>([
+      groupToDelete._id?.toString() || "",
+      ...StatusPageGroupTreeUtil.getDescendantGroups({
+        statusPageGroup: groupToDelete,
+        statusPageGroups: groups,
+        index: groupIndex,
+      }).map((group: StatusPageGroup) => {
+        return group._id?.toString() || "";
+      }),
+    ]);
+
+    try {
+      await ModelAPI.deleteItem<StatusPageGroup>({
+        modelType: StatusPageGroup,
+        id: groupToDelete.id,
+      });
+
+      setGroupToDelete(null);
+
+      if (
+        selection.statusPageGroupId &&
+        removedGroupIds.has(selection.statusPageGroupId)
+      ) {
+        setSelection({
+          type: StatusPageResourceSelectionType.Ungrouped,
+          statusPageGroupId: null,
+        });
+      }
+
+      /*
+       * The counts are re-read rather than adjusted: deleting a group deletes
+       * the resources in it and in every group under it, and the page has no
+       * way of knowing how many that was.
+       */
+      await fetchGroups();
+      await fetchResourceCounts();
+    } catch (err) {
+      setDeleteGroupError(API.getFriendlyMessage(err));
+    }
+
+    setIsDeletingGroup(false);
+  };
+
+  /*
+   * The parent picker only offers groups the API would actually accept: not the
+   * group itself, not one of its own sub groups, and not a group so deep that
+   * the subtree being moved would not fit under it. StatusPageGroupService
+   * still enforces all three - it is the only thing that sees the tree at write
+   * time - so this is about not offering a choice that is already known to fail.
+   */
+  const getParentGroupOptions: () => Array<DropdownOption> =
+    (): Array<DropdownOption> => {
+      return StatusPageGroupHierarchyViewUtil.getParentGroupCandidates({
+        statusPageGroups: groups,
+        statusPageGroupId: groupIdToEdit?.toString(),
+        index: groupIndex,
+      }).map((group: StatusPageGroup) => {
+        return {
+          value: group._id?.toString() || "",
+          /*
+           * Two groups can easily be called "Region 1000" at different levels,
+           * so an option is only unambiguous with its whole path on it.
+           */
+          label: StatusPageGroupHierarchyViewUtil.getGroupPathLabel({
+            statusPageGroup: group,
+            statusPageGroups: groups,
+            index: groupIndex,
+          }),
+        };
+      });
+    };
+
+  type GetDeleteDescriptionFunction = () => string;
+
+  const getDeleteDescription: GetDeleteDescriptionFunction = (): string => {
+    if (!groupToDelete) {
+      return "";
+    }
+
+    const descendantCount: number = StatusPageGroupTreeUtil.getDescendantGroups(
+      {
+        statusPageGroup: groupToDelete,
+        statusPageGroups: groups,
+        index: groupIndex,
+      },
+    ).length;
+
+    const subGroupSentence: string =
+      descendantCount > 0
+        ? ` This also deletes the ${descendantCount} group${
+            descendantCount === 1 ? "" : "s"
+          } nested inside it.`
+        : "";
+
+    return `Are you sure you want to delete "${
+      groupToDelete.name || "this group"
+    }"?${subGroupSentence} The resources in ${
+      descendantCount > 0 ? "these groups" : "this group"
+    } and any monitor rules that add monitors to ${
+      descendantCount > 0 ? "them" : "it"
+    } are deleted with ${descendantCount > 0 ? "them" : "it"}. This cannot be undone.`;
+  };
+
   /* ------------------------------------------------------------------ */
-  /* The resource form, shared by every panel on the page.               */
+  /* The group form, which is the whole surface of a status page group.  */
+  /* ------------------------------------------------------------------ */
+
+  const getGroupFormFields: () => Array<
+    ModelField<StatusPageGroup>
+  > = (): Array<ModelField<StatusPageGroup>> => {
+    return [
+      {
+        field: {
+          name: true,
+        },
+        title: "Group Name",
+        fieldType: FormFieldSchemaType.Text,
+        required: true,
+        placeholder: "Resource Group Name",
+        stepId: "group-details",
+      },
+      {
+        field: {
+          description: true,
+        },
+        title: "Group Description",
+        fieldType: FormFieldSchemaType.Markdown,
+        required: false,
+        stepId: "group-details",
+        description: MarkdownUtil.getMarkdownCheatsheet(
+          "Describe the status page group here",
+        ),
+      },
+      {
+        field: {
+          parentStatusPageGroup: true,
+        },
+        title: "Parent Group",
+        description:
+          "Nest this group inside another group on your status page (for example Corporate Units › Region › Market). Leave empty to keep it at the top level. Every level shows the rolled up status and uptime of everything beneath it.",
+        fieldType: FormFieldSchemaType.Dropdown,
+        dropdownOptions: getParentGroupOptions(),
+        required: false,
+        placeholder: "No parent group (top level)",
+        stepId: "group-details",
+      },
+      {
+        field: {
+          isExpandedByDefault: true,
+        },
+        title: "Expand on Status Page by Default",
+        fieldType: FormFieldSchemaType.Toggle,
+        required: false,
+        stepId: "group-details",
+      },
+      {
+        field: {
+          viewMode: true,
+        },
+        title: "View Mode",
+        description:
+          "How resources in this group are laid out on the public status page. 'List' is the classic vertical list. 'Grid' renders resources as a matrix using row and column axes.",
+        fieldType: FormFieldSchemaType.Dropdown,
+        dropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
+          StatusPageGroupViewMode,
+        ),
+        required: false,
+        defaultValue: StatusPageGroupViewMode.List,
+        stepId: "layout",
+      },
+      {
+        field: {
+          rowAxisLabel: true,
+        },
+        title: "Row Axis Label",
+        description:
+          "Heading shown on the row axis (e.g. 'Service', 'Tenant'). Use any dimension that makes sense for your status page.",
+        fieldType: FormFieldSchemaType.Text,
+        required: false,
+        placeholder: "Service",
+        showIf: (item: FormValues<StatusPageGroup>): boolean => {
+          return item.viewMode === StatusPageGroupViewMode.Grid;
+        },
+        stepId: "layout",
+      },
+      {
+        field: {
+          rowAxisValues: true,
+        },
+        title: "Row Axis Values",
+        description:
+          "One label per row, in the order you want them displayed. Each resource in this group is then assigned to one of these rows.",
+        fieldType: FormFieldSchemaType.CustomComponent,
+        required: false,
+        showIf: (item: FormValues<StatusPageGroup>): boolean => {
+          return item.viewMode === StatusPageGroupViewMode.Grid;
+        },
+        stepId: "layout",
+        getCustomElement: (
+          _values: FormValues<StatusPageGroup>,
+          fieldProps: CustomElementProps,
+        ): ReactElement => {
+          return (
+            <AxisValuesInput
+              initialValue={fieldProps.initialValue}
+              onChange={fieldProps.onChange}
+              onBlur={fieldProps.onBlur}
+              placeholder="e.g. Auth"
+              addButtonLabel="Add Row"
+              error={fieldProps.error}
+            />
+          );
+        },
+      },
+      {
+        field: {
+          columnAxisLabel: true,
+        },
+        title: "Column Axis Label",
+        description:
+          "Heading shown on the column axis (e.g. 'Region', 'Environment'). Use any dimension that makes sense for your status page.",
+        fieldType: FormFieldSchemaType.Text,
+        required: false,
+        placeholder: "Region",
+        showIf: (item: FormValues<StatusPageGroup>): boolean => {
+          return item.viewMode === StatusPageGroupViewMode.Grid;
+        },
+        stepId: "layout",
+      },
+      {
+        field: {
+          columnAxisValues: true,
+        },
+        title: "Column Axis Values",
+        description:
+          "One label per column, in the order you want them displayed. Each resource in this group is then assigned to one of these columns.",
+        fieldType: FormFieldSchemaType.CustomComponent,
+        required: false,
+        showIf: (item: FormValues<StatusPageGroup>): boolean => {
+          return item.viewMode === StatusPageGroupViewMode.Grid;
+        },
+        stepId: "layout",
+        getCustomElement: (
+          _values: FormValues<StatusPageGroup>,
+          fieldProps: CustomElementProps,
+        ): ReactElement => {
+          return (
+            <AxisValuesInput
+              initialValue={fieldProps.initialValue}
+              onChange={fieldProps.onChange}
+              onBlur={fieldProps.onBlur}
+              placeholder="e.g. US-East"
+              addButtonLabel="Add Column"
+              error={fieldProps.error}
+            />
+          );
+        },
+      },
+      {
+        field: {
+          showCurrentStatus: true,
+        },
+        title: "Show Current Group Status",
+        fieldType: FormFieldSchemaType.Toggle,
+        required: false,
+        defaultValue: true,
+        description:
+          "Current Status will be shown beside this group on your status page.",
+        stepId: "advanced",
+      },
+      {
+        field: {
+          showUptimePercent: true,
+        },
+        title: "Show Uptime %",
+        fieldType: FormFieldSchemaType.Toggle,
+        required: false,
+        defaultValue: false,
+        description:
+          "Show uptime percentage beside this group on your status page. The number of days is configured in Status Page Settings.",
+        stepId: "advanced",
+      },
+      {
+        field: {
+          uptimePercentPrecision: true,
+        },
+        stepId: "advanced",
+        fieldType: FormFieldSchemaType.Dropdown,
+        dropdownOptions:
+          DropdownUtil.getDropdownOptionsFromEnum(UptimePrecision),
+        showIf: (item: FormValues<StatusPageGroup>): boolean => {
+          return Boolean(item.showUptimePercent);
+        },
+        title: "Select Uptime Precision",
+        defaultValue: UptimePrecision.ONE_DECIMAL,
+        required: true,
+      },
+    ];
+  };
+
+  /* ------------------------------------------------------------------ */
+  /* The resource form, shared by every way of creating one.             */
   /* ------------------------------------------------------------------ */
 
   type GetFooterForMonitorFunction = () => ReactElement;
@@ -408,486 +1072,557 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
   /* Rendering                                                           */
   /* ------------------------------------------------------------------ */
 
-  type GetGroupPanelFunction = (
-    statusPageGroup: StatusPageGroup,
-  ) => ReactElement;
+  type GetPanelFunction = (onBack?: VoidFunction | undefined) => ReactElement;
 
-  const getGroupPanel: GetGroupPanelFunction = (
-    statusPageGroup: StatusPageGroup,
+  const getPanel: GetPanelFunction = (
+    onBack?: VoidFunction | undefined,
   ): ReactElement => {
-    const groupId: ObjectID | null = statusPageGroup.id;
-
-    if (!groupId) {
-      return <></>;
+    /*
+     * The navigator is drawn as soon as the groups arrive; the pane waits until
+     * the selection is settled. Mounting it on the placeholder selection and
+     * then moving it would read one group's resources only to throw them away
+     * and read another's - which is the exact cost this page exists to avoid.
+     */
+    if (!hasChosenInitialSelection) {
+      return <ComponentLoader />;
     }
 
-    const groupIdString: string = groupId.toString();
-
-    if (statusPageGroup.viewMode === StatusPageGroupViewMode.Grid) {
-      return (
-        <GridResourceEditor
-          group={statusPageGroup}
-          statusPageId={modelId}
-          projectId={projectId}
-          canCreateStatusPageResource={canCreateStatusPageResource}
-          baseFormFields={formFields}
-          formSteps={FORM_STEPS}
-          onResourceCountLoaded={(count: number) => {
-            onGroupResourceCountLoaded(groupIdString, count);
-          }}
-        />
-      );
-    }
+    const selectionKey: string =
+      selection.type === StatusPageResourceSelectionType.Ungrouped
+        ? "ungrouped"
+        : selection.statusPageGroupId || "";
 
     return (
-      <StatusPageResourceListPanel
+      <StatusPageResourcePanel
+        /*
+         * Remounted per selection on purpose. Every piece of state in the pane
+         * - what is loading, which modal is open, what a failed write said - is
+         * about one group, and carrying any of it across to the next group is
+         * always wrong.
+         */
+        key={selectionKey}
         statusPageId={modelId}
         projectId={projectId}
-        statusPageGroupId={groupId}
-        panelKey={groupIdString}
-        title={statusPageGroup.name || "Untitled group"}
-        description={getGroupDescription(statusPageGroup)}
-        canCreateStatusPageResource={canCreateStatusPageResource}
+        selection={selection}
+        statusPageGroup={selectedGroup}
+        breadcrumbSteps={breadcrumbSteps}
+        subGroups={selectedGroupSubGroups}
+        onSelectGroup={selectGroup}
+        onBreadcrumbClick={selectGroup}
+        hasGroups={groups.length > 0}
         isMonitorGroupsFeatureEnabled={Boolean(
           props.currentProject?.isFeatureFlagMonitorGroupsEnabled,
         )}
-        formFields={formFields}
-        formSteps={FORM_STEPS}
-        onResourceCountLoaded={(count: number) => {
-          onGroupResourceCountLoaded(groupIdString, count);
+        canCreate={canCreate}
+        canEdit={canEdit}
+        canDelete={canDelete}
+        canCreateGroup={canCreateGroup}
+        canEditGroup={canEditGroup}
+        canDeleteGroup={canDeleteGroup}
+        onCreateGroup={() => {
+          openCreateGroup(null);
         }}
+        onEditGroup={() => {
+          if (selectedGroup) {
+            openEditGroup(selectedGroup);
+          }
+        }}
+        onAddSubGroup={() => {
+          openCreateGroup(selection.statusPageGroupId);
+        }}
+        onDeleteGroup={() => {
+          if (selectedGroup) {
+            setDeleteGroupError("");
+            setGroupToDelete(selectedGroup);
+          }
+        }}
+        canMoveGroupUp={canMoveSelectedGroup.up}
+        canMoveGroupDown={canMoveSelectedGroup.down}
+        onMoveGroupUp={() => {
+          if (selectedGroup) {
+            runMoveGroup(selectedGroup, "up");
+          }
+        }}
+        onMoveGroupDown={() => {
+          if (selectedGroup) {
+            runMoveGroup(selectedGroup, "down");
+          }
+        }}
+        onShowGroupId={() => {
+          if (selectedGroup) {
+            setGroupToShowIdFor(selectedGroup);
+          }
+        }}
+        baseFormFields={formFields}
+        formSteps={FORM_STEPS}
+        onResourceCountLoaded={onResourceCountLoaded}
+        onBack={onBack}
       />
     );
   };
 
-  type GetGroupDescriptionFunction = (
-    statusPageGroup: StatusPageGroup,
-  ) => string;
+  type GetNavigatorFunction = () => ReactElement;
 
-  /*
-   * A nested group's panel says where it sits, because the row above it only
-   * shows the leaf name and "Unit 0152" is not a unique thing to be looking at.
-   */
-  const getGroupDescription: GetGroupDescriptionFunction = (
-    statusPageGroup: StatusPageGroup,
-  ): string => {
-    const path: string = StatusPageGroupHierarchyViewUtil.getGroupPathLabel({
-      statusPageGroup: statusPageGroup,
-      statusPageGroups: groups,
-      index: groupIndex,
-    });
-
-    return path === statusPageGroup.name ? "" : path;
-  };
-
-  interface GroupRowData {
-    statusPageGroup: StatusPageGroup;
-    depth: number;
-    path?: string | undefined;
-    /*
-     * How many resources the row reports. In the tree this is the whole
-     * subtree; in a flat search result it is the group's own.
-     */
-    resourceCount: number;
-    subGroupCount: number;
-    childrenElement?: ReactElement | undefined;
-  }
-
-  type GetGroupRowFunction = (data: GroupRowData) => ReactElement;
-
-  const getGroupRow: GetGroupRowFunction = (
-    data: GroupRowData,
-  ): ReactElement => {
-    const groupId: string = data.statusPageGroup._id?.toString() || "";
-    const isExpanded: boolean = openGroupIds.has(groupId);
-
-    /*
-     * The rolled up number, not the group's own: a group that holds nothing
-     * itself but has a hundred resources nested under it is not empty, and
-     * closing it hides all hundred.
-     */
-    const resourceCountLabel: string | null =
-      StatusPageResourceEditorTreeUtil.getResourceCountLabel({
-        count: data.resourceCount,
-        countIndex: countIndex,
-      });
-
+  const getNavigator: GetNavigatorFunction = (): ReactElement => {
     return (
-      <ResourceGroupRow
-        key={groupId}
-        depth={data.depth}
-        name={data.statusPageGroup.name || "Untitled group"}
-        path={data.path}
-        viewMode={data.statusPageGroup.viewMode}
-        resourceCountLabel={resourceCountLabel}
-        subGroupCountLabel={StatusPageResourceEditorTreeUtil.getSubGroupCountLabel(
-          {
-            subGroupCount: data.subGroupCount,
-          },
-        )}
-        isExpanded={isExpanded}
-        onToggle={() => {
-          toggleGroup(groupId);
-        }}
-      >
-        <>
-          {getGroupPanel(data.statusPageGroup)}
-          {data.childrenElement || <></>}
-        </>
-      </ResourceGroupRow>
-    );
-  };
-
-  type GetTreeNodesFunction = (
-    nodes: Array<StatusPageResourceEditorNode>,
-    levelKey: string,
-  ) => ReactElement;
-
-  const getTreeNodes: GetTreeNodesFunction = (
-    nodes: Array<StatusPageResourceEditorNode>,
-    levelKey: string,
-  ): ReactElement => {
-    /*
-     * Closing a group hides its sub groups as well as its resources, so the
-     * tree normally only ever has a handful of rows on screen. One shape gets
-     * past that: a status page whose groups are all at the top level, where
-     * "closed" hides nothing. Every level therefore draws a page of siblings at
-     * a time.
-     */
-    const visibleCount: number =
-      visibleRowCountByLevel[levelKey] ||
-      StatusPageResourceEditorTreeUtil.RowsPerLevelPage;
-
-    const visibleNodes: Array<StatusPageResourceEditorNode> = nodes.slice(
-      0,
-      visibleCount,
-    );
-
-    const remainingCount: number = nodes.length - visibleNodes.length;
-
-    return (
-      <>
-        {visibleNodes.map((node: StatusPageResourceEditorNode) => {
-          const groupId: string = node.group._id?.toString() || "";
-          const isExpanded: boolean = openGroupIds.has(groupId);
-
-          return getGroupRow({
-            statusPageGroup: node.group,
-            depth: node.depth,
-            resourceCount: node.subtreeResourceCount,
-            subGroupCount: node.subGroupCount,
-            /*
-             * Sub groups are rendered by their parent's open body, so a closed
-             * group costs one row no matter how much hangs off it. This is what
-             * keeps a fifteen hundred group page to a handful of rows.
-             */
-            childrenElement:
-              isExpanded && node.children.length > 0
-                ? getTreeNodes(node.children, groupId)
-                : undefined,
-          });
-        })}
-
-        {remainingCount > 0 ? (
-          <div
-            className="bg-gray-50 px-4 py-2.5 text-center"
-            data-testid="status-page-resource-group-show-more"
+      <Fragment>
+        <div className="relative mb-3">
+          <label
+            htmlFor="status-page-resource-group-search-input"
+            id="status-page-resource-group-search-label"
+            className="sr-only"
           >
-            <Button
-              title={`Show ${Math.min(
-                remainingCount,
-                StatusPageResourceEditorTreeUtil.RowsPerLevelPage,
-              ).toLocaleString()} more of ${remainingCount.toLocaleString()}`}
-              icon={IconProp.ChevronDown}
-              buttonSize={ButtonSize.Small}
-              buttonStyle={ButtonStyleType.OUTLINE}
-              onClick={() => {
-                setVisibleRowCountByLevel((current: Record<string, number>) => {
-                  return {
-                    ...current,
-                    [levelKey]:
-                      visibleCount +
-                      StatusPageResourceEditorTreeUtil.RowsPerLevelPage,
-                  };
-                });
-              }}
-            />
+            Search groups by name
+          </label>
+          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+            <Icon icon={IconProp.Search} className="h-4 w-4 text-gray-400" />
+          </div>
+          <Input
+            id="status-page-resource-group-search-input"
+            ariaLabelledby="status-page-resource-group-search-label"
+            type={InputType.TEXT}
+            placeholder="Search groups..."
+            value={searchText}
+            dataTestId="status-page-resource-group-search"
+            outerDivClassName="relative w-full"
+            className="block w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            onChange={(value: string) => {
+              setSearchText(value);
+              setNavigatorRowLimit(
+                StatusPageResourceExplorerUtil.MaxNavigatorRows,
+              );
+            }}
+          />
+        </div>
+
+        {/*
+         * A refetch that failed while the hierarchy was already on screen, or a
+         * reorder that the server refused. Neither is a reason to replace a
+         * working page with an error - the tree below is still the last thing
+         * the server agreed to.
+         */}
+        {groupActionError || error ? (
+          <div className="mb-2">
+            <ErrorMessage message={groupActionError || error} />
           </div>
         ) : (
           <></>
         )}
-      </>
+
+        <ResourceGroupNavigator
+          rows={navigatorResult.rows}
+          countIndex={countIndex}
+          selection={selection}
+          searchText={searchText}
+          hiddenRowCount={
+            navigatorResult.totalRowCount - navigatorResult.rows.length
+          }
+          onShowMore={() => {
+            setNavigatorRowLimit(
+              navigatorRowLimit +
+                StatusPageResourceExplorerUtil.NavigatorRowsPerPage,
+            );
+          }}
+          onSelect={select}
+          onToggleExpand={toggleGroup}
+          isCreateable={canCreateGroup}
+          isEditable={canEditGroup}
+          isDeleteable={canDeleteGroup}
+          busyGroupId={busyGroupId}
+          onCreateGroup={() => {
+            openCreateGroup(null);
+          }}
+          onAddSubGroup={(statusPageGroup: StatusPageGroup) => {
+            openCreateGroup(statusPageGroup._id?.toString() || null);
+          }}
+          onEditGroup={openEditGroup}
+          onDeleteGroup={(statusPageGroup: StatusPageGroup) => {
+            setDeleteGroupError("");
+            setGroupToDelete(statusPageGroup);
+          }}
+          onMoveGroupUp={(statusPageGroup: StatusPageGroup) => {
+            runMoveGroup(statusPageGroup, "up");
+          }}
+          onMoveGroupDown={(statusPageGroup: StatusPageGroup) => {
+            runMoveGroup(statusPageGroup, "down");
+          }}
+          onShowGroupId={(statusPageGroup: StatusPageGroup) => {
+            setGroupToShowIdFor(statusPageGroup);
+          }}
+        />
+
+        <div
+          className="mt-4 border-t border-gray-200 pt-3 text-xs text-gray-500 tabular-nums"
+          data-testid="status-page-resource-stats"
+        >
+          {groups.length.toLocaleString()}{" "}
+          {groups.length === 1 ? "group" : "groups"}
+          {countIndex.isComplete
+            ? ` · ${countIndex.totalCount.toLocaleString()} ${
+                countIndex.totalCount === 1 ? "resource" : "resources"
+              }`
+            : ""}
+        </div>
+      </Fragment>
     );
   };
 
-  type GetSearchResultsFunction = () => ReactElement;
+  type GetCardButtonsFunction = () => Array<CardButtonSchema | ReactElement>;
 
-  const getSearchResults: GetSearchResultsFunction = (): ReactElement => {
-    if (searchResult.matches.length === 0) {
+  const getCardButtons: GetCardButtonsFunction = (): Array<
+    CardButtonSchema | ReactElement
+  > => {
+    const buttons: Array<CardButtonSchema | ReactElement> = [];
+
+    if (canCreateGroup) {
+      buttons.push({
+        title: "New Group",
+        buttonStyle: ButtonStyleType.NORMAL,
+        icon: IconProp.FolderPlus,
+        onClick: () => {
+          openCreateGroup(null);
+        },
+      } as CardButtonSchema);
+    }
+
+    const menuItems: Array<ReactElement> = [];
+
+    if (canCreateGroup) {
+      menuItems.push(
+        <MoreMenuItem
+          key="import-from-csv"
+          text="Import groups from CSV"
+          icon={IconProp.Upload}
+          onClick={() => {
+            setIsImportModalOpen(true);
+          }}
+        />,
+      );
+    }
+
+    menuItems.push(
+      <MoreMenuItem
+        key="refresh"
+        text="Refresh"
+        icon={IconProp.Refresh}
+        onClick={() => {
+          reloadGroups();
+
+          fetchResourceCounts().catch(() => {
+            setCountIndex(
+              StatusPageResourceExplorerUtil.getEmptyResourceCountIndex(),
+            );
+            setHasCountIndexLoaded(true);
+          });
+        }}
+      />,
+    );
+
+    buttons.push(
+      <MoreMenu
+        key="status-page-resources-actions"
+        menuIcon={IconProp.EllipsisHorizontal}
+        text=""
+        ariaLabel="More status page resource actions"
+        /*
+         * Three dots and nothing else. MoreMenu's default trigger is an
+         * outlined button, which beside "New Group" reads as a second button
+         * whose label failed to load.
+         */
+        elementToBeShownInsteadOfButton={
+          <button
+            type="button"
+            aria-label="More status page resource actions"
+            data-testid="status-page-resources-actions"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+          >
+            <Icon icon={IconProp.EllipsisHorizontal} className="h-5 w-5" />
+          </button>
+        }
+      >
+        {menuItems}
+      </MoreMenu>,
+    );
+
+    return buttons;
+  };
+
+  type GetModalsFunction = () => ReactElement;
+
+  const getModals: GetModalsFunction = (): ReactElement => {
+    return (
+      <Fragment>
+        {groupFormMode ? (
+          <ModelFormModal<StatusPageGroup>
+            modelType={StatusPageGroup}
+            name={
+              groupFormMode === GroupFormMode.Create
+                ? "Status Page > Resources > Create New Status Page Group"
+                : "Status Page > Resources > Edit Status Page Group"
+            }
+            title={
+              groupFormMode === GroupFormMode.Create
+                ? "Create New Status Page Group"
+                : "Edit Status Page Group"
+            }
+            submitButtonText={
+              groupFormMode === GroupFormMode.Create
+                ? "Create Status Page Group"
+                : "Save Changes"
+            }
+            modelIdToEdit={groupIdToEdit || undefined}
+            /*
+             * "Add a sub group" is the whole point of a hierarchy view: the
+             * parent is the group the operator clicked, not something they have
+             * to go and find again in a dropdown of every group on the page.
+             */
+            initialValues={
+              groupFormMode === GroupFormMode.Create && parentGroupIdForCreate
+                ? {
+                    parentStatusPageGroup: parentGroupIdForCreate,
+                  }
+                : undefined
+            }
+            onClose={closeGroupForm}
+            onBeforeCreate={(
+              item: StatusPageGroup,
+            ): Promise<StatusPageGroup> => {
+              if (!props.currentProject || !props.currentProject._id) {
+                throw new BadDataException("Project ID cannot be null");
+              }
+              item.statusPageId = modelId;
+              item.projectId = new ObjectID(props.currentProject._id);
+              return Promise.resolve(item);
+            }}
+            onSuccess={(item: StatusPageGroup) => {
+              const wasCreate: boolean = groupFormMode === GroupFormMode.Create;
+              const writtenGroupId: string | null =
+                item._id?.toString() || null;
+
+              closeGroupForm();
+
+              fetchGroups()
+                .then((refreshedGroups: Array<StatusPageGroup>) => {
+                  /*
+                   * Revealed against the hierarchy that was just read, not
+                   * against `groups` - this callback was created a render ago
+                   * and closes over the list from before the write, which does
+                   * not contain the group it is trying to reveal.
+                   *
+                   * The whole path down to it is opened, not only its parent: a
+                   * group can be created under a parent that is itself inside a
+                   * collapsed branch, and a group written, refetched and then
+                   * not shown reads exactly like the create having failed.
+                   */
+                  if (writtenGroupId) {
+                    setExpandedGroupIds((current: Set<string>) => {
+                      const toReveal: Set<string> =
+                        StatusPageResourceExplorerUtil.getGroupIdsToReveal({
+                          statusPageGroups: refreshedGroups,
+                          statusPageGroupId: writtenGroupId,
+                        });
+
+                      if (toReveal.size === 0) {
+                        return current;
+                      }
+
+                      return new Set<string>([...current, ...toReveal]);
+                    });
+                  }
+
+                  /*
+                   * A group is created in order to put monitors in it, so the
+                   * new one is what the pane opens on - the next thing the
+                   * operator wants is already on screen.
+                   */
+                  if (wasCreate && writtenGroupId) {
+                    setSelection({
+                      type: StatusPageResourceSelectionType.Group,
+                      statusPageGroupId: writtenGroupId,
+                    });
+                    setHasChosenInitialSelection(true);
+                    setIsPaneOpenOnMobile(true);
+                  }
+                })
+                .catch((err: Error) => {
+                  setError(API.getFriendlyMessage(err));
+                  setIsLoading(false);
+                });
+            }}
+            formProps={{
+              name: "create-StatusPageGroup-from",
+              modelType: StatusPageGroup,
+              id: "create-StatusPageGroup-from",
+              fields: getGroupFormFields(),
+              steps: GROUP_FORM_STEPS,
+              formType:
+                groupFormMode === GroupFormMode.Create
+                  ? FormType.Create
+                  : FormType.Update,
+            }}
+          />
+        ) : (
+          <></>
+        )}
+
+        {groupToDelete ? (
+          <ConfirmModal
+            title={`Delete ${groupToDelete.name || "Group"}`}
+            description={getDeleteDescription()}
+            submitButtonText="Delete"
+            submitButtonType={ButtonStyleType.DANGER}
+            isLoading={isDeletingGroup}
+            error={deleteGroupError || undefined}
+            onClose={() => {
+              setGroupToDelete(null);
+              setDeleteGroupError("");
+            }}
+            onSubmit={() => {
+              deleteGroup().catch((err: Error) => {
+                setDeleteGroupError(API.getFriendlyMessage(err));
+                setIsDeletingGroup(false);
+              });
+            }}
+          />
+        ) : (
+          <></>
+        )}
+
+        {groupToShowIdFor ? (
+          <ConfirmModal
+            title={`${groupToShowIdFor.name || "Group"} ID`}
+            description={`Status Page Group ID: ${
+              groupToShowIdFor._id?.toString() || ""
+            }`}
+            submitButtonText="Close"
+            submitButtonType={ButtonStyleType.NORMAL}
+            onSubmit={() => {
+              setGroupToShowIdFor(null);
+            }}
+          />
+        ) : (
+          <></>
+        )}
+
+        {isImportModalOpen ? (
+          <ImportGroupsFromCsvModal
+            statusPageId={modelId}
+            projectId={projectId}
+            onClose={() => {
+              setIsImportModalOpen(false);
+            }}
+            onImportComplete={() => {
+              /*
+               * Fires while the modal is still open on its results, so the tree
+               * behind it is already current when the user closes it.
+               */
+              reloadGroups();
+            }}
+          />
+        ) : (
+          <></>
+        )}
+      </Fragment>
+    );
+  };
+
+  type GetBodyFunction = () => ReactElement;
+
+  const getBody: GetBodyFunction = (): ReactElement => {
+    /*
+     * Only the very first read, when there is nothing on screen to keep. Every
+     * later refetch leaves the page standing - a loader in place of the card
+     * would unmount the pane, which would then re-read the selected group's
+     * resources for no reason at all.
+     */
+    if (isLoading && groups.length === 0) {
+      return <ComponentLoader />;
+    }
+
+    /*
+     * Only when there is nothing to fall back to. Once a hierarchy is on screen
+     * a failed refetch is reported beside it rather than in place of it - see
+     * the navigator's error slot.
+     */
+    if (error && groups.length === 0) {
+      return <ErrorMessage message={error} onRefreshClick={reloadGroups} />;
+    }
+
+    /*
+     * A status page with no groups is the common, simple case: one flat list of
+     * monitors. It gets exactly that, with no navigator beside it - a sidebar
+     * holding a single entry is a choice nobody has to make. Creating the first
+     * group is still one click away, in the header and in the empty state.
+     */
+    if (groups.length === 0) {
       return (
-        <div
-          className="px-4 py-10 text-center text-sm text-gray-500"
-          role="status"
-          data-testid="status-page-resource-group-search-empty"
+        <Card
+          title="Resources"
+          description="The monitors visitors see on this status page, in the order they see them. Create a group to split a longer page into sections."
+          buttons={getCardButtons()}
         >
-          No groups match &quot;{searchText}&quot;.
-        </div>
+          {getPanel()}
+        </Card>
       );
     }
 
     return (
-      <>
-        <div className="sr-only" role="status">
-          {searchResult.totalMatchCount.toLocaleString()}{" "}
-          {searchResult.totalMatchCount === 1 ? "group" : "groups"} match &quot;
-          {searchText}&quot;.
-        </div>
-        {searchResult.matches.map((match: StatusPageGroupSearchMatch) => {
-          const ownCount: number =
-            StatusPageResourceEditorTreeUtil.getOwnResourceCount({
-              statusPageGroup: match.group,
-              countIndex: countIndex,
-            });
-
-          /*
-           * A search result is drawn flat, out of its place in the tree, so it
-           * reports what the group itself holds rather than what its subtree
-           * holds - the subtree is not on the screen next to it to compare
-           * against.
-           */
-          /*
-           * No sub group badge here. The flat result list does not render a
-           * match's children, and the badge is the same one the tree uses to
-           * mean "open this to see them" - it would be promising something
-           * this view cannot deliver.
-           */
-          return getGroupRow({
-            statusPageGroup: match.group,
-            depth: 0,
-            path: match.path,
-            resourceCount: ownCount,
-            subGroupCount: 0,
-          });
-        })}
-        {searchResult.isTruncated ? (
-          <div
-            className="bg-amber-50 px-4 py-2.5 text-center text-xs text-amber-800"
-            data-testid="status-page-resource-group-search-truncated"
+      <Card
+        title="Resources"
+        description="Everything visitors see on this status page. Pick a group on the left to edit what is in it."
+        buttons={getCardButtons()}
+        /*
+         * The workspace runs to the edges of the card rather than sitting in a
+         * box inside its padding: the two panes are what this screen is, so the
+         * line between them is a full height divider and the hierarchy gets a
+         * ground of its own to sit on. The negative margins undo the padding
+         * the card puts around its body - it has no prop for an edge to edge
+         * one - and lg:min-h keeps the divider a divider on a status page whose
+         * selected group holds two monitors.
+         */
+        bodyClassName="mt-5 -mb-6 -mx-5 border-t border-gray-200 md:-mx-6"
+      >
+        <div className="lg:grid lg:min-h-[30rem] lg:grid-cols-[17rem_minmax(0,1fr)] xl:grid-cols-[19rem_minmax(0,1fr)]">
+          <aside
+            className={`${
+              isPaneOpenOnMobile ? "hidden" : "block"
+            } rounded-b-xl bg-gray-50 px-5 py-5 lg:block lg:rounded-br-none lg:border-r lg:border-gray-200 md:px-6`}
+            data-testid="status-page-resource-navigator-pane"
           >
-            Showing the first {searchResult.matches.length} of{" "}
-            {searchResult.totalMatchCount.toLocaleString()} matching groups.
-            Narrow your search to see the rest.
-          </div>
-        ) : (
-          <></>
-        )}
-      </>
+            {/*
+             * The hierarchy follows the page down a long list of resources; the
+             * pane it belongs to is the scroll container, so a status page with
+             * a thousand groups still scrolls in one place.
+             */}
+            <div className="lg:sticky lg:top-4">{getNavigator()}</div>
+          </aside>
+
+          <section
+            className={`${
+              isPaneOpenOnMobile ? "block" : "hidden"
+            } px-5 py-5 lg:block lg:min-w-0 md:px-6`}
+            data-testid="status-page-resource-detail-pane"
+          >
+            {getPanel(() => {
+              setIsPaneOpenOnMobile(false);
+            })}
+          </section>
+        </div>
+      </Card>
     );
   };
-
-  type GetToolbarFunction = () => ReactElement;
-
-  const getToolbar: GetToolbarFunction = (): ReactElement => {
-    const canExpandAll: boolean = StatusPageResourceEditorTreeUtil.canExpandAll(
-      {
-        groupCount: groups.length,
-      },
-    );
-
-    return (
-      <div className="flex flex-col gap-3 pb-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative sm:w-80">
-          {/* Placeholders are not accessible names, and this input has no visible label. */}
-          <label
-            htmlFor="status-page-resource-group-search"
-            className="sr-only"
-            id="status-page-resource-group-search-label"
-          >
-            Search groups by name
-          </label>
-          <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
-            <Icon icon={IconProp.Search} className="h-4 w-4" />
-          </span>
-          <Input
-            id="status-page-resource-group-search"
-            ariaLabelledby="status-page-resource-group-search-label"
-            value={searchText}
-            placeholder="Search groups by name..."
-            dataTestId="status-page-resource-group-search"
-            className="block w-full rounded-md border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm placeholder-gray-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            onChange={(value: string) => {
-              setSearchText(value);
-            }}
-          />
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <span
-            className="mr-1 text-xs text-gray-500 tabular-nums"
-            data-testid="status-page-resource-stats"
-          >
-            {groups.length.toLocaleString()}{" "}
-            {groups.length === 1 ? "group" : "groups"}
-            {countIndex.isComplete
-              ? ` · ${countIndex.totalCount.toLocaleString()} ${
-                  countIndex.totalCount === 1 ? "resource" : "resources"
-                }`
-              : ""}
-          </span>
-
-          {canExpandAll ? (
-            <Button
-              title="Expand All"
-              icon={IconProp.ChevronDown}
-              buttonSize={ButtonSize.Small}
-              buttonStyle={ButtonStyleType.OUTLINE}
-              dataTestId="expand-all-groups"
-              onClick={() => {
-                setIsUngroupedExpanded(true);
-                setExpandedGroupIds(
-                  new Set<string>(
-                    StatusPageResourceEditorTreeUtil.getGroupIdsInTreeOrder(
-                      tree,
-                    ),
-                  ),
-                );
-              }}
-            />
-          ) : (
-            <></>
-          )}
-
-          {/*
-           * Both buttons cover the Uncategorized section too. It is one more
-           * open section holding one more mounted table, and a "Collapse All"
-           * that leaves it open - or sits disabled while it is the only thing
-           * open - is not telling the truth about what it does.
-           */}
-          <Button
-            title="Collapse All"
-            icon={IconProp.ChevronRight}
-            buttonSize={ButtonSize.Small}
-            buttonStyle={ButtonStyleType.OUTLINE}
-            disabled={expandedGroupIds.size === 0 && !isUngroupedExpanded}
-            dataTestId="collapse-all-groups"
-            onClick={() => {
-              setIsUngroupedExpanded(false);
-              setExpandedGroupIds(new Set<string>());
-            }}
-          />
-        </div>
-      </div>
-    );
-  };
-
-  if (isLoading) {
-    return <ComponentLoader />;
-  }
-
-  if (error) {
-    return <ErrorMessage message={error} />;
-  }
 
   /*
-   * A status page with no groups at all is the common, simple case - one flat
-   * list of monitors. It gets exactly that, with none of the tree chrome.
+   * The modals are rendered beside whatever the body turned out to be, never
+   * inside a branch of it. A CSV import on a status page with no groups yet
+   * refetches the hierarchy the moment it finishes, and an early return keyed
+   * on "no groups and loading" would unmount the open modal - taking the
+   * per-row results the operator had not read yet with it.
    */
-  if (groups.length === 0) {
-    return (
-      <Fragment>
-        <StatusPageResourceListPanel
-          statusPageId={modelId}
-          projectId={projectId}
-          panelKey="ungrouped"
-          title="Status Page Resources"
-          description="Monitors and monitor groups that will be shown on this status page. Create groups on the Groups tab to organise them."
-          canCreateStatusPageResource={canCreateStatusPageResource}
-          isMonitorGroupsFeatureEnabled={Boolean(
-            props.currentProject?.isFeatureFlagMonitorGroupsEnabled,
-          )}
-          formFields={formFields}
-          formSteps={FORM_STEPS}
-          onResourceCountLoaded={(count: number) => {
-            onGroupResourceCountLoaded(null, count);
-          }}
-          testId="ungrouped-status-page-resource-panel"
-        />
-      </Fragment>
-    );
-  }
-
   return (
     <Fragment>
-      <Card
-        title="Status Page Resources"
-        description="Groups are closed until you open one, so a large status page stays fast. Open a group to see and add the monitors inside it."
-        buttons={[
-          {
-            title: "Manage Groups",
-            buttonStyle: ButtonStyleType.OUTLINE,
-            icon: IconProp.Folder,
-            onClick: () => {
-              Navigation.navigate(
-                RouteUtil.populateRouteParams(
-                  RouteMap[PageMap.STATUS_PAGE_VIEW_GROUPS] as Route,
-                  { modelId: modelId },
-                ),
-              );
-            },
-          },
-        ]}
-      >
-        <>
-          {getToolbar()}
-
-          <div
-            className="divide-y divide-gray-100 overflow-hidden rounded-xl border border-gray-200"
-            data-testid="status-page-resource-tree"
-          >
-            {isSearching ? (
-              getSearchResults()
-            ) : (
-              <>
-                <ResourceGroupRow
-                  depth={0}
-                  name="Uncategorized"
-                  resourceCountLabel={StatusPageResourceEditorTreeUtil.getResourceCountLabel(
-                    {
-                      count: countIndex.ungroupedCount,
-                      countIndex: countIndex,
-                    },
-                  )}
-                  isExpanded={isUngroupedExpanded}
-                  testId="uncategorized-status-page-resource-row"
-                  onToggle={() => {
-                    setIsUngroupedExpanded(!isUngroupedExpanded);
-                  }}
-                >
-                  <StatusPageResourceListPanel
-                    statusPageId={modelId}
-                    projectId={projectId}
-                    panelKey="ungrouped"
-                    title="Uncategorized Resources"
-                    description="Monitors on this status page that are not in any group."
-                    canCreateStatusPageResource={canCreateStatusPageResource}
-                    isMonitorGroupsFeatureEnabled={Boolean(
-                      props.currentProject?.isFeatureFlagMonitorGroupsEnabled,
-                    )}
-                    formFields={formFields}
-                    formSteps={FORM_STEPS}
-                    onResourceCountLoaded={(count: number) => {
-                      onGroupResourceCountLoaded(null, count);
-                    }}
-                    testId="ungrouped-status-page-resource-panel"
-                  />
-                </ResourceGroupRow>
-
-                {getTreeNodes(tree, "")}
-              </>
-            )}
-          </div>
-        </>
-      </Card>
+      {getBody()}
+      {getModals()}
     </Fragment>
   );
 };

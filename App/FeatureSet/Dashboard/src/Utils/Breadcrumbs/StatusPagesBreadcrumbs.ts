@@ -62,11 +62,12 @@ export function getStatusPagesBreadcrumbs(
       "View Status Page",
       "Resources",
     ]),
+    /* The groups route now redirects into Resources, which is where they live. */
     ...BuildBreadcrumbLinksByTitles(PageMap.STATUS_PAGE_VIEW_GROUPS, [
       "Project",
       "Status Pages",
       "View Status Page",
-      "Resource Groups",
+      "Resources",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.STATUS_PAGE_VIEW_MONITOR_RULES, [
       "Project",

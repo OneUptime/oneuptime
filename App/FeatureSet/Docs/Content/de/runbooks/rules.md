@@ -1,10 +1,10 @@
 # Runbook-Regeln
 
-Runbook-Regeln hängen Runbooks automatisch an, wenn ein **Vorfall**, eine **Warnmeldung** oder ein **geplantes Wartungsereignis** erstellt wird. Sie werden über das jeweilige Menü jeder Entität verwaltet:
+Runbook-Regeln hängen Runbooks automatisch an, wenn ein **Vorfall**, eine **Warnmeldung** oder ein **geplantes Wartungsereignis** erstellt wird. Sie werden über das Regeln-Menü jeder Entität verwaltet:
 
-- Vorfälle → Einstellungen → **Runbook-Regeln**
+- Vorfälle → Regeln → **Runbook-Regeln**
 - Warnungen → Regeln → **Runbook-Regeln**
-- Geplante Wartung → Einstellungen → **Runbook-Regeln**
+- Geplante Wartung → Regeln → **Runbook-Regeln**
 
 Alle drei Seiten bearbeiten dasselbe zugrunde liegende Regelmodell — sie sind nur so gefiltert, dass jeweils nur Regeln für diesen Entitätstyp angezeigt werden.
 

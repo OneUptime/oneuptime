@@ -13,6 +13,11 @@ import Toggle from "Common/UI/Components/Toggle/Toggle";
 import { BILLING_ENABLED, getAllEnvVars } from "Common/UI/Config";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
+import UiAnalytics from "Common/UI/Utils/Analytics";
+import {
+  RevenueEventName,
+  RevenueFunnelStage,
+} from "Common/Types/Analytics/RevenueEvent";
 import GlobalConfigUtil from "Common/UI/Utils/GlobalConfig";
 import User from "Common/UI/Utils/User";
 import Project from "Common/Models/DatabaseModels/Project";
@@ -268,6 +273,16 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
           submitButtonText="Create Project"
           onSuccess={(project: Project | null) => {
             LocalStorage.removeItem("promoCode");
+            if (project) {
+              UiAnalytics.captureRevenueEvent(
+                RevenueEventName.WorkspaceCreated,
+                {
+                  funnel_stage: RevenueFunnelStage.Activation,
+                  project_id: project.id?.toString() || "",
+                  plan_id: project.paymentProviderPlanId || "",
+                },
+              );
+            }
             if (project && props.onProjectSelected) {
               props.onProjectSelected(project);
             }
