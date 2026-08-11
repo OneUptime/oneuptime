@@ -235,10 +235,18 @@ const Overview: FunctionComponent<PageComponentProps> = (
       const rawAnnouncements: JSONArray =
         (data["announcements"] as JSONArray) || [];
 
-      const announcement: StatusPageAnnouncement = BaseModel.fromJSONObject(
-        (rawAnnouncements[0] as JSONObject) || {},
-        StatusPageAnnouncement,
-      );
+      /*
+       * An empty response means this announcement is not on this status page. Keep it
+       * null - deserializing an empty object here yields a model with no data, which
+       * renders as a blank announcement instead of the empty state below.
+       */
+      const announcement: StatusPageAnnouncement | null =
+        rawAnnouncements.length > 0
+          ? BaseModel.fromJSONObject(
+              rawAnnouncements[0] as JSONObject,
+              StatusPageAnnouncement,
+            )
+          : null;
 
       const statusPageResources: Array<StatusPageResource> =
         BaseModel.fromJSONArray(
@@ -298,7 +306,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
     return <ErrorMessage message={error} />;
   }
 
-  if (!parsedData) {
+  /*
+   * Only wait on parsedData when there is an announcement to parse, so that a missing
+   * announcement falls through to the empty state below instead of loading forever.
+   */
+  if (announcement && !parsedData) {
     return <PageLoader isVisible={true} />;
   }
 
@@ -333,7 +345,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
         },
       ]}
     >
-      {announcement ? <EventItem {...parsedData} /> : <></>}
+      {announcement && parsedData ? <EventItem {...parsedData} /> : <></>}
       {!announcement ? (
         <EmptyState
           id="announcement-empty-state"
