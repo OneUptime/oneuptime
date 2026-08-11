@@ -5,7 +5,15 @@ import LlmType from "../../../../Types/LLM/LlmType";
 import LLMService, {
   LLMCompletionResponse,
 } from "../../../../Server/Utils/LLM/LLMService";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import stubLLMEgressGuard from "./StubLLMEgressGuard";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 
 type PostSpy = ReturnType<typeof jest.spyOn>;
 
@@ -14,6 +22,11 @@ function mockPostResponse(jsonData: JSONObject): PostSpy {
     jsonData,
   } as unknown as HTTPResponse<JSONObject>) as PostSpy;
 }
+
+// These hosts are placeholders; the SSRF guard is covered elsewhere.
+beforeEach(() => {
+  stubLLMEgressGuard();
+});
 
 afterEach(() => {
   jest.restoreAllMocks();
