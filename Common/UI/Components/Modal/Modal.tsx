@@ -7,6 +7,7 @@ import ModalFooter from "./ModalFooter";
 import { VeryLightGray } from "../../../Types/BrandColors";
 import IconProp from "../../../Types/Icon/IconProp";
 import useTranslateValue from "../../Utils/Translation";
+import { lockPageScroll, unlockPageScroll } from "../../Utils/PageScrollLock";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -22,52 +23,6 @@ export enum ModalWidth {
   Medium,
   Large,
 }
-
-/*
- * The page behind a modal must not scroll, and nested modals share a single
- * lock: a counter, rather than a boolean, is what stops the inner modal from
- * handing scrolling back while its parent is still open.
- */
-let openModalCount: number = 0;
-let bodyOverflowBeforeLock: string = "";
-let bodyPaddingRightBeforeLock: string = "";
-
-type PageScrollLockFunction = () => void;
-
-const lockPageScroll: PageScrollLockFunction = (): void => {
-  openModalCount++;
-
-  if (openModalCount > 1 || typeof document === "undefined") {
-    return;
-  }
-
-  bodyOverflowBeforeLock = document.body.style.overflow;
-  bodyPaddingRightBeforeLock = document.body.style.paddingRight;
-
-  /*
-   * Hiding the scrollbar reclaims its width, so the page underneath would
-   * jump sideways by exactly that much. Pad it back to hold everything still.
-   */
-  const scrollbarWidth: number =
-    window.innerWidth - document.documentElement.clientWidth;
-
-  if (scrollbarWidth > 0) {
-    document.body.style.paddingRight = `${scrollbarWidth}px`;
-  }
-
-  document.body.style.overflow = "hidden";
-};
-
-const unlockPageScroll: PageScrollLockFunction = (): void => {
-  openModalCount = Math.max(0, openModalCount - 1);
-
-  if (openModalCount > 0 || typeof document === "undefined") {
-    return;
-  }
-
-  document.body.style.overflow = bodyOverflowBeforeLock;
-  document.body.style.paddingRight = bodyPaddingRightBeforeLock;
-};
 
 export interface ComponentProps {
   title: string;
