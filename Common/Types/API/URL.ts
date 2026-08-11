@@ -131,35 +131,34 @@ export default class URL extends DatabaseProperty {
   public static fromString(url: string): URL {
     let protocol: Protocol = Protocol.HTTPS;
 
-    if (url.startsWith("https://")) {
-      protocol = Protocol.HTTPS;
-      url = url.replace("https://", "");
+    /*
+     * Schemes are case-insensitive (RFC 3986), so match on a lower-cased
+     * copy and strip by length. Matching the literal prefix left "HTTPS://"
+     * in place, which then read as an authority of "HTTPS:".
+     *
+     * Longest-first: "https://" has to be tested before "http://", and only
+     * the first match is stripped.
+     */
+    const schemePrefixes: Array<[string, Protocol]> = [
+      ["https://", Protocol.HTTPS],
+      ["http://", Protocol.HTTP],
+      ["wss://", Protocol.WSS],
+      ["ws://", Protocol.WS],
+      ["mongodb://", Protocol.MONGO_DB],
+      ["mailto:", Protocol.MAIL],
+    ];
+
+    const lowerCasedUrl: string = url.toLowerCase();
+
+    for (const [prefix, prefixProtocol] of schemePrefixes) {
+      if (lowerCasedUrl.startsWith(prefix)) {
+        protocol = prefixProtocol;
+        url = url.substring(prefix.length);
+        break;
+      }
     }
 
-    if (url.startsWith("http://")) {
-      protocol = Protocol.HTTP;
-      url = url.replace("http://", "");
-    }
-
-    if (url.startsWith("wss://")) {
-      protocol = Protocol.WSS;
-      url = url.replace("wss://", "");
-    }
-
-    if (url.startsWith("ws://")) {
-      protocol = Protocol.WS;
-      url = url.replace("ws://", "");
-    }
-
-    if (url.startsWith("mongodb://")) {
-      protocol = Protocol.MONGO_DB;
-      url = url.replace("mongodb://", "");
-    }
-
-    if (url.startsWith("mailto:")) {
-      protocol = Protocol.MAIL;
-      url = url.replace("mailto:", "");
-
+    if (protocol === Protocol.MAIL) {
       /*
        * Hand the bare address to the constructor so it is recognised as an
        * Email. Routing it through Hostname instead would ask a host validator

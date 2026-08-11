@@ -108,6 +108,19 @@ describe("URL.fromString keeps the authority separate from the rest", () => {
     expect(url.toString()).toBe("https://hooks.example.com/a/b?x=1");
   });
 
+  test("an upper-case scheme is stripped, not left in the authority", () => {
+    /*
+     * Schemes are case-insensitive. Matching the literal lower-case prefix
+     * left "HTTPS://" in place, so the authority read as "HTTPS:" — which
+     * the old permissive host check waved through and the structural one
+     * (correctly) refuses, turning a valid webhook URL into an error.
+     */
+    const url: URL = URL.fromString("HTTPS://hooks.example.com/webhook");
+
+    expect(url.hostname.hostname).toBe("hooks.example.com");
+    expect(url.protocol.toString()).toBe("https://");
+  });
+
   test("a host with a port survives", () => {
     const url: URL = URL.fromString("http://localhost:5000/api/test");
 
