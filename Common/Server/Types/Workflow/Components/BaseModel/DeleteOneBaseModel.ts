@@ -11,6 +11,8 @@ import ComponentMetadata, {
 } from "../../../../../Types/Workflow/Component";
 import BaseModelComponents from "../../../../../Types/Workflow/Components/BaseModel";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
+import { normalizeModelKeys } from "./ModelArguments";
+import logComponentError from "./LogComponentError";
 
 export default class DeleteOneBaseModel<
   TBaseModel extends BaseModel,
@@ -89,35 +91,51 @@ export default class DeleteOneBaseModel<
         );
       }
 
-      let query: Query<TBaseModel> = args["query"] as Query<TBaseModel>;
-
-      if (query) {
-        query = JSONFunctions.deserialize(
+      const query: Query<TBaseModel> = JSONFunctions.deserialize(
+        normalizeModelKeys(
           args["query"] as JSONObject,
-        ) as Query<TBaseModel>;
-      }
+          this.modelService.getModel(),
+        ),
+      ) as Query<TBaseModel>;
 
+      /*
+       * The tenant column goes on the deserialized query, not on args["query"]
+       * - JSONFunctions.deserialize returns a new object, so anything written
+       * to args after it runs never reaches the database.
+       */
       if (this.modelService.getModel().getTenantColumn()) {
-        (args["query"] as JSONObject)[
+        (query as JSONObject)[
           this.modelService.getModel().getTenantColumn() as string
         ] = options.projectId;
       }
 
-      await this.modelService.deleteOneBy({
-        query: (query as Query<TBaseModel>) || {},
+      const itemsDeleted: number = await this.modelService.deleteOneBy({
+        query: query,
         props: {
           isRoot: true,
           tenantId: options.projectId,
         },
       });
 
+      options.log(
+        `Deleted ${itemsDeleted} ${
+          this.modelService.getModel().singularName || "record"
+        }(s).`,
+      );
+
       return {
-        returnValues: {},
+        returnValues: {
+          "items-deleted": itemsDeleted,
+        },
         executePort: successPort,
       };
     } catch (err: any) {
-      options.log("Error running component");
-      options.log(err.message ? err.message : JSON.stringify(err, null, 2));
+      logComponentError({
+        error: err,
+        model: this.modelService?.getModel() || null,
+        log: options.log,
+      });
+
       return {
         returnValues: {},
         executePort: errorPort,

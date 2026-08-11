@@ -10,6 +10,7 @@ import ComponentMetadata, {
 } from "../../../../../Types/Workflow/Component";
 import BaseModelComponents from "../../../../../Types/Workflow/Components/BaseModel";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
+import { applyTenantColumn } from "./ModelArguments";
 
 export default class CreateManyBaseModel<
   TBaseModel extends BaseModel,
@@ -91,25 +92,30 @@ export default class CreateManyBaseModel<
 
       const array: Array<TBaseModel> = [];
 
-      if (this.modelService.getModel().getTenantColumn()) {
-        for (const item of args["json-array"]) {
-          (item as JSONObject)[
-            this.modelService.getModel().getTenantColumn() as string
-          ] = options.projectId;
+      /*
+       * This loop used to sit inside an `if (getTenantColumn())` check that
+       * was only meant to guard the projectId stamping, so a model without a
+       * tenant column created nothing at all and still reported success.
+       */
+      for (const item of args["json-array"]) {
+        const json: JSONObject = applyTenantColumn(
+          (item as JSONObject) || {},
+          this.modelService.getModel(),
+          options.projectId,
+        );
 
-          array.push(
-            (await this.modelService.create({
-              data: BaseModel.fromJSON<TBaseModel>(
-                (item as JSONObject) || {},
-                this.modelService.modelType,
-              ) as TBaseModel,
-              props: {
-                isRoot: true,
-                tenantId: options.projectId,
-              },
-            })) as TBaseModel,
-          );
-        }
+        array.push(
+          (await this.modelService.create({
+            data: BaseModel.fromJSON<TBaseModel>(
+              json,
+              this.modelService.modelType,
+            ) as TBaseModel,
+            props: {
+              isRoot: true,
+              tenantId: options.projectId,
+            },
+          })) as TBaseModel,
+        );
       }
 
       return {
