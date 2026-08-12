@@ -1307,3 +1307,159 @@ describe("buildTopologyViewModel — search match count", () => {
     expect(filtered.searchMatchCount).toBe(0);
   });
 });
+
+/*
+ * The view model is where a node's role becomes something the renderer
+ * and a screen reader can both use. It must survive payloads from before
+ * roles existed without changing what those payloads looked like.
+ */
+describe("buildTopologyViewModel — roles", () => {
+  const viewFor: (node: NetworkTopologyNode) => TopologyNodeView = (
+    node: NetworkTopologyNode,
+  ): TopologyNodeView => {
+    const model: TopologyViewModel = buildTopologyViewModel({
+      nodes: [node],
+      edges: [],
+      positions: new Map<string, TopologyPoint>([[node.id, { x: 10, y: 20 }]]),
+      searchText: "",
+      visibleKinds: ALL_NODE_KINDS,
+      focusNodeIds: new Set<string>(),
+      selectedNodeId: null,
+      selectedEdgeKey: null,
+      pinnedNodeIds: new Set<string>(),
+    });
+    return model.nodes[0]!;
+  };
+
+  test("the role and its label ride on the node view", () => {
+    const view: TopologyNodeView = viewFor(
+      makeDevice("d1", { role: "switch" }),
+    );
+    expect(view.role).toBe("switch");
+    expect(view.roleLabel).toBe("Switch");
+  });
+
+  test("the footprint carries the silhouette the role earned", () => {
+    expect(
+      viewFor(makeDevice("d1", { role: "firewall" })).footprint.shape.shape,
+    ).toBe("diamond");
+    expect(
+      viewFor(makeDevice("d2", { role: "storage" })).footprint.shape.shape,
+    ).toBe("cylinder");
+  });
+
+  test("a payload without roles still renders: devices unknown, endpoints hosts", () => {
+    const device: TopologyNodeView = viewFor(makeDevice("d1"));
+    expect(device.role).toBe("unknown");
+    expect(device.footprint.shape.shape).toBe("circle");
+
+    const endpoint: TopologyNodeView = viewFor(
+      makeEndpoint("endpoint:e1", { name: "pos-1" }),
+    );
+    expect(endpoint.role).toBe("host");
+    expect(endpoint.footprint.shape.shape).toBe("rect");
+  });
+
+  test("the tooltip leads with the role", () => {
+    expect(
+      viewFor(
+        makeDevice("d1", {
+          name: "core-1",
+          role: "switch",
+          status: "up",
+          vendor: "Cisco",
+          deviceModel: "C9300",
+        }),
+      ).tooltip,
+    ).toBe("core-1 (Switch, up) — Cisco C9300");
+  });
+
+  test("an unclassified device's tooltip reads exactly as it did before", () => {
+    expect(
+      viewFor(makeDevice("d1", { name: "core-1", status: "up" })).tooltip,
+    ).toBe("core-1 (up)");
+    expect(
+      viewFor(
+        makeUnmanaged("unmanaged:peer", { name: "peer", status: "unknown" }),
+      ).tooltip,
+    ).toBe("peer (unknown, unmanaged)");
+  });
+
+  test("an unmanaged peer with a role names it alongside 'unmanaged'", () => {
+    expect(
+      viewFor(
+        makeUnmanaged("unmanaged:peer", {
+          name: "peer",
+          status: "unknown",
+          role: "wirelessAccessPoint",
+        }),
+      ).tooltip,
+    ).toBe("peer (Wireless AP, unknown, unmanaged)");
+  });
+
+  test("the role changes the shape but never the status colours", () => {
+    /*
+     * Shape answers "what is it", colour answers "is it alright". The two
+     * are deliberately independent — a firewall that is down must still
+     * be red.
+     */
+    const downFirewall: TopologyNodeView = viewFor(
+      makeDevice("d1", { role: "firewall", status: "down" }),
+    );
+    expect(downFirewall.fill).toBe(NODE_STATUS_COLORS.down);
+    expect(downFirewall.footprint.shape.shape).toBe("diamond");
+
+    const upFirewall: TopologyNodeView = viewFor(
+      makeDevice("d2", { role: "firewall", status: "up" }),
+    );
+    expect(upFirewall.fill).toBe(NODE_STATUS_COLORS.up);
+    expect(upFirewall.footprint.shape.shape).toBe("diamond");
+  });
+
+  test("an endpoint keeps its violet regardless of the role", () => {
+    const camera: TopologyNodeView = viewFor(
+      makeEndpoint("endpoint:e1", { name: "cam-1", role: "camera" }),
+    );
+    expect(camera.fill).toBe(ENDPOINT_NODE_FILL);
+    expect(camera.stroke).toBe(ENDPOINT_NODE_STROKE);
+  });
+
+  test("an unmanaged peer keeps its dashed outline whatever shape it is", () => {
+    expect(
+      viewFor(makeUnmanaged("unmanaged:p", { role: "router" })).strokeDashArray,
+    ).toBe(UNMANAGED_DASH);
+  });
+
+  test("searching for a role dims everything that is not one", () => {
+    const nodes: Array<NetworkTopologyNode> = [
+      makeDevice("d1", { name: "core-1", role: "switch" }),
+      makeDevice("d2", { name: "core-2", role: "router" }),
+    ];
+    const model: TopologyViewModel = buildTopologyViewModel({
+      nodes: nodes,
+      edges: [],
+      positions: new Map<string, TopologyPoint>([
+        ["d1", { x: 0, y: 0 }],
+        ["d2", { x: 50, y: 0 }],
+      ]),
+      searchText: "switch",
+      visibleKinds: ALL_NODE_KINDS,
+      focusNodeIds: new Set<string>(),
+      selectedNodeId: null,
+      selectedEdgeKey: null,
+      pinnedNodeIds: new Set<string>(),
+    });
+
+    expect(model.searchMatchCount).toBe(1);
+    expect(
+      model.nodes.find((view: TopologyNodeView) => {
+        return view.id === "d1";
+      })?.isDimmed,
+    ).toBe(false);
+    expect(
+      model.nodes.find((view: TopologyNodeView) => {
+        return view.id === "d2";
+      })?.isDimmed,
+    ).toBe(true);
+  });
+});

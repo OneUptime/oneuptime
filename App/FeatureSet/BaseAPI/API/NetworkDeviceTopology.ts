@@ -105,6 +105,13 @@ export default class NetworkDeviceTopologyAPI {
                 interfacesDown: true,
                 vendor: true,
                 deviceModel: true,
+                /*
+                 * Not rendered — read only by the role classifier, which
+                 * is what lets a switch draw as a switch rather than as
+                 * another anonymous circle.
+                 */
+                sysDescr: true,
+                sysObjectId: true,
                 lldpNeighbors: true,
                 cdpNeighbors: true,
               },
@@ -242,6 +249,8 @@ export default class NetworkDeviceTopologyAPI {
                 interfacesDown: device.interfacesDown,
                 vendor: device.vendor,
                 deviceModel: device.deviceModel,
+                sysDescr: device.sysDescr,
+                sysObjectId: device.sysObjectId,
                 lldpNeighbors: device.lldpNeighbors,
                 cdpNeighbors: device.cdpNeighbors,
               };

@@ -1,5 +1,12 @@
 import { NetworkTopologyNode } from "Common/Types/Monitor/SnmpMonitor/NetworkTopology";
 import { isEndpointNode } from "./EndpointNodeUtil";
+import {
+  DEVICE_NODE_BASE_RADIUS,
+  ENDPOINT_NODE_BASE_RADIUS,
+  TopologyShapeGeometry,
+  geometryForShape,
+  shapeGeometryForNode,
+} from "./TopologyNodeShape";
 
 /*
  * The drawing geometry of a topology node, in viewBox units.
@@ -19,11 +26,21 @@ import { isEndpointNode } from "./EndpointNodeUtil";
  * only ever needs to be good enough to keep labels from colliding.
  */
 
-// Managed and unmanaged devices are circles of this radius.
-export const DEVICE_NODE_RADIUS: number = 16;
-// Endpoints are small rounded rects so a fan of leaves stays readable.
-export const ENDPOINT_NODE_HALF_WIDTH: number = 9;
-export const ENDPOINT_NODE_HALF_HEIGHT: number = 7;
+/*
+ * The size class a node is drawn at. The SILHOUETTE is chosen by role in
+ * TopologyNodeShape — a switch is a rounded square, a firewall a diamond
+ * — and its half-extents come from there too, so the layout reserves room
+ * for the shape that is actually painted. These constants remain the
+ * unclassified case: a device with no role is still a circle of this
+ * radius, and an endpoint still the 9 × 7 rect it has always been.
+ */
+export const DEVICE_NODE_RADIUS: number = DEVICE_NODE_BASE_RADIUS;
+const ENDPOINT_RECT: TopologyShapeGeometry = geometryForShape(
+  "rect",
+  ENDPOINT_NODE_BASE_RADIUS,
+);
+export const ENDPOINT_NODE_HALF_WIDTH: number = ENDPOINT_RECT.halfWidth;
+export const ENDPOINT_NODE_HALF_HEIGHT: number = ENDPOINT_RECT.halfHeight;
 
 export const DEVICE_LABEL_FONT_SIZE: number = 12;
 export const ENDPOINT_LABEL_FONT_SIZE: number = 10;
@@ -162,8 +179,15 @@ export interface TopologyNodeFootprint {
   halfWidth: number;
   /** Half the glyph's height, label excluded. */
   halfHeight: number;
+  /**
+   * The silhouette this node is painted as — carried here so the renderer
+   * draws exactly the shape the layout reserved room for.
+   */
+  shape: TopologyShapeGeometry;
   /** Half the width of the widest label line, capped. */
   labelHalfWidth: number;
+  /** Centre to the baseline of the FIRST label line. */
+  labelBaselineOffset: number;
   /** Centre to the bottom of the last label line (positive, downward). */
   labelBottom: number;
   /** Radius used for glyph-vs-glyph separation, padding included. */
@@ -188,12 +212,9 @@ export const footprintForNode: (
 ): TopologyNodeFootprint => {
   const isEndpoint: boolean = isEndpointNode(node);
 
-  const halfWidth: number = isEndpoint
-    ? ENDPOINT_NODE_HALF_WIDTH
-    : DEVICE_NODE_RADIUS;
-  const halfHeight: number = isEndpoint
-    ? ENDPOINT_NODE_HALF_HEIGHT
-    : DEVICE_NODE_RADIUS;
+  const shape: TopologyShapeGeometry = shapeGeometryForNode(node);
+  const halfWidth: number = shape.halfWidth;
+  const halfHeight: number = shape.halfHeight;
 
   const lines: Array<string> = labelLinesForNode(node);
   const fontSize: number = isEndpoint
@@ -202,9 +223,20 @@ export const footprintForNode: (
   const lineHeight: number = isEndpoint
     ? ENDPOINT_LABEL_LINE_HEIGHT
     : DEVICE_LABEL_LINE_HEIGHT;
-  const baselineOffset: number = isEndpoint
-    ? ENDPOINT_LABEL_BASELINE_OFFSET
-    : DEVICE_LABEL_BASELINE_OFFSET;
+  /*
+   * The clearance between the bottom of the glyph and the first baseline
+   * is what the fixed offsets encode for a circle; a taller silhouette
+   * (the firewall diamond overshoots the circle by a couple of units)
+   * pushes its label down by the difference rather than letting the two
+   * touch.
+   */
+  const labelGap: number = isEndpoint
+    ? ENDPOINT_LABEL_BASELINE_OFFSET - ENDPOINT_NODE_HALF_HEIGHT
+    : DEVICE_LABEL_BASELINE_OFFSET - DEVICE_NODE_RADIUS;
+  const baselineOffset: number = Math.max(
+    isEndpoint ? ENDPOINT_LABEL_BASELINE_OFFSET : DEVICE_LABEL_BASELINE_OFFSET,
+    halfHeight + labelGap,
+  );
 
   let longestLine: number = 0;
   for (const line of lines) {
@@ -226,7 +258,9 @@ export const footprintForNode: (
   return {
     halfWidth: halfWidth,
     halfHeight: halfHeight,
+    shape: shape,
     labelHalfWidth: labelHalfWidth,
+    labelBaselineOffset: baselineOffset,
     labelBottom: labelBottom,
     collisionRadius: Math.max(halfWidth, halfHeight) + NODE_COLLISION_PADDING,
     inkHalfWidth: Math.max(halfWidth, labelHalfWidth),
@@ -262,7 +296,9 @@ export const buildFootprints: (
 export const DEFAULT_FOOTPRINT: TopologyNodeFootprint = {
   halfWidth: DEVICE_NODE_RADIUS,
   halfHeight: DEVICE_NODE_RADIUS,
+  shape: geometryForShape("circle", DEVICE_NODE_BASE_RADIUS),
   labelHalfWidth: 0,
+  labelBaselineOffset: DEVICE_LABEL_BASELINE_OFFSET,
   labelBottom: DEVICE_LABEL_BASELINE_OFFSET,
   collisionRadius: DEVICE_NODE_RADIUS + NODE_COLLISION_PADDING,
   inkHalfWidth: DEVICE_NODE_RADIUS,

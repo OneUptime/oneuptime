@@ -1,7 +1,12 @@
 import {
+  NetworkTopologyDeviceRole,
   NetworkTopologyEdge,
   NetworkTopologyNode,
 } from "Common/Types/Monitor/SnmpMonitor/NetworkTopology";
+import {
+  roleLabelForNode,
+  roleOfNode,
+} from "../NetworkDevice/TopologyNodeShape";
 import {
   endpointTooltipForNode,
   isEndpointNode,
@@ -44,6 +49,10 @@ export interface TopologyNodeView {
   x: number;
   y: number;
   kind: TopologyNodeKind;
+  /** What the node does on the network — this is what picks its shape. */
+  role: NetworkTopologyDeviceRole;
+  /** The role's display name, e.g. "Switch". */
+  roleLabel: string;
   status: string;
   fill: string;
   stroke: string;
@@ -137,11 +146,22 @@ const tooltipForNode: (node: NetworkTopologyNode) => string = (
   const interfacesSummary: string = hasInterfaceCounts
     ? `${node.interfacesUp ?? 0} up / ${node.interfacesDown ?? 0} down`
     : "";
-  return `${node.name} (${node.status}${
-    node.isManaged ? "" : ", unmanaged"
-  })${vendorSummary ? ` — ${vendorSummary}` : ""}${
-    interfacesSummary ? ` — ${interfacesSummary}` : ""
-  }`;
+  /*
+   * "core-1 (Switch, up)" — the role leads because the shape is what the
+   * reader is trying to confirm when they hover. An unclassified node
+   * simply omits it and reads exactly as it always did.
+   */
+  const role: NetworkTopologyDeviceRole = roleOfNode(node);
+  const descriptor: string = [
+    role === "unknown" ? undefined : roleLabelForNode(node),
+    node.status,
+    node.isManaged ? undefined : "unmanaged",
+  ]
+    .filter(Boolean)
+    .join(", ");
+  return `${node.name} (${descriptor})${
+    vendorSummary ? ` — ${vendorSummary}` : ""
+  }${interfacesSummary ? ` — ${interfacesSummary}` : ""}`;
 };
 
 /**
@@ -205,6 +225,8 @@ export const buildTopologyViewModel: (
       x: point.x,
       y: point.y,
       kind: kind,
+      role: roleOfNode(node),
+      roleLabel: roleLabelForNode(node),
       status: node.status,
       fill:
         kind === "endpoint"

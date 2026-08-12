@@ -8,6 +8,10 @@ import NetworkTopology, {
 import LldpNeighbor from "../../Types/Monitor/SnmpMonitor/LldpNeighbor";
 import CdpNeighbor from "../../Types/Monitor/SnmpMonitor/CdpNeighbor";
 import { normalizeMac } from "./EndpointAttachmentUtil";
+import {
+  classifyDeviceRole,
+  classifyEndpointRole,
+} from "./NetworkDeviceRoleUtil";
 
 export interface TopologyDeviceInput {
   id: string;
@@ -19,6 +23,12 @@ export interface TopologyDeviceInput {
   interfacesDown?: number | undefined;
   vendor?: string | undefined;
   deviceModel?: string | undefined;
+  /*
+   * SNMP identity, carried purely so the node can be classified into a
+   * role (router/switch/firewall/...). Neither is rendered directly.
+   */
+  sysDescr?: string | undefined;
+  sysObjectId?: string | undefined;
   lldpNeighbors?: Array<LldpNeighbor> | undefined;
   cdpNeighbors?: Array<CdpNeighbor> | undefined;
 }
@@ -145,6 +155,14 @@ export default class NetworkTopologyUtil {
         name: device.name,
         isManaged: true,
         kind: "device",
+        role: classifyDeviceRole({
+          sysDescr: device.sysDescr,
+          sysObjectId: device.sysObjectId,
+          vendor: device.vendor,
+          deviceModel: device.deviceModel,
+          name: device.name,
+          sysName: device.sysName || device.hostname,
+        }),
         status: NetworkTopologyUtil.deviceStatus(device, now),
         interfacesUp: device.interfacesUp,
         interfacesDown: device.interfacesDown,
@@ -180,19 +198,33 @@ export default class NetworkTopologyUtil {
           const existingUnmanaged: NetworkTopologyNode | undefined =
             unmanagedNodeById.get(toNodeId);
           if (!existingUnmanaged) {
+            const unmanagedName: string = claim.displayName || "Unknown device";
             const unmanagedNode: NetworkTopologyNode = {
               id: toNodeId,
-              name: claim.displayName || "Unknown device",
+              name: unmanagedName,
               isManaged: false,
               kind: "unmanaged",
+              role: classifyDeviceRole({
+                platform: claim.remotePlatform,
+                name: unmanagedName,
+              }),
               status: "unknown",
               deviceModel: claim.remotePlatform,
             };
             unmanagedNodeById.set(toNodeId, unmanagedNode);
             nodes.push(unmanagedNode);
           } else if (!existingUnmanaged.deviceModel && claim.remotePlatform) {
-            // A later CDP claim may know the platform the first one didn't.
+            /*
+             * A later CDP claim may know the platform the first one didn't
+             * — which is usually the only evidence a peer's role rests on,
+             * so the role is re-derived rather than left at whatever the
+             * name alone produced.
+             */
             existingUnmanaged.deviceModel = claim.remotePlatform;
+            existingUnmanaged.role = classifyDeviceRole({
+              platform: claim.remotePlatform,
+              name: existingUnmanaged.name,
+            });
           }
         }
 
@@ -348,15 +380,21 @@ export default class NetworkTopologyUtil {
       renderedEndpointCount++;
 
       const nodeId: string = `endpoint:${endpoint.id}`;
+      const endpointName: string =
+        endpoint.classification ||
+        endpoint.vendor ||
+        endpoint.ipAddress ||
+        endpoint.macAddress;
       nodes.push({
         id: nodeId,
-        name:
-          endpoint.classification ||
-          endpoint.vendor ||
-          endpoint.ipAddress ||
-          endpoint.macAddress,
+        name: endpointName,
         isManaged: false,
         kind: "endpoint",
+        role: classifyEndpointRole({
+          classification: endpoint.classification,
+          vendor: endpoint.vendor,
+          name: endpointName,
+        }),
         status: NetworkTopologyUtil.statusFromLastSeen(
           endpoint.lastSeenAt,
           now,

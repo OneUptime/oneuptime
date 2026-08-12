@@ -26,6 +26,31 @@ export type NetworkTopologyLinkProtocol = "lldp" | "cdp" | "fdb";
  */
 export type NetworkTopologyNodeKind = "device" | "unmanaged" | "endpoint";
 
+/*
+ * What the node DOES on the network, as opposed to what we know about it
+ * (`kind`). Derived server-side from the identity SNMP and the discovery
+ * protocols already report — sysObjectId, sysDescr, model/platform, and
+ * finally the hostname — because a map on which a router, a switch and a
+ * camera are the same circle cannot be read at a glance.
+ *
+ * "unknown" is a real answer, not a failure: guessing a role from thin
+ * evidence is worse than drawing a neutral node, so the classifier only
+ * commits when the evidence names a product family or says the word.
+ */
+export type NetworkTopologyDeviceRole =
+  | "router"
+  | "switch"
+  | "firewall"
+  | "wirelessAccessPoint"
+  | "loadBalancer"
+  | "server"
+  | "storage"
+  | "printer"
+  | "camera"
+  | "phone"
+  | "host"
+  | "unknown";
+
 export interface NetworkTopologyNode {
   // Device id for managed nodes; a synthetic "unmanaged:<key>" id otherwise.
   id: string;
@@ -34,6 +59,12 @@ export interface NetworkTopologyNode {
   status: NetworkTopologyNodeStatus;
   // Missing on older payloads — derive from isManaged.
   kind?: NetworkTopologyNodeKind | undefined;
+  /*
+   * What the node does on the network (router, switch, firewall, ...).
+   * Missing on older payloads, and "unknown" when the evidence did not
+   * name one — readers must treat both the same way.
+   */
+  role?: NetworkTopologyDeviceRole | undefined;
   interfacesUp?: number | undefined;
   interfacesDown?: number | undefined;
   // Extra device identity for search and the detail panel (managed nodes).

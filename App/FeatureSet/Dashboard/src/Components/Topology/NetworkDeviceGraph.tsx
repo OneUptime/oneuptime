@@ -29,10 +29,17 @@ import {
   topologyStructuralSignature,
 } from "./NetworkTopologyViewModel";
 import {
-  TOPOLOGY_LEGEND,
   TopologyLegendEntry,
+  buildTopologyLegend,
   edgeKeyForEdge,
 } from "./NetworkTopologyMeta";
+import {
+  TopologyShapeGeometry,
+  cylinderBodyPathAt,
+  cylinderCapPathAt,
+  geometryForShape,
+  polygonPointsAt,
+} from "../NetworkDevice/TopologyNodeShape";
 import {
   PositionOverrides,
   TopologyLayoutMode,
@@ -163,6 +170,194 @@ const FIT_BOUNDS_PADDING: number = 40;
 let graphInstanceCounter: number = 0;
 
 const emptyOverrides: PositionOverrides = new Map<string, TopologyPoint>();
+
+/*
+ * The node glyph, drawn as whatever silhouette its role earned it. The
+ * geometry is NOT recomputed here — it rides in on the footprint, which
+ * is the same object the layout used to reserve space, so a shape can
+ * never be painted larger than the room made for it.
+ */
+const renderNodeSilhouette: (nodeView: TopologyNodeView) => ReactElement = (
+  nodeView: TopologyNodeView,
+): ReactElement => {
+  const geometry: TopologyShapeGeometry = nodeView.footprint.shape;
+  const isEndpoint: boolean = nodeView.kind === "endpoint";
+  const fillOpacity: number = isEndpoint
+    ? 0.85
+    : nodeView.kind === "device"
+      ? 0.9
+      : 1;
+  const strokeWidth: number = isEndpoint ? 1.5 : 2;
+  const paint: {
+    fill: string;
+    fillOpacity: number;
+    stroke: string;
+    strokeWidth: number;
+    strokeDasharray: string | undefined;
+  } = {
+    fill: nodeView.fill,
+    fillOpacity: fillOpacity,
+    stroke: nodeView.stroke,
+    strokeWidth: strokeWidth,
+    strokeDasharray: nodeView.strokeDashArray,
+  };
+
+  if (geometry.points.length > 0) {
+    return (
+      <polygon
+        data-topology-node-shape={geometry.shape}
+        points={polygonPointsAt(geometry, nodeView.x, nodeView.y)}
+        strokeLinejoin="round"
+        {...paint}
+      />
+    );
+  }
+
+  if (geometry.shape === "cylinder") {
+    /*
+     * Two paths: the silhouette, then the front rim of the top cap over
+     * it. Without the rim the outline reads as a lozenge, not a drum.
+     */
+    return (
+      <g data-topology-node-shape={geometry.shape}>
+        <path
+          d={cylinderBodyPathAt(geometry, nodeView.x, nodeView.y)}
+          {...paint}
+        />
+        <path
+          d={cylinderCapPathAt(geometry, nodeView.x, nodeView.y)}
+          fill="none"
+          stroke={nodeView.stroke}
+          strokeWidth={strokeWidth}
+          pointerEvents="none"
+        />
+      </g>
+    );
+  }
+
+  if (geometry.shape === "circle") {
+    return (
+      <circle
+        data-topology-node-shape={geometry.shape}
+        cx={nodeView.x}
+        cy={nodeView.y}
+        r={geometry.halfWidth}
+        {...paint}
+      />
+    );
+  }
+
+  // Everything left is a rect: the switch box, the server tower, the leaf.
+  return (
+    <rect
+      data-topology-node-shape={geometry.shape}
+      x={nodeView.x - geometry.halfWidth}
+      y={nodeView.y - geometry.halfHeight}
+      width={geometry.halfWidth * 2}
+      height={geometry.halfHeight * 2}
+      rx={geometry.cornerRadius}
+      {...paint}
+    />
+  );
+};
+
+/*
+ * One legend swatch. Drawn in a 16 × 10 box, so the node silhouettes are
+ * re-derived at a base radius that fits it rather than scaled down from
+ * the canvas geometry.
+ */
+const LEGEND_SWATCH_WIDTH: number = 16;
+const LEGEND_SWATCH_HEIGHT: number = 10;
+const LEGEND_SHAPE_BASE_RADIUS: number = 4.2;
+
+const renderLegendSwatch: (entry: TopologyLegendEntry) => ReactElement = (
+  entry: TopologyLegendEntry,
+): ReactElement => {
+  const cx: number = LEGEND_SWATCH_WIDTH / 2;
+  const cy: number = LEGEND_SWATCH_HEIGHT / 2;
+
+  if (entry.swatch === "line" || entry.swatch === "dashed-line") {
+    return (
+      <line
+        x1={0}
+        y1={cy}
+        x2={LEGEND_SWATCH_WIDTH}
+        y2={cy}
+        stroke={entry.color}
+        strokeWidth={2}
+        strokeDasharray={entry.swatch === "dashed-line" ? "3 2" : undefined}
+      />
+    );
+  }
+
+  if (entry.swatch === "square") {
+    return <rect x={3} y={2} width={10} height={7} rx={2} fill={entry.color} />;
+  }
+
+  if (entry.swatch === "shape" && entry.shape) {
+    const geometry: TopologyShapeGeometry = geometryForShape(
+      entry.shape,
+      LEGEND_SHAPE_BASE_RADIUS,
+    );
+    if (geometry.points.length > 0) {
+      return (
+        <polygon
+          points={polygonPointsAt(geometry, cx, cy)}
+          fill="none"
+          stroke={entry.color}
+          strokeWidth={1.5}
+          strokeLinejoin="round"
+        />
+      );
+    }
+    if (geometry.shape === "cylinder") {
+      return (
+        <path
+          d={cylinderBodyPathAt(geometry, cx, cy)}
+          fill="none"
+          stroke={entry.color}
+          strokeWidth={1.5}
+        />
+      );
+    }
+    if (geometry.shape === "circle") {
+      return (
+        <circle
+          cx={cx}
+          cy={cy}
+          r={geometry.halfWidth}
+          fill="none"
+          stroke={entry.color}
+          strokeWidth={1.5}
+        />
+      );
+    }
+    return (
+      <rect
+        x={cx - geometry.halfWidth}
+        y={cy - geometry.halfHeight}
+        width={geometry.halfWidth * 2}
+        height={geometry.halfHeight * 2}
+        rx={geometry.cornerRadius}
+        fill="none"
+        stroke={entry.color}
+        strokeWidth={1.5}
+      />
+    );
+  }
+
+  return (
+    <circle
+      cx={8}
+      cy={cy}
+      r={4}
+      fill={entry.swatch === "hollow-dot" ? "none" : entry.color}
+      stroke={entry.color}
+      strokeWidth={entry.swatch === "hollow-dot" ? 1.5 : 0}
+      strokeDasharray={entry.swatch === "hollow-dot" ? "2 1.5" : undefined}
+    />
+  );
+};
 
 const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -325,6 +520,15 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
     props.selectedEdgeKey,
     pinnedNodeIds,
   ]);
+
+  /*
+   * Built from the UNFILTERED node set on purpose: the key should explain
+   * the silhouettes this network contains, not flicker an entry away the
+   * moment a kind filter hides the last switch.
+   */
+  const legend: Array<TopologyLegendEntry> = useMemo(() => {
+    return buildTopologyLegend(nodes);
+  }, [nodes]);
 
   /*
    * The soft hulls behind the graph: one per island, one per endpoint
@@ -1428,35 +1632,12 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
                         <></>
                       )}
 
-                      {isEndpoint ? (
-                        <rect
-                          x={nodeView.x - footprint.halfWidth}
-                          y={nodeView.y - footprint.halfHeight}
-                          width={footprint.halfWidth * 2}
-                          height={footprint.halfHeight * 2}
-                          rx={3}
-                          fill={nodeView.fill}
-                          fillOpacity={0.85}
-                          stroke={nodeView.stroke}
-                          strokeWidth={1.5}
-                        />
-                      ) : (
-                        <circle
-                          cx={nodeView.x}
-                          cy={nodeView.y}
-                          r={footprint.halfWidth}
-                          fill={nodeView.fill}
-                          fillOpacity={nodeView.kind === "device" ? 0.9 : 1}
-                          stroke={nodeView.stroke}
-                          strokeWidth={2}
-                          strokeDasharray={nodeView.strokeDashArray}
-                        />
-                      )}
+                      {renderNodeSilhouette(nodeView)}
 
                       {nodeView.badge && showLabels ? (
                         <text
                           x={nodeView.x}
-                          y={nodeView.y + 3}
+                          y={nodeView.y + footprint.shape.badgeBaselineOffset}
                           textAnchor="middle"
                           fontSize={9}
                           fontWeight={600}
@@ -1476,11 +1657,13 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
                       {showLabels ? (
                         <text
                           x={nodeView.x}
-                          y={
-                            nodeView.y +
-                            footprint.halfHeight +
-                            (isEndpoint ? 12 : 14)
-                          }
+                          /*
+                           * From the footprint, not from a constant: a
+                           * diamond stands taller than the circle these
+                           * offsets were written for, and the layout has
+                           * already reserved room at exactly this baseline.
+                           */
+                          y={nodeView.y + footprint.labelBaselineOffset}
                           textAnchor="middle"
                           fontSize={isEndpoint ? 10 : 12}
                           fill="var(--ou-text-secondary, #374151)"
@@ -1536,47 +1719,18 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
         data-testid="network-topology-legend"
         className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border border-gray-100 px-3 py-2.5 text-xs text-gray-600"
       >
-        {TOPOLOGY_LEGEND.map((entry: TopologyLegendEntry): ReactElement => {
+        {legend.map((entry: TopologyLegendEntry): ReactElement => {
           return (
             <li
               key={`${entry.group}-${entry.label}`}
               className="flex items-center gap-1.5"
             >
-              <svg width={16} height={10} aria-hidden={true}>
-                {entry.swatch === "line" || entry.swatch === "dashed-line" ? (
-                  <line
-                    x1={0}
-                    y1={5}
-                    x2={16}
-                    y2={5}
-                    stroke={entry.color}
-                    strokeWidth={2}
-                    strokeDasharray={
-                      entry.swatch === "dashed-line" ? "3 2" : undefined
-                    }
-                  />
-                ) : entry.swatch === "square" ? (
-                  <rect
-                    x={3}
-                    y={2}
-                    width={10}
-                    height={7}
-                    rx={2}
-                    fill={entry.color}
-                  />
-                ) : (
-                  <circle
-                    cx={8}
-                    cy={5}
-                    r={4}
-                    fill={entry.swatch === "hollow-dot" ? "none" : entry.color}
-                    stroke={entry.color}
-                    strokeWidth={entry.swatch === "hollow-dot" ? 1.5 : 0}
-                    strokeDasharray={
-                      entry.swatch === "hollow-dot" ? "2 1.5" : undefined
-                    }
-                  />
-                )}
+              <svg
+                width={LEGEND_SWATCH_WIDTH}
+                height={LEGEND_SWATCH_HEIGHT}
+                aria-hidden={true}
+              >
+                {renderLegendSwatch(entry)}
               </svg>
               <span>
                 <span className="text-gray-400">{`${entry.group}: `}</span>

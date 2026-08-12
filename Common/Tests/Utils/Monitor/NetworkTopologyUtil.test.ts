@@ -445,3 +445,243 @@ describe("NetworkTopologyUtil.buildTopology", () => {
     });
   });
 });
+
+/*
+ * Roles are what give every node on the map its shape, so the builder has
+ * to attach one to all three kinds of node — the devices it was given,
+ * the unmanaged peers it invented from neighbor claims, and the endpoints
+ * it hung off switch ports.
+ */
+describe("NetworkTopologyUtil.buildTopology — device roles", () => {
+  const now: Date = new Date("2026-07-22T12:00:00Z");
+  const fresh: Date = new Date("2026-07-22T11:55:00Z");
+
+  const nodeById: (
+    result: TopologyBuildResult,
+    id: string,
+  ) => NetworkTopologyNode | undefined = (
+    result: TopologyBuildResult,
+    id: string,
+  ): NetworkTopologyNode | undefined => {
+    return result.nodes.find((node: NetworkTopologyNode) => {
+      return node.id === id;
+    });
+  };
+
+  test("managed devices are classified from their SNMP identity", () => {
+    const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+      [
+        {
+          id: "d1",
+          name: "core-1",
+          lastSeenAt: fresh,
+          deviceModel: "Catalyst 9300-48P",
+        },
+        {
+          id: "d2",
+          name: "edge-1",
+          lastSeenAt: fresh,
+          sysDescr: "FortiGate-60F v7.2.5",
+        },
+        {
+          id: "d3",
+          name: "dmz-1",
+          lastSeenAt: fresh,
+          sysObjectId: "1.3.6.1.4.1.3375.2.1.3.4.10",
+        },
+      ],
+      now,
+    );
+
+    expect(nodeById(result, "d1")?.role).toBe("switch");
+    expect(nodeById(result, "d2")?.role).toBe("firewall");
+    expect(nodeById(result, "d3")?.role).toBe("loadBalancer");
+  });
+
+  test("a device with no identity at all still carries an explicit role", () => {
+    const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+      [{ id: "d1", name: "device-42", lastSeenAt: fresh }],
+      now,
+    );
+    /*
+     * Explicitly "unknown" rather than absent — readers must not have to
+     * distinguish "we could not tell" from "this payload is old".
+     */
+    expect(nodeById(result, "d1")?.role).toBe("unknown");
+  });
+
+  test("the hostname is read as a last resort, sysName ahead of name", () => {
+    const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+      [
+        { id: "d1", name: "idf2-sw-3", lastSeenAt: fresh },
+        {
+          id: "d2",
+          name: "unhelpful",
+          sysName: "core-rtr-1",
+          lastSeenAt: fresh,
+        },
+      ],
+      now,
+    );
+    expect(nodeById(result, "d1")?.role).toBe("switch");
+    expect(nodeById(result, "d2")?.role).toBe("router");
+  });
+
+  test("an unmanaged CDP peer is classified from the platform it advertises", () => {
+    const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+      [
+        {
+          id: "d1",
+          name: "edge-1",
+          lastSeenAt: fresh,
+          cdpNeighbors: [
+            {
+              localInterfaceIndex: 1,
+              remoteDeviceId: "ap-lobby",
+              remotePlatform: "cisco AIR-CAP3702I-A-K9",
+            },
+          ],
+        },
+      ],
+      now,
+    );
+    expect(nodeById(result, "unmanaged:ap-lobby")?.role).toBe(
+      "wirelessAccessPoint",
+    );
+  });
+
+  test("a peer known only by name falls back to the naming convention", () => {
+    const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+      [
+        {
+          id: "d1",
+          name: "edge-1",
+          lastSeenAt: fresh,
+          lldpNeighbors: [
+            { localInterfaceIndex: 1, remoteSysName: "dist-sw-9" },
+          ],
+        },
+      ],
+      now,
+    );
+    expect(nodeById(result, "unmanaged:dist-sw-9")?.role).toBe("switch");
+  });
+
+  test("a peer with nothing to go on is unknown, not guessed at", () => {
+    const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+      [
+        {
+          id: "d1",
+          name: "edge-1",
+          lastSeenAt: fresh,
+          lldpNeighbors: [{ localInterfaceIndex: 1, remoteSysName: "peer-a" }],
+        },
+      ],
+      now,
+    );
+    expect(nodeById(result, "unmanaged:peer-a")?.role).toBe("unknown");
+  });
+
+  test("a later claim that brings a platform re-derives the peer's role", () => {
+    /*
+     * LLDP reports the peer first, by name only, so it starts out
+     * unknown; the CDP claim that follows carries the platform string —
+     * the only real evidence about that box — and must be allowed to
+     * change the shape it is drawn as.
+     */
+    const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+      [
+        {
+          id: "d1",
+          name: "edge-1",
+          lastSeenAt: fresh,
+          lldpNeighbors: [{ localInterfaceIndex: 1, remoteSysName: "peer-a" }],
+          cdpNeighbors: [
+            {
+              localInterfaceIndex: 1,
+              remoteDeviceId: "peer-a",
+              remotePlatform: "cisco WS-C2960X-48TS-L",
+            },
+          ],
+        },
+      ],
+      now,
+    );
+    const peer: NetworkTopologyNode | undefined = nodeById(
+      result,
+      "unmanaged:peer-a",
+    );
+    expect(peer?.deviceModel).toBe("cisco WS-C2960X-48TS-L");
+    expect(peer?.role).toBe("switch");
+  });
+
+  test("endpoints are hosts unless their classification says otherwise", () => {
+    const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+      [{ id: "d1", name: "edge-1", lastSeenAt: fresh }],
+      now,
+      [],
+      [
+        {
+          id: "e1",
+          macAddress: "aa:aa:aa:aa:aa:01",
+          attachedNetworkDeviceId: "d1",
+          lastSeenAt: fresh,
+        },
+        {
+          id: "e2",
+          macAddress: "aa:aa:aa:aa:aa:02",
+          classification: "Camera",
+          attachedNetworkDeviceId: "d1",
+          lastSeenAt: fresh,
+        },
+        {
+          id: "e3",
+          macAddress: "aa:aa:aa:aa:aa:03",
+          vendor: "Zebra Technologies",
+          attachedNetworkDeviceId: "d1",
+          lastSeenAt: fresh,
+        },
+        {
+          id: "e4",
+          macAddress: "aa:aa:aa:aa:aa:04",
+          classification: "POS terminal",
+          attachedNetworkDeviceId: "d1",
+          lastSeenAt: fresh,
+        },
+      ],
+    );
+
+    expect(nodeById(result, "endpoint:e1")?.role).toBe("host");
+    expect(nodeById(result, "endpoint:e2")?.role).toBe("camera");
+    expect(nodeById(result, "endpoint:e3")?.role).toBe("printer");
+    expect(nodeById(result, "endpoint:e4")?.role).toBe("host");
+  });
+
+  test("every node the builder emits carries a role", () => {
+    const result: TopologyBuildResult = NetworkTopologyUtil.buildTopology(
+      [
+        {
+          id: "d1",
+          name: "edge-1",
+          lastSeenAt: fresh,
+          lldpNeighbors: [{ localInterfaceIndex: 1, remoteSysName: "peer-a" }],
+        },
+      ],
+      now,
+      [],
+      [
+        {
+          id: "e1",
+          macAddress: "aa:aa:aa:aa:aa:01",
+          attachedNetworkDeviceId: "d1",
+          lastSeenAt: fresh,
+        },
+      ],
+    );
+
+    expect(result.nodes).toHaveLength(3);
+    for (const node of result.nodes) {
+      expect(node.role).toBeDefined();
+    }
+  });
+});
