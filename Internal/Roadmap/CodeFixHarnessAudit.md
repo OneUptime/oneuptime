@@ -184,7 +184,7 @@ secret.
 
 ### 11. Abandoned workspaces accumulated forever — medium
 
-`cleanupOldWorkspaces` matched `/task-[^:-]+-(\d+)-[^-]+/` against a directory
+`cleanupOldWorkspaces` matched `/task-[^-]+-(\d+)-[^-]+/` against a directory
 named `task-<taskId>-<timestamp>-<uid>` — but a task id is a **UUID**, so the
 hyphen-free field the pattern needed never existed. The sweeper reaped
 nothing, ever; its own tests passed because they hand-wrote fixture names that
