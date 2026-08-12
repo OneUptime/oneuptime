@@ -135,9 +135,32 @@ setup_gomplate() {
             "x86_64")  ARCHITECTURE="amd64" ;;
         esac
 
-        sudo curl -o /usr/local/bin/gomplate -sSL \
-            "https://github.com/hairyhenderson/gomplate/releases/download/v${GOMPLATE_VERSION}/gomplate_$(uname -s)-$ARCHITECTURE"
-        sudo chmod 755 /usr/local/bin/gomplate
+        # Download to a temp file first. `-f` makes curl exit non-zero on an
+        # HTTP error (GitHub's release CDN intermittently answers 503) instead
+        # of silently writing the error page to the binary path, and
+        # `--retry ... --retry-all-errors` rides out transient failures.
+        # Without `-f` a 503 HTML body was saved as /usr/local/bin/gomplate,
+        # chmod'd executable and then run ("syntax error near unexpected token
+        # `<'"); worse, the poisoned file then existed, so the outer retry saw
+        # gomplate as installed and skipped the re-download, failing every
+        # attempt identically.
+        local GOMPLATE_TMP
+        GOMPLATE_TMP=$(mktemp)
+        if ! curl -fsSL --retry 5 --retry-delay 3 --retry-all-errors \
+            -o "$GOMPLATE_TMP" \
+            "https://github.com/hairyhenderson/gomplate/releases/download/v${GOMPLATE_VERSION}/gomplate_$(uname -s)-$ARCHITECTURE"; then
+            rm -f "$GOMPLATE_TMP"
+            print_error "Failed to download gomplate v${GOMPLATE_VERSION}."
+            return 1
+        fi
+        # Defence in depth: never install an HTML error page as the binary.
+        if [ ! -s "$GOMPLATE_TMP" ] || head -c 4 "$GOMPLATE_TMP" | grep -qa '<'; then
+            rm -f "$GOMPLATE_TMP"
+            print_error "Downloaded gomplate is not a valid binary (got an error page?)."
+            return 1
+        fi
+        sudo install -m 755 "$GOMPLATE_TMP" /usr/local/bin/gomplate
+        rm -f "$GOMPLATE_TMP"
     fi
 }
 
