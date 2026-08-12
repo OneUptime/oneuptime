@@ -120,7 +120,7 @@ DaemonSet 會在每個節點上執行一個 OpenTelemetry Collector pod。它透
 一個單一複本的 Deployment（`oneuptime/kubernetes-log-tailer` 映像檔）使用 Kubernetes API 來串流容器記錄 — 與 `kubectl logs -f` 所使用的相同端點。沒有 hostPath、沒有主機存取、沒有 DaemonSet。
 
 - **優點：** 可在 GKE Autopilot、EKS Fargate，以及任何封鎖 hostPath 或強制執行 `restricted` Pod Security Standard 的叢集上運作。
-$1 每個容器串流都是連到 kube-apiserver 的長連線。一個副本通常可處理數千個容器。對於超大型叢集，請在 namespaceFilters.rules 中使用 podLogs 作用域的 include 規則，將不同 release 分片。
+- **缺點：** 每個容器串流都是連到 kube-apiserver 的長連線。一個副本通常可處理數千個容器。對於超大型叢集，請在 namespaceFilters.rules 中使用 podLogs 作用域的 include 規則，將不同 release 分片。
 
 ### 您應該使用哪一個？
 

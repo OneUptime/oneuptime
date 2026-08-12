@@ -80,7 +80,7 @@ En DaemonSet kör en OpenTelemetry Collector-pod per nod. Den läser loggfiler u
 En Deployment med en enda replika (avbildningen `oneuptime/kubernetes-log-tailer`) använder Kubernetes API för att strömma containerloggar — samma endpoint som `kubectl logs -f` använder. Ingen hostPath, ingen värdåtkomst, ingen DaemonSet.
 
 - **Fördelar:** fungerar på GKE Autopilot, EKS Fargate och alla kluster som blockerar hostPath eller framtvingar `restricted` Pod Security Standard.
-$1 Varje containerström är en långvarig anslutning till kube-apiserver. En replika hanterar normalt några tusen containrar. För mycket stora kluster bör du dela upp separata releaser med podLogs-scopade include-regler i namespaceFilters.rules.
+- **Nackdelar:** Varje containerström är en långvarig anslutning till kube-apiserver. En replika hanterar normalt några tusen containrar. För mycket stora kluster bör du dela upp separata releaser med podLogs-scopade include-regler i namespaceFilters.rules.
 
 ### Vilken bör du använda?
 

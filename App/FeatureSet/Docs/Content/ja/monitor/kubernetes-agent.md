@@ -80,7 +80,7 @@ DaemonSet がノードごとに 1 つの OpenTelemetry Collector pod を実行�
 シングルレプリカの Deployment(`oneuptime/kubernetes-log-tailer` イメージ)が Kubernetes API を使用してコンテナログをストリーミングします。これは `kubectl logs -f` が使用するのと同じエンドポイントです。hostPath、ホストアクセス、DaemonSet はいずれも不要です。
 
 - **長所:** GKE Autopilot、EKS Fargate、および hostPath をブロックしたり `restricted` Pod Security Standard を強制したりするあらゆるクラスターで動作します。
-$1 各コンテナストリームはkube-apiserverへの長時間接続です。通常、1つのレプリカで数千のコンテナを処理できます。非常に大きなクラスタでは、namespaceFilters.rulesのpodLogsスコープ付きincludeルールでリリースを分けてシャーディングしてください。
+- **短所:** 各コンテナストリームはkube-apiserverへの長時間接続です。通常、1つのレプリカで数千のコンテナを処理できます。非常に大きなクラスタでは、namespaceFilters.rulesのpodLogsスコープ付きincludeルールでリリースを分けてシャーディングしてください。
 
 ### どちらを使うべきか?
 
