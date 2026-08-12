@@ -19,9 +19,13 @@ export default class BaseModelComponent {
      * Every one of these arguments is keyed on column names, and the single
      * most common way to get one wrong is to write "id" - which is what an ID
      * is called everywhere else in the product - when the column is "_id".
-     * Both spellings work now, but the hint has to say so where the builder is
-     * actually typing, because the Query argument is a bare JSON editor with
-     * no field picker behind it.
+     * Both spellings work.
+     *
+     * Query and record arguments now get a row editor backed by the model's
+     * real column list (ModelColumnEditor), so the names are offered rather
+     * than remembered. The hint stays because that editor keeps a JSON escape
+     * hatch for the queries rows cannot express, and because it is still the
+     * only thing explaining the two spellings.
      */
     const columnHint: string = `Keys are column names on ${model.singularName}. The ID column is "_id" (the "id" spelling is accepted too).`;
 

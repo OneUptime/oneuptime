@@ -40,46 +40,140 @@ import Phone from "./Phone";
 import Port from "./Port";
 import Version from "./Version";
 
+/*
+ * Every entry is a getter, not a direct reference.
+ *
+ * Three of these classes — Includes, IncludesAll and IncludesNone — import
+ * JSONFunctions so their fromJSON can deserialize the values inside them, and
+ * JSONFunctions imports this dictionary. That is a cycle, and with a plain
+ * object literal the entry a cycle passes through is captured as `undefined`:
+ * whichever of the two modules loads second sees the first only half
+ * initialized. Which of them loads first depends on the whole app's import
+ * graph, so `{"_type":"Includes","value":[...]}` deserialized into a real
+ * Includes in some entry points and stayed a plain object in others — and a
+ * plain object reaching TypeORM is a silently wrong query, not an error.
+ *
+ * A getter defers the lookup to the first property access, by which time every
+ * module has finished initializing.
+ */
 const SerializableObjectDictionary: Dictionary<any> = {
-  [ObjectType.Phone]: Phone,
-  [ObjectType.DateTime]: OneUptimeDate,
-  [ObjectType.ObjectID]: ObjectID,
-  [ObjectType.Name]: Name,
-  [ObjectType.EqualTo]: EqualTo,
-  [ObjectType.EqualToOrNull]: EqualToOrNull,
-  [ObjectType.MonitorSteps]: MonitorSteps,
-  [ObjectType.MonitorStep]: MonitorStep,
-  [ObjectType.MonitorCriteria]: MonitorCriteria,
-  [ObjectType.MonitorCriteriaInstance]: MonitorCriteriaInstance,
-  [ObjectType.NotEqual]: NotEqual,
-  [ObjectType.Email]: Email,
-  [ObjectType.Color]: Color,
-  [ObjectType.Domain]: Domain,
-  [ObjectType.Version]: Version,
-  [ObjectType.Route]: Route,
-  [ObjectType.URL]: URL,
-  [ObjectType.IP]: IP,
-  [ObjectType.Search]: Search,
-  [ObjectType.MultiSearch]: MultiSearch,
-  [ObjectType.GreaterThan]: GreaterThan,
-  [ObjectType.GreaterThanOrEqual]: GreaterThanOrEqual,
-  [ObjectType.LessThan]: LessThan,
-  [ObjectType.LessThanOrEqual]: LessThanOrEqual,
-  [ObjectType.LessThanOrNull]: LessThanOrNull,
-  [ObjectType.GreaterThanOrNull]: GreaterThanOrNull,
-  [ObjectType.Port]: Port,
-  [ObjectType.Hostname]: Hostname,
-  [ObjectType.HashedString]: HashedString,
-  [ObjectType.InBetween]: InBetween,
-  [ObjectType.Includes]: Includes,
-  [ObjectType.IncludesAll]: IncludesAll,
-  [ObjectType.IncludesNone]: IncludesNone,
-  [ObjectType.StartsWith]: StartsWith,
-  [ObjectType.EndsWith]: EndsWith,
-  [ObjectType.NotContains]: NotContains,
-  [ObjectType.NotNull]: NotNull,
-  [ObjectType.IsNull]: IsNull,
-  [ObjectType.Recurring]: Recurring,
+  get [ObjectType.Phone](): any {
+    return Phone;
+  },
+  get [ObjectType.DateTime](): any {
+    return OneUptimeDate;
+  },
+  get [ObjectType.ObjectID](): any {
+    return ObjectID;
+  },
+  get [ObjectType.Name](): any {
+    return Name;
+  },
+  get [ObjectType.EqualTo](): any {
+    return EqualTo;
+  },
+  get [ObjectType.EqualToOrNull](): any {
+    return EqualToOrNull;
+  },
+  get [ObjectType.MonitorSteps](): any {
+    return MonitorSteps;
+  },
+  get [ObjectType.MonitorStep](): any {
+    return MonitorStep;
+  },
+  get [ObjectType.MonitorCriteria](): any {
+    return MonitorCriteria;
+  },
+  get [ObjectType.MonitorCriteriaInstance](): any {
+    return MonitorCriteriaInstance;
+  },
+  get [ObjectType.NotEqual](): any {
+    return NotEqual;
+  },
+  get [ObjectType.Email](): any {
+    return Email;
+  },
+  get [ObjectType.Color](): any {
+    return Color;
+  },
+  get [ObjectType.Domain](): any {
+    return Domain;
+  },
+  get [ObjectType.Version](): any {
+    return Version;
+  },
+  get [ObjectType.Route](): any {
+    return Route;
+  },
+  get [ObjectType.URL](): any {
+    return URL;
+  },
+  get [ObjectType.IP](): any {
+    return IP;
+  },
+  get [ObjectType.Search](): any {
+    return Search;
+  },
+  get [ObjectType.MultiSearch](): any {
+    return MultiSearch;
+  },
+  get [ObjectType.GreaterThan](): any {
+    return GreaterThan;
+  },
+  get [ObjectType.GreaterThanOrEqual](): any {
+    return GreaterThanOrEqual;
+  },
+  get [ObjectType.LessThan](): any {
+    return LessThan;
+  },
+  get [ObjectType.LessThanOrEqual](): any {
+    return LessThanOrEqual;
+  },
+  get [ObjectType.LessThanOrNull](): any {
+    return LessThanOrNull;
+  },
+  get [ObjectType.GreaterThanOrNull](): any {
+    return GreaterThanOrNull;
+  },
+  get [ObjectType.Port](): any {
+    return Port;
+  },
+  get [ObjectType.Hostname](): any {
+    return Hostname;
+  },
+  get [ObjectType.HashedString](): any {
+    return HashedString;
+  },
+  get [ObjectType.InBetween](): any {
+    return InBetween;
+  },
+  get [ObjectType.Includes](): any {
+    return Includes;
+  },
+  get [ObjectType.IncludesAll](): any {
+    return IncludesAll;
+  },
+  get [ObjectType.IncludesNone](): any {
+    return IncludesNone;
+  },
+  get [ObjectType.StartsWith](): any {
+    return StartsWith;
+  },
+  get [ObjectType.EndsWith](): any {
+    return EndsWith;
+  },
+  get [ObjectType.NotContains](): any {
+    return NotContains;
+  },
+  get [ObjectType.NotNull](): any {
+    return NotNull;
+  },
+  get [ObjectType.IsNull](): any {
+    return IsNull;
+  },
+  get [ObjectType.Recurring](): any {
+    return Recurring;
+  },
 };
 
 export default SerializableObjectDictionary;

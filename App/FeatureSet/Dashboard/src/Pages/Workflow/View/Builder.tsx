@@ -6,6 +6,16 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import WorkflowStatus from "Common/Types/Workflow/WorkflowStatus";
+import WorkflowLog from "Common/Models/DatabaseModels/WorkflowLog";
+import {
+  RUN_WATCH_POLL_INTERVAL_MS,
+  RunWatchDecision,
+  WatchedRun,
+  decideRunWatch,
+  isFailedRunStatus,
+} from "Common/UI/Components/Workflow/RunStatusWatcher";
 import ComponentMetadata, {
   ComponentCategory,
   ComponentType,
@@ -28,13 +38,15 @@ import Workflow, {
 } from "Common/UI/Components/Workflow/Workflow";
 import { WORKFLOW_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import WorkflowModel from "Common/Models/DatabaseModels/Workflow";
 import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useEffect,
+  useRef,
   useState,
 } from "react";
 import { Edge, Node } from "reactflow";
@@ -78,9 +90,6 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [error, setError] = useState<string>("");
   const [webhookSecretKey, setWebhookSecretKey] = useState<string>("");
 
-  const [showRunSuccessConfirmation, setShowRunSuccessConfirmation] =
-    useState<boolean>(false);
-
   const [showComponentPickerModal, setShowComponentPickerModal] =
     useState<boolean>(false);
 
@@ -88,6 +97,121 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   const [lintResult, setLintResult] = useState<WorkflowLintResult | null>(null);
   const [showIssuesModal, setShowIssuesModal] = useState<boolean>(false);
+
+  /*
+   * The run the builder started, followed until it settles. See
+   * RunStatusWatcher for why this is a poll rather than something the run
+   * endpoint hands back.
+   */
+  const [runWatchMessage, setRunWatchMessage] = useState<string | null>(null);
+  const [runWatchFailed, setRunWatchFailed] = useState<boolean>(false);
+  const runWatchTimer: React.MutableRefObject<ReturnType<
+    typeof setTimeout
+  > | null> = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /*
+   * Runs that already existed when the watch started. The manual-run endpoint
+   * does not return a log id (RunWorkflow creates the WorkflowLog when a
+   * worker picks the job up), so the newest run is only *this* run once its id
+   * differs from the newest one that existed beforehand.
+   */
+  const runIdBeforeTrigger: React.MutableRefObject<string | null> = useRef<
+    string | null
+  >(null);
+
+  type FetchLatestRunFunction = () => Promise<WatchedRun | null>;
+
+  const fetchLatestRun: FetchLatestRunFunction =
+    async (): Promise<WatchedRun | null> => {
+      const result: ListResult<WorkflowLog> =
+        await ModelAPI.getList<WorkflowLog>({
+          modelType: WorkflowLog,
+          query: { workflowId: modelId },
+          limit: 1,
+          skip: 0,
+          select: { _id: true, workflowStatus: true },
+          sort: { createdAt: SortOrder.Descending },
+        });
+
+      const latest: WorkflowLog | undefined = result.data[0];
+
+      if (!latest || !latest._id) {
+        return null;
+      }
+
+      return {
+        runId: latest._id.toString(),
+        status: latest.workflowStatus as WorkflowStatus,
+      };
+    };
+
+  type PollRunFunction = (pollCount: number) => Promise<void>;
+
+  const pollRun: PollRunFunction = async (pollCount: number): Promise<void> => {
+    let run: WatchedRun | null = null;
+
+    try {
+      run = await fetchLatestRun();
+    } catch {
+      /*
+       * A failed poll is not a failed run. Keep watching — the next poll may
+       * well succeed, and the Logs tab is the fallback either way.
+       */
+      run = null;
+    }
+
+    // Not our run yet: the worker has not created its log.
+    if (run && run.runId === runIdBeforeTrigger.current) {
+      run = null;
+    }
+
+    const decision: RunWatchDecision = decideRunWatch({
+      run: run,
+      pollCount: pollCount,
+    });
+
+    setRunWatchMessage(decision.message);
+    setRunWatchFailed(isFailedRunStatus(run?.status));
+
+    if (!decision.shouldContinue) {
+      return;
+    }
+
+    runWatchTimer.current = setTimeout(() => {
+      void pollRun(pollCount + 1);
+    }, RUN_WATCH_POLL_INTERVAL_MS);
+  };
+
+  type StartWatchingRunFunction = () => void;
+
+  const startWatchingRun: StartWatchingRunFunction = (): void => {
+    if (runWatchTimer.current) {
+      clearTimeout(runWatchTimer.current);
+      runWatchTimer.current = null;
+    }
+
+    setRunWatchFailed(false);
+    setRunWatchMessage("Starting run…");
+
+    void (async (): Promise<void> => {
+      try {
+        const existing: WatchedRun | null = await fetchLatestRun();
+        runIdBeforeTrigger.current = existing ? existing.runId : null;
+      } catch {
+        runIdBeforeTrigger.current = null;
+      }
+
+      void pollRun(0);
+    })();
+  };
+
+  useEffect(() => {
+    return () => {
+      if (runWatchTimer.current) {
+        clearTimeout(runWatchTimer.current);
+      }
+    };
+  }, []);
 
   const loadGraph: PromiseVoidFunction = async (): Promise<void> => {
     try {
@@ -371,6 +495,18 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
               Static checks over the graph. Clicking opens the full list —
               each node also carries its own badge on the canvas.
             */}
+            {runWatchMessage && (
+              <span
+                style={{
+                  fontSize: "0.75rem",
+                  fontWeight: 500,
+                  color: runWatchFailed ? "#ef4444" : "#475569",
+                }}
+              >
+                {runWatchMessage}
+              </span>
+            )}
+
             {lintResult && lintResult.issues.length > 0 && (
               <button
                 type="button"
@@ -474,7 +610,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   throw result;
                 }
 
-                setShowRunSuccessConfirmation(true);
+                startWatchingRun();
               } catch (err) {
                 setError(API.getFriendlyMessage(err));
               }
@@ -536,18 +672,6 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
               )}
             </div>
           </Modal>
-        )}
-
-        {showRunSuccessConfirmation && (
-          <ConfirmModal
-            title={`Workflow Triggered`}
-            description={`Your workflow has been scheduled to execute. Check the Logs tab to monitor the run.`}
-            submitButtonText={"Got it"}
-            onSubmit={() => {
-              setShowRunSuccessConfirmation(false);
-            }}
-            submitButtonType={ButtonStyleType.NORMAL}
-          />
         )}
       </>
     </Fragment>
