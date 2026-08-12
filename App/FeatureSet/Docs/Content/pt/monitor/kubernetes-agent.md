@@ -120,7 +120,7 @@ O OBI também pode propagar o contexto de trace através das fronteiras entre se
 
 | Opção                      | Omissão | Descrição                                                                                                                                                                                              |
 | -------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `ebpf.contextPropagation`  | inativo | Injeta um `traceparent` W3C no tráfego de saída para que os spans sejam ligados entre serviços. Desativado por omissão — leia primeiro o aviso abaixo. Requer kernel 5.17+. |
+| `ebpf.contextPropagation`  | inativo | Injeta um `traceparent` W3C no tráfego de saída para que os spans sejam ligados entre serviços. Desativado por omissão — leia primeiro o aviso abaixo. Sem requisito de kernel adicional; nenhuma versão de kernel a torna inócua. |
 | `ebpf.contextPropagationMode` | headers | Como o `traceparent` é injetado: `headers` (cabeçalhos de pedido HTTP/1.1, o mais circunscrito), `tcp` (opção TCP via Linux Traffic Control) ou `all` (ambos). Só é lido quando `contextPropagation` for verdadeiro. |
 | `ebpf.trackRequestHeaders` | ativo   | Acompanhamento de cabeçalhos de pedido no lado do kernel para que a propagação funcione também em servidores HTTP simples (não-Go, não-TLS). Só tem efeito quando `contextPropagation` for verdadeiro. |
 

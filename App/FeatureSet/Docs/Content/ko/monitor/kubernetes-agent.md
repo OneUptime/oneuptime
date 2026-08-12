@@ -120,7 +120,7 @@ OBI는 서비스 경계 전반에 걸쳐 트레이스 컨텍스트를 전파할 
 
 | 옵션                       | 기본값 | 설명                                                                                                                                                        |
 | -------------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ebpf.contextPropagation`  | off    | 스팬이 서비스 간에 연결되도록 아웃바운드 트래픽에 W3C `traceparent`를 삽입합니다. 기본적으로 꺼져 있음 — 아래 경고를 먼저 읽으십시오. 커널 5.17 이상이 필요합니다. |
+| `ebpf.contextPropagation`  | off    | 스팬이 서비스 간에 연결되도록 아웃바운드 트래픽에 W3C `traceparent`를 삽입합니다. 기본적으로 꺼져 있음 — 아래 경고를 먼저 읽으십시오. 추가 커널 요구 사항은 없으며, 이를 무력화하는 커널 버전도 없습니다. |
 | `ebpf.contextPropagationMode` | headers | `traceparent`를 삽입하는 방식: `headers`(HTTP/1.1 요청 헤더, 영향 범위가 가장 좁음), `tcp`(Linux Traffic Control을 통한 TCP 옵션), `all`(둘 다). `contextPropagation`이 true일 때만 읽습니다. |
 | `ebpf.trackRequestHeaders` | on     | 일반 HTTP 서버(Go가 아닌 경우, TLS가 아닌 경우)에서도 전파가 작동하도록 커널 측 요청 헤더 추적을 수행합니다. `contextPropagation`이 true일 때만 적용됩니다. |
 

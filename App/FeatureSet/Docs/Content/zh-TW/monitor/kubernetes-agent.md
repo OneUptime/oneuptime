@@ -160,7 +160,7 @@ OBI 也可以跨服務邊界傳播追蹤內容（trace context），使 pod B �
 
 | 選項                       | 預設 | 描述                                                                                                                |
 | -------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------- |
-| `ebpf.contextPropagation`  | 關閉 | 將 W3C `traceparent` 注入出站流量，使 span 跨服務串連。預設關閉——請先閱讀下方警告。需要核心 5.17 以上。 |
+| `ebpf.contextPropagation`  | 關閉 | 將 W3C `traceparent` 注入出站流量，使 span 跨服務串連。預設關閉——請先閱讀下方警告。無額外核心需求；也沒有任何核心版本能讓它失效。 |
 | `ebpf.contextPropagationMode` | headers | `traceparent` 的注入方式：`headers`（HTTP/1.1 請求標頭，影響面最小）、`tcp`（經由 Linux Traffic Control 的 TCP 選項）或 `all`（兩者）。僅在 `contextPropagation` 為 true 時讀取。 |
 | `ebpf.trackRequestHeaders` | 開啟 | 核心端的請求標頭追蹤，使傳播也能在純 HTTP 伺服器（非 Go、非 TLS）上運作。僅在 `contextPropagation` 為 true 時生效。 |
 

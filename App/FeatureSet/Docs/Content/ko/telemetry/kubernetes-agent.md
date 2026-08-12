@@ -419,7 +419,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 | `networkInterZoneMetrics` | off    | 네트워크 메트릭의 영역 간 변형 (카디널리티가 두 배가 됨)   |
 | `tcpStats`                | on     | 노드 수준 TCP RTT, 실패한 연결, 재전송 카운터              |
 
-서비스 간 트레이스 컨텍스트 전파 — OBI가 W3C `traceparent`를 주입하여 파드 A → 파드 B를 가로지르는 요청이 SDK 변경 없이 단일 트레이스로 표시되게 하는 기능 — 는 **기본적으로 비활성화**되어 있습니다. `--set ebpf.contextPropagation=true`로 켤 수 있으며, 커널 5.17 이상이 필요합니다.
+서비스 간 트레이스 컨텍스트 전파 — OBI가 W3C `traceparent`를 주입하여 파드 A → 파드 B를 가로지르는 요청이 SDK 변경 없이 단일 트레이스로 표시되게 하는 기능 — 는 **기본적으로 비활성화**되어 있습니다. `--set ebpf.contextPropagation=true`로 켤 수 있으며. 에이전트의 나머지 부분 이상의 커널을 요구하지 않으며, 이를 무력화하는 커널 버전도 없습니다.
 
 비활성화된 이유는 헤더를 주입한다는 것이 이미 전송 중인 트래픽을 다시 쓰는 것을 의미하기 때문입니다. 평문 HTTP 요청은 커널에서 제자리에 확장되고, TLS와 원시 TCP에는 Traffic Control 훅에서 TCP 옵션이 추가됩니다. 연결의 바이트 계산이 정확히 보정되지 않으면 스트림의 동기화가 깨집니다 — 보고된 증상은 응답이 약 64KB를 넘어서는 순간 nginx 같은 L7 프록시를 거치는 전송이 본문 도중에 멈추는 반면, 작은 요청은 계속 정상 동작한다는 것입니다. 트레이스, RED 메트릭, 서비스 맵은 이 기능에 의존하지 않습니다. 서비스 간 연결이 필요하다면 OpenTelemetry SDK가 커널 재작성 없이 사용자 공간에서 `traceparent`를 전파하므로 그쪽이 더 안전한 선택입니다.
 

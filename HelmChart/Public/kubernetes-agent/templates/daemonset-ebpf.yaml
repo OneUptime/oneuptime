@@ -97,8 +97,10 @@ spec:
             # raw TCP) and a bad rewrite stalls the connection rather than just
             # losing a span. Mode comes from
             # `.Values.ebpf.contextPropagationMode` — `headers` (default, the
-            # narrowest), `tcp`, or `all`. Needs kernel 5.17+; on older kernels
-            # OBI logs an error and propagation does nothing.
+            # narrowest), `tcp`, or `all`. No kernel version makes this inert:
+            # below 5.17 OBI falls back to bounded-scan variants and still
+            # rewrites traffic. This pod is privileged, so the capability gate
+            # that would otherwise stop injection is always open.
             - name: OTEL_EBPF_BPF_CONTEXT_PROPAGATION
               value: {{ .Values.ebpf.contextPropagationMode | default "headers" | quote }}
             {{- if .Values.ebpf.trackRequestHeaders }}

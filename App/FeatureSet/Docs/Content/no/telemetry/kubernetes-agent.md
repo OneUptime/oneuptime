@@ -419,7 +419,7 @@ Alle på som standard. Slå av hvilken som helst med `--set ebpf.features.<name>
 | `networkInterZoneMetrics` | av       | Inter-sone-variant av nettverksmetrikker (dobler kardinaliteten)             |
 | `tcpStats`                | på       | TCP RTT på node-nivå, tellere for mislykkede tilkoblinger og retransmisjoner |
 
-Propagering av sporingskontekst på tvers av tjenester — der OBI injiserer en W3C `traceparent` slik at en forespørsel som krysser pod A → pod B vises som en enkelt sporing, uten SDK-endringer noe sted — er **av som standard**. Slå den på med `--set ebpf.contextPropagation=true`; den krever kjerne 5.17+.
+Propagering av sporingskontekst på tvers av tjenester — der OBI injiserer en W3C `traceparent` slik at en forespørsel som krysser pod A → pod B vises som en enkelt sporing, uten SDK-endringer noe sted — er **av som standard**. Slå den på med `--set ebpf.contextPropagation=true`. Den krever ingen kjerne utover det resten av agenten trenger — og ingen kjerneversjon gjør den virkningsløs.
 
 Den er av fordi injisering av headeren betyr å skrive om trafikk som allerede er underveis: ukrypterte HTTP-forespørsler utvides på stedet i kjernen, mens TLS og rå TCP får lagt til et TCP-valg fra en Traffic Control-hook. Hvis forbindelsens byteregnskap ikke korrigeres helt nøyaktig, mister strømmen synkroniseringen — det rapporterte symptomet er at overføringer gjennom en L7-proxy som nginx henger midt i body-en så snart svaret passerer ~64KB, mens små forespørsler fortsetter å virke. Sporinger, RED-metrikker og tjenestekartet er ikke avhengige av den; for kobling på tvers av tjenester propagerer et OpenTelemetry-SDK `traceparent` i userspace uten noen omskriving i kjernen, og er det tryggere valget.
 

@@ -420,7 +420,7 @@ Alla på som standard. Stäng av någon med `--set ebpf.features.<name>=false`:
 | `networkInterZoneMetrics` | av       | Inter-zonvariant av nätverksmått (dubblerar kardinalitet)      |
 | `tcpStats`                | på       | Nodnivå TCP RTT, misslyckade anslutningar, retransmit-räknare  |
 
-Spårningskontextpropagering mellan tjänster — där OBI injicerar en W3C `traceparent` så att en begäran som korsar pod A → pod B visas som en enda spårning, utan SDK-ändringar någonstans — är **av som standard**. Slå på den med `--set ebpf.contextPropagation=true`; den kräver kärna 5.17+.
+Spårningskontextpropagering mellan tjänster — där OBI injicerar en W3C `traceparent` så att en begäran som korsar pod A → pod B visas som en enda spårning, utan SDK-ändringar någonstans — är **av som standard**. Slå på den med `--set ebpf.contextPropagation=true`. Den kräver ingen kärna utöver vad resten av agenten kräver — och ingen kärnversion gör den verkningslös.
 
 Den är av eftersom injicering av headern innebär att skriva om trafik som redan är i rörelse: okrypterade HTTP-begäranden breddas på plats i kärnan, medan TLS och rå TCP får ett TCP-alternativ tillagt från en Traffic Control-hook. Om anslutningens byteredovisning inte korrigeras exakt tappar strömmen synkroniseringen — det rapporterade symtomet är att överföringar genom en L7-proxy som nginx hänger sig mitt i kroppen så snart svaret passerar ~64KB, medan små begäranden fortsätter att fungera. Spårningar, RED-mätvärden och tjänstekartan är inte beroende av den; för länkning mellan tjänster propagerar ett OpenTelemetry-SDK `traceparent` i userspace utan någon omskrivning i kärnan och är det säkrare valet.
 

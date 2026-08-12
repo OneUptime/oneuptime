@@ -120,7 +120,7 @@ OBI kann Trace-Kontext auch über Service-Grenzen hinweg propagieren, sodass der
 
 | Option                     | Standardwert | Beschreibung                                                                                                                                                                       |
 | -------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ebpf.contextPropagation`  | off          | Einen W3C-`traceparent` in ausgehenden Datenverkehr injizieren, damit Spans über Services hinweg verknüpft werden. Standardmäßig deaktiviert — lesen Sie zuerst die Warnung unten. Erfordert Kernel 5.17+. |
+| `ebpf.contextPropagation`  | off          | Einen W3C-`traceparent` in ausgehenden Datenverkehr injizieren, damit Spans über Services hinweg verknüpft werden. Standardmäßig deaktiviert — lesen Sie zuerst die Warnung unten. Keine zusätzliche Kernel-Anforderung; keine Kernel-Version macht sie wirkungslos. |
 | `ebpf.contextPropagationMode` | headers   | Wie der `traceparent` injiziert wird: `headers` (HTTP/1.1-Request-Header, am schmalsten), `tcp` (TCP-Option über Linux Traffic Control) oder `all` (beides). Wird nur gelesen, wenn `contextPropagation` true ist. |
 | `ebpf.trackRequestHeaders` | on           | Kernel-seitiges Request-Header-Tracking, damit die Propagierung auch auf einfachen HTTP-Servern (nicht-Go, nicht-TLS) funktioniert. Wirkt nur, wenn `contextPropagation` true ist. |
 
