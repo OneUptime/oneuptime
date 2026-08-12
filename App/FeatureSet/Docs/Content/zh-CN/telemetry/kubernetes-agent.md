@@ -420,7 +420,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 | `networkInterZoneMetrics` | 关   | 网络指标的跨区域变体（使基数翻倍）                    |
 | `tcpStats`                | 开   | 节点级别的 TCP RTT、连接失败、重传计数器              |
 
-跨服务追踪上下文传播——即 OBI 注入 W3C `traceparent`，使一个从 Pod A → Pod B 跨越的请求显示为单个追踪，且任何地方都无需更改 SDK——**默认关闭**。使用 `--set ebpf.contextPropagation=true` 开启，并且需要内核 5.17 及以上。
+跨服务追踪上下文传播——即 OBI 注入 W3C `traceparent`，使一个从 Pod A → Pod B 跨越的请求显示为单个追踪，且任何地方都无需更改 SDK——**默认关闭**。使用 `--set ebpf.contextPropagation=true` 开启。它不需要超出 agent 其余部分的内核版本——也没有任何内核版本能让它失效。
 
 之所以默认关闭，是因为注入这个头意味着改写已经在途的流量：明文 HTTP 请求会在内核中就地扩容，而 TLS 与裸 TCP 则由 Traffic Control hook 追加一个 TCP 选项。如果连接的字节记账没有被精确修正，数据流就会失去同步——已报告的症状是：当响应超过约 64KB 后，经由 nginx 这类 L7 代理的传输会在响应体中途挂起，而小请求仍然正常。追踪、RED 指标和服务地图都不依赖此功能；如果需要跨服务串联，OpenTelemetry SDK 会在用户态传播 `traceparent`，完全不涉及内核改写，是更安全的选择。
 

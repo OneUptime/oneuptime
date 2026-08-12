@@ -120,7 +120,7 @@ OBI 还可以跨服务边界传播追踪上下文，使 pod B 端生成的 span 
 
 | 选项                       | 默认 | 描述                                                                                                                |
 | -------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------- |
-| `ebpf.contextPropagation`  | off  | 向出站流量注入 W3C `traceparent`，使 span 跨服务串联。默认关闭——请先阅读下方警告。需要内核 5.17 及以上。 |
+| `ebpf.contextPropagation`  | off  | 向出站流量注入 W3C `traceparent`，使 span 跨服务串联。默认关闭——请先阅读下方警告。无额外内核要求；也没有任何内核版本能让它失效。 |
 | `ebpf.contextPropagationMode` | headers | `traceparent` 的注入方式：`headers`（HTTP/1.1 请求头，影响面最小）、`tcp`（经由 Linux Traffic Control 的 TCP 选项）或 `all`（两者）。仅在 `contextPropagation` 为 true 时读取。 |
 | `ebpf.trackRequestHeaders` | on   | 内核侧的请求头跟踪，使传播在普通 HTTP 服务器（非 Go、非 TLS）上也能工作。仅在 `contextPropagation` 为 true 时生效。 |
 

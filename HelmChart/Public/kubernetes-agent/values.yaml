@@ -911,9 +911,15 @@ ebpf:
   # lose is only the automatic stitching of spans across a service boundary
   # for apps that don't propagate `traceparent` themselves.
   #
-  # Requires kernel 5.17+ (BPF loops) and CAP_NET_ADMIN — a HIGHER floor than
-  # the 5.8 needed for the rest of the eBPF agent. On older kernels OBI logs
-  # an error and propagation silently does nothing.
+  # There is NO kernel version at which turning this on is inert, so do not
+  # rule the agent out as a suspect because a node is "too old". Kernel 5.17
+  # buys `bpf_loop` for network-level header parsing; below it OBI silently
+  # falls back to bounded-scan program variants and keeps rewriting traffic
+  # exactly the same way. The gate that actually decides whether injection
+  # happens is CAP_SYS_ADMIN plus the absence of kernel lockdown — and this
+  # DaemonSet runs privileged, so that gate is always open. `tcp`/`all`
+  # additionally load Traffic Control programs (CAP_NET_ADMIN); `headers`
+  # loads none.
   contextPropagation: false
   # How OBI injects the `traceparent`. Maps directly to OBI's
   # `OTEL_EBPF_BPF_CONTEXT_PROPAGATION`. Only read when

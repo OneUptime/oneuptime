@@ -120,7 +120,7 @@ OBI kan også propagere sporingskontekst på tvers av tjenestegrenser, slik at s
 
 | Valg                       | Standard | Beskrivelse                                                                                                                                                            |
 | -------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ebpf.contextPropagation`  | av       | Injiser en W3C `traceparent` i utgående trafikk slik at spans lenkes på tvers av tjenester. Av som standard — les advarselen nedenfor først. Krever kjerne 5.17+. |
+| `ebpf.contextPropagation`  | av       | Injiser en W3C `traceparent` i utgående trafikk slik at spans lenkes på tvers av tjenester. Av som standard — les advarselen nedenfor først. Ingen ekstra kjernekrav; ingen kjerneversjon gjør den virkningsløs. |
 | `ebpf.contextPropagationMode` | headers | Hvordan `traceparent` injiseres: `headers` (HTTP/1.1-forespørselshoder, smalest), `tcp` (TCP-valg via Linux Traffic Control) eller `all` (begge). Leses kun når `contextPropagation` er true. |
 | `ebpf.trackRequestHeaders` | på       | Forespørselshodersporing på kjernesiden slik at propagering også fungerer på rene HTTP-servere (ikke-Go, ikke-TLS). Trer kun i kraft når `contextPropagation` er true. |
 

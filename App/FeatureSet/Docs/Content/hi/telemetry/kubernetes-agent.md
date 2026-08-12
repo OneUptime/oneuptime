@@ -420,7 +420,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 | `networkInterZoneMetrics` | बंद      | नेटवर्क मेट्रिक्स का Inter-zone संस्करण (cardinality दोगुनी करता है) |
 | `tcpStats`                | चालू     | Node-स्तरीय TCP RTT, failed-connection, retransmit काउंटर            |
 
-Cross-service trace context प्रसार — जिसमें OBI एक W3C `traceparent` इंजेक्ट करता है ताकि pod A → pod B को पार करने वाला request एकल trace के रूप में दिखाई दे, कहीं भी कोई SDK परिवर्तन किए बिना — **डिफ़ॉल्ट रूप से बंद है**। इसे `--set ebpf.contextPropagation=true` के साथ चालू करें; इसके लिए kernel 5.17+ आवश्यक है।
+Cross-service trace context प्रसार — जिसमें OBI एक W3C `traceparent` इंजेक्ट करता है ताकि pod A → pod B को पार करने वाला request एकल trace के रूप में दिखाई दे, कहीं भी कोई SDK परिवर्तन किए बिना — **डिफ़ॉल्ट रूप से बंद है**। इसे `--set ebpf.contextPropagation=true` के साथ चालू करें; इसे शेष एजेंट से अधिक किसी kernel की आवश्यकता नहीं — और कोई भी kernel संस्करण इसे निष्क्रिय नहीं करता।
 
 यह इसलिए बंद है क्योंकि हेडर इंजेक्ट करने का अर्थ है पहले से प्रवाहित ट्रैफ़िक को फिर से लिखना: सादे HTTP requests को कर्नेल में यथास्थान चौड़ा किया जाता है, जबकि TLS और रॉ TCP में Traffic Control hook से एक TCP विकल्प जोड़ा जाता है। यदि कनेक्शन का बाइट-लेखा ठीक-ठीक सही न किया जाए तो स्ट्रीम असंगत हो जाती है — रिपोर्ट किया गया लक्षण यह है कि nginx जैसे L7 प्रॉक्सी से गुज़रने वाले ट्रांसफ़र प्रतिक्रिया के ~64KB पार करते ही body के बीच में अटक जाते हैं, जबकि छोटे requests काम करते रहते हैं। Traces, RED मेट्रिक्स और सर्विस मैप इस पर निर्भर नहीं हैं; सेवाओं के बीच लिंकिंग के लिए OpenTelemetry SDK `traceparent` को बिना किसी कर्नेल पुनर्लेखन के userspace में प्रसारित करता है और यही सुरक्षित विकल्प है।
 
