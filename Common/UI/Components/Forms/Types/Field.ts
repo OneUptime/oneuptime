@@ -92,6 +92,13 @@ export default interface Field<TEntity> {
     | undefined;
   styleType?: FormFieldStyleType | undefined;
   showIf?: ((item: FormValues<TEntity>) => boolean) | undefined;
+  /**
+   * For a JSON field: judge its contents by JSON5's rules rather than JSON's.
+   * Set it where the code that eventually reads this value uses
+   * JSONFunctions.parse, so validation cannot reject a value that would have
+   * been read back perfectly well.
+   */
+  allowJSON5?: boolean | undefined;
   onChange?:
     | ((
         value: any,

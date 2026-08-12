@@ -37,6 +37,13 @@ const components: Array<ComponentMetadata> = [
         type: ComponentInputType.StringDictionary,
         required: false,
         isAdvanced: true,
+        /*
+         * Headers are where an Authorization bearer token gets typed, and
+         * without this the resolved value is written verbatim into the
+         * WorkflowLog for anyone with read access to the project. Only values
+         * that came from a variable marked secret were ever scrubbed.
+         */
+        isSensitive: true,
         placeholder:
           'Example: {"header1": "value1", "header2": "value2", ....}',
       },
@@ -123,6 +130,13 @@ const components: Array<ComponentMetadata> = [
         type: ComponentInputType.StringDictionary,
         required: false,
         isAdvanced: true,
+        /*
+         * Headers are where an Authorization bearer token gets typed, and
+         * without this the resolved value is written verbatim into the
+         * WorkflowLog for anyone with read access to the project. Only values
+         * that came from a variable marked secret were ever scrubbed.
+         */
+        isSensitive: true,
         placeholder:
           'Example: {"header1": "value1", "header2": "value2", ....}',
       },
@@ -209,6 +223,13 @@ const components: Array<ComponentMetadata> = [
         type: ComponentInputType.StringDictionary,
         required: false,
         isAdvanced: true,
+        /*
+         * Headers are where an Authorization bearer token gets typed, and
+         * without this the resolved value is written verbatim into the
+         * WorkflowLog for anyone with read access to the project. Only values
+         * that came from a variable marked secret were ever scrubbed.
+         */
+        isSensitive: true,
         placeholder:
           'Example: {"header1": "value1", "header2": "value2", ....}',
       },
@@ -295,6 +316,13 @@ const components: Array<ComponentMetadata> = [
         type: ComponentInputType.StringDictionary,
         required: false,
         isAdvanced: true,
+        /*
+         * Headers are where an Authorization bearer token gets typed, and
+         * without this the resolved value is written verbatim into the
+         * WorkflowLog for anyone with read access to the project. Only values
+         * that came from a variable marked secret were ever scrubbed.
+         */
+        isSensitive: true,
         placeholder:
           'Example: {"header1": "value1", "header2": "value2", ....}',
       },
@@ -381,6 +409,13 @@ const components: Array<ComponentMetadata> = [
         type: ComponentInputType.StringDictionary,
         required: false,
         isAdvanced: true,
+        /*
+         * Headers are where an Authorization bearer token gets typed, and
+         * without this the resolved value is written verbatim into the
+         * WorkflowLog for anyone with read access to the project. Only values
+         * that came from a variable marked secret were ever scrubbed.
+         */
+        isSensitive: true,
         placeholder:
           'Example: {"header1": "value1", "header2": "value2", ....}',
       },

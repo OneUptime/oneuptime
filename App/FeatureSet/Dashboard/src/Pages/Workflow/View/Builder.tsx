@@ -15,6 +15,12 @@ import ComponentMetadata, {
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import {
+  WorkflowLintIssue,
+  WorkflowLintResult,
+  WorkflowLintSeverity,
+} from "Common/UI/Components/Workflow/GraphLint";
 import { loadComponentsAndCategories } from "Common/UI/Components/Workflow/Utils";
 import Workflow, {
   getEdgeDefaultProps,
@@ -36,6 +42,30 @@ import { useAsyncEffect } from "use-async-effect";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 
+type GetIssueSummaryTextFunction = (result: WorkflowLintResult) => string;
+
+const getIssueSummaryText: GetIssueSummaryTextFunction = (
+  result: WorkflowLintResult,
+): string => {
+  const parts: Array<string> = [];
+
+  if (result.errorCount > 0) {
+    parts.push(
+      `${result.errorCount} ${result.errorCount === 1 ? "problem" : "problems"}`,
+    );
+  }
+
+  if (result.warningCount > 0) {
+    parts.push(
+      `${result.warningCount} ${
+        result.warningCount === 1 ? "warning" : "warnings"
+      }`,
+    );
+  }
+
+  return parts.join(", ");
+};
+
 const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [saveStatus, setSaveStatus] = useState<string>("");
@@ -55,6 +85,9 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
     useState<boolean>(false);
 
   const [showRunModal, setShowRunModal] = useState<boolean>(false);
+
+  const [lintResult, setLintResult] = useState<WorkflowLintResult | null>(null);
+  const [showIssuesModal, setShowIssuesModal] = useState<boolean>(false);
 
   const loadGraph: PromiseVoidFunction = async (): Promise<void> => {
     try {
@@ -121,6 +154,16 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
               nodes[i]!.data.metadata = {
                 ...componentMetdata,
               };
+
+              /*
+               * Any error text in a stored graph is stale by definition — it
+               * describes what the builder said about a draft at some past
+               * moment, and the checks re-run on load anyway. Clearing it here
+               * means a graph that was saved with an error in it (possible
+               * before saveGraph started stripping the field) heals itself
+               * rather than showing a badge for a problem that is long fixed.
+               */
+              nodes[i]!.data.error = "";
             }
 
             // see if it has the trigger node.
@@ -209,6 +252,15 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
               };
 
               delete ((graph["nodes"] as Array<Node>)[i] as Node).data.metadata;
+
+              /*
+               * data.error holds whatever the builder's static checks are
+               * saying about this node right now. That is a property of the
+               * current draft, not of the workflow, and saving it means a
+               * message survives the fix that resolved it and comes back on
+               * the next load. Drop it on the way out.
+               */
+              delete ((graph["nodes"] as Array<Node>)[i] as Node).data.error;
             }
           }
 
@@ -314,6 +366,28 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 {saveStatus || "Ready"}
               </span>
             </div>
+
+            {/*
+              Static checks over the graph. Clicking opens the full list —
+              each node also carries its own badge on the canvas.
+            */}
+            {lintResult && lintResult.issues.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setShowIssuesModal(true);
+                }}
+                style={{
+                  fontSize: "0.75rem",
+                  fontWeight: 500,
+                  cursor: "pointer",
+                  textDecoration: "underline",
+                  color: lintResult.errorCount > 0 ? "#ef4444" : "#f59e0b",
+                }}
+              >
+                {getIssueSummaryText(lintResult)}
+              </button>
+            )}
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
@@ -361,6 +435,9 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
               setShowComponentPickerModal(value);
             }}
             initialNodes={nodes}
+            onLintResultChange={(result: WorkflowLintResult) => {
+              setLintResult(result);
+            }}
             onRunModalUpdate={(value: boolean) => {
               setShowRunModal(value);
             }}
@@ -415,6 +492,50 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
             }}
             submitButtonType={ButtonStyleType.NORMAL}
           />
+        )}
+
+        {showIssuesModal && lintResult && (
+          <Modal
+            title="Problems with this workflow"
+            description="These are found by reading the workflow. Fixing them here saves a failed run later."
+            modalWidth={ModalWidth.Large}
+            submitButtonText="Close"
+            submitButtonStyleType={ButtonStyleType.NORMAL}
+            onSubmit={() => {
+              setShowIssuesModal(false);
+            }}
+          >
+            <div className="space-y-2">
+              {lintResult.issues.map(
+                (issue: WorkflowLintIssue, i: number): ReactElement => {
+                  const isError: boolean =
+                    issue.severity === WorkflowLintSeverity.Error;
+
+                  return (
+                    <div
+                      key={i}
+                      className={`rounded-md border p-3 ${
+                        isError
+                          ? "border-red-200 bg-red-50"
+                          : "border-amber-200 bg-amber-50"
+                      }`}
+                    >
+                      <p
+                        className={`text-xs font-semibold uppercase tracking-wider ${
+                          isError ? "text-red-700" : "text-amber-700"
+                        }`}
+                      >
+                        {issue.componentId || "This workflow"}
+                      </p>
+                      <p className="text-sm text-gray-700 mt-1">
+                        {issue.message}
+                      </p>
+                    </div>
+                  );
+                },
+              )}
+            </div>
+          </Modal>
         )}
 
         {showRunSuccessConfirmation && (

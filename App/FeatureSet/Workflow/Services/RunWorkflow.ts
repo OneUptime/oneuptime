@@ -16,6 +16,11 @@ import ComponentMetadata, {
   Port,
   ReturnValue,
 } from "Common/Types/Workflow/Component";
+import {
+  TemplateExpression,
+  TemplateExpressionKind,
+  parseTemplateExpressions,
+} from "Common/Types/Workflow/TemplateSyntax";
 import WorkflowStatus from "Common/Types/Workflow/WorkflowStatus";
 import WorkflowLogService from "Common/Server/Services/WorkflowLogService";
 import WorkflowService from "Common/Server/Services/WorkflowService";
@@ -616,6 +621,56 @@ export default class RunWorkflow {
     }
   }
 
+  /**
+   * Note in the run log every {{...}} reference that went in and came back out
+   * unchanged.
+   *
+   * VMAPI.replaceValueInPlace skips a reference it cannot resolve and leaves
+   * the literal text in place, so a mistyped path — {{local.componets.x}} for
+   * {{local.components.x}} — ships "{{local.componets.x}}" as the value and the
+   * run still reports Success. Whoever reads the log afterwards has no way to
+   * tell that from a value that was genuinely meant to be that text. This says
+   * so out loud.
+   *
+   * Compares against the input rather than just scanning the output, so a
+   * resolved value that happens to contain braces of its own is not reported.
+   */
+  private logUnresolvedReferences(params: {
+    argument: Argument;
+    before: JSONValue;
+    after: JSONValue;
+  }): void {
+    if (
+      typeof params.before !== "string" ||
+      typeof params.after !== "string"
+    ) {
+      return;
+    }
+
+    const unresolved: Array<string> = parseTemplateExpressions(params.before)
+      .filter((expression: TemplateExpression) => {
+        return (
+          expression.kind === TemplateExpressionKind.Reference &&
+          (params.after as string).includes(expression.raw)
+        );
+      })
+      .map((expression: TemplateExpression) => {
+        return expression.raw;
+      });
+
+    if (unresolved.length === 0) {
+      return;
+    }
+
+    const distinct: Array<string> = Array.from(new Set(unresolved));
+
+    this.log(
+      `Warning: ${distinct.join(", ")} in "${
+        params.argument.name
+      }" did not resolve to anything and was left as literal text. Check the step id and the return value name.`,
+    );
+  }
+
   public getComponentArguments(
     storageMap: StorageMap,
     component: NodeDataProp,
@@ -639,11 +694,19 @@ export default class RunWorkflow {
         continue;
       }
 
+      const contentBeforeSubstitution: JSONValue = argumentContent;
+
       argumentContent = VMAPI.replaceValueInPlace(
         storageMap as any,
         argumentContent as string,
         argument.type === ComponentInputType.JSON,
       );
+
+      this.logUnresolvedReferences({
+        argument: argument,
+        before: contentBeforeSubstitution,
+        after: argumentContent,
+      });
 
       if (
         typeof argumentContent === "string" &&

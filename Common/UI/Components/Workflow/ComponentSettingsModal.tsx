@@ -188,14 +188,36 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
       modalWidth={ModalWidth.Large}
       disableSubmitButton={hasErrors}
       leftFooterElement={
-        <Button
-          title="Delete"
-          icon={IconProp.Trash}
-          buttonStyle={ButtonStyleType.DANGER_OUTLINE}
-          onClick={() => {
-            setShowDeleteConfirmation(true);
-          }}
-        />
+        /*
+         * Say why Save is off. Form errors are only rendered under a field
+         * once it has been touched, so a component opened with a setting that
+         * was already invalid — a stored JSON value that does not parse, say —
+         * otherwise presents a dead button and no explanation anywhere.
+         */
+        hasErrors ? (
+          <div className="flex items-center gap-3">
+            <Button
+              title="Delete"
+              icon={IconProp.Trash}
+              buttonStyle={ButtonStyleType.DANGER_OUTLINE}
+              onClick={() => {
+                setShowDeleteConfirmation(true);
+              }}
+            />
+            <span className="text-sm text-red-600">
+              Some settings need fixing before this can be saved.
+            </span>
+          </div>
+        ) : (
+          <Button
+            title="Delete"
+            icon={IconProp.Trash}
+            buttonStyle={ButtonStyleType.DANGER_OUTLINE}
+            onClick={() => {
+              setShowDeleteConfirmation(true);
+            }}
+          />
+        )
       }
     >
       <>

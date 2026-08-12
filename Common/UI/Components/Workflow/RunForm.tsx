@@ -1,9 +1,16 @@
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import BasicForm, { FormProps } from "../Forms/BasicForm";
 import FormValues from "../Forms/Types/FormValues";
-import { componentInputTypeToFormFieldType } from "./Utils";
+import {
+  componentInputTypeToFormFieldType,
+  parseStringDictionaryValue,
+} from "./Utils";
 import { JSONObject } from "../../../Types/JSON";
-import { Argument, NodeDataProp } from "../../../Types/Workflow/Component";
+import {
+  Argument,
+  ComponentInputType,
+  NodeDataProp,
+} from "../../../Types/Workflow/Component";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -34,6 +41,28 @@ const RunForm: FunctionComponent<ComponentProps> = (
     props.onFormChange(component);
   }, [component]);
 
+  /*
+   * Same hydration ArgumentsForm does: a StringDictionary renders as key/value
+   * rows, and those need a real object rather than the JSON string older
+   * workflows stored. The field type is chosen from the same value, so the two
+   * cannot disagree about which editor is on screen.
+   */
+  const formInitialValues: JSONObject = { ...(component.arguments || {}) };
+
+  for (const argument of component.metadata.runWorkflowManuallyArguments || []) {
+    if (argument.type !== ComponentInputType.StringDictionary) {
+      continue;
+    }
+
+    const parsed: JSONObject | null = parseStringDictionaryValue(
+      formInitialValues[argument.id],
+    );
+
+    if (parsed !== null) {
+      formInitialValues[argument.id] = parsed;
+    }
+  }
+
   return (
     <div className="mb-3 mt-3">
       <div className="mt-5 mb-5">
@@ -57,7 +86,7 @@ const RunForm: FunctionComponent<ComponentProps> = (
               hideSubmitButton={true}
               ref={formRef}
               initialValues={{
-                ...(component.arguments || {}),
+                ...formInitialValues,
               }}
               onChange={(values: FormValues<JSONObject>) => {
                 setComponent({
@@ -86,12 +115,16 @@ const RunForm: FunctionComponent<ComponentProps> = (
                       },
                       required: argument.required,
                       placeholder: argument.placeholder,
+                      /*
+                       * Decided from the value the form actually renders.
+                       * This used to read component.returnValues, which is not
+                       * where RunForm writes — so for a field holding a value
+                       * the row editor cannot represent, the editor on screen
+                       * and the value behind it could disagree.
+                       */
                       ...componentInputTypeToFormFieldType(
                         argument.type,
-                        component.returnValues &&
-                          component.returnValues[argument.id]
-                          ? component.returnValues[argument.id]
-                          : null,
+                        formInitialValues[argument.id] ?? null,
                       ),
                     };
                   },
