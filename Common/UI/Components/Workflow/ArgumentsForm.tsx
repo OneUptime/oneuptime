@@ -6,6 +6,7 @@ import { CustomElementProps } from "../Forms/Types/Field";
 import FormValues from "../Forms/Types/FormValues";
 import ComponentValuePickerModal from "./ComponentValuePickerModal";
 import CronScheduleField from "./CronScheduleField";
+import ModelColumnEditor, { ModelColumnEditorMode } from "./ModelColumnEditor";
 import ModelFieldPicker from "./ModelFieldPicker";
 import {
   componentInputTypeToFormFieldType,
@@ -308,6 +309,25 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                   const useCronPicker: boolean =
                     arg.type === ComponentInputType.CronTab;
 
+                  /*
+                   * Query arguments (which records does this act on) and
+                   * BaseModel arguments (which values does it write) are both
+                   * keyed on the model's columns, so both get the row editor
+                   * backed by the model schema. Same tableName requirement as
+                   * the field picker.
+                   *
+                   * BaseModelArray is deliberately not included: it holds a
+                   * list of records, which rows cannot represent.
+                   */
+                  const columnEditorMode: ModelColumnEditorMode | undefined =
+                    !component.metadata.tableName
+                      ? undefined
+                      : arg.type === ComponentInputType.Query
+                        ? ModelColumnEditorMode.Query
+                        : arg.type === ComponentInputType.BaseModel
+                          ? ModelColumnEditorMode.Record
+                          : undefined;
+
                   let baseField: {
                     fieldType: import("../Forms/Types/FormFieldSchemaType").default;
                     dropdownOptions?: Array<DropdownOption> | undefined;
@@ -317,7 +337,29 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                     ) => ReactElement | undefined;
                   };
 
-                  if (useFieldPicker) {
+                  if (columnEditorMode) {
+                    baseField = {
+                      fieldType: FormFieldSchemaType.CustomComponent,
+                      getCustomElement: (
+                        _values: FormValues<JSONObject>,
+                        customProps: CustomElementProps,
+                      ): ReactElement => {
+                        return (
+                          <ModelColumnEditor
+                            tableName={component.metadata.tableName as string}
+                            mode={columnEditorMode}
+                            initialValue={customProps.initialValue}
+                            onChange={(value: string) => {
+                              void customProps.onChange?.(value);
+                            }}
+                            placeholder={customProps.placeholder}
+                            error={customProps.error}
+                            tabIndex={customProps.tabIndex}
+                          />
+                        );
+                      },
+                    };
+                  } else if (useFieldPicker) {
                     baseField = {
                       fieldType: FormFieldSchemaType.CustomComponent,
                       getCustomElement: (
@@ -386,7 +428,10 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                    * and a schedule can't reference component return values).
                    */
                   const showVariableFooter: boolean =
-                    !isWorkflowSelect && !useFieldPicker && !useCronPicker;
+                    !isWorkflowSelect &&
+                    !useFieldPicker &&
+                    !useCronPicker &&
+                    !columnEditorMode;
 
                   const isAdvanced: boolean = isCollapsibleAdvanced(arg);
 
