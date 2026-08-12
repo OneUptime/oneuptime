@@ -1,6 +1,8 @@
+import { consumePressForAnchoredPopup } from "./LayeredDismissal";
 import React, {
   useCallback,
   useEffect,
+  useId,
   useLayoutEffect,
   useRef,
   useState,
@@ -44,9 +46,25 @@ export interface AnchoredFieldPopup {
   isPopupOpen: boolean;
   popupPosition: AnchoredFieldPopupPosition | null;
   portalTarget: HTMLElement | null;
+  popupId: string;
   closePopup: (shouldReturnFocus?: boolean) => void;
   togglePopup: () => void;
+  // Opens the popup from a trigger's keyboard, and moves focus into it.
+  onTriggerKeyDown: (event: React.KeyboardEvent) => void;
 }
+
+/*
+ * The keys that open a popup from its trigger. ArrowDown/ArrowUp match the
+ * listbox convention every other menu in this codebase follows; Enter and Space
+ * are what a button-shaped control is expected to answer to.
+ */
+const POPUP_OPENING_KEYS: Array<string> = [
+  "Enter",
+  " ",
+  "Spacebar",
+  "ArrowDown",
+  "ArrowUp",
+];
 
 type GetFocusableElementsFunction = (
   container: HTMLElement,
@@ -83,6 +101,27 @@ const useAnchoredFieldPopup: UseAnchoredFieldPopupFunction = (
   const popupRef: React.MutableRefObject<HTMLDivElement | null> =
     useRef<HTMLDivElement | null>(null);
 
+  const popupId: string = useId();
+
+  /*
+   * A pointer user wants the popup to appear under the field and their pointer
+   * to stay where it is. A keyboard user has no other way in, so opening from
+   * the keyboard hands focus to the popup's first control - the hex box for a
+   * colour, the search box for an icon.
+   */
+  const shouldMoveFocusIntoPopupRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+
+  const focusPopup: () => void = useCallback((): void => {
+    const popup: HTMLDivElement | null = popupRef.current;
+
+    if (!popup) {
+      return;
+    }
+
+    (getFocusableElements(popup)[0] || popup).focus();
+  }, []);
+
   const closePopup: (shouldReturnFocus?: boolean) => void = useCallback(
     (shouldReturnFocus?: boolean): void => {
       setIsPopupOpen(false);
@@ -114,6 +153,58 @@ const useAnchoredFieldPopup: UseAnchoredFieldPopupFunction = (
       return !isOpen;
     });
   }, []);
+
+  const openPopup: (shouldMoveFocusIntoPopup?: boolean) => void = useCallback(
+    (shouldMoveFocusIntoPopup?: boolean): void => {
+      shouldMoveFocusIntoPopupRef.current = Boolean(shouldMoveFocusIntoPopup);
+      setIsPopupOpen(true);
+    },
+    [],
+  );
+
+  const onTriggerKeyDown: (event: React.KeyboardEvent) => void = useCallback(
+    (event: React.KeyboardEvent): void => {
+      if (event.defaultPrevented || !POPUP_OPENING_KEYS.includes(event.key)) {
+        return;
+      }
+
+      /*
+       * The key opened the popup and means nothing else after that: Input's
+       * own onEnterPress stands down on a defaultPrevented event, and a
+       * trigger placed inside a real <form> - which nothing about Input
+       * prevents, even though this codebase's forms are not form elements -
+       * would otherwise submit it on the way past.
+       */
+      event.preventDefault();
+
+      if (isPopupOpen) {
+        focusPopup();
+        return;
+      }
+
+      openPopup(true);
+    },
+    [isPopupOpen, focusPopup, openPopup],
+  );
+
+  /*
+   * Waits for a measured position, not just for the open flag: until then the
+   * popup is `visibility: hidden` so it cannot flash at the top left corner,
+   * and a hidden element refuses focus. jsdom has no such scruples, so this
+   * ordering only shows itself in a browser.
+   */
+  useEffect(() => {
+    if (
+      !isPopupOpen ||
+      !popupPosition ||
+      !shouldMoveFocusIntoPopupRef.current
+    ) {
+      return;
+    }
+
+    shouldMoveFocusIntoPopupRef.current = false;
+    focusPopup();
+  }, [isPopupOpen, popupPosition, focusPopup]);
 
   const updatePopupPosition: () => void = useCallback((): void => {
     if (!anchorRef.current || typeof window === "undefined") {
@@ -222,6 +313,12 @@ const useAnchoredFieldPopup: UseAnchoredFieldPopupFunction = (
         return;
       }
 
+      /*
+       * This press is spent on closing the popup. Claiming it stops the modal
+       * underneath from reading the same press as a backdrop dismissal and
+       * throwing the form away along with the picker.
+       */
+      consumePressForAnchoredPopup(event);
       closePopup(false);
     };
 
@@ -311,6 +408,8 @@ const useAnchoredFieldPopup: UseAnchoredFieldPopupFunction = (
     anchorRef,
     closePopup,
     isPopupOpen,
+    onTriggerKeyDown,
+    popupId,
     popupPosition,
     popupRef,
     portalTarget: typeof document === "undefined" ? null : document.body,

@@ -75,7 +75,25 @@ type PressFunction = (element: HTMLElement) => void;
 
 const press: PressFunction = (element: HTMLElement): void => {
   fireEvent.mouseDown(element);
+  fireEvent.mouseUp(element);
   fireEvent.click(element);
+};
+
+/*
+ * A press that begins on one element and ends on another. The browser reports
+ * the click against the nearest common ancestor of the two, which for anything
+ * inside the dialog is the backdrop layer itself — so the click alone cannot
+ * tell a drag from a dismissal, and the modal has to watch both ends.
+ */
+type DragPressFunction = (from: HTMLElement, to: HTMLElement) => void;
+
+const dragPress: DragPressFunction = (
+  from: HTMLElement,
+  to: HTMLElement,
+): void => {
+  fireEvent.mouseDown(from);
+  fireEvent.mouseUp(to);
+  fireEvent.click(getBackdropLayer().parentElement!);
 };
 
 interface PortalHarness {
@@ -467,6 +485,78 @@ describe("Modal dismissal and portalled dropdown menus", () => {
       expect(harness.onClose).not.toHaveBeenCalled();
 
       // The dialog is still dismissable the ordinary way.
+      press(getBackdropLayer());
+
+      expect(harness.onClose).toHaveBeenCalledTimes(1);
+    });
+
+    test("a press that starts on the backdrop and ends on the panel is a drag, not a dismissal", () => {
+      const harness: PortalHarness = renderInModal(<div>Modal content</div>);
+
+      /*
+       * Pressing outside and releasing inside — reaching for the backdrop,
+       * changing your mind, letting go over the form. The click lands on the
+       * backdrop layer either way, so before the modal tracked the release this
+       * discarded whatever had been typed.
+       */
+      dragPress(getBackdropLayer(), screen.getByText("Modal content"));
+
+      expect(harness.onClose).not.toHaveBeenCalled();
+      expect(screen.getByTestId("modal")).toBeInTheDocument();
+    });
+
+    test("a press that starts on the panel and ends on the backdrop is a drag too", () => {
+      const harness: PortalHarness = renderInModal(<div>Modal content</div>);
+
+      // Selecting text in the body and releasing past the panel edge.
+      dragPress(screen.getByText("Modal content"), getBackdropLayer());
+
+      expect(harness.onClose).not.toHaveBeenCalled();
+    });
+
+    test("a release on a portalled menu does not dismiss the dialog either", () => {
+      const harness: PortalHarness = renderInModal(
+        <div>
+          {createPortal(
+            <button type="button" data-testid="portalled-option">
+              pick me
+            </button>,
+            document.body,
+          )}
+        </div>,
+      );
+
+      dragPress(getBackdropLayer(), screen.getByTestId("portalled-option"));
+
+      expect(harness.onClose).not.toHaveBeenCalled();
+      expect(screen.getByTestId("modal")).toBeInTheDocument();
+    });
+
+    test("dismissing an open picker leaves the modal behind it standing", () => {
+      const harness: PortalHarness = renderInModal(
+        <ColorPicker
+          dataTestId="color-value"
+          placeholder="Pick a color"
+          onChange={jest.fn()}
+        />,
+      );
+
+      fireEvent.click(screen.getByTestId("color-value"));
+      expect(screen.getByTestId("color-picker-popup")).toBeInTheDocument();
+
+      /*
+       * The popup covers a good part of the backdrop, so "click off it to put
+       * it away" is the obvious gesture — and one press used to close the
+       * picker and the form behind it together. Dismissal belongs to the
+       * topmost layer that is open.
+       */
+      press(getBackdropLayer());
+
+      expect(screen.queryByTestId("color-picker-popup")).toBeNull();
+      expect(harness.onClose).not.toHaveBeenCalled();
+      expect(screen.getByTestId("modal")).toBeInTheDocument();
+
+      // With the picker gone, the very next backdrop press dismisses as usual.
       press(getBackdropLayer());
 
       expect(harness.onClose).toHaveBeenCalledTimes(1);

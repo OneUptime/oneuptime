@@ -9,6 +9,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useId,
   useState,
 } from "react";
 import { createPortal } from "react-dom";
@@ -41,14 +42,20 @@ const IconPicker: FunctionComponent<ComponentProps> = (
     anchorRef,
     popupRef,
     isPopupOpen,
+    popupId,
     popupPosition,
     portalTarget,
     closePopup,
+    onTriggerKeyDown,
     togglePopup,
   }: AnchoredFieldPopup = useAnchoredFieldPopup({
     popupMaxHeight: ICON_PICKER_POPUP_MAX_HEIGHT_PX,
     popupWidth: ICON_PICKER_POPUP_WIDTH_PX,
   });
+
+  const isInteractive: boolean = !props.readOnly && !props.disabled;
+  const generatedId: string = useId();
+  const errorId: string = `${generatedId}-icon-picker-error`;
 
   const [isInitialValuesInitialized, setIsInitialValuesInitialized] =
     useState<boolean>(false);
@@ -84,10 +91,11 @@ const IconPicker: FunctionComponent<ComponentProps> = (
       >
         <div
           onClick={() => {
-            if (!props.readOnly && !props.disabled) {
+            if (isInteractive) {
               togglePopup();
             }
           }}
+          aria-hidden="true"
           className="flex items-center justify-center h-5 w-5 cursor-pointer"
         >
           {selectedIcon ? (
@@ -99,10 +107,18 @@ const IconPicker: FunctionComponent<ComponentProps> = (
 
         <Input
           onClick={() => {
-            if (!props.readOnly && !props.disabled) {
+            if (isInteractive) {
               togglePopup();
             }
           }}
+          // The field is a trigger, not a text box - see ColorPicker.
+          onKeyDown={isInteractive ? onTriggerKeyDown : undefined}
+          ariaHasPopup="dialog"
+          ariaExpanded={isPopupOpen}
+          ariaControls={isPopupOpen ? popupId : undefined}
+          // The message below belongs to the control, not to this input.
+          ariaDescribedby={props.error ? errorId : undefined}
+          ariaInvalid={Boolean(props.error)}
           disabled={props.disabled}
           dataTestId={props.dataTestId}
           onBlur={props.onBlur}
@@ -119,14 +135,19 @@ const IconPicker: FunctionComponent<ComponentProps> = (
           onFocus={props.onFocus || undefined}
         />
         {selectedIcon && !props.disabled && (
-          <Icon
-            icon={IconProp.Close}
-            className="text-gray-400 h-5 w-5 cursor-pointer hover:text-gray-600"
+          // A button, not a bare svg with a click handler - see ColorPicker.
+          <button
+            type="button"
+            aria-label="Clear icon"
+            title="Clear icon"
+            className="flex items-center text-gray-400 hover:text-gray-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded"
             onClick={() => {
               setSelectedIcon(null);
               props.onChange(null);
             }}
-          />
+          >
+            <Icon icon={IconProp.Close} className="h-5 w-5 cursor-pointer" />
+          </button>
         )}
       </div>
       {/*
@@ -138,6 +159,9 @@ const IconPicker: FunctionComponent<ComponentProps> = (
             <div
               ref={popupRef}
               data-testid="icon-picker-popup"
+              id={popupId}
+              role="dialog"
+              aria-label="Icon picker"
               tabIndex={-1}
               className="fixed flex flex-col overflow-hidden bg-white border border-gray-200 rounded-lg shadow-lg p-3"
               style={{
@@ -166,13 +190,22 @@ const IconPicker: FunctionComponent<ComponentProps> = (
               {/* Icons grid */}
               <div className="grid grid-cols-6 gap-2 min-h-0 flex-1 overflow-y-auto">
                 {filteredIcons.map((icon: IconProp) => {
+                  /*
+                   * A button rather than a div: the grid is the only way to set
+                   * this field, so every cell has to be reachable by Tab and
+                   * answer to Enter and Space. type="button" keeps it from
+                   * submitting the form the field sits in.
+                   */
                   return (
-                    <div
+                    <button
                       key={icon}
+                      type="button"
                       onClick={() => {
                         handleChange(icon);
                       }}
-                      className={`flex items-center justify-center p-2 rounded cursor-pointer hover:bg-gray-100 ${
+                      aria-pressed={selectedIcon === icon}
+                      aria-label={icon}
+                      className={`flex items-center justify-center p-2 rounded cursor-pointer hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
                         selectedIcon === icon
                           ? "bg-indigo-100 ring-2 ring-indigo-500"
                           : ""
@@ -180,7 +213,7 @@ const IconPicker: FunctionComponent<ComponentProps> = (
                       title={icon}
                     >
                       <Icon icon={icon} className="h-5 w-5 text-gray-600" />
-                    </div>
+                    </button>
                   );
                 })}
               </div>
@@ -195,7 +228,12 @@ const IconPicker: FunctionComponent<ComponentProps> = (
           )
         : null}
       {props.error && (
-        <p data-testid="error-message" className="mt-1 text-sm text-red-400">
+        <p
+          id={errorId}
+          role="alert"
+          data-testid="error-message"
+          className="mt-1 text-sm text-red-400"
+        >
           {props.error}
         </p>
       )}
