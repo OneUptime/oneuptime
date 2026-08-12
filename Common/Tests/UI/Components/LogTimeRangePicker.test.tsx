@@ -3,6 +3,7 @@ import LogTimeRangePicker, {
 } from "../../../UI/Components/LogsViewer/components/LogTimeRangePicker";
 import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "../../../Types/Time/TimeRange";
+import InBetween from "../../../Types/BaseDatabase/InBetween";
 import "@testing-library/jest-dom";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import React from "react";
@@ -134,5 +135,46 @@ describe("LogTimeRangePicker", () => {
     expect(
       dropdown.parentElement?.classList.contains("relative") ?? false,
     ).toBe(true);
+  });
+
+  test("keeps the date fields out of the narrow dropdown panel", () => {
+    const dropdown: HTMLElement = openDropdown({
+      range: TimeRange.CUSTOM,
+      startAndEndDate: new InBetween<Date>(
+        new Date("2024-01-01T00:00:00.000Z"),
+        new Date("2024-01-02T00:00:00.000Z"),
+      ),
+    });
+
+    expect(dropdown.querySelectorAll("input").length).toBe(0);
+  });
+
+  test("opens the custom range modal from the dropdown", () => {
+    openDropdown({ range: TimeRange.PAST_ONE_HOUR });
+
+    fireEvent.click(screen.getByTestId("log-time-range-picker-custom-option"));
+
+    expect(screen.getByTestId("custom-time-range-modal")).toBeInTheDocument();
+    expect(screen.queryByTestId(DROPDOWN_TEST_ID)).toBeNull();
+  });
+
+  test("applies a custom range picked in the modal", () => {
+    const emitted: Array<RangeStartAndEndDateTime> = [];
+    render(
+      <LogTimeRangePicker
+        value={{ range: TimeRange.PAST_ONE_HOUR }}
+        onChange={(value: RangeStartAndEndDateTime) => {
+          emitted.push(value);
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId(BUTTON_TEST_ID));
+    fireEvent.click(screen.getByTestId("log-time-range-picker-custom-option"));
+    fireEvent.click(screen.getByText("Apply"));
+
+    expect(emitted).toHaveLength(1);
+    expect(emitted[0]!.range).toBe(TimeRange.CUSTOM);
+    expect(emitted[0]!.startAndEndDate).toBeInstanceOf(InBetween);
   });
 });
