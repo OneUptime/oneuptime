@@ -1218,14 +1218,18 @@ jobs:
           # is why that job imports the key and this one did not. %b expands
           # the escapes; a key that already has real newlines is unaffected.
           printf '%b\n' "$GPG_PRIVATE_KEY" > private.key
-          if ! gpg --batch --import private.key; then
-            rm -f private.key
-            echo "::error::Failed to import GPG private key (GPG_PRIVATE_KEY secret). Aborting before any publish step."
-            exit 1
-          fi
+          # Do NOT gate on gpg's exit code. A stray or malformed armor line in
+          # the stored secret makes `gpg --import` print "invalid armor header"
+          # and exit non-zero even though it still imports the secret key block
+          # that follows (observed: "secret keys imported: 1" alongside a
+          # non-zero exit). The helm-chart-deploy job imports the same secret
+          # and tolerates exactly this with `|| true`. The real gate is the
+          # secret-key-present check below, so a genuinely bad or missing key
+          # still aborts here, before any publish step.
+          gpg --batch --import private.key || true
           rm -f private.key
           if ! gpg --list-secret-keys --keyid-format=long | grep -q '^sec'; then
-            echo "::error::GPG import produced no secret key; release assets cannot be signed."
+            echo "::error::GPG import produced no secret key; release assets cannot be signed. Aborting before any publish step."
             exit 1
           fi
           gpg --export-secret-keys > ~/.gnupg/secring.gpg
