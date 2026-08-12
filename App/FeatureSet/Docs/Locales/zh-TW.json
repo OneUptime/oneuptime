@@ -92,6 +92,7 @@
     "Self-Hosted Setup": "自架設定",
     "Examples": "範例",
     "Registry Usage": "登錄檔使用",
+    "OpenTofu": "OpenTofu",
     "Authentication": "驗證",
     "Resource Operations": "資源操作",
     "Output Formats": "輸出格式",

@@ -717,7 +717,7 @@ const AIInsightViewPage: FunctionComponent<
             <InsightPanel
               title="Fix Task"
               icon={IconProp.Code}
-              description="OneUptime AI queued an agent task for this insight. Fix pull requests are always drafts and always human-reviewed."
+              description="OneUptime AI queued an agent task for this insight. Fix pull requests open ready for review and are always human-reviewed — nothing merges automatically."
             >
               {/*
                * A real anchor (not a Button) so cmd/ctrl-click, middle-click

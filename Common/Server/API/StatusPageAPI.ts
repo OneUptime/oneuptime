@@ -113,6 +113,23 @@ import StatusPageSubscriberNotificationTemplateService, {
   Service as StatusPageSubscriberNotificationTemplateServiceClass,
 } from "../Services/StatusPageSubscriberNotificationTemplateService";
 
+type EscapeXmlFunction = (text: string) => string;
+
+/*
+ * The status badge is hand-built SVG served as image/svg+xml, and SVG is a
+ * document - anything interpolated into it is markup, not text. A monitor
+ * status named `</text><script>...` would otherwise run on the status page
+ * origin for anyone who opens the badge URL directly.
+ */
+const escapeXml: EscapeXmlFunction = (text: string): string => {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+};
+
 type ResolveStatusPageIdOrThrowFunction = (
   statusPageIdOrDomain: string,
 ) => Promise<ObjectID>;
@@ -531,9 +548,12 @@ export default class StatusPageAPI extends BaseAPI<
             });
 
           // Generate SVG badge
-          const statusName: string = overallStatus?.name || "Unknown";
-          const statusColor: string =
-            overallStatus?.color?.toString() || "#808080";
+          const statusName: string = escapeXml(
+            overallStatus?.name || "Unknown",
+          );
+          const statusColor: string = escapeXml(
+            overallStatus?.color?.toString() || "#808080",
+          );
 
           const svg: string = `<svg xmlns="http://www.w3.org/2000/svg" width="150" height="20">
   <linearGradient id="b" x2="0" y2="100%">
@@ -558,6 +578,17 @@ export default class StatusPageAPI extends BaseAPI<
 
           res.setHeader("Content-Type", "image/svg+xml");
           res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+          /*
+           * The badge is only ever loaded through <img>, which ignores both of
+           * these. They exist for the case where someone opens the badge URL
+           * as a top-level document, where the SVG would otherwise be a
+           * scriptable document on this origin.
+           */
+          res.setHeader("X-Content-Type-Options", "nosniff");
+          res.setHeader(
+            "Content-Security-Policy",
+            "sandbox; script-src 'none'; object-src 'none'",
+          );
           return res.send(svg);
         } catch (err) {
           logger.error(err, getLogAttributesFromRequest(req as any));
@@ -786,9 +817,11 @@ export default class StatusPageAPI extends BaseAPI<
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          const objectId: ObjectID = new ObjectID(
-            req.params["statusPageId"] as string,
-          );
+          const statusPageIdParam: string = req.params[
+            "statusPageId"
+          ] as string;
+          ObjectID.validateUUID(statusPageIdParam);
+          const objectId: ObjectID = new ObjectID(statusPageIdParam);
 
           const select: Select<StatusPage> = {
             _id: true,

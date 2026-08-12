@@ -336,11 +336,11 @@ GLOBAL_LLM_PROVIDER_API_KEY is rendered only when an API key is configured.
   {{- if $.Values.oneuptimeSecret }}
   value: {{ $.Values.oneuptimeSecret }}
   {{- else }}
-  {{- if $.Values.externalSecrets.oneuptimeSecret.existingSecret.name }}
+  {{- if ((($.Values.externalSecrets).oneuptimeSecret).existingSecret).name }}
   valueFrom:
     secretKeyRef:
-        name: {{ $.Values.externalSecrets.oneuptimeSecret.existingSecret.name }}
-        key: {{ $.Values.externalSecrets.oneuptimeSecret.existingSecret.passwordKey }}
+      name: {{ ((($.Values.externalSecrets).oneuptimeSecret).existingSecret).name }}
+      key: {{ ((($.Values.externalSecrets).oneuptimeSecret).existingSecret).passwordKey }}
   {{- else }}
   valueFrom:
     secretKeyRef:
@@ -355,11 +355,11 @@ GLOBAL_LLM_PROVIDER_API_KEY is rendered only when an API key is configured.
   {{- if $.Values.registerProbeKey }}
   value: {{ $.Values.registerProbeKey }}
   {{- else }}
-  {{- if $.Values.externalSecrets.registerProbeKey.existingSecret.name }}
+  {{- if ((($.Values.externalSecrets).registerProbeKey).existingSecret).name }}
   valueFrom:
     secretKeyRef:
-        name: {{ $.Values.externalSecrets.registerProbeKey.existingSecret.name }}
-        key: {{ $.Values.externalSecrets.registerProbeKey.existingSecret.passwordKey }}
+      name: {{ ((($.Values.externalSecrets).registerProbeKey).existingSecret).name }}
+      key: {{ ((($.Values.externalSecrets).registerProbeKey).existingSecret).passwordKey }}
   {{- else }}
   valueFrom:
     secretKeyRef:
@@ -447,11 +447,11 @@ GLOBAL_LLM_PROVIDER_API_KEY is rendered only when an API key is configured.
   {{- if $.Values.encryptionSecret }}
   value: {{ $.Values.encryptionSecret }}
   {{- else }}
-  {{- if $.Values.externalSecrets.encryptionSecret.existingSecret.name }}
+  {{- if ((($.Values.externalSecrets).encryptionSecret).existingSecret).name }}
   valueFrom:
     secretKeyRef:
-        name: {{ $.Values.externalSecrets.encryptionSecret.existingSecret.name }}
-        key: {{ $.Values.externalSecrets.encryptionSecret.existingSecret.passwordKey }}
+      name: {{ ((($.Values.externalSecrets).encryptionSecret).existingSecret).name }}
+      key: {{ ((($.Values.externalSecrets).encryptionSecret).existingSecret).passwordKey }}
   {{- else }}
   valueFrom:
     secretKeyRef:
@@ -1213,9 +1213,17 @@ spec:
 {{/*
 KEDA ScaledObject template for metric-based autoscaling
 Usage: include "oneuptime.kedaScaledObject" (dict "ServiceName" "service-name" "Release" .Release "Values" .Values "MetricsConfig" {...})
+
+This helper emits TWO objects (a ScaledObject and a TriggerAuthentication) and is
+included back to back, once per enabled tier. Both objects therefore MUST open
+with their own `---`: Helm's manifest splitter only breaks documents on a `---`
+line, so without the leading separator each TriggerAuthentication would be glued
+into the same YAML document as the next include's ScaledObject, and on decode the
+later duplicate top-level keys win — silently dropping the earlier object.
 */}}
 {{- define "oneuptime.kedaScaledObject" }}
 {{- if and .Values.keda.enabled .MetricsConfig.enabled (not .DisableAutoscaler) }}
+---
 apiVersion: keda.sh/v1alpha1
 kind: ScaledObject
 metadata:
@@ -1302,10 +1310,10 @@ metadata:
     meta.helm.sh/release-namespace: {{ .Release.Namespace }}
 spec:
   secretTargetRef:
-    {{- if .Values.externalSecrets.oneuptimeSecret.existingSecret.name }}
+    {{- if (((.Values.externalSecrets).oneuptimeSecret).existingSecret).name }}
     - parameter: clusterkey
-      name: {{ .Values.externalSecrets.oneuptimeSecret.existingSecret.name }}
-      key: {{ .Values.externalSecrets.oneuptimeSecret.existingSecret.passwordKey }}
+      name: {{ (((.Values.externalSecrets).oneuptimeSecret).existingSecret).name }}
+      key: {{ (((.Values.externalSecrets).oneuptimeSecret).existingSecret).passwordKey }}
     {{- else }}
     - parameter: clusterkey
       name: {{ printf "%s-%s" .Release.Name "secrets" }}

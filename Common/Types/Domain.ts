@@ -67,6 +67,32 @@ export default class Domain extends DatabaseProperty {
     return domainRegex.test(domain);
   }
 
+  /**
+   * Validates a subdomain: one or more DNS labels, no scheme, no port, no
+   * path, no userinfo.
+   *
+   * This is a security control, not a nicety. A subdomain is concatenated
+   * with a verified base domain to build fullDomain, and fullDomain is
+   * interpolated into a URL that the certificate-provisioning cron fetches
+   * unattended. URL parsing takes everything before the first "/" as the
+   * host, so a subdomain of "169.254.169.254/latest/meta-data/#" yields a URL
+   * whose host, port and path are all attacker-chosen. Restricting the value
+   * to DNS labels removes the ability to smuggle any of those.
+   *
+   * The empty string is NOT valid here: callers use "" (or "@") to mean the
+   * apex and must check for that before calling.
+   */
+  public static isValidSubdomain(subdomain: string): boolean {
+    if (!subdomain || subdomain.length > 253) {
+      return false;
+    }
+
+    const subdomainRegex: RegExp =
+      /^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+
+    return subdomainRegex.test(subdomain);
+  }
+
   public constructor(domain: string) {
     super();
     this.domain = domain;

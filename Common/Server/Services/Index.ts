@@ -283,10 +283,12 @@ import NetworkFlowService from "./NetworkFlowService";
 import OnCallDutyPolicyTimeLogService from "./OnCallDutyPolicyTimeLogService";
 import ProjectSCIMLogService from "./ProjectSCIMLogService";
 import StatusPageSCIMLogService from "./StatusPageSCIMLogService";
+import DeletedProjectService from "./DeletedProjectService";
 
 const services: Array<BaseService> = [
   OnCallDutyPolicyTimeLogService,
   AcmeCertificateService,
+  DeletedProjectService,
   PromoCodeService,
   EnterpriseLicenseService,
   EnterpriseLicenseInstanceService,

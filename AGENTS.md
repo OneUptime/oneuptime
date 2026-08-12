@@ -22,6 +22,18 @@ Clickhouse migrations are written manually. Please write the migration code in D
 
 Please run "npm run fix" in root to fix all the lint issues. Please run "npm run compile" in projects that you made changes to make sure compile works.
 
+### Helm chart
+
+The chart lives in `HelmChart/Public/oneuptime`. It has cluster-free unit tests in
+`HelmChart/Public/oneuptime/tests` (helm-unittest); run them with `npm run test-helm-chart`
+(it installs the plugin for you through the runner, or install it yourself with
+`helm plugin install https://github.com/helm-unittest/helm-unittest`).
+
+`npm run test-helm-chart-all` runs every chart test — lint, those unit tests, and the
+cluster-backed suites that install the chart on a throwaway KinD cluster. That is the
+`helm-test` job in the "Common Jobs" workflow. Suites live in `HelmChart/Tests/suites`;
+see `HelmChart/README.md` for how to add one.
+
 ### Project docs
 
 Internal roadmaps live in `Internal/Roadmap/` (see its README for the index).

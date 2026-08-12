@@ -1,5 +1,5 @@
 import useLiveLogsRefresh from "../../../UI/Components/LogsViewer/useLiveLogsRefresh";
-import "@testing-library/jest-dom/extend-expect";
+import "@testing-library/jest-dom";
 import { act, render } from "@testing-library/react";
 import React, { FunctionComponent, ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";

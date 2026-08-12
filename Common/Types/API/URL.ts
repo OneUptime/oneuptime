@@ -131,37 +131,55 @@ export default class URL extends DatabaseProperty {
   public static fromString(url: string): URL {
     let protocol: Protocol = Protocol.HTTPS;
 
-    if (url.startsWith("https://")) {
-      protocol = Protocol.HTTPS;
-      url = url.replace("https://", "");
+    /*
+     * Schemes are case-insensitive (RFC 3986), so match on a lower-cased
+     * copy and strip by length. Matching the literal prefix left "HTTPS://"
+     * in place, which then read as an authority of "HTTPS:".
+     *
+     * Longest-first: "https://" has to be tested before "http://", and only
+     * the first match is stripped.
+     */
+    const schemePrefixes: Array<[string, Protocol]> = [
+      ["https://", Protocol.HTTPS],
+      ["http://", Protocol.HTTP],
+      ["wss://", Protocol.WSS],
+      ["ws://", Protocol.WS],
+      ["mongodb://", Protocol.MONGO_DB],
+      ["mailto:", Protocol.MAIL],
+    ];
+
+    const lowerCasedUrl: string = url.toLowerCase();
+
+    for (const [prefix, prefixProtocol] of schemePrefixes) {
+      if (lowerCasedUrl.startsWith(prefix)) {
+        protocol = prefixProtocol;
+        url = url.substring(prefix.length);
+        break;
+      }
     }
 
-    if (url.startsWith("http://")) {
-      protocol = Protocol.HTTP;
-      url = url.replace("http://", "");
+    if (protocol === Protocol.MAIL) {
+      /*
+       * Hand the bare address to the constructor so it is recognised as an
+       * Email. Routing it through Hostname instead would ask a host validator
+       * to accept an email address — and "?subject=..." along with it.
+       */
+      const address: string = url.split("?")[0] || "";
+      const mailQueryString: string = url.split("?")[1] || "";
+
+      return new URL(protocol, address, undefined, mailQueryString);
     }
 
-    if (url.startsWith("wss://")) {
-      protocol = Protocol.WSS;
-      url = url.replace("wss://", "");
-    }
+    /*
+     * The authority ends at the first "/", "?" or "#". Splitting on "/" alone
+     * left the query and fragment glued to the host for URLs with no path
+     * ("https://host?token=x" parsed to a host of "host?token=x"), which both
+     * round-tripped wrong and handed anything that later interpolated the
+     * host a way to smuggle a path.
+     */
+    const authority: string = (url.split("/")[0] || "").split(/[?#]/)[0] || "";
 
-    if (url.startsWith("ws://")) {
-      protocol = Protocol.WS;
-      url = url.replace("ws://", "");
-    }
-
-    if (url.startsWith("mongodb://")) {
-      protocol = Protocol.MONGO_DB;
-      url = url.replace("mongodb://", "");
-    }
-
-    if (url.startsWith("mailto:")) {
-      protocol = Protocol.MAIL;
-      url = url.replace("mailto:", "");
-    }
-
-    const hostname: Hostname = new Hostname(url.split("/")[0] || "");
+    const hostname: Hostname = new Hostname(authority);
 
     let route: Route | undefined;
 

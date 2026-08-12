@@ -1,0 +1,155 @@
+suite: keda scaledobjects
+templates:
+  - templates/keda-scaledobjects.yaml
+release:
+  name: ou
+  namespace: oneuptime
+tests:
+  # `oneuptime.kedaScaledObject` emits TWO objects per tier and is included once
+  # per enabled tier, back to back. Helm only splits documents on a `---` line,
+  # so if either object is missing its leading separator the tiers get glued
+  # together: a TriggerAuthentication ends up in the same document as the NEXT
+  # tier's ScaledObject, the later duplicate top-level keys win on decode, and
+  # the TriggerAuthentication is silently never created. Enabling several tiers
+  # at once is the only way to catch that -- with a single tier there is nothing
+  # after the TriggerAuthentication to collide with, so it passes either way.
+  - it: should give every ScaledObject and TriggerAuthentication its own document when several KEDA tiers are enabled together
+    set:
+      keda.enabled: true
+      probes.one.keda.enabled: true
+      probes.two.enabled: true
+      probes.two.ports.http: 3874
+      probes.two.keda.enabled: true
+      probes.two.keda.minReplicas: 1
+      probes.two.keda.maxReplicas: 100
+      probes.two.keda.queueSizeThreshold: 10
+      probes.two.keda.pollingInterval: 30
+      probes.two.keda.cooldownPeriod: 300
+      probes.two.keda.fallback.failureThreshold: 3
+      probes.two.keda.fallback.replicas: 1
+      app.enabled: true
+      app.keda.enabled: true
+      # worker.enabled drops the app's queue-size trigger, so the app tier needs
+      # a utilization trigger (and the matching request) to render at all.
+      app.keda.targetCPUUtilizationPercentage: 70
+      app.resources.requests.cpu: 100m
+      worker.enabled: true
+      worker.keda.enabled: true
+      telemetryWriter.enabled: true
+      telemetryWriter.keda.enabled: true
+      runner.enabled: true
+      runner.keda.enabled: true
+    asserts:
+      # 6 tiers x (ScaledObject + TriggerAuthentication). A count below 12 means
+      # objects were glued into shared documents rather than dropped from the
+      # template -- the raw text still contains them, which is what makes this
+      # failure mode invisible without a document-level assertion.
+      - hasDocuments:
+          count: 12
+      - containsDocument:
+          apiVersion: keda.sh/v1alpha1
+          kind: ScaledObject
+          name: ou-probe-one-scaledobject
+          namespace: oneuptime
+          any: true
+      - containsDocument:
+          apiVersion: keda.sh/v1alpha1
+          kind: ScaledObject
+          name: ou-probe-two-scaledobject
+          namespace: oneuptime
+          any: true
+      - containsDocument:
+          apiVersion: keda.sh/v1alpha1
+          kind: ScaledObject
+          name: ou-app-scaledobject
+          namespace: oneuptime
+          any: true
+      - containsDocument:
+          apiVersion: keda.sh/v1alpha1
+          kind: ScaledObject
+          name: ou-worker-scaledobject
+          namespace: oneuptime
+          any: true
+      - containsDocument:
+          apiVersion: keda.sh/v1alpha1
+          kind: ScaledObject
+          name: ou-telemetry-writer-scaledobject
+          namespace: oneuptime
+          any: true
+      - containsDocument:
+          apiVersion: keda.sh/v1alpha1
+          kind: ScaledObject
+          name: ou-runner-scaledobject
+          namespace: oneuptime
+          any: true
+      # Every tier's TriggerAuthentication must survive as its own document.
+      # These are the assertions that fail when the separators are missing.
+      - containsDocument:
+          apiVersion: keda.sh/v1alpha1
+          kind: TriggerAuthentication
+          name: ou-probe-one-trigger-auth
+          namespace: oneuptime
+          any: true
+      - containsDocument:
+          apiVersion: keda.sh/v1alpha1
+          kind: TriggerAuthentication
+          name: ou-probe-two-trigger-auth
+          namespace: oneuptime
+          any: true
+      - containsDocument:
+          apiVersion: keda.sh/v1alpha1
+          kind: TriggerAuthentication
+          name: ou-app-trigger-auth
+          namespace: oneuptime
+          any: true
+      - containsDocument:
+          apiVersion: keda.sh/v1alpha1
+          kind: TriggerAuthentication
+          name: ou-worker-trigger-auth
+          namespace: oneuptime
+          any: true
+      - containsDocument:
+          apiVersion: keda.sh/v1alpha1
+          kind: TriggerAuthentication
+          name: ou-telemetry-writer-trigger-auth
+          namespace: oneuptime
+          any: true
+      - containsDocument:
+          apiVersion: keda.sh/v1alpha1
+          kind: TriggerAuthentication
+          name: ou-runner-trigger-auth
+          namespace: oneuptime
+          any: true
+
+  # Guards the other direction: the separators must not introduce stray empty
+  # documents when only one tier is enabled.
+  - it: should emit exactly one ScaledObject and one TriggerAuthentication for a single enabled tier
+    set:
+      keda.enabled: true
+      worker.enabled: true
+      worker.keda.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 2
+      - containsDocument:
+          apiVersion: keda.sh/v1alpha1
+          kind: ScaledObject
+          name: ou-worker-scaledobject
+          namespace: oneuptime
+          any: true
+      - containsDocument:
+          apiVersion: keda.sh/v1alpha1
+          kind: TriggerAuthentication
+          name: ou-worker-trigger-auth
+          namespace: oneuptime
+          any: true
+
+  - it: should render nothing when keda is disabled globally
+    set:
+      keda.enabled: false
+      worker.enabled: true
+      worker.keda.enabled: true
+      runner.keda.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0

@@ -327,7 +327,7 @@ export const CommitCodeToBranchTool: ObservabilityTool = {
 export const OpenCodePullRequestTool: ObservabilityTool = {
   name: "open_code_pull_request",
   description:
-    "Propose a code change: creates a new branch off the default branch, commits the changes, and opens a DRAFT pull request for a human to review. This is the safe, preferred way to change code from chat — it never writes to the default branch. Read each file with read_code_file first: content replaces the whole file.",
+    "Propose a code change: creates a new branch off the default branch, commits the changes, and opens a pull request, ready for review, for a human to review and merge. This is the safe, preferred way to change code from chat — it never writes to the default branch and never merges. Read each file with read_code_file first: content replaces the whole file.",
   isMutation: true,
   inputSchema: {
     type: "object",
@@ -358,7 +358,7 @@ export const OpenCodePullRequestTool: ObservabilityTool = {
     return resolveUpdatePermissions();
   },
   buildActionTitle: (args: JSONObject): string => {
-    return `Open draft pull request: ${ToolArgs.getString(args, "title") || "Untitled"}`;
+    return `Open pull request: ${ToolArgs.getString(args, "title") || "Untitled"}`;
   },
   execute: async (
     args: JSONObject,
@@ -454,7 +454,7 @@ export const OpenCodePullRequestTool: ObservabilityTool = {
         headBranchName: headBranchName,
         title: title,
         body: `${description}\n\n---\n_Proposed by OneUptime AI from a chat conversation. Review carefully before merging: this change was written by an agent that reads production telemetry._`,
-        isDraft: true,
+        isDraft: false,
       });
 
     /*
@@ -502,14 +502,14 @@ export const OpenCodePullRequestTool: ObservabilityTool = {
 
     return {
       dataForLlm: [
-        `Opened DRAFT pull request #${pullRequest.pullRequestNumber} on ${organizationName}/${repositoryName}.`,
+        `Opened pull request #${pullRequest.pullRequestNumber} on ${organizationName}/${repositoryName}, ready for review.`,
         `url: ${pullRequestUrl}`,
         `branch: ${headBranchName} → ${baseBranchName}`,
         `files:\n${describeChanges(changes)}`,
-        `It is a DRAFT and is NOT merged. Give the user the link and say it needs their review.`,
+        `It is NOT merged. Give the user the link and say it needs their review.`,
       ].join("\n"),
       rowCount: changes.length,
-      citationLabel: `Draft PR #${pullRequest.pullRequestNumber}: ${title}`,
+      citationLabel: `PR #${pullRequest.pullRequestNumber}: ${title}`,
       redactionCount: 0,
       isTruncated: false,
     };

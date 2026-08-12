@@ -289,6 +289,7 @@ export default abstract class ExceptionPullRequestTaskHandler extends BaseTaskHa
       repositoryName: tokenData.repositoryName,
       token: tokenData.token,
       repositoryUrl: tokenData.repositoryUrl,
+      baseBranch: repo.mainBranchName || undefined,
     };
 
     const repoManager: RepositoryManager = new RepositoryManager(
@@ -299,9 +300,23 @@ export default abstract class ExceptionPullRequestTaskHandler extends BaseTaskHa
       workspace.workspacePath,
     );
 
+    /*
+     * The base is what git actually checked out, not the stored column.
+     * When mainBranchName has gone stale — the repository was renamed from
+     * master to main, or the record predates a default-branch change — the
+     * clone falls back to the remote's real default, and targeting the
+     * stale name would either be rejected by GitHub or produce a pull
+     * request whose diff is every commit between the two branches rather
+     * than the fix.
+     */
+    const baseBranch: string = cloneResult.baseBranch;
+
     // Create a working branch
     const branchName: string = `${this.branchPrefix}${context.taskId.toString().substring(0, 8)}`;
-    await this.log(context, `Creating branch: ${branchName}`);
+    await this.log(
+      context,
+      `Creating branch: ${branchName} (from ${baseBranch})`,
+    );
     await repoManager.createBranch(cloneResult.repositoryPath, branchName);
 
     // Build the prompt for the code agent
@@ -339,11 +354,32 @@ export default abstract class ExceptionPullRequestTaskHandler extends BaseTaskHa
 
     const agentResult: CodeAgentResult = await agent.executeTask(codeAgentTask);
 
-    // Check if any changes were made
-    if (!agentResult.success || agentResult.filesModified.length === 0) {
+    /*
+     * A code agent that FAILED and a code agent that ran fine but found
+     * nothing to change are opposite outcomes, and collapsing them tells
+     * the user the wrong thing about their own system. The agent only
+     * reports success:false on a hard failure — the server was unreachable,
+     * the run's LLM budget was exhausted, the task timed out, it was
+     * aborted. Reporting that as "no fix found" presents an outage as a
+     * considered verdict, and hides it from anyone watching for errors.
+     *
+     * So: a failure is thrown, which the caller collects into `errors` and
+     * reports as Error. Only a clean run with an empty diff returns null,
+     * which becomes NoFixFound.
+     */
+    if (!agentResult.success) {
+      await agent.cleanup();
+      throw new Error(
+        `The code agent could not complete: ${
+          agentResult.error || agentResult.summary || "unknown error"
+        }`,
+      );
+    }
+
+    if (agentResult.filesModified.length === 0) {
       await this.log(
         context,
-        `Code agent did not make any changes: ${agentResult.error || agentResult.summary}`,
+        `Code agent completed without changing any files: ${agentResult.summary}`,
         "warning",
       );
       await agent.cleanup();
@@ -425,7 +461,7 @@ export default abstract class ExceptionPullRequestTaskHandler extends BaseTaskHa
       token: tokenData.token,
       organizationName: tokenData.organizationName,
       repositoryName: tokenData.repositoryName,
-      baseBranch: repo.mainBranchName || "main",
+      baseBranch,
       headBranch: branchName,
       title: prTitle,
       body: prBody,
@@ -443,7 +479,7 @@ export default abstract class ExceptionPullRequestTaskHandler extends BaseTaskHa
       title: prResult.title,
       description: prBody.substring(0, 1000),
       headRefName: branchName,
-      baseRefName: repo.mainBranchName || "main",
+      baseRefName: baseBranch,
       runnerVerificationStatus: verification.status,
       runnerVerificationSummary: verification.summary,
     });

@@ -39,9 +39,9 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
  * same FixFromIncident task with no human click. Confidence alone is not
  * sufficient: operational and other non-code causes do not open PRs. Like its
  * InstrumentationTaskTrigger sibling it runs only after the Recommended
- * decision and snapshot are durable, and it never throws. The PR still opens as a
- * DRAFT and is always human-reviewed — the opt-in moves the human gate from
- * PR creation to PR review, never past it.
+ * decision and snapshot are durable, and it never throws. The PR opens ready
+ * for review and is always human-reviewed — the opt-in moves the human gate
+ * from PR creation to PR review, never past it.
  */
 
 export interface AutoFixTaskGateInput {

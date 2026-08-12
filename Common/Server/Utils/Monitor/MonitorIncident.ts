@@ -44,6 +44,9 @@ import logger, { LogAttributes } from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import DataToProcess from "./DataToProcess";
 import MonitorTemplateUtil from "./MonitorTemplateUtil";
+import MonitorDependencySuppression, {
+  DependencySuppressionResult,
+} from "./MonitorDependencySuppression";
 import { JSONObject } from "../../../Types/JSON";
 import OneUptimeDate from "../../../Types/Date";
 import MonitorEvaluationSummary from "../../../Types/Monitor/MonitorEvaluationSummary";
@@ -289,6 +292,14 @@ export default class MonitorIncident {
      */
     suppressedSeriesFingerprints?: Set<string> | undefined;
     /**
+     * Alert-dependency suppression: when set and isSuppressed, a parent
+     * monitor this monitor depends on is currently in a suppressing
+     * status, so ALL incident creation for this evaluation is skipped.
+     * Only creation — already-open incidents still follow the normal
+     * resolve path above. See MonitorDependencySuppression.
+     */
+    dependencySuppression?: DependencySuppressionResult | undefined;
+    /**
      * Event-driven monitors (incoming-request / webhook fan-out) must not
      * use the metric snapshot model where a series absent from this tick's
      * breaching set is auto-resolved — a single webhook only describes the
@@ -339,6 +350,35 @@ export default class MonitorIncident {
       });
 
     if (!input.criteriaInstance.data?.createIncidents) {
+      return;
+    }
+
+    /*
+     * Alert-dependency suppression: a parent monitor is in a suppressing
+     * status (offline by default), so skip creating any incident for this
+     * evaluation. Placed after the open-incident resolve pass above on
+     * purpose — an incident raised before the parent went down must still
+     * resolve normally; only new creation is silenced.
+     */
+    if (input.dependencySuppression?.isSuppressed) {
+      const suppressionReason: string =
+        MonitorDependencySuppression.buildSuppressionReason(
+          input.dependencySuppression.suppressingParents,
+        );
+
+      logger.debug(
+        `${input.monitor.id?.toString()} - Skipping incident creation: ${suppressionReason}.`,
+        incidentLogAttributes,
+      );
+
+      input.evaluationSummary?.events.push({
+        type: "incident-skipped",
+        title: "Incident suppressed by monitor dependency",
+        message: `Skipped creating incidents because ${suppressionReason}. This monitor's status still updates normally; open incidents still auto-resolve.`,
+        relatedCriteriaId: input.criteriaInstance.data?.id,
+        at: OneUptimeDate.getCurrentDate(),
+      });
+
       return;
     }
 

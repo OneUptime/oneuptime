@@ -5,5 +5,7 @@ import User from "../../../Models/DatabaseModels/User";
 export default interface DeleteById {
   id: ObjectID;
   deletedByUser?: User;
+  // See DeleteOneBy.deletionReason - passed straight through to the hooks.
+  deletionReason?: string | undefined;
   props: DatabaseCommonInteractionProps;
 }

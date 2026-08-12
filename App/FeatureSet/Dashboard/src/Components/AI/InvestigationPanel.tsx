@@ -1232,7 +1232,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
                     Act on this investigation
                   </p>
                   <p className="mb-3 mt-1 text-xs leading-5 text-gray-500">
-                    Create a draft fix pull request with this report as context.
+                    Create a fix pull request with this report as context.
                   </p>
                   {fixTaskRunId ? (
                     <Alert

@@ -13,7 +13,13 @@ on:
       - 'release'
 
 jobs:
-  helm-lint:
+  # Every Helm chart test, in one check. The runner walks HelmChart/Tests/suites
+  # cheapest-first -- lint, then the cluster-free helm-unittest suites, then the
+  # ones that need a real API server (secrets-lifecycle installs and upgrades the
+  # chart on a throwaway KinD cluster; no images are pulled, since the release
+  # goes up without --wait and without hooks). A failing suite does not stop the
+  # rest, so one run reports everything that is broken.
+  helm-test:
     runs-on: ubuntu-latest
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
@@ -23,11 +29,13 @@ jobs:
       - name: Install Helm
         run: |
           curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-      - name: Lint Helm Chart
-        run: |
-          helm lint ./HelmChart/Public/oneuptime
-          helm lint ./HelmChart/Public/kubernetes-agent
-          
+      - name: Run Helm Chart tests
+        run: bash ./HelmChart/Tests/run.sh
+      - name: Show how to run these locally
+        if: ${{ failure() }}
+        run: echo "Run 'npm run test-helm-chart-all', or a single suite with 'bash ./HelmChart/Tests/run.sh <suite>' (suites live in HelmChart/Tests/suites). 'npm run test-helm-chart' still runs just the cluster-free helm-unittest suites."
+
+
   js-lint:
     runs-on: ubuntu-latest
     env:

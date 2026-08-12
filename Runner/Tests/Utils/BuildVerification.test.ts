@@ -1096,31 +1096,82 @@ describe("RepositoryManager.addPaths", () => {
     expect(stagedPaths(dir)).toEqual(["agent-change.ts"]);
   });
 
-  test("dedupes, skips blank entries, and passes paths after --", async () => {
-    const executeSpy: jest.SpyInstance = jest
-      .spyOn(Execute, "executeCommandFile")
-      .mockResolvedValue("");
+  test("dedupes, skips blank entries, and stages each named path once", async () => {
+    const dir: string = makeGitRepoDir();
 
-    try {
-      await new RepositoryManager().addPaths("/repo", [
-        "src/fix.ts",
-        "src/fix.ts",
-        "   ",
-        "",
-        "src/other.ts",
-      ]);
+    fs.writeFileSync(path.join(dir, "fix.ts"), "export const a: number = 1;\n");
+    fs.writeFileSync(
+      path.join(dir, "other.ts"),
+      "export const b: number = 2;\n",
+    );
 
-      expect(executeSpy).toHaveBeenCalledTimes(1);
-      expect(executeSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          command: "git",
-          // "--" so a path can never be read as a flag.
-          args: ["add", "--", "src/fix.ts", "src/other.ts"],
-        }),
-      );
-    } finally {
-      executeSpy.mockRestore();
-    }
+    await new RepositoryManager().addPaths(dir, [
+      "fix.ts",
+      "fix.ts",
+      "   ",
+      "",
+      "other.ts",
+    ]);
+
+    expect(stagedPaths(dir).sort()).toEqual(["fix.ts", "other.ts"]);
+  });
+
+  /*
+   * A path can never be read as a flag: everything goes after `--`. A file
+   * literally named `-f` is the test for it, because that is the only way
+   * to tell "passed as a pathspec" from "passed as an option".
+   */
+  test("a filename that looks like a flag is staged, not interpreted", async () => {
+    const dir: string = makeGitRepoDir();
+
+    fs.writeFileSync(path.join(dir, "-f"), "not an option\n");
+
+    await new RepositoryManager().addPaths(dir, ["-f"]);
+
+    expect(stagedPaths(dir)).toEqual(["-f"]);
+  });
+
+  /*
+   * REGRESSION. The path list is a snapshot taken BEFORE the repository's
+   * own build and test commands ran, and a build step legitimately deletes
+   * files that existed when it was taken. `git add` treats a pathspec that
+   * matches nothing as fatal (exit 128), so one vanished path used to abort
+   * the entire repository — with the fix written, verified and then thrown
+   * away without a pull request.
+   */
+  test("a path that no longer exists is skipped instead of aborting the commit", async () => {
+    const dir: string = makeGitRepoDir();
+
+    fs.writeFileSync(
+      path.join(dir, "kept.ts"),
+      "export const a: number = 1;\n",
+    );
+
+    await new RepositoryManager().addPaths(dir, [
+      "kept.ts",
+      // Written by the agent, then deleted by the build. Never existed here.
+      "generated/tmp-output.ts",
+    ]);
+
+    expect(stagedPaths(dir)).toEqual(["kept.ts"]);
+  });
+
+  /*
+   * The other half of that: a TRACKED file the agent deleted must still be
+   * staged, so the deletion reaches the pull request. Skipping it because
+   * it is "missing" would silently drop half of the fix.
+   */
+  test("a tracked file the agent deleted stages its deletion", async () => {
+    const dir: string = makeGitRepoDir();
+
+    fs.rmSync(path.join(dir, "README.md"));
+
+    await new RepositoryManager().addPaths(dir, ["README.md"]);
+
+    expect(stagedPaths(dir)).toEqual(["README.md"]);
+    expect(
+      git(dir, ["diff", "--cached", "--name-status"]).startsWith("D"),
+    ).toBe(true);
   });
 
   test("an empty or all-blank path list runs no git command at all", async () => {

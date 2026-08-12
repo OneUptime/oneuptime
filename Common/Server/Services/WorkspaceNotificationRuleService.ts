@@ -309,6 +309,20 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
             // Check for errors in the response
             if (res.errors && res.errors.length > 0) {
+              /*
+               * Record the failure before throwing. Test sends used to throw
+               * straight out of here, so a failed test left no trace in
+               * Notification Logs and support had no way to see what Microsoft
+               * or Slack actually said.
+               */
+              await this.logTestSendFailures({
+                projectId: data.projectId,
+                workspaceType: res.workspaceType,
+                errors: res.errors,
+                message: messageSummary,
+                userId: data.testByUserId,
+              });
+
               const errorMessages: Array<string> = res.errors.map(
                 (error: { channel: WorkspaceChannel; error: string }) => {
                   return `Channel ${error.channel.name}: ${error.error}`;
@@ -408,6 +422,20 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
             // Check for errors in the response
             if (res.errors && res.errors.length > 0) {
+              /*
+               * Record the failure before throwing. Test sends used to throw
+               * straight out of here, so a failed test left no trace in
+               * Notification Logs and support had no way to see what Microsoft
+               * or Slack actually said.
+               */
+              await this.logTestSendFailures({
+                projectId: data.projectId,
+                workspaceType: res.workspaceType,
+                errors: res.errors,
+                message: messageSummary,
+                userId: data.testByUserId,
+              });
+
               const errorMessages: Array<string> = res.errors.map(
                 (error: { channel: WorkspaceChannel; error: string }) => {
                   return `Channel ${error.channel.name}: ${error.error}`;
@@ -536,6 +564,47 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         throw new BadDataException(
           "Cannot post message to chat. " + (err as Error)?.message,
         );
+      }
+    }
+  }
+
+  /*
+   * Persist per-destination failures from a test send so they show up in
+   * Settings > Notification Logs alongside real notification failures. Real
+   * sends already log; test sends threw before reaching any logging, which
+   * meant the one action an admin takes to diagnose a broken integration was
+   * also the only one that recorded nothing.
+   *
+   * Best-effort: a logging failure must never mask the underlying send error.
+   */
+  @CaptureSpan()
+  private async logTestSendFailures(data: {
+    projectId: ObjectID;
+    workspaceType: WorkspaceType;
+    errors: Array<{ channel: WorkspaceChannel; error: string }>;
+    message: string;
+    userId: ObjectID;
+  }): Promise<void> {
+    for (const error of data.errors) {
+      try {
+        const log: WorkspaceNotificationLog = new WorkspaceNotificationLog();
+        log.projectId = data.projectId;
+        log.workspaceType = data.workspaceType;
+        log.channelId = error.channel.id;
+        log.channelName = error.channel.name;
+        log.message = data.message;
+        log.status = WorkspaceNotificationStatus.Error;
+        log.statusMessage = error.error;
+        log.userId = data.userId;
+        log.actionType = WorkspaceNotificationActionType.SendMessage;
+
+        await WorkspaceNotificationLogService.create({
+          data: log,
+          props: { isRoot: true },
+        });
+      } catch (err) {
+        logger.error("Could not write test-send failure to notification log:");
+        logger.error(err);
       }
     }
   }

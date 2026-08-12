@@ -21,8 +21,9 @@ import CaptureSpan from "../../../Telemetry/CaptureSpan";
  * Project.enableAi master switch AND on Project.enableInsightFixTasks
  * (default FALSE): insights whose evidence points at code (new/spiking
  * exceptions with a resolvable repository, latency regressions with
- * span-tree findings) queue a CodeFix AIRun that opens a draft pull
- * request. The decision is readiness/evidence-based, never LLM-decided.
+ * span-tree findings) queue a CodeFix AIRun that opens a pull request,
+ * ready for review. The decision is readiness/evidence-based, never
+ * LLM-decided.
  *
  * Everything downstream reuses the existing budgeted creation paths, so
  * every guardrail comes free: the daily fix-run budget (G11, pre-checked

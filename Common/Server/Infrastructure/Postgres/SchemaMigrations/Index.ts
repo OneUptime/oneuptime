@@ -512,6 +512,9 @@ import { AddInvestigationCodeFixRecommendation1786500000000 } from "./1786500000
 import { AddInvestigationAnalysisTldr1786600000000 } from "./1786600000000-AddInvestigationAnalysisTldr";
 import { DropProjectCallSMSConfigCredentialUniques1786700000000 } from "./1786700000000-DropProjectCallSMSConfigCredentialUniques";
 import { AddDataSourceTable1786303472848 } from "./1786303472848-AddDataSourceTable";
+import { MigrationName1786446545142 } from "./1786446545142-MigrationName";
+import { AddMonitorDependency1786449497966 } from "./1786449497966-AddMonitorDependency";
+import { AddDeletedProjectTable1786461136170 } from "./1786461136170-AddDeletedProjectTable";
 
 export default [
   InitialMigration,
@@ -1028,4 +1031,7 @@ export default [
   AddInvestigationAnalysisTldr1786600000000,
   DropProjectCallSMSConfigCredentialUniques1786700000000,
   AddDataSourceTable1786303472848,
+  MigrationName1786446545142,
+  AddMonitorDependency1786449497966,
+  AddDeletedProjectTable1786461136170,
 ];

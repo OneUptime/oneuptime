@@ -92,6 +92,7 @@
     "Self-Hosted Setup": "Zelf gehoste installatie",
     "Examples": "Voorbeelden",
     "Registry Usage": "Registergebruik",
+    "OpenTofu": "OpenTofu",
     "Authentication": "Authenticatie",
     "Resource Operations": "Bewerkingen op bronnen",
     "Output Formats": "Uitvoerformaten",

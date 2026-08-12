@@ -21,3 +21,9 @@
 .idea/
 *.tmproj
 .vscode/
+
+# Chart unit tests (helm-unittest) - not needed inside the packaged chart.
+# The leading slash anchors this to the chart root: an unanchored `tests/`
+# matches by base name at any depth and would also drop templates/tests/,
+# silently removing the `helm test` hook Pod from the chart.
+/tests/

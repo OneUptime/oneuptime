@@ -789,7 +789,8 @@ jobs:
         run: |
           set -euo pipefail
           if [ -n "$GPG_PRIVATE_KEY" ]; then
-            printf '%s' "$GPG_PRIVATE_KEY" > private.key
+            # %b: the secret stores newlines as literal \n — see release.yml.
+            printf '%b\n' "$GPG_PRIVATE_KEY" > private.key
             # `gpg --import` can exit non-zero on a non-fatal warning (e.g. an
             # "invalid armor header" on stray whitespace/comment lines in the
             # secret) even when the actual key material imports successfully, so

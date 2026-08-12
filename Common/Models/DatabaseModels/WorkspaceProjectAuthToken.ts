@@ -36,6 +36,23 @@ export interface MicrosoftTeamsChat {
   addedAt?: string | undefined;
 }
 
+/*
+ * A team the OneUptime app has actually been installed into, captured from the
+ * bot's install / conversationUpdate events.
+ *
+ * Graph can list every team in the tenant with app-only permissions, but the
+ * Bot Framework will only accept a proactive post into a team the app is a
+ * roster member of. Listing a team is therefore NOT evidence that we can post
+ * to it — this record is, which is why channel sends check it before calling
+ * the Bot Framework.
+ */
+export interface MicrosoftTeamsInstalledTeam {
+  id: string; // Teams team (group) id.
+  name?: string | undefined;
+  serviceUrl?: string | undefined; // Bot Framework service URL captured on install. Required for GCC/DoD.
+  addedAt?: string | undefined;
+}
+
 export interface SlackMiscData extends MiscData {
   teamId: string;
   teamName: string;
@@ -59,9 +76,10 @@ export interface MicrosoftTeamsMiscData extends MiscData {
   lastAppTokenIssuedAt?: string;
   adminConsentGrantedAt?: string;
   adminConsentGrantedBy?: string;
-  availableTeams?: Record<string, MicrosoftTeamsTeam>;
+  availableTeams?: Record<string, MicrosoftTeamsTeam>; // keyed by team id. Every team Graph can see in the tenant.
   appAccessTokenExpiresAt?: string;
   availableChats?: Record<string, MicrosoftTeamsChat>; // keyed by chat id. Chats the OneUptime app has been added to.
+  installedTeams?: Record<string, MicrosoftTeamsInstalledTeam>; // keyed by team id. Teams the OneUptime app has been added to.
 }
 
 export type WorkspaceMiscData = SlackMiscData | MicrosoftTeamsMiscData;

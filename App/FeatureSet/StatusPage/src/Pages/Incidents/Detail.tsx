@@ -676,6 +676,15 @@ const Detail: FunctionComponent<PageComponentProps> = (
 
       // First try to fetch as an incident
       let foundIncident: boolean = false;
+      let foundEpisode: boolean = false;
+
+      /*
+       * The incident lookup is allowed to fail because this id may belong to an
+       * episode instead. Hold on to the failure so we can surface it if the episode
+       * fallback below does not find anything either.
+       */
+      let incidentLookupError: unknown = null;
+
       try {
         const response: HTTPResponse<JSONObject> = await API.post<JSONObject>({
           url: URL.fromString(STATUS_PAGE_API_URL.toString()).addRoute(
@@ -731,9 +740,12 @@ const Detail: FunctionComponent<PageComponentProps> = (
               setIncidentStateTimelines(incidentStateTimelines);
             }
           }
+        } else {
+          incidentLookupError = response;
         }
-      } catch {
+      } catch (err) {
         // Incident not found, will try episode
+        incidentLookupError = err;
       }
 
       // If not found as incident, try as episode
@@ -769,6 +781,7 @@ const Detail: FunctionComponent<PageComponentProps> = (
               }
 
               if (episode && episode.id) {
+                foundEpisode = true;
                 setIsEpisode(true);
 
                 const episodePublicNotes: Array<IncidentEpisodePublicNote> =
@@ -803,8 +816,16 @@ const Detail: FunctionComponent<PageComponentProps> = (
             }
           }
         } catch {
-          // Episode not found either
+          /*
+           * Episode not found either. This is only a fallback lookup - it fails on
+           * every status page that has episodes turned off - so surfacing its error
+           * would be misleading. The empty state below covers this case.
+           */
         }
+      }
+
+      if (!foundIncident && !foundEpisode && incidentLookupError) {
+        throw incidentLookupError;
       }
 
       setIsLoading(false);
@@ -861,14 +882,19 @@ const Detail: FunctionComponent<PageComponentProps> = (
     return <ErrorMessage message={error} />;
   }
 
-  if (!parsedData) {
-    return <PageLoader isVisible={true} />;
-  }
-
   const pageTitle: string = isEpisode
     ? t("episodes.report")
     : t("incidents.report");
   const hasItem: boolean = isEpisode ? Boolean(episode) : Boolean(incident);
+
+  /*
+   * Only wait on parsedData when there is something to parse. If neither lookup found
+   * anything then parsedData never gets set, so falling through to the empty state
+   * below is what keeps this page from loading forever.
+   */
+  if (hasItem && !parsedData) {
+    return <PageLoader isVisible={true} />;
+  }
 
   return (
     <Page
@@ -901,7 +927,7 @@ const Detail: FunctionComponent<PageComponentProps> = (
         },
       ]}
     >
-      {hasItem ? <EventItem {...parsedData} /> : <></>}
+      {hasItem && parsedData ? <EventItem {...parsedData} /> : <></>}
       {!hasItem ? (
         <EmptyState
           id="item-empty-state"

@@ -216,7 +216,12 @@ describe("HtmlWidgetDocument", () => {
       ).toEqual({ clusters: "eu-1,us-1" });
     });
 
-    it("falls back to the default when a multi-select has no picks", () => {
+    /*
+     * A multi-select with no picks is "All", and the default does not
+     * override it — same rule the chart widgets follow. The author sees
+     * an empty string, which is what "no scope" looks like in a template.
+     */
+    it("renders an empty string when a multi-select has no picks", () => {
       expect(
         HtmlWidgetDocument.resolveVariables([
           makeVariable({
@@ -226,7 +231,19 @@ describe("HtmlWidgetDocument", () => {
             defaultValue: "eu-1",
           }),
         ]),
-      ).toEqual({ clusters: "eu-1" });
+      ).toEqual({ clusters: "" });
+    });
+
+    it("renders an empty string for an untouched multi-select with a default", () => {
+      expect(
+        HtmlWidgetDocument.resolveVariables([
+          makeVariable({
+            name: "clusters",
+            isMultiSelect: true,
+            defaultValue: "eu-1",
+          }),
+        ]),
+      ).toEqual({ clusters: "" });
     });
 
     it("maps an unset variable to an empty string rather than dropping it", () => {

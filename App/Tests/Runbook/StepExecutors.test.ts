@@ -19,6 +19,7 @@ import {
   MIN_AGENT_CLAIM_TIMEOUT_IN_MS,
   MIN_STEP_EXECUTION_TIMEOUT_IN_MS,
 } from "Common/Types/Runbook/RunbookStepTimeout";
+import DataSourceEgressGuard from "Common/Server/Utils/DataSource/EgressGuard";
 import { describe, expect, test, beforeEach, afterEach } from "@jest/globals";
 import {
   runBashStep,
@@ -28,6 +29,25 @@ import {
   StepExecutionContext,
   StepRunResult,
 } from "../../FeatureSet/Runbook/Services/StepExecutors";
+
+/*
+ * runHttpStep validates and pins its target through the SSRF egress guard
+ * before dialing. These tests are about step semantics, not egress policy, so
+ * the guard is stubbed to keep them offline — the policy itself is covered by
+ * RunbookHttpStepSSRF.test.ts.
+ */
+beforeEach(() => {
+  jest
+    .spyOn(DataSourceEgressGuard, "assertUrlAllowedAndPin")
+    .mockImplementation((urlString: string) => {
+      return Promise.resolve({
+        url: new globalThis.URL(urlString),
+        addresses: [{ address: "93.184.216.34", family: 4 }],
+        httpAgent: undefined as never,
+        httpsAgent: undefined as never,
+      });
+    });
+});
 
 function makeCtx(): StepExecutionContext {
   return {

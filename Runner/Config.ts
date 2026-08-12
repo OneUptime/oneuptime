@@ -13,8 +13,8 @@ import logger from "Common/Server/Utils/Logger";
  *     the customer's own infrastructure (default ON — this is why most
  *     people install a Runner).
  *   - CODE FIXES: claims AI code-fix runs, works in the project's code
- *     repository and opens draft pull requests (default OFF — it needs a
- *     connected code repository).
+ *     repository and opens pull requests for review (default OFF — it needs
+ *     a connected code repository).
  *
  * Credentials come in two shapes:
  *   - PROJECT-SCOPED (what customers install): ONEUPTIME_RUNNER_ID +

@@ -11,7 +11,7 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
 /*
  * AI SRE — the service-scoped instrumentation-improvement triggers:
  * ImproveLogging and ImproveTracing. One click on a service's Logs or
- * Traces page opens a draft PR that improves that service's logging or
+ * Traces page opens a PR that improves that service's logging or
  * tracing hygiene — parameterized log messages, correct severities, spans
  * on uninstrumented paths, proper exception recording — WITHOUT changing
  * behavior.

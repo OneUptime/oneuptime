@@ -21,10 +21,62 @@ import Dictionary from "../../Types/Dictionary";
 import Exception from "../../Types/Exception/Exception";
 import { JSONArray, JSONObject } from "../../Types/JSON";
 import ListData from "../../Types/ListData";
+import MimeType from "../../Types/File/MimeType";
 import PositiveNumber from "../../Types/PositiveNumber";
 import Route from "../../Types/API/Route";
 import CaptureSpan from "./Telemetry/CaptureSpan";
 import { IsBillingEnabled } from "../EnvironmentConfig";
+
+/*
+ * Raster image types, which is to say the types that cannot carry script and
+ * are therefore safe both to echo back verbatim and to render in our own
+ * origin. An SVG is not here on purpose: it is a document, not a picture, and
+ * a PDF is not here either because it gets its own scripting engine.
+ *
+ * The list is deliberately wider than the MimeType enum. Until November 2025
+ * (62d74c1d84) the file picker stored the browser's own MIME string verbatim,
+ * so installs upgrading through this change hold rows with values that never
+ * appeared in the enum - "image/vnd.microsoft.icon" from a favicon upload,
+ * "image/jpg" from assorted tools. Collapsing those to octet-stream would stop
+ * every one of those avatars and logos from rendering, because nosniff means
+ * an <img> cannot recover from a type it was given wrongly.
+ */
+const SAFE_IMAGE_MIME_TYPES: Set<string> = new Set<string>([
+  MimeType.png,
+  // MimeType.jpg is the same string as MimeType.jpeg, so it is covered.
+  MimeType.jpeg,
+  MimeType.gif,
+  MimeType.webp,
+  MimeType.ico,
+  MimeType.bmp,
+  MimeType.tiff,
+  MimeType.avif,
+  MimeType.heic,
+  "image/jpg",
+  "image/pjpeg",
+  "image/vnd.microsoft.icon",
+  "image/x-ms-bmp",
+]);
+
+/*
+ * `fileType` is a plain varchar filled in from the upload request body, so by
+ * the time a file is served back it holds whatever string the uploader chose -
+ * the MimeType enum is a compile-time type and is erased at runtime. Echoing
+ * that string back as Content-Type is what turns "upload an image" into "run
+ * script on the dashboard origin", because /api, /file and /dashboard are the
+ * same origin. Only types we actually recognise get echoed back.
+ *
+ * Note this read-side list is wider than the one FileService enforces on
+ * upload: new rows are held to the canonical enum, old rows only have to be
+ * servable.
+ */
+const ALLOWED_MIME_TYPES: Set<string> = new Set<string>([
+  ...Object.values(MimeType),
+  ...SAFE_IMAGE_MIME_TYPES,
+]);
+
+// What an unrecognised fileType degrades to: opaque bytes, never a document.
+const FALLBACK_MIME_TYPE: string = "application/octet-stream";
 
 export default class Response {
   @CaptureSpan()
@@ -67,21 +119,105 @@ export default class Response {
     oneUptimeResponse.status(statusCode).send(body);
   }
 
+  /*
+   * Reduce a stored fileType to something safe to hand back as Content-Type.
+   * Anything we do not recognise - a made-up string, "text/html", a row
+   * written before uploads were validated - becomes opaque bytes.
+   */
+  public static getSafeFileType(fileType: string | undefined | null): string {
+    const normalizedFileType: string = (fileType || "").trim().toLowerCase();
+
+    if (ALLOWED_MIME_TYPES.has(normalizedFileType)) {
+      return normalizedFileType;
+    }
+
+    return FALLBACK_MIME_TYPE;
+  }
+
+  /*
+   * The filename goes into a response header, so it gets the same treatment as
+   * the MIME string: no quotes, no CR/LF, nothing that could split the header.
+   * This is the ASCII fallback only - see getContentDisposition, which pairs it
+   * with an encoded copy so a non-Latin name is not reduced to underscores.
+   */
+  public static getSafeFileName(name: string | undefined | null): string {
+    const safeFileName: string = (name || "")
+      .replace(/[^a-zA-Z0-9._-]/g, "_")
+      .slice(0, 100);
+
+    return safeFileName || "download";
+  }
+
+  /*
+   * RFC 6266: `filename` carries an ASCII-safe fallback for old clients and
+   * `filename*` carries the real name percent-encoded, so "月次レポート.pdf"
+   * downloads under its own name instead of as a row of underscores. Both are
+   * escaped, so neither can close the quoted string or inject a header.
+   */
+  public static getContentDisposition(
+    disposition: "inline" | "attachment",
+    name: string | undefined | null,
+  ): string {
+    const fileName: string = (name || "").trim().slice(0, 100) || "download";
+
+    /*
+     * encodeURIComponent leaves !'()* alone and RFC 5987's attr-char does not
+     * allow them - single quote especially, since it delimits the value.
+     */
+    const encodedFileName: string = encodeURIComponent(fileName).replace(
+      /['()*!]/g,
+      (character: string): string => {
+        return `%${character.charCodeAt(0).toString(16).toUpperCase()}`;
+      },
+    );
+
+    return `${disposition}; filename="${Response.getSafeFileName(fileName)}"; filename*=UTF-8''${encodedFileName}`;
+  }
+
   @CaptureSpan()
   public static async sendFileResponse(
     _req: ExpressRequest | ExpressRequest,
     res: ExpressResponse,
     file: FileModel,
   ): Promise<void> {
-    /** Create read stream */
-
     const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
 
-    /** Set the proper content type */
-    oneUptimeResponse.set("Content-Type", file.fileType);
+    const fileType: string = Response.getSafeFileType(file.fileType);
+
+    oneUptimeResponse.set("Content-Type", fileType);
+
+    /*
+     * Belt and braces for the types we do echo back. nosniff stops the browser
+     * from guessing its way to a different type; the CSP gives the response an
+     * opaque origin with no scripting even if it is opened as a top-level
+     * document, so a crafted file cannot reach dashboard cookies; and nothing
+     * we serve here is ever meant to be framed.
+     */
+    oneUptimeResponse.set("X-Content-Type-Options", "nosniff");
+    oneUptimeResponse.set(
+      "Content-Security-Policy",
+      "sandbox; script-src 'none'; object-src 'none'; frame-ancestors 'none'",
+    );
+    oneUptimeResponse.set("X-Frame-Options", "DENY");
+
+    /*
+     * Inline is reserved for raster images, which cannot execute anything.
+     * Everything else - SVG, PDF, office docs, whatever an older row happens
+     * to hold - downloads instead of rendering. This is deliberately not an
+     * SVG ban: <img> and <link rel="icon"> ignore Content-Disposition, so
+     * status page logos, favicons and avatars still render. The only
+     * behaviour that changes is a top-level navigation to the file URL, and
+     * that is exactly the navigation an XSS payload needs.
+     */
+    oneUptimeResponse.set(
+      "Content-Disposition",
+      Response.getContentDisposition(
+        SAFE_IMAGE_MIME_TYPES.has(fileType) ? "inline" : "attachment",
+        file.name,
+      ),
+    );
+
     oneUptimeResponse.status(200);
-    /** Return response */
-    // readstream.pipe(res);
 
     oneUptimeResponse.send(file.file);
   }

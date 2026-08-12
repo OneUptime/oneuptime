@@ -1,4 +1,5 @@
 import AlertsTable from "../../../Components/Alert/AlertsTable";
+import DependencySuppressionWarning from "../../../Components/Monitor/DependencySuppressionWarning";
 import DisabledWarning from "../../../Components/Monitor/DisabledWarning";
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
@@ -24,6 +25,7 @@ const MonitorAlerts: FunctionComponent<
   return (
     <Fragment>
       <DisabledWarning monitorId={modelId} />
+      <DependencySuppressionWarning monitorId={modelId} />
       <AlertsTable
         query={query}
         createInitialValues={{

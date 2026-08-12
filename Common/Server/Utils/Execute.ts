@@ -74,6 +74,13 @@ export default class Execute {
      * (e.g. `git log` over a huge full-history repo) can never hang the caller.
      */
     timeoutInMS?: number | undefined;
+    /*
+     * Environment for the child. Replaces this process's environment entirely
+     * when given, so a caller can hand a secret to ONE child (a git askpass
+     * token) without putting it in process.env, where every other child —
+     * including an AI agent's shell commands — would inherit it.
+     */
+    env?: NodeJS.ProcessEnv | undefined;
   }): Promise<string> {
     return new Promise(
       (
@@ -89,6 +96,7 @@ export default class Execute {
             ...(data.timeoutInMS
               ? { timeout: data.timeoutInMS, killSignal: "SIGKILL" }
               : {}),
+            ...(data.env ? { env: data.env } : {}),
           },
           (
             err: ExecFileException | null,

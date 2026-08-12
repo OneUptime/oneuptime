@@ -29,6 +29,7 @@ import LocalCache from "Common/Server/Infrastructure/LocalCache";
 import EmailLogService from "Common/Server/Services/EmailLogService";
 import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
 import logger from "Common/Server/Utils/Logger";
+import DataSourceEgressGuard from "Common/Server/Utils/DataSource/EgressGuard";
 import AppMetrics from "Common/Server/Utils/Telemetry/AppMetrics";
 import EmailLog from "Common/Models/DatabaseModels/EmailLog";
 import { EmailServerType } from "Common/Models/DatabaseModels/GlobalConfig";
@@ -39,8 +40,11 @@ import SMTPTransport from "nodemailer/lib/smtp-transport";
 import Path from "path";
 import * as tls from "tls";
 
-// Connection pool for email transporters
-class TransporterPool {
+/*
+ * Connection pool for email transporters
+ * Exported so the SSRF guard on tenant-supplied SMTP hosts can be tested.
+ */
+export class TransporterPool {
   private static pools: Map<string, Transporter> = new Map();
   private static semaphore: Map<string, number> = new Map();
   private static readonly MAX_CONCURRENT_CONNECTIONS = 100;
@@ -98,10 +102,49 @@ class TransporterPool {
     return `${host}:${portNumber}:${username}:${mode}:${authType}`;
   }
 
+  /*
+   * Validate the SMTP host of a PROJECT-supplied mail server before dialing
+   * it.
+   *
+   * hostname/port on ProjectSmtpConfig are free text, and nodemailer reports
+   * what it found on the socket — "Invalid greeting. response=<raw bytes>" —
+   * which MailService stores in EmailLog.statusMessage and shows to the
+   * project. That turns "send a test email" into an internal port scanner
+   * with banner disclosure, so it has to be checked on every connection
+   * rather than on write: rows configured before this existed are still in
+   * the database.
+   *
+   * The GLOBAL mail server is exempt. It is operator-configured, not
+   * tenant-configured (EmailServer.id is set only for project configs), and
+   * pointing it at an internal relay is a normal self-hosted deployment.
+   */
+  private static async assertMailServerHostIsAllowed(
+    emailServer: EmailServer,
+  ): Promise<void> {
+    if (!emailServer.id) {
+      return;
+    }
+
+    if (!emailServer.host) {
+      return;
+    }
+
+    /*
+     * .hostname, not .toString(): the latter re-appends the port, and the
+     * guard resolves what it is given.
+     */
+    await DataSourceEgressGuard.assertHostnameAllowed(
+      emailServer.host.hostname,
+      { targetLabel: "SMTP server" },
+    );
+  }
+
   public static async getTransporter(
     emailServer: EmailServer,
     options: { timeout?: number | undefined },
   ): Promise<Transporter> {
+    await this.assertMailServerHostIsAllowed(emailServer);
+
     /*
      * For OAuth, we need to create a new transporter each time to get fresh tokens
      * The access token has a limited lifetime and needs to be refreshed

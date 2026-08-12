@@ -1,5 +1,5 @@
 import ProbeElement from "../../../UI/Components/Probe/Probe";
-import "@testing-library/jest-dom/extend-expect";
+import "@testing-library/jest-dom";
 import { render, screen } from "@testing-library/react";
 import ObjectID from "../../../Types/ObjectID";
 import Probe from "../../../Models/DatabaseModels/Probe";

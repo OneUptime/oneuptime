@@ -11,7 +11,7 @@ It serves three kinds of work, each independently switchable:
 | Capability | Default | What it does |
 | --- | --- | --- |
 | Runs Runbooks | on | Claims Bash and JavaScript runbook steps and executes them here, so the systems being operated on never need to be reachable from OneUptime. |
-| Runs AI Code Fixes | off | Claims AI code-fix runs, works in your connected code repositories and opens **draft** pull requests. Never writes to the default or protected branches. |
+| Runs AI Code Fixes | off | Claims AI code-fix runs, works in your connected code repositories and opens pull requests **ready for review**. Never writes to the default or protected branches, and never merges. |
 | Runs AI Remediation Commands | off | AI auto-remediation may execute policy-checked Bash and SSH commands on this host (or over its assigned SSH credentials). Suggest-mode commands run only after one-click human approval; FullAuto runs only commands matching the rule's operator allowlist. A built-in denylist refuses destructive commands regardless. |
 
 Capabilities are set **in the dashboard**, on the Runner itself. The Runner

@@ -248,18 +248,32 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
       /*
        * Restore saved variables, with URL overrides applied so shared
        * links land with the same selection the sender had.
+       *
+       * This runs on load *and* on "Discard Changes", so it has to be a
+       * full reconcile against the fetched config rather than a merge: a
+       * config that saved no variables must clear the runtime list. Guard
+       * this on `config.variables` and a variable that was added in edit
+       * mode and then discarded keeps scoping every widget — and keeps
+       * seeding the Variables modal — until the page is reloaded.
        */
-      if (config.variables) {
-        const urlSelections: ReturnType<
-          typeof DashboardVariableUrlState.parseFromSearch
-        > = DashboardVariableUrlState.parseFromSearch(window.location.search);
-        const withUrl: Array<DashboardVariable> =
-          DashboardVariableUrlState.applyUrlToVariables(
-            config.variables,
-            urlSelections,
-          );
-        setDashboardVariables(withUrl);
-      }
+      const savedVariables: Array<DashboardVariable> = config.variables || [];
+      const urlSelections: ReturnType<
+        typeof DashboardVariableUrlState.parseFromSearch
+      > = DashboardVariableUrlState.parseFromSearch(window.location.search);
+      const restoredVariables: Array<DashboardVariable> =
+        DashboardVariableUrlState.applyUrlToVariables(
+          savedVariables,
+          urlSelections,
+        );
+      setDashboardVariables(restoredVariables);
+      /*
+       * Reconcile the URL to the restored set as well. Redefining a
+       * variable in edit mode carries its selection onto the new
+       * definition and rewrites `var-*` to match, so discarding has to
+       * strip the params those discarded definitions left behind —
+       * otherwise the link keeps naming variables that no longer exist.
+       */
+      DashboardVariableUrlState.writeToBrowserUrl(restoredVariables);
     };
 
   const loadPage: PromiseVoidFunction = async (): Promise<void> => {

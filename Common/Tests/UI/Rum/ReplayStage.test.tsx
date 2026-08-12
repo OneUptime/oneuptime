@@ -1,4 +1,4 @@
-import "@testing-library/jest-dom/extend-expect";
+import "@testing-library/jest-dom";
 import { act, render } from "@testing-library/react";
 /*
  * The Dashboard has its own copy of react, so a component imported from there

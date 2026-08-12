@@ -85,6 +85,7 @@ export class Service extends DatabaseService<Model> {
 
     let secretKeyObjectId: ObjectID;
     try {
+      ObjectID.validateUUID(secretKey);
       secretKeyObjectId = new ObjectID(secretKey);
     } catch {
       this.projectIdCache.set(cacheKey, null, NEGATIVE_TTL_MS);

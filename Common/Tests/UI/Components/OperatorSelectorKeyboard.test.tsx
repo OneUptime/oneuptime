@@ -2,7 +2,7 @@ import OperatorSelector from "../../../UI/Components/Filters/OperatorSelector";
 import FilterOperator, {
   FilterOperatorLabel,
 } from "../../../UI/Components/Filters/Types/FilterOperator";
-import "@testing-library/jest-dom/extend-expect";
+import "@testing-library/jest-dom";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { UserEvent } from "@testing-library/user-event/dist/types/setup/setup";

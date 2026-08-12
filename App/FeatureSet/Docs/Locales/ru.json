@@ -92,6 +92,7 @@
     "Self-Hosted Setup": "Настройка собственного хостинга",
     "Examples": "Примеры",
     "Registry Usage": "Использование реестра",
+    "OpenTofu": "OpenTofu",
     "Authentication": "Аутентификация",
     "Resource Operations": "Операции с ресурсами",
     "Output Formats": "Форматы вывода",

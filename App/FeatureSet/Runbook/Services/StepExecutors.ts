@@ -22,6 +22,7 @@ import RunnerJobService, {
 import RunnerJobStatus from "Common/Types/Runbook/RunnerJobStatus";
 import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
 import { RunbookStepExecutionState } from "Common/Types/Runbook/RunbookStepExecution";
+import DataSourceEgressGuard from "Common/Server/Utils/DataSource/EgressGuard";
 
 export interface StepRunResult {
   success: boolean;
@@ -243,12 +244,33 @@ export async function runHttpStep(step: RunbookStep): Promise<StepRunResult> {
   }
 
   try {
+    /*
+     * url/method/headers/body come verbatim out of the Runbook's steps JSON,
+     * and the output builder below copies the full status, headers and body
+     * into RunbookExecution.stepExecutions — readable by any project member.
+     * Unguarded, that is a fully attacker-shaped request into whatever network
+     * the Worker runs in, with the response handed straight back (an
+     * attacker-chosen method plus headers is all IMDSv2 asks for).
+     *
+     * So: validate the target and pin the addresses it resolved to, and refuse
+     * redirects — pinning covers only the host that was validated, so a 3xx
+     * would walk around it. maxRedirects rather than doNotFollowRedirects
+     * because this is raw axios, not Common's API wrapper.
+     */
+    const { httpAgent, httpsAgent } =
+      await DataSourceEgressGuard.assertUrlAllowedAndPin(config.url || "", {
+        targetLabel: "Runbook HTTP step",
+      });
+
     const response: AxiosResponse = await axios.request({
       url: config.url,
       method: config.method,
       headers,
       data: parsedBody,
       timeout,
+      maxRedirects: 0,
+      httpAgent,
+      httpsAgent,
       validateStatus: () => {
         return true;
       },

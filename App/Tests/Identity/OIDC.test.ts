@@ -34,7 +34,25 @@ import {
 import URL from "Common/Types/API/URL";
 import { JSONObject } from "Common/Types/JSON";
 import { afterEach, describe, expect, test } from "@jest/globals";
-import { Client } from "openid-client";
+import { Client, Issuer, custom } from "openid-client";
+import dns from "dns";
+
+/*
+ * Importing OIDCUtil installs an SSRF egress guard on every openid-client
+ * request: a DNS lookup that refuses loopback, and a per-request hook that
+ * refuses loopback IP literals. This suite's entire design is a real provider
+ * on a 127.0.0.1 socket, so it opts out of both — the guard has its own
+ * coverage in OidcEgressGuard.test.ts. Later defaults win, so this has to run
+ * after the import above.
+ */
+custom.setHttpOptionsDefaults({ lookup: dns.lookup });
+
+function removeEgressGuardHook(target: unknown): void {
+  delete (target as Record<symbol, unknown>)[custom.http_options];
+}
+
+// Discovery reads the hook off the Issuer class.
+removeEgressGuardHook(Issuer);
 
 const CLIENT_ID: string = "0oa1b2c3d4E5F6G7h8i9";
 const CLIENT_SECRET: string = "sUpErSeCrEtClientValue-0123456789";
@@ -72,13 +90,22 @@ async function startIdp(options: StartIdpOptions = {}): Promise<TestIdp> {
 }
 
 async function createClientFor(idp: TestIdp): Promise<Client> {
-  return OIDCUtil.createClient({
+  const client: Client = await OIDCUtil.createClient({
     discoveryURL: URL.fromString(idp.issuerUrl),
     clientId: CLIENT_ID,
     clientSecret: CLIENT_SECRET,
     redirectUri: URL.fromString(REDIRECT_URI),
     scopes: DEFAULT_SCOPES,
   });
+
+  /*
+   * createClient re-installs the hook on the client (token, userinfo) and on
+   * the issuer instance (JWKS); this suite's provider is on loopback.
+   */
+  removeEgressGuardHook(client);
+  removeEgressGuardHook(client.issuer);
+
+  return client;
 }
 
 interface CallbackOverrides {

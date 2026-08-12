@@ -7,7 +7,8 @@ import LlmType from "../../../../Types/LLM/LlmType";
 import LLMService, {
   LLMProviderConfig,
 } from "../../../../Server/Utils/LLM/LLMService";
-import { afterEach, describe, expect, test } from "@jest/globals";
+import stubLLMEgressGuard from "./StubLLMEgressGuard";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 type PostSpy = ReturnType<typeof jest.spyOn>;
 
@@ -83,6 +84,11 @@ function mockPost(response: JSONObject): PostSpy {
   } as unknown as HTTPResponse<JSONObject>) as PostSpy;
 }
 
+// These hosts are placeholders; the SSRF guard is covered elsewhere.
+beforeEach(() => {
+  stubLLMEgressGuard();
+});
+
 afterEach(() => {
   jest.restoreAllMocks();
 });
@@ -103,11 +109,16 @@ describe("LLMService request timeout and retry policy", () => {
       expect(postSpy).toHaveBeenCalledTimes(1);
       expect(postSpy.mock.calls[0]![0]).toEqual(
         expect.objectContaining({
-          options: {
+          options: expect.objectContaining({
             retries: 0,
             exponentialBackoff: true,
             timeout: 12_345,
-          },
+            /*
+             * Every provider request also carries the SSRF guard's
+             * settings — the policy above must not displace them.
+             */
+            doNotFollowRedirects: true,
+          }),
         }),
       );
     },
@@ -125,11 +136,12 @@ describe("LLMService request timeout and retry policy", () => {
 
       expect(postSpy.mock.calls[0]![0]).toEqual(
         expect.objectContaining({
-          options: {
+          options: expect.objectContaining({
             retries: 2,
             exponentialBackoff: true,
             timeout: defaultTimeoutInMs,
-          },
+            doNotFollowRedirects: true,
+          }),
         }),
       );
     },

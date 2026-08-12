@@ -16,11 +16,16 @@ export interface PullRequestOptions {
   title: string;
   body: string;
   /*
-   * AI-authored fix PRs open as DRAFTS by default (G11 posture: a human
-   * reviews and marks them ready — nothing lands review-ready
-   * automatically). Pass false explicitly to opt out. Repositories where
+   * AI-authored fix PRs open READY FOR REVIEW by default: a draft is
+   * invisible to reviewers, review automation and CODEOWNERS, which buried
+   * the work rather than surfacing it. Human review is still mandatory —
+   * that boundary is the branch (we never write to the default or a
+   * protected branch) and the fact that nothing is ever merged
+   * automatically, not the draft flag.
+   *
+   * Pass true explicitly to opt back into a draft. Repositories where
    * GitHub rejects drafts (private repos on plans without the feature)
-   * fall back to a non-draft PR automatically.
+   * then fall back to a ready-for-review PR automatically.
    */
   draft?: boolean;
 }
@@ -38,6 +43,38 @@ export default class PullRequestCreator {
   private static readonly GITHUB_API_BASE: string = "https://api.github.com";
   private static readonly GITHUB_API_VERSION: string = "2022-11-28";
 
+  /*
+   * GitHub rejects a pull-request body over 65536 characters outright
+   * (422 "body is too long"). Everything that flows into the body is
+   * caller-supplied and unbounded from this class's point of view: the
+   * agent's own summary, the stack trace, the failing build output tail,
+   * and one repair summary per repair pass. That failure lands at the very
+   * last step of the pipeline — after the clone, the agent run, the
+   * verification loop, the commit and the push — so the branch is already
+   * on the customer's remote and the work is stranded with no pull request
+   * pointing at it.
+   *
+   * Truncating with an explicit marker is strictly better than losing the
+   * pull request: the reviewer still gets the change, the summary and the
+   * verdict, and is told plainly that the tail was cut.
+   */
+  public static readonly MAX_BODY_LENGTH: number = 65536;
+
+  private static readonly BODY_TRUNCATION_NOTICE: string =
+    "\n\n---\n\n> _This description was truncated because it exceeded GitHub's maximum pull request body length._";
+
+  // Bound a PR body to what GitHub will accept, marking any truncation.
+  public static truncateBody(body: string): string {
+    if (body.length <= this.MAX_BODY_LENGTH) {
+      return body;
+    }
+
+    return `${body.substring(
+      0,
+      this.MAX_BODY_LENGTH - this.BODY_TRUNCATION_NOTICE.length,
+    )}${this.BODY_TRUNCATION_NOTICE}`;
+  }
+
   private logger: TaskLogger | null = null;
 
   public constructor(taskLogger?: TaskLogger) {
@@ -47,17 +84,19 @@ export default class PullRequestCreator {
   }
 
   /*
-   * Create a pull request on GitHub — as a DRAFT by default, with a
-   * graceful non-draft fallback when the repository does not support
-   * drafts (GitHub answers 422 on private repos without the feature).
+   * Create a pull request on GitHub — READY FOR REVIEW by default, so it
+   * reaches reviewers, CODEOWNERS and review automation the moment it
+   * opens. Callers that explicitly ask for a draft still get the graceful
+   * fallback for repositories that do not support drafts (GitHub answers
+   * 422 on private repos without the feature).
    */
   public async createPullRequest(
     options: PullRequestOptions,
   ): Promise<PullRequestResult> {
-    const asDraft: boolean = options.draft !== false;
+    const asDraft: boolean = options.draft === true;
 
     await this.log(
-      `Creating ${asDraft ? "draft " : ""}pull request: ${options.title} (${options.headBranch} -> ${options.baseBranch})`,
+      `Creating ${asDraft ? "draft " : "ready-for-review "}pull request: ${options.title} (${options.headBranch} -> ${options.baseBranch})`,
     );
 
     const url: URL = URL.fromString(
@@ -71,7 +110,7 @@ export default class PullRequestCreator {
     ): JSONObject => {
       return {
         title: options.title,
-        body: options.body,
+        body: PullRequestCreator.truncateBody(options.body),
         head: options.headBranch,
         base: options.baseBranch,
         draft,
@@ -87,9 +126,10 @@ export default class PullRequestCreator {
     );
 
     /*
-     * Draft rejected by this repository (422 naming drafts): retry once as
-     * a regular PR. Human review stays mandatory either way — the draft
-     * state is a review-pressure signal, not the safety boundary.
+     * A caller asked for a draft and this repository rejected it (422 naming
+     * drafts): retry once as a ready-for-review PR. Human review stays
+     * mandatory either way — the draft state is a review-pressure signal,
+     * not the safety boundary.
      */
     if (
       response instanceof HTTPErrorResponse &&
@@ -100,10 +140,10 @@ export default class PullRequestCreator {
         response.message || "draft pull request rejected";
 
       logger.warn(
-        `GitHub rejected the draft pull request for ${options.organizationName}/${options.repositoryName} (${rejectionMessage}); retrying as a non-draft pull request.`,
+        `GitHub rejected the draft pull request for ${options.organizationName}/${options.repositoryName} (${rejectionMessage}); retrying as a ready-for-review pull request.`,
       );
       await this.log(
-        `This repository does not support draft pull requests — opening a regular pull request instead. Please treat it as unreviewed.`,
+        `This repository does not support draft pull requests — opening a ready-for-review pull request instead. Please treat it as unreviewed.`,
       );
 
       response = await API.post({
@@ -141,7 +181,7 @@ export default class PullRequestCreator {
    * state specifically (HTTP 422 whose message/errors mention drafts) —
    * e.g. "Draft pull requests are not supported in this repository."
    * Anything else (bad branch, permissions, validation) must NOT trigger
-   * the non-draft retry.
+   * the ready-for-review retry.
    */
   private isDraftNotSupportedError(response: HTTPErrorResponse): boolean {
     if (response.statusCode !== 422) {
@@ -452,7 +492,7 @@ ${data.summary}
 
 ---
 
-> **Opened as a draft — review before merging.** The fix is AI-authored: verify it actually addresses the exception, then mark the pull request ready for review. Nothing is merged automatically.
+> **Review before merging.** The fix is AI-authored: verify it actually addresses the exception before approving. Nothing is merged automatically.
 
 *This PR was automatically generated by [OneUptime AI Agent](https://oneuptime.com)*`;
   }

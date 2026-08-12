@@ -385,14 +385,21 @@ const Overview: FunctionComponent<PageComponentProps> = (
           ScheduledMaintenancePublicNote,
         );
 
-      const rawAnnouncements: JSONArray =
+      const rawScheduledMaintenanceEvents: JSONArray =
         (data["scheduledMaintenanceEvents"] as JSONArray) || [];
 
-      const scheduledMaintenanceEvent: ScheduledMaintenance =
-        BaseModel.fromJSONObject(
-          (rawAnnouncements[0] as JSONObject) || {},
-          ScheduledMaintenance,
-        );
+      /*
+       * An empty response means this event is not on this status page. Keep it null -
+       * deserializing an empty object here yields a model with no data, which renders
+       * as a blank event instead of the empty state below.
+       */
+      const scheduledMaintenanceEvent: ScheduledMaintenance | null =
+        rawScheduledMaintenanceEvents.length > 0
+          ? BaseModel.fromJSONObject(
+              rawScheduledMaintenanceEvents[0] as JSONObject,
+              ScheduledMaintenance,
+            )
+          : null;
       const scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline> =
         BaseModel.fromJSONArray(
           (data["scheduledMaintenanceStateTimelines"] as JSONArray) || [],
@@ -463,7 +470,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
     return <ErrorMessage message={error} />;
   }
 
-  if (!parsedData) {
+  /*
+   * Only wait on parsedData when there is an event to parse, so that a missing event
+   * falls through to the empty state below instead of loading forever.
+   */
+  if (scheduledMaintenanceEvent && !parsedData) {
     return <PageLoader isVisible={true} />;
   }
 
@@ -498,7 +509,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
         },
       ]}
     >
-      {scheduledMaintenanceEvent ? <EventItem {...parsedData} /> : <></>}
+      {scheduledMaintenanceEvent && parsedData ? (
+        <EventItem {...parsedData} />
+      ) : (
+        <></>
+      )}
       {!scheduledMaintenanceEvent ? (
         <EmptyState
           id="scheduled-event-empty-state"

@@ -31,6 +31,23 @@ export interface ResolvedVariableValue {
  * key so the server's WHERE-builder produces `attributes[key] IN (...)`.
  */
 export default class DashboardVariableInterpolation {
+  /*
+   * The one place that decides what a variable currently *means*. Every
+   * widget and every selector defers to it, so the rules have to be
+   * stated rather than inferred:
+   *
+   * - A multi-select variable's `selectedValues` is its sole source of
+   *   truth. Empty or unset is the "All" state and produces no
+   *   predicate. `defaultValue` deliberately does NOT apply here: the
+   *   selector shows "All" whenever the list is empty and cannot show
+   *   anything else, so honouring a default would filter widgets behind
+   *   a control that reads "unfiltered". A default that only holds one
+   *   value also cannot express what a multi-select is for.
+   * - A single-select variable falls back to `defaultValue` only when
+   *   `selectedValue` is absent. An empty string is a real choice — the
+   *   "All" option — and must not be overwritten by the default, which
+   *   is why this uses `??` rather than `||`.
+   */
   public static resolveValue(
     variable: DashboardVariable,
   ): ResolvedVariableValue | undefined {
@@ -43,7 +60,8 @@ export default class DashboardVariableInterpolation {
       if (values.length > 0) {
         return { multi: values };
       }
-      // No multi-select picks. Fall through to default value handling.
+      // No picks: "All". Never falls back to the single-select default.
+      return undefined;
     }
 
     const v: string | undefined =

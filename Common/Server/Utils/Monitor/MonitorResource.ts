@@ -45,6 +45,9 @@ import MonitorSummaryCapture from "./MonitorSummaryCapture";
 import MonitorSummarySnapshot from "../../../Types/Monitor/MonitorSummarySnapshot";
 import IncomingRequestIncidentGrouping from "./IncomingRequestIncidentGrouping";
 import MonitorMaintenanceSuppression from "./MonitorMaintenanceSuppression";
+import MonitorDependencySuppression, {
+  DependencySuppressionResult,
+} from "./MonitorDependencySuppression";
 import MonitorStatusTimelineUtil from "./MonitorStatusTimeline";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import ExceptionMessages from "../../../Types/Exception/ExceptionMessages";
@@ -150,6 +153,21 @@ export default class MonitorResourceUtil {
           name: true,
         },
         customFields: true,
+        /*
+         * Alert-dependency suppression inputs. Selected here for the same
+         * reason as labels: this query already loads the monitor on the
+         * hottest path, and both lists are empty for the overwhelming
+         * majority of monitors, in which case suppression costs nothing.
+         * Ids only — names are fetched by the suppression util's own
+         * parents query, so selecting them here would just duplicate the
+         * joined row payload on every evaluation.
+         */
+        dependsOnMonitors: {
+          _id: true,
+        },
+        suppressAlertsWhenParentMonitorStatuses: {
+          _id: true,
+        },
       },
       props: {
         isRoot: true,
@@ -918,6 +936,22 @@ export default class MonitorResourceUtil {
           });
 
         /*
+         * Alert-dependency suppression: if any parent monitor this monitor
+         * depends on is currently in a suppressing status (offline by
+         * default), skip creating incidents/alerts for this evaluation.
+         * Deliberately computed AFTER the status timeline update above —
+         * the child's own status must keep tracking reality (status pages,
+         * transitive dependency checks); only the redundant paging is
+         * silenced. The resolve path for already-open incidents/alerts is
+         * likewise untouched. Zero queries when the monitor has no
+         * dependencies configured.
+         */
+        const dependencySuppression: DependencySuppressionResult =
+          await MonitorDependencySuppression.getDependencySuppression({
+            monitor: monitor,
+          });
+
+        /*
          * Freeze the Monitor Summary as it stands right now, before any
          * incident or alert is created from it. Both creators store the
          * same capture, so the incident page can show what the monitor
@@ -945,6 +979,7 @@ export default class MonitorResourceUtil {
           },
           matchesPerSeries: response.perSeriesMatches,
           suppressedSeriesFingerprints,
+          dependencySuppression,
           /*
            * Incoming-request grouping is event-driven: a webhook describes
            * only the keys in its payload, so absence from this tick is not
@@ -969,6 +1004,7 @@ export default class MonitorResourceUtil {
           },
           matchesPerSeries: response.perSeriesMatches,
           suppressedSeriesFingerprints,
+          dependencySuppression,
           /*
            * Incoming-request grouping is event-driven (see the incident
            * create call above): skip the snapshot absence-resolve pass for
