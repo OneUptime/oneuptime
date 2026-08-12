@@ -28,6 +28,7 @@
     "^react-dom/(.*)$": "<rootDir>/node_modules/react-dom/$1",
     "^react-router-dom$": "<rootDir>/node_modules/react-router-dom",
     "^react-i18next$": "<rootDir>/node_modules/react-i18next",
+    "^use-async-effect$": "<rootDir>/node_modules/use-async-effect",
     "^i18next-browser-languagedetector$": "<rootDir>/Tests/__mocks__/i18next-browser-languagedetector.js",
     "^react-markdown$": "<rootDir>/Tests/__mocks__/react-markdown.js",
     "^remark-gfm$": "<rootDir>/Tests/__mocks__/remark-gfm.js",
