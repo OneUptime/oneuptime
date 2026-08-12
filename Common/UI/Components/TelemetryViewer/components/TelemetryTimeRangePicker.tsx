@@ -1,227 +1,28 @@
-import React, {
-  FunctionComponent,
-  ReactElement,
-  useState,
-  useRef,
-  useEffect,
-  useCallback,
-} from "react";
-import Icon from "../../Icon/Icon";
-import IconProp from "../../../../Types/Icon/IconProp";
+import React, { FunctionComponent, ReactElement } from "react";
 import RangeStartAndEndDateTime from "../../../../Types/Time/RangeStartAndEndDateTime";
-import TimeRange from "../../../../Types/Time/TimeRange";
-import InBetween from "../../../../Types/BaseDatabase/InBetween";
-import StartAndEndDate, {
-  StartAndEndDateType,
-} from "../../Date/StartAndEndDate";
-import {
-  DropdownHorizontalAlignment,
-  getDropdownAlignmentClassName,
-  useDropdownHorizontalAlignment,
-} from "../../../Utils/DropdownAlignment";
+import TimeRangePickerDropdown from "../../Date/TimeRangePickerDropdown";
 
 export interface TelemetryTimeRangePickerProps {
   value: RangeStartAndEndDateTime;
   onChange: (value: RangeStartAndEndDateTime) => void;
 }
 
-// Matches the Tailwind `w-72` on the dropdown below (18rem).
+// Matches the Tailwind `w-72` on the rendered dropdown (18rem).
 export const TIME_RANGE_DROPDOWN_WIDTH_IN_PX: number = 288;
 
-const PRESET_OPTIONS: Array<{ range: TimeRange; label: string }> = [
-  { range: TimeRange.PAST_FIVE_MINS, label: "Past 5 Minutes" },
-  { range: TimeRange.PAST_FIFTEEN_MINS, label: "Past 15 Minutes" },
-  { range: TimeRange.PAST_THIRTY_MINS, label: "Past 30 Minutes" },
-  { range: TimeRange.PAST_ONE_HOUR, label: "Past 1 Hour" },
-  { range: TimeRange.PAST_TWO_HOURS, label: "Past 2 Hours" },
-  { range: TimeRange.PAST_THREE_HOURS, label: "Past 3 Hours" },
-  { range: TimeRange.PAST_ONE_DAY, label: "Past 1 Day" },
-  { range: TimeRange.PAST_TWO_DAYS, label: "Past 2 Days" },
-  { range: TimeRange.PAST_ONE_WEEK, label: "Past 1 Week" },
-  { range: TimeRange.PAST_TWO_WEEKS, label: "Past 2 Weeks" },
-  { range: TimeRange.PAST_ONE_MONTH, label: "Past 1 Month" },
-  { range: TimeRange.PAST_THREE_MONTHS, label: "Past 3 Months" },
-];
-
-function formatDateShort(date: Date): string {
-  const month: string = date.toLocaleString("en-US", { month: "short" });
-  const day: number = date.getDate();
-  const hours: string = date.getHours().toString().padStart(2, "0");
-  const minutes: string = date.getMinutes().toString().padStart(2, "0");
-  return `${month} ${day}, ${hours}:${minutes}`;
-}
-
-function getButtonLabel(value: RangeStartAndEndDateTime): string {
-  if (value.range === TimeRange.CUSTOM && value.startAndEndDate) {
-    const start: string = formatDateShort(value.startAndEndDate.startValue);
-    const end: string = formatDateShort(value.startAndEndDate.endValue);
-    return `${start} – ${end}`;
-  }
-
-  const preset: { range: TimeRange; label: string } | undefined =
-    PRESET_OPTIONS.find((opt: { range: TimeRange; label: string }) => {
-      return opt.range === value.range;
-    });
-  return preset ? preset.label : value.range;
-}
+export const TELEMETRY_TIME_RANGE_PICKER_TEST_ID_PREFIX: string =
+  "telemetry-time-range-picker";
 
 const TelemetryTimeRangePicker: FunctionComponent<
   TelemetryTimeRangePickerProps
 > = (props: TelemetryTimeRangePickerProps): ReactElement => {
-  const [isOpen, setIsOpen] = useState<boolean>(false);
-  const [showCustom, setShowCustom] = useState<boolean>(
-    props.value.range === TimeRange.CUSTOM,
-  );
-  const containerRef: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(
-    null!,
-  );
-  const buttonRef: React.RefObject<HTMLButtonElement> =
-    useRef<HTMLButtonElement>(null!);
-  const dropdownRef: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(
-    null!,
-  );
-
-  const alignment: DropdownHorizontalAlignment = useDropdownHorizontalAlignment(
-    {
-      isOpen: isOpen,
-      anchorRef: buttonRef,
-      dropdownRef: dropdownRef,
-      dropdownWidthInPx: TIME_RANGE_DROPDOWN_WIDTH_IN_PX,
-    },
-  );
-
-  useEffect(() => {
-    const handleClickOutside: (e: MouseEvent) => void = (
-      e: MouseEvent,
-    ): void => {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(e.target as Node)
-      ) {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
-
-  useEffect(() => {
-    setShowCustom(props.value.range === TimeRange.CUSTOM);
-  }, [props.value.range]);
-
-  const handlePresetSelect: (range: TimeRange) => void = useCallback(
-    (range: TimeRange): void => {
-      props.onChange({ range });
-      setShowCustom(false);
-      setIsOpen(false);
-    },
-    [props],
-  );
-
-  const handleCustomDateChange: (dateRange: InBetween<Date> | null) => void =
-    useCallback(
-      (dateRange: InBetween<Date> | null): void => {
-        if (dateRange) {
-          props.onChange({
-            range: TimeRange.CUSTOM,
-            startAndEndDate: dateRange,
-          });
-        }
-      },
-      [props],
-    );
-
-  const buttonLabel: string = getButtonLabel(props.value);
-
   return (
-    <div ref={containerRef} className="relative">
-      <button
-        ref={buttonRef}
-        type="button"
-        data-testid="telemetry-time-range-picker-button"
-        aria-haspopup="true"
-        aria-expanded={isOpen}
-        className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium shadow-sm transition-colors ${
-          isOpen
-            ? "border-indigo-300 bg-indigo-50 text-indigo-700"
-            : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50"
-        }`}
-        onClick={() => {
-          setIsOpen(!isOpen);
-        }}
-      >
-        <Icon icon={IconProp.Clock} className="h-3.5 w-3.5" />
-        <span>{buttonLabel}</span>
-        <Icon
-          icon={IconProp.ChevronDown}
-          className={`h-3 w-3 transition-transform ${isOpen ? "rotate-180" : ""}`}
-        />
-      </button>
-
-      {isOpen && (
-        <div
-          ref={dropdownRef}
-          data-testid="telemetry-time-range-picker-dropdown"
-          data-align={alignment}
-          className={`absolute ${getDropdownAlignmentClassName(
-            alignment,
-          )} top-full z-50 mt-1 w-72 max-w-[calc(100vw-1rem)] rounded-lg border border-gray-200 bg-white shadow-lg`}
-        >
-          <div className="max-h-64 overflow-y-auto py-1">
-            {PRESET_OPTIONS.map(
-              (option: { range: TimeRange; label: string }) => {
-                const isActive: boolean = props.value.range === option.range;
-
-                return (
-                  <button
-                    key={option.range}
-                    type="button"
-                    className={`flex w-full items-center px-3 py-1.5 text-left text-sm transition-colors ${
-                      isActive
-                        ? "bg-indigo-50 font-medium text-indigo-700"
-                        : "text-gray-700 hover:bg-gray-50"
-                    }`}
-                    onClick={() => {
-                      handlePresetSelect(option.range);
-                    }}
-                  >
-                    {option.label}
-                  </button>
-                );
-              },
-            )}
-
-            <button
-              type="button"
-              className={`flex w-full items-center px-3 py-1.5 text-left text-sm transition-colors ${
-                props.value.range === TimeRange.CUSTOM
-                  ? "bg-indigo-50 font-medium text-indigo-700"
-                  : "text-gray-700 hover:bg-gray-50"
-              }`}
-              onClick={() => {
-                setShowCustom(true);
-              }}
-            >
-              Custom Range...
-            </button>
-          </div>
-
-          {showCustom && (
-            <div className="border-t border-gray-100 p-3">
-              <StartAndEndDate
-                type={StartAndEndDateType.DateTime}
-                value={props.value.startAndEndDate}
-                hideTimeButtons={true}
-                onValueChanged={handleCustomDateChange}
-              />
-            </div>
-          )}
-        </div>
-      )}
-    </div>
+    <TimeRangePickerDropdown
+      value={props.value}
+      onChange={props.onChange}
+      dataTestIdPrefix={TELEMETRY_TIME_RANGE_PICKER_TEST_ID_PREFIX}
+      dropdownWidthInPx={TIME_RANGE_DROPDOWN_WIDTH_IN_PX}
+    />
   );
 };
 

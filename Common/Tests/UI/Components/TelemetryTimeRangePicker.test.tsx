@@ -371,7 +371,12 @@ describe("TelemetryTimeRangePicker", () => {
       expect(optionLabels).toEqual(expectedLabels);
     });
 
-    test("renders the custom range editor when a custom range is active", () => {
+    test("keeps the date fields out of the narrow dropdown panel", () => {
+      /*
+       * Regression: the custom editor used to render two `datetime-local`
+       * fields inside the 288px panel. It now lives in a modal, so the panel
+       * itself stays a plain list of options.
+       */
       renderPicker({
         range: TimeRange.CUSTOM,
         startAndEndDate: new InBetween<Date>(
@@ -382,14 +387,11 @@ describe("TelemetryTimeRangePicker", () => {
 
       const dropdown: HTMLElement = openDropdown();
 
-      // The custom editor lives in the same panel, so alignment still applies.
       expect(hasClass(dropdown, "left-0")).toBe(true);
-      expect(dropdown.querySelectorAll("input").length).toBeGreaterThan(0);
+      expect(dropdown.querySelectorAll("input").length).toBe(0);
     });
 
-    test("keeps the taller custom panel inside the viewport near the right edge", () => {
-      stubTriggerRect(1310, 1430);
-
+    test("marks the custom entry as selected while a custom range is active", () => {
       renderPicker({
         range: TimeRange.CUSTOM,
         startAndEndDate: new InBetween<Date>(
@@ -398,7 +400,47 @@ describe("TelemetryTimeRangePicker", () => {
         ),
       });
 
-      expect(hasClass(openDropdown(), "right-0")).toBe(true);
+      openDropdown();
+
+      expect(
+        hasClass(
+          screen.getByTestId("telemetry-time-range-picker-custom-option"),
+          "text-indigo-700",
+        ),
+      ).toBe(true);
+    });
+
+    test("opens the custom range modal from the dropdown", () => {
+      renderPicker({ range: TimeRange.PAST_ONE_HOUR });
+      openDropdown();
+
+      fireEvent.click(
+        screen.getByTestId("telemetry-time-range-picker-custom-option"),
+      );
+
+      expect(screen.getByTestId("custom-time-range-modal")).toBeInTheDocument();
+      // The dropdown gets out of the way once the modal is up.
+      expect(screen.queryByTestId(DROPDOWN_TEST_ID)).toBeNull();
+    });
+
+    test("applies a custom range picked in the modal", () => {
+      const emitted: Array<RangeStartAndEndDateTime> = [];
+      renderPicker(
+        { range: TimeRange.PAST_ONE_HOUR },
+        (value: RangeStartAndEndDateTime) => {
+          emitted.push(value);
+        },
+      );
+      openDropdown();
+
+      fireEvent.click(
+        screen.getByTestId("telemetry-time-range-picker-custom-option"),
+      );
+      fireEvent.click(screen.getByText("Apply"));
+
+      expect(emitted).toHaveLength(1);
+      expect(emitted[0]!.range).toBe(TimeRange.CUSTOM);
+      expect(emitted[0]!.startAndEndDate).toBeInstanceOf(InBetween);
     });
   });
 });
