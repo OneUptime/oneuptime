@@ -4,7 +4,7 @@ import HTTPResponse from "../../../../../Types/API/HTTPResponse";
 import URL from "../../../../../Types/API/URL";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import Exception from "../../../../../Types/Exception/Exception";
-import { JSONObject } from "../../../../../Types/JSON";
+import { JSONObject, JSONValue } from "../../../../../Types/JSON";
 import JSONFunctions from "../../../../../Types/JSONFunctions";
 import ComponentMetadata, {
   Port,
@@ -80,6 +80,49 @@ export class ApiComponentUtils {
       args["request-headers"] = JSONFunctions.parse(
         args["request-headers"] as string,
       );
+    }
+
+    /*
+     * Headers reach here from a key/value grid that can emit numbers and
+     * booleans, from a JSON document someone typed, or from a {{...}}
+     * substitution — and every consumer below blind-casts the result to
+     * Dictionary<string> before spreading it into the outgoing request. An
+     * array or a bare scalar spreads into per-index junk headers rather than
+     * failing, so check the shape and flatten the values to strings here.
+     */
+    if (args["request-headers"]) {
+      const headers: JSONValue = args["request-headers"] as JSONValue;
+
+      if (
+        typeof headers !== "object" ||
+        headers === null ||
+        Array.isArray(headers)
+      ) {
+        throw options.onError(
+          new BadDataException(
+            "Request headers must be a JSON object of header names and values.",
+          ),
+        );
+      }
+
+      const stringifiedHeaders: JSONObject = {};
+
+      for (const headerName of Object.keys(headers as JSONObject)) {
+        const headerValue: JSONValue = (headers as JSONObject)[
+          headerName
+        ] as JSONValue;
+
+        if (headerValue === null || headerValue === undefined) {
+          continue;
+        }
+
+        stringifiedHeaders[headerName] =
+          typeof headerValue === "object"
+            ? JSON.stringify(headerValue)
+            : String(headerValue);
+      }
+
+      args["request-headers"] = stringifiedHeaders;
     }
 
     if (!args["url"]) {

@@ -114,14 +114,15 @@ The API key needs **Edit Workflow Variables** to write `content`, and **Read Wor
 
 Two things to watch:
 
-- **Don't rename a variable you reference.** `name` is part of `{{local.variables.NAME}}`. Changing it leaves every existing reference resolving to an empty string, silently.
+- **Don't rename a variable you reference.** `name` is part of `{{local.variables.NAME}}`. Changing it leaves every existing reference unresolved, and an unresolved reference is passed through as the literal text `{{local.variables.NAME}}` — see the gotcha below.
 - **A variable marked secret can still be written this way** — it just can't be read back. That's what makes it a safe place to park a rotating token.
 
 ## Gotchas
 
 - **Use the pickers.** They insert the exact component, return-value, and variable IDs expected by the runner and keep references independent of display labels.
 - **Variable names are case-sensitive.** `{{global.variables.MyKey}}` and `{{global.variables.mykey}}` are different.
-- **Missing fields become empty.** Referring to a field that doesn't exist gives you an empty string, not an error. Convenient — but it can hide bugs. Use a **Conditions** block to check important fields before continuing.
+- **A reference that doesn't resolve is left as-is, not blanked.** Referring to something that doesn't exist is not an error, and it does not give you an empty string either: the braces are passed straight through, so `{{local.components.api-get-1.returnValues.body}}` with a mistyped step id ends up in your Slack message, URL or request body verbatim, and the run still reports Success. The builder flags references it can't match before you save, and the run log carries a warning line for any that slip through — but for values you can't check ahead of time, use a **Conditions** block before continuing.
+- **Spaces inside the braces are not trimmed.** `{{ local.variables.NAME }}` is a different lookup from `{{local.variables.NAME}}` and never resolves. The one exception is inside an `{{#each}}` block, where names are trimmed.
 
 ## Where to read next
 

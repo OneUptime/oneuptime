@@ -1,6 +1,8 @@
 import { DropdownOption } from "../Dropdown/Dropdown";
 import FormFieldSchemaType from "../Forms/Types/FormFieldSchemaType";
 import IconProp from "../../../Types/Icon/IconProp";
+import { JSONObject } from "../../../Types/JSON";
+import JSONFunctions from "../../../Types/JSONFunctions";
 import ComponentMetadata, {
   ComponentCategory,
   ComponentInputType,
@@ -43,6 +45,81 @@ export const loadComponentsAndCategories: LoadComponentsAndCategoriesFunction =
 
     return { components: initComponents, categories: initCategories };
   };
+
+export type ParseStringDictionaryValueFunction = (
+  argValue: unknown,
+) => JSONObject | null;
+
+/**
+ * The key/value view of a StringDictionary argument, or null when the value
+ * cannot be shown that way and belongs in the JSON editor instead.
+ *
+ * Editable as rows:
+ *   - nothing yet (a new component)
+ *   - an object of primitives, whether stored as an object (written by the row
+ *     editor) or as a JSON string (written by the old JSON editor, and by
+ *     every workflow that already exists)
+ *
+ * Not editable as rows, so left in the JSON editor:
+ *   - a whole-field template such as {{local.components.x.returnValues.headers}},
+ *     which substitutes an entire object at run time and is not JSON as written
+ *   - text that does not parse, which is exactly the case where the builder
+ *     most needs to see and fix what they typed
+ *   - nested objects or arrays, which the row editor cannot represent and would
+ *     therefore quietly discard
+ */
+export const parseStringDictionaryValue: ParseStringDictionaryValueFunction = (
+  argValue: unknown,
+): JSONObject | null => {
+  if (argValue === null || argValue === undefined || argValue === "") {
+    return {};
+  }
+
+  let candidate: unknown = argValue;
+
+  if (typeof candidate === "string") {
+    if (candidate.trim() === "") {
+      return {};
+    }
+
+    /*
+     * JSONFunctions.parse is JSON5, which is what the components themselves use
+     * on these values (ApiComponentUtils.sanitizeArgs). Parsing more strictly
+     * here than the runtime does would push a value that works today into the
+     * JSON editor for no reason.
+     */
+    try {
+      candidate = JSONFunctions.parse(candidate);
+    } catch {
+      return null;
+    }
+  }
+
+  if (
+    typeof candidate !== "object" ||
+    candidate === null ||
+    Array.isArray(candidate)
+  ) {
+    return null;
+  }
+
+  const entries: JSONObject = candidate as JSONObject;
+
+  for (const key of Object.keys(entries)) {
+    const value: unknown = entries[key];
+
+    const isPrimitive: boolean =
+      typeof value === "string" ||
+      typeof value === "number" ||
+      typeof value === "boolean";
+
+    if (!isPrimitive) {
+      return null;
+    }
+  }
+
+  return entries;
+};
 
 type ComponentInputTypeToFormFieldTypeFunction = (
   componentInputType: ComponentInputType,
@@ -110,9 +187,24 @@ export const componentInputTypeToFormFieldType: ComponentInputTypeToFormFieldTyp
       };
     }
 
+    /*
+     * A dictionary of strings is a list of key/value pairs — request headers,
+     * query params — and asking someone to hand-write the braces and commas
+     * for that is where a good share of workflow JSON mistakes come from. Give
+     * it the key/value row editor instead.
+     *
+     * Values written before this change are JSON strings, and a value can also
+     * be something the row editor cannot represent (a whole-field
+     * {{...}} substitution, or nested objects). parseStringDictionaryValue
+     * decides; anything it cannot represent stays in the JSON editor, so no
+     * existing value is ever silently dropped on the floor.
+     */
     if (componentInputType === ComponentInputType.StringDictionary) {
       return {
-        fieldType: FormFieldSchemaType.JSON,
+        fieldType:
+          parseStringDictionaryValue(argValue) === null
+            ? FormFieldSchemaType.JSON
+            : FormFieldSchemaType.Dictionary,
       };
     }
 

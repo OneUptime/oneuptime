@@ -7,7 +7,10 @@ import FormValues from "../Forms/Types/FormValues";
 import ComponentValuePickerModal from "./ComponentValuePickerModal";
 import CronScheduleField from "./CronScheduleField";
 import ModelFieldPicker from "./ModelFieldPicker";
-import { componentInputTypeToFormFieldType } from "./Utils";
+import {
+  componentInputTypeToFormFieldType,
+  parseStringDictionaryValue,
+} from "./Utils";
 import VariableModal from "./VariableModal";
 import Dictionary from "../../../Types/Dictionary";
 import { JSONObject } from "../../../Types/JSON";
@@ -16,6 +19,7 @@ import {
   Argument,
   ComponentInputType,
   NodeDataProp,
+  isJSON5ToleratedInputType,
 } from "../../../Types/Workflow/Component";
 import { DropdownOption } from "../Dropdown/Dropdown";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
@@ -52,6 +56,96 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
   >({});
 
   const [selectedArgId, setSelectedArgId] = useState<string>("");
+
+  /*
+   * Arguments flagged isAdvanced are collapsed behind a disclosure, so the
+   * settings panel opens on the two or three fields that actually decide what
+   * the step does rather than on every knob it has. A required argument is
+   * never collapsed no matter how it is flagged: BasicForm skips validation
+   * for a field hidden by showIf, so hiding a required one would let an
+   * incomplete step save cleanly.
+   */
+  const collapsibleAdvancedArguments: Array<Argument> = (
+    component.metadata.arguments || []
+  ).filter((arg: Argument) => {
+    return Boolean(arg.isAdvanced) && !arg.required;
+  });
+
+  const hasValueForArgument: (arg: Argument) => boolean = (
+    arg: Argument,
+  ): boolean => {
+    const value: unknown = component.arguments
+      ? component.arguments[arg.id]
+      : undefined;
+
+    if (value === undefined || value === null) {
+      return false;
+    }
+
+    if (typeof value === "string") {
+      return value.trim() !== "";
+    }
+
+    if (typeof value === "object") {
+      return Object.keys(value as JSONObject).length > 0;
+    }
+
+    return true;
+  };
+
+  /*
+   * Open on load when something down there is already set, so an existing
+   * configuration is never hidden from the person who comes back to read it.
+   */
+  const [showAdvanced, setShowAdvanced] = useState<boolean>(
+    collapsibleAdvancedArguments.some(hasValueForArgument),
+  );
+
+  const isCollapsibleAdvanced: (arg: Argument) => boolean = (
+    arg: Argument,
+  ): boolean => {
+    return collapsibleAdvancedArguments.some((advancedArg: Argument) => {
+      return advancedArg.id === arg.id;
+    });
+  };
+
+  /*
+   * StringDictionary arguments render as key/value rows, and the row editor
+   * needs a real object. Every workflow written before that change stored a
+   * JSON string, so parse those on the way into the form. Anything
+   * parseStringDictionaryValue declines stays a string and keeps the JSON
+   * editor (see componentInputTypeToFormFieldType), so the two always agree.
+   */
+  const formInitialValues: JSONObject = { ...(component.arguments || {}) };
+
+  for (const arg of component.metadata.arguments || []) {
+    if (arg.type !== ComponentInputType.StringDictionary) {
+      continue;
+    }
+
+    const parsed: JSONObject | null = parseStringDictionaryValue(
+      formInitialValues[arg.id],
+    );
+
+    if (parsed !== null) {
+      formInitialValues[arg.id] = parsed;
+    }
+  }
+
+  /*
+   * Everyday settings first, collapsible ones last, each group keeping its
+   * declared order. Without this an advanced argument declared in the middle
+   * would pop into the middle of the form when the disclosure opens.
+   */
+  const orderedArguments: Array<Argument> = [
+    ...(component.metadata.arguments || []).filter((arg: Argument) => {
+      return !isCollapsibleAdvanced(arg);
+    }),
+    ...collapsibleAdvancedArguments,
+  ];
+
+  const firstAdvancedArgumentIndex: number =
+    orderedArguments.length - collapsibleAdvancedArguments.length;
 
   /*
    * Workflows in the current project, used to populate dropdowns for any
@@ -163,7 +257,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
               hideSubmitButton={true}
               ref={formRef}
               initialValues={{
-                ...(component.arguments || {}),
+                ...formInitialValues,
               }}
               onChange={(values: FormValues<JSONObject>) => {
                 setComponent({
@@ -175,16 +269,23 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                 });
               }}
               onFormValidationErrorChanged={(hasError: boolean) => {
-                if (hasFormValidationErrors["id"] !== hasError) {
+                /*
+                 * Keyed "arguments", not "id": the Identifier field in the
+                 * settings modal reports into the same dictionary under "id",
+                 * so both forms were overwriting each other. Typing in the
+                 * Identifier box cleared an outstanding argument error and
+                 * re-enabled Save on a component that was still invalid.
+                 */
+                if (hasFormValidationErrors["arguments"] !== hasError) {
                   setHasFormValidationErrors({
                     ...hasFormValidationErrors,
-                    id: hasError,
+                    arguments: hasError,
                   });
                 }
               }}
               fields={
                 component.metadata.arguments &&
-                component.metadata.arguments.map((arg: Argument) => {
+                orderedArguments.map((arg: Argument, argIndex: number) => {
                   const isWorkflowSelect: boolean =
                     arg.type === ComponentInputType.WorkflowSelect;
 
@@ -287,8 +388,24 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                   const showVariableFooter: boolean =
                     !isWorkflowSelect && !useFieldPicker && !useCronPicker;
 
+                  const isAdvanced: boolean = isCollapsibleAdvanced(arg);
+
                   return {
                     title: `${arg.name}`,
+                    /*
+                     * The heading sits on the first advanced field, so the
+                     * disclosure reads as a labelled section rather than as a
+                     * run of extra inputs appearing out of nowhere.
+                     */
+                    sectionTitle:
+                      isAdvanced && argIndex === firstAdvancedArgumentIndex
+                        ? "Advanced"
+                        : undefined,
+                    showIf: isAdvanced
+                      ? (): boolean => {
+                          return showAdvanced;
+                        }
+                      : undefined,
                     footerElement: showVariableFooter ? (
                       <div className="text-gray-500">
                         <p className="text-sm">
@@ -323,12 +440,37 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                     },
                     required: arg.required,
                     placeholder: arg.placeholder,
+                    /*
+                     * Some argument types are read back with JSON5 rather than
+                     * JSON, so the check has to be no stricter than the parser
+                     * that will actually see the value.
+                     */
+                    allowJSON5: isJSON5ToleratedInputType(arg.type),
                     ...baseField,
                   };
                 })
               }
             />
           )}
+
+        {collapsibleAdvancedArguments.length > 0 && (
+          <div className="mt-3">
+            <button
+              type="button"
+              aria-expanded={showAdvanced}
+              className="text-sm underline text-blue-500 hover:text-blue-600 cursor-pointer"
+              onClick={() => {
+                setShowAdvanced(!showAdvanced);
+              }}
+            >
+              {showAdvanced
+                ? "Hide advanced settings"
+                : `Show ${collapsibleAdvancedArguments.length} advanced setting${
+                    collapsibleAdvancedArguments.length === 1 ? "" : "s"
+                  }`}
+            </button>
+          </div>
+        )}
       </div>
       {showVariableModal && (
         <VariableModal

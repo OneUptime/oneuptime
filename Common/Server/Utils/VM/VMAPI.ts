@@ -34,6 +34,20 @@ export default class VMUtil {
       }
     }
 
+    /*
+     * When we stringified the value ourselves just above, every placeholder in
+     * the text we are about to substitute into sits inside a JSON string
+     * literal — that is what JSON.stringify did to it. A resolved value
+     * carrying a quote or a newline therefore has to be escaped, or the
+     * JSON.parse at the bottom of this method fails and the caller silently
+     * receives a corrupted string where it asked for an object.
+     *
+     * This is separate from the caller's isJSON flag, which describes text the
+     * caller wrote and where a placeholder may legitimately stand in for a bare
+     * JSON value rather than sit inside a string.
+     */
+    const shouldEscapeForJSON: boolean = Boolean(isJSON) || didStringify;
+
     if (
       typeof valueToReplaceInPlace === "string" &&
       valueToReplaceInPlace.toString().includes("{{") &&
@@ -45,7 +59,7 @@ export default class VMUtil {
       valueToReplaceInPlaceCopy = VMUtil.expandEachLoops(
         storageMap,
         valueToReplaceInPlaceCopy,
-        isJSON,
+        shouldEscapeForJSON,
       );
 
       const variablesInArgument: Array<string> = [];
@@ -83,11 +97,21 @@ export default class VMUtil {
         if (valueToReplaceInPlaceCopy.trim() === "{{" + variable + "}}") {
           valueToReplaceInPlaceCopy = valueToReplaceInPlace;
         } else {
+          const replacement: string = shouldEscapeForJSON
+            ? VMUtil.serializeValueForJSON(valueToReplaceInPlace)
+            : `${valueToReplaceInPlace}`;
+
+          /*
+           * Function form, not the string form. String.replace treats $&, $1,
+           * $` and $' in the REPLACEMENT as substitution patterns, so a
+           * resolved value of "50$" or "a$&b" rewrote itself using the matched
+           * text. A function replacement is taken literally.
+           */
           valueToReplaceInPlaceCopy = valueToReplaceInPlaceCopy.replace(
             "{{" + variable + "}}",
-            isJSON
-              ? VMUtil.serializeValueForJSON(valueToReplaceInPlace)
-              : `${valueToReplaceInPlace}`,
+            () => {
+              return replacement;
+            },
           );
         }
       }
@@ -294,10 +318,14 @@ export default class VMUtil {
         replacement = `${foundValue}`;
       }
 
-      body = body.replace(
-        "{{" + variable + "}}",
-        isJSON ? VMUtil.serializeValueForJSON(replacement) : replacement,
-      );
+      const substitution: string = isJSON
+        ? VMUtil.serializeValueForJSON(replacement)
+        : replacement;
+
+      // Function form — see the note on the same call in replaceValueInPlace.
+      body = body.replace("{{" + variable + "}}", () => {
+        return substitution;
+      });
     }
 
     return body;
@@ -313,6 +341,15 @@ export default class VMUtil {
       value = JSON.stringify(value);
     } else {
       value = value
+        /*
+         * Backslash first, and only first. It was missing entirely, so a value
+         * like a Windows path or a regex ("C:\Users", "\d+") produced an
+         * invalid escape sequence in the surrounding document and the
+         * JSON.parse that followed threw. Escaping it after the others would
+         * instead double-escape the backslashes they just introduced.
+         */
+        .split("\\")
+        .join("\\\\")
         .split("\t")
         .join("\\t")
         .split("\n")
@@ -355,6 +392,17 @@ export default class VMUtil {
         if (indexString !== "last") {
           index = parseInt(indexString);
         } else {
+          /*
+           * `current[arrayKey].length` was read unguarded, so `items[last]`
+           * against a key that is missing (or is not an array) threw a
+           * TypeError out of deepFind and killed the entire run — the one
+           * resolution failure in here that was not silent. Fall through to the
+           * undefined return that every other miss produces.
+           */
+          if (!Array.isArray(current[arrayKey])) {
+            return undefined;
+          }
+
           index = current[arrayKey].length - 1;
         }
 

@@ -2,6 +2,12 @@ import WorkflowComponent from "./Component";
 import ComponentSettingsModal from "./ComponentSettingsModal";
 import ComponentsModal from "./ComponentsModal";
 import RunModal from "./RunModal";
+import {
+  LintGraphEdge,
+  LintGraphNode,
+  WorkflowLintResult,
+  lintWorkflowGraph,
+} from "./GraphLint";
 import { loadComponentsAndCategories } from "./Utils";
 import { VoidFunction } from "../../../Types/FunctionTypes";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -17,6 +23,7 @@ import React, {
   FunctionComponent,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -112,6 +119,11 @@ export interface ComponentProps {
   onRunModalUpdate: (isModalShown: boolean) => void;
   onRun: (trigger: NodeDataProp) => void;
   webhookSecretKey?: string | undefined;
+  /**
+   * Called whenever the static checks over the graph are recomputed, so the
+   * page around the canvas can show a count and decide what to do about it.
+   */
+  onLintResultChange?: ((result: WorkflowLintResult) => void) | undefined;
 }
 
 const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
@@ -243,6 +255,45 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
       props.onWorkflowUpdated(nodes, edges);
     }
   }, [nodes, edges]);
+
+  /*
+   * Static checks over the graph, recomputed as it is edited.
+   *
+   * The results are deliberately NOT written back into node state. Node data is
+   * what gets persisted (Builder.saveGraph sends node.data verbatim, minus
+   * metadata), so storing lint output there would save today's warnings into
+   * the workflow itself and show them again on reload even once they were
+   * fixed. Deriving a separate array for rendering keeps the saved graph clean.
+   */
+  const lintResult: WorkflowLintResult = useMemo(() => {
+    return lintWorkflowGraph({
+      nodes: nodes as unknown as Array<LintGraphNode>,
+      edges: edges as unknown as Array<LintGraphEdge>,
+    });
+  }, [nodes, edges]);
+
+  useEffect(() => {
+    props.onLintResultChange?.(lintResult);
+  }, [lintResult]);
+
+  const nodesToRender: Array<Node> = useMemo(() => {
+    return nodes.map((node: Node) => {
+      const error: string = lintResult.errorsByNodeId[node.id] || "";
+
+      // Same object when there is nothing to say, so react-flow can bail early.
+      if (!error && !node.data.error) {
+        return node;
+      }
+
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          error: error,
+        },
+      };
+    });
+  }, [nodes, lintResult]);
 
   const proOptions: ProOptions = { hideAttribution: true };
 
@@ -467,7 +518,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         `}
       </style>
       <ReactFlow
-        nodes={nodes}
+        nodes={nodesToRender}
         edges={edges}
         fitView={true}
         onEdgeClick={() => {
@@ -584,12 +635,22 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             setShowComponentSettingsModal(false);
           }}
           onSave={(componentData: NodeDataProp) => {
-            // Update the node.
+            /*
+             * The settings modal was opened from the rendered node, so what
+             * comes back carries whatever lint message was on it. Clear that
+             * before it reaches node state — state is what gets saved, and a
+             * message about today's mistake has no business being written into
+             * the workflow.
+             */
+            const dataToStore: NodeDataProp = {
+              ...componentData,
+              error: "",
+            };
 
             setNodes((nds: Array<Node>) => {
               return nds.map((n: Node) => {
-                if (n.data.internalId === componentData.internalId) {
-                  n.data = componentData;
+                if (n.data.internalId === dataToStore.internalId) {
+                  n.data = dataToStore;
                 }
 
                 return n;

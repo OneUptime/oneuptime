@@ -30,6 +30,35 @@ export enum ComponentInputType {
   WorkflowSelect = "Workflow Select",
 }
 
+/*
+ * Argument types whose value is a JSON document but is read with
+ * JSONFunctions.parse — that is, JSON5 — rather than JSON.parse. Unquoted keys,
+ * single quotes and trailing commas therefore work in these, and a workflow
+ * written that way runs fine today.
+ *
+ * The distinction matters wherever a JSON document is checked for syntax
+ * before it runs: applying JSON.parse's rules to one of these would report a
+ * mistake in a workflow that does not have one. The strict set is everything
+ * else — RunWorkflow.getComponentArguments calls JSON.parse directly on
+ * JSON, Query and Select, so those really must be JSON.
+ */
+const JSON5_TOLERANT_INPUT_TYPES: Array<ComponentInputType> = [
+  ComponentInputType.StringDictionary,
+  ComponentInputType.JSONArray,
+  ComponentInputType.BaseModel,
+  ComponentInputType.BaseModelArray,
+];
+
+export type IsJSON5ToleratedInputTypeFunction = (
+  type: ComponentInputType,
+) => boolean;
+
+export const isJSON5ToleratedInputType: IsJSON5ToleratedInputTypeFunction = (
+  type: ComponentInputType,
+): boolean => {
+  return JSON5_TOLERANT_INPUT_TYPES.includes(type);
+};
+
 export enum ComponentType {
   Trigger = "Trigger",
   Component = "Component",

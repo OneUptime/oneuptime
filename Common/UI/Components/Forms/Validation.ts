@@ -12,8 +12,12 @@ import Email from "../../../Types/Email";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import Exception from "../../../Types/Exception/Exception";
 import GenericObject from "../../../Types/GenericObject";
-import { JSONObject } from "../../../Types/JSON";
+import { JSONObject, JSONValue } from "../../../Types/JSON";
 import Phone from "../../../Types/Phone";
+import {
+  JSONSyntaxCheckResult,
+  checkJSONSyntax,
+} from "../../../Types/Workflow/TemplateSyntax";
 import { Logger } from "../../Utils/Logger";
 import Port from "../../../Types/Port";
 import Typeof from "../../../Types/Typeof";
@@ -320,6 +324,50 @@ export default class Validation {
     return null;
   }
 
+  /**
+   * A JSON field whose contents are not JSON.
+   *
+   * Until this existed, a stray trailing comma saved cleanly and only surfaced
+   * when something tried to parse it — for a workflow that meant a real run,
+   * at whatever hour the trigger fired, ending in
+   * "Invalid JSON provided for argument request-body"
+   * (RunWorkflow.getComponentArguments).
+   *
+   * Takes the raw value rather than the stringified `content` the other
+   * validators get, because a JSON-typed field can legitimately already hold a
+   * parsed object, and `String(anObject)` is "[object Object]" — which is not
+   * JSON, and would fail every time.
+   *
+   * Tolerates {{...}} handlebars: workflow arguments are templates, and
+   * `{"retries": {{local.variables.retryCount}}}` is not JSON as written but is
+   * JSON by the time it is parsed. checkJSONSyntax masks those before parsing
+   * and declines to judge anything containing a {{#each}} loop at all.
+   */
+  public static validateJSONSyntax<T extends GenericObject>(
+    value: JSONValue | undefined,
+    field: Field<T>,
+  ): string | null {
+    if (field.fieldType !== FormFieldSchemaType.JSON) {
+      return null;
+    }
+
+    const result: JSONSyntaxCheckResult = checkJSONSyntax(value, {
+      allowJSON5: field.allowJSON5,
+    });
+
+    if (result.isValid) {
+      return null;
+    }
+
+    return translateValidationMessage(
+      "{{field}} is not valid JSON. {{parserMessage}}",
+      {
+        field: field.title || field.name || "",
+        parserMessage: result.errorMessage || "",
+      },
+    );
+  }
+
   public static validate<T extends GenericObject>(args: {
     formFields: Array<Field<T>>;
     values: FormValues<T>;
@@ -373,6 +421,20 @@ export default class Validation {
         );
         if (resultValidateData) {
           errors[name] = resultValidateData;
+        }
+
+        /*
+         * Fed the raw value, not `content` — see validateJSONSyntax. An
+         * already-parsed object stringifies to "[object Object]", which would
+         * fail the check every time it was handed the stringified form.
+         */
+        const resultJSONSyntax: string | null = this.validateJSONSyntax(
+          (entries as JSONObject)[name] as JSONValue | undefined,
+          field,
+        );
+
+        if (resultJSONSyntax) {
+          errors[name] = resultJSONSyntax;
         }
 
         const resultMatch: string | null = this.validateMatchField(

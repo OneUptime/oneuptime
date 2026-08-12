@@ -372,35 +372,37 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
           </div>
         )}
 
-      {/* Error indicator */}
+      {/* Error indicator — hover it to read what is actually wrong. */}
       {!props.data.isPreview && hasError && (
-        <div
-          style={{
-            position: "absolute",
-            top: "8px",
-            right: "8px",
-            zIndex: 10,
-            width: "22px",
-            height: "22px",
-            borderRadius: "50%",
-            backgroundColor:
-              "color-mix(in srgb, #ef4444 15%, var(--ou-surface-primary, #ffffff))",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            border: "1px solid rgb(248 113 113 / 45%)",
-          }}
-        >
-          <Icon
-            icon={IconProp.Alert}
+        <Tooltip text={props.data.error}>
+          <div
             style={{
-              color: "#ef4444",
-              width: "0.75rem",
-              height: "0.75rem",
+              position: "absolute",
+              top: "8px",
+              right: "8px",
+              zIndex: 10,
+              width: "22px",
+              height: "22px",
+              borderRadius: "50%",
+              backgroundColor:
+                "color-mix(in srgb, #ef4444 15%, var(--ou-surface-primary, #ffffff))",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              border: "1px solid rgb(248 113 113 / 45%)",
             }}
-            thick={ThickProp.Thick}
-          />
-        </div>
+          >
+            <Icon
+              icon={IconProp.Alert}
+              style={{
+                color: "#ef4444",
+                width: "0.75rem",
+                height: "0.75rem",
+              }}
+              thick={ThickProp.Thick}
+            />
+          </div>
+        </Tooltip>
       )}
 
       {/* Header bar with gradient */}
