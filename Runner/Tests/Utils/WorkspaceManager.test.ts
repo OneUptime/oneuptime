@@ -86,7 +86,34 @@ describe("createWorkspace", () => {
       await WorkspaceManager.createWorkspace("myTaskId");
 
     try {
-      expect(path.basename(info.workspacePath)).toContain("task-myTaskId-");
+      expect(path.basename(info.workspacePath)).toContain("-myTaskId-");
+    } finally {
+      rmrf(info.workspacePath);
+    }
+  });
+
+  /*
+   * The timestamp leads, and is separated from the task id by a hyphen that
+   * cannot occur inside it. cleanupOldWorkspaces reads the age back out of
+   * this name, and a task id is a UUID — full of hyphens — so any layout
+   * that makes the sweeper parse PAST the task id to reach the timestamp
+   * cannot work. That is exactly what the old `task-<taskId>-<timestamp>-`
+   * layout did, and why the sweeper silently reaped nothing.
+   */
+  test("puts a parseable timestamp first, before the hyphen-bearing task id", async () => {
+    const before: number = Date.now();
+    const info: WorkspaceInfo = await WorkspaceManager.createWorkspace(
+      "550e8400-e29b-41d4-a716-446655440000",
+    );
+
+    try {
+      const name: string = path.basename(info.workspacePath);
+      const timestamp: number | null =
+        WorkspaceManager.timestampFromWorkspaceName(name);
+
+      expect(timestamp).not.toBeNull();
+      expect(timestamp as number).toBeGreaterThanOrEqual(before);
+      expect(timestamp as number).toBeLessThanOrEqual(Date.now());
     } finally {
       rmrf(info.workspacePath);
     }
@@ -294,10 +321,10 @@ describe("cleanupOldWorkspaces", () => {
     const oldStamp: number = now - 48 * 60 * 60 * 1000; // 48h ago
     const freshStamp: number = now; // just now
 
-    const oldDir: string = path.join(BASE_DIR, `task-old-${oldStamp}-aaaa1111`);
+    const oldDir: string = path.join(BASE_DIR, `task-${oldStamp}-old-aaaa1111`);
     const freshDir: string = path.join(
       BASE_DIR,
-      `task-fresh-${freshStamp}-bbbb2222`,
+      `task-${freshStamp}-fresh-bbbb2222`,
     );
     fs.mkdirSync(oldDir, { recursive: true });
     fs.mkdirSync(freshDir, { recursive: true });
@@ -312,6 +339,55 @@ describe("cleanupOldWorkspaces", () => {
       rmrf(oldDir);
       rmrf(freshDir);
     }
+  });
+
+  /*
+   * REGRESSION. The sweeper used to be dead code in production while its
+   * own tests passed, because the tests hand-wrote directory names that
+   * happened to fit the pattern and real task ids do not: a task id is the
+   * AIRun's UUID, so a real workspace was named
+   * `task-<8hex>-<4hex>-<4hex>-<4hex>-<12hex>-<timestamp>-<uid>` and the
+   * `task-[^-]+-(\d+)-` pattern could never match it. Every abandoned
+   * workspace — a full repository clone each — stayed on disk forever.
+   *
+   * So this test builds its fixture the way production does: through
+   * createWorkspace, with an actual UUID.
+   */
+  test("reaps a workspace created for a real UUID task id", async () => {
+    const info: WorkspaceInfo = await WorkspaceManager.createWorkspace(
+      "9f8e7d6c-5b4a-4938-8271-615243342516",
+    );
+
+    try {
+      expect(fs.existsSync(info.workspacePath)).toBe(true);
+
+      // maxAgeHours = 0: everything this manager owns is due for reaping.
+      const cleaned: number = await WorkspaceManager.cleanupOldWorkspaces(0);
+
+      expect(cleaned).toBeGreaterThanOrEqual(1);
+      expect(fs.existsSync(info.workspacePath)).toBe(false);
+    } finally {
+      rmrf(info.workspacePath);
+    }
+  });
+
+  test("timestampFromWorkspaceName refuses names that are not ours", () => {
+    expect(
+      WorkspaceManager.timestampFromWorkspaceName("some-other-directory"),
+    ).toBeNull();
+    // A task-prefixed name whose first field is not a number.
+    expect(
+      WorkspaceManager.timestampFromWorkspaceName("task-notanumber-abc"),
+    ).toBeNull();
+    // The OLD layout must not be reaped by accident either.
+    expect(
+      WorkspaceManager.timestampFromWorkspaceName(
+        "task-550e8400-e29b-41d4-a716-446655440000-1723363200000-9ab3cd12",
+      ),
+    ).toBeNull();
+    expect(
+      WorkspaceManager.timestampFromWorkspaceName("task-1723363200000-x-y"),
+    ).toBe(1723363200000);
   });
 
   test("ignores directories whose names do not match the task pattern", async () => {

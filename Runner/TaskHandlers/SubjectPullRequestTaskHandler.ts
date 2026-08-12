@@ -253,6 +253,7 @@ export default abstract class SubjectPullRequestTaskHandler extends BaseTaskHand
       repositoryName: tokenData.repositoryName,
       token: tokenData.token,
       repositoryUrl: tokenData.repositoryUrl,
+      baseBranch: repo.mainBranchName || undefined,
     };
 
     const repoManager: RepositoryManager = new RepositoryManager(
@@ -263,11 +264,22 @@ export default abstract class SubjectPullRequestTaskHandler extends BaseTaskHand
       workspace.workspacePath,
     );
 
+    /*
+     * The base is what git actually checked out, not the stored column — a
+     * stale mainBranchName would otherwise target a branch that no longer
+     * exists, or produce a diff of every commit between the two branches
+     * instead of the fix.
+     */
+    const baseBranch: string = cloneResult.baseBranch;
+
     // Create a working branch
     const branchName: string = `${this.branchPrefix}${context.taskId
       .toString()
       .substring(0, 8)}`;
-    await this.log(context, `Creating branch: ${branchName}`);
+    await this.log(
+      context,
+      `Creating branch: ${branchName} (from ${baseBranch})`,
+    );
     await repoManager.createBranch(cloneResult.repositoryPath, branchName);
 
     // Build the prompt for the code agent
@@ -305,11 +317,27 @@ export default abstract class SubjectPullRequestTaskHandler extends BaseTaskHand
 
     const agentResult: CodeAgentResult = await agent.executeTask(codeAgentTask);
 
-    // Check if any changes were made
-    if (!agentResult.success || agentResult.filesModified.length === 0) {
+    /*
+     * A code agent that FAILED and a code agent that ran fine but found
+     * nothing to change are opposite outcomes. The agent only reports
+     * success:false on a hard failure — server unreachable, LLM budget
+     * exhausted, timed out, aborted — and reporting that as "no fix found"
+     * presents an outage as a considered verdict. Throw so the caller
+     * reports Error; return null only for a clean, empty run.
+     */
+    if (!agentResult.success) {
+      await agent.cleanup();
+      throw new Error(
+        `The code agent could not complete: ${
+          agentResult.error || agentResult.summary || "unknown error"
+        }`,
+      );
+    }
+
+    if (agentResult.filesModified.length === 0) {
       await this.log(
         context,
-        `Code agent did not make any changes: ${agentResult.error || agentResult.summary}`,
+        `Code agent completed without changing any files: ${agentResult.summary}`,
         "warning",
       );
       await agent.cleanup();
@@ -380,7 +408,7 @@ export default abstract class SubjectPullRequestTaskHandler extends BaseTaskHand
       token: tokenData.token,
       organizationName: tokenData.organizationName,
       repositoryName: tokenData.repositoryName,
-      baseBranch: repo.mainBranchName || "main",
+      baseBranch,
       headBranch: branchName,
       title: prTitle,
       body: prBody,
@@ -398,7 +426,7 @@ export default abstract class SubjectPullRequestTaskHandler extends BaseTaskHand
       title: prResult.title,
       description: prBody.substring(0, 1000),
       headRefName: branchName,
-      baseRefName: repo.mainBranchName || "main",
+      baseRefName: baseBranch,
       runnerVerificationStatus: verification.status,
       runnerVerificationSummary: verification.summary,
     });

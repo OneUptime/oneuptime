@@ -16,11 +16,24 @@ export default class WorkspaceManager {
     "oneuptime-ai-agent",
   );
 
+  /*
+   * Directory-name shape: `task-<timestamp>-<taskId>-<uniqueId>`.
+   *
+   * The timestamp comes FIRST and is followed by a separator that cannot
+   * occur inside it, because cleanupOldWorkspaces has to read the age back
+   * out of the name. The previous layout put the task id first, and a task
+   * id is a UUID — which contains hyphens, so the pattern that expected a
+   * single hyphen-free field never matched a single real workspace and the
+   * sweeper silently reaped nothing. Every workspace a killed Runner left
+   * behind (a full repository clone each) stayed on disk forever.
+   */
+  private static readonly WORKSPACE_NAME_PREFIX: string = "task-";
+
   // Create a new workspace for a task
   public static async createWorkspace(taskId: string): Promise<WorkspaceInfo> {
     const timestamp: number = Date.now();
     const uniqueId: string = ObjectID.generate().toString().substring(0, 8);
-    const workspaceName: string = `task-${taskId}-${timestamp}-${uniqueId}`;
+    const workspaceName: string = `${this.WORKSPACE_NAME_PREFIX}${timestamp}-${taskId}-${uniqueId}`;
     const workspacePath: string = path.join(this.BASE_TEMP_DIR, workspaceName);
 
     logger.debug(`Creating workspace: ${workspacePath}`, {
@@ -64,11 +77,22 @@ export default class WorkspaceManager {
     } as LogAttributes);
 
     try {
-      // Verify the path is within our temp directory to prevent accidental deletion
-      const normalizedPath: string = path.normalize(workspacePath);
-      const normalizedBase: string = path.normalize(this.BASE_TEMP_DIR);
+      /*
+       * Verify the path is within our temp directory to prevent accidental
+       * deletion. The separator is load-bearing: a bare
+       * `startsWith(base)` also accepts every SIBLING whose name merely
+       * starts with the base name — `/tmp/oneuptime-ai-agent-backup` passes
+       * a prefix test against `/tmp/oneuptime-ai-agent` and would be
+       * recursively deleted. (CodeAgentWorkspaceGuard.resolveWorkspacePath
+       * already guards its paths this way; this is the same rule.)
+       */
+      const normalizedPath: string = path.resolve(workspacePath);
+      const normalizedBase: string = path.resolve(this.BASE_TEMP_DIR);
 
-      if (!normalizedPath.startsWith(normalizedBase)) {
+      if (
+        normalizedPath !== normalizedBase &&
+        !normalizedPath.startsWith(normalizedBase + path.sep)
+      ) {
         throw new Error(
           `Security error: Cannot delete path outside workspace base: ${workspacePath}`,
         );
@@ -185,21 +209,13 @@ export default class WorkspaceManager {
 
         const workspacePath: string = path.join(this.BASE_TEMP_DIR, entry.name);
 
-        /*
-         * Try to extract timestamp from directory name
-         * Format: task-{taskId}-{timestamp}-{uniqueId}
-         */
-        const match: RegExpMatchArray | null = entry.name.match(
-          /task-[^-]+-(\d+)-[^-]+/,
+        const timestamp: number | null = this.timestampFromWorkspaceName(
+          entry.name,
         );
 
-        if (match) {
-          const timestamp: number = parseInt(match[1] || "0", 10);
-
-          if (now - timestamp > maxAge) {
-            await this.deleteWorkspace(workspacePath);
-            cleanedCount++;
-          }
+        if (timestamp !== null && now - timestamp > maxAge) {
+          await this.deleteWorkspace(workspacePath);
+          cleanedCount++;
         }
       }
     } catch (error) {
@@ -213,6 +229,28 @@ export default class WorkspaceManager {
     );
 
     return cleanedCount;
+  }
+
+  /*
+   * The creation time encoded in a workspace directory name, or null when
+   * the name is not one of ours.
+   *
+   * Anchored at the start and reading the timestamp as the FIRST field:
+   * everything after it is a task id and a unique suffix, whose contents
+   * (a UUID, with hyphens) must not have to be parsed at all.
+   */
+  public static timestampFromWorkspaceName(name: string): number | null {
+    const match: RegExpMatchArray | null = name.match(
+      new RegExp(`^${this.WORKSPACE_NAME_PREFIX}(\\d+)-`),
+    );
+
+    if (!match || !match[1]) {
+      return null;
+    }
+
+    const timestamp: number = parseInt(match[1], 10);
+
+    return Number.isFinite(timestamp) ? timestamp : null;
   }
 
   // Initialize workspace manager (create base directory if needed)
