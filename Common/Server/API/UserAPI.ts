@@ -53,10 +53,25 @@ export default class UserAPI extends BaseAPI<User, UserServiceType> {
      * the gate; the read below runs as root because a master admin is not a
      * member of the projects being listed and so has no tenant permissions to
      * read them with.
+     *
+     * The gate accepts the instance-wide master API key as well as a
+     * master-admin session, because the caller asking "which projects is this
+     * person in?" is typically a script rather than somebody with a browser
+     * open. That is a widening, so it is worth being explicit about why it is
+     * the right one HERE and not on the routes below: this endpoint only reads,
+     * and it reads nothing the key does not already reach through
+     * POST /team-member/get-list, which any master-key caller can call today
+     * (untenanted, so cross-project) to assemble the same answer one membership
+     * at a time. The key buys convenience and correct paging, not new reach.
+     *
+     * The writes below stay on the session-only middleware. A leaked static key
+     * that can list memberships is a disclosure of what it could already
+     * disclose; one that can remove a user from a project, set their password or
+     * mail them a reset link is a headless account takeover.
      */
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/:userId/projects`,
-      MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+      MasterAdminAuthorization.isAuthorizedMasterAdminOrMasterApiKeyMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const userId: ObjectID = UserAPI.getUserIdFromParams(req);

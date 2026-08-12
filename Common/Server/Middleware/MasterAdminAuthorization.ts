@@ -59,13 +59,18 @@ export default class MasterAdminAuthorization {
    * Same as isAuthorizedMasterAdminMiddleware, but ALSO accepts the instance-wide
    * master API key (Admin Dashboard → Settings → API Key) supplied in the
    * `apikey` header. The master key has root/master-admin access, so this lets
-   * automated callers reach the master-admin OneUptime Health endpoints with the
-   * key instead of a logged-in master-admin session.
+   * automated callers reach master-admin endpoints with the key instead of a
+   * logged-in master-admin session.
    *
-   * Deliberately scoped to the read-only health / diagnostics routes only. It is
-   * NOT used on higher-risk master-admin actions (e.g. the read/write query
-   * console or broadcast email), which stay on the JWT-only middleware above so
-   * that a leaked static key cannot trigger them headlessly.
+   * Deliberately scoped to READ-ONLY routes: the OneUptime Health / diagnostics
+   * endpoints, and the cross-tenant read of one user's projects
+   * (POST /user/:userId/projects). It is NOT used on master-admin routes that
+   * change anything — the read/write query console, broadcast email, removing a
+   * user from a project, setting a password — which stay on the JWT-only
+   * middleware above so that a leaked static key cannot trigger them headlessly.
+   *
+   * Read-only is the line to hold when adding a route here. A key that can read
+   * discloses; a key that can write takes over.
    */
   public static async isAuthorizedMasterAdminOrMasterApiKeyMiddleware(
     req: ExpressRequest,
