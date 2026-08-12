@@ -80,7 +80,7 @@ Un DaemonSet ejecuta un pod del OpenTelemetry Collector por nodo. Lee archivos d
 Un Deployment de una sola réplica (la imagen `oneuptime/kubernetes-log-tailer`) usa la API de Kubernetes para transmitir los registros de los contenedores — el mismo endpoint que usa `kubectl logs -f`. Sin hostPath, sin acceso al host, sin DaemonSet.
 
 - **Pros:** funciona en GKE Autopilot, EKS Fargate y cualquier clúster que bloquee hostPath o aplique el Pod Security Standard `restricted`.
-$1 Cada flujo de contenedor es una conexión de larga duración a kube-apiserver. Una réplica maneja cómodamente unos miles de contenedores. En clústeres muy grandes, divida versiones independientes con reglas include de ámbito podLogs en namespaceFilters.rules.
+- **Contras:** Cada flujo de contenedor es una conexión de larga duración a kube-apiserver. Una réplica maneja cómodamente unos miles de contenedores. En clústeres muy grandes, divida versiones independientes con reglas include de ámbito podLogs en namespaceFilters.rules.
 
 ### ¿Cuál debería usar?
 

@@ -80,7 +80,7 @@ DaemonSet은 노드당 하나의 OpenTelemetry Collector 파드를 실행합니�
 단일 복제본 Deployment(`oneuptime/kubernetes-log-tailer` 이미지)가 Kubernetes API를 사용하여 컨테이너 로그를 스트리밍합니다 — `kubectl logs -f`가 사용하는 것과 동일한 엔드포인트입니다. hostPath도, 호스트 액세스도, DaemonSet도 필요 없습니다.
 
 - **장점:** GKE Autopilot, EKS Fargate 및 hostPath를 차단하거나 `restricted` Pod Security Standard를 적용하는 모든 클러스터에서 작동합니다.
-$1 각 컨테이너 스트림은 kube-apiserver에 대한 장기 연결입니다. 일반적으로 복제본 하나가 수천 개의 컨테이너를 처리합니다. 매우 큰 클러스터에서는 namespaceFilters.rules의 podLogs 범위 include 규칙으로 별도 릴리스를 샤딩하세요.
+- **단점:** 각 컨테이너 스트림은 kube-apiserver에 대한 장기 연결입니다. 일반적으로 복제본 하나가 수천 개의 컨테이너를 처리합니다. 매우 큰 클러스터에서는 namespaceFilters.rules의 podLogs 범위 include 규칙으로 별도 릴리스를 샤딩하세요.
 
 ### 어느 것을 사용해야 하나요?
 

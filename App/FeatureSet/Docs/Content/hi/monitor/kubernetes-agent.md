@@ -80,7 +80,7 @@ helm install oneuptime-agent oneuptime/kubernetes-agent \
 एकल-रेप्लिका Deployment (`oneuptime/kubernetes-log-tailer` इमेज) कंटेनर लॉग्स को स्ट्रीम करने के लिए Kubernetes API का उपयोग करता है — वही एंडपॉइंट जो `kubectl logs -f` उपयोग करता है। कोई hostPath नहीं, कोई होस्ट एक्सेस नहीं, कोई DaemonSet नहीं।
 
 - **फ़ायदे:** GKE Autopilot, EKS Fargate, और किसी भी क्लस्टर पर काम करता है जो hostPath को ब्लॉक करता है या `restricted` Pod Security Standard को लागू करता है।
-$1 हर कंटेनर स्ट्रीम kube-apiserver से लंबे समय तक चलने वाला कनेक्शन है। एक रेप्लिका सामान्यतः कुछ हज़ार कंटेनर संभालती है। बहुत बड़े क्लस्टर के लिए namespaceFilters.rules में podLogs स्कोप वाले include नियमों के साथ अलग-अलग रिलीज़ शार्ड करें।
+- **नुकसान:** हर कंटेनर स्ट्रीम kube-apiserver से लंबे समय तक चलने वाला कनेक्शन है। एक रेप्लिका सामान्यतः कुछ हज़ार कंटेनर संभालती है। बहुत बड़े क्लस्टर के लिए namespaceFilters.rules में podLogs स्कोप वाले include नियमों के साथ अलग-अलग रिलीज़ शार्ड करें।
 
 ### आपको कौन सा उपयोग करना चाहिए?
 

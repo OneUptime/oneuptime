@@ -80,7 +80,7 @@ Ein DaemonSet betreibt einen OpenTelemetry-Collector-Pod pro Node. Es liest Log-
 Ein Deployment mit einer einzelnen Replik (das `oneuptime/kubernetes-log-tailer`-Image) nutzt die Kubernetes-API, um Container-Logs zu streamen — derselbe Endpunkt, den `kubectl logs -f` verwendet. Kein hostPath, kein Host-Zugriff, kein DaemonSet.
 
 - **Vorteile:** funktioniert auf GKE Autopilot, EKS Fargate und jedem Cluster, der hostPath blockiert oder den `restricted`-Pod-Security-Standard erzwingt.
-$1 Jeder Container-Stream ist eine langlebige Verbindung zu kube-apiserver. Eine Replik bewältigt in der Praxis einige Tausend Container. Teilen Sie bei sehr großen Clustern separate Releases mit podLogs-bezogenen include-Regeln in namespaceFilters.rules auf.
+- **Nachteile:** Jeder Container-Stream ist eine langlebige Verbindung zu kube-apiserver. Eine Replik bewältigt in der Praxis einige Tausend Container. Teilen Sie bei sehr großen Clustern separate Releases mit podLogs-bezogenen include-Regeln in namespaceFilters.rules auf.
 
 ### Welchen sollten Sie verwenden?
 

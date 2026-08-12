@@ -80,7 +80,7 @@ DaemonSet запускает один Pod OpenTelemetry Collector на кажд�
 Deployment с одной репликой (образ `oneuptime/kubernetes-log-tailer`) использует Kubernetes API для стриминга логов контейнеров — тот же endpoint, который использует `kubectl logs -f`. Никаких hostPath, никакого доступа к хосту, никакого DaemonSet.
 
 - **Преимущества:** работает на GKE Autopilot, EKS Fargate и в любом кластере, где заблокирован hostPath или применяется `restricted` Pod Security Standard.
-$1 Каждый поток контейнера — это долговременное соединение с kube-apiserver. Одна реплика обычно обрабатывает несколько тысяч контейнеров. В очень больших кластерах разделите отдельные релизы с правилами include области podLogs в namespaceFilters.rules.
+- **Недостатки:** Каждый поток контейнера — это долговременное соединение с kube-apiserver. Одна реплика обычно обрабатывает несколько тысяч контейнеров. В очень больших кластерах разделите отдельные релизы с правилами include области podLogs в namespaceFilters.rules.
 
 ### Какой режим использовать?
 

@@ -80,7 +80,7 @@ Een DaemonSet draait één OpenTelemetry Collector-pod per node. Hij leest logbe
 Een Deployment met één replica (de `oneuptime/kubernetes-log-tailer`-image) gebruikt de Kubernetes API om container-logboeken te streamen — hetzelfde endpoint dat `kubectl logs -f` gebruikt. Geen hostPath, geen host-toegang, geen DaemonSet.
 
 - **Voordelen:** werkt op GKE Autopilot, EKS Fargate en elk cluster dat hostPath blokkeert of de `restricted` Pod Security Standard afdwingt.
-$1 Elke containerstream is een langdurige verbinding met kube-apiserver. Eén replica verwerkt doorgaans enkele duizenden containers. Shard bij zeer grote clusters afzonderlijke releases met include-regels met de scope podLogs in namespaceFilters.rules.
+- **Nadelen:** Elke containerstream is een langdurige verbinding met kube-apiserver. Eén replica verwerkt doorgaans enkele duizenden containers. Shard bij zeer grote clusters afzonderlijke releases met include-regels met de scope podLogs in namespaceFilters.rules.
 
 ### Welke moet u gebruiken?
 
