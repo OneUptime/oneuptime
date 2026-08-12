@@ -201,12 +201,30 @@ describe("runHttpStep pins and refuses redirects for allowed targets", () => {
   test("a self-hosted private target is still reachable by default", async () => {
     lookupSpy.mockResolvedValue([{ address: "10.0.0.5", family: 4 }]);
 
-    const result: StepRunResult = await runHttpStep(
-      makeHttpStep({ url: "http://internal-api.corp/health" }),
-    );
+    /*
+     * "Default" here means a self-hosted install: billing off and no explicit
+     * SaaS opt-in. The CI test harness turns BILLING_ENABLED on (SaaS), so
+     * force it off for this scenario and restore it afterwards — otherwise the
+     * private range is correctly blocked and this asserts the wrong contract.
+     */
+    const originalBillingEnabled: string | undefined =
+      process.env["BILLING_ENABLED"];
+    delete process.env["BILLING_ENABLED"];
 
-    expect(result.success).toBe(true);
-    expect(requestSpy).toHaveBeenCalled();
+    try {
+      const result: StepRunResult = await runHttpStep(
+        makeHttpStep({ url: "http://internal-api.corp/health" }),
+      );
+
+      expect(result.success).toBe(true);
+      expect(requestSpy).toHaveBeenCalled();
+    } finally {
+      if (originalBillingEnabled === undefined) {
+        delete process.env["BILLING_ENABLED"];
+      } else {
+        process.env["BILLING_ENABLED"] = originalBillingEnabled;
+      }
+    }
   });
 
   test("but not when the install opts into SaaS policy", async () => {

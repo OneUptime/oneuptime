@@ -386,14 +386,16 @@ export default class VMRunner {
 
     let absolute: string = target;
 
-    if (!/^https?:\/\//i.test(absolute)) {
+    const absoluteUrlRegex: RegExp = /^https?:\/\//i;
+
+    if (!absoluteUrlRegex.test(absolute)) {
       if (!baseUrl) {
         throw new Error("Request URL must be an absolute http or https URL.");
       }
       absolute = `${baseUrl.replace(/\/+$/, "")}/${absolute.replace(/^\/+/, "")}`;
     }
 
-    if (!/^https?:\/\//i.test(absolute)) {
+    if (!absoluteUrlRegex.test(absolute)) {
       throw new Error("Request URL must be an absolute http or https URL.");
     }
 
