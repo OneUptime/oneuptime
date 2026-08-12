@@ -694,7 +694,13 @@ describe("PublicDashboardResourceListPolicy", () => {
       );
     });
 
-    it("ignores a forged scalar All value for a stored multi-select", () => {
+    /*
+     * A stored multi-select reads only `selectedValues`. A scalar in the
+     * request is not a narrower selection the viewer is entitled to — it
+     * is a field this variable does not have — so it must not become a
+     * predicate, whatever it contains.
+     */
+    it("ignores a forged scalar value for a stored multi-select", () => {
       const storedVariables: Array<JSONObject> = [
         {
           id: "namespace",
@@ -712,26 +718,75 @@ describe("PublicDashboardResourceListPolicy", () => {
         requestedVariables: [
           {
             id: "namespace",
-            selectedValue: "",
+            selectedValue: "kube-system",
             selectedValues: [],
           },
         ],
       });
-      expect(forgedScalar.query["namespaceKey"]).toBe("production");
+      expect(forgedScalar.query["namespaceKey"]).toBeUndefined();
 
-      const compatiblePlaceholder: PublicDashboardResourceListPolicyResult =
+      const forgedScalarAlongsidePicks: PublicDashboardResourceListPolicyResult =
         build({
           componentType: DashboardComponentType.KubernetesPodList,
           storedVariables,
           requestedVariables: [
             {
               id: "namespace",
-              selectedValue: null,
-              selectedValues: [],
+              selectedValue: "kube-system",
+              selectedValues: ["prod"],
             },
           ],
         });
-      expect(compatiblePlaceholder.query["namespaceKey"]).toBe("production");
+      expect(forgedScalarAlongsidePicks.query["namespaceKey"]).toEqual(
+        new Includes(["prod"]),
+      );
+    });
+
+    /*
+     * The stored `defaultValue` is a single-select concept and never
+     * reaches a multi-select. A viewer who picks nothing — or who clears
+     * the popover, which is the same request on the wire — gets the
+     * unfiltered view the selector is showing them, not the author's
+     * default silently reapplied.
+     */
+    it("treats an empty multi-select as All rather than the stored default", () => {
+      const storedVariables: Array<JSONObject> = [
+        {
+          id: "namespace",
+          name: "Namespace",
+          type: DashboardVariableType.TelemetryAttribute,
+          attributeKey: "k8s.namespace.name",
+          isMultiSelect: true,
+          defaultValue: "production",
+        },
+      ];
+
+      const emptyList: PublicDashboardResourceListPolicyResult = build({
+        componentType: DashboardComponentType.KubernetesPodList,
+        storedVariables,
+        requestedVariables: [
+          {
+            id: "namespace",
+            selectedValue: null,
+            selectedValues: [],
+          },
+        ],
+      });
+      expect(emptyList.query["namespaceKey"]).toBeUndefined();
+
+      const omittedList: PublicDashboardResourceListPolicyResult = build({
+        componentType: DashboardComponentType.KubernetesPodList,
+        storedVariables,
+        requestedVariables: [{ id: "namespace", selectedValue: null }],
+      });
+      expect(omittedList.query["namespaceKey"]).toBeUndefined();
+
+      const noSelectionSent: PublicDashboardResourceListPolicyResult = build({
+        componentType: DashboardComponentType.KubernetesPodList,
+        storedVariables,
+        requestedVariables: [],
+      });
+      expect(noSelectionSent.query["namespaceKey"]).toBeUndefined();
     });
 
     it("ignores stale multi-value input for a stored single-select", () => {

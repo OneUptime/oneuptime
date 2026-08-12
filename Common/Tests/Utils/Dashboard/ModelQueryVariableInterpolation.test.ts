@@ -105,6 +105,50 @@ describe("DashboardModelQueryInterpolation.applyToQuery - writing predicates", (
     expect((result["hostname"] as Includes).values).toEqual(["web1", "web2"]);
   });
 
+  /*
+   * Resource list widgets share DashboardVariableInterpolation.resolveValue
+   * with the metric widgets, so they inherit the "All" rule: an empty
+   * multi-select filters nothing, and the variable's single-select Default
+   * does not stand in for the picks the user did not make.
+   */
+  test("an empty multi-select writes no predicate, Default or not", () => {
+    const query: Record<string, unknown> = { kind: "Container" };
+    const result: Record<string, unknown> =
+      DashboardModelQueryInterpolation.applyToQuery(
+        query,
+        [
+          attrVariable("host.name", {
+            isMultiSelect: true,
+            selectedValues: [],
+            defaultValue: "web1",
+          }),
+        ],
+        MAP,
+      );
+
+    expect(result).toBe(query);
+    expect(result["hostname"]).toBeUndefined();
+  });
+
+  test("a cleared multi-select removes a prior filter on that column", () => {
+    const query: Record<string, unknown> = { hostname: "web1", kind: "Pod" };
+    const result: Record<string, unknown> =
+      DashboardModelQueryInterpolation.applyToQuery(
+        query,
+        [
+          attrVariable("host.name", {
+            isMultiSelect: true,
+            selectedValues: [],
+            defaultValue: "web1",
+          }),
+        ],
+        MAP,
+      );
+
+    expect(result).toEqual({ kind: "Pod" });
+    expect(query).toEqual({ hostname: "web1", kind: "Pod" }); // input untouched
+  });
+
   test("maps two variables onto their respective columns", () => {
     const result: Record<string, unknown> =
       DashboardModelQueryInterpolation.applyToQuery(

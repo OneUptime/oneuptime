@@ -4,6 +4,7 @@ import DashboardVariableUrlState, {
 import DashboardVariable, {
   DashboardVariableType,
 } from "../../../Types/Dashboard/DashboardVariable";
+import DashboardVariableInterpolation from "../../../Utils/Dashboard/VariableInterpolation";
 
 function makeVariable(data: Partial<DashboardVariable>): DashboardVariable {
   return {
@@ -146,6 +147,47 @@ describe("DashboardVariableUrlState", () => {
 
       expect(applied[0]?.selectedValue).toBe("prod");
       expect(applied[1]?.selectedValues).toEqual(["us", "eu"]);
+    });
+
+    /*
+     * "All" is the absence of a var- param — writeToBrowserUrl emits
+     * nothing for an empty selection, so a reload cannot tell "cleared"
+     * from "never touched" and must treat both as All. That only holds
+     * because resolveValue ignores defaultValue for a multi-select; if it
+     * fell back, a viewer who cleared the popover would silently get the
+     * author's Default back on every refresh and on every shared link.
+     */
+    test("a cleared multi-select survives a url round trip as All", () => {
+      window.history.replaceState({}, "", "/dashboard");
+      DashboardVariableUrlState.writeToBrowserUrl([
+        makeVariable({
+          name: "region",
+          isMultiSelect: true,
+          selectedValues: [],
+          defaultValue: "us",
+        }),
+      ]);
+
+      expect(window.location.search).toBe("");
+
+      const applied: Array<DashboardVariable> =
+        DashboardVariableUrlState.applyUrlToVariables(
+          [
+            makeVariable({
+              name: "region",
+              isMultiSelect: true,
+              defaultValue: "us",
+            }),
+          ],
+          DashboardVariableUrlState.parseFromSearch(window.location.search),
+        );
+
+      expect(applied[0]?.selectedValues).toBeUndefined();
+      expect(
+        DashboardVariableInterpolation.resolveValue(
+          applied[0] as DashboardVariable,
+        ),
+      ).toBeUndefined();
     });
   });
 

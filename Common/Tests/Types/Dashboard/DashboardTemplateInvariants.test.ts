@@ -767,6 +767,33 @@ describe("DashboardTemplates invariants (all templates)", () => {
       }
     });
 
+    /*
+     * A multi-select variable resolves from its picks alone, and starts
+     * with none — so it opens on "All" and `defaultValue` never applies
+     * (see DashboardVariableInterpolation.resolveValue). A template that
+     * shipped one would look like it scoped its widgets and would not.
+     * Templates that want an opening scope must use a single-select.
+     */
+    test("no template ships a multi-select variable with a default", (): void => {
+      const offenders: Array<string> = [];
+      let multiSelectVariables: number = 0;
+
+      for (const loaded of loadAllTemplates()) {
+        for (const variable of loaded.config.variables || []) {
+          if (!variable.isMultiSelect) {
+            continue;
+          }
+          multiSelectVariables++;
+          if ((variable.defaultValue ?? "").length > 0) {
+            offenders.push(`${loaded.type} variable "${variable.name}"`);
+          }
+        }
+      }
+
+      expect(multiSelectVariables).toBeGreaterThan(0);
+      expect(offenders).toEqual([]);
+    });
+
     test("variable ids are freshly generated on every call", (): void => {
       const typesWithVariables: Array<DashboardTemplateType> =
         TEMPLATE_TYPES_WITH_CONFIG.filter(
