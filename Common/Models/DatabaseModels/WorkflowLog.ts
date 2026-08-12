@@ -348,6 +348,44 @@ export default class WorkflowLog extends BaseModel {
   })
   public resumeData?: JSONObject = undefined;
 
+  /*
+   * What each step of the run did, as data rather than as lines in `logs`:
+   * the component, its resolved arguments, what it returned, which out port it
+   * took and how long it took. Readable by anyone who can read the log itself,
+   * because it is the same information in a shape that can be rendered as a
+   * list of steps instead of a wall of text.
+   *
+   * Sensitive arguments and return values are redacted before they get here,
+   * by the same rules that redact them in `logs`.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.WorkflowAdmin,
+      Permission.WorkflowMember,
+      Permission.WorkflowViewer,
+      Permission.ReadWorkflowLog,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    isDefaultValueColumn: false,
+    type: TableColumnType.JSON,
+    title: "Step Trace",
+    description:
+      "Structured per-step record of this run: arguments, return values, the port taken and timing.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public stepTrace?: JSONObject = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [],
