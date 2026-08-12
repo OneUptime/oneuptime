@@ -1,5 +1,5 @@
 import ColorViewer from "../../../UI/Components/ColorViewer/ColorViewer";
-import "@testing-library/jest-dom/extend-expect";
+import "@testing-library/jest-dom";
 import { fireEvent, render } from "@testing-library/react";
 import Color from "../../../Types/Color";
 import * as React from "react";

@@ -128,8 +128,10 @@ export default class HtmlWidgetDocument {
    *
    * Resolution is delegated to DashboardVariableInterpolation so this widget
    * agrees with every query-driven widget about what a variable currently
-   * means (selected value, else default, else nothing). Multi-select joins
-   * with "," because that is the form an author would paste into a filter.
+   * means: a single-select is its selected value, else its default, else
+   * nothing; a multi-select is its picks, and no picks is "All" — which
+   * lands here as "" rather than the default. Multi-select joins with ","
+   * because that is the form an author would paste into a filter.
    */
   public static resolveVariables(
     variables: Array<DashboardVariable> | undefined,

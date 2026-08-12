@@ -3,7 +3,7 @@ import Card, {
   CardButtonSchema,
   ComponentProps,
 } from "../../../UI/Components/Card/Card";
-import "@testing-library/jest-dom/extend-expect";
+import "@testing-library/jest-dom";
 import { fireEvent, render, screen } from "@testing-library/react";
 import IconProp from "../../../Types/Icon/IconProp";
 import React, { ReactElement } from "react";

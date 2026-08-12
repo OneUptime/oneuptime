@@ -1,5 +1,5 @@
 import Alert, { AlertType } from "../../../UI/Components/Alerts/Alert";
-import "@testing-library/jest-dom/extend-expect";
+import "@testing-library/jest-dom";
 import { fireEvent, render, screen } from "@testing-library/react";
 import React from "react";
 import { describe, expect, jest } from "@jest/globals";

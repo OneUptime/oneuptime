@@ -216,6 +216,13 @@ const SingleVariableSelector: FunctionComponent<SingleVariableSelectorProps> = (
         {label}
       </label>
       {useSelect && variable.isMultiSelect ? (
+        /*
+         * `selectedValues` only — never defaultValue. The popover renders
+         * "All" for an empty list, and DashboardVariableInterpolation
+         * resolves an empty list to no predicate, so the two agree. Seeding
+         * this from defaultValue would put a filter behind a control that
+         * reads "All".
+         */
         <MultiSelectPopover
           options={options}
           selected={variable.selectedValues || []}

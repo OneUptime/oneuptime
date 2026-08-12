@@ -52,6 +52,33 @@ describe("DataSourceQueryText.applyVariables", () => {
     expect(result).toBe("default-cluster");
   });
 
+  /*
+   * An empty multi-select is "All", so it resolves to nothing and the token
+   * is left standing — the connector then names the unbound variable
+   * instead of silently querying the author's Default, which is a
+   * single-select concept the picks were never seeded from.
+   */
+  test("an empty multi-select leaves the token untouched, Default or not", () => {
+    const result: string = DataSourceQueryText.applyVariables(
+      'up{cluster=~"{{cluster}}"}',
+      [
+        makeVariable({
+          isMultiSelect: true,
+          selectedValues: [],
+          defaultValue: "prod",
+        }),
+      ],
+    );
+    expect(result).toBe('up{cluster=~"{{cluster}}"}');
+  });
+
+  test("an untouched multi-select leaves the token untouched too", () => {
+    const result: string = DataSourceQueryText.applyVariables("{{cluster}}", [
+      makeVariable({ isMultiSelect: true, defaultValue: "prod" }),
+    ]);
+    expect(result).toBe("{{cluster}}");
+  });
+
   test("leaves the token untouched when the variable is unresolved", () => {
     const result: string = DataSourceQueryText.applyVariables("{{cluster}}", [
       makeVariable({}),

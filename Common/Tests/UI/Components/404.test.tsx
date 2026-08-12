@@ -1,5 +1,5 @@
 import NotFound, { ComponentProps } from "../../../UI/Components/404";
-import "@testing-library/jest-dom/extend-expect";
+import "@testing-library/jest-dom";
 import { fireEvent, render, screen } from "@testing-library/react";
 import Route from "../../../Types/API/Route";
 import Email from "../../../Types/Email";

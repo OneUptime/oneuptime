@@ -14,7 +14,7 @@ import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import MonitorCustomField from "../../../../Models/DatabaseModels/MonitorCustomField";
 import CustomFieldType from "../../../../Types/CustomField/CustomFieldType";
 import { JSONObject } from "../../../../Types/JSON";
-import "@testing-library/jest-dom/extend-expect";
+import "@testing-library/jest-dom";
 import { cleanup, render } from "@testing-library/react";
 import React from "react";
 import { afterEach, describe, expect, test } from "@jest/globals";

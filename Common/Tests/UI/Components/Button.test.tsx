@@ -4,7 +4,7 @@ import Button, {
 } from "../../../UI/Components/Button/Button";
 import ButtonType from "../../../UI/Components/Button/ButtonTypes";
 import ShortcutKey from "../../../UI/Components/ShortcutKey/ShortcutKey";
-import "@testing-library/jest-dom/extend-expect";
+import "@testing-library/jest-dom";
 import { fireEvent, render, screen } from "@testing-library/react";
 import IconProp from "../../../Types/Icon/IconProp";
 import React from "react";

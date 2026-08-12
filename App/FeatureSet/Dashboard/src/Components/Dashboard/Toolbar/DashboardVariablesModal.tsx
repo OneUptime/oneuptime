@@ -81,11 +81,25 @@ const VariableRow: FunctionComponent<VariableRowProps> = (
           <label className="text-[11px] font-medium text-gray-500 uppercase tracking-wide block mb-1">
             Default
           </label>
+          {/*
+           * Defaults are a single-select concept: a multi-select starts on
+           * "All" and its selector has no way to show anything else while
+           * nothing is picked. Leaving this editable next to the
+           * multi-select checkbox invites a default that silently never
+           * applies, so it is disabled instead of quietly ignored. The
+           * stored value is kept so unticking the box restores it.
+           */}
           <input
             type="text"
-            className="w-full text-sm border border-gray-200 rounded-md px-2 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-100"
-            placeholder="(none)"
+            className="w-full text-sm border border-gray-200 rounded-md px-2 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:bg-gray-50 disabled:text-gray-400"
+            placeholder={variable.isMultiSelect ? "All" : "(none)"}
             value={variable.defaultValue || ""}
+            disabled={Boolean(variable.isMultiSelect)}
+            title={
+              variable.isMultiSelect
+                ? "Multi-select variables start on All and do not use a default."
+                : undefined
+            }
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
               props.onChange({ ...variable, defaultValue: e.target.value });
             }}
@@ -133,7 +147,10 @@ const VariableRow: FunctionComponent<VariableRowProps> = (
           />
           <p className="text-[11px] text-gray-400 mt-1">
             Widgets that filter on this attribute will be scoped to the selected
-            value. Choosing &quot;All&quot; leaves widgets unfiltered.
+            value. Choosing &quot;All&quot; leaves widgets unfiltered
+            {variable.isMultiSelect
+              ? " — a multi-select with nothing picked is All."
+              : "."}
           </p>
         </div>
       </div>

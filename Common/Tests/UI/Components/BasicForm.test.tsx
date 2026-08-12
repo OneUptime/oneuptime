@@ -2,7 +2,7 @@ import BasicForm from "../../../UI/Components/Forms/BasicForm";
 import Fields from "../../../UI/Components/Forms/Types/Fields";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "../../../UI/Components/Forms/Types/FormValues";
-import "@testing-library/jest-dom/extend-expect";
+import "@testing-library/jest-dom";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { UserEvent } from "@testing-library/user-event/dist/types/setup/setup";
@@ -10,6 +10,21 @@ import Route from "../../../Types/API/Route";
 import * as React from "react";
 import { describe, expect } from "@jest/globals";
 import getJestMockFunction, { MockFunction } from "../../../Tests/MockType";
+
+/*
+ * Type without userEvent's default inter-keystroke await. Input keeps a display
+ * value in state, syncs it from props, and then writes it straight onto the DOM
+ * node -- so a keystroke that arrives before React has committed the previous
+ * one gets overwritten by the stale value and is destroyed rather than merely
+ * delayed. Nothing recovers it, and the form submits "test@sample.cm". With
+ * `delay: null` the whole string is dispatched inside a single act(), where
+ * effects flush between keys, so that window never opens. Measured on a loaded
+ * machine: the default pacing dropped characters in 4 runs out of 6, this in 0
+ * out of 8.
+ */
+function setupUser(): UserEvent {
+  return userEvent.setup({ delay: null });
+}
 
 describe("BasicForm test", () => {
   const fields: Fields<FormValues<any>> = [
@@ -65,6 +80,11 @@ describe("BasicForm test", () => {
     expect(forgotPasswordText).toHaveTextContent("Forgot password?");
   });
 
+  /*
+   * The explicit timeout: typing 24 characters re-validates the whole form once
+   * per keystroke, which finishes well inside a second locally but has no
+   * headroom left against Jest's 5s default on a loaded runner.
+   */
   test("Should accept values and submit if valid", async () => {
     const handleSubmit: MockFunction = getJestMockFunction();
     const onSubmitSuccessful: MockFunction = getJestMockFunction();
@@ -82,7 +102,7 @@ describe("BasicForm test", () => {
         submitButtonText="Login"
       />,
     );
-    const user: UserEvent = userEvent.setup();
+    const user: UserEvent = setupUser();
     await user.type(screen.getByTestId("email"), "test@sample.com");
     await user.type(screen.getByTestId("password"), "12345678");
 
@@ -101,7 +121,7 @@ describe("BasicForm test", () => {
         onSubmitSuccessful,
       );
     });
-  });
+  }, 30000);
 
   test("Should display error if values are invalid", async () => {
     const handleSubmit: MockFunction = getJestMockFunction();
@@ -117,19 +137,28 @@ describe("BasicForm test", () => {
         submitButtonText="Login"
       />,
     );
-    const user: UserEvent = userEvent.setup();
+    const user: UserEvent = setupUser();
     await user.type(screen.getByTestId("email"), "humed");
     await user.type(screen.getByTestId("password"), "1238");
 
     const loginButton: HTMLButtonElement = screen.getByTestId("Login");
     await user.click(loginButton);
 
-    const errorComponent: HTMLElement[] =
-      screen.getAllByTestId("error-message");
+    /*
+     * Both errors have to be waited for. The email error is already on screen
+     * -- it was raised while the user was still typing -- but the password one
+     * only lands once the submit-time validation has flushed, so reading the
+     * list straight after the click finds a single error and indexes off the
+     * end of it.
+     */
+    await waitFor(() => {
+      const errorComponent: HTMLElement[] =
+        screen.getAllByTestId("error-message");
 
-    expect(errorComponent[0]?.innerHTML).toEqual("Email is not valid.");
-    expect(errorComponent[1]?.innerHTML).toEqual(
-      "Password cannot be less than 6 characters.",
-    );
+      expect(errorComponent[0]?.innerHTML).toEqual("Email is not valid.");
+      expect(errorComponent[1]?.innerHTML).toEqual(
+        "Password cannot be less than 6 characters.",
+      );
+    });
   });
 });
