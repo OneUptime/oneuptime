@@ -298,7 +298,25 @@ export default class RunWorkflow {
 
       // form a run stack.
 
-      const runStack: RunStack = await this.makeRunStack(workflow.graph);
+      let runStack: RunStack = await this.makeRunStack(workflow.graph);
+
+      /*
+       * "Run just this step": narrow the stack to the one component and start
+       * there. Its out ports are dropped so nothing downstream follows, and
+       * because this happens after makeRunStack the component still gets its
+       * real metadata and arguments.
+       *
+       * Any {{...}} the step reads from another component resolves to nothing,
+       * since nothing else ran — the runner already logs a warning naming each
+       * reference that did not resolve, which is the honest outcome rather
+       * than a silent empty value.
+       */
+      if (runProps.runOnlyComponentId) {
+        runStack = this.narrowRunStackToSingleComponent(
+          runStack,
+          runProps.runOnlyComponentId,
+        );
+      }
 
       /*
        * Guard against workflows that have no executable entry point. This
@@ -753,10 +771,7 @@ export default class RunWorkflow {
     before: JSONValue;
     after: JSONValue;
   }): void {
-    if (
-      typeof params.before !== "string" ||
-      typeof params.after !== "string"
-    ) {
+    if (typeof params.before !== "string" || typeof params.after !== "string") {
       return;
     }
 
@@ -1051,6 +1066,39 @@ export default class RunWorkflow {
           JSON.stringify(data),
       );
     }
+  }
+
+  /**
+   * Reduce a run stack to the single component the caller asked for.
+   *
+   * Throws when that component is not in the graph, rather than falling back to
+   * a full run — a request to run one step must never turn into a request to
+   * run the whole workflow.
+   */
+  public narrowRunStackToSingleComponent(
+    runStack: RunStack,
+    componentId: string,
+  ): RunStack {
+    const item: RunStackItem | undefined = runStack.stack[componentId];
+
+    if (!item) {
+      throw new BadDataException(
+        "Cannot run step " +
+          componentId +
+          ": there is no step with that id in this workflow.",
+      );
+    }
+
+    return {
+      startWithComponentId: componentId,
+      stack: {
+        [componentId]: {
+          node: item.node,
+          // No out ports: nothing downstream of this step should follow.
+          outPorts: {},
+        },
+      },
+    };
   }
 
   public async makeRunStack(graph: JSONObject): Promise<RunStack> {

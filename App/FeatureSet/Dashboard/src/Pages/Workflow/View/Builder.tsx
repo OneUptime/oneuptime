@@ -587,6 +587,28 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
               setEdges(edges);
               await saveGraph(nodes, edges);
             }}
+            onRunStep={async (component: NodeDataProp) => {
+              try {
+                const result: HTTPErrorResponse | HTTPResponse<JSONObject> =
+                  await API.post({
+                    url: URL.fromString(WORKFLOW_URL.toString()).addRoute(
+                      "/run-step/" + modelId.toString(),
+                    ),
+                    data: {
+                      componentId: component.id,
+                    },
+                    headers: ModelAPI.getCommonHeaders(),
+                  });
+
+                if (result instanceof HTTPErrorResponse) {
+                  throw result;
+                }
+
+                startWatchingRun();
+              } catch (err) {
+                setError(API.getFriendlyMessage(err));
+              }
+            }}
             onRun={async (component: NodeDataProp) => {
               try {
                 const result: HTTPErrorResponse | HTTPResponse<JSONObject> =

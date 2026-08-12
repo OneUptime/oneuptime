@@ -19,4 +19,9 @@ export interface RunProps {
    * depth across workflow boundaries.
    */
   callChain?: Array<string>;
+  /**
+   * Execute only this component (by its user-facing id) instead of walking the
+   * graph from the trigger. See ExecuteWorkflowType.runOnlyComponentId.
+   */
+  runOnlyComponentId?: string | undefined;
 }

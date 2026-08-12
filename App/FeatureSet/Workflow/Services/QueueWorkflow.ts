@@ -244,6 +244,7 @@ export default class QueueWorkflow {
         workflowLogId: workflowLog?._id || null,
         workflowId: workflow._id,
         callChain: executeWorkflow.callChain || [],
+        runOnlyComponentId: executeWorkflow.runOnlyComponentId || null,
       },
       {
         scheduleAt: resolvedScheduleAt,

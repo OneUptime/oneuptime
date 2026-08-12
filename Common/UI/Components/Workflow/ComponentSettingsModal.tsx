@@ -22,6 +22,11 @@ export interface ComponentProps {
   onClose: () => void;
   onSave: (component: NodeDataProp) => void;
   onDelete: (component: NodeDataProp) => void;
+  /**
+   * Run this one step now. Absent for triggers, which have nothing to run on
+   * their own.
+   */
+  onRunStep?: ((component: NodeDataProp) => void) | undefined;
   component: NodeDataProp;
   graphComponents: Array<NodeDataProp>;
   workflowId: ObjectID;
@@ -66,6 +71,8 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
     Dictionary<boolean>
   >({});
   const [showDeleteConfirmation, setShowDeleteConfirmation] =
+    useState<boolean>(false);
+  const [showRunStepConfirmation, setShowRunStepConfirmation] =
     useState<boolean>(false);
 
   const settingsSection: ReactElement = (
@@ -209,18 +216,50 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
             </span>
           </div>
         ) : (
-          <Button
-            title="Delete"
-            icon={IconProp.Trash}
-            buttonStyle={ButtonStyleType.DANGER_OUTLINE}
-            onClick={() => {
-              setShowDeleteConfirmation(true);
-            }}
-          />
+          <div className="flex items-center gap-3">
+            <Button
+              title="Delete"
+              icon={IconProp.Trash}
+              buttonStyle={ButtonStyleType.DANGER_OUTLINE}
+              onClick={() => {
+                setShowDeleteConfirmation(true);
+              }}
+            />
+            {props.onRunStep && (
+              <Button
+                title="Run just this step"
+                icon={IconProp.Play}
+                buttonStyle={ButtonStyleType.OUTLINE}
+                onClick={() => {
+                  setShowRunStepConfirmation(true);
+                }}
+              />
+            )}
+          </div>
         )
       }
     >
       <>
+        {showRunStepConfirmation && (
+          <ConfirmModal
+            title={`Run this step now?`}
+            /*
+             * Worded as what it is. There is no dry run: the step executes for
+             * real, and anything it sends or changes is not undone afterwards.
+             */
+            description={`This runs "${component.metadata.title}" for real, on its own. Anything it sends, writes or deletes actually happens. Values it reads from other steps will be empty, because nothing else runs.`}
+            onClose={() => {
+              setShowRunStepConfirmation(false);
+            }}
+            submitButtonText="Run this step"
+            onSubmit={() => {
+              setShowRunStepConfirmation(false);
+              props.onRunStep?.(component);
+            }}
+            submitButtonType={ButtonStyleType.NORMAL}
+          />
+        )}
+
         {showDeleteConfirmation && (
           <ConfirmModal
             title={`Delete ${component.metadata.componentType}`}
