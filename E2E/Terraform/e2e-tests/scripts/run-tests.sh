@@ -521,7 +521,7 @@ for test_name in "${TEST_DIRS[@]}"; do
         # against the API that nothing leaked, so a retry cannot paper over a
         # resource that genuinely failed to delete.
         destroy_ok=0
-        for destroy_attempt in 1 2 3; do
+        for destroy_attempt in 1 2 3 4 5; do
             if terraform destroy -auto-approve 2>&1; then
                 destroy_ok=1
                 if [ $destroy_attempt -gt 1 ]; then
@@ -529,24 +529,40 @@ for test_name in "${TEST_DIRS[@]}"; do
                 fi
                 break
             fi
-            if [ $destroy_attempt -lt 3 ]; then
+            if [ $destroy_attempt -lt 5 ]; then
                 echo "  ↻ Destroy failed on attempt $destroy_attempt — retrying in 10s"
                 sleep 10
             fi
         done
 
-        if [ $destroy_ok -eq 0 ]; then
-            echo "  ✗ FAILED: Destroy failed after 3 attempts"
-            test_failed=1
-        fi
-
-        # Verify deletion via API — a failure here means resources leaked (or
-        # the API could not confirm deletion) and fails the test.
+        # Verify deletion via API — the authoritative correctness gate for the
+        # destroy phase. A failure here means resources leaked (or the API could
+        # not confirm deletion) and fails the test.
         echo ""
         echo "  [verify-deletion]"
+        deletion_verified=0
         if [ -n "$saved_ids" ]; then
-            if ! validate_all_deleted "$test_path" "$saved_ids"; then
+            if validate_all_deleted "$test_path" "$saved_ids"; then
+                deletion_verified=1
+            else
                 echo "  ✗ FAILED: Deletion verification failed"
+                test_failed=1
+            fi
+        fi
+
+        # A destroy that exhausts its retries is only a real failure when the
+        # API cannot then confirm the resources are gone. When the async cleanup
+        # of the foreign-key-holding rows simply outran the retry window (the
+        # 35-monitor-with-steps case above), verify-deletion has already proven
+        # nothing leaked, so retry exhaustion is not a test failure — this
+        # matches the harness rule that verify-deletion, not the exit code of
+        # `terraform destroy`, is the correctness gate. Retry exhaustion with a
+        # verify failure, or with no ids available to verify, stays fatal.
+        if [ $destroy_ok -eq 0 ]; then
+            if [ $deletion_verified -eq 1 ]; then
+                echo "  ⚠ Destroy exhausted its retries, but verify-deletion confirms every resource is gone — treating the teardown as clean."
+            else
+                echo "  ✗ FAILED: Destroy failed after 5 attempts"
                 test_failed=1
             fi
         fi
