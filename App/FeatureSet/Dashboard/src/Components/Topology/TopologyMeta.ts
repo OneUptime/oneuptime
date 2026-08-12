@@ -48,6 +48,35 @@ const META_BY_TYPE: Record<EntityType, EntityTypeMeta> = {
   },
   [EntityType.DockerSwarmTask]: { label: "Swarm Task", color: "#22d3ee" },
   [EntityType.TelemetrySdk]: { label: "Telemetry SDK", color: "#94a3b8" },
+  /*
+   * Inventory-mirrored types. Greens, to read as one family distinct from the
+   * telemetry-derived types above — on the graph these are things OneUptime
+   * polls rather than things that report in.
+   */
+  [EntityType.NetworkDevice]: { label: "Network Device", color: "#059669" },
+  [EntityType.CloudResource]: { label: "Cloud Resource", color: "#10b981" },
+  [EntityType.ServerlessFunction]: {
+    label: "Serverless Function",
+    color: "#34d399",
+  },
+  [EntityType.RumApplication]: { label: "RUM Application", color: "#14b8a6" },
+  [EntityType.IoTDevice]: { label: "IoT Device", color: "#047857" },
+  [EntityType.DockerHost]: { label: "Docker Host", color: "#0d9488" },
+  [EntityType.PodmanHost]: { label: "Podman Host", color: "#0f766e" },
+  /*
+   * Manual types. Amber, deliberately unlike everything else: these are the
+   * parts of the graph OneUptime cannot see for itself and is taking a
+   * human's word for.
+   */
+  [EntityType.ExternalService]: {
+    label: "External Service",
+    color: "#d97706",
+  },
+  [EntityType.ExternalDatabase]: {
+    label: "External Database",
+    color: "#b45309",
+  },
+  [EntityType.Appliance]: { label: "Appliance", color: "#f59e0b" },
 };
 
 export function metaForEntityType(
