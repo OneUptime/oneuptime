@@ -204,6 +204,7 @@ import "./Jobs/IoT/CleanupStaleResources";
 // Telemetry entity registry: TTL prune + span-derived service map edges.
 import "./Jobs/TelemetryEntity/PruneStaleEntities";
 import "./Jobs/TelemetryEntity/ComputeServiceDependencies";
+import "./Jobs/TelemetryEntity/SyncInventoryEntities";
 
 /*
  * Session replay. FinalizeSessions is not optional bookkeeping: both replay

@@ -202,3 +202,69 @@ export function keyForDockerSwarmCluster(
     identifyingAttributes: { "docker.swarm.cluster.name": clusterName },
   });
 }
+
+/*
+ * ---- Rows without telemetry ----------------------------------------------
+ *
+ * The helpers above mirror an ingest-side resolver, so their identifying
+ * attribute is dictated by semconv — the key MUST byte-match what ingest
+ * stamped or the lookup finds nothing. The two below have no ingest-side
+ * counterpart to match: nothing about a hand-registered vendor API or an
+ * SNMP-polled switch ever flows through an OTLP resource. Their identity is
+ * therefore chosen here, and the only real requirement is that it is stable
+ * and collision-free within a project.
+ */
+
+/**
+ * Identity attribute for a manually created CI. Its value is the CI's
+ * canonicalized display name, which makes (project, type, name) the natural
+ * key — so re-creating a deleted CI under the same name reuses its key, and
+ * two CIs of one type cannot share a name.
+ */
+export const MANUAL_ENTITY_IDENTITY_ATTRIBUTE: string = "oneuptime.entity.name";
+
+/**
+ * Key for a manually created CI. Pass the user-entered display name; it is
+ * canonicalized (trimmed + lowercased) exactly like every other identity
+ * value, so casing drift on re-entry does not fork identity.
+ */
+export function keyForManualEntity(
+  projectId: string,
+  entityType: EntityType,
+  displayName: string,
+): string {
+  return computeEntityKey({
+    projectId,
+    entityType,
+    identifyingAttributes: {
+      [MANUAL_ENTITY_IDENTITY_ATTRIBUTE]: displayName,
+    },
+  });
+}
+
+/**
+ * Identity attribute for an inventory-mirrored CI. The value is the owning
+ * row's ObjectID rather than its name: unlike the semconv-derived types,
+ * the inventory row IS the identity, and keying on the id means renaming a
+ * device in the UI does not orphan its registry row and mint a second one.
+ */
+export const INVENTORY_ENTITY_IDENTITY_ATTRIBUTE: string =
+  "oneuptime.resource.id";
+
+/**
+ * Key for a row mirrored out of a OneUptime inventory table. Pass the
+ * owning row's id (e.g. `NetworkDevice.id`).
+ */
+export function keyForInventoryEntity(
+  projectId: string,
+  entityType: EntityType,
+  resourceId: string,
+): string {
+  return computeEntityKey({
+    projectId,
+    entityType,
+    identifyingAttributes: {
+      [INVENTORY_ENTITY_IDENTITY_ATTRIBUTE]: resourceId,
+    },
+  });
+}

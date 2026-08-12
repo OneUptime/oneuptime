@@ -8,8 +8,19 @@ import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import QueryDeepPartialEntity from "../../Types/Database/PartialEntity";
+import CreateBy from "../Types/Database/CreateBy";
+import { OnCreate } from "../Types/Database/Hooks";
+import BadDataException from "../../Types/Exception/BadDataException";
+import Dictionary from "../../Types/Dictionary";
 import { JSONObject } from "../../Types/JSON";
+import EntitySource from "../../Types/Telemetry/EntitySource";
 import EntityType from "../../Types/Telemetry/EntityType";
+import { MANUAL_ENTITY_TYPES } from "../../Types/Telemetry/EntityTypeGroups";
+import {
+  canonicalizeEntityValue,
+  computeEntityKey,
+  MANUAL_ENTITY_IDENTITY_ATTRIBUTE,
+} from "../../Utils/Telemetry/EntityKey";
 import logger from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { ExtractedEntity } from "../Utils/Telemetry/TelemetryEntity";
@@ -23,6 +34,91 @@ import {
 export class TelemetryEntityService extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /**
+   * Completes a manually created CI.
+   *
+   * Every machine writer — the ingest reconciler and the inventory mirror —
+   * computes `entityKey` itself and passes an explicit `source`, because
+   * both derive identity from something the user never sees (a canonicalized
+   * semconv attribute set, or the owning row's id). A create arriving
+   * WITHOUT a key is therefore a user create by construction, and this hook
+   * is what turns the two fields a human can reasonably supply (type and
+   * name) into the identity the registry needs.
+   *
+   * Deriving the key here rather than in the dashboard keeps it enforced for
+   * API clients too, and keeps the one identity rule — canonicalize, then
+   * hash — in the module that owns it.
+   */
+  @CaptureSpan()
+  protected override async onBeforeCreate(
+    createBy: CreateBy<Model>,
+  ): Promise<OnCreate<Model>> {
+    const data: Model = createBy.data;
+
+    if (!data.entityKey) {
+      data.source = EntitySource.Manual;
+    }
+
+    if (data.source !== EntitySource.Manual) {
+      return { createBy, carryForward: null };
+    }
+
+    if (!data.projectId) {
+      throw new BadDataException("Project ID is required.");
+    }
+
+    if (!data.entityType) {
+      throw new BadDataException("Entity Type is required.");
+    }
+
+    /*
+     * Confined to the manual-only vocabulary. A hand-made row of an
+     * observable type would key off the manual identity attribute and so
+     * could never converge with the row ingest derives for the same thing —
+     * it would just sit beside it forever. See MANUAL_ENTITY_TYPES.
+     */
+    if (!MANUAL_ENTITY_TYPES.has(data.entityType)) {
+      throw new BadDataException(
+        `Entities of type ${data.entityType} are discovered automatically and cannot be created manually. Manually creatable types are: ${Array.from(
+          MANUAL_ENTITY_TYPES,
+        ).join(", ")}.`,
+      );
+    }
+
+    const displayName: string = (data.displayName || "").trim();
+
+    if (!displayName) {
+      throw new BadDataException(
+        "Name is required for a manually created entity.",
+      );
+    }
+
+    data.displayName = displayName.substring(0, ColumnLength.ShortText);
+
+    const identifyingAttributes: Dictionary<string> = {
+      [MANUAL_ENTITY_IDENTITY_ATTRIBUTE]: canonicalizeEntityValue(displayName),
+    };
+    data.identifyingAttributes = identifyingAttributes as JSONObject;
+
+    data.entityKey = computeEntityKey({
+      projectId: data.projectId.toString(),
+      entityType: data.entityType,
+      identifyingAttributes,
+    });
+
+    /*
+     * Stamped so the explorer can sort manual CIs alongside discovered ones
+     * on the same columns. `lastSeenAt` never moves again for these rows —
+     * it means "created", not "observed" — which is exactly why the prune
+     * sweep excludes them.
+     */
+    const now: Date = OneUptimeDate.getCurrentDate();
+    data.firstSeenAt = data.firstSeenAt || now;
+    data.lastSeenAt = data.lastSeenAt || now;
+
+    return { createBy, carryForward: null };
   }
 
   /**
@@ -169,7 +265,18 @@ export class TelemetryEntityService extends DatabaseService<Model> {
         if (count === undefined) {
           count = (
             await this.countBy({
-              query: { projectId, entityType: entity.entityType },
+              query: {
+                projectId,
+                entityType: entity.entityType,
+                /*
+                 * The budget exists to bound rows minted by ingest, so it
+                 * counts only those. Manual CIs and inventory mirrors are
+                 * bounded by their own creators and must not consume it —
+                 * otherwise registering enough devices could stop new
+                 * telemetry entities being recorded at all.
+                 */
+                source: EntitySource.Discovered,
+              },
               props: { isRoot: true },
             })
           ).toNumber();
@@ -198,6 +305,12 @@ export class TelemetryEntityService extends DatabaseService<Model> {
         model.projectId = projectId;
         model.entityType = entity.entityType;
         model.entityKey = entity.entityKey;
+        /*
+         * Explicit rather than leaning on the column default: this is the
+         * flag that makes the row eligible for stale-entity pruning, and a
+         * silently-defaulted value is a poor way to carry that.
+         */
+        model.source = EntitySource.Discovered;
         model.identifyingAttributes = entity.identifyingAttributes;
         if (
           entity.descriptiveAttributes &&

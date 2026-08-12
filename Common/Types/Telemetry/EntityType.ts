@@ -51,6 +51,33 @@ enum EntityType {
   DockerSwarmService = "docker.swarm.service",
   DockerSwarmTask = "docker.swarm.task",
   TelemetrySdk = "telemetry.sdk",
+  /*
+   * Inventory-mirrored types. Unlike everything above, these are never
+   * derived from an OTLP resource — the estate they describe is collected
+   * by pollers (SNMP, cloud APIs, MQTT) into rich typed tables, and the
+   * registry row is a mirror of that row so the entity explorer can show
+   * one estate instead of one telemetry pipeline. Their identity is the
+   * owning row's own project-unique key, and their lifecycle follows it
+   * (see InventoryEntityRegistry); they carry EntitySource.Inventory and
+   * are deliberately absent from the prune TTL map.
+   */
+  NetworkDevice = "network.device",
+  CloudResource = "cloud.resource",
+  ServerlessFunction = "serverless.function",
+  RumApplication = "rum.application",
+  IoTDevice = "iot.device",
+  DockerHost = "docker.host",
+  PodmanHost = "podman.host",
+  /*
+   * Manual (user-authored) types, for the parts of an estate that emit no
+   * telemetry and appear in no inventory table: a third-party payment API,
+   * a vendor-managed database, a physical appliance. They exist so a
+   * dependency edge can terminate somewhere real instead of dangling at
+   * the boundary of what OneUptime can see. Carry EntitySource.Manual.
+   */
+  ExternalService = "external.service",
+  ExternalDatabase = "external.database",
+  Appliance = "appliance",
 }
 
 export default EntityType;

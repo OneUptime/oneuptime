@@ -5,6 +5,7 @@ import OneUptimeDate from "../../Types/Date";
 import logger from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { EntityRelationshipEdge } from "../../Utils/Telemetry/EntityRelationship";
+import EntitySource from "../../Types/Telemetry/EntitySource";
 import { reconcileByNaturalKey } from "../Utils/Telemetry/EntityRegistry";
 import QueryDeepPartialEntity from "../../Types/Database/PartialEntity";
 
@@ -62,6 +63,8 @@ export class TelemetryEntityRelationshipService extends DatabaseService<Model> {
         model.fromEntityKey = edge.fromEntityKey;
         model.toEntityKey = edge.toEntityKey;
         model.relationshipType = edge.relationshipType;
+        // Explicit: this is what makes the edge eligible for stale pruning.
+        model.source = EntitySource.Discovered;
         model.firstSeenAt = now;
         model.lastSeenAt = now;
         if (edge.metrics) {

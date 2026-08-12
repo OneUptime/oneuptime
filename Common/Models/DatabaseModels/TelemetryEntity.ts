@@ -15,6 +15,7 @@ import IconProp from "../../Types/Icon/IconProp";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
+import EntitySource from "../../Types/Telemetry/EntitySource";
 import EntityType from "../../Types/Telemetry/EntityType";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 import DatabaseBaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
@@ -186,6 +187,50 @@ export default class TelemetryEntity extends DatabaseBaseModel {
     nullable: true,
   })
   public displayName?: string = undefined;
+
+  /*
+   * Immutable after create (`update: []`): the value decides whether
+   * PruneStaleEntities may reap the row, so letting it be edited would let a
+   * user flip a manual CI into a TTL-pruned one — or quietly make a
+   * discovered row immortal. Re-create the row instead.
+   */
+  @ColumnAccessControl({ create: CREATE_PERMS, read: READ_PERMS, update: [] })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: true,
+    title: "Source",
+    description:
+      "How this row came to exist: discovered from telemetry, mirrored from a OneUptime inventory table, or created manually by a user. Determines whether stale-entity pruning applies.",
+    example: "discovered",
+  })
+  @Index()
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: false,
+    default: EntitySource.Discovered,
+  })
+  public source?: EntitySource = undefined;
+
+  @ColumnAccessControl({
+    create: CREATE_PERMS,
+    read: READ_PERMS,
+    update: UPDATE_PERMS,
+  })
+  @TableColumn({
+    type: TableColumnType.LongText,
+    required: false,
+    title: "Description",
+    description:
+      "Free-text description. Primarily for manually created entities, where there are no telemetry attributes to explain what the thing is.",
+    example: "Stripe payments API - vendor managed, no telemetry.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    nullable: true,
+  })
+  public description?: string = undefined;
 
   @ColumnAccessControl({
     create: CREATE_PERMS,
