@@ -10,15 +10,15 @@ import {
 import { ROBINSON_VIEW_BOX } from "../../FeatureSet/Dashboard/src/Components/NetworkSite/Geo/GeoProjection";
 
 /*
- * The on-demand loader for the checked-in country outlines, shared by the
+ * The on-demand loader for the checked-in map geometry, shared by the
  * Network Map PAGE (SiteGeoMap) and the Network Map dashboard WIDGET.
  *
  * Two invariants live here, and both are about bytes a viewer downloads:
  *
- *  - The geometry is ~600 KB across both tiers, and every route module in
- *    the dashboard lands in ONE shared esbuild chunk. A static import would
- *    make Incidents, a monitor and Settings all download and parse country
- *    outlines they never draw.
+ *  - The geometry is ~700 KB across the three tiers, and every route module
+ *    in the dashboard lands in ONE shared esbuild chunk. A static import
+ *    would make Incidents, a monitor and Settings all download and parse
+ *    country outlines they never draw.
  *
  *  - The cache is module-level, so a page showing the full map above a
  *    dashboard tile fetches the outlines once between them rather than
@@ -57,21 +57,26 @@ const WIDGET_PATH: string = path.join(
 
 const SITE_GEO_MAP_PATH: string = path.join(GEO_DIR, "..", "SiteGeoMap.tsx");
 
+const GEOMETRY_FILES: Array<string> = [
+  "WorldCountriesGeometry.json",
+  "WorldCountriesDetailGeometry.json",
+  "WorldSubdivisionsGeometry.json",
+];
+
 describe("WorldGeometry source", () => {
-  test("neither tier is statically imported", () => {
+  test("no tier is statically imported", () => {
     expect(readSource("WorldGeometry.ts")).not.toMatch(
-      /import \S+ from "\.\/WorldCountries\w*Geometry\.json";/,
+      /import \S+ from "\.\/World\w*\.json";/,
     );
   });
 
-  test("both tiers are loaded lazily, by literal specifier", () => {
-    // Literal specifiers so esbuild can see both targets and split them out.
+  test("every tier is loaded lazily, by literal specifier", () => {
+    // Literal specifiers so esbuild can see every target and split them out.
     const source: string = readSource("WorldGeometry.ts");
 
-    expect(source).toContain('await import("./WorldCountriesGeometry.json")');
-    expect(source).toContain(
-      'await import("./WorldCountriesDetailGeometry.json")',
-    );
+    for (const fileName of GEOMETRY_FILES) {
+      expect(source).toContain(`await import("./${fileName}")`);
+    }
   });
 
   /*
@@ -85,20 +90,24 @@ describe("WorldGeometry source", () => {
       expect(source).toContain("loadGeometryFeatures");
       expect(source).toContain("Geo/WorldGeometry");
       // Nobody re-implements the import() or keeps a second cache.
-      expect(source).not.toContain("WorldCountriesGeometry.json");
-      expect(source).not.toContain("WorldCountriesDetailGeometry.json");
+      for (const fileName of GEOMETRY_FILES) {
+        expect(source).not.toContain(fileName);
+      }
     }
   });
 
   /*
    * A dashboard tile has no zoom controls, so it can never reach the zoom
-   * at which the detail tier earns its ~500 KB. Fetching it there would
-   * hand that cost to every viewer of every dashboard the widget is on.
+   * at which the detail tier earns its ~500 KB, or the one at which state
+   * lines start meaning anything. Fetching either there would hand that cost
+   * to every viewer of every dashboard the widget is on — and draw state
+   * lines a few pixels apart on a tile glanced at from across a room.
    */
-  test("the widget never asks for the expensive detail tier", () => {
+  test("the widget never asks for the tiers only zoom can earn", () => {
     const source: string = fs.readFileSync(WIDGET_PATH, "utf8");
 
     expect(source).not.toContain('loadGeometryFeatures("detail")');
+    expect(source).not.toContain('loadGeometryFeatures("subdivisions")');
     expect(source).toContain('const GEOMETRY_TIER: GeometryTier = "overview";');
   });
 });
@@ -135,28 +144,48 @@ describe("loadGeometryFeatures", () => {
     expect(getCachedGeometryFeatures("overview")).toBe(loaded);
   });
 
-  test("keeps the two tiers in separate cache slots", async () => {
+  test("keeps every tier in its own cache slot", async () => {
     const overview: Array<GeometryFeature> =
       await loadGeometryFeatures("overview");
     const detail: Array<GeometryFeature> = await loadGeometryFeatures("detail");
+    const subdivisions: Array<GeometryFeature> =
+      await loadGeometryFeatures("subdivisions");
 
     expect(detail).not.toBe(overview);
+    expect(subdivisions).not.toBe(overview);
+    expect(subdivisions).not.toBe(detail);
     expect(getCachedGeometryFeatures("detail")).toBe(detail);
     expect(getCachedGeometryFeatures("overview")).toBe(overview);
+    expect(getCachedGeometryFeatures("subdivisions")).toBe(subdivisions);
   });
 
   /*
-   * The two tiers share a viewBox so the map can swap them under a live
-   * frame without every coastline shifting — and so a pin projected at
-   * runtime lands on the outline in either one.
+   * The subdivision tier is drawn ON TOP of the detail outlines rather than
+   * instead of them, so a mismatch here would not swap one map for another —
+   * it would put every state line somewhere its own country is not.
    */
-  test("both tiers share the runtime projection's viewBox", () => {
-    for (const tier of [
-      "WorldCountriesGeometry",
-      "WorldCountriesDetailGeometry",
-    ]) {
+  test("loads the state and province lines as drawable paths", async () => {
+    const features: Array<GeometryFeature> =
+      await loadGeometryFeatures("subdivisions");
+
+    expect(features.length).toBeGreaterThan(0);
+
+    for (const feature of features) {
+      expect(feature.id.length).toBeGreaterThan(0);
+      expect(feature.name.length).toBeGreaterThan(0);
+      expect(feature.path.startsWith("M")).toBe(true);
+    }
+  });
+
+  /*
+   * All three files share a viewBox so the map can swap and stack them under
+   * a live frame without every coastline shifting — and so a pin projected at
+   * runtime lands on the outline in any of them.
+   */
+  test("every tier shares the runtime projection's viewBox", () => {
+    for (const fileName of GEOMETRY_FILES) {
       const file: { viewBox: string } = JSON.parse(
-        fs.readFileSync(path.join(GEO_DIR, `${tier}.json`), "utf8"),
+        fs.readFileSync(path.join(GEO_DIR, fileName), "utf8"),
       ) as { viewBox: string };
 
       expect(file.viewBox).toBe(ROBINSON_VIEW_BOX);

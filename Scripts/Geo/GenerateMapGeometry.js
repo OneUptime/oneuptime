@@ -4,9 +4,9 @@
  * Decodes world-atlas TopoJSON, projects it with the exact same Robinson math
  * as the runtime pin projector
  * (App/FeatureSet/Dashboard/src/Components/NetworkSite/Geo/GeoProjection.ts)
- * and emits two checked-in SVG path geometry files, both in the SAME
- * 960x500 viewBox so the map can swap one for the other without moving a
- * single pin:
+ * and emits three checked-in SVG path geometry files, all in the SAME
+ * 960x500 viewBox so the map can swap or stack them without moving a single
+ * pin:
  *
  *   WorldCountriesGeometry.json        overview outlines (countries-110m,
  *                                      1 decimal) — what the map draws at
@@ -15,16 +15,22 @@
  *                                      2 decimals) — swapped in once the
  *                                      viewport is zoomed past
  *                                      DETAIL_GEOMETRY_MIN_ZOOM.
+ *   WorldSubdivisionsGeometry.json     INTERNAL admin-1 boundaries — state,
+ *                                      province and territory lines, drawn
+ *                                      OVER the detail outlines once the
+ *                                      viewport passes
+ *                                      SUBDIVISION_GEOMETRY_MIN_ZOOM.
  *
  * The projection constants here MUST stay byte-for-byte in sync with
  * GeoProjection.ts — the whole point of generating our own geometry (instead
  * of shipping a pre-projected atlas) is that site pins projected at runtime
  * land exactly on the projected outlines.
  *
- * Run (network needed only for the two downloads):
+ * Run (network needed only for the downloads):
  *   curl -L -o /tmp/countries-110m.json https://unpkg.com/world-atlas@2/countries-110m.json
  *   curl -L -o /tmp/countries-50m.json https://unpkg.com/world-atlas@2/countries-50m.json
- *   node ./Scripts/Geo/GenerateMapGeometry.js /tmp/countries-110m.json /tmp/countries-50m.json
+ *   curl -L -o /tmp/admin-1-50m.geojson https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_50m_admin_1_states_provinces.geojson
+ *   node ./Scripts/Geo/GenerateMapGeometry.js /tmp/countries-110m.json /tmp/countries-50m.json /tmp/admin-1-50m.geojson
  *
  * See ./README.md for data sources, licensing and output details.
  */
@@ -118,6 +124,18 @@ const DETAIL_TIER = {
   minRingAreaPx2: 0.05,
 };
 
+/*
+ * State and province lines. Same precision and tolerance as the detail tier,
+ * because they are drawn at the same zooms and on top of it: a coarser
+ * subdivision line would visibly miss the coastline it ends on, and a finer
+ * one would be paying for precision the outline underneath does not have.
+ */
+const SUBDIVISION_TIER = {
+  fileName: "WorldSubdivisionsGeometry.json",
+  decimals: 2,
+  simplifyTolerance: 0.04,
+};
+
 function projectRobinson(longitude, latitude) {
   const absoluteLatitude = Math.min(90, Math.abs(latitude));
   const index = Math.min(17, Math.floor(absoluteLatitude / 5));
@@ -195,18 +213,21 @@ function ringsOfGeometry(decodedArcs, geometry) {
 }
 
 /*
- * A ring that steps across the ±180° antimeridian (Fiji, and Russia's
+ * A polyline that steps across the ±180° antimeridian (Fiji, and Russia's
  * Chukotka tip and Wrangel Island) reads as a single huge westward step, so
  * drawing it verbatim streaks a straight line back across the whole map.
- * Cut such rings at the meridian instead: each piece stays on one side, and
- * because the cut points are projected like any other point, the seam lands
- * exactly on the map's own curved edge.
+ * Cut it at the meridian instead: each piece stays on one side, and because
+ * the cut points are projected like any other point, the seam lands exactly
+ * on the map's own curved edge.
+ *
+ * Rings go through splitRingAtAntimeridian below, which adds the rejoin that
+ * only closed input needs.
  */
-function splitRingAtAntimeridian(ring) {
+function cutAtAntimeridian(points) {
   const pieces = [];
   let current = [];
 
-  for (const point of ring) {
+  for (const point of points) {
     if (current.length === 0) {
       current.push(point);
       continue;
@@ -247,6 +268,12 @@ function splitRingAtAntimeridian(ring) {
   if (current.length > 0) {
     pieces.push(current);
   }
+
+  return pieces;
+}
+
+function splitRingAtAntimeridian(ring) {
+  const pieces = cutAtAntimeridian(ring);
 
   if (pieces.length <= 1) {
     return [ring];
@@ -291,9 +318,10 @@ function distanceToSegment(point, a, b) {
 /*
  * Douglas-Peucker, iterative so a 30 000-point Russian coastline cannot blow
  * the stack. Endpoints are always kept, so a ring's two anchors survive and
- * neighbouring countries keep sharing them.
+ * neighbouring countries keep sharing them — and a subdivision line still
+ * starts and ends exactly on the border it branches off.
  */
-function simplifyRing(ring, tolerance) {
+function simplifyPolyline(ring, tolerance) {
   if (tolerance <= 0 || ring.length <= 2) {
     return ring;
   }
@@ -332,12 +360,12 @@ function roundToDecimals(value, decimals) {
 }
 
 /*
- * Round to the tier's precision and drop consecutive duplicate points (and
- * the closing point — SVG "Z" closes the ring).
+ * Round to the tier's precision and drop consecutive duplicate points —
+ * rounding a dense coastline collapses neighbouring vertices onto each other.
  */
-function roundAndDedupe(projectedRing, decimals) {
+function roundAndDedupe(projectedPoints, decimals) {
   const out = [];
-  for (const point of projectedRing) {
+  for (const point of projectedPoints) {
     const x = roundToDecimals(point[0], decimals);
     const y = roundToDecimals(point[1], decimals);
     const last = out[out.length - 1];
@@ -346,6 +374,12 @@ function roundAndDedupe(projectedRing, decimals) {
     }
     out.push([x, y]);
   }
+  return out;
+}
+
+// As above, plus the closing point a ring does not need — SVG "Z" closes it.
+function roundRing(projectedRing, decimals) {
+  const out = roundAndDedupe(projectedRing, decimals);
   const first = out[0];
   const last = out[out.length - 1];
   if (out.length > 1 && first[0] === last[0] && first[1] === last[1]) {
@@ -381,26 +415,31 @@ function formatNumber(value) {
 }
 
 /*
- * One ring as an SVG subpath: an absolute moveto followed by ONE relative
- * polyline. Relative steps are what make the detail tier affordable — a
- * coastline step is "l.03,-.05" instead of "L245.67,123.45".
+ * One ring or line as an SVG subpath: an absolute moveto followed by ONE
+ * relative polyline. Relative steps are what make the detail tier affordable
+ * — a coastline step is "l.03,-.05" instead of "L245.67,123.45".
  *
  * Each step is emitted from the position the renderer is actually at (the
  * running sum of already-rounded deltas), not from the ideal ring, so
  * rounding error can never accumulate along a 30 000-point coastline. Every
  * subpath re-anchors with its own absolute M, so error cannot cross rings
  * either.
+ *
+ * `isClosed` decides the trailing "Z". Country outlines are closed rings;
+ * a subdivision boundary is an OPEN line whose two ends are junctions with
+ * other borders, and closing it would draw a chord straight back across the
+ * state.
  */
-function ringToPathSegment(ring, decimals) {
-  let d = "M" + formatNumber(ring[0][0]) + "," + formatNumber(ring[0][1]);
+function pointsToPathSegment(points, decimals, isClosed) {
+  let d = "M" + formatNumber(points[0][0]) + "," + formatNumber(points[0][1]);
 
-  let currentX = ring[0][0];
-  let currentY = ring[0][1];
+  let currentX = points[0][0];
+  let currentY = points[0][1];
   const steps = [];
 
-  for (let i = 1; i < ring.length; i++) {
-    const dx = roundToDecimals(ring[i][0] - currentX, decimals);
-    const dy = roundToDecimals(ring[i][1] - currentY, decimals);
+  for (let i = 1; i < points.length; i++) {
+    const dx = roundToDecimals(points[i][0] - currentX, decimals);
+    const dy = roundToDecimals(points[i][1] - currentY, decimals);
     if (dx === 0 && dy === 0) {
       continue;
     }
@@ -413,7 +452,7 @@ function ringToPathSegment(ring, decimals) {
     return null;
   }
 
-  return d + "l" + steps.join(" ") + "Z";
+  return d + "l" + steps.join(" ") + (isClosed ? "Z" : "");
 }
 
 /*
@@ -424,8 +463,8 @@ function ringToPathSegment(ring, decimals) {
 function ringsToPath(projectedRings, tier) {
   const rounded = projectedRings
     .map(function simplifyThenRound(ring) {
-      return roundAndDedupe(
-        simplifyRing(ring, tier.simplifyTolerance),
+      return roundRing(
+        simplifyPolyline(ring, tier.simplifyTolerance),
         tier.decimals,
       );
     })
@@ -452,12 +491,53 @@ function ringsToPath(projectedRings, tier) {
 
   const path = kept
     .map(function toSegment(entry) {
-      return ringToPathSegment(entry.ring, tier.decimals);
+      return pointsToPathSegment(entry.ring, tier.decimals, true);
     })
     .filter(Boolean)
     .join("");
 
   return path.length > 0 ? path : null;
+}
+
+/*
+ * Turns projected subdivision lines into one SVG path string. Unlike
+ * ringsToPath there is no speck threshold: a short line is not a sub-pixel
+ * island nobody would miss, it is a fragment of a border, and dropping it
+ * leaves a gap in the middle of a boundary somebody has zoomed in to read.
+ *
+ * A line whose ends coincide is a subdivision entirely surrounded by its own
+ * country's other subdivisions (Nebraska, Madhya Pradesh) — closed with "Z"
+ * so the loop joins up cleanly instead of showing a hairline seam.
+ */
+function linesToPath(projectedLines, tier) {
+  const segments = [];
+
+  for (const line of projectedLines) {
+    const points = roundAndDedupe(
+      simplifyPolyline(line, tier.simplifyTolerance),
+      tier.decimals,
+    );
+    if (points.length < 2) {
+      continue;
+    }
+
+    const first = points[0];
+    const last = points[points.length - 1];
+    const isClosed = first[0] === last[0] && first[1] === last[1];
+    if (isClosed) {
+      points.pop();
+    }
+    if (points.length < 2) {
+      continue;
+    }
+
+    const segment = pointsToPathSegment(points, tier.decimals, isClosed);
+    if (segment) {
+      segments.push(segment);
+    }
+  }
+
+  return segments.length > 0 ? segments.join("") : null;
 }
 
 /*
@@ -517,17 +597,288 @@ function buildWorldCountries(topology, tier) {
 
 /*
  * ------------------------------------------------------------------
+ * Subdivision (state / province) boundaries.
+ * ------------------------------------------------------------------
+ *
+ * WHY THIS TIER EXISTS
+ *
+ * Zoomed out, a country outline is the whole map. Zoomed into one country it
+ * is a single closed curve around a blank field, and a reader looking at a
+ * pin somewhere in the middle of the United States or India has nothing to
+ * place it against. State lines are the next reference frame down, and the
+ * only one that works for every country at once — no city list to curate, no
+ * language to translate, no label to collide with a marker.
+ *
+ * WHY THE SOURCE PICKS THE COUNTRIES
+ *
+ * There is no "large countries" list here to argue about. Natural Earth's
+ * 50m admin-1 file covers exactly the nine countries whose subdivisions are
+ * legible at 1:50m — Russia, the US, India, Indonesia, China, Brazil,
+ * Canada, Australia and South Africa — so the data answers the question the
+ * old "United States / World" toggle used to answer badly.
+ *
+ * WHY INTERNAL BOUNDARIES ONLY
+ *
+ * Every subdivision polygon also traces its country's coastline and
+ * international borders, which the country tier already draws underneath. Two
+ * strokes on one line is a heavier, slightly-offset double edge (the two
+ * sources simplify differently), and storing the shared inner borders twice —
+ * once from each neighbour — is the other half of the waste. So this keeps
+ * only the boundaries INTERIOR to a country: the segments that appear in two
+ * of its subdivisions.
+ */
+
+// Consistent identity for a lon/lat vertex, so shared segments compare equal.
+function pointKey(point) {
+  return point[0] + "," + point[1];
+}
+
+/*
+ * Identity for an undirected segment. Neighbouring subdivisions trace the
+ * border they share in OPPOSITE directions, so the endpoints have to be
+ * ordered before they are compared.
+ */
+function segmentKey(a, b) {
+  const first = pointKey(a);
+  const second = pointKey(b);
+  return first < second ? first + "|" + second : second + "|" + first;
+}
+
+// GeoJSON Polygon -> [rings]; MultiPolygon -> [rings, rings, ...] flattened.
+function ringsOfGeoJsonGeometry(geometry) {
+  if (!geometry) {
+    return [];
+  }
+  if (geometry.type === "Polygon") {
+    return geometry.coordinates;
+  }
+  if (geometry.type === "MultiPolygon") {
+    return geometry.coordinates.flat();
+  }
+  return [];
+}
+
+/*
+ * A GeoJSON ring repeats its first point at the end. Everything below treats
+ * a ring as a cycle of n points and n segments, so that duplicate has to go;
+ * a ring that arrives unclosed (not legal GeoJSON, but cheap to survive)
+ * gains one closing segment that no neighbour shares, and is therefore
+ * discarded as an outer edge rather than drawn.
+ */
+function cycleOfRing(ring) {
+  if (
+    ring.length > 1 &&
+    pointKey(ring[0]) === pointKey(ring[ring.length - 1])
+  ) {
+    return ring.slice(0, -1);
+  }
+  return ring;
+}
+
+/*
+ * Counts how many subdivisions trace each segment, and whether they belong to
+ * the same country.
+ *
+ * A segment traced twice by one country's subdivisions is an internal border.
+ * Traced twice across two countries it is an INTERNATIONAL border — the US
+ * and Canada both carry the 49th parallel — which the country tier already
+ * draws, so it must not be drawn again here.
+ */
+function countSharedSegments(geojson) {
+  const segments = new Map();
+
+  for (const feature of geojson.features) {
+    const country = feature.properties.admin;
+    for (const ring of ringsOfGeoJsonGeometry(feature.geometry)) {
+      const cycle = cycleOfRing(ring);
+      for (let i = 0; i < cycle.length; i++) {
+        const key = segmentKey(cycle[i], cycle[(i + 1) % cycle.length]);
+        const existing = segments.get(key);
+        if (!existing) {
+          segments.set(key, {
+            count: 1,
+            country: country,
+            isInternational: false,
+          });
+          continue;
+        }
+        existing.count += 1;
+        if (existing.country !== country) {
+          existing.isInternational = true;
+        }
+      }
+    }
+  }
+
+  return segments;
+}
+
+/*
+ * The runs of consecutive internal-boundary segments in one ring, as
+ * polylines.
+ *
+ * Runs rather than loose segments for two reasons: Douglas-Peucker can only
+ * straighten a line it can see the whole of, and one "M" per border beats one
+ * per segment. `emitted` is shared across the whole file so the second
+ * subdivision to trace a border skips it — otherwise every internal line
+ * would be stored twice, mirrored.
+ */
+function internalBoundaryRuns(cycle, segments, emitted) {
+  const count = cycle.length;
+
+  const isInternal = function isInternal(index) {
+    const entry = segments.get(
+      segmentKey(cycle[index], cycle[(index + 1) % count]),
+    );
+    return Boolean(entry && entry.count >= 2 && !entry.isInternational);
+  };
+
+  /*
+   * Start walking at an OUTER segment where there is one, so a run that
+   * straddles the ring's arbitrary first vertex is not cut in half there. A
+   * cycle with no outer segment at all is a subdivision fully enclosed by its
+   * own country's others, and walks round as a single closed run.
+   */
+  let startAt = 0;
+  for (let i = 0; i < count; i++) {
+    if (!isInternal(i)) {
+      startAt = i;
+      break;
+    }
+  }
+
+  const runs = [];
+  let current = null;
+
+  for (let step = 0; step < count; step++) {
+    const index = (startAt + step) % count;
+    const from = cycle[index];
+    const to = cycle[(index + 1) % count];
+    const key = segmentKey(from, to);
+
+    if (isInternal(index) && !emitted.has(key)) {
+      emitted.add(key);
+      if (current) {
+        current.push(to);
+      } else {
+        current = [from, to];
+      }
+      continue;
+    }
+
+    if (current) {
+      runs.push(current);
+      current = null;
+    }
+  }
+
+  if (current) {
+    runs.push(current);
+  }
+
+  return runs;
+}
+
+function buildWorldSubdivisions(geojson, tier) {
+  const segments = countSharedSegments(geojson);
+  const emitted = new Set();
+  const byCountry = new Map();
+
+  for (const feature of geojson.features) {
+    /*
+     * One feature per COUNTRY, not per subdivision: a border belongs to the
+     * two subdivisions on either side of it, so attributing it to one of them
+     * would be a coin toss. The country is the honest owner, and it is also
+     * the granularity the map draws at.
+     */
+    const id = feature.properties.adm0_a3;
+    const name = feature.properties.admin;
+    if (!id || !name) {
+      continue;
+    }
+
+    for (const ring of ringsOfGeoJsonGeometry(feature.geometry)) {
+      const cycle = cycleOfRing(ring);
+      if (cycle.length < 3) {
+        continue;
+      }
+      const runs = internalBoundaryRuns(cycle, segments, emitted);
+      if (runs.length === 0) {
+        continue;
+      }
+      const entry = byCountry.get(id) || { id: id, name: name, lines: [] };
+      for (const run of runs) {
+        entry.lines.push(run);
+      }
+      byCountry.set(id, entry);
+    }
+  }
+
+  const features = [];
+  for (const entry of byCountry.values()) {
+    const projectedLines = [];
+    for (const line of entry.lines) {
+      for (const piece of cutAtAntimeridian(line)) {
+        if (piece.length < 2) {
+          continue;
+        }
+        projectedLines.push(
+          piece.map(function projectPoint(point) {
+            return projectRobinson(point[0], point[1]);
+          }),
+        );
+      }
+    }
+    const pathD = linesToPath(projectedLines, tier);
+    if (!pathD) {
+      continue;
+    }
+    features.push({ id: entry.id, name: entry.name, path: pathD });
+  }
+
+  features.sort(function byId(a, b) {
+    return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+  });
+
+  return {
+    viewBox: "0 0 " + ROBINSON_VIEW_BOX_WIDTH + " " + ROBINSON_VIEW_BOX_HEIGHT,
+    features: features,
+  };
+}
+
+/*
+ * ------------------------------------------------------------------
  * Main.
  * ------------------------------------------------------------------
  */
 
+/*
+ * Compact JSON: these files are machine-generated and never hand-edited, and
+ * the detail tier's pretty-printed form is megabytes of indentation.
+ */
+function writeGeometry(geometry, tier) {
+  const outputPath = path.join(OUTPUT_DIR, tier.fileName);
+  fs.writeFileSync(outputPath, JSON.stringify(geometry) + "\n");
+
+  const bytes = fs.statSync(outputPath).size;
+  console.log(
+    outputPath +
+      ": " +
+      geometry.features.length +
+      " features, " +
+      (bytes / 1024).toFixed(1) +
+      " KB",
+  );
+}
+
 function main() {
   const overviewPath = process.argv[2];
   const detailPath = process.argv[3];
+  const subdivisionPath = process.argv[4];
 
-  if (!overviewPath || !detailPath) {
+  if (!overviewPath || !detailPath || !subdivisionPath) {
     console.error(
-      "Usage: node Scripts/Geo/GenerateMapGeometry.js <countries-110m.json> <countries-50m.json>",
+      "Usage: node Scripts/Geo/GenerateMapGeometry.js <countries-110m.json> <countries-50m.json> <ne_50m_admin_1_states_provinces.geojson>",
     );
     process.exit(1);
   }
@@ -539,24 +890,14 @@ function main() {
     [detailPath, DETAIL_TIER],
   ]) {
     const topology = JSON.parse(fs.readFileSync(sourcePath, "utf8"));
-    const geometry = buildWorldCountries(topology, tier);
-    const outputPath = path.join(OUTPUT_DIR, tier.fileName);
-    /*
-     * Compact JSON: these files are machine-generated and never hand-edited,
-     * and the detail tier's pretty-printed form is megabytes of indentation.
-     */
-    fs.writeFileSync(outputPath, JSON.stringify(geometry) + "\n");
-
-    const bytes = fs.statSync(outputPath).size;
-    console.log(
-      outputPath +
-        ": " +
-        geometry.features.length +
-        " features, " +
-        (bytes / 1024).toFixed(1) +
-        " KB",
-    );
+    writeGeometry(buildWorldCountries(topology, tier), tier);
   }
+
+  const admin1 = JSON.parse(fs.readFileSync(subdivisionPath, "utf8"));
+  writeGeometry(
+    buildWorldSubdivisions(admin1, SUBDIVISION_TIER),
+    SUBDIVISION_TIER,
+  );
 }
 
 main();

@@ -734,7 +734,12 @@ describe("SiteGeoMap", () => {
     // An upgrade in place — never a blank map waiting on a 500 KB fetch.
     expect(source).toContain(
       squash(
-        "const features: Array<GeometryFeature> | null = needsDetail && detailFeatures ? detailFeatures : overviewFeatures;",
+        "const isDrawingDetail: boolean = Boolean(needsDetail && detailFeatures);",
+      ),
+    );
+    expect(source).toContain(
+      squash(
+        "const features: Array<GeometryFeature> | null = isDrawingDetail ? detailFeatures : overviewFeatures;",
       ),
     );
   });
@@ -1063,6 +1068,139 @@ describe("SiteGeoMap draws the site links", () => {
       .split("]);")[0]!;
     expect(memo).not.toContain("viewport");
     expect(memo).not.toContain("countPointsInViewport");
+  });
+});
+
+/*
+ * State and province lines. A country outline is the whole map when you are
+ * looking at the world and an empty field once you have zoomed into one
+ * country — a marker in the middle of the United States or India has nothing
+ * to be located against. These are that missing reference frame.
+ *
+ * Everything below is about keeping them a BACKDROP. The failure modes are
+ * all quiet ones: lines that swallow a click meant for a marker, lines as
+ * heavy as the borders they sit inside, lines drawn over the coarse outlines
+ * they do not match, or 111 KB fetched by every viewer who never zooms.
+ */
+describe("SiteGeoMap draws the state and province lines", () => {
+  const source: string = readSource(
+    "Components",
+    "NetworkSite",
+    "SiteGeoMap.tsx",
+  );
+  const code: string = readCode("Components", "NetworkSite", "SiteGeoMap.tsx");
+
+  test("the lines are fetched only once the map is zoomed in", () => {
+    expect(source).toContain(
+      "const needsSubdivisions: boolean = shouldUseSubdivisionGeometry(viewport);",
+    );
+    expect(source).toContain(
+      squash("if (!needsSubdivisions || subdivisionFeatures) { return; }"),
+    );
+    expect(source).toContain('loadGeometryFeatures("subdivisions")');
+  });
+
+  /*
+   * The lines come from the same 1:50m source as the DETAIL outlines. Drawn
+   * over the coarse overview outlines — the window while the detail tier is
+   * still in flight — a state line ends up crossing the coastline it is
+   * supposed to stop on.
+   */
+  test("the lines wait for the outlines they belong inside", () => {
+    expect(source).toContain(
+      squash(
+        "const subdivisions: Array<GeometryFeature> = needsSubdivisions && isDrawingDetail && subdivisionFeatures ? subdivisionFeatures : [];",
+      ),
+    );
+  });
+
+  /*
+   * These paths are the boundaries INTERIOR to a country: open polylines
+   * between junctions, not closed shapes. Fill them and the map floods with
+   * wedges.
+   */
+  test("the lines are stroked, never filled", () => {
+    const layer: string = source
+      .split('data-testid="site-geo-map-subdivisions"')[1]!
+      .split("</g>")[0]!;
+    expect(layer).toContain('fill="none"');
+  });
+
+  /*
+   * Second level of a reference frame, not a second set of countries: below
+   * the country outline's own stroke weight and opacity, or the borders that
+   * matter stop being the ones that read.
+   */
+  test("the lines are quieter than the country borders they sit inside", () => {
+    expect(source).toContain("strokeWidth={0.4 / zoom}");
+    expect(source).toContain("strokeOpacity={0.55}");
+
+    const outlineWidth: number = 0.6;
+    const outlineOpacity: number = 0.8;
+    expect(0.4).toBeLessThan(outlineWidth);
+    expect(0.55).toBeLessThan(outlineOpacity);
+  });
+
+  /*
+   * Divided by the zoom, like every other stroke on this map. A line that
+   * scaled with the map would be a hairline at the zoom it appears at and a
+   * grey band at the zoom somebody uses to tell two sites apart.
+   */
+  test("the lines stay the same weight on screen at every zoom", () => {
+    const layer: string = code
+      .split('data-testid="site-geo-map-subdivisions"')[1]!
+      .split("</g>")[0]!;
+    expect(layer).toContain("/ zoom");
+    expect(layer).not.toMatch(/strokeWidth=\{[\d.]+\}/);
+  });
+
+  /*
+   * Paint order: over the land, under the links and the markers. A border
+   * drawn on top of a marker reads as a line through that site.
+   */
+  test("the lines are painted over the land and under everything else", () => {
+    const land: number = source.indexOf("{(features || []).map(");
+    const lines: number = source.indexOf(
+      'data-testid="site-geo-map-subdivisions"',
+    );
+    const links: number = source.indexOf('data-testid="site-geo-map-links"');
+    const markers: number = source.indexOf(
+      "placedMarkers.map((marker: PlacedMapMarker)",
+    );
+
+    expect(land).toBeGreaterThan(-1);
+    expect(lines).toBeGreaterThan(land);
+    expect(links).toBeGreaterThan(lines);
+    expect(markers).toBeGreaterThan(links);
+  });
+
+  /*
+   * Decoration, and inert. A state line that took a click would swallow the
+   * drill-in on the marker under the pointer, and a <title> on it would put
+   * "India" in front of somebody hovering their own site.
+   */
+  test("the lines cannot be hovered, clicked or read out", () => {
+    const layer: string = source
+      .split('data-testid="site-geo-map-subdivisions"')[1]!
+      .split("</g>")[0]!;
+    expect(layer).toContain('aria-hidden="true"');
+    expect(layer).toContain('pointerEvents: "none"');
+    expect(layer).not.toContain("<title>");
+    expect(layer).not.toContain("onClick");
+  });
+
+  /*
+   * Backdrop, not data — the same call the outlines make. A failed chunk
+   * fetch must leave the markers on the map rather than take the map down
+   * with it.
+   */
+  test("a failed fetch still leaves a map", () => {
+    const effect: string = code
+      .split('loadGeometryFeatures("subdivisions")')[1]!
+      .split("}, [needsSubdivisions")[0]!;
+    expect(effect).toContain(".catch(() => {");
+    expect(effect).not.toContain("setError");
+    expect(effect).not.toContain("throw");
   });
 });
 

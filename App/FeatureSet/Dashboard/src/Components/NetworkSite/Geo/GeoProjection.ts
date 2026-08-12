@@ -13,10 +13,11 @@
  * that must look right everywhere rather than be exact anywhere.
  *
  * The constants here MUST stay in sync with Scripts/Geo/GenerateMapGeometry.js
- * — that script projects the checked-in WorldCountriesGeometry.json and
- * WorldCountriesDetailGeometry.json outlines with the exact same math, which
- * is what guarantees that site pins projected at runtime land precisely on the
- * projected outlines.
+ * — that script projects every checked-in geometry file
+ * (WorldCountriesGeometry.json, WorldCountriesDetailGeometry.json and the
+ * state and province lines in WorldSubdivisionsGeometry.json) with the exact
+ * same math, which is what guarantees that site pins projected at runtime land
+ * precisely on the projected outlines.
  *
  * Deterministic: same input, same output, no randomness and no clock access.
  */

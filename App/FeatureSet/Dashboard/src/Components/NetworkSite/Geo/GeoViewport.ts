@@ -101,6 +101,28 @@ export const FIT_MAX_ZOOM: number = 20;
 export const DETAIL_GEOMETRY_MIN_ZOOM: number = 3;
 
 /*
+ * Below this zoom the map draws country outlines only; at or above it the
+ * state, province and territory lines are fetched and drawn inside them.
+ *
+ * Deeper than DETAIL_GEOMETRY_MIN_ZOOM, and it has to be. Two reasons, and
+ * they point the same way:
+ *
+ *   - At continent scale the country is still the thing being read. India's
+ *     36 subdivisions and Russia's 85 inside outlines that small are
+ *     hatching, not borders, and they compete with the markers that are the
+ *     actual subject of the map.
+ *   - The subdivision lines are generated from the same 1:50m source as the
+ *     detail outlines. Drawing them over the coarse overview outlines would
+ *     put a precise border inside an approximate coastline, and the two
+ *     would visibly disagree along every shore.
+ *
+ * At this zoom one country fills a good part of the frame, which is exactly
+ * when "which state is that pin in?" becomes the question the map is being
+ * asked.
+ */
+export const SUBDIVISION_GEOMETRY_MIN_ZOOM: number = 4;
+
+/*
  * How much breathing room a fitted viewport leaves around the sites, as a
  * fraction of the fitted span. Without it, the outermost pins sit exactly on
  * the frame edge with half a marker clipped.
@@ -374,6 +396,22 @@ export const shouldUseDetailGeometry: (viewport: MapViewport) => boolean = (
   viewport: MapViewport,
 ): boolean => {
   return zoomOfViewport(clampViewport(viewport)) >= DETAIL_GEOMETRY_MIN_ZOOM;
+};
+
+/**
+ * Whether the viewport is zoomed far enough in for state and province lines
+ * to be worth fetching and drawing.
+ *
+ * Never true while shouldUseDetailGeometry is false — see
+ * SUBDIVISION_GEOMETRY_MIN_ZOOM for why the finer lines may not go inside the
+ * coarser outlines.
+ */
+export const shouldUseSubdivisionGeometry: (
+  viewport: MapViewport,
+) => boolean = (viewport: MapViewport): boolean => {
+  return (
+    zoomOfViewport(clampViewport(viewport)) >= SUBDIVISION_GEOMETRY_MIN_ZOOM
+  );
 };
 
 /**

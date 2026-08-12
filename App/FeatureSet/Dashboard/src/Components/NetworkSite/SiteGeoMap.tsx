@@ -20,6 +20,7 @@ import {
   panViewport,
   screenLengthToViewportLength,
   shouldUseDetailGeometry,
+  shouldUseSubdivisionGeometry,
   viewBoxOfViewport,
   viewportsMatch,
   zoomOfViewport,
@@ -83,6 +84,11 @@ import {
  * than magnifying one blob. Markers, strokes and labels are sized in screen
  * units for the same reason. Clicking a single-site marker drills straight
  * in; clicking a multi-site cluster opens a small popover to pick the site.
+ *
+ * Zoom also brings in reference frames as they become useful: the finer
+ * country outlines at continent scale, then the state and province lines
+ * inside them, because "somewhere in the middle of that country" stops being
+ * a useful answer once the country fills the frame.
  *
  * SVG styling mirrors NetworkDeviceGraph: theme CSS variables with hex
  * fallbacks.
@@ -370,6 +376,10 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
     useState<Array<GeometryFeature> | null>(
       getCachedGeometryFeatures("detail"),
     );
+  const [subdivisionFeatures, setSubdivisionFeatures] =
+    useState<Array<GeometryFeature> | null>(
+      getCachedGeometryFeatures("subdivisions"),
+    );
 
   /*
    * Pin geometry, keyed by an order-independent fingerprint rather than by
@@ -566,8 +576,54 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
     };
   }, [needsDetail, detailFeatures]);
 
-  const features: Array<GeometryFeature> | null =
-    needsDetail && detailFeatures ? detailFeatures : overviewFeatures;
+  const isDrawingDetail: boolean = Boolean(needsDetail && detailFeatures);
+  const features: Array<GeometryFeature> | null = isDrawingDetail
+    ? detailFeatures
+    : overviewFeatures;
+
+  /*
+   * State and province lines, fetched the first time the map is zoomed in
+   * far enough to want them and then kept, exactly like the detail tier.
+   *
+   * A country outline is the whole map when you are looking at the world, and
+   * an empty field once you have zoomed into one country — a marker in the
+   * middle of it has nothing to be located against. These lines are that
+   * missing reference frame, and they cost nothing until somebody zooms.
+   */
+  const needsSubdivisions: boolean = shouldUseSubdivisionGeometry(viewport);
+  useEffect(() => {
+    if (!needsSubdivisions || subdivisionFeatures) {
+      return;
+    }
+    let isCurrent: boolean = true;
+
+    loadGeometryFeatures("subdivisions")
+      .then((loaded: Array<GeometryFeature>) => {
+        if (isCurrent) {
+          setSubdivisionFeatures(loaded);
+        }
+      })
+      .catch(() => {
+        // Backdrop, like the outlines: draw the map without them.
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [needsSubdivisions, subdivisionFeatures]);
+
+  /*
+   * Drawn only over the DETAIL outlines. Both are generated from the same
+   * 1:50m source, so they agree along every coast; over the coarse overview
+   * outlines these same lines would cross the coastline they end on. That
+   * only happens in the window where the detail tier is still in flight, so
+   * the lines arrive with the outlines they belong to rather than briefly
+   * hanging off the edge of a country.
+   */
+  const subdivisions: Array<GeometryFeature> =
+    needsSubdivisions && isDrawingDetail && subdivisionFeatures
+      ? subdivisionFeatures
+      : [];
 
   const siteById: Map<string, MapSiteView> = useMemo(() => {
     const map: Map<string, MapSiteView> = new Map<string, MapSiteView>();
@@ -942,6 +998,44 @@ const SiteGeoMap: FunctionComponent<ComponentProps> = (
                   );
                 },
               )}
+            </g>
+
+            {/*
+             * State and province lines, over the land and under everything
+             * else. Thinner and fainter than the country outlines on purpose:
+             * this is the second level of a reference frame, not a second set
+             * of countries, and it has to stay quieter than both the borders
+             * above it and the markers it exists to locate.
+             *
+             * Open polylines, so fill MUST be none — these paths are the
+             * boundaries interior to a country, not closed shapes, and
+             * filling them would flood the map with wedges.
+             *
+             * Decoration, not data: no <title> to compete with the outline's
+             * tooltip underneath, aria-hidden for the same reason the map's
+             * one aria-label already describes the whole picture, and no
+             * pointer events, so a state line can never swallow a click meant
+             * for a marker.
+             */}
+            <g
+              data-testid="site-geo-map-subdivisions"
+              aria-hidden="true"
+              style={{ pointerEvents: "none" }}
+            >
+              {subdivisions.map((feature: GeometryFeature): ReactElement => {
+                return (
+                  <path
+                    key={`subdivision-${feature.id}`}
+                    d={feature.path}
+                    fill="none"
+                    stroke="var(--ou-chart-tick, #6b7280)"
+                    strokeWidth={0.4 / zoom}
+                    strokeOpacity={0.55}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                );
+              })}
             </g>
 
             {/*
