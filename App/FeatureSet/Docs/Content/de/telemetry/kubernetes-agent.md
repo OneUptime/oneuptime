@@ -419,7 +419,9 @@ Alle standardmäßig aktiviert. Schalten Sie jede mit `--set ebpf.features.<name
 | `networkInterZoneMetrics` | deaktiviert | Inter-Zone-Variante der Netzwerkmetriken (verdoppelt die Kardinalität) |
 | `tcpStats`                | aktiviert   | Node-Level-TCP-RTT-, Fehlverbindungs-, Retransmit-Zähler               |
 
-Auch die Trace-Kontext-Propagierung zwischen Services ist standardmäßig aktiviert — OBI injiziert W3C `traceparent` in ausgehenden HTTP/TCP-Verkehr, sodass ein Request, der Pod A → Pod B überquert, als ein einziger Trace erscheint, ohne SDK-Änderungen irgendwo. Schalten Sie sie mit `--set ebpf.contextPropagation=false` aus.
+Die Trace-Kontext-Propagierung zwischen Services — bei der OBI einen W3C-`traceparent` injiziert, sodass ein Request von Pod A → Pod B als ein einziger Trace erscheint, ohne SDK-Änderungen irgendwo — ist **standardmäßig deaktiviert**. Aktivieren Sie sie mit `--set ebpf.contextPropagation=true`; sie erfordert Kernel 5.17+.
+
+Sie ist deaktiviert, weil das Injizieren des Headers bedeutet, bereits laufenden Datenverkehr umzuschreiben: unverschlüsselte HTTP-Requests werden im Kernel an Ort und Stelle verbreitert, während TLS und rohes TCP über einen Traffic-Control-Hook eine TCP-Option angehängt bekommen. Wird die Byte-Buchführung der Verbindung nicht exakt korrigiert, gerät der Stream aus dem Takt — das gemeldete Symptom sind Übertragungen durch einen L7-Proxy wie nginx, die mitten im Body hängen bleiben, sobald die Antwort ~64KB überschreitet, während kleine Requests weiterhin funktionieren. Traces, RED-Metriken und die Service-Map hängen nicht davon ab; für die Verknüpfung über Servicegrenzen hinweg propagiert ein OpenTelemetry-SDK den `traceparent` im Userspace ohne jedes Kernel-Umschreiben und ist die sicherere Option.
 
 ## Das erfasste Datenvolumen reduzieren
 

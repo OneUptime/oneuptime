@@ -883,34 +883,65 @@ ebpf:
     # node, not per-service. Maps to feature: `stats`.
     tcpStats: true
 
-  # Distributed trace context propagation. OBI injects W3C `traceparent`
-  # so a request crossing pod A → pod B shows up as ONE trace in the
-  # dashboard, no SDK changes in either app. Requires the privileged
-  # security context that the DaemonSet already runs with.
-  contextPropagation: true
+  # Distributed trace context propagation. OBI injects a W3C `traceparent`
+  # into outbound requests so a call crossing pod A → pod B shows up as ONE
+  # trace in the dashboard, with no SDK changes in either app.
+  #
+  # **OFF by default — opt in.** This matches OBI's own default
+  # (`OTEL_EBPF_BPF_CONTEXT_PROPAGATION` is disabled upstream), and it is off
+  # here because EVERY mode mutates traffic that is already in flight:
+  #
+  #   - For plaintext HTTP, OBI grows the outbound request buffer in place
+  #     (`bpf_probe_write_user`) to fit the extra header.
+  #   - For TLS and for raw TCP it appends a TCP option from a Linux Traffic
+  #     Control hook, which means rewriting the packet and its checksum.
+  #
+  # Either way the kernel's byte accounting for that connection has to be
+  # fixed up, and getting it wrong desynchronizes the stream rather than
+  # dropping a span. Reported symptom when it goes wrong: transfers through
+  # an L7 proxy (nginx) hang mid-body once the response exceeds the point
+  # where the rewrite has to span segments (~64KB), holding the connection
+  # open until it times out. Because the failure is per-connection and
+  # size-dependent, it looks like an application or proxy bug, not like an
+  # agent bug — it cost one user a three-week hunt.
+  #
+  # Turn it on deliberately, on a non-production cluster first, and leave it
+  # off on any node whose traffic you cannot afford to have stall. Traces,
+  # RED metrics, and the service map all still work without it; what you
+  # lose is only the automatic stitching of spans across a service boundary
+  # for apps that don't propagate `traceparent` themselves.
+  #
+  # Requires kernel 5.17+ (BPF loops) and CAP_NET_ADMIN — a HIGHER floor than
+  # the 5.8 needed for the rest of the eBPF agent. On older kernels OBI logs
+  # an error and propagation silently does nothing.
+  contextPropagation: false
   # How OBI injects the `traceparent`. Maps directly to OBI's
-  # `OTEL_EBPF_BPF_CONTEXT_PROPAGATION`:
+  # `OTEL_EBPF_BPF_CONTEXT_PROPAGATION`. Only read when
+  # `contextPropagation: true`.
   #
-  #   headers — (default, safe) Inject only into HTTP/1.1 request headers.
-  #     Works for the common HTTP/gRPC case and does NOT touch the
-  #     network packets themselves, so it composes cleanly with service
-  #     meshes (Linkerd, Istio), mTLS, and eBPF-based CNIs (Cilium,
-  #     Calico). This is what you want unless you specifically need
-  #     propagation across raw TCP.
+  #   headers — Write the `traceparent` into outgoing HTTP/1.1 request
+  #     headers. Narrowest blast radius of the three, and the right starting
+  #     point — but note it is NOT packet-free: for plaintext HTTP this is an
+  #     in-place widening of the request buffer, and for HTTPS OBI cannot see
+  #     the headers so it falls back to the TCP-option path anyway. HTTPS
+  #     propagation only reaches other OBI-instrumented services and is
+  #     broken by proxies and L7 load balancers in between.
   #
-  #   ip — Inject via an IPv4/IPv6 option on outbound packets. Lets
-  #     propagation work for non-HTTP TCP (custom protocols, encrypted
-  #     traffic OBI can't read). May be dropped by middleboxes/NATs and
-  #     can confuse CNI plugins that inspect every packet.
+  #   tcp — Carry the context in a TCP option, injected via Linux Traffic
+  #     Control. Covers non-HTTP and encrypted traffic OBI can't parse, but
+  #     the option is connection-scoped, is frequently stripped by
+  #     middleboxes and NATs, and has to chain correctly with any other TC
+  #     program on the node (Cilium, Calico). Not used for gRPC.
   #
-  #   all — Both `headers` AND `ip`. Most propagation coverage but the
-  #     IP-option half is the one that tends to break service-mesh
-  #     proxies (linkerd2-proxy, envoy) by corrupting the bytes those
-  #     proxies validate, which can make application pods fail or
-  #     restart. Avoid in clusters running a service mesh.
+  #   all — Both `headers` and `tcp`. Most coverage, most traffic rewriting.
+  #     Avoid in clusters running a service mesh: the TCP-option half
+  #     corrupts bytes that linkerd2-proxy / envoy validate, which can make
+  #     application pods fail or restart.
   #
-  # If you don't have a service mesh and want propagation across raw
-  # TCP too, set this to `all`.
+  # (OBI also accepts `disabled`; use `contextPropagation: false` for that
+  # instead. The legacy `ip` value was removed upstream and now does nothing
+  # — this chart rejects it so a stale override fails loudly at install time
+  # rather than silently disabling propagation.)
   contextPropagationMode: "headers"
   # Track HTTP request headers in kernel for traceparent extraction on
   # the receiving side via kprobes. Needed for propagation to work across

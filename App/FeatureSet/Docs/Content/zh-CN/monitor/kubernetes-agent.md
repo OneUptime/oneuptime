@@ -116,12 +116,15 @@ OBI 从捕获的流量中提取多种信号家族。所有信号默认都已启�
 | `ebpf.features.networkInterZoneMetrics` | off  | 网络指标的跨可用区版本。基数会加倍；只有在确实使用基于可用区调度时才值得启用。                                   |
 | `ebpf.features.tcpStats`                | on   | 节点级 TCP 统计信息：RTT 直方图、失败连接数、重传次数。                                                          |
 
-OBI 默认还会跨服务边界传播追踪上下文。当 pod A 向 pod B 发起 HTTP/gRPC 请求时，OBI 会向出站请求注入 W3C `traceparent` 头 —— 这样 pod B 端生成的 span 就会与 pod A 的出站 span 链接到同一个 trace。两端应用都不需要修改 SDK。
+OBI 还可以跨服务边界传播追踪上下文，使 pod B 端生成的 span 与 pod A 的出站请求链接到同一个 trace，两端应用都不需要修改 SDK。**该功能默认关闭；可用 `--set ebpf.contextPropagation=true` 开启。**
 
 | 选项                       | 默认 | 描述                                                                                                                |
 | -------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------- |
-| `ebpf.contextPropagation`  | on   | 向出站流量注入 W3C `traceparent`（HTTP 头 + 自定义 TCP 选项）。设为 `false` 可让每个服务的 span 保持本地。          |
+| `ebpf.contextPropagation`  | off  | 向出站流量注入 W3C `traceparent`，使 span 跨服务串联。默认关闭——请先阅读下方警告。需要内核 5.17 及以上。 |
+| `ebpf.contextPropagationMode` | headers | `traceparent` 的注入方式：`headers`（HTTP/1.1 请求头，影响面最小）、`tcp`（经由 Linux Traffic Control 的 TCP 选项）或 `all`（两者）。仅在 `contextPropagation` 为 true 时读取。 |
 | `ebpf.trackRequestHeaders` | on   | 内核侧的请求头跟踪，使传播在普通 HTTP 服务器（非 Go、非 TLS）上也能工作。仅在 `contextPropagation` 为 true 时生效。 |
+
+> **⚠️ 为什么默认关闭。** 所有传播模式都会改动已经在途的流量：明文 HTTP 请求会在内核中就地扩容，而 TLS 与裸 TCP 则由 Traffic Control hook 追加一个 TCP 选项。如果连接的字节记账没有被精确修正，数据流就会失去同步——已报告的症状是：当响应超过约 64KB 后，经由 nginx 这类 L7 代理的传输会在响应体中途挂起，而小请求仍然正常，因此看起来像是应用的故障而非 agent 的故障。追踪、RED 指标和服务地图都不依赖此功能；如果需要跨服务串联，使用在用户态传播该头、完全不改写内核的 OpenTelemetry SDK 更为安全。
 
 ### 日志 ↔ 追踪关联
 

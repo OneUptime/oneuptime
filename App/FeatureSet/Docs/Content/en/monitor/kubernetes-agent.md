@@ -173,12 +173,17 @@ OBI extracts several signal families from the captured traffic. All are on by de
 | `ebpf.features.networkInterZoneMetrics` | off     | Inter-zone variant of network metrics. Doubles cardinality; only worth enabling if you actually use zone-based scheduling.                                   |
 | `ebpf.features.tcpStats`                | on      | Node-level TCP statistics: RTT histograms, failed-connection counts, retransmits.                                                                            |
 
-OBI also propagates trace context across service boundaries by default. When pod A makes an HTTP/gRPC request to pod B, OBI injects a W3C `traceparent` header into the outbound request — so the resulting span on pod B's side links into the same trace as pod A's outbound. No SDK changes needed in either app.
+OBI can also propagate trace context across service boundaries, so that when pod A makes an HTTP/gRPC request to pod B, the span on pod B's side links into the same trace as pod A's outbound call — with no SDK changes in either app. **This is off by default; opt in with `--set ebpf.contextPropagation=true`.**
 
-| Option                     | Default | Description                                                                                                                                                 |
-| -------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ebpf.contextPropagation`  | on      | Inject W3C `traceparent` into outbound traffic (HTTP headers + custom TCP option). Set to `false` to keep each service's spans local.                       |
-| `ebpf.trackRequestHeaders` | on      | Kernel-side request-header tracking so propagation also works on plain HTTP servers (non-Go, non-TLS). Only takes effect when `contextPropagation` is true. |
+| Option                       | Default | Description                                                                                                                                                                                                       |
+| ---------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ebpf.contextPropagation`    | off     | Inject a W3C `traceparent` into outbound traffic so spans link across services. Off by default — read the warning below first. Requires kernel 5.17+.                                                              |
+| `ebpf.contextPropagationMode`| headers | How the `traceparent` is injected: `headers` (HTTP/1.1 request headers, narrowest), `tcp` (TCP option via Linux Traffic Control), or `all` (both). Only read when `contextPropagation` is true.                     |
+| `ebpf.trackRequestHeaders`   | on      | Kernel-side request-header tracking so propagation also works on plain HTTP servers (non-Go, non-TLS). Only takes effect when `contextPropagation` is true.                                                        |
+
+> **⚠️ Why this is off by default.** Every propagation mode modifies traffic that is already in flight. For plaintext HTTP, OBI widens the outbound request buffer in the kernel to fit the extra header; for TLS and raw TCP it appends a TCP option from a Traffic Control hook, rewriting the packet and its checksum. The connection's byte accounting then has to be corrected, and when that correction is wrong the stream **desynchronizes** instead of merely losing a span. The reported symptom is transfers through an L7 proxy such as nginx hanging mid-body once the response passes the point where the rewrite spans segments (~64KB), leaving the connection open until it times out. Small requests keep working, so it looks like an application or proxy bug rather than an agent one.
+>
+> Traces, RED metrics, and the service map all work without it — what you give up is only automatic span stitching across a service boundary for apps that don't send `traceparent` themselves. If you want that linking, instrumenting your services with an OpenTelemetry SDK propagates the header in userspace with no kernel rewriting, and is the safer route. If you do enable this, try it on a non-production cluster and verify large transfers through your proxy before rolling it wider.
 
 ### Log ↔ trace correlation (opt-in)
 

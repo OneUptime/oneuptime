@@ -416,7 +416,7 @@ The agent ships a DaemonSet running [OpenTelemetry eBPF Instrumentation (OBI)](h
 
 Requirements:
 
-- **Linux kernel 5.8+** with BTF. This is the default on Debian 11+, Ubuntu 20.10+, Fedora 34+, and RHEL/Stream 9+. Kernel 4.18+ works on RHEL-family distros with vendor backports.
+- **Linux kernel 5.8+** with BTF. This is the default on Debian 11+, Ubuntu 20.10+, Fedora 34+, and RHEL/Stream 9+. Kernel 4.18+ works on RHEL-family distros with vendor backports. The opt-in `ebpf.contextPropagation` feature needs **5.17+** (BPF loops) — on older kernels OBI logs an error and propagation silently does nothing.
 - The eBPF DaemonSet runs **privileged** (it has to, to load eBPF programs). Clusters that block privileged pods — GKE Autopilot and EKS Fargate — can't run it, so disable it on those: `--set ebpf.enabled=false`.
 
 Turn it off if you don't want it:
@@ -440,7 +440,7 @@ Useful knobs:
 | `ebpf.excludeExePaths` | (shells, kubelet, runc, containerd, otelcol, OBI itself — see `values.yaml`) | Comma-separated globs to skip, so you don't see noise from cluster plumbing. |
 | `ebpf.logLevel` | `info` | `debug`, `info`, `warn`, `error`. |
 | `ebpf.printTraces` | `false` | Print spans to the OBI pod's stdout. Useful for confirming OBI is seeing traffic before checking the dashboard. |
-| `ebpf.resources.*` | `100m / 256Mi` requests, `1000m / 1Gi` limits | Tune for cluster size. |
+| `ebpf.resources.*` | `100m / 512Mi` requests, `2000m / 2Gi` limits | Tune for cluster size. |
 
 **Signal families** — all on by default, disable individually with `--set ebpf.features.<key>=false`:
 
@@ -454,13 +454,29 @@ Useful knobs:
 | `ebpf.features.networkInterZoneMetrics` | `false` | Inter-zone variant of `networkMetrics` (doubles cardinality). |
 | `ebpf.features.tcpStats` | `true` | Node-level TCP RTT, failed-connection, and retransmit counters. |
 
-**Cross-service trace linking** — also on by default:
+**Cross-service trace linking** — **off by default, opt in:**
 
 | Key | Default | Description |
 | --- | --- | --- |
-| `ebpf.contextPropagation` | `true` | OBI injects W3C `traceparent` into outbound traffic so requests crossing service boundaries link into a single trace, no SDK required. |
-| `ebpf.contextPropagationMode` | `headers` | How OBI injects the `traceparent`. `headers` (default) only modifies HTTP/1.1 request headers — safe alongside service meshes (Linkerd, Istio), mTLS, and eBPF CNIs (Cilium, Calico). `ip` injects an IPv4/IPv6 option for propagation over raw TCP; can be dropped by middleboxes. `all` does both — most coverage but the IP-option half can break service-mesh proxies (linkerd2-proxy, envoy) by corrupting bytes those proxies validate. |
+| `ebpf.contextPropagation` | `false` | OBI injects a W3C `traceparent` into outbound traffic so requests crossing service boundaries link into a single trace, no SDK required. **Off by default** — see the warning below before enabling. Requires kernel **5.17+**, a higher floor than the rest of the agent. |
+| `ebpf.contextPropagationMode` | `headers` | How OBI injects the `traceparent`; only read when `contextPropagation` is true. `headers` — HTTP/1.1 request headers; narrowest blast radius, but *not* packet-free (see below). `tcp` — a TCP option injected via Linux Traffic Control; covers non-HTTP and encrypted traffic, but is often stripped by middleboxes and must chain with other TC programs (Cilium, Calico). `all` — both; most coverage and most rewriting, and the TCP-option half can break service-mesh proxies (linkerd2-proxy, envoy) by corrupting bytes they validate. The legacy `ip` value was removed upstream and is rejected by this chart. |
 | `ebpf.trackRequestHeaders` | `true` | Kernel-side header tracking so propagation works for plain HTTP servers (non-Go, non-TLS). Only effective when `contextPropagation` is true. |
+
+> **⚠️ Why context propagation is off by default.** Every mode rewrites traffic that is already in flight. For plaintext HTTP, OBI widens the outbound request buffer in place (`bpf_probe_write_user`) to fit the extra header; for TLS and raw TCP it appends a TCP option from a Traffic Control hook, rewriting the packet and its checksum. The kernel's byte accounting for that connection then has to be fixed up, and when that goes wrong the connection **desynchronizes** rather than merely losing a span. The reported symptom is transfers through an L7 proxy (nginx) hanging mid-body once the response grows past the point where the rewrite spans segments (~64KB), holding the connection open until it times out. Because the failure is per-connection and size-dependent it presents as an application or proxy bug, which makes it very expensive to trace back to the agent. Enable it deliberately, on a non-production cluster first. Traces, RED metrics, and the service map all work without it — what you lose is only automatic span stitching across a service boundary for apps that don't propagate `traceparent` themselves.
+>
+> This previously defaulted to `true`. Don't go by version number — check your release's effective value directly, which is authoritative whether you installed before or after the change:
+>
+> ```bash
+> helm get values <release> -n oneuptime-kubernetes-agent -a | grep -A2 contextPropagation
+> ```
+>
+> and turn it off explicitly if so:
+>
+> ```bash
+> helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
+>   --namespace oneuptime-kubernetes-agent --reset-then-reuse-values \
+>   --set ebpf.contextPropagation=false
+> ```
 | `ebpf.logToTraceCorrelation` | `false` | **Off by default — opt in.** OBI injects `trace_id` / `span_id` into **JSON-formatted** log lines from instrumented processes (existing fields preserved); the filelog DaemonSet lifts them onto the LogRecord so clicking a span in the trace view jumps to its logs. Plain-text logs pass through unchanged. **Do NOT enable** in clusters running LD_PRELOAD-based APM agents (Dynatrace OneAgent, New Relic, AppDynamics, Datadog, Instana) — the log enricher's in-process buffer rewrite races with those agents' `write()` wrappers and crashes the application (typically SIGSEGV / exit 139 in .NET). See [APM agent compatibility](#application-pods-crash-with-sigsegv-after-enabling-log-trace-correlation) below. |
 | `ebpf.logEnricher.services` | `[{service: [{exe_path: "*"}]}]` | OBI GlobAttributes selector for which processes get the log enricher (only consulted when `logToTraceCorrelation: true`). Each entry can match by `exe_path`, `languages`, `k8s_pod_labels`, `k8s_pod_annotations`, `open_ports`, or `cmd_args`. Narrow this when enabling log enrichment alongside an APM agent — list only the workloads you want enriched (OBI's log_enricher does not support `exclude_services`). |
 
@@ -613,17 +629,36 @@ ebpf:
 
 If you run a service mesh (Linkerd, Istio, Consul Connect) or an eBPF-based CNI (Cilium, Calico-eBPF) and application pods start failing, timing out, or restarting after the agent installs, there are two interactions to be aware of:
 
-1. **OBI's IP-option trace propagation modifies packet headers.** Service-mesh proxies and eBPF CNIs validate the bytes they receive — an extra IP option from OBI can fail mTLS, get dropped by the CNI, or confuse the proxy. The chart defaults to `ebpf.contextPropagationMode: headers` (HTTP/1.1 headers only, no packet modification) for exactly this reason. If you upgraded from an older release with `--reuse-values`, you may still be on the old `all` behavior — re-apply explicitly:
+1. **OBI's trace propagation rewrites in-flight traffic.** Service-mesh proxies and eBPF CNIs validate the bytes they receive, and *every* propagation mode alters them — `tcp` and `all` append a TCP option via Traffic Control, and even `headers` widens the request buffer in place for plaintext HTTP (and falls back to the TCP-option path for HTTPS, which OBI cannot read). That can fail mTLS, get dropped by the CNI, or confuse the proxy. The chart now ships `ebpf.contextPropagation: false` for exactly this reason, but an install predating that change — or any upgrade carried forward with `--reuse-values` — is still on `true`. Confirm with `helm get values <release> -n oneuptime-kubernetes-agent -a | grep -A2 contextPropagation`, then turn it off:
 
     ```bash
     helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
       --namespace oneuptime-kubernetes-agent --reset-then-reuse-values \
-      --set ebpf.contextPropagationMode=headers
+      --set ebpf.contextPropagation=false
     ```
 
 2. **OBI attaches uprobes to executables — including sidecars.** Attaching to `linkerd2-proxy`, `envoy`, or a CNI agent can stall the binary. The default `ebpf.excludeExePaths` already lists the common ones (`linkerd2-proxy`, `envoy`, `istio-pilot-agent`, `pilot-agent`, `cilium-*`, `calico-node`, `kube-router`). If you maintain your own exclude list, make sure these basenames are present.
 
 **Do NOT add broad globs like `*/proxy` to `excludeExePaths`** — `*/proxy` will also match *your* binaries (`auth-proxy`, `oauth2-proxy`, ...) and silently drop their traces. List the specific sidecar basename instead.
+
+### Large HTTP responses hang mid-transfer after installing the agent
+
+Symptoms: small requests are fine, but responses over roughly 64KB through an L7 proxy (nginx, an ingress controller) stall part-way through the body and never complete — the client sits on a half-received payload until it times out. Downloads, large JSON API responses, and image/artifact pulls are the usual casualties. Nothing in the application or the proxy logs an error, because from their side the write succeeded; the bytes just stop arriving.
+
+This is `ebpf.contextPropagation`. To fit the `traceparent` in, OBI rewrites the outbound stream in the kernel — widening the request buffer in place for plaintext HTTP, or appending a TCP option from a Traffic Control hook for TLS and raw TCP. Both require the connection's byte accounting to be fixed up afterwards, and when that fixup is wrong the stream desynchronizes. The break only shows up once a transfer is large enough for the rewrite to span segments, which is why small requests look healthy and it reads as an application bug.
+
+Confirm by turning propagation off and retrying the transfer:
+
+```bash
+helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
+  --namespace oneuptime-kubernetes-agent --reset-then-reuse-values \
+  --set ebpf.contextPropagation=false
+kubectl rollout restart daemonset -n oneuptime-kubernetes-agent -l component=ebpf-instrument
+```
+
+Existing stuck connections do not recover on their own — they were already desynchronized — so restart the clients holding them. `false` is now the shipped default, but an install predating that change, or any upgrade carried forward with `--reuse-values`, is still on `true` — so verify with `helm get values` rather than assuming from your chart version.
+
+If you need cross-service trace linking back, prefer instrumenting the services with an OpenTelemetry SDK (which propagates `traceparent` in userspace, with no kernel rewriting) over re-enabling this. If you do re-enable it, do so on a non-production cluster first and verify large transfers through your proxy before rolling it further.
 
 ### ClickHouse crash-loops with `CORRUPTED_DATA` after enabling the agent
 
