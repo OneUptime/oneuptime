@@ -18,7 +18,26 @@ import Workflow from "Common/Models/DatabaseModels/Workflow";
 import WorkflowLog from "Common/Models/DatabaseModels/WorkflowLog";
 import WorkflowOwnerTeam from "Common/Models/DatabaseModels/WorkflowOwnerTeam";
 import WorkflowOwnerUser from "Common/Models/DatabaseModels/WorkflowOwnerUser";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
+import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import ObjectID from "Common/Types/ObjectID";
+import Route from "Common/Types/API/Route";
+import { JSONObject } from "Common/Types/JSON";
+import API from "Common/UI/Utils/API/API";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import PageMap from "../../Utils/PageMap";
+import {
+  WorkflowTemplate,
+  buildGraphForTemplate,
+  getWorkflowTemplates,
+} from "Common/Types/Workflow/Templates";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green500, Red500 } from "Common/Types/BrandColors";
 import WorkflowElement from "../../Components/Workflow/WorkflowElement";
@@ -31,6 +50,70 @@ import { FilterOperator } from "../../Components/ResourceOwners/FilterChipDropdo
 import IconProp from "Common/Types/Icon/IconProp";
 
 const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const [showTemplatePicker, setShowTemplatePicker] = useState<boolean>(false);
+  const [templateError, setTemplateError] = useState<string>("");
+  const [creatingTemplateId, setCreatingTemplateId] = useState<string | null>(
+    null,
+  );
+
+  /*
+   * A template is created through the ordinary Workflow create path, which is
+   * what denormalizes the trigger onto the row (WorkflowService
+   * .onCreateSuccess). Building the graph any other way would produce a
+   * workflow that looks right and never fires.
+   */
+  type CreateFromTemplateFunction = (
+    template: WorkflowTemplate,
+  ) => Promise<void>;
+
+  const createFromTemplate: CreateFromTemplateFunction = async (
+    template: WorkflowTemplate,
+  ): Promise<void> => {
+    setCreatingTemplateId(template.id);
+    setTemplateError("");
+
+    try {
+      const graph: JSONObject | null = buildGraphForTemplate(
+        template.id,
+        () => {
+          return ObjectID.generate().toString();
+        },
+      );
+
+      if (!graph) {
+        throw new Error("This template could not be built.");
+      }
+
+      const workflow: Workflow = new Workflow();
+      workflow.name = template.workflowName;
+      workflow.description = template.workflowDescription;
+      workflow.projectId = ProjectUtil.getCurrentProjectId()!;
+      workflow.graph = graph;
+      /*
+       * Created switched off on purpose: a scheduled template would otherwise
+       * start firing against a placeholder URL the moment it is created.
+       */
+      workflow.isEnabled = false;
+
+      const created: Workflow = await ModelAPI.create<Workflow>({
+        data: workflow,
+        modelType: Workflow,
+      });
+
+      setShowTemplatePicker(false);
+      Navigation.navigate(
+        RouteUtil.populateRouteParams(
+          RouteMap[PageMap.WORKFLOW_VIEW] as Route,
+          { modelId: created.id as ObjectID },
+        ),
+      );
+    } catch (err) {
+      setTemplateError(API.getFriendlyMessage(err));
+    }
+
+    setCreatingTemplateId(null);
+  };
+
   const startDate: Date = OneUptimeDate.getSomeDaysAgo(30);
   const endDate: Date = OneUptimeDate.getCurrentDate();
   const plan: PlanType | null = ProjectUtil.getCurrentPlan();
@@ -130,6 +213,16 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
           cardProps={{
             title: "Workflows",
             description: "Here is a list of workflows for this project.",
+            buttons: [
+              {
+                title: "Start from a template",
+                icon: IconProp.Add,
+                buttonStyle: ButtonStyleType.OUTLINE,
+                onClick: () => {
+                  setShowTemplatePicker(true);
+                },
+              },
+            ],
           }}
           videoLink={URL.fromString("https://youtu.be/z-b7_KQcUDY")}
           noItemsMessage={"No workflows found."}
@@ -278,6 +371,54 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
             },
           ]}
         />
+        {showTemplatePicker && (
+          <Modal
+            title="Start from a template"
+            description="Each of these is a small, working workflow. They are created switched off so you can read them before anything runs."
+            modalWidth={ModalWidth.Large}
+            submitButtonText="Close"
+            submitButtonStyleType={ButtonStyleType.NORMAL}
+            onSubmit={() => {
+              setShowTemplatePicker(false);
+            }}
+          >
+            <div className="space-y-3">
+              {templateError && (
+                <p className="text-sm text-red-600">{templateError}</p>
+              )}
+
+              {getWorkflowTemplates().map(
+                (template: WorkflowTemplate): ReactElement => {
+                  return (
+                    <button
+                      key={template.id}
+                      type="button"
+                      disabled={creatingTemplateId !== null}
+                      className="w-full text-left rounded-md border border-gray-200 bg-white p-4 hover:border-gray-400 cursor-pointer disabled:opacity-50"
+                      onClick={() => {
+                        void createFromTemplate(template);
+                      }}
+                    >
+                      <p className="text-sm font-medium text-gray-900">
+                        {template.name}
+                      </p>
+                      <p className="text-sm text-gray-500 mt-1">
+                        {template.description}
+                      </p>
+                      <p className="text-xs text-gray-400 mt-2">
+                        Teaches: {template.teaches}
+                      </p>
+                      {creatingTemplateId === template.id && (
+                        <p className="text-xs text-gray-500 mt-2">Creating…</p>
+                      )}
+                    </button>
+                  );
+                },
+              )}
+            </div>
+          </Modal>
+        )}
+
         {labelBulkActionModals}
         {ownerBulkActionModals}
       </>
