@@ -64,6 +64,48 @@ const NON_SECRET_ENV_NAMES: Set<string> = new Set<string>([
 const MIN_SECRET_VALUE_LENGTH: number = 8;
 
 /*
+ * Environment values that are not secrets and whose SHAPE makes them
+ * catastrophic to blanket-replace, whatever they are called.
+ *
+ * The name allowlist above cannot cover this: an environment is full of
+ * variables nobody here has heard of whose value is an ordinary path or URL.
+ * A CI runner sets `GHCUP_INSTALL_BASE_PREFIX=/usr/local`, and replacing
+ * `/usr/local` everywhere turns every stack frame and every compiler error in
+ * the captured output into `[redacted:GHCUP_INSTALL_BASE_PREFIX]/bin/node`.
+ *
+ * That is not a safe-by-default trade. Redaction happens at capture, so the
+ * redacted text is the ONLY copy that reaches the repair prompt, the pull
+ * request and the run's logs — a redactor that shreds build output does not
+ * make the harness safer, it makes the failure it was supposed to explain
+ * unreadable, and the model cannot repair what it cannot read.
+ *
+ * Credentials do not look like this. A token, key or password is not an
+ * absolute path and not a bare URL, so excluding these shapes costs no real
+ * coverage — and anything that IS a credential is still caught by explicit
+ * registration and by the pattern pass below.
+ */
+// Absolute or relative filesystem paths, POSIX and Windows.
+const PATH_SHAPED: RegExp = /^(?:[/~]|\.{1,2}\/|[A-Za-z]:[\\/])/;
+
+// A URL; the credential-bearing form is caught by URL_CREDENTIAL_PATTERN.
+const URL_SHAPED: RegExp = /^[a-z][a-z0-9+.-]*:\/\//i;
+
+// Ports, timeouts, feature flags.
+const NUMBER_OR_BOOLEAN: RegExp = /^(?:\d+|true|false)$/i;
+
+function isStructurallyNotSecret(value: string): boolean {
+  if (PATH_SHAPED.test(value)) {
+    return true;
+  }
+
+  if (URL_SHAPED.test(value) && !value.includes("@")) {
+    return true;
+  }
+
+  return NUMBER_OR_BOOLEAN.test(value);
+}
+
+/*
  * Credentials embedded in a URL's userinfo. Deliberately matches the
  * PASSWORD half only, so the surviving text still reads as a URL a human
  * can act on: https://x-access-token:***@github.com/acme/checkout.git
@@ -161,7 +203,8 @@ export default class SecretRedactor {
           return (
             typeof value === "string" &&
             value.length >= MIN_SECRET_VALUE_LENGTH &&
-            !NON_SECRET_ENV_NAMES.has(name)
+            !NON_SECRET_ENV_NAMES.has(name) &&
+            !isStructurallyNotSecret(value)
           );
         })
         .map(([name, value]: [string, string | undefined]) => {

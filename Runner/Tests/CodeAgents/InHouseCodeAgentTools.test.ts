@@ -161,7 +161,10 @@ function scriptToolsThenSummary(
   calls: Array<LLMToolCall>,
   summary: string = "Made the change.",
 ): void {
-  script({ content: "", toolCalls: calls }, { content: summary, toolCalls: [] });
+  script(
+    { content: "", toolCalls: calls },
+    { content: summary, toolCalls: [] },
+  );
 }
 
 async function runAgent(workspace: string): Promise<CodeAgentResult> {
@@ -504,7 +507,9 @@ describe("what counts as the agent's change", () => {
         path: "src/checkout.ts",
         content: "export function checkout(): number {\n  return 4;\n}\n",
       }),
-      toolCall("run_command", { command: "echo 'touched by build' >> README.md" }),
+      toolCall("run_command", {
+        command: "echo 'touched by build' >> README.md",
+      }),
     ]);
 
     const result: CodeAgentResult = await runAgent(workspace);
@@ -567,7 +572,10 @@ describe("secrets in command output", () => {
    */
   test("a registered secret echoed by a command is redacted before the model sees it", async () => {
     const workspace: string = makeWorkspace();
-    SecretRedactor.register("ghs_supersecrettokenvalue123456", "repository-token");
+    SecretRedactor.register(
+      "ghs_supersecrettokenvalue123456",
+      "repository-token",
+    );
 
     scriptToolsThenSummary([
       toolCall("run_command", {
@@ -597,7 +605,7 @@ describe("secrets in command output", () => {
 
     scriptToolsThenSummary([
       toolCall("run_command", {
-        command: "echo \"key=[${ONEUPTIME_RUNNER_KEY}]\"",
+        command: 'echo "key=[${ONEUPTIME_RUNNER_KEY}]"',
       }),
     ]);
 
@@ -610,12 +618,13 @@ describe("secrets in command output", () => {
 
   test("the git askpass token is not inherited by a model-composed command either", async () => {
     const workspace: string = makeWorkspace();
-    process.env["ONEUPTIME_GIT_ACCESS_TOKEN"] = "git-token-should-not-leak-1234";
+    process.env["ONEUPTIME_GIT_ACCESS_TOKEN"] =
+      "git-token-should-not-leak-1234";
 
     try {
       scriptToolsThenSummary([
         toolCall("run_command", {
-          command: "echo \"git=[${ONEUPTIME_GIT_ACCESS_TOKEN}]\"",
+          command: 'echo "git=[${ONEUPTIME_GIT_ACCESS_TOKEN}]"',
         }),
       ]);
 
@@ -651,7 +660,8 @@ describe("command lifetime", () => {
      */
     scriptToolsThenSummary([
       toolCall("run_command", {
-        command: "sleep 30 & echo $! > grandchild.pid; echo parent-done; exit 0",
+        command:
+          "sleep 30 & echo $! > grandchild.pid; echo parent-done; exit 0",
       }),
     ]);
 

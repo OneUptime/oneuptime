@@ -84,7 +84,10 @@ function makeOriginRepository(data: {
   git(work, ["config", "commit.gpgsign", "false"]);
   fs.writeFileSync(path.join(work, "README.md"), "# origin\n");
   fs.mkdirSync(path.join(work, "src"), { recursive: true });
-  fs.writeFileSync(path.join(work, "src", "checkout.ts"), "export const a = 1;\n");
+  fs.writeFileSync(
+    path.join(work, "src", "checkout.ts"),
+    "export const a = 1;\n",
+  );
   git(work, ["add", "-A"]);
   git(work, ["commit", "-q", "-m", "baseline"]);
   git(work, ["remote", "add", "origin", bare]);
@@ -467,7 +470,10 @@ describe("branch, commit and push", () => {
     const { repositoryPath, config, manager } = await clonedRepository();
 
     await manager.createBranch(repositoryPath, "fix-branch");
-    fs.writeFileSync(path.join(repositoryPath, "new.ts"), "export const b = 1;\n");
+    fs.writeFileSync(
+      path.join(repositoryPath, "new.ts"),
+      "export const b = 1;\n",
+    );
     await manager.addPaths(repositoryPath, ["new.ts"]);
     await manager.commitChanges(repositoryPath, "add file");
     await manager.pushBranch(repositoryPath, "fix-branch", config);
@@ -522,7 +528,10 @@ describe("branch, commit and push", () => {
     await manager.createBranch(repositoryPath, "fix-branch");
     expect(await manager.hasStagedChanges(repositoryPath)).toBe(false);
 
-    fs.writeFileSync(path.join(repositoryPath, "added.ts"), "export const c = 1;\n");
+    fs.writeFileSync(
+      path.join(repositoryPath, "added.ts"),
+      "export const c = 1;\n",
+    );
     await manager.addPaths(repositoryPath, ["added.ts"]);
 
     expect(await manager.hasStagedChanges(repositoryPath)).toBe(true);
@@ -563,9 +572,8 @@ describe("getChangedFiles against real repository states", () => {
       "y\n",
     );
 
-    const changed: Array<string> = await manager.getChangedFiles(
-      repositoryPath,
-    );
+    const changed: Array<string> =
+      await manager.getChangedFiles(repositoryPath);
 
     expect(changed).toContain("src/checkout-renamed.ts");
     expect(changed).toContain("src/checkout.ts");
@@ -629,6 +637,8 @@ describe("discardChanges", () => {
     expect(
       fs.readFileSync(path.join(repositoryPath, "src", "checkout.ts"), "utf-8"),
     ).toContain("export const a = 1;");
-    expect(fs.existsSync(path.join(repositoryPath, "untracked.ts"))).toBe(false);
+    expect(fs.existsSync(path.join(repositoryPath, "untracked.ts"))).toBe(
+      false,
+    );
   });
 });

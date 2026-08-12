@@ -1142,7 +1142,10 @@ describe("RepositoryManager.addPaths", () => {
   test("a path that no longer exists is skipped instead of aborting the commit", async () => {
     const dir: string = makeGitRepoDir();
 
-    fs.writeFileSync(path.join(dir, "kept.ts"), "export const a: number = 1;\n");
+    fs.writeFileSync(
+      path.join(dir, "kept.ts"),
+      "export const a: number = 1;\n",
+    );
 
     await new RepositoryManager().addPaths(dir, [
       "kept.ts",

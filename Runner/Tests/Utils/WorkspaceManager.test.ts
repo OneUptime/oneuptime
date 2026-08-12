@@ -361,7 +361,18 @@ describe("cleanupOldWorkspaces", () => {
     try {
       expect(fs.existsSync(info.workspacePath)).toBe(true);
 
-      // maxAgeHours = 0: everything this manager owns is due for reaping.
+      /*
+       * The sweeper reaps a workspace strictly OLDER than the cutoff, so at
+       * maxAgeHours = 0 it needs at least one whole millisecond to have
+       * passed. On a fast machine the create and the sweep land in the same
+       * millisecond and nothing is due — which is a property of the clock,
+       * not of the name parsing this test is about.
+       */
+      await new Promise((resolve: (value: unknown) => void) => {
+        setTimeout(resolve, 5);
+      });
+
+      // maxAgeHours = 0: everything this manager owns is now due for reaping.
       const cleaned: number = await WorkspaceManager.cleanupOldWorkspaces(0);
 
       expect(cleaned).toBeGreaterThanOrEqual(1);

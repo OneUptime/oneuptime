@@ -48,7 +48,7 @@ describe("commands the agent must be able to run", () => {
     "ls -la src",
     "cat package.json",
     "grep -rn 'checkout' src",
-    "node -e \"console.log(1)\"",
+    'node -e "console.log(1)"',
     "./gradlew test --no-daemon",
   ])("allows %s", (command: string) => {
     expect(evaluate(command).allowed).toBe(true);
@@ -185,9 +185,10 @@ describe("what the guard deliberately does not claim", () => {
    */
   test("an aliased or indirect invocation is not caught — this is a rail, not a sandbox", () => {
     expect(evaluate("g=git; $g push").allowed).toBe(true);
-    expect(evaluate("node -e \"require('child_process').execSync('git push')\"").allowed).toBe(
-      true,
-    );
+    expect(
+      evaluate("node -e \"require('child_process').execSync('git push')\"")
+        .allowed,
+    ).toBe(true);
   });
 
   test("a command merely mentioning git in text is allowed", () => {

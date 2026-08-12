@@ -198,13 +198,11 @@ function stubPipeline(data: {
     title: "title",
   } as PullRequestResult);
 
-  jest
-    .spyOn(WorkspaceManager, "createWorkspace")
-    .mockResolvedValue({
-      workspacePath: "/tmp/workspace",
-      taskId: "task",
-      createdAt: new Date(0),
-    } as WorkspaceInfo);
+  jest.spyOn(WorkspaceManager, "createWorkspace").mockResolvedValue({
+    workspacePath: "/tmp/workspace",
+    taskId: "task",
+    createdAt: new Date(0),
+  } as WorkspaceInfo);
   jest.spyOn(WorkspaceManager, "deleteWorkspace").mockResolvedValue(undefined);
 
   jest.spyOn(RepositoryManager.prototype, "cloneRepository").mockResolvedValue({
@@ -215,7 +213,9 @@ function stubPipeline(data: {
   jest
     .spyOn(RepositoryManager.prototype, "createBranch")
     .mockResolvedValue(undefined);
-  jest.spyOn(RepositoryManager.prototype, "addPaths").mockResolvedValue(undefined);
+  jest
+    .spyOn(RepositoryManager.prototype, "addPaths")
+    .mockResolvedValue(undefined);
   jest
     .spyOn(RepositoryManager.prototype, "commitChanges")
     .mockResolvedValue(undefined);
@@ -246,12 +246,14 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-const HANDLERS: Array<{
+interface HandlerCase {
   label: string;
   build: () => {
     handler: ExceptionPullRequestTaskHandler | SubjectPullRequestTaskHandler;
   };
-}> = [
+}
+
+const HANDLERS: Array<HandlerCase> = [
   {
     label: "ExceptionPullRequestTaskHandler",
     build: () => {
@@ -266,13 +268,16 @@ const HANDLERS: Array<{
   },
 ];
 
-describe.each(HANDLERS)("$label", ({ build }) => {
+describe.each(HANDLERS)("$label", (handlerCase: HandlerCase) => {
+  const build: HandlerCase["build"] = handlerCase.build;
+
   test("a clean run that changed nothing is NoFixFound, not an error", async () => {
     stubPipeline({
       agentResult: {
         success: true,
         filesModified: [],
-        summary: "The exception is expected input validation; no change needed.",
+        summary:
+          "The exception is expected input validation; no change needed.",
         logs: [],
         exitCode: 0,
       },
@@ -293,35 +298,41 @@ describe.each(HANDLERS)("$label", ({ build }) => {
    * "no fix found".
    */
   test.each([
-    ["the LLM budget was exhausted", "This fix run has reached its LLM call budget"],
+    [
+      "the LLM budget was exhausted",
+      "This fix run has reached its LLM call budget",
+    ],
     ["the agent timed out", "Code agent timed out after 1800 seconds"],
-    ["the server was unreachable", "Failed to get LLM completion: ECONNREFUSED"],
+    [
+      "the server was unreachable",
+      "Failed to get LLM completion: ECONNREFUSED",
+    ],
     ["the run was aborted", "Task was aborted"],
-  ])("a hard agent failure (%s) is an Error, not NoFixFound", async (
-    _label: string,
-    agentError: string,
-  ) => {
-    stubPipeline({
-      agentResult: {
-        success: false,
-        filesModified: [],
-        summary: "",
-        logs: [],
-        error: agentError,
-        exitCode: 1,
-      },
-    });
+  ])(
+    "a hard agent failure (%s) is an Error, not NoFixFound",
+    async (_label: string, agentError: string) => {
+      stubPipeline({
+        agentResult: {
+          success: false,
+          filesModified: [],
+          summary: "",
+          logs: [],
+          error: agentError,
+          exitCode: 1,
+        },
+      });
 
-    const result: TaskResult = await build().handler.execute(
-      buildContext(buildBackendAPI()),
-    );
+      const result: TaskResult = await build().handler.execute(
+        buildContext(buildBackendAPI()),
+      );
 
-    expect(result.success).toBe(false);
-    expect(result.data?.["isError"]).toBe(true);
-    expect(result.data?.["noFixFound"]).toBeUndefined();
-    // The operator gets the actual cause, not a euphemism.
-    expect(result.message).toContain(agentError);
-  });
+      expect(result.success).toBe(false);
+      expect(result.data?.["isError"]).toBe(true);
+      expect(result.data?.["noFixFound"]).toBeUndefined();
+      // The operator gets the actual cause, not a euphemism.
+      expect(result.message).toContain(agentError);
+    },
+  );
 
   test("a successful run with changes opens a pull request", async () => {
     const { createPullRequest } = stubPipeline({

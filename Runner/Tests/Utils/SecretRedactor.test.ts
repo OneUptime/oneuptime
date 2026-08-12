@@ -29,6 +29,34 @@ import SecretRedactor from "../../Utils/SecretRedactor";
 
 const REPO_TOKEN: string = "ghs_16C7e42F292c6912E7710c838347Ae178B4a";
 
+/*
+ * Run a case with specific environment variables set, restoring "absent"
+ * faithfully afterwards. redact() reads process.env per call, so this is
+ * enough — and it keeps these tests from depending on whatever the machine
+ * running them happens to have exported, which is exactly how the
+ * path-shaped-value regression below reached CI in the first place.
+ */
+function withEnv(vars: Record<string, string>, run: () => void): void {
+  const previous: Record<string, string | undefined> = {};
+
+  for (const [name, value] of Object.entries(vars)) {
+    previous[name] = process.env[name];
+    process.env[name] = value;
+  }
+
+  try {
+    run();
+  } finally {
+    for (const name of Object.keys(vars)) {
+      if (previous[name] === undefined) {
+        delete process.env[name];
+      } else {
+        process.env[name] = previous[name] as string;
+      }
+    }
+  }
+}
+
 afterEach(() => {
   SecretRedactor.clearRegistered();
 });
@@ -181,20 +209,82 @@ describe("environment secrets", () => {
    * every path in every stack trace and make the whole log useless.
    */
   test("PATH and HOME are never treated as secrets", () => {
-    const previousPath: string | undefined = process.env["PATH"];
-    process.env["PATH"] = "/usr/local/bin:/usr/bin";
+    withEnv({ PATH: "/opt/testonly-prefix/bin:/usr/bin" }, () => {
+      expect(
+        SecretRedactor.redact("running /opt/testonly-prefix/bin/node"),
+      ).toContain("/opt/testonly-prefix/bin/node");
+    });
+  });
 
-    try {
-      expect(SecretRedactor.redact("running /usr/local/bin/node")).toContain(
-        "/usr/local/bin/node",
+  /*
+   * REGRESSION, found by CI rather than by review. The name allowlist cannot
+   * cover an environment full of variables nobody here has heard of. A GitHub
+   * runner sets `GHCUP_INSTALL_BASE_PREFIX=/usr/local`, so a name-only rule
+   * rewrote every path in the captured output to
+   * `[redacted:GHCUP_INSTALL_BASE_PREFIX]/bin/node`.
+   *
+   * That is worse than not redacting: this text is the ONLY copy that reaches
+   * the repair prompt, the pull request and the run's logs, so shredding it
+   * means the model cannot repair the failure and a human cannot read it. A
+   * credential is never shaped like a path, so excluding the shape costs no
+   * real coverage.
+   */
+  test("a path-shaped env value does not shred paths in build output", () => {
+    withEnv({ SOME_TOOL_INSTALL_PREFIX: "/usr/local" }, () => {
+      const output: string = SecretRedactor.redact(
+        "at Object.<anonymous> (/usr/local/lib/node_modules/app/index.js:3:9)",
       );
-    } finally {
-      if (previousPath === undefined) {
-        delete process.env["PATH"];
-      } else {
-        process.env["PATH"] = previousPath;
-      }
-    }
+
+      expect(output).toContain("/usr/local/lib/node_modules/app/index.js");
+      expect(output).not.toContain("[redacted");
+    });
+  });
+
+  test.each([
+    ["a POSIX absolute path", "/opt/hostedtoolcache"],
+    ["a home-relative path", "~/.cache/whatever"],
+    ["a relative path", "./node_modules/.bin"],
+    ["a Windows path", "C:\\Program Files\\nodejs"],
+    ["a plain URL", "https://registry.npmjs.org"],
+    ["a port number", "30000000"],
+    ["a boolean", "true"],
+  ])(
+    "%s in the environment is not redacted",
+    (_label: string, value: string) => {
+      withEnv({ SOME_UNKNOWN_TOOL_VAR: value }, () => {
+        expect(SecretRedactor.redact(`using ${value} now`)).toContain(value);
+      });
+    },
+  );
+
+  /*
+   * The exclusion is about SHAPE, not about trust: a genuine credential in an
+   * unknown variable is still redacted, because a token does not look like a
+   * path or a bare URL.
+   */
+  test("a token-shaped value in an unknown env var is still redacted", () => {
+    withEnv({ SOME_UNKNOWN_TOOL_VAR: "s3cret-value-not-a-path-12345" }, () => {
+      expect(
+        SecretRedactor.redact("token=s3cret-value-not-a-path-12345"),
+      ).not.toContain("s3cret-value-not-a-path-12345");
+    });
+  });
+
+  /*
+   * A URL that DOES carry credentials keeps them out: the shape exclusion is
+   * for bare URLs only, and the pattern pass catches the userinfo regardless.
+   */
+  test("a URL carrying credentials is not excused by the shape rule", () => {
+    withEnv(
+      { SOME_UNKNOWN_TOOL_VAR: "https://user:hunter2hunter2@example.com" },
+      () => {
+        const redacted: string = SecretRedactor.redact(
+          "remote https://user:hunter2hunter2@example.com/repo.git",
+        );
+
+        expect(redacted).not.toContain("hunter2hunter2");
+      },
+    );
   });
 });
 
@@ -223,12 +313,17 @@ describe("pattern backstop", () => {
     ],
     ["AWS access key id", "AKIAIOSFODNN7EXAMPLE"],
     ["Slack token", "xoxb-1234567890-abcdefghijklmnop"],
-  ])("an unregistered %s is still not printed", (_label: string, secret: string) => {
-    const redacted: string = SecretRedactor.redact(`found ${secret} in config`);
+  ])(
+    "an unregistered %s is still not printed",
+    (_label: string, secret: string) => {
+      const redacted: string = SecretRedactor.redact(
+        `found ${secret} in config`,
+      );
 
-    expect(redacted).not.toContain(secret);
-    expect(redacted).toContain("[redacted]");
-  });
+      expect(redacted).not.toContain(secret);
+      expect(redacted).toContain("[redacted]");
+    },
+  );
 
   test("a private key header is redacted", () => {
     expect(
@@ -309,9 +404,9 @@ describe("redactJSON", () => {
     });
 
     expect(JSON.stringify(redacted)).not.toContain(REPO_TOKEN);
-    expect((redacted["nested"] as Record<string, Array<string>>)["list"]?.[1]).toBe(
-      "harmless",
-    );
+    expect(
+      (redacted["nested"] as Record<string, Array<string>>)["list"]?.[1],
+    ).toBe("harmless");
   });
 
   test("leaves non-string leaves and nullish values as they are", () => {

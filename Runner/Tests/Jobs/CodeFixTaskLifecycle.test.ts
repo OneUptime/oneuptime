@@ -26,7 +26,11 @@
  * ---------------------------------------------------------------------------
  */
 
-import { executeTask, PendingTask, TaskOutcome } from "../../Jobs/PollCodeFixWork";
+import {
+  executeTask,
+  PendingTask,
+  TaskOutcome,
+} from "../../Jobs/PollCodeFixWork";
 import SecretRedactor from "../../Utils/SecretRedactor";
 import TaskLogger from "../../Utils/TaskLogger";
 import {
