@@ -1,5 +1,5 @@
 import Pill, { PillSize } from "../../../UI/Components/Pill/Pill";
-import "@testing-library/jest-dom/extend-expect";
+import "@testing-library/jest-dom";
 import { render, screen } from "@testing-library/react";
 import Color from "../../../Types/Color";
 import IconProp from "../../../Types/Icon/IconProp";

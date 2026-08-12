@@ -3,7 +3,7 @@ import LogTimeRangePicker, {
 } from "../../../UI/Components/LogsViewer/components/LogTimeRangePicker";
 import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "../../../Types/Time/TimeRange";
-import "@testing-library/jest-dom/extend-expect";
+import "@testing-library/jest-dom";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import React from "react";
 import {

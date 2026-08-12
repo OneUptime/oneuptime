@@ -6,7 +6,7 @@ import SideMenuItem, {
 } from "../../../UI/Components/SideMenu/SideMenuItem";
 import * as Navigation from "../../../UI/Utils/Navigation";
 import { describe, expect, afterEach, jest } from "@jest/globals";
-import "@testing-library/jest-dom/extend-expect";
+import "@testing-library/jest-dom";
 import { fireEvent, render, screen } from "@testing-library/react";
 // Types
 import Route from "../../../Types/API/Route";

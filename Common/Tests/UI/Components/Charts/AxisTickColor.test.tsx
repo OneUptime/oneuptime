@@ -1,7 +1,7 @@
 import { AreaChart } from "../../../../UI/Components/Charts/ChartLibrary/AreaChart/AreaChart";
 import { BarChart } from "../../../../UI/Components/Charts/ChartLibrary/BarChart/BarChart";
 import { LineChart } from "../../../../UI/Components/Charts/ChartLibrary/LineChart/LineChart";
-import "@testing-library/jest-dom/extend-expect";
+import "@testing-library/jest-dom";
 import { render } from "@testing-library/react";
 import React from "react";
 import { describe, expect, test } from "@jest/globals";

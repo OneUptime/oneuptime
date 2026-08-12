@@ -1,7 +1,7 @@
 import FilePicker from "../../../UI/Components/FilePicker/FilePicker";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import { describe, expect, beforeEach, jest } from "@jest/globals";
-import "@testing-library/jest-dom/extend-expect";
+import "@testing-library/jest-dom";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import MimeType from "../../../Types/File/MimeType";

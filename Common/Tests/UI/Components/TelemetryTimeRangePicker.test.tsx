@@ -4,7 +4,7 @@ import TelemetryTimeRangePicker, {
 import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "../../../Types/Time/TimeRange";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
-import "@testing-library/jest-dom/extend-expect";
+import "@testing-library/jest-dom";
 import {
   act,
   cleanup,
