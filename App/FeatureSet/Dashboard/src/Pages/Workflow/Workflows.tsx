@@ -28,7 +28,8 @@ import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ObjectID from "Common/Types/ObjectID";
 import Route from "Common/Types/API/Route";
-import { JSONObject } from "Common/Types/JSON";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import { JSONArray, JSONObject } from "Common/Types/JSON";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -95,10 +96,14 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
        */
       workflow.isEnabled = false;
 
-      const created: Workflow = await ModelAPI.create<Workflow>({
-        data: workflow,
+      const response: HTTPResponse<
+        JSONObject | JSONArray | Workflow | Array<Workflow>
+      > = await ModelAPI.create<Workflow>({
+        model: workflow,
         modelType: Workflow,
       });
+
+      const created: Workflow = response.data as Workflow;
 
       setShowTemplatePicker(false);
       Navigation.navigate(
