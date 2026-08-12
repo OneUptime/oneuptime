@@ -228,7 +228,15 @@ const SingleVariableSelector: FunctionComponent<SingleVariableSelectorProps> = (
       ) : useSelect ? (
         <select
           className="text-xs border border-gray-200 rounded-md px-2.5 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-colors"
-          value={variable.selectedValue || variable.defaultValue || ""}
+          /*
+           * `??`, not `||`: picking "All" stores selectedValue as "", which is
+           * a real selection and must not collapse back to defaultValue. Only
+           * an unset (undefined) selection falls through to the default — the
+           * same rule the query side applies in
+           * Common/Utils/Dashboard/VariableInterpolation.ts, so what the
+           * toolbar shows and what the widgets are filtered by stay in step.
+           */
+          value={variable.selectedValue ?? variable.defaultValue ?? ""}
           disabled={isLoadingOptions}
           onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
             props.onVariableValueChange(variable.id, {
@@ -249,7 +257,8 @@ const SingleVariableSelector: FunctionComponent<SingleVariableSelectorProps> = (
         <input
           type="text"
           className="text-xs border border-gray-200 rounded-md px-2.5 py-1.5 bg-white text-gray-700 w-28 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-colors"
-          value={variable.selectedValue || variable.defaultValue || ""}
+          // `??` so clearing the box stays cleared. See the select above.
+          value={variable.selectedValue ?? variable.defaultValue ?? ""}
           placeholder={variable.name}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
             props.onVariableValueChange(variable.id, {
