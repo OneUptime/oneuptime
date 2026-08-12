@@ -419,7 +419,9 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 | `networkInterZoneMetrics` | 無効       | ネットワークメトリクスのゾーン間バリアント (カーディナリティが倍増)            |
 | `tcpStats`                | 有効       | ノードレベルの TCP RTT、接続失敗、再送信のカウンター                           |
 
-サービス間のトレースコンテキスト伝播もデフォルトで有効です — OBI は送信される HTTP/TCP に W3C `traceparent` を注入するため、Pod A → Pod B をまたぐリクエストが単一のトレースとして表示されます。どこにも SDK の変更は不要です。`--set ebpf.contextPropagation=false` で無効にできます。
+サービス間のトレースコンテキスト伝播 — OBI が W3C `traceparent` を注入することで、Pod A → Pod B をまたぐリクエストが SDK の変更なしに単一のトレースとして表示される機能 — は**デフォルトで無効**です。`--set ebpf.contextPropagation=true` で有効化でき、カーネル 5.17 以降が必要です。
+
+無効になっているのは、ヘッダーの注入が「すでに流れている通信の書き換え」を意味するためです。平文 HTTP のリクエストはカーネル内でその場で拡張され、TLS や生の TCP には Traffic Control フックから TCP オプションが追加されます。接続のバイト数の辻褄合わせが正確に行われないとストリームは同期を失います。報告されている症状は、応答が ~64KB を超えた時点で nginx のような L7 プロキシ経由の転送がボディの途中でハングする一方、小さなリクエストは正常に動作し続けるというものです。トレース、RED メトリクス、サービスマップはこの機能に依存していません。サービス間のリンクが必要な場合は、OpenTelemetry SDK がカーネルの書き換えなしにユーザー空間で `traceparent` を伝播するため、そちらの方が安全です。
 
 ## 収集されるデータ量を削減する
 

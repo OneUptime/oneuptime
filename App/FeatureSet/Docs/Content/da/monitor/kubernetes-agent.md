@@ -116,12 +116,15 @@ OBI udtrækker flere signalfamilier fra den indfangede trafik. Alle er aktiveret
 | `ebpf.features.networkInterZoneMetrics` | off      | Inter-zone-variant af netværksmetrikker. Fordobler kardinalitet; kun værd at aktivere, hvis du faktisk bruger zone-baseret planlægning.                                   |
 | `ebpf.features.tcpStats`                | on       | Node-niveau TCP-statistik: RTT-histogrammer, fejlede forbindelsestællinger, retransmissioner.                                                                             |
 
-OBI udbreder også trace-kontekst på tværs af servicegrænser som standard. Når pod A foretager en HTTP/gRPC-anmodning til pod B, injicerer OBI en W3C `traceparent`-header i den udgående anmodning — så det resulterende span på pod B's side linker ind i det samme trace som pod A's udgående. Ingen SDK-ændringer nødvendige i nogen app.
+OBI kan også udbrede trace-kontekst på tværs af servicegrænser, så spannet på pod B's side linker ind i det samme trace som pod A's udgående anmodning — uden SDK-ændringer i nogen af apperne. **Dette er slået fra som standard; slå det til med `--set ebpf.contextPropagation=true`.**
 
 | Indstilling                | Standard | Beskrivelse                                                                                                                                                      |
 | -------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ebpf.contextPropagation`  | on       | Injicér W3C `traceparent` i udgående trafik (HTTP-headers + brugerdefineret TCP-option). Sæt til `false` for at holde hver services spans lokale.                |
+| `ebpf.contextPropagation`  | off      | Injicér en W3C `traceparent` i udgående trafik, så spans linkes på tværs af services. Slået fra som standard — læs advarslen nedenfor først. Kræver kernel 5.17+. |
+| `ebpf.contextPropagationMode` | headers | Hvordan `traceparent` injiceres: `headers` (HTTP/1.1-anmodningsheaders, smalleste), `tcp` (TCP-option via Linux Traffic Control) eller `all` (begge). Læses kun, når `contextPropagation` er true. |
 | `ebpf.trackRequestHeaders` | on       | Kernel-side anmodnings-header-sporing, så udbredelse også virker på rene HTTP-servere (ikke-Go, ikke-TLS). Træder kun i kraft, når `contextPropagation` er true. |
+
+> **⚠️ Hvorfor dette er slået fra som standard.** Alle propageringstilstande ændrer trafik, der allerede er undervejs: rene HTTP-anmodninger udvides på stedet i kernen, mens TLS og rå TCP får tilføjet en TCP-option fra et Traffic Control-hook. Hvis forbindelsens byte-regnskab ikke korrigeres helt præcist, mister strømmen synkroniseringen — det rapporterede symptom er, at overførsler gennem en L7-proxy som nginx hænger midt i body'en, når svaret passerer ~64KB, mens små anmodninger fortsat virker, så det ligner en applikationsfejl frem for en agent-fejl. Sporinger, RED-metrikker og servicekortet afhænger ikke af den; til sammenkædning på tværs af services er et OpenTelemetry-SDK, der propagerer headeren i userspace uden kerne-omskrivning, det sikrere valg.
 
 ### Log ↔ trace-korrelation
 

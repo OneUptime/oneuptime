@@ -834,12 +834,12 @@
         },
         "contextPropagation": {
           "type": "boolean",
-          "description": "Inject W3C `traceparent` into outbound traffic so traces span services without SDK changes."
+          "description": "Inject a W3C `traceparent` into outbound traffic so traces span services without SDK changes. **Off by default** — this matches OBI's own default, and it is off because every mode rewrites in-flight traffic: plaintext HTTP is widened in place via `bpf_probe_write_user`, while TLS and raw TCP get a TCP option appended from a Traffic Control hook. A bad rewrite desynchronizes the connection instead of just losing a span — the reported symptom is transfers through an L7 proxy (nginx) hanging mid-body once the response grows past ~64KB. Requires kernel 5.17+ and CAP_NET_ADMIN, a higher floor than the 5.8 the rest of the eBPF agent needs. Opt in on a non-production cluster first."
         },
         "contextPropagationMode": {
           "type": "string",
-          "enum": ["headers", "ip", "all"],
-          "description": "How OBI injects the traceparent. 'headers' (default, safe with service meshes / mTLS / eBPF CNIs) — HTTP/1.1 request headers only. 'ip' — IPv4/IPv6 option on outbound packets (covers raw TCP but may be dropped by middleboxes). 'all' — both (most coverage; the IP-option half can break service-mesh proxies)."
+          "enum": ["headers", "tcp", "all"],
+          "description": "How OBI injects the traceparent; only read when `contextPropagation` is true. 'headers' (default) — HTTP/1.1 request headers; narrowest blast radius, but not packet-free (plaintext HTTP is widened in place, and HTTPS falls back to the TCP-option path since OBI cannot see the headers). 'tcp' — TCP option injected via Linux Traffic Control; covers non-HTTP and encrypted traffic but is often stripped by middleboxes and must chain with other TC programs (Cilium, Calico). 'all' — both; most coverage and most rewriting, and the TCP-option half can break service-mesh proxies (linkerd2-proxy, envoy) by corrupting bytes they validate. The legacy 'ip' value was removed upstream and now does nothing, so it is rejected here rather than silently disabling propagation."
         },
         "trackRequestHeaders": {
           "type": "boolean",

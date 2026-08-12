@@ -419,7 +419,9 @@ Allemaal standaard aan. Schakel er een uit met `--set ebpf.features.<name>=false
 | `networkInterZoneMetrics` | uit       | Inter-zone-variant van netwerkmetrieken (verdubbelt de cardinaliteit) |
 | `tcpStats`                | aan       | TCP RTT op node-niveau, mislukte-verbinding-, retransmit-tellers      |
 
-Cross-service trace-contextpropagatie is ook standaard aan — OBI injecteert W3C `traceparent` in uitgaande HTTP/TCP, zodat een request die pod A → pod B kruist als één enkele trace verschijnt, zonder SDK-wijzigingen ergens. Schakel uit met `--set ebpf.contextPropagation=false`.
+Cross-service trace-contextpropagatie — waarbij OBI een W3C `traceparent` injecteert zodat een request dat pod A → pod B kruist als één enkele trace verschijnt, zonder SDK-wijzigingen ergens — staat **standaard uit**. Zet het aan met `--set ebpf.contextPropagation=true`; het vereist kernel 5.17+.
+
+Het staat uit omdat het injecteren van de header betekent dat verkeer wordt herschreven dat al onderweg is: onversleutelde HTTP-requests worden ter plekke in de kernel verbreed, terwijl TLS en ruw TCP een TCP-optie krijgen aangehangen vanuit een Traffic Control-hook. Als de byte-boekhouding van de verbinding niet exact wordt gecorrigeerd, raakt de stream uit synchronisatie — het gerapporteerde symptoom is dat overdrachten via een L7-proxy zoals nginx halverwege de body blijven hangen zodra het antwoord de ~64KB passeert, terwijl kleine requests gewoon blijven werken. Traces, RED-metrics en de service map zijn hier niet van afhankelijk; voor koppeling tussen services propageert een OpenTelemetry-SDK `traceparent` in userspace zonder enige kernel-herschrijving en is dat de veiligere keuze.
 
 ## Het volume aan verzamelde data verminderen
 

@@ -419,7 +419,9 @@ Todas activadas de forma predeterminada. Desactiva cualquiera con `--set ebpf.fe
 | `networkInterZoneMetrics` | desactivado    | Variante entre zonas de las métricas de red (duplica la cardinalidad)           |
 | `tcpStats`                | activado       | Contadores de RTT de TCP, conexiones fallidas y retransmisiones a nivel de nodo |
 
-La propagación del contexto de traza entre servicios también está activada de forma predeterminada — OBI inyecta `traceparent` de W3C en el tráfico saliente HTTP/TCP para que una solicitud que cruza del pod A → pod B aparezca como una sola traza, sin cambios de SDK en ninguna parte. Desactívala con `--set ebpf.contextPropagation=false`.
+La propagación del contexto de traza entre servicios — en la que OBI inyecta un `traceparent` de W3C para que una solicitud que cruza del pod A → pod B aparezca como una sola traza, sin cambios de SDK en ninguna parte — está **desactivada de forma predeterminada**. Actívala con `--set ebpf.contextPropagation=true`; requiere kernel 5.17+.
+
+Está desactivada porque inyectar la cabecera implica reescribir tráfico que ya está en vuelo: las solicitudes HTTP en claro se ensanchan in situ en el kernel, mientras que TLS y TCP en bruto reciben una opción TCP añadida desde un hook de Traffic Control. Si la contabilidad de bytes de la conexión no se corrige con exactitud, el flujo se desincroniza — el síntoma reportado es que las transferencias a través de un proxy L7 como nginx se quedan colgadas a mitad del cuerpo en cuanto la respuesta supera los ~64KB, mientras que las solicitudes pequeñas siguen funcionando. Las trazas, las métricas RED y el mapa de servicios no dependen de ella; para enlazar entre servicios, un SDK de OpenTelemetry propaga `traceparent` en espacio de usuario sin ninguna reescritura en el kernel y es la opción más segura.
 
 ## Reducir el volumen de datos recopilados
 

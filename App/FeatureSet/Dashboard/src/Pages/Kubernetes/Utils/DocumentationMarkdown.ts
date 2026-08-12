@@ -248,7 +248,9 @@ All on by default. Turn any off with \`--set ebpf.features.<name>=false\`:
 | \`networkInterZoneMetrics\` | off | Inter-zone variant of network metrics (doubles cardinality) |
 | \`tcpStats\` | on | Node-level TCP RTT, failed-connection, retransmit counters |
 
-Cross-service trace context propagation is also on by default — OBI injects W3C \`traceparent\` into outbound HTTP/TCP so a request crossing pod A → pod B shows up as a single trace, no SDK changes anywhere. Turn off with \`--set ebpf.contextPropagation=false\`.
+Cross-service trace context propagation — where OBI injects a W3C \`traceparent\` so a request crossing pod A → pod B shows up as a single trace with no SDK changes anywhere — is **off by default**. Opt in with \`--set ebpf.contextPropagation=true\`, and requires kernel 5.17+.
+
+It is off because injecting the header means rewriting traffic that is already in flight: plaintext HTTP requests are widened in place in the kernel, while TLS and raw TCP get a TCP option appended from a Traffic Control hook. If the connection's byte accounting isn't corrected exactly right the stream desynchronizes — the reported symptom is transfers through an L7 proxy such as nginx hanging mid-body once the response passes ~64KB, while small requests keep working. Traces, RED metrics, and the service map do not depend on it; for cross-service linking, an OpenTelemetry SDK propagates \`traceparent\` in userspace without any kernel rewriting and is the safer option.
 
 ## Troubleshooting
 
