@@ -120,7 +120,10 @@ const bodyReturnValue: ReturnValue = {
   required: false,
 };
 
-type MakeTriggerFunction = (nodeId: string, componentId: string) => LintGraphNode;
+type MakeTriggerFunction = (
+  nodeId: string,
+  componentId: string,
+) => LintGraphNode;
 
 const makeTrigger: MakeTriggerFunction = (
   nodeId: string,
@@ -553,9 +556,7 @@ describe("lintWorkflowGraph — references", () => {
 
     const issue: WorkflowLintIssue | undefined = result.issues.find(
       (candidate: WorkflowLintIssue) => {
-        return (
-          candidate.rule === WorkflowLintRule.UnknownReferencedComponent
-        );
+        return candidate.rule === WorkflowLintRule.UnknownReferencedComponent;
       },
     );
 
@@ -569,9 +570,7 @@ describe("lintWorkflowGraph — references", () => {
 
     const issue: WorkflowLintIssue | undefined = result.issues.find(
       (candidate: WorkflowLintIssue) => {
-        return (
-          candidate.rule === WorkflowLintRule.UnknownReferencedReturnValue
-        );
+        return candidate.rule === WorkflowLintRule.UnknownReferencedReturnValue;
       },
     );
 

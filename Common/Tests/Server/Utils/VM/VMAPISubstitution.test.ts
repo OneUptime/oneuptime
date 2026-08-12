@@ -192,10 +192,7 @@ describe("replaceValueInPlace — $ in resolved values", () => {
 describe("deepFind — [last] accessor", () => {
   type FindFunction = (storage: JSONObject, path: string) => JSONValue;
 
-  const find: FindFunction = (
-    storage: JSONObject,
-    path: string,
-  ): JSONValue => {
+  const find: FindFunction = (storage: JSONObject, path: string): JSONValue => {
     return VMUtil.deepFind(storage, path);
   };
 

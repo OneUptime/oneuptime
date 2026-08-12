@@ -225,7 +225,8 @@ describe("RunWorkflow step trace", () => {
     });
 
     const trace: WorkflowStepTrace = lastPersistedTrace(updateLogSpy);
-    const step: WorkflowStepTraceEntry = trace.steps[0] as WorkflowStepTraceEntry;
+    const step: WorkflowStepTraceEntry = trace
+      .steps[0] as WorkflowStepTraceEntry;
 
     expect(trace.steps).toHaveLength(1);
     expect(step.componentId).toBe("test-component-1");
@@ -331,9 +332,7 @@ describe("RunWorkflow step trace", () => {
       timeout: 5000,
     });
 
-    const serialized: string = JSON.stringify(
-      lastPersistedTrace(updateLogSpy),
-    );
+    const serialized: string = JSON.stringify(lastPersistedTrace(updateLogSpy));
 
     expect(serialized).not.toContain("super-secret-value");
   });
@@ -363,7 +362,8 @@ describe("RunWorkflow step trace", () => {
     });
 
     const trace: WorkflowStepTrace = lastPersistedTrace(updateLogSpy);
-    const step: WorkflowStepTraceEntry = trace.steps[0] as WorkflowStepTraceEntry;
+    const step: WorkflowStepTraceEntry = trace
+      .steps[0] as WorkflowStepTraceEntry;
 
     expect(trace.steps).toHaveLength(1);
     expect(step.status).toBe(WorkflowStepStatus.Error);

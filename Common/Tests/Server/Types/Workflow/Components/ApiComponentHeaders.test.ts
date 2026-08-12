@@ -93,11 +93,11 @@ describe("ApiComponentUtils.sanitizeArgs — header shapes", () => {
   });
 
   test("parses a JSON5 string, which has always been accepted here", async () => {
-    await expect(sanitizeHeaders("{Authorization: 'Bearer abc'}")).resolves.toEqual(
-      {
-        Authorization: "Bearer abc",
-      },
-    );
+    await expect(
+      sanitizeHeaders("{Authorization: 'Bearer abc'}"),
+    ).resolves.toEqual({
+      Authorization: "Bearer abc",
+    });
   });
 
   test("passes the object shape through", async () => {

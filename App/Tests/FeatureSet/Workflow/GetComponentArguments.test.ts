@@ -12,10 +12,7 @@ import RunWorkflow, {
 } from "../../../FeatureSet/Workflow/Services/RunWorkflow";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
-type MakeArgumentFunction = (
-  id: string,
-  type: ComponentInputType,
-) => Argument;
+type MakeArgumentFunction = (id: string, type: ComponentInputType) => Argument;
 
 const makeArgument: MakeArgumentFunction = (
   id: string,
@@ -174,7 +171,8 @@ describe("getComponentArguments — header dictionaries in both shapes", () => {
     const args: JSONObject = runner.getComponentArguments(
       makeStorage({ variables: { token: "abc" } }),
       makeNode([headerArgument], {
-        "request-headers": '{"Authorization": "Bearer {{local.variables.token}}"}',
+        "request-headers":
+          '{"Authorization": "Bearer {{local.variables.token}}"}',
       }),
     );
 
@@ -183,9 +181,7 @@ describe("getComponentArguments — header dictionaries in both shapes", () => {
      * (ApiComponentUtils.sanitizeArgs), which is what lets a legacy value keep
      * working. What matters is that the substitution happened.
      */
-    expect(args["request-headers"]).toBe(
-      '{"Authorization": "Bearer abc"}',
-    );
+    expect(args["request-headers"]).toBe('{"Authorization": "Bearer abc"}');
   });
 
   test("carries the object shape through as an object", () => {
@@ -259,7 +255,8 @@ describe("getComponentArguments — unresolved reference warnings", () => {
     runner.getComponentArguments(
       makeStorage({}),
       makeNode([makeArgument("message", ComponentInputType.Text)], {
-        message: "{{local.variables.a}} {{local.variables.a}} {{local.variables.b}}",
+        message:
+          "{{local.variables.a}} {{local.variables.a}} {{local.variables.b}}",
       }),
     );
 

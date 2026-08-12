@@ -66,7 +66,9 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 onCompleteAction: VoidFunction,
               ) => {
                 setLogs(item["logs"] as string);
-                setStepTrace(parseTrace((item["stepTrace"] as JSONValue) || null));
+                setStepTrace(
+                  parseTrace((item["stepTrace"] as JSONValue) || null),
+                );
                 setShowViewLogsModal(true);
 
                 onCompleteAction();

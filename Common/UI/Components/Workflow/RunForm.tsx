@@ -49,7 +49,8 @@ const RunForm: FunctionComponent<ComponentProps> = (
    */
   const formInitialValues: JSONObject = { ...(component.arguments || {}) };
 
-  for (const argument of component.metadata.runWorkflowManuallyArguments || []) {
+  for (const argument of component.metadata.runWorkflowManuallyArguments ||
+    []) {
     if (argument.type !== ComponentInputType.StringDictionary) {
       continue;
     }

@@ -173,9 +173,9 @@ describe("checkJSONSyntax", () => {
   });
 
   test("accepts a reference standing in for a bare JSON value", () => {
-    expect(checkJSONSyntax('{"retries": {{local.variables.count}}}').isValid).toBe(
-      true,
-    );
+    expect(
+      checkJSONSyntax('{"retries": {{local.variables.count}}}').isValid,
+    ).toBe(true);
   });
 
   test("accepts a reference inside a string literal", () => {
@@ -218,7 +218,9 @@ describe("checkJSONSyntax", () => {
 
   test("judges by JSON5's rules when asked, matching the lenient parsers", () => {
     expect(checkJSONSyntax("{a: 1}", { allowJSON5: true }).isValid).toBe(true);
-    expect(checkJSONSyntax("{'a': 1}", { allowJSON5: true }).isValid).toBe(true);
+    expect(checkJSONSyntax("{'a': 1}", { allowJSON5: true }).isValid).toBe(
+      true,
+    );
     expect(checkJSONSyntax('{"a": 1,}', { allowJSON5: true }).isValid).toBe(
       true,
     );
@@ -324,9 +326,9 @@ describe("parseReferencePath", () => {
   });
 
   test("rejects a misspelled second segment", () => {
-    expect(parseReferencePath("local.component.x.returnValues.y").rootType).toBe(
-      ReferenceRootType.Unknown,
-    );
+    expect(
+      parseReferencePath("local.component.x.returnValues.y").rootType,
+    ).toBe(ReferenceRootType.Unknown);
     expect(parseReferencePath("global.variable.x").rootType).toBe(
       ReferenceRootType.Unknown,
     );

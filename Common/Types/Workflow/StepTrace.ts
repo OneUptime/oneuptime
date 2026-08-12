@@ -101,9 +101,7 @@ export const truncateTraceValue: TruncateTraceValueFunction = (
     return value;
   }
 
-  return (
-    serialized.slice(0, MAX_TRACE_VALUE_LENGTH) + TRUNCATED_VALUE_SUFFIX
-  );
+  return serialized.slice(0, MAX_TRACE_VALUE_LENGTH) + TRUNCATED_VALUE_SUFFIX;
 };
 
 export type TruncateTraceValuesFunction = (values: JSONObject) => JSONObject;

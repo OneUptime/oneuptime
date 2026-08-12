@@ -11,7 +11,9 @@ interface TestEntity extends JSONObject {
   name?: JSONValue;
 }
 
-type MakeFieldFunction = (overrides?: Partial<Field<TestEntity>>) => Field<TestEntity>;
+type MakeFieldFunction = (
+  overrides?: Partial<Field<TestEntity>>,
+) => Field<TestEntity>;
 
 const makeJSONField: MakeFieldFunction = (
   overrides?: Partial<Field<TestEntity>>,
@@ -88,7 +90,9 @@ describe("Validation.validateJSONSyntax — never fires on a working value", () 
    */
   test("a whole-field template", () => {
     expect(
-      validateValue("{{local.components.api-get-1.returnValues.response-body}}"),
+      validateValue(
+        "{{local.components.api-get-1.returnValues.response-body}}",
+      ),
     ).toBeNull();
   });
 

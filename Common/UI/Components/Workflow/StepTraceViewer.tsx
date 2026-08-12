@@ -63,7 +63,9 @@ const ValueBlock: FunctionComponent<ValueBlockProps> = (
           {keys.map((key: string) => {
             const value: unknown = props.values[key];
             const text: string =
-              typeof value === "string" ? value : JSON.stringify(value, null, 2);
+              typeof value === "string"
+                ? value
+                : JSON.stringify(value, null, 2);
 
             return (
               <div key={key} className="text-sm">
