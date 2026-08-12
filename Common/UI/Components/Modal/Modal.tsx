@@ -7,6 +7,7 @@ import ModalFooter from "./ModalFooter";
 import { VeryLightGray } from "../../../Types/BrandColors";
 import IconProp from "../../../Types/Icon/IconProp";
 import useTranslateValue from "../../Utils/Translation";
+import { wasPressConsumedByAnAnchoredPopup } from "../../Types/LayeredDismissal";
 import { lockPageScroll, unlockPageScroll } from "../../Utils/PageScrollLock";
 import React, {
   FunctionComponent,
@@ -77,6 +78,8 @@ const Modal: FunctionComponent<ComponentProps> = (
     (() => void) | undefined
   >(props.onClose);
   const backdropPressStartedOutsideRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+  const backdropPressEndedInsideRef: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
   const titleId: string = useId();
   const descriptionId: string = useId();
@@ -332,25 +335,54 @@ const Modal: FunctionComponent<ComponentProps> = (
   const onBackdropMouseDown: BackdropPressHandler = (
     event: React.MouseEvent<HTMLDivElement>,
   ): void => {
+    backdropPressEndedInsideRef.current = false;
+
+    /*
+     * A press that a portalled popup has already spent on closing itself is
+     * not a dismissal of this dialog. Without this, clicking the backdrop to
+     * put away an open colour picker closed the picker and the form behind it
+     * in one go.
+     */
+    if (wasPressConsumedByAnAnchoredPopup(event.nativeEvent)) {
+      backdropPressStartedOutsideRef.current = false;
+      return;
+    }
+
     backdropPressStartedOutsideRef.current = isEventOutsideModal(event);
+  };
+
+  const onBackdropMouseUp: BackdropPressHandler = (
+    event: React.MouseEvent<HTMLDivElement>,
+  ): void => {
+    /*
+     * The click that follows is reported against the nearest common ancestor
+     * of press and release — this very layer — so by the time it arrives the
+     * two ends are indistinguishable. Where the release landed has to be
+     * recorded while it is still known.
+     */
+    backdropPressEndedInsideRef.current = !isEventOutsideModal(event);
   };
 
   const onBackdropClick: BackdropPressHandler = (
     event: React.MouseEvent<HTMLDivElement>,
   ): void => {
     /*
-     * Both ends of the click have to land on the backdrop. Selecting text in
-     * the body and releasing the mouse past the edge of the panel is a drag,
-     * not a dismissal, and it used to be the fastest way to lose a filled-in
-     * form.
+     * Both ends of the click have to land on the backdrop. A press that
+     * wandered across the edge of the panel in either direction is a drag —
+     * selecting text in the body and releasing outside, or pressing outside and
+     * releasing on the panel — and either used to be the fastest way to lose a
+     * filled-in form.
      */
     const pressStartedOutside: boolean = backdropPressStartedOutsideRef.current;
+    const pressEndedInside: boolean = backdropPressEndedInsideRef.current;
     backdropPressStartedOutsideRef.current = false;
+    backdropPressEndedInsideRef.current = false;
 
     if (
       props.disableCloseOnBackdropClick ||
       !props.onClose ||
       !pressStartedOutside ||
+      pressEndedInside ||
       !isEventOutsideModal(event) ||
       !isTopmostDialog()
     ) {
@@ -391,6 +423,7 @@ const Modal: FunctionComponent<ComponentProps> = (
       <div
         className="fixed inset-0 z-50 overflow-y-auto"
         onMouseDown={onBackdropMouseDown}
+        onMouseUp={onBackdropMouseUp}
         onClick={onBackdropClick}
       >
         <div className="flex min-h-full items-end justify-center p-0 text-center sm:items-center sm:p-6">

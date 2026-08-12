@@ -25,7 +25,20 @@ export interface ComponentProps {
   initialValue?: undefined | string | Date;
   id?: string | undefined;
   ariaLabelledby?: string | undefined;
+  // Set together by fields that open a popup, so the state is on the focusable element.
+  ariaHasPopup?: "dialog" | "listbox" | "menu" | "grid" | "tree" | undefined;
+  ariaExpanded?: boolean | undefined;
+  ariaControls?: string | undefined;
+  /*
+   * For fields that render their own error text - a picker whose message sits
+   * below the whole control rather than below this input.
+   */
+  ariaDescribedby?: string | undefined;
+  ariaInvalid?: boolean | undefined;
   onClick?: undefined | (() => void);
+  onKeyDown?:
+    | undefined
+    | ((event: React.KeyboardEvent<HTMLInputElement>) => void);
   placeholder?: undefined | string;
   className?: undefined | string;
   onChange?: undefined | ((value: string) => void);
@@ -164,8 +177,13 @@ const Input: FunctionComponent<ComponentProps> = (
           spellCheck={!props.disableSpellCheck}
           autoComplete={props.autoComplete}
           aria-labelledby={props.ariaLabelledby}
-          aria-invalid={props.error ? "true" : undefined}
-          aria-describedby={props.error ? "input-error-message" : undefined}
+          aria-haspopup={props.ariaHasPopup}
+          aria-expanded={props.ariaExpanded}
+          aria-controls={props.ariaControls}
+          aria-invalid={props.error || props.ariaInvalid ? "true" : undefined}
+          aria-describedby={
+            props.error ? "input-error-message" : props.ariaDescribedby
+          }
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
             const value: string | Date = e.target.value;
 
@@ -194,8 +212,18 @@ const Input: FunctionComponent<ComponentProps> = (
           }}
           tabIndex={props.tabIndex}
           onKeyDown={
-            props.onEnterPress
+            props.onEnterPress || props.onKeyDown
               ? (event: React.KeyboardEvent<HTMLInputElement>) => {
+                  props.onKeyDown?.(event);
+
+                  /*
+                   * A handler that claimed the key - a picker opening its popup
+                   * on Enter, say - has already decided what it means.
+                   */
+                  if (event.defaultPrevented) {
+                    return;
+                  }
+
                   if (event.key === "Enter") {
                     props.onEnterPress?.();
                   }
