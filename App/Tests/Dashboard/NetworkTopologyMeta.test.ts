@@ -7,6 +7,10 @@ import {
 import {
   LINK_SATURATION_THRESHOLD_PERCENT,
   LINK_STATE_COLORS,
+  TOPOLOGY_LEGEND,
+  TopologyLegendEntry,
+  accessibleLabelForNode,
+  buildTopologyLegend,
   describeEndpoint,
   edgeKeyForEdge,
   edgeStrokeWidthForEdge,
@@ -308,5 +312,217 @@ describe("describeEndpoint", () => {
     expect(
       describeEndpoint({ interfaceName: "Gi0/1", inRateMbps: 5 }, undefined),
     ).toBe("Gi0/1 · ↓5.0 Mbps ↑—");
+  });
+});
+
+const deviceNode: (
+  overrides?: Partial<NetworkTopologyNode>,
+) => NetworkTopologyNode = (
+  overrides?: Partial<NetworkTopologyNode>,
+): NetworkTopologyNode => {
+  return {
+    id: "d1",
+    name: "core-1",
+    isManaged: true,
+    status: "up",
+    kind: "device",
+    ...overrides,
+  };
+};
+
+describe("nodeMatchesSearch — by role", () => {
+  test("a role name matches every node of that role", () => {
+    expect(nodeMatchesSearch(deviceNode({ role: "switch" }), "switch")).toBe(
+      true,
+    );
+    expect(nodeMatchesSearch(deviceNode({ role: "router" }), "switch")).toBe(
+      false,
+    );
+  });
+
+  test("role search is case-insensitive and matches partially", () => {
+    const balancer: NetworkTopologyNode = deviceNode({ role: "loadBalancer" });
+    expect(nodeMatchesSearch(balancer, "LOAD")).toBe(true);
+    expect(nodeMatchesSearch(balancer, "balancer")).toBe(true);
+  });
+
+  test("the display name is matched, not the internal role key", () => {
+    const wireless: NetworkTopologyNode = deviceNode({
+      role: "wirelessAccessPoint",
+    });
+    expect(nodeMatchesSearch(wireless, "Wireless AP")).toBe(true);
+    expect(nodeMatchesSearch(wireless, "accesspoint")).toBe(false);
+  });
+
+  test("searching a role never lights up everything we failed to classify", () => {
+    // "Unknown type" must not be a searchable label.
+    expect(nodeMatchesSearch(deviceNode({ role: "unknown" }), "unknown")).toBe(
+      false,
+    );
+    expect(nodeMatchesSearch(deviceNode(), "unknown type")).toBe(false);
+  });
+
+  test("identity search still works alongside it", () => {
+    const node: NetworkTopologyNode = deviceNode({
+      name: "core-1",
+      sysName: "core-1.example.com",
+      vendor: "Cisco",
+      role: "switch",
+    });
+    expect(nodeMatchesSearch(node, "core")).toBe(true);
+    expect(nodeMatchesSearch(node, "cisco")).toBe(true);
+    expect(nodeMatchesSearch(node, "example.com")).toBe(true);
+    expect(nodeMatchesSearch(node, "")).toBe(true);
+  });
+});
+
+describe("accessibleLabelForNode — roles", () => {
+  test("the role is announced, because the shape cannot be", () => {
+    expect(
+      accessibleLabelForNode(
+        deviceNode({ role: "firewall", vendor: "Palo Alto" }),
+      ),
+    ).toBe("core-1, firewall, managed device, status up, Palo Alto");
+  });
+
+  test("an unclassified device announces exactly what it always did", () => {
+    expect(accessibleLabelForNode(deviceNode())).toBe(
+      "core-1, managed device, status up",
+    );
+  });
+
+  test("a plain endpoint host does not say 'host, endpoint'", () => {
+    expect(
+      accessibleLabelForNode({
+        id: "endpoint:e1",
+        name: "pos-1",
+        isManaged: false,
+        status: "unknown",
+        kind: "endpoint",
+        role: "host",
+        ipAddress: "10.0.0.5",
+      }),
+    ).toBe("pos-1, endpoint, 10.0.0.5");
+  });
+
+  test("an endpoint with a real role announces it", () => {
+    expect(
+      accessibleLabelForNode({
+        id: "endpoint:e2",
+        name: "cam-1",
+        isManaged: false,
+        status: "unknown",
+        kind: "endpoint",
+        role: "camera",
+        vlanId: 12,
+      }),
+    ).toBe("cam-1, camera, endpoint, VLAN 12");
+  });
+});
+
+describe("buildTopologyLegend", () => {
+  const labelsOf: (
+    entries: Array<TopologyLegendEntry>,
+    group: string,
+  ) => Array<string> = (
+    entries: Array<TopologyLegendEntry>,
+    group: string,
+  ): Array<string> => {
+    return entries
+      .filter((entry: TopologyLegendEntry) => {
+        return entry.group === group;
+      })
+      .map((entry: TopologyLegendEntry) => {
+        return entry.label;
+      });
+  };
+
+  test("an unclassified graph gets no type entries at all", () => {
+    expect(buildTopologyLegend([deviceNode()])).toEqual(TOPOLOGY_LEGEND);
+    expect(buildTopologyLegend([])).toEqual(TOPOLOGY_LEGEND);
+    expect(buildTopologyLegend(undefined)).toEqual(TOPOLOGY_LEGEND);
+  });
+
+  test("only the types actually on the map are explained", () => {
+    const legend: Array<TopologyLegendEntry> = buildTopologyLegend([
+      deviceNode({ id: "d1", role: "switch" }),
+      deviceNode({ id: "d2", role: "router" }),
+      deviceNode({ id: "d3", role: "unknown" }),
+    ]);
+    expect(labelsOf(legend, "Type")).toEqual(["Router", "Switch"]);
+  });
+
+  test("a type present many times is listed once", () => {
+    const legend: Array<TopologyLegendEntry> = buildTopologyLegend([
+      deviceNode({ id: "d1", role: "switch" }),
+      deviceNode({ id: "d2", role: "switch" }),
+      deviceNode({ id: "d3", role: "switch" }),
+    ]);
+    expect(labelsOf(legend, "Type")).toEqual(["Switch"]);
+  });
+
+  test("the order is fixed, not encounter order — a poll must not reshuffle the key", () => {
+    const forward: Array<TopologyLegendEntry> = buildTopologyLegend([
+      deviceNode({ id: "d1", role: "storage" }),
+      deviceNode({ id: "d2", role: "router" }),
+      deviceNode({ id: "d3", role: "firewall" }),
+    ]);
+    const reversed: Array<TopologyLegendEntry> = buildTopologyLegend([
+      deviceNode({ id: "d3", role: "firewall" }),
+      deviceNode({ id: "d2", role: "router" }),
+      deviceNode({ id: "d1", role: "storage" }),
+    ]);
+    expect(labelsOf(forward, "Type")).toEqual([
+      "Router",
+      "Firewall",
+      "Storage",
+    ]);
+    expect(labelsOf(reversed, "Type")).toEqual(labelsOf(forward, "Type"));
+  });
+
+  test("every type entry carries the silhouette its nodes are drawn with", () => {
+    const legend: Array<TopologyLegendEntry> = buildTopologyLegend([
+      deviceNode({ id: "d1", role: "switch" }),
+      deviceNode({ id: "d2", role: "firewall" }),
+      deviceNode({ id: "d3", role: "storage" }),
+    ]);
+    const shapes: Record<string, string | undefined> = {};
+    for (const entry of legend) {
+      if (entry.group === "Type") {
+        shapes[entry.label] = entry.shape;
+      }
+    }
+    expect(shapes["Switch"]).toBe("rounded-square");
+    expect(shapes["Firewall"]).toBe("diamond");
+    expect(shapes["Storage"]).toBe("cylinder");
+  });
+
+  test("the status, kind and link entries are never disturbed", () => {
+    const legend: Array<TopologyLegendEntry> = buildTopologyLegend([
+      deviceNode({ role: "switch" }),
+    ]);
+    expect(legend.slice(0, TOPOLOGY_LEGEND.length)).toEqual(TOPOLOGY_LEGEND);
+    expect(labelsOf(legend, "Status")).toEqual(["Up", "Down", "Unknown"]);
+  });
+
+  test("endpoints without a role are listed as hosts", () => {
+    const legend: Array<TopologyLegendEntry> = buildTopologyLegend([
+      {
+        id: "endpoint:e1",
+        name: "pos-1",
+        isManaged: false,
+        status: "unknown",
+        kind: "endpoint",
+      },
+    ]);
+    expect(labelsOf(legend, "Type")).toEqual(["Host"]);
+  });
+
+  test("malformed entries in the node list do not break the key", () => {
+    const legend: Array<TopologyLegendEntry> = buildTopologyLegend([
+      undefined as unknown as NetworkTopologyNode,
+      deviceNode({ role: "router" }),
+    ]);
+    expect(labelsOf(legend, "Type")).toEqual(["Router"]);
   });
 });

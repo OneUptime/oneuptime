@@ -17,6 +17,10 @@ import {
   edgeKeyForEdge,
   linkStateForEdge,
 } from "./NetworkTopologyMeta";
+import {
+  roleLabelForNode,
+  roleOfNode,
+} from "../NetworkDevice/TopologyNodeShape";
 
 /*
  * Right-hand detail drawer for a topology device node. Keeps the user on
@@ -56,6 +60,17 @@ const NetworkDeviceDetailPanel: FunctionComponent<ComponentProps> = (
   const isEndpoint: boolean = node.kind === "endpoint";
 
   const detailRows: Array<{ label: string; value: string }> = [];
+  /*
+   * First row, because it is what the shape on the map claimed and this
+   * drawer is where somebody comes to check that claim. Omitted when the
+   * evidence named no role — "Unknown type" is not worth a row.
+   */
+  if (roleOfNode(node) !== "unknown") {
+    detailRows.push({
+      label: translateString("Type") || "Type",
+      value: roleLabelForNode(node),
+    });
+  }
   if (node.macAddress) {
     detailRows.push({
       label: translateString("MAC address") || "MAC address",

@@ -1,5 +1,8 @@
 import { describe, expect, test } from "@jest/globals";
-import { NetworkTopologyNode } from "Common/Types/Monitor/SnmpMonitor/NetworkTopology";
+import {
+  NetworkTopologyDeviceRole,
+  NetworkTopologyNode,
+} from "Common/Types/Monitor/SnmpMonitor/NetworkTopology";
 import {
   DEFAULT_FOOTPRINT,
   DEVICE_LABEL_BASELINE_OFFSET,
@@ -785,5 +788,150 @@ describe("footprintOrDefault — never returns undefined", () => {
     );
     expect(DEFAULT_FOOTPRINT.labelBottom).toBe(DEVICE_LABEL_BASELINE_OFFSET);
     expect(DEFAULT_FOOTPRINT.inkHalfWidth).toBe(DEVICE_NODE_RADIUS);
+  });
+});
+
+/*
+ * The footprint is the contract between the layout and the renderer: the
+ * layout reserves space with it, the renderer draws inside it. Roles
+ * changed what gets drawn, so these tests exist to make sure the space
+ * reserved moved with it — and that a graph with no roles at all still
+ * reserves exactly what it always did.
+ */
+describe("footprintForNode — role-driven silhouettes", () => {
+  test("the glyph extents come from the role's shape", () => {
+    const firewall: TopologyNodeFootprint = footprintForNode(
+      makeDevice("fw-1", { role: "firewall" }),
+    );
+    const server: TopologyNodeFootprint = footprintForNode(
+      makeDevice("srv-1", { role: "server" }),
+    );
+
+    // A diamond is wider and taller than the circle it replaces...
+    expect(firewall.halfWidth).toBeGreaterThan(DEVICE_NODE_RADIUS);
+    expect(firewall.halfHeight).toBeGreaterThan(DEVICE_NODE_RADIUS);
+    // ...and a server tower is narrower than it is tall.
+    expect(server.halfWidth).toBeLessThan(server.halfHeight);
+  });
+
+  test("the footprint carries the geometry the renderer will draw", () => {
+    const switchFootprint: TopologyNodeFootprint = footprintForNode(
+      makeDevice("sw-1", { role: "switch" }),
+    );
+    expect(switchFootprint.shape.shape).toBe("rounded-square");
+    expect(switchFootprint.shape.halfWidth).toBe(switchFootprint.halfWidth);
+    expect(switchFootprint.shape.halfHeight).toBe(switchFootprint.halfHeight);
+  });
+
+  test("collision radius grows with the shape, so a diamond cannot overlap", () => {
+    const circle: TopologyNodeFootprint = footprintForNode(
+      makeDevice("rtr-1", { role: "router" }),
+    );
+    const diamond: TopologyNodeFootprint = footprintForNode(
+      makeDevice("fw-1", { role: "firewall" }),
+    );
+    expect(diamond.collisionRadius).toBeGreaterThan(circle.collisionRadius);
+    expect(diamond.collisionRadius).toBe(
+      Math.max(diamond.halfWidth, diamond.halfHeight) + NODE_COLLISION_PADDING,
+    );
+  });
+
+  test("a taller silhouette pushes its label down instead of touching it", () => {
+    const circle: TopologyNodeFootprint = footprintForNode(
+      makeDevice("rtr-1", { role: "router" }),
+    );
+    const diamond: TopologyNodeFootprint = footprintForNode(
+      makeDevice("fw-1", { role: "firewall" }),
+    );
+    expect(circle.labelBaselineOffset).toBe(DEVICE_LABEL_BASELINE_OFFSET);
+    expect(diamond.labelBaselineOffset).toBeGreaterThan(
+      DEVICE_LABEL_BASELINE_OFFSET,
+    );
+    // The clearance below the glyph is the same in both cases.
+    expect(diamond.labelBaselineOffset - diamond.halfHeight).toBeCloseTo(
+      circle.labelBaselineOffset - circle.halfHeight,
+      5,
+    );
+  });
+
+  test("the label baseline is where the label block starts", () => {
+    const single: TopologyNodeFootprint = footprintForNode(
+      makeDevice("sw-1", { role: "switch", name: "sw" }),
+    );
+    expect(single.labelBottom).toBe(single.labelBaselineOffset);
+
+    const wrapped: TopologyNodeFootprint = footprintForNode(
+      makeDevice("sw-2", { role: "switch", name: "distribution switch two" }),
+    );
+    expect(wrapped.labelBottom).toBe(
+      wrapped.labelBaselineOffset + DEVICE_LABEL_LINE_HEIGHT,
+    );
+  });
+
+  test("every role produces a finite, positive, self-consistent footprint", () => {
+    const roles: Array<NetworkTopologyDeviceRole> = [
+      "router",
+      "switch",
+      "firewall",
+      "wirelessAccessPoint",
+      "loadBalancer",
+      "server",
+      "storage",
+      "printer",
+      "camera",
+      "phone",
+      "host",
+      "unknown",
+    ];
+    for (const role of roles) {
+      for (const node of [
+        makeDevice(`d-${role}`, { role: role }),
+        makeEndpoint(`endpoint:${role}`, { role: role }),
+      ]) {
+        const footprint: TopologyNodeFootprint = footprintForNode(node);
+        expect(footprint.halfWidth).toBeGreaterThan(0);
+        expect(footprint.halfHeight).toBeGreaterThan(0);
+        expect(Number.isFinite(footprint.collisionRadius)).toBe(true);
+        expect(footprint.collisionRadius).toBeGreaterThan(footprint.halfWidth);
+        expect(footprint.inkHalfWidth).toBeGreaterThanOrEqual(
+          footprint.halfWidth,
+        );
+        expect(footprint.labelBottom).toBeGreaterThanOrEqual(
+          footprint.labelBaselineOffset,
+        );
+      }
+    }
+  });
+
+  test("an endpoint is drawn at leaf size whatever its role says", () => {
+    const camera: TopologyNodeFootprint = footprintForNode(
+      makeEndpoint("endpoint:cam", { role: "camera" }),
+    );
+    expect(camera.halfWidth).toBe(ENDPOINT_NODE_HALF_WIDTH);
+    expect(camera.halfHeight).toBe(ENDPOINT_NODE_HALF_HEIGHT);
+  });
+
+  test("an unclassified graph is laid out exactly as it was before roles existed", () => {
+    /*
+     * The regression that matters most here: every existing saved
+     * arrangement, and every layout test in this suite, was written
+     * against these numbers.
+     */
+    const device: TopologyNodeFootprint = footprintForNode(
+      makeDevice("d1", { name: "core-1" }),
+    );
+    expect(device.halfWidth).toBe(DEVICE_NODE_RADIUS);
+    expect(device.halfHeight).toBe(DEVICE_NODE_RADIUS);
+    expect(device.collisionRadius).toBe(
+      DEVICE_NODE_RADIUS + NODE_COLLISION_PADDING,
+    );
+    expect(device.labelBaselineOffset).toBe(DEVICE_LABEL_BASELINE_OFFSET);
+
+    const endpoint: TopologyNodeFootprint = footprintForNode(
+      makeEndpoint("endpoint:e1", { name: "pos-1" }),
+    );
+    expect(endpoint.halfWidth).toBe(ENDPOINT_NODE_HALF_WIDTH);
+    expect(endpoint.halfHeight).toBe(ENDPOINT_NODE_HALF_HEIGHT);
+    expect(endpoint.labelBaselineOffset).toBe(ENDPOINT_LABEL_BASELINE_OFFSET);
   });
 });

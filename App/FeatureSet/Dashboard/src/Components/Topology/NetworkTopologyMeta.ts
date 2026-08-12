@@ -1,9 +1,19 @@
 import {
+  NetworkTopologyDeviceRole,
   NetworkTopologyEdge,
   NetworkTopologyEdgeEndpoint,
   NetworkTopologyNode,
   NetworkTopologyNodeStatus,
 } from "Common/Types/Monitor/SnmpMonitor/NetworkTopology";
+import {
+  DEVICE_ROLES_IN_LEGEND_ORDER,
+  labelForDeviceRole,
+} from "Common/Utils/Monitor/NetworkDeviceRoleUtil";
+import {
+  TopologyNodeShape,
+  roleOfNode,
+  shapeForNode,
+} from "../NetworkDevice/TopologyNodeShape";
 
 /*
  * Pure, react-free presentation logic for the network topology graph:
@@ -111,7 +121,15 @@ export function edgeKeyForEdge(edge: NetworkTopologyEdge): string {
   return [edge.fromNodeId, edge.toNodeId].sort().join("::");
 }
 
-/** True when the node matches the search text on name, sysName or vendor. */
+/**
+ * True when the node matches the search text.
+ *
+ * Name, sysName and vendor are the identity fields; the ROLE is matched
+ * too, so typing "firewall" lights up every firewall on the map even
+ * though no device is called one. An unclassified node deliberately does
+ * not answer to "unknown type" — that would make a search for a role
+ * highlight everything we failed to classify.
+ */
 export function nodeMatchesSearch(
   node: NetworkTopologyNode,
   searchText: string,
@@ -120,7 +138,10 @@ export function nodeMatchesSearch(
   if (!lower) {
     return true;
   }
-  return [node.name, node.sysName, node.vendor].some(
+  const role: NetworkTopologyDeviceRole = roleOfNode(node);
+  const roleText: string | undefined =
+    role === "unknown" ? undefined : labelForDeviceRole(role);
+  return [node.name, node.sysName, node.vendor, roleText].some(
     (value: string | undefined) => {
       return Boolean(value && value.toLowerCase().includes(lower));
     },
@@ -174,11 +195,16 @@ export const ENDPOINT_NODE_STROKE: string = "#7c3aed";
 
 /** The key to reading the graph, as data rather than as prose. */
 export interface TopologyLegendEntry {
-  group: "Status" | "Kind" | "Link";
+  group: "Status" | "Kind" | "Type" | "Link";
   label: string;
-  /** How the swatch is drawn: a filled dot, an outline, or a line. */
-  swatch: "dot" | "hollow-dot" | "square" | "line" | "dashed-line";
+  /**
+   * How the swatch is drawn: a filled dot, an outline, a line, or — for
+   * the "Type" group — the node silhouette the role is drawn with.
+   */
+  swatch: "dot" | "hollow-dot" | "square" | "line" | "dashed-line" | "shape";
   color: string;
+  /** Set only on "shape" swatches: which silhouette to draw. */
+  shape?: TopologyNodeShape | undefined;
 }
 
 export const TOPOLOGY_LEGEND: Array<TopologyLegendEntry> = [
@@ -239,6 +265,62 @@ export const TOPOLOGY_LEGEND: Array<TopologyLegendEntry> = [
   },
 ];
 
+/** The neutral ink every shape swatch is drawn in. */
+export const LEGEND_SHAPE_COLOR: string = "var(--ou-text-muted, #6b7280)";
+
+/**
+ * The legend for one topology, silhouettes included.
+ *
+ * The type entries are built from the nodes actually on the map rather
+ * than from the full list of roles: a key that explains a storage
+ * cylinder to somebody whose network contains none is nine words of
+ * clutter, and this legend already has to survive being read on a phone.
+ * Roles that came back "unknown" get no entry either — the circle they
+ * fall back to is the same one a router uses, and claiming otherwise
+ * would be a lie about what the reader is looking at.
+ *
+ * Order is the fixed role order, never encounter order, so the key does
+ * not reshuffle itself under a poll.
+ */
+export function buildTopologyLegend(
+  nodes: Array<NetworkTopologyNode> | undefined,
+): Array<TopologyLegendEntry> {
+  const presentRoles: Set<NetworkTopologyDeviceRole> =
+    new Set<NetworkTopologyDeviceRole>();
+  for (const node of nodes || []) {
+    if (!node) {
+      continue;
+    }
+    const role: NetworkTopologyDeviceRole = roleOfNode(node);
+    if (role !== "unknown") {
+      presentRoles.add(role);
+    }
+  }
+
+  const typeEntries: Array<TopologyLegendEntry> = [];
+  for (const role of DEVICE_ROLES_IN_LEGEND_ORDER) {
+    if (!presentRoles.has(role)) {
+      continue;
+    }
+    typeEntries.push({
+      group: "Type",
+      label: labelForDeviceRole(role),
+      swatch: "shape",
+      color: LEGEND_SHAPE_COLOR,
+      shape: shapeForNode({
+        id: "legend",
+        name: "legend",
+        isManaged: true,
+        status: "unknown",
+        kind: "device",
+        role: role,
+      }),
+    });
+  }
+
+  return [...TOPOLOGY_LEGEND, ...typeEntries];
+}
+
 /**
  * What a screen reader hears for a node.
  *
@@ -248,6 +330,19 @@ export const TOPOLOGY_LEGEND: Array<TopologyLegendEntry> = [
  */
 export function accessibleLabelForNode(node: NetworkTopologyNode): string {
   const parts: Array<string> = [node.name || node.id];
+  /*
+   * The role goes first because it is what the SHAPE encodes, and the
+   * shape is exactly the information a screen reader cannot see. Skipped
+   * when unknown ("unknown type" tells nobody anything) and skipped for a
+   * plain endpoint host, which the word "endpoint" below already says.
+   */
+  const nodeRole: NetworkTopologyDeviceRole = roleOfNode(node);
+  if (
+    nodeRole !== "unknown" &&
+    !(nodeRole === "host" && node.kind === "endpoint")
+  ) {
+    parts.push(labelForDeviceRole(nodeRole).toLowerCase());
+  }
   if (node.kind === "endpoint") {
     parts.push("endpoint");
     if (node.ipAddress) {
