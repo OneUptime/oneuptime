@@ -14,6 +14,8 @@ import ComponentMetadata, {
 } from "../../../../../Types/Workflow/Component";
 import BaseModelComponents from "../../../../../Types/Workflow/Components/BaseModel";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
+import { applyTenantColumn, normalizeModelKeys } from "./ModelArguments";
+import logComponentError from "./LogComponentError";
 
 export default class UpdateManyBaseModel<
   TBaseModel extends BaseModel,
@@ -92,11 +94,14 @@ export default class UpdateManyBaseModel<
         );
       }
 
-      if (this.modelService.getModel().getTenantColumn()) {
-        (args["data"] as JSONObject)[
-          this.modelService.getModel().getTenantColumn() as string
-        ] = options.projectId;
-      }
+      args["data"] = applyTenantColumn(
+        normalizeModelKeys(
+          args["data"] as JSONObject,
+          this.modelService.getModel(),
+        ),
+        this.modelService.getModel(),
+        options.projectId,
+      );
 
       if (!args["query"]) {
         throw options.onError(new BadDataException("Query is undefined."));
@@ -137,22 +142,28 @@ export default class UpdateManyBaseModel<
         args["limit"] = LIMIT_PER_PROJECT;
       }
 
-      let query: Query<TBaseModel> = args["query"] as Query<TBaseModel>;
-
-      if (query) {
-        query = JSONFunctions.deserialize(
+      const query: Query<TBaseModel> = JSONFunctions.deserialize(
+        normalizeModelKeys(
           args["query"] as JSONObject,
-        ) as Query<TBaseModel>;
-      }
+          this.modelService.getModel(),
+        ),
+      ) as Query<TBaseModel>;
 
+      /*
+       * The tenant column goes on the deserialized query, not on args["query"].
+       * JSONFunctions.deserialize returns a new object, so writing the tenant
+       * column to args afterwards left the query that actually ran unscoped -
+       * and an update as root is not re-scoped by the permission layer, so an
+       * Update Many could reach rows in other projects.
+       */
       if (this.modelService.getModel().getTenantColumn()) {
-        (args["query"] as JSONObject)[
+        (query as JSONObject)[
           this.modelService.getModel().getTenantColumn() as string
         ] = options.projectId;
       }
 
-      await this.modelService.updateBy({
-        query: query || {},
+      const itemsUpdated: number = await this.modelService.updateBy({
+        query: query,
         data: args["data"] as QueryDeepPartialEntity<TBaseModel>,
         limit: new PositiveNumber(args["limit"] as number),
         skip: new PositiveNumber(args["skip"] as number),
@@ -162,13 +173,25 @@ export default class UpdateManyBaseModel<
         },
       });
 
+      options.log(
+        `Updated ${itemsUpdated} ${
+          this.modelService.getModel().singularName || "record"
+        }(s).`,
+      );
+
       return {
-        returnValues: {},
+        returnValues: {
+          "items-updated": itemsUpdated,
+        },
         executePort: successPort,
       };
     } catch (err: any) {
-      options.log("Error running component");
-      options.log(err.message ? err.message : JSON.stringify(err, null, 2));
+      logComponentError({
+        error: err,
+        model: this.modelService?.getModel() || null,
+        log: options.log,
+      });
+
       return {
         returnValues: {},
         executePort: errorPort,

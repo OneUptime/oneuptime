@@ -184,7 +184,7 @@
       "noTeams": "Aucune équipe",
       "addToProject": "Ajouter à un projet",
       "addToProjectTitle": "Ajouter l'utilisateur à un projet",
-      "addToProjectDescription": "Choisissez un projet et l'une de ses équipes. L'utilisateur est ajouté à cette équipe comme membre en attente jusqu'à ce qu'il accepte.",
+      "addToProjectDescription": "Choisissez un projet et l'une de ses équipes. L'utilisateur est ajouté à cette équipe comme membre en attente jusqu'à ce qu'il accepte, sauf si vous acceptez l'invitation à sa place.",
       "addToProjectSubmit": "Ajouter au projet",
       "removeFromProject": "Retirer du projet",
       "removeFromTeam": "Retirer de l'équipe",
@@ -208,6 +208,8 @@
       "fieldTeam": "Équipe",
       "fieldTeamDescription": "L'équipe de ce projet à laquelle vous souhaitez ajouter cet utilisateur.",
       "fieldTeamPlaceholder": "Sélectionner une équipe",
+      "fieldAutoAccept": "Accepter l'invitation automatiquement",
+      "fieldAutoAcceptDescription": "Ajoutez cet utilisateur comme membre immédiatement au lieu de le laisser invité jusqu'à ce qu'il accepte. Seul un administrateur principal peut le faire : utilisez cette option lorsque vous configurez un projet pour quelqu'un d'autre.",
       "selectProjectFirst": "Sélectionnez d'abord un projet pour choisir l'une de ses équipes."
     },
     "projects": {

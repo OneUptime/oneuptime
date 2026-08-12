@@ -37,6 +37,7 @@ import LogSeverity from "Common/Types/Log/LogSeverity";
 import LogSavedView from "Common/Models/DatabaseModels/LogSavedView";
 import API from "Common/UI/Utils/API/API";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
+import { readLegacySerializedArray } from "Common/Utils/LegacySerializedArray";
 import ModelAPI, {
   ListResult as ModelListResult,
 } from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -218,9 +219,20 @@ function loadSelectedColumns(viewerId: string): Array<string> {
     getColumnsStorageKey(viewerId),
   );
 
-  if (Array.isArray(savedValue)) {
+  /*
+   * LocalStorage.setItem serializes the value with JSONFunctions
+   * .serializeValue, which used to walk a top-level array by key and store
+   * { "0": "time", "1": "body" }. A plain Array.isArray check missed that, so
+   * every reload quietly handed back the default columns — and the effect that
+   * mirrors state to storage then overwrote the user's real selection. Read
+   * both shapes so selections saved before the fix survive.
+   */
+  const savedColumns: Array<unknown> | null =
+    readLegacySerializedArray(savedValue);
+
+  if (savedColumns) {
     return normalizeLogsTableColumns(
-      savedValue.filter((value: unknown): value is string => {
+      savedColumns.filter((value: unknown): value is string => {
         return typeof value === "string";
       }),
     );

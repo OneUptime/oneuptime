@@ -184,7 +184,7 @@
       "noTeams": "Inga team",
       "addToProject": "Lägg till i projekt",
       "addToProjectTitle": "Lägg till användare i projekt",
-      "addToProjectDescription": "Välj ett projekt och ett av dess team. Användaren läggs till i teamet som väntande medlem tills inbjudan accepteras.",
+      "addToProjectDescription": "Välj ett projekt och ett av dess team. Användaren läggs till i teamet som väntande medlem tills inbjudan accepteras — såvida du inte accepterar inbjudan åt användaren.",
       "addToProjectSubmit": "Lägg till i projekt",
       "removeFromProject": "Ta bort från projekt",
       "removeFromTeam": "Ta bort från team",
@@ -208,6 +208,8 @@
       "fieldTeam": "Team",
       "fieldTeamDescription": "Teamet i det projektet som du vill lägga till den här användaren i.",
       "fieldTeamPlaceholder": "Välj team",
+      "fieldAutoAccept": "Acceptera inbjudan automatiskt",
+      "fieldAutoAcceptDescription": "Lägg till användaren som medlem direkt i stället för att låta den stå som inbjuden tills inbjudan accepteras. Endast en huvudadministratör kan göra detta — använd det när du sätter upp ett projekt åt någon annan.",
       "selectProjectFirst": "Välj först ett projekt för att kunna välja ett av dess team."
     },
     "projects": {

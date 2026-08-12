@@ -1,4 +1,5 @@
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Route from "../../API/Route";
 import IconProp from "../../Icon/IconProp";
 import Text from "../../Text";
 import ComponentMetadata, {
@@ -14,6 +15,29 @@ export default class BaseModelComponent {
       return [];
     }
 
+    /*
+     * Every one of these arguments is keyed on column names, and the single
+     * most common way to get one wrong is to write "id" - which is what an ID
+     * is called everywhere else in the product - when the column is "_id".
+     * Both spellings work now, but the hint has to say so where the builder is
+     * actually typing, because the Query argument is a bare JSON editor with
+     * no field picker behind it.
+     */
+    const columnHint: string = `Keys are column names on ${model.singularName}. The ID column is "_id" (the "id" spelling is accepted too).`;
+
+    const queryDescription: string = `Query that selects which ${model.pluralName} this component acts on. ${columnHint}`;
+
+    const queryPlaceholder: string =
+      'Example: {"_id": "00000000-0000-0000-0000-000000000000"}';
+
+    const selectPlaceholder: string = 'Example: {"_id": true, "name": true}';
+
+    const dataDescription: string = `${model.singularName} fields to write, as a JSON object. ${columnHint}`;
+
+    const documentationLink: Route = Route.fromString(
+      "/workflow/docs/DatabaseComponents.md",
+    );
+
     if (model.enableWorkflowOn.read) {
       components.push({
         id: `${Text.pascalCaseToDashes(model.tableName!)}-find-one`,
@@ -23,22 +47,23 @@ export default class BaseModelComponent {
         iconProp: IconProp.ArrowCircleDown,
         tableName: model.tableName!,
         componentType: ComponentType.Component,
+        documentationLink: documentationLink,
         arguments: [
           {
             type: ComponentInputType.Query,
             name: "Query",
-            description: `Query on ${model.singularName}`,
+            description: queryDescription,
             required: true,
             id: "query",
-            placeholder: 'Example: {"columnName": "value", ...}',
+            placeholder: queryPlaceholder,
           },
           {
             type: ComponentInputType.Select,
             name: "Select Fields",
-            description: `Select on ${model.singularName}`,
+            description: `Fields to read from ${model.singularName}. ${columnHint}`,
             required: true,
             id: "select",
-            placeholder: 'Example: {"columnName": true, ...}',
+            placeholder: selectPlaceholder,
           },
         ],
         returnValues: [
@@ -82,22 +107,23 @@ export default class BaseModelComponent {
         iconProp: IconProp.ArrowCircleDown,
         tableName: model.tableName!,
         componentType: ComponentType.Component,
+        documentationLink: documentationLink,
         arguments: [
           {
             type: ComponentInputType.Query,
             name: "Query",
-            description: "Please fill out this query",
+            description: queryDescription,
             required: true,
             id: "query",
-            placeholder: 'Example: {"columnName": "value", ...}',
+            placeholder: queryPlaceholder,
           },
           {
             type: ComponentInputType.Select,
             name: "Select Fields",
-            description: `Select on ${model.singularName}`,
+            description: `Fields to read from ${model.singularName}. ${columnHint}`,
             required: true,
             id: "select",
-            placeholder: 'Example: {"columnName": true, ...}',
+            placeholder: selectPlaceholder,
           },
           {
             type: ComponentInputType.Number,
@@ -196,17 +222,26 @@ export default class BaseModelComponent {
         iconProp: IconProp.Trash,
         tableName: model.tableName!,
         componentType: ComponentType.Component,
+        documentationLink: documentationLink,
         arguments: [
           {
             type: ComponentInputType.Query,
             name: "Delete by",
-            description: "Please fill out this query",
+            description: queryDescription,
             required: true,
             id: "query",
-            placeholder: 'Example: {"columnName": "value", ...}',
+            placeholder: queryPlaceholder,
           },
         ],
-        returnValues: [],
+        returnValues: [
+          {
+            id: "items-deleted",
+            name: "Items Deleted",
+            description: `How many ${model.pluralName} the query matched and deleted. Zero is not an error - it means nothing matched.`,
+            type: ComponentInputType.Number,
+            required: false,
+          },
+        ],
         inPorts: [
           {
             title: "In",
@@ -239,14 +274,15 @@ export default class BaseModelComponent {
         iconProp: IconProp.Trash,
         tableName: model.tableName!,
         componentType: ComponentType.Component,
+        documentationLink: documentationLink,
         arguments: [
           {
             type: ComponentInputType.Query,
             name: "Delete by",
-            description: "Please fill out this query",
+            description: queryDescription,
             required: true,
             id: "query",
-            placeholder: 'Example: {"columnName": "value", ...}',
+            placeholder: queryPlaceholder,
           },
           {
             type: ComponentInputType.Number,
@@ -263,7 +299,15 @@ export default class BaseModelComponent {
             id: "limit",
           },
         ],
-        returnValues: [],
+        returnValues: [
+          {
+            id: "items-deleted",
+            name: "Items Deleted",
+            description: `How many ${model.pluralName} the query matched and deleted. Zero is not an error - it means nothing matched.`,
+            type: ComponentInputType.Number,
+            required: false,
+          },
+        ],
         inPorts: [
           {
             title: "In",
@@ -312,10 +356,10 @@ export default class BaseModelComponent {
           {
             type: ComponentInputType.Select,
             name: "Select Fields",
-            description: `Select on ${model.singularName}`,
+            description: `Fields to read from ${model.singularName}. ${columnHint}`,
             required: true,
             id: "select",
-            placeholder: 'Example: {"columnName": true, ...}',
+            placeholder: selectPlaceholder,
           },
         ],
         returnValues: [
@@ -346,12 +390,13 @@ export default class BaseModelComponent {
         iconProp: IconProp.Database,
         tableName: model.tableName!,
         componentType: ComponentType.Component,
+        documentationLink: documentationLink,
         arguments: [
           {
             id: "json",
             placeholder: 'Example: {"columnName": "value", ...}',
             name: "JSON Object",
-            description: `${model.singularName} represented as JSON`,
+            description: `${model.singularName} represented as JSON. ${columnHint}`,
             type: ComponentInputType.JSON,
             required: true,
           },
@@ -397,12 +442,13 @@ export default class BaseModelComponent {
         iconProp: IconProp.Database,
         tableName: model.tableName!,
         componentType: ComponentType.Component,
+        documentationLink: documentationLink,
         arguments: [
           {
             id: "json-array",
             name: "JSON Array",
             placeholder: 'Example: [{"columnName": "value", ...}, {...}]',
-            description: "List of models represented as JSON array",
+            description: `List of ${model.pluralName} represented as a JSON array. ${columnHint}`,
             type: ComponentInputType.JSONArray,
             required: true,
           },
@@ -472,10 +518,10 @@ export default class BaseModelComponent {
           {
             type: ComponentInputType.Select,
             name: "Select Fields",
-            description: `Select on ${model.singularName}`,
+            description: `Fields to read from ${model.singularName}. ${columnHint}`,
             required: true,
             id: "select",
-            placeholder: 'Example: {"columnName": true, ...}',
+            placeholder: selectPlaceholder,
           },
         ],
         returnValues: [
@@ -505,25 +551,34 @@ export default class BaseModelComponent {
         iconProp: IconProp.ArrowCircleUp,
         tableName: model.tableName!,
         componentType: ComponentType.Component,
+        documentationLink: documentationLink,
         arguments: [
           {
             type: ComponentInputType.Query,
             name: "Query",
-            description: "Please fill out this query",
+            description: queryDescription,
             required: true,
             id: "query",
-            placeholder: 'Example: {"columnName": "value", ...}',
+            placeholder: queryPlaceholder,
           },
           {
             id: "data",
             placeholder: 'Example: {"columnName": "value", ...}',
             name: "Data (JSON Object)",
-            description: `${model.singularName} represented as JSON`,
+            description: dataDescription,
             type: ComponentInputType.JSON,
             required: true,
           },
         ],
-        returnValues: [],
+        returnValues: [
+          {
+            id: "items-updated",
+            name: "Items Updated",
+            description: `How many ${model.pluralName} the query matched and updated. Zero is not an error - it means nothing matched.`,
+            type: ComponentInputType.Number,
+            required: false,
+          },
+        ],
         inPorts: [
           {
             title: "In",
@@ -556,20 +611,21 @@ export default class BaseModelComponent {
         iconProp: IconProp.ArrowCircleUp,
         tableName: model.tableName!,
         componentType: ComponentType.Component,
+        documentationLink: documentationLink,
         arguments: [
           {
             type: ComponentInputType.Query,
             name: "Query",
-            description: "Please fill out this query",
+            description: queryDescription,
             required: true,
             id: "query",
-            placeholder: 'Example: {"columnName": "value", ...}',
+            placeholder: queryPlaceholder,
           },
           {
             id: "data",
             name: "Data (JSON Object)",
             placeholder: 'Example: {"columnName": "value", ...}',
-            description: `${model.singularName} represented as JSON`,
+            description: dataDescription,
             type: ComponentInputType.JSON,
             required: true,
           },
@@ -588,7 +644,15 @@ export default class BaseModelComponent {
             id: "limit",
           },
         ],
-        returnValues: [],
+        returnValues: [
+          {
+            id: "items-updated",
+            name: "Items Updated",
+            description: `How many ${model.pluralName} the query matched and updated. Zero is not an error - it means nothing matched.`,
+            type: ComponentInputType.Number,
+            required: false,
+          },
+        ],
         inPorts: [
           {
             title: "In",

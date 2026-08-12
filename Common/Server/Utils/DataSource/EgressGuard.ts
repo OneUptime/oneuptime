@@ -3,7 +3,6 @@ import http from "http";
 import https from "https";
 import net from "net";
 import BadDataException from "../../../Types/Exception/BadDataException";
-import { IsBillingEnabled } from "../../EnvironmentConfig";
 
 /*
  * SSRF egress guard for outbound connections whose target is chosen by a
@@ -134,7 +133,15 @@ export default class DataSourceEgressGuard {
     if (process.env["DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES"] === "true") {
       return true;
     }
-    return IsBillingEnabled;
+    /*
+     * Read BILLING_ENABLED at call time rather than the boot-time
+     * IsBillingEnabled const, so this policy is consistent with the env
+     * override checked above and can be exercised deterministically in tests
+     * (a self-hosted install with billing off must still be able to reach its
+     * own private ranges). In a running deployment the env is fixed at boot,
+     * so this is behaviourally identical to the const.
+     */
+    return process.env["BILLING_ENABLED"] === "true";
   }
 
   private static ipv4ToInt(ip: string): number {

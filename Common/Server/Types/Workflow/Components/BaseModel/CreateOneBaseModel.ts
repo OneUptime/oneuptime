@@ -12,6 +12,7 @@ import ComponentMetadata, {
 } from "../../../../../Types/Workflow/Component";
 import BaseModelComponents from "../../../../../Types/Workflow/Components/BaseModel";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
+import { applyTenantColumn } from "./ModelArguments";
 
 export default class CreateOneBaseModel<
   TBaseModel extends BaseModel,
@@ -90,11 +91,11 @@ export default class CreateOneBaseModel<
         );
       }
 
-      if (this.modelService.getModel().getTenantColumn()) {
-        (args["json"] as JSONObject)[
-          this.modelService.getModel().getTenantColumn() as string
-        ] = options.projectId;
-      }
+      args["json"] = applyTenantColumn(
+        args["json"] as JSONObject,
+        this.modelService.getModel(),
+        options.projectId,
+      );
 
       const model: TBaseModel = (await this.modelService.create({
         data: BaseModel.fromJSON<TBaseModel>(

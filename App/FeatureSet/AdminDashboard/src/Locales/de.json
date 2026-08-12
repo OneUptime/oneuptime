@@ -184,7 +184,7 @@
       "noTeams": "Keine Teams",
       "addToProject": "Zu Projekt hinzufügen",
       "addToProjectTitle": "Benutzer zu Projekt hinzufügen",
-      "addToProjectDescription": "Wählen Sie ein Projekt und eines seiner Teams. Der Benutzer wird dem Team als ausstehendes Mitglied hinzugefügt, bis er die Einladung annimmt.",
+      "addToProjectDescription": "Wählen Sie ein Projekt und eines seiner Teams. Der Benutzer wird dem Team als ausstehendes Mitglied hinzugefügt, bis er die Einladung annimmt – es sei denn, Sie nehmen sie für ihn an.",
       "addToProjectSubmit": "Zu Projekt hinzufügen",
       "removeFromProject": "Aus Projekt entfernen",
       "removeFromTeam": "Aus Team entfernen",
@@ -208,6 +208,8 @@
       "fieldTeam": "Team",
       "fieldTeamDescription": "Das Team in diesem Projekt, zu dem Sie diesen Benutzer hinzufügen möchten.",
       "fieldTeamPlaceholder": "Team auswählen",
+      "fieldAutoAccept": "Einladung automatisch annehmen",
+      "fieldAutoAcceptDescription": "Fügen Sie diesen Benutzer sofort als Mitglied hinzu, anstatt ihn als eingeladen zu belassen, bis er annimmt. Das kann nur ein Master-Administrator – nutzen Sie es, wenn Sie ein Projekt für jemand anderen einrichten.",
       "selectProjectFirst": "Wählen Sie zuerst ein Projekt aus, um eines seiner Teams zu wählen."
     },
     "projects": {

@@ -2,6 +2,44 @@
 
 {{> Logo this}}
 
+{{!--
+  Two shapes of the same email. `isInvitationAccepted` is "true" when a master
+  admin ticked "accept the invitation automatically" on the invite form: the
+  membership is already accepted, so there is nothing for the recipient to
+  accept, and telling them to go and accept it would send them looking for an
+  invitation that is not there.
+
+  `ifCond` compares two values and takes no boolean operators, so the isNewUser
+  split is nested inside each branch rather than combined. The `else` arms keep
+  the original invitation wording for anything that does not set the variable.
+--}}
+
+{{#ifCond isInvitationAccepted "true"}}
+
+{{> EmailTitle title=(concat "🎉 You've Been Added to " projectName) }}
+
+{{#ifCond isNewUser "true"}}
+{{> InfoBlock info="You've been added to a project on OneUptime. Create your account to get started - your access is already waiting for you."}}
+
+{{> ButtonBlock buttonUrl=registerLink buttonText="Create Your Account"}}
+
+{{> VerticalSpace this}}
+
+{{> InfoBlock info="Or copy and paste this link into your browser:"}}
+{{> InfoBlock info=registerLink}}
+{{else}}
+{{> InfoBlock info="You've been added to a project on OneUptime. Sign in to get started - there is nothing for you to accept."}}
+
+{{> ButtonBlock buttonUrl=signInLink buttonText="Sign In to OneUptime"}}
+
+{{> VerticalSpace this}}
+
+{{> InfoBlock info="Or copy and paste this link into your browser:"}}
+{{> InfoBlock info=signInLink}}
+{{/ifCond}}
+
+{{else}}
+
 {{> EmailTitle title=(concat "👋 You're Invited to " projectName) }}
 
 {{#ifCond isNewUser "true"}}
@@ -13,9 +51,7 @@
 
 {{> InfoBlock info="Or copy and paste this link into your browser:"}}
 {{> InfoBlock info=registerLink}}
-{{/ifCond}}
-
-{{#ifCond isNewUser "false"}}
+{{else}}
 {{> InfoBlock info="You've been invited to join a project on OneUptime. Sign in to view and manage your invitations."}}
 
 {{> ButtonBlock buttonUrl=signInLink buttonText="Sign In to OneUptime"}}
@@ -24,6 +60,8 @@
 
 {{> InfoBlock info="Or copy and paste this link into your browser:"}}
 {{> InfoBlock info=signInLink}}
+{{/ifCond}}
+
 {{/ifCond}}
 
 {{> VerticalSpace this}}

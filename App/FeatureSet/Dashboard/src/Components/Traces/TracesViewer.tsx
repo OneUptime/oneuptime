@@ -58,6 +58,10 @@ import {
   serializeSavedViewTimeRange,
   deserializeSavedViewTimeRange,
 } from "Common/Utils/Telemetry/SavedViewTimeRange";
+import {
+  readSavedViewFilters,
+  SavedViewFilterTuple,
+} from "Common/Utils/Telemetry/SavedViewFilters";
 import TraceSavedView from "Common/Models/DatabaseModels/TraceSavedView";
 import TelemetrySavedViewState from "Common/Types/Telemetry/TelemetrySavedViewState";
 import Search from "Common/Types/BaseDatabase/Search";
@@ -2138,8 +2142,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       setSearchValue(nextSearch);
       setSubmittedSearch(nextSearch);
       setActiveFilters(
-        (state.filters || []).map(
-          ([facetKey, value]: [string, string]): ActiveFilter => {
+        readSavedViewFilters(state.filters).map(
+          ([facetKey, value]: SavedViewFilterTuple): ActiveFilter => {
             return {
               facetKey: facetKey,
               value: value,

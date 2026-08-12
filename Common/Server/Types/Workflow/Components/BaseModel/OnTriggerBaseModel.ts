@@ -24,6 +24,7 @@ import ComponentMetadata, {
 import BaseModelComponents from "../../../../../Types/Workflow/Components/BaseModel";
 import Workflow from "../../../../../Models/DatabaseModels/Workflow";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
+import { normalizeModelKeys } from "./ModelArguments";
 
 export default class OnTriggerBaseModel<
   TBaseModel extends BaseModel,
@@ -156,6 +157,16 @@ export default class OnTriggerBaseModel<
           (select as any)[key] = false;
         }
       }
+
+      /*
+       * "id" is only a TypeScript accessor on the model - the column is "_id".
+       * Selecting "id" reached TypeORM verbatim and threw, and this trigger
+       * has no error port, so it took the whole workflow run down with it.
+       */
+      select = normalizeModelKeys(
+        select as JSONObject,
+        this.service!.getModel(),
+      ) as Select<TBaseModel>;
     }
 
     const model: TBaseModel | null = await this.service!.findOneById({

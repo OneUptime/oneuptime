@@ -14,6 +14,8 @@ import ComponentMetadata, {
 } from "../../../../../Types/Workflow/Component";
 import BaseModelComponents from "../../../../../Types/Workflow/Components/BaseModel";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
+import { normalizeModelKeys } from "./ModelArguments";
+import logComponentError from "./LogComponentError";
 
 export default class FindManyBaseModel<
   TBaseModel extends BaseModel,
@@ -92,12 +94,6 @@ export default class FindManyBaseModel<
         );
       }
 
-      if (this.modelService.getModel().getTenantColumn()) {
-        (args["query"] as JSONObject)[
-          this.modelService.getModel().getTenantColumn() as string
-        ] = options.projectId;
-      }
-
       if (!args["select"]) {
         throw options.onError(
           new BadDataException("Select Fields is undefined."),
@@ -139,24 +135,33 @@ export default class FindManyBaseModel<
         args["limit"] = LIMIT_PER_PROJECT;
       }
 
-      let query: Query<TBaseModel> = args["query"] as Query<TBaseModel>;
-
-      if (query) {
-        query = JSONFunctions.deserialize(
+      const query: Query<TBaseModel> = JSONFunctions.deserialize(
+        normalizeModelKeys(
           args["query"] as JSONObject,
-        ) as Query<TBaseModel>;
+          this.modelService.getModel(),
+        ),
+      ) as Query<TBaseModel>;
+
+      /*
+       * The tenant column goes on the deserialized query, not on args["query"]
+       * - JSONFunctions.deserialize returns a new object, so anything written
+       * to args after it runs never reaches the database.
+       */
+      if (this.modelService.getModel().getTenantColumn()) {
+        (query as JSONObject)[
+          this.modelService.getModel().getTenantColumn() as string
+        ] = options.projectId;
       }
 
-      let select: Select<TBaseModel> = args["select"] as Select<TBaseModel>;
-
-      if (select) {
-        select = JSONFunctions.deserialize(
+      const select: Select<TBaseModel> = JSONFunctions.deserialize(
+        normalizeModelKeys(
           args["select"] as JSONObject,
-        ) as Select<TBaseModel>;
-      }
+          this.modelService.getModel(),
+        ),
+      ) as Select<TBaseModel>;
 
       const models: Array<TBaseModel> = await this.modelService.findBy({
-        query: query || {},
+        query: query,
         select: select,
         limit: new PositiveNumber(args["limit"] as number),
         skip: new PositiveNumber(args["skip"] as number),
@@ -173,8 +178,12 @@ export default class FindManyBaseModel<
         executePort: successPort,
       };
     } catch (err: any) {
-      options.log("Error running component");
-      options.log(err.message ? err.message : JSON.stringify(err, null, 2));
+      logComponentError({
+        error: err,
+        model: this.modelService?.getModel() || null,
+        log: options.log,
+      });
+
       return {
         returnValues: {},
         executePort: errorPort,

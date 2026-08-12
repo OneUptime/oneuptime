@@ -12,6 +12,8 @@ import ComponentMetadata, {
 } from "../../../../../Types/Workflow/Component";
 import BaseModelComponents from "../../../../../Types/Workflow/Components/BaseModel";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
+import { applyTenantColumn, normalizeModelKeys } from "./ModelArguments";
+import logComponentError from "./LogComponentError";
 
 export default class UpdateOneBaseModel<
   TBaseModel extends BaseModel,
@@ -90,11 +92,14 @@ export default class UpdateOneBaseModel<
         );
       }
 
-      if (this.modelService.getModel().getTenantColumn()) {
-        (args["data"] as JSONObject)[
-          this.modelService.getModel().getTenantColumn() as string
-        ] = options.projectId;
-      }
+      args["data"] = applyTenantColumn(
+        normalizeModelKeys(
+          args["data"] as JSONObject,
+          this.modelService.getModel(),
+        ),
+        this.modelService.getModel(),
+        options.projectId,
+      );
 
       if (!args["query"]) {
         throw options.onError(new BadDataException("Query is undefined."));
@@ -110,22 +115,26 @@ export default class UpdateOneBaseModel<
         );
       }
 
+      const query: Query<TBaseModel> = JSONFunctions.deserialize(
+        normalizeModelKeys(
+          args["query"] as JSONObject,
+          this.modelService.getModel(),
+        ),
+      ) as Query<TBaseModel>;
+
+      /*
+       * The tenant column goes on the deserialized query, not on args["query"]
+       * - JSONFunctions.deserialize returns a new object, so anything written
+       * to args after it runs never reaches the database.
+       */
       if (this.modelService.getModel().getTenantColumn()) {
-        (args["query"] as JSONObject)[
+        (query as JSONObject)[
           this.modelService.getModel().getTenantColumn() as string
         ] = options.projectId;
       }
 
-      let query: Query<TBaseModel> = args["query"] as Query<TBaseModel>;
-
-      if (query) {
-        query = JSONFunctions.deserialize(
-          args["query"] as JSONObject,
-        ) as Query<TBaseModel>;
-      }
-
-      await this.modelService.updateOneBy({
-        query: query || {},
+      const itemsUpdated: number = await this.modelService.updateOneBy({
+        query: query,
         data: args["data"] as QueryDeepPartialEntity<TBaseModel>,
         props: {
           isRoot: true,
@@ -133,13 +142,30 @@ export default class UpdateOneBaseModel<
         },
       });
 
+      /*
+       * A query that matches nothing is not an error, but reporting it as a
+       * bare success left builders with no way to tell "updated" from "found
+       * nothing to update".
+       */
+      options.log(
+        `Updated ${itemsUpdated} ${
+          this.modelService.getModel().singularName || "record"
+        }(s).`,
+      );
+
       return {
-        returnValues: {},
+        returnValues: {
+          "items-updated": itemsUpdated,
+        },
         executePort: successPort,
       };
     } catch (err: any) {
-      options.log("Error running component");
-      options.log(err.message ? err.message : JSON.stringify(err, null, 2));
+      logComponentError({
+        error: err,
+        model: this.modelService?.getModel() || null,
+        log: options.log,
+      });
+
       return {
         returnValues: {},
         executePort: errorPort,

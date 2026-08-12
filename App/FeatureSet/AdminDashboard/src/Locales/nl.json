@@ -184,7 +184,7 @@
       "noTeams": "Geen teams",
       "addToProject": "Aan project toevoegen",
       "addToProjectTitle": "Gebruiker aan project toevoegen",
-      "addToProjectDescription": "Kies een project en een van de teams. De gebruiker wordt aan dat team toegevoegd als lid in afwachting, totdat de uitnodiging is geaccepteerd.",
+      "addToProjectDescription": "Kies een project en een van de teams. De gebruiker wordt aan dat team toegevoegd als lid in afwachting, totdat de uitnodiging is geaccepteerd — tenzij u de uitnodiging namens hen accepteert.",
       "addToProjectSubmit": "Aan project toevoegen",
       "removeFromProject": "Uit project verwijderen",
       "removeFromTeam": "Uit team verwijderen",
@@ -208,6 +208,8 @@
       "fieldTeam": "Team",
       "fieldTeamDescription": "Het team binnen dat project waaraan u deze gebruiker wilt toevoegen.",
       "fieldTeamPlaceholder": "Team selecteren",
+      "fieldAutoAccept": "Uitnodiging automatisch accepteren",
+      "fieldAutoAcceptDescription": "Voeg deze gebruiker meteen toe als lid in plaats van te wachten tot de uitnodiging is geaccepteerd. Alleen een masterbeheerder kan dit doen — gebruik het wanneer u een project voor iemand anders inricht.",
       "selectProjectFirst": "Selecteer eerst een project om een van de teams te kiezen."
     },
     "projects": {

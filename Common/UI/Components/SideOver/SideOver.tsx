@@ -1,7 +1,16 @@
 import Button, { ButtonStyleType } from "../Button/Button";
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
-import React, { FunctionComponent, ReactElement } from "react";
+import { lockPageScroll, unlockPageScroll } from "../../Utils/PageScrollLock";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useState,
+} from "react";
+import { createPortal } from "react-dom";
 
 export enum SideOverSize {
   Small = "Small",
@@ -19,7 +28,41 @@ export interface ComponentProps {
   submitButtonText?: string | undefined;
   leftFooterElement?: ReactElement | undefined;
   size?: SideOverSize | undefined;
+  /*
+   * Opt out of hiding the page's scrollbar while the panel is open. Only worth
+   * setting for a panel that is a permanent part of its page rather than a
+   * transient drawer — every current caller wants the lock.
+   */
+  disablePageScrollLock?: boolean | undefined;
 }
+
+type PortalTargetFunction = () => HTMLElement | null;
+
+/*
+ * Where the panel is appended in the DOM, not where it appears on screen — it
+ * is `position: fixed` either way.
+ *
+ * Two reasons it cannot simply stay where the caller rendered it. First, any
+ * ancestor with a z-index traps the panel in that ancestor's stacking context,
+ * which is how a map's zoom toolbar (z-20) ended up painting on top of an open
+ * device panel. Second, and unfixable by z-index at all: only the fullscreen
+ * element's own subtree reaches the browser's top layer, so a panel appended to
+ * <body> while a chart or map is fullscreen is not painted anywhere. Following
+ * document.fullscreenElement keeps the panel visible in both modes.
+ */
+const getPortalTarget: PortalTargetFunction = (): HTMLElement | null => {
+  if (typeof document === "undefined") {
+    return null;
+  }
+
+  const fullscreenElement: Element | null = document.fullscreenElement;
+
+  if (fullscreenElement instanceof HTMLElement) {
+    return fullscreenElement;
+  }
+
+  return document.body;
+};
 
 const SideOver: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -34,78 +77,156 @@ const SideOver: FunctionComponent<ComponentProps> = (
     widthClass = "max-w-7xl";
   }
 
-  return (
+  const titleId: string = useId();
+  const descriptionId: string = useId();
+
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(
+    getPortalTarget,
+  );
+
+  useEffect(() => {
+    const syncPortalTarget: () => void = (): void => {
+      setPortalTarget(getPortalTarget());
+    };
+
+    /*
+     * Re-read once on mount as well: the first render happens before the
+     * browser has necessarily settled document.fullscreenElement.
+     */
+    syncPortalTarget();
+    document.addEventListener("fullscreenchange", syncPortalTarget);
+
+    return () => {
+      document.removeEventListener("fullscreenchange", syncPortalTarget);
+    };
+  }, []);
+
+  /*
+   * A layout effect, not an ordinary one. Hiding the page scrollbar widens the
+   * viewport that `right: 0` resolves against, so a panel that painted before
+   * the lock landed would visibly jump sideways by the scrollbar's width on
+   * every platform that draws a classic scrollbar. Locking before paint means
+   * the panel is only ever drawn in its final position.
+   */
+  useLayoutEffect(() => {
+    if (props.disablePageScrollLock) {
+      return undefined;
+    }
+
+    lockPageScroll();
+
+    return () => {
+      unlockPageScroll();
+    };
+  }, [props.disablePageScrollLock]);
+
+  const sideOver: ReactElement = (
+    /*
+     * z-30 clears every tier of page chrome (sticky headers and table headers
+     * at z-10/z-20, map and log-viewer toolbars at z-20) while staying under
+     * the app-wide overlays that must remain visible over a panel: Toast and
+     * the AI chat panel at z-40, Modal at z-50, portalled dropdown menus at
+     * z-60. Deliberately NOT z-40 — Toast and AIChatPanel are mounted ahead of
+     * the routed page in App.tsx, so an equal z-index would be broken in this
+     * panel's favour by document order and toasts would disappear behind it.
+     *
+     * role="dialog" without aria-modal, because the panel genuinely is not
+     * modal: everything outside it stays clickable by design (both topology
+     * maps let you click straight from one node's panel to the next). Claiming
+     * aria-modal also made this panel the last entry in Modal's dialog stack,
+     * which silently disabled Escape, backdrop-dismissal and initial focus on
+     * any Modal that was already open.
+     */
     <div
-      className="relative z-10"
-      aria-labelledby="slide-over-title"
+      className="relative z-30"
+      aria-labelledby={titleId}
+      aria-describedby={props.description ? descriptionId : undefined}
       role="dialog"
-      aria-modal="true"
+      data-testid="side-over"
     >
-      <div className="inset-0"></div>
-
-      <div className="inset-0 overflow-hidden">
-        <div className="inset-0 overflow-hidden">
-          <div className="pointer-events-none fixed inset-y-0 right-0 flex max-w-full">
-            <div className={`pointer-events-auto w-screen ${widthClass}`}>
-              <div className="flex h-full flex-col bg-white shadow-xl">
-                <div className="flex-shrink-0 flex flex-col bg-gray-50 px-4 py-6 sm:px-6">
-                  <div className="flex items-start justify-between space-x-3">
-                    <div className="space-y-1">
-                      <h2
-                        className="text-lg font-medium text-gray-900"
-                        id="slide-over-title"
-                      >
-                        {props.title}
-                      </h2>
-                      <p className="text-sm text-gray-500">
-                        {props.description}
-                      </p>
-                    </div>
-                    <div className="flex h-7 items-center">
-                      <button
-                        onClick={() => {
-                          props.onClose();
-                        }}
-                        type="button"
-                        className="text-gray-400 hover:text-gray-500"
-                      >
-                        <span className="sr-only">Close panel</span>
-
-                        <Icon className="h-6 w-6" icon={IconProp.Close} />
-                      </button>
-                    </div>
-                  </div>
+      <div
+        className="pointer-events-none fixed inset-0 flex justify-end"
+        data-testid="side-over-layer"
+      >
+        <div className={`pointer-events-auto w-full ${widthClass}`}>
+          <div className="flex h-full flex-col bg-white shadow-xl">
+            <div className="flex-shrink-0 flex flex-col bg-gray-50 px-4 py-6 sm:px-6">
+              <div className="flex items-start justify-between space-x-3">
+                <div className="space-y-1">
+                  <h2
+                    className="text-lg font-medium text-gray-900"
+                    id={titleId}
+                    data-testid="side-over-title"
+                  >
+                    {props.title}
+                  </h2>
+                  <p
+                    className="text-sm text-gray-500"
+                    id={descriptionId}
+                    data-testid="side-over-description"
+                  >
+                    {props.description}
+                  </p>
                 </div>
-                <div className="h-full overflow-y-scroll">
-                  <div className="space-y-6 py-6 sm:space-y-0 sm:divide-y sm:divide-gray-200 sm:py-0 p-5">
-                    {props.children}
-                  </div>
-                </div>
-                <div className="flex-shrink-0 border-t border-gray-200 px-4 py-5 sm:px-6 flex justify-between">
-                  <div className="flex justify-start space-x-3">
-                    {props.leftFooterElement}
-                  </div>
-                  <div className="flex justify-end space-x-3">
-                    <Button
-                      title="Close"
-                      onClick={() => {
-                        props.onClose();
-                      }}
-                      buttonStyle={ButtonStyleType.NORMAL}
-                    />
+                <div className="flex h-7 items-center">
+                  <button
+                    onClick={() => {
+                      props.onClose();
+                    }}
+                    type="button"
+                    title="Close panel"
+                    data-testid="close-button"
+                    className="text-gray-400 hover:text-gray-500"
+                  >
+                    <span className="sr-only">Close panel</span>
 
-                    {props.onSubmit && (
-                      <Button
-                        title={props.submitButtonText || "Save"}
-                        disabled={props.submitButtonDisabled}
-                        onClick={() => {
-                          props.onSubmit!();
-                        }}
-                        buttonStyle={ButtonStyleType.PRIMARY}
-                      />
-                    )}
-                  </div>
+                    <Icon className="h-6 w-6" icon={IconProp.Close} />
+                  </button>
                 </div>
+              </div>
+            </div>
+            {/*
+             * overflow-y-auto, not overflow-y-scroll: `scroll` paints a dead
+             * track down the panel's right edge even when the content fits,
+             * immediately beside the page's own scrollbar, which reads as the
+             * page scrollbar bleeding through the panel. overscroll-contain
+             * stops a wheel past the end of the panel from scrolling the page
+             * out from under it.
+             */}
+            <div
+              className="min-h-0 flex-1 overflow-y-auto overscroll-contain"
+              data-testid="side-over-content"
+            >
+              <div className="space-y-6 py-6 sm:space-y-0 sm:divide-y sm:divide-gray-200 sm:py-0 p-5">
+                {props.children}
+              </div>
+            </div>
+            <div
+              className="flex-shrink-0 border-t border-gray-200 px-4 py-5 sm:px-6 flex justify-between"
+              data-testid="side-over-footer"
+            >
+              <div className="flex justify-start space-x-3">
+                {props.leftFooterElement}
+              </div>
+              <div className="flex justify-end space-x-3">
+                <Button
+                  title="Close"
+                  onClick={() => {
+                    props.onClose();
+                  }}
+                  buttonStyle={ButtonStyleType.NORMAL}
+                />
+
+                {props.onSubmit && (
+                  <Button
+                    title={props.submitButtonText || "Save"}
+                    disabled={props.submitButtonDisabled}
+                    onClick={() => {
+                      props.onSubmit!();
+                    }}
+                    buttonStyle={ButtonStyleType.PRIMARY}
+                  />
+                )}
               </div>
             </div>
           </div>
@@ -113,6 +234,12 @@ const SideOver: FunctionComponent<ComponentProps> = (
       </div>
     </div>
   );
+
+  if (!portalTarget) {
+    return sideOver;
+  }
+
+  return createPortal(sideOver, portalTarget);
 };
 
 export default SideOver;

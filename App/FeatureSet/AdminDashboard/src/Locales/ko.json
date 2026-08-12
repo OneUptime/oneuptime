@@ -184,7 +184,7 @@
       "noTeams": "팀 없음",
       "addToProject": "프로젝트에 추가",
       "addToProjectTitle": "사용자를 프로젝트에 추가",
-      "addToProjectDescription": "프로젝트와 해당 프로젝트의 팀 하나를 선택하세요. 사용자는 초대를 수락할 때까지 대기 중인 멤버로 해당 팀에 추가됩니다.",
+      "addToProjectDescription": "프로젝트와 해당 프로젝트의 팀 하나를 선택하세요. 대신 초대를 수락하지 않는 한, 사용자는 초대를 수락할 때까지 대기 중인 멤버로 해당 팀에 추가됩니다.",
       "addToProjectSubmit": "프로젝트에 추가",
       "removeFromProject": "프로젝트에서 제거",
       "removeFromTeam": "팀에서 제거",
@@ -208,6 +208,8 @@
       "fieldTeam": "팀",
       "fieldTeamDescription": "해당 프로젝트에서 이 사용자를 추가할 팀입니다.",
       "fieldTeamPlaceholder": "팀 선택",
+      "fieldAutoAccept": "초대를 자동으로 수락",
+      "fieldAutoAcceptDescription": "수락을 기다리지 않고 이 사용자를 즉시 멤버로 추가합니다. 마스터 관리자만 할 수 있으며, 다른 사람을 대신해 프로젝트를 설정할 때 사용하세요.",
       "selectProjectFirst": "먼저 프로젝트를 선택하면 팀을 고를 수 있습니다."
     },
     "projects": {

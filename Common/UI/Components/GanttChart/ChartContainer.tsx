@@ -36,9 +36,10 @@ const ChartContainer: FunctionComponent<ComponentProps> = (
     /*
      * `isolate` creates a new stacking context so the chart's internal
      * z-indexes (e.g. a highlighted/matched bar uses z-30, see Bar/Index.tsx)
-     * stay trapped inside the chart. Without it those bars paint above
-     * page-level overlays like the span-details SideOver (z-10), making a
-     * matched span "show above" the sidebar.
+     * stay trapped inside the chart. Without it those bars compete directly
+     * with page-level overlays such as the span-details SideOver (z-30, and
+     * portalled to the end of <body>), and a matched span would "show above"
+     * the sidebar.
      */
     <div ref={divRef} className={"w-full"} style={{ isolation: "isolate" }}>
       {props.children}
