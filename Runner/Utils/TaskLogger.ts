@@ -7,6 +7,7 @@ import { JSONObject } from "Common/Types/JSON";
 import LogSeverity from "Common/Types/Log/LogSeverity";
 import logger from "Common/Server/Utils/Logger";
 import OneUptimeDate from "Common/Types/Date";
+import SecretRedactor from "./SecretRedactor";
 
 export interface TaskLoggerOptions {
   taskId: string;
@@ -95,15 +96,29 @@ export default class TaskLogger {
       toolResult?: string | undefined;
     },
   ): void {
+    /*
+     * Redact at the boundary, once, for everything.
+     *
+     * Everything added here is persisted server-side and rendered on the
+     * run's Logs page: the narration, the verbatim tool arguments, and the
+     * verbatim tool output the model saw. That output includes whatever a
+     * model-composed shell command printed, and callers pass raw git error
+     * messages straight through. Scrubbing here means no future caller can
+     * forget to — and the redacted copy is the only one that leaves the
+     * process.
+     */
     const entry: LogEntry = {
       severity,
-      message,
+      message: SecretRedactor.redact(message),
       timestamp: OneUptimeDate.getCurrentDate(),
       ...(toolDetail
         ? {
             toolName: toolDetail.toolName,
-            toolArguments: toolDetail.toolArguments,
-            toolResult: toolDetail.toolResult,
+            toolArguments: SecretRedactor.redactJSON(toolDetail.toolArguments),
+            toolResult:
+              toolDetail.toolResult === undefined
+                ? undefined
+                : SecretRedactor.redact(toolDetail.toolResult),
           }
         : {}),
     };

@@ -2,6 +2,8 @@ import { spawn } from "child_process";
 import FixVerificationStatus from "Common/Types/AI/FixVerificationStatus";
 import { CodeAgent, CodeAgentResult } from "../CodeAgents/Index";
 import { CodeRepositoryInfo } from "./BackendAPI";
+import GitPorcelain, { GIT_STATUS_PORCELAIN_ARGS } from "./GitPorcelain";
+import SecretRedactor from "./SecretRedactor";
 import logger from "Common/Server/Utils/Logger";
 
 /*
@@ -70,43 +72,6 @@ const STDIO_DRAIN_GRACE_MS: number = 500;
 // Wall clock granted to each agent repair pass.
 const REPAIR_AGENT_TIMEOUT_MS: number = 15 * 60 * 1000;
 
-/*
- * Secret scrubbing for captured command output. The output tail travels to
- * three places that outlive this process — the repair prompt, the pull
- * request body on GitHub, and the recorded verification summary — so it is
- * redacted once at capture, where it is the only copy.
- *
- * Build commands inherit this Runner's environment (they need registry and
- * toolchain credentials to work at all), which also carries the Runner's
- * own ONEUPTIME_RUNNER_KEY. A command that echoes its environment — `env`,
- * `set -x`, a failing curl, a test that dumps config — would otherwise
- * publish those values verbatim.
- */
-const NON_SECRET_ENV_NAMES: Set<string> = new Set<string>([
-  "PATH",
-  "HOME",
-  "PWD",
-  "OLDPWD",
-  "SHELL",
-  "SHLVL",
-  "TERM",
-  "LANG",
-  "LC_ALL",
-  "HOSTNAME",
-  "USER",
-  "LOGNAME",
-  "TMPDIR",
-  "NODE_ENV",
-  "CI",
-  "_",
-]);
-
-/*
- * Values shorter than this are too collision-prone to blanket-replace (a
- * 3-character value would shred unrelated output).
- */
-const MIN_SECRET_VALUE_LENGTH: number = 8;
-
 export interface VerificationCommand {
   // Which repository field the command came from.
   label: "setup" | "build" | "test";
@@ -168,41 +133,18 @@ export default class BuildVerification {
   }
 
   /*
-   * Redact this process's secret-looking environment values out of captured
-   * output. Applied at capture, so the redacted text is the only copy that
-   * reaches the repair prompt, the pull-request body and the recorded
-   * summary. Longest values first: an env var whose value contains another
-   * must not be half-replaced.
+   * Redact secrets out of captured output. Applied at capture, so the
+   * redacted text is the only copy that reaches the repair prompt, the
+   * pull-request body and the recorded summary.
+   *
+   * Delegates to SecretRedactor so build output, `run_command` output, git
+   * error messages and the run's log stream are all scrubbed by the same
+   * rules — this used to cover only the environment, which left the
+   * repository access token (handed to this process at claim time, never
+   * present in its environment) unredacted.
    */
   public static redactSecrets(text: string): string {
-    let redacted: string = text;
-
-    const secrets: Array<{ name: string; value: string }> = Object.entries(
-      process.env,
-    )
-      .filter(([name, value]: [string, string | undefined]) => {
-        return (
-          typeof value === "string" &&
-          value.length >= MIN_SECRET_VALUE_LENGTH &&
-          !NON_SECRET_ENV_NAMES.has(name)
-        );
-      })
-      .map(([name, value]: [string, string | undefined]) => {
-        return { name, value: value as string };
-      })
-      .sort((a: { value: string }, b: { value: string }) => {
-        return b.value.length - a.value.length;
-      });
-
-    for (const secret of secrets) {
-      if (!redacted.includes(secret.value)) {
-        continue;
-      }
-
-      redacted = redacted.split(secret.value).join(`[redacted:${secret.name}]`);
-    }
-
-    return redacted;
+    return SecretRedactor.redact(text);
   }
 
   /*
@@ -440,6 +382,11 @@ export default class BuildVerification {
    * `-uall` lists files inside new directories individually rather than
    * collapsing them to the directory. NUL-delimited so paths containing
    * spaces or quotes survive.
+   *
+   * Record shapes are handled by GitPorcelain rather than here: a rename is
+   * two NUL-terminated fields, and slicing the status prefix off the second
+   * one produces a path `git add` rejects outright — which aborts the
+   * repository and loses the pull request.
    */
   public static async listDirtyPaths(
     repositoryPath: string,
@@ -450,7 +397,7 @@ export default class BuildVerification {
 
         const child: ReturnType<typeof spawn> = spawn(
           "git",
-          ["status", "--porcelain", "-uall", "-z"],
+          GIT_STATUS_PORCELAIN_ARGS,
           { cwd: repositoryPath, stdio: ["ignore", "pipe", "ignore"] },
         );
 
@@ -463,24 +410,7 @@ export default class BuildVerification {
         });
 
         child.on("close", () => {
-          /*
-           * Each record is "XY <path>" NUL-terminated. Renames add a second
-           * NUL-terminated original path, which we do not need — dropping it
-           * is harmless because the new path is already listed.
-           */
-          const paths: Array<string> = out
-            .split("\0")
-            .filter((record: string) => {
-              return record.length > 3;
-            })
-            .map((record: string) => {
-              return record.substring(3).trim();
-            })
-            .filter((path: string) => {
-              return path.length > 0;
-            });
-
-          resolve(paths);
+          resolve(GitPorcelain.dirtyPaths(out));
         });
       },
     );

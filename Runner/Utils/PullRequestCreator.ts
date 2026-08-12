@@ -43,6 +43,38 @@ export default class PullRequestCreator {
   private static readonly GITHUB_API_BASE: string = "https://api.github.com";
   private static readonly GITHUB_API_VERSION: string = "2022-11-28";
 
+  /*
+   * GitHub rejects a pull-request body over 65536 characters outright
+   * (422 "body is too long"). Everything that flows into the body is
+   * caller-supplied and unbounded from this class's point of view: the
+   * agent's own summary, the stack trace, the failing build output tail,
+   * and one repair summary per repair pass. That failure lands at the very
+   * last step of the pipeline — after the clone, the agent run, the
+   * verification loop, the commit and the push — so the branch is already
+   * on the customer's remote and the work is stranded with no pull request
+   * pointing at it.
+   *
+   * Truncating with an explicit marker is strictly better than losing the
+   * pull request: the reviewer still gets the change, the summary and the
+   * verdict, and is told plainly that the tail was cut.
+   */
+  public static readonly MAX_BODY_LENGTH: number = 65536;
+
+  private static readonly BODY_TRUNCATION_NOTICE: string =
+    "\n\n---\n\n> _This description was truncated because it exceeded GitHub's maximum pull request body length._";
+
+  // Bound a PR body to what GitHub will accept, marking any truncation.
+  public static truncateBody(body: string): string {
+    if (body.length <= this.MAX_BODY_LENGTH) {
+      return body;
+    }
+
+    return `${body.substring(
+      0,
+      this.MAX_BODY_LENGTH - this.BODY_TRUNCATION_NOTICE.length,
+    )}${this.BODY_TRUNCATION_NOTICE}`;
+  }
+
   private logger: TaskLogger | null = null;
 
   public constructor(taskLogger?: TaskLogger) {
@@ -78,7 +110,7 @@ export default class PullRequestCreator {
     ): JSONObject => {
       return {
         title: options.title,
-        body: options.body,
+        body: PullRequestCreator.truncateBody(options.body),
         head: options.headBranch,
         base: options.baseBranch,
         draft,

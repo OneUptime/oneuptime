@@ -12,6 +12,8 @@ import startCodeFixPolling from "./Jobs/PollCodeFixWork";
 import startCodeFixAlive from "./Jobs/CodeFixAlive";
 import Register from "./Services/RegisterRunner";
 import RunnerIdentity from "./Utils/RunnerIdentity";
+import WorkspaceManager from "./Utils/WorkspaceManager";
+import GitCredentials from "./Utils/GitCredentials";
 import RunnerCapabilities, {
   RunnerCapabilitySet,
 } from "./Utils/RunnerCapabilities";
@@ -177,6 +179,28 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     if (startCodeFixLoop) {
       if (IS_CLUSTER_SCOPED) {
         startCodeFixAlive();
+      }
+
+      /*
+       * Reap what a previous life of this container left on disk. A fix run
+       * clones whole repositories into its workspace and deletes them in a
+       * finally block — which never runs when the container is killed
+       * mid-run (an OOM, a node drain, a deploy). Without this sweep those
+       * clones accumulate for the life of the volume until the Runner
+       * cannot clone at all, and the failure surfaces as unexplained fix
+       * runs failing rather than as a full disk.
+       */
+      await WorkspaceManager.initialize();
+
+      const reapedWorkspaces: number =
+        await WorkspaceManager.cleanupOldWorkspaces();
+      const reapedHelpers: number = await GitCredentials.cleanupOrphans();
+
+      if (reapedWorkspaces > 0 || reapedHelpers > 0) {
+        logger.info(
+          `Reclaimed ${reapedWorkspaces} abandoned workspace(s) and ${reapedHelpers} orphaned git helper(s) from a previous run.`,
+          { serviceName: APP_NAME } as LogAttributes,
+        );
       }
 
       const registry: ReturnType<typeof getTaskHandlerRegistry> =

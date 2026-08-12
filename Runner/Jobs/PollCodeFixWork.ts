@@ -4,6 +4,7 @@ import RunnerCapabilities from "../Utils/RunnerCapabilities";
 import AIAgentTaskLog from "../Utils/CodeFixTaskLog";
 import TaskLogger from "../Utils/TaskLogger";
 import BackendAPI from "../Utils/BackendAPI";
+import SecretRedactor from "../Utils/SecretRedactor";
 import {
   getTaskHandlerRegistry,
   TaskContext,
@@ -128,9 +129,6 @@ export const executeTask: ExecuteTaskFunction = async (
       await taskLogger.warning(`Task did not succeed: ${result.message}`);
     }
 
-    // Flush all pending logs
-    await taskLogger.flush();
-
     /*
      * A task that could not finish throws — the caller's catch block reports
      * Error. A task that ran fine but had no fix to propose is NOT an error:
@@ -148,10 +146,25 @@ export const executeTask: ExecuteTaskFunction = async (
     }
 
     return { status: AIAgentTaskStatus.Completed };
-  } catch (error) {
-    // Ensure logs are flushed even on error
-    await taskLogger.flush();
-    throw error;
+  } finally {
+    /*
+     * dispose(), not flush(): a TaskLogger starts a repeating flush timer in
+     * its constructor, and only dispose() stops it. One logger is created
+     * per task and this loop runs for the life of the container, so flushing
+     * without disposing left a live interval behind for every task the
+     * Runner had ever processed — each waking every five seconds and POSTing
+     * to the server forever, against a task that finished hours ago.
+     * dispose() flushes as well, so nothing is lost on either path.
+     */
+    await taskLogger.dispose();
+
+    /*
+     * The repository access token was registered with the redactor while
+     * this run held it. Forget it now: this Runner is long-lived and
+     * processes runs for other repositories, and a stale registration keeps
+     * a dead credential in memory for the life of the process.
+     */
+    SecretRedactor.clearRegistered();
   }
 };
 
@@ -253,6 +266,17 @@ const startTaskProcessingLoop: () => Promise<void> =
               `Failed to mark task ${taskId} as InProgress. Skipping.`,
               taskLogAttrs,
             );
+            /*
+             * Back off before asking for more work. get-pending-task has
+             * ALREADY claimed this run server-side, so skipping abandons it
+             * — and if the cause is a server-side problem (the endpoint is
+             * down, this Runner's credential was revoked), the next pass
+             * claims and abandons the next queued run just as fast. Without
+             * this sleep that is an unthrottled loop that burns through
+             * every queued run in the project in seconds and leaves them all
+             * stranded InProgress for the stale-run sweeper.
+             */
+            await Sleep.sleep(SLEEP_WHEN_NO_TASKS_MS);
             continue;
           }
 
