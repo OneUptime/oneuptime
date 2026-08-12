@@ -154,3 +154,41 @@ describe("VMRunner sandbox axios bridge — SSRF guard", () => {
     expect(message).not.toMatch(REFUSAL);
   });
 });
+
+/*
+ * The "is this already an absolute URL?" decision is what tells the guard
+ * whether to fold in baseURL before validating, so it has to be scheme
+ * case-insensitive and slash-tolerant — otherwise HTTP:// (uppercase) or a
+ * baseURL with stray slashes could be mis-classified and skip the check.
+ */
+describe("VMRunner sandbox axios bridge — URL absolutization", () => {
+  test("an uppercase scheme is still recognised as absolute and its host checked", async () => {
+    // HTTP:// (uppercase) must not slip past the loopback block.
+    const message: string = await errorFromSandbox(
+      `return await axios.get('HTTP://127.0.0.1:8080/admin');`,
+    );
+    expect(message).toMatch(REFUSAL);
+  });
+
+  test("a mixed-case scheme on a public host passes the guard, failing only at transport", async () => {
+    const message: string = await errorFromSandbox(
+      `try { return await axios.get('HtTpS://8.8.8.8/', { timeout: 1 }); } catch (e) { return 'threw: ' + e.message; }`,
+    );
+    expect(message).not.toMatch(REFUSAL);
+  });
+
+  test("stray slashes joining baseURL and a relative path do not evade the block", async () => {
+    // baseURL trailing slashes + a leading-slash relative path, internal host.
+    const message: string = await errorFromSandbox(
+      `return await axios.get('//latest/meta-data/', { baseURL: 'http://169.254.169.254//' });`,
+    );
+    expect(message).toMatch(REFUSAL);
+  });
+
+  test("a baseURL + relative path resolving to a public host clears the guard", async () => {
+    const message: string = await errorFromSandbox(
+      `try { return await axios.get('/path', { baseURL: 'http://8.8.8.8', timeout: 1 }); } catch (e) { return 'threw: ' + e.message; }`,
+    );
+    expect(message).not.toMatch(REFUSAL);
+  });
+});

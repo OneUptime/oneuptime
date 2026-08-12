@@ -643,3 +643,72 @@ describe("DataSourceEgressGuard.shouldBlockPrivateAddresses", () => {
     expect(verdict.blocked).toBe(false);
   });
 });
+
+/*
+ * The private-address policy reads BILLING_ENABLED from process.env at call
+ * time (SaaS blocks private ranges; a self-hosted install with billing off
+ * reaches its own 10.x/192.168.x). These tests pin that call-time behaviour so
+ * the two policy inputs (this flag and DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES)
+ * stay consistent and independently controllable.
+ */
+describe("DataSourceEgressGuard.shouldBlockPrivateAddresses - BILLING_ENABLED is read dynamically", () => {
+  const BILLING_ENV: string = "BILLING_ENABLED";
+  let savedBilling: string | undefined = undefined;
+
+  beforeEach(() => {
+    savedBilling = process.env[BILLING_ENV];
+  });
+
+  afterEach(() => {
+    if (savedBilling === undefined) {
+      delete process.env[BILLING_ENV];
+    } else {
+      process.env[BILLING_ENV] = savedBilling;
+    }
+  });
+
+  test("SaaS (BILLING_ENABLED=true) blocks private ranges by default", () => {
+    process.env[BILLING_ENV] = "true";
+    delete process.env[ENV_VAR_NAME];
+    expect(DataSourceEgressGuard.shouldBlockPrivateAddresses()).toBe(true);
+  });
+
+  test("self-hosted (BILLING_ENABLED unset) allows private ranges by default", () => {
+    delete process.env[BILLING_ENV];
+    delete process.env[ENV_VAR_NAME];
+    expect(DataSourceEgressGuard.shouldBlockPrivateAddresses()).toBe(false);
+  });
+
+  test("BILLING_ENABLED with any value other than 'true' counts as off", () => {
+    process.env[BILLING_ENV] = "1";
+    delete process.env[ENV_VAR_NAME];
+    expect(DataSourceEgressGuard.shouldBlockPrivateAddresses()).toBe(false);
+  });
+
+  test("DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true blocks even when billing is off", () => {
+    delete process.env[BILLING_ENV];
+    process.env[ENV_VAR_NAME] = "true";
+    expect(DataSourceEgressGuard.shouldBlockPrivateAddresses()).toBe(true);
+  });
+
+  test("checkAddress follows the billing flag when no explicit policy is given", () => {
+    delete process.env[ENV_VAR_NAME];
+
+    process.env[BILLING_ENV] = "true";
+    expect(DataSourceEgressGuard.checkAddress("10.0.0.5").blocked).toBe(true);
+
+    delete process.env[BILLING_ENV];
+    expect(DataSourceEgressGuard.checkAddress("10.0.0.5").blocked).toBe(false);
+  });
+
+  test("a self-hosted install still cannot reach loopback or metadata ranges", () => {
+    delete process.env[BILLING_ENV];
+    delete process.env[ENV_VAR_NAME];
+
+    // Always-blocked ranges ignore the billing flag entirely.
+    expect(DataSourceEgressGuard.checkAddress("127.0.0.1").blocked).toBe(true);
+    expect(DataSourceEgressGuard.checkAddress("169.254.169.254").blocked).toBe(
+      true,
+    );
+  });
+});
