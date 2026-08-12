@@ -21,11 +21,13 @@ import {
  * runtime pin projection in GeoProjection.ts, so a site pin projected at
  * runtime lands on its country outline.
  *
- * The map is one zoomable world view, so the geometry ships in two tiers:
- * a small overview drawn when the frame is wide, and a ~6x larger detail
- * tier fetched once somebody zooms in. Both must be interchangeable — same
- * viewBox, same coordinate space — because the map swaps them under a live
- * frame and a mismatch would visibly shift every coastline.
+ * The map is one zoomable world view, so the geometry ships in three files:
+ * a small overview drawn when the frame is wide, a ~6x larger detail tier
+ * fetched once somebody zooms in, and the state and province lines drawn
+ * inside those outlines when the frame is tighter still. All three must be
+ * interchangeable — same viewBox, same coordinate space — because the map
+ * swaps and stacks them under a live frame and a mismatch would visibly
+ * shift every coastline.
  */
 
 interface GeometryFeature {
@@ -109,6 +111,52 @@ function pointsOf(pathD: string): Array<Point> {
   return subpathsOf(pathD).flat();
 }
 
+/*
+ * Every coordinate literal in a path, exactly as it is spelled — both the
+ * absolute anchors and the relative steps.
+ *
+ * Per subpath, not over the whole string: an open subpath's last step runs
+ * straight into the next subpath's "M" (".01M283.85"), so a naive split reads
+ * one token as a six-decimal number and the quantization check fails on a
+ * file that is perfectly quantized.
+ */
+function coordinateTokensOf(pathD: string): Array<string> {
+  const tokens: Array<string> = [];
+
+  for (const chunk of pathD.split("M")) {
+    if (!chunk.trim()) {
+      continue;
+    }
+    const [anchorText, stepsText]: Array<string | undefined> = chunk
+      .replace(/Z\s*$/, "")
+      .split("l");
+
+    tokens.push(...(anchorText ?? "").trim().split(","));
+    if (stepsText && stepsText.trim()) {
+      for (const step of stepsText.trim().split(/\s+/)) {
+        tokens.push(...step.split(","));
+      }
+    }
+  }
+
+  return tokens;
+}
+
+function decimalsOf(token: string): number {
+  return (token.split(".")[1] || "").length;
+}
+
+/*
+ * A place on Earth that a named border either runs through or nowhere near,
+ * used to check the extracted subdivision lines against real geography.
+ */
+interface BorderProbe {
+  id: string;
+  latitude: number;
+  longitude: number;
+  border: string;
+}
+
 interface Bounds {
   minX: number;
   minY: number;
@@ -184,8 +232,140 @@ function featureById(file: GeometryFile, id: string): GeometryFeature {
   return feature!;
 }
 
+/*
+ * Whether each subpath of a path closes itself with "Z". Country outlines are
+ * rings and all close; a subdivision boundary is an open line between two
+ * junctions and must NOT, or the map draws a chord straight back across the
+ * state.
+ */
+const CLOSING_Z: RegExp = /Z\s*$/;
+
+function subpathClosedFlags(pathD: string): Array<boolean> {
+  return pathD
+    .split("M")
+    .filter((chunk: string) => {
+      return chunk.trim().length > 0;
+    })
+    .map((chunk: string) => {
+      return CLOSING_Z.test(chunk.trim());
+    });
+}
+
+/*
+ * Every drawn segment of a path, as ordered endpoint pairs. A closed subpath
+ * gets its closing segment back, which "Z" leaves implicit.
+ */
+function segmentsOf(pathD: string): Array<[Point, Point]> {
+  const closed: Array<boolean> = subpathClosedFlags(pathD);
+  const segments: Array<[Point, Point]> = [];
+
+  subpathsOf(pathD).forEach((subpath: Array<Point>, index: number) => {
+    const points: Array<Point> = closed[index]
+      ? subpath.concat([subpath[0]!])
+      : subpath;
+    for (let i: number = 1; i < points.length; i++) {
+      segments.push([points[i - 1]!, points[i]!]);
+    }
+  });
+
+  return segments;
+}
+
+function distanceToSegment(point: Point, a: Point, b: Point): number {
+  const dx: number = b.x - a.x;
+  const dy: number = b.y - a.y;
+  if (dx === 0 && dy === 0) {
+    return Math.hypot(point.x - a.x, point.y - a.y);
+  }
+  const t: number =
+    ((point.x - a.x) * dx + (point.y - a.y) * dy) / (dx * dx + dy * dy);
+  const clamped: number = t < 0 ? 0 : t > 1 ? 1 : t;
+  return Math.hypot(
+    point.x - (a.x + clamped * dx),
+    point.y - (a.y + clamped * dy),
+  );
+}
+
+/*
+ * How far a place on Earth is from the nearest LINE of a path — not from the
+ * nearest vertex. A dead straight border (the 37th parallel under Colorado)
+ * simplifies down to its two endpoints, so a vertex distance would report a
+ * point sitting squarely on that border as hundreds of kilometres away.
+ */
+function distanceToPath(
+  pathD: string,
+  latitude: number,
+  longitude: number,
+): number {
+  const projected: ProjectedPoint = projectRobinson(latitude, longitude);
+  const point: Point = { x: projected[0]!, y: projected[1]! };
+  let nearest: number = Infinity;
+  for (const [a, b] of segmentsOf(pathD)) {
+    nearest = Math.min(nearest, distanceToSegment(point, a, b));
+  }
+  return nearest;
+}
+
+/*
+ * A country outline parsed once for repeated point tests. Parsing it per
+ * point instead turns "is this line inside that country?" into re-reading a
+ * 30 000-vertex path string thousands of times, and the suite into minutes.
+ */
+interface Polygon {
+  rings: Array<{ points: Array<Point>; bounds: Bounds }>;
+}
+
+function polygonOf(pathD: string): Polygon {
+  return {
+    rings: subpathsOf(pathD).map((points: Array<Point>) => {
+      return { points: points, bounds: boundsOfPoints(points) };
+    }),
+  };
+}
+
+/*
+ * Even-odd ray casting over every ring at once, which is the same rule the
+ * map renders with (fill-rule="evenodd") — so a point in a hole reads as
+ * outside, exactly as it is drawn.
+ */
+function isInsidePolygon(polygon: Polygon, point: Point): boolean {
+  let inside: boolean = false;
+
+  for (const ring of polygon.rings) {
+    // The ray runs towards +x, so rings that cannot cross it are skipped.
+    if (
+      point.y < ring.bounds.minY ||
+      point.y > ring.bounds.maxY ||
+      point.x > ring.bounds.maxX
+    ) {
+      continue;
+    }
+    const points: Array<Point> = ring.points;
+    for (
+      let i: number = 0, j: number = points.length - 1;
+      i < points.length;
+      i++
+    ) {
+      const a: Point = points[i]!;
+      const b: Point = points[j]!;
+      if (
+        a.y > point.y !== b.y > point.y &&
+        point.x < ((b.x - a.x) * (point.y - a.y)) / (b.y - a.y) + a.x
+      ) {
+        inside = !inside;
+      }
+      j = i;
+    }
+  }
+
+  return inside;
+}
+
 const OVERVIEW: GeometryFile = loadGeometry("WorldCountriesGeometry.json");
 const DETAIL: GeometryFile = loadGeometry("WorldCountriesDetailGeometry.json");
+const SUBDIVISIONS: GeometryFile = loadGeometry(
+  "WorldSubdivisionsGeometry.json",
+);
 
 const TIERS: Array<[string, GeometryFile]> = [
   ["overview", OVERVIEW],
@@ -396,10 +576,447 @@ describe("the two tiers are interchangeable", () => {
 });
 
 /*
+ * State, province and territory lines — the reference frame a country outline
+ * stops providing the moment somebody zooms into one country.
+ *
+ * The generator does not draw the admin-1 polygons it is given. It keeps only
+ * the boundaries INTERIOR to a country: coastlines and international borders
+ * are already drawn by the country tier underneath, from a different
+ * simplification pass, so redrawing them would double every edge and offset
+ * it slightly. Most of what follows exists to pin that extraction, because
+ * every way it can go wrong is silent — a doubled coastline, a border stored
+ * twice, or lines attributed to the wrong country all still render as "a map
+ * with state lines on it".
+ */
+describe("subdivision geometry", () => {
+  /*
+   * The admin-1 source carries no ISO numeric id, so the subdivisions are
+   * keyed by alpha-3 while the country tiers are keyed by numeric. Nothing in
+   * the product joins the two files; this map exists so the tests below can
+   * check each country's lines against the outline they have to sit inside.
+   */
+  const ISO_NUMERIC_BY_ALPHA_3: Record<string, string> = {
+    AUS: "036",
+    BRA: "076",
+    CAN: "124",
+    CHN: "156",
+    IDN: "360",
+    IND: "356",
+    RUS: "643",
+    USA: "840",
+    ZAF: "710",
+  };
+
+  test("viewBox matches the Robinson projection constants", () => {
+    expect(SUBDIVISIONS.viewBox).toBe(ROBINSON_VIEW_BOX);
+    // Stacked on the detail outlines under a live frame, so: same box.
+    expect(SUBDIVISIONS.viewBox).toBe(DETAIL.viewBox);
+  });
+
+  /*
+   * Runs before everything that parses a path, for the same reason the
+   * country tiers' encoding test does: the parser assumes the relative
+   * encoding, so a format change has to fail here rather than make every
+   * assertion below read nonsense.
+   */
+  test("every path uses the absolute-anchor + relative-polyline encoding", () => {
+    for (const feature of SUBDIVISIONS.features) {
+      expect(feature.path).not.toMatch(/L/);
+      expect(feature.path.startsWith("M")).toBe(true);
+      for (const chunk of feature.path.split("M").filter((part: string) => {
+        return part.trim().length > 0;
+      })) {
+        expect(chunk).toContain("l");
+      }
+    }
+  });
+
+  /*
+   * The difference that matters against the country tiers. A boundary between
+   * two states runs from one junction to another and stops; closing it would
+   * draw a straight chord back across the state, and filling it would flood
+   * the map with wedges. The map draws these with fill="none" for the same
+   * reason.
+   */
+  test("boundaries are open lines, not rings", () => {
+    const flags: Array<boolean> = SUBDIVISIONS.features.flatMap(
+      (feature: GeometryFeature) => {
+        return subpathClosedFlags(feature.path);
+      },
+    );
+
+    expect(flags.length).toBeGreaterThan(200);
+    // The overwhelming majority are open — a closed one is the exception.
+    expect(
+      flags.filter((closed: boolean) => {
+        return !closed;
+      }).length,
+    ).toBeGreaterThan(flags.length * 0.8);
+  });
+
+  /*
+   * The exception: a subdivision entirely enclosed by its own country's
+   * others (Nebraska, Madhya Pradesh) has a boundary that IS a loop, and it
+   * closes with "Z" so the ends meet cleanly instead of showing a seam.
+   */
+  test("a boundary that loops back on itself is closed with Z", () => {
+    const closedCount: number = SUBDIVISIONS.features
+      .flatMap((feature: GeometryFeature) => {
+        return subpathClosedFlags(feature.path);
+      })
+      .filter(Boolean).length;
+
+    expect(closedCount).toBeGreaterThan(0);
+
+    /*
+     * "Z" supplies the closing segment, so the stored points must NOT repeat
+     * the first one — that duplicate is what roundAndDedupe drops.
+     */
+    for (const feature of SUBDIVISIONS.features) {
+      const flags: Array<boolean> = subpathClosedFlags(feature.path);
+      subpathsOf(feature.path).forEach((subpath: Array<Point>, i: number) => {
+        if (!flags[i]) {
+          return;
+        }
+        const first: Point = subpath[0]!;
+        const last: Point = subpath[subpath.length - 1]!;
+        expect(first.x === last.x && first.y === last.y).toBe(false);
+      });
+    }
+  });
+
+  test("every feature has a well-formed id, name and path", () => {
+    const seenIds: Set<string> = new Set();
+    for (const feature of SUBDIVISIONS.features) {
+      expect(feature.id.length).toBeGreaterThan(0);
+      expect(feature.name.length).toBeGreaterThan(0);
+      expect(feature.path.length).toBeGreaterThan(0);
+      expect(seenIds.has(feature.id)).toBe(false);
+      seenIds.add(feature.id);
+
+      for (const point of pointsOf(feature.path)) {
+        expect(Number.isFinite(point.x)).toBe(true);
+        expect(Number.isFinite(point.y)).toBe(true);
+      }
+      // A drawable line needs two ends.
+      for (const subpath of subpathsOf(feature.path)) {
+        expect(subpath.length).toBeGreaterThanOrEqual(2);
+      }
+    }
+  });
+
+  /*
+   * There is no hand-curated "large countries" list anywhere in the product —
+   * the 1:50m admin-1 source covers exactly the countries whose subdivisions
+   * are legible at that scale, and the generator emits one feature per
+   * country it finds. This is that list, written down once, so a source swap
+   * that silently dropped India cannot pass.
+   */
+  test("covers the countries the source covers, one feature each", () => {
+    const byId: Record<string, string> = {};
+    for (const feature of SUBDIVISIONS.features) {
+      byId[feature.id] = feature.name;
+    }
+
+    expect(byId).toEqual({
+      AUS: "Australia",
+      BRA: "Brazil",
+      CAN: "Canada",
+      CHN: "China",
+      IDN: "Indonesia",
+      IND: "India",
+      RUS: "Russia",
+      USA: "United States of America",
+      ZAF: "South Africa",
+    });
+  });
+
+  test("every country carries a real network of borders, not a stray line", () => {
+    for (const feature of SUBDIVISIONS.features) {
+      expect(subpathsOf(feature.path).length).toBeGreaterThanOrEqual(5);
+      expect(pointsOf(feature.path).length).toBeGreaterThanOrEqual(100);
+    }
+  });
+
+  test("all paths stay inside the viewBox", () => {
+    for (const feature of SUBDIVISIONS.features) {
+      const bounds: Bounds = pathBounds(feature.path);
+      expect(bounds.minX).toBeGreaterThanOrEqual(0);
+      expect(bounds.maxX).toBeLessThanOrEqual(ROBINSON_VIEW_BOX_WIDTH);
+      expect(bounds.minY).toBeGreaterThanOrEqual(0);
+      expect(bounds.maxY).toBeLessThanOrEqual(ROBINSON_VIEW_BOX_HEIGHT);
+    }
+  });
+
+  test("no boundary streaks across the map at the antimeridian", () => {
+    const streaking: Array<string> = SUBDIVISIONS.features
+      .filter((feature: GeometryFeature) => {
+        return (
+          widestHorizontalStep(feature.path) >= ROBINSON_VIEW_BOX_WIDTH / 2
+        );
+      })
+      .map((feature: GeometryFeature) => {
+        return feature.name;
+      });
+    expect(streaking).toEqual([]);
+  });
+
+  test("coordinates are quantized to the detail tier's two decimals", () => {
+    for (const feature of SUBDIVISIONS.features) {
+      const overPrecise: Array<string> = coordinateTokensOf(
+        feature.path,
+      ).filter((token: string) => {
+        return decimalsOf(token) > 2;
+      });
+      expect(overPrecise).toEqual([]);
+    }
+  });
+
+  /*
+   * Two subdivisions share the border between them, so the naive extraction
+   * emits every internal line twice — once from each side, mirrored. The
+   * generator keeps a set of what it has already emitted; this is what says
+   * that set is doing its job. Half the file's bytes ride on it.
+   */
+  test("no border is stored twice", () => {
+    const seen: Set<string> = new Set();
+    const duplicates: Array<string> = [];
+
+    for (const feature of SUBDIVISIONS.features) {
+      for (const [a, b] of segmentsOf(feature.path)) {
+        const ends: Array<string> = [`${a.x},${a.y}`, `${b.x},${b.y}`].sort();
+        const key: string = `${feature.id}:${ends.join("|")}`;
+        if (seen.has(key)) {
+          duplicates.push(key);
+        }
+        seen.add(key);
+      }
+    }
+
+    expect(duplicates).toEqual([]);
+  });
+
+  /*
+   * Attribution: every line the file hands to a country has to be inside that
+   * country. Not a bounding box — the actual outline the map draws, by the
+   * same even-odd rule.
+   *
+   * It is a percentage rather than "all of them" because a boundary ENDS on
+   * the coast or on an international border, and the two files simplify that
+   * shared edge independently: the last vertex of a state line can land a
+   * hair outside the coastline it runs into. Getting the country wrong, or
+   * the projection, collapses this to near zero.
+   */
+  test("every country's borders lie inside that country's outline", () => {
+    let totalPoints: number = 0;
+    let totalInside: number = 0;
+
+    for (const feature of SUBDIVISIONS.features) {
+      const country: Polygon = polygonOf(
+        featureById(DETAIL, ISO_NUMERIC_BY_ALPHA_3[feature.id]!).path,
+      );
+      const points: Array<Point> = pointsOf(feature.path);
+      const inside: number = points.filter((point: Point) => {
+        return isInsidePolygon(country, point);
+      }).length;
+
+      expect(inside / points.length).toBeGreaterThan(0.9);
+
+      totalPoints += points.length;
+      totalInside += inside;
+    }
+
+    expect(totalInside / totalPoints).toBeGreaterThan(0.97);
+  });
+
+  /*
+   * ...and they have to cover it, not huddle in one corner: a country whose
+   * extraction kept only the borders of two neighbouring states would still
+   * pass every test above.
+   */
+  test("the borders span the country they belong to", () => {
+    for (const feature of SUBDIVISIONS.features) {
+      const country: GeometryFeature = featureById(
+        DETAIL,
+        ISO_NUMERIC_BY_ALPHA_3[feature.id]!,
+      );
+      const lines: Bounds = pathBounds(feature.path);
+      const outline: Bounds = pathBounds(country.path);
+      const mainland: Bounds = mainlandBounds(country.path);
+      const epsilon: number = 0.5;
+
+      expect(lines.minX).toBeGreaterThanOrEqual(outline.minX - epsilon);
+      expect(lines.maxX).toBeLessThanOrEqual(outline.maxX + epsilon);
+      expect(lines.minY).toBeGreaterThanOrEqual(outline.minY - epsilon);
+      expect(lines.maxY).toBeLessThanOrEqual(outline.maxY + epsilon);
+
+      expect(lines.maxX - lines.minX).toBeGreaterThan(
+        (mainland.maxX - mainland.minX) * 0.5,
+      );
+      expect(lines.maxY - lines.minY).toBeGreaterThan(
+        (mainland.maxY - mainland.minY) * 0.5,
+      );
+    }
+  });
+
+  /*
+   * The borders a reader would notice missing. Each probe is a place on Earth
+   * that sits ON a state or province line, and the assertion is that a line
+   * actually runs through it — measured against the SEGMENTS, because a dead
+   * straight border simplifies down to its two endpoints and a nearest-vertex
+   * check would call the middle of it empty.
+   */
+  test("the lines run where the borders actually are", () => {
+    const probes: Array<BorderProbe> = [
+      {
+        id: "USA",
+        latitude: 40,
+        longitude: -102.05,
+        border: "Colorado/Kansas",
+      },
+      {
+        id: "USA",
+        latitude: 35,
+        longitude: -103.04,
+        border: "New Mexico/Texas",
+      },
+      {
+        id: "USA",
+        latitude: 45,
+        longitude: -104.05,
+        border: "Montana/North Dakota",
+      },
+      {
+        id: "USA",
+        latitude: 37,
+        longitude: -114.05,
+        border: "Arizona/Nevada",
+      },
+      {
+        id: "CAN",
+        latitude: 55,
+        longitude: -110,
+        border: "Alberta/Saskatchewan",
+      },
+      {
+        id: "AUS",
+        latitude: -26,
+        longitude: 141,
+        border: "Queensland/Northern Territory",
+      },
+      {
+        id: "AUS",
+        latitude: -29,
+        longitude: 141,
+        border: "Queensland/South Australia",
+      },
+    ];
+
+    const missing: Array<string> = probes
+      .filter((probe: BorderProbe) => {
+        return (
+          distanceToPath(
+            featureById(SUBDIVISIONS, probe.id).path,
+            probe.latitude,
+            probe.longitude,
+          ) >= 0.25
+        );
+      })
+      .map((probe: BorderProbe) => {
+        return probe.border;
+      });
+
+    expect(missing).toEqual([]);
+  });
+
+  /*
+   * The other half of the extraction, and the one with teeth: an
+   * INTERNATIONAL border is traced by subdivisions on both sides of it, so
+   * the "shared by two subdivisions" rule catches it too unless the two
+   * owners are compared. The country tier already draws these lines; drawing
+   * them again puts a second, slightly-offset stroke on the most recognisable
+   * borders on the map.
+   *
+   * Each probe sits on an international border, far from any junction with a
+   * state line, and must be nowhere near a subdivision line.
+   */
+  test("international borders are left to the country outlines", () => {
+    const probes: Array<BorderProbe> = [
+      {
+        id: "USA",
+        latitude: 49,
+        longitude: -110,
+        border: "US/Canada, 49th parallel",
+      },
+      {
+        id: "CAN",
+        latitude: 49,
+        longitude: -106,
+        border: "US/Canada, 49th parallel",
+      },
+      {
+        id: "USA",
+        latitude: 26,
+        longitude: -98.2,
+        border: "US/Mexico, the Rio Grande",
+      },
+      {
+        id: "IND",
+        latitude: 28,
+        longitude: 70,
+        border: "India/Pakistan",
+      },
+    ];
+
+    const redrawn: Array<string> = probes
+      .filter((probe: BorderProbe) => {
+        return (
+          distanceToPath(
+            featureById(SUBDIVISIONS, probe.id).path,
+            probe.latitude,
+            probe.longitude,
+          ) <= 3
+        );
+      })
+      .map((probe: BorderProbe) => {
+        return `${probe.id}: ${probe.border}`;
+      });
+
+    expect(redrawn).toEqual([]);
+  });
+
+  /*
+   * The same invariant stated without coordinates: neighbouring countries
+   * trace a shared international border through the SAME vertices, so if one
+   * had slipped through, the US and Canada would hold a run of identical
+   * points. Junctions where a state line meets the border are single points
+   * on one side only, so a clean file shares nothing at all.
+   */
+  test("no two countries hold the same border vertex", () => {
+    const owners: Map<string, string> = new Map();
+    const shared: Array<string> = [];
+
+    for (const feature of SUBDIVISIONS.features) {
+      for (const point of pointsOf(feature.path)) {
+        const key: string = `${point.x.toFixed(2)},${point.y.toFixed(2)}`;
+        const owner: string | undefined = owners.get(key);
+        if (owner && owner !== feature.id) {
+          shared.push(`${owner}/${feature.id} at ${key}`);
+        }
+        owners.set(key, feature.id);
+      }
+    }
+
+    expect(shared).toEqual([]);
+  });
+});
+
+/*
  * Size is a product decision, not an accident: the overview is downloaded by
- * anyone who opens the map, and the detail tier by anyone who zooms. A
- * regeneration that quietly multiplied either would be a performance
- * regression nobody would notice until it shipped.
+ * anyone who opens the map, the detail tier by anyone who zooms, and the
+ * subdivisions by anyone who zooms further. A regeneration that quietly
+ * multiplied any of them would be a performance regression nobody would
+ * notice until it shipped.
  */
 describe("asset budget", () => {
   function kilobytes(fileName: string): number {
@@ -415,18 +1032,38 @@ describe("asset budget", () => {
   });
 
   /*
-   * The US-only geometry that backed the deleted "United States" map mode.
-   * It must not come back: a per-country outline file is the exact thing
-   * this change removed, and re-adding one restores the question of which
-   * countries get one.
+   * Cheap next to the detail outlines it is drawn on top of — which is what
+   * makes it affordable to add a whole extra layer to the deepest zooms.
+   * Drawing the admin-1 polygons as they come, instead of extracting the
+   * interior boundaries, would roughly triple this.
    */
-  test("no per-country geometry is checked in", () => {
-    const perCountryFiles: Array<string> = fs
+  test("the subdivisions stay a fraction of the outlines they sit inside", () => {
+    expect(kilobytes("WorldSubdivisionsGeometry.json")).toBeLessThan(200);
+    expect(kilobytes("WorldSubdivisionsGeometry.json")).toBeLessThan(
+      kilobytes("WorldCountriesDetailGeometry.json") / 2,
+    );
+  });
+
+  /*
+   * The US-only geometry that backed the deleted "United States" map mode.
+   * It must not come back: a per-country geometry file is the exact thing
+   * this change removed, and re-adding one restores the question of which
+   * countries get one. Every checked-in file is world-scoped, and this is
+   * the whole list.
+   */
+  test("only world-scoped geometry is checked in", () => {
+    const checkedIn: Array<string> = fs
       .readdirSync(GEO_DIR)
       .filter((name: string) => {
-        return name.endsWith(".json") && !name.startsWith("WorldCountries");
-      });
-    expect(perCountryFiles).toEqual([]);
+        return name.endsWith(".json");
+      })
+      .sort();
+
+    expect(checkedIn).toEqual([
+      "WorldCountriesDetailGeometry.json",
+      "WorldCountriesGeometry.json",
+      "WorldSubdivisionsGeometry.json",
+    ]);
   });
 });
 
@@ -469,15 +1106,13 @@ describe("detail resolution supports the zooms the map offers", () => {
 
   test("detail coordinates are quantized finer than the tolerance", () => {
     // Two decimals: quantization must not dominate the simplification.
-    const steps: Array<string> = DETAIL.features[0]!.path.split("l")[1]!
-      .trim()
-      .split(/\s+/)
-      .slice(0, 50);
-    for (const step of steps) {
-      for (const value of step.split(",")) {
-        const decimals: number = (value.split(".")[1] || "").length;
-        expect(decimals).toBeLessThanOrEqual(2);
-      }
+    for (const feature of DETAIL.features) {
+      const overPrecise: Array<string> = coordinateTokensOf(
+        feature.path,
+      ).filter((token: string) => {
+        return decimalsOf(token) > 2;
+      });
+      expect(overPrecise).toEqual([]);
     }
   });
 });

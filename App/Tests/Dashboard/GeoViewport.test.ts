@@ -5,6 +5,7 @@ import {
   MAX_ZOOM,
   MIN_ZOOM,
   MapViewport,
+  SUBDIVISION_GEOMETRY_MIN_ZOOM,
   ViewportPoint,
   WORLD_VIEWPORT,
   clampViewport,
@@ -13,6 +14,7 @@ import {
   panViewport,
   screenLengthToViewportLength,
   shouldUseDetailGeometry,
+  shouldUseSubdivisionGeometry,
   viewBoxOfViewport,
   viewportContainsPoint,
   viewportsMatch,
@@ -708,6 +710,126 @@ describe("shouldUseDetailGeometry", () => {
         fitViewportToPoints([CITIES["seattle"]!, CITIES["miami"]!]),
       ),
     ).toBe(true);
+  });
+});
+
+/*
+ * State and province lines. Same shape of decision as the detail tier, one
+ * step deeper in, and the ordering between the two is load-bearing rather
+ * than a preference — see below.
+ */
+describe("shouldUseSubdivisionGeometry", () => {
+  test("the whole world draws countries only", () => {
+    expect(shouldUseSubdivisionGeometry(WORLD_VIEWPORT)).toBe(false);
+  });
+
+  test("switches exactly at the threshold zoom", () => {
+    const atThreshold: MapViewport = clampViewport({
+      x: 0,
+      y: 0,
+      width: WORLD_VIEWPORT.width / SUBDIVISION_GEOMETRY_MIN_ZOOM,
+      height: 0,
+    });
+    expect(shouldUseSubdivisionGeometry(atThreshold)).toBe(true);
+
+    const justBelow: MapViewport = clampViewport({
+      x: 0,
+      y: 0,
+      width: WORLD_VIEWPORT.width / (SUBDIVISION_GEOMETRY_MIN_ZOOM - 0.1),
+      height: 0,
+    });
+    expect(shouldUseSubdivisionGeometry(justBelow)).toBe(false);
+  });
+
+  test("the deepest zoom wants them", () => {
+    expect(
+      shouldUseSubdivisionGeometry(zoomViewport(WORLD_VIEWPORT, MAX_ZOOM)),
+    ).toBe(true);
+  });
+
+  /*
+   * The invariant, not a coincidence of two numbers. The subdivision lines
+   * are generated from the same 1:50m source as the DETAIL outlines, so
+   * drawing them while the coarse overview outlines are still on screen puts
+   * a precise border inside an approximate coastline — they disagree along
+   * every shore. Whatever either threshold is tuned to, this has to hold.
+   */
+  test("never asked for while the map is still drawing overview outlines", () => {
+    expect(SUBDIVISION_GEOMETRY_MIN_ZOOM).toBeGreaterThanOrEqual(
+      DETAIL_GEOMETRY_MIN_ZOOM,
+    );
+
+    for (let zoom: number = MIN_ZOOM; zoom <= MAX_ZOOM; zoom += 0.25) {
+      const viewport: MapViewport = clampViewport({
+        x: 0,
+        y: 0,
+        width: WORLD_VIEWPORT.width / zoom,
+        height: 0,
+      });
+      if (shouldUseSubdivisionGeometry(viewport)) {
+        expect(shouldUseDetailGeometry(viewport)).toBe(true);
+      }
+    }
+  });
+
+  /*
+   * ...and it is a step deeper, not the same zoom under another name. At
+   * continent scale a country is still the thing being read, and 85 Russian
+   * federal subjects inside an outline that size are hatching.
+   */
+  test("countries get a scale of their own before the states arrive", () => {
+    const continental: MapViewport = clampViewport({
+      x: 0,
+      y: 0,
+      width: WORLD_VIEWPORT.width / DETAIL_GEOMETRY_MIN_ZOOM,
+      height: 0,
+    });
+    expect(shouldUseDetailGeometry(continental)).toBe(true);
+    expect(shouldUseSubdivisionGeometry(continental)).toBe(false);
+  });
+
+  /*
+   * The case the feature exists for: an estate spread across one large
+   * country opens on a frame where "which state is that pin in?" is the
+   * question being asked, and the answer has to already be on screen.
+   */
+  test("a country-wide estate opens with its state lines already drawn", () => {
+    expect(
+      shouldUseSubdivisionGeometry(
+        fitViewportToPoints([CITIES["seattle"]!, CITIES["miami"]!]),
+      ),
+    ).toBe(true);
+  });
+
+  /*
+   * And the case it must not intrude on: sites on three continents. The
+   * lines would be a fraction of a pixel apart and cover nine countries of a
+   * world map in grey hatching.
+   */
+  test("a worldwide estate opens without them", () => {
+    expect(
+      shouldUseSubdivisionGeometry(
+        fitViewportToPoints([
+          CITIES["seattle"]!,
+          CITIES["mumbai"]!,
+          CITIES["sydney"]!,
+        ]),
+      ),
+    ).toBe(false);
+  });
+
+  test("a degenerate viewport reads as the whole world, not as deep zoom", () => {
+    expect(
+      shouldUseSubdivisionGeometry({ x: 0, y: 0, width: 0, height: 0 }),
+    ).toBe(false);
+    expect(
+      shouldUseSubdivisionGeometry({
+        x: Number.NaN,
+        y: Number.NaN,
+        width: Number.NaN,
+        height: Number.NaN,
+      }),
+    ).toBe(false);
   });
 });
 
