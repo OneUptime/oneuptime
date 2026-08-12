@@ -25,9 +25,14 @@ Please run "npm run fix" in root to fix all the lint issues. Please run "npm run
 ### Helm chart
 
 The chart lives in `HelmChart/Public/oneuptime`. It has cluster-free unit tests in
-`HelmChart/Public/oneuptime/tests` (helm-unittest). Install the plugin once with
-`helm plugin install https://github.com/helm-unittest/helm-unittest` and run them with
-`npm run test-helm-chart`. CI runs them in the "Common Jobs" workflow alongside `helm lint`.
+`HelmChart/Public/oneuptime/tests` (helm-unittest); run them with `npm run test-helm-chart`
+(it installs the plugin for you through the runner, or install it yourself with
+`helm plugin install https://github.com/helm-unittest/helm-unittest`).
+
+`npm run test-helm-chart-all` runs every chart test — lint, those unit tests, and the
+cluster-backed suites that install the chart on a throwaway KinD cluster. That is the
+`helm-test` job in the "Common Jobs" workflow. Suites live in `HelmChart/Tests/suites`;
+see `HelmChart/README.md` for how to add one.
 
 ### Project docs
 

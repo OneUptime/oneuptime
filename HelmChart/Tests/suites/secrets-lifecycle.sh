@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
-set -euo pipefail
-
+#
 # Cluster-backed lifecycle tests for the chart's Secret handling.
 #
-# The helm-unittest suites under HelmChart/Public/oneuptime/tests render without
-# a cluster, which means `lookup` always comes back empty and only the
-# "regenerate" leg of templates/secrets.yaml is ever exercised. The behaviour
-# that file exists to provide is the opposite one: an upgrade must NOT change a
-# secret it already generated. That needs a real API server, so it lives here.
+# The helm-unittest suites (the `unit` suite) render without a cluster, which
+# means `lookup` always comes back empty and only the "regenerate" leg of
+# templates/secrets.yaml is ever exercised. The behaviour that file exists to
+# provide is the opposite one: an upgrade must NOT change a secret it already
+# generated. That needs a real API server, so it lives here.
 #
 # Covered:
 #   1. helm upgrade preserves every chart-generated secret byte for byte
@@ -22,53 +21,13 @@ set -euo pipefail
 # No container images are pulled: the release is installed without --wait and
 # without hooks, so only the manifests have to apply.
 
-CLUSTER_NAME="${CLUSTER_NAME:-oneuptime-secrets-lifecycle}"
+# shellcheck source=../lib/harness.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")/../lib" && pwd)/harness.sh"
+
 NAMESPACE="${NAMESPACE:-oneuptime-secrets-test}"
 RELEASE="${RELEASE:-ou}"
-CHART_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../Public/oneuptime" && pwd)"
-KEEP_CLUSTER="${KEEP_CLUSTER:-false}"
-
-FAILURES=0
-PASSES=0
-
-pass() {
-    PASSES=$((PASSES + 1))
-    echo "  PASS: $1"
-}
-
-fail() {
-    FAILURES=$((FAILURES + 1))
-    echo "  FAIL: $1"
-}
-
-assert_eq() {
-    # assert_eq <description> <expected> <actual>
-    if [ "$2" = "$3" ]; then
-        pass "$1"
-    else
-        fail "$1"
-        echo "        expected: [$2]"
-        echo "        actual:   [$3]"
-    fi
-}
-
-assert_absent() {
-    # assert_absent <description> <haystack> <needle>
-    if echo "$2" | grep -q -- "$3"; then
-        fail "$1 (found '$3')"
-    else
-        pass "$1"
-    fi
-}
-
-assert_present() {
-    # assert_present <description> <haystack> <needle>
-    if echo "$2" | grep -q -- "$3"; then
-        pass "$1"
-    else
-        fail "$1 (missing '$3')"
-    fi
-}
+CHART_DIR="$HELM_CHART_DIR"
+CHART_SECRET="${RELEASE}-secrets"
 
 # Reads one key out of a Secret and prints its decoded value. Prints nothing
 # when the key is absent.
@@ -83,11 +42,9 @@ secret_keys() {
         tr ',' '\n' | sed 's/[{}"]//g' | cut -d: -f1 | sed 's/^ *//' | sort
 }
 
-# Base values every helm command in this script shares. Keda is off so the
-# subchart CRDs are not needed; hooks are off so nothing waits on a Job.
-helm_args() {
-    echo "--namespace $NAMESPACE --no-hooks --set keda.enabled=false"
-}
+# Flags every helm command in this script shares. Keda is off so the subchart
+# CRDs are not needed; hooks are off so nothing waits on a Job.
+HELM_ARGS=(--namespace "$NAMESPACE" --no-hooks --set keda.enabled=false)
 
 EXTERNAL_ARGS=(
     --set externalSecrets.oneuptimeSecret.existingSecret.name=one-uptime
@@ -109,50 +66,21 @@ extract_chart_secret() {
     '
 }
 
-cleanup() {
-    if [ "$KEEP_CLUSTER" = "true" ]; then
-        echo "KEEP_CLUSTER=true, leaving cluster ${CLUSTER_NAME} running."
-        return
-    fi
-    echo "Deleting KinD cluster ${CLUSTER_NAME}..."
-    kind delete cluster --name "$CLUSTER_NAME" >/dev/null 2>&1 || true
-}
-trap cleanup EXIT
-
 echo "Chart: $CHART_DIR"
 
-if ! command -v kubectl >/dev/null 2>&1; then
-    echo "Installing kubectl..."
-    curl -sSL -o kubectl "https://storage.googleapis.com/kubernetes-release/release/$(curl -sSL https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl"
-    sudo install -m 0755 kubectl /usr/local/bin/kubectl
-    rm -f kubectl
-fi
+harness_start_cluster
+harness_namespace "$NAMESPACE"
 
-if ! command -v kind >/dev/null 2>&1; then
-    echo "Installing kind..."
-    curl -sSL -o kind https://kind.sigs.k8s.io/dl/v0.23.0/kind-linux-amd64
-    sudo install -m 0755 kind /usr/local/bin/kind
-    rm -f kind
-fi
-
-if ! command -v helm >/dev/null 2>&1; then
-    echo "Installing Helm..."
-    curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-fi
-
-if ! kind get clusters 2>/dev/null | grep -q "^${CLUSTER_NAME}$"; then
-    echo "Creating KinD cluster ${CLUSTER_NAME}..."
-    kind create cluster --name "$CLUSTER_NAME" --wait 180s
-fi
-kubectl config use-context "kind-${CLUSTER_NAME}" >/dev/null
-kubectl create namespace "$NAMESPACE" >/dev/null 2>&1 || true
-
-CHART_SECRET="${RELEASE}-secrets"
+# A cluster kept from an earlier run (KEEP_CLUSTER=true) still has the release
+# and its secrets; start from nothing either way.
+helm uninstall "$RELEASE" -n "$NAMESPACE" >/dev/null 2>&1 || true
+kubectl -n "$NAMESPACE" delete secret \
+    "$CHART_SECRET" "${RELEASE}-redis" "${RELEASE}-postgresql" "${RELEASE}-clickhouse" \
+    --ignore-not-found >/dev/null 2>&1 || true
 
 echo
 echo "=== install ==="
-# shellcheck disable=SC2046
-helm install "$RELEASE" "$CHART_DIR" $(helm_args) >/dev/null
+helm install "$RELEASE" "$CHART_DIR" "${HELM_ARGS[@]}" >/dev/null
 echo "installed"
 
 ONEUPTIME_SECRET_0=$(secret_value "$CHART_SECRET" 'oneuptime-secret')
@@ -180,8 +108,7 @@ done
 
 echo
 echo "=== 2. an upgrade preserves every chart-managed secret ==="
-# shellcheck disable=SC2046
-helm upgrade "$RELEASE" "$CHART_DIR" $(helm_args) >/dev/null
+helm upgrade "$RELEASE" "$CHART_DIR" "${HELM_ARGS[@]}" >/dev/null
 assert_eq "oneuptime-secret unchanged" "$ONEUPTIME_SECRET_0" "$(secret_value "$CHART_SECRET" 'oneuptime-secret')"
 assert_eq "encryption-secret unchanged" "$ENCRYPTION_SECRET_0" "$(secret_value "$CHART_SECRET" 'encryption-secret')"
 assert_eq "register-probe-key unchanged" "$REGISTER_PROBE_KEY_0" "$(secret_value "$CHART_SECRET" 'register-probe-key')"
@@ -215,8 +142,7 @@ patch_secret_value "$CHART_SECRET" 'probe-one' "$HOSTILE_PROBE"
 patch_secret_value "$CHART_SECRET" 'runner-key' "$HOSTILE_RUNNER"
 patch_secret_value "${RELEASE}-redis" 'redis-password' "$HOSTILE_REDIS"
 
-# shellcheck disable=SC2046
-if helm upgrade "$RELEASE" "$CHART_DIR" $(helm_args) >/dev/null 2>/tmp/hostile-upgrade.log; then
+if helm upgrade "$RELEASE" "$CHART_DIR" "${HELM_ARGS[@]}" >/dev/null 2>/tmp/hostile-upgrade.log; then
     pass "upgrade renders with YAML-hostile stored values"
 else
     fail "upgrade failed on YAML-hostile stored values"
@@ -239,8 +165,7 @@ patch_secret_value "${RELEASE}-redis" 'redis-password' "$REDIS_0"
 
 echo
 echo "=== 4. externalSecrets: the chart stops managing those keys (issue 3121) ==="
-# shellcheck disable=SC2046
-helm upgrade "$RELEASE" "$CHART_DIR" $(helm_args) "${EXTERNAL_ARGS[@]}" >/dev/null
+helm upgrade "$RELEASE" "$CHART_DIR" "${HELM_ARGS[@]}" "${EXTERNAL_ARGS[@]}" >/dev/null
 MANIFEST=$(helm get manifest "$RELEASE" -n "$NAMESPACE")
 CHART_SECRET_MANIFEST=$(echo "$MANIFEST" | extract_chart_secret)
 assert_absent "release manifest has no oneuptime-secret" "$CHART_SECRET_MANIFEST" "oneuptime-secret:"
@@ -252,8 +177,7 @@ assert_present "release manifest still has runner-key" "$CHART_SECRET_MANIFEST" 
 # Rendering the same release twice must produce an identical Secret: that is the
 # churn the issue reported.
 render_chart_secret() {
-    # shellcheck disable=SC2046
-    helm upgrade "$RELEASE" "$CHART_DIR" $(helm_args) "${EXTERNAL_ARGS[@]}" --dry-run 2>/dev/null |
+    helm upgrade "$RELEASE" "$CHART_DIR" "${HELM_ARGS[@]}" "${EXTERNAL_ARGS[@]}" --dry-run 2>/dev/null |
         extract_chart_secret |
         grep -E 'oneuptime-secret:|encryption-secret:|register-probe-key:' || true
 }
@@ -274,8 +198,7 @@ assert_eq "runner-key preserved while externalSecrets is on" "$RUNNER_KEY_0" "$(
 
 echo
 echo "=== 5. switching back to chart-managed secrets rotates nothing ==="
-# shellcheck disable=SC2046
-helm upgrade "$RELEASE" "$CHART_DIR" $(helm_args) >/dev/null
+helm upgrade "$RELEASE" "$CHART_DIR" "${HELM_ARGS[@]}" >/dev/null
 assert_eq "oneuptime-secret recovered" "$ONEUPTIME_SECRET_0" "$(secret_value "$CHART_SECRET" 'oneuptime-secret')"
 assert_eq "encryption-secret recovered" "$ENCRYPTION_SECRET_0" "$(secret_value "$CHART_SECRET" 'encryption-secret')"
 assert_eq "register-probe-key recovered" "$REGISTER_PROBE_KEY_0" "$(secret_value "$CHART_SECRET" 'register-probe-key')"
@@ -286,8 +209,7 @@ echo
 echo "=== 6. a fresh install with externalSecrets never generates the keys ==="
 helm uninstall "$RELEASE" -n "$NAMESPACE" >/dev/null 2>&1 || true
 kubectl -n "$NAMESPACE" delete secret "$CHART_SECRET" "${RELEASE}-redis" "${RELEASE}-postgresql" "${RELEASE}-clickhouse" >/dev/null 2>&1 || true
-# shellcheck disable=SC2046
-helm install "$RELEASE" "$CHART_DIR" $(helm_args) "${EXTERNAL_ARGS[@]}" >/dev/null
+helm install "$RELEASE" "$CHART_DIR" "${HELM_ARGS[@]}" "${EXTERNAL_ARGS[@]}" >/dev/null
 KEYS=$(secret_keys "$CHART_SECRET")
 assert_absent "install does not create oneuptime-secret" "$KEYS" "oneuptime-secret"
 assert_absent "install does not create encryption-secret" "$KEYS" "encryption-secret"
@@ -295,8 +217,4 @@ assert_absent "install does not create register-probe-key" "$KEYS" "register-pro
 assert_present "install still creates probe-one" "$KEYS" "probe-one"
 assert_present "install still creates runner-key" "$KEYS" "runner-key"
 
-echo
-echo "======================================================================"
-echo "  ${PASSES} passed, ${FAILURES} failed"
-echo "======================================================================"
-[ "$FAILURES" -eq 0 ]
+harness_report
