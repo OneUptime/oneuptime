@@ -15,6 +15,7 @@ import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import EntityRelationshipType from "../../Types/Telemetry/EntityRelationshipType";
+import EntitySource from "../../Types/Telemetry/EntitySource";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 import DatabaseBaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 
@@ -172,6 +173,31 @@ export default class TelemetryEntityRelationship extends DatabaseBaseModel {
     nullable: false,
   })
   public relationshipType?: EntityRelationshipType = undefined;
+
+  /*
+   * Immutable after create, for the same reason as TelemetryEntity.source:
+   * it is the predicate the edge prune keys on. An edge drawn by hand — the
+   * only way to connect a manual CI to anything — has nothing re-bumping its
+   * `lastSeenAt`, so without this it would be reaped by the 30-day sweep
+   * while the entities at both ends survived.
+   */
+  @ColumnAccessControl({ create: CREATE_PERMS, read: READ_PERMS, update: [] })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: true,
+    title: "Source",
+    description:
+      "Whether this edge was derived from telemetry or drawn manually by a user. Determines whether stale-edge pruning applies.",
+    example: "discovered",
+  })
+  @Index()
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: false,
+    default: EntitySource.Discovered,
+  })
+  public source?: EntitySource = undefined;
 
   @ColumnAccessControl({
     create: CREATE_PERMS,

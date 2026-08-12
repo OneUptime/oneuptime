@@ -6,6 +6,7 @@ import TelemetryEntityRelationshipService from "Common/Server/Services/Telemetry
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
+import EntitySource from "Common/Types/Telemetry/EntitySource";
 import EntityType from "Common/Types/Telemetry/EntityType";
 
 /*
@@ -18,6 +19,16 @@ import EntityType from "Common/Types/Telemetry/EntityType";
  * service deleted) — hard-delete it. Per-type TTLs reflect churn: pods /
  * deployments / instances cycle daily, nodes / namespaces weekly, and
  * service / host / cluster identities are long-lived.
+ *
+ * That reasoning holds for `EntitySource.Discovered` and nothing else, so
+ * both sweeps below are scoped to it. Inventory-mirrored rows are kept in
+ * step by their owning table's hooks and manual CIs are owned by the user;
+ * neither has anything bumping `lastSeenAt`, which makes an aged
+ * `lastSeenAt` on those rows meaningless rather than a death certificate.
+ * The inventory-mirrored and manual entity types are additionally absent
+ * from ENTITY_TTL_HOURS below, so they are unreachable by this sweep by
+ * two independent mechanisms — belt and braces, because the failure mode
+ * is silent deletion of user data.
  *
  * Relationship edges are pruned by lastSeenAt ONLY (no endpoint-existence
  * sweep — an endpoint disappearing is the entity prune's own concern). A
@@ -65,6 +76,16 @@ async function deleteStaleEntities(data: {
       query: {
         entityType: data.entityType,
         lastSeenAt: QueryHelper.lessThan(data.cutoff),
+        /*
+         * Discovered rows ONLY. `lastSeenAt` is a staleness signal solely
+         * because ingest re-bumps it every reconcile window; for the other
+         * two sources nothing does, so their lastSeenAt is frozen at create
+         * time and every one of them crosses any TTL simply by existing long
+         * enough. Without this predicate the sweep deletes every manually
+         * created CI and every inventory-mirrored row on its first run past
+         * the shortest TTL. See EntitySource.
+         */
+        source: EntitySource.Discovered,
       },
       limit: LIMIT_MAX,
       skip: 0,
@@ -105,6 +126,8 @@ RunCron(
           deleted = await TelemetryEntityRelationshipService.hardDeleteBy({
             query: {
               lastSeenAt: QueryHelper.lessThan(cutoff),
+              // Discovered edges only — see the source note in the header.
+              source: EntitySource.Discovered,
             },
             limit: LIMIT_MAX,
             skip: 0,

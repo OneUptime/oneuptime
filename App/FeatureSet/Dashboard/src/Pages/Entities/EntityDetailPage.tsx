@@ -214,6 +214,8 @@ const EntityDetailPage: FunctionComponent<
               entityType: true,
               displayName: true,
               entityKey: true,
+              source: true,
+              description: true,
               identifyingAttributes: true,
               descriptiveAttributes: true,
               resourceType: true,
@@ -447,6 +449,26 @@ const EntityDetailPage: FunctionComponent<
                 {entityKey}
               </dd>
             </div>
+            {entity.source && (
+              <div className="py-2 grid grid-cols-1 sm:grid-cols-3 gap-1">
+                <dt className="text-sm font-medium text-gray-500">
+                  {translateString("Source") || ""}
+                </dt>
+                <dd className="text-sm text-gray-900 sm:col-span-2">
+                  {entity.source}
+                </dd>
+              </div>
+            )}
+            {entity.description && (
+              <div className="py-2 grid grid-cols-1 sm:grid-cols-3 gap-1">
+                <dt className="text-sm font-medium text-gray-500">
+                  {translateString("Description") || ""}
+                </dt>
+                <dd className="text-sm text-gray-900 sm:col-span-2 whitespace-pre-line">
+                  {entity.description}
+                </dd>
+              </div>
+            )}
             {entity.firstSeenAt && (
               <div className="py-2 grid grid-cols-1 sm:grid-cols-3 gap-1">
                 <dt className="text-sm font-medium text-gray-500">
