@@ -164,7 +164,16 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
        * numeric/boolean inputs always represent equality.
        */
       if (item.type === ValueType.Number) {
-        result[item.key] = item.value as number;
+        /*
+         * An empty number box is a row the user is still filling in, not a
+         * filter for "". Leaving the key out of the result keeps it out of the
+         * query until an actual number is typed — which is what the value
+         * input used to achieve by deleting the row outright.
+         */
+        if (typeof item.value !== "number" || isNaN(item.value)) {
+          return;
+        }
+        result[item.key] = item.value;
         return;
       }
       if (item.type === ValueType.Boolean) {
@@ -495,12 +504,20 @@ const DictionaryForm: FunctionComponent<ComponentProps> = (
                     placeholder={props.valuePlaceholder}
                     onChange={(value: string) => {
                       const newData: Array<Item> = [...data];
+                      const parsedValue: number = parseInt(value);
 
-                      if (typeof value === "string" && value.length > 0) {
-                        newData[index]!.value = parseInt(value);
-                      } else {
-                        delete newData[index];
-                      }
+                      /*
+                       * Emptying the box empties this row's value — it does not
+                       * remove the row. `delete` on an array leaves a hole, so
+                       * clearing the number silently threw away the filter the
+                       * user was in the middle of writing, and the next
+                       * `[...data]` materialised that hole as `undefined` and
+                       * crashed the whole form on the following render.
+                       */
+                      newData[index]!.value =
+                        value.length > 0 && !isNaN(parsedValue)
+                          ? parsedValue
+                          : "";
 
                       setData(newData);
                       onDataChange(newData);
